@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "kind": "distribution-local-preflight-profile",
+  "target": {
+    "os": "linux",
+    "architecture": "x86_64",
+    "packageModel": "directory"
+  },
+  "entrypoint": "ordivon-game.x86_64",
+  "launch": {
+    "args": ["--headless"],
+    "successMarker": "ORDIVON_GAME_COLD_START_OK"
+  },
+  "steam": {
+    "appIdToken": "__STEAM_APP_ID__",
+    "depotIdToken": "__STEAM_DEPOT_ID__",
+    "description": "Ordivon Distribution Preflight R1",
+    "mapping": {
+      "localPath": "*",
+      "depotPath": ".",
+      "recursive": true
+    },
+    "exclusions": [
+      ".git/*",
+      ".git/**",
+      ".env",
+      ".env.*",
+      "*.pdb",
+      "tests/*",
+      "tests/**",
+      "src/*",
+      "src/**",
+      "evidence/*",
+      "evidence/**",
+      "node_modules/*",
+      "node_modules/**"
+    ]
+  },
+  "policy": {
+    "forbiddenPaths": [
+      ".git",
+      ".git/*",
+      ".git/**",
+      ".env",
+      ".env.*",
+      "*.pem",
+      "*.key",
+      "*.p12",
+      "*.pfx",
+      "tests/*",
+      "tests/**",
+      "src/*",
+      "src/**",
+      "evidence/*",
+      "evidence/**",
+      "node_modules/*",
+      "node_modules/**"
+    ]
+  }
+}

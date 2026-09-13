@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.distribution.r10-game-free-preflight-acceptance",
+  "status": "PASS",
+  "standing": "LOCAL_DISTRIBUTION_PREFLIGHT_PASS_REAL_PLATFORM_DEFERRED",
+  "observedOn": "2026-09-13",
+  "game": {
+    "sourceRevision": "809a82b733e3b3c761847a72a6a7fb7a94502ae5",
+    "productionStanding": "MECHANICAL_PRODUCTION_SLICE_AND_BOUNDED_BIT_REPRODUCIBILITY_PASS",
+    "buildSha256": "sha256:ed7906d6641f30afcecd142e8fe8716720bab5b317c24dfeebc19ddcb09af30c",
+    "buildSizeBytes": 73473208,
+    "engine": "Godot 4.7.1.stable.arch_linux.a13da4feb"
+  },
+  "runtimeEvidence": {
+    "jobId": "job-01a09a3f-5f77-77e1-a067-0031edd67c4d",
+    "stdoutArtifactId": "attempt-01a09a3f-5f77-77e1-a067-0040d915a7f8.stdout",
+    "stdoutArtifactDigest": "sha256:aeaf06654a2faf21d95ee8c89b4ac36432d26686b931a09de378915822ec246d",
+    "terminalEvidenceDigest": "sha256:0db1b26fd06f1183d0edc1b36c4669fc781fe00bb3ed7bab3b7f103dbb79c591"
+  },
+  "candidateTrees": {
+    "A": "sha256:2374990ec376b2fbfb965b1518404ccf0d5d7425f5a030c196494fbb5f780d27",
+    "B": "sha256:1893c5d0f570635424ba353e6b146fe270a14e7d8c7d03342ad739dc05bfe35d"
+  },
+  "admission": {
+    "forbiddenPathLeakage": "PASS",
+    "steamExclusionCollision": "PASS",
+    "entrypoint": "ELF64-x86_64",
+    "dynamicDependencies": "RESOLVED"
+  },
+  "steamStatic": {
+    "standing": "STATIC_TEMPLATE_ONLY",
+    "profileSha256": "sha256:bc6111f69bf40f1d8928bb5fb8d51b09c752fe641f623a22733fb62367a0f2fa",
+    "appBuildTemplateSha256": "sha256:d80746869351116b06ead4e6da4bc0896825e0f024419663074c06311a34a5c5",
+    "depotBuildTemplateSha256": "sha256:1223fcb29f33a3f768286f079ca246f4d2f515651ece5b3386731feed6eabeed",
+    "appId": "PLACEHOLDER_NOT_PROVISIONED",
+    "depotId": "PLACEHOLDER_NOT_PROVISIONED",
+    "realSteamPipePreview": "NOT_PERFORMED"
+  },
+  "lifecycle": {
+    "cleanInstallA": "PASS",
+    "updateAToB": "PASS",
+    "rollbackBToA": "PASS",
+    "uninstallReinstallB": "PASS",
+    "installedLaunchEveryStage": "PASS",
+    "staleFileElimination": "PASS_BY_EXACT_TREE_EQUALITY"
+  },
+  "tools": {
+    "rclone": {
+      "version": "v1.75.0",
+      "sha256": "sha256:29653dc9acd75c9fdf0fe00c644dfc2daf0e0e09a926ba80833c2493661151c9",
+      "requiredMode": "sync --checksum --metadata",
+      "finding": "without --metadata the local carrier preserved bytes but dropped the Linux executable bit; R10 therefore fails closed on executable-mode drift"
+    },
+    "readelf": {
+      "version": "GNU Binutils 2.47",
+      "sha256": "sha256:52f9c375576c77703c8b9c13cfd4136bf87cf5a461daa80c6e9e975a75bf6876"
+    },
+    "ldd": {
+      "version": "GNU libc 2.44",
+      "sha256": "sha256:94f332c23cf00596d0387d6f54693664f9a53334d65953b2ff308057cc8530b1"
+    }
+  },
+  "upstreamArtifactReleaseEvidence": {
+    "standing": "NOT_BOUND_BY_THIS_PREFLIGHT",
+    "owner": "Artifact",
+    "reason": "Artifact currently owns SBOM, SLSA/in-toto provenance, Sigstore trust, vulnerability/secret evidence and releaseReady; Distribution does not duplicate them."
+  },
+  "realPlatform": {
+    "steamAppId": "NOT_PROVISIONED",
+    "steamDepotManifest": "NOT_CREATED",
+    "steamBuildId": "NOT_CREATED",
+    "steamPrivateBranch": "NOT_TESTED",
+    "steamCdnInstall": "NOT_TESTED",
+    "publicRelease": "NOT_PERFORMED"
+  },
+  "claimsNotMinted": [
+    "STEAM_BACKEND_ACCEPTANCE",
+    "STEAMPIPE_PREVIEW_PASS",
+    "ARTIFACT_RELEASE_READY",
+    "SBOM",
+    "SLSA_PROVENANCE",
+    "SIGNATURE_TRUST",
+    "PLAYER_VALUE",
+    "COMMERCIAL_READINESS"
+  ]
+}

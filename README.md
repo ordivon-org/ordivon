@@ -86,12 +86,21 @@ See `docs/R6-APPROVAL-INGRESS.md` and `evidence/r6-validation-20260912.json`.
 - Existing Ordivon Temporal/Runtime + Workstation ingress: durable orchestration, immutable-input authority, and exact external-file ingress remain shared infrastructure owners.
 
 See `external-lock.json`, `composition-v1.json`, `contracts/`, `policy/`, `docs/`, and `scripts/test-all.sh`.
+
 ## R7 Artifact release-standing handoff
 
-Artifact-backed distribution intents now bind Artifact SHA-256, `releaseReady`, `trustStanding`, and source lineage into occurrence identity. Effectful publication is rejected with `artifact_release_not_ready` unless `releaseReady=true`; release readiness never replaces exact user EffectAuthority. The real post-retirement Artifact development package was evaluated through this gate with `externalEffectPerformed=false`. See `docs/R7-ARTIFACT-HANDOFF.md`.
+Artifact-backed distribution intents bind Artifact SHA-256, `releaseReady`, `trustStanding`, and source lineage into occurrence identity. Effectful publication is rejected with `artifact_release_not_ready` unless `releaseReady=true`; release readiness never replaces exact user EffectAuthority. The original R7 helper consumed the then-current custom `package-index.json`; Artifact has since retired that relationship format in favor of standards-based OCI/referrer mechanics. The executable helper is now retired; historical R7 evidence is retained only as migration evidence and is not a forward interface. See `docs/R7-ARTIFACT-HANDOFF.md` and `docs/R10-DISTRIBUTION-PREFLIGHT.md`.
+
 ## R8 durable integration port
 
 Distribution durable orchestration now has a thin Temporal Activity boundary over the CloudEvents/AsyncAPI integration contract. The integration endpoint is environment-provided, so Distribution does not embed the current n8n workflow ID or webhook URL. Production-green Temporal acceptance completed both the real unreleased-Artifact blocked path and a read-only GitHub provider readback path; both returned `externalEffectPerformed=false`. Nexus is intentionally not used because the integration edge is not a Temporal application. See `docs/R8-DURABLE-INTEGRATION-PORT.md`.
+
 ## R9 provider-write admission standing
 
 Provider connectivity and durable integration are operational, but provider write remains `BLOCKED_AUTHORITY_NOT_CONNECTIVITY`: current Artifact packages are development-only (`releaseReady=false`) and the exact effect-approval ingress is empty. No write adapter is activated and no GitHub write was performed. See `docs/R9-PROVIDER-WRITE-ADMISSION.md`.
+
+## R10 free local distribution preflight
+
+R10 adds the free, provider-independent release lifecycle gate without emulating a store. It freezes exact candidate directory trees, rejects forbidden or Steam-excluded paths, verifies the Linux ELF64/x86-64 entrypoint and dynamic dependency closure, renders provider-compatible SteamPipe VDF templates with placeholder AppID/DepotID values, then uses mature `rclone sync --metadata` for clean install, A→B update, B→A rollback, stale-file elimination, uninstall/reinstall, and launch from installed bytes.
+
+This is intentionally `LOCAL_DISTRIBUTION_PREFLIGHT_PASS_REAL_PLATFORM_DEFERRED`, not Steam acceptance. Real SteamPipe Preview/build, Depot Manifest, BuildID, beta branch, CDN/client install and platform update/rollback remain deferred until a real product has a Steam AppID and account authority. Artifact remains the owner of SBOM, SLSA/in-toto provenance, Sigstore trust, vulnerability/secret evidence and `releaseReady`. See `docs/R10-DISTRIBUTION-PREFLIGHT.md`.

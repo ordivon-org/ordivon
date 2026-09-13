@@ -25,12 +25,20 @@
       "defaultSubstrate": "openapi-generator",
       "fallback": "thin-manual-adapter-when-no-usable-machine-readable-api-contract-exists",
       "forbiddenLocalScaffolding": ["handwritten-generic-http-sdk-framework"]
+    },
+    {
+      "id": "software-store",
+      "defaultSubstrate": "provider-native-release-tooling",
+      "activatedLocalPreflight": "rclone-local-sync-plus-provider-config-static-validation",
+      "steamProvider": "SteamPipe/SteamCMD when a real AppID and account authority exist",
+      "forbiddenLocalScaffolding": ["generic-store-cdn", "custom-delta-updater", "custom-depot-manifest-system", "custom-store-branch-system"]
     }
   ],
   "nonClaims": [
     "local-preflight-is-provider-acceptance",
     "occurrence-ref-is-provider-idempotency",
     "postiz-dispatch-success-is-social-platform-publication-truth",
-    "workflow-success-is-external-consequence-success"
+    "workflow-success-is-external-consequence-success",
+    "steam-static-template-is-steampipe-preview"
   ]
 }
