@@ -18,6 +18,7 @@
     "e2e:lab": "node experiments/concept-lab/scripts/e2e-game-core-concept-lab.ts",
     "e2e:pre-g0": "node experiments/pre-g0/scripts/e2e-pre-g0-playable.ts",
     "e2e:casefile": "node experiments/casefile/scripts/e2e-casefile.ts",
+    "e2e:production-smoke": "node experiments/production-smoke-r1/run.ts",
     "e2e:v3": "node experiments/station-zero-v3/scripts/e2e-station-zero-v3.ts",
     "e2e:v3:g5": "node experiments/station-zero-v3/scripts/e2e-station-zero-v3-second-slice.ts",
     "eval:v3:fixture-strategies": "node experiments/station-zero-v3/scripts/eval-station-zero-v3-fixture-strategies.ts",

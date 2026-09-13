@@ -10,10 +10,9 @@ export type GameEquipmentOperation =
 
 type Spec = {
   equipmentId: string;
-  executable?: string;
   softwareId?: string;
   launcher?: string;
-  source: "isolated" | "managed" | "professional";
+  source: "managed" | "professional";
   authority: string;
   admission: string;
   role: "production" | "specialist" | "diagnostic";
@@ -21,7 +20,7 @@ type Spec = {
 
 const SPECS: Record<GameEquipmentOperation, Spec> = {
   "level.topology.author": {
-    equipmentId: "game-tiled-e1", executable: "tiled", source: "isolated", role: "production",
+    equipmentId: "professional:tiled:tiled", softwareId: "tiled", launcher: "tiled", source: "professional", role: "production",
     authority: "Tiled edits candidate geometry; Game-owned topology/parser/reducer remain authoritative.",
     admission: "Accept only committed TMJ bytes that pass Game spatial-layout validation and product tests.",
   },
@@ -36,7 +35,7 @@ const SPECS: Record<GameEquipmentOperation, Spec> = {
     admission: "Inspect/export the exact artifact and admit it only through the owning Game/Studio asset workflow.",
   },
   "gpu.frame.inspect": {
-    equipmentId: "game-renderdoc-e1", executable: "renderdoccmd", source: "isolated", role: "diagnostic",
+    equipmentId: "professional:renderdoc:renderdoccmd", softwareId: "renderdoc", launcher: "renderdoccmd", source: "professional", role: "diagnostic",
     authority: "RenderDoc capture/decode is observation evidence, not renderer or gameplay truth.",
     admission: "Use only for an exact owned Game rendering workload; retain capture identity and interpret findings in Game.",
   },
@@ -62,8 +61,7 @@ export function gameEquipmentCatalog() {
 
 function bindingCommand(spec: Spec): string[] {
   if (spec.source === "managed") return ["managed", "--equipment-id", spec.equipmentId];
-  if (spec.source === "professional") return ["professional", "--software-id", spec.softwareId!, "--launcher", spec.launcher!];
-  return ["isolated", "--equipment-id", spec.equipmentId, "--executable", spec.executable!];
+  return ["professional", "--software-id", spec.softwareId!, "--launcher", spec.launcher!];
 }
 
 export function resolveGameEquipment(operation: GameEquipmentOperation, sourceEnv: NodeJS.ProcessEnv = process.env) {

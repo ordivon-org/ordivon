@@ -13,13 +13,15 @@ test("Game equipment catalog preserves domain authority and has no MCP/tool regi
   assert.deepEqual(catalog.operations.map((x) => x.operation).sort(), ["engine.project.execute", "gpu.frame.inspect", "level.topology.author", "sprite.source.author", "vector.asset.author"]);
 });
 
-test("exact Workstation binding is consumed but never becomes gameplay authority", () => {
+test("Tiled is requested as professional software without a caller-supplied executable path", () => {
   const root = mkdtempSync(join(tmpdir(), "game-equipment-"));
   try {
+    const log = join(root, "args.json");
     const tool = join(root, "equipment-binding");
     writeFileSync(tool, `#!/usr/bin/env python3
-import json
-print(json.dumps({"schemaVersion":1,"kind":"ordivon.workstation-equipment-binding","state":"AVAILABLE","equipmentId":"game-tiled-e1","executable":"/exact/tiled","bindingDigest":"sha256:${"a".repeat(64)}"}))
+import json,sys
+open(${JSON.stringify(log)},"w").write(json.dumps(sys.argv[1:]))
+print(json.dumps({"schemaVersion":1,"kind":"ordivon.workstation-equipment-binding","state":"AVAILABLE","equipmentId":"professional:tiled:tiled","executable":"/exact/tiled","bindingDigest":"sha256:${"a".repeat(64)}"}))
 `);
     chmodSync(tool, 0o755);
     const value = resolveGameEquipment("level.topology.author", { ORDIVON_EQUIPMENT_BINDING: tool });
@@ -27,6 +29,9 @@ print(json.dumps({"schemaVersion":1,"kind":"ordivon.workstation-equipment-bindin
     assert.equal(value.binding.executable, "/exact/tiled");
     assert.equal(value.gameplayAuthorityGranted, false);
     assert.match(value.admission, /Game spatial-layout validation/);
+    const args = JSON.parse(readFileSync(log, "utf8"));
+    assert.deepEqual(args, ["professional", "--software-id", "tiled", "--launcher", "tiled"]);
+    assert.ok(!args.some((item: string) => item.includes("/usr/bin/tiled")));
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -63,6 +68,26 @@ print(json.dumps({"schemaVersion":1,"kind":"ordivon.workstation-equipment-bindin
     assert.equal(value.state, "AVAILABLE");
     const args = JSON.parse(readFileSync(log, "utf8"));
     assert.deepEqual(args, ["managed", "--equipment-id", "game-inkscape-e1"]);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("RenderDoc is requested as professional software without a caller-supplied executable path", () => {
+  const root = mkdtempSync(join(tmpdir(), "game-equipment-"));
+  try {
+    const log = join(root, "args.json");
+    const tool = join(root, "equipment-binding");
+    writeFileSync(tool, `#!/usr/bin/env python3
+import json,sys
+open(${JSON.stringify(log)},"w").write(json.dumps(sys.argv[1:]))
+print(json.dumps({"schemaVersion":1,"kind":"ordivon.workstation-equipment-binding","state":"AVAILABLE","equipmentId":"professional:renderdoc:renderdoccmd","executable":"/exact/renderdoccmd","bindingDigest":"sha256:${"c".repeat(64)}"}))
+`);
+    chmodSync(tool, 0o755);
+    const value = resolveGameEquipment("gpu.frame.inspect", { ORDIVON_EQUIPMENT_BINDING: tool });
+    assert.equal(value.state, "AVAILABLE");
+    assert.equal(value.binding.executable, "/exact/renderdoccmd");
+    const args = JSON.parse(readFileSync(log, "utf8"));
+    assert.deepEqual(args, ["professional", "--software-id", "renderdoc", "--launcher", "renderdoccmd"]);
+    assert.ok(!args.some((item: string) => item.includes("/usr/bin/renderdoccmd")));
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
