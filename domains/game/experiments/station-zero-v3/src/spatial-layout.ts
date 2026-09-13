@@ -42,8 +42,7 @@ interface TiledProperty {
 interface TiledObject {
   id: number;
   name: string;
-  class?: string;
-  type?: string;
+  type: string;
   x: number;
   y: number;
   width: number;
@@ -137,7 +136,7 @@ function parseSpatialLayout(raw: unknown): StationZeroV3SpatialLayout {
 
   const zones: Record<string, StationZeroV3SpatialZoneGeometry> = {};
   for (const object of layers.get("Zones")!.objects) {
-    if ((object.class ?? object.type) !== "zone") throw new TypeError(`Tiled Zone object ${object.name} must use class zone`);
+    if (object.type !== "zone") throw new TypeError(`Tiled Zone object ${object.name} must use type zone`);
     if ((object.rotation ?? 0) !== 0 || object.visible === false) throw new TypeError(`Tiled Zone object ${object.name} must be visible and axis-aligned`);
     const properties = propertyMap(object.properties, ZONE_PROPERTY_NAMES, `Tiled Zone ${object.name}`);
     const zoneId = requiredString(properties, "zoneId", `Tiled Zone ${object.name}`);
@@ -152,7 +151,7 @@ function parseSpatialLayout(raw: unknown): StationZeroV3SpatialLayout {
 
   const passages: Record<string, StationZeroV3SpatialPassageGeometry> = {};
   for (const object of layers.get("Passages")!.objects) {
-    if ((object.class ?? object.type) !== "passage") throw new TypeError(`Tiled Passage object ${object.name} must use class passage`);
+    if (object.type !== "passage") throw new TypeError(`Tiled Passage object ${object.name} must use type passage`);
     if ((object.rotation ?? 0) !== 0 || object.visible === false) throw new TypeError(`Tiled Passage object ${object.name} must be visible and unrotated`);
     const properties = propertyMap(object.properties, PASSAGE_PROPERTY_NAMES, `Tiled Passage ${object.name}`);
     const passageId = requiredString(properties, "passageId", `Tiled Passage ${object.name}`);
