@@ -84,3 +84,7 @@ carrier/prototype cost
 ```
 
 They cease to compete as product directions. Their durable value is mechanism/composition evidence.
+
+## Current evidence ledger
+
+R1 evidence is registered in [`GAME_MECHANISM_EVIDENCE_R1.md`](GAME_MECHANISM_EVIDENCE_R1.md) and `game-mechanism-evidence-r1.json`. The initial migration contains 22 specimens and 25 context-bound compatibility/composition claims. Use these claims to avoid retesting already falsified realizations and to identify where structural evidence still lacks Human validation.

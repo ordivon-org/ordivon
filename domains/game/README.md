@@ -125,8 +125,8 @@ Category/genre crosswalk        READY_R1
 Mechanism catalog               READY_R1_WORKING_EXTENSIBLE
 Structural design axes          READY_R1
 Composition graph vocabulary    READY_R1
-Historical mechanism evidence   MIGRATION_PENDING
-Pair/set compatibility evidence INITIAL / SPARSE
+Historical mechanism evidence   INITIAL_MIGRATION_22_SPECIMENS
+Pair/set compatibility evidence R1_25_CONTEXT_BOUND_CLAIMS
 Product selected                false
 ```
 
@@ -135,9 +135,11 @@ Canonical local crosswalks:
 - [`GAME_CATEGORY_CROSSWALK_R1.md`](GAME_CATEGORY_CROSSWALK_R1.md) — external market/category vocabulary;
 - [`GAME_MECHANISM_CATALOG_R1.md`](GAME_MECHANISM_CATALOG_R1.md) — normalized mechanism/pattern families;
 - [`GAME_MECHANISM_COMPOSITION_PROFILE_R1.md`](GAME_MECHANISM_COMPOSITION_PROFILE_R1.md) — graph-based design-search method;
-- [`game-design-space-r1.json`](game-design-space-r1.json) — machine-readable crosswalk.
+- [`GAME_MECHANISM_EVIDENCE_R1.md`](GAME_MECHANISM_EVIDENCE_R1.md) — current migrated specimen/coupling evidence and claim boundaries;
+- [`game-design-space-r1.json`](game-design-space-r1.json) — machine-readable category/mechanism crosswalk;
+- [`game-mechanism-evidence-r1.json`](game-mechanism-evidence-r1.json) — machine-readable 22-specimen / 25-claim evidence ledger.
 
-Next high-value work is **not another broad taxonomy search**. It is to decompose mature reference games and historical Ordivon experiments into mechanism graphs, then accumulate evidence about pair/set compatibility and emergent dynamics.
+The first decomposition wave is now materialized. Next high-value work is **not another broad taxonomy search**: extend evidence only from high-information references/experiments, pressure the 25 current coupling claims with Human play where needed, and use the ledger to choose composition experiments with the largest evidence gaps.
 
 ## External references
 
