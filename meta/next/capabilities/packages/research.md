@@ -26,7 +26,9 @@ Use the applicable subset, not all at once:
 
 ## Mature implementation choices
 
-Task-dependent examples already selected or proven useful include OpenAlex/Crossref for scholarly discovery/metadata, Zotero when human reference-library management is useful, Docling/GROBID for document intake/enrichment, Snakemake for scientific DAGs, DVC for larger data/artifact versioning, Pandera for tabular contracts, DuckDB for local analytical SQL, MLflow for run tracking, Inspect AI for agent/model evaluation, RO-Crate tooling for packaging, and Quarto/Pandoc/CSL for manuscript production.
+Task-dependent examples already selected or proven useful include OpenAlex/Crossref for scholarly discovery/metadata, Firecrawl when broad current public-web context must be searched/scraped/mapped/crawled, Zotero when human reference-library management is useful, Docling/GROBID for document intake/enrichment, Snakemake for scientific DAGs, DVC for larger data/artifact versioning, Pandera for tabular contracts, DuckDB for local analytical SQL, MLflow for run tracking, Inspect AI for agent/model evaluation, RO-Crate tooling for packaging, and Quarto/Pandoc/CSL for manuscript production.
+
+Firecrawl is an acquisition/context provider rather than a scientific-method owner: successful scraping does not establish source quality or evidential sufficiency. See `capabilities/providers/firecrawl.md` and `knowledge/lessons/firecrawl-web-context-kernel.md`.
 
 These are replaceable external capabilities, not Research-owned components.
 
