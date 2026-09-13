@@ -4,6 +4,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AssemblyName>Ordivon.MarketCapital.LeanValidation</AssemblyName>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="QuantConnect.Algorithm">
@@ -18,5 +20,8 @@
       <HintPath>$(LeanReleaseRoot)/Python.Runtime.dll</HintPath>
       <Private>false</Private>
     </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="QuickFIXn.FIX44" Version="1.14.1" />
   </ItemGroup>
 </Project>
