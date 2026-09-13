@@ -180,3 +180,13 @@ Four Media Git-owned approved outputs passed the path. Exact replay is idempoten
 An RFC 8493 audit caught that `bagit-python 1.9.0` still emits a 0.97 declaration. The final adapter upgrades only that declaration to 1.0, delegates tag-manifest regeneration and validation back to `bagit-python`, and fails closed on payload paths requiring unresolved percent-encoding behavior.
 
 This does **not** promote a3m to production authority or establish an AIP/repository. Current PRONOM identification, CAS-owned output resolution, Game release emission and the Enduro+Archivematica versus RODA production comparison remain separate next steps. See `docs/creative-forward-ingest-r4.md`.
+
+## Owner byte authority R5 — accepted bounded extension (2026-09-13)
+
+Forward ingest is no longer Git-only. The accepted adapter now resolves exact owner-approved bytes through either the existing exact Git Production rule or a Media-specific local-CAS resolver. The CAS path requires an exact authority receipt referenced by the exact Production, validates Production/Output identity, digest, size and digest-derived object key, and then verifies the actual object under an explicitly configured owner CAS mount. It never searches the workstation or falls back to the receipt's materialized working path.
+
+A complete current Media census at revision `920b52ac0de059338ceac8596c15466e4cd80da1` found 13 approved Outputs: 12 resolve uniquely through Git and the Book portable PDF resolves through the referenced Media local CAS; zero remain unresolved. All 13 are retained in the new `forward-r2` root. The R4 `forward-r1` root remains byte-stable.
+
+Deleting the entire R5 catalog and rebuilding from retained receipts alone reproduced identical logical, Parquet, DuckDB and manifest bytes without owner repo or CAS access. This keeps byte authority above the catalog and avoids turning PostgreSQL/DuckDB into source truth.
+
+This R5 acceptance does not generalize Media CAS into an Ordivon storage layer. Additional resolver types remain evidence-driven and owner-specific. AIP/PREMIS/METS production preservation, current PRONOM identification and the Enduro+Archivematica versus RODA production comparison remain open.
