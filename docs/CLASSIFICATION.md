@@ -51,5 +51,5 @@ These are migration hypotheses, not final dispositions:
 - Runtime -> Execution Enabling Capability.
 - Agent Birth -> Agent provisioning/orchestration Enabling Capability.
 - Workstation -> Enabling System / operating substrate.
-- Host -> retired historical mixed-responsibility container; no replacement entity. Residual mechanics belong to natural domain/external owners or disposable projections.
-- Board -> retired authoritative concept; collaboration/work views belong to task-local mature systems, while any cross-owner overview is projection-only.
+- Host -> historical mixed-responsibility implementation remains retired, but responsibility migration is still in progress. Work management, durable process, agent orchestration, integration, execution and observability are transferred to specialized mature owners rather than deleted.
+- Board -> historical custom Board implementation remains retired. Its real work-management/collaboration responsibility is targeted to Plane; operational dashboards remain projection-only and domain truth remains outside Plane.
