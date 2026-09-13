@@ -14,8 +14,23 @@ from .checkpoint_contract import (
     merge_checkpoint_update,
     validate_full_checkpoint,
 )
+from .contracts import (
+    AttentionResponse,
+    BoardListResponse,
+    BoardPostResponse,
+    BoardSearchResponse,
+    HostStatusResponse,
+    NewsListResponse,
+    NewsPublishResponse,
+    NewsReadResponse,
+    TaskListResponse,
+    TaskMutationResponse,
+    TaskObserveResponse,
+    TaskResumeResponse,
+)
 from .models import CheckpointInput, TaskState
 from .news import NewsStore
+from .news_contract import NewsEditionInput
 from .service import HostV2
 
 
@@ -34,13 +49,13 @@ def build_server(dsn: str | None = None) -> MCPServer:
     def host_status(
         detail: Literal["summary", "integrity", "history"] = "summary",
         recentLimit: int = 5,
-    ) -> dict[str, Any]:
+    ) -> HostStatusResponse:
         """Report PostgreSQL-native Host-v2 authority and bounded integrity status."""
         return service.status(detail=detail, recent_limit=recentLimit)
 
     @mcp.tool(name="attention.delta")
-    def attention_delta(afterSequence: int, limit: int = 100) -> dict[str, Any]:
-        """Return durable Host change navigation after one global activity sequence."""
+    def attention_delta(afterSequence: int, limit: int = 100) -> AttentionResponse:
+        """Return Board-sequence change navigation into exact Host Task re-entry."""
         return service.attention_delta(after_sequence=afterSequence, limit=limit)
 
     @mcp.tool(name="board.list")
@@ -51,7 +66,7 @@ def build_server(dsn: str | None = None) -> MCPServer:
         clientMessageId: str | None = None,
         replyToClientMessageId: str | None = None,
         replyToAuthorLabel: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> BoardListResponse:
         """Read durable Host collaboration messages; not Task priority or authority."""
         return board.list(
             after_sequence=afterSequence,
@@ -63,7 +78,7 @@ def build_server(dsn: str | None = None) -> MCPServer:
         )
 
     @mcp.tool(name="board.search")
-    def board_search(query: str, limit: int = 20) -> dict[str, Any]:
+    def board_search(query: str, limit: int = 20) -> BoardSearchResponse:
         """Search Board navigation coordinates using PostgreSQL-native search."""
         return board.search(query=query, limit=limit)
 
@@ -75,7 +90,7 @@ def build_server(dsn: str | None = None) -> MCPServer:
         messageKind: Literal["note", "question", "proposal", "warning", "reply"] = "note",
         topic: str | None = None,
         replyToClientMessageId: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> BoardPostResponse:
         """Persist one replay-safe collaboration message with self-asserted author label."""
         return board.post(
             client_message_id=clientMessageId,
@@ -92,7 +107,7 @@ def build_server(dsn: str | None = None) -> MCPServer:
         cursor: str | None = None,
         fromDate: str | None = None,
         toDate: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> NewsListResponse:
         """List durable external-news publication revisions."""
         return news.list(limit=limit, cursor=cursor, from_date=fromDate, to_date=toDate)
 
@@ -104,7 +119,7 @@ def build_server(dsn: str | None = None) -> MCPServer:
         categories: list[str] | None = None,
         threadKeys: list[str] | None = None,
         includeRenderedBrief: bool = False,
-    ) -> dict[str, Any]:
+    ) -> NewsReadResponse:
         """Read the latest or one exact external-news edition revision."""
         return news.read(
             edition_id=editionId,
@@ -120,14 +135,14 @@ def build_server(dsn: str | None = None) -> MCPServer:
         clientPublishId: str,
         editionId: str,
         expectedRevision: int,
-        edition: dict[str, Any],
-    ) -> dict[str, Any]:
+        edition: NewsEditionInput,
+    ) -> NewsPublishResponse:
         """Publish one revision-fenced external-news edition."""
         return news.publish(
             client_publish_id=clientPublishId,
             edition_id=editionId,
             expected_revision=expectedRevision,
-            edition=edition,
+            edition=edition.model_dump(mode="json"),
         )
 
     @mcp.tool(name="task.observe")
@@ -135,7 +150,7 @@ def build_server(dsn: str | None = None) -> MCPServer:
         taskId: str,
         expectedRevision: int | None = None,
         eventLimit: int = 5,
-    ) -> dict[str, Any]:
+    ) -> TaskObserveResponse:
         """Observe one revision-coherent Host task with recent semantic event metadata."""
         return service.observe(taskId, expectedRevision, eventLimit)
 
@@ -146,7 +161,7 @@ def build_server(dsn: str | None = None) -> MCPServer:
         limit: int = 50,
         cursor: str | None = None,
         includeTerminal: bool = False,
-    ) -> dict[str, Any]:
+    ) -> TaskListResponse:
         """List Host semantic-continuity tasks; not a priority or ownership surface."""
         tasks, has_more, next_cursor = service.list_tasks_page(
             include_terminal=includeTerminal,
@@ -165,7 +180,7 @@ def build_server(dsn: str | None = None) -> MCPServer:
         }
 
     @mcp.tool(name="task.resume")
-    def task_resume(taskId: str, expectedRevision: int | None = None) -> dict[str, Any]:
+    def task_resume(taskId: str, expectedRevision: int | None = None) -> TaskResumeResponse:
         """Recover one exact semantic checkpoint without querying foreign owners."""
         task = service.resume(taskId, expectedRevision)
         return {
@@ -184,7 +199,7 @@ def build_server(dsn: str | None = None) -> MCPServer:
         goalId: str,
         initialCheckpoint: WorkingCheckpointInput,
         writerLabel: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> TaskMutationResponse:
         """Create or recover one external-continuity task and initial checkpoint."""
         initial = validate_full_checkpoint(taskId, initialCheckpoint)
         request = {
@@ -216,7 +231,7 @@ def build_server(dsn: str | None = None) -> MCPServer:
         checkpoint: WorkingCheckpointUpdate,
         continuityDisposition: Literal["continue", "complete", "abandon"] = "continue",
         writerLabel: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> TaskMutationResponse:
         """Commit one exact-revision semantic checkpoint; disposition closes Host tracking only."""
         state = {
             "continue": TaskState.OPEN,

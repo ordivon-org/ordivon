@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import pytest
 
-from ordivon_host_v2 import CheckpointInput, ConflictError, HostV2
+from ordivon_host_v2 import CheckpointInput, HostV2
 from ordivon_host_v2.board import (
     _TASK_ROUTE_ANCHOR_AUTHOR_LABEL,
     _TASK_ROUTE_ANCHOR_ID_PREFIX,
@@ -15,22 +15,21 @@ from ordivon_host_v2.board import (
     _TASK_ROUTE_ANCHOR_TOPIC,
     BoardStore,
 )
-from ordivon_host_v2.extensions import ExtensionStore
 from ordivon_host_v2.news import NewsStore
 
 DSN = os.environ.get("ORDIVON_HOST_V2_TEST_DSN")
 pytestmark = pytest.mark.skipif(not DSN, reason="ORDIVON_HOST_V2_TEST_DSN not set")
 
 
-def stores() -> tuple[HostV2, BoardStore, NewsStore, ExtensionStore]:
+def stores() -> tuple[HostV2, BoardStore, NewsStore]:
     assert DSN is not None
     host = HostV2(DSN)
     host.initialize()
-    return host, BoardStore(DSN), NewsStore(DSN), ExtensionStore(DSN)
+    return host, BoardStore(DSN), NewsStore(DSN)
 
 
 def test_board_filtered_incremental_exhaustion_advances_fence() -> None:
-    _, board, _, _ = stores()
+    _, board, _ = stores()
     marker = uuid4().hex
     first = board.post(
         client_message_id=f"msg:{marker}:1", author_label="agent:a", message="a", topic="a"
@@ -48,7 +47,7 @@ def test_board_filtered_incremental_exhaustion_advances_fence() -> None:
 
 
 def test_board_list_rejects_invalid_query_coordinates() -> None:
-    _, board, _, _ = stores()
+    _, board, _ = stores()
     with pytest.raises(ValueError, match="afterSequence"):
         board.list(after_sequence=-1)
     with pytest.raises(ValueError, match="topic"):
@@ -59,35 +58,8 @@ def test_board_list_rejects_invalid_query_coordinates() -> None:
         board.list(reply_to_author_label=" bad ")
 
 
-def test_extension_history_is_immutable_per_task_namespace_revision() -> None:
-    host, _, _, extension = stores()
-    task_id = f"task:v2:extension:{uuid4().hex}"
-    host.adopt(
-        task_id=task_id,
-        checkpoint=CheckpointInput(payload={"frontier": "one"}),
-        client_request_id=f"adopt:{task_id}",
-    )
-    first = extension.put(
-        task_id=task_id, namespace="world", expected_task_revision=1, payload={"value": 1}
-    )
-    replay = extension.put(
-        task_id=task_id, namespace="world", expected_task_revision=1, payload={"value": 1}
-    )
-    assert replay["payloadDigest"] == first["payloadDigest"]
-    with pytest.raises(ConflictError, match="already bound"):
-        extension.put(
-            task_id=task_id,
-            namespace="world",
-            expected_task_revision=1,
-            payload={"value": 2},
-        )
-    historical = extension.get(task_id=task_id, namespace="world", at_revision=1)
-    assert historical is not None
-    assert historical["payload"] == {"value": 1}
-
-
 def test_reserved_task_route_anchor_rejects_squatting_and_attention_routes_reply() -> None:
-    host, board, _, _ = stores()
+    host, board, _ = stores()
     task_id = f"task:v2:attention:{uuid4().hex}"
     host.adopt(
         task_id=task_id,
@@ -115,6 +87,7 @@ def test_reserved_task_route_anchor_rejects_squatting_and_attention_routes_reply
         message_kind="note",
         topic=_TASK_ROUTE_ANCHOR_TOPIC,
     )
+    assert anchor["admission"] == "existing"
     board.post(
         client_message_id=f"reply:{uuid4().hex}",
         author_label="agent:peer",
@@ -123,8 +96,12 @@ def test_reserved_task_route_anchor_rejects_squatting_and_attention_routes_reply
         topic="coordination",
         reply_to_client_message_id=anchor_id,
     )
-    delta = host.attention_delta(after_sequence=int(anchor["message"]["sequence"]), limit=10)
+    delta = host.attention_delta(
+        after_sequence=max(0, int(anchor["message"]["sequence"]) - 1), limit=10
+    )
     assert delta["kind"] == "ordivon.host-current-attention-delta"
+    assert delta["summary"]["infrastructureMessageCount"] == 1
+    assert delta["summary"]["newMessageCount"] == 1
     assert delta["summary"]["routedTaskCount"] == 1
     routed = delta["routedTasks"][0]
     assert routed["taskId"] == task_id
@@ -139,7 +116,7 @@ def test_reserved_task_route_anchor_rejects_squatting_and_attention_routes_reply
 
 
 def test_news_list_rejects_invalid_date_scope() -> None:
-    _, _, news, _ = stores()
+    _, _, news = stores()
     with pytest.raises(ValueError, match="fromDate"):
         news.list(from_date="ZZZ")
     with pytest.raises(ValueError, match="fromDate must be <= toDate"):

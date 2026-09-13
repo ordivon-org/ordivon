@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import time
 from typing import Any
 
@@ -114,6 +113,61 @@ def board_message_digest(value: dict[str, Any]) -> str:
     return canonical_digest({"schemaVersion": 1, "kind": "host-board-message", "payload": payload})
 
 
+def canonical_task_route_anchor(task_id: str) -> dict[str, Any]:
+    if not isinstance(task_id, str) or not task_id.startswith("task:"):
+        raise ValueError("task route anchor requires one exact task: identity")
+    suffix = hashlib.sha256(task_id.encode("utf-8")).hexdigest()
+    return {
+        "clientMessageId": _TASK_ROUTE_ANCHOR_ID_PREFIX + suffix,
+        "authorLabel": _TASK_ROUTE_ANCHOR_AUTHOR_LABEL,
+        "messageKind": "note",
+        "topic": _TASK_ROUTE_ANCHOR_TOPIC,
+        "message": _TASK_ROUTE_ANCHOR_MESSAGE_PREFIX + task_id + _TASK_ROUTE_ANCHOR_MESSAGE_SUFFIX,
+        "replyToClientMessageId": None,
+    }
+
+
+def ensure_task_route_anchor_in_tx(
+    conn: psycopg.Connection[dict[str, Any]], task_id: str
+) -> dict[str, Any]:
+    value = canonical_task_route_anchor(task_id)
+    digest = board_message_digest(value)
+    row = conn.execute(
+        "INSERT INTO board_messages(client_message_id,author_label,message_kind,topic,message,reply_to_client_message_id,message_digest,recorded_at_ms) "
+        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (client_message_id) DO NOTHING "
+        "RETURNING sequence,recorded_at_ms",
+        (
+            value["clientMessageId"],
+            value["authorLabel"],
+            value["messageKind"],
+            value["topic"],
+            value["message"],
+            value["replyToClientMessageId"],
+            digest,
+            _now_ms(),
+        ),
+    ).fetchone()
+    if row is not None:
+        return {
+            "admission": "committed",
+            "clientMessageId": value["clientMessageId"],
+            "sequence": int(row["sequence"]),
+        }
+    existing = conn.execute(
+        "SELECT * FROM board_messages WHERE client_message_id=%s",
+        (value["clientMessageId"],),
+    ).fetchone()
+    if existing is None:
+        raise RuntimeError("task route anchor disappeared after conflict arbitration")
+    if task_route_anchor_task_id(existing) != task_id or existing["message_digest"] != digest:
+        raise ConflictError("deterministic task route anchor is bound to non-canonical content")
+    return {
+        "admission": "existing",
+        "clientMessageId": value["clientMessageId"],
+        "sequence": int(existing["sequence"]),
+    }
+
+
 class BoardStore:
     def __init__(self, dsn: str) -> None:
         self.dsn = dsn
@@ -183,7 +237,6 @@ class BoardStore:
                     _now_ms(),
                 ),
             ).fetchone()
-            created = row is not None
             admission = "committed"
             if row is None:
                 row = conn.execute(
@@ -196,11 +249,6 @@ class BoardStore:
                         "board clientMessageId is already bound to different content"
                     )
                 admission = "existing"
-            if created:
-                conn.execute(
-                    "INSERT INTO activity_log(activity_kind,subject_id,payload) VALUES ('board.post',%s,%s::jsonb)",
-                    (client_message_id, json.dumps({"topic": topic}, separators=(",", ":"))),
-                )
             message_row = self._by_id(conn, client_message_id)
             occupancy = None
             if reply_to_client_message_id is not None:

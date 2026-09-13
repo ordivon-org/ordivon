@@ -57,4 +57,4 @@ class HostStatus(BaseModel):
 
     service: str = "ordivon-host-v2"
     authority: str = "postgresql"
-    schema_version: int = 3
+    schema_version: int = 4

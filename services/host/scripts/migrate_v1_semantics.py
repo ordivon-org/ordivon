@@ -227,8 +227,8 @@ def import_bundle(bundle: Path, dsn: str) -> dict[str, Any]:
         required = conn.execute(
             "SELECT schema_version FROM host_v2_schema WHERE singleton"
         ).fetchone()
-        if required is None or int(required["schema_version"]) != 3:
-            raise ValueError("target is not an initialized Host v2 schemaVersion 3 database")
+        if required is None or int(required["schema_version"]) != 4:
+            raise ValueError("target is not an initialized Host v2 schemaVersion 4 database")
         occupied = {}
         for table in (
             "tasks",
@@ -236,9 +236,6 @@ def import_bundle(bundle: Path, dsn: str) -> dict[str, Any]:
             "task_events",
             "board_messages",
             "news_publications",
-            "extension_states",
-            "extension_history",
-            "activity_log",
             "command_receipts",
         ):
             occupied[table] = int(

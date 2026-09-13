@@ -246,7 +246,7 @@ def test_postgres_native_status_summary_integrity_and_history() -> None:
     summary = h.status(detail="summary", recent_limit=1)
     assert summary["kind"] == "ordivon.host-status"
     assert summary["authority"]["journalBackend"] == "postgresql"
-    assert summary["authority"]["journalSchema"] == 3
+    assert summary["authority"]["journalSchema"] == 4
     assert summary["doctor"] is None
     assert summary["deployment"]["status"] == "not-observed"
     integrity = h.status(detail="integrity", recent_limit=0)
