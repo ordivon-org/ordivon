@@ -1,0 +1,12 @@
+{
+  "brokerCredentialsUsed": false,
+  "consoleLogSha256": "acf1f0aa065e781249168ab53ad35d39e23b531c1d5262cbff09365baad144af",
+  "endEquityUsd": "104067.97",
+  "externalFinancialWritesAttempted": false,
+  "fills": 3,
+  "finalPortfolio": "totalValue=104067.97407825535|cash=-539.02592174465|marginUsed=52303.50000",
+  "orderListHash": "81ddc01794082b9eba9424f59bcbe701",
+  "standing": "PASS_BOUNDED_HISTORICAL_FIXTURE",
+  "targetPortfolioSha256": "137265667683455c302adff94466eaf38444ed7d51b5959c4ad065505792c14d",
+  "totalFeesUsd": "11.63"
+}
