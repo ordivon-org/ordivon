@@ -29,6 +29,7 @@ There is no need for a private Ordivon media standard that replaces these owners
 - ImageMagick;
 - Blender;
 - Godot when real-time/interactive rendering is useful;
+- ComfyUI is an on-demand candidate for reusable generative image/video/audio/3D/model workflows; it is not currently installed locally and should be activated only when a real generative-media workload justifies model/GPU/node-pack cost. Its workflow engine, caching, model memory management and custom-node ecosystem remain provider-owned rather than Media/Ordivon infrastructure;
 - Artifact package/provider for family-native validation and packaging;
 - Distribution provider for publication/read-back effects;
 - Research package/Skills for source grounding;
