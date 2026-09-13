@@ -113,7 +113,6 @@ source = { editable = "." }
 dependencies = [
     { name = "httpx" },
     { name = "jsonschema" },
-    { name = "ordivon-protocol" },
 ]
 
 [package.dev-dependencies]
@@ -125,16 +124,10 @@ dev = [
 requires-dist = [
     { name = "httpx", specifier = "==0.28.1" },
     { name = "jsonschema", specifier = ">=4.26,<5" },
-    { name = "ordivon-protocol", git = "https://github.com/zycxfyh/ordivon-computing.git?subdirectory=packages%2Fordivon-protocol&rev=420dc356cb664d75db0f34f356156baebe5843db" },
 ]
 
 [package.metadata.requires-dev]
 dev = [{ name = "ruff", specifier = "==0.15.17" }]
-
-[[package]]
-name = "ordivon-protocol"
-version = "0.3.0"
-source = { git = "https://github.com/zycxfyh/ordivon-computing.git?subdirectory=packages%2Fordivon-protocol&rev=420dc356cb664d75db0f34f356156baebe5843db#420dc356cb664d75db0f34f356156baebe5843db" }
 
 [[package]]
 name = "referencing"

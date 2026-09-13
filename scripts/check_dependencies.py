@@ -9,8 +9,6 @@ from pathlib import Path
 import tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
-PROTOCOL_REVISION = "420dc356cb664d75db0f34f356156baebe5843db"
-
 
 def fail(message: str) -> None:
     print(f"dependencies: {message}", file=sys.stderr)
@@ -20,22 +18,17 @@ def fail(message: str) -> None:
 def main() -> int:
     raw = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     project = raw["project"]
-    expected_protocol = (
-        "ordivon-protocol @ git+https://github.com/zycxfyh/ordivon-computing.git@"
-        + PROTOCOL_REVISION
-        + "#subdirectory=packages/ordivon-protocol"
-    )
-    expected_dependencies = ["httpx==0.28.1", "jsonschema>=4.26,<5", expected_protocol]
+    expected_dependencies = ["httpx==0.28.1", "jsonschema>=4.26,<5"]
     if project.get("dependencies") != expected_dependencies:
-        fail("base dependencies must contain only HTTPX, jsonschema, and the exact Protocol graph")
+        fail("base dependencies must contain only HTTPX and jsonschema")
     if "optional-dependencies" in project:
         fail("Harness must not expose compatibility dependency extras")
     if raw.get("dependency-groups") != {"dev": ["ruff==0.15.17"]}:
         fail("Harness dev dependency group must contain only ruff==0.15.17")
 
     lock = (ROOT / "uv.lock").read_text(encoding="utf-8")
-    if f"rev={PROTOCOL_REVISION}" not in lock or f"#{PROTOCOL_REVISION}" not in lock:
-        fail("uv.lock does not bind the exact Protocol revision")
+    if "ordivon-protocol" in lock or "ordivon-computing" in lock:
+        fail("uv.lock still contains retired cross-repository Protocol/Computing dependency")
     if "ordivon-host" in lock or "ordivon_host" in lock:
         fail("uv.lock still contains Ordivon Host")
 
@@ -76,7 +69,7 @@ def main() -> int:
     ):
         fail("package version and source-checkout fallback differ")
 
-    print(f"dependency contract: valid protocol={PROTOCOL_REVISION} host=absent dev=ruff==0.15.17")
+    print("dependency contract: valid canonical=owner-local-compat host=absent dev=ruff==0.15.17")
     return 0
 
 

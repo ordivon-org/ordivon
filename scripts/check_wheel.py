@@ -59,6 +59,8 @@ EXPECTED_API = {
     "structured_completion_result_schema",
 }
 REQUIRED_MEMBERS = {
+    "anc_canonical/__init__.py",
+    "anc_canonical/canonical.py",
     "ordivon_harness/agent_run.py",
     "ordivon_harness/api.py",
     "ordivon_harness/completion.py",
@@ -175,21 +177,14 @@ def validate_archive(wheel: Path) -> str:
     if metadata.get("Name") != project["name"] or metadata.get("Version") != project["version"]:
         fail("wheel name/version differs from pyproject")
     requirements = tuple(metadata.get_all("Requires-Dist", []))
-    if len(requirements) != 3:
-        fail(
-            "wheel must contain only pinned HTTPX, bounded jsonschema, "
-            f"and exact Protocol dependencies: {requirements}"
-        )
+    if len(requirements) != 2:
+        fail(f"wheel must contain only pinned HTTPX and bounded jsonschema: {requirements}")
     if "httpx==0.28.1" not in requirements:
         fail(f"wheel lacks the pinned HTTPX dependency: {requirements}")
     if "jsonschema<5,>=4.26" not in requirements:
         fail(f"wheel lacks the bounded jsonschema dependency: {requirements}")
-    protocol_requirements = [item for item in requirements if "ordivon-protocol" in item]
-    expected_protocol = next(
-        item for item in project["dependencies"] if item.startswith("ordivon-protocol @ ")
-    )
-    if len(protocol_requirements) != 1 or protocol_requirements[0] != expected_protocol:
-        fail(f"wheel must bind the exact Protocol dependency: {requirements}")
+    if any("ordivon-protocol" in item or "ordivon-computing" in item for item in requirements):
+        fail("wheel still exposes retired Computing/Protocol dependency")
     if any("ordivon-host" in item or "extra ==" in item for item in requirements):
         fail("wheel metadata still exposes Host/extra dependencies")
     if "ordivon-harness = ordivon_harness.cli:entrypoint" not in entries:
