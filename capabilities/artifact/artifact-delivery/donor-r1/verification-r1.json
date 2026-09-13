@@ -1,14 +1,14 @@
 {
-  "baseRevision": "c79751e7ab47536514ac8ba34cff361ed083ab46",
-  "boundary": "PASS establishes deterministic donor generation, exact source-reference digests, complete current Artifact family/profile coverage, preserved live-proven shadow bindings, profile-specific validator ownership, non-promotion of execution wiring, and no regression in the current Artifact test matrix. It does not establish that Artifact schemas are universal Ordivon Core contracts.",
+  "baseRevision": "c9b412048a0512031e3f3dc3d628f53e74bd70e6",
+  "boundary": "PASS establishes deterministic donor generation, exact source-reference digests, complete current Artifact family/profile coverage, preserved live-proven shadow bindings, profile-specific validator ownership, non-promotion of execution wiring, and no regression in the current Artifact test matrix. Ogg/Vorbis target-boundary divergence is preserved as evidence and is not converted into caller-domain acceptance. It does not establish that Artifact schemas are universal Ordivon Core contracts.",
   "coverage": {
-    "isolatedValidatorImplementations": 10,
-    "liveProvenShadowBindings": 10,
-    "normalizedProfiles": 18,
+    "isolatedValidatorImplementations": 11,
+    "liveProvenShadowBindings": 11,
+    "normalizedProfiles": 19,
     "representedFamilies": 14,
     "taxonomyFamilies": 14
   },
-  "donorManifestSha256": "7500949d9f292df42da8bbc7f0787d565d227e4cf0129d4c9e0991e3b2e9b622",
+  "donorManifestSha256": "41bc8bac69f28e0fb80bcf33bbad5d2389687cd9d84663145d1b883deba09bd8",
   "focusedDonorTests": {
     "failed": 0,
     "passed": 10,
@@ -16,14 +16,14 @@
   },
   "fullRegression": {
     "failed": 0,
-    "passed": 245,
+    "passed": 250,
     "skipped": 2,
-    "total": 247
+    "total": 252
   },
   "id": "artifact-k2a-donor-r1-verification-r1",
   "kind": "artifact-k2a-donor-verification",
-  "operationDigest": "sha256:bb0b15d56def37244cdb42bdcca94a4c985d4711930b86035ceb84aec3c8836a",
-  "runtimeJobId": "job-01a09a25-e18c-7bb0-b0ea-ad6df813caaa",
+  "operationDigest": "sha256:4652a6e69afaf6324bd6e6472216eff08894d273e7555a0099a9e73144b87105",
+  "runtimeJobId": "job-01a09a4a-794e-7d11-a8db-f31eafc8c896",
   "schemaVersion": 1,
   "standing": "PASS"
 }

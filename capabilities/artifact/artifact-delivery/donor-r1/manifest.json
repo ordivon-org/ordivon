@@ -1,9 +1,9 @@
 {
-  "baseRevision": "c79751e7ab47536514ac8ba34cff361ed083ab46",
+  "baseRevision": "c9b412048a0512031e3f3dc3d628f53e74bd70e6",
   "coverage": {
-    "isolatedValidatorImplementations": 10,
-    "liveProvenShadowBindings": 10,
-    "normalizedProfiles": 18,
+    "isolatedValidatorImplementations": 11,
+    "liveProvenShadowBindings": 11,
+    "normalizedProfiles": 19,
     "representedFamilies": 14,
     "taxonomyFamilies": 14
   },
@@ -60,7 +60,7 @@
     {
       "id": "object-contract-coverage",
       "observation": {
-        "profilesWithExplicitObjectContract": 9,
+        "profilesWithExplicitObjectContract": 10,
         "profilesWithoutExplicitObjectContract": 9
       },
       "standing": "PRESERVE_GAP_DO_NOT_INVENT"
@@ -68,7 +68,7 @@
     {
       "id": "result-boundary-coverage",
       "observation": {
-        "profilesWithExplicitNonClaims": 10,
+        "profilesWithExplicitNonClaims": 11,
         "profilesWithoutExplicitNonClaims": 8
       },
       "standing": "PRESERVE_GAP_DO_NOT_INVENT"
@@ -77,7 +77,7 @@
       "id": "composition-sequencing",
       "observation": {
         "profilesWithEncodedSequence": 0,
-        "profilesWithoutEncodedSequence": 18
+        "profilesWithoutEncodedSequence": 19
       },
       "standing": "PRESERVE_GAP_DO_NOT_INVENT"
     }
@@ -239,6 +239,145 @@
       "validatorImplementation": {
         "path": "scripts/artifact_audio.py",
         "sha256": "af079006ef4aca3c7c1ecbd469f69f89d8c9b0ef0a78e13f6dbf13cd54c4a377"
+      }
+    },
+    {
+      "candidateProblemKey": "artifact/audio/audio-ogg-vorbis-r1",
+      "capabilityBinding": {
+        "bindingKeys": [
+          "browserMatrix",
+          "independentDecoder",
+          "xiphReference"
+        ],
+        "proofKeys": [
+          "corruptOgg",
+          "currentGameCueResults",
+          "currentGameRevision",
+          "focusedTests",
+          "gameTripleSmokeOperationDigest",
+          "gameTripleSmokeRuntimeJobId",
+          "wrongPlaybackBoundary"
+        ],
+        "reference": {
+          "path": "artifact-delivery/shadow-bindings/audio-ogg-vorbis-local-r1.json",
+          "sha256": "f1209059526ace6d4445b50593c5805495630992570f6a26f6f4c831e62c534e"
+        },
+        "standing": "LOCAL_LIVE_PROVEN"
+      },
+      "classification": {
+        "conformanceProfile": "RFC 3533 Ogg + Vorbis I bounded single-logical-stream audio profile; RFC 5334 audio/ogg codecs=vorbis",
+        "family": "audio",
+        "format": {
+          "mediaType": "audio/ogg",
+          "name": "Ogg Vorbis"
+        },
+        "purposes": [
+          "game-runtime",
+          "exchange"
+        ],
+        "representation": "lossy-encoded-audio-container"
+      },
+      "compositionCandidate": {
+        "capabilitySignals": [
+          "browserMatrix",
+          "independentDecoder",
+          "reference-plus-browser-decoder-matrix",
+          "xiphReference"
+        ],
+        "requiredEvidence": [
+          "browserTargetMatrix",
+          "contractSchema",
+          "independentDecodeObservation",
+          "independentTechnicalView",
+          "oggVorbisIntegrity",
+          "referenceDecode"
+        ],
+        "sequencing": "NOT_ENCODED_DO_NOT_INFER",
+        "status": "DECLARATIVE_PROFILE_CANDIDATE"
+      },
+      "migrationDisposition": {
+        "capabilityBinding": "SEMANTIC_MAPPING",
+        "classification": "DIRECT_REFERENCE",
+        "evidenceRequirements": "DIRECT_REFERENCE",
+        "executionWiring": "DO_NOT_PROMOTE",
+        "objectContract": "SEMANTIC_MAPPING",
+        "resultBoundary": "DIRECT_REFERENCE",
+        "standards": "DIRECT_REFERENCE",
+        "validationMapping": "SEMANTIC_MAPPING"
+      },
+      "objectContract": {
+        "declaration": {
+          "binding": "request-digest",
+          "kind": "audio-ogg-vorbis-contract-v1",
+          "required": true,
+          "schemaReference": "shadow-contracts/audio-ogg-vorbis-contract-v1.schema.json"
+        },
+        "schema": {
+          "path": "artifact-delivery/shadow-contracts/audio-ogg-vorbis-contract-v1.schema.json",
+          "sha256": "d34599c2ba135621d276d67ea7ec4780cf9a1420034a0b53e4690f3c76cfbe56"
+        }
+      },
+      "profileId": "audio-ogg-vorbis-r1",
+      "resultBoundary": {
+        "nonClaims": [
+          "cross-browser sample-exact playback-length equivalence",
+          "bit-exact PCM equality across independent Vorbis decoder implementations",
+          "factual or artistic correctness of the audio content",
+          "subjective sound quality, loudness or mastering quality",
+          "truth or completeness of Vorbis comments/tags",
+          "support for chained or multiplexed Ogg logical streams",
+          "Game suitability beyond the consuming Game's own acceptance",
+          "rights or licensing validity of encoded content"
+        ]
+      },
+      "sourceProfile": {
+        "path": "artifact-delivery/shadow-v2/examples/audio-ogg-vorbis-r1-v2.json",
+        "sha256": "d6082289083cb1d2200477658425a7ee3432d379f0b5f3457e57c3b97b9076b7"
+      },
+      "standards": [
+        "format/profile-selected codec and container standards",
+        "BWF/WAVE or professional preservation profiles where required"
+      ],
+      "targetAuthorities": [
+        {
+          "authorityClass": "independent-implementation-matrix",
+          "minimumIndependentImplementations": 2,
+          "name": "reference-plus-browser-decoder-matrix",
+          "required": true
+        }
+      ],
+      "validationMapping": {
+        "browserTargetMatrix": {
+          "claim": "Pinned Chromium and Firefox both decode the exact Ogg/Vorbis bytes at the contracted rate/channel topology; decoded sample-boundary agreement is explicitly reported",
+          "parameters": {
+            "minimumIndependentImplementations": 2
+          },
+          "required": true
+        },
+        "contractSchema": {
+          "claim": "Ogg Vorbis object contract is valid under audio-ogg-vorbis-contract-v1",
+          "required": true
+        },
+        "independentDecodeObservation": {
+          "claim": "FFmpeg independently decodes the stream and its common canonical s16le prefix remains numerically compatible with the Xiph reference output; decoder-specific priming/end-boundary differences are reported rather than redefined as standard semantics",
+          "required": true
+        },
+        "independentTechnicalView": {
+          "claim": "FFprobe independently identifies one Ogg/Vorbis stream and exposes contract rate/channel/playback-duration facts",
+          "required": true
+        },
+        "oggVorbisIntegrity": {
+          "claim": "Xiph ogginfo accepts exactly one completed Vorbis logical stream with version 0 and contract rate/channel facts",
+          "required": true
+        },
+        "referenceDecode": {
+          "claim": "Xiph oggdec decodes canonical signed little-endian 16-bit PCM whose per-channel sample count equals the contract playback boundary",
+          "required": true
+        }
+      },
+      "validatorImplementation": {
+        "path": "scripts/artifact_ogg_vorbis.py",
+        "sha256": "70c2563edd3fee795083f789b6063153eede2fa9aab71b6fa3baed55645d3de3"
       }
     },
     {
@@ -2348,11 +2487,11 @@
   "sourceReferences": {
     "profileV2MappingManifest": {
       "path": "artifact-delivery/shadow-v2/profile-v2-mapping-manifest-r1.json",
-      "sha256": "3826eb56b0e1f8a5efc60e3b1c055e921d86424d745157d61d73f4526c36e8e6"
+      "sha256": "e409b37be8f40835b147fc25517f52dcbe68ea93eac847cfc6aed56243c9bb1e"
     },
     "taxonomy": {
       "path": "artifact-delivery/taxonomy-v1.json",
-      "sha256": "7030b16f150ea31f287688adc728111d66e955376124e99e18e1706eb3b05125"
+      "sha256": "fa4d0bba990157349b2f3cdf56b13443e8517fbabb5f818b7ca97abc7b39acf6"
     }
   },
   "standing": "DONOR_REFERENCE_NOT_CORE_ONTOLOGY"
