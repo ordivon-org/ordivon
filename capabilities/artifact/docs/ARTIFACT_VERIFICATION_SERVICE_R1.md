@@ -22,6 +22,7 @@ The adapter admits only an explicit R1 route whose profile has exactly one `LOCA
 - `dataset-parquet-flat-r1`
 - `audio-flac-pcm16-r1`
 - `audio-wave-pcm16-r1`
+- `audio-ogg-vorbis-r1`
 - `geospatial-geopackage-point-r1`
 - `moving-image-matroska-ffv1-v3-r1`
 - `design-3d-glb-static-mesh-r1`

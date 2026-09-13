@@ -30,6 +30,7 @@ ROUTES: dict[str, tuple[str, str, bool]] = {
     "dataset-parquet-flat-r1": ("scripts/artifact_dataset.py", "verify_parquet", True),
     "audio-flac-pcm16-r1": ("scripts/artifact_audio.py", "verify_flac", True),
     "audio-wave-pcm16-r1": ("scripts/artifact_wave.py", "verify_wave", True),
+    "audio-ogg-vorbis-r1": ("scripts/artifact_ogg_vorbis.py", "verify_ogg_vorbis", True),
     "geospatial-geopackage-point-r1": ("scripts/artifact_geospatial.py", "verify_geopackage", True),
     "moving-image-matroska-ffv1-v3-r1": ("scripts/artifact_moving_image.py", "verify_moving_image", True),
     "design-3d-glb-static-mesh-r1": ("scripts/artifact_design3d.py", "verify_glb", True),

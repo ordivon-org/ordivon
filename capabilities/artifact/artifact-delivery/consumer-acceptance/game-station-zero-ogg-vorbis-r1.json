@@ -1,0 +1,99 @@
+{
+  "artifactOwnedAuthorities": {
+    "capabilityBinding": {
+      "relativePath": "artifact-delivery/shadow-bindings/audio-ogg-vorbis-local-r1.json",
+      "sha256": "f1209059526ace6d4445b50593c5805495630992570f6a26f6f4c831e62c534e",
+      "standing": "LOCAL_LIVE_PROVEN"
+    },
+    "profile": {
+      "id": "audio-ogg-vorbis-r1",
+      "relativePath": "artifact-delivery/shadow-v2/examples/audio-ogg-vorbis-r1-v2.json",
+      "sha256": "d6082289083cb1d2200477658425a7ee3432d379f0b5f3457e57c3b97b9076b7",
+      "standing": "SHADOW_PROFILE_LIVE_VERIFIER"
+    },
+    "verifier": {
+      "function": "verify_ogg_vorbis",
+      "relativePath": "scripts/artifact_ogg_vorbis.py",
+      "sha256": "70c2563edd3fee795083f789b6063153eede2fa9aab71b6fa3baed55645d3de3"
+    }
+  },
+  "artifactSource": {
+    "baseRevision": "31da3986a914f727ca34f5f0d7562349b52221e9",
+    "repository": "/root/projects/ordivon-artifact-v2"
+  },
+  "consumer": {
+    "purpose": "Station Zero v3 browser audio cues",
+    "repository": "/root/projects/ordivon-game",
+    "revision": "809a82b733e3b3c761847a72a6a7fb7a94502ae5"
+  },
+  "id": "game-station-zero-ogg-vorbis-r1",
+  "kind": "artifact-consumer-acceptance-evidence",
+  "nonClaims": [
+    "This does not graduate Profile v2 from shadow to production.",
+    "This does not claim cross-browser sample-exact playback-length equivalence.",
+    "This does not decide whether the observed 128-sample Chromium/Firefox boundary difference is acceptable to Game semantics or player experience.",
+    "This does not make Artifact authoritative for Game audio design, rights, or artistic quality."
+  ],
+  "observedAt": "2026-09-13",
+  "observedCrossTargetPattern": {
+    "deltaAt48000HzSeconds": 0.0026666666666666666,
+    "ffmpegAndChromium": "REFERENCE_MINUS_128_SAMPLES_PER_CHANNEL",
+    "xiphReferenceAndFirefox": "CONTRACT_BOUNDARY"
+  },
+  "runtimeEvidence": {
+    "jobId": "job-01a09a45-3fcc-7783-b6e7-92758a810119",
+    "operationDigest": "sha256:0d65d4d40e216fce02092975836a2d5995fcaa422d4555d3ce4df698f6930cb4"
+  },
+  "schemaVersion": 1,
+  "standing": "STANDARD_PASS_TARGET_DIVERGENCE_REQUIRES_GAME_DECISION",
+  "subjects": [
+    {
+      "artifactSha256": "d6a313a4e424eeb391d07e3e52e241d20cb626c11b9bd5c4305e62efa39e8271",
+      "browserStanding": "TARGET_SAMPLE_BOUNDARY_DIVERGENCE_OBSERVED",
+      "chromiumSamples": 14272,
+      "consumerRelativePath": "experiments/station-zero-v3/web/assets/audio/aftermath.ogg",
+      "contract": {
+        "relativePath": "artifact-delivery/shadow-contracts/game-station-zero-ogg-vorbis-r1/aftermath.json",
+        "sha256": "3ee5651ee34f829954cf4c312a268f4e7fdfbfce181fc6078deb48e5abf90139"
+      },
+      "cue": "aftermath",
+      "ffmpegSamples": 14272,
+      "firefoxSamples": 14400,
+      "referencePcmSha256": "1f5a63684378a5ea3507354609be5f3f416143f0721183702bfeb0c42011b38d",
+      "referenceSamples": 14400,
+      "serviceCandidateStatus": "PASS"
+    },
+    {
+      "artifactSha256": "4dd7e06083056e63a82b54bd6f3e67410f193f72d3c006db8c6efe4410a57647",
+      "browserStanding": "TARGET_SAMPLE_BOUNDARY_DIVERGENCE_OBSERVED",
+      "chromiumSamples": 9472,
+      "consumerRelativePath": "experiments/station-zero-v3/web/assets/audio/commit.ogg",
+      "contract": {
+        "relativePath": "artifact-delivery/shadow-contracts/game-station-zero-ogg-vorbis-r1/commit.json",
+        "sha256": "fea6d868d17d33d322940b6ef997520861e277876aac9c70a983d0722e631fa9"
+      },
+      "cue": "commit",
+      "ffmpegSamples": 9472,
+      "firefoxSamples": 9600,
+      "referencePcmSha256": "c135db346681f5546007e72b887d11e4ba3b7cc7615029f8aad5f1cebe5f5ba9",
+      "referenceSamples": 9600,
+      "serviceCandidateStatus": "PASS"
+    },
+    {
+      "artifactSha256": "622713bc61331f8d509f456dc464bac3b965f2e84dae0371ca3493de94dff668",
+      "browserStanding": "TARGET_SAMPLE_BOUNDARY_DIVERGENCE_OBSERVED",
+      "chromiumSamples": 10432,
+      "consumerRelativePath": "experiments/station-zero-v3/web/assets/audio/plan-ready.ogg",
+      "contract": {
+        "relativePath": "artifact-delivery/shadow-contracts/game-station-zero-ogg-vorbis-r1/plan-ready.json",
+        "sha256": "0f5e5666d49290620f54671d5cc6e2b5e92156b68ffb3504c90265a8e4cc0561"
+      },
+      "cue": "plan-ready",
+      "ffmpegSamples": 10432,
+      "firefoxSamples": 10560,
+      "referencePcmSha256": "76b33e2c99dc68aed461ab9803fde1d5dd65253c8087a92761e1859a79e846a1",
+      "referenceSamples": 10560,
+      "serviceCandidateStatus": "PASS"
+    }
+  ]
+}

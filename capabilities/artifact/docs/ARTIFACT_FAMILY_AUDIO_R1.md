@@ -1,5 +1,8 @@
 # Artifact E2E — Audio Family R1
 
+> Scope note: Ogg/Vorbis is a separate sibling profile documented in `ARTIFACT_FAMILY_AUDIO_OGG_VORBIS_R1.md`; it preserves browser target sample-boundary divergence rather than forcing decoder equality.
+
+
 > Scope note: this document is the FLAC R1 profile record. RIFF/WAVE PCM16 is a separate sibling profile documented in `ARTIFACT_FAMILY_AUDIO_WAVE_PCM16_R1.md`; Audio family identity does not imply one codec/container verifier.
 
 ## Standing

@@ -1,0 +1,100 @@
+{
+  "classification": {
+    "conformanceProfile": "RFC 3533 Ogg + Vorbis I bounded single-logical-stream audio profile; RFC 5334 audio/ogg codecs=vorbis",
+    "family": "audio",
+    "format": {
+      "mediaType": "audio/ogg",
+      "name": "Ogg Vorbis"
+    },
+    "purposes": [
+      "game-runtime",
+      "exchange"
+    ],
+    "representation": "lossy-encoded-audio-container"
+  },
+  "id": "audio-ogg-vorbis-r1",
+  "nonClaims": [
+    "cross-browser sample-exact playback-length equivalence",
+    "bit-exact PCM equality across independent Vorbis decoder implementations",
+    "factual or artistic correctness of the audio content",
+    "subjective sound quality, loudness or mastering quality",
+    "truth or completeness of Vorbis comments/tags",
+    "support for chained or multiplexed Ogg logical streams",
+    "Game suitability beyond the consuming Game's own acceptance",
+    "rights or licensing validity of encoded content"
+  ],
+  "notes": "Mapped from standards-first shadow profile; remains non-production until profile-v2 graduation.",
+  "objectContract": {
+    "binding": "request-digest",
+    "kind": "audio-ogg-vorbis-contract-v1",
+    "required": true,
+    "schemaReference": "shadow-contracts/audio-ogg-vorbis-contract-v1.schema.json"
+  },
+  "outputs": [
+    {
+      "format": {
+        "mediaType": "audio/ogg",
+        "name": "Ogg Vorbis"
+      },
+      "purpose": "game-runtime",
+      "required": true,
+      "role": "primary"
+    }
+  ],
+  "profilePolicy": {
+    "formatPolicy": {
+      "browserBoundaryPolicy": "Browser decoders must successfully decode and expose the contracted rate/channel topology; sample-boundary equality across browser engines is observed and reported, not assumed by profile PASS",
+      "chaining": false,
+      "channels": [
+        1,
+        2
+      ],
+      "codec": "Vorbis I version 0",
+      "codecAuthority": "Xiph.Org Vorbis I specification",
+      "container": "Ogg bitstream version 0",
+      "containerStandard": "RFC 3533",
+      "mediaType": "audio/ogg; codecs=vorbis",
+      "mediaTypeStandard": "RFC 5334",
+      "playbackBoundaryAuthority": "Vorbis granule-position semantics as interpreted by the Xiph reference decoder and corroborated by an exact external technical view",
+      "singleLogicalStream": true
+    }
+  },
+  "profileVersion": 2,
+  "requiredEvidence": {
+    "browserTargetMatrix": {
+      "claim": "Pinned Chromium and Firefox both decode the exact Ogg/Vorbis bytes at the contracted rate/channel topology; decoded sample-boundary agreement is explicitly reported",
+      "parameters": {
+        "minimumIndependentImplementations": 2
+      },
+      "required": true
+    },
+    "contractSchema": {
+      "claim": "Ogg Vorbis object contract is valid under audio-ogg-vorbis-contract-v1",
+      "required": true
+    },
+    "independentDecodeObservation": {
+      "claim": "FFmpeg independently decodes the stream and its common canonical s16le prefix remains numerically compatible with the Xiph reference output; decoder-specific priming/end-boundary differences are reported rather than redefined as standard semantics",
+      "required": true
+    },
+    "independentTechnicalView": {
+      "claim": "FFprobe independently identifies one Ogg/Vorbis stream and exposes contract rate/channel/playback-duration facts",
+      "required": true
+    },
+    "oggVorbisIntegrity": {
+      "claim": "Xiph ogginfo accepts exactly one completed Vorbis logical stream with version 0 and contract rate/channel facts",
+      "required": true
+    },
+    "referenceDecode": {
+      "claim": "Xiph oggdec decodes canonical signed little-endian 16-bit PCM whose per-channel sample count equals the contract playback boundary",
+      "required": true
+    }
+  },
+  "targetAuthorities": [
+    {
+      "authorityClass": "independent-implementation-matrix",
+      "minimumIndependentImplementations": 2,
+      "name": "reference-plus-browser-decoder-matrix",
+      "required": true
+    }
+  ]
+}

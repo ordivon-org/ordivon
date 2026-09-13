@@ -243,9 +243,10 @@
       "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
       "currentProfiles": [
         "audio-flac-pcm16-r1",
-        "audio-wave-pcm16-r1"
+        "audio-wave-pcm16-r1",
+        "audio-ogg-vorbis-r1"
       ],
-      "localToolStanding": "FLAC_REFERENCE_PLUS_WAVE_LIBSNDFILE_AND_FFMPEG_SOX_DECODER_MATRICES_PROVEN"
+      "localToolStanding": "FLAC_REFERENCE_WAVE_PCM_AND_OGG_VORBIS_REFERENCE_PLUS_BROWSER_MATRICES_PROVEN"
     },
     {
       "id": "moving-image",

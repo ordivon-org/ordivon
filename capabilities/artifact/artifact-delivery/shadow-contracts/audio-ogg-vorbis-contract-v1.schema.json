@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Artifact Ogg Vorbis Audio Contract v1 (shadow)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contractVersion", "id", "profileId", "audio"],
+  "properties": {
+    "contractVersion": {"const": 1},
+    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+    "profileId": {"const": "audio-ogg-vorbis-r1"},
+    "audio": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sampleRateHz", "channels", "playbackSamplesPerChannel"],
+      "properties": {
+        "sampleRateHz": {"type": "integer", "minimum": 8000, "maximum": 192000},
+        "channels": {"enum": [1, 2]},
+        "playbackSamplesPerChannel": {"type": "integer", "minimum": 1},
+        "expectedReferencePcmSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "notes": {"type": "string"}
+  }
+}

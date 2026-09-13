@@ -1,7 +1,7 @@
 {
-  "fullRegression": "247 tests / 245 PASS / 2 conditional skips / 0 failures",
+  "fullRegression": "252 tests / 250 PASS / 2 conditional skips / 0 failures",
   "kind": "artifact-profile-v2-shadow-mapping-manifest",
-  "mappingCount": 18,
+  "mappingCount": 19,
   "mappings": [
     {
       "family": "text-document",
@@ -90,6 +90,16 @@
       "profileId": "audio-flac-pcm16-r1",
       "source": "artifact-delivery/shadow-profiles/audio-flac-pcm16-r1.json",
       "sourceDigest": "9f76c2867e8620f9e1edac8f72fbced576725de016c4d656da380cce880ddb7b",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
+      "family": "audio",
+      "mapped": "artifact-delivery/shadow-v2/examples/audio-ogg-vorbis-r1-v2.json",
+      "mappedDigest": "d6082289083cb1d2200477658425a7ee3432d379f0b5f3457e57c3b97b9076b7",
+      "profileId": "audio-ogg-vorbis-r1",
+      "source": "artifact-delivery/shadow-profiles/audio-ogg-vorbis-r1.json",
+      "sourceDigest": "11d8df24266fafb4122947fe448e6069ac51277baac759a506178e485fd59eac",
       "sourceKind": "standards-first-shadow",
       "validation": "PASS"
     },

@@ -16,6 +16,7 @@ VALIDATOR_BY_PROFILE = {
     "still-image-png-srgb-r1": "scripts/artifact_still_image.py",
     "audio-flac-pcm16-r1": "scripts/artifact_audio.py",
     "audio-wave-pcm16-r1": "scripts/artifact_wave.py",
+    "audio-ogg-vorbis-r1": "scripts/artifact_ogg_vorbis.py",
     "moving-image-matroska-ffv1-v3-r1": "scripts/artifact_moving_image.py",
     "geospatial-geopackage-point-r1": "scripts/artifact_geospatial.py",
     "design-3d-glb-static-mesh-r1": "scripts/artifact_design3d.py",
