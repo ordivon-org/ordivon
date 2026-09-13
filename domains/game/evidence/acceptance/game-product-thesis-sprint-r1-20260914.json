@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.product-thesis-sprint-r1",
+  "date": "2026-09-14",
+  "standing": "THESIS_PORTFOLIO_COMPLETE_FIRST_EXPERIMENT_WAVE_ADMITTED",
+  "productSelected": false,
+  "g0Entered": false,
+  "broadR0Standing": "SATURATED_FOR_CURRENT_DECISION",
+  "selectionLaw": "marginal information gain; no scalar product ranking",
+  "theses": [
+    {
+      "id": "T01",
+      "name": "Scarce Evidence / Causal Reconstruction",
+      "playerValue": "knowledge/inference",
+      "agentNeed": "none",
+      "prior": "PROMISING_HUMAN_VALUE_NOT_ESTABLISHED",
+      "next": "REUSE_OR_REPAIR_HUMAN_APPARATUS",
+      "kill": [
+        "checklist completion",
+        "brute-force elimination",
+        "arbitrary withholding",
+        "knowledge does not alter action"
+      ]
+    },
+    {
+      "id": "T02",
+      "name": "Bottleneck Shifts / Adaptive Automation",
+      "playerValue": "construction/systems mastery",
+      "agentNeed": "none",
+      "prior": "STRONG_STRUCTURAL_PRIOR_HIGH_HUMAN_EVIDENCE_VALUE",
+      "next": "BUILD_NEW_E2",
+      "kill": [
+        "near-universal layout",
+        "single-number obvious fix",
+        "unexplained improvement",
+        "scalar capacity only"
+      ]
+    },
+    {
+      "id": "T03",
+      "name": "Sealed Intent / Simultaneous Tactical Commitment",
+      "playerValue": "tactical prediction/commitment",
+      "agentNeed": "none",
+      "prior": "HIGH_STRATEGIC_INFORMATION_CONTAMINATED_HISTORICAL_EVIDENCE",
+      "next": "BUILD_NEW_E1",
+      "kill": [
+        "dominant plan",
+        "preview trivializes",
+        "arbitrary uncertainty",
+        "poor causal attribution"
+      ]
+    },
+    {
+      "id": "T04",
+      "name": "Responsive Creation / Learnable Audience",
+      "playerValue": "creation/social inference",
+      "agentNeed": "none",
+      "prior": "STRUCTURAL_SURVIVOR_HUMAN_EXPERIENCE_UNKNOWN",
+      "next": "HUMAN_CARRIER_REVIEW",
+      "kill": [
+        "rubric exploitation",
+        "loss of authorship",
+        "opaque or trivial audience",
+        "static rubric parity"
+      ]
+    },
+    {
+      "id": "T05",
+      "name": "Visible Mastery / Precision Movement",
+      "playerValue": "embodied mastery",
+      "agentNeed": "none",
+      "prior": "LOW_LOCAL_EVIDENCE_HIGH_ANTI_BIAS_VALUE",
+      "next": "BUILD_NEW_E3",
+      "kill": [
+        "memorization only",
+        "control attribution failure",
+        "no voluntary retry",
+        "requires progression to become interesting"
+      ]
+    }
+  ],
+  "firstExperimentWave": [
+    {
+      "order": "E1",
+      "thesisId": "T03",
+      "action": "BUILD_NEW",
+      "carrier": "6x6 simultaneous micro-tactics",
+      "reason": "separate commitment value from Station Zero delegation/machinery"
+    },
+    {
+      "order": "E2",
+      "thesisId": "T02",
+      "action": "BUILD_NEW",
+      "carrier": "one-screen topology micro-factory",
+      "reason": "convert strongest structural result into Human-facing systems mastery evidence"
+    },
+    {
+      "order": "E3",
+      "thesisId": "T05",
+      "action": "BUILD_NEW",
+      "carrier": "three-room Godot graybox",
+      "reason": "anti-bias embodied mastery comparison"
+    }
+  ],
+  "reuseInsteadOfRebuild": [
+    {
+      "thesisId": "T01",
+      "historicalAssets": [
+        "Casefile",
+        "PGP-D",
+        "D03"
+      ]
+    },
+    {
+      "thesisId": "T04",
+      "historicalAssets": [
+        "D14",
+        "PGP-I-like creation apparatus where applicable"
+      ]
+    }
+  ],
+  "referenceLane": {
+    "FactorioDemo": "ACTIVE_IN_PARALLEL_NOT_BLOCKER"
+  },
+  "agentRequirement": "NONE_FOR_ALL_R1_THESIS_FALSIFIERS"
+}
