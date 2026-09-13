@@ -37,6 +37,8 @@ ROUTES: dict[str, tuple[str, str, bool]] = {
     "design-2d-tiled-tmj-object-map-r1": ("scripts/artifact_tiled.py", "verify_tiled_tmj", True),
     "design-2d-aseprite-horizontal-sheet-r1": ("scripts/artifact_aseprite.py", "verify_aseprite", True),
     "design-3d-glb-static-mesh-r1": ("scripts/artifact_design3d.py", "verify_glb", True),
+    "design-3d-glb-material-scene-r1": ("scripts/artifact_design3d.py", "verify_glb", True),
+    "design-3d-glb-skinned-animation-r1": ("scripts/artifact_design3d.py", "verify_glb", True),
     "web-archive-warc-response-r1": ("scripts/artifact_web_archive.py", "verify_warc", True),
     "message-internet-text-r1": ("scripts/artifact_message.py", "verify_message", True),
 }

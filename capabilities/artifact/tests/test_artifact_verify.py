@@ -176,6 +176,24 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
         for x in receipt['subjects']:
             c=x['contract'];self.assertEqual(sha(ROOT/c['relativePath']),c['sha256'],c['relativePath'])
 
+    def test_frozen_glb_game_consumer_smokes_keep_profile_boundaries_exact(self):
+        for name, profile_id in [
+            ("game-veilwild-glb-material-scene-r1.json", "design-3d-glb-material-scene-r1"),
+            ("game-veilwild-glb-skinned-animation-r1.json", "design-3d-glb-skinned-animation-r1"),
+        ]:
+            receipt=json.loads((ROOT/"artifact-delivery/consumer-acceptance"/name).read_text())
+            self.assertEqual(receipt["standing"],"CONSUMER_SMOKE_PASS_SHADOW_PROFILE")
+            self.assertEqual(receipt["artifactOwnedAuthorities"]["profile"]["id"],profile_id)
+            self.assertEqual(receipt["verification"]["serviceStatus"],"PASS")
+            self.assertEqual(receipt["verification"]["khronos"]["errors"],0)
+            self.assertEqual(receipt["verification"]["khronos"]["warnings"],0)
+            self.assertEqual(receipt["verification"]["assimpStatus"],"PASS")
+            self.assertEqual(receipt["verification"]["blenderStatus"],"PASS")
+            self.assertEqual(receipt["verification"]["godotStatus"],"PASS")
+            for value in receipt["artifactOwnedAuthorities"].values():
+                path=ROOT/value["relativePath"];self.assertEqual(sha(path),value["sha256"],value["relativePath"])
+            self.assertEqual(receipt["externalSubject"]["identityStanding"],"EXACT_BYTES_OBSERVED_AT_CONSUMER_REVISION_NOT_ARTIFACT_OWNED")
+
     def test_unrouted_profile_fails_closed(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d); subject = root / "subject.bin"; subject.write_bytes(b"x")

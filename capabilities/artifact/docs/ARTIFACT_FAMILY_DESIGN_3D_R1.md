@@ -173,3 +173,22 @@ ConsumerImportSuccess != SourceGeometryAuthority
 ## Claim boundary
 
 R1 does not establish materials/PBR, textures, color management, animation, skinning, morphs, CAD/BIM/manufacturing semantics, artistic quality or cross-renderer pixel equivalence. Those require separate profiles and native domain standards rather than widening this GLB profile implicitly.
+
+## R2 — bounded material-scene and skinned-animation profiles
+
+Game pressure did not widen `design-3d-glb-static-mesh-r1`. Two separate GLB 2.0 profiles were added instead:
+
+| Profile | Admitted feature set | Target readback |
+| --- | --- | --- |
+| `design-3d-glb-material-scene-r1` | triangle meshes + core glTF materials; no textures, skins, animations or morphs | Khronos Validator + Assimp + Blender + Godot `GLTFDocument` |
+| `design-3d-glb-skinned-animation-r1` | triangle meshes + materials + skinning + animations; no textures or morphs | Khronos Validator + Assimp + Blender + Godot `GLTFDocument` |
+
+The profiles share one verifier implementation but have separate profile identities, schemas, object contracts and capability bindings. Family classification never chooses the validator; the exact `profileId` does.
+
+The Veilwild F05 material scene passed with 0 Khronos errors / 0 warnings, 153 draw calls, 7 materials, 11,923 vertices and 7,832 triangles. Assimp, Blender and Godot independently imported the contracted scene structure.
+
+The repaired Veilwild F10 successor (`9a50900f2a7fcb17af6be1be8b7788fbc743fd7a8e1bd075515a62cf6fd24daa`) passed with 0 Khronos errors / 0 warnings, 7 animations, 3 materials, skinning enabled, maximum 4 influences, 5,131 validator vertices and 7,408 validator triangles. Godot independently observed 11 imported mesh instances, one 23-bone skeleton and 7 animations.
+
+Blender's F10 imported scene intentionally does not have to reproduce Khronos aggregate vertex/polygon totals: Blender materializes an additional consumer-side mesh object in this scene. The object contract therefore binds Blender's own exact import facts separately instead of laundering consumer-transformed topology into source-format authority.
+
+`Artifact` may bind clip names and material-slot counts as technical identities requested by an object contract, but it does not interpret their Game meaning. Animation behavior, gameplay meaning, artistic deformation quality, visual equivalence, player value and rights remain outside these profiles.

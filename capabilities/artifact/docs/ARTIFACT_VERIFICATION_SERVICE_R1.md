@@ -51,3 +51,7 @@ A service `PASS` means only that the exact requested subject bytes passed the se
 - make Artifact own consumer-domain acceptance.
 
 Cross-owner immutable transport should continue to use Runtime input authorities or the relevant mature external storage/API substrate.
+
+### Design/3D rich GLB routes
+
+The explicit R1 service surface now also routes `design-3d-glb-material-scene-r1` and `design-3d-glb-skinned-animation-r1` to the shared profile-driven `artifact_design3d.py` verifier. Both require exact object contracts and exactly one `LOCAL_LIVE_PROVEN` profile binding; their presence does not make arbitrary GLB files callable under a generic rich-3D profile.

@@ -1,88 +1,8 @@
 {
-  "fullRegression": "273 tests / 271 PASS / 2 conditional skips / 0 failures",
+  "fullRegression": "275 tests / 273 PASS / 2 conditional skips / 0 failures",
   "kind": "artifact-profile-v2-shadow-mapping-manifest",
-  "mappingCount": 22,
+  "mappingCount": 24,
   "mappings": [
-    {
-      "family": "text-document",
-      "mapped": "artifact-delivery/shadow-v2/examples/document-r1-v2.json",
-      "mappedDigest": "62225db571a9a467cf62304ed8a0ac32cd35d805576099e8587c6c00e0315e40",
-      "profileId": "document-r1",
-      "source": "artifact-delivery/examples/document-r1.json",
-      "sourceDigest": "a7fd567d723128620e6bae52b1be47d98c00c84e65d022a5093ab697b7a38c97",
-      "sourceKind": "production-v1",
-      "validation": "PASS"
-    },
-    {
-      "family": "fixed-document",
-      "mapped": "artifact-delivery/shadow-v2/examples/pdf-accessible-r1-v2.json",
-      "mappedDigest": "1363cc727010594b59b234c12d5d6d75a5259b75ab4cff463031e9c1ce4dd328",
-      "profileId": "pdf-accessible-r1",
-      "source": "artifact-delivery/examples/pdf-accessible-r1.json",
-      "sourceDigest": "decb7bc5a71c6385fef03fbddb9f1db2702f9d531d197756d21a4ac5da499878",
-      "sourceKind": "production-v1",
-      "validation": "PASS"
-    },
-    {
-      "family": "fixed-document",
-      "mapped": "artifact-delivery/shadow-v2/examples/pdf-fixed-r1-v2.json",
-      "mappedDigest": "9f95922b31407836e0cec8b466bdd4e0ae01e69846cc74127ee29bd0da5fdb83",
-      "profileId": "pdf-fixed-r1",
-      "source": "artifact-delivery/examples/pdf-fixed-r1.json",
-      "sourceDigest": "7e5464cf7d1666f3535a0a3f525da191be3ba5d87ff6f354d5539b5b66842d0e",
-      "sourceKind": "production-v1",
-      "validation": "PASS"
-    },
-    {
-      "family": "presentation",
-      "mapped": "artifact-delivery/shadow-v2/examples/pdu-sdu-presentation-r1-v2.json",
-      "mappedDigest": "c2bc333b7ee7a058fdb6d2a313507491e0228f466d11ed5c9edeafcd90625046",
-      "profileId": "pdu-sdu-presentation-r1",
-      "source": "artifact-delivery/examples/pdu-sdu-presentation-r1.json",
-      "sourceDigest": "a47be4b7d6098f76c32c2bbf587df9c4b172ffbe68a5144e0bb9bb318b0c8332",
-      "sourceKind": "production-v1",
-      "validation": "PASS"
-    },
-    {
-      "family": "presentation",
-      "mapped": "artifact-delivery/shadow-v2/examples/presentation-local-development-r1-v2.json",
-      "mappedDigest": "ccac5dd0428ebd72d61d76740173fc896cd74f5d6d8359af99ccb07f128cde66",
-      "profileId": "presentation-local-development-r1",
-      "source": "artifact-delivery/examples/presentation-local-development-r1.json",
-      "sourceDigest": "ade7f3ffc0e6461e92febfd646506ed89f5307320bcc9c334bec31f99204b0e5",
-      "sourceKind": "production-v1",
-      "validation": "PASS"
-    },
-    {
-      "family": "presentation",
-      "mapped": "artifact-delivery/shadow-v2/examples/presentation-ultrawide-34x10-r1-v2.json",
-      "mappedDigest": "c2f3171b1a1a722103d30fbca35e155e1741e421e2646193f4643a4c9607b179",
-      "profileId": "presentation-ultrawide-34x10-r1",
-      "source": "artifact-delivery/examples/presentation-ultrawide-34x10-r1.json",
-      "sourceDigest": "56cf5879e52984fb398242416bb46f1670e9aecd7e5d88e18677b4263126eea9",
-      "sourceKind": "production-v1",
-      "validation": "PASS"
-    },
-    {
-      "family": "spreadsheet",
-      "mapped": "artifact-delivery/shadow-v2/examples/spreadsheet-r1-v2.json",
-      "mappedDigest": "6636a2a855b35497a83bb4ecba9af02e03568f0bb8e7eeb4783e7094822c01ef",
-      "profileId": "spreadsheet-r1",
-      "source": "artifact-delivery/examples/spreadsheet-r1.json",
-      "sourceDigest": "d9fea8e20691e1f2394829a2a95f2285de3fa0ed0bc8ff8ca709afe5c8dcffd3",
-      "sourceKind": "production-v1",
-      "validation": "PASS"
-    },
-    {
-      "family": "web",
-      "mapped": "artifact-delivery/shadow-v2/examples/web-r1-v2.json",
-      "mappedDigest": "f6540f64651b11925416067463c986e744349fc375aaebef3ac9b57b082ea5ed",
-      "profileId": "web-r1",
-      "source": "artifact-delivery/examples/web-r1.json",
-      "sourceDigest": "a31a76e6ddba10f194dc816bad8d01a24462da6b4f2ea228d5fe51fe25e18883",
-      "sourceKind": "production-v1",
-      "validation": "PASS"
-    },
     {
       "family": "audio",
       "mapped": "artifact-delivery/shadow-v2/examples/audio-flac-pcm16-r1-v2.json",
@@ -145,12 +65,52 @@
     },
     {
       "family": "design-3d",
+      "mapped": "artifact-delivery/shadow-v2/examples/design-3d-glb-material-scene-r1-v2.json",
+      "mappedDigest": "c140df06219aceef5de86e68fd6231aeab5c78af6d979b975efca4a279a184b0",
+      "profileId": "design-3d-glb-material-scene-r1",
+      "source": "artifact-delivery/shadow-profiles/design-3d-glb-material-scene-r1.json",
+      "sourceDigest": "57645f3e3989bb2d66cf8a8142512b42d0f3f5054db44687f8e8e4421271a20c",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
+      "family": "design-3d",
+      "mapped": "artifact-delivery/shadow-v2/examples/design-3d-glb-skinned-animation-r1-v2.json",
+      "mappedDigest": "ceb70f821b854a3d737ad8e3eb7f4a1a7425cc6a4f02a69a19c8c9e240fd4594",
+      "profileId": "design-3d-glb-skinned-animation-r1",
+      "source": "artifact-delivery/shadow-profiles/design-3d-glb-skinned-animation-r1.json",
+      "sourceDigest": "6cbe1f0904b08041c7248209a6806d491cc5ac2dd24e1999a0f2eb748902ea10",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
+      "family": "design-3d",
       "mapped": "artifact-delivery/shadow-v2/examples/design-3d-glb-static-mesh-r1-v2.json",
       "mappedDigest": "f9dfe8b3e43b4b54007f5a2da40002a7b73f9e7968be723061f5c6076a167fb9",
       "profileId": "design-3d-glb-static-mesh-r1",
       "source": "artifact-delivery/shadow-profiles/design-3d-glb-static-mesh-r1.json",
       "sourceDigest": "d26a7f310105db18c8e655bd572f594ed5cda1e496955a7dc19c81f6b66fe933",
       "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
+      "family": "fixed-document",
+      "mapped": "artifact-delivery/shadow-v2/examples/pdf-accessible-r1-v2.json",
+      "mappedDigest": "1363cc727010594b59b234c12d5d6d75a5259b75ab4cff463031e9c1ce4dd328",
+      "profileId": "pdf-accessible-r1",
+      "source": "artifact-delivery/examples/pdf-accessible-r1.json",
+      "sourceDigest": "decb7bc5a71c6385fef03fbddb9f1db2702f9d531d197756d21a4ac5da499878",
+      "sourceKind": "production-v1",
+      "validation": "PASS"
+    },
+    {
+      "family": "fixed-document",
+      "mapped": "artifact-delivery/shadow-v2/examples/pdf-fixed-r1-v2.json",
+      "mappedDigest": "9f95922b31407836e0cec8b466bdd4e0ae01e69846cc74127ee29bd0da5fdb83",
+      "profileId": "pdf-fixed-r1",
+      "source": "artifact-delivery/examples/pdf-fixed-r1.json",
+      "sourceDigest": "7e5464cf7d1666f3535a0a3f525da191be3ba5d87ff6f354d5539b5b66842d0e",
+      "sourceKind": "production-v1",
       "validation": "PASS"
     },
     {
@@ -184,6 +144,36 @@
       "validation": "PASS"
     },
     {
+      "family": "presentation",
+      "mapped": "artifact-delivery/shadow-v2/examples/pdu-sdu-presentation-r1-v2.json",
+      "mappedDigest": "c2bc333b7ee7a058fdb6d2a313507491e0228f466d11ed5c9edeafcd90625046",
+      "profileId": "pdu-sdu-presentation-r1",
+      "source": "artifact-delivery/examples/pdu-sdu-presentation-r1.json",
+      "sourceDigest": "a47be4b7d6098f76c32c2bbf587df9c4b172ffbe68a5144e0bb9bb318b0c8332",
+      "sourceKind": "production-v1",
+      "validation": "PASS"
+    },
+    {
+      "family": "presentation",
+      "mapped": "artifact-delivery/shadow-v2/examples/presentation-local-development-r1-v2.json",
+      "mappedDigest": "ccac5dd0428ebd72d61d76740173fc896cd74f5d6d8359af99ccb07f128cde66",
+      "profileId": "presentation-local-development-r1",
+      "source": "artifact-delivery/examples/presentation-local-development-r1.json",
+      "sourceDigest": "ade7f3ffc0e6461e92febfd646506ed89f5307320bcc9c334bec31f99204b0e5",
+      "sourceKind": "production-v1",
+      "validation": "PASS"
+    },
+    {
+      "family": "presentation",
+      "mapped": "artifact-delivery/shadow-v2/examples/presentation-ultrawide-34x10-r1-v2.json",
+      "mappedDigest": "c2f3171b1a1a722103d30fbca35e155e1741e421e2646193f4643a4c9607b179",
+      "profileId": "presentation-ultrawide-34x10-r1",
+      "source": "artifact-delivery/examples/presentation-ultrawide-34x10-r1.json",
+      "sourceDigest": "56cf5879e52984fb398242416bb46f1670e9aecd7e5d88e18677b4263126eea9",
+      "sourceKind": "production-v1",
+      "validation": "PASS"
+    },
+    {
       "family": "software-release",
       "mapped": "artifact-delivery/shadow-v2/examples/software-release-oci-image-r1-v2.json",
       "mappedDigest": "5f50452f38609e1c29c59607b5fdacd4c1dbccf85f7f574c8ae8aab834f4325f",
@@ -191,6 +181,16 @@
       "source": "artifact-delivery/shadow-profiles/software-release-oci-image-r1.json",
       "sourceDigest": "793491f8c7dc0fc58d73191c6166c6c083267196e285f2ab94510b15e8158f17",
       "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
+      "family": "spreadsheet",
+      "mapped": "artifact-delivery/shadow-v2/examples/spreadsheet-r1-v2.json",
+      "mappedDigest": "6636a2a855b35497a83bb4ecba9af02e03568f0bb8e7eeb4783e7094822c01ef",
+      "profileId": "spreadsheet-r1",
+      "source": "artifact-delivery/examples/spreadsheet-r1.json",
+      "sourceDigest": "d9fea8e20691e1f2394829a2a95f2285de3fa0ed0bc8ff8ca709afe5c8dcffd3",
+      "sourceKind": "production-v1",
       "validation": "PASS"
     },
     {
@@ -211,6 +211,26 @@
       "source": "artifact-delivery/shadow-profiles/still-image-svg-static-r1.json",
       "sourceDigest": "23d614606ae4affb693f00a62370f7ee39aec9be80132bfc14224d3b520a5b92",
       "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
+      "family": "text-document",
+      "mapped": "artifact-delivery/shadow-v2/examples/document-r1-v2.json",
+      "mappedDigest": "62225db571a9a467cf62304ed8a0ac32cd35d805576099e8587c6c00e0315e40",
+      "profileId": "document-r1",
+      "source": "artifact-delivery/examples/document-r1.json",
+      "sourceDigest": "a7fd567d723128620e6bae52b1be47d98c00c84e65d022a5093ab697b7a38c97",
+      "sourceKind": "production-v1",
+      "validation": "PASS"
+    },
+    {
+      "family": "web",
+      "mapped": "artifact-delivery/shadow-v2/examples/web-r1-v2.json",
+      "mappedDigest": "f6540f64651b11925416067463c986e744349fc375aaebef3ac9b57b082ea5ed",
+      "profileId": "web-r1",
+      "source": "artifact-delivery/examples/web-r1.json",
+      "sourceDigest": "a31a76e6ddba10f194dc816bad8d01a24462da6b4f2ea228d5fe51fe25e18883",
+      "sourceKind": "production-v1",
       "validation": "PASS"
     },
     {

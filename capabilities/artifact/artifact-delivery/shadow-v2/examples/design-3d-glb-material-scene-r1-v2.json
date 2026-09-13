@@ -1,0 +1,95 @@
+{
+  "classification": {
+    "conformanceProfile": "ISO/IEC 12113:2022 / Khronos glTF 2.0 bounded material scene profile",
+    "family": "design-3d",
+    "format": {
+      "mediaType": "model/gltf-binary",
+      "name": "GLB 2.0"
+    },
+    "purposes": [
+      "interchange",
+      "game-runtime-source",
+      "preview"
+    ],
+    "representation": "material-scene"
+  },
+  "id": "design-3d-glb-material-scene-r1",
+  "nonClaims": [
+    "artistic or visual quality",
+    "material slot semantic meaning or Game meaning",
+    "PBR parameter artistic correctness",
+    "texture/color-management semantics",
+    "animation, skinning or morph-target behavior",
+    "cross-renderer pixel equivalence",
+    "rights or licensing validity"
+  ],
+  "notes": "Mapped from standards-first shadow profile; remains non-production until profile-v2 graduation.",
+  "objectContract": {
+    "binding": "request-digest",
+    "kind": "design-3d-glb-material-scene-contract-v1",
+    "required": true,
+    "schemaReference": "shadow-contracts/design-3d-glb-material-scene-contract-v1.schema.json"
+  },
+  "outputs": [
+    {
+      "format": {
+        "mediaType": "model/gltf-binary",
+        "name": "GLB 2.0"
+      },
+      "purpose": "interchange",
+      "required": true,
+      "role": "primary"
+    }
+  ],
+  "profilePolicy": {
+    "formatPolicy": {
+      "animations": false,
+      "container": "GLB version 2",
+      "defaultSceneRequired": true,
+      "externalResources": false,
+      "materialAuthority": "glTF core material carriers; semantic/artistic intent remains caller-owned",
+      "materials": true,
+      "meshPrimitiveMode": "TRIANGLES",
+      "morphTargets": false,
+      "skins": false,
+      "standard": "ISO/IEC 12113:2022 / Khronos glTF 2.0",
+      "targetReadback": "Godot GLTFDocument",
+      "textures": false,
+      "validatorWarnings": 0
+    }
+  },
+  "profileVersion": 2,
+  "requiredEvidence": {
+    "assimpScene": {
+      "claim": "Assimp independently imports exact topology/counts/source-coordinate bounds",
+      "required": true
+    },
+    "blenderImport": {
+      "claim": "Blender independently imports exact bounded scene/material facts",
+      "required": true
+    },
+    "boundedProfileFacts": {
+      "claim": "Validator facts remain inside the untextured, unanimated, unskinned material-scene subset",
+      "required": true
+    },
+    "contractSchema": {
+      "claim": "Material-scene object contract validates under the dedicated schema",
+      "required": true
+    },
+    "godotImport": {
+      "claim": "Godot GLTFDocument independently imports the exact bounded scene structure",
+      "required": true
+    },
+    "khronosConformance": {
+      "claim": "Khronos glTF Validator accepts exact GLB with zero errors and zero warnings",
+      "required": true
+    }
+  },
+  "targetAuthorities": [
+    {
+      "authorityClass": "standard-validator",
+      "name": "Khronos glTF standard-validator",
+      "required": true
+    }
+  ]
+}

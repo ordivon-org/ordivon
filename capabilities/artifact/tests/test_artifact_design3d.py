@@ -24,6 +24,15 @@ class Design3DTests(unittest.TestCase):
   self.assertEqual(hashlib.sha256(Path('/opt/ordivon/external/gltf-validator/2.0.0-dev.3.10/validate.mjs').read_bytes()).hexdigest(),b['bindings']['standardValidator']['moduleWrapperSha256'])
   install=json.loads(Path('/opt/ordivon/external/gltf-validator/2.0.0-dev.3.10/ORDIVON-INSTALL.json').read_text())
   self.assertEqual(install['packageArchiveSha256'],b['bindings']['standardValidator']['packageArchiveSha256'])
+ def test_rich_profile_binding_tool_digests(self):
+  for name in ('design-3d-glb-material-scene-local-r1.json','design-3d-glb-skinned-animation-local-r1.json'):
+   b=json.loads((ROOT/'artifact-delivery/shadow-bindings'/name).read_text())
+   self.assertEqual(b['status'],'LOCAL_LIVE_PROVEN')
+   self.assertEqual(hashlib.sha256(Path('/usr/bin/assimp').read_bytes()).hexdigest(),b['bindings']['independentConsumerA']['binarySha256'])
+   self.assertEqual(hashlib.sha256(Path('/usr/bin/blender').read_bytes()).hexdigest(),b['bindings']['independentConsumerB']['binarySha256'])
+   self.assertEqual(hashlib.sha256(Path('/usr/bin/godot').read_bytes()).hexdigest(),b['bindings']['targetConsumer']['binarySha256'])
+   self.assertTrue(b['proof']['khronosZeroErrorsWarnings'])
+
  def test_valid_triangle_passes(self):
   self.req()
   with tempfile.TemporaryDirectory() as d:

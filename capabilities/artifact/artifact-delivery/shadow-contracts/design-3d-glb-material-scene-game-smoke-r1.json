@@ -1,0 +1,65 @@
+{
+  "assimp": {
+    "animationChannelCount": 0,
+    "animationCount": 0,
+    "boneCount": 0,
+    "boundsMax": [
+      18.0,
+      7.263291,
+      18.0
+    ],
+    "boundsMin": [
+      -18.0,
+      -0.923564,
+      -18.0
+    ],
+    "cameraCount": 0,
+    "lightCount": 0,
+    "materialCount": 7,
+    "meshCount": 153,
+    "nodeCount": 161,
+    "primitiveTriangles": true,
+    "textureCount": 0,
+    "triangleCount": 7832,
+    "vertexCount": 11923
+  },
+  "blender": {
+    "actionCount": 0,
+    "actions": [],
+    "armatureBones": [],
+    "armatureObjectCount": 0,
+    "materialCount": 7,
+    "meshObjectCount": 153,
+    "meshTotals": {
+      "materialSlots": 153,
+      "polygons": 7832,
+      "vertices": 11923
+    },
+    "objectCount": 161
+  },
+  "contractVersion": 1,
+  "godot": {
+    "animationNames": [],
+    "animations": 0,
+    "classes": {
+      "ImporterMeshInstance3D": 153,
+      "Node3D": 9
+    },
+    "skeletonBones": []
+  },
+  "id": "design-3d-glb-material-scene-game-smoke-r1",
+  "notes": "Exact mechanical contract for current Veilwild F05; Artifact owns no Game or artistic semantics.",
+  "profileId": "design-3d-glb-material-scene-r1",
+  "validator": {
+    "animationCount": 0,
+    "drawCallCount": 153,
+    "hasDefaultScene": true,
+    "hasMorphTargets": false,
+    "hasSkins": false,
+    "hasTextures": false,
+    "materialCount": 7,
+    "maxInfluences": 0,
+    "triangleCount": 7832,
+    "vertexCount": 11923
+  }
+}

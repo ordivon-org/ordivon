@@ -23,6 +23,8 @@ VALIDATOR_BY_PROFILE = {
     "design-2d-tiled-tmj-object-map-r1": "scripts/artifact_tiled.py",
     "design-2d-aseprite-horizontal-sheet-r1": "scripts/artifact_aseprite.py",
     "design-3d-glb-static-mesh-r1": "scripts/artifact_design3d.py",
+    "design-3d-glb-material-scene-r1": "scripts/artifact_design3d.py",
+    "design-3d-glb-skinned-animation-r1": "scripts/artifact_design3d.py",
     "software-release-oci-image-r1": "scripts/artifact_software_release.py",
     "web-archive-warc-response-r1": "scripts/artifact_web_archive.py",
     "message-internet-text-r1": "scripts/artifact_message.py",

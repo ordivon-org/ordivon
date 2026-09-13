@@ -1,0 +1,50 @@
+{
+  "bindingVersion": 1,
+  "bindings": {
+    "independentConsumerA": {
+      "binarySha256": "810fb7a18359a1bf6c92ff22f202fd39ab3e98336c4f6345e318dbe2dc4c8482",
+      "packageSignatureValidation": "PASS",
+      "path": "/usr/bin/assimp",
+      "tool": "Assimp",
+      "version": "6.0.5"
+    },
+    "independentConsumerB": {
+      "binarySha256": "fd7c5e44f50de3012e9cd8c919ce7cfaca716ff7bc3b9d9e53d300401b892e7c",
+      "packageSignatureValidation": "PASS",
+      "path": "/usr/bin/blender",
+      "tool": "Blender",
+      "version": "5.2.1 LTS"
+    },
+    "standardValidator": {
+      "moduleWrapperSha256": "f817fde51399f0a7a3f9eb3fd5ae6ff77108d492a7397978022c94700e244b56",
+      "npmShasumSha1": "9b09225db864fe3f0a584259f65d087e2213a93a",
+      "packageArchiveSha256": "4e03dbdc3bc0d1342afd5d2d7ae341a7e3474502ccb872b02dbbaddaee0fdec6",
+      "path": "/opt/ordivon/external/gltf-validator/2.0.0-dev.3.10/gltf-validator",
+      "tool": "Khronos glTF Validator",
+      "version": "2.0.0-dev.3.10"
+    },
+    "targetConsumer": {
+      "binarySha256": "a72fa47eb84dab812102e622f3fa9e99754505459a0ded8f69ceddd5b4ded8dd",
+      "path": "/usr/bin/godot",
+      "tool": "Godot",
+      "version": "4.7.1.stable.arch_linux.a13da4feb"
+    }
+  },
+  "id": "design-3d-glb-skinned-animation-local-r1",
+  "profileId": "design-3d-glb-skinned-animation-r1",
+  "proof": {
+    "assimpEvidenceSha256": "0e31157151b1c754b370377e0faa59e024d88890d063ff9db18425f830f814bc",
+    "assimpImport": "PASS",
+    "blenderImport": "PASS",
+    "blenderStdoutSha256": "59b5444b35fe15b548c96fa7e2f8e0816a75d4ce1c33e16ec8f1e1482b9f680d",
+    "directLiveProof": "PASS",
+    "godotImport": "PASS",
+    "godotStdoutSha256": "791e50076ad1e50c54cda34a7953facc6e7108cc98234bdd34c458bd7a584f68",
+    "khronosEvidenceSha256": "5350025c033aa2015ef9bb4da0fb17850ae5840259d55c7c715daf0026f4bf46",
+    "khronosZeroErrorsWarnings": true,
+    "operationDigest": "sha256:2b568b6ff8b9bc9ebc0379af8e070bd266271adc8db8c49f34bc1b5d6c517ae7",
+    "runtimeJobId": "job-01a09aaf-f127-74b1-b6e2-24d2a6f318d2",
+    "subjectSha256": "9a50900f2a7fcb17af6be1be8b7788fbc743fd7a8e1bd075515a62cf6fd24daa"
+  },
+  "status": "LOCAL_LIVE_PROVEN"
+}

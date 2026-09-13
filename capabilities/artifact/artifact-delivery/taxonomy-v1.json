@@ -1,30 +1,5 @@
 {
-  "schemaVersion": 1,
-  "kind": "artifact-standards-first-taxonomy",
-  "id": "artifact-taxonomy-r1",
   "capturedOn": "2026-09-12",
-  "status": "SHADOW_MODEL_NO_RUNTIME_CUTOVER",
-  "principles": [
-    "artifact family is not a file format",
-    "file format is not a conformance profile",
-    "accessibility and preservation are profile purposes, not artifact families",
-    "target acceptance is independent from structural conformance",
-    "delivery/read-back is independent from artifact construction",
-    "OCI packaging is cross-cutting release infrastructure, not an artifact family",
-    "no universal artifact AST is introduced"
-  ],
-  "externalClassificationAnchors": [
-    {
-      "authority": "IANA",
-      "reference": "Media Types Registry / RFC 6838",
-      "role": "registered serialization/media-type identity"
-    },
-    {
-      "authority": "Library of Congress",
-      "reference": "Recommended Formats Statement 2025-2026",
-      "role": "real-world content-family and preservation-oriented format taxonomy"
-    }
-  ],
   "classificationAxes": [
     {
       "id": "family",
@@ -51,12 +26,36 @@
       "meaning": "Use intent such as editable-authoring, exchange, portable-view, accessibility, preservation, publication or software-distribution."
     }
   ],
+  "externalClassificationAnchors": [
+    {
+      "authority": "IANA",
+      "reference": "Media Types Registry / RFC 6838",
+      "role": "registered serialization/media-type identity"
+    },
+    {
+      "authority": "Library of Congress",
+      "reference": "Recommended Formats Statement 2025-2026",
+      "role": "real-world content-family and preservation-oriented format taxonomy"
+    }
+  ],
   "families": [
     {
-      "id": "text-document",
+      "currentCoverage": "PROFILE_PRESENT",
+      "currentProfiles": [
+        "document-r1"
+      ],
+      "exampleFormats": [
+        "docx",
+        "odt",
+        "epub",
+        "xml",
+        "markdown"
+      ],
       "externalAlignment": [
         "Library of Congress: Textual Works"
       ],
+      "id": "text-document",
+      "localToolStanding": "PARTIAL_STRONG",
       "representations": [
         "structured-markup",
         "office-package",
@@ -66,25 +65,24 @@
         "ECMA-376 / ISO/IEC 29500 OOXML",
         "ISO/IEC 26300 ODF",
         "W3C EPUB 3.3"
-      ],
-      "exampleFormats": [
-        "docx",
-        "odt",
-        "epub",
-        "xml",
-        "markdown"
-      ],
-      "currentCoverage": "PROFILE_PRESENT",
-      "currentProfiles": [
-        "document-r1"
-      ],
-      "localToolStanding": "PARTIAL_STRONG"
+      ]
     },
     {
-      "id": "fixed-document",
+      "currentCoverage": "PROFILE_PRESENT",
+      "currentProfiles": [
+        "pdf-fixed-r1",
+        "pdf-accessible-r1"
+      ],
+      "exampleFormats": [
+        "pdf",
+        "pdf-a-4",
+        "pdf-ua-2"
+      ],
       "externalAlignment": [
         "Library of Congress: Textual Works / page-layout formats"
       ],
+      "id": "fixed-document",
+      "localToolStanding": "STRONG",
       "representations": [
         "fixed-layout"
       ],
@@ -92,51 +90,49 @@
         "ISO 32000-2 PDF 2.0",
         "ISO 19005-4 PDF/A-4",
         "ISO 14289-2:2024 PDF/UA-2"
-      ],
-      "exampleFormats": [
-        "pdf",
-        "pdf-a-4",
-        "pdf-ua-2"
-      ],
-      "currentCoverage": "PROFILE_PRESENT",
-      "currentProfiles": [
-        "pdf-fixed-r1",
-        "pdf-accessible-r1"
-      ],
-      "localToolStanding": "STRONG"
+      ]
     },
     {
-      "id": "presentation",
-      "externalAlignment": [
-        "ECMA-376 PresentationML",
-        "Library of Congress: Textual/visual publication formats"
-      ],
-      "representations": [
-        "office-package",
-        "slide-runtime"
-      ],
-      "standards": [
-        "ECMA-376 / ISO/IEC 29500 PresentationML and OPC"
-      ],
-      "exampleFormats": [
-        "pptx",
-        "odp",
-        "html-slides"
-      ],
       "currentCoverage": "PROFILE_PRESENT",
       "currentProfiles": [
         "pdu-sdu-presentation-r1",
         "presentation-local-development-r1",
         "presentation-ultrawide-34x10-r1"
       ],
-      "localToolStanding": "STRONG_WITH_EXTERNAL_TARGET"
+      "exampleFormats": [
+        "pptx",
+        "odp",
+        "html-slides"
+      ],
+      "externalAlignment": [
+        "ECMA-376 PresentationML",
+        "Library of Congress: Textual/visual publication formats"
+      ],
+      "id": "presentation",
+      "localToolStanding": "STRONG_WITH_EXTERNAL_TARGET",
+      "representations": [
+        "office-package",
+        "slide-runtime"
+      ],
+      "standards": [
+        "ECMA-376 / ISO/IEC 29500 PresentationML and OPC"
+      ]
     },
     {
-      "id": "spreadsheet",
+      "currentCoverage": "PROFILE_PRESENT",
+      "currentProfiles": [
+        "spreadsheet-r1"
+      ],
+      "exampleFormats": [
+        "xlsx",
+        "ods"
+      ],
       "externalAlignment": [
         "ECMA-376 SpreadsheetML",
         "Library of Congress: Datasets / de-facto professional formats"
       ],
+      "id": "spreadsheet",
+      "localToolStanding": "PARTIAL_STRONG",
       "representations": [
         "office-package",
         "formula-workbook"
@@ -144,22 +140,28 @@
       "standards": [
         "ECMA-376 / ISO/IEC 29500 SpreadsheetML and OPC",
         "ISO/IEC 26300 ODF"
-      ],
-      "exampleFormats": [
-        "xlsx",
-        "ods"
-      ],
-      "currentCoverage": "PROFILE_PRESENT",
-      "currentProfiles": [
-        "spreadsheet-r1"
-      ],
-      "localToolStanding": "PARTIAL_STRONG"
+      ]
     },
     {
-      "id": "dataset",
+      "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
+      "currentProfiles": [
+        "dataset-parquet-flat-r1"
+      ],
+      "exampleFormats": [
+        "csv",
+        "tsv",
+        "json",
+        "parquet",
+        "arrow",
+        "sqlite",
+        "hdf5",
+        "netcdf"
+      ],
       "externalAlignment": [
         "Library of Congress: Datasets"
       ],
+      "id": "dataset",
+      "localToolStanding": "PARQUET_CONTRACT_AND_DUCKDB_PYARROW_READER_MATRIX_PROVEN",
       "representations": [
         "delimited-text",
         "structured-text",
@@ -173,29 +175,27 @@
         "Apache Parquet specification",
         "Apache Arrow specification",
         "HDF5/netCDF domain standards where applicable"
-      ],
-      "exampleFormats": [
-        "csv",
-        "tsv",
-        "json",
-        "parquet",
-        "arrow",
-        "sqlite",
-        "hdf5",
-        "netcdf"
-      ],
-      "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
-      "currentProfiles": [
-        "dataset-parquet-flat-r1"
-      ],
-      "localToolStanding": "PARQUET_CONTRACT_AND_DUCKDB_PYARROW_READER_MATRIX_PROVEN"
+      ]
     },
     {
-      "id": "still-image",
+      "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
+      "currentProfiles": [
+        "still-image-png-srgb-r1",
+        "still-image-svg-static-r1"
+      ],
+      "exampleFormats": [
+        "png",
+        "jpeg",
+        "tiff",
+        "avif",
+        "svg"
+      ],
       "externalAlignment": [
         "IANA image/*",
         "Library of Congress: Still Image Works"
       ],
+      "id": "still-image",
+      "localToolStanding": "PNG_DECODER_MATRIX_PLUS_STATIC_SVG_LIBRSVG_AND_BROWSER_MATRIX_PROVEN",
       "representations": [
         "raster",
         "vector"
@@ -205,34 +205,14 @@
         "W3C SVG 2",
         "ISO/IEC JPEG-family standards",
         "TIFF family where profile-selected"
-      ],
-      "exampleFormats": [
-        "png",
-        "jpeg",
-        "tiff",
-        "avif",
-        "svg"
-      ],
-      "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
-      "currentProfiles": [
-        "still-image-png-srgb-r1",
-        "still-image-svg-static-r1"
-      ],
-      "localToolStanding": "PNG_DECODER_MATRIX_PLUS_STATIC_SVG_LIBRSVG_AND_BROWSER_MATRIX_PROVEN"
+      ]
     },
     {
-      "id": "audio",
-      "externalAlignment": [
-        "IANA audio/*",
-        "Library of Congress: Audio Works"
-      ],
-      "representations": [
-        "elementary-stream",
-        "audio-container"
-      ],
-      "standards": [
-        "format/profile-selected codec and container standards",
-        "BWF/WAVE or professional preservation profiles where required"
+      "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
+      "currentProfiles": [
+        "audio-flac-pcm16-r1",
+        "audio-wave-pcm16-r1",
+        "audio-ogg-vorbis-r1"
       ],
       "exampleFormats": [
         "wav",
@@ -241,27 +221,25 @@
         "mp3",
         "opus"
       ],
-      "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
-      "currentProfiles": [
-        "audio-flac-pcm16-r1",
-        "audio-wave-pcm16-r1",
-        "audio-ogg-vorbis-r1"
-      ],
-      "localToolStanding": "FLAC_REFERENCE_WAVE_PCM_AND_OGG_VORBIS_REFERENCE_PLUS_BROWSER_MATRICES_PROVEN"
-    },
-    {
-      "id": "moving-image",
       "externalAlignment": [
-        "IANA video/*",
-        "Library of Congress: Moving Image Works"
+        "IANA audio/*",
+        "Library of Congress: Audio Works"
       ],
+      "id": "audio",
+      "localToolStanding": "FLAC_REFERENCE_WAVE_PCM_AND_OGG_VORBIS_REFERENCE_PLUS_BROWSER_MATRICES_PROVEN",
       "representations": [
-        "audiovisual-container",
-        "master-package"
+        "elementary-stream",
+        "audio-container"
       ],
       "standards": [
-        "SMPTE ST 2067 IMF for professional master workflows",
-        "profile-selected container/codec standards"
+        "format/profile-selected codec and container standards",
+        "BWF/WAVE or professional preservation profiles where required"
+      ]
+    },
+    {
+      "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
+      "currentProfiles": [
+        "moving-image-matroska-ffv1-v3-r1"
       ],
       "exampleFormats": [
         "mp4",
@@ -270,25 +248,25 @@
         "mxf",
         "imf-package"
       ],
-      "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
-      "currentProfiles": [
-        "moving-image-matroska-ffv1-v3-r1"
-      ],
-      "localToolStanding": "RFC9559_RFC9043_MEDIACONCH_MEDIAINFO_FFPROBE_PROVEN"
-    },
-    {
-      "id": "web",
       "externalAlignment": [
-        "IANA text/html and related web media types",
-        "Library of Congress: web content / Web Archives boundary"
+        "IANA video/*",
+        "Library of Congress: Moving Image Works"
       ],
+      "id": "moving-image",
+      "localToolStanding": "RFC9559_RFC9043_MEDIACONCH_MEDIAINFO_FFPROBE_PROVEN",
       "representations": [
-        "html-css-js-runtime"
+        "audiovisual-container",
+        "master-package"
       ],
       "standards": [
-        "WHATWG HTML Living Standard",
-        "W3C CSS snapshots/modules",
-        "WCAG 2.2"
+        "SMPTE ST 2067 IMF for professional master workflows",
+        "profile-selected container/codec standards"
+      ]
+    },
+    {
+      "currentCoverage": "PROFILE_PRESENT",
+      "currentProfiles": [
+        "web-r1"
       ],
       "exampleFormats": [
         "html",
@@ -296,18 +274,40 @@
         "javascript",
         "svg"
       ],
-      "currentCoverage": "PROFILE_PRESENT",
-      "currentProfiles": [
-        "web-r1"
+      "externalAlignment": [
+        "IANA text/html and related web media types",
+        "Library of Congress: web content / Web Archives boundary"
       ],
-      "localToolStanding": "STRONG_WITH_SUPPORTED_RUNNER_BOUNDARY"
+      "id": "web",
+      "localToolStanding": "STRONG_WITH_SUPPORTED_RUNNER_BOUNDARY",
+      "representations": [
+        "html-css-js-runtime"
+      ],
+      "standards": [
+        "WHATWG HTML Living Standard",
+        "W3C CSS snapshots/modules",
+        "WCAG 2.2"
+      ]
     },
     {
-      "id": "geospatial",
+      "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
+      "currentProfiles": [
+        "geospatial-geopackage-point-r1"
+      ],
+      "exampleFormats": [
+        "gpkg",
+        "geotiff",
+        "geojson",
+        "shapefile",
+        "kml",
+        "gml"
+      ],
       "externalAlignment": [
         "Library of Congress: GIS, Geospatial and Cartographic",
         "OGC standards"
       ],
+      "id": "geospatial",
+      "localToolStanding": "OGC_GPKG_VALIDATOR_SQLITE_CONTAINER_AND_OGR_CONTRACT_PROVEN",
       "representations": [
         "geospatial-database",
         "vector-features",
@@ -319,27 +319,25 @@
         "GeoTIFF",
         "GeoJSON RFC 7946",
         "OGC APIs where delivery profile requires them"
-      ],
-      "exampleFormats": [
-        "gpkg",
-        "geotiff",
-        "geojson",
-        "shapefile",
-        "kml",
-        "gml"
-      ],
-      "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
-      "currentProfiles": [
-        "geospatial-geopackage-point-r1"
-      ],
-      "localToolStanding": "OGC_GPKG_VALIDATOR_SQLITE_CONTAINER_AND_OGR_CONTRACT_PROVEN"
+      ]
     },
     {
-      "id": "design-2d",
+      "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
+      "currentProfiles": [
+        "design-2d-tiled-tmj-object-map-r1",
+        "design-2d-aseprite-horizontal-sheet-r1"
+      ],
+      "exampleFormats": [
+        "tmj",
+        "tmx",
+        "aseprite"
+      ],
       "externalAlignment": [
         "Tiled native map authoring formats",
         "IANA application/json for TMJ serialization"
       ],
+      "id": "design-2d",
+      "localToolStanding": "TILED_NATIVE_ROUNDTRIP_PLUS_ASEPRITE_MANAGED_DETERMINISTIC_EXPORT_PROVEN",
       "representations": [
         "structured-map-authoring-source",
         "layered-raster-authoring-source"
@@ -347,35 +345,14 @@
       "standards": [
         "Tiled JSON Map Format / TMX Map Format semantics",
         "format-specific native authoring contracts"
-      ],
-      "exampleFormats": [
-        "tmj",
-        "tmx",
-        "aseprite"
-      ],
-      "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
-      "currentProfiles": [
-        "design-2d-tiled-tmj-object-map-r1",
-        "design-2d-aseprite-horizontal-sheet-r1"
-      ],
-      "localToolStanding": "TILED_NATIVE_ROUNDTRIP_PLUS_ASEPRITE_MANAGED_DETERMINISTIC_EXPORT_PROVEN"
+      ]
     },
     {
-      "id": "design-3d",
-      "externalAlignment": [
-        "IANA model/*",
-        "Library of Congress: Design and 3D"
-      ],
-      "representations": [
-        "scene",
-        "mesh",
-        "cad",
-        "bim",
-        "manufacturing-model"
-      ],
-      "standards": [
-        "ISO/IEC 12113:2022 Khronos glTF 2.0",
-        "STEP/IFC/3MF profile-selected for CAD/BIM/manufacturing"
+      "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
+      "currentProfiles": [
+        "design-3d-glb-static-mesh-r1",
+        "design-3d-glb-material-scene-r1",
+        "design-3d-glb-skinned-animation-r1"
       ],
       "exampleFormats": [
         "gltf",
@@ -386,18 +363,45 @@
         "obj",
         "stl"
       ],
-      "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
-      "currentProfiles": [
-        "design-3d-glb-static-mesh-r1"
+      "externalAlignment": [
+        "IANA model/*",
+        "Library of Congress: Design and 3D"
       ],
-      "localToolStanding": "KHRONOS_VALIDATOR_ASSIMP_BLENDER_MATRIX_PROVEN"
+      "id": "design-3d",
+      "localToolStanding": "KHRONOS_VALIDATOR_ASSIMP_BLENDER_GODOT_MATRIX_PROVEN",
+      "representations": [
+        "scene",
+        "mesh",
+        "cad",
+        "bim",
+        "manufacturing-model"
+      ],
+      "standards": [
+        "ISO/IEC 12113:2022 Khronos glTF 2.0",
+        "STEP/IFC/3MF profile-selected for CAD/BIM/manufacturing"
+      ]
     },
     {
-      "id": "software-release",
+      "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
+      "currentProfiles": [
+        "software-release-oci-image-r1"
+      ],
+      "exampleFormats": [
+        "oci-artifact",
+        "container-image",
+        "deb",
+        "rpm",
+        "apk",
+        "ipa",
+        "exe",
+        "tarball"
+      ],
       "externalAlignment": [
         "Library of Congress: Software and Video Games",
         "software supply-chain standards"
       ],
+      "id": "software-release",
+      "localToolStanding": "OCI_SYFT_FROZEN_TRIVY_RUNTIME_READBACK_PROVEN",
       "representations": [
         "binary",
         "package",
@@ -411,28 +415,23 @@
         "Sigstore",
         "SPDX 2.3 / SPDX 3.0 as selected (ISO/IEC 5962:2021 corresponds to SPDX 2.2.1)",
         "CycloneDX where selected"
-      ],
-      "exampleFormats": [
-        "oci-artifact",
-        "container-image",
-        "deb",
-        "rpm",
-        "apk",
-        "ipa",
-        "exe",
-        "tarball"
-      ],
-      "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
-      "currentProfiles": [
-        "software-release-oci-image-r1"
-      ],
-      "localToolStanding": "OCI_SYFT_FROZEN_TRIVY_RUNTIME_READBACK_PROVEN"
+      ]
     },
     {
-      "id": "web-archive",
+      "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
+      "currentProfiles": [
+        "web-archive-warc-response-r1"
+      ],
+      "exampleFormats": [
+        "warc",
+        "warc.gz",
+        "wacz"
+      ],
       "externalAlignment": [
         "Library of Congress: Web Archives"
       ],
+      "id": "web-archive",
+      "localToolStanding": "WARCIO_PYTHON_AND_JS_INDEPENDENT_PARSER_MATRIX_PROVEN",
       "representations": [
         "capture-container",
         "capture-bundle"
@@ -440,31 +439,12 @@
       "standards": [
         "ISO 28500 WARC",
         "WACZ ecosystem where profile-selected"
-      ],
-      "exampleFormats": [
-        "warc",
-        "warc.gz",
-        "wacz"
-      ],
-      "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
-      "currentProfiles": [
-        "web-archive-warc-response-r1"
-      ],
-      "localToolStanding": "WARCIO_PYTHON_AND_JS_INDEPENDENT_PARSER_MATRIX_PROVEN"
+      ]
     },
     {
-      "id": "message",
-      "externalAlignment": [
-        "IANA message/*",
-        "Library of Congress: Email"
-      ],
-      "representations": [
-        "internet-message",
-        "mailbox-container"
-      ],
-      "standards": [
-        "RFC 5322 Internet Message Format",
-        "MIME RFC 2045-2049 family"
+      "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
+      "currentProfiles": [
+        "message-internet-text-r1"
       ],
       "exampleFormats": [
         "eml",
@@ -472,22 +452,42 @@
         "msg",
         "pst"
       ],
-      "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
-      "currentProfiles": [
-        "message-internet-text-r1"
+      "externalAlignment": [
+        "IANA message/*",
+        "Library of Congress: Email"
       ],
-      "localToolStanding": "PYTHON_EMAIL_AND_MAILPARSER_INDEPENDENT_PARSER_MATRIX_PROVEN"
+      "id": "message",
+      "localToolStanding": "PYTHON_EMAIL_AND_MAILPARSER_INDEPENDENT_PARSER_MATRIX_PROVEN",
+      "representations": [
+        "internet-message",
+        "mailbox-container"
+      ],
+      "standards": [
+        "RFC 5322 Internet Message Format",
+        "MIME RFC 2045-2049 family"
+      ]
     }
   ],
-  "specialistExtensionsDeferred": [
-    "musical-score / notation",
-    "medical-imaging / DICOM",
-    "computational-notebook",
-    "scientific-domain arrays beyond the generic dataset family"
-  ],
+  "id": "artifact-taxonomy-r1",
+  "kind": "artifact-standards-first-taxonomy",
   "legacyProfileMapping": {
+    "accessible": {
+      "conformanceProfile": "PDF/UA-2",
+      "family": "fixed-document",
+      "purpose": "accessibility"
+    },
+    "archive": {
+      "conformanceProfile": "PDF/A-4",
+      "family": "fixed-document",
+      "note": "Legacy enum value was a purpose/profile, not an artifact family.",
+      "purpose": "preservation"
+    },
     "document": {
       "family": "text-document"
+    },
+    "fixed-view": {
+      "family": "fixed-document",
+      "representation": "fixed-layout"
     },
     "presentation": {
       "family": "presentation"
@@ -497,22 +497,24 @@
     },
     "web": {
       "family": "web"
-    },
-    "fixed-view": {
-      "family": "fixed-document",
-      "representation": "fixed-layout"
-    },
-    "accessible": {
-      "family": "fixed-document",
-      "purpose": "accessibility",
-      "conformanceProfile": "PDF/UA-2"
-    },
-    "archive": {
-      "family": "fixed-document",
-      "purpose": "preservation",
-      "conformanceProfile": "PDF/A-4",
-      "note": "Legacy enum value was a purpose/profile, not an artifact family."
     }
   },
-  "migrationRule": "Do not extend profile-v1 artifactClass. Introduce a v2 profile only after family/format/profile/target/purpose axes are proven by at least two additional non-Office families. Until then this taxonomy is a shadow model and current production profiles remain authoritative."
+  "migrationRule": "Do not extend profile-v1 artifactClass. Introduce a v2 profile only after family/format/profile/target/purpose axes are proven by at least two additional non-Office families. Until then this taxonomy is a shadow model and current production profiles remain authoritative.",
+  "principles": [
+    "artifact family is not a file format",
+    "file format is not a conformance profile",
+    "accessibility and preservation are profile purposes, not artifact families",
+    "target acceptance is independent from structural conformance",
+    "delivery/read-back is independent from artifact construction",
+    "OCI packaging is cross-cutting release infrastructure, not an artifact family",
+    "no universal artifact AST is introduced"
+  ],
+  "schemaVersion": 1,
+  "specialistExtensionsDeferred": [
+    "musical-score / notation",
+    "medical-imaging / DICOM",
+    "computational-notebook",
+    "scientific-domain arrays beyond the generic dataset family"
+  ],
+  "status": "SHADOW_MODEL_NO_RUNTIME_CUTOVER"
 }
