@@ -32,6 +32,7 @@ class EquipmentWorldTests(unittest.TestCase):
         self.assertIn("ffmpeg", ids)
         self.assertIn("davinci-resolve", ids)
         self.assertIn("reaper", ids)
+        self.assertIn("aseprite", ids)
         self.assertIn("stream-deck", ids)
         self.assertIn("frictionReduction", world["evaluationAxes"])
         by_id = {item["id"]: item for item in world["equipment"]}
@@ -41,6 +42,9 @@ class EquipmentWorldTests(unittest.TestCase):
         self.assertEqual(by_id["blender"]["retention"], "specialist-on-demand")
         self.assertEqual(by_id["reaper"]["retention"], "specialist-on-demand")
         self.assertIn("audio.project.render", by_id["reaper"]["capabilities"])
+        self.assertEqual(by_id["aseprite"]["retention"], "specialist-on-demand")
+        self.assertIn("sprite.source.author", by_id["aseprite"]["capabilities"])
+        self.assertIn("sprite.runtime.export", by_id["aseprite"]["capabilities"])
         media_world = json.loads((ROOT / "research/expression/media-world-model.json").read_text(encoding="utf-8"))
         self.assertEqual(media_world["equipmentWorld"], "research/equipment/equipment-world.json")
         hypotheses = {item["id"]: item["state"] for item in media_world["foundationHypotheses"]}
@@ -258,6 +262,33 @@ class EquipmentWorldTests(unittest.TestCase):
             self.assertEqual(plan.executable, str(executable))
             self.assertIn("EquipmentBinding", " ".join(plan.notes))
             self.assertNotIn("capability", row["candidates"][0])
+
+    def test_aseprite_uses_exact_workstation_binding_for_editable_source_and_runtime_export(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            executable = root / "aseprite"
+            executable.write_text("#!/bin/sh\necho Aseprite 1.x-dev\n", encoding="utf-8")
+            executable.chmod(0o755)
+            binding_tool = root / "equipment-binding"
+            binding_tool.write_text(
+                "#!/usr/bin/env python3\nimport json\nprint(json.dumps({\"schemaVersion\":1,\"kind\":\"ordivon.workstation-equipment-binding\",\"state\":\"AVAILABLE\",\"executionTarget\":\"local_linux\",\"provider\":\"workstation.managed-external\",\"bindingDigest\":\"sha256:" + "c"*64 + "\",\"executable\":\"" + str(executable) + "\",\"environment\":{},\"providerIdentity\":{\"expectedSha256\":\"" + "d"*64 + "\"}}))\n",
+                encoding="utf-8",
+            )
+            binding_tool.chmod(0o755)
+            with mock.patch.dict(os.environ, {"ORDIVON_EQUIPMENT_BINDING": str(binding_tool)}):
+                source_plan = compile_operation(
+                    "aseprite", "sprite.source.author",
+                    {"script": "make.lua", "output": "master.aseprite"},
+                )
+                export_plan = compile_operation(
+                    "aseprite", "sprite.runtime.export",
+                    {"source": "master.aseprite", "output": "runtime.png"},
+                )
+            self.assertEqual(source_plan.executable, str(executable))
+            self.assertEqual(source_plan.args, ("--batch", "--script-param", "output=master.aseprite", "--script", "make.lua"))
+            self.assertEqual(export_plan.args, ("--batch", "master.aseprite", "--save-as", "runtime.png"))
+            self.assertIn("EquipmentBinding", " ".join(source_plan.notes))
+            self.assertIn("Game/domain semantics", " ".join(export_plan.notes))
 
     def test_discovery_redacts_secret_like_keys(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

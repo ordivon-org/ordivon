@@ -36,23 +36,28 @@ The v2 FFprobe-based profile gate accepted the candidate as:
 
 The evidence receipt explicitly leaves semantic quality, aesthetic quality and publication standing unevaluated.
 
-## Lineage mismatch discovered
+## Lineage observation and 2026-09-13 correction
 
-`productions/runtime-introduction/production.json` currently declares the rendered output digest:
+R2 originally compared the fresh picture-only `out/runtime-introduction-master.mp4` against the `production.json` rendered output digest `sha256:7d994f80627968f4e64a3a53c08d5241bb8f398e17d52c24080f935e7c716430`. That comparison crossed production stages: the declared output is `runtime-introduction-en-av-candidate`, the final picture+narration A/V occurrence. It is not the picture-only master.
 
-`sha256:7d994f80627968f4e64a3a53c08d5241bb8f398e17d52c24080f935e7c716430`
+The same-stage historical picture occurrence is `runtime-introduction-master-motion` at:
 
-The fresh render digest is different. Therefore the R2 candidate must **not** be promoted as the exact historical rendered Blob named by `production.json`.
+`sha256:77d8eae832a3cac47c641211aa8c9019c04c542faf0ae87a9ae0e82d37acc736`
 
-Current disposition:
+A 2026-09-13 rerun at source revision `dc447ccd99cbef8d33af3d36b11937b4bf2b57ff`, Remotion `4.0.502`, and the current lockfile reproduced the R2 fresh picture bytes exactly:
 
-- fresh candidate mechanical AV profile: **PASS**;
-- equality to declared historical output Blob: **FAIL / different bytes**;
+`sha256:9f476ded056358b95008e8bb5cb2cfbbc14610e5a0a94ae00db8fd3533d9bb6b` (`2258932` bytes)
+
+Therefore:
+
+- current recipe/toolchain reproducibility: **PASS** for the observed current occurrence;
+- current rerender equality to the prior R2 fresh picture: **PASS / byte-identical**;
+- current rerender equality to the older accepted picture occurrence `77d8...`: **NO / distinct exact occurrence**;
+- comparison of picture-only `9f47...` to final A/V `7d99...`: **INVALID AS AN EQUALITY TEST** because they are different production stages;
 - semantic/aesthetic review: **NOT EVALUATED**;
-- publication standing: **NOT EVALUATED**;
-- historical digest correction: **NOT PERFORMED**.
+- historical accepted bytes: **PRESERVED**, not rewritten.
 
-The mismatch should become a dedicated reproducibility/lineage falsifier rather than being hidden by updating the declared digest.
+The older accepted picture Blob, narration Blob, and final A/V Blob are all still present in the local content-addressed cache with exact matching SHA-256. The v2 rule is to preserve distinct occurrence identity rather than normalize different bytes into one asset. See `productions/runtime-introduction/evidence/media-v2-picture-lineage-recheck-r7.json`.
 
 ## Consequence for legacy retirement
 

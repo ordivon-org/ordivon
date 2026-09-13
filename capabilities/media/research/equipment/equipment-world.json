@@ -237,6 +237,30 @@
       "reason": "Retain as an on-demand local vector specialist. Studio may discover an exact digest-fenced Workstation managed EquipmentBinding without treating PATH or another Consumer's installation as semantic authority; raw SVG + rsvg-convert remain the deterministic baseline, while Figma remains the design-native external world."
     },
     {
+      "id": "aseprite",
+      "family": "deterministic-cli-plus-gui",
+      "media": [
+        "still-visual",
+        "interactive"
+      ],
+      "capabilities": [
+        "sprite.source.author",
+        "sprite.runtime.export"
+      ],
+      "discovery": [
+        {
+          "kind": "workstation-managed-binding",
+          "platform": "linux",
+          "equipmentId": "game-aseprite-e1",
+          "versionArgs": [
+            "--version"
+          ]
+        }
+      ],
+      "retention": "specialist-on-demand",
+      "reason": "Admitted by real Game consumer pressure. Station Zero v3 has an editable .aseprite master and exact PNG runtime derivative; Workstation owns the digest-fenced binary binding, Media owns medium-specific production/QC, and Game retains Actor/gameplay semantics."
+    },
+    {
       "id": "blender",
       "family": "scripted-workstation-headless",
       "media": [

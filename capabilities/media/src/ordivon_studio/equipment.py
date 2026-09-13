@@ -263,6 +263,7 @@ _DIRECT_OPERATION_CAPABILITIES: dict[str, frozenset[str]] = {
     "typst": frozenset({"document.compile.pdf"}),
     "imagemagick": frozenset({"image.resize"}),
     "inkscape": frozenset({"vector.export"}),
+    "aseprite": frozenset({"sprite.source.author", "sprite.runtime.export"}),
     "blender": frozenset({"scene.create", "scene.edit", "scene.render", "animation.render", "asset.export.gltf", "geometry.procedural", "camera.control", "material.control"}),
     "godot": frozenset({"interactive.run.headless", "interactive.script", "state.trace"}),
     "rsvg-convert": frozenset({"svg.rasterize"}),
@@ -566,6 +567,27 @@ def compile_operation(equipment_id: str, capability: str, parameters: Mapping[st
                 environment,
             )
         return EquipmentPlan(equipment_id, capability, "process", _require_existing("/usr/bin/inkscape"), tuple(args))
+    if equipment_id == "aseprite" and capability in {"sprite.source.author", "sprite.runtime.export"}:
+        binding = _workstation_equipment_binding("game-aseprite-e1", mode="managed")
+        if binding is None:
+            raise FileNotFoundError("Workstation binding game-aseprite-e1 is unavailable")
+        environment = tuple(sorted(_binding_environment(binding).items()))
+        if capability == "sprite.source.author":
+            script = str(parameters["script"])
+            output = str(parameters["output"])
+            args = ("--batch", "--script-param", f"output={output}", "--script", script)
+        else:
+            source = str(parameters["source"])
+            output = str(parameters["output"])
+            args = ("--batch", source, "--save-as", output)
+        return EquipmentPlan(
+            equipment_id, capability, "process", str(binding["executable"]), args,
+            (
+                f"Resolved through Workstation EquipmentBinding {binding.get('bindingDigest')}; Media retains sprite production semantics and Runtime retains execution authority.",
+                "Game/domain semantics are not inferred from sprite filenames, pixels, tags, or export metadata.",
+            ),
+            environment,
+        )
     if equipment_id == "blender" and capability in {"scene.create", "scene.edit", "scene.render", "animation.render", "asset.export.gltf", "geometry.procedural", "camera.control", "material.control"}:
         script = str(parameters["script"])
         executable = _first_existing(

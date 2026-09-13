@@ -38,3 +38,11 @@ A measurement path that accepts all fixtures is a false green and fails R3.
 ## Legacy disposition after R3
 
 For new Media v2 work, `ordivon_studio.qc.measure_loudness()` and `ordivon_studio.qc.validate_loudness()` are now **legacy compatibility only**. Their demonstrated semantics are covered by the external-first path. They are not yet physically deleted because the legacy `ordivon-studio qc-video` command and its old unit tests still reference them. New production paths must not add new references.
+
+## 2026-09-13 real-production parity follow-up
+
+The R3 byte-availability limitation is no longer current. The exact narration object is present in the local content-addressed cache at the declared SHA-256 `798c8f90...445d828d`; the existing R2 replica receipt also records the same exact object as independently redownload-verified from private Cloudflare R2.
+
+Fresh FFprobe/FFmpeg measurement over those exact bytes observed 48 kHz mono `pcm_s24le`, 78.0 seconds, -20.52 LUFS integrated loudness, and -2.18 dB true peak. These measurements match the historical declaration (-20.5 LUFS / -2.2 dB) within 0.1 units while digest and size match exactly.
+
+Real-production declaration parity is therefore **PASS**. This does not convert the historical narration into a -23 LUFS program-profile acceptance: the production declaration and the generic -23 LUFS smoke profile answer different questions. Listening quality and publication acceptance remain separate. See `productions/runtime-introduction/evidence/media-v2-audio-declaration-parity-r6.json`.
