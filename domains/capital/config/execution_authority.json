@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.market-capital.execution-authority",
+  "currentLane": "NON_LIVE",
+  "externalFinancialWriteAdmission": "NOT_ADMITTED",
+  "liveGrantMechanism": "NOT_IMPLEMENTED",
+  "semanticContract": "contracts/semantic-core-v1.json",
+  "productionAuthorizationContract": "contracts/production-authorization.json",
+  "externalBoundaryContract": "contracts/external-boundary-v1.json",
+  "rule": "all Market Capital execution runners must pass the in-repository authority gate; external-write mode remains code-level unavailable until separately admitted"
+}

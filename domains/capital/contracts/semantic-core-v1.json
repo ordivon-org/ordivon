@@ -1,0 +1,54 @@
+{
+  "currentness": {
+    "contradictionHistoryMonotone": true,
+    "resurrectionOneShot": true,
+    "revokedIsTerminalWithoutSeparateAuthority": true,
+    "rule": "proof/currentness must be revalidated at the mutation/effect commit boundary"
+  },
+  "effectDisposition": {
+    "CONSUME": [
+      "POSITIVE_EXECUTION"
+    ],
+    "RELEASE": [
+      "PROVEN_NO_EFFECT",
+      "RECONCILED_ZERO_FILL_TERMINAL"
+    ],
+    "RETAIN": [
+      "UNKNOWN",
+      "AMBIGUOUS",
+      "PARTIAL_OPEN",
+      "CONTRADICTORY"
+    ]
+  },
+  "externalFinancialWriteAttempted": false,
+  "kind": "ordivon.market-capital.semantic-core",
+  "ownedSemantics": [
+    "observation_same_cut",
+    "proof_binding_currentness",
+    "scientific_truth_not_economic_truth_not_capital_truth",
+    "registry_parcel_scarcity_identity",
+    "reservation_not_grant",
+    "effect_authority_retain_release_consume",
+    "revocation_recovery_one_shot_resurrection",
+    "production_authorization_boundary"
+  ],
+  "productionAuthorization": "BLOCK_NOT_GRANTED",
+  "sameCut": {
+    "forbiddenInference": "stream_offset_or_venue_timestamp_alone_proves_cross_venue_observation_order",
+    "required": [
+      "one_recorder_instance",
+      "one_recorder_session",
+      "one_clock_domain",
+      "serialized_append_path",
+      "raw_bytes_digest",
+      "monotone_append_sequence"
+    ]
+  },
+  "schemaVersion": 1,
+  "truthLevels": [
+    "SCIENTIFIC",
+    "ECONOMIC",
+    "CAPITAL"
+  ],
+  "truthRole": "canonical-market-capital-semantic-contract"
+}

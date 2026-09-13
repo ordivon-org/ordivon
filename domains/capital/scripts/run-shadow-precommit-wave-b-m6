@@ -8,7 +8,7 @@ mkdir -p "$repo/.artifacts/wave-b-m3"
 "$repo/scripts/fetch-nasdaq-wave-b-m3" > "$repo/.artifacts/wave-b-m3/fetch-manifest-output.json"
 DOTNET_CLI_TELEMETRY_OPTOUT=1 dotnet build "$repo/wave_b/algorithm/MarketCapitalValidationAlgorithm.csproj" -c Release --nologo -p:LeanReleaseRoot="$lean/Launcher/bin/Release"
 rm -rf "$out" && mkdir -p "$out"
-"$repo/scripts/check-authority-waist" --mode non-live --output "$out/authority-waist.json" >/dev/null
+"$repo/scripts/check-capital-authority" --mode non-live --output "$out/authority.json" >/dev/null
 read_cfg(){ python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))[sys.argv[2]])' "$repo/config/shadow_precommit.json" "$1"; }
 export MARKET_CAPITAL_TARGET_PORTFOLIO="$repo/wave_b/fixtures/wave_a_target_portfolio.json"
 export MARKET_CAPITAL_EXECUTION_CASH_BUFFER_WEIGHT="$(read_cfg executionCashBufferWeight)"
@@ -58,13 +58,12 @@ for plan in plans:
  if intent['transactTimeUtc'].replace('0000Z','Z') and not intent['transactTimeUtc'].startswith('2026-09-13T09:39:11'): raise SystemExit('unexpected frozen transact time')
 market_manifest=json.loads((repo/'.artifacts/wave-b-m3/manifest.json').read_text())
 pricing_series=[{k:x[k] for k in ('symbol','rawSha256','normalizedCsvSha256','rowCount','firstDate','lastDate')} for x in market_manifest['series']]
-authority=json.loads((out/'authority-waist.json').read_text())
+authority=json.loads((out/'authority.json').read_text())
 summary={
  'standing':'SHADOW_ORDER_PRECOMMIT_FROZEN',
- 'authorityWaistStanding':authority['standing'],
- 'authorityProviderRevision':authority['providerRevision'],
+ 'authorityStanding':authority['standing'],
  'authorityProductionState':authority['productionState'],
- 'authorityWaistEvidenceSha256':hashlib.sha256((out/'authority-waist.json').read_bytes()).hexdigest(),
+ 'authorityEvidenceSha256':hashlib.sha256((out/'authority.json').read_bytes()).hexdigest(),
  'precommitTimeUtc':cfg['precommitTimeUtc'],
  'decisionBoundaryUtc':cfg['decisionBoundaryUtc'],
  'pricingSessionDate':cfg['pricingSessionDate'],

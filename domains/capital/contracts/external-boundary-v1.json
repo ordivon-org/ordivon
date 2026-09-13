@@ -1,0 +1,89 @@
+{
+  "components": [
+    {
+      "component": "Arrow/Parquet",
+      "mayEstablish": [
+        "byte-preserving typed representation",
+        "portable dataset materialization"
+      ],
+      "mustNotEstablish": [
+        "observation cut",
+        "scientific truth",
+        "economic truth",
+        "capital truth",
+        "effect authority"
+      ],
+      "role": "columnar representation and durable portable evidence files"
+    },
+    {
+      "component": "DuckDB",
+      "mayEstablish": [
+        "query/replay result over supplied bytes"
+      ],
+      "mustNotEstablish": [
+        "source authenticity",
+        "proof currentness",
+        "production authority"
+      ],
+      "role": "local deterministic verifier and replay query engine"
+    },
+    {
+      "component": "Redpanda/Kafka",
+      "mayEstablish": [
+        "broker log persistence",
+        "broker-local ordered offsets"
+      ],
+      "mustNotEstablish": [
+        "cross-venue packet arrival order",
+        "observer reception order",
+        "same-cut proof",
+        "effect authority"
+      ],
+      "role": "durable event transport after witness capture"
+    },
+    {
+      "component": "QuestDB",
+      "mayEstablish": [
+        "stored/queryable market-data projection"
+      ],
+      "mustNotEstablish": [
+        "authentic observation",
+        "economic edge",
+        "capital truth",
+        "settlement"
+      ],
+      "role": "hot time-series storage and query"
+    },
+    {
+      "component": "future trading engine",
+      "mayEstablish": [
+        "engine-local order/fill/position state"
+      ],
+      "mustNotEstablish": [
+        "real settlement",
+        "legal ownership",
+        "deployable capital",
+        "production authorization"
+      ],
+      "role": "event loop, OMS, simulation, execution adapter"
+    },
+    {
+      "component": "future ledger/workflow/policy",
+      "mayEstablish": [
+        "ledger conservation",
+        "workflow completion",
+        "generic policy allow/deny"
+      ],
+      "mustNotEstablish": [
+        "capital truth",
+        "effect success",
+        "EffectAuthority",
+        "ProductionAuthorization"
+      ],
+      "role": "accounting mechanics, durable orchestration, generic policy"
+    }
+  ],
+  "kind": "ordivon.market-capital.external-boundary",
+  "schemaVersion": 1,
+  "truthRole": "component-responsibility-map-not-domain-truth"
+}

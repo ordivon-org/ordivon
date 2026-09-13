@@ -2,68 +2,75 @@
 
 ## Core rule
 
-Use mature external methods, standards and components. Ordivon-owned code is limited to mandate content, source-specific semantic mapping, strategy/economic logic, thin authority bindings and reconciliation rules.
+Market Capital is one canonical composition, not a federation of Ordivon finance subsystems. Use mature external financial/research infrastructure wherever it already exists; keep only the irreducible Market Capital domain semantics, mappings, decisions, authority rules and reconciliation logic in this repository.
 
-The canonical flow is:
+Canonical flow:
 
 `Evidence -> Decision -> ExecutionIntent -> Authority -> External Effect -> Reality -> Reconciliation -> Evidence`
 
-An engine-local fill, protocol acknowledgement, workflow success or passing test is never promoted to capital truth or production authority by itself.
+Engine-local fills, protocol acknowledgements, workflow success and passing tests never establish capital truth or production authority by themselves.
 
-## Layer 1 — Mandate and research
+## 1. Evidence and research
 
-- CFA-informed machine-readable IPS and constraints.
-- GLEIF for legal-entity identity.
-- SEC Company Facts / XBRL for issuer fundamentals.
-- Research Capability for dataframe validation, Parquet, DuckDB and MLflow lineage.
-- Output: immutable research evidence and target-portfolio decision artifacts.
+External mature sources/capabilities provide most evidence mechanics:
 
-Research infrastructure remains external to Market Capital.
+- CFA-informed IPS/mandate structure;
+- GLEIF legal-entity identity;
+- SEC/XBRL issuer disclosure;
+- Research Capability for dataframe validation, Parquet, DuckDB and MLflow lineage;
+- market-data providers for historical and future market reality.
 
-## Layer 2 — Decision and trading intent
+Market Capital owns the mappings from admitted evidence into its domain decisions, not duplicate research infrastructure.
 
-QuantConnect LEAN owns trading-engine mechanics such as buying-power modeling, order sizing, calendars and bounded execution simulation. FIX 4.4 / QuickFIX/n provides standard order-intent semantics where useful. Market Capital owns only the domain mapping from an admitted target portfolio to an execution intent.
+## 2. Decision
 
-Decision time and execution time are causally separated. A frozen decision/precommit may not be silently resized or rewritten after future market data is observed.
+Portfolio construction produces an immutable decision artifact with a causal decision boundary. Decision-time inputs and future execution-time observations are kept distinct. Future market data must not silently rewrite a frozen decision or precommit.
 
-## Layer 3 — Thin authority waist
+## 3. Execution intent
 
-`ordivon-market-capital-v2` is an external semantic provider, not a second application stack. `config/authority_waist.json` binds Market Capital to one exact provider revision and exact semantic/contract digests.
+QuantConnect LEAN owns mature trading-engine mechanics such as buying-power modeling, sizing, calendars and bounded execution simulation. FIX 4.4 / QuickFIX/n supplies standard order-intent semantics where appropriate. Market Capital owns the mapping from an admitted decision into an `ExecutionIntent`.
 
-The retained semantics are deliberately narrow:
+## 4. Canonical semantic and authority core
+
+The semantic core is now implemented directly in this repository under `src/market_capital/semantic.py`; there is no active `market-capital-v2` dependency.
+
+Canonical retained semantics are:
 
 - observation/same-cut;
-- proof binding and currentness;
+- proof binding/currentness;
 - Scientific Truth != Economic Truth != Capital Truth;
+- registry/parcel/scarcity identity;
 - Reservation != Grant;
-- EffectAuthority disposition;
+- EffectAuthority RETAIN/RELEASE/CONSUME;
 - revocation/recovery boundaries;
 - ProductionAuthorization.
 
-All current trading runners cross the non-live authority preflight. Production authorization is `BLOCK_NOT_GRANTED`; external financial writes are not admitted.
+The execution gate is `src/market_capital/authority.py` plus `config/execution_authority.json` and the contracts under `contracts/`.
 
-## Layer 4 — External financial infrastructure
+All current runners must pass this in-repository gate before LEAN starts. Production authorization is `BLOCK_NOT_GRANTED`; external financial writes are not admitted and the live verifier is not implemented.
 
-Future broker/custodian/venue integration should use mature broker APIs, LEAN brokerage adapters or FIX sessions only where required. External infrastructure remains authoritative for account, cash, positions, order lifecycle, executions and custody/settlement evidence.
+## 5. External financial infrastructure
+
+Future broker/custodian/venue integration should use mature broker APIs, LEAN brokerage adapters or FIX sessions only where they are actually required. External systems remain authoritative for account, cash, positions, order lifecycle, executions, custody and settlement evidence.
 
 Read-only account reality precedes write authority.
 
-## Layer 5 — Reality and reconciliation
+## 6. Reality and reconciliation
 
-Future completion is not `send()` or HTTP/FIX acknowledgement. The boundary is:
+Completion is not `send()` or an HTTP/FIX acknowledgement. The operational boundary is:
 
 `intent -> authorized effect -> broker receipt/execution -> authoritative account reality -> reconciliation`.
 
-Expected and authoritative state must reconcile, otherwise the effect remains pending/retained and recovery is required.
+Expected and authoritative state must reconcile; otherwise the effect remains pending/retained and recovery is required.
 
-PFMI and ISO 20022 are reference semantics for external post-trade infrastructure; Market Capital does not implement a private clearing or settlement system unless a concrete substitution failure requires it.
+PFMI and ISO 20022 remain reference semantics for external post-trade infrastructure. Market Capital does not implement a private clearing or settlement system absent a demonstrated substitution failure.
 
 ## Current progression
 
 - Wave A: investment/research loop closed.
-- Wave B M1-M4: LEAN execution mechanics, feasibility, provider-origin historical data and FIX order semantics admitted in bounded non-live lanes.
+- Wave B M1-M4: LEAN mechanics, feasibility, provider-origin historical data and FIX semantics admitted in bounded non-live lanes.
 - Wave B M5: causal post-decision gate implemented.
 - Wave B M6: pre-decision shadow order precommit frozen.
-- Wave B M6.1: external semantic authority waist is now bound into the trading runners.
-- Next: M7 must execute the exact M6 frozen quantities against the first admitted post-decision session without rescaling from future prices.
+- Wave B M6.1: semantic/authority core migrated directly into the canonical repository; temporary cross-repo architecture removed.
+- Next: M7 must execute the exact M6 frozen quantities against the first admitted post-decision session without future-price rescaling.
 - Paper brokerage, real account reality, reconciliation and live authorization remain future admissions.

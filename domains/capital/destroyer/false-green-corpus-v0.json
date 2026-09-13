@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 0,
+  "kind": "ordivon.market-capital-v2.false-green-corpus",
+  "cases": [
+    {"claim":"ccxt_normalized_event","mustNotImply":"authentic_evidence"},
+    {"claim":"kafka_offset","mustNotImply":"cross_venue_observation_order"},
+    {"claim":"nautilus_fill","mustNotImply":"real_settlement"},
+    {"claim":"lean_backtest_profit","mustNotImply":"economic_truth"},
+    {"claim":"tigerbeetle_balance","mustNotImply":"deployable_capital"},
+    {"claim":"temporal_workflow_success","mustNotImply":"effect_success"},
+    {"claim":"opa_allow","mustNotImply":"effect_authority"},
+    {"claim":"openlineage_graph","mustNotImply":"proof_provenance_or_currentness"},
+    {"claim":"fix_ack","mustNotImply":"economic_finality"},
+    {"claim":"iso20022_message","mustNotImply":"legal_ownership"},
+    {"claim":"tests_pass","mustNotImply":"production_authority"}
+  ]
+}
