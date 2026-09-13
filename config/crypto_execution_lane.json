@@ -1,0 +1,56 @@
+{
+  "brokerCredentialsAllowed": false,
+  "canonicalUniverse": [
+    "BTC-USDT",
+    "ETH-USDT"
+  ],
+  "demoExecutionAllowed": false,
+  "externalFinancialWritesAllowed": false,
+  "kind": "ordivon.market-capital.crypto-execution-lane",
+  "liveExecutionAllowed": false,
+  "marketModel": "CONTINUOUS_24_7_CRYPTO_SPOT",
+  "networkTransport": {
+    "directObserved": "TIMEOUT_OKX_AND_BINANCE",
+    "preferred": "SURFSHARK_SCOPED_EGRESS",
+    "scopedVpnObserved": "JP_TOK_WIREGUARD_DISCOVERY_TIMED_OUT_120S",
+    "standing": "SCOPED_VPN_PATH_NOT_YET_QUALIFIED"
+  },
+  "privateAccountDataAllowed": false,
+  "productionAuthorizationRequired": true,
+  "publicMarketDataAllowed": true,
+  "rules": [
+    "the historical equity M6/M7 At-the-Opening experiment is not reused for this crypto lane",
+    "crypto qualification uses continuous-market semantics and fresh crypto-specific evidence",
+    "public market data requires no exchange credentials",
+    "demo/testnet execution requires a separate explicit admission before any API key is used",
+    "live execution remains prohibited"
+  ],
+  "schemaVersion": 1,
+  "standing": "SHADOW_PUBLIC_DATA_ONLY",
+  "venues": {
+    "BINANCE": {
+      "adapter": "NautilusTrader Binance",
+      "executionQualificationEnvironments": [
+        "DEMO",
+        "TESTNET"
+      ],
+      "instrumentIds": [
+        "BTCUSDT.BINANCE",
+        "ETHUSDT.BINANCE"
+      ],
+      "product": "SPOT",
+      "publicDataEnvironment": "LIVE"
+    },
+    "OKX": {
+      "adapter": "NautilusTrader OKX",
+      "executionQualificationEnvironment": "DEMO",
+      "instrumentIds": [
+        "BTC-USDT.OKX",
+        "ETH-USDT.OKX"
+      ],
+      "product": "SPOT",
+      "publicDataEnvironment": "LIVE",
+      "region": "GLOBAL"
+    }
+  }
+}

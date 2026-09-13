@@ -1,0 +1,38 @@
+from pathlib import Path
+import json
+import subprocess
+import unittest
+
+ROOT = Path(__file__).resolve().parents[1]
+CONFIG = ROOT / "config/crypto_execution_lane.json"
+
+
+class CryptoExecutionLaneTests(unittest.TestCase):
+    def test_lane_is_public_data_only(self):
+        cfg = json.loads(CONFIG.read_text())
+        self.assertEqual(cfg["standing"], "SHADOW_PUBLIC_DATA_ONLY")
+        self.assertEqual(cfg["marketModel"], "CONTINUOUS_24_7_CRYPTO_SPOT")
+        self.assertTrue(cfg["publicMarketDataAllowed"])
+        self.assertFalse(cfg["privateAccountDataAllowed"])
+        self.assertFalse(cfg["demoExecutionAllowed"])
+        self.assertFalse(cfg["liveExecutionAllowed"])
+        self.assertFalse(cfg["brokerCredentialsAllowed"])
+        self.assertFalse(cfg["externalFinancialWritesAllowed"])
+
+    def test_nautilus_public_data_adapters_construct_without_credentials(self):
+        out = subprocess.check_output([str(ROOT / "scripts/check-crypto-execution-lane")], text=True)
+        result = json.loads(out)
+        self.assertEqual(result["standing"], "CRYPTO_DUAL_VENUE_PUBLIC_DATA_CONFIG_READY")
+        self.assertFalse(result["venues"]["OKX"]["credentialsPresent"])
+        self.assertFalse(result["venues"]["BINANCE"]["credentialsPresent"])
+        self.assertFalse(result["externalFinancialWritesAllowed"])
+
+    def test_equity_opening_semantics_are_not_reused(self):
+        cfg = json.loads(CONFIG.read_text())
+        joined = " ".join(cfg["rules"])
+        self.assertIn("not reused", joined)
+        self.assertIn("continuous-market semantics", joined)
+
+
+if __name__ == "__main__":
+    unittest.main()
