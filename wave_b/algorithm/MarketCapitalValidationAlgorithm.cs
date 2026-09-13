@@ -20,6 +20,13 @@ public sealed class MarketCapitalValidationAlgorithm : QCAlgorithm
         SetCash(100000);
         SetBenchmark(_ => 0m);
         Settings.MinimumOrderMarginPortfolioPercentage = 0m;
+        var executionBufferText = Environment.GetEnvironmentVariable("MARKET_CAPITAL_EXECUTION_CASH_BUFFER_WEIGHT") ?? "0.01";
+        if (!decimal.TryParse(executionBufferText, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var executionBuffer) || executionBuffer < 0m || executionBuffer >= 1m)
+        {
+            throw new InvalidOperationException("invalid MARKET_CAPITAL_EXECUTION_CASH_BUFFER_WEIGHT");
+        }
+        Settings.FreePortfolioValuePercentage = executionBuffer;
+        Debug($"MC_FEASIBILITY_POLICY|freePortfolioValuePercentage={executionBuffer}");
 
         var path = Environment.GetEnvironmentVariable("MARKET_CAPITAL_TARGET_PORTFOLIO");
         if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
@@ -55,11 +62,15 @@ public sealed class MarketCapitalValidationAlgorithm : QCAlgorithm
         if (_submitted || _targets.Keys.Any(symbol => Securities[symbol].Price <= 0m)) return;
         foreach (var target in _targets)
         {
-            _arrivalPrices[target.Key] = Securities[target.Key].Price;
-            SetHoldings(target.Key, target.Value);
+            var arrivalPrice = Securities[target.Key].Price;
+            _arrivalPrices[target.Key] = arrivalPrice;
+            var quantity = CalculateOrderQuantity(target.Key, target.Value);
+            if (quantity == 0m) throw new InvalidOperationException($"LEAN produced zero feasible quantity for {target.Key.Value}");
+            Debug($"MC_PRETRADE_QUANTITY|symbol={target.Key.Value}|targetWeight={target.Value}|arrivalPrice={arrivalPrice}|quantity={quantity}|estimatedNotional={quantity * arrivalPrice}|freePortfolioValue={Portfolio.TotalPortfolioValue * Settings.FreePortfolioValuePercentage}");
+            MarketOrder(target.Key, quantity);
         }
         _submitted = true;
-        Debug("MC_TARGET_SUBMITTED");
+        Debug("MC_FEASIBLE_ORDER_SET_SUBMITTED");
     }
 
     public override void OnOrderEvent(OrderEvent orderEvent)
