@@ -11,7 +11,7 @@ Use mature upstream systems for generic operations capability. Keep Ordivon code
 - host/service lifecycle: systemd + Podman/Quadlet
 - host desired state: Ansible
 - external infrastructure desired state: OpenTofu
-- durable workflow: Temporal
+- durable workflow: Temporal (generic substrate only; the retired Research v1 campaign worker is not part of the current Research path)
 - integration edge: n8n (rootless Podman/Quadlet, official digest-pinned OCI images + external task runners)
 - execution truth: Ordivon Runtime
 - metrics: Prometheus + node_exporter
