@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Ordivon.MarketCapital.LeanValidation</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="QuantConnect.Algorithm">
+      <HintPath>$(LeanReleaseRoot)/QuantConnect.Algorithm.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="QuantConnect.Common">
+      <HintPath>$(LeanReleaseRoot)/QuantConnect.Common.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Python.Runtime">
+      <HintPath>$(LeanReleaseRoot)/Python.Runtime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+</Project>

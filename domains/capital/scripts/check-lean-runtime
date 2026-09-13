@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+root="${MARKET_CAPITAL_LEAN_ROOT:-/root/external/quantconnect-lean/18074}"
+expected_commit="8ee075a39918f2df6fe9e0a5944e366fb60d10dc"
+expected_archive="a1a87dd28d610f08204f23442dbb6f9ca51c1a97db6510e828946d5d5a067a24"
+[[ -x /usr/bin/dotnet ]] || { echo 'dotnet unavailable' >&2; exit 2; }
+[[ "$(dotnet --version)" == "10.0.112" ]] || { echo 'dotnet version drift' >&2; exit 3; }
+[[ -f "$root/.source-commit" && "$(cat "$root/.source-commit")" == "$expected_commit" ]] || { echo 'LEAN source commit mismatch' >&2; exit 4; }
+[[ -f "$root/.source-tarball.sha256" && "$(cat "$root/.source-tarball.sha256")" == "$expected_archive" ]] || { echo 'LEAN source archive mismatch' >&2; exit 5; }
+[[ -x "$root/Launcher/bin/Release/QuantConnect.Lean.Launcher" ]] || { echo 'LEAN launcher unavailable' >&2; exit 6; }
+echo "LEAN_RUNTIME_OK tag=18074 commit=$expected_commit dotnet=$(dotnet --version)"

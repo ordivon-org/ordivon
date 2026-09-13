@@ -1,0 +1,21 @@
+{
+  "base_currency": "USD",
+  "cash_weight": 0.0,
+  "gross_exposure": 1.0,
+  "inputs": {
+    "objective": "validate_market_capital_wave_a_m1",
+    "reference_artifact_sha256": "2d80c275722501b0e83f35bdc19472e9b9e56cb97e2f2931ab69c6d64e16575d",
+    "reference_retrieved_at": "2026-09-12T14:40:15.978820+00:00",
+    "reference_source": "GLEIF API",
+    "research_artifact_sha256": "bef0a2fd20f3ca73821fc52a383eafc957bcee3ab81d33eb45076c6bd49f8dcd",
+    "research_fiscal_years": {"AAPL": 2025, "MSFT": 2026, "NVDA": 2026},
+    "research_source": "SEC Company Facts API",
+    "research_symbols": ["AAPL", "MSFT", "NVDA"]
+  },
+  "method": "equal_weight_validation_research_gated",
+  "positions": [
+    {"lei": "HWUPKR0MPOU8FGXBT394", "symbol": "AAPL", "target_weight": 0.3333333333333333},
+    {"lei": "INR2EJN1ERAN0W5ZP974", "symbol": "MSFT", "target_weight": 0.3333333333333333},
+    {"lei": "549300S4KLFTLO7GSQ80", "symbol": "NVDA", "target_weight": 0.3333333333333333}
+  ]
+}
