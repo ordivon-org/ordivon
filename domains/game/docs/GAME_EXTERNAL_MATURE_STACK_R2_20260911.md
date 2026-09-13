@@ -13,6 +13,8 @@ base_revision: 5d555906ce539e35e0e9b84add8670623e9390d5
 ---
 # Game External Mature Stack R2
 
+> **Historical/superseded selection profile (2026-09-13).** R3 (`GAME_EXTERNAL_MATURE_STACK_R3_20260913.md`) replaces the hard `GitHub stars >= 10k` software-candidate gate with a maintenance/compatibility/release/security-first screen. R2 remains historical evidence for the externalization/subtraction decisions below.
+
 ## 0. Decision rule
 
 This round is external-first.

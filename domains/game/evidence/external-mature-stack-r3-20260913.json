@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.external-mature-stack-r3-acceptance",
+  "observedOn": "2026-09-13",
+  "status": "PASS_WITH_EXTERNAL_REGISTRY_CANARY_BLOCKED",
+  "selectionRule": {
+    "standing": "MAINTENANCE_COMPATIBILITY_RELEASE_SECURITY_FIRST",
+    "retiredRule": "GITHUB_STARS_GTE_10000",
+    "starsStanding": "SUPPORTING_SIGNAL_ONLY"
+  },
+  "localEngine": {
+    "version": "4.7.1.stable.arch_linux.a13da4feb",
+    "executable": "/usr/bin/godot"
+  },
+  "gut": {
+    "selection": "PRIMARY_NEW_GODOT_PRODUCT_TEST_FRAMEWORK",
+    "version": "9.7.1",
+    "sourceTag": "v9.7.1",
+    "sourceCommit": "aeb5d4f3f7f0a6c9b5e178876d6c99b791fda605",
+    "compatibilityClaim": "Godot 4.7.x",
+    "localSmoke": {
+      "status": "PASS",
+      "runtimeJobId": "job-01a09aaf-b3ab-7d33-8b11-bede97705dbc",
+      "tests": 1,
+      "passingTests": 1,
+      "assertions": 3,
+      "junitXml": "GENERATED_AND_NONEMPTY",
+      "runtimeEngineVersion": "4.7.1",
+      "runtimeGutVersion": "9.7.1"
+    }
+  },
+  "gdUnit4": {
+    "selection": "STRONG_ALTERNATIVE_ON_REQUIREMENT",
+    "reason": "actively maintained and feature-rich, but no benefit was established for installing two test frameworks by default"
+  },
+  "godotCi": {
+    "selection": "PRIMARY_HOSTED_CI_EXPORT_CANDIDATE",
+    "upstreamEvidence": {
+      "release471": "2026-07-15",
+      "release472": "2026-08-18",
+      "nativeExportSemantics": "godot --headless --export-release + export_presets.cfg"
+    },
+    "localContainerCanary": {
+      "status": "BLOCKED_EXTERNAL_REGISTRY_CONNECTIVITY",
+      "runtimeJobId": "job-01a09ab0-21a5-7cb1-873e-9e409a6d3a42",
+      "image": "docker.io/barichello/godot-ci:4.7.1",
+      "reason": "Docker Hub registry-1.docker.io connection timed out before manifest/image acquisition",
+      "toolStandingAffected": false
+    }
+  },
+  "godotMcp": {
+    "productionSelection": "NONE",
+    "ee0pdtGodotMcp": "REJECT_CURRENTLY_SECURITY_AND_CONFORMANCE",
+    "hybridindieGodotMcp": "SANDBOX_ONLY_INSUFFICIENT_MATURITY_HISTORY"
+  },
+  "agentSkills": {
+    "format": "ADOPTABLE_STANDARD",
+    "thirdPartyGameSkillContent": "AUDIT_BEFORE_USE",
+    "semanticAuthority": false
+  },
+  "activationBoundary": "Selections become dependencies only when a real new product requires them; historical experiments are not retrofitted for uniformity."
+}
