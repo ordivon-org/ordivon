@@ -1,14 +1,14 @@
 {
-  "baseRevision": "e38fa2b3ccf9200406595bdc744267c8faf3895c",
-  "boundary": "PASS establishes deterministic donor generation, exact source-reference digests, complete current Artifact family/profile coverage, preserved live-proven shadow bindings, profile-specific validator ownership, non-promotion of execution wiring, and no regression in the current Artifact test matrix. Design/3D rich GLB evidence remains split between bounded material-scene and skinned-animation profiles; Game/artistic semantics and generic 3D authority are not promoted.",
+  "baseRevision": "1f58012fa5a9f15d122e406b6b0c070df89431ff",
+  "boundary": "PASS establishes deterministic donor generation, exact source-reference digests, complete current Artifact family/profile coverage, preserved live-proven shadow bindings, profile-specific validator ownership, non-promotion of execution wiring, and no regression in the current Artifact test matrix. Linux ELF release verification is retained as final-byte identity/structure/readback knowledge only; producer build/reproducibility, security isolation, signing/provenance and store release remain separate authorities.",
   "coverage": {
-    "isolatedValidatorImplementations": 16,
-    "liveProvenShadowBindings": 16,
-    "normalizedProfiles": 24,
+    "isolatedValidatorImplementations": 17,
+    "liveProvenShadowBindings": 17,
+    "normalizedProfiles": 25,
     "representedFamilies": 15,
     "taxonomyFamilies": 15
   },
-  "donorManifestSha256": "ce8358cb2b0d8a814451d3de8250d37ae3ff4f22d35a46f17fc66dee22d5a478",
+  "donorManifestSha256": "cbd5c6700ae00bf846666a1fa9ced8eacf795eec2ea0b1a34b9c3e1cd6614dc6",
   "focusedDonorTests": {
     "failed": 0,
     "passed": 10,
@@ -16,14 +16,14 @@
   },
   "fullRegression": {
     "failed": 0,
-    "passed": 273,
+    "passed": 282,
     "skipped": 2,
-    "total": 275
+    "total": 284
   },
   "id": "artifact-k2a-donor-r1-verification-r1",
   "kind": "artifact-k2a-donor-verification",
-  "operationDigest": "sha256:a98363af482093fb9a31fce18c3888bed2d37f2d7a929e7fca5a8d6d78cfd1a1",
-  "runtimeJobId": "job-01a09ab6-8a63-7823-a825-7bcd0c344321",
+  "operationDigest": "sha256:ebd9542b049eb2595f20b33239421026f93e7fb485a84052e70904a85ef03054",
+  "runtimeJobId": "job-01a09aef-efc0-7693-8696-baa87c0854e7",
   "schemaVersion": 1,
   "standing": "PASS"
 }

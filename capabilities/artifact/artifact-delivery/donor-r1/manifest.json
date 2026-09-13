@@ -1,9 +1,9 @@
 {
-  "baseRevision": "e38fa2b3ccf9200406595bdc744267c8faf3895c",
+  "baseRevision": "1f58012fa5a9f15d122e406b6b0c070df89431ff",
   "coverage": {
-    "isolatedValidatorImplementations": 16,
-    "liveProvenShadowBindings": 16,
-    "normalizedProfiles": 24,
+    "isolatedValidatorImplementations": 17,
+    "liveProvenShadowBindings": 17,
+    "normalizedProfiles": 25,
     "representedFamilies": 15,
     "taxonomyFamilies": 15
   },
@@ -60,7 +60,7 @@
     {
       "id": "object-contract-coverage",
       "observation": {
-        "profilesWithExplicitObjectContract": 14,
+        "profilesWithExplicitObjectContract": 15,
         "profilesWithoutExplicitObjectContract": 10
       },
       "standing": "PRESERVE_GAP_DO_NOT_INVENT"
@@ -68,7 +68,7 @@
     {
       "id": "result-boundary-coverage",
       "observation": {
-        "profilesWithExplicitNonClaims": 16,
+        "profilesWithExplicitNonClaims": 17,
         "profilesWithoutExplicitNonClaims": 8
       },
       "standing": "PRESERVE_GAP_DO_NOT_INVENT"
@@ -77,7 +77,7 @@
       "id": "composition-sequencing",
       "observation": {
         "profilesWithEncodedSequence": 0,
-        "profilesWithoutEncodedSequence": 24
+        "profilesWithoutEncodedSequence": 25
       },
       "standing": "PRESERVE_GAP_DO_NOT_INVENT"
     }
@@ -2386,6 +2386,146 @@
       "validatorImplementation": null
     },
     {
+      "candidateProblemKey": "artifact/software-release/software-release-linux-elf-executable-r1",
+      "capabilityBinding": {
+        "bindingKeys": [
+          "elfInspection",
+          "formatInspection",
+          "runtimeReadback"
+        ],
+        "proofKeys": [
+          "directLiveProof",
+          "fileEvidenceSha256",
+          "networkNamespace",
+          "operationDigest",
+          "readelfHeaderEvidenceSha256",
+          "readelfProgramEvidenceSha256",
+          "releaseMount",
+          "runtimeJobId",
+          "runtimeStderrSha256",
+          "runtimeStdoutSha256",
+          "subjectByteLength",
+          "subjectSha256",
+          "userState"
+        ],
+        "reference": {
+          "path": "artifact-delivery/shadow-bindings/software-release-linux-elf-executable-local-r1.json",
+          "sha256": "995b4ce1b411dd770682408ab26f88185556a7c03027c2ddf1d723702453983c"
+        },
+        "standing": "LOCAL_LIVE_PROVEN"
+      },
+      "classification": {
+        "conformanceProfile": "System V ELF / AMD64 bounded dynamically-linked executable release profile",
+        "family": "software-release",
+        "format": {
+          "mediaType": "application/vnd.elf",
+          "name": "ELF64 Linux x86-64 executable"
+        },
+        "purposes": [
+          "release",
+          "runtime-readback"
+        ],
+        "representation": "native-executable"
+      },
+      "compositionCandidate": {
+        "capabilitySignals": [
+          "ELF inspection plus sandbox runtime tool matrix",
+          "elfInspection",
+          "formatInspection",
+          "runtimeReadback"
+        ],
+        "requiredEvidence": [
+          "byteIdentity",
+          "contractSchema",
+          "elfStructure",
+          "fileInspection",
+          "runtimeReadback"
+        ],
+        "sequencing": "NOT_ENCODED_DO_NOT_INFER",
+        "status": "DECLARATIVE_PROFILE_CANDIDATE"
+      },
+      "migrationDisposition": {
+        "capabilityBinding": "SEMANTIC_MAPPING",
+        "classification": "DIRECT_REFERENCE",
+        "evidenceRequirements": "DIRECT_REFERENCE",
+        "executionWiring": "DO_NOT_PROMOTE",
+        "objectContract": "SEMANTIC_MAPPING",
+        "resultBoundary": "DIRECT_REFERENCE",
+        "standards": "DIRECT_REFERENCE",
+        "validationMapping": "SEMANTIC_MAPPING"
+      },
+      "objectContract": {
+        "declaration": {
+          "binding": "request-digest",
+          "kind": "software-release-linux-elf-contract-v1",
+          "required": true,
+          "schemaReference": "shadow-contracts/software-release-linux-elf-contract-v1.schema.json"
+        },
+        "schema": {
+          "path": "artifact-delivery/shadow-contracts/software-release-linux-elf-contract-v1.schema.json",
+          "sha256": "e44cac8a9f47577bac1e770da670c993f234d2d6e68670d9e7ad661541a775a6"
+        }
+      },
+      "profileId": "software-release-linux-elf-executable-r1",
+      "resultBoundary": {
+        "nonClaims": [
+          "that Artifact built the executable or owns source-to-binary reproducibility",
+          "complete filesystem, syscall or hostile-code sandbox isolation",
+          "SBOM, vulnerability absence, signature, provenance or attestation unless separately composed",
+          "code signing, notarization or platform-store package identity",
+          "cross-OS, cross-architecture or cross-runtime-substrate behavior",
+          "caller-domain functional, artistic, player-value or commercial suitability",
+          "rights or licensing validity"
+        ]
+      },
+      "sourceProfile": {
+        "path": "artifact-delivery/shadow-v2/examples/software-release-linux-elf-executable-r1-v2.json",
+        "sha256": "40ad66d62e5e4afd237972b2c37b2400087241a50978a1d3038546f80968dc43"
+      },
+      "standards": [
+        "OCI Image/Distribution 1.1",
+        "SLSA 1.2",
+        "in-toto",
+        "Sigstore",
+        "SPDX 2.3 / SPDX 3.0 as selected (ISO/IEC 5962:2021 corresponds to SPDX 2.2.1)",
+        "CycloneDX where selected"
+      ],
+      "targetAuthorities": [
+        {
+          "authorityClass": "independent-implementation-matrix",
+          "minimumIndependentImplementations": 2,
+          "name": "ELF inspection plus sandbox runtime tool matrix",
+          "required": true
+        }
+      ],
+      "validationMapping": {
+        "byteIdentity": {
+          "claim": "final executable SHA-256, byte length and executable mode match the exact object contract",
+          "required": true
+        },
+        "contractSchema": {
+          "claim": "Linux ELF release object contract validates under software-release-linux-elf-contract-v1",
+          "required": true
+        },
+        "elfStructure": {
+          "claim": "GNU readelf independently reports the contracted ELF class/data/OSABI/type/machine/interpreter facts",
+          "required": true
+        },
+        "fileInspection": {
+          "claim": "libmagic/file independently recognizes the contracted ELF/Linux/x86-64 release class",
+          "required": true
+        },
+        "runtimeReadback": {
+          "claim": "the exact final bytes execute under network-isolated Bubblewrap readback with read-only release/runtime substrate and ephemeral user state",
+          "required": true
+        }
+      },
+      "validatorImplementation": {
+        "path": "scripts/artifact_software_release_elf.py",
+        "sha256": "0b90f95f172666fef076af12ed9e7442b18ff53912042a494c93f83f46e57af6"
+      }
+    },
+    {
       "candidateProblemKey": "artifact/software-release/software-release-oci-image-r1",
       "capabilityBinding": {
         "bindingKeys": [
@@ -3165,11 +3305,11 @@
   "sourceReferences": {
     "profileV2MappingManifest": {
       "path": "artifact-delivery/shadow-v2/profile-v2-mapping-manifest-r1.json",
-      "sha256": "c48731eaab1360ffe77dd4bb2b410293ccfc9fe9cc0d86107a84fa5ccdd94cba"
+      "sha256": "f5c669c005e2374204636d0184c53587f3b109672b7374a93a57aaf0a8654c5f"
     },
     "taxonomy": {
       "path": "artifact-delivery/taxonomy-v1.json",
-      "sha256": "155f20a9d694e42a2082aed1e165d9bd12343fa0cdcb09265db9ff9e5c0dcd9e"
+      "sha256": "e8aff6676baee4270f2906c546f7c12b7ecb3e39db2c11e15cbb9f6210a305c9"
     }
   },
   "standing": "DONOR_REFERENCE_NOT_CORE_ONTOLOGY"
