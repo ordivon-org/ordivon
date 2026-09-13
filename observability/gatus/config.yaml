@@ -1,0 +1,135 @@
+# Gatus configuration — Operations-owned Ordivon black-box SLO monitoring
+#
+# 架构边界（2026-09-12）：
+# - Agent-facing Ordivon control surface 只有 Runtime；legacy Host v1 已退休并归档；
+# - Finance / Workstation 等 domain 不由 Gatus owning semantics；Gatus只保留明确边界的 black-box observations；
+# - edge.ordivon.com 是 World/Cloudflare provider capability，不是第二个 control plane；
+# - 外部站点探针仅表示默认网络路径 reachability，不替代 workstation.egress.observe 的 scoped-egress 语义。
+#
+# 证据边界：
+# - 未认证公网 401 只证明 DNS/Cloudflare Access auth wall 可达；它不能证明请求穿过 Access 到达 origin，
+#   更不能证明 ChatGPT/OpenAI connector 正在投递 MCP 请求，因此不得作为 authenticated-public-origin
+#   或 connector availability / rollout admission 证据。
+# - local-control-plane 直接探测 Runtime origin HTTP handler，可证明本机 origin 存活，但不证明公网或 connector 路径。
+# - 完整公网 origin / connector 验收需要独立、受权的外部 synthetic probe；当前配置故意不伪造该能力。
+web:
+  address: ${GATUS_ADDRESS}
+  port: ${GATUS_PORT}
+metrics: true
+storage:
+  type: sqlite
+  path: ${GATUS_STORAGE_PATH}
+  # 30 秒 local probe 的 20160 条结果约覆盖 7 天；比默认 100 条更适合故障追溯。
+  maximum-number-of-results: 20160
+  maximum-number-of-events: 1000
+ui:
+  title: "Ordivon Network SLO"
+  theme: dark
+  hide-footer: true
+endpoints:
+  # ============ 公网边缘认证墙：不是 public-origin 证明 ============
+  - name: runtime public mcp.ordivon.com
+    group: edge-auth-wall
+    url: "https://mcp.ordivon.com/health"
+    interval: 1m
+    conditions:
+      - "[STATUS] == 401"
+      - "[RESPONSE_TIME] < 5000"
+
+  # ============ 本地控制面 origin：仅 Runtime ============
+  - name: runtime local 8897
+    group: local-control-plane
+    url: "http://127.0.0.1:8897/health"
+    interval: 30s
+    conditions:
+      - "[STATUS] == 401"
+      - "[RESPONSE_TIME] < 2000"
+
+  # ============ World / Cloudflare provider edge ============
+  # HMAC 未签名请求必须返回 401；这验证 provider route + auth wall，
+  # 不是 Runtime control-surface 数量的一部分。
+  - name: world cloudflare edge
+    group: provider-edge
+    url: "https://edge.ordivon.com/v1/health"
+    interval: 1m
+    conditions:
+      - "[STATUS] == 401"
+      - "[RESPONSE_TIME] < 3000"
+
+  # ============ 默认网络路径的外部 reachability ============
+  # 默认路径探针只证明默认路径。下方 direct-profile probes 只证明对应 loopback CONNECT proxy 对特定目标的点时可达性；它们不是 Finance/domain acceptance。
+  - name: github.com
+    group: external-default-path
+    url: "https://github.com/"
+    interval: 1m
+    conditions:
+      - "[STATUS] < 500"
+      - "[RESPONSE_TIME] < 10000"
+  - name: api.deepseek.com
+    group: external-default-path
+    url: "https://api.deepseek.com/"
+    interval: 1m
+    conditions:
+      - "[STATUS] < 500"
+      - "[RESPONSE_TIME] < 10000"
+  - name: openai api
+    group: external-default-path
+    url: "https://api.openai.com/v1/models"
+    interval: 1m
+    conditions:
+      - "[STATUS] < 500"
+      - "[RESPONSE_TIME] < 10000"
+  - name: okx public time
+    group: external-default-path
+    url: "https://openapi.okx.com/api/v5/public/time"
+    interval: 1m
+    conditions:
+      - "[STATUS] == 200"
+      - "[RESPONSE_TIME] < 10000"
+
+  # ============ Direct A/B profile black-box reachability ============
+  # Mature Gatus endpoint probes replace the bespoke 60-second netcontinuity observer
+  # for these consequences. Each probe is explicitly bound to one existing loopback
+  # CONNECT carrier. Success is point-in-time target reachability only: it is not a
+  # claim about Windows-native serviceability, Finance acceptance, VPN catalog truth,
+  # or future availability.
+  - name: native-a cloudflare trace
+    group: network-direct-profile
+    url: "https://www.cloudflare.com/cdn-cgi/trace"
+    interval: 1m
+    client:
+      proxy-url: "http://127.0.0.1:19081"
+    conditions:
+      - "[STATUS] == 200"
+      - "[RESPONSE_TIME] < 10000"
+
+  - name: native-a github
+    group: network-direct-profile
+    url: "https://github.com/"
+    interval: 1m
+    client:
+      proxy-url: "http://127.0.0.1:19081"
+    conditions:
+      - "[STATUS] == 200"
+      - "[RESPONSE_TIME] < 10000"
+
+  - name: native-b cloudflare trace
+    group: network-direct-profile
+    url: "https://www.cloudflare.com/cdn-cgi/trace"
+    interval: 1m
+    client:
+      proxy-url: "http://127.0.0.1:19082"
+    conditions:
+      - "[STATUS] == 200"
+      - "[RESPONSE_TIME] < 10000"
+
+  - name: native-b github
+    group: network-direct-profile
+    url: "https://github.com/"
+    interval: 1m
+    client:
+      proxy-url: "http://127.0.0.1:19082"
+    conditions:
+      - "[STATUS] == 200"
+      - "[RESPONSE_TIME] < 10000"
+

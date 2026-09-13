@@ -1,0 +1,33 @@
+[Unit]
+Description=Ordivon Network SLO monitor (Gatus)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/opt/gatus/gatus
+Environment=GATUS_CONFIG_PATH=/etc/gatus/config.yaml
+Environment=GATUS_LOG_LEVEL=INFO
+# 只绑环回；Gatus 是内部观测基础设施，不创建独立公网 hostname/control surface
+Environment=GATUS_PORT=8080
+Environment=GATUS_ADDRESS=127.0.0.1
+Environment=GATUS_STORAGE_PATH=/var/lib/gatus/data.db
+Restart=on-failure
+RestartSec=5
+# 存储目录
+StateDirectory=gatus
+RuntimeDirectory=gatus
+# 安全硬化
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+
+[Install]
+WantedBy=multi-user.target
