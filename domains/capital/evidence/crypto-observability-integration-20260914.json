@@ -6,7 +6,7 @@
     "prometheusUrl": "http://127.0.0.1:29091"
   },
   "kind": "ordivon.market-capital.crypto-observability-integration",
-  "note": "Clock alert is expected to be pending/firing while the independent host clock gate remains above 1000 ms; reconnect non-graduation and Surfpath contention are exported as state rather than paging alerts.",
+  "note": "R3 real injected disconnect/reconnect qualification now passes for OKX and Binance. The clock alert remains expected while the independent host clock gate is above 1000 ms; private execution remains blocked by both authority and clock state.",
   "projection": {
     "directory": "/var/lib/node_exporter/textfile_collector",
     "file": "market-capital-crypto.prom",
@@ -58,5 +58,11 @@
     "privateExecutionAllowed": false
   },
   "schemaVersion": 1,
-  "standing": "PASS_EXISTING_OPERATIONS_OBSERVABILITY_INTEGRATION"
+  "standing": "PASS_EXISTING_OPERATIONS_OBSERVABILITY_INTEGRATION",
+  "streamResilience": {
+    "binanceReconnectLatencyMs": 1556.527718,
+    "okxReconnectLatencyMs": 1362.506656,
+    "r3Qualified": true,
+    "surfpathControlPlaneBlocked": false
+  }
 }
