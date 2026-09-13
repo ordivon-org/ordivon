@@ -9,10 +9,10 @@ source_role: current-r1-direct-play-access
 visibility: public
 owners:
   - ordivon-game
-updated: 2026-09-11
-summary: Read-only access census and frozen direct-play protocol for the twelve R1 references. Local installation absence is not ownership evidence; downloads, account sign-in, purchases, console use and VR remain explicit user-authority boundaries.
+updated: 2026-09-14
+summary: Read-only access census, compact canonical-learning portfolio selection, and Human direct-play gate. Four materially different mature learning games are selected without turning access convenience into product authority; no Human experience claim exists yet.
 evidence_status: local-read-only-census-plus-official-access-sources
-readiness: ACCESS_CENSUS_COMPLETE_HUMAN_PLAY_NOT_STARTED
+readiness: PORTFOLIO_SELECTED_PILOT_READY_HUMAN_PLAY_NOT_STARTED
 ---
 # R1 Direct-Play Access and Human Gate
 
@@ -45,15 +45,23 @@ VR runtime marker: not detected
 
 This says only what the checked machine surfaces contained. It says nothing about account ownership, another device, console library, or hardware ownership.
 
-Storage snapshot at the same cut:
+Storage was rechecked on 2026-09-14 after workstation cleanup:
 
 ```text
-WSL root available ≈ 553 GiB
-C: available        ≈ 112 GiB
-D: available        ≈  57 GiB (92% used)
+WSL root available ≈ 665 GiB
+C: available        ≈ 113 GiB
+D: available        ≈ 149 GiB
 ```
 
-Therefore large reference installs must not default to D:.
+A deeper Steam reconciliation found two **stale app manifests**, not installed game bytes:
+
+```text
+Slay the Spire   appid 646570   manifest present   library metadata bytes=0
+Mortal Kombat 11 appid 976310   manifest present   library metadata bytes≈117.6 GB
+D:/SteamLibrary/steamapps/common  empty at observation cut
+```
+
+Therefore neither title is currently admitted as installed. A manifest is not executable-byte evidence and does not prove present ownership/licensing. These titles remain lawful reinstall candidates only if the Steam account actually grants them. Epic installed-manifest roots were absent on this machine at the same cut.
 
 ## 2. Access census is not the direct-play portfolio
 The census above answers **how hard each admitted flagship is to access**, not **which games we should now spend Human time playing**. Treating the twelve flagship references as twelve mandatory play assignments was a category error.
@@ -146,10 +154,53 @@ SURVIVES_DIRECT_PLAY | REVISE_CAUSAL_HYPOTHESIS | REJECT_TRANSFER | INCONCLUSIVE
 
 No demographic/sensitive participant data is needed for this first owner canary.
 
-## 4. No first-session game selected yet
-The earlier Factorio-first recommendation is **superseded**. Factorio remains a strong systems-learning candidate, but choosing it merely because a public demo is convenient would repeat the same mistake at a smaller scale.
+## 4. Compact canonical-learning portfolio — selected 2026-09-14
 
-The next research action is to select the 3–5-game canonical learning portfolio using the sweet-spot rule above. Only after that selection should any title receive a frozen first-session question.
+The first Human portfolio is intentionally small and cross-form. It is selected by **information gain + mature grammar + 1–3 hour legibility + realistic lawful access**. Access convenience is allowed only as a tiebreaker after reference value is established.
+
+| Order | Learning game | Why it belongs | Current carrier | Frozen first-session causal question |
+| --- | --- | --- | --- | --- |
+| P0-B | **Slay the Spire** | canonical deck/run decision grammar; repeated context changes the value of the same symbolic action | stale Steam manifest; executable bytes absent; reinstall/ownership check required | Does draw/resource/deck composition make card value materially context-dependent, and does failure change later route/deck decisions? |
+| P1-A | **Mortal Kombat 11** | mature direct-action fighting grammar; commitment, spacing, blocking and punish are visible quickly | stale Steam manifest; executable bytes absent; large reinstall/ownership check required | Do startup/recovery, spacing and defense create legible commitment/punish learning within a short session, rather than success feeling like opaque execution noise? |
+| P0-A | **Factorio Demo 2.0.77** | canonical automation/systemic leverage; directly attacks the hypothesis that automation moves cognition from repetition to diagnosis/architecture | official free public demo; not yet installed | As automation appears, does player attention shift from manual execution toward bottleneck diagnosis, layout and system redesign? |
+| P1-B | **Candy Crush Saga** | mature compact puzzle/live-product grammar; tiny action vocabulary under changing goals/blockers/move budgets | free mobile/Windows client; not yet installed in the checked PC surface | Do goals, blockers and move scarcity materially change evaluation of the same swap grammar and the reason for retry? |
+
+External pressure evidence at selection time:
+
+- Steam still describes Slay the Spire as a roguelike deckbuilder with dynamic deck building and changing routes/encounters; its current page shows sustained recent and cumulative positive review volume.
+- Steam still exposes Mortal Kombat 11 as a competitive/local-multiplayer fighter with sustained recent review activity.
+- Factorio's official download page explicitly provides a free stable 2.0.77 demo whose stated purpose is to teach the basic mechanics.
+- Candy Crush remains available as an official mobile/Windows app; no account is required merely to begin play, though account use is a separate optional continuity concern.
+
+Sources:
+- https://store.steampowered.com/app/646570/Slay_the_Spire/
+- https://store.steampowered.com/app/976310/Mortal_Kombat_11/
+- https://www.factorio.com/download
+- https://apps.apple.com/us/app/candy-crush-saga/id553834731
+
+### Why the huge Wave-1 references are not first Human assignments
+
+Counter-Strike 2, Dota 2, Fortnite, Minecraft, GTA V, ELDEN RING, Baldur's Gate 3, Mario Kart 8 Deluxe, Animal Crossing and Beat Saber remain important references. They are not deleted or demoted. The first Human portfolio avoids forcing large installs, specialized hardware or long onboarding when a smaller canonical learning game can answer the same class of first-order question.
+
+```text
+Flagship importance        preserved
+Canonical learning order   compacted
+Large install requirement  avoided unless evidence demands it
+Product selection          still false
+```
+
+### Session order and duration
+
+```text
+P0-A Factorio Demo     60–90 min   official free demo; download only after user authority
+P0-B Slay the Spire    60–90 min   stale manifest; reinstall only after ownership/access is established
+P1-A Mortal Kombat 11  45–60 min   stale manifest; large reinstall deferred unless its causal question becomes necessary
+P1-B Candy Crush       30–45 min   mobile/Windows install only after user authority
+```
+
+Factorio is now the default first canary because it is both a canonical high-information learning reference **and** has an official no-account public demo. Access convenience is not its admission reason; it only resolves learning order among already-valid references. Slay the Spire remains the preferred second symbolic-decision canary if lawful reinstall access is established. MK11's large reinstall burden makes it a later direct-action canary rather than an automatic download.
+
+No purchase is required by the current first canary. Downloads/installs are not performed merely because the portfolio exists; they remain explicit user-authority actions.
 
 ## 5. Admission law
 
@@ -171,10 +222,12 @@ After one owner canary, R1 may revise the causal hypothesis and observation prot
 ```text
 R1 Desk Teardown           COMPLETE
 R1 Access Census           COMPLETE
+R1 Learning Portfolio      SELECTED_4
+R1 Observation Template    READY
 R1 Human Direct Play       NOT_STARTED
 R2 Baseline Reproduction   NOT_ADMITTED
 ProductSelected            false
 G0Entered                  false
 ```
 
-The next transition is **not installation**. First select a compact 3–5-game canonical learning portfolio. Only then request explicit user authority for whichever lawful carrier is actually chosen.
+The next transition is a **real owner canary session**, using the frozen observation sheet. Default first session is the official Factorio Demo because it is already a canonical learning reference and exposes its target automation grammar through a bounded public demo. Download/install still requires explicit user authority. No R2 implementation is admitted before Human evidence.
