@@ -15,3 +15,5 @@
 
 13. **No fixed capability stack** — named disciplines, domains, standards and tools are loaded on demand as a working set, not encoded as a permanent Ordivon topology.
 14. **No prescribed evolution path** — roadmap order follows real problem demand and evidence, not an architectural sequence.
+
+15. **Natural authority over global state** — semantic cases, workflows, executions, artifacts and telemetry remain authoritative in their natural owners; cross-owner dashboards and read models are disposable projections, never a replacement global Task/Board authority.

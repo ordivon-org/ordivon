@@ -51,4 +51,5 @@ These are migration hypotheses, not final dispositions:
 - Runtime -> Execution Enabling Capability.
 - Agent Birth -> Agent provisioning/orchestration Enabling Capability.
 - Workstation -> Enabling System / operating substrate.
-- Host -> historical responsibilities to be decomposed; not assumed to survive as an entity.
+- Host -> retired historical mixed-responsibility container; no replacement entity. Residual mechanics belong to natural domain/external owners or disposable projections.
+- Board -> retired authoritative concept; collaboration/work views belong to task-local mature systems, while any cross-owner overview is projection-only.
