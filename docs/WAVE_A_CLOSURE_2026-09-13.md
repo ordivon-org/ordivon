@@ -20,7 +20,7 @@ Market Capital no longer pretends its empty `pyproject.toml` owns the scientific
 
 The previous SEC network blocker is no longer current: the Apple 2025 10-K filing URL returns HTTP 200 from the Runtime host.
 
-Arelle core 2.44.7 is installed. However, the installed Arelle distribution does not contain the SEC-maintained EDGAR/EFM plugin bundle. An attempted `--efm` validation reports that disclosure system `efm` is not recognized. Therefore raw filing -> EFM validation remains **PENDING_SEC_PLUGIN_ADMISSION**, not `PENDING_NETWORK_ACCESS` and not PASS.
+The global Arelle core 2.44.7 installation still lacks the SEC-maintained EDGAR/EFM plugin bundle, but an isolated SEC-compatible environment has now been admitted at `/root/external/arelle-sec-edgar/26.1.3`: Arelle 2.39.8 + SEC EDGAR 26.1.3 + XULE 30052. In that environment `--efm` is recognized. A real Apple 2025 10-K EFM run then reached the validation path but exceeded the 300-second runtime deadline without producing a complete validation log. Therefore raw filing -> EFM validation is now **PENDING_FULL_VALIDATION_RUNTIME_CLOSURE**, not `PENDING_NETWORK_ACCESS`, not `PENDING_SEC_PLUGIN_ADMISSION`, and not PASS.
 
 This does not invalidate the operational SEC Company Facts path used by Wave A; it leaves the stronger raw-filing validation path open.
 
