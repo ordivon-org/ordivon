@@ -137,6 +137,16 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
         for subject in receipt['subjects']:
             c=subject['contract'];self.assertEqual(sha(ROOT/c['relativePath']),c['sha256'],c['relativePath'])
 
+    def test_frozen_svg_game_consumer_smoke_preserves_renderer_pixel_divergence(self):
+        receipt=json.loads((ROOT/'artifact-delivery/consumer-acceptance/game-station-zero-svg-static-r1.json').read_text())
+        self.assertEqual(receipt['standing'],'CONSUMER_SMOKE_PASS_TARGET_PIXEL_DIVERGENCE_OBSERVED')
+        self.assertEqual(len(receipt['subjects']),3)
+        self.assertTrue(all(x['intrinsicDimensionAgreement'] for x in receipt['subjects']))
+        self.assertTrue(all(x['nonTransparentPixelCountAgreement'] for x in receipt['subjects']))
+        self.assertTrue(all(not x['pixelChecksumAgreement'] for x in receipt['subjects']))
+        for value in receipt['artifactOwnedAuthorities'].values():
+            path=ROOT/value['relativePath'];self.assertEqual(sha(path),value['sha256'],value['relativePath'])
+
     def test_unrouted_profile_fails_closed(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d); subject = root / "subject.bin"; subject.write_bytes(b"x")

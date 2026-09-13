@@ -1,7 +1,7 @@
 {
-  "fullRegression": "252 tests / 250 PASS / 2 conditional skips / 0 failures",
+  "fullRegression": "259 tests / 257 PASS / 2 conditional skips / 0 failures",
   "kind": "artifact-profile-v2-shadow-mapping-manifest",
-  "mappingCount": 19,
+  "mappingCount": 20,
   "mappings": [
     {
       "family": "text-document",
@@ -180,6 +180,16 @@
       "profileId": "still-image-png-srgb-r1",
       "source": "artifact-delivery/shadow-profiles/still-image-png-srgb-r1.json",
       "sourceDigest": "879709b645768e1e2b1ad0136a96f89fbe051dc666ee3fcab8df4b5df5eb23e8",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
+      "family": "still-image",
+      "mapped": "artifact-delivery/shadow-v2/examples/still-image-svg-static-r1-v2.json",
+      "mappedDigest": "6626826a17441fc7e348d166ee7b73e6b13c66b75488a24d67e0cca737abe453",
+      "profileId": "still-image-svg-static-r1",
+      "source": "artifact-delivery/shadow-profiles/still-image-svg-static-r1.json",
+      "sourceDigest": "23d614606ae4affb693f00a62370f7ee39aec9be80132bfc14224d3b520a5b92",
       "sourceKind": "standards-first-shadow",
       "validation": "PASS"
     },

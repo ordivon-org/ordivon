@@ -1,0 +1,163 @@
+{
+  "artifactOwnedAuthorities": {
+    "capabilityBinding": {
+      "relativePath": "artifact-delivery/shadow-bindings/still-image-svg-static-local-r1.json",
+      "sha256": "b9212f4786c0c90b49896962969da916528d1ec0f00fdcae93f21defbdb64a8c",
+      "standing": "LOCAL_LIVE_PROVEN"
+    },
+    "profile": {
+      "id": "still-image-svg-static-r1",
+      "relativePath": "artifact-delivery/shadow-v2/examples/still-image-svg-static-r1-v2.json",
+      "sha256": "6626826a17441fc7e348d166ee7b73e6b13c66b75488a24d67e0cca737abe453",
+      "standing": "SHADOW_PROFILE_LIVE_VERIFIER"
+    },
+    "verifier": {
+      "function": "verify_svg",
+      "relativePath": "scripts/artifact_svg.py",
+      "sha256": "1d704dd89b91bc7344619eeb84edaee366c5aaf0c0bae906ebed7fb36d662bba"
+    }
+  },
+  "artifactSource": {
+    "baseRevision": "5f476c63ed7ea9c899c01e0cd5a0396f3820dd1f",
+    "repository": "/root/projects/ordivon-artifact-v2"
+  },
+  "consumer": {
+    "purpose": "Station Zero v3 static SVG display assets",
+    "repository": "/root/projects/ordivon-game",
+    "revision": "809a82b733e3b3c761847a72a6a7fb7a94502ae5"
+  },
+  "id": "game-station-zero-svg-static-r1",
+  "kind": "artifact-consumer-acceptance-evidence",
+  "nonClaims": [
+    "This does not graduate Profile v2 from shadow to production.",
+    "This does not claim cross-renderer pixel-exact equality.",
+    "This does not establish accessibility, artistic quality, rights, or dynamic SVG behavior.",
+    "Artifact does not own Game semantic suitability."
+  ],
+  "observedAt": "2026-09-13",
+  "runtimeEvidence": {
+    "jobId": "job-01a09a4f-238b-7bd0-b9ff-c78bdc8ac712",
+    "operationDigest": "sha256:51564b1edd41b91c3123980a678c01bac92a2637f92d8e90e9e0006380f6e994"
+  },
+  "schemaVersion": 1,
+  "standing": "CONSUMER_SMOKE_PASS_TARGET_PIXEL_DIVERGENCE_OBSERVED",
+  "subjects": [
+    {
+      "artifactSha256": "ae0d652d0e58f417942ac8861a73c6bc9ff0386a04b4114936949fc7cf904aa0",
+      "asset": "expression-signals",
+      "chromium": {
+        "executable": "/root/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome",
+        "naturalHeight": 64,
+        "naturalWidth": 128,
+        "nonTransparentPixels": 1863,
+        "pixelFNV32": "111fce88",
+        "status": "PASS",
+        "version": "153.0.8010.12"
+      },
+      "consumerRelativePath": "experiments/station-zero-v3/assets/expression-signals.svg",
+      "firefox": {
+        "executable": "/root/.cache/ms-playwright/firefox-1543/firefox/firefox",
+        "naturalHeight": 64,
+        "naturalWidth": 128,
+        "nonTransparentPixels": 1863,
+        "pixelFNV32": "bbdb9e57",
+        "status": "PASS",
+        "version": "155.0"
+      },
+      "intrinsicDimensionAgreement": true,
+      "nonTransparentPixelCountAgreement": true,
+      "pixelChecksumAgreement": false,
+      "referenceRaster": {
+        "alphaBoundingBox": [
+          8,
+          5,
+          123,
+          56
+        ],
+        "height": 64,
+        "nonEmptyAlpha": true,
+        "pngSha256": "44770693c9b1bb577d44511ce5f5f834f3e850c5141bf5a30637dd50e9d39e8c",
+        "width": 128
+      },
+      "targetStanding": "TARGET_RENDERER_PIXEL_DIVERGENCE_OBSERVED"
+    },
+    {
+      "artifactSha256": "fd2dffdfe6e9329e58a93fe6ec1fd9c14d49eb1a7ca6ae2b6fac78016ceb6958",
+      "asset": "hazard-signal",
+      "chromium": {
+        "executable": "/root/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome",
+        "naturalHeight": 50,
+        "naturalWidth": 54,
+        "nonTransparentPixels": 844,
+        "pixelFNV32": "f32c65e2",
+        "status": "PASS",
+        "version": "153.0.8010.12"
+      },
+      "consumerRelativePath": "experiments/station-zero-v3/web/assets/hazard-signal.svg",
+      "firefox": {
+        "executable": "/root/.cache/ms-playwright/firefox-1543/firefox/firefox",
+        "naturalHeight": 50,
+        "naturalWidth": 54,
+        "nonTransparentPixels": 844,
+        "pixelFNV32": "0f8f9d32",
+        "status": "PASS",
+        "version": "155.0"
+      },
+      "intrinsicDimensionAgreement": true,
+      "nonTransparentPixelCountAgreement": true,
+      "pixelChecksumAgreement": false,
+      "referenceRaster": {
+        "alphaBoundingBox": [
+          0,
+          0,
+          54,
+          50
+        ],
+        "height": 50,
+        "nonEmptyAlpha": true,
+        "pngSha256": "dd412541ba4dec0507274b550f56c7abaf2fb9ff2b6468072fe711ce5c9e388b",
+        "width": 54
+      },
+      "targetStanding": "TARGET_RENDERER_PIXEL_DIVERGENCE_OBSERVED"
+    },
+    {
+      "artifactSha256": "a8bf1591afe1db5918a1534b9366b3c42ccbbd7ca5ba298d32e48788d01db46c",
+      "asset": "system-signal",
+      "chromium": {
+        "executable": "/root/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome",
+        "naturalHeight": 48,
+        "naturalWidth": 48,
+        "nonTransparentPixels": 1019,
+        "pixelFNV32": "1961ca0c",
+        "status": "PASS",
+        "version": "153.0.8010.12"
+      },
+      "consumerRelativePath": "experiments/station-zero-v3/web/assets/system-signal.svg",
+      "firefox": {
+        "executable": "/root/.cache/ms-playwright/firefox-1543/firefox/firefox",
+        "naturalHeight": 48,
+        "naturalWidth": 48,
+        "nonTransparentPixels": 1019,
+        "pixelFNV32": "9a90e18d",
+        "status": "PASS",
+        "version": "155.0"
+      },
+      "intrinsicDimensionAgreement": true,
+      "nonTransparentPixelCountAgreement": true,
+      "pixelChecksumAgreement": false,
+      "referenceRaster": {
+        "alphaBoundingBox": [
+          0,
+          0,
+          48,
+          48
+        ],
+        "height": 48,
+        "nonEmptyAlpha": true,
+        "pngSha256": "4b631e38d88fd89cb203dff64971f758725c737b847b8c5ac624c43fb55190bd",
+        "width": 48
+      },
+      "targetStanding": "TARGET_RENDERER_PIXEL_DIVERGENCE_OBSERVED"
+    }
+  ]
+}

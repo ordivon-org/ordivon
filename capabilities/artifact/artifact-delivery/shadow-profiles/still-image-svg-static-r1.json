@@ -1,0 +1,39 @@
+{
+  "shadowProfileVersion": 1,
+  "id": "still-image-svg-static-r1",
+  "status": "SHADOW_NOT_PRODUCTION_PROFILE",
+  "classification": {
+    "family": "still-image",
+    "representation": "vector",
+    "format": "SVG",
+    "mediaType": "image/svg+xml",
+    "conformanceProfile": "W3C SVG bounded static primitive display/exchange profile",
+    "targetAuthority": "reference-plus-browser-renderer-matrix",
+    "purpose": ["display", "game-runtime", "exchange"]
+  },
+  "formatPolicy": {
+    "standards": ["W3C SVG 1.1 Second Edition", "W3C SVG 2 processing model"],
+    "xmlNamespace": "http://www.w3.org/2000/svg",
+    "staticOnly": true,
+    "requiredRootFacts": ["positive numeric width", "positive numeric height", "viewBox=0 0 width height"],
+    "allowedElements": ["svg", "g", "defs", "title", "desc", "path", "rect", "circle", "ellipse", "line", "polyline", "polygon"],
+    "forbiddenCapabilities": ["script", "animation", "external references", "embedded raster image", "foreignObject", "style element", "event-handler attributes", "DOCTYPE/entity declarations"],
+    "renderEquivalenceBoundary": "Raster byte/pixel equality across conforming renderers is not required by R1; decodeability, dimensions and non-empty output are independently observed."
+  },
+  "requiredEvidence": {
+    "xmlWellFormedness": {"required": true, "claim": "libxml2 xmllint parses the exact SVG bytes as well-formed XML with network access disabled"},
+    "boundedStaticProfile": {"required": true, "claim": "the SVG namespace, root geometry, element set, attributes and references remain inside the bounded static-safe R1 subset"},
+    "referenceRender": {"required": true, "claim": "librsvg renders the exact SVG bytes to a non-empty RGBA PNG at the observed intrinsic raster dimensions"},
+    "browserTargetMatrix": {"required": true, "claim": "pinned Chromium and Firefox decode the exact SVG bytes as images with matching intrinsic dimensions and non-empty rasterized alpha", "minimumIndependentImplementations": 2},
+    "rendererDivergenceObservation": {"required": true, "claim": "browser raster checksums and non-transparent-pixel counts are recorded so implementation differences are visible rather than silently normalized"}
+  },
+  "nonClaims": [
+    "complete SVG 1.1 or SVG 2 language conformance",
+    "cross-renderer pixel-exact raster equivalence",
+    "dynamic SVG, scripting, animation, CSS cascade or external-resource behavior",
+    "accessibility quality or text alternative suitability",
+    "semantic or artistic correctness of the image",
+    "print color fidelity or physical-size accuracy",
+    "rights or licensing validity"
+  ]
+}

@@ -112,6 +112,15 @@ class ArtifactProfileV2Tests(unittest.TestCase):
         self.assertNotIn('objectContract',mapped)
         self.assertEqual(mapped['targetAuthorities'][0]['authorityClass'],'independent-implementation-matrix')
 
+    def test_static_svg_shadow_maps_as_still_image_without_object_contract(self):
+        source=json.loads((ROOT/'artifact-delivery/shadow-profiles/still-image-svg-static-r1.json').read_text())
+        mapped=MODULE.map_shadow(source)
+        self.assertEqual(MODULE.validate(mapped),[])
+        self.assertEqual(mapped['classification']['family'],'still-image')
+        self.assertEqual(mapped['classification']['format']['mediaType'],'image/svg+xml')
+        self.assertNotIn('objectContract',mapped)
+        self.assertEqual(mapped['targetAuthorities'][0]['authorityClass'],'independent-implementation-matrix')
+
     def test_dataset_shadow_requires_separate_object_contract(self):
         source=json.loads((ROOT/'artifact-delivery/shadow-profiles/dataset-parquet-flat-r1.json').read_text())
         mapped=MODULE.map_shadow(source)

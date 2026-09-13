@@ -27,6 +27,7 @@ BINDING_ROOT = ART / "shadow-bindings"
 # Every entry must also have a LOCAL_LIVE_PROVEN capability binding at execution time.
 ROUTES: dict[str, tuple[str, str, bool]] = {
     "still-image-png-srgb-r1": ("scripts/artifact_still_image.py", "verify_png_srgb", False),
+    "still-image-svg-static-r1": ("scripts/artifact_svg.py", "verify_svg", False),
     "dataset-parquet-flat-r1": ("scripts/artifact_dataset.py", "verify_parquet", True),
     "audio-flac-pcm16-r1": ("scripts/artifact_audio.py", "verify_flac", True),
     "audio-wave-pcm16-r1": ("scripts/artifact_wave.py", "verify_wave", True),

@@ -19,6 +19,7 @@ The adapter admits only an explicit R1 route whose profile has exactly one `LOCA
 ## Current R1 routes
 
 - `still-image-png-srgb-r1`
+- `still-image-svg-static-r1`
 - `dataset-parquet-flat-r1`
 - `audio-flac-pcm16-r1`
 - `audio-wave-pcm16-r1`

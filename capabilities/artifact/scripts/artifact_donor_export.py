@@ -14,6 +14,7 @@ SCHEMA = ART / "donor-r1/donor-manifest.schema.json"
 VALIDATOR_BY_PROFILE = {
     "dataset-parquet-flat-r1": "scripts/artifact_dataset.py",
     "still-image-png-srgb-r1": "scripts/artifact_still_image.py",
+    "still-image-svg-static-r1": "scripts/artifact_svg.py",
     "audio-flac-pcm16-r1": "scripts/artifact_audio.py",
     "audio-wave-pcm16-r1": "scripts/artifact_wave.py",
     "audio-ogg-vorbis-r1": "scripts/artifact_ogg_vorbis.py",

@@ -215,9 +215,10 @@
       ],
       "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
       "currentProfiles": [
-        "still-image-png-srgb-r1"
+        "still-image-png-srgb-r1",
+        "still-image-svg-static-r1"
       ],
-      "localToolStanding": "PNG_VALIDITY_METADATA_AND_TWO_DECODER_MATRIX_PROVEN"
+      "localToolStanding": "PNG_DECODER_MATRIX_PLUS_STATIC_SVG_LIBRSVG_AND_BROWSER_MATRIX_PROVEN"
     },
     {
       "id": "audio",
