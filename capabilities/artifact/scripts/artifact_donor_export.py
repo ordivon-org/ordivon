@@ -11,16 +11,17 @@ V2 = ART / "shadow-v2/examples"
 TAXONOMY = ART / "taxonomy-v1.json"
 SCHEMA = ART / "donor-r1/donor-manifest.schema.json"
 
-VALIDATOR_BY_FAMILY = {
-    "dataset": "scripts/artifact_dataset.py",
-    "still-image": "scripts/artifact_still_image.py",
-    "audio": "scripts/artifact_audio.py",
-    "moving-image": "scripts/artifact_moving_image.py",
-    "geospatial": "scripts/artifact_geospatial.py",
-    "design-3d": "scripts/artifact_design3d.py",
-    "software-release": "scripts/artifact_software_release.py",
-    "web-archive": "scripts/artifact_web_archive.py",
-    "message": "scripts/artifact_message.py",
+VALIDATOR_BY_PROFILE = {
+    "dataset-parquet-flat-r1": "scripts/artifact_dataset.py",
+    "still-image-png-srgb-r1": "scripts/artifact_still_image.py",
+    "audio-flac-pcm16-r1": "scripts/artifact_audio.py",
+    "audio-wave-pcm16-r1": "scripts/artifact_wave.py",
+    "moving-image-matroska-ffv1-v3-r1": "scripts/artifact_moving_image.py",
+    "geospatial-geopackage-point-r1": "scripts/artifact_geospatial.py",
+    "design-3d-glb-static-mesh-r1": "scripts/artifact_design3d.py",
+    "software-release-oci-image-r1": "scripts/artifact_software_release.py",
+    "web-archive-warc-response-r1": "scripts/artifact_web_archive.py",
+    "message-internet-text-r1": "scripts/artifact_message.py",
 }
 
 EXCLUDED = [
@@ -86,7 +87,7 @@ def build(base_revision: str) -> dict[str, Any]:
             }
 
         validator_obj = None
-        vp = VALIDATOR_BY_FAMILY.get(family)
+        vp = VALIDATOR_BY_PROFILE.get(pid)
         if vp:
             validator_obj = ref(vp)
             isolated_validators += 1

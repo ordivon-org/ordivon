@@ -176,6 +176,15 @@ class ArtifactProfileV2Tests(unittest.TestCase):
         self.assertEqual(mapped['targetAuthorities'][0]['authorityClass'],'independent-implementation-matrix')
         self.assertGreaterEqual(mapped['targetAuthorities'][0]['minimumIndependentImplementations'],2)
 
+    def test_wave_audio_shadow_maps_decoder_matrix_and_separate_profile_contract(self):
+        source=json.loads((ROOT/'artifact-delivery/shadow-profiles/audio-wave-pcm16-r1.json').read_text())
+        mapped=MODULE.map_shadow(source)
+        self.assertEqual(MODULE.validate(mapped),[])
+        self.assertEqual(mapped['classification']['family'],'audio')
+        self.assertEqual(mapped['classification']['format']['mediaType'],'audio/vnd.wave')
+        self.assertEqual(mapped['objectContract'],source['objectContract'])
+        self.assertEqual(mapped['targetAuthorities'][0]['authorityClass'],'independent-implementation-matrix')
+
     def test_geospatial_shadow_maps_standard_validator_and_generic_object_contract(self):
         source=json.loads((ROOT/'artifact-delivery/shadow-profiles/geospatial-geopackage-point-r1.json').read_text())
         mapped=MODULE.map_shadow(source)

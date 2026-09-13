@@ -21,6 +21,7 @@ The adapter admits only an explicit R1 route whose profile has exactly one `LOCA
 - `still-image-png-srgb-r1`
 - `dataset-parquet-flat-r1`
 - `audio-flac-pcm16-r1`
+- `audio-wave-pcm16-r1`
 - `geospatial-geopackage-point-r1`
 - `moving-image-matroska-ffv1-v3-r1`
 - `design-3d-glb-static-mesh-r1`
@@ -33,7 +34,7 @@ The adapter admits only an explicit R1 route whose profile has exactly one `LOCA
 
 The first cross-owner smoke uses the exact current Game subject `web-v3/assets/rescue-expression.png` from Game revision `413882d197c672c22898d8c7d3c0316f9eaf6997`. The subject passed `still-image-png-srgb-r1` through the thin service with exact independent-decoder agreement. The bounded receipt is frozen in `artifact-delivery/consumer-acceptance/game-station-zero-still-image-r1.json`.
 
-This is deliberately one consumer/profile proof, not a Game asset-pipeline graduation. Ogg/Vorbis, WAV, SVG, Tiled, Aseprite, richer glTF and Godot release profiles remain separate admission work.
+This was deliberately one consumer/profile proof, not a Game asset-pipeline graduation. A second consumer smoke now covers `audio-wave-pcm16-r1`: Veilwild `vr_orient_tick_a.wav` passes libsndfile + FFprobe + SoX technical agreement and exact FFmpeg/SoX canonical PCM equality; its receipt is `artifact-delivery/consumer-acceptance/game-veilwild-wave-pcm16-r1.json`. Ogg/Vorbis, SVG, Tiled, Aseprite, richer glTF and Godot release profiles remain separate admission work.
 
 ## Boundary
 

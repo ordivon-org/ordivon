@@ -1,0 +1,78 @@
+{
+  "artifactOwnedAuthorities": {
+    "capabilityBinding": {
+      "relativePath": "artifact-delivery/shadow-bindings/audio-wave-pcm16-local-r1.json",
+      "sha256": "4ea543345258f3c4c75385ae99edad52be2b0416345a3ad81b3e4ee518ffa621",
+      "standing": "LOCAL_LIVE_PROVEN"
+    },
+    "objectContract": {
+      "relativePath": "artifact-delivery/shadow-contracts/audio-wave-pcm16-game-smoke-r1.json",
+      "sha256": "e6995a6b95884809ab027c68cc1ddf79c5ece8d98b3d9b464acd90fb7bb55a15"
+    },
+    "profile": {
+      "id": "audio-wave-pcm16-r1",
+      "relativePath": "artifact-delivery/shadow-v2/examples/audio-wave-pcm16-r1-v2.json",
+      "sha256": "36cad5be83d2658b5c9869c687d62b05e70d5b9df8fcac0a03084db740a9149b",
+      "standing": "SHADOW_PROFILE_LIVE_VERIFIER"
+    },
+    "verifier": {
+      "function": "verify_wave",
+      "relativePath": "scripts/artifact_wave.py",
+      "sha256": "9e8356ac6bf9ef55b44ce1f9c21bf84520f9d74681ef247751d283ec81ee62a5"
+    }
+  },
+  "artifactSource": {
+    "baseRevision": "dfd55b4045f2140e231429c0dbc4863f4c95424f",
+    "repository": "/root/projects/ordivon-artifact-v2"
+  },
+  "consumer": {
+    "id": "ordivon-game@413882d197c672c22898d8c7d3c0316f9eaf6997",
+    "purpose": "Veilwild game-audio verification",
+    "repository": "/root/projects/ordivon-game",
+    "revision": "413882d197c672c22898d8c7d3c0316f9eaf6997"
+  },
+  "externalSubject": {
+    "consumerRelativePath": "experiments/veilwild-r1/godot/modules/f16/audio/vr_orient_tick_a.wav",
+    "identityStanding": "EXACT_BYTES_OBSERVED_AT_CONSUMER_REVISION_NOT_ARTIFACT_OWNED",
+    "sha256": "8eba035f053a9525aa28cd017c32c9d25d791d8d4e8b49b35b509aa17d1c9e23",
+    "size": 17838
+  },
+  "id": "game-veilwild-wave-pcm16-r1",
+  "kind": "artifact-consumer-acceptance-evidence",
+  "nonClaims": [
+    "This does not graduate Profile v2 from shadow to production.",
+    "This does not establish Ogg/Vorbis, SVG, Tiled, Aseprite, richer glTF or Godot release coverage.",
+    "This does not make Artifact authoritative for Game semantics, audio quality, artistic intent, rights, or player value.",
+    "The consumer-local subject path is observation evidence, not an Artifact transport contract."
+  ],
+  "observedAt": "2026-09-13",
+  "request": {
+    "canonicalSha256": "55c5a271ee52ab3c63b556a0df77b1ceb6c649b03410c83c29d3a85c46744b94",
+    "id": "game:veilwild:vr-orient-tick-wave:20260913-r1"
+  },
+  "runtimeEvidence": {
+    "jobId": "job-01a09a22-3174-7981-8b9d-6832a2d44ffd",
+    "operationDigest": "sha256:7d2bb77319b43d9d6d785739446ca8c37770c7da3fcad9044dd25f7d805d895d"
+  },
+  "schemaVersion": 1,
+  "standing": "CONSUMER_SMOKE_PASS_SHADOW_PROFILE",
+  "verification": {
+    "canonicalPcmSha256": "2d4382d8e8d1f6d071c1147d18a5f40166fa9cc51702840b503b861680c5ad73",
+    "decoderExactMatch": true,
+    "decoderMatrixStatus": "PASS",
+    "facts": {
+      "bitsPerSample": 16,
+      "channels": 1,
+      "formatName": "WAVE_FORMAT_PCM",
+      "formatTag": "0x1",
+      "frameCount": 8880,
+      "sampleRateHz": 48000,
+      "wave": true
+    },
+    "familyStatus": "PASS",
+    "independentTechnicalViewStatus": "PASS",
+    "referenceContainerViewStatus": "PASS",
+    "serviceStatus": "PASS",
+    "soxTechnicalViewStatus": "PASS"
+  }
+}

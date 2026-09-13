@@ -1,0 +1,92 @@
+{
+  "classification": {
+    "conformanceProfile": "RIFF/WAVE WAVE_FORMAT_PCM bounded 16-bit mono/stereo profile",
+    "family": "audio",
+    "format": {
+      "mediaType": "audio/vnd.wave",
+      "name": "RIFF/WAVE PCM"
+    },
+    "purposes": [
+      "game-runtime",
+      "interchange"
+    ],
+    "representation": "uncompressed-audio-container"
+  },
+  "id": "audio-wave-pcm16-r1",
+  "nonClaims": [
+    "factual or artistic correctness of the audio content",
+    "subjective sound quality, loudness or mastering quality",
+    "truth or completeness of LIST/INFO or other ancillary metadata",
+    "Broadcast Wave Format metadata conformance or EBU R 128 compliance",
+    "RF64/WAVE64 or compressed WAVE codec support",
+    "absence of clipping, silence, phase issues or other signal-quality defects"
+  ],
+  "notes": "Mapped from standards-first shadow profile; remains non-production until profile-v2 graduation.",
+  "objectContract": {
+    "binding": "request-digest",
+    "kind": "audio-wave-pcm16-contract-v1",
+    "required": true,
+    "schemaReference": "shadow-contracts/audio-wave-pcm16-contract-v1.schema.json"
+  },
+  "outputs": [
+    {
+      "format": {
+        "mediaType": "audio/vnd.wave",
+        "name": "RIFF/WAVE PCM"
+      },
+      "purpose": "game-runtime",
+      "required": true,
+      "role": "primary"
+    }
+  ],
+  "profilePolicy": {
+    "formatPolicy": {
+      "ancillaryChunks": "observed by mature parsers but not semantically interpreted by R1",
+      "bitsPerSample": 16,
+      "broadcastWaveBoundary": "BWF/EBU metadata semantics are not implied by RIFF/WAVE PCM acceptance",
+      "canonicalDecodedPcm": "signed little-endian interleaved 16-bit PCM (s16le)",
+      "channels": [
+        1,
+        2
+      ],
+      "codec": "WAVE_FORMAT_PCM",
+      "codecRegistry": "IANA historic WAVE registry / RFC 2361",
+      "container": "Microsoft RIFF/WAVE",
+      "formatTag": "0x0001"
+    }
+  },
+  "profileVersion": 2,
+  "requiredEvidence": {
+    "contractSchema": {
+      "claim": "WAVE PCM object contract is valid under audio-wave-pcm16-contract-v1",
+      "required": true
+    },
+    "decoderMatrix": {
+      "claim": "FFmpeg and SoX decode to exactly identical canonical s16le PCM bytes",
+      "parameters": {
+        "minimumIndependentDecoders": 2
+      },
+      "required": true
+    },
+    "independentTechnicalView": {
+      "claim": "FFprobe independently identifies WAVE PCM s16le codec tag 0x0001 and agrees on sample rate, channels, bit depth and frame count",
+      "required": true
+    },
+    "pcmIdentity": {
+      "claim": "canonical decoded PCM byte count matches the contract and any expectedPcmSha256 matches decoded PCM SHA-256",
+      "required": true
+    },
+    "referenceContainerView": {
+      "claim": "libsndfile identifies RIFF/WAVE WAVE_FORMAT_PCM and agrees with the object contract",
+      "required": true
+    }
+  },
+  "targetAuthorities": [
+    {
+      "authorityClass": "independent-implementation-matrix",
+      "minimumIndependentImplementations": 2,
+      "name": "independent-decoder-matrix",
+      "required": true
+    }
+  ]
+}

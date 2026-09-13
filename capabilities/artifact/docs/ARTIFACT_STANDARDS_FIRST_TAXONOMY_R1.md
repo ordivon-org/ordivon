@@ -47,7 +47,7 @@ Artifact routing sits between those layers: it uses practical operational famili
 | `spreadsheet` | SpreadsheetML/OOXML, ODF | `spreadsheet-r1` | strong/partial |
 | `dataset` | JSON/CSV, Parquet, Arrow, HDF/netCDF as selected | shadow `dataset-parquet-flat-r1` | DuckDB + PyArrow native schema/row matrix live-proven |
 | `still-image` | PNG 3, SVG 2, JPEG/TIFF/AVIF families | shadow `still-image-png-srgb-r1` | pngcheck + ExifTool + ImageMagick/libvips matrix live-proven |
-| `audio` | RFC 9639 FLAC; BWF/WAVE or other standards when selected | shadow `audio-flac-pcm16-r1` | reference FLAC + FFmpeg independent decoder matrix live-proven |
+| `audio` | RFC 9639 FLAC; RIFF/WAVE PCM; BWF or other standards when selected | shadow `audio-flac-pcm16-r1`, `audio-wave-pcm16-r1` | FLAC reference + FFmpeg matrix; WAVE libsndfile + FFprobe + FFmpeg/SoX matrix live-proven |
 | `moving-image` | RFC 9559 Matroska; RFC 9043 FFV1; SMPTE IMF when profile-selected | shadow `moving-image-matroska-ffv1-v3-r1` | MediaConch + MediaInfo + FFprobe/FFmpeg bounded preservation profile live-proven |
 | `web` | HTML Living Standard, CSS, WCAG 2.2 | `web-r1` | strong; WebKit remains supported-runner bounded |
 | `geospatial` | OGC GeoPackage, GeoTIFF, GeoJSON/OGC ecosystem | shadow `geospatial-geopackage-point-r1` | OGC/GDAL validator + SQLite + OGR contract proof live-proven |
@@ -114,7 +114,7 @@ The production profile library currently covers **5 of the 14 operational famili
 
 Nine non-production shadow families are now live-proven without extending the legacy `artifactClass` enum: **still-image**, **dataset**, **geospatial**, **audio**, **moving-image**, **software-release**, **design-3d**, **web-archive**, and **message**. The production count remains five while the standards-first model has survived raster/visual, typed tabular, and CRS/geometry/container-standard domains.
 
-A shadow `profile-v2` schema now maps all eight current production v1 profiles plus nine standards-first shadow profiles (Still Image, Dataset, Geospatial, Audio, Moving Image, Software Release, Design/3D, Web Archive and Message) with semantic-field preservation and a green 223-test full regression. All 14 operational Artifact taxonomy families now have at least one actual profile. Message adds raw-vs-decoded representation semantics and independent parser evidence without requiring another common classification axis. Production remains on v1; v2 is not cut over.
+A shadow `profile-v2` schema now maps all eight current production v1 profiles plus ten standards-first shadow profiles (Still Image, Dataset, Geospatial, two Audio profiles, Moving Image, Software Release, Design/3D, Web Archive and Message) with semantic-field preservation and a green 247-test full regression. All 14 operational Artifact taxonomy families now have at least one actual profile. Message adds raw-vs-decoded representation semantics and independent parser evidence without requiring another common classification axis. Production remains on v1; v2 is not cut over.
 
 The workstation already has useful mature mechanical tools for several uncovered families:
 
