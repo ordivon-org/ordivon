@@ -9,6 +9,7 @@ import psycopg
 from psycopg.rows import dict_row
 
 from .attention import build_attention_delta
+from .board import ensure_task_route_anchor_in_tx
 from .canonical import canonical_digest
 from .cursor import decode_cursor, encode_cursor
 from .errors import ConflictError, TaskNotFound
@@ -34,10 +35,10 @@ class HostV2:
             raise RuntimeError(
                 "Host v2 schema is not initialized; run alembic upgrade head"
             ) from exc
-        if row is None or int(row["schema_version"]) != 3:
+        if row is None or int(row["schema_version"]) != 4:
             observed = None if row is None else int(row["schema_version"])
             raise RuntimeError(
-                f"Host v2 schema is not at required version 3 (observed={observed}); "
+                f"Host v2 schema is not at required version 4 (observed={observed}); "
                 "run alembic upgrade head"
             )
 
@@ -90,7 +91,7 @@ class HostV2:
                         {"name": name, "status": "ok" if ok else "error", "detail": detail_value}
                     )
 
-                add_check("postgres.schema", schema_version == 3, str(schema_version))
+                add_check("postgres.schema", schema_version == 4, str(schema_version))
                 current_checkpoint_bad = int(
                     conn.execute(
                         "SELECT count(*) AS value FROM tasks t LEFT JOIN checkpoints c "
@@ -194,7 +195,7 @@ class HostV2:
                 "observedAtMs": observed_at_ms,
                 "detail": detail,
                 "interface": {
-                    "surfaceVersion": 6,
+                    "surfaceVersion": 7,
                     "toolCount": len(tool_names),
                     "toolNames": tool_names,
                     "readTools": [
@@ -282,6 +283,7 @@ class HostV2:
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
             replay = self._claim_receipt(conn, client_request_id, "adopt", request_digest)
             if replay is not None:
+                ensure_task_route_anchor_in_tx(conn, task_id)
                 return MutationResult.model_validate(replay)
 
             current = conn.execute(
@@ -299,6 +301,7 @@ class HostV2:
                     )
                 if goal_id is not None and current["goal_id"] not in {None, goal_id}:
                     raise ConflictError("task_id already exists with a different goal_id")
+                ensure_task_route_anchor_in_tx(conn, task_id)
                 result = MutationResult(
                     admission=Admission.EXISTING,
                     task=self._resume_in_tx(conn, task_id, None),
@@ -310,6 +313,7 @@ class HostV2:
                 "INSERT INTO tasks(task_id,goal_id,revision,state,current_checkpoint_digest) VALUES (%s,%s,1,'open',%s)",
                 (task_id, goal_id, checkpoint_digest),
             )
+            ensure_task_route_anchor_in_tx(conn, task_id)
             conn.execute(
                 "INSERT INTO checkpoints(task_id,revision,checkpoint_digest,payload,writer_label) VALUES (%s,1,%s,%s::jsonb,%s)",
                 (
@@ -323,7 +327,6 @@ class HostV2:
                 "INSERT INTO task_events(task_id,revision,event_type,request_digest,checkpoint_digest,resulting_state) VALUES (%s,1,'adopt',%s,%s,'open')",
                 (task_id, request_digest, checkpoint_digest),
             )
-            self._activity(conn, "task.adopt", task_id, 1, {"goalId": goal_id})
             result = MutationResult(
                 admission=Admission.COMMITTED,
                 task=self._resume_in_tx(conn, task_id, 1),
@@ -412,7 +415,6 @@ class HostV2:
                 "INSERT INTO task_events(task_id,revision,event_type,request_digest,checkpoint_digest,resulting_state) VALUES (%s,%s,'checkpoint',%s,%s,%s)",
                 (task_id, next_revision, request_digest, checkpoint_digest, state.value),
             )
-            self._activity(conn, "task.checkpoint", task_id, next_revision, {"state": state.value})
             result = MutationResult(
                 admission=Admission.COMMITTED,
                 task=self._resume_in_tx(conn, task_id, next_revision),
@@ -438,27 +440,11 @@ class HostV2:
                 "WHERE task_id=%s AND revision<=%s ORDER BY revision DESC LIMIT %s",
                 (task_id, task.revision, event_limit),
             ).fetchall()
-            namespaces = conn.execute(
-                "SELECT namespace,task_revision,payload_digest FROM extension_history "
-                "WHERE task_id=%s AND task_revision<=%s ORDER BY namespace,task_revision DESC",
-                (task_id, task.revision),
-            ).fetchall()
-            latest: dict[str, dict[str, Any]] = {}
-            for row in namespaces:
-                latest.setdefault(
-                    row["namespace"],
-                    {
-                        "namespace": row["namespace"],
-                        "taskRevision": int(row["task_revision"]),
-                        "payloadDigest": row["payload_digest"],
-                    },
-                )
             return {
                 "schemaVersion": 3,
                 "kind": "ordivon.host-task-observation",
                 "task": task.model_dump(mode="json"),
                 "handoff": self._handoff(task),
-                "extensionNamespaces": list(latest.values()),
                 "recentEvents": [
                     {
                         "revision": int(row["revision"]),
@@ -602,19 +588,6 @@ class HostV2:
             "nextAdmissible": ["checkpoint"] if task.state is TaskState.OPEN else [],
             "truthBoundary": "navigation capsule only; not current external-owner truth",
         }
-
-    @staticmethod
-    def _activity(
-        conn: psycopg.Connection[dict[str, Any]],
-        kind: str,
-        subject_id: str,
-        task_revision: int | None,
-        payload: dict[str, Any],
-    ) -> None:
-        conn.execute(
-            "INSERT INTO activity_log(activity_kind,subject_id,task_revision,payload) VALUES (%s,%s,%s,%s::jsonb)",
-            (kind, subject_id, task_revision, json.dumps(payload, separators=(",", ":"))),
-        )
 
     @staticmethod
     def _claim_receipt(

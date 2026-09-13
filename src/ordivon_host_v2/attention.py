@@ -40,7 +40,11 @@ def build_attention_delta(dsn: str, *, after_sequence: int, limit: int = 100) ->
         route_cache: dict[str, tuple[str | None, int | None, str]] = {}
         by_task: dict[str, list[dict[str, Any]]] = defaultdict(list)
         unrouted: list[dict[str, Any]] = []
+        infrastructure_message_count = 0
         for row in visible:
+            if task_route_anchor_task_id(row) is not None:
+                infrastructure_message_count += 1
+                continue
             task_id, depth, standing = _route_task(conn, row, route_cache)
             compact = _compact_message(row, depth, standing)
             if task_id is None:
@@ -113,7 +117,8 @@ def build_attention_delta(dsn: str, *, after_sequence: int, limit: int = 100) ->
             "completeThroughNextAfterSequence": not has_more,
         },
         "summary": {
-            "newMessageCount": len(visible),
+            "newMessageCount": len(visible) - infrastructure_message_count,
+            "infrastructureMessageCount": infrastructure_message_count,
             "routedTaskCount": len(routed_tasks),
             "routedMessageCount": sum(len(messages) for messages in by_task.values()),
             "unroutedMessageCount": len(unrouted),

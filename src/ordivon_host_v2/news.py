@@ -10,6 +10,7 @@ from psycopg.rows import dict_row
 from .canonical import canonical_digest
 from .cursor import decode_cursor, encode_cursor
 from .errors import ConflictError
+from .news_contract import NewsEditionInput
 
 _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
@@ -40,6 +41,7 @@ class NewsStore:
             raise ValueError("editionId must start with news:")
         if expected_revision < 0:
             raise ValueError("expectedRevision must be non-negative")
+        edition = NewsEditionInput.model_validate(edition).model_dump(mode="json")
         if edition.get("editionId") != edition_id:
             raise ValueError("edition.editionId differs from editionId")
         edition_date = edition.get("editionDate")
@@ -86,10 +88,6 @@ class NewsStore:
                 ),
             ).fetchone()
             assert row is not None
-            conn.execute(
-                "INSERT INTO activity_log(activity_kind,subject_id,payload) VALUES ('news.publish',%s,%s::jsonb)",
-                (edition_id, psycopg.types.json.Jsonb({"revision": revision})),
-            )
             return self._receipt("committed", row)
 
     def read(
