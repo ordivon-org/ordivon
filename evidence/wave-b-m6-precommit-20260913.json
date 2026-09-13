@@ -1,0 +1,111 @@
+{
+  "brokerCredentialsUsed": false,
+  "consoleLogSha256": "83b5f664180c1ff86bc3016678b778d86e21febc6c677fcebef0e21c92457b07",
+  "decisionBoundaryUtc": "2026-09-12T14:59:29Z",
+  "executionTrigger": "first_eligible_post_decision_session_open",
+  "externalFinancialWritesAttempted": false,
+  "fixIntents": [
+    {
+      "clOrdId": "mc_2f8f15cfd2293c0a1fa3cf89",
+      "msgType": "D",
+      "ordType": "1",
+      "orderQty": "99",
+      "protocol": "FIX.4.4",
+      "sha256": "7d988cf2cf1c3d95b0e8e3e3ed9e7e1d01900c77b8f0c193745c34d8d5b41c75",
+      "side": "1",
+      "symbol": "AAPL",
+      "timeInForce": "2",
+      "transactTimeUtc": "2026-09-13T09:39:11.0000000Z"
+    },
+    {
+      "clOrdId": "mc_b8bdf89297d764975836e800",
+      "msgType": "D",
+      "ordType": "1",
+      "orderQty": "66",
+      "protocol": "FIX.4.4",
+      "sha256": "7a2675636a6a9be56f933c007ad173bfa8d7389ae3f3c743373caa2546ace235",
+      "side": "1",
+      "symbol": "MSFT",
+      "timeInForce": "2",
+      "transactTimeUtc": "2026-09-13T09:39:11.0000000Z"
+    },
+    {
+      "clOrdId": "mc_c41ff3a48f45d60d1d1fe9d5",
+      "msgType": "D",
+      "ordType": "1",
+      "orderQty": "151",
+      "protocol": "FIX.4.4",
+      "sha256": "bea92834633dba827d444f7ab0e1ce7ddd5e32daa66c02f3354b2100673b3c4a",
+      "side": "1",
+      "symbol": "NVDA",
+      "timeInForce": "2",
+      "transactTimeUtc": "2026-09-13T09:39:11.0000000Z"
+    }
+  ],
+  "leanOrdersEmitted": 0,
+  "precommitTimeUtc": "2026-09-13T09:39:11Z",
+  "pricingProviderEvidence": [
+    {
+      "firstDate": "2026-09-01",
+      "lastDate": "2026-09-11",
+      "normalizedCsvSha256": "5352ab17df2d9e5fcfbca3a30b865c541f2f5288c3f133966d0e13f48ace5d06",
+      "rawSha256": "a7e801d8d62129537d802643bfbfd9021253ed60eb8e56594a171fb47a02a453",
+      "rowCount": 8,
+      "symbol": "AAPL"
+    },
+    {
+      "firstDate": "2026-09-01",
+      "lastDate": "2026-09-11",
+      "normalizedCsvSha256": "d2d9f4c773099efdc2f3c88ee853a50d5c36e1e96a5ec44978c583255e51c50d",
+      "rawSha256": "b4cd10fc9af0f0aa95fb8ff1693afaf9e7222572d8787c773b723546409a2906",
+      "rowCount": 8,
+      "symbol": "MSFT"
+    },
+    {
+      "firstDate": "2026-09-01",
+      "lastDate": "2026-09-11",
+      "normalizedCsvSha256": "e5b18faf5d2d19ff14d2db72aa276eaca872e0d4ac0f7fe27ad1a78d9cca5eec",
+      "rawSha256": "91969b185f1a44dbb60649d1122aafd4995998af021d1db59c551b828e7a7fe2",
+      "rowCount": 8,
+      "symbol": "NVDA"
+    },
+    {
+      "firstDate": "2026-09-01",
+      "lastDate": "2026-09-11",
+      "normalizedCsvSha256": "960d9a6dfadadb55649644d680f70538ad8e70b72e9c59a826699257efc774fd",
+      "rawSha256": "8e52d8b9ff0b36b7cc5de6c3d426630b646e4c5da37820ef2a79522f4c22550a",
+      "rowCount": 8,
+      "symbol": "SPY"
+    }
+  ],
+  "pricingSessionDate": "2026-09-11",
+  "pricingStanding": "PRE_DECISION_PROVIDER_ORIGIN_SNAPSHOT",
+  "shadowOrders": [
+    {
+      "clOrdId": "mc_2f8f15cfd2293c0a1fa3cf89",
+      "executionTrigger": "first_eligible_post_decision_session_open",
+      "pricingClose": "332.2700",
+      "pricingSession": "2026-09-11",
+      "quantity": "99",
+      "symbol": "AAPL"
+    },
+    {
+      "clOrdId": "mc_b8bdf89297d764975836e800",
+      "executionTrigger": "first_eligible_post_decision_session_open",
+      "pricingClose": "495.6300",
+      "pricingSession": "2026-09-11",
+      "quantity": "66",
+      "symbol": "MSFT"
+    },
+    {
+      "clOrdId": "mc_c41ff3a48f45d60d1d1fe9d5",
+      "executionTrigger": "first_eligible_post_decision_session_open",
+      "pricingClose": "218.2900",
+      "pricingSession": "2026-09-11",
+      "quantity": "151",
+      "symbol": "NVDA"
+    }
+  ],
+  "standing": "SHADOW_ORDER_PRECOMMIT_FROZEN",
+  "targetPortfolioSha256": "137265667683455c302adff94466eaf38444ed7d51b5959c4ad065505792c14d"
+}

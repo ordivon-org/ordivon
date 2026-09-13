@@ -54,5 +54,15 @@ class WaveBContractTests(unittest.TestCase):
         self.assertFalse(doc["brokerCredentialsAllowed"])
         self.assertFalse(doc["externalFinancialWritesAllowed"])
 
+    def test_m6_shadow_precommit_is_plan_only_and_non_live(self):
+        doc = json.loads((ROOT / "config/shadow_precommit.json").read_text())
+        self.assertEqual(doc["pricingSessionDate"], "2026-09-11")
+        self.assertEqual(doc["pricingStanding"], "PRE_DECISION_PROVIDER_ORIGIN_SNAPSHOT")
+        self.assertEqual(doc["fixTimeInForce"], "AT_THE_OPENING")
+        self.assertEqual(doc["executionTrigger"], "first_eligible_post_decision_session_open")
+        self.assertTrue(doc["planOnly"])
+        self.assertFalse(doc["brokerCredentialsAllowed"])
+        self.assertFalse(doc["externalFinancialWritesAllowed"])
+
 if __name__ == "__main__":
     unittest.main()

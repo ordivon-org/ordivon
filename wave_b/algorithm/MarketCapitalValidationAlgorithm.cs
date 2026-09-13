@@ -30,6 +30,9 @@ public sealed class MarketCapitalValidationAlgorithm : QCAlgorithm
     private readonly Dictionary<Symbol, decimal> _arrivalPrices = new();
     private bool _submitted;
     private bool _fixIntentEnabled;
+    private bool _planOnly;
+    private char _fixTimeInForce = QfTimeInForce.DAY;
+    private DateTime? _orderIntentTimeUtc;
     private string _targetPortfolioSha256 = string.Empty;
     private int _fixSequence;
 
@@ -62,6 +65,15 @@ public sealed class MarketCapitalValidationAlgorithm : QCAlgorithm
         var targetBytes = File.ReadAllBytes(path);
         _targetPortfolioSha256 = Convert.ToHexString(SHA256.HashData(targetBytes)).ToLowerInvariant();
         _fixIntentEnabled = string.Equals(Environment.GetEnvironmentVariable("MARKET_CAPITAL_FIX_INTENT_ENABLED"), "true", StringComparison.OrdinalIgnoreCase);
+        _planOnly = string.Equals(Environment.GetEnvironmentVariable("MARKET_CAPITAL_PLAN_ONLY"), "true", StringComparison.OrdinalIgnoreCase);
+        if (_planOnly && !_fixIntentEnabled) throw new InvalidOperationException("plan-only mode requires FIX intent admission");
+        var tif = Environment.GetEnvironmentVariable("MARKET_CAPITAL_FIX_TIME_IN_FORCE");
+        _fixTimeInForce = string.Equals(tif, "AT_THE_OPENING", StringComparison.OrdinalIgnoreCase) ? QfTimeInForce.AT_THE_OPENING : QfTimeInForce.DAY;
+        var intentTime = Environment.GetEnvironmentVariable("MARKET_CAPITAL_ORDER_INTENT_TIME_UTC");
+        if (!string.IsNullOrWhiteSpace(intentTime))
+        {
+            _orderIntentTimeUtc = DateTime.Parse(intentTime, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal);
+        }
         if (_fixIntentEnabled) EnsureQuickFixAssemblyResolution();
         using var document = JsonDocument.Parse(targetBytes);
         var root = document.RootElement;
@@ -101,6 +113,11 @@ public sealed class MarketCapitalValidationAlgorithm : QCAlgorithm
             {
                 clOrdId = EmitFix44NewOrderSingle(target.Key, quantity);
             }
+            if (_planOnly)
+            {
+                Debug($"MC_SHADOW_PRECOMMIT_ORDER|clOrdId={clOrdId}|symbol={target.Key.Value}|quantity={quantity}|pricingSession={Time:yyyy-MM-dd}|pricingClose={arrivalPrice}|executionTrigger=first_eligible_post_decision_session_open");
+                continue;
+            }
             var ticket = MarketOrder(target.Key, quantity, tag: clOrdId is null ? null : $"FIX44:{clOrdId}");
             if (clOrdId is not null)
             {
@@ -128,9 +145,12 @@ public sealed class MarketCapitalValidationAlgorithm : QCAlgorithm
     {
         var side = signedQuantity > 0m ? QfSide.BUY : QfSide.SELL;
         var orderQty = Math.Abs(signedQuantity);
-        var idSeed = $"{_targetPortfolioSha256}|{Time:yyyy-MM-ddTHH:mm:ss}|{symbol.Value}|{signedQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+        var utc = _orderIntentTimeUtc ?? (Time.Kind == DateTimeKind.Utc ? Time : DateTime.SpecifyKind(Time, DateTimeKind.Utc));
+        var legacyM4Seed = !_orderIntentTimeUtc.HasValue && _fixTimeInForce == QfTimeInForce.DAY;
+        var idSeed = legacyM4Seed
+            ? $"{_targetPortfolioSha256}|{Time:yyyy-MM-ddTHH:mm:ss}|{symbol.Value}|{signedQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)}"
+            : $"{_targetPortfolioSha256}|{utc:O}|{symbol.Value}|{signedQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)}|{_fixTimeInForce}";
         var clOrdId = "mc_" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(idSeed))).ToLowerInvariant()[..24];
-        var utc = Time.Kind == DateTimeKind.Utc ? Time : DateTime.SpecifyKind(Time, DateTimeKind.Utc);
         var message = new NewOrderSingle(
             new QfClOrdID(clOrdId),
             new QfSymbol(symbol.Value),
@@ -138,7 +158,7 @@ public sealed class MarketCapitalValidationAlgorithm : QCAlgorithm
             new QfTransactTime(utc),
             new QfOrdType(QfOrdType.MARKET));
         message.OrderQty = new QfOrderQty(orderQty);
-        message.TimeInForce = new QfTimeInForce(QfTimeInForce.DAY);
+        message.TimeInForce = new QfTimeInForce(_fixTimeInForce);
         message.Header.SetField(new QfBeginString("FIX.4.4"));
         message.Header.SetField(new QfSenderCompID("ORDIVON_SHADOW"));
         message.Header.SetField(new QfTargetCompID("LEAN_VALIDATION"));
@@ -148,7 +168,7 @@ public sealed class MarketCapitalValidationAlgorithm : QCAlgorithm
         if (!raw.Contains("\u000135=D\u0001", StringComparison.Ordinal) || !raw.Contains("\u000140=1\u0001", StringComparison.Ordinal))
             throw new InvalidOperationException("QuickFIX/n did not serialize the required FIX 4.4 NewOrderSingle market-order semantics");
         var digest = Convert.ToHexString(SHA256.HashData(Encoding.ASCII.GetBytes(raw))).ToLowerInvariant();
-        Debug($"MC_FIX_INTENT|protocol=FIX.4.4|msgType=D|clOrdId={clOrdId}|symbol={symbol.Value}|side={side}|orderQty={orderQty}|ordType={QfOrdType.MARKET}|timeInForce={QfTimeInForce.DAY}|sha256={digest}");
+        Debug($"MC_FIX_INTENT|protocol=FIX.4.4|msgType=D|clOrdId={clOrdId}|symbol={symbol.Value}|side={side}|orderQty={orderQty}|ordType={QfOrdType.MARKET}|timeInForce={_fixTimeInForce}|transactTimeUtc={utc:O}|sha256={digest}");
         return clOrdId;
     }
 
