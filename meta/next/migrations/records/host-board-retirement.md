@@ -1,115 +1,101 @@
-# Host / Board retirement responsibility closure
+# Host / Board implementation retirement and responsibility migration
 
 - Source: `/root/projects/ordivon-host-v2`
 - Observed revision: `35b9defb1d2e`
-- Closure audited: 2026-09-13
-- New-model disposition: retired mixed-responsibility container; no replacement Host or authoritative Board
+- Reopened: 2026-09-13
+- New-model disposition: historical implementation retired; responsibility migration remains open until mature external-owner cutover is proven
 
-## Decision
+## Corrected decision
 
-Host and Board do not survive as Ordivon architectural entities. Their historical responsibilities are decomposed to the natural domain or mature external owner. Any future cross-owner overview is a disposable read projection, not a new source of truth.
+The historical Host and custom Board implementations do not survive as Ordivon architectural entities. However, their responsibilities are not considered migrated merely because old code is retired.
 
-The closure uses four disposition classes:
+Current target owners are:
 
-- `EXTERNAL_OWNER` — a mature external/provider system owns the mechanics or state;
-- `DOMAIN_OWNER` — the relevant domain/case owns semantic meaning and acceptance;
-- `PROJECTION_ONLY` — useful only as a derived view over authoritative sources;
-- `DELETE` — no forward Ordivon primitive or compatibility surface is justified.
+- work management/collaboration: Plane;
+- durable process: Temporal;
+- multi-agent orchestration: Microsoft Agent Framework;
+- integration edges: n8n;
+- physical execution: Runtime;
+- operational observation: Prometheus/Grafana/OTel-oriented stack;
+- semantic acceptance: domain-native V&V.
 
-## Historical surface closure
+See `docs/MATURE_WORK_COORDINATION_COMPOSITION_R1.md` for the selection and competition analysis.
 
-| Historical surface | Observed responsibility | Disposition | Forward owner / treatment |
+## Disposition classes
+
+- `EXTERNAL_OWNER` — mature external/provider system owns the responsibility;
+- `DOMAIN_OWNER` — relevant domain owns semantic meaning/acceptance;
+- `SPLIT_OWNER` — the historical primitive mixed several authorities and must be decomposed;
+- `PROJECTION_ONLY` — derived view only;
+- `DELETE` — historical primitive has no forward responsibility after decomposition.
+
+## Historical surface mapping
+
+| Historical surface | Observed responsibility | Corrected disposition | Target owner/treatment |
 | --- | --- | --- | --- |
-| `host.status` | aggregate Host schema/task/board/news integrity and recent activity | `PROJECTION_ONLY` | owner-native health/readiness plus OTel/Prometheus/Grafana where an aggregate operational view is useful; no Host-wide health authority |
-| `attention.delta` | sequential change-navigation feed over Host-local activity | `PROJECTION_ONLY` | owner-native events/telemetry; Prometheus/Alertmanager/n8n for operational attention; domain queues/queries for semantic attention |
-| `board.list` | list durable coordination messages | `DELETE` | use collaboration/work-management owner chosen by the active domain; aggregate listing, if needed, is a read projection |
-| `board.search` | search coordination-message history | `DELETE` | search the owning collaboration/domain system; no Ordivon-global message index |
-| `board.post` | persist note/question/proposal/warning/reply messages | `DELETE` | GitHub issue/comment/discussion, document review, chat/email, workflow approval or other task-local collaboration owner |
-| `news.list` | inventory retained external-news editions | `DELETE` | knowledge/research/media/release owners retain their own publications; cross-source reading is query/projection only |
-| `news.read` | read one retained external-news projection | `DELETE` | query the owning source or retained artifact directly |
-| `news.publish` | revisioned publication persistence | `DELETE` | Media/Distribution or provider-native publication path owns publishing and read-back |
-| `task.list` | inventory universal Host Tasks | `PROJECTION_ONLY` | domain work items/cases, Temporal workflows, Snakemake DAGs, CI runs and Runtime Jobs remain distinct; aggregate only for display/query |
-| `task.observe` | task checkpoint/history plus extension projection | `PROJECTION_ONLY` | observe the natural owner: domain record, Temporal/Snakemake/CI or Runtime; never reconstruct universal Task truth |
-| `task.resume` | read/re-enter Host continuity checkpoint | `DELETE` | durable process resumes in Temporal or its native workflow owner; semantic cases reopen/continue in the domain owner |
-| `task.adopt` | create a universal Host Task with initial semantic checkpoint | `DELETE` | create the appropriate domain case/work item and, only when required, a separate workflow execution |
-| `task.checkpoint` | revision universal semantic working state | `DELETE` | domain/case records own semantic progress/evidence; workflow engines own durable process state; Runtime owns mechanical execution evidence |
+| `host.status` | aggregate health/integrity/recent activity | `PROJECTION_ONLY` | owner-native health + Prometheus/Grafana; no Host-wide health authority |
+| `attention.delta` | sequential change/attention feed | `SPLIT_OWNER` | Prometheus/alerts/n8n for operational attention; Plane work attention for managed work; domain owner for semantic attention |
+| `board.list` | list durable coordination/work records | `EXTERNAL_OWNER` | Plane work items/comments/activities/views after cutover |
+| `board.search` | search coordination/work history | `EXTERNAL_OWNER` | Plane work search after cutover; evidence search remains domain-native |
+| `board.post` | persist collaboration notes/replies | `EXTERNAL_OWNER` | Plane comments/work updates for managed work; specialized review/chat remains task-local where appropriate |
+| `news.list` / `news.read` / `news.publish` | generic publication store | `DELETE` after decomposition | Media/Knowledge/Distribution or source-native publication owner |
+| `task.list` | inventory managed work | `EXTERNAL_OWNER` | Plane work items; execution owners remain separate references |
+| `task.observe` | mixed work context + execution/history | `SPLIT_OWNER` | Plane work context + Temporal/MAF/Runtime/domain exact owner reads |
+| `task.resume` | locate/re-enter unfinished work | `SPLIT_OWNER` | Plane resolves work; Temporal/MAF/domain owner resumes actual process/run |
+| `task.adopt` | create managed work and continuity | `SPLIT_OWNER` | Plane creates work item; workflow/agent run created separately only when required |
+| `task.checkpoint` | mixed semantic/workflow/execution checkpoint | `SPLIT_OWNER` | Plane work state + Temporal process + MAF agent run + Runtime mechanical evidence + domain evidence |
 
 ## Non-tool responsibilities
 
 | Historical responsibility | Disposition | Forward treatment |
 | --- | --- | --- |
-| PostgreSQL Host authority schema | `DELETE` as global model | PostgreSQL remains a storage substrate; schemas belong to bounded domain/application owners |
-| `WorkingCheckpoint` (`objective`, `frontier`, `established`, `unresolved`, `nextActions`, runtime references, `workStanding`) | `DOMAIN_OWNER` | retain only fields that a real domain/case requires, using that domain's vocabulary and lifecycle model |
-| Host `open/completed/abandoned` Task state machine | `DELETE` | domain work-item/case state and workflow-execution state are separate concepts |
-| Host extension namespaces | `DELETE` as generic extension mechanism | data belongs to the originating bounded context/provider contract |
-| activity log | `PROJECTION_ONLY` | derive operational/event views from native owners; do not make a replacement global activity ledger |
-| Board message persistence | `DELETE` | collaboration stays with task-local mature systems |
-| News revision store | `DELETE` | publication/version authority stays with Media/Distribution/knowledge/provider-native systems |
-| command/idempotency receipts | `EXTERNAL_OWNER` | preserve idempotency/reconciliation only at the system that owns the consequential operation (Runtime, Temporal, Distribution/provider, etc.) |
-| cursor/search/pagination machinery | `EXTERNAL_OWNER` | use owner-native query APIs and indexes |
-| canonical digesting | `EXTERNAL_OWNER` / local thin contract only | retain exact digests only where a concrete evidence/effect contract requires them; no global Host digest ontology |
+| Host PostgreSQL global authority schema | `DELETE` as global model | owner-specific stores only |
+| `WorkingCheckpoint` | `SPLIT_OWNER` | work-management fields to Plane; process state to Temporal; agent state to MAF; semantic evidence to domain owner |
+| Host open/completed/abandoned universal state | `DELETE` as universal state | Plane work status and owner-native process/domain states remain distinct |
+| Host extension namespaces | `DELETE` | originating owner/provider contract |
+| activity log | `SPLIT_OWNER` | Plane work activity where relevant; telemetry/events remain native to owners |
+| command/idempotency receipts | `EXTERNAL_OWNER` | system owning the consequential operation |
+| cursor/search/pagination mechanics | `EXTERNAL_OWNER` | provider-native APIs/indexes |
+| canonical digesting | thin contract only | only where concrete evidence/effect identity requires it |
 
-## Required separation after retirement
+## Required separation
 
-Ordivon must not recreate a universal `Task` under another name. Keep these identities separate:
+Do not recreate a universal Task under another name.
 
-1. **Case / work item** — semantic goal, requirements, decisions, evidence and domain completion. Owner: the active domain/project/work-management system.
-2. **Process / workflow execution** — ordered/durable process state. Owner: Temporal, Snakemake, CI or another selected workflow system.
-3. **Mechanical Job / Attempt** — concrete command/process execution and physical evidence. Owner: Runtime or the native execution provider.
+1. **Managed work item** — Plane.
+2. **Durable macro process** — Temporal when required.
+3. **Agentic sub-workflow/run** — MAF.
+4. **Mechanical Job/Attempt** — Runtime/native executor.
+5. **Domain semantic evidence/acceptance** — domain owner.
 
-A single real-world outcome may reference all three, but none is authoritative for the others.
+A real-world outcome may reference all five; none is authoritative for the others.
 
-## Board replacement rule
+## Plane rule
 
-There is no authoritative replacement Board. Use mature task-local collaboration/work-management surfaces when humans need to coordinate. A future Ordivon overview is permitted only as a read model/materialized projection with these constraints:
+Plane is allowed to be authoritative for work-management facts; it is not merely a dashboard. Operational multi-system dashboards remain projection-only. Plane must reference rather than absorb Temporal, MAF, Runtime and domain truth.
 
-- every displayed field identifies or can resolve to its authoritative source;
-- the projection owns no domain transition, workflow transition or execution transition;
-- deleting and rebuilding the projection must not destroy authoritative work state;
-- writes go to the natural owner, never to the projection database;
-- no new global Task schema is introduced merely to populate the view.
+## Legacy data rule
 
-At current scale, existing owner-native views (Git/GitHub, Temporal, Runtime, Snakemake/CI, PostgreSQL domain queries, Prometheus/Grafana) are preferred over building a custom Ordivon overview.
+Do not bulk-import the Host database blindly. Classify each historical record:
 
-## Legacy data disposition
+- durable managed work/context still useful -> migrate selectively to Plane;
+- semantic decisions/evidence -> migrate to domain/knowledge owner;
+- execution references -> retain as references to native owner evidence;
+- Board chatter without continuing value -> archive only;
+- generic activity/news projections -> archive/delete unless independently valuable.
 
-Do not bulk-import the Host database into a new global schema.
+## Local standing
 
-- Task checkpoints: selectively extract only durable domain knowledge, decisions, evidence or references that a current domain still needs.
-- Board messages: archival collaboration history only unless a specific message is cited as evidence/decision provenance.
-- News editions: archival/generated projection; migrate only independently valuable research/knowledge/media artifacts to their natural owner.
-- Activity log: derived navigation history; no forward authority migration.
-- Host command receipts: retain with retirement evidence where needed; consequential effect receipts belong to the effect-owning provider.
+- Temporal/n8n/Prometheus already active through the current Operations substrate;
+- Grafana is active as the current containerized view;
+- MAF 1.18.0 is installed and deterministic concurrent fan-out/fan-in mechanics passed locally;
+- Plane Community v1.4.2 official installer is staged but activation is `HOLD_RESOURCE` because the current 7.8 GiB workstation is already carrying the existing stack;
+- ChatGPT Agent Automation still lacks accepted assistant-output retrieval, so real MAF -> ChatGPT participant integration is not yet closed.
 
-Git history of Host v2 remains provenance. Host v2 does not remain an active provider dependency of Ordivon Next.
+## Current result
 
-## Local replacement evidence
+`HOST_BOARD_IMPLEMENTATION_RETIREMENT = RETAINED`
 
-Current local capabilities already cover the residual mechanical roles without a Host successor:
+`HOST_BOARD_RESPONSIBILITY_MIGRATION = IN_PROGRESS`
 
-- durable workflows: Temporal through Operations v2;
-- integration edges/human-facing automation: n8n;
-- scientific DAGs: project-local Snakemake;
-- build/test/release workflow: native CI/build systems;
-- physical execution and execution receipts: Runtime;
-- host/infrastructure desired state: Ansible/Nix/DSC-facing composition and OpenTofu;
-- structured domain data: PostgreSQL as substrate, with owner-specific schemas;
-- observability: OpenTelemetry/Prometheus, with Vector/Loki/Grafana available when justified;
-- semantic acceptance: domain-native V&V through task-local Capability Packages.
-
-## Mature external reference model
-
-The decomposition follows established separation rather than a new Ordivon ontology:
-
-- BPMN — process modeling: https://www.omg.org/bpmn/
-- CMMN — case management modeling: https://www.omg.org/spec/CMMN/
-- DMN — decision modeling complementary to process/case modeling: https://www.omg.org/dmn/
-- CQRS / materialized read models — separate authoritative writes from optimized query projections: https://learn.microsoft.com/azure/architecture/patterns/cqrs and https://learn.microsoft.com/azure/architecture/patterns/materialized-view
-
-These references guide responsibility separation; Ordivon does not require BPMN/CMMN/DMN engines or a new CQRS platform unless a real workload proves that need.
-
-## Closure result
-
-`HOST_BOARD_RESPONSIBILITY_CLOSURE = PASS`
-
-No audited Host/Board responsibility requires a successor Host, successor Board, global Task state machine, global collaboration database, or global activity ledger. Reopen this decision only if a real workload demonstrates a repeated cross-owner capability gap that cannot be solved by owner-native query, mature work-management/case tooling, or a disposable projection.
+The prior `HOST_BOARD_RESPONSIBILITY_CLOSURE = PASS` was premature and is superseded by this record. Final closure requires a real workload to pass the Plane + Temporal + MAF + Runtime/domain cutover gates defined in `docs/MATURE_WORK_COORDINATION_COMPOSITION_R1.md`.
