@@ -258,13 +258,35 @@ def build_once(source: Path, destination: Path, source_sha256: str, *, cycle: in
         shutil.rmtree(stage)
     stage.mkdir(parents=True)
     parquet = stage / "parquet"
-    catalog = stage / "host-history.duckdb"
+    stage_catalog = stage / "host-history.duckdb"
     scratch = stage / ".scratch"
     scratch.mkdir()
     parquet_files = export_parquet(source, parquet)
-    create_catalog(catalog, parquet, source_sha256)
-    tables, invariants = validate_catalog(source, catalog, scratch)
+
+    # Validate the staged bytes before publication.
+    create_catalog(stage_catalog, parquet, source_sha256)
+    staged_tables, staged_invariants = validate_catalog(source, stage_catalog, scratch)
     shutil.rmtree(scratch)
+
+    if destination.exists():
+        shutil.rmtree(destination)
+    stage.rename(destination)
+
+    # DuckDB view definitions persist literal Parquet paths. Recreate the catalog only
+    # after publication so the retained read model points at the retained final paths,
+    # never at the disposable staging directory.
+    final_parquet = destination / "parquet"
+    final_catalog = destination / "host-history.duckdb"
+    create_catalog(final_catalog, final_parquet, source_sha256)
+    final_scratch = destination / ".scratch-final"
+    final_scratch.mkdir()
+    try:
+        tables, invariants = validate_catalog(source, final_catalog, final_scratch)
+    finally:
+        shutil.rmtree(final_scratch)
+    if tables != staged_tables or invariants != staged_invariants:
+        raise RuntimeError("final-path DuckDB catalog differs from validated staged projection")
+
     result = {
         "cycle": cycle,
         "tables": tables,
@@ -272,7 +294,7 @@ def build_once(source: Path, destination: Path, source_sha256: str, *, cycle: in
         "logicalFingerprint": logical_fingerprint(tables),
         "parquetFiles": parquet_files,
         "physicalParquetFingerprint": physical_parquet_fingerprint(parquet_files),
-        "catalog": {"path": catalog.name, "bytes": catalog.stat().st_size, "sha256": sha256_file(catalog)},
+        "catalog": {"path": final_catalog.name, "bytes": final_catalog.stat().st_size, "sha256": sha256_file(final_catalog)},
     }
     manifest = {
         "schemaVersion": 1,
@@ -292,10 +314,7 @@ def build_once(source: Path, destination: Path, source_sha256: str, *, cycle: in
             "The original retired SQLite snapshot and retirement receipt remain the historical authority boundary.",
         ],
     }
-    (stage / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
-    if destination.exists():
-        shutil.rmtree(destination)
-    stage.rename(destination)
+    (destination / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     result["manifestSha256"] = sha256_file(destination / "manifest.json")
     return result
 

@@ -29,6 +29,8 @@ class HostHistoricalProjectionContractTests(unittest.TestCase):
         self.assertIn("projection_minus_source", text)
         self.assertIn("shutil.rmtree(destination)", text)
         self.assertIn("derivedProjectionCanBeDeletedAndRebuilt", text)
+        self.assertIn("Recreate the catalog only", text)
+        self.assertIn("final-path DuckDB catalog differs", text)
 
 
 if __name__ == "__main__":
