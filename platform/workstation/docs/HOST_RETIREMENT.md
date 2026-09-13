@@ -106,3 +106,24 @@ After Host v1 retirement, the exact independent retirement SQLite backup was pro
 - task-projection/head violations: **0**
 
 Machine-readable receipt: `evidence/host-v1-final-pg-archive-20260913.json`. The schema truth role remains `migration-evidence-not-authority`; the retired Host tree and retirement receipt remain the historical authority boundary.
+
+## R3 rebuildable historical query projection
+
+On 2026-09-13 the final retired SQLite backup was independently projected to Apache Parquet with a DuckDB query catalog. This is a derived historical read model, not a new Host authority.
+
+- immutable source: `/var/lib/ordivon/retired/host-v1/host-v1-48104ae46bc92c66.sqlite3`
+- source SHA-256: `70cc55a34f6fdf97609f0593e13227740fb3e887052a629e3b7d8712a9f54e8b`
+- retained projection: `/var/lib/ordivon/retired/host-v1/projections/host-v1-final-r3`
+- DuckDB: `v1.5.5 (Variegata) d8cdaa33fd`
+- all 15 source-table canonical digests equal across SQLite, live PostgreSQL, prior PostgreSQL receipt, and final Parquet/DuckDB projection: **PASS**
+- bidirectional SQLite/Parquet row difference (`EXCEPT ALL`) for every table: **0 / 0**
+- five historical invariant violations: **0**
+- destructive projection rebuilds: **2**, after one initial build
+- total materializations: **3**
+- logical fingerprint identical across all three: `d3a89e5abe5e4af4da07df5213a83add4f8abfb7e29d4dabacc8e86d5e88a5fc`
+- physical Parquet fingerprint identical across all three: `2c68db342948f222851067ef8101e5f2b784268223745542217df0d5b47e71dc`
+- final consumer readback: **PASS**
+
+A post-publication acceptance probe caught an initial DuckDB-view staging-path leak; that version was rejected. The corrected generator recreates and revalidates the catalog after publication using only final retained Parquet paths. Final implementation revision: `6c97508507f59167a2d288b09451b60ff6c5b578`.
+
+The PostgreSQL schema `host_retired_final_20260912` is therefore no longer required for routine historical query. It remains temporarily as redundant migration evidence and has not been promoted to authority. See `docs/HOST_HISTORICAL_PROJECTION_R3.md` and `evidence/host-v1-parquet-duckdb-r3-20260913.json`.

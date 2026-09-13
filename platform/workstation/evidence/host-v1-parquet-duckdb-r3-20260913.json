@@ -1,0 +1,265 @@
+{
+  "claims": {
+    "derivedProjectionCanBeDeletedAndRebuilt": true,
+    "duckdbIsHostAuthority": false,
+    "hostWriterRecreated": false,
+    "parquetIsHostAuthority": false,
+    "postgresHistoricalProjectionEquivalent": true,
+    "postgresRequiredForHistoricalQuery": false,
+    "sqliteToDuckDBRowEquivalence": true,
+    "sqliteToParquetRowEquivalence": true
+  },
+  "disposition": {
+    "hostV1Runtime": "REMAINS_RETIRED",
+    "parquetDuckDB": "RETAIN_REBUILDABLE_QUERY_PROJECTION",
+    "postgresSchema": "REDUNDANT_RETAINED_MIGRATION_EVIDENCE",
+    "postgresSchemaMayBeDroppedLaterWithoutLosingHistoricalQueryCapability": true,
+    "retiredSQLite": "RETAIN_IMMUTABLE_AUTHORITY"
+  },
+  "implementation": {
+    "generatorPath": "scripts/host_historical_projection.py",
+    "generatorSha256": "e91e05521c7a28813514cf62836e62d2b7789a757fbba9c1ffe925ac4ec20835",
+    "repository": "/root/projects/ordivon-operations-v2",
+    "revision": "6c97508507f59167a2d288b09451b60ff6c5b578"
+  },
+  "kind": "ordivon.host-v1-historical-projection-r3",
+  "nonClaims": [
+    "This does not establish Host v1 writer, lease, concurrency or runtime semantics.",
+    "This does not make PostgreSQL, Parquet or DuckDB a Host authority.",
+    "This does not authorize deletion of the immutable retired SQLite source or retirement receipt."
+  ],
+  "postgresComparison": {
+    "database": "ordivon_host_stage_r1",
+    "host": "/var/lib/postgres/ordivon-data-r5-pg-14550-v4",
+    "invariants": {
+      "dangling_board_replies": 0,
+      "event_payload_edges": 0,
+      "event_stream_heads": 0,
+      "news_head_mismatch": 0,
+      "task_projection_heads": 0
+    },
+    "liveRowDigestEquivalence": true,
+    "port": 55434,
+    "receiptRowDigestEquivalence": true,
+    "schema": "host_retired_final_20260912",
+    "serverVersion": "18.6",
+    "truthRole": "migration-evidence-not-authority"
+  },
+  "projection": {
+    "destination": "/var/lib/ordivon/retired/host-v1/projections/host-v1-final-r3",
+    "duckdbCatalog": {
+      "bytes": 798720,
+      "path": "/var/lib/ordivon/retired/host-v1/projections/host-v1-final-r3/host-history.duckdb",
+      "sha256": "411f5b58e6b427b0016283d7e1eb699a1a68fbac3843ec30ecbe8056102d5b89"
+    },
+    "duckdbVersion": "v1.5.5 (Variegata) d8cdaa33fd",
+    "invariants": {
+      "dangling_board_replies": 0,
+      "event_payload_edges": 0,
+      "event_stream_heads": 0,
+      "news_head_mismatch": 0,
+      "task_projection_heads": 0
+    },
+    "logicalFingerprint": "d3a89e5abe5e4af4da07df5213a83add4f8abfb7e29d4dabacc8e86d5e88a5fc",
+    "manifestSha256": "094f9bf2f3569b44baef22a12519bfb41e4307084a0140aff475526948a31072",
+    "parquetFiles": {
+      "board_messages": {
+        "bytes": 1047753,
+        "path": "board_messages.parquet",
+        "sha256": "26d3ee11020eee708f4fd9233b2db7e3fcdfdc552e76b44eda9c503bca110031"
+      },
+      "event_object_refs": {
+        "bytes": 1110490,
+        "path": "event_object_refs.parquet",
+        "sha256": "98969e97ed5f144dd5b2b2d6119035e2ac6db370addf33ba46fddaa46aa12517"
+      },
+      "events": {
+        "bytes": 722846,
+        "path": "events.parquet",
+        "sha256": "10b95e07d489d2d647bd1322e3bb25e3d18dd5f701a42b6d2a2374b2744b8b55"
+      },
+      "host_metadata": {
+        "bytes": 440,
+        "path": "host_metadata.parquet",
+        "sha256": "bf1c8afa0170fe110ee8389b0b1da8ede92b72acfab5c50a5f0ed3b86c83fc15"
+      },
+      "leases": {
+        "bytes": 169,
+        "path": "leases.parquet",
+        "sha256": "7bbcd5c752acb90d8968b5dbdb774e5459fe2000d40e534515347bd4026a63c3"
+      },
+      "legacy_object_refs": {
+        "bytes": 103,
+        "path": "legacy_object_refs.parquet",
+        "sha256": "4e6164d83e4242b544d8f89ae3dac3ab90265b870c5e9dc97dda1184c68e5e36"
+      },
+      "news_editions": {
+        "bytes": 2569,
+        "path": "news_editions.parquet",
+        "sha256": "1117bb88bb407f064404063666b95183caa9a93686b6b13c004a95c45a253bbc"
+      },
+      "news_publications": {
+        "bytes": 3114,
+        "path": "news_publications.parquet",
+        "sha256": "4a95e1d0628ff819b0064f1cb768acdb7816a8c2cd9be800da70c1c3b6a8366c"
+      },
+      "object_refs": {
+        "bytes": 1851701,
+        "path": "object_refs.parquet",
+        "sha256": "0fe1c8a2ece28be36345465ff4529de0d44e54cfb2fdf71daecaef851eec1c90"
+      },
+      "object_validation": {
+        "bytes": 1463479,
+        "path": "object_validation.parquet",
+        "sha256": "6801b589c1e92c65338aedab0cd99427881e0560b993159dc67240150444ab3a"
+      },
+      "schema_migrations": {
+        "bytes": 1309,
+        "path": "schema_migrations.parquet",
+        "sha256": "fea2b75d412aaa079345bf4171d03d3f426691fe1e8ed4d638ff80bbbbb210a9"
+      },
+      "streams": {
+        "bytes": 46126,
+        "path": "streams.parquet",
+        "sha256": "2fd86a4c9d5e7da0805caef99595d4d614b2a8e3d48367069b01645b3bc62232"
+      },
+      "task_extension_state": {
+        "bytes": 207,
+        "path": "task_extension_state.parquet",
+        "sha256": "77588293e4bdc717f8b67f36d42a2c58e37d205160096fb3eb65dfc075b68bb9"
+      },
+      "task_head_validation": {
+        "bytes": 377829,
+        "path": "task_head_validation.parquet",
+        "sha256": "a9a6b5831e226b424c59541413e5a5963b2539883624850bb1a8a41c483fb026"
+      },
+      "task_projection": {
+        "bytes": 53367,
+        "path": "task_projection.parquet",
+        "sha256": "1dab6a3629cd155ee21729f0dc2ee651fa300b4cb40f1914dd02b480094b7d97"
+      }
+    },
+    "physicalParquetFingerprint": "2c68db342948f222851067ef8101e5f2b784268223745542217df0d5b47e71dc",
+    "tables": {
+      "board_messages": {
+        "rows": 15640,
+        "sha256": "bf221c24747fcb6ad2132db223a06753f79873711dd73f897f4fd9c84812846f"
+      },
+      "event_object_refs": {
+        "rows": 30854,
+        "sha256": "85442654e814648bf608f46d5649fd4d84447666d45f4d3cb79e36b7c0e48cc6"
+      },
+      "events": {
+        "rows": 14417,
+        "sha256": "c7ca36aefd3d28581fb667263ecdecc6102b3a37b371461b203e03d02aea057e"
+      },
+      "host_metadata": {
+        "rows": 2,
+        "sha256": "a6bb1b16057bc3596b88284f8a9e112bb2655df5c920df0f07114346eeb7f125"
+      },
+      "leases": {
+        "rows": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "legacy_object_refs": {
+        "rows": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "news_editions": {
+        "rows": 14,
+        "sha256": "fcfcbf026e099b3b7c64de096370d73565011d35c370e954e48443351cbfc13a"
+      },
+      "news_publications": {
+        "rows": 14,
+        "sha256": "0de31c27d9863b3ce0458efbf53c122ccc5d25567c90ea1f63a5301e0b047c2d"
+      },
+      "object_refs": {
+        "rows": 44414,
+        "sha256": "5ad51c74c33293111190a8068b0fd77cd454ddaf580ea05c79c0bc8f35d41e19"
+      },
+      "object_validation": {
+        "rows": 28905,
+        "sha256": "de0533ea80a77d5d937f8a869c2a1188c83144aefd350b0d07eccb2f6f1ba0a4"
+      },
+      "schema_migrations": {
+        "rows": 5,
+        "sha256": "7f57a380d030845def4946d5e580fd075fe4e8476825998a6c7020d6ba5be649"
+      },
+      "streams": {
+        "rows": 2025,
+        "sha256": "c37954e847aac0ce21236607167eea109763e99429ec5fb9dc0fe33d9cd1c050"
+      },
+      "task_extension_state": {
+        "rows": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "task_head_validation": {
+        "rows": 2025,
+        "sha256": "0615a3d89be0addf59a989969791e50a4bf3a59667497b1f4a931404da95e583"
+      },
+      "task_projection": {
+        "rows": 2025,
+        "sha256": "347152c25cb5dcb9aa3d3f4022d7eec99bea8731d09b139803183f305ed89a24"
+      }
+    }
+  },
+  "rebuildProof": {
+    "allLogicalFingerprintsEqual": true,
+    "allPhysicalParquetFingerprintsEqual": true,
+    "cycles": [
+      {
+        "cycle": 1,
+        "logicalFingerprint": "d3a89e5abe5e4af4da07df5213a83add4f8abfb7e29d4dabacc8e86d5e88a5fc",
+        "manifestSha256": "094f9bf2f3569b44baef22a12519bfb41e4307084a0140aff475526948a31072",
+        "physicalParquetFingerprint": "2c68db342948f222851067ef8101e5f2b784268223745542217df0d5b47e71dc"
+      },
+      {
+        "cycle": 2,
+        "logicalFingerprint": "d3a89e5abe5e4af4da07df5213a83add4f8abfb7e29d4dabacc8e86d5e88a5fc",
+        "manifestSha256": "094f9bf2f3569b44baef22a12519bfb41e4307084a0140aff475526948a31072",
+        "physicalParquetFingerprint": "2c68db342948f222851067ef8101e5f2b784268223745542217df0d5b47e71dc"
+      },
+      {
+        "cycle": 3,
+        "logicalFingerprint": "d3a89e5abe5e4af4da07df5213a83add4f8abfb7e29d4dabacc8e86d5e88a5fc",
+        "manifestSha256": "094f9bf2f3569b44baef22a12519bfb41e4307084a0140aff475526948a31072",
+        "physicalParquetFingerprint": "2c68db342948f222851067ef8101e5f2b784268223745542217df0d5b47e71dc"
+      }
+    ],
+    "destructiveRebuilds": 2,
+    "initialBuilds": 1,
+    "totalMaterializations": 3
+  },
+  "schemaVersion": 1,
+  "source": {
+    "bytes": 45838336,
+    "path": "/var/lib/ordivon/retired/host-v1/host-v1-48104ae46bc92c66.sqlite3",
+    "quickCheck": "ok",
+    "sha256": "70cc55a34f6fdf97609f0593e13227740fb3e887052a629e3b7d8712a9f54e8b"
+  },
+  "sourceModel": {
+    "duckdbRole": "disposable-query-catalog-over-parquet",
+    "historicalAuthority": "immutable-retired-sqlite-backup-plus-retirement-receipt",
+    "parquetRole": "open-columnar-derived-projection",
+    "postgresProjectionOnlyTables": [
+      "migration_receipts"
+    ],
+    "sourceTableCount": 15
+  },
+  "standing": "ACCEPTED_BOUNDED",
+  "truthRole": "projection-evidence-not-authority",
+  "verification": {
+    "duckdbExternalDatabaseAttachments": 0,
+    "finalConsumerReadback": "PASS",
+    "finalViewPathGuard": "PASS",
+    "observedBoardMessages": 15640,
+    "observedLatestEventSequence": 14417,
+    "observedTaskStates": {
+      "cancelled": 43,
+      "completed": 1749,
+      "ready": 233
+    },
+    "postCommitImplementationRevision": "6c97508507f59167a2d288b09451b60ff6c5b578",
+    "postCommitRebuildJobId": "job-01a09af3-33db-7451-b337-7aa4c292a067"
+  }
+}
