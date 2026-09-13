@@ -67,7 +67,9 @@ Operations v2 owns generic host desired-state for systemd manager limits, coredu
 
 ## Workstation recovery scheduler substrate
 
-Operations v2 owns only the generic systemd scheduling substrate for the existing immutable Workstation recovery launcher: service/timer unit bytes and the current disabled timer lifecycle. It does not build, select, execute, or reinterpret the recovery generation, Restic snapshot/mirror verification, authority backup, semantic-state backup, or restore acceptance. The current disabled schedule is a containment policy; enabling it later requires a separate owner decision, not an incidental Operations convergence.
+Operations v2 owns only the generic systemd scheduling substrate for the existing immutable Workstation recovery launcher: service/timer lifecycle and host-level scheduling mechanics. It does not build, select, execute, or reinterpret the recovery generation, Restic snapshot/mirror verification, authority backup, semantic-state backup, or restore acceptance.
+
+As re-observed on 2026-09-14, `ordivon-workstation-backup.timer` is intentionally **enabled and active**, with a daily ~03:30 schedule, while the oneshot service executes the immutable `/opt/ordivon-workstation-recovery/current/bin/workstation-backup` launcher. The most recent completed run succeeded. This is a retained minimal recovery capability, not a revival of Workstation E2E. See `docs/WORKSTATION_RECOVERY_RETENTION_20260914.md`.
 
 ## Standards-first integration composition
 
