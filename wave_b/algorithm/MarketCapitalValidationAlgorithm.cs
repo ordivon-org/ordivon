@@ -15,8 +15,13 @@ public sealed class MarketCapitalValidationAlgorithm : QCAlgorithm
 
     public override void Initialize()
     {
-        SetStartDate(2013, 10, 7);
-        SetEndDate(2013, 10, 11);
+        var startText = Environment.GetEnvironmentVariable("MARKET_CAPITAL_BACKTEST_START") ?? "2013-10-07";
+        var endText = Environment.GetEnvironmentVariable("MARKET_CAPITAL_BACKTEST_END") ?? "2013-10-11";
+        var start = DateTime.ParseExact(startText, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        var end = DateTime.ParseExact(endText, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        if (end < start) throw new InvalidOperationException("backtest end precedes start");
+        SetStartDate(start.Year, start.Month, start.Day);
+        SetEndDate(end.Year, end.Month, end.Day);
         SetCash(100000);
         SetBenchmark(_ => 0m);
         Settings.MinimumOrderMarginPortfolioPercentage = 0m;

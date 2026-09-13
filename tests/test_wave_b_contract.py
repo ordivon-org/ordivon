@@ -28,5 +28,12 @@ class WaveBContractTests(unittest.TestCase):
         self.assertLess(doc["executionCashBufferWeight"], 1)
         self.assertFalse(doc["externalFinancialWritesAllowed"])
 
+    def test_m3_market_data_admission_is_non_causal_and_non_live(self):
+        doc = json.loads((ROOT / "config/market_data_admission.json").read_text())
+        self.assertEqual(doc["provider"], "Nasdaq")
+        self.assertEqual(doc["causalStanding"], "NON_CAUSAL_EXECUTION_VALIDATION_ONLY")
+        self.assertEqual(doc["symbols"], ["AAPL", "MSFT", "NVDA"])
+        self.assertFalse(doc["externalFinancialWritesAllowed"])
+
 if __name__ == "__main__":
     unittest.main()

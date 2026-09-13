@@ -1,0 +1,49 @@
+{
+  "brokerCredentialsUsed": false,
+  "causalStanding": "NON_CAUSAL_EXECUTION_VALIDATION_ONLY",
+  "consoleLogSha256": "59c39fbf4c805fc7fe5c2b57f1d28e6405b3509e9470bd5b1292807225372f8f",
+  "endDate": "2026-09-11",
+  "endpointTemplate": "https://api.nasdaq.com/api/quote/{symbol}/historical",
+  "externalFinancialWritesAttempted": false,
+  "fills": 3,
+  "finalPortfolio": "totalValue=100193.85999995453194226862281|cash=1456.849999954531942268622813|marginUsed=49368.50500",
+  "marketDataManifestSha256": "9ed1dc2cf2d3f34d5eed063e27498f44a0a686bb2ed3b18c6dd724a16108a5b8",
+  "provider": "Nasdaq",
+  "rawSeries": [
+    {
+      "firstDate": "2026-09-01",
+      "lastDate": "2026-09-11",
+      "normalizedCsvSha256": "5352ab17df2d9e5fcfbca3a30b865c541f2f5288c3f133966d0e13f48ace5d06",
+      "rawSha256": "a7e801d8d62129537d802643bfbfd9021253ed60eb8e56594a171fb47a02a453",
+      "rowCount": 8,
+      "symbol": "AAPL"
+    },
+    {
+      "firstDate": "2026-09-01",
+      "lastDate": "2026-09-11",
+      "normalizedCsvSha256": "d2d9f4c773099efdc2f3c88ee853a50d5c36e1e96a5ec44978c583255e51c50d",
+      "rawSha256": "b4cd10fc9af0f0aa95fb8ff1693afaf9e7222572d8787c773b723546409a2906",
+      "rowCount": 8,
+      "symbol": "MSFT"
+    },
+    {
+      "firstDate": "2026-09-01",
+      "lastDate": "2026-09-11",
+      "normalizedCsvSha256": "e5b18faf5d2d19ff14d2db72aa276eaca872e0d4ac0f7fe27ad1a78d9cca5eec",
+      "rawSha256": "91969b185f1a44dbb60649d1122aafd4995998af021d1db59c551b828e7a7fe2",
+      "rowCount": 8,
+      "symbol": "NVDA"
+    },
+    {
+      "firstDate": "2026-09-01",
+      "lastDate": "2026-09-11",
+      "normalizedCsvSha256": "960d9a6dfadadb55649644d680f70538ad8e70b72e9c59a826699257efc774fd",
+      "rawSha256": "8e52d8b9ff0b36b7cc5de6c3d426630b646e4c5da37820ef2a79522f4c22550a",
+      "rowCount": 8,
+      "symbol": "SPY"
+    }
+  ],
+  "retrievedAt": "2026-09-13T09:22:28.834397+00:00",
+  "standing": "PASS_BOUNDED_PROVIDER_ORIGIN_DATA_NON_CAUSAL",
+  "startDate": "2026-09-01"
+}
