@@ -49,7 +49,7 @@ No repo is automatically merged into Ordivon Next.
 | `ordivon-distribution-v2` | Enabling distribution capability | keep external; expose capability contracts |
 | `ordivon-security-v2` | Cross-cutting discipline/tooling source | map controls/validators; avoid a universal security platform |
 | `ordivon-workstation-v2` | Enabling system | consume substrate facts/capabilities |
-| `ordivon-host*` | historical mixed responsibilities | decompose; preserve only proven residual value |
+| `ordivon-host*` | retired historical mixed responsibilities | preserve retirement/provenance only; use domain owners, mature providers and projection-only views |
 | `ordivon-harness` / Agent Birth | agent execution/provisioning history | use only where mature agent interfaces do not cover real needs |
 
 ## 5. Promotion rule
