@@ -23,6 +23,9 @@ class ArtifactDeliveryEnvironmentTests(unittest.TestCase):
         names=['scripts/artifact_delivery_temporal_support.py','scripts/temporal_artifact_delivery_deploy.py','scripts/artifact_delivery_toolchain_doctor.py','systemd/ordivon-artifact-temporal-worker.service']
         for name in names:
             text=(ROOT/name).read_text();self.assertNotIn('.cache/artifact-delivery-venv',text,name);self.assertIn('/root/.local/share/ordivon-workstation/artifact-delivery-python-v1/current/bin/python',text,name)
+    def test_published_stable_python_is_wrapper_not_internal_venv_interpreter(self):
+        lock=M.load_lock();stable=lock['stablePython'];self.assertTrue(stable.endswith('/current/bin/python'));self.assertNotIn('/.venv/',stable)
+        wrapper=(ROOT/'scripts/artifact_delivery_python_wrapper.py').read_text();self.assertIn("'PYTHONDONTWRITEBYTECODE':'1'",wrapper)
     def test_materializer_and_wrapper_share_environment_tree_canonicalization(self):
         with tempfile.TemporaryDirectory() as d:
             root=Path(d);(root/'pkg').mkdir();(root/'pkg/data').write_bytes(b'bytes');(root/'python').symlink_to('/usr/bin/python')

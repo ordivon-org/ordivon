@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/artifact-verification-request-v1.json",
+  "title": "Artifact Verification Request v1",
+  "description": "Thin local request envelope for verifying already-existing artifact bytes against one exact Artifact profile. It binds bytes and profile/contract identity but does not define transport, workflow, domain semantics, or publication state.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "requestId", "profile", "subject", "evidenceDirectory"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "artifact-verification-request"},
+    "requestId": {"type": "string", "minLength": 1},
+    "profile": {"$ref": "#/$defs/profileRef"},
+    "subject": {"$ref": "#/$defs/fileRef"},
+    "objectContract": {"$ref": "#/$defs/fileRef"},
+    "evidenceDirectory": {"type": "string", "minLength": 1},
+    "consumer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "purpose": {"type": "string", "minLength": 1}
+      }
+    },
+    "notes": {"type": "string"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "fileRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "purpose": {"type": "string", "minLength": 1}
+      }
+    },
+    "profileRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "path", "sha256"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  }
+}

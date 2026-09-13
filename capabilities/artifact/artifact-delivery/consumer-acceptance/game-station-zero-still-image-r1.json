@@ -1,0 +1,75 @@
+{
+  "artifactOwnedAuthorities": {
+    "capabilityBinding": {
+      "relativePath": "artifact-delivery/shadow-bindings/still-image-png-srgb-local-r1.json",
+      "sha256": "738098ee19c812452295c47aad03db57ee61e2ac7b7db11484506247539c5d38",
+      "standing": "LOCAL_LIVE_PROVEN"
+    },
+    "profile": {
+      "id": "still-image-png-srgb-r1",
+      "relativePath": "artifact-delivery/shadow-v2/examples/still-image-png-srgb-r1-v2.json",
+      "sha256": "833743589a6665127deb4c26fdf66c394eace9d5ca94db8638b3c9e7a6dac067",
+      "standing": "SHADOW_PROFILE_LIVE_VERIFIER"
+    },
+    "verifier": {
+      "function": "verify_png_srgb",
+      "relativePath": "scripts/artifact_still_image.py",
+      "sha256": "936718da6ee64f7166b89a7f825e548ff02ad35d12626d88fdf07f1ba0d3a473"
+    }
+  },
+  "artifactSource": {
+    "baseRevision": "39b6281b9b59c5d9d372a04e36f845758a7c93cf",
+    "repository": "/root/projects/ordivon-artifact-v2"
+  },
+  "consumer": {
+    "id": "ordivon-game@413882d197c672c22898d8c7d3c0316f9eaf6997",
+    "purpose": "Station Zero v3 player-facing sprite asset verification",
+    "repository": "/root/projects/ordivon-game",
+    "revision": "413882d197c672c22898d8c7d3c0316f9eaf6997"
+  },
+  "externalSubject": {
+    "consumerRelativePath": "web-v3/assets/rescue-expression.png",
+    "identityStanding": "EXACT_BYTES_OBSERVED_AT_CONSUMER_REVISION_NOT_ARTIFACT_OWNED",
+    "sha256": "3c06b38a623cf89119562a0c9573de77e4e6752d92f336891acf371c9dda36d5",
+    "size": 247
+  },
+  "id": "game-station-zero-still-image-r1",
+  "kind": "artifact-consumer-acceptance-evidence",
+  "nonClaims": [
+    "This does not graduate Artifact Profile v2 from shadow to production.",
+    "This does not establish full Game asset-format coverage or a generic Game asset pipeline.",
+    "This does not make Artifact authoritative for Game semantics, artistic quality, player value, or rights.",
+    "The consumer-local subject path is observation evidence, not an Artifact transport contract.",
+    "A later consumer revision must rebind and reverify changed subject bytes."
+  ],
+  "observedAt": "2026-09-13",
+  "request": {
+    "canonicalSha256": "1fe94e111af8789e4bf0c005ede6b561c383cbdad06613930320df805b3c8043",
+    "id": "game:station-zero-v3:rescue-expression:20260913-r1"
+  },
+  "runtimeEvidence": {
+    "jobId": "job-01a09a17-9e15-7123-870e-fec6db3ae666",
+    "operationDigest": "sha256:23842212e789cbc6e5f6dd41ad95a48a0506938743d11137165a01eab7a528bb"
+  },
+  "schemaVersion": 1,
+  "standing": "CONSUMER_SMOKE_PASS_SHADOW_PROFILE",
+  "verification": {
+    "decoderExactMatch": true,
+    "familyStatus": "PASS",
+    "image": {
+      "channelsNormalized": "srgba 4.0",
+      "colorspace": "sRGB",
+      "depth": 8,
+      "format": "PNG",
+      "height": 24,
+      "width": 72
+    },
+    "pngChunks": [
+      "IHDR",
+      "sRGB",
+      "IDAT",
+      "IEND"
+    ],
+    "serviceStatus": "PASS"
+  }
+}
