@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "ordivon.game.external-mature-stack-r3-acceptance",
   "observedOn": "2026-09-13",
-  "status": "PASS_WITH_EXTERNAL_REGISTRY_CANARY_BLOCKED",
+  "status": "PASS_LOCAL_STACK_GRADUATED",
   "selectionRule": {
     "standing": "MAINTENANCE_COMPATIBILITY_RELEASE_SECURITY_FIRST",
     "retiredRule": "GITHUB_STARS_GTE_10000",
@@ -41,11 +41,15 @@
       "nativeExportSemantics": "godot --headless --export-release + export_presets.cfg"
     },
     "localContainerCanary": {
-      "status": "BLOCKED_EXTERNAL_REGISTRY_CONNECTIVITY",
-      "runtimeJobId": "job-01a09ab0-21a5-7cb1-873e-9e409a6d3a42",
+      "status": "PASS",
       "image": "docker.io/barichello/godot-ci:4.7.1",
-      "reason": "Docker Hub registry-1.docker.io connection timed out before manifest/image acquisition",
-      "toolStandingAffected": false
+      "imageId": "c22f67612c9eb0e7c52e18d391471ce5c6dba8e43c6d9ff43b77d6d85d9a3723",
+      "imageDigest": "sha256:15bab564bdd99ae61a12564fc25237130483d1e22da003dc7d039db6f6eded91",
+      "containerEngineVersion": "4.7.1.stable.official.a13da4feb",
+      "containerExportJobId": "job-01a09b08-24eb-75d1-935d-5eefab7947eb",
+      "exportedSha256": "ed7906d6641f30afcecd142e8fe8716720bab5b317c24dfeebc19ddcb09af30c",
+      "matchesPriorHostReproducibilityBaseline": true,
+      "exportedExecutableRun": "PASS"
     }
   },
   "godotMcp": {
@@ -58,5 +62,6 @@
     "thirdPartyGameSkillContent": "AUDIT_BEFORE_USE",
     "semanticAuthority": false
   },
-  "activationBoundary": "Selections become dependencies only when a real new product requires them; historical experiments are not retrofitted for uniformity."
+  "activationBoundary": "Selections become dependencies only when a real new product requires them; historical experiments are not retrofitted for uniformity.",
+  "graduationReceipt": "evidence/game-development-stack-graduation-r1-20260913.json"
 }

@@ -142,9 +142,9 @@ Sources:
 
 Disposition: **ADOPT_WHEN_NEW_PRODUCT_GETS_HOSTED_CI**.
 
-A bounded local pull canary for `barichello/godot-ci:4.7.1` on 2026-09-13 was blocked before image acquisition by repeated Docker Hub registry timeouts. This is retained as `LOCAL_CANARY_BLOCKED_BY_REGISTRY_CONNECTIVITY`, not a godot-ci compatibility failure; upstream release/currentness evidence remains the adoption basis until hosted CI is activated and can execute the real project.
+The initial direct Docker Hub canary was blocked by registry connectivity, but the selection has now been locally graduated. The exact `barichello/godot-ci:4.7.1` image was acquired through a qualified isolated Surfshark WireGuard path into OCI Image Layout, imported locally, and used to import/export the repo-owned production smoke project. The resulting Linux executable SHA256 `ed7906d6641f30afcecd142e8fe8716720bab5b317c24dfeebc19ddcb09af30c` exactly matches the prior host-side bounded reproducibility baseline and the exported executable exits 0 with `ORDIVON_GAME_COLD_START_OK`. Full evidence is retained in `docs/GAME_DEVELOPMENT_STACK_GRADUATION_R1_20260913.md` and `evidence/game-development-stack-graduation-r1-20260913.json`.
 
-Local Runtime/Engineering execution may continue using the exact local Godot binding. Hosted CI should reproduce the same native command/preset semantics through godot-ci rather than a Game-owned build framework.
+Local Runtime/Engineering execution may continue using the exact local Godot binding. Hosted CI should reproduce the same native command/preset semantics through godot-ci rather than a Game-owned build framework. The current image lacks `libfontconfig.so.1`; this disables system-font discovery but did not block headless import/export or artifact execution in the accepted profile. Bundle product fonts by default and revisit the image only if a real product requires system-font discovery.
 
 ### 4.2 Alternative: firebelley/godot-export
 
