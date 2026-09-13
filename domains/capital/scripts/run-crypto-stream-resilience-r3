@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+out="$repo/.artifacts/crypto-stream-resilience-r3"
+rm -rf "$out"; mkdir -p "$out/candidates"
+"$repo/scripts/check-capital-authority" --mode non-live >/dev/null
+"$repo/scripts/check-crypto-execution-lane" >/dev/null
+"$repo/scripts/check-crypto-data-adapter-policy" >/dev/null
+"$repo/scripts/check-clock-quality-gate" >/dev/null
+candidates=(
+  'hk-hkg|openvpn-udp|native-a|30'
+  'hk-hkg|openvpn-udp|native-b|30'
+  'jp-tok|openvpn-udp|native-a|30'
+  'jp-tok|openvpn-udp|native-b|30'
+  'sg-sng|openvpn-tcp|native-a|30'
+  'sg-sng|openvpn-tcp|native-b|30'
+)
+selected=''; : >"$out/candidate-attempts.ndjson"
+for spec in "${candidates[@]}"; do
+  IFS='|' read -r node proto ingress budget <<<"$spec"; key="${node}-${proto}-${ingress}"; dir="$out/candidates/$key"
+  start="$(date +%s%N)"; set +e
+  "$repo/scripts/run-crypto-stream-resilience-r3-candidate" "$node" "$proto" "$ingress" "$dir" "$budget" >"$dir.stdout" 2>"$dir.stderr"; rc=$?
+  set -e; end="$(date +%s%N)"
+  python3 - "$out/candidate-attempts.ndjson" "$dir/result.json" "$node" "$proto" "$ingress" "$rc" "$start" "$end" <<'PY'
+import json,sys
+log,rp,node,proto,ingress,rc,start,end=sys.argv[1:]
+try:r=json.load(open(rp))
+except Exception:r={'standing':'NO_RESULT'}
+row={'node':node,'protocol':proto,'ingress':ingress,'returnCode':int(rc),'elapsedMs':(int(end)-int(start))/1_000_000,'standing':r.get('standing'),'sessionStanding':r.get('sessionStanding')}
+with open(log,'a') as f:f.write(json.dumps(row,sort_keys=True)+'\n')
+PY
+  if [ "$rc" -eq 0 ]; then selected="$key"; break; fi
+done
+python3 - "$out/candidate-attempts.ndjson" "$out/candidate-attempts.json" <<'PY'
+import json,sys
+rows=[json.loads(x) for x in open(sys.argv[1]) if x.strip()]
+json.dump({'schemaVersion':1,'kind':'ordivon.market-capital.crypto-stream-resilience-r3-failover','attempts':rows},open(sys.argv[2],'w'),indent=2,sort_keys=True);open(sys.argv[2],'a').write('\n')
+PY
+rm -f "$out/candidate-attempts.ndjson"
+if [ -z "$selected" ]; then echo 'no candidate passed dual-venue reconnect workload' >&2; cat "$out/candidate-attempts.json" >&2; exit 2; fi
+chosen="$out/candidates/$selected"
+cp "$chosen/session/result.json" "$out/result.json"
+cp "$chosen/session/okx.json" "$out/okx.json"
+cp "$chosen/session/binance.json" "$out/binance.json"
+cp "$chosen/discovery.json" "$out/discovery.json"
+python3 - "$out/result.json" "$out/candidate-attempts.json" "$selected" <<'PY'
+import json,sys
+s=json.load(open(sys.argv[1])); a=json.load(open(sys.argv[2]))
+r={'schemaVersion':1,'kind':'ordivon.market-capital.crypto-stream-resilience-r3-result','standing':'PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT_WITH_FAILOVER','selectedCandidate':sys.argv[3],'candidateAttempts':a['attempts'],'session':s,'brokerCredentialsUsed':False,'privateAccountDataUsed':False,'externalFinancialWritesAttempted':False,'demoExecutionAttempted':False,'liveExecutionAttempted':False}
+print(json.dumps(r,sort_keys=True))
+PY

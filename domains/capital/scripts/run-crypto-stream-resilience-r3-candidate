@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+set -euo pipefail
+if [ "$#" -ne 5 ]; then echo "usage: $0 NODE PROTOCOL INGRESS OUTPUT_DIR DISCOVERY_BUDGET_SECONDS" >&2; exit 64; fi
+node="$1"; proto="$2"; ingress="$3"; out="$4"; budget="$5"
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+rm -rf "$out"; mkdir -p "$out"
+set +e
+timeout --signal=TERM --kill-after=5s "${budget}s" /root/tools/bin/surfpath discover \
+  --nodes "$node" --protocols "$proto" --ingresses "$ingress" \
+  --target okx=https://www.okx.com \
+  --target binance=https://data-api.binance.vision \
+  --compact --store-only >"$out/discovery.json" 2>"$out/discovery.err"
+drc=$?
+set -e
+if [ "$drc" -ne 0 ]; then
+  printf '{"schemaVersion":1,"standing":"DISCOVERY_FAILED","node":"%s","protocol":"%s","ingress":"%s","returnCode":%d}\n' "$node" "$proto" "$ingress" "$drc" >"$out/result.json"
+  exit 2
+fi
+readarray -t bind < <(python3 - "$out/discovery.json" <<'PY'
+import json,sys
+x=json.load(open(sys.argv[1])); assert set(x.get('requiredTargets',[]))=={'okx','binance'}
+print(x['observationDigest']); print(x['recommendedPathDigest'])
+PY
+)
+set +e
+timeout --signal=TERM --kill-after=5s 95s /root/tools/bin/surfpath run --expect "${bind[0]}" --path "${bind[1]}" -- \
+  "$repo/scripts/run-crypto-stream-resilience-r3-session" "$repo" "$out/session" \
+  >"$out/session.stdout" 2>"$out/session.stderr"
+src=$?
+set -e
+python3 - "$out" "$node" "$proto" "$ingress" "$src" <<'PY'
+import json,sys
+out,node,proto,ingress,rc=sys.argv[1:]
+try: s=json.load(open(out+'/session/result.json'))
+except Exception: s={'standing':'NO_SESSION_RESULT'}
+r={
+ 'schemaVersion':1,'kind':'ordivon.market-capital.crypto-stream-resilience-r3-candidate',
+ 'node':node,'protocol':proto,'ingress':ingress,'sessionReturnCode':int(rc),
+ 'sessionStanding':s.get('standing'),
+ 'standing':'PASS_WORKLOAD_QUALIFIED' if int(rc)==0 and s.get('standing')=='PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT' else 'WORKLOAD_QUALITY_FAILED',
+}
+json.dump(r,open(out+'/result.json','w'),indent=2,sort_keys=True); open(out+'/result.json','a').write('\n')
+print(json.dumps(r,sort_keys=True))
+PY
+[ "$src" -eq 0 ]

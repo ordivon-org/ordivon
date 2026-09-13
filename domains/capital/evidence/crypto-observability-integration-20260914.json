@@ -1,0 +1,62 @@
+{
+  "grafana": {
+    "defaultDatasourceUid": "operations-prometheus",
+    "existingContainer": "ordivon-grafana",
+    "newGrafanaInstanceCreated": false,
+    "prometheusUrl": "http://127.0.0.1:29091"
+  },
+  "kind": "ordivon.market-capital.crypto-observability-integration",
+  "note": "Clock alert is expected to be pending/firing while the independent host clock gate remains above 1000 ms; reconnect non-graduation and Surfpath contention are exported as state rather than paging alerts.",
+  "projection": {
+    "directory": "/var/lib/node_exporter/textfile_collector",
+    "file": "market-capital-crypto.prom",
+    "method": "Prometheus node_exporter textfile collector",
+    "nodeExporter": "127.0.0.1:29100",
+    "nodeTextfileScrapeError": 0
+  },
+  "prometheus": {
+    "endpoint": "127.0.0.1:29091",
+    "marketCapitalAlerts": [
+      {
+        "activeAt": "2026-09-13T17:27:50.152514704Z",
+        "alertname": "MarketCapitalCryptoClockGateExceeded",
+        "state": "pending",
+        "value": "2.676945209503174e+03"
+      }
+    ],
+    "ready": true,
+    "ruleFile": "/etc/prometheus/rules/market-capital-crypto.yml",
+    "ruleGroup": "market-capital-crypto-safety",
+    "rules": [
+      {
+        "health": "ok",
+        "lastError": null,
+        "name": "MarketCapitalCryptoPublicStreamingQualificationLost",
+        "query": "ordivon_market_capital_crypto_public_stream_r2_qualified != 1",
+        "state": "inactive"
+      },
+      {
+        "health": "ok",
+        "lastError": null,
+        "name": "MarketCapitalCryptoExternalFinancialWriteObserved",
+        "query": "ordivon_market_capital_crypto_external_financial_writes_attempted > 0",
+        "state": "inactive"
+      },
+      {
+        "health": "ok",
+        "lastError": null,
+        "name": "MarketCapitalCryptoClockGateExceeded",
+        "query": "ordivon_market_capital_crypto_clock_offset_abs_ms > 1000",
+        "state": "pending"
+      }
+    ]
+  },
+  "safety": {
+    "clockPrivateGatePassed": false,
+    "executionAuthorityWriteAdmitted": false,
+    "externalFinancialWritesAttempted": false,
+    "privateExecutionAllowed": false
+  },
+  "schemaVersion": 1,
+  "standing": "PASS_EXISTING_OPERATIONS_OBSERVABILITY_INTEGRATION"
+}
