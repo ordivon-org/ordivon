@@ -159,7 +159,7 @@ Use the existing owners for separate facts:
 - `ordivon-runtime-inspect summary` derives physical execution, dispatch, recovery, reservation, Artifact, and mechanical-latency facts from the Runtime Registry. These remain execution-authoritative.
 - `runtime-trace.jsonl` is a bounded diagnostic projection of MCP and adapter behavior. It is not Job, Attempt, Workspace, or semantic-completion truth.
 - `scripts/agent_ux_report.py` derives Tool-call volume, outcome coverage, failure rate, latency, and structured failure classes from that trace. It stores no new state.
-- `scripts/observation_export.py` continues to export read-only Registry metadata into the experimental cross-owner Observation Plane. The exporter does not reinterpret Runtime state and the Observation Plane does not become Runtime authority.
+- The former `scripts/observation_export.py` experimental cross-owner Observation Plane exporter was retired on 2026-09-14. No product/service consumer depended on it. Runtime keeps Registry/Job/Attempt truth in Runtime-native surfaces; generic telemetry/operations projection belongs to the selected Operations observability stack rather than a custom cross-owner Observation layer.
 
 The MCP adapter emits `mcp_tool_call_outcome` records at the Tool boundary. They contain Tool identity, client identity, protocol version, duration, success/failure class, and bounded structured error metadata (`errorCode`, `errorOrigin`, `retryClass`, `commitState`, and `field`). They deliberately exclude request arguments, Tool result content, error messages, Artifact bytes, prompts, and semantic judgments.
 
