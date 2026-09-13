@@ -1,7 +1,0 @@
-[Unit]
-Description=Network v2 finance-okx shadow topology
-Wants=network-v2-finance-okx-carrier@a.service network-v2-finance-okx-carrier@b.service network-v2-finance-okx-shadow.service
-After=network-v2-finance-okx-carrier@a.service network-v2-finance-okx-carrier@b.service
-
-[Install]
-WantedBy=multi-user.target

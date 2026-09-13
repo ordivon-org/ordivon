@@ -7,7 +7,7 @@
   "inbounds": [
     {
       "type": "http",
-      "tag": "finance-okx-shadow",
+      "tag": "finance-okx",
       "listen": "127.0.0.1",
       "listen_port": 19283
     }
@@ -27,7 +27,7 @@
     },
     {
       "type": "urltest",
-      "tag": "finance-okx-shadow-auto",
+      "tag": "finance-okx-auto",
       "outbounds": [
         "provider-b",
         "provider-a"
@@ -45,7 +45,7 @@
         "domain": "openapi.okx.com",
         "port": 443,
         "action": "route",
-        "outbound": "finance-okx-shadow-auto"
+        "outbound": "finance-okx-auto"
       },
       {
         "action": "reject"

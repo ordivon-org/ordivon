@@ -2,7 +2,7 @@
 Description=Network v2 finance-okx provider namespace %i
 After=network-online.target
 Wants=network-online.target
-PartOf=network-v2-finance-okx-shadow.target
+PartOf=network-v2-finance-okx.target
 
 [Service]
 Type=oneshot
