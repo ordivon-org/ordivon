@@ -5,6 +5,7 @@ export type GameEquipmentOperation =
   | "level.topology.author"
   | "sprite.source.author"
   | "vector.asset.author"
+  | "model3d.source.author"
   | "gpu.frame.inspect"
   | "engine.project.execute";
 
@@ -33,6 +34,11 @@ const SPECS: Record<GameEquipmentOperation, Spec> = {
     equipmentId: "game-inkscape-e1", source: "managed", role: "specialist",
     authority: "Vector output is expression material and never owns gameplay state or topology.",
     admission: "Inspect/export the exact artifact and admit it only through the owning Game/Studio asset workflow.",
+  },
+  "model3d.source.author": {
+    equipmentId: "professional:blender:blender", softwareId: "blender", launcher: "blender", source: "professional", role: "production",
+    authority: "Blender owns editable 3D authoring bytes and DCC operations; Game owns imported asset meaning, scene integration, mechanics, and acceptance.",
+    admission: "Accept only committed .blend/interchange artifacts whose exact target export passes format validation and engine import/runtime checks.",
   },
   "gpu.frame.inspect": {
     equipmentId: "professional:renderdoc:renderdoccmd", softwareId: "renderdoc", launcher: "renderdoccmd", source: "professional", role: "diagnostic",

@@ -143,6 +143,22 @@ Durable Runtime Job:
 job-01a09b08-24eb-75d1-935d-5eefab7947eb
 ```
 
+## Windows Blender 3D authoring acceptance
+
+The Workstation-owned Windows Blender carrier is accepted for Game 3D authoring through the ordinary professional-software binding:
+
+```text
+professional:blender:blender
+→ executionTarget: windows_native
+→ Blender 5.2.0 LTS
+```
+
+The acceptance used two independent Windows Blender processes: the first created and saved a real `.blend` containing a mesh, material, camera, light and keyed rotation animation; the second reopened that saved `.blend`, rendered a 128×128 Eevee PNG and exported a binary glTF 2.0 `.glb`. Godot 4.7.1 then imported the Windows-produced GLB and verified one mesh/surface, a material, one `AnimationPlayer`, and the `AcceptanceCubeAction` animation.
+
+Standing: **READY for Windows-native 3D authoring and Blender→Godot interchange**. Interactive GUI ergonomics were not separately Human-tested; this acceptance proves the executable/authoring/export/consumer chain. Machine-readable evidence is retained in `evidence/blender-windows-game-acceptance-r1-20260913.json`.
+
+A separate Workstation limitation was observed: under WSL memory pressure, Hyper-V `hv_sock` intermittently failed an order-7 contiguous allocation and temporarily blocked Windows-native dispatch. Reclaiming page cache and compacting memory restored the channel. This is an Operations/Workstation reliability concern, not a Blender compatibility failure.
+
 ## Bounded non-blocking limitations
 
 ### `libfontconfig.so.1` absent inside godot-ci image

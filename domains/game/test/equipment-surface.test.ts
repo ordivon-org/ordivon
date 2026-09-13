@@ -10,7 +10,7 @@ test("Game equipment catalog preserves domain authority and has no MCP/tool regi
   assert.equal(catalog.mcpRequired, false);
   assert.equal(catalog.gameplayAuthorityGranted, false);
   assert.equal(catalog.gameOwnsDomainMeaning, true);
-  assert.deepEqual(catalog.operations.map((x) => x.operation).sort(), ["engine.project.execute", "gpu.frame.inspect", "level.topology.author", "sprite.source.author", "vector.asset.author"]);
+  assert.deepEqual(catalog.operations.map((x) => x.operation).sort(), ["engine.project.execute", "gpu.frame.inspect", "level.topology.author", "model3d.source.author", "sprite.source.author", "vector.asset.author"]);
 });
 
 test("Tiled is requested as professional software without a caller-supplied executable path", () => {
@@ -68,6 +68,27 @@ print(json.dumps({"schemaVersion":1,"kind":"ordivon.workstation-equipment-bindin
     assert.equal(value.state, "AVAILABLE");
     const args = JSON.parse(readFileSync(log, "utf8"));
     assert.deepEqual(args, ["managed", "--equipment-id", "game-inkscape-e1"]);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("Blender 3D authoring requests Workstation Windows professional software without a caller path", () => {
+  const root = mkdtempSync(join(tmpdir(), "game-equipment-"));
+  try {
+    const log = join(root, "args.json");
+    const tool = join(root, "equipment-binding");
+    writeFileSync(tool, `#!/usr/bin/env python3
+import json,sys
+open(${JSON.stringify(log)},"w").write(json.dumps(sys.argv[1:]))
+print(json.dumps({"schemaVersion":1,"kind":"ordivon.workstation-equipment-binding","state":"AVAILABLE","equipmentId":"professional:blender:blender","provider":"workstation.professional-software","executionTarget":"windows_native","executable":"/mnt/c/Users/example/AppData/Local/Programs/Blender-5.2-Portable/blender.exe","executableDigest":"sha256:${"d".repeat(64)}"}))
+`);
+    chmodSync(tool, 0o755);
+    const value = resolveGameEquipment("model3d.source.author", { ORDIVON_EQUIPMENT_BINDING: tool });
+    assert.equal(value.state, "AVAILABLE");
+    assert.equal(value.binding.executionTarget, "windows_native");
+    assert.equal(value.binding.equipmentId, "professional:blender:blender");
+    assert.match(value.admission, /engine import\/runtime checks/);
+    const args = JSON.parse(readFileSync(log, "utf8"));
+    assert.deepEqual(args, ["professional", "--software-id", "blender", "--launcher", "blender"]);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
