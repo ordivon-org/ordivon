@@ -155,6 +155,120 @@ fn validate_windows_control_plane(config: &WindowsExecutionConfig) -> RuntimeRes
     Ok(())
 }
 
+#[cfg(unix)]
+fn parse_wsl_interop_listeners(proc_unix: &str) -> Vec<PathBuf> {
+    let mut rows = proc_unix
+        .lines()
+        .filter_map(|line| {
+            let fields = line.split_whitespace().collect::<Vec<_>>();
+            if fields.len() < 8 || fields[3] != "00010000" || fields[4] != "0001" {
+                return None;
+            }
+            let path = fields[7];
+            let session = path.strip_prefix("/run/WSL/")?.strip_suffix("_interop")?;
+            if session.is_empty() || !session.bytes().all(|byte| byte.is_ascii_digit()) {
+                return None;
+            }
+            Some((session.parse::<u64>().ok()?, PathBuf::from(path)))
+        })
+        .collect::<Vec<_>>();
+    rows.sort_by_key(|(session, _)| *session);
+    rows.dedup_by(|left, right| left.1 == right.1);
+    rows.into_iter().map(|(_, path)| path).collect()
+}
+
+#[cfg(unix)]
+fn order_wsl_interop_candidates(listeners: Vec<PathBuf>, ambient: Option<PathBuf>) -> Vec<PathBuf> {
+    let mut rows = Vec::new();
+    if let Some(ambient) = ambient.filter(|ambient| listeners.contains(ambient)) {
+        rows.push(ambient);
+    }
+    for listener in listeners {
+        if !rows.contains(&listener) {
+            rows.push(listener);
+        }
+    }
+    rows
+}
+
+#[cfg(unix)]
+fn current_wsl_interop_candidates() -> RuntimeResult<Vec<PathBuf>> {
+    let proc_unix = fs::read_to_string("/proc/net/unix").map_err(|error| {
+        RuntimeError::new(
+            RuntimeErrorCode::IoError,
+            format!("read current WSL interop listeners: {error}"),
+            Some("windows.wslInterop"),
+            true,
+        )
+    })?;
+    let listeners = parse_wsl_interop_listeners(&proc_unix);
+    let ambient = std::env::var_os("WSL_INTEROP").map(PathBuf::from);
+    let candidates = order_wsl_interop_candidates(listeners, ambient);
+    if candidates.is_empty() {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::IoError,
+            "no current WSL interop listener is available",
+            Some("windows.wslInterop"),
+            true,
+        ));
+    }
+    Ok(candidates)
+}
+
+#[cfg(unix)]
+fn is_wsl_interop_accept_timeout(stderr: &[u8]) -> bool {
+    let stderr = String::from_utf8_lossy(stderr);
+    stderr.contains("UtilAcceptVsock:") && stderr.contains("accept4 failed 110")
+}
+
+#[cfg(unix)]
+fn windows_launcher_output_with_transport<F>(
+    launcher: &Path,
+    configure: F,
+    context: &str,
+) -> RuntimeResult<(Output, Option<PathBuf>)>
+where
+    F: Fn(&mut Command),
+{
+    let candidates = current_wsl_interop_candidates()?;
+    let candidate_count = candidates.len();
+    for (index, interop) in candidates.into_iter().enumerate() {
+        let mut command = Command::new(launcher);
+        command.env("WSL_INTEROP", &interop);
+        configure(&mut command);
+        let output = command
+            .output()
+            .map_err(|error| tool_error(context, error))?;
+        let retryable_transport_failure =
+            !output.status.success() && is_wsl_interop_accept_timeout(&output.stderr);
+        if !retryable_transport_failure || index + 1 == candidate_count {
+            return Ok((output, Some(interop)));
+        }
+    }
+    unreachable!("non-empty WSL interop candidate list must return an output")
+}
+
+#[cfg(windows)]
+fn windows_launcher_output_with_transport<F>(
+    launcher: &Path,
+    configure: F,
+    context: &str,
+) -> RuntimeResult<(Output, Option<PathBuf>)>
+where
+    F: Fn(&mut Command),
+{
+    let mut command = Command::new(launcher);
+    configure(&mut command);
+    let output = command
+        .output()
+        .map_err(|error| tool_error(context, error))?;
+    Ok((output, None))
+}
+
+fn append_wsl_interop_systemd_environment(command: &mut Command, interop: &Path) {
+    command.arg(format!("--setenv=WSL_INTEROP={}", interop.display()));
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct WindowsRuntimeContextSnapshot {
@@ -269,12 +383,16 @@ pub(crate) fn observe_windows_launcher_owner(
             false,
         )
     })?;
-    let output = Command::new(launcher)
-        .arg("--describe-process-owner")
-        .arg("--process-id")
-        .arg(process_id.to_string())
-        .output()
-        .map_err(|error| tool_error("describe Windows launcher owner", error))?;
+    let (output, _) = windows_launcher_output_with_transport(
+        &launcher,
+        |command| {
+            command
+                .arg("--describe-process-owner")
+                .arg("--process-id")
+                .arg(process_id.to_string());
+        },
+        "describe Windows launcher owner",
+    )?;
     if !output.status.success() {
         return Err(RuntimeError::new(
             RuntimeErrorCode::IoError,
@@ -346,14 +464,18 @@ pub(crate) fn terminate_windows_launcher_owner_for_deadline(
             false,
         )
     })?;
-    let output = Command::new(launcher)
-        .arg("--terminate-process-owner-for-deadline")
-        .arg("--process-id")
-        .arg(process_id.to_string())
-        .arg("--process-creation-time-file-time")
-        .arg(process_creation_time_file_time.to_string())
-        .output()
-        .map_err(|error| tool_error("terminate Windows launcher deadline owner", error))?;
+    let (output, _) = windows_launcher_output_with_transport(
+        &launcher,
+        |command| {
+            command
+                .arg("--terminate-process-owner-for-deadline")
+                .arg("--process-id")
+                .arg(process_id.to_string())
+                .arg("--process-creation-time-file-time")
+                .arg(process_creation_time_file_time.to_string());
+        },
+        "terminate Windows launcher deadline owner",
+    )?;
     if output.stdout.len() > 64 * 1024 || output.stderr.len() > 64 * 1024 {
         return Err(RuntimeError::new(
             RuntimeErrorCode::InvalidRequest,
@@ -509,6 +631,13 @@ pub(crate) fn snapshot_windows_runtime_context(
     config: &WindowsExecutionConfig,
     authority: WindowsAuthority,
 ) -> RuntimeResult<WindowsRuntimeContextSnapshot> {
+    snapshot_windows_runtime_context_with_transport(config, authority).map(|(snapshot, _)| snapshot)
+}
+
+fn snapshot_windows_runtime_context_with_transport(
+    config: &WindowsExecutionConfig,
+    authority: WindowsAuthority,
+) -> RuntimeResult<(WindowsRuntimeContextSnapshot, Option<PathBuf>)> {
     config.validate()?;
     let launcher = fs::canonicalize(&config.launcher_path).map_err(|error| {
         RuntimeError::new(
@@ -518,17 +647,19 @@ pub(crate) fn snapshot_windows_runtime_context(
             false,
         )
     })?;
-    let mut command = Command::new(launcher);
-    command
-        .arg("--describe-runtime-context")
-        .arg("--authority")
-        .arg(authority.as_str());
-    for name in WINDOWS_BASELINE_ENVIRONMENT_NAMES {
-        command.arg("--context-env").arg(name);
-    }
-    let output = command
-        .output()
-        .map_err(|error| tool_error("describe Windows runtime context", error))?;
+    let (output, transport) = windows_launcher_output_with_transport(
+        &launcher,
+        |command| {
+            command
+                .arg("--describe-runtime-context")
+                .arg("--authority")
+                .arg(authority.as_str());
+            for name in WINDOWS_BASELINE_ENVIRONMENT_NAMES {
+                command.arg("--context-env").arg(name);
+            }
+        },
+        "describe Windows runtime context",
+    )?;
     if !output.status.success() {
         return Err(RuntimeError::new(
             RuntimeErrorCode::IoError,
@@ -558,7 +689,7 @@ pub(crate) fn snapshot_windows_runtime_context(
             )
         })?;
     validate_windows_runtime_context(&snapshot, authority)?;
-    Ok(snapshot)
+    Ok((snapshot, transport))
 }
 
 fn validate_windows_runtime_context(
@@ -795,6 +926,16 @@ pub(crate) fn build_windows_systemd_run_command(
             windows_visible_path(spec.config, source_root, "execution.effectiveInputs")
         })
         .transpose()?;
+    let (_, interop) =
+        snapshot_windows_runtime_context_with_transport(spec.config, spec.authority)?;
+    let interop = interop.ok_or_else(|| {
+        RuntimeError::new(
+            RuntimeErrorCode::IoError,
+            "WSL-hosted Windows dispatch did not bind a current interop listener",
+            Some("windows.wslInterop"),
+            true,
+        )
+    })?;
 
     let mut command = Command::new("systemd-run");
     command
@@ -815,8 +956,9 @@ pub(crate) fn build_windows_systemd_run_command(
         .arg(format!(
             "--property=RuntimeMaxSec={}ms",
             spec.runtime_ceiling_ms
-        ))
-        .arg(launcher);
+        ));
+    append_wsl_interop_systemd_environment(&mut command, &interop);
+    command.arg(launcher);
 
     let invocation = WindowsLauncherInvocationSpec {
         bundle: &bundle,
@@ -1086,6 +1228,66 @@ mod tests {
             )
             .unwrap(),
             "\\\\wsl.localhost\\archlinux\\var\\lib\\ordivon\\runtime\\workspaces\\w"
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn wsl_interop_listener_parser_uses_only_numeric_stream_listeners() {
+        let proc_unix = "Num RefCount Protocol Flags Type St Inode Path\n\
+x: 00000002 00000000 00010000 0001 01 5756 /run/WSL/10_interop\n\
+y: 00000002 00000000 00000000 0001 01 7 /run/WSL/1_interop\n\
+z: 00000002 00000000 00010000 0001 01 11975 /run/WSL/2_interop\n\
+w: 00000002 00000000 00010000 0001 01 11976 /run/WSL/notnumeric_interop\n";
+        assert_eq!(
+            parse_wsl_interop_listeners(proc_unix),
+            vec![
+                PathBuf::from("/run/WSL/2_interop"),
+                PathBuf::from("/run/WSL/10_interop")
+            ]
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn wsl_interop_candidates_prefer_only_a_live_ambient_listener() {
+        let two = PathBuf::from("/run/WSL/2_interop");
+        let ten = PathBuf::from("/run/WSL/10_interop");
+        assert_eq!(
+            order_wsl_interop_candidates(vec![two.clone(), ten.clone()], Some(ten.clone())),
+            vec![ten.clone(), two.clone()]
+        );
+        assert_eq!(
+            order_wsl_interop_candidates(
+                vec![two.clone(), ten.clone()],
+                Some(PathBuf::from("/run/WSL/99_interop"))
+            ),
+            vec![two, ten]
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn wsl_interop_retry_classifier_is_exact_to_accept_timeout() {
+        assert!(is_wsl_interop_accept_timeout(
+            b"<3>WSL (1 - ) ERROR: UtilAcceptVsock:273: accept4 failed 110"
+        ));
+        assert!(!is_wsl_interop_accept_timeout(b"generic launcher failure"));
+        assert!(!is_wsl_interop_accept_timeout(
+            b"UtilAcceptVsock:273: accept4 failed 111"
+        ));
+    }
+
+    #[test]
+    fn systemd_transport_binds_explicit_wsl_interop_environment() {
+        let mut command = Command::new("systemd-run");
+        append_wsl_interop_systemd_environment(&mut command, Path::new("/run/WSL/42_interop"));
+        assert_eq!(
+            command
+                .get_args()
+                .map(|arg| arg.to_string_lossy().into_owned())
+                .collect::<Vec<_>>(),
+            vec!["--setenv=WSL_INTEROP=/run/WSL/42_interop"]
         );
     }
 
