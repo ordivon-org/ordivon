@@ -2703,6 +2703,7 @@
     },
     {
       "aliases": [
+        "OAuth Resource Indicator",
         "OAuth Resource Indicators",
         "resource parameter",
         "RFC 8707"
@@ -2720,7 +2721,7 @@
       "issuer": "IETF",
       "lifecycleStatus": "proposed-standard",
       "observationDigest": "sha256:002c9600833b0dc0fba94f6312d28fe9be13a1e1e7dfeb460c7e446182523fdb",
-      "recordDigest": "sha256:8fd120b7a36c8018036f388978a8a501600c1fa2f880e0f88dbaf1b9bcb434f3",
+      "recordDigest": "sha256:9409df58b785700e1df4f4f5e6a80701aabbc9962fbbf9836c19beda104a0fb2",
       "title": "RFC 8707 — Resource Indicators for OAuth 2.0",
       "topics": [
         "audience",
@@ -3233,6 +3234,6 @@
   ],
   "kind": "ordivon.external-authority-discovery-index",
   "recordCount": 117,
-  "recordsDigest": "sha256:f582572879474c9d806a3777701c4d5ad27f3b281000703f62de2feeef86cf00",
+  "recordsDigest": "sha256:d5bb99d01528c9e232b206e6ef4018386b55a912f1124a40a2f135e1e32c5f2c",
   "schemaVersion": 1
 }

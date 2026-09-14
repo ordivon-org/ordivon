@@ -1,0 +1,93 @@
+{
+  "boundary": "Seed adequacy means the catalog has enough verified cross-domain coverage to switch from bulk seeding to task-driven registration. It does not claim completeness of the global authority universe, task applicability, conformance, certification, authorization, or that deferred sources are unimportant.",
+  "catalogMechanicalStanding": "PASS_LIGHTWEIGHT_PROGRESSIVE_DISCOVERY",
+  "date": "2026-09-14",
+  "deferredResiduals": [
+    {
+      "classification": "DEFER_WORKLOAD_BODY_OF_KNOWLEDGE",
+      "name": "DAMA-DMBOK",
+      "reason": "Broad data-management body of knowledge; no current organizational data-governance workload requires a concrete binding."
+    },
+    {
+      "classification": "DEFER_WORKLOAD_METHOD",
+      "name": "Design Council Double Diamond",
+      "reason": "Product-discovery method reference; register only when a real discovery profile needs stable authority identity."
+    },
+    {
+      "classification": "DEFER_BROAD_FAMILY_EXACT_STANDARD_REQUIRED",
+      "name": "SMPTE family",
+      "reason": "A media workload must identify the concrete SMPTE standard/recommended practice rather than registering the entire family as one authority."
+    },
+    {
+      "classification": "DEFER_PROVIDER_SERVICE",
+      "name": "RIPE Atlas",
+      "reason": "Measurement service/provider rather than protocol-semantic authority."
+    },
+    {
+      "classification": "DEFER_PROVIDER_TOOL",
+      "name": "OpenSSF Scorecard",
+      "reason": "Current local use is as a provider/tool producing risk signals, not as a standards identity."
+    },
+    {
+      "classification": "DEFER_ECOSYSTEM_SPECIFIC_IDENTITY_REQUIRED",
+      "name": "Sigstore",
+      "reason": "Ecosystem/provider name is too broad; register a concrete stable specification only when a workload binds it."
+    },
+    {
+      "classification": "DEFER_PROVIDER_SERVICE",
+      "name": "OSF Registrations",
+      "reason": "Registration service/provider; task-local preregistration requirements should bind exact provider/rules when used."
+    },
+    {
+      "classification": "DEFER_PROVIDER_SERVICE",
+      "name": "OpenAlex",
+      "reason": "Scholarly discovery service/provider rather than a cross-task semantic standard."
+    },
+    {
+      "classification": "DEFER_PROVIDER_SERVICE",
+      "name": "Semantic Scholar",
+      "reason": "Scholarly discovery service/provider rather than a cross-task semantic standard."
+    },
+    {
+      "classification": "DEFER_WORKLOAD_FORMAT",
+      "name": "CITATION.cff",
+      "reason": "Register its concrete specification when released research software actually uses the format."
+    },
+    {
+      "classification": "DEFER_PRACTICAL_GUIDANCE",
+      "name": "IGDA Game Accessibility guidance",
+      "reason": "Practical guidance should be bound to the exact current guide/resource used by a game workload."
+    },
+    {
+      "classification": "DEFER_ROLLING_PLATFORM_RULES",
+      "name": "Steam / Apple App Store / Google Play",
+      "reason": "Destination-specific rolling platform rules belong to the exact distribution/release workload rather than a static global bundle."
+    },
+    {
+      "classification": "DEFER_UNBOUND_SECURITY_AUTHORITY",
+      "name": "CVSS / CWE / CVE Record Format / ATT&CK / CIS Controls / OWASP SAMM",
+      "reason": "High-value security authorities, but the active Security package does not currently bind them to a real workload. Register the exact authority/version when a Security task does."
+    }
+  ],
+  "falsePositiveRegression": {
+    "expectedNoResult": [
+      "Semantic Scholar",
+      "CITATION.cff",
+      "IGDA Game Accessibility"
+    ],
+    "standing": "PASS_FAIL_CLOSED_MULTI_TOKEN_DISCOVERY"
+  },
+  "growthMode": "TASK_DRIVEN_REGISTRATION",
+  "growthTriggers": [
+    "active task/profile/package names an unresolved external authority",
+    "exact edition/version/currentness affects verification or delivery",
+    "repeated cross-domain reuse justifies Level-0 discovery",
+    "registered authority changes lifecycle state or a new edition must be represented"
+  ],
+  "indexDigest": "sha256:d5bb99d01528c9e232b206e6ef4018386b55a912f1124a40a2f135e1e32c5f2c",
+  "kind": "ordivon.external-authority-catalog-seed-closure",
+  "observationCount": 117,
+  "recordCount": 117,
+  "schemaVersion": 1,
+  "standing": "PASS_SEED_COVERAGE_ADEQUATE_TASK_DRIVEN_EXPANSION"
+}

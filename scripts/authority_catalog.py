@@ -191,9 +191,22 @@ def normalized_text(text: str) -> str:
     return " ".join(tokens(text))
 
 
+QUERY_MODIFIERS = {
+    "current", "latest", "official", "standard", "standards", "specification",
+    "specifications", "spec", "framework", "version", "edition", "guideline",
+    "guidelines", "guidance",
+}
+
+
+def significant_query_tokens(query: str) -> list[str]:
+    raw = tokens(query)
+    meaningful = [token for token in raw if token not in QUERY_MODIFIERS]
+    return meaningful or raw
+
+
 def score_entry(entry: dict, query: str) -> int:
     q = query.casefold().strip()
-    qtokens = tokens(query)
+    qtokens = significant_query_tokens(query)
     if not qtokens:
         return 0
 
@@ -219,10 +232,11 @@ def score_entry(entry: dict, query: str) -> int:
     matched = {token for token in qtokens if token in all_tokens}
     coverage = len(matched) / len(set(qtokens))
 
-    # A multi-token semantic query must match at least half its distinct terms.
-    # This prevents one generic word such as `software` from surfacing unrelated
-    # authorities while keeping short exact/alias lookups useful.
-    if len(set(qtokens)) > 1 and coverage < 0.5:
+    # Discovery fails closed for multi-token semantic queries: every meaningful
+    # query token must be represented by the candidate. Generic query modifiers
+    # such as `latest` or `standard` are ignored for this gate. This prevents
+    # unknown named entities from receiving plausible-looking partial matches.
+    if len(set(qtokens)) > 1 and coverage < 1.0:
         return 0
 
     score = 0

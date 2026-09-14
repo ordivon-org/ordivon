@@ -38,6 +38,9 @@ class AuthorityCatalogTests(unittest.TestCase):
             ranked = sorted(((catalog.score_entry(row, query), row["id"]) for row in rows), key=lambda x: (-x[0], x[1]))
             return ranked[0][1]
 
+        def positive(query: str) -> list[str]:
+            return [row["id"] for row in rows if catalog.score_entry(row, query) > 0]
+
         self.assertEqual(top("risk management"), "iso-31000-2018")
         self.assertIn(top("software supply chain"), {"slsa-1.2", "nist-sp-800-218-ssdf-1.1", "cyclonedx-1.7", "spdx-3.0", "in-toto-1.0"})
         self.assertIn(top("software bill of materials"), {"cyclonedx-1.7", "spdx-3.0"})
@@ -88,6 +91,13 @@ class AuthorityCatalogTests(unittest.TestCase):
         self.assertEqual(top("genai semantic conventions"), "opentelemetry-genai-semconv")
         self.assertEqual(top("enterprise architecture modeling"), "archimate-3.2")
         self.assertEqual(top("enterprise architecture method"), "togaf-standard-10th-edition")
+        self.assertEqual(top("latest official tls 1.3 standard"), "rfc-9846")
+
+        # Unknown named authorities must fail closed rather than borrow relevance
+        # from one or two generic overlapping tokens.
+        self.assertEqual(positive("Semantic Scholar"), [])
+        self.assertEqual(positive("CITATION.cff"), [])
+        self.assertEqual(positive("IGDA Game Accessibility"), [])
 
     def test_latest_observation_is_append_only_date_selection(self):
         latest = catalog.latest_observation("iso-9001-2026")
