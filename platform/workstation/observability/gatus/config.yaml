@@ -87,49 +87,27 @@ endpoints:
       - "[STATUS] == 200"
       - "[RESPONSE_TIME] < 10000"
 
-  # ============ Direct A/B profile black-box reachability ============
-  # Mature Gatus endpoint probes replace the bespoke 60-second netcontinuity observer
-  # for these consequences. Each probe is explicitly bound to one existing loopback
-  # CONNECT carrier. Success is point-in-time target reachability only: it is not a
-  # claim about Windows-native serviceability, Finance acceptance, VPN catalog truth,
-  # or future availability.
-  - name: native-a cloudflare trace
-    group: network-direct-profile
-    url: "https://www.cloudflare.com/cdn-cgi/trace"
+  # ============ Network v2 production authority black-box reachability ============
+  # Gatus observes consumer consequences through the exact production CONNECT
+  # authorities. Provider A/B selection and failover are owned by Network v2/sing-box
+  # and are destructively accepted there; Operations does not keep legacy native-a/b
+  # transports alive merely to monitor them.
+  - name: network-v2 okx public time
+    group: network-v2-production-authority
+    url: "https://openapi.okx.com/api/v5/public/time"
     interval: 1m
     client:
-      proxy-url: "http://127.0.0.1:19081"
+      proxy-url: "http://127.0.0.1:19283"
     conditions:
       - "[STATUS] == 200"
       - "[RESPONSE_TIME] < 10000"
 
-  - name: native-a github
-    group: network-direct-profile
-    url: "https://github.com/"
+  - name: network-v2 binance spot public time
+    group: network-v2-production-authority
+    url: "https://data-api.binance.vision/api/v3/time"
     interval: 1m
     client:
-      proxy-url: "http://127.0.0.1:19081"
+      proxy-url: "http://127.0.0.1:19284"
     conditions:
       - "[STATUS] == 200"
       - "[RESPONSE_TIME] < 10000"
-
-  - name: native-b cloudflare trace
-    group: network-direct-profile
-    url: "https://www.cloudflare.com/cdn-cgi/trace"
-    interval: 1m
-    client:
-      proxy-url: "http://127.0.0.1:19082"
-    conditions:
-      - "[STATUS] == 200"
-      - "[RESPONSE_TIME] < 10000"
-
-  - name: native-b github
-    group: network-direct-profile
-    url: "https://github.com/"
-    interval: 1m
-    client:
-      proxy-url: "http://127.0.0.1:19082"
-    conditions:
-      - "[STATUS] == 200"
-      - "[RESPONSE_TIME] < 10000"
-

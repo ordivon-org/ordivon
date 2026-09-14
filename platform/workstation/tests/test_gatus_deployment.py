@@ -32,17 +32,17 @@ class GatusDeploymentTests(unittest.TestCase):
         self.assertIn('NoNewPrivileges=true', text)
         self.assertIn('ProtectSystem=strict', text)
 
-    def test_direct_profile_probes_use_exact_existing_loopback_proxies(self) -> None:
+    def test_network_v2_probes_use_exact_production_authorities(self) -> None:
         text = CONFIG.read_text()
         for name, proxy in (
-            ('native-a cloudflare trace', 'http://127.0.0.1:19081'),
-            ('native-a github', 'http://127.0.0.1:19081'),
-            ('native-b cloudflare trace', 'http://127.0.0.1:19082'),
-            ('native-b github', 'http://127.0.0.1:19082'),
+            ('network-v2 okx public time', 'http://127.0.0.1:19283'),
+            ('network-v2 binance spot public time', 'http://127.0.0.1:19284'),
         ):
             self.assertIn(f'- name: {name}', text)
             self.assertIn(f'proxy-url: "{proxy}"', text)
-        self.assertIn('point-in-time target reachability only', text)
+        self.assertNotIn('http://127.0.0.1:19081', text)
+        self.assertNotIn('http://127.0.0.1:19082', text)
+        self.assertIn('Provider A/B selection and failover are owned by Network v2/sing-box', text)
 
 
 if __name__ == '__main__':
