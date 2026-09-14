@@ -207,6 +207,7 @@ fn sleep_until_poll(deadline: Instant, poll_index: &mut usize) {
 
 #[derive(Clone, Debug)]
 pub struct RuntimeConfig {
+    pub node_id: String,
     pub registry: RegistryConfig,
     pub executor: UniversalExecutorConfig,
     pub startup_grace_ms: u64,
@@ -227,6 +228,7 @@ struct PreparedInputSet {
 
 #[derive(Clone, Debug)]
 pub struct Runtime {
+    node_identity: super::RuntimeNodeIdentity,
     registry: Registry,
     executor: UniversalExecutorConfig,
     default_runtime_ms: u64,
@@ -973,6 +975,7 @@ mod trusted_systemd_command_tests {
             handles.push(std::thread::spawn(move || {
                 let runtime = Runtime::new_with_input_authorities(
                     RuntimeConfig {
+                        node_id: "test-node".to_string(),
                         registry: RegistryConfig {
                             db_path: root.join(format!("registry-{index}/registry.sqlite3")),
                             store_root: root.join(format!("registry-{index}")),
@@ -1185,6 +1188,7 @@ mod trusted_systemd_command_tests {
         };
         Runtime::new_with_input_authorities_and_default_runtime(
             super::RuntimeConfig {
+                node_id: "test-node".to_string(),
                 registry,
                 executor: UniversalExecutorConfig {
                     store_root: root.join("runtime"),
@@ -1482,6 +1486,7 @@ mod trusted_systemd_command_tests {
                 .as_nanos()
         ));
         let runtime = Runtime::new(RuntimeConfig {
+            node_id: "test-node".to_string(),
             registry: RegistryConfig {
                 db_path: root.join("registry/registry.sqlite3"),
                 store_root: root.join("registry"),
@@ -1516,6 +1521,7 @@ mod trusted_systemd_command_tests {
                 .as_nanos()
         ));
         let runtime = Runtime::new(RuntimeConfig {
+            node_id: "test-node".to_string(),
             registry: RegistryConfig {
                 db_path: root.join("registry/registry.sqlite3"),
                 store_root: root.join("registry"),

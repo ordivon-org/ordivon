@@ -101,6 +101,7 @@ fn runtime_transactional_runtime_executes_replays_and_releases_capacity() {
     )
     .unwrap();
     let runtime = Runtime::new(RuntimeConfig {
+        node_id: "test-node".to_string(),
         registry: ordivon_runtime_core::RegistryConfig {
             db_path: root.join("registry/registry.sqlite3"),
             store_root: root.join("registry"),
@@ -400,6 +401,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
     fs::write(&input_authority_file, input_v1).unwrap();
     let runtime = Runtime::new_with_input_authorities(
         RuntimeConfig {
+            node_id: "test-node".to_string(),
             registry: RegistryConfig {
                 db_path: root.join("registry/registry.sqlite3"),
                 store_root: root.join("registry"),
@@ -953,6 +955,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
     let reconnect_attempt_id = reconnect_attempt.attempt_id.clone();
     drop(runtime);
     let runtime = Runtime::new(RuntimeConfig {
+        node_id: "test-node".to_string(),
         registry: RegistryConfig {
             db_path: root.join("registry/registry.sqlite3"),
             store_root: root.join("registry"),
@@ -1440,6 +1443,7 @@ fn runtime_windows_native_wsl_restart_prepare_or_recover() {
         busy_timeout_ms: 5_000,
     };
     let runtime_config = || RuntimeConfig {
+        node_id: "test-node".to_string(),
         registry: registry.clone(),
         executor: executor.clone(),
         startup_grace_ms: 2_000,
@@ -2094,6 +2098,7 @@ impl IntegrationContext {
 
     fn runtime(&self, startup_grace_ms: u64) -> Runtime {
         Runtime::new(RuntimeConfig {
+            node_id: "test-node".to_string(),
             registry: self.registry.clone(),
             executor: self.executor.clone(),
             startup_grace_ms,
@@ -2109,6 +2114,7 @@ impl IntegrationContext {
     ) -> Runtime {
         Runtime::new_with_input_authorities(
             RuntimeConfig {
+                node_id: "test-node".to_string(),
                 registry: self.registry.clone(),
                 executor: self.executor.clone(),
                 startup_grace_ms,
@@ -2356,6 +2362,7 @@ print("WRITE_OK=" + pathlib.Path("contained-output.txt").read_text(), flush=True
     )
     .unwrap();
     let runtime = Runtime::new(RuntimeConfig {
+        node_id: "test-node".to_string(),
         registry: RegistryConfig {
             db_path: root.join("registry/registry.sqlite3"),
             store_root: root.join("registry"),
@@ -3874,6 +3881,7 @@ fn runtime_finance_i8_graduation_matches_canonical_semantics_with_job_owned_inpu
     };
     let runtime = Runtime::new_with_input_authorities(
         RuntimeConfig {
+            node_id: "test-node".to_string(),
             registry,
             executor: executor.clone(),
             startup_grace_ms: 2_000,
@@ -4025,6 +4033,7 @@ fn runtime_finance_i8_graduation_matches_canonical_semantics_with_job_owned_inpu
 
     drop(runtime);
     let restarted = Runtime::new(RuntimeConfig {
+        node_id: "test-node".to_string(),
         registry: RegistryConfig {
             db_path: root.join("registry/registry.sqlite3"),
             store_root: root.join("registry"),
@@ -4555,6 +4564,7 @@ fn runtime_executable_runtime_drift_is_witnessed_without_rewriting_script_identi
     let mut executor = context.executor.clone();
     executor.allowed_executable_roots.push(context.root.clone());
     let runtime = Runtime::new(RuntimeConfig {
+        node_id: "test-node".to_string(),
         registry: context.registry.clone(),
         executor,
         startup_grace_ms: 2_000,
@@ -4642,6 +4652,7 @@ fn runtime_provider_bound_job_rejects_windows_launcher_drift_before_dispatch() {
         .allowed_executable_roots
         .push(PathBuf::from("/mnt/c/Windows/System32"));
     let runtime = Runtime::new(RuntimeConfig {
+        node_id: "test-node".to_string(),
         registry: context.registry.clone(),
         executor,
         startup_grace_ms: 1_000,
