@@ -36,8 +36,10 @@ This model puts that research back inside ordinary game development. Product sel
 select mature comparable reference games
 → play / teardown / deconstruct
 → reproduce the relevant proven baseline
-→ validate the baseline with appropriate Human playtest evidence
+→ decompose claims and select the best evidence carrier for each
 → run controlled subtraction / variation / recombination
+→ combine scoped findings with objectives, alternatives, consequences and uncertainty
+→ compare the value of more information with commitment now
 → earn a bounded G0 Game Definition
 → prove the game kernel
 → build a playable prototype
@@ -285,7 +287,7 @@ The stages below are the Game-specific **commitment/coordination projection** fo
 
 **Question:** After learning from mature comparable games and testing deliberate differences, what specific game are we now justified in making and why should it exist?
 
-G0 consumes the pre-G0 external-reference evidence rather than replacing it. A bounded Game Definition should state the relevant `ReferenceClass`, retained mature patterns, deliberate differences, baseline/differentiation evidence and known transfer limits, then define:
+G0 consumes the pre-G0 external-reference work rather than replacing it. Commitment is a structured product decision, not an evidence score or Human approval bit. The decision basis should expose the relevant objectives, live alternatives, expected consequences, key uncertainty, claim-specific findings, remaining Value of Information and reopen conditions. A bounded Game Definition should state the relevant `ReferenceClass`, retained mature patterns, deliberate differences, baseline/differentiation evidence and known transfer limits, then define:
 
 - player fantasy and target experience;
 - Conventional Form Profile;
@@ -456,11 +458,13 @@ Stages do not decide which evidence method is valid. Start from the decision:
 
 ```text
 DecisionToInform
-→ ClaimType
+→ objectives + alternatives + consequences
+→ unresolved ClaimType / uncertainty
 → valid evidence carrier / population / method
 → observation
-→ scoped standing
-→ retain / revise / delete / reopen
+→ scoped finding / standing
+→ Value of Information / decision analysis
+→ retain / revise / delete / commit / learn-more / reopen
 ```
 
 For Human/player claims, use a typed Player Evidence record rather than a generic “playtest passed” bit: target population/context, method, sample scope, decision, known limitation and result standing. Early context interviews, observed comprehension tests, experience/resonance studies, broader quantitative balance work and post-launch population experiments answer different questions.
@@ -726,7 +730,7 @@ Station Zero-specific Plans, Turns, Commander forms, factions, tactical Zones, s
 
 ## 11. Start packet for any future Ordivon game
 
-Before G0/implementation, first complete the smallest valid external-reference learning packet from `GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md`: comparable reference class, teardown facts vs inferred causes, bounded baseline reproduction, appropriate Human baseline evidence, and any controlled differentiation result. The G0 record should additionally state **Reference inheritance**: which mature patterns are retained, which are deliberately changed, and what evidence supports the transfer. Then answer:
+Before G0/implementation, first complete the smallest valid external-reference learning packet from `GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md`: comparable reference class, teardown facts vs inferred causes, bounded baseline reproduction, claim-specific baseline evidence using the best applicable carrier (including Human participant evidence only for Human-state claims), and any controlled differentiation result. The G0 record should additionally state **Reference inheritance**: which mature patterns are retained, which are deliberately changed, what evidence supports the transfer, and why commitment now dominates the best remaining information-gathering alternative. Then answer:
 
 1. **Fantasy:** who is the player and what is the desired experience?
 2. **Form:** what are the verbs/cadence, control topology, space/camera, session/progression and social form?
@@ -738,7 +742,7 @@ Before G0/implementation, first complete the smallest valid external-reference l
 8. **Content/progression architecture:** what grammar, introduction order, variation/combination space and macro structure must be repeatedly produced?
 9. **Expression criticality:** which input/camera/UI/art/audio/animation/feel dimensions are merely representative and which are constitutive of the hypothesis?
 10. **Production risk:** which tools, pipelines, art/audio/animation/network/model/runtime capabilities dominate cost, throughput or uncertainty?
-11. **Evidence plan:** what decision is currently blocked, what is the cheapest valid evidence carrier, what dimensions does it omit, and what observation would change the decision?
+11. **Decision/evidence plan:** what objectives and alternatives are live, which consequences and uncertainties distinguish them, what claim is decision-relevant, what is the cheapest valid evidence carrier, what dimensions does it omit, what observation would change the decision, and is the expected Value of Information worth delaying commitment?
 12. **Player/product ecology:** which audience/context/distribution/community/telemetry/live-operation assumptions constrain this form now rather than only after release?
 
 Only after this packet should engine, provider and production-equipment choices become commitments.

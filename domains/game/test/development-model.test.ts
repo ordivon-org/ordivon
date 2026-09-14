@@ -41,6 +41,8 @@ test("product discovery before G0 is external-reference-first without creating n
   assert.match(frontHalf, /Innovation is not the required input/);
   assert.match(frontHalf, /They may not answer:[\s\S]*what product to make/);
   assert.match(development, /Product selection now begins with the external-reference front-half profile/);
+  assert.match(development, /Commitment is a structured product decision, not an evidence score or Human approval bit/);
+  assert.match(development, /Value of Information/);
   assert.match(authority, /GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE\.md.*product-discovery profile before G0/s);
   assert.match(readme, /GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE\.md/);
 });
