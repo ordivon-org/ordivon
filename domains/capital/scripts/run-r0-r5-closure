@@ -1,0 +1,101 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import json
+import subprocess
+from pathlib import Path
+from typing import Any
+
+ROOT = Path(__file__).resolve().parents[1]
+ROOT_TEXT = str(ROOT)
+
+
+def _portable(text: str) -> str:
+    return text.replace(ROOT_TEXT, ".")
+
+
+def run_step(name: str, argv: list[str]) -> dict[str, Any]:
+    proc = subprocess.run(argv, cwd=ROOT, text=True, capture_output=True)
+    result = {
+        "name": name,
+        "argv": [_portable(item) for item in argv],
+        "exitCode": proc.returncode,
+        "passed": proc.returncode == 0,
+        "stdoutTail": _portable(proc.stdout[-4000:]),
+        "stderrTail": _portable(proc.stderr[-2000:]),
+    }
+    if proc.returncode != 0:
+        raise RuntimeError(json.dumps(result, sort_keys=True))
+    return result
+
+
+def load_json(relative: str) -> dict[str, Any]:
+    value = json.loads((ROOT / relative).read_text())
+    if not isinstance(value, dict):
+        raise RuntimeError(f"expected JSON object: {relative}")
+    return value
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output", type=Path)
+    args = parser.parse_args()
+
+    steps: list[dict[str, Any]] = []
+    steps.append(run_step("R0_R5_CANONICAL_TESTS", [str(ROOT / "scripts/run-canonical-tests")]))
+    steps.append(run_step("R1_EVIDENCE_PARQUET_DUCKDB", [str(ROOT / "scripts/run-capability-python"), str(ROOT / "examples/r1_witness_parquet_duckdb.py")]))
+    steps.append(run_step("R2_LEAN_RUNTIME", [str(ROOT / "scripts/check-lean-runtime")]))
+    steps.append(run_step("R2_NAUTILUS_CANDIDATE", [str(ROOT / "scripts/check-nautilus-candidate")]))
+    steps.append(run_step("R2_FIX_PROJECTION", [str(ROOT / "scripts/run-crypto-fix-projection-r4")]))
+    steps.append(run_step("R3_TIGERBEETLE_DURABLE_RESTART", [str(ROOT / "scripts/run-tigerbeetle-durable-restart-smoke-r32")]))
+    steps.append(run_step("R4_CAPABILITY_CENSUS", [str(ROOT / "scripts/check-capabilities")]))
+    steps.append(run_step("PRIVATE_REALITY_PREFLIGHT", [str(ROOT / "scripts/check-private-reality-readonly-preflight")]))
+    steps.append(run_step("PRIVATE_REALITY_BINDINGS", [str(ROOT / "scripts/check-private-reality-credential-bindings")]))
+    steps.append(run_step("EFFECT_BOUNDARY", [str(ROOT / "scripts/check-capital-authority")]))
+
+    semantic = load_json("contracts/semantic-core-v1.json")
+    write_admission = load_json("contracts/external-financial-write-admission-v1.json")
+    private_policy = load_json("config/private_reality_policy.json")
+    manifest = load_json("fixtures/r5_legacy_bounded/manifest.json")
+
+    receipt = {
+        "schemaVersion": 1,
+        "kind": "ordivon.market-capital.r0-r5-closure-receipt",
+        "standing": "PASS_BOUNDED_NONLIVE_R0_R5_SEMANTIC_CLOSURE",
+        "allStepsPassed": all(step["passed"] for step in steps),
+        "steps": steps,
+        "semanticCore": {
+            "ownedSemantics": semantic["ownedSemantics"],
+            "externalFinancialWriteAdmission": semantic["externalFinancialWriteAdmission"],
+        },
+        "externalWriteBoundary": {
+            "state": write_admission["state"],
+            "effectVerifier": write_admission.get("effectVerifier"),
+            "providerWriteCapabilityBound": write_admission.get("providerWriteCapabilityBound", False),
+            "externalFinancialWriteAllowed": write_admission.get("externalFinancialWriteAllowed", False),
+        },
+        "privateReality": {
+            "ownerCredentialUseMandate": private_policy.get("ownerCredentialUseMandate"),
+            "credentialPermissionStanding": private_policy.get("credentialPermissionStanding"),
+            "privateAccountDataAdmission": private_policy.get("privateAccountDataAdmission"),
+        },
+        "legacyDifferential": {
+            "fixtureCount": len(manifest["fixtures"]),
+            "legacyCodeImported": manifest["legacyCodeImported"],
+            "scope": "retained semantic outcomes only; superseded legacy mechanisms are not reproduced",
+        },
+        "externalFinancialWriteAttempted": False,
+    }
+
+    rendered = json.dumps(receipt, indent=2, sort_keys=True) + "\n"
+    if args.output:
+        output = args.output if args.output.is_absolute() else ROOT / args.output
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(rendered)
+    print(rendered, end="")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

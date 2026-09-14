@@ -1,0 +1,69 @@
+{
+  "agentId": "P31",
+  "baseRevision": "37183f6863b598f9a4ead2e8f9664822d55d1087",
+  "boundedStanding": {
+    "effectAuthorityV2": "SUPPORTED_COMPLETE_BOUNDED_LOCAL_SHADOW",
+    "institutionalProduction": "NOT_GRANTED",
+    "liveCurrent": "UNKNOWN_NOT_REQUALIFIED",
+    "recoveryResurrection": "HOLD_DELEGATED_TO_R31_NOT_SOLVED",
+    "targetedFalseReleaseAndTransactionalCurrentnessPressure": "CLOSED_BOUNDED_LOCAL_SHADOW"
+  },
+  "campaign": "market-capital-e2e:r28-four-waist-final-closure-20260908",
+  "closedPressure": [
+    "history-nonmonotone contradiction laundering: POSITIVE_EXECUTION->AMBIGUOUS->PROVEN_NO_EFFECT",
+    "history-nonmonotone contradiction laundering: POSITIVE_EXECUTION->UNKNOWN->PROVEN_NO_EFFECT",
+    "RELEASE proof revoke between successful preflight validation and commit transaction",
+    "CONSUME proof revoke between successful preflight validation and commit transaction"
+  ],
+  "exactReentry": {
+    "D21Final": 13749,
+    "P21Final": 13718,
+    "P22Final": 13740,
+    "P24Final": 13751
+  },
+  "externalFinancialWriteAttempted": false,
+  "fileDigests": {
+    "kernel/deployment_authority_stageb.py": "sha256:433fd6f641518ba9d979370c3ae12b314a132b1323bb6bc90c33659b214020d8",
+    "kernel/effect_reconciliation_authority.py": "sha256:40de2f14e11e112ca1a41b0b2d1df20a014adbf555821c381f92bb2569f25761",
+    "tests/test_deployment_authority_stageb.py": "sha256:6dbc69b235587c8c6ea82b2d19c09c081995a663afcfa8a8a1581dc298439d79",
+    "tests/test_effect_reconciliation_authority.py": "sha256:b21048c00e87ff0b481de978b6256be15bd61129673e99b6c38c5048f0aa7bf6"
+  },
+  "firstPassRevision": "6465ac1140c5562aa72ad25ef34875001c54b82a",
+  "kind": "ordivon.market-capital-r28-p31-effect-authority-v2-final",
+  "preserved": [
+    "proof standing mechanically derived from immutable evidence bytes",
+    "registered issuer generation and ACTIVE standing required",
+    "single current lineage head required",
+    "caller-minted/self-consistent proof rejected",
+    "exact grant/Decision/effect/instrument/full resource binding required",
+    "nonterminal and contradictory histories are non-actionable/HOLD"
+  ],
+  "r31Hook": {
+    "method": "EffectReconciliationAuthority.describe_lineage_for_r31",
+    "recoveryAuthorityGranted": false,
+    "resurrectionAuthorityGranted": false,
+    "truthRole": "typed-recovery-resurrection-input-hook-not-recovery-or-resurrection-authority"
+  },
+  "role": "Effect Authority v2 Builder",
+  "schemaVersion": 1,
+  "tests": {
+    "broadRiskEffectStageB": {
+      "jobId": "job-01a07e77-71dc-7782-b4a5-0b2c0455ba01",
+      "result": "48 passed, 13 subtests passed",
+      "terminalEvidence": "sha256:6eb4a6b324d06ee3b59b49de1e9b1cf38c2a4996f39d63c347cf0c167e3e4d91"
+    },
+    "focused": {
+      "jobId": "job-01a07e6b-ae8c-7420-b278-d38c6ccbe858",
+      "result": "40 passed, 13 subtests passed",
+      "terminalEvidence": "sha256:49f23c75789c6d55fabd079e89f7b23b7b73a2e3e5ecd58c190531a3c83616a1"
+    },
+    "staticFirstPass": {
+      "gitDiffCheck": "PASS",
+      "jobId": "job-01a07e6c-d647-7f41-8aa8-909256c69262",
+      "pyCompile": "PASS",
+      "terminalEvidence": "sha256:d3b8bc15ef7c495d6a4d18f78d77485987f283392f4c17e1a3aa45a12da6bc41"
+    }
+  },
+  "transactionLaw": "RELEASE and CONSUME revalidate exact proof bytes, current head, issuer generation/standing, evidence and binding inside the same BEGIN IMMEDIATE boundary that commits disposition",
+  "workspace": "ws-market-r28-p31-effect-authority-v2-20260908-v1"
+}

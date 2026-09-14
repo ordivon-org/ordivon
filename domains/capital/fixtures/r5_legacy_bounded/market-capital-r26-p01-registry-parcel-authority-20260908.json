@@ -1,0 +1,163 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.finance.market-capital-r26-p01-final-evidence",
+  "campaign": "market-capital-e2e:r26-four-front-closure-20260907",
+  "agentId": "P01",
+  "role": "Registry -> Canonical Parcel Authority Bridge",
+  "truthRole": "local-shadow-institutional-provenance-evidence-not-legal-ownership-or-live-deployment-authority",
+  "source": {
+    "repo": "/root/projects/ordivon-finance",
+    "baseRevision": "8a2f4ee5a2f19856502e514dedce0e873f283aff",
+    "baseRole": "R2.5 A07 FINAL",
+    "workspaceId": "ws-market-r26-p01-registry-parcel-bridge-20260908-v1"
+  },
+  "exactR25Reentry": [
+    {
+      "agent": "A06",
+      "boardSequence": 13501,
+      "clientMessageId": "market-r25-a06-final-handoff-20260907-v1",
+      "revision": "dbe798a883b09e6cde250891e86965b72020bcd4",
+      "kernelPath": "kernel/capital_parcel_lineage.py",
+      "kernelSha256": "17e3e3c0b1205c6c4646436f84a284fe1e5733a539a1411766a19d55d2af0a13",
+      "testSha256": "283c8740e242706a352ac5b6c89655e59c73696af13fe4e9ad7826e382634adf",
+      "handoffSha256": "b12dcb1406f6abe8cf4a6dc8537603b3d431f7b868e162d10e88a2e6cda2b053"
+    },
+    {
+      "agent": "A07",
+      "boardSequence": 13511,
+      "clientMessageId": "market-r25-a07-final-handoff-20260907-v1",
+      "revision": "8a2f4ee5a2f19856502e514dedce0e873f283aff",
+      "kernelPath": "kernel/capital_registry.py",
+      "kernelSha256": "c67f9e9e61135bd9b48cd69864264e9df5e047b74cf8f6554d6931855f383e7b",
+      "handoffSha256": "282bfd689ca3e15aa5436b84a68ef62629d3a8c8299f09b3f98e16751f146e58"
+    },
+    {
+      "agent": "A08",
+      "boardSequence": 13539,
+      "clientMessageId": "market-r25-a08-round4-final-handoff-blocked-20260907-v1",
+      "revision": "73aa633cf25649d4704b46fce13860b3f74e22d1",
+      "kernelPath": "kernel/deployment_authority_stageb.py",
+      "kernelSha256": "a31e99ea376e1e7bbeb45dd04df19545ac4d040aa5da8ec17aae97c230380b91",
+      "testSha256": "f18a31b48bddf3bdf3b937f55f1521d9eac14971091232b993e578029bf21ae5"
+    },
+    {
+      "agent": "C04",
+      "boardSequence": 13527,
+      "clientMessageId": "market-r25-c04-round3-final-handoff-blocked-20260907-v2",
+      "revision": "30b06281507af1872d6a4552695cba9124f6cac1",
+      "handoffSha256": "ab18068f0c0439712b932edbac399fd7586fac5c0fa9d5fb99bbf598f23de189",
+      "evidenceSha256": "09783b644719d4b425b95c2fcedd9b127bf3ad9cbf50b50742a9917c237ffa82"
+    },
+    {
+      "agent": "C05",
+      "boardSequence": 13509,
+      "clientMessageId": "market-r25-c05-round3-final-handoff-blocked-20260907-v1",
+      "revision": "de4f1ec98344495b969dfbe28f93d183d5bb0e06",
+      "handoffSha256": "0029219188e335a642f663e9e4547f40f34bf4249ec73629a7be49ffa305b60b",
+      "aliasEvidenceSha256": "71401647d9d1805aa2326421f27bc141b9de90d16eaa897b8313c9ee537664e8"
+    }
+  ],
+  "implementation": {
+    "registryKernelSha256": "c67f9e9e61135bd9b48cd69864264e9df5e047b74cf8f6554d6931855f383e7b",
+    "a06ParcelKernelSha256": "17e3e3c0b1205c6c4646436f84a284fe1e5733a539a1411766a19d55d2af0a13",
+    "bridgePath": "kernel/registry_parcel_authority.py",
+    "bridgeSha256": "a1db4cab5645ee617767f170a0bdca95b513e6bf6aac8f23d259184d5b4f443a",
+    "bridgeTestsPath": "tests/test_registry_parcel_authority.py",
+    "bridgeTestsSha256": "1dcee47925ac896f0df56a72575beb9e9ffee162e54f6520ab6f8ce62a11a830"
+  },
+  "authorityContract": {
+    "callerMaySupplyParcelTuple": false,
+    "callerMaySupplyCanonicalParcelResourceRef": false,
+    "callerMayMintAllocationUniquenessPass": false,
+    "registryMustBeExactCurrentRevision": true,
+    "derivedTupleFields": [
+      "parcelId",
+      "parcelRevisionId",
+      "lineageRootId",
+      "exclusiveClaimSetRef",
+      "ownerScopeRef",
+      "accountRef",
+      "locationRef",
+      "currency",
+      "evidenceCutRef"
+    ],
+    "registryEconomicMatchFields": ["quantity", "currency", "portfolioId->ownerScopeRef", "locationRef"],
+    "requiresExactlyOneMatchingActiveLeaf": true,
+    "exclusiveClaimSetRefToLineageRootFence": "SUPPORTED_LOCAL",
+    "canonicalParcelAllocationFence": "SUPPORTED_LOCAL",
+    "restrictionsPropagated": true,
+    "staleRegistryRevisionRejected": true,
+    "historicalParcelRevisionRejected": true,
+    "forgedAuthorityPointerRejected": true,
+    "typedClaimRootMigrationAuthorityCreated": false,
+    "legalOwnershipCreated": false,
+    "treasuryAdmissionConsumptionCreated": false,
+    "deploymentAuthorityCreated": false,
+    "externalEffectAuthorityCreated": false
+  },
+  "destructiveTests": [
+    "Registry aliases cannot acquire the same canonical A06 parcel scarcity twice",
+    "concurrent Registry aliases yield one local allocation winner",
+    "stale/superseded Registry revision cannot authenticate",
+    "parcel supersession invalidates old authority and requires a superseding Registry revision",
+    "ambiguous active A06 economic matches fail instead of accepting caller selection",
+    "forged/aliased authority pointer fails closed",
+    "same-ledger duplicate exclusiveClaimSetRef across distinct lineageRootId values fails closed",
+    "cross-ledger duplicate exclusiveClaimSetRef across distinct lineageRootId values fails durable claim-root fence"
+  ],
+  "validation": {
+    "broadSuite": {
+      "tests": 60,
+      "passed": 60,
+      "failed": 0,
+      "jobId": "job-01a07cc4-1467-7551-9e63-ce67a52f431a",
+      "terminalEvidence": "sha256:c32205e5cc419e9f3c60e3d976ca64cbe3e04253223cd15beb00e6b8a6694b86",
+      "artifactJsonParse": "PASS",
+      "gitDiffCheck": "PASS"
+    },
+    "d02ExclusiveClaimReplay": {
+      "tests": 2,
+      "passed": 2,
+      "failed": 0,
+      "jobId": "job-01a07cc1-819e-7ff2-ac9b-a819fcc340ce",
+      "terminalEvidence": "sha256:b3d517e4c4e0913db1ab1187495a16e1eff18ad959cfc359f68fe775525bb8de"
+    },
+    "preflight": {
+      "pyCompile": "PASS",
+      "gitDiffCheck": "PASS",
+      "jobId": "job-01a07cc2-550f-74f0-8ede-6220c27a0240",
+      "terminalEvidence": "sha256:9fe6ea4ccdfe55d6b94bbf59b2a243b01c43e6b43fed0043e71d3d76bc79bce2"
+    },
+    "a08CanonicalKeyCompatibility": {
+      "fixtureTupleResourceRef": "capital-parcel-resource://00565b24d675f0e04583ced8bcd45981c38728f6",
+      "a08JobId": "job-01a07cbd-248a-7342-be83-acba08aac658",
+      "a08TerminalEvidence": "sha256:47af2bf78e2f902993d292b948e1eae5f4c56bd9997e726542e18b209b78eb13",
+      "p01JobId": "job-01a07cbd-508f-7411-9499-f9bedf2758cb",
+      "p01TerminalEvidence": "sha256:09a84aa5455743f849e010e1038bb819fdff9f68bd6a3ac139ff1e8dd09c706c",
+      "equal": true
+    }
+  },
+  "adversarialReentry": {
+    "d02ExclusiveClaimRootAlias": {
+      "boardSequence": 13648,
+      "clientMessageId": "market-capital-r26-d02-challenge-exclusive-claim-root-alias-20260908-v1",
+      "classification": "VALID_P0_AGAINST_FIRST_PASS_DESIGN_REPAIRED_LOCALLY",
+      "repairBoardSequence": 13666,
+      "repairClientMessageId": "market-capital-r26-p01-d02-exclusive-claim-root-repair-20260908-v1"
+    },
+    "d02A07RepeatedTreasuryAssessment": {
+      "boardSequence": 13655,
+      "clientMessageId": "market-capital-r26-d02-challenge-allocation-uniqueness-double-admission-20260908-v1",
+      "classification": "PURE_A07_BYPASS_REMAINS_NON_RESERVATION; P01_REMOVES_CALLER_MINTED_UNIQUENESS_FROM_P01_PATH_BUT_DOES_NOT_TURN_C11_ASSESSMENT_INTO_SCARCE_RESOURCE_CONSUMPTION"
+    }
+  },
+  "standing": {
+    "scientific": "SUPPORTED_BOUNDED_LOCAL_REGISTRY_TO_CANONICAL_PARCEL_PROVENANCE",
+    "institutionalProvenanceGap": "CLOSED_BOUNDED_LOCAL",
+    "liveCurrent": "UNKNOWN_NOT_PROVIDER_REQUALIFIED",
+    "production": "HOLD_NOT_CANONICALLY_INTEGRATED_OR_DURABLE_PROVIDER_AUTHORITY",
+    "strongestSurvivingBlocker": "A06 active-leaf currentness and the exclusive-claim root mapping are local/shadow authorities; no durable provider-qualified parcel producer or typed claim-root migration/release authority is established by P01",
+    "interpretation": "Registry identity != economic scarcity identity; current Registry revision != uniqueness; local authority != legal ownership; Treasury assessment != reservation/consumption"
+  },
+  "externalFinancialWriteAttempted": false
+}

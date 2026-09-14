@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+uv_bin="${MARKET_CAPITAL_UV:-/usr/bin/uv}"
+research_python="${MARKET_CAPITAL_RESEARCH_PYTHON:-/root/projects/ordivon-research-v2/.venv/bin/python}"
+
+if [[ ! -x "$uv_bin" ]]; then
+  echo "uv unavailable: $uv_bin" >&2
+  exit 2
+fi
+if [[ ! -x "$research_python" ]]; then
+  echo "research capability unavailable: $research_python" >&2
+  exit 3
+fi
+
+cd "$root"
+"$uv_bin" sync --frozen >/dev/null
+project_site="$("$uv_bin" run python -c 'import site; print(site.getsitepackages()[0])')"
+export PYTHONPATH="$root/src:$project_site${PYTHONPATH:+:$PYTHONPATH}"
+exec "$research_python" "$@"

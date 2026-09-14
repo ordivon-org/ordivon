@@ -1,0 +1,139 @@
+{
+  "allStepsPassed": true,
+  "externalFinancialWriteAttempted": false,
+  "externalWriteBoundary": {
+    "effectVerifier": "NOT_IMPLEMENTED",
+    "externalFinancialWriteAllowed": false,
+    "providerWriteCapabilityBound": false,
+    "state": "NOT_ADMITTED"
+  },
+  "kind": "ordivon.market-capital.r0-r5-closure-receipt",
+  "legacyDifferential": {
+    "fixtureCount": 3,
+    "legacyCodeImported": false,
+    "scope": "retained semantic outcomes only; superseded legacy mechanisms are not reproduced"
+  },
+  "privateReality": {
+    "credentialPermissionStanding": "PENDING_FRESH_PROVIDER_VERIFICATION",
+    "ownerCredentialUseMandate": "AUTHORIZED_READ_ONLY_PRIVATE_REALITY_OBSERVATION",
+    "privateAccountDataAdmission": "NOT_ADMITTED"
+  },
+  "schemaVersion": 1,
+  "semanticCore": {
+    "externalFinancialWriteAdmission": "NOT_ADMITTED",
+    "ownedSemantics": [
+      "observation_same_cut",
+      "proof_binding_currentness",
+      "scientific_truth_not_economic_truth_not_capital_truth",
+      "registry_parcel_scarcity_identity",
+      "reservation_not_effect_admission",
+      "effect_authority_retain_release_consume",
+      "revocation_recovery_one_shot_resurrection",
+      "external_financial_write_admission_boundary"
+    ]
+  },
+  "standing": "PASS_BOUNDED_NONLIVE_R0_R5_SEMANTIC_CLOSURE",
+  "steps": [
+    {
+      "argv": [
+        "./scripts/run-canonical-tests"
+      ],
+      "exitCode": 0,
+      "name": "R0_R5_CANONICAL_TESTS",
+      "passed": true,
+      "stderrTail": "Checked 1 package in 0.08ms\n",
+      "stdoutTail": "........................................................................ [ 55%]\n..........................................................               [100%]\n130 passed in 3.16s\n"
+    },
+    {
+      "argv": [
+        "./scripts/run-capability-python",
+        "./examples/r1_witness_parquet_duckdb.py"
+      ],
+      "exitCode": 0,
+      "name": "R1_EVIDENCE_PARQUET_DUCKDB",
+      "passed": true,
+      "stderrTail": "Checked 1 package in 1ms\n",
+      "stdoutTail": "{\"duckdbInterface\": \"system-cli\", \"externalFinancialWriteAdmission\": \"NOT_ADMITTED\", \"externalFinancialWriteAttempted\": false, \"parquet\": \"./.artifacts/witness-cut.parquet\", \"records\": 2, \"sameCutDerivedBeforeExternalStorage\": true, \"standing\": \"PASS_AUTHORITY_FREE_R1_LOCAL\"}\n"
+    },
+    {
+      "argv": [
+        "./scripts/check-lean-runtime"
+      ],
+      "exitCode": 0,
+      "name": "R2_LEAN_RUNTIME",
+      "passed": true,
+      "stderrTail": "",
+      "stdoutTail": "LEAN_RUNTIME_OK tag=18074 commit=8ee075a39918f2df6fe9e0a5944e366fb60d10dc dotnet=10.0.112\n"
+    },
+    {
+      "argv": [
+        "./scripts/check-nautilus-candidate"
+      ],
+      "exitCode": 0,
+      "name": "R2_NAUTILUS_CANDIDATE",
+      "passed": true,
+      "stderrTail": "",
+      "stdoutTail": "{\"admissionLane\": \"SHADOW_QUALIFICATION_ONLY\", \"brokerConnectivityAllowed\": false, \"externalFinancialWritesAllowed\": false, \"lockFileSha256\": \"510deee37be50b34095c2766ff0705a77d9987dd63196ca28ccd57b4d99cac7e\", \"name\": \"NautilusTrader\", \"python\": \"3.12.13\", \"standing\": \"NAUTILUS_CANDIDATE_BOUND_NON_LIVE\", \"version\": \"2.0.0rc4\"}\n"
+    },
+    {
+      "argv": [
+        "./scripts/run-crypto-fix-projection-r4"
+      ],
+      "exitCode": 0,
+      "name": "R2_FIX_PROJECTION",
+      "passed": true,
+      "stderrTail": "",
+      "stdoutTail": "{\"brokerCredentialsUsed\": false, \"composition\": {\"fixImplementation\": \"QuickFIX/n 1.14.1\", \"mappingRole\": \"thin projection only\", \"orderSemantics\": \"FIX 4.4 NewOrderSingle\", \"sourceMechanics\": \"NautilusTrader local OMS/Risk evidence\"}, \"demoExecutionAttempted\": false, \"economicDecisionClaimed\": false, \"externalFinancialWritesAttempted\": false, \"identityContinuity\": \"Nautilus mechanics clientOrderId == FIX ClOrdID\", \"kind\": \"ordivon.market-capital.crypto-fix44-projection-r4-evidence\", \"liveExecutionAttempted\": false, \"networkSessionEnabled\": false, \"nextBoundary\": \"authoritative read-only venue account/order/trade reality before any order-capable credential admission\", \"privateAccountDataUsed\": false, \"projectedIntents\": [{\"clOrdId\": \"MECH-OKX-BTC\", \"exDestination\": \"OKX\", \"msgType\": \"D\", \"ordType\": \"1\", \"orderQty\": \"0.00012959\", \"protocol\": \"FIX.4.4\", \"rawSha256\": \"22a3145a9ac6654540d505146b683282e6fe87c0d6ed239713583bfb73fb433f\", \"side\": \"1\", \"symbol\": \"BTC-USDT\", \"timeInForce\": \"3\", \"transactTimeUtc\": \"2026-09-14T11:35:27.0000000Z\"}, {\"clOrdId\": \"MECH-BINANCE-BTC\", \"exDestination\": \"BINANCE\", \"msgType\": \"D\", \"ordType\": \"1\", \"orderQty\": \"0.00012\", \"protocol\": \"FIX.4.4\", \"rawSha256\": \"046fdab4385714f2d2ad164aaf5d377ed5ef0b22b67a386b2bfe3025fcd7b284\", \"side\": \"1\", \"symbol\": \"BTCUSDT\", \"timeInForce\": \"3\", \"transactTimeUtc\": \"2026-09-14T11:35:27.0000000Z\"}, {\"clOrdId\": \"MECH-OKX-ETH\", \"exDestination\": \"OKX\", \"msgType\": \"D\", \"ordType\": \"1\", \"orderQty\": \"0.004015\", \"protocol\": \"FIX.4.4\", \"rawSha256\": \"85024abaa710e9d28bf3b54d7759276a5de7dbc62c0e01a96418c9fbdad2da85\", \"side\": \"1\", \"symbol\": \"ETH-USDT\", \"timeInForce\": \"3\", \"transactTimeUtc\": \"2026-09-14T11:35:27.0000000Z\"}, {\"clOrdId\": \"MECH-BINANCE-ETH\", \"exDestination\": \"BINANCE\", \"msgType\": \"D\", \"ordType\": \"1\", \"orderQty\": \"0.0040\", \"protocol\": \"FIX.4.4\", \"rawSha256\": \"323a87331173f051a4ea5806ba9ed8134e5768f591f78a623df9737019d44afc\", \"side\": \"1\", \"symbol\": \"ETHUSDT\", \"timeInForce\": \"3\", \"transactTimeUtc\": \"2026-09-14T11:35:27.0000000Z\"}], \"projectionInputSha256\": \"09029129e93b05ff4a77a3d7177f874b33462bc08064596193ad488b5360413d\", \"projectionOutputSha256\": \"8f8d1a5c827d832af3149c2f0a42b41df8316346af971ba07f3a815955a3d661\", \"purpose\": \"MECHANICS_ONLY_NON_ECONOMIC\", \"schemaVersion\": 1, \"sourceMechanicsEvidence\": \"evidence/crypto-shadow-mechanics-r1-20260913.json\", \"sourceMechanicsEvidenceSha256\": \"87bb901358febe496653fdd65e69587603bd87d20ed01b4a208e1b906daa2e9d\", \"standing\": \"PASS_CRYPTO_MECHANICS_TO_FIX44_PROJECTION\"}\n"
+    },
+    {
+      "argv": [
+        "./scripts/run-tigerbeetle-durable-restart-smoke-r32"
+      ],
+      "exitCode": 0,
+      "name": "R3_TIGERBEETLE_DURABLE_RESTART",
+      "passed": true,
+      "stderrTail": "",
+      "stdoutTail": "{\"availableAccountId\": 28304998661270741870774964251798043589, \"consumeSurvivedSecondRestart\": true, \"encumbranceAccountId\": 161485566047385420075833108903267441995, \"exactReservationReplayStatus\": \"EXISTS\", \"externalFinancialWriteAttempted\": false, \"pendingSurvivedFirstRestart\": true, \"providerRepairAllowed\": false, \"providerVersion\": \"0.17.9\", \"retainedAfterEpisode\": false, \"sameDataFileRestartCount\": 2, \"semanticTerminalPreserved\": true, \"staleProviderReconciliation\": \"PROVIDER_INCOMPLETE_RETAIN\", \"standing\": \"PASS_DURABLE_RESTART_RECONCILIATION\", \"terminalReconciliation\": \"MATCH\"}\n"
+    },
+    {
+      "argv": [
+        "./scripts/check-capabilities"
+      ],
+      "exitCode": 0,
+      "name": "R4_CAPABILITY_CENSUS",
+      "passed": true,
+      "stderrTail": "",
+      "stdoutTail": "{\"researchPythonModules\": {\"jsonschema\": true, \"mlflow\": true, \"pandas\": true, \"pandera\": true, \"pyarrow\": true}}\nArelle(r) 2.44.7 (64bit)\nTigerBeetle version 0.17.9+cc1c06a\ntigerbeetle_python_client=0.17.9\n"
+    },
+    {
+      "argv": [
+        "./scripts/check-private-reality-readonly-preflight"
+      ],
+      "exitCode": 0,
+      "name": "PRIVATE_REALITY_PREFLIGHT",
+      "passed": true,
+      "stderrTail": "",
+      "stdoutTail": "{\"credentialPermissionStanding\": \"PENDING_FRESH_PROVIDER_VERIFICATION\", \"ownerCredentialUseMandate\": \"AUTHORIZED_READ_ONLY_PRIVATE_REALITY_OBSERVATION\", \"policyStanding\": \"OWNER_MANDATE_PRESENT_PERMISSION_NOT_CURRENT\", \"privateAccountDataAdmission\": \"NOT_ADMITTED\", \"secretDiscoveryAllowed\": false}\n{\"client\": \"NautilusTrader OKXHttpClient\", \"credentialsLoaded\": false, \"networkCalled\": false, \"requiredMethods\": [\"get_balance\", \"request_account_state\", \"request_fill_reports\", \"request_order_status_reports\", \"request_trades\"], \"venue\": \"OKX\", \"version\": \"2.0.0rc4\"}\n{\"client\": \"binance-sdk-spot\", \"credentialsLoaded\": false, \"networkCalled\": false, \"requiredMethods\": [\"all_orders\", \"get_account\", \"get_open_orders\", \"get_order\", \"my_trades\"], \"venue\": \"BINANCE\", \"version\": \"11.3.0\"}\n"
+    },
+    {
+      "argv": [
+        "./scripts/check-private-reality-credential-bindings"
+      ],
+      "exitCode": 0,
+      "name": "PRIVATE_REALITY_BINDINGS",
+      "passed": true,
+      "stderrTail": "",
+      "stdoutTail": "{\"binanceExecutorExcluded\": true, \"binanceObserverBindingPresent\": true, \"credentialPermissionStanding\": \"PENDING_FRESH_PROVIDER_VERIFICATION\", \"externalFinancialWritesAllowed\": false, \"okxObserverBindingPresent\": true, \"ownerCredentialUseMandate\": \"AUTHORIZED_READ_ONLY_PRIVATE_REALITY_OBSERVATION\", \"privateAccountDataAdmission\": \"NOT_ADMITTED\", \"privateAccountDataAllowed\": false, \"secretBytesRead\": false, \"standing\": \"OWNER_MANDATE_PRESENT_PERMISSION_NOT_CURRENT\"}\n"
+    },
+    {
+      "argv": [
+        "./scripts/check-capital-authority"
+      ],
+      "exitCode": 0,
+      "name": "EFFECT_BOUNDARY",
+      "passed": true,
+      "stderrTail": "",
+      "stdoutTail": "{\"effectAuthorityAvailableForExternalWrites\": false, \"externalFinancialWriteAllowedByContract\": false, \"externalFinancialWritesAllowed\": false, \"externalWriteAdmissionState\": \"NOT_ADMITTED\", \"externalWriteAdmitted\": false, \"externalWriteVerifier\": \"NOT_IMPLEMENTED\", \"ownedSemantics\": [\"effect_authority_retain_release_consume\", \"external_financial_write_admission_boundary\", \"observation_same_cut\", \"proof_binding_currentness\", \"registry_parcel_scarcity_identity\", \"reservation_not_effect_admission\", \"revocation_recovery_one_shot_resurrection\", \"scientific_truth_not_economic_truth_not_capital_truth\"], \"providerWriteCapabilityBound\": false, \"standing\": \"NON_LIVE_EFFECT_BOUNDARY\"}\n"
+    }
+  ]
+}

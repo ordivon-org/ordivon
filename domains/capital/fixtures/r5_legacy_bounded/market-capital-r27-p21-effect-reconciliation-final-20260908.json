@@ -1,0 +1,146 @@
+{
+  "agentId": "P21",
+  "baseRevision": "27e35f92fd66db222485ae8fb04b813d7971e6fb",
+  "campaign": "market-capital-e2e:r27-three-waist-closure-20260908",
+  "contract": {
+    "consume": [
+      "POSITIVE_EXECUTION with terminal positive fill and bound downstream effect admission/receipt evidence"
+    ],
+    "contradictionLaw": "terminal zero/no-effect versus terminal positive execution in one exact lineage creates contradictionRefs and is non-actionable; reservation is retained/HOLD",
+    "effectBinding": [
+      "grantRef",
+      "decisionRef",
+      "effectRef",
+      "instrumentRef",
+      "full resourceBindings(resourceKind,resourceRef,unit,sourceGeneration,claimDigest)"
+    ],
+    "issuer": [
+      "issuerRef",
+      "issuerGeneration",
+      "ACTIVE/SUSPENDED/REVOKED standing"
+    ],
+    "proof": [
+      "immutable exact issued bytes",
+      "proofDigest",
+      "evidenceDigest",
+      "single CURRENT lineage head",
+      "explicit supersedesProofRef",
+      "revocation"
+    ],
+    "release": [
+      "PROVEN_NO_EFFECT",
+      "RECONCILED_ZERO_FILL_TERMINAL"
+    ],
+    "retainHold": [
+      "UNKNOWN",
+      "AMBIGUOUS",
+      "PARTIAL_OPEN",
+      "CONTRADICTORY",
+      "unissued self-consistent proof",
+      "superseded proof",
+      "revoked proof",
+      "non-ACTIVE/stale issuer",
+      "binding drift",
+      "tampered bytes/digests"
+    ],
+    "standingLaw": "standing is mechanically derived from normalized reconciliation evidence; caller-supplied standing is never authority"
+  },
+  "destructiveValidation": [
+    {
+      "jobId": "job-01a07d07-cc29-7192-b1f2-db3802acf287",
+      "result": "37 passed, 11 subtests passed",
+      "scope": "effect authority + Stage-B destructive matrix",
+      "terminalEvidenceDigest": "sha256:6ad49b5438d13c59f43a5edcaa293dedf1621e0356f0552b9ca149bc2ef9ec1a"
+    },
+    {
+      "jobId": "job-01a07d0a-cb73-7f63-b733-ae98a5d69f7e",
+      "result": "45 passed, 11 subtests passed",
+      "scope": "risk scarcity + effect authority + Stage-B broad regression",
+      "terminalEvidenceDigest": "sha256:fcd3781ae03a3b422736274eb605a848295efa87e3e371fdd9eff916ecd23d26"
+    },
+    {
+      "jobId": "job-01a07d0a-94a2-7052-9585-bbb523992afb",
+      "result": "PASS",
+      "scope": "py_compile",
+      "terminalEvidenceDigest": "sha256:472dfc7bdb03546e84ce4ea3235147ea2cc737ab03ee78486917dd0eec21609d"
+    },
+    {
+      "jobId": "job-01a07d0a-adab-7511-9ece-ba0ef0822b85",
+      "result": "PASS",
+      "scope": "git diff --check",
+      "terminalEvidenceDigest": "sha256:915450a50d151293201288c046258fcdad297b120c67af4746f547b115920c80"
+    }
+  ],
+  "exactReentry": [
+    {
+      "clientMessageId": "market-capital-r26-d02-final-20260908-v1",
+      "messageDigest": "sha256:80a25ef27f5741503d0a452f9a42422c93f045ada25e661d5a598d9f700a5ac6",
+      "sequence": 13665,
+      "source": "R2.6 D02 FINAL"
+    },
+    {
+      "clientMessageId": "market-capital-r26-p01-final-handoff-blocked-20260908-v1",
+      "messageDigest": "sha256:7e7d85979221c1c0984b5e8a6e47b47d54568d665ff33d13cc6eff2cc321a547",
+      "sequence": 13668,
+      "source": "R2.6 P01 FINAL"
+    },
+    {
+      "clientMessageId": "market-capital-r26-p02-final-handoff-blocked-20260908-v1",
+      "messageDigest": "sha256:938a702a192731dce0ce226c71a6dbe79024dbb8c77a56d954be9d8e1993f5c6",
+      "sequence": 13696,
+      "source": "R2.6 P02 FINAL"
+    },
+    {
+      "clientMessageId": "market-r25-a08-round4-final-handoff-blocked-20260907-v1",
+      "messageDigest": "sha256:2b8bf38158d0b51ab61af6fd75168db69cdc1468ab113ff35862f5eabc671738",
+      "sequence": 13539,
+      "source": "R2.5 A08 FINAL"
+    }
+  ],
+  "externalEffectsAttempted": false,
+  "externalFinancialWriteAttempted": false,
+  "fileDigests": {
+    "kernel/deployment_authority_stageb.py": "sha256:aaa41d9edf38adcf9e61d66306d0af67adc1f7842452c78601ac0099293e5491",
+    "kernel/effect_reconciliation_authority.py": "sha256:551a2159a42d6f6835ecd61de928d18e7850cbd143daad8263bc409235f9c981",
+    "kernel/migrations/0018_effect_reconciliation_authority.sql": "sha256:58d7285de02ef5ec0848ec3617c8e78181d57489b04d2dba81d7febe27897cab",
+    "tests/test_deployment_authority_stageb.py": "sha256:27b4c878651135c0369670069f77341ae98602ee51dcf594534cebf3c0f931f7",
+    "tests/test_effect_reconciliation_authority.py": "sha256:02ae62927902d0517637e2b92fe6f0768fa93e79dbac53b75d00b78dffadd3cb"
+  },
+  "firstPass": {
+    "clientMessageId": "market-capital-r27-p21-first-pass-20260908-v1",
+    "sequence": 13716
+  },
+  "implementationRevision": "d37fbb9cb7e066c8877826c6ea79bfeff817397e",
+  "kind": "ordivon.market-capital.r27-p21-effect-reconciliation-final-evidence",
+  "opening": {
+    "clientMessageId": "market-capital-r27-p21-opening-20260908-v1",
+    "sequence": 13713
+  },
+  "remainingBlockers": [
+    "No provider-qualified/live institutional effect-reconciliation issuer/currentness authority has been authenticated or requalified.",
+    "P01 canonical Registry\u2192parcel bridge was exactly re-entered but is not canonically merged into this P21/P02-based tree.",
+    "Local/shadow proof authority does not create provider dispatch, production deployment, legal ownership, or external-effect authority."
+  ],
+  "role": "Authoritative Effect/Reconciliation Disposition Integrator",
+  "schemaVersion": 1,
+  "stageBIntegration": {
+    "directConsume": "requires authoritative derived positive-execution proof",
+    "directRelease": "requires authoritative derived no-effect/terminal-zero proof",
+    "grantFreezes": [
+      "decisionRef",
+      "effectRef",
+      "instrumentRef",
+      "exact resource reservation claims"
+    ],
+    "legacyCallerBooleanAccepted": false,
+    "recovery": "effect proof must validate as exact CURRENT authority head before disposition; invalid/currentness failure maps to RETAIN_RESERVATION/HOLD"
+  },
+  "standing": {
+    "falseReleaseP0": "CLOSED_BOUNDED_LOCAL_SHADOW",
+    "liveCurrent": "UNKNOWN_NOT_REQUALIFIED",
+    "production": "BLOCKED_NOT_CANONICALLY_INTEGRATED_NOT_DEPLOYED_NO_LIVE_EFFECT_RECONCILIATION_ISSUER",
+    "scientificMechanical": "SUPPORTED_COMPLETE_BOUNDED_LOCAL"
+  },
+  "truthRole": "local-shadow-closure-evidence-not-live-financial-authority",
+  "workspaceId": "ws-market-r27-p21-effect-disposition-20260908-v1"
+}
