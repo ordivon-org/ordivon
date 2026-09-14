@@ -224,3 +224,11 @@ Owner approval and exact Git/CAS byte resolution remain domain-local. BagIt is d
 The R4/R5 custom `creative_forward_ingest.py` implementation has been removed from the active workstation after E-ARK SIP 2.2.0 + Commons-IP 2.11.3 graduated on the same frozen corpus. Its private BagIt/SWHID environment and disposable DuckDB/Parquet catalogs were also removed. Historical R4/R5 bags and receipts remain frozen evidence and the deleted implementation remains reproducible through Git history.
 
 No new preservation catalog or handoff schema replaces it. Forward package semantics remain E-ARK/Commons-IP, while owner approval and exact-byte resolution stay with the producing domain.
+
+## R10 Final engineering closeout
+
+Preservation is closed as an active subsystem-development track. The remaining active path is standard-native: domain-owned accepted-object/exact-byte selection, E-ARK/Commons-IP for interoperable submission, Archivematica provider-native standard transfer for current local ingestion, and provider-native PREMIS/METS/AIP/fixity/replication/recovery.
+
+R10 corrected the last operational defect: all nine Archivematica Compose services now use `restart: unless-stopped`. A Docker daemon restart demonstrated automatic service return, successful Dashboard/Storage Service recovery, fresh master+replica fixity, survival of the `unar` compatibility override, and successful periodic Fixity execution. The exact runtime overlay is versioned in `config/archivematica-preservation-r10.compose.yml`.
+
+Remaining items—off-site failure domain, formal NDSA/DPC/CoreTrustSeal assessment, Enduro activation, pointer-schema upstream defects, and eventual removal of the `unar` override—are workload/provider-triggered boundaries, not reasons to keep a local preservation-development track open.

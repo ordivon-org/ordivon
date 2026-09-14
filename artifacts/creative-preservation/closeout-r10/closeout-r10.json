@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "kind": "creative-preservation-final-engineering-closeout-r10",
+  "generatedAt": "2026-09-14T14:17:26.784586+08:00",
+  "engineeringStatus": "CLOSEOUT_COMPLETE",
+  "preservationMaturityClaim": null,
+  "repositoryCertificationClaim": null,
+  "activeCustomPreservationImplementation": false,
+  "routing": {
+    "authoritativeBytes": "producing-domain authority",
+    "interchange": "E-ARK SIP 2.2.0 + Commons-IP 2.11.3",
+    "localEngineIntake": "Archivematica 1.18 provider-native standard transfer",
+    "preservationEngine": "Archivematica 1.18 + Storage Service",
+    "periodicFixity": "Artefactual Fixity 0.8.0 + systemd timer"
+  },
+  "bootContinuity": {
+    "dockerServiceEnabled": true,
+    "composeRestartPolicy": "unless-stopped",
+    "services": 9,
+    "daemonRestartAcceptance": "PASS",
+    "dashboardHttpAfterWarmup": 302,
+    "storageServiceHttpAfterWarmup": 302,
+    "masterFreshFixity": true,
+    "replicaFreshFixity": true,
+    "fixityServiceAfterDaemonRestart": "PASS"
+  },
+  "versionedRuntimeConfig": {
+    "source": "config/archivematica-preservation-r10.compose.yml",
+    "installed": "/opt/ordivon/external/archivematica/1.18.0/overlays/docker-compose.clamav-r6.yml",
+    "sha256": "3ef3e6a1a194f890f74927d6f0cceff0e60be058a15e48e989cd2fd9c1601738",
+    "byteIdenticalAtCloseout": true
+  },
+  "currentAips": [
+    {
+      "uuid": "1593a748-703b-46b6-8114-314040f44bd8",
+      "role": "master",
+      "bytes": 3027140,
+      "sha256": "e08f0197821c05684cfc50b3dc6119801de6f9137dfeef1df5a43cc8a42ffbda"
+    },
+    {
+      "uuid": "7d488fcc-c2f9-4490-a196-79885a595a1a",
+      "role": "replica",
+      "bytes": 3027140,
+      "sha256": "e08f0197821c05684cfc50b3dc6119801de6f9137dfeef1df5a43cc8a42ffbda"
+    }
+  ],
+  "nonBlockingBoundaries": [
+    "independent/offsite failure domain",
+    "formal external maturity/certification assessment",
+    "Enduro activation trigger",
+    "pointer schema conformance upstream boundary",
+    "temporary unar compatibility override",
+    "direct E-ARK ingest not established or required"
+  ],
+  "reopenOnlyOnWorkloadTrigger": true,
+  "evidenceJobs": [
+    "job-01a09e8a-046c-78f0-a4f6-e1e470900d7e",
+    "job-01a09e8b-1167-78c0-9bf4-e44e9c855055",
+    "job-01a09e8b-7e62-7c70-9bb3-f41fe94a737d",
+    "job-01a09e8d-0039-7d60-a852-adece6aadd17",
+    "job-01a09e8f-358d-7b62-97ed-bbb7ebab1db3",
+    "job-01a09e8f-db65-7162-a32c-7d19c3c6631d"
+  ]
+}

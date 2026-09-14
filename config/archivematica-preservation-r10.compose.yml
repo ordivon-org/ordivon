@@ -1,0 +1,24 @@
+services:
+  mysql:
+    restart: unless-stopped
+  archivematica-storage-service:
+    restart: unless-stopped
+    volumes:
+      - "/var/lib/ordivon/creative-preservation/r7-secondary-store:/mnt/r7-secondary"
+      - "/opt/ordivon/external/unar/1.10.8/bin/unar:/usr/local/bin/unar:ro"
+      - "/opt/ordivon/external/unar/1.10.8/bin/lsar:/usr/local/bin/lsar:ro"
+  clamavd:
+    image: "clamav/clamav-debian:1.4.6@sha256:9806fde5ff2fa1499a39f8570a86f5011233dcb74627d7d9d9b859d74b0a4b66"
+    restart: unless-stopped
+  gearmand:
+    restart: unless-stopped
+  elasticsearch:
+    restart: unless-stopped
+  archivematica-dashboard:
+    restart: unless-stopped
+  archivematica-mcp-client:
+    restart: unless-stopped
+  archivematica-mcp-server:
+    restart: unless-stopped
+  nginx:
+    restart: unless-stopped
