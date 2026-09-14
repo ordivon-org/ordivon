@@ -44,6 +44,27 @@ python experiments/composition-r2/cs2-03-upstream-random-buildcraft/scripts/stru
 
 The carrier is admitted only if it shows build-path diversity, no universal first choice/build dominance, measurable context-adaptation value, and global path reasoning value over immediate greed.
 
+## Pre-Human browser gate
+
+Before spending Human attention, run two separate browser checks:
+
+1. **Playwright** owns the complete deterministic 4×4 mechanical regression, reflections and JSON export;
+2. **Browser Use** owns a bounded agentic perception/action probe through the accessibility tree and CDP.
+
+Reusable scripts:
+
+```bash
+python experiments/composition-r2/cs2-03-upstream-random-buildcraft/scripts/prehuman_playwright_gate.py \
+  --chromium /path/to/authorized/chromium
+
+BU_CDP_URL=http://127.0.0.1:<authorized-port> \
+  experiments/composition-r2/cs2-03-upstream-random-buildcraft/scripts/prehuman_browser_use_probe.sh
+```
+
+Current standing is `PASS_PREHUMAN_BROWSER_GATE`; see `human/PREHUMAN_BROWSER_GATE_R1.md` and `evidence/acceptance/game-cs2-03-prehuman-browser-gate-20260914.json`.
+
+This gate is explicitly **NONHUMAN** and cannot establish Player Value or condition superiority.
+
 ## Human run
 
 ```bash
