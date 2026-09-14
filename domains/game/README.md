@@ -119,9 +119,9 @@ Do not:
 - treat a feature list as a mechanism graph without causal coupling edges;
 - confuse automated mechanical PASS with player value.
 
-## Current design-search standing
+## Current composition standing
 
-The broad external success/reference census is saturated for the current decision. Product Thesis Sprint artifacts are retained as sample compositions, not as five competing product destinies. Forward exploration is now **mechanism-composition search**.
+The broad external success/reference census is saturated for the current decision. Product Thesis Sprint artifacts are retained as sample composition evidence, not as product destinies. Mechanism-space expansion is not the next task. The current forward workload is **whole-product composition from the registered mechanism graph**, with experiment search serving only to falsify uncertain couplings inside those products.
 
 ```text
 Category/genre crosswalk        READY_R1
@@ -130,9 +130,13 @@ Structural design axes          READY_R1
 Composition graph vocabulary    READY_R1
 Historical mechanism evidence   R2_CURRENT_50_SPECIMENS
 Pair/set compatibility evidence R2_CURRENT_60_CONTEXT_BOUND_CLAIMS
-Composition search             R2_READY_10_BRIDGE_DRIVEN_GRAPHS
-First bridge-driven wave       CS2-03 / CS2-04 / CS2-01 / CS2-05
+Experiment composition search   R2_READY_10_BRIDGE_DRIVEN_GRAPHS
+Physical realization ledger     R1_ACTIVE
+Whole-product compositions      R1_ACTIVE_3
+Lead whole-product composition  PC01_CAUSAL_WORKS
+Next executable                 PC01_F0_THREE_CYCLE_DIAGNOSTIC_MICRO_FACTORY
 Product selected                false
+G0 entered                      false
 ```
 
 Canonical local crosswalks:
@@ -145,6 +149,8 @@ Canonical local crosswalks:
 - [`GAME_COMPOSITION_SEARCH_R1.md`](GAME_COMPOSITION_SEARCH_R1.md) — first evidence-guided mechanism-graph search and reuse-first experiment wave;
 - [`GAME_COMPOSITION_SEARCH_R2.md`](GAME_COMPOSITION_SEARCH_R2.md) — current bridge-driven 10-graph experiment search with bounded unknowns and falsifier economics;
 - [`GAME_COMPOSITION_REALIZATIONS_R1.md`](GAME_COMPOSITION_REALIZATIONS_R1.md) — execution ledger separating search snapshots from physically realized falsifier apparatus;
+- [`GAME_PRODUCT_COMPOSITION_R1.md`](GAME_PRODUCT_COMPOSITION_R1.md) — current whole-product composition layer: PC01 Causal Works, PC02 Persistent Workshop, PC03 Loop Cartographer;
+- [`game-product-composition-r1.json`](game-product-composition-r1.json) — machine-readable product-composition slate and execution order;
 - [`GAME_TOP_MECHANISM_SPECIMENS_R1.md`](GAME_TOP_MECHANISM_SPECIMENS_R1.md) — 16 elite/canonical game decompositions and 12 recurring structural motifs;
 - [`GAME_TOP_MECHANISM_SPECIMENS_R2.md`](GAME_TOP_MECHANISM_SPECIMENS_R2.md) — current cumulative 27-specimen / 23-motif mechanism map, with R2 gap-filling coverage;
 - [`GAME_TOP_MECHANISM_SPECIMENS_R3.md`](GAME_TOP_MECHANISM_SPECIMENS_R3.md) — current cumulative 37-specimen / 33-motif map, coverage-guided but not coverage-optimized;

@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "id": "ordivon-next.game-product-composition.r1",
+  "observed": "2026-09-14",
+  "status": "ACTIVE_PRE_G0_PRODUCT_COMPOSITION",
+  "constraints": [
+    "no_new_mechanism_expansion_by_default",
+    "genre_is_projection_not_design_primitive",
+    "historical_carriers_are_evidence_not_product_momentum",
+    "runtime_agent_need_is_claim_specific_and_defaults_to_none",
+    "whole_composition_required_for_g0"
+  ],
+  "compositions": [
+    {
+      "id": "pc01-causal-works",
+      "title": "Causal Works",
+      "standing": "LEAD_COMPOSITION_BUILD_FALSIFIER_FIRST",
+      "playerPromise": "I built and understand this system well enough to diagnose it when incomplete information, changing objectives, and new constraints make yesterday's solution fail.",
+      "gameForms": ["F08", "F13", "F21"],
+      "marketProjection": ["automation_factory", "management_builder", "investigation_mystery", "systemic_immersive_problem_solving", "puzzle"],
+      "motifs": ["m01", "m06", "m11", "m22", "m24", "m29", "m30"],
+      "anchorMechanisms": ["bottleneck", "routing", "network-flow", "machine-allocation", "partial-observation", "inspection-cost", "information-scarcity", "feedback-control", "respec-reconfiguration", "required-goal", "multi-objective-tradeoff"],
+      "localEvidence": ["D03", "D05", "StationZero-causal-leverage", "CompositionSearch-R1-R2"],
+      "runtimeAgentDefault": "none",
+      "nextAction": "BUILD_PC01_F0_THREE_CYCLE_DIAGNOSTIC_MICRO_FACTORY"
+    },
+    {
+      "id": "pc02-persistent-workshop",
+      "title": "Persistent Workshop",
+      "standing": "SECONDARY_COMPOSITION_REUSE_PGP_I",
+      "playerPromise": "I can make something for my own purpose, keep it, expose it to different contexts or audiences, and revise it without turning my work into optimization for a judge.",
+      "gameForms": ["F18", "F14", "F22"],
+      "marketProjection": ["sandbox_creative", "simulation", "puzzle", "experimental", "management_builder"],
+      "motifs": ["m02", "m04", "m05", "m10", "m12", "m23", "m33"],
+      "anchorMechanisms": ["constrained-building", "create-edit", "save-revision", "build-path-dependency", "world-state-persistence", "responsive-critique/audience", "self-authored-goal"],
+      "localEvidence": ["D14", "PGP-I", "T04-negative-boundary"],
+      "runtimeAgentDefault": "none"
+    },
+    {
+      "id": "pc03-loop-cartographer",
+      "title": "Loop Cartographer",
+      "standing": "ANTI_SYSTEM_BIAS_COMPOSITION_REUSE_PGP_A",
+      "playerPromise": "I master a compact place by understanding how it works; knowledge and practiced movement open routes that inventory keys cannot.",
+      "gameForms": ["F01", "F09", "F07"],
+      "marketProjection": ["platformer", "adventure_exploration", "puzzle", "experimental"],
+      "motifs": ["m03", "m11", "m20", "m24", "m27"],
+      "anchorMechanisms": ["jump", "timing-window", "fast-retry", "rule-discovery", "shortcut-discovery", "gating-by-knowledge", "landmark-navigation", "safe-vs-risky-route"],
+      "localEvidence": ["PGP-A", "D03-scoped", "top-specimen-motif-evidence"],
+      "runtimeAgentDefault": "none"
+    }
+  ],
+  "executionOrder": ["pc01-causal-works", "pc02-persistent-workshop", "pc03-loop-cartographer"],
+  "productSelected": false,
+  "g0Entered": false
+}
