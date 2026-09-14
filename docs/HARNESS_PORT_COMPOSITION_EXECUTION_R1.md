@@ -806,3 +806,83 @@ git diff --check PASS
 ```
 
 Adaptive Edit R2 is now sufficiently evidenced for the current slice. The next composition target should move to mature protocol integration rather than inventing more edit syntax: first evaluate `LSP WorkspaceEdit -> CanonicalEditPlan -> Runtime Patch` using existing local LSP/client components where possible.
+
+## R7 update — LSP WorkspaceEdit proposal path reaches real Runtime Patch
+
+Canonical Harness advanced through two LSP R7 commits:
+
+```text
+9c774b3 harness: add LSP WorkspaceEdit adapter
+d75617d harness: verify LSP rename through Runtime
+```
+
+R7 deliberately composes mature LSP semantics without granting the language server mutation authority:
+
+```text
+Language Server
+    -> LSP client transport
+    -> WorkspaceEdit proposal
+    -> Harness URI/version/snapshot/position validation
+    -> CanonicalEditPlan
+    -> Runtime workspace.patch
+```
+
+The pure Harness adapter accepts standard `WorkspaceEdit.changes` and TextDocumentEdit-only `documentChanges`, explicit URI-to-authorized-snapshot bindings, and negotiated `utf-8` / `utf-16` / `utf-32` position encodings. It fails closed on unbound URIs, version mismatch, unsupported resource operations, overlapping edits, encoding-unit splits, out-of-range positions, conflicting URI aliases, and no-op edits.
+
+A `file://` URI is explicitly not authority identity:
+
+```text
+server URI != workspace authority != exact source identity
+```
+
+URI aliases are deduplicated only when they bind the same exact snapshot and propose identical edits.
+
+Local provider validation used the already-installed `clangd 22.1.8` and temporary `pygls 2.1.1` LanguageClient donor. `pygls` was not added to Harness production dependencies. A revision-bound rename flow from `9c774b3` proved:
+
+```text
+clangd textDocument/rename: square -> quad
+    -> WorkspaceEdit.changes
+    -> negotiated positionEncoding=utf-8
+    -> Harness CanonicalEditPlan: 1 file / 2 exact edits
+    -> Runtime workspace.patch
+    -> committed
+```
+
+Runtime receipt:
+
+```text
+clientRequestId:
+request:harness-patch:d8b7b215b74d50b31c0c6dbb5fbe1b5a
+
+before:
+sha256:59f92d40809853654b25d0ba5c3c9692021b2820d6f927818b1a952d8f33b286
+
+after:
+sha256:0bbf5c459448b66e3a4b7624820c81c8f594d49e9fca55ae7c99a9769c931fac
+```
+
+The source was unchanged until Runtime Patch admission; therefore clangd/pygls remained proposal-only and Runtime retained physical-effect ownership.
+
+Fourth verified receipt:
+
+```text
+evidence/lsp-r7-clangd-runtime-patch-20260914.json
+payload digest:
+sha256:f16757f66ebfae75a815b5002c50a97e7aee50574639be1841bb5a55c949328d
+```
+
+This integration exposed a separate evidence-governance issue: repository-wide `src/` invalidation incorrectly made all three Adaptive Edit receipts stale when the unrelated LSP adapter was added. Harness evidence currentness now supports explicit `implementationPaths` scopes. The legacy repository-wide invalidation remains the default; scoped verified receipts must bind at least one implementation path plus `pyproject.toml` and `uv.lock`, and any change inside the declared slice still invalidates the receipt.
+
+Current Harness acceptance:
+
+```text
+467 deterministic tests PASS
+Ruff PASS
+documentation contract PASS
+dependency contract PASS
+evidence contract PASS (80 historical / 4 verified)
+LSP evidence integrity PASS
+git diff --check PASS
+```
+
+R7 standing is therefore **VERIFIED FOR ONE LOCAL CLANGD PROVIDER PATH**, not graduated as a universal LSP provider. `pygls` remains an experimental transport donor. The next evidence target is a second language-server/provider path plus lifecycle/diagnostic behavior before fixing any default transport stack or exposing LSP as a public Agent Tool.
