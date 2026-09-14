@@ -1,0 +1,250 @@
+{
+  "actionLaw": {
+    "continue": {
+      "consequence": "execution-control",
+      "intentDigest": "sha256:074931bb64627e743402e25eaffd64ca74708790757bbbe0ff5deec015591800"
+    },
+    "evaluate": {
+      "consequence": "effect-capable",
+      "intentDigest": "sha256:7e9c7f9c76434107c178ab9008a891ee7939164221d961152497d1e469098af8"
+    },
+    "launch": {
+      "consequence": "process-lifecycle",
+      "intentDigest": "sha256:5cb5c31ed7c5bd1e9eceabc9b1a1db63a116f43c77eab242667a34e1d94c19ce"
+    },
+    "setBreakpoints": {
+      "consequence": "debugger-configuration",
+      "intentDigest": "sha256:b3a734216f9d1edc82ac9585d9c0588b070952d597608b70ff0e671dd9542e06"
+    },
+    "stackTrace": {
+      "consequence": "observation",
+      "intentDigest": "sha256:02ffec54a6745b405666d21f8efe96288d23105c354654ff032db967bae8fc75"
+    },
+    "threads": {
+      "consequence": "observation",
+      "intentDigest": "sha256:f500a5a71d9e78eaa5464445b44d392aa5f94a275f9c230cfe2a476e153c129d"
+    },
+    "variables": {
+      "consequence": "observation",
+      "intentDigest": "sha256:c1ba15a9770d7a3d9afb2db70be308ed6b0ef0d3926efdea28971d9445fb9491"
+    }
+  },
+  "authority": {
+    "continueConsequence": "execution-control",
+    "effectExecutorForEffectfulActions": "dap-provider",
+    "evaluateClassifiedAsObservation": false,
+    "evaluateConsequence": "effect-capable",
+    "observationActionsDoNotClaimEffectExecutor": true,
+    "processOwner": "dap-provider",
+    "rawCustomRequestAdmitted": false,
+    "runtimeOwnedTargetClaimed": false,
+    "writeMemoryConsequence": "target-mutation"
+  },
+  "capabilities": {
+    "supportsCancelRequest": true,
+    "supportsReadMemoryRequest": true,
+    "supportsSetExpression": true,
+    "supportsSetVariable": true,
+    "supportsSingleThreadExecutionRequests": true,
+    "supportsWriteMemoryRequest": true
+  },
+  "date": "2026-09-14",
+  "fixture": {
+    "binaryDigest": "sha256:f572e61a51c69dc6991df8c7e2697fcb55f7626119b963359ecff361fdb77c6a",
+    "sourceDigest": "sha256:ea210d6ad54127948259e6e7ca6d00c0a8c1f10ea16b041d9e6c66ceb3c73f1f"
+  },
+  "implementationRevision": "bd8aeec146f4db9e3cf4dd91f88541447ba78004",
+  "integrity": {
+    "algorithm": "sha256",
+    "canonicalization": "ordivon-canonical-json-v1",
+    "payloadDigest": "sha256:e889b292cb021f3a4655f5f0d31c8b1f2abb7d7889b4e0b45bfb4a94dfcd6860"
+  },
+  "kind": "ordivon.dap-r8-gdb-launch-evidence",
+  "observations": {
+    "arguments": {
+      "a": "2",
+      "b": "3"
+    },
+    "breakpointRequestResult": {
+      "breakpoints": [
+        {
+          "id": 1,
+          "reason": "pending",
+          "verified": false
+        }
+      ]
+    },
+    "evaluateResult": {
+      "result": "5",
+      "type": "int",
+      "variablesReference": 0
+    },
+    "eventNames": [
+      "initialized",
+      "output",
+      "output",
+      "process",
+      "thread",
+      "stopped",
+      "output",
+      "thread",
+      "exited",
+      "terminated"
+    ],
+    "locals": {
+      "sum": "5"
+    },
+    "phaseTrace": [
+      {
+        "elapsedMs": 0,
+        "phase": "start"
+      },
+      {
+        "elapsedMs": 186,
+        "phase": "initialize"
+      },
+      {
+        "elapsedMs": 186,
+        "phase": "initialized-event"
+      },
+      {
+        "elapsedMs": 1,
+        "phase": "set-breakpoints"
+      },
+      {
+        "elapsedMs": 0,
+        "phase": "configuration-done"
+      },
+      {
+        "elapsedMs": 2,
+        "phase": "launch-response"
+      },
+      {
+        "elapsedMs": 15,
+        "phase": "stopped-event"
+      },
+      {
+        "elapsedMs": 0,
+        "phase": "threads"
+      },
+      {
+        "elapsedMs": 1,
+        "phase": "stackTrace"
+      },
+      {
+        "elapsedMs": 0,
+        "phase": "scopes"
+      },
+      {
+        "elapsedMs": 1,
+        "phase": "variables:Arguments"
+      },
+      {
+        "elapsedMs": 0,
+        "phase": "variables:Locals"
+      },
+      {
+        "elapsedMs": 1,
+        "phase": "evaluate"
+      },
+      {
+        "elapsedMs": 1,
+        "phase": "continue"
+      },
+      {
+        "elapsedMs": 1,
+        "phase": "terminated-event"
+      },
+      {
+        "elapsedMs": 1,
+        "phase": "stop"
+      }
+    ],
+    "stackFrames": [
+      {
+        "column": 0,
+        "id": 0,
+        "instructionPointerReference": "0x55555555514e",
+        "line": 5,
+        "moduleId": "/tmp/dap-r8-revision-evidence/main",
+        "name": "add",
+        "source": {
+          "name": "main.c",
+          "path": "/tmp/dap-r8-revision-evidence/main.c"
+        }
+      },
+      {
+        "column": 0,
+        "id": 1,
+        "instructionPointerReference": "0x555555555178",
+        "line": 11,
+        "moduleId": "/tmp/dap-r8-revision-evidence/main",
+        "name": "main",
+        "source": {
+          "name": "main.c",
+          "path": "/tmp/dap-r8-revision-evidence/main.c"
+        }
+      }
+    ],
+    "stopped": {
+      "allThreadsStopped": true,
+      "hitBreakpointIds": [
+        1
+      ],
+      "reason": "breakpoint",
+      "threadId": 1
+    },
+    "threads": {
+      "threads": [
+        {
+          "id": 1,
+          "name": "main"
+        }
+      ]
+    }
+  },
+  "provider": {
+    "clientDonor": "@vscode/debugadapter-testsupport",
+    "clientDonorVersion": "1.68.0",
+    "identity": {
+      "implementation": "gdb",
+      "providerId": "dap:gdb-local",
+      "version": "17.2"
+    },
+    "nativeAdapter": "gdb -i dap",
+    "productionDependencyAdmitted": false
+  },
+  "schemaVersion": 1,
+  "scope": "Revision-bound local DAP R8 occurrence proving the consequence-aware Harness DAP model against GDB 17.2 native DAP. GDB launched and physically controlled the inferior; this receipt therefore records dap-provider process ownership and does not claim Runtime-owned target execution.",
+  "standing": {
+    "effectClassification": "SUPPORTED",
+    "nextEvidence": [
+      "Runtime-owned target attach",
+      "DAP fault/cancel lifecycle",
+      "compact Agent-facing debug action after authority binding"
+    ],
+    "observationPath": "SUPPORTED",
+    "providerNeutralActionLaw": "SUPPORTED",
+    "publicAgentDebugTool": "NOT_ADMITTED",
+    "runtimeOwnedTargetAttach": "NOT_ASSESSED",
+    "standing": "VERIFIED_PROVIDER_OWNED_GDB_LAUNCH_PATH",
+    "stopEpochFreshnessModel": "SUPPORTED_BY_REAL_STOP"
+  },
+  "stopEpoch": {
+    "allThreadsStopped": true,
+    "epoch": 1,
+    "kind": "ordivon.harness-dap-stop-epoch",
+    "reason": "breakpoint",
+    "schemaVersion": 1,
+    "sessionId": "dap-session:r8-gdb-launch",
+    "threadId": 1
+  },
+  "targetBinding": {
+    "effectExecutor": "dap-provider",
+    "kind": "ordivon.harness-dap-target-binding",
+    "processOwner": "dap-provider",
+    "schemaVersion": 1,
+    "sessionId": "dap-session:r8-gdb-launch",
+    "targetRef": "sha256:f572e61a51c69dc6991df8c7e2697fcb55f7626119b963359ecff361fdb77c6a"
+  }
+}

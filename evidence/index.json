@@ -679,6 +679,19 @@
         "uv.lock"
       ],
       "scope": "Negative R7 lifecycle receipt: caller cancellation and language-server crash preserved the proposal-only/no-write boundary, but lsp-client 0.3.9 did not emit an observed $/cancelRequest and cleanup ended through bounded timeout/error paths. Default provider admission remains blocked."
+    },
+    {
+      "claimId": "harness.dap.r8.gdb-launch",
+      "file": "dap-r8-gdb-launch-20260914.json",
+      "status": "verified",
+      "implementationRevision": "bd8aeec146f4db9e3cf4dd91f88541447ba78004",
+      "implementationPaths": [
+        "src/anc_canonical/",
+        "src/ordivon_harness/dap_provider_port.py",
+        "pyproject.toml",
+        "uv.lock"
+      ],
+      "scope": "Revision-bound DAP R8 receipt: GDB 17.2 native DAP launched a C inferior, stopped at a breakpoint, exposed stack/scopes/variables, evaluated a+b=5, and continued to termination. GDB/provider owns this target process path; evaluate remains effect-capable and mutation capabilities are not read-only authority."
     }
   ]
 }

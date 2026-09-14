@@ -130,3 +130,50 @@ observational.
    distinguishes observation from execution-control and mutation consequences;
 5. do not add a permanent DAP client dependency until provider lifecycle/fault behavior
    earns it.
+
+## Revision-bound GDB launch evidence
+
+After the consequence-aware provider port landed at:
+
+```text
+bd8aeec harness: add consequence-aware DAP provider port
+```
+
+a fresh local occurrence used GDB 17.2 native DAP and temporary Microsoft
+`@vscode/debugadapter-testsupport 1.68.0` as the client donor. No DAP client dependency
+was added to Harness.
+
+The C fixture stopped in `add(int a, int b)` and produced:
+
+```text
+stack: add -> main
+arguments: a=2, b=3
+locals: sum=5
+evaluate("a + b") = 5
+continue -> exited -> terminated
+```
+
+GDB advertised `supportsWriteMemoryRequest`, `supportsSetVariable`,
+`supportsSetExpression`, and `supportsCancelRequest`. The occurrence therefore
+reinforces the consequence law: debugger capability presence is not read-only Run
+authority, and even a successful watch-context evaluate remains classified
+`effect-capable`.
+
+This specific path is explicitly provider-owned:
+
+```text
+processOwner   = dap-provider
+effectExecutor = dap-provider
+Runtime-owned target = NOT CLAIMED
+```
+
+Verified receipt:
+
+```text
+evidence/dap-r8-gdb-launch-20260914.json
+payload digest:
+sha256:e889b292cb021f3a4655f5f0d31c8b1f2abb7d7889b4e0b45bfb4a94dfcd6860
+```
+
+The next ownership experiment is attach to a target whose process lifecycle originates
+from Runtime rather than from GDB.
