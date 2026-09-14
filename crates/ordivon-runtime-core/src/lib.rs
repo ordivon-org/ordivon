@@ -12,8 +12,8 @@ mod universal;
 #[cfg(feature = "universal-executor")]
 pub use universal::{
     create_git_workspace, mutate_workspace, read_workspace_content, read_workspace_slice_compact,
-    read_workspace_text_compact, remove_git_workspace, run_task_runner, workspace_changes_page,
-    workspace_diff, workspace_diff_compact, write_workspace_text, CompactWorkspaceDiffResult,
+    read_workspace_text_compact, remove_git_workspace, workspace_changes_page, workspace_diff,
+    workspace_diff_compact, write_workspace_text, CompactWorkspaceDiffResult,
     CompactWorkspaceOpenResult, CompactWorkspaceReadResult, CompactWorkspaceSliceResult,
     GitWorkspaceCreateRequest, UniversalExecError, UniversalExecErrorCode, UniversalExecutorConfig,
     WorkspaceChangeCursor, WorkspaceChangeEntry, WorkspaceChangeKind, WorkspaceChangePageRequest,
@@ -29,6 +29,9 @@ pub use universal::{
     MAX_WORKSPACE_CHANGE_PAGE_ENTRIES, MAX_WORKSPACE_IO_BYTES, UNIVERSAL_EXEC_SCHEMA_VERSION,
     WORKSPACE_ID_MAX_LENGTH, WORKSPACE_ID_MIN_LENGTH, WORKSPACE_ID_PATTERN,
 };
+
+#[cfg(all(feature = "universal-executor", unix))]
+pub use universal::run_task_runner;
 
 #[cfg(feature = "transactional-runtime")]
 pub use runtime::{
