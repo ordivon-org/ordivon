@@ -10,3 +10,11 @@ Provisioning status:
 - OKX Demo: `/root/.config/ordivon/secrets/okx/demo` is reserved. OKX requires a Demo Trading API key created in the Demo Trading UI. The resulting demo profile must be stored as `config.toml` with `demo=true` and mode 0600.
 
 Until at least one server-issued non-live credential exists and passes environment verification, no demo/testnet order is submitted.
+## Local secure install
+
+After the exchange-side key exists, install it without putting credentials on the command line:
+
+- `./scripts/install-nonlive-credential okx-demo`
+- `./scripts/install-nonlive-credential binance-testnet`
+
+The script uses hidden terminal input and writes only to the isolated `.config/ordivon/secrets/...` non-live roots with mode 0600. It has no live mode.
