@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+old=/root/projects/ordivon-finance
+out="$repo/.artifacts/live-test-admission-local"
+mkdir -p "$out"; chmod 700 "$out"; umask 077
+
+"$repo/scripts/check-clock-quality-gate" >/dev/null
+"$repo/scripts/check-live-test-account-policy" >/dev/null
+
+venue="${1:-}"
+case "$venue" in
+  binance|okx) ;;
+  *) echo 'usage: run-live-test-admission-local {binance|okx}' >&2; exit 2 ;;
+esac
+
+python3 - "$repo/config/live_test_account_policy.json" "$venue" <<'PY'
+import json,sys
+x=json.load(open(sys.argv[1])); v=sys.argv[2].upper()
+assert x['userAuthorization']=='LIVE_ENDPOINT_TEST_ACCOUNT_USE_AUTHORIZED'
+assert x['productionTradingAuthorized'] is False
+assert x['withdrawalAuthorized'] is False
+assert x['transferAuthorized'] is False
+assert x['orderSubmissionAllowed'] is False
+assert x['venues'][v]['writeAdmission']=='BLOCKED_PENDING_FRESH_GATES'
+PY
+
+if [ "$venue" = binance ]; then
+  raw="$out/binance-observer.json"
+  /usr/bin/node "$old/scripts/collect-binance-spot-observer.mjs" --instrument BTCUSDT --instrument ETHUSDT > "$raw"
+  python3 - "$raw" "$out/binance-admission-summary.json" <<'PY'
+import json,sys
+from decimal import Decimal
+x=json.load(open(sys.argv[1]))
+r=(x.get('extensions') or {}).get('credentialRestrictions') or {}
+o=r.get('observed') or {}
+calls=x.get('calls') or {}
+acct=((calls.get('account_get_account') or {}).get('response') or {}).get('data') or {}
+balances=acct.get('balances') or []
+nonzero=[]; usdt=Decimal('0')
+for b in balances:
+    try: total=Decimal(str(b.get('free','0')))+Decimal(str(b.get('locked','0')))
+    except Exception: continue
+    if total == 0: continue
+    asset=str(b.get('asset') or '')
+    if asset=='USDT': usdt += total
+    else: nonzero.append(asset)
+open_orders=[]
+for k,v in calls.items():
+    if isinstance(k,str) and k.endswith(':account_open_orders') and v.get('ok') is True:
+        rows=(v.get('response') or {}).get('data') or []
+        if isinstance(rows,list): open_orders.extend(rows)
+summary={
+ 'venue':'BINANCE',
+ 'sourceStatus':x.get('status'),
+ 'readPermission':o.get('enableReading') is True,
+ 'tradePermission':o.get('enableSpotAndMarginTrading') is True,
+ 'withdrawPermission':o.get('enableWithdrawals') is True,
+ 'internalTransferPermission':o.get('enableInternalTransfer') is True,
+ 'universalTransferPermission':o.get('permitsUniversalTransfer') is True,
+ 'nonquoteNonzeroAssetCount':len(set(nonzero)),
+ 'quoteAsset':'USDT',
+ 'quoteBalanceLe1':usdt <= Decimal('1'),
+ 'openOrderCount':len(open_orders),
+ 'externalFinancialWriteAttempted':False,
+}
+summary['admitted']=(summary['readPermission'] and summary['tradePermission'] and not summary['withdrawPermission'] and not summary['internalTransferPermission'] and not summary['universalTransferPermission'] and summary['nonquoteNonzeroAssetCount']==0 and summary['quoteBalanceLe1'] and summary['openOrderCount']==0)
+json.dump(summary,open(sys.argv[2],'w'),indent=2,sort_keys=True);open(sys.argv[2],'a').write('\n')
+print(json.dumps(summary,sort_keys=True))
+PY
+  rm -f "$raw"
+else
+  raw="$out/okx-summary.json"
+  python3 "$old/scripts/probe-live-trade-admission-native.py" > "$raw"
+  python3 - "$raw" "$out/okx-admission-summary.json" <<'PY'
+import json,sys
+x=json.load(open(sys.argv[1]))
+p=x.get('permissions') or {}
+summary={
+ 'venue':'OKX','credentialAdmissionOk':x.get('ok') is True,
+ 'accountIdentityMatches':x.get('accountIdentityMatches') is True,
+ 'readPermission':p.get('read') is True,'tradePermission':p.get('trade') is True,
+ 'withdrawPermission':p.get('withdraw') is True,'ipBound':x.get('ipBound') is True,
+ 'externalFinancialWriteAttempted':x.get('externalFinancialWriteAttempted') is True,
+ 'balanceAdmissionPending':True,
+}
+summary['admitted']=False
+json.dump(summary,open(sys.argv[2],'w'),indent=2,sort_keys=True);open(sys.argv[2],'a').write('\n')
+print(json.dumps(summary,sort_keys=True))
+PY
+  rm -f "$raw"
+fi
