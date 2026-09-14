@@ -64,7 +64,7 @@ def main() -> None:
         "parquet": str(parquet),
         "sameCutDerivedBeforeExternalStorage": True,
         "externalFinancialWriteAttempted": False,
-        "productionAuthorization": "BLOCK_NOT_GRANTED"
+        "externalFinancialWriteAdmission": "NOT_ADMITTED"
     }, sort_keys=True))
 
 
