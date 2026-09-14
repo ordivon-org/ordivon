@@ -731,9 +731,10 @@ fn workspace_diff_includes_staged_changes_and_workspace_listing_recovers_open_ha
         ],
     );
 
-    let listed = list_workspace_records(&config, 10).unwrap();
-    assert_eq!(listed.len(), 1);
-    assert_eq!(listed[0].workspace_id, workspace_id);
+    let inventory = list_open_workspace_record_inventory(&config).unwrap();
+    assert!(inventory.issues.is_empty());
+    assert_eq!(inventory.records.len(), 1);
+    assert_eq!(inventory.records[0].workspace_id, workspace_id);
 }
 
 #[test]

@@ -308,79 +308,6 @@ pub(crate) struct WorkspaceRecordInventory {
     pub issues: Vec<WorkspaceRecordInventoryIssue>,
 }
 
-pub(crate) fn list_workspace_record_inventory(
-    config: &UniversalExecutorConfig,
-) -> Result<WorkspaceRecordInventory, UniversalExecError> {
-    config.ensure_store()?;
-    let records_root = config.workspace_records_root();
-    let mut records = Vec::new();
-    let mut issues = Vec::new();
-    for entry in
-        fs::read_dir(&records_root).map_err(|error| io_error(&records_root, "list", error))?
-    {
-        let entry =
-            entry.map_err(|error| io_error(&records_root, "read directory entry", error))?;
-        let path = entry.path();
-        if path.extension().and_then(|value| value.to_str()) != Some("json") {
-            continue;
-        }
-        let Some(workspace_id) = path.file_stem().and_then(|value| value.to_str()) else {
-            continue;
-        };
-        let record = match load_workspace_record_metadata(config, workspace_id) {
-            Ok(record) => record,
-            Err(error) if error.code == UniversalExecErrorCode::WorkspaceNotFound => continue,
-            Err(error) => {
-                issues.push(WorkspaceRecordInventoryIssue {
-                    workspace_id: workspace_id.to_string(),
-                    error,
-                });
-                continue;
-            }
-        };
-        let expected_path = config.workspace_path(workspace_id);
-        if !workspace_record_path_matches_identity(config, workspace_id, &record.workspace_path) {
-            issues.push(WorkspaceRecordInventoryIssue {
-                workspace_id: workspace_id.to_string(),
-                error: UniversalExecError::new(
-                    UniversalExecErrorCode::MetadataCorrupt,
-                    "workspace record path does not match its identity",
-                    Some("workspaceId"),
-                    false,
-                ),
-            });
-            continue;
-        }
-        match fs::symlink_metadata(&expected_path) {
-            Ok(metadata) if metadata.is_dir() && !metadata.file_type().is_symlink() => {
-                records.push(record);
-            }
-            Ok(_) => issues.push(WorkspaceRecordInventoryIssue {
-                workspace_id: workspace_id.to_string(),
-                error: UniversalExecError::new(
-                    UniversalExecErrorCode::MetadataCorrupt,
-                    "workspace record target must be a non-symlink directory",
-                    Some("workspaceId"),
-                    false,
-                ),
-            }),
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
-            Err(error) => issues.push(WorkspaceRecordInventoryIssue {
-                workspace_id: workspace_id.to_string(),
-                error: io_error(&expected_path, "inspect", error),
-            }),
-        }
-    }
-    records.sort_by(|left, right| {
-        right
-            .created_unix_ms
-            .cmp(&left.created_unix_ms)
-            .then_with(|| left.workspace_id.cmp(&right.workspace_id))
-    });
-    issues.sort_by(|left, right| left.workspace_id.cmp(&right.workspace_id));
-    Ok(WorkspaceRecordInventory { records, issues })
-}
-
 pub(crate) fn list_open_workspace_record_inventory(
     config: &UniversalExecutorConfig,
 ) -> Result<WorkspaceRecordInventory, UniversalExecError> {
@@ -500,21 +427,6 @@ pub(crate) fn workspace_cleanup_dependents(
     dependents.sort();
     dependents.dedup();
     Ok(dependents)
-}
-
-pub fn list_workspace_records(
-    config: &UniversalExecutorConfig,
-    limit: u32,
-) -> Result<Vec<WorkspaceRecord>, UniversalExecError> {
-    if limit == 0 {
-        return Err(invalid("limit must be positive", "limit"));
-    }
-    let mut inventory = list_workspace_record_inventory(config)?;
-    inventory.records.truncate(limit as usize);
-    if let Some(issue) = inventory.issues.into_iter().next() {
-        return Err(issue.error);
-    }
-    Ok(inventory.records)
 }
 
 fn open_workspace_regular_file(
