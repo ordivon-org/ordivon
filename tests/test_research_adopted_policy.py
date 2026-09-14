@@ -27,6 +27,15 @@ class ResearchAdoptedPolicyTests(unittest.TestCase):
         self.assertIn("decision.status == \"adopted\"", policy)
         self.assertIn("input.delegation.decision == \"ALLOW\"", policy)
 
+    def test_policy_engine_is_not_declared_global_authority_waist(self) -> None:
+        boundary = (ROOT / "policies" / "CONSUMPTION_BOUNDARY_R1.md").read_text()
+        self.assertIn("OPA is not a new global waist", (ROOT / "policies" / "README.md").read_text())
+        self.assertIn("global `can_act()`", boundary)
+        self.assertIn("Runtime", boundary)
+        self.assertIn("none by default", boundary)
+        self.assertIn("product selector", boundary)
+        self.assertIn("abstract production-approval gate", boundary)
+
 
 if __name__ == "__main__":
     unittest.main()
