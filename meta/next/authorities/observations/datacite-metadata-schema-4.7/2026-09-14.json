@@ -1,0 +1,11 @@
+{
+  "authorityId": "datacite-metadata-schema-4.7",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current",
+  "note": "DataCite identifies Metadata Schema 4.7, released 2026-03-03, as the latest minor version.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://schema.datacite.org/meta/kernel-4.7/",
+  "schemaVersion": 1,
+  "versionObserved": "4.7"
+}

@@ -1,0 +1,55 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "CSL",
+      "Citation Style Language",
+      "CSL 1.0.2"
+    ],
+    "domains": [
+      "research",
+      "scholarly-communication",
+      "publication",
+      "artifact"
+    ],
+    "topics": [
+      "citation-style",
+      "bibliography",
+      "citation-rendering",
+      "scholarly-writing",
+      "references"
+    ]
+  },
+  "id": "csl-1.0.2",
+  "identity": {
+    "authorityKind": "open-specification",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "citation-style-language",
+      "name": "Citation Style Language"
+    },
+    "officialSource": "https://docs.citationstyles.org/en/v1.0.2/specification.html",
+    "publicationDate": "2022-01-02",
+    "title": "Citation Style Language (CSL) 1.0.2 Specification",
+    "versionLabel": "1.0.2"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/research.md",
+      "docs/RESEARCH_CAPABILITY_PACKAGE_R1.md",
+      "CSL official documentation checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

@@ -1,0 +1,55 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "Crossref",
+      "Crossref 5.5.0",
+      "Crossref metadata deposit schema"
+    ],
+    "domains": [
+      "research",
+      "scholarly-communication",
+      "metadata",
+      "publication"
+    ],
+    "topics": [
+      "doi",
+      "scholarly-metadata",
+      "metadata-deposit",
+      "citation-metadata",
+      "publisher-metadata"
+    ]
+  },
+  "id": "crossref-metadata-deposit-schema-5.5.0",
+  "identity": {
+    "authorityKind": "scholarly-metadata-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "crossref",
+      "name": "Crossref"
+    },
+    "officialSource": "https://www.crossref.org/documentation/schema-library/metadata-deposit-schema-5-5-0/",
+    "publicationDate": "2026-06-15",
+    "title": "Crossref Metadata Deposit Schema 5.5.0",
+    "versionLabel": "5.5.0"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/research.md",
+      "docs/RESEARCH_CAPABILITY_PACKAGE_R1.md",
+      "Crossref official schema checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

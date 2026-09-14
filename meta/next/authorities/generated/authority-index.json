@@ -130,6 +130,35 @@
     },
     {
       "aliases": [
+        "ANSI/NISO Z39.104-2022",
+        "Contributor Roles Taxonomy",
+        "CRediT"
+      ],
+      "authorityKind": "national-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "authorship",
+        "metadata",
+        "research",
+        "scholarly-communication"
+      ],
+      "id": "ansi-niso-z39.104-2022-credit",
+      "identityMode": "versioned",
+      "issuer": "National Information Standards Organization (NISO)",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:5605f878a7269f74d377034266b72fe751030484cc5e45fe4596bc67ec32be30",
+      "recordDigest": "sha256:41647989ee7b1223cef6f956ea3ce0aecb2f10eae6fbdc57a9ecfc08def45523",
+      "title": "ANSI/NISO Z39.104-2022 — CRediT, Contributor Roles Taxonomy",
+      "topics": [
+        "authorship",
+        "contributor-roles",
+        "research-contributions",
+        "scholarly-metadata"
+      ],
+      "versionLabel": "Z39.104-2022"
+    },
+    {
+      "aliases": [
         "Apache Arrow",
         "Arrow Columnar Format",
         "Arrow Format 1.5"
@@ -329,6 +358,66 @@
     },
     {
       "aliases": [
+        "Crossref",
+        "Crossref 5.5.0",
+        "Crossref metadata deposit schema"
+      ],
+      "authorityKind": "scholarly-metadata-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "metadata",
+        "publication",
+        "research",
+        "scholarly-communication"
+      ],
+      "id": "crossref-metadata-deposit-schema-5.5.0",
+      "identityMode": "versioned",
+      "issuer": "Crossref",
+      "lifecycleStatus": "current-recommended",
+      "observationDigest": "sha256:c8a40e0942155476e77776e3fe985b59d8c417b797f8417b5280a22b022de32f",
+      "recordDigest": "sha256:d46f7c38a738b2dda9af8466067261c1d744d4e90633d8e301c4a8bd9f3a417c",
+      "title": "Crossref Metadata Deposit Schema 5.5.0",
+      "topics": [
+        "citation-metadata",
+        "doi",
+        "metadata-deposit",
+        "publisher-metadata",
+        "scholarly-metadata"
+      ],
+      "versionLabel": "5.5.0"
+    },
+    {
+      "aliases": [
+        "Citation Style Language",
+        "CSL",
+        "CSL 1.0.2"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "publication",
+        "research",
+        "scholarly-communication"
+      ],
+      "id": "csl-1.0.2",
+      "identityMode": "versioned",
+      "issuer": "Citation Style Language",
+      "lifecycleStatus": "current-stable",
+      "observationDigest": "sha256:746a7f8778c316cadf5a645802336a073dc370364dba1dc3861ae8d0ce082ae7",
+      "recordDigest": "sha256:808eee723f1264f361a2c90ee9f7d7a40fe2d3199c39be2690b8cbb5b37b6260",
+      "title": "Citation Style Language (CSL) 1.0.2 Specification",
+      "topics": [
+        "bibliography",
+        "citation-rendering",
+        "citation-style",
+        "references",
+        "scholarly-writing"
+      ],
+      "versionLabel": "1.0.2"
+    },
+    {
+      "aliases": [
         "CycloneDX",
         "CycloneDX 1.7",
         "ECMA-424",
@@ -357,6 +446,36 @@
         "vulnerability-management"
       ],
       "versionLabel": "1.7"
+    },
+    {
+      "aliases": [
+        "DataCite",
+        "DataCite 4.7",
+        "DataCite Metadata Schema"
+      ],
+      "authorityKind": "scholarly-metadata-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "data",
+        "metadata",
+        "research",
+        "scholarly-communication"
+      ],
+      "id": "datacite-metadata-schema-4.7",
+      "identityMode": "versioned",
+      "issuer": "DataCite",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:ec9c24afc47551747abe004a94c9c207f5074c4c5cc635814b827492bfc86903",
+      "recordDigest": "sha256:f60c2bca3a4550bea90f31d79b79d3f3cb7aacc17e514369b293bc9796ef7a96",
+      "title": "DataCite Metadata Schema 4.7",
+      "topics": [
+        "citation-metadata",
+        "dataset-metadata",
+        "doi",
+        "persistent-identifiers",
+        "research-output-metadata"
+      ],
+      "versionLabel": "4.7"
     },
     {
       "aliases": [
@@ -2133,6 +2252,35 @@
     },
     {
       "aliases": [
+        "ORCID",
+        "ORCID iD",
+        "ORCID Identifier"
+      ],
+      "authorityKind": "identifier-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "identity",
+        "metadata",
+        "research",
+        "scholarly-communication"
+      ],
+      "id": "orcid-id-structure",
+      "identityMode": "rolling-source",
+      "issuer": "ORCID",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:d4ab6a5a51d997f1b9bb618ef6b763f1e7ee7b5fd3d1cddef1d65155b7154a2a",
+      "recordDigest": "sha256:293688756deaf378b4e49159142f031e6c25d9a7954bc8f75b49244c2fbe627c",
+      "title": "Structure of the ORCID Identifier",
+      "topics": [
+        "contributor-identity",
+        "persistent-identifier",
+        "researcher-identifier",
+        "scholarly-identity"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
         "OpenTelemetry Protocol",
         "OTLP"
       ],
@@ -2603,6 +2751,35 @@
     },
     {
       "aliases": [
+        "Research Organization Registry",
+        "ROR",
+        "ROR 2.1"
+      ],
+      "authorityKind": "identifier-metadata-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "identity",
+        "metadata",
+        "research",
+        "scholarly-communication"
+      ],
+      "id": "ror-schema-2.1",
+      "identityMode": "versioned",
+      "issuer": "Research Organization Registry (ROR)",
+      "lifecycleStatus": "current-recommended-stable",
+      "observationDigest": "sha256:63ac0dfaeeb7ac02ac70e9d48288da3815acdc08bc093c3bf9c2307a7f8e11e0",
+      "recordDigest": "sha256:7777e278ee0662a8748636c7deb45094aeb6f9a9292cb91ab24436973e989d24",
+      "title": "ROR Schema 2.1",
+      "topics": [
+        "affiliation",
+        "institution-metadata",
+        "organization-identifier",
+        "research-organization"
+      ],
+      "versionLabel": "2.1"
+    },
+    {
+      "aliases": [
         "SLSA",
         "SLSA 1.2"
       ],
@@ -2681,6 +2858,36 @@
         "research-data"
       ],
       "versionLabel": null
+    },
+    {
+      "aliases": [
+        "Software Heritage persistent identifier",
+        "swh:1",
+        "SWHID"
+      ],
+      "authorityKind": "persistent-identifier-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "preservation",
+        "research",
+        "scholarly-communication",
+        "software"
+      ],
+      "id": "swhid-scheme-v1",
+      "identityMode": "versioned",
+      "issuer": "Software Heritage",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:595b954b21e2934b965c4052c6e01e598355c57fdbd28dc4b91de833b09f32d1",
+      "recordDigest": "sha256:1b8854b93b17da8c1a40e444ea1ac3a5c51b3ac656e12439829421d2d035a258",
+      "title": "SoftWare Hash persistent IDentifiers (SWHIDs) — identifier scheme version 1",
+      "topics": [
+        "persistent-identifier",
+        "software-archive",
+        "software-citation",
+        "software-identifier",
+        "source-code"
+      ],
+      "versionLabel": "1"
     },
     {
       "aliases": [
@@ -2820,7 +3027,7 @@
     }
   ],
   "kind": "ordivon.external-authority-discovery-index",
-  "recordCount": 103,
-  "recordsDigest": "sha256:9c59e767cc1080ee23f29bc0f4fb4274b01f6df45d07af676f66cc5e78c812e1",
+  "recordCount": 110,
+  "recordsDigest": "sha256:acf36cfcf08834025981f823f63abdb08edbbb3e7a2f0b232ff6bf977a7dd43c",
   "schemaVersion": 1
 }

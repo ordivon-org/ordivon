@@ -1,0 +1,11 @@
+{
+  "authorityId": "orcid-id-structure",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current",
+  "note": "ORCID current guidance defines the ORCID iD as a full HTTPS URI containing a 16-character ISO 27729-compatible identifier; the catalog keeps this as a rolling authority rather than conflating it with ORCID API/message-schema versions.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://support.orcid.org/hc/en-us/articles/360006897674-Structure-of-the-ORCID-Identifier",
+  "schemaVersion": 1,
+  "versionObserved": null
+}
