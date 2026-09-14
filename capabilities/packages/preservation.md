@@ -86,3 +86,7 @@ Official NDSA 2.1 assessment materials are pinned at `/opt/ordivon/external/stan
 ## Acceptance workload
 
 For future preservation changes, reuse the frozen 12-work / 86-file heterogeneous corpus and require external-standard evidence. New local semantics are allowed only after a specific mature-standard/provider substitution failure is reproduced.
+
+## Retired local implementation — 2026-09-14
+
+The historical `creative_forward_ingest.py` BagIt/receipt/catalog implementation and its private dependency environment have been removed from the active workstation. R4/R5 bags/receipts remain historical evidence only. Forward package semantics are E-ARK/Commons-IP; no custom preservation catalog is maintained.
