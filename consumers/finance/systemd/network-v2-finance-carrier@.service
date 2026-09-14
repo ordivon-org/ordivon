@@ -1,0 +1,24 @@
+[Unit]
+Description=Network v2 Finance provider carrier %i
+Requires=network-v2-finance-wireguard@%i.service
+After=network-v2-finance-wireguard@%i.service
+BindsTo=network-v2-finance-wireguard@%i.service
+PartOf=network-v2-finance.target
+
+[Service]
+Type=simple
+User=sing-box
+Group=sing-box
+NetworkNamespacePath=/run/netns/nv2-finance-%i
+ExecStartPre=/usr/bin/sing-box check -c /etc/network-v2/finance/provider-carrier.json
+ExecStart=/usr/bin/sing-box run -c /etc/network-v2/finance/provider-carrier.json
+Restart=on-failure
+RestartSec=2s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+
+[Install]
+WantedBy=multi-user.target

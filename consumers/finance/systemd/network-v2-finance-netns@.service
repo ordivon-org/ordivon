@@ -1,13 +1,13 @@
 [Unit]
-Description=Network v2 finance-okx provider namespace %i
+Description=Network v2 Finance provider namespace %i
 After=network-online.target
 Wants=network-online.target
-PartOf=network-v2-finance-okx.target
+PartOf=network-v2-finance.target
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-EnvironmentFile=/etc/network-v2/finance-okx/provider-%i.env
+EnvironmentFile=/etc/network-v2/finance/provider-%i.env
 ExecStartPre=-/usr/bin/ip netns del nv2-finance-%i
 ExecStartPre=-/usr/bin/ip link del ${HOST_IF}
 ExecStart=/usr/bin/ip netns add nv2-finance-%i

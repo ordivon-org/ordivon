@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.network-v2.scoped-egress-authority",
+  "profile": "finance-binance-usdm-ws",
+  "listenHost": "127.0.0.1",
+  "listenPort": 19289,
+  "proxy": "http://127.0.0.1:19289",
+  "transport": "loopback-http-connect-provider-urltest-ipv4",
+  "tlsOwnership": "caller-end-to-end",
+  "allowedTcpPorts": [443],
+  "destination": {"host": "fstream.binance.com", "port": 443, "url": "https://fstream.binance.com/"},
+  "health": {"url": "https://fapi.binance.com/fapi/v1/time", "note": "provider-path health only; destination reachability is verified by consumer consequence acceptance"},
+  "providers": ["provider-a", "provider-b"],
+  "selectionPolicy": "sing-box-urltest-latency-selection",
+  "healthAuthority": "sing-box-urltest",
+  "staleBehavior": "fail-closed-when-no-provider-healthy",
+  "directFallback": false,
+  "serviceUnit": "network-v2-finance-egress.service",
+  "targetUnit": "network-v2-finance.target",
+  "groupTag": "finance-binance-usdm-ws-auto"
+}
