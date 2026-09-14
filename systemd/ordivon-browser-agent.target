@@ -1,0 +1,7 @@
+[Unit]
+Description=Ordivon general-purpose agent browser lane
+Requires=ordivon-browserless@21.service
+After=network-v2-browserless.target ordivon-browserless-display@21.service ordivon-browserless-operator-proxy@21.service
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,31 @@
+[Unit]
+Description=Production Temporal worker for Browserless-backed Ordivon Agent Automation
+Requires=temporal.service
+After=temporal.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/ordivon/agent-automation/current
+ExecStart=/root/.local/share/ordivon-workstation/temporal-agent-automation/.venv/bin/python /opt/ordivon/agent-automation/current/scripts/temporal_agent_automation_worker.py --config /etc/ordivon/agent-automation-browserless.json --address 127.0.0.1:17233 --namespace default --task-queue ordivon-agent-automation
+Restart=on-failure
+RestartSec=2s
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ReadWritePaths=/root/.local/state/ordivon-workstation/agent-automation/state
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=false
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+
+[Install]
+WantedBy=multi-user.target

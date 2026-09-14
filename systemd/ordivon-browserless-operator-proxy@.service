@@ -1,0 +1,13 @@
+[Unit]
+Description=Loopback operator bridge to Browserless carrier %i
+BindsTo=@NETWORK_AUTHORITY_SERVICE@
+After=@NETWORK_AUTHORITY_SERVICE@
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/systemd-socket-activate -l 127.0.0.1:131%i --now /usr/bin/ip netns exec @NETWORK_NAMESPACE@ /usr/lib/systemd/systemd-socket-proxyd 127.0.0.1:30%i
+Restart=on-failure
+RestartSec=1s
+
+[Install]
+WantedBy=multi-user.target

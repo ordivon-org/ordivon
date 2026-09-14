@@ -1,0 +1,32 @@
+[Unit]
+Description=Ordivon Agent Automation MCP
+After=network-online.target ordivon-agent-temporal-worker.service ordivon-browserless@11.service ordivon-browserless@12.service ordivon-browserless@13.service
+Wants=network-online.target ordivon-browserless@11.service ordivon-browserless@12.service ordivon-browserless@13.service
+Requires=ordivon-agent-temporal-worker.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/ordivon/agent-automation/current
+Environment=ORDIVON_AGENT_AUTOMATION_SOURCE_ROOT=/opt/ordivon/agent-automation/current
+ExecStartPre=/root/.local/share/ordivon-workstation/agent-automation-mcp-v1/.venv/bin/python /opt/ordivon/agent-automation/current/scripts/agent_automation_mcp.py --config /etc/ordivon/agent-automation-browserless.json --token-file /etc/ordivon/agent-automation-mcp.token --bind 127.0.0.1 --port 8896 --check
+ExecStart=/root/.local/share/ordivon-workstation/agent-automation-mcp-v1/.venv/bin/python /opt/ordivon/agent-automation/current/scripts/agent_automation_mcp.py --config /etc/ordivon/agent-automation-browserless.json --token-file /etc/ordivon/agent-automation-mcp.token --bind 127.0.0.1 --port 8896 --log-level INFO
+ExecStartPost=/root/.local/share/ordivon-workstation/agent-automation-mcp-v1/.venv/bin/python /opt/ordivon/agent-automation/current/scripts/agent_automation_browserless.py --config /etc/ordivon/agent-automation-browserless.json doctor
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=20
+KillMode=control-group
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/root/.local/state/ordivon-workstation/agent-automation
+ProtectKernelTunables=true
+ProtectKernelModules=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+
+[Install]
+WantedBy=multi-user.target

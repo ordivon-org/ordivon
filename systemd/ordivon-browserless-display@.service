@@ -1,0 +1,13 @@
+[Unit]
+Description=Headful Xvfb display for Browserless carrier %i
+Before=ordivon-browserless@%i.service
+
+[Service]
+Type=simple
+ExecStartPre=/usr/bin/python3 /opt/ordivon/agent-automation/current/scripts/browserless_display_auth.py --instance %i
+ExecStart=/usr/bin/Xvfb :1%i -screen 0 1440x1000x24 -nolisten tcp -auth /run/ordivon/browserless-xauth/%i
+Restart=on-failure
+RestartSec=2s
+
+[Install]
+WantedBy=multi-user.target

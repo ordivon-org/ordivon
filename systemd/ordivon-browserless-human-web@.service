@@ -1,0 +1,16 @@
+[Unit]
+Description=Bounded noVNC web transport for Browserless carrier %i
+Requires=ordivon-browserless-human-vnc@%i.service
+After=ordivon-browserless-human-vnc@%i.service
+BindsTo=ordivon-browserless@%i.service
+After=ordivon-browserless@%i.service
+
+[Service]
+Type=simple
+ExecStart=@WEBSOCKIFY_EXECUTABLE@ --web /opt/ordivon/external/novnc/1.7.0 --file-only 127.0.0.1:160%i 127.0.0.1:159%i
+Restart=on-failure
+RestartSec=1s
+RuntimeMaxSec=600
+
+[Install]
+WantedBy=multi-user.target
