@@ -102,3 +102,5 @@ Clock timing qualification now passes: Windows w32time is synchronized to qualif
 - Execution Reconciliation R6: venue reality remains authoritative, FIX 4.4 supplies execution lifecycle vocabulary, and the only local semantic is EffectAuthority RETAIN/RELEASE/CONSUME. Absence from a broad snapshot is UNKNOWN/RETAIN; no-effect release requires explicit authoritative proof.
 
 - Demo/Testnet execution R7 preflight: installed Nautilus execution components support OKX DEMO and Binance Spot TESTNET configuration without local client reimplementation. This is component readiness only; demo/live external writes remain NOT_ADMITTED.
+
+- Live test-account admission: user-designated LIVE accounts may serve as qualification accounts without being relabeled Demo/Testnet. A pure admission evaluator requires fresh authoritative near-zero account reality, no positions/open orders/nonquote balances, <=1 quote unit, trade permission, no withdraw/transfer authority, clock PASS and reconciliation health. Production trading remains false.

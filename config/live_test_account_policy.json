@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.market-capital.live-test-account-policy",
+  "standing": "USER_AUTHORIZED_PENDING_FRESH_PRIVATE_ACCOUNT_VERIFICATION",
+  "userAuthorization": "LIVE_ENDPOINT_TEST_ACCOUNT_USE_AUTHORIZED",
+  "economicIntent": "NON_PRODUCTION_QUALIFICATION_ONLY",
+  "productionTradingAuthorized": false,
+  "withdrawalAuthorized": false,
+  "transferAuthorized": false,
+  "liveEndpointUseAllowed": true,
+  "orderSubmissionAllowed": false,
+  "maxTestNotionalQuote": "1",
+  "requiredFreshGates": [
+    "clock gate PASS",
+    "authoritative account balance read succeeds",
+    "observed account value is within test-account threshold",
+    "withdraw permission absent",
+    "transfer permission absent where venue exposes it",
+    "trade permission present",
+    "exact instrument filters/minimums loaded",
+    "reconciliation read path healthy",
+    "one-shot client order id reserved"
+  ],
+  "venues": {
+    "OKX": {
+      "endpointClass": "LIVE",
+      "role": "TEST_ACCOUNT_BY_USER_POLICY",
+      "observerCredential": "/root/.config/ordivon/secrets/okx/observer/config.toml",
+      "executorCredential": "/root/projects/ordivon-finance/.home-live-trade/.okx/config.toml",
+      "writeAdmission": "BLOCKED_PENDING_FRESH_GATES"
+    },
+    "BINANCE": {
+      "endpointClass": "LIVE",
+      "role": "TEST_ACCOUNT_BY_USER_POLICY",
+      "observerCredential": "/root/.config/ordivon/secrets/binance/observer",
+      "executorCredential": "/root/.config/ordivon/secrets/binance/executor",
+      "writeAdmission": "BLOCKED_PENDING_FRESH_GATES"
+    }
+  },
+  "rules": [
+    "live endpoint semantics must never be relabeled as Demo or Testnet",
+    "user authorization permits qualification use of these live accounts but does not grant production trading",
+    "no order may be submitted from user assertion of low balance alone; current authoritative balance evidence is mandatory",
+    "test order notional is capped at 1 quote unit unless a later explicit authorization changes it",
+    "if venue minimum notional exceeds the cap, the test must stop rather than raise the cap automatically",
+    "withdrawal and transfer operations remain forbidden",
+    "any ambiguous dispatch is RETAIN and must reconcile before retry"
+  ]
+}
