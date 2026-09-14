@@ -5,11 +5,11 @@ mod error;
 mod evidence;
 mod inspection;
 mod patch;
+mod platform;
 mod registry;
 #[cfg(feature = "operator-tools")]
 mod repair;
 mod supervisor;
-mod systemd;
 mod types;
 mod windows;
 

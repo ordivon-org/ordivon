@@ -5,7 +5,6 @@ use std::io::{Read, Seek, SeekFrom, Write};
 use std::os::fd::AsRawFd;
 use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
@@ -15,12 +14,12 @@ use super::evidence::prepare_runner_terminal_from_bundle;
 use super::patch::{
     durable_patch_request_digest, validate_durable_patch_request, validate_patch_status_request,
 };
+use super::platform::*;
 use super::registry::JobSnapshot;
 use super::supervisor::{
     classify_supervisor_recovery, classify_windows_launcher_recovery, AttemptSupervisorOwner,
     SupervisorObservation, SupervisorRecoveryDisposition, SupervisorUnitState, TerminationIntent,
 };
-use super::systemd::*;
 use super::windows::*;
 use super::{
     runtime_release_effect_id, runtime_release_request_identity_digest, validate_client_request_id,
@@ -850,15 +849,6 @@ fn io_error(context: &str, error: std::io::Error) -> RuntimeError {
         format!("{context}: {error}"),
         None,
         false,
-    )
-}
-
-fn tool_error(context: &str, error: std::io::Error) -> RuntimeError {
-    RuntimeError::new(
-        RuntimeErrorCode::ToolUnavailable,
-        format!("{context}: {error}"),
-        None,
-        true,
     )
 }
 
