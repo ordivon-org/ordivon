@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.network-v2.scoped-egress-authority",
+  "profile": "finance-binance-spot-public-ws",
+  "listenHost": "127.0.0.1",
+  "listenPort": 19285,
+  "proxy": "http://127.0.0.1:19285",
+  "transport": "loopback-http-connect-provider-urltest-ipv4",
+  "tlsOwnership": "caller-end-to-end",
+  "allowedTcpPorts": [
+    443
+  ],
+  "destination": {
+    "host": "data-stream.binance.vision",
+    "port": 443,
+    "url": "https://data-stream.binance.vision/"
+  },
+  "health": {
+    "url": "https://1.1.1.1/cdn-cgi/trace",
+    "note": "provider-path health only; destination reachability is verified by consumer consequence acceptance"
+  },
+  "providers": [
+    "provider-a",
+    "provider-b"
+  ],
+  "selectionPolicy": "sing-box-urltest-latency-selection",
+  "healthAuthority": "sing-box-urltest",
+  "staleBehavior": "fail-closed-when-no-provider-healthy",
+  "directFallback": false,
+  "serviceUnit": "network-v2-finance-egress.service",
+  "targetUnit": "network-v2-finance.target",
+  "groupTag": "provider-auto"
+}

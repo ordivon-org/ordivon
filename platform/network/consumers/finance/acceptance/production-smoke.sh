@@ -60,6 +60,14 @@ probe_binance_rest() {
   rm -f "$out"
 }
 
+probe_binance_spot_rest() {
+  local out
+  out=$(mktemp)
+  curl -4 -sS --proxy http://127.0.0.1:19284 --connect-timeout 3 --max-time 12 https://data-api.binance.vision/api/v3/time -o "$out"
+  jq -e '(.serverTime|type)=="number"' "$out" >/dev/null
+  rm -f "$out"
+}
+
 probe_ws_http() {
   local port=$1 url=$2 codes=$3 code
   code=$(curl -4 -sS --proxy "http://127.0.0.1:$port" --connect-timeout 3 --max-time 10 -o /dev/null -w '%{http_code}' "$url")
@@ -71,7 +79,9 @@ probe_ws_http() {
 
 probe_all() {
   probe_okx_rest \
+    && probe_binance_spot_rest \
     && probe_binance_rest \
+    && probe_ws_http 19285 https://data-stream.binance.vision/ '200,400,403,404,426' \
     && probe_ws_http 19288 https://ws.okx.com:8443/ws/v5/public '200,400,404,426' \
     && probe_ws_http 19289 https://fstream.binance.com/ '200,400,403,404,426'
 }
@@ -122,9 +132,17 @@ refresh_groups
 
 # Each inbound is destination-fenced, including against sibling Finance authorities.
 blocked 19283 https://fapi.binance.com/fapi/v1/time
+blocked 19283 https://data-api.binance.vision/api/v3/time
+blocked 19284 https://openapi.okx.com/api/v5/public/time
+blocked 19284 https://fapi.binance.com/fapi/v1/time
+blocked 19285 https://ws.okx.com:8443/ws/v5/public
+blocked 19285 https://fstream.binance.com/
 blocked 19287 https://openapi.okx.com/api/v5/public/time
+blocked 19287 https://data-api.binance.vision/api/v3/time
 blocked 19288 https://fstream.binance.com/
+blocked 19288 https://data-stream.binance.vision/
 blocked 19289 https://ws.okx.com:8443/ws/v5/public
+blocked 19289 https://data-stream.binance.vision/
 blocked 19283 https://example.com/
 
 # Mature fault injection: drop only provider B's WireGuard UDP endpoint; A must carry every authority.
@@ -145,6 +163,8 @@ wait_all
 fault_block provider-a provider-b
 sleep 4
 expect_target_failure 19283 https://openapi.okx.com/api/v5/public/time
+expect_target_failure 19284 https://data-api.binance.vision/api/v3/time
+expect_target_failure 19285 https://data-stream.binance.vision/
 expect_target_failure 19287 https://fapi.binance.com/fapi/v1/time
 expect_target_failure 19288 https://ws.okx.com:8443/ws/v5/public
 expect_target_failure 19289 https://fstream.binance.com/
@@ -161,6 +181,6 @@ for unit in ordivon-runtime.service ordivon-cloudflare-production-a.service ordi
   test "$(systemctl is-active "$unit")" = active
 done
 
-echo finance-network-v2-four-authority-fencing=PASS
+echo finance-network-v2-six-authority-fencing=PASS
 echo finance-network-v2-singbox-endpoint-failclosed=PASS
 echo finance-network-v2-single-process-lifecycle=PASS
