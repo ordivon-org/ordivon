@@ -174,7 +174,9 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
             "00edab4e4f6aeac395c9de3ab6a300162e56f6c1"
         )
         self.assertFalse(current)
-        self.assertIn("src/ordivon_harness/ordivon/finance_research_runtime_bridge.py", invalidating)
+        self.assertIn(
+            "src/ordivon_harness/ordivon/finance_research_runtime_bridge.py", invalidating
+        )
         current, invalidating = check_evidence._verified_revision_is_current(
             "f4b05bb38ef7bff10f889df69611de6aaff3a40c"
         )
@@ -228,7 +230,8 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         self.assertTrue(
             all(
                 path.startswith("src/")
-                or path in {
+                or path
+                in {
                     "pyproject.toml",
                     "uv.lock",
                     "scripts/harness_p0_scale_acceptance.py",
@@ -237,6 +240,61 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
             ),
             invalidating,
         )
+
+    def test_scoped_verified_currentness_ignores_unrelated_source_slice(self) -> None:
+        adaptive_scope = (
+            "src/anc_canonical/",
+            "src/ordivon_harness/adaptive_edit.py",
+            "src/ordivon_harness/execution_binding.py",
+            "src/ordivon_harness/runtime_port.py",
+            "src/ordivon_harness/ordivon/",
+            "pyproject.toml",
+            "uv.lock",
+        )
+        current, invalidating = check_evidence._verified_revision_is_current(
+            "9d936e98d8c02772aa2becc924ba9006c71aa989", adaptive_scope
+        )
+        self.assertTrue(current, invalidating)
+        self.assertEqual(invalidating, [])
+
+        lsp_scope = (
+            "src/ordivon_harness/lsp_workspace_edit.py",
+            "pyproject.toml",
+            "uv.lock",
+        )
+        current, invalidating = check_evidence._verified_revision_is_current(
+            "9d936e98d8c02772aa2becc924ba9006c71aa989", lsp_scope
+        )
+        self.assertFalse(current)
+        self.assertEqual(invalidating, ["src/ordivon_harness/lsp_workspace_edit.py"])
+
+    def test_scoped_implementation_paths_are_validated_conservatively(self) -> None:
+        normalize = check_evidence._normalize_implementation_paths
+        accepted = normalize(
+            [
+                "src/ordivon_harness/adaptive_edit.py",
+                "src/ordivon_harness/ordivon/",
+                "pyproject.toml",
+                "uv.lock",
+            ]
+        )
+        self.assertEqual(
+            accepted,
+            (
+                "src/ordivon_harness/adaptive_edit.py",
+                "src/ordivon_harness/ordivon/",
+                "pyproject.toml",
+                "uv.lock",
+            ),
+        )
+        for invalid in (
+            [],
+            ["docs/"],
+            ["src/ordivon_harness/adaptive_edit.py", "pyproject.toml"],
+            ["../src/", "pyproject.toml", "uv.lock"],
+        ):
+            with self.assertRaises(ValueError):
+                normalize(invalid)
 
     def test_index_creation_lineage_binding_accepts_exact_and_rejects_nonancestor(self) -> None:
         validator = check_evidence._validate_index_creation_lineage_binding

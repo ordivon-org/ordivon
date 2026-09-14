@@ -580,21 +580,63 @@
       "file": "adaptive-edit-r2-live-ab-deepseek-flash-20260914.json",
       "status": "verified",
       "implementationRevision": "33ac4a891441c565371767f02905361dd1d5fe55",
-      "scope": "Current model/task-specific Adaptive Edit R2 live profile at 33ac4a8: DeepSeek Flash on HARNESS-REPO-REPAIR-001 under equal corrected 64k token authority; exact replacement is provisional preferred for this profile only, while anchored addressing remains required by the deterministic repeated-text falsifier. No global codec default is authorized."
+      "scope": "Current model/task-specific Adaptive Edit R2 live profile at 33ac4a8: DeepSeek Flash on HARNESS-REPO-REPAIR-001 under equal corrected 64k token authority; exact replacement is provisional preferred for this profile only, while anchored addressing remains required by the deterministic repeated-text falsifier. No global codec default is authorized.",
+      "implementationPaths": [
+        "src/anc_canonical/",
+        "src/ordivon_harness/adaptive_edit.py",
+        "src/ordivon_harness/execution_binding.py",
+        "src/ordivon_harness/runtime_port.py",
+        "src/ordivon_harness/ordivon/",
+        "pyproject.toml",
+        "uv.lock"
+      ]
     },
     {
       "claimId": "harness.edit.adaptive-r2-live-deepseek-flash-addressing",
       "file": "adaptive-edit-r2-live-ab-deepseek-flash-addressing-20260914.json",
       "status": "verified",
       "implementationRevision": "6126ad25204c59dee92ae9175f48742000c6551f",
-      "scope": "Current second Adaptive Edit R2 live profile bound to 6126ad2: DeepSeek Flash on HARNESS-EDIT-ADDRESSING-002 under equal 64k token authority. Exact replacement and anchored-line are both 5/5 hidden-pass and 5/5 candidate-completed with identical model/tool call totals; standing is NO_CLEAR_WINNER_BOTH_VIABLE and no global codec default is authorized."
+      "scope": "Current second Adaptive Edit R2 live profile bound to 6126ad2: DeepSeek Flash on HARNESS-EDIT-ADDRESSING-002 under equal 64k token authority. Exact replacement and anchored-line are both 5/5 hidden-pass and 5/5 candidate-completed with identical model/tool call totals; standing is NO_CLEAR_WINNER_BOTH_VIABLE and no global codec default is authorized.",
+      "implementationPaths": [
+        "src/anc_canonical/",
+        "src/ordivon_harness/adaptive_edit.py",
+        "src/ordivon_harness/execution_binding.py",
+        "src/ordivon_harness/runtime_port.py",
+        "src/ordivon_harness/ordivon/",
+        "pyproject.toml",
+        "uv.lock"
+      ]
     },
     {
       "claimId": "harness.edit.adaptive-r2-live-deepseek-flash-multiregion",
       "file": "adaptive-edit-r2-live-ab-deepseek-flash-multiregion-20260914.json",
       "status": "verified",
       "implementationRevision": "9d936e98d8c02772aa2becc924ba9006c71aa989",
-      "scope": "Current third Adaptive Edit R2 live profile bound to 9d936e9: DeepSeek Flash on HARNESS-EDIT-MULTIREGION-003. Both codecs are 5/5 hidden-pass and candidate-completed within the unchanged 6-model/8-tool authority; anchored-line uses fewer calls/tokens, while the current one-semantic-edit-per-call boundary survives this task and an atomic multi-edit Agent wire format is not justified by current evidence."
+      "scope": "Current third Adaptive Edit R2 live profile bound to 9d936e9: DeepSeek Flash on HARNESS-EDIT-MULTIREGION-003. Both codecs are 5/5 hidden-pass and candidate-completed within the unchanged 6-model/8-tool authority; anchored-line uses fewer calls/tokens, while the current one-semantic-edit-per-call boundary survives this task and an atomic multi-edit Agent wire format is not justified by current evidence.",
+      "implementationPaths": [
+        "src/anc_canonical/",
+        "src/ordivon_harness/adaptive_edit.py",
+        "src/ordivon_harness/execution_binding.py",
+        "src/ordivon_harness/runtime_port.py",
+        "src/ordivon_harness/ordivon/",
+        "pyproject.toml",
+        "uv.lock"
+      ]
+    },
+    {
+      "claimId": "harness.lsp.r7.clangd-runtime-patch",
+      "file": "lsp-r7-clangd-runtime-patch-20260914.json",
+      "status": "verified",
+      "implementationRevision": "9c774b3336707852bd964e9053587f09671f6f05",
+      "scope": "Revision-bound local R7 provider-path receipt: clangd 22.1.8 rename via experimental pygls 2.1.1 transport was converted by Harness WorkspaceEdit adapter into one CanonicalEditPlan with two exact edits and committed only through Runtime workspace.patch. LSP direct write authority and pygls production dependency remain not admitted.",
+      "implementationPaths": [
+        "src/anc_canonical/",
+        "src/ordivon_harness/adaptive_edit.py",
+        "src/ordivon_harness/execution_binding.py",
+        "src/ordivon_harness/lsp_workspace_edit.py",
+        "pyproject.toml",
+        "uv.lock"
+      ]
     }
   ]
 }

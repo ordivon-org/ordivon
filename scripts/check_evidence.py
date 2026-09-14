@@ -17,6 +17,7 @@ _VERIFIED_IMPLEMENTATION_PATHS = (
     "uv.lock",
     "scripts/harness_p0_scale_acceptance.py",
 )
+_REQUIRED_SCOPED_DEPENDENCY_PATHS = frozenset({"pyproject.toml", "uv.lock"})
 _INDEX_REVISION_HINT_FIELDS = (
     "implementationSourceRevision",
     "implementationRevision",
@@ -39,24 +40,60 @@ def _canonical_payload_digest(value: dict[str, object]) -> str:
     return "sha256:" + hashlib.sha256(encoded).hexdigest()
 
 
-def _invalidating_paths(revision_from: str, revision_to: str) -> list[str]:
+def _path_matches_scope(path: str, scope: str) -> bool:
+    if scope.endswith("/"):
+        return path.startswith(scope)
+    return path == scope
+
+
+def _normalize_implementation_paths(value: object) -> tuple[str, ...] | None:
+    if value is None:
+        return None
+    if not isinstance(value, list) or not value:
+        raise ValueError("implementationPaths must be a non-empty array")
+    normalized: list[str] = []
+    for item in value:
+        if not isinstance(item, str) or not item or item.startswith("/"):
+            raise ValueError("implementationPaths entries must be non-empty relative strings")
+        parts = item.rstrip("/").split("/")
+        if any(part in {"", ".", ".."} for part in parts):
+            raise ValueError(f"invalid implementationPaths entry: {item}")
+        if not any(
+            _path_matches_scope(item.rstrip("/"), root.rstrip("/"))
+            or _path_matches_scope(item, root)
+            for root in _VERIFIED_IMPLEMENTATION_PATHS
+        ):
+            raise ValueError(
+                f"implementationPaths entry is outside verified implementation roots: {item}"
+            )
+        normalized.append(item)
+    if len(normalized) != len(set(normalized)):
+        raise ValueError("implementationPaths entries must be unique")
+    if not any(item.startswith("src/") for item in normalized):
+        raise ValueError("scoped verified evidence must bind at least one src/ implementation path")
+    if not _REQUIRED_SCOPED_DEPENDENCY_PATHS.issubset(normalized):
+        raise ValueError("scoped verified evidence must bind pyproject.toml and uv.lock")
+    return tuple(normalized)
+
+
+def _invalidating_paths(
+    revision_from: str,
+    revision_to: str,
+    implementation_paths: tuple[str, ...] | None = None,
+) -> list[str]:
     changed = subprocess.check_output(
         ["git", "diff", "--name-only", f"{revision_from}..{revision_to}"],
         cwd=ROOT,
         text=True,
         encoding="utf-8",
     ).splitlines()
-    return [
-        path
-        for path in changed
-        if any(
-            path == prefix or path.startswith(prefix)
-            for prefix in _VERIFIED_IMPLEMENTATION_PATHS
-        )
-    ]
+    scopes = implementation_paths or _VERIFIED_IMPLEMENTATION_PATHS
+    return [path for path in changed if any(_path_matches_scope(path, scope) for scope in scopes)]
 
 
-def _verified_revision_is_current(revision: str) -> tuple[bool, list[str]]:
+def _verified_revision_is_current(
+    revision: str, implementation_paths: tuple[str, ...] | None = None
+) -> tuple[bool, list[str]]:
     ancestor = subprocess.run(
         ["git", "merge-base", "--is-ancestor", revision, "HEAD"],
         cwd=ROOT,
@@ -64,7 +101,7 @@ def _verified_revision_is_current(revision: str) -> tuple[bool, list[str]]:
     )
     if ancestor.returncode != 0:
         return False, []
-    invalidating = _invalidating_paths(revision, "HEAD")
+    invalidating = _invalidating_paths(revision, "HEAD", implementation_paths)
     return not invalidating, invalidating
 
 
@@ -181,6 +218,11 @@ def main() -> int:
         revision = entry.get("implementationRevision")
         status = entry.get("status")
         revision_binding = entry.get("revisionBinding", "embedded")
+        try:
+            implementation_paths = _normalize_implementation_paths(entry.get("implementationPaths"))
+        except ValueError as error:
+            errors.append(f"invalid implementationPaths for {claim_id}: {error}")
+            implementation_paths = None
         if not isinstance(claim_id, str) or not claim_id:
             errors.append("one evidence entry has no claimId")
             continue
@@ -194,9 +236,7 @@ def main() -> int:
         if status not in {"historical", "verified"}:
             errors.append(f"unsupported evidence status for {claim_id}: {status}")
         if revision_binding not in {"embedded", "index-creation-lineage"}:
-            errors.append(
-                f"unsupported revision binding for {claim_id}: {revision_binding}"
-            )
+            errors.append(f"unsupported revision binding for {claim_id}: {revision_binding}")
         if not isinstance(revision, str) or len(revision) != 40:
             errors.append(f"invalid implementation revision: {claim_id}")
             continue
@@ -219,11 +259,15 @@ def main() -> int:
                         f"index-bound revision hint differs for {filename}: "
                         f"field={field} index={revision} evidence={observed}"
                     )
-                if field in {
-                    "implementationSourceRevision",
-                    "implementationRevision",
-                    "sourceRevision",
-                } and observed != revision:
+                if (
+                    field
+                    in {
+                        "implementationSourceRevision",
+                        "implementationRevision",
+                        "sourceRevision",
+                    }
+                    and observed != revision
+                ):
                     errors.append(
                         f"index-bound embedded implementation revision differs for {filename}: "
                         f"field={field} index={revision} evidence={observed}"
@@ -280,16 +324,13 @@ def main() -> int:
                 if checks.get("cliCommandsVerified") != 19:
                     errors.append("C3 API receipt CLI command count differs")
         if status == "verified":
-            current, invalidating = _verified_revision_is_current(revision)
+            current, invalidating = _verified_revision_is_current(revision, implementation_paths)
             if not current:
                 errors.append(
-                    f"verified receipt is stale for {claim_id}: "
-                    f"invalidating={invalidating}"
+                    f"verified receipt is stale for {claim_id}: invalidating={invalidating}"
                 )
 
-    receipt_files = {
-        path.name for path in EVIDENCE.glob("*.json") if path.name != "index.json"
-    }
+    receipt_files = {path.name for path in EVIDENCE.glob("*.json") if path.name != "index.json"}
     if files != receipt_files:
         errors.append(
             "evidence index/file set differs: "
@@ -301,10 +342,7 @@ def main() -> int:
         return 1
     historical = sum(entry.get("status") == "historical" for entry in entries)
     verified = sum(entry.get("status") == "verified" for entry in entries)
-    print(
-        "evidence contract: valid "
-        f"historical_receipts={historical} verified_receipts={verified}"
-    )
+    print(f"evidence contract: valid historical_receipts={historical} verified_receipts={verified}")
     return 0
 
 

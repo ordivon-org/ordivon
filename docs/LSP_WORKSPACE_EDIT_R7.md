@@ -132,3 +132,44 @@ Before admitting a production LSP transport provider:
    Runtime Patch;
 4. compare at least one second language server/provider before fixing a default client;
 5. keep server provisioning and mutation authority outside the adapter contract.
+
+## Revision-bound verified provider path
+
+After the pure adapter landed at:
+
+```text
+9c774b3 harness: add LSP WorkspaceEdit adapter
+```
+
+the local clangd rename flow was rerun from that exact revision. The observed path was:
+
+```text
+clangd 22.1.8
+    -> textDocument/rename (square -> quad)
+    -> WorkspaceEdit.changes
+    -> pygls 2.1.1 transport donor
+    -> Harness WorkspaceEdit adapter
+    -> CanonicalEditPlan (1 file / 2 exact edits)
+    -> Runtime workspace.patch
+    -> committed
+```
+
+The server negotiated `utf-8` position encoding. Harness converted the proposal while
+the source remained unchanged before Runtime admission. Runtime then committed from:
+
+```text
+before sha256:59f92d40809853654b25d0ba5c3c9692021b2820d6f927818b1a952d8f33b286
+after  sha256:0bbf5c459448b66e3a4b7624820c81c8f594d49e9fca55ae7c99a9769c931fac
+```
+
+The verified receipt is:
+
+```text
+evidence/lsp-r7-clangd-runtime-patch-20260914.json
+payload digest:
+sha256:f16757f66ebfae75a815b5002c50a97e7aee50574639be1841bb5a55c949328d
+```
+
+This evidence admits the **provider path**, not a fixed transport dependency. `pygls`
+remains experimental and absent from production dependencies. A second language server
+or provider should be evaluated before selecting a default LSP transport/provider stack.
