@@ -39,7 +39,7 @@ class AuthorityCatalogTests(unittest.TestCase):
             return ranked[0][1]
 
         self.assertEqual(top("risk management"), "iso-31000-2018")
-        self.assertIn(top("software supply chain"), {"slsa-1.2", "nist-sp-800-218-ssdf-1.1", "cyclonedx-1.7", "spdx-3.0"})
+        self.assertIn(top("software supply chain"), {"slsa-1.2", "nist-sp-800-218-ssdf-1.1", "cyclonedx-1.7", "spdx-3.0", "in-toto-1.0"})
         self.assertIn(top("software bill of materials"), {"cyclonedx-1.7", "spdx-3.0"})
         self.assertEqual(top("application security verification"), "owasp-asvs-5.0.0")
         self.assertEqual(top("data lineage"), "openlineage-spec")
@@ -61,6 +61,19 @@ class AuthorityCatalogTests(unittest.TestCase):
         self.assertEqual(top("xbrl reporting"), "xbrl-2.1")
         self.assertEqual(top("fix 4.4"), "fix-4.4-errata-20030618")
         self.assertEqual(top("legal entity identifier"), "iso-17442-1-2020")
+        self.assertEqual(top("information security management"), "iso-iec-27001-2022-amd1-2024")
+        self.assertEqual(top("ai management system"), "iso-iec-42001-2023")
+        self.assertEqual(top("service management system"), "iso-iec-20000-1-2018-amd1-2024")
+        self.assertEqual(top("knowledge management system"), "iso-30401-2018-amd1-2022-amd2-2024")
+        self.assertEqual(top("business continuity"), "iso-22301-2019-amd1-2024")
+        self.assertEqual(top("innovation management"), "iso-56001-2024")
+        self.assertEqual(top("ai risk management"), "nist-ai-rmf-1.0")
+        self.assertEqual(top("json schema"), "json-schema-draft-2020-12")
+        self.assertEqual(top("openapi"), "openapi-3.2.0")
+        self.assertEqual(top("asyncapi"), "asyncapi-3.1.0")
+        self.assertEqual(top("model context protocol"), "mcp-spec-2026-07-28")
+        self.assertEqual(top("agent skills"), "agent-skills-spec")
+        self.assertEqual(top("software supply chain attestation"), "in-toto-1.0")
 
     def test_latest_observation_is_append_only_date_selection(self):
         latest = catalog.latest_observation("iso-9001-2026")

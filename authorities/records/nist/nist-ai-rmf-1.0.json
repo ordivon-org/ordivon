@@ -1,0 +1,53 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "NIST AI RMF",
+      "AI RMF 1.0",
+      "NIST AI 100-1"
+    ],
+    "domains": [
+      "ai",
+      "security",
+      "enterprise",
+      "risk"
+    ],
+    "topics": [
+      "artificial-intelligence",
+      "ai-risk",
+      "trustworthy-ai",
+      "responsible-ai",
+      "risk-management"
+    ]
+  },
+  "id": "nist-ai-rmf-1.0",
+  "identity": {
+    "authorityKind": "government-guidance",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "nist",
+      "name": "NIST"
+    },
+    "officialSource": "https://www.nist.gov/publications/artificial-intelligence-risk-management-framework-ai-rmf-10",
+    "publicationDate": "2023-01-26",
+    "title": "Artificial Intelligence Risk Management Framework (AI RMF 1.0) — NIST AI 100-1",
+    "versionLabel": "1.0"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "NIST official AI RMF publication and 2026 revision status pages checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

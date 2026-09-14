@@ -1,0 +1,54 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "Agent Skills",
+      "SKILL.md specification",
+      "Agent Skills spec"
+    ],
+    "domains": [
+      "ai",
+      "agent",
+      "knowledge",
+      "engineering"
+    ],
+    "topics": [
+      "agent-skills",
+      "progressive-disclosure",
+      "procedural-knowledge",
+      "skill-discovery",
+      "skill-loading"
+    ]
+  },
+  "id": "agent-skills-spec",
+  "identity": {
+    "authorityKind": "open-specification",
+    "identityMode": "rolling-source",
+    "issuer": {
+      "id": "agent-skills",
+      "name": "Agent Skills"
+    },
+    "officialSource": "https://agentskills.io/specification",
+    "publicationDate": null,
+    "title": "Agent Skills Specification",
+    "versionLabel": null
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "docs/SKILLS.md",
+      "Agent Skills official specification checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

@@ -1,0 +1,11 @@
+{
+  "authorityId": "agent-skills-spec",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current",
+  "note": "Agent Skills official specification is a rolling source; no version label is asserted by this catalog record.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://agentskills.io/specification",
+  "schemaVersion": 1,
+  "versionObserved": null
+}

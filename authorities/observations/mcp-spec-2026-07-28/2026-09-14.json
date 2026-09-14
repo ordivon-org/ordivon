@@ -1,0 +1,11 @@
+{
+  "authorityId": "mcp-spec-2026-07-28",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current",
+  "note": "MCP maintainers officially released specification 2026-07-28 on 2026-07-28.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://modelcontextprotocol.io/specification/2026-07-28",
+  "schemaVersion": 1,
+  "versionObserved": "2026-07-28"
+}

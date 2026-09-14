@@ -1,0 +1,11 @@
+{
+  "authorityId": "in-toto-1.0",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "stable",
+  "note": "in-toto official specs page labels Stable v1.0 as the thoroughly-reviewed stable specification.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://in-toto.io/docs/specs/",
+  "schemaVersion": 1,
+  "versionObserved": "1.0"
+}

@@ -1,0 +1,53 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "AsyncAPI",
+      "AsyncAPI 3.1.0"
+    ],
+    "domains": [
+      "engineering",
+      "api",
+      "integration",
+      "events"
+    ],
+    "topics": [
+      "event-driven-api",
+      "message-driven-api",
+      "api-description",
+      "events",
+      "channels"
+    ]
+  },
+  "id": "asyncapi-3.1.0",
+  "identity": {
+    "authorityKind": "open-specification",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "asyncapi",
+      "name": "AsyncAPI Initiative"
+    },
+    "officialSource": "https://www.asyncapi.com/docs/reference/specification/v3.1.0",
+    "publicationDate": "2026-01-31",
+    "title": "AsyncAPI Specification 3.1.0",
+    "versionLabel": "3.1.0"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "docs/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R1.md",
+      "AsyncAPI official specification/release notes checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}
