@@ -151,26 +151,6 @@ tasks:
       - install -m 0644 /tmp/network-v2-gluetun-servers/{{.GLUETUN_SERVERS_FILE}} {{.GLUETUN_SERVERS_INSTALL}}
       - test "$(sha256sum {{.GLUETUN_SERVERS_INSTALL}} | awk '{print $1}')" = "{{.GLUETUN_SERVERS_SHA256}}"
 
-  provider:surfshark:live-materialize:
-    desc: Materialize the exact pinned Gluetun live updater from upstream source
-    cmds:
-      - /usr/bin/bash -n providers/surfshark/live/materialize.sh
-      - ./providers/surfshark/live/materialize.sh
-
-  provider:surfshark:live-discover:
-    desc: Fetch a fresh partial Surfshark candidate snapshot through the pinned Gluetun updater
-    deps: [provider:surfshark:validate]
-    cmds:
-      - /usr/bin/bash -n providers/surfshark/live/discover.sh
-      - ./providers/surfshark/live/discover.sh
-
-  provider:surfshark:live-qualify:
-    desc: Serially qualify one fresh live Surfshark WireGuard endpoint and restore current production
-    deps: [provider:surfshark:validate, provider:surfshark:verify-local]
-    cmds:
-      - /usr/bin/bash -n providers/surfshark/live/qualify-wireguard.sh
-      - ./providers/surfshark/live/qualify-wireguard.sh
-
   provider:surfshark:profiles:
     desc: Convert v2-owned standard Surfshark WireGuard configs into static numeric-endpoint wg-quick profiles using yq and the pinned Gluetun catalog
     deps: [provider:surfshark:catalog]
@@ -215,8 +195,6 @@ tasks:
     cmds:
       - /usr/local/libexec/network-v2/wireguard-go --version 2>&1 | grep -F "{{.WIREGUARD_GO_VERSION}}"
       - test "$(sha256sum {{.GLUETUN_SERVERS_INSTALL}} | awk '{print $1}')" = "{{.GLUETUN_SERVERS_SHA256}}"
-      - test -x {{.GLUETUN_INSTALL}}
-      - test "$(sha256sum {{.GLUETUN_INSTALL}} | awk '{print $1}')" = "{{.GLUETUN_SHA256}}"
       - |
         set -eu
         manifest=/etc/network-v2/providers/catalog-profiles/MANIFEST.tsv
@@ -447,18 +425,6 @@ vars:
     sh: awk -F= '$1=="revision"{print $2}' capabilities/wireguard/external/wireguard-go.lock
   WIREGUARD_GO_VERSION:
     sh: awk -F= '$1=="version"{print $2}' capabilities/wireguard/external/wireguard-go.lock
-  GLUETUN_REPO:
-    sh: awk -F= '$1=="repository"{print $2}' providers/surfshark/external/gluetun.lock
-  GLUETUN_TAG:
-    sh: awk -F= '$1=="tag"{print $2}' providers/surfshark/external/gluetun.lock
-  GLUETUN_REVISION:
-    sh: awk -F= '$1=="revision"{print $2}' providers/surfshark/external/gluetun.lock
-  GLUETUN_CREATED:
-    sh: awk -F= '$1=="created"{print $2}' providers/surfshark/external/gluetun.lock
-  GLUETUN_SHA256:
-    sh: awk -F= '$1=="sha256"{print $2}' providers/surfshark/external/gluetun.lock
-  GLUETUN_INSTALL:
-    sh: awk -F= '$1=="install"{print $2}' providers/surfshark/external/gluetun.lock
   GLUETUN_SERVERS_REPO:
     sh: awk -F= '$1=="repository"{print $2}' providers/surfshark/external/gluetun-servers.lock
   GLUETUN_SERVERS_REVISION:
