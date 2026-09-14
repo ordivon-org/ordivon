@@ -4,17 +4,8 @@ set -euo pipefail
 API_PORT=${API_PORT:-19299}
 TARGET=network-v2-finance.target
 EGRESS=network-v2-finance-egress.service
-A_WG=network-v2-finance-wireguard@a.service
-B_WG=network-v2-finance-wireguard@b.service
-A_CARRIER=network-v2-finance-carrier@a.service
-B_CARRIER=network-v2-finance-carrier@b.service
-
-recover() {
-  systemctl start "$A_CARRIER" >/dev/null 2>&1 || true
-  systemctl start "$B_CARRIER" >/dev/null 2>&1 || true
-  systemctl start "$EGRESS" >/dev/null 2>&1 || true
-}
-trap recover EXIT
+ENDPOINTS=/etc/network-v2/finance/provider-endpoints.json
+FAULT_TABLE=network_v2_finance_accept
 
 wait_state() {
   local unit=$1 expected=$2 state=unknown
@@ -25,6 +16,32 @@ wait_state() {
   done
   echo "unit state mismatch: $unit expected=$expected got=$state" >&2
   return 1
+}
+
+fault_reset() {
+  nft delete table inet "$FAULT_TABLE" >/dev/null 2>&1 || true
+}
+
+cleanup() {
+  fault_reset
+  systemctl restart "$EGRESS" >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
+
+endpoint_ip() {
+  local tag=$1
+  jq -er --arg tag "$tag" '.endpoints[] | select(.tag==$tag) | .peers[0].address' "$ENDPOINTS"
+}
+
+fault_block() {
+  fault_reset
+  nft add table inet "$FAULT_TABLE"
+  nft "add chain inet $FAULT_TABLE output { type filter hook output priority -50; policy accept; }"
+  local tag ip
+  for tag in "$@"; do
+    ip=$(endpoint_ip "$tag")
+    nft add rule inet "$FAULT_TABLE" output ip daddr "$ip" udp dport 51820 drop
+  done
 }
 
 probe_okx_rest() {
@@ -60,7 +77,7 @@ probe_all() {
 }
 
 wait_all() {
-  for _ in $(seq 1 25); do
+  for _ in $(seq 1 30); do
     probe_all >/dev/null 2>&1 && return 0
     sleep 1
   done
@@ -70,11 +87,9 @@ wait_all() {
 group() { sing-box api --url "http://127.0.0.1:$API_PORT" group show "$1"; }
 refresh_groups() {
   local g
-  for g in finance-okx-auto finance-okx-ws-auto finance-binance-usdm-auto finance-binance-usdm-ws-auto; do
-    sing-box api --url "http://127.0.0.1:$API_PORT" group urltest "$g" >/dev/null
-  done
+  sing-box api --url "http://127.0.0.1:$API_PORT" group urltest provider-auto >/dev/null
   sleep 4
-  for g in finance-okx-auto finance-okx-ws-auto finance-binance-usdm-auto finance-binance-usdm-ws-auto; do group "$g" >/dev/null; done
+  group provider-auto >/dev/null
 }
 
 blocked() {
@@ -95,9 +110,13 @@ expect_target_failure() {
   test "$rc" -ne 0
 }
 
-for unit in "$TARGET" "$EGRESS" network-v2-finance-netns@a.service network-v2-finance-netns@b.service "$A_WG" "$B_WG" "$A_CARRIER" "$B_CARRIER"; do
-  wait_state "$unit" active
+test -r "$ENDPOINTS"
+for unit in "$TARGET" "$EGRESS"; do wait_state "$unit" active; done
+for legacy in network-v2-finance-netns@a.service network-v2-finance-netns@b.service network-v2-finance-wireguard@a.service network-v2-finance-wireguard@b.service network-v2-finance-carrier@a.service network-v2-finance-carrier@b.service; do
+  test "$(systemctl is-active "$legacy" 2>/dev/null || true)" != active
 done
+! ip netns list | awk '{print $1}' | grep -Eq '^nv2-finance-[ab]$'
+! ss -lntH | awk '$4 ~ /:28221$/ {found=1} END{exit !found}'
 wait_all
 refresh_groups
 
@@ -108,38 +127,30 @@ blocked 19288 https://fstream.binance.com/
 blocked 19289 https://ws.okx.com:8443/ws/v5/public
 blocked 19283 https://example.com/
 
-# Provider B down: A must carry all four authorities.
-systemctl stop "$B_WG"
-wait_state "$B_CARRIER" inactive
+# Mature fault injection: drop only provider B's WireGuard UDP endpoint; A must carry every authority.
+fault_block provider-b
+refresh_groups || true
 wait_all
 
-# Normal systemd dependency activation restores B; no custom recovery controller.
-systemctl start "$B_CARRIER"
-wait_state "$B_WG" active
-wait_state "$B_CARRIER" active
+fault_reset
+refresh_groups
 wait_all
 
-# Provider A down: B must independently carry all four authorities.
-systemctl stop "$A_WG"
-wait_state "$A_CARRIER" inactive
+# Drop only provider A; B must independently carry every authority.
+fault_block provider-a
+refresh_groups || true
 wait_all
 
-# Both down: every admitted authority must fail closed against its own real target.
-systemctl stop "$B_WG"
-wait_state "$B_CARRIER" inactive
+# Drop both provider endpoints; all admitted authorities must fail closed.
+fault_block provider-a provider-b
+sleep 4
 expect_target_failure 19283 https://openapi.okx.com/api/v5/public/time
 expect_target_failure 19287 https://fapi.binance.com/fapi/v1/time
 expect_target_failure 19288 https://ws.okx.com:8443/ws/v5/public
 expect_target_failure 19289 https://fstream.binance.com/
 
-# Recover both providers and then restart only the root consumer process.
-systemctl start "$A_CARRIER"
-wait_state "$A_WG" active
-wait_state "$A_CARRIER" active
-systemctl start "$B_CARRIER"
-wait_state "$B_WG" active
-wait_state "$B_CARRIER" active
-wait_all
+# Restore mature data plane and prove root-process lifecycle recovery.
+fault_reset
 systemctl restart "$EGRESS"
 wait_state "$EGRESS" active
 wait_all
@@ -151,5 +162,5 @@ for unit in ordivon-runtime.service ordivon-cloudflare-production-a.service ordi
 done
 
 echo finance-network-v2-four-authority-fencing=PASS
-echo finance-network-v2-dual-provider-failclosed=PASS
-echo finance-network-v2-systemd-lifecycle=PASS
+echo finance-network-v2-singbox-endpoint-failclosed=PASS
+echo finance-network-v2-single-process-lifecycle=PASS
