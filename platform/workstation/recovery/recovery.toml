@@ -77,3 +77,17 @@ recovery_paths = [
   "root/.codex/config.toml",
   "root/.codex/skills",
 ]
+
+[owner_capsules.finance]
+exporter = "/opt/ordivon-finance-recovery-exporter-rebound/current/bin/finance-recovery-capsule"
+repository = "/mnt/d/wsl-backups/restic-semantic-recovery"
+password_file = "/root/.config/restic/workstation-password.txt"
+tag = "finance-owner-recovery"
+receipt = "/mnt/d/wsl-backups/finance-recovery.latest.json"
+attempt = "/mnt/d/wsl-backups/finance-recovery.last-attempt.json"
+staging_parent = "/var/lib/ordivon/workstation/semantic-recovery-staging"
+retain_snapshots = 14
+backup_timeout_seconds = 600
+restore_timeout_seconds = 300
+maintenance_timeout_seconds = 1800
+check_timeout_seconds = 1800

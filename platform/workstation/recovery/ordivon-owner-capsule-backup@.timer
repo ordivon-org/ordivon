@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh Ordivon owner capsule backup daily (%i)
+
+[Timer]
+OnCalendar=*-*-* 04:00:00
+Persistent=true
+RandomizedDelaySec=10m
+Unit=ordivon-owner-capsule-backup@%i.service
+
+[Install]
+WantedBy=timers.target

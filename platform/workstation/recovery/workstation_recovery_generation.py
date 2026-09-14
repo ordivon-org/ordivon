@@ -82,6 +82,11 @@ def recovery_contract_digest(source_root: str | Path) -> str:
         for name, value in sorted((cfg.get('external_apps') or {}).items())
         if isinstance(value, dict) and value.get('recovery_paths')
     }
+    owner_capsules = {
+        name: dict(value)
+        for name, value in sorted((cfg.get('owner_capsules') or {}).items())
+        if isinstance(value, dict)
+    }
     # Scheduling admission is owner policy, not recovery implementation identity.
     # Preserve the historical recovery contract unchanged except for coordinates
     # that only decide whether/why the timer is allowed to run.
@@ -93,9 +98,11 @@ def recovery_contract_digest(source_root: str | Path) -> str:
     payload = {
         'recovery': generation_recovery,
         'externalRecoveryPaths': external_paths,
+        'ownerCapsules': owner_capsules,
         'implementation': {
             'backup_authority_material.py': _sha256(source / 'recovery/backup_authority_material.py'),
             'backup_semantic_state.py': _sha256(source / 'recovery/backup_semantic_state.py'),
+            'owner_capsule_recovery.py': _sha256(source / 'recovery/owner_capsule_recovery.py'),
             'restic_mirror_verify.py': _sha256(source / 'recovery/restic_mirror_verify.py'),
             'workstation_recovery_generation.py': _sha256(source / 'recovery/workstation_recovery_generation.py'),
         },
@@ -154,6 +161,22 @@ RESTIC_REPOSITORY="$MIRROR_REPOSITORY" RESTIC_PASSWORD_FILE="$PASSWORD_FILE" \
 '''
 
 
+def _owner_capsule_launcher_text(*, source: Path, revision: str, tree: str) -> str:
+    return f'''#!/usr/bin/env bash
+set -euo pipefail
+SOURCE={shlex.quote(str(source))}
+EXPECTED_REVISION={revision}
+EXPECTED_TREE={tree}
+export GIT_OPTIONAL_LOCKS=0
+export PYTHONDONTWRITEBYTECODE=1
+[ -d "$SOURCE/.git" ] || {{ echo "Workstation recovery generation source unavailable: $SOURCE" >&2; exit 70; }}
+[ "$(/usr/bin/git -C "$SOURCE" rev-parse HEAD)" = "$EXPECTED_REVISION" ] || {{ echo "Workstation recovery generation revision drift" >&2; exit 71; }}
+[ "$(/usr/bin/git -C "$SOURCE" rev-parse 'HEAD^{{tree}}')" = "$EXPECTED_TREE" ] || {{ echo "Workstation recovery generation tree drift" >&2; exit 71; }}
+[ -z "$(/usr/bin/git -C "$SOURCE" status --porcelain=v1 --untracked-files=all)" ] || {{ echo "Workstation recovery generation source is dirty" >&2; exit 71; }}
+exec /usr/bin/python3 "$SOURCE/recovery/owner_capsule_recovery.py" "$@"
+'''
+
+
 def _atomic_current(install_root: Path, generation_name: str) -> None:
     current = install_root / 'current'
     temp = install_root / f'.current.{os.getpid()}'
@@ -169,7 +192,7 @@ def verify_generation(generation_root: str | Path, *, require_current: bool = Fa
         raise RecoveryGenerationError(f'incomplete Workstation recovery generation: {root}')
     manifest = json.loads(manifest_path.read_text())
     required = {
-        'schemaVersion', 'kind', 'generationId', 'source', 'launcher', 'recoveryContractDigest',
+        'schemaVersion', 'kind', 'generationId', 'source', 'launcher', 'ownerCapsuleLauncher', 'recoveryContractDigest',
         'controlRepository', 'primaryRepository', 'mirrorRepository', 'semanticRepository', 'createdFrom',
     }
     if not isinstance(manifest, dict) or set(manifest) != required or manifest.get('schemaVersion') != 0:
@@ -191,6 +214,11 @@ def verify_generation(generation_root: str | Path, *, require_current: bool = Fa
         raise RecoveryGenerationError('Workstation recovery launcher is unavailable')
     if _sha256(launcher) != manifest['launcher'].get('sha256'):
         raise RecoveryGenerationError('Workstation recovery launcher digest mismatch')
+    owner_launcher = root / 'bin/owner-capsule-recovery'
+    if owner_launcher.is_symlink() or not owner_launcher.is_file() or not os.access(owner_launcher, os.X_OK):
+        raise RecoveryGenerationError('Owner capsule recovery launcher is unavailable')
+    if _sha256(owner_launcher) != manifest['ownerCapsuleLauncher'].get('sha256'):
+        raise RecoveryGenerationError('Owner capsule recovery launcher digest mismatch')
     generation_id = f"workstation-recovery://git/{binding['revision']}"
     if manifest.get('generationId') != generation_id:
         raise RecoveryGenerationError('Workstation recovery generation identity mismatch')
@@ -207,6 +235,7 @@ def verify_generation(generation_root: str | Path, *, require_current: bool = Fa
         'sourceRevision': binding['revision'],
         'sourceTree': binding['tree'],
         'launcherSha256': _sha256(launcher),
+        'ownerCapsuleLauncherSha256': _sha256(owner_launcher),
         'recoveryContractDigest': contract_digest,
         'controlRepository': manifest['controlRepository'],
         'primaryRepository': manifest['primaryRepository'],
@@ -252,12 +281,18 @@ def provision_generation(
             source=final / 'source', revision=binding['revision'], tree=binding['tree'], recovery=recovery,
         ))
         launcher.chmod(0o755)
+        owner_launcher = stage / 'bin/owner-capsule-recovery'
+        owner_launcher.write_text(_owner_capsule_launcher_text(
+            source=final / 'source', revision=binding['revision'], tree=binding['tree'],
+        ))
+        owner_launcher.chmod(0o755)
         manifest = {
             'schemaVersion': 0,
             'kind': 'ordivon.workstation.recovery-generation.v0',
             'generationId': f"workstation-recovery://git/{binding['revision']}",
             'source': {'revision': binding['revision'], 'tree': binding['tree']},
             'launcher': {'relativePath': 'bin/workstation-backup', 'sha256': _sha256(launcher)},
+            'ownerCapsuleLauncher': {'relativePath': 'bin/owner-capsule-recovery', 'sha256': _sha256(owner_launcher)},
             'recoveryContractDigest': recovery_contract_digest(installed_source),
             'controlRepository': str(recovery['control_repository']),
             'primaryRepository': str(recovery['primary_repository']),

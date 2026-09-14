@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Ordivon owner capsule retention weekly (%i)
+
+[Timer]
+OnCalendar=Sun *-*-* 04:45:00
+Persistent=true
+RandomizedDelaySec=20m
+Unit=ordivon-owner-capsule-retention@%i.service
+
+[Install]
+WantedBy=timers.target

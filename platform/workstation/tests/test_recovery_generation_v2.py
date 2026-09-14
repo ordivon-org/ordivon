@@ -17,7 +17,7 @@ def fixture_source(root: Path) -> Path:
     source = root / "source"
     recovery_dir = source / "recovery"
     recovery_dir.mkdir(parents=True)
-    for name in ["backup_authority_material.py", "backup_semantic_state.py", "restic_mirror_verify.py"]:
+    for name in ["backup_authority_material.py", "backup_semantic_state.py", "owner_capsule_recovery.py", "restic_mirror_verify.py"]:
         (recovery_dir / name).write_text(f'print("{name}")\n')
     (recovery_dir / "workstation_recovery_generation.py").write_text(
         (ROOT / "recovery" / "workstation_recovery_generation.py").read_text()
@@ -34,6 +34,20 @@ def fixture_source(root: Path) -> Path:
         f'restic_password_file = "{root / "password"}"',
         f'semantic_repository = "{root / "semantic"}"',
         f'backup_generation_root = "{root / "install"}"',
+        "",
+        "[owner_capsules.finance]",
+        'exporter = "/bin/true"',
+        f'repository = "{root / "semantic"}"',
+        f'password_file = "{root / "password"}"',
+        'tag = "finance-owner-recovery"',
+        f'receipt = "{root / "receipt.json"}"',
+        f'attempt = "{root / "attempt.json"}"',
+        f'staging_parent = "{root / "stage"}"',
+        'retain_snapshots = 14',
+        'backup_timeout_seconds = 600',
+        'restore_timeout_seconds = 300',
+        'maintenance_timeout_seconds = 1800',
+        'check_timeout_seconds = 1800',
         "",
     ])
     (recovery_dir / "recovery.toml").write_text(contract)
@@ -59,8 +73,12 @@ def test_generation_uses_v2_recovery_kernel_and_tag() -> None:
         assert "CONTROL_SNAPSHOT_TAG=workstation-v2-control" in launcher
         assert '--tag "$CONTROL_SNAPSHOT_TAG"' in launcher
         assert "--tag workstation-lab" not in launcher
+        owner_launcher = (installed / "bin/owner-capsule-recovery").read_text()
+        assert "recovery/owner_capsule_recovery.py" in owner_launcher
+        assert result["ownerCapsuleLauncherSha256"].startswith("sha256:")
         manifest = json.loads((installed / "generation.json").read_text())
         assert manifest["controlRepository"] == str(base / "live-control")
+        assert manifest["ownerCapsuleLauncher"]["relativePath"] == "bin/owner-capsule-recovery"
 
 
 def test_generation_rejects_dirty_source() -> None:
