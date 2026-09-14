@@ -492,3 +492,47 @@ R1 architecture passes only if all are true:
 **Stable semantics at the waist; replaceable mechanisms at the edges.**
 
 Harness should become easier to automate in the same sense that n8n is easy to extend: new implementations register against narrow contracts, while execution authority and state ownership remain stable and explicit.
+
+# Current realization — 2026-09-14 R0/R2
+
+The first implementation slice is now materially realized in canonical `ordivon-harness`.
+
+Harness baseline before the donor change:
+
+```text
+72d47c5
+417 deterministic tests PASS
+```
+
+Canonical implementation commits:
+
+```text
+0468dcf harness: prototype adaptive edit gateway
+94cce41 harness: wire durable workspace patch recovery
+```
+
+Realized mechanisms:
+
+- internal `EditCodec -> CanonicalEditPlan` seam;
+- `exact-replacement-v1` codec;
+- `anchored-line-v1` Hashline-like codec bound to exact source snapshots;
+- measured/profile-driven codec-selection hook rather than universal Hashline preference;
+- common lowering to existing `HarnessExecutionBinding.patch_request_id()` and Runtime `workspace.patch`;
+- durable Harness Tool lifecycle support for `workspace.patch` only under explicit `WORKSPACE_CHANGE_POSSIBLE` consequence;
+- response-loss reconciliation through `workspace.patch.get` with no physical Patch redispatch;
+- distinct `committed`, `prepared/not-committed`, and `unknown` recovery standing;
+- default observation-only bridge remains unable to Patch even if supplied a patch-shaped Tool definition.
+
+Current regression standing after durable Patch integration:
+
+```text
+434 deterministic tests PASS
+Ruff PASS
+documentation contract PASS
+dependency contract PASS
+git diff --check PASS
+```
+
+The public default Agent Tool surface is unchanged. No global Capability Service, plugin database, second Tool authority, second Store, or second Runtime was introduced.
+
+R2 is therefore **PARTIALLY REALIZED**: the codec and durable physical-effect backend are proven, while the model-facing `edit_workspace` action, exact prior-read snapshot binding, codec benchmark/selection evidence, and LSP WorkspaceEdit expansion remain forward work.
