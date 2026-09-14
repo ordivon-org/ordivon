@@ -86,6 +86,7 @@ print(json.dumps({"schemaVersion":1,"kind":"ordivon.workstation-equipment-bindin
     assert.equal(value.state, "AVAILABLE");
     assert.equal(value.binding.executionTarget, "windows_native");
     assert.equal(value.binding.equipmentId, "professional:blender:blender");
+    assert.ok(value.admission);
     assert.match(value.admission, /engine import\/runtime checks/);
     const args = JSON.parse(readFileSync(log, "utf8"));
     assert.deepEqual(args, ["professional", "--software-id", "blender", "--launcher", "blender"]);

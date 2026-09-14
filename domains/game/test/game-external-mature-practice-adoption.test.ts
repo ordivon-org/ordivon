@@ -28,7 +28,7 @@ test("front-half product discovery observes the success universe before feasibil
   assert.match(policy, /Implementation feasibility\s+LEARNING-ORDER \/ CHEAP-BASELINE FILTER ONLY/);
   assert.match(frontHalf, /Steamworks.*similar titles/is);
   assert.match(frontHalf, /Nintendo.*Echoes of Wisdom/is);
-  assert.match(frontHalf, /Human baseline validation/);
+  assert.match(frontHalf, /Human play \/ evidence/);
   assert.match(frontHalf, /Runtime Agents remain `none` by default/);
 });
 

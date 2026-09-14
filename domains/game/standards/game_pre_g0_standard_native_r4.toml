@@ -1,0 +1,92 @@
+schema_version = 1
+profile_id = "game-pre-g0-standard-native-r4"
+date = "2026-09-14"
+model = "task-local-external-authority-profile"
+
+[subject]
+repo = "ordivon-game"
+baseline_revision = "3ac0d1a44a0209a569941d745e7766b1c32a22d1"
+phase = "PRE_G0_PRODUCT_DISCOVERY_AND_HUMAN_VALUE_FALSIFICATION"
+product_selected = false
+g0_entered = false
+rule = "This profile maps the current Pre-G0 work to external human-centred, usability, accessibility and provider authorities. It is not a universal game-development standard and does not make Player Value, accessibility-compliance, store-readiness or product-selection claims."
+
+[[authority]]
+id = "iso-9241-210-2019"
+name = "ISO 9241-210:2019 Human-centred design for interactive systems"
+role = "APPLICABLE_HCD_PROCESS_REFERENCE"
+source = "https://www.iso.org/standard/77520.html"
+currentness_checked = "2026-09-14"
+rationale = "Current Pre-G0 work forms and tests player-facing interaction hypotheses, so human-centred design activities and iterative evaluation are directly relevant."
+
+[[authority]]
+id = "iso-9241-11-2018"
+name = "ISO 9241-11:2018 Usability: Definitions and concepts"
+role = "APPLICABLE_USABILITY_REFERENCE"
+source = "https://www.iso.org/standard/63500.html"
+currentness_checked = "2026-09-14"
+rationale = "Mechanical completion is separated from human effectiveness, efficiency and satisfaction in context of use."
+
+[[authority]]
+id = "xbox-accessibility-guidelines-3.2"
+name = "Xbox Accessibility Guidelines v3.2"
+role = "ADVISORY_GAME_ACCESSIBILITY_GUIDANCE"
+source = "https://learn.microsoft.com/gaming/accessibility/xbox-accessibility-guidelines/"
+currentness_checked = "2026-09-14"
+rationale = "Use as current game-specific accessibility design/test guidance. No legal or certification claim is inferred."
+
+[[authority]]
+id = "wcag-2.2"
+name = "W3C Web Content Accessibility Guidelines 2.2"
+role = "APPLICABLE_TO_WEB_PLAYTEST_CARRIER_ONLY"
+source = "https://www.w3.org/TR/WCAG22/"
+currentness_checked = "2026-09-14"
+rationale = "The current Pre-G0 apparatus is a web interface. Selected WCAG criteria can evaluate that carrier, but this does not make the future game or even the whole apparatus WCAG-conformant."
+
+[[authority]]
+id = "games-user-research-practice"
+name = "Games User Research method selection guidance"
+role = "PROFESSIONAL_PRACTICE_GUIDANCE"
+source = "https://gamesuserresearch.com/choose-the-right-playtest-method/"
+currentness_checked = "2026-09-14"
+rationale = "Method choice should follow the player-facing question; professional guidance complements, rather than replaces, ISO HCD/usability concepts and real participant evidence."
+
+[[authority]]
+id = "godot-provider"
+name = "Godot official engine documentation and release archive"
+role = "IMPLEMENTATION_PROVIDER_AUTHORITY"
+source = "https://godotengine.org/download/archive/"
+currentness_checked = "2026-09-14"
+local_pin = "4.7.1"
+current_stable_observed = "4.7.2"
+rationale = "The accepted local build/export chain is deliberately pinned to 4.7.1. Upstream 4.7.2 stable currentness is tracked as provider drift, not automatically treated as a defect or forced upgrade."
+
+[[deferred_authority]]
+id = "store-rating-and-release-rules"
+examples = ["IARC", "ESRB", "PEGI", "Steamworks release requirements", "App Store review", "Google Play policy"]
+role = "DEFERRED_UNTIL_TARGET_PRODUCT_AND_DISTRIBUTION_CARRIER_EXIST"
+rationale = "No product or target distribution platform has been committed in Pre-G0. Activating release certification/rating rules now would be premature."
+
+[work_semantics]
+primary = "ADAPTIVE_PRODUCT_DISCOVERY_WITH_HUMAN_EVIDENCE"
+bpmn = "NOT_JUSTIFIED"
+cmmn = "NOT_REQUIRED_FOR_CURRENT_LOCAL_WORK"
+dmn = "NOT_JUSTIFIED"
+provider_rule = "Use provider-native Game/Engineering/Artifact tools; standards shape applicability and verification, not a new Ordivon workflow ontology."
+
+[evidence]
+requirements = "standards/game_pre_g0_standard_native_r4.sdoc"
+checker = "scripts/check_game_pre_g0_standard_native_r4.py"
+report = "standards/game_pre_g0_standard_native_r4_report.json"
+mechanical_acceptance_job = "job-01a09dd6-1b54-7392-8b5c-dd4ff8386003"
+mechanical_test_result = "435_PASS_0_FAIL"
+pre_g0_e2e_standing = "APPARATUS_ONLY_C0_UNOBSERVED_C1_UNOBSERVED"
+
+[non_claims]
+iso_certified = false
+wcag_conformant = false
+xag_certified = false
+player_value_proven = false
+product_selected = false
+g0_admitted = false
+store_ready = false

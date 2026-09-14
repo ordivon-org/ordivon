@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const access = JSON.parse(readFileSync(new URL("../evidence/acceptance/game-r1-direct-play-access-20260911.json", import.meta.url), "utf8"));
+const portfolio = JSON.parse(readFileSync(new URL("../evidence/acceptance/game-r1-direct-play-portfolio-20260914.json", import.meta.url), "utf8"));
 const doc = readFileSync(new URL("../docs/GAME_R1_DIRECT_PLAY_ACCESS_20260911.md", import.meta.url), "utf8");
 const sheet = readFileSync(new URL("../docs/GAME_R1_DIRECT_PLAY_OBSERVATION_SHEET.md", import.meta.url), "utf8");
 const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
@@ -27,7 +28,9 @@ test("direct-play access classes cover all twelve references exactly once", () =
   assert.equal(access.directPlaySelection.previousFactorioFirstRecommendationSuperseded, true);
   assert.equal(access.directPlaySelection.targetPortfolioSize, "3-5 learning games");
   assert.match(doc, /FlagshipDeskTeardown != MandatoryFullPlaythrough/);
-  assert.match(doc, /No first-session game selected yet/);
+  assert.equal(portfolio.status, "PORTFOLIO_SELECTED_HUMAN_PLAY_NOT_STARTED_PARALLEL_EXPLORATION_ADMITTED");
+  assert.equal(portfolio.portfolio[0].title, "Factorio Demo");
+  assert.match(doc, /Factorio is now the default first canary/);
 });
 
 test("downloads purchases sign-in and synthetic Human evidence stay closed without user authority", () => {

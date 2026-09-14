@@ -28,9 +28,14 @@ test("Game development model keeps canonical G0-G8 stages while exposing deeper 
 
 test("product discovery before G0 is external-reference-first without creating new G-stages", () => {
   assert.match(frontHalf, /canonical-front-half-profile/);
-  assert.match(frontHalf, /success-universe census[\s\S]*archetype coverage map[\s\S]*reference stack[\s\S]*learning-order selection[\s\S]*teardown[\s\S]*baseline reproduction[\s\S]*human playtest[\s\S]*controlled subtraction \/ variation \/ recombination[\s\S]*canonical G0/i);
+  assert.match(frontHalf, /success-universe census without feasibility filtering/);
+  assert.match(frontHalf, /archetype\/reference coverage sufficient for the current decision/);
+  assert.match(frontHalf, /Reference learning\s+<->\s+Product theses\s+<->\s+Throwaway prototypes/);
+  assert.match(frontHalf, /Human play \/ evidence/);
+  assert.match(frontHalf, /R4 controlled comparison\/variation/);
+  assert.match(frontHalf, /canonical G0 Game Definition only when a specific game is justified/);
   assert.match(frontHalf, /Universe membership:[\s\S]*not filtered[\s\S]*team size[\s\S]*expected reproduction cost/i);
-  assert.match(frontHalf, /profile steps.*not additional G-stages/is);
+  assert.match(frontHalf, /R0-R4 are.*profile activities\/lenses.*not mandatory sequential gates and not additional G-stages/is);
   assert.match(frontHalf, /Innovation is not the required input/);
   assert.match(frontHalf, /They may not answer:[\s\S]*what product to make/);
   assert.match(development, /Product selection now begins with the external-reference front-half profile/);
