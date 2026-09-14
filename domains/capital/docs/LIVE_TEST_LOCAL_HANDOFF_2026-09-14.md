@@ -1,20 +1,11 @@
 # Live Test Account — Local Admission Handoff
 
-The current ChatGPT execution tool blocks direct use of live private financial credentials even with explicit user authorization. The boundary is not bypassed.
+Status: **RETIRED 2026-09-14**.
 
-A local admission-only runner is provided instead:
+The former local admission runner was a transitional bridge into legacy `ordivon-finance` observer/admission scripts. It has been removed from the forward Market Capital surface.
 
-```bash
-cd /root/projects/ordivon-market-capital-next
-./scripts/run-live-test-admission-local binance
-```
+Current architecture requires read-only private Reality to graduate independently before any order-capable credential or external financial write path is admitted. `config/execution_authority.json` remains `NON_LIVE`, and `config/live_test_account_policy.json` keeps `orderSubmissionAdmission=NOT_ADMITTED` and binds no executor credential path.
 
-or:
+Read-only observer credentials remain external to this repository and are governed by `config/private_reality_policy.json`. Mature provider clients remain the selected substrate for future provider-native observation. A future external-write lane must establish a new current provider/executor admission surface under the Market Capital authority boundary; it must not revive this retired Finance-repository handoff.
 
-```bash
-./scripts/run-live-test-admission-local okx
-```
-
-The runner performs no order placement. It consumes the already-existing local observer/admission code, removes raw private-account output after processing, and emits only a small sanitized admission summary under `.artifacts/live-test-admission-local/`.
-
-For Binance, admission requires reading + Spot-trade permission, no withdraw/internal/universal transfer authority, no non-USDT nonzero balance, USDT balance <= 1, and no open orders. OKX currently checks credential identity/permissions but remains blocked until the balance admission is extended with a local authoritative balance read.
+Historical evidence about the old runner remains available in Git history. Its existence never constituted production-trading authority.

@@ -15,6 +15,8 @@ def test_live_accounts_may_be_test_accounts_without_becoming_demo():
     for venue in ('OKX','BINANCE'):
         assert x['venues'][venue]['endpointClass']=='LIVE'
         assert x['venues'][venue]['role']=='TEST_ACCOUNT_BY_OWNER_POLICY'
+        assert x['venues'][venue]['executorCredentialBinding']=='UNBOUND_NOT_ADMITTED'
+        assert 'executorCredential' not in x['venues'][venue]
 
 def test_low_balance_claim_does_not_bypass_current_qualification():
     x=json.loads((ROOT/'config/live_test_account_policy.json').read_text())
