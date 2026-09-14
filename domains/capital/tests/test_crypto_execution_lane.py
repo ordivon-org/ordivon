@@ -18,6 +18,9 @@ class CryptoExecutionLaneTests(unittest.TestCase):
         self.assertFalse(cfg["liveExecutionAllowed"])
         self.assertFalse(cfg["brokerCredentialsAllowed"])
         self.assertFalse(cfg["externalFinancialWritesAllowed"])
+        self.assertEqual(cfg["networkTransport"]["preferred"], "NETWORK_V2_EXACT_PUBLIC_AUTHORITIES")
+        self.assertEqual(cfg["networkTransport"]["providerSelectionOwner"], "network-v2-sing-box-provider-auto")
+        self.assertFalse(cfg["networkTransport"]["directFallback"])
 
     def test_nautilus_public_data_adapters_construct_without_credentials(self):
         out = subprocess.check_output([str(ROOT / "scripts/check-crypto-execution-lane")], text=True)

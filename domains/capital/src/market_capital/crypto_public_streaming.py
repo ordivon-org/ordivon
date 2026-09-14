@@ -4,14 +4,23 @@ import argparse
 import asyncio
 from decimal import Decimal
 import json
+import os
 from pathlib import Path
 import time
 from typing import Any
 
-import aiohttp
+from websockets.asyncio.client import connect
 
 OKX_URL = "wss://ws.okx.com:8443/ws/v5/public"
 BINANCE_URL = "wss://data-stream.binance.vision/stream?streams=btcusdt@ticker/ethusdt@ticker"
+
+
+def network_v2_ws_proxies() -> tuple[str, str]:
+    okx = os.environ.get("ORDIVON_MC_OKX_WS_PROXY")
+    binance = os.environ.get("ORDIVON_MC_BINANCE_SPOT_WS_PROXY")
+    if not okx or not binance:
+        raise RuntimeError("Market Capital public streaming requires exact Network v2 OKX/Binance Spot WS proxy bindings")
+    return okx, binance
 KEYS = ("OKX:BTC", "OKX:ETH", "BINANCE:BTC", "BINANCE:ETH")
 SOURCE_SPAN_MAX_MS = 1200
 RECEIVE_SPAN_MAX_MS = 1200
@@ -76,20 +85,20 @@ def evaluate_snapshot(
     }
 
 
-async def _okx_reader(session: aiohttp.ClientSession, queue: asyncio.Queue[tuple[str, dict[str, Any]]]) -> None:
-    async with session.ws_connect(OKX_URL, heartbeat=20, receive_timeout=15) as ws:
-        await ws.send_json({
+async def _okx_reader(queue: asyncio.Queue[tuple[str, dict[str, Any]]], proxy: str) -> None:
+    async with connect(OKX_URL, proxy=proxy, open_timeout=10, ping_interval=20, ping_timeout=20, close_timeout=5, max_size=2**20) as ws:
+        await ws.send(json.dumps({
             "id": "mcr2",
             "op": "subscribe",
             "args": [
                 {"channel": "bbo-tbt", "instId": "BTC-USDT"},
                 {"channel": "bbo-tbt", "instId": "ETH-USDT"},
             ],
-        })
-        async for msg in ws:
-            if msg.type != aiohttp.WSMsgType.TEXT:
+        }, separators=(",", ":")))
+        async for raw in ws:
+            if not isinstance(raw, str):
                 continue
-            obj = json.loads(msg.data)
+            obj = json.loads(raw)
             if obj.get("event") == "error":
                 raise RuntimeError(f"OKX public stream error: {obj}")
             if "data" not in obj or obj.get("arg", {}).get("channel") != "bbo-tbt":
@@ -110,12 +119,12 @@ async def _okx_reader(session: aiohttp.ClientSession, queue: asyncio.Queue[tuple
             await queue.put((f"OKX:{asset}", event))
 
 
-async def _binance_reader(session: aiohttp.ClientSession, queue: asyncio.Queue[tuple[str, dict[str, Any]]]) -> None:
-    async with session.ws_connect(BINANCE_URL, heartbeat=20, receive_timeout=15) as ws:
-        async for msg in ws:
-            if msg.type != aiohttp.WSMsgType.TEXT:
+async def _binance_reader(queue: asyncio.Queue[tuple[str, dict[str, Any]]], proxy: str) -> None:
+    async with connect(BINANCE_URL, proxy=proxy, open_timeout=10, ping_interval=20, ping_timeout=20, close_timeout=5, max_size=2**20) as ws:
+        async for raw in ws:
+            if not isinstance(raw, str):
                 continue
-            obj = json.loads(msg.data)
+            obj = json.loads(raw)
             row = obj.get("data", obj)
             symbol = row.get("s")
             asset = "BTC" if symbol == "BTCUSDT" else "ETH" if symbol == "ETHUSDT" else None
@@ -136,38 +145,37 @@ async def capture_streaming(rounds: int = 3, warmup_rounds: int = 1, deadline_se
     latest: dict[str, dict[str, Any]] = {}
     accepted: list[dict[str, Any]] = []
     previous: dict[str, dict[str, Any]] | None = None
-    timeout = aiohttp.ClientTimeout(total=None, connect=10, sock_connect=10, sock_read=20)
     started_wall_ns = time.time_ns()
     started_mono_ns = time.monotonic_ns()
     deadline = time.monotonic() + deadline_seconds
 
-    async with aiohttp.ClientSession(timeout=timeout) as session:
-        tasks = [
-            asyncio.create_task(_okx_reader(session, queue)),
-            asyncio.create_task(_binance_reader(session, queue)),
-        ]
-        try:
-            while len(accepted) < needed:
-                remaining = deadline - time.monotonic()
-                if remaining <= 0:
-                    break
-                for task in tasks:
-                    if task.done():
-                        exc = task.exception()
-                        if exc is not None:
-                            raise exc
-                key, event = await asyncio.wait_for(queue.get(), timeout=min(remaining, 5.0))
-                latest[key] = event
-                candidate = evaluate_snapshot(latest, previous)
-                if candidate.get("qualified"):
-                    candidate["sequence"] = len(accepted) + 1
-                    candidate["role"] = "WARMUP" if len(accepted) < warmup_rounds else "MEASURED"
-                    accepted.append(candidate)
-                    previous = {k: dict(latest[k]) for k in KEYS}
-        finally:
+    okx_proxy, binance_proxy = network_v2_ws_proxies()
+    tasks = [
+        asyncio.create_task(_okx_reader(queue, okx_proxy)),
+        asyncio.create_task(_binance_reader(queue, binance_proxy)),
+    ]
+    try:
+        while len(accepted) < needed:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
             for task in tasks:
-                task.cancel()
-            await asyncio.gather(*tasks, return_exceptions=True)
+                if task.done():
+                    exc = task.exception()
+                    if exc is not None:
+                        raise exc
+            key, event = await asyncio.wait_for(queue.get(), timeout=min(remaining, 5.0))
+            latest[key] = event
+            candidate = evaluate_snapshot(latest, previous)
+            if candidate.get("qualified"):
+                candidate["sequence"] = len(accepted) + 1
+                candidate["role"] = "WARMUP" if len(accepted) < warmup_rounds else "MEASURED"
+                accepted.append(candidate)
+                previous = {k: dict(latest[k]) for k in KEYS}
+    finally:
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
 
     ended_mono_ns = time.monotonic_ns()
     measured = accepted[warmup_rounds:]
@@ -177,6 +185,7 @@ async def capture_streaming(rounds: int = 3, warmup_rounds: int = 1, deadline_se
         "kind": "ordivon.market-capital.crypto-public-streaming-r2",
         "standing": standing,
         "endpoints": {"okx": OKX_URL, "binance": BINANCE_URL},
+        "networkV2Proxies": {"okx": okx_proxy, "binance": binance_proxy},
         "protocol": {
             "okxChannel": "bbo-tbt",
             "binanceStreams": ["btcusdt@ticker", "ethusdt@ticker"],

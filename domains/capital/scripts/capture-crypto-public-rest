@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import concurrent.futures
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -15,19 +16,24 @@ output = Path(sys.argv[1])
 output.parent.mkdir(parents=True, exist_ok=True)
 
 REQUESTS = {
-    "okx_btc": "https://www.okx.com/api/v5/market/ticker?instId=BTC-USDT",
-    "okx_eth": "https://www.okx.com/api/v5/market/ticker?instId=ETH-USDT",
-    "okx_time": "https://www.okx.com/api/v5/public/time",
-    "binance_books": "https://data-api.binance.vision/api/v3/ticker/bookTicker?symbols=%5B%22BTCUSDT%22,%22ETHUSDT%22%5D",
-    "binance_time": "https://data-api.binance.vision/api/v3/time",
+    "okx_btc": ("https://openapi.okx.com/api/v5/market/ticker?instId=BTC-USDT", "ORDIVON_MC_OKX_REST_PROXY"),
+    "okx_eth": ("https://openapi.okx.com/api/v5/market/ticker?instId=ETH-USDT", "ORDIVON_MC_OKX_REST_PROXY"),
+    "okx_time": ("https://openapi.okx.com/api/v5/public/time", "ORDIVON_MC_OKX_REST_PROXY"),
+    "binance_books": ("https://data-api.binance.vision/api/v3/ticker/bookTicker?symbols=%5B%22BTCUSDT%22,%22ETHUSDT%22%5D", "ORDIVON_MC_BINANCE_SPOT_REST_PROXY"),
+    "binance_time": ("https://data-api.binance.vision/api/v3/time", "ORDIVON_MC_BINANCE_SPOT_REST_PROXY"),
 }
 
 
-def capture(name: str, url: str) -> tuple[str, dict]:
+
+def capture(name: str, request: tuple[str, str], capture_round: int) -> tuple[str, dict]:
+    url, proxy_env = request
+    proxy = os.environ.get(proxy_env)
+    if not proxy:
+        raise RuntimeError(f"missing required Network v2 proxy binding: {proxy_env}")
     wall_start = time.time_ns()
     mono_start = time.monotonic_ns()
     proc = subprocess.run(
-        ["/usr/bin/curl", "-fsS", "--max-time", "15", url],
+        ["/usr/bin/curl", "-fsS", "--proxy", proxy, "--connect-timeout", "4", "--max-time", "15", url],
         text=True,
         capture_output=True,
         check=False,
@@ -48,16 +54,35 @@ def capture(name: str, url: str) -> tuple[str, dict]:
         "monotonicEndNs": mono_end,
         "durationMs": (mono_end - mono_start) / 1_000_000,
         "payload": payload,
+        "networkProxy": proxy,
+        "captureRound": capture_round,
     }
 
-with concurrent.futures.ThreadPoolExecutor(max_workers=len(REQUESTS)) as pool:
-    futures = [pool.submit(capture, name, url) for name, url in REQUESTS.items()]
-    captured = dict(f.result() for f in concurrent.futures.as_completed(futures))
+
+def capture_round(round_number: int) -> dict[str, dict]:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(REQUESTS)) as pool:
+        futures = [pool.submit(capture, name, request, round_number) for name, request in REQUESTS.items()]
+        return dict(f.result() for f in concurrent.futures.as_completed(futures))
+
+
+captured = None
+last_error = None
+for round_number in range(1, 4):
+    try:
+        captured = capture_round(round_number)
+        break
+    except Exception as exc:
+        last_error = exc
+        if round_number < 3:
+            time.sleep(0.5 * round_number)
+if captured is None:
+    raise RuntimeError(f"coherent public capture failed after 3 rounds: {last_error}")
 
 result = {
     "schemaVersion": 1,
     "kind": "ordivon.market-capital.crypto-public-rest-capture",
     "captureWallTimeNs": time.time_ns(),
+    "captureRound": next(iter(captured.values()))["captureRound"],
     "requests": {name: captured[name] for name in sorted(captured)},
     "credentialsUsed": False,
     "privateAccountDataUsed": False,
