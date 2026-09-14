@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+python3 - "$repo/config/private_reality_policy.json" <<'PY'
+import json,sys
+x=json.load(open(sys.argv[1]))
+assert x['kind']=='ordivon.market-capital.private-reality-policy'
+assert x['standing']=='PREPARED_NOT_ADMITTED'
+assert x['credentialUseAdmission']=='NOT_ADMITTED'
+for k in ('privateAccountDataAllowed','orderCapableCredentialsAllowed','withdrawalCredentialsAllowed','externalFinancialWritesAllowed','secretDiscoveryAllowed'):
+    assert x[k] is False, k
+assert x['venues']['OKX']['requiredPermission']=='Read'
+assert set(x['venues']['OKX']['forbiddenPermissions'])=={'Trade','Withdraw'}
+assert x['venues']['BINANCE']['requiredSecurityType']=='USER_DATA'
+assert x['venues']['BINANCE']['tradePermissionRequired'] is False
+print(json.dumps({'policyStanding':x['standing'],'credentialUseAdmission':x['credentialUseAdmission'],'secretDiscoveryAllowed':False},sort_keys=True))
+PY
+
+/root/external/nautilus-trader/2.0.0rc4/.venv/bin/python - <<'PY'
+import json
+from nautilus_trader.adapters.okx import OKXHttpClient
+required={'get_balance','request_account_state','request_order_status_reports','request_fill_reports','request_trades'}
+missing=sorted(required-set(dir(OKXHttpClient)))
+if missing: raise SystemExit(f'OKX mature read surface missing: {missing}')
+print(json.dumps({'venue':'OKX','client':'NautilusTrader OKXHttpClient','version':'2.0.0rc4','requiredMethods':sorted(required),'credentialsLoaded':False,'networkCalled':False},sort_keys=True))
+PY
+
+/root/external/binance-sdk-spot/.venv/bin/python - <<'PY'
+import importlib.metadata as m,json
+from binance_sdk_spot.spot import Spot, ConfigurationRestAPI
+v=m.version('binance-sdk-spot')
+if v!='11.3.0': raise SystemExit(f'unexpected Binance SDK version: {v}')
+api=Spot(config_rest_api=ConfigurationRestAPI(api_key='',api_secret='')).rest_api
+required={'get_account','get_open_orders','all_orders','my_trades','get_order'}
+missing=sorted(required-set(dir(api)))
+if missing: raise SystemExit(f'Binance official read surface missing: {missing}')
+print(json.dumps({'venue':'BINANCE','client':'binance-sdk-spot','version':v,'requiredMethods':sorted(required),'credentialsLoaded':False,'networkCalled':False},sort_keys=True))
+PY
