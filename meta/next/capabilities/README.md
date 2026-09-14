@@ -20,3 +20,5 @@ Capability records should eventually capture only evidence-backed fields such as
 Existing Runtime, Network, Artifact, Distribution and other systems should be exposed here as replaceable capability providers rather than absorbed as identity-defining Ordivon subsystems.
 
 For cross-provider routing, use `docs/CAPABILITY_AUTHORITY_MAP_R1.md`. It maps primitives to their natural authorities, mature provider candidates, activation triggers, do-not-build boundaries and verification boundaries. It is a catalog/routing view, not a permanent dependency topology.
+
+For web/browser/desktop interaction specifically, `capabilities/profiles/web-interaction-r1.json` is the machine-readable thin-first routing profile and `scripts/web_interaction_route.py` overlays current local/caller-bound availability. Natural-language task interpretation remains Agent/caller-owned; the resolver never treats provider documentation as availability truth. The reusable Agent procedure lives at `skills/web-provider-routing/SKILL.md`.
