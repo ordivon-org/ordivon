@@ -12,13 +12,15 @@ CONFIG = ROOT / "config/execution_authority.json"
 class AuthorityTests(unittest.TestCase):
     def test_canonical_semantics_are_internal(self):
         result = verify_internal_authority(ROOT, CONFIG)
-        self.assertEqual(result["productionState"], "BLOCK_NOT_GRANTED")
-        self.assertFalse(result["productionGranted"])
-        self.assertIn("reservation_not_grant", result["ownedSemantics"])
+        self.assertEqual(result["externalWriteAdmissionState"], "NOT_ADMITTED")
+        self.assertFalse(result["externalWriteAdmitted"])
+        self.assertEqual(result["externalWriteVerifier"], "NOT_IMPLEMENTED")
+        self.assertFalse(result["providerWriteCapabilityBound"])
+        self.assertIn("reservation_not_effect_admission", result["ownedSemantics"])
 
     def test_non_live_gate_passes_fail_closed_contract(self):
         result = evaluate_non_live(ROOT, CONFIG)
-        self.assertEqual(result["standing"], "INTERNAL_AUTHORITY_GATE_NON_LIVE")
+        self.assertEqual(result["standing"], "NON_LIVE_EFFECT_BOUNDARY")
         self.assertFalse(result["externalFinancialWritesAllowed"])
         self.assertFalse(result["effectAuthorityAvailableForExternalWrites"])
 

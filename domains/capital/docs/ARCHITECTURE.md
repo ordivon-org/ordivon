@@ -48,11 +48,11 @@ Canonical retained semantics are:
 - Reservation != Grant;
 - EffectAuthority RETAIN/RELEASE/CONSUME;
 - revocation/recovery boundaries;
-- ProductionAuthorization.
+- ExternalFinancialWriteAdmission (effect-surface admission, not generic product approval).
 
-The execution gate is `src/market_capital/authority.py` plus `config/execution_authority.json` and the contracts under `contracts/`.
+The execution boundary is `src/market_capital/authority.py` plus `config/execution_authority.json` and the contracts under `contracts/`. It expresses whether a concrete provider/executor external-effect surface is implemented, bound and current; it is not a Human/product approval gate.
 
-All current runners must pass this in-repository gate before LEAN starts. Production authorization is `BLOCK_NOT_GRANTED`; external financial writes are not admitted and the live verifier is not implemented.
+All current runners must pass this in-repository effect boundary before LEAN starts. External financial write admission is `NOT_ADMITTED`; no provider write capability is bound and the external-write verifier is `NOT_IMPLEMENTED`.
 
 ## 5. External financial infrastructure
 

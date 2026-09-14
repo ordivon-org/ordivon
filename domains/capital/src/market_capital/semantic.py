@@ -6,7 +6,7 @@ import hashlib
 from typing import Iterable
 
 
-BLOCK_NOT_GRANTED = "BLOCK_NOT_GRANTED"
+NOT_ADMITTED = "NOT_ADMITTED"
 
 
 class SemanticViolation(ValueError):
@@ -35,12 +35,12 @@ class CapitalTruth:
 
 
 @dataclass(frozen=True)
-class ProductionAuthorization:
-    state: str = BLOCK_NOT_GRANTED
+class ExternalFinancialWriteAdmission:
+    state: str = NOT_ADMITTED
 
     @property
-    def granted(self) -> bool:
-        return self.state == "GRANTED"
+    def admitted(self) -> bool:
+        return self.state == "ADMITTED"
 
 
 @dataclass(frozen=True)
@@ -165,21 +165,21 @@ def validate_effect_authority_inputs(
     *,
     proof: ProofObject,
     reservation_ref: str,
-    grant_ref: str | None,
+    effect_admission_ref: str | None,
     policy_allowed: bool,
-    production: ProductionAuthorization,
+    write_admission: ExternalFinancialWriteAdmission,
 ) -> None:
     proof.validate_current()
     if not reservation_ref:
         raise SemanticViolation("reservation identity required")
-    if not grant_ref:
-        raise SemanticViolation("reservation is not a grant")
-    if reservation_ref == grant_ref:
-        raise SemanticViolation("reservation and grant require distinct authority identities")
+    if not effect_admission_ref:
+        raise SemanticViolation("reservation is not effect admission")
+    if reservation_ref == effect_admission_ref:
+        raise SemanticViolation("reservation and effect admission require distinct identities")
     if not policy_allowed:
         raise SemanticViolation("generic policy denied")
-    if not production.granted:
-        raise SemanticViolation("production authorization not granted")
+    if not write_admission.admitted:
+        raise SemanticViolation("external financial write admission is not admitted")
 
 
 _FALSE_GREEN = {
@@ -193,7 +193,7 @@ _FALSE_GREEN = {
     "openlineage_graph": "generic lineage is not proof provenance/currentness",
     "fix_ack": "protocol acknowledgement is not economic finality",
     "iso20022_message": "financial message is not legal ownership",
-    "tests_pass": "mechanical test success is not production authority",
+    "tests_pass": "mechanical test success is not external-effect admission",
 }
 
 

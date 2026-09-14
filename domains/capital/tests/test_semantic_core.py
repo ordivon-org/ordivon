@@ -5,10 +5,10 @@ import json
 import pytest
 
 from market_capital.semantic import (
-    BLOCK_NOT_GRANTED,
+    NOT_ADMITTED,
     EffectDisposition,
     ProofObject,
-    ProductionAuthorization,
+    ExternalFinancialWriteAdmission,
     SemanticViolation,
     WitnessRecord,
     classify_effect_disposition,
@@ -50,22 +50,22 @@ def current_proof() -> ProofObject:
     )
 
 
-def test_production_is_blocked_by_default():
-    p = ProductionAuthorization()
-    assert p.state == BLOCK_NOT_GRANTED
-    assert p.granted is False
+def test_external_write_is_not_admitted_by_default():
+    p = ExternalFinancialWriteAdmission()
+    assert p.state == NOT_ADMITTED
+    assert p.admitted is False
 
 
 def test_reservation_is_not_grant_and_policy_is_only_an_input():
-    with pytest.raises(SemanticViolation, match="reservation is not a grant"):
+    with pytest.raises(SemanticViolation, match="reservation is not effect admission"):
         validate_effect_authority_inputs(
-            proof=current_proof(), reservation_ref="reservation:1", grant_ref=None,
-            policy_allowed=True, production=ProductionAuthorization(),
+            proof=current_proof(), reservation_ref="reservation:1", effect_admission_ref=None,
+            policy_allowed=True, write_admission=ExternalFinancialWriteAdmission(),
         )
-    with pytest.raises(SemanticViolation, match="production authorization not granted"):
+    with pytest.raises(SemanticViolation, match="external financial write admission is not admitted"):
         validate_effect_authority_inputs(
-            proof=current_proof(), reservation_ref="reservation:1", grant_ref="grant:1",
-            policy_allowed=True, production=ProductionAuthorization(),
+            proof=current_proof(), reservation_ref="reservation:1", effect_admission_ref="effect-admission:1",
+            policy_allowed=True, write_admission=ExternalFinancialWriteAdmission(),
         )
 
 
