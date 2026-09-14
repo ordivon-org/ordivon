@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.market-capital.execution-reconciliation-r6-evidence",
+  "standing": "PASS_OFFLINE_FIX_VENUE_RECONCILIATION_SEAM",
+  "composition": {
+    "venueTruth": "authoritative normalized private venue reality",
+    "lifecycleVocabulary": "FIX 4.4 ExecType/OrdStatus/CumQty/LeavesQty",
+    "localSemantic": "EffectAuthority RETAIN/RELEASE/CONSUME only",
+    "implementation": "src/market_capital/execution_reconciliation.py"
+  },
+  "laws": {
+    "positiveFill": "CONSUME",
+    "openOrAmbiguous": "RETAIN",
+    "broadSnapshotAbsence": "RETAIN",
+    "terminalZeroFillWithCompleteFillCoverage": "RELEASE",
+    "exactAuthoritativeNoOrderNoFill": "RELEASE",
+    "unverifiedReadPermission": "RETAIN"
+  },
+  "networkAccess": false,
+  "credentialAccess": false,
+  "externalFinancialWritesAttempted": false,
+  "testStanding": "88_PASS"
+}

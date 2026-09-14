@@ -85,6 +85,12 @@ def normalize_binance_observer(envelope: dict[str, Any]) -> dict[str, Any]:
         'openOrders': open_orders,
         'orderHistory': order_history,
         'fills': fills,
+        'coverage': {
+            'accountComplete': _call_data(calls.get('account_get_account')) is not None,
+            'openOrdersComplete': any(isinstance(k,str) and k.endswith(':account_open_orders') and isinstance(v,dict) and v.get('ok') is True for k,v in calls.items()),
+            'orderHistoryComplete': any(isinstance(k,str) and k.endswith(':account_all_orders') and isinstance(v,dict) and v.get('ok') is True for k,v in calls.items()),
+            'fillsComplete': any(isinstance(k,str) and k.endswith(':account_my_trades') and isinstance(v,dict) and v.get('ok') is True for k,v in calls.items()),
+        },
         'externalFinancialWriteAttempted': False,
     }
 
@@ -191,6 +197,12 @@ def normalize_okx_observer(envelope: dict[str, Any]) -> dict[str, Any]:
         'openOrders': open_orders,
         'orderHistory': [],
         'fills': fills,
+        'coverage': {
+            'accountComplete': isinstance(balance_rows,list),
+            'openOrdersComplete': isinstance(open_rows,list),
+            'orderHistoryComplete': False,
+            'fillsComplete': isinstance(fill_rows,list),
+        },
         'externalFinancialWriteAttempted': False,
     }
 
