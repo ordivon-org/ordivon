@@ -265,10 +265,6 @@ where
     Ok((output, None))
 }
 
-fn append_wsl_interop_systemd_environment(command: &mut Command, interop: &Path) {
-    command.arg(format!("--setenv=WSL_INTEROP={}", interop.display()));
-}
-
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct WindowsRuntimeContextSnapshot {
@@ -556,29 +552,6 @@ fn parse_windows_deadline_owner_termination(
     Ok(disposition)
 }
 
-pub(crate) struct WindowsSystemdRunSpec<'a> {
-    pub config: &'a WindowsExecutionConfig,
-    pub unit_name: &'a str,
-    pub bundle_path: &'a Path,
-    pub job_id: &'a str,
-    pub attempt_id: &'a str,
-    pub launch_token_digest: &'a str,
-    pub authority: WindowsAuthority,
-    pub executable: &'a Path,
-    pub args: &'a [String],
-    pub cwd: &'a Path,
-    pub environment: &'a BTreeMap<String, String>,
-    pub input_source_root: Option<&'a Path>,
-    pub input_set_id: Option<&'a str>,
-    pub input_presentation_root: Option<&'a str>,
-    pub input_bindings_digest: Option<&'a str>,
-    pub budget: &'a ExecutionBudget,
-    pub runtime_ceiling_ms: u64,
-    pub timeout_ms: u64,
-    pub stdout_limit_bytes: u64,
-    pub stderr_limit_bytes: u64,
-}
-
 pub(crate) struct WindowsNativeRunSpec<'a> {
     pub config: &'a WindowsExecutionConfig,
     pub bundle_path: &'a Path,
@@ -634,7 +607,7 @@ pub(crate) fn snapshot_windows_runtime_context(
     snapshot_windows_runtime_context_with_transport(config, authority).map(|(snapshot, _)| snapshot)
 }
 
-fn snapshot_windows_runtime_context_with_transport(
+pub(crate) fn snapshot_windows_runtime_context_with_transport(
     config: &WindowsExecutionConfig,
     authority: WindowsAuthority,
 ) -> RuntimeResult<(WindowsRuntimeContextSnapshot, Option<PathBuf>)> {
@@ -892,100 +865,7 @@ pub(crate) fn spawn_windows_native(spec: &WindowsNativeRunSpec<'_>) -> RuntimeRe
     ))
 }
 
-pub(crate) fn windows_systemd_run(spec: &WindowsSystemdRunSpec<'_>) -> RuntimeResult<Output> {
-    build_windows_systemd_run_command(spec)?
-        .output()
-        .map_err(|error| tool_error("cannot execute Windows systemd-run", error))
-}
-
-pub(crate) fn build_windows_systemd_run_command(
-    spec: &WindowsSystemdRunSpec<'_>,
-) -> RuntimeResult<Command> {
-    spec.config.validate()?;
-    let launcher = fs::canonicalize(&spec.config.launcher_path).map_err(|error| {
-        RuntimeError::new(
-            RuntimeErrorCode::IoError,
-            format!("canonicalize Windows launcher: {error}"),
-            Some("windows.launcherPath"),
-            false,
-        )
-    })?;
-    let executable = mounted_windows_path(spec.executable).ok_or_else(|| {
-        RuntimeError::invalid(
-            "windows_native executable must reside on a WSL-mounted Windows drive",
-            "execution.executable",
-        )
-    })?;
-    let cwd = windows_visible_path(spec.config, spec.cwd, "execution.cwdRelative")?;
-    let bundle = windows_visible_path(spec.config, spec.bundle_path, "bundlePath")?;
-    let job_name = format!("Ordivon.{}", spec.attempt_id);
-
-    let input_source_root = spec
-        .input_source_root
-        .map(|source_root| {
-            windows_visible_path(spec.config, source_root, "execution.effectiveInputs")
-        })
-        .transpose()?;
-    let (_, interop) =
-        snapshot_windows_runtime_context_with_transport(spec.config, spec.authority)?;
-    let interop = interop.ok_or_else(|| {
-        RuntimeError::new(
-            RuntimeErrorCode::IoError,
-            "WSL-hosted Windows dispatch did not bind a current interop listener",
-            Some("windows.wslInterop"),
-            true,
-        )
-    })?;
-
-    let mut command = Command::new("systemd-run");
-    command
-        .arg(format!("--unit={}", spec.unit_name))
-        .arg("--no-block")
-        // Agent-authored argv is execution truth. systemd-run otherwise expands $VAR and
-        // ${VAR} from the manager environment before the Windows launcher receives it.
-        .arg("--expand-environment=no")
-        .args([
-            "--property=Type=exec",
-            "--property=CollectMode=inactive",
-            "--property=KillMode=control-group",
-            "--property=TimeoutStopSec=2s",
-            "--property=SendSIGKILL=yes",
-            "--property=StandardOutput=journal",
-            "--property=StandardError=journal",
-        ])
-        .arg(format!(
-            "--property=RuntimeMaxSec={}ms",
-            spec.runtime_ceiling_ms
-        ));
-    append_wsl_interop_systemd_environment(&mut command, &interop);
-    command.arg(launcher);
-
-    let invocation = WindowsLauncherInvocationSpec {
-        bundle: &bundle,
-        job_id: spec.job_id,
-        attempt_id: spec.attempt_id,
-        launch_token_digest: spec.launch_token_digest,
-        job_name: &job_name,
-        authority: spec.authority,
-        executable: &executable,
-        args: spec.args,
-        cwd: &cwd,
-        environment: spec.environment,
-        input_source_root: input_source_root.as_deref(),
-        input_set_id: spec.input_set_id,
-        input_presentation_root: spec.input_presentation_root,
-        input_bindings_digest: spec.input_bindings_digest,
-        budget: spec.budget,
-        timeout_ms: spec.timeout_ms,
-        stdout_limit_bytes: spec.stdout_limit_bytes,
-        stderr_limit_bytes: spec.stderr_limit_bytes,
-        emit_launcher_start: false,
-    };
-    append_windows_launcher_arguments(&mut command, &invocation)?;
-    Ok(command)
-}
-
-fn append_windows_launcher_arguments(
+pub(crate) fn append_windows_launcher_arguments(
     command: &mut Command,
     spec: &WindowsLauncherInvocationSpec<'_>,
 ) -> RuntimeResult<()> {
@@ -1276,19 +1156,6 @@ w: 00000002 00000000 00010000 0001 01 11976 /run/WSL/notnumeric_interop\n";
         assert!(!is_wsl_interop_accept_timeout(
             b"UtilAcceptVsock:273: accept4 failed 111"
         ));
-    }
-
-    #[test]
-    fn systemd_transport_binds_explicit_wsl_interop_environment() {
-        let mut command = Command::new("systemd-run");
-        append_wsl_interop_systemd_environment(&mut command, Path::new("/run/WSL/42_interop"));
-        assert_eq!(
-            command
-                .get_args()
-                .map(|arg| arg.to_string_lossy().into_owned())
-                .collect::<Vec<_>>(),
-            vec!["--setenv=WSL_INTEROP=/run/WSL/42_interop"]
-        );
     }
 
     #[test]

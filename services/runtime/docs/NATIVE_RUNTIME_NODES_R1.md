@@ -110,7 +110,9 @@ A stopped WSL distribution therefore yields `linux-archlinux=unavailable` while 
 
 R2 begins with ownership, not abstraction inflation. The existing `runtime/systemd.rs` implementation moves to `runtime/platform/linux.rs`; shared Engine imports Linux physical mechanics through `runtime::platform` and no longer invokes `systemctl stop` directly. This deliberately preserves the existing systemd/cgroup evidence model while creating a concrete location for a later independent Windows realization.
 
-This slice does **not** claim Windows-compilable Core yet. `windows.rs` still contains WSL-hosted Windows transport machinery (`systemd-run` + WSL interop), and shared Core still contains unconditional Unix filesystem/process primitives. Those are explicit subsequent R2/R3 cuts rather than reasons to invent a broad cross-platform supervisor trait prematurely.
+R2b moves the WSL-hosted Windows `systemd-run` wrapper and its `WindowsSystemdRunSpec` into `runtime/platform/linux`. `windows.rs` retains the provider-owned launcher argument contract, token/environment probing, Windows process-owner observation and native direct-launch path; Linux now owns the fact that a WSL-hosted invocation is wrapped by systemd.
+
+This still does **not** claim Windows-compilable Core. WSL interop discovery used by Windows provider probes remains in `windows.rs`, and shared Core still contains unconditional Unix filesystem/process primitives. Those are explicit subsequent R2/R3 cuts rather than reasons to invent a broad cross-platform supervisor trait prematurely.
 
 R2 acceptance for this slice:
 
