@@ -1,0 +1,92 @@
+{
+  "birthStanding": {
+    "bound": 10,
+    "human-required": 0,
+    "pre-effect-failed": 0,
+    "prepared": 0,
+    "ready-confirmed": 0,
+    "submit-observed": 0,
+    "unknown": 0,
+    "unrecorded": 0
+  },
+  "campaignId": "campaign:github-prompt-corpus-common-structure-20260914-r1",
+  "kind": "ordivon.parallel-agent-research-wave-launch-evidence",
+  "method": "parallel independent product-family + mechanism/falsifier roles; synthesis only after identity-bound report harvest",
+  "occurrences": [
+    {
+      "agentId": "A01",
+      "blindResendForbidden": true,
+      "effectId": "sha256:affbb89320e0086280f269306bf330bc84c0fdea678f276be322f7b2ee1621fd",
+      "materializationStanding": "bound",
+      "providerResource": "https://chatgpt.com/c/6aa7a637-d298-83ec-b5f4-2e34e242762d"
+    },
+    {
+      "agentId": "A02",
+      "blindResendForbidden": true,
+      "effectId": "sha256:bb09ac75fb52b839d7c595efd1db5b03b8e9f0e2438536e5e45c2707506061dd",
+      "materializationStanding": "bound",
+      "providerResource": "https://chatgpt.com/c/6aa7a643-4ca8-83ec-85ec-fb9a98fee589"
+    },
+    {
+      "agentId": "A03",
+      "blindResendForbidden": true,
+      "effectId": "sha256:13c872f051a2bfe03544b21523e86be54b5cb04c4bb91543b4af6fd86112b97b",
+      "materializationStanding": "bound",
+      "providerResource": "https://chatgpt.com/c/6aa7a660-17fc-83ec-857d-16ef760ac857"
+    },
+    {
+      "agentId": "A04",
+      "blindResendForbidden": true,
+      "effectId": "sha256:023ec2630b9cd5a5cbf0a92fcd6f73df07fd1f5a8cc66c73a243f6410791c787",
+      "materializationStanding": "bound",
+      "providerResource": "https://chatgpt.com/c/6aa7a644-f468-83ec-85cf-aefa9dc5ee1f"
+    },
+    {
+      "agentId": "A05",
+      "blindResendForbidden": true,
+      "effectId": "sha256:5105857c6c5e09f6bcfe8f7deebc0d9018eefe1229cf6bed0693e06e91fe9ab4",
+      "materializationStanding": "bound",
+      "providerResource": "https://chatgpt.com/c/6aa7a661-4a14-83ec-b82c-532690db25b6"
+    },
+    {
+      "agentId": "B01",
+      "blindResendForbidden": true,
+      "effectId": "sha256:35158c6f80c4d09d80743f06e9979460c0870a5329b2ad1d620870b01fe22c18",
+      "materializationStanding": "bound",
+      "providerResource": "https://chatgpt.com/c/6aa7a657-7e38-83ec-a095-f48badc6c4d1"
+    },
+    {
+      "agentId": "B02",
+      "blindResendForbidden": true,
+      "effectId": "sha256:56e034afc3a3d18ae3f4e5911b6ed9cf38d0c2b809f5947bb9678ad5234e001a",
+      "materializationStanding": "bound",
+      "providerResource": "https://chatgpt.com/c/6aa7a64f-766c-83ec-9b16-9d5cebc1752b"
+    },
+    {
+      "agentId": "B03",
+      "blindResendForbidden": true,
+      "effectId": "sha256:517f5c1a89974f9d05ca5769dfa8c1a15b36c9e70fb97c4c0f7104c0b5212b96",
+      "materializationStanding": "bound",
+      "providerResource": "https://chatgpt.com/c/6aa7a684-a9c4-83ec-acf3-3c5996b177de"
+    },
+    {
+      "agentId": "B04",
+      "blindResendForbidden": true,
+      "effectId": "sha256:926ccad4f4db66442c6c7eaa222fe96e60eec8a74acc0f2a899aff2def4a08a9",
+      "materializationStanding": "bound",
+      "providerResource": "https://chatgpt.com/c/6aa7a64f-1e44-83ec-9dda-888e2befaa47"
+    },
+    {
+      "agentId": "B05",
+      "blindResendForbidden": true,
+      "effectId": "sha256:a24a8238ea3d07847a81ccb0aa52d70abc7dc00a21fd883a1bc7fd8d2aae96d4",
+      "materializationStanding": "bound",
+      "providerResource": "https://chatgpt.com/c/6aa7a66e-a004-83ec-8960-c45dc00d4be8"
+    }
+  ],
+  "requested": 10,
+  "resultHarvestDetail": "Exact provider binding is proven for all occurrences, but the current read-only output collector could not bind the rendered initiating user turn by byte-exact text on the long bootstrap prompt. No assistant report is admitted as campaign evidence until initiating-turn identity is repaired without weakening conversation binding.",
+  "resultHarvestStanding": "NOT_ADMITTED",
+  "schemaVersion": 1,
+  "semanticCompletionEvaluated": false
+}
