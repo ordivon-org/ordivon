@@ -1019,3 +1019,80 @@ default LSP provider                     NOT_FINAL
 ```
 
 The remaining R7 work is negative/fault evidence rather than feature expansion: cancellation, abnormal language-server exit, and finally Run/Tool Grant binding before any public Agent Tool surface is exposed.
+
+## R7 closeout — authority boundary closed, provider selection deferred
+
+Canonical Harness completed R7 at:
+
+```text
+c0be342 harness: record LSP lifecycle fault evidence
+dac33dc harness: close LSP R7 authority boundary
+```
+
+The fault campaign refined the earlier positive `lsp-client 0.3.9` lifecycle result rather than invalidating the stable Harness port.
+
+Controlled caller-cancellation result:
+
+```text
+caller cancellation triggered = yes
+WorkspaceEdit returned = no
+disk changed = no
+$/cancelRequest observed by fake server = no
+graceful shutdown/exit observed = no
+context cleanup = bounded timeout/error path (~3.5 s)
+```
+
+Controlled abnormal-server-exit result:
+
+```text
+server exited during textDocument/rename = yes
+WorkspaceEdit returned = no
+request surfaced BrokenResourceError = yes
+disk changed = no
+context cleanup = bounded timeout/error path (~4.0 s)
+```
+
+Therefore the important authority property held under both faults: no proposal was converted into a physical mutation and no file bytes changed. However the transport lifecycle was not protocol-clean enough to select `lsp-client` as the default provider directly.
+
+Seventh verified receipt:
+
+```text
+evidence/lsp-r7-lifecycle-faults-20260914.json
+payload digest:
+sha256:0677bc871733bf260e78bec3c10350cf597c4f26918ac3823f90849d66997acd
+```
+
+A second client family was screened before considering custom glue. `pylspclient 0.1.2` exposes basic initialize/shutdown/exit plus raw request mechanics, but no first-class rename API and no request cancellation API. Adopting it would require more Harness-owned LSP lifecycle/protocol code, so it is rejected for the R7 default-provider role. `multilspy` is also not a suitable narrow transport replacement for this boundary because it owns a broader server setup/provisioning surface and does not improve the current narrow proposal-only requirement enough to justify that ownership transfer.
+
+Final R7 standing:
+
+```text
+WorkspaceEdit interpretation                 VERIFIED
+URI/version/exact-snapshot fencing            VERIFIED
+UTF-8 / UTF-16 / UTF-32 conversion            VERIFIED
+clangd + C++ provider path                    VERIFIED
+Taplo + TOML provider path                    VERIFIED
+Runtime-only physical mutation                VERIFIED
+provider-neutral Harness lifecycle port       IMPLEMENTED + REGRESSED
+normal lsp-client lifecycle                   SUPPORTED
+lsp-client caller-cancel cleanup              INCOMPLETE
+lsp-client abnormal-exit cleanup              INCOMPLETE
+pylspclient default-provider suitability      REJECTED
+production/default LSP provider               NOT_SELECTED
+public Agent Tool / Run-Tool Grant binding    NOT_ADMITTED
+```
+
+Final Harness gate at closeout:
+
+```text
+474 deterministic tests PASS
+Ruff PASS
+documentation contract PASS
+dependency contract PASS
+evidence contract PASS (80 historical / 7 verified)
+git diff --check PASS
+```
+
+R7 is now closed at the **Harness semantic and authority boundary**. Provider selection is intentionally an external integration decision behind `HarnessLspProviderPort`, not unfinished Harness-core work.
+
+Do not reopen R7 merely to add more language servers or client libraries. Reopen provider selection only when a mature external provider demonstrates cleaner cancellation/abnormal-exit semantics, a real Run/Tool workload requires concrete public LSP exposure, or measured reliability/latency evidence shows the current external candidate set is insufficient. If no mature donor improves the failure lifecycle, any cleanup adaptation must remain outside Harness core behind the stable port.
