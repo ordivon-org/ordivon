@@ -22,6 +22,11 @@ sha256 = "aa6bb7ed8930b41ba7c1af3310f6e10f21d6dba2ffa72536b1bafe8392b03a1d"
 
 # Browser human-interaction bridge. The noVNC static tree is not an executable and is
 # therefore validated by the Browserless deployer rather than misclassified as equipment.
+[managed_equipment.playwright-cli-0-1-18]
+executable = "/opt/ordivon/external/playwright-cli/0.1.18/node_modules/@playwright/cli/playwright-cli.js"
+execution_target = "local_linux"
+sha256 = "66ea6722d77e57ce1bc7e850cb990d14895d17d8584405ed54a8c72fab38eb75"
+
 [managed_equipment.browserless-websockify-0-13-0]
 executable = "/opt/ordivon/external/websockify/0.13.0/bin/websockify"
 execution_target = "local_linux"
