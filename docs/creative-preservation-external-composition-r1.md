@@ -190,3 +190,9 @@ A complete current Media census at revision `920b52ac0de059338ceac8596c15466e4cd
 Deleting the entire R5 catalog and rebuilding from retained receipts alone reproduced identical logical, Parquet, DuckDB and manifest bytes without owner repo or CAS access. This keeps byte authority above the catalog and avoids turning PostgreSQL/DuckDB into source truth.
 
 This R5 acceptance does not generalize Media CAS into an Ordivon storage layer. Additional resolver types remain evidence-driven and owner-specific. AIP/PREMIS/METS production preservation, current PRONOM identification and the Enduro+Archivematica versus RODA production comparison remain open.
+
+## R6 Archivematica graduation
+
+Archivematica 1.18 + Storage Service is now `ACCEPTED_BOUNDED` as the local production preservation engine for the tested creative corpus. The graduation evidence is in `docs/creative-preservation-archivematica-r6.md` and `artifacts/creative-preservation/archivematica-r6/acceptance-r6.json`.
+
+The accepted boundary is deliberately narrow: real transfer/SIP/AIP creation, METS/PREMIS, 86/86 original-byte preservation, explicit normalization provenance for generated derivatives, Storage Service AIP storage, canonical fixity, and restart/reopen survival. Current PRONOM V124 still leaves 2/86 originals unidentified, and Archivematica 1.18 emits BagIt 0.97 AIPs; both are recorded as upstream/mature-tool boundaries rather than hidden by an Ordivon semantic wrapper.

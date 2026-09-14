@@ -1,0 +1,129 @@
+{
+  "kind": "creative-preservation-archivematica-r6-acceptance",
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-14T03:41:25.999011+00:00",
+  "standing": "ACCEPTED_BOUNDED",
+  "scope": "real Archivematica 1.18 preservation ingest and stored-AIP graduation on the frozen 12-work creative corpus",
+  "frozenCorpus": {
+    "authorityReceipt": "artifacts/creative-preservation/pilot-r1/corpus-v1.json",
+    "workCount": 12,
+    "fileCount": 86,
+    "payloadBytes": 4200279,
+    "hiddenFiles": 3,
+    "reconstructionVerification": "86/86 PREMIS historical SHA-256 matched before R6 ingest"
+  },
+  "transfer": {
+    "uuid": "3880a92e-b919-4bcf-a06b-1885e654a39d",
+    "type": "zipped bag",
+    "processingConfiguration": "automated",
+    "completed": true
+  },
+  "aip": {
+    "uuid": "1593a748-703b-46b6-8114-314040f44bd8",
+    "packageType": "AIP",
+    "status": "UPLOADED",
+    "size": 3027140,
+    "checksumAlgorithm": "sha256",
+    "checksum": "e08f0197821c05684cfc50b3dc6119801de6f9137dfeef1df5a43cc8a42ffbda",
+    "storagePath": "1593/a748/703b/46b6/8114/3140/40f4/4bd8/creative-preservation-pilot-r1-1593a748-703b-46b6-8114-314040f44bd8.7z",
+    "archiveFormat": "7z",
+    "archiveExtraction": "PASS",
+    "bagit": {
+      "version": "0.97",
+      "bagitPython": "1.9.0",
+      "freshValidation": "PASS",
+      "boundary": "legacy BagIt declaration emitted by Archivematica; not claimed RFC 8493 BagIt 1.0"
+    },
+    "metsPremis": "PASS",
+    "originalFileCount": 86,
+    "originalByteIdentity": "86/86 SHA-256 exact",
+    "hiddenFilesPreserved": 3,
+    "additionalPreservationDerivatives": [
+      {
+        "uuid": "8b5ac3f2-d014-4265-b365-64a66028cfd3",
+        "path": "%SIPDirectory%objects/data/07-workstation--signal-seed/artifacts/signal-seed/exports/signal-seed-base-8b5ac3f2-d014-4265-b365-64a66028cfd3.svg",
+        "sha256": "0289960660938bed9b691f2ca6f1f5d4bfb74d518b2c2dec82395881cbb56dbd",
+        "format": "Scalable Vector Graphics",
+        "relationship": "derivation/has source",
+        "source_uuid": "2a2de177-71ff-4540-a92e-ab377a9d0406",
+        "event_uuid": "e6d53e12-454b-4dde-8598-a98be9e57b1b",
+        "event_type": "normalization",
+        "event_datetime": "2026-09-14T02:57:24.070249+00:00",
+        "event_detail": "ArchivematicaFPRCommandID=\"cf8b44c8-ba16-44cd-8b47-cb29d52fbac4\"; program=\"inkscape\"; version=\"Inkscape 1.2.2 (b0a8486541, 2022-12-01)\""
+      },
+      {
+        "uuid": "34fe6ace-7ecb-4b0d-a0f1-40dbc2a0c1eb",
+        "path": "%SIPDirectory%objects/data/07-workstation--signal-seed/artifacts/signal-seed/exports/signal-seed-top-34fe6ace-7ecb-4b0d-a0f1-40dbc2a0c1eb.svg",
+        "sha256": "cb4df3c6aea821eba20ce242fc6caf3b8a2f49bcc5acd5dc6914ddfb27179e3e",
+        "format": "Scalable Vector Graphics",
+        "relationship": "derivation/has source",
+        "source_uuid": "19157e35-78c4-4c06-ac81-10ef1bf9e770",
+        "event_uuid": "9a3d3e45-7539-4a7c-902b-ceb3b9c53016",
+        "event_type": "normalization",
+        "event_datetime": "2026-09-14T02:57:23.786248+00:00",
+        "event_detail": "ArchivematicaFPRCommandID=\"cf8b44c8-ba16-44cd-8b47-cb29d52fbac4\"; program=\"inkscape\"; version=\"Inkscape 1.2.2 (b0a8486541, 2022-12-01)\""
+      }
+    ]
+  },
+  "formatIdentification": {
+    "internal": {
+      "tool": "Siegfried 1.11.2",
+      "identified": 84,
+      "unknown": 2
+    },
+    "external": {
+      "tool": "Siegfried 1.11.6",
+      "pronom": "DROID_SignatureFile_V124.xml",
+      "identified": 84,
+      "unknown": 2
+    },
+    "unknownFiles": [
+      "gesture-orrery.blend",
+      "signal-seed-mark.svg"
+    ],
+    "classification": "current PRONOM coverage boundary; not attributed to stale internal signature set"
+  },
+  "fixity": {
+    "backend": "Archivematica Storage Service Package.get_fixity_check_report_send_signals(force_local=True)",
+    "first": {
+      "success": true,
+      "missing": [],
+      "changed": [],
+      "untracked": [],
+      "loggedAt": "2026-09-14T03:31:22.025750+00:00"
+    },
+    "postRestart": {
+      "success": true,
+      "missing": [],
+      "changed": [],
+      "untracked": [],
+      "loggedAt": "2026-09-14T03:39:50.554639+00:00"
+    },
+    "fixityLogCountAfter": 2
+  },
+  "restartReopen": {
+    "composeRestart": "PASS",
+    "allServicesRunning": "PASS",
+    "healthCheckedServicesHealthy": "PASS",
+    "dashboardHttp": 302,
+    "storageServiceHttp": 302,
+    "aipSha256Unchanged": "PASS",
+    "postRestartFixity": "PASS"
+  },
+  "boundedFindings": [
+    "Archivematica 1.18 AIP writer emits BagIt-Version 0.97 via bagit.py 1.9.0; package validates but is not claimed as RFC 8493 BagIt 1.0.",
+    "Current PRONOM V124 identifies 84/86 frozen originals; gesture-orrery.blend and signal-seed-mark.svg remain UNKNOWN.",
+    "Archivematica records failed Identify file format jobs for the two UNKNOWN originals while the preservation workflow still completes and stores a valid AIP.",
+    "This graduation proves local preservation ingest, metadata, fixity, restart/reopen, and stored-AIP behavior; it does not prove off-site replication, disaster recovery, repository federation, or scheduled long-term fixity operations."
+  ],
+  "evidenceJobs": [
+    "job-01a09dc6-62fe-7f30-b8c7-5bceeb1e4ed5",
+    "job-01a09dd2-60e2-7740-84f3-74452010a237",
+    "job-01a09dd8-5bed-72a2-b163-a0f41f880209",
+    "job-01a09dd9-27ab-7de1-9221-edf802f9546c",
+    "job-01a09ddc-0f2c-7c30-8c51-943ca68db7e9",
+    "job-01a09df2-0534-7dc3-8fdc-4f7c05af644a",
+    "job-01a09df7-eebb-74d3-9645-a3c5cdd7f4d0",
+    "job-01a09dfe-1648-7812-8f7e-565522afaa60"
+  ]
+}
