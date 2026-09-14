@@ -127,6 +127,12 @@ R3 starts by deleting avoidable Unix-only glue from shared Runtime state mechani
 
 The remaining Unix-specific work is intentionally narrower and semantically meaningful: secure directory/file creation modes, no-follow authority opening, Linux UID ownership checks, `/proc` process identity, and the Linux Universal Runner (`openat2`, inotify, setuid/setgid). Those must move behind platform/runner boundaries rather than be weakened for portability.
 
+## R3b progress — Linux Runner compilation ownership
+
+The Universal Runner implementation is Linux/Unix-native (`openat2`, inotify, process groups, setuid/setgid, `/proc`), while its durable Runner request/result types remain platform-neutral. The runner module and `run_task_runner` export are therefore compiled only on Unix. Windows native Runtime continues to share the request/result model without compiling Linux process-realization code.
+
+A real `cargo xwin check -p ordivon-runtime-core --lib --target x86_64-pc-windows-msvc` gate is now available through cargo-xwin + LLVM 22. After this ownership correction, Windows compile errors fell from 131 to 71 while Linux Core 228/228 and MCP 55/55 remained green.
+
 ## R1 acceptance
 
 - `RuntimeCapabilities` includes node identity.

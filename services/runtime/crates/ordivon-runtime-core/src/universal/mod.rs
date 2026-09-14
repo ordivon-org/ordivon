@@ -4,6 +4,7 @@ mod fsutil;
 mod mutation;
 mod patch;
 mod projection;
+#[cfg(unix)]
 mod runner;
 mod types;
 mod workspace;
@@ -24,6 +25,7 @@ pub use projection::{
     create_git_workspace_compact, read_workspace_slice_compact, read_workspace_text_compact,
     workspace_diff_compact,
 };
+#[cfg(unix)]
 pub use runner::run_task_runner;
 pub use types::{
     CompactWorkspaceDiffResult, CompactWorkspaceOpenResult, CompactWorkspaceReadResult,
