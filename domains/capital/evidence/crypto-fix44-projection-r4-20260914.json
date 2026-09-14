@@ -1,0 +1,79 @@
+{
+  "brokerCredentialsUsed": false,
+  "composition": {
+    "fixImplementation": "QuickFIX/n 1.14.1",
+    "mappingRole": "thin projection only",
+    "orderSemantics": "FIX 4.4 NewOrderSingle",
+    "sourceMechanics": "NautilusTrader local OMS/Risk evidence"
+  },
+  "demoExecutionAttempted": false,
+  "economicDecisionClaimed": false,
+  "externalFinancialWritesAttempted": false,
+  "identityContinuity": "Nautilus mechanics clientOrderId == FIX ClOrdID",
+  "kind": "ordivon.market-capital.crypto-fix44-projection-r4-evidence",
+  "liveExecutionAttempted": false,
+  "networkSessionEnabled": false,
+  "nextBoundary": "authoritative read-only venue account/order/trade reality before any order-capable credential admission",
+  "privateAccountDataUsed": false,
+  "projectedIntents": [
+    {
+      "clOrdId": "MECH-OKX-BTC",
+      "exDestination": "OKX",
+      "msgType": "D",
+      "ordType": "1",
+      "orderQty": "0.00012959",
+      "protocol": "FIX.4.4",
+      "rawSha256": "65f8d0dc43bb276b002ee8e36010df6b59e0935d9a4dc18ab0fc876fe3ca38c6",
+      "side": "1",
+      "symbol": "BTC-USDT",
+      "timeInForce": "3",
+      "transactTimeUtc": "2026-09-14T02:50:39.0000000Z"
+    },
+    {
+      "clOrdId": "MECH-BINANCE-BTC",
+      "exDestination": "BINANCE",
+      "msgType": "D",
+      "ordType": "1",
+      "orderQty": "0.00012",
+      "protocol": "FIX.4.4",
+      "rawSha256": "44b238f91d1b1dad96061031e2daede354263d0fbee92477527db40e455ffb4d",
+      "side": "1",
+      "symbol": "BTCUSDT",
+      "timeInForce": "3",
+      "transactTimeUtc": "2026-09-14T02:50:39.0000000Z"
+    },
+    {
+      "clOrdId": "MECH-OKX-ETH",
+      "exDestination": "OKX",
+      "msgType": "D",
+      "ordType": "1",
+      "orderQty": "0.004015",
+      "protocol": "FIX.4.4",
+      "rawSha256": "f234c8d9f1359f2616837a029504c985f784b34aec76b2c35a3d77fe7eec3f53",
+      "side": "1",
+      "symbol": "ETH-USDT",
+      "timeInForce": "3",
+      "transactTimeUtc": "2026-09-14T02:50:39.0000000Z"
+    },
+    {
+      "clOrdId": "MECH-BINANCE-ETH",
+      "exDestination": "BINANCE",
+      "msgType": "D",
+      "ordType": "1",
+      "orderQty": "0.0040",
+      "protocol": "FIX.4.4",
+      "rawSha256": "feb8d8ec166208f50480fe9c81f2968308ee5aba22e80d32a49fd76ed5d74ee9",
+      "side": "1",
+      "symbol": "ETHUSDT",
+      "timeInForce": "3",
+      "transactTimeUtc": "2026-09-14T02:50:39.0000000Z"
+    }
+  ],
+  "projectionInputSha256": "b8844a6cb7238a0af4618fc1a5d7c1dfea0dce74ed402f1071c255a3b500ee25",
+  "projectionOutputSha256": "24ca5d8fd593375c13ba6808e357a22e2b5a77fe3a289457484fc90b3d8ee781",
+  "purpose": "MECHANICS_ONLY_NON_ECONOMIC",
+  "schemaVersion": 1,
+  "sourceMechanicsEvidence": "evidence/crypto-shadow-mechanics-r1-20260913.json",
+  "sourceMechanicsEvidenceSha256": "87bb901358febe496653fdd65e69587603bd87d20ed01b4a208e1b906daa2e9d",
+  "standing": "PASS_CRYPTO_MECHANICS_TO_FIX44_PROJECTION"
+}
