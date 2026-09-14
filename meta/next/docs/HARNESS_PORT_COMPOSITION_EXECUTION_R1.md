@@ -536,3 +536,52 @@ git diff --check PASS
 The public default Agent Tool surface is unchanged. No global Capability Service, plugin database, second Tool authority, second Store, or second Runtime was introduced.
 
 R2 is therefore **PARTIALLY REALIZED**: the codec and durable physical-effect backend are proven, while the model-facing `edit_workspace` action, exact prior-read snapshot binding, codec benchmark/selection evidence, and LSP WorkspaceEdit expansion remain forward work.
+
+## R2 update — Agent-facing internal path realized
+
+Canonical Harness advanced with:
+
+```text
+33ac4a8 harness: wire agent-facing adaptive edit path
+```
+
+R2 now additionally realizes:
+
+- explicit internal `AdaptiveEditRuntimeBridge` composition with `read_workspace` + `edit_workspace`;
+- editable reads return exact Runtime source digest plus Harness-generated line anchors;
+- `edit_workspace` requires the prior source digest and performs a fresh full Runtime read before Patch admission;
+- stale source digest fails model-correctably before any physical Patch intent;
+- the logical Harness Tool identity remains `edit_workspace` while the physical operation lowers to `workspace.patch`;
+- exact-replacement and anchored-line both use the same durable Patch/reconciliation backend;
+- one complete scripted Agent loop passes `read_workspace -> edit_workspace -> candidate_completed`;
+- deterministic mechanical benchmark `scripts/check_adaptive_edit_r2_benchmark.py` is now part of the Harness regression suite.
+
+Mechanical benchmark findings are deliberately narrow:
+
+```text
+HARNESS-REPO-REPAIR-001:
+  exact-replacement-v1 -> oracle PASS
+  anchored-line-v1     -> oracle PASS
+  lowered Runtime patch -> identical
+
+Repeated identical target text:
+  exact replacement -> fail closed as ambiguous
+  anchored line      -> exact intended-line PASS
+
+Stale anchor:
+  anchored line      -> fail closed
+```
+
+This establishes a real adaptive-selection reason without claiming model-quality improvement: exact replacement is simpler when text identity is unique; anchored addressing is mechanically stronger when repeated text makes replacement ambiguous.
+
+Current Harness regression standing:
+
+```text
+445 deterministic tests PASS
+Ruff PASS
+documentation contract PASS
+dependency contract PASS
+git diff --check PASS
+```
+
+The default public Agent Tool surface remains unchanged. The remaining R2 work is now narrower: live Provider/model A/B trials, measured per-model codec profiles, a mature conventional-patch donor if justified, and later LSP `WorkspaceEdit` lowering through the same canonical edit boundary.
