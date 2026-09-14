@@ -1,35 +1,153 @@
 {
   "$schema": "https://sing-box.sagernet.org/schema.json",
-  "log": {"level": "warn", "timestamp": true},
+  "log": {
+    "level": "warn",
+    "timestamp": true
+  },
   "dns": {
     "servers": [
-      {"type": "udp", "tag": "provider-dns", "server": "162.252.172.57", "server_port": 53, "detour": "provider-auto"}
+      {
+        "type": "udp",
+        "tag": "provider-dns",
+        "server": "162.252.172.57",
+        "server_port": 53,
+        "detour": "provider-auto"
+      }
     ],
     "final": "provider-dns",
     "strategy": "ipv4_only",
     "timeout": "5s"
   },
   "inbounds": [
-    {"type": "http", "tag": "finance-okx", "listen": "127.0.0.1", "listen_port": 19283},
-    {"type": "http", "tag": "finance-binance-usdm", "listen": "127.0.0.1", "listen_port": 19287},
-    {"type": "http", "tag": "finance-okx-ws", "listen": "127.0.0.1", "listen_port": 19288},
-    {"type": "http", "tag": "finance-binance-usdm-ws", "listen": "127.0.0.1", "listen_port": 19289}
+    {
+      "type": "http",
+      "tag": "finance-okx",
+      "listen": "127.0.0.1",
+      "listen_port": 19283
+    },
+    {
+      "type": "http",
+      "tag": "finance-binance-spot-public",
+      "listen": "127.0.0.1",
+      "listen_port": 19284
+    },
+    {
+      "type": "http",
+      "tag": "finance-binance-spot-public-ws",
+      "listen": "127.0.0.1",
+      "listen_port": 19285
+    },
+    {
+      "type": "http",
+      "tag": "finance-binance-usdm",
+      "listen": "127.0.0.1",
+      "listen_port": 19287
+    },
+    {
+      "type": "http",
+      "tag": "finance-okx-ws",
+      "listen": "127.0.0.1",
+      "listen_port": 19288
+    },
+    {
+      "type": "http",
+      "tag": "finance-binance-usdm-ws",
+      "listen": "127.0.0.1",
+      "listen_port": 19289
+    }
   ],
   "outbounds": [
-    {"type": "urltest", "tag": "provider-auto", "outbounds": ["provider-b", "provider-a"], "url": "https://1.1.1.1/cdn-cgi/trace", "interval": "3s", "tolerance": 65535, "idle_timeout": "10m", "interrupt_exist_connections": true}
+    {
+      "type": "urltest",
+      "tag": "provider-auto",
+      "outbounds": [
+        "provider-b",
+        "provider-a"
+      ],
+      "url": "https://1.1.1.1/cdn-cgi/trace",
+      "interval": "3s",
+      "tolerance": 65535,
+      "idle_timeout": "10m",
+      "interrupt_exist_connections": true
+    }
   ],
   "route": {
-    "default_domain_resolver": {"server": "provider-dns", "strategy": "ipv4_only"},
+    "default_domain_resolver": {
+      "server": "provider-dns",
+      "strategy": "ipv4_only"
+    },
     "rules": [
-      {"action": "resolve", "server": "provider-dns", "strategy": "ipv4_only", "timeout": "5s"},
-      {"inbound": ["finance-okx"], "domain": "openapi.okx.com", "port": 443, "action": "route", "outbound": "provider-auto"},
-      {"inbound": ["finance-binance-usdm"], "domain": "fapi.binance.com", "port": 443, "action": "route", "outbound": "provider-auto"},
-      {"inbound": ["finance-okx-ws"], "domain": "ws.okx.com", "port": 8443, "action": "route", "outbound": "provider-auto"},
-      {"inbound": ["finance-binance-usdm-ws"], "domain": "fstream.binance.com", "port": 443, "action": "route", "outbound": "provider-auto"},
-      {"action": "reject"}
+      {
+        "action": "resolve",
+        "server": "provider-dns",
+        "strategy": "ipv4_only",
+        "timeout": "5s"
+      },
+      {
+        "inbound": [
+          "finance-okx"
+        ],
+        "domain": "openapi.okx.com",
+        "port": 443,
+        "action": "route",
+        "outbound": "provider-auto"
+      },
+      {
+        "inbound": [
+          "finance-binance-usdm"
+        ],
+        "domain": "fapi.binance.com",
+        "port": 443,
+        "action": "route",
+        "outbound": "provider-auto"
+      },
+      {
+        "inbound": [
+          "finance-okx-ws"
+        ],
+        "domain": "ws.okx.com",
+        "port": 8443,
+        "action": "route",
+        "outbound": "provider-auto"
+      },
+      {
+        "inbound": [
+          "finance-binance-usdm-ws"
+        ],
+        "domain": "fstream.binance.com",
+        "port": 443,
+        "action": "route",
+        "outbound": "provider-auto"
+      },
+      {
+        "inbound": [
+          "finance-binance-spot-public"
+        ],
+        "domain": "data-api.binance.vision",
+        "port": 443,
+        "action": "route",
+        "outbound": "provider-auto"
+      },
+      {
+        "inbound": [
+          "finance-binance-spot-public-ws"
+        ],
+        "domain": "data-stream.binance.vision",
+        "port": 443,
+        "action": "route",
+        "outbound": "provider-auto"
+      },
+      {
+        "action": "reject"
+      }
     ]
   },
   "services": [
-    {"type": "api", "tag": "local-api", "listen": "127.0.0.1", "listen_port": 19299}
+    {
+      "type": "api",
+      "tag": "local-api",
+      "listen": "127.0.0.1",
+      "listen_port": 19299
+    }
   ]
 }

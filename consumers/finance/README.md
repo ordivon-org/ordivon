@@ -19,6 +19,8 @@ The WireGuard endpoints use sing-box's native userspace WireGuard Endpoint imple
 The independent consumer authorities are:
 
 - OKX REST: `127.0.0.1:19283` → exactly `openapi.okx.com:443`.
+- Binance Spot public REST: `127.0.0.1:19284` → exactly `data-api.binance.vision:443`.
+- Binance Spot public WS: `127.0.0.1:19285` → exactly `data-stream.binance.vision:443`.
 - Binance USD-M REST: `127.0.0.1:19287` → exactly `fapi.binance.com:443`.
 - OKX public WS: `127.0.0.1:19288` → exactly `ws.okx.com:8443`.
 - Binance USD-M public WS: `127.0.0.1:19289` → exactly `fstream.binance.com:443`.
