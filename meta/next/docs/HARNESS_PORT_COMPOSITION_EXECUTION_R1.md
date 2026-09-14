@@ -742,3 +742,67 @@ git diff --check PASS
 ```
 
 The next high-information R2 pressure point is **multi-region editing**. Current `CanonicalEditPlan` intentionally allows only one semantic edit per file per compiled plan. The next experiment should determine whether that restriction remains a useful narrow waist, whether multiple Agent-visible edit calls are sufficient, or whether evidence now justifies a bounded multi-edit plan while preserving exact snapshot fencing and one Runtime Patch authority boundary.
+
+## R2 update — multi-region pressure closes without a wider Agent wire
+
+Canonical Harness advanced to:
+
+```text
+d1667ba harness: validate multi-region edit boundary
+```
+
+`HARNESS-EDIT-MULTIREGION-003` requires two separated changes in one file while preserving an unrelated middle region. The Agent-facing ACI remains unchanged: one semantic edit per `edit_workspace` call against one exact source digest.
+
+DeepSeek Flash results under the unchanged 64k / 6-model-call / 8-tool-call authority:
+
+```text
+exact-replacement-v1:
+  hidden verifier       5/5
+  candidate_completed   5/5
+  rejected observations 0
+  total model calls     27
+  total tool calls      32
+  total tokens          79,667
+
+anchored-line-v1:
+  hidden verifier       5/5
+  candidate_completed   5/5
+  rejected observations 0
+  total model calls     24
+  total tool calls      28
+  total tokens          68,931
+```
+
+Anchored-line used 13.48% fewer aggregate tokens, three fewer model calls and four fewer Tool calls, but both codecs remained fully reliable. Therefore:
+
+```text
+current one-edit-per-call boundary
+    -> SURVIVES_CURRENT_TASK
+
+atomic multi-edit Agent wire
+    -> NOT_JUSTIFIED_BY_CURRENT_EVIDENCE
+```
+
+This is a deliberate negative architecture decision. `CanonicalFilePatch` and Runtime `workspace.patch` already support multiple `edits[]`, but implementation capability is not sufficient reason to widen the model-facing contract. The current narrow waist remains until a broader workload demonstrates a concrete reliability or cost failure that cannot be handled by codec choice, bounded wider replacement, or sequential digest-fenced edits.
+
+Third verified receipt:
+
+```text
+evidence/adaptive-edit-r2-live-ab-deepseek-flash-multiregion-20260914.json
+payload digest:
+sha256:993750fdc5911eee8bfba00b8917cf1be2313d4712da13b5ba7a13d86b6388bb
+```
+
+Current Harness acceptance:
+
+```text
+456 deterministic tests PASS
+Ruff PASS
+documentation contract PASS
+dependency contract PASS
+evidence contract PASS (80 historical / 3 verified)
+profile evidence integrity PASS
+git diff --check PASS
+```
+
+Adaptive Edit R2 is now sufficiently evidenced for the current slice. The next composition target should move to mature protocol integration rather than inventing more edit syntax: first evaluate `LSP WorkspaceEdit -> CanonicalEditPlan -> Runtime Patch` using existing local LSP/client components where possible.
