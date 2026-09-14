@@ -25,6 +25,7 @@ For every package:
 | Engineering | ISO/software-engineering methods + Codex + existing toolchain | usable now; no new package repo required | complete one real software change from requirement through verified acceptance |
 | Security | NIST/OWASP/OpenSSF + Security v2 + security Skills | mature local provider set | run one repository through threat/code/dependency/supply-chain evidence and bounded standing |
 | Artifact | native standards + Artifact v2 + `artifact-work` | mature local provider; accepted source authority | execute a fresh native-target-verified artifact task |
+| Preservation | OAIS/PAIMAS/PAIS + E-ARK + mature preservation providers | usable standard-native composition; historical R4-R7 are evidence only | use E-ARK SIP/Commons-IP now; activate Enduro only when recurring durable ingest orchestration is proven |
 | Media | editorial/media disciplines + native production tools + Artifact/Distribution | needs re-profile; do not migrate old Media ownership wholesale | produce one real media work from source research through accessible deliverable |
 | Game | game-development disciplines + Godot/Blender + Engineering/Artifact | useful existing project, needs package re-profile | produce and falsify one real playable Veilwild candidate |
 | Data & Analytics | FAIR/data-management/statistics + Python/DuckDB/etc. | usable composition; no new package repo required | take a real dataset from ingest through quality/analysis/visual evidence |
@@ -528,3 +529,41 @@ Use this order only as a **near-term workload queue**, not an architecture order
 11. Business Operations — ERPNext is accepted locally; use it on the first real company/customer/accounting event and configure only the required native module surface.
 
 The package map is successful if Ordivon-owned implementation stays small while real output throughput and verified outcomes increase.
+
+---
+
+## Preservation
+
+### Problem coverage
+
+- producer/archive submission agreement and exact source selection;
+- interoperable SIP construction/validation;
+- preservation ingest, format identification and metadata;
+- AIP storage, fixity, replication and recovery;
+- repository/preservation-program maturity assessment.
+
+### Mature anchors
+
+- ISO 14721:2025 OAIS;
+- ISO 20652:2006 PAIMAS;
+- ISO 20104:2015 PAIS;
+- E-ARK CSIP/SIP 2.2.0;
+- PREMIS/METS, PRONOM/Siegfried;
+- NDSA Levels of Digital Preservation 2.1;
+- DPC RAM v3;
+- CoreTrustSeal Requirements 2026–2028.
+
+### Current local working set
+
+- Commons-IP 2.11.3, proven on the exact 86-file frozen corpus;
+- Archivematica 1.18 + Storage Service and Artefactual Fixity from the R6/R7 graduated workload;
+- owner-domain exact-byte selection/adapters;
+- Enduro as a workload-triggered replacement candidate for preservation ingest orchestration.
+
+### Boundary
+
+Do not create an Ordivon preservation maturity scale, package ontology, fixity model, replication model or recovery model. Historical R4-R7 labels are engineering evidence only. E-ARK is the forward submission/interchange profile; external assessment tools own preservation maturity.
+
+### Next proof
+
+The next preservation infrastructure addition must be triggered by a real gap such as independent/off-site failure domain or recurring durable multi-SIP ingest. Do not deploy Enduro/Kubernetes or another repository stack merely to fill an architecture box.

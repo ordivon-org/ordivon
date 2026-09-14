@@ -1,0 +1,11 @@
+{
+  "authorityId": "dpc-ram-3",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current",
+  "note": "DPC download page identifies Rapid Assessment Model version 3 as the current model.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.dpconline.org/digipres/implement-digipres/dpc-ram/download-dpc-ram",
+  "schemaVersion": 1,
+  "versionObserved": "3"
+}

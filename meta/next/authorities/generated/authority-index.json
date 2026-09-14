@@ -214,6 +214,33 @@
     },
     {
       "aliases": [
+        "CoreTrustSeal",
+        "CTS Requirements 2026-2028"
+      ],
+      "authorityKind": "repository-certification-requirements",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "archive",
+        "preservation",
+        "repository"
+      ],
+      "id": "coretrustseal-requirements-2026-2028",
+      "identityMode": "versioned",
+      "issuer": "CoreTrustSeal",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:0e739f5b48f062494df1d5631f448192ab08c70bb32b7f7dc7671f03bd37d7ab",
+      "recordDigest": "sha256:a8d2763e0731281a5ff82a717d4fe37052db234d8ab4ce2a7f90518d08cb60cf",
+      "title": "CoreTrustSeal Trustworthy Data Repositories Requirements 2026–2028",
+      "topics": [
+        "digital-preservation",
+        "governance",
+        "repository-certification",
+        "trustworthy-repository"
+      ],
+      "versionLabel": "2026-2028"
+    },
+    {
+      "aliases": [
         "CPMI-IOSCO PFMI",
         "PFMI",
         "Principles for Financial Market Infrastructures"
@@ -271,6 +298,88 @@
         "vulnerability-management"
       ],
       "versionLabel": "1.7"
+    },
+    {
+      "aliases": [
+        "DPC RAM",
+        "Rapid Assessment Model"
+      ],
+      "authorityKind": "maturity-assessment",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "archive",
+        "operations",
+        "preservation"
+      ],
+      "id": "dpc-ram-3",
+      "identityMode": "versioned",
+      "issuer": "Digital Preservation Coalition",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:6fc135dc313b66d9e9655e4ae2bf56426e88a7f8b6f6d1e60b5c8d2583eb9f54",
+      "recordDigest": "sha256:b3c9586f5ceb1ead8f5af2aab97c92a6d1d0688606e0de9a533f79a61e8ee09c",
+      "title": "Digital Preservation Coalition Rapid Assessment Model (DPC RAM) Version 3",
+      "topics": [
+        "benchmarking",
+        "continuous-improvement",
+        "digital-preservation",
+        "organizational-maturity"
+      ],
+      "versionLabel": "3"
+    },
+    {
+      "aliases": [
+        "CSIP 2.2.0",
+        "E-ARK CSIP"
+      ],
+      "authorityKind": "interchange-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "archive",
+        "artifact",
+        "preservation"
+      ],
+      "id": "e-ark-csip-2.2.0",
+      "identityMode": "versioned",
+      "issuer": "DILCIS Board",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:aa84dfed7bae16593032b1b3a90b04fccb625adc9ef6b9a9a7b88a9b618da864",
+      "recordDigest": "sha256:3dccd89c18397fcecb25247a8da44707f849c14a92180615c5cf33dd9ec80d9e",
+      "title": "E-ARK Common Specification for Information Packages (CSIP) 2.2.0",
+      "topics": [
+        "digital-preservation",
+        "information-package",
+        "interoperability",
+        "mets"
+      ],
+      "versionLabel": "2.2.0"
+    },
+    {
+      "aliases": [
+        "E-ARK SIP",
+        "SIP 2.2.0"
+      ],
+      "authorityKind": "interchange-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "archive",
+        "artifact",
+        "preservation"
+      ],
+      "id": "e-ark-sip-2.2.0",
+      "identityMode": "versioned",
+      "issuer": "DILCIS Board",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:599e1686435ba9bbe0573d68678eb263f1e8e538d073dcbaf2b5128cf92fcb66",
+      "recordDigest": "sha256:b2e994cd81b24ce08821a5ee1706df4232ad3668c0e306dddaea66169b3ce0de",
+      "title": "E-ARK Specification for Submission Information Packages (SIP) 2.2.0",
+      "topics": [
+        "digital-preservation",
+        "interoperability",
+        "mets",
+        "sip",
+        "submission-information-package"
+      ],
+      "versionLabel": "2.2.0"
     },
     {
       "aliases": [
@@ -562,6 +671,33 @@
     },
     {
       "aliases": [
+        "ISO 14721",
+        "ISO 14721:2025",
+        "OAIS"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "archive",
+        "preservation"
+      ],
+      "id": "iso-14721-2025",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:73aef357ad2a0dfec69d0ed93506152c6bd3329c4c24b5a9a881e936a051e553",
+      "recordDigest": "sha256:a85e790e52fa6619675e3cdded8647793cef8e43ac68237c3cf2a569b226a88e",
+      "title": "ISO 14721:2025 — Space Data System Practices — Reference model for an open archival information system (OAIS)",
+      "topics": [
+        "archive-reference-model",
+        "designated-community",
+        "digital-preservation",
+        "oais"
+      ],
+      "versionLabel": "2025"
+    },
+    {
+      "aliases": [
         "ISO 17442-1",
         "Legal Entity Identifier",
         "LEI standard"
@@ -669,6 +805,60 @@
         "securities"
       ],
       "versionLabel": "2026"
+    },
+    {
+      "aliases": [
+        "ISO 20104",
+        "ISO 20104:2015",
+        "PAIS"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "archive",
+        "preservation"
+      ],
+      "id": "iso-20104-2015",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "confirmed",
+      "observationDigest": "sha256:f61c1cd5c498bf35b36629753094be7d77fc27462c5fa15202f0bed97b6fabe9",
+      "recordDigest": "sha256:77a8b5db38e055330945fa6980963ffe44ca82b1a96ac9f20662cf4d9f92e28b",
+      "title": "ISO 20104:2015 — Space data and information transfer systems — Producer-Archive Interface Specification (PAIS)",
+      "topics": [
+        "producer-archive",
+        "sip",
+        "submission-information-package",
+        "validation"
+      ],
+      "versionLabel": "2015"
+    },
+    {
+      "aliases": [
+        "ISO 20652",
+        "ISO 20652:2006",
+        "PAIMAS"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "archive",
+        "preservation"
+      ],
+      "id": "iso-20652-2006",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "confirmed",
+      "observationDigest": "sha256:4195badb683dd1f5dc2bc3a072fac4ac35782b403040b27a8ae2f9cf5e530b62",
+      "recordDigest": "sha256:0de8cef2a62ff93b9118dcf0e536f743c6356af068a29be5166e5cd3bd1dc86b",
+      "title": "ISO 20652:2006 — Space data and information transfer systems — Producer-archive interface — Methodology abstract standard (PAIMAS)",
+      "topics": [
+        "ingest",
+        "producer-archive",
+        "submission-agreement",
+        "validation"
+      ],
+      "versionLabel": "2006"
     },
     {
       "aliases": [
@@ -1089,6 +1279,36 @@
         "management-system"
       ],
       "versionLabel": "2026"
+    },
+    {
+      "aliases": [
+        "Levels of Digital Preservation",
+        "LoDP 2.1",
+        "NDSA Levels"
+      ],
+      "authorityKind": "maturity-assessment",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "archive",
+        "preservation"
+      ],
+      "id": "ndsa-levels-digital-preservation-2.1",
+      "identityMode": "versioned",
+      "issuer": "National Digital Stewardship Alliance",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:06ff61bd2acebc14e852b5730bd4a055a975c06a4cba46540774d031f45ae3e8",
+      "recordDigest": "sha256:51b4eee6c84a3e84ef9bfcf25879895fec6919eec4bba9d519d8402f9ab00d77",
+      "title": "NDSA Levels of Digital Preservation 2.1",
+      "topics": [
+        "content",
+        "control",
+        "digital-preservation",
+        "integrity",
+        "maturity",
+        "metadata",
+        "storage"
+      ],
+      "versionLabel": "2.1"
     },
     {
       "aliases": [
@@ -2217,7 +2437,7 @@
     }
   ],
   "kind": "ordivon.external-authority-discovery-index",
-  "recordCount": 82,
-  "recordsDigest": "sha256:2be5c267748b78c94676d472466eff63b0781b3b8d5c8e391ea50ae1c2be6af4",
+  "recordCount": 90,
+  "recordsDigest": "sha256:837f9742fdbf5c89302e7b6abcfd8e56163b7d9fd23463579e383d7d1994623e",
   "schemaVersion": 1
 }

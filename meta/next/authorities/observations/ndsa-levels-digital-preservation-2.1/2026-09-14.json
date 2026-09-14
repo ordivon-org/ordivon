@@ -1,0 +1,11 @@
+{
+  "authorityId": "ndsa-levels-digital-preservation-2.1",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current",
+  "note": "NDSA released Version 2.1 in March 2026 and links the current matrix and assessment resources.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.ndsa.org/publications/levels-of-digital-preservation/",
+  "schemaVersion": 1,
+  "versionObserved": "2.1"
+}

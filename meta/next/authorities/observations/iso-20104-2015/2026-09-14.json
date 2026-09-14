@@ -1,0 +1,11 @@
+{
+  "authorityId": "iso-20104-2015",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "confirmed",
+  "note": "ISO lifecycle shows the 2015 edition remains published/confirmed.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.iso.org/standard/67056.html",
+  "schemaVersion": 1,
+  "versionObserved": "2015"
+}

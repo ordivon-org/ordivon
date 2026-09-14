@@ -1,0 +1,51 @@
+{
+  "access": {
+    "fullText": "licensed",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "OAIS",
+      "ISO 14721",
+      "ISO 14721:2025"
+    ],
+    "domains": [
+      "preservation",
+      "archive"
+    ],
+    "topics": [
+      "digital-preservation",
+      "archive-reference-model",
+      "oais",
+      "designated-community"
+    ]
+  },
+  "id": "iso-14721-2025",
+  "identity": {
+    "authorityKind": "international-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "iso",
+      "name": "ISO"
+    },
+    "officialSource": "https://www.iso.org/standard/87471.html",
+    "publicationDate": "2025-03",
+    "title": "ISO 14721:2025 — Space Data System Practices — Reference model for an open archival information system (OAIS)",
+    "versionLabel": "2025"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "/root/workstation-lab/docs/creative-preservation-operations-r7.md",
+      "/var/lib/ordivon/creative-preservation/r8-eark/reports/creative-preservation-r8-eark-sip-r1.zip_validation-report_2026-09-14.json"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

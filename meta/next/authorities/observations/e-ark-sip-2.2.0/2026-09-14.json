@@ -1,0 +1,11 @@
+{
+  "authorityId": "e-ark-sip-2.2.0",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current",
+  "note": "DILCIS published SIP 2.2.0 dated 2024-05-17 as the current specification.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://earksip.dilcis.eu/",
+  "schemaVersion": 1,
+  "versionObserved": "2.2.0"
+}
