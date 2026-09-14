@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from market_capital.semantic import BLOCK_NOT_GRANTED, ProductionAuthorization
+from market_capital.semantic import NOT_ADMITTED, ExternalFinancialWriteAdmission
 
 
 class AuthorityError(RuntimeError):
@@ -36,7 +36,7 @@ def verify_internal_authority(repo: Path, config_path: Path) -> dict[str, Any]:
         raise AuthorityError("unexpected execution-authority kind")
 
     semantic = _load_json(_resolve(repo, cfg["semanticContract"]))
-    production_doc = _load_json(_resolve(repo, cfg["productionAuthorizationContract"]))
+    write_admission_doc = _load_json(_resolve(repo, cfg["externalFinancialWriteAdmissionContract"]))
     boundary = _load_json(_resolve(repo, cfg["externalBoundaryContract"]))
 
     if semantic.get("kind") != "ordivon.market-capital.semantic-core":
@@ -46,28 +46,28 @@ def verify_internal_authority(repo: Path, config_path: Path) -> dict[str, Any]:
         "proof_binding_currentness",
         "scientific_truth_not_economic_truth_not_capital_truth",
         "registry_parcel_scarcity_identity",
-        "reservation_not_grant",
+        "reservation_not_effect_admission",
         "effect_authority_retain_release_consume",
         "revocation_recovery_one_shot_resurrection",
-        "production_authorization_boundary",
+        "external_financial_write_admission_boundary",
     }
     missing = sorted(required - set(semantic.get("ownedSemantics", [])))
     if missing:
         raise AuthorityError(f"canonical semantic contract is incomplete: {missing}")
 
-    if production_doc.get("kind") != "ordivon.market-capital.production-authorization":
-        raise AuthorityError("canonical production-authorization contract missing")
+    if write_admission_doc.get("kind") != "ordivon.market-capital.external-financial-write-admission":
+        raise AuthorityError("canonical external-financial-write-admission contract missing")
     if boundary.get("kind") != "ordivon.market-capital.external-boundary":
         raise AuthorityError("canonical external-boundary contract missing")
 
-    production = ProductionAuthorization(state=production_doc["state"])
+    write_admission = ExternalFinancialWriteAdmission(state=write_admission_doc["state"])
     return {
         "config": cfg,
-        "productionState": production.state,
-        "productionGranted": production.granted,
-        "productionExternalFinancialWriteAllowed": bool(
-            production_doc.get("externalFinancialWriteAllowed", False)
-        ),
+        "externalWriteAdmissionState": write_admission.state,
+        "externalWriteAdmitted": write_admission.admitted,
+        "externalWriteVerifier": write_admission_doc.get("effectVerifier", "NOT_IMPLEMENTED"),
+        "providerWriteCapabilityBound": bool(write_admission_doc.get("providerWriteCapabilityBound", False)),
+        "externalFinancialWriteAllowedByContract": bool(write_admission_doc.get("externalFinancialWriteAllowed", False)),
         "ownedSemantics": sorted(required),
     }
 
@@ -77,12 +77,12 @@ def evaluate_non_live(repo: Path, config_path: Path) -> dict[str, Any]:
     cfg = verified.pop("config")
     if cfg.get("currentLane") != "NON_LIVE":
         raise AuthorityError("current execution lane must remain NON_LIVE")
-    if verified["productionState"] != BLOCK_NOT_GRANTED:
-        raise AuthorityError("non-live lane requires ProductionAuthorization=BLOCK_NOT_GRANTED")
-    if verified["productionExternalFinancialWriteAllowed"]:
-        raise AuthorityError("non-live lane requires externalFinancialWriteAllowed=false")
+    if verified["externalWriteAdmissionState"] != NOT_ADMITTED:
+        raise AuthorityError("non-live lane requires external financial write admission NOT_ADMITTED")
+    if verified["externalFinancialWriteAllowedByContract"] or verified["providerWriteCapabilityBound"]:
+        raise AuthorityError("non-live lane cannot bind or allow an external financial write capability")
     return {
-        "standing": "INTERNAL_AUTHORITY_GATE_NON_LIVE",
+        "standing": "NON_LIVE_EFFECT_BOUNDARY",
         **verified,
         "externalFinancialWritesAllowed": False,
         "effectAuthorityAvailableForExternalWrites": False,
@@ -92,13 +92,11 @@ def evaluate_non_live(repo: Path, config_path: Path) -> dict[str, Any]:
 def evaluate_external_write(repo: Path, config_path: Path) -> dict[str, Any]:
     verified = verify_internal_authority(repo, config_path)
     cfg = verified.pop("config")
-    if cfg.get("externalFinancialWriteAdmission") != "ADMITTED":
+    if not verified["externalWriteAdmitted"]:
         raise AuthorityError("external financial write admission is not admitted")
-    if cfg.get("liveGrantMechanism") != "ADMITTED":
-        raise AuthorityError("independent live grant mechanism is not admitted")
-    raise AuthorityError(
-        "external-write verifier is intentionally not implemented; code-level live admission is required"
-    )
+    if verified["externalWriteVerifier"] != "IMPLEMENTED_BOUND_CURRENT" or not verified["providerWriteCapabilityBound"]:
+        raise AuthorityError("external financial write verifier/capability is not implemented, bound, and current")
+    raise AuthorityError("external-write execution path is not implemented")
 
 
 def main() -> int:

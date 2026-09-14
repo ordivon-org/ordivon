@@ -15,6 +15,7 @@
     "venueClockAgreementMaxMsForCrossVenueComparison": 250
   },
   "demoExecutionAllowed": false,
+  "externalFinancialWriteAdmissionRequired": true,
   "externalFinancialWritesAllowed": false,
   "kind": "ordivon.market-capital.crypto-execution-lane",
   "liveExecutionAllowed": false,
@@ -34,7 +35,6 @@
     "standing": "PASS_CURRENT_PUBLIC_DATA_VIA_NETWORK_V2"
   },
   "privateAccountDataAllowed": false,
-  "productionAuthorizationRequired": true,
   "publicMarketDataAllowed": true,
   "rules": [
     "the historical equity M6/M7 At-the-Opening experiment is not reused for this crypto lane",

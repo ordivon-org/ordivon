@@ -20,6 +20,7 @@
       "CONTRADICTORY"
     ]
   },
+  "externalFinancialWriteAdmission": "NOT_ADMITTED",
   "externalFinancialWriteAttempted": false,
   "kind": "ordivon.market-capital.semantic-core",
   "ownedSemantics": [
@@ -27,12 +28,11 @@
     "proof_binding_currentness",
     "scientific_truth_not_economic_truth_not_capital_truth",
     "registry_parcel_scarcity_identity",
-    "reservation_not_grant",
+    "reservation_not_effect_admission",
     "effect_authority_retain_release_consume",
     "revocation_recovery_one_shot_resurrection",
-    "production_authorization_boundary"
+    "external_financial_write_admission_boundary"
   ],
-  "productionAuthorization": "BLOCK_NOT_GRANTED",
   "sameCut": {
     "forbiddenInference": "stream_offset_or_venue_timestamp_alone_proves_cross_venue_observation_order",
     "required": [

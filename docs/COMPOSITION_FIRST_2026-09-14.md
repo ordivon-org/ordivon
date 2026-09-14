@@ -45,7 +45,7 @@ Market Capital may retain only the semantics that external components cannot est
 - proof identity/currentness across component boundaries;
 - Reservation != Grant;
 - EffectAuthority disposition when an external effect is ambiguous;
-- ProductionAuthorization and revocation boundaries;
+- external financial write admission, capability attenuation, revocation, and reconciliation boundaries;
 - reconciliation result over authoritative venue reality.
 
 These are seams, not replacement trading/account/settlement systems.

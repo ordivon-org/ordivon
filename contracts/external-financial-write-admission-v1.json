@@ -1,0 +1,9 @@
+{
+  "effectVerifier": "NOT_IMPLEMENTED",
+  "externalFinancialWriteAllowed": false,
+  "kind": "ordivon.market-capital.external-financial-write-admission",
+  "providerWriteCapabilityBound": false,
+  "reason": "no current provider/executor effect-admission surface is implemented and bound for external financial writes",
+  "schemaVersion": 1,
+  "state": "NOT_ADMITTED"
+}

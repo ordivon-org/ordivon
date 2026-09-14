@@ -23,7 +23,7 @@
       "mustNotEstablish": [
         "source authenticity",
         "proof currentness",
-        "production authority"
+        "external financial write admission"
       ],
       "role": "local deterministic verifier and replay query engine"
     },
@@ -78,7 +78,7 @@
         "capital truth",
         "effect success",
         "EffectAuthority",
-        "ProductionAuthorization"
+        "ExternalFinancialWriteAdmission"
       ],
       "role": "accounting mechanics, durable orchestration, generic policy"
     }
