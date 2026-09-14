@@ -1,4 +1,7 @@
-//! systemd/cgroup launch, identity, and process-tree helpers for Runtime.
+//! Linux-native systemd/cgroup launch, identity, and process-tree helpers for Runtime.
+//!
+//! This module is the Linux platform realization boundary. Shared Runtime Engine code should
+//! consume these helpers through `runtime::platform`, not invoke systemd/cgroup tools directly.
 
 use std::collections::BTreeMap;
 use std::fs;
@@ -8,14 +11,14 @@ use std::process::{Command, Output, Stdio};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use super::supervisor::SupervisorIdentity;
-use super::{AttemptRecord, RuntimeError, RuntimeErrorCode, RuntimeResult};
+use super::super::supervisor::SupervisorIdentity;
+use super::super::{AttemptRecord, RuntimeError, RuntimeErrorCode, RuntimeResult};
 use crate::universal::UniversalExecutorConfig;
 
 const SYSTEMCTL_OBSERVATION_TIMEOUT: Duration = Duration::from_secs(1);
 const OBSERVATION_COMMAND_POLL: Duration = Duration::from_millis(10);
 
-pub(super) fn validate_executable(
+pub(crate) fn validate_executable(
     config: &UniversalExecutorConfig,
     value: &str,
     field: &str,
@@ -87,7 +90,7 @@ pub(super) fn validate_executable(
     Ok(path.to_path_buf())
 }
 
-pub(super) fn validate_runner(path: &Path) -> RuntimeResult<PathBuf> {
+pub(crate) fn validate_runner(path: &Path) -> RuntimeResult<PathBuf> {
     let metadata = fs::symlink_metadata(path).map_err(|error| io_error("inspect Runner", error))?;
     if metadata.file_type().is_symlink()
         || !metadata.is_file()
@@ -101,22 +104,22 @@ pub(super) fn validate_runner(path: &Path) -> RuntimeResult<PathBuf> {
     fs::canonicalize(path).map_err(|error| io_error("canonicalize Runner", error))
 }
 
-pub(super) const CONTAINED_INPUT_ROOT: &str = "/run/ordivon/inputs";
+pub(crate) const CONTAINED_INPUT_ROOT: &str = "/run/ordivon/inputs";
 
-pub(super) struct SystemdRunSpec<'a> {
-    pub(super) unit_name: &'a str,
-    pub(super) runner: &'a Path,
-    pub(super) bundle_path: &'a Path,
-    pub(super) workspace_path: &'a Path,
-    pub(super) workspace_git_common_dir: Option<&'a Path>,
-    pub(super) input_set_path: Option<&'a Path>,
-    pub(super) runtime_ceiling_ms: u64,
-    pub(super) budget: &'a super::ExecutionBudget,
-    pub(super) execution_profile: super::ExecutionProfile,
-    pub(super) environment: &'a BTreeMap<String, String>,
+pub(crate) struct SystemdRunSpec<'a> {
+    pub(crate) unit_name: &'a str,
+    pub(crate) runner: &'a Path,
+    pub(crate) bundle_path: &'a Path,
+    pub(crate) workspace_path: &'a Path,
+    pub(crate) workspace_git_common_dir: Option<&'a Path>,
+    pub(crate) input_set_path: Option<&'a Path>,
+    pub(crate) runtime_ceiling_ms: u64,
+    pub(crate) budget: &'a super::super::ExecutionBudget,
+    pub(crate) execution_profile: super::super::ExecutionProfile,
+    pub(crate) environment: &'a BTreeMap<String, String>,
 }
 
-pub(super) fn build_systemd_run_command(spec: &SystemdRunSpec<'_>) -> RuntimeResult<Command> {
+pub(crate) fn build_systemd_run_command(spec: &SystemdRunSpec<'_>) -> RuntimeResult<Command> {
     let unit_name = spec.unit_name;
     let runner = spec.runner;
     let bundle_path = spec.bundle_path;
@@ -161,7 +164,7 @@ pub(super) fn build_systemd_run_command(spec: &SystemdRunSpec<'_>) -> RuntimeRes
                 ));
             }
         }
-        super::ExecutionProfile::ContainedLocal => {
+        super::super::ExecutionProfile::ContainedLocal => {
             append_contained_properties(
                 &mut command,
                 runner,
@@ -178,7 +181,7 @@ pub(super) fn build_systemd_run_command(spec: &SystemdRunSpec<'_>) -> RuntimeRes
     Ok(command)
 }
 
-pub(super) fn append_contained_properties(
+pub(crate) fn append_contained_properties(
     command: &mut Command,
     runner: &Path,
     workspace_path: &Path,
@@ -264,7 +267,7 @@ pub(super) fn append_contained_properties(
     Ok(())
 }
 
-pub(super) fn systemd_path_value(path: &Path) -> RuntimeResult<String> {
+pub(crate) fn systemd_path_value(path: &Path) -> RuntimeResult<String> {
     if !path.is_absolute() {
         return Err(RuntimeError::invalid(
             "contained write paths must be absolute",
@@ -281,7 +284,7 @@ pub(super) fn systemd_path_value(path: &Path) -> RuntimeResult<String> {
     Ok(value.into_owned())
 }
 
-pub(super) fn append_trusted_environment(command: &mut Command) {
+pub(crate) fn append_trusted_environment(command: &mut Command) {
     for (name, value) in std::env::vars_os() {
         let Some(name) = name.to_str() else {
             continue;
@@ -306,7 +309,7 @@ pub(super) fn append_trusted_environment(command: &mut Command) {
     }
 }
 
-pub(super) fn valid_environment_name(name: &str) -> bool {
+pub(crate) fn valid_environment_name(name: &str) -> bool {
     let mut bytes = name.bytes();
     let Some(first) = bytes.next() else {
         return false;
@@ -315,13 +318,23 @@ pub(super) fn valid_environment_name(name: &str) -> bool {
         && bytes.all(|byte| byte == b'_' || byte.is_ascii_alphanumeric())
 }
 
-pub(super) fn systemd_run(spec: &SystemdRunSpec<'_>) -> RuntimeResult<std::process::Output> {
+pub(crate) fn systemd_run(spec: &SystemdRunSpec<'_>) -> RuntimeResult<std::process::Output> {
     build_systemd_run_command(spec)?
         .output()
         .map_err(|error| tool_error("cannot execute systemd-run", error))
 }
 
-pub(super) fn release_terminal_unit(unit_name: &str) {
+/// Request asynchronous stop of one exact Linux supervisor unit. The caller remains responsible
+/// for identity-bound observation/reconciliation; a successful systemctl submission is not
+/// terminal execution evidence.
+pub(crate) fn stop_unit_no_block(unit_name: &str) -> RuntimeResult<Output> {
+    Command::new("systemctl")
+        .args(["--no-block", "stop", unit_name])
+        .output()
+        .map_err(|error| tool_error("cannot execute systemctl stop", error))
+}
+
+pub(crate) fn release_terminal_unit(unit_name: &str) {
     // Failed transient units retain the supervisor evidence needed by recovery.
     // Only after Registry terminal commit is durable do we reset the failed state,
     // allowing systemd to unload the unit without an unbounded failed-unit leak.
@@ -388,7 +401,7 @@ fn bounded_observation_output(
     }
 }
 
-pub(super) fn systemctl_show(unit_name: &str) -> RuntimeResult<BTreeMap<String, String>> {
+pub(crate) fn systemctl_show(unit_name: &str) -> RuntimeResult<BTreeMap<String, String>> {
     let mut command = Command::new("systemctl");
     command.args([
         "show",
@@ -426,7 +439,7 @@ pub(super) fn systemctl_show(unit_name: &str) -> RuntimeResult<BTreeMap<String, 
     Ok(properties)
 }
 
-pub(super) fn unit_is_active(properties: &BTreeMap<String, String>) -> bool {
+pub(crate) fn unit_is_active(properties: &BTreeMap<String, String>) -> bool {
     properties
         .get("ActiveState")
         .is_some_and(|state| matches!(state.as_str(), "active" | "activating" | "reloading"))
@@ -436,11 +449,11 @@ pub(super) fn unit_is_active(properties: &BTreeMap<String, String>) -> bool {
 /// exact transient unit. With `systemd-run --no-block`, enqueueing is the physical
 /// dispatch boundary; absence of Runner start evidence while this job exists is not
 /// evidence that dispatch was lost.
-pub(super) fn unit_has_pending_job(properties: &BTreeMap<String, String>) -> bool {
+pub(crate) fn unit_has_pending_job(properties: &BTreeMap<String, String>) -> bool {
     properties.get("Job").is_some_and(|job| !job.is_empty())
 }
 
-pub(super) fn nonempty_property(
+pub(crate) fn nonempty_property(
     properties: &BTreeMap<String, String>,
     key: &str,
 ) -> Option<String> {
@@ -450,7 +463,7 @@ pub(super) fn nonempty_property(
         .cloned()
 }
 
-pub(super) fn require_property(
+pub(crate) fn require_property(
     properties: &BTreeMap<String, String>,
     key: &str,
     expected: &str,
@@ -466,7 +479,7 @@ pub(super) fn require_property(
     Ok(())
 }
 
-pub(super) fn missing_systemd_property(key: &str) -> RuntimeError {
+pub(crate) fn missing_systemd_property(key: &str) -> RuntimeError {
     RuntimeError::new(
         RuntimeErrorCode::LaunchIdentityMismatch,
         format!("systemd omitted {key}"),
@@ -475,7 +488,7 @@ pub(super) fn missing_systemd_property(key: &str) -> RuntimeError {
     )
 }
 
-pub(super) fn supervisor_identity(attempt: &AttemptRecord) -> RuntimeResult<SupervisorIdentity> {
+pub(crate) fn supervisor_identity(attempt: &AttemptRecord) -> RuntimeResult<SupervisorIdentity> {
     Ok(SupervisorIdentity {
         boot_id: attempt.boot_id.clone().ok_or_else(|| {
             RuntimeError::new(
@@ -521,7 +534,7 @@ pub(super) fn supervisor_identity(attempt: &AttemptRecord) -> RuntimeResult<Supe
     })
 }
 
-pub(super) fn cgroup_has_processes(control_group: &str) -> RuntimeResult<bool> {
+pub(crate) fn cgroup_has_processes(control_group: &str) -> RuntimeResult<bool> {
     if !control_group.starts_with('/')
         || control_group
             .split('/')
@@ -553,7 +566,7 @@ pub(super) fn cgroup_has_processes(control_group: &str) -> RuntimeResult<bool> {
         .any(|line| line.trim().parse::<u32>().is_ok()))
 }
 
-pub(super) fn parse_cgroup_populated(content: &str) -> RuntimeResult<bool> {
+pub(crate) fn parse_cgroup_populated(content: &str) -> RuntimeResult<bool> {
     for line in content.lines() {
         let mut fields = line.split_whitespace();
         if fields.next() == Some("populated") {
@@ -577,7 +590,7 @@ pub(super) fn parse_cgroup_populated(content: &str) -> RuntimeResult<bool> {
     ))
 }
 
-pub(super) fn process_identity(pid: u32) -> Option<String> {
+pub(crate) fn process_identity(pid: u32) -> Option<String> {
     if pid == 0 {
         return None;
     }
@@ -589,7 +602,7 @@ pub(super) fn process_identity(pid: u32) -> Option<String> {
         .map(ToString::to_string)
 }
 
-pub(super) fn read_trimmed(path: &str) -> RuntimeResult<String> {
+pub(crate) fn read_trimmed(path: &str) -> RuntimeResult<String> {
     fs::read_to_string(path)
         .map(|value| value.trim().to_string())
         .map_err(|error| io_error(&format!("read {path}"), error))
@@ -713,7 +726,7 @@ mod tests {
 
     #[test]
     fn systemd_run_command_submits_without_waiting_for_start_job_completion() {
-        let budget = super::super::ExecutionBudget::default();
+        let budget = super::super::super::ExecutionBudget::default();
         let environment = BTreeMap::new();
         let command = build_systemd_run_command(&SystemdRunSpec {
             unit_name: "ordivon-test.service",
@@ -724,7 +737,7 @@ mod tests {
             input_set_path: None,
             runtime_ceiling_ms: 5_000,
             budget: &budget,
-            execution_profile: super::super::ExecutionProfile::TrustedLocal,
+            execution_profile: super::super::super::ExecutionProfile::TrustedLocal,
             environment: &environment,
         })
         .unwrap();

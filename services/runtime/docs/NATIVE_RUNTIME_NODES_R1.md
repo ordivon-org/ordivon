@@ -106,6 +106,19 @@ A stopped WSL distribution therefore yields `linux-archlinux=unavailable` while 
 6. **R6 — Windows Service:** run the MCP adapter under SCM and verify restart/replay/cancel/reconciliation with WSL stopped.
 7. **R7 — provider routing:** Harness/Workstation discover and route between `windows-main` and `linux-archlinux` without Runtime cluster semantics.
 
+## R2 progress — Linux platform ownership seam
+
+R2 begins with ownership, not abstraction inflation. The existing `runtime/systemd.rs` implementation moves to `runtime/platform/linux.rs`; shared Engine imports Linux physical mechanics through `runtime::platform` and no longer invokes `systemctl stop` directly. This deliberately preserves the existing systemd/cgroup evidence model while creating a concrete location for a later independent Windows realization.
+
+This slice does **not** claim Windows-compilable Core yet. `windows.rs` still contains WSL-hosted Windows transport machinery (`systemd-run` + WSL interop), and shared Core still contains unconditional Unix filesystem/process primitives. Those are explicit subsequent R2/R3 cuts rather than reasons to invent a broad cross-platform supervisor trait prematurely.
+
+R2 acceptance for this slice:
+
+- Linux systemd/cgroup implementation lives under `runtime/platform/linux`;
+- shared Engine has no direct `Command::new("systemctl")`;
+- existing Linux execution/reconciliation behavior and tests remain unchanged;
+- no generic distributed scheduling or false Windows/Linux evidence equivalence is introduced.
+
 ## R1 acceptance
 
 - `RuntimeCapabilities` includes node identity.

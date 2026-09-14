@@ -83,10 +83,7 @@ impl Runtime {
         if native_direct {
             return self.cancel_native_windows_attempt(&request.job_id, &attempt);
         }
-        let output = Command::new("systemctl")
-            .args(["--no-block", "stop", &attempt.unit_name])
-            .output()
-            .map_err(|error| tool_error("cannot execute systemctl stop", error))?;
+        let output = stop_unit_no_block(&attempt.unit_name)?;
         let deadline = Instant::now() + Duration::from_secs(3);
         let mut poll_index = 0;
         loop {
