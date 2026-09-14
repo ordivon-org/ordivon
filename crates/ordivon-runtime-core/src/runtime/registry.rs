@@ -1599,22 +1599,52 @@ fn validate_submit(request: &SubmitRequest) -> RuntimeResult<()> {
         ));
     }
     validate_plan_budget(&request.plan.budget)?;
-    validate_exec_payload_for_plan(&request.plan.args, &request.plan.env, "plan")?;
+    validate_exec_payload_for_plan(
+        request.plan.execution_target,
+        &request.plan.executable,
+        &request.plan.args,
+        &request.plan.env,
+        "plan",
+    )?;
     for (index, step) in request.plan.steps.iter().enumerate() {
-        validate_exec_payload_for_plan(&step.args, &step.env, &format!("plan.steps[{index}]"))?;
+        validate_exec_payload_for_plan(
+            request.plan.execution_target,
+            &step.executable,
+            &step.args,
+            &step.env,
+            &format!("plan.steps[{index}]"),
+        )?;
     }
     Ok(())
 }
 
 fn validate_exec_payload_for_plan(
+    target: super::ExecutionTarget,
+    executable: &str,
     args: &[String],
     env: &std::collections::BTreeMap<String, String>,
     field: &str,
 ) -> RuntimeResult<()> {
-    crate::universal::validate_exec_payload(args, env, field).map_err(|error| {
-        let error_field = error.field.unwrap_or_else(|| field.to_string());
-        RuntimeError::invalid(error.message, &error_field)
-    })
+    match target {
+        super::ExecutionTarget::LocalLinux => {
+            crate::universal::validate_exec_payload(args, env, field).map_err(|error| {
+                let error_field = error.field.unwrap_or_else(|| field.to_string());
+                if error.code == crate::universal::UniversalExecErrorCode::ToolUnavailable {
+                    RuntimeError::new(
+                        RuntimeErrorCode::ToolUnavailable,
+                        error.message,
+                        Some(&error_field),
+                        false,
+                    )
+                } else {
+                    RuntimeError::invalid(error.message, &error_field)
+                }
+            })
+        }
+        super::ExecutionTarget::WindowsNative => {
+            super::windows::validate_windows_exec_payload(executable, args, env, field)
+        }
+    }
 }
 
 fn validate_plan_budget(budget: &super::ExecutionBudget) -> RuntimeResult<()> {

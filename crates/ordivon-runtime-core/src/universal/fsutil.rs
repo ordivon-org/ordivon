@@ -1,9 +1,12 @@
 use serde::Serialize;
 use sha2::{Digest, Sha256};
+#[cfg(unix)]
 use std::ffi::CString;
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
+#[cfg(unix)]
 use std::os::fd::{AsRawFd, FromRawFd};
+#[cfg(unix)]
 use std::os::unix::fs::OpenOptionsExt;
 use std::path::{Component, Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -15,6 +18,7 @@ pub const WORKSPACE_ID_MAX_LENGTH: usize = 96;
 pub const WORKSPACE_ID_PATTERN: &str = r"^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$";
 pub const ENVIRONMENT_VARIABLE_NAME_PATTERN: &str = r"^[A-Za-z_][A-Za-z0-9_]*$";
 
+#[cfg(unix)]
 #[repr(C)]
 struct OpenHow {
     flags: u64,
@@ -22,10 +26,14 @@ struct OpenHow {
     resolve: u64,
 }
 
+#[cfg(unix)]
 const RESOLVE_NO_MAGICLINKS: u64 = 0x02;
+#[cfg(unix)]
 const RESOLVE_NO_SYMLINKS: u64 = 0x04;
+#[cfg(unix)]
 const RESOLVE_BENEATH: u64 = 0x08;
 
+#[cfg(unix)]
 pub(crate) fn open_directory_nofollow(path: &Path) -> std::io::Result<File> {
     OpenOptions::new()
         .read(true)
@@ -33,6 +41,7 @@ pub(crate) fn open_directory_nofollow(path: &Path) -> std::io::Result<File> {
         .open(path)
 }
 
+#[cfg(unix)]
 pub(crate) fn open_regular_file_beneath(
     root_file: &File,
     relative: &Path,
@@ -74,6 +83,26 @@ pub(crate) fn open_regular_file_beneath(
         ));
     }
     Ok(file)
+}
+
+#[cfg(not(unix))]
+pub(crate) fn open_directory_nofollow(_path: &Path) -> std::io::Result<File> {
+    Err(std::io::Error::new(
+        std::io::ErrorKind::Unsupported,
+        "secure no-follow directory handles are not implemented for this platform",
+    ))
+}
+
+#[cfg(not(unix))]
+pub(crate) fn open_regular_file_beneath(
+    _root_file: &File,
+    _relative: &Path,
+    _deny_parent_symlinks: bool,
+) -> std::io::Result<File> {
+    Err(std::io::Error::new(
+        std::io::ErrorKind::Unsupported,
+        "secure beneath-root file resolution is not implemented for this platform",
+    ))
 }
 
 pub(crate) fn validate_id(value: &str, field: &str) -> Result<(), UniversalExecError> {
@@ -122,6 +151,7 @@ pub(crate) fn validate_relative_path(
     Ok(path.to_path_buf())
 }
 
+#[cfg(unix)]
 pub(crate) fn linux_exec_string_limit_bytes() -> Result<usize, UniversalExecError> {
     let page_size = unsafe { libc::sysconf(libc::_SC_PAGESIZE) };
     if page_size <= 0 {
@@ -142,6 +172,7 @@ pub(crate) fn linux_exec_string_limit_bytes() -> Result<usize, UniversalExecErro
         })
 }
 
+#[cfg(unix)]
 pub(crate) fn linux_exec_payload_limit_bytes() -> Result<usize, UniversalExecError> {
     let arg_max = unsafe { libc::sysconf(libc::_SC_ARG_MAX) };
     if arg_max <= 0 {
@@ -158,6 +189,7 @@ pub(crate) fn linux_exec_payload_limit_bytes() -> Result<usize, UniversalExecErr
     })
 }
 
+#[cfg(unix)]
 pub(crate) fn validate_args(args: &[String]) -> Result<(), UniversalExecError> {
     let max_string_bytes = linux_exec_string_limit_bytes()?;
     if args
@@ -174,24 +206,56 @@ pub(crate) fn validate_args(args: &[String]) -> Result<(), UniversalExecError> {
     Ok(())
 }
 
+#[cfg(not(unix))]
+pub(crate) fn linux_exec_string_limit_bytes() -> Result<usize, UniversalExecError> {
+    Err(UniversalExecError::new(
+        UniversalExecErrorCode::ToolUnavailable,
+        "Linux execve limits are unavailable on this platform",
+        Some("execution"),
+        false,
+    ))
+}
+
+#[cfg(not(unix))]
+pub(crate) fn linux_exec_payload_limit_bytes() -> Result<usize, UniversalExecError> {
+    Err(UniversalExecError::new(
+        UniversalExecErrorCode::ToolUnavailable,
+        "Linux execve limits are unavailable on this platform",
+        Some("execution"),
+        false,
+    ))
+}
+
+#[cfg(not(unix))]
+pub(crate) fn validate_args(args: &[String]) -> Result<(), UniversalExecError> {
+    if args.iter().any(|arg| arg.as_bytes().contains(&0)) {
+        return Err(invalid("args contains NUL", "args"));
+    }
+    Err(UniversalExecError::new(
+        UniversalExecErrorCode::ToolUnavailable,
+        "Linux execve payload validation is unavailable on this platform",
+        Some("args"),
+        false,
+    ))
+}
+
 pub(crate) fn validate_env(
     env: &std::collections::BTreeMap<String, String>,
 ) -> Result<(), UniversalExecError> {
-    let max_string_bytes = linux_exec_string_limit_bytes()?;
     for (name, value) in env {
         let mut chars = name.chars();
         let valid_name = chars
             .next()
             .is_some_and(|first| first == '_' || first.is_ascii_alphabetic())
             && chars.all(|character| character == '_' || character.is_ascii_alphanumeric());
-        let encoded_len = name.len().saturating_add(1).saturating_add(value.len());
-        if !valid_name || encoded_len > max_string_bytes || value.as_bytes().contains(&0) {
+        if !valid_name || value.as_bytes().contains(&0) {
             return Err(invalid(format!("invalid environment entry {name}"), "env"));
         }
     }
     Ok(())
 }
 
+#[cfg(unix)]
 pub(crate) fn validate_exec_payload(
     args: &[String],
     env: &std::collections::BTreeMap<String, String>,
@@ -199,6 +263,17 @@ pub(crate) fn validate_exec_payload(
 ) -> Result<(), UniversalExecError> {
     validate_args(args)?;
     validate_env(env)?;
+    let max_string_bytes = linux_exec_string_limit_bytes()?;
+    if env.iter().any(|(name, value)| {
+        name.len().saturating_add(1).saturating_add(value.len()) > max_string_bytes
+    }) {
+        return Err(invalid(
+            format!(
+                "env contains an entry that exceeds the Linux execve per-string limit of {max_string_bytes} bytes"
+            ),
+            "env",
+        ));
+    }
 
     let mut string_bytes = 0usize;
     for arg in args {
@@ -239,6 +314,24 @@ pub(crate) fn validate_exec_payload(
         ));
     }
     Ok(())
+}
+
+#[cfg(not(unix))]
+pub(crate) fn validate_exec_payload(
+    args: &[String],
+    env: &std::collections::BTreeMap<String, String>,
+    field: &str,
+) -> Result<(), UniversalExecError> {
+    if args.iter().any(|arg| arg.as_bytes().contains(&0)) {
+        return Err(invalid("args contains NUL", field));
+    }
+    validate_env(env)?;
+    Err(UniversalExecError::new(
+        UniversalExecErrorCode::ToolUnavailable,
+        "Linux execve payload validation is unavailable on this platform",
+        Some(field),
+        false,
+    ))
 }
 
 pub(crate) fn invalid(message: impl Into<String>, field: impl Into<String>) -> UniversalExecError {
@@ -332,11 +425,10 @@ pub(crate) fn sync_directory(path: &Path) -> Result<(), UniversalExecError> {
 }
 
 pub(crate) fn io_error(path: &Path, operation: &str, error: std::io::Error) -> UniversalExecError {
-    let code = match error.raw_os_error() {
-        Some(libc::ENOSPC) | Some(libc::EDQUOT) => {
-            UniversalExecErrorCode::WorkspaceCapacityExceeded
-        }
-        _ => UniversalExecErrorCode::IoError,
+    let code = if error.kind() == std::io::ErrorKind::StorageFull {
+        UniversalExecErrorCode::WorkspaceCapacityExceeded
+    } else {
+        UniversalExecErrorCode::IoError
     };
     UniversalExecError::new(
         code,

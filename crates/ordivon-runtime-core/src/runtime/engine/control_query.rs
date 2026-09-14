@@ -1409,12 +1409,13 @@ fn validate_run_request_structure(request: &TaskRunRequest) -> RuntimeResult<()>
             ));
         }
     }
-    crate::universal::validate_exec_payload(
+    validate_exec_payload_for_target(
+        request.execution.execution_target,
+        &request.execution.executable,
         &request.execution.args,
         &request.execution.env,
         "execution",
-    )
-    .map_err(map_universal_error)?;
+    )?;
     let mut foreign_reference_keys = std::collections::BTreeSet::new();
     for (index, reference) in request.execution.foreign_references.iter().enumerate() {
         for (value, suffix) in [
@@ -1480,17 +1481,35 @@ fn validate_run_request_structure(request: &TaskRunRequest) -> RuntimeResult<()>
                 &format!("execution.steps[{index}].timeoutMs"),
             ));
         }
-        crate::universal::validate_exec_payload(
+        validate_exec_payload_for_target(
+            request.execution.execution_target,
+            &step.executable,
             &step.args,
             &step.env,
             &format!("execution.steps[{index}]"),
-        )
-        .map_err(map_universal_error)?;
+        )?;
         if request.execution.execution_profile == super::ExecutionProfile::ContainedLocal {
             validate_contained_environment(&step.env, &format!("execution.steps[{index}].env"))?;
         }
     }
     Ok(())
+}
+
+fn validate_exec_payload_for_target(
+    target: super::ExecutionTarget,
+    executable: &str,
+    args: &[String],
+    env: &std::collections::BTreeMap<String, String>,
+    field: &str,
+) -> RuntimeResult<()> {
+    match target {
+        super::ExecutionTarget::LocalLinux => {
+            crate::universal::validate_exec_payload(args, env, field).map_err(map_universal_error)
+        }
+        super::ExecutionTarget::WindowsNative => {
+            super::windows::validate_windows_exec_payload(executable, args, env, field)
+        }
+    }
 }
 
 fn validate_run_proposal_structure(proposal: &super::TaskRunProposal) -> RuntimeResult<()> {
