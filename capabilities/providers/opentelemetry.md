@@ -133,7 +133,7 @@ Do not install `otelcol` merely for architectural purity if Vector/Alloy/vendor 
 
 ## Current Ordivon local reality — 2026-09-14
 
-Operations v2 has already accepted a real OTLP logs+metrics path without `otelcol`:
+Workstation v2 has already accepted a real OTLP logs+metrics path without `otelcol`:
 
 ```text
 OTLP gRPC :4317 / HTTP :4318
