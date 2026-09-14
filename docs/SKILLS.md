@@ -18,10 +18,13 @@ Use repository-scoped instructions such as `AGENTS.md` for broadly applicable wo
 
 Treat Skills as code-like trust inputs: audit third-party or repository-provided Skills before granting them access to powerful tools, and do not treat metadata such as experimental `allowed-tools` as a substitute for host-side permission enforcement.
 
-Current skill:
+Current project skills:
 
 - `.agents/skills/artifact-work/` — standards-first artifact creation and verification, with family-specific references loaded on demand.
+- `.agents/skills/enterprise-work/` — consequential multi-step/customer/business/cross-domain work composition: current external authority, bounded quality/delivery planning, natural owner/provider selection, risk/authorization, domain-native V&V and bounded acceptance. It deliberately stays dormant for trivial low-risk edits.
 
-The previous private `registry/` JSON experiment is retired. Its useful content was migrated into the Agent Skill and family references.
+`AGENTS.md` carries the small set of repository-wide rules that should apply before any optional Skill is activated, including external-authority-first, natural-owner, evidence-history and execution-vs-semantic-completion boundaries.
+
+The previous private `registry/` JSON experiment is retired. Its useful content was migrated into standard Agent Skills and repository guidance.
 
 See `knowledge/lessons/agent-skills-kernel.md` for the extracted design rules, prototype boundary, and project-study acceptance record.
