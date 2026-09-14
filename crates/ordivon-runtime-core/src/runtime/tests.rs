@@ -1,5 +1,6 @@
 use super::engine::{native_windows_pre_target_evidence_gap, transient_main_pid_observation_loss};
 use super::registry::{set_test_commit_fault, TestCommitFault, TestCommitPoint};
+#[cfg(feature = "operator-tools")]
 use super::repair::{AdminRepairAudit, AdminRepairOperation};
 use super::supervisor::AttemptSupervisorOwner;
 use super::*;
@@ -121,6 +122,7 @@ fn runtime_config(sandbox: &Sandbox) -> RuntimeConfig {
     }
 }
 
+#[cfg(feature = "operator-tools")]
 fn doctor_config(sandbox: &Sandbox) -> RuntimeDoctorConfig {
     RuntimeDoctorConfig {
         db_path: sandbox.registry.config().db_path.clone(),
@@ -129,6 +131,7 @@ fn doctor_config(sandbox: &Sandbox) -> RuntimeDoctorConfig {
     }
 }
 
+#[cfg(feature = "operator-tools")]
 fn inspection_config(sandbox: &Sandbox) -> RuntimeInspectionConfig {
     RuntimeInspectionConfig {
         db_path: sandbox.registry.config().db_path.clone(),
@@ -186,6 +189,7 @@ fn write_completed_runner_result(attempt: &AttemptRecord, finished_at_ms: u128) 
     .unwrap();
 }
 
+#[cfg(feature = "operator-tools")]
 fn write_test_snapshot(sandbox: &Sandbox, name: &str) -> PathBuf {
     let snapshot = sandbox.root.join(format!("snapshot-{name}"));
     fs::create_dir_all(&snapshot).unwrap();
@@ -1123,6 +1127,7 @@ fn maintenance_scan_prioritizes_recovery_over_older_running_work() {
     assert_eq!(attempts[0].attempt_id, recovery.attempt.attempt_id);
 }
 
+#[cfg(feature = "operator-tools")]
 #[test]
 fn maintenance_batch_clears_stale_terminal_recovery_condition() {
     let sandbox = Sandbox::new("maintenance-stale-recovery", 5000);
@@ -3192,6 +3197,7 @@ fn workspace_list_accepts_lexical_alias_for_same_physical_store_root() {
     );
 }
 
+#[cfg(feature = "operator-tools")]
 #[test]
 fn workspace_inspection_is_projection_only_and_keeps_terminal_attempt_truth() {
     let (sandbox, _runtime, executor) =
@@ -3908,6 +3914,7 @@ fn stopping_attempt_accepts_verified_success_and_releases_capacity() {
     );
 }
 
+#[cfg(feature = "operator-tools")]
 #[test]
 fn runtime_job_inspection_projects_bounded_read_only_timeline() {
     let sandbox = Sandbox::new("inspection-job", 5000);
@@ -4028,6 +4035,7 @@ fn runtime_job_inspection_projects_bounded_read_only_timeline() {
     assert_eq!(summary.jobs.converged, 0);
 }
 
+#[cfg(feature = "operator-tools")]
 #[test]
 fn runtime_experience_summary_reports_only_mechanical_facts() {
     let sandbox = Sandbox::new("inspection-summary", 5000);
@@ -4165,6 +4173,7 @@ fn runtime_experience_summary_reports_only_mechanical_facts() {
     assert!(!summary.semantic_completion_evaluated);
 }
 
+#[cfg(feature = "operator-tools")]
 #[test]
 fn runtime_doctor_is_read_only_and_fingerprint_is_stable() {
     let sandbox = Sandbox::new("doctor-read-only", 5000);
@@ -4187,6 +4196,7 @@ fn runtime_doctor_is_read_only_and_fingerprint_is_stable() {
     );
 }
 
+#[cfg(feature = "operator-tools")]
 #[test]
 fn runtime_doctor_summarizes_capacity_holders() {
     let sandbox = Sandbox::new("doctor-summary", 5000);
@@ -4213,6 +4223,7 @@ fn runtime_doctor_summarizes_capacity_holders() {
     );
 }
 
+#[cfg(feature = "operator-tools")]
 #[test]
 fn runtime_doctor_marks_capacity_holder_projection_incomplete() {
     let sandbox = Sandbox::new("doctor-capacity-truncation", 5000);
@@ -4230,6 +4241,7 @@ fn runtime_doctor_marks_capacity_holder_projection_incomplete() {
     assert!(report.summary.capacity_holders_truncated);
 }
 
+#[cfg(feature = "operator-tools")]
 #[test]
 fn runtime_doctor_proposes_verified_runner_result_recovery() {
     let sandbox = Sandbox::new("doctor-runner-result", 5000);
@@ -4269,6 +4281,7 @@ fn runtime_doctor_proposes_verified_runner_result_recovery() {
     }
 }
 
+#[cfg(feature = "operator-tools")]
 #[test]
 fn runtime_doctor_does_not_guess_when_runner_result_is_missing() {
     let sandbox = Sandbox::new("doctor-manual", 5000);
@@ -4307,6 +4320,7 @@ fn runtime_doctor_does_not_guess_when_runner_result_is_missing() {
     }
 }
 
+#[cfg(feature = "operator-tools")]
 #[test]
 fn runtime_doctor_does_not_follow_noncanonical_bundle_paths() {
     let sandbox = Sandbox::new("doctor-bundle-boundary", 5000);
@@ -4340,6 +4354,7 @@ fn runtime_doctor_does_not_follow_noncanonical_bundle_paths() {
     }
 }
 
+#[cfg(feature = "operator-tools")]
 #[test]
 fn runtime_doctor_proposes_release_for_complete_terminal_evidence() {
     let sandbox = Sandbox::new("doctor-release", 5000);
@@ -4379,6 +4394,7 @@ fn runtime_doctor_proposes_release_for_complete_terminal_evidence() {
     ));
 }
 
+#[cfg(feature = "operator-tools")]
 #[test]
 fn runtime_repair_recovers_runner_truth_and_explicitly_finalizes_lost() {
     let sandbox = Sandbox::new("repair-complete", 5000);
@@ -4482,6 +4498,7 @@ fn runtime_repair_recovers_runner_truth_and_explicitly_finalizes_lost() {
     assert_eq!(terminal_evidence, 2);
 }
 
+#[cfg(feature = "operator-tools")]
 #[test]
 fn runtime_repair_batch_rolls_back_every_case_on_late_conflict() {
     let sandbox = Sandbox::new("repair-atomic", 5000);
@@ -4581,6 +4598,7 @@ fn runtime_repair_batch_rolls_back_every_case_on_late_conflict() {
     assert_eq!(artifact_count, 0);
 }
 
+#[cfg(feature = "operator-tools")]
 #[test]
 fn runtime_repair_batch_rolls_back_when_any_invariant_remains() {
     let sandbox = Sandbox::new("repair-precommit-invariant", 5000);
@@ -4661,6 +4679,7 @@ fn runtime_repair_batch_rolls_back_when_any_invariant_remains() {
     );
 }
 
+#[cfg(feature = "operator-tools")]
 #[test]
 fn runtime_repair_requires_every_manual_case_to_be_explicit() {
     let sandbox = Sandbox::new("repair-explicit", 5000);
@@ -4702,6 +4721,7 @@ fn runtime_repair_requires_every_manual_case_to_be_explicit() {
     assert_eq!(sandbox.registry.active_reservation_count().unwrap(), 1);
 }
 
+#[cfg(feature = "operator-tools")]
 #[test]
 fn runtime_repair_rejects_stale_fingerprint_before_writes() {
     let sandbox = Sandbox::new("repair-stale", 5000);
@@ -4758,6 +4778,7 @@ fn runtime_repair_rejects_stale_fingerprint_before_writes() {
         .is_none());
 }
 
+#[cfg(feature = "operator-tools")]
 #[test]
 fn runtime_repair_rejects_unscoped_invariants_before_writes() {
     let sandbox = Sandbox::new("repair-unscoped", 5000);
@@ -4801,6 +4822,7 @@ fn runtime_repair_rejects_unscoped_invariants_before_writes() {
         .is_none());
 }
 
+#[cfg(feature = "operator-tools")]
 #[test]
 fn runtime_repair_rejects_snapshot_that_does_not_match_doctor_state() {
     let sandbox = Sandbox::new("repair-snapshot-state", 5000);
@@ -4848,6 +4870,7 @@ fn runtime_repair_rejects_snapshot_that_does_not_match_doctor_state() {
         .is_none());
 }
 
+#[cfg(feature = "operator-tools")]
 #[test]
 fn runtime_repair_does_not_apply_schema_migrations() {
     let root = std::env::temp_dir().join(format!(
@@ -4910,6 +4933,7 @@ fn runtime_repair_does_not_apply_schema_migrations() {
     fs::remove_dir_all(root).unwrap();
 }
 
+#[cfg(feature = "operator-tools")]
 #[test]
 fn runtime_repair_rejects_incomplete_control_snapshot() {
     let sandbox = Sandbox::new("repair-incomplete-snapshot", 5000);
@@ -4947,6 +4971,7 @@ fn runtime_repair_rejects_incomplete_control_snapshot() {
     assert_eq!(error.code, RuntimeErrorCode::RegistryCorrupt);
 }
 
+#[cfg(feature = "operator-tools")]
 #[test]
 fn runtime_repair_rejects_corrupt_snapshot() {
     let sandbox = Sandbox::new("repair-snapshot", 5000);

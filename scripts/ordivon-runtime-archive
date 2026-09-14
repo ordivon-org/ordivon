@@ -6,11 +6,11 @@ from __future__ import annotations
 import argparse
 import json
 import math
-import sqlite3
+import os
+import subprocess
 import sys
 import time
 from pathlib import Path
-from urllib.parse import quote
 
 SCHEMA_VERSION = 1
 STABLE_TERMINAL_RESOLUTIONS = ("succeeded", "failed", "timed_out", "cancelled")
@@ -20,65 +20,6 @@ DEFAULT_MINIMUM_AGE_HOURS = 168.0
 DEFAULT_SAMPLE_LIMIT = 20
 MAX_SAMPLE_LIMIT = 100
 TRUTH_ROLE = "archive-eligibility-observation-not-export-or-deletion-authority"
-
-REQUIRED_REGISTRY_COLUMNS = {
-    "schema_migrations": {"version"},
-    "jobs": {
-        "job_id",
-        "principal",
-        "client_request_id",
-        "request_digest",
-        "operation_digest",
-        "workspace_id",
-        "workspace_snapshot_json",
-        "execution_plan_json",
-        "execution_plan_digest",
-        "created_at_ms",
-        "resolution",
-        "current_attempt_id",
-    },
-    "attempts": {
-        "attempt_id",
-        "job_id",
-        "attempt_number",
-        "state",
-        "bundle_path",
-        "created_at_ms",
-    },
-    "idempotency_keys": {
-        "principal",
-        "client_request_id",
-        "operation_digest",
-        "job_id",
-        "created_at_ms",
-    },
-    "concurrency_reservations": {
-        "reservation_id",
-        "attempt_id",
-        "state",
-    },
-    "job_events": {
-        "event_id",
-        "job_id",
-        "attempt_id",
-        "detail_json",
-        "detail_digest",
-    },
-    "artifacts": {
-        "artifact_id",
-        "job_id",
-        "attempt_id",
-        "kind",
-        "relative_path",
-        "digest",
-        "media_type",
-        "byte_length",
-    },
-    "job_execution_providers": {"job_id", "snapshot_json", "snapshot_digest"},
-    "job_runtime_release_effects": {"job_id", "effect_id", "binding_digest"},
-    "job_host_dependencies": {"job_id", "bindings_json", "bindings_digest"},
-    "attempt_supervisor_owners": {"attempt_id", "owner_json", "owner_digest"},
-}
 
 
 def absolute_path(value: str) -> Path:
@@ -136,220 +77,60 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def open_registry(database: Path, busy_timeout_ms: int) -> sqlite3.Connection:
+def runtime_inspect_binary() -> Path:
+    configured = os.environ.get("ORDIVON_RUNTIME_INSPECT")
+    candidates: list[Path] = []
+    if configured:
+        candidate = Path(configured)
+        if not candidate.is_absolute():
+            raise RuntimeError("ORDIVON_RUNTIME_INSPECT must be an absolute path")
+        candidates.append(candidate)
+    candidates.extend(
+        [
+            Path(__file__).resolve().with_name("ordivon-runtime-inspect"),
+            Path(__file__).resolve().parents[1] / "target/debug/ordivon-runtime-inspect",
+        ]
+    )
+    for candidate in candidates:
+        if candidate.is_file() and not candidate.is_symlink() and os.access(candidate, os.X_OK):
+            return candidate
+    raise RuntimeError(
+        "ordivon-runtime-inspect is unavailable; install it beside this script or set "
+        "ORDIVON_RUNTIME_INSPECT to an absolute executable path"
+    )
+
+
+def registry_archive_projection(
+    database: Path, busy_timeout_ms: int, cutoff_ms: int, sample_limit: int
+) -> dict[str, object]:
     if database.is_symlink() or not database.is_file():
         raise RuntimeError("Registry database must be an existing regular file")
-    uri = f"file:{quote(str(database))}?mode=ro"
-    connection = sqlite3.connect(uri, uri=True, timeout=busy_timeout_ms / 1000)
-    connection.row_factory = sqlite3.Row
-    connection.execute("PRAGMA query_only=ON")
-    connection.execute("PRAGMA trusted_schema=OFF")
-    connection.execute(f"PRAGMA busy_timeout={busy_timeout_ms}")
-    validate_registry_capabilities(connection)
-    return connection
-
-
-def validate_registry_capabilities(connection: sqlite3.Connection) -> None:
-    missing: list[str] = []
-    for table, required_columns in REQUIRED_REGISTRY_COLUMNS.items():
-        columns = {
-            str(row[1])
-            for row in connection.execute(f"PRAGMA table_info({table})").fetchall()
-        }
-        if not columns:
-            missing.append(f"table:{table}")
-            continue
-        for column in sorted(required_columns - columns):
-            missing.append(f"column:{table}.{column}")
-    if not missing:
-        migration_version = connection.execute(
-            "SELECT COALESCE(MAX(version),0) FROM schema_migrations"
-        ).fetchone()[0]
-        if int(migration_version) < 5:
-            legacy_columns = {
-                str(row[1])
-                for row in connection.execute("PRAGMA table_info(attempt_conditions)").fetchall()
-            }
-            required_legacy = {
-                "attempt_id", "condition_type", "status", "reason_code", "evidence_digest"
-            }
-            if not legacy_columns:
-                missing.append("table:attempt_conditions")
-            for column in sorted(required_legacy - legacy_columns):
-                missing.append(f"column:attempt_conditions.{column}")
-    if missing:
-        raise RuntimeError(
-            "Runtime Registry lacks archive-inspection capabilities: "
-            + ", ".join(missing)
-        )
-
-
-_CLASSIFICATION_SQL = """
-WITH classified AS (
-    SELECT
-        j.job_id,
-        j.created_at_ms,
-        CASE
-            WHEN j.resolution IS NULL THEN 'unresolved'
-            WHEN j.resolution IN ('lost','orphaned') THEN 'repairable_terminal'
-            WHEN j.resolution NOT IN ('succeeded','failed','timed_out','cancelled')
-                THEN 'unsupported_resolution'
-            WHEN j.created_at_ms >= :cutoff_ms THEN 'younger_than_minimum_age'
-            WHEN EXISTS(
-                SELECT 1 FROM job_runtime_release_effects r WHERE r.job_id=j.job_id
-            ) THEN 'runtime_release_effect'
-            WHEN j.current_attempt_id IS NOT NULL AND NOT EXISTS(
-                SELECT 1 FROM attempts a
-                WHERE a.attempt_id=j.current_attempt_id AND a.job_id=j.job_id
-            ) THEN 'current_attempt_invalid'
-            WHEN NOT EXISTS(
-                SELECT 1 FROM attempts a WHERE a.job_id=j.job_id
-            ) THEN 'attempt_missing'
-            WHEN EXISTS(
-                SELECT 1 FROM attempts a
-                WHERE a.job_id=j.job_id
-                  AND a.state NOT IN ('succeeded','failed','timed_out','cancelled')
-            ) THEN 'attempt_not_stable_terminal'
-            WHEN EXISTS(
-                SELECT 1
-                FROM attempts a
-                JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id
-                WHERE a.job_id=j.job_id
-                  AND r.state IN ('active','held_orphaned')
-            ) THEN 'active_or_held_reservation'
-            WHEN EXISTS(
-                SELECT 1
-                FROM attempts a
-                JOIN attempt_supervisor_owners o ON o.attempt_id=a.attempt_id
-                WHERE a.job_id=j.job_id
-            ) THEN 'supervisor_owner_present'
-            ELSE 'eligible'
-        END AS classification
-    FROM jobs j
-)
-"""
-
-
-def classification_summary(
-    connection: sqlite3.Connection, cutoff_ms: int
-) -> list[dict[str, object]]:
-    rows = connection.execute(
-        _CLASSIFICATION_SQL
-        + """
-        SELECT classification, COUNT(*) AS jobs,
-               MIN(created_at_ms) AS oldest_ms,
-               MAX(created_at_ms) AS newest_ms
-        FROM classified
-        GROUP BY classification
-        ORDER BY classification
-        """,
-        {"cutoff_ms": cutoff_ms},
-    ).fetchall()
-    return [
-        {
-            "classification": str(row["classification"]),
-            "jobs": int(row["jobs"]),
-            "oldestCreatedAtMs": int(row["oldest_ms"]),
-            "newestCreatedAtMs": int(row["newest_ms"]),
-        }
-        for row in rows
+    command = [
+        str(runtime_inspect_binary()),
+        "registry-archive",
+        "--database",
+        str(database),
+        "--busy-timeout-ms",
+        str(busy_timeout_ms),
+        "--cutoff-ms",
+        str(cutoff_ms),
+        "--sample-limit",
+        str(sample_limit),
     ]
-
-
-def eligible_closure(
-    connection: sqlite3.Connection, cutoff_ms: int, migration_version: int
-) -> dict[str, int]:
-    condition_count_sql = (
-        "(SELECT COUNT(*) FROM attempt_conditions c "
-        "JOIN attempts a ON a.attempt_id=c.attempt_id "
-        "JOIN eligible e ON e.job_id=a.job_id)"
-        if migration_version < 5
-        else "0"
-    )
-    row = connection.execute(
-        _CLASSIFICATION_SQL
-        + f"""
-        , eligible AS (
-            SELECT job_id FROM classified WHERE classification='eligible'
-        )
-        SELECT
-            (SELECT COUNT(*) FROM eligible) AS jobs,
-            (SELECT COUNT(*) FROM attempts a JOIN eligible e ON e.job_id=a.job_id) AS attempts,
-            (SELECT COUNT(*) FROM idempotency_keys i JOIN eligible e ON e.job_id=i.job_id) AS idempotency_keys,
-            (SELECT COUNT(*) FROM concurrency_reservations r
-                JOIN attempts a ON a.attempt_id=r.attempt_id
-                JOIN eligible e ON e.job_id=a.job_id) AS reservations,
-            (SELECT COUNT(*) FROM job_events x JOIN eligible e ON e.job_id=x.job_id) AS events,
-            (SELECT COUNT(*) FROM artifacts x JOIN eligible e ON e.job_id=x.job_id) AS artifacts,
-            {condition_count_sql} AS conditions,
-            (SELECT COUNT(*) FROM job_execution_providers p JOIN eligible e ON e.job_id=p.job_id) AS providers,
-            (SELECT COUNT(*) FROM job_host_dependencies h JOIN eligible e ON e.job_id=h.job_id) AS host_dependencies,
-            (SELECT COUNT(*) FROM attempt_supervisor_owners o
-                JOIN attempts a ON a.attempt_id=o.attempt_id
-                JOIN eligible e ON e.job_id=a.job_id) AS supervisor_owners,
-            (SELECT COALESCE(SUM(x.byte_length),0) FROM artifacts x JOIN eligible e ON e.job_id=x.job_id) AS artifact_payload_bytes,
-            (SELECT COALESCE(SUM(LENGTH(j.execution_plan_json)+LENGTH(j.workspace_snapshot_json)),0)
-                FROM jobs j JOIN eligible e ON e.job_id=j.job_id) AS job_json_bytes
-        """,
-        {"cutoff_ms": cutoff_ms},
-    ).fetchone()
-    assert row is not None
-    return {
-        "jobs": int(row["jobs"]),
-        "attempts": int(row["attempts"]),
-        "idempotencyKeys": int(row["idempotency_keys"]),
-        "reservations": int(row["reservations"]),
-        "events": int(row["events"]),
-        "artifacts": int(row["artifacts"]),
-        "conditions": int(row["conditions"]),
-        "executionProviders": int(row["providers"]),
-        "hostDependencies": int(row["host_dependencies"]),
-        "supervisorOwners": int(row["supervisor_owners"]),
-        "artifactLogicalPayloadBytes": int(row["artifact_payload_bytes"]),
-        "jobJsonLogicalBytes": int(row["job_json_bytes"]),
-    }
-
-
-def eligible_sample(
-    connection: sqlite3.Connection, cutoff_ms: int, limit: int
-) -> list[dict[str, object]]:
-    if limit == 0:
-        return []
-    rows = connection.execute(
-        _CLASSIFICATION_SQL
-        + """
-        SELECT c.job_id, c.created_at_ms, j.resolution, j.workspace_id,
-               j.client_request_id, j.current_attempt_id,
-               a.attempt_id AS effective_attempt_id, a.bundle_path
-        FROM classified c
-        JOIN jobs j ON j.job_id=c.job_id
-        JOIN attempts a ON a.attempt_id=COALESCE(
-            j.current_attempt_id,
-            (SELECT latest.attempt_id FROM attempts latest
-             WHERE latest.job_id=j.job_id
-             ORDER BY latest.attempt_number DESC LIMIT 1)
-        )
-        WHERE c.classification='eligible'
-        ORDER BY c.created_at_ms, c.job_id
-        LIMIT :limit
-        """,
-        {"cutoff_ms": cutoff_ms, "limit": limit},
-    ).fetchall()
-    return [
-        {
-            "jobId": str(row["job_id"]),
-            "clientRequestId": str(row["client_request_id"]),
-            "workspaceId": str(row["workspace_id"]),
-            "resolution": str(row["resolution"]),
-            "jobCurrentAttemptId": (
-                None if row["current_attempt_id"] is None else str(row["current_attempt_id"])
-            ),
-            "effectiveAttemptId": str(row["effective_attempt_id"]),
-            "bundlePath": str(row["bundle_path"]),
-            "createdAtMs": int(row["created_at_ms"]),
-        }
-        for row in rows
-    ]
+    completed = subprocess.run(command, check=False, text=True, capture_output=True)
+    if completed.returncode != 0:
+        detail = completed.stderr.strip() or completed.stdout.strip() or f"exit {completed.returncode}"
+        raise RuntimeError(f"Runtime archive Registry inspection failed: {detail}")
+    try:
+        value = json.loads(completed.stdout)
+    except json.JSONDecodeError as error:
+        raise RuntimeError("Runtime archive Registry inspection returned invalid JSON") from error
+    if not isinstance(value, dict):
+        raise RuntimeError("Runtime archive Registry inspection did not return an object")
+    required = ("migrationVersion", "byClassification", "eligibleClosure", "eligibleSample")
+    if any(key not in value for key in required):
+        raise RuntimeError("Runtime archive Registry inspection omitted required fields")
+    return value
 
 
 def inspect_archive(args: argparse.Namespace) -> dict[str, object]:
@@ -357,33 +138,30 @@ def inspect_archive(args: argparse.Namespace) -> dict[str, object]:
     if now_ms < 0:
         raise RuntimeError("now-ms must be non-negative")
     cutoff_ms = max(0, int(now_ms - args.minimum_age_hours * 3_600_000))
-    connection = open_registry(args.database, args.busy_timeout_ms)
-    try:
-        connection.execute("BEGIN")
-        migration_version = connection.execute(
-            "SELECT MAX(version) FROM schema_migrations"
-        ).fetchone()[0]
-        if migration_version is None:
-            raise RuntimeError("schema_migrations is empty")
-        summary = classification_summary(connection, cutoff_ms)
-        closure = eligible_closure(connection, cutoff_ms, int(migration_version))
-        sample = eligible_sample(connection, cutoff_ms, args.sample_limit)
-        connection.execute("ROLLBACK")
-    except BaseException:
-        try:
-            connection.execute("ROLLBACK")
-        except sqlite3.Error:
-            pass
-        raise
-    finally:
-        connection.close()
-
-    classified_total = sum(int(item["jobs"]) for item in summary)
+    projection = registry_archive_projection(
+        args.database, args.busy_timeout_ms, cutoff_ms, args.sample_limit
+    )
+    migration_version = projection.get("migrationVersion")
+    summary = projection.get("byClassification")
+    closure = projection.get("eligibleClosure")
+    sample = projection.get("eligibleSample")
+    if (
+        not isinstance(migration_version, int)
+        or not isinstance(summary, list)
+        or not isinstance(closure, dict)
+        or not isinstance(sample, list)
+    ):
+        raise RuntimeError("Runtime archive Registry inspection returned invalid projection")
+    classified_total = sum(
+        int(item["jobs"])
+        for item in summary
+        if isinstance(item, dict) and isinstance(item.get("jobs"), int)
+    )
     return {
         "schemaVersion": SCHEMA_VERSION,
         "truthRole": TRUTH_ROLE,
         "generatedAtMs": now_ms,
-        "registryMigrationVersion": int(migration_version),
+        "registryMigrationVersion": migration_version,
         "policy": {
             "minimumAgeHours": args.minimum_age_hours,
             "cutoffMs": cutoff_ms,
@@ -416,7 +194,7 @@ def main() -> int:
         result = inspect_archive(args)
         print(json.dumps(result, indent=2 if args.pretty else None, sort_keys=args.pretty))
         return 0
-    except (OSError, RuntimeError, sqlite3.Error, ValueError) as error:
+    except (OSError, RuntimeError, ValueError) as error:
         print(f"runtime archive inspection failed: {error}", file=sys.stderr)
         return 1
 

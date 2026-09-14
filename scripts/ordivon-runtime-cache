@@ -9,12 +9,11 @@ import hashlib
 import json
 import os
 import shutil
-import sqlite3
+import subprocess
 import sys
 import time
-from contextlib import closing, contextmanager
+from contextlib import contextmanager
 from pathlib import Path
-from urllib.parse import quote
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
@@ -129,38 +128,66 @@ def directory_bytes(path: Path) -> int:
     return byte_count
 
 
+def runtime_inspect_binary() -> Path:
+    configured = os.environ.get("ORDIVON_RUNTIME_INSPECT")
+    candidates: list[Path] = []
+    if configured:
+        candidate = Path(configured)
+        if not candidate.is_absolute():
+            raise RuntimeError("ORDIVON_RUNTIME_INSPECT must be an absolute path")
+        candidates.append(candidate)
+    candidates.extend(
+        [
+            Path(__file__).resolve().with_name("ordivon-runtime-inspect"),
+            Path(__file__).resolve().parents[1] / "target/debug/ordivon-runtime-inspect",
+        ]
+    )
+    for candidate in candidates:
+        if candidate.is_file() and not candidate.is_symlink() and os.access(candidate, os.X_OK):
+            return candidate
+    raise RuntimeError(
+        "ordivon-runtime-inspect is unavailable; install it beside this script or set "
+        "ORDIVON_RUNTIME_INSPECT to an absolute executable path"
+    )
+
+
+def runtime_inspection(
+    database: Path, command: str, *, workspace_id: str | None = None
+) -> dict[str, object]:
+    arguments = [
+        str(runtime_inspect_binary()),
+        command,
+        "--database",
+        str(database),
+        "--busy-timeout-ms",
+        "5000",
+    ]
+    if workspace_id is not None:
+        arguments.extend(["--workspace-id", workspace_id])
+    completed = subprocess.run(arguments, check=False, text=True, capture_output=True)
+    if completed.returncode != 0:
+        detail = completed.stderr.strip() or completed.stdout.strip() or f"exit {completed.returncode}"
+        raise RuntimeError(f"Runtime inspection failed: {detail}")
+    try:
+        value = json.loads(completed.stdout)
+    except json.JSONDecodeError as error:
+        raise RuntimeError("Runtime inspection returned invalid JSON") from error
+    if not isinstance(value, dict):
+        raise RuntimeError("Runtime inspection did not return an object")
+    return value
+
+
 def active_workspace_ids(database: Path) -> set[str]:
-    uri = f"file:{quote(str(database))}?mode=ro"
-    with closing(sqlite3.connect(uri, uri=True, timeout=5)) as connection:
-        connection.execute("PRAGMA query_only=ON")
-        connection.execute("PRAGMA trusted_schema=OFF")
-        required = {
-            "jobs": {"job_id", "workspace_id", "resolution"},
-            "attempts": {"attempt_id", "job_id"},
-            "concurrency_reservations": {"attempt_id", "state"},
-        }
-        for table, columns in required.items():
-            present = {
-                str(row[1]) for row in connection.execute(f"PRAGMA table_info({table})")
-            }
-            missing = columns - present
-            if missing:
-                raise RuntimeError(
-                    "Runtime Registry lacks cache retention capabilities: "
-                    + ", ".join(f"{table}.{column}" for column in sorted(missing))
-                )
-        rows = connection.execute(
-            """
-            SELECT DISTINCT jobs.workspace_id
-            FROM jobs
-            LEFT JOIN attempts ON attempts.job_id=jobs.job_id
-            LEFT JOIN concurrency_reservations
-              ON concurrency_reservations.attempt_id=attempts.attempt_id
-            WHERE jobs.resolution IS NULL
-               OR concurrency_reservations.state IN ('active','held_orphaned')
-            """
-        ).fetchall()
-    return {str(row[0]) for row in rows}
+    value = runtime_inspection(database, "registry")
+    rows = value.get("activeWorkspaces")
+    if not isinstance(rows, list):
+        raise RuntimeError("Runtime registry inspection omitted activeWorkspaces")
+    result: set[str] = set()
+    for raw in rows:
+        if not isinstance(raw, dict) or not isinstance(raw.get("workspaceId"), str):
+            raise RuntimeError("Runtime registry inspection returned invalid active Workspace state")
+        result.add(str(raw["workspaceId"]))
+    return result
 
 
 EMPTY_WORKSPACE_ACTIVITY_MARKER = "sha256:" + hashlib.sha256(b"").hexdigest()
@@ -169,83 +196,38 @@ EMPTY_WORKSPACE_ACTIVITY_MARKER = "sha256:" + hashlib.sha256(b"").hexdigest()
 def workspace_activity_markers(database: Path) -> dict[str, str]:
     """Digest Registry activity identity without introducing a time policy."""
 
-    uri = f"file:{quote(str(database))}?mode=ro"
-    digests: dict[str, object] = {}
-
-    def marker(workspace_id: str):
-        return digests.setdefault(workspace_id, hashlib.sha256())
-
-    with closing(sqlite3.connect(uri, uri=True, timeout=5)) as connection:
-        connection.execute("PRAGMA query_only=ON")
-        connection.execute("PRAGMA trusted_schema=OFF")
-        for workspace_id, job_id, resolution in connection.execute(
-            """
-            SELECT workspace_id, job_id, resolution
-            FROM jobs
-            ORDER BY workspace_id, job_id
-            """
+    value = runtime_inspection(database, "registry-markers")
+    rows = value.get("workspaces")
+    if not isinstance(rows, list):
+        raise RuntimeError("Runtime marker inspection omitted workspaces")
+    markers: dict[str, str] = {}
+    for raw in rows:
+        if not isinstance(raw, dict):
+            raise RuntimeError("Runtime marker inspection returned invalid Workspace state")
+        workspace_id = raw.get("workspaceId")
+        marker = raw.get("activityMarker")
+        if (
+            not isinstance(workspace_id, str)
+            or not isinstance(marker, str)
+            or not marker.startswith("sha256:")
         ):
-            digest = marker(str(workspace_id))
-            assert hasattr(digest, "update")
-            digest.update(b"J\0")
-            digest.update(str(job_id).encode())
-            digest.update(b"\0")
-            digest.update(("" if resolution is None else str(resolution)).encode())
-            digest.update(b"\0")
-        for workspace_id, attempt_id in connection.execute(
-            """
-            SELECT jobs.workspace_id, attempts.attempt_id
-            FROM attempts
-            JOIN jobs ON jobs.job_id=attempts.job_id
-            ORDER BY jobs.workspace_id, attempts.attempt_id
-            """
-        ):
-            digest = marker(str(workspace_id))
-            assert hasattr(digest, "update")
-            digest.update(b"A\0")
-            digest.update(str(attempt_id).encode())
-            digest.update(b"\0")
-    return {
-        workspace_id: "sha256:" + digest.hexdigest()
-        for workspace_id, digest in digests.items()
-        if hasattr(digest, "hexdigest")
-    }
+            raise RuntimeError("Runtime marker inspection returned invalid activity marker")
+        markers[workspace_id] = marker
+    return markers
 
 
 def workspace_activity_marker_for(database: Path, workspace_id: str) -> str:
-    uri = f"file:{quote(str(database))}?mode=ro"
-    digest = hashlib.sha256()
-    with closing(sqlite3.connect(uri, uri=True, timeout=5)) as connection:
-        connection.execute("PRAGMA query_only=ON")
-        connection.execute("PRAGMA trusted_schema=OFF")
-        for job_id, resolution in connection.execute(
-            """
-            SELECT job_id, resolution
-            FROM jobs
-            WHERE workspace_id=?1
-            ORDER BY job_id
-            """,
-            [workspace_id],
-        ):
-            digest.update(b"J\0")
-            digest.update(str(job_id).encode())
-            digest.update(b"\0")
-            digest.update(("" if resolution is None else str(resolution)).encode())
-            digest.update(b"\0")
-        for (attempt_id,) in connection.execute(
-            """
-            SELECT attempts.attempt_id
-            FROM attempts
-            JOIN jobs ON jobs.job_id=attempts.job_id
-            WHERE jobs.workspace_id=?1
-            ORDER BY attempts.attempt_id
-            """,
-            [workspace_id],
-        ):
-            digest.update(b"A\0")
-            digest.update(str(attempt_id).encode())
-            digest.update(b"\0")
-    return "sha256:" + digest.hexdigest()
+    value = runtime_inspection(database, "registry-markers", workspace_id=workspace_id)
+    rows = value.get("workspaces")
+    if not isinstance(rows, list) or len(rows) != 1 or not isinstance(rows[0], dict):
+        raise RuntimeError("Runtime marker inspection returned invalid single-Workspace result")
+    raw = rows[0]
+    if raw.get("workspaceId") != workspace_id:
+        raise RuntimeError("Runtime marker inspection returned mismatched Workspace identity")
+    marker = raw.get("activityMarker")
+    if not isinstance(marker, str) or not marker.startswith("sha256:"):
+        raise RuntimeError("Runtime marker inspection omitted activityMarker")
+    return marker
 
 
 def workspace_record_standing(store_root: Path, workspace_id: str) -> str:
@@ -723,7 +705,7 @@ def main() -> int:
             result = inspect(args.database, args.runtime_store_root)
         else:
             result = prune(args)
-    except (OSError, RuntimeError, sqlite3.Error) as error:
+    except (OSError, RuntimeError) as error:
         print(f"runtime cache operation failed: {error}", file=sys.stderr)
         return 2
     print(

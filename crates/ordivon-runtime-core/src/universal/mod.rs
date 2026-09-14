@@ -45,7 +45,7 @@ pub use workspace::{
     write_workspace_text,
 };
 #[cfg(any(feature = "transactional-runtime", test))]
-pub use workspace::{workspace_head_revision, workspace_is_dirty, workspace_source_state_digest};
+pub use workspace::{workspace_head_revision, workspace_source_state_digest};
 
 pub(crate) use config::canonical_directory;
 pub(crate) use fsutil::{
@@ -66,10 +66,11 @@ pub(crate) use types::{
 pub(crate) use workspace::resolve_workspace_cwd;
 pub(crate) use workspace::{
     list_open_workspace_record_inventory, preflight_workspace_write_path, remove_workspace_file,
-    resolve_existing_workspace_path, workspace_change_projection_at, workspace_cleanup_dependents,
-    workspace_diff_paths, workspace_git_common_dir_at, workspace_head_and_dirty_at,
-    workspace_head_revision_at, workspace_source_state_digest_at,
+    resolve_existing_workspace_path, workspace_cleanup_dependents, workspace_diff_paths,
+    workspace_git_common_dir_at, workspace_head_and_dirty_at, workspace_source_state_digest_at,
 };
+#[cfg(feature = "operator-tools")]
+pub(crate) use workspace::{workspace_change_projection_at, workspace_head_revision_at};
 
 #[cfg(test)]
 mod tests;
