@@ -140,10 +140,12 @@ Canonical local crosswalks:
 - [`GAME_MECHANISM_EVIDENCE_R1.md`](GAME_MECHANISM_EVIDENCE_R1.md) — frozen first migration snapshot;
 - [`GAME_MECHANISM_EVIDENCE_R2.md`](GAME_MECHANISM_EVIDENCE_R2.md) — current cumulative evidence and stronger composition gates;
 - [`GAME_COMPOSITION_SEARCH_R1.md`](GAME_COMPOSITION_SEARCH_R1.md) — first evidence-guided mechanism-graph search and reuse-first experiment wave;
+- [`GAME_TOP_MECHANISM_SPECIMENS_R1.md`](GAME_TOP_MECHANISM_SPECIMENS_R1.md) — 16 elite/canonical game decompositions and 12 recurring structural motifs;
 - [`game-design-space-r1.json`](game-design-space-r1.json) — machine-readable category/mechanism crosswalk;
 - [`game-mechanism-evidence-r1.json`](game-mechanism-evidence-r1.json) — frozen R1 machine ledger;
 - [`game-mechanism-evidence-r2.json`](game-mechanism-evidence-r2.json) — current cumulative 50-specimen / 60-claim machine ledger;
-- [`game-composition-search-r1.json`](game-composition-search-r1.json) — machine-readable 8-candidate composition search.
+- [`game-composition-search-r1.json`](game-composition-search-r1.json) — machine-readable 8-candidate composition search;
+- [`game-top-mechanism-specimens-r1.json`](game-top-mechanism-specimens-r1.json) — machine-readable top-game mechanism specimen map.
 
 Two evidence waves are materialized and Composition Search R1 has produced eight candidate graphs. The next high-value work is the **reuse-first falsifier wave MC01 / MC07 / MC03**, while Human C0/C1 remains the only route for upgrading apparatus-valid claims into Player Value evidence.
 
