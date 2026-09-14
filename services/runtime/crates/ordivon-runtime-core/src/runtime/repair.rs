@@ -33,7 +33,6 @@ pub struct RuntimeRepairRequest {
 
 #[derive(Clone, Debug)]
 pub struct RuntimeStaleCancelRequest {
-    pub expected_fingerprint: String,
     pub snapshot_path: PathBuf,
     pub principal: String,
     pub attempt_id: String,
@@ -44,7 +43,7 @@ pub struct RuntimeStaleCancelRequest {
 pub struct RuntimeStaleCancelReport {
     pub schema_version: u32,
     pub applied_at_ms: u64,
-    pub expected_fingerprint: String,
+    pub doctor_fingerprint_before: String,
     pub snapshot_path: String,
     pub snapshot_digest: String,
     pub principal: String,
@@ -157,11 +156,7 @@ pub fn cancel_stale_recovery_required_attempt(
     config: &RuntimeRepairConfig,
     request: &RuntimeStaleCancelRequest,
 ) -> RuntimeResult<RuntimeStaleCancelReport> {
-    validate_repair_identity(
-        &request.expected_fingerprint,
-        &request.snapshot_path,
-        &request.principal,
-    )?;
+    validate_snapshot_principal(&request.snapshot_path, &request.principal)?;
     if request.attempt_id.trim().is_empty() || request.attempt_id.chars().any(char::is_control) {
         return Err(RuntimeError::invalid(
             "attempt id must be non-empty and control-free",
@@ -177,17 +172,6 @@ pub fn cancel_stale_recovery_required_attempt(
                 before.migration_version
             ),
             Some("migrationVersion"),
-            false,
-        ));
-    }
-    if before.fingerprint != request.expected_fingerprint {
-        return Err(RuntimeError::new(
-            RuntimeErrorCode::ReconciliationRequired,
-            format!(
-                "Doctor fingerprint changed: expected {}, observed {}",
-                request.expected_fingerprint, before.fingerprint
-            ),
-            Some("expectedFingerprint"),
             false,
         ));
     }
@@ -320,7 +304,7 @@ pub fn cancel_stale_recovery_required_attempt(
     Ok(RuntimeStaleCancelReport {
         schema_version: RUNTIME_REPAIR_SCHEMA_VERSION,
         applied_at_ms,
-        expected_fingerprint: request.expected_fingerprint.clone(),
+        doctor_fingerprint_before: before.fingerprint.clone(),
         snapshot_path: request.snapshot_path.to_string_lossy().into_owned(),
         snapshot_digest,
         principal: request.principal.clone(),
@@ -533,6 +517,10 @@ fn validate_repair_identity(
             "expectedFingerprint",
         ));
     }
+    validate_snapshot_principal(snapshot_path, principal)
+}
+
+fn validate_snapshot_principal(snapshot_path: &Path, principal: &str) -> RuntimeResult<()> {
     if !snapshot_path.is_absolute() {
         return Err(RuntimeError::invalid(
             "snapshot path must be absolute",

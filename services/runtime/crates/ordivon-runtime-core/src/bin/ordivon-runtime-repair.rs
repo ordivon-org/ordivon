@@ -69,10 +69,10 @@ fn run() -> Result<(), String> {
             busy_timeout_ms,
         },
     };
-    let expected_fingerprint = expected_fingerprint.ok_or_else(usage)?;
     let snapshot_path = snapshot_path.ok_or_else(usage)?;
     let principal = principal.ok_or_else(usage)?;
     let output = if command == "apply" {
+        let expected_fingerprint = expected_fingerprint.ok_or_else(usage)?;
         if attempt_id.is_some() {
             return Err("--attempt-id is only valid with cancel-stale".to_string());
         }
@@ -92,8 +92,10 @@ fn run() -> Result<(), String> {
         if !finalize_lost_attempt_ids.is_empty() {
             return Err("--finalize-lost is only valid with apply".to_string());
         }
+        if expected_fingerprint.is_some() {
+            return Err("--expected-fingerprint is only valid with apply".to_string());
+        }
         let request = RuntimeStaleCancelRequest {
-            expected_fingerprint,
             snapshot_path,
             principal,
             attempt_id: attempt_id.ok_or_else(usage)?,
@@ -117,5 +119,5 @@ fn require_value(args: &mut impl Iterator<Item = String>, flag: &str) -> Result<
 }
 
 fn usage() -> String {
-    "usage: ordivon-runtime-repair apply --database ABSOLUTE_PATH --store-root ABSOLUTE_PATH --expected-fingerprint sha256:... --snapshot ABSOLUTE_PATH --principal NAME [--finalize-lost ATTEMPT_ID ...] --apply [--pretty]\n       ordivon-runtime-repair cancel-stale --database ABSOLUTE_PATH --store-root ABSOLUTE_PATH --expected-fingerprint sha256:... --snapshot ABSOLUTE_PATH --principal NAME --attempt-id ATTEMPT_ID --apply [--pretty]".to_string()
+    "usage: ordivon-runtime-repair apply --database ABSOLUTE_PATH --store-root ABSOLUTE_PATH --expected-fingerprint sha256:... --snapshot ABSOLUTE_PATH --principal NAME [--finalize-lost ATTEMPT_ID ...] --apply [--pretty]\n       ordivon-runtime-repair cancel-stale --database ABSOLUTE_PATH --store-root ABSOLUTE_PATH --snapshot ABSOLUTE_PATH --principal NAME --attempt-id ATTEMPT_ID --apply [--pretty]".to_string()
 }
