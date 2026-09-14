@@ -1,0 +1,120 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import subprocess
+from pathlib import Path
+from typing import Any
+
+ROOT=Path(__file__).resolve().parents[1]
+
+
+def run(name: str, argv: list[str]) -> dict[str, Any]:
+    p=subprocess.run(argv,cwd=ROOT,text=True,capture_output=True)
+    result={
+        'name':name,
+        'exitCode':p.returncode,
+        'stdoutSha256':'sha256:'+hashlib.sha256(p.stdout.encode()).hexdigest(),
+        'stderrSha256':'sha256:'+hashlib.sha256(p.stderr.encode()).hexdigest(),
+        'stdoutTail':p.stdout[-8000:],
+        'stderrTail':p.stderr[-2000:],
+    }
+    if p.returncode != 0:
+        raise RuntimeError(json.dumps(result,sort_keys=True))
+    return result
+
+
+def parse_json_tail(result: dict[str,Any]) -> dict[str,Any]:
+    text=result['stdoutTail'].strip()
+    # JSON-producing checks emit one object. For long producer output the tail may be
+    # truncated, so callers that need exact fields should use a concise producer.
+    try:
+        value=json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"step {result['name']} did not emit concise JSON") from exc
+    if not isinstance(value,dict):
+        raise RuntimeError(f"step {result['name']} did not emit JSON object")
+    return value
+
+
+def main() -> int:
+    ap=argparse.ArgumentParser()
+    ap.add_argument('--output',type=Path)
+    args=ap.parse_args()
+
+    tests=run('CANONICAL_TESTS',[str(ROOT/'scripts/run-canonical-tests')])
+    authority=run('NONLIVE_EFFECT_AUTHORITY',[str(ROOT/'scripts/check-nonlive-effect-authority')])
+    capital=run('NONLIVE_EFFECT_TO_CAPITAL_RESTART',[str(ROOT/'scripts/run-nonlive-capital-effect-matrix')])
+    demo=run('DEMO_TESTNET_COMPONENT_PREFLIGHT',[str(ROOT/'scripts/check-demo-execution-preflight')])
+    credentials=run('NONLIVE_CREDENTIAL_PROVISIONING',[str(ROOT/'scripts/check-nonlive-credential-provisioning')])
+    handoff=run('PROVIDER_REGISTRATION_HANDOFF',[str(ROOT/'scripts/check-provider-registration-handoff')])
+    clock=run('CLOCK_QUALITY',[str(ROOT/'scripts/check-clock-quality-gate')])
+    real_boundary=run('REAL_FINANCIAL_EFFECT_BOUNDARY',[str(ROOT/'scripts/check-capital-authority')])
+
+    a=parse_json_tail(authority)
+    c=parse_json_tail(capital)
+    cred=parse_json_tail(credentials)
+    h=parse_json_tail(handoff)
+    r=parse_json_tail(real_boundary)
+
+    if a['standing']!='NONLIVE_EFFECT_ADMITTED_REAL_FINANCIAL_WRITE_NOT_ADMITTED':
+        raise RuntimeError('non-live effect authority did not pass')
+    if c['standing']!='PASS_NONLIVE_EFFECT_TO_CAPITAL_RESTART_MATRIX':
+        raise RuntimeError('non-live capital effect matrix did not pass')
+    if r['externalWriteAdmissionState']!='NOT_ADMITTED':
+        raise RuntimeError('real financial write boundary unexpectedly admitted')
+
+    provider_ready=cred['standing']=='NONLIVE_CREDENTIAL_PRESENT_PENDING_QUALIFICATION'
+    standing=(
+        'PASS_FULL_NONLIVE_EFFECT_PATH_PROVIDER_CREDENTIAL_PRESENT_PENDING_EXTERNAL_QUALIFICATION'
+        if provider_ready else
+        'PASS_FULL_NONLIVE_EFFECT_PATH_EXTERNAL_DEMO_BINDING_PENDING_PROVIDER_REGISTRATION'
+    )
+
+    receipt={
+        'schemaVersion':1,
+        'kind':'ordivon.market-capital.fullpath-closure-receipt',
+        'standing':standing,
+        'localFullEffectPath':'PASS',
+        'providerExecution':{
+            'provider':'NautilusTrader 2.0.0rc4 simulated exchange',
+            'nonLiveEffectAdmission':'ADMITTED',
+            'realMoney':False,
+            'liveEndpoint':False,
+        },
+        'capitalResolution':{
+            'provider':'TigerBeetle 0.17.9',
+            'standing':c['standing'],
+            'restartCount':c['restartCount'],
+            'exactConsumeReplayStatus':c['exactConsumeReplayStatus'],
+            'scenarioDispositions':{k:v['effectDisposition'] for k,v in c['scenarios'].items()},
+            'scenarioProviderReconciliation':{k:v['providerReconciliation'] for k,v in c['scenarios'].items()},
+        },
+        'externalDemoTestnet':{
+            'componentPreflight':'PASS',
+            'credentialStanding':cred['standing'],
+            'providerRegistrationStanding':h['standing'],
+            'missingExternalActions':h['missingExternalActions'],
+        },
+        'realFinancialEffectBoundary':{
+            'externalFinancialWriteAdmission':r['externalWriteAdmissionState'],
+            'providerWriteCapabilityBound':r['providerWriteCapabilityBound'],
+            'effectVerifier':r['externalWriteVerifier'],
+            'externalFinancialWritesAllowed':r['externalFinancialWritesAllowed'],
+        },
+        'canonicalTests':tests['stdoutTail'].strip(),
+        'stepEvidence':[tests,authority,capital,demo,credentials,handoff,clock,real_boundary],
+        'externalFinancialWriteAttempted':False,
+        'realMoneyEffectAttempted':False,
+    }
+    rendered=json.dumps(receipt,indent=2,sort_keys=True)+'\n'
+    if args.output:
+        out=args.output if args.output.is_absolute() else ROOT/args.output
+        out.parent.mkdir(parents=True,exist_ok=True)
+        out.write_text(rendered)
+    print(rendered,end='')
+    return 0
+
+if __name__=='__main__': raise SystemExit(main())
