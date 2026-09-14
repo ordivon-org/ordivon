@@ -4703,6 +4703,80 @@ fn runtime_repair_batch_rolls_back_when_any_invariant_remains() {
 
 #[cfg(feature = "operator-tools")]
 #[test]
+fn runtime_repair_can_cancel_recovery_required_launch_mismatch_only_after_absence_proof() {
+    let sandbox = Sandbox::new("repair-stale-cancel", 5000);
+    let created = created(
+        sandbox
+            .registry
+            .submit(&request(&sandbox, "request:repair-stale-cancel", 2))
+            .unwrap(),
+    );
+    let connection = Connection::open(&sandbox.registry.config().db_path).unwrap();
+    connection
+        .execute(
+            "UPDATE attempts SET state='starting',recovery_required=1,recovery_reason_code='LAUNCH_IDENTITY_MISMATCH',recovery_evidence_digest=?1,recovery_observed_at_ms=60 WHERE attempt_id=?2",
+            rusqlite::params![digest(b"launch-identity-mismatch"), created.attempt.attempt_id],
+        )
+        .unwrap();
+    drop(connection);
+    let before = inspect_runtime(&doctor_config(&sandbox)).unwrap();
+    assert_eq!(before.violation_count, 0);
+    assert_eq!(before.summary.recovery_required_attempts, 1);
+    let snapshot = write_test_snapshot(&sandbox, "stale-cancel");
+    let report = cancel_stale_recovery_required_attempt(
+        &RuntimeRepairConfig {
+            doctor: doctor_config(&sandbox),
+        },
+        &RuntimeStaleCancelRequest {
+            expected_fingerprint: before.fingerprint,
+            snapshot_path: snapshot,
+            principal: "runtime-admin:test".to_string(),
+            attempt_id: created.attempt.attempt_id.clone(),
+        },
+    )
+    .unwrap();
+    assert_eq!(report.previous_state, AttemptState::Starting);
+    assert_eq!(report.new_state, AttemptState::Cancelled);
+    assert!(report.process_tree_absence_proven);
+    assert_eq!(report.after.summary.recovery_required_attempts, 0);
+    let attempt = sandbox
+        .registry
+        .get_attempt(&created.attempt.attempt_id)
+        .unwrap();
+    assert_eq!(attempt.state, AttemptState::Cancelled);
+    assert_eq!(
+        attempt.termination_intent,
+        AttemptTerminationIntent::StopRequested
+    );
+    assert!(attempt.result_digest.is_some());
+    assert_eq!(
+        sandbox
+            .registry
+            .get_job(&created.job.job_id)
+            .unwrap()
+            .resolution,
+        Some(JobResolution::Cancelled)
+    );
+    assert_eq!(
+        sandbox
+            .registry
+            .get_reservation(&created.attempt.attempt_id)
+            .unwrap()
+            .state,
+        ReservationState::Released
+    );
+    let receipt = sandbox
+        .registry
+        .config()
+        .store_root
+        .join("attempts")
+        .join(&created.attempt.attempt_id)
+        .join("admin-stale-cancel.json");
+    assert!(receipt.is_file());
+}
+
+#[cfg(feature = "operator-tools")]
+#[test]
 fn runtime_repair_requires_every_manual_case_to_be_explicit() {
     let sandbox = Sandbox::new("repair-explicit", 5000);
     let created = created(

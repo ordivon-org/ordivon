@@ -57,8 +57,9 @@ pub use registry::{
 };
 #[cfg(feature = "operator-tools")]
 pub use repair::{
-    apply_runtime_repair, RuntimeRepairAction, RuntimeRepairActionKind, RuntimeRepairConfig,
-    RuntimeRepairReport, RuntimeRepairRequest, RUNTIME_REPAIR_SCHEMA_VERSION,
+    apply_runtime_repair, cancel_stale_recovery_required_attempt, RuntimeRepairAction,
+    RuntimeRepairActionKind, RuntimeRepairConfig, RuntimeRepairReport, RuntimeRepairRequest,
+    RuntimeStaleCancelReport, RuntimeStaleCancelRequest, RUNTIME_REPAIR_SCHEMA_VERSION,
 };
 pub(crate) use types::{
     input_bound_proposal_request_identity_digest, input_bound_request_identity_digest,

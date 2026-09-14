@@ -322,7 +322,9 @@ impl Runtime {
     }
 }
 
-fn launch_identity_mismatch_cancel_target_absent(attempt: &AttemptRecord) -> RuntimeResult<bool> {
+pub(super) fn launch_identity_mismatch_cancel_target_absent(
+    attempt: &AttemptRecord,
+) -> RuntimeResult<bool> {
     let properties = systemctl_show(&attempt.unit_name)?;
     let unit_active = unit_is_active(&properties);
     let recorded_pid_alive = attempt.main_pid.is_some_and(|pid| {
