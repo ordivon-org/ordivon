@@ -29,6 +29,21 @@ class AdaptiveEditR2LiveABRunnerTests(unittest.TestCase):
         self.assertIn("startAnchor", anchored.input_schema["properties"])
         self.assertNotIn("oldText", anchored.input_schema["properties"])
 
+    def test_runner_registers_repeated_target_task(self) -> None:
+        task = runner.TASK_SPECS["HARNESS-EDIT-ADDRESSING-002"]
+        self.assertEqual(task.target_path, "feature_flags.py")
+        self.assertIn("test_feature_flags.py", task.read_paths)
+        runtime = runner.MemoryRuntime(task)
+        self.assertEqual(
+            runtime.files["feature_flags.py"].count("return False"),
+            2,
+        )
+        overfit = (
+            runner.ROOT / "evals/harness-edit-addressing-002/known-invalid/both-enabled.py"
+        ).read_text()
+        outcome = runner.verify(overfit, task)
+        self.assertEqual(outcome, {"visiblePassed": True, "hiddenPassed": False})
+
     def test_memory_runtime_applies_digest_fenced_runtime_patch_shape(self) -> None:
         runtime = runner.MemoryRuntime()
         before = runtime.files["allocation.py"]
@@ -78,10 +93,19 @@ class AdaptiveEditR2LiveABRunnerTests(unittest.TestCase):
                 "usage": {"totalTokens": 100},
             }
         ]
-        summary = runner._summaries(records)["exact-replacement-v1"]
+        summaries = runner._summaries(records)
+        runner.validate_json_value(summaries)
+        summary = summaries["exact-replacement-v1"]
         self.assertEqual(summary["runs"], 1)
         self.assertEqual(summary["hiddenPassed"], 1)
-        self.assertEqual(summary["meanTotalTokens"], 100)
+        self.assertEqual(summary["totals"]["totalTokens"], 100)
+        self.assertEqual(summary["meansTimes10"]["totalTokens"], 1000)
+        report = {
+            "schemaVersion": 1,
+            "kind": "test-live-ab-report",
+            "summaries": summaries,
+        }
+        self.assertTrue(runner.canonical_digest(report).startswith("sha256:"))
 
 
 if __name__ == "__main__":

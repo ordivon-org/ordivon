@@ -223,3 +223,80 @@ These limits prevent the prototype from inventing ordering/fallback semantics be
 - the generic durable Tool bridge preserves `WORKSPACE_CHANGE_POSSIBLE` consequence through Patch intent/receipt;
 - complete Agent-loop execution preserves Run Contract authority;
 - codec selection is a measured-profile input rather than a universal Hashline default.
+
+## Second live profile — repeated-target addressing
+
+R2 now has a second task family designed to pressure edit addressing rather than broad repair reasoning:
+
+```text
+HARNESS-EDIT-ADDRESSING-002
+```
+
+The model-visible file contains two identical `return False` lines. Only `beta_enabled()` may become `True`; `alpha_enabled()` must remain `False`. The visible suite checks beta, while the hidden verifier additionally protects alpha and the public function surface. Exact replacement is not artificially disabled: the Agent may widen `oldText` to include unique surrounding context.
+
+Using the same DeepSeek Flash limits as the first corrected profile:
+
+```text
+max model calls:     6
+max tool calls:      8
+max total tokens:    64,000
+replicates/codec:    5
+```
+
+Primary corrected results:
+
+```text
+exact-replacement-v1:
+  hidden verifier       5/5
+  candidate_completed   5/5
+  rejected observations 0
+  total model calls     20
+  total tool calls      25
+  total tokens          51,266
+  oracle-exact          5/5
+
+anchored-line-v1:
+  hidden verifier       5/5
+  candidate_completed   5/5
+  rejected observations 0
+  total model calls     20
+  total tool calls      25
+  total tokens          52,336
+  oracle-exact          4/5
+```
+
+The aggregate token difference is only 2.05%, with no model-call, Tool-call, correction, visible-pass, hidden-pass, or candidate-completion advantage. The standing is therefore:
+
+```text
+deepseek-flash + HARNESS-EDIT-ADDRESSING-002 + 2026-09-14
+    -> NO_CLEAR_WINNER_BOTH_VIABLE
+```
+
+This materially narrows the first profile's interpretation. `deepseek-flash` should **not** be treated as globally preferring exact replacement merely because exact won on `HARNESS-REPO-REPAIR-001`. Repeated local text also does not imply exact replacement is unusable: on this task the model consistently widened exact context and reached the correct edit. Anchored addressing remains independently valuable because it exposes direct location semantics and the deterministic ambiguity falsifier still proves cases where a too-narrow exact replacement must fail closed.
+
+The second profile is retained in:
+
+```text
+evidence/adaptive-edit-r2-live-ab-deepseek-flash-addressing-20260914.json
+```
+
+with canonical payload digest:
+
+```text
+sha256:fb3c3ff88821c0300ee87110e06a9abadfd3a065c2bc4cc1a46777ec647613cc
+```
+
+The first task-2 live attempt completed all six Provider runs successfully but exposed a live-runner reporting defect: float-valued summary means violated Harness canonical JSON before report persistence. The runner now records integer totals plus `meansTimes10`, and an offline test requires the complete summary carrier to pass canonical encoding before future live use. That diagnostic attempt is excluded from the primary profile.
+
+### Selection consequence
+
+The evidence now supports a two-factor decision rule rather than a universal codec ranking:
+
+```text
+structural applicability
+        +
+model/task profile evidence
+        -> codec preference, if any
+```
+
+If the profile has no meaningful winner, both codecs remain available and the narrowest mechanically valid representation should be selected without inventing a performance preference.

@@ -581,6 +581,13 @@
       "status": "verified",
       "implementationRevision": "33ac4a891441c565371767f02905361dd1d5fe55",
       "scope": "Current model/task-specific Adaptive Edit R2 live profile at 33ac4a8: DeepSeek Flash on HARNESS-REPO-REPAIR-001 under equal corrected 64k token authority; exact replacement is provisional preferred for this profile only, while anchored addressing remains required by the deterministic repeated-text falsifier. No global codec default is authorized."
+    },
+    {
+      "claimId": "harness.edit.adaptive-r2-live-deepseek-flash-addressing",
+      "file": "adaptive-edit-r2-live-ab-deepseek-flash-addressing-20260914.json",
+      "status": "verified",
+      "implementationRevision": "6126ad25204c59dee92ae9175f48742000c6551f",
+      "scope": "Current second Adaptive Edit R2 live profile bound to 6126ad2: DeepSeek Flash on HARNESS-EDIT-ADDRESSING-002 under equal 64k token authority. Exact replacement and anchored-line are both 5/5 hidden-pass and 5/5 candidate-completed with identical model/tool call totals; standing is NO_CLEAR_WINNER_BOTH_VIABLE and no global codec default is authorized."
     }
   ]
 }

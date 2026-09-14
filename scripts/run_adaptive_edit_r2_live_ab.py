@@ -29,12 +29,68 @@ from ordivon_harness.runtime_port import HarnessRuntimeErrorDetail, HarnessRunti
 from ordivon_harness.sqlite_store import SQLiteHarnessStore
 
 ROOT = Path.cwd()
-FIXTURE = ROOT / "fixtures/harness-replacement-repository-repair-v1"
-ORACLE = ROOT / "evals/harness-repository-repair-001/oracle/allocation.py"
-HIDDEN = ROOT / "evals/harness-repository-repair-001/verifier/test_outcome.py"
-TASK = json.loads((ROOT / "evals/harness-repository-repair-001/task.json").read_text())
-READ_PATHS = ("SPEC.md", "allocation.py", "test_allocation.py")
 CODECS = ("exact-replacement-v1", "anchored-line-v1")
+
+
+class LiveTaskSpec:
+    __slots__ = (
+        "task_path",
+        "fixture",
+        "oracle",
+        "hidden_verifier",
+        "read_paths",
+        "target_path",
+        "visible_test",
+    )
+
+    def __init__(
+        self,
+        *,
+        task_path: Path,
+        fixture: Path,
+        oracle: Path,
+        hidden_verifier: Path,
+        read_paths: tuple[str, ...],
+        target_path: str,
+        visible_test: str,
+    ) -> None:
+        self.task_path = task_path
+        self.fixture = fixture
+        self.oracle = oracle
+        self.hidden_verifier = hidden_verifier
+        self.read_paths = read_paths
+        self.target_path = target_path
+        self.visible_test = visible_test
+
+    @property
+    def task(self) -> dict[str, JsonValue]:
+        value = json.loads(self.task_path.read_text())
+        validate_json_value(value)
+        assert isinstance(value, dict)
+        return value
+
+
+TASK_SPECS = {
+    "HARNESS-REPO-REPAIR-001": LiveTaskSpec(
+        task_path=ROOT / "evals/harness-repository-repair-001/task.json",
+        fixture=ROOT / "fixtures/harness-replacement-repository-repair-v1",
+        oracle=ROOT / "evals/harness-repository-repair-001/oracle/allocation.py",
+        hidden_verifier=ROOT / "evals/harness-repository-repair-001/verifier/test_outcome.py",
+        read_paths=("SPEC.md", "allocation.py", "test_allocation.py"),
+        target_path="allocation.py",
+        visible_test="test_allocation.py",
+    ),
+    "HARNESS-EDIT-ADDRESSING-002": LiveTaskSpec(
+        task_path=ROOT / "evals/harness-edit-addressing-002/task.json",
+        fixture=ROOT / "fixtures/harness-edit-addressing-repeated-v1",
+        oracle=ROOT / "evals/harness-edit-addressing-002/oracle/feature_flags.py",
+        hidden_verifier=ROOT / "evals/harness-edit-addressing-002/verifier/test_outcome.py",
+        read_paths=("SPEC.md", "feature_flags.py", "test_feature_flags.py"),
+        target_path="feature_flags.py",
+        visible_test="test_feature_flags.py",
+    ),
+}
+DEFAULT_TASK = TASK_SPECS["HARNESS-REPO-REPAIR-001"]
 
 
 def sha(text: str) -> str:
@@ -44,18 +100,22 @@ def sha(text: str) -> str:
 class TreatmentGrant:
     allow_opaque_exec = False
 
+    def __init__(self, task_spec: LiveTaskSpec = DEFAULT_TASK) -> None:
+        self.task_spec = task_spec
+
     def allows_path(self, name: str, relative_path: str) -> bool:
         if name == "read_workspace":
-            return relative_path in READ_PATHS
-        return name == "edit_workspace" and relative_path == "allocation.py"
+            return relative_path in self.task_spec.read_paths
+        return name == "edit_workspace" and relative_path == self.task_spec.target_path
 
     def execution_check(self, check_id: str):
         raise KeyError(check_id)
 
 
 class MemoryRuntime:
-    def __init__(self) -> None:
-        self.files = {name: (FIXTURE / name).read_text() for name in READ_PATHS}
+    def __init__(self, task_spec: LiveTaskSpec = DEFAULT_TASK) -> None:
+        self.task_spec = task_spec
+        self.files = {name: (task_spec.fixture / name).read_text() for name in task_spec.read_paths}
         self.calls: list[tuple[str, dict[str, JsonValue]]] = []
         self.receipts: dict[str, dict[str, JsonValue]] = {}
 
@@ -240,14 +300,14 @@ class TreatmentBridge(AdaptiveEditRuntimeBridge):
         )
 
 
-def verify(source: str) -> dict[str, bool]:
+def verify(source: str, task_spec: LiveTaskSpec = DEFAULT_TASK) -> dict[str, bool]:
     with tempfile.TemporaryDirectory() as directory:
         ws = Path(directory) / "workspace"
-        shutil.copytree(FIXTURE, ws)
-        (ws / "allocation.py").write_text(source)
+        shutil.copytree(task_spec.fixture, ws)
+        (ws / task_spec.target_path).write_text(source)
         env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "ORDIVON_EVAL_WORKSPACE": str(ws)}
         visible = subprocess.run(
-            ["/usr/bin/python3", "-m", "unittest", "-q", "test_allocation.py"],
+            ["/usr/bin/python3", "-m", "unittest", "-q", task_spec.visible_test],
             cwd=ws,
             env=env,
             stdout=subprocess.PIPE,
@@ -256,7 +316,7 @@ def verify(source: str) -> dict[str, bool]:
             timeout=30,
         )
         hidden = subprocess.run(
-            ["/usr/bin/python3", str(HIDDEN)],
+            ["/usr/bin/python3", str(task_spec.hidden_verifier)],
             cwd=ws,
             env=env,
             stdout=subprocess.PIPE,
@@ -301,7 +361,12 @@ def binding(
 
 
 def run_one(
-    codec: str, replicate: int, settings: DeepSeekSettings, *, max_total_tokens: int = 64_000
+    codec: str,
+    replicate: int,
+    settings: DeepSeekSettings,
+    *,
+    task_spec: LiveTaskSpec = DEFAULT_TASK,
+    max_total_tokens: int = 64_000,
 ) -> dict[str, JsonValue]:
     edit_def = treatment_edit_definition(codec)
     surface = {
@@ -315,8 +380,8 @@ def run_one(
         "schemaVersion": 1,
         "kind": "ordivon.adaptive-edit-r2-live-treatment-grant",
         "codec": codec,
-        "readPaths": list(READ_PATHS),
-        "editPaths": ["allocation.py"],
+        "readPaths": list(task_spec.read_paths),
+        "editPaths": [task_spec.target_path],
         "runtimeOperations": ["workspace.read", "workspace.patch", "workspace.patch.get"],
     }
     grant_digest = canonical_digest(grant)
@@ -333,14 +398,16 @@ def run_one(
         max_no_progress_turns=4,
         max_model_observation_bytes=64_000,
     )
-    objective = str(TASK["objective"])
+    task = task_spec.task
+    objective = str(task["objective"])
     context = {
-        "taskId": TASK["taskId"],
-        "taskVersion": TASK["taskVersion"],
+        "taskId": task["taskId"],
+        "taskVersion": task["taskVersion"],
         "objective": objective,
         "treatmentCodec": codec,
     }
-    suffix = f"{codec.replace('-', '_')}-{replicate}"
+    task_slug = str(task["taskId"]).lower().replace("_", "-")
+    suffix = f"{task_slug}-{codec.replace('-', '_')}-{replicate}"
     contract = HarnessRunContract(
         harness_run_id=f"harness-run:r2-live-ab-{suffix}",
         harness_implementation_id="ordivon-harness@"
@@ -373,11 +440,21 @@ def run_one(
         ),
         created_at_ms=int(time.time() * 1000),
     )
-    runtime = MemoryRuntime()
+    runtime = MemoryRuntime(task_spec)
+    readable = ", ".join(task_spec.read_paths)
     initial = (
         {
             "role": "system",
-            "content": f"You are in a controlled repository-repair evaluation. You may read SPEC.md, allocation.py, and test_allocation.py. You may modify only allocation.py, using edit_workspace. This treatment admits exactly one edit codec: {codec}. Use sourceDigest from the latest read_workspace result. Do not merely describe a patch: perform the edit. When the repair is complete, submit candidate_completed. No other external effects are available.",
+            "content": (
+                "You are in a controlled edit evaluation. "
+                f"You may read {readable}. "
+                f"You may modify only {task_spec.target_path}, using edit_workspace. "
+                f"This treatment admits exactly one edit codec: {codec}. "
+                "Use sourceDigest from the latest read_workspace result. "
+                "Do not merely describe a patch: perform the edit. "
+                "When the repair is complete, submit candidate_completed. "
+                "No other external effects are available."
+            ),
         },
         {"role": "user", "content": objective},
     )
@@ -394,7 +471,7 @@ def run_one(
             tool_definitions=(READ_EDITABLE_WORKSPACE_DEFINITION, edit_def),
             tool_surface_digest=surface_digest,
             tool_grant_digest=grant_digest,
-            tool_grant=TreatmentGrant(),
+            tool_grant=TreatmentGrant(task_spec),
         )
         adapter = DeepSeekTurnAdapter(settings, completion_contract=contract.completion_contract)
         started = time.monotonic()
@@ -406,8 +483,8 @@ def run_one(
                 initial_messages=initial,
             )
             elapsed = int((time.monotonic() - started) * 1000)
-            source = runtime.files["allocation.py"]
-            outcome = verify(source)
+            source = runtime.files[task_spec.target_path]
+            outcome = verify(source, task_spec)
             rejected = sum(1 for o in result.observations if o.status == "rejected")
             edit_obs = [o for o in result.observations if o.tool_name == "edit_workspace"]
             record = {
@@ -433,13 +510,13 @@ def run_one(
                 "editObservationStatuses": [o.status for o in edit_obs],
                 "runtimeOperations": [name for name, _ in runtime.calls],
                 "finalDigest": sha(source),
-                "oracleExact": source == ORACLE.read_text(),
+                "oracleExact": source == task_spec.oracle.read_text(),
                 **outcome,
             }
         except Exception as exc:
             elapsed = int((time.monotonic() - started) * 1000)
-            source = runtime.files["allocation.py"]
-            outcome = verify(source)
+            source = runtime.files[task_spec.target_path]
+            outcome = verify(source, task_spec)
             record = {
                 "treatment": codec,
                 "replicate": replicate,
@@ -449,7 +526,7 @@ def run_one(
                 "elapsedMs": elapsed,
                 "runtimeOperations": [name for name, _ in runtime.calls],
                 "finalDigest": sha(source),
-                "oracleExact": source == ORACLE.read_text(),
+                "oracleExact": source == task_spec.oracle.read_text(),
                 **outcome,
             }
         store.close()
@@ -463,23 +540,27 @@ def _summaries(records: list[dict[str, JsonValue]]) -> dict[str, JsonValue]:
         if not subset:
             continue
         count = len(subset)
+        totals = {
+            "modelCalls": sum(int(r.get("modelCalls", 0)) for r in subset),
+            "toolCalls": sum(int(r.get("toolCalls", 0)) for r in subset),
+            "totalTokens": sum(
+                int(r.get("usage", {}).get("totalTokens", 0))
+                if isinstance(r.get("usage"), dict)
+                else 0
+                for r in subset
+            ),
+            "elapsedMs": sum(int(r.get("elapsedMs", 0)) for r in subset),
+        }
         summaries[codec] = {
             "runs": count,
             "candidateCompleted": sum(bool(r.get("candidateCompleted")) for r in subset),
             "visiblePassed": sum(bool(r.get("visiblePassed")) for r in subset),
             "hiddenPassed": sum(bool(r.get("hiddenPassed")) for r in subset),
-            "meanModelCalls": sum(int(r.get("modelCalls", 0)) for r in subset) / count,
-            "meanToolCalls": sum(int(r.get("toolCalls", 0)) for r in subset) / count,
-            "meanTotalTokens": sum(
-                int(r.get("usage", {}).get("totalTokens", 0))
-                if isinstance(r.get("usage"), dict)
-                else 0
-                for r in subset
-            )
-            / count,
-            "meanElapsedMs": sum(int(r.get("elapsedMs", 0)) for r in subset) / count,
             "rejectedObservations": sum(int(r.get("rejectedObservations", 0)) for r in subset),
+            "totals": totals,
+            "meansTimes10": {key: (value * 10) // count for key, value in totals.items()},
         }
+    validate_json_value(summaries)
     return summaries
 
 
@@ -491,6 +572,11 @@ def main() -> int:
     parser.add_argument("--replicates", type=int, default=1)
     parser.add_argument("--max-total-tokens", type=int, default=64_000)
     parser.add_argument("--output", type=Path)
+    parser.add_argument(
+        "--task",
+        choices=tuple(TASK_SPECS),
+        default="HARNESS-REPO-REPAIR-001",
+    )
     parser.add_argument(
         "--treatment",
         choices=("both", *CODECS),
@@ -505,6 +591,7 @@ def main() -> int:
         max_response_bytes=2_097_152,
         max_output_tokens=2048,
     )
+    task_spec = TASK_SPECS[args.task]
     treatments = CODECS if args.treatment == "both" else (args.treatment,)
     records: list[dict[str, JsonValue]] = []
     for codec in treatments:
@@ -516,6 +603,7 @@ def main() -> int:
                 codec,
                 replicate,
                 settings,
+                task_spec=task_spec,
                 max_total_tokens=args.max_total_tokens,
             )
             records.append(record)
@@ -543,7 +631,7 @@ def main() -> int:
         "schemaVersion": 1,
         "kind": "ordivon.adaptive-edit-r2-live-ab",
         "date": "2026-09-14",
-        "taskId": TASK["taskId"],
+        "taskId": task_spec.task["taskId"],
         "provider": "deepseek",
         "requestedModel": settings.model,
         "startReplicate": args.start_replicate,
@@ -551,7 +639,7 @@ def main() -> int:
         "maxTotalTokens": args.max_total_tokens,
         "treatments": list(treatments),
         "scope": (
-            "Small live Provider A/B over one repository-repair task. Provisional, "
+            "Small live Provider A/B over one edit task. Provisional, "
             "model/task-specific evidence only; not a general codec or model ranking. "
             "Physical workspace is an isolated in-memory Runtime-shaped fixture; durable "
             "real Runtime Patch/recovery is validated separately."
