@@ -69,6 +69,8 @@ RUNTIME_POLICY_ENV_KEYS = (
     ("ORDIVON_DEFAULT_RUNTIME_MS", "defaultRuntimeMs"),
     ("ORDIVON_MAX_RUNTIME_MS", "maxRuntimeMs"),
 )
+STRUCTURED_RELEASE_DRAIN_TIMEOUT_ENV = "ORDIVON_RELEASE_DRAIN_TIMEOUT_MS"
+
 
 
 def parse_args() -> argparse.Namespace:
@@ -994,6 +996,28 @@ def receipt_path(root: Path, commit: str) -> Path:
     return candidate
 
 
+def structured_release_drain_policy(
+    args: argparse.Namespace, release_effect: dict[str, object] | None
+) -> tuple[float, str]:
+    if release_effect is None:
+        return float(args.drain_seconds), "cli"
+    environment = load_environment_file(args.env_file)
+    raw = environment.get(STRUCTURED_RELEASE_DRAIN_TIMEOUT_ENV)
+    if raw is None:
+        return float(args.drain_seconds), "cli"
+    try:
+        timeout_ms = int(raw)
+    except ValueError as error:
+        raise RuntimeError(
+            f"{STRUCTURED_RELEASE_DRAIN_TIMEOUT_ENV} must be a positive integer number of milliseconds"
+        ) from error
+    if timeout_ms <= 0:
+        raise RuntimeError(
+            f"{STRUCTURED_RELEASE_DRAIN_TIMEOUT_ENV} must be a positive integer number of milliseconds"
+        )
+    return timeout_ms / 1000.0, STRUCTURED_RELEASE_DRAIN_TIMEOUT_ENV
+
+
 def structured_release_effect(args: argparse.Namespace) -> dict[str, object] | None:
     values = (
         getattr(args, "effect_id", None),
@@ -1182,6 +1206,7 @@ def apply_deployment(args: argparse.Namespace) -> dict[str, object]:
     if args.confirm_commit != args.commit:
         raise RuntimeError("confirm-commit must exactly equal commit")
     release_effect = structured_release_effect(args)
+    drain_seconds, drain_policy_source = structured_release_drain_policy(args, release_effect)
     with exclusive_lock(args.lock_file):
         if release_effect is not None:
             receipt = structured_receipt_path(args.receipt_root, str(release_effect["effectId"]))
@@ -1279,7 +1304,7 @@ def apply_deployment(args: argparse.Namespace) -> dict[str, object]:
                 },
             )
             admission_fence_handle = acquire_exclusive_admission_fence(args.database)
-            remaining_jobs = wait_for_execution_drain(args.database, args.drain_seconds)
+            remaining_jobs = wait_for_execution_drain(args.database, drain_seconds)
             if remaining_jobs:
                 raise RuntimeError(
                     "deployment drain timed out with active or held Jobs: "
@@ -1304,7 +1329,8 @@ def apply_deployment(args: argparse.Namespace) -> dict[str, object]:
                     + "; ".join(plan["blockers"])
                 )
             plan["admissionFence"] = str(admission_fence_path(args.database))
-            plan["drainSeconds"] = args.drain_seconds
+            plan["drainSeconds"] = drain_seconds
+            plan["drainPolicySource"] = drain_policy_source
             write_json_atomic(receipt / "plan.json", plan)
             # Keep the drain phase non-perturbing with respect to the installed Runtime
             # tree. Candidate bytes are already staged in candidate_dir, so no path

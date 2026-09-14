@@ -2146,7 +2146,9 @@ class DeployReclaimTests(unittest.TestCase):
             with mcp_server(["workspace.get", "workspace.execPlan"]) as port:
                 env_file = root / "runtime.env"
                 env_file.write_text(
-                    f"ORDIVON_BIND=127.0.0.1:{port}\nORDIVON_BEARER_TOKEN=test\n",
+                    f"ORDIVON_BIND=127.0.0.1:{port}\n"
+                    "ORDIVON_BEARER_TOKEN=test\n"
+                    "ORDIVON_RELEASE_DRAIN_TIMEOUT_MS=2500\n",
                     encoding="utf-8",
                 )
                 command = [
@@ -2209,6 +2211,12 @@ class DeployReclaimTests(unittest.TestCase):
                 self.assertEqual(
                     json.loads((receipt / "effect-request.json").read_text()),
                     first_result["releaseEffect"],
+                )
+                applied_plan = json.loads((receipt / "plan.json").read_text())
+                self.assertEqual(applied_plan["drainSeconds"], 2.5)
+                self.assertEqual(
+                    applied_plan["drainPolicySource"],
+                    "ORDIVON_RELEASE_DRAIN_TIMEOUT_MS",
                 )
                 self.assertEqual(len(list((root / "receipts").iterdir())), 1)
 
