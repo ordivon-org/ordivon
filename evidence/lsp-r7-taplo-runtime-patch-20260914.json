@@ -1,0 +1,78 @@
+{
+  "date": "2026-09-14",
+  "harness": {
+    "adapter": "ordivon_harness.lsp_workspace_edit.workspace_edit_to_canonical_plan",
+    "canonicalCodec": "lsp-workspace-edit-v1",
+    "canonicalEditCount": 1,
+    "canonicalFileCount": 1,
+    "canonicalPlanDigest": "sha256:4eceda69ec645b83bf19f607f4fc3bf45aedc90fc7bec98323209a009fac9f71",
+    "expectedTexts": [
+      "name"
+    ],
+    "replacements": [
+      "title"
+    ],
+    "sourceUnchangedBeforeRuntime": true,
+    "uriAuthorityBindingRequired": true
+  },
+  "implementationRevision": "d75617d7ea61cc5b4cc4ffc33ed482544fa38811",
+  "integrity": {
+    "algorithm": "sha256",
+    "canonicalization": "ordivon-canonical-json-v1",
+    "payloadDigest": "sha256:e8c6fb0040dac7c691373c24b3400d0e843bea7d1da345ce2fe22bc79f19e4b0"
+  },
+  "kind": "ordivon.lsp-r7-taplo-runtime-patch-evidence",
+  "protocol": {
+    "effectivePositionEncoding": "utf-16",
+    "operation": "textDocument/rename",
+    "positionEncodingRule": "LSP default used because server did not advertise positionEncoding",
+    "renameFrom": "name",
+    "renameTo": "title",
+    "serverAdvertisedPositionEncoding": null,
+    "serverUriCount": 1,
+    "workspaceEditForm": "changes"
+  },
+  "provider": {
+    "languageServer": "taplo",
+    "languageServerVersion": "0.10.0",
+    "protocolTypesPackage": "lsprotocol",
+    "protocolTypesVersion": "2025.0.0",
+    "serverDirectWriteAuthority": false,
+    "transportDonor": "pygls",
+    "transportDonorVersion": "2.1.1",
+    "transportProductionDependencyAdmitted": false
+  },
+  "runtime": {
+    "afterDigest": "sha256:b51243ac16c473ecec65f0718264c65e36d9a5802e5e4ec58910f0b7ec769452",
+    "beforeDigest": "sha256:291c2536d2d7fff1c726f0f11b9b286d717eca3b6da650330ed9187a6eade5cd",
+    "clientRequestId": "request:harness-patch:b12a2fd025ee8c022ddf7ca713c087c6",
+    "finalContentVerified": true,
+    "operation": "workspace.patch",
+    "operationId": "patch-01a09eed-85d7-77d2-9b24-1a373c203faa",
+    "physicalMutationOwner": "Ordivon Runtime",
+    "requestDigest": "sha256:a9f0fc392b1228dccd67146f008f16cc436363635054419510b15ff372ad93f5",
+    "state": "committed",
+    "workspaceId": "ws-harness-lsp-r7-provider2-20260914"
+  },
+  "schemaVersion": 1,
+  "scope": "Second revision-bound local LSP provider-path receipt. Taplo rename was transported by experimental pygls, validated by the same Harness WorkspaceEdit adapter, and committed only through Runtime workspace.patch. Provider diversity is demonstrated for C++/clangd and TOML/Taplo, while pygls lifecycle gaps remain explicit and prevent default-provider admission.",
+  "standing": {
+    "defaultLspTransport": "NOT_SELECTED",
+    "nextEvidence": [
+      "provider lifecycle/configuration/diagnostics handling",
+      "public Run/Tool Grant integration",
+      "compare a lifecycle-complete mature client/provider wrapper before default selection"
+    ],
+    "providerDiversity": "SUPPORTED_TWO_LOCAL_LANGUAGE_SERVERS",
+    "pyglsProductionProvider": "NOT_ADMITTED",
+    "serverDirectMutation": "NOT_ADMITTED",
+    "standing": "VERIFIED_SECOND_LOCAL_PROVIDER_PATH",
+    "workspaceEditAdapterReuse": "SUPPORTED"
+  },
+  "transportLifecycleObservations": {
+    "interpretation": "The transport donor can carry the tested request path but is not lifecycle-complete enough to become the default Harness LSP provider without an explicit provider wrapper or another mature client choice.",
+    "publishDiagnosticsNotificationUnhandledByBareProbe": true,
+    "renameStillCompleted": true,
+    "workspaceConfigurationRequestUnhandledByBareProbe": true
+  }
+}

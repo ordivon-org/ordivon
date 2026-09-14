@@ -173,3 +173,34 @@ sha256:f16757f66ebfae75a815b5002c50a97e7aee50574639be1841bb5a55c949328d
 This evidence admits the **provider path**, not a fixed transport dependency. `pygls`
 remains experimental and absent from production dependencies. A second language server
 or provider should be evaluated before selecting a default LSP transport/provider stack.
+
+## Second provider — Taplo
+
+The same committed adapter was exercised with the already-installed `taplo 0.10.0`
+language server. Taplo advertises rename support and returned a standard
+`WorkspaceEdit.changes` for TOML key rename `name -> title`.
+
+Taplo did not advertise `positionEncoding`, so the provider path used the LSP default
+`utf-16` semantics. Harness compiled one exact edit and Runtime committed:
+
+```text
+before sha256:291c2536d2d7fff1c726f0f11b9b286d717eca3b6da650330ed9187a6eade5cd
+after  sha256:b51243ac16c473ecec65f0718264c65e36d9a5802e5e4ec58910f0b7ec769452
+```
+
+The verified receipt is:
+
+```text
+evidence/lsp-r7-taplo-runtime-patch-20260914.json
+payload digest:
+sha256:e8c6fb0040dac7c691373c24b3400d0e843bea7d1da345ce2fe22bc79f19e4b0
+```
+
+This proves the adapter is not clangd-specific: the same authority/snapshot/canonical
+boundary works for at least two local language servers and two languages.
+
+The transport conclusion remains deliberately negative. During the bare pygls/Taplo
+probe, Taplo issued `workspace/configuration` and diagnostics traffic that the bare
+LanguageClient probe did not handle. Rename still succeeded, but this is direct evidence
+that transport lifecycle/configuration/diagnostic behavior needs a provider wrapper or a
+more lifecycle-complete mature client before any default transport is selected.

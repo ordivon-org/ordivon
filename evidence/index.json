@@ -637,6 +637,21 @@
         "pyproject.toml",
         "uv.lock"
       ]
+    },
+    {
+      "claimId": "harness.lsp.r7.taplo-runtime-patch",
+      "file": "lsp-r7-taplo-runtime-patch-20260914.json",
+      "status": "verified",
+      "implementationRevision": "d75617d7ea61cc5b4cc4ffc33ed482544fa38811",
+      "implementationPaths": [
+        "src/anc_canonical/",
+        "src/ordivon_harness/adaptive_edit.py",
+        "src/ordivon_harness/execution_binding.py",
+        "src/ordivon_harness/lsp_workspace_edit.py",
+        "pyproject.toml",
+        "uv.lock"
+      ],
+      "scope": "Second local R7 provider-path receipt: Taplo 0.10.0 rename returned WorkspaceEdit, the same Harness adapter compiled it under default UTF-16 position semantics, and Runtime committed the exact patch. Bare pygls lifecycle gaps for workspace/configuration and diagnostics remain observed, so no default transport is selected."
     }
   ]
 }
