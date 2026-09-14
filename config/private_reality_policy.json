@@ -1,20 +1,67 @@
 {
-  "schemaVersion": 1,
-  "kind": "ordivon.market-capital.private-reality-policy",
-  "standing": "PREPARED_NOT_ADMITTED",
-  "purpose": "READ_ONLY_AUTHORITATIVE_VENUE_REALITY_BEFORE_ANY_ORDER_CAPABLE_CREDENTIAL",
-  "credentialUseAdmission": "NOT_ADMITTED",
-  "privateAccountDataAllowed": false,
-  "orderCapableCredentialsAllowed": false,
-  "withdrawalCredentialsAllowed": false,
+  "credentialBindings": {
+    "BINANCE": {
+      "binding": "/root/.config/ordivon/secrets/binance/observer",
+      "copyIntoRepository": false,
+      "executorBindingExplicitlyExcluded": "/root/.config/ordivon/secrets/binance/executor",
+      "historicalRole": "observer keypair distinct from executor keypair",
+      "role": "observer"
+    },
+    "OKX": {
+      "binding": "/root/.config/ordivon/secrets/okx/observer/config.toml",
+      "copyIntoRepository": false,
+      "historicalRole": "live read-only / signed GET-only observer",
+      "role": "observer"
+    }
+  },
+  "credentialUseAdmission": "USER_AUTHORIZED_PENDING_FRESH_PERMISSION_VERIFICATION",
   "externalFinancialWritesAllowed": false,
+  "kind": "ordivon.market-capital.private-reality-policy",
+  "normalization": {
+    "authority": "thin venue-native normalization only",
+    "credentialAccess": false,
+    "implementation": "src/market_capital/private_reality.py",
+    "networkAccess": false,
+    "schema": "schema/private-reality-snapshot.schema.json"
+  },
+  "orderCapableCredentialsAllowed": false,
+  "privateAccountDataAllowed": false,
+  "purpose": "READ_ONLY_AUTHORITATIVE_VENUE_REALITY_BEFORE_ANY_ORDER_CAPABLE_CREDENTIAL",
+  "rules": [
+    "read-only authoritative account reality must graduate before demo/testnet order submission",
+    "no credential may be discovered from ambient environment, config files, shell history or local secret stores while credentialUseAdmission is NOT_ADMITTED",
+    "credential admission requires a separate explicit user authorization",
+    "read-only admission must not imply TRADE, withdrawal, demo-order or live-order authority",
+    "venue-native account/order/trade reality remains authoritative; Market Capital may only normalize and reconcile it",
+    "observer credential locations are explicitly bound; secret bytes remain external to the repository and executor credentials are excluded",
+    "fresh private-account permission verification must succeed before privateAccountDataAllowed may become true",
+    "normalization is pure and must not read credentials, open network connections, or create execution authority"
+  ],
+  "schemaVersion": 1,
   "secretDiscoveryAllowed": false,
+  "standing": "CREDENTIALS_LOCATED_PENDING_FRESH_PERMISSION_VERIFICATION",
   "venues": {
+    "BINANCE": {
+      "authoritativeReality": "Binance Spot USER_DATA API",
+      "client": "binance-sdk-spot 11.3.0",
+      "requiredQueries": [
+        "get_account",
+        "get_open_orders",
+        "all_orders",
+        "my_trades",
+        "get_order"
+      ],
+      "requiredSecurityType": "USER_DATA",
+      "tradePermissionRequired": false
+    },
     "OKX": {
       "authoritativeReality": "OKX private account/order/trade API",
       "client": "NautilusTrader OKXHttpClient 2.0.0rc4",
+      "forbiddenPermissions": [
+        "Trade",
+        "Withdraw"
+      ],
       "requiredPermission": "Read",
-      "forbiddenPermissions": ["Trade", "Withdraw"],
       "requiredQueries": [
         "get_balance",
         "request_account_state",
@@ -22,26 +69,7 @@
         "request_fill_reports",
         "request_trades"
       ]
-    },
-    "BINANCE": {
-      "authoritativeReality": "Binance Spot USER_DATA API",
-      "client": "binance-sdk-spot 11.3.0",
-      "requiredSecurityType": "USER_DATA",
-      "tradePermissionRequired": false,
-      "requiredQueries": [
-        "get_account",
-        "get_open_orders",
-        "all_orders",
-        "my_trades",
-        "get_order"
-      ]
     }
   },
-  "rules": [
-    "read-only authoritative account reality must graduate before demo/testnet order submission",
-    "no credential may be discovered from ambient environment, config files, shell history or local secret stores while credentialUseAdmission is NOT_ADMITTED",
-    "credential admission requires a separate explicit user authorization",
-    "read-only admission must not imply TRADE, withdrawal, demo-order or live-order authority",
-    "venue-native account/order/trade reality remains authoritative; Market Capital may only normalize and reconcile it"
-  ]
+  "withdrawalCredentialsAllowed": false
 }
