@@ -1,0 +1,11 @@
+{
+  "authorityId": "rfc-9113",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "proposed-standard",
+  "note": "Current HTTP/2 Standards Track specification; obsoletes RFC 7540 and RFC 8740.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.rfc-editor.org/info/rfc9113/",
+  "schemaVersion": 1,
+  "versionObserved": "RFC 9113"
+}

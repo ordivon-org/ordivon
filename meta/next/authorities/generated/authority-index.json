@@ -214,6 +214,35 @@
     },
     {
       "aliases": [
+        "CPMI-IOSCO PFMI",
+        "PFMI",
+        "Principles for Financial Market Infrastructures"
+      ],
+      "authorityKind": "international-financial-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "finance",
+        "market-capital",
+        "post-trade"
+      ],
+      "id": "cpmi-iosco-pfmi-2012",
+      "identityMode": "versioned",
+      "issuer": "CPMI-IOSCO",
+      "lifecycleStatus": "current-international-standard",
+      "observationDigest": "sha256:a30a91db20970c7e3354a84aeb4ed77fd2f3e2aa2630653c5fdfbf1e079ed2cc",
+      "recordDigest": "sha256:81e0ca7fa19c1d458f422131f72c9c55768fe66fa667ffcd92d427c3c3a9fa35",
+      "title": "Principles for financial market infrastructures (PFMI)",
+      "topics": [
+        "clearing",
+        "finality",
+        "financial-market-infrastructure",
+        "risk-management",
+        "settlement"
+      ],
+      "versionLabel": "2012"
+    },
+    {
+      "aliases": [
         "CycloneDX",
         "CycloneDX 1.7",
         "ECMA-424",
@@ -293,6 +322,35 @@
         "reusable"
       ],
       "versionLabel": null
+    },
+    {
+      "aliases": [
+        "FIX 4.4",
+        "FIX 4.4 Errata",
+        "FIX44"
+      ],
+      "authorityKind": "industry-protocol-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "finance",
+        "market-capital",
+        "trading"
+      ],
+      "id": "fix-4.4-errata-20030618",
+      "identityMode": "versioned",
+      "issuer": "FIX Trading Community",
+      "lifecycleStatus": "supported-legacy",
+      "observationDigest": "sha256:46e9c6de404e0fc2c91397f25d2a06c12a334cac3f1eca1e224bde345d5b21f3",
+      "recordDigest": "sha256:ba7b128a3c0352c5bade07d9d5bce2d39843e2fa485b7aa1dcebdbbc581adb99",
+      "title": "FIX 4.4 Specification with 20030618 Errata",
+      "topics": [
+        "electronic-trading",
+        "execution-reports",
+        "market-data",
+        "messaging",
+        "orders"
+      ],
+      "versionLabel": "4.4+Errata20030618"
     },
     {
       "aliases": [
@@ -476,6 +534,90 @@
     },
     {
       "aliases": [
+        "ISO 14289-2",
+        "PDF accessibility",
+        "PDF/UA-2"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "accessibility",
+        "artifact",
+        "document"
+      ],
+      "id": "iso-14289-2-2024",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:24dd7409573c3c53ae7966dbc3679914ac30ae12dc524722ab8bf27727b7131a",
+      "recordDigest": "sha256:4afc2c412d9a9d3fa27907d0c12fe2e94d6b5c7ecde388a43b7fd187a5c428d9",
+      "title": "ISO 14289-2:2024 — Electronic document file format enhancement for accessibility — Part 2: PDF/UA-2",
+      "topics": [
+        "accessibility",
+        "accessible-document",
+        "pdf",
+        "pdf-ua"
+      ],
+      "versionLabel": "2024"
+    },
+    {
+      "aliases": [
+        "ISO 17442-1",
+        "Legal Entity Identifier",
+        "LEI standard"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "finance",
+        "identity",
+        "market-capital"
+      ],
+      "id": "iso-17442-1-2020",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published-confirmed",
+      "observationDigest": "sha256:91c27061e9c284170692b9326fe993e9f2ec900bb49180cf3590bddc04a134b8",
+      "recordDigest": "sha256:8247cd25b4551e105d5776abf6e0421b7c48b20c80b900848fd61f43131c7717",
+      "title": "ISO 17442-1:2020 — Financial services — Legal entity identifier (LEI) — Part 1: Assignment",
+      "topics": [
+        "entity-identity",
+        "financial-services",
+        "legal-entity-identifier",
+        "lei"
+      ],
+      "versionLabel": "2020"
+    },
+    {
+      "aliases": [
+        "ISO 19005-4",
+        "PDF archival",
+        "PDF/A-4"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "document",
+        "preservation"
+      ],
+      "id": "iso-19005-4-2020",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published-to-be-revised",
+      "observationDigest": "sha256:265dfa15c8158f28c88b9e10100efe121cbcdb5789ea14ff9d1fe84b32452d03",
+      "recordDigest": "sha256:6b5c795e448df9bbdc28a1ae97ce971c3f856a8d74d1f10066ee43a13c676651",
+      "title": "ISO 19005-4:2020 — Electronic document file format for long-term preservation — Part 4: PDF/A-4",
+      "topics": [
+        "archival-document",
+        "long-term-preservation",
+        "pdf",
+        "pdf-a"
+      ],
+      "versionLabel": "2020"
+    },
+    {
+      "aliases": [
         "ISO 19011"
       ],
       "authorityKind": "international-standard",
@@ -496,6 +638,35 @@
         "assurance",
         "audit",
         "management-system-audit"
+      ],
+      "versionLabel": "2026"
+    },
+    {
+      "aliases": [
+        "ISO 20022",
+        "ISO 20022-1",
+        "Universal financial industry message scheme"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "finance",
+        "market-capital",
+        "post-trade"
+      ],
+      "id": "iso-20022-1-2026",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:4f202b4d63a05e983e2cc0452976014b5b3d0282adca18191593cd8558969a66",
+      "recordDigest": "sha256:4086838bb52e4bd624c8e750e4d3619832a8ef29d8257c5580ef38bc819bff81",
+      "title": "ISO 20022-1:2026 — Financial services — Universal financial industry message scheme — Part 1: Metamodel",
+      "topics": [
+        "financial-messaging",
+        "financial-services",
+        "metamodel",
+        "payments",
+        "securities"
       ],
       "versionLabel": "2026"
     },
@@ -527,6 +698,34 @@
     },
     {
       "aliases": [
+        "ISO 28500",
+        "WARC",
+        "WARC file format"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "preservation",
+        "web"
+      ],
+      "id": "iso-28500-2017",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published-confirmed",
+      "observationDigest": "sha256:d4f139dde0b568a388a80f2d80d3b163974850631b8e3c07d48abd84e94c2ff2",
+      "recordDigest": "sha256:70b7263190395cdab1c0286d45fc8e30c350c4d689cb3008c7ec5c7bbe861b69",
+      "title": "ISO 28500:2017 — Information and documentation — WARC file format",
+      "topics": [
+        "archive-format",
+        "preservation",
+        "web-archive",
+        "web-capture"
+      ],
+      "versionLabel": "2017"
+    },
+    {
+      "aliases": [
         "ISO 31000",
         "Risk management guidelines"
       ],
@@ -551,6 +750,33 @@
         "uncertainty"
       ],
       "versionLabel": "2018"
+    },
+    {
+      "aliases": [
+        "ISO 32000-2",
+        "ISO 32000-2:2020",
+        "PDF 2.0"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "document"
+      ],
+      "id": "iso-32000-2-2020",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published-confirmed",
+      "observationDigest": "sha256:b9fcc91a003e36eccb9cd402d9755a09c641420f7eef8e875d3c2acafcda48b2",
+      "recordDigest": "sha256:d84d556c8ad84a1f281e593f5401e7c517fa344945fe3a5f56fcd89596d27541",
+      "title": "ISO 32000-2:2020 — Document management — Portable document format — Part 2: PDF 2.0",
+      "topics": [
+        "document-format",
+        "fixed-document",
+        "pdf",
+        "portable-document"
+      ],
+      "versionLabel": "2020"
     },
     {
       "aliases": [
@@ -708,6 +934,35 @@
     },
     {
       "aliases": [
+        "GL Transmission Format",
+        "glTF 2.0",
+        "ISO/IEC 12113"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "3d",
+        "artifact",
+        "game",
+        "media"
+      ],
+      "id": "iso-iec-12113-2022",
+      "identityMode": "versioned",
+      "issuer": "ISO/IEC",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:593e8a08844064e534b25d8aed8b15e303c80a3102f11c368d5a7abe47a0b686",
+      "recordDigest": "sha256:4e8da390a839f83a60db435fff3f541d6bcea182e506059d25dbafb5b05ea180",
+      "title": "ISO/IEC 12113:2022 — Runtime 3D asset delivery format — Khronos glTF 2.0",
+      "topics": [
+        "3d",
+        "asset-delivery",
+        "gltf",
+        "runtime-3d"
+      ],
+      "versionLabel": "2022"
+    },
+    {
+      "aliases": [
         "ISO 25010",
         "ISO/IEC 25010:2023"
       ],
@@ -730,6 +985,35 @@
         "software-quality"
       ],
       "versionLabel": "2023"
+    },
+    {
+      "aliases": [
+        "ISO/IEC 29500-1",
+        "Office Open XML",
+        "OOXML"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "document",
+        "office"
+      ],
+      "id": "iso-iec-29500-1-2016",
+      "identityMode": "versioned",
+      "issuer": "ISO/IEC",
+      "lifecycleStatus": "published-to-be-revised",
+      "observationDigest": "sha256:6f33aeeb4d58a7d2b3bcc8c770f067c13eabb794f8c71474dbba0312d02c123b",
+      "recordDigest": "sha256:82924a41c02254629f8a43bab6c687cfae9976c0ba5026f60ec0da816308274c",
+      "title": "ISO/IEC 29500-1:2016 — Office Open XML File Formats — Part 1: Fundamentals and Markup Language Reference",
+      "topics": [
+        "office-document",
+        "presentation",
+        "spreadsheet",
+        "word-processing",
+        "xml"
+      ],
+      "versionLabel": "2016"
     },
     {
       "aliases": [
@@ -890,6 +1174,35 @@
     },
     {
       "aliases": [
+        "ODF",
+        "OpenDocument",
+        "OpenDocument 1.3"
+      ],
+      "authorityKind": "open-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "document",
+        "office"
+      ],
+      "id": "oasis-opendocument-1.3",
+      "identityMode": "versioned",
+      "issuer": "OASIS Open",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:1f373c22c24b3cd18cafc9e24eeac881e133742ea2fb96d398c60b41e882dc44",
+      "recordDigest": "sha256:362a1ba19ab3c18f0ad9398a9d10692519e011007ca35a563c82620ce0c6de33",
+      "title": "Open Document Format for Office Applications (OpenDocument) Version 1.3",
+      "topics": [
+        "office-document",
+        "presentation",
+        "spreadsheet",
+        "word-processing",
+        "xml"
+      ],
+      "versionLabel": "1.3"
+    },
+    {
+      "aliases": [
         "SARIF",
         "SARIF 2.1.0"
       ],
@@ -997,6 +1310,35 @@
     },
     {
       "aliases": [
+        "GeoPackage",
+        "GeoPackage 1.4.0",
+        "GPKG"
+      ],
+      "authorityKind": "industry-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "data",
+        "geospatial"
+      ],
+      "id": "ogc-geopackage-1.4.0",
+      "identityMode": "versioned",
+      "issuer": "Open Geospatial Consortium",
+      "lifecycleStatus": "current-standard",
+      "observationDigest": "sha256:0392130ac244df566cd3f9c8183f6471013c9d25031fb41fcde099e78d687629",
+      "recordDigest": "sha256:31e9e6c4842d5320981469fc00f079150927375c618192d8de22f4f75943ab8e",
+      "title": "OGC GeoPackage Encoding Standard 1.4.0",
+      "topics": [
+        "geospatial",
+        "raster",
+        "sqlite",
+        "tiles",
+        "vector"
+      ],
+      "versionLabel": "1.4.0"
+    },
+    {
+      "aliases": [
         "BPMN",
         "BPMN 2.0.2"
       ],
@@ -1098,6 +1440,36 @@
         "traceability"
       ],
       "versionLabel": "1.2"
+    },
+    {
+      "aliases": [
+        "OIDC",
+        "OIDC Core 1.0",
+        "OpenID Connect Core"
+      ],
+      "authorityKind": "identity-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "distribution",
+        "identity",
+        "security",
+        "web"
+      ],
+      "id": "openid-connect-core-1.0-errata2",
+      "identityMode": "versioned",
+      "issuer": "OpenID Foundation",
+      "lifecycleStatus": "final-specification",
+      "observationDigest": "sha256:cc5e368d709dc3188ebc63d1ee28f956ab77d5f76ec4a7e0177d921ec4640997",
+      "recordDigest": "sha256:809062110e6f403f02242c1f4cb9304e96a17cff29e3dd6d3b8848c8f51178b1",
+      "title": "OpenID Connect Core 1.0 incorporating errata set 2",
+      "topics": [
+        "authentication",
+        "identity",
+        "oauth",
+        "oidc",
+        "openid-connect"
+      ],
+      "versionLabel": "1.0 Errata 2"
     },
     {
       "aliases": [
@@ -1237,6 +1609,370 @@
     },
     {
       "aliases": [
+        "DNS concepts",
+        "RFC 1034",
+        "STD 13 DNS"
+      ],
+      "authorityKind": "internet-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "internet",
+        "network"
+      ],
+      "id": "rfc-1034",
+      "identityMode": "versioned",
+      "issuer": "IETF",
+      "lifecycleStatus": "internet-standard",
+      "observationDigest": "sha256:e8e1e1a29284921da88bf40fe3c0892c6b36e46929d28875c0e750d00c0c9ef5",
+      "recordDigest": "sha256:bb4f67b1d77ede54e1eedbc05711ebd2a78af6642a17be1c94651eeceb1f16b5",
+      "title": "RFC 1034 / STD 13 — Domain names — concepts and facilities",
+      "topics": [
+        "dns",
+        "domain-name-system",
+        "name-resolution"
+      ],
+      "versionLabel": "RFC 1034"
+    },
+    {
+      "aliases": [
+        "DNS implementation",
+        "RFC 1035",
+        "STD 13 DNS"
+      ],
+      "authorityKind": "internet-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "internet",
+        "network"
+      ],
+      "id": "rfc-1035",
+      "identityMode": "versioned",
+      "issuer": "IETF",
+      "lifecycleStatus": "internet-standard",
+      "observationDigest": "sha256:0a49936f054b22832b5a1730f04f4870551c77356da4ce3de685c2f4a398722d",
+      "recordDigest": "sha256:ed77cde815de3ed1be0e0eafbb58718c599b4232b864e86eac0f55a6894be2e6",
+      "title": "RFC 1035 / STD 13 — Domain names — implementation and specification",
+      "topics": [
+        "dns",
+        "domain-name-system",
+        "name-resolution",
+        "wire-format"
+      ],
+      "versionLabel": "RFC 1035"
+    },
+    {
+      "aliases": [
+        "OAuth 2.0",
+        "OAuth2",
+        "RFC 6749"
+      ],
+      "authorityKind": "internet-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "distribution",
+        "identity",
+        "security",
+        "web"
+      ],
+      "id": "rfc-6749",
+      "identityMode": "versioned",
+      "issuer": "IETF",
+      "lifecycleStatus": "proposed-standard",
+      "observationDigest": "sha256:0981242ab318e77a4dab9c1b23a53a16b83fa04cb9947115f881046c5c4b7712",
+      "recordDigest": "sha256:870ecd122399f258b2de5555eb66171352a61f4f66d0b9e63e1630686f447ebc",
+      "title": "RFC 6749 — The OAuth 2.0 Authorization Framework",
+      "topics": [
+        "authorization",
+        "delegated-access",
+        "http-api",
+        "oauth"
+      ],
+      "versionLabel": "RFC 6749"
+    },
+    {
+      "aliases": [
+        "DNS over TLS",
+        "DoT",
+        "RFC 7858"
+      ],
+      "authorityKind": "internet-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "internet",
+        "network",
+        "security"
+      ],
+      "id": "rfc-7858",
+      "identityMode": "versioned",
+      "issuer": "IETF",
+      "lifecycleStatus": "proposed-standard",
+      "observationDigest": "sha256:6fc2441d09b7a1b99cf8dc54974dad2526f254cf78c4ec721a6809a4916428b5",
+      "recordDigest": "sha256:95e0bee26f2be8c2fd0597a6505a143f85955811899e2a5539fe370d2c3a4ba4",
+      "title": "RFC 7858 — Specification for DNS over Transport Layer Security (TLS)",
+      "topics": [
+        "dns",
+        "dot",
+        "privacy",
+        "tls"
+      ],
+      "versionLabel": "RFC 7858"
+    },
+    {
+      "aliases": [
+        "DNS TLS usage profiles",
+        "RFC 8310"
+      ],
+      "authorityKind": "internet-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "internet",
+        "network",
+        "security"
+      ],
+      "id": "rfc-8310",
+      "identityMode": "versioned",
+      "issuer": "IETF",
+      "lifecycleStatus": "proposed-standard",
+      "observationDigest": "sha256:c65d3e12d8937c0c953b3a2675206ffdbc81f1b0ca205fd10ff5ef11479ae06b",
+      "recordDigest": "sha256:4b18bbc6bf8e234961eeb895313cdfaf0f1d004c10822c81ea83f3e9ab18129b",
+      "title": "RFC 8310 — Usage Profiles for DNS over TLS and DNS over DTLS",
+      "topics": [
+        "authentication-profile",
+        "dns",
+        "dot",
+        "dtls",
+        "privacy"
+      ],
+      "versionLabel": "RFC 8310"
+    },
+    {
+      "aliases": [
+        "DNS over HTTPS",
+        "DoH",
+        "RFC 8484"
+      ],
+      "authorityKind": "internet-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "internet",
+        "network",
+        "security"
+      ],
+      "id": "rfc-8484",
+      "identityMode": "versioned",
+      "issuer": "IETF",
+      "lifecycleStatus": "proposed-standard",
+      "observationDigest": "sha256:eb631fffd8497835097919af6d1cf3502c7aa2474d35762ee2e6e3fdd5dde9cf",
+      "recordDigest": "sha256:e28821df3b3964f5f16595c2d93c1bdafd807cf58b78917605c111a193cc8271",
+      "title": "RFC 8484 — DNS Queries over HTTPS (DoH)",
+      "topics": [
+        "dns",
+        "doh",
+        "https",
+        "privacy"
+      ],
+      "versionLabel": "RFC 8484"
+    },
+    {
+      "aliases": [
+        "OAuth Resource Indicators",
+        "resource parameter",
+        "RFC 8707"
+      ],
+      "authorityKind": "internet-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "distribution",
+        "identity",
+        "mcp",
+        "security"
+      ],
+      "id": "rfc-8707",
+      "identityMode": "versioned",
+      "issuer": "IETF",
+      "lifecycleStatus": "proposed-standard",
+      "observationDigest": "sha256:002c9600833b0dc0fba94f6312d28fe9be13a1e1e7dfeb460c7e446182523fdb",
+      "recordDigest": "sha256:8fd120b7a36c8018036f388978a8a501600c1fa2f880e0f88dbaf1b9bcb434f3",
+      "title": "RFC 8707 — Resource Indicators for OAuth 2.0",
+      "topics": [
+        "audience",
+        "authorization",
+        "oauth",
+        "resource-binding"
+      ],
+      "versionLabel": "RFC 8707"
+    },
+    {
+      "aliases": [
+        "QUIC",
+        "QUIC v1",
+        "RFC 9000"
+      ],
+      "authorityKind": "internet-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "internet",
+        "network"
+      ],
+      "id": "rfc-9000",
+      "identityMode": "versioned",
+      "issuer": "IETF",
+      "lifecycleStatus": "proposed-standard",
+      "observationDigest": "sha256:8c09d7ea96311f85f8f24499722f063319c00ae31d1a5ea63e5cb247d31f4e17",
+      "recordDigest": "sha256:cb5e365ad9090d4d861c878f0b8dadd738604cc6d06b3941b7889dd7f3fcf9eb",
+      "title": "RFC 9000 — QUIC: A UDP-Based Multiplexed and Secure Transport",
+      "topics": [
+        "multiplexing",
+        "path-migration",
+        "quic",
+        "transport",
+        "udp"
+      ],
+      "versionLabel": "RFC 9000"
+    },
+    {
+      "aliases": [
+        "HTTP Semantics",
+        "RFC 9110",
+        "STD 97"
+      ],
+      "authorityKind": "internet-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "distribution",
+        "network",
+        "web"
+      ],
+      "id": "rfc-9110",
+      "identityMode": "versioned",
+      "issuer": "IETF",
+      "lifecycleStatus": "internet-standard",
+      "observationDigest": "sha256:cc29a738064c38ff1b7cbb5aa07879cc381e4bbbbaeeff1635d04aebe8f9bd2b",
+      "recordDigest": "sha256:a2e77cc747ee8a8d31f632a5f90cb4959fd862c042f8916dfc5fc1c66e172545",
+      "title": "RFC 9110 / STD 97 — HTTP Semantics",
+      "topics": [
+        "http",
+        "request-response",
+        "semantics",
+        "web"
+      ],
+      "versionLabel": "RFC 9110"
+    },
+    {
+      "aliases": [
+        "HTTP 2",
+        "HTTP/2",
+        "RFC 9113"
+      ],
+      "authorityKind": "internet-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "distribution",
+        "network",
+        "web"
+      ],
+      "id": "rfc-9113",
+      "identityMode": "versioned",
+      "issuer": "IETF",
+      "lifecycleStatus": "proposed-standard",
+      "observationDigest": "sha256:31d2247a442f6195dd9751d4f5e4565d9168d425116e317fd1b283490e2a83d7",
+      "recordDigest": "sha256:8c69cd95065c19a6243bb6d66a81c8c34eaba26dcb3401fae60587830dba1950",
+      "title": "RFC 9113 — HTTP/2",
+      "topics": [
+        "http",
+        "http2",
+        "multiplexing",
+        "web-transport"
+      ],
+      "versionLabel": "RFC 9113"
+    },
+    {
+      "aliases": [
+        "HTTP 3",
+        "HTTP/3",
+        "RFC 9114"
+      ],
+      "authorityKind": "internet-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "distribution",
+        "network",
+        "web"
+      ],
+      "id": "rfc-9114",
+      "identityMode": "versioned",
+      "issuer": "IETF",
+      "lifecycleStatus": "proposed-standard",
+      "observationDigest": "sha256:90b1fe4a986cbac3d4e46c2167582457066e11a8e102485c777cae7fc9340761",
+      "recordDigest": "sha256:e1b26ff468f675ea97823adb14751b83b488d0c51ee8c1be5f70a75acddb7b45",
+      "title": "RFC 9114 — HTTP/3",
+      "topics": [
+        "http",
+        "http3",
+        "quic",
+        "web-transport"
+      ],
+      "versionLabel": "RFC 9114"
+    },
+    {
+      "aliases": [
+        "BCP 240",
+        "OAuth 2.0 Security BCP",
+        "RFC 9700"
+      ],
+      "authorityKind": "best-current-practice",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "distribution",
+        "identity",
+        "security",
+        "web"
+      ],
+      "id": "rfc-9700",
+      "identityMode": "versioned",
+      "issuer": "IETF",
+      "lifecycleStatus": "best-current-practice",
+      "observationDigest": "sha256:e8f6319fcbb70b67dc96af2a82629f21d97674ebc8badef09dfddc006a05ddfa",
+      "recordDigest": "sha256:c389a56e94830862041b2f2543c2f0095fdb5fd91b49c680cf596d5971b0ac33",
+      "title": "RFC 9700 / BCP 240 — Best Current Practice for OAuth 2.0 Security",
+      "topics": [
+        "authorization",
+        "best-current-practice",
+        "oauth",
+        "security"
+      ],
+      "versionLabel": "RFC 9700"
+    },
+    {
+      "aliases": [
+        "RFC 9846",
+        "TLS 1.3",
+        "Transport Layer Security 1.3"
+      ],
+      "authorityKind": "internet-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "internet",
+        "network",
+        "security"
+      ],
+      "id": "rfc-9846",
+      "identityMode": "versioned",
+      "issuer": "IETF",
+      "lifecycleStatus": "proposed-standard",
+      "observationDigest": "sha256:1d5d39f341c067539d255f5c3e90394ac97584cddee328ce74d138a85d8463b5",
+      "recordDigest": "sha256:887957e7b9b2ec5d872047faea9b9f0138882eb246396fd784b9d24ce15ba64d",
+      "title": "RFC 9846 — The Transport Layer Security (TLS) Protocol Version 1.3",
+      "topics": [
+        "authentication",
+        "encryption",
+        "tls",
+        "transport-security"
+      ],
+      "versionLabel": "RFC 9846"
+    },
+    {
+      "aliases": [
         "RO Crate 1.3",
         "RO-Crate"
       ],
@@ -1345,6 +2081,34 @@
     },
     {
       "aliases": [
+        "PNG",
+        "PNG Third Edition",
+        "Portable Network Graphics"
+      ],
+      "authorityKind": "web-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "media",
+        "web"
+      ],
+      "id": "w3c-png-3-2025",
+      "identityMode": "versioned",
+      "issuer": "W3C",
+      "lifecycleStatus": "recommendation",
+      "observationDigest": "sha256:a09d95658893803b9232ccc3cb6ed8d9f45b03102e999f9253739ddb5bee7f26",
+      "recordDigest": "sha256:35b798e8815733eef05d226cfe4c06965864117486887d3f643050c14e64a265",
+      "title": "Portable Network Graphics (PNG) Specification (Third Edition)",
+      "topics": [
+        "animation",
+        "image-format",
+        "lossless",
+        "raster-image"
+      ],
+      "versionLabel": "2025-06-24"
+    },
+    {
+      "aliases": [
         "PROV Ontology",
         "PROV-O",
         "W3C PROV"
@@ -1422,10 +2186,38 @@
         "ux"
       ],
       "versionLabel": "3.2"
+    },
+    {
+      "aliases": [
+        "XBRL",
+        "XBRL 2.1"
+      ],
+      "authorityKind": "industry-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "data",
+        "finance",
+        "market-capital",
+        "reporting"
+      ],
+      "id": "xbrl-2.1",
+      "identityMode": "versioned",
+      "issuer": "XBRL International",
+      "lifecycleStatus": "recommendation",
+      "observationDigest": "sha256:4b4b0d87f92f6ad9d6c64b363aa0d0f2ea06490ccd4e74a666a8f8096cc24ad8",
+      "recordDigest": "sha256:832e642c078a53ceb5fe0b3e6a02e7f608402dd38076316f45b797ca3669e430",
+      "title": "XBRL 2.1 Specification",
+      "topics": [
+        "business-reporting",
+        "financial-reporting",
+        "issuer-disclosure",
+        "taxonomy"
+      ],
+      "versionLabel": "2.1"
     }
   ],
   "kind": "ordivon.external-authority-discovery-index",
-  "recordCount": 54,
-  "recordsDigest": "sha256:35d5e52209f0a1ceb6ab8645a97f4053f937d090d76ace96126747f3e2622cef",
+  "recordCount": 82,
+  "recordsDigest": "sha256:2be5c267748b78c94676d472466eff63b0781b3b8d5c8e391ea50ae1c2be6af4",
   "schemaVersion": 1
 }

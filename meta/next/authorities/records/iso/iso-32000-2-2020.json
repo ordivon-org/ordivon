@@ -1,0 +1,51 @@
+{
+  "access": {
+    "fullText": "licensed",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "PDF 2.0",
+      "ISO 32000-2",
+      "ISO 32000-2:2020"
+    ],
+    "domains": [
+      "artifact",
+      "document"
+    ],
+    "topics": [
+      "pdf",
+      "document-format",
+      "portable-document",
+      "fixed-document"
+    ]
+  },
+  "id": "iso-32000-2-2020",
+  "identity": {
+    "authorityKind": "international-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "iso",
+      "name": "ISO"
+    },
+    "officialSource": "https://www.iso.org/standard/75839.html",
+    "publicationDate": "2020-12",
+    "title": "ISO 32000-2:2020 — Document management — Portable document format — Part 2: PDF 2.0",
+    "versionLabel": "2020"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/artifact.md",
+      "ISO official source checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

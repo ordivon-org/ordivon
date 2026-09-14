@@ -1,0 +1,52 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "XBRL",
+      "XBRL 2.1"
+    ],
+    "domains": [
+      "finance",
+      "market-capital",
+      "reporting",
+      "data"
+    ],
+    "topics": [
+      "financial-reporting",
+      "business-reporting",
+      "taxonomy",
+      "issuer-disclosure"
+    ]
+  },
+  "id": "xbrl-2.1",
+  "identity": {
+    "authorityKind": "industry-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "xbrl-international",
+      "name": "XBRL International"
+    },
+    "officialSource": "https://specifications.xbrl.org/work-product-index-group-base-spec-base-spec.html",
+    "publicationDate": "2013-02-20",
+    "title": "XBRL 2.1 Specification",
+    "versionLabel": "2.1"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "/root/projects/ordivon-market-capital-next/README.md",
+      "XBRL International official source checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

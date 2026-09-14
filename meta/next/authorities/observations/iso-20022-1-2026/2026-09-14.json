@@ -1,0 +1,11 @@
+{
+  "authorityId": "iso-20022-1-2026",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published",
+  "note": "ISO 20022-1 Edition 3 published 2026-04; ISO 20022 repository remains separately maintained by its registration/maintenance governance.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.iso.org/standard/20022-1",
+  "schemaVersion": 1,
+  "versionObserved": "2026"
+}

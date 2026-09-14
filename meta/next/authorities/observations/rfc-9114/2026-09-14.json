@@ -1,0 +1,11 @@
+{
+  "authorityId": "rfc-9114",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "proposed-standard",
+  "note": "Current HTTP/3 Standards Track specification.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.rfc-editor.org/info/rfc9114/",
+  "schemaVersion": 1,
+  "versionObserved": "RFC 9114"
+}

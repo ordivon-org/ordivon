@@ -1,0 +1,53 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "GeoPackage",
+      "GPKG",
+      "GeoPackage 1.4.0"
+    ],
+    "domains": [
+      "artifact",
+      "data",
+      "geospatial"
+    ],
+    "topics": [
+      "geospatial",
+      "sqlite",
+      "vector",
+      "raster",
+      "tiles"
+    ]
+  },
+  "id": "ogc-geopackage-1.4.0",
+  "identity": {
+    "authorityKind": "industry-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "ogc",
+      "name": "Open Geospatial Consortium"
+    },
+    "officialSource": "https://www.ogc.org/standards/geopackage/",
+    "publicationDate": null,
+    "title": "OGC GeoPackage Encoding Standard 1.4.0",
+    "versionLabel": "1.4.0"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/artifact/README.md",
+      "OGC official source checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

@@ -1,0 +1,54 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "RFC 9113",
+      "HTTP/2",
+      "HTTP 2"
+    ],
+    "domains": [
+      "network",
+      "web",
+      "distribution"
+    ],
+    "topics": [
+      "http",
+      "http2",
+      "multiplexing",
+      "web-transport"
+    ]
+  },
+  "id": "rfc-9113",
+  "identity": {
+    "authorityKind": "internet-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "ietf",
+      "name": "IETF"
+    },
+    "officialSource": "https://www.rfc-editor.org/info/rfc9113/",
+    "publicationDate": "2022-06",
+    "title": "RFC 9113 — HTTP/2",
+    "versionLabel": "RFC 9113"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/network.md",
+      "RFC Editor checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [
+      "rfc-9110"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

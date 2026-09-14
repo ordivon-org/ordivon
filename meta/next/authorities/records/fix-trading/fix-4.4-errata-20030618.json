@@ -1,0 +1,54 @@
+{
+  "access": {
+    "fullText": "mixed",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "FIX 4.4",
+      "FIX44",
+      "FIX 4.4 Errata"
+    ],
+    "domains": [
+      "finance",
+      "market-capital",
+      "trading"
+    ],
+    "topics": [
+      "electronic-trading",
+      "orders",
+      "execution-reports",
+      "market-data",
+      "messaging"
+    ]
+  },
+  "id": "fix-4.4-errata-20030618",
+  "identity": {
+    "authorityKind": "industry-protocol-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "fix-trading",
+      "name": "FIX Trading Community"
+    },
+    "officialSource": "https://www.fixtrading.org/standards/fix-4-4/",
+    "publicationDate": null,
+    "title": "FIX 4.4 Specification with 20030618 Errata",
+    "versionLabel": "4.4+Errata20030618"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "/root/projects/ordivon-market-capital-next/docs/ARCHITECTURE.md",
+      "/root/projects/ordivon-market-capital-next/docs/CRYPTO_FIX44_PROJECTION_R4_2026-09-14.md",
+      "FIX Trading Community official source checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

@@ -1,0 +1,11 @@
+{
+  "authorityId": "oasis-opendocument-1.3",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published",
+  "note": null,
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.oasis-open.org/standard/open-document-format-for-office-applications-opendocument-version-1-3-2/",
+  "schemaVersion": 1,
+  "versionObserved": "1.3"
+}

@@ -1,0 +1,11 @@
+{
+  "authorityId": "rfc-8484",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "proposed-standard",
+  "note": "DNS over HTTPS Standards Track specification.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.rfc-editor.org/info/rfc8484/",
+  "schemaVersion": 1,
+  "versionObserved": "RFC 8484"
+}

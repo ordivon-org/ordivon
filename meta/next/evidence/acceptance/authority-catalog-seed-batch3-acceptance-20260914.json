@@ -1,0 +1,75 @@
+{
+  "addedCount": 28,
+  "baseRecordCount": 54,
+  "batch": "2026-09-14-batch3",
+  "boundary": "Acceptance proves concrete Batch 3 authority identity/currentness registration and lexical discovery. Draft successors, task applicability and full family completeness remain outside this claim.",
+  "currentObservationCount": 82,
+  "currentRecordCount": 82,
+  "deferredCandidates": [
+    "OAuth 2.1 draft/current work until it becomes a stable RFC or a real task explicitly binds a draft",
+    "FIX Latest rolling authority until a task uses it rather than FIX 4.4",
+    "CFA curriculum/GIPS until a concrete professional standard is actually bound",
+    "full OOXML multi-part family beyond Part 1",
+    "full ISO 20022 multi-part family/message catalogue beyond current Part 1 reference"
+  ],
+  "discoverySmokes": {
+    "dns concepts": "rfc-1034",
+    "dns over https": "rfc-8484",
+    "financial industry message": "iso-20022-1-2026",
+    "financial market infrastructure": "cpmi-iosco-pfmi-2012",
+    "fix 4.4": "fix-4.4-errata-20030618",
+    "legal entity identifier": "iso-17442-1-2020",
+    "oauth resource indicator": "rfc-8707",
+    "oauth security": "rfc-9700",
+    "office open xml": "iso-iec-29500-1-2016",
+    "pdf accessibility": "iso-14289-2-2024",
+    "tls 1.3": "rfc-9846",
+    "web archive": "iso-28500-2017",
+    "xbrl reporting": "xbrl-2.1"
+  },
+  "families": {
+    "artifact": [
+      "iso-32000-2-2020",
+      "iso-19005-4-2020",
+      "iso-14289-2-2024",
+      "iso-iec-29500-1-2016",
+      "oasis-opendocument-1.3",
+      "w3c-png-3-2025",
+      "iso-iec-12113-2022",
+      "ogc-geopackage-1.4.0",
+      "iso-28500-2017"
+    ],
+    "finance-market": [
+      "cpmi-iosco-pfmi-2012",
+      "iso-20022-1-2026",
+      "xbrl-2.1",
+      "fix-4.4-errata-20030618",
+      "iso-17442-1-2020"
+    ],
+    "network-identity": [
+      "rfc-1034",
+      "rfc-1035",
+      "rfc-9110",
+      "rfc-9113",
+      "rfc-9114",
+      "rfc-9000",
+      "rfc-9846",
+      "rfc-8484",
+      "rfc-7858",
+      "rfc-8310",
+      "rfc-6749",
+      "rfc-9700",
+      "rfc-8707",
+      "openid-connect-core-1.0-errata2"
+    ]
+  },
+  "kind": "ordivon.external-authority-catalog-seed-batch-acceptance",
+  "schemaValidation": {
+    "index": "PASS",
+    "observations": "PASS",
+    "records": "PASS",
+    "validator": "check-jsonschema 0.38.0"
+  },
+  "schemaVersion": 1,
+  "standing": "PASS_VERIFIED_SEED_EXPANSION"
+}

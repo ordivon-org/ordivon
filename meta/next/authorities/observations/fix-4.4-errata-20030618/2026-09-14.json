@@ -1,0 +1,11 @@
+{
+  "authorityId": "fix-4.4-errata-20030618",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "supported-legacy",
+  "note": "FIX Trading Community states implementers of FIX 4.4 should use the 20030618 errata release; FIX Latest is the current application-layer specification, while FIX 4.4 remains supported legacy.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.fixtrading.org/standards/fix-4-4/",
+  "schemaVersion": 1,
+  "versionObserved": "4.4+Errata20030618"
+}

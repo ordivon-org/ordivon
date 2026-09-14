@@ -1,0 +1,11 @@
+{
+  "authorityId": "iso-32000-2-2020",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published-confirmed",
+  "note": "ISO records this edition as confirmed/current in 2026.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.iso.org/standard/75839.html",
+  "schemaVersion": 1,
+  "versionObserved": "2020"
+}

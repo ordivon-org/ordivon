@@ -1,0 +1,54 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "RFC 9000",
+      "QUIC",
+      "QUIC v1"
+    ],
+    "domains": [
+      "network",
+      "internet"
+    ],
+    "topics": [
+      "quic",
+      "transport",
+      "udp",
+      "multiplexing",
+      "path-migration"
+    ]
+  },
+  "id": "rfc-9000",
+  "identity": {
+    "authorityKind": "internet-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "ietf",
+      "name": "IETF"
+    },
+    "officialSource": "https://www.rfc-editor.org/info/rfc9000/",
+    "publicationDate": "2021-05",
+    "title": "RFC 9000 — QUIC: A UDP-Based Multiplexed and Secure Transport",
+    "versionLabel": "RFC 9000"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/network.md",
+      "RFC Editor checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [
+      "rfc-9114"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

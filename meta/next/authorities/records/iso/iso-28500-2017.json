@@ -1,0 +1,52 @@
+{
+  "access": {
+    "fullText": "licensed",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "WARC",
+      "WARC file format",
+      "ISO 28500"
+    ],
+    "domains": [
+      "artifact",
+      "web",
+      "preservation"
+    ],
+    "topics": [
+      "web-archive",
+      "preservation",
+      "web-capture",
+      "archive-format"
+    ]
+  },
+  "id": "iso-28500-2017",
+  "identity": {
+    "authorityKind": "international-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "iso",
+      "name": "ISO"
+    },
+    "officialSource": "https://www.iso.org/standard/68004.html",
+    "publicationDate": "2017-08",
+    "title": "ISO 28500:2017 — Information and documentation — WARC file format",
+    "versionLabel": "2017"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/artifact/README.md",
+      "ISO official source checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

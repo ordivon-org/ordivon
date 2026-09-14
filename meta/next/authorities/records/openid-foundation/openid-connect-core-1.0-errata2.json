@@ -1,0 +1,56 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "OpenID Connect Core",
+      "OIDC Core 1.0",
+      "OIDC"
+    ],
+    "domains": [
+      "security",
+      "identity",
+      "web",
+      "distribution"
+    ],
+    "topics": [
+      "openid-connect",
+      "oidc",
+      "authentication",
+      "identity",
+      "oauth"
+    ]
+  },
+  "id": "openid-connect-core-1.0-errata2",
+  "identity": {
+    "authorityKind": "identity-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "openid-foundation",
+      "name": "OpenID Foundation"
+    },
+    "officialSource": "https://openid.net/specs/openid-connect-core-1_0-errata2.html",
+    "publicationDate": "2023-12-15",
+    "title": "OpenID Connect Core 1.0 incorporating errata set 2",
+    "versionLabel": "1.0 Errata 2"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/distribution.md",
+      "OpenID Foundation final specification checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [
+      "rfc-6749"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

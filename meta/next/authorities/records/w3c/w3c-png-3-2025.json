@@ -1,0 +1,52 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "PNG",
+      "PNG Third Edition",
+      "Portable Network Graphics"
+    ],
+    "domains": [
+      "artifact",
+      "media",
+      "web"
+    ],
+    "topics": [
+      "image-format",
+      "raster-image",
+      "lossless",
+      "animation"
+    ]
+  },
+  "id": "w3c-png-3-2025",
+  "identity": {
+    "authorityKind": "web-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "w3c",
+      "name": "W3C"
+    },
+    "officialSource": "https://www.w3.org/TR/png-3/",
+    "publicationDate": "2025-06-24",
+    "title": "Portable Network Graphics (PNG) Specification (Third Edition)",
+    "versionLabel": "2025-06-24"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "docs/CAPABILITY_PACKAGES_R1.md",
+      "W3C Recommendation checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

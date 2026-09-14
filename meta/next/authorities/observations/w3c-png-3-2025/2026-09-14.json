@@ -1,0 +1,11 @@
+{
+  "authorityId": "w3c-png-3-2025",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "recommendation",
+  "note": "W3C lists PNG Third Edition as a Recommendation dated 24 June 2025.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.w3.org/TR/png-3/",
+  "schemaVersion": 1,
+  "versionObserved": "2025-06-24"
+}

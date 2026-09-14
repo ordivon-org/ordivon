@@ -1,0 +1,11 @@
+{
+  "authorityId": "iso-19005-4-2020",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published-to-be-revised",
+  "note": "Current published PDF/A-4 edition; ISO/DIS 19005-4.2 is under development to replace it.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.iso.org/standard/71832.html",
+  "schemaVersion": 1,
+  "versionObserved": "2020"
+}

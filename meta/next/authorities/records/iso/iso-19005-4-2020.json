@@ -1,0 +1,54 @@
+{
+  "access": {
+    "fullText": "licensed",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "PDF/A-4",
+      "ISO 19005-4",
+      "PDF archival"
+    ],
+    "domains": [
+      "artifact",
+      "document",
+      "preservation"
+    ],
+    "topics": [
+      "pdf",
+      "pdf-a",
+      "long-term-preservation",
+      "archival-document"
+    ]
+  },
+  "id": "iso-19005-4-2020",
+  "identity": {
+    "authorityKind": "international-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "iso",
+      "name": "ISO"
+    },
+    "officialSource": "https://www.iso.org/standard/71832.html",
+    "publicationDate": "2020-11",
+    "title": "ISO 19005-4:2020 — Electronic document file format for long-term preservation — Part 4: PDF/A-4",
+    "versionLabel": "2020"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/artifact.md",
+      "ISO official source checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [
+      "iso-32000-2-2020"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}
