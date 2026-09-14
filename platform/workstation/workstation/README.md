@@ -24,3 +24,7 @@ Authority: WinGet Configuration + DSC v3. Source: `workstation/windows/workstati
 ## Windows Runtime provider realization
 
 `workstation/windows/runtime_provider.py` and `runtime-provider.toml` now own the node-side materialization contract for Runtime's Windows launcher, including exact source/compiler binding, the AF_VSOCK systemd drop-in, Runtime operator environment, and materialization receipt. Runtime continues to own Job/Attempt semantics and activation/restart. After deployment, the stable local entry is `/root/tools/bin/workstation-windows-runtime-provider status|apply`; `apply` stages provider bytes/configuration but deliberately does not restart Runtime.
+
+## Stable node carriers
+
+Workstation v2 versions and materializes only the thin node-local carriers that must remain stable across consuming-owner releases. `input_authority_ingress.py` performs digest-fenced physical admission into operator-configured Runtime input-authority roots; the consuming owner still owns the authority/configuration meaning. `agent_automation_carrier.py` owns only the stable `/root/tools/bin/agent-automation` entry and its release-admission read fence; Agent Automation implementation/release-source semantics remain outside Workstation v2 and currently require a separate Harness-owner migration.

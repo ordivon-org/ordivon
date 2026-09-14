@@ -43,3 +43,7 @@ The retained recovery semantics are now source-owned under `recovery/` in Workst
 The minimal `recovery/recovery.toml` names the current physical Workstation v2 checkout (`/root/projects/ordivon-operations-v2`) as `control_repository` until the repository-path rename is completed. New control snapshots use the tag `workstation-v2-control`; historical `workstation-lab` snapshots remain historical evidence and are not rewritten.
 
 Activation is allowed only from a clean committed Workstation v2 source after focused recovery tests, full repository tests, detached generation provisioning, manifest/launcher inspection, and `verify_generation` pass. The scheduler continues to execute only `/opt/ordivon-workstation-recovery/current/bin/workstation-backup`; it never executes mutable repository source directly.
+
+### R3 activation receipt
+
+Generation `workstation-recovery://git/aba2a689c060516c01260e2da5fe7c024e41fb00` was first provisioned with `current=false`, inspected for control path/tag/legacy dependencies, then atomically activated. `--verify-current` returned PASS after activation. The scheduler remained enabled/active and points only at `/opt/ordivon-workstation-recovery/current/bin/workstation-backup`. No manual backup run was performed during cutover.
