@@ -19,7 +19,7 @@ The former Operations v2 owner is now Workstation v2. `/root/workstation-lab` be
 | global software census/classification database | do not migrate; native sources remain authority | retired |
 | giant global Doctor | decompose into upstream observation + operation-relative verifier | draining |
 | Workstation recovery scheduler | Workstation v2 systemd substrate | migrated |
-| recovery generation/restore semantics | migrate only surviving node-owner semantics | pending |
+| recovery generation/restore semantics | minimal `recovery/` kernel + immutable generation | **source migrated in R3; activation gated on detached-generation proof** |
 | Windows Runtime launcher materialization | `workstation/windows/runtime_provider.py`; Runtime keeps Job/Attempt semantics | **source/config + stable management entry migrated in R2** |
 | production transport/failover | Network v2 | do not migrate |
 | domain suitability/completion | owning Domain E2E | do not migrate |
