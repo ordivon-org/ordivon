@@ -73,9 +73,10 @@ pub use runtime::{
 
 #[cfg(feature = "operator-tools")]
 pub use runtime::{
-    apply_runtime_repair, inspect_registry, inspect_registry_activity, inspect_registry_archive,
-    inspect_registry_markers, inspect_registry_status, inspect_registry_workspace_activity,
-    inspect_runtime, inspect_workspace, summarize_experience, RuntimeDoctorAttemptState,
+    apply_runtime_repair, cancel_stale_recovery_required_attempt, inspect_registry,
+    inspect_registry_activity, inspect_registry_archive, inspect_registry_markers,
+    inspect_registry_status, inspect_registry_workspace_activity, inspect_runtime,
+    inspect_workspace, summarize_experience, RuntimeDoctorAttemptState,
     RuntimeDoctorCapacityHolder, RuntimeDoctorCase, RuntimeDoctorConfig, RuntimeDoctorJobState,
     RuntimeDoctorProposal, RuntimeDoctorReport, RuntimeDoctorReservationState,
     RuntimeDoctorSummary, RuntimeExperienceArtifactSummary, RuntimeExperienceCancellationSummary,
@@ -89,8 +90,9 @@ pub use runtime::{
     RuntimeOperatorRegistryStatusInspection, RuntimeOperatorWorkspaceActivity,
     RuntimeOperatorWorkspaceActivityInspection, RuntimeOperatorWorkspaceLastActivity,
     RuntimeOperatorWorkspaceMarker, RuntimeRepairAction, RuntimeRepairActionKind,
-    RuntimeRepairConfig, RuntimeRepairReport, RuntimeRepairRequest, RuntimeWorkspaceInspection,
-    RuntimeWorkspaceInspectionConfig, RuntimeWorkspaceInspectionJob, DEFAULT_ARCHIVE_SAMPLE_LIMIT,
+    RuntimeRepairConfig, RuntimeRepairReport, RuntimeRepairRequest, RuntimeStaleCancelReport,
+    RuntimeStaleCancelRequest, RuntimeWorkspaceInspection, RuntimeWorkspaceInspectionConfig,
+    RuntimeWorkspaceInspectionJob, DEFAULT_ARCHIVE_SAMPLE_LIMIT,
     DEFAULT_WORKSPACE_INSPECTION_JOB_LIMIT, MAX_ARCHIVE_SAMPLE_LIMIT,
     MAX_WORKSPACE_INSPECTION_JOB_LIMIT, RUNTIME_DOCTOR_SCHEMA_VERSION,
     RUNTIME_REPAIR_SCHEMA_VERSION,
