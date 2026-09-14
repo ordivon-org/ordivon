@@ -738,6 +738,124 @@ fn validate_windows_runtime_context(
     Ok(())
 }
 
+const WINDOWS_CREATE_PROCESS_COMMAND_LINE_LIMIT_UTF16: usize = 32_767;
+const WINDOWS_ENVIRONMENT_VARIABLE_LIMIT_UTF16: usize = 32_767;
+
+fn checked_windows_quoted_argument_utf16_len(value: &str, field: &str) -> RuntimeResult<usize> {
+    if value.as_bytes().contains(&0) {
+        return Err(RuntimeError::invalid(
+            "Windows command-line value contains NUL",
+            field,
+        ));
+    }
+    let needs_quotes = value.is_empty()
+        || value
+            .chars()
+            .any(|character| character.is_whitespace() || character == '"');
+    if !needs_quotes {
+        return Ok(value.encode_utf16().count());
+    }
+
+    // Mirror Ordivon.WindowsJobLauncher.QuoteWindowsArgument without allocating the quoted value.
+    let mut length = 2usize; // opening + closing quotes
+    let mut backslashes = 0usize;
+    for character in value.chars() {
+        if character == '\\' {
+            backslashes = backslashes.checked_add(1).ok_or_else(|| {
+                RuntimeError::invalid("Windows command-line length overflow", field)
+            })?;
+            continue;
+        }
+        if character == '"' {
+            length = length
+                .checked_add(
+                    backslashes
+                        .checked_mul(2)
+                        .and_then(|value| value.checked_add(2))
+                        .ok_or_else(|| {
+                            RuntimeError::invalid("Windows command-line length overflow", field)
+                        })?,
+                )
+                .ok_or_else(|| {
+                    RuntimeError::invalid("Windows command-line length overflow", field)
+                })?;
+            backslashes = 0;
+            continue;
+        }
+        length = length
+            .checked_add(backslashes)
+            .and_then(|value| value.checked_add(character.len_utf16()))
+            .ok_or_else(|| RuntimeError::invalid("Windows command-line length overflow", field))?;
+        backslashes = 0;
+    }
+    length
+        .checked_add(
+            backslashes.checked_mul(2).ok_or_else(|| {
+                RuntimeError::invalid("Windows command-line length overflow", field)
+            })?,
+        )
+        .ok_or_else(|| RuntimeError::invalid("Windows command-line length overflow", field))
+}
+
+pub(crate) fn validate_windows_exec_payload(
+    executable: &str,
+    args: &[String],
+    env: &BTreeMap<String, String>,
+    field: &str,
+) -> RuntimeResult<()> {
+    crate::universal::validate_env(env).map_err(|error| {
+        RuntimeError::invalid(error.message, error.field.as_deref().unwrap_or(field))
+    })?;
+
+    let mut command_line_utf16 = checked_windows_quoted_argument_utf16_len(executable, field)?;
+    for arg in args {
+        command_line_utf16 = command_line_utf16
+            .checked_add(1)
+            .and_then(|value| {
+                checked_windows_quoted_argument_utf16_len(arg, field)
+                    .ok()
+                    .and_then(|arg_len| value.checked_add(arg_len))
+            })
+            .ok_or_else(|| RuntimeError::invalid("Windows command-line length overflow", field))?;
+    }
+    // CreateProcessW documents 32,767 UTF-16 code units including the terminating NUL.
+    let command_line_with_nul = command_line_utf16
+        .checked_add(1)
+        .ok_or_else(|| RuntimeError::invalid("Windows command-line length overflow", field))?;
+    if command_line_with_nul > WINDOWS_CREATE_PROCESS_COMMAND_LINE_LIMIT_UTF16 {
+        return Err(RuntimeError::invalid(
+            format!(
+                "Windows command line requires {command_line_with_nul} UTF-16 code units including NUL, exceeding the CreateProcessW limit of {WINDOWS_CREATE_PROCESS_COMMAND_LINE_LIMIT_UTF16}"
+            ),
+            field,
+        ));
+    }
+
+    // Modern Windows does not impose the historical 32,767-character total Unicode environment
+    // block limit, but one user-defined environment variable remains bounded. Enforce each
+    // NAME=VALUE entry conservatively including its terminating NUL.
+    for (name, value) in env {
+        let entry_utf16 = name
+            .encode_utf16()
+            .count()
+            .checked_add(1)
+            .and_then(|length| length.checked_add(value.encode_utf16().count()))
+            .and_then(|length| length.checked_add(1))
+            .ok_or_else(|| {
+                RuntimeError::invalid("Windows environment entry length overflow", field)
+            })?;
+        if entry_utf16 > WINDOWS_ENVIRONMENT_VARIABLE_LIMIT_UTF16 {
+            return Err(RuntimeError::invalid(
+                format!(
+                    "Windows environment entry {name} requires {entry_utf16} UTF-16 code units including separator/NUL, exceeding the per-variable limit of {WINDOWS_ENVIRONMENT_VARIABLE_LIMIT_UTF16}"
+                ),
+                field,
+            ));
+        }
+    }
+    Ok(())
+}
+
 pub(crate) fn merge_windows_environment(
     baseline: &BTreeMap<String, String>,
     overlay: &BTreeMap<String, String>,
@@ -1379,5 +1497,58 @@ w: 00000002 00000000 00010000 0001 01 11976 /run/WSL/notnumeric_interop\n";
                 .count(),
             1
         );
+    }
+
+    #[test]
+    fn windows_exec_payload_uses_utf16_create_process_boundary() {
+        let executable = r"C:\Windows\System32\cmd.exe";
+        let env = BTreeMap::new();
+        validate_windows_exec_payload(executable, &[], &env, "execution").unwrap();
+
+        let oversized = vec!["x".repeat(WINDOWS_CREATE_PROCESS_COMMAND_LINE_LIMIT_UTF16)];
+        let error =
+            validate_windows_exec_payload(executable, &oversized, &env, "execution").unwrap_err();
+        assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
+        assert_eq!(error.field.as_deref(), Some("execution"));
+        assert!(error.message.contains("CreateProcessW limit"));
+    }
+
+    #[test]
+    fn windows_exec_payload_counts_unicode_and_launcher_quoting() {
+        assert_eq!(
+            checked_windows_quoted_argument_utf16_len("plain", "execution").unwrap(),
+            5
+        );
+        assert_eq!(
+            checked_windows_quoted_argument_utf16_len("", "execution").unwrap(),
+            2
+        );
+        assert_eq!(
+            checked_windows_quoted_argument_utf16_len("a b", "execution").unwrap(),
+            5
+        );
+        assert_eq!(
+            checked_windows_quoted_argument_utf16_len("😀", "execution").unwrap(),
+            2
+        );
+        // QuoteWindowsArgument emits opening/closing quotes, doubles the backslash before the
+        // embedded quote, and preserves the quoted character itself.
+        assert_eq!(
+            checked_windows_quoted_argument_utf16_len("a\\\"b", "execution").unwrap(),
+            8
+        );
+    }
+
+    #[test]
+    fn windows_exec_payload_rejects_oversized_environment_entry() {
+        let executable = r"C:\Windows\System32\cmd.exe";
+        let env = BTreeMap::from([(
+            "ORDIVON_TEST".to_string(),
+            "x".repeat(WINDOWS_ENVIRONMENT_VARIABLE_LIMIT_UTF16),
+        )]);
+        let error = validate_windows_exec_payload(executable, &[], &env, "execution").unwrap_err();
+        assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
+        assert_eq!(error.field.as_deref(), Some("execution"));
+        assert!(error.message.contains("per-variable limit"));
     }
 }

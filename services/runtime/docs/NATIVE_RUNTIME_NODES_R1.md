@@ -133,6 +133,14 @@ The Universal Runner implementation is Linux/Unix-native (`openat2`, inotify, pr
 
 A real `cargo xwin check -p ordivon-runtime-core --lib --target x86_64-pc-windows-msvc` gate is now available through cargo-xwin + LLVM 22. After this ownership correction, Windows compile errors fell from 131 to 71 while Linux Core 228/228 and MCP 55/55 remained green.
 
+## R3d progress — platform-bound secure FS and execution payload admission
+
+Shared filesystem utilities no longer unconditionally compile Linux raw-fd/openat2/sysconf primitives. Linux retains the exact no-follow/beneath-root implementation and execve admission boundaries. Other platforms fail closed for secure beneath-root resolution until a native implementation exists; no ordinary `File::open` fallback is used. Storage-capacity classification now uses Rust's cross-platform `ErrorKind::StorageFull`.
+
+Execution payload admission is now target-aware. `local_linux` retains Linux execve per-string/aggregate limits. `windows_native` validates the actual launcher/CreateProcessW command-line shape in UTF-16, including launcher-compatible quoting and the documented 32,767-code-unit command-line ceiling, and separately validates Windows environment entry bounds. Durable plan validation uses the same target-specific rule.
+
+With cargo-xwin + LLVM 22 as a real MSVC compile gate, this slice reduced native-Windows Core compile errors from 71 to 53 while Linux Core 231/231 and MCP 55/55 remained green. The remaining failures are concentrated in Runtime private-state permissions and Universal Workspace Unix identity semantics.
+
 ## R1 acceptance
 
 - `RuntimeCapabilities` includes node identity.
