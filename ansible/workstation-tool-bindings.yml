@@ -12,6 +12,14 @@
         group: root
         mode: "0755"
 
+    - name: Create Workstation v2 libexec directory
+      ansible.builtin.file:
+        path: /usr/local/libexec/ordivon/workstation-v2
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
     - name: Install Workstation v2 binding catalog
       ansible.builtin.copy:
         src: ../workstation/software.toml
@@ -23,7 +31,7 @@
     - name: Install Workstation v2 binding core
       ansible.builtin.copy:
         src: ../workstation/tool_binding.py
-        dest: /usr/local/libexec/ordivon/workstation-v2-tool-binding.py
+        dest: /usr/local/libexec/ordivon/workstation-v2/tool_binding.py
         owner: root
         group: root
         mode: "0755"
@@ -31,7 +39,7 @@
     - name: Install Workstation v2 equipment compatibility implementation
       ansible.builtin.copy:
         src: ../workstation/equipment_binding.py
-        dest: /usr/local/libexec/ordivon/equipment-binding
+        dest: /usr/local/libexec/ordivon/workstation-v2/equipment_binding.py
         owner: root
         group: root
         mode: "0755"
@@ -45,5 +53,4 @@
         content: |
           #!/bin/sh
           export ORDIVON_WORKSTATION_V2_CATALOG=/etc/ordivon/workstation-v2/software.toml
-          export PYTHONPATH=/usr/local/libexec/ordivon${PYTHONPATH:+:$PYTHONPATH}
-          exec /usr/bin/python3 /usr/local/libexec/ordivon/equipment-binding "$@"
+          exec /usr/bin/python3 /usr/local/libexec/ordivon/workstation-v2/equipment_binding.py "$@"
