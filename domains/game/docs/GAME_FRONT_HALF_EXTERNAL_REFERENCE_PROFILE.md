@@ -16,7 +16,7 @@ audience:
   - producer
   - agent
 updated: 2026-09-14
-summary: External-first but non-waterfall product-discovery profile before canonical G0: use a bounded external orientation to prevent local capability bias, then iterate reference learning, competing product theses, throwaway playable prototypes and Human evidence until a specific game earns commitment.
+summary: External-first but non-waterfall product-discovery profile before canonical G0: use bounded external orientation to prevent local capability bias, then iterate reference learning, competing product theses, throwaway prototypes, claim-specific evidence and structured decision analysis until a specific game earns commitment.
 evidence_status: externally-grounded
 readiness: CURRENT
 applies_to:
@@ -46,9 +46,15 @@ ITERATIVE EXPLORATION
 
   Reference learning  <->  Product theses  <->  Throwaway prototypes
           ^                    |                      |
-          +------------ Human play / evidence -------+
-
-                 ↓ kill / revise / continue
+          +------- claim-specific evidence -----------+
+                    |
+                    v
+        scoped findings + uncertainty
+                    |
+                    v
+  Structured Decision Making / Value of Information
+                    |
+          kill / revise / continue / learn more
 
 PRODUCT COMMITMENT
   -> canonical G0 Game Definition only when a specific game is justified
@@ -110,7 +116,7 @@ Source: https://partner.steamgames.com/doc/store/tags
 
 ### 1.2 Divergence and convergence
 
-The Design Council Double Diamond remains a useful external process skeleton for divergent/convergent work. In Game's front half it is **subordinate to external reference and player evidence**, and it must not be misread as a waterfall. Discover may include early making/testing; evidence may send work backward, sideways, or terminate it.
+The Design Council Double Diamond remains a useful external process skeleton for divergent/convergent work. In Game's front half it is **subordinate to external reference, claim-specific evidence and the decision actually being informed**, and it must not be misread as a waterfall. Discover may include early making/testing; evidence may send work backward, sideways, or terminate it.
 
 ```text
 Discover: external reference classes + audience/context + unresolved opportunity + early probes
@@ -135,9 +141,9 @@ Nintendo's published Echoes of Wisdom development interview is retained as a con
 
 Source: https://www.nintendo.com/sg/interview/bdge/index.html
 
-### 1.5 Human playtesting
+### 1.5 Human participant evidence when the claim requires it
 
-Human evaluation uses the existing external-first Player Evidence routing: ISO 9241-210/9241-11 where HCD/usability applies, Games User Research practice for question-method fit, and platform-native playtest delivery where useful. A 2026 GDC small-team session also documents a lightweight repeatable 1-on-1 playtest practice centered on focused sessions, interviewing, actionable feedback and continuous iteration.
+Human evaluation is one evidence family inside the external-first Player Evidence routing, not the default approval path. Use it when the target variable is actual Human behaviour, interpretation, preference, comprehension, meaning or experience. ISO 9241-210/9241-11 apply where HCD/usability applies; Games User Research practice supplies question-method fit; platform-native playtest delivery may be useful. Structural, reachability, causal-control, robustness or strategy claims should use formal, synthetic, telemetry or experimental carriers when those identify the claim better. A 2026 GDC small-team session also documents a lightweight repeatable 1-on-1 playtest practice centered on focused sessions, interviewing, actionable feedback and continuous iteration.
 
 Sources:
 - https://www.iso.org/standard/77520.html
@@ -173,9 +179,13 @@ R0 bounded external orientation
         ↓
 R1 reference learning ───────────────┐
 R2 reference causal reproduction ───┤
-Product-thesis formation ────────────┼─> Human evidence -> kill / revise / continue
-Throwaway product prototypes ────────┤
-R4 controlled comparison/variation ─┘
+Product-thesis formation ────────────┼─> claim-specific evidence
+Throwaway product prototypes ────────┤        ↓
+R4 controlled comparison/variation ─┘   scoped findings + uncertainty
+                                             ↓
+                               SDM / Value of Information
+                                             ↓
+                              kill / revise / continue / learn more
 ```
 
 A product-thesis throwaway prototype is **not** R2 merely because it contains code. R2 specifically means reproducing a bounded mature reference mechanism as an experimental control. Product-thesis prototypes may begin earlier when they are the cheapest way to falsify an independent product claim.
@@ -277,13 +287,13 @@ Exit:
 - rights/provenance boundaries are clean;
 - no product momentum is inherited merely because code exists.
 
-### R3 — Human evidence / baseline validation
+### R3 — Claim-specific evidence / baseline validation
 
-Question: **Did the player-relevant effect we claim actually occur under the tested condition?**
+Question: **Did the effect we claim actually occur under the tested condition, and what evidence carrier can identify that claim?**
 
-Human evidence may evaluate a reference, a reproduced causal baseline, a product-thesis prototype or a controlled variation. The method follows the claim; R3 is not postponed until all R2 work is complete.
+Evidence may evaluate a reference, a reproduced causal baseline, a product-thesis prototype or a controlled variation. The method follows the claim; R3 is not postponed until all R2 work is complete and is not synonymous with Human playtesting.
 
-Use mature playtest practice selected from the claim. For a feel, comprehension or meaning claim, synthetic Agents and browser completion are controls only.
+Use mature methods selected from the claim. For felt experience, comprehension, meaning, preference or other Human-state claims, relevant Human participant evidence is required and synthetic Agents/browser completion are controls only. For structural, reachability, robustness, causal-control or strategy claims, use the strongest applicable formal, synthetic, telemetry or controlled-experiment carrier instead of recruiting Humans by default.
 
 Record:
 - decision to inform;
@@ -329,7 +339,7 @@ Exit toward G0:
 
 ## 3. G0 product-commitment boundary
 
-G0 does not ask whether Ordivon has invented something unprecedented. It asks whether the accumulated opportunity, reference, prototype and player evidence justifies intentionally committing to a specific game.
+G0 does not ask whether Ordivon has invented something unprecedented. It asks whether the accumulated opportunity, reference, prototype and claim-specific evidence, interpreted through explicit objectives, alternatives, consequences, uncertainty and remaining information value, justify intentionally committing to a specific game.
 
 Before G0 the controlling question is **Should we build this game?** After G0/pre-production the question becomes **How should we build this game well?** Durable architecture, production pipelines and content scale should follow that commitment rather than manufacture it.
 
@@ -342,9 +352,11 @@ CoreInteraction / Loop
 ReferenceClass
 RetainedMaturePatterns
 DeliberateDifferences
-PrototypeEvidence
-HumanEvidence
+ClaimSet + scoped findings
+EvidenceByClaim, including Human participant evidence only where required
 BaselineEvidence where comparative claims rely on it
+DecisionObjectives / Alternatives / Consequences
+KeyUncertainty + remaining ValueOfInformation / reopen conditions
 KnownRisks / KnownTransferLimits
 ```
 
@@ -407,7 +419,8 @@ Broad R0 expansion               SATURATED_FOR_CURRENT_DECISION
 Reference learning               ACTIVE
 Competing product theses         ADMITTED_IN_PARALLEL
 Throwaway product prototypes     ADMITTED_IN_PARALLEL
-Human direct-play evidence       PENDING_REAL_SESSION
+Claim-specific evidence routing  ACTIVE
+Human participant evidence       PENDING_WHERE_LIVE_CLAIM_REQUIRES_IT
 Reference R2 baseline            CLAIM_SPECIFIC / NOT_GLOBAL_GATE
 Product selected                 false
 G0 entered                       false
