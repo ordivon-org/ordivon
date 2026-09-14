@@ -59,6 +59,23 @@ python scripts/authority_catalog.py refresh iso-31000-2018
 
 There is intentionally no `authority apply` command. Catalog discovery has no authority to decide applicability.
 
+## Growth policy
+
+The initial broad seed phase closed on 2026-09-14. From that point, catalog growth is **task-driven**, not enumeration-driven.
+
+Register or refresh an authority when at least one of these is true:
+
+1. an active task, Standard-Native profile, or capability package names an external authority that the catalog cannot resolve precisely;
+2. exact edition/version/currentness materially affects verification or delivery;
+3. repeated cross-domain use makes Level-0 discovery materially useful;
+4. an already registered authority is revised, superseded, withdrawn, or otherwise changes lifecycle state.
+
+Do **not** add a record merely because a standard, framework, provider, taxonomy, platform, or body of knowledge exists. Broad families must normally resolve to the concrete authority actually required by the workload. Providers and tools remain provider records unless their independent specification is itself needed as semantic authority.
+
+Discovery is fail-closed for multi-token semantic queries: every meaningful query token must be represented by a candidate. Generic modifiers such as `latest`, `official`, or `standard` do not relax semantic identity. An empty result means **not registered / not resolved**, not that a vaguely similar authority should be substituted.
+
+Seed closure evidence: `evidence/acceptance/authority-catalog-seed-closure-20260914.json`.
+
 ## Non-goals
 
 R1 deliberately does not add:
