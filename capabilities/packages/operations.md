@@ -36,6 +36,7 @@ Do not collapse these different responsibilities into a new Ordivon operations d
 - Docker / Podman;
 - accepted OTLP logs+metrics composition in Operations v2: Vector 0.57.0 receives OTLP gRPC/HTTP; logs flow to Loki 3.6.6; metrics flow as OTLP to Prometheus 3.14.0; node_exporter remains for host metrics;
 - traces are intentionally routed to a deferred blackhole because no trace backend/use-case is currently admitted; no `otelcol`, Jaeger or Tempo executable was observed in the current shell during the 2026-09-14 study;
+- no Langfuse or Phoenix executable/Docker image/local project was observed during the 2026-09-14 comparison;
 - PostgreSQL/backup substrate where required.
 
 ## Concrete current gaps
@@ -44,7 +45,7 @@ No generic Operations framework gap is proven.
 
 A real workload that requires durable orchestration across crashes, long timers/waits, retryable Activities or interactive Workflow state may justify activating Temporal. Until such a workload exists, do not create installation/cluster debt merely to satisfy the capability catalog.
 
-A real workload that requires causal trace queries may justify admitting a trace backend such as Tempo, Phoenix, Langfuse-compatible storage or another mature OTLP destination. Until then, the current deliberate no-trace-storage boundary is valid; do not install tracing infrastructure for diagram completeness.
+A real workload that requires causal trace queries may justify admitting a trace backend or AI-engineering product. For lightweight internal Agent/eval work, Phoenix is the first candidate; for shared production AI engineering with collaborative prompt/eval/annotation workflows, Langfuse is the first candidate. Their overlap is high, so deploy at most one unless distinct measured workloads justify both. See `capabilities/providers/phoenix.md`, `capabilities/providers/langfuse.md`, and `knowledge/lessons/langfuse-phoenix-ai-engineering-platform-kernel.md`. Until such a workload exists, the current deliberate no-trace-storage boundary is valid; do not install tracing infrastructure for diagram completeness.
 
 Cloud/Kubernetes, scheduler, backup, HA, SLO, secret-management or monitoring components become gaps only when the operated workload actually requires them.
 
@@ -66,5 +67,7 @@ Operational green status or a successful span is substrate evidence, not proof t
 - n8n: https://docs.n8n.io/
 - OpenTelemetry: https://opentelemetry.io/docs/
 - OpenInference: https://arize-ai.github.io/openinference/
+- Langfuse: https://langfuse.com/docs
+- Arize Phoenix: https://arize.com/docs/phoenix/
 - Ansible: https://docs.ansible.com/projects/ansible/latest/
 - OpenTofu: https://opentofu.org/docs/
