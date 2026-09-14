@@ -272,17 +272,15 @@ def run_finance_current_state_application(
     composition: ModuleType,
     *,
     finance_workspace_id: str,
-    workstation_workspace_id: str,
     finance_state_root: str,
     finance_app_python: str | None,
     request_prefix: str,
     consumer_episode_ref: str,
     consumer_class: str,
 ) -> dict[str, Any]:
-    composition_receipt = composition.run_finance_workstation_readonly_recovery(
+    composition_receipt = composition.run_finance_readonly_observation(
         client,
         finance_workspace_id=finance_workspace_id,
-        workstation_workspace_id=workstation_workspace_id,
         finance_state_root=finance_state_root,
         finance_app_python=finance_app_python,
         request_prefix=request_prefix,
@@ -353,7 +351,6 @@ def run_finance_current_state_application(
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--finance-workspace", required=True)
-    parser.add_argument("--workstation-workspace", required=True)
     parser.add_argument("--finance-state-root", required=True)
     parser.add_argument("--finance-app-python")
     parser.add_argument("--request-prefix", required=True)
@@ -368,7 +365,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--composition-script",
-        default=str(Path(__file__).with_name("finance_workstation_readonly_recovery.py")),
+        default=str(Path(__file__).with_name("finance_readonly_observation.py")),
     )
     args = parser.parse_args()
 
@@ -391,7 +388,6 @@ def main() -> int:
         client,
         composition,
         finance_workspace_id=args.finance_workspace,
-        workstation_workspace_id=args.workstation_workspace,
         finance_state_root=args.finance_state_root,
         finance_app_python=args.finance_app_python,
         request_prefix=args.request_prefix,

@@ -102,10 +102,10 @@ class FakeComposition:
         self.status = status
         self.domain_calls = []
 
-    def run_finance_workstation_readonly_recovery(self, client, **kwargs):
+    def run_finance_readonly_observation(self, client, **kwargs):
         return {
             "schemaVersion": 1,
-            "kind": "ordivon.finance-workstation-readonly-recovery-receipt",
+            "kind": "ordivon.finance-readonly-observation-receipt",
             "status": self.status,
             "ownerCalls": [],
             "invariants": {
@@ -181,7 +181,6 @@ class FinanceCurrentStateApplicationTests(unittest.TestCase):
             object(),
             composition,
             finance_workspace_id="finance-ws",
-            workstation_workspace_id="workstation-ws",
             finance_state_root="/tmp/state",
             finance_app_python=None,
             request_prefix="ordinary-finance-current-state",
@@ -208,19 +207,18 @@ class FinanceCurrentStateApplicationTests(unittest.TestCase):
         )
 
     def test_blocked_composition_does_not_invent_or_recompile_current_state(self):
-        composition = FakeComposition(status="blocked_environment")
+        composition = FakeComposition(status="blocked_network_authority")
         receipt = module.run_finance_current_state_application(
             object(),
             composition,
             finance_workspace_id="finance-ws",
-            workstation_workspace_id="workstation-ws",
             finance_state_root="/tmp/state",
             finance_app_python=None,
             request_prefix="ordinary-finance-current-state",
             consumer_episode_ref="consumer-episode:test-finance-current-state",
             consumer_class="test",
         )
-        self.assertEqual(receipt["status"], "blocked_environment")
+        self.assertEqual(receipt["status"], "blocked_network_authority")
         self.assertIsNone(receipt["currentState"])
         self.assertEqual(composition.domain_calls, [])
 

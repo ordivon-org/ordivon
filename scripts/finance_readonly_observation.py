@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol
 
-REVISION = "finance-workstation-readonly-recovery-v1"
+REVISION = "finance-readonly-observation-v2"
 
 
 class RuntimeClient(Protocol):
@@ -247,21 +247,6 @@ def _owner_error_code(call: OwnerCall) -> str | None:
     return str(code) if isinstance(code, str) and code else None
 
 
-def _validate_workstation_read_only(call: OwnerCall) -> None:
-    effect = call.envelope.get("effectContract")
-    if not isinstance(effect, dict):
-        raise TypeError("Workstation egress observation omitted effect contract")
-    required = {
-        "effectClass": "READ_ONLY",
-        "credentialAccess": "none",
-        "environmentMutation": False,
-        "externalFinancialWrite": False,
-    }
-    for key, value in required.items():
-        if effect.get(key) != value:
-            raise RuntimeError(f"Workstation egress observation violated {key}={value!r}")
-
-
 def _validate_finance_observation(call: OwnerCall) -> None:
     if call.owner != "ordivon-finance" or call.operation != "finance.observe":
         raise RuntimeError("Finance observation owner/operation binding differs")
@@ -292,13 +277,12 @@ def _validate_finance_observation(call: OwnerCall) -> None:
             raise RuntimeError(f"Finance observation violated {key}={value!r}")
 
 
-def run_finance_workstation_readonly_recovery(
+def run_finance_readonly_observation(
     client: RuntimeClient,
     *,
     finance_workspace_id: str,
-    workstation_workspace_id: str,
     finance_state_root: str,
-    finance_app_python: str,
+    finance_app_python: str | None,
     request_prefix: str,
     initial_finance_envelope: dict[str, Any] | None = None,
     initial_finance_runtime_job_id: str | None = None,
@@ -314,7 +298,7 @@ def run_finance_workstation_readonly_recovery(
             script="scripts/finance-domain.mjs",
             operation="finance.observe",
             arguments={},
-            client_request_id=f"{request_prefix}-finance-observe-1",
+            client_request_id=f"{request_prefix}-finance-observe",
             env=env,
         )
     else:
@@ -333,51 +317,11 @@ def run_finance_workstation_readonly_recovery(
     if error_code is None:
         _validate_finance_observation(finance)
         return _receipt("completed", calls, finance)
-    if error_code != "EGRESS_NOT_CURRENT":
-        return _receipt("blocked_owner_error", calls, finance)
-
-    workstation = _domain_exec(
-        client,
-        owner="ordivon-workstation",
-        workspace_id=workstation_workspace_id,
-        script="scripts/workstation-domain.mjs",
-        operation="workstation.egress.observe",
-        arguments={"profile": "finance-okx"},
-        client_request_id=f"{request_prefix}-workstation-egress-observe",
-    )
-    calls.append(workstation)
-    if workstation.envelope.get("ok") is not True:
-        return _receipt("blocked_workstation_error", calls, workstation)
-    _validate_workstation_read_only(workstation)
-
-    egress_result = workstation.envelope.get("result")
-    if not isinstance(egress_result, dict):
-        raise TypeError("Workstation egress observation omitted result")
-    egress_available = (
-        egress_result.get("status") == "AVAILABLE"
-        and egress_result.get("listenerReachable") is True
-    )
-    if not egress_available:
-        return _receipt("blocked_environment", calls, workstation)
-
-    retry = _domain_exec(
-        client,
-        owner="ordivon-finance",
-        workspace_id=finance_workspace_id,
-        script="scripts/finance-domain.mjs",
-        operation="finance.observe",
-        arguments={},
-        client_request_id=f"{request_prefix}-finance-observe-2",
-        env=env,
-    )
-    calls.append(retry)
-    retry_error = _owner_error_code(retry)
-    if retry_error is not None:
-        if retry_error == "EGRESS_NOT_CURRENT":
-            return _receipt("blocked_recurrent_egress", calls, retry)
-        return _receipt("blocked_owner_error_after_egress_recovery", calls, retry)
-    _validate_finance_observation(retry)
-    return _receipt("completed_after_egress_recovery", calls, retry)
+    if error_code == "EGRESS_NOT_CURRENT":
+        # Network currentness is Finance-owned. The former Workstation scoped-egress
+        # observation could not repair this condition and is deliberately not consulted.
+        return _receipt("blocked_network_authority", calls, finance)
+    return _receipt("blocked_owner_error", calls, finance)
 
 
 def _receipt(
@@ -387,7 +331,7 @@ def _receipt(
 ) -> dict[str, Any]:
     return {
         "schemaVersion": 1,
-        "kind": "ordivon.finance-workstation-readonly-recovery-receipt",
+        "kind": "ordivon.finance-readonly-observation-receipt",
         "revision": REVISION,
         "status": status,
         "ownerCalls": [
@@ -408,6 +352,7 @@ def _receipt(
             "environmentMutationAttempted": False,
             "externalFinancialWriteAttempted": False,
             "runtimeSemanticCompletionClaimed": False,
+            "workstationNetworkAuthorityConsulted": False,
         },
     }
 
@@ -425,7 +370,7 @@ def _runtime_client(runtime_scripts: Path, environment_file: Path, endpoint: str
     return module.connect_compatible(
         endpoint,
         token,
-        client_name="ordivon-first-interface-finance-workstation-composition",
+        client_name="ordivon-first-interface-finance-readonly-observation",
         timeout=10.0,
     )
 
@@ -433,7 +378,6 @@ def _runtime_client(runtime_scripts: Path, environment_file: Path, endpoint: str
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--finance-workspace", required=True)
-    parser.add_argument("--workstation-workspace", required=True)
     parser.add_argument("--finance-state-root", required=True)
     parser.add_argument(
         "--finance-app-python",
@@ -467,10 +411,9 @@ def main() -> int:
             finance_workspace_id=args.finance_workspace,
             client_request_id=f"{args.request_prefix}-finance-project-environment",
         )
-    receipt = run_finance_workstation_readonly_recovery(
+    receipt = run_finance_readonly_observation(
         client,
         finance_workspace_id=args.finance_workspace,
-        workstation_workspace_id=args.workstation_workspace,
         finance_state_root=args.finance_state_root,
         finance_app_python=args.finance_app_python,
         request_prefix=args.request_prefix,

@@ -9,9 +9,9 @@ from pathlib import Path
 SCRIPT = (
     Path(__file__).resolve().parents[1]
     / "scripts"
-    / "finance_workstation_readonly_recovery.py"
+    / "finance_readonly_observation.py"
 )
-spec = importlib.util.spec_from_file_location("finance_workstation_readonly_recovery", SCRIPT)
+spec = importlib.util.spec_from_file_location("finance_readonly_observation", SCRIPT)
 assert spec is not None and spec.loader is not None
 module = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = module
@@ -49,13 +49,6 @@ FINANCE_EFFECT = {
     "financialSubmission": False,
     "authorityMutation": False,
 }
-WORKSTATION_EFFECT = {
-    "effectClass": "READ_ONLY",
-    "credentialAccess": "none",
-    "environmentMutation": False,
-    "externalFinancialWrite": False,
-}
-
 
 class FakeRuntime:
     def __init__(self, envelopes):
@@ -135,17 +128,16 @@ class ArtifactRuntime:
 
 
 def run(fake):
-    return module.run_finance_workstation_readonly_recovery(
+    return module.run_finance_readonly_observation(
         fake,
         finance_workspace_id="finance-ws",
-        workstation_workspace_id="workstation-ws",
         finance_state_root="/tmp/finance-state",
         finance_app_python="/tmp/python",
         request_prefix="fixture",
     )
 
 
-class FinanceWorkstationCompositionTests(unittest.TestCase):
+class FinanceReadonlyObservationTests(unittest.TestCase):
     def test_default_project_environment_preparation_is_python_locked_offline_runtime_plumbing(self):
         fake = EnvironmentRuntime()
         receipt = module._prepare_finance_project_environment(
@@ -320,163 +312,46 @@ class FinanceWorkstationCompositionTests(unittest.TestCase):
         request_ids = [arguments["clientRequestId"] for _, arguments in runtime.calls]
         self.assertEqual(request_ids[0], request_ids[1])
 
-    def test_egress_failure_recovers_read_only_then_retries_finance(self):
-        fake = FakeRuntime(
-            [
-                owner(False, "finance.observe", error={"code": "EGRESS_NOT_CURRENT"}),
-                owner(
-                    True,
-                    "workstation.egress.observe",
-                    result={
-                        "status": "AVAILABLE",
-                        "profileDigest": "sha256:" + "a" * 64,
-                        "listenerReachable": True,
-                    },
-                    effect=WORKSTATION_EFFECT,
-                ),
-                owner(
-                    True,
-                    "finance.observe",
-                    result={"status": "refreshed"},
-                    effect=FINANCE_EFFECT,
-                ),
-            ]
-        )
+    def test_egress_not_current_fails_closed_at_finance_owner_without_workstation_fallback(self):
+        fake = FakeRuntime([owner(False, "finance.observe", error={"code": "EGRESS_NOT_CURRENT"})])
         receipt = run(fake)
-        self.assertEqual(receipt["status"], "completed_after_egress_recovery")
-        self.assertEqual(
-            [row[1]["execution"]["args"][3] for row in fake.calls],
-            [
-                "finance.observe",
-                "workstation.egress.observe",
-                "finance.observe",
-            ],
-        )
-        self.assertNotIn(
-            "workstation.egress.pool.ensure",
-            [row[1]["execution"]["args"][3] for row in fake.calls],
-        )
+        self.assertEqual(receipt["status"], "blocked_network_authority")
+        self.assertEqual([row[1]["execution"]["args"][3] for row in fake.calls], ["finance.observe"])
+        self.assertEqual(receipt["ownerCalls"][0]["ownerErrorCode"], "EGRESS_NOT_CURRENT")
+        self.assertFalse(receipt["invariants"]["workstationNetworkAuthorityConsulted"])
         self.assertFalse(receipt["invariants"]["environmentMutationAttempted"])
         self.assertFalse(receipt["invariants"]["externalFinancialWriteAttempted"])
 
-
-    def test_captured_egress_failure_replays_read_only_recovery_without_refiring_failure(self):
-        fake = FakeRuntime(
-            [
-                owner(
-                    True,
-                    "workstation.egress.observe",
-                    result={
-                        "status": "AVAILABLE",
-                        "profileDigest": "sha256:" + "d" * 64,
-                        "listenerReachable": True,
-                    },
-                    effect=WORKSTATION_EFFECT,
-                ),
-                owner(
-                    True,
-                    "finance.observe",
-                    result={"status": "refreshed"},
-                    effect=FINANCE_EFFECT,
-                ),
-            ]
-        )
-        captured = owner(
-            False,
-            "finance.observe",
-            error={"code": "EGRESS_NOT_CURRENT"},
-        )
-        receipt = module.run_finance_workstation_readonly_recovery(
+    def test_captured_egress_not_current_remains_finance_owned_and_does_not_dispatch(self):
+        fake = FakeRuntime([])
+        captured = owner(False, "finance.observe", error={"code": "EGRESS_NOT_CURRENT"})
+        receipt = module.run_finance_readonly_observation(
             fake,
             finance_workspace_id="finance-ws",
-            workstation_workspace_id="workstation-ws",
             finance_state_root="/tmp/finance-state",
             finance_app_python="/tmp/python",
             request_prefix="captured",
             initial_finance_envelope=captured,
             initial_finance_runtime_job_id="job-captured-finance-failure",
         )
-        self.assertEqual(receipt["status"], "completed_after_egress_recovery")
-        self.assertEqual(
-            [row[1]["execution"]["args"][3] for row in fake.calls],
-            ["workstation.egress.observe", "finance.observe"],
-        )
+        self.assertEqual(receipt["status"], "blocked_network_authority")
+        self.assertEqual(fake.calls, [])
         self.assertEqual(receipt["ownerCalls"][0]["runtimeJobId"], "job-captured-finance-failure")
-        self.assertEqual(receipt["ownerCalls"][0]["ownerErrorCode"], "EGRESS_NOT_CURRENT")
-        self.assertFalse(receipt["invariants"]["environmentMutationAttempted"])
+        self.assertEqual(receipt["terminalOwner"], "ordivon-finance")
 
-    def test_recurrent_egress_staleness_recompiles_next_read_only_stage(self):
-        fake = FakeRuntime(
-            [
-                owner(False, "finance.observe", error={"code": "EGRESS_NOT_CURRENT"}),
-                owner(
-                    True,
-                    "workstation.egress.observe",
-                    result={
-                        "status": "AVAILABLE",
-                        "profileDigest": "sha256:" + "e" * 64,
-                        "listenerReachable": True,
-                    },
-                    effect=WORKSTATION_EFFECT,
-                ),
-                owner(False, "finance.observe", error={"code": "EGRESS_NOT_CURRENT"}),
-            ]
-        )
+    def test_non_network_owner_error_fails_closed_without_retry(self):
+        fake = FakeRuntime([owner(False, "finance.observe", error={"code": "OTHER_BLOCKER"})])
         receipt = run(fake)
-        self.assertEqual(receipt["status"], "blocked_recurrent_egress")
-        self.assertEqual(
-            [row[1]["execution"]["args"][3] for row in fake.calls],
-            [
-                "finance.observe",
-                "workstation.egress.observe",
-                "finance.observe",
-            ],
-        )
-        self.assertEqual(
-            receipt["ownerCalls"][-1]["ownerErrorCode"], "EGRESS_NOT_CURRENT"
-        )
-        self.assertFalse(receipt["invariants"]["environmentMutationAttempted"])
-        self.assertFalse(receipt["invariants"]["externalFinancialWriteAttempted"])
+        self.assertEqual(receipt["status"], "blocked_owner_error")
+        self.assertEqual(len(fake.calls), 1)
+        self.assertFalse(receipt["invariants"]["workstationNetworkAuthorityConsulted"])
 
-    def test_unavailable_egress_stops_without_environment_mutation(self):
-        fake = FakeRuntime(
-            [
-                owner(False, "finance.observe", error={"code": "EGRESS_NOT_CURRENT"}),
-                owner(
-                    True,
-                    "workstation.egress.observe",
-                    result={
-                        "status": "UNAVAILABLE",
-                        "profileDigest": "sha256:" + "b" * 64,
-                        "listenerReachable": False,
-                    },
-                    effect=WORKSTATION_EFFECT,
-                ),
-            ]
-        )
-        receipt = run(fake)
-        self.assertEqual(receipt["status"], "blocked_environment")
-        self.assertEqual(len(fake.calls), 2)
-        self.assertFalse(receipt["invariants"]["environmentMutationAttempted"])
+    def test_source_has_no_workstation_network_fallback(self):
+        source = SCRIPT.read_text()
+        self.assertNotIn("workstation.egress.observe", source)
+        self.assertNotIn("finance-okx", source)
+        self.assertNotIn("workstation_workspace_id", source)
 
-    def test_workstation_read_only_contract_is_enforced(self):
-        fake = FakeRuntime(
-            [
-                owner(False, "finance.observe", error={"code": "EGRESS_NOT_CURRENT"}),
-                owner(
-                    True,
-                    "workstation.egress.observe",
-                    result={
-                        "status": "AVAILABLE",
-                        "profileDigest": "sha256:" + "c" * 64,
-                        "listenerReachable": True,
-                    },
-                    effect={**WORKSTATION_EFFECT, "environmentMutation": True},
-                ),
-            ]
-        )
-        with self.assertRaisesRegex(RuntimeError, "environmentMutation"):
-            run(fake)
 
 
 if __name__ == "__main__":
