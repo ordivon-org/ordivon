@@ -81,6 +81,13 @@ class AuthorityCatalogTests(unittest.TestCase):
         self.assertEqual(top("citation style language"), "csl-1.0.2")
         self.assertEqual(top("software heritage persistent identifier"), "swhid-scheme-v1")
         self.assertEqual(top("orcid identifier"), "orcid-id-structure")
+        self.assertEqual(top("preservation metadata premis"), "premis-3.0")
+        self.assertEqual(top("metadata encoding transmission"), "mets-2")
+        self.assertEqual(top("file format registry"), "pronom-registry")
+        self.assertEqual(top("requirements engineering"), "iso-iec-ieee-29148-2018")
+        self.assertEqual(top("genai semantic conventions"), "opentelemetry-genai-semconv")
+        self.assertEqual(top("enterprise architecture modeling"), "archimate-3.2")
+        self.assertEqual(top("enterprise architecture method"), "togaf-standard-10th-edition")
 
     def test_latest_observation_is_append_only_date_selection(self):
         latest = catalog.latest_observation("iso-9001-2026")

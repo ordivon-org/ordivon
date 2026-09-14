@@ -1,0 +1,11 @@
+{
+  "authorityId": "togaf-standard-10th-edition",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current-with-corrigendum",
+  "note": "The Open Group continues to publish the TOGAF Standard, 10th Edition and separately lists Technical Corrigendum 1; this record identifies the edition baseline and does not mirror licensed text.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.opengroup.org/togaf-standard-10th-edition-downloads",
+  "schemaVersion": 1,
+  "versionObserved": "10th Edition"
+}

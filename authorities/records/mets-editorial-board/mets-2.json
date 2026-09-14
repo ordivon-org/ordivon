@@ -1,0 +1,53 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "METS",
+      "METS 2",
+      "Metadata Encoding and Transmission Standard"
+    ],
+    "domains": [
+      "preservation",
+      "artifact",
+      "metadata"
+    ],
+    "topics": [
+      "digital-library",
+      "structural-metadata",
+      "administrative-metadata",
+      "descriptive-metadata",
+      "information-package"
+    ]
+  },
+  "id": "mets-2",
+  "identity": {
+    "authorityKind": "digital-library-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "mets-editorial-board",
+      "name": "METS Editorial Board / Library of Congress"
+    },
+    "officialSource": "https://www.loc.gov/standards/mets/mets2.html",
+    "publicationDate": "2025-03-03",
+    "title": "Metadata Encoding and Transmission Standard (METS) Version 2",
+    "versionLabel": "2"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/preservation.md",
+      "Library of Congress METS official source checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

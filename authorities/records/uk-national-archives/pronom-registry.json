@@ -1,0 +1,53 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "PRONOM",
+      "PRONOM registry",
+      "PUID"
+    ],
+    "domains": [
+      "preservation",
+      "artifact",
+      "metadata"
+    ],
+    "topics": [
+      "file-format-registry",
+      "format-identification",
+      "puid",
+      "digital-preservation",
+      "software-registry"
+    ]
+  },
+  "id": "pronom-registry",
+  "identity": {
+    "authorityKind": "technical-registry",
+    "identityMode": "rolling-source",
+    "issuer": {
+      "id": "uk-national-archives",
+      "name": "The National Archives (UK)"
+    },
+    "officialSource": "https://www.nationalarchives.gov.uk/pronom/",
+    "publicationDate": null,
+    "title": "PRONOM technical information registry",
+    "versionLabel": null
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/preservation.md",
+      "The National Archives PRONOM official source checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}
