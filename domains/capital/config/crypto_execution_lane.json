@@ -11,7 +11,7 @@
     "privateExecutionHostClockMaxAbsOffsetMs": 1000,
     "privateExecutionRule": "blocked until a fresh measurement passes the host-clock gate",
     "publicShadowTimingClock": "monotonic",
-    "standing": "BLOCK_PRIVATE_EXECUTION",
+    "standing": "PASS_PRIVATE_EXECUTION_CLOCK_QUALITY",
     "venueClockAgreementMaxMsForCrossVenueComparison": 250
   },
   "demoExecutionAllowed": false,

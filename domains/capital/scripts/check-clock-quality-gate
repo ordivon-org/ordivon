@@ -4,29 +4,33 @@ repo="$(cd "$(dirname "$0")/.." && pwd)"
 python3 - "$repo/config/clock_quality_gate.json" "$repo" <<'PY'
 import json,sys
 from pathlib import Path
-cfg_path=Path(sys.argv[1]); repo=Path(sys.argv[2])
-cfg=json.loads(cfg_path.read_text())
-ev_path=repo/cfg['latestEvidence']
-ev=json.loads(ev_path.read_text())
-assert cfg['standing']=='BLOCK_PRIVATE_EXECUTION'
-assert cfg['privateExecutionMaxAbsOffsetMs']==1000
+cfg=json.loads(Path(sys.argv[1]).read_text()); repo=Path(sys.argv[2])
+ev=json.loads((repo/cfg['latestEvidence']).read_text())
+limit=float(cfg['privateExecutionMaxAbsOffsetMs'])
+passed=(
+    cfg['standing']=='PASS_PRIVATE_EXECUTION_CLOCK_QUALITY'
+    and ev['standing']=='PASS_PRIVATE_EXECUTION_CLOCK_GATE'
+    and ev['multiSourceAgreement'] is True
+    and float(ev['observedAbsOffsetMsMax']) <= limit
+    and ev['consequence']['demoExecutionAdmission'] is True
+    and ev['consequence']['liveExecutionAdmission'] is True
+    and ev.get('rootCause',{}).get('adminRemediationRequired') is False
+)
 assert cfg['wslIndependentNtpDaemonAllowed'] is False
 assert cfg['applicationClockForgeryAllowed'] is False
-assert ev['standing']=='FAIL_PRIVATE_EXECUTION_CLOCK_GATE'
-assert ev['multiSourceAgreement'] is True
-assert ev['observedAbsOffsetMsMax'] > cfg['privateExecutionMaxAbsOffsetMs']
-assert ev['consequence']['demoExecutionAdmission'] is False
-assert ev['consequence']['liveExecutionAdmission'] is False
+if not passed:
+    raise SystemExit('clock quality gate evidence/config is not in PASS standing')
 print(json.dumps({
-  'standing':'CLOCK_GATE_BLOCKING_PRIVATE_EXECUTION',
+  'standing':'CLOCK_GATE_PASS_PRIVATE_EXECUTION_TIMING',
   'evidence':cfg['latestEvidence'],
   'observedAbsOffsetMsMax':ev['observedAbsOffsetMsMax'],
-  'direction':ev.get('direction'),
-  'directionStableAcrossAudits':ev.get('directionStableAcrossAudits'),
-  'adminRemediationRequired':ev.get('rootCause',{}).get('adminRemediationRequired',False),
-  'limitMs':cfg['privateExecutionMaxAbsOffsetMs'],
+  'limitMs':limit,
+  'windowsSource':ev['windows']['observedSource'],
+  'wslHostPtpService':ev['wslHostPtp']['service'],
   'publicShadowAllowed':True,
-  'privateExecutionAllowed':False,
-  'wslNtpDaemonAllowed':False
+  'privateExecutionTimingAllowed':True,
+  'overallPrivateExecutionAllowed':False,
+  'overallBlocker':ev['consequence']['overallPrivateExecutionBlocker'],
+  'wslIndependentNtpDaemonAllowed':False
 },sort_keys=True))
 PY

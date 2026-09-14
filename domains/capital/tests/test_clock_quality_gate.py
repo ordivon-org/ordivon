@@ -2,38 +2,32 @@ from pathlib import Path
 import json
 import subprocess
 import unittest
-
 ROOT=Path(__file__).resolve().parents[1]
-
 class ClockQualityGateTests(unittest.TestCase):
     def _load(self):
         cfg=json.loads((ROOT/'config/clock_quality_gate.json').read_text())
         ev=json.loads((ROOT/cfg['latestEvidence']).read_text())
         return cfg,ev
-
-    def test_private_execution_fails_closed(self):
+    def test_clock_timing_gate_passes_but_overall_execution_does_not(self):
         cfg,ev=self._load()
-        self.assertEqual(cfg['standing'],'BLOCK_PRIVATE_EXECUTION')
-        self.assertGreater(ev['observedAbsOffsetMsMax'],cfg['privateExecutionMaxAbsOffsetMs'])
+        self.assertEqual(cfg['standing'],'PASS_PRIVATE_EXECUTION_CLOCK_QUALITY')
+        self.assertEqual(ev['standing'],'PASS_PRIVATE_EXECUTION_CLOCK_GATE')
+        self.assertLessEqual(ev['observedAbsOffsetMsMax'],cfg['privateExecutionMaxAbsOffsetMs'])
+        self.assertTrue(ev['consequence']['demoExecutionAdmission'])
+        self.assertTrue(ev['consequence']['liveExecutionAdmission'])
+        self.assertFalse(ev['consequence']['overallPrivateExecutionAdmission'])
         self.assertFalse(cfg['wslIndependentNtpDaemonAllowed'])
         self.assertFalse(cfg['applicationClockForgeryAllowed'])
-        self.assertFalse(ev['consequence']['demoExecutionAdmission'])
-        self.assertFalse(ev['consequence']['liveExecutionAdmission'])
-
-    def test_latest_evidence_captures_unstable_direction_and_admin_boundary(self):
-        cfg,ev=self._load()
-        self.assertEqual(cfg['latestEvidence'],'evidence/clock-quality-audit-20260914.json')
-        self.assertFalse(ev['directionStableAcrossAudits'])
-        self.assertTrue(ev['rootCause']['adminRemediationRequired'])
-        self.assertEqual(ev['rootCause']['limitedStartService'],'ACCESS_DENIED')
-        self.assertEqual(ev['rootCause']['limitedForceSynchronizeTask'],'ACCESS_DENIED')
-
+    def test_windows_authority_and_wsl_host_ptp_are_healthy(self):
+        _,ev=self._load()
+        self.assertEqual(ev['windows']['status'],'RUNNING')
+        self.assertGreater(ev['windows']['stratum'],0)
+        self.assertNotIn('Local CMOS',ev['windows']['observedSource'])
+        self.assertTrue(ev['wslHostPtp']['serviceActive'])
+        self.assertFalse(ev['rootCause']['adminRemediationRequired'])
     def test_gate_checker(self):
-        out=subprocess.check_output([str(ROOT/'scripts/check-clock-quality-gate')],text=True)
-        x=json.loads(out)
-        self.assertEqual(x['standing'],'CLOCK_GATE_BLOCKING_PRIVATE_EXECUTION')
-        self.assertTrue(x['publicShadowAllowed'])
-        self.assertFalse(x['privateExecutionAllowed'])
-        self.assertTrue(x['adminRemediationRequired'])
-
+        x=json.loads(subprocess.check_output([str(ROOT/'scripts/check-clock-quality-gate')],text=True))
+        self.assertEqual(x['standing'],'CLOCK_GATE_PASS_PRIVATE_EXECUTION_TIMING')
+        self.assertTrue(x['privateExecutionTimingAllowed'])
+        self.assertFalse(x['overallPrivateExecutionAllowed'])
 if __name__=='__main__': unittest.main()

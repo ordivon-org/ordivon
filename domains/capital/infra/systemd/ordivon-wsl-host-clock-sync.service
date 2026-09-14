@@ -1,0 +1,15 @@
+[Unit]
+Description=Synchronize WSL CLOCK_REALTIME from Hyper-V host PTP clock
+Documentation=man:phc2sys(8)
+ConditionPathExists=/dev/ptp_hyperv
+After=dev-ptp0.device
+Conflicts=systemd-timesyncd.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/phc2sys -s /dev/ptp_hyperv -c CLOCK_REALTIME -O 0 -S 0.5 -F 0.5 -R 1 -N 5 -q
+Restart=on-failure
+RestartSec=2s
+
+[Install]
+WantedBy=multi-user.target

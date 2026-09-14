@@ -11,8 +11,8 @@ class CryptoStreamPrometheusTests(unittest.TestCase):
         self.assertIn('ordivon_market_capital_crypto_stream_reconnect_latency_ms{venue="binance"}',out)
         self.assertIn('ordivon_market_capital_crypto_surfpath_control_plane_blocked 0',out)
         self.assertIn('ordivon_market_capital_crypto_execution_authority_write_admitted 0',out)
-        self.assertIn('ordivon_market_capital_crypto_clock_private_gate_passed 0',out)
-        self.assertIn('ordivon_market_capital_crypto_clock_remediation_admin_required 1',out)
+        self.assertIn('ordivon_market_capital_crypto_clock_private_gate_passed 1',out)
+        self.assertIn('ordivon_market_capital_crypto_clock_remediation_admin_required 0',out)
         self.assertIn('ordivon_market_capital_crypto_private_execution_allowed 0',out)
         self.assertIn('ordivon_market_capital_crypto_external_financial_writes_attempted 0',out)
     def test_atomic_file_render(self):
