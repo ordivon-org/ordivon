@@ -63,7 +63,7 @@
         "real settlement",
         "legal ownership",
         "deployable capital",
-        "production authorization"
+        "external financial write admission"
       ],
       "role": "event loop, OMS, simulation, execution adapter"
     },
