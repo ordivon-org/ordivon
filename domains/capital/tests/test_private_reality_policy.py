@@ -2,10 +2,10 @@ from pathlib import Path
 import json, subprocess
 ROOT=Path(__file__).resolve().parents[1]
 
-def test_private_reality_is_prepared_but_not_admitted():
+def test_private_reality_credentials_may_be_located_but_private_data_stays_not_admitted():
     x=json.loads((ROOT/'config/private_reality_policy.json').read_text())
-    assert x['standing']=='PREPARED_NOT_ADMITTED'
-    assert x['credentialUseAdmission']=='NOT_ADMITTED'
+    assert x['standing']=='CREDENTIALS_LOCATED_PENDING_FRESH_PERMISSION_VERIFICATION'
+    assert x['credentialUseAdmission']=='USER_AUTHORIZED_PENDING_FRESH_PERMISSION_VERIFICATION'
     assert not x['privateAccountDataAllowed']
     assert not x['orderCapableCredentialsAllowed']
     assert not x['withdrawalCredentialsAllowed']

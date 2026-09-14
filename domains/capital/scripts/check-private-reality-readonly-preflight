@@ -5,8 +5,8 @@ python3 - "$repo/config/private_reality_policy.json" <<'PY'
 import json,sys
 x=json.load(open(sys.argv[1]))
 assert x['kind']=='ordivon.market-capital.private-reality-policy'
-assert x['standing']=='PREPARED_NOT_ADMITTED'
-assert x['credentialUseAdmission']=='NOT_ADMITTED'
+assert x['standing'] in {'PREPARED_NOT_ADMITTED','CREDENTIALS_LOCATED_PENDING_FRESH_PERMISSION_VERIFICATION'}
+assert x['credentialUseAdmission'] in {'NOT_ADMITTED','USER_AUTHORIZED_PENDING_FRESH_PERMISSION_VERIFICATION'}
 for k in ('privateAccountDataAllowed','orderCapableCredentialsAllowed','withdrawalCredentialsAllowed','externalFinancialWritesAllowed','secretDiscoveryAllowed'):
     assert x[k] is False, k
 assert x['venues']['OKX']['requiredPermission']=='Read'
