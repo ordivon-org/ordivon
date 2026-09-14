@@ -10,7 +10,7 @@ description = "Trusted-local Workspace execution, durable Job state, evidence, r
 publish = false
 
 [features]
-default = ["transactional-runtime", "operator-tools"]
+default = ["transactional-runtime"]
 systemd-supervisor = ["dep:libc"]
 universal-executor = ["dep:libc"]
 transactional-runtime = ["universal-executor", "dep:rusqlite", "dep:uuid"]

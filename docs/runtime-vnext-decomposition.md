@@ -98,9 +98,10 @@ Those eight operations account for 92.87% of counted calls. Advanced surfaces ar
 
 - The earlier REMOVE-CANDIDATE for operator scripts directly interpreting Runtime SQLite schema is now **closed as already migrated**: `ordivon-runtime-{archive,cache,deploy,lifecycle,reclaim,status}` contain no direct SQLite/SQL interpretation and use the stable `ordivon-runtime-inspect` projections instead. Remaining non-test SQLite use is storage-native backup/restore integrity work, not Runtime schema semantics.
 - `universal-executor` is **retained**. It is the physical Workspace/Runner substrate used by `transactional-runtime`, not a competing execution stack; MCP Workspace and execution tools ultimately depend on it, while the standalone runner intentionally needs only this layer.
+- `operator-tools` is no longer part of the Core default feature set. Default Core now means the transactional application core; doctor/inspect/repair remain explicit operator capabilities, while canonical release builds continue to use `--all-features`. Production MCP was already explicitly transactional-only, so this removes build-time/default-surface coupling without changing the MCP contract.
 - Nine internal helper functions that had no production, binary, integration-test, script, or documentation consumer are no longer re-exported from the crate root. Their implementations remain private implementation detail where transactional Runtime still uses them.
 - The obsolete record-first `list_workspace_records` / `list_workspace_record_inventory` path was deleted. Production already uses the stronger current-physical `list_open_workspace_record_inventory` projection; its stale-Workspace unit-test semantics were migrated to that stronger primitive.
-- Validation after the cleanup: full workspace check with warnings denied PASS; MCP unit tests 55/55 PASS; default Core unit tests 245/245 PASS with only the known heavy Registry property test skipped; universal-only feature still compiles independently.
+- Validation after the cleanup: full workspace check with warnings denied PASS; MCP unit tests 55/55 PASS; default transactional Core unit tests 223/223 PASS; all-features Core unit tests 245/245 PASS; both Core lanes skip only the known heavy Registry property test; universal-only feature still compiles independently.
 
 
 - `universal-executor` standalone compile: PASS.
