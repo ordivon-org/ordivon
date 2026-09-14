@@ -1,15 +1,37 @@
 {
-  "schemaVersion": 1,
-  "kind": "ordivon.market-capital.live-test-account-policy",
-  "standing": "USER_AUTHORIZED_PENDING_FRESH_PRIVATE_ACCOUNT_VERIFICATION",
-  "userAuthorization": "LIVE_ENDPOINT_TEST_ACCOUNT_USE_AUTHORIZED",
+  "canaryModes": {
+    "nonMatchingValidation": {
+      "authorized": true,
+      "description": "venue-native signed test/precheck endpoint that does not create a matching-engine order",
+      "examples": [
+        "Binance order.test",
+        "venue-native order precheck where explicitly documented non-submitting"
+      ],
+      "financialEffectExpected": false
+    },
+    "realMatchingEngineOrder": {
+      "authorized": false,
+      "reason": "current hard test cap is 1 quote unit; fresh local Binance qualification records minNotional=5 USDT for BTCUSDT and ETHUSDT",
+      "requiresSeparateNotionalAuthorization": true
+    }
+  },
   "economicIntent": "NON_PRODUCTION_QUALIFICATION_ONLY",
-  "productionTradingAuthorized": false,
-  "withdrawalAuthorized": false,
-  "transferAuthorized": false,
+  "kind": "ordivon.market-capital.live-test-account-policy",
+  "knownPublicConstraints": {
+    "BINANCE": {
+      "BTCUSDT": {
+        "minNotional": "5.00000000"
+      },
+      "ETHUSDT": {
+        "minNotional": "5.00000000"
+      }
+    },
+    "evidence": "evidence/crypto-vpn-public-data-qualification-20260913.json"
+  },
   "liveEndpointUseAllowed": true,
-  "orderSubmissionAllowed": false,
   "maxTestNotionalQuote": "1",
+  "orderSubmissionAllowed": false,
+  "productionTradingAuthorized": false,
   "requiredFreshGates": [
     "clock gate PASS",
     "authoritative account balance read succeeds",
@@ -21,22 +43,6 @@
     "reconciliation read path healthy",
     "one-shot client order id reserved"
   ],
-  "venues": {
-    "OKX": {
-      "endpointClass": "LIVE",
-      "role": "TEST_ACCOUNT_BY_USER_POLICY",
-      "observerCredential": "/root/.config/ordivon/secrets/okx/observer/config.toml",
-      "executorCredential": "/root/projects/ordivon-finance/.home-live-trade/.okx/config.toml",
-      "writeAdmission": "BLOCKED_PENDING_FRESH_GATES"
-    },
-    "BINANCE": {
-      "endpointClass": "LIVE",
-      "role": "TEST_ACCOUNT_BY_USER_POLICY",
-      "observerCredential": "/root/.config/ordivon/secrets/binance/observer",
-      "executorCredential": "/root/.config/ordivon/secrets/binance/executor",
-      "writeAdmission": "BLOCKED_PENDING_FRESH_GATES"
-    }
-  },
   "rules": [
     "live endpoint semantics must never be relabeled as Demo or Testnet",
     "user authorization permits qualification use of these live accounts but does not grant production trading",
@@ -44,6 +50,28 @@
     "test order notional is capped at 1 quote unit unless a later explicit authorization changes it",
     "if venue minimum notional exceeds the cap, the test must stop rather than raise the cap automatically",
     "withdrawal and transfer operations remain forbidden",
-    "any ambiguous dispatch is RETAIN and must reconcile before retry"
-  ]
+    "any ambiguous dispatch is RETAIN and must reconcile before retry",
+    "non-matching validation canaries do not imply authorization for a real matching-engine order"
+  ],
+  "schemaVersion": 1,
+  "standing": "USER_AUTHORIZED_PENDING_FRESH_PRIVATE_ACCOUNT_VERIFICATION",
+  "transferAuthorized": false,
+  "userAuthorization": "LIVE_ENDPOINT_TEST_ACCOUNT_USE_AUTHORIZED",
+  "venues": {
+    "BINANCE": {
+      "endpointClass": "LIVE",
+      "executorCredential": "/root/.config/ordivon/secrets/binance/executor",
+      "observerCredential": "/root/.config/ordivon/secrets/binance/observer",
+      "role": "TEST_ACCOUNT_BY_USER_POLICY",
+      "writeAdmission": "BLOCKED_PENDING_FRESH_GATES"
+    },
+    "OKX": {
+      "endpointClass": "LIVE",
+      "executorCredential": "/root/projects/ordivon-finance/.home-live-trade/.okx/config.toml",
+      "observerCredential": "/root/.config/ordivon/secrets/okx/observer/config.toml",
+      "role": "TEST_ACCOUNT_BY_USER_POLICY",
+      "writeAdmission": "BLOCKED_PENDING_FRESH_GATES"
+    }
+  },
+  "withdrawalAuthorized": false
 }
