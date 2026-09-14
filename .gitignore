@@ -11,3 +11,5 @@ mlruns/
 wave_b/algorithm/bin/
 wave_b/algorithm/obj/
 .artifacts/
+tools/*/bin/
+tools/*/obj/
