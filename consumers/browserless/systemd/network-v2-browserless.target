@@ -1,7 +1,7 @@
 [Unit]
 Description=Network v2 Browserless production data plane
-Requires=network-v2-browserless-dns.service
-After=network-v2-browserless-dns.service
+Requires=network-v2-browserless-dns.service network-v2-browserless-forward.service
+After=network-v2-browserless-dns.service network-v2-browserless-forward.service
 
 [Install]
 WantedBy=multi-user.target
