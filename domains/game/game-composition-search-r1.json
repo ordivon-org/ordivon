@@ -1,0 +1,326 @@
+{
+  "schemaVersion": 1,
+  "id": "ordivon-next.game-composition-search.r1",
+  "date": "2026-09-14",
+  "standing": "EVIDENCE_GUIDED_COMPOSITION_SEARCH_R1_READY",
+  "sourceLedger": "game-mechanism-evidence-r2.json",
+  "selectionBoundary": [
+    "Candidates are mechanism-graph experiment proposals, not products, genres or G0 contenders.",
+    "A candidate must reuse measured/locally evidenced edges and expose only a small number of important UNKNOWN couplings.",
+    "Status reflects falsifier economics/information gain, not product preference."
+  ],
+  "candidates": [
+    {
+      "id": "mc01-epistemic-operations",
+      "name": "Epistemic Operations",
+      "anchorMechanics": [
+        "information-scarcity",
+        "inspection-cost",
+        "deduction"
+      ],
+      "supportMechanics": [
+        "scan",
+        "required-goal",
+        "deadline-time-limit",
+        "memory-knowledge-persistence"
+      ],
+      "supportedClaims": [
+        "c01",
+        "c10",
+        "r2-c23",
+        "r2-c31"
+      ],
+      "unknownCouplings": [
+        "deadline/time pressure -> evidence prioritization: strategic focus vs rushed guessing",
+        "scan timing + scarce evidence -> whether delayed information creates planning depth or frustration"
+      ],
+      "negativeConstraints": [
+        "do not allow abundant zero-cost inspection",
+        "information must alter a later decision, not only completion text"
+      ],
+      "targetDynamic": "selective evidence acquisition under operational pressure causes model revision that changes action",
+      "cheapestFalsifier": "Reuse PGP-D style compact case; add one explicit time/action budget and one delayed scan whose result is only actionable on the next decision head.",
+      "killConditions": [
+        "players guess because time dominates inference",
+        "scan result arrives too late to affect a meaningful choice",
+        "players still inspect the same obvious clue order"
+      ],
+      "status": "ADMIT_REUSE_CARRIER"
+    },
+    {
+      "id": "mc02-diagnostic-factory",
+      "name": "Diagnostic Factory Under Partial Observation",
+      "anchorMechanics": [
+        "required-goal",
+        "bottleneck",
+        "machine-allocation"
+      ],
+      "supportMechanics": [
+        "partial-observation",
+        "scan",
+        "feedback-control",
+        "respec-reconfiguration",
+        "throughput"
+      ],
+      "supportedClaims": [
+        "c04",
+        "r2-c23",
+        "r2-c24"
+      ],
+      "unknownCouplings": [
+        "partial observation -> bottleneck diagnosis: deeper inference vs opaque frustration",
+        "active scanning -> redesign choice: useful diagnostic agency vs mandatory busywork"
+      ],
+      "negativeConstraints": [
+        "do not hide causality needed to form any model",
+        "cheap rebuild must remain available"
+      ],
+      "targetDynamic": "player forms a causal model of a system from incomplete telemetry and redesigns it intentionally",
+      "cheapestFalsifier": "One-screen micro-factory with one hidden internal state, two optional diagnostics, visible output/queue symptoms and cheap rebuild.",
+      "killConditions": [
+        "correct fix is impossible to infer before scan",
+        "one diagnostic dominates every state",
+        "hidden state merely delays the obvious answer"
+      ],
+      "status": "ADMIT_NEW_MICRO_FALSIFIER"
+    },
+    {
+      "id": "mc03-responsive-buildcraft",
+      "name": "Responsive Buildcraft",
+      "anchorMechanics": [
+        "drafting",
+        "synergy-combos",
+        "build-path-dependency"
+      ],
+      "supportMechanics": [
+        "hidden-information",
+        "responsive-audience-opponent",
+        "create-edit",
+        "save-revision",
+        "agent-policy"
+      ],
+      "supportedClaims": [
+        "c03",
+        "c06",
+        "c07",
+        "r2-c18"
+      ],
+      "unknownCouplings": [
+        "responsive preference -> build path: meaningful strategic adaptation vs score-function exploitation",
+        "build synergy + authored intent -> whether adaptation preserves ownership"
+      ],
+      "negativeConstraints": [
+        "deterministic policy baseline first",
+        "do not expose the audience utility function directly"
+      ],
+      "targetDynamic": "path-dependent composition is revised across rounds because a learnable audience changes the value of synergies",
+      "cheapestFalsifier": "4-round symbolic draft: 3 choices/round, pair synergies, 3 hidden deterministic personas, visible qualitative response, revision history.",
+      "killConditions": [
+        "one motif/build dominates each persona trivially",
+        "players optimize response score without an articulated composition intent",
+        "static rubric performs equivalently"
+      ],
+      "status": "ADMIT_NEW_MICRO_FALSIFIER"
+    },
+    {
+      "id": "mc04-sealed-routing",
+      "name": "Sealed Routing / Tactical Commitment",
+      "anchorMechanics": [
+        "capacity-limit",
+        "route-network-building",
+        "required-goal"
+      ],
+      "supportMechanics": [
+        "prediction-preview",
+        "partial-observation",
+        "simultaneous-resolution",
+        "cause-effect-log",
+        "select-choose"
+      ],
+      "supportedClaims": [
+        "r2-c26",
+        "r2-c29",
+        "r2-c32",
+        "c09"
+      ],
+      "unknownCouplings": [
+        "simultaneous commitment + choke topology -> interpretable tactical tension vs deterministic bottleneck puzzle",
+        "own-plan preview + hostile partial observation -> sufficient responsibility without delegation"
+      ],
+      "negativeConstraints": [
+        "do not add detailed delegation in the first carrier",
+        "topology variation must preserve multiple viable lines"
+      ],
+      "targetDynamic": "player commits a route plan with exact own consequences against bounded hostile uncertainty and learns from collision/congestion outcomes",
+      "cheapestFalsifier": "Small graph/grid with 2–3 routes, capacity/choke constraints, exact own preview, sealed enemy route choice and instant replay.",
+      "killConditions": [
+        "one route dominates",
+        "uncertainty is indistinguishable from random loss",
+        "post-turn collision cannot be causally explained"
+      ],
+      "status": "ADMIT_NEW_MICRO_FALSIFIER"
+    },
+    {
+      "id": "mc05-role-delegated-crisis",
+      "name": "Role-Delegated Crisis Management",
+      "anchorMechanics": [
+        "delegate",
+        "role-asymmetry",
+        "agent-policy"
+      ],
+      "supportMechanics": [
+        "required-goal",
+        "deadline-time-limit",
+        "partial-observation",
+        "cause-effect-log",
+        "command"
+      ],
+      "supportedClaims": [
+        "c09",
+        "r2-c21",
+        "r2-c25",
+        "r2-c31",
+        "r2-c32"
+      ],
+      "unknownCouplings": [
+        "time pressure -> whether delegation leverage repays review/administrative burden",
+        "role identity + bounded information -> whether player can predict competence without micromanagement"
+      ],
+      "negativeConstraints": [
+        "surface only controls with measured relevant-state leverage",
+        "no LLM until cheap policy fails a Human requirement"
+      ],
+      "targetDynamic": "player chooses doctrine and role-level intent while recognizable specialists act autonomously under pressure",
+      "cheapestFalsifier": "Reuse a stripped Station-Zero-like deterministic carrier with only objective, two doctrine controls, three specialists, one pressure clock and concise aftermath.",
+      "killConditions": [
+        "player spends more time configuring/reviewing than making strategic decisions",
+        "specialists remain behaviorally indistinguishable to the player",
+        "delegation adds no decision leverage over direct control"
+      ],
+      "status": "HOLD_HIGH_COST_REUSE_ONLY"
+    },
+    {
+      "id": "mc06-persistent-responsive-authorship",
+      "name": "Persistent Responsive Authorship",
+      "anchorMechanics": [
+        "create-edit",
+        "save-revision",
+        "world-state-persistence"
+      ],
+      "supportMechanics": [
+        "self-authored-goal",
+        "responsive-audience-opponent",
+        "hidden-information",
+        "freeform-building"
+      ],
+      "supportedClaims": [
+        "c06",
+        "c16",
+        "r2-c18"
+      ],
+      "unknownCouplings": [
+        "responsive audience -> persistent authorship: validation/deepening vs hijacking self-authored intent",
+        "persistent artifact -> whether later response increases attachment or only optimization"
+      ],
+      "negativeConstraints": [
+        "player must state own intent before receiving audience response",
+        "response cannot be a scalar score only"
+      ],
+      "targetDynamic": "player creates for self-authored intent, receives interpretable but non-authoritative response, and revises a persistent artifact",
+      "cheapestFalsifier": "Extend PGP-I carrier with one persistent artifact across three rounds and one deterministic persona that comments on relational patterns, not numeric score.",
+      "killConditions": [
+        "players revise only to please persona",
+        "self-authored intent disappears after feedback",
+        "persistence adds no later decision consequence"
+      ],
+      "status": "ADMIT_REUSE_CARRIER"
+    },
+    {
+      "id": "mc07-topological-mastery",
+      "name": "Topological Mastery",
+      "anchorMechanics": [
+        "timing-window",
+        "jump",
+        "fast-retry"
+      ],
+      "supportMechanics": [
+        "capacity-limit",
+        "route-network-building",
+        "safe-vs-risky-route",
+        "variable-setup",
+        "immediate-action-feedback"
+      ],
+      "supportedClaims": [
+        "r2-c16",
+        "r2-c26"
+      ],
+      "unknownCouplings": [
+        "topology variation -> motor mastery: richer execution learning vs route-puzzle substitution",
+        "safe/risky route choice -> voluntary mastery escalation vs obvious optimization"
+      ],
+      "negativeConstraints": [
+        "keep verb set fixed",
+        "no meta progression or score reward in primary condition"
+      ],
+      "targetDynamic": "stable movement skill is reinterpreted by bounded topology variations while failure remains self-attributable",
+      "cheapestFalsifier": "Reuse PGP-A three-room carrier; create two matched topology variants that preserve verbs but change safe/fast routing and timing windows.",
+      "killConditions": [
+        "success differences are mostly route discovery",
+        "topology change breaks attribution through collision ambiguity",
+        "players do not voluntarily retry harder line"
+      ],
+      "status": "ADMIT_REUSE_CARRIER"
+    },
+    {
+      "id": "mc08-knowledge-gated-exploration",
+      "name": "Knowledge-Gated Exploration",
+      "anchorMechanics": [
+        "rule-discovery",
+        "shortcut-discovery",
+        "gating-by-knowledge"
+      ],
+      "supportMechanics": [
+        "capacity-limit",
+        "placement-efficiency",
+        "route-network-building",
+        "map-reveal",
+        "required-goal"
+      ],
+      "supportedClaims": [
+        "r2-c26",
+        "r2-c28"
+      ],
+      "unknownCouplings": [
+        "learned world rule -> topology: genuine discovery vs arbitrary designer lock",
+        "objective-bearing placement + knowledge gate -> curiosity vs optimization marker chasing"
+      ],
+      "negativeConstraints": [
+        "no collectible checklist in primary proof",
+        "hidden connection must follow a stable inferable rule"
+      ],
+      "targetDynamic": "player forms a rule/topology hypothesis, applies it to reveal a shortcut, and changes later navigation",
+      "cheapestFalsifier": "4–6 region graybox with two routes, one stable traversal rule, one knowledge-only shortcut and one placement variant that changes route consequence.",
+      "killConditions": [
+        "shortcut is found by pixel hunting",
+        "rule does not alter later navigation",
+        "objective marker dominates curiosity"
+      ],
+      "status": "ADMIT_NEW_MICRO_FALSIFIER"
+    }
+  ],
+  "recommendedFirstWave": [
+    "mc01-epistemic-operations",
+    "mc07-topological-mastery",
+    "mc03-responsive-buildcraft"
+  ],
+  "waveReasoning": {
+    "mc01-epistemic-operations": "reuses an existing causal-investigation carrier and adds a single high-value timing/pressure unknown",
+    "mc07-topological-mastery": "reuses a mechanically validated anti-bias carrier and tests a cross-cluster topology↔mastery edge",
+    "mc03-responsive-buildcraft": "combines two independent structural survivors (buildcraft and responsive-other) with cheap deterministic policy baseline"
+  },
+  "deferred": [
+    "mc05-role-delegated-crisis: evidence-rich but historically administration-heavy; only reuse existing carrier, do not rebuild",
+    "mc02/mc04/mc08: valid new micro-falsifiers after reuse-first wave or in parallel if cheap",
+    "mc06: reuse PGP-I apparatus before authoring anything new"
+  ]
+}
