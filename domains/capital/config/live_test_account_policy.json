@@ -55,7 +55,7 @@
     "withdrawal and transfer operations remain forbidden",
     "any ambiguous dispatch is RETAIN and must reconcile before retry",
     "non-matching validation canaries do not imply authorization for a real matching-engine order",
-    "while orderSubmissionAdmission is NOT_ADMITTED no executor credential path is bound into this policy; read-only observer bindings remain separate"
+    "an executor credential may be bound for capability/currentness qualification while orderSubmissionAdmission is NOT_ADMITTED, but it must not be passed to an order-submitting runner until effect admission is separately granted"
   ],
   "schemaVersion": 1,
   "transferAuthorized": false,
@@ -70,7 +70,15 @@
       "endpointClass": "LIVE",
       "observerCredential": "/root/.config/ordivon/secrets/okx/observer/config.toml",
       "role": "TEST_ACCOUNT_BY_OWNER_POLICY",
-      "executorCredentialBinding": "UNBOUND_NOT_ADMITTED"
+      "executorCredentialBinding": "/root/.config/ordivon/secrets/okx/live-trade/config.toml",
+      "providerBinding": "config/okx_live_provider.json",
+      "qualificationStanding": "PASS_CURRENT_PROVIDER_BINDING_NO_ORDER_ADMISSION",
+      "credentialPermissionEvidence": "evidence/okx-live-provider-binding-20260914.json",
+      "providerReadPermissionCurrent": true,
+      "providerTradePermissionCurrent": true,
+      "providerWithdrawPermissionCurrent": false,
+      "officialClient": "@okx_ai/okx-trade-cli 1.4.7",
+      "executionProvider": "NautilusTrader 2.0.0rc4 OKX LIVE"
     }
   },
   "withdrawalAuthorized": false
