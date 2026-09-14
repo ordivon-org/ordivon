@@ -75,6 +75,7 @@ const preG0StaticFiles: Record<string, { file: string; contentType: string }> = 
   "/pre-g0/": { file: "index.html", contentType: "text/html; charset=utf-8" },
   "/pre-g0/styles.css": { file: "styles.css", contentType: "text/css; charset=utf-8" },
   "/pre-g0/app.js": { file: "app.js", contentType: "text/javascript; charset=utf-8" },
+  "/pre-g0/pgp-a-kernel.js": { file: "pgp-a-kernel.js", contentType: "text/javascript; charset=utf-8" },
 };
 
 const v3StaticFiles: Record<string, { file: string; contentType: string }> = {
