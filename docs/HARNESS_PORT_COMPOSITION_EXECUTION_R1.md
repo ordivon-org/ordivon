@@ -886,3 +886,62 @@ git diff --check PASS
 ```
 
 R7 standing is therefore **VERIFIED FOR ONE LOCAL CLANGD PROVIDER PATH**, not graduated as a universal LSP provider. `pygls` remains an experimental transport donor. The next evidence target is a second language-server/provider path plus lifecycle/diagnostic behavior before fixing any default transport stack or exposing LSP as a public Agent Tool.
+
+## R7 update — second language server confirms adapter portability
+
+Canonical Harness advanced to:
+
+```text
+33a6066 harness: verify second LSP provider path
+```
+
+The already-installed `taplo 0.10.0` server was used as a second provider rather than installing another stack. Taplo advertises rename support and returned a standard `WorkspaceEdit.changes` for TOML key rename:
+
+```text
+name -> title
+```
+
+Taplo did not advertise `positionEncoding`, so the provider path correctly used the LSP default `utf-16` semantics. The same `workspace_edit_to_canonical_plan()` adapter compiled the proposal into one exact canonical edit; Runtime alone committed the physical mutation:
+
+```text
+before:
+sha256:291c2536d2d7fff1c726f0f11b9b286d717eca3b6da650330ed9187a6eade5cd
+
+after:
+sha256:b51243ac16c473ecec65f0718264c65e36d9a5802e5e4ec58910f0b7ec769452
+```
+
+Fifth verified receipt:
+
+```text
+evidence/lsp-r7-taplo-runtime-patch-20260914.json
+payload digest:
+sha256:e8c6fb0040dac7c691373c24b3400d0e843bea7d1da345ce2fe22bc79f19e4b0
+```
+
+R7 provider diversity standing is now:
+
+```text
+clangd 22.1.8 / C++ rename -> VERIFIED
+taplo 0.10.0 / TOML rename -> VERIFIED
+same Harness WorkspaceEdit adapter -> VERIFIED
+same Runtime physical-mutation boundary -> VERIFIED
+```
+
+This closes the question of whether the adapter is clangd-specific.
+
+However the transport question remains deliberately open. During the bare pygls/Taplo probe, Taplo issued `workspace/configuration` and diagnostics traffic that the bare `pygls` LanguageClient probe did not handle. Rename still succeeded, but this is direct evidence that pygls is not lifecycle-complete enough **as used here** to become the default Harness LSP provider stack without a wrapper or comparison against a more complete mature client.
+
+Current Harness acceptance remains:
+
+```text
+467 deterministic tests PASS
+Ruff PASS
+documentation contract PASS
+dependency contract PASS
+evidence contract PASS (80 historical / 5 verified)
+2-provider LSP evidence integrity PASS
+git diff --check PASS
+```
+
+R7 should therefore stop adding language servers. The next work item is provider lifecycle ownership: initialization/configuration, diagnostics, server requests, cancellation/shutdown, and Run/Tool Grant binding. Only after that should Harness choose or admit a production LSP transport/provider dependency.
