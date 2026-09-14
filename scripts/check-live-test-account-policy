@@ -18,6 +18,8 @@ for venue in ('OKX','BINANCE'):
     v=x['venues'][venue]
     assert v['endpointClass']=='LIVE'
     assert v['role']=='TEST_ACCOUNT_BY_OWNER_POLICY'
+    assert v['executorCredentialBinding']=='UNBOUND_NOT_ADMITTED'
+    assert 'executorCredential' not in v
 print(json.dumps({
   'ownerUseMandate':x['ownerUseMandate'],
   'accountQualificationStanding':x['accountQualificationStanding'],
