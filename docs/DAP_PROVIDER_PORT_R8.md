@@ -177,3 +177,55 @@ sha256:e889b292cb021f3a4655f5f0d31c8b1f2abb7d7889b4e0b45bfb4a94dfcd6860
 
 The next ownership experiment is attach to a target whose process lifecycle originates
 from Runtime rather than from GDB.
+
+## Runtime-owned target attach evidence
+
+The ownership split was then tested rather than inferred. Runtime admitted a long-lived
+Job that executed `gdbserver --once` and created the C inferior inside that Runtime Job
+process tree. A separate GDB 17.2 DAP session used:
+
+```text
+attach {
+  program: <exact target binary>,
+  target:  127.0.0.1:<Runtime gdbserver port>
+}
+```
+
+The observed path was:
+
+```text
+Runtime Job creates gdbserver + inferior
+    -> GDB DAP target remote attach
+    -> stopped(reason=attach)
+    -> continue
+    -> stopped(reason=breakpoint) at tick(), line 7
+    -> value=0, next=0
+    -> clear breakpoint
+    -> continue
+    -> inferior prints counter=1000
+    -> exited(code=0) / terminated
+    -> Runtime Job succeeded
+```
+
+This gives a real ownership split:
+
+```text
+processOwner   = runtime
+effectExecutor = dap-provider
+```
+
+It also produced two real stopped epochs. A frame handle bound to the attach stop is
+rejected against the later breakpoint stop, even though a debugger could legally recycle
+integer handle values.
+
+Verified receipt:
+
+```text
+evidence/dap-r8-runtime-owned-attach-20260914.json
+payload digest:
+sha256:6fbcd4e8a34ffacddbd7b96c8a473d3632b0e2632803e531cb1a6f7517c26a64
+```
+
+R8 therefore supports both truthful ownership modes: provider-owned launch and
+Runtime-owned target with provider-executed debugger control. They must remain distinct
+in Run/Tool authority and evidence.

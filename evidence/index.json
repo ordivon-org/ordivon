@@ -692,6 +692,19 @@
         "uv.lock"
       ],
       "scope": "Revision-bound DAP R8 receipt: GDB 17.2 native DAP launched a C inferior, stopped at a breakpoint, exposed stack/scopes/variables, evaluated a+b=5, and continued to termination. GDB/provider owns this target process path; evaluate remains effect-capable and mutation capabilities are not read-only authority."
+    },
+    {
+      "claimId": "harness.dap.r8.runtime-owned-attach",
+      "file": "dap-r8-runtime-owned-attach-20260914.json",
+      "status": "verified",
+      "implementationRevision": "4d6e7163d8ad977423d6c4ecf7c8a78691d3f442",
+      "implementationPaths": [
+        "src/anc_canonical/",
+        "src/ordivon_harness/dap_provider_port.py",
+        "pyproject.toml",
+        "uv.lock"
+      ],
+      "scope": "Revision-bound DAP R8 ownership receipt: Runtime started and owned the gdbserver+inferior Job; GDB 17.2 DAP attached remotely, hit a breakpoint, observed stack/variables, then continued to exit. processOwner=runtime and effectExecutor=dap-provider are physically separated; stop-epoch handle freshness is validated across attach and breakpoint stops."
     }
   ]
 }
