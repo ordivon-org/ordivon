@@ -87,3 +87,29 @@ The first physical cleanup should be repository-neutral and reversible:
 6. repeat the census and require `/root/projects` to represent current work rather than historical ownership.
 
 No architectural authority is created by this census.
+
+## Post-cleanup current-machine addendum — 2026-09-14
+
+The 30-repository table above is the initial census that drove cleanup and is intentionally retained as historical evidence. It is **not** the current `/root/projects` inventory after cleanup waves.
+
+Current physical project-directory count is **15**. Finance has crossed its previously documented retirement gates and is no longer present under `/root/projects`; its complete Git archive and retirement receipts are recorded in `migrations/records/finance-source-retirement-closeout-20260914.md`. The earlier `KEEP — migration hold` Finance row is therefore superseded for current-machine standing.
+
+The current 15 directories are:
+
+- `ordivon-artifact-v2`
+- `ordivon-distribution-v2`
+- `ordivon-game`
+- `ordivon-harness`
+- `ordivon-host-v2`
+- `ordivon-market-capital-next`
+- `ordivon-media`
+- `ordivon-network-v2`
+- `ordivon-next`
+- `ordivon-paper2`
+- `ordivon-research-v2`
+- `ordivon-runtime`
+- `ordivon-security-v2`
+- `ordivon-web`
+- `ordivon-workstation-v2`
+
+The original `ordivon-operations-v2` entry has also been superseded on the active project surface by the separately recorded Workstation-v2 operations-provider cutover. This does not change the three-core rule: Host v2 / Runtime / Harness remain the core primitives; other repositories are domain owners, products, projects or replaceable carriers.

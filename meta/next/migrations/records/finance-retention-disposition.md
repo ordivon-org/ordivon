@@ -1,5 +1,7 @@
 # Finance retention / migration disposition
 
+> **SUPERSEDED BY FINAL SOURCE-RETIREMENT CLOSEOUT — 2026-09-14.** This record remains the historical reason Finance was correctly held while current consumers, executor/recovery consequences, and owner-state responsibilities still depended on it. Those gates were subsequently revalidated and discharged for the **source repository**. Current disposition is `SOURCE_RETIRED / ARCHIVE_PRESERVED / LIVE_RECOVERY_RESIDUAL_SEPARATE`; see `finance-source-retirement-closeout-20260914.md`. The live recovery custody residual is not evidence that the Finance source repository remains a current project.
+
 - Source: `/root/projects/ordivon-finance`
 - Observed Finance revision: `f5f3c96a45d3ef2ea47311dc64ccc96d2877778d`
 - Compared Market Capital Next revision: `33bd58f3ffd9a0425c41a54dd7d7cd336f90ee06`
