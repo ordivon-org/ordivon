@@ -163,6 +163,7 @@ HOST_IF=nv2blph
 NS_IF=nv2blpn
 HOST_ADDR=10.252.246.1/30
 NS_ADDR=10.252.246.2/30
+NS_CIDR=10.252.246.0/30
 HOST_IP=10.252.246.1
 ENDPOINT=$ENDPOINT
 PROFILE=$PROFILE
@@ -175,6 +176,7 @@ awk 'BEGIN{done=0} /^hosts:/{print "hosts: files dns";done=1;next} {print} END{i
   /etc/nsswitch.conf >"/etc/netns/$NS/nsswitch.conf"
 
 for f in "$ROOT"/consumers/browserless/systemd/network-v2-browserless-netns.service \
+         "$ROOT"/consumers/browserless/systemd/network-v2-browserless-forward.service \
          "$ROOT"/consumers/browserless/systemd/network-v2-browserless-wireguard.service \
          "$ROOT"/consumers/browserless/systemd/network-v2-browserless-dns.service \
          "$ROOT"/consumers/browserless/systemd/network-v2-browserless.target; do

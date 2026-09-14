@@ -1,12 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+ENV_FILE=${ENV_FILE:-/etc/network-v2/browserless/provider.env}
+if [ -f "$ENV_FILE" ]; then
+  set -a
+  . "$ENV_FILE"
+  set +a
+fi
 NS=${NS:-nv2-browserless-prod}
 WG_IF=${WG_IF:-nv2blwg}
-for unit in network-v2-browserless.target network-v2-browserless-netns.service network-v2-browserless-wireguard.service network-v2-browserless-dns.service; do
+HOST_IF=${HOST_IF:-nv2blph}
+NS_CIDR=${NS_CIDR:-10.252.246.0/30}
+FORWARD_COMMENT=network-v2-browserless-forward-v1
+for unit in network-v2-browserless.target network-v2-browserless-netns.service network-v2-browserless-forward.service network-v2-browserless-wireguard.service network-v2-browserless-dns.service; do
   test "$(systemctl is-active "$unit")" = active
 done
 ip netns list | awk '{print $1}' | grep -qx "$NS"
+iptables-legacy -C FORWARD -i "$HOST_IF" -s "$NS_CIDR" -m comment --comment "$FORWARD_COMMENT" -j ACCEPT
+iptables-legacy -C FORWARD -o "$HOST_IF" -d "$NS_CIDR" -m conntrack --ctstate RELATED,ESTABLISHED -m comment --comment "$FORWARD_COMMENT" -j ACCEPT
 
 handshake_age=999999
 for _ in $(seq 1 24); do
