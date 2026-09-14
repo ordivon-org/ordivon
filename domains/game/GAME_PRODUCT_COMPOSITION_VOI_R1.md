@@ -1,6 +1,7 @@
 # First Formal Game — Post-F0 Product Composition Value of Information R1
 
-Status: **DECISION ACTIVE / PRE-G0 / PRODUCT NOT SELECTED**  
+Status: **DECISION ACTIVE / PRE-G0 / PRODUCT NOT SELECTED**
+
 Observed: 2026-09-14
 
 ## Decision question
