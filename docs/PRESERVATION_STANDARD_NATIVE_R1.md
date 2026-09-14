@@ -11,11 +11,13 @@ Forward boundaries:
 ```text
 domain owner
   -> accepted object + exact authoritative bytes
-  -> PAIMAS/PAIS-informed submission agreement/profile
-  -> E-ARK SIP 2.2.0
-  -> Commons-IP validation
-  -> preservation provider
-  -> provider-native PREMIS/METS/AIP/fixity/replication/recovery evidence
+       |
+       +-> PAIMAS/PAIS-informed external submission profile
+       |    -> E-ARK SIP 2.2.0 -> Commons-IP validation
+       |
+       +-> provider-native preservation intake
+            -> Archivematica standard transfer
+            -> provider-native PREMIS/METS/AIP/fixity/replication/recovery evidence
 ```
 
 Historical `R4/R5/R6/R7` and `ACCEPTED_BOUNDED` labels remain valid only as engineering migration/graduation history. They do not state an NDSA Level, DPC RAM maturity score, CoreTrustSeal standing or repository certification.
@@ -37,13 +39,14 @@ This proves E-ARK/Commons-IP is sufficient for the forward package/interchange s
 
 ## Adapter boundary
 
-Archivematica 1.18's currently graduated local intake still uses a BagIt/ZIP transfer adapter. Therefore:
+Archivematica 1.18 natively supports an ordinary directory `standardTransfer`. Therefore the forward path does not require an E-ARK-to-Archivematica conversion layer:
 
-- **E-ARK SIP** = canonical external submission/interchange profile;
-- **BagIt/ZIP** = current Archivematica engine adapter/transport;
-- no claim is made that the current production Archivematica intake is directly E-ARK-native.
+- **E-ARK SIP** = canonical external submission/interchange profile, created/validated when an interoperable package is required;
+- **Archivematica standard transfer** = current local provider-native preservation intake over the same exact authoritative bytes;
+- **BagIt** = provider-internal/engine transport and AIP packaging concern;
+- no claim is made that Archivematica directly ingests E-ARK SIP.
 
-Do not extend the old custom handoff receipt into a package ontology. It may remain historical evidence and an owner-domain index to exact bytes.
+Do not extend the old custom handoff receipt into a package ontology and do not create a private E-ARK-to-Archivematica converter.
 
 ## Maturity assessment boundary
 
