@@ -219,19 +219,36 @@ def write_receipt(path: Path, value: dict[str, Any]) -> None:
     os.replace(temp, path)
 
 
+def owner_root_suffixes(owner: str) -> tuple[str, ...]:
+    suffixes = [f"/owner-capsule-{owner}"]
+    if owner == "finance":
+        suffixes.append("/finance-recovery-custody")
+    return tuple(suffixes)
+
+
 def restored_owner_root(target: Path, owner: str) -> Path:
-    matches = sorted(target.rglob(f"owner-capsule-{owner}/transport.json"))
+    matches: list[Path] = []
+    for suffix in owner_root_suffixes(owner):
+        matches.extend(target.rglob(suffix.lstrip("/") + "/transport.json"))
+    matches = sorted(set(matches))
     if len(matches) != 1:
         raise RuntimeError(f"expected one restored owner capsule transport manifest for {owner}, found {len(matches)}")
     return matches[0].parent
+
+
+def allowed_transport_kinds(owner: str) -> set[str]:
+    kinds = {"ordivon.workstation.owner-capsule-transport.v1"}
+    if owner == "finance":
+        kinds.add("ordivon.workstation.finance-recovery-transport.v0")
+    return kinds
 
 
 def verify_restored_snapshot(cfg: dict[str, Any], snapshot_id: str, *, exporter: Path) -> dict[str, Any]:
     owner = str(cfg["owner"])
     metadata = snapshot_metadata(cfg, snapshot_id)
     paths = [str(item) for item in metadata.get("paths", [])]
-    suffix = f"/owner-capsule-{owner}"
-    roots = [item.rstrip("/") for item in paths if item.rstrip("/").endswith(suffix)]
+    suffixes = owner_root_suffixes(owner)
+    roots = [item.rstrip("/") for item in paths if any(item.rstrip("/").endswith(suffix) for suffix in suffixes)]
     if len(roots) != 1:
         raise RuntimeError(f"expected one {owner} capsule root in snapshot metadata, found {roots}")
     prefix = roots[0]
@@ -245,7 +262,7 @@ def verify_restored_snapshot(cfg: dict[str, Any], snapshot_id: str, *, exporter:
         transport_path = root / "transport.json"
         transport_bytes = transport_path.read_bytes()
         transport = json.loads(transport_bytes)
-        if transport.get("kind") != "ordivon.workstation.owner-capsule-transport.v1" or transport.get("owner") != owner:
+        if transport.get("kind") not in allowed_transport_kinds(owner) or transport.get("owner") != owner:
             raise RuntimeError("restored owner capsule transport manifest mismatch")
         capsule = root / "capsule"
         tree = capsule_tree(capsule)
@@ -255,6 +272,7 @@ def verify_restored_snapshot(cfg: dict[str, Any], snapshot_id: str, *, exporter:
         owner_verify = checked([str(exporter), "--verify", str(capsule)], timeout=int(cfg["restore_timeout_seconds"]))
         return {
             "snapshotId": snapshot_id,
+            "transportKind": str(transport.get("kind")),
             "transportManifestSha256": sha256_bytes(transport_bytes),
             "capsuleTreeSha256": tree["treeSha256"],
             "capsuleFiles": tree["files"],

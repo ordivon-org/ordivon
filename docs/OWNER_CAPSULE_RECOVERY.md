@@ -28,4 +28,4 @@ All three paths serialize on `/run/lock/ordivon-semantic-recovery.lock`, shared 
 
 `owner_capsules.finance` in `recovery/recovery.toml` points to the already admitted state-compatible Finance recovery exporter and the existing Restic repository/snapshot tag. No credential contents live in the repository; the config names only the root-only password-file path.
 
-The successor must pass a real backup/read-back and exact isolated restore test before the historical `ordivon-finance-recovery-custody.*` timer/helper/config are retired. Historical snapshots remain in the same Restic repository and are not rewritten.
+The successor must pass a real backup/read-back and exact isolated restore test before the historical `ordivon-finance-recovery-custody.*` timer/helper/config are retired. Historical snapshots remain in the same Restic repository and are not rewritten. The current Finance reader also accepts the historical `ordivon.workstation.finance-recovery-transport.v0` envelope and legacy `finance-recovery-custody` root for restore-only compatibility; all new writes remain the generic v1 owner-capsule format.
