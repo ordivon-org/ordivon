@@ -585,3 +585,82 @@ git diff --check PASS
 ```
 
 The default public Agent Tool surface remains unchanged. The remaining R2 work is now narrower: live Provider/model A/B trials, measured per-model codec profiles, a mature conventional-patch donor if justified, and later LSP `WorkspaceEdit` lowering through the same canonical edit boundary.
+
+## R2 update — first live model/task profile recorded
+
+Canonical Harness advanced again:
+
+```text
+6126ad2 harness: record adaptive edit live profile
+```
+
+The internal edit mechanism is now past deterministic-only validation. Harness records one revision-bound live profile for:
+
+```text
+provider/model:      deepseek / deepseek-flash
+task:                HARNESS-REPO-REPAIR-001
+max model calls:     6
+max tool calls:      8
+max total tokens:    64,000
+replicates/codec:    5
+```
+
+Corrected equal-authority outcomes:
+
+```text
+exact-replacement-v1:
+  hidden verifier       5/5
+  candidate_completed   5/5
+  rejected observations 0
+  total model calls     22
+  total tool calls      27
+  total tokens          89,864
+
+anchored-line-v1:
+  hidden verifier       4/5
+  candidate_completed   3/5
+  rejected observations 1
+  total model calls     26
+  total tool calls      33
+  total tokens          114,992
+```
+
+Therefore the current profile standing is intentionally narrow:
+
+```text
+deepseek-flash + HARNESS-REPO-REPAIR-001 + 2026-09-14
+    -> provisional preferred codec: exact-replacement-v1
+```
+
+This does **not** authorize a global exact-replacement default. The deterministic repeated-text falsifier remains decisive evidence for retaining anchored addressing: exact replacement must fail closed when the target text is ambiguous, while anchored addressing can identify the intended repeated line.
+
+The primary live evidence is registered in canonical Harness as a verified receipt bound to implementation revision `33ac4a891441c565371767f02905361dd1d5fe55`:
+
+```text
+evidence/adaptive-edit-r2-live-ab-deepseek-flash-20260914.json
+payload digest:
+sha256:e36864e2487a555289cfb0df0481b3c8c00ad9d4a7cf7593ca298f20082ea0ec
+```
+
+A preceding 24k-token pilot is explicitly non-primary because Harness's conservative Provider request-token upper-bound gate prevented the fourth Provider turn for both treatments. The corrected 64k run set is the treatment evidence.
+
+One isolated DeepSeek finish-reason inconsistency was retained as an anomaly without weakening the Adapter invariant; subsequent wire-shape and formal Adapter probes were normal.
+
+Current Harness regression standing after the live-profile landing:
+
+```text
+448 deterministic tests PASS
+Ruff PASS
+documentation contract PASS
+dependency contract PASS
+evidence contract PASS (80 historical / 1 verified)
+git diff --check PASS
+```
+
+R2 is now **REALIZED FOR THE FIRST INTERNAL AGENT-FACING EDIT DONOR AND ONE LIVE MODEL/TASK PROFILE**, but not graduated as a universal edit-selection layer. Remaining evidence pressure is:
+
+1. additional task families, especially repeated-target and multi-region edits;
+2. additional model/provider profiles;
+3. mature conventional-patch donor evaluation only if it earns the same canonical boundary;
+4. LSP `WorkspaceEdit -> CanonicalEditPlan -> Runtime Patch` lowering;
+5. automatic codec selection only after profile evidence plus structural applicability checks justify it.
