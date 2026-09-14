@@ -1,6 +1,6 @@
 # CS2-03 — Upstream-Random Buildcraft Falsifier
 
-Status: **APPARATUS / HUMAN EVIDENCE UNOBSERVED**
+Status: **COMPUTATIONAL EVALUATION LOOP ACTIVE / HUMAN-SPECIFIC CLAIMS OPTIONAL**
 
 ## Claim under test
 
@@ -44,52 +44,63 @@ python experiments/composition-r2/cs2-03-upstream-random-buildcraft/scripts/stru
 
 The carrier is admitted only if it shows build-path diversity, no universal first choice/build dominance, measurable context-adaptation value, and global path reasoning value over immediate greed.
 
-## Pre-Human browser gate
+## Automated browser gate
 
-Before spending Human attention, run two separate browser checks:
+The browser apparatus is mechanically checked before it is used as an interaction carrier:
 
-1. **Playwright** owns the complete deterministic 4×4 mechanical regression, reflections and JSON export;
-2. **Browser Use** owns a bounded agentic perception/action probe through the accessibility tree and CDP.
+1. **Playwright** owns the complete deterministic 4×4 regression, reflections and JSON export;
+2. **Browser Use** owns a bounded agentic perception/action probe through accessibility state and CDP.
 
-Reusable scripts:
+These are ordinary automated verification/evaluation tools. The historical `pre-Human` naming is retained only in file names and evidence lineage; no Human handoff is required after they pass.
 
-```bash
-python experiments/composition-r2/cs2-03-upstream-random-buildcraft/scripts/prehuman_playwright_gate.py \
-  --chromium /path/to/authorized/chromium
+## Computational Player Science R1
 
-BU_CDP_URL=http://127.0.0.1:<authorized-port> \
-  experiments/composition-r2/cs2-03-upstream-random-buildcraft/scripts/prehuman_browser_use_probe.sh
+The current evaluation path is [`COMPUTATIONAL_PLAYER_SCIENCE_R1.md`](COMPUTATIONAL_PLAYER_SCIENCE_R1.md):
+
+```text
+procedural player population
+→ paired UPSTREAM/DOWNSTREAM counterfactual simulation
+→ persona-balanced causal estimand
+→ bootstrap / heterogeneity / uncertainty diagnostics
+→ surrogate model
+→ expected-information-gain experiment selection
+→ direct follow-up simulation
+→ surrogate replacement/update
+↺
 ```
 
-Current standing is `PASS_PREHUMAN_BROWSER_GATE`; see `human/PREHUMAN_BROWSER_GATE_R1.md` and `evidence/acceptance/game-cs2-03-prehuman-browser-gate-20260914.json`.
+Current result:
 
-This gate is explicitly **NONHUMAN** and cannot establish Player Value or condition superiority.
-
-## Human run
-
-```bash
-python -m http.server 8765 -d experiments/composition-r2/cs2-03-upstream-random-buildcraft
+```text
+Persona-balanced score ATE   +0.282
+95% CI                       [-0.600, +1.179]
+Positive persona effects      50%
+Random baseline effect         0.000
+Standing                      MIXED / PLAYER-MODEL DEPENDENT
 ```
 
-Then open `/web/` in a browser. A complete pilot is 16 picks across four short runs plus four brief reflections. Export the session JSON at the end.
+The first polynomial surrogate was deliberately rejected as weak (`R²=0.625`). High-EIG direct follow-up exposed large prediction errors. A Gaussian-process replacement on the same frozen independent test set reaches `R²=0.819`, `MAE=0.295`, and remains explicitly local to the declared synthetic-player envelope.
 
-## Human measures
+## Optional claim-specific Human observation
 
-Per run:
+The browser study and historical C0 worksheet remain available only when a concrete decision requires a Human-specific observation such as one person's felt agency or preference.
 
-- choice attribution;
-- perceived adaptation;
-- causal understanding;
-- voluntary retry;
-- free-text strategy/model revision.
+```text
+Human-specific claim unknown
+!=
+workflow blocked
+```
 
-## Kill conditions
+No Human session is required for Composition Search, causal mechanism evaluation, synthetic-player modeling, surrogate learning, product-form exploration, or later engineering work.
 
-- upstream-information condition produces equal/worse attribution and adaptation;
-- revealed encounter information does not change strategy;
-- build intent is overwhelmed by encounter randomness;
-- greedy/local choice performs equivalently to path-aware reasoning;
-- Human evidence shows no meaningful strategy/model revision.
+## Computational kill / revision conditions
+
+- the treatment effect is zero/negative across the decision-relevant modeled population;
+- effects reverse strongly across plausible player models and the product cannot target the relevant class;
+- information timing changes actions but not decision-relevant consequences;
+- the player-model result is dominated by unbounded model-form uncertainty;
+- surrogate predictions fail frozen tests or active-learning follow-up;
+- a cheaper alternative coupling explains the same desired dynamics.
 
 ## Boundary
 

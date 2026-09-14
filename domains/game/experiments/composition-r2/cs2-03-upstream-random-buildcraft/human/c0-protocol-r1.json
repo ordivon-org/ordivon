@@ -4,7 +4,9 @@
   "date": "2026-09-14",
   "candidate": "cs2-03-upstream-random-buildcraft",
   "stage": "C0_APPARATUS_CANARY",
-  "purpose": "Establish that one real human can understand and exercise the bounded apparatus and produce condition-bound session evidence without an apparatus or legibility defect preventing the intended comparison.",
+  "lifecycle": "OPTIONAL_CLAIM_SPECIFIC_CALIBRATION_NOT_A_WORKFLOW_GATE",
+  "supersession": "Computational Player Science R1 removes C0/C1 as mandatory progression gates. This protocol remains available only when a concrete Human-specific claim or calibration question requires it.",
+  "purpose": "Optionally obtain one bounded Human observation when a Human-specific claim actually matters. Mechanical/browser admission is now owned by automated gates and computational mechanism research does not wait on this protocol.",
   "notAuthorized": [
     "mechanism success claim",
     "UPSTREAM vs DOWNSTREAM superiority claim",
@@ -41,6 +43,6 @@
   ],
   "admissionRule": "C0 passes only when the apparatus is mechanically and perceptually usable enough to exercise the declared information-timing manipulation and produce a complete export. Ratings or strategy text must not be interpreted as mechanism success at C0.",
   "repairRule": "Only apparatus, legibility, pacing, wording or export defects may be repaired under the same C0 protocol. Any change to the Player Value claim, information-timing manipulation, scoring, offer structure or core build rules requires a new protocol revision.",
-  "nextIfPass": "Preserve the C0 package, keep Human mechanism standing UNASSESSED, and proceed to mechanism-appropriate multi-session Human evidence before directional narrowing.",
-  "nextIfFail": "Record APPARATUS_DEFECT, repair only within the repair rule, and rerun C0."
+  "nextIfPass": "Preserve the bounded Human observation only for the exact claim it answers. Continue the computational loop independently; no mandatory multi-session Human progression follows.",
+  "nextIfFail": "Record only the failed Human-observation apparatus/calibration episode. Computational mechanism research remains unblocked unless a concrete current decision explicitly depends on that Human-specific claim."
 }

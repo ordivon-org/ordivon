@@ -1,0 +1,362 @@
+{
+  "schemaVersion": 1,
+  "kind": "cs2-03-computational-player-science-r1",
+  "experiment": "cs2-03-upstream-random-buildcraft",
+  "standing": "MIXED_OR_INCONCLUSIVE_IN_DECLARED_SYNTHETIC_PLAYER_ENVELOPE",
+  "estimand": {
+    "treatment": "UPSTREAM current-encounter information available before choice",
+    "control": "DOWNSTREAM current-encounter information revealed after choice",
+    "population": "equal-weighted declared procedural persona families; encounter sequences exhaustively enumerated; stochastic policy draws paired by common random numbers",
+    "outcome": "total modeled run score",
+    "primary": "persona-balanced paired average treatment effect (UPSTREAM - DOWNSTREAM)"
+  },
+  "design": {
+    "personaFamilies": 10,
+    "encounterSequences": 625,
+    "stochasticReplicatesPerSequencePersona": 16,
+    "pairedCounterfactual": true,
+    "commonRandomNumbers": true
+  },
+  "primaryEffect": {
+    "personaBalancedScoreATE": 0.28167999999999993,
+    "twoStageBootstrap95CI": [
+      -0.6004872500000001,
+      1.179498750000001
+    ],
+    "personaEffectSignAgreement": 0.5,
+    "worstPersonaEffect": -2.0396,
+    "bestPersonaEffect": 2.9768,
+    "randomBaselineEffect": 0.0
+  },
+  "personas": [
+    {
+      "id": "adaptive-planner",
+      "params": {
+        "infoUse": 1.0,
+        "foresight": 0.9,
+        "riskAversion": 0.15,
+        "synergyBias": 0.35,
+        "balanceBias": 0.15,
+        "habitBias": 0.05,
+        "temperature": 0.08
+      },
+      "special": null,
+      "pairedScoreATE": -0.0337,
+      "pairedScoreATE95BootstrapCI": [
+        -1.126955,
+        1.0378275
+      ],
+      "contextResponsiveChoiceRate": 0.4816,
+      "meanWithinSequenceAleatoryVariance": 1.4415266666666666,
+      "betweenSequenceEffectVariance": 184.38735282451924,
+      "upstreamMeanScore": 71.5663,
+      "downstreamMeanScore": 71.6,
+      "upstreamChoiceEntropy": 0.8418867169877982,
+      "downstreamChoiceEntropy": 0.0,
+      "upstreamPathDiversity": 0.654320987654321,
+      "downstreamPathDiversity": 0.012345679012345678
+    },
+    {
+      "id": "myopic-adapter",
+      "params": {
+        "infoUse": 1.0,
+        "foresight": 0.1,
+        "riskAversion": 0.05,
+        "synergyBias": 0.1,
+        "balanceBias": 0.05,
+        "habitBias": 0.0,
+        "temperature": 0.12
+      },
+      "special": null,
+      "pairedScoreATE": -2.0396,
+      "pairedScoreATE95BootstrapCI": [
+        -3.2413024999999998,
+        -0.8334475000000003
+      ],
+      "contextResponsiveChoiceRate": 0.5923,
+      "meanWithinSequenceAleatoryVariance": 3.0029199999999996,
+      "betweenSequenceEffectVariance": 228.29426516426278,
+      "upstreamMeanScore": 69.5604,
+      "downstreamMeanScore": 71.6,
+      "upstreamChoiceEntropy": 0.9777336303659987,
+      "downstreamChoiceEntropy": 0.0,
+      "upstreamPathDiversity": 0.9753086419753086,
+      "downstreamPathDiversity": 0.012345679012345678
+    },
+    {
+      "id": "cautious-generalist",
+      "params": {
+        "infoUse": 0.8,
+        "foresight": 0.55,
+        "riskAversion": 0.9,
+        "synergyBias": 0.2,
+        "balanceBias": 0.9,
+        "habitBias": 0.05,
+        "temperature": 0.18
+      },
+      "special": null,
+      "pairedScoreATE": 0.9481,
+      "pairedScoreATE95BootstrapCI": [
+        0.2262,
+        1.6825099999999993
+      ],
+      "contextResponsiveChoiceRate": 0.4872,
+      "meanWithinSequenceAleatoryVariance": 18.905113333333333,
+      "betweenSequenceEffectVariance": 80.00286722756411,
+      "upstreamMeanScore": 70.487,
+      "downstreamMeanScore": 69.5389,
+      "upstreamChoiceEntropy": 0.8428958451442282,
+      "downstreamChoiceEntropy": 0.058092291161006594,
+      "upstreamPathDiversity": 0.5185185185185185,
+      "downstreamPathDiversity": 0.037037037037037035
+    },
+    {
+      "id": "combo-builder",
+      "params": {
+        "infoUse": 0.6,
+        "foresight": 0.65,
+        "riskAversion": 0.15,
+        "synergyBias": 1.0,
+        "balanceBias": 0.1,
+        "habitBias": 0.1,
+        "temperature": 0.16
+      },
+      "special": null,
+      "pairedScoreATE": 0.6653,
+      "pairedScoreATE95BootstrapCI": [
+        -0.07741999999999999,
+        1.4611799999999997
+      ],
+      "contextResponsiveChoiceRate": 0.27405,
+      "meanWithinSequenceAleatoryVariance": 18.28534,
+      "betweenSequenceEffectVariance": 93.45149204727564,
+      "upstreamMeanScore": 72.2653,
+      "downstreamMeanScore": 71.6,
+      "upstreamChoiceEntropy": 0.6184085923454574,
+      "downstreamChoiceEntropy": 0.0,
+      "upstreamPathDiversity": 0.20987654320987653,
+      "downstreamPathDiversity": 0.012345679012345678
+    },
+    {
+      "id": "habitual-specialist",
+      "params": {
+        "infoUse": 0.3,
+        "foresight": 0.35,
+        "riskAversion": 0.1,
+        "synergyBias": 0.25,
+        "balanceBias": 0.0,
+        "habitBias": 1.0,
+        "temperature": 0.2
+      },
+      "special": null,
+      "pairedScoreATE": -0.0573,
+      "pairedScoreATE95BootstrapCI": [
+        -0.131605,
+        0.01760749999999996
+      ],
+      "contextResponsiveChoiceRate": 0.013475,
+      "meanWithinSequenceAleatoryVariance": 8.011259999999998,
+      "betweenSequenceEffectVariance": 0.9513826722756409,
+      "upstreamMeanScore": 71.5427,
+      "downstreamMeanScore": 71.6,
+      "upstreamChoiceEntropy": 0.06933495239750379,
+      "downstreamChoiceEntropy": 0.0,
+      "upstreamPathDiversity": 0.16049382716049382,
+      "downstreamPathDiversity": 0.012345679012345678
+    },
+    {
+      "id": "noisy-novice",
+      "params": {
+        "infoUse": 0.35,
+        "foresight": 0.1,
+        "riskAversion": 0.2,
+        "synergyBias": 0.1,
+        "balanceBias": 0.15,
+        "habitBias": 0.15,
+        "temperature": 1.25
+      },
+      "special": null,
+      "pairedScoreATE": 2.9768,
+      "pairedScoreATE95BootstrapCI": [
+        2.64868,
+        3.318405
+      ],
+      "contextResponsiveChoiceRate": 0.292475,
+      "meanWithinSequenceAleatoryVariance": 98.5188,
+      "betweenSequenceEffectVariance": 18.814990745192308,
+      "upstreamMeanScore": 67.8035,
+      "downstreamMeanScore": 64.8267,
+      "upstreamChoiceEntropy": 0.843657655217676,
+      "downstreamChoiceEntropy": 0.7595188303437374,
+      "upstreamPathDiversity": 0.9259259259259259,
+      "downstreamPathDiversity": 0.9135802469135802
+    },
+    {
+      "id": "low-attention",
+      "params": {
+        "infoUse": 0.15,
+        "foresight": 0.25,
+        "riskAversion": 0.15,
+        "synergyBias": 0.15,
+        "balanceBias": 0.2,
+        "habitBias": 0.45,
+        "temperature": 0.7
+      },
+      "special": null,
+      "pairedScoreATE": 0.5392,
+      "pairedScoreATE95BootstrapCI": [
+        0.3865975,
+        0.6887125
+      ],
+      "contextResponsiveChoiceRate": 0.07305,
+      "meanWithinSequenceAleatoryVariance": 30.56424,
+      "betweenSequenceEffectVariance": 3.649727924679487,
+      "upstreamMeanScore": 70.6466,
+      "downstreamMeanScore": 70.1074,
+      "upstreamChoiceEntropy": 0.35277325383534186,
+      "downstreamChoiceEntropy": 0.30110630681759626,
+      "upstreamPathDiversity": 0.6172839506172839,
+      "downstreamPathDiversity": 0.5555555555555556
+    },
+    {
+      "id": "expected-value-planner",
+      "params": {
+        "infoUse": 0.7,
+        "foresight": 1.0,
+        "riskAversion": 0.05,
+        "synergyBias": 0.3,
+        "balanceBias": 0.1,
+        "habitBias": 0.0,
+        "temperature": 0.1
+      },
+      "special": null,
+      "pairedScoreATE": 1.4996,
+      "pairedScoreATE95BootstrapCI": [
+        0.8297924999999999,
+        2.2144424999999996
+      ],
+      "contextResponsiveChoiceRate": 0.28165,
+      "meanWithinSequenceAleatoryVariance": 15.935773333333334,
+      "betweenSequenceEffectVariance": 74.77705562900643,
+      "upstreamMeanScore": 73.0996,
+      "downstreamMeanScore": 71.6,
+      "upstreamChoiceEntropy": 0.6117898047083584,
+      "downstreamChoiceEntropy": 0.0,
+      "upstreamPathDiversity": 0.37037037037037035,
+      "downstreamPathDiversity": 0.012345679012345678
+    },
+    {
+      "id": "opportunist",
+      "params": {
+        "infoUse": 0.9,
+        "foresight": 0.3,
+        "riskAversion": 0.0,
+        "synergyBias": 0.15,
+        "balanceBias": 0.0,
+        "habitBias": 0.0,
+        "temperature": 0.25
+      },
+      "special": null,
+      "pairedScoreATE": -1.6816,
+      "pairedScoreATE95BootstrapCI": [
+        -2.7903274999999996,
+        -0.49527500000000013
+      ],
+      "contextResponsiveChoiceRate": 0.574375,
+      "meanWithinSequenceAleatoryVariance": 5.677720000000001,
+      "betweenSequenceEffectVariance": 219.46129701522435,
+      "upstreamMeanScore": 69.8991,
+      "downstreamMeanScore": 71.5807,
+      "upstreamChoiceEntropy": 0.9699805510868441,
+      "downstreamChoiceEntropy": 0.013175759240867835,
+      "upstreamPathDiversity": 0.9629629629629629,
+      "downstreamPathDiversity": 0.06172839506172839
+    },
+    {
+      "id": "random-baseline",
+      "params": {
+        "infoUse": 0.0,
+        "foresight": 0.0,
+        "riskAversion": 0.0,
+        "synergyBias": 0.0,
+        "balanceBias": 0.0,
+        "habitBias": 0.0,
+        "temperature": 1.5
+      },
+      "special": "random",
+      "pairedScoreATE": 0.0,
+      "pairedScoreATE95BootstrapCI": [
+        0.0,
+        0.0
+      ],
+      "contextResponsiveChoiceRate": 0.0,
+      "meanWithinSequenceAleatoryVariance": 0.0,
+      "betweenSequenceEffectVariance": 0.0,
+      "upstreamMeanScore": 54.6759,
+      "downstreamMeanScore": 54.6759,
+      "upstreamChoiceEntropy": 0.9999572339088403,
+      "downstreamChoiceEntropy": 0.9999572339088403,
+      "upstreamPathDiversity": 1.0,
+      "downstreamPathDiversity": 1.0
+    }
+  ],
+  "measurementModel": {
+    "schemaVersion": 1,
+    "id": "cs2-03-player-value-measurement-r1",
+    "principle": "Latent player value is not identified by one metric. R1 preserves observable indicators and claim ceilings instead of inventing a universal scalar fun score.",
+    "constructs": {
+      "strategicAdaptation": {
+        "standing": "COMPUTATIONAL_SURROGATE",
+        "indicators": [
+          "pairedScoreUplift",
+          "pairedRegretReduction",
+          "contextResponsiveChoiceRate"
+        ],
+        "interpretation": "Whether usable information changes decisions in ways that improve modeled task performance."
+      },
+      "meaningfulChoicePotential": {
+        "standing": "STRUCTURAL_COMPUTATIONAL",
+        "indicators": [
+          "choiceEntropy",
+          "pathDiversity",
+          "counterfactualChoiceSensitivity"
+        ],
+        "interpretation": "Whether context can causally alter available decisions without one path dominating the modeled population."
+      },
+      "robustnessAcrossPlayerModels": {
+        "standing": "COMPUTATIONAL",
+        "indicators": [
+          "personaEffectDispersion",
+          "effectSignAgreement",
+          "worstPersonaEffect"
+        ],
+        "interpretation": "Whether a mechanism effect survives materially different modeled decision styles."
+      },
+      "humanFeltAgency": {
+        "standing": "NOT_DIRECTLY_IDENTIFIED",
+        "indicators": [],
+        "interpretation": "May be informed by future calibrated surrogates or external observations; never inferred directly from R1."
+      },
+      "humanEnjoyment": {
+        "standing": "NOT_DIRECTLY_IDENTIFIED",
+        "indicators": [],
+        "interpretation": "No mandatory Human gate follows from this unknown."
+      },
+      "humanReplayDesire": {
+        "standing": "NOT_DIRECTLY_IDENTIFIED",
+        "indicators": [],
+        "interpretation": "No mandatory Human gate follows from this unknown."
+      }
+    },
+    "decisionRule": "Computational indicators may support mechanism-search decisions inside their declared estimand. They do not inherit Human-specific semantics without calibration evidence."
+  },
+  "uncertaintyDiagnostics": {
+    "note": "Diagnostics are distinct variance views, not an asserted additive variance decomposition.",
+    "betweenPersonaEffectVariance": 2.104569135111111,
+    "meanBetweenSequenceEffectVariance": 90.37904312499998,
+    "meanWithinSequenceAleatoryVariance": 20.03426933333333,
+    "humanPopulationCalibrationUncertainty": "UNQUANTIFIED_HIGH_NO_DIRECT_CALIBRATION_IN_R1",
+    "modelFormUncertainty": "PARTIALLY_PROBED_BY_PERSONA_HETEROGENEITY_ONLY"
+  },
+  "claimBoundary": "This result estimates causal performance effects inside the declared synthetic player-model envelope. It does not establish Human enjoyment, felt agency, preference, retention, or population prevalence."
+}

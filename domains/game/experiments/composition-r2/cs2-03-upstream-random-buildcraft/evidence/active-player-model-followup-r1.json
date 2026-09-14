@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "kind": "cs2-03-active-player-model-followup-r1",
+  "selectionSourceStanding": "WEAK_LOCAL_SURROGATE",
+  "criterion": "Gaussian linear-model one-observation expected information gain = 0.5*log(1 + epistemicVariance/residualNoiseVariance)",
+  "selectedCount": 8,
+  "directReplicatesPerSequence": 12,
+  "encounterSequencesPerProfile": 625,
+  "observations": [
+    {
+      "rank": 1,
+      "params": {
+        "infoUse": 0.17398601583019635,
+        "foresight": 0.9526779688137043,
+        "riskAversion": 0.998200922866962,
+        "synergyBias": 0.9433157454277636,
+        "balanceBias": 0.9199602529340716,
+        "habitBias": 0.17092126171796052,
+        "temperature": 0.09296895105819378
+      },
+      "expectedInformationGainNats": 0.757076122328517,
+      "surrogatePredictedScoreATE": 1.907850777352264,
+      "directSimulatedScoreATE": 3.158,
+      "predictionError": 1.250149222647736,
+      "absolutePredictionError": 1.250149222647736
+    },
+    {
+      "rank": 2,
+      "params": {
+        "infoUse": 0.9413724208652533,
+        "foresight": 0.7265212876508803,
+        "riskAversion": 0.015758182419443628,
+        "synergyBias": 0.19562071811474424,
+        "balanceBias": 0.05934682459173619,
+        "habitBias": 0.917847044640323,
+        "temperature": 1.4087504382230096
+      },
+      "expectedInformationGainNats": 0.7135730870169337,
+      "surrogatePredictedScoreATE": 1.6919814440097751,
+      "directSimulatedScoreATE": 2.3996,
+      "predictionError": 0.7076185559902248,
+      "absolutePredictionError": 0.7076185559902248
+    },
+    {
+      "rank": 3,
+      "params": {
+        "infoUse": 0.9481687054613577,
+        "foresight": 0.8606753871977564,
+        "riskAversion": 0.9038483905739018,
+        "synergyBias": 0.9209129800691527,
+        "balanceBias": 0.8201081610789792,
+        "habitBias": 0.11473008517671152,
+        "temperature": 0.4345780325329065
+      },
+      "expectedInformationGainNats": 0.7128418718815644,
+      "surrogatePredictedScoreATE": 0.06706932477315833,
+      "directSimulatedScoreATE": 2.0872,
+      "predictionError": 2.020130675226842,
+      "absolutePredictionError": 2.020130675226842
+    },
+    {
+      "rank": 4,
+      "params": {
+        "infoUse": 0.18171909788445725,
+        "foresight": 0.012195668741925634,
+        "riskAversion": 0.017337695062880333,
+        "synergyBias": 0.18316549183212022,
+        "balanceBias": 0.919410400712801,
+        "habitBias": 0.9722699928388769,
+        "temperature": 0.36649858895817283
+      },
+      "expectedInformationGainNats": 0.701764965904556,
+      "surrogatePredictedScoreATE": 0.5498342309317192,
+      "directSimulatedScoreATE": -0.0128,
+      "predictionError": -0.5626342309317193,
+      "absolutePredictionError": 0.5626342309317193
+    },
+    {
+      "rank": 5,
+      "params": {
+        "infoUse": 0.02098109613783124,
+        "foresight": 0.8616806156360336,
+        "riskAversion": 0.10679198354624272,
+        "synergyBias": 0.1878408958836638,
+        "balanceBias": 0.38909332517114276,
+        "habitBias": 0.9793832668816441,
+        "temperature": 1.4237362935453879
+      },
+      "expectedInformationGainNats": 0.6935799454671167,
+      "surrogatePredictedScoreATE": -2.1575765017943938,
+      "directSimulatedScoreATE": 0.08613333333333334,
+      "predictionError": 2.243709835127727,
+      "absolutePredictionError": 2.243709835127727
+    },
+    {
+      "rank": 6,
+      "params": {
+        "infoUse": 0.9234180300666759,
+        "foresight": 0.9277565944889431,
+        "riskAversion": 0.9509009209874668,
+        "synergyBias": 0.09679596843173897,
+        "balanceBias": 0.77023062203225,
+        "habitBias": 0.03532390755869446,
+        "temperature": 0.10231199220713502
+      },
+      "expectedInformationGainNats": 0.6602779969925754,
+      "surrogatePredictedScoreATE": 0.6056182503027615,
+      "directSimulatedScoreATE": 1.5369333333333333,
+      "predictionError": 0.9313150830305718,
+      "absolutePredictionError": 0.9313150830305718
+    },
+    {
+      "rank": 7,
+      "params": {
+        "infoUse": 0.09740812228681114,
+        "foresight": 0.024198149337319046,
+        "riskAversion": 0.007428041367195251,
+        "synergyBias": 0.15474928506866437,
+        "balanceBias": 0.0017150789685496672,
+        "habitBias": 0.18588298228131772,
+        "temperature": 0.8999994932246731
+      },
+      "expectedInformationGainNats": 0.6351703146081656,
+      "surrogatePredictedScoreATE": 0.34786281437900696,
+      "directSimulatedScoreATE": 0.9382666666666667,
+      "predictionError": 0.5904038522876598,
+      "absolutePredictionError": 0.5904038522876598
+    },
+    {
+      "rank": 8,
+      "params": {
+        "infoUse": 0.09645837292322414,
+        "foresight": 0.5911545411943393,
+        "riskAversion": 0.07023083581842222,
+        "synergyBias": 0.2815890034069666,
+        "balanceBias": 0.21599149992909422,
+        "habitBias": 0.9719635098903564,
+        "temperature": 1.4404441626022262
+      },
+      "expectedInformationGainNats": 0.6240979232994246,
+      "surrogatePredictedScoreATE": -0.868758959896569,
+      "directSimulatedScoreATE": 0.5566666666666666,
+      "predictionError": 1.4254256265632357,
+      "absolutePredictionError": 1.4254256265632357
+    }
+  ],
+  "meanAbsolutePredictionError": 1.2164233852257147,
+  "maxAbsolutePredictionError": 2.243709835127727,
+  "signMismatchCount": 3,
+  "standing": "ACTIVE_FOLLOWUP_EXECUTED",
+  "interpretation": "High-information player-model points were selected by the current surrogate, then evaluated by direct paired simulation. Large prediction errors are evidence against surrogate adequacy, not evidence against the underlying mechanism simulator.",
+  "boundary": "This is sequential computational model evaluation inside the declared synthetic player envelope. It is not Human calibration."
+}
