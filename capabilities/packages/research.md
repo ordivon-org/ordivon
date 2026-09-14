@@ -26,11 +26,13 @@ Use the applicable subset, not all at once:
 
 ## Mature implementation choices
 
-Task-dependent examples already selected or proven useful include OpenAlex/Crossref for scholarly discovery/metadata, Firecrawl when broad current public-web context must be searched/scraped/mapped/crawled, MarkItDown as a lightweight candidate for ordinary heterogeneous-file-to-Markdown intake, Zotero when human reference-library management is useful, Docling for richer layout/document understanding, GROBID for scholarly PDF metadata/citations/TEI structure, Snakemake for scientific DAGs, DVC for larger data/artifact versioning, Pandera for tabular contracts, DuckDB for local analytical SQL, MLflow for run tracking, Inspect AI for agent/model evaluation, RO-Crate tooling for packaging, and Quarto/Pandoc/CSL for manuscript production.
+Task-dependent examples already selected or proven useful include OpenAlex/Crossref for scholarly discovery/metadata, Firecrawl when broad current public-web context must be searched/scraped/mapped/crawled, MarkItDown as a lightweight candidate for ordinary heterogeneous-file-to-Markdown intake, Zotero when human reference-library management is useful, Docling for richer layout/document understanding, GROBID for scholarly PDF metadata/citations/TEI structure, LlamaIndex or Haystack only when a real context/RAG workload benefits from their ingestion/retrieval/pipeline abstractions, Snakemake for scientific DAGs, DVC for larger data/artifact versioning, Pandera for tabular contracts, DuckDB for local analytical SQL, MLflow for run tracking, Inspect AI for agent/model evaluation, RO-Crate tooling for packaging, and Quarto/Pandoc/CSL for manuscript production.
 
 Firecrawl is an acquisition/context provider rather than a scientific-method owner: successful scraping does not establish source quality or evidential sufficiency. See `capabilities/providers/firecrawl.md` and `knowledge/lessons/firecrawl-web-context-kernel.md`.
 
 MarkItDown is the lightweight normalization candidate, not a replacement for deeper parsers: escalate ordinary files to Docling when layout/table/OCR/document hierarchy matters, or to GROBID when scholarly metadata/reference/citation semantics matter. See `capabilities/providers/markitdown.md` and `knowledge/lessons/markitdown-document-normalization-kernel.md`.
+
+LlamaIndex/Haystack are optional context-engineering frameworks, not Research knowledge authorities: source evidence remains with the authoritative corpus, indexes/chunks are derived retrieval projections, and retrieval quality must be evaluated separately from scientific/domain validity. See `capabilities/providers/llamaindex.md`, `capabilities/providers/haystack.md`, and `knowledge/lessons/llamaindex-haystack-context-retrieval-kernel.md`.
 
 These are replaceable external capabilities, not Research-owned components.
 
