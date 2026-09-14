@@ -23,7 +23,7 @@ Snapshot: **2026-09-14**
 | `DISCOVERY_SOURCE` | Use to find projects/providers; never treat the list itself as authority. |
 | `REFERENCE_ONLY` | Useful human/technical reference; no provider/platform adoption. |
 | `NO_ACTION` | No current Ordivon value beyond incidental learning. |
-| `AVOID` | Do not adopt as dependency/default due to compliance, trust, or capability mismatch. |
+| `STUDIED_AVOID` | Deliberately studied as an anti-pattern/threat model; do not adopt as authority/default, but retain explicit avoidance lessons. |
 
 ## 3. Summary counts
 
@@ -36,7 +36,7 @@ Snapshot: **2026-09-14**
 - **DISCOVERY_SOURCE: 10**
 - **REFERENCE_ONLY: 14**
 - **NO_ACTION: 17**
-- **AVOID: 2**
+- **STUDIED_AVOID: 2**
 
 ## 4. Highest-value next studies
 
@@ -114,7 +114,7 @@ The common rule: **extract reusable instructions/methods into standards-compatib
 | 31 | `ultraworkers/claw-code` | 195,221 | MIT | Agent experiment / autonomous project | **REFERENCE_ONLY** | Interesting autonomy case study, not a general provider candidate. |
 | 32 | `microsoft/vscode` | 192,476 | MIT | Developer environment | **ON_DEMAND** | Mature IDE surface; use as developer tool, not Ordivon Core. |
 | 33 | `yt-dlp/yt-dlp` | 190,981 | Unlicense | Media acquisition | **ON_DEMAND** | Strong media-download/acquisition provider when rights and workload permit. |
-| 34 | `massgravel/Microsoft-Activation-Scripts` | 190,495 | GPL-3.0 | License activation tooling | **AVOID** | Not required; creates licensing/compliance risk and no Ordivon capability need. |
+| 34 | `massgravel/Microsoft-Activation-Scripts` | 190,495 | GPL-3.0 | License activation tooling | **STUDIED_AVOID** | Studied as a licensing-state/entitlement-confusion and privileged supply-chain anti-pattern. See `microsoft-activation-scripts-avoidance-study.md`; use Microsoft-supported entitlement/activation channels instead. |
 | 35 | `ohmyzsh/ohmyzsh` | 189,708 | MIT | Shell UX | **NO_ACTION** | Personal shell configuration framework; no system capability gap. |
 | 36 | `Significant-Gravitas/AutoGPT` | 187,315 | NOASSERTION | Agent/application platform | **NO_ACTION** | Broad Agent platform category already covered by stronger current providers/product layers. |
 | 37 | `jackfrued/Python-100-Days` | 186,411 | — | Education | **NO_ACTION** | Learning course only. |
@@ -143,7 +143,7 @@ The common rule: **extract reusable instructions/methods into standards-compatib
 | 60 | `langchain-ai/langchain` | 146,266 | MIT | Agent/LLM application framework | **TARGETED_COMPARE** | Most primitives already covered; inspect provider abstraction/middleware only for unresolved gaps. |
 | 61 | `anthropics/claude-code` | 144,957 | — | Coding Agent harness | **DEEP_STUDY** | Major coding-Agent reference with plugins, hooks, MCP and subagents; direct comparison with Codex/OpenCode. |
 | 62 | `clash-verge-rev/clash-verge-rev` | 144,296 | GPL-3.0 | Network/VPN client | **ON_DEMAND** | Network provider candidate only if current VPN/network composition needs this client. |
-| 63 | `x1xhlol/system-prompts-and-models-of-ai-tools` | 143,606 | GPL-3.0 | Prompt leak/archive | **AVOID** | Untrusted/leaked prompt corpus; not a mature authority or dependency. |
+| 63 | `x1xhlol/system-prompts-and-models-of-ai-tools` | 143,606 | GPL-3.0 | Prompt leak/archive | **STUDIED_AVOID** | Studied as a mixed-provenance prompt/tool corpus and knowledge-contamination anti-pattern. Quarantine as untrusted research evidence; see `untrusted-system-prompt-corpus-avoidance-study.md`. |
 | 64 | `yangshun/tech-interview-handbook` | 142,606 | MIT | Education | **NO_ACTION** | Interview preparation content. |
 | 65 | `vercel/next.js` | 142,281 | MIT | Web application framework | **ON_DEMAND** | Application-specific Distribution candidate; existing Astro-first direction remains unless workload proves otherwise. |
 | 66 | `ytdl-org/youtube-dl` | 141,219 | Unlicense | Media acquisition | **NO_ACTION** | yt-dlp is the stronger maintained successor for this capability. |

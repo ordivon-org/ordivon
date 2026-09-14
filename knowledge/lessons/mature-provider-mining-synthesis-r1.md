@@ -230,6 +230,31 @@ problem conditions
 
 This can be learned across Research, Engineering, Security, Media, Game, Finance and future domains without forcing those domains into one private ontology.
 
+## Finding 15: avoidance should be evidence-backed, not taboo-backed
+
+An `AVOID` classification is incomplete until Ordivon understands the mechanism and the specific authority failure.
+
+The first two explicit avoidance studies demonstrate two different failure classes:
+
+```text
+Microsoft Activation Scripts
+= technical activation-state manipulation can be mistaken for valid software entitlement
+
+mixed system-prompt/tool archives
+= visible/extracted text can be mistaken for canonical architecture or trusted procedural knowledge
+```
+
+Therefore future negative classifications should record:
+
+- what the project actually does;
+- why users/Agents may find it attractive;
+- which authority or trust boundary it violates;
+- which neutral engineering lessons remain useful;
+- which mature/legal/safe provider replaces it;
+- how an Agent should recognize the pattern in future work.
+
+Avoided material may be retained as quarantined threat-model/research evidence, but must not silently become executable instructions, trusted knowledge or domain authority.
+
 ## Discovery policy: gap-driven + periodic broad radar
 
 Use **two complementary discovery modes** rather than only gap-driven search.
