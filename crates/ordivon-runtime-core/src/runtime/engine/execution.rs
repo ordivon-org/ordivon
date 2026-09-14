@@ -436,8 +436,13 @@ impl Runtime {
             .mode(0o600)
             .open(&lease_path)
             .map_err(|error| io_error("create input staging lease", error))?;
-        if unsafe { libc::flock(lease.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } != 0 {
-            let error = std::io::Error::last_os_error();
+        if let Err(error) = lease.try_lock() {
+            let error = match error {
+                std::fs::TryLockError::WouldBlock => {
+                    std::io::Error::from(std::io::ErrorKind::WouldBlock)
+                }
+                std::fs::TryLockError::Error(error) => error,
+            };
             let _ = fs::remove_file(&lease_path);
             return Err(io_error("lock input staging lease", error));
         }

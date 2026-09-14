@@ -562,20 +562,18 @@ impl Registry {
                     true,
                 )
             })?;
-        let result = unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_SH | libc::LOCK_NB) };
-        if result == 0 {
-            return Ok(file);
+        match file.try_lock_shared() {
+            Ok(()) => Ok(file),
+            Err(std::fs::TryLockError::WouldBlock) => {
+                Err(RuntimeError::deployment_in_progress())
+            }
+            Err(std::fs::TryLockError::Error(error)) => Err(RuntimeError::new(
+                RuntimeErrorCode::RegistryUnavailable,
+                format!("cannot acquire admission fence {}: {error}", path.display()),
+                None,
+                true,
+            )),
         }
-        let error = std::io::Error::last_os_error();
-        if error.raw_os_error() == Some(libc::EWOULDBLOCK) {
-            return Err(RuntimeError::deployment_in_progress());
-        }
-        Err(RuntimeError::new(
-            RuntimeErrorCode::RegistryUnavailable,
-            format!("cannot acquire admission fence {}: {error}", path.display()),
-            None,
-            true,
-        ))
     }
 
 }

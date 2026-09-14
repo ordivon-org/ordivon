@@ -3,7 +3,6 @@ use rusqlite::{
 };
 use sha2::{Digest, Sha256};
 use std::fs::{self, File, OpenOptions};
-use std::os::fd::AsRawFd;
 use std::os::unix::fs::OpenOptionsExt;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};

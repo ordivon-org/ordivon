@@ -392,7 +392,7 @@ impl Runtime {
                 Ok(lease) => lease,
                 Err(_) => continue,
             };
-            if unsafe { libc::flock(lease.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } != 0 {
+            if lease.try_lock().is_err() {
                 continue;
             }
             let prefix = format!(".{job_id}.staging-");
