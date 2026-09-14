@@ -37,7 +37,7 @@ test("pure Replay projection helpers fail closed and expose player and authority
       /Genesis frame/,
     );
     const frame = structuredClone(projection.frames[0]!);
-    frame.authorityDecisions = [{ outcome: "require-human" } as any];
+    frame.authorityDecisions = [{ outcome: "require-mission-control" } as any];
     frame.playerInterventions = [{
       nodeId: "host-event:player:test",
       kind: "host-event",

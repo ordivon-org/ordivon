@@ -78,16 +78,17 @@ test("ABAC attributes cover every primitive operation and environment band", () 
   assert.equal(criticalDecision.attributes.environment.missionPhase, "terminal");
 
   const autonomousShutdown = decisionFor({ ...base, kind: "set_power", targetSystemId: "life-support", enabled: false }, "autonomous");
-  assert.equal(autonomousShutdown.outcome, "require-human");
+  assert.equal(autonomousShutdown.outcome, "require-mission-control");
   const lockedHazard = decisionFor({ ...base, kind: "contain_hazard", targetHazardId: "maintenance-breach" }, "locked");
-  assert.equal(lockedHazard.outcome, "require-human");
+  assert.equal(lockedHazard.outcome, "require-mission-control");
 });
 
-test("candidate authority helper admits permits and exact human grants only", () => {
+test("candidate authority helper admits permits and exact Mission Control grants only", () => {
   const candidate = { authorityOutcome: "permit" } as TeamActionCandidate;
   assert.equal(candidateAllowed(candidate, false), true);
-  assert.equal(candidateAllowed({ ...candidate, authorityOutcome: "require-human" }, false), false);
-  assert.equal(candidateAllowed({ ...candidate, authorityOutcome: "require-human" }, true), true);
+  assert.equal(candidateAllowed({ ...candidate, authorityOutcome: "require-mission-control" }, false), false);
+  assert.equal(candidateAllowed({ ...candidate, authorityOutcome: "require-mission-control" }, true), true);
+  assert.equal(candidateAllowed({ ...candidate, authorityOutcome: "require-human" }, true), true, "retained legacy token remains readable");
   assert.equal(candidateAllowed({ ...candidate, authorityOutcome: "deny" }, true), false);
 });
 

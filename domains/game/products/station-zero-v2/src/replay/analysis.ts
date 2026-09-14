@@ -1,6 +1,7 @@
 import { sha256 } from "../../../../tools/canonical-digest.ts";
 import type { ItemId, WorldState } from "../model.ts";
 import type { GameStore } from "../storage.ts";
+import { requiresMissionControl } from "../team/authority.ts";
 import { TEAM_OBJECTIVE_GRAPH, objectiveSatisfied } from "../team/objectives.ts";
 import { buildRunEvidenceGraph } from "./evidence.ts";
 import { buildReplayFrames } from "./frames.ts";
@@ -286,14 +287,14 @@ export function replayKeyTurnsFromFrames(
   for (const current of frames) {
     if (
       current.authorityGrants.length > 0 ||
-      current.authorityDecisions.some((decision) => decision.outcome === "require-human")
+      current.authorityDecisions.some((decision) => requiresMissionControl(decision.outcome))
     ) {
       addKeyTurn(output, {
         revision: current.revision,
         priority: 65,
         kind: "authority",
-        title: "Human authority affected the Round",
-        detail: "The retained Round required or consumed a human authority decision.",
+        title: "Mission Control authority affected the Round",
+        detail: "The retained Round required or consumed a Mission Control authorization.",
         evidenceNodeIds: current.evidenceNodeIds.filter((nodeId) =>
           nodeId.startsWith("authority-"),
         ),

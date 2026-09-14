@@ -77,7 +77,7 @@ test("rejected Proposals are excluded from legal subset selection", async () => 
     const blocked = await host.run(runId, 128);
     assert.equal(blocked.steps.at(-1)?.status, "authority_required");
     const round = blocked.rounds.at(-1)!;
-    const pending = host.execution.listProposals(round.roundId).find((proposal) => proposal.status === "proposed" && proposal.authorityOutcome === "require-human");
+    const pending = host.execution.listProposals(round.roundId).find((proposal) => proposal.status === "proposed" && proposal.authorityOutcome === "require-mission-control");
     assert.ok(pending);
     host.execution.saveProposal(pending, { ...pending, status: "rejected", rejectionReason: "player_denied", updatedAt: new Date().toISOString() }, "team.proposal-player-denied");
     const next = await host.step(runId);
@@ -113,14 +113,14 @@ test("Mission Control approval provenance is derived from the local player ingre
       if (proposalId !== null || review.boundary === "terminal") break;
       await service.advance(runId, "tick-verified");
     }
-    assert.ok(proposalId, "fixture must reach one require-human Proposal");
+    assert.ok(proposalId, "fixture must reach one require-mission-control Proposal");
 
     // A JavaScript or HTTP caller may still physically send an extra field. The
     // product service must not turn caller-authored spelling into authority provenance.
     const injected = {
       action: "approve",
       proposalId,
-      issuedBy: "agent:peer-not-human",
+      issuedBy: "agent:peer-not-mission-control",
     } as unknown as Parameters<MissionControlService["command"]>[1];
     const grant = service.command(runId, injected) as { grantId: string; issuedBy: string };
     assert.equal(grant.issuedBy, "player:mission-control");

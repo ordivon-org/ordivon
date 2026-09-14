@@ -51,7 +51,7 @@ These responsibilities are retained because they express Station Zero behavior, 
 
 ```text
 Player / Browser
-        ↓ doctrine, commands, approvals
+        ↓ doctrine, commands, Mission Control authorizations
 Station Zero Mission Control
         ↓ bounded product state and intervention rules
 Station Zero specialist coordination
@@ -78,6 +78,8 @@ There is no embedded generic Host authority in the current architecture. The ear
 | replay, diagnosis, comparison | derived product projections over retained evidence |
 
 No projection may become a second source of truth.
+
+Current authority escalation is product-role-specific: new decisions use `require-mission-control`, meaning the selected Station Zero doctrine requires authorization from the player's Mission Control role. Historical retained records may contain the superseded token `require-human`; it is accepted only as compatibility vocabulary for exact replay/recovery and must not be emitted by new decisions or generalized into a Human-over-Agent authority rule.
 
 ## World transition
 
@@ -113,7 +115,7 @@ Station Zero v2 product code and its default HTTP/browser carrier are enclosed u
 
 ## Verification
 
-The current product architecture is verified by deterministic reducer/persistence tests, hash-chain/replay checks, product hardening tests, `pnpm check`, and browser acceptance journeys. Infrastructure graduation never implies fresh-player, Human, rights, or release standing.
+The current product architecture is verified by deterministic reducer/persistence tests, hash-chain/replay checks, product hardening tests, `pnpm check`, and browser acceptance journeys. Infrastructure graduation never implies fresh-player Human-experience standing, rights standing, or release standing.
 
 ## Repository constraint
 

@@ -5,6 +5,7 @@ import type {
   AuthorityAttributes,
   AuthorityDecision,
   AuthorityOutcome,
+  CurrentAuthorityOutcome,
   AuthorityPolicyMode,
   TeamActionCandidate,
 } from "./model.ts";
@@ -46,19 +47,19 @@ function communicationAvailable(state: WorldState): boolean {
   return Boolean(communications?.powered && (communications.integrity ?? 0) >= 0.8);
 }
 
-function outcomeFor(mode: AuthorityPolicyMode, command: PrimitiveWorldCommand): { outcome: AuthorityOutcome; reason: string } {
+function outcomeFor(mode: AuthorityPolicyMode, command: PrimitiveWorldCommand): { outcome: CurrentAuthorityOutcome; reason: string } {
   const criticalShutdown = command.kind === "set_power" && !command.enabled && command.targetSystemId === "life-support";
   const highRisk = command.kind === "set_power" || command.kind === "seal_hull" || command.kind === "contain_hazard";
   if (criticalShutdown) {
     return mode === "locked"
       ? { outcome: "deny", reason: "locked policy denies life-support shutdown" }
-      : { outcome: "require-human", reason: "life-support shutdown requires explicit human authority" };
+      : { outcome: "require-mission-control", reason: "life-support shutdown requires explicit Mission Control authority" };
   }
   if (mode === "supervised" && (highRisk || command.kind === "send_distress")) {
-    return { outcome: "require-human", reason: "supervised policy requires human authority for this action" };
+    return { outcome: "require-mission-control", reason: "supervised doctrine requires Mission Control authority for this action" };
   }
   if (mode === "locked" && highRisk) {
-    return { outcome: "require-human", reason: "locked policy requires human authority for high-risk action" };
+    return { outcome: "require-mission-control", reason: "locked doctrine requires Mission Control authority for this action" };
   }
   return { outcome: "permit", reason: "policy permits the actor-scoped action" };
 }
@@ -113,6 +114,10 @@ export function evaluateAuthority(
   };
 }
 
+export function requiresMissionControl(outcome: AuthorityOutcome): boolean {
+  return outcome === "require-mission-control" || outcome === "require-human";
+}
+
 export function candidateAllowed(candidate: Pick<TeamActionCandidate, "authorityOutcome">, granted: boolean): boolean {
-  return candidate.authorityOutcome === "permit" || (candidate.authorityOutcome === "require-human" && granted);
+  return candidate.authorityOutcome === "permit" || (requiresMissionControl(candidate.authorityOutcome) && granted);
 }

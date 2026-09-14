@@ -284,7 +284,7 @@ test("supervised high-risk Proposals wait for an exact single-use Grant", async 
     assert.equal(game.loadState().revision, 4);
     const round = blocked.rounds.at(-1)!;
     const proposal = host.execution.listProposals(round.roundId).find((entry) => entry.actorId === SECURITY_ID)!;
-    assert.equal(proposal.authorityOutcome, "require-human");
+    assert.equal(proposal.authorityOutcome, "require-mission-control");
     const grant = host.team.issueGrant({
       actorId: proposal.actorId,
       proposalId: proposal.proposalId,

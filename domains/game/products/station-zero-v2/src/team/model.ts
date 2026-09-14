@@ -5,7 +5,9 @@ export type TeamTaskState = "ready" | "running" | "waiting" | "completed" | "blo
 export type TeamTaskControlMode = "active" | "paused" | "cancelled";
 export type TeamWaitKind = "message" | "authority" | "conflict" | "provider" | "dependency" | "replan";
 export type AuthorityPolicyMode = "autonomous" | "supervised" | "locked";
-export type AuthorityOutcome = "permit" | "require-human" | "deny";
+export type CurrentAuthorityOutcome = "permit" | "require-mission-control" | "deny";
+export type LegacyAuthorityOutcome = "require-human";
+export type AuthorityOutcome = CurrentAuthorityOutcome | LegacyAuthorityOutcome;
 export type MessageChannel = "local" | "station-radio";
 export type MessageKind =
   | "fact-share"

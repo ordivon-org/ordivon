@@ -2,7 +2,7 @@ import { canonicalJson, sha256 } from "../../../../tools/canonical-digest.ts";
 import type { PrimitiveWorldCommand, WorldState } from "../model.ts";
 import { ProviderAdapterError } from "./provider-contract.ts";
 import type { GameStore } from "../storage.ts";
-import { authorityTargetId, evaluateAuthority } from "./authority.ts";
+import { authorityTargetId, evaluateAuthority, requiresMissionControl } from "./authority.ts";
 import { compileTeamContext } from "./context.ts";
 import { evaluateStationZeroCoordination } from "./coordination-policy.ts";
 import { TeamExecutionStore } from "./execution-store.ts";
@@ -442,9 +442,9 @@ export class StationZeroTeamCoordinator {
       };
       this.execution.putProposal(proposal);
       this.team.transitionTask(task.taskId, {
-        state: authority.outcome === "deny" ? "blocked" : authority.outcome === "require-human" ? "waiting" : "running",
+        state: authority.outcome === "deny" ? "blocked" : requiresMissionControl(authority.outcome) ? "waiting" : "running",
         admittedProposalId: proposal.proposalId,
-        wait: authority.outcome === "require-human"
+        wait: requiresMissionControl(authority.outcome)
           ? { kind: "authority", subjectId: proposal.proposalId, reason: authority.reason, sinceTick: currentState.turn }
           : authority.outcome === "deny"
             ? { kind: "authority", subjectId: proposal.proposalId, reason: authority.reason, sinceTick: currentState.turn }
@@ -491,7 +491,7 @@ export class StationZeroTeamCoordinator {
     const authorityPending = proposals.some((proposal) => {
       const task = this.team.getTask(proposal.actorTaskId);
       return proposal.status === "proposed" && task.control.mode === "active" &&
-        proposal.authorityOutcome === "require-human" && this.validGrant(proposal, grants, state.turn) === null;
+        requiresMissionControl(proposal.authorityOutcome) && this.validGrant(proposal, grants, state.turn) === null;
     });
     const productiveLegal = legal.filter((subset) => subset.some((proposal) => proposal.command.kind !== "wait"));
     if (legal.length === 0 || (authorityPending && productiveLegal.length === 0)) {
@@ -528,7 +528,7 @@ export class StationZeroTeamCoordinator {
     this.execution.putTickPlan(plan);
     for (const proposal of selected) {
       const grant = this.validGrant(proposal, this.team.listAuthorityGrants(runId), this.game.loadState(runId).turn);
-      if (proposal.authorityOutcome === "require-human" && grant) {
+      if (requiresMissionControl(proposal.authorityOutcome) && grant) {
         this.team.consumeGrant(grant.grantId, proposal.proposalId, proposal.contextId, proposal.worldDigest, this.game.loadState(runId).turn);
       }
       this.execution.saveProposal(proposal, { ...proposal, status: "selected", updatedAt: createdAt }, "team.proposal-selected");

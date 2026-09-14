@@ -3,6 +3,7 @@ import type { PrimitiveWorldCommand, WorldFact, WorldState } from "../model.ts";
 import { scoreMission } from "../scoring.ts";
 import type { GameStore } from "../storage.ts";
 import { TeamExecutionStore } from "../team/execution-store.ts";
+import { requiresMissionControl } from "../team/authority.ts";
 import type { ActionProposal, CompiledTeamContext, TeamProjection, TeamRound } from "../team/model.ts";
 import { objectivesForRole } from "../team/objectives.ts";
 import { doctrineForPolicy, missionFronts, missionOutcome, passiveForecast, proposalForecast } from "./experience.ts";
@@ -238,7 +239,7 @@ export function deriveInterventions(state: WorldState, projection: TeamProjectio
   const grantedProposalIds = new Set(projection.authorityGrants
     .filter((grant) => grant.consumedAtTick === null && grant.expiresAtTick >= state.turn)
     .map((grant) => grant.proposalId));
-  for (const proposal of proposals.filter((entry) => entry.status === "proposed" && entry.authorityOutcome === "require-human" && !grantedProposalIds.has(entry.proposalId))) {
+  for (const proposal of proposals.filter((entry) => entry.status === "proposed" && requiresMissionControl(entry.authorityOutcome) && !grantedProposalIds.has(entry.proposalId))) {
     const decision = authorityById.get(proposal.authorityDecisionId);
     cards.push({
       cardId: `authority:${proposal.proposalId}`,
@@ -246,7 +247,7 @@ export function deriveInterventions(state: WorldState, projection: TeamProjectio
       severity: decision?.attributes.target.criticality === "critical" ? "critical" : "warning",
       actorIds: [proposal.actorId],
       title: `${proposal.actorId} requests authority`,
-      explanation: decision?.reason ?? "This Proposal requires explicit human authority.",
+      explanation: decision?.reason ?? "This Proposal requires explicit Mission Control authority.",
       consequence: consequence(proposal),
       urgency: urgency(state),
       expiresAtTick: state.turn + 2,

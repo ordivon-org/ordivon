@@ -3,7 +3,7 @@ import type { DeploymentProviderOptions } from "../deployment/model.ts";
 import { resolveCoordinationProfile } from "../deployment/profiles.ts";
 import { DeploymentStore } from "../deployment/store.ts";
 import { TeamExecutionStore } from "../team/execution-store.ts";
-import { authorityTargetId } from "../team/authority.ts";
+import { authorityTargetId, requiresMissionControl } from "../team/authority.ts";
 import { StationZeroTeamCoordinator } from "../team/coordinator.ts";
 import type { AuthorityPolicyMode, MessageChannel, MessageKind } from "../team/model.ts";
 import { objectivesForRole, TEAM_OBJECTIVE_GRAPH } from "../team/objectives.ts";
@@ -299,7 +299,7 @@ export class MissionControlService {
     switch (command.action) {
       case "approve": {
         const proposal = coordinator.execution.getProposal(command.proposalId);
-        if (proposal.runId !== runId || proposal.status !== "proposed" || proposal.authorityOutcome !== "require-human") throw new TeamStoreError("team_conflict", "Proposal is not awaiting human authority");
+        if (proposal.runId !== runId || proposal.status !== "proposed" || !requiresMissionControl(proposal.authorityOutcome)) throw new TeamStoreError("team_conflict", "Proposal is not awaiting Mission Control authority");
         const expiresAtTick = command.expiresAtTick ?? state.turn + 2;
         if (!Number.isSafeInteger(expiresAtTick) || expiresAtTick < state.turn) throw new TypeError("expiresAtTick must be a current or future integer Tick");
         return team.issueGrant({

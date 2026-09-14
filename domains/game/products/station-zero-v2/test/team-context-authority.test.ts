@@ -111,7 +111,7 @@ test("ABAC separates routine permit, supervised approval, and critical shutdown"
   const supervised = evaluateAuthority(game.activeRunId, engineer, actor.capabilities, "action:power", "context:power", worldDigest, state, {
     kind: "set_power", commandId: "authority-power", actorId: ENGINEER_ID, expectedRevision: 0, targetSystemId: "cooling", enabled: true,
   }, "supervised");
-  assert.equal(supervised.outcome, "require-human");
+  assert.equal(supervised.outcome, "require-mission-control");
 
   const shutdown = evaluateAuthority(game.activeRunId, engineer, actor.capabilities, "action:shutdown", "context:shutdown", worldDigest, state, {
     kind: "set_power", commandId: "authority-shutdown", actorId: ENGINEER_ID, expectedRevision: 0, targetSystemId: "life-support", enabled: false,
