@@ -1,0 +1,57 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "RFC 6749",
+      "OAuth 2.0",
+      "OAuth2"
+    ],
+    "domains": [
+      "security",
+      "identity",
+      "distribution",
+      "web"
+    ],
+    "topics": [
+      "oauth",
+      "authorization",
+      "delegated-access",
+      "http-api"
+    ]
+  },
+  "id": "rfc-6749",
+  "identity": {
+    "authorityKind": "internet-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "ietf",
+      "name": "IETF"
+    },
+    "officialSource": "https://www.rfc-editor.org/info/rfc6749/",
+    "publicationDate": "2012-10",
+    "title": "RFC 6749 — The OAuth 2.0 Authorization Framework",
+    "versionLabel": "RFC 6749"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/distribution.md",
+      "RFC Editor checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [
+      "rfc-9700",
+      "rfc-8707",
+      "openid-connect-core-1.0-errata2"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

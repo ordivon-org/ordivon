@@ -1,0 +1,11 @@
+{
+  "authorityId": "openid-connect-core-1.0-errata2",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "final-specification",
+  "note": "OpenID Foundation approved Core 1.0 with Errata Set 2; published 2023-12-15.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://openid.net/specs/openid-connect-core-1_0-errata2.html",
+  "schemaVersion": 1,
+  "versionObserved": "1.0 Errata 2"
+}

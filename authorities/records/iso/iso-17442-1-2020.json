@@ -1,0 +1,52 @@
+{
+  "access": {
+    "fullText": "licensed",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "ISO 17442-1",
+      "LEI standard",
+      "Legal Entity Identifier"
+    ],
+    "domains": [
+      "finance",
+      "market-capital",
+      "identity"
+    ],
+    "topics": [
+      "legal-entity-identifier",
+      "lei",
+      "entity-identity",
+      "financial-services"
+    ]
+  },
+  "id": "iso-17442-1-2020",
+  "identity": {
+    "authorityKind": "international-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "iso",
+      "name": "ISO"
+    },
+    "officialSource": "https://www.iso.org/standard/78829.html",
+    "publicationDate": "2020-08",
+    "title": "ISO 17442-1:2020 — Financial services — Legal entity identifier (LEI) — Part 1: Assignment",
+    "versionLabel": "2020"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "/root/projects/ordivon-market-capital-next/docs/WAVE_A_M1.md",
+      "ISO official source checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

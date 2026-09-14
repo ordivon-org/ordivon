@@ -1,0 +1,52 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "RFC 9110",
+      "HTTP Semantics",
+      "STD 97"
+    ],
+    "domains": [
+      "network",
+      "web",
+      "distribution"
+    ],
+    "topics": [
+      "http",
+      "web",
+      "semantics",
+      "request-response"
+    ]
+  },
+  "id": "rfc-9110",
+  "identity": {
+    "authorityKind": "internet-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "ietf",
+      "name": "IETF"
+    },
+    "officialSource": "https://www.rfc-editor.org/info/rfc9110/",
+    "publicationDate": "2022-06",
+    "title": "RFC 9110 / STD 97 — HTTP Semantics",
+    "versionLabel": "RFC 9110"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/network.md",
+      "RFC Editor checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

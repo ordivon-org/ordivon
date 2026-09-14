@@ -1,0 +1,11 @@
+{
+  "authorityId": "rfc-8310",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "proposed-standard",
+  "note": "Usage profiles update RFC 7858.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.rfc-editor.org/info/rfc8310/",
+  "schemaVersion": 1,
+  "versionObserved": "RFC 8310"
+}

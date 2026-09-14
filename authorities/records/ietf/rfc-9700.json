@@ -1,0 +1,55 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "RFC 9700",
+      "BCP 240",
+      "OAuth 2.0 Security BCP"
+    ],
+    "domains": [
+      "security",
+      "identity",
+      "distribution",
+      "web"
+    ],
+    "topics": [
+      "oauth",
+      "authorization",
+      "security",
+      "best-current-practice"
+    ]
+  },
+  "id": "rfc-9700",
+  "identity": {
+    "authorityKind": "best-current-practice",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "ietf",
+      "name": "IETF"
+    },
+    "officialSource": "https://www.rfc-editor.org/info/rfc9700/",
+    "publicationDate": "2025-01",
+    "title": "RFC 9700 / BCP 240 — Best Current Practice for OAuth 2.0 Security",
+    "versionLabel": "RFC 9700"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/distribution.md",
+      "RFC Editor checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [
+      "rfc-6749"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

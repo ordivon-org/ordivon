@@ -1,0 +1,55 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "RFC 7858",
+      "DNS over TLS",
+      "DoT"
+    ],
+    "domains": [
+      "network",
+      "security",
+      "internet"
+    ],
+    "topics": [
+      "dns",
+      "dot",
+      "privacy",
+      "tls"
+    ]
+  },
+  "id": "rfc-7858",
+  "identity": {
+    "authorityKind": "internet-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "ietf",
+      "name": "IETF"
+    },
+    "officialSource": "https://www.rfc-editor.org/info/rfc7858/",
+    "publicationDate": "2016-05",
+    "title": "RFC 7858 — Specification for DNS over Transport Layer Security (TLS)",
+    "versionLabel": "RFC 7858"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/network.md",
+      "RFC Editor checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [
+      "rfc-1035",
+      "rfc-8310"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

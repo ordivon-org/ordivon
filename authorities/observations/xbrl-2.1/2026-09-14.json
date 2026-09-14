@@ -1,0 +1,11 @@
+{
+  "authorityId": "xbrl-2.1",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "recommendation",
+  "note": "XBRL International identifies XBRL 2.1 as the foundation of the XBRL standard; recommendation document dated 2013-02-20.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://specifications.xbrl.org/work-product-index-group-base-spec-base-spec.html",
+  "schemaVersion": 1,
+  "versionObserved": "2.1"
+}

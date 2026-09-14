@@ -1,0 +1,11 @@
+{
+  "authorityId": "ogc-geopackage-1.4.0",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current-standard",
+  "note": "OGC official standards page lists GeoPackage 1.4.0 as the newest GeoPackage Encoding Standard.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.ogc.org/standards/geopackage/",
+  "schemaVersion": 1,
+  "versionObserved": "1.4.0"
+}

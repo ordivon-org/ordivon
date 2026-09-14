@@ -1,0 +1,53 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "glTF 2.0",
+      "ISO/IEC 12113",
+      "GL Transmission Format"
+    ],
+    "domains": [
+      "artifact",
+      "media",
+      "game",
+      "3d"
+    ],
+    "topics": [
+      "3d",
+      "asset-delivery",
+      "runtime-3d",
+      "gltf"
+    ]
+  },
+  "id": "iso-iec-12113-2022",
+  "identity": {
+    "authorityKind": "international-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "iso-iec",
+      "name": "ISO/IEC"
+    },
+    "officialSource": "https://www.iso.org/standard/83990.html",
+    "publicationDate": "2022-07",
+    "title": "ISO/IEC 12113:2022 — Runtime 3D asset delivery format — Khronos glTF 2.0",
+    "versionLabel": "2022"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "docs/CAPABILITY_PACKAGES_R1.md",
+      "ISO official source checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

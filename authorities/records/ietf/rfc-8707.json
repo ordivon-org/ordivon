@@ -1,0 +1,55 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "RFC 8707",
+      "OAuth Resource Indicators",
+      "resource parameter"
+    ],
+    "domains": [
+      "security",
+      "identity",
+      "distribution",
+      "mcp"
+    ],
+    "topics": [
+      "oauth",
+      "authorization",
+      "audience",
+      "resource-binding"
+    ]
+  },
+  "id": "rfc-8707",
+  "identity": {
+    "authorityKind": "internet-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "ietf",
+      "name": "IETF"
+    },
+    "officialSource": "https://www.rfc-editor.org/info/rfc8707/",
+    "publicationDate": "2020-02",
+    "title": "RFC 8707 — Resource Indicators for OAuth 2.0",
+    "versionLabel": "RFC 8707"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/providers/mcp.md",
+      "RFC Editor checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [
+      "rfc-6749"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

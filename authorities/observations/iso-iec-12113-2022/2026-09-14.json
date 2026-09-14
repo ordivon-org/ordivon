@@ -1,0 +1,11 @@
+{
+  "authorityId": "iso-iec-12113-2022",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published",
+  "note": null,
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.iso.org/standard/83990.html",
+  "schemaVersion": 1,
+  "versionObserved": "2022"
+}

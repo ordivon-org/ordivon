@@ -1,0 +1,55 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "RFC 9114",
+      "HTTP/3",
+      "HTTP 3"
+    ],
+    "domains": [
+      "network",
+      "web",
+      "distribution"
+    ],
+    "topics": [
+      "http",
+      "http3",
+      "quic",
+      "web-transport"
+    ]
+  },
+  "id": "rfc-9114",
+  "identity": {
+    "authorityKind": "internet-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "ietf",
+      "name": "IETF"
+    },
+    "officialSource": "https://www.rfc-editor.org/info/rfc9114/",
+    "publicationDate": "2022-06",
+    "title": "RFC 9114 — HTTP/3",
+    "versionLabel": "RFC 9114"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/network.md",
+      "RFC Editor checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [
+      "rfc-9110",
+      "rfc-9000"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

@@ -1,0 +1,53 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "ODF",
+      "OpenDocument",
+      "OpenDocument 1.3"
+    ],
+    "domains": [
+      "artifact",
+      "document",
+      "office"
+    ],
+    "topics": [
+      "office-document",
+      "xml",
+      "word-processing",
+      "spreadsheet",
+      "presentation"
+    ]
+  },
+  "id": "oasis-opendocument-1.3",
+  "identity": {
+    "authorityKind": "open-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "oasis",
+      "name": "OASIS Open"
+    },
+    "officialSource": "https://www.oasis-open.org/standard/open-document-format-for-office-applications-opendocument-version-1-3-2/",
+    "publicationDate": "2021-04-27",
+    "title": "Open Document Format for Office Applications (OpenDocument) Version 1.3",
+    "versionLabel": "1.3"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/artifact.md",
+      "OASIS official source checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}
