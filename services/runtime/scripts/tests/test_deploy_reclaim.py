@@ -363,6 +363,13 @@ def fake_systemctl(root: Path) -> Path:
 
 
 class DeployReclaimTests(unittest.TestCase):
+    def test_runtime_binds_before_background_maintenance_reconciliation(self) -> None:
+        source = (REPO / "crates/ordivon-runtime-mcp/src/main.rs").read_text(encoding="utf-8")
+        bind = source.index("tokio::net::TcpListener::bind(app.bind).await?")
+        maintenance = source.index("runtime.reconcile_maintenance_batch(reconcile_batch_size)")
+        self.assertLess(bind, maintenance)
+        self.assertNotIn("reconcile_all()", source[:bind])
+
     def test_default_prepare_binds_complete_release_artifact_set(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
