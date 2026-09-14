@@ -1,4 +1,4 @@
-use rusqlite::{Connection, OpenFlags};
+use rusqlite::{Connection, OpenFlags, OptionalExtension};
 use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -147,6 +147,18 @@ pub fn inspect_runtime(config: &RuntimeDoctorConfig) -> RuntimeResult<RuntimeDoc
         return Err(RuntimeError::new(
             RuntimeErrorCode::RegistryCorrupt,
             format!("Registry integrity check returned {integrity_check}"),
+            None,
+            false,
+        ));
+    }
+    let foreign_key_problem: Option<String> = connection
+        .query_row("PRAGMA foreign_key_check", [], |row| row.get(0))
+        .optional()
+        .map_err(|error| RuntimeError::from_sql(error, "cannot run Registry foreign key check"))?;
+    if let Some(table) = foreign_key_problem {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::RegistryCorrupt,
+            format!("Registry foreign key violation in {table}"),
             None,
             false,
         ));
