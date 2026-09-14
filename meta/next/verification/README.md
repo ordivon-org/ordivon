@@ -10,6 +10,12 @@ A verification profile should identify:
 - required source/version/configuration identity;
 - evidence produced;
 - bounded verdict semantics;
-- escalation/manual review conditions when automation is insufficient.
+- explicit claim/non-claim boundary;
+- domain-owned verdict vocabulary rather than a universal Ordivon status enum;
+- escalation/manual/external-authority conditions when automation is insufficient.
+
+Keep applicability, evidence, verification, currentness, claim authority and consequence conceptually separate even if a domain chooses a compact carrier. `PINNED_NOT_LATEST`, `EXTERNAL_ASSERTION_REQUIRED`, `NOT_CLAIMED`, `DEFERRED` and similar statuses are not generic failures and must not be normalized away.
 
 Execution success alone is never sufficient evidence of semantic completion.
+
+See `docs/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R2.md` and `schemas/standard-native-profile-projection-v1.schema.json` for the thin cross-domain projection boundary.

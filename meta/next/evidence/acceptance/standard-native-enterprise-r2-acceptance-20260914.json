@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.standard-native.enterprise-r2-acceptance",
+  "standing": "PASS_CROSS_DOMAIN_DOGFOOD",
+  "cases": [
+    {
+      "caseId": "research",
+      "authorities": 9,
+      "requirements": 23,
+      "verdictStatuses": [
+        "EXTERNAL_ASSERTION_REQUIRED",
+        "OPEN",
+        "PARTIAL",
+        "PASS"
+      ]
+    },
+    {
+      "caseId": "runtime",
+      "authorities": 4,
+      "requirements": 18,
+      "verdictStatuses": [
+        "NOT_CLAIMED",
+        "PASS"
+      ]
+    },
+    {
+      "caseId": "game",
+      "authorities": 7,
+      "requirements": 18,
+      "verdictStatuses": [
+        "DEFERRED_NOT_APPLICABLE_CURRENT_PHASE",
+        "DEFERRED_TRIGGERED_BY_SCOPE_CHANGE",
+        "OPEN",
+        "PARTIAL",
+        "PASS",
+        "PINNED_NOT_LATEST"
+      ]
+    }
+  ],
+  "sharedVerdictStatuses": [
+    "PASS"
+  ],
+  "universalVerdictNormalizationApplied": false,
+  "boundary": "Acceptance proves the R2 projection/integration mechanics across three real domain profiles. It is not certification or domain semantic completion."
+}
