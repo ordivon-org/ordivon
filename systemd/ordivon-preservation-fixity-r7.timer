@@ -1,0 +1,12 @@
+[Unit]
+Description=Schedule Ordivon R7 Archivematica fixity scan
+
+[Timer]
+OnCalendar=Sun *-*-* 03:17:00 Asia/Singapore
+Persistent=true
+RandomizedDelaySec=30m
+AccuracySec=1m
+Unit=ordivon-preservation-fixity-r7.service
+
+[Install]
+WantedBy=timers.target

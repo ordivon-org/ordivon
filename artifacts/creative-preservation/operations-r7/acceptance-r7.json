@@ -1,0 +1,198 @@
+{
+  "kind": "creative-preservation-operations-r7-acceptance",
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-14T05:12:10Z",
+  "standing": "ACCEPTED_BOUNDED",
+  "scope": "local Archivematica preservation operations over the R6 graduated AIP: replication, corruption detection, native recovery, periodic fixity, and restart survival",
+  "authorityBoundary": {
+    "preservationSemantics": "Archivematica 1.18 + Archivematica Storage Service",
+    "periodicFixityClient": "Artefactual Fixity 0.8.0 pinned at 3bf437d3d0b3d23383677f058419a7358c8f981f",
+    "scheduler": "systemd timer; scheduling only, not fixity authority",
+    "ordivonRole": "thin composition, local carrier configuration, evidence binding, acceptance criteria, and bounded operational policy"
+  },
+  "master": {
+    "uuid": "1593a748-703b-46b6-8114-314040f44bd8",
+    "packageType": "AIP",
+    "status": "UPLOADED",
+    "size": 3027140,
+    "checksumAlgorithm": "sha256",
+    "checksum": "e08f0197821c05684cfc50b3dc6119801de6f9137dfeef1df5a43cc8a42ffbda",
+    "storageLocationUuid": "b9817a62-7b80-47a5-9b04-7150a6f3c214",
+    "storageRoot": "/var/archivematica/sharedDirectory/www/AIPsStore",
+    "finalFixityLogCount": 7,
+    "latestFixityResult": true,
+    "latestFixityAt": "2026-09-14T04:44:26.709333+00:00"
+  },
+  "replica": {
+    "uuid": "7d488fcc-c2f9-4490-a196-79885a595a1a",
+    "replicatedPackageUuid": "1593a748-703b-46b6-8114-314040f44bd8",
+    "packageType": "AIP",
+    "status": "UPLOADED",
+    "size": 3027140,
+    "checksumAlgorithm": "sha256",
+    "checksum": "e08f0197821c05684cfc50b3dc6119801de6f9137dfeef1df5a43cc8a42ffbda",
+    "spaceUuid": "027ae0e0-1d08-4ed0-b674-34f297fabbbe",
+    "replicatorLocationUuid": "f507e370-3249-4a3f-a88b-246b69ddf7d1",
+    "storageRoot": "/mnt/r7-secondary/replicas",
+    "hostCarrier": "/var/lib/ordivon/creative-preservation/r7-secondary-store",
+    "spaceVerified": true,
+    "finalFixityLogCount": 4,
+    "latestFixityResult": true,
+    "latestFixityAt": "2026-09-14T04:44:27.786298+00:00",
+    "byteIdentityWithMaster": "PASS"
+  },
+  "replication": {
+    "implementation": "Archivematica Storage Service Package.replicate() through an RP Location",
+    "status": "PASS",
+    "masterPointerPremis": {
+      "eventType": "replication",
+      "eventOutcome": "success",
+      "eventIdentifier": "7986ce8a-3c51-4928-b1a9-e078ba561624",
+      "relationship": "derivation -> replica UUID"
+    },
+    "replicaPointerPremis": {
+      "creationEvent": "de4902fd-053d-4a27-81c8-e8aa32726705",
+      "validationEvent": "2c3acf69-5cdf-4f74-bce5-cf6dbe3eff6a",
+      "outcome": "success",
+      "validation": "master and replica SHA-256 equal"
+    }
+  },
+  "recoveryDrill": {
+    "status": "PASS",
+    "recoveryLocationUuid": "c6fb2442-ee18-41e6-bc1b-658262ab5777",
+    "recoveryRoot": "/var/archivematica/storage_service/recover",
+    "procedure": [
+      "fresh-validate independently stored replica",
+      "stage exact replica bytes in the pipeline AIP Recovery location",
+      "fresh-validate recovery candidate",
+      "truncate master AIP to zero bytes",
+      "require canonical Storage Service fixity failure",
+      "invoke native Package.recover_aip()",
+      "require exact original SHA-256 on restored master",
+      "require canonical Storage Service fixity success",
+      "require replica SHA-256 remain unchanged"
+    ],
+    "corruptionObserved": {
+      "masterBytes": 0,
+      "observedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "fixityResult": false,
+      "error": "Incorrect package checksum"
+    },
+    "nativeRecoverReturn": true,
+    "emergencyRollbackUsed": false,
+    "restoredSha256": "e08f0197821c05684cfc50b3dc6119801de6f9137dfeef1df5a43cc8a42ffbda",
+    "postRecoveryFixity": true,
+    "replicaUnchanged": true
+  },
+  "unarCompatibilityClosure": {
+    "problem": "Ubuntu 24.04 unar package resolves to a really1.10.1 codebase and returned Wrong checksum while extracting the Archivematica-generated Delta+BZip2 7z AIP",
+    "decision": "replace only unar/lsar with binaries built from upstream XADMaster v1.10.8 on the same Ubuntu 24.04 ABI; do not patch Archivematica recovery semantics and do not add a custom 7z fallback",
+    "sourceMetadata": "/opt/ordivon/external/unar/1.10.8/SOURCE.json",
+    "unarSha256": "1c78186fff3dce0abc0b38f1df06fa7fbabaf91f09321015a0f09458fb5ab714",
+    "lsarSha256": "674c4998215f42da13b024b7ca9ed9d016150ef9db49176ed10504494dd61257",
+    "runtimePath": "/usr/local/bin/unar",
+    "delta7zAcceptance": {
+      "files": 104,
+      "extractedBytes": 8000781,
+      "result": "PASS"
+    },
+    "archivematicaPythonSourceModified": false
+  },
+  "periodicFixity": {
+    "client": "Artefactual Fixity",
+    "clientVersion": "0.8.0",
+    "clientRevision": "3bf437d3d0b3d23383677f058419a7358c8f981f",
+    "uvLockSha256": "49ba2ad6a3ec51219b411022589159ce6adf7bc896f297618555be138e6f3194",
+    "requirementsSha256": "73951599dca9fe67a335f1df8eaffb4254f8eadb9453bac577c7d5b53eb8f6ef",
+    "identity": {
+      "username": "fixity-r7",
+      "active": true,
+      "staff": false,
+      "superuser": false,
+      "usablePassword": false,
+      "credentialFile": "/etc/ordivon/fixity-r7.env",
+      "credentialFileMode": "0600 root:root",
+      "credentialMaterialRecordedInReceipt": false
+    },
+    "service": {
+      "name": "ordivon-preservation-fixity-r7.service",
+      "sourceSha256": "ef4a3cd34d71e1ee2443d2e940b4f6078d404ec9d9f8faedddb64dc1a07d46d8",
+      "lastResult": "success",
+      "lastExecMainStatus": 0,
+      "postRestartManualTrigger": "PASS"
+    },
+    "timer": {
+      "name": "ordivon-preservation-fixity-r7.timer",
+      "sourceSha256": "2de777dd26c6000fd1451ac1c7f61c49288d0bb37ae9c5f5b0ddb5267c6baa0a",
+      "unitFileState": "enabled",
+      "activeState": "active",
+      "subState": "waiting",
+      "baseSchedule": "Sunday 03:17 Asia/Singapore",
+      "randomizedDelay": "30m",
+      "persistent": true,
+      "observedNextElapse": "2026-09-20T03:20:42+08:00",
+      "policyBoundary": "weekly cadence is a local operating policy, not asserted as a universal digital-preservation standard"
+    },
+    "officialApiScan": {
+      "master": "PASS",
+      "replica": "PASS",
+      "scannedAips": 2
+    }
+  },
+  "restartSurvival": {
+    "storageServiceRestart": "PASS",
+    "unarOverrideStillSelected": true,
+    "masterPostRestartFixity": true,
+    "replicaPostRestartFixity": true,
+    "timerStillEnabledAndWaiting": true,
+    "scheduledServicePostRestart": "PASS",
+    "masterAndReplicaPhysicalShaUnchanged": true
+  },
+  "rejectedCarrier": {
+    "carrier": "Windows D: DrvFS/9p bind mount",
+    "result": "REJECTED_FAIL_CLOSED",
+    "reason": "Archivematica replication requires POSIX mkdir/chmod/rsync behavior that the tested D: carrier did not provide reliably",
+    "leftAsReplicaAuthority": false,
+    "globalWindowsMountPolicyChanged": false
+  },
+  "pointerBoundary": {
+    "replicationPremisSemanticsPresent": true,
+    "masterReplicaRelationshipsPresent": true,
+    "schemaConformanceClaimed": false,
+    "validatorBoundary": "metsrw validation can fail in XSD resolution because xlink simpleLink attributeGroup is unresolved; replication creation also emitted pointer Schematron warnings. Storage Service source explicitly treats pointer validation/schema parse failures as non-fatal and returns the constructed pointer.",
+    "classification": "pointer validation infrastructure/schema-conformance defect; not replication provenance loss"
+  },
+  "claims": {
+    "nativeReplicationEstablished": true,
+    "replicaByteIdentityEstablished": true,
+    "replicaFixityEstablished": true,
+    "corruptionDetectionEstablished": true,
+    "nativeRecoveryEstablished": true,
+    "periodicFixityOperationEstablished": true,
+    "restartSurvivalEstablished": true,
+    "independentFailureDomainEstablished": false,
+    "offsiteReplicationEstablished": false,
+    "pointerSchemaConformanceEstablished": false,
+    "windowsDDriveReplicaCarrierGraduated": false
+  },
+  "boundedFindings": [
+    "The replica is stored at a second POSIX path but on the same WSL host; this is not an independent failure domain and is not off-site disaster recovery.",
+    "The Windows D: DrvFS/9p carrier failed the required POSIX replication behavior and was removed from the accepted topology.",
+    "Archivematica's packaged unar path was insufficient for this Delta-filter 7z; the accepted runtime uses upstream XADMaster v1.10.8 binaries without modifying Archivematica Python code.",
+    "Pointer PREMIS replication/creation/validation semantics are present, but pointer XSD/Schematron conformance is not graduated because the current validator path has schema-resolution/conformance defects.",
+    "Weekly fixity scheduling is an explicit local operating policy; the mature fixity semantics remain owned by Storage Service and the Artefactual Fixity client."
+  ],
+  "evidenceJobs": [
+    "job-01a09e28-2e4e-79f0-ab51-aca7badc7c99",
+    "job-01a09e2a-7a0c-78f3-bad5-8ef2c1dd7fa2",
+    "job-01a09e30-d6f0-7c21-a105-2236925ebe47",
+    "job-01a09e32-5bae-7700-9c80-8d7b54efd8cc",
+    "job-01a09e33-0ddc-7ed2-bd35-ccb1b35e5408",
+    "job-01a09e37-4fe7-7ed2-a723-e9170082690a",
+    "job-01a09e38-97e2-7fa2-b99a-2fdefb81b004",
+    "job-01a09e3a-cd84-78a1-8f9e-164c14d3fbff",
+    "job-01a09e3c-9310-70f1-92ff-85e393db3420",
+    "job-01a09e54-7447-7003-9206-5239fb80a774",
+    "job-01a09e55-991e-7383-9cfa-7bc33ebbdbb5"
+  ]
+}

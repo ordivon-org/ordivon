@@ -196,3 +196,15 @@ This R5 acceptance does not generalize Media CAS into an Ordivon storage layer. 
 Archivematica 1.18 + Storage Service is now `ACCEPTED_BOUNDED` as the local production preservation engine for the tested creative corpus. The graduation evidence is in `docs/creative-preservation-archivematica-r6.md` and `artifacts/creative-preservation/archivematica-r6/acceptance-r6.json`.
 
 The accepted boundary is deliberately narrow: real transfer/SIP/AIP creation, METS/PREMIS, 86/86 original-byte preservation, explicit normalization provenance for generated derivatives, Storage Service AIP storage, canonical fixity, and restart/reopen survival. Current PRONOM V124 still leaves 2/86 originals unidentified, and Archivematica 1.18 emits BagIt 0.97 AIPs; both are recorded as upstream/mature-tool boundaries rather than hidden by an Ordivon semantic wrapper.
+
+## R7 Preservation Operations graduation
+
+Archivematica preservation operations are now `ACCEPTED_BOUNDED` for the graduated R6 AIP. Storage Service native replication created one independently tracked replica with exact byte identity and PREMIS replication/creation/validation provenance. A real destructive drill truncated the master AIP to zero bytes, canonical fixity detected the corruption, native `recover_aip()` restored the original SHA-256, and post-recovery fixity passed without using the emergency rollback path.
+
+Periodic fixity is composed from systemd scheduling plus Artefactual Fixity 0.8.0 pinned at revision `3bf437d3d0b3d23383677f058419a7358c8f981f`; the client calls the Storage Service API, so Storage Service remains the fixity authority. The system survives Storage Service restart and re-runs the same API-backed checks successfully.
+
+The accepted replica is a second POSIX storage location on the same WSL host. It is **not** an independent/off-site failure domain. A Windows D: DrvFS/9p replica carrier was tested and rejected because its observed POSIX mkdir/chmod/rsync behavior was insufficient for Archivematica replication. Pointer PREMIS provenance is present, but current pointer XSD/Schematron conformance is not graduated because the upstream validation path has schema-resolution/conformance defects.
+
+The recovery path also exposed an upstream dependency boundary: Ubuntu 24.04's effective `unar` codebase failed on the Archivematica-generated Delta-filter 7z. R7 uses upstream XADMaster v1.10.8 `unar/lsar` binaries built against the same runtime ABI, without patching Archivematica Python recovery logic.
+
+See `docs/creative-preservation-operations-r7.md` and `artifacts/creative-preservation/operations-r7/acceptance-r7.json`.

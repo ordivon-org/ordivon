@@ -1,0 +1,28 @@
+[Unit]
+Description=Ordivon R7 Archivematica periodic fixity scan
+Documentation=https://github.com/artefactual/fixity
+After=network-online.target docker.service
+Wants=network-online.target
+ConditionPathExists=/etc/ordivon/fixity-r7.env
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/ordivon/fixity-r7.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+WorkingDirectory=/opt/ordivon/external/fixity/0.8.0-3bf437d3d0b3d23383677f058419a7358c8f981f
+ExecStart=/opt/ordivon/external/fixity/0.8.0-3bf437d3d0b3d23383677f058419a7358c8f981f/.venv/bin/fixity scanall --force-local --timestamps --sort --throttle 1
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+ReadWritePaths=/opt/ordivon/external/fixity/0.8.0-3bf437d3d0b3d23383677f058419a7358c8f981f/fixity
+
+[Install]
+WantedBy=multi-user.target
