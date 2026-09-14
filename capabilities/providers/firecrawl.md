@@ -127,6 +127,8 @@ Computer Use
 
 For site-scale data acquisition, Firecrawl may be preferred directly over local browser automation because it already owns crawl frontier, normalization, retries, rate limiting, rendering and extraction concerns.
 
+The machine-readable `web-interaction-r1` profile deliberately distinguishes **studied/known** from **currently available**. On the 2026-09-14 local census no Firecrawl executable/service is admitted, so a site-scale acquisition request returns `NO_ADMITTED_PROVIDER` unless the current caller supplies a real connected Firecrawl capability; it is not silently rewritten into a loop of local HTTP fetches.
+
 ## Authority boundary
 
 Firecrawl owns:
