@@ -10,6 +10,7 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest import mock
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
@@ -251,6 +252,54 @@ class RuntimeStatusDefaultTests(unittest.TestCase):
 
 
 class RuntimeStatusTests(unittest.TestCase):
+    def test_storage_measurements_share_a_bounded_total_budget(self) -> None:
+        namespace = runpy.run_path(str(SCRIPT))
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            store = root / "runtime"
+            for path in (
+                store / "cache",
+                store / "workspaces",
+                root / "registry",
+                root / "deployments",
+                root / "candidates",
+            ):
+                path.mkdir(parents=True, exist_ok=True)
+            observed_timeouts: list[float] = []
+
+            def timeout_probe(command, **kwargs):
+                timeout = float(kwargs["timeout"])
+                observed_timeouts.append(timeout)
+                raise subprocess.TimeoutExpired(command, timeout)
+
+            reasons: list[str] = []
+            with mock.patch.object(namespace["subprocess"], "run", side_effect=timeout_probe):
+                report = namespace["storage_status"](
+                    root / "registry" / "registry.sqlite3",
+                    store,
+                    root / "deployments",
+                    root / "candidates",
+                    {},
+                    reasons,
+                )
+
+            self.assertEqual(len(observed_timeouts), 5)
+            self.assertTrue(all(0 < value <= 2.0 for value in observed_timeouts))
+            self.assertLessEqual(sum(observed_timeouts), 10.0)
+            self.assertTrue(
+                all(
+                    report[key] is None
+                    for key in (
+                        "cacheBytes",
+                        "workspaceBytes",
+                        "registryBytes",
+                        "deploymentBytes",
+                        "candidateBytes",
+                    )
+                )
+            )
+            self.assertIn("STORAGE_MEASUREMENT_UNAVAILABLE", reasons)
+
     def test_successful_rollback_result_becomes_current_release_truth(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             paths = fixture(Path(temporary))

@@ -90,6 +90,7 @@ Those eight operations account for 92.87% of counted calls. Advanced surfaces ar
 2. Post-result terminal process-tree evidence is now cgroup-first. When an Attempt has a committed cgroup identity, Runtime checks the recorded PID identity and recursive cgroup-v2 `populated` state directly; a transient `systemctl show` timeout can no longer downgrade a proven-clean terminal process tree to `unknown`.
 3. The cgroup-first rule is deliberately limited to terminal evidence after a Runner result. Live execution, cancellation safety, and reconciliation keep the stricter systemd/PID/cgroup identity checks and remain fail-closed.
 4. The combined current-main state was exercised through both the complete all-feature Core suite and the explicit privileged local transactional acceptance suite.
+5. Post-release `--diagnose` exposed a separate operator-path bound: five sequential `du -sb` storage probes each had an independent 20-second timeout, allowing maintenance diagnostics to exceed a one-minute caller deadline. Storage probes now share a 10-second total budget and each individual probe is capped at 2 seconds; unavailable measurements remain explicit `null` values and raise `STORAGE_MEASUREMENT_UNAVAILABLE` rather than fabricating size truth. On the live store with 375 open Workspaces, the source-matched diagnose path completed in about 26.2 seconds with `health=healthy` and maintenance attention for the intentionally bounded Workspace/storage observations.
 
 ## Current evidence
 
@@ -101,7 +102,7 @@ Those eight operations account for 92.87% of counted calls. Advanced surfaces ar
 - complete all-feature Core unit suite, including the long reference-model property: **246/246 PASS**.
 - MCP unit suite: **55/55 PASS**.
 - Runtime server/auth suite in the all-target workspace run: **4/4 PASS**.
-- Python operational suite: **137/137 PASS**, including archive, cache, lifecycle, deploy/reclaim, status, backup/restore, and acceptance helpers.
+- Python operational suite: **138/138 PASS**, including archive, cache, lifecycle, deploy/reclaim, status, backup/restore, acceptance helpers, and the bounded storage-diagnostics budget law.
 - explicit privileged/local transactional Runtime acceptance: **39/39 PASS**, including contained-local isolation, fast success/failure races, interactive close/reconciliation, cancellation reconstruction, provider binding, cgroup budgets, Windows-native execution, and WSL restart recovery.
 - source-only archive behavior suite: **7/7 PASS**, including v4/v5 recovery representation, latest-Attempt fallback, fail-closed capability checks, and byte-identical Registry observation.
 - non-test Runtime Registry semantic SQL in Python/shell scripts: **0 matches**.
