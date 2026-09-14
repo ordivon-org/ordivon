@@ -218,3 +218,9 @@ E-ARK CSIP/SIP 2.2.0 is the forward external submission/interchange profile. Com
 Historical R4-R7 `ACCEPTED*` labels remain engineering graduation history only. Preservation maturity is no longer an Ordivon verdict model: NDSA Levels 2.1, DPC RAM v3 and CoreTrustSeal 2026–2028 are the external assessment frameworks. No level, score or certification is inferred in R8.
 
 Owner approval and exact Git/CAS byte resolution remain domain-local. BagIt is demoted to transfer/current Archivematica engine-adapter status. Enduro v0.34.1 is registered as the first substitute before any future custom preservation ingest orchestration, but activation is workload-triggered rather than architecture-triggered.
+
+## R9 Forward packager retirement
+
+The R4/R5 custom `creative_forward_ingest.py` implementation has been removed from the active workstation after E-ARK SIP 2.2.0 + Commons-IP 2.11.3 graduated on the same frozen corpus. Its private BagIt/SWHID environment and disposable DuckDB/Parquet catalogs were also removed. Historical R4/R5 bags and receipts remain frozen evidence and the deleted implementation remains reproducible through Git history.
+
+No new preservation catalog or handoff schema replaces it. Forward package semantics remain E-ARK/Commons-IP, while owner approval and exact-byte resolution stay with the producing domain.
