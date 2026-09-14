@@ -1,0 +1,11 @@
+{
+  "authorityId": "iso-iec-ieee-29148-2018",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published-confirmed",
+  "note": "ISO states the 2018 edition was reviewed and confirmed in 2024 and therefore remains current.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.iso.org/standard/72089.html",
+  "schemaVersion": 1,
+  "versionObserved": "2018"
+}

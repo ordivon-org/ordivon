@@ -1,0 +1,42 @@
+{
+  "addedCount": 7,
+  "addedIds": [
+    "archimate-3.2",
+    "iso-iec-ieee-29148-2018",
+    "mets-2",
+    "opentelemetry-genai-semconv",
+    "premis-3.0",
+    "pronom-registry",
+    "togaf-standard-10th-edition"
+  ],
+  "batch": "2026-09-14-batch6",
+  "boundary": "Batch closes explicit authority gaps in currently active package descriptions. Tools/providers, broad standards families and merely plausible security taxonomies remain deferred until workload binding.",
+  "deferredCandidates": [
+    "METS 1.12.1 as a supported compatibility line; register when a workload explicitly targets METS 1 rather than METS 2",
+    "Siegfried because it is a provider/tool, not semantic authority",
+    "DAMA-DMBOK until a concrete organizational data-governance workload binds that body of knowledge",
+    "Design Council Double Diamond until a real product-discovery profile needs a stable reference identity",
+    "RIPE Atlas because it is a measurement service/provider rather than a protocol standard",
+    "SMPTE family until an actual media deliverable identifies the specific standard number",
+    "CVSS/CWE/CVE/ATT&CK/CIS/SAMM until a Security workload actually binds them"
+  ],
+  "families": {
+    "engineering": [
+      "iso-iec-ieee-29148-2018"
+    ],
+    "enterprise-architecture": [
+      "archimate-3.2",
+      "togaf-standard-10th-edition"
+    ],
+    "observability-ai": [
+      "opentelemetry-genai-semconv"
+    ],
+    "preservation": [
+      "premis-3.0",
+      "mets-2",
+      "pronom-registry"
+    ]
+  },
+  "kind": "ordivon.external-authority-catalog-seed-batch",
+  "schemaVersion": 1
+}

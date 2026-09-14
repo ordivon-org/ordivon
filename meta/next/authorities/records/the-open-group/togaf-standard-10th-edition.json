@@ -1,0 +1,52 @@
+{
+  "access": {
+    "fullText": "licensed",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "TOGAF",
+      "TOGAF 10",
+      "TOGAF Standard 10th Edition"
+    ],
+    "domains": [
+      "enterprise",
+      "architecture",
+      "management"
+    ],
+    "topics": [
+      "enterprise-architecture",
+      "architecture-method",
+      "architecture-development",
+      "enterprise-transformation"
+    ]
+  },
+  "id": "togaf-standard-10th-edition",
+  "identity": {
+    "authorityKind": "enterprise-architecture-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "the-open-group",
+      "name": "The Open Group"
+    },
+    "officialSource": "https://www.opengroup.org/togaf-standard-10th-edition-downloads",
+    "publicationDate": null,
+    "title": "TOGAF Standard, 10th Edition",
+    "versionLabel": "10th Edition"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "docs/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R1.md",
+      "The Open Group official source checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

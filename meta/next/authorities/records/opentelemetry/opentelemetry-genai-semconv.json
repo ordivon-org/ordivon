@@ -1,0 +1,56 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "OTel GenAI semantic conventions",
+      "OpenTelemetry GenAI",
+      "gen_ai semantic conventions"
+    ],
+    "domains": [
+      "operations",
+      "observability",
+      "ai",
+      "agent"
+    ],
+    "topics": [
+      "generative-ai",
+      "telemetry",
+      "semantic-conventions",
+      "agents",
+      "model-inference",
+      "tracing"
+    ]
+  },
+  "id": "opentelemetry-genai-semconv",
+  "identity": {
+    "authorityKind": "open-specification",
+    "identityMode": "rolling-source",
+    "issuer": {
+      "id": "opentelemetry",
+      "name": "OpenTelemetry"
+    },
+    "officialSource": "https://opentelemetry.io/docs/specs/semconv/gen-ai/",
+    "publicationDate": null,
+    "title": "OpenTelemetry Generative AI Semantic Conventions",
+    "versionLabel": null
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/operations.md",
+      "capabilities/providers/openinference.md",
+      "OpenTelemetry official semantic-conventions sources checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

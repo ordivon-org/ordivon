@@ -1,0 +1,11 @@
+{
+  "authorityId": "pronom-registry",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current",
+  "note": "PRONOM is an actively maintained rolling technical registry; no single catalog version is asserted here.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.nationalarchives.gov.uk/pronom/",
+  "schemaVersion": 1,
+  "versionObserved": null
+}

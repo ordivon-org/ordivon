@@ -217,6 +217,35 @@
     },
     {
       "aliases": [
+        "ArchiMate",
+        "ArchiMate 3.2",
+        "ArchiMate Specification"
+      ],
+      "authorityKind": "enterprise-architecture-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "architecture",
+        "enterprise",
+        "management"
+      ],
+      "id": "archimate-3.2",
+      "identityMode": "versioned",
+      "issuer": "The Open Group",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:e0e8c92ad65fa3857b3dc0abe2792a0bf128c90ff96262aa5d8049d02892e99a",
+      "recordDigest": "sha256:a41da4fc9dc27ec9b5dbfe8c7c6c4624d6dbfcf8a6c2e98cde25e3b7c7666a05",
+      "title": "ArchiMate Specification, Version 3.2",
+      "topics": [
+        "application-architecture",
+        "architecture-modeling",
+        "business-architecture",
+        "enterprise-architecture",
+        "technology-architecture"
+      ],
+      "versionLabel": "3.2"
+    },
+    {
+      "aliases": [
         "AsyncAPI",
         "AsyncAPI 3.1.0"
       ],
@@ -1639,6 +1668,35 @@
     },
     {
       "aliases": [
+        "ISO 29148",
+        "ISO/IEC/IEEE 29148:2018",
+        "Requirements engineering"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "engineering",
+        "game",
+        "systems"
+      ],
+      "id": "iso-iec-ieee-29148-2018",
+      "identityMode": "versioned",
+      "issuer": "ISO/IEC/IEEE",
+      "lifecycleStatus": "published-confirmed",
+      "observationDigest": "sha256:62cd4bdc790573b93baafb98749f5434ed95fa7271897c7dbd02eaf52a890531",
+      "recordDigest": "sha256:374f54f5ad50d4cb9c1d43e459d05d5f797bb6c942a87153a8f20f2082b26c9e",
+      "title": "ISO/IEC/IEEE 29148:2018 — Systems and software engineering — Life cycle processes — Requirements engineering",
+      "topics": [
+        "lifecycle",
+        "requirements",
+        "requirements-engineering",
+        "software-requirements",
+        "system-requirements"
+      ],
+      "versionLabel": "2018"
+    },
+    {
+      "aliases": [
         "IMS practical guide",
         "ISO Integrated Management Systems Guide"
       ],
@@ -1722,6 +1780,35 @@
         "tools"
       ],
       "versionLabel": "2026-07-28"
+    },
+    {
+      "aliases": [
+        "Metadata Encoding and Transmission Standard",
+        "METS",
+        "METS 2"
+      ],
+      "authorityKind": "digital-library-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "metadata",
+        "preservation"
+      ],
+      "id": "mets-2",
+      "identityMode": "versioned",
+      "issuer": "METS Editorial Board / Library of Congress",
+      "lifecycleStatus": "current-major-version",
+      "observationDigest": "sha256:6f1c411bed44f14198bce74be8384015806eee19aad8ccdc9531b1ad52f8c820",
+      "recordDigest": "sha256:e2f4ddb677382a703e0c68985149a589b8e156537be2aa790558bfbed1ad533d",
+      "title": "Metadata Encoding and Transmission Standard (METS) Version 2",
+      "topics": [
+        "administrative-metadata",
+        "descriptive-metadata",
+        "digital-library",
+        "information-package",
+        "structural-metadata"
+      ],
+      "versionLabel": "2"
     },
     {
       "aliases": [
@@ -2223,6 +2310,37 @@
     },
     {
       "aliases": [
+        "gen_ai semantic conventions",
+        "OpenTelemetry GenAI",
+        "OTel GenAI semantic conventions"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "agent",
+        "ai",
+        "observability",
+        "operations"
+      ],
+      "id": "opentelemetry-genai-semconv",
+      "identityMode": "rolling-source",
+      "issuer": "OpenTelemetry",
+      "lifecycleStatus": "development-moving-source",
+      "observationDigest": "sha256:a5873b27b793688122707b3da7fbf12cfc9ea48f331f85873c050a1e5916fff9",
+      "recordDigest": "sha256:42a263a4e2aba8124d18c1e4c7d28128695699db9b098d3a5a56d40e66b88478",
+      "title": "OpenTelemetry Generative AI Semantic Conventions",
+      "topics": [
+        "agents",
+        "generative-ai",
+        "model-inference",
+        "semantic-conventions",
+        "telemetry",
+        "tracing"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
         "OpenTelemetry",
         "OpenTelemetry Specification",
         "OTel"
@@ -2337,6 +2455,36 @@
     },
     {
       "aliases": [
+        "PREMIS",
+        "PREMIS 3.0",
+        "PREMIS Data Dictionary"
+      ],
+      "authorityKind": "preservation-metadata-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "metadata",
+        "preservation"
+      ],
+      "id": "premis-3.0",
+      "identityMode": "versioned",
+      "issuer": "Library of Congress / PREMIS Editorial Committee",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:d49c9786f6c10cb2bbfb222748d64b04265ef542c90b0ed3c8111d58f9275b1f",
+      "recordDigest": "sha256:54e2207bdfe0029d7a6034a63daf177d5a10e61d3a11ea77218651dbcaeb5e9a",
+      "title": "PREMIS Data Dictionary for Preservation Metadata, Version 3.0",
+      "topics": [
+        "agents",
+        "digital-preservation",
+        "events",
+        "objects",
+        "preservation-metadata",
+        "rights"
+      ],
+      "versionLabel": "3.0"
+    },
+    {
+      "aliases": [
         "PRISMA 2020"
       ],
       "authorityKind": "reporting-guideline",
@@ -2357,6 +2505,35 @@
         "systematic-review"
       ],
       "versionLabel": "2020"
+    },
+    {
+      "aliases": [
+        "PRONOM",
+        "PRONOM registry",
+        "PUID"
+      ],
+      "authorityKind": "technical-registry",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "metadata",
+        "preservation"
+      ],
+      "id": "pronom-registry",
+      "identityMode": "rolling-source",
+      "issuer": "The National Archives (UK)",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:c9ee29619a9a95facf42a70b3056ff11bf446030d812354258be2419e5fc7c0d",
+      "recordDigest": "sha256:e1e39b48320ebcfb02447258f90a684a459961d19693b7d40b3b8adffbb413d4",
+      "title": "PRONOM technical information registry",
+      "topics": [
+        "digital-preservation",
+        "file-format-registry",
+        "format-identification",
+        "puid",
+        "software-registry"
+      ],
+      "versionLabel": null
     },
     {
       "aliases": [
@@ -2891,6 +3068,34 @@
     },
     {
       "aliases": [
+        "TOGAF",
+        "TOGAF 10",
+        "TOGAF Standard 10th Edition"
+      ],
+      "authorityKind": "enterprise-architecture-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "architecture",
+        "enterprise",
+        "management"
+      ],
+      "id": "togaf-standard-10th-edition",
+      "identityMode": "versioned",
+      "issuer": "The Open Group",
+      "lifecycleStatus": "current-with-corrigendum",
+      "observationDigest": "sha256:17d83108c90fdff9639829de4bd2baa7c7da6014c5f10fbcb29fcc23e104ad9a",
+      "recordDigest": "sha256:91737f9eb559c1c147cf93b4e78507b24b89e5ce4a35a8122092a78ccfb135b2",
+      "title": "TOGAF Standard, 10th Edition",
+      "topics": [
+        "architecture-development",
+        "architecture-method",
+        "enterprise-architecture",
+        "enterprise-transformation"
+      ],
+      "versionLabel": "10th Edition"
+    },
+    {
+      "aliases": [
         "PNG",
         "PNG Third Edition",
         "Portable Network Graphics"
@@ -3027,7 +3232,7 @@
     }
   ],
   "kind": "ordivon.external-authority-discovery-index",
-  "recordCount": 110,
-  "recordsDigest": "sha256:acf36cfcf08834025981f823f63abdb08edbbb3e7a2f0b232ff6bf977a7dd43c",
+  "recordCount": 117,
+  "recordsDigest": "sha256:f582572879474c9d806a3777701c4d5ad27f3b281000703f62de2feeef86cf00",
   "schemaVersion": 1
 }

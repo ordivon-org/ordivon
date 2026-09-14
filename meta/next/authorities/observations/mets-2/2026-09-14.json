@@ -1,0 +1,11 @@
+{
+  "authorityId": "mets-2",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current-major-version",
+  "note": "METS Version 2 is available as the new major schema line. METS Version 1 remains supported for continuity and use cases requiring its features.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.loc.gov/standards/mets/mets2.html",
+  "schemaVersion": 1,
+  "versionObserved": "2"
+}

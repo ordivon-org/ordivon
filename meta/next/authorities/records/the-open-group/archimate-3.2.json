@@ -1,0 +1,53 @@
+{
+  "access": {
+    "fullText": "licensed",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "ArchiMate",
+      "ArchiMate 3.2",
+      "ArchiMate Specification"
+    ],
+    "domains": [
+      "enterprise",
+      "architecture",
+      "management"
+    ],
+    "topics": [
+      "enterprise-architecture",
+      "architecture-modeling",
+      "business-architecture",
+      "application-architecture",
+      "technology-architecture"
+    ]
+  },
+  "id": "archimate-3.2",
+  "identity": {
+    "authorityKind": "enterprise-architecture-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "the-open-group",
+      "name": "The Open Group"
+    },
+    "officialSource": "https://www.opengroup.org/archimate-licensed-downloads",
+    "publicationDate": "2022-10",
+    "title": "ArchiMate Specification, Version 3.2",
+    "versionLabel": "3.2"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "docs/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R1.md",
+      "The Open Group official source checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}
