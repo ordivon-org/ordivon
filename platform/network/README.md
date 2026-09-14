@@ -60,7 +60,7 @@ task accept:live
 task accept:local
 ```
 
-Optional provider and consumer surfaces use their own namespaces, for example `provider:surfshark:*` and `consumer:finance-okx:*`. They are not generic Network graduation prerequisites.
+Optional provider and consumer surfaces use their own namespaces, for example `provider:surfshark:*` and `consumer:finance:*`. They are not generic Network graduation prerequisites.
 
 ## Current standing
 

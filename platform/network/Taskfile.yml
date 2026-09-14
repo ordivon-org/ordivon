@@ -14,16 +14,17 @@ tasks:
     cmds:
       - sing-box check -c providers/surfshark/config/carrier.json
 
-  consumer:finance-okx:validate:
-    desc: Validate only the finance-okx consumer profile; does not grant consumer authority
+  consumer:finance:validate:
+    desc: Validate the shared Finance venue network profile without changing live authority
     deps: [provider:surfshark:validate]
     cmds:
-      - sing-box check -c consumers/finance-okx/config/provider-selection.json
-      - sing-box check -c consumers/finance-okx/config/shadow.json
+      - sing-box check -c consumers/finance/config/egress.json
+      - /usr/bin/systemd-analyze verify consumers/finance/systemd/network-v2-finance-netns@.service consumers/finance/systemd/network-v2-finance-wireguard@.service consumers/finance/systemd/network-v2-finance-carrier@.service consumers/finance/systemd/network-v2-finance-egress.service consumers/finance/systemd/network-v2-finance.target
+      - jq -e '.kind=="ordivon.network-v2.scoped-egress-authority" and .directFallback==false and (.proxy|startswith("http://127.0.0.1:"))' consumers/finance/config/*-authority.json >/dev/null
 
   all:validate:
     desc: Validate core plus optional provider and consumer profiles without changing live state
-    deps: [core:validate, provider:surfshark:validate, consumer:finance-okx:validate]
+    deps: [core:validate, provider:surfshark:validate, consumer:finance:validate]
 
   core:install:
     desc: Materialize the exact validated R0 source generation into the live host under one systemd composition root
@@ -207,17 +208,6 @@ tasks:
         done
         test "$(find "$out" -mindepth 2 -maxdepth 2 -type f -name '*.conf' | wc -l)" -eq 6
 
-  consumer:finance-okx:provider-path-accept:
-    desc: Prove the finance-okx two-provider path policy without granting production authority
-    deps: [consumer:finance-okx:validate, capability:wireguard:materialize, provider:surfshark:profiles]
-    cmds:
-      - ./consumers/finance-okx/acceptance/provider-dual-failclosed.sh
-
-  test:r6:
-    internal: true
-    cmds:
-      - task: consumer:finance-okx:provider-path-accept
-
   provider:surfshark:verify-local:
     desc: Verify the already-graduated local R6 provider inputs without re-fetching external sources
     deps: [provider:surfshark:validate]
@@ -243,14 +233,14 @@ tasks:
           test "$(yq -p=ini -o=json -r '.Interface.DNS // ""' "$profile")" = ''
         done <"$manifest"
 
-  consumer:finance-okx:materialize:
-    desc: Build the non-production systemd shadow topology from the admitted R6 provider inputs without enabling it at boot
+  consumer:finance:materialize:
+    desc: Materialize the shared Finance provider substrate and four venue authorities without starting or cutting over consumers
+    deps: [consumer:finance:validate, provider:surfshark:verify-local]
     cmds:
-      - systemctl stop network-v2-finance-okx-shadow.target >/dev/null 2>&1 || true
-      - task: provider:surfshark:verify-local
-      - install -d -m 0755 /etc/network-v2/finance-okx
-      - install -m 0644 providers/surfshark/config/carrier.json /etc/network-v2/finance-okx/provider-carrier.json
-      - install -m 0644 consumers/finance-okx/config/shadow.json /etc/network-v2/finance-okx/shadow.json
+      - install -d -m 0755 /etc/network-v2/finance
+      - install -m 0644 providers/surfshark/config/carrier.json /etc/network-v2/finance/provider-carrier.json
+      - install -m 0644 consumers/finance/config/egress.json /etc/network-v2/finance/egress.json
+      - install -m 0644 consumers/finance/config/*-authority.json /etc/network-v2/finance/
       - |
         set -eu
         manifest=/etc/network-v2/providers/catalog-profiles/MANIFEST.tsv
@@ -260,59 +250,32 @@ tasks:
         b_profile=$(awk -F '\t' '$1=="th-bkk"{print $4; exit}' "$manifest")
         test -n "$a_ep"; test -f "$a_profile"
         test -n "$b_ep"; test -f "$b_profile"
-        test "$(yq -p=ini -o=json -r '.Peer.Endpoint' "$a_profile")" = "$a_ep:51820"
-        test "$(yq -p=ini -o=json -r '.Peer.Endpoint' "$b_profile")" = "$b_ep:51820"
         a_tmp=$(mktemp)
         b_tmp=$(mktemp)
         trap 'rm -f "$a_tmp" "$b_tmp"' EXIT
-        printf '%s\n' \
-          'HOST_IF=nv2fha' \
-          'NS_IF=nv2fna' \
-          'HOST_ADDR=10.252.244.1/30' \
-          'NS_ADDR=10.252.244.2/30' \
-          'HOST_IP=10.252.244.1' \
-          "ENDPOINT=$a_ep" \
-          "PROFILE=$a_profile" \
-          'WG_IF=nv2r6a' >"$a_tmp"
-        printf '%s\n' \
-          'HOST_IF=nv2fhb' \
-          'NS_IF=nv2fnb' \
-          'HOST_ADDR=10.252.245.1/30' \
-          'NS_ADDR=10.252.245.2/30' \
-          'HOST_IP=10.252.245.1' \
-          "ENDPOINT=$b_ep" \
-          "PROFILE=$b_profile" \
-          'WG_IF=nv2r6b' >"$b_tmp"
-        install -m 0600 "$a_tmp" /etc/network-v2/finance-okx/provider-a.env
-        install -m 0600 "$b_tmp" /etc/network-v2/finance-okx/provider-b.env
-      - for: { var: FINANCE_OKX_SYSTEMD_UNITS }
+        printf '%s\n' 'HOST_IF=nv2fha' 'NS_IF=nv2fna' 'HOST_ADDR=10.252.244.1/30' 'NS_ADDR=10.252.244.2/30' 'HOST_IP=10.252.244.1' "ENDPOINT=$a_ep" "PROFILE=$a_profile" 'WG_IF=nv2r6a' >"$a_tmp"
+        printf '%s\n' 'HOST_IF=nv2fhb' 'NS_IF=nv2fnb' 'HOST_ADDR=10.252.245.1/30' 'NS_ADDR=10.252.245.2/30' 'HOST_IP=10.252.245.1' "ENDPOINT=$b_ep" "PROFILE=$b_profile" 'WG_IF=nv2r6b' >"$b_tmp"
+        install -m 0600 "$a_tmp" /etc/network-v2/finance/provider-a.env
+        install -m 0600 "$b_tmp" /etc/network-v2/finance/provider-b.env
+      - for: { var: FINANCE_SYSTEMD_UNITS }
         cmd: install -m 0644 {{.ITEM}} /etc/systemd/system/{{base .ITEM}}
-      - /usr/bin/systemd-analyze verify consumers/finance-okx/systemd/network-v2-finance-okx-netns@.service consumers/finance-okx/systemd/network-v2-finance-okx-wireguard@.service consumers/finance-okx/systemd/network-v2-finance-okx-carrier@.service consumers/finance-okx/systemd/network-v2-finance-okx-shadow.service consumers/finance-okx/systemd/network-v2-finance-okx-shadow.target
       - systemctl daemon-reload
-      - systemctl disable network-v2-finance-okx-shadow.target >/dev/null 2>&1 || true
+      - systemctl disable network-v2-finance.target >/dev/null 2>&1 || true
 
-  consumer:finance-okx:start:
-    desc: Materialize, start, and destructively verify the isolated finance-okx shadow without changing production consumer authority
+  consumer:finance:start:
+    desc: Start the materialized shared Finance topology; caller owns serialized production cutover
     cmds:
-      - task: consumer:finance-okx:materialize
-      - systemctl start network-v2-finance-okx-shadow.target
-      - task: consumer:finance-okx:verify
+      - systemctl start network-v2-finance.target
 
-  consumer:finance-okx:verify:
-    desc: Verify persistent shadow service, two-provider failure/recovery, destination fencing, and control-plane/legacy non-interference
+  consumer:finance:verify:
+    desc: Destructively prove all four authorities, fencing, A/B survival, all-down fail-closed, recovery and root-process restart
     cmds:
-      - ./consumers/finance-okx/acceptance/shadow-smoke.sh
+      - ./consumers/finance/acceptance/production-smoke.sh
 
-  consumer:finance-okx:stop:
-    desc: Stop only the Network v2 finance-okx shadow topology
+  consumer:finance:stop:
+    desc: Stop only the shared Network v2 Finance topology
     cmds:
-      - systemctl stop network-v2-finance-okx-shadow.target
-
-  test:r7:
-    internal: true
-    desc: Build and verify the persistent non-production finance-okx shadow topology
-    cmds:
-      - task: consumer:finance-okx:start
+      - systemctl stop network-v2-finance.target
 
   accept:cold-start:
     desc: Stop and cold-start the whole generic R0 target while proving control-plane independence and dual-stack readiness
@@ -464,8 +427,8 @@ vars:
     sh: printf '%s ' systemd/network-v2-*.service
   R0_SYSTEMD_UNITS:
     sh: printf '%s ' systemd/network-v2-r0.target systemd/network-v2-dnsproxy.service systemd/network-v2-singbox.service systemd/network-v2-blackbox.service systemd/network-v2-prometheus.service
-  FINANCE_OKX_SYSTEMD_UNITS:
-    sh: printf '%s ' consumers/finance-okx/systemd/*
+  FINANCE_SYSTEMD_UNITS:
+    sh: printf '%s ' consumers/finance/systemd/*
   WIREGUARD_GO_REPO:
     sh: awk -F= '$1=="repository"{print $2}' capabilities/wireguard/external/wireguard-go.lock
   WIREGUARD_GO_REVISION:

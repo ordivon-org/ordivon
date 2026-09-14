@@ -1,0 +1,30 @@
+{
+  "$schema": "https://sing-box.sagernet.org/schema.json",
+  "log": {"level": "warn", "timestamp": true},
+  "inbounds": [
+    {"type": "http", "tag": "finance-okx", "listen": "127.0.0.1", "listen_port": 19283},
+    {"type": "http", "tag": "finance-binance-usdm", "listen": "127.0.0.1", "listen_port": 19287},
+    {"type": "http", "tag": "finance-okx-ws", "listen": "127.0.0.1", "listen_port": 19288},
+    {"type": "http", "tag": "finance-binance-usdm-ws", "listen": "127.0.0.1", "listen_port": 19289}
+  ],
+  "outbounds": [
+    {"type": "http", "tag": "provider-b", "server": "10.252.245.2", "server_port": 28221},
+    {"type": "http", "tag": "provider-a", "server": "10.252.244.2", "server_port": 28221},
+    {"type": "urltest", "tag": "finance-okx-auto", "outbounds": ["provider-b", "provider-a"], "url": "https://openapi.okx.com/api/v5/public/time", "interval": "3s", "tolerance": 65535, "idle_timeout": "10m", "interrupt_exist_connections": true},
+    {"type": "urltest", "tag": "finance-okx-ws-auto", "outbounds": ["provider-b", "provider-a"], "url": "https://ws.okx.com:8443/ws/v5/public", "interval": "3s", "tolerance": 65535, "idle_timeout": "10m", "interrupt_exist_connections": true},
+    {"type": "urltest", "tag": "finance-binance-usdm-auto", "outbounds": ["provider-b", "provider-a"], "url": "https://fapi.binance.com/fapi/v1/time", "interval": "3s", "tolerance": 65535, "idle_timeout": "10m", "interrupt_exist_connections": true},
+    {"type": "urltest", "tag": "finance-binance-usdm-ws-auto", "outbounds": ["provider-b", "provider-a"], "url": "https://fapi.binance.com/fapi/v1/time", "interval": "3s", "tolerance": 65535, "idle_timeout": "10m", "interrupt_exist_connections": true}
+  ],
+  "route": {
+    "rules": [
+      {"inbound": ["finance-okx"], "domain": "openapi.okx.com", "port": 443, "action": "route", "outbound": "finance-okx-auto"},
+      {"inbound": ["finance-binance-usdm"], "domain": "fapi.binance.com", "port": 443, "action": "route", "outbound": "finance-binance-usdm-auto"},
+      {"inbound": ["finance-okx-ws"], "domain": "ws.okx.com", "port": 8443, "action": "route", "outbound": "finance-okx-ws-auto"},
+      {"inbound": ["finance-binance-usdm-ws"], "domain": "fstream.binance.com", "port": 443, "action": "route", "outbound": "finance-binance-usdm-ws-auto"},
+      {"action": "reject"}
+    ]
+  },
+  "services": [
+    {"type": "api", "tag": "local-api", "listen": "127.0.0.1", "listen_port": 19299}
+  ]
+}
