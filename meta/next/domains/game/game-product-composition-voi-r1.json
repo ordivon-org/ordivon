@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game-product-composition-value-of-information",
+  "status": "DECISION_ACTIVE_PRE_G0",
+  "observedDate": "2026-09-14",
+  "authorityBoundary": "Post-F0 experiment allocation only; historical product-composition definitions remain in GAME_PRODUCT_COMPOSITION_R1.md.",
+  "decisionLaw": {
+    "rankingBasis": [
+      "remaining product-selection uncertainty",
+      "bounded falsifier cost",
+      "elimination power",
+      "orthogonality to developed candidates",
+      "claim-method fit"
+    ],
+    "forbiddenBasis": [
+      "implementation maturity alone",
+      "code volume",
+      "historical familiarity",
+      "original execution order treated as permanent preference",
+      "synthetic evidence substituted for constitutively Human claims"
+    ],
+    "numericScoreUsed": false
+  },
+  "candidates": [
+    {
+      "id": "PC01",
+      "name": "Causal Works",
+      "currentEvidence": [
+        "SURVIVES_PC01_F0_STRUCTURAL_COMPOSITION",
+        "PC01_F1 mechanical interactive acceptance PASS"
+      ],
+      "dominantRemainingUncertainty": [
+        "Human causal-model comprehension",
+        "diagnosis as strategic choice rather than information tax",
+        "causal attribution legibility",
+        "valued repeated-loop mastery/replay"
+      ],
+      "cheapestValidNextEvidence": "bounded Human-facing legibility/comprehension/playability probe on existing F1",
+      "relativeNextCost": "MEDIUM_EVIDENCE_COST",
+      "orthogonalityEliminationValue": "MEDIUM",
+      "allocation": "HOLD_SURVIVOR"
+    },
+    {
+      "id": "PC02",
+      "name": "Persistent Workshop",
+      "currentEvidence": [
+        "SURVIVES_PC02_F0_STRUCTURAL_COMPOSITION",
+        "durable reload and intent/context non-authority checks PASS"
+      ],
+      "dominantRemainingUncertainty": [
+        "Human intent preservation/revision",
+        "felt authorship/ownership",
+        "useful non-authoritative context response",
+        "bounded grammar expressive sufficiency"
+      ],
+      "cheapestValidNextEvidence": "interactive PC02 carrier preserving F0 semantics plus bounded Human evidence",
+      "relativeNextCost": "MEDIUM_HIGH",
+      "orthogonalityEliminationValue": "MEDIUM_HIGH",
+      "allocation": "HOLD_SURVIVOR"
+    },
+    {
+      "id": "PC03",
+      "name": "Loop Cartographer",
+      "currentEvidence": [
+        "PGP-A mechanically valid direct-control/timing/reset apparatus",
+        "whole-product composition not yet falsified"
+      ],
+      "dominantRemainingUncertainty": [
+        "knowledge rule changes later route choice",
+        "knowledge does not collapse execution demand",
+        "shortcut is knowledge-accessible rather than inventory-gated",
+        "loop avoids dead repeated traversal"
+      ],
+      "cheapestValidNextEvidence": "reuse-first interactive whole-composition falsifier built on PGP-A",
+      "relativeNextCost": "LOW_MEDIUM",
+      "orthogonalityEliminationValue": "HIGH",
+      "allocation": "EXECUTE_NEXT",
+      "minimumCarrierContract": {
+        "regions": "4-6 compact looping regions",
+        "verbs": ["left", "right", "jump"],
+        "stableRuleCount": 1,
+        "requiresRuleReuseAcrossLocations": true,
+        "shortcutPhysicallyAvailableFromStart": true,
+        "inventoryKnowledgeGateForbidden": true,
+        "safeAndDemandingLines": true,
+        "worldResetPreservesRule": true,
+        "runtimeAgentRequired": false,
+        "mechanismExpansion": false
+      },
+      "mechanicalFalsifiers": [
+        "same verb grammar across regions",
+        "no item/boolean knowledge gate controls shortcut",
+        "safe and fast paths reachable",
+        "informed policy changes later route choice versus uninformed bounded baseline",
+        "informed timing-insensitive policy still fails demanding line where timing-aware policy succeeds",
+        "reset removes transient world progress without changing traversal rule",
+        "same rule reusable in at least two locations",
+        "bounded retry latency"
+      ],
+      "humanClaimsStillUnobserved": [
+        "felt mastery",
+        "understandable discovery",
+        "satisfying execution after understanding",
+        "practice versus dead time",
+        "voluntary retry",
+        "flow",
+        "overall player value"
+      ]
+    }
+  ],
+  "decision": {
+    "nextAllocation": "PC03_INTERACTIVE_F0",
+    "productSelected": false,
+    "g0Entered": false,
+    "mechanismExpansion": false,
+    "runtimeAgentRequired": false,
+    "decisionType": "EXPERIMENT_ALLOCATION_NOT_PRODUCT_SELECTION"
+  },
+  "recomputeAfter": "PC03-F0 terminal structural/mechanical verdict"
+}

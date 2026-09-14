@@ -133,8 +133,10 @@ Pair/set compatibility evidence R2_CURRENT_60_CONTEXT_BOUND_CLAIMS
 Experiment composition search   R2_READY_10_BRIDGE_DRIVEN_GRAPHS
 Physical realization ledger     R1_ACTIVE
 Whole-product compositions      R1_ACTIVE_3
-Lead whole-product composition  PC01_CAUSAL_WORKS
-Next executable                 PC01_F0_THREE_CYCLE_DIAGNOSTIC_MICRO_FACTORY
+PC01 evidence                   F0_SURVIVES + F1_MECHANICAL_INTERACTIVE_PASS
+PC02 evidence                   F0_DURABLE_STRUCTURAL_SURVIVES
+Post-F0 allocation              VOI_R1_PC03_EXECUTE_NEXT
+Next executable                 PC03_INTERACTIVE_F0_REUSE_PGP_A
 Product selected                false
 G0 entered                      false
 ```
@@ -149,8 +151,10 @@ Canonical local crosswalks:
 - [`GAME_COMPOSITION_SEARCH_R1.md`](GAME_COMPOSITION_SEARCH_R1.md) — first evidence-guided mechanism-graph search and reuse-first experiment wave;
 - [`GAME_COMPOSITION_SEARCH_R2.md`](GAME_COMPOSITION_SEARCH_R2.md) — current bridge-driven 10-graph experiment search with bounded unknowns and falsifier economics;
 - [`GAME_COMPOSITION_REALIZATIONS_R1.md`](GAME_COMPOSITION_REALIZATIONS_R1.md) — execution ledger separating search snapshots from physically realized falsifier apparatus;
-- [`GAME_PRODUCT_COMPOSITION_R1.md`](GAME_PRODUCT_COMPOSITION_R1.md) — current whole-product composition layer: PC01 Causal Works, PC02 Persistent Workshop, PC03 Loop Cartographer;
-- [`game-product-composition-r1.json`](game-product-composition-r1.json) — machine-readable product-composition slate and execution order;
+- [`GAME_PRODUCT_COMPOSITION_R1.md`](GAME_PRODUCT_COMPOSITION_R1.md) — whole-product composition definitions: PC01 Causal Works, PC02 Persistent Workshop, PC03 Loop Cartographer;
+- [`game-product-composition-r1.json`](game-product-composition-r1.json) — machine-readable original product-composition slate and execution order;
+- [`GAME_PRODUCT_COMPOSITION_VOI_R1.md`](GAME_PRODUCT_COMPOSITION_VOI_R1.md) — post-F0 Value-of-Information comparison that supersedes only the next experiment-allocation decision;
+- [`game-product-composition-voi-r1.json`](game-product-composition-voi-r1.json) — machine-readable post-F0 allocation decision and PC03-F0 minimum carrier contract;
 - [`GAME_TOP_MECHANISM_SPECIMENS_R1.md`](GAME_TOP_MECHANISM_SPECIMENS_R1.md) — 16 elite/canonical game decompositions and 12 recurring structural motifs;
 - [`GAME_TOP_MECHANISM_SPECIMENS_R2.md`](GAME_TOP_MECHANISM_SPECIMENS_R2.md) — current cumulative 27-specimen / 23-motif mechanism map, with R2 gap-filling coverage;
 - [`GAME_TOP_MECHANISM_SPECIMENS_R3.md`](GAME_TOP_MECHANISM_SPECIMENS_R3.md) — current cumulative 37-specimen / 33-motif map, coverage-guided but not coverage-optimized;
@@ -168,7 +172,7 @@ Canonical local crosswalks:
 - [`game-mechanism-space-coverage-r1.json`](game-mechanism-space-coverage-r1.json) — machine-readable coverage diagnostic.
 - [`game-top-motif-bridge-r1.json`](game-top-motif-bridge-r1.json) — machine-readable external↔local motif evidence bridge.
 
-Two evidence waves are materialized and Composition Search R1 has produced eight candidate graphs. The next high-value work is the **reuse-first falsifier wave MC01 / MC07 / MC03**. Apparatus-valid evidence upgrades only the claim it actually identifies: Human felt/experienced Player Value requires relevant Human participant evidence, while structural, behavioural, causal and population claims use their own admissible evidence carriers. Product commitment is a domain decision over scoped findings, objectives, consequences, uncertainty and remaining information value; it is not a generic Human approval gate.
+PC01 and PC02 now have whole-composition survival evidence at different depths, and the post-F0 VoI decision allocates the next bounded experiment to **PC03 Loop Cartographer** as the orthogonal anti-system-bias control. PC03 must reuse PGP-A rather than reopen infrastructure: build one interactive whole-composition falsifier that couples stable movement, reusable rule knowledge, route choice, fast retry and retained execution demand. Apparatus-valid evidence upgrades only the claim it actually identifies: Human felt/experienced Player Value requires relevant Human participant evidence, while structural, behavioural, causal and population claims use their own admissible evidence carriers. Product commitment remains a domain decision over scoped findings, objectives, consequences, uncertainty and remaining information value; it is not a generic Human approval gate.
 
 ## External references
 
