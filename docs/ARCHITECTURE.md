@@ -100,3 +100,5 @@ Clock timing qualification now passes: Windows w32time is synchronized to qualif
 - Private Reality R5 offline normalization: venue-native observer envelopes are normalized by a pure no-network/no-credential function into balances, positions, open orders, order history and fills. Observer credential bindings are external; Binance executor credentials are excluded; fresh permission verification is still required before private account data is admitted.
 
 - Execution Reconciliation R6: venue reality remains authoritative, FIX 4.4 supplies execution lifecycle vocabulary, and the only local semantic is EffectAuthority RETAIN/RELEASE/CONSUME. Absence from a broad snapshot is UNKNOWN/RETAIN; no-effect release requires explicit authoritative proof.
+
+- Demo/Testnet execution R7 preflight: installed Nautilus execution components support OKX DEMO and Binance Spot TESTNET configuration without local client reimplementation. This is component readiness only; demo/live external writes remain NOT_ADMITTED.

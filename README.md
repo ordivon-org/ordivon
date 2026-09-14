@@ -41,3 +41,5 @@ Private Reality read-only preflight now passes without credentials: OKX will use
 Private Reality R5 offline normalization now passes: authoritative OKX/Binance observer envelopes map through a pure no-network/no-credential normalizer into a minimal balances/positions/orders/fills read model. Existing observer credential locations are bound externally, Binance executor credentials are explicitly excluded, and private account data remains blocked pending fresh permission verification.
 
 Execution Reconciliation R6 now passes offline: authoritative normalized venue reality is mapped into FIX 4.4 execution lifecycle vocabulary, while Market Capital retains only EffectAuthority disposition. Broad snapshot absence is never treated as no-effect; release requires terminal zero-fill with complete fill coverage or an exact authoritative negative lookup.
+
+Demo/Testnet Execution R7 preflight is prepared but not admitted: the installed NautilusTrader execution configs construct successfully for OKX DEMO and Binance Spot TESTNET without credentials or network access. Demo/live write authority remains false.
