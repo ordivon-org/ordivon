@@ -25,7 +25,11 @@ Market Capital owns the mappings from admitted evidence into its domain decision
 
 ## Composition-first rule
 
-Market Capital does not own mechanisms already provided by authoritative venues or mature components. Venue APIs own market/account/order reality; QuantConnect LEAN and NautilusTrader own admitted trading-engine mechanics; FIX 4.4/QuickFIX-n owns standard order-intent/execution vocabulary where applicable; PFMI and ISO 20022 remain post-trade reference semantics; Prometheus/Grafana own monitoring mechanics. Market Capital retains only thin decision/proof/authority/reconciliation seams. Custom mechanisms require a documented substitution failure. See `docs/COMPOSITION_FIRST_2026-09-14.md`.
+Market Capital does not own mechanisms already provided by authoritative venues or mature components. Venue APIs own market/account/order reality; QuantConnect LEAN and NautilusTrader own admitted trading-engine mechanics; FIX 4.4/QuickFIX-n owns standard order-intent/execution vocabulary where applicable; TigerBeetle owns admitted double-entry accounting conservation and atomic transfer mechanics; PFMI and ISO 20022 remain post-trade reference semantics; Prometheus/Grafana own monitoring mechanics. Market Capital retains only thin decision/proof/authority/reconciliation seams. Custom mechanisms require a documented substitution failure. See `docs/COMPOSITION_FIRST_2026-09-14.md`.
+
+### Capital accounting substrate
+
+TigerBeetle is the mature accounting-mechanics provider. Its account and transfer state is mechanical evidence only: a TigerBeetle balance is not settlement, legal ownership, withdrawability, deployable capital, external-effect admission, or `EffectAuthority`. Market Capital keeps those domain semantics outside the provider. The server binary and official Python client are pinned to the same `0.17.9` release in an isolated external capability environment; Market Capital does not duplicate that dependency stack.
 
 ## 2. Decision
 

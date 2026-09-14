@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.market-capital.tigerbeetle-capital-substrate-evidence",
+  "date": "2026-09-14",
+  "standing": "PASS_EPHEMERAL_MECHANICAL_ONLY",
+  "provider": {
+    "name": "TigerBeetle",
+    "serverVersion": "0.17.9",
+    "pythonClientVersion": "0.17.9"
+  },
+  "runtimeJob": "job-01a09f69-1095-79f3-bc06-71d7cb12b409",
+  "runtimeResultDigest": "sha256:b466ee2eba7f28b3fa7b4f84b97d86f6332a11233ce2b7b7e0aa2b5c0dcb61ea",
+  "episode": {
+    "cluster": "single-replica development-only ephemeral",
+    "accounts": [101, 202],
+    "transferId": 501,
+    "amount": 500,
+    "sourceDebitsPosted": 500,
+    "destinationCreditsPosted": 500,
+    "exactTransferReplay": "EXISTS",
+    "persistentDatabaseCreated": false,
+    "externalFinancialWriteAttempted": false
+  },
+  "falseGreen": {
+    "claim": "tigerbeetle_balance",
+    "rejected": true,
+    "reason": "ledger balance is not deployable capital"
+  }
+}
