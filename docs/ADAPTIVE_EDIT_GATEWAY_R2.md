@@ -300,3 +300,79 @@ model/task profile evidence
 ```
 
 If the profile has no meaningful winner, both codecs remain available and the narrowest mechanically valid representation should be selected without inventing a performance preference.
+
+## Third live profile — multi-region pressure without widening the wire
+
+`HARNESS-EDIT-MULTIREGION-003` requires two separated changes in one file while preserving an unrelated middle region:
+
+```text
+DEFAULT_TIMEOUT_SECONDS: 15 -> 30
+execution_mode():         must remain "safe"
+retry_limit():            1 -> 3
+```
+
+The Agent-facing R2 ACI is deliberately unchanged: each `edit_workspace` call still expresses one semantic edit against one exact source digest. The experiment asks whether that narrow waist materially fails before adding an atomic multi-edit request format.
+
+Under the same 64k / 6-model-call / 8-tool-call authority:
+
+```text
+exact-replacement-v1:
+  hidden verifier       5/5
+  candidate_completed   5/5
+  rejected observations 0
+  total model calls     27
+  total tool calls      32
+  total tokens          79,667
+  oracle-exact          5/5
+
+anchored-line-v1:
+  hidden verifier       5/5
+  candidate_completed   5/5
+  rejected observations 0
+  total model calls     24
+  total tool calls      28
+  total tokens          68,931
+  oracle-exact          3/5
+```
+
+Anchored-line used 13.48% fewer aggregate tokens, three fewer model calls, and four fewer Tool calls on this compact task. Both codecs nevertheless completed every run correctly within the unchanged authority budget.
+
+Standing:
+
+```text
+deepseek-flash + HARNESS-EDIT-MULTIREGION-003 + 2026-09-14
+    -> provisional preferred codec: anchored-line-v1
+
+current one-edit-per-call boundary
+    -> SURVIVES_CURRENT_TASK
+
+atomic multi-edit Agent wire
+    -> NOT_JUSTIFIED_BY_CURRENT_EVIDENCE
+```
+
+This is an important negative architecture result. `CanonicalFilePatch` and Runtime `workspace.patch` already support an `edits[]` collection, but implementation capability alone is not evidence that the Agent-facing contract should expose it. The current narrow interface remains sufficient for this workload, and adding another request shape would increase ACI complexity without solving an observed reliability failure.
+
+The profile is retained in:
+
+```text
+evidence/adaptive-edit-r2-live-ab-deepseek-flash-multiregion-20260914.json
+```
+
+with canonical payload digest:
+
+```text
+sha256:993750fdc5911eee8bfba00b8917cf1be2313d4712da13b5ba7a13d86b6388bb
+```
+
+### Current edit-wire decision
+
+Keep the R2 wire narrow:
+
+```text
+read exact snapshot
+    -> one semantic edit intent
+    -> canonical plan
+    -> one durable Runtime Patch effect
+```
+
+Do **not** add atomic multi-edit Agent syntax yet. Re-open that decision only after a broader workload shows repeated measurable failure or excessive cost that cannot be addressed by codec choice, bounded wider replacement, or sequential digest-fenced edits.

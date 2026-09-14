@@ -1,0 +1,63 @@
+{
+  "acceptanceContract": {
+    "assertions": [
+      "visible timeout and retry suite passes",
+      "hidden verifier preserves execution_mode safe",
+      "SPEC.md and test_pipeline.py are unchanged",
+      "only pipeline.py may change"
+    ],
+    "requiredArtifacts": [],
+    "verifierId": "HARNESS-EDIT-MULTIREGION-003-verifier",
+    "verifierRevision": "1"
+  },
+  "allowedCapabilities": [
+    "read_workspace",
+    "edit_workspace"
+  ],
+  "budgetProfile": {
+    "maxInputTokens": 1000000,
+    "maxModelCalls": 8,
+    "maxObservationBytes": 393216,
+    "maxOutputTokens": 100000,
+    "maxRuntimeJobs": 10,
+    "maxToolCalls": 12,
+    "maxWallTimeMs": 120000
+  },
+  "expertTimeEstimateMinutes": null,
+  "family": "edit_multiregion",
+  "initialState": {
+    "environmentDigest": "sha256:e74dccb94d454e154d680c75df15dfc946a7330a8ac7381276a948d84e87fed8",
+    "fixturePath": "fixtures/harness-edit-multiregion-v1",
+    "sourceRepositoryId": "ordivon-harness",
+    "sourceRevision": "9d936e98d8c02772aa2becc924ba9006c71aa989"
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "canonicalization": "ordivon-canonical-json-v1",
+    "payloadDigest": "sha256:38aeadac06770a68b5cc247a0fadc8456cc5e797ef508e61cfbafe3ef0f2b99f"
+  },
+  "kind": "ordivon.evaluation-task",
+  "knownLimitations": [
+    "This compact workload tests two separated edits in one file, not broad repository engineering.",
+    "The current Agent-facing ACI still exposes one semantic edit per edit_workspace call; the task measures whether that boundary creates material friction before any multi-edit wire format is introduced."
+  ],
+  "labels": [
+    "adaptive-edit-r2",
+    "multi-region",
+    "single-file",
+    "deterministic"
+  ],
+  "objective": "Repair pipeline.py so DEFAULT_TIMEOUT_SECONDS is 30 and retry_limit() returns 3 while execution_mode() remains safe. Preserve public names and modify only pipeline.py.",
+  "oracle": {
+    "digest": "sha256:7101359759365da8626aa588c63fca6354cbf728c0e1285d1ef81523eb1b759c",
+    "kind": "reference-source",
+    "path": "evals/harness-edit-multiregion-003/oracle/pipeline.py"
+  },
+  "reproducibility": {
+    "cleanRebuildTrials": 3,
+    "requiredAgreement": 3
+  },
+  "schemaVersion": 1,
+  "taskId": "HARNESS-EDIT-MULTIREGION-003",
+  "taskVersion": 1
+}

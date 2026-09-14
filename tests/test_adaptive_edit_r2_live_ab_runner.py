@@ -44,6 +44,19 @@ class AdaptiveEditR2LiveABRunnerTests(unittest.TestCase):
         outcome = runner.verify(overfit, task)
         self.assertEqual(outcome, {"visiblePassed": True, "hiddenPassed": False})
 
+    def test_runner_registers_multiregion_task(self) -> None:
+        task = runner.TASK_SPECS["HARNESS-EDIT-MULTIREGION-003"]
+        self.assertEqual(task.target_path, "pipeline.py")
+        runtime = runner.MemoryRuntime(task)
+        before = runtime.files["pipeline.py"]
+        self.assertIn("DEFAULT_TIMEOUT_SECONDS = 15", before)
+        self.assertIn("return 1", before)
+        oracle = task.oracle.read_text()
+        self.assertEqual(
+            runner.verify(oracle, task),
+            {"visiblePassed": True, "hiddenPassed": True},
+        )
+
     def test_memory_runtime_applies_digest_fenced_runtime_patch_shape(self) -> None:
         runtime = runner.MemoryRuntime()
         before = runtime.files["allocation.py"]

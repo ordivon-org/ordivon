@@ -89,6 +89,15 @@ TASK_SPECS = {
         target_path="feature_flags.py",
         visible_test="test_feature_flags.py",
     ),
+    "HARNESS-EDIT-MULTIREGION-003": LiveTaskSpec(
+        task_path=ROOT / "evals/harness-edit-multiregion-003/task.json",
+        fixture=ROOT / "fixtures/harness-edit-multiregion-v1",
+        oracle=ROOT / "evals/harness-edit-multiregion-003/oracle/pipeline.py",
+        hidden_verifier=ROOT / "evals/harness-edit-multiregion-003/verifier/test_outcome.py",
+        read_paths=("SPEC.md", "pipeline.py", "test_pipeline.py"),
+        target_path="pipeline.py",
+        visible_test="test_pipeline.py",
+    ),
 }
 DEFAULT_TASK = TASK_SPECS["HARNESS-REPO-REPAIR-001"]
 

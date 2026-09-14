@@ -1,0 +1,43 @@
+{
+  "agreement": 3,
+  "cleanRebuildTrials": 3,
+  "environmentDigest": "sha256:e74dccb94d454e154d680c75df15dfc946a7330a8ac7381276a948d84e87fed8",
+  "hiddenVerifierDigest": "sha256:cac878856baefb498b004d8179faf9912388e9819f7a3fd2df678f8c5bc95510",
+  "hiddenVerifierOutsideWorkspace": true,
+  "integrity": {
+    "algorithm": "sha256",
+    "canonicalization": "ordivon-canonical-json-v1",
+    "payloadDigest": "sha256:8ece9cdb54e5f0ee68e477499f9c63f64fdbb0b8b0928ad13e7704a94c6c8839"
+  },
+  "kind": "ordivon.evaluation-task-qa-result",
+  "oracleDigest": "sha256:7101359759365da8626aa588c63fca6354cbf728c0e1285d1ef81523eb1b759c",
+  "oracleOutsideWorkspace": true,
+  "outcomes": {
+    "baseline": [
+      false,
+      false
+    ],
+    "collateral": [
+      true,
+      false
+    ],
+    "oracle": [
+      true,
+      true
+    ],
+    "retry-only": [
+      false,
+      false
+    ],
+    "timeout-only": [
+      false,
+      false
+    ]
+  },
+  "passed": true,
+  "requiredAgreement": 3,
+  "schemaVersion": 1,
+  "taskDefinitionDigest": "sha256:38aeadac06770a68b5cc247a0fadc8456cc5e797ef508e61cfbafe3ef0f2b99f",
+  "taskId": "HARNESS-EDIT-MULTIREGION-003",
+  "taskVersion": 1
+}

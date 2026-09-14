@@ -588,6 +588,13 @@
       "status": "verified",
       "implementationRevision": "6126ad25204c59dee92ae9175f48742000c6551f",
       "scope": "Current second Adaptive Edit R2 live profile bound to 6126ad2: DeepSeek Flash on HARNESS-EDIT-ADDRESSING-002 under equal 64k token authority. Exact replacement and anchored-line are both 5/5 hidden-pass and 5/5 candidate-completed with identical model/tool call totals; standing is NO_CLEAR_WINNER_BOTH_VIABLE and no global codec default is authorized."
+    },
+    {
+      "claimId": "harness.edit.adaptive-r2-live-deepseek-flash-multiregion",
+      "file": "adaptive-edit-r2-live-ab-deepseek-flash-multiregion-20260914.json",
+      "status": "verified",
+      "implementationRevision": "9d936e98d8c02772aa2becc924ba9006c71aa989",
+      "scope": "Current third Adaptive Edit R2 live profile bound to 9d936e9: DeepSeek Flash on HARNESS-EDIT-MULTIREGION-003. Both codecs are 5/5 hidden-pass and candidate-completed within the unchanged 6-model/8-tool authority; anchored-line uses fewer calls/tokens, while the current one-semantic-edit-per-call boundary survives this task and an atomic multi-edit Agent wire format is not justified by current evidence."
     }
   ]
 }
