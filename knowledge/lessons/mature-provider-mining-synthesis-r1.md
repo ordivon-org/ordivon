@@ -230,11 +230,13 @@ problem conditions
 
 This can be learned across Research, Engineering, Security, Media, Game, Finance and future domains without forcing those domains into one private ontology.
 
-## New-project default policy
+## Discovery policy: gap-driven + periodic broad radar
 
-Before opening another broad mining batch, prefer **gap-driven discovery**.
+Use **two complementary discovery modes** rather than only gap-driven search.
 
-Search/study a new project only if at least one is true:
+### Gap-driven discovery
+
+Deep-study a project when at least one is true:
 
 1. a real workload has an unresolved capability gap;
 2. an existing natural authority is clearly failing measured acceptance;
@@ -242,7 +244,23 @@ Search/study a new project only if at least one is true:
 4. a product surface can remove substantial custom delivery work;
 5. a provider change materially improves cost, quality, latency, reliability or licensing.
 
-Otherwise defer.
+### Broad radar discovery
+
+Periodically scan broad external sets (for example the GitHub global Top 100 by stars, major ecosystem rankings, standards releases or high-signal curated catalogs) to expose **unknown unknowns** that current Ordivon gaps would never ask about.
+
+Broad radar is triage, not automatic adoption:
+
+```text
+broad scan
+  -> classify by natural authority
+  -> already covered / on-demand / reference / no action
+  -> isolate genuinely new/high-value candidates
+  -> deep-study only the reduced candidate set
+```
+
+The first global Top-100 radar is registered in `knowledge/lessons/github-top100-capability-radar-r1.md`.
+
+This preserves Ordivon's anti-bloat rule while deliberately searching outside the questions the current architecture already knows how to ask.
 
 ## Canonical routing view
 
@@ -254,4 +272,4 @@ That map is intentionally a view, not a topology. It should evolve as providers 
 
 **TWO-BATCH SYNTHESIS PASS.**
 
-The mining program found many mature capabilities but no evidence that Ordivon needs a large new generic subsystem. The next research should be driven by real capability gaps or product-delivery requirements rather than collecting another fixed list of popular repositories.
+The mining program found many mature capabilities but no evidence that Ordivon needs a large new generic subsystem. Future research should combine **real capability-gap studies** with **periodic broad ecosystem radar scans** that deliberately search for unknown unknowns; star rankings remain discovery inputs, never adoption criteria.

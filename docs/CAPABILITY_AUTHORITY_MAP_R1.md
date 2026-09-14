@@ -329,7 +329,7 @@ Examples:
 
 ## 13. New-project triage gate
 
-Before deep-diving another GitHub project, answer in order:
+Broad ecosystem radar may classify projects even when no current workload exists; this is how Ordivon searches for unknown unknowns. **Before promoting any radar hit into a deep study or operational dependency**, answer in order:
 
 1. **Primitive:** What semantic object does it naturally own?
 2. **Existing authority:** Which row in this map already owns that object?
