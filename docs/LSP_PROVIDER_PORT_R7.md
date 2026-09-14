@@ -105,3 +105,44 @@ Standing: `lsp-client` is supported as the current **replaceable lifecycle-provi
 candidate**. It is not admitted as a Harness core dependency and no default provider is
 final until integration packaging, Run/Tool Grant binding, cancellation, and abnormal
 server-exit behavior are closed.
+
+## Fault lifecycle evidence
+
+A controlled fake LSP server was used after `cd45070` to exercise two failure paths
+without depending on Taplo timing.
+
+Cancellation result:
+
+```text
+caller cancellation triggered = yes
+WorkspaceEdit returned = no
+disk changed = no
+$/cancelRequest observed by server = no
+graceful shutdown/exit observed = no
+context cleanup = bounded timeout/error path (~3.5 s)
+```
+
+Abnormal server-exit result:
+
+```text
+server exited during textDocument/rename = yes
+WorkspaceEdit returned = no
+request surfaced BrokenResourceError = yes
+disk changed = no
+context cleanup = bounded timeout/error path (~4.0 s)
+```
+
+Verified negative receipt:
+
+```text
+evidence/lsp-r7-lifecycle-faults-20260914.json
+payload digest:
+sha256:0677bc871733bf260e78bec3c10350cf597c4f26918ac3823f90849d66997acd
+```
+
+This refines the provider decision. `lsp-client 0.3.9` remains functionally compatible
+with the proposal-only Harness port and preserves physical non-mutation in these tested
+failures, but its cancellation and abnormal-exit cleanup is not clean enough to select it
+as the default provider directly. Harness should compare another mature lifecycle client
+before writing custom cleanup glue. If no better donor exists, any adaptation belongs
+outside Harness core behind `HarnessLspProviderPort`.
