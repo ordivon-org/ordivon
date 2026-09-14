@@ -4,8 +4,10 @@ ROOT=Path(__file__).resolve().parents[1]
 
 def test_private_reality_credentials_may_be_located_but_private_data_stays_not_admitted():
     x=json.loads((ROOT/'config/private_reality_policy.json').read_text())
-    assert x['standing']=='CREDENTIALS_LOCATED_PENDING_FRESH_PERMISSION_VERIFICATION'
-    assert x['credentialUseAdmission']=='USER_AUTHORIZED_PENDING_FRESH_PERMISSION_VERIFICATION'
+    assert x['standing']=='OWNER_MANDATE_PRESENT_PERMISSION_NOT_CURRENT'
+    assert x['ownerCredentialUseMandate']=='AUTHORIZED_READ_ONLY_PRIVATE_REALITY_OBSERVATION'
+    assert x['credentialPermissionStanding']=='PENDING_FRESH_PROVIDER_VERIFICATION'
+    assert x['privateAccountDataAdmission']=='NOT_ADMITTED'
     assert not x['privateAccountDataAllowed']
     assert not x['orderCapableCredentialsAllowed']
     assert not x['withdrawalCredentialsAllowed']

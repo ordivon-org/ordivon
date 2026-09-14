@@ -5,15 +5,17 @@ python3 - "$repo/config/private_reality_policy.json" <<'PY'
 import json,sys
 x=json.load(open(sys.argv[1]))
 assert x['kind']=='ordivon.market-capital.private-reality-policy'
-assert x['standing'] in {'PREPARED_NOT_ADMITTED','CREDENTIALS_LOCATED_PENDING_FRESH_PERMISSION_VERIFICATION'}
-assert x['credentialUseAdmission'] in {'NOT_ADMITTED','USER_AUTHORIZED_PENDING_FRESH_PERMISSION_VERIFICATION'}
+assert x['standing']=='OWNER_MANDATE_PRESENT_PERMISSION_NOT_CURRENT'
+assert x['ownerCredentialUseMandate']=='AUTHORIZED_READ_ONLY_PRIVATE_REALITY_OBSERVATION'
+assert x['credentialPermissionStanding']=='PENDING_FRESH_PROVIDER_VERIFICATION'
+assert x['privateAccountDataAdmission']=='NOT_ADMITTED'
 for k in ('privateAccountDataAllowed','orderCapableCredentialsAllowed','withdrawalCredentialsAllowed','externalFinancialWritesAllowed','secretDiscoveryAllowed'):
     assert x[k] is False, k
 assert x['venues']['OKX']['requiredPermission']=='Read'
 assert set(x['venues']['OKX']['forbiddenPermissions'])=={'Trade','Withdraw'}
 assert x['venues']['BINANCE']['requiredSecurityType']=='USER_DATA'
 assert x['venues']['BINANCE']['tradePermissionRequired'] is False
-print(json.dumps({'policyStanding':x['standing'],'credentialUseAdmission':x['credentialUseAdmission'],'secretDiscoveryAllowed':False},sort_keys=True))
+print(json.dumps({'policyStanding':x['standing'],'ownerCredentialUseMandate':x['ownerCredentialUseMandate'],'credentialPermissionStanding':x['credentialPermissionStanding'],'privateAccountDataAdmission':x['privateAccountDataAdmission'],'secretDiscoveryAllowed':False},sort_keys=True))
 PY
 
 /root/external/nautilus-trader/2.0.0rc4/.venv/bin/python - <<'PY'

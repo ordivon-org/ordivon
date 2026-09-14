@@ -14,7 +14,7 @@
       "role": "observer"
     }
   },
-  "credentialUseAdmission": "USER_AUTHORIZED_PENDING_FRESH_PERMISSION_VERIFICATION",
+  "credentialPermissionStanding": "PENDING_FRESH_PROVIDER_VERIFICATION",
   "externalFinancialWritesAllowed": false,
   "kind": "ordivon.market-capital.private-reality-policy",
   "normalization": {
@@ -25,12 +25,14 @@
     "schema": "schema/private-reality-snapshot.schema.json"
   },
   "orderCapableCredentialsAllowed": false,
+  "ownerCredentialUseMandate": "AUTHORIZED_READ_ONLY_PRIVATE_REALITY_OBSERVATION",
+  "privateAccountDataAdmission": "NOT_ADMITTED",
   "privateAccountDataAllowed": false,
   "purpose": "READ_ONLY_AUTHORITATIVE_VENUE_REALITY_BEFORE_ANY_ORDER_CAPABLE_CREDENTIAL",
   "rules": [
     "read-only authoritative account reality must graduate before demo/testnet order submission",
-    "no credential may be discovered from ambient environment, config files, shell history or local secret stores while credentialUseAdmission is NOT_ADMITTED",
-    "credential admission requires a separate explicit user authorization",
+    "ambient credential discovery remains forbidden; only the explicitly owner-authorized observer bindings may be used for bounded permission verification and read-only observation",
+    "Owner Principal mandate is already present for the explicitly bound read-only observer credentials; provider permission/currentness must be verified independently",
     "read-only admission must not imply TRADE, withdrawal, demo-order or live-order authority",
     "venue-native account/order/trade reality remains authoritative; Market Capital may only normalize and reconcile it",
     "observer credential locations are explicitly bound; secret bytes remain external to the repository and executor credentials are excluded",
@@ -39,7 +41,7 @@
   ],
   "schemaVersion": 1,
   "secretDiscoveryAllowed": false,
-  "standing": "CREDENTIALS_LOCATED_PENDING_FRESH_PERMISSION_VERIFICATION",
+  "standing": "OWNER_MANDATE_PRESENT_PERMISSION_NOT_CURRENT",
   "venues": {
     "BINANCE": {
       "authoritativeReality": "Binance Spot USER_DATA API",

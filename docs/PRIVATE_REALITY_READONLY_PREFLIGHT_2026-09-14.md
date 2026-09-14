@@ -2,9 +2,9 @@
 
 ## Standing
 
-`PASS_COMPONENT_SURFACE_PREPARED_CREDENTIALS_NOT_ADMITTED`
+`OWNER_MANDATE_PRESENT_PERMISSION_NOT_CURRENT`
 
-The next Market Capital boundary is authoritative private account/order/trade reality, but no credential is admitted yet.
+The Owner Principal has already authorized use of the explicitly bound read-only observer credentials for private-reality observation. What is not current yet is provider permission standing; private account data remains unadmitted until that provider-native permission/currentness check succeeds.
 
 ## Composition
 
@@ -22,14 +22,12 @@ There is no value in forcing both venues behind one custom client. OKX already h
 
 ## Security boundary
 
-While `credentialUseAdmission=NOT_ADMITTED`:
+The current state is intentionally split:
 
-- no API key, secret or passphrase may be read;
-- no ambient environment, config file, shell history or local secret store may be searched for credentials;
-- no private venue endpoint may be called;
-- no TRADE or Withdraw permission is admitted;
-- no demo/live order may be submitted.
+- `ownerCredentialUseMandate=AUTHORIZED_READ_ONLY_PRIVATE_REALITY_OBSERVATION` records the Owner Principal mandate;
+- `credentialPermissionStanding=PENDING_FRESH_PROVIDER_VERIFICATION` records that provider-native permission currentness has not yet graduated;
+- `privateAccountDataAdmission=NOT_ADMITTED` prevents those observations from becoming current Market Capital private Reality before verification.
 
-The preflight checker instantiates only blank/no-credential client surfaces and performs no network call.
+Ambient credential discovery remains forbidden. Only the explicitly bound observer credentials may be used for the bounded provider-permission verification/read path; executor credentials remain excluded. No TRADE or Withdraw authority is inferred from the owner mandate, and no demo/live order may be submitted.
 
-The next step requires separate explicit user authorization for **read-only** credentials. That authorization would not grant order submission.
+The preflight checker itself still instantiates only blank/no-credential client surfaces and performs no network call. The next missing step is fresh provider-native permission verification, **not another Human/user approval**.
