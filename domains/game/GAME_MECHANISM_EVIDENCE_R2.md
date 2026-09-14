@@ -15,14 +15,16 @@ R1: **22 specimens / 25 claims**. R2 adds **28 specimens / 35 claims**, reaching
 9  Station Zero measured G4/G5 evidence specimens
 ```
 
-## Stronger composition gates recovered
+## Stronger claim-evaluation criteria recovered
 
-1. **Causal bandwidth gate** — a control/mechanic must change relevant decisions, not merely exist.
-2. **Semantic objective gate** — behavioral difference is not enough when the mechanic fails its named purpose.
-3. **Consequence gate** — state/action-surface divergence must survive into authoritative consequence where that is the claim.
-4. **Timing gate** — information or feedback only affects decisions that occur after it becomes available.
+These are falsification/evidentiary criteria for particular claims, not universal authorization gates.
+
+1. **Causal bandwidth** — a control/mechanic must change relevant decisions, not merely exist.
+2. **Semantic objective fit** — behavioral difference is not enough when the mechanic fails its named purpose.
+3. **Consequence persistence** — state/action-surface divergence must survive into the claimed consequence.
+4. **Timing validity** — information or feedback only affects decisions that occur after it becomes available.
 5. **Legibility-before-rule-change** — repair bounded prerequisite evidence before rewriting a coherent world rule.
-6. **Human gate** — mechanically valid carriers do not establish mastery, insight, expression, attachment, tension or replay desire.
+6. **Experience-claim boundary** — mechanically valid carriers do not establish Human mastery, insight, expression, attachment, tension or replay desire; those target variables require relevant Human participant evidence.
 
 ## Station Zero measured examples
 
@@ -44,12 +46,12 @@ PGP-I compose/save/compare       mechanically valid
 Human Player Value               UNOBSERVED
 ```
 
-Next upgrade for A/D/I is Human C0/C1, not more automated scoring.
+The next operation for A/D/I follows the unresolved claim. If the live claim is Human mastery, insight, expression or experienced value, collect claim-specific Human participant evidence. If the unresolved claim is structural, causal, reachability, robustness or strategy-related, use the corresponding formal, synthetic, telemetry or experimental method instead of a generic C0/C1 ritual.
 
 ## Current query direction
 
 ```text
-find measured positive edges + missing Human evidence
+find measured positive edges + the highest-value unresolved claim/evidence mismatch
 find high-divergence combinations rejected by semantic/consequence gates
 find zero-leverage controls
 find sample compositions containing supported edges + a small number of UNKNOWN couplings

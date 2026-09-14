@@ -36,18 +36,21 @@ MECHANISM-COMPOSITION LOOP
                                ↓
                        candidate mechanism graph
                                ↓
-                   predicted dynamics / player value
+                    decompose unresolved claims
                                ↓
-                       cheapest playable falsifier
+              select the best evidence carrier per claim
+       formal / simulation / synthetic / telemetry / experiment / Human
                                ↓
-                          Human evidence
+                    scoped findings + uncertainty
                                ↓
-               update node / edge / composition standing
+       Structured Decision Making / Value-of-Information judgement
+                               ↓
+             kill / revise / continue / learn more
                                ↺
 
-          ↓ sufficient surviving composition
+          ↓ sufficient decision basis
 
-PRODUCT COMMITMENT GATE
+PRODUCT COMMITMENT
   "Should we build this game?"
 
           ↓ yes
@@ -77,7 +80,7 @@ Three activities may run in parallel:
 2. **Composition search** — combine externally grounded design elements into explicit mechanism graphs under player/context constraints; genre is not selected first.
 3. **Throwaway falsifiers** — build the cheapest playable implementation that can test one uncertain node, edge or composition-level dynamic.
 
-Human play/evaluation feeds the graph evidence. A reference session is not a prerequisite for every prototype, and historical prototypes may be reused only for the mechanism/coupling claims they actually evidence.
+Evidence is selected by claim and decision value. Human play/evaluation supplies evidence when the target variable is Human behaviour, interpretation, preference or experience; structural, causal, reachability, robustness and other claims should use the strongest applicable formal, synthetic, telemetry or experimental carrier. A reference session is not a prerequisite for every prototype, and historical prototypes may be reused only for the mechanism/coupling claims they actually evidence.
 
 ## Commitment boundary
 
@@ -159,7 +162,7 @@ Canonical local crosswalks:
 - [`game-mechanism-space-coverage-r1.json`](game-mechanism-space-coverage-r1.json) — machine-readable coverage diagnostic.
 - [`game-top-motif-bridge-r1.json`](game-top-motif-bridge-r1.json) — machine-readable external↔local motif evidence bridge.
 
-Two evidence waves are materialized and Composition Search R1 has produced eight candidate graphs. The next high-value work is the **reuse-first falsifier wave MC01 / MC07 / MC03**, while Human C0/C1 remains the only route for upgrading apparatus-valid claims into Player Value evidence.
+Two evidence waves are materialized and Composition Search R1 has produced eight candidate graphs. The next high-value work is the **reuse-first falsifier wave MC01 / MC07 / MC03**. Apparatus-valid evidence upgrades only the claim it actually identifies: Human felt/experienced Player Value requires relevant Human participant evidence, while structural, behavioural, causal and population claims use their own admissible evidence carriers. Product commitment is a domain decision over scoped findings, objectives, consequences, uncertainty and remaining information value; it is not a generic Human approval gate.
 
 ## External references
 

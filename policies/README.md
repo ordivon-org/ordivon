@@ -2,7 +2,7 @@
 
 Policies cover responsibility and authority boundaries around Agent action. They are a composition boundary, not an Ordivon-private authority theory or policy engine.
 
-Use mature substrates according to the problem actually being solved. The current cross-disciplinary decomposition is registered in `knowledge/lessons/authority-mature-substrate-decomposition-r1.md` and includes institutional/governance theory, evidence-to-decision and structured decision methods, delegation/capability systems, ReBAC/ABAC, PAP/PDP/PEP policy architecture, current-authorization patterns, and adaptive/double-loop learning.
+Use mature substrates according to the problem actually being solved. The current cross-disciplinary decomposition is registered in `knowledge/lessons/authority-mature-substrate-decomposition-r1.md`; `docs/AUTHORITY_SEMANTIC_EXPRESSION_R1.md` is the corresponding language/crosswalk profile. Together they map recurring Ordivon meanings onto institutional/governance theory, evidence-to-decision and structured decision methods, delegation/capability systems, ReBAC/ABAC, PAP/PDP/PEP policy architecture, current-authorization patterns, and adaptive/double-loop learning without creating a parallel Ordivon ontology.
 
 Typical executable policy inputs may include:
 
