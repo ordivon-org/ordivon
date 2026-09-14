@@ -119,6 +119,7 @@ Default rule:
 | Network composition/verification | network provider/toolchain | Network v2 + mature network tools | task needs real connectivity/routing/proxy/DNS behavior | global Network semantics in Core | real endpoint/connectivity behavior |
 | Security verification | security domain provider/toolchain | Security v2 + mature security tools/standards | security requirement/threat/verification is in scope | generic security ontology duplicated in Core | threat-/control-specific evidence |
 | Microsoft software entitlement and activation | Microsoft licensing authority + organizational software-asset management | Microsoft digital/retail/OEM channels; MAK; authorized KMS/ADBA; VAMT | a Windows/Office deployment must establish or repair activation under an actual entitlement | private license-state manipulator, activation bypass, unofficial KMS authority | entitlement/license record + supported activation/read-back + organization/customer policy |
+| External Agent prompt/tool behavior evidence | canonical vendor/project source + provenance-bearing research evidence | official source/docs/export first; quarantined prompt/tool corpora only as secondary evidence | comparative Harness research, historical analysis or prompt-exposure threat modeling needs cross-product evidence | global Prompt Authority, automatic prompt/Tool import from third-party corpora | per-claim provenance + canonical corroboration/currentness + rights check before exact reuse |
 
 ## 5. Graph-shaped systems: choose by semantic object, not UI shape
 
