@@ -31,7 +31,9 @@ test("product discovery before G0 is external-reference-first without creating n
   assert.match(frontHalf, /success-universe census without feasibility filtering/);
   assert.match(frontHalf, /archetype\/reference coverage sufficient for the current decision/);
   assert.match(frontHalf, /Reference learning\s+<->\s+Product theses\s+<->\s+Throwaway prototypes/);
-  assert.match(frontHalf, /Human play \/ evidence/);
+  assert.match(frontHalf, /claim-specific evidence/i);
+  assert.match(frontHalf, /Structured Decision Making \/ Value of Information/);
+  assert.match(frontHalf, /Human participant evidence when the claim requires it/i);
   assert.match(frontHalf, /R4 controlled comparison\/variation/);
   assert.match(frontHalf, /canonical G0 Game Definition only when a specific game is justified/);
   assert.match(frontHalf, /Universe membership:[\s\S]*not filtered[\s\S]*team size[\s\S]*expected reproduction cost/i);

@@ -92,7 +92,7 @@ The following hypotheses are targets for destruction, not assumptions to be conf
 
 - **H1 Subtraction preservation** — deletion of the generic embedded Host lifecycle does not reduce Game-specific failure detection.
 - **H2 Authority isolation** — the Game kernel does not require concrete Host/Runtime/Workstation/Artifact internal schemas to assign Game meaning.
-- **H3 No standing laundering** — `technical PASS + Human UNKNOWN` remains Human UNKNOWN; `provenance/artifact PASS + rights INCONCLUSIVE` remains release-blocking; mechanical study readiness with zero Human sessions remains Human UNKNOWN.
+- **H3 No standing laundering** — technical PASS does not establish a Human-experience claim; `provenance/artifact PASS + rights INCONCLUSIVE` remains release-blocking; mechanical study readiness with zero participant sessions leaves Human-state claims unobserved/UNKNOWN. Historical evidence objects may retain their original `humanEvidenceStanding` field names.
 - **H4 Historical observability** — historical Veilwild/Station Zero failure conditions remain distinguishable by exact evaluation condition rather than being rewritten by newer green state.
 - **H5 Current-carrier uniqueness** — one immutable Game E2E current carrier can be named mechanically, with all competing refs classified as CURRENT, SUPERSEDED, HISTORICAL, or QUARANTINED.
 
@@ -102,8 +102,8 @@ M7 MUST NOT infer any of the following:
 
 ```text
 process exit 0                  => Game oracle PASS
-technical PASS                 => Human PASS
-browser/mechanical readiness   => Human evidence
+technical PASS                 => Human-experience claim supported
+browser/mechanical readiness   => Human participant evidence
 artifact/provenance valid      => distribution rights
 Game E2E GRADUATED             => Veilwild nominated/releasable
 one owner-edge candidate PASS  => owner production-current
@@ -119,8 +119,8 @@ M7 uses external standards as constraints, not as a claim that Game E2E is forma
 
 - **ISO/IEC 25010:2023** — product quality model; supports explicit product-quality requirements, evaluation, quality-control and acceptance criteria rather than one undifferentiated PASS.
 - **ISO/IEC 25019:2023** — quality-in-use model; context of use is prerequisite to quality-in-use claims and must be respecified when context changes.
-- **ISO 9241-11:2018** — usability is an outcome of use; supports keeping usability/Human claims distinct from apparatus readiness.
-- **ISO 9241-210:2019** — human-centred design activities apply through the interactive-system lifecycle; supports an explicit Human evidence boundary rather than technical substitution.
+- **ISO 9241-11:2018** — usability is an outcome of use; supports keeping usability claims about a defined Human population/context distinct from apparatus readiness.
+- **ISO 9241-210:2019** — human-centred design activities apply through the interactive-system lifecycle; supports using relevant Human participant evidence for Human-state claims rather than substituting technical readiness for those claims.
 - **SLSA v1.2** — provenance is verifiable information about where/when/how an artifact was produced; it does not by itself establish Game meaning, Human outcome, or legal distribution rights.
 
 These anchors define useful separations. M7 does not create local replacements for these standards or register them as universal Game primitives.
@@ -184,8 +184,8 @@ UNKNOWN
 
 At minimum the destroyer must demonstrate fail-closed behavior for:
 
-1. mechanical/technical PASS with Human UNKNOWN;
-2. browser study readiness with zero Human sessions;
+1. mechanical/technical PASS with the relevant Human-state claim still UNKNOWN;
+2. browser study readiness with zero participant sessions;
 3. artifact/provenance success with rights INCONCLUSIVE;
 4. Workstation executable existence without admitted Workstation authority;
 5. Host/Runtime success with missing authoritative Game receipt/evidence;
@@ -242,8 +242,8 @@ Regardless of the M7 verdict, do not inherit or upgrade:
 ```text
 Veilwild candidate nomination       NOT_YET_NOMINATED
 Veilwild distribution rights        INCONCLUSIVE until independently changed
-Veilwild Human standing             UNKNOWN until admissible Human evidence
-Station Zero fresh-player Human     UNKNOWN until admissible Human evidence
+Veilwild Human-state claim standing UNKNOWN until relevant Human participant evidence
+Station Zero fresh-player claims    UNKNOWN until relevant Human participant evidence
 full external evidence substitution NOT_ADMITTED unless a lossless owner edge is proven
 ```
 
