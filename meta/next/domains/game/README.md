@@ -141,6 +141,7 @@ Canonical local crosswalks:
 - [`GAME_MECHANISM_EVIDENCE_R2.md`](GAME_MECHANISM_EVIDENCE_R2.md) — current cumulative evidence and stronger composition gates;
 - [`GAME_COMPOSITION_SEARCH_R1.md`](GAME_COMPOSITION_SEARCH_R1.md) — first evidence-guided mechanism-graph search and reuse-first experiment wave;
 - [`GAME_COMPOSITION_SEARCH_R2.md`](GAME_COMPOSITION_SEARCH_R2.md) — current bridge-driven 10-graph experiment search with bounded unknowns and falsifier economics;
+- [`GAME_COMPOSITION_REALIZATIONS_R1.md`](GAME_COMPOSITION_REALIZATIONS_R1.md) — execution ledger separating search snapshots from physically realized falsifier apparatus;
 - [`GAME_TOP_MECHANISM_SPECIMENS_R1.md`](GAME_TOP_MECHANISM_SPECIMENS_R1.md) — 16 elite/canonical game decompositions and 12 recurring structural motifs;
 - [`GAME_TOP_MECHANISM_SPECIMENS_R2.md`](GAME_TOP_MECHANISM_SPECIMENS_R2.md) — current cumulative 27-specimen / 23-motif mechanism map, with R2 gap-filling coverage;
 - [`GAME_TOP_MECHANISM_SPECIMENS_R3.md`](GAME_TOP_MECHANISM_SPECIMENS_R3.md) — current cumulative 37-specimen / 33-motif map, coverage-guided but not coverage-optimized;
@@ -151,6 +152,7 @@ Canonical local crosswalks:
 - [`game-mechanism-evidence-r2.json`](game-mechanism-evidence-r2.json) — current cumulative 50-specimen / 60-claim machine ledger;
 - [`game-composition-search-r1.json`](game-composition-search-r1.json) — machine-readable 8-candidate composition search;
 - [`game-composition-search-r2.json`](game-composition-search-r2.json) — current machine-readable 10-candidate bridge-driven composition search;
+- [`game-composition-realizations-r1.json`](game-composition-realizations-r1.json) — machine-readable realization status and exact external apparatus anchors;
 - [`game-top-mechanism-specimens-r1.json`](game-top-mechanism-specimens-r1.json) — machine-readable top-game mechanism specimen map.
 - [`game-top-mechanism-specimens-r2.json`](game-top-mechanism-specimens-r2.json) — current cumulative top-game mechanism specimen/motif map.
 - [`game-top-mechanism-specimens-r3.json`](game-top-mechanism-specimens-r3.json) — current cumulative top-game mechanism specimen/motif ledger;
