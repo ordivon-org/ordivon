@@ -1,0 +1,54 @@
+{
+  "access": {
+    "fullText": "licensed",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "PAIS",
+      "ISO 20104",
+      "ISO 20104:2015"
+    ],
+    "domains": [
+      "preservation",
+      "archive"
+    ],
+    "topics": [
+      "producer-archive",
+      "submission-information-package",
+      "sip",
+      "validation"
+    ]
+  },
+  "id": "iso-20104-2015",
+  "identity": {
+    "authorityKind": "international-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "iso",
+      "name": "ISO"
+    },
+    "officialSource": "https://www.iso.org/standard/67056.html",
+    "publicationDate": "2015-08",
+    "title": "ISO 20104:2015 — Space data and information transfer systems — Producer-Archive Interface Specification (PAIS)",
+    "versionLabel": "2015"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "/root/workstation-lab/docs/creative-preservation-operations-r7.md",
+      "/var/lib/ordivon/creative-preservation/r8-eark/reports/creative-preservation-r8-eark-sip-r1.zip_validation-report_2026-09-14.json"
+    ]
+  },
+  "relations": {
+    "related": [
+      "iso-14721-2025",
+      "iso-20652-2006"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

@@ -1,0 +1,11 @@
+{
+  "authorityId": "coretrustseal-requirements-2026-2028",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current",
+  "note": "CoreTrustSeal publishes the 2026-2028 Trustworthy Data Repositories Requirements.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.coretrustseal.org/why-certification/requirements/",
+  "schemaVersion": 1,
+  "versionObserved": "2026-2028"
+}

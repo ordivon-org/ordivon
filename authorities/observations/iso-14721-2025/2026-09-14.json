@@ -1,0 +1,11 @@
+{
+  "authorityId": "iso-14721-2025",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published",
+  "note": "ISO Edition 3 published 2025-03.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.iso.org/standard/87471.html",
+  "schemaVersion": 1,
+  "versionObserved": "2025"
+}

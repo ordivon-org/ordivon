@@ -1,0 +1,11 @@
+{
+  "authorityId": "iso-20652-2006",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "confirmed",
+  "note": "ISO lifecycle shows the 2006 edition confirmed current in 2026.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.iso.org/standard/39577.html",
+  "schemaVersion": 1,
+  "versionObserved": "2006"
+}

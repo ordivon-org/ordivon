@@ -1,0 +1,54 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "NDSA Levels",
+      "Levels of Digital Preservation",
+      "LoDP 2.1"
+    ],
+    "domains": [
+      "preservation",
+      "archive"
+    ],
+    "topics": [
+      "digital-preservation",
+      "maturity",
+      "storage",
+      "integrity",
+      "control",
+      "metadata",
+      "content"
+    ]
+  },
+  "id": "ndsa-levels-digital-preservation-2.1",
+  "identity": {
+    "authorityKind": "maturity-assessment",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "ndsa",
+      "name": "National Digital Stewardship Alliance"
+    },
+    "officialSource": "https://www.ndsa.org/publications/levels-of-digital-preservation/",
+    "publicationDate": "2026-03-23",
+    "title": "NDSA Levels of Digital Preservation 2.1",
+    "versionLabel": "2.1"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "/root/workstation-lab/docs/creative-preservation-operations-r7.md",
+      "/var/lib/ordivon/creative-preservation/r8-eark/reports/creative-preservation-r8-eark-sip-r1.zip_validation-report_2026-09-14.json"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

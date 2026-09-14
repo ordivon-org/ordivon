@@ -1,0 +1,53 @@
+{
+  "access": {
+    "fullText": "licensed",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "PAIMAS",
+      "ISO 20652",
+      "ISO 20652:2006"
+    ],
+    "domains": [
+      "preservation",
+      "archive"
+    ],
+    "topics": [
+      "producer-archive",
+      "submission-agreement",
+      "ingest",
+      "validation"
+    ]
+  },
+  "id": "iso-20652-2006",
+  "identity": {
+    "authorityKind": "international-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "iso",
+      "name": "ISO"
+    },
+    "officialSource": "https://www.iso.org/standard/39577.html",
+    "publicationDate": "2006-02",
+    "title": "ISO 20652:2006 — Space data and information transfer systems — Producer-archive interface — Methodology abstract standard (PAIMAS)",
+    "versionLabel": "2006"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "/root/workstation-lab/docs/creative-preservation-operations-r7.md",
+      "/var/lib/ordivon/creative-preservation/r8-eark/reports/creative-preservation-r8-eark-sip-r1.zip_validation-report_2026-09-14.json"
+    ]
+  },
+  "relations": {
+    "related": [
+      "iso-14721-2025"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}
