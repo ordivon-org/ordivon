@@ -2,6 +2,8 @@
 set -euo pipefail
 research_python="${MARKET_CAPITAL_RESEARCH_PYTHON:-/root/projects/ordivon-research-v2/.venv/bin/python}"
 arelle="${MARKET_CAPITAL_ARELLE:-/root/.local/bin/arelleCmdLine}"
+tigerbeetle="${MARKET_CAPITAL_TIGERBEETLE:-/usr/local/bin/tigerbeetle}"
+tigerbeetle_python="${MARKET_CAPITAL_TIGERBEETLE_PYTHON:-/opt/ordivon/external/tigerbeetle/0.17.9/python-client/bin/python}"
 if [[ ! -x "$research_python" ]]; then
   echo "research capability unavailable: $research_python" >&2
   exit 2
@@ -19,3 +21,23 @@ if [[ ! -x "$arelle" ]]; then
   exit 3
 fi
 "$arelle" --version
+if [[ ! -x "$tigerbeetle" ]]; then
+  echo "TigerBeetle binary unavailable: $tigerbeetle" >&2
+  exit 4
+fi
+if [[ ! -x "$tigerbeetle_python" ]]; then
+  echo "TigerBeetle client environment unavailable: $tigerbeetle_python" >&2
+  exit 5
+fi
+"$tigerbeetle" version
+"$tigerbeetle_python" - <<'PY'
+import importlib.metadata as metadata
+import tigerbeetle as tb
+version = metadata.version("tigerbeetle")
+print(f"tigerbeetle_python_client={version}")
+if version != "0.17.9":
+    raise SystemExit(f"TigerBeetle client version mismatch: {version}")
+for name in ("ClientSync", "Account", "Transfer", "CreateAccountStatus", "CreateTransferStatus"):
+    if not hasattr(tb, name):
+        raise SystemExit(f"TigerBeetle client surface missing: {name}")
+PY

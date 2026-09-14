@@ -8,6 +8,7 @@ Trading runtime: pinned QuantConnect LEAN (installed and admitted for bounded no
 Post-trade reference semantics: PFMI + ISO 20022; broker/custodian infrastructure remains authoritative.
 Issuer reporting: XBRL/iXBRL + Arelle.
 Research: existing Ordivon Research E2E / MLflow.
+Capital accounting mechanics: TigerBeetle `0.17.9` (mechanical-only provider; no capital truth or write authority).
 
 ## Current standing
 
@@ -32,7 +33,9 @@ Crypto Public Shadow R2 now passes repeated persistent public streaming through 
 Crypto Stream Resilience R3 keeps fail-closed missing/stale/time-divergence semantics and the dual-venue reconnect harness on exact Network v2 WS authorities. Current injected-disconnect qualification passes for both OKX and Binance; observed reconnect latencies were ~16.0 s and ~26.3 s respectively and remain evidence rather than a hidden transport claim. The state is exported through the existing Prometheus/Grafana stack without enabling private/demo/live execution.
 Clock timing qualification now passes: Windows w32time is synchronized to qualified public NTP peers and WSL CLOCK_REALTIME follows the Windows host through `/dev/ptp_hyperv` using `phc2sys`; fresh external validation observed <=47.1 ms absolute error versus the frozen 1000 ms gate. Overall private/demo/live execution remains blocked by the separate NON_LIVE execution authority.
 
-Composition policy: prefer authoritative venue APIs and mature components over local mechanisms. LEAN/Nautilus/FIX/venue APIs/Prometheus own their respective mechanics; Market Capital retains only thin decision, proof, authority and reconciliation seams. Custom mechanisms require a demonstrated substitution failure. See `docs/COMPOSITION_FIRST_2026-09-14.md`.
+Composition policy: prefer authoritative venue APIs and mature components over local mechanisms. LEAN/Nautilus/FIX/venue APIs/TigerBeetle/Prometheus own their respective mechanics; Market Capital retains only thin decision, proof, authority and reconciliation seams. Custom mechanisms require a demonstrated substitution failure. See `docs/COMPOSITION_FIRST_2026-09-14.md`.
+
+TigerBeetle Capital Substrate R1 now passes an ephemeral mechanical integration: the pinned `0.17.9` server and official Python client create two accounts, post a 500-unit atomic transfer, preserve debit/credit conservation, and treat an exact transfer-id replay as existing rather than applying it twice. The temporary database is destroyed after the smoke. Canonical false-green semantics still reject `TigerBeetle balance -> deployable capital`; no persistent ledger or external financial write is admitted.
 
 Crypto FIX Projection R4 now passes: the four already-qualified Nautilus mechanics-only Spot orders project through sessionless QuickFIX/n FIX 4.4 `NewOrderSingle` semantics with ClientOrderId→ClOrdID identity continuity, venue `ExDestination`, Market order type and IOC TIF. No credential, FIX session, private account read or external financial write is admitted.
 

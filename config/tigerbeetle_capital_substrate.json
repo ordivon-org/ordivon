@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.market-capital.tigerbeetle-capital-substrate",
+  "provider": {
+    "name": "TigerBeetle",
+    "version": "0.17.9",
+    "binary": "/usr/local/bin/tigerbeetle",
+    "clientInterpreter": "/opt/ordivon/external/tigerbeetle/0.17.9/python-client/bin/python",
+    "clientPackage": "tigerbeetle==0.17.9"
+  },
+  "standing": "PASS_EPHEMERAL_MECHANICAL_ONLY",
+  "responsibility": [
+    "double_entry_account_mechanics",
+    "accounting_conservation",
+    "atomic_transfer_mechanics",
+    "idempotent_transfer_identity"
+  ],
+  "explicitNonResponsibilities": [
+    "CapitalTruth",
+    "ClaimRoot",
+    "Parcel",
+    "TreasuryStanding",
+    "ScarcityAuthority",
+    "Reservation",
+    "ExternalFinancialWriteAdmission",
+    "EffectAuthority",
+    "settlement_truth",
+    "legal_ownership",
+    "withdrawability",
+    "deployability",
+    "venue_reality"
+  ],
+  "compositionLaw": "TigerBeetle accounting state is mechanical evidence only and cannot mint Market Capital domain standing.",
+  "externalFinancialWrites": "NOT_ADMITTED"
+}
