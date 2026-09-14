@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.market-capital.private-reality-policy",
+  "standing": "PREPARED_NOT_ADMITTED",
+  "purpose": "READ_ONLY_AUTHORITATIVE_VENUE_REALITY_BEFORE_ANY_ORDER_CAPABLE_CREDENTIAL",
+  "credentialUseAdmission": "NOT_ADMITTED",
+  "privateAccountDataAllowed": false,
+  "orderCapableCredentialsAllowed": false,
+  "withdrawalCredentialsAllowed": false,
+  "externalFinancialWritesAllowed": false,
+  "secretDiscoveryAllowed": false,
+  "venues": {
+    "OKX": {
+      "authoritativeReality": "OKX private account/order/trade API",
+      "client": "NautilusTrader OKXHttpClient 2.0.0rc4",
+      "requiredPermission": "Read",
+      "forbiddenPermissions": ["Trade", "Withdraw"],
+      "requiredQueries": [
+        "get_balance",
+        "request_account_state",
+        "request_order_status_reports",
+        "request_fill_reports",
+        "request_trades"
+      ]
+    },
+    "BINANCE": {
+      "authoritativeReality": "Binance Spot USER_DATA API",
+      "client": "binance-sdk-spot 11.3.0",
+      "requiredSecurityType": "USER_DATA",
+      "tradePermissionRequired": false,
+      "requiredQueries": [
+        "get_account",
+        "get_open_orders",
+        "all_orders",
+        "my_trades",
+        "get_order"
+      ]
+    }
+  },
+  "rules": [
+    "read-only authoritative account reality must graduate before demo/testnet order submission",
+    "no credential may be discovered from ambient environment, config files, shell history or local secret stores while credentialUseAdmission is NOT_ADMITTED",
+    "credential admission requires a separate explicit user authorization",
+    "read-only admission must not imply TRADE, withdrawal, demo-order or live-order authority",
+    "venue-native account/order/trade reality remains authoritative; Market Capital may only normalize and reconcile it"
+  ]
+}

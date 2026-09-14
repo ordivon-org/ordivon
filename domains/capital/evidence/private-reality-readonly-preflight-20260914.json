@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.market-capital.private-reality-readonly-preflight-evidence",
+  "standing": "PASS_COMPONENT_SURFACE_PREPARED_CREDENTIALS_NOT_ADMITTED",
+  "policy": "config/private_reality_policy.json",
+  "okx": {
+    "client": "NautilusTrader OKXHttpClient",
+    "version": "2.0.0rc4",
+    "requiredMethodsPresent": [
+      "get_balance",
+      "request_account_state",
+      "request_fill_reports",
+      "request_order_status_reports",
+      "request_trades"
+    ],
+    "requiredPermission": "Read",
+    "tradePermissionAdmitted": false,
+    "withdrawPermissionAdmitted": false
+  },
+  "binance": {
+    "client": "binance-sdk-spot",
+    "version": "11.3.0",
+    "externalEnvironment": "/root/external/binance-sdk-spot/.venv",
+    "requirementsLockSha256": "cc66c2d4f7fa5881dd329bc67150142fb87ca7821cd1bcad937c6a492b83fa5c",
+    "requiredMethodsPresent": [
+      "get_account",
+      "get_open_orders",
+      "all_orders",
+      "my_trades",
+      "get_order"
+    ],
+    "requiredSecurityType": "USER_DATA",
+    "tradePermissionAdmitted": false
+  },
+  "credentialsLoaded": false,
+  "secretDiscoveryAttempted": false,
+  "networkPrivateApiCalled": false,
+  "privateAccountDataRead": false,
+  "demoExecutionAttempted": false,
+  "liveExecutionAttempted": false,
+  "externalFinancialWritesAttempted": false,
+  "nextAdmission": "explicit user authorization for read-only venue credentials only"
+}
