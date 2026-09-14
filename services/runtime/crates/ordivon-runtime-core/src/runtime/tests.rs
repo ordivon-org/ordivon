@@ -5695,6 +5695,29 @@ fn newer_schema_and_checksum_drift_fail_closed() {
     assert_eq!(error.code, RuntimeErrorCode::MigrationChecksumMismatch);
 }
 
+#[cfg(feature = "operator-tools")]
+#[test]
+fn startup_is_schema_bounded_while_doctor_owns_global_foreign_key_audit() {
+    let sandbox = Sandbox::new("doctor-global-fk-audit", 5000);
+    let config = sandbox.registry.config().clone();
+    let connection = Connection::open(&config.db_path).unwrap();
+    connection
+        .pragma_update(None, "foreign_keys", false)
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO job_execution_providers(job_id,snapshot_json,snapshot_digest) VALUES('job-missing-for-fk-audit','{}','sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')",
+            [],
+        )
+        .unwrap();
+    drop(connection);
+
+    Registry::initialize(config).unwrap();
+    let error = inspect_runtime(&doctor_config(&sandbox)).unwrap_err();
+    assert_eq!(error.code, RuntimeErrorCode::RegistryCorrupt);
+    assert!(error.message.contains("foreign key violation"));
+}
+
 #[test]
 fn query_indexes_are_recreated_without_advancing_schema_version() {
     let sandbox = Sandbox::new("query-index-recreate", 5000);

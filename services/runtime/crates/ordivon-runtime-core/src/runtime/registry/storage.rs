@@ -33,7 +33,6 @@ impl Registry {
         registry.ensure_attempt_supervisor_owner_storage(&mut connection)?;
         registry.ensure_host_dependency_storage(&mut connection)?;
         registry.ensure_runtime_release_storage(&mut connection)?;
-        registry.validate_database(&connection)?;
         set_private_file(&registry.config.db_path)?;
         Ok(registry)
     }
@@ -494,33 +493,6 @@ impl Registry {
                     false,
                 ));
             }
-        }
-        Ok(())
-    }
-
-    fn validate_database(&self, connection: &Connection) -> RuntimeResult<()> {
-        let quick: String = connection
-            .query_row("PRAGMA quick_check(20)", [], |row| row.get(0))
-            .map_err(|error| RuntimeError::from_sql(error, "registry quick_check failed"))?;
-        if quick != "ok" {
-            return Err(RuntimeError::new(
-                RuntimeErrorCode::RegistryCorrupt,
-                format!("registry quick_check returned {quick}"),
-                None,
-                false,
-            ));
-        }
-        let foreign_key_problem: Option<String> = connection
-            .query_row("PRAGMA foreign_key_check", [], |row| row.get(0))
-            .optional()
-            .map_err(|error| RuntimeError::from_sql(error, "foreign key check failed"))?;
-        if let Some(table) = foreign_key_problem {
-            return Err(RuntimeError::new(
-                RuntimeErrorCode::RegistryCorrupt,
-                format!("foreign key violation in {table}"),
-                None,
-                false,
-            ));
         }
         Ok(())
     }
