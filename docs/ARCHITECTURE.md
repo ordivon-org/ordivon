@@ -29,7 +29,7 @@ Market Capital does not own mechanisms already provided by authoritative venues 
 
 ### Capital accounting substrate
 
-TigerBeetle is the mature accounting-mechanics provider. Its account and transfer state is mechanical evidence only: a TigerBeetle balance is not settlement, legal ownership, withdrawability, deployable capital, external-effect admission, or `EffectAuthority`. Market Capital keeps those domain semantics outside the provider. The server binary and official Python client are pinned to the same `0.17.9` release in an isolated external capability environment; Market Capital does not duplicate that dependency stack.
+TigerBeetle is the mature accounting-mechanics provider. Its account and transfer state is mechanical evidence only: a TigerBeetle balance is not settlement, legal ownership, withdrawability, deployable capital, external-effect admission, or `EffectAuthority`. Market Capital keeps those domain semantics outside the provider. The server binary and official Python client are pinned to the same `0.17.9` release in an isolated external capability environment; Market Capital does not duplicate that dependency stack. R3.1 maps an exact Market Capital Reservation to a provider PENDING transfer; domain-owned RETAIN emits no provider mutation, RELEASE maps to VOID_PENDING_TRANSFER, and CONSUME maps to POST_PENDING_TRANSFER. TigerBeetle balance constraints may enforce mechanical scarcity but never mint `ScarcityAuthority`, and provider state never derives the disposition.
 
 ## 2. Decision
 
