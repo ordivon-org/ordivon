@@ -20,3 +20,7 @@ Authority: WinGet Configuration + DSC v3. Source: `workstation/windows/workstati
 ## Caller-selected software bindings
 
 `workstation/software.toml` is the migrated bounded declaration set for professional and exact managed software that had proven current consumers in legacy `/root/workstation-lab`. `workstation/tool_binding.py` resolves only a caller-selected declared launcher into current path/version evidence and exact executable SHA-256. It does not select tools, grant Runtime execution authority, or decide domain suitability.
+
+## Windows Runtime provider realization
+
+`workstation/windows/runtime_provider.py` and `runtime-provider.toml` now own the node-side materialization contract for Runtime's Windows launcher, including exact source/compiler binding, the AF_VSOCK systemd drop-in, Runtime operator environment, and materialization receipt. Runtime continues to own Job/Attempt semantics and activation/restart. After deployment, the stable local entry is `/root/tools/bin/workstation-windows-runtime-provider status|apply`; `apply` stages provider bytes/configuration but deliberately does not restart Runtime.

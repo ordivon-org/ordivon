@@ -20,7 +20,7 @@ The former Operations v2 owner is now Workstation v2. `/root/workstation-lab` be
 | giant global Doctor | decompose into upstream observation + operation-relative verifier | draining |
 | Workstation recovery scheduler | Workstation v2 systemd substrate | migrated |
 | recovery generation/restore semantics | migrate only surviving node-owner semantics | pending |
-| Windows Runtime launcher materialization | `workstation/windows/runtime_provider.py`; Runtime keeps Job/Attempt semantics | **source/config migrated in R2** |
+| Windows Runtime launcher materialization | `workstation/windows/runtime_provider.py`; Runtime keeps Job/Attempt semantics | **source/config + stable management entry migrated in R2** |
 | production transport/failover | Network v2 | do not migrate |
 | domain suitability/completion | owning Domain E2E | do not migrate |
 | Host task continuity | Host | do not migrate |
