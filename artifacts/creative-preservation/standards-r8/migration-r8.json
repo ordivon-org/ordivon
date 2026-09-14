@@ -1,0 +1,131 @@
+{
+  "kind": "creative-preservation-standard-native-migration-r8",
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-14T13:51:16.307303+08:00",
+  "purpose": "migration evidence only; not a preservation maturity score or certification",
+  "preservationMaturityClaim": null,
+  "canonicalSubmissionProfile": {
+    "csip": "E-ARK CSIP 2.2.0",
+    "sip": "E-ARK SIP 2.2.0"
+  },
+  "validator": {
+    "provider": "Commons-IP",
+    "version": "2.11.3",
+    "jarSha256": "ac3e93d0fc74be553b6a38afc0fa91a1504ac0f56ceab5c6684ab4d662dc30f9",
+    "tagCommit": "2c80cd9cfec63e3efa0fea6b9dcf7ef9fccbe97a"
+  },
+  "fixture": {
+    "source": "/var/lib/ordivon/creative-preservation/r6/corpus-materialized",
+    "works": 12,
+    "files": 86,
+    "bytes": 4200279,
+    "hiddenFiles": 3
+  },
+  "sip": {
+    "path": "/var/lib/ordivon/creative-preservation/r8-eark/package/creative-preservation-r8-eark-sip-r1.zip",
+    "bytes": 2945780,
+    "sha256": "873b618835a8c4188a9f03857720a799ca1f25c299a7fc4a3bb65b7fdf766264",
+    "representation": "frozen-corpus",
+    "status": "ORIGINAL"
+  },
+  "validation": {
+    "reportPath": "/var/lib/ordivon/creative-preservation/r8-eark/reports/creative-preservation-r8-eark-sip-r1.zip_validation-report_2026-09-14.json",
+    "reportSha256": "098212119dd98c294a0eba52de458d0917a7a984cf0586b694d5441dc3d04d2a",
+    "result": "VALID",
+    "success": 126,
+    "warnings": 3,
+    "errors": 0,
+    "skipped": 30,
+    "levels": {
+      "MUST": {
+        "PASSED": 82,
+        "SKIPPED": 23
+      },
+      "SHOULD": {
+        "SKIPPED": 4,
+        "FAILED": 3,
+        "PASSED": 27
+      },
+      "MAY": {
+        "PASSED": 26,
+        "SKIPPED": 3
+      }
+    },
+    "mustFailures": 0,
+    "shouldFailures": [
+      {
+        "specification": "CSIP-2.2.0",
+        "id": "CSIPSTR5",
+        "name": "CSIP Information Package folder structure",
+        "warnings": [
+          "Include Metadata relevant to the whole package in folder metadata"
+        ]
+      },
+      {
+        "specification": "CSIP-2.2.0",
+        "id": "CSIPSTR7",
+        "name": "CSIP Information Package folder structure",
+        "warnings": [
+          "If descriptive metadata are available should include inside metadata/descriptive"
+        ]
+      },
+      {
+        "specification": "CSIP-2.2.0",
+        "id": "CSIPSTR13",
+        "name": "CSIP Information Package folder structure",
+        "warnings": [
+          "The representation folder SHOULD include a sub-folder named metadata which MAY include all metadata about the specific representation."
+        ]
+      }
+    ]
+  },
+  "byteIdentity": {
+    "sourceFiles": 86,
+    "sipOriginalFiles": 86,
+    "missing": 0,
+    "extra": 0,
+    "mismatch": 0,
+    "hiddenFilesPreserved": 3,
+    "result": "PASS"
+  },
+  "maturityFrameworks": {
+    "technical": "NDSA Levels of Digital Preservation 2.1",
+    "organizational": "DPC RAM v3",
+    "trustworthyRepository": "CoreTrustSeal Requirements 2026-2028",
+    "assessmentPerformed": false
+  },
+  "enduro": {
+    "candidateVersion": "v0.34.1",
+    "tagCommit": "548b0edb40fdd9456272fd5ab8950c6374da7c79",
+    "releaseAssetSha256": "09facda565f48edf78f8a22288815359f8cdd36e3efa63519d0850e5b581887d",
+    "localActivation": "DEFERRED_UNTIL_WORKLOAD_TRIGGER"
+  },
+  "dispositions": {
+    "customMaturityOntology": "DELETE_REPLACE_EXTERNAL_ASSESSMENT",
+    "customHandoffPackageSemantics": "REPLACE_EARK_SIP",
+    "ownerApprovalAndExactBytes": "RETAIN_DOMAIN_ONLY",
+    "bagit": "DEMOTE_ENGINE_ADAPTER_TRANSPORT",
+    "customIngestGlue": "FREEZE_NO_NEW_CODE_ENDURO_FIRST_CANDIDATE",
+    "historicalR4R7Receipts": "RETAIN_HISTORICAL_EVIDENCE_DEMOTE_FORWARD_AUTHORITY"
+  },
+  "evidenceJobs": [
+    "job-01a09e6a-cb2b-7eb3-b744-31172a03550e",
+    "job-01a09e6b-74b9-7603-bbb4-9ec8bf50809c",
+    "job-01a09e6c-3fe7-73f2-a98d-a5a153d6d2e2",
+    "job-01a09e6d-9a9d-7171-a657-96f01603b969",
+    "job-01a09e74-f7c5-7241-9349-54797bcfa4ba",
+    "job-01a09e74-21ab-7492-8546-9af2318c6fa1",
+    "job-01a09e74-841b-7f31-8498-ae1884b576f2",
+    "job-01a09e76-5f41-7dd2-ad53-234f46dc8df9",
+    "job-01a09e77-9520-78a2-a112-37b88e489507"
+  ],
+  "officialAssessmentTooling": {
+    "ndsaLevels2_1": {
+      "root": "/opt/ordivon/external/standards/ndsa/2.1",
+      "matrixSha256": "ed3407a37cc3e093fe7f55c059796d2c5d37c79dcfb15c21468b4ce2bb93faa2",
+      "guidanceSha256": "7c2cc9bad41c96f9edca104e89751542e91782fcd463df143a8cdc9ecc002197",
+      "assessmentTemplateSha256": "9da566adff7673d9a3a3753f9be2a12978eea458eba1d4abc299ee48395a818d",
+      "assessmentPerformed": false
+    }
+  }
+}

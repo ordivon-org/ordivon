@@ -208,3 +208,13 @@ The accepted replica is a second POSIX storage location on the same WSL host. It
 The recovery path also exposed an upstream dependency boundary: Ubuntu 24.04's effective `unar` codebase failed on the Archivematica-generated Delta-filter 7z. R7 uses upstream XADMaster v1.10.8 `unar/lsar` binaries built against the same runtime ABI, without patching Archivematica Python recovery logic.
 
 See `docs/creative-preservation-operations-r7.md` and `artifacts/creative-preservation/operations-r7/acceptance-r7.json`.
+
+## R8 Standard-native replacement
+
+R8 removes the remaining private preservation semantics where a mature substitute has now been proven on the real frozen corpus.
+
+E-ARK CSIP/SIP 2.2.0 is the forward external submission/interchange profile. Commons-IP 2.11.3 created and validated an E-ARK SIP from the exact 86-file corpus with `VALID`, zero errors, zero failed MUST requirements and 86/86 byte identity; all three hidden `.gitignore` files survived. The three remaining validator findings are SHOULD-level metadata-layout recommendations and remain provider-native evidence.
+
+Historical R4-R7 `ACCEPTED*` labels remain engineering graduation history only. Preservation maturity is no longer an Ordivon verdict model: NDSA Levels 2.1, DPC RAM v3 and CoreTrustSeal 2026–2028 are the external assessment frameworks. No level, score or certification is inferred in R8.
+
+Owner approval and exact Git/CAS byte resolution remain domain-local. BagIt is demoted to transfer/current Archivematica engine-adapter status. Enduro v0.34.1 is registered as the first substitute before any future custom preservation ingest orchestration, but activation is workload-triggered rather than architecture-triggered.
