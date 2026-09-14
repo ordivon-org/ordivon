@@ -600,7 +600,7 @@ fn observe_terminal_process_tree(attempt: &AttemptRecord) -> (String, Option<Str
     let deadline = Instant::now() + Duration::from_millis(500);
     let mut poll_index = 0;
     loop {
-        match attempt_process_tree_alive(attempt) {
+        match terminal_process_tree_alive(attempt) {
             Ok(false) => return ("terminal_clean".to_string(), None),
             Ok(true) if Instant::now() < deadline => {
                 sleep_until_poll(deadline, &mut poll_index);
@@ -609,7 +609,7 @@ fn observe_terminal_process_tree(attempt: &AttemptRecord) -> (String, Option<Str
                 return (
                     "unexpected_residual".to_string(),
                     Some(
-                        "the identity-bound unit, PID, or cgroup remained populated after the terminal result"
+                        "the identity-bound PID or recursive cgroup remained populated after the terminal result"
                             .to_string(),
                     ),
                 )
@@ -625,6 +625,33 @@ fn observe_terminal_process_tree(attempt: &AttemptRecord) -> (String, Option<Str
             }
         }
     }
+}
+
+fn terminal_process_tree_alive(attempt: &AttemptRecord) -> RuntimeResult<bool> {
+    let recorded_pid_alive = attempt.main_pid.is_some_and(|pid| {
+        process_identity(pid)
+            .as_deref()
+            .zip(attempt.process_start_identity.as_deref())
+            .is_some_and(|(observed, expected)| observed == expected)
+    });
+    if recorded_pid_alive {
+        return Ok(true);
+    }
+    if let Some(control_group) = attempt.control_group.as_deref() {
+        // Once Runner result evidence is terminal, recursive cgroup-v2 population is the
+        // strongest direct process-tree fact. A clean owned cgroup plus a gone recorded
+        // PID proves that the Attempt process tree is gone without depending on a
+        // potentially slow systemd D-Bus query. systemd remains the fallback only for
+        // historical Attempts that lack a committed cgroup identity.
+        return cgroup_has_processes(control_group);
+    }
+    let properties = systemctl_show(&attempt.unit_name)?;
+    Ok(unit_is_active(&properties)
+        && attempt
+            .invocation_id
+            .as_deref()
+            .zip(properties.get("InvocationID").map(String::as_str))
+            .is_some_and(|(expected, observed)| expected == observed))
 }
 
 fn attempt_process_tree_alive(attempt: &AttemptRecord) -> RuntimeResult<bool> {
