@@ -66,6 +66,10 @@ The common core is capability-neutral. Mature disciplines, domains, standards, t
 
 See `docs/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R2.md` for the current cross-domain operating contract for binding external authorities, applicability, stable trace identities, evidence, currentness, claim boundaries and domain-owned verdicts. It is an interoperability environment, not an Ordivon replacement for external standards.
 
+## Enterprise operating model
+
+See `docs/ENTERPRISE_OPERATING_MODEL_R1.md` and `compositions/enterprise-work-to-outcome-r1.md` for the demand-gated composition of mature quality/project/risk/audit guidance with ERPNext, Host v2, Flowable, Temporal, n8n, Runtime and domain-native V&V. Providers remain dormant unless a real responsibility justifies activation.
+
 ## Current common capability coverage
 
 See `docs/CAPABILITY_PACKAGES_R1.md` for the current high-frequency Capability Package working map. It is a task-oriented coverage inventory, not a fixed architecture.

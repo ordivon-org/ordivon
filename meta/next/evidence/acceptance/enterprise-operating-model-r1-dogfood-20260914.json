@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.enterprise-operating-model-r1-dogfood",
+  "date": "2026-09-14",
+  "work": {
+    "name": "Standard-Native Enterprise Environment R2",
+    "class": "internal-management-system-improvement-project",
+    "externalCustomer": false,
+    "businessTransaction": false,
+    "sourceRepo": "/root/projects/ordivon-next",
+    "acceptedCommit": "a0d73b08702b507b801bb4c124acc2733b97bb4b",
+    "acceptanceAuthority": "ordivon-owner-operator",
+    "acceptanceBoundary": "internal source integration and cold verification; no external customer, certification or ISO-conformance claim"
+  },
+  "externalManagementGuidance": [
+    {
+      "id": "iso-integrated-management-systems-guide-2026",
+      "role": "integration-pattern",
+      "disposition": "APPLIED",
+      "application": "Prepare -> Connect -> Integrate"
+    },
+    {
+      "id": "iso-10005-2018",
+      "role": "specific-case-quality-plan-guidance",
+      "disposition": "APPLIED_AS_GUIDANCE"
+    },
+    {
+      "id": "iso-21502-2020",
+      "role": "project-management-guidance",
+      "disposition": "APPLIED_AS_GUIDANCE"
+    },
+    {
+      "id": "iso-10006-2017",
+      "role": "quality-management-in-projects-guidance",
+      "disposition": "APPLIED_AS_GUIDANCE"
+    },
+    {
+      "id": "iso-31000-2018",
+      "role": "risk-management-guidance",
+      "disposition": "APPLIED_AS_GUIDANCE"
+    },
+    {
+      "id": "iso-19011-2026",
+      "role": "management-system-audit-guidance",
+      "disposition": "NOT_ACTIVATED_NO_AUDIT_OBJECTIVE"
+    },
+    {
+      "id": "iso-9001-2015-amd1-2024",
+      "role": "current-published-quality-management-baseline-at-cut",
+      "disposition": "CURRENTNESS_REFERENCE_ONLY"
+    },
+    {
+      "id": "iso-9001-2026",
+      "role": "quality-management-successor",
+      "disposition": "UNDER_PUBLICATION_NOT_YET_TREATED_AS_PUBLISHED",
+      "observedExpectedReplacementDate": "2026-09-16"
+    }
+  ],
+  "providerActivation": [
+    {
+      "provider": "git-ordivon-next",
+      "status": "ACTIVATED",
+      "reason": "source/document/evidence authority for the internal improvement"
+    },
+    {
+      "provider": "standard-native-enterprise-r2",
+      "status": "ACTIVATED",
+      "reason": "external authority/applicability/evidence/claim-boundary composition"
+    },
+    {
+      "provider": "strictdoc-0.29.0",
+      "status": "ACTIVATED",
+      "reason": "stable requirement identity and ReqIF export"
+    },
+    {
+      "provider": "check-jsonschema-0.38.0",
+      "status": "ACTIVATED",
+      "reason": "mature JSON Schema validation instead of custom validation implementation"
+    },
+    {
+      "provider": "ordivon-runtime",
+      "status": "ACTIVATED",
+      "reason": "bounded local mechanical execution evidence"
+    },
+    {
+      "provider": "erpnext",
+      "status": "AVAILABLE_NOT_ACTIVATED",
+      "reason": "no external customer, sales, accounting or necessary ERP-native business/quality record for this internal dogfood"
+    },
+    {
+      "provider": "host-v2",
+      "status": "AVAILABLE_NOT_REQUIRED_FOR_DOGFOOD_EVIDENCE",
+      "reason": "Git/Runtime continuity was sufficient for this bounded implementation; Host v2 remains the current minimal continuity utility generally"
+    },
+    {
+      "provider": "plane-openproject",
+      "status": "NOT_ACTIVATED",
+      "reason": "no measured heavyweight collaboration/PMO/time-cost governance need"
+    },
+    {
+      "provider": "flowable-bpmn-cmmn-dmn",
+      "status": "MATERIALIZED_NOT_ACTIVATED",
+      "reason": "no stable repeatable business process, durable case or explicit business decision model required"
+    },
+    {
+      "provider": "temporal",
+      "status": "NOT_ACTIVATED",
+      "reason": "no durable long-wait/timer/crash-resumable technical Workflow requirement"
+    },
+    {
+      "provider": "n8n",
+      "status": "AVAILABLE_NOT_ACTIVATED",
+      "reason": "no recurring external API/SaaS/event integration edge required"
+    }
+  ],
+  "qualityPlan": {
+    "intendedOutput": "thin cross-domain standards-native environment preserving external and domain authority",
+    "acceptanceCriteria": [
+      "research runtime and game heterogeneous profiles project successfully",
+      "each projection retains external authority decisions",
+      "each projection retains stable requirement identities",
+      "each projection retains explicit claim boundary",
+      "domain verdict vocabularies remain distinct",
+      "projection instances validate against JSON Schema 2020-12 via mature validator",
+      "research runtime and game requirement carriers export to ReqIF",
+      "merged ordivon-next main cold-verifies clean"
+    ],
+    "result": "ACCEPTED"
+  },
+  "risksAndTreatments": [
+    {
+      "risk": "universal-private-standard-ontology",
+      "treatment": "admit only read-only projection after three-domain proof",
+      "standing": "TREATED"
+    },
+    {
+      "risk": "domain-verdict-normalization",
+      "treatment": "preserve domain status vocabularies; shared intersection observed as PASS only",
+      "standing": "TREATED"
+    },
+    {
+      "risk": "stale-authority-provider-currentness",
+      "treatment": "explicit currentness checks and refresh triggers",
+      "standing": "TREATED"
+    },
+    {
+      "risk": "custom-json-schema-validator-creep",
+      "treatment": "install/pin check-jsonschema 0.38.0 and delegate standards validation",
+      "standing": "TREATED"
+    },
+    {
+      "risk": "historical-evidence-rewrite",
+      "treatment": "append/supersede evidence rather than mutating historical standing",
+      "standing": "TREATED"
+    },
+    {
+      "risk": "duplicate-runtime-side-effect-on-registry-contention",
+      "treatment": "observe/reconcile exact committed Runtime Job instead of new admission",
+      "standing": "TREATED"
+    },
+    {
+      "risk": "parallel-main-overwrite",
+      "treatment": "detect source-main movement and open a new Workspace from latest main before subsequent work",
+      "standing": "TREATED"
+    }
+  ],
+  "acceptanceEvidence": {
+    "r2MainCommit": "a0d73b08702b507b801bb4c124acc2733b97bb4b",
+    "schemaValidation": "PASS via check-jsonschema 0.38.0",
+    "semanticAcceptance": "PASS_CROSS_DOMAIN_DOGFOOD",
+    "reqif": {
+      "research": "PASS",
+      "runtime": "PASS",
+      "game": "PASS"
+    },
+    "mainCleanAtColdVerify": true
+  },
+  "standing": "PASS_BOUNDED_INTERNAL_DOGFOOD",
+  "nonClaims": [
+    "not ISO 9001 certification",
+    "not ISO management-system conformance",
+    "not ISO 19011 audit",
+    "not external customer acceptance",
+    "not proof that dormant providers should be activated",
+    "not a universal Ordivon Work ontology"
+  ]
+}
