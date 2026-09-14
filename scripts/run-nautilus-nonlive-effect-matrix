@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+config="$repo/config/nautilus_candidate.json"
+python3 - "$config" <<'PY' >/tmp/market-capital-nautilus-python.$$
+import json,sys
+cfg=json.load(open(sys.argv[1]))
+assert cfg['version']=='2.0.0rc4'
+print(cfg['environmentRoot']+'/.venv/bin/python')
+PY
+py="$(cat /tmp/market-capital-nautilus-python.$$)"
+rm -f /tmp/market-capital-nautilus-python.$$
+if [[ ! -x "$py" ]]; then echo "Nautilus candidate python unavailable: $py" >&2; exit 2; fi
+PYTHONPATH="$repo/src${PYTHONPATH:+:$PYTHONPATH}" exec "$py" "$repo/tools/nautilus_nonlive_effect_matrix.py"

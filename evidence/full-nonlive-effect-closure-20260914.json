@@ -1,0 +1,116 @@
+{
+  "canonicalTests": "........................................................................ [ 52%]\n.................................................................        [100%]\n137 passed in 2.40s",
+  "capitalResolution": {
+    "exactConsumeReplayStatus": "EXISTS",
+    "provider": "TigerBeetle 0.17.9",
+    "restartCount": 1,
+    "scenarioDispositions": {
+      "CANCEL": "RELEASE",
+      "DENY": "RELEASE",
+      "FILL": "CONSUME",
+      "PARTIAL_FILL_SLICES": "CONSUME",
+      "UNKNOWN_AFTER_SUBMISSION": "RETAIN"
+    },
+    "scenarioProviderReconciliation": {
+      "CANCEL": "MATCH",
+      "DENY": "MATCH",
+      "FILL": "MATCH",
+      "PARTIAL_FILL_SLICES": "MATCH",
+      "UNKNOWN_AFTER_SUBMISSION": "MATCH"
+    },
+    "standing": "PASS_NONLIVE_EFFECT_TO_CAPITAL_RESTART_MATRIX"
+  },
+  "externalDemoTestnet": {
+    "componentPreflight": "PASS",
+    "credentialStanding": "BLOCKED_SERVER_SIDE_NONLIVE_API_KEYS_NOT_PROVISIONED",
+    "missingExternalActions": [
+      "BINANCE_REGISTER_PUBLIC_KEY_ON_SPOT_TEST_NETWORK_AND_INSTALL_SERVER_API_KEY",
+      "OKX_CREATE_DEMO_TRADING_API_CREDENTIAL_AND_INSTALL_CONFIG"
+    ],
+    "providerRegistrationStanding": "EXTERNAL_PROVIDER_REGISTRATION_PENDING"
+  },
+  "externalFinancialWriteAttempted": false,
+  "kind": "ordivon.market-capital.fullpath-closure-receipt",
+  "localFullEffectPath": "PASS",
+  "providerExecution": {
+    "liveEndpoint": false,
+    "nonLiveEffectAdmission": "ADMITTED",
+    "provider": "NautilusTrader 2.0.0rc4 simulated exchange",
+    "realMoney": false
+  },
+  "realFinancialEffectBoundary": {
+    "effectVerifier": "NOT_IMPLEMENTED",
+    "externalFinancialWriteAdmission": "NOT_ADMITTED",
+    "externalFinancialWritesAllowed": false,
+    "providerWriteCapabilityBound": false
+  },
+  "realMoneyEffectAttempted": false,
+  "schemaVersion": 1,
+  "standing": "PASS_FULL_NONLIVE_EFFECT_PATH_EXTERNAL_DEMO_BINDING_PENDING_PROVIDER_REGISTRATION",
+  "stepEvidence": [
+    {
+      "exitCode": 0,
+      "name": "CANONICAL_TESTS",
+      "stderrSha256": "sha256:1aff93ab9433ed8b16d939aa8657650a23f6d35b8ad4213303d254471b08af16",
+      "stderrTail": "Checked 1 package in 1ms\n",
+      "stdoutSha256": "sha256:bbd582c5499446f02492633a04ee6c967c311cc41bd6f6a95ac1e98b301eee6d",
+      "stdoutTail": "........................................................................ [ 52%]\n.................................................................        [100%]\n137 passed in 2.40s\n"
+    },
+    {
+      "exitCode": 0,
+      "name": "NONLIVE_EFFECT_AUTHORITY",
+      "stderrSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrTail": "",
+      "stdoutSha256": "sha256:d0ad3e18353074eb6a18d49b482879f400efcf5d8b010c0070afdd457b991553",
+      "stdoutTail": "{\"allowedEffectClass\": \"SIMULATED_EXCHANGE_ORDER_EFFECT\", \"externalFinancialWriteAdmission\": \"NOT_ADMITTED\", \"externalFinancialWriteAllowed\": false, \"liveEndpoint\": false, \"nonLiveEffectAdmission\": \"ADMITTED\", \"nonLiveProviderWriteCapabilityBound\": true, \"realMoney\": false, \"standing\": \"NONLIVE_EFFECT_ADMITTED_REAL_FINANCIAL_WRITE_NOT_ADMITTED\"}\n"
+    },
+    {
+      "exitCode": 0,
+      "name": "NONLIVE_EFFECT_TO_CAPITAL_RESTART",
+      "stderrSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrTail": "",
+      "stdoutSha256": "sha256:134b7c767ec494560c187e46815fdd3460eb32e5585be46e75013e327eae705d",
+      "stdoutTail": "{\"exactConsumeReplayStatus\": \"EXISTS\", \"externalFinancialWriteAttempted\": false, \"kind\": \"ordivon.market-capital.nonlive-capital-effect-matrix\", \"liveEndpoint\": false, \"nonLiveProviderWriteAttempted\": true, \"providerVersion\": \"0.17.9\", \"realMoney\": false, \"restartCount\": 1, \"scenarios\": {\"CANCEL\": {\"creditsPending\": 0, \"creditsPosted\": 0, \"debitsPending\": 0, \"debitsPosted\": 0, \"effectDisposition\": \"RELEASE\", \"providerReconciliation\": \"MATCH\", \"providerRepairAllowed\": false, \"semanticStanding\": \"RELEASED\"}, \"DENY\": {\"creditsPending\": 0, \"creditsPosted\": 0, \"debitsPending\": 0, \"debitsPosted\": 0, \"effectDisposition\": \"RELEASE\", \"providerReconciliation\": \"MATCH\", \"providerRepairAllowed\": false, \"semanticStanding\": \"RELEASED\"}, \"FILL\": {\"creditsPending\": 0, \"creditsPosted\": 100, \"debitsPending\": 0, \"debitsPosted\": 100, \"effectDisposition\": \"CONSUME\", \"providerReconciliation\": \"MATCH\", \"providerRepairAllowed\": false, \"semanticStanding\": \"CONSUMED\"}, \"PARTIAL_FILL_SLICES\": {\"creditsPending\": 0, \"creditsPosted\": 100, \"debitsPending\": 0, \"debitsPosted\": 100, \"effectDisposition\": \"CONSUME\", \"providerReconciliation\": \"MATCH\", \"providerRepairAllowed\": false, \"semanticStanding\": \"CONSUMED\"}, \"UNKNOWN_AFTER_SUBMISSION\": {\"creditsPending\": 100, \"creditsPosted\": 0, \"debitsPending\": 100, \"debitsPosted\": 0, \"effectDisposition\": \"RETAIN\", \"providerReconciliation\": \"MATCH\", \"providerRepairAllowed\": false, \"semanticStanding\": \"RESERVED\"}}, \"schemaVersion\": 1, \"sourceEffectMatrixStanding\": \"PASS_NAUTILUS_NONLIVE_EFFECT_RECONCILIATION_MATRIX\", \"standing\": \"PASS_NONLIVE_EFFECT_TO_CAPITAL_RESTART_MATRIX\", \"tigerBeetleMutationAttempted\": true}\n"
+    },
+    {
+      "exitCode": 0,
+      "name": "DEMO_TESTNET_COMPONENT_PREFLIGHT",
+      "stderrSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrTail": "",
+      "stdoutSha256": "sha256:70c877d8571da432a52cff5ecde5e0d06a9eb5529bae39533f873a50bcf1b1c6",
+      "stdoutTail": "{\"demoWriteAdmission\": \"NOT_ADMITTED\", \"externalFinancialWritesAllowed\": false, \"policyStanding\": \"PREPARED_NOT_ADMITTED\"}\n{\"binanceConfigConstructed\": true, \"credentialsPassed\": false, \"externalFinancialWritesAttempted\": false, \"factoryClassesPresent\": true, \"networkCalled\": false, \"okxConfigConstructed\": true}\n"
+    },
+    {
+      "exitCode": 0,
+      "name": "NONLIVE_CREDENTIAL_PROVISIONING",
+      "stderrSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrTail": "",
+      "stdoutSha256": "sha256:5d5815d9e7d90567bad3ea0dd36684f34c03d556944b57dcefa11e2ed46de58d",
+      "stdoutTail": "{\"binancePrivateKeyPresent\": true, \"binancePublicKeyPresent\": true, \"binanceServerApiKeyPresent\": false, \"binanceTestnetRoot\": true, \"externalFinancialWritesAllowed\": false, \"liveCredentialReuseForbidden\": true, \"okxDemoConfigPresent\": false, \"okxDemoRoot\": true, \"standing\": \"BLOCKED_SERVER_SIDE_NONLIVE_API_KEYS_NOT_PROVISIONED\"}\n"
+    },
+    {
+      "exitCode": 0,
+      "name": "PROVIDER_REGISTRATION_HANDOFF",
+      "stderrSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrTail": "",
+      "stdoutSha256": "sha256:af17d9e2f7aee210ca9061d6ba41add50375a61adccc7db67e2b9967bacd2066",
+      "stdoutTail": "{\"binanceTestnetPublicKeyPresent\": true, \"binanceTestnetPublicKeySha256\": \"sha256:7597641f3b56e8f599443b593e6a78b8a688d569600829d638848ad51952ee79\", \"binanceTestnetServerApiKeyPresent\": false, \"externalFinancialWriteAttempted\": false, \"liveCredentialReuseAllowed\": false, \"localPrivateKeyDisclosed\": false, \"missingExternalActions\": [\"BINANCE_REGISTER_PUBLIC_KEY_ON_SPOT_TEST_NETWORK_AND_INSTALL_SERVER_API_KEY\", \"OKX_CREATE_DEMO_TRADING_API_CREDENTIAL_AND_INSTALL_CONFIG\"], \"okxDemoConfigPresent\": false, \"standing\": \"EXTERNAL_PROVIDER_REGISTRATION_PENDING\"}\n"
+    },
+    {
+      "exitCode": 0,
+      "name": "CLOCK_QUALITY",
+      "stderrSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrTail": "",
+      "stdoutSha256": "sha256:f5676826df8c0598edba43b913e311b01766d989d692c69f9ee7af5c8197c2d5",
+      "stdoutTail": "{\"evidence\": \"evidence/clock-quality-audit-20260914-postrepair.json\", \"limitMs\": 1000.0, \"observedAbsOffsetMsMax\": 47.09196090698242, \"overallBlocker\": \"execution_authority remains NON_LIVE / external financial writes NOT_ADMITTED\", \"overallPrivateExecutionAllowed\": false, \"privateExecutionTimingAllowed\": true, \"publicShadowAllowed\": true, \"standing\": \"CLOCK_GATE_PASS_PRIVATE_EXECUTION_TIMING\", \"windowsSource\": \"time.cloudflare.com,0x8\", \"wslHostPtpService\": \"ordivon-wsl-host-clock-sync.service\", \"wslIndependentNtpDaemonAllowed\": false}\n"
+    },
+    {
+      "exitCode": 0,
+      "name": "REAL_FINANCIAL_EFFECT_BOUNDARY",
+      "stderrSha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrTail": "",
+      "stdoutSha256": "sha256:c7362d75524570e404af0600775747bc24012ac452ce046af421557306ceff75",
+      "stdoutTail": "{\"effectAuthorityAvailableForExternalWrites\": false, \"externalFinancialWriteAllowedByContract\": false, \"externalFinancialWritesAllowed\": false, \"externalWriteAdmissionState\": \"NOT_ADMITTED\", \"externalWriteAdmitted\": false, \"externalWriteVerifier\": \"NOT_IMPLEMENTED\", \"ownedSemantics\": [\"effect_authority_retain_release_consume\", \"external_financial_write_admission_boundary\", \"observation_same_cut\", \"proof_binding_currentness\", \"registry_parcel_scarcity_identity\", \"reservation_not_effect_admission\", \"revocation_recovery_one_shot_resurrection\", \"scientific_truth_not_economic_truth_not_capital_truth\"], \"providerWriteCapabilityBound\": false, \"standing\": \"NON_LIVE_EFFECT_BOUNDARY\"}\n"
+    }
+  ]
+}
