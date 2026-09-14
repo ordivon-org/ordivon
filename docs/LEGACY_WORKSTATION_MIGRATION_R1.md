@@ -20,8 +20,8 @@ The former Operations v2 owner is now Workstation v2. `/root/workstation-lab` be
 | input-authority ingress stable carrier | `workstation/input_authority_ingress.py` + Workstation v2 Ansible | **migrated in R4; consumer config remains externally owned** |
 | Agent Automation stable carrier | `workstation/agent_automation_carrier.py` + immutable `/opt/ordivon/agent-automation/current` | **carrier migrated in R4; semantic/release source -> Harness HOLD** |
 | giant global Doctor | upstream facts + narrow owner verifiers | **RETIRE; no live external consumer found in R4 census** |
-| legacy `workstation-semantic` | exact tool binding supersedes its current equipment-resolution role | **RETIRE candidate; zero current tracked consumers** |
-| `engineering-python` legacy helper | historical design experiments only | **do not migrate** |
+| legacy `workstation-semantic` | exact tool binding supersedes its current equipment-resolution role | **RETIRED live launcher in R5; zero current tracked consumers** |
+| `engineering-python` legacy helper | historical design experiments only | **live launcher retired in R5; do not migrate** |
 | giant global Doctor | decompose into upstream observation + operation-relative verifier | draining |
 | Workstation recovery scheduler | Workstation v2 systemd substrate | migrated |
 | recovery generation/restore semantics | minimal `recovery/` kernel + immutable generation | **migrated + activated in R3 (`aba2a689…`), verify-current PASS** |
