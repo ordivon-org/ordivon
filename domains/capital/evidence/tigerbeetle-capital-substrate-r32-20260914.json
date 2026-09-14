@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.market-capital.tigerbeetle-durable-restart-evidence",
+  "date": "2026-09-14",
+  "standing": "PASS_DURABLE_RESTART_RECONCILIATION",
+  "providerVersion": "0.17.9",
+  "runtimeJob": "job-01a09f7b-6897-74b1-b8e9-1a276548d890",
+  "runtimeResultDigest": "sha256:e49bc3446d251cc945c93390f620e82ed5be395b51a525f9dd8204415f41eeeb",
+  "episode": {
+    "sameDataFileRestartCount": 2,
+    "pendingSurvivedFirstRestart": true,
+    "consumeSurvivedSecondRestart": true,
+    "exactReservationReplayStatus": "EXISTS",
+    "terminalReconciliation": "MATCH",
+    "staleProviderReconciliation": "PROVIDER_INCOMPLETE_RETAIN",
+    "semanticTerminalPreserved": true,
+    "providerRepairAllowed": false,
+    "availableAccountId": "28304998661270741870774964251798043589",
+    "encumbranceAccountId": "161485566047385420075833108903267441995",
+    "retainedAfterEpisode": false,
+    "externalFinancialWriteAttempted": false
+  },
+  "boundary": {
+    "ordinaryRestartQualified": true,
+    "permanentDataLossRecoveryQualified": false,
+    "reformatAcceptedAsRecovery": false,
+    "externalFinancialWrites": "NOT_ADMITTED"
+  }
+}

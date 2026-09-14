@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "kind": "ordivon.market-capital.tigerbeetle-capital-substrate",
   "provider": {
     "name": "TigerBeetle",
@@ -8,14 +8,15 @@
     "clientInterpreter": "/opt/ordivon/external/tigerbeetle/0.17.9/python-client/bin/python",
     "clientPackage": "tigerbeetle==0.17.9"
   },
-  "standing": "PASS_RESERVATION_RESOLUTION_MECHANICAL_COMPOSITION",
+  "standing": "PASS_DURABLE_RESTART_RECONCILIATION",
   "responsibility": [
     "double_entry_account_mechanics",
     "accounting_conservation",
     "atomic_transfer_mechanics",
     "idempotent_transfer_identity",
     "pending_transfer_encumbrance_mechanics",
-    "post_or_void_pending_transfer_mechanics"
+    "post_or_void_pending_transfer_mechanics",
+    "durable_provider_state_across_intact_process_restart"
   ],
   "semanticToMechanicalMappings": {
     "Reservation": "PENDING transfer",
@@ -23,6 +24,19 @@
     "EffectDisposition.RELEASE": "VOID_PENDING_TRANSFER",
     "EffectDisposition.CONSUME": "POST_PENDING_TRANSFER"
   },
+  "durableAccountNamespace": {
+    "identityInputs": ["owner_root", "resource_identity", "ledger", "account_code", "role"],
+    "roles": ["AVAILABLE", "ENCUMBRANCE"],
+    "idBinding": "domain-separated deterministic non-zero u128",
+    "rawCallerSelectedAccountIds": false
+  },
+  "recoveryLaws": [
+    "An intact TigerBeetle replica restart must reuse the same data file; it must not re-format provider history.",
+    "Permanent replica data loss is not repaired by format; TigerBeetle recover is required under a healthy cluster.",
+    "Provider state never rewrites terminal Market Capital semantic history.",
+    "A missing or stale provider terminal resolution yields retain/recovery standing, never automatic recreation or reopening.",
+    "Exact replay may prove provider idempotency but cannot mint Market Capital authority."
+  ],
   "explicitNonResponsibilities": [
     "CapitalTruth",
     "ClaimRoot",
@@ -43,7 +57,8 @@
     "TigerBeetle accounting state is mechanical evidence only and cannot mint Market Capital domain standing.",
     "RETAIN performs no TigerBeetle mutation.",
     "Provider balance constraints may enforce mechanical scarcity but cannot mint ScarcityAuthority.",
-    "POST/VOID results cannot derive EffectDisposition; disposition must already come from Market Capital reconciliation."
+    "POST/VOID results cannot derive EffectDisposition; disposition must already come from Market Capital reconciliation.",
+    "Terminal semantic history cannot be resurrected by stale, incomplete, restarted, or recovered provider state."
   ],
   "externalFinancialWrites": "NOT_ADMITTED"
 }
