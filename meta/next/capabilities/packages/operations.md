@@ -26,15 +26,17 @@ Do not collapse these different responsibilities into a new Ordivon operations d
 
 ## Observed local capability
 
-- Operations v2 (`/root/projects/ordivon-operations-v2@a2a1d8b995ff53cef8fedf1c1d40051f0582f404`);
+Current local implementation/owner record: `capabilities/providers/workstation-v2.md`.
+
+- Workstation v2 (`/root/projects/ordivon-workstation-v2@cfefb367adbefdddfd7ad0600945fcdc2439f586`);
 - Runtime execution/evidence (`/root/projects/ordivon-runtime@b44f192c4c8ca7500307596bab7ed6ddb05a9d4c`);
-- Temporal-oriented production configuration/templates exist under Operations v2, but no active `temporal` CLI or Temporal container image was observed during the 2026-09-14 study; Temporal is therefore an available mature provider choice, not a proven current local runtime dependency;
+- Temporal-oriented production configuration/templates exist under Workstation v2, but no active `temporal` CLI or Temporal container image was observed during the 2026-09-14 study; Temporal is therefore an available mature provider choice, not a proven current local runtime dependency;
 - n8n;
 - Ansible / ansible-playbook;
 - OpenTofu (`tofu`);
 - systemd;
 - Docker / Podman;
-- accepted OTLP logs+metrics composition in Operations v2: Vector 0.57.0 receives OTLP gRPC/HTTP; logs flow to Loki 3.6.6; metrics flow as OTLP to Prometheus 3.14.0; node_exporter remains for host metrics;
+- accepted OTLP logs+metrics composition in Workstation v2: Vector 0.57.0 receives OTLP gRPC/HTTP; logs flow to Loki 3.6.6; metrics flow as OTLP to Prometheus 3.14.0; node_exporter remains for host metrics;
 - traces are intentionally routed to a deferred blackhole because no trace backend/use-case is currently admitted; no `otelcol`, Jaeger or Tempo executable was observed in the current shell during the 2026-09-14 study;
 - no Langfuse or Phoenix executable/Docker image/local project was observed during the 2026-09-14 comparison;
 - PostgreSQL/backup substrate where required.

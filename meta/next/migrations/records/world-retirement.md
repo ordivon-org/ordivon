@@ -20,7 +20,7 @@ The generic World owner/product boundary is not retained. New external effects s
 
 The one live operational blocker was the Cloudflare Edge provider. It was extracted from the historical World repository, validated independently, then absorbed into the maintained Operations project:
 
-- maintained source: `/root/projects/ordivon-operations-v2/providers/cloudflare`
+- maintained source: `/root/projects/ordivon-workstation-v2/providers/cloudflare`
 - Operations absorption commit: `7371f9f149b02b88f4a720f602e70944318e7611`
 - short-lived staging history retained in Operations ref: `refs/ordivon/migration/cloudflare-provider-staging`
 - top-level staging repository `/root/projects/ordivon-cloudflare-provider` was removed after live cutover

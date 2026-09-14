@@ -1,7 +1,7 @@
-# Provider: Operations v2
+# Provider: Workstation v2
 
-- Source: `/root/projects/ordivon-operations-v2`
-- Observed revision: `a2a1d8b995ff53cef8fedf1c1d40051f0582f404`
+- Source: `/root/projects/ordivon-workstation-v2`
+- Observed revision: `cfefb367adbefdddfd7ad0600945fcdc2439f586`
 - Role: task-local execution/integration substrate provider
 - Migration mode: metadata only; implementation stays external
 
@@ -17,7 +17,7 @@
 
 ## Current observability realization — 2026-09-14
 
-Operations v2 has an accepted OTLP ingress without introducing an OpenTelemetry Collector daemon:
+Workstation v2 has an accepted OTLP ingress without introducing an OpenTelemetry Collector daemon:
 
 ```text
 OTLP gRPC :4317 / HTTP :4318
@@ -31,7 +31,7 @@ Traces are explicitly deferred/blackholed because no trace-storage backend has b
 
 ## Boundary
 
-Operations provides mechanics and observable substrate facts. It does not establish Research, Finance, Network, Artifact, Security or other domain semantic success.
+Workstation v2 provides execution-node mechanics, desired state, recovery, exact local binding, and observable substrate facts. It does not establish Research, Finance, Network, Artifact, Security or other domain semantic success.
 
 OpenTelemetry/OTLP are the telemetry interoperability substrate. Vector/Prometheus/Loki/Grafana are replaceable pipeline/backend choices. OpenInference or OTel GenAI conventions may describe AI spans but remain telemetry projections, not execution/domain state.
 
