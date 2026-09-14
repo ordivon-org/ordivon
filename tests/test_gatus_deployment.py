@@ -32,17 +32,17 @@ class GatusDeploymentTests(unittest.TestCase):
         self.assertIn('NoNewPrivileges=true', text)
         self.assertIn('ProtectSystem=strict', text)
 
-    def test_network_v2_probes_use_exact_production_authorities(self) -> None:
+    def test_transport_health_does_not_keep_legacy_or_duplicate_proxy_canaries(self) -> None:
         text = CONFIG.read_text()
-        for name, proxy in (
-            ('network-v2 okx public time', 'http://127.0.0.1:19283'),
-            ('network-v2 binance spot public time', 'http://127.0.0.1:19284'),
+        for proxy in (
+            'http://127.0.0.1:19081',
+            'http://127.0.0.1:19082',
+            'http://127.0.0.1:19283',
+            'http://127.0.0.1:19284',
         ):
-            self.assertIn(f'- name: {name}', text)
-            self.assertIn(f'proxy-url: "{proxy}"', text)
-        self.assertNotIn('http://127.0.0.1:19081', text)
-        self.assertNotIn('http://127.0.0.1:19082', text)
-        self.assertIn('Provider A/B selection and failover are owned by Network v2/sing-box', text)
+            self.assertNotIn(f'proxy-url: "{proxy}"', text)
+        self.assertNotIn('network-direct-profile', text)
+        self.assertNotIn('network-v2-production-authority', text)
 
 
 if __name__ == '__main__':
