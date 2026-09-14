@@ -3,7 +3,7 @@
   "externalFinancialWriteAllowed": false,
   "kind": "ordivon.market-capital.external-financial-write-admission",
   "providerWriteCapabilityBound": false,
-  "reason": "no current provider/executor effect-admission surface is implemented and bound for external financial writes",
+  "reason": "current OKX provider Trade capability exists and is authenticated, but it is not bound into an admitted external-effect path; the external-effect verifier remains unimplemented and order submission remains not admitted",
   "schemaVersion": 1,
   "state": "NOT_ADMITTED"
 }

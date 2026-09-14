@@ -1,0 +1,56 @@
+{
+  "authenticatedPrivateReality": {
+    "accountConfigCurrent": true,
+    "balanceQueryCurrent": true,
+    "balanceRowCount": 1,
+    "openOrderCount": 0,
+    "openOrdersQueryCurrent": true,
+    "sensitiveValuesDisclosed": false
+  },
+  "credentialBindingPresent": true,
+  "credentialCopiedIntoRepository": false,
+  "credentialMode": "0600",
+  "environment": "LIVE",
+  "externalFinancialWriteAdmission": "NOT_ADMITTED",
+  "externalFinancialWriteAttempted": false,
+  "kind": "ordivon.market-capital.okx-live-provider-binding-evidence",
+  "nautilus": {
+    "baseUrlHttp": "https://openapi.okx.com",
+    "configClass": "OKXExecutionClientConfig",
+    "credentialInputBound": true,
+    "environment": "LIVE",
+    "factoryPresent": true,
+    "networkSessionOpened": false,
+    "ok": true,
+    "orderSubmissionAttempted": false,
+    "provider": "NautilusTrader",
+    "proxyUrl": "http://127.0.0.1:19283",
+    "secretBytesEchoed": false,
+    "version": "2.0.0rc4"
+  },
+  "nautilusLiveExecutionConfigBound": true,
+  "networkAuthorityCurrent": true,
+  "networkProxyReachable": true,
+  "networkServiceActive": true,
+  "networkTargetActive": true,
+  "officialClient": {
+    "authenticated": true,
+    "name": "@okx_ai/okx-trade-cli",
+    "version": "1.4.7"
+  },
+  "orderSubmissionAllowed": false,
+  "orderSubmissionAttempted": false,
+  "providerPermissions": [
+    "read_only",
+    "trade"
+  ],
+  "providerReadPermissionCurrent": true,
+  "providerTradeCapabilityBoundToExternalEffect": false,
+  "providerTradeCapabilityCurrent": true,
+  "providerTradePermissionCurrent": true,
+  "providerWithdrawPermissionCurrent": false,
+  "schemaVersion": 1,
+  "secretBytesEchoed": false,
+  "standing": "PASS_OKX_LIVE_PROVIDER_BOUND_CURRENT_NO_EFFECT_ADMISSION",
+  "venue": "OKX"
+}

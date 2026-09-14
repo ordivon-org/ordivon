@@ -1,10 +1,12 @@
-# Market Capital full non-live effect closure — 2026-09-14
+# Market Capital full effect-path closure — 2026-09-14
 
 ## Standing
 
-`PASS_FULL_NONLIVE_EFFECT_PATH_EXTERNAL_DEMO_BINDING_PENDING_PROVIDER_REGISTRATION`
+`PASS_FULL_EFFECT_PATH_OKX_LIVE_PROVIDER_BOUND_NO_EXTERNAL_EFFECT_ADMISSION`
 
-The local engineering path is closed through a real mature non-live execution provider and durable capital resolution:
+Two independently bounded paths are now closed.
+
+The non-live effect/capital path is:
 
 ```text
 FIX-aligned intent
@@ -17,11 +19,20 @@ FIX-aligned intent
 → exact durable provider-history reconciliation
 ```
 
-This is not a hand-written exchange simulator. NautilusTrader 2.0.0rc4 owns the simulated exchange/Risk/Execution mechanics; TigerBeetle 0.17.9 owns accounting and pending-transfer mechanics. Market Capital retains only mapping, proof/currentness, effect disposition and durable reconciliation semantics.
+The current live-provider capability path is:
 
-## Destructive matrix
+```text
+unified external secret root
+→ Network v2 scoped OKX authority
+→ @okx_ai/okx-trade-cli 1.4.7 authenticated private API
+→ current provider permissions {read_only, trade}
+→ private balance/open-orders currentness
+→ NautilusTrader 2.0.0rc4 OKX LIVE execution configuration
+```
 
-The qualification executes five effect classes:
+This is not a hand-written exchange implementation. NautilusTrader owns execution/simulation mechanics, TigerBeetle owns accounting/pending-transfer mechanics, the OKX Trade CLI owns the current authenticated venue API surface, and Network v2 owns scoped egress. Market Capital retains only thin binding, currentness/proof, effect disposition and reconciliation semantics.
+
+## Destructive non-live matrix
 
 | Scenario | Provider behavior | EffectDisposition | Capital result after restart |
 |---|---|---|---|
@@ -33,29 +44,44 @@ The qualification executes five effect classes:
 
 An exact replay of a consumed TigerBeetle resolution returns `EXISTS`; it does not post twice.
 
-## Authority separation
+## Current OKX LIVE provider binding
 
-`NonLiveEffectAdmission=ADMITTED` applies only to bounded simulated-exchange effects. It explicitly does **not** mint real financial-write authority.
-
-The separate real-money boundary remains:
+Fresh provider evidence proves:
 
 ```text
-ExternalFinancialWriteAdmission = NOT_ADMITTED
-providerWriteCapabilityBound = false
-effectVerifier = NOT_IMPLEMENTED
+authenticated private API     = CURRENT
+account config query           = PASS
+balance query                  = PASS
+open-orders query              = PASS
+provider Read permission       = CURRENT
+provider Trade permission      = CURRENT
+provider Withdraw permission   = ABSENT
+Nautilus OKX LIVE config       = BOUND
 ```
 
-## External Demo/Testnet binding
+The executor credential is bound from `/root/.config/ordivon/secrets/okx/live-trade/config.toml`; secret bytes remain outside the repository.
 
-The mature OKX Demo and Binance Spot Testnet execution-client configurations construct successfully, but actual provider-side non-live credentials are not yet registered locally:
+## Authority separation
 
-- Binance Testnet local Ed25519 keypair exists; the public key still needs server-side registration and the resulting API key must be installed.
-- OKX Demo credential root exists; a Demo Trading API credential still needs to be created provider-side and installed.
-
-This is now represented as an external provider-registration dependency, not as an unfinished Market Capital mechanism. Live credentials are forbidden from reuse.
-
-## Canonical entry point
+Provider capability is not effect admission.
 
 ```text
+OKX provider Trade capability                  = CURRENT
+provider Trade capability bound to effect      = false
+ExternalFinancialWriteAdmission                = NOT_ADMITTED
+orderSubmissionAllowed                         = false
+effectVerifier                                  = NOT_IMPLEMENTED
+```
+
+So Market Capital now knows that the owner-authorized provider credential is genuinely order-capable, but no real matching-engine order is submitted merely because that capability exists.
+
+## Demo/Testnet status
+
+OKX Demo and Binance Spot Testnet remain optional non-live venue qualification lanes. Their provider-side credentials are still unprovisioned, but this no longer blocks the current OKX LIVE provider binding or the full local effect/capital closure.
+
+## Canonical entry points
+
+```text
+scripts/check-okx-live-provider-binding --output evidence/okx-live-provider-binding-20260914.json
 scripts/run-market-capital-fullpath-closure --output evidence/full-nonlive-effect-closure-20260914.json
 ```

@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.market-capital.okx-live-provider",
+  "standing": "BOUND_REQUIRES_FRESH_PROVIDER_PROBE",
+  "venue": "OKX",
+  "endpointClass": "LIVE",
+  "credentialBinding": "/root/.config/ordivon/secrets/okx/live-trade/config.toml",
+  "credentialCopyIntoRepository": false,
+  "profile": "okx-live-trade",
+  "expectedCredentialEnvironment": "LIVE",
+  "requiredPermissions": ["read_only", "trade"],
+  "forbiddenPermissions": ["withdraw"],
+  "networkAuthority": {
+    "file": "/etc/network-v2/finance/okx-rest-authority.json",
+    "digest": "sha256:136c36adf385fc6676da03fe30ea91da1d40d44fc33c6a7dd0f4066a8403b554",
+    "host": "openapi.okx.com",
+    "proxy": "http://127.0.0.1:19283",
+    "serviceUnit": "network-v2-finance-egress.service",
+    "targetUnit": "network-v2-finance.target"
+  },
+  "officialClient": {
+    "name": "@okx_ai/okx-trade-cli",
+    "version": "1.4.7",
+    "binary": "/root/external/okx-trade-cli/1.4.7/node_modules/.bin/okx",
+    "home": "/root/.config/ordivon/okx-live-home",
+    "baseUrl": "https://openapi.okx.com"
+  },
+  "executionProvider": {
+    "name": "NautilusTrader",
+    "version": "2.0.0rc4",
+    "python": "/root/external/nautilus-trader/2.0.0rc4/.venv/bin/python",
+    "environment": "LIVE",
+    "configClass": "OKXExecutionClientConfig",
+    "factoryClass": "OKXExecutionClientFactory"
+  },
+  "requiredCurrentQueries": [
+    "account config",
+    "account balance",
+    "spot orders"
+  ],
+  "providerTradeCapabilityMayBeBound": true,
+  "externalFinancialWriteAdmission": "NOT_ADMITTED",
+  "orderSubmissionAllowed": false,
+  "withdrawalAllowed": false,
+  "transferAllowed": false,
+  "rule": "current provider Trade capability is an observed provider fact; it does not mint ExternalFinancialWriteAdmission or authorize order submission"
+}
