@@ -4705,7 +4705,7 @@ fn runtime_repair_batch_rolls_back_when_any_invariant_remains() {
 #[test]
 fn runtime_repair_can_cancel_recovery_required_launch_mismatch_only_after_absence_proof() {
     let sandbox = Sandbox::new("repair-stale-cancel", 5000);
-    let created = created(
+    let stale_created = created(
         sandbox
             .registry
             .submit(&request(&sandbox, "request:repair-stale-cancel", 2))
@@ -4715,7 +4715,7 @@ fn runtime_repair_can_cancel_recovery_required_launch_mismatch_only_after_absenc
     connection
         .execute(
             "UPDATE attempts SET state='starting',recovery_required=1,recovery_reason_code='LAUNCH_IDENTITY_MISMATCH',recovery_evidence_digest=?1,recovery_observed_at_ms=60 WHERE attempt_id=?2",
-            rusqlite::params![digest(b"launch-identity-mismatch"), created.attempt.attempt_id],
+            rusqlite::params![digest(b"launch-identity-mismatch"), stale_created.attempt.attempt_id],
         )
         .unwrap();
     drop(connection);
@@ -4723,15 +4723,23 @@ fn runtime_repair_can_cancel_recovery_required_launch_mismatch_only_after_absenc
     assert_eq!(before.violation_count, 0);
     assert_eq!(before.summary.recovery_required_attempts, 1);
     let snapshot = write_test_snapshot(&sandbox, "stale-cancel");
+    // Unrelated Registry activity after the snapshot must not invalidate the exact
+    // target-state proof; the stale-cancel contract is target-scoped, not globally quiescent.
+    let mut unrelated_request = request(&sandbox, "request:repair-stale-cancel-unrelated", 2);
+    unrelated_request.plan.workspace_id = "workspace:unrelated".to_string();
+    let unrelated = created(sandbox.registry.submit(&unrelated_request).unwrap());
+    sandbox
+        .registry
+        .request_cancel(&unrelated.job.job_id, 70)
+        .unwrap();
     let report = cancel_stale_recovery_required_attempt(
         &RuntimeRepairConfig {
             doctor: doctor_config(&sandbox),
         },
         &RuntimeStaleCancelRequest {
-            expected_fingerprint: before.fingerprint,
             snapshot_path: snapshot,
             principal: "runtime-admin:test".to_string(),
-            attempt_id: created.attempt.attempt_id.clone(),
+            attempt_id: stale_created.attempt.attempt_id.clone(),
         },
     )
     .unwrap();
@@ -4741,7 +4749,7 @@ fn runtime_repair_can_cancel_recovery_required_launch_mismatch_only_after_absenc
     assert_eq!(report.after.summary.recovery_required_attempts, 0);
     let attempt = sandbox
         .registry
-        .get_attempt(&created.attempt.attempt_id)
+        .get_attempt(&stale_created.attempt.attempt_id)
         .unwrap();
     assert_eq!(attempt.state, AttemptState::Cancelled);
     assert_eq!(
@@ -4752,7 +4760,7 @@ fn runtime_repair_can_cancel_recovery_required_launch_mismatch_only_after_absenc
     assert_eq!(
         sandbox
             .registry
-            .get_job(&created.job.job_id)
+            .get_job(&stale_created.job.job_id)
             .unwrap()
             .resolution,
         Some(JobResolution::Cancelled)
@@ -4760,7 +4768,7 @@ fn runtime_repair_can_cancel_recovery_required_launch_mismatch_only_after_absenc
     assert_eq!(
         sandbox
             .registry
-            .get_reservation(&created.attempt.attempt_id)
+            .get_reservation(&stale_created.attempt.attempt_id)
             .unwrap()
             .state,
         ReservationState::Released
@@ -4770,7 +4778,7 @@ fn runtime_repair_can_cancel_recovery_required_launch_mismatch_only_after_absenc
         .config()
         .store_root
         .join("attempts")
-        .join(&created.attempt.attempt_id)
+        .join(&stale_created.attempt.attempt_id)
         .join("admin-stale-cancel.json");
     assert!(receipt.is_file());
 }
