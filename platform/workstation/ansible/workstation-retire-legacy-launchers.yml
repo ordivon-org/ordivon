@@ -1,0 +1,15 @@
+---
+- name: Retire superseded legacy Workstation launchers
+  hosts: operations_local
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Remove superseded workstation-semantic launcher
+      ansible.builtin.file:
+        path: /root/tools/bin/workstation-semantic
+        state: absent
+
+    - name: Remove legacy engineering-python convenience launcher
+      ansible.builtin.file:
+        path: /root/tools/bin/engineering-python
+        state: absent
