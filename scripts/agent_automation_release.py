@@ -47,7 +47,6 @@ RELEASE_PATHS = (
     "scripts/agent_automation_mcp_deploy.py",
     "scripts/agent_automation_registry.py",
     "scripts/agent_automation_release.py",
-    "scripts/agent_automation_wrapper.py",
     "scripts/browser_use_browserless.py",
     "scripts/browserless_display_auth.py",
     "scripts/browserless_human_handoff.py",
@@ -226,23 +225,23 @@ def current_release() -> dict | None:
     return {**m, "path": str(root)} if m else None
 
 
-def operator_cli_current(release: Path) -> bool:
-    candidate = release / "scripts" / "agent_automation_wrapper.py"
+def operator_carrier_available() -> bool:
+    """Observe only the Workstation-owned stable carrier boundary.
+
+    Harness must not duplicate or byte-compare Workstation carrier source. The carrier owns its
+    own materialization/currentness; Harness requires only the stable executable handoff before
+    cutting the immutable release that carrier delegates into.
+    """
     try:
-        return (
-            candidate.is_file()
-            and OPERATOR_CLI.is_file()
-            and os.access(OPERATOR_CLI, os.X_OK)
-            and OPERATOR_CLI.read_bytes() == candidate.read_bytes()
-        )
+        return OPERATOR_CLI.is_file() and os.access(OPERATOR_CLI, os.X_OK)
     except OSError:
         return False
 
 
-def require_operator_cli_current(release: Path) -> None:
-    if not operator_cli_current(release):
+def require_operator_carrier_available() -> None:
+    if not operator_carrier_available():
         raise ReleaseError(
-            "Workstation-owned /root/tools/bin/agent-automation is not the exact executable wrapper for this candidate release; materialize it through Workstation authority before activation"
+            "Workstation-owned stable Agent Automation carrier is unavailable or not executable"
         )
 
 
@@ -293,7 +292,7 @@ def plan(repo: Path, revision: str) -> dict:
         "runningWorkflowCount": len(running_workflows()),
         "mcpAdmissionActive": active(MCP_UNIT),
         "workerActive": active(WORKER_UNIT),
-        "operatorCliCurrent": materialized and operator_cli_current(release),
+        "operatorCarrierAvailable": operator_carrier_available(),
         "operatorCli": str(OPERATOR_CLI),
         "developmentRoot": str(repo.resolve()),
         "productionRoot": str(CURRENT),
@@ -444,7 +443,7 @@ def activate(repo: Path, revision: str) -> dict:
     commit = exact_commit(repo, revision)
     rel = materialize(repo, commit)
     release = Path(rel["path"])
-    require_operator_cli_current(release)
+    require_operator_carrier_available()
     require_mcp_runtime_importable(release)
     require_worker_runtime_importable(release)
     with release_admission_fence(commit) as admission_was_closed:

@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 import agent_automation_release as r  # noqa: E402
 
-REAL_REQUIRE_OPERATOR_CLI_CURRENT = r.require_operator_cli_current
+REAL_REQUIRE_OPERATOR_CARRIER_AVAILABLE = r.require_operator_carrier_available
 REAL_REQUIRE_WORKER_RUNTIME_IMPORTABLE = r.require_worker_runtime_importable
 REAL_REQUIRE_MCP_RUNTIME_IMPORTABLE = r.require_mcp_runtime_importable
 
@@ -26,7 +26,7 @@ class ReleaseTests(unittest.TestCase):
             patch.object(r, "ADMISSION_ROOT", root),
             patch.object(r, "ADMISSION_LOCK", root / "release.lock"),
             patch.object(r, "ADMISSION_CLOSED", root / "closed.json"),
-            patch.object(r, "require_operator_cli_current", return_value=None),
+            patch.object(r, "require_operator_carrier_available", return_value=None),
             patch.object(r, "require_mcp_runtime_importable", return_value=None),
             patch.object(r, "require_worker_runtime_importable", return_value=None),
         ]
@@ -73,27 +73,23 @@ class ReleaseTests(unittest.TestCase):
                 self.assertEqual((Path(a["path"]) / "a").read_text(), "one\n")
                 self.assertEqual(json.loads((Path(a["path"]) / r.MARKER).read_text())["commit"], c)
 
-    def test_operator_cli_must_exactly_match_candidate_wrapper_before_activation(self):
+    def test_operator_carrier_is_external_workstation_owned_executable_boundary(self):
         with tempfile.TemporaryDirectory() as td:
-            root = Path(td)
-            release = root / "release"
-            scripts = release / "scripts"
-            scripts.mkdir(parents=True)
-            candidate = scripts / "agent_automation_wrapper.py"
-            installed = root / "agent-automation"
-            candidate.write_bytes(b"candidate-wrapper\n")
-            installed.write_bytes(b"old-wrapper\n")
-            installed.chmod(0o755)
+            installed = Path(td) / "agent-automation"
             with patch.object(r, "OPERATOR_CLI", installed):
-                self.assertFalse(r.operator_cli_current(release))
-                with self.assertRaisesRegex(r.ReleaseError, "Workstation-owned"):
-                    REAL_REQUIRE_OPERATOR_CLI_CURRENT(release)
-                installed.write_bytes(candidate.read_bytes())
+                self.assertFalse(r.operator_carrier_available())
+                with self.assertRaisesRegex(r.ReleaseError, "Workstation-owned stable"):
+                    REAL_REQUIRE_OPERATOR_CARRIER_AVAILABLE()
+                installed.write_text("#!/bin/sh\nexit 0\n")
                 installed.chmod(0o755)
-                self.assertTrue(r.operator_cli_current(release))
-                REAL_REQUIRE_OPERATOR_CLI_CURRENT(release)
+                self.assertTrue(r.operator_carrier_available())
+                REAL_REQUIRE_OPERATOR_CARRIER_AVAILABLE()
                 installed.chmod(0o644)
-                self.assertFalse(r.operator_cli_current(release))
+                self.assertFalse(r.operator_carrier_available())
+
+    def test_release_archive_does_not_duplicate_workstation_operator_carrier(self):
+        self.assertNotIn("scripts/agent_automation_wrapper.py", r.RELEASE_PATHS)
+        self.assertFalse((ROOT / "scripts/agent_automation_wrapper.py").exists())
 
     def test_worker_runtime_import_preflight_uses_exact_temporal_worker_python(self):
         with tempfile.TemporaryDirectory() as td:
@@ -135,7 +131,7 @@ class ReleaseTests(unittest.TestCase):
                 with self.assertRaisesRegex(r.ReleaseError, "exact MCP control runtime"):
                     REAL_REQUIRE_MCP_RUNTIME_IMPORTABLE(release)
 
-    def test_operator_cli_preflight_precedes_admission_fence_and_service_mutation(self):
+    def test_operator_carrier_preflight_precedes_admission_fence_and_service_mutation(self):
         tree = ast.parse((ROOT / "scripts/agent_automation_release.py").read_text())
         fn = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "activate")
         calls = [node for node in ast.walk(fn) if isinstance(node, ast.Call)]
@@ -155,7 +151,7 @@ class ReleaseTests(unittest.TestCase):
                     return node
             raise AssertionError(f"missing systemctl stop for {unit_name}")
 
-        check = named_call("require_operator_cli_current").lineno
+        check = named_call("require_operator_carrier_available").lineno
         mcp_runtime = named_call("require_mcp_runtime_importable").lineno
         worker_runtime = named_call("require_worker_runtime_importable").lineno
         fence = named_call("release_admission_fence").lineno
@@ -175,13 +171,14 @@ class ReleaseTests(unittest.TestCase):
                 patch.object(r, "current_release", return_value=None),
                 patch.object(r, "running_workflows", return_value=[]),
                 patch.object(r, "active", return_value=False),
+                patch.object(r, "operator_carrier_available", return_value=False),
                 patch.object(
                     r, "materialize", side_effect=AssertionError("plan must not materialize")
                 ),
             ):
                 row = r.plan(root, "HEAD")
             self.assertFalse(row["candidateMaterialized"])
-            self.assertFalse(row["operatorCliCurrent"])
+            self.assertFalse(row["operatorCarrierAvailable"])
             self.assertFalse(row["candidateRuntimeImports"]["ready"])
             self.assertFalse(releases.exists())
 
@@ -202,7 +199,7 @@ class ReleaseTests(unittest.TestCase):
                         "disposition": "materialized",
                     },
                 ),
-                patch.object(r, "require_operator_cli_current", return_value=None),
+                patch.object(r, "require_operator_carrier_available", return_value=None),
                 patch.object(
                     r,
                     "require_mcp_runtime_importable",
@@ -522,12 +519,14 @@ class ReleaseTests(unittest.TestCase):
         root.mkdir(parents=True, exist_ok=True)
         ready = root / "child-ready"
         code = (
-            "import sys,time; from pathlib import Path; sys.path.insert(0,sys.argv[1]); import agent_automation_wrapper as w; "
-            "r=Path(sys.argv[2]); w.ADMISSION_ROOT=r; w.ADMISSION_LOCK=r/'release.lock'; w.ADMISSION_CLOSED=r/'closed.json'; "
-            "cm=w._admission_read_lease('birth'); cm.__enter__(); (r/'child-ready').write_text('ready'); time.sleep(0.35); cm.__exit__(None,None,None)"
+            "import fcntl,sys,time; from pathlib import Path; "
+            "r=Path(sys.argv[1]); lock=r/'release.lock'; "
+            "h=lock.open('a+'); fcntl.flock(h.fileno(),fcntl.LOCK_SH); "
+            "(r/'child-ready').write_text('ready'); time.sleep(0.35); "
+            "fcntl.flock(h.fileno(),fcntl.LOCK_UN); h.close()"
         )
         child = subprocess.Popen(
-            [sys.executable, "-c", code, str(ROOT / "scripts"), str(root)],
+            [sys.executable, "-c", code, str(root)],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,

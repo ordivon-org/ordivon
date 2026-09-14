@@ -15,13 +15,13 @@ Release admission gates now bind candidate commit to an exact source repository.
 The Harness-owned candidate source passed the complete pre-cutover acceptance on 2026-09-14 while production remained on legacy immutable release `cdaa5112594917fd21312e5b1a4da5cc99a8ef91`.
 
 - migrated runtime/deploy surface references to `/root/workstation-lab` or `workstation.toml`: **0**;
-- release closure: **42 explicit paths**, including the generic Browser Use adapter, with no whole-`scripts/` archive path;
+- release closure: **41 explicit paths**, including the generic Browser Use adapter, with no whole-`scripts/` archive path;
 - exact MCP/registry/Browserless runtime tests: **64 passed** (`45 + 13 + 6`);
 - exact Playwright route tests: **4 passed**;
 - MCP deployment tests: **8 passed**;
-- release-manager tests: **23 passed**;
+- release-manager tests: **24 passed**;
 - Browser Use tests: **5 passed**;
-- Harness owner suite: **631 tests, process exit 0**, with six exact-runtime-only tests skipped in the dependency-minimal owner environment and separately exercised above;
+- Harness owner suite: **626 tests, process exit 0**, with six exact-runtime-only tests skipped in the dependency-minimal owner environment and separately exercised above;
 - `ruff check src tests scripts`: PASS;
 - `git diff --check`: PASS;
 - dependency, documentation, evidence and `uv lock --check` gates: PASS;
@@ -30,3 +30,7 @@ The Harness-owned candidate source passed the complete pre-cutover acceptance on
 - wheel isolation: PASS for `ordivon_harness-0.6.0-py3-none-any.whl`.
 
 No production release switch is implied by this receipt. Production activation remains a separate quiescent release transaction with exact candidate import checks, operator-carrier currentness, Temporal running-workflow observation and rollback.
+
+## Stable operator carrier boundary
+
+`/root/tools/bin/agent-automation` remains a Workstation v2-owned stable node carrier. Harness does not archive, materialize, or byte-compare a duplicate wrapper. Release preflight only requires the external stable carrier to exist and be executable; Workstation owns its exact-byte materialization/currentness, while Harness owns the immutable release behind `/opt/ordivon/agent-automation/current`.
