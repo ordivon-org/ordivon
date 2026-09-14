@@ -42,18 +42,18 @@ Historical Ordivon `R4/R5/R6/R7` labels are engineering migration/graduation his
 ## Submission/interchange routing
 
 ```text
-owner-approved object + exact bytes
-        ↓
-submission agreement / producer-archive policy
-        ↓
-E-ARK SIP 2.2.0
-        ↓ Commons-IP validation
-preservation ingest provider
-        ↓
-Archivematica / future Enduro-routed engine
+owner-approved object + exact authoritative bytes
+        |
+        +--> external submission/interchange
+        |      -> E-ARK SIP 2.2.0
+        |      -> Commons-IP validation
+        |
+        +--> current local preservation engine
+               -> Archivematica provider-native standard transfer
+               -> provider-native AIP / PREMIS / METS / fixity
 ```
 
-E-ARK SIP is the forward canonical external submission/interchange profile. BagIt remains useful as transfer substrate and the current Archivematica engine adapter; it is not the Ordivon preservation package ontology.
+E-ARK SIP is the canonical external submission/interchange profile. The current local Archivematica adapter does **not** translate E-ARK into a private format and is not claimed to ingest E-ARK directly; Archivematica natively accepts ordinary source directories as a `standardTransfer`, so the same authoritative owner bytes can be submitted through the provider-native intake. BagIt remains an Archivematica-internal/engine transport concern rather than an Ordivon package ontology.
 
 ## Assessment routing
 
@@ -79,7 +79,7 @@ Official NDSA 2.1 assessment materials are pinned at `/opt/ordivon/external/stan
 
 - no independent/off-site preservation failure domain is graduated;
 - pointer schema-conformance remains an upstream boundary;
-- the current Archivematica intake adapter is BagIt/ZIP rather than proven direct E-ARK ingestion;
+- direct E-ARK ingestion by Archivematica is not established or required by the current local routing; E-ARK and Archivematica standard transfer are separate views over the same authoritative bytes;
 - Enduro is not activated because a repeated durable ingest-orchestration need is not yet proven;
 - no CoreTrustSeal certification is claimed.
 
@@ -90,3 +90,7 @@ For future preservation changes, reuse the frozen 12-work / 86-file heterogeneou
 ## Retired local implementation — 2026-09-14
 
 The historical `creative_forward_ingest.py` BagIt/receipt/catalog implementation and its private dependency environment have been removed from the active workstation. R4/R5 bags/receipts remain historical evidence only. Forward package semantics are E-ARK/Commons-IP; no custom preservation catalog is maintained.
+
+## Engineering closeout — 2026-09-14
+
+The capability is closed to architecture-driven development. The Archivematica local stack now uses Compose-native `restart: unless-stopped`; a Docker daemon restart recovered all nine services, both AIPs retained fresh fixity PASS, and scheduled Fixity remained operational. Reopen only on the workload/provider triggers listed in the final R10 migration record.
