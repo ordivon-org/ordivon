@@ -15,12 +15,12 @@ The former Operations v2 owner is now Workstation v2. `/root/workstation-lab` be
 | Windows desired state | WinGet Configuration + DSC under `workstation/windows/` | already migrated |
 | systemd/service/timer lifecycle | Ansible + systemd/Podman/Quadlet | already migrated |
 | professional/managed software declarations | `workstation/software.toml` | **migrated in R1** |
-| exact caller-selected software binding | `workstation/tool_binding.py` | **migrated in R1** |
+| exact caller-selected software binding | `workstation/tool_binding.py` + stable compatibility entry | **migrated/deploying in R2** |
 | global software census/classification database | do not migrate; native sources remain authority | retired |
 | giant global Doctor | decompose into upstream observation + operation-relative verifier | draining |
 | Workstation recovery scheduler | Workstation v2 systemd substrate | migrated |
 | recovery generation/restore semantics | migrate only surviving node-owner semantics | pending |
-| Windows Runtime launcher materialization | retain node provider realization; Runtime keeps Job/Attempt semantics | pending |
+| Windows Runtime launcher materialization | `workstation/windows/runtime_provider.py`; Runtime keeps Job/Attempt semantics | **source/config migrated in R2** |
 | production transport/failover | Network v2 | do not migrate |
 | domain suitability/completion | owning Domain E2E | do not migrate |
 | Host task continuity | Host | do not migrate |

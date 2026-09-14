@@ -11,7 +11,8 @@ import subprocess
 import tomllib
 from typing import Any, Mapping
 
-CATALOG = Path(__file__).with_name("software.toml")
+SOURCE_CATALOG = Path(__file__).with_name("software.toml")
+CATALOG = Path(os.environ.get("ORDIVON_WORKSTATION_V2_CATALOG", str(SOURCE_CATALOG if SOURCE_CATALOG.is_file() else Path("/etc/ordivon/workstation-v2/software.toml"))))
 WINDOWS_USERS_ROOT = Path(os.environ.get("ORDIVON_WINDOWS_USERS_ROOT", "/mnt/c/Users"))
 WINDOWS_MOUNT_ROOT = Path(os.environ.get("ORDIVON_WINDOWS_MOUNT_ROOT", "/mnt"))
 WINDOWS_POWERSHELL = Path(os.environ.get("ORDIVON_WINDOWS_POWERSHELL", "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe"))
