@@ -144,6 +144,7 @@ Canonical local crosswalks:
 - [`GAME_TOP_MECHANISM_SPECIMENS_R2.md`](GAME_TOP_MECHANISM_SPECIMENS_R2.md) — current cumulative 27-specimen / 23-motif mechanism map, with R2 gap-filling coverage;
 - [`GAME_TOP_MECHANISM_SPECIMENS_R3.md`](GAME_TOP_MECHANISM_SPECIMENS_R3.md) — current cumulative 37-specimen / 33-motif map, coverage-guided but not coverage-optimized;
 - [`GAME_MECHANISM_SPACE_COVERAGE_R1.md`](GAME_MECHANISM_SPACE_COVERAGE_R1.md) — diagnostic family/element coverage map and admission law;
+- [`GAME_TOP_MOTIF_BRIDGE_R1.md`](GAME_TOP_MOTIF_BRIDGE_R1.md) — crosswalk from 33 top-game motifs to strong local evidence without causal upgrading;
 - [`game-design-space-r1.json`](game-design-space-r1.json) — machine-readable category/mechanism crosswalk;
 - [`game-mechanism-evidence-r1.json`](game-mechanism-evidence-r1.json) — frozen R1 machine ledger;
 - [`game-mechanism-evidence-r2.json`](game-mechanism-evidence-r2.json) — current cumulative 50-specimen / 60-claim machine ledger;
@@ -152,6 +153,7 @@ Canonical local crosswalks:
 - [`game-top-mechanism-specimens-r2.json`](game-top-mechanism-specimens-r2.json) — current cumulative top-game mechanism specimen/motif map.
 - [`game-top-mechanism-specimens-r3.json`](game-top-mechanism-specimens-r3.json) — current cumulative top-game mechanism specimen/motif ledger;
 - [`game-mechanism-space-coverage-r1.json`](game-mechanism-space-coverage-r1.json) — machine-readable coverage diagnostic.
+- [`game-top-motif-bridge-r1.json`](game-top-motif-bridge-r1.json) — machine-readable external↔local motif evidence bridge.
 
 Two evidence waves are materialized and Composition Search R1 has produced eight candidate graphs. The next high-value work is the **reuse-first falsifier wave MC01 / MC07 / MC03**, while Human C0/C1 remains the only route for upgrading apparatus-valid claims into Player Value evidence.
 
