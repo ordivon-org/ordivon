@@ -1,9 +1,11 @@
 # Agent Product Common Structure R1
 
-Status: **SUPPORTED_IN_STUDIED_FAMILY / SYNTHESIS R1**
+Status: **WAVE-1 SYNTHESIS / C01 DESTROYER CONTRACTION AVAILABLE / C02-C03 PENDING**
 Registered: 2026-09-14
 Source campaign: `campaign:github-prompt-corpus-common-structure-20260914-r1`
 Evidence: `evidence/agent-campaigns/prompt-corpus-common-structure-r1-wave1-recovered.md`
+
+> **Wave-3 notice:** C01 destructive review has been captured and materially contracts this seven-component Wave-1 synthesis into approximately three architecture boundaries plus one conditional feedback relation. C02/C03 remain provider-bound but not retrieved. Treat the `STRONG_COMMON` labels below as **Wave-1 candidate standings**, not final Wave-3 invariants. See `knowledge/lessons/agent-product-common-structure-r1-wave3-partial.md`.
 
 ## Scope
 

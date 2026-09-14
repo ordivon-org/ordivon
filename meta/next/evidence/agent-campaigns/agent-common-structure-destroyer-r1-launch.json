@@ -17,25 +17,29 @@
       "blindResendForbidden": true,
       "effectId": "sha256:7eef25fa2a5680336e43a39dfd87d0df0f6bdc5f004aabdb33b42ae767ff693e",
       "materializationStanding": "bound",
-      "providerResource": "https://chatgpt.com/c/6aa7afbb-c7c4-83ec-8856-7e5b3a06d472"
+      "providerResource": "https://chatgpt.com/c/6aa7afbb-c7c4-83ec-8856-7e5b3a06d472",
+      "reportStanding": "CAPTURED",
+      "reportEvidence": "evidence/agent-campaigns/agent-common-structure-destroyer-r1-C01.md"
     },
     {
       "agentId": "C02",
       "blindResendForbidden": true,
       "effectId": "sha256:8ca80c63b8053b404f2280c0a2963e69b524cf201a9f40d8fe78de33d0499af7",
       "materializationStanding": "bound",
-      "providerResource": "https://chatgpt.com/c/6aa7af9e-610c-83ec-9196-17dc2def17fd"
+      "providerResource": "https://chatgpt.com/c/6aa7af9e-610c-83ec-9196-17dc2def17fd",
+      "reportStanding": "NOT_RETRIEVED_RATE_LIMITED"
     },
     {
       "agentId": "C03",
       "blindResendForbidden": true,
       "effectId": "sha256:b00b4fe59d5ec7a13b4bfe77069aaca0a2e4330bb1866bb041063d60ea2e8ef0",
       "materializationStanding": "bound",
-      "providerResource": "https://chatgpt.com/c/6aa7af9e-7808-83ec-bde3-48495a58ac41"
+      "providerResource": "https://chatgpt.com/c/6aa7af9e-7808-83ec-bde3-48495a58ac41",
+      "reportStanding": "NOT_RETRIEVED_RATE_LIMITED"
     }
   ],
-  "reportDetail": "All three destructive-review occurrences are provider-bound. No C01/C02/C03 assistant report is admitted yet; conversation-history retrieval currently exposes bootstrap user turns but no completed destroyer report.",
-  "reportStanding": "NOT_YET_RETRIEVED",
+  "reportDetail": "C01 assistant report is captured and admitted as destroyer evidence. C02/C03 remain exact provider-bound but current ChatGPT Web navigation redirects their exact conversation resources to the home surface with `Too many requests`; their reports are not admitted and are not reconstructed from adjacent evidence.",
+  "reportStanding": "PARTIAL_1_OF_3_CAPTURED",
   "requested": 3,
   "schemaVersion": 1,
   "semanticCompletionEvaluated": false,
