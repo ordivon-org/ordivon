@@ -664,3 +664,81 @@ R2 is now **REALIZED FOR THE FIRST INTERNAL AGENT-FACING EDIT DONOR AND ONE LIVE
 3. mature conventional-patch donor evaluation only if it earns the same canonical boundary;
 4. LSP `WorkspaceEdit -> CanonicalEditPlan -> Runtime Patch` lowering;
 5. automatic codec selection only after profile evidence plus structural applicability checks justify it.
+
+## R2 update — second live profile corrects global-preference overreach
+
+Canonical Harness advanced to:
+
+```text
+9d936e9 harness: add second adaptive edit live profile
+```
+
+A second task family now pressures repeated textual targets rather than broad repository repair:
+
+```text
+HARNESS-EDIT-ADDRESSING-002
+```
+
+The model-visible source contains two identical `return False` lines, while only `beta_enabled()` may become true and `alpha_enabled()` must remain false. The hidden verifier protects the untouched alpha behavior and public function surface. Exact replacement remains expressible by widening `oldText` to unique surrounding context; the task therefore measures model/ACI behavior rather than making one codec impossible by construction.
+
+DeepSeek Flash, under the same 64k / 6-model-call / 8-tool-call authority, produced:
+
+```text
+exact-replacement-v1:
+  hidden verifier       5/5
+  candidate_completed   5/5
+  rejected observations 0
+  total model calls     20
+  total tool calls      25
+  total tokens          51,266
+
+anchored-line-v1:
+  hidden verifier       5/5
+  candidate_completed   5/5
+  rejected observations 0
+  total model calls     20
+  total tool calls      25
+  total tokens          52,336
+```
+
+The 2.05% token difference is not treated as a meaningful winner. Standing:
+
+```text
+deepseek-flash + HARNESS-EDIT-ADDRESSING-002 + 2026-09-14
+    -> NO_CLEAR_WINNER_BOTH_VIABLE
+```
+
+This invalidates any attempted extrapolation from the first task to a global DeepSeek-Flash preference for exact replacement. Current selection law is now explicitly:
+
+```text
+structural applicability
+        +
+model/task profile evidence
+        -> codec preference, if any
+```
+
+If no meaningful profile advantage exists, both mechanically valid codecs remain available; Harness must not fabricate a performance preference.
+
+The second verified receipt is:
+
+```text
+evidence/adaptive-edit-r2-live-ab-deepseek-flash-addressing-20260914.json
+payload digest:
+sha256:fb3c3ff88821c0300ee87110e06a9abadfd3a065c2bc4cc1a46777ec647613cc
+```
+
+The live A/B runner was also generalized from one hard-coded task to a small multi-task specification boundary. During this work, a reporting defect was found and fixed: float-valued summary means violated Harness canonical JSON. Live reports now use integer totals plus `meansTimes10`, with offline canonical-encoding coverage before Provider use.
+
+Current Harness acceptance after the second profile:
+
+```text
+452 deterministic tests PASS
+Ruff PASS
+documentation contract PASS
+dependency contract PASS
+evidence contract PASS (80 historical / 2 verified)
+profile evidence integrity PASS
+git diff --check PASS
+```
+
+The next high-information R2 pressure point is **multi-region editing**. Current `CanonicalEditPlan` intentionally allows only one semantic edit per file per compiled plan. The next experiment should determine whether that restriction remains a useful narrow waist, whether multiple Agent-visible edit calls are sufficient, or whether evidence now justifies a bounded multi-edit plan while preserving exact snapshot fencing and one Runtime Patch authority boundary.
