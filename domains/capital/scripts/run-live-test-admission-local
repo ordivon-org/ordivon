@@ -17,12 +17,14 @@ esac
 python3 - "$repo/config/live_test_account_policy.json" "$venue" <<'PY'
 import json,sys
 x=json.load(open(sys.argv[1])); v=sys.argv[2].upper()
-assert x['userAuthorization']=='LIVE_ENDPOINT_TEST_ACCOUNT_USE_AUTHORIZED'
+assert x['ownerUseMandate']=='AUTHORIZED_NON_PRODUCTION_LIVE_ENDPOINT_QUALIFICATION'
+assert x['accountQualificationStanding']=='PENDING_FRESH_PRIVATE_ACCOUNT_VERIFICATION'
+assert x['orderSubmissionAdmission']=='NOT_ADMITTED'
 assert x['productionTradingAuthorized'] is False
 assert x['withdrawalAuthorized'] is False
 assert x['transferAuthorized'] is False
 assert x['orderSubmissionAllowed'] is False
-assert x['venues'][v]['writeAdmission']=='BLOCKED_PENDING_FRESH_GATES'
+assert x['venues'][v]['role']=='TEST_ACCOUNT_BY_OWNER_POLICY'
 PY
 
 if [ "$venue" = binance ]; then

@@ -8,7 +8,7 @@ def test_nonmatching_canary_is_separate_from_real_order():
     assert x['canaryModes']['nonMatchingValidation']['authorized'] is True
     assert x['canaryModes']['nonMatchingValidation']['financialEffectExpected'] is False
     assert x['canaryModes']['realMatchingEngineOrder']['authorized'] is False
-    assert x['canaryModes']['realMatchingEngineOrder']['requiresSeparateNotionalAuthorization'] is True
+    assert x['canaryModes']['realMatchingEngineOrder']['requiresOwnerCapitalEnvelopeChange'] is True
 
 def test_binance_public_minimum_exceeds_current_cap():
     x=json.loads((ROOT/'config/live_test_account_policy.json').read_text())

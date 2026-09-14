@@ -5,8 +5,9 @@ python3 - "$repo/config/live_test_account_policy.json" <<'PY'
 import json,sys
 from decimal import Decimal
 x=json.load(open(sys.argv[1]))
-assert x['standing']=='USER_AUTHORIZED_PENDING_FRESH_PRIVATE_ACCOUNT_VERIFICATION'
-assert x['userAuthorization']=='LIVE_ENDPOINT_TEST_ACCOUNT_USE_AUTHORIZED'
+assert x['ownerUseMandate']=='AUTHORIZED_NON_PRODUCTION_LIVE_ENDPOINT_QUALIFICATION'
+assert x['accountQualificationStanding']=='PENDING_FRESH_PRIVATE_ACCOUNT_VERIFICATION'
+assert x['orderSubmissionAdmission']=='NOT_ADMITTED'
 assert x['liveEndpointUseAllowed'] is True
 assert x['productionTradingAuthorized'] is False
 assert x['withdrawalAuthorized'] is False
@@ -16,10 +17,11 @@ assert Decimal(x['maxTestNotionalQuote']) <= Decimal('1')
 for venue in ('OKX','BINANCE'):
     v=x['venues'][venue]
     assert v['endpointClass']=='LIVE'
-    assert v['role']=='TEST_ACCOUNT_BY_USER_POLICY'
-    assert v['writeAdmission']=='BLOCKED_PENDING_FRESH_GATES'
+    assert v['role']=='TEST_ACCOUNT_BY_OWNER_POLICY'
 print(json.dumps({
-  'standing':x['standing'],
+  'ownerUseMandate':x['ownerUseMandate'],
+  'accountQualificationStanding':x['accountQualificationStanding'],
+  'orderSubmissionAdmission':x['orderSubmissionAdmission'],
   'liveEndpointUseAllowed':True,
   'productionTradingAuthorized':False,
   'orderSubmissionAllowed':False,
