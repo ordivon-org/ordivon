@@ -14,6 +14,8 @@ Sequential orchestration, concurrent fan-out/fan-in, handoff, group collaboratio
 
 MAF owns one agentic workflow/run and its orchestration state. It does not own Plane work-item truth, Temporal macro-process truth, Runtime execution truth or domain semantic acceptance.
 
+Use MAF first for standard multi-agent collaboration patterns such as sequential/concurrent fan-out, handoff and group collaboration. Use LangGraph instead when the application requires a bespoke checkpointed Agent state machine with explicit reducers, cycles, dynamic interrupts or checkpoint forking/time-travel. Do not maintain equivalent orchestration state in both frameworks.
+
 ## Local acceptance
 
 Environment:

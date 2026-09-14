@@ -90,6 +90,8 @@ Codex owns the engineering agent loop and its thread/tool execution semantics. T
 
 Runtime remains useful where Ordivon specifically needs durable Job/Attempt/Artifact evidence, exact execution receipts, cross-domain physical execution authority or recovery semantics beyond Codex's execution transport. Do not route ordinary Codex shell work through a second executor merely for symmetry.
 
+LangGraph is a different category: use it only when Ordivon is engineering a bespoke Agent application's explicit state machine, cyclic routing, checkpoint inspection/forking or dynamic human-interrupt behavior. Do not rebuild ordinary Codex engineering sessions as LangGraph graphs.
+
 ## Prototype recipe
 
 A minimal Codex-like prototype needs only:
