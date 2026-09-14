@@ -1,0 +1,31 @@
+{
+  "ordivon": {
+    "policy_administration": {
+      "decisions": {
+        "decision:game:claim-relative-evaluation:r1": {
+          "kind": "example-evidence-to-decision-adoption",
+          "policy_id": "policy:game:synthetic-structural-evaluation:r1",
+          "source_research_refs": [
+            "research:game:player-evidence-programme",
+            "research:game:claim-relative-evaluator"
+          ],
+          "status": "adopted"
+        }
+      },
+      "policies": {
+        "policy:game:synthetic-structural-evaluation:r1": {
+          "current": true,
+          "decision_ref": "decision:game:claim-relative-evaluation:r1",
+          "permissions": [
+            {
+              "action": "game.claim.evaluate.synthetic",
+              "resource_prefix": "game:station-zero:structural-claim:"
+            }
+          ],
+          "revoked": false,
+          "status": "effective"
+        }
+      }
+    }
+  }
+}

@@ -21,3 +21,9 @@ Human authorization is **not** a generic risk/consequence fallback. It is requir
 Risk informs the applicable decision method; it is not itself universal permission authority. Epistemic uncertainty must not be silently converted into `DENY` or Human escalation. Missing/expired authority may deny an external effect, while scientific uncertainty may instead call for observation, experiment, Value of Information analysis, robust action or deferral.
 
 Policies must not duplicate domain standards, external identity/access-control systems, policy languages or mature policy evaluators. Prefer provider-native IAM and mature engines such as Cedar/OPA/XACML-style PDP/PEP architectures where applicable. Ordivon should retain only task-local bindings, translations, provenance continuity and domain-specific inputs that remain after mature substitution.
+
+## Executable research-to-policy composition
+
+[`research-adopted-r1/`](research-adopted-r1/) is the current minimal executable reference profile for the composition edge that used to be missing. It uses the installed OPA/Rego evaluator directly. Research refs remain provenance on an explicit adopted decision; the adopted policy is administered separately; OPA performs the policy decision; current delegation/IAM standing remains independently required; enforcement stays with the domain/provider PEP. The profile intentionally proves that research standing alone cannot mint permission and that consequence/risk/epistemic uncertainty do not create a generic Human approval gate.
+
+This profile is not a universal Ordivon schema and is not a `research_to_permission()` API. Domains should bind provider-native PAP/PDP/PEP/IAM representations directly whenever they can carry the complete semantics.
