@@ -1,0 +1,53 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "OpenAPI",
+      "OAS 3.2.0",
+      "OpenAPI 3.2"
+    ],
+    "domains": [
+      "engineering",
+      "api",
+      "integration",
+      "web"
+    ],
+    "topics": [
+      "http-api",
+      "api-description",
+      "interface-contract",
+      "rest"
+    ]
+  },
+  "id": "openapi-3.2.0",
+  "identity": {
+    "authorityKind": "open-specification",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "openapi-initiative",
+      "name": "OpenAPI Initiative"
+    },
+    "officialSource": "https://spec.openapis.org/oas/v3.2.0.html",
+    "publicationDate": "2025-09-19",
+    "title": "OpenAPI Specification 3.2.0",
+    "versionLabel": "3.2.0"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "docs/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R1.md",
+      "OpenAPI official specification checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

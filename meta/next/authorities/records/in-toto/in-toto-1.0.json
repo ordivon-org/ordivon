@@ -1,0 +1,54 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "in-toto",
+      "in-toto v1.0",
+      "software supply chain attestation"
+    ],
+    "domains": [
+      "security",
+      "engineering",
+      "distribution",
+      "artifact"
+    ],
+    "topics": [
+      "software-supply-chain",
+      "provenance",
+      "attestation",
+      "integrity",
+      "layout"
+    ]
+  },
+  "id": "in-toto-1.0",
+  "identity": {
+    "authorityKind": "open-specification",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "in-toto",
+      "name": "in-toto"
+    },
+    "officialSource": "https://in-toto.io/docs/specs/",
+    "publicationDate": null,
+    "title": "in-toto Stable Specification v1.0",
+    "versionLabel": "1.0"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "docs/CAPABILITY_PACKAGES_R1.md",
+      "in-toto official specifications page checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

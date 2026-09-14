@@ -1,0 +1,54 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "JSON Schema",
+      "Draft 2020-12",
+      "JSON Schema 2020-12"
+    ],
+    "domains": [
+      "engineering",
+      "data",
+      "api",
+      "artifact"
+    ],
+    "topics": [
+      "json",
+      "schema",
+      "validation",
+      "data-contract",
+      "machine-readable-contract"
+    ]
+  },
+  "id": "json-schema-draft-2020-12",
+  "identity": {
+    "authorityKind": "open-specification",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "json-schema",
+      "name": "JSON Schema"
+    },
+    "officialSource": "https://json-schema.org/draft/2020-12",
+    "publicationDate": "2022-06-16",
+    "title": "JSON Schema Draft 2020-12",
+    "versionLabel": "2020-12"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "schemas/standard-native-profile-projection-v1.schema.json",
+      "JSON Schema official specification checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

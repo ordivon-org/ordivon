@@ -1,0 +1,11 @@
+{
+  "authorityId": "iso-iec-42001-2023",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published",
+  "note": "ISO/IEC 42001:2023 Edition 1 is published.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.iso.org/standard/42001",
+  "schemaVersion": 1,
+  "versionObserved": "2023"
+}

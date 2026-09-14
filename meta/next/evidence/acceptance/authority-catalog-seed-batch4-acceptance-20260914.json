@@ -1,0 +1,57 @@
+{
+  "addedCount": 13,
+  "baseRecordCount": 82,
+  "batch": "2026-09-14-batch4",
+  "boundary": "Acceptance proves Batch 4 management/AI and API/Agent authority registration, lifecycle observations and lexical discovery. It does not claim applicability, certification or draft-successor adoption.",
+  "currentObservationCount": 95,
+  "currentRecordCount": 95,
+  "deferredCandidates": [
+    "OWASP SAMM until current official model version is explicitly verified/needed",
+    "OpenSSF Scorecard because it is primarily a tool/method rather than a standards authority",
+    "Sigstore specifications until one concrete stable spec identity is selected by a workload",
+    "draft successors ISO/DIS 30401 and ISO/CD 22301 as currentness pressure, not current published baselines"
+  ],
+  "discoverySmokes": {
+    "agent skills": "agent-skills-spec",
+    "ai management system": "iso-iec-42001-2023",
+    "ai risk management": "nist-ai-rmf-1.0",
+    "asyncapi": "asyncapi-3.1.0",
+    "business continuity": "iso-22301-2019-amd1-2024",
+    "information security management": "iso-iec-27001-2022-amd1-2024",
+    "innovation management": "iso-56001-2024",
+    "json schema": "json-schema-draft-2020-12",
+    "knowledge management system": "iso-30401-2018-amd1-2022-amd2-2024",
+    "model context protocol": "mcp-spec-2026-07-28",
+    "openapi": "openapi-3.2.0",
+    "service management system": "iso-iec-20000-1-2018-amd1-2024",
+    "software supply chain attestation": "in-toto-1.0"
+  },
+  "families": {
+    "api-agent-interoperability": [
+      "json-schema-draft-2020-12",
+      "openapi-3.2.0",
+      "asyncapi-3.1.0",
+      "mcp-spec-2026-07-28",
+      "agent-skills-spec",
+      "in-toto-1.0"
+    ],
+    "management-ai": [
+      "iso-iec-27001-2022-amd1-2024",
+      "iso-iec-42001-2023",
+      "iso-iec-20000-1-2018-amd1-2024",
+      "iso-30401-2018-amd1-2022-amd2-2024",
+      "iso-22301-2019-amd1-2024",
+      "iso-56001-2024",
+      "nist-ai-rmf-1.0"
+    ]
+  },
+  "kind": "ordivon.external-authority-catalog-seed-batch-acceptance",
+  "schemaValidation": {
+    "index": "PASS",
+    "observations": "PASS",
+    "records": "PASS",
+    "validator": "check-jsonschema 0.38.0"
+  },
+  "schemaVersion": 1,
+  "standing": "PASS_VERIFIED_SEED_EXPANSION"
+}

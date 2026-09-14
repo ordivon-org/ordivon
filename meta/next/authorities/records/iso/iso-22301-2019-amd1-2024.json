@@ -1,0 +1,53 @@
+{
+  "access": {
+    "fullText": "licensed",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "ISO 22301",
+      "BCMS",
+      "business continuity management system"
+    ],
+    "domains": [
+      "enterprise",
+      "management",
+      "operations",
+      "resilience"
+    ],
+    "topics": [
+      "business-continuity",
+      "resilience",
+      "management-system",
+      "disruption-recovery"
+    ]
+  },
+  "id": "iso-22301-2019-amd1-2024",
+  "identity": {
+    "authorityKind": "international-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "iso",
+      "name": "ISO"
+    },
+    "officialSource": "https://www.iso.org/standard/75106.html",
+    "publicationDate": "2019-10",
+    "title": "ISO 22301:2019 with Amendment 1:2024 — Business continuity management systems — Requirements",
+    "versionLabel": "2019+Amd1:2024"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "docs/ENTERPRISE_OPERATING_MODEL_R1.md",
+      "ISO base/amendment/CD lifecycle official sources checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

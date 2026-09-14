@@ -1,0 +1,11 @@
+{
+  "authorityId": "json-schema-draft-2020-12",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published-current-draft",
+  "note": "Official JSON Schema site presents Draft 2020-12, published 2022-06-16.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://json-schema.org/draft/2020-12",
+  "schemaVersion": 1,
+  "versionObserved": "2020-12"
+}

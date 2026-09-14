@@ -1,0 +1,11 @@
+{
+  "authorityId": "nist-ai-rmf-1.0",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current-revision-in-progress",
+  "note": "AI RMF 1.0 remains the published NIST framework; NIST states it is being revised in 2026.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.nist.gov/publications/artificial-intelligence-risk-management-framework-ai-rmf-10",
+  "schemaVersion": 1,
+  "versionObserved": "1.0"
+}

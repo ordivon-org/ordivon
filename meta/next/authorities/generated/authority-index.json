@@ -100,6 +100,36 @@
     },
     {
       "aliases": [
+        "Agent Skills",
+        "Agent Skills spec",
+        "SKILL.md specification"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "agent",
+        "ai",
+        "engineering",
+        "knowledge"
+      ],
+      "id": "agent-skills-spec",
+      "identityMode": "rolling-source",
+      "issuer": "Agent Skills",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:540c97dff9e33d3fb586b31553cc45e7e3edec330d7bd8e4def710ff00b53593",
+      "recordDigest": "sha256:6d06d06af9f0be10e1d84412f5c7cdccceb5b8069277745930d5417552104a00",
+      "title": "Agent Skills Specification",
+      "topics": [
+        "agent-skills",
+        "procedural-knowledge",
+        "progressive-disclosure",
+        "skill-discovery",
+        "skill-loading"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
         "Apache Arrow",
         "Arrow Columnar Format",
         "Arrow Format 1.5"
@@ -155,6 +185,35 @@
         "file-format"
       ],
       "versionLabel": "2.13.0"
+    },
+    {
+      "aliases": [
+        "AsyncAPI",
+        "AsyncAPI 3.1.0"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "api",
+        "engineering",
+        "events",
+        "integration"
+      ],
+      "id": "asyncapi-3.1.0",
+      "identityMode": "versioned",
+      "issuer": "AsyncAPI Initiative",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:400bb66397ee15580527d304f32fd388fd03911794eb4d76e999abd3d5e32abb",
+      "recordDigest": "sha256:267f6fc1ac8624565dd423bcb115b4aa3e66e6b59eae72ca995f01de2763ac75",
+      "title": "AsyncAPI Specification 3.1.0",
+      "topics": [
+        "api-description",
+        "channels",
+        "event-driven-api",
+        "events",
+        "message-driven-api"
+      ],
+      "versionLabel": "3.1.0"
     },
     {
       "aliases": [
@@ -511,6 +570,36 @@
         "release-currentness"
       ],
       "versionLabel": null
+    },
+    {
+      "aliases": [
+        "in-toto",
+        "in-toto v1.0",
+        "software supply chain attestation"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "distribution",
+        "engineering",
+        "security"
+      ],
+      "id": "in-toto-1.0",
+      "identityMode": "versioned",
+      "issuer": "in-toto",
+      "lifecycleStatus": "stable",
+      "observationDigest": "sha256:8f0ffc1640378b2c702c390ca373f870d7ff26108f787391b3b004a29662f9ea",
+      "recordDigest": "sha256:12568d327bb6f28738af8b1881e8c90467809f38e5d2ce5b0b62c41bcd0d1a71",
+      "title": "in-toto Stable Specification v1.0",
+      "topics": [
+        "attestation",
+        "integrity",
+        "layout",
+        "provenance",
+        "software-supply-chain"
+      ],
+      "versionLabel": "1.0"
     },
     {
       "aliases": [
@@ -888,6 +977,35 @@
     },
     {
       "aliases": [
+        "BCMS",
+        "business continuity management system",
+        "ISO 22301"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "enterprise",
+        "management",
+        "operations",
+        "resilience"
+      ],
+      "id": "iso-22301-2019-amd1-2024",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published-to-be-revised",
+      "observationDigest": "sha256:8f1a0e781db54e1301bc6f3043f426116e9e68510fb5eb5f5e11f10e629885c6",
+      "recordDigest": "sha256:54df18c51a2df10a7b798ff9ce0787571ba93b6c33d8bbd605f2767c9f177bf4",
+      "title": "ISO 22301:2019 with Amendment 1:2024 — Business continuity management systems — Requirements",
+      "topics": [
+        "business-continuity",
+        "disruption-recovery",
+        "management-system",
+        "resilience"
+      ],
+      "versionLabel": "2019+Amd1:2024"
+    },
+    {
+      "aliases": [
         "ISO 28500",
         "WARC",
         "WARC file format"
@@ -913,6 +1031,34 @@
         "web-capture"
       ],
       "versionLabel": "2017"
+    },
+    {
+      "aliases": [
+        "ISO 30401",
+        "KMS requirements",
+        "knowledge management system"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "enterprise",
+        "knowledge",
+        "management"
+      ],
+      "id": "iso-30401-2018-amd1-2022-amd2-2024",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published-to-be-revised",
+      "observationDigest": "sha256:d6dbe2b5d422822d3d38699093f67b46d384f18634809d6604d179c0d9c3d700",
+      "recordDigest": "sha256:eb4f3392b7688b5098fd906390b33bbef96f752b57cb0fb325fdfdf163ab03e1",
+      "title": "ISO 30401:2018 with Amendments 1:2022 and 2:2024 — Knowledge management systems — Requirements",
+      "topics": [
+        "knowledge-management",
+        "learning",
+        "management-system",
+        "organizational-knowledge"
+      ],
+      "versionLabel": "2018+Amd1:2022+Amd2:2024"
     },
     {
       "aliases": [
@@ -992,6 +1138,33 @@
         "governance"
       ],
       "versionLabel": "2021"
+    },
+    {
+      "aliases": [
+        "innovation management system",
+        "ISO 56001"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "enterprise",
+        "innovation",
+        "management"
+      ],
+      "id": "iso-56001-2024",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:e2cb8e679cfb681a71cb2e8c14993b901b13c677150db48fe8170b5fcd32d18b",
+      "recordDigest": "sha256:0e569f6e281bda64e9362d845eef8ca66e337015ce0e1de8b188a4ddcf8e8027",
+      "title": "ISO 56001:2024 — Innovation management system — Requirements",
+      "topics": [
+        "innovation",
+        "innovation-management",
+        "management-system",
+        "organizational-capability"
+      ],
+      "versionLabel": "2024"
     },
     {
       "aliases": [
@@ -1153,6 +1326,36 @@
     },
     {
       "aliases": [
+        "ISO 20000-1",
+        "ISO/IEC 20000-1",
+        "IT service management",
+        "service management system"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "enterprise",
+        "management",
+        "operations",
+        "service"
+      ],
+      "id": "iso-iec-20000-1-2018-amd1-2024",
+      "identityMode": "versioned",
+      "issuer": "ISO/IEC",
+      "lifecycleStatus": "published-confirmed",
+      "observationDigest": "sha256:8afe623afa0a00bb7c8b339ea7f28830fa32185ffb378ca223886b12a6307a7c",
+      "recordDigest": "sha256:91617ebaf927354e2abd09b9c12d22e9df0eb58a1731b06471f8becf6f5c6cb7",
+      "title": "ISO/IEC 20000-1:2018 with Amendment 1:2024 — Service management system requirements",
+      "topics": [
+        "it-service-management",
+        "management-system",
+        "service-management",
+        "service-quality"
+      ],
+      "versionLabel": "2018+Amd1:2024"
+    },
+    {
+      "aliases": [
         "ISO 25010",
         "ISO/IEC 25010:2023"
       ],
@@ -1175,6 +1378,36 @@
         "software-quality"
       ],
       "versionLabel": "2023"
+    },
+    {
+      "aliases": [
+        "ISMS",
+        "ISO 27001",
+        "ISO/IEC 27001",
+        "ISO/IEC 27001:2022/Amd 1:2024"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "enterprise",
+        "management",
+        "security"
+      ],
+      "id": "iso-iec-27001-2022-amd1-2024",
+      "identityMode": "versioned",
+      "issuer": "ISO/IEC",
+      "lifecycleStatus": "published-current",
+      "observationDigest": "sha256:73e1336e0fe40a2ea688035a2d516d41fb24e305fdd96fa8377e034baaa56f0e",
+      "recordDigest": "sha256:321c11855dd7d159fbed97e28a853774e40e7c6f6adc736bca2988f3ba126698",
+      "title": "ISO/IEC 27001:2022 with Amendment 1:2024 — Information security management systems — Requirements",
+      "topics": [
+        "cybersecurity",
+        "information-security-management",
+        "isms",
+        "management-system",
+        "risk-management"
+      ],
+      "versionLabel": "2022+Amd1:2024"
     },
     {
       "aliases": [
@@ -1204,6 +1437,36 @@
         "xml"
       ],
       "versionLabel": "2016"
+    },
+    {
+      "aliases": [
+        "AI management system",
+        "AIMS",
+        "ISO 42001",
+        "ISO/IEC 42001"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "ai",
+        "enterprise",
+        "management"
+      ],
+      "id": "iso-iec-42001-2023",
+      "identityMode": "versioned",
+      "issuer": "ISO/IEC",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:00213bb370f161ed3c4ce0bd3850997c94525745e286aa0e4378b694273db9b1",
+      "recordDigest": "sha256:a24531a1f43d9d132fd6bb40c209f126a2562b76a4cea71808e2ded7084f4abb",
+      "title": "ISO/IEC 42001:2023 — Artificial intelligence — Management system",
+      "topics": [
+        "ai-governance",
+        "ai-management-system",
+        "artificial-intelligence",
+        "responsible-ai",
+        "risk-management"
+      ],
+      "versionLabel": "2023"
     },
     {
       "aliases": [
@@ -1282,6 +1545,67 @@
     },
     {
       "aliases": [
+        "Draft 2020-12",
+        "JSON Schema",
+        "JSON Schema 2020-12"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "api",
+        "artifact",
+        "data",
+        "engineering"
+      ],
+      "id": "json-schema-draft-2020-12",
+      "identityMode": "versioned",
+      "issuer": "JSON Schema",
+      "lifecycleStatus": "published-current-draft",
+      "observationDigest": "sha256:e8fc56fce7276b4dc9eea8d8e85eb38461255b6932325ff09293f14374658d16",
+      "recordDigest": "sha256:56a01323d5a0dc9d2b6d0cf61bfe67c9a9072605d085b82b7284a0414104e66f",
+      "title": "JSON Schema Draft 2020-12",
+      "topics": [
+        "data-contract",
+        "json",
+        "machine-readable-contract",
+        "schema",
+        "validation"
+      ],
+      "versionLabel": "2020-12"
+    },
+    {
+      "aliases": [
+        "MCP",
+        "MCP 2026-07-28",
+        "Model Context Protocol"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "agent",
+        "ai",
+        "engineering",
+        "integration"
+      ],
+      "id": "mcp-spec-2026-07-28",
+      "identityMode": "versioned",
+      "issuer": "Model Context Protocol",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:4c104be27cf8d5e493207c39a6b8fc2673e3e364a7b8d33e7d77cc9ad9b3bf30",
+      "recordDigest": "sha256:2b4daa66870b7186b9c564478d622755480a5e7ae50d242b49bc5ab7ee44df96",
+      "title": "Model Context Protocol Specification 2026-07-28",
+      "topics": [
+        "agent-protocol",
+        "authorization",
+        "interoperability",
+        "prompts",
+        "resources",
+        "tools"
+      ],
+      "versionLabel": "2026-07-28"
+    },
+    {
+      "aliases": [
         "Levels of Digital Preservation",
         "LoDP 2.1",
         "NDSA Levels"
@@ -1309,6 +1633,36 @@
         "storage"
       ],
       "versionLabel": "2.1"
+    },
+    {
+      "aliases": [
+        "AI RMF 1.0",
+        "NIST AI 100-1",
+        "NIST AI RMF"
+      ],
+      "authorityKind": "government-guidance",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "ai",
+        "enterprise",
+        "risk",
+        "security"
+      ],
+      "id": "nist-ai-rmf-1.0",
+      "identityMode": "versioned",
+      "issuer": "NIST",
+      "lifecycleStatus": "current-revision-in-progress",
+      "observationDigest": "sha256:f904c04914d1af3f4d70c098070008142eedda2845bc88d898bd264213d3b260",
+      "recordDigest": "sha256:85c3e8ddb3b838410fdcb7b955cbcad34883b76c791b57b718aae366fd979585",
+      "title": "Artificial Intelligence Risk Management Framework (AI RMF 1.0) — NIST AI 100-1",
+      "topics": [
+        "ai-risk",
+        "artificial-intelligence",
+        "responsible-ai",
+        "risk-management",
+        "trustworthy-ai"
+      ],
+      "versionLabel": "1.0"
     },
     {
       "aliases": [
@@ -1660,6 +2014,35 @@
         "traceability"
       ],
       "versionLabel": "1.2"
+    },
+    {
+      "aliases": [
+        "OAS 3.2.0",
+        "OpenAPI",
+        "OpenAPI 3.2"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "api",
+        "engineering",
+        "integration",
+        "web"
+      ],
+      "id": "openapi-3.2.0",
+      "identityMode": "versioned",
+      "issuer": "OpenAPI Initiative",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:0341539e141c3807b3a5ebbeb9a26d6bb4cd0242918d1e5e97e7aab8196cac40",
+      "recordDigest": "sha256:1058d044daf8649fa86b75e7356a556199eb696c67310bc5f959a49c4cbc2e3b",
+      "title": "OpenAPI Specification 3.2.0",
+      "topics": [
+        "api-description",
+        "http-api",
+        "interface-contract",
+        "rest"
+      ],
+      "versionLabel": "3.2.0"
     },
     {
       "aliases": [
@@ -2437,7 +2820,7 @@
     }
   ],
   "kind": "ordivon.external-authority-discovery-index",
-  "recordCount": 90,
-  "recordsDigest": "sha256:837f9742fdbf5c89302e7b6abcfd8e56163b7d9fd23463579e383d7d1994623e",
+  "recordCount": 103,
+  "recordsDigest": "sha256:9c59e767cc1080ee23f29bc0f4fb4274b01f6df45d07af676f66cc5e78c812e1",
   "schemaVersion": 1
 }
