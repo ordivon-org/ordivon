@@ -98,3 +98,5 @@ Initial common universe: BTC/USDT and ETH/USDT. OKX Demo and Binance Demo/Testne
 Clock timing qualification now passes: Windows w32time is synchronized to qualified public NTP peers and WSL CLOCK_REALTIME follows the Windows host through `/dev/ptp_hyperv` using `phc2sys`; fresh external validation observed <=47.1 ms absolute error versus the frozen 1000 ms gate. Overall private/demo/live execution remains blocked by the separate NON_LIVE execution authority.
 
 - Private Reality R5 offline normalization: venue-native observer envelopes are normalized by a pure no-network/no-credential function into balances, positions, open orders, order history and fills. Observer credential bindings are external; Binance executor credentials are excluded; fresh permission verification is still required before private account data is admitted.
+
+- Execution Reconciliation R6: venue reality remains authoritative, FIX 4.4 supplies execution lifecycle vocabulary, and the only local semantic is EffectAuthority RETAIN/RELEASE/CONSUME. Absence from a broad snapshot is UNKNOWN/RETAIN; no-effect release requires explicit authoritative proof.
