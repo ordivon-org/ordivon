@@ -1,0 +1,533 @@
+{
+  "schemaVersion": 2,
+  "id": "ordivon-next.game-composition-search.r2",
+  "date": "2026-09-14",
+  "standing": "BRIDGE_DRIVEN_COMPOSITION_SEARCH_R2_READY",
+  "parent": "game-composition-search-r1.json",
+  "sourceBridge": "game-top-motif-bridge-r1.json",
+  "sourceEvidence": "game-mechanism-evidence-r2.json",
+  "selectionBoundary": [
+    "Candidates are experiment graphs, not product or genre selections.",
+    "Every admitted candidate cites external motif recurrence and at least one local strong/structural claim.",
+    "UNKNOWN couplings are intentionally limited to one or two central questions.",
+    "PriorityScore is a retrieval heuristic only; status and kill conditions remain authoritative.",
+    "R1 candidates remain historical and are not silently promoted."
+  ],
+  "candidateCount": 10,
+  "candidates": [
+    {
+      "id": "cs2-05-persistent-authorship-response",
+      "name": "Persistent Authorship with Non-Authoritative Response",
+      "externalMotifs": [
+        "m02",
+        "m05",
+        "m10"
+      ],
+      "mechanics": [
+        "create-edit",
+        "save-revision",
+        "world-state-persistence",
+        "self-authored-goal",
+        "responsive-audience-opponent",
+        "hidden-information",
+        "persistent-consequence"
+      ],
+      "localEvidenceClaims": [
+        "c06",
+        "c07",
+        "r2-c18",
+        "r2-c28"
+      ],
+      "unknownCouplings": [
+        "Does external response deepen the player’s own intent or hijack it into evaluator optimization?",
+        "Does persistence make revisions more meaningful by changing later possibilities?"
+      ],
+      "targetDynamic": "A self-authored artifact persists, receives interpretable response, and is revised without converting the audience into a score function.",
+      "cheapestFalsifier": "Extend PGP-I across three rounds: player states intent first, artifact persists, deterministic persona comments qualitatively, revision changes one later affordance.",
+      "killConditions": [
+        "players revise mainly to satisfy persona",
+        "stated intent disappears after feedback",
+        "persistent state does not change a later creative decision"
+      ],
+      "reusePlan": "REUSE_PGP_I",
+      "experimentCost": "LOW",
+      "humanRequirement": "SINGLE_HUMAN",
+      "status": "ADMIT_WAVE_A",
+      "antiBias": true,
+      "priorityScore": 22,
+      "priorityComponents": {
+        "externalSpecimenSupportSum": 16,
+        "localEvidenceClaimCount": 4,
+        "unknownCount": 2,
+        "reuseBonus": 2,
+        "antiBiasBonus": 1,
+        "costPenalty": 1
+      }
+    },
+    {
+      "id": "cs2-02-path-dependent-automation",
+      "name": "Path-Dependent Automation Architecture",
+      "externalMotifs": [
+        "m04",
+        "m12",
+        "m22",
+        "m01"
+      ],
+      "mechanics": [
+        "required-goal",
+        "bottleneck",
+        "machine-allocation",
+        "build-path-dependency",
+        "upgrade-choice",
+        "automation",
+        "throughput",
+        "respec-reconfiguration"
+      ],
+      "localEvidenceClaims": [
+        "c04",
+        "c05",
+        "c03",
+        "r2-c30"
+      ],
+      "unknownCouplings": [
+        "Do early architecture commitments create meaningful build identity or merely punish experimentation?",
+        "Can automation move attention upward while path dependence still preserves viable redesign?"
+      ],
+      "targetDynamic": "Changing objectives revalue a partially committed automated architecture, creating identity without a universal build.",
+      "cheapestFalsifier": "Symbolic 8-machine micro-factory: 3 objectives, 2 mutually constraining upgrade paths, visible throughput, one limited respec.",
+      "killConditions": [
+        "one opening dominates all objectives",
+        "early choice creates unrecoverable lock-in rather than adaptation",
+        "automation removes consequential decisions instead of moving them upward"
+      ],
+      "reusePlan": "NEW_SYMBOLIC_CARRIER",
+      "experimentCost": "LOW",
+      "humanRequirement": "SINGLE_HUMAN_OR_STRUCTURAL",
+      "status": "ADMIT_WAVE_B",
+      "antiBias": false,
+      "priorityScore": 21,
+      "priorityComponents": {
+        "externalSpecimenSupportSum": 18,
+        "localEvidenceClaimCount": 4,
+        "unknownCount": 2,
+        "reuseBonus": 0,
+        "antiBiasBonus": 0,
+        "costPenalty": 1
+      }
+    },
+    {
+      "id": "cs2-01-knowledge-timed-investigation",
+      "name": "Knowledge-Timed Investigation",
+      "externalMotifs": [
+        "m24",
+        "m06",
+        "m03"
+      ],
+      "mechanics": [
+        "clues-evidence",
+        "inspection-cost",
+        "deduction",
+        "memory-knowledge-persistence",
+        "gating-by-knowledge",
+        "deadline-time-limit",
+        "scan",
+        "persistent-consequence"
+      ],
+      "localEvidenceClaims": [
+        "c01",
+        "c02",
+        "c10",
+        "r2-c23",
+        "r2-c31"
+      ],
+      "unknownCouplings": [
+        "Does a reset/loop structure make retained knowledge feel like progression, or merely force repetitive traversal?",
+        "Does delayed scan information create anticipation and planning, or waiting/friction?"
+      ],
+      "targetDynamic": "Selective evidence acquisition under a bounded cycle creates durable knowledge that changes later routes and decisions.",
+      "cheapestFalsifier": "Extend PGP-D: three short cycles, one action/time budget, one delayed scan, a persistent knowledge journal, and zero inventory unlocks.",
+      "killConditions": [
+        "players repeat traversal without changing their model",
+        "persistent knowledge does not alter a later route/action",
+        "time pressure produces guessing rather than prioritization"
+      ],
+      "reusePlan": "REUSE_PGP_D",
+      "experimentCost": "LOW",
+      "humanRequirement": "SINGLE_HUMAN",
+      "status": "ADMIT_WAVE_A",
+      "antiBias": true,
+      "priorityScore": 19,
+      "priorityComponents": {
+        "externalSpecimenSupportSum": 11,
+        "localEvidenceClaimCount": 5,
+        "unknownCount": 2,
+        "reuseBonus": 2,
+        "antiBiasBonus": 1,
+        "costPenalty": 1
+      }
+    },
+    {
+      "id": "cs2-03-upstream-random-buildcraft",
+      "name": "Upstream-Random Buildcraft",
+      "externalMotifs": [
+        "m08",
+        "m04",
+        "m12"
+      ],
+      "mechanics": [
+        "drafting",
+        "synergy-combos",
+        "build-path-dependency",
+        "random-production",
+        "randomized-encounters",
+        "upgrade-choice",
+        "run"
+      ],
+      "localEvidenceClaims": [
+        "c03",
+        "c05"
+      ],
+      "unknownCouplings": [
+        "Does moving randomness from outcome resolution to offer/encounter generation measurably improve attribution and adaptation?"
+      ],
+      "targetDynamic": "Randomness changes the decision problem before choice; player decisions, not hidden post-choice rolls, determine most consequence.",
+      "cheapestFalsifier": "Tiny four-round symbolic draft with matched A/B conditions: random offers/known resolution versus fixed offers/random downstream resolution; identical payoff space.",
+      "killConditions": [
+        "players report equal or worse attribution in upstream-random condition",
+        "offer randomness overwhelms build intent",
+        "greedy policy performs as well as path-aware policy"
+      ],
+      "reusePlan": "NEW_SYMBOLIC_CARRIER",
+      "experimentCost": "VERY_LOW",
+      "humanRequirement": "SINGLE_HUMAN_PLUS_STRUCTURAL",
+      "status": "ADMIT_WAVE_A",
+      "antiBias": true,
+      "priorityScore": 19,
+      "priorityComponents": {
+        "externalSpecimenSupportSum": 16,
+        "localEvidenceClaimCount": 2,
+        "unknownCount": 1,
+        "reuseBonus": 0,
+        "antiBiasBonus": 1,
+        "costPenalty": 0
+      }
+    },
+    {
+      "id": "cs2-04-failure-attribution-mastery",
+      "name": "Failure-to-Information Mastery",
+      "externalMotifs": [
+        "m03",
+        "m11",
+        "m27"
+      ],
+      "mechanics": [
+        "telegraphing",
+        "timing-window",
+        "fast-retry",
+        "immediate-action-feedback",
+        "cause-effect-log",
+        "safe-vs-risky-route",
+        "assist-options",
+        "practice-training"
+      ],
+      "localEvidenceClaims": [
+        "c08",
+        "r2-c16",
+        "r2-c26"
+      ],
+      "unknownCouplings": [
+        "Does explicit causal feedback improve learning beyond fast retry alone?",
+        "Can assist tuning preserve self-attributed mastery rather than converting success into external rescue?"
+      ],
+      "targetDynamic": "Failure yields a specific model update, immediate retry tests that update, and optional challenge lets the player escalate difficulty voluntarily.",
+      "cheapestFalsifier": "Extend PGP-A with two matched variants: raw instant retry versus retry + one concise causal cue/ghost; add one assist knob that changes timing margin only.",
+      "killConditions": [
+        "causal cue does not change next-attempt behavior",
+        "assist users cannot explain what skill improved",
+        "harder optional route is solved mainly by route discovery instead of execution"
+      ],
+      "reusePlan": "REUSE_PGP_A",
+      "experimentCost": "VERY_LOW",
+      "humanRequirement": "SINGLE_HUMAN",
+      "status": "ADMIT_WAVE_A",
+      "antiBias": true,
+      "priorityScore": 17,
+      "priorityComponents": {
+        "externalSpecimenSupportSum": 12,
+        "localEvidenceClaimCount": 3,
+        "unknownCount": 2,
+        "reuseBonus": 2,
+        "antiBiasBonus": 1,
+        "costPenalty": 0
+      }
+    },
+    {
+      "id": "cs2-06-multiscale-command",
+      "name": "Multi-Timescale Command with Bounded Information",
+      "externalMotifs": [
+        "m07",
+        "m30",
+        "m28",
+        "m09"
+      ],
+      "mechanics": [
+        "command",
+        "delegate",
+        "role-asymmetry",
+        "prediction-preview",
+        "partial-observation",
+        "deadline-time-limit",
+        "persistent-consequence",
+        "cause-effect-log"
+      ],
+      "localEvidenceClaims": [
+        "c09",
+        "r2-c21",
+        "r2-c23",
+        "r2-c25",
+        "r2-c29",
+        "r2-c31"
+      ],
+      "unknownCouplings": [
+        "Can explicit pause/decision cadence reduce administration burden while preserving crisis pressure?",
+        "Do short-term delegated actions create long-term consequence without forcing constant review?"
+      ],
+      "targetDynamic": "Player sets sparse high-leverage intent, recognizable specialists act, and consequences cross tactical/turn/mission timescales while remaining attributable.",
+      "cheapestFalsifier": "Strip existing Station Zero carrier to objective + two doctrine controls + three specialists + pause/commit cadence + one persistent consequence; no new engine/system.",
+      "killConditions": [
+        "configuration/review time exceeds strategic decision time",
+        "specialist behavior remains unreadable",
+        "long-term outcome cannot be traced to earlier command intent"
+      ],
+      "reusePlan": "REUSE_STATION_ZERO_ONLY",
+      "experimentCost": "HIGH",
+      "humanRequirement": "SINGLE_HUMAN",
+      "status": "HOLD_HIGH_COST_REUSE_ONLY",
+      "antiBias": false,
+      "priorityScore": 17,
+      "priorityComponents": {
+        "externalSpecimenSupportSum": 12,
+        "localEvidenceClaimCount": 6,
+        "unknownCount": 2,
+        "reuseBonus": 1,
+        "antiBiasBonus": 0,
+        "costPenalty": 4
+      }
+    },
+    {
+      "id": "cs2-08-rule-growth-inspection",
+      "name": "Rule-Growth Inspection Under Scarcity",
+      "externalMotifs": [
+        "m29",
+        "m01",
+        "m06"
+      ],
+      "mechanics": [
+        "inspect",
+        "rule-changing",
+        "deduction",
+        "deadline-time-limit",
+        "currency",
+        "moral-value-choice",
+        "clues-evidence",
+        "select-choose"
+      ],
+      "localEvidenceClaims": [
+        "c01",
+        "c02",
+        "c10",
+        "r2-c31"
+      ],
+      "unknownCouplings": [
+        "Does rule growth create procedural mastery or merely memory/reference burden?",
+        "Does economic pressure actually change judgment when moral exceptions appear?"
+      ],
+      "targetDynamic": "A stable inspection verb is repeatedly revalued by growing rules while speed, accuracy and exception handling compete for one work budget.",
+      "cheapestFalsifier": "Single-screen document checker: 12 cases over three rounds, add one rule per round, finite clock/pay, two morally salient exceptions.",
+      "killConditions": [
+        "error rate rises without evidence of a learned routine",
+        "players rely entirely on external checklist rather than internal model",
+        "moral cases do not alter behavior relative to neutral cases"
+      ],
+      "reusePlan": "NEW_UI_MICRO_CARRIER",
+      "experimentCost": "LOW",
+      "humanRequirement": "SINGLE_HUMAN",
+      "status": "ADMIT_WAVE_B",
+      "antiBias": true,
+      "priorityScore": 15,
+      "priorityComponents": {
+        "externalSpecimenSupportSum": 11,
+        "localEvidenceClaimCount": 4,
+        "unknownCount": 2,
+        "reuseBonus": 0,
+        "antiBiasBonus": 1,
+        "costPenalty": 1
+      }
+    },
+    {
+      "id": "cs2-10-conditional-ownership",
+      "name": "Conditional Ownership / Bank-or-Continue",
+      "externalMotifs": [
+        "m13",
+        "m06",
+        "m03"
+      ],
+      "mechanics": [
+        "collect",
+        "risk-reward",
+        "persistent-consequence",
+        "route-network-building",
+        "required-goal",
+        "permadeath"
+      ],
+      "localEvidenceClaims": [
+        "r2-c28",
+        "r2-c29",
+        "r2-c26"
+      ],
+      "unknownCouplings": [
+        "Does making acquired value unbanked until exit create meaningful push-your-luck decisions or simple risk aversion?",
+        "What information about future risk is necessary before extraction choice becomes strategic?"
+      ],
+      "targetDynamic": "Acquired value increases both capability/reward and exposure; leaving converts carried value into persistent ownership, so exit timing becomes a decision.",
+      "cheapestFalsifier": "Abstract graph run: 5 nodes, known route-risk bands, loot increases score/value, extraction available after node 2, death loses carried but not banked value.",
+      "killConditions": [
+        "most players always extract at first opportunity",
+        "optimal policy is trivial across states",
+        "loss feels arbitrary because future risk was not legible"
+      ],
+      "reusePlan": "NEW_SYMBOLIC_CARRIER",
+      "experimentCost": "VERY_LOW",
+      "humanRequirement": "SINGLE_HUMAN_PLUS_STRUCTURAL",
+      "status": "ADMIT_WAVE_B",
+      "antiBias": true,
+      "priorityScore": 14,
+      "priorityComponents": {
+        "externalSpecimenSupportSum": 11,
+        "localEvidenceClaimCount": 3,
+        "unknownCount": 2,
+        "reuseBonus": 0,
+        "antiBiasBonus": 1,
+        "costPenalty": 0
+      }
+    },
+    {
+      "id": "cs2-09-failure-generates-state",
+      "name": "Failure Generates Future State",
+      "externalMotifs": [
+        "m32",
+        "m33",
+        "m02"
+      ],
+      "mechanics": [
+        "dialogue",
+        "dynamic-narration",
+        "branching-choice",
+        "persistent-consequence",
+        "multiple-endings",
+        "select-choose"
+      ],
+      "localEvidenceClaims": [
+        "r2-c28",
+        "r2-c29"
+      ],
+      "unknownCouplings": [
+        "Can failure-generated content feel consequential without making failure strategically preferable?",
+        "Does interpretation of failure preserve agency or merely add commentary?"
+      ],
+      "targetDynamic": "A failed action produces a new state/information path that changes later choices instead of forcing reset, while success remains meaningfully distinct.",
+      "cheapestFalsifier": "Text-only 10-node scenario with matched success/failure branches converging later; failure reveals one new fact but incurs one persistent cost.",
+      "killConditions": [
+        "players intentionally fail because failure branch dominates value",
+        "success/failure converge without changing later choice",
+        "narrative reaction is noticed but not decision-relevant"
+      ],
+      "reusePlan": "NEW_TEXT_CARRIER",
+      "experimentCost": "VERY_LOW",
+      "humanRequirement": "SINGLE_HUMAN",
+      "status": "ADMIT_WAVE_B",
+      "antiBias": true,
+      "priorityScore": 11,
+      "priorityComponents": {
+        "externalSpecimenSupportSum": 10,
+        "localEvidenceClaimCount": 2,
+        "unknownCount": 2,
+        "reuseBonus": 0,
+        "antiBiasBonus": 1,
+        "costPenalty": 0
+      }
+    },
+    {
+      "id": "cs2-07-communication-topology",
+      "name": "Communication Topology as Gameplay",
+      "externalMotifs": [
+        "m25",
+        "m09"
+      ],
+      "mechanics": [
+        "asymmetric-information",
+        "signal-communicate",
+        "communication-limits",
+        "coordination-timing",
+        "team-based-play",
+        "partial-observation",
+        "role-asymmetry"
+      ],
+      "localEvidenceClaims": [
+        "c10",
+        "r2-c25",
+        "r2-c32"
+      ],
+      "unknownCouplings": [
+        "Does splitting information create mutual agency or merely clerical translation?",
+        "What minimum shared vocabulary prevents ambiguity from dominating reasoning?"
+      ],
+      "targetDynamic": "Two players own non-substitutable information and must construct a shared state quickly enough to act.",
+      "cheapestFalsifier": "Two-browser micro-task: one player sees world state, one sees transformation rules; 8 short cases with controlled vocabulary/no free shared screen.",
+      "killConditions": [
+        "one role can solve nearly everything alone",
+        "communication cost dominates the actual decision",
+        "failures are mostly vocabulary ambiguity rather than coordination strategy"
+      ],
+      "reusePlan": "NEW_TWO_USER_CARRIER",
+      "experimentCost": "MEDIUM",
+      "humanRequirement": "TWO_HUMANS_REQUIRED",
+      "status": "ADMIT_WAVE_B",
+      "antiBias": true,
+      "priorityScore": 5,
+      "priorityComponents": {
+        "externalSpecimenSupportSum": 4,
+        "localEvidenceClaimCount": 3,
+        "unknownCount": 2,
+        "reuseBonus": 0,
+        "antiBiasBonus": 1,
+        "costPenalty": 2
+      }
+    }
+  ],
+  "waves": {
+    "A_reuse_or_very_cheap": [
+      "cs2-05-persistent-authorship-response",
+      "cs2-01-knowledge-timed-investigation",
+      "cs2-03-upstream-random-buildcraft",
+      "cs2-04-failure-attribution-mastery"
+    ],
+    "B_next": [
+      "cs2-02-path-dependent-automation",
+      "cs2-08-rule-growth-inspection",
+      "cs2-10-conditional-ownership",
+      "cs2-09-failure-generates-state",
+      "cs2-07-communication-topology"
+    ],
+    "hold": [
+      "cs2-06-multiscale-command"
+    ]
+  },
+  "recommendedExecutionOrder": [
+    "cs2-03-upstream-random-buildcraft",
+    "cs2-04-failure-attribution-mastery",
+    "cs2-01-knowledge-timed-investigation",
+    "cs2-05-persistent-authorship-response"
+  ],
+  "executionReason": "Wave A maximizes heterogeneity and information gain while reusing existing PGP carriers where possible; upstream-random buildcraft is new but exceptionally cheap. No product/G0 selection follows from any result."
+}
