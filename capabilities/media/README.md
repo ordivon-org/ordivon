@@ -56,6 +56,7 @@ For a video explaining Runtime recovery:
 | exact selected bytes | the named durable byte authority for that medium |
 | render/QC evidence | Studio tooling and retained receipts |
 | public site orientation/publication | Web or destination platform |
+| cross-provider external distribution / effect admission / provider readback | `ordivon-distribution-v2` |
 | human comprehension, preference, trust, recall, or other audience response | scoped human-response evidence |
 
 Persisting or presenting another owner's fact does not transfer that fact to Studio.
