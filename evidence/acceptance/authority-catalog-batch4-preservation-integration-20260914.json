@@ -1,0 +1,17 @@
+{
+  "baseMainCommit": "00f7c05146895ba75f5fd51231aed9b68e3d98d1",
+  "batch4Count": 13,
+  "batch4IdsPreserved": true,
+  "batch4SourceCommit": "e1b2790034fced6e7f1137d7aeafd4ca5fe11886",
+  "boundary": "This receipt proves mechanical integration of concurrent Authority Catalog seed work and deterministic index regeneration. It does not establish task applicability or semantic completeness of either domain.",
+  "date": "2026-09-14",
+  "indexDigest": "sha256:9c59e767cc1080ee23f29bc0f4fb4274b01f6df45d07af676f66cc5e78c812e1",
+  "indexRegeneratedFromCombinedSources": true,
+  "kind": "ordivon.external-authority-catalog-integration-acceptance",
+  "observationCount": 103,
+  "preservationIdsPreserved": true,
+  "preservationSeedCount": 8,
+  "recordCount": 103,
+  "schemaVersion": 1,
+  "standing": "PASS_PARALLEL_AUTHORITY_SEEDS_MERGED"
+}
