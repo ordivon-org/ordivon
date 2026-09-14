@@ -1,8 +1,8 @@
-# Operations E2E v2 Migration R1
+# Workstation E2E v2 Migration R2
 
 ## Objective
 
-Build v2 from mature external substrates first. Do not copy legacy Operations code into this repository. Migrate only proven residual semantics after an upstream replacement is working.
+Rename/merge the former Operations v2 implementation into Workstation v2, then drain `/root/workstation-lab` into this owner in bounded slices. Mature external substrates remain preferred; migrate only node-owner semantics that still have a real consumer and cannot be delegated without losing exact realization/binding meaning.
 
 ## Current local substrate observed on 2026-09-11
 
@@ -19,8 +19,8 @@ Adopted in R1 from Arch repositories: Ansible, OpenTofu, node_exporter, Vector, 
 | `scripts/ordivon-gatus-daily.py` | Gatus + metrics/alerting | DELETE candidate after dependency proof | none unless exact evidence export remains required |
 | generic backup scheduling/check wrappers | systemd timers + restic + pgBackRest | REPLACE | owner restore acceptance assertions |
 | generic software/process census | osquery | REPLACE | owner-specific facts not represented generically |
-| Network continuity / Surfshark monitoring | Network E2E + its selected mature substrates | MOVE OUT | no Operations semantic ownership |
-| Cloudflare provider implementation and local operational lifecycle | Operations maintenance + Cloudflare/provider-native remote authority + consuming-domain semantic authority | ABSORB MAINTENANCE; use OpenTofu for suitable declarative resources | Operations owns source/install/systemd/config/upgrade/rollback/SLO plumbing only; remote provider truth and consumer meaning stay outside Operations |
+| Network continuity / Surfshark monitoring | Network E2E + its selected mature substrates | MOVE OUT | no Workstation v2 semantic ownership |
+| Cloudflare provider implementation and local operational lifecycle | Workstation v2 maintenance + Cloudflare/provider-native remote authority + consuming-domain semantic authority | ABSORB MAINTENANCE; use OpenTofu for suitable declarative resources | Workstation v2 owns source/install/systemd/config/upgrade/rollback/SLO plumbing only; remote provider truth and consumer meaning stay outside Workstation v2 |
 | generic retry/timer workflow code | Temporal/systemd | DELETE | Runtime execution evidence remains separate |
 | generic policy `if/deny` gates | OPA where policy is declarative | REPLACE | owner supplies policy inputs and owns semantic meaning |
 | generic security scanning | Trivy | REPLACE | Security E2E owns interpretation/admission policy |
@@ -57,7 +57,7 @@ Accepted facts:
 
 - both services are enabled and active;
 - both listeners are loopback-only;
-- Operations Prometheus reports the node-exporter and self targets `up`;
+- Workstation v2 Prometheus reports the node-exporter and self targets `up`;
 - `up` returns `1` for both targets;
 - Network v2 Prometheus remains active and separate at `127.0.0.1:29090`;
 - Gatus remains active and separate at `127.0.0.1:8080`.

@@ -1,13 +1,19 @@
 {
   "schemaVersion": 1,
-  "kind": "ordivon.operations.machine-inventory-source-registry",
+  "kind": "ordivon.workstation.v2.machine-inventory-source-registry",
   "principle": "source-native-facts-no-universal-capability-registry",
   "sources": [
     {
       "id": "osquery-linux-host-facts",
       "provider": "osquery",
       "platform": "linux_wsl",
-      "claimScope": ["system_identity", "os_version", "uptime", "running_processes", "language_package_tables_when_supported"],
+      "claimScope": [
+        "system_identity",
+        "os_version",
+        "uptime",
+        "running_processes",
+        "language_package_tables_when_supported"
+      ],
       "queryRoot": "inventory/queries",
       "mode": "read_only_live"
     },
@@ -15,8 +21,16 @@
       "id": "pacman-local-package-state",
       "provider": "pacman",
       "platform": "arch_linux",
-      "claimScope": ["installed_packages", "explicit_packages", "foreign_packages"],
-      "commands": ["/usr/bin/pacman -Qq", "/usr/bin/pacman -Qqe", "/usr/bin/pacman -Qm"],
+      "claimScope": [
+        "installed_packages",
+        "explicit_packages",
+        "foreign_packages"
+      ],
+      "commands": [
+        "/usr/bin/pacman -Qq",
+        "/usr/bin/pacman -Qqe",
+        "/usr/bin/pacman -Qm"
+      ],
       "mode": "read_only_live",
       "reason": "current osquery build exposes no ALPM package table"
     },
@@ -24,21 +38,31 @@
       "id": "filesystem-executable-materialization",
       "provider": "host_filesystem",
       "platform": "linux_wsl",
-      "claimScope": ["path_exists", "executable_path_materialized", "symlink_target"],
+      "claimScope": [
+        "path_exists",
+        "executable_path_materialized",
+        "symlink_target"
+      ],
       "mode": "read_only_live"
     },
     {
       "id": "windows-installed-apps",
       "provider": "winget_and_windows_uninstall_registry",
       "platform": "windows_native",
-      "claimScope": ["winget_recognized_packages", "registered_installed_applications", "path_resolved_commands"],
+      "claimScope": [
+        "winget_recognized_packages",
+        "registered_installed_applications",
+        "path_resolved_commands"
+      ],
       "mode": "read_only_live"
     },
     {
       "id": "linux-tool-desired-state",
       "provider": "nix_home_manager",
       "platform": "linux_wsl",
-      "claimScope": ["declared_user_tool_desired_state"],
+      "claimScope": [
+        "declared_user_tool_desired_state"
+      ],
       "source": "workstation/nix/",
       "mode": "versioned_desired_state"
     },
@@ -46,7 +70,9 @@
       "id": "windows-tool-desired-state",
       "provider": "winget_configuration_dsc_v3",
       "platform": "windows_native",
-      "claimScope": ["declared_windows_tool_desired_state"],
+      "claimScope": [
+        "declared_windows_tool_desired_state"
+      ],
       "source": "workstation/windows/workstation.dsc.yaml",
       "mode": "versioned_desired_state"
     },
@@ -54,17 +80,40 @@
       "id": "runtime-execution-affordances",
       "provider": "ordivon_runtime",
       "platform": "cross_target",
-      "claimScope": ["execution_target_configured", "execution_target_available", "exact_job_attempt_execution_truth"],
+      "claimScope": [
+        "execution_target_configured",
+        "execution_target_available",
+        "exact_job_attempt_execution_truth"
+      ],
       "mode": "runtime_projection"
     },
     {
       "id": "standard-sbom-projection",
       "provider": "syft",
       "platform": "linux_wsl",
-      "claimScope": ["software_bill_of_materials"],
-      "formats": ["cyclonedx-json", "spdx-json", "syft-json"],
+      "claimScope": [
+        "software_bill_of_materials"
+      ],
+      "formats": [
+        "cyclonedx-json",
+        "spdx-json",
+        "syft-json"
+      ],
       "mode": "on_demand",
       "defaultFastPath": false
+    },
+    {
+      "id": "workstation-declared-tool-bindings",
+      "provider": "workstation_v2_declared_binding_catalog",
+      "platform": "cross_target",
+      "claimScope": [
+        "caller_selected_declared_tool",
+        "configured_launcher",
+        "exact_executable_digest",
+        "provider_version_evidence"
+      ],
+      "source": "workstation/software.toml",
+      "mode": "read_only_live_binding"
     }
   ],
   "nonClaims": [

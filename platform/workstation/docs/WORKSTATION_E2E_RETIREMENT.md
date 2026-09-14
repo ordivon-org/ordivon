@@ -1,32 +1,14 @@
-# Workstation E2E retirement
+# Workstation E2E retirement decision — superseded
 
-Date: 2026-09-12
+Original decision date: 2026-09-12
+Superseded: 2026-09-14
 
-## Decision
+The earlier decision retired Workstation as an independent owner and placed generic machine operations under Operations v2. That split created an unnecessary owner seam: Operations already observed and maintained the same execution node while Agents still had to re-enter legacy Workstation for exact node-local software/materialization binding.
 
-There is no longer an independent Workstation implementation authority. Generic machine mechanisms are owned by mature upstream systems and their natural Ordivon owner. “Workstation readiness” is a projection of owner evidence for the concrete operation being attempted, not a daemon, global doctor, package registry, or configuration controller.
+## Current decision
 
-## Current owner map
+**Operations v2 is renamed/merged into Workstation v2.** The implementation rooted at the current `ordivon-operations-v2` repository is the active Workstation v2 implementation during physical path cutover. `/root/workstation-lab` is the legacy Workstation implementation whose remaining valid responsibilities are migrated here or reassigned to their natural external owner.
 
-- Windows desired state: WinGet Configuration + DSC v3; source under `workstation/windows/`.
-- Linux user/tool desired state: Nix + Home Manager; source under `workstation/nix/`.
-- Generic host desired state and service realization: Ansible + systemd under Operations.
-- Generic host inventory: osquery; query contract under `inventory/queries/`.
-- Generic workstation configuration consequences: `tests/test_workstation_consequences.py`.
-- Telemetry: Netdata/Prometheus and Operations observability.
-- Execution truth: Ordivon Runtime.
-- Durable workflow: Temporal.
-- Integration edge: n8n.
-- Network semantics: Network E2E.
-- Security policy/verification: Security E2E and OPA/Trivy/etc.
-- Domain workload acceptance: the owning Research/Game/Artifact/Media/etc. E2E.
+Workstation v2 owns the execution-node layer: desired state, service lifecycle, generic observability, inventory, node-local software/device realization and exact caller-selected bindings, plus generic recovery substrate. It still does not own Runtime Job/Attempt truth, Network path semantics, Host continuity, Security policy meaning, or domain success.
 
-## Readiness model
-
-A concrete E2E asks its actual owners for the evidence required by that operation. No central Workstation service aggregates unrelated observations into a universal green/red state. Generic host facts may be queried through osquery; stronger claims require the owner-specific real workload/consequence oracle.
-
-## Retired repository
-
-`/root/projects/ordivon-workstation-v2` is retained only as Git history and a retirement pointer. It has no runtime authority, desired-state source, executable scripts, tests, inventory queries, or project toolchain requirement after the retirement cut.
-
-This retirement does not by itself retire `/root/workstation-lab`; that legacy repository still contains residual owner-transfer obligations (notably current Network realization and narrow Windows/Finance boundaries) and remains a compatibility oracle until those owners close them.
+The former retired `/root/projects/ordivon-workstation-v2` repository remains archival until the physical repository-name cutover is performed; it must not become a second implementation.

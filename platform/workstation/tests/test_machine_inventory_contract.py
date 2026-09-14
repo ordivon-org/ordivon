@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_machine_inventory_source_registry_is_source_native() -> None:
     data = json.loads((ROOT / "inventory" / "sources.json").read_text(encoding="utf-8"))
-    assert data["kind"] == "ordivon.operations.machine-inventory-source-registry"
+    assert data["kind"] == "ordivon.workstation.v2.machine-inventory-source-registry"
     by_id = {row["id"]: row for row in data["sources"]}
 
     assert by_id["osquery-linux-host-facts"]["provider"] == "osquery"
