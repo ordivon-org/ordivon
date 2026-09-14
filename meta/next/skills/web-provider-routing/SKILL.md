@@ -34,9 +34,9 @@ python /root/projects/ordivon-next/scripts/web_interaction_route.py
 python /root/projects/ordivon-next/scripts/web_interaction_route.py \
   --requires-interaction --adaptive-browser-reasoning
 
-# Known deterministic browser flow when the current application has admitted Playwright
+# Known deterministic browser flow; current-node Playwright availability is discovered from Workstation v2
 python /root/projects/ordivon-next/scripts/web_interaction_route.py \
-  --requires-interaction --deterministic-browser-flow --caller-available playwright
+  --requires-interaction --deterministic-browser-flow
 
 # Desktop interaction only when the current carrier actually provides Computer Use
 python /root/projects/ordivon-next/scripts/web_interaction_route.py \
@@ -44,6 +44,18 @@ python /root/projects/ordivon-next/scripts/web_interaction_route.py \
 ```
 
 `caller-available` is evidence supplied by the current application/carrier. It cannot be used to invent local Browser Use or HTTP availability.
+
+## Local Playwright path
+
+When the decision selects `playwright`, do not invent a custom runner. Materialize the current upstream CLI config from Workstation v2:
+
+```bash
+/root/tools/bin/playwright-cli-binding materialize --output /tmp/ordivon-playwright-cli.json
+```
+
+Read the returned `commandPrefix` and `environment`, then invoke Microsoft `@playwright/cli` directly. The `open` command receives `--config /tmp/ordivon-playwright-cli.json`; subsequent commands use the same `-s=<session>` and upstream commands such as `snapshot`, `click`, `fill`, `find`, `screenshot`, `requests`, and `close`. Do not hard-code the browser executable or CLI version; the binding owns those node-local facts.
+
+Playwright is the default for **known deterministic browser flows**. It is not the adaptive browser-reasoning provider; if the next action genuinely depends on interpreting unknown/changing UI state, route to Browser Use instead.
 
 ## Local Browser Use path
 

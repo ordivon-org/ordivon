@@ -19,6 +19,7 @@ from typing import Any
 PROFILE_PATH = Path(__file__).resolve().parents[1] / "capabilities/profiles/web-interaction-r1.json"
 BROWSER_USE_CONFIG = Path("/etc/ordivon/browser-use-browserless.json")
 BROWSER_USE_ACTION = Path("/opt/ordivon/agent-automation/current/scripts/browser_use_browserless.py")
+PLAYWRIGHT_BINDING = Path("/root/tools/bin/playwright-cli-binding")
 
 
 @dataclass(frozen=True, slots=True)
@@ -78,6 +79,45 @@ def _browser_use_health() -> dict[str, Any]:
         return {"state": "unavailable", "reason": f"Browser Use doctor unavailable: {type(exc).__name__}"}
 
 
+def _playwright_health() -> dict[str, Any]:
+    if not PLAYWRIGHT_BINDING.is_file() or not os.access(PLAYWRIGHT_BINDING, os.X_OK):
+        return {"state": "unavailable", "reason": "Workstation Playwright CLI binding is absent"}
+    try:
+        proc = subprocess.run(
+            [str(PLAYWRIGHT_BINDING), "profile"],
+            capture_output=True, text=True, timeout=15, check=False,
+        )
+        if proc.returncode != 0:
+            return {"state": "unavailable", "reason": "Workstation Playwright CLI binding failed"}
+        value = json.loads(proc.stdout)
+        prefix = value.get("commandPrefix")
+        environment = value.get("environment")
+        identity = value.get("identity")
+        if (
+            value.get("state") != "AVAILABLE"
+            or not isinstance(prefix, list)
+            or len(prefix) != 2
+            or not all(isinstance(item, str) and item for item in prefix)
+            or not isinstance(environment, dict)
+            or not environment.get("PLAYWRIGHT_BROWSERS_PATH")
+            or not isinstance(identity, dict)
+            or not identity.get("browserExecutableDigest")
+            or not identity.get("cliEntrypointDigest")
+        ):
+            return {"state": "unavailable", "reason": "Workstation Playwright CLI binding is incomplete"}
+        return {
+            "state": "available",
+            "reason": "Microsoft Playwright CLI + exact Workstation Chromium binding available",
+            "bindingTool": str(PLAYWRIGHT_BINDING),
+            "bindingDigest": value.get("bindingDigest"),
+            "commandPrefix": prefix,
+            "browserExecutableDigest": identity.get("browserExecutableDigest"),
+            "cliEntrypointDigest": identity.get("cliEntrypointDigest"),
+        }
+    except Exception as exc:
+        return {"state": "unavailable", "reason": f"Playwright CLI binding unavailable: {type(exc).__name__}"}
+
+
 def census() -> dict[str, dict[str, Any]]:
     curl = shutil.which("curl")
     firecrawl = shutil.which("firecrawl") or shutil.which("firecrawl-mcp")
@@ -96,10 +136,7 @@ def census() -> dict[str, dict[str, Any]]:
             "reason": "local Firecrawl executable found" if firecrawl else "studied provider only; no local executable/service admitted",
             **({"executable": firecrawl} if firecrawl else {}),
         },
-        "playwright": {
-            "state": "task_local",
-            "reason": "Playwright exists in project/provider-specific environments but no generic admitted Web-agent adapter is registered",
-        },
+        "playwright": _playwright_health(),
         "browser_use": _browser_use_health(),
         "computer_use": {
             "state": "caller_bound",

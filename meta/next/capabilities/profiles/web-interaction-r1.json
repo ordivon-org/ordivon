@@ -54,7 +54,7 @@
       "escalateWhen": [
         "the current page state or changing affordances must determine the next action"
       ],
-      "availabilityAuthority": "task-local admitted Playwright adapter, not library presence alone"
+      "availabilityAuthority": "Workstation v2 exact Playwright CLI binding or caller/application equivalent; library presence alone is insufficient"
     },
     {
       "id": "browser_use",
