@@ -70,7 +70,7 @@ Workstation v2 owns generic host desired-state for systemd manager limits, cored
 
 Workstation v2 owns the generic systemd scheduling substrate for the existing immutable Workstation recovery launcher: service/timer lifecycle and host-level scheduling mechanics. It does not build, select, execute, or reinterpret the recovery generation, Restic snapshot/mirror verification, authority backup, semantic-state backup, or restore acceptance.
 
-As re-observed on 2026-09-14, `ordivon-workstation-backup.timer` is intentionally **enabled and active**, with a daily ~03:30 schedule, while the oneshot service executes the immutable `/opt/ordivon-workstation-recovery/current/bin/workstation-backup` launcher. The most recent completed run succeeded. This is a retained Workstation v2 recovery capability; recovery-generation semantics are migrating from legacy `/root/workstation-lab` in bounded slices. See `docs/WORKSTATION_RECOVERY_RETENTION_20260914.md`.
+As re-observed on 2026-09-14, `ordivon-workstation-backup.timer` is intentionally **enabled and active**, with a daily ~03:30 schedule, while the oneshot service executes the immutable `/opt/ordivon-workstation-recovery/current/bin/workstation-backup` launcher. The most recent completed run succeeded. This is a retained Workstation v2 recovery capability. Recovery-generation semantics now live in the bounded `recovery/` kernel and the active immutable generation no longer depends on legacy `/root/workstation-lab`. See `docs/WORKSTATION_RECOVERY_RETENTION_20260914.md`.
 
 ## Standards-first integration composition
 

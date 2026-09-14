@@ -12,6 +12,6 @@ The former World repository remains immutable provenance for pre-extraction hist
 
 ## Operations absorption — 2026-09-13
 
-The short-lived standalone provider repository at `/root/projects/ordivon-cloudflare-provider` was an extraction/cutover staging point only. Its final staging revision was `44f0cc3eb19e665f61b942bf24915ea06c493eb2`. The maintained source is now `/root/projects/ordivon-operations-v2/providers/cloudflare` under `ordivon-operations-v2`.
+The short-lived standalone provider repository at `/root/projects/ordivon-cloudflare-provider` was an extraction/cutover staging point only. Its final staging revision was `44f0cc3eb19e665f61b942bf24915ea06c493eb2`. The maintained source is now `/root/projects/ordivon-workstation-v2/providers/cloudflare` under `ordivon-workstation-v2`.
 
 Operations owns source maintenance, installation, local service/timer realization, and operational health/SLO plumbing. Cloudflare/provider-native systems retain authority for Worker/R2/request/receipt state; consuming domains retain task meaning, authorization, and semantic verification.

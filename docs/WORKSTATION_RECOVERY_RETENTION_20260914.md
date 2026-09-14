@@ -40,7 +40,7 @@ Rebuild or replace the current generation when:
 
 The retained recovery semantics are now source-owned under `recovery/` in Workstation v2: encrypted authority custody, semantic Git/SQLite/direct-root backup/restore verification, primary->mirror snapshot verification, and immutable generation construction. The old `/root/workstation-lab` repository is no longer the intended control repository or recovery implementation source.
 
-The minimal `recovery/recovery.toml` names the current physical Workstation v2 checkout (`/root/projects/ordivon-operations-v2`) as `control_repository` until the repository-path rename is completed. New control snapshots use the tag `workstation-v2-control`; historical `workstation-lab` snapshots remain historical evidence and are not rewritten.
+The minimal `recovery/recovery.toml` names the current physical Workstation v2 checkout (`/root/projects/ordivon-workstation-v2`) as `control_repository` until the repository-path rename is completed. New control snapshots use the tag `workstation-v2-control`; historical `workstation-lab` snapshots remain historical evidence and are not rewritten.
 
 Activation is allowed only from a clean committed Workstation v2 source after focused recovery tests, full repository tests, detached generation provisioning, manifest/launcher inspection, and `verify_generation` pass. The scheduler continues to execute only `/opt/ordivon-workstation-recovery/current/bin/workstation-backup`; it never executes mutable repository source directly.
 
