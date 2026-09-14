@@ -1,0 +1,206 @@
+{
+  "schemaVersion": 1,
+  "kind": "t02-bottleneck-shifts-structural-falsifier-r1",
+  "standing": "FAILS_TOPOLOGY_BOTTLENECK_FALSIFIER",
+  "mechanismModifiedAfterObservation": false,
+  "metrics": {
+    "architectureCount": 131274,
+    "distinctBaselineOptimalArchitectures": 3,
+    "distinctBaselineOptimalTopologies": 1,
+    "universalArchitecture": {
+      "topology": "AB|C",
+      "allocation": {
+        "eA": 2,
+        "eB": 1,
+        "eC": 1,
+        "pA": 1,
+        "pB": 1,
+        "pC": 1,
+        "pairTrunk": 2,
+        "soloTrunk": 1,
+        "buffer": 0
+      }
+    },
+    "universalRegretByObjective": {
+      "science": 0.1679678011715674,
+      "ammo": 0.14544978611524795,
+      "circuit": 0.187179735929763
+    },
+    "maxUniversalRegret": 0.187179735929763,
+    "meanUniversalRegret": 0.1668657744055261,
+    "perturbationChangesOptimumFraction": 1.0,
+    "meanOldOptimumPerturbationRegret": 0.16082090540926774,
+    "maxOldOptimumPerturbationRegret": 0.21451352379668065,
+    "distinctBottleneckProfiles": 3
+  },
+  "checks": {
+    "distinctBaselineOptimalArchitectures": true,
+    "distinctBaselineOptimalTopologies": false,
+    "maxUniversalRegret": true,
+    "perturbationChangesOptimumFraction": true,
+    "meanOldOptimumPerturbationRegret": true,
+    "distinctBottleneckProfiles": true
+  },
+  "objectives": {
+    "science": {
+      "baselineBest": {
+        "topology": "AB|C",
+        "allocation": {
+          "eA": 3,
+          "eB": 1,
+          "eC": 0,
+          "pA": 2,
+          "pB": 1,
+          "pC": 0,
+          "pairTrunk": 3,
+          "soloTrunk": 0,
+          "buffer": 0
+        }
+      },
+      "baselineThroughput": [
+        4.8,
+        2.0,
+        0.0
+      ],
+      "baselineBottleneck": [
+        "processing",
+        "extraction",
+        "absent"
+      ],
+      "baselineScore": 3.862583096647696,
+      "perturbedBest": {
+        "topology": "AC|B",
+        "allocation": {
+          "eA": 2,
+          "eB": 1,
+          "eC": 0,
+          "pA": 2,
+          "pB": 1,
+          "pC": 0,
+          "pairTrunk": 3,
+          "soloTrunk": 1,
+          "buffer": 0
+        }
+      },
+      "perturbedThroughput": [
+        4.0,
+        2.0,
+        0.0
+      ],
+      "perturbedBottleneck": [
+        "extraction",
+        "extraction",
+        "absent"
+      ],
+      "perturbedScore": 3.5598028099722345,
+      "oldBaselineArchitectureRegretAfterPerturbation": 0.21451352379668065
+    },
+    "ammo": {
+      "baselineBest": {
+        "topology": "AB|C",
+        "allocation": {
+          "eA": 3,
+          "eB": 0,
+          "eC": 1,
+          "pA": 2,
+          "pB": 0,
+          "pC": 1,
+          "pairTrunk": 2,
+          "soloTrunk": 1,
+          "buffer": 0
+        }
+      },
+      "baselineThroughput": [
+        4.8,
+        0.0,
+        2.0
+      ],
+      "baselineBottleneck": [
+        "processing",
+        "absent",
+        "extraction"
+      ],
+      "baselineScore": 3.737339049996403,
+      "perturbedBest": {
+        "topology": "AB|C",
+        "allocation": {
+          "eA": 2,
+          "eB": 0,
+          "eC": 1,
+          "pA": 2,
+          "pB": 0,
+          "pC": 1,
+          "pairTrunk": 3,
+          "soloTrunk": 1,
+          "buffer": 0
+        }
+      },
+      "perturbedThroughput": [
+        4.0,
+        0.0,
+        2.0
+      ],
+      "perturbedBottleneck": [
+        "extraction",
+        "absent",
+        "extraction"
+      ],
+      "perturbedScore": 3.4700321938569183,
+      "oldBaselineArchitectureRegretAfterPerturbation": 0.1339745962155613
+    },
+    "circuit": {
+      "baselineBest": {
+        "topology": "AB|C",
+        "allocation": {
+          "eA": 0,
+          "eB": 3,
+          "eC": 1,
+          "pA": 0,
+          "pB": 2,
+          "pC": 1,
+          "pairTrunk": 2,
+          "soloTrunk": 1,
+          "buffer": 0
+        }
+      },
+      "baselineThroughput": [
+        0.0,
+        4.8,
+        2.0
+      ],
+      "baselineBottleneck": [
+        "absent",
+        "processing",
+        "extraction"
+      ],
+      "baselineScore": 3.737339049996403,
+      "perturbedBest": {
+        "topology": "AB|C",
+        "allocation": {
+          "eA": 0,
+          "eB": 2,
+          "eC": 1,
+          "pA": 0,
+          "pB": 2,
+          "pC": 1,
+          "pairTrunk": 3,
+          "soloTrunk": 1,
+          "buffer": 0
+        }
+      },
+      "perturbedThroughput": [
+        0.0,
+        4.0,
+        2.0
+      ],
+      "perturbedBottleneck": [
+        "absent",
+        "extraction",
+        "extraction"
+      ],
+      "perturbedScore": 3.4700321938569183,
+      "oldBaselineArchitectureRegretAfterPerturbation": 0.1339745962155613
+    }
+  },
+  "boundary": "This establishes only structural/topological bottleneck migration in the declared computational carrier. It does not establish Human satisfaction, ownership, market demand or G0 selection."
+}

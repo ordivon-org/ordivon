@@ -1,0 +1,421 @@
+{
+  "schemaVersion": 1,
+  "kind": "t05-visible-mastery-computational-falsifier-r1",
+  "standing": "FAILS_COMPUTATIONAL_MASTERY_FALSIFIER",
+  "mechanismModifiedAfterObservation": false,
+  "knownAutomationCompletion": [
+    true,
+    true,
+    true
+  ],
+  "roomScanSummary": [
+    {
+      "room": 1,
+      "successBands": [
+        [
+          0,
+          55
+        ],
+        [
+          115,
+          150
+        ],
+        [
+          215,
+          245
+        ]
+      ],
+      "maxBandWidth": 60,
+      "successfulThresholdCount": 27
+    },
+    {
+      "room": 2,
+      "successBands": [
+        [
+          105,
+          110
+        ],
+        [
+          205,
+          205
+        ]
+      ],
+      "maxBandWidth": 10,
+      "successfulThresholdCount": 3
+    },
+    {
+      "room": 3,
+      "successBands": [
+        [
+          95,
+          140
+        ],
+        [
+          195,
+          245
+        ]
+      ],
+      "maxBandWidth": 55,
+      "successfulThresholdCount": 21
+    }
+  ],
+  "room3Regimes": [
+    {
+      "band": [
+        95,
+        140
+      ],
+      "bestThreshold": 95.0,
+      "frames": 240,
+      "minY": 108.70000000000007,
+      "landings": [
+        [
+          55.43,
+          350
+        ],
+        [
+          57.71,
+          350
+        ],
+        [
+          60.02,
+          350
+        ],
+        [
+          62.37,
+          350
+        ],
+        [
+          64.75,
+          350
+        ],
+        [
+          67.15,
+          350
+        ],
+        [
+          69.57,
+          350
+        ],
+        [
+          72.01,
+          350
+        ],
+        [
+          74.45,
+          350
+        ],
+        [
+          76.91,
+          350
+        ],
+        [
+          79.38,
+          350
+        ],
+        [
+          81.85,
+          350
+        ],
+        [
+          84.33,
+          350
+        ],
+        [
+          86.82,
+          350
+        ],
+        [
+          89.3,
+          350
+        ],
+        [
+          91.8,
+          350
+        ],
+        [
+          94.29,
+          350
+        ],
+        [
+          96.79,
+          350
+        ],
+        [
+          199.47,
+          370
+        ],
+        [
+          279.65,
+          315
+        ],
+        [
+          362.33,
+          270
+        ],
+        [
+          460.05,
+          270
+        ],
+        [
+          545.24,
+          230
+        ]
+      ]
+    },
+    {
+      "band": [
+        195,
+        245
+      ],
+      "bestThreshold": 195.0,
+      "frames": 240,
+      "minY": 108.70000000000007,
+      "landings": [
+        [
+          55.43,
+          350
+        ],
+        [
+          57.71,
+          350
+        ],
+        [
+          60.02,
+          350
+        ],
+        [
+          62.37,
+          350
+        ],
+        [
+          64.75,
+          350
+        ],
+        [
+          67.15,
+          350
+        ],
+        [
+          69.57,
+          350
+        ],
+        [
+          72.01,
+          350
+        ],
+        [
+          74.45,
+          350
+        ],
+        [
+          76.91,
+          350
+        ],
+        [
+          79.38,
+          350
+        ],
+        [
+          81.85,
+          350
+        ],
+        [
+          84.33,
+          350
+        ],
+        [
+          86.82,
+          350
+        ],
+        [
+          89.3,
+          350
+        ],
+        [
+          91.8,
+          350
+        ],
+        [
+          94.29,
+          350
+        ],
+        [
+          96.79,
+          350
+        ],
+        [
+          99.28,
+          350
+        ],
+        [
+          101.78,
+          350
+        ],
+        [
+          104.28,
+          350
+        ],
+        [
+          106.78,
+          350
+        ],
+        [
+          109.29,
+          350
+        ],
+        [
+          111.79,
+          350
+        ],
+        [
+          114.29,
+          350
+        ],
+        [
+          116.79,
+          350
+        ],
+        [
+          119.3,
+          350
+        ],
+        [
+          121.8,
+          350
+        ],
+        [
+          124.31,
+          350
+        ],
+        [
+          126.81,
+          350
+        ],
+        [
+          129.32,
+          350
+        ],
+        [
+          131.82,
+          350
+        ],
+        [
+          134.33,
+          350
+        ],
+        [
+          136.83,
+          350
+        ],
+        [
+          139.34,
+          350
+        ],
+        [
+          141.84,
+          350
+        ],
+        [
+          144.35,
+          350
+        ],
+        [
+          146.85,
+          350
+        ],
+        [
+          149.36,
+          350
+        ],
+        [
+          151.86,
+          350
+        ],
+        [
+          154.37,
+          350
+        ],
+        [
+          156.88,
+          350
+        ],
+        [
+          159.38,
+          350
+        ],
+        [
+          161.89,
+          350
+        ],
+        [
+          164.39,
+          350
+        ],
+        [
+          166.9,
+          350
+        ],
+        [
+          169.4,
+          350
+        ],
+        [
+          191.95,
+          370
+        ],
+        [
+          194.46,
+          370
+        ],
+        [
+          196.96,
+          370
+        ],
+        [
+          277.14,
+          315
+        ],
+        [
+          362.33,
+          270
+        ],
+        [
+          460.05,
+          270
+        ],
+        [
+          545.24,
+          230
+        ]
+      ]
+    }
+  ],
+  "room3FastSafeTimeDifferenceFraction": 0.0,
+  "syntheticLearning": {
+    "room1": {
+      "earlySuccess": 0.25833333333333336,
+      "lateSuccess": 0.3875,
+      "improvement": 0.12916666666666665
+    },
+    "room2": {
+      "earlySuccess": 0.025,
+      "lateSuccess": 0.027083333333333334,
+      "improvement": 0.002083333333333333
+    },
+    "room3": {
+      "earlySuccess": 0.16875,
+      "lateSuccess": 0.3020833333333333,
+      "improvement": 0.1333333333333333
+    }
+  },
+  "checks": {
+    "knownAutomationPolicyCompletesAllRooms": true,
+    "successBandWidthEachRoom": false,
+    "room3DistinctSuccessBands": true,
+    "room3FastSafeCompletionTimeDifference": false,
+    "learnerImprovementEachRoom": false,
+    "learnerLateSuccessEachRoom": false
+  },
+  "boundary": "Computational evidence only: deterministic reachability, timing-policy diversity and learnability under declared synthetic motor-noise model. It does not identify Human flow, enjoyment, self-attribution or voluntary retry."
+}

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.g0-decision-r1",
+  "observedDate": "2026-09-14",
+  "standing": "NO_COMMIT_CURRENT_PORTFOLIO",
+  "productSelected": false,
+  "g0Entered": false,
+  "mechanismLibraryModified": false,
+  "alternatives": {
+    "T01": "FAILS_PREDECLARED_BOUNDED_RATIONALITY_ROBUSTNESS",
+    "T02": "PARTIAL_STRUCTURAL_SUPPORT_FAILS_PREDECLARED_TOPOLOGY_CRITERION",
+    "T03": "FAILS_CLEAN_STRUCTURAL_FALSIFIER",
+    "T04": "FAILS_PREDECLARED_AUTHORSHIP_ADAPTATION_BALANCE",
+    "T05": "FAILS_COMPUTATIONAL_MASTERY_FALSIFIER"
+  },
+  "decision": "Do not enter G0 with any thesis in Product Thesis Sprint R1. Preserve the mechanism/reference/evidence assets, freeze the negative product-thesis results, and return to product-thesis composition using the existing mechanism library and mature external patterns. Do not rescue any failed thesis by post-hoc parameter tuning in the same decision wave.",
+  "nextStage": "PRE_G0_PRODUCT_THESIS_COMPOSITION_R2",
+  "nextStageConstraint": "Recombine or reinterpret existing mechanisms and mature patterns only; do not expand or modify the mechanism library unless a later explicit reopen condition is met.",
+  "boundary": "No current product thesis receives selection authority. This does not invalidate the underlying mechanism families or the broader game forms."
+}

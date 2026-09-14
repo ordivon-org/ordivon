@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "t02-bottleneck-shifts-micro-factory-r1",
+  "resources": ["A", "B", "C"],
+  "primitiveKinds": ["extractor", "processor", "pair-trunk", "solo-trunk", "buffer", "splitter"],
+  "unitBudget": 10,
+  "topologies": ["AB|C", "AC|B", "BC|A"],
+  "objectives": {
+    "science": {"weights": [0.55, 0.35, 0.10]},
+    "ammo": {"weights": [0.50, 0.10, 0.40]},
+    "circuit": {"weights": [0.10, 0.50, 0.40]}
+  },
+  "flowModel": {
+    "extractorCapacityPerUnit": 2.0,
+    "processorCapacityPerUnit": 2.4,
+    "trunkCapacityPerUnit": 2.5,
+    "bufferPairRelief": 0.75,
+    "bufferSoloRelief": 0.25,
+    "perturbation": "pair-trunk capacity reduced to 55% while buffer relief remains intact"
+  },
+  "predeclaredDecisionRules": {
+    "distinctBaselineOptimalArchitecturesMin": 3,
+    "distinctBaselineOptimalTopologiesMin": 2,
+    "maxUniversalRegretMin": 0.08,
+    "perturbationChangesOptimumFractionMin": 0.6666666666666666,
+    "meanOldOptimumPerturbationRegretMin": 0.05,
+    "distinctBottleneckProfilesMin": 2
+  },
+  "boundary": "This is the already-declared T02 micro-factory falsifier expressed as an exhaustive topology/throughput model. It tests bottleneck migration and redesign under fixed budget; it does not add progression, narrative, or new mechanisms after observing results."
+}

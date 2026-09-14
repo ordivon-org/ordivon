@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "t05-visible-mastery-pgp-a-reuse-r1",
+  "sourceCarrier": "experiments/pre-g0/web/app.js#PGP-A",
+  "sourceRole": "reuse existing three-room Precision Traversal apparatus instead of rebuilding a duplicate graybox",
+  "physics": {"accel":0.55,"drag":0.82,"maxVx":5.0,"jumpVy":-9.5,"gravity":0.48,"maxVy":12.0,"body":[24,32],"fps":60},
+  "rooms": [
+    {"name":"Direct gap","spawn":[38,288],"goal":[630,258,48,62],"platforms":[[0,350,250,50],[330,330,390,70]]},
+    {"name":"Timing gate","spawn":[38,288],"goal":[640,218,45,62],"platforms":[[0,350,220,50],[280,310,150,30],[500,280,220,120]],"hazard":[235,345,35,20]},
+    {"name":"Safe vs fast line","spawn":[38,288],"goal":[650,170,45,62],"platforms":[[0,350,170,50],[220,315,120,30],[385,270,125,30],[555,230,165,170],[180,370,390,30]],"hazard":[345,340,35,30]}
+  ],
+  "knownAutomationThresholds": [215,105,95],
+  "syntheticPolicy": "hold right; whenever grounded, jump after x crosses a learned threshold; motor timing noise perturbs the threshold per attempt",
+  "predeclaredDecisionRules": {
+    "knownAutomationPolicyCompletesAllRooms": true,
+    "minSuccessBandWidthPixelsEachRoom": 15,
+    "room3DistinctSuccessBandsMin": 2,
+    "room3FastSafeCompletionTimeDifferenceMinFraction": 0.10,
+    "learnerLateMinusEarlySuccessMin": 0.25,
+    "learnerLateSuccessMin": 0.60
+  },
+  "boundary": "This reuses the exact PGP-A movement geometry/physics as a computational carrier. It does not change the mechanism after observing results and does not identify Human flow, enjoyment or voluntary retry."
+}

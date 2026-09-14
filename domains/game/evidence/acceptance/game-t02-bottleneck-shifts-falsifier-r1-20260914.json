@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.t02-bottleneck-shifts-falsifier",
+  "observedDate": "2026-09-14",
+  "thesis": "T02 Bottleneck Shifts / Adaptive Automation",
+  "standing": "PARTIAL_STRUCTURAL_SUPPORT_FAILS_PREDECLARED_TOPOLOGY_CRITERION",
+  "mechanismModifiedAfterObservation": false,
+  "metrics": {
+    "architectureCount": 131274,
+    "distinctBaselineOptimalArchitectures": 3,
+    "distinctBaselineOptimalTopologies": 1,
+    "maxUniversalRegret": 0.187179735929763,
+    "meanUniversalRegret": 0.1668657744055261,
+    "perturbationChangesOptimumFraction": 1.0,
+    "meanOldOptimumPerturbationRegret": 0.16082090540926774,
+    "maxOldOptimumPerturbationRegret": 0.21451352379668065,
+    "distinctBottleneckProfiles": 3
+  },
+  "decisionConsequence": "T02 retains strong evidence for allocation/bottleneck migration but fails the predeclared requirement that baseline goals induce materially different topology classes. It is demoted for this G0 decision rather than tuned after observation.",
+  "boundary": "The negative criterion applies to this bounded T02 R1 product thesis/carrier, not to automation games generally."
+}

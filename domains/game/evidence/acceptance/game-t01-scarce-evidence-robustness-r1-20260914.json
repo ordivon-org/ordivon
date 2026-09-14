@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.t01-scarce-evidence-robustness",
+  "observedDate": "2026-09-14",
+  "thesis": "T01 Scarce Evidence / Causal Reconstruction",
+  "standing": "FAILS_PREDECLARED_BOUNDED_RATIONALITY_ROBUSTNESS",
+  "mechanismModifiedAfterObservation": false,
+  "results": {
+    "optimalSolvedRate": 1.0,
+    "lowNoiseSolvedRate": 0.955,
+    "boundedSolvedRate": 0.5977777777777777,
+    "boundedMeanRemainingHypotheses": 1.4355555555555555,
+    "highNoiseSolvedRate": 0.4261111111111111,
+    "randomSolvedRate": 0.24583333333333332,
+    "randomMeanRemainingHypotheses": 2.1580555555555554,
+    "generousBudgetOptimalMeanRemaining": 1.0,
+    "generousBudgetFixedMeanRemaining": 1.0
+  },
+  "decisionConsequence": "Scarcity clearly creates information-selection value and low-noise policies exploit it, but the current two-inspection thesis is not robust enough under the predeclared bounded-rational player model to earn product commitment. Retain the mechanism evidence; do not promote this product thesis to G0 without a new product thesis or materially different evidence basis.",
+  "boundary": "This is a model-relative robustness result and does not identify Human fairness, satisfaction or aha experience."
+}
