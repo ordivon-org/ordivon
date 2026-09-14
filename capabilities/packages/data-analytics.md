@@ -1,6 +1,6 @@
 # Package: Data & Analytics
 
-Last census: 2026-09-13
+Last census: 2026-09-14
 Standing: **READY_FOR_REAL_WORK**
 
 ## Outcome scope
@@ -33,11 +33,39 @@ Use according to context:
 - Artifact dataset/table/figure validation capabilities;
 - Git/content digests and task-specific schema/quality checks.
 
+No Qdrant executable, Docker image or local Qdrant project was observed during the 2026-09-14 census.
+
+## Vector / similarity retrieval routing
+
+Vector search is one retrieval method, not a base data-platform requirement.
+
+Use the thinnest adequate option:
+
+```text
+small/local exact similarity
+  -> direct in-memory / SQL distance calculation
+
+local analytical prototype
+  -> DuckDB exact vector functions; VSS/HNSW only with awareness of its current experimental persistent-index limitations
+
+application/domain data already authoritative in PostgreSQL
+  -> pgvector first candidate
+
+dedicated production filtered/hybrid vector retrieval
+  -> Qdrant first candidate
+```
+
+Qdrant becomes appropriate when vector search itself needs independent production behavior such as filter-aware ANN, dense+sparse/multivector hybrid retrieval, search-specific quantization/memory tuning, tenant-aware sharding or independent horizontal scale. See `capabilities/providers/qdrant.md` and `knowledge/lessons/qdrant-vector-search-kernel.md`.
+
+Do not duplicate authoritative relational/domain records into a separate vector service without a measured retrieval benefit and explicit source/version linkage.
+
 ## Concrete current gaps
 
-No generic data-platform gap is proven.
+No generic data-platform or vector-database gap is proven.
 
-Do not install Spark, dbt, Airflow, Kafka, a lakehouse, warehouse, feature store, BI server or catalog merely to fill a conceptual slot. Activate one only when scale, collaboration, latency, lineage, governance or workload shape requires it.
+Do not install Spark, dbt, Airflow, Kafka, a lakehouse, warehouse, feature store, BI server, catalog or vector database merely to fill a conceptual slot. Activate one only when scale, collaboration, latency, lineage, governance, retrieval quality or workload shape requires it.
+
+For future vector-search workloads, first establish a retrieval relevance/latency baseline with the simplest available implementation. Only promote to pgvector/Qdrant when measured constraints justify the operational dependency.
 
 ## Acceptance workload
 
@@ -45,7 +73,11 @@ Use the next real dataset from Research, Game, Market Capital or another project
 
 `source identity -> schema/quality checks -> transformation/query/analysis -> method-specific validation -> reproducible result -> validated table/figure/report/model artifact`
 
-For decision-bearing analytics, preserve the distinction between data correctness, statistical validity and the downstream decision rule.
+If similarity retrieval is part of the workload, separately verify:
+
+`source/version identity -> retrieval representation -> exact/lexical baseline -> ANN/hybrid candidate -> relevance metrics + latency/resource cost -> downstream answer/domain verification`
+
+For decision-bearing analytics, preserve the distinction between data correctness, retrieval quality, statistical validity and the downstream decision rule.
 
 ## External references
 
@@ -53,3 +85,5 @@ For decision-bearing analytics, preserve the distinction between data correctnes
 - FAIR Principles: https://www.go-fair.org/fair-principles/
 - Apache Arrow specifications: https://arrow.apache.org/docs/format/index.html
 - Apache Parquet format: https://parquet.apache.org/docs/file-format/
+- pgvector: https://github.com/pgvector/pgvector
+- Qdrant: https://qdrant.tech/documentation/
