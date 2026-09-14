@@ -1,16 +1,20 @@
 # Finance consumer network profile
 
-This directory owns the Network v2 transport projection for Finance venue consumers. It is a thin composition over mature WireGuard, Linux network namespaces, systemd and sing-box. Finance retains domain semantics and caller TLS.
+This directory owns the Network v2 transport projection for Finance venue consumers. The current data plane is intentionally a thin composition over **sing-box + systemd**. Finance retains domain semantics and caller TLS.
 
 ## Production topology
 
-One provider substrate is shared rather than duplicated per venue:
+The provider and consumer transport graph is one mature sing-box process rather than a custom namespace/controller stack:
 
 ```text
-provider A WireGuard ─┐
-                     ├─ sing-box provider carriers ─ root sing-box ─ four fenced loopback CONNECT authorities
-provider B WireGuard ─┘
+Surfshark WireGuard Endpoint A ─┐
+                               ├─ sing-box provider URLTest ─ provider DNS ─ four fenced loopback CONNECT authorities
+Surfshark WireGuard Endpoint B ─┘
 ```
+
+The WireGuard endpoints use sing-box's native userspace WireGuard Endpoint implementation (`system=false`). Numeric provider endpoints are compiled from the pinned Gluetun Surfshark catalog and the existing protected provider profiles during materialization. No Finance runtime dependency remains on Linux netns, `wg-quick`, `wireguard-go`, a provider-side HTTP carrier, Surfpath, ExteriorAnchor, or a custom recovery controller.
+
+`provider-auto` is the only A/B selector. Its health URL is numeric (`https://1.1.1.1/cdn-cgi/trace`) so provider selection does not depend on host DNS. The provider DNS server is reached through the selected WireGuard endpoint (`detour=provider-auto`), and sing-box's native route `resolve` action resolves each admitted Finance hostname before L3 forwarding. URLTest establishes provider-path health only; real venue consequences remain independent acceptance evidence.
 
 The independent consumer authorities are:
 
@@ -19,10 +23,8 @@ The independent consumer authorities are:
 - OKX public WS: `127.0.0.1:19288` → exactly `ws.okx.com:8443`.
 - Binance USD-M public WS: `127.0.0.1:19289` → exactly `fstream.binance.com:443`.
 
-`127.0.0.1:19299` is sing-box's local observation API, not a consumer data authority. Every consumer inbound has its own URLTest group and an exact inbound + domain + port route. The final route rule rejects everything else. There is no native/direct fallback.
+`127.0.0.1:19299` is sing-box's local observation API, not a consumer data authority. Every consumer inbound has an exact inbound + domain + port route. The final route rule rejects everything else. There is no native/direct fallback.
 
-The Binance WS group uses the stable Binance USD-M public REST time endpoint only as provider-path health evidence. Real `fstream.binance.com` consequence is verified separately; Finance performs the application-level WebSocket frame acceptance.
+The composition root is `network-v2-finance.target`; it owns only `network-v2-finance-egress.service`. `provider-endpoints.json` is protected deployment material and is deliberately not stored in Git.
 
-The composition root is `network-v2-finance.target`. Provider namespace/WireGuard/carrier units are shared by all four authorities.
-
-Historical `finance-okx` R5/R6/R7 evidence remains under `history/`; it is evidence, not current desired state.
+Historical R5/R6/R7 namespace/`wg-quick` evidence remains under `history/`; it is evidence, not current desired state.

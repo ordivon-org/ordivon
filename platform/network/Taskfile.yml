@@ -15,11 +15,12 @@ tasks:
       - sing-box check -c providers/surfshark/config/carrier.json
 
   consumer:finance:validate:
-    desc: Validate the shared Finance venue network profile without changing live authority
-    deps: [provider:surfshark:validate]
+    desc: Validate the sing-box-native Finance venue policy without changing live authority
     cmds:
-      - sing-box check -c consumers/finance/config/egress.json
-      - /usr/bin/systemd-analyze verify consumers/finance/systemd/network-v2-finance-netns@.service consumers/finance/systemd/network-v2-finance-wireguard@.service consumers/finance/systemd/network-v2-finance-carrier@.service consumers/finance/systemd/network-v2-finance-egress.service consumers/finance/systemd/network-v2-finance.target
+      - jq -e '.inbounds|length==4' consumers/finance/config/egress.json >/dev/null
+      - jq -e '.outbounds==[{"type":"urltest","tag":"provider-auto","outbounds":["provider-b","provider-a"],"url":"https://1.1.1.1/cdn-cgi/trace","interval":"3s","tolerance":65535,"idle_timeout":"10m","interrupt_exist_connections":true}]' consumers/finance/config/egress.json >/dev/null
+      - jq -e '.dns.servers==[{"type":"udp","tag":"provider-dns","server":"162.252.172.57","server_port":53,"detour":"provider-auto"}] and .route.rules[0].action=="resolve" and .route.rules[0].server=="provider-dns"' consumers/finance/config/egress.json >/dev/null
+      - /usr/bin/systemd-analyze verify consumers/finance/systemd/network-v2-finance-egress.service consumers/finance/systemd/network-v2-finance.target
       - jq -e '.kind=="ordivon.network-v2.scoped-egress-authority" and .directFallback==false and (.proxy|startswith("http://127.0.0.1:"))' consumers/finance/config/*-authority.json >/dev/null
 
   all:validate:
@@ -234,29 +235,40 @@ tasks:
         done <"$manifest"
 
   consumer:finance:materialize:
-    desc: Materialize the shared Finance provider substrate and four venue authorities without starting or cutting over consumers
-    deps: [consumer:finance:validate, provider:surfshark:verify-local]
+    desc: Materialize one sing-box-native Finance provider graph and four venue authorities without starting or cutting over consumers
+    deps: [consumer:finance:validate]
     cmds:
       - install -d -m 0755 /etc/network-v2/finance
-      - install -m 0644 providers/surfshark/config/carrier.json /etc/network-v2/finance/provider-carrier.json
       - install -m 0644 consumers/finance/config/egress.json /etc/network-v2/finance/egress.json
       - install -m 0644 consumers/finance/config/*-authority.json /etc/network-v2/finance/
       - |
         set -eu
-        manifest=/etc/network-v2/providers/catalog-profiles/MANIFEST.tsv
-        a_ep=$(awk -F '\t' '$1=="kr-seo"{print $2; exit}' "$manifest")
-        a_profile=$(awk -F '\t' '$1=="kr-seo"{print $4; exit}' "$manifest")
-        b_ep=$(awk -F '\t' '$1=="th-bkk"{print $2; exit}' "$manifest")
-        b_profile=$(awk -F '\t' '$1=="th-bkk"{print $4; exit}' "$manifest")
-        test -n "$a_ep"; test -f "$a_profile"
-        test -n "$b_ep"; test -f "$b_profile"
-        a_tmp=$(mktemp)
-        b_tmp=$(mktemp)
-        trap 'rm -f "$a_tmp" "$b_tmp"' EXIT
-        printf '%s\n' 'HOST_IF=nv2fha' 'NS_IF=nv2fna' 'HOST_ADDR=10.252.244.1/30' 'NS_ADDR=10.252.244.2/30' 'HOST_IP=10.252.244.1' "ENDPOINT=$a_ep" "PROFILE=$a_profile" 'WG_IF=nv2r6a' >"$a_tmp"
-        printf '%s\n' 'HOST_IF=nv2fhb' 'NS_IF=nv2fnb' 'HOST_ADDR=10.252.245.1/30' 'NS_ADDR=10.252.245.2/30' 'HOST_IP=10.252.245.1' "ENDPOINT=$b_ep" "PROFILE=$b_profile" 'WG_IF=nv2r6b' >"$b_tmp"
-        install -m 0600 "$a_tmp" /etc/network-v2/finance/provider-a.env
-        install -m 0600 "$b_tmp" /etc/network-v2/finance/provider-b.env
+        src=/etc/network-v2/providers
+        catalog={{.GLUETUN_SERVERS_INSTALL}}
+        test -f "$catalog"
+        test "$(sha256sum "$catalog" | awk '{print $1}')" = "{{.GLUETUN_SERVERS_SHA256}}"
+        test -f "$src/kr-seo.conf"; test -f "$src/th-bkk.conf"
+        a_ep=$(jq -r '.servers[] | select(.vpn=="wireguard" and .hostname=="kr-seo.prod.surfshark.com") | .ips[0]' "$catalog" | head -n1)
+        b_ep=$(jq -r '.servers[] | select(.vpn=="wireguard" and .hostname=="th-bkk.prod.surfshark.com") | .ips[0]' "$catalog" | head -n1)
+        test -n "$a_ep"; test "$a_ep" != null
+        test -n "$b_ep"; test "$b_ep" != null
+        a_json=$(mktemp); b_json=$(mktemp); ep_tmp=$(mktemp)
+        trap 'rm -f "$a_json" "$b_json" "$ep_tmp"' EXIT
+        yq -p=ini -o=json "$src/kr-seo.conf" >"$a_json"
+        yq -p=ini -o=json "$src/th-bkk.conf" >"$b_json"
+        jq -n --slurpfile a "$a_json" --slurpfile b "$b_json" --arg a_ep "$a_ep" --arg b_ep "$b_ep" '
+          def endpoint($tag;$cfg;$ip): {
+            type:"wireguard", tag:$tag, system:false, mtu:1408,
+            address:[$cfg.Interface.Address], private_key:$cfg.Interface.PrivateKey,
+            peers:[{address:$ip, port:51820, public_key:$cfg.Peer.PublicKey,
+                    allowed_ips:["0.0.0.0/0"], persistent_keepalive_interval:5}]
+          };
+          {endpoints:[endpoint("provider-a";$a[0];$a_ep), endpoint("provider-b";$b[0];$b_ep)]}
+        ' >"$ep_tmp"
+        chmod 0640 "$ep_tmp"
+        chown root:sing-box "$ep_tmp"
+        sing-box check -c "$ep_tmp" -c consumers/finance/config/egress.json
+        install -o root -g sing-box -m 0640 "$ep_tmp" /etc/network-v2/finance/provider-endpoints.json
       - for: { var: FINANCE_SYSTEMD_UNITS }
         cmd: install -m 0644 {{.ITEM}} /etc/systemd/system/{{base .ITEM}}
       - systemctl daemon-reload
@@ -428,7 +440,7 @@ vars:
   R0_SYSTEMD_UNITS:
     sh: printf '%s ' systemd/network-v2-r0.target systemd/network-v2-dnsproxy.service systemd/network-v2-singbox.service systemd/network-v2-blackbox.service systemd/network-v2-prometheus.service
   FINANCE_SYSTEMD_UNITS:
-    sh: printf '%s ' consumers/finance/systemd/*
+    sh: printf '%s ' consumers/finance/systemd/network-v2-finance-egress.service consumers/finance/systemd/network-v2-finance.target
   WIREGUARD_GO_REPO:
     sh: awk -F= '$1=="repository"{print $2}' capabilities/wireguard/external/wireguard-go.lock
   WIREGUARD_GO_REVISION:
