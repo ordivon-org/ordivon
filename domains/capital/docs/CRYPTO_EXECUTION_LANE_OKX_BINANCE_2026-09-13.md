@@ -42,6 +42,6 @@ Direct WSL HTTP probes to both OKX and Binance timed out. Scoped Surfshark trans
 
 ## Next graduation sequence
 
-`public dual-venue data -> same-cut/clock-quality qualification where needed -> crypto-specific decision/shadow intent -> local Nautilus OMS/Risk -> OKX Demo and/or Binance Demo/Testnet -> venue reconciliation -> repeated paper evidence`
+`qualified public reality -> minimal decision binding -> FIX-aligned order intent -> mature pre-trade/OMS/Risk -> Nautilus execution client -> OKX Demo and/or Binance Demo/Testnet -> authoritative venue reality -> reconciliation -> repeated paper/recovery evidence`
 
-Only after those steps would any live authorization design be considered.
+Each arrow is a composition boundary, not a mandate to implement a new subsystem. Only after those steps would any live authorization design be considered.

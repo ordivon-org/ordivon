@@ -22,6 +22,11 @@ External mature sources/capabilities provide most evidence mechanics:
 
 Market Capital owns the mappings from admitted evidence into its domain decisions, not duplicate research infrastructure.
 
+
+## Composition-first rule
+
+Market Capital does not own mechanisms already provided by authoritative venues or mature components. Venue APIs own market/account/order reality; QuantConnect LEAN and NautilusTrader own admitted trading-engine mechanics; FIX 4.4/QuickFIX-n owns standard order-intent/execution vocabulary where applicable; PFMI and ISO 20022 remain post-trade reference semantics; Prometheus/Grafana own monitoring mechanics. Market Capital retains only thin decision/proof/authority/reconciliation seams. Custom mechanisms require a documented substitution failure. See `docs/COMPOSITION_FIRST_2026-09-14.md`.
+
 ## 2. Decision
 
 Portfolio construction produces an immutable decision artifact with a causal decision boundary. Decision-time inputs and future execution-time observations are kept distinct. Future market data must not silently rewrite a frozen decision or precommit.
@@ -68,7 +73,7 @@ PFMI and ISO 20022 remain reference semantics for external post-trade infrastruc
 
 ## 7. Crypto venue lane
 
-The active future venue qualification path is OKX + Binance Spot through the native NautilusTrader adapters. The lane is continuous 24/7 crypto and does not inherit the historical U.S.-equity opening-auction assumptions. Public market data is admitted without credentials; private account data, demo execution and live execution remain blocked until separately graduated.
+The active future venue qualification path is OKX + Binance Spot through an asymmetric mature-component composition: Nautilus owns admitted OMS/Risk and available execution-client mechanics; each venue's authoritative APIs own market/account/order reality; Binance public data remains on its official credential-free REST/WebSocket boundary where that is the qualified path. The lane is continuous 24/7 crypto and does not inherit the historical U.S.-equity opening-auction assumptions. Public market data is admitted without credentials; private account data, demo execution and live execution remain blocked until separately graduated.
 
 Initial common universe: BTC/USDT and ETH/USDT. OKX Demo and Binance Demo/Testnet are the first future execution environments. Direct local exchange HTTP requires workstation scoped VPN transport. Singapore OpenVPN-TCP has passed point-in-time public-data qualification for both OKX and Binance; future sessions must rediscover/revalidate a fresh path.
 
@@ -86,6 +91,6 @@ Initial common universe: BTC/USDT and ETH/USDT. OKX Demo and Binance Demo/Testne
 - Crypto Native Adapter R1: OKX native Nautilus public data is admitted; Binance rc4 native data startup is blocked, so Binance public data stays on its official credential-free REST/WebSocket boundary and is normalized before use.
 - Clock Quality Gate: fresh multi-source audits show the host/WSL clock is outside the 1000 ms gate and the error direction is unstable (previously ~2.65–2.68 s ahead, now ~2.90–2.92 s behind). Windows Time inspection is available and shows an unsynchronized Local CMOS fallback; safe remediation requires an administrator-authorized Windows path.
 - Crypto Public Shadow R2: persistent public WebSocket observation is qualified on a fresh HK OpenVPN-UDP/native-a path. One warm-up plus three measured snapshots used exchange source timestamps and local monotonic receive timestamps; measured 3/3 passed the frozen 1200 ms source/receive span gates. Host wall clock was not used, and private/demo/live remain blocked by the independent clock-quality gate.
-- Paper brokerage, real account reality, reconciliation and live authorization remain future admissions.
+- Remaining non-live admissions are composition work: minimal decision → FIX-aligned intent binding; read-only authoritative account/order/trade reality; Nautilus → OKX Demo/Binance Demo-Testnet execution; venue reconciliation; and repeated paper/recovery evidence. Live authorization remains a separate later admission.
 - Crypto Stream Resilience R3: missing, stale, and time-diverged public feeds fail closed; dual-venue reconnect qualification passes real injected disconnect/reconnect tests for both OKX and Binance on a fresh qualified HK/UDP/native-a path. Canonical evidence is exported through the existing node_exporter → Prometheus → Grafana stack.
 Clock timing qualification now passes: Windows w32time is synchronized to qualified public NTP peers and WSL CLOCK_REALTIME follows the Windows host through `/dev/ptp_hyperv` using `phc2sys`; fresh external validation observed <=47.1 ms absolute error versus the frozen 1000 ms gate. Overall private/demo/live execution remains blocked by the separate NON_LIVE execution authority.
