@@ -1,0 +1,11 @@
+{
+  "authorityId": "crossref-metadata-deposit-schema-5.5.0",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current-recommended",
+  "note": "Crossref identifies 5.5.0 as the current recommended metadata deposit schema for complete metadata.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.crossref.org/documentation/schema-library/metadata-deposit-schema-5-5-0/",
+  "schemaVersion": 1,
+  "versionObserved": "5.5.0"
+}

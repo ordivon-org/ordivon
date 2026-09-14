@@ -1,0 +1,11 @@
+{
+  "authorityId": "swhid-scheme-v1",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current",
+  "note": "Software Heritage documentation states scheme version 1 is the current SWHID identifier scheme.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://docs.softwareheritage.org/devel/swh-model/persistent-identifiers.html",
+  "schemaVersion": 1,
+  "versionObserved": "1"
+}

@@ -1,0 +1,54 @@
+{
+  "access": {
+    "fullText": "mixed",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "CRediT",
+      "Contributor Roles Taxonomy",
+      "ANSI/NISO Z39.104-2022"
+    ],
+    "domains": [
+      "research",
+      "scholarly-communication",
+      "metadata",
+      "authorship"
+    ],
+    "topics": [
+      "contributor-roles",
+      "authorship",
+      "research-contributions",
+      "scholarly-metadata"
+    ]
+  },
+  "id": "ansi-niso-z39.104-2022-credit",
+  "identity": {
+    "authorityKind": "national-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "niso",
+      "name": "National Information Standards Organization (NISO)"
+    },
+    "officialSource": "https://www.niso.org/publications/z39104-2022-credit",
+    "publicationDate": "2022-02-08",
+    "title": "ANSI/NISO Z39.104-2022 — CRediT, Contributor Roles Taxonomy",
+    "versionLabel": "Z39.104-2022"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/research.md",
+      "docs/RESEARCH_CAPABILITY_PACKAGE_R1.md",
+      "NISO official standard page checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

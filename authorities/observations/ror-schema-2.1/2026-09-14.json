@@ -1,0 +1,11 @@
+{
+  "authorityId": "ror-schema-2.1",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current-recommended-stable",
+  "note": "ROR identifies Schema 2.1 as the current recommended stable schema used by its REST API, web search and data dump; schema 1.0 was sunset in 2025.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://ror.readme.io/docs/schema-v2-1",
+  "schemaVersion": 1,
+  "versionObserved": "2.1"
+}

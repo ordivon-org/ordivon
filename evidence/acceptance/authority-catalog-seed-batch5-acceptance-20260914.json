@@ -1,0 +1,43 @@
+{
+  "addedCount": 7,
+  "baseRecordCount": 103,
+  "batch": "2026-09-14-batch5",
+  "boundary": "Acceptance proves Batch 5 scholarly infrastructure authority registration, currentness observations and lexical discovery. It does not authorize DOI deposits, ORCID writes or other external scholarly effects.",
+  "currentObservationCount": 110,
+  "currentRecordCount": 110,
+  "deferredCandidates": [
+    "ORCID API/message schema 3.0 until an actual record read/write integration is needed",
+    "Crossref resource-only schema because current Research use is metadata lookup/deposit identity rather than resource-only update",
+    "DataCite DOI registration API details until an authorized deposit workload exists",
+    "CITATION.cff specification until a released software citation workload binds it"
+  ],
+  "discoverySmokes": {
+    "citation style language": "csl-1.0.2",
+    "contributor roles taxonomy": "ansi-niso-z39.104-2022-credit",
+    "crossref metadata deposit": "crossref-metadata-deposit-schema-5.5.0",
+    "datacite metadata": "datacite-metadata-schema-4.7",
+    "orcid identifier": "orcid-id-structure",
+    "research organization registry": "ror-schema-2.1",
+    "software heritage persistent identifier": "swhid-scheme-v1"
+  },
+  "families": {
+    "research-scholarly-infrastructure": [
+      "ansi-niso-z39.104-2022-credit",
+      "crossref-metadata-deposit-schema-5.5.0",
+      "csl-1.0.2",
+      "datacite-metadata-schema-4.7",
+      "orcid-id-structure",
+      "ror-schema-2.1",
+      "swhid-scheme-v1"
+    ]
+  },
+  "kind": "ordivon.external-authority-catalog-seed-batch-acceptance",
+  "schemaValidation": {
+    "index": "PASS",
+    "observations": "PASS",
+    "records": "PASS",
+    "validator": "check-jsonschema 0.38.0"
+  },
+  "schemaVersion": 1,
+  "standing": "PASS_VERIFIED_SEED_EXPANSION"
+}

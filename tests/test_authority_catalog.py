@@ -74,6 +74,13 @@ class AuthorityCatalogTests(unittest.TestCase):
         self.assertEqual(top("model context protocol"), "mcp-spec-2026-07-28")
         self.assertEqual(top("agent skills"), "agent-skills-spec")
         self.assertEqual(top("software supply chain attestation"), "in-toto-1.0")
+        self.assertEqual(top("datacite metadata"), "datacite-metadata-schema-4.7")
+        self.assertEqual(top("crossref metadata deposit"), "crossref-metadata-deposit-schema-5.5.0")
+        self.assertEqual(top("research organization registry"), "ror-schema-2.1")
+        self.assertEqual(top("contributor roles taxonomy"), "ansi-niso-z39.104-2022-credit")
+        self.assertEqual(top("citation style language"), "csl-1.0.2")
+        self.assertEqual(top("software heritage persistent identifier"), "swhid-scheme-v1")
+        self.assertEqual(top("orcid identifier"), "orcid-id-structure")
 
     def test_latest_observation_is_append_only_date_selection(self):
         latest = catalog.latest_observation("iso-9001-2026")
