@@ -1,0 +1,1876 @@
+{
+  "schemaVersion": 2,
+  "id": "ordivon-next.game-top-mechanism-specimens.r2",
+  "observedDate": "2026-09-14",
+  "standing": "EXTERNAL_TOP_SPECIMEN_MECHANISM_DECOMPOSITION_R2_CURRENT",
+  "parent": "game-top-mechanism-specimens-r1.json",
+  "selectionBoundary": [
+    "Top specimen means current durable market presence or unusually clear canonical mechanism reference; not a causal success ranking.",
+    "Official/current sources establish product/mechanic facts where available; coupling/dynamic statements remain desk decomposition hypotheses until direct play or stronger evidence.",
+    "No mechanism is promoted as successful merely because it appears in a successful game.",
+    "R2 intentionally targets mechanism-space gaps left by R1 rather than adding more examples from already-covered genres."
+  ],
+  "counts": {
+    "inheritedSpecimens": 16,
+    "addedSpecimens": 11,
+    "cumulativeSpecimens": 27,
+    "inheritedMotifs": 12,
+    "addedMotifs": 11,
+    "cumulativeMotifs": 23
+  },
+  "specimens": [
+    {
+      "id": "top-cs2",
+      "title": "Counter-Strike 2",
+      "standing": "EXTERNAL_TOP_SPECIMEN_DESK_DECOMPOSITION",
+      "whyIncluded": "current Steam #1 Most Played; durable competitive reference",
+      "sources": [
+        "https://store.steampowered.com/charts/mostplayed",
+        "https://store.steampowered.com/app/730/CounterStrike_2/"
+      ],
+      "nodes": [
+        "aim",
+        "shoot",
+        "partial-observation",
+        "round-match",
+        "team-based-play",
+        "communication-limits",
+        "currency",
+        "loadout-building",
+        "risk-reward"
+      ],
+      "edges": [
+        {
+          "from": "partial-observation",
+          "relation": "amplifies",
+          "to": "communication-limits",
+          "claim": "Unknown enemy state makes information sharing strategically consequential."
+        },
+        {
+          "from": "currency",
+          "relation": "constrains",
+          "to": "loadout-building",
+          "claim": "Round economy turns equipment into inter-round commitment."
+        },
+        {
+          "from": "round-match",
+          "relation": "resets",
+          "to": "risk-reward",
+          "claim": "Short rounds bound failure and make tactical/economic mistakes comparable."
+        },
+        {
+          "from": "team-based-play",
+          "relation": "amplifies",
+          "to": "partial-observation",
+          "claim": "Different positions create distributed team knowledge."
+        }
+      ],
+      "dynamics": [
+        "execution skill + information economy + inter-round resource economy",
+        "small action set gains depth from opponent uncertainty and team information distribution"
+      ],
+      "failureModes": [
+        "too much opacity turns inference into guessing",
+        "economy snowball can reduce contestability",
+        "poor attribution makes death arbitrary"
+      ],
+      "causalSuccessClaim": "NOT_ESTABLISHED"
+    },
+    {
+      "id": "top-dota2",
+      "title": "Dota 2",
+      "standing": "EXTERNAL_TOP_SPECIMEN_DESK_DECOMPOSITION",
+      "whyIncluded": "current Steam #2 Most Played; canonical MOBA systems specimen",
+      "sources": [
+        "https://store.steampowered.com/charts/mostplayed",
+        "https://store.steampowered.com/app/570/Dota_2/"
+      ],
+      "nodes": [
+        "variable-player-powers",
+        "asymmetric-roles",
+        "team-based-play",
+        "equipment-progression",
+        "shared-resource",
+        "territory-control",
+        "capture-control",
+        "risk-reward"
+      ],
+      "edges": [
+        {
+          "from": "variable-player-powers",
+          "relation": "amplifies",
+          "to": "asymmetric-roles",
+          "claim": "Hero kits create distinct responsibilities and power timings."
+        },
+        {
+          "from": "asymmetric-roles",
+          "relation": "amplifies",
+          "to": "team-based-play",
+          "claim": "Role specialization makes team value interdependent."
+        },
+        {
+          "from": "equipment-progression",
+          "relation": "modulates",
+          "to": "capture-control",
+          "claim": "Item/power timings change which objectives and fights are viable."
+        },
+        {
+          "from": "territory-control",
+          "relation": "modulates",
+          "to": "shared-resource",
+          "claim": "Map control changes access to farm, vision and objectives."
+        }
+      ],
+      "dynamics": [
+        "role interdependence + power curves + objective timing",
+        "local actions accumulate into delayed team-level strategic consequence"
+      ],
+      "failureModes": [
+        "role identity can blur under system overload",
+        "progression advantage can snowball",
+        "coordination burden can exceed individual agency"
+      ],
+      "causalSuccessClaim": "NOT_ESTABLISHED"
+    },
+    {
+      "id": "top-fortnite",
+      "title": "Fortnite Battle Royale",
+      "standing": "EXTERNAL_TOP_SPECIMEN_DESK_DECOMPOSITION",
+      "whyIncluded": "global battle-royale/live-platform reference; Zero Build isolates the BR core from building",
+      "sources": [
+        "https://www.fortnite.com/@epic/battle-royale",
+        "https://www.fortnite.com/@epic/zero-build"
+      ],
+      "nodes": [
+        "permadeath",
+        "random-production",
+        "inventory",
+        "risk-reward",
+        "spatial-blocking",
+        "survive",
+        "team-based-play",
+        "freeform-building"
+      ],
+      "edges": [
+        {
+          "from": "random-production",
+          "relation": "modulates",
+          "to": "inventory",
+          "claim": "Loot uncertainty changes tactical options."
+        },
+        {
+          "from": "spatial-blocking",
+          "relation": "constrains",
+          "to": "survive",
+          "claim": "Shrinking space forces eventual interaction."
+        },
+        {
+          "from": "permadeath",
+          "relation": "amplifies",
+          "to": "risk-reward",
+          "claim": "One-life stakes make route and engagement timing consequential."
+        },
+        {
+          "from": "freeform-building",
+          "relation": "transforms",
+          "to": "risk-reward",
+          "claim": "Building can create cover/height and change the combat state."
+        }
+      ],
+      "dynamics": [
+        "uncertain resources + forced convergence + one-life consequence",
+        "Build versus Zero Build demonstrates one major mechanic can reshape combat topology"
+      ],
+      "failureModes": [
+        "loot variance can overwhelm skill attribution",
+        "convergence feels artificial if route info is poor",
+        "building can create extreme skill-floor separation"
+      ],
+      "causalSuccessClaim": "NOT_ESTABLISHED"
+    },
+    {
+      "id": "top-minecraft",
+      "title": "Minecraft",
+      "standing": "EXTERNAL_TOP_SPECIMEN_DESK_DECOMPOSITION",
+      "whyIncluded": "canonical sandbox/creative survival specimen",
+      "sources": [
+        "https://www.minecraft.net/en-us/article/what-minecraft",
+        "https://www.minecraft.net/en-us/about-minecraft"
+      ],
+      "nodes": [
+        "destroy",
+        "collect",
+        "craft",
+        "place",
+        "freeform-building",
+        "self-authored-goal",
+        "world-state-persistence",
+        "procedural-generation",
+        "rule-discovery"
+      ],
+      "edges": [
+        {
+          "from": "destroy",
+          "relation": "produces",
+          "to": "collect",
+          "claim": "World manipulation yields reusable material."
+        },
+        {
+          "from": "collect",
+          "relation": "enables",
+          "to": "craft",
+          "claim": "Resources become tools/blocks."
+        },
+        {
+          "from": "craft",
+          "relation": "enables",
+          "to": "place",
+          "claim": "Production feeds persistent world transformation."
+        },
+        {
+          "from": "place",
+          "relation": "transforms",
+          "to": "world-state-persistence",
+          "claim": "Player actions remain visible and alter future affordances."
+        },
+        {
+          "from": "self-authored-goal",
+          "relation": "modulates",
+          "to": "freeform-building",
+          "claim": "Meaning of construction is chosen by the player."
+        }
+      ],
+      "dynamics": [
+        "tiny block manipulation grammar + persistent composition + self-authored goals",
+        "survival pressure and creative freedom reuse the same world grammar"
+      ],
+      "failureModes": [
+        "over-prescriptive goals reduce authorship",
+        "inconsistent rules weaken experimentation trust",
+        "building without affordance can become decoration-only"
+      ],
+      "causalSuccessClaim": "NOT_ESTABLISHED"
+    },
+    {
+      "id": "top-factorio",
+      "title": "Factorio",
+      "standing": "EXTERNAL_TOP_SPECIMEN_DESK_DECOMPOSITION",
+      "whyIncluded": "canonical automation/logistics specimen",
+      "sources": [
+        "https://www.factorio.com/game/content",
+        "https://www.factorio.com/press-kit"
+      ],
+      "nodes": [
+        "resource-source",
+        "transport",
+        "resource-converter",
+        "resource-drain-sink",
+        "automation",
+        "bottleneck",
+        "throughput",
+        "feedback-control",
+        "scaling-economies-of-scale"
+      ],
+      "edges": [
+        {
+          "from": "resource-source",
+          "relation": "produces",
+          "to": "transport",
+          "claim": "Extraction creates flows that must be routed."
+        },
+        {
+          "from": "transport",
+          "relation": "constrains",
+          "to": "bottleneck",
+          "claim": "Topology and throughput limits create constraints."
+        },
+        {
+          "from": "bottleneck",
+          "relation": "reveals",
+          "to": "throughput",
+          "claim": "Shortages/queues expose redesign targets."
+        },
+        {
+          "from": "automation",
+          "relation": "persists-into",
+          "to": "scaling-economies-of-scale",
+          "claim": "Solved manual work becomes reusable capacity."
+        },
+        {
+          "from": "feedback-control",
+          "relation": "modulates",
+          "to": "automation",
+          "claim": "Control systems let built processes react."
+        }
+      ],
+      "dynamics": [
+        "solve manual work once, then move cognition upward to the next constraint",
+        "simple flow primitives compose into large dependency graphs"
+      ],
+      "failureModes": [
+        "automation without moving constraints degenerates into waiting",
+        "opaque throughput hides causal ownership",
+        "scale can become spreadsheet burden"
+      ],
+      "causalSuccessClaim": "NOT_ESTABLISHED"
+    },
+    {
+      "id": "top-slay-spire",
+      "title": "Slay the Spire",
+      "standing": "EXTERNAL_TOP_SPECIMEN_DESK_DECOMPOSITION",
+      "whyIncluded": "canonical roguelike deckbuilder specimen",
+      "sources": [
+        "https://store.steampowered.com/app/646570/Slay_the_Spire/"
+      ],
+      "nodes": [
+        "deck-building",
+        "drafting",
+        "synergy-combos",
+        "build-path-dependency",
+        "randomized-encounters",
+        "risk-reward",
+        "route-network-building",
+        "run"
+      ],
+      "edges": [
+        {
+          "from": "drafting",
+          "relation": "constrains",
+          "to": "deck-building",
+          "claim": "Players build from imperfect offers."
+        },
+        {
+          "from": "synergy-combos",
+          "relation": "amplifies",
+          "to": "build-path-dependency",
+          "claim": "Earlier choices change later offer value."
+        },
+        {
+          "from": "route-network-building",
+          "relation": "modulates",
+          "to": "risk-reward",
+          "claim": "Path choice trades health, rewards and future options."
+        },
+        {
+          "from": "randomized-encounters",
+          "relation": "modulates",
+          "to": "deck-building",
+          "claim": "Encounter variation tests robustness versus specialization."
+        }
+      ],
+      "dynamics": [
+        "stable combat grammar + constrained acquisition + path dependence",
+        "randomness appears upstream as adaptation pressure"
+      ],
+      "failureModes": [
+        "auto-picks destroy drafting",
+        "invisible synergies create lookup burden",
+        "run variance can overwhelm strategic learning"
+      ],
+      "causalSuccessClaim": "NOT_ESTABLISHED"
+    },
+    {
+      "id": "top-balatro",
+      "title": "Balatro",
+      "standing": "EXTERNAL_TOP_SPECIMEN_DESK_DECOMPOSITION",
+      "whyIncluded": "modern high-signal deck/synergy specimen",
+      "sources": [
+        "https://store.steampowered.com/app/2379780/Balatro/"
+      ],
+      "nodes": [
+        "deck-building",
+        "synergy-combos",
+        "combo-chaining",
+        "score-high-score",
+        "upgrade-choice",
+        "random-production",
+        "run"
+      ],
+      "edges": [
+        {
+          "from": "deck-building",
+          "relation": "amplifies",
+          "to": "synergy-combos",
+          "claim": "Deck modification changes reachable scoring patterns."
+        },
+        {
+          "from": "upgrade-choice",
+          "relation": "modulates",
+          "to": "combo-chaining",
+          "claim": "Jokers/cards/vouchers alter how ordinary hands become score engines."
+        },
+        {
+          "from": "random-production",
+          "relation": "constrains",
+          "to": "upgrade-choice",
+          "claim": "Imperfect offers force adaptation."
+        },
+        {
+          "from": "synergy-combos",
+          "relation": "amplifies",
+          "to": "score-high-score",
+          "claim": "Multiplicative interactions create build identity and payoff."
+        }
+      ],
+      "dynamics": [
+        "familiar base grammar + rule-breaking modifiers + multiplicative synergy",
+        "legible poker hands anchor extreme emergent builds"
+      ],
+      "failureModes": [
+        "unbounded scaling can make late choices irrelevant",
+        "opaque exceptions turn discovery into memorization",
+        "shop variance can dominate planning"
+      ],
+      "causalSuccessClaim": "NOT_ESTABLISHED"
+    },
+    {
+      "id": "top-elden-ring",
+      "title": "ELDEN RING",
+      "standing": "EXTERNAL_TOP_SPECIMEN_DESK_DECOMPOSITION",
+      "whyIncluded": "award-winning durable action-RPG specimen; current Steam Top 100",
+      "sources": [
+        "https://en.bandainamcoent.eu/elden-ring/elden-ring",
+        "https://store.steampowered.com/charts/mostplayed"
+      ],
+      "nodes": [
+        "telegraphing",
+        "dodge",
+        "block",
+        "parry",
+        "strike",
+        "recovery-window",
+        "health-stamina",
+        "risk-reward",
+        "map-reveal",
+        "gating-by-knowledge",
+        "resource-loss-on-failure"
+      ],
+      "edges": [
+        {
+          "from": "telegraphing",
+          "relation": "reveals",
+          "to": "dodge",
+          "claim": "Enemy animation exposes timing information."
+        },
+        {
+          "from": "recovery-window",
+          "relation": "enables",
+          "to": "strike",
+          "claim": "Enemy commitment creates punish opportunities."
+        },
+        {
+          "from": "health-stamina",
+          "relation": "constrains",
+          "to": "risk-reward",
+          "claim": "Offense/defense/mobility share constrained capacity."
+        },
+        {
+          "from": "gating-by-knowledge",
+          "relation": "modulates",
+          "to": "map-reveal",
+          "claim": "Learning routes/enemies can substitute for raw stats."
+        },
+        {
+          "from": "resource-loss-on-failure",
+          "relation": "amplifies",
+          "to": "risk-reward",
+          "claim": "Death adds stakes while retry preserves knowledge."
+        }
+      ],
+      "dynamics": [
+        "attributable failure + retry + route freedom",
+        "player mastery and character progression are separate recovery channels"
+      ],
+      "failureModes": [
+        "unclear telegraphs break attribution",
+        "retry friction can overwhelm learning",
+        "hard gates without alternate routes collapse exploration"
+      ],
+      "causalSuccessClaim": "NOT_ESTABLISHED"
+    },
+    {
+      "id": "top-bg3",
+      "title": "Baldur’s Gate 3",
+      "standing": "EXTERNAL_TOP_SPECIMEN_DESK_DECOMPOSITION",
+      "whyIncluded": "award-winning CRPG; current Steam Top 100",
+      "sources": [
+        "https://baldursgate3.game/about",
+        "https://store.steampowered.com/charts/mostplayed"
+      ],
+      "nodes": [
+        "branching-choice",
+        "persistent-consequence",
+        "relationship-state",
+        "role-assumption",
+        "skill-build",
+        "advantage-disadvantage",
+        "turn-taking",
+        "environmental-destruction",
+        "choices-matter"
+      ],
+      "edges": [
+        {
+          "from": "role-assumption",
+          "relation": "modulates",
+          "to": "branching-choice",
+          "claim": "Class/background/origin can unlock different solution paths."
+        },
+        {
+          "from": "environmental-destruction",
+          "relation": "enables",
+          "to": "branching-choice",
+          "claim": "World systems broaden agency beyond dialogue."
+        },
+        {
+          "from": "branching-choice",
+          "relation": "produces",
+          "to": "persistent-consequence",
+          "claim": "Different actions leave later-readable state."
+        },
+        {
+          "from": "persistent-consequence",
+          "relation": "modulates",
+          "to": "relationship-state",
+          "claim": "Companions/factions reinterpret earlier choices."
+        },
+        {
+          "from": "advantage-disadvantage",
+          "relation": "modulates",
+          "to": "turn-taking",
+          "claim": "Chance is shaped by positioning/state."
+        }
+      ],
+      "dynamics": [
+        "agency becomes credible when different mechanical routes produce later acknowledgement",
+        "role/build identity changes possibility space, not only output"
+      ],
+      "failureModes": [
+        "branch explosion can become content-cost trap",
+        "unreadable random rolls obscure responsibility",
+        "choice without acknowledgement feels cosmetic"
+      ],
+      "causalSuccessClaim": "NOT_ESTABLISHED"
+    },
+    {
+      "id": "top-totk",
+      "title": "The Legend of Zelda: Tears of the Kingdom",
+      "standing": "EXTERNAL_TOP_SPECIMEN_DESK_DECOMPOSITION",
+      "whyIncluded": "canonical systemic-physics/open-world composition specimen",
+      "sources": [
+        "https://www.nintendo.com/us/whatsnew/an-epic-adventure-awaits-in-the-legend-of-zelda-tears-of-the-kingdom/",
+        "https://www.nintendo.com/us/store/products/the-legend-of-zelda-tears-of-the-kingdom-112383/"
+      ],
+      "nodes": [
+        "modular-construction",
+        "physics-spatial-manipulation",
+        "recipe-composition",
+        "shortcut-discovery",
+        "rule-discovery",
+        "map-reveal",
+        "freeform-building",
+        "risk-reward"
+      ],
+      "edges": [
+        {
+          "from": "modular-construction",
+          "relation": "amplifies",
+          "to": "physics-spatial-manipulation",
+          "claim": "Ultrahand turns objects into composable machines/bridges/vehicles."
+        },
+        {
+          "from": "recipe-composition",
+          "relation": "modulates",
+          "to": "risk-reward",
+          "claim": "Fuse changes equipment affordances."
+        },
+        {
+          "from": "physics-spatial-manipulation",
+          "relation": "enables",
+          "to": "shortcut-discovery",
+          "claim": "Ascend/Recall/constructions create nonstandard traversal solutions."
+        },
+        {
+          "from": "rule-discovery",
+          "relation": "amplifies",
+          "to": "freeform-building",
+          "claim": "Consistent rules let players invent solutions beyond authored scripts."
+        }
+      ],
+      "dynamics": [
+        "general-purpose verbs + consistent rules + many valid solutions",
+        "mechanics change geometry, equipment and time behavior rather than only numbers"
+      ],
+      "failureModes": [
+        "systemic freedom fails if only one scripted answer works",
+        "physics inconsistency destroys trust",
+        "general verbs can trivialize authored challenges"
+      ],
+      "causalSuccessClaim": "NOT_ESTABLISHED"
+    },
+    {
+      "id": "top-stardew",
+      "title": "Stardew Valley",
+      "standing": "EXTERNAL_TOP_SPECIMEN_DESK_DECOMPOSITION",
+      "whyIncluded": "durable life/farm RPG; current Steam Top 100",
+      "sources": [
+        "https://www.stardewvalley.net/about/",
+        "https://store.steampowered.com/charts/mostplayed"
+      ],
+      "nodes": [
+        "time-as-resource",
+        "automatic-resource-growth",
+        "craft",
+        "relationship-state",
+        "skill-tree",
+        "collection",
+        "self-authored-goal",
+        "world-state-persistence"
+      ],
+      "edges": [
+        {
+          "from": "time-as-resource",
+          "relation": "constrains",
+          "to": "self-authored-goal",
+          "claim": "Finite days force priority among personally chosen activities."
+        },
+        {
+          "from": "automatic-resource-growth",
+          "relation": "persists-into",
+          "to": "world-state-persistence",
+          "claim": "Prior setup yields future crops/animal/machine output."
+        },
+        {
+          "from": "relationship-state",
+          "relation": "modulates",
+          "to": "self-authored-goal",
+          "claim": "Social goals compete with farm/economic goals for time."
+        },
+        {
+          "from": "skill-tree",
+          "relation": "amplifies",
+          "to": "craft",
+          "claim": "Repeated activities unlock recipes/efficiencies that reshape routines."
+        }
+      ],
+      "dynamics": [
+        "many low-pressure loops compete for one scarce daily schedule",
+        "persistent place + relationships + gradual competence support attachment"
+      ],
+      "failureModes": [
+        "too-tight scheduling creates optimization anxiety",
+        "uncoupled activities feel like chores",
+        "scalar-only progression weakens identity"
+      ],
+      "causalSuccessClaim": "NOT_ESTABLISHED"
+    },
+    {
+      "id": "top-hades",
+      "title": "Hades",
+      "standing": "EXTERNAL_TOP_SPECIMEN_DESK_DECOMPOSITION",
+      "whyIncluded": "canonical action roguelite + persistent narrative specimen",
+      "sources": [
+        "https://www.supergiantgames.com/blog/hades-faq/",
+        "https://www.supergiantgames.com/games/hades/"
+      ],
+      "nodes": [
+        "run",
+        "randomized-encounters",
+        "variable-player-powers",
+        "synergy-combos",
+        "fast-retry",
+        "meta-progression",
+        "dynamic-narration",
+        "storylet-event-system"
+      ],
+      "edges": [
+        {
+          "from": "randomized-encounters",
+          "relation": "modulates",
+          "to": "variable-player-powers",
+          "claim": "Each run offers different boon/build combinations."
+        },
+        {
+          "from": "variable-player-powers",
+          "relation": "amplifies",
+          "to": "synergy-combos",
+          "claim": "Boons/weapons create run-specific identities."
+        },
+        {
+          "from": "fast-retry",
+          "relation": "resets",
+          "to": "run",
+          "claim": "Death returns quickly to another attempt."
+        },
+        {
+          "from": "run",
+          "relation": "produces",
+          "to": "dynamic-narration",
+          "claim": "Failure/success advances dialogue/story state."
+        },
+        {
+          "from": "meta-progression",
+          "relation": "amplifies",
+          "to": "fast-retry",
+          "claim": "Persistent unlocks soften repeated failure."
+        }
+      ],
+      "dynamics": [
+        "failure is both mechanical reset and narrative progression",
+        "build adaptation is tied to story-return loop"
+      ],
+      "failureModes": [
+        "meta progression can mask weak learning",
+        "repeated dialogue can exhaust reward",
+        "boon variance can dominate build agency"
+      ],
+      "causalSuccessClaim": "NOT_ESTABLISHED"
+    },
+    {
+      "id": "top-civ6",
+      "title": "Sid Meier’s Civilization VI",
+      "standing": "EXTERNAL_TOP_SPECIMEN_DESK_DECOMPOSITION",
+      "whyIncluded": "durable 4X/strategy reference; current Steam Top 100",
+      "sources": [
+        "https://civilization.2k.com/en-GB/civ-vi/",
+        "https://store.steampowered.com/charts/mostplayed"
+      ],
+      "nodes": [
+        "tile-placement",
+        "adjacency",
+        "tech-tree",
+        "variable-player-powers",
+        "territory-control",
+        "negotiation",
+        "trading",
+        "required-goal",
+        "optional-goal",
+        "world-state-persistence"
+      ],
+      "edges": [
+        {
+          "from": "tile-placement",
+          "relation": "amplifies",
+          "to": "adjacency",
+          "claim": "District placement turns geography into long-term optimization."
+        },
+        {
+          "from": "tech-tree",
+          "relation": "gates",
+          "to": "variable-player-powers",
+          "claim": "Research unlocks new capabilities."
+        },
+        {
+          "from": "territory-control",
+          "relation": "modulates",
+          "to": "trading",
+          "claim": "Geography/resources shape diplomacy/economy."
+        },
+        {
+          "from": "required-goal",
+          "relation": "modulates",
+          "to": "tech-tree",
+          "claim": "Victory intent revalues technologies/districts/diplomacy."
+        },
+        {
+          "from": "world-state-persistence",
+          "relation": "amplifies",
+          "to": "tile-placement",
+          "claim": "Early spatial commitments persist into later play."
+        }
+      ],
+      "dynamics": [
+        "irreversible spatial commitments + multiple victory logics + long-horizon tech progression",
+        "same state is revalued by strategic intent"
+      ],
+      "failureModes": [
+        "late-game system count can overwhelm choice",
+        "snowball creates bookkeeping",
+        "one victory path can dominate globally"
+      ],
+      "causalSuccessClaim": "NOT_ESTABLISHED"
+    },
+    {
+      "id": "top-rimworld",
+      "title": "RimWorld",
+      "standing": "EXTERNAL_TOP_SPECIMEN_DESK_DECOMPOSITION",
+      "whyIncluded": "durable colony/story-generator reference; current Steam Top 100",
+      "sources": [
+        "https://rimworldgame.com/",
+        "https://store.steampowered.com/charts/mostplayed"
+      ],
+      "nodes": [
+        "simulation-emergence",
+        "director-event-manager",
+        "adaptive-opponent",
+        "relationship-simulation",
+        "state-modifier",
+        "self-authored-goal",
+        "world-state-persistence",
+        "persistent-consequence",
+        "variable-setup"
+      ],
+      "edges": [
+        {
+          "from": "director-event-manager",
+          "relation": "modulates",
+          "to": "simulation-emergence",
+          "claim": "Storyteller selects incidents based on colony situation."
+        },
+        {
+          "from": "relationship-simulation",
+          "relation": "amplifies",
+          "to": "persistent-consequence",
+          "claim": "Social bonds propagate wounds/deaths/events into later state."
+        },
+        {
+          "from": "state-modifier",
+          "relation": "modulates",
+          "to": "adaptive-opponent",
+          "claim": "Needs/mood/environment change pawn behavior and risk."
+        },
+        {
+          "from": "variable-setup",
+          "relation": "amplifies",
+          "to": "self-authored-goal",
+          "claim": "Different colonists/world conditions create different priorities."
+        },
+        {
+          "from": "world-state-persistence",
+          "relation": "produces",
+          "to": "simulation-emergence",
+          "claim": "Accumulated structures, injuries and relationships become story material."
+        }
+      ],
+      "dynamics": [
+        "simulation state is narrative substrate",
+        "director shapes pacing while local systems produce specific consequences"
+      ],
+      "failureModes": [
+        "director can feel manipulative",
+        "opaque mood systems create noise",
+        "detail without interaction becomes spreadsheet burden"
+      ],
+      "causalSuccessClaim": "NOT_ESTABLISHED"
+    },
+    {
+      "id": "top-sims4",
+      "title": "The Sims 4",
+      "standing": "EXTERNAL_TOP_SPECIMEN_DESK_DECOMPOSITION",
+      "whyIncluded": "canonical life-simulation/creative sandbox; current Steam Top 100",
+      "sources": [
+        "https://www.ea.com/en/games/the-sims/the-sims-4/features",
+        "https://store.steampowered.com/charts/mostplayed"
+      ],
+      "nodes": [
+        "character-customization",
+        "self-authored-goal",
+        "relationship-simulation",
+        "relationship-state",
+        "freeform-building",
+        "world-state-persistence",
+        "skill-tree",
+        "simulation-emergence"
+      ],
+      "edges": [
+        {
+          "from": "character-customization",
+          "relation": "amplifies",
+          "to": "self-authored-goal",
+          "claim": "Created identity gives player-chosen role/fantasy."
+        },
+        {
+          "from": "relationship-simulation",
+          "relation": "produces",
+          "to": "relationship-state",
+          "claim": "Interactions accumulate into social states."
+        },
+        {
+          "from": "freeform-building",
+          "relation": "transforms",
+          "to": "world-state-persistence",
+          "claim": "Homes persist as artifacts and simulation context."
+        },
+        {
+          "from": "skill-tree",
+          "relation": "modulates",
+          "to": "self-authored-goal",
+          "claim": "Career/skill growth creates optional arcs."
+        },
+        {
+          "from": "simulation-emergence",
+          "relation": "amplifies",
+          "to": "self-authored-goal",
+          "claim": "Unexpected events generate stories around player intent."
+        }
+      ],
+      "dynamics": [
+        "create people + create space + simulate consequences",
+        "player-authored context is acted on by the simulation"
+      ],
+      "failureModes": [
+        "over-scripted goals crowd out authorship",
+        "uncaused surprises feel random",
+        "content breadth can conceal weak base interaction"
+      ],
+      "causalSuccessClaim": "NOT_ESTABLISHED"
+    },
+    {
+      "id": "top-into-breach",
+      "title": "Into the Breach",
+      "standing": "EXTERNAL_TOP_SPECIMEN_DESK_DECOMPOSITION",
+      "whyIncluded": "canonical transparent tactical puzzle specimen",
+      "sources": [
+        "https://store.steampowered.com/app/590380/Into_the_Breach/"
+      ],
+      "nodes": [
+        "grid-movement",
+        "telegraphing",
+        "deterministic-resolution",
+        "push-pull",
+        "defend",
+        "turn-taking",
+        "risk-reward",
+        "run",
+        "variable-setup"
+      ],
+      "edges": [
+        {
+          "from": "telegraphing",
+          "relation": "reveals",
+          "to": "deterministic-resolution",
+          "claim": "Enemy intent is shown before player action."
+        },
+        {
+          "from": "push-pull",
+          "relation": "transforms",
+          "to": "defend",
+          "claim": "Position manipulation redirects threats without only killing."
+        },
+        {
+          "from": "defend",
+          "relation": "modulates",
+          "to": "risk-reward",
+          "claim": "Civilian/grid protection creates multi-objective tradeoffs."
+        },
+        {
+          "from": "variable-setup",
+          "relation": "modulates",
+          "to": "turn-taking",
+          "claim": "Random boards/enemies recontextualize deterministic verbs."
+        },
+        {
+          "from": "run",
+          "relation": "resets",
+          "to": "variable-setup",
+          "claim": "Failure restarts context while preserving player knowledge."
+        }
+      ],
+      "dynamics": [
+        "near-perfect information + deterministic consequence + multi-objective spatial manipulation",
+        "depth comes from constrained interaction rather than hidden RNG"
+      ],
+      "failureModes": [
+        "telegraphing becomes rote if states lack variety",
+        "dominant displacement tools kill diversity",
+        "random missions must preserve readability"
+      ],
+      "causalSuccessClaim": "NOT_ESTABLISHED"
+    },
+    {
+      "id": "top-hunt-showdown",
+      "title": "Hunt: Showdown 1896",
+      "standing": "EXTERNAL_TOP_SPECIMEN_DESK_DECOMPOSITION",
+      "whyIncluded": "canonical extraction/bounty risk specimen with official clue→boss→bounty→extract loop",
+      "sources": [
+        "https://www.huntshowdown.com/player-guide",
+        "https://www.huntshowdown.com/game"
+      ],
+      "nodes": [
+        "permadeath",
+        "collect",
+        "inventory",
+        "risk-reward",
+        "map-reveal",
+        "clues-evidence",
+        "partial-observation",
+        "survive"
+      ],
+      "edges": [
+        {
+          "from": "clues-evidence",
+          "relation": "reveals",
+          "to": "map-reveal",
+          "claim": "Clues progressively narrow where the bounty target can be found."
+        },
+        {
+          "from": "collect",
+          "relation": "amplifies",
+          "to": "risk-reward",
+          "claim": "Taking the bounty converts discovery into a carried value that must still be extracted."
+        },
+        {
+          "from": "permadeath",
+          "relation": "amplifies",
+          "to": "risk-reward",
+          "claim": "Hunter death makes equipment/character survival part of the decision to continue or leave."
+        },
+        {
+          "from": "partial-observation",
+          "relation": "modulates",
+          "to": "survive",
+          "claim": "Sound, map information and incomplete enemy knowledge shape route and ambush choices."
+        }
+      ],
+      "dynamics": [
+        "banked-value loop: locate → contest → acquire → decide whether/where to extract",
+        "value is not secured when earned; it becomes more dangerous to carry"
+      ],
+      "failureModes": [
+        "loss stakes can create gear fear that suppresses experimentation",
+        "extract routes can become rote if too predictable",
+        "too little information turns tension into ambush lottery"
+      ],
+      "causalSuccessClaim": "NOT_ESTABLISHED"
+    },
+    {
+      "id": "top-helldivers2",
+      "title": "Helldivers 2",
+      "standing": "EXTERNAL_TOP_SPECIMEN_DESK_DECOMPOSITION",
+      "whyIncluded": "canonical co-op coordination specimen where friendly fire and shared mission pressure make teammate positioning consequential",
+      "sources": [
+        "https://www.playstation.com/en-us/games/helldivers-2/"
+      ],
+      "nodes": [
+        "team-based-play",
+        "cooperation",
+        "friendly-fire",
+        "loadout-building",
+        "communication-limits",
+        "shared-resource",
+        "required-goal",
+        "risk-reward"
+      ],
+      "edges": [
+        {
+          "from": "friendly-fire",
+          "relation": "amplifies",
+          "to": "communication-limits",
+          "claim": "Powerful area weapons require teammates to communicate location and intent."
+        },
+        {
+          "from": "loadout-building",
+          "relation": "amplifies",
+          "to": "cooperation",
+          "claim": "Stratagem/loadout differences create complementary team capabilities."
+        },
+        {
+          "from": "required-goal",
+          "relation": "amplifies",
+          "to": "team-based-play",
+          "claim": "Mission objectives require shared spatial and temporal coordination."
+        },
+        {
+          "from": "friendly-fire",
+          "relation": "modulates",
+          "to": "risk-reward",
+          "claim": "The strongest tools can threaten allies, turning firepower into a coordination tradeoff."
+        }
+      ],
+      "dynamics": [
+        "cooperation is created partly by dangerous capability rather than only positive buffs",
+        "high-impact abilities become social commitments because misuse harms the team"
+      ],
+      "failureModes": [
+        "friendly fire without readable blast/intent cues becomes griefing friction",
+        "complementary loadouts fail if everyone can independently solve every problem",
+        "shared objectives can become follow-the-marker chores"
+      ],
+      "causalSuccessClaim": "NOT_ESTABLISHED"
+    },
+    {
+      "id": "top-among-us",
+      "title": "Among Us",
+      "standing": "EXTERNAL_TOP_SPECIMEN_DESK_DECOMPOSITION",
+      "whyIncluded": "canonical social-deduction specimen where mundane tasks generate movement/alibi evidence for hidden-role reasoning",
+      "sources": [
+        "https://www.innersloth.com/games/among-us/",
+        "https://www.innersloth.com/faq/"
+      ],
+      "nodes": [
+        "secret-role",
+        "deception",
+        "voting",
+        "required-goal",
+        "communication-limits",
+        "partial-observation",
+        "team-based-play",
+        "clues-evidence"
+      ],
+      "edges": [
+        {
+          "from": "secret-role",
+          "relation": "amplifies",
+          "to": "deception",
+          "claim": "Impostors must mimic crewmate behavior while pursuing an opposing hidden objective."
+        },
+        {
+          "from": "required-goal",
+          "relation": "produces",
+          "to": "clues-evidence",
+          "claim": "Task routes and visible behavior create observations that can support or undermine alibis."
+        },
+        {
+          "from": "communication-limits",
+          "relation": "amplifies",
+          "to": "voting",
+          "claim": "Meetings convert incomplete private observations into collective accusations/decisions."
+        },
+        {
+          "from": "partial-observation",
+          "relation": "amplifies",
+          "to": "deception",
+          "claim": "No player sees the whole map, so social claims cannot be fully verified."
+        }
+      ],
+      "dynamics": [
+        "ordinary task execution doubles as evidence generation for a social inference game",
+        "discussion/voting is a state-reconciliation phase over distributed observations"
+      ],
+      "failureModes": [
+        "tasks that are too absorbing reduce social observation",
+        "too much confirmatory information kills deception",
+        "weak meeting structure rewards volume/confidence over evidence"
+      ],
+      "causalSuccessClaim": "NOT_ESTABLISHED"
+    },
+    {
+      "id": "top-dbd",
+      "title": "Dead by Daylight",
+      "standing": "EXTERNAL_TOP_SPECIMEN_DESK_DECOMPOSITION",
+      "whyIncluded": "canonical 1-v-4 asymmetric pursuit specimen with unequal objectives, information and powers",
+      "sources": [
+        "https://deadbydaylight.com/game/"
+      ],
+      "nodes": [
+        "asymmetric-roles",
+        "role-asymmetry",
+        "team-based-play",
+        "stealth-detection",
+        "required-goal",
+        "risk-reward",
+        "communication-limits",
+        "variable-player-powers"
+      ],
+      "edges": [
+        {
+          "from": "asymmetric-roles",
+          "relation": "amplifies",
+          "to": "role-asymmetry",
+          "claim": "One Killer and four Survivors have structurally different verbs, information and win conditions."
+        },
+        {
+          "from": "required-goal",
+          "relation": "modulates",
+          "to": "risk-reward",
+          "claim": "Generator repair creates stationary exposure while advancing escape."
+        },
+        {
+          "from": "team-based-play",
+          "relation": "amplifies",
+          "to": "communication-limits",
+          "claim": "Survivors distribute repair, rescue and chase pressure across different locations."
+        },
+        {
+          "from": "variable-player-powers",
+          "relation": "modulates",
+          "to": "stealth-detection",
+          "claim": "Killer powers and Survivor perks alter how chase/information rules are interpreted."
+        }
+      ],
+      "dynamics": [
+        "asymmetric pressure economy: one side concentrates threat while the other side distributes objective work",
+        "chase time itself becomes a team resource because occupied Killer attention frees others"
+      ],
+      "failureModes": [
+        "asymmetry becomes unfair if each side cannot read the other side’s threat/options",
+        "content/perk growth can make rules difficult to learn",
+        "solo-queue information gaps can dominate intended coordination"
+      ],
+      "causalSuccessClaim": "NOT_ESTABLISHED"
+    },
+    {
+      "id": "top-ffxiv",
+      "title": "FINAL FANTASY XIV",
+      "standing": "EXTERNAL_TOP_SPECIMEN_DESK_DECOMPOSITION",
+      "whyIncluded": "canonical MMO role/group-formation specimen with explicit role matching, free companies and persistent social infrastructure",
+      "sources": [
+        "https://na.finalfantasyxiv.com/game_manual/pp/",
+        "https://na.finalfantasyxiv.com/lodestone/community_finder/?fixed_tags=36&type=fc",
+        "https://na.finalfantasyxiv.com/game_manual/view/"
+      ],
+      "nodes": [
+        "asymmetric-roles",
+        "team-based-play",
+        "cooperation",
+        "communication-limits",
+        "shared-resource",
+        "relationship-state",
+        "trading",
+        "reputation"
+      ],
+      "edges": [
+        {
+          "from": "asymmetric-roles",
+          "relation": "requires",
+          "to": "cooperation",
+          "claim": "Tank/healer/DPS responsibilities create explicit interdependence in group duties."
+        },
+        {
+          "from": "communication-limits",
+          "relation": "modulates",
+          "to": "team-based-play",
+          "claim": "Ready checks, countdowns and party communication synchronize execution."
+        },
+        {
+          "from": "shared-resource",
+          "relation": "amplifies",
+          "to": "relationship-state",
+          "claim": "Free Companies pool resources and provide persistent group identity/infrastructure."
+        },
+        {
+          "from": "trading",
+          "relation": "modulates",
+          "to": "shared-resource",
+          "claim": "Crafting/gathering/economy let non-combat work contribute to broader player/community goals."
+        }
+      ],
+      "dynamics": [
+        "MMO persistence is social as well as character-stat persistence",
+        "matchmaking lowers coordination acquisition cost while guild/free-company structures support longer-lived relationships"
+      ],
+      "failureModes": [
+        "role rigidity can reduce expressive freedom",
+        "matchmaking can make players disposable if no social persistence forms",
+        "social/economic systems become chores when contribution is opaque"
+      ],
+      "causalSuccessClaim": "NOT_ESTABLISHED"
+    },
+    {
+      "id": "top-eve",
+      "title": "EVE Online",
+      "standing": "EXTERNAL_TOP_SPECIMEN_DESK_DECOMPOSITION",
+      "whyIncluded": "canonical player-economy/organization/territorial-sovereignty specimen",
+      "sources": [
+        "https://www.eveonline.com/eve-academy/corporations",
+        "https://www.eveonline.com/news/view/sovereignty-structures-and-transition",
+        "https://www.eveonline.com/news/view/global-plex-market-and-friction-free-trade"
+      ],
+      "nodes": [
+        "trading",
+        "market-price",
+        "currency",
+        "territory-control",
+        "shared-resource",
+        "reputation",
+        "contracts-promises",
+        "betrayal-traitor",
+        "resource-source",
+        "transport",
+        "network-flow"
+      ],
+      "edges": [
+        {
+          "from": "trading",
+          "relation": "amplifies",
+          "to": "market-price",
+          "claim": "Player supply/demand and market structure make exchange itself strategic play."
+        },
+        {
+          "from": "shared-resource",
+          "relation": "amplifies",
+          "to": "contracts-promises",
+          "claim": "Corporations distribute assets, projects and responsibilities across members."
+        },
+        {
+          "from": "reputation",
+          "relation": "constrains",
+          "to": "betrayal-traitor",
+          "claim": "Espionage/theft are possible, so trust and reputation become economically valuable."
+        },
+        {
+          "from": "territory-control",
+          "relation": "modulates",
+          "to": "resource-source",
+          "claim": "Sovereignty changes which infrastructure/resources an alliance can access and maintain."
+        },
+        {
+          "from": "transport",
+          "relation": "constrains",
+          "to": "network-flow",
+          "claim": "Logistics links territorial resources, markets and strategic operations."
+        }
+      ],
+      "dynamics": [
+        "player institutions emerge because ownership, trust, logistics and risk cross individual boundaries",
+        "territory is meaningful when it produces resource/infrastructure responsibilities, not only map color"
+      ],
+      "failureModes": [
+        "economic opacity and information advantage can make entry hostile",
+        "organization overhead can exceed play for small groups",
+        "real-money-linked markets require careful regulatory/economic stewardship"
+      ],
+      "causalSuccessClaim": "NOT_ESTABLISHED"
+    },
+    {
+      "id": "top-warframe",
+      "title": "Warframe",
+      "standing": "EXTERNAL_TOP_SPECIMEN_DESK_DECOMPOSITION",
+      "whyIncluded": "canonical long-lived live-service build/progression specimen with extreme loadout breadth and fast movement",
+      "sources": [
+        "https://www.warframe.com/en/game/about?gameplat=1&steam=1",
+        "https://www.warframe.com/en/news/new-player-guide",
+        "https://www.warframe.com/en/crossprogression"
+      ],
+      "nodes": [
+        "variable-player-powers",
+        "skill-build",
+        "equipment-progression",
+        "collection",
+        "mission-scenario",
+        "team-based-play",
+        "move",
+        "dash",
+        "jump",
+        "loadout-building"
+      ],
+      "edges": [
+        {
+          "from": "variable-player-powers",
+          "relation": "amplifies",
+          "to": "loadout-building",
+          "claim": "Distinct Warframe abilities combine with weapons/mods into specialized playstyles."
+        },
+        {
+          "from": "collection",
+          "relation": "amplifies",
+          "to": "equipment-progression",
+          "claim": "Acquiring frames/weapons/mods expands future build possibilities."
+        },
+        {
+          "from": "move",
+          "relation": "cooperates-with",
+          "to": "dash",
+          "claim": "Parkour verbs create a high-speed traversal grammar that persists across missions."
+        },
+        {
+          "from": "mission-scenario",
+          "relation": "modulates",
+          "to": "loadout-building",
+          "claim": "Different mission/enemy demands revalue frames, weapons and mods."
+        },
+        {
+          "from": "team-based-play",
+          "relation": "amplifies",
+          "to": "variable-player-powers",
+          "claim": "Squads can stack complementary or redundant abilities depending on mission goals."
+        }
+      ],
+      "dynamics": [
+        "live-service retention through ever-expanding possibility space rather than a single linear gear ladder",
+        "collection matters because pieces alter future composition options"
+      ],
+      "failureModes": [
+        "horizontal breadth can become onboarding debt",
+        "power creep can invalidate older possibility space",
+        "co-op loses meaning if one build trivializes team content"
+      ],
+      "causalSuccessClaim": "NOT_ESTABLISHED"
+    },
+    {
+      "id": "top-rocket-league",
+      "title": "Rocket League",
+      "standing": "EXTERNAL_TOP_SPECIMEN_DESK_DECOMPOSITION",
+      "whyIncluded": "canonical physics-sport mastery specimen",
+      "sources": [
+        "https://www.rocketleague.com/"
+      ],
+      "nodes": [
+        "drive",
+        "steer",
+        "physics-spatial-manipulation",
+        "team-based-play",
+        "immediate-action-feedback",
+        "practice-training",
+        "score-high-score",
+        "fast-retry"
+      ],
+      "edges": [
+        {
+          "from": "drive",
+          "relation": "cooperates-with",
+          "to": "physics-spatial-manipulation",
+          "claim": "The same vehicle controls simultaneously manage position, momentum and ball contact."
+        },
+        {
+          "from": "immediate-action-feedback",
+          "relation": "amplifies",
+          "to": "practice-training",
+          "claim": "Ball trajectory and vehicle motion immediately expose execution quality."
+        },
+        {
+          "from": "team-based-play",
+          "relation": "amplifies",
+          "to": "physics-spatial-manipulation",
+          "claim": "Spacing/rotation determine whether a physical touch helps or harms team state."
+        },
+        {
+          "from": "fast-retry",
+          "relation": "amplifies",
+          "to": "practice-training",
+          "claim": "Short matches/training repetitions make mechanical correction cheap."
+        }
+      ],
+      "dynamics": [
+        "continuous physics creates enormous skill ceiling from a tiny verb set",
+        "mastery is largely stored in the player rather than unlocked actions"
+      ],
+      "failureModes": [
+        "poor camera/input readability blocks attribution",
+        "physics inconsistencies would destroy trust",
+        "team play collapses if individual chasing dominates rotation responsibility"
+      ],
+      "causalSuccessClaim": "NOT_ESTABLISHED"
+    },
+    {
+      "id": "top-trackmania",
+      "title": "Trackmania",
+      "standing": "EXTERNAL_TOP_SPECIMEN_DESK_DECOMPOSITION",
+      "whyIncluded": "canonical time-trial/ghost/leaderboard mastery specimen with creator-made tracks",
+      "sources": [
+        "https://www.ubisoft.com/en-sg/games/trackmania"
+      ],
+      "nodes": [
+        "drive",
+        "steer",
+        "time-trial",
+        "ghost",
+        "leaderboards-rank",
+        "fast-retry",
+        "practice-training",
+        "level-editor",
+        "share-publish"
+      ],
+      "edges": [
+        {
+          "from": "ghost",
+          "relation": "amplifies",
+          "to": "practice-training",
+          "claim": "A prior/better run becomes a continuous visual benchmark for line/timing correction."
+        },
+        {
+          "from": "time-trial",
+          "relation": "produces",
+          "to": "leaderboards-rank",
+          "claim": "A simple scalar completion time supports asynchronous global comparison."
+        },
+        {
+          "from": "fast-retry",
+          "relation": "amplifies",
+          "to": "time-trial",
+          "claim": "Immediate repetition makes tiny line improvements worth pursuing."
+        },
+        {
+          "from": "level-editor",
+          "relation": "produces",
+          "to": "share-publish",
+          "claim": "Community track creation expands the mastery problem set without requiring only developer-authored content."
+        }
+      ],
+      "dynamics": [
+        "asynchronous competition compresses other players into ghosts/times that remain available whenever you practice",
+        "one stable driving grammar is endlessly recontextualized by track geometry"
+      ],
+      "failureModes": [
+        "leaderboards can demotivate when skill gaps feel unattainable",
+        "track gimmicks can undermine stable driving grammar",
+        "creator content needs curation/discovery to avoid quality noise"
+      ],
+      "causalSuccessClaim": "NOT_ESTABLISHED"
+    },
+    {
+      "id": "top-vampire-survivors",
+      "title": "Vampire Survivors",
+      "standing": "EXTERNAL_TOP_SPECIMEN_DESK_DECOMPOSITION",
+      "whyIncluded": "canonical auto-combat/survivors-like specimen with minimal execution verbs and explosive build scaling",
+      "sources": [
+        "https://store.steampowered.com/app/1794680/Vampire_Survivors/"
+      ],
+      "nodes": [
+        "move",
+        "cooldowns",
+        "upgrade-choice",
+        "random-production",
+        "synergy-combos",
+        "survive",
+        "run",
+        "fast-retry",
+        "variable-player-powers"
+      ],
+      "edges": [
+        {
+          "from": "cooldowns",
+          "relation": "dampens",
+          "to": "move",
+          "claim": "Attacks execute automatically/on timing cycles, reducing direct attack execution burden while movement remains active."
+        },
+        {
+          "from": "random-production",
+          "relation": "constrains",
+          "to": "upgrade-choice",
+          "claim": "Level-up offers force build adaptation instead of free selection."
+        },
+        {
+          "from": "synergy-combos",
+          "relation": "amplifies",
+          "to": "survive",
+          "claim": "Weapon/passive combinations can create nonlinear power growth against increasing enemy density."
+        },
+        {
+          "from": "run",
+          "relation": "resets",
+          "to": "variable-player-powers",
+          "claim": "Each run rebuilds a temporary power engine from randomized choices."
+        },
+        {
+          "from": "fast-retry",
+          "relation": "amplifies",
+          "to": "run",
+          "claim": "Low-friction restarts support experimentation with different growth paths."
+        }
+      ],
+      "dynamics": [
+        "automation shifts player work from attack execution toward positioning, pickup routing and build selection",
+        "spectacle comes from compounding system output while input remains simple"
+      ],
+      "failureModes": [
+        "auto-combat can become passive waiting if positioning stops mattering",
+        "snowball can erase late-game decisions",
+        "random offers can dominate build intent"
+      ],
+      "causalSuccessClaim": "NOT_ESTABLISHED"
+    },
+    {
+      "id": "top-roblox",
+      "title": "Roblox",
+      "standing": "EXTERNAL_TOP_SPECIMEN_DESK_DECOMPOSITION",
+      "whyIncluded": "canonical UGC platform/ecosystem specimen where creator production, distribution, identity and monetization are part of the content loop",
+      "sources": [
+        "https://create.roblox.com/docs/platform",
+        "https://create.roblox.com/docs/experiences",
+        "https://create.roblox.com/docs/creator-rewards",
+        "https://about.roblox.com/newsroom/2026/03/roblox-announces-incubator-jumpstart-creator-programs"
+      ],
+      "nodes": [
+        "ugc",
+        "share-publish",
+        "level-editor",
+        "modding",
+        "character-customization",
+        "collection",
+        "self-authored-goal",
+        "freeform-building"
+      ],
+      "edges": [
+        {
+          "from": "level-editor",
+          "relation": "produces",
+          "to": "ugc",
+          "claim": "Studio/tooling lets creators turn mechanics/assets/scripts into publishable experiences."
+        },
+        {
+          "from": "ugc",
+          "relation": "enables",
+          "to": "share-publish",
+          "claim": "User-created experiences/items become the platform’s primary expanding content supply."
+        },
+        {
+          "from": "character-customization",
+          "relation": "persists-into",
+          "to": "collection",
+          "claim": "Avatar items support identity/collection across an ecosystem of experiences."
+        },
+        {
+          "from": "self-authored-goal",
+          "relation": "amplifies",
+          "to": "freeform-building",
+          "claim": "Creator goals range from small social spaces to full commercial games rather than one fixed product loop."
+        }
+      ],
+      "dynamics": [
+        "the content-production loop exists outside individual game sessions: create → publish → discover → play → earn/learn → reinvest",
+        "platform value compounds when players can become creators and creators can build durable audiences/businesses"
+      ],
+      "failureModes": [
+        "creator incentives can optimize retention/monetization over player value",
+        "discovery concentration can make platform success winner-take-most",
+        "UGC scale requires moderation, safety and quality governance"
+      ],
+      "causalSuccessClaim": "NOT_ESTABLISHED"
+    }
+  ],
+  "recurringMotifs": [
+    {
+      "id": "m01",
+      "name": "Stable grammar, changing context",
+      "specimens": [
+        "top-minecraft",
+        "top-slay-spire",
+        "top-balatro",
+        "top-into-breach",
+        "top-stardew"
+      ],
+      "claim": "A small stable action grammar can support long-term depth when goals, state, topology, resources or modifiers repeatedly revalue the same actions."
+    },
+    {
+      "id": "m02",
+      "name": "Persistent consequence turns actions into authorship",
+      "specimens": [
+        "top-minecraft",
+        "top-bg3",
+        "top-stardew",
+        "top-sims4",
+        "top-rimworld",
+        "top-factorio"
+      ],
+      "claim": "When actions persist and later systems acknowledge them, choices become material for future play rather than isolated transactions."
+    },
+    {
+      "id": "m03",
+      "name": "Failure must preserve information",
+      "specimens": [
+        "top-elden-ring",
+        "top-hades",
+        "top-into-breach",
+        "top-cs2",
+        "top-slay-spire"
+      ],
+      "claim": "Retry loops are strongest when failure yields an attributable model update, route/build knowledge or strategic information."
+    },
+    {
+      "id": "m04",
+      "name": "Path dependence creates build identity",
+      "specimens": [
+        "top-dota2",
+        "top-slay-spire",
+        "top-balatro",
+        "top-hades",
+        "top-bg3",
+        "top-civ6"
+      ],
+      "claim": "Earlier choices should alter the value or availability of later choices; otherwise progression becomes a linear shopping list."
+    },
+    {
+      "id": "m05",
+      "name": "General-purpose mechanics outperform bespoke interactions when rules stay consistent",
+      "specimens": [
+        "top-minecraft",
+        "top-factorio",
+        "top-totk",
+        "top-rimworld",
+        "top-sims4"
+      ],
+      "claim": "A few composable, consistently simulated verbs can generate large solution/content spaces without enumerating every interaction."
+    },
+    {
+      "id": "m06",
+      "name": "Scarcity creates choice only when alternatives stay legible",
+      "specimens": [
+        "top-cs2",
+        "top-fortnite",
+        "top-stardew",
+        "top-elden-ring",
+        "top-slay-spire"
+      ],
+      "claim": "Time, information, life, inventory or currency scarcity creates strategy only when tradeoffs are understandable rather than merely deprivation."
+    },
+    {
+      "id": "m07",
+      "name": "Multiple timescales create durable loops",
+      "specimens": [
+        "top-cs2",
+        "top-dota2",
+        "top-factorio",
+        "top-hades",
+        "top-stardew",
+        "top-civ6"
+      ],
+      "claim": "Top specimens often couple second-to-second actions, session commitments and long-horizon progression/economy so one timescale changes another."
+    },
+    {
+      "id": "m08",
+      "name": "Randomness works best upstream of decisions",
+      "specimens": [
+        "top-slay-spire",
+        "top-balatro",
+        "top-hades",
+        "top-fortnite",
+        "top-rimworld"
+      ],
+      "claim": "Randomized offers, layouts and events create adaptation when players respond to them; opaque random outcome resolution weakens attribution."
+    },
+    {
+      "id": "m09",
+      "name": "Role depth requires non-substitutable responsibility",
+      "specimens": [
+        "top-cs2",
+        "top-dota2",
+        "top-bg3"
+      ],
+      "claim": "Roles matter when players possess different capabilities, information or responsibilities that cannot be trivially replaced."
+    },
+    {
+      "id": "m10",
+      "name": "Systemic freedom still needs pressure",
+      "specimens": [
+        "top-minecraft",
+        "top-factorio",
+        "top-totk",
+        "top-rimworld",
+        "top-sims4"
+      ],
+      "claim": "Open possibility spaces gain direction from survival pressure, scarcity, self-authored goals, events or consequences; freedom alone is not a loop."
+    },
+    {
+      "id": "m11",
+      "name": "Readable causality is the foundation of mastery",
+      "specimens": [
+        "top-factorio",
+        "top-elden-ring",
+        "top-into-breach",
+        "top-cs2",
+        "top-totk"
+      ],
+      "claim": "Intentional improvement requires system response to expose cause, constraint and consequence sufficiently well."
+    },
+    {
+      "id": "m12",
+      "name": "Meta systems should recontextualize core play",
+      "specimens": [
+        "top-hades",
+        "top-slay-spire",
+        "top-civ6",
+        "top-stardew",
+        "top-dota2"
+      ],
+      "claim": "Progression is strongest when it changes future possibility or strategy, not when it only increases scalar output."
+    },
+    {
+      "id": "m13",
+      "name": "Extraction makes ownership conditional on safe return",
+      "specimens": [
+        "top-hunt-showdown"
+      ],
+      "claim": "Value acquired inside a session can become dramatically more consequential when it is only banked after a voluntary, contestable exit decision."
+    },
+    {
+      "id": "m14",
+      "name": "Dangerous capability can create cooperation",
+      "specimens": [
+        "top-helldivers2"
+      ],
+      "claim": "Cooperation can be strengthened when powerful tools have friendly externalities/collateral risk, forcing players to coordinate intent and position rather than merely stack buffs."
+    },
+    {
+      "id": "m15",
+      "name": "Mundane actions can generate social evidence",
+      "specimens": [
+        "top-among-us"
+      ],
+      "claim": "A low-complexity task layer can support a richer social-deduction layer when routes, timing and visible behavior create evidence/alibis."
+    },
+    {
+      "id": "m16",
+      "name": "Asymmetric pursuit turns attention into a team resource",
+      "specimens": [
+        "top-dbd"
+      ],
+      "claim": "In one-versus-many designs, occupying the powerful role’s attention can be valuable even without direct objective progress because it frees teammates elsewhere."
+    },
+    {
+      "id": "m17",
+      "name": "Persistent groups are gameplay infrastructure",
+      "specimens": [
+        "top-ffxiv",
+        "top-eve"
+      ],
+      "claim": "Guild/corporation structures become mechanics when they pool resources, assign responsibilities, create trust/reputation and persist beyond a single session."
+    },
+    {
+      "id": "m18",
+      "name": "Player economy needs institutions, logistics and trust",
+      "specimens": [
+        "top-eve"
+      ],
+      "claim": "A deep player economy is not merely trading UI: transport, territorial access, contracts, reputation and organizational authority determine who can create and capture value."
+    },
+    {
+      "id": "m19",
+      "name": "Live-service breadth must expand possibility space",
+      "specimens": [
+        "top-warframe"
+      ],
+      "claim": "Long-lived progression is healthier when new content creates alternative builds/roles/scenarios rather than only a higher scalar power tier."
+    },
+    {
+      "id": "m20",
+      "name": "Tiny verb sets can support extreme physical mastery",
+      "specimens": [
+        "top-rocket-league",
+        "top-trackmania"
+      ],
+      "claim": "Continuous physics plus immediate feedback can generate a high skill ceiling from very few inputs when repeated practice is cheap and outcomes are attributable."
+    },
+    {
+      "id": "m21",
+      "name": "Asynchronous opponents can be compressed into benchmarks",
+      "specimens": [
+        "top-trackmania"
+      ],
+      "claim": "Ghosts, times and leaderboards let other players function as persistent practice targets without requiring simultaneous matchmaking."
+    },
+    {
+      "id": "m22",
+      "name": "Automation can move agency upward instead of deleting it",
+      "specimens": [
+        "top-vampire-survivors",
+        "top-factorio"
+      ],
+      "claim": "Automating low-level actions can create value when meaningful agency remains in positioning, routing, composition or architecture; it fails when automation removes the remaining consequential choices."
+    },
+    {
+      "id": "m23",
+      "name": "Creator loops can sit above player loops",
+      "specimens": [
+        "top-roblox"
+      ],
+      "claim": "UGC platforms add a higher-order loop—create/publish/discover/play/reinvest—where the player population also becomes the content-production system."
+    }
+  ],
+  "coverageAdded": [
+    "extraction/loss economy",
+    "dangerous co-op coordination",
+    "social deduction",
+    "asymmetric pursuit",
+    "MMO social persistence",
+    "player economy/territorial institutions",
+    "live-service breadth",
+    "physics sports/time-trial mastery",
+    "auto-combat/survivors-like",
+    "UGC creator platform economy"
+  ],
+  "next": [
+    "promote cross-specimen motifs into the main evidence ledger only when their claim boundaries are explicit",
+    "use R2 coverage to generate new candidate compositions outside historically system-heavy clusters",
+    "add horror/audio tension and large-scale social warfare only if they introduce genuinely new mechanism edges"
+  ]
+}
