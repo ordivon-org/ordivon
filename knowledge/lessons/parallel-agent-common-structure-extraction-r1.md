@@ -1,6 +1,6 @@
 # Parallel Agent Common-Structure Extraction R1
 
-Status: **ACTIVE METHOD / FIRST CAMPAIGN LAUNCHED**
+Status: **METHOD VALIDATED / WAVE-1 PARTIALLY RECOVERED / SYNTHESIS R1 COMPLETE**
 Registered: 2026-09-14
 
 ## Purpose
@@ -184,3 +184,31 @@ Do not infer research completion merely from `bound` standing.
 ## Verdict
 
 **Use parallel independent Agents before common-structure synthesis for heterogeneous mature-project research. Serial single-Agent teardown remains useful for one bounded implementation detail, but should not be the primary method for extracting cross-project invariants.**
+
+## First campaign synthesis standing
+
+Wave-1 report recovery produced eight substantive independent reports (`A01`, `A03`, `A04`, `B01`–`B05`) and two explicit non-retrieved gaps (`A02`, `A05`). The recovered evidence is registered at:
+
+`evidence/agent-campaigns/prompt-corpus-common-structure-r1-wave1-recovered.md`
+
+Applying the pre-registered promotion threshold produced seven strong common primitives within the studied software-Agent/app-builder family:
+
+1. context/instruction compilation;
+2. typed action/Tool surface;
+3. observation-driven control loop;
+4. explicit working/control state separated from transcript;
+5. authority/effect gate outside Prompt text;
+6. execution substrate;
+7. verification/feedback.
+
+The synthesis also rejected several false universals, including one-Tool-per-turn, mandatory human approval, immutable static system Prompt, universal JSON function calling, mandatory persistent memory, mandatory plan/todo, mandatory subagents, mandatory browser/web, universal Git/VCS and one global Agent state schema.
+
+Canonical synthesis:
+
+`knowledge/lessons/agent-product-common-structure-r1.md`
+
+### Result-read lesson
+
+The initial DOM collector failure was not evidence that the remote Agents had no output. Exact conversation navigation was redirected to the ChatGPT home surface under a `Too many requests` condition, leaving zero message nodes for the collector. Report recovery from conversation history proved that multiple substantive reports had in fact completed.
+
+Therefore future provider-output evidence should prefer a stable provider-native conversation/message object or exported conversation identity over rendered DOM text when available. DOM observation remains a fallback view, not conversation truth.
