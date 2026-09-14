@@ -114,7 +114,7 @@ The common rule: **extract reusable instructions/methods into standards-compatib
 | 31 | `ultraworkers/claw-code` | 195,221 | MIT | Agent experiment / autonomous project | **REFERENCE_ONLY** | Interesting autonomy case study, not a general provider candidate. |
 | 32 | `microsoft/vscode` | 192,476 | MIT | Developer environment | **ON_DEMAND** | Mature IDE surface; use as developer tool, not Ordivon Core. |
 | 33 | `yt-dlp/yt-dlp` | 190,981 | Unlicense | Media acquisition | **ON_DEMAND** | Strong media-download/acquisition provider when rights and workload permit. |
-| 34 | `massgravel/Microsoft-Activation-Scripts` | 190,495 | GPL-3.0 | License activation tooling | **STUDIED_AVOID** | Studied as a licensing-state/entitlement-confusion and privileged supply-chain anti-pattern. See `microsoft-activation-scripts-avoidance-study.md`; use Microsoft-supported entitlement/activation channels instead. |
+| 34 | `massgravel/Microsoft-Activation-Scripts` | 190,495 | GPL-3.0 | License activation tooling | **STUDIED_AVOID** | Full deep-study PASS: mature compatibility resolver + diagnostics/repair + four distinct licensing-state mutation engines; retain engineering lessons but not bypass effects. See `microsoft-activation-scripts-deep-architecture-study.md` and `microsoft-activation-scripts-avoidance-study.md`. |
 | 35 | `ohmyzsh/ohmyzsh` | 189,708 | MIT | Shell UX | **NO_ACTION** | Personal shell configuration framework; no system capability gap. |
 | 36 | `Significant-Gravitas/AutoGPT` | 187,315 | NOASSERTION | Agent/application platform | **NO_ACTION** | Broad Agent platform category already covered by stronger current providers/product layers. |
 | 37 | `jackfrued/Python-100-Days` | 186,411 | — | Education | **NO_ACTION** | Learning course only. |

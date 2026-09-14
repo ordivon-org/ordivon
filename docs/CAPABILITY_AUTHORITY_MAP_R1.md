@@ -118,6 +118,7 @@ Default rule:
 | External publication/distribution effect | provider-native API/effect layer | Distribution v2, n8n/native clients where appropriate | explicitly authorized write/publish to exact destination | universal transport/protocol | provider acceptance/read-back + exact occurrence reconciliation |
 | Network composition/verification | network provider/toolchain | Network v2 + mature network tools | task needs real connectivity/routing/proxy/DNS behavior | global Network semantics in Core | real endpoint/connectivity behavior |
 | Security verification | security domain provider/toolchain | Security v2 + mature security tools/standards | security requirement/threat/verification is in scope | generic security ontology duplicated in Core | threat-/control-specific evidence |
+| Microsoft software entitlement and activation | Microsoft licensing authority + organizational software-asset management | Microsoft digital/retail/OEM channels; MAK; authorized KMS/ADBA; VAMT | a Windows/Office deployment must establish or repair activation under an actual entitlement | private license-state manipulator, activation bypass, unofficial KMS authority | entitlement/license record + supported activation/read-back + organization/customer policy |
 
 ## 5. Graph-shaped systems: choose by semantic object, not UI shape
 
