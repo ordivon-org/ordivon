@@ -11,7 +11,7 @@ AVAILABLE={
  'native_connector':{'state':'caller_bound','reason':'x'},
  'direct_http':{'state':'available','reason':'x'},
  'firecrawl':{'state':'unavailable','reason':'x'},
- 'playwright':{'state':'task_local','reason':'x'},
+ 'playwright':{'state':'available','reason':'x'},
  'browser_use':{'state':'available','reason':'x'},
  'computer_use':{'state':'caller_bound','reason':'x'},
 }
@@ -35,11 +35,18 @@ class WebInteractionRouteTests(unittest.TestCase):
   d=self.resolve(R.TaskNeeds(site_scale_web_acquisition=True)); self.assertIsNone(d['selectedRoute']); self.assertEqual(d['standing'],'NO_ADMITTED_PROVIDER')
   self.assertEqual(d['considered'][0]['route'],'firecrawl'); self.assertEqual(d['considered'][0]['standing'],'not_available')
 
- def test_known_browser_flow_uses_caller_admitted_playwright(self):
-  d=self.resolve(R.TaskNeeds(requires_interaction=True,deterministic_browser_flow=True),('playwright',)); self.assertEqual(d['selectedRoute'],'playwright')
+ def test_known_browser_flow_uses_available_playwright(self):
+  d=self.resolve(R.TaskNeeds(requires_interaction=True,deterministic_browser_flow=True)); self.assertEqual(d['selectedRoute'],'playwright')
 
- def test_known_browser_flow_falls_to_browser_use_without_generic_playwright(self):
-  d=self.resolve(R.TaskNeeds(requires_interaction=True,deterministic_browser_flow=True)); self.assertEqual(d['selectedRoute'],'browser_use')
+ def test_known_browser_flow_accepts_caller_admitted_playwright(self):
+  a=dict(AVAILABLE); a['playwright']={'state':'task_local','reason':'x'}
+  with mock.patch.object(R,'census',return_value=a): d=R.resolve(R.TaskNeeds(requires_interaction=True,deterministic_browser_flow=True),caller_available=('playwright',))
+  self.assertEqual(d['selectedRoute'],'playwright')
+
+ def test_known_browser_flow_falls_to_browser_use_when_playwright_unavailable(self):
+  a=dict(AVAILABLE); a['playwright']={'state':'unavailable','reason':'x'}
+  with mock.patch.object(R,'census',return_value=a): d=R.resolve(R.TaskNeeds(requires_interaction=True,deterministic_browser_flow=True))
+  self.assertEqual(d['selectedRoute'],'browser_use')
 
  def test_unknown_interactive_browser_uses_browser_use(self):
   d=self.resolve(R.TaskNeeds(requires_interaction=True,adaptive_browser_reasoning=True)); self.assertEqual(d['selectedRoute'],'browser_use')
@@ -48,6 +55,17 @@ class WebInteractionRouteTests(unittest.TestCase):
   needs=R.TaskNeeds(requires_interaction=True,requires_desktop_gui=True)
   d=self.resolve(needs); self.assertEqual(d['standing'],'NO_ADMITTED_PROVIDER')
   d=self.resolve(needs,('computer_use',)); self.assertEqual(d['selectedRoute'],'computer_use')
+
+ def test_playwright_health_accepts_complete_workstation_binding(self):
+  import tempfile
+  from pathlib import Path
+  with tempfile.TemporaryDirectory() as td:
+   tool=Path(td)/'binding'
+   tool.write_text('#!/bin/sh\necho \'{"state":"AVAILABLE","bindingDigest":"sha256:x","commandPrefix":["/usr/bin/node","/opt/pw.js"],"environment":{"PLAYWRIGHT_BROWSERS_PATH":"/cache"},"identity":{"browserExecutableDigest":"sha256:b","cliEntrypointDigest":"sha256:c"}}\'\n')
+   tool.chmod(0o755)
+   with mock.patch.object(R,'PLAYWRIGHT_BINDING',tool): value=R._playwright_health()
+  self.assertEqual(value['state'],'available')
+  self.assertEqual(value['bindingTool'],str(tool))
 
  def test_invalid_mixed_browser_semantics_rejected(self):
   with self.assertRaises(ValueError): R.TaskNeeds(requires_interaction=True,deterministic_browser_flow=True,adaptive_browser_reasoning=True)
