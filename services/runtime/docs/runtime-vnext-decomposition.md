@@ -84,6 +84,13 @@ Those eight operations account for 92.87% of counted calls. Advanced surfaces ar
 5. Repository-wide non-test census now leaves SQLite imports only in `scripts/backup.py` and `scripts/restore.py`, where SQLite backup and integrity verification are the physical operation itself. No non-test Python script contains direct semantic queries over Runtime Job/Attempt/reservation/event tables.
 6. Corrected test feature boundaries: doctor/repair/broad operator-inspection tests are gated by `operator-tools`, so the lean `transactional-runtime` test target compiles and runs instead of accidentally importing operator-only types.
 
+## Reliability closure after decomposition
+
+1. Current main independently gained fail-closed stale/launch-identity cancellation recovery: cancellation may converge only after the exact target state proves the identity-bound unit, recorded PID identity, and cgroup process tree absent. The operator repair path is scoped to the exact stale target rather than global Registry quiescence.
+2. Post-result terminal process-tree evidence is now cgroup-first. When an Attempt has a committed cgroup identity, Runtime checks the recorded PID identity and recursive cgroup-v2 `populated` state directly; a transient `systemctl show` timeout can no longer downgrade a proven-clean terminal process tree to `unknown`.
+3. The cgroup-first rule is deliberately limited to terminal evidence after a Runner result. Live execution, cancellation safety, and reconciliation keep the stricter systemd/PID/cgroup identity checks and remain fail-closed.
+4. The combined current-main state was exercised through both the complete all-feature Core suite and the explicit privileged local transactional acceptance suite.
+
 ## Current evidence
 
 - `universal-executor` standalone compile: PASS.
@@ -91,15 +98,16 @@ Those eight operations account for 92.87% of counted calls. Advanced surfaces ar
 - lean `transactional-runtime` unit suite: **223/223 PASS**.
 - production MCP against lean transactional core compile: PASS.
 - default Core smoke excluding the intentionally long reference-model property: **243/243 PASS**.
-- complete all-feature Core unit suite, including the long reference-model property: **244/244 PASS**.
+- complete all-feature Core unit suite, including the long reference-model property: **246/246 PASS**.
 - MCP unit suite: **55/55 PASS**.
 - Runtime server/auth suite in the all-target workspace run: **4/4 PASS**.
 - Python operational suite: **137/137 PASS**, including archive, cache, lifecycle, deploy/reclaim, status, backup/restore, and acceptance helpers.
+- explicit privileged/local transactional Runtime acceptance: **39/39 PASS**, including contained-local isolation, fast success/failure races, interactive close/reconciliation, cancellation reconstruction, provider binding, cgroup budgets, Windows-native execution, and WSL restart recovery.
 - source-only archive behavior suite: **7/7 PASS**, including v4/v5 recovery representation, latest-Attempt fallback, fail-closed capability checks, and byte-identical Registry observation.
 - non-test Runtime Registry semantic SQL in Python/shell scripts: **0 matches**.
 - remaining direct SQLite script owners: `backup.py` and `restore.py` only, for physical backup/integrity operations.
 
-The all-target run still leaves privileged/systemd/WSL integration fixtures ignored unless their explicit local opt-ins are supplied; this decomposition does not reinterpret those ignored tests as executed evidence.
+The ordinary all-target run still keeps privileged/systemd/WSL fixtures ignored by default. For this closure, their explicit local opt-in was supplied separately and all 39 privileged transactional fixtures passed; the two evidence classes remain distinct.
 
 ## Reassembly target
 
@@ -142,6 +150,6 @@ A component can be deleted only when all are true:
 
 1. Review the still-large `inspection/operator.rs` by measured responsibility, not file size alone. Split only if status/activity/marker/workspace projections have independent change pressure or compilation ownership; do not manufacture service boundaries for aesthetic symmetry.
 2. Keep the repeated `runtime_inspect_binary()`/JSON subprocess adapters in the operator scripts until a shared support artifact is justified by real maintenance cost. Centralizing them today would change the receipt-bound production release set from 12 artifacts to 13, so line-count reduction alone is insufficient evidence.
-3. Investigate recurring control-plane `REGISTRY_BUSY` during runner-bind observation and occasional one-second `systemctl show` timeouts as a separate Runtime reliability/performance problem. These events repeatedly reconciled to the exact already-admitted Job and must not be conflated with Registry read-model semantics.
+3. Investigate recurring control-plane `REGISTRY_BUSY` during runner-bind observation and one-second `systemctl show` timeouts as a separate Runtime reliability/performance problem. Terminal evidence no longer depends on the latter when cgroup identity exists, but live supervision/reconciliation still does; these observations must not be conflated with Registry read-model semantics.
 4. Revisit compact projection wrappers after MCP DTO ownership is explicit; do not delete them while MCP still consumes them.
 5. Before production replacement, run the exact release candidate through the normal deployment/rollback acceptance path and at least one real agent execution workflow. Source-level decomposition success is not deployment truth.
