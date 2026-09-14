@@ -1,0 +1,54 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "SPDX",
+      "SPDX 3.0",
+      "ISO/IEC 5962:2021",
+      "Software Bill of Materials"
+    ],
+    "domains": [
+      "security",
+      "engineering",
+      "artifact",
+      "distribution"
+    ],
+    "topics": [
+      "sbom",
+      "licensing",
+      "software-supply-chain",
+      "package-metadata"
+    ]
+  },
+  "id": "spdx-3.0",
+  "identity": {
+    "authorityKind": "open-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "linux-foundation",
+      "name": "Linux Foundation / SPDX"
+    },
+    "officialSource": "https://spdx.dev/use/specifications/",
+    "publicationDate": null,
+    "title": "SPDX Specification 3.0",
+    "versionLabel": "3.0"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "docs/CAPABILITY_PACKAGES_R1.md",
+      "SPDX official source checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

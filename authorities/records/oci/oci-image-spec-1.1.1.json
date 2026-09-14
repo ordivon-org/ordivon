@@ -1,0 +1,51 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "OCI Image",
+      "OCI Image Spec 1.1.1"
+    ],
+    "domains": [
+      "distribution",
+      "artifact",
+      "engineering"
+    ],
+    "topics": [
+      "container-image",
+      "artifact",
+      "manifest",
+      "content-addressing"
+    ]
+  },
+  "id": "oci-image-spec-1.1.1",
+  "identity": {
+    "authorityKind": "open-specification",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "oci",
+      "name": "Open Container Initiative"
+    },
+    "officialSource": "https://github.com/opencontainers/image-spec/releases/tag/v1.1.1",
+    "publicationDate": "2025-04-02",
+    "title": "OCI Image Format Specification 1.1.1",
+    "versionLabel": "1.1.1"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "docs/CAPABILITY_PACKAGES_R1.md",
+      "OCI official release checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

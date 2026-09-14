@@ -1,0 +1,52 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "OpenLineage",
+      "OpenLineage spec"
+    ],
+    "domains": [
+      "data",
+      "analytics",
+      "operations"
+    ],
+    "topics": [
+      "data-lineage",
+      "metadata",
+      "provenance",
+      "jobs",
+      "datasets"
+    ]
+  },
+  "id": "openlineage-spec",
+  "identity": {
+    "authorityKind": "open-specification",
+    "identityMode": "rolling-source",
+    "issuer": {
+      "id": "openlineage",
+      "name": "OpenLineage"
+    },
+    "officialSource": "https://openlineage.io/docs/spec/",
+    "publicationDate": null,
+    "title": "OpenLineage specification",
+    "versionLabel": null
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "docs/CAPABILITY_PACKAGES_R1_ACCEPTANCE_20260913.md",
+      "OpenLineage official docs checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

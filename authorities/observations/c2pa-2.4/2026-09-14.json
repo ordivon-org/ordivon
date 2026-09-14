@@ -1,0 +1,11 @@
+{
+  "authorityId": "c2pa-2.4",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current",
+  "note": "C2PA official specification site presents 2.4 as the current specification set at this cut.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://spec.c2pa.org/specifications/specifications/2.4/index.html",
+  "schemaVersion": 1,
+  "versionObserved": "2.4"
+}

@@ -1,0 +1,11 @@
+{
+  "authorityId": "oci-distribution-spec-1.1.1",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published",
+  "note": null,
+  "observedDate": "2026-09-14",
+  "officialSource": "https://github.com/opencontainers/distribution-spec/releases/tag/v1.1.1",
+  "schemaVersion": 1,
+  "versionObserved": "1.1.1"
+}

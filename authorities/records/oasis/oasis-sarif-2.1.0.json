@@ -1,0 +1,52 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "SARIF",
+      "SARIF 2.1.0"
+    ],
+    "domains": [
+      "security",
+      "engineering",
+      "artifact"
+    ],
+    "topics": [
+      "static-analysis",
+      "security-findings",
+      "interchange",
+      "code-analysis"
+    ]
+  },
+  "id": "oasis-sarif-2.1.0",
+  "identity": {
+    "authorityKind": "interchange-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "oasis",
+      "name": "OASIS"
+    },
+    "officialSource": "https://www.oasis-open.org/standard/sarif-v2-1-0/",
+    "publicationDate": "2019-07-23",
+    "title": "Static Analysis Results Interchange Format (SARIF) Version 2.1.0",
+    "versionLabel": "2.1.0"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/security.md",
+      "capabilities/providers/security-v2.md",
+      "OASIS official source checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

@@ -1,0 +1,11 @@
+{
+  "authorityId": "cloudevents-1.0.2",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published",
+  "note": null,
+  "observedDate": "2026-09-14",
+  "officialSource": "https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/spec.md",
+  "schemaVersion": 1,
+  "versionObserved": "1.0.2"
+}

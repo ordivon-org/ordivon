@@ -1,0 +1,11 @@
+{
+  "authorityId": "cyclonedx-1.7",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "stable",
+  "note": "Current stable 1.x specification. CycloneDX 2.0 was announced 2026-08-05 with release expected in fall 2026; it is not treated as current stable at this cut.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://cyclonedx.org/specification/overview/",
+  "schemaVersion": 1,
+  "versionObserved": "1.7"
+}
