@@ -7,7 +7,7 @@ Workstation v2 owns execution-node desired-state declarations and the node-local
 Authority: Nix + Home Manager. Source: `workstation/nix/`. Build directly with Nix; activation remains an explicit Workstation v2 operation.
 
 ```sh
-cd /root/projects/ordivon-operations-v2/workstation/nix
+cd /root/projects/ordivon-workstation-v2/workstation/nix
 nix --extra-experimental-features 'nix-command flakes' build .#homeConfigurations.root.activationPackage --no-link
 ```
 
