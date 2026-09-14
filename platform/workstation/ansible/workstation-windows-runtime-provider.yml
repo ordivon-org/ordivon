@@ -1,0 +1,39 @@
+---
+- name: Workstation v2 Windows Runtime provider management surface
+  hosts: operations_local
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Create Workstation v2 libexec directory
+      ansible.builtin.file:
+        path: /usr/local/libexec/ordivon/workstation-v2
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install Windows Runtime provider implementation
+      ansible.builtin.copy:
+        src: ../workstation/windows/runtime_provider.py
+        dest: /usr/local/libexec/ordivon/workstation-v2/runtime_provider.py
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install Windows Runtime provider contract
+      ansible.builtin.copy:
+        src: ../workstation/windows/runtime-provider.toml
+        dest: /usr/local/libexec/ordivon/workstation-v2/runtime-provider.toml
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Install stable Windows Runtime provider launcher
+      ansible.builtin.copy:
+        dest: /root/tools/bin/workstation-windows-runtime-provider
+        owner: root
+        group: root
+        mode: "0755"
+        content: |
+          #!/bin/sh
+          exec /usr/bin/python3 /usr/local/libexec/ordivon/workstation-v2/runtime_provider.py "$@"
