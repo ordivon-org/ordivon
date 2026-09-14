@@ -85,3 +85,34 @@ def test_monthly_check_is_separate() -> None:
         result = M.repository_check(cfg)
     assert "check" in checked.call_args.args[0]
     assert result["status"] == "pass"
+
+def test_finance_legacy_v0_snapshot_remains_restorable() -> None:
+    cfg = M.load_owner("finance")
+    legacy_tree = {"treeSha256": "legacy-tree", "files": 1, "bytes": 6, "entries": []}
+    transport = {
+        "schemaVersion": 0,
+        "kind": "ordivon.workstation.finance-recovery-transport.v0",
+        "owner": "finance",
+        "capsule": {"treeSha256": "legacy-tree", "files": 1, "bytes": 6},
+    }
+
+    def fake_checked(args, *, env=None, timeout=60):
+        if "restore" in args:
+            target = Path(args[args.index("--target") + 1])
+            root = target / "legacy" / "finance-recovery-custody"
+            (root / "capsule").mkdir(parents=True)
+            (root / "capsule" / "x").write_bytes(b"legacy")
+            (root / "transport.json").write_text(json.dumps(transport) + "\n")
+            return subprocess.CompletedProcess(args, 0, "", "")
+        if "--verify" in args:
+            return subprocess.CompletedProcess(args, 0, "verified\n", "")
+        raise AssertionError(args)
+
+    metadata = {"paths": ["/legacy/finance-recovery-custody"]}
+    with mock.patch.object(M, "snapshot_metadata", return_value=metadata), \
+         mock.patch.object(M, "staging_parent", return_value=Path("/tmp")), \
+         mock.patch.object(M, "capsule_tree", return_value=legacy_tree), \
+         mock.patch.object(M, "checked", side_effect=fake_checked):
+        result = M.verify_restored_snapshot(cfg, "legacy", exporter=Path("/bin/true"))
+    assert result["ownerVerifySucceeded"] is True
+    assert result["transportKind"] == "ordivon.workstation.finance-recovery-transport.v0"
