@@ -16,6 +16,8 @@ That makes it a high-risk source of knowledge contamination: an Agent can mistak
 
 Avoidance therefore needs a provenance model, not a blanket "do not read" rule.
 
+A full project-level teardown is registered in `knowledge/lessons/system-prompts-corpus-deep-architecture-study.md`. The result upgrades the project from a simple negative example to a useful **quarantined secondary Agent-behavior corpus**: mechanism-level comparative research is valuable, while per-artifact factual/reuse authority remains provenance-gated.
+
 ## Current upstream observation
 
 At the 2026-09-14 census, GitHub reported roughly 143k stars and a repository-level GPL-3.0 license.
