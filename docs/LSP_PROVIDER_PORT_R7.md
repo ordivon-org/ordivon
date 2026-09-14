@@ -65,3 +65,43 @@ Local experiments found:
 `lsp-client` is therefore the current lifecycle-provider candidate, not a Harness core
 dependency. Harness's repository boundary currently forbids project optional dependencies;
 a concrete integration should live behind this port and remain replaceable.
+
+## Revision-bound lifecycle donor evidence
+
+After the provider-neutral port landed at:
+
+```text
+c7df6ef harness: add proposal-only LSP provider port
+```
+
+a fresh occurrence used exactly `lsp-client 0.3.9` with the local Taplo server. The
+composition included rename, configuration-request handling, diagnostics, and log
+notifications, but deliberately omitted the library's apply-edit mixin.
+
+Observed lifecycle result:
+
+```text
+workspace/configuration handled = 1
+publishDiagnostics notifications = 4
+WorkspaceEdit proposal returned = yes
+provider applyEdit mixin = absent
+disk changed during lifecycle = no
+disk changed after shutdown = no
+typed WorkspaceEdit -> Harness JSON adapter = pass
+```
+
+The external package's mutating convenience APIs remain outside the Harness port. The
+port itself exposes no apply/write operation.
+
+Verified receipt:
+
+```text
+evidence/lsp-r7-lsp-client-lifecycle-20260914.json
+payload digest:
+sha256:6981aec36c5b90c8063894fbd0d94bf88e1130bb729e81c8bad22c7e663effc7
+```
+
+Standing: `lsp-client` is supported as the current **replaceable lifecycle-provider
+candidate**. It is not admitted as a Harness core dependency and no default provider is
+final until integration packaging, Run/Tool Grant binding, cancellation, and abnormal
+server-exit behavior are closed.
