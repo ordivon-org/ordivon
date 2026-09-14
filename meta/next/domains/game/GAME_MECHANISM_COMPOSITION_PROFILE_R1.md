@@ -87,4 +87,4 @@ They cease to compete as product directions. Their durable value is mechanism/co
 
 ## Current evidence ledger
 
-R1 evidence is registered in [`GAME_MECHANISM_EVIDENCE_R1.md`](GAME_MECHANISM_EVIDENCE_R1.md) and `game-mechanism-evidence-r1.json`. The initial migration contains 22 specimens and 25 context-bound compatibility/composition claims. Use these claims to avoid retesting already falsified realizations and to identify where structural evidence still lacks Human validation.
+Current cumulative evidence is registered in [`GAME_MECHANISM_EVIDENCE_R2.md`](GAME_MECHANISM_EVIDENCE_R2.md) and `game-mechanism-evidence-r2.json`; R1 remains a frozen snapshot. R2 contains 50 specimens and 60 context-bound claims spanning sample compositions, Human falsifier templates, automated apparatus boundaries and measured Station Zero counterfactual evidence. Use them to combine supported edges with strategically important unknowns.

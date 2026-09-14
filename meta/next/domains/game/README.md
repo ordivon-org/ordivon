@@ -125,8 +125,8 @@ Category/genre crosswalk        READY_R1
 Mechanism catalog               READY_R1_WORKING_EXTENSIBLE
 Structural design axes          READY_R1
 Composition graph vocabulary    READY_R1
-Historical mechanism evidence   INITIAL_MIGRATION_22_SPECIMENS
-Pair/set compatibility evidence R1_25_CONTEXT_BOUND_CLAIMS
+Historical mechanism evidence   R2_CURRENT_50_SPECIMENS
+Pair/set compatibility evidence R2_CURRENT_60_CONTEXT_BOUND_CLAIMS
 Product selected                false
 ```
 
@@ -135,11 +135,13 @@ Canonical local crosswalks:
 - [`GAME_CATEGORY_CROSSWALK_R1.md`](GAME_CATEGORY_CROSSWALK_R1.md) — external market/category vocabulary;
 - [`GAME_MECHANISM_CATALOG_R1.md`](GAME_MECHANISM_CATALOG_R1.md) — normalized mechanism/pattern families;
 - [`GAME_MECHANISM_COMPOSITION_PROFILE_R1.md`](GAME_MECHANISM_COMPOSITION_PROFILE_R1.md) — graph-based design-search method;
-- [`GAME_MECHANISM_EVIDENCE_R1.md`](GAME_MECHANISM_EVIDENCE_R1.md) — current migrated specimen/coupling evidence and claim boundaries;
+- [`GAME_MECHANISM_EVIDENCE_R1.md`](GAME_MECHANISM_EVIDENCE_R1.md) — frozen first migration snapshot;
+- [`GAME_MECHANISM_EVIDENCE_R2.md`](GAME_MECHANISM_EVIDENCE_R2.md) — current cumulative evidence and stronger composition gates;
 - [`game-design-space-r1.json`](game-design-space-r1.json) — machine-readable category/mechanism crosswalk;
-- [`game-mechanism-evidence-r1.json`](game-mechanism-evidence-r1.json) — machine-readable 22-specimen / 25-claim evidence ledger.
+- [`game-mechanism-evidence-r1.json`](game-mechanism-evidence-r1.json) — frozen R1 machine ledger;
+- [`game-mechanism-evidence-r2.json`](game-mechanism-evidence-r2.json) — current cumulative 50-specimen / 60-claim machine ledger.
 
-The first decomposition wave is now materialized. Next high-value work is **not another broad taxonomy search**: extend evidence only from high-information references/experiments, pressure the 25 current coupling claims with Human play where needed, and use the ledger to choose composition experiments with the largest evidence gaps.
+Two evidence waves are now materialized. Next high-value work is **not another broad taxonomy search**: query the 60 current coupling claims for measured edges plus strategically important unknowns, run Human C0/C1 where carriers already exist, and compose experiments around the largest evidence gaps rather than genre labels.
 
 ## External references
 
