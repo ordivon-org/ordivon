@@ -1,0 +1,49 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "GUR",
+      "Games User Research"
+    ],
+    "domains": [
+      "game",
+      "research"
+    ],
+    "topics": [
+      "playtesting",
+      "user-research",
+      "game-research",
+      "method-selection"
+    ]
+  },
+  "id": "games-user-research-practice",
+  "identity": {
+    "authorityKind": "professional-guidance",
+    "identityMode": "rolling-source",
+    "issuer": {
+      "id": "games-user-research",
+      "name": "Games User Research"
+    },
+    "officialSource": "https://gamesuserresearch.com/choose-the-right-playtest-method/",
+    "publicationDate": null,
+    "title": "Games User Research — playtest method selection guidance",
+    "versionLabel": null
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "/root/projects/ordivon-game/standards/game_pre_g0_standard_native_r4.toml"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

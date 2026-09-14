@@ -1,0 +1,50 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "FAIR",
+      "FAIR data principles"
+    ],
+    "domains": [
+      "research",
+      "data"
+    ],
+    "topics": [
+      "findable",
+      "accessible",
+      "interoperable",
+      "reusable",
+      "research-data"
+    ]
+  },
+  "id": "fair-principles",
+  "identity": {
+    "authorityKind": "guiding-principles",
+    "identityMode": "rolling-source",
+    "issuer": {
+      "id": "go-fair",
+      "name": "GO FAIR"
+    },
+    "officialSource": "https://www.go-fair.org/fair-principles/",
+    "publicationDate": null,
+    "title": "FAIR Guiding Principles",
+    "versionLabel": null
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "/root/projects/ordivon-research-v2/profiles/paper1_standard_native_r2.toml"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

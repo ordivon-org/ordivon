@@ -1,0 +1,11 @@
+{
+  "authorityId": "acm-sigsoft-data-science",
+  "basis": "migrated-verified-profile",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current",
+  "note": null,
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www2.sigsoft.org/EmpiricalStandards/docs/standards",
+  "schemaVersion": 1,
+  "versionObserved": null
+}

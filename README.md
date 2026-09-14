@@ -46,6 +46,7 @@ ordivon-next/
 ├── docs/            # architecture, terminology, classification, migration rules
 ├── schemas/         # minimal common contracts; added only after cross-domain proof
 ├── knowledge/       # curated metadata/mappings to human knowledge, not copied world knowledge
+├── authorities/     # lightweight external-authority records, observations and generated discovery index
 ├── domains/         # domain life-cycle profiles such as game/research/software
 ├── capabilities/    # external capability/provider records and task-local Capability Package inventories
 ├── compositions/    # reusable problem -> solution -> validation recipes
@@ -65,6 +66,8 @@ The common core is capability-neutral. Mature disciplines, domains, standards, t
 ## Standard-native enterprise environment
 
 See `docs/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R2.md` for the current cross-domain operating contract for binding external authorities, applicability, stable trace identities, evidence, currentness, claim boundaries and domain-owned verdicts. It is an interoperability environment, not an Ordivon replacement for external standards.
+
+`authorities/` provides the lightweight discovery layer in front of that environment: version-aware authority identity records, append-only currentness observations and a disposable generated index. It helps find/load authorities cheaply; task-local profiles still decide applicability.
 
 ## Enterprise operating model
 

@@ -65,6 +65,23 @@ The external source remains authoritative. Ordivon records only enough metadata 
 
 A provider document, professional guideline, venue rule, law, contract and formal standard may all appear in one profile. Their authority types must not be flattened into one false hierarchy.
 
+#### Authority Catalog R1 — discovery before applicability
+
+`authorities/` is the accepted lightweight discovery substrate for external authorities already registered by Ordivon work. It follows progressive disclosure rather than loading every authority into every task:
+
+```text
+Level 0 generated discovery index
+    -> select candidate
+Level 1 authority identity/currentness record
+    -> inspect official source as needed
+Level 2 task-local Standard-Native profile
+    -> BOUND / EXCLUDED / DEFERRED + role/rationale/evidence
+Level 3 external source/full text
+    -> authoritative source or lawfully accessed licensed material
+```
+
+The Catalog is deliberately **not** an applicability engine. `authority find` can suggest a candidate because its metadata matches the problem; only the current Work/profile may bind or exclude it. Currentness observations are append-only and separate from stable/versioned authority identity. The generated index is a derived projection and may be deleted/rebuilt without loss of authority truth.
+
 ### 2.3 Stable trace identity
 
 Requirements or acceptance criteria that materially affect verification need stable local trace identifiers. The identifier belongs to the task-local mapping, not to an invented universal Ordivon requirement ontology.

@@ -1,0 +1,48 @@
+{
+  "access": {
+    "fullText": "licensed",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "ISO 25010",
+      "ISO/IEC 25010:2023"
+    ],
+    "domains": [
+      "engineering",
+      "software"
+    ],
+    "topics": [
+      "software-quality",
+      "product-quality",
+      "quality-model"
+    ]
+  },
+  "id": "iso-iec-25010-2023",
+  "identity": {
+    "authorityKind": "international-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "iso-iec",
+      "name": "ISO/IEC"
+    },
+    "officialSource": "https://www.iso.org/standard/78176.html",
+    "publicationDate": null,
+    "title": "ISO/IEC 25010:2023 — Product quality model",
+    "versionLabel": "2023"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "/root/projects/ordivon-runtime/standards/runtime_standard_native_r3.toml"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

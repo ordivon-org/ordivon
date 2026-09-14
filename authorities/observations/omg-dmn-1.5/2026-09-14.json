@@ -1,0 +1,11 @@
+{
+  "authorityId": "omg-dmn-1.5",
+  "basis": "migrated-verified-profile",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published",
+  "note": null,
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.omg.org/spec/DMN/1.5",
+  "schemaVersion": 1,
+  "versionObserved": "1.5"
+}

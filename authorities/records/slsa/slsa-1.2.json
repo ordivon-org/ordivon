@@ -1,0 +1,50 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "SLSA",
+      "SLSA 1.2"
+    ],
+    "domains": [
+      "engineering",
+      "security",
+      "distribution"
+    ],
+    "topics": [
+      "software-supply-chain",
+      "provenance",
+      "build-integrity",
+      "security"
+    ]
+  },
+  "id": "slsa-1.2",
+  "identity": {
+    "authorityKind": "open-specification",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "slsa",
+      "name": "SLSA"
+    },
+    "officialSource": "https://slsa.dev/spec/v1.2/",
+    "publicationDate": null,
+    "title": "Supply-chain Levels for Software Artifacts Specification 1.2",
+    "versionLabel": "1.2"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "/root/projects/ordivon-runtime/standards/runtime_standard_native_r3.toml"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

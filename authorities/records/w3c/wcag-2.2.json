@@ -1,0 +1,49 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "WCAG",
+      "WCAG 2.2"
+    ],
+    "domains": [
+      "web",
+      "accessibility",
+      "artifact"
+    ],
+    "topics": [
+      "web-accessibility",
+      "accessibility",
+      "web"
+    ]
+  },
+  "id": "wcag-2.2",
+  "identity": {
+    "authorityKind": "web-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "w3c",
+      "name": "W3C"
+    },
+    "officialSource": "https://www.w3.org/TR/WCAG22/",
+    "publicationDate": null,
+    "title": "Web Content Accessibility Guidelines (WCAG) 2.2",
+    "versionLabel": "2.2"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "/root/projects/ordivon-game/standards/game_pre_g0_standard_native_r4.toml"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

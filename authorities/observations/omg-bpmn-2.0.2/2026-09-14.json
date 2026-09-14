@@ -1,0 +1,11 @@
+{
+  "authorityId": "omg-bpmn-2.0.2",
+  "basis": "migrated-verified-profile",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published",
+  "note": null,
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.omg.org/spec/BPMN/2.0.2",
+  "schemaVersion": 1,
+  "versionObserved": "2.0.2"
+}

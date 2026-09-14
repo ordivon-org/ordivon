@@ -1,0 +1,14 @@
+{
+  "boundary": "Acceptance proves catalog registration/discovery/loading mechanics and migration of already-verified authority metadata. It does not prove catalog completeness, task applicability, standards conformance, certification or semantic currentness beyond recorded observations.",
+  "deferredTaskLocalIdsNotRequiredToResolve": [
+    "store-rating-and-release-rules"
+  ],
+  "discoveryIndex": "authorities/generated/authority-index.json",
+  "kind": "ordivon.external-authority-catalog-r1-acceptance",
+  "observationCount": 35,
+  "recordCount": 35,
+  "schemaVersion": 1,
+  "standing": "PASS_LIGHTWEIGHT_PROGRESSIVE_DISCOVERY",
+  "structuredNonDeferredDogfoodIdsResolved": 27,
+  "validator": "check-jsonschema, version 0.38.0"
+}

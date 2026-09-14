@@ -1,0 +1,48 @@
+{
+  "access": {
+    "fullText": "licensed",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "ISO 12207",
+      "ISO/IEC/IEEE 12207:2026"
+    ],
+    "domains": [
+      "engineering",
+      "software"
+    ],
+    "topics": [
+      "software-lifecycle",
+      "systems-engineering",
+      "software-engineering"
+    ]
+  },
+  "id": "iso-iec-ieee-12207-2026",
+  "identity": {
+    "authorityKind": "international-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "iso-iec-ieee",
+      "name": "ISO/IEC/IEEE"
+    },
+    "officialSource": "https://www.iso.org/standard/90219.html",
+    "publicationDate": null,
+    "title": "ISO/IEC/IEEE 12207:2026 — Software life cycle processes",
+    "versionLabel": "2026"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "/root/projects/ordivon-runtime/standards/runtime_standard_native_r3.toml"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

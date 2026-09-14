@@ -1,0 +1,11 @@
+{
+  "authorityId": "iso-9001-2015-amd1-2024",
+  "basis": "migrated-verified-profile",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published-current",
+  "note": "Current published baseline at the 2026-09-14 catalog cut; monitored successor ISO 9001:2026 remains under publication.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.iso.org/standard/9001",
+  "schemaVersion": 1,
+  "versionObserved": "2015+Amd1:2024"
+}

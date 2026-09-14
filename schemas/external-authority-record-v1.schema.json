@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ordivon:schema:external-authority-record:v1",
+  "title": "External Authority Record v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "id", "identity", "discovery", "access", "relations", "provenance"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "ordivon.external-authority-record"},
+    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["issuer", "title", "authorityKind", "identityMode", "versionLabel", "officialSource"],
+      "properties": {
+        "issuer": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "name"],
+          "properties": {
+            "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+            "name": {"type": "string", "minLength": 1}
+          }
+        },
+        "title": {"type": "string", "minLength": 1},
+        "authorityKind": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+        "identityMode": {"enum": ["versioned", "rolling-source"]},
+        "versionLabel": {"type": ["string", "null"]},
+        "officialSource": {"type": "string", "format": "uri"},
+        "publicationDate": {"type": ["string", "null"]}
+      }
+    },
+    "discovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["aliases", "topics", "domains"],
+      "properties": {
+        "aliases": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "topics": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"}},
+        "domains": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"}}
+      }
+    },
+    "access": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metadata", "fullText", "note"],
+      "properties": {
+        "metadata": {"enum": ["public"]},
+        "fullText": {"enum": ["public", "licensed", "mixed", "external-only"]},
+        "note": {"type": ["string", "null"]}
+      }
+    },
+    "relations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["supersedes", "supersededBy", "related"],
+      "properties": {
+        "supersedes": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"}},
+        "supersededBy": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"}},
+        "related": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"}}
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["registeredDate", "registrationBasis"],
+      "properties": {
+        "registeredDate": {"type": "string", "format": "date"},
+        "registrationBasis": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+      }
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "authorityId": "ro-crate-1.3",
+  "basis": "migrated-verified-profile",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published",
+  "note": null,
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.researchobject.org/ro-crate/specification",
+  "schemaVersion": 1,
+  "versionObserved": "1.3"
+}

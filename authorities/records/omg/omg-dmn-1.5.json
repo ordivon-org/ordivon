@@ -1,0 +1,50 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "DMN",
+      "DMN 1.5"
+    ],
+    "domains": [
+      "enterprise",
+      "management",
+      "decision"
+    ],
+    "topics": [
+      "decision-modeling",
+      "business-rules",
+      "decision-tables"
+    ]
+  },
+  "id": "omg-dmn-1.5",
+  "identity": {
+    "authorityKind": "formal-specification",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "omg",
+      "name": "Object Management Group"
+    },
+    "officialSource": "https://www.omg.org/spec/DMN/1.5",
+    "publicationDate": null,
+    "title": "Decision Model and Notation (DMN) 1.5",
+    "versionLabel": "1.5"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "docs/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R2.md",
+      "OMG official specification checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}
