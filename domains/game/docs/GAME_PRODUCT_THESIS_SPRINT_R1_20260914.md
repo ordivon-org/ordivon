@@ -371,7 +371,7 @@ Kill/rewrite if:
 
 ### AGENT NEED
 
-`none` at R1. A model Agent is admitted only if Human evidence shows that interpretation/generalization beyond deterministic policy is central and materially valuable.
+`none` at R1. A model Agent is admitted only if claim-specific evidence shows that interpretation/generalization beyond the cheapest adequate authored/script/policy baseline is central and materially valuable. Structural, strategy, robustness or causal-control claims may use formal, synthetic, telemetry or controlled-experiment evidence when those carriers identify the claim best; actual Human experience, preference, meaning or comprehension claims still require relevant Human participant evidence.
 
 ### Current prior
 
