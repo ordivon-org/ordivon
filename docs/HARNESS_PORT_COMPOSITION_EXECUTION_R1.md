@@ -945,3 +945,77 @@ git diff --check PASS
 ```
 
 R7 should therefore stop adding language servers. The next work item is provider lifecycle ownership: initialization/configuration, diagnostics, server requests, cancellation/shutdown, and Run/Tool Grant binding. Only after that should Harness choose or admit a production LSP transport/provider dependency.
+
+## R7 update — lifecycle ownership narrowed to a replaceable provider port
+
+Canonical Harness advanced through:
+
+```text
+c7df6ef harness: add proposal-only LSP provider port
+cd45070 harness: verify LSP lifecycle provider candidate
+```
+
+The stable Harness waist is now provider-neutral:
+
+```text
+Harness Run / Tool authority
+    -> HarnessLspProviderPort
+        initialize
+        rename -> WorkspaceEdit proposal
+        drain diagnostics
+        shutdown
+    -> WorkspaceEdit authority binding
+    -> CanonicalEditPlan
+    -> Runtime workspace.patch
+```
+
+The port deliberately has no apply/write/workspace-patch method. A provider declaring direct workspace mutation is rejected by the Harness-side capability model. Harness-facing positions use one-based lines plus zero-based Unicode-character columns; provider wrappers convert them to negotiated UTF-8/UTF-16/UTF-32 LSP position units.
+
+The port itself has no third-party dependency. This preserves the existing Harness repository boundary, which intentionally excludes optional dependency groups.
+
+A fresh revision-bound lifecycle occurrence evaluated `lsp-client 0.3.9` with local `taplo 0.10.0`. The custom provider composition included rename, configuration-request handling, diagnostics, and log notifications while deliberately omitting the library's apply-edit mixin. Observed result:
+
+```text
+workspace/configuration handled = 1
+publishDiagnostics notifications = 4
+WorkspaceEdit proposal returned = yes
+provider applyEdit mixin = absent
+disk changed during lifecycle = no
+disk changed after shutdown = no
+typed WorkspaceEdit -> Harness JSON adapter = pass
+```
+
+The package's own mutating convenience APIs remain outside the Harness provider port. Its wheel metadata carries the MIT OSI classifier, but it has **not** been added to Harness production dependencies.
+
+Sixth verified receipt:
+
+```text
+evidence/lsp-r7-lsp-client-lifecycle-20260914.json
+payload digest:
+sha256:6981aec36c5b90c8063894fbd0d94bf88e1130bb729e81c8bad22c7e663effc7
+```
+
+Current Harness acceptance:
+
+```text
+474 deterministic tests PASS
+Ruff PASS
+documentation contract PASS
+dependency contract PASS
+evidence contract PASS (80 historical / 6 verified)
+LSP lifecycle evidence integrity PASS
+git diff --check PASS
+```
+
+Current standing is therefore:
+
+```text
+WorkspaceEdit authority boundary          VERIFIED
+provider portability (clangd + Taplo)    VERIFIED
+provider-neutral lifecycle port          IMPLEMENTED + REGRESSED
+lsp-client lifecycle candidate           SUPPORTED
+lsp-client Harness core dependency       NOT_ADMITTED
+default LSP provider                     NOT_FINAL
+```
+
+The remaining R7 work is negative/fault evidence rather than feature expansion: cancellation, abnormal language-server exit, and finally Run/Tool Grant binding before any public Agent Tool surface is exposed.
