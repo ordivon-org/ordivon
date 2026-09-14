@@ -8,7 +8,7 @@ impl Runtime {
         }
         let snapshot = self.registry.job_snapshot(&request.job_id)?;
         if snapshot.job.resolution == Some(JobResolution::Orphaned) {
-            if let Some(attempt) = snapshot.attempt {
+            if let Some(attempt) = snapshot.attempt.as_ref() {
                 if Path::new(&attempt.bundle_path).join(RESULT_FILE).is_file()
                     && self.recover_orphaned_runner_result(&attempt)?
                 {
@@ -40,6 +40,19 @@ impl Runtime {
             Ok(()) => {}
             Err(error)
                 if native_direct && error.code == RuntimeErrorCode::LaunchIdentityMismatch => {}
+            Err(error) if error.code == RuntimeErrorCode::LaunchIdentityMismatch => {
+                let attempt = snapshot.attempt.as_ref().ok_or_else(|| {
+                    RuntimeError::new(
+                        RuntimeErrorCode::RegistryCorrupt,
+                        "unresolved Job has no Attempt while cancelling after launch identity mismatch",
+                        Some("jobId"),
+                        false,
+                    )
+                })?;
+                if !launch_identity_mismatch_cancel_target_absent(attempt)? {
+                    return Err(error);
+                }
+            }
             Err(error) => return Err(error),
         }
         let projection = self.registry.request_cancel(&request.job_id, now_ms()?)?;
@@ -307,6 +320,36 @@ impl Runtime {
     fn payload_evidence_matches(&self, uid: Option<u32>, gid: Option<u32>) -> bool {
         uid.is_none() && gid.is_none()
     }
+}
+
+fn launch_identity_mismatch_cancel_target_absent(attempt: &AttemptRecord) -> RuntimeResult<bool> {
+    let properties = systemctl_show(&attempt.unit_name)?;
+    let unit_active = unit_is_active(&properties);
+    let recorded_pid_alive = attempt.main_pid.is_some_and(|pid| {
+        process_identity(pid)
+            .as_deref()
+            .zip(attempt.process_start_identity.as_deref())
+            .is_some_and(|(observed, expected)| observed == expected)
+    });
+    let cgroup_alive = attempt
+        .control_group
+        .as_deref()
+        .map(cgroup_has_processes)
+        .transpose()?
+        .unwrap_or(false);
+    Ok(cancel_after_launch_identity_mismatch_is_safe(
+        unit_active,
+        recorded_pid_alive,
+        cgroup_alive,
+    ))
+}
+
+pub(super) fn cancel_after_launch_identity_mismatch_is_safe(
+    unit_active: bool,
+    recorded_pid_alive: bool,
+    cgroup_alive: bool,
+) -> bool {
+    !unit_active && !recorded_pid_alive && !cgroup_alive
 }
 
 pub(super) fn native_windows_pre_target_evidence_gap() -> RuntimeError {
