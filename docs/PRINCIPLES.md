@@ -17,3 +17,4 @@
 14. **No prescribed evolution path** — roadmap order follows real problem demand and evidence, not an architectural sequence.
 
 15. **Natural authority over global state** — semantic cases, workflows, executions, artifacts and telemetry remain authoritative in their natural owners; cross-owner dashboards and read models are disposable projections, never a replacement global Task/Board authority.
+16. **Mature product surfaces before custom product surfaces** — do not rebuild established application builders, observability/evaluation workbenches, asset catalogs, marketplaces or other product-layer workflows merely because their primitives are understood; compose or license mature products until a real delivery requirement proves them insufficient.
