@@ -1,0 +1,287 @@
+{
+  "date": "2026-09-14",
+  "implementation": {
+    "agentFacingPath": "read_workspace -> edit_workspace -> CanonicalEditPlan -> Runtime-shaped workspace.patch",
+    "harnessRevisionUsed": "33ac4a891441c565371767f02905361dd1d5fe55",
+    "liveTreatmentWorkspace": "isolated in-memory Runtime-shaped fixture",
+    "realDurableRuntimePatchValidatedSeparately": true
+  },
+  "implementationRevision": "33ac4a891441c565371767f02905361dd1d5fe55",
+  "integrity": {
+    "algorithm": "sha256",
+    "canonicalization": "ordivon-canonical-json-v1",
+    "payloadDigest": "sha256:e36864e2487a555289cfb0df0481b3c8c00ad9d4a7cf7593ca298f20082ea0ec"
+  },
+  "kind": "ordivon.adaptive-edit-r2-live-profile-evidence",
+  "pilot": {
+    "confounded": true,
+    "confounder": "Harness conservative provider request-token upper-bound preflight prevented the fourth Provider turn in all pilot runs.",
+    "maxTotalTokens": 24000,
+    "pilotReportDigest": "sha256:4ade102143dc9832035eadea903ae24ac18dae214a02ec9b6ef321c6329cc7e5",
+    "primaryEvidence": false,
+    "replicatesPerTreatment": 2,
+    "use": "diagnostic only; excluded from treatment standing"
+  },
+  "primary": {
+    "aggregates": {
+      "anchored-line-v1": {
+        "candidateCompleted": 3,
+        "hiddenPassed": 4,
+        "meansTimes10": {
+          "elapsedMs": 93700,
+          "modelCalls": 52,
+          "observationBytes": 133458,
+          "toolCalls": 66,
+          "totalTokens": 229984
+        },
+        "rejectedObservations": 1,
+        "runs": 5,
+        "totals": {
+          "elapsedMs": 46850,
+          "modelCalls": 26,
+          "observationBytes": 66729,
+          "toolCalls": 33,
+          "totalTokens": 114992
+        },
+        "visiblePassed": 5
+      },
+      "exact-replacement-v1": {
+        "candidateCompleted": 5,
+        "hiddenPassed": 5,
+        "meansTimes10": {
+          "elapsedMs": 88340,
+          "modelCalls": 44,
+          "observationBytes": 118864,
+          "toolCalls": 54,
+          "totalTokens": 179728
+        },
+        "rejectedObservations": 0,
+        "runs": 5,
+        "totals": {
+          "elapsedMs": 44170,
+          "modelCalls": 22,
+          "observationBytes": 59432,
+          "toolCalls": 27,
+          "totalTokens": 89864
+        },
+        "visiblePassed": 5
+      }
+    },
+    "derivedComparison": {
+      "elapsedTotalReductionMs": 2680,
+      "exactMeanTokenReductionVsAnchoredBasisPoints": 2186,
+      "modelCallTotalReduction": 4,
+      "toolCallTotalReduction": 6
+    },
+    "maxModelCalls": 6,
+    "maxToolCalls": 8,
+    "maxTotalTokens": 64000,
+    "records": [
+      {
+        "candidateCompleted": true,
+        "elapsedMs": 8170,
+        "finalDigest": "sha256:01e2adab240febd21fe6db39dee898a75b135f107c28862cdbba5da3d4c615a3",
+        "hiddenPassed": true,
+        "modelCalls": 4,
+        "observationBytes": 10822,
+        "oracleExact": false,
+        "rejectedObservations": 0,
+        "replicate": 1,
+        "stopCode": "candidate_completed",
+        "toolCalls": 5,
+        "totalTokens": 15204,
+        "treatment": "exact-replacement-v1",
+        "visiblePassed": true
+      },
+      {
+        "candidateCompleted": true,
+        "elapsedMs": 11940,
+        "finalDigest": "sha256:d1f37ac83b3f671740eb32551260faa6740508b2f7552d3c4fe656d4a97d8b4c",
+        "hiddenPassed": true,
+        "modelCalls": 6,
+        "observationBytes": 14724,
+        "oracleExact": false,
+        "rejectedObservations": 0,
+        "replicate": 2,
+        "stopCode": "candidate_completed",
+        "toolCalls": 7,
+        "totalTokens": 27780,
+        "treatment": "exact-replacement-v1",
+        "visiblePassed": true
+      },
+      {
+        "candidateCompleted": true,
+        "elapsedMs": 6953,
+        "finalDigest": "sha256:c806e4c86322792589c1bb2ede435912e77d669824cc46896329b29a5296343e",
+        "hiddenPassed": true,
+        "modelCalls": 4,
+        "observationBytes": 10997,
+        "oracleExact": false,
+        "rejectedObservations": 0,
+        "replicate": 3,
+        "stopCode": "candidate_completed",
+        "toolCalls": 5,
+        "totalTokens": 15164,
+        "treatment": "exact-replacement-v1",
+        "visiblePassed": true
+      },
+      {
+        "candidateCompleted": true,
+        "elapsedMs": 8834,
+        "finalDigest": "sha256:a808c4d7ba37517d38925ca01e53dd13ce82bcc23452dcb396ef3ba60f3fda47",
+        "hiddenPassed": true,
+        "modelCalls": 4,
+        "observationBytes": 11308,
+        "oracleExact": false,
+        "rejectedObservations": 0,
+        "replicate": 4,
+        "stopCode": "candidate_completed",
+        "toolCalls": 5,
+        "totalTokens": 15384,
+        "treatment": "exact-replacement-v1",
+        "visiblePassed": true
+      },
+      {
+        "candidateCompleted": true,
+        "elapsedMs": 8273,
+        "finalDigest": "sha256:b98f685bb2ca7bcda7b02a8927620caf7be60526c4b7a668cdeeb08d0bb21df9",
+        "hiddenPassed": true,
+        "modelCalls": 4,
+        "observationBytes": 11581,
+        "oracleExact": false,
+        "rejectedObservations": 0,
+        "replicate": 5,
+        "stopCode": "candidate_completed",
+        "toolCalls": 5,
+        "totalTokens": 16332,
+        "treatment": "exact-replacement-v1",
+        "visiblePassed": true
+      },
+      {
+        "candidateCompleted": true,
+        "elapsedMs": 10161,
+        "finalDigest": "sha256:d00d57197906d6c17501581c13a0ade844871deaf1b2d9495b75e4d329c96ba7",
+        "hiddenPassed": true,
+        "modelCalls": 6,
+        "observationBytes": 14241,
+        "oracleExact": false,
+        "rejectedObservations": 0,
+        "replicate": 1,
+        "stopCode": "candidate_completed",
+        "toolCalls": 7,
+        "totalTokens": 27805,
+        "treatment": "anchored-line-v1",
+        "visiblePassed": true
+      },
+      {
+        "candidateCompleted": true,
+        "elapsedMs": 7579,
+        "finalDigest": "sha256:766143086df9b608662529a52c0962efed1285dcbfa74f17e26359f68ca64718",
+        "hiddenPassed": true,
+        "modelCalls": 4,
+        "observationBytes": 11192,
+        "oracleExact": false,
+        "rejectedObservations": 0,
+        "replicate": 2,
+        "stopCode": "candidate_completed",
+        "toolCalls": 5,
+        "totalTokens": 15775,
+        "treatment": "anchored-line-v1",
+        "visiblePassed": true
+      },
+      {
+        "candidateCompleted": false,
+        "elapsedMs": 11583,
+        "finalDigest": "sha256:cc7e60800b3965998b87ec4681fc5df8814b9183c00e09d3fbe3bf91b3fbab57",
+        "hiddenPassed": false,
+        "modelCalls": 6,
+        "observationBytes": 14722,
+        "oracleExact": false,
+        "rejectedObservations": 0,
+        "replicate": 3,
+        "stopCode": "budget_exhausted",
+        "toolCalls": 8,
+        "totalTokens": 28040,
+        "treatment": "anchored-line-v1",
+        "visiblePassed": true
+      },
+      {
+        "candidateCompleted": false,
+        "elapsedMs": 9718,
+        "finalDigest": "sha256:2e6830a5844c36b4f4e0011b9a45f783b925540881e5f50304bbb750a3c2d0fe",
+        "hiddenPassed": true,
+        "modelCalls": 6,
+        "observationBytes": 15052,
+        "oracleExact": false,
+        "rejectedObservations": 1,
+        "replicate": 4,
+        "stopCode": "budget_exhausted",
+        "toolCalls": 8,
+        "totalTokens": 27749,
+        "treatment": "anchored-line-v1",
+        "visiblePassed": true
+      },
+      {
+        "candidateCompleted": true,
+        "elapsedMs": 7809,
+        "finalDigest": "sha256:a675f5594503605eee7d5bb8d6c6794cd27068fcd80193d22ba914a362b027f4",
+        "hiddenPassed": true,
+        "modelCalls": 4,
+        "observationBytes": 11522,
+        "oracleExact": false,
+        "rejectedObservations": 0,
+        "replicate": 5,
+        "stopCode": "candidate_completed",
+        "toolCalls": 5,
+        "totalTokens": 15623,
+        "treatment": "anchored-line-v1",
+        "visiblePassed": true
+      }
+    ],
+    "replicatesPerTreatment": 5
+  },
+  "provider": {
+    "credentialMaterialRecorded": false,
+    "effectiveModel": "deepseek-flash",
+    "observedSystemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+    "protocolGate": {
+      "interpretation": "Retain the anomalous sample; current evidence does not establish a persistent API-shape drift.",
+      "invariantRelaxed": false,
+      "isolatedInitialAdapterFinishReasonInconsistencyObserved": true,
+      "subsequentFormalAdapterInvokePasses": 2,
+      "subsequentNormalWireShapeReplicates": 4
+    },
+    "provider": "deepseek",
+    "providerRequestMode": "non-thinking",
+    "requestedModel": "deepseek-flash"
+  },
+  "schemaVersion": 1,
+  "scope": "Small model/task-specific live A/B. Supports only a provisional edit-codec profile for deepseek-flash on HARNESS-REPO-REPAIR-001; it is not a general codec ranking and does not justify removing anchored addressing.",
+  "standing": {
+    "anchoredRetentionReason": "Deterministic repeated-text falsifier proves anchored addressing can identify a target that exact replacement must reject as ambiguous.",
+    "automaticGlobalDefaultAuthorized": false,
+    "basis": [
+      "exact hidden verifier 5/5 vs anchored 4/5",
+      "exact candidate completion 5/5 vs anchored 3/5",
+      "exact zero rejected observations vs anchored one",
+      "exact lower total model/tool calls and total token use in these ten corrected runs"
+    ],
+    "preferredCodec": "exact-replacement-v1",
+    "profileKey": "deepseek-flash|HARNESS-REPO-REPAIR-001|2026-09-14",
+    "requiredBeforeBroaderSelection": [
+      "additional task families",
+      "additional model/provider profiles",
+      "retain per-run authority and exact source fencing"
+    ],
+    "standing": "PROVISIONAL_MODEL_TASK_SPECIFIC"
+  },
+  "task": {
+    "environmentDigest": "sha256:f138518c20e3fea3e1a6f88478e78ab73da92fda22b882516c1cc48ad6943453",
+    "hiddenVerifierDigest": "sha256:65599a7f620009d016844e23b8a7b3fadb1b6a66f7c4cc6250409b21373b8007",
+    "oracleDigest": "sha256:9d0689dcd19c64382cc4c2a68e72f9cc1970eb476af49daf1f2898cf1f7fb76f",
+    "semanticAcceptance": "visible suite plus hidden verifier; byte-identical oracle is auxiliary only",
+    "taskDefinitionPayloadDigest": "sha256:a841ff3e6f6d0796d4e5e0fbc1595abad1a43833eace4bcd71f406889693eb4b",
+    "taskId": "HARNESS-REPO-REPAIR-001",
+    "taskVersion": 1
+  }
+}

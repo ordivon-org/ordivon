@@ -574,6 +574,13 @@
       "revisionBinding": "index-creation-lineage",
       "status": "historical",
       "scope": "Historical deletion proof for 46030ae: unreachable Host-era Abandonment/Disposition application semantics were retired after the bounded source/store/survivor evidence recorded by the immutable receipt. Later canonical batch-search composition 51b942c modified the verified implementation paths loop.py, run_recovery.py, runtime_lowering.py, and sqlite_runtime_bridge.py, so the immutable receipt remains exact evidence for its tested revision but no longer certifies whole-current Harness source."
+    },
+    {
+      "claimId": "harness.edit.adaptive-r2-live-deepseek-flash",
+      "file": "adaptive-edit-r2-live-ab-deepseek-flash-20260914.json",
+      "status": "verified",
+      "implementationRevision": "33ac4a891441c565371767f02905361dd1d5fe55",
+      "scope": "Current model/task-specific Adaptive Edit R2 live profile at 33ac4a8: DeepSeek Flash on HARNESS-REPO-REPAIR-001 under equal corrected 64k token authority; exact replacement is provisional preferred for this profile only, while anchored addressing remains required by the deterministic repeated-text falsifier. No global codec default is authorized."
     }
   ]
 }

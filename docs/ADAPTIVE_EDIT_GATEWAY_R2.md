@@ -128,6 +128,63 @@ An anchor generated from a previous source snapshot is rejected against changed 
 
 Historical P2 evidence remains contextual rather than replayed benchmark data: it recorded two malformed Agent-authored unified diffs rejected before materialization followed by successful exact-oldText/newText encoding.
 
+## Live model-specific profile
+
+`scripts/run_adaptive_edit_r2_live_ab.py` now provides an explicit, opt-in live Provider A/B runner. Ordinary regression tests import and test its treatment fencing and Runtime-shaped in-memory fixture but do not contact DeepSeek.
+
+The first corrected live profile used:
+
+```text
+provider/model:      deepseek / deepseek-flash
+task:                HARNESS-REPO-REPAIR-001
+max model calls:     6
+max tool calls:      8
+max total tokens:    64,000
+replicates/codec:    5
+```
+
+The semantic acceptance gate was the existing visible suite plus hidden verifier. Exact oracle bytes were auxiliary only.
+
+Observed corrected outcomes:
+
+```text
+exact-replacement-v1:
+  hidden verifier       5/5
+  candidate_completed   5/5
+  rejected observations 0
+  total model calls     22
+  total tool calls      27
+  total tokens          89,864
+
+anchored-line-v1:
+  hidden verifier       4/5
+  candidate_completed   3/5
+  rejected observations 1
+  total model calls     26
+  total tool calls      33
+  total tokens          114,992
+```
+
+For this **model + task + date only**, `exact-replacement-v1` is therefore the provisional preferred codec. Its corrected runs used about 21.86% fewer tokens in aggregate than the anchored treatment.
+
+This is deliberately **not** a global default. The deterministic repeated-text falsifier still proves a case where exact replacement must fail closed as ambiguous while anchored addressing succeeds. The right interpretation is model/task-specific profiling plus structural fallback capability, not universal preference for either protocol.
+
+The evidence is retained in:
+
+```text
+evidence/adaptive-edit-r2-live-ab-deepseek-flash-20260914.json
+```
+
+with canonical payload digest:
+
+```text
+sha256:e36864e2487a555289cfb0df0481b3c8c00ad9d4a7cf7593ca298f20082ea0ec
+```
+
+A preceding 24k-token pilot is retained as diagnostic-only evidence. It is explicitly excluded from treatment standing because Harness's conservative Provider request-token upper-bound preflight prevented the fourth Provider turn in all four pilot runs. The corrected profile uses identical 64k token authority for both treatments.
+
+One isolated DeepSeek response also violated the Adapter's finish-reason invariant. The invariant was not weakened. Four subsequent wire-shape responses and two formal Adapter invocations were normal, so the anomalous sample is retained without claiming a persistent API-shape drift.
+
 ## Current deliberate limits
 
 - one semantic edit per file per compiled plan;
@@ -135,16 +192,16 @@ Historical P2 evidence remains contextual rather than replayed benchmark data: i
 - no conventional unified/apply-patch codec yet;
 - `edit_workspace` is internal composition only, not part of the default public Tool surface;
 - no automatic codec fallback dispatcher yet;
-- no live model-profile performance table yet;
+- only one live model/task profile exists, so no global selection policy is authorized;
 - no LSP WorkspaceEdit expansion yet.
 
 These limits prevent the prototype from inventing ordering/fallback semantics before evidence requires them.
 
 ## Next integration step
 
-1. run the same edit tasks through real Provider/model trials with exact fixed budgets;
-2. record per-model protocol success, correction turns, observation bytes, tokens, and latency;
-3. only permit automatic codec selection from measured profile evidence;
+1. add additional task families, especially edits with repeated textual targets and multi-region changes;
+2. add additional model/provider profiles under the same fixed-budget protocol;
+3. permit automatic codec selection only from explicit profile evidence and structural applicability checks;
 4. add a mature conventional patch donor only if it can compile to `CanonicalEditPlan` without owning physical writes;
 5. route LSP `WorkspaceEdit` through the same canonical edit boundary;
 6. promote a generic edit-provider port only if a second implementation needs the same boundary.
