@@ -69,6 +69,10 @@ See `docs/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R2.md` for the current cross-do
 
 `authorities/` provides the lightweight discovery layer in front of that environment: version-aware authority identity records, append-only currentness observations and a disposable generated index. It helps find/load authorities cheaply; task-local profiles still decide applicability.
 
+## Authority and policy composition
+
+See `knowledge/lessons/authority-mature-substrate-decomposition-r1.md` for the current cross-disciplinary authority map. Ordivon does not claim a novel authority theory: institutional governance, evidence-to-decision, decision science, delegation, IAM/policy engines and adaptive/institutional learning remain externally owned mature substrates. `policies/` keeps only the thin task-local composition boundary and must not become a custom policy language, IAM system, generic Human gate or universal risk gate.
+
 ## Enterprise operating model
 
 See `docs/ENTERPRISE_OPERATING_MODEL_R1.md` and `compositions/enterprise-work-to-outcome-r1.md` for the demand-gated composition of mature quality/project/risk/audit guidance with ERPNext, Host v2, Flowable, Temporal, n8n, Runtime and domain-native V&V. Providers remain dormant unless a real responsibility justifies activation.
