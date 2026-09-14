@@ -1,6 +1,6 @@
-# Operations machine inventory
+# Workstation v2 machine inventory
 
-Operations owns the **generic node-local inventory boundary**, not a universal capability registry.
+Workstation v2 owns the **generic node-local inventory and realization-discovery boundary**, not a universal capability registry.
 
 The inventory answers bounded physical questions such as:
 

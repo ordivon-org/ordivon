@@ -1,0 +1,253 @@
+# Migrated 2026-09-14 from /root/workstation-lab/workstation.toml.
+# Workstation v2 owns node-local materialization/binding facts only.
+# Runtime owns execution; domains own semantic selection and success.
+
+[managed_equipment.temporal-cli-1-8-3]
+executable = "/opt/ordivon/external/temporal-cli/1.8.3/temporal"
+execution_target = "local_linux"
+sha256 = "76aea8d71fafe2d39c1104bef3ce86c1600d9adbff79953d102f60e535ae1413"
+
+[managed_equipment.temporal-server-1-31-2]
+executable = "/opt/ordivon/external/temporal-server/1.31.2/temporal-server"
+execution_target = "local_linux"
+sha256 = "40526ba95981edd029dab8de0204a2e844390fb72eb7fb83866d9e8e1c06ec83"
+
+[managed_equipment.temporal-sql-tool-1-31-2]
+executable = "/opt/ordivon/external/temporal-server/1.31.2/temporal-sql-tool"
+execution_target = "local_linux"
+sha256 = "aa6bb7ed8930b41ba7c1af3310f6e10f21d6dba2ffa72536b1bafe8392b03a1d"
+
+# Browser human-interaction bridge. The noVNC static tree is not an executable and is
+# therefore validated by the Browserless deployer rather than misclassified as equipment.
+[managed_equipment.browserless-websockify-0-13-0]
+executable = "/opt/ordivon/external/websockify/0.13.0/bin/websockify"
+execution_target = "local_linux"
+sha256 = "022c85f315e4df97487779c85a21dd0a162ebb1c1e09f75d3445a8583e4c1a26"
+
+[managed_equipment.game-aseprite-e1]
+executable = "/opt/ordivon/external/aseprite/1.3.17.2/aseprite"
+execution_target = "local_linux"
+sha256 = "f7a08c602b4d62616769e88b1896082ae50d8033ebcb75cca3fa7b284a57aac7"
+
+[managed_equipment.game-inkscape-e1]
+executable = "/opt/ordivon/external/inkscape/1.4.2/Inkscape-ebf0e94-x86_64.AppImage"
+execution_target = "local_linux"
+sha256 = "99c333c03ce77e207942ddcd5c8a5b77cde89959a23651bc7872ae880cf4ba6b"
+
+# Graphviz was acquired from its official 15.1.1 Linux CMake package as a
+# node-local Workstation tool after real Board-thread visualization pressure.
+# This binding exposes the exact `dot` byte only; graph semantics remain with consumers.
+[managed_equipment.workstation-graphviz-dot-15-1-1]
+executable = "/opt/ordivon/external/graphviz/15.1.1/usr/bin/dot"
+execution_target = "local_linux"
+sha256 = "6e22332628364b91c4689eb3cc0a76b45861f1ed4ea12dad3f570cf4fc11c47c"
+
+# Persistent Laboratory providers that have already earned a bounded role outside
+# Workstation. These rows expose exact node-local bytes/bindings only; Laboratory/
+# Computing evidence retains provider-version, engineering-role and admission meaning.
+[managed_equipment.laboratory-kicad-cli-10-0-5]
+executable = "/root/.local/share/ordivon/laboratory/providers/kicad-10.0.5-appimage-lite/bin/kicad-cli"
+execution_target = "local_linux"
+sha256 = "52f95c6f329742b5d34c012d3f24adddf40b1c2c0fcc2dd27c8ba307b62e9799"
+
+[managed_equipment.laboratory-ngspice-47]
+executable = "/root/.local/share/ordivon/laboratory/providers/ngspice-47-headless/bin/ngspice"
+execution_target = "local_linux"
+sha256 = "4bf0daa1d113cd0e7484f2b91e2273c7d085e5ee3e85c62b77e2c2daf4cd081c"
+
+# Capability-relevant professional software already present on this node.
+# This is a bounded discoverability contract, not a complete installed-software registry
+# and not domain/task admission. Windows paths may use Windows environment variables;
+# Linux package versions are observed from pacman without mutating package state.
+[professional_software.davinci-resolve]
+display_name = "DaVinci Resolve"
+category = "media.video-postproduction"
+platform = "windows"
+provider = "windows-native-executable"
+launchers = [
+  { name = "resolve", path = "C:\\Program Files\\Blackmagic Design\\DaVinci Resolve\\Resolve.exe" },
+]
+
+[professional_software.touchdesigner]
+display_name = "TouchDesigner"
+category = "media.realtime-visual"
+platform = "windows"
+provider = "windows-native-executable"
+launchers = [
+  { name = "touchdesigner", path = "C:\\Program Files\\Derivative\\TouchDesigner\\bin\\TouchDesigner.exe" },
+]
+
+[professional_software.obs-studio]
+display_name = "OBS Studio"
+category = "media.capture-streaming"
+platform = "windows"
+provider = "windows-native-executable"
+launchers = [
+  { name = "obs", path = "C:\\Program Files\\obs-studio\\bin\\64bit\\obs64.exe" },
+]
+
+# Current Media owner consumption justifies node-local recognition of these
+# user-portable workstations. Workstation owns only materialization/binding facts;
+# Media retains Blender scene and REAPER project/ReaScript/OSC semantics.
+[professional_software.blender]
+display_name = "Blender"
+category = "media.spatial-3d"
+platform = "windows"
+provider = "windows-user-portable-executable"
+launchers = [
+  { name = "blender", path = "%LOCALAPPDATA%\\Programs\\Blender-5.2-Portable\\blender.exe" },
+]
+
+[professional_software.reaper]
+display_name = "REAPER"
+category = "media.audio-workstation"
+platform = "windows"
+provider = "windows-user-portable-executable"
+launchers = [
+  { name = "reaper", path = "%LOCALAPPDATA%\\Programs\\REAPER-Portable\\reaper.exe" },
+]
+
+[professional_software.figma]
+display_name = "Figma"
+category = "design.interface"
+platform = "windows"
+provider = "windows-native-executable"
+launchers = [
+  { name = "figma", path = "%LOCALAPPDATA%\\Figma\\Figma.exe" },
+]
+
+[professional_software.vscode]
+display_name = "Visual Studio Code"
+category = "development.ide"
+platform = "windows"
+provider = "windows-native-executable"
+launchers = [
+  { name = "code", path = "%LOCALAPPDATA%\\Programs\\Microsoft VS Code\\Code.exe" },
+]
+
+[professional_software.microsoft-365]
+display_name = "Microsoft 365"
+category = "productivity.office"
+platform = "windows"
+provider = "windows-native-executable"
+launchers = [
+  { name = "word", path = "C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE" },
+  { name = "excel", path = "C:\\Program Files\\Microsoft Office\\root\\Office16\\EXCEL.EXE" },
+  { name = "powerpoint", path = "C:\\Program Files\\Microsoft Office\\root\\Office16\\POWERPNT.EXE" },
+]
+
+[professional_software.surfshark]
+display_name = "Surfshark"
+category = "network.vpn-client"
+platform = "windows"
+provider = "windows-native-executable"
+launchers = [
+  { name = "surfshark", path = "C:\\Program Files\\Surfshark\\Surfshark.exe" },
+]
+
+[professional_software.wireguard-windows]
+display_name = "WireGuard"
+category = "network.vpn-client"
+platform = "windows"
+provider = "windows-native-executable"
+launchers = [
+  { name = "wireguard", path = "C:\\Program Files\\WireGuard\\wireguard.exe" },
+]
+
+[professional_software.godot]
+display_name = "Godot"
+category = "interactive.engine"
+platform = "linux"
+provider = "pacman"
+package = "godot"
+launchers = [
+  { name = "godot", path = "/usr/bin/godot" },
+]
+
+[professional_software.tiled]
+display_name = "Tiled"
+category = "interactive.level-authoring"
+platform = "linux"
+provider = "pacman"
+package = "tiled"
+launchers = [
+  { name = "tiled", path = "/usr/bin/tiled" },
+]
+
+[professional_software.renderdoc]
+display_name = "RenderDoc"
+category = "interactive.graphics-debugging"
+platform = "linux"
+provider = "pacman"
+package = "renderdoc"
+launchers = [
+  { name = "renderdoccmd", path = "/usr/bin/renderdoccmd" },
+]
+
+[professional_software.ffmpeg]
+display_name = "FFmpeg"
+category = "media.codec-pipeline"
+platform = "linux"
+provider = "pacman"
+package = "ffmpeg"
+launchers = [
+  { name = "ffmpeg", path = "/usr/bin/ffmpeg" },
+  { name = "ffprobe", path = "/usr/bin/ffprobe" },
+]
+
+[professional_software.rsvg-convert]
+display_name = "rsvg-convert"
+category = "media.svg-rasterization"
+platform = "linux"
+provider = "pacman"
+package = "librsvg"
+launchers = [
+  { name = "rsvg-convert", path = "/usr/bin/rsvg-convert" },
+]
+
+[professional_software.imagemagick]
+display_name = "ImageMagick"
+category = "media.image-processing"
+platform = "linux"
+provider = "pacman"
+package = "imagemagick"
+launchers = [
+  { name = "magick", path = "/usr/bin/magick" },
+]
+
+[professional_software.graphviz]
+display_name = "Graphviz"
+category = "visualization.graph-layout"
+platform = "linux"
+provider = "workstation-managed-external"
+launchers = [
+  { name = "dot", path = "/opt/ordivon/external/graphviz/15.1.1/usr/bin/dot" },
+]
+
+[professional_software.qemu]
+display_name = "QEMU"
+category = "virtualization.machine-emulation"
+platform = "linux"
+provider = "pacman"
+package = "qemu-system-x86"
+launchers = [
+  { name = "qemu-system-x86_64", path = "/usr/bin/qemu-system-x86_64" },
+]
+
+# Persistent Laboratory scientific execution environment. Workstation observes
+# only the exact environment launcher/materialization here; package composition
+# and CadQuery/numerical-role admission remain Laboratory/Computing evidence.
+[professional_software.laboratory-engineering-py312]
+display_name = "Laboratory Engineering Python"
+category = "engineering.scientific-environment"
+platform = "linux"
+provider = "uv-isolated-venv"
+launchers = [
+  { name = "python3.12", path = "/root/.local/share/ordivon/laboratory/engineering-py312/bin/python3.12" },
+]
+
+# Broad installed-software recognition is deliberately separate from
+# [professional_software]. The census tells an Agent what is physically present
+# and how Workstation currently classifies its node-local role; it does not grant
+# execution, domain suitability, necessity, or safety.
+# software inventory/classification retired to Workstation v2 external authorities (osquery/DSC/Nix).
