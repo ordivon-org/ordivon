@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "kind": "runtime-standard-native-r3-conformance-observation",
+  "date": "2026-09-14",
+  "subject": {
+    "repo": "ordivon-runtime",
+    "revision": "8355a4d24d2930d87969d769a73882396b806f48"
+  },
+  "authorities": [
+    "ISO/IEC/IEEE 12207:2026",
+    "ISO/IEC 25010:2023",
+    "NIST SP 800-218 SSDF 1.1",
+    "SLSA 1.2 guidance"
+  ],
+  "summary": {
+    "PASS": 17,
+    "NOT_CLAIMED": 1
+  },
+  "checks": [
+    {
+      "uid": "RT-LC-001",
+      "status": "PASS",
+      "evidence": "docs/status.md",
+      "note": ""
+    },
+    {
+      "uid": "RT-LC-002",
+      "status": "PASS",
+      "evidence": "docs/releases.md",
+      "note": ""
+    },
+    {
+      "uid": "RT-LC-003",
+      "status": "PASS",
+      "evidence": "docs/operations.md + docs/recovery.md",
+      "note": ""
+    },
+    {
+      "uid": "RT-LC-004",
+      "status": "PASS",
+      "evidence": "docs/releases.md + docs/compatibility.md",
+      "note": ""
+    },
+    {
+      "uid": "RT-Q-001",
+      "status": "PASS",
+      "evidence": ".github/workflows/ci.yml",
+      "note": ""
+    },
+    {
+      "uid": "RT-Q-002",
+      "status": "PASS",
+      "evidence": "docs/operations.md + docs/recovery.md",
+      "note": ""
+    },
+    {
+      "uid": "RT-Q-003",
+      "status": "PASS",
+      "evidence": "SECURITY.md + CI + CodeQL",
+      "note": ""
+    },
+    {
+      "uid": "RT-Q-004",
+      "status": "PASS",
+      "evidence": ".github/workflows/ci.yml",
+      "note": ""
+    },
+    {
+      "uid": "RT-Q-005",
+      "status": "PASS",
+      "evidence": "docs/releases.md + docs/compatibility.md",
+      "note": ""
+    },
+    {
+      "uid": "RT-Q-006",
+      "status": "PASS",
+      "evidence": "docs/operations.md",
+      "note": ""
+    },
+    {
+      "uid": "RT-SSDF-PO-001",
+      "status": "PASS",
+      "evidence": "SECURITY.md",
+      "note": ""
+    },
+    {
+      "uid": "RT-SSDF-PO-002",
+      "status": "PASS",
+      "evidence": "Dependabot + cargo-deny + CodeQL",
+      "note": ""
+    },
+    {
+      "uid": "RT-SSDF-PS-001",
+      "status": "PASS",
+      "evidence": "docs/operations.md",
+      "note": "PASS is scoped to Runtime's own release-integrity/provenance contract; it is not a publisher-signature or SLSA attestation claim."
+    },
+    {
+      "uid": "RT-SSDF-PW-001",
+      "status": "PASS",
+      "evidence": "portable CI + CodeQL",
+      "note": ""
+    },
+    {
+      "uid": "RT-SSDF-PW-002",
+      "status": "PASS",
+      "evidence": "cargo-deny + Dependabot + release advisory check",
+      "note": ""
+    },
+    {
+      "uid": "RT-SSDF-RV-001",
+      "status": "PASS",
+      "evidence": "SECURITY.md",
+      "note": ""
+    },
+    {
+      "uid": "RT-SUP-001",
+      "status": "PASS",
+      "evidence": "docs/releases.md + docs/operations.md",
+      "note": ""
+    },
+    {
+      "uid": "RT-SUP-002",
+      "status": "NOT_CLAIMED",
+      "evidence": "No repository SLSA-level or standardized SLSA provenance claim detected",
+      "note": "Runtime custom release receipts remain provider-native evidence; no SLSA level is inferred."
+    }
+  ],
+  "environmentObservations": {
+    "portableAcceptanceContract": "PASS",
+    "portableAcceptanceOutput": "documentation contract: valid\nlocal acceptance contract: present\nrun with: scripts/local-acceptance run",
+    "installedInspect": {
+      "path": "/usr/local/libexec/ordivon/ordivon-runtime-inspect",
+      "observed": true,
+      "supportsAttemptId": false
+    },
+    "sourceMatchedPythonSuite": {
+      "status": "PASS",
+      "tests": 137,
+      "evidenceBoundary": "Observed during R3 dogfood using a current-source-built ordivon-runtime-inspect; not rerun by this lightweight checker."
+    }
+  },
+  "boundary": "This is a task-local mapping and evidence observation, not ISO certification, NIST certification, SLSA certification/level, deployment-currentness proof, or live production health. Source, release candidate and installed deployment currentness remain separate facts."
+}
