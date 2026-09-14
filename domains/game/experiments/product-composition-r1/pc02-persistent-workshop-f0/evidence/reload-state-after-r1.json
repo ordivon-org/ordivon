@@ -1,0 +1,154 @@
+{
+  "affordanceHistory": [],
+  "contextHistory": [
+    {
+      "artifactDigest": "sha256:0267f457e065765322295ed8d56f92628bc45e15caad22589b893b727487cf84",
+      "feedback": {
+        "authority": "advisory-context-observation",
+        "dimensions": {
+          "access": {
+            "observation": "ring primitive exposes a handling point",
+            "preference": "ring-present",
+            "status": "supports"
+          },
+          "alignment": {
+            "observation": "all pieces remain axis-aligned for fixtures",
+            "preference": "axis-aligned",
+            "status": "supports"
+          },
+          "footprint": {
+            "observation": "footprint crosses the service aisle",
+            "preference": "compact",
+            "status": "tension"
+          }
+        },
+        "profile": "service_bay",
+        "suggestions": [
+          {
+            "action": "move edge pieces inward",
+            "dimension": "footprint",
+            "id": "compress-span"
+          }
+        ]
+      },
+      "revisionId": 1,
+      "round": 1
+    }
+  ],
+  "intent": {
+    "axis": "spread",
+    "target": "wide"
+  },
+  "intentHistory": [
+    {
+      "axis": "spread",
+      "round": 1,
+      "target": "wide"
+    }
+  ],
+  "preferenceDecisions": [
+    {
+      "decision": "reject",
+      "profile": "service_bay",
+      "rationale": "preserve the declared wide spread intent while continuing through artifact-derived structure",
+      "round": 1,
+      "suggestionId": "compress-span"
+    }
+  ],
+  "progressEvents": [
+    {
+      "fromRound": 1,
+      "gate": "commit+context-observed; audience preference is non-authoritative",
+      "revisionId": 1
+    }
+  ],
+  "revisions": [
+    {
+      "artifactDigest": "sha256:0267f457e065765322295ed8d56f92628bc45e15caad22589b893b727487cf84",
+      "derivedAffordances": [
+        {
+          "kind": "attach-existing-primitive",
+          "sourcePieceId": "p1",
+          "token": "attach:0267f457e065:p1:east",
+          "x": 124,
+          "y": 88
+        },
+        {
+          "kind": "attach-existing-primitive",
+          "sourcePieceId": "p2",
+          "token": "attach:0267f457e065:p2:east",
+          "x": 340,
+          "y": 108
+        }
+      ],
+      "id": 1,
+      "intentAxis": {
+        "axis": "spread",
+        "target": "wide"
+      },
+      "intentSatisfied": true,
+      "label": "wide scaffold",
+      "parentRevisionId": null,
+      "pieces": [
+        {
+          "id": "p1",
+          "rot": 0,
+          "shape": "ring",
+          "size": 64,
+          "sourceAffordance": null,
+          "x": 40,
+          "y": 72
+        },
+        {
+          "id": "p2",
+          "rot": 0,
+          "shape": "bar",
+          "size": 80,
+          "sourceAffordance": null,
+          "x": 240,
+          "y": 88
+        },
+        {
+          "id": "p3",
+          "rot": 0,
+          "shape": "diamond",
+          "size": 60,
+          "sourceAffordance": null,
+          "x": 448,
+          "y": 76
+        }
+      ],
+      "round": 1
+    }
+  ],
+  "round": 2,
+  "workingPieces": [
+    {
+      "id": "p1",
+      "rot": 0,
+      "shape": "ring",
+      "size": 64,
+      "sourceAffordance": null,
+      "x": 40,
+      "y": 72
+    },
+    {
+      "id": "p2",
+      "rot": 0,
+      "shape": "bar",
+      "size": 80,
+      "sourceAffordance": null,
+      "x": 240,
+      "y": 88
+    },
+    {
+      "id": "p3",
+      "rot": 0,
+      "shape": "diamond",
+      "size": 60,
+      "sourceAffordance": null,
+      "x": 448,
+      "y": 76
+    }
+  ]
+}
