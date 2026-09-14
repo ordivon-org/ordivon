@@ -1,0 +1,43 @@
+{
+  "birthStanding": {
+    "bound": 3,
+    "human-required": 0,
+    "pre-effect-failed": 0,
+    "prepared": 0,
+    "ready-confirmed": 0,
+    "submit-observed": 0,
+    "unknown": 0,
+    "unrecorded": 0
+  },
+  "campaignId": "campaign:agent-common-structure-destroyer-20260914-r1",
+  "kind": "ordivon.parallel-agent-destroyer-wave-launch-evidence",
+  "occurrences": [
+    {
+      "agentId": "C01",
+      "blindResendForbidden": true,
+      "effectId": "sha256:7eef25fa2a5680336e43a39dfd87d0df0f6bdc5f004aabdb33b42ae767ff693e",
+      "materializationStanding": "bound",
+      "providerResource": "https://chatgpt.com/c/6aa7afbb-c7c4-83ec-8856-7e5b3a06d472"
+    },
+    {
+      "agentId": "C02",
+      "blindResendForbidden": true,
+      "effectId": "sha256:8ca80c63b8053b404f2280c0a2963e69b524cf201a9f40d8fe78de33d0499af7",
+      "materializationStanding": "bound",
+      "providerResource": "https://chatgpt.com/c/6aa7af9e-610c-83ec-9196-17dc2def17fd"
+    },
+    {
+      "agentId": "C03",
+      "blindResendForbidden": true,
+      "effectId": "sha256:b00b4fe59d5ec7a13b4bfe77069aaca0a2e4330bb1866bb041063d60ea2e8ef0",
+      "materializationStanding": "bound",
+      "providerResource": "https://chatgpt.com/c/6aa7af9e-7808-83ec-bde3-48495a58ac41"
+    }
+  ],
+  "reportDetail": "All three destructive-review occurrences are provider-bound. No C01/C02/C03 assistant report is admitted yet; conversation-history retrieval currently exposes bootstrap user turns but no completed destroyer report.",
+  "reportStanding": "NOT_YET_RETRIEVED",
+  "requested": 3,
+  "schemaVersion": 1,
+  "semanticCompletionEvaluated": false,
+  "target": "knowledge/lessons/agent-product-common-structure-r1.md"
+}
