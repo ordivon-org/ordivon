@@ -20,7 +20,7 @@ Use mature upstream systems for generic operations capability. Keep Ordivon code
 - logs: journald -> Vector -> Loki
 - visualization: Grafana
 - alert routing: Alertmanager-compatible Prometheus alerting path
-- inventory/facts: osquery where the fact is generic host state
+- generic host facts: osquery; native package/application inventory: pacman + WinGet/Windows uninstall registry; on-demand standard SBOM: Syft
 - file backup: restic
 - PostgreSQL backup/PITR: pgBackRest
 - secrets-at-rest: SOPS + age

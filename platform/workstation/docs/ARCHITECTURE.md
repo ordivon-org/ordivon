@@ -55,6 +55,10 @@ Prometheus        journald -> Vector   OpenTelemetry
 external reachability / black-box contracts -> Gatus
 ```
 
+## 2.1 Machine inventory
+
+Machine inventory is a read-only federation of mature sources rather than a new Operations database. osquery supplies generic host and process facts; pacman supplies Arch package state; WinGet and the Windows uninstall registry supply Windows package/application facts; Nix/Home Manager and WinGet Configuration/DSC remain desired-state sources; Runtime supplies execution-target facts; Syft supplies on-demand CycloneDX/SPDX/Syft SBOM projections. Dated snapshots are evidence only; live questions re-read the relevant source.
+
 ## 3. Truth ownership
 
 ### External tools may own

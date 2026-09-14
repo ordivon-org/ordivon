@@ -1,4 +1,4 @@
-# Current substrate census — 2026-09-11
+# Current substrate census — initial 2026-09-11; refreshed through 2026-09-14
 
 This is a factual snapshot, not a universal semantic-health declaration.
 
@@ -66,9 +66,20 @@ The following mature packages were installed from the configured Arch repositori
 - Windows `.wslconfig`: Ansible `ini_file`, owned keys only; the separately present custom `kernel=` entry is deliberately preserved;
 - WSL shutdown/restart is not part of routine convergence and must be admitted separately when activation is required.
 
+## Operations v2 machine inventory slice
+
+- source registry: `inventory/sources.json`;
+- generic Linux/WSL host/process facts: osquery read-only query contracts;
+- Arch package observation: pacman local state (`-Qq`, `-Qqe`, `-Qm`);
+- Windows application observation: WinGet where recognized plus the Windows uninstall registry;
+- Linux/Windows desired state remains Nix/Home Manager and WinGet Configuration/DSC respectively;
+- Runtime remains the source for execution-target and exact mechanical execution facts;
+- Syft 1.50.0 is reserved for on-demand standard SBOM output; a bounded full-directory ALPM probe exceeded 120 seconds and is excluded from the default fast path;
+- dated evidence: `inventory/snapshots/2026-09-14-machine-tools.json` observed 875 pacman packages, 187 explicit packages, 0 foreign packages, and 114 Windows uninstall-registry applications.
+
 ## Operations v2 Workstation recovery scheduler slice
 
 - systemd service/timer bytes: Operations Ansible desired state;
-- current timer policy: disabled + inactive;
+- current timer policy (re-observed 2026-09-14): enabled + active/waiting on the retained daily recovery schedule;
 - semantic launcher: externally owned `/opt/ordivon-workstation-recovery/current/bin/workstation-backup`;
 - this slice does not execute backup, select recovery generations, or establish restore correctness.
