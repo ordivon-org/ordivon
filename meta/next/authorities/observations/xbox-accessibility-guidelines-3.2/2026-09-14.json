@@ -1,0 +1,11 @@
+{
+  "authorityId": "xbox-accessibility-guidelines-3.2",
+  "basis": "migrated-verified-profile",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published",
+  "note": null,
+  "observedDate": "2026-09-14",
+  "officialSource": "https://learn.microsoft.com/gaming/accessibility/xbox-accessibility-guidelines/",
+  "schemaVersion": 1,
+  "versionObserved": "3.2"
+}

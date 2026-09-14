@@ -1,0 +1,49 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "XAG",
+      "Xbox Accessibility Guidelines"
+    ],
+    "domains": [
+      "game",
+      "accessibility"
+    ],
+    "topics": [
+      "game-accessibility",
+      "accessibility",
+      "controls",
+      "ux"
+    ]
+  },
+  "id": "xbox-accessibility-guidelines-3.2",
+  "identity": {
+    "authorityKind": "provider-guidance",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "microsoft-xbox",
+      "name": "Microsoft Xbox"
+    },
+    "officialSource": "https://learn.microsoft.com/gaming/accessibility/xbox-accessibility-guidelines/",
+    "publicationDate": null,
+    "title": "Xbox Accessibility Guidelines Version 3.2",
+    "versionLabel": "3.2"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "/root/projects/ordivon-game/standards/game_pre_g0_standard_native_r4.toml"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

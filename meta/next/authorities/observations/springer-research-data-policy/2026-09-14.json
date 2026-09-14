@@ -1,0 +1,11 @@
+{
+  "authorityId": "springer-research-data-policy",
+  "basis": "migrated-verified-profile",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current",
+  "note": null,
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.springernature.com/gp/authors/research-data-policy",
+  "schemaVersion": 1,
+  "versionObserved": null
+}

@@ -1,0 +1,47 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "PRISMA 2020"
+    ],
+    "domains": [
+      "research"
+    ],
+    "topics": [
+      "systematic-review",
+      "reporting",
+      "evidence-synthesis"
+    ]
+  },
+  "id": "prisma-2020",
+  "identity": {
+    "authorityKind": "reporting-guideline",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "prisma",
+      "name": "PRISMA"
+    },
+    "officialSource": "https://www.prisma-statement.org/prisma-2020-statement",
+    "publicationDate": null,
+    "title": "PRISMA 2020 Statement",
+    "versionLabel": "2020"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "/root/projects/ordivon-research-v2/profiles/paper1_standard_native_r2.toml",
+      "official PRISMA source checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

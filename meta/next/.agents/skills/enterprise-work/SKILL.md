@@ -66,12 +66,14 @@ Read `../../../docs/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R2.md` when standards
 
 For the exact Work:
 
-1. discover the current external authorities from authoritative sources;
-2. record why each is bound, excluded, deferred, advisory or provider-specific;
-3. bind stable requirement/acceptance identities where traceability materially helps;
-4. select domain-native evidence and validators;
-5. record currentness separately from verification/compliance;
-6. state non-claims and external assertions that automation cannot establish.
+1. use the lightweight Authority Catalog (`python ../../../scripts/authority_catalog.py find ...`) as the cheap first discovery layer when a relevant record already exists;
+2. load the selected authority record with `show`, then inspect the official external source whenever freshness/scope matters;
+3. discover additional authorities from authoritative external sources when the catalog has no adequate candidate, and register metadata later only after the source is actually verified;
+4. record why each authority is bound, excluded, deferred, advisory or provider-specific in the task-local profile — never in the Catalog record;
+5. bind stable requirement/acceptance identities where traceability materially helps;
+6. select domain-native evidence and validators;
+7. record currentness separately from verification/compliance;
+8. state non-claims and external assertions that automation cannot establish.
 
 Do not copy licensed standards text into project files merely for convenience. Keep lawful references and permitted derived mappings.
 

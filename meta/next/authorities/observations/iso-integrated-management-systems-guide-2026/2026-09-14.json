@@ -1,0 +1,11 @@
+{
+  "authorityId": "iso-integrated-management-systems-guide-2026",
+  "basis": "migrated-verified-profile",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published",
+  "note": null,
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.iso.org/publication/PUB100435.html",
+  "schemaVersion": 1,
+  "versionObserved": "2026"
+}

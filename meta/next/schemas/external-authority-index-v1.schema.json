@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ordivon:schema:external-authority-index:v1",
+  "title": "External Authority Discovery Index v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "recordCount", "recordsDigest", "entries", "boundary"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "ordivon.external-authority-discovery-index"},
+    "recordCount": {"type": "integer", "minimum": 0},
+    "recordsDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "title", "issuer", "authorityKind", "identityMode", "versionLabel", "aliases", "topics", "domains", "lifecycleStatus", "currentnessChecked", "recordDigest", "observationDigest"],
+        "properties": {
+          "id": {"type": "string"},
+          "title": {"type": "string"},
+          "issuer": {"type": "string"},
+          "authorityKind": {"type": "string"},
+          "identityMode": {"type": "string"},
+          "versionLabel": {"type": ["string", "null"]},
+          "aliases": {"type": "array", "items": {"type": "string"}},
+          "topics": {"type": "array", "items": {"type": "string"}},
+          "domains": {"type": "array", "items": {"type": "string"}},
+          "lifecycleStatus": {"type": ["string", "null"]},
+          "currentnessChecked": {"type": ["string", "null"]},
+          "recordDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+          "observationDigest": {"type": ["string", "null"], "pattern": "^sha256:[0-9a-f]{64}$"}
+        }
+      }
+    },
+    "boundary": {"type": "string", "minLength": 1}
+  }
+}

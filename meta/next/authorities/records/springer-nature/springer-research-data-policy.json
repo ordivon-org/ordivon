@@ -1,0 +1,47 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "Springer research data policy"
+    ],
+    "domains": [
+      "research",
+      "publication"
+    ],
+    "topics": [
+      "research-data",
+      "data-availability",
+      "publication-policy"
+    ]
+  },
+  "id": "springer-research-data-policy",
+  "identity": {
+    "authorityKind": "publisher-policy",
+    "identityMode": "rolling-source",
+    "issuer": {
+      "id": "springer-nature",
+      "name": "Springer Nature"
+    },
+    "officialSource": "https://www.springernature.com/gp/authors/research-data-policy",
+    "publicationDate": null,
+    "title": "Springer Nature Research Data Policy",
+    "versionLabel": null
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "/root/projects/ordivon-research-v2/profiles/paper1_standard_native_r2.toml"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

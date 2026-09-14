@@ -1,0 +1,47 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "SIGSOFT Data Science Standard"
+    ],
+    "domains": [
+      "research",
+      "software-engineering"
+    ],
+    "topics": [
+      "data-science",
+      "machine-learning",
+      "empirical-software-engineering"
+    ]
+  },
+  "id": "acm-sigsoft-data-science",
+  "identity": {
+    "authorityKind": "method-standard",
+    "identityMode": "rolling-source",
+    "issuer": {
+      "id": "acm-sigsoft",
+      "name": "ACM SIGSOFT"
+    },
+    "officialSource": "https://www2.sigsoft.org/EmpiricalStandards/docs/standards",
+    "publicationDate": null,
+    "title": "ACM SIGSOFT Empirical Standards — Data Science",
+    "versionLabel": null
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "/root/projects/ordivon-research-v2/profiles/paper1_standard_native_r2.toml"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

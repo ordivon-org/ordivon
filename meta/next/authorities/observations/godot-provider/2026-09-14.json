@@ -1,0 +1,11 @@
+{
+  "authorityId": "godot-provider",
+  "basis": "migrated-verified-profile",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current",
+  "note": "Official release archive observed current stable 4.7.2; local project pins remain task-local and are not catalog metadata.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://godotengine.org/download/archive/",
+  "schemaVersion": 1,
+  "versionObserved": "4.7.2"
+}

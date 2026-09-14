@@ -1,0 +1,51 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "NIST SSDF",
+      "SP 800-218",
+      "SSDF 1.1"
+    ],
+    "domains": [
+      "engineering",
+      "security",
+      "software"
+    ],
+    "topics": [
+      "secure-software",
+      "software-supply-chain",
+      "software-development",
+      "security"
+    ]
+  },
+  "id": "nist-sp-800-218-ssdf-1.1",
+  "identity": {
+    "authorityKind": "government-guidance",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "nist",
+      "name": "NIST"
+    },
+    "officialSource": "https://csrc.nist.gov/pubs/sp/800/218/final",
+    "publicationDate": null,
+    "title": "NIST SP 800-218 Secure Software Development Framework (SSDF) Version 1.1",
+    "versionLabel": "1.1"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "/root/projects/ordivon-runtime/standards/runtime_standard_native_r3.toml"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

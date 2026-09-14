@@ -1,0 +1,11 @@
+{
+  "authorityId": "nist-sp-800-218-ssdf-1.1",
+  "basis": "migrated-verified-profile",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published",
+  "note": null,
+  "observedDate": "2026-09-14",
+  "officialSource": "https://csrc.nist.gov/pubs/sp/800/218/final",
+  "schemaVersion": 1,
+  "versionObserved": "1.1"
+}

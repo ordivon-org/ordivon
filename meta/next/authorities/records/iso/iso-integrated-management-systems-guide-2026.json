@@ -1,0 +1,49 @@
+{
+  "access": {
+    "fullText": "licensed",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "ISO Integrated Management Systems Guide",
+      "IMS practical guide"
+    ],
+    "domains": [
+      "enterprise",
+      "management"
+    ],
+    "topics": [
+      "integrated-management-system",
+      "management-system",
+      "governance"
+    ]
+  },
+  "id": "iso-integrated-management-systems-guide-2026",
+  "identity": {
+    "authorityKind": "management-guidance",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "iso",
+      "name": "ISO"
+    },
+    "officialSource": "https://www.iso.org/publication/PUB100435.html",
+    "publicationDate": null,
+    "title": "Integrated management systems — A practical guide, 3rd edition",
+    "versionLabel": "2026"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "docs/ENTERPRISE_OPERATING_MODEL_R1.md",
+      "evidence/acceptance/enterprise-operating-model-r1-dogfood-20260914.json"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

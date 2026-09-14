@@ -1,0 +1,11 @@
+{
+  "authorityId": "wcag-2.2",
+  "basis": "migrated-verified-profile",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published",
+  "note": null,
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.w3.org/TR/WCAG22/",
+  "schemaVersion": 1,
+  "versionObserved": "2.2"
+}

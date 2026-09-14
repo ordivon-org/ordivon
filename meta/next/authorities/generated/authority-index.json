@@ -1,0 +1,901 @@
+{
+  "boundary": "Generated Level-0 discovery projection only. It does not establish task applicability, compliance, certification, authorization or domain acceptance.",
+  "entries": [
+    {
+      "aliases": [
+        "SIGSOFT Benchmarking Standard"
+      ],
+      "authorityKind": "method-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "research",
+        "software-engineering"
+      ],
+      "id": "acm-sigsoft-benchmarking",
+      "identityMode": "rolling-source",
+      "issuer": "ACM SIGSOFT",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:a6d21758471bc485597a25cbaba25b38dd941b146152c2536ed2f000fe5a88e2",
+      "recordDigest": "sha256:ffb8904f6fcad5413f76743c7e0154f5ed234e21cecb7d2183a0b848cc264cfe",
+      "title": "ACM SIGSOFT Empirical Standards — Benchmarking",
+      "topics": [
+        "benchmarking",
+        "empirical-software-engineering",
+        "performance-evaluation"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "SIGSOFT Data Science Standard"
+      ],
+      "authorityKind": "method-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "research",
+        "software-engineering"
+      ],
+      "id": "acm-sigsoft-data-science",
+      "identityMode": "rolling-source",
+      "issuer": "ACM SIGSOFT",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:96dcdb85ffe250f2e4b4bc2291c91417a77611a421a403c2a8646da1bcc6604a",
+      "recordDigest": "sha256:c71c0f0392ad4a078084a375b3ce66e981943a98a8042a6980c4276b9d7ed58e",
+      "title": "ACM SIGSOFT Empirical Standards — Data Science",
+      "topics": [
+        "data-science",
+        "empirical-software-engineering",
+        "machine-learning"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "ACM SIGSOFT Empirical Standards",
+        "SIGSOFT General Standard"
+      ],
+      "authorityKind": "method-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "research",
+        "software-engineering"
+      ],
+      "id": "acm-sigsoft-general",
+      "identityMode": "rolling-source",
+      "issuer": "ACM SIGSOFT",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:9a667380d3c7028e078752d1f7ccf31fd34eadbb3b9b08d827afec78c51f0f8e",
+      "recordDigest": "sha256:b5909ee688a48a148653338089dd3fa190762b869ad7ff2f7e300a99958c172f",
+      "title": "ACM SIGSOFT Empirical Standards — General Standard",
+      "topics": [
+        "empirical-software-engineering",
+        "reporting",
+        "research-methods"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "SIGSOFT Replication Standard"
+      ],
+      "authorityKind": "method-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "research",
+        "software-engineering"
+      ],
+      "id": "acm-sigsoft-replication",
+      "identityMode": "rolling-source",
+      "issuer": "ACM SIGSOFT",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:2c91ea4b3ed7de01fc58b7cf3f341e9cb7dd1cb921435566da0e6a5759888217",
+      "recordDigest": "sha256:99e9479660f4ffa8ad0ca7f125cac4f481f819970807c64302a6e78ef926bbb0",
+      "title": "ACM SIGSOFT Empirical Standards — Replication",
+      "topics": [
+        "empirical-software-engineering",
+        "replication",
+        "reproduction"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "EMSE submission guidelines"
+      ],
+      "authorityKind": "venue-rule",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "publication",
+        "research"
+      ],
+      "id": "emse-submission-guidelines",
+      "identityMode": "rolling-source",
+      "issuer": "Springer Nature",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:f7f9da3e26342a2941e69035d03f8abc6b5db1818654d0a2a40a677dbe433ad4",
+      "recordDigest": "sha256:37676f6d47ee71ac3a644e5ebfb66558ca3c0bbd91ec6818483076c92f46d425",
+      "title": "Empirical Software Engineering — Submission Guidelines",
+      "topics": [
+        "journal-policy",
+        "manuscript-submission",
+        "software-engineering"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "FAIR",
+        "FAIR data principles"
+      ],
+      "authorityKind": "guiding-principles",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "data",
+        "research"
+      ],
+      "id": "fair-principles",
+      "identityMode": "rolling-source",
+      "issuer": "GO FAIR",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:1bd081df12c88fc99ba91d2d2bfca8b0d7d4d699133fdf032e1ed9f87b2fd430",
+      "recordDigest": "sha256:ec6e15a5f39f761e3e060260073af1a8884103af7529e0bf6eae14c1176f1ac6",
+      "title": "FAIR Guiding Principles",
+      "topics": [
+        "accessible",
+        "findable",
+        "interoperable",
+        "research-data",
+        "reusable"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "Games User Research",
+        "GUR"
+      ],
+      "authorityKind": "professional-guidance",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "game",
+        "research"
+      ],
+      "id": "games-user-research-practice",
+      "identityMode": "rolling-source",
+      "issuer": "Games User Research",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:abc2f4b60b2480d360621922efdf905a2d3a5c699c5c783e820385d92884dd32",
+      "recordDigest": "sha256:820ba238adccb8a68b575799edbaaaa542f3cf6b94d26d3a7216230b9363d0d1",
+      "title": "Games User Research — playtest method selection guidance",
+      "topics": [
+        "game-research",
+        "method-selection",
+        "playtesting",
+        "user-research"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "Godot",
+        "Godot release archive"
+      ],
+      "authorityKind": "provider-authority",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "engineering",
+        "game"
+      ],
+      "id": "godot-provider",
+      "identityMode": "rolling-source",
+      "issuer": "Godot Engine",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:c7dbb589a1c5d6eeb8af10f146a99e7e367544dd8fe182e3cfb9fc15e1ee834b",
+      "recordDigest": "sha256:645ddd81915c077aab49f6c51e07f571dfa465758a88eb6e4b7255b2fdda2cf3",
+      "title": "Godot official engine documentation and release archive",
+      "topics": [
+        "game-engine",
+        "provider-version",
+        "release-currentness"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "ISO 10002"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "customer",
+        "enterprise",
+        "management"
+      ],
+      "id": "iso-10002-2018",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:496d58654979649fe5be3cfa41763958d458d5767e44185a42a84ed311ed9294",
+      "recordDigest": "sha256:6c14943cb6eac1c8d2b065eefc833972cb054d07fb722cb3ff2efb2a5f930a22",
+      "title": "ISO 10002:2018 — Quality management — Customer satisfaction — Guidelines for complaints handling in organizations",
+      "topics": [
+        "complaints",
+        "customer-satisfaction",
+        "quality-management"
+      ],
+      "versionLabel": "2018"
+    },
+    {
+      "aliases": [
+        "ISO 10004"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "customer",
+        "enterprise",
+        "management"
+      ],
+      "id": "iso-10004-2018",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:fc9376e0ff59267eea836b25a62abbd48586620adf0fb0329f4f01d5b468c398",
+      "recordDigest": "sha256:d90a4c607f31b66cd6a0a52506303ab4b522c357646a667691c37de17a689f5a",
+      "title": "ISO 10004:2018 — Quality management — Customer satisfaction — Guidelines for monitoring and measuring",
+      "topics": [
+        "customer-satisfaction",
+        "measurement",
+        "quality-management"
+      ],
+      "versionLabel": "2018"
+    },
+    {
+      "aliases": [
+        "ISO 10005",
+        "Quality plans"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "enterprise",
+        "management",
+        "quality"
+      ],
+      "id": "iso-10005-2018",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:86b86b82e0cdddbf8eca8f70663b93c1fa9a413df3f5ddc96f09fa592f04e3b0",
+      "recordDigest": "sha256:707c8d7b42d7e9c14496b6a568719dc9441e96f4b7685b3167285b1ae0f8b724",
+      "title": "ISO 10005:2018 — Quality management — Guidelines for quality plans",
+      "topics": [
+        "delivery",
+        "quality-management",
+        "quality-plan"
+      ],
+      "versionLabel": "2018"
+    },
+    {
+      "aliases": [
+        "ISO 10006"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "enterprise",
+        "management",
+        "quality"
+      ],
+      "id": "iso-10006-2017",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:fa447482c16cecbd18d766a92bd64910edeff10930bbad9095f8c17799cc856c",
+      "recordDigest": "sha256:33571aa9b859d3dacc94359c8426a157297398d9519916b289dca4faee896764",
+      "title": "ISO 10006:2017 — Quality management — Guidelines for quality management in projects",
+      "topics": [
+        "project-management",
+        "project-quality",
+        "quality-management"
+      ],
+      "versionLabel": "2017"
+    },
+    {
+      "aliases": [
+        "ISO 19011"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "audit",
+        "enterprise",
+        "management"
+      ],
+      "id": "iso-19011-2026",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:00dd824369a7e80e5ba9ead5f1e5c9cb1554962131e84fd796d0bc9e2e1cdbbc",
+      "recordDigest": "sha256:c7effa3dac18bc7bd66bc24972e40792cd525341e135b4fb61c92229dfbc2d08",
+      "title": "ISO 19011:2026 — Guidelines for auditing management systems",
+      "topics": [
+        "assurance",
+        "audit",
+        "management-system-audit"
+      ],
+      "versionLabel": "2026"
+    },
+    {
+      "aliases": [
+        "ISO 21502",
+        "Project management guidance"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "enterprise",
+        "management",
+        "project"
+      ],
+      "id": "iso-21502-2020",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:de02a82f6ca0efbc9acfb97e236fa8cb4893bbd02fc2dd2a2ae1637d6c4d9c23",
+      "recordDigest": "sha256:4ccb887d2616e85c37a20891ccc216a6acee140ee679d1af51292c57e9b03870",
+      "title": "ISO 21502:2020 — Project, programme and portfolio management — Guidance on project management",
+      "topics": [
+        "adaptive-delivery",
+        "governance",
+        "project-management"
+      ],
+      "versionLabel": "2020"
+    },
+    {
+      "aliases": [
+        "ISO 31000",
+        "Risk management guidelines"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "enterprise",
+        "management",
+        "risk"
+      ],
+      "id": "iso-31000-2018",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:5f7ede93d5ee41e078edd9565069cf5d1cad302721767ab6e06ae53b494bc389",
+      "recordDigest": "sha256:4c2f0092a4c64d93a4aad3aedbdd7e0006db833a2f3b370457cc5d4b3a028e94",
+      "title": "ISO 31000:2018 — Risk management — Guidelines",
+      "topics": [
+        "governance",
+        "risk",
+        "risk-management",
+        "uncertainty"
+      ],
+      "versionLabel": "2018"
+    },
+    {
+      "aliases": [
+        "ISO 37301"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "compliance",
+        "enterprise",
+        "management"
+      ],
+      "id": "iso-37301-2021",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:d2ca1ff7e4b97d91ba524561018ad4ea47f2de4fd268888df6348be4a37e3866",
+      "recordDigest": "sha256:b827449c69125b5f958c9c6f1cbbfff1a6c387d68baab9648da1b1ea95b9b13d",
+      "title": "ISO 37301:2021 — Compliance management systems — Requirements with guidance for use",
+      "topics": [
+        "compliance",
+        "compliance-management",
+        "governance"
+      ],
+      "versionLabel": "2021"
+    },
+    {
+      "aliases": [
+        "ISO 9001:2015",
+        "ISO 9001:2015/Amd 1:2024"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "enterprise",
+        "management",
+        "quality"
+      ],
+      "id": "iso-9001-2015-amd1-2024",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published-current",
+      "observationDigest": "sha256:d58bd2470d03a44372e88217dafad32b6e7e605210d81580bf32a8c739aef0f4",
+      "recordDigest": "sha256:41d4a95adff40de7d9187d4e04fa3887ae6289746912f4954d6b8d74d74129fb",
+      "title": "ISO 9001:2015 with Amendment 1:2024 — Quality management systems — Requirements",
+      "topics": [
+        "qms",
+        "quality",
+        "quality-management-system"
+      ],
+      "versionLabel": "2015+Amd1:2024"
+    },
+    {
+      "aliases": [
+        "ISO 9001:2026"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "enterprise",
+        "management",
+        "quality"
+      ],
+      "id": "iso-9001-2026",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "under-publication",
+      "observationDigest": "sha256:92f4d2c0928a212c1298b83aedff050f5a915fcc37b542e1df808c6d80e6e47e",
+      "recordDigest": "sha256:99634584a78e3838ae6d8df34ba6640000808da3a0dc404c84adefb3b24a4a67",
+      "title": "ISO 9001:2026 — Quality management systems — Requirements",
+      "topics": [
+        "qms",
+        "quality",
+        "quality-management-system"
+      ],
+      "versionLabel": "2026"
+    },
+    {
+      "aliases": [
+        "ISO 9004"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "enterprise",
+        "management",
+        "quality"
+      ],
+      "id": "iso-9004-2018",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:1e7d4250739b482ff4033b44abe1919ebe9f6b8a9d92fd26ad092c6b48635a5f",
+      "recordDigest": "sha256:a7eb09b3d87c8b2ddf4c8aabd636dc452e882f51e3afa0909b37bdb854272421",
+      "title": "ISO 9004:2018 — Quality management — Quality of an organization — Guidance to achieve sustained success",
+      "topics": [
+        "quality-management",
+        "self-assessment",
+        "sustained-success"
+      ],
+      "versionLabel": "2018"
+    },
+    {
+      "aliases": [
+        "ISO 9241-11",
+        "Usability definitions"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "design",
+        "game",
+        "product"
+      ],
+      "id": "iso-9241-11-2018",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:caede7c2e673a731d194f5abc21f287236f67f1d18e7db81581c8ceb8f5f0b52",
+      "recordDigest": "sha256:0c03a2b45c70d1b106177f7df99a67f41e4f0c74d9c0b810e40a561001b3d20f",
+      "title": "ISO 9241-11:2018 — Usability: Definitions and concepts",
+      "topics": [
+        "effectiveness",
+        "efficiency",
+        "satisfaction",
+        "usability"
+      ],
+      "versionLabel": "2018"
+    },
+    {
+      "aliases": [
+        "Human-centred design",
+        "ISO 9241-210"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "design",
+        "game",
+        "product"
+      ],
+      "id": "iso-9241-210-2019",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:cc2c0e28ef73845f4f8c335b48eed751f3a9e28699d0fd61ab2e78d44791c80c",
+      "recordDigest": "sha256:93cb33eff15ef0ee98f3ccdea8b957acfe25d75c53c67ea462c1308f21a72a91",
+      "title": "ISO 9241-210:2019 — Human-centred design for interactive systems",
+      "topics": [
+        "human-centred-design",
+        "interactive-systems",
+        "ux"
+      ],
+      "versionLabel": "2019"
+    },
+    {
+      "aliases": [
+        "ISO 25010",
+        "ISO/IEC 25010:2023"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "engineering",
+        "software"
+      ],
+      "id": "iso-iec-25010-2023",
+      "identityMode": "versioned",
+      "issuer": "ISO/IEC",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:74e07fba0f2e169c21512afe37876c95e9c5d8fb831f38af09043341f7650f72",
+      "recordDigest": "sha256:8c668faddc39f2dc29ff13481784eaa153f45c60154a438067ccfa71307ea15e",
+      "title": "ISO/IEC 25010:2023 — Product quality model",
+      "topics": [
+        "product-quality",
+        "quality-model",
+        "software-quality"
+      ],
+      "versionLabel": "2023"
+    },
+    {
+      "aliases": [
+        "ISO 12207",
+        "ISO/IEC/IEEE 12207:2026"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "engineering",
+        "software"
+      ],
+      "id": "iso-iec-ieee-12207-2026",
+      "identityMode": "versioned",
+      "issuer": "ISO/IEC/IEEE",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:82003094c7106b96052e141b8e25395c56d3b6fcdbd9014b1f9c4b2906704195",
+      "recordDigest": "sha256:c08428865c91b21dab8d2697df5cadb632bdc2b8b16b0431ac683c8501890419",
+      "title": "ISO/IEC/IEEE 12207:2026 — Software life cycle processes",
+      "topics": [
+        "software-engineering",
+        "software-lifecycle",
+        "systems-engineering"
+      ],
+      "versionLabel": "2026"
+    },
+    {
+      "aliases": [
+        "IMS practical guide",
+        "ISO Integrated Management Systems Guide"
+      ],
+      "authorityKind": "management-guidance",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "enterprise",
+        "management"
+      ],
+      "id": "iso-integrated-management-systems-guide-2026",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:76091242bcd10556cfb8098f9e799ed9fc75e0dfecf5e91efa81c3d454a5c338",
+      "recordDigest": "sha256:cb7650849eb19b012da645b5399071d7a6a43ca41ff8855f6f9c8a103589e8b0",
+      "title": "Integrated management systems — A practical guide, 3rd edition",
+      "topics": [
+        "governance",
+        "integrated-management-system",
+        "management-system"
+      ],
+      "versionLabel": "2026"
+    },
+    {
+      "aliases": [
+        "NIST SSDF",
+        "SP 800-218",
+        "SSDF 1.1"
+      ],
+      "authorityKind": "government-guidance",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "engineering",
+        "security",
+        "software"
+      ],
+      "id": "nist-sp-800-218-ssdf-1.1",
+      "identityMode": "versioned",
+      "issuer": "NIST",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:3c4a8025505be5d49847b7f676ad5c3836e817bfc342bd04901be2a31c15db0e",
+      "recordDigest": "sha256:0c3f3e491af9f2bf2cae0a982f30ef83e6a87c5a881c8c6391064ea41dc75f63",
+      "title": "NIST SP 800-218 Secure Software Development Framework (SSDF) Version 1.1",
+      "topics": [
+        "secure-software",
+        "security",
+        "software-development",
+        "software-supply-chain"
+      ],
+      "versionLabel": "1.1"
+    },
+    {
+      "aliases": [
+        "BPMN",
+        "BPMN 2.0.2"
+      ],
+      "authorityKind": "formal-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "enterprise",
+        "management",
+        "workflow"
+      ],
+      "id": "omg-bpmn-2.0.2",
+      "identityMode": "versioned",
+      "issuer": "Object Management Group",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:b253100ff0bef6569030bd51b3e9d5b421f3589b674df133f106529553d2ce89",
+      "recordDigest": "sha256:400339472a16757d848dbe1d9ac423fa45ca164cdff7e1c28ca993193cd25e06",
+      "title": "Business Process Model and Notation (BPMN) 2.0.2",
+      "topics": [
+        "business-process",
+        "process-modeling",
+        "workflow"
+      ],
+      "versionLabel": "2.0.2"
+    },
+    {
+      "aliases": [
+        "CMMN",
+        "CMMN 1.1"
+      ],
+      "authorityKind": "formal-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "enterprise",
+        "management",
+        "workflow"
+      ],
+      "id": "omg-cmmn-1.1",
+      "identityMode": "versioned",
+      "issuer": "Object Management Group",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:c250339f38f943528fd30c7d84b2c43289c725bc79efce77f543fe4fb58ed5d9",
+      "recordDigest": "sha256:e54c3e61ab60fee30ffa4372203896a50a857bd517ce41745b98c2e5e63ba19b",
+      "title": "Case Management Model and Notation (CMMN) 1.1",
+      "topics": [
+        "adaptive-case",
+        "case-management",
+        "case-modeling"
+      ],
+      "versionLabel": "1.1"
+    },
+    {
+      "aliases": [
+        "DMN",
+        "DMN 1.5"
+      ],
+      "authorityKind": "formal-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "decision",
+        "enterprise",
+        "management"
+      ],
+      "id": "omg-dmn-1.5",
+      "identityMode": "versioned",
+      "issuer": "Object Management Group",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:ed366c665e1fbb95554595de9ac76a7dcd19e52db6d0e1eb7c40dcd6c648075d",
+      "recordDigest": "sha256:7bb26b037de66f2efc4c530dd816e7039f1f4a44c782b867d38d4d092c45c050",
+      "title": "Decision Model and Notation (DMN) 1.5",
+      "topics": [
+        "business-rules",
+        "decision-modeling",
+        "decision-tables"
+      ],
+      "versionLabel": "1.5"
+    },
+    {
+      "aliases": [
+        "ReqIF",
+        "ReqIF 1.2"
+      ],
+      "authorityKind": "formal-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "engineering",
+        "enterprise",
+        "requirements"
+      ],
+      "id": "omg-reqif-1.2",
+      "identityMode": "versioned",
+      "issuer": "Object Management Group",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:b3c4961fad3b4bfe7eb7707cbb857ab2c928c99e4295e7efe2cb78d5eb492064",
+      "recordDigest": "sha256:8d607a500d555b74916a2e1c5ab8cc2cbf3dfebad082d8da20f81da7ca944f5a",
+      "title": "Requirements Interchange Format (ReqIF) 1.2",
+      "topics": [
+        "interchange",
+        "requirements",
+        "traceability"
+      ],
+      "versionLabel": "1.2"
+    },
+    {
+      "aliases": [
+        "PRISMA 2020"
+      ],
+      "authorityKind": "reporting-guideline",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "research"
+      ],
+      "id": "prisma-2020",
+      "identityMode": "versioned",
+      "issuer": "PRISMA",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:c0857d601d9b529100da46375ef4aceb4073b0da15be4404d3e77b1d6be37223",
+      "recordDigest": "sha256:d834c983e5703e20f115960ccc283866e18b834ae45e29e82ba0d70f1082aee3",
+      "title": "PRISMA 2020 Statement",
+      "topics": [
+        "evidence-synthesis",
+        "reporting",
+        "systematic-review"
+      ],
+      "versionLabel": "2020"
+    },
+    {
+      "aliases": [
+        "RO Crate 1.3",
+        "RO-Crate"
+      ],
+      "authorityKind": "interchange-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "data",
+        "research"
+      ],
+      "id": "ro-crate-1.3",
+      "identityMode": "versioned",
+      "issuer": "Research Object community",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:d8b749cf86abc1aebf26341052809e0826e45e19c74c6179348bfa5ad09a4d5e",
+      "recordDigest": "sha256:1e11074bdc01ef9a74f37674f4cc937837b5dc03c2e735c2b5ca81425ad1b099",
+      "title": "RO-Crate Metadata Specification 1.3",
+      "topics": [
+        "metadata",
+        "packaging",
+        "provenance",
+        "research-object"
+      ],
+      "versionLabel": "1.3"
+    },
+    {
+      "aliases": [
+        "SLSA",
+        "SLSA 1.2"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "distribution",
+        "engineering",
+        "security"
+      ],
+      "id": "slsa-1.2",
+      "identityMode": "versioned",
+      "issuer": "SLSA",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:3e143cc5c081924a03c9d5758121d7ea766c442adfc2b4a9d34b3cf34148e021",
+      "recordDigest": "sha256:de7ffebfdd1e1e0b58f01fe1470a24483dfeb56d0cb74bb7c9fd08925d59914e",
+      "title": "Supply-chain Levels for Software Artifacts Specification 1.2",
+      "topics": [
+        "build-integrity",
+        "provenance",
+        "security",
+        "software-supply-chain"
+      ],
+      "versionLabel": "1.2"
+    },
+    {
+      "aliases": [
+        "Springer research data policy"
+      ],
+      "authorityKind": "publisher-policy",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "publication",
+        "research"
+      ],
+      "id": "springer-research-data-policy",
+      "identityMode": "rolling-source",
+      "issuer": "Springer Nature",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:2bde7b31331e9556a25ff1c3121c64e21751fe82d17153fa9762305e8ef20ac8",
+      "recordDigest": "sha256:6883bbed1eed68b2918901846f2b1db7ba3c22a1e37a82d6c6495d84cea5736d",
+      "title": "Springer Nature Research Data Policy",
+      "topics": [
+        "data-availability",
+        "publication-policy",
+        "research-data"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "WCAG",
+        "WCAG 2.2"
+      ],
+      "authorityKind": "web-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "accessibility",
+        "artifact",
+        "web"
+      ],
+      "id": "wcag-2.2",
+      "identityMode": "versioned",
+      "issuer": "W3C",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:2dd0edac0d27d8e348034904218161684118c277720bd35490854cd78127bb58",
+      "recordDigest": "sha256:31ae27aebb6efa2ca7079db29432bfe842d4d4a48f9cea021cda3656d88f47ef",
+      "title": "Web Content Accessibility Guidelines (WCAG) 2.2",
+      "topics": [
+        "accessibility",
+        "web",
+        "web-accessibility"
+      ],
+      "versionLabel": "2.2"
+    },
+    {
+      "aliases": [
+        "XAG",
+        "Xbox Accessibility Guidelines"
+      ],
+      "authorityKind": "provider-guidance",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "accessibility",
+        "game"
+      ],
+      "id": "xbox-accessibility-guidelines-3.2",
+      "identityMode": "versioned",
+      "issuer": "Microsoft Xbox",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:634eea1e3bc034be3136a2f83c46120e049af9101e68aaa562d6fa20fa33b182",
+      "recordDigest": "sha256:b1ee0d18f8044552cdee7a35ccbbcd22bad743188c2d6211001938073c390d79",
+      "title": "Xbox Accessibility Guidelines Version 3.2",
+      "topics": [
+        "accessibility",
+        "controls",
+        "game-accessibility",
+        "ux"
+      ],
+      "versionLabel": "3.2"
+    }
+  ],
+  "kind": "ordivon.external-authority-discovery-index",
+  "recordCount": 35,
+  "recordsDigest": "sha256:0c71ae1aaf1f4e2e7ceba79e121b89b5436361080160e425e732c064b3801f30",
+  "schemaVersion": 1
+}

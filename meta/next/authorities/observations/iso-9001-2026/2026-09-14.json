@@ -1,0 +1,11 @@
+{
+  "authorityId": "iso-9001-2026",
+  "basis": "migrated-verified-profile",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "under-publication",
+  "note": "ISO official page observed Edition 6 / 2026-09 as under publication and planned to replace ISO 9001:2015.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.iso.org/standard/9001",
+  "schemaVersion": 1,
+  "versionObserved": "2026"
+}

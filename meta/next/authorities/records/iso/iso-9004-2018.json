@@ -1,0 +1,48 @@
+{
+  "access": {
+    "fullText": "licensed",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "ISO 9004"
+    ],
+    "domains": [
+      "enterprise",
+      "management",
+      "quality"
+    ],
+    "topics": [
+      "sustained-success",
+      "quality-management",
+      "self-assessment"
+    ]
+  },
+  "id": "iso-9004-2018",
+  "identity": {
+    "authorityKind": "international-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "iso",
+      "name": "ISO"
+    },
+    "officialSource": "https://www.iso.org/standard/70397.html",
+    "publicationDate": null,
+    "title": "ISO 9004:2018 — Quality management — Quality of an organization — Guidance to achieve sustained success",
+    "versionLabel": "2018"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "docs/ENTERPRISE_OPERATING_MODEL_R1.md"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

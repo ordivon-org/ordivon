@@ -1,0 +1,47 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "EMSE submission guidelines"
+    ],
+    "domains": [
+      "research",
+      "publication"
+    ],
+    "topics": [
+      "manuscript-submission",
+      "journal-policy",
+      "software-engineering"
+    ]
+  },
+  "id": "emse-submission-guidelines",
+  "identity": {
+    "authorityKind": "venue-rule",
+    "identityMode": "rolling-source",
+    "issuer": {
+      "id": "springer-nature",
+      "name": "Springer Nature"
+    },
+    "officialSource": "https://link.springer.com/journal/10664/submission-guidelines",
+    "publicationDate": null,
+    "title": "Empirical Software Engineering — Submission Guidelines",
+    "versionLabel": null
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "/root/projects/ordivon-research-v2/profiles/paper1_standard_native_r2.toml"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

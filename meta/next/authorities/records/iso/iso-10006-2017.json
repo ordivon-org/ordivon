@@ -1,0 +1,49 @@
+{
+  "access": {
+    "fullText": "licensed",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "ISO 10006"
+    ],
+    "domains": [
+      "enterprise",
+      "management",
+      "quality"
+    ],
+    "topics": [
+      "project-quality",
+      "quality-management",
+      "project-management"
+    ]
+  },
+  "id": "iso-10006-2017",
+  "identity": {
+    "authorityKind": "international-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "iso",
+      "name": "ISO"
+    },
+    "officialSource": "https://www.iso.org/standard/70376.html",
+    "publicationDate": null,
+    "title": "ISO 10006:2017 — Quality management — Guidelines for quality management in projects",
+    "versionLabel": "2017"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "docs/ENTERPRISE_OPERATING_MODEL_R1.md",
+      "evidence/acceptance/enterprise-operating-model-r1-dogfood-20260914.json"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

@@ -1,0 +1,49 @@
+{
+  "access": {
+    "fullText": "licensed",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "ISO 19011"
+    ],
+    "domains": [
+      "enterprise",
+      "management",
+      "audit"
+    ],
+    "topics": [
+      "audit",
+      "management-system-audit",
+      "assurance"
+    ]
+  },
+  "id": "iso-19011-2026",
+  "identity": {
+    "authorityKind": "international-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "iso",
+      "name": "ISO"
+    },
+    "officialSource": "https://www.iso.org/standard/19011",
+    "publicationDate": null,
+    "title": "ISO 19011:2026 — Guidelines for auditing management systems",
+    "versionLabel": "2026"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "docs/ENTERPRISE_OPERATING_MODEL_R1.md",
+      "evidence/acceptance/enterprise-operating-model-r1-dogfood-20260914.json"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}
