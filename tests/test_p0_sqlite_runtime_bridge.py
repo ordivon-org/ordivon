@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
 from pathlib import Path
 import tempfile
 import threading
@@ -16,6 +17,7 @@ from ordivon_harness.ordivon.loop import OrdivonAgentLoop, RunBudget, RunStopCod
 from ordivon_harness.ordivon.model import (
     AgentRunConclusion,
     AgentToolCall,
+    AgentToolDefinition,
     AgentTurnResult,
     ScriptedTurnAdapter,
 )
@@ -28,7 +30,7 @@ from ordivon_harness.ordivon.sqlite_runtime_bridge import (
     SQLiteHarnessRuntimeBridge,
     _runtime_delivery_state,
 )
-from ordivon_harness.protocol import HarnessToolStepStatus
+from ordivon_harness.protocol import HarnessRecoveryConsequence, HarnessToolStepStatus
 from ordivon_harness.run_state import HarnessRunState
 from ordivon_harness.runtime_port import (
     HarnessRuntimeClientError,
@@ -40,6 +42,102 @@ from ordivon_harness.sqlite_store import SQLiteHarnessStore
 DIGEST_A = "sha256:" + "a" * 64
 DIGEST_B = "sha256:" + "b" * 64
 DIGEST_C = "sha256:" + "c" * 64
+
+PATCH_WORKSPACE_DEFINITION = AgentToolDefinition(
+    name="patch_workspace",
+    description="Apply one exact digest-bound Workspace Patch.",
+    input_schema={
+        "type": "object",
+        "properties": {
+            "files": {"type": "array", "minItems": 1},
+            "maxDiffBytes": {"type": "integer", "minimum": 1},
+        },
+        "required": ["files"],
+        "additionalProperties": False,
+    },
+)
+PATCH_TOOL_SURFACE_DIGEST = canonical_digest(
+    {
+        "schemaVersion": 1,
+        "kind": "ordivon.test-patch-tool-surface",
+        "tools": [PATCH_WORKSPACE_DEFINITION.to_dict()],
+    }
+)
+PATCH_TOOL_GRANT_DIGEST = canonical_digest(
+    {
+        "schemaVersion": 1,
+        "kind": "ordivon.test-patch-tool-grant",
+        "tools": ["patch_workspace"],
+        "runtimeOperations": ["workspace.patch", "workspace.patch.get"],
+        "workspaceMutationAllowed": True,
+    }
+)
+
+
+class PatchGrant:
+    allow_opaque_exec = False
+
+    def allows_path(self, name: str, relative_path: str) -> bool:
+        return name == "patch_workspace" and relative_path == "README.md"
+
+    def execution_check(self, check_id: str):
+        raise KeyError(check_id)
+
+
+class WorkspaceChangeRuntimeBridge(SQLiteHarnessRuntimeBridge):
+    recovery_consequence = HarnessRecoveryConsequence.WORKSPACE_CHANGE_POSSIBLE
+
+
+class FakePatchRuntime:
+    def __init__(self, mode: str = "direct") -> None:
+        self.mode = mode
+        self.calls: list[tuple[str, dict[str, JsonValue]]] = []
+        self.client_request_id: str | None = None
+        self.patch_count = 0
+
+    def call_tool(self, name: str, arguments: dict[str, JsonValue]) -> dict[str, JsonValue]:
+        self.calls.append((name, arguments))
+        if name == "workspace.patch":
+            self.patch_count += 1
+            request_id = arguments.get("clientRequestId")
+            assert isinstance(request_id, str)
+            self.client_request_id = request_id
+            if self.mode.startswith("loss_"):
+                raise HarnessRuntimeClientError("injected Patch response loss")
+            if self.mode == "reject":
+                raise HarnessRuntimeToolRejected(
+                    name,
+                    HarnessRuntimeErrorDetail(
+                        code="revision_mismatch",
+                        message="source digest changed",
+                        commit_state="not_committed",
+                        retryable=False,
+                        field="files[0].expectedDigest",
+                    ),
+                )
+            return {
+                "operationId": "patch:test:direct",
+                "clientRequestId": request_id,
+                "requestDigest": DIGEST_A,
+                "replayed": False,
+                "patch": {"workspaceId": "ws", "files": []},
+            }
+        if name == "workspace.patch.get":
+            request_id = arguments.get("clientRequestId")
+            assert isinstance(request_id, str)
+            state = self.mode.removeprefix("loss_")
+            result: dict[str, JsonValue] = {
+                "operationId": "patch:test:status",
+                "clientRequestId": request_id,
+                "requestDigest": DIGEST_A,
+                "workspaceId": "ws",
+                "state": state,
+            }
+            if state == "committed":
+                result["patch"] = {"workspaceId": "ws", "files": []}
+            return result
+        raise AssertionError(f"unexpected Runtime tool: {name}")
+
 
 
 class FixedClock:
@@ -194,6 +292,69 @@ def contract(suffix: str) -> HarnessRunContract:
     )
 
 
+def patch_contract(suffix: str) -> HarnessRunContract:
+    return replace(
+        contract(suffix),
+        tool_catalog_digest=PATCH_TOOL_SURFACE_DIGEST,
+        tool_grant_digest=PATCH_TOOL_GRANT_DIGEST,
+    )
+
+
+def patch_call(suffix: str) -> AgentToolCall:
+    return AgentToolCall(
+        tool_call_id=f"tool-call:p0-runtime-{suffix}-patch",
+        name="patch_workspace",
+        arguments={
+            "files": [
+                {
+                    "relativePath": "README.md",
+                    "expectedDigest": DIGEST_A,
+                    "edits": [
+                        {
+                            "range": {
+                                "start": {"line": 1, "column": 0},
+                                "end": {"line": 1, "column": 5},
+                            },
+                            "expectedText": "alpha",
+                            "replacement": "omega",
+                        }
+                    ],
+                }
+            ],
+            "maxDiffBytes": 4096,
+        },
+    )
+
+
+def patch_bridge(root: Path, suffix: str, runtime: FakePatchRuntime, *, change_consequence=True):
+    run_contract = patch_contract(suffix)
+    store = SQLiteHarnessStore.initialize(root)
+    store.create_run(run_contract)
+    clock = FixedClock()
+    continuity = SQLiteHarnessRunContinuityStore(store, run_contract, clock_ms=clock)
+    bridge_type = WorkspaceChangeRuntimeBridge if change_consequence else SQLiteHarnessRuntimeBridge
+    bridge = bridge_type(
+        run_contract,
+        continuity,
+        execution_binding(run_contract, continuity),
+        runtime,
+        tool_definitions=(PATCH_WORKSPACE_DEFINITION,),
+        tool_surface_digest=PATCH_TOOL_SURFACE_DIGEST,
+        tool_grant_digest=PATCH_TOOL_GRANT_DIGEST,
+        tool_grant=PatchGrant(),
+    )
+    state = bound_state()
+    bridge.bind_run_state(
+        messages=state.messages,
+        observations=(),
+        remaining_budget=state.remaining_budget,
+        requested_model_id=state.requested_model_id,
+        effective_model_id=None,
+        active_elapsed_ms=0,
+    )
+    return store, continuity, bridge
+
+
 def execution_binding(
     run_contract: HarnessRunContract,
     continuity: SQLiteHarnessRunContinuityStore,
@@ -298,6 +459,93 @@ def bound_state() -> HarnessRunState:
 
 
 class SQLiteHarnessRuntimeBridgeTests(unittest.TestCase):
+    def test_workspace_patch_requires_explicit_workspace_change_consequence(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = FakePatchRuntime("direct")
+            store, _, bridge = patch_bridge(
+                Path(directory) / "state",
+                "patch-wrong-consequence",
+                runtime,
+                change_consequence=False,
+            )
+            with self.assertRaisesRegex(
+                Exception, "WORKSPACE_CHANGE_POSSIBLE"
+            ):
+                bridge.execute(
+                    patch_call("patch-wrong-consequence"),
+                    step_id="turn-1-patch",
+                )
+            self.assertEqual(runtime.patch_count, 0)
+            store.close()
+
+    def test_workspace_patch_commits_through_existing_durable_tool_lifecycle(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = FakePatchRuntime("direct")
+            store, continuity, bridge = patch_bridge(
+                Path(directory) / "state", "patch-direct", runtime
+            )
+            observation = bridge.execute(
+                patch_call("patch-direct"),
+                step_id="turn-1-patch",
+            )
+            self.assertEqual(observation.status, "observed")
+            self.assertFalse(observation.reconciled)
+            self.assertEqual(runtime.patch_count, 1)
+            retained = continuity.load_current_tool_step()
+            self.assertEqual(
+                retained.intent.recovery_consequence,
+                HarnessRecoveryConsequence.WORKSPACE_CHANGE_POSSIBLE,
+            )
+            self.assertEqual(retained.intent.runtime_operation, "workspace.patch")
+            self.assertEqual(retained.receipt.status, HarnessToolStepStatus.OBSERVED)
+            store.close()
+
+    def test_workspace_patch_response_loss_uses_patch_get_not_redispatch(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = FakePatchRuntime("loss_committed")
+            store, continuity, bridge = patch_bridge(
+                Path(directory) / "state", "patch-loss", runtime
+            )
+            observation = bridge.execute(
+                patch_call("patch-loss"),
+                step_id="turn-1-patch",
+            )
+            self.assertEqual(observation.status, "observed")
+            self.assertTrue(observation.reconciled)
+            self.assertEqual(runtime.patch_count, 1)
+            self.assertEqual(
+                [name for name, _ in runtime.calls],
+                ["workspace.patch", "workspace.patch.get"],
+            )
+            retained = continuity.load_current_tool_step()
+            self.assertTrue(retained.receipt.reconciled)
+            self.assertEqual(retained.receipt.status, HarnessToolStepStatus.OBSERVED)
+            store.close()
+
+    def test_workspace_patch_prepared_and_unknown_have_distinct_recovery_standing(self) -> None:
+        for mode, expected_status, safe in (
+            ("loss_prepared", "rejected", True),
+            ("loss_unknown", "unknown", False),
+        ):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
+                runtime = FakePatchRuntime(mode)
+                store, continuity, bridge = patch_bridge(
+                    Path(directory) / "state", mode, runtime
+                )
+                observation = bridge.execute(
+                    patch_call(mode),
+                    step_id="turn-1-patch",
+                )
+                self.assertEqual(observation.status, expected_status)
+                self.assertEqual(observation.structured_content["safeToCorrect"], safe)
+                self.assertEqual(runtime.patch_count, 1)
+                self.assertEqual(
+                    [name for name, _ in runtime.calls].count("workspace.patch"), 1
+                )
+                retained = continuity.load_current_tool_step()
+                self.assertEqual(retained.receipt.status.value, expected_status)
+                store.close()
+
     def test_status_only_runtime_projection_fails_closed(self) -> None:
         with self.assertRaisesRegex(HarnessRuntimeClientError, "executionTerminal"):
             _runtime_delivery_state({"status": "succeeded"})

@@ -1,6 +1,6 @@
 # Adaptive Edit Gateway R2
 
-Status: **PROTOTYPE IMPLEMENTED / INTERNAL**  
+Status: **PROTOTYPE IMPLEMENTED / DURABLE EFFECT BACKEND WIRED / INTERNAL**
 Date: 2026-09-14
 
 ## Scope
@@ -55,6 +55,20 @@ Both codecs produce the same:
 
 No codec writes files directly.
 
+## Durable effect integration now wired
+
+The existing `SQLiteHarnessRuntimeBridge` had dormant `patch_workspace -> workspace.patch` lowering but previously admitted only `workspace.exec` and `workspace.read`. R2 completes the generic physical backend without changing the default Tool surface:
+
+- `workspace.patch` is admitted only when the concrete bridge declares `WORKSPACE_CHANGE_POSSIBLE`;
+- the normal Harness Tool intent/fence/receipt chain remains authoritative for the Agent Run;
+- a direct Runtime Patch receipt becomes an ordinary Tool Observation;
+- ambiguous delivery is reconciled only through `workspace.patch.get`;
+- `prepared` becomes a model-correctable rejected observation because Runtime has proven the before-state;
+- `unknown` remains UNKNOWN and cannot authorize redispatch or codec fallback;
+- the default observation-only bridge cannot patch even if a caller accidentally supplies a patch-shaped Tool definition.
+
+No public `edit_workspace` Tool is exposed yet.
+
 ## Current deliberate limits
 
 - one semantic edit per file per compiled plan;
@@ -70,11 +84,10 @@ These limits prevent the prototype from inventing ordering/fallback semantics be
 
 1. bind exact `workspace.read` content/digest as `SourceSnapshot` inside one Agent attempt;
 2. expose an internal `edit_workspace` action using a selected codec;
-3. record one normal Harness Tool intent before physical patch admission;
-4. dispatch only `workspace.patch`;
-5. on response loss reconcile the same request through `workspace.patch.get`;
-6. only permit codec fallback while no physical patch operation has been admitted;
-7. benchmark exact replacement vs anchored encoding on the existing repository-repair workload.
+3. compile that action to the already-wired durable `patch_workspace` backend;
+4. only permit codec fallback while no physical patch operation has been admitted or Runtime has explicitly proven `prepared`/not-committed standing;
+5. benchmark exact replacement vs anchored encoding on the existing repository-repair workload;
+6. promote a generic edit-provider port only if a second implementation needs the same boundary.
 
 ## Invariants already proven by the prototype
 
@@ -89,4 +102,5 @@ These limits prevent the prototype from inventing ordering/fallback semantics be
 - committed reconciliation never redispatches the Patch;
 - prepared reconciliation is explicit `not_committed` and may authorize correction at a higher layer;
 - `unknown` reconciliation never becomes codec-fallback authority;
+- the generic durable Tool bridge now preserves `WORKSPACE_CHANGE_POSSIBLE` consequence through Patch intent/receipt;
 - codec selection is a measured-profile input rather than a universal Hashline default.

@@ -399,6 +399,12 @@ class SQLiteHarnessRuntimeBridge(SQLiteHarnessAgentBridge):
                 relative_path=None,
                 control=control,
             )
+        elif current.intent.runtime_operation == "workspace.patch":
+            observation = self._reconcile_workspace_patch(
+                tool_call_id=current.intent.tool_call_id,
+                tool_name=current.intent.tool_name,
+                client_request_id=current.intent.client_request_id,
+            )
         else:
             observation = self._unknown_observation(
                 current.intent.tool_call_id,
@@ -452,6 +458,17 @@ class SQLiteHarnessRuntimeBridge(SQLiteHarnessAgentBridge):
             raise ToolBridgeError(
                 "execution control stopped before Tool reconciliation",
                 kind=ToolBridgeErrorKind.CONTROL_STOPPED,
+            )
+        if current.intent.runtime_operation == "workspace.patch":
+            observation = self._reconcile_workspace_patch(
+                tool_call_id=current.intent.tool_call_id,
+                tool_name=current.intent.tool_name,
+                client_request_id=current.intent.client_request_id,
+            )
+            return self._record_observation(
+                current.intent,
+                observation,
+                previous_receipt=current.receipt,
             )
         if current.intent.runtime_operation != "workspace.exec":
             return self.reconcile_current_tool_step(control=control)
@@ -538,9 +555,18 @@ class SQLiteHarnessRuntimeBridge(SQLiteHarnessAgentBridge):
             call,
             step_id=step_id,
         )
-        if operation not in {"workspace.exec", "workspace.read"}:
+        if operation not in {"workspace.exec", "workspace.read", "workspace.patch"}:
             raise ToolBridgeError(
-                f"independent observation Tool lowered to unsupported operation {operation}",
+                f"independent Runtime Tool lowered to unsupported operation {operation}",
+                kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
+            )
+        if (
+            operation == "workspace.patch"
+            and self.recovery_consequence
+            != HarnessRecoveryConsequence.WORKSPACE_CHANGE_POSSIBLE
+        ):
+            raise ToolBridgeError(
+                "workspace.patch requires WORKSPACE_CHANGE_POSSIBLE recovery consequence",
                 kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
             )
         client_request_id = external_request_id or (
@@ -632,6 +658,15 @@ class SQLiteHarnessRuntimeBridge(SQLiteHarnessAgentBridge):
                     reconciled=False,
                     control=control,
                 )
+            elif operation == "workspace.patch":
+                observation = self._observation_from_payload(
+                    tool_call_id=call.tool_call_id,
+                    tool_name=call.name,
+                    payload=payload,
+                    query=None,
+                    relative_path=None,
+                    reconciled=False,
+                )
             else:
                 expected_digest = None
                 resolver = getattr(self._tool_grant, "expected_digest", None)
@@ -683,6 +718,12 @@ class SQLiteHarnessRuntimeBridge(SQLiteHarnessAgentBridge):
                     relative_path=relative_path,
                     control=control,
                 )
+            elif operation == "workspace.patch":
+                observation = self._reconcile_workspace_patch(
+                    tool_call_id=call.tool_call_id,
+                    tool_name=call.name,
+                    client_request_id=client_request_id,
+                )
             else:
                 observation = self._unknown_observation(
                     call.tool_call_id,
@@ -703,6 +744,12 @@ class SQLiteHarnessRuntimeBridge(SQLiteHarnessAgentBridge):
                     queries=queries,
                     relative_path=relative_path,
                     control=control,
+                )
+            elif operation == "workspace.patch":
+                observation = self._reconcile_workspace_patch(
+                    tool_call_id=call.tool_call_id,
+                    tool_name=call.name,
+                    client_request_id=client_request_id,
                 )
             else:
                 observation = self._unknown_observation(
@@ -951,6 +998,105 @@ class SQLiteHarnessRuntimeBridge(SQLiteHarnessAgentBridge):
             relative_path=relative_path,
             reconciled=True,
             control=control,
+        )
+
+    def _reconcile_workspace_patch(
+        self,
+        *,
+        tool_call_id: str,
+        tool_name: str,
+        client_request_id: str,
+    ) -> HarnessToolObservation:
+        """Reconcile one exact Runtime Patch receipt without redispatching mutation."""
+
+        try:
+            payload = self.runtime.call_tool(
+                "workspace.patch.get",
+                {
+                    "schemaVersion": 1,
+                    "clientRequestId": client_request_id,
+                },
+            )
+            validate_json_value(payload)
+        except HarnessRuntimeToolRejected as error:
+            safe = error.detail.commit_state in {"not_started", "not_committed"}
+            if safe:
+                return HarnessToolObservation(
+                    tool_call_id=tool_call_id,
+                    tool_name=tool_name,
+                    status="rejected",
+                    structured_content={
+                        **_runtime_error_value(error),
+                        "clientRequestId": client_request_id,
+                        "reconciledBy": "workspace.patch.get",
+                    },
+                    reconciled=True,
+                )
+            return self._unknown_observation(
+                tool_call_id,
+                tool_name,
+                reason=f"Workspace Patch reconciliation failed: {error}",
+                client_request_id=client_request_id,
+                query=None,
+                relative_path=None,
+                reconciled=True,
+            )
+        except HarnessRuntimeClientError as error:
+            return self._unknown_observation(
+                tool_call_id,
+                tool_name,
+                reason=f"Workspace Patch reconciliation failed: {error}",
+                client_request_id=client_request_id,
+                query=None,
+                relative_path=None,
+                reconciled=True,
+            )
+
+        if payload.get("clientRequestId") != client_request_id:
+            raise ToolBridgeError(
+                "workspace.patch.get returned another clientRequestId",
+                kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
+            )
+        state = payload.get("state")
+        if state == "committed":
+            if not isinstance(payload.get("patch"), dict):
+                raise ToolBridgeError(
+                    "committed workspace.patch.get omitted patch result",
+                    kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
+                )
+            return self._observation_from_payload(
+                tool_call_id=tool_call_id,
+                tool_name=tool_name,
+                payload=payload,
+                query=None,
+                relative_path=None,
+                reconciled=True,
+            )
+        if state == "prepared":
+            return HarnessToolObservation(
+                tool_call_id=tool_call_id,
+                tool_name=tool_name,
+                status="rejected",
+                structured_content={
+                    **dict(payload),
+                    "safeToCorrect": True,
+                    "reconciledBy": "workspace.patch.get",
+                },
+                reconciled=True,
+            )
+        if state == "unknown":
+            return self._unknown_observation(
+                tool_call_id,
+                tool_name,
+                reason="Runtime Workspace Patch physical state is unknown",
+                client_request_id=client_request_id,
+                query=None,
+                relative_path=None,
+                reconciled=True,
+            )
+        raise ToolBridgeError(
+            "workspace.patch.get returned an unsupported state",
+            kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
         )
 
     def _record_observation(
