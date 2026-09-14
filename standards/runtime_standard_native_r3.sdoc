@@ -1,0 +1,110 @@
+[DOCUMENT]
+TITLE: Runtime Standard-Native R3 Requirement Trace
+
+[REQUIREMENT]
+UID: RT-LC-001
+TITLE: Software lifecycle scope is explicit
+STATEMENT: Runtime shall document its supported product scope, lifecycle standing, supported environment and verification route.
+RATIONALE: Task-local trace derived from the applicable software lifecycle framework.
+
+[REQUIREMENT]
+UID: RT-LC-002
+TITLE: Change and release control are explicit
+STATEMENT: Runtime changes that affect public or persisted behavior shall have compatibility, migration or cutover, release evidence and rollback obligations appropriate to their impact.
+RATIONALE: Task-local lifecycle acceptance criterion informed by ISO IEC IEEE 12207.
+
+[REQUIREMENT]
+UID: RT-LC-003
+TITLE: Operation and support are documented
+STATEMENT: Runtime shall document deployment, health, backup, recovery, lifecycle and operational verification paths for supported environments.
+RATIONALE: Task-local lifecycle acceptance criterion informed by ISO IEC IEEE 12207.
+
+[REQUIREMENT]
+UID: RT-LC-004
+TITLE: Retirement and deprecation are bounded
+STATEMENT: Compatibility code, supported versions and deprecated behavior shall have explicit support and deletion conditions rather than silent removal.
+RATIONALE: Task-local lifecycle acceptance criterion informed by ISO IEC IEEE 12207.
+
+[REQUIREMENT]
+UID: RT-Q-001
+TITLE: Functional contracts are verified
+STATEMENT: Public Runtime behavior shall be covered by automated contract, unit or integration verification appropriate to the boundary being changed.
+RATIONALE: Task-local quality criterion using ISO IEC 25010 as a product-quality reference model.
+
+[REQUIREMENT]
+UID: RT-Q-002
+TITLE: Reliability and recovery have executable evidence
+STATEMENT: Failure, reconciliation, recovery, backup, rollback and process-ownership behavior shall be tested or accepted against the supported execution environment where portable CI is insufficient.
+RATIONALE: Task-local quality criterion using ISO IEC 25010 as a product-quality reference model.
+
+[REQUIREMENT]
+UID: RT-Q-003
+TITLE: Security quality has multiple verification mechanisms
+STATEMENT: The repository shall combine explicit security boundaries with automated secret, dependency and code-security checks appropriate to the software.
+RATIONALE: Task-local quality and secure-development criterion.
+
+[REQUIREMENT]
+UID: RT-Q-004
+TITLE: Maintainability checks are automated
+STATEMENT: Formatting, static analysis, tests and documentation checks shall be automated in the portable engineering path.
+RATIONALE: Task-local quality criterion using ISO IEC 25010 as a product-quality reference model.
+
+[REQUIREMENT]
+UID: RT-Q-005
+TITLE: Compatibility identities are explicit
+STATEMENT: Protocol, Tool catalog, persisted-state and rollback compatibility shall use explicit identities rather than relying on one package version number.
+RATIONALE: Task-local product compatibility criterion.
+
+[REQUIREMENT]
+UID: RT-Q-006
+TITLE: Resource and capacity boundaries are verified
+STATEMENT: Runtime shall define bounded execution/resource behavior and retain repeatable acceptance for capacity or platform-specific resource controls that affect supported operation.
+RATIONALE: Task-local product-quality criterion.
+
+[REQUIREMENT]
+UID: RT-SSDF-PO-001
+TITLE: Security requirements and boundaries are documented
+STATEMENT: Runtime shall document security requirements, trust boundaries, supported authority profiles and known non-goals, and update them when authority or exposure changes.
+RATIONALE: Task-local trace to the Prepare the Organization outcome family in NIST SSDF 1.1.
+
+[REQUIREMENT]
+UID: RT-SSDF-PO-002
+TITLE: Secure development tooling is maintained
+STATEMENT: The engineering path shall maintain automated tools and checks that support secure development and dependency hygiene.
+RATIONALE: Task-local trace to the Prepare the Organization outcome family in NIST SSDF 1.1.
+
+[REQUIREMENT]
+UID: RT-SSDF-PS-001
+TITLE: Release components have integrity and provenance evidence
+STATEMENT: Released Runtime components shall be bound to source/build identity and byte-integrity evidence sufficient for the Runtime release and rollback contract.
+RATIONALE: Task-local trace to Protect the Software and SSDF provenance concerns; this does not claim cryptographic publisher authenticity or standardized SLSA provenance.
+
+[REQUIREMENT]
+UID: RT-SSDF-PW-001
+TITLE: Source changes receive automated verification
+STATEMENT: The portable pipeline shall exercise code, tests, static analysis and documentation checks before release acceptance.
+RATIONALE: Task-local trace to Produce Well-Secured Software in NIST SSDF 1.1.
+
+[REQUIREMENT]
+UID: RT-SSDF-PW-002
+TITLE: Third-party dependency risk is checked
+STATEMENT: Dependency policy and vulnerability or advisory checks shall be part of the engineering and release evidence path.
+RATIONALE: Task-local trace to Produce Well-Secured Software in NIST SSDF 1.1.
+
+[REQUIREMENT]
+UID: RT-SSDF-RV-001
+TITLE: Vulnerability reporting and response path exists
+STATEMENT: Supported users shall have a private vulnerability reporting path with documented validation, remediation and disclosure handling.
+RATIONALE: Task-local trace to Respond to Vulnerabilities in NIST SSDF 1.1.
+
+[REQUIREMENT]
+UID: RT-SUP-001
+TITLE: Release identity binds source toolchain and artifacts
+STATEMENT: Runtime release evidence shall bind the exact source revision, material build-toolchain identity and released artifact digests used by its own deployment contract.
+RATIONALE: Task-local software-supply-chain requirement supported by Runtime release receipts and informed by SSDF and SLSA.
+
+[REQUIREMENT]
+UID: RT-SUP-002
+TITLE: Standardized provenance claims are not overclaimed
+STATEMENT: Runtime shall not claim a SLSA level or standardized provenance attestation unless the applicable SLSA requirements and attestation format have actually been satisfied and independently verified.
+RATIONALE: SLSA 1.2 is guidance for the current release-supply-chain gap; custom Runtime receipts are not automatically SLSA attestations.

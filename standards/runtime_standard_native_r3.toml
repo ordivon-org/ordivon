@@ -1,0 +1,66 @@
+schema_version = 1
+profile_id = "runtime-standard-native-r3"
+date = "2026-09-14"
+model = "task-local-external-authority-profile"
+
+[subject]
+repo = "ordivon-runtime"
+revision = "8355a4d24d2930d87969d769a73882396b806f48"
+entity_of_interest = "owner-trusted local execution runtime software product and service"
+rule = "This profile maps existing Runtime engineering evidence to external authorities. It is not an ISO certification, NIST certification, SLSA level claim, or replacement for provider-native acceptance."
+
+[[authority]]
+id = "iso-iec-ieee-12207-2026"
+name = "ISO/IEC/IEEE 12207:2026 Software life cycle processes"
+role = "APPLICABLE_LIFECYCLE_FRAMEWORK"
+source = "https://www.iso.org/standard/90219.html"
+currentness_checked = "2026-09-14"
+rationale = "Runtime is a maintained software product/service with development, operation, support, release, maintenance and retirement concerns. 12207 supplies lifecycle vocabulary without prescribing a particular development method."
+
+[[authority]]
+id = "iso-iec-25010-2023"
+name = "ISO/IEC 25010:2023 Product quality model"
+role = "APPLICABLE_QUALITY_REFERENCE_MODEL"
+source = "https://www.iso.org/standard/78176.html"
+currentness_checked = "2026-09-14"
+rationale = "Use as a reference model for selecting product-quality requirements, test objectives and acceptance criteria; do not claim complete ISO conformance from this profile."
+
+[[authority]]
+id = "nist-sp-800-218-ssdf-1.1"
+name = "NIST SP 800-218 Secure Software Development Framework 1.1"
+role = "APPLICABLE_SECURE_DEVELOPMENT_BASELINE"
+source = "https://csrc.nist.gov/pubs/sp/800/218/final"
+currentness_checked = "2026-09-14"
+rationale = "Version 1.1 remains the final SSDF publication. SP 800-218 Rev.1 / SSDF 1.2 is an initial public draft and is monitored but not treated as the stable baseline."
+
+[[authority]]
+id = "slsa-1.2"
+name = "SLSA specification 1.2"
+role = "RELEASE_SUPPLY_CHAIN_GUIDANCE_NO_LEVEL_CLAIM"
+source = "https://slsa.dev/spec/v1.2/"
+currentness_checked = "2026-09-14"
+rationale = "Runtime has strong source/toolchain/artifact identity and release receipts, but this profile does not translate those receipts into a SLSA provenance attestation or claim a SLSA level."
+
+[work_semantics]
+primary = "SOFTWARE_LIFECYCLE_AND_RELEASE_ASSURANCE"
+bpmn = "NOT_REQUIRED_FOR_REPOSITORY_ENGINEERING_FLOW"
+cmmn = "NOT_REQUIRED"
+dmn = "NOT_REQUIRED"
+temporal = "RUNTIME_EXECUTION_PROVIDER_NOT_ENGINEERING_SEMANTIC_OWNER"
+
+[evidence]
+requirements = "standards/runtime_standard_native_r3.sdoc"
+checker = "scripts/check_runtime_standard_native_r3.py"
+report = "standards/runtime_standard_native_r3_report.json"
+portable_ci = ".github/workflows/ci.yml"
+security_policy = "SECURITY.md"
+release_contract = "docs/releases.md"
+operations_contract = "docs/operations.md"
+recovery_contract = "docs/recovery.md"
+compatibility_contract = "docs/compatibility.md"
+
+[non_claims]
+iso_certified = false
+nist_certified = false
+slsa_level = "NONE_CLAIMED"
+full_supply_chain_attestation_standardized = false
