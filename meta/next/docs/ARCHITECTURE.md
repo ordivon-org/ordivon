@@ -135,11 +135,14 @@ Therefore `Research`, `Engineer`, `Game`, `Temporal`, `n8n`, `MCP`, a specific s
 
 For every proposed Ordivon implementation, ask in order:
 
-1. Is this already a mature discipline, standard, algorithm, tool or infrastructure capability?
-2. Can configuration/profile/tailoring solve the current need?
-3. Can a thin adapter solve the mismatch?
-4. Is there measured evidence of a residual gap affecting a real task?
-5. Only then consider minimal custom implementation.
+1. Is this already a mature discipline, standard, algorithm, tool, infrastructure capability **or product surface**?
+2. What semantic object does it naturally own, and is that authority already represented by a mature provider?
+3. Can configuration/profile/tailoring solve the current need?
+4. Can direct reuse or a thin adapter solve the mismatch?
+5. Is there measured evidence of a residual gap affecting a real task?
+6. Only then consider minimal custom implementation.
+
+Use `docs/CAPABILITY_AUTHORITY_MAP_R1.md` as the current cross-project routing view for natural authorities, provider activation triggers, do-not-build boundaries and verification boundaries. The map is a replaceable view, not a fixed architecture.
 
 ## 9. Verification rule
 
