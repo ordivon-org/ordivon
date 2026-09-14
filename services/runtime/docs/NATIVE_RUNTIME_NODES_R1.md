@@ -121,6 +121,12 @@ R2 acceptance for this slice:
 - existing Linux execution/reconciliation behavior and tests remain unchanged;
 - no generic distributed scheduling or false Windows/Linux evidence equivalence is introduced.
 
+## R3 progress — shared Runtime host primitives
+
+R3 starts by deleting avoidable Unix-only glue from shared Runtime state mechanics. Admission fences and immutable-input staging leases now use Rust standard-library `File::try_lock_shared` / `File::try_lock` rather than direct `libc::flock` and raw file descriptors. This preserves non-blocking lock semantics while giving the shared control plane one cross-platform primitive with no new dependency.
+
+The remaining Unix-specific work is intentionally narrower and semantically meaningful: secure directory/file creation modes, no-follow authority opening, Linux UID ownership checks, `/proc` process identity, and the Linux Universal Runner (`openat2`, inotify, setuid/setgid). Those must move behind platform/runner boundaries rather than be weakened for portability.
+
 ## R1 acceptance
 
 - `RuntimeCapabilities` includes node identity.
