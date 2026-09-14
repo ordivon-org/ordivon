@@ -10,7 +10,6 @@ import hashlib
 import json
 import os
 import shutil
-import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -377,89 +376,135 @@ def carrier_projection(item: dict[str, object]) -> dict[str, object]:
     }
 
 
-def open_registry(database: Path, timeout_ms: int) -> sqlite3.Connection:
-    connection = sqlite3.connect(
-        f"file:{quote(str(database))}?mode=ro", uri=True, timeout=timeout_ms / 1000
+def runtime_inspect_binary() -> Path:
+    configured = os.environ.get("ORDIVON_RUNTIME_INSPECT")
+    candidates: list[Path] = []
+    if configured:
+        candidate = Path(configured)
+        if not candidate.is_absolute():
+            raise RuntimeError("ORDIVON_RUNTIME_INSPECT must be an absolute path")
+        candidates.append(candidate)
+    candidates.extend(
+        [
+            Path(__file__).resolve().with_name("ordivon-runtime-inspect"),
+            Path(__file__).resolve().parents[1] / "target/debug/ordivon-runtime-inspect",
+        ]
     )
-    connection.execute("PRAGMA query_only=ON")
-    connection.execute("PRAGMA trusted_schema=OFF")
-    return connection
+    for candidate in candidates:
+        if candidate.is_file() and not candidate.is_symlink() and os.access(candidate, os.X_OK):
+            return candidate
+    raise RuntimeError(
+        "ordivon-runtime-inspect is unavailable; install it beside this script or set "
+        "ORDIVON_RUNTIME_INSPECT to an absolute executable path"
+    )
 
 
-def last_activity_ms(connection: sqlite3.Connection, workspace_id: str) -> int | None:
-    row = connection.execute(
-        """
-        SELECT MAX(
-          CASE
-            WHEN attempts.finished_at_ms IS NOT NULL THEN attempts.finished_at_ms
-            WHEN attempts.started_at_ms IS NOT NULL THEN attempts.started_at_ms
-            WHEN attempts.created_at_ms IS NOT NULL THEN attempts.created_at_ms
-            ELSE jobs.created_at_ms
-          END
-        )
-        FROM jobs
-        LEFT JOIN attempts ON attempts.job_id=jobs.job_id
-        WHERE jobs.workspace_id=?
-        """,
-        (workspace_id,),
-    ).fetchone()
-    return int(row[0]) if row and row[0] is not None else None
+def runtime_inspection(
+    database: Path,
+    timeout_ms: int,
+    command: str,
+    *,
+    workspace_id: str | None = None,
+) -> dict[str, object]:
+    arguments = [
+        str(runtime_inspect_binary()),
+        command,
+        "--database",
+        str(database),
+        "--busy-timeout-ms",
+        str(timeout_ms),
+    ]
+    if workspace_id is not None:
+        arguments.extend(["--workspace-id", workspace_id])
+    result = subprocess.run(arguments, check=False, text=True, capture_output=True)
+    if result.returncode != 0:
+        detail = result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
+        raise RuntimeError(f"Runtime inspection failed: {detail}")
+    try:
+        value = json.loads(result.stdout)
+    except json.JSONDecodeError as error:
+        raise RuntimeError("Runtime inspection returned invalid JSON") from error
+    if not isinstance(value, dict):
+        raise RuntimeError("Runtime inspection did not return an object")
+    return value
+
+
+def registry_activity_by_workspace(database: Path, timeout_ms: int) -> dict[str, int | None]:
+    value = runtime_inspection(database, timeout_ms, "registry-activity")
+    workspaces = value.get("workspaces")
+    if not isinstance(workspaces, list):
+        raise RuntimeError("Runtime registry activity inspection omitted workspaces")
+    projected: dict[str, int | None] = {}
+    for raw in workspaces:
+        if not isinstance(raw, dict):
+            raise RuntimeError("Runtime registry activity inspection returned invalid Workspace state")
+        workspace_id = raw.get("workspaceId")
+        last_activity_ms = raw.get("lastActivityMs")
+        if not isinstance(workspace_id, str) or (
+            last_activity_ms is not None and not isinstance(last_activity_ms, int)
+        ):
+            raise RuntimeError("Runtime registry activity inspection returned invalid Workspace activity")
+        projected[workspace_id] = last_activity_ms
+    return projected
+
+
+def registry_workspace(database: Path, timeout_ms: int, workspace_id: str) -> dict[str, object]:
+    value = runtime_inspection(
+        database, timeout_ms, "registry-workspace", workspace_id=workspace_id
+    )
+    workspace = value.get("workspace")
+    if not isinstance(workspace, dict) or workspace.get("workspaceId") != workspace_id:
+        raise RuntimeError("Runtime Workspace registry inspection returned mismatched identity")
+    return workspace
 
 
 def enrich_report(args: argparse.Namespace) -> dict[str, object]:
     report = reclaim_inspect(args)
     policy = load_policy(args.policy_file)
     now_ms = int(time.time() * 1000)
-    connection = open_registry(args.database, args.busy_timeout_ms)
-    try:
-        enriched: list[dict[str, object]] = []
-        eligible_count = 0
-        eligible_bytes = 0
-        for raw in report.get("candidates", []):
-            if not isinstance(raw, dict):
-                continue
-            item = dict(raw)
-            workspace_id = str(item["workspaceId"])
-            class_name, retention_hours, force_dirty = retention_class(
-                policy, workspace_id
-            )
-            created_ms = item.get("createdUnixMs")
-            activity_ms = last_activity_ms(connection, workspace_id)
-            basis_values = [value for value in (created_ms, activity_ms) if isinstance(value, int)]
-            basis_ms = max(basis_values) if basis_values else None
-            eligible_at = (
-                int(basis_ms + retention_hours * 3_600_000)
-                if basis_ms is not None and retention_hours is not None
-                else None
-            )
-            classification = item.get("classification")
-            eligible_class = classification in {"closable", "stale_record"} or (
-                classification == "blocked_dirty" and force_dirty
-            )
-            eligible = (
-                eligible_class
-                and eligible_at is not None
-                and eligible_at <= now_ms
-            )
-            item.update(
-                {
-                    "retentionClass": class_name,
-                    "retentionHours": retention_hours,
-                    "forceCloseDirtyAfterRetention": force_dirty,
-                    "lastActivityUnixMs": activity_ms,
-                    "retentionBasisUnixMs": basis_ms,
-                    "eligibleAtUnixMs": eligible_at,
-                    "policyEligible": eligible,
-                }
-            )
-            item["carrierProjection"] = carrier_projection(item)
-            if eligible:
-                eligible_count += 1
-                if isinstance(item.get("estimatedBytes"), int):
-                    eligible_bytes += int(item["estimatedBytes"])
-            enriched.append(item)
-    finally:
-        connection.close()
+    activity_by_workspace = registry_activity_by_workspace(
+        args.database, args.busy_timeout_ms
+    )
+    enriched: list[dict[str, object]] = []
+    eligible_count = 0
+    eligible_bytes = 0
+    for raw in report.get("candidates", []):
+        if not isinstance(raw, dict):
+            continue
+        item = dict(raw)
+        workspace_id = str(item["workspaceId"])
+        class_name, retention_hours, force_dirty = retention_class(policy, workspace_id)
+        created_ms = item.get("createdUnixMs")
+        activity_ms = activity_by_workspace.get(workspace_id)
+        basis_values = [value for value in (created_ms, activity_ms) if isinstance(value, int)]
+        basis_ms = max(basis_values) if basis_values else None
+        eligible_at = (
+            int(basis_ms + retention_hours * 3_600_000)
+            if basis_ms is not None and retention_hours is not None
+            else None
+        )
+        classification = item.get("classification")
+        eligible_class = classification in {"closable", "stale_record"} or (
+            classification == "blocked_dirty" and force_dirty
+        )
+        eligible = eligible_class and eligible_at is not None and eligible_at <= now_ms
+        item.update(
+            {
+                "retentionClass": class_name,
+                "retentionHours": retention_hours,
+                "forceCloseDirtyAfterRetention": force_dirty,
+                "lastActivityUnixMs": activity_ms,
+                "retentionBasisUnixMs": basis_ms,
+                "eligibleAtUnixMs": eligible_at,
+                "policyEligible": eligible,
+            }
+        )
+        item["carrierProjection"] = carrier_projection(item)
+        if eligible:
+            eligible_count += 1
+            if isinstance(item.get("estimatedBytes"), int):
+                eligible_bytes += int(item["estimatedBytes"])
+        enriched.append(item)
     report["policy"] = policy
     report["generatedAtMs"] = now_ms
     report["candidates"] = enriched
@@ -638,24 +683,11 @@ def git(repository: Path, arguments: list[str], *, check: bool = True) -> subpro
 
 
 def active_jobs(database: Path, timeout_ms: int, workspace_id: str) -> list[str]:
-    connection = open_registry(database, timeout_ms)
-    try:
-        rows = connection.execute(
-            """
-            SELECT DISTINCT jobs.job_id
-            FROM jobs
-            LEFT JOIN attempts ON attempts.job_id=jobs.job_id
-            LEFT JOIN concurrency_reservations
-              ON concurrency_reservations.attempt_id=attempts.attempt_id
-            WHERE jobs.workspace_id=?
-              AND (jobs.resolution IS NULL OR concurrency_reservations.state IN ('active','held_orphaned'))
-            ORDER BY jobs.created_at_ms DESC,jobs.job_id DESC
-            """,
-            (workspace_id,),
-        ).fetchall()
-        return [str(row[0]) for row in rows]
-    finally:
-        connection.close()
+    workspace = registry_workspace(database, timeout_ms, workspace_id)
+    active = workspace.get("activeJobIds")
+    if not isinstance(active, list) or any(not isinstance(job_id, str) for job_id in active):
+        raise RuntimeError("Runtime Workspace registry inspection omitted activeJobIds")
+    return list(active)
 
 
 def load_open_record(record_path: Path, workspace_id: str, workspace_path: Path) -> dict[str, object]:
@@ -1493,7 +1525,7 @@ def main() -> int:
             raise RuntimeError(f"unsupported command: {args.command}")
         print(json.dumps(value, indent=2 if args.pretty else None, sort_keys=args.pretty))
         return 0 if value.get("status") != "partial" else 2
-    except (OSError, RuntimeError, sqlite3.Error, json.JSONDecodeError) as error:
+    except (OSError, RuntimeError, json.JSONDecodeError) as error:
         print(f"workspace lifecycle failed: {error}", file=sys.stderr)
         return 1
 

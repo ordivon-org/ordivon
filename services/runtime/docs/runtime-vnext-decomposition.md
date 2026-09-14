@@ -1,0 +1,147 @@
+# Runtime vNext decomposition and reassembly
+
+## Goal
+
+Rebuild Runtime from independently justified parts. A part remains only if removing or externalizing it breaks a measured workload, a physical execution invariant, recovery, or evidence quality.
+
+The core ownership boundary remains narrow:
+
+> admitted operation -> controlled physical execution -> durable evidence -> reconciliation
+
+Runtime does not own task semantics, workflow policy, project management, or domain reasoning.
+
+## Reality baseline
+
+The current production trace contains 288,604 observed tool calls in the counted sample. The dominant loop is:
+
+`workspace.open -> workspace.read/mutate -> workspace.exec/execPlan -> task.observe/get -> workspace.close`
+
+| Tool | Calls | Share |
+|---|---:|---:|
+| workspace.exec | 140,792 | 48.78% |
+| task.observe | 37,162 | 12.88% |
+| workspace.read | 29,484 | 10.22% |
+| workspace.mutate | 15,284 | 5.30% |
+| workspace.close | 12,373 | 4.29% |
+| workspace.execPlan | 11,740 | 4.07% |
+| workspace.get | 11,457 | 3.97% |
+| workspace.open | 9,723 | 3.37% |
+
+Those eight operations account for 92.87% of counted calls. Advanced surfaces are real but secondary.
+
+## Parts inventory
+
+| Part | Truth owned | Standing | Direction |
+|---|---|---|---|
+| Workspace mechanics | Git workspace identity, bounded file mutation/read/diff | KEEP | make independently buildable |
+| Runner | physical process execution and bounded output | KEEP | thin physical executor |
+| Durable Job/Attempt kernel | admission, reservation, event, terminal state | KEEP | irreducible execution truth |
+| Supervisor | process-tree ownership, systemd/cgroup evidence | KEEP | provider-owned mechanism |
+| Reconciliation/recovery | ambiguous execution convergence | KEEP | irreducible safety property |
+| Provider binding | Linux/Windows/input/host-dependency commitments | KEEP | isolate behind provider boundary |
+| MCP transport | authentication, schema, request adaptation | KEEP | thin adapter; no domain truth |
+| Structured effects | durable intent + effect-specific receipt + reconciliation | KEEP/EXTEND | generalize carefully from release/patch |
+| Doctor/repair | exceptional operator diagnosis and repair | MOVE | operator-tools feature, not production MCP dependency |
+| Inspect/experience summaries | operator projections | MOVE/SPLIT | retain task.get core projection; externalize broad analytics |
+| lifecycle/status/cache/deploy/reclaim scripts | operator automation | MOVE/REDUCE | stop duplicating Registry semantics/SQL |
+| direct Registry SQL in shell/Python helpers | duplicate truth interpretation | REMOVE-CANDIDATE | replace with stable Runtime query/admin API |
+| workspace_is_dirty wrapper | duplicate weaker dirty probe | REMOVE | deleted; coverage merged into stronger probe |
+| monolithic runtime/tests.rs | test-only coupling across core/operator concerns | SPLIT | core tests vs operator tests |
+
+## Phase 1 changes
+
+1. Corrected the `universal-executor` feature boundary. It previously claimed to be independently buildable but `lib.rs` exported functions only compiled with `transactional-runtime`. The universal-only feature now compiles independently.
+2. Added `operator-tools` feature. `doctor` and `repair` are no longer required by the MCP production dependency graph. Default developer builds retain them.
+3. Gated Registry administrative repair transaction paths behind `operator-tools` while retaining historical migration compatibility.
+4. Physically decomposed the 7,952-line `engine.rs` implementation into responsibility slices without changing the Rust module/privacy boundary:
+   - `engine/construction.rs`
+   - `engine/admission.rs`
+   - `engine/release.rs`
+   - `engine/workspace.rs`
+   - `engine/execution.rs`
+   - `engine/reconciliation.rs`
+   - `engine/control_query.rs`
+5. Deleted the unused public `workspace_is_dirty` wrapper and its duplicate Git status implementation. Its ignore semantics are now covered by the stronger `workspace_head_and_dirty_at` test.
+
+## Phase 2 changes
+
+1. Physically decomposed `registry.rs` while preserving one SQLite authority and one Rust module/privacy boundary:
+   - `registry/storage.rs`
+   - `registry/admission.rs`
+   - `registry/lifecycle.rs`
+   - `registry/query.rs`
+   - `registry/reconciliation.rs`
+   - `registry/recovery.rs`
+2. Physically decomposed inspection into `inspection/job.rs` for the exact Job projection and `inspection/operator.rs` for operator-only read models; cold-history eligibility is further isolated in `inspection/operator/archive.rs`.
+3. Added narrow operator projections rather than a second generic Registry API:
+   - `registry` for active/held ownership;
+   - `registry-workspace` for one Workspace fence;
+   - `registry-activity` for batched latest durable activity;
+   - `registry-markers` for cache TOCTOU identity;
+   - `registry-status` for bounded health/dashboard rows;
+   - `registry-archive` for cold-history classification and closure accounting.
+4. Removed direct Runtime-Registry SQL from `ordivon-runtime-reclaim`, `deploy`, `lifecycle`, `cache`, `status`, and repository-only `archive`. Their Python remains policy, orchestration, filesystem work, and report presentation rather than a second Registry interpreter.
+5. Repository-wide non-test census now leaves SQLite imports only in `scripts/backup.py` and `scripts/restore.py`, where SQLite backup and integrity verification are the physical operation itself. No non-test Python script contains direct semantic queries over Runtime Job/Attempt/reservation/event tables.
+6. Corrected test feature boundaries: doctor/repair/broad operator-inspection tests are gated by `operator-tools`, so the lean `transactional-runtime` test target compiles and runs instead of accidentally importing operator-only types.
+
+## Current evidence
+
+- `universal-executor` standalone compile: PASS.
+- lean `transactional-runtime` compile: PASS.
+- lean `transactional-runtime` unit suite: **223/223 PASS**.
+- production MCP against lean transactional core compile: PASS.
+- default Core smoke excluding the intentionally long reference-model property: **243/243 PASS**.
+- complete all-feature Core unit suite, including the long reference-model property: **244/244 PASS**.
+- MCP unit suite: **55/55 PASS**.
+- Runtime server/auth suite in the all-target workspace run: **4/4 PASS**.
+- Python operational suite: **137/137 PASS**, including archive, cache, lifecycle, deploy/reclaim, status, backup/restore, and acceptance helpers.
+- source-only archive behavior suite: **7/7 PASS**, including v4/v5 recovery representation, latest-Attempt fallback, fail-closed capability checks, and byte-identical Registry observation.
+- non-test Runtime Registry semantic SQL in Python/shell scripts: **0 matches**.
+- remaining direct SQLite script owners: `backup.py` and `restore.py` only, for physical backup/integrity operations.
+
+The all-target run still leaves privileged/systemd/WSL integration fixtures ignored unless their explicit local opt-ins are supplied; this decomposition does not reinterpret those ignored tests as executed evidence.
+
+## Reassembly target
+
+```text
+Agent / caller
+    |
+    v
+Thin MCP adapter
+    |
+    v
+Runtime application core
+    |-- Workspace service
+    |-- Execution admission
+    |-- Observation / cancellation
+    |-- Reconciliation
+    |-- Structured effect coordinator
+    |
+    +--> Registry (single durable state authority)
+    +--> Runner / Supervisor providers
+    +--> OS / Windows / external effect providers
+
+Operator package (separate)
+    |-- doctor
+    |-- repair
+    |-- broad inspection / analytics
+    `-- deployment and maintenance automation
+```
+
+## Acceptance rule for every later deletion
+
+A component can be deleted only when all are true:
+
+1. no production caller needs its unique semantic contract;
+2. its invariant is already owned by another stronger primitive, or it is outside Runtime's ownership boundary;
+3. public MCP behavior or an explicitly approved replacement remains available;
+4. compile/tests and at least one real workload path pass after removal;
+5. recovery/evidence quality is not weakened.
+
+## Next cuts
+
+1. Review the still-large `inspection/operator.rs` by measured responsibility, not file size alone. Split only if status/activity/marker/workspace projections have independent change pressure or compilation ownership; do not manufacture service boundaries for aesthetic symmetry.
+2. Keep the repeated `runtime_inspect_binary()`/JSON subprocess adapters in the operator scripts until a shared support artifact is justified by real maintenance cost. Centralizing them today would change the receipt-bound production release set from 12 artifacts to 13, so line-count reduction alone is insufficient evidence.
+3. Investigate recurring control-plane `REGISTRY_BUSY` during runner-bind observation and occasional one-second `systemctl show` timeouts as a separate Runtime reliability/performance problem. These events repeatedly reconciled to the exact already-admitted Job and must not be conflated with Registry read-model semantics.
+4. Revisit compact projection wrappers after MCP DTO ownership is explicit; do not delete them while MCP still consumes them.
+5. Before production replacement, run the exact release candidate through the normal deployment/rollback acceptance path and at least one real agent execution workflow. Source-level decomposition success is not deployment truth.

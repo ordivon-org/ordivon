@@ -1,3 +1,4 @@
+#[cfg(feature = "operator-tools")]
 mod doctor;
 mod engine;
 mod error;
@@ -5,12 +6,14 @@ mod evidence;
 mod inspection;
 mod patch;
 mod registry;
+#[cfg(feature = "operator-tools")]
 mod repair;
 mod supervisor;
 mod systemd;
 mod types;
 mod windows;
 
+#[cfg(feature = "operator-tools")]
 pub use doctor::{
     inspect_runtime, RuntimeDoctorAttemptState, RuntimeDoctorCapacityHolder, RuntimeDoctorCase,
     RuntimeDoctorConfig, RuntimeDoctorJobState, RuntimeDoctorProposal, RuntimeDoctorReport,
@@ -19,17 +22,29 @@ pub use doctor::{
 pub use engine::{ReconciliationFailure, ReconciliationReport, Runtime, RuntimeConfig};
 pub use error::{RuntimeCapacity, RuntimeError, RuntimeErrorCode, RuntimeResult};
 pub use inspection::{
-    inspect_job, inspect_workspace, summarize_experience, RuntimeExperienceArtifactSummary,
+    inspect_job, RuntimeInspectionArtifactSummary, RuntimeInspectionAttempt,
+    RuntimeInspectionCondition, RuntimeInspectionConfig, RuntimeInspectionEpisodes,
+    RuntimeInspectionEvent, RuntimeInspectionJob, RuntimeJobInspection,
+    DEFAULT_INSPECTION_EVENT_LIMIT, MAX_INSPECTION_EVENT_LIMIT, RUNTIME_INSPECTION_SCHEMA_VERSION,
+};
+#[cfg(feature = "operator-tools")]
+pub use inspection::{
+    inspect_registry, inspect_registry_activity, inspect_registry_archive,
+    inspect_registry_markers, inspect_registry_status, inspect_registry_workspace_activity,
+    inspect_workspace, summarize_experience, RuntimeExperienceArtifactSummary,
     RuntimeExperienceCancellationSummary, RuntimeExperienceDispatchSummary,
     RuntimeExperienceDurationSummary, RuntimeExperienceJobSummary,
     RuntimeExperienceMechanicalLatencySummary, RuntimeExperienceRecoverySummary,
-    RuntimeExperienceSummary, RuntimeInspectionArtifactSummary, RuntimeInspectionAttempt,
-    RuntimeInspectionCondition, RuntimeInspectionConfig, RuntimeInspectionEpisodes,
-    RuntimeInspectionEvent, RuntimeInspectionJob, RuntimeJobInspection, RuntimeWorkspaceInspection,
-    RuntimeWorkspaceInspectionConfig, RuntimeWorkspaceInspectionJob,
-    DEFAULT_INSPECTION_EVENT_LIMIT, DEFAULT_WORKSPACE_INSPECTION_JOB_LIMIT,
-    MAX_INSPECTION_EVENT_LIMIT, MAX_WORKSPACE_INSPECTION_JOB_LIMIT,
-    RUNTIME_INSPECTION_SCHEMA_VERSION,
+    RuntimeExperienceSummary, RuntimeOperatorActiveWorkspace, RuntimeOperatorArchiveClassification,
+    RuntimeOperatorArchiveClosure, RuntimeOperatorArchiveInspection, RuntimeOperatorArchiveSample,
+    RuntimeOperatorDashboardJob, RuntimeOperatorDashboardJobs,
+    RuntimeOperatorRegistryActivityInspection, RuntimeOperatorRegistryInspection,
+    RuntimeOperatorRegistryMarkersInspection, RuntimeOperatorRegistryStatusInspection,
+    RuntimeOperatorWorkspaceActivity, RuntimeOperatorWorkspaceActivityInspection,
+    RuntimeOperatorWorkspaceLastActivity, RuntimeOperatorWorkspaceMarker,
+    RuntimeWorkspaceInspection, RuntimeWorkspaceInspectionConfig, RuntimeWorkspaceInspectionJob,
+    DEFAULT_ARCHIVE_SAMPLE_LIMIT, DEFAULT_WORKSPACE_INSPECTION_JOB_LIMIT, MAX_ARCHIVE_SAMPLE_LIMIT,
+    MAX_WORKSPACE_INSPECTION_JOB_LIMIT,
 };
 pub use patch::{
     DurableWorkspacePatchRequest, DurableWorkspacePatchResult, WorkspacePatchOperationState,
@@ -40,6 +55,7 @@ pub use registry::{
     RUNTIME_MIGRATION_CHECKSUM, RUNTIME_ORPHAN_RECLAIM_MIGRATION_CHECKSUM,
     RUNTIME_ORPHAN_RECOVERY_MIGRATION_CHECKSUM, RUNTIME_TERMINAL_REPAIR_MIGRATION_CHECKSUM,
 };
+#[cfg(feature = "operator-tools")]
 pub use repair::{
     apply_runtime_repair, RuntimeRepairAction, RuntimeRepairActionKind, RuntimeRepairConfig,
     RuntimeRepairReport, RuntimeRepairRequest, RUNTIME_REPAIR_SCHEMA_VERSION,

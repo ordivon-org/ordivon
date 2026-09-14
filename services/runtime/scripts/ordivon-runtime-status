@@ -9,7 +9,6 @@ import json
 import os
 import re
 import shutil
-import sqlite3
 import subprocess
 import sys
 import time
@@ -595,99 +594,103 @@ def whitelisted_config(env_file: Path, reasons: list[str]) -> dict[str, int | No
     return values
 
 
-def registry_status(database: Path, reasons: list[str]) -> tuple[dict[str, Any], set[str]]:
-    held_workspaces: set[str] = set()
+def runtime_inspect_binary() -> Path:
+    configured = os.environ.get("ORDIVON_RUNTIME_INSPECT")
+    candidates: list[Path] = []
+    if configured:
+        candidate = Path(configured)
+        if not candidate.is_absolute():
+            raise StatusError("ORDIVON_RUNTIME_INSPECT must be an absolute path")
+        candidates.append(candidate)
+    candidates.extend(
+        [
+            Path(__file__).resolve().with_name("ordivon-runtime-inspect"),
+            Path(__file__).resolve().parents[1] / "target/debug/ordivon-runtime-inspect",
+        ]
+    )
+    for candidate in candidates:
+        if candidate.is_file() and not candidate.is_symlink() and os.access(candidate, os.X_OK):
+            return candidate
+    raise StatusError(
+        "ordivon-runtime-inspect is unavailable; install it beside this script or set "
+        "ORDIVON_RUNTIME_INSPECT to an absolute executable path"
+    )
+
+
+def registry_status_projection(database: Path, job_limit: int) -> dict[str, Any]:
+    arguments = [
+        str(runtime_inspect_binary()),
+        "registry-status",
+        "--database",
+        str(database),
+        "--busy-timeout-ms",
+        "5000",
+        "--job-limit",
+        str(job_limit),
+    ]
     try:
-        connection = sqlite3.connect(f"file:{database}?mode=ro", uri=True, timeout=5)
-    except sqlite3.Error:
-        reasons.append("REGISTRY_UNREADABLE")
-        return {"available": False}, held_workspaces
-    try:
-        connection.execute("PRAGMA query_only=ON")
-        connection.execute("PRAGMA trusted_schema=OFF")
-        # One explicit read transaction prevents false divergence when a Job transitions
-        # between otherwise independent SELECT snapshots.
-        connection.execute("BEGIN")
-        required = {
-            "schema_migrations": {"version"},
-            "jobs": {"job_id", "workspace_id", "resolution"},
-            "attempts": {"attempt_id", "job_id", "state"},
-            "concurrency_reservations": {"attempt_id", "state"},
-        }
-        for table, columns in required.items():
-            present = {str(row[1]) for row in connection.execute(f"PRAGMA table_info({table})")}
-            missing = columns - present
-            if missing:
-                raise StatusError(
-                    "missing Registry capability: " + ",".join(f"{table}.{column}" for column in sorted(missing))
-                )
-        migration = connection.execute("SELECT COALESCE(MAX(version),0) FROM schema_migrations").fetchone()[0]
-        if int(migration) >= 5:
-            attempt_columns = {
-                str(row[1]) for row in connection.execute("PRAGMA table_info(attempts)")
-            }
-            if "recovery_required" not in attempt_columns:
-                raise StatusError("missing Registry capability: attempts.recovery_required")
-        else:
-            condition_columns = {
-                str(row[1]) for row in connection.execute("PRAGMA table_info(attempt_conditions)")
-            }
-            required_conditions = {"attempt_id", "condition_type", "status"}
-            missing = required_conditions - condition_columns
-            if missing:
-                raise StatusError(
-                    "missing Registry capability: "
-                    + ",".join(f"attempt_conditions.{column}" for column in sorted(missing))
-                )
-        jobs_total, jobs_active = connection.execute(
-            "SELECT COUNT(*),COALESCE(SUM(resolution IS NULL),0) FROM jobs"
-        ).fetchone()
-        active_reservations = connection.execute(
-            "SELECT COUNT(*) FROM concurrency_reservations WHERE state='active'"
-        ).fetchone()[0]
-        held_reservations = connection.execute(
-            "SELECT COUNT(*) FROM concurrency_reservations WHERE state='held_orphaned'"
-        ).fetchone()[0]
-        recovery_required_sql = (
-            "SELECT COUNT(*) FROM attempts WHERE recovery_required=1"
-            if int(migration) >= 5
-            else "SELECT COUNT(*) FROM attempt_conditions WHERE condition_type='recovery_required' AND status='true'"
+        completed = subprocess.run(
+            arguments, check=False, text=True, capture_output=True, timeout=10
         )
-        recovery_required = connection.execute(recovery_required_sql).fetchone()[0]
-        placeholders = ",".join("?" for _ in TERMINAL_ATTEMPT_STATES)
-        nonterminal_attempts = connection.execute(
-            f"SELECT COUNT(*) FROM attempts WHERE state NOT IN ({placeholders})",
-            TERMINAL_ATTEMPT_STATES,
-        ).fetchone()[0]
-        for row in connection.execute(
-            """
-            SELECT DISTINCT jobs.workspace_id
-            FROM jobs
-            JOIN attempts ON attempts.job_id=jobs.job_id
-            JOIN concurrency_reservations
-              ON concurrency_reservations.attempt_id=attempts.attempt_id
-            WHERE concurrency_reservations.state IN ('active','held_orphaned')
-            """
-        ):
-            held_workspaces.add(str(row[0]))
-    except (sqlite3.Error, StatusError):
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise StatusError(f"Runtime Registry inspection unavailable: {error}") from error
+    if completed.returncode != 0:
+        detail = completed.stderr.strip() or completed.stdout.strip() or f"exit {completed.returncode}"
+        if "lacks status inspection capabilities" in detail or "SchemaVersionUnsupported" in detail:
+            raise StatusError(f"Runtime Registry capability mismatch: {detail}")
+        raise StatusError(f"Runtime Registry inspection unavailable: {detail}")
+    try:
+        value = json.loads(completed.stdout)
+    except json.JSONDecodeError as error:
+        raise StatusError("Runtime Registry inspection returned invalid JSON") from error
+    if not isinstance(value, dict):
+        raise StatusError("Runtime Registry inspection did not return an object")
+    return value
+
+
+def registry_status(database: Path, reasons: list[str]) -> tuple[dict[str, Any], set[str]]:
+    try:
+        projection = registry_status_projection(database, 0)
+    except StatusError as error:
+        if "capability mismatch" in str(error):
+            reasons.append("REGISTRY_CAPABILITY_MISMATCH")
+        else:
+            reasons.append("REGISTRY_UNREADABLE")
+        return {"available": False}, set()
+
+    required_ints = (
+        "migrationVersion",
+        "jobsTotal",
+        "jobsActive",
+        "nonterminalAttempts",
+        "activeReservations",
+        "heldReservations",
+        "recoveryRequired",
+    )
+    if any(not isinstance(projection.get(key), int) for key in required_ints):
         reasons.append("REGISTRY_CAPABILITY_MISMATCH")
-        return {"available": False}, held_workspaces
-    finally:
-        connection.close()
+        return {"available": False}, set()
+    held_rows = projection.get("heldWorkspaceIds")
+    if not isinstance(held_rows, list) or any(not isinstance(value, str) for value in held_rows):
+        reasons.append("REGISTRY_CAPABILITY_MISMATCH")
+        return {"available": False}, set()
+
+    jobs_active = int(projection["jobsActive"])
+    nonterminal_attempts = int(projection["nonterminalAttempts"])
+    recovery_required = int(projection["recoveryRequired"])
     if recovery_required:
         reasons.append("RECOVERY_REQUIRED")
     if jobs_active != nonterminal_attempts:
         reasons.append("ACTIVE_STATE_DIVERGENCE")
     return {
-        "schemaVersion": int(migration),
-        "jobsTotal": int(jobs_total),
-        "jobsActive": int(jobs_active),
-        "nonterminalAttempts": int(nonterminal_attempts),
-        "activeReservations": int(active_reservations),
-        "heldReservations": int(held_reservations),
-        "recoveryRequired": int(recovery_required),
-    }, held_workspaces
+        "schemaVersion": int(projection["migrationVersion"]),
+        "jobsTotal": int(projection["jobsTotal"]),
+        "jobsActive": jobs_active,
+        "nonterminalAttempts": nonterminal_attempts,
+        "activeReservations": int(projection["activeReservations"]),
+        "heldReservations": int(projection["heldReservations"]),
+        "recoveryRequired": recovery_required,
+    }, set(held_rows)
 
 
 def _run_git(source_repo: Path, *args: str) -> subprocess.CompletedProcess[str] | None:
@@ -857,9 +860,9 @@ def _progress_status(bundle: Path, generated_at_ms: int) -> dict[str, Any] | Non
     }
 
 
-def _job_projection(row: sqlite3.Row, generated_at_ms: int) -> dict[str, Any]:
+def _job_projection(row: dict[str, Any], generated_at_ms: int) -> dict[str, Any]:
     plan: dict[str, Any] = {}
-    raw_plan = row["execution_plan_json"]
+    raw_plan = row.get("executionPlanJson")
     if isinstance(raw_plan, str):
         try:
             decoded = json.loads(raw_plan)
@@ -869,107 +872,58 @@ def _job_projection(row: sqlite3.Row, generated_at_ms: int) -> dict[str, Any]:
             pass
     executable = plan.get("executable")
     executable_name = Path(executable).name if isinstance(executable, str) else None
-    bundle_raw = row["bundle_path"]
+    bundle_raw = row.get("bundlePath")
     bundle = Path(bundle_raw) if isinstance(bundle_raw, str) and bundle_raw else None
     output_modified = _output_modified_ms(bundle) if bundle is not None else None
     progress = _progress_status(bundle, generated_at_ms) if bundle is not None else None
-    started = row["started_at_ms"] if isinstance(row["started_at_ms"], int) else None
-    finished = row["finished_at_ms"] if isinstance(row["finished_at_ms"], int) else None
-    created = row["created_at_ms"] if isinstance(row["created_at_ms"], int) else None
+    started = row.get("startedAtMs") if isinstance(row.get("startedAtMs"), int) else None
+    finished = row.get("finishedAtMs") if isinstance(row.get("finishedAtMs"), int) else None
+    created = row.get("createdAtMs") if isinstance(row.get("createdAtMs"), int) else None
     duration_origin = started if started is not None else created
     duration_end = finished if finished is not None else generated_at_ms
     duration = (
         max(0, duration_end - duration_origin) if duration_origin is not None else None
     )
     return {
-        "jobId": row["job_id"],
-        "workspaceId": row["workspace_id"],
-        "attemptId": row["projected_attempt_id"],
-        "attemptState": row["attempt_state"],
-        "resolution": row["resolution"],
-        "exitCode": row["exit_code"],
+        "jobId": row.get("jobId"),
+        "workspaceId": row.get("workspaceId"),
+        "attemptId": row.get("projectedAttemptId"),
+        "attemptState": row.get("attemptState"),
+        "resolution": row.get("resolution"),
+        "exitCode": row.get("exitCode"),
         "executableName": executable_name,
         "durationMs": duration,
         "lastOutputAtMs": output_modified,
         "outputIdleMs": (
             max(0, generated_at_ms - output_modified) if output_modified is not None else None
         ),
-        "recoveryRequired": bool(row["recovery_required"]),
+        "recoveryRequired": row.get("recoveryRequired") is True,
         "progress": progress,
     }
 
 
 def dashboard_jobs(database: Path, generated_at_ms: int, limit: int) -> dict[str, Any]:
     try:
-        connection = sqlite3.connect(f"file:{database}?mode=ro", uri=True, timeout=5)
-        connection.row_factory = sqlite3.Row
-    except sqlite3.Error:
+        projection = registry_status_projection(database, limit)
+    except StatusError:
         return {"available": False, "active": [], "recent": []}
-    try:
-        connection.execute("PRAGMA query_only=ON")
-        connection.execute("PRAGMA trusted_schema=OFF")
-        required_jobs = {
-            "job_id", "workspace_id", "resolution", "execution_plan_json", "created_at_ms", "current_attempt_id"
-        }
-        required_attempts = {
-            "attempt_id", "state", "started_at_ms", "finished_at_ms", "exit_code", "bundle_path"
-        }
-        job_columns = {str(row[1]) for row in connection.execute("PRAGMA table_info(jobs)")}
-        attempt_columns = {str(row[1]) for row in connection.execute("PRAGMA table_info(attempts)")}
-        if not required_jobs.issubset(job_columns) or not required_attempts.issubset(attempt_columns):
-            return {"available": False, "active": [], "recent": []}
-        migration = int(
-            connection.execute("SELECT COALESCE(MAX(version),0) FROM schema_migrations").fetchone()[0]
-        )
-        if migration >= 5:
-            if "recovery_required" not in attempt_columns:
-                return {"available": False, "active": [], "recent": []}
-            recovery_expression = "COALESCE(a.recovery_required,0)"
-        else:
-            condition_columns = {
-                str(row[1]) for row in connection.execute("PRAGMA table_info(attempt_conditions)")
-            }
-            if not {"attempt_id", "condition_type", "status"}.issubset(condition_columns):
-                return {"available": False, "active": [], "recent": []}
-            recovery_expression = (
-                "EXISTS(SELECT 1 FROM attempt_conditions c "
-                "WHERE c.attempt_id=j.current_attempt_id "
-                "AND c.condition_type='recovery_required' AND c.status='true')"
-            )
-        select = f"""
-            SELECT j.job_id,j.workspace_id,j.resolution,j.execution_plan_json,j.created_at_ms,
-                   j.current_attempt_id,a.state AS attempt_state,a.started_at_ms,a.finished_at_ms,
-                   a.attempt_id AS projected_attempt_id,a.exit_code,a.bundle_path,
-                   {recovery_expression} AS recovery_required
-            FROM jobs j
-            LEFT JOIN attempts a ON a.attempt_id=COALESCE(
-                j.current_attempt_id,
-                (
-                    SELECT latest.attempt_id
-                    FROM attempts latest
-                    WHERE latest.job_id=j.job_id
-                    ORDER BY latest.attempt_number DESC
-                    LIMIT 1
-                )
-            )
-        """
-        active_rows = connection.execute(
-            select + " WHERE j.resolution IS NULL ORDER BY j.created_at_ms DESC LIMIT ?",
-            (limit,),
-        ).fetchall()
-        recent_rows = connection.execute(
-            select + " WHERE j.resolution IS NOT NULL ORDER BY j.created_at_ms DESC LIMIT ?",
-            (limit,),
-        ).fetchall()
-        return {
-            "available": True,
-            "active": [_job_projection(row, generated_at_ms) for row in active_rows],
-            "recent": [_job_projection(row, generated_at_ms) for row in recent_rows],
-        }
-    except sqlite3.Error:
+    jobs = projection.get("jobs")
+    if not isinstance(jobs, dict):
         return {"available": False, "active": [], "recent": []}
-    finally:
-        connection.close()
+    active = jobs.get("active")
+    recent = jobs.get("recent")
+    if (
+        not isinstance(active, list)
+        or not isinstance(recent, list)
+        or any(not isinstance(row, dict) for row in active)
+        or any(not isinstance(row, dict) for row in recent)
+    ):
+        return {"available": False, "active": [], "recent": []}
+    return {
+        "available": True,
+        "active": [_job_projection(row, generated_at_ms) for row in active],
+        "recent": [_job_projection(row, generated_at_ms) for row in recent],
+    }
 
 
 def dashboard_status(

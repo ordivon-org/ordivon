@@ -10,10 +10,11 @@ description = "Trusted-local Workspace execution, durable Job state, evidence, r
 publish = false
 
 [features]
-default = ["transactional-runtime"]
+default = ["transactional-runtime", "operator-tools"]
 systemd-supervisor = ["dep:libc"]
 universal-executor = ["dep:libc"]
 transactional-runtime = ["universal-executor", "dep:rusqlite", "dep:uuid"]
+operator-tools = ["transactional-runtime"]
 
 [[bin]]
 name = "ordivon-runtime-job-fixture"
@@ -28,17 +29,17 @@ required-features = ["universal-executor"]
 [[bin]]
 name = "ordivon-runtime-doctor"
 path = "src/bin/ordivon-runtime-doctor.rs"
-required-features = ["transactional-runtime"]
+required-features = ["operator-tools"]
 
 [[bin]]
 name = "ordivon-runtime-repair"
 path = "src/bin/ordivon-runtime-repair.rs"
-required-features = ["transactional-runtime"]
+required-features = ["operator-tools"]
 
 [[bin]]
 name = "ordivon-runtime-inspect"
 path = "src/bin/ordivon-runtime-inspect.rs"
-required-features = ["transactional-runtime"]
+required-features = ["operator-tools"]
 
 [dependencies]
 hex.workspace = true

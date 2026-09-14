@@ -1227,6 +1227,9 @@ fn workspace_head_and_dirty_probe_combines_detached_head_and_worktree_state() {
     let sandbox = Sandbox::new("workspace-head-dirty-probe");
     let source = sandbox.root.join("source");
     init_git_repo(&source);
+    fs::write(source.join(".gitignore"), "*.cache\n").unwrap();
+    run_git(&source, ["add", ".gitignore"]);
+    run_git(&source, ["commit", "-qm", "ignore cache"]);
     let expected = git_text(&source, ["rev-parse", "HEAD"]);
     let config = sandbox.config();
     let workspace_id = "workspace-head-dirty-probe";
@@ -1245,41 +1248,15 @@ fn workspace_head_and_dirty_probe_combines_detached_head_and_worktree_state() {
     assert_eq!(head, expected);
     assert!(!dirty);
 
+    fs::write(workspace.join("compiler.cache"), "ignored").unwrap();
+    let (head, dirty) = workspace_head_and_dirty_at(&workspace).unwrap();
+    assert_eq!(head, expected);
+    assert!(!dirty);
+
     fs::write(workspace.join("untracked.txt"), "visible").unwrap();
     let (head, dirty) = workspace_head_and_dirty_at(&workspace).unwrap();
     assert_eq!(head, expected);
     assert!(dirty);
-}
-
-#[test]
-fn workspace_dirty_probe_is_lightweight_and_respects_git_ignores() {
-    let sandbox = Sandbox::new("workspace-dirty-probe");
-    let source = sandbox.root.join("source");
-    init_git_repo(&source);
-    fs::write(source.join(".gitignore"), "*.cache\n").unwrap();
-    run_git(&source, ["add", ".gitignore"]);
-    run_git(&source, ["commit", "-qm", "ignore cache"]);
-    let config = sandbox.config();
-    let workspace_id = "workspace-dirty-probe";
-    create_git_workspace(
-        &config,
-        &GitWorkspaceCreateRequest {
-            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
-            workspace_id: workspace_id.to_string(),
-            source_repo: source.to_string_lossy().into_owned(),
-            source_revision: "HEAD".to_string(),
-        },
-    )
-    .unwrap();
-    let workspace = config.workspace_path(workspace_id);
-    assert!(!workspace_is_dirty(&config, workspace_id).unwrap());
-    fs::write(workspace.join("compiler.cache"), "ignored").unwrap();
-    assert!(!workspace_is_dirty(&config, workspace_id).unwrap());
-    fs::write(workspace.join("untracked.txt"), "visible").unwrap();
-    assert!(workspace_is_dirty(&config, workspace_id).unwrap());
-    fs::remove_file(workspace.join("untracked.txt")).unwrap();
-    fs::write(workspace.join("README.md"), "tracked change\n").unwrap();
-    assert!(workspace_is_dirty(&config, workspace_id).unwrap());
 }
 
 #[test]
