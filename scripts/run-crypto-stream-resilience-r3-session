@@ -2,9 +2,9 @@
 set -euo pipefail
 repo="$1"; out="$2"
 mkdir -p "$out"
-"$repo/.venv/bin/python" "$repo/src/market_capital/crypto_stream_resilience.py" \
+/usr/bin/uv run --frozen --project "$repo" python "$repo/src/market_capital/crypto_stream_resilience.py" \
   --target-venue OKX --output "$out/okx.json" --measured-rounds 3 --deadline-seconds 35 >/dev/null
-"$repo/.venv/bin/python" "$repo/src/market_capital/crypto_stream_resilience.py" \
+/usr/bin/uv run --frozen --project "$repo" python "$repo/src/market_capital/crypto_stream_resilience.py" \
   --target-venue BINANCE --output "$out/binance.json" --measured-rounds 3 --deadline-seconds 35 >/dev/null
 python3 - "$out/okx.json" "$out/binance.json" "$out/result.json" <<'PY'
 import json,sys

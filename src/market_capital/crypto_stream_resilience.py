@@ -7,9 +7,9 @@ from pathlib import Path
 import time
 from typing import Any
 
-import aiohttp
+from websockets.asyncio.client import connect
 
-from crypto_public_streaming import BINANCE_URL, KEYS, OKX_URL, evaluate_snapshot
+from crypto_public_streaming import BINANCE_URL, KEYS, OKX_URL, evaluate_snapshot, network_v2_ws_proxies
 
 
 class InjectedDisconnect(RuntimeError):
@@ -17,31 +17,31 @@ class InjectedDisconnect(RuntimeError):
 
 
 async def _okx_supervisor(
-    session: aiohttp.ClientSession,
     queue: asyncio.Queue[tuple[str, dict[str, Any]]],
     control: asyncio.Queue[dict[str, Any]],
     inject_now: asyncio.Event,
     target_venue: str,
+    proxy: str,
 ) -> None:
     generation = 0
     injected = False
     while True:
         generation += 1
         try:
-            async with session.ws_connect(OKX_URL, heartbeat=20, receive_timeout=15) as ws:
+            async with connect(OKX_URL, proxy=proxy, open_timeout=10, ping_interval=20, ping_timeout=20, close_timeout=5, max_size=2**20) as ws:
                 await control.put({"type": "CONNECTED", "venue": "OKX", "generation": generation, "monoNs": time.monotonic_ns()})
-                await ws.send_json({
+                await ws.send(json.dumps({
                     "id": "mcr3",
                     "op": "subscribe",
                     "args": [
                         {"channel": "bbo-tbt", "instId": "BTC-USDT"},
                         {"channel": "bbo-tbt", "instId": "ETH-USDT"},
                     ],
-                })
-                async for msg in ws:
-                    if msg.type != aiohttp.WSMsgType.TEXT:
+                }, separators=(",", ":")))
+                async for raw in ws:
+                    if not isinstance(raw, str):
                         continue
-                    obj = json.loads(msg.data)
+                    obj = json.loads(raw)
                     if obj.get("event") == "error":
                         raise RuntimeError(f"OKX public stream error: {obj}")
                     if "data" not in obj or obj.get("arg", {}).get("channel") != "bbo-tbt":
@@ -77,23 +77,23 @@ async def _okx_supervisor(
 
 
 async def _binance_supervisor(
-    session: aiohttp.ClientSession,
     queue: asyncio.Queue[tuple[str, dict[str, Any]]],
     control: asyncio.Queue[dict[str, Any]],
     inject_now: asyncio.Event,
     target_venue: str,
+    proxy: str,
 ) -> None:
     generation = 0
     injected = False
     while True:
         generation += 1
         try:
-            async with session.ws_connect(BINANCE_URL, heartbeat=20, receive_timeout=15) as ws:
+            async with connect(BINANCE_URL, proxy=proxy, open_timeout=10, ping_interval=20, ping_timeout=20, close_timeout=5, max_size=2**20) as ws:
                 await control.put({"type": "CONNECTED", "venue": "BINANCE", "generation": generation, "monoNs": time.monotonic_ns()})
-                async for msg in ws:
-                    if msg.type != aiohttp.WSMsgType.TEXT:
+                async for raw in ws:
+                    if not isinstance(raw, str):
                         continue
-                    obj = json.loads(msg.data)
+                    obj = json.loads(raw)
                     row = obj.get("data", obj)
                     symbol = row.get("s")
                     asset = "BTC" if symbol == "BTCUSDT" else "ETH" if symbol == "ETHUSDT" else None
@@ -143,75 +143,74 @@ async def qualify_reconnect(target_venue: str, measured_rounds: int = 3, deadlin
     injected_mono: int | None = None
     reconnected_mono: int | None = None
     reconnected_generation: int | None = None
-    timeout = aiohttp.ClientTimeout(total=None, connect=10, sock_connect=10, sock_read=20)
     deadline = time.monotonic() + deadline_seconds
     started = time.monotonic_ns()
 
-    async with aiohttp.ClientSession(timeout=timeout) as session:
-        tasks = [
-            asyncio.create_task(_okx_supervisor(session, queue, control, inject_now, target_venue)),
-            asyncio.create_task(_binance_supervisor(session, queue, control, inject_now, target_venue)),
-        ]
-        try:
-            while len(measured) < measured_rounds and time.monotonic() < deadline:
-                for task in tasks:
-                    if task.done():
-                        exc = task.exception()
-                        if exc:
-                            raise exc
-                while True:
-                    try:
-                        event = control.get_nowait()
-                    except asyncio.QueueEmpty:
-                        break
-                    controls.append(event)
-                    if event["type"] == "INJECTED_DISCONNECT" and event["venue"] == target_venue:
-                        injected_mono = int(event["monoNs"])
-                    if event["type"] == "CONNECTED" and event["venue"] == target_venue and int(event["generation"]) >= 2:
-                        reconnected_mono = int(event["monoNs"])
-                        reconnected_generation = int(event["generation"])
-
-                remaining = deadline - time.monotonic()
-                if remaining <= 0:
-                    break
+    okx_proxy, binance_proxy = network_v2_ws_proxies()
+    tasks = [
+        asyncio.create_task(_okx_supervisor(queue, control, inject_now, target_venue, okx_proxy)),
+        asyncio.create_task(_binance_supervisor(queue, control, inject_now, target_venue, binance_proxy)),
+    ]
+    try:
+        while len(measured) < measured_rounds and time.monotonic() < deadline:
+            for task in tasks:
+                if task.done():
+                    exc = task.exception()
+                    if exc:
+                        raise exc
+            while True:
                 try:
-                    key, quote = await asyncio.wait_for(queue.get(), timeout=min(remaining, 3.0))
-                except asyncio.TimeoutError:
-                    continue
-                latest[key] = quote
+                    event = control.get_nowait()
+                except asyncio.QueueEmpty:
+                    break
+                controls.append(event)
+                if event["type"] == "INJECTED_DISCONNECT" and event["venue"] == target_venue:
+                    injected_mono = int(event["monoNs"])
+                if event["type"] == "CONNECTED" and event["venue"] == target_venue and int(event["generation"]) >= 2:
+                    reconnected_mono = int(event["monoNs"])
+                    reconnected_generation = int(event["generation"])
 
-                candidate = evaluate_snapshot(latest, previous)
-                if warmup is None:
-                    if candidate.get("qualified"):
-                        candidate["role"] = "WARMUP_BEFORE_INJECTION"
-                        warmup = candidate
-                        previous = {k: dict(latest[k]) for k in KEYS}
-                        inject_now.set()
-                    continue
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            try:
+                key, quote = await asyncio.wait_for(queue.get(), timeout=min(remaining, 3.0))
+            except asyncio.TimeoutError:
+                continue
+            latest[key] = quote
 
-                if recovery is None:
-                    if injected_mono is None or reconnected_mono is None or reconnected_generation is None:
-                        continue
-                    target_keys = _target_keys(target_venue)
-                    if not all(k in latest and int(latest[k].get("generation", 0)) >= reconnected_generation for k in target_keys):
-                        continue
-                    candidate = evaluate_snapshot(latest, previous)
-                    if candidate.get("qualified"):
-                        candidate["role"] = "RECOVERY"
-                        recovery = candidate
-                        previous = {k: dict(latest[k]) for k in KEYS}
-                    continue
+            candidate = evaluate_snapshot(latest, previous)
+            if warmup is None:
+                if candidate.get("qualified"):
+                    candidate["role"] = "WARMUP_BEFORE_INJECTION"
+                    warmup = candidate
+                    previous = {k: dict(latest[k]) for k in KEYS}
+                    inject_now.set()
+                continue
 
+            if recovery is None:
+                if injected_mono is None or reconnected_mono is None or reconnected_generation is None:
+                    continue
+                target_keys = _target_keys(target_venue)
+                if not all(k in latest and int(latest[k].get("generation", 0)) >= reconnected_generation for k in target_keys):
+                    continue
                 candidate = evaluate_snapshot(latest, previous)
                 if candidate.get("qualified"):
-                    candidate["role"] = "MEASURED_AFTER_RECOVERY"
-                    candidate["sequence"] = len(measured) + 1
-                    measured.append(candidate)
+                    candidate["role"] = "RECOVERY"
+                    recovery = candidate
                     previous = {k: dict(latest[k]) for k in KEYS}
-        finally:
-            for task in tasks:
-                task.cancel()
-            await asyncio.gather(*tasks, return_exceptions=True)
+                continue
+
+            candidate = evaluate_snapshot(latest, previous)
+            if candidate.get("qualified"):
+                candidate["role"] = "MEASURED_AFTER_RECOVERY"
+                candidate["sequence"] = len(measured) + 1
+                measured.append(candidate)
+                previous = {k: dict(latest[k]) for k in KEYS}
+    finally:
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
 
     # Drain final control events so evidence includes the reconnect event even if data arrived immediately.
     while True:
@@ -250,6 +249,7 @@ async def qualify_reconnect(target_venue: str, measured_rounds: int = 3, deadlin
         "externalFinancialWritesAttempted": False,
         "demoExecutionAttempted": False,
         "liveExecutionAttempted": False,
+        "networkV2Proxies": {"okx": okx_proxy, "binance": binance_proxy},
     }
 
 

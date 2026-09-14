@@ -61,9 +61,9 @@ def _bps(numerator: Decimal, denominator: Decimal) -> str:
     return format((numerator / denominator) * Decimal(10_000), ".6f")
 
 
-def analyze(capture_path: Path, discovery_path: Path) -> dict[str, Any]:
+def analyze(capture_path: Path, transport_binding_path: Path) -> dict[str, Any]:
     capture = _load(capture_path)
-    discovery = _load(discovery_path)
+    binding = _load(transport_binding_path)
 
     if capture.get("kind") != "ordivon.market-capital.crypto-public-rest-capture":
         raise RuntimeError("unexpected capture kind")
@@ -124,10 +124,16 @@ def analyze(capture_path: Path, discovery_path: Path) -> dict[str, Any]:
                 "claimBoundary": "observation only; not an arbitrage, fill, fee, latency, transfer, or execution claim",
             }
 
-    recommended = discovery.get("recommendedPathDigest")
-    required_targets = discovery.get("requiredTargets", [])
-    if set(required_targets) != {"okx", "binance"}:
-        raise RuntimeError("fresh discovery did not bind both exchange targets")
+    if binding.get("kind") != "ordivon.market-capital.network-v2-public-data-binding":
+        raise RuntimeError("unexpected Network v2 transport binding")
+    if binding.get("directFallback") is not False or binding.get("publicReadOnly") is not True:
+        raise RuntimeError("Network v2 transport binding is not fail-closed public-read-only")
+    for field in ("brokerCredentialsUsed", "privateAccountDataUsed", "externalFinancialWritesAttempted", "demoExecutionAttempted", "liveExecutionAttempted"):
+        if binding.get(field) is not False:
+            raise RuntimeError(f"transport binding {field} must remain false")
+    expected_authorities={"okxRest","okxWs","binanceSpotRest","binanceSpotWs"}
+    if set((binding.get("authorities") or {})) != expected_authorities:
+        raise RuntimeError("Network v2 transport binding does not contain the exact four public-data authorities")
 
     standing = (
         "PASS_BOUNDED_DUAL_VENUE_PUBLIC_SHADOW_HOST_CLOCK_WARN"
@@ -142,9 +148,11 @@ def analyze(capture_path: Path, discovery_path: Path) -> dict[str, Any]:
         "kind": "ordivon.market-capital.crypto-public-shadow-observation",
         "standing": standing,
         "transport": {
-            "observationDigest": discovery.get("observationDigest"),
-            "pathDigest": recommended,
-            "requiredTargets": required_targets,
+            "kind": "network-v2-exact-authority-set",
+            "bindingDigest": binding.get("bindingDigest"),
+            "providerSelection": binding.get("providerSelection"),
+            "directFallback": False,
+            "authorityDigests": {k:v.get("authorityDigest") for k,v in sorted(binding["authorities"].items())},
             "pointInTimeOnly": True,
         },
         "capture": {
@@ -185,10 +193,10 @@ def analyze(capture_path: Path, discovery_path: Path) -> dict[str, Any]:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--capture", required=True, type=Path)
-    parser.add_argument("--discovery", required=True, type=Path)
+    parser.add_argument("--transport-binding", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args()
-    result = analyze(args.capture, args.discovery)
+    result = analyze(args.capture, args.transport_binding)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
     print(json.dumps(result, sort_keys=True))

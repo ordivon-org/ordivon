@@ -36,18 +36,29 @@ class CryptoPublicShadowTests(unittest.TestCase):
             },
         }
         discovery = {
-            "observationDigest":"sha256:test",
-            "recommendedPathDigest":"sha256:path",
-            "requiredTargets":["okx","binance"],
+            "schemaVersion":1,
+            "kind":"ordivon.market-capital.network-v2-public-data-binding",
+            "bindingDigest":"sha256:test",
+            "providerSelection":"sing-box-provider-auto",
+            "directFallback":False,
+            "publicReadOnly":True,
+            "authorities":{k:{"authorityDigest":"sha256:"+k} for k in ("okxRest","okxWs","binanceSpotRest","binanceSpotWs")},
+            "brokerCredentialsUsed":False,
+            "privateAccountDataUsed":False,
+            "externalFinancialWritesAttempted":False,
+            "demoExecutionAttempted":False,
+            "liveExecutionAttempted":False,
         }
         with tempfile.TemporaryDirectory() as td:
-            c=Path(td)/"capture.json"; d=Path(td)/"discovery.json"
+            c=Path(td)/"capture.json"; d=Path(td)/"network-v2-binding.json"
             c.write_text(json.dumps(capture)); d.write_text(json.dumps(discovery))
             out=analyze(c,d)
         self.assertTrue(out["capture"]["boundedContemporaneousComparisonAllowed"])
         self.assertFalse(out["clockQuality"]["hostClockWithinPrivateExecutionGate1000Ms"])
         self.assertEqual(out["standing"], "PASS_BOUNDED_DUAL_VENUE_PUBLIC_SHADOW_HOST_CLOCK_WARN")
         self.assertIn("BTC", out["comparisons"])
+        self.assertEqual(out["transport"]["providerSelection"],"sing-box-provider-auto")
+        self.assertFalse(out["transport"]["directFallback"])
 
 
 if __name__ == "__main__":

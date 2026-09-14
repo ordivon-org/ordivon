@@ -9,7 +9,7 @@ class CryptoStreamPrometheusTests(unittest.TestCase):
         self.assertIn('ordivon_market_capital_crypto_stream_reconnect_live_qualified 1',out)
         self.assertIn('ordivon_market_capital_crypto_stream_reconnect_latency_ms{venue="okx"}',out)
         self.assertIn('ordivon_market_capital_crypto_stream_reconnect_latency_ms{venue="binance"}',out)
-        self.assertIn('ordivon_market_capital_crypto_surfpath_control_plane_blocked 0',out)
+        self.assertNotIn('surfpath',out.lower())
         self.assertIn('ordivon_market_capital_crypto_execution_authority_write_admitted 0',out)
         self.assertIn('ordivon_market_capital_crypto_clock_private_gate_passed 1',out)
         self.assertIn('ordivon_market_capital_crypto_clock_remediation_admin_required 0',out)

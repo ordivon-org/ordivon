@@ -19,17 +19,17 @@ Wave B / M1 admits bounded historical execution through pinned QuantConnect LEAN
 
 This repository does not import legacy Ordivon finance/Market Capital code or schemas.
 
-The active future venue qualification path is now **OKX + Binance Spot** through NautilusTrader native adapters. It is currently public-data-only and credential-free; crypto uses a separate continuous-market lane rather than rewriting the historical equity M6/M7 experiment.
+The active public-data venue qualification path is **OKX + Binance Spot** through exact Network v2 authorities. Network v2/sing-box owns provider A/B transport and failover; Market Capital consumes only destination-fenced loopback authorities. The lane remains public-data-only and credential-free, separate from the historical equity M6/M7 experiment.
 
-Crypto Public Shadow R1 now passes dual-venue bounded public observation through fresh scoped VPN discovery, while a ~2.2 s host/exchange clock offset blocks private/demo/live execution qualification.
+Crypto Public Shadow R1 now binds concurrent OKX/Binance public REST capture to exact Network v2 authorities. The latest migration rerun completed one coherent capture round, but the scientific standing remained `PARTIAL_PUBLIC_CAPTURE_NO_CROSS_VENUE_CLAIM` because venue-clock agreement was ~294.6 ms against the frozen 250 ms gate; the gate was not relaxed. Private/demo/live writes remain independently blocked by NON_LIVE execution authority.
 
 Crypto Shadow Mechanics R1 also passes local multi-currency Spot OMS mechanics for OKX/Binance using venue-owned tick/step precision; it remains explicitly non-economic and non-live.
 
 Crypto data transport is now venue-specific: OKX uses the qualified Nautilus native public client, while Binance uses its official credential-free REST/WebSocket boundary because Nautilus 2.0.0rc4 still times out during native data-client startup.
 
-Crypto Public Shadow R2 now passes repeated persistent public streaming: OKX `bbo-tbt` plus Binance market-data-only `@ticker` streams produced one warm-up and three measured coherent snapshots on a fresh HK/UDP path, with all measured source/receive spans below the frozen 1200 ms limits. This does not relax the failed private-execution clock gate.
+Crypto Public Shadow R2 now passes repeated persistent public streaming through exact Network v2 WS authorities using the mature `websockets` client proxy support. OKX `bbo-tbt` plus Binance market-data-only `@ticker` produced one warm-up and three measured coherent snapshots; all measured source/receive spans remained below the frozen 1200 ms limits. Provider selection is owned by Network v2 `provider-auto`, not by an application-level node/protocol matrix.
 
-Crypto Stream Resilience R3 adds fail-closed missing/stale/time-divergence health semantics and a dual-venue reconnect harness. Live reconnect qualification now passes for both OKX and Binance after fresh fault injection on the qualified HK/UDP/native-a path; the state is exported into the existing Operations-v2 Prometheus/Grafana stack without enabling private/demo/live execution.
+Crypto Stream Resilience R3 keeps fail-closed missing/stale/time-divergence semantics and the dual-venue reconnect harness on exact Network v2 WS authorities. Current injected-disconnect qualification passes for both OKX and Binance; observed reconnect latencies were ~16.0 s and ~26.3 s respectively and remain evidence rather than a hidden transport claim. The state is exported through the existing Prometheus/Grafana stack without enabling private/demo/live execution.
 Clock timing qualification now passes: Windows w32time is synchronized to qualified public NTP peers and WSL CLOCK_REALTIME follows the Windows host through `/dev/ptp_hyperv` using `phc2sys`; fresh external validation observed <=47.1 ms absolute error versus the frozen 1000 ms gate. Overall private/demo/live execution remains blocked by the separate NON_LIVE execution authority.
 
 Composition policy: prefer authoritative venue APIs and mature components over local mechanisms. LEAN/Nautilus/FIX/venue APIs/Prometheus own their respective mechanics; Market Capital retains only thin decision, proof, authority and reconciliation seams. Custom mechanisms require a demonstrated substitution failure. See `docs/COMPOSITION_FIRST_2026-09-14.md`.

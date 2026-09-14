@@ -18,9 +18,9 @@ The goal is not a uniform framework. Asymmetric composition is preferred when di
 
 | Responsibility | Primary owner | Local Market Capital responsibility |
 |---|---|---|
-| Public OKX market data | Nautilus OKX native client / OKX public API | evidence binding and common observation projection |
-| Public Binance market data | Binance official public REST/WebSocket | thin normalization into the common observation projection |
-| Market-data resilience | venue WebSocket protocols + aiohttp transport | qualification harness and fail-closed health evidence |
+| Public OKX market data | OKX public API + Network v2 exact authority | evidence binding and common observation projection |
+| Public Binance market data | Binance official public REST/WebSocket + Network v2 exact authority | thin normalization into the common observation projection |
+| Market-data resilience | venue WebSocket protocols + `websockets` + Network v2/sing-box | qualification harness and fail-closed health evidence; no local VPN/path selector |
 | Historical execution mechanics | QuantConnect LEAN | decision-to-engine mapping and evidence |
 | Order intent semantics | FIX 4.4 through QuickFIX/n | decision-to-FIX projection and proof binding |
 | Crypto OMS/Risk mechanics | NautilusTrader | admitted configuration and evidence |

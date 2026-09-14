@@ -1,0 +1,40 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+import hashlib,json,subprocess,sys
+from pathlib import Path
+
+ROOT=Path(__file__).resolve().parents[1]
+CFG=ROOT/'config/network_v2_public_data.json'
+
+def sha(path:Path)->str:
+    return 'sha256:'+hashlib.sha256(path.read_bytes()).hexdigest()
+
+def main()->int:
+    cfg=json.loads(CFG.read_text())
+    if cfg.get('kind')!='ordivon.market-capital.network-v2-public-data-authority-set': raise RuntimeError('unexpected Network v2 authority-set kind')
+    if cfg.get('directFallback') is not False or cfg.get('publicReadOnly') is not True: raise RuntimeError('Network v2 public-data policy weakened')
+    for unit in (cfg['serviceUnit'],cfg['targetUnit']):
+        p=subprocess.run(['/usr/bin/systemctl','is-active','--quiet',unit],check=False)
+        if p.returncode!=0: raise RuntimeError(f'Network v2 unit inactive: {unit}')
+    bindings={}
+    for name,spec in cfg['authorities'].items():
+        path=Path(spec['file'])
+        if not path.is_file(): raise RuntimeError(f'missing Network v2 authority: {path}')
+        actual=sha(path)
+        if actual!=spec['digest']: raise RuntimeError(f'authority digest drift: {name}: {actual}')
+        a=json.loads(path.read_text())
+        expected={'profile':spec['profile'],'proxy':spec['proxy'],'host':spec['host'],'port':spec['port']}
+        observed={'profile':a.get('profile'),'proxy':a.get('proxy'),'host':(a.get('destination') or {}).get('host'),'port':(a.get('destination') or {}).get('port')}
+        if observed!=expected: raise RuntimeError(f'authority semantic drift: {name}: {observed!r}')
+        if a.get('directFallback') is not False or a.get('serviceUnit')!=cfg['serviceUnit'] or a.get('targetUnit')!=cfg['targetUnit']:
+            raise RuntimeError(f'authority fail-closed/service binding drift: {name}')
+        bindings[name]={'authorityFile':str(path),'authorityDigest':actual,**expected}
+    body={'schemaVersion':1,'kind':'ordivon.market-capital.network-v2-public-data-binding','providerSelection':cfg['providerSelection'],'directFallback':False,'publicReadOnly':True,'authorities':bindings,'brokerCredentialsUsed':False,'privateAccountDataUsed':False,'externalFinancialWritesAttempted':False,'demoExecutionAttempted':False,'liveExecutionAttempted':False}
+    canonical=json.dumps(body,sort_keys=True,separators=(',',':')).encode(); body['bindingDigest']='sha256:'+hashlib.sha256(canonical).hexdigest()
+    print(json.dumps(body,sort_keys=True))
+    return 0
+
+if __name__=='__main__':
+    try: raise SystemExit(main())
+    except Exception as exc:
+        print(f'network-v2 public-data authority check failed: {type(exc).__name__}: {exc}',file=sys.stderr); raise SystemExit(2)

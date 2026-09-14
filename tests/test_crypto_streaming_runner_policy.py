@@ -2,20 +2,21 @@ from pathlib import Path
 import unittest
 ROOT=Path(__file__).resolve().parents[1]
 class StreamingRunnerPolicyTests(unittest.TestCase):
-    def test_public_only_endpoints_and_no_execution(self):
+    def test_public_only_endpoints_and_exact_network_v2_ws_proxies(self):
         s=(ROOT/'src/market_capital/crypto_public_streaming.py').read_text()
         self.assertIn('wss://ws.okx.com:8443/ws/v5/public',s)
         self.assertIn('wss://data-stream.binance.vision/stream?streams=btcusdt@ticker/ethusdt@ticker',s)
-        self.assertIn('hostWallClockUsedForAdmission',s)
+        self.assertIn('ORDIVON_MC_OKX_WS_PROXY',s)
+        self.assertIn('ORDIVON_MC_BINANCE_SPOT_WS_PROXY',s)
+        self.assertIn('proxy=proxy',s)
         self.assertIn('brokerCredentialsUsed',s)
-    def test_failover_is_concrete_node_protocol_ingress_and_runs_real_streaming(self):
-        s=(ROOT/'scripts/run-crypto-public-shadow-r2').read_text()
-        self.assertIn("hk-hkg|openvpn-udp|native-a|30",s)
-        self.assertIn("hk-hkg|openvpn-udp|native-b|30",s)
-        self.assertIn("jp-tok|openvpn-udp|native-a|30",s)
-        self.assertIn("sg-sng|openvpn-tcp|native-a|30",s)
-        c=(ROOT/'scripts/run-crypto-public-streaming-r2-candidate').read_text()
-        self.assertIn('--ingresses "$ingress"',c)
-        self.assertIn('https://data-api.binance.vision',c)
-        self.assertIn('crypto_public_streaming',c)
+    def test_master_has_no_surfpath_candidate_matrix(self):
+        master=(ROOT/'scripts/run-crypto-public-shadow-r2').read_text()
+        candidate=(ROOT/'scripts/run-crypto-public-streaming-r2-candidate').read_text()
+        self.assertNotIn('surfpath',master.lower()+candidate.lower())
+        self.assertNotIn('--ingresses',candidate)
+        self.assertIn('check-network-v2-public-data',candidate)
+        self.assertIn('/usr/bin/uv run --frozen --project',candidate)
+        self.assertNotIn('.venv/bin/python',candidate)
+        self.assertIn('network-v2-provider-auto',master)
 if __name__=='__main__': unittest.main()

@@ -6,10 +6,10 @@
     "sourceTimeSpanMaxMs": 1200
   },
   "artifactDigests": {
-    "binanceSha256": "1a3c420dc8b07eda173f17cccc1dcffc8b3708f49b8ee4eb89436eba1468aeac",
-    "discoverySha256": "b91d9b1fe7c4eb04acbfe5f3060fd89b58e49a5743d7f314dd31ea6350dd0e7e",
-    "okxSha256": "d6f06d225297353af434165796ffd6ab9f5830fc31e3b83221c52040f0582600",
-    "sessionResultSha256": "5924595e2923a1a2ce341c94b956e25438ec6b2ae7493deb640c66daedf91ce8"
+    "binanceSha256": "82b8afd3ac17282c2613182bc7d6680d37cd045284430d15bb71ad323f526978",
+    "networkV2BindingSha256": "10120649d7d8a114cd3ef27a8dabb4f0ddda79d2dfcee12a1818e559c0979ba7",
+    "okxSha256": "db4fdac5e37515941f19ac82ff11275661f21618f2a15fe6cc89314370607356",
+    "sessionResultSha256": "5818899fe9e7f4a0d88c959de24d4e26ab9e86b4bb3e22131af03ac233891df7"
   },
   "brokerCredentialsUsed": false,
   "claimBoundary": "public market-data reconnect resilience only; does not qualify private account access, order execution, settlement, or financial writes",
@@ -27,134 +27,228 @@
   "localFaultModelQualified": true,
   "privateAccountDataUsed": false,
   "schemaVersion": 1,
-  "selectedCandidate": "hk-hkg-openvpn-udp-native-a",
-  "standing": "PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT_WITH_FAILOVER",
+  "selectedCandidate": "network-v2-provider-auto",
+  "standing": "PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT_WITH_NETWORK_V2_FAILOVER",
   "transport": {
-    "candidateAttempts": [
-      {
-        "elapsedMs": 44216.824023,
-        "ingress": "native-a",
-        "node": "hk-hkg",
-        "protocol": "openvpn-udp",
-        "returnCode": 0,
-        "sessionStanding": "PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT",
-        "standing": "PASS_WORKLOAD_QUALIFIED"
+    "authorities": {
+      "binanceSpotRest": {
+        "authorityDigest": "sha256:2201273f75253140dc6f04ad1cfc4021aafe2510ac2b0869210d5d04349dcc35",
+        "host": "data-api.binance.vision",
+        "port": 443,
+        "proxy": "http://127.0.0.1:19284"
+      },
+      "binanceSpotWs": {
+        "authorityDigest": "sha256:ef0c0dff44b9063d71bbb959204c8288cb4abda63097712001838c407280845f",
+        "host": "data-stream.binance.vision",
+        "port": 443,
+        "proxy": "http://127.0.0.1:19285"
+      },
+      "okxRest": {
+        "authorityDigest": "sha256:136c36adf385fc6676da03fe30ea91da1d40d44fc33c6a7dd0f4066a8403b554",
+        "host": "openapi.okx.com",
+        "port": 443,
+        "proxy": "http://127.0.0.1:19283"
+      },
+      "okxWs": {
+        "authorityDigest": "sha256:21e3a047aa889484ca76d9948c8df0e04f467899461fb0f62235afa78328f679",
+        "host": "ws.okx.com",
+        "port": 8443,
+        "proxy": "http://127.0.0.1:19288"
       }
-    ],
-    "observationDigest": "sha256:3b1a3103336b80d7b7aa7c13433a39acbacec4407519807fe82dd46ff29c5a99",
-    "pathDigest": "sha256:51f3d29e93186b2dcc039345a8f8203ce18fe434a6881c75a1d46f319486292d",
-    "requiredTargets": [
-      "binance",
-      "okx"
-    ]
+    },
+    "bindingDigest": "sha256:5c856629220489a87589dc9e5ffb1ab959aa9a6e61519b3a7565637476848690",
+    "directFallback": false,
+    "kind": "network-v2-exact-authority-set",
+    "providerSelection": "sing-box-provider-auto",
+    "publicReadOnly": true
   },
   "venues": {
     "binance": {
       "controlEvents": [
         {
           "generation": 1,
-          "monoNs": 564531565137,
+          "monoNs": 23667416174662,
           "type": "CONNECTED",
           "venue": "OKX"
         },
         {
           "generation": 1,
-          "monoNs": 564867054137,
+          "monoNs": 23667550995024,
           "type": "CONNECTED",
           "venue": "BINANCE"
         },
         {
           "generation": 1,
-          "monoNs": 566250820925,
+          "monoNs": 23668874071550,
           "type": "INJECTED_DISCONNECT",
           "venue": "BINANCE"
         },
         {
           "generation": 2,
-          "monoNs": 567807348643,
+          "monoNs": 23674572980775,
+          "type": "CONNECTED",
+          "venue": "BINANCE"
+        },
+        {
+          "error": "ConnectionClosedError: no close frame received or sent",
+          "generation": 1,
+          "monoNs": 23691932574343,
+          "type": "CONNECTION_ERROR",
+          "venue": "OKX"
+        },
+        {
+          "generation": 2,
+          "monoNs": 23692853908230,
+          "type": "CONNECTED",
+          "venue": "OKX"
+        },
+        {
+          "error": "ConnectionClosedError: no close frame received or sent",
+          "generation": 2,
+          "monoNs": 23693085849551,
+          "type": "CONNECTION_ERROR",
+          "venue": "BINANCE"
+        },
+        {
+          "error": "ConnectionClosedError: no close frame received or sent",
+          "generation": 2,
+          "monoNs": 23693085895398,
+          "type": "CONNECTION_ERROR",
+          "venue": "OKX"
+        },
+        {
+          "error": "ConnectionResetError: ",
+          "generation": 3,
+          "monoNs": 23693898033051,
+          "type": "CONNECTION_ERROR",
+          "venue": "OKX"
+        },
+        {
+          "generation": 4,
+          "monoNs": 23695107350638,
+          "type": "CONNECTED",
+          "venue": "OKX"
+        },
+        {
+          "generation": 3,
+          "monoNs": 23695135844868,
           "type": "CONNECTED",
           "venue": "BINANCE"
         }
       ],
       "measured": [
         {
-          "receiveTimeSpanMs": 282.704094,
-          "sourceTimeSpanMs": 281
+          "receiveTimeSpanMs": 18.012806,
+          "sourceTimeSpanMs": 29
         },
         {
-          "receiveTimeSpanMs": 497.565109,
-          "sourceTimeSpanMs": 499
+          "receiveTimeSpanMs": 204.219174,
+          "sourceTimeSpanMs": 199
         },
         {
-          "receiveTimeSpanMs": 505.940386,
-          "sourceTimeSpanMs": 503
+          "receiveTimeSpanMs": 26.729149,
+          "sourceTimeSpanMs": 16
         }
       ],
-      "reconnectLatencyMs": 1556.527718,
-      "reconnectedGeneration": 2,
-      "recovery": {
-        "receiveTimeSpanMs": 322.723491,
-        "sourceTimeSpanMs": 322
+      "networkV2Proxies": {
+        "binance": "http://127.0.0.1:19285",
+        "okx": "http://127.0.0.1:19288"
       },
-      "sessionDurationMs": 9860.421957,
+      "reconnectLatencyMs": 26261.773318,
+      "reconnectedGeneration": 3,
+      "recovery": {
+        "receiveTimeSpanMs": 366.55082,
+        "sourceTimeSpanMs": 369
+      },
+      "sessionDurationMs": 34945.788081,
       "standing": "PASS_PUBLIC_STREAM_RECONNECT",
       "warmup": {
-        "receiveTimeSpanMs": 134.152967,
-        "sourceTimeSpanMs": 161
+        "receiveTimeSpanMs": 212.148162,
+        "sourceTimeSpanMs": 216
       }
     },
     "okx": {
       "controlEvents": [
         {
           "generation": 1,
-          "monoNs": 556904770715,
+          "monoNs": 23646672198849,
           "type": "CONNECTED",
           "venue": "OKX"
         },
         {
           "generation": 1,
-          "monoNs": 557188099997,
+          "monoNs": 23646816765466,
           "type": "CONNECTED",
           "venue": "BINANCE"
         },
         {
           "generation": 1,
-          "monoNs": 558295608478,
+          "monoNs": 23647127083584,
           "type": "INJECTED_DISCONNECT",
           "venue": "OKX"
         },
         {
           "generation": 2,
-          "monoNs": 559658115134,
+          "monoNs": 23647832182663,
           "type": "CONNECTED",
           "venue": "OKX"
+        },
+        {
+          "error": "ConnectionClosedError: no close frame received or sent",
+          "generation": 1,
+          "monoNs": 23661519833557,
+          "type": "CONNECTION_ERROR",
+          "venue": "BINANCE"
+        },
+        {
+          "error": "ConnectionClosedError: no close frame received or sent",
+          "generation": 2,
+          "monoNs": 23661519897046,
+          "type": "CONNECTION_ERROR",
+          "venue": "OKX"
+        },
+        {
+          "generation": 3,
+          "monoNs": 23663152586904,
+          "type": "CONNECTED",
+          "venue": "OKX"
+        },
+        {
+          "generation": 2,
+          "monoNs": 23663196803553,
+          "type": "CONNECTED",
+          "venue": "BINANCE"
         }
       ],
       "measured": [
         {
-          "receiveTimeSpanMs": 130.503917,
-          "sourceTimeSpanMs": 158
+          "receiveTimeSpanMs": 252.181633,
+          "sourceTimeSpanMs": 253
         },
         {
-          "receiveTimeSpanMs": 189.198349,
-          "sourceTimeSpanMs": 212
+          "receiveTimeSpanMs": 9.665764,
+          "sourceTimeSpanMs": 16
         },
         {
-          "receiveTimeSpanMs": 31.420324,
-          "sourceTimeSpanMs": 23
+          "receiveTimeSpanMs": 152.552875,
+          "sourceTimeSpanMs": 155
         }
       ],
-      "reconnectLatencyMs": 1362.506656,
-      "reconnectedGeneration": 2,
-      "recovery": {
-        "receiveTimeSpanMs": 770.106178,
-        "sourceTimeSpanMs": 790
+      "networkV2Proxies": {
+        "binance": "http://127.0.0.1:19285",
+        "okx": "http://127.0.0.1:19288"
       },
-      "sessionDurationMs": 7516.648571,
+      "reconnectLatencyMs": 16025.50332,
+      "reconnectedGeneration": 3,
+      "recovery": {
+        "receiveTimeSpanMs": 297.221563,
+        "sourceTimeSpanMs": 293
+      },
+      "sessionDurationMs": 20861.098484,
       "standing": "PASS_PUBLIC_STREAM_RECONNECT",
       "warmup": {
-        "receiveTimeSpanMs": 143.812212,
-        "sourceTimeSpanMs": 162
+        "receiveTimeSpanMs": 2.9694,
+        "sourceTimeSpanMs": 92
       }
     }
   }

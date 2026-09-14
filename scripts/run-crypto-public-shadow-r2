@@ -2,51 +2,20 @@
 set -euo pipefail
 repo="$(cd "$(dirname "$0")/.." && pwd)"
 out="$repo/.artifacts/crypto-public-shadow-r2"
-rm -rf "$out"; mkdir -p "$out/candidates"
+rm -rf "$out"; mkdir -p "$out"
 "$repo/scripts/check-capital-authority" --mode non-live >/dev/null
 "$repo/scripts/check-crypto-execution-lane" >/dev/null
 "$repo/scripts/check-crypto-data-adapter-policy" >/dev/null
 "$repo/scripts/check-clock-quality-gate" >/dev/null
-
-# Empirically preferred public streaming routes; each is freshly qualified.
-candidates=(
-  'hk-hkg|openvpn-udp|native-a|30'
-  'hk-hkg|openvpn-udp|native-b|30'
-  'jp-tok|openvpn-udp|native-a|30'
-  'jp-tok|openvpn-udp|native-b|30'
-  'sg-sng|openvpn-tcp|native-a|30'
-  'sg-sng|openvpn-tcp|native-b|30'
-)
-selected=''
-: >"$out/candidate-attempts.ndjson"
-for spec in "${candidates[@]}"; do
-  IFS='|' read -r node proto ingress budget <<<"$spec"; key="${node}-${proto}-${ingress}"; dir="$out/candidates/$key"
-  start="$(date +%s%N)"; set +e
-  "$repo/scripts/run-crypto-public-streaming-r2-candidate" "$node" "$proto" "$ingress" "$dir" "$budget" >"$dir.stdout" 2>"$dir.stderr"; rc=$?
-  set -e; end="$(date +%s%N)"
-  python3 - "$out/candidate-attempts.ndjson" "$dir/result.json" "$node" "$proto" "$ingress" "$rc" "$start" "$end" <<'PY'
+start="$(date +%s%N)"; set +e
+"$repo/scripts/run-crypto-public-streaming-r2-candidate" "$out/network-v2" >"$out/candidate.stdout" 2>"$out/candidate.stderr"; rc=$?
+set -e; end="$(date +%s%N)"
+if [ "$rc" -ne 0 ]; then cat "$out/network-v2/result.json" >&2 2>/dev/null || true; exit "$rc"; fi
+cp "$out/network-v2/streaming.json" "$out/streaming.json"
+cp "$out/network-v2/network-v2-binding.json" "$out/network-v2-binding.json"
+python3 - "$out/streaming.json" "$out/network-v2-binding.json" "$start" "$end" <<'PY'
 import json,sys
-log,rp,node,proto,ingress,rc,start,end=sys.argv[1:]
-try:r=json.load(open(rp))
-except Exception:r={'standing':'NO_RESULT'}
-row={'node':node,'protocol':proto,'ingress':ingress,'returnCode':int(rc),'elapsedMs':(int(end)-int(start))/1_000_000,'standing':r.get('standing'),'streamingStanding':r.get('streamingStanding')}
-with open(log,'a') as f:f.write(json.dumps(row,sort_keys=True)+'\n')
-PY
-  if [ "$rc" -eq 0 ]; then selected="$key"; break; fi
-done
-python3 - "$out/candidate-attempts.ndjson" "$out/candidate-attempts.json" <<'PY'
-import json,sys
-rows=[json.loads(x) for x in open(sys.argv[1]) if x.strip()]
-json.dump({'schemaVersion':1,'kind':'ordivon.market-capital.crypto-streaming-r2-failover','attempts':rows},open(sys.argv[2],'w'),indent=2,sort_keys=True);open(sys.argv[2],'a').write('\n')
-PY
-rm -f "$out/candidate-attempts.ndjson"
-if [ -z "$selected" ]; then echo 'no candidate passed streaming R2 workload gates' >&2; cat "$out/candidate-attempts.json" >&2; exit 2; fi
-chosen="$out/candidates/$selected"
-cp "$chosen/streaming.json" "$out/streaming.json"
-cp "$chosen/discovery.json" "$out/discovery.json"
-python3 - "$out/streaming.json" "$out/candidate-attempts.json" "$selected" <<'PY'
-import json,sys
-s=json.load(open(sys.argv[1])); a=json.load(open(sys.argv[2]))
-r={'schemaVersion':1,'kind':'ordivon.market-capital.crypto-public-shadow-r2-result','standing':'PASS_STREAMING_REPEATED_PUBLIC_SHADOW_WITH_WORKLOAD_FAILOVER','selectedCandidate':sys.argv[3],'candidateAttempts':a['attempts'],'streaming':s,'brokerCredentialsUsed':False,'privateAccountDataUsed':False,'externalFinancialWritesAttempted':False,'demoExecutionAttempted':False,'liveExecutionAttempted':False}
+s=json.load(open(sys.argv[1])); b=json.load(open(sys.argv[2]))
+r={'schemaVersion':1,'kind':'ordivon.market-capital.crypto-public-shadow-r2-result','standing':'PASS_STREAMING_REPEATED_PUBLIC_SHADOW_WITH_NETWORK_V2_FAILOVER','selectedCandidate':'network-v2-provider-auto','elapsedMs':(int(sys.argv[4])-int(sys.argv[3]))/1_000_000,'transportBindingDigest':b['bindingDigest'],'streaming':s,'brokerCredentialsUsed':False,'privateAccountDataUsed':False,'externalFinancialWritesAttempted':False,'demoExecutionAttempted':False,'liveExecutionAttempted':False}
 print(json.dumps(r,sort_keys=True))
 PY

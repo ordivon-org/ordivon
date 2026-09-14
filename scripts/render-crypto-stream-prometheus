@@ -16,7 +16,7 @@ def main():
     clock_cfg=load(ROOT/'config/clock_quality_gate.json')
     clock=load(ROOT/clock_cfg['latestEvidence'])
     authority=load(ROOT/'config/execution_authority.json')
-    r2_ok=r2['standing']=='PASS_STREAMING_REPEATED_PUBLIC_SHADOW_WITH_WORKLOAD_FAILOVER'
+    r2_ok=r2['standing']=='PASS_STREAMING_REPEATED_PUBLIC_SHADOW_WITH_NETWORK_V2_FAILOVER'
     authority_write_admitted=(
         authority.get('currentLane') != 'NON_LIVE'
         and authority.get('externalFinancialWriteAdmission') == 'ADMITTED'
@@ -47,9 +47,6 @@ def main():
       '# TYPE ordivon_market_capital_crypto_stream_reconnect_latency_ms gauge',
       f"ordivon_market_capital_crypto_stream_reconnect_latency_ms{{venue=\"okx\"}} {float(r3.get('venues',{}).get('okx',{}).get('reconnectLatencyMs',0.0))}",
       f"ordivon_market_capital_crypto_stream_reconnect_latency_ms{{venue=\"binance\"}} {float(r3.get('venues',{}).get('binance',{}).get('reconnectLatencyMs',0.0))}",
-      '# HELP ordivon_market_capital_crypto_surfpath_control_plane_blocked Whether R3 is currently blocked before workload by Surfpath control-plane serialization.',
-      '# TYPE ordivon_market_capital_crypto_surfpath_control_plane_blocked gauge',
-      f"ordivon_market_capital_crypto_surfpath_control_plane_blocked {b(r3['standing']=='BLOCKED_SURFPATH_CONTROL_PLANE_CONTENTION')}",
       '# HELP ordivon_market_capital_crypto_clock_remediation_admin_required Whether clock remediation currently requires an administrator-authorized Windows path.',
       '# TYPE ordivon_market_capital_crypto_clock_remediation_admin_required gauge',
       f"ordivon_market_capital_crypto_clock_remediation_admin_required {b(clock.get('rootCause',{}).get('adminRemediationRequired',False))}",
