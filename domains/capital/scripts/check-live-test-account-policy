@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+python3 - "$repo/config/live_test_account_policy.json" <<'PY'
+import json,sys
+from decimal import Decimal
+x=json.load(open(sys.argv[1]))
+assert x['standing']=='USER_AUTHORIZED_PENDING_FRESH_PRIVATE_ACCOUNT_VERIFICATION'
+assert x['userAuthorization']=='LIVE_ENDPOINT_TEST_ACCOUNT_USE_AUTHORIZED'
+assert x['liveEndpointUseAllowed'] is True
+assert x['productionTradingAuthorized'] is False
+assert x['withdrawalAuthorized'] is False
+assert x['transferAuthorized'] is False
+assert x['orderSubmissionAllowed'] is False
+assert Decimal(x['maxTestNotionalQuote']) <= Decimal('1')
+for venue in ('OKX','BINANCE'):
+    v=x['venues'][venue]
+    assert v['endpointClass']=='LIVE'
+    assert v['role']=='TEST_ACCOUNT_BY_USER_POLICY'
+    assert v['writeAdmission']=='BLOCKED_PENDING_FRESH_GATES'
+print(json.dumps({
+  'standing':x['standing'],
+  'liveEndpointUseAllowed':True,
+  'productionTradingAuthorized':False,
+  'orderSubmissionAllowed':False,
+  'maxTestNotionalQuote':x['maxTestNotionalQuote'],
+  'withdrawalAuthorized':False,
+  'transferAuthorized':False
+},sort_keys=True))
+PY

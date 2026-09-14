@@ -43,3 +43,5 @@ Private Reality R5 offline normalization now passes: authoritative OKX/Binance o
 Execution Reconciliation R6 now passes offline: authoritative normalized venue reality is mapped into FIX 4.4 execution lifecycle vocabulary, while Market Capital retains only EffectAuthority disposition. Broad snapshot absence is never treated as no-effect; release requires terminal zero-fill with complete fill coverage or an exact authoritative negative lookup.
 
 Demo/Testnet Execution R7 preflight is prepared but not admitted: the installed NautilusTrader execution configs construct successfully for OKX DEMO and Binance Spot TESTNET without credentials or network access. Demo/live write authority remains false.
+
+Live endpoint test-account policy is now explicit: the user authorizes the existing OKX/Binance LIVE endpoints for non-production qualification, but they remain semantically LIVE. Fresh authoritative account reality must prove an effectively empty account (no positions/open orders/nonquote balances and <=1 quote unit), trade-only authority, clock health and reconciliation health before order submission can be enabled.
