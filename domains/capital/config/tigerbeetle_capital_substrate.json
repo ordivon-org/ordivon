@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "kind": "ordivon.market-capital.tigerbeetle-capital-substrate",
   "provider": {
     "name": "TigerBeetle",
@@ -8,20 +8,29 @@
     "clientInterpreter": "/opt/ordivon/external/tigerbeetle/0.17.9/python-client/bin/python",
     "clientPackage": "tigerbeetle==0.17.9"
   },
-  "standing": "PASS_EPHEMERAL_MECHANICAL_ONLY",
+  "standing": "PASS_RESERVATION_RESOLUTION_MECHANICAL_COMPOSITION",
   "responsibility": [
     "double_entry_account_mechanics",
     "accounting_conservation",
     "atomic_transfer_mechanics",
-    "idempotent_transfer_identity"
+    "idempotent_transfer_identity",
+    "pending_transfer_encumbrance_mechanics",
+    "post_or_void_pending_transfer_mechanics"
   ],
+  "semanticToMechanicalMappings": {
+    "Reservation": "PENDING transfer",
+    "EffectDisposition.RETAIN": "NO provider mutation",
+    "EffectDisposition.RELEASE": "VOID_PENDING_TRANSFER",
+    "EffectDisposition.CONSUME": "POST_PENDING_TRANSFER"
+  },
   "explicitNonResponsibilities": [
     "CapitalTruth",
     "ClaimRoot",
     "Parcel",
     "TreasuryStanding",
     "ScarcityAuthority",
-    "Reservation",
+    "ReservationAuthority",
+    "EffectDispositionDerivation",
     "ExternalFinancialWriteAdmission",
     "EffectAuthority",
     "settlement_truth",
@@ -30,6 +39,11 @@
     "deployability",
     "venue_reality"
   ],
-  "compositionLaw": "TigerBeetle accounting state is mechanical evidence only and cannot mint Market Capital domain standing.",
+  "compositionLaws": [
+    "TigerBeetle accounting state is mechanical evidence only and cannot mint Market Capital domain standing.",
+    "RETAIN performs no TigerBeetle mutation.",
+    "Provider balance constraints may enforce mechanical scarcity but cannot mint ScarcityAuthority.",
+    "POST/VOID results cannot derive EffectDisposition; disposition must already come from Market Capital reconciliation."
+  ],
   "externalFinancialWrites": "NOT_ADMITTED"
 }
