@@ -1,0 +1,51 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "OWASP ASVS",
+      "ASVS 5.0.0"
+    ],
+    "domains": [
+      "security",
+      "engineering",
+      "web"
+    ],
+    "topics": [
+      "application-security",
+      "verification",
+      "security-requirements",
+      "web-security"
+    ]
+  },
+  "id": "owasp-asvs-5.0.0",
+  "identity": {
+    "authorityKind": "application-security-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "owasp",
+      "name": "OWASP Foundation"
+    },
+    "officialSource": "https://owasp.org/www-project-application-security-verification-standard/",
+    "publicationDate": "2025-05-30",
+    "title": "OWASP Application Security Verification Standard 5.0.0",
+    "versionLabel": "5.0.0"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/security.md",
+      "OWASP official source checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

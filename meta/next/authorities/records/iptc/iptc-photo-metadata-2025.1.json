@@ -1,0 +1,52 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "IPTC Photo Metadata",
+      "IPTC 2025.1"
+    ],
+    "domains": [
+      "media",
+      "artifact",
+      "metadata"
+    ],
+    "topics": [
+      "photo-metadata",
+      "rights",
+      "descriptive-metadata",
+      "accessibility",
+      "media"
+    ]
+  },
+  "id": "iptc-photo-metadata-2025.1",
+  "identity": {
+    "authorityKind": "industry-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "iptc",
+      "name": "International Press Telecommunications Council (IPTC)"
+    },
+    "officialSource": "https://www.iptc.org/std/photometadata/specification/IPTC-PhotoMetadata-2025.1.html",
+    "publicationDate": "2025-11-26",
+    "title": "IPTC Photo Metadata Standard 2025.1",
+    "versionLabel": "2025.1"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/media.md",
+      "IPTC official specification checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

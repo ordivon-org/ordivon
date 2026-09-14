@@ -100,6 +100,151 @@
     },
     {
       "aliases": [
+        "Apache Arrow",
+        "Arrow Columnar Format",
+        "Arrow Format 1.5"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "analytics",
+        "data",
+        "research"
+      ],
+      "id": "apache-arrow-format-1.5",
+      "identityMode": "versioned",
+      "issuer": "Apache Arrow",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:5dcf51c1b675631bd253f5142a64d20d503725c8604edc1ace59a6ac526ab819",
+      "recordDigest": "sha256:59ade79a21e5134cb874310eab05dc76e025cc14fe09267619ac6d5ca50f3128",
+      "title": "Apache Arrow Columnar Format 1.5",
+      "topics": [
+        "analytics",
+        "columnar",
+        "data-interchange",
+        "in-memory",
+        "ipc"
+      ],
+      "versionLabel": "1.5"
+    },
+    {
+      "aliases": [
+        "Apache Parquet",
+        "Parquet 2.13.0",
+        "Parquet Format"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "analytics",
+        "artifact",
+        "data",
+        "research"
+      ],
+      "id": "apache-parquet-format-2.13.0",
+      "identityMode": "versioned",
+      "issuer": "Apache Parquet",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:1509724a8e8955730144f067372dd2849c0f2d1fd1f6e4217a89d5e4521a2161",
+      "recordDigest": "sha256:b275d6fb5d74ed71b5a55a6fe6dc7337046d255f08e496e026db10541db10b7c",
+      "title": "Apache Parquet Format 2.13.0",
+      "topics": [
+        "analytics",
+        "columnar",
+        "data-storage",
+        "file-format"
+      ],
+      "versionLabel": "2.13.0"
+    },
+    {
+      "aliases": [
+        "C2PA",
+        "C2PA 2.4",
+        "Content Credentials"
+      ],
+      "authorityKind": "content-provenance-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "media",
+        "provenance"
+      ],
+      "id": "c2pa-2.4",
+      "identityMode": "versioned",
+      "issuer": "Coalition for Content Provenance and Authenticity (C2PA)",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:607eceb50a162935726590ab6067899164db8006889b89a2bae96600f7a254c2",
+      "recordDigest": "sha256:e93e6048eace749afffb7f94e8682bb8f6f6575937ed1a5ffc62aa82888961b4",
+      "title": "C2PA Specifications 2.4",
+      "topics": [
+        "authenticity",
+        "content-credentials",
+        "content-provenance",
+        "media"
+      ],
+      "versionLabel": "2.4"
+    },
+    {
+      "aliases": [
+        "CloudEvents",
+        "CloudEvents 1.0.2"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "data",
+        "engineering",
+        "integration",
+        "operations"
+      ],
+      "id": "cloudevents-1.0.2",
+      "identityMode": "versioned",
+      "issuer": "CNCF CloudEvents",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:a3ecc08abb1a5b2a530327c0e0c4a80b35995a75e043e541f6a08b6af82dd73a",
+      "recordDigest": "sha256:325fce6077eb616d405e9506b4c13a4e888d7659c834e114c53591aacae09b6a",
+      "title": "CloudEvents Core Specification 1.0.2",
+      "topics": [
+        "distributed-systems",
+        "event-envelope",
+        "events",
+        "interoperability"
+      ],
+      "versionLabel": "1.0.2"
+    },
+    {
+      "aliases": [
+        "CycloneDX",
+        "CycloneDX 1.7",
+        "ECMA-424",
+        "Software Bill of Materials"
+      ],
+      "authorityKind": "interchange-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "distribution",
+        "engineering",
+        "security"
+      ],
+      "id": "cyclonedx-1.7",
+      "identityMode": "versioned",
+      "issuer": "OWASP Foundation / Ecma International",
+      "lifecycleStatus": "stable",
+      "observationDigest": "sha256:40bbce4fe1ffcca54567506b992eb6b32af6f3ba47fe359709ee52aef31869ab",
+      "recordDigest": "sha256:eca102a258be2b69544e3cf001ba21fa31f3392d1305f07663bd37a149c26294",
+      "title": "CycloneDX 1.7 / ECMA-424 2nd Edition",
+      "topics": [
+        "bill-of-materials",
+        "sbom",
+        "software-supply-chain",
+        "transparency",
+        "vulnerability-management"
+      ],
+      "versionLabel": "1.7"
+    },
+    {
+      "aliases": [
         "EMSE submission guidelines"
       ],
       "authorityKind": "venue-rule",
@@ -199,6 +344,34 @@
         "release-currentness"
       ],
       "versionLabel": null
+    },
+    {
+      "aliases": [
+        "IPTC 2025.1",
+        "IPTC Photo Metadata"
+      ],
+      "authorityKind": "industry-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "media",
+        "metadata"
+      ],
+      "id": "iptc-photo-metadata-2025.1",
+      "identityMode": "versioned",
+      "issuer": "International Press Telecommunications Council (IPTC)",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:21a4de4906f5dfdb3d64a8d1b12423f62934aa2330eeff7f08e5afc6f9690ee8",
+      "recordDigest": "sha256:f2f769f1e75250294592195d55721d9e9104f4c7c7f20583552f722abee990e3",
+      "title": "IPTC Photo Metadata Standard 2025.1",
+      "topics": [
+        "accessibility",
+        "descriptive-metadata",
+        "media",
+        "photo-metadata",
+        "rights"
+      ],
+      "versionLabel": "2025.1"
     },
     {
       "aliases": [
@@ -585,6 +758,31 @@
     },
     {
       "aliases": [
+        "ISO 15288",
+        "ISO/IEC/IEEE 15288:2023"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "engineering",
+        "systems"
+      ],
+      "id": "iso-iec-ieee-15288-2023",
+      "identityMode": "versioned",
+      "issuer": "ISO/IEC/IEEE",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:1b503c2fae95ff41462878621e14e4a5bc6e290208d3973a6c41e4b476749582",
+      "recordDigest": "sha256:e5f0d3c85410174c13b10953c948d4f653c52edbde447f08814401232e8b8a6a",
+      "title": "ISO/IEC/IEEE 15288:2023 — Systems and software engineering — System life cycle processes",
+      "topics": [
+        "system-lifecycle",
+        "system-of-systems",
+        "systems-engineering"
+      ],
+      "versionLabel": "2023"
+    },
+    {
+      "aliases": [
         "IMS practical guide",
         "ISO Integrated Management Systems Guide"
       ],
@@ -607,6 +805,60 @@
         "management-system"
       ],
       "versionLabel": "2026"
+    },
+    {
+      "aliases": [
+        "CSF 2.0",
+        "NIST CSF"
+      ],
+      "authorityKind": "government-guidance",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "enterprise",
+        "risk",
+        "security"
+      ],
+      "id": "nist-csf-2.0",
+      "identityMode": "versioned",
+      "issuer": "NIST",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:fd0ecd9b32220917603c77189a1c146c8b5ccc9b60c64caa9c20c8b91be5429f",
+      "recordDigest": "sha256:c0651c18f0cd00599fee95befece41182cf84967ab94e67007bcc4c66a87514d",
+      "title": "NIST Cybersecurity Framework (CSF) 2.0",
+      "topics": [
+        "cybersecurity",
+        "governance",
+        "risk-management",
+        "security-outcomes"
+      ],
+      "versionLabel": "2.0"
+    },
+    {
+      "aliases": [
+        "OSCAL",
+        "OSCAL 1.1.3"
+      ],
+      "authorityKind": "government-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "compliance",
+        "enterprise",
+        "security"
+      ],
+      "id": "nist-oscal-1.1.3",
+      "identityMode": "versioned",
+      "issuer": "NIST",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:d9edc89efcd5ff0d9852efea0bdc976d690c5631992a0a9719353f6272d63f57",
+      "recordDigest": "sha256:2aa1095234ed384321a2f0aea4486b782695cf2cdbef3dfdf02a678439b7ac53",
+      "title": "Open Security Controls Assessment Language (OSCAL) 1.1.3",
+      "topics": [
+        "assessment",
+        "compliance-automation",
+        "machine-readable-controls",
+        "security-controls"
+      ],
+      "versionLabel": "1.1.3"
     },
     {
       "aliases": [
@@ -635,6 +887,113 @@
         "software-supply-chain"
       ],
       "versionLabel": "1.1"
+    },
+    {
+      "aliases": [
+        "SARIF",
+        "SARIF 2.1.0"
+      ],
+      "authorityKind": "interchange-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "engineering",
+        "security"
+      ],
+      "id": "oasis-sarif-2.1.0",
+      "identityMode": "versioned",
+      "issuer": "OASIS",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:d9fb2d2dab097edb3f213f17e085f74ddddeff15ee858b9c6d4547d36b408720",
+      "recordDigest": "sha256:9cd01546fc83bb16270d7b17a67f0009461ad32659fdaf2657bfc9f4c7ddf427",
+      "title": "Static Analysis Results Interchange Format (SARIF) Version 2.1.0",
+      "topics": [
+        "code-analysis",
+        "interchange",
+        "security-findings",
+        "static-analysis"
+      ],
+      "versionLabel": "2.1.0"
+    },
+    {
+      "aliases": [
+        "OCI Distribution",
+        "OCI Distribution Spec 1.1.1"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "distribution",
+        "engineering"
+      ],
+      "id": "oci-distribution-spec-1.1.1",
+      "identityMode": "versioned",
+      "issuer": "Open Container Initiative",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:bc4a50d300121806adeeaeb7724d89f9a1067718853c59e892c8870d175738d9",
+      "recordDigest": "sha256:f6d582f407914eaeb43212a4e414438c9782116b765e7735547b875d16ca0d48",
+      "title": "OCI Distribution Specification 1.1.1",
+      "topics": [
+        "artifacts",
+        "content-addressing",
+        "distribution",
+        "registry"
+      ],
+      "versionLabel": "1.1.1"
+    },
+    {
+      "aliases": [
+        "OCI Image",
+        "OCI Image Spec 1.1.1"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "distribution",
+        "engineering"
+      ],
+      "id": "oci-image-spec-1.1.1",
+      "identityMode": "versioned",
+      "issuer": "Open Container Initiative",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:ae5544f2061d1bdae656bacf0bd392fbff4b06040d69e32091cc4f1c4f69b533",
+      "recordDigest": "sha256:1a56ff6f7dbc6ec88716437efd37e206834145b8adfb245b7c827856c3e8522b",
+      "title": "OCI Image Format Specification 1.1.1",
+      "topics": [
+        "artifact",
+        "container-image",
+        "content-addressing",
+        "manifest"
+      ],
+      "versionLabel": "1.1.1"
+    },
+    {
+      "aliases": [
+        "OCI Runtime",
+        "OCI Runtime Spec 1.3.0"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "distribution",
+        "engineering",
+        "operations"
+      ],
+      "id": "oci-runtime-spec-1.3.0",
+      "identityMode": "versioned",
+      "issuer": "Open Container Initiative",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:587d5ca1dbd6c1672853599d813af6dd9c1e7a586980e13c9b3b7a5a7dc02188",
+      "recordDigest": "sha256:abb2aecf4d2131b384a15d4cd8937b13e3cd4bcb4a4a5b23aceeb29e12df7088",
+      "title": "OCI Runtime Specification 1.3.0",
+      "topics": [
+        "container-lifecycle",
+        "container-runtime",
+        "execution-environment"
+      ],
+      "versionLabel": "1.3.0"
     },
     {
       "aliases": [
@@ -742,6 +1101,119 @@
     },
     {
       "aliases": [
+        "OpenLineage",
+        "OpenLineage spec"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "analytics",
+        "data",
+        "operations"
+      ],
+      "id": "openlineage-spec",
+      "identityMode": "rolling-source",
+      "issuer": "OpenLineage",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:3fa16b9c449140187641d0bd5f3c45857f28dd057ad9f210ba113ff89144b28c",
+      "recordDigest": "sha256:229700a8e6663ad38dcb7ef5ef7d49e231d52b5ebd3ffcd1b0506ea1a3a8d141",
+      "title": "OpenLineage specification",
+      "topics": [
+        "data-lineage",
+        "datasets",
+        "jobs",
+        "metadata",
+        "provenance"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "OpenTelemetry",
+        "OpenTelemetry Specification",
+        "OTel"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "engineering",
+        "observability",
+        "operations"
+      ],
+      "id": "opentelemetry-spec-1.60.0",
+      "identityMode": "versioned",
+      "issuer": "OpenTelemetry",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:f00156ba5ebf1bcfedc2c54201aec030bb2f94695a0fb4a485d1eb1c57d93385",
+      "recordDigest": "sha256:601c5efdb7c0c3ba55262c6c8a6000584736c03bfa05d8ce89200ffe962e8480",
+      "title": "OpenTelemetry Specification 1.60.0",
+      "topics": [
+        "context-propagation",
+        "logs",
+        "metrics",
+        "telemetry",
+        "tracing"
+      ],
+      "versionLabel": "1.60.0"
+    },
+    {
+      "aliases": [
+        "OpenTelemetry Protocol",
+        "OTLP"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "engineering",
+        "observability",
+        "operations"
+      ],
+      "id": "otlp-1.11.0",
+      "identityMode": "versioned",
+      "issuer": "OpenTelemetry",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:1d3d49020ae9cf1055007111b1e5e8e84851986d35cd51cc0d66f0d01a309ebf",
+      "recordDigest": "sha256:8bc190ad9312e848823f71838aed25900a92afe06f5fb1d893907efb90c71157",
+      "title": "OpenTelemetry Protocol (OTLP) Specification 1.11.0",
+      "topics": [
+        "export",
+        "logs",
+        "metrics",
+        "protocol",
+        "telemetry",
+        "traces"
+      ],
+      "versionLabel": "1.11.0"
+    },
+    {
+      "aliases": [
+        "ASVS 5.0.0",
+        "OWASP ASVS"
+      ],
+      "authorityKind": "application-security-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "engineering",
+        "security",
+        "web"
+      ],
+      "id": "owasp-asvs-5.0.0",
+      "identityMode": "versioned",
+      "issuer": "OWASP Foundation",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:18a922f7ff5fc121b390e9d6fdf5b61b4e9119f9e3a3521115adf17a10acbbd6",
+      "recordDigest": "sha256:662e3999f54355073f8143d5d35b9e9c29476e3b7bdc43089f9b07f5b80b966a",
+      "title": "OWASP Application Security Verification Standard 5.0.0",
+      "topics": [
+        "application-security",
+        "security-requirements",
+        "verification",
+        "web-security"
+      ],
+      "versionLabel": "5.0.0"
+    },
+    {
+      "aliases": [
         "PRISMA 2020"
       ],
       "authorityKind": "reporting-guideline",
@@ -819,6 +1291,36 @@
     },
     {
       "aliases": [
+        "ISO/IEC 5962:2021",
+        "Software Bill of Materials",
+        "SPDX",
+        "SPDX 3.0"
+      ],
+      "authorityKind": "open-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "distribution",
+        "engineering",
+        "security"
+      ],
+      "id": "spdx-3.0",
+      "identityMode": "versioned",
+      "issuer": "Linux Foundation / SPDX",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:b8cc40b82d5eda99cfb6b8a65e5ac28aa703cee792629538a8447fea27b7a394",
+      "recordDigest": "sha256:4799dac1f82e97dd4377ce8213f06681f7ad01e40368043390ca529ba3a8f0e1",
+      "title": "SPDX Specification 3.0",
+      "topics": [
+        "licensing",
+        "package-metadata",
+        "sbom",
+        "software-supply-chain"
+      ],
+      "versionLabel": "3.0"
+    },
+    {
+      "aliases": [
         "Springer research data policy"
       ],
       "authorityKind": "publisher-policy",
@@ -840,6 +1342,34 @@
         "research-data"
       ],
       "versionLabel": null
+    },
+    {
+      "aliases": [
+        "PROV Ontology",
+        "PROV-O",
+        "W3C PROV"
+      ],
+      "authorityKind": "web-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "data",
+        "research"
+      ],
+      "id": "w3c-prov-o-2013",
+      "identityMode": "versioned",
+      "issuer": "W3C",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:f2f73f4aa1eb87b1188e37f27c3721ecc2787566e8192c97df34cf29d3d8d2c7",
+      "recordDigest": "sha256:36d8f241653f05cfb1a1c01fb09065e9272ecf03316c8d041fd25597cbe093a9",
+      "title": "PROV-O: The PROV Ontology — W3C Recommendation 30 April 2013",
+      "topics": [
+        "data-lineage",
+        "interchange",
+        "ontology",
+        "provenance"
+      ],
+      "versionLabel": "2013-04-30"
     },
     {
       "aliases": [
@@ -895,7 +1425,7 @@
     }
   ],
   "kind": "ordivon.external-authority-discovery-index",
-  "recordCount": 35,
-  "recordsDigest": "sha256:0c71ae1aaf1f4e2e7ceba79e121b89b5436361080160e425e732c064b3801f30",
+  "recordCount": 54,
+  "recordsDigest": "sha256:35d5e52209f0a1ceb6ab8645a97f4053f937d090d76ace96126747f3e2622cef",
   "schemaVersion": 1
 }

@@ -1,0 +1,67 @@
+{
+  "addedCount": 19,
+  "baseRecordCount": 35,
+  "batch": "2026-09-14-batch2",
+  "boundary": "Acceptance proves addition, schema validity and lexical discoverability of Batch 2 records. It does not claim catalog completeness or task applicability.",
+  "currentObservationCount": 54,
+  "currentRecordCount": 54,
+  "deferredFamilies": [
+    "PDF/PDF-A/PDF-UA",
+    "OOXML/ODF",
+    "SMPTE family",
+    "IETF protocol corpus",
+    "finance/market standards"
+  ],
+  "discoverySmokes": {
+    "application security verification": "owasp-asvs-5.0.0",
+    "container distribution": "oci-distribution-spec-1.1.1",
+    "content provenance": "c2pa-2.4",
+    "data lineage": "openlineage-spec",
+    "software bill of materials": "cyclonedx-1.7",
+    "software lifecycle": "iso-iec-ieee-12207-2026",
+    "system lifecycle": "iso-iec-ieee-15288-2023",
+    "telemetry protocol": "otlp-1.11.0"
+  },
+  "families": {
+    "data": [
+      "w3c-prov-o-2013",
+      "apache-arrow-format-1.5",
+      "apache-parquet-format-2.13.0",
+      "openlineage-spec"
+    ],
+    "engineering": [
+      "iso-iec-ieee-15288-2023"
+    ],
+    "media": [
+      "c2pa-2.4",
+      "iptc-photo-metadata-2025.1"
+    ],
+    "observability-events": [
+      "opentelemetry-spec-1.60.0",
+      "otlp-1.11.0",
+      "cloudevents-1.0.2"
+    ],
+    "oci": [
+      "oci-distribution-spec-1.1.1",
+      "oci-image-spec-1.1.1",
+      "oci-runtime-spec-1.3.0"
+    ],
+    "security": [
+      "nist-csf-2.0",
+      "owasp-asvs-5.0.0",
+      "oasis-sarif-2.1.0",
+      "cyclonedx-1.7",
+      "spdx-3.0",
+      "nist-oscal-1.1.3"
+    ]
+  },
+  "kind": "ordivon.external-authority-catalog-seed-batch-acceptance",
+  "schemaValidation": {
+    "index": "PASS",
+    "observations": "PASS",
+    "records": "PASS",
+    "validator": "check-jsonschema 0.38.0"
+  },
+  "schemaVersion": 1,
+  "standing": "PASS_VERIFIED_SEED_EXPANSION"
+}

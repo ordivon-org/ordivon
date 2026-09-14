@@ -1,0 +1,52 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "CloudEvents",
+      "CloudEvents 1.0.2"
+    ],
+    "domains": [
+      "data",
+      "integration",
+      "operations",
+      "engineering"
+    ],
+    "topics": [
+      "events",
+      "event-envelope",
+      "interoperability",
+      "distributed-systems"
+    ]
+  },
+  "id": "cloudevents-1.0.2",
+  "identity": {
+    "authorityKind": "open-specification",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "cncf-cloudevents",
+      "name": "CNCF CloudEvents"
+    },
+    "officialSource": "https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/spec.md",
+    "publicationDate": "2022-02-03",
+    "title": "CloudEvents Core Specification 1.0.2",
+    "versionLabel": "1.0.2"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "historical Data R4 target",
+      "CloudEvents official repository checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

@@ -1,0 +1,11 @@
+{
+  "authorityId": "spdx-3.0",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current",
+  "note": "SPDX official specifications page lists document version 3.0 as Current Version and notes SPDX is ISO/IEC 5962:2021.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://spdx.dev/use/specifications/",
+  "schemaVersion": 1,
+  "versionObserved": "3.0"
+}

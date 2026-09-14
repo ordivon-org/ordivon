@@ -1,0 +1,56 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "CycloneDX",
+      "CycloneDX 1.7",
+      "ECMA-424",
+      "Software Bill of Materials"
+    ],
+    "domains": [
+      "security",
+      "engineering",
+      "artifact",
+      "distribution"
+    ],
+    "topics": [
+      "sbom",
+      "bill-of-materials",
+      "software-supply-chain",
+      "vulnerability-management",
+      "transparency"
+    ]
+  },
+  "id": "cyclonedx-1.7",
+  "identity": {
+    "authorityKind": "interchange-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "owasp-ecma",
+      "name": "OWASP Foundation / Ecma International"
+    },
+    "officialSource": "https://cyclonedx.org/specification/overview/",
+    "publicationDate": "2025-10-21",
+    "title": "CycloneDX 1.7 / ECMA-424 2nd Edition",
+    "versionLabel": "1.7"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/security.md",
+      "capabilities/providers/security-v2.md",
+      "CycloneDX official source checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

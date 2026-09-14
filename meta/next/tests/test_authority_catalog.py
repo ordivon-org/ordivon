@@ -33,10 +33,21 @@ class AuthorityCatalogTests(unittest.TestCase):
 
     def test_lexical_find_prefers_exact_semantics_without_vector_index(self):
         rows = catalog.build_index()["entries"]
-        ranked = sorted(((catalog.score_entry(row, "risk management"), row["id"]) for row in rows), key=lambda x: (-x[0], x[1]))
-        self.assertEqual(ranked[0][1], "iso-31000-2018")
-        ranked = sorted(((catalog.score_entry(row, "software supply chain"), row["id"]) for row in rows), key=lambda x: (-x[0], x[1]))
-        self.assertIn(ranked[0][1], {"slsa-1.2", "nist-sp-800-218-ssdf-1.1"})
+
+        def top(query: str) -> str:
+            ranked = sorted(((catalog.score_entry(row, query), row["id"]) for row in rows), key=lambda x: (-x[0], x[1]))
+            return ranked[0][1]
+
+        self.assertEqual(top("risk management"), "iso-31000-2018")
+        self.assertIn(top("software supply chain"), {"slsa-1.2", "nist-sp-800-218-ssdf-1.1", "cyclonedx-1.7", "spdx-3.0"})
+        self.assertIn(top("software bill of materials"), {"cyclonedx-1.7", "spdx-3.0"})
+        self.assertEqual(top("application security verification"), "owasp-asvs-5.0.0")
+        self.assertEqual(top("data lineage"), "openlineage-spec")
+        self.assertEqual(top("telemetry protocol"), "otlp-1.11.0")
+        self.assertEqual(top("content provenance"), "c2pa-2.4")
+        self.assertEqual(top("container distribution"), "oci-distribution-spec-1.1.1")
+        self.assertEqual(top("system lifecycle"), "iso-iec-ieee-15288-2023")
+        self.assertEqual(top("software lifecycle"), "iso-iec-ieee-12207-2026")
 
     def test_latest_observation_is_append_only_date_selection(self):
         latest = catalog.latest_observation("iso-9001-2026")
