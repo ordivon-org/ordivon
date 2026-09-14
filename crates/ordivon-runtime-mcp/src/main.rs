@@ -89,38 +89,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let runtime_server =
         RuntimeServer::new_with_default_runtime_ms(app.server.clone(), app.default_runtime_ms)
             .map_err(|error| std::io::Error::other(error.message))?;
-    let startup_runtime = runtime_server.runtime_handle();
-    let startup_reconciliation = startup_runtime.reconcile_all()?;
-    if startup_reconciliation.failed > 0 {
-        tracing::warn!(
-            inspected = startup_reconciliation.inspected,
-            reconciled = startup_reconciliation.reconciled,
-            recovered_orphans = startup_reconciliation.recovered_orphans,
-            quarantined = startup_reconciliation.quarantined,
-            unchanged = startup_reconciliation.unchanged,
-            failed = startup_reconciliation.failed,
-            "runtime startup reconciliation isolated Job-level failures"
-        );
-        for failure in &startup_reconciliation.failures {
-            tracing::warn!(
-                job_id = %failure.job_id,
-                attempt_id = %failure.attempt_id,
-                code = failure.code.as_str(),
-                message = %failure.message,
-                "runtime startup reconciliation requires targeted recovery"
-            );
-        }
-    } else {
-        tracing::info!(
-            inspected = startup_reconciliation.inspected,
-            reconciled = startup_reconciliation.reconciled,
-            recovered_orphans = startup_reconciliation.recovered_orphans,
-            quarantined = startup_reconciliation.quarantined,
-            unchanged = startup_reconciliation.unchanged,
-            "runtime startup reconciliation completed"
-        );
-    }
-    let background_runtime = startup_runtime.clone();
+    // Runtime construction already performs recovery that must precede serving, including
+    // recoverable-orphan/input ownership convergence. Do not follow it with an unbounded
+    // full reconciliation before binding the socket: Registry history must not determine MCP
+    // availability. The maintenance loop below fires immediately and then processes the
+    // prioritized recovery/nonterminal queue in bounded batches.
+    let background_runtime = runtime_server.runtime_handle();
     let listener = tokio::net::TcpListener::bind(app.bind).await?;
     let address = listener.local_addr()?;
     let cancellation = CancellationToken::new();
