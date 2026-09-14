@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "id": "game-cs2-03-upstream-random-buildcraft-apparatus-20260914",
+  "date": "2026-09-14",
+  "candidate": "cs2-03-upstream-random-buildcraft",
+  "standing": "APPARATUS_READY_HUMAN_UNOBSERVED",
+  "apparatusPath": "experiments/composition-r2/cs2-03-upstream-random-buildcraft",
+  "structuralPrecheckPath": "experiments/composition-r2/cs2-03-upstream-random-buildcraft/evidence/structural-precheck.json",
+  "structuralStanding": "STRUCTURAL_PRECHECK_PASS",
+  "structuralMetrics": {
+    "allEncounterSequences": 625,
+    "allBuildPaths": 81,
+    "uniqueOptimalBuildSignatures": 17,
+    "largestOptimalSignatureShare": 0.3488,
+    "largestFirstPickShare": 0.5616,
+    "adaptiveOptimalMean": 81.0336,
+    "bestUniversalPath": [
+      "relay",
+      "pulse",
+      "relay",
+      "pulse"
+    ],
+    "bestUniversalMean": 71.6,
+    "adaptiveVsUniversalUplift": 0.13175418994413426,
+    "optimalVsGreedyMeanUplift": 0.19066735313226105,
+    "encounterSequencesWithOver2PctOptimalVsGreedyUplift": 0.8656,
+    "humanSequenceDiagnostics": [
+      {
+        "sequence": [
+          "pursuit",
+          "swarm",
+          "pursuit",
+          "siege"
+        ],
+        "optimalScore": 78,
+        "meanPathScore": 55,
+        "optimalPath": [
+          "relay",
+          "pulse",
+          "relay",
+          "bulwark"
+        ]
+      },
+      {
+        "sequence": [
+          "pursuit",
+          "pursuit",
+          "attrition",
+          "breach"
+        ],
+        "optimalScore": 75,
+        "meanPathScore": 55,
+        "optimalPath": [
+          "relay",
+          "pulse",
+          "relay",
+          "lancer"
+        ]
+      },
+      {
+        "sequence": [
+          "pursuit",
+          "breach",
+          "swarm",
+          "attrition"
+        ],
+        "optimalScore": 77,
+        "meanPathScore": 55,
+        "optimalPath": [
+          "relay",
+          "pulse",
+          "relay",
+          "pulse"
+        ]
+      },
+      {
+        "sequence": [
+          "swarm",
+          "swarm",
+          "breach",
+          "pursuit"
+        ],
+        "optimalScore": 78,
+        "meanPathScore": 54.888888888888886,
+        "optimalPath": [
+          "blade",
+          "lancer",
+          "relay",
+          "pulse"
+        ]
+      }
+    ]
+  },
+  "validation": {
+    "structuralChecksAllPass": true,
+    "precheckDeterministicAcrossImmediateReplay": true,
+    "javascriptSyntax": "PASS",
+    "localHttpSmoke": "PASS"
+  },
+  "humanEvidence": "UNOBSERVED",
+  "claimUnderTest": "Holding build choices/scoring/distribution constant, does revealing encounter randomness before the build choice improve attribution/adaptation relative to revealing it after commitment?",
+  "next": "RUN_HUMAN_C0_EXPORT_SESSION_JSON",
+  "authorityBoundary": [
+    "Structural PASS establishes only a non-degenerate matched carrier.",
+    "No claim of fun, replay desire, Human causal superiority, or product value is admitted before Human evidence."
+  ]
+}

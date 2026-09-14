@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "experiment": "cs2-03-upstream-random-buildcraft",
+  "standing": "STRUCTURAL_PRECHECK_PASS",
+  "metrics": {
+    "allEncounterSequences": 625,
+    "allBuildPaths": 81,
+    "uniqueOptimalBuildSignatures": 17,
+    "largestOptimalSignatureShare": 0.3488,
+    "largestFirstPickShare": 0.5616,
+    "adaptiveOptimalMean": 81.0336,
+    "bestUniversalPath": [
+      "relay",
+      "pulse",
+      "relay",
+      "pulse"
+    ],
+    "bestUniversalMean": 71.6,
+    "adaptiveVsUniversalUplift": 0.13175418994413426,
+    "optimalVsGreedyMeanUplift": 0.19066735313226105,
+    "encounterSequencesWithOver2PctOptimalVsGreedyUplift": 0.8656,
+    "humanSequenceDiagnostics": [
+      {
+        "sequence": [
+          "pursuit",
+          "swarm",
+          "pursuit",
+          "siege"
+        ],
+        "optimalScore": 78,
+        "meanPathScore": 55,
+        "optimalPath": [
+          "relay",
+          "pulse",
+          "relay",
+          "bulwark"
+        ]
+      },
+      {
+        "sequence": [
+          "pursuit",
+          "pursuit",
+          "attrition",
+          "breach"
+        ],
+        "optimalScore": 75,
+        "meanPathScore": 55,
+        "optimalPath": [
+          "relay",
+          "pulse",
+          "relay",
+          "lancer"
+        ]
+      },
+      {
+        "sequence": [
+          "pursuit",
+          "breach",
+          "swarm",
+          "attrition"
+        ],
+        "optimalScore": 77,
+        "meanPathScore": 55,
+        "optimalPath": [
+          "relay",
+          "pulse",
+          "relay",
+          "pulse"
+        ]
+      },
+      {
+        "sequence": [
+          "swarm",
+          "swarm",
+          "breach",
+          "pursuit"
+        ],
+        "optimalScore": 78,
+        "meanPathScore": 54.888888888888886,
+        "optimalPath": [
+          "blade",
+          "lancer",
+          "relay",
+          "pulse"
+        ]
+      }
+    ]
+  },
+  "checks": {
+    "pathDiversity": true,
+    "noUniversalSignatureDominance": true,
+    "noUniversalFirstPickDominance": true,
+    "contextAdaptationHasValue": true,
+    "pathReasoningBeatsGreedy": true,
+    "humanSequencesDifficultyMatched": true
+  },
+  "humanEvidence": "UNOBSERVED",
+  "claimBoundary": "Structural checks validate a nondegenerate carrier only. They do not establish attribution, adaptation, enjoyment, replay desire, or superiority of one randomness timing condition for humans."
+}

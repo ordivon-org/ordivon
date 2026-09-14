@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "id": "cs2-03-upstream-random-buildcraft",
+  "dimensions": ["force", "guard", "tempo"],
+  "cards": {
+    "blade": {"label": "Blade", "stats": [3,0,1]},
+    "bulwark": {"label": "Bulwark", "stats": [0,3,1]},
+    "relay": {"label": "Relay", "stats": [1,1,3]},
+    "lancer": {"label": "Lancer", "stats": [3,1,0]},
+    "sentinel": {"label": "Sentinel", "stats": [0,3,2]},
+    "pulse": {"label": "Pulse", "stats": [2,0,3]}
+  },
+  "offers": [
+    ["blade","bulwark","relay"],
+    ["lancer","sentinel","pulse"],
+    ["blade","sentinel","relay"],
+    ["lancer","bulwark","pulse"]
+  ],
+  "synergies": [
+    {"cards":["blade","lancer"],"bonus":[2,0,0]},
+    {"cards":["bulwark","sentinel"],"bonus":[0,2,0]},
+    {"cards":["relay","pulse"],"bonus":[0,0,2]},
+    {"cards":["blade","sentinel"],"bonus":[1,1,0]},
+    {"cards":["bulwark","pulse"],"bonus":[0,1,1]},
+    {"cards":["relay","lancer"],"bonus":[1,0,1]}
+  ],
+  "encounters": {
+    "swarm": {"label":"Swarm", "weights":[2,0,1]},
+    "siege": {"label":"Siege", "weights":[0,2,1]},
+    "pursuit": {"label":"Pursuit", "weights":[1,0,2]},
+    "breach": {"label":"Breach", "weights":[2,1,0]},
+    "attrition": {"label":"Attrition", "weights":[0,1,2]}
+  },
+  "humanSequences": [
+    ["pursuit","swarm","pursuit","siege"],
+    ["pursuit","pursuit","attrition","breach"],
+    ["pursuit","breach","swarm","attrition"],
+    ["swarm","swarm","breach","pursuit"]
+  ],
+  "schedules": {
+    "A": ["UPSTREAM","DOWNSTREAM","DOWNSTREAM","UPSTREAM"],
+    "B": ["DOWNSTREAM","UPSTREAM","UPSTREAM","DOWNSTREAM"]
+  }
+}
