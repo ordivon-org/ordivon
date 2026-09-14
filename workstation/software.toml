@@ -2,6 +2,10 @@
 # Workstation v2 owns node-local materialization/binding facts only.
 # Runtime owns execution; domains own semantic selection and success.
 
+[browser]
+playwright_root = "/root/.cache/ms-playwright"
+require_linkage_clean = true
+
 [managed_equipment.temporal-cli-1-8-3]
 executable = "/opt/ordivon/external/temporal-cli/1.8.3/temporal"
 execution_target = "local_linux"
