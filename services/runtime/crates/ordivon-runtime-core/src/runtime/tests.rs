@@ -1,4 +1,7 @@
-use super::engine::{native_windows_pre_target_evidence_gap, transient_main_pid_observation_loss};
+use super::engine::{
+    cancel_after_launch_identity_mismatch_is_safe, native_windows_pre_target_evidence_gap,
+    transient_main_pid_observation_loss,
+};
 use super::registry::{set_test_commit_fault, TestCommitFault, TestCommitPoint};
 #[cfg(feature = "operator-tools")]
 use super::repair::{AdminRepairAudit, AdminRepairOperation};
@@ -58,6 +61,25 @@ fn transient_main_pid_observation_loss_is_narrowly_classified() {
             false,
         );
         assert!(!transient_main_pid_observation_loss(&error));
+    }
+}
+
+#[test]
+fn cancel_launch_identity_mismatch_bypass_requires_definitive_process_absence() {
+    assert!(cancel_after_launch_identity_mismatch_is_safe(
+        false, false, false
+    ));
+    for (unit_active, recorded_pid_alive, cgroup_alive) in [
+        (true, false, false),
+        (false, true, false),
+        (false, false, true),
+        (true, true, true),
+    ] {
+        assert!(!cancel_after_launch_identity_mismatch_is_safe(
+            unit_active,
+            recorded_pid_alive,
+            cgroup_alive,
+        ));
     }
 }
 
