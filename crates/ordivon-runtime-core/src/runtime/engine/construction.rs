@@ -25,6 +25,7 @@ impl Runtime {
         input_authorities: Vec<InputAuthority>,
         default_runtime_ms: u64,
     ) -> RuntimeResult<Self> {
+        super::validate_logical_id(&config.node_id, "nodeId")?;
         config.executor.validate().map_err(map_universal_error)?;
         if default_runtime_ms == 0 || default_runtime_ms > config.executor.max_runtime_ms {
             return Err(RuntimeError::invalid(
@@ -92,6 +93,11 @@ impl Runtime {
         let execution_path = configured_execution_path()?;
         let execution_home = configured_execution_home()?;
         let runtime = Self {
+            node_identity: super::RuntimeNodeIdentity {
+                node_id: config.node_id,
+                platform: super::RuntimeNodePlatform::current(),
+                native: true,
+            },
             registry,
             executor: config.executor,
             default_runtime_ms,

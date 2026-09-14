@@ -37,6 +37,7 @@ impl Sandbox {
         RuntimeServer::new_with_default_runtime_ms(
             ServerConfig {
                 runtime: RuntimeConfig {
+                    node_id: "test-node".to_string(),
                     registry: RegistryConfig {
                         db_path: self.root.join("registry/registry.sqlite3"),
                         store_root: self.root.join("registry"),
@@ -76,6 +77,7 @@ impl Sandbox {
         fs::write(&workstation_config, b"{}\n").unwrap();
         RuntimeServer::new(ServerConfig {
             runtime: RuntimeConfig {
+                node_id: "test-node".to_string(),
                 registry: RegistryConfig {
                     db_path: self.root.join("registry-ingress/registry.sqlite3"),
                     store_root: self.root.join("registry-ingress"),
@@ -900,6 +902,7 @@ print(json.dumps({{
         fs::set_permissions(&tool, permissions).unwrap();
         let server = RuntimeServer::new(ServerConfig {
             runtime: RuntimeConfig {
+                node_id: "test-node".to_string(),
                 registry: RegistryConfig {
                     db_path: sandbox.root.join("registry-ingress/registry.sqlite3"),
                     store_root: sandbox.root.join("registry-ingress"),
@@ -1111,6 +1114,7 @@ fn private_ip_download_host_is_rejected_at_configuration_boundary() {
     fs::write(&workstation_config, b"{}\n").unwrap();
     let server = RuntimeServer::new(ServerConfig {
         runtime: RuntimeConfig {
+            node_id: "test-node".to_string(),
             registry: RegistryConfig {
                 db_path: sandbox.root.join("registry-ingress/registry.sqlite3"),
                 store_root: sandbox.root.join("registry-ingress"),
@@ -2440,6 +2444,12 @@ fn runtime_describe_projects_agent_affordances_without_selecting_a_target() {
         Vec::new(),
     );
     assert_eq!(result.schema_version, 1);
+    assert_eq!(result.node.node_id, "test-node");
+    assert_eq!(
+        result.node.platform,
+        ordivon_runtime_core::RuntimeNodePlatform::Linux
+    );
+    assert!(result.node.native);
     assert_eq!(result.global_execution_limit, 4);
     assert_eq!(result.default_runtime_ms, 4_000);
     assert_eq!(result.max_runtime_ms, 10_000);
@@ -2493,6 +2503,10 @@ fn runtime_describe_projects_agent_affordances_without_selecting_a_target() {
     assert!(required.is_empty());
     let output = serde_json::to_string(tool.output_schema.as_ref().unwrap()).unwrap();
     for expected in [
+        "node",
+        "nodeId",
+        "platform",
+        "native",
         "globalExecutionLimit",
         "defaultRuntimeMs",
         "maxRuntimeMs",

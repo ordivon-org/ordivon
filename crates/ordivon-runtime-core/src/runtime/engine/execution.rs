@@ -116,6 +116,7 @@ impl Runtime {
 
         RuntimeCapabilities {
             schema_version: RUNTIME_SCHEMA_VERSION,
+            node: self.node_identity.clone(),
             default_runtime_ms: self.default_runtime_ms,
             max_runtime_ms: self.executor.max_runtime_ms,
             max_output_bytes: self.executor.max_output_bytes,

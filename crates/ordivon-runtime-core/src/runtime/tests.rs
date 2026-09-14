@@ -128,6 +128,7 @@ fn file_digest(path: &Path) -> String {
 
 fn runtime_config(sandbox: &Sandbox) -> RuntimeConfig {
     RuntimeConfig {
+        node_id: "test-node".to_string(),
         registry: sandbox.registry.config().clone(),
         executor: UniversalExecutorConfig {
             store_root: sandbox.root.join("runtime"),
@@ -7072,6 +7073,9 @@ fn runtime_capabilities_project_current_affordances_without_input_authority_path
 
     let capabilities = runtime.capabilities();
     assert_eq!(capabilities.schema_version, RUNTIME_SCHEMA_VERSION);
+    assert_eq!(capabilities.node.node_id, "test-node");
+    assert_eq!(capabilities.node.platform, RuntimeNodePlatform::Linux);
+    assert!(capabilities.node.native);
     assert_eq!(capabilities.max_runtime_ms, 60_000);
     assert_eq!(capabilities.max_output_bytes, 1_048_576);
     assert_eq!(capabilities.allowed_executable_roots, vec!["/".to_string()]);

@@ -532,6 +532,36 @@ pub struct RuntimeReleaseAdmission {
     pub release: RuntimeReleaseProjection,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RuntimeNodePlatform {
+    Linux,
+    Windows,
+    Other,
+}
+
+impl RuntimeNodePlatform {
+    pub(crate) fn current() -> Self {
+        if cfg!(target_os = "linux") {
+            Self::Linux
+        } else if cfg!(windows) {
+            Self::Windows
+        } else {
+            Self::Other
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeNodeIdentity {
+    pub node_id: String,
+    pub platform: RuntimeNodePlatform,
+    /// True when this Runtime process is hosted by the platform it claims rather than
+    /// projecting a foreign execution target through another host OS.
+    pub native: bool,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, JsonSchema, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeExecutionTargetCapability {
@@ -564,6 +594,7 @@ pub struct RuntimeExecutionTargetCapability {
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeCapabilities {
     pub schema_version: u32,
+    pub node: RuntimeNodeIdentity,
     pub default_runtime_ms: u64,
     pub max_runtime_ms: u64,
     pub max_output_bytes: u64,

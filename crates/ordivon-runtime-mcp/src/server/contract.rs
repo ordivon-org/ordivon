@@ -111,6 +111,7 @@ pub struct RuntimeDescribeRequest {
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeDescribeResult {
     pub schema_version: u32,
+    pub node: RuntimeNodeIdentity,
     pub global_execution_limit: u32,
     pub default_runtime_ms: u64,
     pub max_runtime_ms: u64,
@@ -131,6 +132,7 @@ impl RuntimeDescribeResult {
     ) -> Self {
         Self {
             schema_version: capabilities.schema_version,
+            node: capabilities.node,
             global_execution_limit,
             default_runtime_ms: capabilities.default_runtime_ms,
             max_runtime_ms: capabilities.max_runtime_ms,

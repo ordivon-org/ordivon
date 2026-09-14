@@ -539,6 +539,15 @@ fn load_config() -> Result<AppConfig, Box<dyn std::error::Error>> {
         .transpose()?;
     let principal =
         std::env::var("ORDIVON_PRINCIPAL").unwrap_or_else(|_| "principal:local-owner".to_string());
+    let node_id = std::env::var("ORDIVON_NODE_ID").unwrap_or_else(|_| {
+        if cfg!(windows) {
+            "windows-local".to_string()
+        } else if cfg!(target_os = "linux") {
+            "linux-local".to_string()
+        } else {
+            "runtime-local".to_string()
+        }
+    });
     let (workspace_root, workspace_uid, workspace_gid) = (None, None, None);
 
     Ok(AppConfig {
@@ -552,6 +561,7 @@ fn load_config() -> Result<AppConfig, Box<dyn std::error::Error>> {
         default_runtime_ms,
         server: ServerConfig {
             runtime: RuntimeConfig {
+                node_id,
                 registry: RegistryConfig {
                     db_path: registry_root.join("registry.sqlite3"),
                     store_root: registry_root,
