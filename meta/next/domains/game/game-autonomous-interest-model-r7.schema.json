@@ -1,0 +1,244 @@
+{
+  "$defs": {
+    "context": {
+      "additionalProperties": false,
+      "properties": {
+        "evalInitialStates": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 8,
+          "minItems": 8,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "trainInitialStates": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "trainInitialStates",
+        "evalInitialStates"
+      ],
+      "type": "object"
+    },
+    "state": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "else": {
+            "properties": {
+              "transitions": {
+                "maxProperties": 0
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "status": {
+                "const": "ONGOING"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "transitions": {
+                "minProperties": 1
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "observationClass": {
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "status": {
+          "enum": [
+            "ONGOING",
+            "WIN",
+            "LOSS"
+          ]
+        },
+        "transitions": {
+          "additionalProperties": {
+            "$ref": "#/$defs/transition"
+          },
+          "maxProperties": 8,
+          "type": "object"
+        }
+      },
+      "required": [
+        "observationClass",
+        "status",
+        "transitions"
+      ],
+      "type": "object"
+    },
+    "transition": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "next": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "next"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "couplingId": {
+              "type": "string"
+            },
+            "next": {
+              "type": "string"
+            },
+            "withoutCouplingNext": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "next",
+            "couplingId",
+            "withoutCouplingNext"
+          ],
+          "type": "object"
+        }
+      ]
+    }
+  },
+  "$id": "https://ordivon.local/schemas/game-autonomous-interest-model-r7.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "else": {
+        "properties": {
+          "candidateId": {
+            "enum": [
+              "R7SELFTEST",
+              "R7SELFTEST01",
+              "R7SELFTEST02",
+              "R7SELFTEST03"
+            ]
+          }
+        }
+      },
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "candidate"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "candidateId": {
+            "enum": [
+              "R7C01",
+              "R7C02",
+              "R7C03"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "actions": {
+      "items": {
+        "pattern": "^a[0-7]$",
+        "type": "string"
+      },
+      "maxItems": 8,
+      "minItems": 2,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "candidateId": {
+      "type": "string"
+    },
+    "causalCouplings": {
+      "items": {
+        "pattern": "^c[0-5]$",
+        "type": "string"
+      },
+      "maxItems": 6,
+      "minItems": 3,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "contexts": {
+      "additionalProperties": false,
+      "properties": {
+        "0": {
+          "$ref": "#/$defs/context"
+        },
+        "1": {
+          "$ref": "#/$defs/context"
+        },
+        "2": {
+          "$ref": "#/$defs/context"
+        },
+        "3": {
+          "$ref": "#/$defs/context"
+        }
+      },
+      "required": [
+        "0",
+        "1",
+        "2",
+        "3"
+      ],
+      "type": "object"
+    },
+    "humanSignalUsed": {
+      "const": false
+    },
+    "kind": {
+      "enum": [
+        "candidate",
+        "selftest"
+      ]
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "states": {
+      "additionalProperties": {
+        "$ref": "#/$defs/state"
+      },
+      "maxProperties": 512,
+      "minProperties": 12,
+      "propertyNames": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,47}$"
+      },
+      "type": "object"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "kind",
+    "candidateId",
+    "humanSignalUsed",
+    "actions",
+    "causalCouplings",
+    "contexts",
+    "states"
+  ],
+  "title": "Autonomous Game Interest R7 Declarative Finite Game Model",
+  "type": "object"
+}

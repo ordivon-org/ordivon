@@ -1,0 +1,264 @@
+{
+  "actions": [
+    "a0",
+    "a1",
+    "a2"
+  ],
+  "candidateId": "R7SELFTEST",
+  "causalCouplings": [
+    "c0",
+    "c1",
+    "c2"
+  ],
+  "contexts": {
+    "0": {
+      "evalInitialStates": [
+        "e0",
+        "e1",
+        "e2",
+        "e3",
+        "e4",
+        "e5",
+        "e6",
+        "e7"
+      ],
+      "trainInitialStates": [
+        "t0",
+        "t1",
+        "t2",
+        "t3"
+      ]
+    },
+    "1": {
+      "evalInitialStates": [
+        "e0",
+        "e1",
+        "e2",
+        "e3",
+        "e4",
+        "e5",
+        "e6",
+        "e7"
+      ],
+      "trainInitialStates": [
+        "t0",
+        "t1",
+        "t2",
+        "t3"
+      ]
+    },
+    "2": {
+      "evalInitialStates": [
+        "e0",
+        "e1",
+        "e2",
+        "e3",
+        "e4",
+        "e5",
+        "e6",
+        "e7"
+      ],
+      "trainInitialStates": [
+        "t0",
+        "t1",
+        "t2",
+        "t3"
+      ]
+    },
+    "3": {
+      "evalInitialStates": [
+        "e0",
+        "e1",
+        "e2",
+        "e3",
+        "e4",
+        "e5",
+        "e6",
+        "e7"
+      ],
+      "trainInitialStates": [
+        "t0",
+        "t1",
+        "t2",
+        "t3"
+      ]
+    }
+  },
+  "humanSignalUsed": false,
+  "kind": "selftest",
+  "schemaVersion": 1,
+  "states": {
+    "e0": {
+      "observationClass": 0,
+      "status": "ONGOING",
+      "transitions": {
+        "a0": {
+          "couplingId": "c2",
+          "next": "win",
+          "withoutCouplingNext": "loss"
+        },
+        "a1": {
+          "next": "win"
+        },
+        "a2": {
+          "next": "loss"
+        }
+      }
+    },
+    "e1": {
+      "observationClass": 1,
+      "status": "ONGOING",
+      "transitions": {
+        "a0": {
+          "next": "win"
+        }
+      }
+    },
+    "e2": {
+      "observationClass": 6,
+      "status": "ONGOING",
+      "transitions": {
+        "a1": {
+          "next": "win"
+        }
+      }
+    },
+    "e3": {
+      "observationClass": 7,
+      "status": "ONGOING",
+      "transitions": {
+        "a0": {
+          "next": "win"
+        },
+        "a1": {
+          "next": "win"
+        },
+        "a2": {
+          "next": "loss"
+        }
+      }
+    },
+    "e4": {
+      "observationClass": 8,
+      "status": "ONGOING",
+      "transitions": {
+        "a0": {
+          "next": "win"
+        },
+        "a1": {
+          "next": "win"
+        },
+        "a2": {
+          "next": "loss"
+        }
+      }
+    },
+    "e5": {
+      "observationClass": 9,
+      "status": "ONGOING",
+      "transitions": {
+        "a0": {
+          "next": "win"
+        },
+        "a1": {
+          "next": "win"
+        },
+        "a2": {
+          "next": "loss"
+        }
+      }
+    },
+    "e6": {
+      "observationClass": 10,
+      "status": "ONGOING",
+      "transitions": {
+        "a0": {
+          "next": "win"
+        },
+        "a1": {
+          "next": "win"
+        },
+        "a2": {
+          "next": "loss"
+        }
+      }
+    },
+    "e7": {
+      "observationClass": 11,
+      "status": "ONGOING",
+      "transitions": {
+        "a0": {
+          "next": "win"
+        },
+        "a1": {
+          "next": "win"
+        },
+        "a2": {
+          "next": "loss"
+        }
+      }
+    },
+    "loss": {
+      "observationClass": 12,
+      "status": "LOSS",
+      "transitions": {}
+    },
+    "t0": {
+      "observationClass": 13,
+      "status": "ONGOING",
+      "transitions": {
+        "a0": {
+          "couplingId": "c0",
+          "next": "win",
+          "withoutCouplingNext": "loss"
+        },
+        "a1": {
+          "next": "win"
+        },
+        "a2": {
+          "next": "loss"
+        }
+      }
+    },
+    "t1": {
+      "observationClass": 2,
+      "status": "ONGOING",
+      "transitions": {
+        "a0": {
+          "next": "win"
+        }
+      }
+    },
+    "t2": {
+      "observationClass": 3,
+      "status": "ONGOING",
+      "transitions": {
+        "a1": {
+          "next": "win"
+        }
+      }
+    },
+    "t3": {
+      "observationClass": 4,
+      "status": "ONGOING",
+      "transitions": {
+        "a0": {
+          "couplingId": "c1",
+          "next": "win",
+          "withoutCouplingNext": "loss"
+        },
+        "a1": {
+          "next": "win"
+        },
+        "a2": {
+          "next": "loss"
+        }
+      }
+    },
+    "win": {
+      "observationClass": 5,
+      "status": "WIN",
+      "transitions": {}
+    }
+  }
+}
