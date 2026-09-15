@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "artifact": {
+    "name": "archive-archipelago-001.html",
+    "path": "/var/lib/ordivon/runtime/workspaces/ws-archive-archipelago-polish-r2-20260915/productions/archive-archipelago-001/interactive/archive-archipelago-001.html",
+    "size": 142059,
+    "digest": {
+      "sha256": "54e8269a11257e648aee56e1caa52aa0bdf0584f5dd72e4a98a97baa271765e5"
+    }
+  },
+  "validator": {
+    "implementation": "Nu Html Checker",
+    "version": "26.9.7 (d73d94b)",
+    "jar": "/opt/ordivon/external/artifact-toolchain/vnu/26.9.7/vnu.jar",
+    "jarSha256": "663de0a7462cf5a98faba18d62006add503632f880596f79aea4565c62ccb536"
+  },
+  "messageCount": 0,
+  "messages": [],
+  "exitCode": 0,
+  "parseError": null,
+  "stderr": "{\"version\":\"26.9.7 (d73d94b)\",\"messages\":[]}",
+  "boundary": "Nu Html Checker conformance evidence covers HTML/CSS/SVG syntax/content-model checks; browser behavior, accessibility and deployed-origin behavior remain independent."
+}

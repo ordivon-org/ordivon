@@ -10,7 +10,7 @@ A source-first cartographic/data-art portrait of an exact frozen Ordivon Creativ
 - `interactive/index.html` + CSS/JS/data — editable web source.
 - `interactive/archive-archipelago-001.html` — self-contained interactive delivery carrier.
 
-Interactive controls include owner filtering, title/ID search, featured-only filtering, exact registered-neighbor detail, optional relation-route pulse, reduced-motion behavior, and an internally pannable mobile map. Keyboard traversal uses one map-level Tab stop plus bounded native search-result buttons; exact Work-ID search was verified to reach all 303 Works without forcing 303 visual map points into the Tab sequence. The pulse animates only already-catalogued routes; it does not create inferred relations.
+Interactive controls include owner filtering, title/ID search, featured-only filtering, exact registered-neighbor detail, optional relation-route pulse, reduced-motion behavior, and an internally pannable mobile map. Keyboard traversal uses one map-level Tab stop plus bounded native search-result buttons; exact Work-ID search was verified to reach all 303 Works without forcing 303 visual map points into the Tab sequence. On narrow pointer surfaces, background taps use a screen-space nearest-visible-node resolver within 22 CSS px with drag suppression; this improves touch exploration without turning the 303 visual marks back into semantic controls. The pulse animates only already-catalogued routes; it does not create inferred relations.
 
 ## Build
 

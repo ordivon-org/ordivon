@@ -16,7 +16,9 @@
         "evidence/collaboration-polish-r2.json",
         "evidence/artifact-browser-matrix-r2.json",
         "evidence/artifact-browser-matrix-r3.json",
-        "evidence/friction-interactive-keyboard-focus.json"
+        "evidence/friction-interactive-keyboard-focus.json",
+        "evidence/artifact-browser-matrix-r4.json",
+        "evidence/friction-interactive-touch-targets.json"
       ],
       "allowedWording": [
         "cartographic portrait of the frozen Creative Library snapshot",
