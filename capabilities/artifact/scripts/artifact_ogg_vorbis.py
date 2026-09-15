@@ -15,6 +15,7 @@ FFPROBE=Path(os.environ.get('ARTIFACT_FFPROBE','/usr/bin/ffprobe'))
 NODE=Path(os.environ.get('ARTIFACT_NODE','/usr/bin/node'))
 BROWSER_PROBE=ROOT/'artifact-delivery/node/verify_ogg_vorbis.mjs'
 NODE_PACKAGE_ROOT=Path(os.environ.get('ARTIFACT_NODE_PACKAGE_ROOT','/opt/ordivon/external/artifact-toolchain/node/1.63.0'))
+PLAYWRIGHT_BROWSERS_ROOT=Path(os.environ.get('ARTIFACT_PLAYWRIGHT_BROWSERS_PATH','/opt/ordivon/external/artifact-toolchain/playwright-browsers/1.63.0'))
 
 def run(a:list[str],*,timeout=120,env=None): return subprocess.run(a,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=False,timeout=timeout,env=env)
 def sha_file(p:Path):
@@ -49,6 +50,7 @@ def verify_ogg_vorbis(path:Path,contract_path:Path,evidence_dir:Path|None=None)-
  for name,p in tools:
   if not p.is_file() or (name!='browserProbe' and not os.access(p,os.X_OK)):failures.append(f'required mature external capability unavailable: {name}')
   else:result['tools'][name]={'path':str(p.resolve()),'sha256':sha_file(p)}
+ if not PLAYWRIGHT_BROWSERS_ROOT.is_dir():failures.append('pinned Artifact Playwright browser root unavailable')
  if not (NODE_PACKAGE_ROOT/'package.json').is_file():failures.append('pinned Artifact Node/Playwright package root unavailable')
  else:result['tools']['nodePackageRoot']={'path':str(NODE_PACKAGE_ROOT.resolve()),'packageJsonSha256':sha_file(NODE_PACKAGE_ROOT/'package.json')}
  if failures:result['failures']=failures;(ev/'verification.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n');return result
@@ -106,7 +108,7 @@ def verify_ogg_vorbis(path:Path,contract_path:Path,evidence_dir:Path|None=None)-
  if independent_fail:result['failures']=failures;(ev/'verification.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n');return result
 
  # Pinned Chromium + Firefox Web Audio target evidence. Divergent sample boundaries are surfaced, not laundered.
- env=dict(os.environ);env['ARTIFACT_NODE_PACKAGE_ROOT']=str(NODE_PACKAGE_ROOT)
+ env=dict(os.environ);env['ARTIFACT_NODE_PACKAGE_ROOT']=str(NODE_PACKAGE_ROOT);env['PLAYWRIGHT_BROWSERS_PATH']=str(PLAYWRIGHT_BROWSERS_ROOT)
  bp=run([str(NODE),str(BROWSER_PROBE),str(path),str(want['sampleRateHz'])],timeout=120,env=env);bpout,bperr=text(bp);(ev/'browser-matrix.json').write_text(bpout if bpout else bperr)
  browser_fail=[]
  try:bobj=json.loads(bpout) if bp.returncode==0 else {}

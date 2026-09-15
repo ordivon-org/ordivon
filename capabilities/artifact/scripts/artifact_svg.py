@@ -7,6 +7,7 @@ from typing import Any
 from PIL import Image
 ROOT=Path(__file__).resolve().parents[1]
 XMLLINT=Path(os.environ.get('ARTIFACT_XMLLINT','/usr/bin/xmllint'));RSVG=Path(os.environ.get('ARTIFACT_RSVG_CONVERT','/usr/bin/rsvg-convert'));NODE=Path(os.environ.get('ARTIFACT_NODE','/usr/bin/node'));BROWSER_PROBE=ROOT/'artifact-delivery/node/verify_svg_static.mjs';NODE_PACKAGE_ROOT=Path(os.environ.get('ARTIFACT_NODE_PACKAGE_ROOT','/opt/ordivon/external/artifact-toolchain/node/1.63.0'))
+PLAYWRIGHT_BROWSERS_ROOT=Path(os.environ.get('ARTIFACT_PLAYWRIGHT_BROWSERS_PATH','/opt/ordivon/external/artifact-toolchain/playwright-browsers/1.63.0'))
 SVG_NS='http://www.w3.org/2000/svg';ALLOWED_ELEMENTS={'svg','g','defs','title','desc','path','rect','circle','ellipse','line','polyline','polygon'}
 ALLOWED_ATTRS={'id','version','width','height','viewBox','transform','fill','fill-opacity','stroke','stroke-opacity','stroke-width','stroke-linecap','stroke-linejoin','opacity','x','y','x1','y1','x2','y2','rx','ry','cx','cy','r','d','points'}
 def run(a,**kw):return subprocess.run(a,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=False,timeout=kw.get('timeout',120),env=kw.get('env'))
@@ -21,6 +22,7 @@ def verify_svg(path:Path,evidence_dir:Path|None=None)->dict[str,Any]:
  for n,p in [('xmllint',XMLLINT),('rsvgConvert',RSVG),('node',NODE),('browserProbe',BROWSER_PROBE)]:
   if not p.is_file() or (n!='browserProbe' and not os.access(p,os.X_OK)):failures.append(f'required mature external capability unavailable: {n}')
   else:res['tools'][n]={'path':str(p.resolve()),'sha256':sha(p)}
+ if not PLAYWRIGHT_BROWSERS_ROOT.is_dir():failures.append('pinned Artifact Playwright browser root unavailable')
  if not (NODE_PACKAGE_ROOT/'package.json').is_file():failures.append('pinned Artifact Node/Playwright package root unavailable')
  else:res['tools']['nodePackageRoot']={'path':str(NODE_PACKAGE_ROOT.resolve()),'packageJsonSha256':sha(NODE_PACKAGE_ROOT/'package.json')}
  if failures:return res
@@ -70,7 +72,7 @@ def verify_svg(path:Path,evidence_dir:Path|None=None)->dict[str,Any]:
   except Exception as e:render_fail.append(f'librsvg output PNG unreadable: {e}')
  failures+=render_fail;res['referenceRender']={'status':'PASS' if not render_fail else 'FAIL','render':render,'evidence':{'pngPath':str(out),'stderrSha256':sha(ev/'rsvg.stderr.txt')},'failures':render_fail}
  if render_fail:return res
- env=dict(os.environ);env['ARTIFACT_NODE_PACKAGE_ROOT']=str(NODE_PACKAGE_ROOT);bp=run([str(NODE),str(BROWSER_PROBE),str(path)],env=env);bout,berr=bp.stdout.decode('utf-8','replace'),bp.stderr.decode('utf-8','replace');(ev/'browser-matrix.json').write_text(bout if bout else berr);bfail=[]
+ env=dict(os.environ);env['ARTIFACT_NODE_PACKAGE_ROOT']=str(NODE_PACKAGE_ROOT);env['PLAYWRIGHT_BROWSERS_PATH']=str(PLAYWRIGHT_BROWSERS_ROOT);bp=run([str(NODE),str(BROWSER_PROBE),str(path)],env=env);bout,berr=bp.stdout.decode('utf-8','replace'),bp.stderr.decode('utf-8','replace');(ev/'browser-matrix.json').write_text(bout if bout else berr);bfail=[]
  try:b=json.loads(bout) if bp.returncode==0 else {}
  except:b={}
  browsers=b.get('browsers') or {}
