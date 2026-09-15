@@ -520,7 +520,7 @@ wb = xlsxwriter.Workbook(xlsx_path); ws = wb.add_worksheet(); fmt = wb.add_forma
                 target_full_pass = target.get("verificationResult") == "PASSED" and webkit_target.get("status") == "PASS"
                 expected_local_block = (
                     target.get("verificationResult") == "FAILED"
-                    and webkit_target.get("status") == "FAIL"
+                    and webkit_target.get("status") in {"FAIL", "NOT_INSTALLED", "LOCAL_HOST_COMPATIBILITY_NOT_PROVEN"}
                     and verify_value.get("failures") == ["executed verifier gate(s) failed: target"]
                 )
                 web_profile_ok = common_ok and primary_ok and (target_full_pass or expected_local_block)

@@ -42,6 +42,8 @@ ROUTES: dict[str, tuple[str, str, bool]] = {
     "software-release-linux-elf-executable-r1": ("scripts/artifact_software_release_elf.py", "verify_linux_elf", True),
     "web-archive-warc-response-r1": ("scripts/artifact_web_archive.py", "verify_warc", True),
     "message-internet-text-r1": ("scripts/artifact_message.py", "verify_message", True),
+    "eda-kicad-pcb-gerber-r1": ("scripts/artifact_eda.py", "verify_kicad_pcb", True),
+    "eda-spice-transient-measure-r1": ("scripts/artifact_spice.py", "verify_spice_transient", True),
 }
 
 

@@ -1,7 +1,7 @@
 {
-  "fullRegression": "284 tests / 282 PASS / 2 conditional skips / 0 failures",
+  "fullRegression": "PASS: 297 tests, 0 failures, 4 skipped; Runtime job job-01a0a4a2-bac0-75a0-acf0-5591f800319c; operation sha256:ff133b067e37ddb03e501b1ab7a0095e7d2ab946722d754512474bd571987389",
   "kind": "artifact-profile-v2-shadow-mapping-manifest",
-  "mappingCount": 25,
+  "mappingCount": 27,
   "mappings": [
     {
       "family": "audio",
@@ -66,20 +66,20 @@
     {
       "family": "design-3d",
       "mapped": "artifact-delivery/shadow-v2/examples/design-3d-glb-material-scene-r1-v2.json",
-      "mappedDigest": "c140df06219aceef5de86e68fd6231aeab5c78af6d979b975efca4a279a184b0",
+      "mappedDigest": "d665df89577fb2b97766e884340501bddf421e48d0ad50249acecd0186fb934d",
       "profileId": "design-3d-glb-material-scene-r1",
       "source": "artifact-delivery/shadow-profiles/design-3d-glb-material-scene-r1.json",
-      "sourceDigest": "57645f3e3989bb2d66cf8a8142512b42d0f3f5054db44687f8e8e4421271a20c",
+      "sourceDigest": "7a9c2375b64f0e22092ea85806487686c3bf548f7d119a3fa1a8f91378a214c7",
       "sourceKind": "standards-first-shadow",
       "validation": "PASS"
     },
     {
       "family": "design-3d",
       "mapped": "artifact-delivery/shadow-v2/examples/design-3d-glb-skinned-animation-r1-v2.json",
-      "mappedDigest": "ceb70f821b854a3d737ad8e3eb7f4a1a7425cc6a4f02a69a19c8c9e240fd4594",
+      "mappedDigest": "b8b76f2cb8ab7fcc9e48fe6173d6f7e046a9124251add5cf33639f0fd26e32fa",
       "profileId": "design-3d-glb-skinned-animation-r1",
       "source": "artifact-delivery/shadow-profiles/design-3d-glb-skinned-animation-r1.json",
-      "sourceDigest": "6cbe1f0904b08041c7248209a6806d491cc5ac2dd24e1999a0f2eb748902ea10",
+      "sourceDigest": "ccfde3093aafd7960cfd639679d388b88e9d066c4b684db36762111ee79fa3db",
       "sourceKind": "standards-first-shadow",
       "validation": "PASS"
     },
@@ -94,23 +94,33 @@
       "validation": "PASS"
     },
     {
-      "family": "fixed-document",
-      "mapped": "artifact-delivery/shadow-v2/examples/pdf-accessible-r1-v2.json",
-      "mappedDigest": "1363cc727010594b59b234c12d5d6d75a5259b75ab4cff463031e9c1ce4dd328",
-      "profileId": "pdf-accessible-r1",
-      "source": "artifact-delivery/examples/pdf-accessible-r1.json",
-      "sourceDigest": "decb7bc5a71c6385fef03fbddb9f1db2702f9d531d197756d21a4ac5da499878",
+      "family": "text-document",
+      "mapped": "artifact-delivery/shadow-v2/examples/document-r1-v2.json",
+      "mappedDigest": "62225db571a9a467cf62304ed8a0ac32cd35d805576099e8587c6c00e0315e40",
+      "profileId": "document-r1",
+      "source": "artifact-delivery/examples/document-r1.json",
+      "sourceDigest": "a7fd567d723128620e6bae52b1be47d98c00c84e65d022a5093ab697b7a38c97",
       "sourceKind": "production-v1",
       "validation": "PASS"
     },
     {
-      "family": "fixed-document",
-      "mapped": "artifact-delivery/shadow-v2/examples/pdf-fixed-r1-v2.json",
-      "mappedDigest": "9f95922b31407836e0cec8b466bdd4e0ae01e69846cc74127ee29bd0da5fdb83",
-      "profileId": "pdf-fixed-r1",
-      "source": "artifact-delivery/examples/pdf-fixed-r1.json",
-      "sourceDigest": "7e5464cf7d1666f3535a0a3f525da191be3ba5d87ff6f354d5539b5b66842d0e",
-      "sourceKind": "production-v1",
+      "family": "electronic-design",
+      "mapped": "artifact-delivery/shadow-v2/examples/eda-kicad-pcb-gerber-r1-v2.json",
+      "profileId": "eda-kicad-pcb-gerber-r1",
+      "source": "artifact-delivery/shadow-profiles/eda-kicad-pcb-gerber-r1.json",
+      "sourceKind": "standards-first-shadow",
+      "mappedDigest": "69ce758dcb606e4f343faa8b13d2bb7c85e4a8086209e0bddf068ab1fdbb59e6",
+      "sourceDigest": "b33fb96f156e82145a88d576725c9d60ca9963a8fbb4ee7c98c99306d989b814",
+      "validation": "PASS"
+    },
+    {
+      "family": "electronic-design",
+      "mapped": "artifact-delivery/shadow-v2/examples/eda-spice-transient-measure-r1-v2.json",
+      "profileId": "eda-spice-transient-measure-r1",
+      "source": "artifact-delivery/shadow-profiles/eda-spice-transient-measure-r1.json",
+      "sourceKind": "standards-first-shadow",
+      "mappedDigest": "f6f3e03264de76a1d991421bc47530234ddf354f102975e6a037879d529676cc",
+      "sourceDigest": "f87b7408b979d48bd86f804cc34417694481040d81ca279a44b4fafc0fcfb024",
       "validation": "PASS"
     },
     {
@@ -141,6 +151,26 @@
       "source": "artifact-delivery/shadow-profiles/moving-image-matroska-ffv1-v3-r1.json",
       "sourceDigest": "8c9437698810c85ff53cb8f65092256b52ed6491c52b0f48711bc5586cfec15f",
       "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
+      "family": "fixed-document",
+      "mapped": "artifact-delivery/shadow-v2/examples/pdf-accessible-r1-v2.json",
+      "mappedDigest": "1363cc727010594b59b234c12d5d6d75a5259b75ab4cff463031e9c1ce4dd328",
+      "profileId": "pdf-accessible-r1",
+      "source": "artifact-delivery/examples/pdf-accessible-r1.json",
+      "sourceDigest": "decb7bc5a71c6385fef03fbddb9f1db2702f9d531d197756d21a4ac5da499878",
+      "sourceKind": "production-v1",
+      "validation": "PASS"
+    },
+    {
+      "family": "fixed-document",
+      "mapped": "artifact-delivery/shadow-v2/examples/pdf-fixed-r1-v2.json",
+      "mappedDigest": "9f95922b31407836e0cec8b466bdd4e0ae01e69846cc74127ee29bd0da5fdb83",
+      "profileId": "pdf-fixed-r1",
+      "source": "artifact-delivery/examples/pdf-fixed-r1.json",
+      "sourceDigest": "7e5464cf7d1666f3535a0a3f525da191be3ba5d87ff6f354d5539b5b66842d0e",
+      "sourceKind": "production-v1",
       "validation": "PASS"
     },
     {
@@ -176,10 +206,10 @@
     {
       "family": "software-release",
       "mapped": "artifact-delivery/shadow-v2/examples/software-release-linux-elf-executable-r1-v2.json",
-      "mappedDigest": "a32d2dbc49aff90bdb2f014853c0baf7c94f5dd9b7f423fd87d21a9f06dd7dfc",
+      "mappedDigest": "40ad66d62e5e4afd237972b2c37b2400087241a50978a1d3038546f80968dc43",
       "profileId": "software-release-linux-elf-executable-r1",
       "source": "artifact-delivery/shadow-profiles/software-release-linux-elf-executable-r1.json",
-      "sourceDigest": "ba58c827f6362a6fa9d05cce5c9fe93d7876b0b203a90641c9f5c49cb92f1fb9",
+      "sourceDigest": "bd2998fab97f2be22364405b479c2b1678733202277a1eb85384e30836368ddd",
       "sourceKind": "standards-first-shadow",
       "validation": "PASS"
     },
@@ -224,13 +254,13 @@
       "validation": "PASS"
     },
     {
-      "family": "text-document",
-      "mapped": "artifact-delivery/shadow-v2/examples/document-r1-v2.json",
-      "mappedDigest": "62225db571a9a467cf62304ed8a0ac32cd35d805576099e8587c6c00e0315e40",
-      "profileId": "document-r1",
-      "source": "artifact-delivery/examples/document-r1.json",
-      "sourceDigest": "a7fd567d723128620e6bae52b1be47d98c00c84e65d022a5093ab697b7a38c97",
-      "sourceKind": "production-v1",
+      "family": "web-archive",
+      "mapped": "artifact-delivery/shadow-v2/examples/web-archive-warc-response-r1-v2.json",
+      "mappedDigest": "f214642543d8d18b7f8e65fade6ff0a9d31a294fb92e747dcd59aaee026c98f7",
+      "profileId": "web-archive-warc-response-r1",
+      "source": "artifact-delivery/shadow-profiles/web-archive-warc-response-r1.json",
+      "sourceDigest": "4c8e63ac2edbc34fb5250b89381e8102cad17b1b9a3c646239206ac27ef9a464",
+      "sourceKind": "standards-first-shadow",
       "validation": "PASS"
     },
     {
@@ -241,16 +271,6 @@
       "source": "artifact-delivery/examples/web-r1.json",
       "sourceDigest": "a31a76e6ddba10f194dc816bad8d01a24462da6b4f2ea228d5fe51fe25e18883",
       "sourceKind": "production-v1",
-      "validation": "PASS"
-    },
-    {
-      "family": "web-archive",
-      "mapped": "artifact-delivery/shadow-v2/examples/web-archive-warc-response-r1-v2.json",
-      "mappedDigest": "f214642543d8d18b7f8e65fade6ff0a9d31a294fb92e747dcd59aaee026c98f7",
-      "profileId": "web-archive-warc-response-r1",
-      "source": "artifact-delivery/shadow-profiles/web-archive-warc-response-r1.json",
-      "sourceDigest": "4c8e63ac2edbc34fb5250b89381e8102cad17b1b9a3c646239206ac27ef9a464",
-      "sourceKind": "standards-first-shadow",
       "validation": "PASS"
     }
   ],
@@ -264,7 +284,8 @@
     "software-release",
     "design-3d",
     "web-archive",
-    "message"
+    "message",
+    "electronic-design"
   ],
   "schemaVersion": 1,
   "status": "SHADOW_SCHEMA_PROVEN"

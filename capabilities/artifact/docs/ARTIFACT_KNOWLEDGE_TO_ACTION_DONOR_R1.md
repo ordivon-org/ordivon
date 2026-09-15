@@ -129,22 +129,25 @@ Ten newer standards-first families now expose seventeen isolated profile-validat
 - Design / 3D;
 - Software Release;
 - Web Archive;
-- Message.
+- Message;
+- Electronic Design, bounded to KiCad PCB DRC/manufacturing export and ngspice transient-measure evidence.
 
-The mixed legacy `scripts/artifact_delivery.py` is explicitly **not** promoted as a validator implementation because it combines production orchestration, compatibility and historical Artifact mechanics.
+The mixed legacy `scripts/artifact_delivery.py` is explicitly **not** promoted as a validator implementation because it combines production orchestration, compatibility and historical Artifact mechanics. Electronic Design likewise does not promote a universal EDA AST, electrical-correctness claim, manufacturability claim, or CAD standing; KiCad/ngspice remain external semantic authorities and CAD stays separately ungraduated.
 
 ## Verification
 
 Runtime regression job:
 
-`job-01a09aef-efc0-7693-8696-baa87c0854e7`
+`job-01a0a4a2-bac0-75a0-acf0-5591f800319c`
 
 Final matrix:
 
 - donor focused tests: **10/10 PASS**;
-- full Artifact tests: **284 total / 282 PASS / 2 existing conditional skips / 0 failures**.
+- full Artifact tests: **297 total / 293 PASS / 4 conditional skips / 0 failures**;
+- Artifact toolchain doctor: **PASS**, with WebKit still fail-closed at `WEBKIT_SUPPORTED_RUNNER_REQUIRED`;
+- Profile-v2 mapping: **27/27 mappings across 16 families mechanically revalidated**.
 
-The exact verification receipt is frozen in `artifact-delivery/donor-r1/verification-r1.json` and binds the donor manifest SHA-256 plus the Runtime operation digest.
+The exact verification receipt is frozen in `artifact-delivery/donor-r1/verification-r1.json` and binds the donor manifest SHA-256, Profile-v2 mapping manifest SHA-256, Runtime regression operation digest, donor-focused receipt, and toolchain-doctor receipt.
 
 ## What this proves
 

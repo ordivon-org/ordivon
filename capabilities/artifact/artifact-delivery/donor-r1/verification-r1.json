@@ -1,29 +1,50 @@
 {
-  "baseRevision": "1f58012fa5a9f15d122e406b6b0c070df89431ff",
-  "boundary": "PASS establishes deterministic donor generation, exact source-reference digests, complete current Artifact family/profile coverage, preserved live-proven shadow bindings, profile-specific validator ownership, non-promotion of execution wiring, and no regression in the current Artifact test matrix. Linux ELF release verification is retained as final-byte identity/structure/readback knowledge only; producer build/reproducibility, security isolation, signing/provenance and store release remain separate authorities.",
+  "baseRevision": "7f61bd2a87185df62dc77b801b5e8f4adb453c8d",
+  "boundary": "PASS establishes deterministic donor generation, exact source-reference digests, complete current Artifact family/profile coverage including the bounded electronic-design slice, preserved live-proven shadow bindings, profile-specific validator ownership, non-promotion of execution wiring, and no regression in the current Artifact test matrix. KiCad/ngspice remain external semantic authorities; PCB DRC/export and bounded SPICE measures do not claim electrical correctness, manufacturability, safety, hardware behavior, or a universal EDA ontology. Linux ELF release verification remains final-byte identity/structure/readback knowledge only; producer build/reproducibility, security isolation, signing/provenance and store release remain separate authorities.",
   "coverage": {
-    "isolatedValidatorImplementations": 17,
-    "liveProvenShadowBindings": 17,
-    "normalizedProfiles": 25,
-    "representedFamilies": 15,
-    "taxonomyFamilies": 15
+    "isolatedValidatorImplementations": 19,
+    "liveProvenShadowBindings": 19,
+    "normalizedProfiles": 27,
+    "representedFamilies": 16,
+    "taxonomyFamilies": 16
   },
-  "donorManifestSha256": "cbd5c6700ae00bf846666a1fa9ced8eacf795eec2ea0b1a34b9c3e1cd6614dc6",
+  "donorManifestSha256": "2da5923249c60bdf66e0b7cfed028067cf40ac5659e10a197cc1b2114f28bf66",
   "focusedDonorTests": {
     "failed": 0,
     "passed": 10,
-    "total": 10
+    "total": 10,
+    "runtimeJobId": "job-01a0a4a7-7335-7a91-8b01-e32b29752911",
+    "operationDigest": "sha256:d3760c73d9ec10a28a24cb61f481b5b7e8ff021db1b00a04dc39fb1c3f329fd1"
   },
   "fullRegression": {
     "failed": 0,
-    "passed": 282,
-    "skipped": 2,
-    "total": 284
+    "passed": 293,
+    "skipped": 4,
+    "total": 297,
+    "runtimeJobId": "job-01a0a4a2-bac0-75a0-acf0-5591f800319c",
+    "operationDigest": "sha256:ff133b067e37ddb03e501b1ab7a0095e7d2ab946722d754512474bd571987389"
+  },
+  "profileV2Mapping": {
+    "familyCount": 16,
+    "mappingCount": 27,
+    "manifestSha256": "528e8d792fa15cd9353e33cf7ff81910e6d72d84fd3952635ba4abda6938e543",
+    "semanticByteRevalidationJobId": "job-01a0a479-1143-7761-82d7-ca859c004dc2",
+    "semanticByteRevalidationOperationDigest": "sha256:47531ff193cd1a4a0fbacf71c01f53054050d53e65b95542d09eebd167149918"
+  },
+  "toolchainDoctor": {
+    "status": "PASS",
+    "runtimeJobId": "job-01a0a49f-c5e8-7ca1-a42b-d553b9b5a47c",
+    "operationDigest": "sha256:cdd8620bcb08669d3e6e83b1a56d0c990bb2c6d787a1ac1230dd826653ddcbc6",
+    "webkitBoundary": "WEBKIT_SUPPORTED_RUNNER_REQUIRED"
+  },
+  "donorRegeneration": {
+    "runtimeJobId": "job-01a0a4a7-2559-7d13-9cc7-cb3db6f2a525",
+    "operationDigest": "sha256:2c32aa7e4666d180c1a34acd57cc70b4c3340cd0d37004ce6635777dc53befa6"
   },
   "id": "artifact-k2a-donor-r1-verification-r1",
   "kind": "artifact-k2a-donor-verification",
-  "operationDigest": "sha256:ebd9542b049eb2595f20b33239421026f93e7fb485a84052e70904a85ef03054",
-  "runtimeJobId": "job-01a09aef-efc0-7693-8696-baa87c0854e7",
+  "operationDigest": "sha256:ff133b067e37ddb03e501b1ab7a0095e7d2ab946722d754512474bd571987389",
+  "runtimeJobId": "job-01a0a4a2-bac0-75a0-acf0-5591f800319c",
   "schemaVersion": 1,
   "standing": "PASS"
 }

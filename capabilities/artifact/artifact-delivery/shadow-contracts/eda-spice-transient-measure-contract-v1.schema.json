@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ordivon:artifact:eda-spice-transient-measure-contract-v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "minimumDataRows", "measurements"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "eda-spice-transient-measure-contract-v1"},
+    "minimumDataRows": {"type": "integer", "minimum": 1},
+    "measurements": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {"pattern": "^[A-Za-z_][A-Za-z0-9_]*$"},
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["min", "max"],
+        "properties": {"min": {"type": "number"}, "max": {"type": "number"}}
+      }
+    }
+  }
+}

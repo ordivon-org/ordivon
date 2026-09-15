@@ -1,5 +1,5 @@
 {
-  "capturedOn": "2026-09-12",
+  "capturedOn": "2026-09-15",
   "classificationAxes": [
     {
       "id": "family",
@@ -379,6 +379,39 @@
       "standards": [
         "ISO/IEC 12113:2022 Khronos glTF 2.0",
         "STEP/IFC/3MF profile-selected for CAD/BIM/manufacturing"
+      ]
+    },
+    {
+      "currentCoverage": "SHADOW_PROFILE_LIVE_PROVEN",
+      "currentProfiles": [
+        "eda-kicad-pcb-gerber-r1",
+        "eda-spice-transient-measure-r1"
+      ],
+      "exampleFormats": [
+        "kicad_pcb",
+        "kicad_sch",
+        "gerber",
+        "excellon",
+        "ipc-2581",
+        "spice"
+      ],
+      "externalAlignment": [
+        "EDA native authoring/checking ecosystems",
+        "Gerber/IPC manufacturing interchange families"
+      ],
+      "id": "electronic-design",
+      "localToolStanding": "KICAD_PCB_DRC_GERBER_EXCELLON_PLUS_NGSPICE_TRANSIENT_LIVE_PROVEN",
+      "representations": [
+        "schematic-authoring-source",
+        "pcb-layout-authoring-source",
+        "manufacturing-output",
+        "simulation-netlist"
+      ],
+      "standards": [
+        "Gerber X2 / Ucamco format family where profile-selected",
+        "Excellon drill exchange where profile-selected",
+        "IPC-2581 where profile-selected",
+        "SPICE-family simulation semantics where profile-selected"
       ]
     },
     {

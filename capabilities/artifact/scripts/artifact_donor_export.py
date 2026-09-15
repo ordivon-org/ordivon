@@ -29,6 +29,8 @@ VALIDATOR_BY_PROFILE = {
     "software-release-linux-elf-executable-r1": "scripts/artifact_software_release_elf.py",
     "web-archive-warc-response-r1": "scripts/artifact_web_archive.py",
     "message-internet-text-r1": "scripts/artifact_message.py",
+    "eda-kicad-pcb-gerber-r1": "scripts/artifact_eda.py",
+    "eda-spice-transient-measure-r1": "scripts/artifact_spice.py",
 }
 
 EXCLUDED = [

@@ -1,11 +1,11 @@
 {
-  "baseRevision": "1f58012fa5a9f15d122e406b6b0c070df89431ff",
+  "baseRevision": "7f61bd2a87185df62dc77b801b5e8f4adb453c8d",
   "coverage": {
-    "isolatedValidatorImplementations": 17,
-    "liveProvenShadowBindings": 17,
-    "normalizedProfiles": 25,
-    "representedFamilies": 15,
-    "taxonomyFamilies": 15
+    "isolatedValidatorImplementations": 19,
+    "liveProvenShadowBindings": 19,
+    "normalizedProfiles": 27,
+    "representedFamilies": 16,
+    "taxonomyFamilies": 16
   },
   "excludedInfrastructure": [
     {
@@ -50,7 +50,7 @@
       "reason": "Environment probing is provider integration and should remain replaceable.",
       "reference": {
         "path": "scripts/artifact_delivery_toolchain_doctor.py",
-        "sha256": "7ab6cf4a2bd3133cc855fa439366f0fea7c0978da775ee4a803e9c6a2ad9a105"
+        "sha256": "49d81ae50bc7b339ccf7e21270275d3073b13355017b8572a705603faf2e5102"
       }
     }
   ],
@@ -60,7 +60,7 @@
     {
       "id": "object-contract-coverage",
       "observation": {
-        "profilesWithExplicitObjectContract": 15,
+        "profilesWithExplicitObjectContract": 17,
         "profilesWithoutExplicitObjectContract": 10
       },
       "standing": "PRESERVE_GAP_DO_NOT_INVENT"
@@ -68,7 +68,7 @@
     {
       "id": "result-boundary-coverage",
       "observation": {
-        "profilesWithExplicitNonClaims": 17,
+        "profilesWithExplicitNonClaims": 19,
         "profilesWithoutExplicitNonClaims": 8
       },
       "standing": "PRESERVE_GAP_DO_NOT_INVENT"
@@ -77,7 +77,7 @@
       "id": "composition-sequencing",
       "observation": {
         "profilesWithEncodedSequence": 0,
-        "profilesWithoutEncodedSequence": 25
+        "profilesWithoutEncodedSequence": 27
       },
       "standing": "PRESERVE_GAP_DO_NOT_INVENT"
     }
@@ -1459,6 +1459,253 @@
         }
       },
       "validatorImplementation": null
+    },
+    {
+      "candidateProblemKey": "artifact/electronic-design/eda-kicad-pcb-gerber-r1",
+      "capabilityBinding": {
+        "bindingKeys": [
+          "nativeCheckerExporter"
+        ],
+        "proofKeys": [
+          "destructiveNegative",
+          "excellon",
+          "focusedTests",
+          "gerber",
+          "positiveDrc",
+          "prototypeOperationDigest",
+          "prototypeRuntimeJobId"
+        ],
+        "reference": {
+          "path": "artifact-delivery/shadow-bindings/eda-kicad-pcb-local-r1.json",
+          "sha256": "b34f0b6ac58985a4aac48bc596c2c0e64a806dcb731197928ac7ca652adeac3c"
+        },
+        "standing": "LOCAL_LIVE_PROVEN"
+      },
+      "classification": {
+        "conformanceProfile": "KiCad PCB error-DRC plus contract-bound Gerber/Excellon R1",
+        "family": "electronic-design",
+        "format": {
+          "mediaType": "application/x-kicad-pcb",
+          "name": "KiCad PCB (.kicad_pcb)"
+        },
+        "purposes": [
+          "editable-authoring",
+          "verification",
+          "manufacturing-exchange"
+        ],
+        "representation": "pcb-layout-authoring-source"
+      },
+      "compositionCandidate": {
+        "capabilitySignals": [
+          "KiCad CLI 10.0.x",
+          "nativeCheckerExporter"
+        ],
+        "requiredEvidence": [
+          "boardContract",
+          "excellonExport",
+          "gerberExport",
+          "nativeDrc",
+          "toolIdentity"
+        ],
+        "sequencing": "NOT_ENCODED_DO_NOT_INFER",
+        "status": "DECLARATIVE_PROFILE_CANDIDATE"
+      },
+      "migrationDisposition": {
+        "capabilityBinding": "SEMANTIC_MAPPING",
+        "classification": "DIRECT_REFERENCE",
+        "evidenceRequirements": "DIRECT_REFERENCE",
+        "executionWiring": "DO_NOT_PROMOTE",
+        "objectContract": "SEMANTIC_MAPPING",
+        "resultBoundary": "DIRECT_REFERENCE",
+        "standards": "DIRECT_REFERENCE",
+        "validationMapping": "SEMANTIC_MAPPING"
+      },
+      "objectContract": {
+        "declaration": {
+          "binding": "request-digest",
+          "kind": "eda-kicad-pcb-contract-v1",
+          "required": true,
+          "schemaReference": "shadow-contracts/eda-kicad-pcb-contract-v1.schema.json"
+        },
+        "schema": {
+          "path": "artifact-delivery/shadow-contracts/eda-kicad-pcb-contract-v1.schema.json",
+          "sha256": "8507dd696f620bbc5a274f277d8e51001a060e7bc6d6251da0207476336fceca"
+        }
+      },
+      "profileId": "eda-kicad-pcb-gerber-r1",
+      "resultBoundary": {
+        "nonClaims": [
+          "schematic-to-PCB parity",
+          "electrical function or circuit correctness",
+          "signal integrity, power integrity or EMC behavior",
+          "manufacturing yield or fab-house acceptance",
+          "component availability, BOM correctness or sourcing",
+          "safety, regulatory compliance or product fitness",
+          "all KiCad PCB features or all EDA formats"
+        ]
+      },
+      "sourceProfile": {
+        "path": "artifact-delivery/shadow-v2/examples/eda-kicad-pcb-gerber-r1-v2.json",
+        "sha256": "69ce758dcb606e4f343faa8b13d2bb7c85e4a8086209e0bddf068ab1fdbb59e6"
+      },
+      "standards": [
+        "Gerber X2 / Ucamco format family where profile-selected",
+        "Excellon drill exchange where profile-selected",
+        "IPC-2581 where profile-selected",
+        "SPICE-family simulation semantics where profile-selected"
+      ],
+      "targetAuthorities": [
+        {
+          "authorityClass": "native-consumer",
+          "name": "KiCad CLI 10.0.x",
+          "required": true
+        }
+      ],
+      "validationMapping": {
+        "boardContract": {
+          "claim": "KiCad board statistics match exact request-bound dimensions, outline, through-hole pad count and minimum drill diameter",
+          "required": true
+        },
+        "excellonExport": {
+          "claim": "non-empty Excellon drill output and drill report materialize",
+          "required": true
+        },
+        "gerberExport": {
+          "claim": "selected Gerber layers and Gerber job metadata materialize as non-empty files",
+          "required": true
+        },
+        "nativeDrc": {
+          "claim": "exact PCB bytes produce zero KiCad error-severity DRC violations",
+          "required": true
+        },
+        "toolIdentity": {
+          "claim": "evidence binds the exact observed kicad-cli bytes and version",
+          "required": true
+        }
+      },
+      "validatorImplementation": {
+        "path": "scripts/artifact_eda.py",
+        "sha256": "dd9b5faf00915f6e7ef11d177edab7b99fc85ca7b4025a95ac75dbf58389ede2"
+      }
+    },
+    {
+      "candidateProblemKey": "artifact/electronic-design/eda-spice-transient-measure-r1",
+      "capabilityBinding": {
+        "bindingKeys": [
+          "nativeSimulator"
+        ],
+        "proofKeys": [
+          "destructiveNegative",
+          "destructiveNegativeRuntimeJobId",
+          "positive",
+          "prototypeOperationDigest",
+          "prototypeRuntimeJobId"
+        ],
+        "reference": {
+          "path": "artifact-delivery/shadow-bindings/eda-spice-transient-local-r1.json",
+          "sha256": "a9f874bebcf062dddf16632668eef71c2929f513fd2e43b0eee5565397f3a46d"
+        },
+        "standing": "LOCAL_LIVE_PROVEN"
+      },
+      "classification": {
+        "conformanceProfile": "ngspice transient analysis with request-bound .measure ranges R1",
+        "family": "electronic-design",
+        "format": {
+          "mediaType": "text/plain",
+          "name": "SPICE-family text netlist"
+        },
+        "purposes": [
+          "simulation",
+          "verification"
+        ],
+        "representation": "simulation-netlist"
+      },
+      "compositionCandidate": {
+        "capabilitySignals": [
+          "nativeSimulator",
+          "ngspice 47"
+        ],
+        "requiredEvidence": [
+          "dataRows",
+          "measurements",
+          "nativeSimulation",
+          "toolIdentity"
+        ],
+        "sequencing": "NOT_ENCODED_DO_NOT_INFER",
+        "status": "DECLARATIVE_PROFILE_CANDIDATE"
+      },
+      "migrationDisposition": {
+        "capabilityBinding": "SEMANTIC_MAPPING",
+        "classification": "DIRECT_REFERENCE",
+        "evidenceRequirements": "DIRECT_REFERENCE",
+        "executionWiring": "DO_NOT_PROMOTE",
+        "objectContract": "SEMANTIC_MAPPING",
+        "resultBoundary": "DIRECT_REFERENCE",
+        "standards": "DIRECT_REFERENCE",
+        "validationMapping": "SEMANTIC_MAPPING"
+      },
+      "objectContract": {
+        "declaration": {
+          "binding": "request-digest",
+          "kind": "eda-spice-transient-measure-contract-v1",
+          "required": true,
+          "schemaReference": "shadow-contracts/eda-spice-transient-measure-contract-v1.schema.json"
+        },
+        "schema": {
+          "path": "artifact-delivery/shadow-contracts/eda-spice-transient-measure-contract-v1.schema.json",
+          "sha256": "2784b4761398f6a5ebec803a5dad5ec30addd804582f9d4fb0d48df15394da6d"
+        }
+      },
+      "profileId": "eda-spice-transient-measure-r1",
+      "resultBoundary": {
+        "nonClaims": [
+          "circuit design intent",
+          "all SPICE dialects or device models",
+          "global stability or convergence",
+          "model/tolerance/corner fidelity",
+          "signal or power integrity",
+          "safety, regulatory compliance or physical hardware behavior"
+        ]
+      },
+      "sourceProfile": {
+        "path": "artifact-delivery/shadow-v2/examples/eda-spice-transient-measure-r1-v2.json",
+        "sha256": "f6f3e03264de76a1d991421bc47530234ddf354f102975e6a037879d529676cc"
+      },
+      "standards": [
+        "Gerber X2 / Ucamco format family where profile-selected",
+        "Excellon drill exchange where profile-selected",
+        "IPC-2581 where profile-selected",
+        "SPICE-family simulation semantics where profile-selected"
+      ],
+      "targetAuthorities": [
+        {
+          "authorityClass": "native-consumer",
+          "name": "ngspice 47",
+          "required": true
+        }
+      ],
+      "validationMapping": {
+        "dataRows": {
+          "claim": "transient analysis produces at least the request-bound minimum data-row count",
+          "required": true
+        },
+        "measurements": {
+          "claim": "every request-bound named .measure result exists and lies within its numeric interval",
+          "required": true
+        },
+        "nativeSimulation": {
+          "claim": "ngspice batch execution succeeds without fatal parse/simulation errors",
+          "required": true
+        },
+        "toolIdentity": {
+          "claim": "evidence binds exact ngspice bytes and version",
+          "required": true
+        }
+      },
+      "validatorImplementation": {
+        "path": "scripts/artifact_spice.py",
+        "sha256": "20277c51a2f6d4f520b2d25f6d50eb51534782c7d9e15ed2869df1c1cfdf64c8"
+      }
     },
     {
       "candidateProblemKey": "artifact/geospatial/geospatial-geopackage-point-r1",
@@ -3305,11 +3552,11 @@
   "sourceReferences": {
     "profileV2MappingManifest": {
       "path": "artifact-delivery/shadow-v2/profile-v2-mapping-manifest-r1.json",
-      "sha256": "f5c669c005e2374204636d0184c53587f3b109672b7374a93a57aaf0a8654c5f"
+      "sha256": "528e8d792fa15cd9353e33cf7ff81910e6d72d84fd3952635ba4abda6938e543"
     },
     "taxonomy": {
       "path": "artifact-delivery/taxonomy-v1.json",
-      "sha256": "e8aff6676baee4270f2906c546f7c12b7ecb3e39db2c11e15cbb9f6210a305c9"
+      "sha256": "76b1fbbf82357bc83881099280b196239555f33c5ccd6fbf262b125022accc9c"
     }
   },
   "standing": "DONOR_REFERENCE_NOT_CORE_ONTOLOGY"
