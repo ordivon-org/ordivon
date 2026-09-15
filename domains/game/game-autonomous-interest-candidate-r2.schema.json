@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/game-autonomous-interest-candidate-r2.schema.json",
+  "title": "Autonomous Game Interest R2 Candidate Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "candidateId",
+    "humanSignalUsed",
+    "sourceLineage",
+    "descriptors",
+    "implementationCarrier",
+    "loopSignature",
+    "mechanismFamilies",
+    "causalCouplings",
+    "actionIds",
+    "adapter"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "candidateId": {"type": "string", "pattern": "^R2C(0[1-9]|1[0-2])$"},
+    "humanSignalUsed": {"const": false},
+    "sourceLineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reusesR1Candidate", "reusesExcludedWholeProduct"],
+      "properties": {
+        "reusesR1Candidate": {"const": false},
+        "reusesExcludedWholeProduct": {"const": false}
+      }
+    },
+    "descriptors": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["agencyMode", "improvementCarrier", "consequenceHorizon", "failureValue"],
+      "properties": {
+        "agencyMode": {"enum": ["spatial", "temporal", "informational", "economic-resource", "compositional", "social-simulated", "mixed"]},
+        "improvementCarrier": {"enum": ["execution-skill", "world-model-knowledge", "planning", "authored-construction", "adaptation", "mixed"]},
+        "consequenceHorizon": {"enum": ["immediate", "short-loop", "multi-loop"]},
+        "failureValue": {"enum": ["low", "information", "skill", "redesign", "mixed"]}
+      }
+    },
+    "implementationCarrier": {"enum": ["web-ts", "godot-2d"]},
+    "loopSignature": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 8,
+      "items": {
+        "enum": [
+          "observe", "inspect", "infer", "choose", "plan", "queue", "commit", "signal",
+          "negotiate", "allocate", "configure", "build", "transform", "move", "route", "execute",
+          "resolve", "test", "compare", "revise", "adapt", "discover", "fail", "retry", "replay",
+          "return", "persist", "advance", "deliver", "replace", "salvage"
+        ]
+      }
+    },
+    "mechanismFamilies": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 7,
+      "uniqueItems": true,
+      "items": {"type": "integer", "minimum": 1, "maximum": 18}
+    },
+    "causalCouplings": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 6,
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^[a-z][a-z0-9-]{2,40}$"}
+    },
+    "actionIds": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 8,
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,23}$"}
+    },
+    "adapter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deterministic",
+        "contextCount",
+        "actionCount",
+        "observationFieldCount",
+        "playerFacingRuleCount",
+        "uiModeCount",
+        "maxEpisodeDecisions",
+        "maxReachableStatesPerSeed",
+        "policyIdentityVisible",
+        "candidateRewardExposed"
+      ],
+      "properties": {
+        "deterministic": {"const": true},
+        "contextCount": {"const": 4},
+        "actionCount": {"type": "integer", "minimum": 2, "maximum": 8},
+        "observationFieldCount": {"type": "integer", "minimum": 1, "maximum": 12},
+        "playerFacingRuleCount": {"type": "integer", "minimum": 1, "maximum": 12},
+        "uiModeCount": {"type": "integer", "minimum": 1, "maximum": 4},
+        "maxEpisodeDecisions": {"type": "integer", "minimum": 8, "maximum": 96},
+        "maxReachableStatesPerSeed": {"type": "integer", "minimum": 2, "maximum": 50000},
+        "policyIdentityVisible": {"const": false},
+        "candidateRewardExposed": {"const": false}
+      }
+    }
+  }
+}

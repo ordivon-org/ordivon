@@ -1,0 +1,252 @@
+{
+  "schemaVersion": 2,
+  "kind": "ordivon.game-autonomous-interest-protocol",
+  "status": "PROTOCOL_FROZEN_PREGEN_GENERATION_FORBIDDEN_UNTIL_AUDIT_PASS",
+  "observedDate": "2026-09-15",
+  "researchQuestion": "Can Ordivon autonomously synthesize and select a fresh deterministic discrete-decision whole-product game without live Human candidate-quality judgments before build freeze, then produce non-trivial voluntary continued play in a sealed Human holdout?",
+  "scopeRestriction": {
+    "rationale": "R2 deliberately narrows the candidate substrate to a deterministic finite discrete-decision adapter so the evaluator law can be fully precommitted and machine-executable before candidate generation.",
+    "doesNotClaimAllGameGenres": true
+  },
+  "humanSignalBoundary": {
+    "liveCandidateSpecificHumanJudgmentAllowedBeforeFreeze": false,
+    "historicalPublicHumanKnowledgeAllowedAsPrior": true,
+    "candidateSpecificUserVisibleDetailsBeforeFreeze": false,
+    "contaminatedCandidateDisposition": "INELIGIBLE_R2_WINNER"
+  },
+  "freshness": {
+    "r1CandidateSemanticReuseAllowed": false,
+    "excludedWholeProducts": ["PC01_CAUSAL_WORKS", "PC02_PERSISTENT_WORKSHOP", "PC03_LOOP_CARTOGRAPHER"],
+    "lowLevelPrimitiveReuseAllowed": true,
+    "controlledLoopVocabulary": [
+      "observe", "inspect", "infer", "choose", "plan", "queue", "commit", "signal", "negotiate", "allocate", "configure", "build", "transform", "move", "route", "execute", "resolve", "test", "compare", "revise", "adapt", "discover", "fail", "retry", "replay", "return", "persist", "advance", "deliver", "replace", "salvage"
+    ],
+    "loopSimilarity": {
+      "algorithm": "CYCLIC_LEVENSHTEIN_ON_CONTROLLED_VERBS",
+      "killThresholdInclusive": 0.75,
+      "candidateDedupThresholdInclusive": 0.80,
+      "excludedSignatures": [
+        ["observe", "inspect", "infer", "configure", "commit", "resolve", "compare"],
+        ["choose", "build", "commit", "observe", "revise", "persist", "advance"],
+        ["move", "discover", "route", "execute", "fail", "retry", "return"],
+        ["inspect", "infer", "execute", "advance", "compare", "revise"],
+        ["plan", "queue", "resolve", "replay", "retry"],
+        ["negotiate", "commit", "allocate", "resolve", "persist", "negotiate"],
+        ["inspect", "build", "test", "observe", "revise"],
+        ["observe", "build", "advance", "route", "deliver", "persist"],
+        ["configure", "observe", "execute", "resolve", "adapt", "configure"],
+        ["inspect", "queue", "advance", "route", "resolve", "persist"],
+        ["inspect", "signal", "plan", "resolve", "compare"],
+        ["execute", "replay", "return", "replace", "execute"],
+        ["build", "test", "inspect", "revise", "salvage"],
+        ["negotiate", "commit", "allocate", "resolve", "persist", "negotiate"],
+        ["move", "route", "execute", "fail", "retry", "compare"]
+      ]
+    }
+  },
+  "searchBudget": {
+    "initialCompositionSlots": 12,
+    "maxStructuralSurvivors": 6,
+    "maxPlayableImplementations": 3,
+    "maxHumanHoldoutWinners": 1,
+    "budgetExpansionAfterOutcomeObservationAllowed": false,
+    "eliminatedCandidateResurrectionAllowed": false
+  },
+  "candidateContract": {
+    "manifestSchema": "domains/game/game-autonomous-interest-candidate-r2.schema.json",
+    "candidateIds": ["R2C01", "R2C02", "R2C03", "R2C04", "R2C05", "R2C06", "R2C07", "R2C08", "R2C09", "R2C10", "R2C11", "R2C12"],
+    "adapterModule": {
+      "requiredExports": ["MANIFEST", "create_game"],
+      "gameMethods": ["observe", "full_state", "legal_actions", "step", "status", "clone"],
+      "stepReturnIgnored": true,
+      "candidateRewardConsumedByEvaluator": false,
+      "policyIdentityPassedToCandidate": false,
+      "canonicalJson": "JSON_SORT_KEYS_COMPACT_UTF8"
+    },
+    "deterministicOnly": true,
+    "contexts": [0, 1, 2, 3],
+    "maxEpisodeDecisions": 96,
+    "maxReachableStatesPerSeed": 50000,
+    "oracleMaxDepth": 24,
+    "oracleMaxNodes": 50000
+  },
+  "seedLaw": {
+    "domain": "ordivon-autonomous-interest-r2-20260915-seed-v1",
+    "algorithm": "UINT31_NONZERO(FIRST8_BE(SHA256_UTF8(domain|candidateId|split|context|sampleIndex)))",
+    "contexts": 4,
+    "trainSamplesPerContext": 8,
+    "evalSamplesPerContext": 24,
+    "trainEvalOverlapAllowed": false,
+    "uncertaintyTreatment": "NONE_FROZEN_EVAL_MATRIX_IS_BENCHMARK_CENSUS_NOT_POPULATION_SAMPLE"
+  },
+  "policyLaw": {
+    "P0_HASH_STATELESS": {
+      "description": "current-observation-only deterministic hash action baseline",
+      "trainable": false
+    },
+    "P1_REACTIVE_Q": {
+      "stateKey": "CURRENT_OBSERVATION",
+      "epochs": 4,
+      "alpha": 0.25,
+      "gamma": 0.95,
+      "epsilonStart": 0.30,
+      "epsilonEnd": 0.05,
+      "ongoingReward": -0.01,
+      "winReward": 1.0,
+      "lossReward": -1.0,
+      "tieBreak": "MANIFEST_ACTION_ORDER"
+    },
+    "P2_MEMORY_Q": {
+      "stateKey": "PREVIOUS_OBSERVATION+PREVIOUS_ACTION+CURRENT_OBSERVATION",
+      "epochs": 4,
+      "alpha": 0.25,
+      "gamma": 0.95,
+      "epsilonStart": 0.30,
+      "epsilonEnd": 0.05,
+      "ongoingReward": -0.01,
+      "winReward": 1.0,
+      "lossReward": -1.0,
+      "tieBreak": "MANIFEST_ACTION_ORDER"
+    },
+    "P3_ORACLE_BFS": {
+      "usesFullState": true,
+      "maxDepth": 24,
+      "maxNodes": 50000,
+      "objective": "SHORTEST_WIN_PLAN_ONLY",
+      "candidateProgressMetricUsed": false,
+      "fallbackIfNoPlan": "FIRST_LEGAL_ACTION_IN_MANIFEST_ORDER"
+    }
+  },
+  "surrogates": {
+    "strictPairwiseEffectDelta": 0.05,
+    "applicabilityLaw": {
+      "universal": ["S1", "S3", "S6", "S8", "S9"],
+      "S2": "REQUIRED_UNLESS_improvementCarrier_EQUALS_execution-skill",
+      "S4": "REQUIRED_IF_agencyMode_IN_informational|social-simulated|mixed",
+      "S5": "REQUIRED_IF_agencyMode_IN_economic-resource|compositional|social-simulated|mixed_OR_improvementCarrier_IN_planning|authored-construction|adaptation|mixed",
+      "S7": "REQUIRED_IF_consequenceHorizon_EQUALS_multi-loop"
+    },
+    "S1": {
+      "id": "AGENCY_CONSEQUENCE",
+      "score": "fraction of sampled >=2-action states where one-step alternatives change terminal class, reachable-win status, or oracle distance by >=2 decisions",
+      "pass": {"agencyScoreGte": 0.20}
+    },
+    "S2": {
+      "id": "LEARNABILITY_MODEL_VALUE",
+      "score": "max(P1_REACTIVE_Q_success,P2_MEMORY_Q_success)-P0_HASH_STATELESS_success",
+      "pass": {"deltaGte": 0.15}
+    },
+    "S3": {
+      "id": "COMPETENCE_GRADIENT_RETAINED_DEMAND",
+      "score": "P3_ORACLE_BFS_success-P0_HASH_STATELESS_success",
+      "pass": {"oracleSuccessGte": 0.65, "randomSuccessLte": 0.75, "gapGte": 0.25}
+    },
+    "S4": {
+      "id": "INFORMATION_VALUE",
+      "score": "P2_MEMORY_Q_success-P1_REACTIVE_Q_success",
+      "pass": {"memoryOverReactiveGte": 0.10, "observationAliasingRateGte": 0.10}
+    },
+    "S5": {
+      "id": "POLICY_STRATEGY_DIVERSITY",
+      "score": "P3_ORACLE_BFS_success-best_constant_action_success",
+      "pass": {"oracleOverBestConstantGte": 0.15, "distinctOracleFirstActionsGte": 2}
+    },
+    "S6": {
+      "id": "FAILURE_VALUE",
+      "score": "P2_MEMORY_Q_last_training_epoch_success-P2_MEMORY_Q_first_training_epoch_success",
+      "pass": {"gainGte": 0.15, "firstEpochFailureRateGte": 0.20}
+    },
+    "S7": {
+      "id": "RECONTEXTUALIZATION_REPLAY_DEPTH",
+      "score": "mean_context_specific_P1_diagonal_success-mean_cross_context_off_diagonal_success",
+      "pass": {"transferPenaltyGte": 0.10, "distinctContextOracleModalFirstActionsGte": 2}
+    },
+    "S8": {
+      "id": "COMPLEXITY_EFFICIENCY",
+      "scalarTournamentScore": false,
+      "hardCaps": {"actionCount": 8, "observationFieldCount": 12, "playerFacingRuleCount": 12, "uiModeCount": 4, "maxEpisodeDecisions": 96},
+      "duplicateActionPairKill": "two actions are duplicate if successor signatures match on >=0.95 of co-observed samples"
+    },
+    "S9": {
+      "id": "PLAYER_MODEL_SEED_ROBUSTNESS",
+      "score": "minimum P3_ORACLE_BFS success over 4 contexts x 4 fixed eval-seed groups of 6",
+      "pass": {"minimumGroupSuccessGte": 0.50}
+    }
+  },
+  "antiGoodhart": {
+    "allApplicablePassRequired": true,
+    "attacks": {
+      "reward-hacking": "candidate reward is not part of adapter/evaluator utility",
+      "complexity-inflation": "S8 hard caps plus duplicate-action-pair kill",
+      "rng-inflation": "determinism replay must produce identical full-state/status trace for same context/seed/action script",
+      "stalling-as-engagement": "mean unchanged-transition fraction across P2/P3 eval episodes <=0.25",
+      "dominant-universal-policy": "best constant-action success <= P3 success - 0.15",
+      "player-model-overfit": "P2 last-training-epoch success - P2 eval success <=0.25",
+      "hidden-authorization": "policy identity is never supplied to adapter and MANIFEST.policyIdentityVisible=false",
+      "cosmetic-consequence": "S1 must pass",
+      "failure-tax": "S6 must pass",
+      "proxy-bundle-gaming": "every applicable surrogate independently passes; no aggregate rescue"
+    },
+    "protocolDefectDisposition": "TERMINATE_R2_AND_VERSION_PROTOCOL"
+  },
+  "structuralSelection": {
+    "hardManifestSchemaFirst": true,
+    "lineageKill": "loop similarity >=0.75 to any frozen excluded signature",
+    "candidateDedup": "for pair similarity >=0.80 retain lower candidate-spec SHA256 and kill the other; exact spec digest is computed over canonical candidate JSON",
+    "ifHardValidCountExceedsSix": "choose_diverse_subset(limit=6)",
+    "diversitySubsetAlgorithm": "enumerate all fixed-size subsets; maximize sorted pairwise 4-axis Hamming-distance profile, then fixed-axis coverage tuple [agency,carrier,horizon,failure], then minimize sorted implementation-carrier cost [web-ts=0,godot-2d=1], then lowest deterministic subset hash"
+  },
+  "implementationSelection": {
+    "fromStructuralSurvivorsMax": 6,
+    "maxPlayable": 3,
+    "algorithm": "same choose_diverse_subset(limit=3); no taste or surrogate outcomes available yet",
+    "failedImplementationReplacementAllowed": false
+  },
+  "tournament": {
+    "eligibleOnlyIf": ["all applicable surrogate families pass", "all Anti-Goodhart attacks pass", "software/runtime gates pass"],
+    "comparisonFamilies": "intersection of applicable scalar families among S1,S2,S3,S4,S5,S6,S7,S9",
+    "strictBetter": "score difference >=0.05",
+    "defeatRule": "A defeats B iff A is strict-better on >=2 common families and strict-worse on 0",
+    "selection": [
+      "minimize pairwise losses",
+      "maximize pairwise wins among min-loss candidates",
+      "minimize lexicographic complexity vector [actionCount,observationFieldCount,playerFacingRuleCount,uiModeCount,maxEpisodeDecisions]",
+      "lowest SHA256(candidateSpecDigest)"
+    ],
+    "weightedGlobalAggregateAllowed": false
+  },
+  "matchedAblation": {
+    "required": true,
+    "candidateDeclaresCausalCouplings": "3_to_6_ids_before_evaluation",
+    "forEachCoupling": "leave-one-coupling-out with basic playability P3 success >=0.50",
+    "selection": [
+      "maximize count of scalar tournament families whose score drops by >=0.05",
+      "maximize lexicographically sorted descending family-loss vector",
+      "lowest SHA256(couplingId)"
+    ],
+    "humanFeedbackAllowed": false
+  },
+  "humanHoldout": {
+    "sealedUntilExactBuildFreeze": true,
+    "N": 24,
+    "allocation": {"winner": 12, "matchedAblation": 12},
+    "mandatoryExposureMinutes": 8,
+    "optionalContinuationMaxMinutes": 12,
+    "primaryEndpoint": "VOLUNTARY_CONTINUATION_3M",
+    "pilotSupport": {"winnerMinimumCount": 8, "winnerDenominator": 12, "winnerMinusAblationMinimumCount": 3},
+    "thresholdMutableAfterUnblinding": false
+  },
+  "referenceImplementation": {
+    "selection": "experiments/autonomous-interest-r2/selection_reference.py",
+    "evaluator": "experiments/autonomous-interest-r2/evaluator_reference.py",
+    "selftest": "experiments/autonomous-interest-r2/protocol_selftest.py"
+  },
+  "state": {
+    "protocolFrozen": true,
+    "preGenerationAuditPassed": false,
+    "candidateGenerationStarted": false,
+    "candidateSemanticSlotsConsumed": 0,
+    "productSelected": false,
+    "g0Entered": false
+  }
+}
