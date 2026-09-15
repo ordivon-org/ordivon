@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "bboxMm": {
+      "additionalProperties": false,
+      "properties": {
+        "xmax": {
+          "type": "number"
+        },
+        "xmin": {
+          "type": "number"
+        },
+        "ymax": {
+          "type": "number"
+        },
+        "ymin": {
+          "type": "number"
+        },
+        "zmax": {
+          "type": "number"
+        },
+        "zmin": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "xmin",
+        "ymin",
+        "zmin",
+        "xmax",
+        "ymax",
+        "zmax"
+      ],
+      "type": "object"
+    },
+    "geometryToleranceMm": {
+      "exclusiveMinimum": 0,
+      "type": "number"
+    },
+    "kind": {
+      "const": "cad-step-solid-contract-v1"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "topology": {
+      "additionalProperties": false,
+      "properties": {
+        "edges": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "faces": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "solids": {
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "solids",
+        "faces",
+        "edges"
+      ],
+      "type": "object"
+    },
+    "units": {
+      "const": "mm"
+    },
+    "volumeMm3": {
+      "exclusiveMinimum": 0,
+      "type": "number"
+    },
+    "volumeToleranceMm3": {
+      "exclusiveMinimum": 0,
+      "type": "number"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "kind",
+    "units",
+    "topology",
+    "bboxMm",
+    "volumeMm3",
+    "geometryToleranceMm",
+    "volumeToleranceMm3"
+  ],
+  "title": "Artifact CAD STEP single-solid contract v1",
+  "type": "object"
+}

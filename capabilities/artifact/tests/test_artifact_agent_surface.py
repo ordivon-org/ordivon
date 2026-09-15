@@ -26,7 +26,9 @@ class ArtifactAgentSurfaceTests(unittest.TestCase):
 
     def test_coverage_matrix_is_complete_and_conservative(self):
         matrix = M.profile_coverage()
-        self.assertEqual(matrix["profileCount"], 27)
+        taxonomy = json.loads((ROOT / "artifact-delivery/taxonomy-v1.json").read_text())
+        expected_count = sum(len(row.get("currentProfiles", [])) for row in taxonomy["families"])
+        self.assertEqual(matrix["profileCount"], expected_count)
         self.assertEqual(set(matrix["gateIds"]), set(M.COVERAGE_GATE_IDS))
         self.assertTrue(all(set(row["gates"]) == set(M.COVERAGE_GATE_IDS) for row in matrix["profiles"]))
         self.assertIn("not-occurrence-verdict", matrix["truthRole"])
@@ -58,9 +60,12 @@ class ArtifactAgentSurfaceTests(unittest.TestCase):
     def test_cad_boundary_does_not_promote_glb(self):
         status = M.cad_boundary_status()
         self.assertFalse(status["graduated"])
-        self.assertEqual(status["currentCadProfiles"], [])
+        self.assertTrue(status["boundedCadProfileAdmission"])
+        self.assertEqual(status["currentCadProfiles"], ["design-3d-step-solid-r1"])
         self.assertTrue(any("glb" in x for x in status["currentDesign3dProfiles"]))
-        self.assertIn("not CAD/BIM/manufacturing", status["boundary"])
+        self.assertTrue(status["observedToolPresence"]["freecad"])
+        self.assertTrue(status["observedToolPresence"]["occtStepInspector"])
+        self.assertIn("bounded metric single-solid STEP/BREP profile", status["boundary"])
 
 
 if __name__ == "__main__": unittest.main()

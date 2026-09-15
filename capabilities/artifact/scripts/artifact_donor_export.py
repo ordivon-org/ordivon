@@ -31,6 +31,7 @@ VALIDATOR_BY_PROFILE = {
     "message-internet-text-r1": "scripts/artifact_message.py",
     "eda-kicad-pcb-gerber-r1": "scripts/artifact_eda.py",
     "eda-spice-transient-measure-r1": "scripts/artifact_spice.py",
+    "design-3d-step-solid-r1": "scripts/artifact_cad_step.py",
 }
 
 EXCLUDED = [

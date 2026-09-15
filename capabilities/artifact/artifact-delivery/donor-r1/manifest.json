@@ -1,9 +1,9 @@
 {
-  "baseRevision": "2d0f06c23df09f3f098ec36ffa49d7d532dac3b0",
+  "baseRevision": "4fa25babf24777f2b3bfe5e7486ff25265148e20",
   "coverage": {
-    "isolatedValidatorImplementations": 19,
-    "liveProvenShadowBindings": 19,
-    "normalizedProfiles": 27,
+    "isolatedValidatorImplementations": 20,
+    "liveProvenShadowBindings": 20,
+    "normalizedProfiles": 28,
     "representedFamilies": 16,
     "taxonomyFamilies": 16
   },
@@ -14,7 +14,7 @@
       "reason": "Mixed production orchestration and historical compatibility are execution implementation, not reusable problem knowledge.",
       "reference": {
         "path": "scripts/artifact_delivery.py",
-        "sha256": "df434b16de5ec869a6084cc8784b3118de90b3ab7b2e607569e6cae538ab032e"
+        "sha256": "8556d81cccf7ae008c5617ee768aac7b245ec9b8f1bb352f2857647ca23e04da"
       }
     },
     {
@@ -60,7 +60,7 @@
     {
       "id": "object-contract-coverage",
       "observation": {
-        "profilesWithExplicitObjectContract": 17,
+        "profilesWithExplicitObjectContract": 18,
         "profilesWithoutExplicitObjectContract": 10
       },
       "standing": "PRESERVE_GAP_DO_NOT_INVENT"
@@ -68,7 +68,7 @@
     {
       "id": "result-boundary-coverage",
       "observation": {
-        "profilesWithExplicitNonClaims": 19,
+        "profilesWithExplicitNonClaims": 20,
         "profilesWithoutExplicitNonClaims": 8
       },
       "standing": "PRESERVE_GAP_DO_NOT_INVENT"
@@ -77,7 +77,7 @@
       "id": "composition-sequencing",
       "observation": {
         "profilesWithEncodedSequence": 0,
-        "profilesWithoutEncodedSequence": 27
+        "profilesWithoutEncodedSequence": 28
       },
       "standing": "PRESERVE_GAP_DO_NOT_INVENT"
     }
@@ -1345,6 +1345,130 @@
       "validatorImplementation": {
         "path": "scripts/artifact_design3d.py",
         "sha256": "91473aa713b864904a9d321bfc943a860715a9dedeefecfdd15c9c702687c88f"
+      }
+    },
+    {
+      "candidateProblemKey": "artifact/design-3d/design-3d-step-solid-r1",
+      "capabilityBinding": {
+        "bindingKeys": [
+          "structuralReader",
+          "targetCadConsumer"
+        ],
+        "proofKeys": [
+          "destructiveNegativeOperationDigest",
+          "destructiveNegativeRuntimeJobId",
+          "destructiveNegatives",
+          "occtReadbackOperationDigest",
+          "occtReadbackRuntimeJobId",
+          "parametricPositiveOperationDigest",
+          "parametricPositiveRuntimeJobId",
+          "positive"
+        ],
+        "reference": {
+          "path": "artifact-delivery/shadow-bindings/cad-step-solid-local-r1.json",
+          "sha256": "e45766f50a71ba8dabfe1f59ab50d7c8a1e25e8028b2ba1274fcc4ffd073f7a0"
+        },
+        "standing": "LOCAL_LIVE_PROVEN"
+      },
+      "classification": {
+        "conformanceProfile": "single-solid metric BREP STEP readback R1",
+        "family": "design-3d",
+        "format": {
+          "mediaType": "model/step",
+          "name": "STEP Part 21 clear text (.step/.stp)"
+        },
+        "purposes": [
+          "cad-exchange",
+          "verification"
+        ],
+        "representation": "cad-brep-exchange"
+      },
+      "compositionCandidate": {
+        "capabilitySignals": [
+          "FreeCAD 1.1.3 plus Open CASCADE 7.9.3",
+          "structuralReader",
+          "targetCadConsumer"
+        ],
+        "requiredEvidence": [
+          "semantic",
+          "structural",
+          "target",
+          "toolIdentity"
+        ],
+        "sequencing": "NOT_ENCODED_DO_NOT_INFER",
+        "status": "DECLARATIVE_PROFILE_CANDIDATE"
+      },
+      "migrationDisposition": {
+        "capabilityBinding": "SEMANTIC_MAPPING",
+        "classification": "DIRECT_REFERENCE",
+        "evidenceRequirements": "DIRECT_REFERENCE",
+        "executionWiring": "DO_NOT_PROMOTE",
+        "objectContract": "SEMANTIC_MAPPING",
+        "resultBoundary": "DIRECT_REFERENCE",
+        "standards": "DIRECT_REFERENCE",
+        "validationMapping": "SEMANTIC_MAPPING"
+      },
+      "objectContract": {
+        "declaration": {
+          "binding": "request-digest",
+          "kind": "cad-step-solid-contract-v1",
+          "required": true,
+          "schemaReference": "shadow-contracts/cad-step-solid-contract-v1.schema.json"
+        },
+        "schema": {
+          "path": "artifact-delivery/shadow-contracts/cad-step-solid-contract-v1.schema.json",
+          "sha256": "f4f4e7775310ecb1a43304eea945699dbcb6ef9d874aba2fc3894d7dbbf338b4"
+        }
+      },
+      "profileId": "design-3d-step-solid-r1",
+      "resultBoundary": {
+        "nonClaims": [
+          "cross-kernel interoperability beyond the proven FreeCAD/OCCT lineage",
+          "parametric feature-history preservation through STEP",
+          "assemblies or product structure",
+          "PMI, GD&T or semantic annotations",
+          "materials, colors or presentation fidelity",
+          "BIM/IFC semantics",
+          "mesh/STL/3MF manufacturing semantics",
+          "CAM, manufacturability, tolerances, strength, safety or regulatory fitness"
+        ]
+      },
+      "sourceProfile": {
+        "path": "artifact-delivery/shadow-v2/examples/design-3d-step-solid-r1-v2.json",
+        "sha256": "8d0f5a005846958d70771b3fc483a95cbf0ac9ee56737373224a64f94387ff4c"
+      },
+      "standards": [
+        "ISO/IEC 12113:2022 Khronos glTF 2.0",
+        "STEP/IFC/3MF profile-selected for CAD/BIM/manufacturing"
+      ],
+      "targetAuthorities": [
+        {
+          "authorityClass": "native-consumer",
+          "name": "FreeCAD 1.1.3 plus Open CASCADE 7.9.3",
+          "required": true
+        }
+      ],
+      "validationMapping": {
+        "semantic": {
+          "claim": "OCCT and FreeCAD readbacks independently match the exact request-bound topology, bbox and volume contract within declared tolerances",
+          "required": true
+        },
+        "structural": {
+          "claim": "system OCCT imports exact STEP bytes into a valid non-null BREP and reports unique topology, bbox and volume",
+          "required": true
+        },
+        "target": {
+          "claim": "official FreeCAD 1.1.3 imports the exact STEP bytes and reports a valid shape",
+          "required": true
+        },
+        "toolIdentity": {
+          "claim": "evidence binds the exact FreeCAD AppImage and exact OCCT inspector bytes/source",
+          "required": true
+        }
+      },
+      "validatorImplementation": {
+        "path": "scripts/artifact_cad_step.py",
+        "sha256": "6a63cf523520381b702d883c608678e1854edc460b7bf3a637b5ba3a86f95dd7"
       }
     },
     {
@@ -3552,11 +3676,11 @@
   "sourceReferences": {
     "profileV2MappingManifest": {
       "path": "artifact-delivery/shadow-v2/profile-v2-mapping-manifest-r1.json",
-      "sha256": "f17b0eba2682344899cabbb031d4012232ccf2d498eb051d2ba306c6c720b566"
+      "sha256": "872cba6d893b30d593142b2a07119d7e01c6eaf7dc45efee021a372bca943944"
     },
     "taxonomy": {
       "path": "artifact-delivery/taxonomy-v1.json",
-      "sha256": "76b1fbbf82357bc83881099280b196239555f33c5ccd6fbf262b125022accc9c"
+      "sha256": "96295a7ab1741bb3e761712890bbde4c1f82437b39916f980e054134f72477ca"
     }
   },
   "standing": "DONOR_REFERENCE_NOT_CORE_ONTOLOGY"

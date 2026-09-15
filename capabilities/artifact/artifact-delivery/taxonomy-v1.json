@@ -352,7 +352,8 @@
       "currentProfiles": [
         "design-3d-glb-static-mesh-r1",
         "design-3d-glb-material-scene-r1",
-        "design-3d-glb-skinned-animation-r1"
+        "design-3d-glb-skinned-animation-r1",
+        "design-3d-step-solid-r1"
       ],
       "exampleFormats": [
         "gltf",
@@ -368,7 +369,7 @@
         "Library of Congress: Design and 3D"
       ],
       "id": "design-3d",
-      "localToolStanding": "KHRONOS_VALIDATOR_ASSIMP_BLENDER_GODOT_MATRIX_PROVEN",
+      "localToolStanding": "KHRONOS_GLTF_MATRIX_PLUS_BOUNDED_FREECAD_OCCT_STEP_SOLID_READBACK_PROVEN",
       "representations": [
         "scene",
         "mesh",

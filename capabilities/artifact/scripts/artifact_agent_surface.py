@@ -234,23 +234,25 @@ def cad_boundary_status() -> dict[str, Any]:
     cad_profiles = [x for x in profiles if any(token in x.lower() for token in ("step", "ifc", "3mf", "cad", "bim"))]
     tools = {
         "blender": Path("/usr/bin/blender").is_file(),
-        "freecad": Path("/usr/bin/freecad").is_file() or Path("/usr/bin/FreeCAD").is_file(),
+        "freecad": Path("/opt/ordivon/external/freecad/1.1.3/root/usr/bin/freecadcmd").is_file(),
+        "occtStepInspector": Path("/opt/ordivon/external/occt-step-inspector/1/cad_step_inspect").is_file(),
         "openscadWindows": Path("/mnt/c/Program Files/OpenSCAD/openscad.exe").is_file(),
     }
     return {
         "schemaVersion": 1,
         "kind": "ordivon.artifact-cad-admission-status",
-        "graduated": bool(cad_profiles),
+        "graduated": False,
+        "boundedCadProfileAdmission": bool(cad_profiles),
         "currentDesign3dProfiles": profiles,
         "currentCadProfiles": cad_profiles,
         "observedToolPresence": tools,
         "requiredNextEvidence": [
-            "native parametric/BREP source authority from a mature CAD tool",
-            "STEP or another selected CAD/manufacturing interchange profile with exact units/topology contract",
-            "independent target-grade consumer/readback",
-            "destructive negative proving invalid or contract-divergent geometry fails closed",
+            "cross-kernel STEP interoperability if a broader CAD portability claim is desired",
+            "assembly/product-structure preservation for assembly profiles",
+            "PMI/GD&T semantic readback for annotated engineering-model profiles",
+            "separate BIM/IFC and manufacturing/CAM evidence before any such domain claim",
         ],
-        "boundary": "Current GLB scene/mesh profiles are not CAD/BIM/manufacturing graduation. Tool presence is navigation only and does not create a profile or domain standing."
+        "boundary": "A bounded metric single-solid STEP/BREP profile may be admitted without graduating CAD in general. GLB remains scene/mesh evidence only; assemblies, PMI/GD&T, BIM, manufacturing/CAM and cross-kernel portability remain separate ungraduated claims."
     }
 
 

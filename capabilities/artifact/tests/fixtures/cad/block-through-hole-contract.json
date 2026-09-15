@@ -1,0 +1,21 @@
+{
+  "bboxMm": {
+    "xmax": 40.0,
+    "xmin": 0.0,
+    "ymax": 30.0,
+    "ymin": 0.0,
+    "zmax": 20.0,
+    "zmin": 0.0
+  },
+  "geometryToleranceMm": 1e-05,
+  "kind": "cad-step-solid-contract-v1",
+  "schemaVersion": 1,
+  "topology": {
+    "edges": 15,
+    "faces": 7,
+    "solids": 1
+  },
+  "units": "mm",
+  "volumeMm3": 22429.203673205102,
+  "volumeToleranceMm3": 1e-05
+}
