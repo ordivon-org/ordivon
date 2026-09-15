@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.creative-work-friction-record",
+  "friction_id": "friction:media:archive-archipelago-001:keyboard-focus-burden",
+  "title": "303 independently tabbable SVG work nodes made the keyboard path O(node count)",
+  "category": "USABILITY",
+  "surface": "Archive Archipelago standalone interactive HTML",
+  "tool": "Workstation-bound Chromium + peer accessibility review",
+  "workflow": "keyboard consumption -> count focus stops -> Board accessibility critique -> source repair -> real browser re-consumption",
+  "observed_during": "R3 quality polish of media:archive-archipelago-001",
+  "related_work": "media:archive-archipelago-001",
+  "related_task": null,
+  "symptom": "Every one of the 303 visual work nodes was role=button and tabindex=0. Axe was clean, but ordinary Tab navigation had 303 map-node stops before leaving the visual field.",
+  "expected_behavior": "Map navigation should remain O(1) in the page Tab sequence while every Work remains keyboard-reachable through a stable equivalent control path.",
+  "actual_behavior": "Baseline real Chromium measurement found zeroTabNodes=303, minusOneNodes=0, roleButtons=303.",
+  "evidence": {
+    "baselineJobId": "job-01a0a5e6-3074-7ca1-af92-acaf411df7f6",
+    "peerReviewBoardSequence": 16981,
+    "verificationJobId": "job-01a0a5e8-9ff7-7711-927a-c4977c9fd089",
+    "artifactGateJobId": "job-01a0a5e9-873d-7243-b856-999595f27a20"
+  },
+  "severity": "MEDIUM",
+  "frequency": "EVERY_KEYBOARD_TRAVERSAL_PRE_FIX",
+  "owner": "Media creative production source",
+  "status": "VERIFIED",
+  "proposed_fix": "Use one map-level Tab stop and a bounded ordinary-DOM search result control path for individual Work selection; keep pointer SVG hotspots out of the accessibility/Tab tree because conceptual spatial adjacency is composition, not stable semantic navigation.",
+  "fix_attempt": "SVG now has one tabindex=0 group; the 303 pointer hotspots are aria-hidden visual marks with no role/button/tabindex. Search renders at most 12 native buttons and exact Work-ID queries provide direct selection.",
+  "verification": "Real Chromium R3: nodeTab0=0, nodeButtons=0, mapTab0=1; exact-ID search reached 303/303 Works, keyboard Enter selected Signal Garden, console errors=0, mobile page overflow=0. Repeat Nu Html Checker PASS messageCount=0; Chromium 153 + axe 0 violations; Firefox 155 PASS."
+}

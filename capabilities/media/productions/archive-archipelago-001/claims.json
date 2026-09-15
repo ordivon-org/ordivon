@@ -14,7 +14,9 @@
         "render/build-manifest.json",
         "evidence/consumption-evidence.json",
         "evidence/collaboration-polish-r2.json",
-        "evidence/artifact-browser-matrix-r2.json"
+        "evidence/artifact-browser-matrix-r2.json",
+        "evidence/artifact-browser-matrix-r3.json",
+        "evidence/friction-interactive-keyboard-focus.json"
       ],
       "allowedWording": [
         "cartographic portrait of the frozen Creative Library snapshot",

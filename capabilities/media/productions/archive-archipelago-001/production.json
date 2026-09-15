@@ -47,7 +47,13 @@
       "evidence/friction-interactive-html-conformance.json",
       "evidence/friction-playwright-config-cli.json",
       "evidence/chromium-final-interaction-r2.json",
-      "evidence/chromium-final-console-r2.json"
+      "evidence/chromium-final-console-r2.json",
+      "evidence/artifact-vnu-r3.json",
+      "evidence/artifact-browser-matrix-r3.json",
+      "evidence/keyboard-focus-baseline-r3.json",
+      "evidence/keyboard-focus-verified-r3.json",
+      "evidence/chromium-console-keyboard-r3.json",
+      "evidence/friction-interactive-keyboard-focus.json"
     ]
   },
   "outputs": [
@@ -76,8 +82,8 @@
       "id": "archive-archipelago-interactive",
       "kind": "interactive",
       "status": "approved",
-      "profile": "self-contained-html-local-browser-matrix-r2",
-      "blobDigest": "sha256:4d8681e634491a9cb01941aac48888a99f0e2e0e41f76fcb664df36698e82f63"
+      "profile": "self-contained-html-local-browser-matrix-r3",
+      "blobDigest": "sha256:c4d189b6af3d4e060cf8ba248ad8af67717c7acef50666a150c17f08bd955b2d"
     }
   ]
 }
