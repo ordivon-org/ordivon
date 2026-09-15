@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.creative-work-friction-resolution",
+  "friction_id": "friction:workstation:creative-library:geopackage-presentation-kind-missing",
+  "title": "Creative Library now recognizes GeoPackage/GeoJSON/KML as geospatial carriers",
+  "category": "CLASSIFICATION",
+  "surface": "Creative Library carrier presentation",
+  "owner": "Workstation Creative Library",
+  "status": "VERIFIED",
+  "observedDuring": "registration of media:archive-archipelago-001",
+  "relatedWork": "media:archive-archipelago-001",
+  "fix": {
+    "implementationCommit": "5218526649c7b0e792070bbd97d19f9195c97996",
+    "change": "Add the existing presentation classifier kind geospatial for .gpkg, .geojson and .kml; keep geospatial outside DIRECT_KINDS so browser-direct support is not falsely claimed.",
+    "scope": "presentation/discoverability only; preservation format identity remains external"
+  },
+  "verification": {
+    "unitTests": "9/9 PASS",
+    "catalogDigest": "sha256:584194f705613b03607df11718de68971148b0bbb988d799f9711e4af7b6e7c6",
+    "catalogWorkCount": 307,
+    "workModalities": ["geospatial", "image", "text"],
+    "gpkgCarrierKind": "geospatial",
+    "gpkgBrowserDirect": false
+  }
+}
