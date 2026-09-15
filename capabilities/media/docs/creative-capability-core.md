@@ -39,6 +39,12 @@ Relations are directional and evidence-addressed. Missing edges remain unknown; 
 
 Artifact profiles do not and should not know all Media capabilities. Media capabilities do not and should not redefine Artifact format semantics. `research/media/creative-delivery-bridges.json` therefore contains only compatibility edges between the two owner domains. It is small, reviewable, and replaceable.
 
+## Works projection
+
+Workstation Creative Library is consumed as a source-complete navigation catalog, not copied as a second archive. Each catalog work becomes a lightweight `Work` projection with identity, title, owner, source revision/path, modality/standing metadata and carrier counts. The thousands of carrier rows remain in the Workstation catalog and are never copied into the Creative Index.
+
+When a Work already exists from a Media Production or Collection, owner-native fields win. The Workstation catalog is attached only as `catalogProjection` plus membership. Explicit `DERIVATIVE_OF` and `CONSUMER_OF` catalog relations become `derivativeOf` / `consumerOf` graph edges; no lineage is inferred from names or paths.
+
 ## Standing
 
 There is deliberately no mutable `PROVEN=true` field. A caller derives standing from graph facts:

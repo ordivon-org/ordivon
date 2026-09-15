@@ -72,9 +72,14 @@ def build_creative_index(
             raise ValueError(f"conflicting creative-index node: {node_id}")
         nodes[node_id] = candidate
 
-    def add_relation(source: str, relation: str, target: str, *, evidence: str) -> None:
+    def add_relation(
+        source: str, relation: str, target: str, *, evidence: str, detail: str | None = None
+    ) -> None:
         key = (source, relation, target, evidence)
-        relations[key] = {"from": source, "type": relation, "to": target, "evidence": evidence}
+        row = {"from": source, "type": relation, "to": target, "evidence": evidence}
+        if detail:
+            row["detail"] = detail
+        relations[key] = row
 
     sources: list[dict[str, Any]] = []
     for owner, repo in (("media", media_root), ("artifact", artifact_root), ("workstation", workstation_root)):
@@ -290,11 +295,101 @@ def build_creative_index(
             add_relation(source_id, "canFeed", target_id, evidence="research/media/creative-delivery-bridges.json")
 
     if workstation_root is not None:
-        for candidate in (
-            workstation_root / "artifacts/creative-library/evidence/acceptance-r1.json",
+        catalog_path = workstation_root / "artifacts/creative-library/catalog-v1.json"
+        if catalog_path.is_file():
+            catalog = _json(catalog_path)
+            catalog_relpath = str(catalog_path.relative_to(workstation_root))
+            summary = catalog.get("summary") if isinstance(catalog.get("summary"), dict) else {}
+            catalog_evidence_id = "evidence:workstation:creative-library-catalog-v1"
+            add_node(
+                catalog_evidence_id,
+                "Evidence",
+                owner="workstation",
+                evidenceKind="creative-library-catalog",
+                standing=catalog.get("archiveStanding"),
+                catalogDigest=catalog.get("catalogDigest"),
+                workCount=summary.get("workCount"),
+                carrierCount=summary.get("carrierCount"),
+                relationCount=summary.get("relationCount"),
+                sourcePath=catalog_relpath,
+            )
+            add_relation(catalog_evidence_id, "sourcedFrom", "source:workstation", evidence=catalog_relpath)
+
+            for work in catalog.get("works", []):
+                if not isinstance(work, dict) or not isinstance(work.get("workId"), str):
+                    continue
+                identity = work["workId"]
+                work_id = f"work:{identity}"
+                hero = work.get("heroCarrier") if isinstance(work.get("heroCarrier"), dict) else {}
+                launch = work.get("launchCarrier") if isinstance(work.get("launchCarrier"), dict) else {}
+                projection = {
+                    "catalogDigest": catalog.get("catalogDigest"),
+                    "sourceRepository": work.get("sourceRepo"),
+                    "sourceRevision": work.get("sourceRevision"),
+                    "sourcePath": work.get("sourcePath"),
+                    "sourceKind": work.get("sourceKind"),
+                    "sourceTreeDigest": work.get("sourceTreeDigest"),
+                    "modalities": sorted(value for value in work.get("modalities", []) if isinstance(value, str)),
+                    "room": work.get("room"),
+                    "series": work.get("series"),
+                    "carrierCount": work.get("carrierCount"),
+                    "evidenceLevel": work.get("evidenceLevel"),
+                    "humanStanding": work.get("humanStanding"),
+                    "physicalStanding": work.get("physicalStanding"),
+                    "featured": work.get("featured"),
+                    "hasDerivedPreview": work.get("derivedPreview") is not None,
+                    "heroCarrier": {k: hero.get(k) for k in ("kind", "relativePath") if hero.get(k) is not None},
+                    "launchCarrier": {k: launch.get(k) for k in ("kind", "relativePath") if launch.get(k) is not None},
+                }
+                existing = nodes.get(work_id)
+                if existing is None:
+                    add_node(
+                        work_id,
+                        "Work",
+                        owner=work.get("owner"),
+                        sourceIdentity=identity,
+                        title=work.get("title", identity),
+                        status=work.get("status"),
+                        outputKinds=[],
+                        sourcePath=work.get("sourcePath"),
+                        collections=["workstation:creative-library"],
+                        catalogProjection=projection,
+                    )
+                elif existing.get("kind") == "Work":
+                    existing["collections"] = sorted(
+                        set(existing.get("collections", [])) | {"workstation:creative-library"}
+                    )
+                    existing["catalogProjection"] = projection
+                else:
+                    raise ValueError(f"creative-library work identity collides with non-Work node: {work_id}")
+                add_relation(work_id, "sourcedFrom", "source:workstation", evidence=catalog_relpath)
+
+            relation_map = {"DERIVATIVE_OF": "derivativeOf", "CONSUMER_OF": "consumerOf"}
+            for relation in catalog.get("relations", []):
+                if not isinstance(relation, dict):
+                    continue
+                parent = relation.get("parent_work_id")
+                child = relation.get("child_work_id")
+                relation_type = relation_map.get(str(relation.get("relation_type")))
+                if not isinstance(parent, str) or not isinstance(child, str) or relation_type is None:
+                    continue
+                parent_id = f"work:{parent}"
+                child_id = f"work:{child}"
+                if parent_id not in nodes or child_id not in nodes:
+                    continue
+                add_relation(
+                    child_id, relation_type, parent_id, evidence=catalog_relpath,
+                    detail=str(relation.get("evidence_summary")) if relation.get("evidence_summary") else None,
+                )
+
+        evidence_candidates = list(
+            (workstation_root / "artifacts/creative-library/evidence").glob("*.json")
+        )
+        evidence_candidates.extend([
             workstation_root / "artifacts/creative-library/derived/godot-derived-previews-r1.json",
             workstation_root / "artifacts/creative-library/derived/kicad-derived-preview-r1.json",
-        ):
+        ])
+        for candidate in sorted(set(evidence_candidates)):
             if not candidate.is_file():
                 continue
             value = _json(candidate)
@@ -326,19 +421,27 @@ def build_creative_index(
             add_relation(evidence_id, "sourcedFrom", "source:workstation", evidence=str(candidate.relative_to(workstation_root)))
             if isinstance(work_id_value, str):
                 work_id = f"work:{work_id_value}"
-                add_node(
-                    work_id,
-                    "Work",
-                    owner=work_id_value.split(":", 1)[0] if ":" in work_id_value else "external",
-                    sourceIdentity=work_id_value,
-                    title=work_id_value.split(":", 1)[-1].replace("-", " ").title(),
-                    status="historical-source",
-                    outputKinds=[],
-                    sourcePath=source_path_value,
-                    sourceRepository=source_repository,
-                    sourceRevision=source_revision,
-                    collections=["workstation:creative-library"],
-                )
+                existing_work = nodes.get(work_id)
+                if existing_work is None:
+                    add_node(
+                        work_id,
+                        "Work",
+                        owner=work_id_value.split(":", 1)[0] if ":" in work_id_value else "external",
+                        sourceIdentity=work_id_value,
+                        title=work_id_value.split(":", 1)[-1].replace("-", " ").title(),
+                        status="historical-source",
+                        outputKinds=[],
+                        sourcePath=source_path_value,
+                        sourceRepository=source_repository,
+                        sourceRevision=source_revision,
+                        collections=["workstation:creative-library"],
+                    )
+                elif existing_work.get("kind") == "Work":
+                    existing_work["collections"] = sorted(
+                        set(existing_work.get("collections", [])) | {"workstation:creative-library"}
+                    )
+                else:
+                    raise ValueError(f"derived-preview work identity collides with non-Work node: {work_id}")
                 add_relation(work_id, "evidencedBy", evidence_id, evidence=str(candidate.relative_to(workstation_root)))
             rendered = str(renderer_tool or "").lower()
             if "kicad" in rendered and "equipment:kicad" in nodes:

@@ -102,6 +102,108 @@ class CreativeIndexTests(unittest.TestCase):
         self.assertIn("equipment:blender", ids)
         self.assertTrue(any(row["id"] == "source:media" for row in result["sources"]))
 
+    def test_workstation_catalog_projects_works_without_copying_carriers(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workstation = Path(directory)
+            catalog = workstation / "artifacts/creative-library/catalog-v1.json"
+            catalog.parent.mkdir(parents=True)
+            catalog.write_text(json.dumps({
+                "archiveStanding": "SOURCE_COMPLETE_DECLARED_SCOPE_R1",
+                "catalogDigest": "sha256:" + "a" * 64,
+                "summary": {"workCount": 1, "carrierCount": 99, "relationCount": 0},
+                "works": [{
+                    "workId": "game:batch-zero", "title": "Batch Zero", "owner": "Game",
+                    "status": "historical-jam-prototype", "sourceRepo": "/tmp/game",
+                    "sourceRevision": "b" * 40, "sourcePath": "alpha20-ercot",
+                    "sourceKind": "reverse_census_git_history", "sourceTreeDigest": "sha256:" + "c" * 64,
+                    "modalities": ["html", "text"], "room": "playable", "series": "alpha20",
+                    "carrierCount": 99, "evidenceLevel": "A", "humanStanding": "NOT_ASSESSED",
+                    "physicalStanding": "DIGITAL_ONLY", "featured": False,
+                    "heroCarrier": {"kind": "html", "relativePath": "index.html", "objectId": "x"},
+                    "launchCarrier": {"kind": "html", "relativePath": "index.html", "objectId": "x"},
+                    "carriers": [{"relativePath": str(i), "kind": "source"} for i in range(99)]
+                }],
+                "relations": [],
+            }), encoding="utf-8")
+            index = build_creative_index(ROOT, workstation_root=workstation)
+            node = next(row for row in index["nodes"] if row["id"] == "work:game:batch-zero")
+            self.assertEqual(node["title"], "Batch Zero")
+            self.assertEqual(node["catalogProjection"]["carrierCount"], 99)
+            self.assertEqual(node["catalogProjection"]["modalities"], ["html", "text"])
+            self.assertNotIn("carriers", node)
+            self.assertNotIn("carriers", node["catalogProjection"])
+            self.assertEqual(node["catalogProjection"]["heroCarrier"], {"kind": "html", "relativePath": "index.html"})
+
+    def test_workstation_catalog_membership_does_not_create_shared_query_hub(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workstation = Path(directory)
+            catalog = workstation / "artifacts/creative-library/catalog-v1.json"
+            catalog.parent.mkdir(parents=True)
+            catalog.write_text(json.dumps({
+                "archiveStanding": "SOURCE_COMPLETE_DECLARED_SCOPE_R1",
+                "catalogDigest": "sha256:" + "a" * 64,
+                "summary": {"workCount": 2, "carrierCount": 2, "relationCount": 0},
+                "works": [
+                    {"workId": "game:needle-work", "title": "Needle Work", "owner": "Game", "carrierCount": 1},
+                    {"workId": "game:unrelated-work", "title": "Unrelated Work", "owner": "Game", "carrierCount": 1},
+                ],
+                "relations": [],
+            }), encoding="utf-8")
+            index = build_creative_index(ROOT, workstation_root=workstation)
+            result = query_creative_index(index, "Needle Work")
+            ids = {row["id"] for row in result["nodes"]}
+            self.assertIn("work:game:needle-work", ids)
+            self.assertIn("source:workstation", ids)
+            self.assertNotIn("work:game:unrelated-work", ids)
+
+    def test_workstation_catalog_never_overwrites_owner_native_work(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workstation = Path(directory)
+            catalog = workstation / "artifacts/creative-library/catalog-v1.json"
+            catalog.parent.mkdir(parents=True)
+            catalog.write_text(json.dumps({
+                "archiveStanding": "SOURCE_COMPLETE_DECLARED_SCOPE_R1",
+                "catalogDigest": "sha256:" + "a" * 64,
+                "summary": {"workCount": 1, "carrierCount": 1, "relationCount": 0},
+                "works": [{
+                    "workId": "media:runtime-introduction", "title": "Historical Runtime Title", "owner": "Media",
+                    "status": "historical-recovered", "sourceRepo": "/tmp/media",
+                    "sourceRevision": "b" * 40, "sourcePath": "old/runtime", "modalities": ["video"],
+                    "carrierCount": 1
+                }],
+                "relations": [],
+            }), encoding="utf-8")
+            index = build_creative_index(ROOT, workstation_root=workstation)
+            node = next(row for row in index["nodes"] if row["id"] == "work:media:runtime-introduction")
+            self.assertEqual(node["title"], "Ordivon Runtime Introduction")
+            self.assertNotEqual(node["status"], "historical-recovered")
+            self.assertIn("workstation:creative-library", node["collections"])
+            self.assertEqual(node["catalogProjection"]["sourcePath"], "old/runtime")
+
+    def test_workstation_catalog_projects_explicit_lineage_relations(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workstation = Path(directory)
+            catalog = workstation / "artifacts/creative-library/catalog-v1.json"
+            catalog.parent.mkdir(parents=True)
+            catalog.write_text(json.dumps({
+                "archiveStanding": "SOURCE_COMPLETE_DECLARED_SCOPE_R1",
+                "catalogDigest": "sha256:" + "a" * 64,
+                "summary": {"workCount": 2, "carrierCount": 2, "relationCount": 1},
+                "works": [
+                    {"workId": "media:parent", "title": "Parent", "owner": "Media", "carrierCount": 1},
+                    {"workId": "game:child", "title": "Child", "owner": "Game", "carrierCount": 1},
+                ],
+                "relations": [{
+                    "parent_work_id": "media:parent", "child_work_id": "game:child",
+                    "relation_type": "DERIVATIVE_OF", "evidence_summary": "Exact lineage evidence."
+                }],
+            }), encoding="utf-8")
+            index = build_creative_index(ROOT, workstation_root=workstation)
+            relation = next(row for row in index["relations"] if row["type"] == "derivativeOf")
+            self.assertEqual(relation["from"], "work:game:child")
+            self.assertEqual(relation["to"], "work:media:parent")
+            self.assertEqual(relation["detail"], "Exact lineage evidence.")
+
     def test_workstation_derived_preview_projects_real_work_and_tool_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             workstation = Path(directory)
