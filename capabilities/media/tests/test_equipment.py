@@ -15,6 +15,7 @@ from ordivon_studio.equipment import (
     discover_equipment_for_capability,
     load_equipment_world,
     local_provider_surface,
+    operation_support,
     propose_operation,
     select_for_capability,
     summarize_trial,
@@ -36,6 +37,7 @@ class EquipmentWorldTests(unittest.TestCase):
         self.assertIn("stream-deck", ids)
         self.assertIn("kicad", ids)
         self.assertIn("ngspice", ids)
+        self.assertIn("cadquery", ids)
         self.assertIn("frictionReduction", world["evaluationAxes"])
         by_id = {item["id"]: item for item in world["equipment"]}
         self.assertEqual(by_id["typst"]["retention"], "core-equipment")
@@ -162,6 +164,27 @@ class EquipmentWorldTests(unittest.TestCase):
             self.assertIsInstance(plan, EquipmentPlan)
             self.assertEqual(plan.transport, "process")
             self.assertIn("scale=10:20", plan.args)
+
+    def test_cadquery_plan_uses_persistent_laboratory_launcher_and_requires_artifacts(self) -> None:
+        launcher = "/root/.local/share/ordivon/laboratory/engineering-py312/bin/python"
+        with mock.patch("ordivon_studio.equipment._require_existing", return_value=launcher):
+            plan = compile_operation(
+                "cadquery", "cad.export.step",
+                {"script": "build.py", "args": ["--output", "part.step"]},
+            )
+        self.assertEqual(plan.executable, launcher)
+        self.assertEqual(plan.args, ("build.py", "--output", "part.step"))
+        blocked = verification_contract("cadquery", "cad.export.step", {})
+        self.assertFalse(blocked["ready"])
+        ready = verification_contract(
+            "cadquery", "cad.export.step", {"expectedArtifacts": ["part.step"]}
+        )
+        self.assertTrue(ready["ready"])
+        self.assertEqual(ready["artifacts"], ["part.step"])
+
+    def test_cadquery_operation_support_is_direct_but_not_delivery_authority(self) -> None:
+        self.assertEqual(operation_support("cadquery", "cad.script.author"), "DIRECTLY_INVOCABLE")
+        self.assertEqual(operation_support("cadquery", "cad.export.step"), "DIRECTLY_INVOCABLE")
 
     def test_kicad_operations_follow_current_native_cli_contract(self) -> None:
         with mock.patch("ordivon_studio.equipment._require_existing", return_value="/usr/bin/kicad-cli"):

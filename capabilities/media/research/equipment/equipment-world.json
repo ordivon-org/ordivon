@@ -577,6 +577,31 @@
       ],
       "retention": "specialist-on-demand",
       "reason": "Artifact EDA R1 has live positive and destructive-negative ngspice evidence for bounded transient measurement verification. Retain the native simulator rather than introducing a Studio circuit parser."
+    },
+    {
+      "id": "cadquery",
+      "family": "scripted-parametric-cad",
+      "media": [
+        "cad",
+        "spatial-3d"
+      ],
+      "capabilities": [
+        "cad.script.author",
+        "cad.export.step",
+        "cad.export.stl"
+      ],
+      "discovery": [
+        {
+          "platform": "linux",
+          "path": "/root/.local/share/ordivon/laboratory/engineering-py312/bin/python",
+          "versionArgs": [
+            "-c",
+            "import cadquery as cq; print('CadQuery ' + cq.__version__)"
+          ]
+        }
+      ],
+      "retention": "specialist-on-demand",
+      "reason": "Current consumer pressure is real: the source-complete Creative Library contains 26 CAD works, historical Signal Garden exact-regeneration used the persistent Laboratory engineering environment, and a fresh 2026-09-15 probe observes CadQuery 2.8.0 in that exact launcher. Media owns script-based CAD authoring/export affordance only; Workstation owns launcher materialization and Artifact remains the authority for any admitted STEP delivery/verification profile."
     }
   ]
 }

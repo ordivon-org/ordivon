@@ -273,6 +273,7 @@ _DIRECT_OPERATION_CAPABILITIES: dict[str, frozenset[str]] = {
     "reaper": frozenset({"audio.project.render"}),
     "kicad": frozenset({"pcb.drc", "pcb.export.svg", "pcb.export.gerber", "pcb.export.drill"}),
     "ngspice": frozenset({"circuit.simulate.transient"}),
+    "cadquery": frozenset({"cad.script.author", "cad.export.step", "cad.export.stl"}),
 }
 _PROVIDER_MEDIATED_EQUIPMENT = frozenset({"davinci-resolve"})
 _REAPER_PROVIDER_CAPABILITIES = frozenset({"audio.multitrack", "audio.edit", "audio.mix", "audio.master", "audio.automation", "midi.edit", "script.reascript", "control.osc"})
@@ -408,6 +409,15 @@ def verification_contract(equipment_id: str, capability: str, parameters: Mappin
     The contract is intentionally owner-specific. It never claims completion itself and it
     never reduces provider-native state to process exit status.
     """
+    if equipment_id == "cadquery":
+        expected = [str(value) for value in parameters.get("expectedArtifacts", []) if str(value)]
+        return {
+            "kind": "DECLARED_CAD_ARTIFACTS",
+            "required": True,
+            "ready": bool(expected),
+            "artifacts": expected,
+            "reason": "CadQuery script/process success is not CAD semantic completion; every proposal must declare the source/export artifacts whose existence will be re-observed. STEP interchange conformance remains an Artifact-owned authority transition.",
+        }
     if equipment_id == "blender":
         expected = [str(value) for value in parameters.get("expectedArtifacts", []) if str(value)]
         return {
@@ -547,6 +557,18 @@ def compile_operation(equipment_id: str, capability: str, parameters: Mapping[st
 
     This function does not execute the program. Runtime remains process authority.
     """
+    if equipment_id == "cadquery" and capability in {"cad.script.author", "cad.export.step", "cad.export.stl"}:
+        script = str(parameters["script"])
+        extra = tuple(str(value) for value in parameters.get("args", []))
+        executable = _require_existing("/root/.local/share/ordivon/laboratory/engineering-py312/bin/python")
+        return EquipmentPlan(
+            equipment_id, capability, "process", executable, (script, *extra),
+            (
+                "CadQuery/Python owns script-based parametric BREP construction and requested export; Runtime owns process execution.",
+                "The persistent Laboratory launcher is a Workstation materialization fact, while Media freshly observes CadQuery package presence/version before selection.",
+                "Do not infer STEP schema/conformance, manufacturability, tolerance/GD&T, assembly semantics or physical behavior from successful authoring/export; admitted delivery verification belongs to Artifact.",
+            ),
+        )
     if equipment_id == "kicad" and capability in {"pcb.drc", "pcb.export.svg", "pcb.export.gerber", "pcb.export.drill"}:
         source = str(parameters["source"])
         executable = _require_existing("/usr/bin/kicad-cli")
