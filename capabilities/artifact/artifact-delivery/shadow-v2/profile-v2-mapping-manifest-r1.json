@@ -1,5 +1,5 @@
 {
-  "fullRegression": "NONREGRESSION_CURRENT_CUT: 311 tests; 2 baseline-identical browser-availability failures; 4 skipped; CAD 4/4 PASS. Candidate Runtime job job-01a0a54a-208c-7200-b2bd-1ec837703de5 operation sha256:4810d006986b91cb1221e7ac87c7599236c94e29856f9ed46ca7dc6de678de17; untouched-base two-test control job job-01a0a550-97cf-76f3-8c4e-56079723df4f operation sha256:51b94aa9cb181189c2150ee06eda118af03fe84a74c0024045e5059ed285aac1 reproduced both failures from missing pinned Chromium/Firefox executables.",
+  "fullRegression": "PASS: 311 tests, 0 failures, 4 skipped; Runtime job job-01a0a56a-97f7-7b52-85ea-e22ca6b4688c; operation sha256:846844d07f10744a371260e827b950318be29a4272401688d17bc743aecfc69c. Pinned Chromium/Firefox authority is explicitly routed through the Artifact Playwright browser carrier.",
   "kind": "artifact-profile-v2-shadow-mapping-manifest",
   "mappingCount": 28,
   "mappings": [
