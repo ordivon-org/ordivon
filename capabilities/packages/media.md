@@ -23,6 +23,20 @@ Use the subset relevant to the medium and destination:
 
 There is no need for a private Ordivon media standard that replaces these owners.
 
+## Core representation loop
+
+The minimal Media loop is:
+
+`STATE -> TRANSFORM -> REPRESENT -> OBSERVE -> REVISE`
+
+Media owns the chosen meaning/representation within its bounded workload, not upstream fact truth or downstream delivery authority. Representation is replaceable; required semantics must not be silently lost during transformation.
+
+When Media is compiled into a deliverable Artifact, use the shared cross-surface contract:
+
+`INTENT -> REPRESENTATION -> ARTIFACT -> CONSUMPTION -> EVIDENCE -> REVISION`
+
+Here Media is responsible for representation, while Artifact is responsible for reliable target-native consequence. A beautiful render cannot upgrade source truth, and a valid file cannot substitute for required real consumption.
+
 ## Observed local capability
 
 - FFmpeg / ffprobe;
