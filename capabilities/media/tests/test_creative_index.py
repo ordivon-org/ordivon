@@ -41,6 +41,50 @@ class CreativeIndexTests(unittest.TestCase):
                 "delivery-profile:design-3d-glb-static-mesh-r1",
             ), relations)
 
+    def test_cadquery_step_export_joins_bounded_artifact_step_profile(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            artifact = Path(directory)
+            profiles = artifact / "artifact-delivery/shadow-profiles"
+            examples = artifact / "artifact-delivery/examples"
+            bindings = artifact / "artifact-delivery/shadow-bindings"
+            profiles.mkdir(parents=True)
+            examples.mkdir(parents=True)
+            bindings.mkdir(parents=True)
+            (profiles / "design-3d-step-solid-r1.json").write_text(json.dumps({
+                "id": "design-3d-step-solid-r1",
+                "status": "SHADOW_NOT_PRODUCTION_PROFILE",
+                "classification": {
+                    "family": "design-3d",
+                    "format": "STEP Part 21 clear text (.step/.stp)",
+                    "purpose": ["cad-exchange", "verification"],
+                },
+            }), encoding="utf-8")
+            (bindings / "cad-step-solid-local-r1.json").write_text(json.dumps({
+                "id": "cad-step-solid-local-r1",
+                "profileId": "design-3d-step-solid-r1",
+                "status": "LOCAL_LIVE_PROVEN",
+                "bindings": {
+                    "targetCadConsumer": {"tool": "FreeCAD"},
+                    "structuralReader": {"tool": "Open CASCADE"},
+                },
+            }), encoding="utf-8")
+            index = build_creative_index(ROOT, artifact_root=artifact)
+            nodes = {row["id"]: row for row in index["nodes"]}
+            relations = {(row["from"], row["type"], row["to"]) for row in index["relations"]}
+            profile = "delivery-profile:design-3d-step-solid-r1"
+            evidence = "evidence:artifact-binding:cad-step-solid-local-r1"
+            self.assertIn(("equipment:cadquery", "provides", "capability:cad.export.step"), relations)
+            self.assertIn(("capability:cad.export.step", "canFeed", profile), relations)
+            self.assertIn((profile, "evidencedBy", evidence), relations)
+            self.assertEqual(nodes[profile]["status"], "SHADOW_NOT_PRODUCTION_PROFILE")
+            self.assertEqual(nodes[evidence]["standing"], "LOCAL_LIVE_PROVEN")
+            self.assertEqual(nodes[evidence]["tools"], ["FreeCAD", "Open CASCADE"])
+            query = query_creative_index(index, "cad.export.step")
+            ids = {row["id"] for row in query["nodes"]}
+            self.assertIn("equipment:cadquery", ids)
+            self.assertIn(profile, ids)
+            self.assertIn(evidence, ids)
+
     def test_artifact_shadow_binding_becomes_profile_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             artifact = Path(directory)

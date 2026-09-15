@@ -29,6 +29,7 @@ The index is disposable. Media Equipment World remains equipment/capability auth
 
 - `provides`: Equipment → Capability.
 - `canFeed`: Capability → DeliveryProfile, from the small Media-owned bridge list.
+- CAD follows the same owner split: Media may expose `cad.export.step`, while Artifact owns the bounded `design-3d-step-solid-r1` STEP verification profile and its `LOCAL_LIVE_PROVEN` FreeCAD/OCCT evidence. This relation does not claim assembly, PMI/GD&T, BIM, manufacturing, or universal CAD graduation.
 - `renders`: target renderer Equipment → DeliveryProfile.
 - `evidencedBy`: Equipment or DeliveryProfile → Evidence.
 - `sourcedFrom`: any projected entity → Source.

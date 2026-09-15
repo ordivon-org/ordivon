@@ -15,6 +15,7 @@
     {"capability": "asset.export.gltf", "profileId": "design-3d-glb-static-mesh-r1"},
     {"capability": "asset.export.gltf", "profileId": "design-3d-glb-material-scene-r1"},
     {"capability": "asset.export.gltf", "profileId": "design-3d-glb-skinned-animation-r1"},
+    {"capability": "cad.export.step", "profileId": "design-3d-step-solid-r1"},
     {"capability": "scene.render", "profileId": "still-image-png-srgb-r1"},
     {"capability": "animation.render", "profileId": "moving-image-matroska-ffv1-v3-r1"},
     {"capability": "video.encode", "profileId": "moving-image-matroska-ffv1-v3-r1"},
