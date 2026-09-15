@@ -14,7 +14,7 @@
     "verifier": {
       "function": "verify_svg",
       "relativePath": "scripts/artifact_svg.py",
-      "sha256": "1d704dd89b91bc7344619eeb84edaee366c5aaf0c0bae906ebed7fb36d662bba"
+      "sha256": "7591d485ce1d71a156cb6ec8f822900b370ba3bede19d46c5f2260720bcbb67e"
     }
   },
   "artifactSource": {

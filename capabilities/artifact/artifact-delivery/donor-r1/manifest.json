@@ -1,5 +1,5 @@
 {
-  "baseRevision": "4fa25babf24777f2b3bfe5e7486ff25265148e20",
+  "baseRevision": "d85256acc06a716b64b57f80c287ed7c16baed5a",
   "coverage": {
     "isolatedValidatorImplementations": 20,
     "liveProvenShadowBindings": 20,
@@ -377,7 +377,7 @@
       },
       "validatorImplementation": {
         "path": "scripts/artifact_ogg_vorbis.py",
-        "sha256": "70c2563edd3fee795083f789b6063153eede2fa9aab71b6fa3baed55645d3de3"
+        "sha256": "e28b7d2c1996c97b8d45525ebcf05eb31ee8518fc81369c3df2b420d64288b37"
       }
     },
     {
@@ -3417,7 +3417,7 @@
       },
       "validatorImplementation": {
         "path": "scripts/artifact_svg.py",
-        "sha256": "1d704dd89b91bc7344619eeb84edaee366c5aaf0c0bae906ebed7fb36d662bba"
+        "sha256": "7591d485ce1d71a156cb6ec8f822900b370ba3bede19d46c5f2260720bcbb67e"
       }
     },
     {

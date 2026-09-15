@@ -14,7 +14,7 @@
     "verifier": {
       "function": "verify_ogg_vorbis",
       "relativePath": "scripts/artifact_ogg_vorbis.py",
-      "sha256": "70c2563edd3fee795083f789b6063153eede2fa9aab71b6fa3baed55645d3de3"
+      "sha256": "e28b7d2c1996c97b8d45525ebcf05eb31ee8518fc81369c3df2b420d64288b37"
     }
   },
   "artifactSource": {
