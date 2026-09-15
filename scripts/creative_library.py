@@ -129,7 +129,7 @@ def git_tree(repo: str, revision: str, source_path: str) -> tuple[str, list[dict
         meta, path_b = record.split(b"\t", 1)
         mode_b, type_b, oid_b, size_b = meta.split(b" ", 3)
         path = path_b.decode("utf-8", "surrogateescape")
-        size_text = size_b.decode("ascii", "replace")
+        size_text = size_b.decode("ascii", "replace").strip()
         size = int(size_text) if size_text.isdigit() else None
         entries.append({"path": path, "mode": mode_b.decode(), "type": type_b.decode(), "objectId": oid_b.decode(), "size": size})
     if not entries:
