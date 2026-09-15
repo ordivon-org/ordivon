@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "claims": [
+    {
+      "id": "source-snapshot-boundary",
+      "allowedMeaning": "The work visualizes a read-only snapshot of locally readable Ordivon Git repository identities and exact observed HEAD revisions at creation time.",
+      "boundary": "It does not claim repository completeness beyond the declared selection, currentness after the observation time, runtime health, task priority, dependency structure, or organizational authority."
+    },
+    {
+      "id": "coordinate-boundary",
+      "allowedMeaning": "Point coordinates are deterministic compositional positions used to make a cartographic artwork and a queryable vector dataset.",
+      "boundary": "Coordinates are not geographic locations and distances are not dependency, importance, ownership, or causal measurements."
+    }
+  ]
+}

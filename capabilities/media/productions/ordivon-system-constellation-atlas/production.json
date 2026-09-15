@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "id": "ordivon-system-constellation-atlas",
+  "title": "Ordivon System Constellation Atlas",
+  "status": "review",
+  "intent": "Create a real cartographic/data-art work from the currently readable local Ordivon Git repository landscape, preserving a queryable GeoPackage, editable vector source, exact observed Git identities, and explicit non-geographic semantics.",
+  "audiences": [
+    "ordivon-user",
+    "creative-library-consumer",
+    "geospatial-data-consumer"
+  ],
+  "sourceBindings": [
+    {
+      "id": "media",
+      "repository": "ordivon-media",
+      "revision": "9b64d58fe4a2fd8e906426e3b4fdfa4fcd81a180",
+      "role": "creative-tooling-and-production-context"
+    }
+  ],
+  "workingProfile": {
+    "canvas": {
+      "width": 1600,
+      "height": 1000
+    }
+  },
+  "sources": {
+    "claims": "claims.json",
+    "assets": "source/repositories.json",
+    "scripts": [
+      "generate.py"
+    ],
+    "receipts": [
+      "consumption-evidence.json",
+      "friction.json"
+    ]
+  },
+  "outputs": [
+    {
+      "id": "system-constellation-svg",
+      "kind": "image",
+      "status": "approved",
+      "profile": "editable-svg-1600x1000",
+      "blobDigest": "sha256:51abed191124000f3457b0cf94f1ab002fbe5a88664cc72d94650491c7867b31"
+    },
+    {
+      "id": "system-constellation-png",
+      "kind": "image",
+      "status": "approved",
+      "profile": "png-inspection-1600x1000",
+      "blobDigest": "sha256:b13d7497e5693c33e555780f3fdfb2faae982b6bd43504a63cb6ac05e8d5d56e"
+    },
+    {
+      "id": "system-constellation-gpkg",
+      "kind": "publication-package",
+      "status": "approved",
+      "profile": "geopackage-vector-local-engineering-crs",
+      "blobDigest": "sha256:9429fd06b37dcde665909addb28d9afcffe910720f0050b93e5ef9aaab29e6fa"
+    }
+  ]
+}

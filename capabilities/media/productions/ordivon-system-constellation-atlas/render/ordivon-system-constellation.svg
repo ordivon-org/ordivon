@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+<rect width="1600" height="1000" fill="#0b0d10"/>
+<rect x="55" y="55" width="1490" height="890" rx="28" fill="none" stroke="#2e353c" stroke-width="2"/>
+<text x="88" y="120" font-family="DejaVu Sans, sans-serif" font-size="44" font-weight="700" fill="#f2f3f4" letter-spacing="3">ORDIVON / SYSTEM CONSTELLATION</text>
+<text x="90" y="157" font-family="DejaVu Sans Mono, monospace" font-size="17" fill="#88919b">LOCAL REPOSITORY SNAPSHOT · ABSTRACT CARTOGRAPHIC WORK · 2026-09-15T23:17:45+08:00</text>
+<line x1="90" y1="184" x2="1510" y2="184" stroke="#343b43" stroke-width="1"/>
+
+<circle cx="494.0" cy="381.0" r="118" fill="none" stroke="#303841" stroke-width="1.5" stroke-dasharray="5 9"/>
+<text x="376.0" y="245.0" font-family="DejaVu Sans Mono, monospace" font-size="13" fill="#69747f" letter-spacing="1.5">EXECUTION / COORDINATION</text>
+<circle cx="1046.5" cy="355.5" r="108" fill="none" stroke="#303841" stroke-width="1.5" stroke-dasharray="5 9"/>
+<text x="938.5" y="229.5" font-family="DejaVu Sans Mono, monospace" font-size="13" fill="#69747f" letter-spacing="1.5">KNOWLEDGE / RESEARCH</text>
+<circle cx="706.5" cy="653.0" r="105" fill="none" stroke="#303841" stroke-width="1.5" stroke-dasharray="5 9"/>
+<text x="601.5" y="530.0" font-family="DejaVu Sans Mono, monospace" font-size="13" fill="#69747f" letter-spacing="1.5">CREATIVE / CULTURAL</text>
+<circle cx="1127.2" cy="614.8" r="112" fill="none" stroke="#303841" stroke-width="1.5" stroke-dasharray="5 9"/>
+<text x="1015.2" y="484.8" font-family="DejaVu Sans Mono, monospace" font-size="13" fill="#69747f" letter-spacing="1.5">EXTERNAL / DISTRIBUTION</text>
+<line x1="488.5" y1="394.7" x2="598.5" y2="379.7" stroke="#20262c" stroke-width="1"/>
+<line x1="488.5" y1="394.7" x2="539.6" y2="286.9" stroke="#20262c" stroke-width="1"/>
+<line x1="488.5" y1="394.7" x2="413.4" y2="314.4" stroke="#20262c" stroke-width="1"/>
+<line x1="488.5" y1="394.7" x2="389.5" y2="376.6" stroke="#20262c" stroke-width="1"/>
+<line x1="488.5" y1="394.7" x2="431.7" y2="465.0" stroke="#20262c" stroke-width="1"/>
+<line x1="488.5" y1="394.7" x2="480.0" y2="484.6" stroke="#20262c" stroke-width="1"/>
+<line x1="488.5" y1="394.7" x2="567.1" y2="455.8" stroke="#20262c" stroke-width="1"/>
+<line x1="1085.7" y1="311.8" x2="1085.7" y2="311.8" stroke="#20262c" stroke-width="1"/>
+<line x1="688.7" y1="662.1" x2="742.7" y2="588.5" stroke="#20262c" stroke-width="1"/>
+<line x1="688.7" y1="662.1" x2="635.4" y2="673.2" stroke="#20262c" stroke-width="1"/>
+<line x1="688.7" y1="662.1" x2="687.9" y2="724.6" stroke="#20262c" stroke-width="1"/>
+<line x1="1133.6" y1="620.2" x2="1199.2" y2="597.5" stroke="#20262c" stroke-width="1"/>
+<line x1="1133.6" y1="620.2" x2="1064.9" y2="575.0" stroke="#20262c" stroke-width="1"/>
+<line x1="1133.6" y1="620.2" x2="1136.8" y2="688.1" stroke="#20262c" stroke-width="1"/>
+<line x1="842.4" y1="522.9" x2="864.0" y2="482.8" stroke="#20262c" stroke-width="1"/>
+<line x1="842.4" y1="522.9" x2="820.7" y2="563.0" stroke="#20262c" stroke-width="1"/>
+<circle cx="598.5" cy="379.7" r="8" fill="#0b0d10" stroke="#f2f3f4" stroke-width="2"/>
+<circle cx="598.5" cy="379.7" r="2.2" fill="#f2f3f4"/>
+<text x="612.5" y="376.7" font-family="DejaVu Sans, sans-serif" font-size="16" fill="#dfe2e5">ordivon-artifact-v2</text>
+<text x="612.5" y="395.7" font-family="DejaVu Sans Mono, monospace" font-size="11" fill="#68737e">02b3aab61</text>
+<circle cx="539.6" cy="286.9" r="8" fill="#0b0d10" stroke="#f2f3f4" stroke-width="2"/>
+<circle cx="539.6" cy="286.9" r="2.2" fill="#f2f3f4"/>
+<text x="553.6" y="283.9" font-family="DejaVu Sans, sans-serif" font-size="16" fill="#dfe2e5">ordivon-harness</text>
+<text x="553.6" y="302.9" font-family="DejaVu Sans Mono, monospace" font-size="11" fill="#68737e">0400157eb</text>
+<circle cx="413.4" cy="314.4" r="8" fill="#0b0d10" stroke="#f2f3f4" stroke-width="2"/>
+<circle cx="413.4" cy="314.4" r="2.2" fill="#f2f3f4"/>
+<text x="427.4" y="311.4" font-family="DejaVu Sans, sans-serif" font-size="16" fill="#dfe2e5">ordivon-host-v2</text>
+<text x="427.4" y="330.4" font-family="DejaVu Sans Mono, monospace" font-size="11" fill="#68737e">b5cf31f9a</text>
+<circle cx="389.5" cy="376.6" r="8" fill="#0b0d10" stroke="#f2f3f4" stroke-width="2"/>
+<circle cx="389.5" cy="376.6" r="2.2" fill="#f2f3f4"/>
+<text x="403.5" y="373.6" font-family="DejaVu Sans, sans-serif" font-size="16" fill="#dfe2e5">ordivon-next</text>
+<text x="403.5" y="392.6" font-family="DejaVu Sans Mono, monospace" font-size="11" fill="#68737e">5101682ee</text>
+<circle cx="431.7" cy="465.0" r="8" fill="#0b0d10" stroke="#f2f3f4" stroke-width="2"/>
+<circle cx="431.7" cy="465.0" r="2.2" fill="#f2f3f4"/>
+<text x="445.7" y="462.0" font-family="DejaVu Sans, sans-serif" font-size="16" fill="#dfe2e5">ordivon-runtime</text>
+<text x="445.7" y="481.0" font-family="DejaVu Sans Mono, monospace" font-size="11" fill="#68737e">c9535c39f</text>
+<circle cx="480.0" cy="484.6" r="8" fill="#0b0d10" stroke="#f2f3f4" stroke-width="2"/>
+<circle cx="480.0" cy="484.6" r="2.2" fill="#f2f3f4"/>
+<text x="494.0" y="481.6" font-family="DejaVu Sans, sans-serif" font-size="16" fill="#dfe2e5">ordivon-workstation-v2</text>
+<text x="494.0" y="500.6" font-family="DejaVu Sans Mono, monospace" font-size="11" fill="#68737e">cf4b267c2</text>
+<circle cx="567.1" cy="455.8" r="8" fill="#0b0d10" stroke="#f2f3f4" stroke-width="2"/>
+<circle cx="567.1" cy="455.8" r="2.2" fill="#f2f3f4"/>
+<text x="581.1" y="452.8" font-family="DejaVu Sans, sans-serif" font-size="16" fill="#dfe2e5">workstation-lab</text>
+<text x="581.1" y="471.8" font-family="DejaVu Sans Mono, monospace" font-size="11" fill="#68737e">dd7e60d6a</text>
+<circle cx="1085.7" cy="311.8" r="8" fill="#0b0d10" stroke="#f2f3f4" stroke-width="2"/>
+<circle cx="1085.7" cy="311.8" r="2.2" fill="#f2f3f4"/>
+<text x="1099.7" y="308.8" font-family="DejaVu Sans, sans-serif" font-size="16" fill="#dfe2e5">ordivon-research-v2</text>
+<text x="1099.7" y="327.8" font-family="DejaVu Sans Mono, monospace" font-size="11" fill="#68737e">ab743ba97</text>
+<circle cx="742.7" cy="588.5" r="8" fill="#0b0d10" stroke="#f2f3f4" stroke-width="2"/>
+<circle cx="742.7" cy="588.5" r="2.2" fill="#f2f3f4"/>
+<text x="756.7" y="585.5" font-family="DejaVu Sans, sans-serif" font-size="16" fill="#dfe2e5">ordivon-game</text>
+<text x="756.7" y="604.5" font-family="DejaVu Sans Mono, monospace" font-size="11" fill="#68737e">621e66417</text>
+<circle cx="635.4" cy="673.2" r="8" fill="#0b0d10" stroke="#f2f3f4" stroke-width="2"/>
+<circle cx="635.4" cy="673.2" r="2.2" fill="#f2f3f4"/>
+<text x="649.4" y="670.2" font-family="DejaVu Sans, sans-serif" font-size="16" fill="#dfe2e5">ordivon-media</text>
+<text x="649.4" y="689.2" font-family="DejaVu Sans Mono, monospace" font-size="11" fill="#68737e">26b1cd615</text>
+<circle cx="687.9" cy="724.6" r="8" fill="#0b0d10" stroke="#f2f3f4" stroke-width="2"/>
+<circle cx="687.9" cy="724.6" r="2.2" fill="#f2f3f4"/>
+<text x="701.9" y="721.6" font-family="DejaVu Sans, sans-serif" font-size="16" fill="#dfe2e5">ordivon-web</text>
+<text x="701.9" y="740.6" font-family="DejaVu Sans Mono, monospace" font-size="11" fill="#68737e">32a2a1ca1</text>
+<circle cx="1199.2" cy="597.5" r="8" fill="#0b0d10" stroke="#f2f3f4" stroke-width="2"/>
+<circle cx="1199.2" cy="597.5" r="2.2" fill="#f2f3f4"/>
+<text x="1213.2" y="594.5" font-family="DejaVu Sans, sans-serif" font-size="16" fill="#dfe2e5">ordivon-distribution-v2</text>
+<text x="1213.2" y="613.5" font-family="DejaVu Sans Mono, monospace" font-size="11" fill="#68737e">9ab83f044</text>
+<circle cx="1064.9" cy="575.0" r="8" fill="#0b0d10" stroke="#f2f3f4" stroke-width="2"/>
+<circle cx="1064.9" cy="575.0" r="2.2" fill="#f2f3f4"/>
+<text x="1078.9" y="572.0" font-family="DejaVu Sans, sans-serif" font-size="16" fill="#dfe2e5">ordivon-market-capital-next</text>
+<text x="1078.9" y="591.0" font-family="DejaVu Sans Mono, monospace" font-size="11" fill="#68737e">dc73af47e</text>
+<circle cx="1136.8" cy="688.1" r="8" fill="#0b0d10" stroke="#f2f3f4" stroke-width="2"/>
+<circle cx="1136.8" cy="688.1" r="2.2" fill="#f2f3f4"/>
+<text x="1150.8" y="685.1" font-family="DejaVu Sans, sans-serif" font-size="16" fill="#dfe2e5">ordivon-network-v2</text>
+<text x="1150.8" y="704.1" font-family="DejaVu Sans Mono, monospace" font-size="11" fill="#68737e">f62179b29</text>
+<circle cx="864.0" cy="482.8" r="8" fill="#0b0d10" stroke="#f2f3f4" stroke-width="2"/>
+<circle cx="864.0" cy="482.8" r="2.2" fill="#f2f3f4"/>
+<text x="878.0" y="479.8" font-family="DejaVu Sans, sans-serif" font-size="16" fill="#dfe2e5">ordivon-paper2</text>
+<text x="878.0" y="498.8" font-family="DejaVu Sans Mono, monospace" font-size="11" fill="#68737e">4692609a7</text>
+<circle cx="820.7" cy="563.0" r="8" fill="#0b0d10" stroke="#f2f3f4" stroke-width="2"/>
+<circle cx="820.7" cy="563.0" r="2.2" fill="#f2f3f4"/>
+<text x="834.7" y="560.0" font-family="DejaVu Sans, sans-serif" font-size="16" fill="#dfe2e5">ordivon-security-v2</text>
+<text x="834.7" y="579.0" font-family="DejaVu Sans Mono, monospace" font-size="11" fill="#68737e">17ebfb63f</text>
+<g transform="translate(90 856)">
+<line x1="0" y1="0" x2="1420" y2="0" stroke="#343b43"/>
+<text x="0" y="38" font-family="DejaVu Sans Mono, monospace" font-size="14" fill="#949da6">16 retained local Git repositories · point position = deterministic composition, not dependency or geography</text>
+<text x="0" y="67" font-family="DejaVu Sans Mono, monospace" font-size="13" fill="#65707a">GPKG companion keeps queryable source identity: repository path, full HEAD, cluster, tracked-dirty observation.</text>
+</g>
+</svg>

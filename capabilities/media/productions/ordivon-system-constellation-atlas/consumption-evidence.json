@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.media.work-consumption-evidence",
+  "workId": "media:ordivon-system-constellation-atlas",
+  "consumedAt": "2026-09-15T23:17:45+08:00",
+  "consumer": [
+    "GDAL/OGR GeoPackage driver",
+    "OGR SQL",
+    "librsvg rsvg-convert",
+    "ImageMagick identify",
+    "Runtime native image transport"
+  ],
+  "evidence": {
+    "firstBuildJobId": "job-01a0a5a3-6ce1-73f0-ab12-fa2540474f7f",
+    "fixedBuildJobId": "job-01a0a5a3-e28b-7292-aab8-5f220458afb7",
+    "finalRenderJobId": "job-01a0a5a5-3d5f-7e30-8e1e-151162fa3bbf",
+    "snapshot": {
+      "repositoryCount": 16,
+      "clusters": {
+        "creative": 3,
+        "execution": 7,
+        "external": 3,
+        "knowledge": 1,
+        "other": 2
+      },
+      "sourceJsonSha256": "1a21fdd60cc0146a5408daf18110e9a191022da8381aa64ee1249eb4b82564a8",
+      "sourceGeoJsonSha256": "00878f16cd66fa64e3391f1359245eb8fad8ffd37210711898613f16ceb3da53"
+    },
+    "geoPackage": {
+      "featureCount": 16,
+      "geometry": "Point",
+      "crs": "ENGCRS Ordivon Conceptual Plane / abstract_unit",
+      "sha256": "9429fd06b37dcde665909addb28d9afcffe910720f0050b93e5ef9aaab29e6fa",
+      "sqlConsumption": "PASS after public field rename group -> cluster"
+    },
+    "vector": {
+      "sha256": "51abed191124000f3457b0cf94f1ab002fbe5a88664cc72d94650491c7867b31"
+    },
+    "raster": {
+      "width": 1600,
+      "height": 1000,
+      "sha256": "b13d7497e5693c33e555780f3fdfb2faae982b6bd43504a63cb6ac05e8d5d56e",
+      "inspection": "Final PNG opened through digest-bound Runtime image transport; labels, cluster rings, repository nodes, exact short revisions, semantic boundary footer, and conceptual-coordinate disclaimer are visibly present."
+    }
+  },
+  "boundary": "Consumption verifies the local data/render pipeline and visual carrier. It does not establish geographic meaning, repository completeness outside the declared selection, dependency relations, or artistic preference."
+}
