@@ -39,6 +39,18 @@ There is intentionally no single Artifact standard. Select the standards of the 
 
 Use the artifact-family native toolchain and validators. Do not normalize all documents/media/3D/data/software releases into one Ordivon representation.
 
+The minimal Artifact consequence loop is:
+
+`SOURCE -> BUILD -> VERIFY -> CONSUME -> PROVE -> REVISION / RETRY`
+
+- `SOURCE` binds the real upstream intent, bytes, revision and owner authority.
+- `BUILD` delegates family mechanics to mature native tools/providers.
+- `VERIFY` checks the properties the contract actually requires; structural validity, semantic fidelity and target behavior remain independent gates.
+- `CONSUME` exercises the intended real consumer or target application whenever the contract depends on it.
+- `PROVE` retains enough exact evidence to distinguish a usable consequence from a generated file.
+
+File existence, provider completion, schema validity, a renderer screenshot or an Agent assertion alone do not establish Artifact success. When editability or native semantics are required, flattened visual similarity is insufficient.
+
 A common acceptance pattern is:
 
 `purpose/target -> native family -> author/transform -> structural validation -> semantic/native-target validation -> visual/accessibility checks when applicable -> packaging/trust -> handoff/read-back`
