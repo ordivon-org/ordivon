@@ -45,6 +45,8 @@ Workstation Creative Library is consumed as a source-complete navigation catalog
 
 When a Work already exists from a Media Production or Collection, owner-native fields win. The Workstation catalog is attached only as `catalogProjection` plus membership. Explicit `DERIVATIVE_OF` and `CONSUMER_OF` catalog relations become `derivativeOf` / `consumerOf` graph edges; no lineage is inferred from names or paths.
 
+Derived-preview evidence remains separate from Work identity. When Workstation explicitly records exact carrier digests, shared-geometry byte equality, preview-source identity or generation evidence, the index keeps those bounded fields on the `Evidence` node; it does not promote a preview into an original carrier or physical-behavior claim.
+
 ## Standing
 
 There is deliberately no mutable `PROVEN=true` field. A caller derives standing from graph facts:

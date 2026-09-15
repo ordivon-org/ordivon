@@ -388,6 +388,7 @@ def build_creative_index(
         evidence_candidates.extend([
             workstation_root / "artifacts/creative-library/derived/godot-derived-previews-r1.json",
             workstation_root / "artifacts/creative-library/derived/kicad-derived-preview-r1.json",
+            workstation_root / "artifacts/creative-library/derived/cad-cross-work-derived-preview-r1.json",
         ])
         for candidate in sorted(set(evidence_candidates)):
             if not candidate.is_file():
@@ -409,6 +410,28 @@ def build_creative_index(
                 source_repository = row.get("sourceRepo")
                 source_revision = row.get("sourceRevision")
                 source_path_value = row.get("sourcePath")
+            derived_projection = {}
+            if row is not None:
+                for key in (
+                    "sourceCarrier",
+                    "sourceCarrierSha256",
+                    "previewSourceWorkId",
+                    "previewSourceRevision",
+                    "previewSourcePath",
+                    "previewSourceBlobObjectId",
+                    "sharedGeometryPath",
+                    "sharedGeometryByteEqual",
+                    "derivedPath",
+                    "sha256",
+                    "truthBoundary",
+                ):
+                    if row.get(key) is not None:
+                        derived_projection[key] = row.get(key)
+                generation_evidence = row.get("previewGenerationEvidence")
+                if isinstance(generation_evidence, list):
+                    derived_projection["previewGenerationEvidence"] = [
+                        str(item) for item in generation_evidence if isinstance(item, str)
+                    ]
             add_node(
                 evidence_id,
                 "Evidence",
@@ -417,6 +440,7 @@ def build_creative_index(
                 standing=standing,
                 renderer=renderer_tool,
                 sourcePath=str(candidate.relative_to(workstation_root)),
+                derivedProjection=derived_projection or None,
             )
             add_relation(evidence_id, "sourcedFrom", "source:workstation", evidence=str(candidate.relative_to(workstation_root)))
             if isinstance(work_id_value, str):

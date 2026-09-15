@@ -204,6 +204,57 @@ class CreativeIndexTests(unittest.TestCase):
             self.assertEqual(relation["to"], "work:media:parent")
             self.assertEqual(relation["detail"], "Exact lineage evidence.")
 
+    def test_cad_cross_work_preview_preserves_exact_geometry_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workstation = Path(directory)
+            catalog = workstation / "artifacts/creative-library/catalog-v1.json"
+            catalog.parent.mkdir(parents=True)
+            catalog.write_text(json.dumps({
+                "archiveStanding": "SOURCE_COMPLETE_DECLARED_SCOPE_R1",
+                "catalogDigest": "sha256:" + "a" * 64,
+                "summary": {"workCount": 2, "carrierCount": 2, "relationCount": 0},
+                "works": [
+                    {"workId": "workstation:signal-garden-cam-encoder", "title": "Signal Garden Cam Encoder", "owner": "Workstation", "carrierCount": 1},
+                    {"workId": "workstation:signal-garden-cam-triptych", "title": "Signal Garden Cam Triptych", "owner": "Workstation", "carrierCount": 1},
+                ],
+                "relations": [],
+            }), encoding="utf-8")
+            preview = workstation / "artifacts/creative-library/derived/cad-cross-work-derived-preview-r1.json"
+            preview.parent.mkdir(parents=True)
+            preview.write_text(json.dumps({
+                "schemaVersion": 1,
+                "kind": "ordivon.creative-library.derived-preview",
+                "row": {
+                    "workId": "workstation:signal-garden-cam-encoder",
+                    "standing": "DERIVED_CROSS_WORK_EXACT_GEOMETRY_PREVIEW",
+                    "sourceRepo": "/tmp/workstation",
+                    "sourceRevision": "b" * 40,
+                    "sourcePath": "design/daily/signal-garden-cam-encoder/v1/",
+                    "sourceCarrier": "source/upstream-v2/model.step",
+                    "sourceCarrierSha256": "sha256:" + "c" * 64,
+                    "previewSourceWorkId": "workstation:signal-garden-cam-triptych",
+                    "previewSourceRevision": "d" * 40,
+                    "previewSourcePath": "preview/overview.png",
+                    "previewSourceBlobObjectId": "e" * 40,
+                    "previewGenerationEvidence": ["generate.py", "reproducibility.json"],
+                    "sharedGeometryPath": "cad/model.step",
+                    "sharedGeometryByteEqual": True,
+                    "derivedPath": "artifacts/creative-library/derived/model.png",
+                    "sha256": "sha256:" + "f" * 64,
+                    "truthBoundary": "Exact shared STEP geometry; preview is not physical-mechanism evidence.",
+                }
+            }), encoding="utf-8")
+            index = build_creative_index(ROOT, workstation_root=workstation)
+            evidence_id = "evidence:workstation:cad-cross-work-derived-preview-r1"
+            evidence = next(row for row in index["nodes"] if row["id"] == evidence_id)
+            projection = evidence["derivedProjection"]
+            self.assertTrue(projection["sharedGeometryByteEqual"])
+            self.assertEqual(projection["sourceCarrierSha256"], "sha256:" + "c" * 64)
+            self.assertEqual(projection["previewSourceWorkId"], "workstation:signal-garden-cam-triptych")
+            self.assertEqual(projection["previewGenerationEvidence"], ["generate.py", "reproducibility.json"])
+            relations = {(row["from"], row["type"], row["to"]) for row in index["relations"]}
+            self.assertIn(("work:workstation:signal-garden-cam-encoder", "evidencedBy", evidence_id), relations)
+
     def test_workstation_derived_preview_projects_real_work_and_tool_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             workstation = Path(directory)
