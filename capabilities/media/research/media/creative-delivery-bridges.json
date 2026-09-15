@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.media.creative-delivery-bridges",
+  "truthRole": "media-owned-compatibility-relations-not-artifact-profile-truth",
+  "relations": [
+    {"capability": "vector.export", "profileId": "still-image-svg-static-r1"},
+    {"capability": "svg.rasterize", "profileId": "still-image-png-srgb-r1"},
+    {"capability": "image.resize", "profileId": "still-image-png-srgb-r1"},
+    {"capability": "image.crop", "profileId": "still-image-png-srgb-r1"},
+    {"capability": "image.convert", "profileId": "still-image-png-srgb-r1"},
+    {"capability": "image.compose", "profileId": "still-image-png-srgb-r1"},
+    {"capability": "document.compile.pdf", "profileId": "pdf-fixed-r1"},
+    {"capability": "document.compile.png", "profileId": "still-image-png-srgb-r1"},
+    {"capability": "document.compile.svg", "profileId": "still-image-svg-static-r1"},
+    {"capability": "asset.export.gltf", "profileId": "design-3d-glb-static-mesh-r1"},
+    {"capability": "asset.export.gltf", "profileId": "design-3d-glb-material-scene-r1"},
+    {"capability": "asset.export.gltf", "profileId": "design-3d-glb-skinned-animation-r1"},
+    {"capability": "scene.render", "profileId": "still-image-png-srgb-r1"},
+    {"capability": "animation.render", "profileId": "moving-image-matroska-ffv1-v3-r1"},
+    {"capability": "video.encode", "profileId": "moving-image-matroska-ffv1-v3-r1"},
+    {"capability": "movie.write", "profileId": "moving-image-matroska-ffv1-v3-r1"},
+    {"capability": "audio.transform", "profileId": "audio-wave-pcm16-r1"},
+    {"capability": "audio.transform", "profileId": "audio-flac-pcm16-r1"},
+    {"capability": "audio.transform", "profileId": "audio-ogg-vorbis-r1"},
+    {"capability": "audio.project.render", "profileId": "audio-wave-pcm16-r1"},
+    {"capability": "sprite.runtime.export", "profileId": "design-2d-aseprite-horizontal-sheet-r1"},
+    {"capability": "application.export", "profileId": "software-release-linux-elf-executable-r1"}
+  ]
+}

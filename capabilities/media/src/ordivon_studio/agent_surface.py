@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from .creative_index import build_creative_index, query_creative_index
 from .equipment import load_equipment_world, propose_operation
 from .learning_context import build_learning_context
 from .production_context import build_production_context
@@ -265,6 +267,16 @@ def tool_definitions() -> list[dict[str, Any]]:
             },
         },
         {
+            "name": "studio_creative_index_query",
+            "description": "Query the rebuildable Creative Index for one term and return matching entities plus their one-hop relations. The index is navigation/cache data pinned to source revisions; it is not source authority and does not infer current physical availability.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {"term": {"type": "string", "minLength": 1}},
+                "required": ["term"],
+                "additionalProperties": False,
+            },
+        },
+        {
             "name": "studio_equipment_propose",
             "description": "Select freshly observed equipment for one exact Studio capability and compile a truthful operation proposal with readiness, blockers, exact physical plan, and owner-specific verification contract. This does not execute the effect.",
             "inputSchema": {
@@ -298,6 +310,15 @@ def execute_surface_action(name: str, arguments: Mapping[str, Any], *, root: Pat
         if current is not None:
             _production_root(root, current)
         return build_learning_context(root, current_production_id=current)
+    if name == "studio_creative_index_query":
+        artifact_candidate = Path(os.environ.get("ORDIVON_ARTIFACT_ROOT", "/root/projects/ordivon-artifact-v2"))
+        workstation_candidate = Path(os.environ.get("ORDIVON_WORKSTATION_ROOT", "/root/workstation-lab"))
+        index = build_creative_index(
+            root,
+            artifact_root=artifact_candidate if artifact_candidate.exists() else None,
+            workstation_root=workstation_candidate if workstation_candidate.exists() else None,
+        )
+        return query_creative_index(index, str(arguments["term"]))
     if name == "studio_equipment_propose":
         world = load_equipment_world(root / "research/equipment/equipment-world.json")
         equipment_id = arguments.get("equipmentId")
