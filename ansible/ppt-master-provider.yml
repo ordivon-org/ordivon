@@ -1,0 +1,211 @@
+---
+- name: PPT Master external authoring provider
+  hosts: operations_local
+  become: true
+  gather_facts: false
+  vars:
+    ppt_master_repository: https://github.com/hugohe3/ppt-master.git
+    ppt_master_commit: 7879bbc811f86ed9e43df0053169d885cff942c7
+    ppt_master_root: /opt/ordivon/external/ppt-master
+    ppt_master_release_root: "{{ ppt_master_root }}/{{ ppt_master_commit }}"
+    ppt_master_current: "{{ ppt_master_root }}/current"
+    ppt_master_python: "{{ ppt_master_release_root }}/.venv-exp/bin/python"
+    ppt_master_requirements_marker: "{{ ppt_master_release_root }}/.venv-exp/.ordivon-requirements-{{ ppt_master_commit }}"
+    ppt_master_quality_checker: "{{ ppt_master_release_root }}/skills/ppt-master/scripts/svg_quality_checker.py"
+    ppt_master_exporter: "{{ ppt_master_release_root }}/skills/ppt-master/scripts/svg_to_pptx.py"
+  tasks:
+    - name: Ensure PPT Master provider root exists
+      ansible.builtin.file:
+        path: "{{ ppt_master_root }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Materialize exact versioned PPT Master source from upstream
+      ansible.builtin.git:
+        repo: "{{ ppt_master_repository }}"
+        dest: "{{ ppt_master_release_root }}"
+        version: "{{ ppt_master_commit }}"
+        update: true
+        force: false
+
+    - name: Read realized PPT Master source commit
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/git
+          - -C
+          - "{{ ppt_master_release_root }}"
+          - rev-parse
+          - HEAD
+      register: ppt_master_realized_commit
+      changed_when: false
+
+    - name: Read tracked PPT Master source status
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/git
+          - -C
+          - "{{ ppt_master_release_root }}"
+          - status
+          - --porcelain
+          - --untracked-files=no
+      register: ppt_master_tracked_status
+      changed_when: false
+
+    - name: Read realized PPT Master upstream origin
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/git
+          - -C
+          - "{{ ppt_master_release_root }}"
+          - remote
+          - get-url
+          - origin
+      register: ppt_master_realized_origin
+      changed_when: false
+
+    - name: Fail closed unless the versioned source identity is exact
+      ansible.builtin.assert:
+        that:
+          - ppt_master_realized_commit.stdout | trim == ppt_master_commit
+          - ppt_master_tracked_status.stdout | trim == ''
+          - ppt_master_realized_origin.stdout | trim == ppt_master_repository
+        fail_msg: >-
+          PPT Master source identity is not the pinned upstream tracked-clean commit; current locator will not be changed.
+
+    - name: Materialize provider-owned Python environment
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/uv
+          - venv
+          - "{{ ppt_master_release_root }}/.venv-exp"
+          - --python
+          - /usr/bin/python3
+      args:
+        creates: "{{ ppt_master_python }}"
+
+    - name: Inspect provider requirements marker
+      ansible.builtin.stat:
+        path: "{{ ppt_master_requirements_marker }}"
+        follow: false
+      register: ppt_master_requirements_marker_stat
+
+    - name: Install provider-owned Python requirements with uv
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/uv
+          - pip
+          - install
+          - --python
+          - "{{ ppt_master_python }}"
+          - -r
+          - "{{ ppt_master_release_root }}/requirements.txt"
+      when: not ppt_master_requirements_marker_stat.stat.exists
+
+    - name: Record successful requirements realization for this immutable release
+      ansible.builtin.copy:
+        dest: "{{ ppt_master_requirements_marker }}"
+        content: "{{ ppt_master_commit }}\n"
+        owner: root
+        group: root
+        mode: "0644"
+      when: not ppt_master_requirements_marker_stat.stat.exists
+
+    - name: Inspect provider Python through the uv environment symlink
+      ansible.builtin.stat:
+        path: "{{ ppt_master_python }}"
+        follow: true
+      register: ppt_master_python_file
+
+    - name: Fail closed unless provider Python resolves to an executable regular file
+      ansible.builtin.assert:
+        that:
+          - ppt_master_python_file.stat.exists
+          - ppt_master_python_file.stat.isreg
+          - ppt_master_python_file.stat.executable
+        fail_msg: "PPT Master provider Python does not resolve to an executable regular file."
+
+    - name: Inspect required PPT Master source entrypoints without following links
+      ansible.builtin.stat:
+        path: "{{ item.path }}"
+        follow: false
+      loop:
+        - { label: quality_checker, path: "{{ ppt_master_quality_checker }}" }
+        - { label: exporter, path: "{{ ppt_master_exporter }}" }
+      register: ppt_master_provider_entrypoints
+
+    - name: Fail closed unless required provider source entrypoints are regular files
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.isreg
+          - not item.stat.islnk
+        fail_msg: "Required PPT Master provider file is unavailable or not regular: {{ item.item.label }}"
+      loop: "{{ ppt_master_provider_entrypoints.results }}"
+
+    - name: Prove the quality checker imports and exposes its CLI
+      ansible.builtin.command:
+        argv:
+          - "{{ ppt_master_python }}"
+          - "{{ ppt_master_quality_checker }}"
+          - --help
+      changed_when: false
+
+    - name: Prove the exporter imports and exposes its CLI
+      ansible.builtin.command:
+        argv:
+          - "{{ ppt_master_python }}"
+          - "{{ ppt_master_exporter }}"
+          - --help
+      changed_when: false
+
+    - name: Inspect existing stable PPT Master locator
+      ansible.builtin.stat:
+        path: "{{ ppt_master_current }}"
+        follow: false
+      register: ppt_master_current_stat
+
+    - name: Fail closed if the stable locator is occupied by a non-symlink
+      ansible.builtin.assert:
+        that:
+          - not ppt_master_current_stat.stat.exists or ppt_master_current_stat.stat.islnk
+        fail_msg: >-
+          Stable PPT Master locator exists but is not a symlink; refusing destructive takeover.
+
+    - name: Promote the healthy immutable release to the stable current locator
+      ansible.builtin.file:
+        src: "{{ ppt_master_release_root }}"
+        dest: "{{ ppt_master_current }}"
+        state: link
+        owner: root
+        group: root
+
+    - name: Resolve the stable PPT Master locator
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/readlink
+          - -f
+          - "{{ ppt_master_current }}"
+      register: ppt_master_current_resolved
+      changed_when: false
+
+    - name: Fail closed unless current resolves to the exact healthy release
+      ansible.builtin.assert:
+        that:
+          - ppt_master_current_resolved.stdout | trim == ppt_master_release_root
+        fail_msg: "Stable PPT Master locator does not resolve to the admitted immutable release."
+
+    - name: Report bounded Workstation realization evidence
+      ansible.builtin.debug:
+        msg:
+          provider: ppt-master
+          repository: "{{ ppt_master_realized_origin.stdout | trim }}"
+          commit: "{{ ppt_master_realized_commit.stdout | trim }}"
+          releaseRoot: "{{ ppt_master_release_root }}"
+          current: "{{ ppt_master_current }}"
+          python: "{{ ppt_master_python }}"
+
+# Workstation owns only exact source/environment realization and the stable node-local
+# locator. Artifact owns authoring-route selection, provider lock verification,
+# PowerPoint semantics, quality gates and consumer acceptance.
