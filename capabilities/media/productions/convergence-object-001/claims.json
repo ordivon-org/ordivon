@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "claims": [
+    {
+      "id": "concept-boundary",
+      "allowedMeaning": "CONVERGENCE OBJECT 001 is a creative spatial interpretation of distinct signals retaining identity while approaching a common resolution core.",
+      "boundary": "The sculpture is not an architecture diagram and does not assert current Runtime, Host, Research, or organizational topology."
+    },
+    {
+      "id": "roundtrip-boundary",
+      "allowedMeaning": "The delivered GLB was independently imported by Blender 5.2.1 with the expected named geometry/material families and non-collapsed spatial extent.",
+      "boundary": "This does not establish identical rendering or editability in every GLB consumer."
+    }
+  ]
+}

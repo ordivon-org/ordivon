@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.creative-work-friction-record",
+  "friction_id": "friction:media:convergence-object-001:production-schema-no-3d-output-kind",
+  "title": "Media Production v1 has no native 3D/model/GLB output kind",
+  "category": "CLASSIFICATION",
+  "surface": "Media production registration",
+  "tool": "schemas/production.schema.json",
+  "workflow": "native Blender source -> GLB delivery -> production record",
+  "observed_during": "registration of media:convergence-object-001",
+  "related_work": "media:convergence-object-001",
+  "symptom": "The existing Production output enum cannot accurately label a GLB/model artifact without misclassifying it as interactive or another medium.",
+  "expected_behavior": "3D/model artifacts should be representable without semantic distortion when 3D becomes a recurring Media production surface.",
+  "actual_behavior": "Current output kinds are article, video, audio, image, captions, interactive, and publication-package.",
+  "evidence": {
+    "schema": "schemas/production.schema.json",
+    "currentWorkGlb": "render/convergence-object-001.glb"
+  },
+  "severity": "LOW",
+  "frequency": "FIRST_CONFIRMED_NATIVE_3D_PRODUCTION_IN_CURRENT_PRODUCTIONS_TREE",
+  "owner": "Media production schema owner",
+  "status": "OPEN",
+  "proposed_fix": "Do not patch for one work. If native 3D production repeats, extend the existing Production schema minimally using an established model/3D term and migrate with tests.",
+  "fix_attempt": "None. The GLB is represented precisely in the existing Works artifact registry using model/master roles while Production v1 declares only the key image output.",
+  "verification": "No duplicate taxonomy or second truth system was introduced."
+}

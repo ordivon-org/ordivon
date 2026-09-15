@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.media.work-consumption-evidence",
+  "workId": "media:convergence-object-001",
+  "consumers": [
+    "Blender 5.2.1 LTS native scene",
+    "Blender 5.2.1 glTF exporter",
+    "Blender 5.2.1 glTF importer",
+    "Runtime digest-bound image transport"
+  ],
+  "evidence": {
+    "firstSuccessfulBuildAndRoundtripJobId": "job-01a0a59e-9a24-71c0-85a4-504c39e7f5ee",
+    "compositionRevisionJobId": "job-01a0a5a0-49f7-75c2-ab31-994c34a98657",
+    "finalBackupCleanBuildAndRoundtripJobId": "job-01a0a5a3-3a2f-7572-bb1c-95ee8b4527e3",
+    "nativeBlendSha256": "bc8cc9e0e2d98392bbaf9405af6f69d9de2f9a255ac7cc0e49e82a20a41c8f6d",
+    "roundtripBlendSha256": "47bfbacbf438d4aa3ade4256cfd3c793261e6eebd79a33194cbd9a7cba5b04bb",
+    "glbSha256": "8b3ad5e31662ce8c518fb4ab7ad89d46b5a0497aa012dc458462835ea3bbf2e7",
+    "renderSha256": "9c987354341caa0f72608f284eece5900cee7cabfb29cea08e94e990b846503e",
+    "roundtripReceiptSha256": "36ac342ca484506dea58eb965c7a3b4d82b2a66a323c376fbc101ecbe90912f8",
+    "roundtrip": {
+      "standing": "PASS",
+      "objectCount": 12,
+      "meshObjectCount": 12,
+      "materials": 5,
+      "extent": [10.080000400543213, 9.440000057220459, 3.6656023263931274],
+      "missingExpectedIdentities": []
+    },
+    "visualInspection": "First render clipped the blue origin at frame edge. Camera was revised farther back; final render keeps all three distinct origins visible while preserving the resolution core as focal point.",
+    "backupCarrierCheck": "PASS: final automated build/import emitted no .blend1 files."
+  },
+  "boundary": "This proves native Blender creation, static render, GLB export, Blender GLB re-import and bounded visual inspection. It is not physical fabrication or universal third-party GLB compatibility evidence."
+}

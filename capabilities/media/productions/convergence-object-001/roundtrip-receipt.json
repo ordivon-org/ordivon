@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.media.blender-glb-roundtrip-receipt",
+  "consumer": "Blender 5.2.1 glTF importer",
+  "glb": "render/convergence-object-001.glb",
+  "objectCount": 12,
+  "meshObjectCount": 12,
+  "objectNames": [
+    "Convergence_Base",
+    "Identity_Marker_1",
+    "Identity_Marker_2",
+    "Identity_Marker_3",
+    "Resolution_Core",
+    "Resolution_Ring",
+    "Signal_Origin_1",
+    "Signal_Origin_2",
+    "Signal_Origin_3",
+    "Signal_Path_1",
+    "Signal_Path_2",
+    "Signal_Path_3"
+  ],
+  "materials": [
+    "Base",
+    "Resolution_Core",
+    "Signal_A",
+    "Signal_B",
+    "Signal_C"
+  ],
+  "boundsMin": [
+    -5.140000343322754,
+    -4.199999809265137,
+    -1.8000000715255737
+  ],
+  "boundsMax": [
+    4.940000057220459,
+    5.240000247955322,
+    1.8656022548675537
+  ],
+  "extent": [
+    10.080000400543213,
+    9.440000057220459,
+    3.6656023263931274
+  ],
+  "missingExpectedIdentities": [],
+  "standing": "PASS",
+  "truthBoundary": "This proves Blender can re-import the exported GLB with expected named geometry/material structure and non-collapsed spatial extent. It does not prove every third-party GLB viewer renders identically."
+}
