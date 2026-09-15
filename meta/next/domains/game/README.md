@@ -135,8 +135,10 @@ Physical realization ledger     R1_ACTIVE
 Whole-product compositions      R1_ACTIVE_3
 PC01 evidence                   F0_SURVIVES + F1_MECHANICAL_INTERACTIVE_PASS
 PC02 evidence                   F0_DURABLE_STRUCTURAL_SURVIVES
-Post-F0 allocation              VOI_R1_PC03_EXECUTE_NEXT
-Next executable                 PC03_INTERACTIVE_F0_REUSE_PGP_A
+PC03 evidence                   F0_MECHANICAL_STRUCTURAL_SURVIVES
+Autonomous-interest experiment  R1_PROTOCOL_FROZEN
+Candidate generation            NOT_STARTED
+Live Human judgment             FORBIDDEN_UNTIL_BUILD_FREEZE
 Product selected                false
 G0 entered                      false
 ```
@@ -155,6 +157,8 @@ Canonical local crosswalks:
 - [`game-product-composition-r1.json`](game-product-composition-r1.json) — machine-readable original product-composition slate and execution order;
 - [`GAME_PRODUCT_COMPOSITION_VOI_R1.md`](GAME_PRODUCT_COMPOSITION_VOI_R1.md) — post-F0 Value-of-Information comparison that supersedes only the next experiment-allocation decision;
 - [`game-product-composition-voi-r1.json`](game-product-composition-voi-r1.json) — machine-readable post-F0 allocation decision and PC03-F0 minimum carrier contract;
+- [`GAME_AUTONOMOUS_INTEREST_PROTOCOL_R1.md`](GAME_AUTONOMOUS_INTEREST_PROTOCOL_R1.md) — frozen no-live-Human-judgment autonomous whole-product synthesis and sealed-holdout protocol;
+- [`game-autonomous-interest-protocol-r1.json`](game-autonomous-interest-protocol-r1.json) — machine-readable R1 search budget, surrogate/anti-Goodhart contract, freeze rules and Human endpoint;
 - [`GAME_TOP_MECHANISM_SPECIMENS_R1.md`](GAME_TOP_MECHANISM_SPECIMENS_R1.md) — 16 elite/canonical game decompositions and 12 recurring structural motifs;
 - [`GAME_TOP_MECHANISM_SPECIMENS_R2.md`](GAME_TOP_MECHANISM_SPECIMENS_R2.md) — current cumulative 27-specimen / 23-motif mechanism map, with R2 gap-filling coverage;
 - [`GAME_TOP_MECHANISM_SPECIMENS_R3.md`](GAME_TOP_MECHANISM_SPECIMENS_R3.md) — current cumulative 37-specimen / 33-motif map, coverage-guided but not coverage-optimized;
