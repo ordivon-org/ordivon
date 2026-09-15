@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "friction-loop-field-zine",
+  "title": "Make Things / Find Friction — Field Note 001",
+  "status": "review",
+  "intent": "Create a compact editable Typst publication that turns the Creative Works + Tool Dogfood practice into a visual field note, then consume the PDF through real local PDF tooling and preserve the resulting production evidence.",
+  "audiences": ["ordivon-human", "ordivon-agent", "creative-library-consumer"],
+  "sourceBindings": [
+    {
+      "id": "media",
+      "repository": "ordivon-media",
+      "revision": "9b64d58fe4a2fd8e906426e3b4fdfa4fcd81a180",
+      "role": "creative production context and grounded source for the two cited sonic-ident friction examples"
+    }
+  ],
+  "workingProfile": {},
+  "sources": {
+    "claims": "claims.json",
+    "article": "source.typ",
+    "receipts": [
+      "consumption-evidence.json",
+      "friction-typst-authoring.json",
+      "friction-typst-markup.json"
+    ]
+  },
+  "outputs": [
+    {
+      "id": "friction-loop-field-zine-pdf",
+      "kind": "publication-package",
+      "status": "rendered",
+      "profile": "typst-a5-eight-page-pdf",
+      "blobDigest": "sha256:5da906509f9bd07c730f1b4d6aa91a14560a091e66ea14b0348b8d7c92ee54d6"
+    }
+  ]
+}

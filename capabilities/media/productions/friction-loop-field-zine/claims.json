@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "productionId": "friction-loop-field-zine",
+  "claims": [
+    {
+      "id": "dogfood-trace",
+      "source": {
+        "binding": "media",
+        "path": "productions/convergence-sonic-ident/friction.json"
+      },
+      "meaning": "The zine's dogfood example is grounded in an existing recorded Ordivon Media friction where a successful FFmpeg waveform render produced an avoidable single-image warning and was repaired by correcting the invocation.",
+      "evidence": ["productions/convergence-sonic-ident/friction.json"],
+      "allowedWording": ["A real prior creative work exposed a small invocation friction that was fixed and re-verified."],
+      "avoid": ["Claiming the zine itself defines global Ordivon policy", "Claiming all creative frictions are trivial"]
+    },
+    {
+      "id": "environment-trace",
+      "source": {
+        "binding": "media",
+        "path": "productions/convergence-sonic-ident/friction-validation-env.json"
+      },
+      "meaning": "The zine's second dogfood example is grounded in an existing validation-environment friction resolved by using the repository's declared dependency environment rather than installing a global dependency.",
+      "evidence": ["productions/convergence-sonic-ident/friction-validation-env.json"],
+      "allowedWording": ["A real prior validation step failed under ambient Python and passed through the repository environment."],
+      "avoid": ["Treating ambient Python failure as a semantic failure of the work"]
+    }
+  ]
+}

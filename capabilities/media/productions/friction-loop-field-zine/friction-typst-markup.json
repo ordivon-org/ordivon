@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.creative-work-friction-record",
+  "friction_id": "friction:media:friction-loop-field-zine:literal-plus-markup-semantic-loss",
+  "title": "Literal plus sign in Typst content was interpreted as list markup and changed the cover meaning",
+  "category": "SEMANTIC_LOSS",
+  "surface": "typst-pdf-rendering",
+  "tool": "Typst 0.15.1 + Poppler visual inspection",
+  "workflow": "source.typ -> valid PDF -> raster inspection",
+  "observed_during": "real visual consumption of media:friction-loop-field-zine",
+  "related_work": "media:friction-loop-field-zine",
+  "related_task": null,
+  "symptom": "The source intended `+ FIND FRICTION`, but the structurally valid first PDF rendered `1. FIND FRICTION` because the plus sign was parsed as list markup.",
+  "expected_behavior": "The cover should preserve the literal plus sign and exact intended phrase.",
+  "actual_behavior": "Format validation passed while visual semantics changed from a plus sign to an ordered-list marker.",
+  "evidence": {
+    "preFixPdfBuildJobId": "job-01a0a5a4-f5ec-73a2-b468-e1eb915aa850",
+    "preFixPdfSha256": "a5814559d16dcf5c74f0a3c5e480c8360788aee889700e887121a854a526dd30",
+    "preFixPageOneSha256": "c69daa650d86df80a84307a3a3e6b40330c56246f879ad3090c7d335473a128c",
+    "postFixRenderJobId": "job-01a0a5a5-9c81-7ad0-a005-51f833ab710d",
+    "postFixPdfSha256": "5da906509f9bd07c730f1b4d6aa91a14560a091e66ea14b0348b8d7c92ee54d6",
+    "postFixContactSheetSha256": "311217924df2547da1fc41d55a28b59291bb0649842c870f304cfe91d76a35a2"
+  },
+  "severity": "MEDIUM",
+  "frequency": "REPEATABLE_WHEN_LITERAL_PLUS_BEGINS_TYPST_MARKUP_CONTENT",
+  "owner": "Media creative production source",
+  "status": "VERIFIED",
+  "proposed_fix": "Escape the literal plus sign in Typst content rather than changing the renderer or post-processing the PDF.",
+  "fix_attempt": "Changed `[+ FIND FRICTION]` to `[\\+ FIND FRICTION]`, recompiled the PDF, rendered all eight pages and inspected the resulting contact sheet.",
+  "verification": "The final contact sheet visibly renders `+ FIND FRICTION`; qpdf still reports no syntax or stream errors."
+}

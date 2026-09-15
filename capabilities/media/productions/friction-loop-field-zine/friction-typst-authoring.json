@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.creative-work-friction-record",
+  "friction_id": "friction:media:friction-loop-field-zine:typst-authoring-call-shape",
+  "title": "Typst helper optional arguments and paragraph leading were invoked with invalid call shapes",
+  "category": "INVOCATION",
+  "surface": "typst-publication-authoring",
+  "tool": "Typst 0.15.1",
+  "workflow": "editable source.typ -> typst compile -> PDF",
+  "observed_during": "creation of media:friction-loop-field-zine",
+  "related_work": "media:friction-loop-field-zine",
+  "related_task": null,
+  "symptom": "The first compile rejected a positional value for a named optional helper parameter; the next compile rejected `leading` on `text()`.",
+  "expected_behavior": "The source should use Typst's actual function signatures and compile without authoring API errors.",
+  "actual_behavior": "Compile stopped before PDF production in two successive authoring attempts.",
+  "evidence": {
+    "optionalArgumentFailureJobId": "job-01a0a5a3-6b4d-70f3-8a3b-2840414ee0a5",
+    "leadingFailureJobId": "job-01a0a5a4-584b-7c60-ab6d-3658f67bc5e6",
+    "verifiedSuccessJobId": "job-01a0a5a4-f5ec-73a2-b468-e1eb915aa850"
+  },
+  "severity": "LOW",
+  "frequency": "REPEATABLE_FOR_THE_INVALID_SOURCE_CALLS",
+  "owner": "Media creative production source",
+  "status": "VERIFIED",
+  "proposed_fix": "Use the helper's named argument (`s:`) and keep line leading in paragraph-level styling rather than passing an unsupported `leading` argument to `text()`.",
+  "fix_attempt": "Rewrote only the invalid call sites in source.typ and reran the original Typst compile/validation path.",
+  "verification": "The revised source compiled successfully to an eight-page PDF and passed qpdf plus Poppler consumption."
+}
