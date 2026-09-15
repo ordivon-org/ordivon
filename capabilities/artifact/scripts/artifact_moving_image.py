@@ -166,7 +166,14 @@ def verify_moving_image(path: Path, contract_path: Path, evidence_dir: Path | No
     for k,v in expected.items():
         if video.get(k)!=v: mi_fail.append(f'MediaInfo {k} differs from contract')
     if video.get('FrameRate_Mode')!='CFR': mi_fail.append('MediaInfo frame-rate mode is not CFR')
-    if video.get('FrameRate_Num')!=str(want['frameRate']['numerator']) or video.get('FrameRate_Den')!=str(want['frameRate']['denominator']): mi_fail.append('MediaInfo frame-rate rational differs from contract')
+    mi_rate=None
+    if video.get('FrameRate_Num') and video.get('FrameRate_Den'):
+        try: mi_rate=Fraction(int(video['FrameRate_Num']),int(video['FrameRate_Den']))
+        except (TypeError,ValueError,ZeroDivisionError): mi_rate=None
+    if mi_rate is None:
+        mi_rate=frac(video.get('FrameRate',''))
+    want_rate=Fraction(want['frameRate']['numerator'],want['frameRate']['denominator'])
+    if mi_rate!=want_rate: mi_fail.append('MediaInfo frame-rate rational differs from contract')
     failures.extend(mi_fail)
 
     # FFprobe independent technical view/topology.

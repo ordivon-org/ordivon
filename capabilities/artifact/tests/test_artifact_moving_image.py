@@ -8,9 +8,9 @@ MODULE=importlib.util.module_from_spec(SPEC); assert SPEC.loader is not None; SP
 BASE=ROOT/'artifact-delivery/shadow-contracts/moving-image-matroska-ffv1-smoke-r1.json'
 
 
-def make_mkv(root:Path, *, level=3, with_audio=False)->Path:
+def make_mkv(root:Path, *, level=3, with_audio=False, rate=10)->Path:
     dst=root/'video.mkv'
-    cmd=[str(MODULE.FFMPEG),'-v','error','-f','lavfi','-i','testsrc2=size=64x64:rate=10:duration=1']
+    cmd=[str(MODULE.FFMPEG),'-v','error','-f','lavfi','-i',f'testsrc2=size=64x64:rate={rate}:duration=1']
     if with_audio: cmd += ['-f','lavfi','-i','sine=frequency=1000:sample_rate=48000:duration=1']
     if level == 3:
         cmd += ['-c:v','ffv1','-level','3','-coder','1','-context','1','-g','1','-slices','4','-slicecrc','1','-pix_fmt','yuv422p']
@@ -54,6 +54,15 @@ class ArtifactMovingImageTests(unittest.TestCase):
             self.assertGreater(value['matroskaImplementation']['testsRun'],0)
             self.assertEqual(value['mediaInfoTechnical']['codecVersion'],'3.4')
             self.assertEqual(value['decodedVideoIdentity']['rawVideoSha256'],json.loads(BASE.read_text())['video']['expectedRawVideoSha256'])
+
+    def test_mediainfo_decimal_frame_rate_is_normalized_to_contract_rational(self):
+        self.require_tools()
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d); mkv=make_mkv(root,rate=30); c=json.loads(BASE.read_text())
+            c['video']['frameRate']={'numerator':30,'denominator':1}; c['video']['frameCount']=30; c['video'].pop('expectedRawVideoSha256',None)
+            cp=root/'c.json'; cp.write_text(json.dumps(c)); value=MODULE.verify_moving_image(mkv,cp,root/'e')
+            self.assertEqual(value['status'],'PASS',value)
+            self.assertEqual(value['mediaInfoTechnical']['frameRate'],'30.000')
 
     def test_valid_file_does_not_launder_wrong_dimension_contract(self):
         self.require_tools()
