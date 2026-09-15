@@ -221,7 +221,8 @@ def discover_equipment(world: Mapping[str, Any]) -> dict[str, Any]:
                 if spec.get("versionKind") == "windows-file":
                     version = _windows_file_version(path)
                 else:
-                    version = _run_version(path, spec.get("versionArgs", ["--version"]))
+                    environment = spec.get("environment") if isinstance(spec.get("environment"), Mapping) else None
+                    version = _run_version(path, spec.get("versionArgs", ["--version"]), environment)
                 candidates.append({"path": str(path), "version": version, "platform": spec.get("platform")})
         configuration: list[dict[str, Any]] = []
         for spec in item.get("configuration", []):
@@ -279,6 +280,7 @@ _DIRECT_OPERATION_CAPABILITIES: dict[str, frozenset[str]] = {
     "gdal-ogr": frozenset({"geospatial.inspect", "geospatial.transform", "geospatial.export.geopackage"}),
     "warcio": frozenset({"web.capture.response.warc"}),
     "python-email": frozenset({"message.compose.rfc5322"}),
+    "tiled": frozenset({"world2d.canonicalize.tmj", "world2d.render.preview"}),
 }
 _PROVIDER_MEDIATED_EQUIPMENT = frozenset({"davinci-resolve"})
 _REAPER_PROVIDER_CAPABILITIES = frozenset({"audio.multitrack", "audio.edit", "audio.mix", "audio.master", "audio.automation", "midi.edit", "script.reascript", "control.osc"})
@@ -562,6 +564,25 @@ def compile_operation(equipment_id: str, capability: str, parameters: Mapping[st
 
     This function does not execute the program. Runtime remains process authority.
     """
+    if equipment_id == "tiled" and capability == "world2d.canonicalize.tmj":
+        source = str(parameters["source"]); output = str(parameters["output"])
+        return EquipmentPlan(
+            equipment_id, capability, "process", _require_existing("/usr/bin/tiled"),
+            ("--export-map", source, output),
+            (
+                "Tiled owns native TMJ parsing/export canonicalization; Runtime owns process execution.",
+                "Artifact owns bounded TMJ semantic identity, TMJ→TMX→TMJ round-trip and raster readback. Game/domain meaning is not inferred from object names/types.",
+            ),
+            (("QT_QPA_PLATFORM", "offscreen"),),
+        )
+    if equipment_id == "tiled" and capability == "world2d.render.preview":
+        source = str(parameters["source"]); output = str(parameters["output"])
+        return EquipmentPlan(
+            equipment_id, capability, "process", _require_existing("/usr/bin/tmxrasterizer"),
+            (source, output),
+            ("tmxrasterizer owns technical raster preview; preview pixels do not establish game or cartographic meaning.",),
+            (("QT_QPA_PLATFORM", "offscreen"),),
+        )
     if equipment_id == "duckdb" and capability in {"dataset.sql.execute", "dataset.query", "dataset.transform"}:
         source = str(parameters["sqlFile"])
         executable = _require_existing("/opt/ordivon/external/duckdb/1.5.5-1/duckdb")

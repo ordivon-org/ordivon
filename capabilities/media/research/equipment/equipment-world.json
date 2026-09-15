@@ -711,6 +711,32 @@
       ],
       "retention": "specialist-on-demand",
       "reason": "PyArrow 25.0.1 can encode explicit field nullability and is already one independent Artifact Parquet reader. Media uses it only as an exact-schema writer; Artifact retains independent DuckDB+PyArrow verification."
+    },
+    {
+      "id": "tiled",
+      "family": "deterministic-cli-plus-gui",
+      "media": [
+        "interactive",
+        "still-visual"
+      ],
+      "capabilities": [
+        "world2d.canonicalize.tmj",
+        "world2d.render.preview"
+      ],
+      "discovery": [
+        {
+          "platform": "linux",
+          "path": "/usr/bin/tiled",
+          "versionArgs": [
+            "--version"
+          ],
+          "environment": {
+            "QT_QPA_PLATFORM": "offscreen"
+          }
+        }
+      ],
+      "retention": "specialist-on-demand",
+      "reason": "Tiled 1.12.2 and tmxrasterizer are already Artifact LOCAL_LIVE_PROVEN and consumed by Game. Media exposes native TMJ canonicalization/preview only; map meaning, collision/navigation and gameplay semantics remain with the consumer domain."
     }
   ]
 }

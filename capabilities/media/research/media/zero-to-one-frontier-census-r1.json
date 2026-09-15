@@ -33,6 +33,13 @@
       "capability": "first-class-audio-work",
       "artifactProfile": "audio-wave/flac/ogg",
       "currentness": "closed concurrently by canonical commit 9b64d58; production convergence-sonic-ident exists with consumption/friction evidence"
+    },
+    {
+      "frontier": "2d-world-authoring",
+      "producer": "tiled",
+      "capability": "world2d.canonicalize.tmj",
+      "artifactProfile": "design-2d-tiled-tmj-object-map-r1",
+      "currentness": "Tiled 1.12.2 headless canonical export plus Artifact TMJ/TMX native round-trip and raster readback live-proven."
     }
   ],
   "remainingEquipmentWithNoDeliveryBridge": [
@@ -131,12 +138,6 @@
     }
   ],
   "nextFrontiers": [
-    {
-      "priority": "S1",
-      "frontier": "2d-world-authoring",
-      "classification": "TRUE_ZERO_TO_ONE",
-      "reason": "Tiled 1.12.2 + tmxrasterizer and Artifact TMJ profile are LOCAL_LIVE_PROVEN; Game already consumes TMJ, but Media has no Tiled equipment/producer path."
-    },
     {
       "priority": "S2",
       "frontier": "live-broadcast-performance",

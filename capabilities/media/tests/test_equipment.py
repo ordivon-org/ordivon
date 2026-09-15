@@ -186,6 +186,17 @@ class EquipmentWorldTests(unittest.TestCase):
         self.assertEqual(operation_support("cadquery", "cad.script.author"), "DIRECTLY_INVOCABLE")
         self.assertEqual(operation_support("cadquery", "cad.export.step"), "DIRECTLY_INVOCABLE")
 
+    def test_tiled_headless_discovery_and_plans_preserve_native_authority(self) -> None:
+        with mock.patch("ordivon_studio.equipment._require_existing", side_effect=lambda path: path):
+            canonical = compile_operation("tiled", "world2d.canonicalize.tmj", {"source":"seed.tmj","output":"canonical.tmj"})
+            preview = compile_operation("tiled", "world2d.render.preview", {"source":"canonical.tmj","output":"preview.png"})
+        self.assertEqual(canonical.executable, "/usr/bin/tiled")
+        self.assertEqual(canonical.args, ("--export-map","seed.tmj","canonical.tmj"))
+        self.assertEqual(dict(canonical.environment)["QT_QPA_PLATFORM"], "offscreen")
+        self.assertEqual(preview.executable, "/usr/bin/tmxrasterizer")
+        self.assertEqual(dict(preview.environment)["QT_QPA_PLATFORM"], "offscreen")
+        self.assertEqual(operation_support("tiled","world2d.canonicalize.tmj"), "DIRECTLY_INVOCABLE")
+
     def test_zero_to_one_data_geo_archive_message_plans_are_direct(self) -> None:
         with mock.patch("ordivon_studio.equipment._require_existing", side_effect=lambda path: path):
             duck = compile_operation("duckdb", "dataset.query", {"sqlFile": "query.sql"})

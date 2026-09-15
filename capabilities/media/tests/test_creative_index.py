@@ -30,6 +30,7 @@ class CreativeIndexTests(unittest.TestCase):
             ("geospatial.export.geopackage","geospatial-geopackage-point-r1"),
             ("web.capture.response.warc","web-archive-warc-response-r1"),
             ("message.compose.rfc5322","message-internet-text-r1"),
+            ("world2d.canonicalize.tmj","design-2d-tiled-tmj-object-map-r1"),
         } <= pairs)
 
     def test_artifact_profiles_and_bridges_join_without_copying_profile_semantics(self) -> None:

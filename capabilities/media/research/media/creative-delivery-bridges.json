@@ -34,6 +34,7 @@
     {"capability": "dataset.export.parquet", "profileId": "dataset-parquet-flat-r1"},
     {"capability": "geospatial.export.geopackage", "profileId": "geospatial-geopackage-point-r1"},
     {"capability": "web.capture.response.warc", "profileId": "web-archive-warc-response-r1"},
-    {"capability": "message.compose.rfc5322", "profileId": "message-internet-text-r1"}
+    {"capability": "message.compose.rfc5322", "profileId": "message-internet-text-r1"},
+    {"capability": "world2d.canonicalize.tmj", "profileId": "design-2d-tiled-tmj-object-map-r1"}
   ]
 }
