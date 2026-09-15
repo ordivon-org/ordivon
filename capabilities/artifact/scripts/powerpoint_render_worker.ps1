@@ -93,15 +93,20 @@ try {
     if ($pdfSha -ne $stagePdfSha) { throw "PowerPoint PDF copy digest mismatch: local $stagePdfSha, destination $pdfSha" }
 
     $pngs = @()
-    foreach ($stagePng in $stagePngs) {
-        $destination = Join-Path $renderDir $stagePng.Name
+    for ($index = 0; $index -lt $stagePngs.Count; $index++) {
+        $stagePng = $stagePngs[$index]
+        # PowerPoint localizes its exported slide filenames (for example,
+        # Slide1.PNG versus localized equivalents). Normalize only the
+        # copy-back name so downstream Agent/file handoffs are locale-stable.
+        $destinationName = ('slide-{0:D4}.png' -f ($index + 1))
+        $destination = Join-Path $renderDir $destinationName
         $stageSha = Get-Sha256 $stagePng.FullName
         Copy-Item -LiteralPath $stagePng.FullName -Destination $destination -Force
         $destinationSha = Get-Sha256 $destination
         if ($destinationSha -ne $stageSha) {
-            throw "PowerPoint PNG copy digest mismatch for $($stagePng.Name): local $stageSha, destination $destinationSha"
+            throw "PowerPoint PNG copy digest mismatch for ${destinationName}: local $stageSha, destination $destinationSha"
         }
-        $pngs += [ordered]@{ name=$stagePng.Name; sha256=$destinationSha }
+        $pngs += [ordered]@{ name=$destinationName; sha256=$destinationSha }
     }
 
     $artifactShaAfter = Get-StreamSha256 $sourceStream

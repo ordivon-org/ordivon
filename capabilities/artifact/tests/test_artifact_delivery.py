@@ -1501,6 +1501,15 @@ class ArtifactDeliveryTests(unittest.TestCase):
         self.assertIn("Presentation.SaveAs/ppSaveAsPDF", worker)
         self.assertNotIn("$presentation.ExportAsFixedFormat(", worker)
 
+    def test_powerpoint_worker_normalizes_slide_png_names_for_agent_handoffs(self) -> None:
+        worker = (ROOT / "scripts/powerpoint_render_worker.ps1").read_text()
+        self.assertIn("slide-{0:D4}.png", worker)
+        self.assertIn("$destinationName", worker)
+        self.assertIn("name=$destinationName", worker)
+        self.assertIn("${destinationName}: local", worker)
+        self.assertNotIn("$destinationName: local", worker)
+        self.assertNotIn("name=$stagePng.Name", worker)
+
     def test_powerpoint_worker_digest_fences_input_for_full_target_run(self) -> None:
         worker = (ROOT / "scripts/powerpoint_render_worker.ps1").read_text()
         self.assertIn("[Parameter(Mandatory=$true)][ValidatePattern('^[0-9a-fA-F]{64}$')][string]$ExpectedSha256", worker)
