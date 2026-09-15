@@ -1,0 +1,438 @@
+{
+  "ablation": {
+    "binding": "a coupled transition contains couplingId plus withoutCouplingNext; disabling a coupling mechanically substitutes withoutCouplingNext for every transition bound to that coupling",
+    "eligibilityInputBinding": "input is winner model only; selection_reference recomputes unablated and each disabled-coupling evaluation itself",
+    "eligibleAblation": "selection_reference internally evaluates every declared coupling; exact frozen evaluator P3Success>=0.50; no caller evaluation row accepted",
+    "everyCouplingMustBeUsed": true,
+    "initialStateOrdering": "all train/eval starts are canonicalized under the same disabledCoupling semantics used by that evaluation; normal-world tie order cannot leak caller array order into ablation training",
+    "modelDeclaresCouplingIds": "3_to_6",
+    "normalAndDisabledNextMustDiffer": true,
+    "selection": [
+      "maximize number of scalar family drops >=0.05",
+      "maximize sorted descending scalar loss profile",
+      "lowest SHA256(coupling semantic effect fingerprint)",
+      "canonical coupling ID only as final fallback when semantic effects are identical"
+    ],
+    "tieFingerprint": "sorted records of normal source semantic identity + canonical action ordinal + normal successor semantic identity + disabled successor semantic identity computed under that disabled-coupling world"
+  },
+  "antiGoodhart": {
+    "allChecksMustPassForTournament": true,
+    "complexityInflation": "S8 pass",
+    "cosmeticConsequence": "S1 pass via exact future-behavior bisimulation",
+    "dominantUniversalPolicy": "best constant-action success <= P3Success-0.15",
+    "failureTax": "S6 pass",
+    "hiddenAuthorization": "candidate model receives no policy identity and contains only state/action transition data",
+    "playerModelOverfit": "P2 last-training-epoch success - P2 eval success <=0.25",
+    "proxyBundleGaming": "all hard-core families independently pass",
+    "rewardHacking": "candidate model has no reward field and evaluator reward is protocol-owned",
+    "rngInflation": "candidate gameplay representation has no RNG/wall-clock/environment transition input",
+    "stalling": "mean same-state transition fraction across P2+P3 eval episodes <=0.25"
+  },
+  "buildManifest": {
+    "authority": "experiments/autonomous-interest-r7/build_manifest_reference.py",
+    "binds": [
+      "winnerCandidateId",
+      "winnerModelDigest",
+      "winnerEvaluationDigest",
+      "tournamentEvidenceDigest",
+      "selectedCouplingId",
+      "ablationEvaluationDigest",
+      "winner/ablation arm disabledCoupling",
+      "presentationSeed",
+      "rendererId",
+      "studyRunnerId",
+      "evaluator digest",
+      "selection digest",
+      "renderer digest",
+      "study-runner digest",
+      "build-manifest-reference digest",
+      "model-schema digest",
+      "machine-protocol digest"
+    ],
+    "callerMayOverrideCoupling": false,
+    "callerMayOverrideWinner": false,
+    "candidateInputOrderAuthority": "NONE_FROM_CALLER; canonical ascending candidateId",
+    "input": "exact three candidate model bytes, canonicalized by candidateId before tournament/evidence recomputation",
+    "presentationSeedAuthority": "derived only after exact three models are fixed from their sorted state-ID/raw-label-invariant semantic model fingerprints",
+    "recomputesMatchedAblation": true,
+    "recomputesTournament": true,
+    "validation": "Human runner canonicalizes exact three models by candidateId, recomputes complete manifest, and requires canonical equality before serving either arm"
+  },
+  "freshnessBoundary": {
+    "freshnessDefinition": "R7 candidate model bytes are first authored only after exact R7 protocol freeze and unanimous controlling pre-generation audit pass by fresh generator occurrences forbidden to read prior whole-product candidate payloads",
+    "generatorMayNotRead": [
+      "R1 C01-C12 candidate Board payloads",
+      "PC01 Causal Works whole-product specification",
+      "PC02 Persistent Workshop whole-product specification",
+      "PC03 Loop Cartographer whole-product specification",
+      "any candidate-specific live Human feedback"
+    ],
+    "generatorMayRead": [
+      "R7 frozen protocol",
+      "18 mechanism families",
+      "33 motifs",
+      "public/mature game-design priors",
+      "mature implementation patterns"
+    ],
+    "priorCandidateSemanticSimilarityIsSelectionGate": false,
+    "reason": "R7 retains provenance isolation; fresh generators cannot deliberately copy excluded whole-product candidates"
+  },
+  "generation": {
+    "allThreeProceedToImplementationAndEvaluationIfSchemaAndSemanticValidationPass": true,
+    "candidateModelOnly": true,
+    "generatorOccurrences": 3,
+    "humanVisibleBeforeFreeze": false,
+    "independentBeforeFix": true,
+    "ownership": {
+      "R7C01": "G01",
+      "R7C02": "G02",
+      "R7C03": "G03"
+    },
+    "semanticReplacementAfterFixedCandidate": false
+  },
+  "humanHoldout": {
+    "N": 24,
+    "armDifferenceOnly": "build-manifest disabledCoupling: null for winner; exact selected coupling for ablation",
+    "assignment": "SHA256 rank of frozen assignment seed + enrollment ordinal 0..23; first 12 winner, remaining 12 ablation; each arm mapped to ordinal 0..11",
+    "assignmentSeed": "ordivon-r7-holdout-arm-assignment-v1",
+    "betweenHeartbeatPresenceLossObservable": true,
+    "candidateCannotObserveStudyTimeArmOrParticipantIdentity": true,
+    "choiceBoundary": "after 480000ms accumulated interaction-qualified mandatory play show protocol-owned compensation-neutral Stop now / Continue playing choice",
+    "costlessStopping": true,
+    "focusedIdleCountsAsPlay": false,
+    "heartbeatIntervalMs": 5000,
+    "heartbeatMaxGapMs": 6500,
+    "heartbeatRole": "positive presence witness only; absence is not the sole loss detector; explicit presence-loss events clear continuity immediately",
+    "interactionMaxGapMs": 30000,
+    "mandatoryActiveExposureMinutes": 8,
+    "mandatoryClock": "interaction-qualified active play only: heartbeat is a presence witness and contributes zero time; explicit hidden/blur/pagehide presence-loss events immediately clear presence+interaction anchors; time accrues only between successive meaningful verified gameplay interactions with gap<=30000ms and recent valid foreground presence",
+    "matchedAblation": 12,
+    "optionalActiveClock": "same interaction-qualified law as mandatory phase; heartbeat alone contributes zero and explicit presence-loss immediately resets continuity",
+    "optionalContinuationMaxWallClockMinutes": 12,
+    "pilotSupport": {
+      "winnerMinimumCount": 8,
+      "winnerMinusAblationMinimumCount": 3
+    },
+    "presenceLossEndpoint": "/presence-loss",
+    "presenceLossEvents": [
+      "visibilitychange:hidden",
+      "blur",
+      "pagehide"
+    ],
+    "primaryEndpoint": "VOLUNTARY_CONTINUATION_3M",
+    "primaryEndpointDerivation": "choice==continue AND accumulated interaction-qualified active optional play time >=180000ms",
+    "qualifyingInteraction": "successful participant-initiated canonical gameplay action or protocol-owned Next round whose protocol-verified before/after states differ in frozen future-behavior semantic class; rejected/illegal requests and semantic no-ops contribute zero and clear the interaction anchor",
+    "sameRunnerBothArms": true,
+    "semanticNoopCountsAsPlay": false,
+    "thresholdMutableAfterUnblinding": false,
+    "winner": 12
+  },
+  "humanRendererBoundary": {
+    "actionPresentation": "global stable protocol ordinal: canonical action aK is always shown as Action K+1; illegal actions are omitted without renumbering",
+    "automatedSelectionAuthority": "declarative model only",
+    "candidateControlledVisiblePixelsAllowed": false,
+    "candidateControlledVisibleTextAllowed": false,
+    "candidateIdVisible": false,
+    "candidateSpecificAssetsAllowed": false,
+    "candidateSpecificGameplayCodeAllowedInRenderer": false,
+    "conformanceLaw": "validate every reachable view/action edge; reject candidate visible text/pixels/internal IDs; prove token mapping is protocol-owned and 32-start schedule is preserved",
+    "externalNetworkAssetsAllowed": false,
+    "humanBuildGameplayAuthority": "winner model, selected coupling, and presentation seed must come from recomputed R7 build manifest",
+    "humanBuildMayChangeRendererBytesAfterProtocolFreeze": false,
+    "internalCandidateActionIdsVisible": false,
+    "internalCouplingIdsVisible": false,
+    "internalStateIdsVisible": false,
+    "observationPresentation": "single protocol-owned blinded token derived from canonical observation-equivalence class; candidate does not author pixel arrays, geometry, text, CSS, media or assets",
+    "participantTokenMapping": "protocol-owned permutation of 256 token IDs derived from fixed renderer domain + presentationSeed + enrollment ordinal",
+    "presentationSeed": "SHA256(fixed domain + sorted semantic model fingerprints of all three fixed candidates)",
+    "rawObservationLabelCanSteerPresentation": false,
+    "rendererConformanceRequiredBeforeFreeze": true,
+    "rendererId": "ORDIVON_R7_BLINDED_TOKEN_UI_V1",
+    "sessionStartLaw": "32 exact eval starts; within-arm participant ordinal 0..11; episode index advances by stride 13 modulo 32",
+    "statusPresentation": "fixed ONGOING/WIN/LOSS token",
+    "terminalLaw": "terminal state exposes only protocol-owned Next round control",
+    "unknownDisabledCoupling": "REJECT"
+  },
+  "humanSignalBoundary": {
+    "candidateSpecificUserVisibleDetailsBeforeFreeze": false,
+    "historicalPublicHumanKnowledgeAllowedAsPrior": true,
+    "liveCandidateSpecificHumanJudgmentAllowedBeforeFreeze": false
+  },
+  "kind": "ordivon.game-autonomous-interest-protocol",
+  "modelContract": {
+    "actionIdNamingDegreeOfFreedom": false,
+    "allStatesMustBeReachable": true,
+    "ambientRngOrWallClockInputExists": false,
+    "candidateControlledObservationKeysAllowed": false,
+    "candidateControlledObservationPixelsAllowed": false,
+    "candidateControlledObservationTextAllowed": false,
+    "candidateIds": [
+      "R7C01",
+      "R7C02",
+      "R7C03"
+    ],
+    "candidateRewardFieldAllowed": false,
+    "canonicalActionIds": "exact ordered prefix a0..a(N-1); N=2..8",
+    "canonicalCouplingIds": "exact ordered prefix c0..c(N-1); N=3..6",
+    "contexts": 4,
+    "couplingIdNamingDegreeOfFreedom": false,
+    "evalInitialStatesPerContext": 8,
+    "globalTrainEvalInitialStateOverlapAllowed": false,
+    "humanVisibleInternalIdentifiersAllowed": false,
+    "maxActions": 8,
+    "maxCanonicalObservationClasses": 256,
+    "maxEpisodeDecisions": 96,
+    "maxStates": 512,
+    "observationClassCanonicalization": "label-invariant protocol canonicalization against gameplay structure; raw numeric relabeling does not change behavioral evidence or semantic model fingerprint",
+    "observationRepresentation": "OBSERVATION_EQUIVALENCE_CLASS_INTEGER_0_TO_255_LABEL_HAS_NO_AUTHORITY",
+    "policyIdentityInputExists": false,
+    "reservedSelftestIds": [
+      "R7SELFTEST",
+      "R7SELFTEST01",
+      "R7SELFTEST02",
+      "R7SELFTEST03"
+    ],
+    "schema": "domains/game/game-autonomous-interest-model-r7.schema.json",
+    "schemaValidator": {
+      "executable": "/root/.local/bin/check-jsonschema",
+      "sha256": "sha256:95ceb8a922618479d4d9b73fc55a979013290f160922e5fc6e747dfd759a2e9a",
+      "version": "0.38.0"
+    },
+    "semanticModelFingerprint": "state-ID, raw-observation-label, and context-array-order invariant canonical gameplay+observation-partition fingerprint",
+    "stateIdEvaluationAuthority": false,
+    "stateIdHumanVisible": false,
+    "trainInitialStatesPerContext": 4
+  },
+  "observedDate": "2026-09-15",
+  "policyLaw": {
+    "P0": {
+      "id": "VISIBLE_STATE_HASH",
+      "state": "canonical(canonicalObservationClass,currentLegalActions)",
+      "usesContextId": false,
+      "usesSeed": false,
+      "usesTimeStep": false
+    },
+    "P1": {
+      "alpha": 0.25,
+      "epochs": 4,
+      "epsilonEnd": 0.05,
+      "epsilonStart": 0.3,
+      "gamma": 0.95,
+      "id": "REACTIVE_Q",
+      "reward": {
+        "loss": -1.0,
+        "ongoing": -0.01,
+        "win": 1.0
+      },
+      "state": "currentVisibleState"
+    },
+    "P2": {
+      "alpha": 0.25,
+      "epochs": 4,
+      "epsilonEnd": 0.05,
+      "epsilonStart": 0.3,
+      "gamma": 0.95,
+      "id": "MEMORY_Q",
+      "reward": {
+        "loss": -1.0,
+        "ongoing": -0.01,
+        "win": 1.0
+      },
+      "state": "previousVisibleState+previousAction+currentVisibleState"
+    },
+    "P3": {
+      "id": "EXACT_GRAPH_BFS",
+      "nodeCap": "ALL_REACHABLE_STATES_MAX_512",
+      "objective": "shortest path to WIN"
+    },
+    "candidateIdAffectsEvaluationBehavior": false,
+    "explorationRandomness": "SHA256 deterministic float over policy+epoch+context+disabled-coupling-aware semantic start identity+step+visible Q key; candidateId/slot excluded",
+    "initialStateOrdering": "canonicalized by semantic_state_identity under the exact disabledCoupling semantics being evaluated; caller array order has no authority"
+  },
+  "preGenerationAuditRequirements": [
+    "observation-class-only schema/semantic closure; no candidate-authored visible pixel/text/media channel",
+    "raw observation-label permutation leaves behavioral evidence, semantic fingerprint, presentation seed and token mapping invariant",
+    "state-ID rename + context-array reorder invariance under normal and every disabled-coupling evaluation",
+    "R6 S8 duplicate-action co-observed-state counterexample remains closed",
+    "R6 ablation trainInitialStates order counterexample remains closed and matched ablation is invariant",
+    "P0 visible-state-only semantics and candidate-slot/candidateId behavioral invariance",
+    "selector accepts exact models only and internally derives evaluator evidence",
+    "ablation internally reevaluates every coupling and uses disabled-world-aware semantic ordering/fingerprint",
+    "build manifest is candidate-input-order invariant and binds presentationSeed plus source/evidence/arm identities",
+    "blinded renderer shows one protocol-owned token and cannot expose candidate pixels/text/state/coupling/candidate IDs",
+    "presentation seed derives from all three semantic fingerprints and is invariant to raw state/observation relabeling",
+    "unknown disabled coupling rejects",
+    "24-person balanced assignment and winner/ablation symmetry",
+    "focused visible idle cannot advance mandatory play or VOLUNTARY_CONTINUATION_3M",
+    "explicit visibilitychange:hidden, blur, and pagehide between heartbeat ticks clear interaction continuity",
+    "rejected/illegal/no-op/self-loop interactions do not accrue play or preserve anchor",
+    "phase-rejected gameplay requests cannot mutate session state",
+    "runtime executable/version/digest agreement",
+    "any two-compliant-implementation counterexample affecting winner, ablation, Human build, presentation, or endpoint terminates R7"
+  ],
+  "referenceImplementation": {
+    "buildManifest": "experiments/autonomous-interest-r7/build_manifest_reference.py",
+    "evaluator": "experiments/autonomous-interest-r7/evaluator_reference.py",
+    "renderer": "experiments/autonomous-interest-r7/renderer_reference.py",
+    "selection": "experiments/autonomous-interest-r7/selection_reference.py",
+    "selftest": "experiments/autonomous-interest-r7/protocol_selftest.py",
+    "selftestModel": "experiments/autonomous-interest-r7/selftest_model.json",
+    "studyRunner": "experiments/autonomous-interest-r7/study_runner_reference.py"
+  },
+  "referenceImplementationDigests": {
+    "buildManifest": "sha256:4e26a715a95ee7e9d3c5fc23ee3e73e9ea6677e6c6fcf48d2822930866d234fd",
+    "evaluator": "sha256:009467f6d27b892edc7eb26630b9b8fa76e686f85b482a10d21251f212b29962",
+    "modelSchema": "sha256:34fd3da5cea99eae3c35ea9d06b706a0f702fd0a8010030ec6255c6e3e262b3b",
+    "protocolMarkdown": "sha256:2b74611e5d046517aabc03dae0beaf36d124b6423cc13c04c1d9d1ab7c5922c1",
+    "renderer": "sha256:3ad0516869d0fe73b46e0859365c0180541ace15cb05ef8a56d8d0d977fcf295",
+    "selection": "sha256:889df47bcb12b18be55ebb4644c12130d0f214fca827281afcc36cd98bde80af",
+    "selftest": "sha256:ea1a182375d5d67e7f654ef84495f748447ddcd21813269d8f28eb654acea33c",
+    "selftestModel": "sha256:afd197d6d3c7e17e1e3445e489fd3a2d0cfbed0aed512ce12d28db17c03ef403",
+    "studyRunner": "sha256:24ec4540a9c2125b63a67f86b93778b9eb56db6f4d3cf28b8777629389993a41"
+  },
+  "researchQuestion": "Can Ordivon autonomously create and select a fresh declarative finite-state whole-product game without live Human candidate-quality judgment before build freeze, then produce non-trivial voluntary continued play in a sealed Human holdout?",
+  "schemaVersion": 7,
+  "scope": {
+    "allFreshCandidatesImplemented": true,
+    "candidateCodeExecutedByEvaluator": false,
+    "candidateLogicRepresentation": "DECLARATIVE_FINITE_STATE_JSON_MODEL",
+    "candidateReplacementAfterSemanticFailure": false,
+    "exactFreshCandidates": 3,
+    "preimplementationQualitySelection": false
+  },
+  "selection": {
+    "actionAndCouplingIdsCanonicalized": true,
+    "authoritativeInput": "EXACT_CANDIDATE_MODELS_ONLY",
+    "callerSuppliedDigestUsed": false,
+    "callerSuppliedEligibilityAllowed": false,
+    "callerSuppliedP3Allowed": false,
+    "callerSuppliedScoresAllowed": false,
+    "candidateIdAuthority": "identity plus final tournament tie-break only",
+    "candidateIdEvaluationAuthority": false,
+    "candidateInputOrder": "CANONICAL_ASCENDING_CANDIDATE_ID_BEFORE_EVALUATION_AND_MANIFEST_EVIDENCE",
+    "defeatRule": "A defeats B iff A is >=0.05 better on at least two families and <=-0.05 worse on zero families",
+    "evidenceDerivation": "selection_reference.evaluate_authoritatively calls frozen evaluator_reference.evaluate_model from candidate model bytes",
+    "humanBuildAuthority": "build_manifest_reference.make_manifest recomputes tournament and matched ablation from exact candidate models",
+    "manifestSelfReportUsedForApplicability": false,
+    "manifestSelfReportUsedForComplexityTieBreak": false,
+    "pairwiseFamilies": [
+      "S1",
+      "S2",
+      "S3",
+      "S4",
+      "S5",
+      "S6",
+      "S7",
+      "S9"
+    ],
+    "qualityDiversitySelectionRemoved": true,
+    "reason": "all three fresh candidates are implemented; no preimplementation rank is needed",
+    "stateIdRenameInvariant": true,
+    "strictFamilyDelta": 0.05,
+    "weightedGlobalScoreAllowed": false,
+    "winnerRule": [
+      "minimize pairwise losses",
+      "maximize pairwise wins",
+      "lowest SHA256(candidateId)"
+    ]
+  },
+  "softwareRuntimeGate": {
+    "allDeclaredActionsUsed": true,
+    "allDeclaredCouplingsUsed": true,
+    "allReferencesResolve": true,
+    "allStatesReachable": true,
+    "candidateLogicArbitraryCodeExecution": false,
+    "measuredHardCapsEnforcedBySemanticValidator": {
+      "actionCount": 8,
+      "reachableStateCount": 512,
+      "uniqueObservationClassCount": 256
+    },
+    "ongoingStatesHaveAtLeastOneTransition": true,
+    "referenceEvaluationCompletes": true,
+    "runtimeIdentity": {
+      "pythonExecutable": "/usr/bin/python3.14",
+      "pythonExecutableSha256": "sha256:2700be1aabe3687bd597f21b0eac3b9bbdf7417e93035255a9286c67935b59bd",
+      "pythonImplementation": "CPython",
+      "pythonVersion": "3.14.6",
+      "schemaValidatorExecutable": "/root/.local/bin/check-jsonschema",
+      "schemaValidatorExecutableSha256": "sha256:95ceb8a922618479d4d9b73fc55a979013290f160922e5fc6e747dfd759a2e9a",
+      "schemaValidatorVersion": "0.38.0"
+    },
+    "schemaValidation": "check-jsonschema 0.38.0 PASS",
+    "semanticValidation": "reference evaluator validate_model PASS",
+    "terminalStatesHaveNoTransitions": true,
+    "trainEvalInitialStatesGloballyDisjoint": true
+  },
+  "state": {
+    "candidateGenerationStarted": false,
+    "candidateSemanticSlotsConsumed": 0,
+    "g0Entered": false,
+    "preGenerationAuditPassed": false,
+    "productSelected": false,
+    "protocolFrozen": true
+  },
+  "status": "R7_PROTOCOL_FROZEN_PREGEN_GENERATION_FORBIDDEN_UNTIL_UNANIMOUS_AUDIT_PASS",
+  "surrogates": {
+    "S1": {
+      "passGte": 0.2,
+      "score": "fraction of reachable >=2-action decision states whose legal actions lead to >=2 distinct exact future-behavior bisimulation classes"
+    },
+    "S2": {
+      "score": "max(P1Success,P2Success)-P0Success"
+    },
+    "S3": {
+      "pass": {
+        "P0Lte": 0.75,
+        "P3Gte": 0.65,
+        "gapGte": 0.25
+      },
+      "score": "P3Success-P0Success"
+    },
+    "S4": {
+      "diagnosticAliasing": "same observation in multiple reachable states with different oracle first actions",
+      "score": "P2Success-P1Success"
+    },
+    "S5": {
+      "score": "P3Success-bestConstantActionSuccess"
+    },
+    "S6": {
+      "pass": {
+        "firstEpochFailureRateGte": 0.2,
+        "gainGte": 0.15
+      },
+      "score": "P2LastTrainingEpochSuccess-P2FirstTrainingEpochSuccess"
+    },
+    "S7": {
+      "score": "mean context-specific P1 diagonal success - mean cross-context off-diagonal success"
+    },
+    "S8": {
+      "duplicateActionLaw": "for each action pair enumerate reachable states where both are legal; compare successor exact future-behavior bisimulation class on the same state; if coObservedCount>0 and equivalent/coObserved>=0.95, pair is duplicate and S8 fails",
+      "hardMeasuredCaps": {
+        "actions": 8,
+        "canonicalObservationClasses": 256,
+        "reachableStates": 512
+      }
+    },
+    "S9": {
+      "passGte": 0.5,
+      "score": "minimum P3 success across the four exact eval contexts"
+    },
+    "allCandidatesReceiveAllScalarFamilies": [
+      "S1",
+      "S2",
+      "S3",
+      "S4",
+      "S5",
+      "S6",
+      "S7",
+      "S9"
+    ],
+    "hardCoreRequired": [
+      "S1",
+      "S3",
+      "S6",
+      "S8",
+      "S9"
+    ]
+  }
+}
