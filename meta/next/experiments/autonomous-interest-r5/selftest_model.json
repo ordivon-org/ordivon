@@ -1,0 +1,446 @@
+{
+  "schemaVersion": 1,
+  "kind": "selftest",
+  "candidateId": "R5SELFTEST",
+  "humanSignalUsed": false,
+  "actions": [
+    "a0",
+    "a1",
+    "a2"
+  ],
+  "causalCouplings": [
+    "c0",
+    "c1",
+    "c2"
+  ],
+  "contexts": {
+    "0": {
+      "trainInitialStates": [
+        "t0",
+        "t1",
+        "t2",
+        "t3"
+      ],
+      "evalInitialStates": [
+        "e0",
+        "e1",
+        "e2",
+        "e3",
+        "e4",
+        "e5",
+        "e6",
+        "e7"
+      ]
+    },
+    "1": {
+      "trainInitialStates": [
+        "t0",
+        "t1",
+        "t2",
+        "t3"
+      ],
+      "evalInitialStates": [
+        "e0",
+        "e1",
+        "e2",
+        "e3",
+        "e4",
+        "e5",
+        "e6",
+        "e7"
+      ]
+    },
+    "2": {
+      "trainInitialStates": [
+        "t0",
+        "t1",
+        "t2",
+        "t3"
+      ],
+      "evalInitialStates": [
+        "e0",
+        "e1",
+        "e2",
+        "e3",
+        "e4",
+        "e5",
+        "e6",
+        "e7"
+      ]
+    },
+    "3": {
+      "trainInitialStates": [
+        "t0",
+        "t1",
+        "t2",
+        "t3"
+      ],
+      "evalInitialStates": [
+        "e0",
+        "e1",
+        "e2",
+        "e3",
+        "e4",
+        "e5",
+        "e6",
+        "e7"
+      ]
+    }
+  },
+  "states": {
+    "t0": {
+      "observation": [
+        9,
+        0,
+        11,
+        15,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "status": "ONGOING",
+      "transitions": {
+        "a0": {
+          "next": "win",
+          "couplingId": "c0",
+          "withoutCouplingNext": "loss"
+        },
+        "a1": {
+          "next": "win"
+        },
+        "a2": {
+          "next": "loss"
+        }
+      }
+    },
+    "t1": {
+      "observation": [
+        10,
+        0,
+        14,
+        6,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "status": "ONGOING",
+      "transitions": {
+        "a0": {
+          "next": "win"
+        }
+      }
+    },
+    "t2": {
+      "observation": [
+        11,
+        0,
+        1,
+        13,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "status": "ONGOING",
+      "transitions": {
+        "a1": {
+          "next": "win"
+        }
+      }
+    },
+    "t3": {
+      "observation": [
+        12,
+        0,
+        4,
+        4,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "status": "ONGOING",
+      "transitions": {
+        "a0": {
+          "next": "win",
+          "couplingId": "c1",
+          "withoutCouplingNext": "loss"
+        },
+        "a1": {
+          "next": "win"
+        },
+        "a2": {
+          "next": "loss"
+        }
+      }
+    },
+    "e0": {
+      "observation": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "status": "ONGOING",
+      "transitions": {
+        "a0": {
+          "next": "win",
+          "couplingId": "c2",
+          "withoutCouplingNext": "loss"
+        },
+        "a1": {
+          "next": "win"
+        },
+        "a2": {
+          "next": "loss"
+        }
+      }
+    },
+    "e1": {
+      "observation": [
+        1,
+        0,
+        3,
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "status": "ONGOING",
+      "transitions": {
+        "a0": {
+          "next": "win"
+        }
+      }
+    },
+    "e2": {
+      "observation": [
+        2,
+        0,
+        6,
+        14,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "status": "ONGOING",
+      "transitions": {
+        "a1": {
+          "next": "win"
+        }
+      }
+    },
+    "e3": {
+      "observation": [
+        3,
+        0,
+        9,
+        5,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "status": "ONGOING",
+      "transitions": {
+        "a0": {
+          "next": "win"
+        },
+        "a1": {
+          "next": "win"
+        },
+        "a2": {
+          "next": "loss"
+        }
+      }
+    },
+    "e4": {
+      "observation": [
+        4,
+        0,
+        12,
+        12,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "status": "ONGOING",
+      "transitions": {
+        "a0": {
+          "next": "win"
+        },
+        "a1": {
+          "next": "win"
+        },
+        "a2": {
+          "next": "loss"
+        }
+      }
+    },
+    "e5": {
+      "observation": [
+        5,
+        0,
+        15,
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "status": "ONGOING",
+      "transitions": {
+        "a0": {
+          "next": "win"
+        },
+        "a1": {
+          "next": "win"
+        },
+        "a2": {
+          "next": "loss"
+        }
+      }
+    },
+    "e6": {
+      "observation": [
+        6,
+        0,
+        2,
+        10,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "status": "ONGOING",
+      "transitions": {
+        "a0": {
+          "next": "win"
+        },
+        "a1": {
+          "next": "win"
+        },
+        "a2": {
+          "next": "loss"
+        }
+      }
+    },
+    "e7": {
+      "observation": [
+        7,
+        0,
+        5,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "status": "ONGOING",
+      "transitions": {
+        "a0": {
+          "next": "win"
+        },
+        "a1": {
+          "next": "win"
+        },
+        "a2": {
+          "next": "loss"
+        }
+      }
+    },
+    "win": {
+      "observation": [
+        13,
+        0,
+        7,
+        11,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "status": "WIN",
+      "transitions": {}
+    },
+    "loss": {
+      "observation": [
+        8,
+        0,
+        8,
+        8,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "status": "LOSS",
+      "transitions": {}
+    }
+  }
+}
