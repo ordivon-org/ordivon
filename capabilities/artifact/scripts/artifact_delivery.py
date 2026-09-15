@@ -962,14 +962,43 @@ def execute_build_stage(request_path: Path, output_directory: Path | None = None
         if not pandoc.is_file():
             adapter_result = {"status": "FAIL", "error": f"Pandoc not found: {pandoc}"}
         else:
-            proc = subprocess.run([str(pandoc), str(source_path), "-o", str(output_path)], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False, timeout=60)
-            adapter_result = {
-                "status": "PASS" if proc.returncode == 0 and output_path.is_file() else "FAIL",
-                "returnCode": proc.returncode,
-                "stdout": proc.stdout[-2000:],
-                "stderr": proc.stderr[-4000:],
-                "artifact": file_fact(output_path) if output_path.is_file() else None,
+            source_date_epoch = os.environ.get("SOURCE_DATE_EPOCH")
+            source_date_epoch_fact: dict[str, Any] = {
+                "name": "SOURCE_DATE_EPOCH",
+                "present": source_date_epoch is not None,
+                "value": source_date_epoch,
+                "standard": "https://reproducible-builds.org/docs/source-date-epoch/",
             }
+            if source_date_epoch is not None and re.fullmatch(r"[0-9]+", source_date_epoch) is None:
+                adapter_result = {
+                    "status": "FAIL",
+                    "error": "SOURCE_DATE_EPOCH must be a non-negative base-10 integer number of seconds",
+                    "reproducibleBuildEnvironment": source_date_epoch_fact,
+                }
+            else:
+                pandoc_env = os.environ.copy()
+                if source_date_epoch is None:
+                    pandoc_env.pop("SOURCE_DATE_EPOCH", None)
+                else:
+                    source_date_epoch_fact["unixSeconds"] = int(source_date_epoch)
+                    pandoc_env["SOURCE_DATE_EPOCH"] = source_date_epoch
+                proc = subprocess.run(
+                    [str(pandoc), str(source_path), "-o", str(output_path)],
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    check=False,
+                    timeout=60,
+                    env=pandoc_env,
+                )
+                adapter_result = {
+                    "status": "PASS" if proc.returncode == 0 and output_path.is_file() else "FAIL",
+                    "returnCode": proc.returncode,
+                    "stdout": proc.stdout[-2000:],
+                    "stderr": proc.stderr[-4000:],
+                    "artifact": file_fact(output_path) if output_path.is_file() else None,
+                    "reproducibleBuildEnvironment": source_date_epoch_fact,
+                }
     elif adapter in {"standards-web-source", "native-artifact-pass-through"}:
         shutil.copyfile(source_path, output_path)
         adapter_result = {

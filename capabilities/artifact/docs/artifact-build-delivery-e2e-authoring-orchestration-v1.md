@@ -108,6 +108,8 @@ The adapter map is replaceable implementation detail. Profile contracts and acce
 4. the primary output file exists;
 5. adapter-local checks pass.
 
+For Markdown → DOCX, Pandoc's standard `SOURCE_DATE_EPOCH` input remains caller-owned rather than becoming an Artifact-specific timestamp field. When present, Artifact requires a non-negative base-10 integer, passes the exact value explicitly to Pandoc, and records it under `adapterResult.reproducibleBuildEnvironment`. When absent, `document-r1` build admission is unchanged: build PASS does **not** imply byte-for-byte reproducibility. A caller that requires reproducible DOCX bytes must freeze `SOURCE_DATE_EPOCH` prospectively and preserve the resulting build evidence; Artifact does not normalize post-hoc timestamps or invent a second clock contract.
+
 For presentation source v1, the builder additionally runs native PPTX package/relationship inspection and presentation semantic checks. A separate `DocumentFormat.OpenXml` gate remains required for ISO/IEC 29500 validation; PowerPoint target rendering, visual QA, accessibility, PDF companion production and delivery read-back remain independent.
 
 A v1 smoke has now proven:

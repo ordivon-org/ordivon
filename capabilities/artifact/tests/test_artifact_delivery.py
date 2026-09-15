@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -1756,6 +1757,87 @@ class ArtifactDeliveryTests(unittest.TestCase):
             self.assertEqual(MODULE.verify_delivery_evidence(paths, profile, pptx, pdf)["status"], "PASS")
             self.assertEqual(MODULE.verify_delivery_evidence(paths[:-1], profile, pptx, pdf)["status"], "FAIL")
 
+
+    def _fake_pandoc_docx_builder(self, root: Path) -> Path:
+        path = root / "pandoc-docx-builder"
+        path.write_text("""#!/usr/bin/env python3
+import os,sys
+from pathlib import Path
+out=Path(sys.argv[sys.argv.index('-o')+1])
+out.write_text(os.environ.get('SOURCE_DATE_EPOCH','ABSENT'))
+""")
+        path.chmod(0o755)
+        return path
+
+    def _document_build_request(self, root: Path) -> Path:
+        source = root / "source.md"
+        source.write_text("# Reproducible document\n")
+        profile = ROOT / "artifact-delivery/examples/document-r1.json"
+        request = root / "request.json"
+        request.write_text(json.dumps({
+            "schemaVersion": 1,
+            "kind": "artifact-delivery-request",
+            "requestId": "artifact-request:source-date-epoch-smoke",
+            "profile": {"id": "document-r1", "path": str(profile), "sha256": MODULE.sha256_file(profile)},
+            "source": {"kind": "markdown", "path": source.name, "sha256": MODULE.sha256_file(source)},
+            "materials": [],
+            "outputDirectory": "out",
+            "builder": {
+                "id": "https://ordivon.local/builders/artifact-delivery/pandoc-v1",
+                "buildType": "https://ordivon.local/build-types/artifact-delivery/markdown-docx-v1"
+            }
+        }))
+        return request
+
+    def test_pandoc_docx_build_records_and_passes_source_date_epoch(self) -> None:
+        if importlib.util.find_spec("jsonschema") is None:
+            self.skipTest("jsonschema is unavailable")
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            pandoc = self._fake_pandoc_docx_builder(root)
+            request = self._document_build_request(root)
+            with mock.patch.dict(os.environ, {"ARTIFACT_PANDOC": str(pandoc), "SOURCE_DATE_EPOCH": "1234567890"}, clear=False):
+                result = MODULE.execute_build_stage(request, root / "build")
+            self.assertEqual(result["status"], "PASS", result)
+            fact = result["adapterResult"]["reproducibleBuildEnvironment"]
+            self.assertEqual(fact["name"], "SOURCE_DATE_EPOCH")
+            self.assertTrue(fact["present"])
+            self.assertEqual(fact["value"], "1234567890")
+            self.assertEqual(fact["unixSeconds"], 1234567890)
+            self.assertIn("reproducible-builds.org", fact["standard"])
+            self.assertEqual(Path(result["artifact"]["path"]).read_text(), "1234567890")
+
+    def test_pandoc_docx_build_records_source_date_epoch_absence_without_new_policy_gate(self) -> None:
+        if importlib.util.find_spec("jsonschema") is None:
+            self.skipTest("jsonschema is unavailable")
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            pandoc = self._fake_pandoc_docx_builder(root)
+            request = self._document_build_request(root)
+            with mock.patch.dict(os.environ, {"ARTIFACT_PANDOC": str(pandoc)}, clear=False):
+                os.environ.pop("SOURCE_DATE_EPOCH", None)
+                result = MODULE.execute_build_stage(request, root / "build")
+            self.assertEqual(result["status"], "PASS", result)
+            fact = result["adapterResult"]["reproducibleBuildEnvironment"]
+            self.assertFalse(fact["present"])
+            self.assertIsNone(fact["value"])
+            self.assertNotIn("unixSeconds", fact)
+            self.assertEqual(Path(result["artifact"]["path"]).read_text(), "ABSENT")
+
+    def test_pandoc_docx_build_rejects_invalid_source_date_epoch_before_provider_effect(self) -> None:
+        if importlib.util.find_spec("jsonschema") is None:
+            self.skipTest("jsonschema is unavailable")
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            pandoc = self._fake_pandoc_docx_builder(root)
+            request = self._document_build_request(root)
+            with mock.patch.dict(os.environ, {"ARTIFACT_PANDOC": str(pandoc), "SOURCE_DATE_EPOCH": "not-an-epoch"}, clear=False):
+                result = MODULE.execute_build_stage(request, root / "build")
+            self.assertEqual(result["status"], "FAIL", result)
+            self.assertEqual(result["adapterResult"]["status"], "FAIL")
+            self.assertIn("SOURCE_DATE_EPOCH", result["adapterResult"]["error"])
+            self.assertTrue(result["adapterResult"]["reproducibleBuildEnvironment"]["present"])
+            self.assertIsNone(result["artifact"])
 
     def _fake_pandoc(self, root: Path) -> Path:
         path = root / "pandoc"
