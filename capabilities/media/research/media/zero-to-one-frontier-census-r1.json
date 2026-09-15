@@ -26,6 +26,13 @@
       "producer": "python-email",
       "capability": "message.compose.rfc5322",
       "artifactProfile": "message-internet-text-r1"
+    },
+    {
+      "frontier": "sonic-identity",
+      "producer": "procedural-audio-production",
+      "capability": "first-class-audio-work",
+      "artifactProfile": "audio-wave/flac/ogg",
+      "currentness": "closed concurrently by canonical commit 9b64d58; production convergence-sonic-ident exists with consumption/friction evidence"
     }
   ],
   "remainingEquipmentWithNoDeliveryBridge": [
@@ -127,37 +134,50 @@
     {
       "priority": "S1",
       "frontier": "2d-world-authoring",
-      "reason": "Artifact Tiled TMJ is LOCAL_LIVE_PROVEN and Godot is a consumer, but Media has no Tiled producer/equipment path."
-    },
-    {
-      "priority": "S1",
-      "frontier": "office-native-authoring",
-      "reason": "DOCX/XLSX/PPTX are major production profiles, yet Media Creative Equipment still has no Word/Excel/PowerPoint authoring projection."
-    },
-    {
-      "priority": "S1",
-      "frontier": "web-authoring-publication",
-      "reason": "web-r1 is production-grade, but no Media capability owns deterministic HTML/web production as a first-class delivery path."
-    },
-    {
-      "priority": "S2",
-      "frontier": "music-composition",
-      "reason": "Audio engineering is strong, but music/sound composition is not yet a first-class Production/Work path."
+      "classification": "TRUE_ZERO_TO_ONE",
+      "reason": "Tiled 1.12.2 + tmxrasterizer and Artifact TMJ profile are LOCAL_LIVE_PROVEN; Game already consumes TMJ, but Media has no Tiled equipment/producer path."
     },
     {
       "priority": "S2",
       "frontier": "live-broadcast-performance",
-      "reason": "OBS is modeled but has zero delivery bridges and no canonical live/recorded production closure."
+      "classification": "TRUE_ZERO_TO_ONE_WITH_PROVIDER_LIFECYCLE_BLOCKER",
+      "reason": "OBS exists and authenticated websocket semantics were dogfooded, but reliable autonomous startup/shutdown was falsified; no canonical production closure exists."
     },
     {
       "priority": "S2",
-      "frontier": "accessible-publication",
-      "reason": "PDF/UA-2 production profile exists, but Media has no explicit accessibility-authoring/remediation capability path."
+      "frontier": "accessible-publication-authoring",
+      "classification": "PARTIAL_ZERO_TO_ONE",
+      "reason": "Artifact PDF/UA-2 validation exists, but Media has no explicit accessibility authoring/remediation production path; validation alone is not accessible authoring."
+    },
+    {
+      "priority": "S2",
+      "frontier": "print-prepress-color-managed-output",
+      "classification": "TRUE_ZERO_TO_ONE",
+      "reason": "Current PDF/image tooling exists, but no explicit CMYK/ICC/bleed/imposition delivery family or production closure was found."
     },
     {
       "priority": "S3",
       "frontier": "physical-embodied-output",
-      "reason": "Stream Deck, bHaptics, XR and realtime/sensor capabilities remain challenger/candidate and lack physical closure."
+      "classification": "TRUE_ZERO_TO_ONE_REQUIRES_PHYSICAL_AUTHORITY",
+      "reason": "Stream Deck, bHaptics, XR/realtime/sensor capabilities remain challenger/candidate; no physical device closure or embodied Work exists."
+    }
+  ],
+  "integrationGapsNotZeroToOne": [
+    {
+      "frontier": "office-native-authoring",
+      "reason": "PowerPoint, Word and Excel Desktop are physically present and Artifact has PPTX/DOCX/XLSX production profiles; missing Media projection is integration/discoverability, not capability birth."
+    },
+    {
+      "frontier": "web-authoring-publication",
+      "reason": "Artifact web-r1 is already a source-authored production profile with browser/accessibility gates; missing Media bridge is integration, not a true zero."
+    },
+    {
+      "frontier": "dataset-query-to-publication",
+      "reason": "DuckDB query/transform is now available and PyArrow closes strict Parquet writing; richer analysis/visualization is 1->100 after this wave."
+    },
+    {
+      "frontier": "music-composition",
+      "reason": "Canonical production Convergence — Ordivon Sonic Ident 001 now exists with WAV/FLAC/OGG and consumption evidence; music is no longer zero."
     }
   ]
 }
