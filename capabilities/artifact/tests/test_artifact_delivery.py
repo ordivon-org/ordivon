@@ -165,6 +165,106 @@ class ArtifactDeliveryTests(unittest.TestCase):
         else:
             self.assertEqual(plan["status"], "PASS", plan)
 
+    def test_semantic_svg_source_is_digest_bound_and_routes_to_ppt_master(self) -> None:
+        if importlib.util.find_spec("jsonschema") is None:
+            self.skipTest("jsonschema is unavailable")
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            profile = root / "profile.json"
+            shutil.copyfile(ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json", profile)
+            page = root / "page.svg"
+            page.write_text('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720"/>')
+            source = {
+                "schemaVersion": 1,
+                "kind": "presentation-semantic-svg-source",
+                "presentationId": "presentation:semantic-svg-routing-smoke-r1",
+                "profileId": "pdu-sdu-presentation-r1",
+                "locale": "en-US",
+                "transition": "none",
+                "nativeChartsAndTables": False,
+                "pages": [{"id": "page-01", "path": page.name, "sha256": MODULE.sha256_file(page)}],
+            }
+            source_path = root / "source.json"
+            source_path.write_text(json.dumps(source))
+            request = {
+                "schemaVersion": 1,
+                "kind": "artifact-delivery-request",
+                "requestId": "artifact-request:semantic-svg-routing-smoke-r1",
+                "profile": {"id": "pdu-sdu-presentation-r1", "path": profile.name, "sha256": MODULE.sha256_file(profile)},
+                "source": {"kind": "presentation-semantic-svg-source-v1", "path": source_path.name, "sha256": MODULE.sha256_file(source_path)},
+                "outputDirectory": "out",
+                "builder": {
+                    "id": "https://ordivon.local/builders/artifact-delivery/ppt-master-v1",
+                    "buildType": "https://ordivon.local/build-types/artifact-delivery/presentation-semantic-svg-source-v1",
+                },
+            }
+            request_path = root / "request.json"
+            request_path.write_text(json.dumps(request))
+            validation = MODULE.validate_delivery_request(request_path)
+            self.assertEqual(validation["status"], "PASS", validation)
+            self.assertEqual(len(validation["resolved"]["materials"]), 1)
+            self.assertEqual(validation["resolved"]["materials"][0]["digest"]["sha256"], MODULE.sha256_file(page))
+            plan = MODULE.compile_delivery_plan(request_path)
+            self.assertEqual(plan["status"], "PASS", plan)
+            self.assertEqual(plan["buildAdapter"], "ppt-master-semantic-svg-v1")
+            self.assertEqual(plan["builder"]["id"], "https://ordivon.local/builders/artifact-delivery/ppt-master-v1")
+            page.write_text(page.read_text() + "\n<!-- drift -->")
+            drift = MODULE.validate_delivery_request(request_path)
+            self.assertEqual(drift["status"], "FAIL")
+            self.assertTrue(any("semantic SVG page digest mismatch" in item for item in drift["failures"]), drift)
+
+    def test_semantic_svg_source_rejects_parent_traversal_material_target(self) -> None:
+        if importlib.util.find_spec("jsonschema") is None:
+            self.skipTest("jsonschema is unavailable")
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            page = root / "page.svg"
+            page.write_text('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720"/>')
+            asset = root / "asset.png"
+            asset.write_bytes(b"not-an-image-but-digest-bound")
+            source = {
+                "schemaVersion": 1,
+                "kind": "presentation-semantic-svg-source",
+                "presentationId": "presentation:semantic-svg-path-smoke-r1",
+                "profileId": "pdu-sdu-presentation-r1",
+                "locale": "en-US",
+                "transition": "none",
+                "nativeChartsAndTables": False,
+                "pages": [{"id": "page-01", "path": page.name, "sha256": MODULE.sha256_file(page)}],
+                "materials": [{"path": asset.name, "sha256": MODULE.sha256_file(asset), "projectRelativePath": "../escape.png"}],
+            }
+            source_path = root / "source.json"
+            source_path.write_text(json.dumps(source))
+            result = MODULE.validate_json_document(
+                source_path,
+                ROOT / "artifact-delivery/presentation-semantic-svg-source-v1.schema.json",
+                "presentation-semantic-svg-source",
+            )
+            self.assertEqual(result["status"], "FAIL", result)
+
+    def test_ppt_master_provider_commit_drift_fails_closed(self) -> None:
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            for relative in (
+                ".venv-exp/bin/python",
+                "skills/ppt-master/scripts/svg_quality_checker.py",
+                "skills/ppt-master/scripts/svg_to_pptx.py",
+            ):
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("stub")
+            completed = subprocess.CompletedProcess(
+                args=["git"],
+                returncode=0,
+                stdout="0" * 40 + "\n",
+                stderr="",
+            )
+            with mock.patch.dict(os.environ, {"ARTIFACT_PPT_MASTER_ROOT": str(root)}, clear=False), mock.patch.object(MODULE.subprocess, "run", return_value=completed):
+                provider, failures = MODULE._ppt_master_provider_facts()
+            self.assertEqual(provider["observedCommit"], "0" * 40)
+            self.assertTrue(any("provider commit mismatch" in item for item in failures), failures)
+
     def test_native_presentation_source_build_rejects_undeclared_font(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)

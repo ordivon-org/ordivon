@@ -23,6 +23,7 @@ import shutil
 import subprocess
 import struct
 import sys
+import tempfile
 import urllib.parse
 import xml.etree.ElementTree as ET
 import zipfile
@@ -54,6 +55,8 @@ def _selected_external_file(env_name: str, global_candidate: Path, legacy_candid
 DEFAULT_SCHEMA = ROOT / "artifact-delivery/profile-v1.schema.json"
 DEFAULT_REQUEST_SCHEMA = ROOT / "artifact-delivery/request-v1.schema.json"
 DEFAULT_PRESENTATION_SOURCE_SCHEMA = ROOT / "artifact-delivery/presentation-source-v1.schema.json"
+DEFAULT_PRESENTATION_SEMANTIC_SVG_SOURCE_SCHEMA = ROOT / "artifact-delivery/presentation-semantic-svg-source-v1.schema.json"
+PPT_MASTER_PROVIDER_LOCK = ROOT / "artifact-delivery/ppt-master-provider-v1.lock.json"
 DEFAULT_OPC_MEMBER_PROJECTION_SCHEMA = ROOT / "artifact-delivery/opc-member-projection-v1.schema.json"
 DEFAULT_VSA_TRUST_POLICY_SCHEMA = ROOT / "artifact-delivery/vsa-trust-policy-v1.schema.json"
 DEFAULT_WINDOWS_FONTS = Path("/mnt/c/Windows/Fonts")
@@ -322,6 +325,256 @@ def _resolve_request_path(request_path: Path, relative: str) -> Path:
     return (request_path.resolve().parent / candidate).resolve()
 
 
+def _safe_project_relative_path(value: str) -> PurePosixPath:
+    path = PurePosixPath(value)
+    if path.is_absolute() or not path.parts or any(part in {"", ".", ".."} for part in path.parts):
+        raise RuntimeError(f"unsafe provider project-relative path: {value!r}")
+    return path
+
+
+def _semantic_svg_source_material_facts(source_path: Path, source: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
+    materials: list[dict[str, Any]] = []
+    failures: list[str] = []
+    seen_page_ids: set[str] = set()
+    for index, page in enumerate(source.get("pages", []) if isinstance(source.get("pages"), list) else []):
+        page_id = str(page.get("id", ""))
+        if page_id in seen_page_ids:
+            failures.append(f"duplicate semantic SVG page id: {page_id}")
+        seen_page_ids.add(page_id)
+        try:
+            page_path = _resolve_request_path(source_path, str(page.get("path", "")))
+            if page_path.suffix.lower() != ".svg":
+                failures.append(f"semantic SVG page {page_id or index + 1} must use .svg")
+            actual = sha256_file(page_path)
+            if actual != page.get("sha256"):
+                failures.append(f"semantic SVG page digest mismatch: {page_id or index + 1}")
+            fact = file_fact(page_path)
+            fact["purpose"] = "semantic-svg-page"
+            fact["pageId"] = page_id
+            materials.append(fact)
+        except Exception as error:
+            failures.append(f"semantic SVG page reference error ({page_id or index + 1}): {error}")
+    seen_targets: set[str] = set()
+    for item in source.get("materials", []) if isinstance(source.get("materials"), list) else []:
+        try:
+            target = _safe_project_relative_path(str(item.get("projectRelativePath", "")))
+            target_key = target.as_posix()
+            if target_key.startswith("svg_output/"):
+                failures.append(f"semantic SVG provider material may not target reserved svg_output/: {target_key}")
+            if target_key in seen_targets:
+                failures.append(f"duplicate semantic SVG provider material target: {target_key}")
+            seen_targets.add(target_key)
+            material_path = _resolve_request_path(source_path, str(item.get("path", "")))
+            actual = sha256_file(material_path)
+            if actual != item.get("sha256"):
+                failures.append(f"semantic SVG provider material digest mismatch: {item.get('path')}")
+            fact = file_fact(material_path)
+            fact["purpose"] = item.get("purpose") or "semantic-svg-material"
+            fact["projectRelativePath"] = target_key
+            materials.append(fact)
+        except Exception as error:
+            failures.append(f"semantic SVG provider material reference error: {error}")
+    return materials, failures
+
+
+def _ppt_master_provider_facts() -> tuple[dict[str, Any], list[str]]:
+    failures: list[str] = []
+    try:
+        lock = load_json(PPT_MASTER_PROVIDER_LOCK)
+    except Exception as error:
+        return {"lock": {"path": str(PPT_MASTER_PROVIDER_LOCK)}}, [f"PPT Master provider lock could not be read: {error}"]
+    configured_root = os.environ.get("ARTIFACT_PPT_MASTER_ROOT")
+    root = Path(configured_root or "/opt/ordivon/external/ppt-master/current").resolve()
+    python_path = Path(os.path.abspath(os.path.expanduser(os.environ.get("ARTIFACT_PPT_MASTER_PYTHON", str(root / ".venv-exp/bin/python")))))
+    entrypoints = lock.get("entrypoints", {}) if isinstance(lock, dict) else {}
+    quality_checker = root / str(entrypoints.get("qualityChecker", ""))
+    exporter = root / str(entrypoints.get("exporter", ""))
+    expected_commit = str((lock.get("source", {}) if isinstance(lock, dict) else {}).get("commit", ""))
+    observed_commit: str | None = None
+    if not root.is_dir():
+        failures.append(f"PPT Master provider root is unavailable: {root}")
+    else:
+        proc = subprocess.run(
+            ["/usr/bin/git", "-C", str(root), "rev-parse", "HEAD"],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+            timeout=20,
+        )
+        if proc.returncode != 0:
+            failures.append("PPT Master provider root is not a readable Git checkout")
+        else:
+            observed_commit = proc.stdout.strip()
+            if observed_commit != expected_commit:
+                failures.append(f"PPT Master provider commit mismatch: expected {expected_commit}, got {observed_commit}")
+    for label, path in (("python", python_path), ("qualityChecker", quality_checker), ("exporter", exporter)):
+        if not path.is_file():
+            failures.append(f"PPT Master provider {label} is unavailable: {path}")
+    provider = {
+        "providerId": lock.get("providerId") if isinstance(lock, dict) else None,
+        "root": str(root),
+        "expectedCommit": expected_commit,
+        "observedCommit": observed_commit,
+        "python": str(python_path),
+        "qualityChecker": str(quality_checker),
+        "exporter": str(exporter),
+        "lock": file_fact(PPT_MASTER_PROVIDER_LOCK) if PPT_MASTER_PROVIDER_LOCK.is_file() else {"path": str(PPT_MASTER_PROVIDER_LOCK)},
+    }
+    return provider, failures
+
+
+def build_semantic_svg_presentation_source(
+    source_path: Path,
+    profile_path: Path,
+    output_path: Path,
+    source_schema_path: Path = DEFAULT_PRESENTATION_SEMANTIC_SVG_SOURCE_SCHEMA,
+) -> dict[str, Any]:
+    source_result = validate_json_document(source_path, source_schema_path, "presentation-semantic-svg-source")
+    profile_result = validate_profile(profile_path)
+    source = source_result.get("document", {}) if isinstance(source_result, dict) else {}
+    profile = profile_result.get("profile", {}) if isinstance(profile_result, dict) else {}
+    failures: list[str] = []
+    if source_result.get("status") != "PASS":
+        failures.append("semantic SVG presentation source schema did not PASS")
+    if profile_result.get("status") != "PASS":
+        failures.append("delivery profile schema did not PASS")
+    if isinstance(source, dict) and source.get("profileId") != profile.get("id"):
+        failures.append("semantic SVG presentation source profileId does not match selected profile")
+    source_materials, material_failures = _semantic_svg_source_material_facts(source_path, source if isinstance(source, dict) else {})
+    failures.extend(material_failures)
+    provider, provider_failures = _ppt_master_provider_facts()
+    failures.extend(provider_failures)
+    if failures:
+        return {
+            "status": "FAIL",
+            "source": file_fact(source_path),
+            "profile": file_fact(profile_path),
+            "provider": provider,
+            "sourceValidation": source_result,
+            "materials": source_materials,
+            "failures": failures,
+        }
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    quality_receipt: dict[str, Any] = {}
+    export_receipt: dict[str, Any] = {}
+    with tempfile.TemporaryDirectory(prefix="ordivon-artifact-ppt-master-") as temp_dir:
+        project = Path(temp_dir)
+        svg_output = project / "svg_output"
+        svg_output.mkdir(parents=True)
+        (project / "validation").mkdir()
+        (project / "exports").mkdir()
+        for index, page in enumerate(source.get("pages", []), start=1):
+            page_path = _resolve_request_path(source_path, str(page["path"]))
+            destination = svg_output / f"{index:03d}_{page_path.name}"
+            shutil.copyfile(page_path, destination)
+        for item in source.get("materials", []):
+            material_path = _resolve_request_path(source_path, str(item["path"]))
+            relative = _safe_project_relative_path(str(item["projectRelativePath"]))
+            destination = project.joinpath(*relative.parts)
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(material_path, destination)
+        quality_cmd = [
+            provider["python"],
+            provider["qualityChecker"],
+            str(project),
+            "--quick-generate",
+            "--canonical-authoring",
+            "--stage",
+            "final",
+            "--json",
+        ]
+        quality_proc = subprocess.run(
+            quality_cmd,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+            timeout=120,
+        )
+        report_path = project / "validation/svg_quality_report.json"
+        quality_receipt = {
+            "returnCode": quality_proc.returncode,
+            "stdoutTail": quality_proc.stdout[-6000:],
+            "stderrTail": quality_proc.stderr[-4000:],
+            "reportDigest": sha256_file(report_path) if report_path.is_file() else None,
+        }
+        if quality_proc.returncode != 0:
+            failures.append("PPT Master semantic SVG quality gate did not PASS")
+        if not failures:
+            export_cmd = [
+                provider["python"],
+                provider["exporter"],
+                str(project),
+                "--quick-generate",
+                "--primary-language",
+                str(source["locale"]),
+                "-t",
+                "none",
+                "-o",
+                str(output_path),
+            ]
+            if bool(source.get("nativeChartsAndTables")):
+                export_cmd.insert(-2, "--native-charts-and-tables")
+            export_proc = subprocess.run(
+                export_cmd,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+                timeout=180,
+            )
+            export_receipt = {
+                "returnCode": export_proc.returncode,
+                "stdoutTail": export_proc.stdout[-6000:],
+                "stderrTail": export_proc.stderr[-4000:],
+            }
+            if export_proc.returncode != 0 or not output_path.is_file():
+                failures.append("PPT Master semantic SVG export did not PASS")
+
+    if failures or not output_path.is_file():
+        return {
+            "status": "FAIL",
+            "source": file_fact(source_path),
+            "profile": file_fact(profile_path),
+            "provider": provider,
+            "sourceValidation": source_result,
+            "materials": source_materials,
+            "quality": quality_receipt,
+            "export": export_receipt,
+            "failures": failures or ["primary PPTX output is absent"],
+        }
+    container_normalization = normalize_zip_member_timestamps(output_path)
+    built = inspect_pptx(output_path, profile.get("semanticPolicy", {}).get("placeholderPatterns", []))
+    semantic = verify_presentation_semantics(profile, built)
+    if built.get("status") != "PASS":
+        failures.append("PPT Master output failed package/relationship inspection")
+    if semantic.get("status") != "PASS":
+        failures.append("PPT Master output failed presentation semantic checks")
+    return {
+        "status": "PASS" if not failures else "FAIL",
+        "source": file_fact(source_path),
+        "profile": file_fact(profile_path),
+        "artifact": file_fact(output_path),
+        "presentationId": source.get("presentationId"),
+        "builder": {
+            "implementation": "ppt-master",
+            "providerId": provider.get("providerId"),
+            "commit": provider.get("observedCommit"),
+        },
+        "provider": provider,
+        "materials": source_materials,
+        "quality": quality_receipt,
+        "export": export_receipt,
+        "containerNormalization": container_normalization,
+        "inspection": built,
+        "semantic": semantic,
+        "failures": failures,
+        "boundary": "Builder PASS establishes digest-bound semantic SVG/material inputs, exact external PPT Master source identity, provider quality-gate success, and native PPTX package/semantic checks. Artifact Open XML SDK, Microsoft PowerPoint target, visual, accessibility and delivery gates remain independent.",
+    }
+
+
 def validate_delivery_request(
     request_path: Path,
     request_schema_path: Path = DEFAULT_REQUEST_SCHEMA,
@@ -361,6 +614,18 @@ def validate_delivery_request(
                 source_document = source_result.get("document", {}) if isinstance(source_result, dict) else {}
                 if isinstance(source_document, dict):
                     source_material_results, source_material_failures = _presentation_source_material_facts(source_path, source_document)
+                    failures.extend(source_material_failures)
+            elif source_kind == "presentation-semantic-svg-source-v1":
+                source_result = validate_json_document(
+                    source_path,
+                    DEFAULT_PRESENTATION_SEMANTIC_SVG_SOURCE_SCHEMA,
+                    "presentation-semantic-svg-source",
+                )
+                if source_result.get("status") != "PASS":
+                    failures.append("semantic SVG presentation source did not PASS validation")
+                source_document = source_result.get("document", {}) if isinstance(source_result, dict) else {}
+                if isinstance(source_document, dict):
+                    source_material_results, source_material_failures = _semantic_svg_source_material_facts(source_path, source_document)
                     failures.extend(source_material_failures)
             resolved["source"] = file_fact(source_path)
         except Exception as error:
@@ -404,6 +669,11 @@ def compile_delivery_plan(request_path: Path) -> dict[str, Any]:
             "adapter": "python-pptx-presentation-source-v1",
             "builderId": "https://ordivon.local/builders/artifact-delivery/python-pptx-v1",
             "buildType": "https://ordivon.local/build-types/artifact-delivery/presentation-source-v1",
+        },
+        ("presentation", "presentation-semantic-svg-source-v1"): {
+            "adapter": "ppt-master-semantic-svg-v1",
+            "builderId": "https://ordivon.local/builders/artifact-delivery/ppt-master-v1",
+            "buildType": "https://ordivon.local/build-types/artifact-delivery/presentation-semantic-svg-source-v1",
         },
         ("document", "markdown"): {
             "adapter": "pandoc-docx",
@@ -502,6 +772,8 @@ def execute_build_stage(request_path: Path, output_directory: Path | None = None
     adapter_result: dict[str, Any]
     if adapter == "python-pptx-presentation-source-v1":
         adapter_result = build_presentation_source(source_path, profile_path, output_path)
+    elif adapter == "ppt-master-semantic-svg-v1":
+        adapter_result = build_semantic_svg_presentation_source(source_path, profile_path, output_path)
     elif adapter == "pandoc-docx":
         pandoc = _selected_external_file("ARTIFACT_PANDOC", GLOBAL_PANDOC, ROOT / ".cache/artifact-toolchain/pandoc/current/bin/pandoc")
         if not pandoc.is_file():
