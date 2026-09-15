@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "id": "convergence-sonic-ident",
+  "title": "Convergence — Ordivon Sonic Ident 001",
+  "status": "review",
+  "intent": "Create a compact procedural sonic identity for Ordivon in which distinct signals visibly/audibly converge without erasing their initial separation, while preserving editable source and lossless archival outputs.",
+  "audiences": [
+    "ordivon-user",
+    "creative-library-consumer",
+    "motion-and-video-editor"
+  ],
+  "sourceBindings": [
+    {
+      "id": "media",
+      "repository": "ordivon-media",
+      "revision": "914fa48d50f45eae6dc1e0d2f085fced83e1d452",
+      "role": "creative-tooling-and-production-context"
+    }
+  ],
+  "workingProfile": {
+    "audio": {
+      "sampleRate": 48000,
+      "sourceBitDepth": 16
+    }
+  },
+  "sources": {
+    "claims": "claims.json",
+    "scripts": [
+      "generate.py"
+    ],
+    "receipts": [
+      "consumption-evidence.json",
+      "friction.json",
+      "friction-validation-env.json"
+    ]
+  },
+  "outputs": [
+    {
+      "id": "convergence-master",
+      "kind": "audio",
+      "status": "approved",
+      "profile": "wav-pcm-s24le-48k-stereo-peak-minus1db",
+      "blobDigest": "sha256:8579aab3edc7e45817d3191bad56c6a387e8d5216ceca6dc923533a4a1f7a102"
+    },
+    {
+      "id": "convergence-archive",
+      "kind": "audio",
+      "status": "approved",
+      "profile": "flac-lossless-48k-stereo",
+      "blobDigest": "sha256:f29436571afcd1edcfa638769e103d5d598b5b624e8ece7e4b9d4015be5f4dae"
+    },
+    {
+      "id": "convergence-delivery",
+      "kind": "audio",
+      "status": "approved",
+      "profile": "ogg-vorbis-delivery",
+      "blobDigest": "sha256:0d61a9e5791d08b25c57f3af3e247c216c823074a85948ca256f5ea8a1e1eb0b"
+    },
+    {
+      "id": "convergence-waveform",
+      "kind": "image",
+      "status": "approved",
+      "profile": "waveform-inspection-1400x420",
+      "blobDigest": "sha256:c853c96a1a0f9f092935882fb6a912e9d196a3ddf9e3390cc1d3453d0a37f3ac"
+    }
+  ]
+}

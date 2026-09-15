@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.media.work-consumption-evidence",
+  "workId": "media:convergence-sonic-ident",
+  "consumedAt": "2026-09-15T22:42:00+08:00",
+  "consumer": [
+    "FFprobe 9.0",
+    "FFmpeg decoder",
+    "SoX stats",
+    "Runtime native image transport"
+  ],
+  "evidence": {
+    "buildJobId": "job-01a0a588-8f51-7361-bc34-9157ef8f837a",
+    "waveformFixJobId": "job-01a0a588-e1c4-7d83-8584-1ee109b75920",
+    "validationAndDeliveryDecodeJobId": "job-01a0a58d-672d-7ab1-88fe-75a635043649",
+    "master": {
+      "codec": "pcm_s24le",
+      "sampleRate": 48000,
+      "channels": 2,
+      "bitsPerSample": 24,
+      "durationSeconds": 4.8,
+      "peakDb": -1.0,
+      "rmsDb": -10.97,
+      "sha256": "8579aab3edc7e45817d3191bad56c6a387e8d5216ceca6dc923533a4a1f7a102"
+    },
+    "deliveryDecode": {
+      "flac": "PASS",
+      "ogg": "PASS"
+    },
+    "waveform": {
+      "width": 1400,
+      "height": 420,
+      "sha256": "c853c96a1a0f9f092935882fb6a912e9d196a3ddf9e3390cc1d3453d0a37f3ac",
+      "inspection": "Rendered waveform opens through digest-bound Runtime image transport; envelope has clean fade-in/out and no hard truncation visible."
+    }
+  },
+  "boundary": "This verifies decoding, technical audio structure and rendered inspection. It is not a population-level aesthetic or preference claim."
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "claims": [
+    {
+      "id": "concept-boundary",
+      "allowedMeaning": "The work is a creative audio interpretation of convergence: distinct signals preserve separateness before resolving into a shared harmonic and spatial field.",
+      "boundary": "It does not encode or assert current Runtime, Host, Research, or organizational state."
+    }
+  ]
+}
