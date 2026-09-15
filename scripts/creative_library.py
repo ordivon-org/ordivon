@@ -34,7 +34,8 @@ PRESENTATION_KIND_EXTENSIONS = {
     "pdf": {".pdf"},
     "cad": {".step", ".stp", ".stl", ".obj", ".3mf", ".fcstd"},
     "eda": {".kicad_pcb", ".kicad_sch", ".sch", ".pcb", ".cir", ".spice", ".raw", ".gbr", ".gbrjob", ".drl"},
-    "godot": {".godot", ".tscn", ".gd", ".glb", ".gltf"},
+    "model": {".glb", ".gltf"},
+    "godot": {".godot", ".tscn", ".gd"},
     "text": {".md", ".mdx", ".txt", ".typ", ".json", ".csv", ".tsv", ".yaml", ".yml", ".toml", ".log", ".rpt"},
     "source": {".py", ".js", ".mjs", ".cjs", ".ts", ".tsx", ".css", ".sh", ".bash", ".lua", ".blend", ".aseprite", ".otio"},
 }
@@ -66,10 +67,10 @@ def _score(path: str, kind: str, *, launch: bool) -> int:
     p = path.lower()
     if launch:
         base = {"html": 1000, "video": 930, "audio": 900, "pdf": 860, "image": 820,
-                "text": 700, "source": 640, "godot": 500, "cad": 420, "eda": 400, "other": 0}.get(kind, 0)
+                "text": 700, "source": 640, "model": 520, "godot": 500, "cad": 420, "eda": 400, "other": 0}.get(kind, 0)
     else:
         base = {"image": 1000, "video": 920, "html": 860, "pdf": 760, "audio": 700,
-                "cad": 360, "eda": 340, "godot": 320, "text": 180, "source": 120, "other": 0}.get(kind, 0)
+                "model": 380, "cad": 360, "eda": 340, "godot": 320, "text": 180, "source": 120, "other": 0}.get(kind, 0)
     for token, delta in {
         "preview": 150, "thumbnail": 150, "artwork": 130, "render": 120, "output": 90,
         "carrier": 80, "final": 70, "review": 45, "desktop": 35, "index.html": 100,

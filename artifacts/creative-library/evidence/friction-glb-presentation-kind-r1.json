@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.creative-library.friction-evidence",
+  "frictionId": "friction:creative-library:glb-misclassified-as-godot",
+  "title": "Generic GLB/GLTF carriers were classified as Godot presentation kind",
+  "category": "CLASSIFICATION",
+  "observedDuringWork": "media:convergence-object-001",
+  "surface": "Creative Library carrier dispatch and medium filters",
+  "symptom": "A Blender-authored GLB appeared as kind=godot and caused the work modality list to include godot even though the work has no Godot source or runtime dependency.",
+  "cause": "PRESENTATION_KIND_EXTENSIONS grouped .glb and .gltf with .godot/.tscn/.gd.",
+  "status": "VERIFIED",
+  "fix": "Use generic presentation hint model for .glb/.gltf while retaining godot for .godot/.tscn/.gd. This remains a UI dispatch hint, not preservation format authority.",
+  "verification": "Rebuilt the live PostgreSQL-backed Creative Library and required media:convergence-object-001 to expose model, not godot, while preserving its PNG hero/launch carrier.",
+  "truthBoundary": "This corrects navigation semantics only. PRONOM/Siegfried or another preservation identifier remains format identity authority."
+}

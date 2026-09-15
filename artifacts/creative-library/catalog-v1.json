@@ -2217,6 +2217,7 @@
       "modalities": [
         "godot",
         "image",
+        "model",
         "text"
       ],
       "carrierCount": 210,
@@ -2941,7 +2942,7 @@
           "gitPath": "experiments/veilwild-r1/godot/modules/f05/veilwild_forest_environment.glb",
           "objectId": "8f8dd73a26417d3fbdf4cfe67707463b783ac19f",
           "size": 477944,
-          "kind": "godot"
+          "kind": "model"
         },
         {
           "relativePath": "godot/modules/f05/veilwild_forest_environment.glb.import",
@@ -8097,6 +8098,152 @@
           "gitPath": "play/consumer-interaction-review-cards/verify.py",
           "objectId": "f3b94bb20a731bf4bee53b6c7cd2121d0c23fdfa",
           "size": 2254,
+          "kind": "source"
+        }
+      ]
+    },
+    {
+      "workId": "media:convergence-object-001",
+      "title": "CONVERGENCE OBJECT 001",
+      "owner": "Media",
+      "room": "art-media",
+      "status": "consumed-live",
+      "series": "convergence",
+      "sourceRepo": "/root/projects/ordivon-media",
+      "sourceRevision": "9f6d350e2cbbce3dd2cc1d209321cabf6c679f92",
+      "sourcePath": "productions/convergence-object-001/",
+      "sourceBase": "productions/convergence-object-001",
+      "sourceTreeDigest": "sha256:9d9506e85a6010776645810aff57f3d9c9b034dd8e3de7ab49f1c6386dcd17f0",
+      "featured": false,
+      "evidenceLevel": "A",
+      "physicalStanding": "DIGITAL_ONLY",
+      "humanStanding": "NOT_ASSESSED",
+      "sourceKind": "creative_atlas",
+      "modalities": [
+        "image",
+        "model",
+        "text"
+      ],
+      "carrierCount": 15,
+      "heroCarrier": {
+        "relativePath": "render/convergence-object-001.png",
+        "gitPath": "productions/convergence-object-001/render/convergence-object-001.png",
+        "objectId": "03ee248fee5efacb75f0ffcfc5a2950054e809ed",
+        "size": 1271283,
+        "kind": "image"
+      },
+      "launchCarrier": {
+        "relativePath": "render/convergence-object-001.png",
+        "gitPath": "productions/convergence-object-001/render/convergence-object-001.png",
+        "objectId": "03ee248fee5efacb75f0ffcfc5a2950054e809ed",
+        "size": 1271283,
+        "kind": "image"
+      },
+      "derivedPreview": null,
+      "carriers": [
+        {
+          "relativePath": "README.md",
+          "gitPath": "productions/convergence-object-001/README.md",
+          "objectId": "997504f174a6751b07484f0eb6c6d3f9bc818c60",
+          "size": 1508,
+          "kind": "text"
+        },
+        {
+          "relativePath": "build.py",
+          "gitPath": "productions/convergence-object-001/build.py",
+          "objectId": "b68c72b3bf16d481d2a9feb8bea5ea80d3adc761",
+          "size": 6751,
+          "kind": "source"
+        },
+        {
+          "relativePath": "claims.json",
+          "gitPath": "productions/convergence-object-001/claims.json",
+          "objectId": "31ff44b207843a0fcbf57167d38b4812de4015d8",
+          "size": 727,
+          "kind": "text"
+        },
+        {
+          "relativePath": "consumption-evidence.json",
+          "gitPath": "productions/convergence-object-001/consumption-evidence.json",
+          "objectId": "c072ab1a66cc24d5bfa6fb1c11465ce4ca98872a",
+          "size": 1800,
+          "kind": "text"
+        },
+        {
+          "relativePath": "friction-blender-backup-carriers.json",
+          "gitPath": "productions/convergence-object-001/friction-blender-backup-carriers.json",
+          "objectId": "23de03f3db2433f16c7872e5cdf63fe69da6b6a6",
+          "size": 1740,
+          "kind": "text"
+        },
+        {
+          "relativePath": "friction-blender-engine.json",
+          "gitPath": "productions/convergence-object-001/friction-blender-engine.json",
+          "objectId": "9e4a6b749f828fbda144e5fb0af6c0aba64397c5",
+          "size": 1383,
+          "kind": "text"
+        },
+        {
+          "relativePath": "friction-headless-audio.json",
+          "gitPath": "productions/convergence-object-001/friction-headless-audio.json",
+          "objectId": "12e21686e59c46752ac1a6b15657b6884b4e7e9f",
+          "size": 1557,
+          "kind": "text"
+        },
+        {
+          "relativePath": "friction-production-3d-kind.json",
+          "gitPath": "productions/convergence-object-001/friction-production-3d-kind.json",
+          "objectId": "eb4338b8a6b2da9f2348a6587d02c62c4343df7e",
+          "size": 1740,
+          "kind": "text"
+        },
+        {
+          "relativePath": "production.json",
+          "gitPath": "productions/convergence-object-001/production.json",
+          "objectId": "7ec8f2034095e73ca8b3bb85daae28eac30c7315",
+          "size": 1375,
+          "kind": "text"
+        },
+        {
+          "relativePath": "render/convergence-object-001.glb",
+          "gitPath": "productions/convergence-object-001/render/convergence-object-001.glb",
+          "objectId": "df04e9df0faa193df5e78fa5bf5af7a323e41477",
+          "size": 1407184,
+          "kind": "model"
+        },
+        {
+          "relativePath": "render/convergence-object-001.png",
+          "gitPath": "productions/convergence-object-001/render/convergence-object-001.png",
+          "objectId": "03ee248fee5efacb75f0ffcfc5a2950054e809ed",
+          "size": 1271283,
+          "kind": "image"
+        },
+        {
+          "relativePath": "roundtrip-receipt.json",
+          "gitPath": "productions/convergence-object-001/roundtrip-receipt.json",
+          "objectId": "ce17b1acb008c11f9a234a077ebed135bc4dfba6",
+          "size": 1177,
+          "kind": "text"
+        },
+        {
+          "relativePath": "source/convergence-object-001-roundtrip.blend",
+          "gitPath": "productions/convergence-object-001/source/convergence-object-001-roundtrip.blend",
+          "objectId": "886649ea909085673341132cecae45758766a41d",
+          "size": 640528,
+          "kind": "source"
+        },
+        {
+          "relativePath": "source/convergence-object-001.blend",
+          "gitPath": "productions/convergence-object-001/source/convergence-object-001.blend",
+          "objectId": "d0ba683032f8b131c1509a9647a35c7d204b3bea",
+          "size": 272566,
+          "kind": "source"
+        },
+        {
+          "relativePath": "verify_import.py",
+          "gitPath": "productions/convergence-object-001/verify_import.py",
+          "objectId": "89cebb4507afa03f22cd85b3ec10f83bae1a81e1",
+          "size": 2631,
           "kind": "source"
         }
       ]
@@ -35547,11 +35694,11 @@
     }
   ],
   "summary": {
-    "workCount": 303,
-    "carrierCount": 3300,
-    "directPreviewWorks": 303,
+    "workCount": 304,
+    "carrierCount": 3315,
+    "directPreviewWorks": 304,
     "derivedPreviewCount": 6,
     "relationCount": 45
   },
-  "catalogDigest": "sha256:cfbd3ff1533b7b2d52a1ce3067b1065e7c95a77ff73567104d9a8f41a03e9b21"
+  "catalogDigest": "sha256:f0d0fb35cdec69454411f70c599b6ff01b5ddb0fd7be8f885109bc2067e6ee81"
 }
