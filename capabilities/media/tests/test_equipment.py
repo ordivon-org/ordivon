@@ -34,6 +34,8 @@ class EquipmentWorldTests(unittest.TestCase):
         self.assertIn("reaper", ids)
         self.assertIn("aseprite", ids)
         self.assertIn("stream-deck", ids)
+        self.assertIn("kicad", ids)
+        self.assertIn("ngspice", ids)
         self.assertIn("frictionReduction", world["evaluationAxes"])
         by_id = {item["id"]: item for item in world["equipment"]}
         self.assertEqual(by_id["typst"]["retention"], "core-equipment")
@@ -160,6 +162,22 @@ class EquipmentWorldTests(unittest.TestCase):
             self.assertIsInstance(plan, EquipmentPlan)
             self.assertEqual(plan.transport, "process")
             self.assertIn("scale=10:20", plan.args)
+
+    def test_kicad_operations_follow_current_native_cli_contract(self) -> None:
+        with mock.patch("ordivon_studio.equipment._require_existing", return_value="/usr/bin/kicad-cli"):
+            drc = compile_operation("kicad", "pcb.drc", {"source": "board.kicad_pcb", "output": "drc.json"})
+            svg = compile_operation("kicad", "pcb.export.svg", {"source": "board.kicad_pcb", "output": "board.svg"})
+            gerbers = compile_operation("kicad", "pcb.export.gerber", {"source": "board.kicad_pcb", "output": "gerbers"})
+            drill = compile_operation("kicad", "pcb.export.drill", {"source": "board.kicad_pcb", "output": "drill"})
+        self.assertEqual(drc.args[:4], ("pcb", "drc", "--severity-error", "--exit-code-violations"))
+        self.assertIn("--mode-single", svg.args)
+        self.assertEqual(gerbers.args[:3], ("pcb", "export", "gerbers"))
+        self.assertEqual(drill.args[:3], ("pcb", "export", "drill"))
+
+    def test_ngspice_transient_plan_is_batch_and_disables_user_init(self) -> None:
+        with mock.patch("ordivon_studio.equipment._require_existing", return_value="/usr/bin/ngspice"):
+            plan = compile_operation("ngspice", "circuit.simulate.transient", {"source": "circuit.cir", "log": "out.log", "raw": "out.raw"})
+        self.assertEqual(plan.args, ("-n", "-b", "-o", "out.log", "-r", "out.raw", "circuit.cir"))
 
     def test_windows_native_reaper_plan_translates_wsl_mounted_project_path(self) -> None:
         with mock.patch("ordivon_studio.equipment._first_existing", return_value="/mnt/c/reaper.exe"):

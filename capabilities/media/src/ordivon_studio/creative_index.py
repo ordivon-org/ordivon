@@ -213,6 +213,34 @@ def build_creative_index(
                 add_relation(renderer_id, "renders", profile_node, evidence=str(profile_path.relative_to(artifact_root)))
                 add_relation(renderer_id, "sourcedFrom", "source:artifact", evidence=str(profile_path.relative_to(artifact_root)))
 
+        binding_dir = artifact_root / "artifact-delivery/shadow-bindings"
+        if binding_dir.is_dir():
+            for binding_path in sorted(binding_dir.glob("*.json")):
+                binding = _json(binding_path)
+                binding_id = binding.get("id")
+                profile_id = binding.get("profileId")
+                if not isinstance(binding_id, str) or not isinstance(profile_id, str):
+                    continue
+                evidence_id = f"evidence:artifact-binding:{binding_id}"
+                tool_names = sorted({
+                    str(item.get("tool"))
+                    for item in binding.get("bindings", {}).values()
+                    if isinstance(item, dict) and isinstance(item.get("tool"), str)
+                }) if isinstance(binding.get("bindings"), dict) else []
+                add_node(
+                    evidence_id,
+                    "Evidence",
+                    owner="artifact",
+                    evidenceKind="capability-binding",
+                    standing=binding.get("status"),
+                    tools=tool_names,
+                    sourcePath=str(binding_path.relative_to(artifact_root)),
+                )
+                add_relation(evidence_id, "sourcedFrom", "source:artifact", evidence=str(binding_path.relative_to(artifact_root)))
+                profile_node = f"delivery-profile:{profile_id}"
+                if profile_node in nodes:
+                    add_relation(profile_node, "evidencedBy", evidence_id, evidence=str(binding_path.relative_to(artifact_root)))
+
         acceptance_dir = artifact_root / "artifact-delivery/consumer-acceptance"
         if acceptance_dir.is_dir():
             for acceptance_path in sorted(acceptance_dir.glob("*.json")):
@@ -270,16 +298,53 @@ def build_creative_index(
             if not candidate.is_file():
                 continue
             value = _json(candidate)
+            row = value.get("row") if isinstance(value.get("row"), dict) else None
             evidence_id = "evidence:workstation:" + candidate.stem
+            standing = value.get("standing") or value.get("status")
+            renderer_tool = None
+            work_id_value = None
+            source_repository = None
+            source_revision = None
+            source_path_value = None
+            if row is not None:
+                standing = row.get("standing") or standing
+                renderer = row.get("renderer") if isinstance(row.get("renderer"), dict) else {}
+                renderer_tool = renderer.get("executable") or renderer.get("equipmentId")
+                work_id_value = row.get("workId")
+                source_repository = row.get("sourceRepo")
+                source_revision = row.get("sourceRevision")
+                source_path_value = row.get("sourcePath")
             add_node(
                 evidence_id,
                 "Evidence",
                 owner="workstation",
                 evidenceKind=value.get("kind", "creative-library"),
-                standing=value.get("standing") or value.get("status"),
+                standing=standing,
+                renderer=renderer_tool,
                 sourcePath=str(candidate.relative_to(workstation_root)),
             )
             add_relation(evidence_id, "sourcedFrom", "source:workstation", evidence=str(candidate.relative_to(workstation_root)))
+            if isinstance(work_id_value, str):
+                work_id = f"work:{work_id_value}"
+                add_node(
+                    work_id,
+                    "Work",
+                    owner=work_id_value.split(":", 1)[0] if ":" in work_id_value else "external",
+                    sourceIdentity=work_id_value,
+                    title=work_id_value.split(":", 1)[-1].replace("-", " ").title(),
+                    status="historical-source",
+                    outputKinds=[],
+                    sourcePath=source_path_value,
+                    sourceRepository=source_repository,
+                    sourceRevision=source_revision,
+                    collections=["workstation:creative-library"],
+                )
+                add_relation(work_id, "evidencedBy", evidence_id, evidence=str(candidate.relative_to(workstation_root)))
+            rendered = str(renderer_tool or "").lower()
+            if "kicad" in rendered and "equipment:kicad" in nodes:
+                add_relation("equipment:kicad", "evidencedBy", evidence_id, evidence=str(candidate.relative_to(workstation_root)))
+            if "ngspice" in rendered and "equipment:ngspice" in nodes:
+                add_relation("equipment:ngspice", "evidencedBy", evidence_id, evidence=str(candidate.relative_to(workstation_root)))
 
     return {
         "schemaVersion": 1,
@@ -301,29 +366,61 @@ def load_creative_index(path: Path) -> dict[str, Any]:
 
 def query_creative_index(index: Mapping[str, Any], term: str) -> dict[str, Any]:
     needle = term.casefold()
-    matching_ids = {
-        node["id"]
-        for node in index.get("nodes", [])
-        if isinstance(node, Mapping) and needle in json.dumps(node, ensure_ascii=False, sort_keys=True).casefold()
+    all_nodes = [node for node in index.get("nodes", []) if isinstance(node, Mapping)]
+    all_relations = [relation for relation in index.get("relations", []) if isinstance(relation, Mapping)]
+    node_kind = {str(node.get("id")): str(node.get("kind")) for node in all_nodes}
+    selected_ids = {
+        str(node["id"])
+        for node in all_nodes
+        if needle in json.dumps(node, ensure_ascii=False, sort_keys=True).casefold()
     }
-    relation_rows = [
-        relation
-        for relation in index.get("relations", [])
-        if isinstance(relation, Mapping)
-        and (relation.get("from") in matching_ids or relation.get("to") in matching_ids)
-    ]
-    neighbor_ids = matching_ids | {
-        str(endpoint)
-        for relation in relation_rows
-        for endpoint in (relation.get("from"), relation.get("to"))
-        if isinstance(endpoint, str)
-    }
-    nodes = [node for node in index.get("nodes", []) if isinstance(node, Mapping) and node.get("id") in neighbor_ids]
+    frontier = {node_id for node_id in selected_ids if node_kind.get(node_id) != "Source"}
+    selected_relations: dict[tuple[str, str, str, str], Mapping[str, Any]] = {}
+    max_depth = 3
+    max_nodes = 250
+    max_relations = 500
+    truncated = False
+    for _ in range(max_depth):
+        if not frontier:
+            break
+        next_frontier: set[str] = set()
+        for relation in all_relations:
+            source = relation.get("from")
+            target = relation.get("to")
+            if source not in frontier and target not in frontier:
+                continue
+            key = (str(source), str(relation.get("type")), str(target), str(relation.get("evidence")))
+            selected_relations[key] = relation
+            for endpoint in (source, target):
+                if isinstance(endpoint, str) and endpoint not in selected_ids:
+                    if node_kind.get(endpoint) == "Source":
+                        selected_ids.add(endpoint)
+                    else:
+                        next_frontier.add(endpoint)
+            if len(selected_relations) >= max_relations:
+                truncated = True
+                break
+        if truncated:
+            break
+        room = max_nodes - len(selected_ids)
+        if room <= 0:
+            truncated = True
+            break
+        ordered = sorted(next_frontier)
+        if len(ordered) > room:
+            ordered = ordered[:room]
+            truncated = True
+        selected_ids.update(ordered)
+        frontier = set(ordered)
+    nodes = [node for node in all_nodes if node.get("id") in selected_ids]
+    relation_rows = sorted(selected_relations.values(), key=lambda row: (str(row.get("from")), str(row.get("type")), str(row.get("to")), str(row.get("evidence"))))
     return {
         "schemaVersion": 1,
         "kind": "ordivon.media.creative-index-query",
         "truthRole": index.get("truthRole"),
         "term": term,
+        "neighborhoodDepth": max_depth,
+        "truncated": truncated,
         "sources": list(index.get("sources", [])),
         "nodes": nodes,
         "relations": relation_rows,

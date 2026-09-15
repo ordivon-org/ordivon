@@ -64,4 +64,4 @@ python scripts/build-creative-index.py \
   --query asset.export.gltf
 ```
 
-The output is disposable cache/navigation data and is not committed as source. The Studio Agent query builds a fresh projection on demand; explicit output is only for inspection/export.
+The output is disposable cache/navigation data and is not committed as source. The Studio Agent query builds a fresh projection on demand and returns a bounded three-hop neighborhood around lexical matches. `Source` nodes are provenance terminals: they may appear in results but are never traversed as graph hubs. Explicit output is only for inspection/export.

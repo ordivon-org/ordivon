@@ -49,8 +49,11 @@ def load_equipment_world(path: Path = DEFAULT_WORLD) -> dict[str, Any]:
 def _first_line(value: str) -> str:
     for line in value.splitlines():
         line = line.strip()
-        if line:
-            return line[:500]
+        if not line:
+            continue
+        if set(line) <= set("*-=~_"):
+            continue
+        return line[:500]
     return ""
 
 
@@ -268,6 +271,8 @@ _DIRECT_OPERATION_CAPABILITIES: dict[str, frozenset[str]] = {
     "godot": frozenset({"interactive.run.headless", "interactive.script", "state.trace"}),
     "rsvg-convert": frozenset({"svg.rasterize"}),
     "reaper": frozenset({"audio.project.render"}),
+    "kicad": frozenset({"pcb.drc", "pcb.export.svg", "pcb.export.gerber", "pcb.export.drill"}),
+    "ngspice": frozenset({"circuit.simulate.transient"}),
 }
 _PROVIDER_MEDIATED_EQUIPMENT = frozenset({"davinci-resolve"})
 _REAPER_PROVIDER_CAPABILITIES = frozenset({"audio.multitrack", "audio.edit", "audio.mix", "audio.master", "audio.automation", "midi.edit", "script.reascript", "control.osc"})
@@ -542,6 +547,45 @@ def compile_operation(equipment_id: str, capability: str, parameters: Mapping[st
 
     This function does not execute the program. Runtime remains process authority.
     """
+    if equipment_id == "kicad" and capability in {"pcb.drc", "pcb.export.svg", "pcb.export.gerber", "pcb.export.drill"}:
+        source = str(parameters["source"])
+        executable = _require_existing("/usr/bin/kicad-cli")
+        if capability == "pcb.drc":
+            output = str(parameters["output"])
+            args = ("pcb", "drc", "--severity-error", "--exit-code-violations", "--output", output, source)
+        elif capability == "pcb.export.svg":
+            output = str(parameters["output"])
+            layers = str(parameters.get("layers", "F.Cu,F.Silkscreen,Edge.Cuts"))
+            args = ("pcb", "export", "svg", "--layers", layers, "--mode-single", "--black-and-white", "--page-size-mode", "2", "--exclude-drawing-sheet", "--output", output, source)
+        elif capability == "pcb.export.gerber":
+            output = str(parameters["output"])
+            layers = str(parameters.get("layers", "F.Cu,B.Cu,Edge.Cuts"))
+            args = ("pcb", "export", "gerbers", "--layers", layers, "--output", output, source)
+        else:
+            output = str(parameters["output"])
+            args = ("pcb", "export", "drill", "--format", "excellon", "--output", output, source)
+        return EquipmentPlan(
+            equipment_id, capability, "process", executable, args,
+            (
+                "KiCad owns PCB parsing, DRC and native export semantics; Runtime owns process execution.",
+                "Media treats the result as creative/production equipment evidence only. Electrical correctness, schematic parity, manufacturability and safety remain outside Media.",
+            ),
+        )
+    if equipment_id == "ngspice" and capability == "circuit.simulate.transient":
+        source = str(parameters["source"])
+        log = str(parameters["log"])
+        raw = parameters.get("raw")
+        args = ["-n", "-b", "-o", log]
+        if raw is not None:
+            args.extend(["-r", str(raw)])
+        args.append(source)
+        return EquipmentPlan(
+            equipment_id, capability, "process", _require_existing("/usr/bin/ngspice"), tuple(args),
+            (
+                "ngspice owns parse/simulation semantics; Runtime owns process execution.",
+                "A successful process is not a circuit-quality claim. Artifact's EDA profile owns bounded measurement/range verification when delivery evidence is required.",
+            ),
+        )
     if equipment_id == "typst" and capability == "document.compile.pdf":
         source = str(parameters["source"])
         output = str(parameters["output"])

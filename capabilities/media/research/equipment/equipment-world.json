@@ -531,6 +531,52 @@
       "discovery": [],
       "retention": "challenger",
       "reason": "Software SDK evidence exists but M7 correctly withheld graduation without physical tactile hardware."
+    },
+    {
+      "id": "kicad",
+      "family": "deterministic-cli-plus-gui",
+      "media": [
+        "still-visual",
+        "interactive"
+      ],
+      "capabilities": [
+        "pcb.drc",
+        "pcb.export.svg",
+        "pcb.export.gerber",
+        "pcb.export.drill"
+      ],
+      "discovery": [
+        {
+          "platform": "linux",
+          "path": "/usr/bin/kicad-cli",
+          "versionArgs": [
+            "--version"
+          ]
+        }
+      ],
+      "retention": "specialist-on-demand",
+      "reason": "Current Artifact EDA R1 already proves native KiCad DRC plus Gerber/Excellon export, while Workstation Creative Library has a deterministic KiCad SVG preview of a real historical PCB work. Retain KiCad as the native PCB specialist; Media does not reinterpret electrical/manufacturing correctness."
+    },
+    {
+      "id": "ngspice",
+      "family": "deterministic-cli",
+      "media": [
+        "interactive"
+      ],
+      "capabilities": [
+        "circuit.simulate.transient"
+      ],
+      "discovery": [
+        {
+          "platform": "linux",
+          "path": "/usr/bin/ngspice",
+          "versionArgs": [
+            "--version"
+          ]
+        }
+      ],
+      "retention": "specialist-on-demand",
+      "reason": "Artifact EDA R1 has live positive and destructive-negative ngspice evidence for bounded transient measurement verification. Retain the native simulator rather than introducing a Studio circuit parser."
     }
   ]
 }
