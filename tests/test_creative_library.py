@@ -16,11 +16,13 @@ class CreativeLibraryUnitTests(unittest.TestCase):
     def test_presentation_kind_major_media(self):
         cases = {
             "x.PNG": "image", "x.svg": "image", "x.wav": "audio", "x.mp4": "video",
-            "x.html": "html", "x.pdf": "pdf", "x.step": "cad", "x.kicad_pcb": "eda",
-            "project.godot": "godot", "x.mdx": "text", "x.py": "source", "x.bin": "other",
+            "x.html": "html", "x.pdf": "pdf", "x.gpkg": "geospatial", "x.geojson": "geospatial", "x.kml": "geospatial",
+            "x.step": "cad", "x.kicad_pcb": "eda", "project.godot": "godot", "x.mdx": "text",
+            "x.py": "source", "x.bin": "other",
         }
         for path, expected in cases.items():
             self.assertEqual(creative_library.presentation_kind(path), expected)
+        self.assertFalse(creative_library.is_direct_carrier({"relativePath": "archive.gpkg", "kind": "geospatial"}))
 
     def test_safe_relative_path_rejects_escape(self):
         self.assertEqual(creative_library.safe_relative_path("assets/a.png"), "assets/a.png")
