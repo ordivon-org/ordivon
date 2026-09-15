@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "archive-archipelago-001",
+  "title": "Archive Archipelago 001 — A Cartographic Portrait of Ordivon Works",
+  "status": "review",
+  "intent": "Turn the current Creative Library into a real cartographic artwork whose underlying spatial data remains inspectable and reusable: each Work becomes a stable point, owner families form islands, and existing work relations become connective routes. Coordinates are explicitly conceptual rather than geographic.",
+  "audiences": [
+    "ordivon-user",
+    "creative-library-consumer",
+    "archive-curator",
+    "data-art-reader"
+  ],
+  "sourceBindings": [
+    {
+      "id": "workstation-creative-library",
+      "repository": "workstation-lab",
+      "revision": "dd7e60d6aa90c0967ba208a0c16354eb9fad850a",
+      "role": "work-catalog-source"
+    }
+  ],
+  "workingProfile": {
+    "canvas": {
+      "width": 1600,
+      "height": 1000
+    }
+  },
+  "sources": {
+    "claims": "claims.json",
+    "scripts": [
+      "generate.py",
+      "build.sh"
+    ],
+    "receipts": [
+      "evidence/consumption-evidence.json",
+      "evidence/friction.json",
+      "evidence/friction-production-schema.json",
+      "evidence/friction-gpkg-determinism.json"
+    ]
+  },
+  "outputs": [
+    {
+      "id": "archive-archipelago-geopackage",
+      "kind": "publication-package",
+      "status": "approved",
+      "profile": "geospatial-geopackage-conceptual-cartesian-r1",
+      "blobDigest": "sha256:d92a8029524d1be7b7b480c8d152aec9379a07ae41df69c3fd3c9b49b3ce90a8"
+    },
+    {
+      "id": "archive-archipelago-svg",
+      "kind": "image",
+      "status": "approved",
+      "profile": "svg-editable-map-1600x1000",
+      "blobDigest": "sha256:1ae8738c90c5150dd854dc9c9f549736a8e8ce6e5b7c25428f1d2c6debd0e96b"
+    },
+    {
+      "id": "archive-archipelago-png",
+      "kind": "image",
+      "status": "approved",
+      "profile": "png-preview-1600x1000",
+      "blobDigest": "sha256:fd35c3d961be16148ec57c0df14f1441248e1cbab681a2d77cb19a4188b9993a"
+    }
+  ]
+}

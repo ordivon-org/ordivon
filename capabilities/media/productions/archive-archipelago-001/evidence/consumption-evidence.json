@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.creative-work-consumption-evidence",
+  "work_id": "media:archive-archipelago-001",
+  "source_catalog": {
+    "path": "source/creative-library-catalog-v1.json",
+    "file_sha256": "sha256:d020043de763c55c19ce965ecf0a2d0263c56a6600c35132faed3389b0eeca72",
+    "catalog_digest": "sha256:cfbd3ff1533b7b2d52a1ce3067b1065e7c95a77ff73567104d9a8f41a03e9b21",
+    "work_count": 303,
+    "workstation_revision": "dd7e60d6aa90c0967ba208a0c16354eb9fad850a"
+  },
+  "consumers": [
+    {
+      "tool": "GDAL/OGR ogrinfo",
+      "target": "render/archive-archipelago-001.gpkg",
+      "result": "PASS",
+      "observed": "works=303, owners=4, relations=45; all layers expose ENGCRS Ordivon Archive Plane"
+    },
+    {
+      "tool": "SQLite",
+      "target": "render/archive-archipelago-001.gpkg",
+      "result": "PASS",
+      "observed": "gpkg_contents lists works/owners/relations feature tables"
+    },
+    {
+      "tool": "librsvg rsvg-convert",
+      "target": "render/archive-archipelago-001.svg",
+      "result": "PASS",
+      "observed": "rendered PNG 1600x1000"
+    },
+    {
+      "tool": "ImageMagick identify",
+      "target": "render/archive-archipelago-001.png",
+      "result": "PASS",
+      "observed": "PNG 1600x1000 sRGB"
+    },
+    {
+      "tool": "Runtime native image transport",
+      "target": "render/archive-archipelago-001.png",
+      "result": "PASS",
+      "observed": "digest-bound image opened for visual inspection"
+    }
+  ],
+  "output_sha256": {
+    "gpkg": "sha256:d92a8029524d1be7b7b480c8d152aec9379a07ae41df69c3fd3c9b49b3ce90a8",
+    "svg": "sha256:1ae8738c90c5150dd854dc9c9f549736a8e8ce6e5b7c25428f1d2c6debd0e96b",
+    "png": "sha256:fd35c3d961be16148ec57c0df14f1441248e1cbab681a2d77cb19a4188b9993a"
+  },
+  "visual_inspection": "PASS: four owner archipelagos are distinct, work density is legible, relation routes remain subordinate, title/legend/footer are visible without overlap.",
+  "boundary": "The spatial layout is conceptual archive cartography, not geographic truth.",
+  "rebuild_verification": "Two consecutive full build.sh runs produced byte-identical GeoPackage bytes after pinning OGR_CURRENT_DATE."
+}
