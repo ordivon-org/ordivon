@@ -14,39 +14,62 @@
       "tool": "GDAL/OGR ogrinfo",
       "target": "render/archive-archipelago-001.gpkg",
       "result": "PASS",
-      "observed": "works=303, owners=4, relations=45; all layers expose ENGCRS Ordivon Archive Plane"
+      "observed": "works=303, owners=4, relations=45 under ENGCRS Ordivon Archive Plane"
     },
     {
       "tool": "SQLite",
       "target": "render/archive-archipelago-001.gpkg",
       "result": "PASS",
-      "observed": "gpkg_contents lists works/owners/relations feature tables"
+      "observed": "gpkg_contents exposes works/owners/relations feature layers"
     },
     {
-      "tool": "librsvg rsvg-convert",
-      "target": "render/archive-archipelago-001.svg",
+      "tool": "librsvg rsvg-convert + ImageMagick identify",
+      "target": "render/archive-archipelago-001.svg/png",
       "result": "PASS",
-      "observed": "rendered PNG 1600x1000"
+      "observed": "editable SVG rendered to 1600x1000 sRGB PNG and was visually inspected through Runtime native image transport"
     },
     {
-      "tool": "ImageMagick identify",
-      "target": "render/archive-archipelago-001.png",
+      "tool": "Workstation v2 Playwright binding + Chromium",
+      "target": "interactive source served locally",
       "result": "PASS",
-      "observed": "PNG 1600x1000 sRGB"
+      "observed": "303 nodes, 45 relations, search, featured/owner filters, route mode, keyboard Enter selection, desktop/mobile layouts; zero console errors"
     },
     {
-      "tool": "Runtime native image transport",
-      "target": "render/archive-archipelago-001.png",
+      "tool": "Artifact Nu Html Checker 26.9.7",
+      "target": "interactive/archive-archipelago-001.html",
       "result": "PASS",
-      "observed": "digest-bound image opened for visual inspection"
+      "observed": "messageCount=0"
+    },
+    {
+      "tool": "Artifact Playwright 1.63.0 / Chromium 153 / axe-core Playwright 4.13.0",
+      "target": "interactive/archive-archipelago-001.html",
+      "result": "PASS",
+      "observed": "Chromium PASS; axe violationCount=0"
+    },
+    {
+      "tool": "Artifact Playwright 1.63.0 / Firefox 155",
+      "target": "interactive/archive-archipelago-001.html",
+      "result": "PASS",
+      "observed": "Firefox PASS; WebKit remains NOT_INSTALLED locally and is not promoted"
     }
   ],
   "output_sha256": {
-    "gpkg": "sha256:d92a8029524d1be7b7b480c8d152aec9379a07ae41df69c3fd3c9b49b3ce90a8",
-    "svg": "sha256:1ae8738c90c5150dd854dc9c9f549736a8e8ce6e5b7c25428f1d2c6debd0e96b",
-    "png": "sha256:fd35c3d961be16148ec57c0df14f1441248e1cbab681a2d77cb19a4188b9993a"
+    "gpkg": "sha256:e000c6000126873cf908cdf1158b1cffe22c63ada3be97de592c56dbded4e361",
+    "svg": "sha256:eff192e20aaa6614934c64b4c11e1d540341691558f33ba53aca9083eee7b136",
+    "png": "sha256:2f0a7c9d6b8ca497f72eb3e72b9a893e3b98a7f1be892ed910ec429a5e773bbe",
+    "standalone_html": "sha256:4d8681e634491a9cb01941aac48888a99f0e2e0e41f76fcb664df36698e82f63"
   },
-  "visual_inspection": "PASS: four owner archipelagos are distinct, work density is legible, relation routes remain subordinate, title/legend/footer are visible without overlap.",
-  "boundary": "The spatial layout is conceptual archive cartography, not geographic truth.",
-  "rebuild_verification": "Two consecutive full build.sh runs produced byte-identical GeoPackage bytes after pinning OGR_CURRENT_DATE."
+  "visual_inspection": "PASS after polish: owner archipelagos remain distinct; relation types are visually differentiated; static labels are intentionally sparse; interactive detail carries dense semantics; desktop hierarchy is clear and mobile preserves map scale through internal pan rather than fit-to-width shrinking.",
+  "boundary": "The work visualizes one exact frozen Creative Library snapshot. Browser/validator PASS establishes local technical/accessibility/conformance facts only, not Human preference, geographic meaning, inferred dependency, or currentness beyond the source fence.",
+  "rebuild_verification": "Two consecutive final build.sh runs produced identical GeoPackage, SVG, PNG, and standalone HTML SHA-256 values.",
+  "browser_evidence": {
+    "workstationInteractionJob": "job-01a0a5bb-fffb-7d42-9bdf-c88e6d6be02e",
+    "mobilePanJob": "job-01a0a5bd-b54b-74d2-886a-c6fb2def852b",
+    "artifactAxeFailureJob": "job-01a0a5c0-a248-7ba3-95ff-5b527b04bda2",
+    "artifactAxePassJob": "job-01a0a5c2-56e4-7c30-b67b-4a1ea6118615",
+    "artifactFullGateJob": "job-01a0a5c3-8084-7453-8e24-62418c7fbdd5",
+    "workstationFinalInteractionJob": "job-01a0a5c5-d4e3-75f3-8a19-7f5739d2f263",
+    "finalDesktopScreenshot": "interactive/chromium-desktop-final-r2.png",
+    "finalMobileScreenshot": "interactive/chromium-mobile-final-r2.png"
+  }
 }

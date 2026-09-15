@@ -1,371 +1,412 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
-<rect width="100%" height="100%" fill="#0b0f14"/>
-<text x="90" y="70" fill="#f0f6fc" font-family="Inter,Segoe UI,sans-serif" font-size="38" font-weight="700">Archive Archipelago 001</text>
-<text x="90" y="104" fill="#8b949e" font-family="Inter,Segoe UI,sans-serif" font-size="18">A cartographic portrait of the Ordivon Creative Library · conceptual coordinates, not geography</text>
-<line x1="869.5" y1="351.4" x2="446.6" y2="423.5" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="873.7" y1="356.4" x2="265.8" y2="461.9" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="871.2" y1="304.2" x2="278.7" y2="430.1" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="894.8" y1="341.8" x2="872.4" y2="702.0" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="764.4" y1="307.7" x2="786.2" y2="379.1" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="760.4" y1="331.3" x2="521.4" y2="403.8" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="772.2" y1="300.3" x2="521.4" y2="403.8" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="356.3" y1="442.2" x2="1322.6" y2="397.6" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="382.3" y1="496.3" x2="302.1" y2="419.7" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="369.1" y1="494.5" x2="302.1" y2="419.7" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="452.1" y1="400.4" x2="369.1" y2="494.5" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="423.6" y1="372.0" x2="471.0" y2="465.9" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="319.6" y1="489.8" x2="393.1" y2="506.8" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="285.3" y1="477.2" x2="355.9" y2="357.3" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="453.4" y1="499.4" x2="358.6" y2="357.1" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="501.2" y1="462.6" x2="511.7" y2="443.3" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="392.5" y1="528.7" x2="521.2" y2="423.8" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="244.8" y1="442.7" x2="786.2" y2="379.1" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="282.1" y1="509.5" x2="786.2" y2="379.1" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="230.6" y1="431.1" x2="521.4" y2="403.8" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="341.6" y1="347.7" x2="521.4" y2="403.8" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="257.9" y1="392.6" x2="350.8" y2="533.6" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="530.0" y1="415.1" x2="817.4" y2="399.2" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="408.0" y1="537.0" x2="388.0" y2="537.8" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="235.8" y1="459.5" x2="228.1" y2="410.6" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="1172.2" y1="452.1" x2="829.3" y2="397.0" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="1179.9" y1="494.3" x2="1136.0" y2="458.9" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="1337.8" y1="483.4" x2="1136.0" y2="458.9" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="1136.5" y1="477.6" x2="521.4" y2="403.8" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="1002.4" y1="740.0" x2="940.5" y2="698.0" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="919.2" y1="707.4" x2="940.5" y2="698.0" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="940.5" y1="698.0" x2="950.9" y2="690.3" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="940.5" y1="698.0" x2="1006.0" y2="688.5" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="1014.9" y1="698.0" x2="363.0" y2="495.6" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="893.6" y1="732.7" x2="1002.4" y2="740.0" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="893.6" y1="732.7" x2="883.5" y2="740.3" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="885.3" y1="726.6" x2="457.1" y2="482.2" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="883.5" y1="740.3" x2="1006.0" y2="688.5" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="877.5" y1="724.8" x2="893.3" y2="775.2" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="982.0" y1="675.3" x2="923.5" y2="767.5" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="982.0" y1="675.3" x2="1023.8" y2="698.2" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="982.0" y1="675.3" x2="1032.6" y2="775.9" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="929.2" y1="664.5" x2="983.3" y2="656.7" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="953.3" y1="659.3" x2="893.3" y2="775.2" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<line x1="1064.8" y1="682.3" x2="408.0" y2="537.0" stroke="#30363d" stroke-width="1" opacity="0.55"/>
-<ellipse cx="833.4" cy="338.9" rx="100.2" ry="72.2" fill="#f2cc60" opacity="0.055" stroke="#f2cc60" stroke-opacity="0.22"/>
-<text x="833.4" y="260.8" fill="#f2cc60" text-anchor="middle" font-family="Inter,Segoe UI,sans-serif" font-size="19" font-weight="650">Game · 33</text>
-<ellipse cx="382.4" cy="436.4" rx="141.6" ry="102.0" fill="#58a6ff" opacity="0.055" stroke="#58a6ff" stroke-opacity="0.22"/>
-<text x="382.4" y="326.0" fill="#58a6ff" text-anchor="middle" font-family="Inter,Segoe UI,sans-serif" font-size="19" font-weight="650">Media · 136</text>
-<ellipse cx="1242.7" cy="450.4" rx="112.4" ry="80.9" fill="#7ee787" opacity="0.055" stroke="#7ee787" stroke-opacity="0.22"/>
-<text x="1242.7" y="362.7" fill="#7ee787" text-anchor="middle" font-family="Inter,Segoe UI,sans-serif" font-size="19" font-weight="650">Web · 56</text>
-<ellipse cx="958.7" cy="728.9" rx="121.8" ry="87.7" fill="#d2a8ff" opacity="0.055" stroke="#d2a8ff" stroke-opacity="0.22"/>
-<text x="958.7" y="633.9" fill="#d2a8ff" text-anchor="middle" font-family="Inter,Segoe UI,sans-serif" font-size="19" font-weight="650">Workstation · 78</text>
-<circle cx="830.4" cy="357.5" r="4.55" fill="#f2cc60" opacity="0.82"><title>game:adaptive-query-bench — Adaptive Query Bench</title></circle>
-<circle cx="842.9" cy="365.7" r="4.48" fill="#f2cc60" opacity="0.82"><title>game:backpressure-live-bench — Backpressure Live Bench</title></circle>
-<circle cx="848.3" cy="366.3" r="3.41" fill="#f2cc60" opacity="0.82"><title>game:batch-zero — Batch Zero: Planning Under Ghost Demand</title></circle>
-<circle cx="849.7" cy="308.8" r="3.24" fill="#f2cc60" opacity="0.82"><title>game:casefile — Casefile</title></circle>
-<circle cx="871.1" cy="357.4" r="3.24" fill="#f2cc60" opacity="0.82"><title>game:constrained-creation-canvas — Constrained Creation Canvas</title></circle>
-<circle cx="869.5" cy="351.4" r="4.45" fill="#f2cc60" opacity="0.82"><title>game:braess-toll-bench — Daily Braess Toll Bench 20260830</title></circle>
-<circle cx="871.2" cy="304.2" r="4.52" fill="#f2cc60" opacity="0.82"><title>game:latch-hall-commitment-bench — Daily Latch Hall Commitment Bench 20260830</title></circle>
-<circle cx="894.8" cy="341.8" r="4.70" fill="#f2cc60" opacity="0.82"><title>game:memory-weave-repair-bench — Daily Memory Weave Repair 20260830</title></circle>
-<circle cx="873.7" cy="356.4" r="4.18" fill="#f2cc60" opacity="0.82"><title>game:dice-ring — Dice Ring</title></circle>
-<circle cx="841.4" cy="304.7" r="3.24" fill="#f2cc60" opacity="0.82"><title>game:echo-hunt — Echo Hunt</title></circle>
-<circle cx="798.6" cy="370.2" r="3.41" fill="#f2cc60" opacity="0.82"><title>game:grid-queue — Grid Queue</title></circle>
-<circle cx="832.6" cy="304.5" r="3.24" fill="#f2cc60" opacity="0.82"><title>game:last-light — Last Light</title></circle>
-<circle cx="782.7" cy="307.3" r="3.41" fill="#f2cc60" opacity="0.82"><title>game:look-away-garden — Look Away Garden</title></circle>
-<circle cx="893.9" cy="339.9" r="3.24" fill="#f2cc60" opacity="0.82"><title>game:mote-weather — Mote Weather</title></circle>
-<circle cx="842.9" cy="292.9" r="3.93" fill="#f2cc60" opacity="0.82"><title>game:nine-wells — Nine Wells / 九井</title></circle>
-<circle cx="860.8" cy="384.2" r="4.58" fill="#f2cc60" opacity="0.82"><title>game:observer-switchboard — Observer Switchboard</title></circle>
-<circle cx="787.6" cy="376.1" r="2.72" fill="#f2cc60" opacity="0.82"><title>game:one-button-gets-tired — One Button Gets Tired</title></circle>
-<circle cx="908.1" cy="346.6" r="3.66" fill="#f2cc60" opacity="0.82"><title>game:one-rule-garden — One Rule Garden</title></circle>
-<circle cx="762.6" cy="329.8" r="3.24" fill="#f2cc60" opacity="0.82"><title>game:precision-traversal — Precision Traversal</title></circle>
-<circle cx="875.1" cy="292.1" r="4.70" fill="#f2cc60" opacity="0.82"><title>game:veilwild-r1 — Project Veilwild R1</title></circle>
-<circle cx="910.6" cy="342.6" r="3.41" fill="#f2cc60" opacity="0.82"><title>game:queuekeeper — Queuekeeper</title></circle>
-<circle cx="779.8" cy="307.8" r="3.24" fill="#f2cc60" opacity="0.82"><title>game:relay-case-causal-reconstruction — Relay Case: causal reconstruction</title></circle>
-<circle cx="786.2" cy="379.1" r="3.54" fill="#f2cc60" opacity="0.82"><title>game:seen-not-approved — Seen Not Approved</title></circle>
-<circle cx="764.4" cy="307.7" r="3.02" fill="#f2cc60" opacity="0.82"><title>game:seen-not-approved-pcb — Seen Not Approved Pcb</title></circle>
-<circle cx="772.2" cy="300.3" r="3.85" fill="#f2cc60" opacity="0.82"><title>game:signal-garden-rc-evidence-twin — Signal Garden RC Evidence Twin</title></circle>
-<circle cx="760.4" cy="331.3" r="3.85" fill="#f2cc60" opacity="0.82"><title>game:signal-garden-evidence-petals — Signal Garden — Evidence Petals</title></circle>
-<circle cx="764.3" cy="321.2" r="4.12" fill="#f2cc60" opacity="0.82"><title>game:signal-garden-daily — Signal Garden — Game Daily</title></circle>
-<circle cx="829.3" cy="397.0" r="4.41" fill="#f2cc60" opacity="0.82"><title>game:station-zero — Station Zero</title></circle>
-<circle cx="919.9" cy="337.6" r="3.24" fill="#f2cc60" opacity="0.82"><title>game:tactical-commitment — Tactical Commitment</title></circle>
-<circle cx="804.9" cy="285.5" r="3.24" fill="#f2cc60" opacity="0.82"><title>game:the-floodgate — The Floodgate</title></circle>
-<circle cx="817.4" cy="399.2" r="3.66" fill="#f2cc60" opacity="0.82"><title>game:three-color-night-shift — Three Color Night Shift</title></circle>
-<circle cx="858.6" cy="285.2" r="4.06" fill="#f2cc60" opacity="0.82"><title>game:three-doors — Three Doors / 三扇门</title></circle>
-<circle cx="845.5" cy="281.6" r="2.72" fill="#f2cc60" opacity="0.82"><title>game:words-left-in-the-lift — Words Left In The Lift</title></circle>
-<circle cx="356.3" cy="442.2" r="3.24" fill="#58a6ff" opacity="0.82"><title>media:0919-office-talisman — 09:19 Office Talisman</title></circle>
-<circle cx="417.6" cy="435.8" r="3.85" fill="#58a6ff" opacity="0.82"><title>media:after-the-pulse — After The Pulse</title></circle>
-<circle cx="389.8" cy="468.7" r="4.06" fill="#58a6ff" opacity="0.82"><title>media:aggregation-prism — Aggregation Prism</title></circle>
-<circle cx="334.6" cy="436.0" r="3.76" fill="#58a6ff" opacity="0.82"><title>media:alignment-field — Alignment Field</title></circle>
-<circle cx="387.1" cy="471.4" r="3.54" fill="#58a6ff" opacity="0.82"><title>media:almost-arriving — Almost Arriving</title></circle>
-<circle cx="342.6" cy="420.0" r="4.28" fill="#58a6ff" opacity="0.82"><title>media:almost-together — Almost Together</title></circle>
-<circle cx="375.0" cy="404.9" r="3.76" fill="#58a6ff" opacity="0.82"><title>media:artifact-standing-envelope-v0 — Artifact Standing Envelope</title></circle>
-<circle cx="396.5" cy="473.1" r="4.70" fill="#58a6ff" opacity="0.82"><title>media:atlas-census — Atlas Census</title></circle>
-<circle cx="435.7" cy="454.2" r="2.72" fill="#58a6ff" opacity="0.82"><title>media:blender-exit-zero — Blender Exit Zero</title></circle>
-<circle cx="435.1" cy="417.3" r="4.23" fill="#58a6ff" opacity="0.82"><title>media:bootstrap-layer-console — Bootstrap Layer Console</title></circle>
-<circle cx="446.6" cy="423.5" r="4.06" fill="#58a6ff" opacity="0.82"><title>media:braess-gate — Braess Gate</title></circle>
-<circle cx="435.5" cy="450.9" r="3.54" fill="#58a6ff" opacity="0.82"><title>media:browser-perception-note — Browser Perception Note</title></circle>
-<circle cx="311.1" cy="431.1" r="4.12" fill="#58a6ff" opacity="0.82"><title>media:c2-reality-loop — C2 Reality Loop Simulator</title></circle>
-<circle cx="308.8" cy="431.4" r="3.93" fill="#58a6ff" opacity="0.82"><title>media:cabinet-token-encounter — Cabinet Token Encounter</title></circle>
-<circle cx="348.3" cy="478.5" r="4.18" fill="#58a6ff" opacity="0.82"><title>media:capital-closure-navigator — Capital Closure Navigator</title></circle>
-<circle cx="344.6" cy="394.2" r="3.85" fill="#58a6ff" opacity="0.82"><title>media:capital-reality-cards — Capital Reality Cards</title></circle>
-<circle cx="448.7" cy="428.5" r="4.48" fill="#58a6ff" opacity="0.82"><title>media:carrier-rain — Carrier Rain</title></circle>
-<circle cx="372.0" cy="488.3" r="3.02" fill="#58a6ff" opacity="0.82"><title>media:closed-workspace-postcard — Closed Workspace Postcard</title></circle>
-<circle cx="455.2" cy="428.7" r="3.76" fill="#58a6ff" opacity="0.82"><title>media:collective-authority-routing — Collective Authority Routing</title></circle>
-<circle cx="451.7" cy="456.7" r="4.12" fill="#58a6ff" opacity="0.82"><title>media:common-mode-root-map — Common-Mode Root Map</title></circle>
-<circle cx="312.9" cy="461.3" r="4.12" fill="#58a6ff" opacity="0.82"><title>media:commons-pass — Commons Pass</title></circle>
-<circle cx="335.6" cy="392.2" r="4.23" fill="#58a6ff" opacity="0.82"><title>media:competitive-reality-navigator — Competitive Reality Navigator</title></circle>
-<circle cx="379.2" cy="385.4" r="4.23" fill="#58a6ff" opacity="0.82"><title>media:consumer-interaction-review-cards — Consumer Interaction Review Cards</title></circle>
-<circle cx="381.2" cy="388.1" r="4.12" fill="#58a6ff" opacity="0.82"><title>media:convergence-sonic-ident — Convergence — Ordivon Sonic Ident 001</title></circle>
-<circle cx="316.0" cy="413.6" r="3.54" fill="#58a6ff" opacity="0.82"><title>media:counterwind-harbor — Counterwind Harbor</title></circle>
-<circle cx="386.7" cy="490.6" r="4.18" fill="#58a6ff" opacity="0.82"><title>media:discipline-pressure-deck — Discipline Pressure Deck</title></circle>
-<circle cx="312.4" cy="398.1" r="4.12" fill="#58a6ff" opacity="0.82"><title>media:distinction-arcade-r0 — Distinction Arcade R0</title></circle>
-<circle cx="356.6" cy="388.3" r="4.18" fill="#58a6ff" opacity="0.82"><title>media:domain-coverage-compass — Domain Coverage Compass</title></circle>
-<circle cx="302.1" cy="419.7" r="4.48" fill="#58a6ff" opacity="0.82"><title>media:drift-compass — Drift Compass</title></circle>
-<circle cx="382.3" cy="496.3" r="4.06" fill="#58a6ff" opacity="0.82"><title>media:drift-compass-causal-seam — Drift Compass Causal Seam</title></circle>
-<circle cx="369.1" cy="494.5" r="4.37" fill="#58a6ff" opacity="0.82"><title>media:drift-compass-error-audio — Drift Compass Error Audio</title></circle>
-<circle cx="452.1" cy="400.4" r="4.45" fill="#58a6ff" opacity="0.82"><title>media:drift-compass-error-phase-audio — Drift Compass Error Phase Audio</title></circle>
-<circle cx="448.2" cy="395.4" r="3.93" fill="#58a6ff" opacity="0.82"><title>media:echo-field — Echo Field</title></circle>
-<circle cx="333.6" cy="492.0" r="4.12" fill="#58a6ff" opacity="0.82"><title>media:effect-recovery-lab — Effect Recovery Lab</title></circle>
-<circle cx="312.6" cy="392.0" r="4.12" fill="#58a6ff" opacity="0.82"><title>media:effect-recovery-lens — Effect Recovery Lens</title></circle>
-<circle cx="296.2" cy="461.1" r="4.18" fill="#58a6ff" opacity="0.82"><title>media:equal-center — Equal Center</title></circle>
-<circle cx="307.9" cy="477.9" r="4.12" fill="#58a6ff" opacity="0.82"><title>media:exit-residue-ledger — Exit Residue Ledger</title></circle>
-<circle cx="363.0" cy="495.6" r="4.06" fill="#58a6ff" opacity="0.82"><title>media:feedback-loom — Feedback Loom</title></circle>
-<circle cx="479.8" cy="443.5" r="4.06" fill="#58a6ff" opacity="0.82"><title>media:formation-timeline-lab — Formation Timeline Lab</title></circle>
-<circle cx="465.7" cy="466.4" r="2.72" fill="#58a6ff" opacity="0.82"><title>media:free-memory-is-not-a-shape — Free Memory Is Not a Shape</title></circle>
-<circle cx="330.9" cy="381.8" r="4.06" fill="#58a6ff" opacity="0.82"><title>media:frustration-triangle — Frustration Triangle</title></circle>
-<circle cx="299.2" cy="463.5" r="3.41" fill="#58a6ff" opacity="0.82"><title>media:gesture-orrery — Gesture Orrery</title></circle>
-<circle cx="455.2" cy="387.3" r="4.23" fill="#58a6ff" opacity="0.82"><title>media:glass-elevator — Glass Elevator</title></circle>
-<circle cx="405.0" cy="503.5" r="4.18" fill="#58a6ff" opacity="0.82"><title>media:historical-selection-lens — Historical Selection Lens</title></circle>
-<circle cx="296.0" cy="394.1" r="4.12" fill="#58a6ff" opacity="0.82"><title>media:hysteresis-garden — Hysteresis Garden</title></circle>
-<circle cx="471.0" cy="465.9" r="4.70" fill="#58a6ff" opacity="0.82"><title>media:hysteresis-lantern — Hysteresis Lantern</title></circle>
-<circle cx="423.6" cy="372.0" r="4.52" fill="#58a6ff" opacity="0.82"><title>media:hysteresis-lantern-analog-gate — Hysteresis Lantern Analog Gate</title></circle>
-<circle cx="281.7" cy="450.2" r="4.06" fill="#58a6ff" opacity="0.82"><title>media:judgment-lens — Judgment Lens</title></circle>
-<circle cx="393.1" cy="506.8" r="3.41" fill="#58a6ff" opacity="0.82"><title>media:last-store-open — Last Store Open</title></circle>
-<circle cx="319.6" cy="489.8" r="3.02" fill="#58a6ff" opacity="0.82"><title>media:last-store-open-relay-text — Last Store Open Relay Text</title></circle>
-<circle cx="278.7" cy="430.1" r="4.06" fill="#58a6ff" opacity="0.82"><title>media:latch-hall — Latch Hall</title></circle>
-<circle cx="401.0" cy="509.2" r="4.06" fill="#58a6ff" opacity="0.82"><title>media:lineage-shelf — Lineage Shelf</title></circle>
-<circle cx="457.1" cy="482.2" r="4.28" fill="#58a6ff" opacity="0.82"><title>media:living-field — Living Field</title></circle>
-<circle cx="273.9" cy="436.2" r="4.06" fill="#58a6ff" opacity="0.82"><title>media:log-volvelle — Log Volvelle</title></circle>
-<circle cx="461.9" cy="489.0" r="2.72" fill="#58a6ff" opacity="0.82"><title>media:logarithmic-volvelle — Logarithmic Volvelle</title></circle>
-<circle cx="411.6" cy="504.0" r="3.41" fill="#58a6ff" opacity="0.82"><title>media:memory-after-pulse — Memory After Pulse</title></circle>
-<circle cx="492.9" cy="425.7" r="3.93" fill="#58a6ff" opacity="0.82"><title>media:mhs-hardware-boundary — MHS Hardware Boundary</title></circle>
-<circle cx="280.3" cy="418.5" r="2.72" fill="#58a6ff" opacity="0.82"><title>media:mobius-boundary-register — Möbius Boundary Register</title></circle>
-<circle cx="379.0" cy="362.5" r="4.12" fill="#58a6ff" opacity="0.82"><title>media:mobius-boundary-walk — Möbius Boundary Walk</title></circle>
-<circle cx="283.7" cy="463.8" r="4.23" fill="#58a6ff" opacity="0.82"><title>media:night-buoy — Night Buoy</title></circle>
-<circle cx="504.8" cy="433.8" r="3.02" fill="#58a6ff" opacity="0.82"><title>media:nine-ways-a-door-can-almost-open — Nine Ways a Door Can Almost Open</title></circle>
-<circle cx="265.8" cy="461.9" r="4.12" fill="#58a6ff" opacity="0.82"><title>media:nontransitive-dice — Nontransitive Dice</title></circle>
-<circle cx="494.1" cy="442.9" r="3.85" fill="#58a6ff" opacity="0.82"><title>media:one-bell-three-rooms — One Bell, Three Rooms</title></circle>
-<circle cx="272.3" cy="451.6" r="4.06" fill="#58a6ff" opacity="0.82"><title>media:one-line-constellation — One-Line Constellation</title></circle>
-<circle cx="355.9" cy="357.3" r="3.24" fill="#58a6ff" opacity="0.82"><title>media:opaque-seed-01 — Opaque Seed 01</title></circle>
-<circle cx="285.3" cy="477.2" r="2.72" fill="#58a6ff" opacity="0.82"><title>media:opaque-seed-response-01 — Opaque Seed Response 01</title></circle>
-<circle cx="416.6" cy="509.8" r="3.54" fill="#58a6ff" opacity="0.82"><title>media:open-contact — Open Contact</title></circle>
-<circle cx="387.0" cy="509.8" r="3.02" fill="#58a6ff" opacity="0.82"><title>media:opportunity-window-strip-v2 — Opportunity Window Strip v2</title></circle>
-<circle cx="419.7" cy="409.7" r="4.12" fill="#58a6ff" opacity="0.82"><title>media:atlas-of-atlases — Ordivon Atlas of Atlases</title></circle>
-<circle cx="491.7" cy="413.7" r="4.48" fill="#58a6ff" opacity="0.82"><title>media:ordivon-book-v0 — Ordivon Book v0</title></circle>
-<circle cx="249.7" cy="472.4" r="3.76" fill="#58a6ff" opacity="0.82"><title>media:site-social-card — Ordivon Root Social Card</title></circle>
-<circle cx="344.2" cy="359.5" r="3.76" fill="#58a6ff" opacity="0.82"><title>media:osrce-reconstruction-xray — OSRCE Reconstruction X-ray</title></circle>
-<circle cx="439.5" cy="501.9" r="4.06" fill="#58a6ff" opacity="0.82"><title>media:paper-gray-register — Paper Gray Register</title></circle>
-<circle cx="269.4" cy="405.9" r="4.12" fill="#58a6ff" opacity="0.82"><title>media:paper-sentence-engine — Paper Sentence Engine</title></circle>
-<circle cx="447.6" cy="373.8" r="3.54" fill="#58a6ff" opacity="0.82"><title>media:partial-observation-trap — Partial Observation Trap</title></circle>
-<circle cx="358.6" cy="357.1" r="4.06" fill="#58a6ff" opacity="0.82"><title>media:pendulum-choir — Pendulum Choir</title></circle>
-<circle cx="453.4" cy="499.4" r="4.41" fill="#58a6ff" opacity="0.82"><title>media:pendulum-choir-sonification — Pendulum Choir Sonification</title></circle>
-<circle cx="329.7" cy="366.1" r="4.70" fill="#58a6ff" opacity="0.82"><title>media:phase-dial — Phase Dial</title></circle>
-<circle cx="480.5" cy="387.1" r="3.66" fill="#58a6ff" opacity="0.82"><title>media:power-claim-linter — Power Claim Linter</title></circle>
-<circle cx="262.6" cy="414.7" r="4.06" fill="#58a6ff" opacity="0.82"><title>media:proof-carrier-gate — Proof Carrier Gate</title></circle>
-<circle cx="305.5" cy="375.1" r="4.06" fill="#58a6ff" opacity="0.82"><title>media:proof-graph-shuffle — Proof Graph Shuffle</title></circle>
-<circle cx="431.7" cy="362.4" r="3.76" fill="#58a6ff" opacity="0.82"><title>media:proof-shuffle-puzzle — Proof Shuffle Puzzle</title></circle>
-<circle cx="259.2" cy="470.8" r="4.18" fill="#58a6ff" opacity="0.82"><title>media:question-referent-fence — Question Referent Fence</title></circle>
-<circle cx="365.7" cy="524.2" r="2.72" fill="#58a6ff" opacity="0.82"><title>media:reaction-constellation-pcb-peer-standing — Reaction Constellation PCB — peer standing</title></circle>
-<circle cx="511.7" cy="443.3" r="3.54" fill="#58a6ff" opacity="0.82"><title>media:reaction-orrery — Reaction Orrery</title></circle>
-<circle cx="488.7" cy="391.3" r="3.24" fill="#58a6ff" opacity="0.82"><title>media:reaction-pings — Reaction Pings</title></circle>
-<circle cx="501.2" cy="462.6" r="3.24" fill="#58a6ff" opacity="0.82"><title>media:reaction-token — Reaction Token</title></circle>
-<circle cx="408.8" cy="519.9" r="4.12" fill="#58a6ff" opacity="0.82"><title>media:reconstruction-lens — Reconstruction Lens</title></circle>
-<circle cx="336.9" cy="356.0" r="4.06" fill="#58a6ff" opacity="0.82"><title>media:recovery-lens — Recovery Lens</title></circle>
-<circle cx="510.6" cy="451.7" r="4.12" fill="#58a6ff" opacity="0.82"><title>media:recovery-root-lab — Recovery Root Lab</title></circle>
-<circle cx="287.7" cy="496.0" r="3.76" fill="#58a6ff" opacity="0.82"><title>media:redeployability-shock — Redeployability Shock</title></circle>
-<circle cx="365.6" cy="525.5" r="2.72" fill="#58a6ff" opacity="0.82"><title>media:relay-moth — Relay Moth</title></circle>
-<circle cx="255.4" cy="412.0" r="3.24" fill="#58a6ff" opacity="0.82"><title>media:replay-relation-matrix — Replay Relation Matrix</title></circle>
-<circle cx="322.2" cy="518.4" r="4.06" fill="#58a6ff" opacity="0.82"><title>media:representation-compression-lab — Representation Compression Lab</title></circle>
-<circle cx="515.6" cy="452.8" r="4.12" fill="#58a6ff" opacity="0.82"><title>media:research-memory-lens — Research Memory Lens</title></circle>
-<circle cx="404.2" cy="349.0" r="3.54" fill="#58a6ff" opacity="0.82"><title>media:residual-chime — Residual Chime</title></circle>
-<circle cx="477.5" cy="501.5" r="3.76" fill="#58a6ff" opacity="0.82"><title>media:resource-fence-drill — Resource Fence Drill</title></circle>
-<circle cx="335.8" cy="351.2" r="3.76" fill="#58a6ff" opacity="0.82"><title>media:retention-compass — Retention Compass</title></circle>
-<circle cx="373.2" cy="529.7" r="3.76" fill="#58a6ff" opacity="0.82"><title>media:retirement-receipt — Retirement Receipt</title></circle>
-<circle cx="380.6" cy="347.9" r="4.18" fill="#58a6ff" opacity="0.82"><title>media:retry-authority-lab — Retry Authority Lab</title></circle>
-<circle cx="382.8" cy="526.3" r="4.00" fill="#58a6ff" opacity="0.82"><title>media:retry-or-reconcile — Retry or Reconcile?</title></circle>
-<circle cx="521.2" cy="423.8" r="4.45" fill="#58a6ff" opacity="0.82"><title>media:runtime-introduction — Runtime Introduction</title></circle>
-<circle cx="392.5" cy="528.7" r="3.54" fill="#58a6ff" opacity="0.82"><title>media:runtime-introduction-review — Runtime Introduction Review</title></circle>
-<circle cx="294.2" cy="513.3" r="3.24" fill="#58a6ff" opacity="0.82"><title>media:same-words-narrower-room — Same Words, Narrower Room</title></circle>
-<circle cx="424.8" cy="346.1" r="4.06" fill="#58a6ff" opacity="0.82"><title>media:sealed-octant — Sealed Octant</title></circle>
-<circle cx="244.8" cy="442.7" r="3.24" fill="#58a6ff" opacity="0.82"><title>media:seen-not-approved-pcb — Seen Not Approved Pcb</title></circle>
-<circle cx="282.1" cy="509.5" r="3.41" fill="#58a6ff" opacity="0.82"><title>media:seen-not-approved-spice — Seen Not Approved Spice</title></circle>
-<circle cx="521.4" cy="403.8" r="4.37" fill="#58a6ff" opacity="0.82"><title>media:signal-garden — Signal Garden</title></circle>
-<circle cx="230.6" cy="431.1" r="4.00" fill="#58a6ff" opacity="0.82"><title>media:signal-garden-evidence-twin — Signal Garden Evidence Twin</title></circle>
-<circle cx="341.6" cy="347.7" r="4.45" fill="#58a6ff" opacity="0.82"><title>media:signal-garden-sonification — Signal Garden Sonification</title></circle>
-<circle cx="350.8" cy="533.6" r="4.12" fill="#58a6ff" opacity="0.82"><title>media:skill-ecosystem-atlas — Skill Ecosystem Atlas</title></circle>
-<circle cx="257.9" cy="392.6" r="4.18" fill="#58a6ff" opacity="0.82"><title>media:skill-ecosystem-atlas-r4 — Skill Ecosystem Atlas R4</title></circle>
-<circle cx="405.1" cy="532.3" r="4.18" fill="#58a6ff" opacity="0.82"><title>media:skill-router — Skill Router</title></circle>
-<circle cx="453.9" cy="522.0" r="3.24" fill="#58a6ff" opacity="0.82"><title>media:still-point-moving-room — Still Point, Moving Room</title></circle>
-<circle cx="501.0" cy="372.5" r="3.93" fill="#58a6ff" opacity="0.82"><title>media:studio-expression-card — Studio Expression Card</title></circle>
-<circle cx="268.7" cy="372.4" r="4.70" fill="#58a6ff" opacity="0.82"><title>media:studio-orrery — Studio Orrery</title></circle>
-<circle cx="232.4" cy="412.1" r="3.93" fill="#58a6ff" opacity="0.82"><title>media:task-lifecycle-triage — Task Lifecycle Triage</title></circle>
-<circle cx="508.0" cy="481.0" r="3.85" fill="#58a6ff" opacity="0.82"><title>media:tension-field — Tension Field</title></circle>
-<circle cx="230.0" cy="438.0" r="3.02" fill="#58a6ff" opacity="0.82"><title>media:the-gap-decides — The Gap Decides</title></circle>
-<circle cx="298.6" cy="483.1" r="3.24" fill="#58a6ff" opacity="0.82"><title>media:missing-corner — The Missing Corner</title></circle>
-<circle cx="521.1" cy="468.3" r="3.85" fill="#58a6ff" opacity="0.82"><title>media:the-wrong-arrow — The Wrong Arrow</title></circle>
-<circle cx="530.0" cy="415.1" r="2.72" fill="#58a6ff" opacity="0.82"><title>media:three-color-night-trial — Three Color Night Trial</title></circle>
-<circle cx="501.2" cy="501.8" r="3.85" fill="#58a6ff" opacity="0.82"><title>media:three-dots-one-exit — Three Dots One Exit</title></circle>
-<circle cx="393.2" cy="535.6" r="3.24" fill="#58a6ff" opacity="0.82"><title>media:traceable-useful — TRACEABLE / USEFUL?</title></circle>
-<circle cx="500.7" cy="495.3" r="4.06" fill="#58a6ff" opacity="0.82"><title>media:treaty-ring — Treaty Ring</title></circle>
-<circle cx="468.6" cy="524.2" r="4.00" fill="#58a6ff" opacity="0.82"><title>media:trial-funnel-microscope — Trial Funnel Microscope</title></circle>
-<circle cx="408.0" cy="537.0" r="4.06" fill="#58a6ff" opacity="0.82"><title>media:twin-veil — Twin Veil Interactive Reconstruction Lab</title></circle>
-<circle cx="388.0" cy="537.8" r="4.64" fill="#58a6ff" opacity="0.82"><title>media:twin-veil-study — Twin Veil Study</title></circle>
-<circle cx="228.1" cy="410.6" r="3.24" fill="#58a6ff" opacity="0.82"><title>media:visible-field — Visible Field 01</title></circle>
-<circle cx="235.8" cy="459.5" r="4.41" fill="#58a6ff" opacity="0.82"><title>media:visible-field-history-lens — Visible Field History Lens</title></circle>
-<circle cx="297.6" cy="523.3" r="4.18" fill="#58a6ff" opacity="0.82"><title>media:wake-chain-flight-recorder — Wake Chain Flight Recorder</title></circle>
-<circle cx="535.6" cy="424.4" r="3.02" fill="#58a6ff" opacity="0.82"><title>media:weather-for-things-that-choose — Weather for Things That Choose</title></circle>
-<circle cx="489.2" cy="356.2" r="4.18" fill="#58a6ff" opacity="0.82"><title>media:wind-cage — Wind Cage</title></circle>
-<circle cx="454.5" cy="529.3" r="3.93" fill="#58a6ff" opacity="0.82"><title>media:witness-orbit — Witness Orbit</title></circle>
-<circle cx="273.8" cy="364.2" r="4.06" fill="#58a6ff" opacity="0.82"><title>media:wsl-b1-restart-boundary — WSL B1 Restart Boundary Card</title></circle>
-<circle cx="457.6" cy="343.9" r="3.76" fill="#58a6ff" opacity="0.82"><title>media:yield-survivor-game — Yield Survivor Game</title></circle>
-<circle cx="1198.3" cy="450.0" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:a-better-looking-result-can-still-be-noise — A Better Looking Result Can Still Be Noise</title></circle>
-<circle cx="1325.6" cy="472.8" r="3.76" fill="#7ee787" opacity="0.82"><title>web:between-states — Between States</title></circle>
-<circle cx="1233.1" cy="514.6" r="2.72" fill="#7ee787" opacity="0.82"><title>web:board-social-lens — Board Social Lens</title></circle>
-<circle cx="1146.7" cy="464.2" r="3.54" fill="#7ee787" opacity="0.82"><title>web:charge-and-forget — Charge And Forget</title></circle>
-<circle cx="1221.5" cy="430.2" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:communication-is-gameplay-state — Communication Is Gameplay State</title></circle>
-<circle cx="1212.7" cy="432.8" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:correctness-is-not-isolation — Correctness Is Not Isolation</title></circle>
-<circle cx="1188.0" cy="454.8" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:creation-judgment-recoverable-systems — Creation Judgment Recoverable Systems</title></circle>
-<circle cx="1229.7" cy="516.9" r="3.02" fill="#7ee787" opacity="0.82"><title>web:drift-glass — Drift Glass</title></circle>
-<circle cx="1157.7" cy="406.1" r="2.72" fill="#7ee787" opacity="0.82"><title>web:note:finharness-capital-control-kernel — FinHarness as a capital control kernel</title></circle>
-<circle cx="1211.5" cy="385.7" r="2.72" fill="#7ee787" opacity="0.82"><title>web:note:from-linear-phases-to-typed-relations — From linear phases to typed relations</title></circle>
-<circle cx="1295.5" cy="435.7" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:link-edge-boundary — From Link and Edge to Ordivon World</title></circle>
-<circle cx="1205.9" cy="424.6" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:from-tokens-to-work — From Tokens To Work</title></circle>
-<circle cx="1296.8" cy="463.4" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:history-did-not-prove-us-right — History Did Not Prove Us Right</title></circle>
-<circle cx="1292.9" cy="501.4" r="2.72" fill="#7ee787" opacity="0.82"><title>web:jellyfish-tea — Jellyfish Tea</title></circle>
-<circle cx="1136.0" cy="458.9" r="2.72" fill="#7ee787" opacity="0.82"><title>web:kinetic-balance — Kinetic Balance</title></circle>
-<circle cx="1184.4" cy="505.9" r="2.72" fill="#7ee787" opacity="0.82"><title>web:missing-attempts — Missing Attempts</title></circle>
-<circle cx="1153.6" cy="492.0" r="3.02" fill="#7ee787" opacity="0.82"><title>web:no-record-no-event — No Record No Event</title></circle>
-<circle cx="1231.5" cy="485.5" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:one-authority-thirteen-tables — One Authority Thirteen Tables</title></circle>
-<circle cx="1337.7" cy="480.3" r="2.72" fill="#7ee787" opacity="0.82"><title>web:orbit-chime — Orbit Chime</title></circle>
-<circle cx="1301.3" cy="435.1" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:runtime-after-core — Ordivon Runtime after the core</title></circle>
-<circle cx="1274.0" cy="486.0" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:ordivon-runtime-release — Ordivon Runtime: from governance platform to durable execution</title></circle>
-<circle cx="1179.9" cy="494.3" r="3.02" fill="#7ee787" opacity="0.82"><title>web:balance-field-card — Playful R75</title></circle>
-<circle cx="1337.8" cy="483.4" r="2.72" fill="#7ee787" opacity="0.82"><title>web:kinetic-balance-desk-toy — Playful R76</title></circle>
-<circle cx="1247.6" cy="471.1" r="2.72" fill="#7ee787" opacity="0.82"><title>web:afterglow-dial — Playful R80</title></circle>
-<circle cx="1220.7" cy="392.1" r="2.72" fill="#7ee787" opacity="0.82"><title>web:foreground-without-ranking — Playful R86</title></circle>
-<circle cx="1149.7" cy="473.3" r="2.72" fill="#7ee787" opacity="0.82"><title>web:one-person-different-relations — Playful R94</title></circle>
-<circle cx="1233.8" cy="493.4" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:replay-without-second-truth-store — Replay Without Second Truth Store</title></circle>
-<circle cx="1214.7" cy="379.0" r="2.72" fill="#7ee787" opacity="0.82"><title>web:note:semantic-core-after-measurement — Semantic Core: what remained after measurement</title></circle>
-<circle cx="1136.5" cy="477.6" r="2.72" fill="#7ee787" opacity="0.82"><title>web:signal-garden-sketch — Signal Garden</title></circle>
-<circle cx="1311.6" cy="455.3" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:smaller-core-strong-baselines — Smaller Core Strong Baselines</title></circle>
-<circle cx="1172.2" cy="452.1" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:station-zero-alpha-1 — Station Zero Alpha 1</title></circle>
-<circle cx="1283.1" cy="417.0" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:the-agent-asked-for-more-evidence-the-answer-became-no — The Agent Asked For More Evidence The Answer Became No</title></circle>
-<circle cx="1325.3" cy="404.4" r="2.72" fill="#7ee787" opacity="0.82"><title>web:note:agent-effect-commit-kernel — The Agent Effect Commit Kernel</title></circle>
-<circle cx="1319.9" cy="442.7" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:the-agent-knew-the-goal-it-still-wouldnt-do-it — The Agent Knew The Goal It Still Wouldnt Do It</title></circle>
-<circle cx="1235.5" cy="498.7" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:the-command-succeeded-did-anything-happen — The Command Succeeded Did Anything Happen</title></circle>
-<circle cx="1234.2" cy="499.4" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:the-constitution-changed-the-agent-that-wasnt-enough — The Constitution Changed The Agent That Wasnt Enough</title></circle>
-<circle cx="1309.9" cy="466.6" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:the-decision-was-valid-the-portfolio-changed — The Decision Was Valid The Portfolio Changed</title></circle>
-<circle cx="1201.6" cy="494.9" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:the-evidence-is-real-it-is-still-too-old — The Evidence Is Real It Is Still Too Old</title></circle>
-<circle cx="1179.7" cy="414.9" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:the-future-will-not-wait — The Future Will Not Wait</title></circle>
-<circle cx="1197.5" cy="410.3" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:the-model-finished-the-protocol-wasnt-done — The Model Finished The Protocol Wasnt Done</title></circle>
-<circle cx="1322.6" cy="397.6" r="2.72" fill="#7ee787" opacity="0.82"><title>web:the-office-is-thinking — The Office Is Thinking</title></circle>
-<circle cx="1204.1" cy="494.7" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:the-patterns-recurred-our-taxonomy-got-worse — The Patterns Recurred Our Taxonomy Got Worse</title></circle>
-<circle cx="1263.2" cy="496.4" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:the-shorter-explanation-won — The Shorter Explanation Won</title></circle>
-<circle cx="1220.2" cy="499.7" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:thin-host-without-hidden-planner — Thin Host Without Hidden Planner</title></circle>
-<circle cx="1277.5" cy="499.9" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:transcript-not-task-database — Transcript Not Task Database</title></circle>
-<circle cx="1190.4" cy="392.5" r="2.72" fill="#7ee787" opacity="0.82"><title>web:unknown-is-a-state — Unknown Is a State</title></circle>
-<circle cx="1278.3" cy="400.0" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:unknown-is-operational-state — Unknown Is Operational State</title></circle>
-<circle cx="1254.2" cy="501.7" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:we-cut-203-observations-to-8-and-still-didnt-edit — We Cut 203 Observations To 8 And Still Didnt Edit</title></circle>
-<circle cx="1163.1" cy="443.1" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:we-deleted-16-8-gb-not-because-it-was-old — We Deleted 16 8 Gb Not Because It Was Old</title></circle>
-<circle cx="1223.6" cy="391.3" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:we-sorted-the-evidence-accuracy-got-worse — We Sorted The Evidence Accuracy Got Worse</title></circle>
-<circle cx="1331.8" cy="462.1" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:what-h1-h5-proved — What H1 H5 Proved</title></circle>
-<circle cx="1211.7" cy="392.2" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:why-ordivon — Why Ordivon matters in the AI era</title></circle>
-<circle cx="1167.2" cy="482.4" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:why-ordivon-needs-a-harness — Why Ordivon Needs A Harness</title></circle>
-<circle cx="1291.8" cy="426.2" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:host-task-continuity — Why Task continuity belongs above execution</title></circle>
-<circle cx="1246.6" cy="392.1" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:winning-move-loses-contest — Winning Move Loses Contest</title></circle>
-<circle cx="1310.1" cy="412.6" r="2.72" fill="#7ee787" opacity="0.82"><title>web:article:world-got-smaller-and-got-clearer — World Got Smaller And Got Clearer</title></circle>
-<circle cx="929.1" cy="736.9" r="4.28" fill="#d2a8ff" opacity="0.82"><title>workstation:abbe-rail — Abbe Rail</title></circle>
-<circle cx="927.3" cy="746.9" r="4.55" fill="#d2a8ff" opacity="0.82"><title>workstation:arc-reference-card — Arc Reference Card</title></circle>
-<circle cx="989.0" cy="754.5" r="2.72" fill="#d2a8ff" opacity="0.82"><title>workstation:braid-equivalence-card-v0 — Braid Equivalence Card</title></circle>
-<circle cx="1002.4" cy="740.0" r="4.18" fill="#d2a8ff" opacity="0.82"><title>workstation:brewster-detector-headroom-gate — Brewster Detector Headroom Gate</title></circle>
-<circle cx="919.2" cy="707.4" r="4.18" fill="#d2a8ff" opacity="0.82"><title>workstation:brewster-lockin-headroom-gate — Brewster Lockin Headroom Gate</title></circle>
-<circle cx="940.5" cy="698.0" r="4.23" fill="#d2a8ff" opacity="0.82"><title>workstation:brewster-lockin-observer-protocol — Brewster Lockin Observer Protocol</title></circle>
-<circle cx="950.9" cy="690.3" r="4.06" fill="#d2a8ff" opacity="0.82"><title>workstation:brewster-null — Brewster Null</title></circle>
-<circle cx="1000.3" cy="705.7" r="4.00" fill="#d2a8ff" opacity="0.82"><title>workstation:buckling-reed — Buckling Reed</title></circle>
-<circle cx="914.3" cy="754.5" r="4.28" fill="#d2a8ff" opacity="0.82"><title>workstation:capillary-pressure-sign-pair — Capillary Pressure Sign Pair</title></circle>
-<circle cx="904.4" cy="710.2" r="4.52" fill="#d2a8ff" opacity="0.82"><title>workstation:clearance-ladder — Clearance Ladder</title></circle>
-<circle cx="905.1" cy="746.0" r="4.33" fill="#d2a8ff" opacity="0.82"><title>workstation:conditioned-nest — Conditioned Nest</title></circle>
-<circle cx="1001.6" cy="765.0" r="4.23" fill="#d2a8ff" opacity="0.82"><title>workstation:cosine-rail — Cosine Rail</title></circle>
-<circle cx="923.5" cy="767.5" r="4.18" fill="#d2a8ff" opacity="0.82"><title>workstation:driven-guard — Driven Guard</title></circle>
-<circle cx="979.8" cy="685.6" r="4.41" fill="#d2a8ff" opacity="0.82"><title>workstation:dual-shadow-solid — Dual Shadow Solid</title></circle>
-<circle cx="1014.9" cy="698.0" r="4.37" fill="#d2a8ff" opacity="0.82"><title>workstation:feedback-loom-analog-ring — Feedback Loom Analog Ring</title></circle>
-<circle cx="1017.3" cy="710.1" r="4.18" fill="#d2a8ff" opacity="0.82"><title>workstation:hallway-allocation-card — Hallway Allocation Card</title></circle>
-<circle cx="893.6" cy="732.7" r="4.23" fill="#d2a8ff" opacity="0.82"><title>workstation:headroom-noise-gain-time-envelope — Headroom Noise Gain Time Envelope</title></circle>
-<circle cx="964.8" cy="777.6" r="4.45" fill="#d2a8ff" opacity="0.82"><title>workstation:helmholtz-cavity-pair — Helmholtz Cavity Pair</title></circle>
-<circle cx="903.9" cy="765.8" r="4.28" fill="#d2a8ff" opacity="0.82"><title>workstation:holonomy-triangle — Holonomy Triangle</title></circle>
-<circle cx="900.4" cy="702.0" r="4.23" fill="#d2a8ff" opacity="0.82"><title>workstation:intervention-twin — Intervention Twin</title></circle>
-<circle cx="917.2" cy="768.1" r="4.06" fill="#d2a8ff" opacity="0.82"><title>workstation:kelvin-abba-drift-card — Kelvin ABBA Drift Card</title></circle>
-<circle cx="1023.8" cy="698.2" r="4.23" fill="#d2a8ff" opacity="0.82"><title>workstation:kelvin-four-wire — Kelvin Four Wire</title></circle>
-<circle cx="874.0" cy="722.5" r="4.58" fill="#d2a8ff" opacity="0.82"><title>workstation:kelvin-reversal-coupon — Kelvin Reversal Coupon</title></circle>
-<circle cx="885.3" cy="726.6" r="4.70" fill="#d2a8ff" opacity="0.82"><title>workstation:living-field-numerical-fossil — Living Field Numerical Fossil</title></circle>
-<circle cx="1032.9" cy="711.8" r="4.28" fill="#d2a8ff" opacity="0.82"><title>workstation:load-path-fuse — Load Path Fuse</title></circle>
-<circle cx="883.5" cy="740.3" r="4.18" fill="#d2a8ff" opacity="0.82"><title>workstation:lock-in-noise-clock — Lock In Noise Clock</title></circle>
-<circle cx="1006.0" cy="688.5" r="4.12" fill="#d2a8ff" opacity="0.82"><title>workstation:lock-in-lantern — Lock-in Lantern</title></circle>
-<circle cx="926.2" cy="680.3" r="4.70" fill="#d2a8ff" opacity="0.82"><title>workstation:marginal-fiber-atlas — Marginal Fiber Atlas</title></circle>
-<circle cx="908.2" cy="767.6" r="4.18" fill="#d2a8ff" opacity="0.82"><title>workstation:marginal-twins — Marginal Twins</title></circle>
-<circle cx="1020.4" cy="695.2" r="4.33" fill="#d2a8ff" opacity="0.82"><title>workstation:maxwell-reciprocity-frame — Maxwell Reciprocity Frame</title></circle>
-<circle cx="877.5" cy="724.8" r="4.18" fill="#d2a8ff" opacity="0.82"><title>workstation:measured-pair — Measured Pair</title></circle>
-<circle cx="982.0" cy="675.3" r="3.54" fill="#d2a8ff" opacity="0.82"><title>workstation:measurement-front-end-protocol — Measurement Front End Protocol</title></circle>
-<circle cx="872.4" cy="702.0" r="4.28" fill="#d2a8ff" opacity="0.82"><title>workstation:memory-weave — Memory Weave</title></circle>
-<circle cx="1022.4" cy="770.1" r="4.06" fill="#d2a8ff" opacity="0.82"><title>workstation:metrology-frame — Metrology Frame</title></circle>
-<circle cx="1043.9" cy="713.5" r="4.58" fill="#d2a8ff" opacity="0.82"><title>workstation:moire-vernier-dial — Moiré Vernier Dial</title></circle>
-<circle cx="863.5" cy="726.2" r="3.93" fill="#d2a8ff" opacity="0.82"><title>workstation:nuisance-geometry-atlas — Nuisance Geometry Atlas</title></circle>
-<circle cx="914.5" cy="782.7" r="4.48" fill="#d2a8ff" opacity="0.82"><title>workstation:null-bridge — Null Bridge</title></circle>
-<circle cx="912.2" cy="787.9" r="4.55" fill="#d2a8ff" opacity="0.82"><title>workstation:observer-load-gate — Observer Load Gate</title></circle>
-<circle cx="902.4" cy="677.7" r="3.66" fill="#d2a8ff" opacity="0.82"><title>workstation:open-description-relay — Open Description Relay</title></circle>
-<circle cx="867.7" cy="751.3" r="3.85" fill="#d2a8ff" opacity="0.82"><title>workstation:peaucellier-clearance-obstruction — Peaucellier Clearance Obstruction</title></circle>
-<circle cx="868.5" cy="733.9" r="4.55" fill="#d2a8ff" opacity="0.82"><title>workstation:peaucellier-five-layer — Peaucellier Five-Layer Candidate</title></circle>
-<circle cx="904.2" cy="674.9" r="4.12" fill="#d2a8ff" opacity="0.82"><title>workstation:peaucellier-tolerance-audit — Peaucellier Tolerance Audit</title></circle>
-<circle cx="866.7" cy="729.2" r="4.70" fill="#d2a8ff" opacity="0.82"><title>workstation:pendulum-choir-photogate-bench — Pendulum Choir Photogate Bench</title></circle>
-<circle cx="863.4" cy="701.2" r="4.18" fill="#d2a8ff" opacity="0.82"><title>workstation:percussion-ruler — Percussion Ruler</title></circle>
-<circle cx="1031.0" cy="770.5" r="3.54" fill="#d2a8ff" opacity="0.82"><title>workstation:personal-binding-navigator — Personal Binding Navigator v0</title></circle>
-<circle cx="1010.8" cy="787.6" r="4.61" fill="#d2a8ff" opacity="0.82"><title>workstation:photogate-evidence-applicability-ladder — Photogate Evidence Applicability Ladder</title></circle>
-<circle cx="893.3" cy="775.2" r="4.18" fill="#d2a8ff" opacity="0.82"><title>workstation:polarity-pair — Polarity Pair</title></circle>
-<circle cx="858.0" cy="704.2" r="4.06" fill="#d2a8ff" opacity="0.82"><title>workstation:preload-nest — Preload Nest</title></circle>
-<circle cx="1032.6" cy="775.9" r="4.45" fill="#d2a8ff" opacity="0.82"><title>workstation:probe-burden — Probe Burden</title></circle>
-<circle cx="1046.9" cy="686.6" r="3.85" fill="#d2a8ff" opacity="0.82"><title>workstation:prouhet-reversal-ladder — Prouhet Reversal Ladder</title></circle>
-<circle cx="866.5" cy="701.3" r="4.23" fill="#d2a8ff" opacity="0.82"><title>workstation:r2r-ladder-dac — R-2R Ladder DAC</title></circle>
-<circle cx="1060.6" cy="762.6" r="4.23" fill="#d2a8ff" opacity="0.82"><title>workstation:ratiometric-reference-coupon — Ratiometric Reference Coupon</title></circle>
-<circle cx="1040.5" cy="774.2" r="2.72" fill="#d2a8ff" opacity="0.82"><title>workstation:reality-loop-beacon-v0 — Reality Loop Beacon v0</title></circle>
-<circle cx="875.7" cy="778.1" r="3.85" fill="#d2a8ff" opacity="0.82"><title>workstation:reality-readiness-matrix — Reality Readiness Matrix</title></circle>
-<circle cx="953.1" cy="653.3" r="4.52" fill="#d2a8ff" opacity="0.82"><title>workstation:reciprocity-mirror — Reciprocity Mirror</title></circle>
-<circle cx="929.2" cy="664.5" r="4.48" fill="#d2a8ff" opacity="0.82"><title>workstation:relay-moth-optical-readout-envelope — Relay Moth Optical Readout Envelope</title></circle>
-<circle cx="983.3" cy="656.7" r="4.70" fill="#d2a8ff" opacity="0.82"><title>workstation:relay-moth — Relay Moth Persistence Rotor</title></circle>
-<circle cx="946.9" cy="803.2" r="4.48" fill="#d2a8ff" opacity="0.82"><title>workstation:resonance-ladder — Resonance Ladder</title></circle>
-<circle cx="953.3" cy="659.3" r="4.12" fill="#d2a8ff" opacity="0.82"><title>workstation:reversal-window — Reversal Window</title></circle>
-<circle cx="944.5" cy="804.3" r="4.37" fill="#d2a8ff" opacity="0.82"><title>workstation:reversible-lattice-echo — Reversible Lattice Echo</title></circle>
-<circle cx="1001.2" cy="800.6" r="4.23" fill="#d2a8ff" opacity="0.82"><title>workstation:runtime-clock-grain — Runtime Clock Grain</title></circle>
-<circle cx="941.9" cy="805.0" r="4.55" fill="#d2a8ff" opacity="0.82"><title>workstation:sacrificial-bridge — Sacrificial Bridge</title></circle>
-<circle cx="860.8" cy="767.1" r="4.23" fill="#d2a8ff" opacity="0.82"><title>workstation:scale-sag — Scale Sag</title></circle>
-<circle cx="988.6" cy="806.1" r="3.76" fill="#d2a8ff" opacity="0.82"><title>workstation:scm-rights-capability-relay — SCM_RIGHTS Capability Relay</title></circle>
-<circle cx="1057.6" cy="764.2" r="4.55" fill="#d2a8ff" opacity="0.82"><title>workstation:self-stress-prism — Self Stress Prism</title></circle>
-<circle cx="883.0" cy="671.3" r="4.23" fill="#d2a8ff" opacity="0.82"><title>workstation:seventh-shim — Seventh Shim</title></circle>
-<circle cx="835.3" cy="714.9" r="4.12" fill="#d2a8ff" opacity="0.82"><title>workstation:signal-garden-cam-encoder — Signal Garden Cam Encoder</title></circle>
-<circle cx="888.6" cy="785.7" r="4.67" fill="#d2a8ff" opacity="0.82"><title>workstation:signal-garden-cam-triptych — Signal Garden Cam Triptych</title></circle>
-<circle cx="944.6" cy="809.4" r="4.41" fill="#d2a8ff" opacity="0.82"><title>workstation:signal-seed — Signal Seed</title></circle>
-<circle cx="902.8" cy="656.6" r="4.18" fill="#d2a8ff" opacity="0.82"><title>workstation:simpson-fold — Simpson Fold</title></circle>
-<circle cx="875.1" cy="669.1" r="4.45" fill="#d2a8ff" opacity="0.82"><title>workstation:six-touch-nest — Six Touch Nest</title></circle>
-<circle cx="1069.5" cy="757.1" r="4.33" fill="#d2a8ff" opacity="0.82"><title>workstation:strobe-twins — Strobe Twins</title></circle>
-<circle cx="981.8" cy="804.1" r="4.23" fill="#d2a8ff" opacity="0.82"><title>workstation:temporal-alias-wheel — Temporal Alias Wheel</title></circle>
-<circle cx="875.7" cy="668.9" r="4.33" fill="#d2a8ff" opacity="0.82"><title>workstation:thermal-differential-coupon — Thermal Differential Coupon</title></circle>
-<circle cx="857.0" cy="778.3" r="4.06" fill="#d2a8ff" opacity="0.82"><title>workstation:thermal-equal-energy-twins — Thermal Equal-Energy Twins</title></circle>
-<circle cx="1046.4" cy="791.5" r="4.23" fill="#d2a8ff" opacity="0.82"><title>workstation:thermal-pulse — Thermal Pulse</title></circle>
-<circle cx="1064.8" cy="682.3" r="4.70" fill="#d2a8ff" opacity="0.82"><title>workstation:twin-veil-registration-gate — Twin Veil Registration Gate</title></circle>
-<circle cx="1059.9" cy="673.0" r="4.06" fill="#d2a8ff" opacity="0.82"><title>workstation:windup-glass — Windup Glass</title></circle>
-<rect x="1096" y="738" width="390" height="150" rx="18" fill="#161b22" stroke="#30363d"/>
-<circle cx="1120" cy="780" r="6" fill="#f2cc60"/>
-<text x="1138" y="786" fill="#c9d1d9" font-family="Inter,Segoe UI,sans-serif" font-size="15">Game — 33 works</text>
-<circle cx="1120" cy="804" r="6" fill="#58a6ff"/>
-<text x="1138" y="810" fill="#c9d1d9" font-family="Inter,Segoe UI,sans-serif" font-size="15">Media — 136 works</text>
-<circle cx="1120" cy="828" r="6" fill="#7ee787"/>
-<text x="1138" y="834" fill="#c9d1d9" font-family="Inter,Segoe UI,sans-serif" font-size="15">Web — 56 works</text>
-<circle cx="1120" cy="852" r="6" fill="#d2a8ff"/>
-<text x="1138" y="858" fill="#c9d1d9" font-family="Inter,Segoe UI,sans-serif" font-size="15">Workstation — 78 works</text>
-<text x="90" y="956" fill="#6e7681" font-family="ui-monospace,SFMono-Regular,Consolas,monospace" font-size="14">303 works · 45 mapped relations · source catalog sha256:cfbd3ff1533b7b2d52a1ce3067b1065e7c95a77ff73567104d9a8f41a03e9b21</text>
+<rect width="100%" height="100%" fill="#090d12"/>
+<rect x="52" y="52" width="1496" height="896" rx="28" fill="none" stroke="#30363d" stroke-width="2"/>
+<text x="86" y="116" fill="#f0f6fc" font-family="ui-monospace,SFMono-Regular,Consolas,monospace" font-size="40" font-weight="700" letter-spacing="4">ARCHIVE / ARCHIPELAGO 001</text>
+<text x="86" y="148" fill="#7d8590" font-family="ui-monospace,SFMono-Regular,Consolas,monospace" font-size="14" letter-spacing="1.4">303 FROZEN CREATIVE WORKS · 45 CATALOGUED RELATIONS · CONCEPTUAL ARCHIVE PLANE</text>
+<line x1="86" y1="176" x2="1514" y2="176" stroke="#21262d"/>
+<ellipse cx="833.7" cy="347.5" rx="102.2" ry="73.6" fill="none" stroke="#f2cc60" stroke-opacity="0.18" stroke-dasharray="5 8"/>
+<ellipse cx="833.7" cy="347.5" rx="73.6" ry="53.0" fill="none" stroke="#f2cc60" stroke-opacity="0.1" stroke-dasharray="5 8"/>
+<ellipse cx="833.7" cy="347.5" rx="47.0" ry="33.9" fill="none" stroke="#f2cc60" stroke-opacity="0.07" stroke-dasharray="5 8"/>
+<ellipse cx="833.7" cy="347.5" rx="102.2" ry="73.6" fill="#f2cc60" fill-opacity="0.035"/>
+<ellipse cx="378.8" cy="435.0" rx="143.6" ry="103.4" fill="none" stroke="#58a6ff" stroke-opacity="0.18" stroke-dasharray="5 8"/>
+<ellipse cx="378.8" cy="435.0" rx="103.4" ry="74.5" fill="none" stroke="#58a6ff" stroke-opacity="0.1" stroke-dasharray="5 8"/>
+<ellipse cx="378.8" cy="435.0" rx="66.1" ry="47.6" fill="none" stroke="#58a6ff" stroke-opacity="0.07" stroke-dasharray="5 8"/>
+<ellipse cx="378.8" cy="435.0" rx="143.6" ry="103.4" fill="#58a6ff" fill-opacity="0.035"/>
+<ellipse cx="1246.4" cy="447.5" rx="114.4" ry="82.4" fill="none" stroke="#7ee787" stroke-opacity="0.18" stroke-dasharray="5 8"/>
+<ellipse cx="1246.4" cy="447.5" rx="82.4" ry="59.3" fill="none" stroke="#7ee787" stroke-opacity="0.1" stroke-dasharray="5 8"/>
+<ellipse cx="1246.4" cy="447.5" rx="52.6" ry="37.9" fill="none" stroke="#7ee787" stroke-opacity="0.07" stroke-dasharray="5 8"/>
+<ellipse cx="1246.4" cy="447.5" rx="114.4" ry="82.4" fill="#7ee787" fill-opacity="0.035"/>
+<ellipse cx="960.0" cy="697.5" rx="123.8" ry="89.2" fill="none" stroke="#d2a8ff" stroke-opacity="0.18" stroke-dasharray="5 8"/>
+<ellipse cx="960.0" cy="697.5" rx="89.2" ry="64.2" fill="none" stroke="#d2a8ff" stroke-opacity="0.1" stroke-dasharray="5 8"/>
+<ellipse cx="960.0" cy="697.5" rx="57.0" ry="41.0" fill="none" stroke="#d2a8ff" stroke-opacity="0.07" stroke-dasharray="5 8"/>
+<ellipse cx="960.0" cy="697.5" rx="123.8" ry="89.2" fill="#d2a8ff" fill-opacity="0.035"/>
+<path d="M 870.1,358.7 Q 660.7,416.6 443.6,423.4" fill="none" stroke="#8b949e" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="none"/>
+<path d="M 874.3,363.2 Q 573.0,444.1 261.3,457.8" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 871.8,316.4 Q 579.4,406.2 274.3,429.3" fill="none" stroke="#8b949e" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="none"/>
+<path d="M 895.6,350.1 Q 903.7,513.1 873.0,673.3" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 764.1,319.5 Q 771.2,352.9 786.1,383.6" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 760.1,340.7 Q 643.5,387.6 519.0,405.7" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 771.9,312.8 Q 639.9,344.1 519.0,405.7" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 352.6,440.2 Q 841.2,454.1 1327.1,400.1" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 378.8,488.7 Q 334.2,459.2 297.9,419.9" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 365.4,487.1 Q 327.6,457.6 297.9,419.9" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 449.2,402.6 Q 412.4,449.9 365.4,487.1" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 420.4,377.2 Q 439.2,422.2 468.2,461.4" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 315.6,482.9 Q 351.7,495.0 389.6,498.2" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 280.9,471.6 Q 310.1,413.5 352.1,364.0" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 450.5,491.5 Q 395.0,433.4 354.8,363.8" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 498.7,458.5 Q 505.0,450.5 509.3,441.1" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 389.1,517.8 Q 448.3,463.0 518.9,423.7" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 240.2,440.7 Q 509.7,379.4 786.1,383.6" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 277.7,500.6 Q 524.9,411.6 786.1,383.6" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 225.8,430.2 Q 370.9,400.4 519.0,405.7" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 337.8,355.4 Q 431.4,369.7 519.0,405.7" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 253.3,395.6 Q 292.6,464.6 347.0,522.2" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 527.8,415.9 Q 671.8,391.3 817.5,401.6" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 404.7,525.3 Q 394.5,524.4 384.5,526.0" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 231.0,455.7 Q 229.8,433.3 223.3,411.8" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 1175.3,449.0 Q 999.5,445.1 829.6,399.6" fill="none" stroke="#8b949e" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="none"/>
+<path d="M 1183.1,486.9 Q 1162.9,468.4 1138.9,455.2" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 1342.3,477.2 Q 1241.9,454.0 1138.9,455.2" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 1139.3,472.0 Q 832.8,405.0 519.0,405.7" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 1004.1,707.4 Q 975.1,684.9 941.7,669.8" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 920.2,678.2 Q 931.4,675.3 941.7,669.8" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 941.7,669.8 Q 947.3,666.9 952.1,662.8" fill="none" stroke="#8b949e" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="none"/>
+<path d="M 941.7,669.8 Q 975.2,669.4 1007.7,661.2" fill="none" stroke="#8b949e" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="none"/>
+<path d="M 1016.8,669.7 Q 679.0,611.7 359.3,488.1" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 894.4,700.9 Q 948.8,710.8 1004.1,707.4" fill="none" stroke="#8b949e" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="none"/>
+<path d="M 894.4,700.9 Q 889.7,704.9 884.2,707.7" fill="none" stroke="#8b949e" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="none"/>
+<path d="M 886.1,695.4 Q 657.0,611.7 454.2,476.1" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 884.2,707.7 Q 948.8,691.9 1007.7,661.2" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 878.1,693.8 Q 883.4,717.4 894.1,739.1" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 983.6,649.4 Q 949.1,687.2 924.5,732.1" fill="none" stroke="#8b949e" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="none"/>
+<path d="M 983.6,649.4 Q 1005.9,657.1 1025.7,669.9" fill="none" stroke="#8b949e" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="none"/>
+<path d="M 983.6,649.4 Q 1003.7,697.6 1034.6,739.7" fill="none" stroke="#8b949e" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="none"/>
+<path d="M 930.3,639.7 Q 958.0,639.5 984.8,632.7" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 954.6,635.0 Q 930.6,690.6 894.1,739.1" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<path d="M 1067.0,655.7 Q 742.4,557.1 404.7,525.3" fill="none" stroke="#6e7681" stroke-opacity="0.28" stroke-width="1.15" stroke-dasharray="3 7"/>
+<text x="833.7" y="265.7" fill="#f2cc60" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Consolas,monospace" font-size="14" font-weight="700" letter-spacing="1.3">GAME / 33</text>
+<text x="378.8" y="320.1" fill="#58a6ff" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Consolas,monospace" font-size="14" font-weight="700" letter-spacing="1.3">MEDIA / 136</text>
+<text x="1246.4" y="356.0" fill="#7ee787" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Consolas,monospace" font-size="14" font-weight="700" letter-spacing="1.3">WEB / 56</text>
+<text x="960.0" y="598.4" fill="#d2a8ff" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Consolas,monospace" font-size="14" font-weight="700" letter-spacing="1.3">WORKSTATION / 78</text>
+<circle cx="830.7" cy="364.1" r="8.35" fill="none" stroke="#f2cc60" stroke-width="1.2" stroke-opacity="0.55"/>
+<circle cx="830.7" cy="364.1" r="4.35" fill="#f2cc60" opacity="0.88"><title>game:adaptive-query-bench — Adaptive Query Bench</title></circle>
+<circle cx="843.2" cy="371.5" r="4.28" fill="#f2cc60" opacity="0.88"><title>game:backpressure-live-bench — Backpressure Live Bench</title></circle>
+<circle cx="848.7" cy="372.1" r="3.21" fill="#f2cc60" opacity="0.88"><title>game:batch-zero — Batch Zero: Planning Under Ghost Demand</title></circle>
+<circle cx="850.1" cy="320.5" r="3.04" fill="#f2cc60" opacity="0.88"><title>game:casefile — Casefile</title></circle>
+<circle cx="871.7" cy="364.1" r="3.04" fill="#f2cc60" opacity="0.88"><title>game:constrained-creation-canvas — Constrained Creation Canvas</title></circle>
+<circle cx="870.1" cy="358.7" r="4.25" fill="#f2cc60" opacity="0.88"><title>game:braess-toll-bench — Daily Braess Toll Bench 20260830</title></circle>
+<circle cx="871.8" cy="316.4" r="4.32" fill="#f2cc60" opacity="0.88"><title>game:latch-hall-commitment-bench — Daily Latch Hall Commitment Bench 20260830</title></circle>
+<circle cx="895.6" cy="350.1" r="4.75" fill="#f2cc60" opacity="0.88"><title>game:memory-weave-repair-bench — Daily Memory Weave Repair 20260830</title></circle>
+<circle cx="874.3" cy="363.2" r="3.98" fill="#f2cc60" opacity="0.88"><title>game:dice-ring — Dice Ring</title></circle>
+<circle cx="841.8" cy="316.8" r="3.04" fill="#f2cc60" opacity="0.88"><title>game:echo-hunt — Echo Hunt</title></circle>
+<circle cx="798.6" cy="375.5" r="3.21" fill="#f2cc60" opacity="0.88"><title>game:grid-queue — Grid Queue</title></circle>
+<circle cx="832.9" cy="316.6" r="3.04" fill="#f2cc60" opacity="0.88"><title>game:last-light — Last Light</title></circle>
+<circle cx="782.5" cy="319.1" r="3.21" fill="#f2cc60" opacity="0.88"><title>game:look-away-garden — Look Away Garden</title></circle>
+<circle cx="894.7" cy="348.4" r="3.04" fill="#f2cc60" opacity="0.88"><title>game:mote-weather — Mote Weather</title></circle>
+<circle cx="843.2" cy="306.2" r="3.73" fill="#f2cc60" opacity="0.88"><title>game:nine-wells — Nine Wells / 九井</title></circle>
+<circle cx="861.3" cy="388.1" r="8.38" fill="none" stroke="#f2cc60" stroke-width="1.2" stroke-opacity="0.55"/>
+<circle cx="861.3" cy="388.1" r="4.38" fill="#f2cc60" opacity="0.88"><title>game:observer-switchboard — Observer Switchboard</title></circle>
+<circle cx="787.5" cy="380.9" r="2.52" fill="#f2cc60" opacity="0.88"><title>game:one-button-gets-tired — One Button Gets Tired</title></circle>
+<circle cx="909.0" cy="354.4" r="3.46" fill="#f2cc60" opacity="0.88"><title>game:one-rule-garden — One Rule Garden</title></circle>
+<circle cx="762.3" cy="339.3" r="3.04" fill="#f2cc60" opacity="0.88"><title>game:precision-traversal — Precision Traversal</title></circle>
+<circle cx="875.8" cy="305.5" r="6.01" fill="#f2cc60" opacity="0.88"><title>game:veilwild-r1 — Project Veilwild R1</title></circle>
+<circle cx="911.5" cy="350.8" r="3.21" fill="#f2cc60" opacity="0.88"><title>game:queuekeeper — Queuekeeper</title></circle>
+<circle cx="779.6" cy="319.5" r="3.04" fill="#f2cc60" opacity="0.88"><title>game:relay-case-causal-reconstruction — Relay Case: causal reconstruction</title></circle>
+<circle cx="786.1" cy="383.6" r="3.34" fill="#f2cc60" opacity="0.88"><title>game:seen-not-approved — Seen Not Approved</title></circle>
+<circle cx="764.1" cy="319.5" r="2.82" fill="#f2cc60" opacity="0.88"><title>game:seen-not-approved-pcb — Seen Not Approved Pcb</title></circle>
+<circle cx="771.9" cy="312.8" r="3.65" fill="#f2cc60" opacity="0.88"><title>game:signal-garden-rc-evidence-twin — Signal Garden RC Evidence Twin</title></circle>
+<circle cx="760.1" cy="340.7" r="3.65" fill="#f2cc60" opacity="0.88"><title>game:signal-garden-evidence-petals — Signal Garden — Evidence Petals</title></circle>
+<circle cx="764.0" cy="331.6" r="3.92" fill="#f2cc60" opacity="0.88"><title>game:signal-garden-daily — Signal Garden — Game Daily</title></circle>
+<circle cx="829.6" cy="399.6" r="4.21" fill="#f2cc60" opacity="0.88"><title>game:station-zero — Station Zero</title></circle>
+<circle cx="920.9" cy="346.3" r="3.04" fill="#f2cc60" opacity="0.88"><title>game:tactical-commitment — Tactical Commitment</title></circle>
+<circle cx="804.9" cy="299.6" r="3.04" fill="#f2cc60" opacity="0.88"><title>game:the-floodgate — The Floodgate</title></circle>
+<circle cx="817.5" cy="401.6" r="3.46" fill="#f2cc60" opacity="0.88"><title>game:three-color-night-shift — Three Color Night Shift</title></circle>
+<circle cx="859.1" cy="299.3" r="3.86" fill="#f2cc60" opacity="0.88"><title>game:three-doors — Three Doors / 三扇门</title></circle>
+<circle cx="845.9" cy="296.0" r="2.52" fill="#f2cc60" opacity="0.88"><title>game:words-left-in-the-lift — Words Left In The Lift</title></circle>
+<circle cx="352.6" cy="440.2" r="3.04" fill="#58a6ff" opacity="0.88"><title>media:0919-office-talisman — 09:19 Office Talisman</title></circle>
+<circle cx="414.4" cy="434.4" r="3.65" fill="#58a6ff" opacity="0.88"><title>media:after-the-pulse — After The Pulse</title></circle>
+<circle cx="386.4" cy="464.0" r="3.86" fill="#58a6ff" opacity="0.88"><title>media:aggregation-prism — Aggregation Prism</title></circle>
+<circle cx="330.7" cy="434.6" r="3.56" fill="#58a6ff" opacity="0.88"><title>media:alignment-field — Alignment Field</title></circle>
+<circle cx="383.6" cy="466.4" r="3.34" fill="#58a6ff" opacity="0.88"><title>media:almost-arriving — Almost Arriving</title></circle>
+<circle cx="338.7" cy="420.3" r="4.08" fill="#58a6ff" opacity="0.88"><title>media:almost-together — Almost Together</title></circle>
+<circle cx="371.4" cy="406.7" r="3.56" fill="#58a6ff" opacity="0.88"><title>media:artifact-standing-envelope-v0 — Artifact Standing Envelope</title></circle>
+<circle cx="393.1" cy="467.9" r="5.63" fill="#58a6ff" opacity="0.88"><title>media:atlas-census — Atlas Census</title></circle>
+<circle cx="432.6" cy="451.0" r="2.52" fill="#58a6ff" opacity="0.88"><title>media:blender-exit-zero — Blender Exit Zero</title></circle>
+<circle cx="432.0" cy="417.8" r="4.03" fill="#58a6ff" opacity="0.88"><title>media:bootstrap-layer-console — Bootstrap Layer Console</title></circle>
+<circle cx="443.6" cy="423.4" r="3.86" fill="#58a6ff" opacity="0.88"><title>media:braess-gate — Braess Gate</title></circle>
+<circle cx="432.4" cy="448.0" r="3.34" fill="#58a6ff" opacity="0.88"><title>media:browser-perception-note — Browser Perception Note</title></circle>
+<circle cx="307.0" cy="430.2" r="3.92" fill="#58a6ff" opacity="0.88"><title>media:c2-reality-loop — C2 Reality Loop Simulator</title></circle>
+<circle cx="304.6" cy="430.5" r="3.73" fill="#58a6ff" opacity="0.88"><title>media:cabinet-token-encounter — Cabinet Token Encounter</title></circle>
+<circle cx="344.4" cy="472.8" r="3.98" fill="#58a6ff" opacity="0.88"><title>media:capital-closure-navigator — Capital Closure Navigator</title></circle>
+<circle cx="340.8" cy="397.1" r="3.65" fill="#58a6ff" opacity="0.88"><title>media:capital-reality-cards — Capital Reality Cards</title></circle>
+<circle cx="445.7" cy="427.9" r="8.28" fill="none" stroke="#58a6ff" stroke-width="1.2" stroke-opacity="0.55"/>
+<circle cx="445.7" cy="427.9" r="4.28" fill="#58a6ff" opacity="0.88"><title>media:carrier-rain — Carrier Rain</title></circle>
+<circle cx="368.4" cy="481.5" r="2.82" fill="#58a6ff" opacity="0.88"><title>media:closed-workspace-postcard — Closed Workspace Postcard</title></circle>
+<circle cx="452.3" cy="428.0" r="3.56" fill="#58a6ff" opacity="0.88"><title>media:collective-authority-routing — Collective Authority Routing</title></circle>
+<circle cx="448.7" cy="453.2" r="3.92" fill="#58a6ff" opacity="0.88"><title>media:common-mode-root-map — Common-Mode Root Map</title></circle>
+<circle cx="308.8" cy="457.4" r="3.92" fill="#58a6ff" opacity="0.88"><title>media:commons-pass — Commons Pass</title></circle>
+<circle cx="331.7" cy="395.3" r="4.03" fill="#58a6ff" opacity="0.88"><title>media:competitive-reality-navigator — Competitive Reality Navigator</title></circle>
+<circle cx="375.6" cy="389.2" r="4.03" fill="#58a6ff" opacity="0.88"><title>media:consumer-interaction-review-cards — Consumer Interaction Review Cards</title></circle>
+<circle cx="377.6" cy="391.6" r="3.92" fill="#58a6ff" opacity="0.88"><title>media:convergence-sonic-ident — Convergence — Ordivon Sonic Ident 001</title></circle>
+<circle cx="311.9" cy="414.5" r="3.34" fill="#58a6ff" opacity="0.88"><title>media:counterwind-harbor — Counterwind Harbor</title></circle>
+<circle cx="383.2" cy="483.6" r="3.98" fill="#58a6ff" opacity="0.88"><title>media:discipline-pressure-deck — Discipline Pressure Deck</title></circle>
+<circle cx="308.3" cy="400.6" r="3.92" fill="#58a6ff" opacity="0.88"><title>media:distinction-arcade-r0 — Distinction Arcade R0</title></circle>
+<circle cx="352.8" cy="391.8" r="3.98" fill="#58a6ff" opacity="0.88"><title>media:domain-coverage-compass — Domain Coverage Compass</title></circle>
+<circle cx="297.9" cy="419.9" r="4.28" fill="#58a6ff" opacity="0.88"><title>media:drift-compass — Drift Compass</title></circle>
+<circle cx="378.8" cy="488.7" r="3.86" fill="#58a6ff" opacity="0.88"><title>media:drift-compass-causal-seam — Drift Compass Causal Seam</title></circle>
+<circle cx="365.4" cy="487.1" r="4.17" fill="#58a6ff" opacity="0.88"><title>media:drift-compass-error-audio — Drift Compass Error Audio</title></circle>
+<circle cx="449.2" cy="402.6" r="4.25" fill="#58a6ff" opacity="0.88"><title>media:drift-compass-error-phase-audio — Drift Compass Error Phase Audio</title></circle>
+<circle cx="445.3" cy="398.2" r="3.73" fill="#58a6ff" opacity="0.88"><title>media:echo-field — Echo Field</title></circle>
+<circle cx="329.7" cy="484.9" r="3.92" fill="#58a6ff" opacity="0.88"><title>media:effect-recovery-lab — Effect Recovery Lab</title></circle>
+<circle cx="308.5" cy="395.1" r="3.92" fill="#58a6ff" opacity="0.88"><title>media:effect-recovery-lens — Effect Recovery Lens</title></circle>
+<circle cx="292.0" cy="457.2" r="3.98" fill="#58a6ff" opacity="0.88"><title>media:equal-center — Equal Center</title></circle>
+<circle cx="303.7" cy="472.2" r="3.92" fill="#58a6ff" opacity="0.88"><title>media:exit-residue-ledger — Exit Residue Ledger</title></circle>
+<circle cx="359.3" cy="488.1" r="3.86" fill="#58a6ff" opacity="0.88"><title>media:feedback-loom — Feedback Loom</title></circle>
+<circle cx="477.1" cy="441.3" r="3.86" fill="#58a6ff" opacity="0.88"><title>media:formation-timeline-lab — Formation Timeline Lab</title></circle>
+<circle cx="462.9" cy="461.9" r="2.52" fill="#58a6ff" opacity="0.88"><title>media:free-memory-is-not-a-shape — Free Memory Is Not a Shape</title></circle>
+<circle cx="326.9" cy="386.0" r="3.86" fill="#58a6ff" opacity="0.88"><title>media:frustration-triangle — Frustration Triangle</title></circle>
+<circle cx="295.0" cy="459.3" r="3.21" fill="#58a6ff" opacity="0.88"><title>media:gesture-orrery — Gesture Orrery</title></circle>
+<circle cx="452.3" cy="390.9" r="4.03" fill="#58a6ff" opacity="0.88"><title>media:glass-elevator — Glass Elevator</title></circle>
+<circle cx="401.6" cy="495.2" r="3.98" fill="#58a6ff" opacity="0.88"><title>media:historical-selection-lens — Historical Selection Lens</title></circle>
+<circle cx="291.8" cy="397.0" r="3.92" fill="#58a6ff" opacity="0.88"><title>media:hysteresis-garden — Hysteresis Garden</title></circle>
+<circle cx="468.2" cy="461.4" r="4.99" fill="#58a6ff" opacity="0.88"><title>media:hysteresis-lantern — Hysteresis Lantern</title></circle>
+<circle cx="420.4" cy="377.2" r="4.32" fill="#58a6ff" opacity="0.88"><title>media:hysteresis-lantern-analog-gate — Hysteresis Lantern Analog Gate</title></circle>
+<circle cx="277.3" cy="447.4" r="3.86" fill="#58a6ff" opacity="0.88"><title>media:judgment-lens — Judgment Lens</title></circle>
+<circle cx="389.6" cy="498.2" r="3.21" fill="#58a6ff" opacity="0.88"><title>media:last-store-open — Last Store Open</title></circle>
+<circle cx="315.6" cy="482.9" r="2.82" fill="#58a6ff" opacity="0.88"><title>media:last-store-open-relay-text — Last Store Open Relay Text</title></circle>
+<circle cx="274.3" cy="429.3" r="7.86" fill="none" stroke="#58a6ff" stroke-width="1.2" stroke-opacity="0.55"/>
+<circle cx="274.3" cy="429.3" r="3.86" fill="#58a6ff" opacity="0.88"><title>media:latch-hall — Latch Hall</title></circle>
+<circle cx="397.6" cy="500.3" r="3.86" fill="#58a6ff" opacity="0.88"><title>media:lineage-shelf — Lineage Shelf</title></circle>
+<circle cx="454.2" cy="476.1" r="4.08" fill="#58a6ff" opacity="0.88"><title>media:living-field — Living Field</title></circle>
+<circle cx="269.5" cy="434.8" r="3.86" fill="#58a6ff" opacity="0.88"><title>media:log-volvelle — Log Volvelle</title></circle>
+<circle cx="459.0" cy="482.2" r="2.52" fill="#58a6ff" opacity="0.88"><title>media:logarithmic-volvelle — Logarithmic Volvelle</title></circle>
+<circle cx="408.3" cy="495.7" r="3.21" fill="#58a6ff" opacity="0.88"><title>media:memory-after-pulse — Memory After Pulse</title></circle>
+<circle cx="490.3" cy="425.3" r="3.73" fill="#58a6ff" opacity="0.88"><title>media:mhs-hardware-boundary — MHS Hardware Boundary</title></circle>
+<circle cx="275.9" cy="418.9" r="2.52" fill="#58a6ff" opacity="0.88"><title>media:mobius-boundary-register — Möbius Boundary Register</title></circle>
+<circle cx="375.4" cy="368.6" r="3.92" fill="#58a6ff" opacity="0.88"><title>media:mobius-boundary-walk — Möbius Boundary Walk</title></circle>
+<circle cx="279.4" cy="459.5" r="4.03" fill="#58a6ff" opacity="0.88"><title>media:night-buoy — Night Buoy</title></circle>
+<circle cx="502.3" cy="432.6" r="2.82" fill="#58a6ff" opacity="0.88"><title>media:nine-ways-a-door-can-almost-open — Nine Ways a Door Can Almost Open</title></circle>
+<circle cx="261.3" cy="457.8" r="3.92" fill="#58a6ff" opacity="0.88"><title>media:nontransitive-dice — Nontransitive Dice</title></circle>
+<circle cx="491.5" cy="440.8" r="3.65" fill="#58a6ff" opacity="0.88"><title>media:one-bell-three-rooms — One Bell, Three Rooms</title></circle>
+<circle cx="267.9" cy="448.6" r="3.86" fill="#58a6ff" opacity="0.88"><title>media:one-line-constellation — One-Line Constellation</title></circle>
+<circle cx="352.1" cy="364.0" r="3.04" fill="#58a6ff" opacity="0.88"><title>media:opaque-seed-01 — Opaque Seed 01</title></circle>
+<circle cx="280.9" cy="471.6" r="2.52" fill="#58a6ff" opacity="0.88"><title>media:opaque-seed-response-01 — Opaque Seed Response 01</title></circle>
+<circle cx="413.3" cy="500.8" r="3.34" fill="#58a6ff" opacity="0.88"><title>media:open-contact — Open Contact</title></circle>
+<circle cx="383.5" cy="500.8" r="2.82" fill="#58a6ff" opacity="0.88"><title>media:opportunity-window-strip-v2 — Opportunity Window Strip v2</title></circle>
+<circle cx="416.5" cy="411.0" r="3.92" fill="#58a6ff" opacity="0.88"><title>media:atlas-of-atlases — Ordivon Atlas of Atlases</title></circle>
+<circle cx="489.1" cy="414.6" r="4.28" fill="#58a6ff" opacity="0.88"><title>media:ordivon-book-v0 — Ordivon Book v0</title></circle>
+<circle cx="245.0" cy="467.2" r="3.56" fill="#58a6ff" opacity="0.88"><title>media:site-social-card — Ordivon Root Social Card</title></circle>
+<circle cx="340.3" cy="365.9" r="3.56" fill="#58a6ff" opacity="0.88"><title>media:osrce-reconstruction-xray — OSRCE Reconstruction X-ray</title></circle>
+<circle cx="436.5" cy="493.8" r="3.86" fill="#58a6ff" opacity="0.88"><title>media:paper-gray-register — Paper Gray Register</title></circle>
+<circle cx="264.9" cy="407.6" r="3.92" fill="#58a6ff" opacity="0.88"><title>media:paper-sentence-engine — Paper Sentence Engine</title></circle>
+<circle cx="444.6" cy="378.8" r="3.34" fill="#58a6ff" opacity="0.88"><title>media:partial-observation-trap — Partial Observation Trap</title></circle>
+<circle cx="354.8" cy="363.8" r="7.86" fill="none" stroke="#58a6ff" stroke-width="1.2" stroke-opacity="0.55"/>
+<circle cx="354.8" cy="363.8" r="3.86" fill="#58a6ff" opacity="0.88"><title>media:pendulum-choir — Pendulum Choir</title></circle>
+<circle cx="450.5" cy="491.5" r="4.21" fill="#58a6ff" opacity="0.88"><title>media:pendulum-choir-sonification — Pendulum Choir Sonification</title></circle>
+<circle cx="325.7" cy="371.9" r="4.71" fill="#58a6ff" opacity="0.88"><title>media:phase-dial — Phase Dial</title></circle>
+<circle cx="477.8" cy="390.8" r="3.46" fill="#58a6ff" opacity="0.88"><title>media:power-claim-linter — Power Claim Linter</title></circle>
+<circle cx="258.0" cy="415.5" r="3.86" fill="#58a6ff" opacity="0.88"><title>media:proof-carrier-gate — Proof Carrier Gate</title></circle>
+<circle cx="301.4" cy="380.0" r="3.86" fill="#58a6ff" opacity="0.88"><title>media:proof-graph-shuffle — Proof Graph Shuffle</title></circle>
+<circle cx="428.6" cy="368.5" r="3.56" fill="#58a6ff" opacity="0.88"><title>media:proof-shuffle-puzzle — Proof Shuffle Puzzle</title></circle>
+<circle cx="254.6" cy="465.9" r="3.98" fill="#58a6ff" opacity="0.88"><title>media:question-referent-fence — Question Referent Fence</title></circle>
+<circle cx="362.0" cy="513.8" r="2.52" fill="#58a6ff" opacity="0.88"><title>media:reaction-constellation-pcb-peer-standing — Reaction Constellation PCB — peer standing</title></circle>
+<circle cx="509.3" cy="441.1" r="3.34" fill="#58a6ff" opacity="0.88"><title>media:reaction-orrery — Reaction Orrery</title></circle>
+<circle cx="486.1" cy="394.5" r="3.04" fill="#58a6ff" opacity="0.88"><title>media:reaction-pings — Reaction Pings</title></circle>
+<circle cx="498.7" cy="458.5" r="3.04" fill="#58a6ff" opacity="0.88"><title>media:reaction-token — Reaction Token</title></circle>
+<circle cx="405.4" cy="509.9" r="3.92" fill="#58a6ff" opacity="0.88"><title>media:reconstruction-lens — Reconstruction Lens</title></circle>
+<circle cx="333.0" cy="362.8" r="3.86" fill="#58a6ff" opacity="0.88"><title>media:recovery-lens — Recovery Lens</title></circle>
+<circle cx="508.1" cy="448.7" r="3.92" fill="#58a6ff" opacity="0.88"><title>media:recovery-root-lab — Recovery Root Lab</title></circle>
+<circle cx="283.3" cy="488.5" r="3.56" fill="#58a6ff" opacity="0.88"><title>media:redeployability-shock — Redeployability Shock</title></circle>
+<circle cx="362.0" cy="514.9" r="2.52" fill="#58a6ff" opacity="0.88"><title>media:relay-moth — Relay Moth</title></circle>
+<circle cx="250.8" cy="413.1" r="3.04" fill="#58a6ff" opacity="0.88"><title>media:replay-relation-matrix — Replay Relation Matrix</title></circle>
+<circle cx="318.2" cy="508.5" r="7.86" fill="none" stroke="#58a6ff" stroke-width="1.2" stroke-opacity="0.55"/>
+<circle cx="318.2" cy="508.5" r="3.86" fill="#58a6ff" opacity="0.88"><title>media:representation-compression-lab — Representation Compression Lab</title></circle>
+<circle cx="513.2" cy="449.6" r="3.92" fill="#58a6ff" opacity="0.88"><title>media:research-memory-lens — Research Memory Lens</title></circle>
+<circle cx="400.8" cy="356.5" r="3.34" fill="#58a6ff" opacity="0.88"><title>media:residual-chime — Residual Chime</title></circle>
+<circle cx="474.7" cy="493.4" r="3.56" fill="#58a6ff" opacity="0.88"><title>media:resource-fence-drill — Resource Fence Drill</title></circle>
+<circle cx="331.9" cy="358.6" r="3.56" fill="#58a6ff" opacity="0.88"><title>media:retention-compass — Retention Compass</title></circle>
+<circle cx="369.6" cy="518.7" r="3.56" fill="#58a6ff" opacity="0.88"><title>media:retirement-receipt — Retirement Receipt</title></circle>
+<circle cx="377.1" cy="355.5" r="3.98" fill="#58a6ff" opacity="0.88"><title>media:retry-authority-lab — Retry Authority Lab</title></circle>
+<circle cx="379.3" cy="515.6" r="3.80" fill="#58a6ff" opacity="0.88"><title>media:retry-or-reconcile — Retry or Reconcile?</title></circle>
+<circle cx="518.9" cy="423.7" r="4.25" fill="#58a6ff" opacity="0.88"><title>media:runtime-introduction — Runtime Introduction</title></circle>
+<circle cx="389.1" cy="517.8" r="3.34" fill="#58a6ff" opacity="0.88"><title>media:runtime-introduction-review — Runtime Introduction Review</title></circle>
+<circle cx="289.9" cy="504.0" r="3.04" fill="#58a6ff" opacity="0.88"><title>media:same-words-narrower-room — Same Words, Narrower Room</title></circle>
+<circle cx="421.6" cy="354.0" r="3.86" fill="#58a6ff" opacity="0.88"><title>media:sealed-octant — Sealed Octant</title></circle>
+<circle cx="240.2" cy="440.7" r="3.04" fill="#58a6ff" opacity="0.88"><title>media:seen-not-approved-pcb — Seen Not Approved Pcb</title></circle>
+<circle cx="277.7" cy="500.6" r="3.21" fill="#58a6ff" opacity="0.88"><title>media:seen-not-approved-spice — Seen Not Approved Spice</title></circle>
+<circle cx="519.0" cy="405.7" r="8.17" fill="none" stroke="#58a6ff" stroke-width="1.2" stroke-opacity="0.55"/>
+<circle cx="519.0" cy="405.7" r="4.17" fill="#58a6ff" opacity="0.88"><title>media:signal-garden — Signal Garden</title></circle>
+<circle cx="225.8" cy="430.2" r="3.80" fill="#58a6ff" opacity="0.88"><title>media:signal-garden-evidence-twin — Signal Garden Evidence Twin</title></circle>
+<circle cx="337.8" cy="355.4" r="4.25" fill="#58a6ff" opacity="0.88"><title>media:signal-garden-sonification — Signal Garden Sonification</title></circle>
+<circle cx="347.0" cy="522.2" r="3.92" fill="#58a6ff" opacity="0.88"><title>media:skill-ecosystem-atlas — Skill Ecosystem Atlas</title></circle>
+<circle cx="253.3" cy="395.6" r="3.98" fill="#58a6ff" opacity="0.88"><title>media:skill-ecosystem-atlas-r4 — Skill Ecosystem Atlas R4</title></circle>
+<circle cx="401.7" cy="521.0" r="3.98" fill="#58a6ff" opacity="0.88"><title>media:skill-router — Skill Router</title></circle>
+<circle cx="451.0" cy="511.8" r="3.04" fill="#58a6ff" opacity="0.88"><title>media:still-point-moving-room — Still Point, Moving Room</title></circle>
+<circle cx="498.5" cy="377.6" r="3.73" fill="#58a6ff" opacity="0.88"><title>media:studio-expression-card — Studio Expression Card</title></circle>
+<circle cx="264.2" cy="377.5" r="8.58" fill="none" stroke="#58a6ff" stroke-width="1.2" stroke-opacity="0.55"/>
+<circle cx="264.2" cy="377.5" r="4.58" fill="#58a6ff" opacity="0.88"><title>media:studio-orrery — Studio Orrery</title></circle>
+<circle cx="227.6" cy="413.2" r="3.73" fill="#58a6ff" opacity="0.88"><title>media:task-lifecycle-triage — Task Lifecycle Triage</title></circle>
+<circle cx="505.5" cy="475.0" r="3.65" fill="#58a6ff" opacity="0.88"><title>media:tension-field — Tension Field</title></circle>
+<circle cx="225.2" cy="436.4" r="2.82" fill="#58a6ff" opacity="0.88"><title>media:the-gap-decides — The Gap Decides</title></circle>
+<circle cx="294.3" cy="476.9" r="3.04" fill="#58a6ff" opacity="0.88"><title>media:missing-corner — The Missing Corner</title></circle>
+<circle cx="518.7" cy="463.6" r="3.65" fill="#58a6ff" opacity="0.88"><title>media:the-wrong-arrow — The Wrong Arrow</title></circle>
+<circle cx="527.8" cy="415.9" r="2.52" fill="#58a6ff" opacity="0.88"><title>media:three-color-night-trial — Three Color Night Trial</title></circle>
+<circle cx="498.7" cy="493.7" r="3.65" fill="#58a6ff" opacity="0.88"><title>media:three-dots-one-exit — Three Dots One Exit</title></circle>
+<circle cx="389.7" cy="524.0" r="3.04" fill="#58a6ff" opacity="0.88"><title>media:traceable-useful — TRACEABLE / USEFUL?</title></circle>
+<circle cx="498.1" cy="487.8" r="3.86" fill="#58a6ff" opacity="0.88"><title>media:treaty-ring — Treaty Ring</title></circle>
+<circle cx="465.8" cy="513.8" r="3.80" fill="#58a6ff" opacity="0.88"><title>media:trial-funnel-microscope — Trial Funnel Microscope</title></circle>
+<circle cx="404.7" cy="525.3" r="7.86" fill="none" stroke="#58a6ff" stroke-width="1.2" stroke-opacity="0.55"/>
+<circle cx="404.7" cy="525.3" r="3.86" fill="#58a6ff" opacity="0.88"><title>media:twin-veil — Twin Veil Interactive Reconstruction Lab</title></circle>
+<circle cx="384.5" cy="526.0" r="4.44" fill="#58a6ff" opacity="0.88"><title>media:twin-veil-study — Twin Veil Study</title></circle>
+<circle cx="223.3" cy="411.8" r="3.04" fill="#58a6ff" opacity="0.88"><title>media:visible-field — Visible Field 01</title></circle>
+<circle cx="231.0" cy="455.7" r="4.21" fill="#58a6ff" opacity="0.88"><title>media:visible-field-history-lens — Visible Field History Lens</title></circle>
+<circle cx="293.3" cy="513.0" r="3.98" fill="#58a6ff" opacity="0.88"><title>media:wake-chain-flight-recorder — Wake Chain Flight Recorder</title></circle>
+<circle cx="533.3" cy="424.2" r="2.82" fill="#58a6ff" opacity="0.88"><title>media:weather-for-things-that-choose — Weather for Things That Choose</title></circle>
+<circle cx="486.6" cy="363.0" r="3.98" fill="#58a6ff" opacity="0.88"><title>media:wind-cage — Wind Cage</title></circle>
+<circle cx="451.6" cy="518.4" r="7.73" fill="none" stroke="#58a6ff" stroke-width="1.2" stroke-opacity="0.55"/>
+<circle cx="451.6" cy="518.4" r="3.73" fill="#58a6ff" opacity="0.88"><title>media:witness-orbit — Witness Orbit</title></circle>
+<circle cx="269.4" cy="370.2" r="3.86" fill="#58a6ff" opacity="0.88"><title>media:wsl-b1-restart-boundary — WSL B1 Restart Boundary Card</title></circle>
+<circle cx="454.7" cy="352.0" r="3.56" fill="#58a6ff" opacity="0.88"><title>media:yield-survivor-game — Yield Survivor Game</title></circle>
+<circle cx="1201.7" cy="447.2" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:a-better-looking-result-can-still-be-noise — A Better Looking Result Can Still Be Noise</title></circle>
+<circle cx="1330.1" cy="467.6" r="3.56" fill="#7ee787" opacity="0.88"><title>web:between-states — Between States</title></circle>
+<circle cx="1236.7" cy="505.1" r="2.52" fill="#7ee787" opacity="0.88"><title>web:board-social-lens — Board Social Lens</title></circle>
+<circle cx="1149.6" cy="459.9" r="3.34" fill="#7ee787" opacity="0.88"><title>web:charge-and-forget — Charge And Forget</title></circle>
+<circle cx="1225.1" cy="429.4" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:communication-is-gameplay-state — Communication Is Gameplay State</title></circle>
+<circle cx="1216.2" cy="431.7" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:correctness-is-not-isolation — Correctness Is Not Isolation</title></circle>
+<circle cx="1191.3" cy="451.5" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:creation-judgment-recoverable-systems — Creation Judgment Recoverable Systems</title></circle>
+<circle cx="1233.4" cy="507.2" r="2.82" fill="#7ee787" opacity="0.88"><title>web:drift-glass — Drift Glass</title></circle>
+<circle cx="1160.7" cy="407.8" r="2.52" fill="#7ee787" opacity="0.88"><title>web:note:finharness-capital-control-kernel — FinHarness as a capital control kernel</title></circle>
+<circle cx="1214.9" cy="389.4" r="2.52" fill="#7ee787" opacity="0.88"><title>web:note:from-linear-phases-to-typed-relations — From linear phases to typed relations</title></circle>
+<circle cx="1299.7" cy="434.4" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:link-edge-boundary — From Link and Edge to Ordivon World</title></circle>
+<circle cx="1209.4" cy="424.4" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:from-tokens-to-work — From Tokens To Work</title></circle>
+<circle cx="1301.0" cy="459.2" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:history-did-not-prove-us-right — History Did Not Prove Us Right</title></circle>
+<circle cx="1297.1" cy="493.3" r="2.52" fill="#7ee787" opacity="0.88"><title>web:jellyfish-tea — Jellyfish Tea</title></circle>
+<circle cx="1138.9" cy="455.2" r="2.52" fill="#7ee787" opacity="0.88"><title>web:kinetic-balance — Kinetic Balance</title></circle>
+<circle cx="1187.6" cy="497.3" r="2.52" fill="#7ee787" opacity="0.88"><title>web:missing-attempts — Missing Attempts</title></circle>
+<circle cx="1156.6" cy="484.9" r="2.82" fill="#7ee787" opacity="0.88"><title>web:no-record-no-event — No Record No Event</title></circle>
+<circle cx="1235.2" cy="479.0" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:one-authority-thirteen-tables — One Authority Thirteen Tables</title></circle>
+<circle cx="1342.2" cy="474.4" r="2.52" fill="#7ee787" opacity="0.88"><title>web:orbit-chime — Orbit Chime</title></circle>
+<circle cx="1305.5" cy="433.8" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:runtime-after-core — Ordivon Runtime after the core</title></circle>
+<circle cx="1278.0" cy="479.5" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:ordivon-runtime-release — Ordivon Runtime: from governance platform to durable execution</title></circle>
+<circle cx="1183.1" cy="486.9" r="2.82" fill="#7ee787" opacity="0.88"><title>web:balance-field-card — Playful R75</title></circle>
+<circle cx="1342.3" cy="477.2" r="2.52" fill="#7ee787" opacity="0.88"><title>web:kinetic-balance-desk-toy — Playful R76</title></circle>
+<circle cx="1251.3" cy="466.1" r="2.52" fill="#7ee787" opacity="0.88"><title>web:afterglow-dial — Playful R80</title></circle>
+<circle cx="1224.3" cy="395.2" r="2.52" fill="#7ee787" opacity="0.88"><title>web:foreground-without-ranking — Playful R86</title></circle>
+<circle cx="1152.7" cy="468.1" r="2.52" fill="#7ee787" opacity="0.88"><title>web:one-person-different-relations — Playful R94</title></circle>
+<circle cx="1237.4" cy="486.1" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:replay-without-second-truth-store — Replay Without Second Truth Store</title></circle>
+<circle cx="1218.2" cy="383.4" r="2.52" fill="#7ee787" opacity="0.88"><title>web:note:semantic-core-after-measurement — Semantic Core: what remained after measurement</title></circle>
+<circle cx="1139.3" cy="472.0" r="2.52" fill="#7ee787" opacity="0.88"><title>web:signal-garden-sketch — Signal Garden</title></circle>
+<circle cx="1315.9" cy="451.9" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:smaller-core-strong-baselines — Smaller Core Strong Baselines</title></circle>
+<circle cx="1175.3" cy="449.0" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:station-zero-alpha-1 — Station Zero Alpha 1</title></circle>
+<circle cx="1287.2" cy="417.5" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:the-agent-asked-for-more-evidence-the-answer-became-no — The Agent Asked For More Evidence The Answer Became No</title></circle>
+<circle cx="1329.8" cy="406.3" r="2.52" fill="#7ee787" opacity="0.88"><title>web:note:agent-effect-commit-kernel — The Agent Effect Commit Kernel</title></circle>
+<circle cx="1324.3" cy="440.6" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:the-agent-knew-the-goal-it-still-wouldnt-do-it — The Agent Knew The Goal It Still Wouldnt Do It</title></circle>
+<circle cx="1239.1" cy="490.9" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:the-command-succeeded-did-anything-happen — The Command Succeeded Did Anything Happen</title></circle>
+<circle cx="1237.8" cy="491.5" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:the-constitution-changed-the-agent-that-wasnt-enough — The Constitution Changed The Agent That Wasnt Enough</title></circle>
+<circle cx="1314.2" cy="462.1" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:the-decision-was-valid-the-portfolio-changed — The Decision Was Valid The Portfolio Changed</title></circle>
+<circle cx="1205.0" cy="487.5" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:the-evidence-is-real-it-is-still-too-old — The Evidence Is Real It Is Still Too Old</title></circle>
+<circle cx="1182.9" cy="415.7" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:the-future-will-not-wait — The Future Will Not Wait</title></circle>
+<circle cx="1200.9" cy="411.5" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:the-model-finished-the-protocol-wasnt-done — The Model Finished The Protocol Wasnt Done</title></circle>
+<circle cx="1327.1" cy="400.1" r="2.52" fill="#7ee787" opacity="0.88"><title>web:the-office-is-thinking — The Office Is Thinking</title></circle>
+<circle cx="1207.6" cy="487.3" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:the-patterns-recurred-our-taxonomy-got-worse — The Patterns Recurred Our Taxonomy Got Worse</title></circle>
+<circle cx="1267.1" cy="488.8" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:the-shorter-explanation-won — The Shorter Explanation Won</title></circle>
+<circle cx="1223.7" cy="491.7" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:thin-host-without-hidden-planner — Thin Host Without Hidden Planner</title></circle>
+<circle cx="1281.5" cy="491.9" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:transcript-not-task-database — Transcript Not Task Database</title></circle>
+<circle cx="1193.7" cy="395.6" r="2.52" fill="#7ee787" opacity="0.88"><title>web:unknown-is-a-state — Unknown Is a State</title></circle>
+<circle cx="1282.4" cy="402.3" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:unknown-is-operational-state — Unknown Is Operational State</title></circle>
+<circle cx="1258.0" cy="493.6" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:we-cut-203-observations-to-8-and-still-didnt-edit — We Cut 203 Observations To 8 And Still Didnt Edit</title></circle>
+<circle cx="1166.2" cy="441.0" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:we-deleted-16-8-gb-not-because-it-was-old — We Deleted 16 8 Gb Not Because It Was Old</title></circle>
+<circle cx="1227.2" cy="394.5" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:we-sorted-the-evidence-accuracy-got-worse — We Sorted The Evidence Accuracy Got Worse</title></circle>
+<circle cx="1336.2" cy="458.0" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:what-h1-h5-proved — What H1 H5 Proved</title></circle>
+<circle cx="1215.2" cy="395.3" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:why-ordivon — Why Ordivon matters in the AI era</title></circle>
+<circle cx="1170.3" cy="476.3" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:why-ordivon-needs-a-harness — Why Ordivon Needs A Harness</title></circle>
+<circle cx="1296.0" cy="425.9" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:host-task-continuity — Why Task continuity belongs above execution</title></circle>
+<circle cx="1250.4" cy="395.2" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:winning-move-loses-contest — Winning Move Loses Contest</title></circle>
+<circle cx="1314.4" cy="413.6" r="2.52" fill="#7ee787" opacity="0.88"><title>web:article:world-got-smaller-and-got-clearer — World Got Smaller And Got Clearer</title></circle>
+<circle cx="930.1" cy="704.7" r="4.08" fill="#d2a8ff" opacity="0.88"><title>workstation:abbe-rail — Abbe Rail</title></circle>
+<circle cx="928.4" cy="713.6" r="4.35" fill="#d2a8ff" opacity="0.88"><title>workstation:arc-reference-card — Arc Reference Card</title></circle>
+<circle cx="990.6" cy="720.5" r="2.52" fill="#d2a8ff" opacity="0.88"><title>workstation:braid-equivalence-card-v0 — Braid Equivalence Card</title></circle>
+<circle cx="1004.1" cy="707.4" r="3.98" fill="#d2a8ff" opacity="0.88"><title>workstation:brewster-detector-headroom-gate — Brewster Detector Headroom Gate</title></circle>
+<circle cx="920.2" cy="678.2" r="3.98" fill="#d2a8ff" opacity="0.88"><title>workstation:brewster-lockin-headroom-gate — Brewster Lockin Headroom Gate</title></circle>
+<circle cx="941.7" cy="669.8" r="4.03" fill="#d2a8ff" opacity="0.88"><title>workstation:brewster-lockin-observer-protocol — Brewster Lockin Observer Protocol</title></circle>
+<circle cx="952.1" cy="662.8" r="7.86" fill="none" stroke="#d2a8ff" stroke-width="1.2" stroke-opacity="0.55"/>
+<circle cx="952.1" cy="662.8" r="3.86" fill="#d2a8ff" opacity="0.88"><title>workstation:brewster-null — Brewster Null</title></circle>
+<circle cx="1001.9" cy="676.7" r="3.80" fill="#d2a8ff" opacity="0.88"><title>workstation:buckling-reed — Buckling Reed</title></circle>
+<circle cx="915.3" cy="720.4" r="4.08" fill="#d2a8ff" opacity="0.88"><title>workstation:capillary-pressure-sign-pair — Capillary Pressure Sign Pair</title></circle>
+<circle cx="905.3" cy="680.7" r="4.32" fill="#d2a8ff" opacity="0.88"><title>workstation:clearance-ladder — Clearance Ladder</title></circle>
+<circle cx="906.0" cy="712.8" r="4.13" fill="#d2a8ff" opacity="0.88"><title>workstation:conditioned-nest — Conditioned Nest</title></circle>
+<circle cx="1003.3" cy="729.8" r="4.03" fill="#d2a8ff" opacity="0.88"><title>workstation:cosine-rail — Cosine Rail</title></circle>
+<circle cx="924.5" cy="732.1" r="3.98" fill="#d2a8ff" opacity="0.88"><title>workstation:driven-guard — Driven Guard</title></circle>
+<circle cx="981.3" cy="658.6" r="4.21" fill="#d2a8ff" opacity="0.88"><title>workstation:dual-shadow-solid — Dual Shadow Solid</title></circle>
+<circle cx="1016.8" cy="669.7" r="4.17" fill="#d2a8ff" opacity="0.88"><title>workstation:feedback-loom-analog-ring — Feedback Loom Analog Ring</title></circle>
+<circle cx="1019.1" cy="680.6" r="3.98" fill="#d2a8ff" opacity="0.88"><title>workstation:hallway-allocation-card — Hallway Allocation Card</title></circle>
+<circle cx="894.4" cy="700.9" r="4.03" fill="#d2a8ff" opacity="0.88"><title>workstation:headroom-noise-gain-time-envelope — Headroom Noise Gain Time Envelope</title></circle>
+<circle cx="966.1" cy="741.2" r="4.25" fill="#d2a8ff" opacity="0.88"><title>workstation:helmholtz-cavity-pair — Helmholtz Cavity Pair</title></circle>
+<circle cx="904.8" cy="730.6" r="4.08" fill="#d2a8ff" opacity="0.88"><title>workstation:holonomy-triangle — Holonomy Triangle</title></circle>
+<circle cx="901.3" cy="673.3" r="4.03" fill="#d2a8ff" opacity="0.88"><title>workstation:intervention-twin — Intervention Twin</title></circle>
+<circle cx="918.2" cy="732.7" r="3.86" fill="#d2a8ff" opacity="0.88"><title>workstation:kelvin-abba-drift-card — Kelvin ABBA Drift Card</title></circle>
+<circle cx="1025.7" cy="669.9" r="4.03" fill="#d2a8ff" opacity="0.88"><title>workstation:kelvin-four-wire — Kelvin Four Wire</title></circle>
+<circle cx="874.6" cy="691.7" r="4.38" fill="#d2a8ff" opacity="0.88"><title>workstation:kelvin-reversal-coupon — Kelvin Reversal Coupon</title></circle>
+<circle cx="886.1" cy="695.4" r="5.11" fill="#d2a8ff" opacity="0.88"><title>workstation:living-field-numerical-fossil — Living Field Numerical Fossil</title></circle>
+<circle cx="1034.9" cy="682.1" r="4.08" fill="#d2a8ff" opacity="0.88"><title>workstation:load-path-fuse — Load Path Fuse</title></circle>
+<circle cx="884.2" cy="707.7" r="3.98" fill="#d2a8ff" opacity="0.88"><title>workstation:lock-in-noise-clock — Lock In Noise Clock</title></circle>
+<circle cx="1007.7" cy="661.2" r="3.92" fill="#d2a8ff" opacity="0.88"><title>workstation:lock-in-lantern — Lock-in Lantern</title></circle>
+<circle cx="927.2" cy="653.9" r="4.62" fill="#d2a8ff" opacity="0.88"><title>workstation:marginal-fiber-atlas — Marginal Fiber Atlas</title></circle>
+<circle cx="909.1" cy="732.2" r="3.98" fill="#d2a8ff" opacity="0.88"><title>workstation:marginal-twins — Marginal Twins</title></circle>
+<circle cx="1022.3" cy="667.3" r="4.13" fill="#d2a8ff" opacity="0.88"><title>workstation:maxwell-reciprocity-frame — Maxwell Reciprocity Frame</title></circle>
+<circle cx="878.1" cy="693.8" r="3.98" fill="#d2a8ff" opacity="0.88"><title>workstation:measured-pair — Measured Pair</title></circle>
+<circle cx="983.6" cy="649.4" r="3.34" fill="#d2a8ff" opacity="0.88"><title>workstation:measurement-front-end-protocol — Measurement Front End Protocol</title></circle>
+<circle cx="873.0" cy="673.3" r="4.08" fill="#d2a8ff" opacity="0.88"><title>workstation:memory-weave — Memory Weave</title></circle>
+<circle cx="1024.3" cy="734.5" r="3.86" fill="#d2a8ff" opacity="0.88"><title>workstation:metrology-frame — Metrology Frame</title></circle>
+<circle cx="1045.9" cy="683.7" r="4.38" fill="#d2a8ff" opacity="0.88"><title>workstation:moire-vernier-dial — Moiré Vernier Dial</title></circle>
+<circle cx="864.1" cy="695.0" r="3.73" fill="#d2a8ff" opacity="0.88"><title>workstation:nuisance-geometry-atlas — Nuisance Geometry Atlas</title></circle>
+<circle cx="915.4" cy="745.8" r="4.28" fill="#d2a8ff" opacity="0.88"><title>workstation:null-bridge — Null Bridge</title></circle>
+<circle cx="913.2" cy="750.4" r="4.35" fill="#d2a8ff" opacity="0.88"><title>workstation:observer-load-gate — Observer Load Gate</title></circle>
+<circle cx="903.2" cy="651.5" r="3.46" fill="#d2a8ff" opacity="0.88"><title>workstation:open-description-relay — Open Description Relay</title></circle>
+<circle cx="868.3" cy="717.6" r="3.65" fill="#d2a8ff" opacity="0.88"><title>workstation:peaucellier-clearance-obstruction — Peaucellier Clearance Obstruction</title></circle>
+<circle cx="869.0" cy="702.0" r="8.35" fill="none" stroke="#d2a8ff" stroke-width="1.2" stroke-opacity="0.55"/>
+<circle cx="869.0" cy="702.0" r="4.35" fill="#d2a8ff" opacity="0.88"><title>workstation:peaucellier-five-layer — Peaucellier Five-Layer Candidate</title></circle>
+<circle cx="905.1" cy="649.0" r="3.92" fill="#d2a8ff" opacity="0.88"><title>workstation:peaucellier-tolerance-audit — Peaucellier Tolerance Audit</title></circle>
+<circle cx="867.3" cy="697.7" r="4.58" fill="#d2a8ff" opacity="0.88"><title>workstation:pendulum-choir-photogate-bench — Pendulum Choir Photogate Bench</title></circle>
+<circle cx="864.0" cy="672.6" r="3.98" fill="#d2a8ff" opacity="0.88"><title>workstation:percussion-ruler — Percussion Ruler</title></circle>
+<circle cx="1033.0" cy="734.8" r="3.34" fill="#d2a8ff" opacity="0.88"><title>workstation:personal-binding-navigator — Personal Binding Navigator v0</title></circle>
+<circle cx="1012.6" cy="750.2" r="4.41" fill="#d2a8ff" opacity="0.88"><title>workstation:photogate-evidence-applicability-ladder — Photogate Evidence Applicability Ladder</title></circle>
+<circle cx="894.1" cy="739.1" r="3.98" fill="#d2a8ff" opacity="0.88"><title>workstation:polarity-pair — Polarity Pair</title></circle>
+<circle cx="858.5" cy="675.3" r="3.86" fill="#d2a8ff" opacity="0.88"><title>workstation:preload-nest — Preload Nest</title></circle>
+<circle cx="1034.6" cy="739.7" r="4.25" fill="#d2a8ff" opacity="0.88"><title>workstation:probe-burden — Probe Burden</title></circle>
+<circle cx="1049.0" cy="659.5" r="3.65" fill="#d2a8ff" opacity="0.88"><title>workstation:prouhet-reversal-ladder — Prouhet Reversal Ladder</title></circle>
+<circle cx="867.0" cy="672.7" r="4.03" fill="#d2a8ff" opacity="0.88"><title>workstation:r2r-ladder-dac — R-2R Ladder DAC</title></circle>
+<circle cx="1062.8" cy="727.7" r="4.03" fill="#d2a8ff" opacity="0.88"><title>workstation:ratiometric-reference-coupon — Ratiometric Reference Coupon</title></circle>
+<circle cx="1042.5" cy="738.1" r="2.52" fill="#d2a8ff" opacity="0.88"><title>workstation:reality-loop-beacon-v0 — Reality Loop Beacon v0</title></circle>
+<circle cx="876.3" cy="741.6" r="3.65" fill="#d2a8ff" opacity="0.88"><title>workstation:reality-readiness-matrix — Reality Readiness Matrix</title></circle>
+<circle cx="954.4" cy="629.6" r="4.32" fill="#d2a8ff" opacity="0.88"><title>workstation:reciprocity-mirror — Reciprocity Mirror</title></circle>
+<circle cx="930.3" cy="639.7" r="4.28" fill="#d2a8ff" opacity="0.88"><title>workstation:relay-moth-optical-readout-envelope — Relay Moth Optical Readout Envelope</title></circle>
+<circle cx="984.8" cy="632.7" r="4.89" fill="#d2a8ff" opacity="0.88"><title>workstation:relay-moth — Relay Moth Persistence Rotor</title></circle>
+<circle cx="948.2" cy="764.2" r="4.28" fill="#d2a8ff" opacity="0.88"><title>workstation:resonance-ladder — Resonance Ladder</title></circle>
+<circle cx="954.6" cy="635.0" r="3.92" fill="#d2a8ff" opacity="0.88"><title>workstation:reversal-window — Reversal Window</title></circle>
+<circle cx="945.7" cy="765.1" r="4.17" fill="#d2a8ff" opacity="0.88"><title>workstation:reversible-lattice-echo — Reversible Lattice Echo</title></circle>
+<circle cx="1002.9" cy="761.8" r="4.03" fill="#d2a8ff" opacity="0.88"><title>workstation:runtime-clock-grain — Runtime Clock Grain</title></circle>
+<circle cx="943.1" cy="765.8" r="4.35" fill="#d2a8ff" opacity="0.88"><title>workstation:sacrificial-bridge — Sacrificial Bridge</title></circle>
+<circle cx="861.3" cy="731.8" r="4.03" fill="#d2a8ff" opacity="0.88"><title>workstation:scale-sag — Scale Sag</title></circle>
+<circle cx="990.2" cy="766.7" r="3.56" fill="#d2a8ff" opacity="0.88"><title>workstation:scm-rights-capability-relay — SCM_RIGHTS Capability Relay</title></circle>
+<circle cx="1059.8" cy="729.1" r="4.35" fill="#d2a8ff" opacity="0.88"><title>workstation:self-stress-prism — Self Stress Prism</title></circle>
+<circle cx="883.7" cy="645.8" r="4.03" fill="#d2a8ff" opacity="0.88"><title>workstation:seventh-shim — Seventh Shim</title></circle>
+<circle cx="835.6" cy="684.9" r="3.92" fill="#d2a8ff" opacity="0.88"><title>workstation:signal-garden-cam-encoder — Signal Garden Cam Encoder</title></circle>
+<circle cx="889.3" cy="748.5" r="4.47" fill="#d2a8ff" opacity="0.88"><title>workstation:signal-garden-cam-triptych — Signal Garden Cam Triptych</title></circle>
+<circle cx="945.8" cy="769.7" r="4.21" fill="#d2a8ff" opacity="0.88"><title>workstation:signal-seed — Signal Seed</title></circle>
+<circle cx="903.7" cy="632.5" r="3.98" fill="#d2a8ff" opacity="0.88"><title>workstation:simpson-fold — Simpson Fold</title></circle>
+<circle cx="875.7" cy="643.8" r="4.25" fill="#d2a8ff" opacity="0.88"><title>workstation:six-touch-nest — Six Touch Nest</title></circle>
+<circle cx="1071.8" cy="722.8" r="4.13" fill="#d2a8ff" opacity="0.88"><title>workstation:strobe-twins — Strobe Twins</title></circle>
+<circle cx="983.3" cy="765.0" r="4.03" fill="#d2a8ff" opacity="0.88"><title>workstation:temporal-alias-wheel — Temporal Alias Wheel</title></circle>
+<circle cx="876.4" cy="643.7" r="4.13" fill="#d2a8ff" opacity="0.88"><title>workstation:thermal-differential-coupon — Thermal Differential Coupon</title></circle>
+<circle cx="857.4" cy="741.8" r="3.86" fill="#d2a8ff" opacity="0.88"><title>workstation:thermal-equal-energy-twins — Thermal Equal-Energy Twins</title></circle>
+<circle cx="1048.5" cy="753.7" r="4.03" fill="#d2a8ff" opacity="0.88"><title>workstation:thermal-pulse — Thermal Pulse</title></circle>
+<circle cx="1067.0" cy="655.7" r="4.62" fill="#d2a8ff" opacity="0.88"><title>workstation:twin-veil-registration-gate — Twin Veil Registration Gate</title></circle>
+<circle cx="1062.1" cy="647.3" r="3.86" fill="#d2a8ff" opacity="0.88"><title>workstation:windup-glass — Windup Glass</title></circle>
+<line x1="830.7" y1="364.1" x2="819.7" y2="356.1" stroke="#f2cc60" stroke-opacity="0.45"/>
+<text x="814.7" y="353.1" fill="#d0d7de" text-anchor="end" font-family="Inter,Segoe UI,sans-serif" font-size="11.5">Adaptive Query Bench</text>
+<line x1="861.3" y1="388.1" x2="872.3" y2="380.1" stroke="#f2cc60" stroke-opacity="0.45"/>
+<text x="877.3" y="377.1" fill="#d0d7de" text-anchor="start" font-family="Inter,Segoe UI,sans-serif" font-size="11.5">Observer Switchboard</text>
+<line x1="519.0" y1="405.7" x2="530.0" y2="397.7" stroke="#58a6ff" stroke-opacity="0.45"/>
+<text x="535.0" y="394.7" fill="#d0d7de" text-anchor="start" font-family="Inter,Segoe UI,sans-serif" font-size="11.5">Signal Garden</text>
+<line x1="404.7" y1="525.3" x2="415.7" y2="517.3" stroke="#58a6ff" stroke-opacity="0.45"/>
+<text x="420.7" y="514.3" fill="#d0d7de" text-anchor="start" font-family="Inter,Segoe UI,sans-serif" font-size="11.5">Twin Veil Interactive Reco…</text>
+<line x1="1183.1" y1="486.9" x2="1172.1" y2="478.9" stroke="#7ee787" stroke-opacity="0.45"/>
+<text x="1167.1" y="475.9" fill="#d0d7de" text-anchor="end" font-family="Inter,Segoe UI,sans-serif" font-size="11.5">Playful R75</text>
+<line x1="1138.9" y1="455.2" x2="1127.9" y2="447.2" stroke="#7ee787" stroke-opacity="0.45"/>
+<text x="1122.9" y="444.2" fill="#d0d7de" text-anchor="end" font-family="Inter,Segoe UI,sans-serif" font-size="11.5">Kinetic Balance</text>
+<line x1="952.1" y1="662.8" x2="941.1" y2="654.8" stroke="#d2a8ff" stroke-opacity="0.45"/>
+<text x="936.1" y="651.8" fill="#d0d7de" text-anchor="end" font-family="Inter,Segoe UI,sans-serif" font-size="11.5">Brewster Null</text>
+<line x1="869.0" y1="702.0" x2="858.0" y2="694.0" stroke="#d2a8ff" stroke-opacity="0.45"/>
+<text x="853.0" y="691.0" fill="#d0d7de" text-anchor="end" font-family="Inter,Segoe UI,sans-serif" font-size="11.5">Peaucellier Five-Layer Can…</text>
+<rect x="1120" y="720" width="392" height="160" rx="18" fill="#11161d" stroke="#30363d"/>
+<text x="1142" y="750" fill="#f0f6fc" font-family="ui-monospace,SFMono-Regular,Consolas,monospace" font-size="12" font-weight="700" letter-spacing="1">READING THE MAP</text>
+<line x1="1142" y1="774" x2="1192" y2="774" stroke="#6e7681" stroke-width="1.4" stroke-dasharray="3 7"/><text x="1208" y="779" fill="#8b949e" font-family="Inter,Segoe UI,sans-serif" font-size="13">DERIVATIVE_OF — 35</text>
+<line x1="1142" y1="802" x2="1192" y2="802" stroke="#8b949e" stroke-width="1.4"/><text x="1208" y="807" fill="#8b949e" font-family="Inter,Segoe UI,sans-serif" font-size="13">CONSUMER_OF — 10</text>
+<circle cx="1150" cy="832" r="5" fill="#58a6ff"/><circle cx="1150" cy="832" r="9" fill="none" stroke="#58a6ff" stroke-opacity=".55"/><text x="1170" y="837" fill="#8b949e" font-family="Inter,Segoe UI,sans-serif" font-size="13">ring = featured work · size ≈ carrier count</text>
+<text x="1142" y="865" fill="#6e7681" font-family="Inter,Segoe UI,sans-serif" font-size="11">proximity is composition, not semantic similarity</text>
+<line x1="86" y1="906" x2="1514" y2="906" stroke="#21262d"/>
+<text x="86" y="934" fill="#6e7681" font-family="ui-monospace,SFMono-Regular,Consolas,monospace" font-size="12">SOURCE CATALOG cfbd3ff1533b7b2d… · frozen snapshot · exact details in GeoPackage / interactive companion</text>
+<text x="1514" y="934" fill="#6e7681" text-anchor="end" font-family="ui-monospace,SFMono-Regular,Consolas,monospace" font-size="12">NO GEOGRAPHY · NO DEPENDENCY INFERENCE</text>
 </svg>

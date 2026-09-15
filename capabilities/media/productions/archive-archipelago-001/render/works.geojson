@@ -20,7 +20,9 @@
         "modalities": "html,image,text",
         "carrier_count": 22,
         "evidence_level": "A",
-        "source_revision": "ac7727e69c9af4aa431d3ba61b942e21fe13a5ac"
+        "source_revision": "ac7727e69c9af4aa431d3ba61b942e21fe13a5ac",
+        "featured": true,
+        "relation_degree": 0
       }
     },
     {
@@ -42,7 +44,9 @@
         "modalities": "html,image,text",
         "carrier_count": 20,
         "evidence_level": "A",
-        "source_revision": "160f298f96573417a6cf7532fddda18c307e31c3"
+        "source_revision": "160f298f96573417a6cf7532fddda18c307e31c3",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -64,7 +68,9 @@
         "modalities": "html,text",
         "carrier_count": 4,
         "evidence_level": "A",
-        "source_revision": "5ab55f6917fd4321bea6892685d221408d8b33ac"
+        "source_revision": "5ab55f6917fd4321bea6892685d221408d8b33ac",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -86,7 +92,9 @@
         "modalities": "html",
         "carrier_count": 3,
         "evidence_level": "A",
-        "source_revision": "4fee603fd9cdf49e2b1447bacfe374e1778620ea"
+        "source_revision": "4fee603fd9cdf49e2b1447bacfe374e1778620ea",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -108,7 +116,9 @@
         "modalities": "html",
         "carrier_count": 3,
         "evidence_level": "A",
-        "source_revision": "2ef9c011ea9a49ed341fef5611818aff042fe7c4"
+        "source_revision": "2ef9c011ea9a49ed341fef5611818aff042fe7c4",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -130,7 +140,9 @@
         "modalities": "html,image,text",
         "carrier_count": 19,
         "evidence_level": "A",
-        "source_revision": "bcb522a6b0240a5f50d151ca77ee20533291e533"
+        "source_revision": "bcb522a6b0240a5f50d151ca77ee20533291e533",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -152,7 +164,9 @@
         "modalities": "html,image,text",
         "carrier_count": 21,
         "evidence_level": "A",
-        "source_revision": "d8224caed70260e60a447307083a9dc13915d0aa"
+        "source_revision": "d8224caed70260e60a447307083a9dc13915d0aa",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -174,7 +188,9 @@
         "modalities": "html,image,text",
         "carrier_count": 38,
         "evidence_level": "A",
-        "source_revision": "5a68d706342485ff58a742ff979b0ebd37d85729"
+        "source_revision": "5a68d706342485ff58a742ff979b0ebd37d85729",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -196,7 +212,9 @@
         "modalities": "godot,image,text",
         "carrier_count": 13,
         "evidence_level": "A",
-        "source_revision": "acb5a2740f67e5c807f24f599d3798a1979bd833"
+        "source_revision": "acb5a2740f67e5c807f24f599d3798a1979bd833",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -218,7 +236,9 @@
         "modalities": "html",
         "carrier_count": 3,
         "evidence_level": "A",
-        "source_revision": "fc31c1e1e4536fc7a672970c7e5afd6bc4d8627f"
+        "source_revision": "fc31c1e1e4536fc7a672970c7e5afd6bc4d8627f",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -240,7 +260,9 @@
         "modalities": "html,text",
         "carrier_count": 4,
         "evidence_level": "A",
-        "source_revision": "e242cfd5a3d3c5eec0807e4fa81c2c4dc02ed696"
+        "source_revision": "e242cfd5a3d3c5eec0807e4fa81c2c4dc02ed696",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -262,7 +284,9 @@
         "modalities": "html",
         "carrier_count": 3,
         "evidence_level": "A",
-        "source_revision": "fc31c1e1e4536fc7a672970c7e5afd6bc4d8627f"
+        "source_revision": "fc31c1e1e4536fc7a672970c7e5afd6bc4d8627f",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -284,7 +308,9 @@
         "modalities": "godot,text",
         "carrier_count": 4,
         "evidence_level": "A",
-        "source_revision": "3cc3a8c94bdec11716a7c4f7ad4b4742388173d5"
+        "source_revision": "3cc3a8c94bdec11716a7c4f7ad4b4742388173d5",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -306,7 +332,9 @@
         "modalities": "html",
         "carrier_count": 3,
         "evidence_level": "A",
-        "source_revision": "6eace5dbab19fbf54fea35e85a6c559d7c3cf6aa"
+        "source_revision": "6eace5dbab19fbf54fea35e85a6c559d7c3cf6aa",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -328,7 +356,9 @@
         "modalities": "godot,image,text",
         "carrier_count": 9,
         "evidence_level": "A",
-        "source_revision": "379ebdc82e74444e1b39c4ad53c0043348a11e08"
+        "source_revision": "379ebdc82e74444e1b39c4ad53c0043348a11e08",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -350,7 +380,9 @@
         "modalities": "html,image,text",
         "carrier_count": 23,
         "evidence_level": "A",
-        "source_revision": "745903311947e791e872eaf180653f6c9cabff21"
+        "source_revision": "745903311947e791e872eaf180653f6c9cabff21",
+        "featured": true,
+        "relation_degree": 0
       }
     },
     {
@@ -372,7 +404,9 @@
         "modalities": "",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "edc1f2dbee23e24fbf9bfa878b7531db87c45c8b"
+        "source_revision": "edc1f2dbee23e24fbf9bfa878b7531db87c45c8b",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -394,7 +428,9 @@
         "modalities": "html,text",
         "carrier_count": 6,
         "evidence_level": "A",
-        "source_revision": "e78b85e09fa9d4952d32d24393589fd782616842"
+        "source_revision": "e78b85e09fa9d4952d32d24393589fd782616842",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -416,7 +452,9 @@
         "modalities": "html",
         "carrier_count": 3,
         "evidence_level": "A",
-        "source_revision": "2ef9c011ea9a49ed341fef5611818aff042fe7c4"
+        "source_revision": "2ef9c011ea9a49ed341fef5611818aff042fe7c4",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -438,7 +476,9 @@
         "modalities": "godot,image,text",
         "carrier_count": 210,
         "evidence_level": "A",
-        "source_revision": "7c0fc088aa1ef73349e8a021ef10946453779db9"
+        "source_revision": "7c0fc088aa1ef73349e8a021ef10946453779db9",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -460,7 +500,9 @@
         "modalities": "html,text",
         "carrier_count": 4,
         "evidence_level": "A",
-        "source_revision": "555e68bd0930f57040e8b887cdc2cb069f57c81c"
+        "source_revision": "555e68bd0930f57040e8b887cdc2cb069f57c81c",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -482,7 +524,9 @@
         "modalities": "html",
         "carrier_count": 3,
         "evidence_level": "A",
-        "source_revision": "2ef9c011ea9a49ed341fef5611818aff042fe7c4"
+        "source_revision": "2ef9c011ea9a49ed341fef5611818aff042fe7c4",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -504,7 +548,9 @@
         "modalities": "image,text",
         "carrier_count": 5,
         "evidence_level": "A",
-        "source_revision": "8e8a307450c223ee29d4632f859e2b07cea3e2a2"
+        "source_revision": "8e8a307450c223ee29d4632f859e2b07cea3e2a2",
+        "featured": false,
+        "relation_degree": 3
       }
     },
     {
@@ -526,7 +572,9 @@
         "modalities": "eda,text",
         "carrier_count": 2,
         "evidence_level": "A",
-        "source_revision": "db71e5e04fb796f3a95711757a014efbfdbe1d33"
+        "source_revision": "db71e5e04fb796f3a95711757a014efbfdbe1d33",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -548,7 +596,9 @@
         "modalities": "godot,image,text",
         "carrier_count": 8,
         "evidence_level": "A",
-        "source_revision": "2d0099f6871f003deabaed8ecd7969fcf02db7c6"
+        "source_revision": "2d0099f6871f003deabaed8ecd7969fcf02db7c6",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -570,7 +620,9 @@
         "modalities": "godot,text",
         "carrier_count": 8,
         "evidence_level": "A",
-        "source_revision": "a04d3f4d75181b21fa34294236cd8c0cba069af5"
+        "source_revision": "a04d3f4d75181b21fa34294236cd8c0cba069af5",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -592,7 +644,9 @@
         "modalities": "godot,image,text",
         "carrier_count": 12,
         "evidence_level": "A",
-        "source_revision": "401cda17ab9881461b3c00e6a10d0f1c6099f571"
+        "source_revision": "401cda17ab9881461b3c00e6a10d0f1c6099f571",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -614,7 +668,9 @@
         "modalities": "html",
         "carrier_count": 18,
         "evidence_level": "A",
-        "source_revision": "430ed2f77a18d925963de8a8cb1e6f32142655d7"
+        "source_revision": "430ed2f77a18d925963de8a8cb1e6f32142655d7",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -636,7 +692,9 @@
         "modalities": "html",
         "carrier_count": 3,
         "evidence_level": "A",
-        "source_revision": "2ef9c011ea9a49ed341fef5611818aff042fe7c4"
+        "source_revision": "2ef9c011ea9a49ed341fef5611818aff042fe7c4",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -658,7 +716,9 @@
         "modalities": "html",
         "carrier_count": 3,
         "evidence_level": "A",
-        "source_revision": "2ef9c011ea9a49ed341fef5611818aff042fe7c4"
+        "source_revision": "2ef9c011ea9a49ed341fef5611818aff042fe7c4",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -680,7 +740,9 @@
         "modalities": "godot,text",
         "carrier_count": 6,
         "evidence_level": "A",
-        "source_revision": "7cd5ac1acbdc87916e62b2a5edad6c4187b5aa5e"
+        "source_revision": "7cd5ac1acbdc87916e62b2a5edad6c4187b5aa5e",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -702,7 +764,9 @@
         "modalities": "html,image,text",
         "carrier_count": 11,
         "evidence_level": "A",
-        "source_revision": "ee1664ea24b993ff9e3f76c423a0be179955a945"
+        "source_revision": "ee1664ea24b993ff9e3f76c423a0be179955a945",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -724,7 +788,9 @@
         "modalities": "",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "67ce46238a8f06dad5d6556cfff34e70f3fca126"
+        "source_revision": "67ce46238a8f06dad5d6556cfff34e70f3fca126",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -746,7 +812,9 @@
         "modalities": "pdf,text",
         "carrier_count": 3,
         "evidence_level": "A",
-        "source_revision": "df5fc91f04448e142be74123297735059627c4ca"
+        "source_revision": "df5fc91f04448e142be74123297735059627c4ca",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -768,7 +836,9 @@
         "modalities": "eda,image,text",
         "carrier_count": 8,
         "evidence_level": "A",
-        "source_revision": "efe2bade291f068ee6ea91e0e17b3680ec46b5c8"
+        "source_revision": "efe2bade291f068ee6ea91e0e17b3680ec46b5c8",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -790,7 +860,9 @@
         "modalities": "html,text",
         "carrier_count": 11,
         "evidence_level": "A",
-        "source_revision": "76811aeda02ef8772b9011f6ced7a8c04739bf6b"
+        "source_revision": "76811aeda02ef8772b9011f6ced7a8c04739bf6b",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -812,7 +884,9 @@
         "modalities": "godot,text",
         "carrier_count": 7,
         "evidence_level": "A",
-        "source_revision": "1ff82c9b7aa147f7c2825ff8e766a24b0ab72ad0"
+        "source_revision": "1ff82c9b7aa147f7c2825ff8e766a24b0ab72ad0",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -834,7 +908,9 @@
         "modalities": "text,video",
         "carrier_count": 5,
         "evidence_level": "A",
-        "source_revision": "208862781dc6e1b3054b74ff3f40bf8d81accb29"
+        "source_revision": "208862781dc6e1b3054b74ff3f40bf8d81accb29",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -856,7 +932,9 @@
         "modalities": "audio,html,text",
         "carrier_count": 15,
         "evidence_level": "A",
-        "source_revision": "6e7930c2bc54a703044a2c9de84ac9db6fcad9db"
+        "source_revision": "6e7930c2bc54a703044a2c9de84ac9db6fcad9db",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -878,7 +956,9 @@
         "modalities": "text",
         "carrier_count": 7,
         "evidence_level": "A",
-        "source_revision": "8e91fbe47820c2efe40009d102f8cd4c73aa9d4a"
+        "source_revision": "8e91fbe47820c2efe40009d102f8cd4c73aa9d4a",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -900,7 +980,9 @@
         "modalities": "html,image,text",
         "carrier_count": 125,
         "evidence_level": "A",
-        "source_revision": "b71f02ccce01f3fb40921ace09a4506b139ae1e9"
+        "source_revision": "b71f02ccce01f3fb40921ace09a4506b139ae1e9",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -922,7 +1004,9 @@
         "modalities": "image",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "52d0be38d5642153f1c4e1f4ce17400966d55922"
+        "source_revision": "52d0be38d5642153f1c4e1f4ce17400966d55922",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -944,7 +1028,9 @@
         "modalities": "html,text",
         "carrier_count": 14,
         "evidence_level": "A",
-        "source_revision": "c98c48486b94f189e39d24eb8d61b2bf3a0f2615"
+        "source_revision": "c98c48486b94f189e39d24eb8d61b2bf3a0f2615",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -966,7 +1052,9 @@
         "modalities": "html,text",
         "carrier_count": 11,
         "evidence_level": "A",
-        "source_revision": "bc51c27c97c38accf02f941b5710b66ad0fe5b50"
+        "source_revision": "bc51c27c97c38accf02f941b5710b66ad0fe5b50",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -988,7 +1076,9 @@
         "modalities": "text",
         "carrier_count": 5,
         "evidence_level": "A",
-        "source_revision": "c58898562d09d07ea867d3249c9b55353805df13"
+        "source_revision": "c58898562d09d07ea867d3249c9b55353805df13",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1010,7 +1100,9 @@
         "modalities": "html,text",
         "carrier_count": 12,
         "evidence_level": "A",
-        "source_revision": "23a313471f3b87ef04a1e2f082b0d8e9a52b7ae7"
+        "source_revision": "23a313471f3b87ef04a1e2f082b0d8e9a52b7ae7",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1032,7 +1124,9 @@
         "modalities": "image,text",
         "carrier_count": 9,
         "evidence_level": "A",
-        "source_revision": "8adbfdd5c4bfdac5d0df228cbe60d2a971a528ed"
+        "source_revision": "8adbfdd5c4bfdac5d0df228cbe60d2a971a528ed",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1054,7 +1148,9 @@
         "modalities": "html,text",
         "carrier_count": 13,
         "evidence_level": "A",
-        "source_revision": "7138ac52cddd8e171f14b365a1d87263444e5cd0"
+        "source_revision": "7138ac52cddd8e171f14b365a1d87263444e5cd0",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1076,7 +1172,9 @@
         "modalities": "image,text",
         "carrier_count": 8,
         "evidence_level": "A",
-        "source_revision": "9951bde0c46b09e502675fd9c9955fef5172f916"
+        "source_revision": "9951bde0c46b09e502675fd9c9955fef5172f916",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1098,7 +1196,9 @@
         "modalities": "audio,image,text",
         "carrier_count": 20,
         "evidence_level": "A",
-        "source_revision": "cd12aedf21cbf77a739a6a42a77376cfcf88dee7"
+        "source_revision": "cd12aedf21cbf77a739a6a42a77376cfcf88dee7",
+        "featured": true,
+        "relation_degree": 0
       }
     },
     {
@@ -1120,7 +1220,9 @@
         "modalities": "image,text",
         "carrier_count": 2,
         "evidence_level": "A",
-        "source_revision": "fb8fd469db189707497426a392fa27a1eba66015"
+        "source_revision": "fb8fd469db189707497426a392fa27a1eba66015",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1142,7 +1244,9 @@
         "modalities": "text",
         "carrier_count": 7,
         "evidence_level": "A",
-        "source_revision": "d6208f7f69ce1b2efe7954c2b0a872422dcbf520"
+        "source_revision": "d6208f7f69ce1b2efe7954c2b0a872422dcbf520",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1164,7 +1268,9 @@
         "modalities": "html,text",
         "carrier_count": 12,
         "evidence_level": "A",
-        "source_revision": "66cc19dc0b2ab0cb9bc3165b2d2491a58fb7c613"
+        "source_revision": "66cc19dc0b2ab0cb9bc3165b2d2491a58fb7c613",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1186,7 +1292,9 @@
         "modalities": "html,text",
         "carrier_count": 12,
         "evidence_level": "A",
-        "source_revision": "03c0fdd149addbcd03bd6b8474d2d93251b06a34"
+        "source_revision": "03c0fdd149addbcd03bd6b8474d2d93251b06a34",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1208,7 +1316,9 @@
         "modalities": "html,text",
         "carrier_count": 14,
         "evidence_level": "A",
-        "source_revision": "d5313d9db98a4f2aa9be7e724878f9970337d8a6"
+        "source_revision": "d5313d9db98a4f2aa9be7e724878f9970337d8a6",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1230,7 +1340,9 @@
         "modalities": "html,text",
         "carrier_count": 14,
         "evidence_level": "A",
-        "source_revision": "92a75046833c3edddbdaf46c88ba7c93810570c1"
+        "source_revision": "92a75046833c3edddbdaf46c88ba7c93810570c1",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1252,7 +1364,9 @@
         "modalities": "audio,image,text",
         "carrier_count": 12,
         "evidence_level": "A",
-        "source_revision": "9b64d58fe4a2fd8e906426e3b4fdfa4fcd81a180"
+        "source_revision": "9b64d58fe4a2fd8e906426e3b4fdfa4fcd81a180",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1274,7 +1388,9 @@
         "modalities": "html,text",
         "carrier_count": 5,
         "evidence_level": "A",
-        "source_revision": "e9ffc79001f7b67756c957a8226c03361ff79898"
+        "source_revision": "e9ffc79001f7b67756c957a8226c03361ff79898",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1296,7 +1412,9 @@
         "modalities": "html,pdf,text",
         "carrier_count": 13,
         "evidence_level": "A",
-        "source_revision": "56da227503fa7772dbe53d22d5d42b49672baa11"
+        "source_revision": "56da227503fa7772dbe53d22d5d42b49672baa11",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1318,7 +1436,9 @@
         "modalities": "html,text",
         "carrier_count": 12,
         "evidence_level": "A",
-        "source_revision": "2c91b57d13bbab495d33ddf9cb5941f110b5a879"
+        "source_revision": "2c91b57d13bbab495d33ddf9cb5941f110b5a879",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1340,7 +1460,9 @@
         "modalities": "html,text",
         "carrier_count": 13,
         "evidence_level": "A",
-        "source_revision": "c9fb818ad64d1b5a625eccae07465ba96707f131"
+        "source_revision": "c9fb818ad64d1b5a625eccae07465ba96707f131",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1362,7 +1484,9 @@
         "modalities": "image,text,video",
         "carrier_count": 20,
         "evidence_level": "A",
-        "source_revision": "a9abfcfdd894e89069012e8f483dde465142d100"
+        "source_revision": "a9abfcfdd894e89069012e8f483dde465142d100",
+        "featured": false,
+        "relation_degree": 2
       }
     },
     {
@@ -1384,7 +1508,9 @@
         "modalities": "html,text",
         "carrier_count": 11,
         "evidence_level": "A",
-        "source_revision": "8f70c38e63d26110c453a2911f8b022e4a67a464"
+        "source_revision": "8f70c38e63d26110c453a2911f8b022e4a67a464",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -1406,7 +1532,9 @@
         "modalities": "audio,image,text",
         "carrier_count": 17,
         "evidence_level": "A",
-        "source_revision": "55e18c95aad4be85df3a09fe583836b1e1dc3eac"
+        "source_revision": "55e18c95aad4be85df3a09fe583836b1e1dc3eac",
+        "featured": false,
+        "relation_degree": 2
       }
     },
     {
@@ -1428,7 +1556,9 @@
         "modalities": "audio,image,text",
         "carrier_count": 19,
         "evidence_level": "A",
-        "source_revision": "943cd7e6ac53b198b49d502fc3a31a036dda311e"
+        "source_revision": "943cd7e6ac53b198b49d502fc3a31a036dda311e",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -1450,7 +1580,9 @@
         "modalities": "godot,image,text",
         "carrier_count": 9,
         "evidence_level": "A",
-        "source_revision": "29a754cb860325fcdd3b6191e18d3e99c866a3dd"
+        "source_revision": "29a754cb860325fcdd3b6191e18d3e99c866a3dd",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1472,7 +1604,9 @@
         "modalities": "html,text",
         "carrier_count": 12,
         "evidence_level": "A",
-        "source_revision": "06dc796aad2a3945fc6823f50c973521cc5fa3ed"
+        "source_revision": "06dc796aad2a3945fc6823f50c973521cc5fa3ed",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1494,7 +1628,9 @@
         "modalities": "html,text",
         "carrier_count": 12,
         "evidence_level": "A",
-        "source_revision": "112b2ce8f91d9547f765c2d2f921249d0a9b0b6a"
+        "source_revision": "112b2ce8f91d9547f765c2d2f921249d0a9b0b6a",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1516,7 +1652,9 @@
         "modalities": "html,image,text",
         "carrier_count": 13,
         "evidence_level": "A",
-        "source_revision": "f19d30452f13c4ae84a930bf4aa466112a927b24"
+        "source_revision": "f19d30452f13c4ae84a930bf4aa466112a927b24",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1538,7 +1676,9 @@
         "modalities": "html,text",
         "carrier_count": 12,
         "evidence_level": "A",
-        "source_revision": "686e258de7d3b177f622df816fe957a18e0251c6"
+        "source_revision": "686e258de7d3b177f622df816fe957a18e0251c6",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1560,7 +1700,9 @@
         "modalities": "html,text",
         "carrier_count": 11,
         "evidence_level": "A",
-        "source_revision": "40f5767f22156c06310c6f40739011a0b278a0a7"
+        "source_revision": "40f5767f22156c06310c6f40739011a0b278a0a7",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -1582,7 +1724,9 @@
         "modalities": "html,text",
         "carrier_count": 11,
         "evidence_level": "A",
-        "source_revision": "9e8499fa9a3b6bb557429c00c36fbb0f9f18e035"
+        "source_revision": "9e8499fa9a3b6bb557429c00c36fbb0f9f18e035",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1604,7 +1748,9 @@
         "modalities": "html",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "af056aa27668a134d83d764f7b1956e494594677"
+        "source_revision": "af056aa27668a134d83d764f7b1956e494594677",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1626,7 +1772,9 @@
         "modalities": "html,text",
         "carrier_count": 11,
         "evidence_level": "A",
-        "source_revision": "de69c6aa158ed1d2b646d16fa2feb50f62a74aba"
+        "source_revision": "de69c6aa158ed1d2b646d16fa2feb50f62a74aba",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1648,7 +1796,9 @@
         "modalities": "image,text",
         "carrier_count": 4,
         "evidence_level": "A",
-        "source_revision": "ec905f09dc193dfa5dd8384f3315f3b5a0c86832"
+        "source_revision": "ec905f09dc193dfa5dd8384f3315f3b5a0c86832",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1670,7 +1820,9 @@
         "modalities": "audio,html,image,text",
         "carrier_count": 14,
         "evidence_level": "A",
-        "source_revision": "09a2b71d54aa4d49a73d2fde9fb02bd05f9bfe92"
+        "source_revision": "09a2b71d54aa4d49a73d2fde9fb02bd05f9bfe92",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1692,7 +1844,9 @@
         "modalities": "html,text",
         "carrier_count": 13,
         "evidence_level": "A",
-        "source_revision": "faa3fcb512bed7e486cbba96d2480dffc0502ba5"
+        "source_revision": "faa3fcb512bed7e486cbba96d2480dffc0502ba5",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1714,7 +1868,9 @@
         "modalities": "html,text",
         "carrier_count": 12,
         "evidence_level": "A",
-        "source_revision": "abc17d6e9dacae7c6d0b402a3e8b15bd68bd7c72"
+        "source_revision": "abc17d6e9dacae7c6d0b402a3e8b15bd68bd7c72",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1736,7 +1892,9 @@
         "modalities": "eda,image,text",
         "carrier_count": 53,
         "evidence_level": "A",
-        "source_revision": "c71cf7fcd3233ee497b6cb2ba319db1281f02bd7"
+        "source_revision": "c71cf7fcd3233ee497b6cb2ba319db1281f02bd7",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -1758,7 +1916,9 @@
         "modalities": "eda,image,text",
         "carrier_count": 21,
         "evidence_level": "A",
-        "source_revision": "25d85f51e40d562b1704b277518384d722e29267"
+        "source_revision": "25d85f51e40d562b1704b277518384d722e29267",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -1780,7 +1940,9 @@
         "modalities": "html,text",
         "carrier_count": 11,
         "evidence_level": "A",
-        "source_revision": "06dc796aad2a3945fc6823f50c973521cc5fa3ed"
+        "source_revision": "06dc796aad2a3945fc6823f50c973521cc5fa3ed",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1802,7 +1964,9 @@
         "modalities": "image,text",
         "carrier_count": 4,
         "evidence_level": "A",
-        "source_revision": "3b4c7b78b94cb7daae6b480d32942c50ebe27980"
+        "source_revision": "3b4c7b78b94cb7daae6b480d32942c50ebe27980",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -1824,7 +1988,9 @@
         "modalities": "text",
         "carrier_count": 2,
         "evidence_level": "A",
-        "source_revision": "43e3b567ebaedad1c063953beb2386f74d660815"
+        "source_revision": "43e3b567ebaedad1c063953beb2386f74d660815",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -1846,7 +2012,9 @@
         "modalities": "html,text",
         "carrier_count": 11,
         "evidence_level": "A",
-        "source_revision": "7b524bfc4d303d680607bfa34a9f7b587963bfb1"
+        "source_revision": "7b524bfc4d303d680607bfa34a9f7b587963bfb1",
+        "featured": true,
+        "relation_degree": 1
       }
     },
     {
@@ -1868,7 +2036,9 @@
         "modalities": "html,text",
         "carrier_count": 11,
         "evidence_level": "A",
-        "source_revision": "e7d27af05e187d50556a2a4fa5d0907d7d332949"
+        "source_revision": "e7d27af05e187d50556a2a4fa5d0907d7d332949",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1890,7 +2060,9 @@
         "modalities": "html,image,text,video",
         "carrier_count": 15,
         "evidence_level": "A",
-        "source_revision": "6a16b7ae7ecf0bb5f6c7a4754c7c0c19f761bc3b"
+        "source_revision": "6a16b7ae7ecf0bb5f6c7a4754c7c0c19f761bc3b",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -1912,7 +2084,9 @@
         "modalities": "html,text",
         "carrier_count": 11,
         "evidence_level": "A",
-        "source_revision": "ff0bd57235375c838cb3b80e12f0aba50c162537"
+        "source_revision": "ff0bd57235375c838cb3b80e12f0aba50c162537",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1934,7 +2108,9 @@
         "modalities": "image",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "f05626e4f6dd2d1eef505b204402cb3e78bc350d"
+        "source_revision": "f05626e4f6dd2d1eef505b204402cb3e78bc350d",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1956,7 +2132,9 @@
         "modalities": "audio,text",
         "carrier_count": 4,
         "evidence_level": "A",
-        "source_revision": "22612c3ae9b6cf87d2f1b97f5e85f300993925af"
+        "source_revision": "22612c3ae9b6cf87d2f1b97f5e85f300993925af",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -1978,7 +2156,9 @@
         "modalities": "text",
         "carrier_count": 9,
         "evidence_level": "A",
-        "source_revision": "7b83949f25263d267de1f2d3c10aa028ee9d9380"
+        "source_revision": "7b83949f25263d267de1f2d3c10aa028ee9d9380",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2000,7 +2180,9 @@
         "modalities": "image",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "1ed72c87533159a6762180dc813bb8cc04fe1023"
+        "source_revision": "1ed72c87533159a6762180dc813bb8cc04fe1023",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2022,7 +2204,9 @@
         "modalities": "html,text",
         "carrier_count": 12,
         "evidence_level": "A",
-        "source_revision": "e277336549aadf98c8f96d5592727a4888113136"
+        "source_revision": "e277336549aadf98c8f96d5592727a4888113136",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2044,7 +2228,9 @@
         "modalities": "html,image,text",
         "carrier_count": 14,
         "evidence_level": "A",
-        "source_revision": "f125fdbd3b45176fe0552b291d7e7f0f2f84df42"
+        "source_revision": "f125fdbd3b45176fe0552b291d7e7f0f2f84df42",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2066,7 +2252,9 @@
         "modalities": "image",
         "carrier_count": 2,
         "evidence_level": "A",
-        "source_revision": "2432584eb6f1e853df779b16a89100cd9278999f"
+        "source_revision": "2432584eb6f1e853df779b16a89100cd9278999f",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2088,7 +2276,9 @@
         "modalities": "html,image,text",
         "carrier_count": 12,
         "evidence_level": "A",
-        "source_revision": "c53e4c3d85cca3f18314c81739b08a35df299cb1"
+        "source_revision": "c53e4c3d85cca3f18314c81739b08a35df299cb1",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -2110,7 +2300,9 @@
         "modalities": "audio,html,text",
         "carrier_count": 8,
         "evidence_level": "A",
-        "source_revision": "18eebb3d6d71db85799af9de6667502b12efa673"
+        "source_revision": "18eebb3d6d71db85799af9de6667502b12efa673",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2132,7 +2324,9 @@
         "modalities": "html,text",
         "carrier_count": 11,
         "evidence_level": "A",
-        "source_revision": "b263ca13d79a4b4ddc69aa785eabbb2b282d870c"
+        "source_revision": "b263ca13d79a4b4ddc69aa785eabbb2b282d870c",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2154,7 +2348,9 @@
         "modalities": "audio,text",
         "carrier_count": 3,
         "evidence_level": "A",
-        "source_revision": "9442dccf3de8b5d364d6a7c81e67e1d3e75890d1"
+        "source_revision": "9442dccf3de8b5d364d6a7c81e67e1d3e75890d1",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -2176,7 +2372,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "54f25759f6676f0879af49eb0f9aaccfad2a7108"
+        "source_revision": "54f25759f6676f0879af49eb0f9aaccfad2a7108",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -2198,7 +2396,9 @@
         "modalities": "eda,image,text",
         "carrier_count": 5,
         "evidence_level": "A",
-        "source_revision": "10db706a3c9d30a7ae71bd951a2c8ce304a5a486"
+        "source_revision": "10db706a3c9d30a7ae71bd951a2c8ce304a5a486",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2220,7 +2420,9 @@
         "modalities": "html,text",
         "carrier_count": 2,
         "evidence_level": "A",
-        "source_revision": "dae421457fe3edcc331107de847b390e7e0e1cc1"
+        "source_revision": "dae421457fe3edcc331107de847b390e7e0e1cc1",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2242,7 +2444,9 @@
         "modalities": "html,text",
         "carrier_count": 12,
         "evidence_level": "A",
-        "source_revision": "426fc6ec52794bcdf0713d899c1a7ad4e13c0f15"
+        "source_revision": "426fc6ec52794bcdf0713d899c1a7ad4e13c0f15",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2264,7 +2468,9 @@
         "modalities": "text",
         "carrier_count": 20,
         "evidence_level": "A",
-        "source_revision": "1f06b9330af863d7a0716f4c0b7c9df27f049a61"
+        "source_revision": "1f06b9330af863d7a0716f4c0b7c9df27f049a61",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2286,7 +2492,9 @@
         "modalities": "image,text",
         "carrier_count": 7,
         "evidence_level": "A",
-        "source_revision": "bbb4e6eaeecb4cbf0ffe03573aa1c35e78b623c8"
+        "source_revision": "bbb4e6eaeecb4cbf0ffe03573aa1c35e78b623c8",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2308,7 +2516,9 @@
         "modalities": "html,text",
         "carrier_count": 7,
         "evidence_level": "A",
-        "source_revision": "a831ebdc96722aa3d5ba4490a90d1b1b0e5e4068"
+        "source_revision": "a831ebdc96722aa3d5ba4490a90d1b1b0e5e4068",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2330,7 +2540,9 @@
         "modalities": "html,text",
         "carrier_count": 11,
         "evidence_level": "A",
-        "source_revision": "39805b67836e06809365582b2b008c55f4caaf26"
+        "source_revision": "39805b67836e06809365582b2b008c55f4caaf26",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2352,7 +2564,9 @@
         "modalities": "html,text",
         "carrier_count": 12,
         "evidence_level": "A",
-        "source_revision": "00fce72c4d6ce25db4bf8fd4443e947746ac60dd"
+        "source_revision": "00fce72c4d6ce25db4bf8fd4443e947746ac60dd",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2374,7 +2588,9 @@
         "modalities": "text",
         "carrier_count": 5,
         "evidence_level": "A",
-        "source_revision": "41361bd2a2af237b11748bca9c5214e9755e6928"
+        "source_revision": "41361bd2a2af237b11748bca9c5214e9755e6928",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2396,7 +2612,9 @@
         "modalities": "html,text",
         "carrier_count": 11,
         "evidence_level": "A",
-        "source_revision": "eee57b405a37a1d4f0581da572083897d8fb5bc5"
+        "source_revision": "eee57b405a37a1d4f0581da572083897d8fb5bc5",
+        "featured": true,
+        "relation_degree": 1
       }
     },
     {
@@ -2418,7 +2636,9 @@
         "modalities": "audio,image,text,video",
         "carrier_count": 18,
         "evidence_level": "A",
-        "source_revision": "21ce301d36b40b702527956e3ffc27bced403a4c"
+        "source_revision": "21ce301d36b40b702527956e3ffc27bced403a4c",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -2440,7 +2660,9 @@
         "modalities": "html,image,text",
         "carrier_count": 36,
         "evidence_level": "A",
-        "source_revision": "80926cd1ead60301e34780e8355edc527f52c725"
+        "source_revision": "80926cd1ead60301e34780e8355edc527f52c725",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2462,7 +2684,9 @@
         "modalities": "text",
         "carrier_count": 6,
         "evidence_level": "A",
-        "source_revision": "e32fdc59bf7cb6fc44681321f3f1317dff23f0b9"
+        "source_revision": "e32fdc59bf7cb6fc44681321f3f1317dff23f0b9",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2484,7 +2708,9 @@
         "modalities": "html,text",
         "carrier_count": 11,
         "evidence_level": "A",
-        "source_revision": "70742b835b5177878d16dfc42b309f8503350432"
+        "source_revision": "70742b835b5177878d16dfc42b309f8503350432",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2506,7 +2732,9 @@
         "modalities": "html,text",
         "carrier_count": 11,
         "evidence_level": "A",
-        "source_revision": "5c7d0148a3b3805f2f0b0ba4f8ea3fdfff5ea826"
+        "source_revision": "5c7d0148a3b3805f2f0b0ba4f8ea3fdfff5ea826",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2528,7 +2756,9 @@
         "modalities": "text",
         "carrier_count": 7,
         "evidence_level": "A",
-        "source_revision": "63d3467c0df1fface3ad8f1a3349772e054c26b3"
+        "source_revision": "63d3467c0df1fface3ad8f1a3349772e054c26b3",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2550,7 +2780,9 @@
         "modalities": "html,text",
         "carrier_count": 13,
         "evidence_level": "A",
-        "source_revision": "9f9a1db42c6cc3e8255724c08f418edee2cc7739"
+        "source_revision": "9f9a1db42c6cc3e8255724c08f418edee2cc7739",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2572,7 +2804,9 @@
         "modalities": "image",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "b2b9afaad90c4c42932aed532faeb0ef8f0c6090"
+        "source_revision": "b2b9afaad90c4c42932aed532faeb0ef8f0c6090",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2594,7 +2828,9 @@
         "modalities": "image,text",
         "carrier_count": 5,
         "evidence_level": "A",
-        "source_revision": "e57faa2fca721e20c5fde3e96e26c40618bacc8f"
+        "source_revision": "e57faa2fca721e20c5fde3e96e26c40618bacc8f",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -2616,7 +2852,9 @@
         "modalities": "audio,text",
         "carrier_count": 3,
         "evidence_level": "A",
-        "source_revision": "025a3cb57e0b89858129bd05f1663778097d05ab"
+        "source_revision": "025a3cb57e0b89858129bd05f1663778097d05ab",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2638,7 +2876,9 @@
         "modalities": "pdf,text",
         "carrier_count": 3,
         "evidence_level": "A",
-        "source_revision": "44f43a7241aba6c1a2e7a72329c1852437d59126"
+        "source_revision": "44f43a7241aba6c1a2e7a72329c1852437d59126",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -2660,7 +2900,9 @@
         "modalities": "html,text",
         "carrier_count": 12,
         "evidence_level": "A",
-        "source_revision": "1daa81174963273962a1bd53bdfbd85f199d17c1"
+        "source_revision": "1daa81174963273962a1bd53bdfbd85f199d17c1",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2682,7 +2924,9 @@
         "modalities": "html,text",
         "carrier_count": 11,
         "evidence_level": "A",
-        "source_revision": "06dc796aad2a3945fc6823f50c973521cc5fa3ed"
+        "source_revision": "06dc796aad2a3945fc6823f50c973521cc5fa3ed",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2704,7 +2948,9 @@
         "modalities": "html,text",
         "carrier_count": 12,
         "evidence_level": "A",
-        "source_revision": "39d1dc0c02dfb101c149c7020d920376b05f0467"
+        "source_revision": "39d1dc0c02dfb101c149c7020d920376b05f0467",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2726,7 +2972,9 @@
         "modalities": "text",
         "carrier_count": 7,
         "evidence_level": "A",
-        "source_revision": "3dff7168c8ae5681bba2666da1d1b3bf7296326c"
+        "source_revision": "3dff7168c8ae5681bba2666da1d1b3bf7296326c",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2748,7 +2996,9 @@
         "modalities": "image",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "6cec897c25ed96a8f8ed1b2bcc1c6db662f5250c"
+        "source_revision": "6cec897c25ed96a8f8ed1b2bcc1c6db662f5250c",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2770,7 +3020,9 @@
         "modalities": "text",
         "carrier_count": 3,
         "evidence_level": "A",
-        "source_revision": "f8a0700d71bbec3532f0e33510afac9edae2cd73"
+        "source_revision": "f8a0700d71bbec3532f0e33510afac9edae2cd73",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2792,7 +3044,9 @@
         "modalities": "html,text",
         "carrier_count": 11,
         "evidence_level": "A",
-        "source_revision": "52d27610da3ffa4fd1bcb21ce4ae24d3a9e6e1d6"
+        "source_revision": "52d27610da3ffa4fd1bcb21ce4ae24d3a9e6e1d6",
+        "featured": true,
+        "relation_degree": 0
       }
     },
     {
@@ -2814,7 +3068,9 @@
         "modalities": "html,text",
         "carrier_count": 12,
         "evidence_level": "A",
-        "source_revision": "06dc796aad2a3945fc6823f50c973521cc5fa3ed"
+        "source_revision": "06dc796aad2a3945fc6823f50c973521cc5fa3ed",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2836,7 +3092,9 @@
         "modalities": "audio,image,text",
         "carrier_count": 5,
         "evidence_level": "A",
-        "source_revision": "8ae25a0ac2edbb45159d86f32a710498a152282e"
+        "source_revision": "8ae25a0ac2edbb45159d86f32a710498a152282e",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2858,7 +3116,9 @@
         "modalities": "text",
         "carrier_count": 7,
         "evidence_level": "A",
-        "source_revision": "47961b2fb8c19232775734a6ddc7d5a0d899461e"
+        "source_revision": "47961b2fb8c19232775734a6ddc7d5a0d899461e",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2880,7 +3140,9 @@
         "modalities": "html,text",
         "carrier_count": 7,
         "evidence_level": "A",
-        "source_revision": "3514b0946d2845d0ba49240ad30669defc62aaf9"
+        "source_revision": "3514b0946d2845d0ba49240ad30669defc62aaf9",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2902,7 +3164,9 @@
         "modalities": "text",
         "carrier_count": 7,
         "evidence_level": "A",
-        "source_revision": "a56388a9246cbf5597bdce3af71ca84ebc183f9e"
+        "source_revision": "a56388a9246cbf5597bdce3af71ca84ebc183f9e",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2924,7 +3188,9 @@
         "modalities": "html,text",
         "carrier_count": 13,
         "evidence_level": "A",
-        "source_revision": "3126b8cbae6d0df13c9e1ff89485afc7aa519495"
+        "source_revision": "3126b8cbae6d0df13c9e1ff89485afc7aa519495",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2946,7 +3212,9 @@
         "modalities": "html,text",
         "carrier_count": 10,
         "evidence_level": "A",
-        "source_revision": "06dc796aad2a3945fc6823f50c973521cc5fa3ed"
+        "source_revision": "06dc796aad2a3945fc6823f50c973521cc5fa3ed",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -2968,7 +3236,9 @@
         "modalities": "text",
         "carrier_count": 19,
         "evidence_level": "A",
-        "source_revision": "96f4c720c9ed7dd35bf3de9184726f06a869373c"
+        "source_revision": "96f4c720c9ed7dd35bf3de9184726f06a869373c",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -2990,7 +3260,9 @@
         "modalities": "text",
         "carrier_count": 5,
         "evidence_level": "A",
-        "source_revision": "8e5ae5d4be7e5daf58275ff3f58c18fac7dc7ba4"
+        "source_revision": "8e5ae5d4be7e5daf58275ff3f58c18fac7dc7ba4",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -3012,7 +3284,9 @@
         "modalities": "pdf,text",
         "carrier_count": 3,
         "evidence_level": "A",
-        "source_revision": "409104199755ebfd899510eea727b6b2646705af"
+        "source_revision": "409104199755ebfd899510eea727b6b2646705af",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -3034,7 +3308,9 @@
         "modalities": "html,text",
         "carrier_count": 11,
         "evidence_level": "A",
-        "source_revision": "03eb6e6fd726034c180a00423eb01f5496a7f0b6"
+        "source_revision": "03eb6e6fd726034c180a00423eb01f5496a7f0b6",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -3056,7 +3332,9 @@
         "modalities": "eda,image,text",
         "carrier_count": 3,
         "evidence_level": "A",
-        "source_revision": "76d5ae799a8a50b1e9c9dd0e875c403ba799030c"
+        "source_revision": "76d5ae799a8a50b1e9c9dd0e875c403ba799030c",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -3078,7 +3356,9 @@
         "modalities": "eda,image,text",
         "carrier_count": 4,
         "evidence_level": "A",
-        "source_revision": "79a2ab48fa3fa5e48ced616bfd42e2f0bdfdf17e"
+        "source_revision": "79a2ab48fa3fa5e48ced616bfd42e2f0bdfdf17e",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -3100,7 +3380,9 @@
         "modalities": "audio,html,image,text,video",
         "carrier_count": 17,
         "evidence_level": "A",
-        "source_revision": "b60e0892df071b64b81ca450e1511b230c367150"
+        "source_revision": "b60e0892df071b64b81ca450e1511b230c367150",
+        "featured": true,
+        "relation_degree": 5
       }
     },
     {
@@ -3122,7 +3404,9 @@
         "modalities": "html,image,text,video",
         "carrier_count": 10,
         "evidence_level": "A",
-        "source_revision": "9ba7d4d7b023dc85964c4d82da75979fb4bb7245"
+        "source_revision": "9ba7d4d7b023dc85964c4d82da75979fb4bb7245",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -3144,7 +3428,9 @@
         "modalities": "audio,html,text",
         "carrier_count": 19,
         "evidence_level": "A",
-        "source_revision": "6fd6bdf3a2e7abbff7d4576d8d933c8850fa8de3"
+        "source_revision": "6fd6bdf3a2e7abbff7d4576d8d933c8850fa8de3",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -3166,7 +3452,9 @@
         "modalities": "html,text",
         "carrier_count": 12,
         "evidence_level": "A",
-        "source_revision": "e686300897462287db4cd0412fb530366cbd7e1c"
+        "source_revision": "e686300897462287db4cd0412fb530366cbd7e1c",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -3188,7 +3476,9 @@
         "modalities": "html,text",
         "carrier_count": 13,
         "evidence_level": "A",
-        "source_revision": "8851df1d4691f4ab40352228bbd964d2cc3f7384"
+        "source_revision": "8851df1d4691f4ab40352228bbd964d2cc3f7384",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -3210,7 +3500,9 @@
         "modalities": "html,text",
         "carrier_count": 13,
         "evidence_level": "A",
-        "source_revision": "f453e754c67d3fc7cdca28f50cdf5fe9b32b56ff"
+        "source_revision": "f453e754c67d3fc7cdca28f50cdf5fe9b32b56ff",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -3232,7 +3524,9 @@
         "modalities": "text,video",
         "carrier_count": 3,
         "evidence_level": "A",
-        "source_revision": "2eaf6533f31a30fe4c1be51fb723f18d275e32e3"
+        "source_revision": "2eaf6533f31a30fe4c1be51fb723f18d275e32e3",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -3254,7 +3548,9 @@
         "modalities": "image,text",
         "carrier_count": 9,
         "evidence_level": "A",
-        "source_revision": "47733e9049d47a9951e9819a6b02d6acbf2fa2ba"
+        "source_revision": "47733e9049d47a9951e9819a6b02d6acbf2fa2ba",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -3276,7 +3572,9 @@
         "modalities": "cad,eda,html,image,text",
         "carrier_count": 30,
         "evidence_level": "A",
-        "source_revision": "03a40d037b5984f55bae0837af7153a02651de3e"
+        "source_revision": "03a40d037b5984f55bae0837af7153a02651de3e",
+        "featured": true,
+        "relation_degree": 0
       }
     },
     {
@@ -3298,7 +3596,9 @@
         "modalities": "html,text",
         "carrier_count": 9,
         "evidence_level": "A",
-        "source_revision": "c7a46a563f6e03f0f8950190f1d74d7f0a8fd7e1"
+        "source_revision": "c7a46a563f6e03f0f8950190f1d74d7f0a8fd7e1",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -3320,7 +3620,9 @@
         "modalities": "godot,image,text",
         "carrier_count": 8,
         "evidence_level": "A",
-        "source_revision": "d30cb09004708b01742039e92008db6fb179a25e"
+        "source_revision": "d30cb09004708b01742039e92008db6fb179a25e",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -3342,7 +3644,9 @@
         "modalities": "image,text",
         "carrier_count": 2,
         "evidence_level": "A",
-        "source_revision": "9db89fa76d08186049bbd6a2f518b10441e05c98"
+        "source_revision": "9db89fa76d08186049bbd6a2f518b10441e05c98",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -3364,7 +3668,9 @@
         "modalities": "image,text",
         "carrier_count": 3,
         "evidence_level": "A",
-        "source_revision": "ad63105b82d66fe9a67960383663bbb79b9b0023"
+        "source_revision": "ad63105b82d66fe9a67960383663bbb79b9b0023",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -3386,7 +3692,9 @@
         "modalities": "image,text",
         "carrier_count": 8,
         "evidence_level": "A",
-        "source_revision": "b749ece33cbb6c0a2845e8c9e6f64d2f33e57925"
+        "source_revision": "b749ece33cbb6c0a2845e8c9e6f64d2f33e57925",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -3408,7 +3716,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "b32787ddbd005b956c6210231f0581bf6429d697"
+        "source_revision": "b32787ddbd005b956c6210231f0581bf6429d697",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -3430,7 +3740,9 @@
         "modalities": "cad,image,text",
         "carrier_count": 8,
         "evidence_level": "A",
-        "source_revision": "1c4fb410330b02b063677ab2a56ed946d93e2647"
+        "source_revision": "1c4fb410330b02b063677ab2a56ed946d93e2647",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -3452,7 +3764,9 @@
         "modalities": "pdf,text",
         "carrier_count": 3,
         "evidence_level": "A",
-        "source_revision": "ad60de4a2c0cb621dd63b2782fe14664e26b5027"
+        "source_revision": "ad60de4a2c0cb621dd63b2782fe14664e26b5027",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -3474,7 +3788,9 @@
         "modalities": "html,text",
         "carrier_count": 11,
         "evidence_level": "A",
-        "source_revision": "fddf77bd7be85d98ead0c92836f3c0470057de03"
+        "source_revision": "fddf77bd7be85d98ead0c92836f3c0470057de03",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -3496,7 +3812,9 @@
         "modalities": "html,text",
         "carrier_count": 10,
         "evidence_level": "A",
-        "source_revision": "2d1ebfa3d27151426a00c18715f07f4395ec698b"
+        "source_revision": "2d1ebfa3d27151426a00c18715f07f4395ec698b",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -3518,7 +3836,9 @@
         "modalities": "html,text",
         "carrier_count": 11,
         "evidence_level": "A",
-        "source_revision": "d3645418fce60a0039e62f1e0bdcf9c75d39a33d"
+        "source_revision": "d3645418fce60a0039e62f1e0bdcf9c75d39a33d",
+        "featured": true,
+        "relation_degree": 2
       }
     },
     {
@@ -3540,7 +3860,9 @@
         "modalities": "image,text",
         "carrier_count": 25,
         "evidence_level": "A",
-        "source_revision": "d7906ecf0c105e788c4b42f04dedd1de865d36a8"
+        "source_revision": "d7906ecf0c105e788c4b42f04dedd1de865d36a8",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -3562,7 +3884,9 @@
         "modalities": "image,text",
         "carrier_count": 3,
         "evidence_level": "A",
-        "source_revision": "98e237cbe1cd77d6ff880c023b164a812c38c847"
+        "source_revision": "98e237cbe1cd77d6ff880c023b164a812c38c847",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -3584,7 +3908,9 @@
         "modalities": "html,image,text",
         "carrier_count": 18,
         "evidence_level": "A",
-        "source_revision": "bf1a6082ab2998d206447751e71e1234f17f3d8e"
+        "source_revision": "bf1a6082ab2998d206447751e71e1234f17f3d8e",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -3606,7 +3932,9 @@
         "modalities": "html,text",
         "carrier_count": 13,
         "evidence_level": "A",
-        "source_revision": "11df7027552dcfcc51639a46f8b3c9493ca2daaf"
+        "source_revision": "11df7027552dcfcc51639a46f8b3c9493ca2daaf",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -3628,7 +3956,9 @@
         "modalities": "image",
         "carrier_count": 2,
         "evidence_level": "A",
-        "source_revision": "0b3eb017849ac5bd9202ef0ae852a2735bdc1618"
+        "source_revision": "0b3eb017849ac5bd9202ef0ae852a2735bdc1618",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -3650,7 +3980,9 @@
         "modalities": "cad,html,image,text",
         "carrier_count": 13,
         "evidence_level": "A",
-        "source_revision": "131daa2e91a7b9921e6cc0cc71c90537aefd2eba"
+        "source_revision": "131daa2e91a7b9921e6cc0cc71c90537aefd2eba",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -3672,7 +4004,9 @@
         "modalities": "html,image,text",
         "carrier_count": 9,
         "evidence_level": "A",
-        "source_revision": "c5349a4f041caed47c303d48576a8ab5f49a816b"
+        "source_revision": "c5349a4f041caed47c303d48576a8ab5f49a816b",
+        "featured": true,
+        "relation_degree": 0
       }
     },
     {
@@ -3694,7 +4028,9 @@
         "modalities": "html,text",
         "carrier_count": 11,
         "evidence_level": "A",
-        "source_revision": "9f1fab02107c05d77753ed5532c1c75392c93b23"
+        "source_revision": "9f1fab02107c05d77753ed5532c1c75392c93b23",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -3716,7 +4052,9 @@
         "modalities": "html,text",
         "carrier_count": 7,
         "evidence_level": "A",
-        "source_revision": "da31ca1e118f32dcf719d02c02af70ac90a659c2"
+        "source_revision": "da31ca1e118f32dcf719d02c02af70ac90a659c2",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -3738,7 +4076,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14"
+        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -3760,7 +4100,9 @@
         "modalities": "image,text,video",
         "carrier_count": 7,
         "evidence_level": "A",
-        "source_revision": "d31abf74ba9140f0044f2dda8b292d7a4fe04058"
+        "source_revision": "d31abf74ba9140f0044f2dda8b292d7a4fe04058",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -3782,7 +4124,9 @@
         "modalities": "html",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "61fd5bc0c25d27957fb157495a936aacce33228e"
+        "source_revision": "61fd5bc0c25d27957fb157495a936aacce33228e",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -3804,7 +4148,9 @@
         "modalities": "eda,html,image,text",
         "carrier_count": 5,
         "evidence_level": "A",
-        "source_revision": "c50614312fa721578318bd5a16f01c55db77759f"
+        "source_revision": "c50614312fa721578318bd5a16f01c55db77759f",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -3826,7 +4172,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "5b70b967a714c73a5223c5648d8ff95cbeea4939"
+        "source_revision": "5b70b967a714c73a5223c5648d8ff95cbeea4939",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -3848,7 +4196,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14"
+        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -3870,7 +4220,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14"
+        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -3892,7 +4244,9 @@
         "modalities": "html,text",
         "carrier_count": 2,
         "evidence_level": "A",
-        "source_revision": "c2b98807d7b25bcaaff03af285840ce57dea65a2"
+        "source_revision": "c2b98807d7b25bcaaff03af285840ce57dea65a2",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -3914,7 +4268,9 @@
         "modalities": "html",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "8f5548c10b97519b47195d87f30c42665fc71083"
+        "source_revision": "8f5548c10b97519b47195d87f30c42665fc71083",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -3936,7 +4292,9 @@
         "modalities": "html",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "8f5548c10b97519b47195d87f30c42665fc71083"
+        "source_revision": "8f5548c10b97519b47195d87f30c42665fc71083",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -3958,7 +4316,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14"
+        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -3980,7 +4340,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14"
+        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4002,7 +4364,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14"
+        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4024,7 +4388,9 @@
         "modalities": "",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "24352711a6fcd8f9cff3fc5366c485dc5b8ae12b"
+        "source_revision": "24352711a6fcd8f9cff3fc5366c485dc5b8ae12b",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4046,7 +4412,9 @@
         "modalities": "",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "cbcc55a4ddb16054e7b55ea7fd82417a9c64a578"
+        "source_revision": "cbcc55a4ddb16054e7b55ea7fd82417a9c64a578",
+        "featured": false,
+        "relation_degree": 2
       }
     },
     {
@@ -4068,7 +4436,9 @@
         "modalities": "html",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "257261233e31eb896fd37943ebafaf5c331d1e94"
+        "source_revision": "257261233e31eb896fd37943ebafaf5c331d1e94",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4090,7 +4460,9 @@
         "modalities": "html,image",
         "carrier_count": 2,
         "evidence_level": "A",
-        "source_revision": "fc50d484c5ef7b3b9dd5e75bfd4c491749179d1d"
+        "source_revision": "fc50d484c5ef7b3b9dd5e75bfd4c491749179d1d",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4112,7 +4484,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "5b70b967a714c73a5223c5648d8ff95cbeea4939"
+        "source_revision": "5b70b967a714c73a5223c5648d8ff95cbeea4939",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4134,7 +4508,9 @@
         "modalities": "audio",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "36bc80d2152bedebc296d4384f2d459c79c917ce"
+        "source_revision": "36bc80d2152bedebc296d4384f2d459c79c917ce",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4156,7 +4532,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14"
+        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4178,7 +4556,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14"
+        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4200,7 +4580,9 @@
         "modalities": "html,image",
         "carrier_count": 2,
         "evidence_level": "A",
-        "source_revision": "97565c3d5f44bbaafdaa2361dea993be454d4b78"
+        "source_revision": "97565c3d5f44bbaafdaa2361dea993be454d4b78",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -4222,7 +4604,9 @@
         "modalities": "",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "83aa18a93c979aedf675ee1f3ae154e93aa33521"
+        "source_revision": "83aa18a93c979aedf675ee1f3ae154e93aa33521",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -4244,7 +4628,9 @@
         "modalities": "html",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "f750c905ee11a728ed4a06a1583725bbeddb649e"
+        "source_revision": "f750c905ee11a728ed4a06a1583725bbeddb649e",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4266,7 +4652,9 @@
         "modalities": "html",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "28c9a5da17347f6a6152274740caefd94accd161"
+        "source_revision": "28c9a5da17347f6a6152274740caefd94accd161",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4288,7 +4676,9 @@
         "modalities": "html",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "7fa6e8176cbf56f17f0b57ea7aea789a4ced95b8"
+        "source_revision": "7fa6e8176cbf56f17f0b57ea7aea789a4ced95b8",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4310,7 +4700,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "5b70b967a714c73a5223c5648d8ff95cbeea4939"
+        "source_revision": "5b70b967a714c73a5223c5648d8ff95cbeea4939",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4332,7 +4724,9 @@
         "modalities": "html",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "8f5548c10b97519b47195d87f30c42665fc71083"
+        "source_revision": "8f5548c10b97519b47195d87f30c42665fc71083",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4354,7 +4748,9 @@
         "modalities": "html",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "8ccaef17a1513759dfa97a8b8ca0d82dece61932"
+        "source_revision": "8ccaef17a1513759dfa97a8b8ca0d82dece61932",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -4376,7 +4772,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14"
+        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4398,7 +4796,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "5b70b967a714c73a5223c5648d8ff95cbeea4939"
+        "source_revision": "5b70b967a714c73a5223c5648d8ff95cbeea4939",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -4420,7 +4820,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14"
+        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4442,7 +4844,9 @@
         "modalities": "html",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "8f5548c10b97519b47195d87f30c42665fc71083"
+        "source_revision": "8f5548c10b97519b47195d87f30c42665fc71083",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4464,7 +4868,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14"
+        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4486,7 +4892,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "00c5334f835e3066d3f196ef4e67f4cc45372013"
+        "source_revision": "00c5334f835e3066d3f196ef4e67f4cc45372013",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4508,7 +4916,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14"
+        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4530,7 +4940,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "de6679d3e99d2d70344b0dafcf5a1ed7d4a56ff1"
+        "source_revision": "de6679d3e99d2d70344b0dafcf5a1ed7d4a56ff1",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4552,7 +4964,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "00c5334f835e3066d3f196ef4e67f4cc45372013"
+        "source_revision": "00c5334f835e3066d3f196ef4e67f4cc45372013",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4574,7 +4988,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14"
+        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4596,7 +5012,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14"
+        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4618,7 +5036,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "cbcc55a4ddb16054e7b55ea7fd82417a9c64a578"
+        "source_revision": "cbcc55a4ddb16054e7b55ea7fd82417a9c64a578",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -4640,7 +5060,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14"
+        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4662,7 +5084,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14"
+        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4684,7 +5108,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14"
+        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4706,7 +5132,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "5b70b967a714c73a5223c5648d8ff95cbeea4939"
+        "source_revision": "5b70b967a714c73a5223c5648d8ff95cbeea4939",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4728,7 +5156,9 @@
         "modalities": "html",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "cbcc55a4ddb16054e7b55ea7fd82417a9c64a578"
+        "source_revision": "cbcc55a4ddb16054e7b55ea7fd82417a9c64a578",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4750,7 +5180,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "5b70b967a714c73a5223c5648d8ff95cbeea4939"
+        "source_revision": "5b70b967a714c73a5223c5648d8ff95cbeea4939",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4772,7 +5204,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14"
+        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4794,7 +5228,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14"
+        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4816,7 +5252,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14"
+        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4838,7 +5276,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14"
+        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4860,7 +5300,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "a845a5840d4a8e083759cd83483e668bbc596c6e"
+        "source_revision": "a845a5840d4a8e083759cd83483e668bbc596c6e",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4882,7 +5324,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14"
+        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4904,7 +5348,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14"
+        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4926,7 +5372,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "00c5334f835e3066d3f196ef4e67f4cc45372013"
+        "source_revision": "00c5334f835e3066d3f196ef4e67f4cc45372013",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4948,7 +5396,9 @@
         "modalities": "text",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14"
+        "source_revision": "3eba7aae049c123c5db15c20e53d2e66d32acc14",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4970,7 +5420,9 @@
         "modalities": "cad,image,text",
         "carrier_count": 15,
         "evidence_level": "A",
-        "source_revision": "3d4855267fb8d041165567f2ce68dc4207073dfe"
+        "source_revision": "3d4855267fb8d041165567f2ce68dc4207073dfe",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -4992,7 +5444,9 @@
         "modalities": "cad,image,text",
         "carrier_count": 22,
         "evidence_level": "A",
-        "source_revision": "bb3f00c0d9395f0f7e3f0a1314e1800499c3a781"
+        "source_revision": "bb3f00c0d9395f0f7e3f0a1314e1800499c3a781",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -5014,7 +5468,9 @@
         "modalities": "image",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "2ef6511471495752b8ed1d38d782768b6afaf3e5"
+        "source_revision": "2ef6511471495752b8ed1d38d782768b6afaf3e5",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -5036,7 +5492,9 @@
         "modalities": "eda,image,text",
         "carrier_count": 13,
         "evidence_level": "A",
-        "source_revision": "928b092bb9f5dcfdbb3b6cc63951ca47eb51d572"
+        "source_revision": "928b092bb9f5dcfdbb3b6cc63951ca47eb51d572",
+        "featured": false,
+        "relation_degree": 2
       }
     },
     {
@@ -5058,7 +5516,9 @@
         "modalities": "image,text",
         "carrier_count": 13,
         "evidence_level": "A",
-        "source_revision": "4d44c2c720f194e00bcaf3b8c19a5bb6e6b8d49f"
+        "source_revision": "4d44c2c720f194e00bcaf3b8c19a5bb6e6b8d49f",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -5080,7 +5540,9 @@
         "modalities": "image,text",
         "carrier_count": 14,
         "evidence_level": "A",
-        "source_revision": "6bfef3dd5c8f4dec4014b3723a2f7e010f53649b"
+        "source_revision": "6bfef3dd5c8f4dec4014b3723a2f7e010f53649b",
+        "featured": false,
+        "relation_degree": 4
       }
     },
     {
@@ -5102,7 +5564,9 @@
         "modalities": "image,text",
         "carrier_count": 11,
         "evidence_level": "A",
-        "source_revision": "9ace77649a65aee6c15534579659a5bbeedaff77"
+        "source_revision": "9ace77649a65aee6c15534579659a5bbeedaff77",
+        "featured": true,
+        "relation_degree": 1
       }
     },
     {
@@ -5124,7 +5588,9 @@
         "modalities": "image,text",
         "carrier_count": 10,
         "evidence_level": "A",
-        "source_revision": "5fdf25c084d37116a8f5661fcb26db212f279e95"
+        "source_revision": "5fdf25c084d37116a8f5661fcb26db212f279e95",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -5146,7 +5612,9 @@
         "modalities": "cad,image,text",
         "carrier_count": 15,
         "evidence_level": "A",
-        "source_revision": "bc2bde1afcadb805a9290cfbf5144ef7026b0964"
+        "source_revision": "bc2bde1afcadb805a9290cfbf5144ef7026b0964",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -5168,7 +5636,9 @@
         "modalities": "eda,image,text",
         "carrier_count": 21,
         "evidence_level": "A",
-        "source_revision": "dff3ba43a13a4db7cadb37c1a3ba9e63071e2e09"
+        "source_revision": "dff3ba43a13a4db7cadb37c1a3ba9e63071e2e09",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -5190,7 +5660,9 @@
         "modalities": "cad,image,text",
         "carrier_count": 16,
         "evidence_level": "A",
-        "source_revision": "cdff3c2d7e7fe979c984b9676b6598d8b476409a"
+        "source_revision": "cdff3c2d7e7fe979c984b9676b6598d8b476409a",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -5212,7 +5684,9 @@
         "modalities": "cad,image,text",
         "carrier_count": 14,
         "evidence_level": "A",
-        "source_revision": "0c090d56afd26eec3eb59f77c5d5a5ec1715c6fd"
+        "source_revision": "0c090d56afd26eec3eb59f77c5d5a5ec1715c6fd",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -5234,7 +5708,9 @@
         "modalities": "eda,image,text",
         "carrier_count": 13,
         "evidence_level": "A",
-        "source_revision": "7bbc0137378659e3d82320456efbc1682c112b81"
+        "source_revision": "7bbc0137378659e3d82320456efbc1682c112b81",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -5256,7 +5732,9 @@
         "modalities": "cad,image,text",
         "carrier_count": 18,
         "evidence_level": "A",
-        "source_revision": "6bcf069a60fb74d62913561c628261c3caf37a33"
+        "source_revision": "6bcf069a60fb74d62913561c628261c3caf37a33",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -5278,7 +5756,9 @@
         "modalities": "eda,image,text",
         "carrier_count": 17,
         "evidence_level": "A",
-        "source_revision": "b7fe6a988a1166184a796150d878c227d23fec3e"
+        "source_revision": "b7fe6a988a1166184a796150d878c227d23fec3e",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -5300,7 +5780,9 @@
         "modalities": "image,text",
         "carrier_count": 13,
         "evidence_level": "A",
-        "source_revision": "d477004254396e32b57521936ea87fc523df3ef9"
+        "source_revision": "d477004254396e32b57521936ea87fc523df3ef9",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -5322,7 +5804,9 @@
         "modalities": "image,text",
         "carrier_count": 14,
         "evidence_level": "A",
-        "source_revision": "027d4a6ac7d87ac86e51b8b11b329e0651115f5f"
+        "source_revision": "027d4a6ac7d87ac86e51b8b11b329e0651115f5f",
+        "featured": false,
+        "relation_degree": 2
       }
     },
     {
@@ -5344,7 +5828,9 @@
         "modalities": "cad,image,text",
         "carrier_count": 19,
         "evidence_level": "A",
-        "source_revision": "1fb88e1ca0ba9bc153d5878022a56ff2050e3220"
+        "source_revision": "1fb88e1ca0ba9bc153d5878022a56ff2050e3220",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -5366,7 +5852,9 @@
         "modalities": "image,text",
         "carrier_count": 15,
         "evidence_level": "A",
-        "source_revision": "ba2491519be26af08c5478bad314ccdc86aba3d9"
+        "source_revision": "ba2491519be26af08c5478bad314ccdc86aba3d9",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -5388,7 +5876,9 @@
         "modalities": "image,text",
         "carrier_count": 14,
         "evidence_level": "A",
-        "source_revision": "c4ebcd050c5d486eaba9723f8ba8dedd54e3578e"
+        "source_revision": "c4ebcd050c5d486eaba9723f8ba8dedd54e3578e",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -5410,7 +5900,9 @@
         "modalities": "image,text",
         "carrier_count": 11,
         "evidence_level": "A",
-        "source_revision": "dba50ca15242f000e3d4495e3ead6ada499666bc"
+        "source_revision": "dba50ca15242f000e3d4495e3ead6ada499666bc",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -5432,7 +5924,9 @@
         "modalities": "eda,image,text",
         "carrier_count": 14,
         "evidence_level": "A",
-        "source_revision": "504e3a729b6c19a2eb149682c3e71bb5289f1aad"
+        "source_revision": "504e3a729b6c19a2eb149682c3e71bb5289f1aad",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -5454,7 +5948,9 @@
         "modalities": "eda,image,text",
         "carrier_count": 23,
         "evidence_level": "A",
-        "source_revision": "dcb6f1e32d8231fe705a17308832164c955b2a90"
+        "source_revision": "dcb6f1e32d8231fe705a17308832164c955b2a90",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -5476,7 +5972,9 @@
         "modalities": "cad,eda,image,text",
         "carrier_count": 62,
         "evidence_level": "A",
-        "source_revision": "dc44f797015e123521fbd2870c13d2f319d84a8d"
+        "source_revision": "dc44f797015e123521fbd2870c13d2f319d84a8d",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -5498,7 +5996,9 @@
         "modalities": "image,text,video",
         "carrier_count": 15,
         "evidence_level": "A",
-        "source_revision": "06ff4de15e6780dd6358becd15013e4f03113e36"
+        "source_revision": "06ff4de15e6780dd6358becd15013e4f03113e36",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -5520,7 +6020,9 @@
         "modalities": "image,text",
         "carrier_count": 13,
         "evidence_level": "A",
-        "source_revision": "15298189ecadb0792686d4942e7f27e751818596"
+        "source_revision": "15298189ecadb0792686d4942e7f27e751818596",
+        "featured": false,
+        "relation_degree": 2
       }
     },
     {
@@ -5542,7 +6044,9 @@
         "modalities": "image,text",
         "carrier_count": 12,
         "evidence_level": "A",
-        "source_revision": "3f9d7f1419497e75eb5b87849b93b3b84b3df3d1"
+        "source_revision": "3f9d7f1419497e75eb5b87849b93b3b84b3df3d1",
+        "featured": false,
+        "relation_degree": 2
       }
     },
     {
@@ -5564,7 +6068,9 @@
         "modalities": "image,text",
         "carrier_count": 32,
         "evidence_level": "A",
-        "source_revision": "8b40600283b557398c9b210d9812c9b463fe7348"
+        "source_revision": "8b40600283b557398c9b210d9812c9b463fe7348",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -5586,7 +6092,9 @@
         "modalities": "image,text",
         "carrier_count": 13,
         "evidence_level": "A",
-        "source_revision": "4dc428ba59033a4a0e23981dd8cbc5f168e4788f"
+        "source_revision": "4dc428ba59033a4a0e23981dd8cbc5f168e4788f",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -5608,7 +6116,9 @@
         "modalities": "cad,image,text",
         "carrier_count": 16,
         "evidence_level": "A",
-        "source_revision": "bca8b69ef7e83409c2cfa39d04e11add5c8aad51"
+        "source_revision": "bca8b69ef7e83409c2cfa39d04e11add5c8aad51",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -5630,7 +6140,9 @@
         "modalities": "eda,image,text",
         "carrier_count": 13,
         "evidence_level": "A",
-        "source_revision": "deb90b418bc9f40118a76ffc919b59c873b2cfee"
+        "source_revision": "deb90b418bc9f40118a76ffc919b59c873b2cfee",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -5652,7 +6164,9 @@
         "modalities": "text",
         "carrier_count": 5,
         "evidence_level": "A",
-        "source_revision": "cdf1f933f5a1cf3192c91da1d62773827e7e3831"
+        "source_revision": "cdf1f933f5a1cf3192c91da1d62773827e7e3831",
+        "featured": false,
+        "relation_degree": 3
       }
     },
     {
@@ -5674,7 +6188,9 @@
         "modalities": "image,text",
         "carrier_count": 15,
         "evidence_level": "A",
-        "source_revision": "e2779342ee0f66545d9393f3bf459932bb8713c1"
+        "source_revision": "e2779342ee0f66545d9393f3bf459932bb8713c1",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -5696,7 +6212,9 @@
         "modalities": "image,text",
         "carrier_count": 11,
         "evidence_level": "A",
-        "source_revision": "facd5ea5b77a1e92838bc24e16231019f32b8f02"
+        "source_revision": "facd5ea5b77a1e92838bc24e16231019f32b8f02",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -5718,7 +6236,9 @@
         "modalities": "cad,image,text",
         "carrier_count": 23,
         "evidence_level": "A",
-        "source_revision": "c48f0a48b7d9d3fe438942b9206be01ea760e3e8"
+        "source_revision": "c48f0a48b7d9d3fe438942b9206be01ea760e3e8",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -5740,7 +6260,9 @@
         "modalities": "image,text",
         "carrier_count": 9,
         "evidence_level": "A",
-        "source_revision": "71f14f0141d32ceb4ca59ef9fa0e055d9b3ab600"
+        "source_revision": "71f14f0141d32ceb4ca59ef9fa0e055d9b3ab600",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -5762,7 +6284,9 @@
         "modalities": "eda,image,text",
         "carrier_count": 20,
         "evidence_level": "A",
-        "source_revision": "5edeb8d6b83ef6bf8bf28f9402dbf0ee9a77e018"
+        "source_revision": "5edeb8d6b83ef6bf8bf28f9402dbf0ee9a77e018",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -5784,7 +6308,9 @@
         "modalities": "eda,image,text",
         "carrier_count": 22,
         "evidence_level": "A",
-        "source_revision": "50f6d1e48c2d5c983b16c5be7020fb386ee496b8"
+        "source_revision": "50f6d1e48c2d5c983b16c5be7020fb386ee496b8",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -5806,7 +6332,9 @@
         "modalities": "text",
         "carrier_count": 6,
         "evidence_level": "A",
-        "source_revision": "3a27e7a438c6f3ceeff2a06cbd7d6780607be8c9"
+        "source_revision": "3a27e7a438c6f3ceeff2a06cbd7d6780607be8c9",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -5828,7 +6356,9 @@
         "modalities": "image,text",
         "carrier_count": 8,
         "evidence_level": "A",
-        "source_revision": "b619ac016887d2890bd615c28ec48e543b63297e"
+        "source_revision": "b619ac016887d2890bd615c28ec48e543b63297e",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -5850,7 +6380,9 @@
         "modalities": "cad,image,text",
         "carrier_count": 22,
         "evidence_level": "A",
-        "source_revision": "296cc030bd1f9324fcda89793b4980c6e7c13fec"
+        "source_revision": "296cc030bd1f9324fcda89793b4980c6e7c13fec",
+        "featured": true,
+        "relation_degree": 0
       }
     },
     {
@@ -5872,7 +6404,9 @@
         "modalities": "image,text",
         "carrier_count": 12,
         "evidence_level": "A",
-        "source_revision": "bb4c5b81d650672ba05132c872fd2fcd14cfcd1a"
+        "source_revision": "bb4c5b81d650672ba05132c872fd2fcd14cfcd1a",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -5894,7 +6428,9 @@
         "modalities": "cad,eda,image,text",
         "carrier_count": 30,
         "evidence_level": "A",
-        "source_revision": "39fb8cab55feb1f63c0444ee005d139067db96a6"
+        "source_revision": "39fb8cab55feb1f63c0444ee005d139067db96a6",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -5916,7 +6452,9 @@
         "modalities": "image,text",
         "carrier_count": 13,
         "evidence_level": "A",
-        "source_revision": "430c46ee481cf7d73762a45c1aeab3664db0ea3c"
+        "source_revision": "430c46ee481cf7d73762a45c1aeab3664db0ea3c",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -5938,7 +6476,9 @@
         "modalities": "html,text",
         "carrier_count": 5,
         "evidence_level": "A",
-        "source_revision": "01d148e50810049642326772572212d37e0151d8"
+        "source_revision": "01d148e50810049642326772572212d37e0151d8",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -5960,7 +6500,9 @@
         "modalities": "cad,eda,html,text",
         "carrier_count": 24,
         "evidence_level": "A",
-        "source_revision": "facb22d9d2face420a8cd5209b128220c39d3b97"
+        "source_revision": "facb22d9d2face420a8cd5209b128220c39d3b97",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -5982,7 +6524,9 @@
         "modalities": "eda,image,text",
         "carrier_count": 13,
         "evidence_level": "A",
-        "source_revision": "1d4f63c58f21833518a0b492d7e00e316160b4b1"
+        "source_revision": "1d4f63c58f21833518a0b492d7e00e316160b4b1",
+        "featured": false,
+        "relation_degree": 2
       }
     },
     {
@@ -6004,7 +6548,9 @@
         "modalities": "image,text",
         "carrier_count": 11,
         "evidence_level": "A",
-        "source_revision": "e9bede5d51d3ca008d6b5f302568245082b280d8"
+        "source_revision": "e9bede5d51d3ca008d6b5f302568245082b280d8",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -6026,7 +6572,9 @@
         "modalities": "eda,image,text",
         "carrier_count": 19,
         "evidence_level": "A",
-        "source_revision": "55415061670cc8ce6c0551eb99abb4da0a0e8eb7"
+        "source_revision": "55415061670cc8ce6c0551eb99abb4da0a0e8eb7",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -6048,7 +6596,9 @@
         "modalities": "image,text",
         "carrier_count": 8,
         "evidence_level": "A",
-        "source_revision": "b7fb350929499ea2bf32fee0b4d1b31fc04bf7f6"
+        "source_revision": "b7fb350929499ea2bf32fee0b4d1b31fc04bf7f6",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -6070,7 +6620,9 @@
         "modalities": "eda,image,text",
         "carrier_count": 14,
         "evidence_level": "A",
-        "source_revision": "fdf869098d440952f4412324c025bd9764350d11"
+        "source_revision": "fdf869098d440952f4412324c025bd9764350d11",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -6092,7 +6644,9 @@
         "modalities": "eda,image,text",
         "carrier_count": 14,
         "evidence_level": "A",
-        "source_revision": "2a93fac5623960356b6e5d4b91dba813f315e4fc"
+        "source_revision": "2a93fac5623960356b6e5d4b91dba813f315e4fc",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -6114,7 +6668,9 @@
         "modalities": "image",
         "carrier_count": 1,
         "evidence_level": "A",
-        "source_revision": "ce9d12e04620d00ceaeb2e914e0c7dae68239183"
+        "source_revision": "ce9d12e04620d00ceaeb2e914e0c7dae68239183",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -6136,7 +6692,9 @@
         "modalities": "image,text",
         "carrier_count": 8,
         "evidence_level": "A",
-        "source_revision": "c90d53cdb3b57bb8fe5c7fe7ce082d28b248d628"
+        "source_revision": "c90d53cdb3b57bb8fe5c7fe7ce082d28b248d628",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -6158,7 +6716,9 @@
         "modalities": "eda,image,text",
         "carrier_count": 21,
         "evidence_level": "A",
-        "source_revision": "58df0c45c7bf855ef4c64f4d4a7520a918e68960"
+        "source_revision": "58df0c45c7bf855ef4c64f4d4a7520a918e68960",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -6180,7 +6740,9 @@
         "modalities": "image,text",
         "carrier_count": 20,
         "evidence_level": "A",
-        "source_revision": "7008dd7a387dde1cd66538119594ac8d26e91a86"
+        "source_revision": "7008dd7a387dde1cd66538119594ac8d26e91a86",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -6202,7 +6764,9 @@
         "modalities": "cad,eda,image,text",
         "carrier_count": 46,
         "evidence_level": "A",
-        "source_revision": "9321aa043c1f3a82d24c6b3e117320939ba7dfd8"
+        "source_revision": "9321aa043c1f3a82d24c6b3e117320939ba7dfd8",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -6224,7 +6788,9 @@
         "modalities": "cad,image,text",
         "carrier_count": 20,
         "evidence_level": "A",
-        "source_revision": "76a8c17caa6af19a76966fa71fc0cfaefdbc8d39"
+        "source_revision": "76a8c17caa6af19a76966fa71fc0cfaefdbc8d39",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -6246,7 +6812,9 @@
         "modalities": "image,text",
         "carrier_count": 12,
         "evidence_level": "A",
-        "source_revision": "ba4502abfb1c621cfbe6cc5bdd0283a4a3ac6080"
+        "source_revision": "ba4502abfb1c621cfbe6cc5bdd0283a4a3ac6080",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -6268,7 +6836,9 @@
         "modalities": "image,text",
         "carrier_count": 17,
         "evidence_level": "A",
-        "source_revision": "b8a8eacd794ca2185241b91cbbcd1ec1e680011c"
+        "source_revision": "b8a8eacd794ca2185241b91cbbcd1ec1e680011c",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -6290,7 +6860,9 @@
         "modalities": "image,text",
         "carrier_count": 14,
         "evidence_level": "A",
-        "source_revision": "fda6d14bf4d6af1f96ebc8ad8a2ea3b6950b2ccc"
+        "source_revision": "fda6d14bf4d6af1f96ebc8ad8a2ea3b6950b2ccc",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -6312,7 +6884,9 @@
         "modalities": "cad,image,text,video",
         "carrier_count": 22,
         "evidence_level": "A",
-        "source_revision": "26a5b87f8dcaa7a7d3eadfcd731d8dc39ccd4244"
+        "source_revision": "26a5b87f8dcaa7a7d3eadfcd731d8dc39ccd4244",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -6334,7 +6908,9 @@
         "modalities": "image,text",
         "carrier_count": 14,
         "evidence_level": "A",
-        "source_revision": "739c2fa77773bcd8d9b24a4ccf1ef2fc358da6ec"
+        "source_revision": "739c2fa77773bcd8d9b24a4ccf1ef2fc358da6ec",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -6356,7 +6932,9 @@
         "modalities": "image,text",
         "carrier_count": 7,
         "evidence_level": "A",
-        "source_revision": "670891aa4d32fba5cc59d4862155602b9791cfd2"
+        "source_revision": "670891aa4d32fba5cc59d4862155602b9791cfd2",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -6378,7 +6956,9 @@
         "modalities": "cad,image,text",
         "carrier_count": 22,
         "evidence_level": "A",
-        "source_revision": "0e764ae7b2f567c5f2d585eec29ce08e7f374abb"
+        "source_revision": "0e764ae7b2f567c5f2d585eec29ce08e7f374abb",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -6400,7 +6980,9 @@
         "modalities": "image,text",
         "carrier_count": 14,
         "evidence_level": "A",
-        "source_revision": "eb2526efcd6735b7b877e89e35e8cea051ce9b1b"
+        "source_revision": "eb2526efcd6735b7b877e89e35e8cea051ce9b1b",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -6422,7 +7004,9 @@
         "modalities": "cad,text",
         "carrier_count": 12,
         "evidence_level": "A",
-        "source_revision": "4a33cf29f9537c9e7b1303a00db70c39b49ac62b"
+        "source_revision": "4a33cf29f9537c9e7b1303a00db70c39b49ac62b",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -6444,7 +7028,9 @@
         "modalities": "cad,image,text",
         "carrier_count": 26,
         "evidence_level": "A",
-        "source_revision": "fdc4756e2d0c0c28b68c0aff7b20bf0b2cced7a8"
+        "source_revision": "fdc4756e2d0c0c28b68c0aff7b20bf0b2cced7a8",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -6466,7 +7052,9 @@
         "modalities": "cad,eda,image,text",
         "carrier_count": 18,
         "evidence_level": "A",
-        "source_revision": "c1fb7438dc64469bad03cf3cf175ae6690441360"
+        "source_revision": "c1fb7438dc64469bad03cf3cf175ae6690441360",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -6488,7 +7076,9 @@
         "modalities": "image,text",
         "carrier_count": 13,
         "evidence_level": "A",
-        "source_revision": "2d711997fa08a1e01002eec25b24a3dfb4175681"
+        "source_revision": "2d711997fa08a1e01002eec25b24a3dfb4175681",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -6510,7 +7100,9 @@
         "modalities": "cad,image,text",
         "carrier_count": 19,
         "evidence_level": "A",
-        "source_revision": "5dbdb2a2285380bcc817f00323d1455d4b1c8653"
+        "source_revision": "5dbdb2a2285380bcc817f00323d1455d4b1c8653",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -6532,7 +7124,9 @@
         "modalities": "audio,image,text",
         "carrier_count": 16,
         "evidence_level": "A",
-        "source_revision": "a929024476fe0cd4df510836f2e8c2d06b463894"
+        "source_revision": "a929024476fe0cd4df510836f2e8c2d06b463894",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -6554,7 +7148,9 @@
         "modalities": "image,text",
         "carrier_count": 14,
         "evidence_level": "A",
-        "source_revision": "420db14abb956910a8d2f743d90972389152faba"
+        "source_revision": "420db14abb956910a8d2f743d90972389152faba",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -6576,7 +7172,9 @@
         "modalities": "cad,image,text",
         "carrier_count": 16,
         "evidence_level": "A",
-        "source_revision": "c5d54f14cdeac7f1f9afbf3d1e995927384424d8"
+        "source_revision": "c5d54f14cdeac7f1f9afbf3d1e995927384424d8",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -6598,7 +7196,9 @@
         "modalities": "image,text",
         "carrier_count": 11,
         "evidence_level": "A",
-        "source_revision": "bd25a019c17d984af141fbc289b509d5a237df9b"
+        "source_revision": "bd25a019c17d984af141fbc289b509d5a237df9b",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -6620,7 +7220,9 @@
         "modalities": "image,text",
         "carrier_count": 14,
         "evidence_level": "A",
-        "source_revision": "de3631107e6c3633a654f673b086669ec4dcbc0c"
+        "source_revision": "de3631107e6c3633a654f673b086669ec4dcbc0c",
+        "featured": false,
+        "relation_degree": 0
       }
     },
     {
@@ -6642,7 +7244,9 @@
         "modalities": "cad,image,text",
         "carrier_count": 32,
         "evidence_level": "A",
-        "source_revision": "39e0ba14f0b5e8db7f63eafc951d1d7f1d25bccc"
+        "source_revision": "39e0ba14f0b5e8db7f63eafc951d1d7f1d25bccc",
+        "featured": false,
+        "relation_degree": 1
       }
     },
     {
@@ -6664,7 +7268,9 @@
         "modalities": "image,text",
         "carrier_count": 11,
         "evidence_level": "A",
-        "source_revision": "dcac2a125b81864b33d30ae1064dc8a4cf907c09"
+        "source_revision": "dcac2a125b81864b33d30ae1064dc8a4cf907c09",
+        "featured": false,
+        "relation_degree": 0
       }
     }
   ]

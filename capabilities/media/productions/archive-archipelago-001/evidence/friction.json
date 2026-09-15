@@ -13,12 +13,16 @@
   "symptom": ".gpkg is absent from PRESENTATION_KIND_EXTENSIONS and therefore falls through to kind=other.",
   "expected_behavior": "A registered GeoPackage carrier should be discoverable as a geospatial modality while remaining non-browser-native.",
   "actual_behavior": "The exact carrier remains retained, but the current presentation projection would classify it as other and omit geospatial from modalities.",
-  "evidence": {"owner_file":"/root/workstation-lab/scripts/creative_library.py","classifier":"PRESENTATION_KIND_EXTENSIONS"},
+  "evidence": {
+    "owner_file": "/root/workstation-lab/scripts/creative_library.py",
+    "classifier": "PRESENTATION_KIND_EXTENSIONS",
+    "resolutionCommit": "1f0bbf2e981a84dbd43233da947a49447722f95e"
+  },
   "severity": "LOW",
   "frequency": "EVERY_GPKG_CARRIER",
   "owner": "Workstation Creative Library",
-  "status": "OPEN",
+  "status": "VERIFIED",
   "proposed_fix": "Add a minimal geospatial presentation kind for .gpkg/.geojson/.kml without changing preservation format identity or making those files browser-direct.",
-  "fix_attempt": null,
-  "verification": null
+  "fix_attempt": "Workstation Creative Library added presentation kind geospatial for .gpkg/.geojson/.kml while deliberately leaving geospatial outside DIRECT_KINDS.",
+  "verification": "Workstation canonical resolution commit 1f0bbf2e981a84dbd43233da947a49447722f95e; unit suite 9/9 PASS; Creative Library projection classified this Work’s .gpkg carrier as geospatial without claiming browser-direct support."
 }

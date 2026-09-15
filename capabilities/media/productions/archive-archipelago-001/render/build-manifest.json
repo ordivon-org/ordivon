@@ -12,13 +12,19 @@
     "Workstation": 78
   },
   "mappedRelationCount": 45,
-  "coordinateSemantics": "conceptual Cartesian archive plane; no geographic location claim",
+  "relationTypes": {
+    "CONSUMER_OF": 10,
+    "DERIVATIVE_OF": 35
+  },
+  "staticLabelCount": 8,
+  "coordinateSemantics": "conceptual Cartesian archive plane; no geographic location or semantic-distance claim",
   "outputs": [
     "render/works.geojson",
     "render/owners.geojson",
     "render/relations.geojson",
     "render/archive-archipelago-001.svg",
     "render/archive-archipelago-001.gpkg",
-    "render/archive-archipelago-001.png"
+    "render/archive-archipelago-001.png",
+    "interactive/index.html"
   ]
 }
