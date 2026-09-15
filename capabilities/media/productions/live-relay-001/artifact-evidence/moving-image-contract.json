@@ -1,0 +1,17 @@
+{
+  "contractVersion": 1,
+  "id": "live-relay-001-preservation-master",
+  "profileId": "moving-image-matroska-ffv1-v3-r1",
+  "video": {
+    "width": 1280,
+    "height": 720,
+    "frameRate": {"numerator": 30, "denominator": 1},
+    "frameCount": 657,
+    "pixelFormat": "yuv422p",
+    "bitDepth": 8,
+    "chromaSubsampling": "4:2:2",
+    "scanType": "Progressive",
+    "expectedRawVideoSha256": "a16ff5cf17693ce1f3e4fcce1f9400df89715702fca53eaea43bf5a1be38c863"
+  },
+  "notes": "Preservation/interchange derivative of peer-paced real OBS Take 6 for Live Relay 001. Audio is intentionally omitted because Artifact moving-image R1 is video-only; final OBS MP4 retains the digitally silent AAC event-source track."
+}

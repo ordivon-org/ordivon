@@ -1,0 +1,100 @@
+{
+  "artifact": {
+    "name": "live-relay-001-master.mkv",
+    "path": "/var/lib/ordivon/runtime/workspaces/ws-creative-live-relay-r1-20260916/productions/live-relay-001/render/live-relay-001-master.mkv",
+    "sha256": "05763a34936df0af7e58737711477a86b9b0b1043a22c109752feb6e363f1f65",
+    "size": 41512896
+  },
+  "boundary": "PASS is bounded to one RFC 9559 Matroska v4 video-only artifact carrying stable RFC 9043 FFV1 version 3 (micro-version >=4), 8-bit progressive yuv422p CFR video under one exact object contract. It establishes MediaConch zero-failure/warning implementation evidence, MediaInfo/FFprobe technical agreement, stream topology, canonical rawvideo byte count and optional decoded-frame SHA-256 identity. It does not claim full FFV1 conformance from MediaConch when its clean-file FFV1 checker executes zero tests, visual/artistic correctness, broad player compatibility, audio/subtitle semantics, or bit-identical Matroska reproducibility.",
+  "contract": {
+    "canonicalDigest": "5a1345809ab5cc9770374649405183605aef099abb06f3fd136ae072c4b467e3",
+    "path": "/var/lib/ordivon/runtime/workspaces/ws-creative-live-relay-r1-20260916/productions/live-relay-001/artifact-evidence/moving-image-contract.json",
+    "sha256": "9452a6b71856f32728a907c75b0db15835e7958e4341b7f0aeef92c40f34c167"
+  },
+  "decodedVideoIdentity": {
+    "contractExpectedRawVideoSha256": "a16ff5cf17693ce1f3e4fcce1f9400df89715702fca53eaea43bf5a1be38c863",
+    "expectedRawVideoBytes": 1210982400,
+    "failures": [],
+    "ffmpegReturnCode": 0,
+    "integrityDiagnostics": [],
+    "rawVideoBytes": 1210982400,
+    "rawVideoSha256": "a16ff5cf17693ce1f3e4fcce1f9400df89715702fca53eaea43bf5a1be38c863",
+    "status": "PASS"
+  },
+  "failures": [],
+  "ffprobeTechnical": {
+    "codec": "ffv1",
+    "evidenceSha256": "3686b63948cd303df8e3715da651301eedfbb4c6844a45b56eef63ed1fb6fc01",
+    "failures": [],
+    "frameCount": "657",
+    "frameRate": "30/1",
+    "height": 720,
+    "otherStreamCount": 0,
+    "pixelFormat": "yuv422p",
+    "status": "PASS",
+    "streamCount": 1,
+    "videoStreamCount": 1,
+    "width": 1280
+  },
+  "ffv1Implementation": {
+    "checkCount": 1,
+    "failCount": 0,
+    "failures": [],
+    "groupCount": 1,
+    "nonZeroFailureChecks": [],
+    "nonZeroWarningChecks": [],
+    "passCount": 0,
+    "status": "PASS",
+    "testsRun": 0,
+    "warnCount": 0
+  },
+  "kind": "artifact-moving-image-verification",
+  "matroskaImplementation": {
+    "checkCount": 23,
+    "evidenceSha256": "453385a3b8db91d4851428f9e12cec83cf38027434f3b2fd06dfeeb7472e34bb",
+    "failCount": 0,
+    "failures": [],
+    "groupCount": 1,
+    "nonZeroFailureChecks": [],
+    "nonZeroWarningChecks": [],
+    "passCount": 718,
+    "processReturnCode": 0,
+    "status": "PASS",
+    "testsRun": 718,
+    "warnCount": 0
+  },
+  "mediaInfoTechnical": {
+    "bitDepth": "8",
+    "chromaSubsampling": "4:2:2",
+    "codec": "FFV1",
+    "codecVersion": "3.4",
+    "containerFormat": "Matroska",
+    "containerVersion": "4",
+    "evidenceSha256": "ea9f296dd44604488f3462be82c3fe2f3a81627523cec484373fb6f029cd5a85",
+    "failures": [],
+    "ffv1MicroVersion": 4,
+    "frameCount": "657",
+    "frameRate": "30.000",
+    "height": "720",
+    "scanType": "Progressive",
+    "status": "PASS",
+    "width": "1280"
+  },
+  "profileId": "moving-image-matroska-ffv1-v3-r1",
+  "schemaVersion": 1,
+  "status": "PASS",
+  "tools": {
+    "ffmpeg": {
+      "path": "/usr/bin/ffmpeg",
+      "sha256": "46dea8dda22fcc6572a524ba805428a18f0caadf61fe75b443676a485b10ea5d"
+    },
+    "ffprobe": {
+      "path": "/usr/bin/ffprobe",
+      "sha256": "1e165ca6749e6343f71cf85eb3b90283db0e40e3e04ee3adfb703e81d8459a7c"
+    },
+    "mediaconch": {
+      "path": "/opt/ordivon/external/mediaconch/25.04-1/mediaconch",
+      "sha256": "460fac6fa9a42dfeab4c7f6dc31470e02d5fd2f1271c295a05d9a8c9fe725ea3"
+    }
+  }
+}

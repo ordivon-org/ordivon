@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.media.live-relay-source-manifest",
+  "rows": [
+    {
+      "slot": "archive",
+      "workId": "media:archive-archipelago-001",
+      "sourceRevision": "a9f48d07d5ff18ebda2cb9f39d79d1797abd53d7",
+      "relativePath": "source/archive-archipelago-001.png",
+      "sha256": "sha256:2f0a7c9d6b8ca497f72eb3e72b9a893e3b98a7f1be892ed910ec429a5e773bbe"
+    },
+    {
+      "slot": "object",
+      "workId": "media:convergence-object-001",
+      "sourceRevision": "b6b9f2bb1f060981ee7a3c56a2148b1e2ed5a058",
+      "relativePath": "source/convergence-object-001.png",
+      "sha256": "sha256:9c987354341caa0f72608f284eece5900cee7cabfb29cea08e94e990b846503e"
+    },
+    {
+      "slot": "constellation",
+      "workId": "media:system-constellation-poster-001",
+      "sourceRevision": "13444cc55fcc6c0ee3be70f8165885f3e11ed3f6",
+      "relativePath": "source/system-constellation-poster-001.png",
+      "sha256": "sha256:40bfdb7fc2953380afa8dc943771fe1ae8eafdb9fe37a269513fba4bc5891a9e"
+    }
+  ]
+}

@@ -1,0 +1,261 @@
+{
+    "schemaVersion":  1,
+    "kind":  "ordivon.media.obs-live-relay-session",
+    "episodeSucceeded":  true,
+    "obsVersion":  "32.2.2",
+    "obsWebSocketVersion":  "5.7.4",
+    "rpcVersion":  1,
+    "authenticationRequired":  true,
+    "publicStreaming":  false,
+    "sourceProgramme":  "live-relay-001",
+    "originalProgramSceneRestored":  true,
+    "temporarySceneCount":  4,
+    "audioInputMuteStatesRestored":  true,
+    "recordingOutputPath":  "C:/Users/16663/AppData/Local/Temp/ordivon-live-relay-001-r6/2026-09-16 01-56-04.mp4",
+    "timeline":  [
+                     {
+                         "elapsedMs":  20,
+                         "kind":  "state",
+                         "detail":  "temporary-config-applied"
+                     },
+                     {
+                         "elapsedMs":  52,
+                         "kind":  "lifecycle",
+                         "detail":  "obs-started"
+                     },
+                     {
+                         "elapsedMs":  1156,
+                         "kind":  "lifecycle",
+                         "detail":  "websocket-authenticated"
+                     },
+                     {
+                         "elapsedMs":  1193,
+                         "kind":  "privacy",
+                         "detail":  "audio-inputs-fenced:2"
+                     },
+                     {
+                         "elapsedMs":  1629,
+                         "kind":  "programme",
+                         "detail":  "temporary-scenes-created"
+                     },
+                     {
+                         "elapsedMs":  1645,
+                         "kind":  "switch",
+                         "detail":  "signal-open"
+                     },
+                     {
+                         "elapsedMs":  2163,
+                         "kind":  "record",
+                         "detail":  "start"
+                     },
+                     {
+                         "elapsedMs":  5177,
+                         "kind":  "switch",
+                         "detail":  "archive"
+                     },
+                     {
+                         "elapsedMs":  11183,
+                         "kind":  "switch",
+                         "detail":  "object"
+                     },
+                     {
+                         "elapsedMs":  15194,
+                         "kind":  "switch",
+                         "detail":  "constellation"
+                     },
+                     {
+                         "elapsedMs":  21211,
+                         "kind":  "switch",
+                         "detail":  "signal-close"
+                     },
+                     {
+                         "elapsedMs":  24225,
+                         "kind":  "record",
+                         "detail":  "stop-requested"
+                     },
+                     {
+                         "elapsedMs":  25034,
+                         "kind":  "record",
+                         "detail":  "stopped-after-polls:3"
+                     },
+                     {
+                         "elapsedMs":  25037,
+                         "kind":  "restore",
+                         "detail":  "program-scene"
+                     },
+                     {
+                         "elapsedMs":  25050,
+                         "kind":  "restore",
+                         "detail":  "temporary-scenes-removed"
+                     },
+                     {
+                         "elapsedMs":  25063,
+                         "kind":  "restore",
+                         "detail":  "audio-input-mutes-verified"
+                     }
+                 ],
+    "observedEvents":  [
+                           {
+                               "elapsedMs":  1198,
+                               "eventType":  "SceneCreated"
+                           },
+                           {
+                               "elapsedMs":  1216,
+                               "eventType":  "SceneListChanged"
+                           },
+                           {
+                               "elapsedMs":  1222,
+                               "eventType":  "SceneCreated"
+                           },
+                           {
+                               "elapsedMs":  1304,
+                               "eventType":  "SceneItemCreated"
+                           },
+                           {
+                               "elapsedMs":  1306,
+                               "eventType":  "SceneItemSelected"
+                           },
+                           {
+                               "elapsedMs":  1306,
+                               "eventType":  "SceneCreated"
+                           },
+                           {
+                               "elapsedMs":  1311,
+                               "eventType":  "SceneListChanged"
+                           },
+                           {
+                               "elapsedMs":  1314,
+                               "eventType":  "SceneCreated"
+                           },
+                           {
+                               "elapsedMs":  1411,
+                               "eventType":  "SceneItemCreated"
+                           },
+                           {
+                               "elapsedMs":  1412,
+                               "eventType":  "SceneItemSelected"
+                           },
+                           {
+                               "elapsedMs":  1416,
+                               "eventType":  "SceneCreated"
+                           },
+                           {
+                               "elapsedMs":  1418,
+                               "eventType":  "SceneListChanged"
+                           },
+                           {
+                               "elapsedMs":  1421,
+                               "eventType":  "SceneCreated"
+                           },
+                           {
+                               "elapsedMs":  1534,
+                               "eventType":  "SceneItemCreated"
+                           },
+                           {
+                               "elapsedMs":  1534,
+                               "eventType":  "SceneItemSelected"
+                           },
+                           {
+                               "elapsedMs":  1535,
+                               "eventType":  "SceneCreated"
+                           },
+                           {
+                               "elapsedMs":  1540,
+                               "eventType":  "SceneListChanged"
+                           },
+                           {
+                               "elapsedMs":  1541,
+                               "eventType":  "SceneCreated"
+                           },
+                           {
+                               "elapsedMs":  1627,
+                               "eventType":  "SceneItemCreated"
+                           },
+                           {
+                               "elapsedMs":  1632,
+                               "eventType":  "SceneItemSelected"
+                           },
+                           {
+                               "elapsedMs":  2162,
+                               "eventType":  "CurrentProgramSceneChanged"
+                           },
+                           {
+                               "elapsedMs":  5174,
+                               "eventType":  "RecordStateChanged"
+                           },
+                           {
+                               "elapsedMs":  5175,
+                               "eventType":  "RecordStateChanged"
+                           },
+                           {
+                               "elapsedMs":  11179,
+                               "eventType":  "CurrentProgramSceneChanged"
+                           },
+                           {
+                               "elapsedMs":  15191,
+                               "eventType":  "CurrentProgramSceneChanged"
+                           },
+                           {
+                               "elapsedMs":  21207,
+                               "eventType":  "CurrentProgramSceneChanged"
+                           },
+                           {
+                               "elapsedMs":  24223,
+                               "eventType":  "CurrentProgramSceneChanged"
+                           },
+                           {
+                               "elapsedMs":  24491,
+                               "eventType":  "RecordStateChanged"
+                           },
+                           {
+                               "elapsedMs":  25033,
+                               "eventType":  "RecordStateChanged"
+                           },
+                           {
+                               "elapsedMs":  25043,
+                               "eventType":  "SceneRemoved"
+                           },
+                           {
+                               "elapsedMs":  25046,
+                               "eventType":  "SceneListChanged"
+                           },
+                           {
+                               "elapsedMs":  25048,
+                               "eventType":  "SceneRemoved"
+                           },
+                           {
+                               "elapsedMs":  25049,
+                               "eventType":  "SceneRemoved"
+                           },
+                           {
+                               "elapsedMs":  25053,
+                               "eventType":  "SceneRemoved"
+                           },
+                           {
+                               "elapsedMs":  25055,
+                               "eventType":  "SceneListChanged"
+                           },
+                           {
+                               "elapsedMs":  25056,
+                               "eventType":  "SceneListChanged"
+                           },
+                           {
+                               "elapsedMs":  25057,
+                               "eventType":  "SceneListChanged"
+                           }
+                       ],
+    "beforeState":  {
+                        "sceneCollectionSha256":  "8c93319eac6cd22ec972c2d46c04254b4b7581ce3712326943ef7be7c351e3c5",
+                        "globalIniSha256":  "d1fe36e8fc552b17008578a3f0a7ef216621bb47c7efe8af0ed9f598c1297e67",
+                        "websocketConfigSha256":  "d5dd9a14a8eff22b6c7c7c8de04f6ba3c9266045edf77badda04c19da30adda5",
+                        "profileIniSha256":  "13a01a1ab64036fb914b8273bccd1a956763c1a88bb4183d4d19e9d0cb9b04cd"
+                    },
+    "cleanup":  {
+                    "obsProcessCountAfter":  0,
+                    "globalIniRestored":  true,
+                    "listener4455After":  false,
+                    "profileIniRestored":  true,
+                    "sceneCollectionRestored":  true,
+                    "websocketConfigRestored":  true
+                }
+}

@@ -1,0 +1,113 @@
+[in#0 @ 0x57bc50de8e80] UDTA parsing failed retrying raw
+    Last message repeated 1 times
+Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'productions/live-relay-001/render/live-relay-001-source-take6.mp4':
+  Metadata:
+    major_brand     : iso4
+    minor_version   : 0
+    compatible_brands: iso4isomobs1iso2avc1mp41
+    creation_time   : 2026-09-15T17:56:05.000000Z
+    encoder         : OBS Studio (32.2.2)
+  Duration: 00:00:21.93, start: 0.000000, bitrate: 6011 kb/s
+  Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, bt709, progressive), 1280x720 [SAR 1:1 DAR 16:9], 6000 kb/s, 30 fps, 30 tbr, 30 tbn (default)
+    Metadata:
+      creation_time   : 2026-09-15T17:56:05.000000Z
+      handler_name    : OBS Video Handler
+      encoder         : obs_nvenc_h264_tex
+      name            : simple_video_stream
+  Stream #0:1[0x2](und): Audio: aac (LC) (mp4a / 0x6134706D), 48000 Hz, stereo, fltp, 2 kb/s (default)
+    Metadata:
+      creation_time   : 2026-09-15T17:56:05.000000Z
+      handler_name    : OBS Audio Handler
+      name            : simple_aac
+Stream mapping:
+  Stream #0:1 -> #0:0 (aac (native) -> pcm_s16le (native))
+Press [q] to stop, [?] for help
+Output #0, null, to 'pipe:':
+  Metadata:
+    major_brand     : iso4
+    minor_version   : 0
+    compatible_brands: iso4isomobs1iso2avc1mp41
+    encoder         : Lavf63.1.100
+  Stream #0:0(und): Audio: pcm_s16le, 48000 Hz, stereo, s16, 1536 kb/s (default)
+    Metadata:
+      encoder         : Lavc63.1.100 pcm_s16le
+      creation_time   : 2026-09-15T17:56:05.000000Z
+      handler_name    : OBS Audio Handler
+      name            : simple_aac
+[Parsed_astats_0 @ 0x784b40003c40] Channel: 1
+[Parsed_astats_0 @ 0x784b40003c40] DC offset: 0.000000
+[Parsed_astats_0 @ 0x784b40003c40] Min level: 0.000000
+[Parsed_astats_0 @ 0x784b40003c40] Max level: 0.000000
+[Parsed_astats_0 @ 0x784b40003c40] Min difference: 0.000000
+[Parsed_astats_0 @ 0x784b40003c40] Max difference: 0.000000
+[Parsed_astats_0 @ 0x784b40003c40] Mean difference: 0.000000
+[Parsed_astats_0 @ 0x784b40003c40] RMS difference: 0.000000
+[Parsed_astats_0 @ 0x784b40003c40] Peak level dB: -inf
+[Parsed_astats_0 @ 0x784b40003c40] RMS level dB: -inf
+[Parsed_astats_0 @ 0x784b40003c40] RMS peak dB: -inf
+[Parsed_astats_0 @ 0x784b40003c40] RMS through dB: -inf
+[Parsed_astats_0 @ 0x784b40003c40] Crest factor: 1.000000
+[Parsed_astats_0 @ 0x784b40003c40] Flat factor: -inf
+[Parsed_astats_0 @ 0x784b40003c40] Peak count: 2101248
+[Parsed_astats_0 @ 0x784b40003c40] Abs Peak count: 1050624
+[Parsed_astats_0 @ 0x784b40003c40] Noise floor dB: -inf
+[Parsed_astats_0 @ 0x784b40003c40] Noise floor count: 1048225
+[Parsed_astats_0 @ 0x784b40003c40] Entropy: -0.000000
+[Parsed_astats_0 @ 0x784b40003c40] Bit depth: 0/0/0/0
+[Parsed_astats_0 @ 0x784b40003c40] Dynamic range: -inf
+[Parsed_astats_0 @ 0x784b40003c40] Zero crossings: 0
+[Parsed_astats_0 @ 0x784b40003c40] Zero crossings rate: 0.000000
+[Parsed_astats_0 @ 0x784b40003c40] Number of NaNs: 0
+[Parsed_astats_0 @ 0x784b40003c40] Number of Infs: 0
+[Parsed_astats_0 @ 0x784b40003c40] Number of denormals: 0
+[Parsed_astats_0 @ 0x784b40003c40] Channel: 2
+[Parsed_astats_0 @ 0x784b40003c40] DC offset: 0.000000
+[Parsed_astats_0 @ 0x784b40003c40] Min level: 0.000000
+[Parsed_astats_0 @ 0x784b40003c40] Max level: 0.000000
+[Parsed_astats_0 @ 0x784b40003c40] Min difference: 0.000000
+[Parsed_astats_0 @ 0x784b40003c40] Max difference: 0.000000
+[Parsed_astats_0 @ 0x784b40003c40] Mean difference: 0.000000
+[Parsed_astats_0 @ 0x784b40003c40] RMS difference: 0.000000
+[Parsed_astats_0 @ 0x784b40003c40] Peak level dB: -inf
+[Parsed_astats_0 @ 0x784b40003c40] RMS level dB: -inf
+[Parsed_astats_0 @ 0x784b40003c40] RMS peak dB: -inf
+[Parsed_astats_0 @ 0x784b40003c40] RMS through dB: -inf
+[Parsed_astats_0 @ 0x784b40003c40] Crest factor: 1.000000
+[Parsed_astats_0 @ 0x784b40003c40] Flat factor: -inf
+[Parsed_astats_0 @ 0x784b40003c40] Peak count: 2101248
+[Parsed_astats_0 @ 0x784b40003c40] Abs Peak count: 1050624
+[Parsed_astats_0 @ 0x784b40003c40] Noise floor dB: -inf
+[Parsed_astats_0 @ 0x784b40003c40] Noise floor count: 1048225
+[Parsed_astats_0 @ 0x784b40003c40] Entropy: -0.000000
+[Parsed_astats_0 @ 0x784b40003c40] Bit depth: 0/0/0/0
+[Parsed_astats_0 @ 0x784b40003c40] Dynamic range: -inf
+[Parsed_astats_0 @ 0x784b40003c40] Zero crossings: 0
+[Parsed_astats_0 @ 0x784b40003c40] Zero crossings rate: 0.000000
+[Parsed_astats_0 @ 0x784b40003c40] Number of NaNs: 0
+[Parsed_astats_0 @ 0x784b40003c40] Number of Infs: 0
+[Parsed_astats_0 @ 0x784b40003c40] Number of denormals: 0
+[Parsed_astats_0 @ 0x784b40003c40] Overall
+[Parsed_astats_0 @ 0x784b40003c40] DC offset: 0.000000
+[Parsed_astats_0 @ 0x784b40003c40] Min level: 0.000000
+[Parsed_astats_0 @ 0x784b40003c40] Max level: 0.000000
+[Parsed_astats_0 @ 0x784b40003c40] Min difference: 0.000000
+[Parsed_astats_0 @ 0x784b40003c40] Max difference: 0.000000
+[Parsed_astats_0 @ 0x784b40003c40] Mean difference: 0.000000
+[Parsed_astats_0 @ 0x784b40003c40] RMS difference: 0.000000
+[Parsed_astats_0 @ 0x784b40003c40] Peak level dB: -inf
+[Parsed_astats_0 @ 0x784b40003c40] RMS level dB: -inf
+[Parsed_astats_0 @ 0x784b40003c40] RMS peak dB: -inf
+[Parsed_astats_0 @ 0x784b40003c40] RMS through dB: -inf
+[Parsed_astats_0 @ 0x784b40003c40] Flat factor: -inf
+[Parsed_astats_0 @ 0x784b40003c40] Peak count: 2101248.000000
+[Parsed_astats_0 @ 0x784b40003c40] Abs Peak count: 1050624.000000
+[Parsed_astats_0 @ 0x784b40003c40] Noise floor dB: -inf
+[Parsed_astats_0 @ 0x784b40003c40] Noise floor count: 1048225.000000
+[Parsed_astats_0 @ 0x784b40003c40] Entropy: 0.000000
+[Parsed_astats_0 @ 0x784b40003c40] Bit depth: 0/0/0/0
+[Parsed_astats_0 @ 0x784b40003c40] Number of samples: 1050624
+[Parsed_astats_0 @ 0x784b40003c40] Number of NaNs: 0.000000
+[Parsed_astats_0 @ 0x784b40003c40] Number of Infs: 0.000000
+[Parsed_astats_0 @ 0x784b40003c40] Number of denormals: 0.000000
+[out#0/null @ 0x57bc50dfac40] video:0KiB audio:4104KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: unknown
+size=N/A time=00:00:21.88 bitrate=N/A speed=76.7x elapsed=0:00:00.28    

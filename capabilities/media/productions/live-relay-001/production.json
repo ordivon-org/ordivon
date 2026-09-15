@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "id": "live-relay-001",
+  "title": "Live Relay 001 — Archive / Object / Constellation",
+  "status": "review",
+  "intent": "Create the first retained Ordivon Broadcast Work as a real, bounded OBS programme episode that live-switches among three exact registered Works, preserves their semantic boundaries, proves failure-aware workstation cleanup, and retains both convenient replay and standards-verified preservation carriers.",
+  "audiences": [
+    "ordivon-user",
+    "creative-library-consumer",
+    "broadcast-producer",
+    "archive-curator"
+  ],
+  "sourceBindings": [
+    {
+      "id": "archive-archipelago",
+      "repository": "ordivon-media",
+      "revision": "a9f48d07d5ff18ebda2cb9f39d79d1797abd53d7",
+      "role": "exact-registered-source-work"
+    },
+    {
+      "id": "convergence-object",
+      "repository": "ordivon-media",
+      "revision": "b6b9f2bb1f060981ee7a3c56a2148b1e2ed5a058",
+      "role": "exact-registered-source-work"
+    },
+    {
+      "id": "system-constellation-poster",
+      "repository": "ordivon-media",
+      "revision": "13444cc55fcc6c0ee3be70f8165885f3e11ed3f6",
+      "role": "exact-registered-source-work"
+    },
+    {
+      "id": "media-tooling",
+      "repository": "ordivon-media",
+      "revision": "8c241987726599dc707e5c8e87c8bab3570aa681",
+      "role": "creative-production-and-equipment-context"
+    }
+  ],
+  "workingProfile": {
+    "frameRate": {
+      "numerator": 30,
+      "denominator": 1
+    },
+    "canvas": {
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "sources": {
+    "claims": "claims.json",
+    "assets": "source/provenance.json",
+    "scripts": [
+      "run-live-relay.ps1"
+    ],
+    "receipts": [
+      "consumption-evidence.json",
+      "evidence/obs-session-final.json",
+      "evidence/friction-controller-pre-finally-r1.json",
+      "artifact-evidence/moving-image-verification.json"
+    ]
+  },
+  "outputs": [
+    {
+      "id": "live-relay-source-capture",
+      "kind": "video",
+      "status": "approved",
+      "profile": "obs-32.2.2-h264-aac-digital-silence-event-source",
+      "blobDigest": "sha256:d78adcac09885dab71678c742061c83dd24ee2c0e768b9c84d5e5e9f97bb19b5"
+    },
+    {
+      "id": "live-relay-preservation-master",
+      "kind": "video",
+      "status": "approved",
+      "profile": "moving-image-matroska-ffv1-v3-r1",
+      "blobDigest": "sha256:05763a34936df0af7e58737711477a86b9b0b1043a22c109752feb6e363f1f65"
+    },
+    {
+      "id": "live-relay-poster",
+      "kind": "image",
+      "status": "approved",
+      "profile": "png-1280x720-final-recording-programme-hero",
+      "blobDigest": "sha256:2ea8fabed997b2c89e3ae07ff0e551420bb112e677e0858738a5eab9f54de3b2"
+    }
+  ]
+}

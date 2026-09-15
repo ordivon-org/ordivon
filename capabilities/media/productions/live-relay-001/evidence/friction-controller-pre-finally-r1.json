@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.media.creative-friction-evidence",
+  "relatedWork": "media:live-relay-001",
+  "records": [
+    {
+      "frictionId": "friction:media:live-relay-001:controller-state-before-finally",
+      "category": "RECOVERABILITY",
+      "surface": "OBS live-session controller",
+      "observed": "Take 1 failed before OBS launch because PowerShell treated a backslash replacement pattern as an invalid regular expression. The controller had already temporarily enabled obs-websocket before entering its try/finally cleanup region, so the outer byte-exact postcondition detected that the WebSocket config had not been restored.",
+      "repair": "Restore all four OBS state files from pre-episode byte-exact recovery copies; replace regex path escaping with literal String.Replace; move every external state mutation inside the try/finally recovery domain.",
+      "verification": "After reconciliation the WebSocket config SHA-256 is d5dd9a14a8eff22b6c7c7c8de04f6ba3c9266045edf77badda04c19da30adda5 with server_enabled=false, the global/profile/scene hashes equal their pre-episode values, OBS process count is zero, and no 4455 listener remains.",
+      "boundary": "No recording started in this failed take; it is controller/recovery evidence, not a Broadcast Work carrier."
+    },
+    {
+      "frictionId": "friction:media:live-relay-001:powershell-arraysegment-unroll",
+      "category": "INTEROP",
+      "surface": "Windows-local obs-websocket controller",
+      "observed": "Take 2 and Take 3 authenticated far enough to exercise ClientWebSocket setup but failed before any recording because a helper function returned ArraySegment<byte>; PowerShell pipeline enumeration expanded the enumerable struct into Object[], which ReceiveAsync rejects.",
+      "repair": "Construct ArraySegment<byte> into a local variable directly at each SendAsync/ReceiveAsync call site so PowerShell does not pipeline-unroll it.",
+      "verification": "A standalone Windows PowerShell micro-test established the concrete Byte[] and ArraySegment<byte> types; subsequent take must still prove real WebSocket request/recording semantics.",
+      "boundary": "Both failed takes exited OBS and restored WebSocket/global/profile/scene bytes exactly; neither produced a recording and neither is a Work carrier."
+    },
+    {
+      "frictionId": "friction:media:live-relay-001:stop-record-asynchronous-convergence",
+      "category": "LIFECYCLE",
+      "surface": "OBS record.stop observation",
+      "observed": "Take 4 produced a valid 20.93-second OBS MP4 with the intended five sampled programme states and digital-silence audio, but a GetRecordStatus read 500 ms after StopRecord still reported outputActive=true. Treating that immediate read as terminal caused the controller to reject an otherwise finalized capture.",
+      "repair": "Poll GetRecordStatus at 250 ms intervals for up to 10 seconds after StopRecord and admit completion only after outputActive=false; retain the StopRecord output path and separately require the finalized file to exist.",
+      "verification": "Final take must record the number of settle polls, then pass frame-order, silence, preservation-derivative, state-restore, process-exit, and loopback-listener gates.",
+      "boundary": "Take 4 is a director/QC sample and evidence of asynchronous convergence, not the final registered master."
+    },
+    {
+      "frictionId": "friction:media:live-relay-001:cleanup-false-negative-gate",
+      "category": "VERIFICATION",
+      "surface": "OBS live-session final cleanup gate",
+      "observed": "Take 5 completed the episode and cleanup successfully, but the controller exited 4 because a generic `$cleanup.Values -contains $false` predicate treated the expected-good `listener4455After=false` value as a failure.",
+      "repair": "Replace the generic false-value fold with explicit polarity-aware checks: listener4455After must be false; restoration booleans must be true; obsProcessCountAfter must be zero.",
+      "verification": "The persisted Take 5 session receipt independently records episodeSucceeded=true, obsProcessCountAfter=0, listener4455After=false, all four restoration booleans=true, and exact pre/post state hashes match current files. A separate post-reconciliation Windows process query returns zero OBS processes.",
+      "boundary": "This is a verifier false negative after a successful episode, not evidence that the live recording or cleanup failed."
+    }
+  ]
+}
