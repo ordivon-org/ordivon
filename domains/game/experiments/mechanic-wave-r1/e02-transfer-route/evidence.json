@@ -1,0 +1,203 @@
+{
+  "schemaVersion": 1,
+  "id": "r1-transfer-route",
+  "checks": {
+    "worldAuthorityPolicyInvariant": true,
+    "noKnowledgeOrInventoryGate": true,
+    "routesSpatiallyDistinct": true,
+    "sharedTimingRelation": true,
+    "route1RuleDemonstrable": true,
+    "uninformedFailsRoute2": true,
+    "timingInsensitiveFailsRoute2": true,
+    "informedTransferSucceedsRoute2": true,
+    "retryResetsTransientProgressOnly": true
+  },
+  "results": {
+    "route1": {
+      "uninformed": {
+        "status": "LOSS",
+        "trace": [
+          {
+            "obs": {
+              "position": 0,
+              "distanceToHazard": 6,
+              "status": "ONGOING"
+            },
+            "action": "commit-jump"
+          }
+        ],
+        "final": {
+          "route": "route1",
+          "index": 0,
+          "attempt": 1,
+          "status": "LOSS",
+          "jumped": true
+        }
+      },
+      "timing-insensitive": {
+        "status": "LOSS",
+        "trace": [
+          {
+            "obs": {
+              "position": 0,
+              "distanceToHazard": 6,
+              "status": "ONGOING"
+            },
+            "action": "wait"
+          },
+          {
+            "obs": {
+              "position": 1,
+              "distanceToHazard": 5,
+              "status": "ONGOING"
+            },
+            "action": "commit-jump"
+          }
+        ],
+        "final": {
+          "route": "route1",
+          "index": 1,
+          "attempt": 1,
+          "status": "LOSS",
+          "jumped": true
+        }
+      },
+      "transfer": {
+        "status": "WIN",
+        "trace": [
+          {
+            "obs": {
+              "position": 0,
+              "distanceToHazard": 6,
+              "status": "ONGOING"
+            },
+            "action": "wait"
+          },
+          {
+            "obs": {
+              "position": 1,
+              "distanceToHazard": 5,
+              "status": "ONGOING"
+            },
+            "action": "wait"
+          },
+          {
+            "obs": {
+              "position": 3,
+              "distanceToHazard": 3,
+              "status": "ONGOING"
+            },
+            "action": "commit-jump"
+          }
+        ],
+        "final": {
+          "route": "route1",
+          "index": 2,
+          "attempt": 1,
+          "status": "WIN",
+          "jumped": true
+        }
+      }
+    },
+    "route2": {
+      "uninformed": {
+        "status": "LOSS",
+        "trace": [
+          {
+            "obs": {
+              "position": 0,
+              "distanceToHazard": 12,
+              "status": "ONGOING"
+            },
+            "action": "commit-jump"
+          }
+        ],
+        "final": {
+          "route": "route2",
+          "index": 0,
+          "attempt": 1,
+          "status": "LOSS",
+          "jumped": true
+        }
+      },
+      "timing-insensitive": {
+        "status": "LOSS",
+        "trace": [
+          {
+            "obs": {
+              "position": 0,
+              "distanceToHazard": 12,
+              "status": "ONGOING"
+            },
+            "action": "wait"
+          },
+          {
+            "obs": {
+              "position": 2,
+              "distanceToHazard": 10,
+              "status": "ONGOING"
+            },
+            "action": "commit-jump"
+          }
+        ],
+        "final": {
+          "route": "route2",
+          "index": 1,
+          "attempt": 1,
+          "status": "LOSS",
+          "jumped": true
+        }
+      },
+      "transfer": {
+        "status": "WIN",
+        "trace": [
+          {
+            "obs": {
+              "position": 0,
+              "distanceToHazard": 12,
+              "status": "ONGOING"
+            },
+            "action": "wait"
+          },
+          {
+            "obs": {
+              "position": 2,
+              "distanceToHazard": 10,
+              "status": "ONGOING"
+            },
+            "action": "wait"
+          },
+          {
+            "obs": {
+              "position": 5,
+              "distanceToHazard": 7,
+              "status": "ONGOING"
+            },
+            "action": "wait"
+          },
+          {
+            "obs": {
+              "position": 9,
+              "distanceToHazard": 3,
+              "status": "ONGOING"
+            },
+            "action": "commit-jump"
+          }
+        ],
+        "final": {
+          "route": "route2",
+          "index": 3,
+          "attempt": 1,
+          "status": "WIN",
+          "jumped": true
+        }
+      }
+    }
+  },
+  "worldDigests": {
+    "route1": "cd3f37f8593100dbfd6c4a331031eebab06c4963021fc188667690c3e11c42a2",
+    "route2": "42155da816bd3c804d1f46b598966fa6152403e4ccf78790538defebcd12cfed"
+  },
+  "outcome": "KEEP",
+  "claimCeiling": "mechanical cross-route timing-relation transfer only; no Human mastery/interest claim"
+}

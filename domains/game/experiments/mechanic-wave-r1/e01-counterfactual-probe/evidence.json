@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "id": "r1-counterfactual-probe",
+  "checks": {
+    "uniqueOptimalCorrectionPerFault": true,
+    "inspectionCreatesActionRelevantPartition": true,
+    "inspectionStrictlyImprovesExpectedReward": true,
+    "noUniversalCorrection": true,
+    "negativeObservationRemainsAmbiguous": true
+  },
+  "noInspection": {
+    "mapping": {
+      "symptom:throughput-low": "repair-source"
+    },
+    "value": -0.5599999999999996
+  },
+  "bestInspection": {
+    "inspection": "inspect-input",
+    "mapping": {
+      "fault": "repair-source",
+      "ok": "repair-process"
+    },
+    "value": 3.7200000000000006,
+    "groups": {
+      "fault": [
+        "source"
+      ],
+      "ok": [
+        "process",
+        "route"
+      ]
+    }
+  },
+  "allInspections": [
+    {
+      "inspection": "inspect-input",
+      "mapping": {
+        "fault": "repair-source",
+        "ok": "repair-process"
+      },
+      "value": 3.7200000000000006,
+      "groups": {
+        "fault": [
+          "source"
+        ],
+        "ok": [
+          "process",
+          "route"
+        ]
+      }
+    },
+    {
+      "inspection": "inspect-flow",
+      "mapping": {
+        "fault": "repair-process",
+        "ok": "repair-source"
+      },
+      "value": 3.7200000000000006,
+      "groups": {
+        "fault": [
+          "process"
+        ],
+        "ok": [
+          "route",
+          "source"
+        ]
+      }
+    }
+  ],
+  "singleCorrectionSuccessCounts": {
+    "repair-source": 1,
+    "repair-process": 1,
+    "repair-route": 1
+  },
+  "outcome": "KEEP",
+  "claimCeiling": "mechanical counterfactual-probe consequence only; no Human interest claim"
+}

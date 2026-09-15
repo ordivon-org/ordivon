@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "r1-commitment-lag",
+  "intendedConsequence": "A control action committed against a recent observation can become wrong when that view is stale, creating an anticipate-vs-repair consequence.",
+  "reuse": ["delays-queues", "information-age-staleness", "prediction-vs-outcome", "feedback-control"],
+  "newLocalRule": "commit action against observation sampled before or after a protocol-fixed drift event",
+  "carrier": "deterministic two-step control loop",
+  "budget": {"lagValues": [0,1], "frozenScenarios": 3, "actions": [-1,0,1], "horizon": 2},
+  "stopCondition": "one exhaustive falsifier; at most one bounded revision",
+  "falsifier": [
+    "exhaust all deterministic observation-to-action maps for first commit",
+    "zero-lag and lagged optimal traces differ on at least one frozen scenario",
+    "lagged stale view increases recovery path or cost on at least one scenario",
+    "stale marker derives only from observation age/history"
+  ],
+  "humanAuthority": false,
+  "gameCoreModified": false
+}
