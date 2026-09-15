@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>E01 Counterfactual Probe</title>
+  <style>
+    body{font-family:system-ui,sans-serif;max-width:760px;margin:40px auto;padding:0 20px;background:#10151d;color:#e9eef7}button{margin:6px;padding:10px 14px}.panel{border:1px solid #3b4657;border-radius:12px;padding:18px;margin:12px 0}.label{color:#9fb0c7;font-size:.85rem}.value{font:600 1.05rem ui-monospace,monospace}.actions{display:flex;flex-wrap:wrap;gap:8px}
+  </style>
+</head>
+<body>
+  <h1>E01 · Counterfactual Probe</h1>
+  <p>Two latent faults produce the same public warning but require different repairs. You get one inspection.</p>
+  <div class="panel"><div class="label">Scenario</div><div class="value" data-scenario></div></div>
+  <div class="panel"><div class="label">Public signal</div><div class="value" data-signal></div><div class="label">Observed</div><div class="value" data-observations></div><div class="label">Inspections left</div><div class="value" data-budget></div></div>
+  <div class="actions">
+    <button data-action="inspect-thermal">Inspect thermal</button>
+    <button data-action="inspect-pressure">Inspect pressure</button>
+    <button data-action="purge">Purge</button>
+    <button data-action="prime">Prime</button>
+    <button data-reset>Next case</button>
+  </div>
+  <div class="panel"><div class="label">Consequence</div><div class="value" data-status></div><div class="label">Result</div><div class="value" data-result></div></div>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
