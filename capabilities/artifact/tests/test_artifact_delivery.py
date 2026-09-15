@@ -242,6 +242,63 @@ class ArtifactDeliveryTests(unittest.TestCase):
             )
             self.assertEqual(result["status"], "FAIL", result)
 
+    def test_generated_ooxml_canonicalization_is_replay_stable(self) -> None:
+        def core_xml(value: str) -> str:
+            return (
+                '<?xml version="1.0" encoding="UTF-8"?>'
+                '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" '
+                'xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">'
+                f'<dcterms:created xsi:type="dcterms:W3CDTF">{value}</dcterms:created>'
+                f'<dcterms:modified xsi:type="dcterms:W3CDTF">{value}</dcterms:modified>'
+                '</cp:coreProperties>'
+            )
+
+        def zip_bytes(timestamp: str, creation_id: int, date_time: tuple[int, int, int, int, int, int]) -> bytes:
+            from io import BytesIO
+            nested = BytesIO()
+            with zipfile.ZipFile(nested, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+                info = zipfile.ZipInfo("docProps/core.xml", date_time=date_time)
+                info.compress_type = zipfile.ZIP_DEFLATED
+                archive.writestr(info, core_xml(timestamp))
+                info = zipfile.ZipInfo("xl/workbook.xml", date_time=date_time)
+                info.compress_type = zipfile.ZIP_DEFLATED
+                archive.writestr(info, "<workbook/>")
+            outer = BytesIO()
+            with zipfile.ZipFile(outer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+                for name, payload in (
+                    ("docProps/core.xml", core_xml(timestamp).encode()),
+                    ("ppt/slideLayouts/slideLayout12.xml", f'<p:sldLayout xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:p14="http://schemas.microsoft.com/office/powerpoint/2010/main"><p:extLst><p:ext><p14:creationId val="{creation_id}" /></p:ext></p:extLst></p:sldLayout>'.encode()),
+                    ("ppt/embeddings/Microsoft_Excel_Sheet101.xlsx", nested.getvalue()),
+                ):
+                    info = zipfile.ZipInfo(name, date_time=date_time)
+                    info.compress_type = zipfile.ZIP_DEFLATED
+                    archive.writestr(info, payload)
+            return outer.getvalue()
+
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            first = root / "first.pptx"
+            second = root / "second.pptx"
+            first.write_bytes(zip_bytes("2026-09-15T06:00:00Z", 1234567, (2026, 9, 15, 6, 0, 0)))
+            second.write_bytes(zip_bytes("2026-09-15T07:30:00Z", 9876543, (2026, 9, 15, 7, 30, 0)))
+            r1 = MODULE.canonicalize_generated_ooxml_metadata(first)
+            r2 = MODULE.canonicalize_generated_ooxml_metadata(second)
+            self.assertEqual(MODULE.sha256_file(first), MODULE.sha256_file(second))
+            self.assertEqual(r1["creationIdFieldCount"], 1)
+            self.assertEqual(r2["creationIdFieldCount"], 1)
+            self.assertEqual(r1["coreTimestampFieldCount"], 2)
+            self.assertEqual(r1["nestedPackages"][0]["coreTimestampFieldCount"], 2)
+            with zipfile.ZipFile(first) as package:
+                core = package.read("docProps/core.xml").decode()
+                self.assertIn(MODULE.DETERMINISTIC_OPC_CORE_TIMESTAMP, core)
+                layout = package.read("ppt/slideLayouts/slideLayout12.xml").decode()
+                self.assertNotIn('val="1234567"', layout)
+                embedded = package.read("ppt/embeddings/Microsoft_Excel_Sheet101.xlsx")
+            from io import BytesIO
+            with zipfile.ZipFile(BytesIO(embedded)) as workbook:
+                nested_core = workbook.read("docProps/core.xml").decode()
+                self.assertIn(MODULE.DETERMINISTIC_OPC_CORE_TIMESTAMP, nested_core)
+
     def test_ppt_master_provider_commit_drift_fails_closed(self) -> None:
         from unittest import mock
         with tempfile.TemporaryDirectory() as d:

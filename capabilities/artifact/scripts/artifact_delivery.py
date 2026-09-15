@@ -10,10 +10,12 @@ from __future__ import annotations
 
 import argparse
 import base64
+import copy
 import datetime as dt
 import hashlib
 import importlib.util
 import importlib.metadata
+import io
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -129,6 +131,7 @@ def load_json(path: Path) -> Any:
 
 
 DETERMINISTIC_ZIP_DATETIME = (1980, 1, 1, 0, 0, 0)
+DETERMINISTIC_OPC_CORE_TIMESTAMP = "1980-01-01T00:00:00Z"
 
 
 def _dos_datetime_fields(value: tuple[int, int, int, int, int, int]) -> tuple[int, int]:
@@ -222,6 +225,134 @@ def normalize_zip_member_timestamps(path: Path, value: tuple[int, int, int, int,
         "memberPayloadBytesChanged": False,
         "recompressionPerformed": False,
         "zip64Supported": False,
+    }
+
+
+def _canonicalize_opc_core_xml(payload: bytes, timestamp: str = DETERMINISTIC_OPC_CORE_TIMESTAMP) -> tuple[bytes, int]:
+    """Normalize only volatile W3CDTF created/modified values in OPC core properties."""
+    replacement = timestamp.encode("ascii")
+    total = 0
+    result = payload
+    for tag in (b"created", b"modified"):
+        pattern = re.compile(
+            rb"(<dcterms:" + tag + rb"\b[^>]*>)([^<]*)(</dcterms:" + tag + rb">)"
+        )
+        result, count = pattern.subn(lambda match: match.group(1) + replacement + match.group(3), result)
+        total += count
+    return result, total
+
+
+def _canonicalize_ppt_creation_ids(payload: bytes, member_name: str) -> tuple[bytes, int]:
+    """Replace volatile PPT p14:creationId values with content-derived unsigned integers."""
+    pattern = re.compile(rb'(<p14:creationId\b[^>]*\bval=")([0-9]+)("[^>]*/>)')
+    matches = list(pattern.finditer(payload))
+    if not matches:
+        return payload, 0
+    basis = pattern.sub(lambda match: match.group(1) + b"0" + match.group(3), payload)
+    index = 0
+
+    def replace(match: re.Match[bytes]) -> bytes:
+        nonlocal index
+        digest = hashlib.sha256(member_name.encode("utf-8") + b"\0" + str(index).encode("ascii") + b"\0" + basis).digest()
+        value = int.from_bytes(digest[:4], "big") or 1
+        index += 1
+        return match.group(1) + str(value).encode("ascii") + match.group(3)
+
+    return pattern.sub(replace, payload), len(matches)
+
+
+def _canonicalize_generated_zip_bytes(raw: bytes, *, recurse_embedded_office: bool) -> tuple[bytes, dict[str, Any]]:
+    """Repack one generated ZIP deterministically while normalizing bounded OPC metadata.
+
+    This deliberately targets generated artifacts, not arbitrary donor/native files. Member
+    order, compression method, attributes, comments and payloads are preserved except for
+    explicit OPC core-property timestamps and recursively embedded generated Office ZIPs.
+    """
+    source_buffer = io.BytesIO(raw)
+    if not zipfile.is_zipfile(source_buffer):
+        raise RuntimeError("generated OOXML canonicalization requires a valid ZIP package")
+    source_buffer.seek(0)
+    with zipfile.ZipFile(source_buffer, "r") as source:
+        infos = source.infolist()
+        package_comment = source.comment
+        rows: list[tuple[zipfile.ZipInfo, bytes]] = []
+        changed_members: list[str] = []
+        core_field_count = 0
+        creation_id_count = 0
+        creation_id_members: list[str] = []
+        nested_receipts: list[dict[str, Any]] = []
+        for info in infos:
+            data = source.read(info.filename)
+            if info.filename == "docProps/core.xml":
+                normalized, changed = _canonicalize_opc_core_xml(data)
+                if changed:
+                    data = normalized
+                    changed_members.append(info.filename)
+                    core_field_count += changed
+            elif recurse_embedded_office and info.filename.startswith("ppt/embeddings/") and PurePosixPath(info.filename).suffix.lower() in {".xlsx", ".xlsm"}:
+                normalized, receipt = _canonicalize_generated_zip_bytes(data, recurse_embedded_office=False)
+                if normalized != data:
+                    data = normalized
+                    changed_members.append(info.filename)
+                nested_receipts.append({"member": info.filename, **receipt})
+            if info.filename.startswith("ppt/") and info.filename.endswith(".xml"):
+                normalized, changed = _canonicalize_ppt_creation_ids(data, info.filename)
+                if changed:
+                    data = normalized
+                    creation_id_count += changed
+                    creation_id_members.append(info.filename)
+                    if info.filename not in changed_members:
+                        changed_members.append(info.filename)
+            rows.append((info, data))
+
+    target_buffer = io.BytesIO()
+    with zipfile.ZipFile(target_buffer, "w") as target:
+        target.comment = package_comment
+        for info, data in rows:
+            cloned = copy.copy(info)
+            cloned.date_time = DETERMINISTIC_ZIP_DATETIME
+            target.writestr(cloned, data, compress_type=info.compress_type)
+    normalized_raw = target_buffer.getvalue()
+    with zipfile.ZipFile(io.BytesIO(normalized_raw), "r") as check:
+        if [item.filename for item in check.infolist()] != [item.filename for item, _ in rows]:
+            raise RuntimeError("generated OOXML canonicalization changed member ordering or identity")
+        observed_dates = {tuple(item.date_time) for item in check.infolist()}
+        if observed_dates != {DETERMINISTIC_ZIP_DATETIME}:
+            raise RuntimeError(f"generated OOXML canonical ZIP timestamp verification failed: {sorted(observed_dates)}")
+    return normalized_raw, {
+        "memberCount": len(rows),
+        "changedMembers": changed_members,
+        "coreTimestampFieldCount": core_field_count,
+        "creationIdFieldCount": creation_id_count,
+        "creationIdMembers": creation_id_members,
+        "nestedPackages": nested_receipts,
+    }
+
+
+def canonicalize_generated_ooxml_metadata(path: Path) -> dict[str, Any]:
+    """Canonicalize bounded volatile metadata on a newly generated OOXML artifact."""
+    if not path.is_file():
+        raise RuntimeError(f"generated OOXML artifact is absent: {path}")
+    before_digest = sha256_file(path)
+    normalized, details = _canonicalize_generated_zip_bytes(path.read_bytes(), recurse_embedded_office=True)
+    temp = path.with_name(path.name + ".generated-ooxml-canonicalize.tmp")
+    temp.unlink(missing_ok=True)
+    try:
+        temp.write_bytes(normalized)
+        if not zipfile.is_zipfile(temp):
+            raise RuntimeError("generated OOXML canonicalization produced an invalid ZIP package")
+        os.replace(temp, path)
+    finally:
+        temp.unlink(missing_ok=True)
+    return {
+        "status": "PASS",
+        "method": "deterministic-generated-ooxml-repack-v1",
+        "canonicalZipDateTime": list(DETERMINISTIC_ZIP_DATETIME),
+        "canonicalCoreTimestamp": DETERMINISTIC_OPC_CORE_TIMESTAMP,
+        "beforeSha256": before_digest,
+        "afterSha256": sha256_file(path),
+        **details,
+        "boundary": "Only newly generated provider output is canonicalized. Donor/native input artifacts are never rewritten by this helper.",
     }
 
 
@@ -459,8 +590,9 @@ def build_semantic_svg_presentation_source(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     quality_receipt: dict[str, Any] = {}
     export_receipt: dict[str, Any] = {}
-    with tempfile.TemporaryDirectory(prefix="ordivon-artifact-ppt-master-") as temp_dir:
-        project = Path(temp_dir)
+    with tempfile.TemporaryDirectory(prefix="ordivon-artifact-ppt-master-parent-") as temp_dir:
+        project = Path(temp_dir) / "ordivon-artifact-ppt-master-project"
+        project.mkdir()
         svg_output = project / "svg_output"
         svg_output.mkdir(parents=True)
         (project / "validation").mkdir()
@@ -545,7 +677,7 @@ def build_semantic_svg_presentation_source(
             "export": export_receipt,
             "failures": failures or ["primary PPTX output is absent"],
         }
-    container_normalization = normalize_zip_member_timestamps(output_path)
+    container_normalization = canonicalize_generated_ooxml_metadata(output_path)
     built = inspect_pptx(output_path, profile.get("semanticPolicy", {}).get("placeholderPatterns", []))
     semantic = verify_presentation_semantics(profile, built)
     if built.get("status") != "PASS":
