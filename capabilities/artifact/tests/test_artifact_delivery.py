@@ -242,6 +242,86 @@ class ArtifactDeliveryTests(unittest.TestCase):
             )
             self.assertEqual(result["status"], "FAIL", result)
 
+    def test_semantic_svg_source_rejects_parent_traversal_source_paths(self) -> None:
+        if importlib.util.find_spec("jsonschema") is None:
+            self.skipTest("jsonschema is unavailable")
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            source = {
+                "schemaVersion": 1,
+                "kind": "presentation-semantic-svg-source",
+                "presentationId": "presentation:semantic-svg-source-path-smoke-r1",
+                "profileId": "pdu-sdu-presentation-r1",
+                "locale": "en-US",
+                "transition": "none",
+                "nativeChartsAndTables": False,
+                "pages": [{"id": "page-01", "path": "../page.svg", "sha256": "0" * 64}],
+                "materials": [{"path": "/tmp/asset.png", "sha256": "1" * 64, "projectRelativePath": "assets/asset.png"}],
+            }
+            source_path = root / "source.json"
+            source_path.write_text(json.dumps(source))
+            result = MODULE.validate_json_document(
+                source_path,
+                ROOT / "artifact-delivery/presentation-semantic-svg-source-v1.schema.json",
+                "presentation-semantic-svg-source",
+            )
+            self.assertEqual(result["status"], "FAIL", result)
+
+    def test_semantic_svg_source_rejects_symlink_escape(self) -> None:
+        if importlib.util.find_spec("jsonschema") is None:
+            self.skipTest("jsonschema is unavailable")
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            source_root = root / "source"
+            source_root.mkdir()
+            outside = root / "outside.svg"
+            outside.write_text('<svg xmlns="http://www.w3.org/2000/svg"/>')
+            link = source_root / "link.svg"
+            try:
+                link.symlink_to(outside)
+            except OSError as error:
+                self.skipTest(f"symlinks are unavailable: {error}")
+            source = {
+                "schemaVersion": 1,
+                "kind": "presentation-semantic-svg-source",
+                "presentationId": "presentation:semantic-svg-source-symlink-smoke-r1",
+                "profileId": "pdu-sdu-presentation-r1",
+                "locale": "en-US",
+                "transition": "none",
+                "nativeChartsAndTables": False,
+                "pages": [{"id": "page-01", "path": "link.svg", "sha256": MODULE.sha256_file(outside)}],
+                "materials": [],
+            }
+            source_path = source_root / "source.json"
+            source_path.write_text(json.dumps(source))
+            validation = MODULE.validate_json_document(
+                source_path,
+                ROOT / "artifact-delivery/presentation-semantic-svg-source-v1.schema.json",
+                "presentation-semantic-svg-source",
+            )
+            self.assertEqual(validation["status"], "PASS", validation)
+            materials, failures = MODULE._semantic_svg_source_material_facts(source_path, source)
+            self.assertEqual(materials, [])
+            self.assertTrue(any("escapes source directory" in item for item in failures), failures)
+
+    def test_ppt_creation_id_allocator_resolves_hash_collision(self) -> None:
+        from unittest import mock
+
+        class FixedDigest:
+            def digest(self) -> bytes:
+                return b"\x00\x00\x00\x2a" + b"\x00" * 28
+
+        payload = b'<p14:creationId val="123" />'
+        used: set[int] = set()
+        with mock.patch.object(MODULE.hashlib, "sha256", return_value=FixedDigest()):
+            first, first_count = MODULE._canonicalize_ppt_creation_ids(payload, "ppt/slideMasters/slideMaster1.xml", used)
+            second, second_count = MODULE._canonicalize_ppt_creation_ids(payload, "ppt/slideLayouts/slideLayout1.xml", used)
+        self.assertEqual(first_count, 1)
+        self.assertEqual(second_count, 1)
+        self.assertIn(b'val="42"', first)
+        self.assertIn(b'val="43"', second)
+        self.assertEqual(used, {42, 43})
+
     def test_generated_ooxml_canonicalization_is_replay_stable(self) -> None:
         def core_xml(value: str) -> str:
             return (
@@ -298,6 +378,43 @@ class ArtifactDeliveryTests(unittest.TestCase):
             with zipfile.ZipFile(BytesIO(embedded)) as workbook:
                 nested_core = workbook.read("docProps/core.xml").decode()
                 self.assertIn(MODULE.DETERMINISTIC_OPC_CORE_TIMESTAMP, nested_core)
+
+    def test_ppt_creation_id_canonicalization_probes_collisions(self) -> None:
+        import re
+        payload = b'<p:sldLayout xmlns:p14="http://schemas.microsoft.com/office/powerpoint/2010/main"><p14:creationId val="123" /></p:sldLayout>'
+        used: set[int] = set()
+        first, first_count = MODULE._canonicalize_ppt_creation_ids(payload, "ppt/slideLayouts/slideLayout1.xml", used)
+        self.assertEqual(first_count, 1)
+        first_value = int(re.search(rb'val="([0-9]+)"', first).group(1))
+        self.assertIn(first_value, used)
+        second, second_count = MODULE._canonicalize_ppt_creation_ids(payload, "ppt/slideLayouts/slideLayout1.xml", used)
+        self.assertEqual(second_count, 1)
+        second_value = int(re.search(rb'val="([0-9]+)"', second).group(1))
+        expected = first_value + 1 if first_value < 0xFFFFFFFF else 1
+        self.assertEqual(second_value, expected)
+        self.assertNotEqual(first_value, second_value)
+        self.assertIn(second_value, used)
+
+    def test_ppt_master_provider_status_failure_is_not_clean(self) -> None:
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            for relative in (
+                ".venv-exp/bin/python",
+                "skills/ppt-master/scripts/svg_quality_checker.py",
+                "skills/ppt-master/scripts/svg_to_pptx.py",
+            ):
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("stub")
+            lock = json.loads((ROOT / "artifact-delivery/ppt-master-provider-v1.lock.json").read_text())
+            expected = lock["source"]["commit"]
+            rev = subprocess.CompletedProcess(args=["git"], returncode=0, stdout=expected + "\n", stderr="")
+            status = subprocess.CompletedProcess(args=["git"], returncode=1, stdout="", stderr="status failed")
+            with mock.patch.dict(os.environ, {"ARTIFACT_PPT_MASTER_ROOT": str(root)}, clear=False), mock.patch.object(MODULE.subprocess, "run", side_effect=[rev, status]):
+                provider, failures = MODULE._ppt_master_provider_facts()
+            self.assertFalse(provider["trackedWorktreeClean"], provider)
+            self.assertTrue(any("status could not be established" in item for item in failures), failures)
 
     def test_ppt_master_provider_commit_drift_fails_closed(self) -> None:
         from unittest import mock

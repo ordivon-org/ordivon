@@ -28,14 +28,14 @@
   },
   "$defs": {
     "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "safeRelativePath": {"type": "string", "minLength": 1, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"},
+    "safeRelativePath": {"type": "string", "minLength": 1, "pattern": "^(?!/)(?!.*\\\\)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"},
     "pageRef": {
       "type": "object",
       "additionalProperties": false,
       "required": ["id", "path", "sha256"],
       "properties": {
         "id": {"type": "string", "minLength": 1},
-        "path": {"type": "string", "minLength": 1},
+        "path": {"$ref": "#/$defs/safeRelativePath"},
         "sha256": {"$ref": "#/$defs/sha256"}
       }
     },
@@ -44,7 +44,7 @@
       "additionalProperties": false,
       "required": ["path", "sha256", "projectRelativePath"],
       "properties": {
-        "path": {"type": "string", "minLength": 1},
+        "path": {"$ref": "#/$defs/safeRelativePath"},
         "sha256": {"$ref": "#/$defs/sha256"},
         "projectRelativePath": {"$ref": "#/$defs/safeRelativePath"},
         "purpose": {"type": "string"}

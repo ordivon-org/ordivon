@@ -242,19 +242,35 @@ def _canonicalize_opc_core_xml(payload: bytes, timestamp: str = DETERMINISTIC_OP
     return result, total
 
 
-def _canonicalize_ppt_creation_ids(payload: bytes, member_name: str) -> tuple[bytes, int]:
-    """Replace volatile PPT p14:creationId values with content-derived unsigned integers."""
+def _canonicalize_ppt_creation_ids(
+    payload: bytes,
+    member_name: str,
+    used_values: set[int] | None = None,
+) -> tuple[bytes, int]:
+    """Replace volatile PPT p14:creationId values with deterministic unique UInt32 values.
+
+    PowerPoint treats creation IDs as package identities, and PPT Master's own template
+    validation rejects duplicates across cloned parts. The allocator therefore shares a
+    package-level used-value set and deterministically probes on a rare 32-bit hash
+    collision instead of assuming truncated SHA-256 values are collision-free.
+    """
     pattern = re.compile(rb'(<p14:creationId\b[^>]*\bval=")([0-9]+)("[^>]*/>)')
     matches = list(pattern.finditer(payload))
     if not matches:
         return payload, 0
     basis = pattern.sub(lambda match: match.group(1) + b"0" + match.group(3), payload)
+    used = used_values if used_values is not None else set()
     index = 0
 
     def replace(match: re.Match[bytes]) -> bytes:
         nonlocal index
         digest = hashlib.sha256(member_name.encode("utf-8") + b"\0" + str(index).encode("ascii") + b"\0" + basis).digest()
         value = int.from_bytes(digest[:4], "big") or 1
+        while value in used:
+            value = (value + 1) & 0xFFFFFFFF
+            if value == 0:
+                value = 1
+        used.add(value)
         index += 1
         return match.group(1) + str(value).encode("ascii") + match.group(3)
 
@@ -280,6 +296,7 @@ def _canonicalize_generated_zip_bytes(raw: bytes, *, recurse_embedded_office: bo
         core_field_count = 0
         creation_id_count = 0
         creation_id_members: list[str] = []
+        used_creation_ids: set[int] = set()
         nested_receipts: list[dict[str, Any]] = []
         for info in infos:
             data = source.read(info.filename)
@@ -296,7 +313,7 @@ def _canonicalize_generated_zip_bytes(raw: bytes, *, recurse_embedded_office: bo
                     changed_members.append(info.filename)
                 nested_receipts.append({"member": info.filename, **receipt})
             if info.filename.startswith("ppt/") and info.filename.endswith(".xml"):
-                normalized, changed = _canonicalize_ppt_creation_ids(data, info.filename)
+                normalized, changed = _canonicalize_ppt_creation_ids(data, info.filename, used_creation_ids)
                 if changed:
                     data = normalized
                     creation_id_count += changed
@@ -456,6 +473,19 @@ def _resolve_request_path(request_path: Path, relative: str) -> Path:
     return (request_path.resolve().parent / candidate).resolve()
 
 
+def _resolve_semantic_svg_source_path(source_path: Path, relative: str) -> Path:
+    candidate = Path(relative)
+    if candidate.is_absolute():
+        raise RuntimeError(f"semantic SVG source path must be relative: {relative!r}")
+    source_root = source_path.resolve().parent
+    resolved = (source_root / candidate).resolve()
+    try:
+        resolved.relative_to(source_root)
+    except ValueError as error:
+        raise RuntimeError(f"semantic SVG source path escapes source directory: {relative!r}") from error
+    return resolved
+
+
 def _safe_project_relative_path(value: str) -> PurePosixPath:
     path = PurePosixPath(value)
     if path.is_absolute() or not path.parts or any(part in {"", ".", ".."} for part in path.parts):
@@ -473,7 +503,7 @@ def _semantic_svg_source_material_facts(source_path: Path, source: dict[str, Any
             failures.append(f"duplicate semantic SVG page id: {page_id}")
         seen_page_ids.add(page_id)
         try:
-            page_path = _resolve_request_path(source_path, str(page.get("path", "")))
+            page_path = _resolve_semantic_svg_source_path(source_path, str(page.get("path", "")))
             if page_path.suffix.lower() != ".svg":
                 failures.append(f"semantic SVG page {page_id or index + 1} must use .svg")
             actual = sha256_file(page_path)
@@ -495,7 +525,7 @@ def _semantic_svg_source_material_facts(source_path: Path, source: dict[str, Any
             if target_key in seen_targets:
                 failures.append(f"duplicate semantic SVG provider material target: {target_key}")
             seen_targets.add(target_key)
-            material_path = _resolve_request_path(source_path, str(item.get("path", "")))
+            material_path = _resolve_semantic_svg_source_path(source_path, str(item.get("path", "")))
             actual = sha256_file(material_path)
             if actual != item.get("sha256"):
                 failures.append(f"semantic SVG provider material digest mismatch: {item.get('path')}")
@@ -522,6 +552,7 @@ def _ppt_master_provider_facts() -> tuple[dict[str, Any], list[str]]:
     exporter = root / str(entrypoints.get("exporter", ""))
     expected_commit = str((lock.get("source", {}) if isinstance(lock, dict) else {}).get("commit", ""))
     observed_commit: str | None = None
+    tracked_worktree_clean = False
     if not root.is_dir():
         failures.append(f"PPT Master provider root is unavailable: {root}")
     else:
@@ -539,9 +570,27 @@ def _ppt_master_provider_facts() -> tuple[dict[str, Any], list[str]]:
             observed_commit = proc.stdout.strip()
             if observed_commit != expected_commit:
                 failures.append(f"PPT Master provider commit mismatch: expected {expected_commit}, got {observed_commit}")
+            status_proc = subprocess.run(
+                ["/usr/bin/git", "-C", str(root), "status", "--porcelain", "--untracked-files=no"],
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+                timeout=20,
+            )
+            if status_proc.returncode != 0:
+                failures.append("PPT Master provider tracked-worktree status could not be established")
+            elif status_proc.stdout.strip():
+                failures.append("PPT Master provider tracked worktree differs from the pinned commit")
+            else:
+                tracked_worktree_clean = True
     for label, path in (("python", python_path), ("qualityChecker", quality_checker), ("exporter", exporter)):
         if not path.is_file():
             failures.append(f"PPT Master provider {label} is unavailable: {path}")
+    provider_files = {}
+    for label, path in (("python", python_path), ("qualityChecker", quality_checker), ("exporter", exporter)):
+        if path.is_file():
+            provider_files[label] = file_fact(path)
     provider = {
         "providerId": lock.get("providerId") if isinstance(lock, dict) else None,
         "root": str(root),
@@ -550,6 +599,8 @@ def _ppt_master_provider_facts() -> tuple[dict[str, Any], list[str]]:
         "python": str(python_path),
         "qualityChecker": str(quality_checker),
         "exporter": str(exporter),
+        "files": provider_files,
+        "trackedWorktreeClean": tracked_worktree_clean,
         "lock": file_fact(PPT_MASTER_PROVIDER_LOCK) if PPT_MASTER_PROVIDER_LOCK.is_file() else {"path": str(PPT_MASTER_PROVIDER_LOCK)},
     }
     return provider, failures
@@ -598,11 +649,11 @@ def build_semantic_svg_presentation_source(
         (project / "validation").mkdir()
         (project / "exports").mkdir()
         for index, page in enumerate(source.get("pages", []), start=1):
-            page_path = _resolve_request_path(source_path, str(page["path"]))
+            page_path = _resolve_semantic_svg_source_path(source_path, str(page["path"]))
             destination = svg_output / f"{index:03d}_{page_path.name}"
             shutil.copyfile(page_path, destination)
         for item in source.get("materials", []):
-            material_path = _resolve_request_path(source_path, str(item["path"]))
+            material_path = _resolve_semantic_svg_source_path(source_path, str(item["path"]))
             relative = _safe_project_relative_path(str(item["projectRelativePath"]))
             destination = project.joinpath(*relative.parts)
             destination.parent.mkdir(parents=True, exist_ok=True)
