@@ -22,6 +22,16 @@ class CreativeIndexTests(unittest.TestCase):
         self.assertIn("work:media:runtime-introduction", nodes)
         self.assertIn("work:media:gesture-orrery", nodes)
 
+    def test_zero_to_one_delivery_bridges_are_declared(self) -> None:
+        bridges=json.loads((ROOT / "research/media/creative-delivery-bridges.json").read_text())
+        pairs={(row["capability"],row["profileId"]) for row in bridges["relations"]}
+        self.assertTrue({
+            ("dataset.export.parquet","dataset-parquet-flat-r1"),
+            ("geospatial.export.geopackage","geospatial-geopackage-point-r1"),
+            ("web.capture.response.warc","web-archive-warc-response-r1"),
+            ("message.compose.rfc5322","message-internet-text-r1"),
+        } <= pairs)
+
     def test_artifact_profiles_and_bridges_join_without_copying_profile_semantics(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             artifact = Path(directory)

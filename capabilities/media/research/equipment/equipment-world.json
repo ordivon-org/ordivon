@@ -602,6 +602,115 @@
       ],
       "retention": "specialist-on-demand",
       "reason": "Current consumer pressure is real: the source-complete Creative Library contains 26 CAD works, historical Signal Garden exact-regeneration used the persistent Laboratory engineering environment, and a fresh 2026-09-15 probe observes CadQuery 2.8.0 in that exact launcher. Media owns script-based CAD authoring/export affordance only; Workstation owns launcher materialization and Artifact remains the authority for any admitted STEP delivery/verification profile."
+    },
+    {
+      "id": "duckdb",
+      "family": "deterministic-data-engine",
+      "media": [
+        "dataset"
+      ],
+      "capabilities": [
+        "dataset.sql.execute",
+        "dataset.query",
+        "dataset.transform"
+      ],
+      "discovery": [
+        {
+          "platform": "linux",
+          "path": "/opt/ordivon/external/duckdb/1.5.5-1/duckdb",
+          "versionArgs": [
+            "--version"
+          ]
+        }
+      ],
+      "retention": "specialist-on-demand",
+      "reason": "Pinned DuckDB is retained for deterministic dataset query/transform. Its Parquet writer currently emits OPTIONAL fields even for NOT NULL SQL columns, so Media does not bridge DuckDB writing to the strict Artifact Parquet R1 profile."
+    },
+    {
+      "id": "gdal-ogr",
+      "family": "deterministic-geospatial-cli",
+      "media": [
+        "geospatial"
+      ],
+      "capabilities": [
+        "geospatial.inspect",
+        "geospatial.transform",
+        "geospatial.export.geopackage"
+      ],
+      "discovery": [
+        {
+          "platform": "linux",
+          "path": "/usr/bin/ogr2ogr",
+          "versionArgs": [
+            "--version"
+          ]
+        }
+      ],
+      "retention": "specialist-on-demand",
+      "reason": "GDAL/OGR is already Artifact local-live-proven for GeoPackage interpretation. Media only exposes bounded source-to-GeoPackage production; CRS/location truth and geospatial analysis remain outside this equipment claim."
+    },
+    {
+      "id": "warcio",
+      "family": "deterministic-web-archive-library",
+      "media": [
+        "web-archive"
+      ],
+      "capabilities": [
+        "web.capture.response.warc"
+      ],
+      "discovery": [
+        {
+          "platform": "linux",
+          "path": "/opt/ordivon/external/warcio-py/1.8.1/warcio",
+          "versionArgs": [
+            "--version"
+          ]
+        }
+      ],
+      "retention": "specialist-on-demand",
+      "reason": "Pinned warcio 1.8.1 already owns Artifact WARC writer/parser integrity semantics. Media exposes only one deterministic response-record producer; complete-site capture and browser replay remain separate capabilities."
+    },
+    {
+      "id": "python-email",
+      "family": "deterministic-stdlib-message",
+      "media": [
+        "message"
+      ],
+      "capabilities": [
+        "message.compose.rfc5322"
+      ],
+      "discovery": [
+        {
+          "platform": "linux",
+          "path": "/usr/bin/python",
+          "versionArgs": [
+            "--version"
+          ]
+        }
+      ],
+      "retention": "specialist-on-demand",
+      "reason": "Python stdlib email is the mature local message-construction substrate already used as one Artifact parser authority. Media exposes only deterministic single-part RFC5322/MIME text composition; transport/authentication remain outside scope."
+    },
+    {
+      "id": "pyarrow",
+      "family": "deterministic-columnar-library",
+      "media": [
+        "dataset"
+      ],
+      "capabilities": [
+        "dataset.export.parquet"
+      ],
+      "discovery": [
+        {
+          "platform": "linux",
+          "path": "/opt/ordivon/external/pyarrow/25.0.1/python",
+          "versionArgs": [
+            "--version"
+          ]
+        }
+      ],
+      "retention": "specialist-on-demand",
+      "reason": "PyArrow 25.0.1 can encode explicit field nullability and is already one independent Artifact Parquet reader. Media uses it only as an exact-schema writer; Artifact retains independent DuckDB+PyArrow verification."
     }
   ]
 }

@@ -30,6 +30,10 @@
     {"capability": "pcb.export.gerber", "profileId": "eda-kicad-pcb-gerber-r1"},
     {"capability": "pcb.export.drill", "profileId": "eda-kicad-pcb-gerber-r1"},
     {"capability": "pcb.export.svg", "profileId": "still-image-svg-static-r1"},
-    {"capability": "circuit.simulate.transient", "profileId": "eda-spice-transient-measure-r1"}
+    {"capability": "circuit.simulate.transient", "profileId": "eda-spice-transient-measure-r1"},
+    {"capability": "dataset.export.parquet", "profileId": "dataset-parquet-flat-r1"},
+    {"capability": "geospatial.export.geopackage", "profileId": "geospatial-geopackage-point-r1"},
+    {"capability": "web.capture.response.warc", "profileId": "web-archive-warc-response-r1"},
+    {"capability": "message.compose.rfc5322", "profileId": "message-internet-text-r1"}
   ]
 }

@@ -1,0 +1,163 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.media.zero-to-one-frontier-census",
+  "principle": "Prioritize capabilities that have not yet crossed discover -> execute -> verify -> reuse. Do not deepen already-closed paths merely because they are available.",
+  "closedThisWave": [
+    {
+      "frontier": "dataset",
+      "producer": "pyarrow",
+      "capability": "dataset.export.parquet",
+      "artifactProfile": "dataset-parquet-flat-r1"
+    },
+    {
+      "frontier": "geospatial",
+      "producer": "gdal-ogr",
+      "capability": "geospatial.export.geopackage",
+      "artifactProfile": "geospatial-geopackage-point-r1"
+    },
+    {
+      "frontier": "web-archive",
+      "producer": "warcio",
+      "capability": "web.capture.response.warc",
+      "artifactProfile": "web-archive-warc-response-r1"
+    },
+    {
+      "frontier": "message",
+      "producer": "python-email",
+      "capability": "message.compose.rfc5322",
+      "artifactProfile": "message-internet-text-r1"
+    }
+  ],
+  "remainingEquipmentWithNoDeliveryBridge": [
+    {
+      "equipmentId": "ffprobe",
+      "retention": "core-equipment",
+      "capabilities": [
+        "media.probe",
+        "stream.inspect",
+        "duration.inspect",
+        "codec.inspect"
+      ]
+    },
+    {
+      "equipmentId": "davinci-resolve",
+      "retention": "external-workstation",
+      "capabilities": [
+        "timeline.create",
+        "timeline.conform.otio",
+        "media.import",
+        "project.inspect",
+        "color.finish",
+        "fusion.compose",
+        "audio.fairlight",
+        "deliver.render"
+      ]
+    },
+    {
+      "equipmentId": "obs-studio",
+      "retention": "external-workstation",
+      "capabilities": [
+        "live.scene.switch",
+        "live.source.update",
+        "record.start",
+        "record.stop",
+        "stream.start",
+        "stream.stop",
+        "live.state.observe",
+        "event.subscribe"
+      ]
+    },
+    {
+      "equipmentId": "figma",
+      "retention": "external-workstation",
+      "capabilities": [
+        "design.node.read",
+        "design.node.write.plugin",
+        "design.variables",
+        "design.prototype",
+        "design.export",
+        "design.collaborate"
+      ]
+    },
+    {
+      "equipmentId": "touchdesigner",
+      "retention": "candidate",
+      "capabilities": [
+        "realtime.visual",
+        "realtime.audio",
+        "sensor.integrate",
+        "control.osc",
+        "control.midi",
+        "python.script",
+        "projection.mapping"
+      ]
+    },
+    {
+      "equipmentId": "stream-deck",
+      "retention": "challenger",
+      "capabilities": [
+        "human.action.low-latency",
+        "state.display",
+        "dial.input",
+        "plugin.node",
+        "plugin.cli"
+      ]
+    },
+    {
+      "equipmentId": "bhaptics",
+      "retention": "challenger",
+      "capabilities": [
+        "haptic.play",
+        "haptic.stop",
+        "haptic.pattern",
+        "body-location.output"
+      ]
+    },
+    {
+      "equipmentId": "duckdb",
+      "retention": "specialist-on-demand",
+      "capabilities": [
+        "dataset.sql.execute",
+        "dataset.query",
+        "dataset.transform"
+      ]
+    }
+  ],
+  "nextFrontiers": [
+    {
+      "priority": "S1",
+      "frontier": "2d-world-authoring",
+      "reason": "Artifact Tiled TMJ is LOCAL_LIVE_PROVEN and Godot is a consumer, but Media has no Tiled producer/equipment path."
+    },
+    {
+      "priority": "S1",
+      "frontier": "office-native-authoring",
+      "reason": "DOCX/XLSX/PPTX are major production profiles, yet Media Creative Equipment still has no Word/Excel/PowerPoint authoring projection."
+    },
+    {
+      "priority": "S1",
+      "frontier": "web-authoring-publication",
+      "reason": "web-r1 is production-grade, but no Media capability owns deterministic HTML/web production as a first-class delivery path."
+    },
+    {
+      "priority": "S2",
+      "frontier": "music-composition",
+      "reason": "Audio engineering is strong, but music/sound composition is not yet a first-class Production/Work path."
+    },
+    {
+      "priority": "S2",
+      "frontier": "live-broadcast-performance",
+      "reason": "OBS is modeled but has zero delivery bridges and no canonical live/recorded production closure."
+    },
+    {
+      "priority": "S2",
+      "frontier": "accessible-publication",
+      "reason": "PDF/UA-2 production profile exists, but Media has no explicit accessibility-authoring/remediation capability path."
+    },
+    {
+      "priority": "S3",
+      "frontier": "physical-embodied-output",
+      "reason": "Stream Deck, bHaptics, XR and realtime/sensor capabilities remain challenger/candidate and lack physical closure."
+    }
+  ]
+}

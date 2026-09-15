@@ -186,6 +186,24 @@ class EquipmentWorldTests(unittest.TestCase):
         self.assertEqual(operation_support("cadquery", "cad.script.author"), "DIRECTLY_INVOCABLE")
         self.assertEqual(operation_support("cadquery", "cad.export.step"), "DIRECTLY_INVOCABLE")
 
+    def test_zero_to_one_data_geo_archive_message_plans_are_direct(self) -> None:
+        with mock.patch("ordivon_studio.equipment._require_existing", side_effect=lambda path: path):
+            duck = compile_operation("duckdb", "dataset.query", {"sqlFile": "query.sql"})
+            parquet = compile_operation("pyarrow", "dataset.export.parquet", {"output": "data.parquet", "schema": "schema.json", "rows": "rows.json"})
+            geo = compile_operation("gdal-ogr", "geospatial.export.geopackage", {"source": "places.geojson", "output": "places.gpkg", "layer": "places", "srs": "EPSG:4326"})
+            warc = compile_operation("warcio", "web.capture.response.warc", {"output":"x.warc","payload":"body.html","targetUri":"https://example.invalid/x","warcDate":"2026-09-12T10:00:00Z","recordId":"<urn:uuid:11111111-2222-4333-8444-555555555555>","contentType":"text/html; charset=utf-8"})
+            msg = compile_operation("python-email", "message.compose.rfc5322", {"output":"m.eml","fromAddress":"a@example.invalid","toAddress":"b@example.invalid","subject":"S","messageId":"<m@example.invalid>","date":"2026-09-12T10:00:00Z","bodyFile":"body.txt"})
+        self.assertEqual(duck.executable, "/opt/ordivon/external/duckdb/1.5.5-1/duckdb")
+        self.assertEqual(duck.args, ("-c", ".read query.sql"))
+        self.assertEqual(parquet.executable, "/opt/ordivon/external/pyarrow/25.0.1/python")
+        self.assertIn("produce-parquet.py", parquet.args[0])
+        self.assertEqual(geo.args[:3], ("-f", "GPKG", "places.gpkg"))
+        self.assertIn("produce-warc-response.py", warc.args[0])
+        self.assertEqual(dict(warc.environment)["ORDIVON_WARCIO_SITE"], "/opt/ordivon/external/warcio-py/1.8.1/site-packages")
+        self.assertIn("produce-internet-message.py", msg.args[0])
+        for equipment, capability in (("duckdb","dataset.query"),("pyarrow","dataset.export.parquet"),("gdal-ogr","geospatial.export.geopackage"),("warcio","web.capture.response.warc"),("python-email","message.compose.rfc5322")):
+            self.assertEqual(operation_support(equipment, capability), "DIRECTLY_INVOCABLE")
+
     def test_kicad_operations_follow_current_native_cli_contract(self) -> None:
         with mock.patch("ordivon_studio.equipment._require_existing", return_value="/usr/bin/kicad-cli"):
             drc = compile_operation("kicad", "pcb.drc", {"source": "board.kicad_pcb", "output": "drc.json"})

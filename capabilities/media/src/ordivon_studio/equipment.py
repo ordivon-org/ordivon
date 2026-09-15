@@ -274,6 +274,11 @@ _DIRECT_OPERATION_CAPABILITIES: dict[str, frozenset[str]] = {
     "kicad": frozenset({"pcb.drc", "pcb.export.svg", "pcb.export.gerber", "pcb.export.drill"}),
     "ngspice": frozenset({"circuit.simulate.transient"}),
     "cadquery": frozenset({"cad.script.author", "cad.export.step", "cad.export.stl"}),
+    "duckdb": frozenset({"dataset.sql.execute", "dataset.query", "dataset.transform"}),
+    "pyarrow": frozenset({"dataset.export.parquet"}),
+    "gdal-ogr": frozenset({"geospatial.inspect", "geospatial.transform", "geospatial.export.geopackage"}),
+    "warcio": frozenset({"web.capture.response.warc"}),
+    "python-email": frozenset({"message.compose.rfc5322"}),
 }
 _PROVIDER_MEDIATED_EQUIPMENT = frozenset({"davinci-resolve"})
 _REAPER_PROVIDER_CAPABILITIES = frozenset({"audio.multitrack", "audio.edit", "audio.mix", "audio.master", "audio.automation", "midi.edit", "script.reascript", "control.osc"})
@@ -557,6 +562,59 @@ def compile_operation(equipment_id: str, capability: str, parameters: Mapping[st
 
     This function does not execute the program. Runtime remains process authority.
     """
+    if equipment_id == "duckdb" and capability in {"dataset.sql.execute", "dataset.query", "dataset.transform"}:
+        source = str(parameters["sqlFile"])
+        executable = _require_existing("/opt/ordivon/external/duckdb/1.5.5-1/duckdb")
+        return EquipmentPlan(
+            equipment_id, capability, "process", executable, ("-c", f".read {source}"),
+            (
+                "DuckDB owns deterministic SQL query/transform semantics; Runtime owns process execution.",
+                "DuckDB's current Parquet writer does not preserve the required/not-null field semantics needed by Artifact Parquet R1, so no strict delivery claim is inferred from DuckDB COPY alone.",
+            ),
+        )
+    if equipment_id == "pyarrow" and capability == "dataset.export.parquet":
+        script = str(Path(__file__).resolve().parents[2] / "scripts/produce-parquet.py")
+        args=(script,"--output",str(parameters["output"]),"--schema",str(parameters["schema"]),"--rows",str(parameters["rows"]))
+        return EquipmentPlan(
+            equipment_id, capability, "process", _require_existing("/opt/ordivon/external/pyarrow/25.0.1/python"), args,
+            (
+                "PyArrow owns exact flat primitive schema/nullability and Parquet serialization; Runtime owns process execution.",
+                "Artifact independently re-reads exact bytes through both PyArrow and DuckDB and owns schema/key/row-contract standing.",
+            ),
+        )
+    if equipment_id == "gdal-ogr" and capability == "geospatial.export.geopackage":
+        source = str(parameters["source"]); output = str(parameters["output"]); layer = str(parameters["layer"]); srs = str(parameters.get("srs", "EPSG:4326"))
+        return EquipmentPlan(
+            equipment_id, capability, "process", _require_existing("/usr/bin/ogr2ogr"),
+            ("-f", "GPKG", output, source, "-nln", layer, "-a_srs", srs, "-dsco", "VERSION=1.4", "-lco", "GEOMETRY_NAME=geom"),
+            (
+                "OGR owns source interpretation and GeoPackage writing; Runtime owns process execution.",
+                "Artifact owns OGC conformance, SQLite container checks, CRS/schema contract and cross-view verification.",
+            ),
+        )
+    if equipment_id == "gdal-ogr" and capability in {"geospatial.inspect", "geospatial.transform"}:
+        source = str(parameters["source"]); return EquipmentPlan(equipment_id, capability, "process", _require_existing("/usr/bin/ogrinfo"), ("-ro", "-so", "-json", source))
+    if equipment_id == "warcio" and capability == "web.capture.response.warc":
+        script = str(Path(__file__).resolve().parents[2] / "scripts/produce-warc-response.py")
+        args=(script,"--output",str(parameters["output"]),"--payload",str(parameters["payload"]),"--target-uri",str(parameters["targetUri"]),"--warc-date",str(parameters["warcDate"]),"--record-id",str(parameters["recordId"]),"--status",str(parameters.get("status","200 OK")),"--content-type",str(parameters["contentType"]))
+        return EquipmentPlan(
+            equipment_id, capability, "process", _require_existing("/usr/bin/python"), args,
+            (
+                "The thin Media adapter delegates WARC record creation/digests to pinned warcio 1.8.1.",
+                "Artifact independently checks WARC/1.1 integrity and exact response identity through warcio Python and warcio.js.",
+            ),
+            (("ORDIVON_WARCIO_SITE","/opt/ordivon/external/warcio-py/1.8.1/site-packages"),),
+        )
+    if equipment_id == "python-email" and capability == "message.compose.rfc5322":
+        script = str(Path(__file__).resolve().parents[2] / "scripts/produce-internet-message.py")
+        args=(script,"--output",str(parameters["output"]),"--from-address",str(parameters["fromAddress"]),"--from-name",str(parameters.get("fromName","")),"--to-address",str(parameters["toAddress"]),"--to-name",str(parameters.get("toName","")),"--subject",str(parameters["subject"]),"--message-id",str(parameters["messageId"]),"--date",str(parameters["date"]),"--body-file",str(parameters["bodyFile"]))
+        return EquipmentPlan(
+            equipment_id, capability, "process", _require_existing("/usr/bin/python"), args,
+            (
+                "Python stdlib email owns RFC5322/MIME serialization for the bounded single-part message.",
+                "Artifact independently checks raw CRLF/header policy plus Python-email/mailparser agreement; SMTP delivery/authentication are not implied.",
+            ),
+        )
     if equipment_id == "cadquery" and capability in {"cad.script.author", "cad.export.step", "cad.export.stl"}:
         script = str(parameters["script"])
         extra = tuple(str(value) for value in parameters.get("args", []))
