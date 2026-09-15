@@ -40,6 +40,14 @@
       "capability": "world2d.canonicalize.tmj",
       "artifactProfile": "design-2d-tiled-tmj-object-map-r1",
       "currentness": "Tiled 1.12.2 headless canonical export plus Artifact TMJ/TMX native round-trip and raster readback live-proven."
+    },
+    {
+      "frontier": "live-broadcast-performance",
+      "producer": "obs-studio",
+      "capability": "authenticated-live-programme-recording-and-switching",
+      "artifactProfile": "moving-image-matroska-ffv1-v3-r1",
+      "currentness": "Closed by canonical Media revision d6eb5112f6d11dcd383ec35673ae5bed79bf3582 and Creative Archive work media:live-relay-001. A real authenticated OBS 32.2.2 / obs-websocket 5.7.4 local episode live-switched three exact registered Works, recorded a peer-paced ~22s programme, restored scene/audio/config/process/listener state, retained an H.264/AAC event-source MP4, passed the existing Matroska v4/FFV1 3.4 Artifact verifier with 718 implementation passes / 0 fail / 0 warning, registered 34 exact occurrences + roles + 3 CONSUMER_OF relations, and passed fresh Creative Library hero/launch plus HTTP full/range consumption.",
+      "boundary": "Bounded local broadcast closure only; public internet streaming, audience reach, 24/7 unattended stability, and physical control surfaces remain outside this closure."
     }
   ],
   "remainingEquipmentWithNoDeliveryBridge": [
@@ -138,12 +146,6 @@
     }
   ],
   "nextFrontiers": [
-    {
-      "priority": "S2",
-      "frontier": "live-broadcast-performance",
-      "classification": "TRUE_ZERO_TO_ONE_WITH_PROVIDER_LIFECYCLE_BLOCKER",
-      "reason": "OBS exists and authenticated websocket semantics were dogfooded, but reliable autonomous startup/shutdown was falsified; no canonical production closure exists."
-    },
     {
       "priority": "S2",
       "frontier": "accessible-publication-authoring",
