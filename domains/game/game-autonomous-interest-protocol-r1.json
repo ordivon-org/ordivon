@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game-autonomous-interest-protocol",
+  "status": "PROTOCOL_FROZEN_BEFORE_CANDIDATE_GENERATION",
+  "observedDate": "2026-09-15",
+  "researchQuestion": "Can Ordivon autonomously synthesize and select a fresh whole-product game without live Human candidate-quality judgments before build freeze, then produce non-trivial voluntary continued play in a sealed Human holdout?",
+  "humanSignalBoundary": {
+    "liveCandidateSpecificHumanJudgmentAllowedBeforeFreeze": false,
+    "historicalPublicHumanKnowledgeAllowedAsPrior": true,
+    "candidateSpecificUserVisibleDetailsBeforeFreeze": false,
+    "contaminatedCandidateDisposition": "INELIGIBLE_R1_WINNER"
+  },
+  "lineageExclusion": {
+    "excludedWholeProducts": ["PC01_CAUSAL_WORKS", "PC02_PERSISTENT_WORKSHOP", "PC03_LOOP_CARTOGRAPHER"],
+    "lowLevelPrimitiveReuseAllowed": true,
+    "materialWholeLoopIsomorphismAllowed": false
+  },
+  "searchBudget": {
+    "initialCompositionSlots": 12,
+    "maxStructuralSurvivors": 6,
+    "maxPlayableImplementations": 3,
+    "maxHumanHoldoutWinners": 1,
+    "budgetExpansionAfterProxyObservationAllowed": false,
+    "eliminatedCandidateResurrectionAllowed": false
+  },
+  "evaluation": {
+    "singleFunScoreAllowed": false,
+    "layers": ["HARD_VALIDITY", "QUALITY_DIVERSITY_SURROGATES", "ANTI_GOODHART_TOURNAMENT"],
+    "surrogateFamilies": [
+      "AGENCY_CONSEQUENCE",
+      "LEARNABILITY_MODEL_VALUE",
+      "COMPETENCE_GRADIENT_RETAINED_DEMAND",
+      "INFORMATION_VALUE",
+      "POLICY_STRATEGY_DIVERSITY",
+      "FAILURE_VALUE",
+      "RECONTEXTUALIZATION_REPLAY_DEPTH",
+      "COMPLEXITY_EFFICIENCY",
+      "PLAYER_MODEL_SEED_ROBUSTNESS"
+    ],
+    "qualityDiversityDescriptors": {
+      "dominantAgencyMode": ["spatial", "temporal", "informational", "economic-resource", "compositional", "social-simulated", "mixed"],
+      "dominantImprovementCarrier": ["execution-skill", "world-model-knowledge", "planning", "authored-construction", "adaptation", "mixed"],
+      "consequenceHorizon": ["immediate", "short-loop", "multi-loop"],
+      "failureValue": ["low", "information", "skill", "redesign", "mixed"]
+    },
+    "weightedGlobalScoreAllowed": false,
+    "tieBreak": "DETERMINISTIC_HASH_ORDER"
+  },
+  "antiGoodhart": {
+    "requiredAttacks": [
+      "reward-hacking",
+      "complexity-inflation",
+      "rng-inflation",
+      "stalling-as-engagement",
+      "dominant-universal-policy",
+      "player-model-overfit",
+      "hidden-authorization",
+      "cosmetic-consequence",
+      "failure-tax",
+      "proxy-bundle-gaming"
+    ],
+    "metricSuiteMayChangeAfterCandidateRankingObserved": false,
+    "protocolDefectDisposition": "TERMINATE_R1_AND_VERSION_PROTOCOL"
+  },
+  "matchedAblation": {
+    "required": true,
+    "selection": "LEAVE_ONE_COUPLING_OUT_MAX_SURROGATE_LOSS_WHILE_PLAYABLE",
+    "humanFeedbackAllowed": false,
+    "preserveControlsPresentationSessionLengthWherePractical": true
+  },
+  "freeze": {
+    "winnerAndAblationImmutableBeforeHumanHoldout": true,
+    "requiredRecords": [
+      "winner-source-commit-and-build-digest",
+      "ablation-source-commit-and-build-digest",
+      "candidate-lineage-ledger",
+      "eliminations-and-reasons",
+      "surrogate-raw-evidence-and-archive",
+      "anti-goodhart-reports",
+      "human-protocol-and-analysis-script",
+      "protocol-digest",
+      "human-signal-leakage-audit"
+    ]
+  },
+  "humanHoldout": {
+    "capabilityPilotNotPopulationClaim": true,
+    "N": 24,
+    "allocation": {"winner": 12, "matchedAblation": 12},
+    "randomized": true,
+    "mandatoryExposureMinutes": 8,
+    "optionalContinuationMaxMinutes": 12,
+    "compensationIndependentOfContinuation": true,
+    "primaryEndpoint": {
+      "id": "VOLUNTARY_CONTINUATION_3M",
+      "definition": "continues at least 3 minutes after mandatory exposure when stopping is costless"
+    },
+    "pilotSupportRule": {
+      "winnerMinimumCount": 8,
+      "winnerDenominator": 12,
+      "minimumWinnerMinusAblationCount": 3,
+      "thresholdMutableAfterUnblinding": false
+    },
+    "secondaryBehavioral": [
+      "optional-continuation-seconds",
+      "voluntary-new-run-count",
+      "optional-content-exploration",
+      "retry-after-voluntary-failure",
+      "action-strategy-diversity"
+    ],
+    "selfReportIsPrimary": false
+  },
+  "roles": [
+    "G01_COMPOSER_GENERATOR",
+    "E01_STRUCTURAL_EVALUATOR",
+    "E02_SIMULATED_PLAYER_ENSEMBLE",
+    "Q01_QUALITY_DIVERSITY_CURATOR",
+    "D01_ANTI_GOODHART_DESTROYER",
+    "I01_IMPLEMENTATION_INTEGRATOR",
+    "A01_PROTOCOL_AUDITOR",
+    "F01_FINAL_FREEZE_GATEKEEPER"
+  ],
+  "state": {
+    "protocolFrozen": true,
+    "candidateGenerationStarted": false,
+    "productSelected": false,
+    "g0Entered": false
+  }
+}
