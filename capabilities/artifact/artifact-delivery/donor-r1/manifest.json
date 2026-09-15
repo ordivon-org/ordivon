@@ -1,5 +1,5 @@
 {
-  "baseRevision": "7f61bd2a87185df62dc77b801b5e8f4adb453c8d",
+  "baseRevision": "2d0f06c23df09f3f098ec36ffa49d7d532dac3b0",
   "coverage": {
     "isolatedValidatorImplementations": 19,
     "liveProvenShadowBindings": 19,
@@ -3552,7 +3552,7 @@
   "sourceReferences": {
     "profileV2MappingManifest": {
       "path": "artifact-delivery/shadow-v2/profile-v2-mapping-manifest-r1.json",
-      "sha256": "528e8d792fa15cd9353e33cf7ff81910e6d72d84fd3952635ba4abda6938e543"
+      "sha256": "f17b0eba2682344899cabbb031d4012232ccf2d498eb051d2ba306c6c720b566"
     },
     "taxonomy": {
       "path": "artifact-delivery/taxonomy-v1.json",
