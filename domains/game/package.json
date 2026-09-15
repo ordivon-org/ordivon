@@ -8,6 +8,7 @@
     "node": ">=26.0.0"
   },
   "scripts": {
+    "bootstrap": "pnpm install --offline --frozen-lockfile",
     "start": "node products/station-zero-v2/src/server.ts",
     "start:research": "ORDIVON_GAME_RESEARCH_SURFACES=1 node experiments/research-preview/server.ts",
     "test": "node --test test/*.test.ts products/station-zero-v2/test/*.test.ts experiments/station-zero-v3/test/*.test.ts experiments/casefile/test/*.test.ts",

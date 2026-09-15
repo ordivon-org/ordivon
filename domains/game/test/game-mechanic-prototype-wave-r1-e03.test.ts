@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+// @ts-expect-error JS experiment module intentionally has no TypeScript declaration.
 import { exhaustiveOptimal, runWitnesses } from '../experiments/mechanic-prototype-wave-r1/e03-commitment-lag/core.js';
 
 test('E03 lag changes the exhaustive optimum and makes anticipation mechanically useful', () => {

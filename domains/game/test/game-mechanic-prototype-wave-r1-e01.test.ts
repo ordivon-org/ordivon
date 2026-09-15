@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+// @ts-expect-error JS experiment module intentionally has no TypeScript declaration.
 import { ACTIONS, FAULTS, createState, publicView, runWitnesses, step } from '../experiments/mechanic-prototype-wave-r1/e01-counterfactual-probe/core.js';
 
 test('E01 starts observationally identical across latent faults', () => {

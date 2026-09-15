@@ -76,6 +76,8 @@ The v3 preview is intentionally absent from `src/registry.ts` and uses its own A
 
 ## Working method
 
+In a fresh detached/Runtime workspace, restore the repository's frozen local dependencies first with `pnpm bootstrap`. This is intentionally an offline, frozen-lockfile restore (`pnpm install --offline --frozen-lockfile`); if the local pnpm store cannot satisfy it, stop rather than silently reaching the network or changing dependency state.
+
 For a **new product before G0**, start from `docs/GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md`: construct a mature comparable reference class, play/teardown it, reproduce the bounded baseline, validate the player-relevant baseline with an appropriate Human method, then test controlled differences. Do not begin from an internally generated GameForm winner.
 
 After G0, locate work in the canonical lifecycle from `docs/DEVELOPMENT_MODEL.md`:
