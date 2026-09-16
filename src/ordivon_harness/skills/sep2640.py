@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import unicodedata
 import stat
 from dataclasses import dataclass
 from pathlib import Path
@@ -70,6 +69,24 @@ def _frontmatter_bytes(skill_md: bytes) -> bytes:
     raise AgentSkillsConformanceError("SKILL.md frontmatter is not terminated")
 
 
+def _validate_standard_name(name: object, parent_name: str) -> str:
+    if not isinstance(name, str) or not (1 <= len(name) <= 64):
+        raise AgentSkillsConformanceError("name must be a 1-64 character string")
+    if name != name.lower():
+        raise AgentSkillsConformanceError("name must use lowercase Unicode alphanumeric characters")
+    if name.startswith("-") or name.endswith("-"):
+        raise AgentSkillsConformanceError("name cannot start or end with a hyphen")
+    if "--" in name:
+        raise AgentSkillsConformanceError("name cannot contain consecutive hyphens")
+    if not all(character.isalnum() or character == "-" for character in name):
+        raise AgentSkillsConformanceError(
+            "name may contain only Unicode alphanumeric characters and hyphens"
+        )
+    if parent_name != name:
+        raise AgentSkillsConformanceError("name must match the parent directory name")
+    return name
+
+
 def parse_standard_frontmatter(skill_root: Path) -> dict[str, object]:
     """Parse and enforce the portable Agent Skills frontmatter contract.
 
@@ -98,24 +115,7 @@ def parse_standard_frontmatter(skill_root: Path) -> dict[str, object]:
             "non-standard top-level frontmatter fields: " + ", ".join(extras)
         )
 
-    name = value.get("name")
-    if not isinstance(name, str):
-        raise AgentSkillsConformanceError("name must be a string")
-    normalized_name = unicodedata.normalize("NFKC", name)
-    if not (1 <= len(normalized_name) <= 64):
-        raise AgentSkillsConformanceError("name must be 1-64 characters after NFKC normalization")
-    if normalized_name != normalized_name.lower():
-        raise AgentSkillsConformanceError("name must be lowercase")
-    if normalized_name.startswith("-") or normalized_name.endswith("-"):
-        raise AgentSkillsConformanceError("name cannot start or end with a hyphen")
-    if "--" in normalized_name:
-        raise AgentSkillsConformanceError("name cannot contain consecutive hyphens")
-    if not all(ch.isalnum() or ch == "-" for ch in normalized_name):
-        raise AgentSkillsConformanceError(
-            "name may contain only Unicode alphanumeric characters and hyphens"
-        )
-    if unicodedata.normalize("NFKC", skill_root.name) != normalized_name:
-        raise AgentSkillsConformanceError("name must match the parent directory name")
+    _validate_standard_name(value.get("name"), skill_root.name)
 
     description = value.get("description")
     if not isinstance(description, str) or not (1 <= len(description) <= 1024):

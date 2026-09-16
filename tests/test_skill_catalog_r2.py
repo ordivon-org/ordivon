@@ -52,6 +52,24 @@ class SkillParserTests(unittest.TestCase):
         with self.assertRaisesRegex(SkillParseError, "description"):
             parse_skill_frontmatter("---\nname: tdd\n---\n")
 
+    def test_lenient_parser_still_rejects_path_unsafe_names(self) -> None:
+        for name in ("bad/name", "bad\\name"):
+            with self.subTest(name=repr(name)), self.assertRaisesRegex(
+                SkillParseError, "path-unsafe"
+            ):
+                parse_skill_frontmatter(
+                    f"---\nname: {name}\ndescription: Compatibility input\n---\n",
+                    validation_mode="lenient",
+                )
+
+    def test_yaml_or_bridge_rejects_control_names(self) -> None:
+        for name in ("bad\x00name", "bad\x01name"):
+            with self.subTest(name=repr(name)), self.assertRaises(SkillParseError):
+                parse_skill_frontmatter(
+                    f"---\nname: {name}\ndescription: Compatibility input\n---\n",
+                    validation_mode="lenient",
+                )
+
 
 class AgentSkillsStandardsTests(unittest.TestCase):
     def test_strict_parser_accepts_published_agent_skills_fields(self) -> None:
@@ -107,6 +125,23 @@ class AgentSkillsStandardsTests(unittest.TestCase):
                     validation_mode="strict",
                     expected_directory_name=directory,
                 )
+
+    def test_strict_parser_accepts_unicode_lowercase_alphanumeric_names(self) -> None:
+        parsed = parse_skill_frontmatter(
+            "---\nname: 技能-2\ndescription: Unicode portable Skill\n---\n",
+            validation_mode="strict",
+            expected_directory_name="技能-2",
+        )
+        self.assertEqual(parsed.name, "技能-2")
+        self.assertEqual(parsed.diagnostics, ())
+
+    def test_strict_parser_requires_exact_directory_name_without_nfkc_equivalence(self) -> None:
+        with self.assertRaisesRegex(SkillParseError, "parent directory"):
+            parse_skill_frontmatter(
+                "---\nname: café\ndescription: Exact codepoint match required\n---\n",
+                validation_mode="strict",
+                expected_directory_name="cafe\u0301",
+            )
 
     def test_strict_parser_requires_string_to_string_metadata(self) -> None:
         with self.assertRaisesRegex(SkillParseError, "string-to-string"):

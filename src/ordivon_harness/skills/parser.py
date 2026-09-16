@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import unicodedata
 from dataclasses import dataclass
+
 _STANDARD_FIELDS = {
     "name",
     "description",
@@ -54,6 +55,32 @@ def _require_string(value: object, field: str) -> str:
     return value.strip()
 
 
+def _validate_raw_name_safety(name: str) -> None:
+    if len(name) > 128:
+        raise SkillParseError("Skill name exceeds raw discovery limit")
+    if name in {".", ".."} or any(character in {"/", "\\"} for character in name):
+        raise SkillParseError("Skill name contains path-unsafe characters")
+    if any(unicodedata.category(character).startswith("C") for character in name):
+        raise SkillParseError("Skill name contains control characters")
+
+
+def _agent_skill_name_problems(name: str, expected_directory_name: str | None) -> list[str]:
+    problems: list[str] = []
+    if len(name) > 64:
+        problems.append("name exceeds 64 characters")
+    if name != name.lower():
+        problems.append("name must use lowercase Unicode alphanumeric characters")
+    if name.startswith("-") or name.endswith("-"):
+        problems.append("name cannot start or end with a hyphen")
+    if "--" in name:
+        problems.append("name cannot contain consecutive hyphens")
+    if not all(character.isalnum() or character == "-" for character in name):
+        problems.append("name may contain only Unicode alphanumeric characters and hyphens")
+    if expected_directory_name is not None and name != expected_directory_name:
+        problems.append("name does not match parent directory")
+    return problems
+
+
 def parse_skill_frontmatter(
     text: str,
     *,
@@ -72,6 +99,7 @@ def parse_skill_frontmatter(
         raise ValueError("validation_mode must be strict or lenient")
     value = _load_yaml_mapping(_split_frontmatter(text))
     name = _require_string(value.get("name"), "name")
+    _validate_raw_name_safety(name)
     description = _require_string(value.get("description"), "description")
     diagnostics: list[str] = []
 
@@ -82,30 +110,7 @@ def parse_skill_frontmatter(
             raise SkillParseError(message)
         diagnostics.append(message)
 
-    if len(name) > 128:
-        raise SkillParseError("Skill name exceeds raw discovery limit")
-    if name in {".", ".."} or any(
-        ch in {"/", "\\", "\x00"} or unicodedata.category(ch).startswith("C") for ch in name
-    ):
-        raise SkillParseError("Skill name contains path-unsafe/control characters")
-
-    normalized_name = unicodedata.normalize("NFKC", name)
-    name_problems: list[str] = []
-    if not (1 <= len(normalized_name) <= 64):
-        name_problems.append("name must be 1-64 characters after NFKC normalization")
-    if normalized_name != normalized_name.lower():
-        name_problems.append("name must be lowercase")
-    if normalized_name.startswith("-") or normalized_name.endswith("-"):
-        name_problems.append("name cannot start or end with a hyphen")
-    if "--" in normalized_name:
-        name_problems.append("name cannot contain consecutive hyphens")
-    if not all(ch.isalnum() or ch == "-" for ch in normalized_name):
-        name_problems.append("name may contain only Unicode alphanumeric characters and hyphens")
-    if (
-        expected_directory_name is not None
-        and unicodedata.normalize("NFKC", expected_directory_name) != normalized_name
-    ):
-        name_problems.append("name does not match parent directory")
+    name_problems = _agent_skill_name_problems(name, expected_directory_name)
     if name_problems:
         if validation_mode == "strict":
             raise SkillParseError("; ".join(name_problems))

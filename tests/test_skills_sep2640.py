@@ -115,18 +115,19 @@ class Sep2640SkillsTests(unittest.TestCase):
         with self.assertRaises(AgentSkillsConformanceError):
             parse_standard_frontmatter(mismatch)
 
-    def test_unicode_name_nfkc_and_uri_round_trip_follow_agent_skills_spec(self) -> None:
+    def test_unicode_name_round_trip_and_exact_parent_match_follow_agent_skills_spec(self) -> None:
         td = tempfile.TemporaryDirectory()
         self.addCleanup(td.cleanup)
         base = Path(td.name)
         user = base / "user"
-        write_skill(user, "技能", "Unicode portable skill")
-        cfg = {
+        write_skill(user, "技能-2", "Unicode portable skill")
+        config = {
             "schemaVersion": 2,
             "ttlMs": 30000,
             "workspaces": {},
             "standardDiscovery": {"user": False, "projects": False},
-            "additionalSources": [
+            "additionalSources": [],
+            "compatibilitySources": [
                 {
                     "sourceId": "user",
                     "root": str(user),
@@ -134,73 +135,48 @@ class Sep2640SkillsTests(unittest.TestCase):
                     "trust": "APPROVED",
                 }
             ],
-            "compatibilitySources": [],
         }
         config_file = base / "skills.json"
-        config_file.write_text(json.dumps(cfg), encoding="utf-8")
+        config_file.write_text(json.dumps(config), encoding="utf-8")
         catalog = CatalogProvider(config_file).get(force_refresh=True)
-        record = catalog.by_skill_id("user/技能", invocation_mode="explicit")
+        record = catalog.by_skill_id("user/技能-2", invocation_mode="explicit")
         entry = skill_entry(record)
-        self.assertEqual(entry.frontmatter["name"], "技能")
+        self.assertEqual(entry.frontmatter["name"], "技能-2")
         self.assertEqual(
             entry.uri,
-            "skill://ordivon/user/%E6%8A%80%E8%83%BD/SKILL.md",
+            "skill://ordivon/user/%E6%8A%80%E8%83%BD-2/SKILL.md",
         )
-        self.assertEqual(parse_skill_uri(entry.uri), ("user", "技能", "SKILL.md"))
+        self.assertEqual(parse_skill_uri(entry.uri), ("user", "技能-2", "SKILL.md"))
 
-        composed = base / "café"
-        composed.mkdir()
-        (composed / "SKILL.md").write_text(
-            "---\nname: cafe\u0301\ndescription: NFKC equivalent name\n---\n# Cafe\n",
+        decomposed = base / "cafe\u0301"
+        decomposed.mkdir()
+        (decomposed / "SKILL.md").write_text(
+            "---\nname: café\ndescription: Canonically equivalent but not exact\n---\n# Cafe\n",
             encoding="utf-8",
         )
-        parsed = parse_standard_frontmatter(composed)
-        self.assertEqual(parsed["name"], "cafe\u0301")
+        with self.assertRaisesRegex(AgentSkillsConformanceError, "parent directory"):
+            parse_standard_frontmatter(decomposed)
 
-    def test_standard_frontmatter_is_preserved_as_authored_json_object(self) -> None:
+    def test_standard_frontmatter_preserves_published_optional_fields(self) -> None:
         td = tempfile.TemporaryDirectory()
         self.addCleanup(td.cleanup)
-        base = Path(td.name)
-        root = base / "user"
-        package = write_skill(
-            root,
-            "rich",
-            "Rich portable metadata",
-            extra=(
-                "license: Apache-2.0\n"
-                "compatibility: Requires git\n"
-                "metadata:\n"
-                "  author: example-org\n"
-                "  version: \"1.0\"\n"
-                "allowed-tools: Read Bash(git:*)\n"
-            ),
+        root = Path(td.name) / "rich"
+        root.mkdir(parents=True)
+        (root / "SKILL.md").write_text(
+            "---\n"
+            "name: rich\n"
+            "description: Rich portable metadata\n"
+            "license: Apache-2.0\n"
+            "compatibility: Requires git\n"
+            "metadata:\n  author: example-org\n  version: '1.0'\n"
+            "allowed-tools: Read Bash(git:*)\n"
+            "---\n# Rich\n",
+            encoding="utf-8",
         )
-        cfg = {
-            "schemaVersion": 2,
-            "ttlMs": 30000,
-            "workspaces": {},
-            "standardDiscovery": {"user": False, "projects": False},
-            "additionalSources": [
-                {
-                    "sourceId": "user",
-                    "root": str(root),
-                    "scope": "user",
-                    "trust": "APPROVED",
-                }
-            ],
-            "compatibilitySources": [],
-        }
-        config_file = base / "skills.json"
-        config_file.write_text(json.dumps(cfg), encoding="utf-8")
-        catalog = CatalogProvider(config_file).get(force_refresh=True)
-        entry = skill_entry(catalog.by_skill_id("user/rich", invocation_mode="explicit"))
-        self.assertEqual(entry.frontmatter, parse_standard_frontmatter(package))
-        self.assertEqual(entry.frontmatter["license"], "Apache-2.0")
-        self.assertEqual(
-            entry.frontmatter["metadata"],
-            {"author": "example-org", "version": "1.0"},
-        )
-        self.assertEqual(entry.frontmatter["allowed-tools"], "Read Bash(git:*)")
+        parsed = parse_standard_frontmatter(root)
+        self.assertEqual(parsed["license"], "Apache-2.0")
+        self.assertEqual(parsed["metadata"], {"author": "example-org", "version": "1.0"})
+        self.assertEqual(parsed["allowed-tools"], "Read Bash(git:*)")
 
     def test_http_sep2640_list_get_and_resources_read_are_digest_consistent(self) -> None:
         td, base, provider, token_file = self.make_fixture()
