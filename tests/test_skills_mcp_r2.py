@@ -18,7 +18,7 @@ try:
 except ImportError as exc:  # pragma: no cover - deployment environment gate
     raise unittest.SkipTest(f"Skills MCP runtime dependencies unavailable: {exc}")
 
-from skills_mcp import CatalogProvider, McpSettings, build_app, build_server
+from skills_mcp import CatalogProvider, McpSettings, build_app, build_server  # noqa: E402
 
 
 def write_skill(root: Path, directory: str, name: str, description: str) -> Path:
