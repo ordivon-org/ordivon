@@ -188,6 +188,7 @@ def build_server(provider: CatalogProvider) -> MCPServer:
                         "discovered": status.discovered,
                         "valid": status.valid,
                         "invalid": status.invalid,
+                        "quarantined": status.quarantined,
                         "admitted": status.admitted,
                     }
                     for status in catalog.source_statuses
@@ -461,6 +462,7 @@ def main() -> int:
                             "health": status.health.value,
                             "valid": status.valid,
                             "invalid": status.invalid,
+                            "quarantined": status.quarantined,
                         }
                         for status in catalog.source_statuses
                     ],

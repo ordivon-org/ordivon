@@ -71,6 +71,26 @@ class SkillsMcpSurfaceTests(unittest.TestCase):
         provider = CatalogProvider(config_file)
         return td, base, provider, token_file
 
+    def test_ttl_rescan_reapplies_scanner_and_quarantines_changed_package(self) -> None:
+        td, base, provider, _token = self.make_fixture()
+        self.addCleanup(td.cleanup)
+        cfg_path = base / "skills.json"
+        cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+        cfg["ttlMs"] = 1
+        cfg_path.write_text(json.dumps(cfg), encoding="utf-8")
+        server = build_server(provider)
+        tools = {tool.name: tool for tool in server._tool_manager.list_tools()}
+        first = asyncio.run(tools["skills.list"].fn())
+        self.assertIn("user/alpha", json.dumps(first.structured_content))
+        (base / "user" / "alpha" / ".env").write_text("TOKEN=fixture", encoding="utf-8")
+        import time
+        time.sleep(0.01)
+        second = asyncio.run(tools["skills.list"].fn())
+        rendered = json.dumps(second.structured_content)
+        self.assertNotIn('"skillId": "user/alpha"', rendered)
+        source = next(x for x in second.structured_content["sources"] if x["sourceId"] == "user")
+        self.assertEqual(source["quarantined"], 1)
+
     def test_surface_is_exactly_four_read_only_tools(self) -> None:
         td, _base, provider, _token = self.make_fixture()
         self.addCleanup(td.cleanup)

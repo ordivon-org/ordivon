@@ -37,6 +37,7 @@ def load_skills_mcp_config(path: Path) -> SkillsMcpConfig:
         "projectRoot",
         "implicitDenyPrefixes",
         "explicitDenyPrefixes",
+        "eligibilityAdapter",
     }
     for index, item in enumerate(source_values):
         if not isinstance(item, dict):
@@ -73,6 +74,7 @@ def load_skills_mcp_config(path: Path) -> SkillsMcpConfig:
                 project_root=project_root,
                 implicit_deny_prefixes=tuple(implicit),
                 explicit_deny_prefixes=tuple(explicit),
+                eligibility_adapter=item.get("eligibilityAdapter"),
             )
         )
     return SkillsMcpConfig(tuple(sources), ttl_ms=ttl_ms)

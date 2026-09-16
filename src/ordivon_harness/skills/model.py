@@ -55,6 +55,7 @@ class SkillSource:
     project_root: Path | None = None
     implicit_deny_prefixes: tuple[str, ...] = ()
     explicit_deny_prefixes: tuple[str, ...] = ()
+    eligibility_adapter: str | None = None
 
     def __post_init__(self) -> None:
         if not _SOURCE_ID_RE.fullmatch(self.source_id):
@@ -70,6 +71,8 @@ class SkillSource:
         for prefix in (*self.implicit_deny_prefixes, *self.explicit_deny_prefixes):
             if not prefix or prefix.startswith("/") or ".." in Path(prefix).parts:
                 raise ValueError(f"unsafe source policy prefix: {prefix!r}")
+        if self.eligibility_adapter not in {None, "openclaw-metadata"}:
+            raise ValueError(f"unsupported eligibility adapter: {self.eligibility_adapter}")
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,6 +91,9 @@ class SkillRecord:
     package_revision: str
     trust_state: TrustState
     eligibility_state: EligibilityState = EligibilityState.UNKNOWN
+    eligibility_reasons: tuple[str, ...] = ()
+    scan_state: str = "PASS"
+    scan_findings: tuple[str, ...] = ()
     implicit_invocation: bool = True
     explicit_invocation: bool = True
     diagnostics: tuple[str, ...] = ()
@@ -115,6 +121,8 @@ class SkillRecord:
             "packageRevision": self.package_revision,
             "trustState": self.trust_state.value,
             "eligibilityState": self.eligibility_state.value,
+            "eligibilityReasons": list(self.eligibility_reasons),
+            "scanState": self.scan_state,
             "implicitInvocation": self.implicit_invocation,
             "explicitInvocation": self.explicit_invocation,
         }
@@ -127,6 +135,7 @@ class SourceScanStatus:
     discovered: int
     valid: int
     invalid: int
+    quarantined: int
     admitted: int
     diagnostics: tuple[str, ...] = ()
 
@@ -137,6 +146,7 @@ class SourceScanStatus:
             "discovered": self.discovered,
             "valid": self.valid,
             "invalid": self.invalid,
+            "quarantined": self.quarantined,
             "admitted": self.admitted,
             "diagnostics": list(self.diagnostics),
         }

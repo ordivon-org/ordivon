@@ -18,14 +18,16 @@
       "trust": "APPROVED",
       "implicitDenyPrefixes": [
         ".system"
-      ]
+      ],
+      "eligibilityAdapter": "openclaw-metadata"
     },
     {
       "sourceId": "generic-user",
       "root": "/root/.agents/skills",
       "scope": "user",
       "priority": 680,
-      "trust": "APPROVED"
+      "trust": "APPROVED",
+      "eligibilityAdapter": "openclaw-metadata"
     },
     {
       "sourceId": "hermes-user",

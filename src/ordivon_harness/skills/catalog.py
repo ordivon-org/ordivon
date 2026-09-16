@@ -8,6 +8,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
+from .eligibility import observe_eligibility
 from .model import (
     EligibilityState,
     SkillContext,
@@ -18,6 +19,7 @@ from .model import (
     TrustState,
 )
 from .parser import SkillParseError, parse_skill_frontmatter
+from .scanner import ScanState, scan_skill_package
 
 ADMITTED_TRUST = {TrustState.TRUSTED, TrustState.APPROVED}
 _SCOPE_RANK = {"project": 50, "workspace": 50, "user": 40, "vendor": 30, "plugin": 30, "managed": 10}
@@ -104,6 +106,8 @@ def _canonical_payload(records: Iterable[SkillRecord]) -> bytes:
             "packageRevision": record.package_revision,
             "trust": record.trust_state.value,
             "eligibility": record.eligibility_state.value,
+            "eligibilityReasons": list(record.eligibility_reasons),
+            "scanState": record.scan_state,
             "implicitInvocation": record.implicit_invocation,
             "explicitInvocation": record.explicit_invocation,
         }
@@ -220,13 +224,14 @@ class SkillCatalog:
             if source.source_id in seen_source_ids:
                 statuses.append(
                     SourceScanStatus(
-                        source.source_id,
-                        SourceHealth.DEGRADED,
-                        0,
-                        0,
-                        1,
-                        0,
-                        ("duplicate configured sourceId; later source ignored",),
+                        source_id=source.source_id,
+                        health=SourceHealth.DEGRADED,
+                        discovered=0,
+                        valid=0,
+                        invalid=1,
+                        quarantined=0,
+                        admitted=0,
+                        diagnostics=("duplicate configured sourceId; later source ignored",),
                     )
                 )
                 continue
@@ -239,46 +244,52 @@ class SkillCatalog:
     @staticmethod
     def _scan_source(source: SkillSource) -> tuple[list[SkillRecord], SourceScanStatus]:
         if not source.enabled:
-            return [], SourceScanStatus(source.source_id, SourceHealth.DISABLED, 0, 0, 0, 0)
+            return [], SourceScanStatus(
+                source_id=source.source_id, health=SourceHealth.DISABLED, discovered=0, valid=0,
+                invalid=0, quarantined=0, admitted=0
+            )
         try:
             root = source.root.resolve(strict=True)
         except (FileNotFoundError, OSError):
             return [], SourceScanStatus(
-                source.source_id,
-                SourceHealth.UNAVAILABLE,
-                0,
-                0,
-                0,
-                0,
-                (f"source root unavailable: {source.root}",),
+                source_id=source.source_id,
+                health=SourceHealth.UNAVAILABLE,
+                discovered=0,
+                valid=0,
+                invalid=0,
+                quarantined=0,
+                admitted=0,
+                diagnostics=(f"source root unavailable: {source.root}",),
             )
         if not root.is_dir():
             return [], SourceScanStatus(
-                source.source_id,
-                SourceHealth.UNAVAILABLE,
-                0,
-                0,
-                0,
-                0,
-                (f"source root is not a directory: {source.root}",),
+                source_id=source.source_id,
+                health=SourceHealth.UNAVAILABLE,
+                discovered=0,
+                valid=0,
+                invalid=0,
+                quarantined=0,
+                admitted=0,
+                diagnostics=(f"source root is not a directory: {source.root}",),
             )
 
         project_root = _infer_project_root(source, root)
         records: list[SkillRecord] = []
         diagnostics: list[str] = []
         local_ids: set[str] = set()
-        discovered = valid = invalid = 0
+        discovered = valid = invalid = quarantined = 0
         try:
             candidates = sorted(root.rglob("SKILL.md"), key=lambda p: p.as_posix())
         except OSError as exc:
             return [], SourceScanStatus(
-                source.source_id,
-                SourceHealth.UNAVAILABLE,
-                0,
-                0,
-                0,
-                0,
-                (f"source traversal failed: {type(exc).__name__}",),
+                source_id=source.source_id,
+                health=SourceHealth.UNAVAILABLE,
+                discovered=0,
+                valid=0,
+                invalid=0,
+                quarantined=0,
+                admitted=0,
+                diagnostics=(f"source traversal failed: {type(exc).__name__}",),
             )
 
         for main_resource in candidates:
@@ -304,6 +315,11 @@ class SkillCatalog:
                 local_ids.add(skill_id)
                 implicit = not _prefix_denied(source_relative_root, source.implicit_deny_prefixes)
                 explicit = not _prefix_denied(source_relative_root, source.explicit_deny_prefixes)
+                decoded = body.decode("utf-8")
+                eligibility = observe_eligibility(decoded, source.eligibility_adapter)
+                scan = scan_skill_package(skill_root)
+                if scan.state == ScanState.QUARANTINED:
+                    quarantined += 1
                 records.append(
                     SkillRecord(
                         skill_id=skill_id,
@@ -319,7 +335,10 @@ class SkillCatalog:
                         instruction_digest=_sha256(body),
                         package_revision=package_revision,
                         trust_state=source.trust_state,
-                        eligibility_state=EligibilityState.UNKNOWN,
+                        eligibility_state=eligibility.state,
+                        eligibility_reasons=eligibility.reasons,
+                        scan_state=scan.state.value,
+                        scan_findings=scan.findings,
                         implicit_invocation=implicit,
                         explicit_invocation=explicit,
                     )
@@ -333,15 +352,19 @@ class SkillCatalog:
                 continue
 
         health = SourceHealth.READY if invalid == 0 else SourceHealth.DEGRADED
-        admitted = sum(record.trust_state in ADMITTED_TRUST for record in records)
+        admitted = sum(
+            record.trust_state in ADMITTED_TRUST and record.scan_state != ScanState.QUARANTINED.value
+            for record in records
+        )
         return records, SourceScanStatus(
-            source.source_id,
-            health,
-            discovered,
-            valid,
-            invalid,
-            admitted,
-            tuple(diagnostics),
+            source_id=source.source_id,
+            health=health,
+            discovered=discovered,
+            valid=valid,
+            invalid=invalid,
+            quarantined=quarantined,
+            admitted=admitted,
+            diagnostics=tuple(diagnostics),
         )
 
     def view(
@@ -349,7 +372,7 @@ class SkillCatalog:
         *,
         context: SkillContext | None = None,
         invocation_mode: str = "implicit",
-        include_ineligible: bool = True,
+        include_ineligible: bool = False,
     ) -> SkillView:
         if invocation_mode not in {"implicit", "explicit"}:
             raise ValueError("invocation_mode must be implicit or explicit")
@@ -357,13 +380,15 @@ class SkillCatalog:
         for record in self._inventory:
             if record.trust_state not in ADMITTED_TRUST:
                 continue
+            if record.scan_state == ScanState.QUARANTINED.value:
+                continue
             if not _context_applies(record, context):
                 continue
             if invocation_mode == "implicit" and not record.implicit_invocation:
                 continue
             if invocation_mode == "explicit" and not record.explicit_invocation:
                 continue
-            if not include_ineligible and record.eligibility_state != EligibilityState.READY:
+            if not include_ineligible and record.eligibility_state == EligibilityState.BLOCKED:
                 continue
             records.append(record)
         context_payload = {
@@ -387,7 +412,14 @@ class SkillCatalog:
         for record in view.records:
             if record.skill_id == skill_id:
                 return record
-        if any(record.skill_id == skill_id for record in self._inventory):
+        for record in self._inventory:
+            if record.skill_id != skill_id:
+                continue
+            if record.scan_state == ScanState.QUARANTINED.value:
+                raise SkillCatalogError("SKILL_QUARANTINED", skill_id)
+            if record.eligibility_state == EligibilityState.BLOCKED:
+                detail = "; ".join(record.eligibility_reasons) or skill_id
+                raise SkillCatalogError("SKILL_INELIGIBLE", detail)
             raise SkillCatalogError("SKILL_NOT_VISIBLE", skill_id)
         raise SkillCatalogError("SKILL_NOT_FOUND", skill_id)
 
@@ -418,7 +450,31 @@ class SkillCatalog:
 
         candidates = [record for record in view.records if record.name == ref]
         if not candidates:
-            if any(record.name == ref for record in self._inventory):
+            same_name = [record for record in self._inventory if record.name == ref]
+            if any(
+                record.trust_state in ADMITTED_TRUST
+                and record.scan_state != ScanState.QUARANTINED.value
+                and _context_applies(record, context)
+                and record.eligibility_state == EligibilityState.BLOCKED
+                for record in same_name
+            ):
+                reasons = sorted(
+                    {
+                        reason
+                        for record in same_name
+                        if record.eligibility_state == EligibilityState.BLOCKED
+                        for reason in record.eligibility_reasons
+                    }
+                )
+                raise SkillCatalogError("SKILL_INELIGIBLE", "; ".join(reasons) or ref)
+            if any(
+                record.trust_state in ADMITTED_TRUST
+                and record.scan_state == ScanState.QUARANTINED.value
+                and _context_applies(record, context)
+                for record in same_name
+            ):
+                raise SkillCatalogError("SKILL_QUARANTINED", ref)
+            if same_name:
                 raise SkillCatalogError("SKILL_NOT_VISIBLE", ref)
             raise SkillCatalogError("SKILL_NOT_FOUND", ref)
         candidates.sort(
