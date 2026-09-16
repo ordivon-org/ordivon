@@ -16,9 +16,11 @@ from pathlib import Path
 from typing import Any, Literal
 
 from mcp.server import MCPServer
+from mcp.server.extension import Extension, MethodBinding
 from mcp.server.caching import CacheHint
 from mcp.server.transport_security import TransportSecuritySettings
-from mcp.types import CallToolResult, TextContent, ToolAnnotations
+from mcp.shared.exceptions import MCPError
+from mcp.types import INVALID_PARAMS, CallToolResult, RequestParams, TextContent, ToolAnnotations
 
 DEFAULT_SOURCE_ROOT = Path(__file__).resolve().parents[1]
 ROOT = Path(os.environ.get("ORDIVON_SKILLS_MCP_SOURCE_ROOT", str(DEFAULT_SOURCE_ROOT))).resolve()
@@ -26,12 +28,19 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from ordivon_harness.skills import (
+from ordivon_harness.skills import (  # noqa: E402
     SkillCatalog,
     SkillCatalogError,
     SkillContext,
 )
-from ordivon_harness.skills.config import load_skills_mcp_config
+from ordivon_harness.skills.config import load_skills_mcp_config  # noqa: E402
+from ordivon_harness.skills.sep2640 import (  # noqa: E402
+    AgentSkillsConformanceError,
+    manifest_contains,
+    parse_skill_uri,
+    skill_entry,
+    skill_uri,
+)
 
 DEFAULT_BIND = "127.0.0.1"
 DEFAULT_PORT = 8895
@@ -127,6 +136,96 @@ def _error(error: Exception) -> CallToolResult:
     return _result({"code": "INVALID_ARGUMENT", "detail": str(error)[:1000]}, error=True)
 
 
+class SkillsListParams(RequestParams):
+    cursor: str | None = None
+
+
+class SkillsGetParams(RequestParams):
+    uri: str
+
+
+class Sep2640SkillsExtension(Extension):
+    """Standard Agent Skills transport binding from SEP-2640.
+
+    The legacy Ordivon tools remain a compatibility shim during migration; this
+    extension is the canonical external Skills protocol.
+    """
+
+    identifier = "io.modelcontextprotocol/skills"
+    _PAGE_SIZE = 100
+
+    def __init__(self, provider: CatalogProvider) -> None:
+        self.provider = provider
+
+    def settings(self) -> dict[str, Any]:
+        # resources/directory/read is optional and intentionally not advertised yet.
+        return {}
+
+    def methods(self) -> tuple[MethodBinding, ...]:
+        versions = frozenset({"2026-07-28"})
+        return (
+            MethodBinding("skills/list", SkillsListParams, self._list, versions),
+            MethodBinding("skills/get", SkillsGetParams, self._get, versions),
+        )
+
+    def _exportable_entries(self):
+        catalog = self.provider.get()
+        view = catalog.view(context=None, invocation_mode="implicit")
+        entries = []
+        for record in view.records:
+            try:
+                entries.append(skill_entry(record))
+            except AgentSkillsConformanceError:
+                # Dialect/nonconforming Skills stay in the internal raw catalog but
+                # are never misrepresented as Agent Skills on the standard wire.
+                continue
+        entries.sort(key=lambda item: item.uri)
+        return catalog, entries
+
+    async def _list(self, _ctx, params: SkillsListParams) -> dict[str, Any]:
+        catalog, entries = self._exportable_entries()
+        offset = 0
+        if params.cursor is not None:
+            try:
+                revision, raw_offset = params.cursor.rsplit(":", 1)
+                offset = int(raw_offset)
+            except (ValueError, TypeError) as exc:
+                raise MCPError(INVALID_PARAMS, "invalid skills/list cursor") from exc
+            if revision != catalog.catalog_revision or offset < 0:
+                raise MCPError(INVALID_PARAMS, "stale or invalid skills/list cursor")
+        page = entries[offset : offset + self._PAGE_SIZE]
+        result: dict[str, Any] = {
+            "resultType": "complete",
+            "skills": [entry.value() for entry in page],
+            "ttlMs": self.provider.ttl_ms,
+            "cacheScope": "private",
+        }
+        next_offset = offset + len(page)
+        if next_offset < len(entries):
+            result["nextCursor"] = f"{catalog.catalog_revision}:{next_offset}"
+        return result
+
+    async def _get(self, _ctx, params: SkillsGetParams) -> dict[str, Any]:
+        try:
+            source_id, skill_name, relative_path = parse_skill_uri(params.uri)
+            if relative_path != "SKILL.md":
+                raise AgentSkillsConformanceError("skills/get URI must name SKILL.md")
+            catalog = self.provider.get()
+            record = catalog.by_skill_id(
+                f"{source_id}/{skill_name}", invocation_mode="explicit"
+            )
+            if record.scope in {"project", "workspace"}:
+                raise AgentSkillsConformanceError(
+                    "project/workspace Skills require server-bound workspace context"
+                )
+            entry = skill_entry(record)
+            if entry.uri != params.uri:
+                raise AgentSkillsConformanceError("URI does not identify the served Skill")
+        except (AgentSkillsConformanceError, SkillCatalogError, OSError) as exc:
+            raise MCPError(INVALID_PARAMS, f"Skill is not served by the SEP-2640 surface: {exc}") from exc
+        return {"resultType": "complete", "skill": entry.value()}
+
+
 def build_server(provider: CatalogProvider) -> MCPServer:
     # Prime once so config/source errors fail during startup/check rather than first user turn.
     provider.get(force_refresh=True)
@@ -143,6 +242,7 @@ def build_server(provider: CatalogProvider) -> MCPServer:
             "resources/list": CacheHint(ttl_ms=30_000, scope="private"),
             "resources/read": CacheHint(ttl_ms=30_000, scope="private"),
         },
+        extensions=[Sep2640SkillsExtension(provider)],
     )
     annotations = ToolAnnotations(
         readOnlyHint=True,
@@ -306,6 +406,43 @@ def build_server(provider: CatalogProvider) -> MCPServer:
             return _error(exc)
 
     @server.resource(
+        "skill://ordivon/{sourceId}/{skillName}/{+path}",
+        name="agent-skill-resource",
+        title="SEP-2640 Agent Skill resource",
+        description="Standards-conforming Agent Skill file exposed through MCP resources/read.",
+        mime_type="text/plain",
+    )
+    def standard_skill_resource(sourceId: str, skillName: str, path: str) -> str | bytes:
+        catalog = provider.get()
+        try:
+            record = catalog.by_skill_id(
+                f"{sourceId}/{skillName}", invocation_mode="explicit"
+            )
+            if record.scope in {"project", "workspace"}:
+                raise AgentSkillsConformanceError(
+                    "project/workspace Skills require server-bound workspace context"
+                )
+            entry = skill_entry(record)
+            requested_uri = skill_uri(sourceId, skillName, path)
+            if not manifest_contains(entry, requested_uri):
+                raise AgentSkillsConformanceError(
+                    "resource is not present in the advertised Skill manifest"
+                )
+            target = (record.skill_root / path).resolve(strict=True)
+            root = record.skill_root.resolve(strict=True)
+            try:
+                target.relative_to(root)
+            except ValueError as exc:
+                raise AgentSkillsConformanceError("resource path escapes Skill root") from exc
+            data = target.read_bytes()
+            try:
+                return data.decode("utf-8")
+            except UnicodeDecodeError:
+                return data
+        except (AgentSkillsConformanceError, SkillCatalogError, OSError) as exc:
+            raise ValueError(f"SEP2640_RESOURCE_ERROR: {exc}") from exc
+
+    @server.resource(
         "skill://{sourceId}/{skillName}/{packageHex}/{+path}",
         name="skill-resource",
         title="Revision-bound Skill resource",
@@ -445,6 +582,15 @@ def main() -> int:
     if args.check:
         catalog = provider.get()
         tools = sorted(tool.name for tool in server._tool_manager.list_tools())
+        standard_exportable = 0
+        standard_rejected = 0
+        for record in catalog.view(context=None, invocation_mode="implicit").records:
+            try:
+                skill_entry(record)
+            except AgentSkillsConformanceError:
+                standard_rejected += 1
+            else:
+                standard_exportable += 1
         print(
             json.dumps(
                 {
@@ -455,6 +601,15 @@ def main() -> int:
                     "toolNames": tools,
                     "toolCount": len(tools),
                     "catalogRevision": catalog.catalog_revision,
+                    "standards": {
+                        "packageFormat": "Agent Skills",
+                        "mcpExtension": "io.modelcontextprotocol/skills",
+                        "protocolMethods": ["skills/get", "skills/list", "resources/read"],
+                        "directoryRead": False,
+                        "standardExportable": standard_exportable,
+                        "standardRejected": standard_rejected,
+                        "legacyToolShim": True,
+                    },
                     "sources": [
                         {
                             "sourceId": status.source_id,
