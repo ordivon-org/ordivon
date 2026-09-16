@@ -157,7 +157,15 @@ class AgentSkillsStandardsTests(unittest.TestCase):
         if not root.is_dir():
             self.skipTest("Ordivon Next project Skills are not installed")
         paths = sorted(root.glob("*/SKILL.md"))
-        self.assertEqual(len(paths), 3)
+        # This is a live project root, not a fixed fixture: new conforming project
+        # Skills may be added without making the standards test stale.  Preserve
+        # the original baseline while validating every currently installed Skill.
+        self.assertGreaterEqual(len(paths), 3)
+        self.assertTrue(
+            {"artifact-work", "ppt-master", "web-provider-routing"}.issubset(
+                {path.parent.name for path in paths}
+            )
+        )
         for path in paths:
             with self.subTest(path=path):
                 parsed = parse_skill_frontmatter(
@@ -597,7 +605,9 @@ class SkillCatalogR2IntegrationTests(unittest.TestCase):
             self.skipTest("real Skill roots are not all installed")
         catalog = SkillCatalog.scan(config.sources)
         counts = {status.source_id: status.valid for status in catalog.source_statuses}
-        self.assertEqual(counts["project-ordivon-next"], 3)
+        # Project-local inventory is intentionally extensible; assert the
+        # historical baseline rather than freezing a live directory cardinality.
+        self.assertGreaterEqual(counts["project-ordivon-next"], 3)
         self.assertGreaterEqual(counts["codex-user"], 20)
         self.assertGreaterEqual(counts["user-agents"], 2)
         self.assertGreaterEqual(counts["hermes-user"], 100)

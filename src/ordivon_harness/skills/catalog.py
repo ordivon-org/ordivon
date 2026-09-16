@@ -10,6 +10,7 @@ from pathlib import Path
 
 from .eligibility import observe_eligibility
 from .model import (
+    ConfidenceTier,
     EligibilityState,
     SkillContext,
     SkillRecord,
@@ -19,7 +20,12 @@ from .model import (
     TrustState,
 )
 from .parser import SkillParseError, parse_skill_frontmatter
-from .scanner import ScanState, scan_skill_package
+from .scanner import (
+    SANITIZABLE_AUTHORITY_RISK_TAGS,
+    ScanState,
+    project_advisory_skill_text,
+    scan_skill_package,
+)
 
 ADMITTED_TRUST = {TrustState.TRUSTED, TrustState.APPROVED}
 _SCOPE_RANK = {"project": 50, "workspace": 50, "user": 40, "vendor": 30, "plugin": 30, "managed": 10}
@@ -58,6 +64,10 @@ class SkillReadResult:
     media_type: str
     size: int
     digest: str
+    raw_size: int
+    raw_digest: str
+    projection: str
+    removed_risk_tags: tuple[str, ...]
     instruction_digest: str
     package_revision: str
     content: str
@@ -70,6 +80,10 @@ class SkillReadResult:
             "mediaType": self.media_type,
             "size": self.size,
             "digest": self.digest,
+            "rawSize": self.raw_size,
+            "rawDigest": self.raw_digest,
+            "projection": self.projection,
+            "removedRiskTags": list(self.removed_risk_tags),
             "instructionDigest": self.instruction_digest,
             "packageRevision": self.package_revision,
             "content": self.content,
@@ -107,6 +121,10 @@ def _canonical_payload(records: Iterable[SkillRecord]) -> bytes:
             "eligibility": record.eligibility_state.value,
             "eligibilityReasons": list(record.eligibility_reasons),
             "scanState": record.scan_state,
+            "riskTags": list(record.risk_tags),
+            "declaredDependencies": list(record.declared_dependencies),
+            "requiredDependencies": list(record.required_dependencies),
+            "confidenceTier": record.confidence_tier.value,
             "implicitInvocation": record.implicit_invocation,
             "explicitInvocation": record.explicit_invocation,
         }
@@ -232,7 +250,15 @@ class SkillCatalog:
         return self._source_statuses
 
     @classmethod
-    def scan(cls, sources: Iterable[SkillSource]) -> SkillCatalog:
+    def scan(
+        cls,
+        sources: Iterable[SkillSource],
+        *,
+        audited_skill_ids: Iterable[str] = (),
+        user_explicit_skill_ids: Iterable[str] = (),
+    ) -> SkillCatalog:
+        audited = frozenset(audited_skill_ids)
+        user_explicit = frozenset(user_explicit_skill_ids)
         records: list[SkillRecord] = []
         statuses: list[SourceScanStatus] = []
         seen_source_ids: set[str] = set()
@@ -252,13 +278,22 @@ class SkillCatalog:
                 )
                 continue
             seen_source_ids.add(source.source_id)
-            source_records, status = cls._scan_source(source)
+            source_records, status = cls._scan_source(
+                source,
+                audited_skill_ids=audited,
+                user_explicit_skill_ids=user_explicit,
+            )
             records.extend(source_records)
             statuses.append(status)
         return cls(records, source_statuses=statuses)
 
     @staticmethod
-    def _scan_source(source: SkillSource) -> tuple[list[SkillRecord], SourceScanStatus]:
+    def _scan_source(
+        source: SkillSource,
+        *,
+        audited_skill_ids: frozenset[str] = frozenset(),
+        user_explicit_skill_ids: frozenset[str] = frozenset(),
+    ) -> tuple[list[SkillRecord], SourceScanStatus]:
         if not source.enabled:
             return [], SourceScanStatus(
                 source_id=source.source_id, health=SourceHealth.DISABLED, discovered=0, valid=0,
@@ -334,10 +369,39 @@ class SkillCatalog:
                 package_revision = _package_revision(skill_root)
                 source_relative_root = skill_root.relative_to(root).as_posix()
                 local_ids.add(skill_id)
-                implicit = not _prefix_denied(source_relative_root, source.implicit_deny_prefixes)
+                configured_implicit = not _prefix_denied(
+                    source_relative_root, source.implicit_deny_prefixes
+                )
                 explicit = not _prefix_denied(source_relative_root, source.explicit_deny_prefixes)
                 eligibility = observe_eligibility(decoded, source.eligibility_adapter)
                 scan = scan_skill_package(skill_root)
+                # Skill text may refine an already-authorized workflow, but it cannot
+                # self-admit into implicit routing. For explicitly audited packages,
+                # authority-only findings may be removed by the advisory projection;
+                # non-sanitizable package risks still fail implicit admission closed.
+                risk_set = frozenset(scan.risk_tags)
+                non_sanitizable_risks = risk_set - SANITIZABLE_AUTHORITY_RISK_TAGS
+                audited_sanitized = (
+                    skill_id in audited_skill_ids
+                    and scan.state != ScanState.QUARANTINED
+                    and not non_sanitizable_risks
+                )
+                user_selected_sanitized = (
+                    skill_id in user_explicit_skill_ids
+                    and scan.state != ScanState.QUARANTINED
+                    and not non_sanitizable_risks
+                )
+                implicit = configured_implicit and (
+                    not risk_set or audited_sanitized or user_selected_sanitized
+                )
+                if skill_id in user_explicit_skill_ids:
+                    confidence = ConfidenceTier.USER_EXPLICIT
+                elif audited_sanitized:
+                    confidence = ConfidenceTier.THIRD_PARTY_AUDITED
+                elif scan.state == ScanState.PASS:
+                    confidence = ConfidenceTier.THIRD_PARTY_SCANNED
+                else:
+                    confidence = ConfidenceTier.THIRD_PARTY_UNREVIEWED
                 if scan.state == ScanState.QUARANTINED:
                     quarantined += 1
                 records.append(
@@ -359,6 +423,10 @@ class SkillCatalog:
                         eligibility_reasons=eligibility.reasons,
                         scan_state=scan.state.value,
                         scan_findings=scan.findings,
+                        risk_tags=scan.risk_tags,
+                        declared_dependencies=scan.declared_dependencies,
+                        required_dependencies=scan.required_dependencies,
+                        confidence_tier=confidence,
                         implicit_invocation=implicit,
                         explicit_invocation=explicit,
                         diagnostics=parsed.diagnostics,
@@ -557,9 +625,12 @@ class SkillCatalog:
         expected_snapshot_revision: str | None = None,
         offset: int = 0,
         max_bytes: int = MAX_RESOURCE_READ_BYTES,
+        projection: str = "advisory",
     ) -> SkillReadResult:
         if offset < 0 or not (1 <= max_bytes <= MAX_RESOURCE_READ_BYTES):
             raise ValueError("invalid read bounds")
+        if projection not in {"advisory", "raw"}:
+            raise ValueError("projection must be advisory or raw")
         view = self.view(context=context, invocation_mode="explicit")
         if expected_snapshot_revision is not None and view.snapshot_revision != expected_snapshot_revision:
             raise SkillCatalogError("SNAPSHOT_STALE", f"expected {expected_snapshot_revision}, current {view.snapshot_revision}")
@@ -585,27 +656,42 @@ class SkillCatalog:
         if current_package_revision != package_fence:
             raise SkillCatalogError("PACKAGE_CHANGED", f"Skill package changed for {skill_id}")
 
-        data = resolved.read_bytes()
-        if len(data) > MAX_RESOURCE_READ_BYTES:
+        raw_data = resolved.read_bytes()
+        if len(raw_data) > MAX_RESOURCE_READ_BYTES:
             raise SkillCatalogError("RESOURCE_TOO_LARGE", relative_path)
         post_read_package_revision = _package_revision(record.skill_root)
         if post_read_package_revision != package_fence:
             raise SkillCatalogError("PACKAGE_CHANGED", f"Skill package changed for {skill_id}")
+
         try:
-            data.decode("utf-8")
-            data[:offset].decode("utf-8")
+            raw_text = raw_data.decode("utf-8")
         except UnicodeDecodeError as exc:
             raise SkillCatalogError("UNSUPPORTED_MEDIA_TYPE", relative_path) from exc
-        end = min(len(data), offset + max_bytes)
+        removed_risk_tags: tuple[str, ...] = ()
+        if projection == "advisory" and resolved.suffix.lower() in {".md", ".markdown"}:
+            projected = project_advisory_skill_text(raw_text)
+            projected_data = projected.content.encode("utf-8")
+            removed_risk_tags = projected.removed_risk_tags
+            projection_name = "ADVISORY_SANITIZED"
+        else:
+            projected_data = raw_data
+            projection_name = "RAW" if projection == "raw" else "RAW_SUPPORTING_RESOURCE"
+
+        try:
+            projected_data.decode("utf-8")
+            projected_data[:offset].decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise SkillCatalogError("UNSUPPORTED_MEDIA_TYPE", relative_path) from exc
+        end = min(len(projected_data), offset + max_bytes)
         while end > offset:
             try:
-                content = data[offset:end].decode("utf-8")
+                content = projected_data[offset:end].decode("utf-8")
             except UnicodeDecodeError:
                 end -= 1
                 continue
             break
         else:
-            if offset < len(data):
+            if offset < len(projected_data):
                 raise SkillCatalogError(
                     "READ_BOUNDARY_TOO_SMALL",
                     f"maxBytes cannot contain the next UTF-8 code point for {relative_path}",
@@ -614,13 +700,17 @@ class SkillCatalog:
         media_type = mimetypes.guess_type(resolved.name)[0] or "text/plain"
         if resolved.suffix.lower() in {".md", ".markdown"}:
             media_type = "text/markdown"
-        next_offset = end if end < len(data) else None
+        next_offset = end if end < len(projected_data) else None
         return SkillReadResult(
             skill_id=skill_id,
             path=candidate.as_posix(),
             media_type=media_type,
-            size=len(data),
-            digest=_sha256(data),
+            size=len(projected_data),
+            digest=_sha256(projected_data),
+            raw_size=len(raw_data),
+            raw_digest=_sha256(raw_data),
+            projection=projection_name,
+            removed_risk_tags=removed_risk_tags,
             instruction_digest=current_instruction_digest,
             package_revision=post_read_package_revision,
             content=content,

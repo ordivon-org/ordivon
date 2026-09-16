@@ -6,6 +6,7 @@ from .catalog import (
     SkillView,
 )
 from .model import (
+    ConfidenceTier,
     EligibilityState,
     SkillContext,
     SkillRecord,
@@ -16,6 +17,7 @@ from .model import (
 )
 
 __all__ = [
+    "ConfidenceTier",
     "EligibilityState",
     "SkillCatalog",
     "SkillCatalogError",

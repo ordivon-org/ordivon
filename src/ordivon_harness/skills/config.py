@@ -22,6 +22,8 @@ class SkillsMcpConfig:
     sources: tuple[SkillSource, ...]
     workspaces: tuple[WorkspacePolicy, ...] = ()
     ttl_ms: int = 30_000
+    audited_skill_ids: tuple[str, ...] = ()
+    user_explicit_skill_ids: tuple[str, ...] = ()
 
     def workspace_path(self, workspace_id: str) -> Path | None:
         for workspace in self.workspaces:
@@ -100,12 +102,26 @@ def load_skills_mcp_config(path: Path) -> SkillsMcpConfig:
         "additionalSources",
         "compatibilitySources",
         "standardDiscovery",
+        "auditedSkillIds",
+        "userExplicitSkillIds",
     }
     if unknown:
         raise ValueError(f"unknown config keys: {sorted(unknown)}")
     ttl_ms = raw.get("ttlMs", 30_000)
     if type(ttl_ms) is not int or ttl_ms < 0:
         raise ValueError("ttlMs must be a non-negative integer")
+
+    def _skill_id_list(field: str) -> tuple[str, ...]:
+        values = raw.get(field, [])
+        if not isinstance(values, list) or not all(
+            isinstance(item, str) and item and "/" in item and not item.startswith("/")
+            for item in values
+        ):
+            raise TypeError(f"{field} must be a list of canonical <sourceId>/<name> strings")
+        return tuple(dict.fromkeys(values))
+
+    audited_skill_ids = _skill_id_list("auditedSkillIds")
+    user_explicit_skill_ids = _skill_id_list("userExplicitSkillIds")
 
     discovery = raw.get("standardDiscovery", {})
     if not isinstance(discovery, dict) or set(discovery) - {"user", "projects"}:
@@ -184,4 +200,10 @@ def load_skills_mcp_config(path: Path) -> SkillsMcpConfig:
                 )
             )
 
-    return SkillsMcpConfig(tuple(sources), tuple(workspaces), ttl_ms=ttl_ms)
+    return SkillsMcpConfig(
+        tuple(sources),
+        tuple(workspaces),
+        ttl_ms=ttl_ms,
+        audited_skill_ids=audited_skill_ids,
+        user_explicit_skill_ids=user_explicit_skill_ids,
+    )

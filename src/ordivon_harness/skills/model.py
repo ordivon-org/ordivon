@@ -16,6 +16,13 @@ class TrustState(StrEnum):
     UNTRUSTED = "UNTRUSTED"
 
 
+class ConfidenceTier(StrEnum):
+    THIRD_PARTY_UNREVIEWED = "THIRD_PARTY_UNREVIEWED"
+    THIRD_PARTY_SCANNED = "THIRD_PARTY_SCANNED"
+    THIRD_PARTY_AUDITED = "THIRD_PARTY_AUDITED"
+    USER_EXPLICIT = "USER_EXPLICIT"
+
+
 class EligibilityState(StrEnum):
     READY = "READY"
     BLOCKED = "BLOCKED"
@@ -97,6 +104,10 @@ class SkillRecord:
     eligibility_reasons: tuple[str, ...] = ()
     scan_state: str = "PASS"
     scan_findings: tuple[str, ...] = ()
+    risk_tags: tuple[str, ...] = ()
+    declared_dependencies: tuple[str, ...] = ()
+    required_dependencies: tuple[str, ...] = ()
+    confidence_tier: ConfidenceTier = ConfidenceTier.THIRD_PARTY_UNREVIEWED
     implicit_invocation: bool = True
     explicit_invocation: bool = True
     diagnostics: tuple[str, ...] = ()
@@ -125,6 +136,11 @@ class SkillRecord:
             "eligibilityState": self.eligibility_state.value,
             "eligibilityReasons": list(self.eligibility_reasons),
             "scanState": self.scan_state,
+            "riskTags": list(self.risk_tags),
+            "declaredDependencies": list(self.declared_dependencies),
+            "requiredDependencies": list(self.required_dependencies),
+            "confidenceTier": self.confidence_tier.value,
+            "instructionAuthority": "ADVISORY",
             "implicitInvocation": self.implicit_invocation,
             "explicitInvocation": self.explicit_invocation,
         }

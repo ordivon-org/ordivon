@@ -133,7 +133,11 @@ class CatalogProvider:
         if self._catalog is not None and not force_refresh and now < self._deadline:
             return self._catalog
         cfg = load_skills_mcp_config(self.config_file)
-        catalog = SkillCatalog.scan(cfg.sources)
+        catalog = SkillCatalog.scan(
+            cfg.sources,
+            audited_skill_ids=cfg.audited_skill_ids,
+            user_explicit_skill_ids=cfg.user_explicit_skill_ids,
+        )
         self._catalog = catalog
         self._workspace_roots = {workspace.workspace_id: workspace.path for workspace in cfg.workspaces}
         self._ttl_ms = cfg.ttl_ms
@@ -180,6 +184,39 @@ def _error(error: Exception) -> CallToolResult:
     if isinstance(error, SkillCatalogError):
         return _result({"code": error.code, "detail": error.detail[:1000]}, error=True)
     return _result({"code": "INVALID_ARGUMENT", "detail": str(error)[:1000]}, error=True)
+
+
+def _dependency_rows(catalog: SkillCatalog, row, context: SkillContext | None) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
+    required = set(row.required_dependencies)
+    for ref in row.declared_dependencies:
+        item: dict[str, Any] = {
+            "ref": ref,
+            "requirement": "REQUIRED" if ref in required else "OPTIONAL",
+            "authority": "ADVISORY",
+        }
+        try:
+            resolution = catalog.resolve(ref, context=context, invocation_mode="explicit")
+        except SkillCatalogError as exc:
+            item["state"] = {
+                "SKILL_INELIGIBLE": "BLOCKED",
+                "SKILL_QUARANTINED": "QUARANTINED",
+                "SKILL_NOT_VISIBLE": "NOT_VISIBLE",
+                "SKILL_NOT_FOUND": "UNAVAILABLE",
+            }.get(exc.code, "UNAVAILABLE")
+            item["detailCode"] = exc.code
+        else:
+            item["state"] = "RESOLVED"
+            item["skillId"] = resolution.resolved.skill_id
+            item["confidenceTier"] = resolution.resolved.confidence_tier.value
+        result.append(item)
+    return result
+
+
+def _model_metadata(catalog: SkillCatalog, row, context: SkillContext | None) -> dict[str, Any]:
+    value = row.metadata()
+    value["dependencies"] = _dependency_rows(catalog, row, context)
+    return value
 
 
 class SkillsListParams(RequestParams):
@@ -319,7 +356,8 @@ def build_server(provider: CatalogProvider) -> MCPServer:
             catalog = provider.get(force_refresh=forceRefresh)
             context = provider.context(workspaceId, agentId)
             view = catalog.effective(context=context, invocation_mode="implicit")
-            rows = list(view.records)
+            all_visible_rows = list(view.records)
+            rows = list(all_visible_rows)
             if sourceId is not None:
                 rows = [row for row in rows if row.source_id == sourceId]
             if scope is not None:
@@ -329,7 +367,7 @@ def build_server(provider: CatalogProvider) -> MCPServer:
                 "catalogRevision": catalog.catalog_revision,
                 "snapshotRevision": view.snapshot_revision,
                 "ttlMs": provider.ttl_ms,
-                "skills": [row.metadata() for row in page],
+                "skills": [_model_metadata(catalog, row, context) for row in page],
                 "sources": [
                     {
                         "sourceId": status.source_id,
@@ -339,6 +377,8 @@ def build_server(provider: CatalogProvider) -> MCPServer:
                         "invalid": status.invalid,
                         "quarantined": status.quarantined,
                         "admitted": status.admitted,
+                        "modelVisible": sum(1 for row in all_visible_rows if row.source_id == status.source_id),
+                        "visibilityBasis": "implicit-effective-current-context",
                     }
                     for status in catalog.source_statuses
                 ],
@@ -373,7 +413,7 @@ def build_server(provider: CatalogProvider) -> MCPServer:
                 {
                     "catalogRevision": catalog.catalog_revision,
                     "snapshotRevision": view.snapshot_revision,
-                    "skills": [row.metadata() for row in rows],
+                    "skills": [_model_metadata(catalog, row, context) for row in rows],
                 }
             )
         except (SkillCatalogError, ValueError, OSError, json.JSONDecodeError) as exc:
@@ -408,7 +448,7 @@ def build_server(provider: CatalogProvider) -> MCPServer:
             if row.scope not in {"project", "workspace"}:
                 resource_uri = f"skill://{row.source_id}/{row.name}/{package_hex}/SKILL.md"
             value = {
-                "resolved": row.metadata(),
+                "resolved": _model_metadata(catalog, row, context),
                 "resolutionReason": resolution.reason,
                 "snapshotRevision": resolution.snapshot_revision,
                 "mainResourceUri": resource_uri,
@@ -420,7 +460,7 @@ def build_server(provider: CatalogProvider) -> MCPServer:
     @server.tool(
         name="skills.read",
         title="Read one Skill resource",
-        description=("Read exact Skill text under snapshot, instruction, and package revision fences. Never executes scripts. " + SKILL_CONTENT_AUTHORITY_NOTICE),
+        description=("Read a model-facing advisory projection of Skill text under snapshot, instruction, and package revision fences. Control-plane/self-routing/citation directives are removed from SKILL.md without mutating the raw package. Never executes scripts. " + SKILL_CONTENT_AUTHORITY_NOTICE),
         annotations=annotations,
     )
     async def skills_read(
@@ -447,7 +487,10 @@ def build_server(provider: CatalogProvider) -> MCPServer:
                 offset=offset,
                 max_bytes=maxBytes,
             )
-            return _result(result.value())
+            value = result.value()
+            row = catalog.by_skill_id(skillId, context=context, invocation_mode="explicit")
+            value["dependencies"] = _dependency_rows(catalog, row, context)
+            return _result(value)
         except (SkillCatalogError, ValueError, OSError, json.JSONDecodeError) as exc:
             return _error(exc)
 
@@ -515,6 +558,7 @@ def build_server(provider: CatalogProvider) -> MCPServer:
                 skill_id,
                 relative_path=path,
                 expected_package_revision=expected,
+                projection="raw",
             ).content
         except SkillCatalogError as exc:
             raise ValueError(f"{exc.code}: {exc.detail}") from exc
