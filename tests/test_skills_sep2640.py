@@ -18,9 +18,9 @@ try:
 except ImportError as exc:  # pragma: no cover
     raise unittest.SkipTest(f"Skills MCP runtime dependencies unavailable: {exc}")
 
-from skills_mcp import CatalogProvider, McpSettings, build_app
+from skills_mcp import CatalogProvider, McpSettings, build_app  # noqa: E402
 
-from ordivon_harness.skills.sep2640 import (
+from ordivon_harness.skills.sep2640 import (  # noqa: E402
     AgentSkillsConformanceError,
     parse_skill_uri,
     parse_standard_frontmatter,
@@ -114,6 +114,93 @@ class Sep2640SkillsTests(unittest.TestCase):
         )
         with self.assertRaises(AgentSkillsConformanceError):
             parse_standard_frontmatter(mismatch)
+
+    def test_unicode_name_nfkc_and_uri_round_trip_follow_agent_skills_spec(self) -> None:
+        td = tempfile.TemporaryDirectory()
+        self.addCleanup(td.cleanup)
+        base = Path(td.name)
+        user = base / "user"
+        write_skill(user, "技能", "Unicode portable skill")
+        cfg = {
+            "schemaVersion": 2,
+            "ttlMs": 30000,
+            "workspaces": {},
+            "standardDiscovery": {"user": False, "projects": False},
+            "additionalSources": [
+                {
+                    "sourceId": "user",
+                    "root": str(user),
+                    "scope": "user",
+                    "trust": "APPROVED",
+                }
+            ],
+            "compatibilitySources": [],
+        }
+        config_file = base / "skills.json"
+        config_file.write_text(json.dumps(cfg), encoding="utf-8")
+        catalog = CatalogProvider(config_file).get(force_refresh=True)
+        record = catalog.by_skill_id("user/技能", invocation_mode="explicit")
+        entry = skill_entry(record)
+        self.assertEqual(entry.frontmatter["name"], "技能")
+        self.assertEqual(
+            entry.uri,
+            "skill://ordivon/user/%E6%8A%80%E8%83%BD/SKILL.md",
+        )
+        self.assertEqual(parse_skill_uri(entry.uri), ("user", "技能", "SKILL.md"))
+
+        composed = base / "café"
+        composed.mkdir()
+        (composed / "SKILL.md").write_text(
+            "---\nname: cafe\u0301\ndescription: NFKC equivalent name\n---\n# Cafe\n",
+            encoding="utf-8",
+        )
+        parsed = parse_standard_frontmatter(composed)
+        self.assertEqual(parsed["name"], "cafe\u0301")
+
+    def test_standard_frontmatter_is_preserved_as_authored_json_object(self) -> None:
+        td = tempfile.TemporaryDirectory()
+        self.addCleanup(td.cleanup)
+        base = Path(td.name)
+        root = base / "user"
+        package = write_skill(
+            root,
+            "rich",
+            "Rich portable metadata",
+            extra=(
+                "license: Apache-2.0\n"
+                "compatibility: Requires git\n"
+                "metadata:\n"
+                "  author: example-org\n"
+                "  version: \"1.0\"\n"
+                "allowed-tools: Read Bash(git:*)\n"
+            ),
+        )
+        cfg = {
+            "schemaVersion": 2,
+            "ttlMs": 30000,
+            "workspaces": {},
+            "standardDiscovery": {"user": False, "projects": False},
+            "additionalSources": [
+                {
+                    "sourceId": "user",
+                    "root": str(root),
+                    "scope": "user",
+                    "trust": "APPROVED",
+                }
+            ],
+            "compatibilitySources": [],
+        }
+        config_file = base / "skills.json"
+        config_file.write_text(json.dumps(cfg), encoding="utf-8")
+        catalog = CatalogProvider(config_file).get(force_refresh=True)
+        entry = skill_entry(catalog.by_skill_id("user/rich", invocation_mode="explicit"))
+        self.assertEqual(entry.frontmatter, parse_standard_frontmatter(package))
+        self.assertEqual(entry.frontmatter["license"], "Apache-2.0")
+        self.assertEqual(
+            entry.frontmatter["metadata"],
+            {"author": "example-org", "version": "1.0"},
+        )
+        self.assertEqual(entry.frontmatter["allowed-tools"], "Read Bash(git:*)")
 
     def test_http_sep2640_list_get_and_resources_read_are_digest_consistent(self) -> None:
         td, base, provider, token_file = self.make_fixture()

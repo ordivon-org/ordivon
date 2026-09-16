@@ -70,6 +70,19 @@ class AgentSkillsStandardsTests(unittest.TestCase):
         self.assertEqual(parsed.name, "pdf-processing")
         self.assertEqual(parsed.diagnostics, ())
 
+    def test_strict_parser_accepts_unicode_name_and_rejects_path_unsafe_name(self) -> None:
+        parsed = parse_skill_frontmatter(
+            "---\nname: 技能\ndescription: Unicode standard skill\n---\n# Skill\n",
+            validation_mode="strict",
+            expected_directory_name="技能",
+        )
+        self.assertEqual(parsed.name, "技能")
+        with self.assertRaisesRegex(SkillParseError, "path-unsafe"):
+            parse_skill_frontmatter(
+                "---\nname: bad/name\ndescription: unsafe\n---\n# Unsafe\n",
+                validation_mode="lenient",
+            )
+
     def test_strict_parser_rejects_client_specific_top_level_field(self) -> None:
         with self.assertRaisesRegex(SkillParseError, "non-standard"):
             parse_skill_frontmatter(

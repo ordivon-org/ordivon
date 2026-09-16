@@ -2,6 +2,15 @@
 
 Status: standards-first migration slice
 
+## Upstream reference pins (2026-09-16)
+
+- Agent Skills: `agentskills/agentskills@69ef37e9424c0a7ea9dd2293b559e43ec8176379`; immutable tarball SHA-256 `0c9eabbe602095c4f4d771ee55bf74f6bc7e1c770f25d4fe29ce9802981daa20`.
+- MCP Skills extension: `modelcontextprotocol/ext-skills@81f55b67fee51515b969c372911e2b28cf217c20`.
+- `skills-ref` at the Agent Skills pin is version `0.1.0` and explicitly describes itself as demonstration/reference code. Normative specification text wins if the reference implementation is looser or contradictory.
+- Both upstreams were reached through the existing isolated Network v2 WireGuard namespace `nv2-browserless-prod`; the Skills MCP service's default egress authority was not widened.
+
+These pins are audit anchors, not permanent dependency versions. A standards refresh must compare newer normative text and reference tests before changing Ordivon behavior.
+
 ## Canonical external standards
 
 Ordivon does not define a new Skill package format. Portable Skill packages conform to the Agent Skills specification and use `SKILL.md` plus ordinary package resources. Product- or Harness-specific fields are adapters/sidecars, not additions to the portable contract.
