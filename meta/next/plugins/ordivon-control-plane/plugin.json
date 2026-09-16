@@ -1,0 +1,6 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "ordivon-control-plane",
+  "version": "0.1.0",
+  "description": "Portable MCP connections to the Ordivon Runtime physical-execution surface and Host continuity surface. Authentication and authorization remain client-managed."
+}
