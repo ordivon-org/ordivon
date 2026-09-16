@@ -54,6 +54,15 @@ class SkillParserTests(unittest.TestCase):
 
 
 class SkillCatalogR2IntegrationTests(unittest.TestCase):
+    def test_source_id_is_uri_safe_bounded_segment(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for bad in ("a?b", "a#b", "a b", "a%2Fb", "UPPER", "a/b", "", "a" * 65):
+                with self.subTest(bad=bad), self.assertRaises(ValueError):
+                    SkillSource(bad, root, "user", 1, TrustState.APPROVED)
+            for good in ("a", "codex-user", "obra.superpowers", "source_1"):
+                SkillSource(good, root, "user", 1, TrustState.APPROVED)
+
     def test_project_skill_only_applies_inside_matching_project_context(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             base = Path(temp)

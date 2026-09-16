@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
+
+_SOURCE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
 
 
 class TrustState(StrEnum):
@@ -54,8 +57,8 @@ class SkillSource:
     explicit_deny_prefixes: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
-        if not self.source_id or "/" in self.source_id:
-            raise ValueError("source_id must be a non-empty path-segment-safe identifier")
+        if not _SOURCE_ID_RE.fullmatch(self.source_id):
+            raise ValueError("source_id must match lowercase [a-z0-9][a-z0-9._-]{0,63}")
         if self.scope not in {"project", "workspace", "user", "vendor", "plugin", "managed"}:
             raise ValueError(f"unsupported scope: {self.scope}")
         if type(self.priority) is not int:
