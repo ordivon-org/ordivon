@@ -80,6 +80,8 @@ Follow the portable-core + product-sidecar pattern. Product-specific machine con
 
 The model-facing tools `skills.list`, `skills.search`, `skills.resolve` and `skills.read` remain a bounded compatibility surface for clients that cannot consume the standards projection or local Agent Skills directly. New semantic features must not be added to that four-tool wire merely because they are convenient to implement.
 
+On this compatibility surface, `snapshotRevision` is a context-and-invocation-view currentness fence, not a resource-content digest. Responses expose `snapshotInvocationMode` so callers can see whether the snapshot describes the implicit discovery view or the explicit activation view. `skills.read` has no routing mode of its own, so it accepts a still-current explicit-view snapshot, or a still-current implicit-view snapshot when that implicit view actually contains the target Skill; older or target-mismatched snapshots fail closed. Exact Skill bytes remain independently fenced by `instructionDigest` and `packageRevision`, so this ergonomic compatibility does not weaken resource identity or package-drift checks.
+
 The compatibility `skill://` resource form is not a universal Skill URI standard. SEP-2640 resource digests plus local catalog/currentness fences protect the temporary bridge; they must not grow into a permanent Ordivon-wide version/CAS platform.
 
 Project/workspace Skills are not projected from model-supplied filesystem paths. Workspace/source identity is control-plane configuration, never prompt authority.

@@ -366,6 +366,7 @@ def build_server(provider: CatalogProvider) -> MCPServer:
             value: dict[str, Any] = {
                 "catalogRevision": catalog.catalog_revision,
                 "snapshotRevision": view.snapshot_revision,
+                "snapshotInvocationMode": "implicit",
                 "ttlMs": provider.ttl_ms,
                 "skills": [_model_metadata(catalog, row, context) for row in page],
                 "sources": [
@@ -413,6 +414,7 @@ def build_server(provider: CatalogProvider) -> MCPServer:
                 {
                     "catalogRevision": catalog.catalog_revision,
                     "snapshotRevision": view.snapshot_revision,
+                    "snapshotInvocationMode": "implicit",
                     "skills": [_model_metadata(catalog, row, context) for row in rows],
                 }
             )
@@ -422,7 +424,7 @@ def build_server(provider: CatalogProvider) -> MCPServer:
     @server.tool(
         name="skills.resolve",
         title="Resolve one Skill",
-        description=("Resolve a canonical skillId or friendly name to one exact current binding using deterministic Agent Skills precedence; stale snapshots fail closed. " + SKILL_CONTENT_AUTHORITY_NOTICE),
+        description=("Resolve a canonical skillId or friendly name to one exact current binding using deterministic Agent Skills precedence; snapshotRevision is scoped to the requested invocationMode and stale snapshots fail closed. " + SKILL_CONTENT_AUTHORITY_NOTICE),
         annotations=annotations,
     )
     async def skills_resolve(
@@ -451,6 +453,7 @@ def build_server(provider: CatalogProvider) -> MCPServer:
                 "resolved": _model_metadata(catalog, row, context),
                 "resolutionReason": resolution.reason,
                 "snapshotRevision": resolution.snapshot_revision,
+                "snapshotInvocationMode": invocationMode,
                 "mainResourceUri": resource_uri,
             }
             return _result(value)
@@ -460,7 +463,7 @@ def build_server(provider: CatalogProvider) -> MCPServer:
     @server.tool(
         name="skills.read",
         title="Read one Skill resource",
-        description=("Read a model-facing advisory projection of Skill text under snapshot, instruction, and package revision fences. Control-plane/self-routing/citation directives are removed from SKILL.md without mutating the raw package. Never executes scripts. " + SKILL_CONTENT_AUTHORITY_NOTICE),
+        description=("Read a model-facing advisory projection of Skill text under snapshot, instruction, and package revision fences. expectedSnapshotRevision may come from the current explicit view, or from the current implicit view when that view contains the target Skill; instruction/package revisions bind exact Skill content. Control-plane/self-routing/citation directives are removed from SKILL.md without mutating the raw package. Never executes scripts. " + SKILL_CONTENT_AUTHORITY_NOTICE),
         annotations=annotations,
     )
     async def skills_read(

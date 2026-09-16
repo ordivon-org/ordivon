@@ -13,7 +13,7 @@ for candidate in (ROOT / "src", ROOT / "scripts"):
         sys.path.insert(0, str(candidate))
 
 from skills_mcp import CatalogProvider, build_server  # noqa: E402
-from ordivon_harness.skills.catalog import SkillCatalog  # noqa: E402
+from ordivon_harness.skills.catalog import SkillCatalog, SkillCatalogError  # noqa: E402
 from ordivon_harness.skills.config import load_skills_mcp_config  # noqa: E402
 
 
@@ -182,6 +182,102 @@ class SkillMcpR3Tests(unittest.TestCase):
         self.assertEqual(read.structured_content["projection"], "ADVISORY_SANITIZED")
         self.assertNotIn("this file wins", read.structured_content["content"])
         self.assertIn("Useful domain note", read.structured_content["content"])
+
+    def test_read_accepts_current_implicit_snapshot_but_rejects_stale_implicit_snapshot(self):
+        td, _base, user, cfg = self.fixture()
+        self.addCleanup(td.cleanup)
+        write_skill(user, "alpha", "Useful procedure.\n")
+        config = load_skills_mcp_config(cfg)
+        first = SkillCatalog.scan(config.sources)
+        implicit_snapshot = first.view(invocation_mode="implicit").snapshot_revision
+        record = first.by_skill_id("user/alpha", invocation_mode="implicit")
+
+        read = first.read_text(
+            "user/alpha",
+            expected_instruction_digest=record.instruction_digest,
+            expected_package_revision=record.package_revision,
+            expected_snapshot_revision=implicit_snapshot,
+        )
+        self.assertIn("Useful procedure", read.content)
+
+        write_skill(user, "beta", "Another visible procedure.\n")
+        second = SkillCatalog.scan(config.sources)
+        with self.assertRaises(SkillCatalogError) as stale:
+            second.read_text(
+                "user/alpha",
+                expected_instruction_digest=record.instruction_digest,
+                expected_package_revision=record.package_revision,
+                expected_snapshot_revision=implicit_snapshot,
+            )
+        self.assertEqual(stale.exception.code, "SNAPSHOT_STALE")
+
+    def test_implicit_snapshot_cannot_fence_an_explicit_only_skill(self):
+        td = tempfile.TemporaryDirectory()
+        self.addCleanup(td.cleanup)
+        base = Path(td.name)
+        user = base / "user"
+        project = base / "project"
+        project.mkdir()
+        write_skill(user, "hidden", "Explicit review only.\n")
+        cfg = {
+            "schemaVersion": 2,
+            "ttlMs": 30000,
+            "standardDiscovery": {"user": False, "projects": False},
+            "workspaces": {"project": {"path": str(project), "trusted": True}},
+            "additionalSources": [
+                {
+                    "sourceId": "user",
+                    "root": str(user),
+                    "scope": "user",
+                    "trust": "APPROVED",
+                    "implicitDenyPrefixes": ["hidden"],
+                }
+            ],
+            "compatibilitySources": [],
+        }
+        path = base / "skills.json"
+        path.write_text(json.dumps(cfg), encoding="utf-8")
+        config = load_skills_mcp_config(path)
+        catalog = SkillCatalog.scan(config.sources)
+        implicit_snapshot = catalog.view(invocation_mode="implicit").snapshot_revision
+        explicit_record = catalog.by_skill_id("user/hidden", invocation_mode="explicit")
+
+        with self.assertRaises(SkillCatalogError) as mismatch:
+            catalog.read_text(
+                "user/hidden",
+                expected_instruction_digest=explicit_record.instruction_digest,
+                expected_package_revision=explicit_record.package_revision,
+                expected_snapshot_revision=implicit_snapshot,
+            )
+        self.assertEqual(mismatch.exception.code, "SNAPSHOT_STALE")
+
+    def test_snapshot_revision_reports_its_invocation_view_on_the_wire(self):
+        td, _base, user, cfg = self.fixture()
+        self.addCleanup(td.cleanup)
+        write_skill(user, "alpha", "Useful procedure.\n")
+        provider = CatalogProvider(cfg)
+        server = build_server(provider)
+        tools = {tool.name: tool for tool in server._tool_manager.list_tools()}
+
+        listed = asyncio.run(tools["skills.list"].fn())
+        self.assertEqual(listed.structured_content["snapshotInvocationMode"], "implicit")
+        searched = asyncio.run(tools["skills.search"].fn(query="useful"))
+        self.assertEqual(searched.structured_content["snapshotInvocationMode"], "implicit")
+        resolved = asyncio.run(
+            tools["skills.resolve"].fn(ref="alpha", invocationMode="explicit")
+        )
+        self.assertEqual(resolved.structured_content["snapshotInvocationMode"], "explicit")
+
+        row = listed.structured_content["skills"][0]
+        read = asyncio.run(
+            tools["skills.read"].fn(
+                skillId=row["skillId"],
+                expectedInstructionDigest=row["instructionDigest"],
+                expectedPackageRevision=row["packageRevision"],
+                expectedSnapshotRevision=listed.structured_content["snapshotRevision"],
+            )
+        )
+        self.assertFalse(read.is_error)
 
     def test_raw_catalog_read_remains_available_for_standard_exact_resource_semantics(self):
         td, _base, user, cfg = self.fixture(audited=["user/raw-check"])

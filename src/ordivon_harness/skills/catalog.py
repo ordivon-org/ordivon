@@ -631,9 +631,21 @@ class SkillCatalog:
             raise ValueError("invalid read bounds")
         if projection not in {"advisory", "raw"}:
             raise ValueError("projection must be advisory or raw")
-        view = self.view(context=context, invocation_mode="explicit")
-        if expected_snapshot_revision is not None and view.snapshot_revision != expected_snapshot_revision:
-            raise SkillCatalogError("SNAPSHOT_STALE", f"expected {expected_snapshot_revision}, current {view.snapshot_revision}")
+        explicit_view = self.view(context=context, invocation_mode="explicit")
+        if expected_snapshot_revision is not None:
+            implicit_view = self.view(context=context, invocation_mode="implicit")
+            matches_explicit = expected_snapshot_revision == explicit_view.snapshot_revision
+            matches_implicit = (
+                expected_snapshot_revision == implicit_view.snapshot_revision
+                and any(record.skill_id == skill_id for record in implicit_view.records)
+            )
+            if not (matches_explicit or matches_implicit):
+                raise SkillCatalogError(
+                    "SNAPSHOT_STALE",
+                    "expected "
+                    f"{expected_snapshot_revision}, current explicit "
+                    f"{explicit_view.snapshot_revision}, implicit {implicit_view.snapshot_revision}",
+                )
         record = self.by_skill_id(skill_id, context=context, invocation_mode="explicit")
         candidate = Path(relative_path)
         if "\x00" in relative_path or "\\" in relative_path or candidate.is_absolute() or ".." in candidate.parts:
