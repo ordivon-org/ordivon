@@ -1,0 +1,13 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "ordivon-runtime": {
+      "type": "streamable-http",
+      "url": "https://mcp.ordivon.com/mcp"
+    },
+    "ordivon-host": {
+      "type": "streamable-http",
+      "url": "https://host-mcp.ordivon.com/mcp"
+    }
+  }
+}
