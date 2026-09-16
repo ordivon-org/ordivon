@@ -3,6 +3,8 @@
 Date: 2026-09-16
 Status: **ADOPT UPSTREAM / KEEP SKILL COMPOSITION OPTIONAL**
 
+> Boundary follow-up: `docs/AGENT_PLUGIN_BOUNDARY_R2.md` records the broader external audit of Agent Plugins 1.0, Agent Skills, MCP 2026-07-28, OpenAI Plugins/Apps, Copilot, Cursor, OpenClaw and Kiro. R1 remains the implementation baseline; R2 is the current ownership/boundary decision.
+
 ## Decision
 
 Ordivon will use published external standards for portable Agent capability packaging instead of creating a private Domain Capability Pack, Skill registry, or cross-Harness plugin format.
