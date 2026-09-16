@@ -5,6 +5,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "materialize_agent_plugin.py"
@@ -36,6 +37,31 @@ class AgentPluginMaterializationTests(unittest.TestCase):
         (skills / "beta" / "SKILL.md").write_text("---\nname: beta\ndescription: beta skill\n---\n", encoding="utf-8")
         return skills
 
+    def test_omits_skills_unless_explicitly_composed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            plugin = self._plugin(root)
+            output = root / "release" / "test-plugin"
+            receipt = root / "receipts" / "test-plugin.json"
+            value = MODULE.materialize(plugin, None, output, receipt)
+            self.assertEqual(value["skillComposition"], "omitted")
+            self.assertEqual(value["skillCount"], 0)
+            self.assertIsNone(value["sourceOfTruth"])
+            self.assertIsNone(value["skillSource"])
+            self.assertFalse((output / "skills").exists())
+            self.assertEqual(json.loads(receipt.read_text(encoding="utf-8"))["outputTreeDigest"], MODULE.tree_digest(output))
+
+    def test_cli_defaults_to_omitting_skills_and_requires_explicit_opt_in(self) -> None:
+        with patch("sys.argv", ["materialize_agent_plugin.py", "--output", "/tmp/plugin"]):
+            args = MODULE.parse_args()
+            self.assertFalse(args.include_skills)
+        with patch(
+            "sys.argv",
+            ["materialize_agent_plugin.py", "--output", "/tmp/plugin", "--include-skills"],
+        ):
+            args = MODULE.parse_args()
+            self.assertTrue(args.include_skills)
+
     def test_materializes_skills_without_receipt_inside_plugin(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -44,6 +70,7 @@ class AgentPluginMaterializationTests(unittest.TestCase):
             output = root / "release" / "test-plugin"
             receipt = root / "receipts" / "test-plugin.json"
             value = MODULE.materialize(plugin, skills, output, receipt)
+            self.assertEqual(value["skillComposition"], "included")
             self.assertEqual(value["skillCount"], 2)
             self.assertTrue((output / "skills" / "alpha" / "SKILL.md").is_file())
             self.assertTrue((output / "skills" / "alpha" / "references" / "one.md").is_file())

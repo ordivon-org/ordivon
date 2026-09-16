@@ -131,9 +131,9 @@ def copy_regular_tree(source: Path, destination: Path) -> None:
         os.chmod(target, stat.S_IMODE(path.stat().st_mode) & 0o755)
 
 
-def materialize(plugin: Path, skills_root: Path, output: Path, receipt: Path) -> dict:
+def materialize(plugin: Path, skills_root: Path | None, output: Path, receipt: Path) -> dict:
     plugin = plugin.resolve(strict=True)
-    skills_root = skills_root.resolve(strict=True)
+    resolved_skills_root = skills_root.resolve(strict=True) if skills_root is not None else None
     output = output.resolve(strict=False)
     receipt = receipt.resolve(strict=False)
 
@@ -141,23 +141,28 @@ def materialize(plugin: Path, skills_root: Path, output: Path, receipt: Path) ->
         raise SystemExit(f"output already exists; refusing overwrite: {output}")
     if receipt.exists():
         raise SystemExit(f"receipt already exists; refusing overwrite: {receipt}")
-    if output == plugin or output == skills_root or plugin in output.parents or skills_root in output.parents:
-        raise SystemExit("output must not be inside canonical plugin/Skill source trees")
+    if output == plugin or plugin in output.parents:
+        raise SystemExit("output must not be inside the canonical plugin source tree")
+    if resolved_skills_root is not None and (
+        output == resolved_skills_root or resolved_skills_root in output.parents
+    ):
+        raise SystemExit("output must not be inside the canonical Skill source tree")
     if receipt == output or output in receipt.parents:
         raise SystemExit("receipt must remain outside the portable plugin package")
 
     validate_plugin_skeleton(plugin)
-    skills = discover_skills(skills_root)
+    skills = discover_skills(resolved_skills_root) if resolved_skills_root is not None else []
 
     output.parent.mkdir(parents=True, exist_ok=True)
     receipt.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="agent-plugin-release-", dir=output.parent) as tmp_name:
         staged = Path(tmp_name) / "package"
         copy_regular_tree(plugin, staged)
-        skill_destination = staged / "skills"
-        skill_destination.mkdir()
-        for skill in skills:
-            copy_regular_tree(skill, skill_destination / skill.name)
+        if skills:
+            skill_destination = staged / "skills"
+            skill_destination.mkdir()
+            for skill in skills:
+                copy_regular_tree(skill, skill_destination / skill.name)
 
         # Re-check the final package before publishing it from the staging directory.
         validate_plugin_skeleton_without_source_rule(staged)
@@ -176,18 +181,30 @@ def materialize(plugin: Path, skills_root: Path, output: Path, receipt: Path) ->
                 "fileCount": len(package_manifest),
             }
         )
+    skill_source = None
+    if resolved_skills_root is not None:
+        skill_source = (
+            resolved_skills_root.relative_to(ROOT).as_posix()
+            if ROOT in resolved_skills_root.parents
+            else str(resolved_skills_root)
+        )
     value = {
         "schemaVersion": 1,
         "kind": "ordivon.agent-plugin-release-materialization-receipt",
-        "sourceOfTruth": ".agents/skills",
+        "sourceOfTruth": ".agents/skills" if resolved_skills_root is not None else None,
         "sourceGitRevision": git_head(),
         "pluginSource": plugin.relative_to(ROOT).as_posix() if ROOT in plugin.parents else str(plugin),
-        "skillSource": skills_root.relative_to(ROOT).as_posix() if ROOT in skills_root.parents else str(skills_root),
+        "skillComposition": "included" if resolved_skills_root is not None else "omitted",
+        "skillSource": skill_source,
         "skillCount": len(skill_rows),
         "skills": skill_rows,
         "outputTreeDigest": final_digest,
         "outputFileCount": len(final_manifest),
-        "portableSemantics": "Agent Plugins 1.0 + Agent Skills; this receipt is external release evidence and is not part of the portable plugin package.",
+        "portableSemantics": (
+            "Agent Plugins 1.0; Agent Skills may be explicitly composed into a release without making "
+            "the plugin their semantic owner. This receipt is external release evidence and is not part "
+            "of the portable plugin package."
+        ),
     }
     receipt.write_bytes(json.dumps(value, indent=2, ensure_ascii=False, sort_keys=True).encode("utf-8") + b"\n")
     return value
@@ -208,10 +225,14 @@ def validate_plugin_skeleton_without_source_rule(plugin: Path) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Materialize canonical .agents/skills into a disposable Agent Plugins release directory."
+        description=(
+            "Materialize a disposable Agent Plugins release directory. Agent Skills are composed only "
+            "when --include-skills is explicitly requested."
+        )
     )
     parser.add_argument("--plugin", type=Path, default=DEFAULT_PLUGIN)
-    parser.add_argument("--skills", type=Path, default=DEFAULT_SKILLS)
+    parser.add_argument("--include-skills", action="store_true")
+    parser.add_argument("--skills", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--receipt", type=Path)
     return parser.parse_args()
@@ -219,8 +240,11 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    if args.skills is not None and not args.include_skills:
+        raise SystemExit("--skills requires --include-skills")
     receipt = args.receipt or args.output.with_name(args.output.name + ".receipt.json")
-    value = materialize(args.plugin, args.skills, args.output, receipt)
+    skills_root = (args.skills or DEFAULT_SKILLS) if args.include_skills else None
+    value = materialize(args.plugin, skills_root, args.output, receipt)
     print(json.dumps({"output": str(args.output), "receipt": str(receipt), **value}, ensure_ascii=False, sort_keys=True))
     return 0
 
