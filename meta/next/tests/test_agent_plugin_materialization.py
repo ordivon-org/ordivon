@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -35,6 +36,7 @@ class AgentPluginMaterializationTests(unittest.TestCase):
         (skills / "alpha" / "references" / "one.md").write_text("one\n", encoding="utf-8")
         (skills / "beta").mkdir()
         (skills / "beta" / "SKILL.md").write_text("---\nname: beta\ndescription: beta skill\n---\n", encoding="utf-8")
+        MODULE.DEFAULT_SKILLS = skills
         return skills
 
     def test_omits_skills_unless_explicitly_composed(self) -> None:
@@ -134,6 +136,36 @@ class AgentPluginMaterializationTests(unittest.TestCase):
             (plugin / "skills" / "unexpected.txt").write_text("duplicate source\n", encoding="utf-8")
             with self.assertRaises(SystemExit):
                 MODULE.materialize(plugin, skills, root / "release", root / "receipt.json")
+
+    def test_refuses_empty_source_plugin_skills_tree(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            plugin = self._plugin(root)
+            (plugin / "skills").mkdir()
+            with self.assertRaises(SystemExit):
+                MODULE.materialize(plugin, None, root / "release", root / "receipt.json")
+
+    def test_refuses_noncanonical_included_skills_source(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            plugin = self._plugin(root)
+            canonical_skills = self._skills(root)
+            external_skills = root / "external-skills"
+            shutil.copytree(canonical_skills, external_skills)
+            self.assertNotEqual(canonical_skills.resolve(), external_skills.resolve())
+            with self.assertRaises(SystemExit):
+                MODULE.materialize(plugin, external_skills, root / "release", root / "receipt.json")
+
+    def test_refuses_symlink_canonical_skills_root(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            plugin = self._plugin(root)
+            real_skills = self._skills(root)
+            canonical_link = root / "canonical-skills"
+            canonical_link.symlink_to(real_skills, target_is_directory=True)
+            MODULE.DEFAULT_SKILLS = canonical_link
+            with self.assertRaises(SystemExit):
+                MODULE.materialize(plugin, canonical_link, root / "release", root / "receipt.json")
 
 
 if __name__ == "__main__":

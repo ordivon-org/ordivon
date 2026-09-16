@@ -87,9 +87,10 @@ def git_head() -> str | None:
 
 
 def validate_plugin_skeleton(plugin: Path) -> None:
-    files = assert_regular_tree(plugin)
-    if any(path.relative_to(plugin).parts[0] == "skills" for path in files):
+    skills_path = plugin / "skills"
+    if skills_path.exists() or skills_path.is_symlink():
         raise SystemExit(f"plugin skeleton must not contain a source-owned skills/ tree: {plugin}")
+    assert_regular_tree(plugin)
     manifest = read_json_object(plugin / "plugin.json")
     if manifest.get("$schema") != PLUGIN_SCHEMA:
         raise SystemExit(f"plugin.json must target Agent Plugins 1.0.0: {plugin / 'plugin.json'}")
@@ -133,7 +134,18 @@ def copy_regular_tree(source: Path, destination: Path) -> None:
 
 def materialize(plugin: Path, skills_root: Path | None, output: Path, receipt: Path) -> dict:
     plugin = plugin.resolve(strict=True)
-    resolved_skills_root = skills_root.resolve(strict=True) if skills_root is not None else None
+    resolved_skills_root = None
+    if skills_root is not None:
+        if DEFAULT_SKILLS.is_symlink() or not DEFAULT_SKILLS.is_dir():
+            raise SystemExit(f"canonical Agent Skills root must be a real directory: {DEFAULT_SKILLS}")
+        canonical_skills_root = DEFAULT_SKILLS.resolve(strict=True)
+        if skills_root.is_symlink():
+            raise SystemExit(f"skills source must not be a symlink: {skills_root}")
+        resolved_skills_root = skills_root.resolve(strict=True)
+        if resolved_skills_root != canonical_skills_root:
+            raise SystemExit(
+                f"skills source must be the canonical Agent Skills root: {canonical_skills_root}"
+            )
     output = output.resolve(strict=False)
     receipt = receipt.resolve(strict=False)
 
@@ -232,7 +244,6 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--plugin", type=Path, default=DEFAULT_PLUGIN)
     parser.add_argument("--include-skills", action="store_true")
-    parser.add_argument("--skills", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--receipt", type=Path)
     return parser.parse_args()
@@ -240,10 +251,8 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    if args.skills is not None and not args.include_skills:
-        raise SystemExit("--skills requires --include-skills")
     receipt = args.receipt or args.output.with_name(args.output.name + ".receipt.json")
-    skills_root = (args.skills or DEFAULT_SKILLS) if args.include_skills else None
+    skills_root = DEFAULT_SKILLS if args.include_skills else None
     value = materialize(args.plugin, skills_root, args.output, receipt)
     print(json.dumps({"output": str(args.output), "receipt": str(receipt), **value}, ensure_ascii=False, sort_keys=True))
     return 0
