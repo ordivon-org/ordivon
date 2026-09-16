@@ -9,14 +9,15 @@
 
 ## Prior proven providers
 
-- `python-pptx 1.0.2` — native OOXML authoring adapter
+- `ppt-master 6.4.0` at pinned commit `7879bbc811f86ed9e43df0053169d885cff942c7` — replaceable high-fidelity presentation authoring provider for semantic-SVG/design work and native editable PPTX export; use the local `ppt-master` authoring Skill as the bounded procedural adapter
+- `python-pptx 1.0.2` — native OOXML authoring adapter for deterministic native composition
 - `DocumentFormat.OpenXml OpenXmlValidator 3.5.1` — OOXML structural validation
 - Microsoft PowerPoint Desktop 16.0 — native target open/render/PDF/PNG acceptance
 - `qpdf 12.3.2` — ordinary PDF structural check
 - digest-bound visual review — target-render visual acceptance
 - destination read-back SHA-256 — exact delivered-byte identity
 
-Treat these as prior evidence. Discover current providers before execution.
+Treat these as prior evidence. Discover current providers before execution. `ppt-master` authoring success is not presentation acceptance; this profile remains the acceptance owner.
 
 ## Typical target-verified composition
 
