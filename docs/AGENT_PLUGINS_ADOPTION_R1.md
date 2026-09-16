@@ -70,6 +70,20 @@ Current rule:
 
 This keeps direct repository use simple while preserving standards-native distribution.
 
+The release path is now executable through the stdlib-only `scripts/materialize_agent_plugin.py`. It treats `plugins/ordivon-control-plane/` as the portable package skeleton and `.agents/skills/` as the only Skill source, rejects symlinks/non-regular package input and overwrites, writes the generated `skills/` tree only to a caller-selected release directory, and writes its digest receipt outside the portable package.
+
+Example:
+
+```bash
+python3 scripts/materialize_agent_plugin.py \
+  --output /tmp/ordivon-control-plane-release \
+  --receipt /tmp/ordivon-control-plane-release.receipt.json
+hermes plugins validate /tmp/ordivon-control-plane-release
+hermes plugins doctor --ci /tmp/ordivon-control-plane-release
+```
+
+The materializer intentionally does **not** implement another Agent Skills YAML/schema parser. Agent Skills semantics remain upstream-owned; the generated package is validated by standard/native consumers. A real three-Skill materialization is byte-stable across repeated builds and passes Hermes portable-manifest validation plus runtime Plugin Doctor without an Ordivon plugin loader.
+
 ## Skill MCP R2 re-scope
 
 The current Skill MCP implementation is no longer the target architecture. It becomes a **temporary compatibility bridge**.
