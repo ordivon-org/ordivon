@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import hashlib
-import re
+import unicodedata
 import stat
 from dataclasses import dataclass
 from pathlib import Path
-from urllib.parse import unquote, urlsplit
+from urllib.parse import quote, unquote, urlsplit
 
 import yaml
 
@@ -14,7 +14,6 @@ from .model import SkillRecord
 MAX_SKILL_RESOURCES = 512
 MAX_SKILL_BYTES = 16 * 1024 * 1024
 SEP_SKILL_AUTHORITY = "ordivon"
-_STANDARD_NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _STANDARD_FRONTMATTER_FIELDS = {
     "name",
     "description",
@@ -100,13 +99,22 @@ def parse_standard_frontmatter(skill_root: Path) -> dict[str, object]:
         )
 
     name = value.get("name")
-    if not isinstance(name, str) or not (1 <= len(name) <= 64):
-        raise AgentSkillsConformanceError("name must be a 1-64 character string")
-    if not _STANDARD_NAME_RE.fullmatch(name):
+    if not isinstance(name, str):
+        raise AgentSkillsConformanceError("name must be a string")
+    normalized_name = unicodedata.normalize("NFKC", name)
+    if not (1 <= len(normalized_name) <= 64):
+        raise AgentSkillsConformanceError("name must be 1-64 characters after NFKC normalization")
+    if normalized_name != normalized_name.lower():
+        raise AgentSkillsConformanceError("name must be lowercase")
+    if normalized_name.startswith("-") or normalized_name.endswith("-"):
+        raise AgentSkillsConformanceError("name cannot start or end with a hyphen")
+    if "--" in normalized_name:
+        raise AgentSkillsConformanceError("name cannot contain consecutive hyphens")
+    if not all(ch.isalnum() or ch == "-" for ch in normalized_name):
         raise AgentSkillsConformanceError(
-            "name must contain lowercase alphanumerics separated by single hyphens"
+            "name may contain only Unicode alphanumeric characters and hyphens"
         )
-    if skill_root.name != name:
+    if unicodedata.normalize("NFKC", skill_root.name) != normalized_name:
         raise AgentSkillsConformanceError("name must match the parent directory name")
 
     description = value.get("description")
@@ -138,8 +146,10 @@ def skill_uri(source_id: str, skill_name: str, relative_path: str = "SKILL.md") 
     relative = Path(relative_path)
     if relative.is_absolute() or ".." in relative.parts or not relative.parts:
         raise AgentSkillsConformanceError("resource path must be safe and relative")
-    encoded_path = "/".join(part for part in relative.parts)
-    return f"skill://{SEP_SKILL_AUTHORITY}/{source_id}/{skill_name}/{encoded_path}"
+    encoded_source = quote(source_id, safe="-._~")
+    encoded_name = quote(skill_name, safe="-._~")
+    encoded_path = "/".join(quote(part, safe="-._~") for part in relative.parts)
+    return f"skill://{SEP_SKILL_AUTHORITY}/{encoded_source}/{encoded_name}/{encoded_path}"
 
 
 def parse_skill_uri(uri: str) -> tuple[str, str, str]:
