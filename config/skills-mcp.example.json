@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "ttlMs": 30000,
+  "sources": [
+    {
+      "sourceId": "ordivon-next",
+      "root": "/root/projects/ordivon-next/.agents/skills",
+      "scope": "project",
+      "projectRoot": "/root/projects/ordivon-next",
+      "priority": 900,
+      "trust": "TRUSTED"
+    },
+    {
+      "sourceId": "codex-user",
+      "root": "/root/.codex/skills",
+      "scope": "user",
+      "priority": 700,
+      "trust": "APPROVED",
+      "implicitDenyPrefixes": [
+        ".system"
+      ]
+    },
+    {
+      "sourceId": "generic-user",
+      "root": "/root/.agents/skills",
+      "scope": "user",
+      "priority": 680,
+      "trust": "APPROVED"
+    },
+    {
+      "sourceId": "hermes-user",
+      "root": "/root/.hermes/skills",
+      "scope": "user",
+      "priority": 650,
+      "trust": "UNTRUSTED"
+    },
+    {
+      "sourceId": "obra-superpowers",
+      "root": "/root/.local/share/ordivon/vendor/obra-superpowers-main/skills",
+      "scope": "vendor",
+      "priority": 600,
+      "trust": "APPROVED"
+    }
+  ]
+}
