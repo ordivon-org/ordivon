@@ -27,7 +27,7 @@ The bridge does not define a portable Skill or Plugin format. Portable semantics
 | `.codex/skills` scanning | TEMP-BRIDGE | client-specific compatibility source only |
 | `.hermes/skills` scanning | TEMP-BRIDGE | client-specific compatibility source only; currently untrusted |
 | OpenClaw `metadata.openclaw.requires` | TEMP-BRIDGE | compatibility eligibility adapter only; never portable Agent Skills semantics |
-| remote static bearer middleware | TEMP-BRIDGE | retained until the consuming ChatGPT MCP surface is migrated to standard MCP OAuth/OIDC authorization |
+| remote static bearer middleware | KEEP-LOCAL | standard HTTP Bearer resource protection; OpenAI MCP credential stores support `static_bearer` as a first-class credential type. The secret remains client-managed and outside portable plugin data |
 | source-qualified `sourceId/name` refs | TEMP-BRIDGE | administrative/exact compatibility addressing; not Agent Skills portable identity |
 | Cloudflare tunnel | KEEP-LOCAL | transport needed because this workstation cannot directly connect to OpenAI; not a Skill package semantic |
 | project trust gate | KEEP-LOCAL | client-owned security policy explicitly left to clients by Agent Skills/Agent Plugins |
@@ -72,6 +72,8 @@ The three Ordivon Next project Skills stay at `.agents/skills`; they are already
 
 ## Authorization boundary
 
-MCP 2026-07-28 continues the protocol's OAuth/OIDC authorization model and hardens issuer validation, credential isolation, scope step-up, and client registration through Client ID Metadata Documents. The current static bearer middleware is therefore a transport compatibility mechanism, not the target standard authorization architecture.
+The portable Agent Plugin still contains no credential material. Authentication is a consumer/runtime concern. OpenAI's current MCP credential model supports both `static_bearer` and `mcp_oauth`; therefore the existing Bearer-protected resource is not itself a private protocol or a migration blocker. The preferred consumer contract is to store the Bearer token in the consuming product's credential store and send it as the standard `Authorization: Bearer ...` header.
 
-Do not invent a local OAuth server merely to remove this temporary status. Migrate when the chosen identity/authorization provider and ChatGPT consumer flow can satisfy the standard authorization discovery and token-validation contract.
+OAuth/OIDC remains appropriate when per-user authorization, delegated scopes, rotation/refresh, or an existing identity provider requires it. Do not invent a local OAuth server merely to replace a supported static Bearer credential.
+
+`scripts/skills_mcp_consumer_readiness.py` performs a non-secret readiness check: the public endpoint must return a Bearer 401 challenge without credentials, while the loopback endpoint is authenticated locally to confirm the exact four-tool MCP surface. The script never sends the local token to the public URL.
