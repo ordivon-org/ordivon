@@ -108,6 +108,23 @@ class SkillCatalogR2IntegrationTests(unittest.TestCase):
             self.assertEqual(captured.exception.code, "SKILL_QUARANTINED")
 
 
+    def test_complete_private_key_pem_block_is_quarantined(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "skills"
+            write_skill(root, "review", "review", "Review security")
+            key = root / "review" / "sample.pem"
+            body = "\n".join(["A" * 64] * 4)
+            key.write_text(
+                "-----BEGIN PRIVATE KEY-----\n" + body + "\n-----END PRIVATE KEY-----",
+                encoding="utf-8",
+            )
+            catalog = SkillCatalog.scan(
+                [SkillSource("s", root, "user", 1, TrustState.APPROVED)]
+            )
+            record = catalog.inventory[0]
+            self.assertEqual(record.scan_state, "QUARANTINED")
+            self.assertEqual(catalog.view().records, ())
+
     def test_private_key_example_in_markdown_warns_but_does_not_quarantine(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp) / "skills"

@@ -1,23 +1,33 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
 from .model import SkillSource, TrustState
 
+_WORKSPACE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
+
 
 @dataclass(frozen=True, slots=True)
 class SkillsMcpConfig:
     sources: tuple[SkillSource, ...]
+    workspaces: tuple[tuple[str, Path], ...] = ()
     ttl_ms: int = 30_000
+
+    def workspace_path(self, workspace_id: str) -> Path | None:
+        for current_id, path in self.workspaces:
+            if current_id == workspace_id:
+                return path
+        return None
 
 
 def load_skills_mcp_config(path: Path) -> SkillsMcpConfig:
     raw = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(raw, dict) or raw.get("schemaVersion") != 1:
         raise ValueError("Skills MCP config schemaVersion must be 1")
-    unknown = set(raw) - {"schemaVersion", "ttlMs", "sources"}
+    unknown = set(raw) - {"schemaVersion", "ttlMs", "sources", "workspaces"}
     if unknown:
         raise ValueError(f"unknown config keys: {sorted(unknown)}")
     ttl_ms = raw.get("ttlMs", 30_000)
@@ -26,6 +36,20 @@ def load_skills_mcp_config(path: Path) -> SkillsMcpConfig:
     source_values = raw.get("sources")
     if not isinstance(source_values, list) or not source_values:
         raise ValueError("sources must be a non-empty list")
+    workspaces_raw = raw.get("workspaces", {})
+    if not isinstance(workspaces_raw, dict):
+        raise TypeError("workspaces must be an object mapping workspaceId to absolute path")
+    workspaces: list[tuple[str, Path]] = []
+    for workspace_id, workspace_path in sorted(workspaces_raw.items()):
+        if not isinstance(workspace_id, str) or not _WORKSPACE_ID_RE.fullmatch(workspace_id):
+            raise ValueError("workspaceId must match lowercase [a-z0-9][a-z0-9._-]{0,63}")
+        if not isinstance(workspace_path, str):
+            raise TypeError(f"workspace path for {workspace_id} must be a string")
+        path = Path(workspace_path)
+        if not path.is_absolute():
+            raise ValueError(f"workspace path for {workspace_id} must be absolute")
+        workspaces.append((workspace_id, path))
+
     sources: list[SkillSource] = []
     allowed = {
         "sourceId",
@@ -77,4 +101,4 @@ def load_skills_mcp_config(path: Path) -> SkillsMcpConfig:
                 eligibility_adapter=item.get("eligibilityAdapter"),
             )
         )
-    return SkillsMcpConfig(tuple(sources), ttl_ms=ttl_ms)
+    return SkillsMcpConfig(tuple(sources), tuple(workspaces), ttl_ms=ttl_ms)

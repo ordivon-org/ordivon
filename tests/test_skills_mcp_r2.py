@@ -45,6 +45,7 @@ class SkillsMcpSurfaceTests(unittest.TestCase):
         cfg = {
             "schemaVersion": 1,
             "ttlMs": 30000,
+            "workspaces": {"fixture-project": str(base / "project")},
             "sources": [
                 {
                     "sourceId": "user",
@@ -90,6 +91,18 @@ class SkillsMcpSurfaceTests(unittest.TestCase):
         self.assertNotIn('"skillId": "user/alpha"', rendered)
         source = next(x for x in second.structured_content["sources"] if x["sourceId"] == "user")
         self.assertEqual(source["quarantined"], 1)
+
+    def test_model_surface_has_no_raw_workspace_path_and_unknown_workspace_fails(self) -> None:
+        td, _base, provider, _token = self.make_fixture()
+        self.addCleanup(td.cleanup)
+        server = build_server(provider)
+        tools = {tool.name: tool for tool in server._tool_manager.list_tools()}
+        for tool in tools.values():
+            schema = tool.parameters
+            self.assertNotIn("workspacePath", schema.get("properties", {}))
+        result = asyncio.run(tools["skills.list"].fn(workspaceId="not-registered"))
+        self.assertTrue(result.is_error)
+        self.assertEqual(result.structured_content["code"], "INVALID_ARGUMENT")
 
     def test_surface_is_exactly_four_read_only_tools(self) -> None:
         td, _base, provider, _token = self.make_fixture()

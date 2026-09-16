@@ -71,6 +71,7 @@ class CatalogProvider:
         self._catalog: SkillCatalog | None = None
         self._deadline = 0.0
         self._ttl_ms = 0
+        self._workspace_roots: dict[str, Path] = {}
 
     def get(self, *, force_refresh: bool = False) -> SkillCatalog:
         now = time.monotonic()
@@ -79,6 +80,7 @@ class CatalogProvider:
         cfg = load_skills_mcp_config(self.config_file)
         catalog = SkillCatalog.scan(cfg.sources)
         self._catalog = catalog
+        self._workspace_roots = dict(cfg.workspaces)
         self._ttl_ms = cfg.ttl_ms
         self._deadline = now + cfg.ttl_ms / 1000.0
         return catalog
@@ -86,6 +88,16 @@ class CatalogProvider:
     @property
     def ttl_ms(self) -> int:
         return self._ttl_ms
+
+    def context(self, workspace_id: str | None, agent_id: str | None) -> SkillContext | None:
+        if workspace_id is None and agent_id is None:
+            return None
+        path = None
+        if workspace_id is not None:
+            if workspace_id not in self._workspace_roots:
+                raise ValueError(f"unknown pre-registered workspaceId: {workspace_id}")
+            path = self._workspace_roots[workspace_id]
+        return SkillContext(workspace_path=path, workspace_id=workspace_id, agent_id=agent_id)
 
 
 def _read_token(path: Path) -> str:
@@ -113,15 +125,6 @@ def _error(error: Exception) -> CallToolResult:
     if isinstance(error, SkillCatalogError):
         return _result({"code": error.code, "detail": error.detail[:1000]}, error=True)
     return _result({"code": "INVALID_ARGUMENT", "detail": str(error)[:1000]}, error=True)
-
-
-def _context(workspacePath: str | None, workspaceId: str | None, agentId: str | None) -> SkillContext | None:
-    if workspacePath is None and workspaceId is None and agentId is None:
-        return None
-    path = Path(workspacePath) if workspacePath is not None else None
-    if path is not None and not path.is_absolute():
-        raise ValueError("workspacePath must be absolute")
-    return SkillContext(workspace_path=path, workspace_id=workspaceId, agent_id=agentId)
 
 
 def build_server(provider: CatalogProvider) -> MCPServer:
@@ -157,7 +160,6 @@ def build_server(provider: CatalogProvider) -> MCPServer:
     async def skills_list(
         sourceId: str | None = None,
         scope: str | None = None,
-        workspacePath: str | None = None,
         workspaceId: str | None = None,
         agentId: str | None = None,
         forceRefresh: bool = False,
@@ -168,7 +170,7 @@ def build_server(provider: CatalogProvider) -> MCPServer:
             if cursor < 0 or not (1 <= limit <= 100):
                 raise ValueError("cursor must be non-negative and limit in [1,100]")
             catalog = provider.get(force_refresh=forceRefresh)
-            context = _context(workspacePath, workspaceId, agentId)
+            context = provider.context(workspaceId, agentId)
             view = catalog.view(context=context, invocation_mode="implicit")
             rows = list(view.records)
             if sourceId is not None:
@@ -208,7 +210,6 @@ def build_server(provider: CatalogProvider) -> MCPServer:
     )
     async def skills_search(
         query: str,
-        workspacePath: str | None = None,
         workspaceId: str | None = None,
         agentId: str | None = None,
         forceRefresh: bool = False,
@@ -218,7 +219,7 @@ def build_server(provider: CatalogProvider) -> MCPServer:
             if not query.strip() or not (1 <= limit <= 20):
                 raise ValueError("query must be nonblank and limit in [1,20]")
             catalog = provider.get(force_refresh=forceRefresh)
-            context = _context(workspacePath, workspaceId, agentId)
+            context = provider.context(workspaceId, agentId)
             view = catalog.view(context=context, invocation_mode="implicit")
             rows = catalog.search(query, context=context, invocation_mode="implicit", limit=limit)
             return _result(
@@ -240,7 +241,6 @@ def build_server(provider: CatalogProvider) -> MCPServer:
     async def skills_resolve(
         ref: str,
         invocationMode: Literal["explicit", "implicit"] = "explicit",
-        workspacePath: str | None = None,
         workspaceId: str | None = None,
         agentId: str | None = None,
         expectedSnapshotRevision: str | None = None,
@@ -248,7 +248,7 @@ def build_server(provider: CatalogProvider) -> MCPServer:
     ) -> CallToolResult:
         try:
             catalog = provider.get(force_refresh=forceRefresh)
-            context = _context(workspacePath, workspaceId, agentId)
+            context = provider.context(workspaceId, agentId)
             resolution = catalog.resolve(
                 ref,
                 context=context,
@@ -280,7 +280,6 @@ def build_server(provider: CatalogProvider) -> MCPServer:
     async def skills_read(
         skillId: str,
         path: str = "SKILL.md",
-        workspacePath: str | None = None,
         workspaceId: str | None = None,
         agentId: str | None = None,
         expectedInstructionDigest: str | None = None,
@@ -291,7 +290,7 @@ def build_server(provider: CatalogProvider) -> MCPServer:
     ) -> CallToolResult:
         try:
             catalog = provider.get()
-            context = _context(workspacePath, workspaceId, agentId)
+            context = provider.context(workspaceId, agentId)
             result = catalog.read_text(
                 skillId,
                 relative_path=path,

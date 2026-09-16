@@ -19,7 +19,12 @@ class ScanResult:
 
 
 _SENSITIVE_NAMES = {".env", "id_rsa", "id_ed25519", "credentials.json", "secrets.json"}
-_PRIVATE_KEY_RE = re.compile(rb"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----")
+_PRIVATE_KEY_BEGIN_RE = re.compile(rb"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----")
+_PRIVATE_KEY_BLOCK_RE = re.compile(
+    rb"-----BEGIN (?P<kind>(?:RSA |EC |OPENSSH )?PRIVATE KEY)-----\r?\n"
+    rb"(?P<body>(?:[A-Za-z0-9+/=]{16,}\r?\n){4,})"
+    rb"-----END (?P=kind)-----"
+)
 _PIPE_SHELL_RE = re.compile(r"\b(?:curl|wget)\b[^\n|]{0,512}\|\s*(?:sh|bash)\b", re.IGNORECASE)
 _PROMPT_OVERRIDE_RE = re.compile(
     r"\bignore\s+(?:all\s+)?(?:previous|prior)\s+instructions\b",
@@ -52,15 +57,14 @@ def scan_skill_package(root: Path) -> ScanResult:
             raw = candidate.read_bytes()
         except OSError:
             continue
-        if _PRIVATE_KEY_RE.search(raw):
-            if candidate.suffix.casefold() in {".key", ".pem"}:
-                quarantined = True
-                label = "private-key file material"
-            else:
-                warned = True
-                label = "private-key-like text material"
+        if _PRIVATE_KEY_BLOCK_RE.search(raw):
+            quarantined = True
             if len(findings) < _MAX_FINDINGS:
-                findings.append(f"{label}: {relative}")
+                findings.append(f"complete private-key PEM block: {relative}")
+        elif _PRIVATE_KEY_BEGIN_RE.search(raw):
+            warned = True
+            if len(findings) < _MAX_FINDINGS:
+                findings.append(f"private-key-like text material: {relative}")
         try:
             text = raw.decode("utf-8")
         except UnicodeDecodeError:

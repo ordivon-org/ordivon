@@ -43,5 +43,8 @@
       "priority": 600,
       "trust": "APPROVED"
     }
-  ]
+  ],
+  "workspaces": {
+    "ordivon-next": "/root/projects/ordivon-next"
+  }
 }
