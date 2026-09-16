@@ -37,7 +37,7 @@ def write_skill(
 class SkillParserTests(unittest.TestCase):
     def test_reads_required_fields_without_full_yaml_dependency(self) -> None:
         parsed = parse_skill_frontmatter(
-            "---\nmetadata:\n  nested: true\ndescription: \"Do careful work\"\nname: tdd\n---\n# TDD\n"
+            "---\nmetadata:\n  category: testing\ndescription: \"Do careful work\"\nname: tdd\n---\n# TDD\n"
         )
         self.assertEqual(parsed.name, "tdd")
         self.assertEqual(parsed.description, "Do careful work")
@@ -53,7 +53,88 @@ class SkillParserTests(unittest.TestCase):
             parse_skill_frontmatter("---\nname: tdd\n---\n")
 
 
+class AgentSkillsStandardsTests(unittest.TestCase):
+    def test_strict_parser_accepts_published_agent_skills_fields(self) -> None:
+        parsed = parse_skill_frontmatter(
+            "---\n"
+            "name: pdf-processing\n"
+            "description: Extract PDFs when document processing is requested.\n"
+            "license: Apache-2.0\n"
+            "compatibility: Requires Python 3.14+ and uv\n"
+            "metadata:\n  author: example-org\n  version: '1.0'\n"
+            "allowed-tools: Bash(git:*) Read\n"
+            "---\n# PDF\n",
+            validation_mode="strict",
+            expected_directory_name="pdf-processing",
+        )
+        self.assertEqual(parsed.name, "pdf-processing")
+        self.assertEqual(parsed.diagnostics, ())
+
+    def test_strict_parser_rejects_client_specific_top_level_field(self) -> None:
+        with self.assertRaisesRegex(SkillParseError, "non-standard"):
+            parse_skill_frontmatter(
+                "---\nname: demo\ndescription: Demo workflow\nargument-hint: scope\n---\n",
+                validation_mode="strict",
+                expected_directory_name="demo",
+            )
+
+    def test_compatibility_parser_can_bridge_client_specific_field_without_standardizing_it(self) -> None:
+        parsed = parse_skill_frontmatter(
+            "---\nname: demo\ndescription: Demo workflow\nargument-hint: scope\n---\n",
+            validation_mode="lenient",
+            expected_directory_name="demo",
+        )
+        self.assertIn("argument-hint", " ".join(parsed.diagnostics))
+
+    def test_strict_parser_enforces_standard_name_and_directory_match(self) -> None:
+        for name, directory in (("has.dot", "has.dot"), ("UPPER", "UPPER"), ("good-name", "other")):
+            with self.subTest(name=name, directory=directory), self.assertRaises(SkillParseError):
+                parse_skill_frontmatter(
+                    f"---\nname: {name}\ndescription: Demo\n---\n",
+                    validation_mode="strict",
+                    expected_directory_name=directory,
+                )
+
+    def test_strict_parser_requires_string_to_string_metadata(self) -> None:
+        with self.assertRaisesRegex(SkillParseError, "string-to-string"):
+            parse_skill_frontmatter(
+                "---\nname: demo\ndescription: Demo\nmetadata:\n  nested:\n    value: true\n---\n",
+                validation_mode="strict",
+                expected_directory_name="demo",
+            )
+
+
+    def test_ordivon_owned_project_skills_are_strict_agent_skills(self) -> None:
+        root = Path("/root/projects/ordivon-next/.agents/skills")
+        if not root.is_dir():
+            self.skipTest("Ordivon Next project Skills are not installed")
+        paths = sorted(root.glob("*/SKILL.md"))
+        self.assertEqual(len(paths), 3)
+        for path in paths:
+            with self.subTest(path=path):
+                parsed = parse_skill_frontmatter(
+                    path.read_text(encoding="utf-8"),
+                    validation_mode="strict",
+                    expected_directory_name=path.parent.name,
+                )
+                self.assertEqual(parsed.diagnostics, ())
+
 class SkillCatalogR2IntegrationTests(unittest.TestCase):
+    def test_config_v2_uses_standard_interop_roots_without_manual_priority(self) -> None:
+        from ordivon_harness.skills.config import load_skills_mcp_config
+
+        config = load_skills_mcp_config(Path("config/skills-mcp.example.json").resolve())
+        by_id = {source.source_id: source for source in config.sources}
+        self.assertEqual(by_id["user-agents"].root, Path.home() / ".agents" / "skills")
+        self.assertEqual(
+            by_id["project-ordivon-next"].root,
+            Path("/root/projects/ordivon-next/.agents/skills"),
+        )
+        self.assertEqual(by_id["user-agents"].validation_mode, "lenient")
+        self.assertEqual(by_id["project-ordivon-next"].validation_mode, "lenient")
+        raw = Path("config/skills-mcp.example.json").read_text(encoding="utf-8")
+        self.assertNotIn('"priority"', raw)
+
     def test_explicit_openclaw_bin_requirement_blocks_missing_binary(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp) / "skills"
@@ -74,6 +155,7 @@ class SkillCatalogR2IntegrationTests(unittest.TestCase):
                         1,
                         TrustState.APPROVED,
                         eligibility_adapter="openclaw-metadata",
+                        validation_mode="lenient",
                     )
                 ]
             )
@@ -216,8 +298,10 @@ class SkillCatalogR2IntegrationTests(unittest.TestCase):
             )
             self.assertEqual(catalog.resolve("tdd").resolved.skill_id, "high/tdd")
             self.assertEqual(catalog.resolve("low/tdd").resolved.description, "Low")
+            self.assertEqual([row.skill_id for row in catalog.effective().records], ["high/tdd"])
+            self.assertEqual([row.skill_id for row in catalog.search("tdd")], ["high/tdd"])
 
-    def test_equal_scope_priority_collision_is_ambiguous(self) -> None:
+    def test_equal_scope_order_collision_is_deterministic(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             base = Path(temp)
             a = base / "a"
@@ -230,9 +314,10 @@ class SkillCatalogR2IntegrationTests(unittest.TestCase):
                     SkillSource("b", b, "vendor", 600, TrustState.APPROVED),
                 ]
             )
-            with self.assertRaises(SkillCatalogError) as captured:
-                catalog.resolve("same")
-            self.assertEqual(captured.exception.code, "AMBIGUOUS_SKILL")
+            resolution = catalog.resolve("same")
+            self.assertEqual(resolution.resolved.skill_id, "a/same")
+            self.assertEqual([row.skill_id for row in resolution.shadowed], ["b/same"])
+            self.assertEqual([row.skill_id for row in catalog.effective().records], ["a/same"])
 
     def test_untrusted_metadata_is_not_model_visible(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -328,7 +413,9 @@ class SkillCatalogR2IntegrationTests(unittest.TestCase):
             write_skill(healthy, "good", "good", "Healthy")
             catalog = SkillCatalog.scan(
                 [
-                    SkillSource("broken", broken, "user", 5, TrustState.APPROVED),
+                    SkillSource(
+                        "broken", broken, "user", 5, TrustState.APPROVED, validation_mode="lenient"
+                    ),
                     SkillSource("healthy", healthy, "user", 5, TrustState.APPROVED),
                 ]
             )
@@ -387,42 +474,26 @@ class SkillCatalogR2IntegrationTests(unittest.TestCase):
             self.assertNotEqual(outside, inside)
 
     def test_real_local_federation_census_and_collision_behavior(self) -> None:
-        roots = {
-            "ordivon-next": Path("/root/projects/ordivon-next/.agents/skills"),
-            "codex-user": Path("/root/.codex/skills"),
-            "generic-user": Path("/root/.agents/skills"),
-            "hermes-user": Path("/root/.hermes/skills"),
-            "obra-superpowers": Path("/root/.local/share/ordivon/vendor/obra-superpowers-main/skills"),
-        }
-        if not all(root.is_dir() for root in roots.values()):
+        config_path = Path("config/skills-mcp.example.json").resolve()
+        if not config_path.is_file():
+            self.skipTest("Skills MCP example config unavailable")
+        from ordivon_harness.skills.config import load_skills_mcp_config
+
+        config = load_skills_mcp_config(config_path)
+        required = [
+            Path("/root/projects/ordivon-next/.agents/skills"),
+            Path("/root/.agents/skills"),
+            Path("/root/.codex/skills"),
+            Path("/root/.hermes/skills"),
+            Path("/root/.local/share/ordivon/vendor/obra-superpowers-main/skills"),
+        ]
+        if not all(root.is_dir() for root in required):
             self.skipTest("real Skill roots are not all installed")
-        catalog = SkillCatalog.scan(
-            [
-                SkillSource(
-                    "ordivon-next",
-                    roots["ordivon-next"],
-                    "project",
-                    900,
-                    TrustState.TRUSTED,
-                    project_root=Path("/root/projects/ordivon-next"),
-                ),
-                SkillSource(
-                    "codex-user",
-                    roots["codex-user"],
-                    "user",
-                    700,
-                    TrustState.APPROVED,
-                    implicit_deny_prefixes=(".system",),
-                ),
-                SkillSource("generic-user", roots["generic-user"], "user", 680, TrustState.APPROVED),
-                SkillSource("hermes-user", roots["hermes-user"], "user", 650, TrustState.UNTRUSTED),
-                SkillSource("obra-superpowers", roots["obra-superpowers"], "vendor", 600, TrustState.APPROVED),
-            ]
-        )
+        catalog = SkillCatalog.scan(config.sources)
         counts = {status.source_id: status.valid for status in catalog.source_statuses}
-        self.assertEqual(counts["ordivon-next"], 3)
+        self.assertEqual(counts["project-ordivon-next"], 3)
         self.assertGreaterEqual(counts["codex-user"], 20)
-        self.assertGreaterEqual(counts["generic-user"], 2)
+        self.assertGreaterEqual(counts["user-agents"], 2)
         self.assertGreaterEqual(counts["hermes-user"], 100)
         self.assertEqual(counts["obra-superpowers"], 14)
         self.assertIn("obra-superpowers/test-driven-development", [r.skill_id for r in catalog.inventory])
@@ -435,6 +506,21 @@ class SkillCatalogR2IntegrationTests(unittest.TestCase):
             catalog.resolve("codex-user/skill-installer", invocation_mode="explicit").resolved.skill_id,
             "codex-user/skill-installer",
         )
+        # The interoperable ~/.agents/skills root wins over client-specific user caches
+        # for same-scope collisions because it is discovered first deterministically.
+        self.assertEqual(
+            catalog.resolve("web-provider-routing", invocation_mode="implicit").resolved.source_id,
+            "user-agents",
+        )
+        self.assertEqual(
+            catalog.resolve(
+                "web-provider-routing",
+                context=SkillContext(workspace_path=Path("/root/projects/ordivon-next")),
+                invocation_mode="implicit",
+            ).resolved.source_id,
+            "project-ordivon-next",
+        )
+
 
 
 if __name__ == "__main__":

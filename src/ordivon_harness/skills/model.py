@@ -56,6 +56,7 @@ class SkillSource:
     implicit_deny_prefixes: tuple[str, ...] = ()
     explicit_deny_prefixes: tuple[str, ...] = ()
     eligibility_adapter: str | None = None
+    validation_mode: str = "strict"
 
     def __post_init__(self) -> None:
         if not _SOURCE_ID_RE.fullmatch(self.source_id):
@@ -73,6 +74,8 @@ class SkillSource:
                 raise ValueError(f"unsafe source policy prefix: {prefix!r}")
         if self.eligibility_adapter not in {None, "openclaw-metadata"}:
             raise ValueError(f"unsupported eligibility adapter: {self.eligibility_adapter}")
+        if self.validation_mode not in {"strict", "lenient"}:
+            raise ValueError("validation_mode must be strict or lenient")
 
 
 @dataclass(frozen=True, slots=True)
@@ -116,7 +119,6 @@ class SkillRecord:
             "description": self.description,
             "sourceId": self.source_id,
             "scope": self.scope,
-            "sourcePriority": self.source_priority,
             "instructionDigest": self.instruction_digest,
             "packageRevision": self.package_revision,
             "trustState": self.trust_state.value,

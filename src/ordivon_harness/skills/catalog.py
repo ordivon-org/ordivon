@@ -99,7 +99,6 @@ def _canonical_payload(records: Iterable[SkillRecord]) -> bytes:
             "description": record.description,
             "sourceId": record.source_id,
             "scope": record.scope,
-            "priority": record.source_priority,
             "sourceRelativeRoot": record.source_relative_root,
             "projectRoot": str(record.project_root) if record.project_root is not None else None,
             "instructionDigest": record.instruction_digest,
@@ -186,6 +185,23 @@ def _context_applies(record: SkillRecord, context: SkillContext | None) -> bool:
     except OSError:
         project_root = record.project_root.absolute()
     return _contained(workspace, project_root) or workspace == project_root
+
+def _precedence_key(record: SkillRecord) -> tuple[int, int, str, str]:
+    return (
+        -_SCOPE_RANK.get(record.scope, 0),
+        -record.source_priority,
+        record.source_id,
+        record.skill_id,
+    )
+
+
+def _effective_records(records: Iterable[SkillRecord]) -> tuple[SkillRecord, ...]:
+    by_name: dict[str, list[SkillRecord]] = {}
+    for record in records:
+        by_name.setdefault(record.name, []).append(record)
+    winners = [min(rows, key=_precedence_key) for rows in by_name.values()]
+    return tuple(sorted(winners, key=lambda record: record.skill_id))
+
 
 
 class SkillCatalog:
@@ -306,7 +322,12 @@ class SkillCatalog:
                 body = resolved_resource.read_bytes()
                 if len(body) > MAX_SKILL_MD_BYTES:
                     raise SkillCatalogError("RESOURCE_TOO_LARGE", "SKILL.md exceeds hard size limit")
-                parsed = parse_skill_frontmatter(body.decode("utf-8"))
+                decoded = body.decode("utf-8")
+                parsed = parse_skill_frontmatter(
+                    decoded,
+                    validation_mode=source.validation_mode,
+                    expected_directory_name=skill_root.name,
+                )
                 skill_id = f"{source.source_id}/{parsed.name}"
                 if skill_id in local_ids:
                     raise SkillCatalogError("DUPLICATE_SKILL_ID", skill_id)
@@ -315,7 +336,6 @@ class SkillCatalog:
                 local_ids.add(skill_id)
                 implicit = not _prefix_denied(source_relative_root, source.implicit_deny_prefixes)
                 explicit = not _prefix_denied(source_relative_root, source.explicit_deny_prefixes)
-                decoded = body.decode("utf-8")
                 eligibility = observe_eligibility(decoded, source.eligibility_adapter)
                 scan = scan_skill_package(skill_root)
                 if scan.state == ScanState.QUARANTINED:
@@ -341,6 +361,7 @@ class SkillCatalog:
                         scan_findings=scan.findings,
                         implicit_invocation=implicit,
                         explicit_invocation=explicit,
+                        diagnostics=parsed.diagnostics,
                     )
                 )
                 valid += 1
@@ -400,6 +421,15 @@ class SkillCatalog:
         }
         snapshot = _sha256(json.dumps(context_payload, sort_keys=True, separators=(",", ":")).encode())
         return SkillView(tuple(records), snapshot)
+
+    def effective(
+        self,
+        *,
+        context: SkillContext | None = None,
+        invocation_mode: str = "implicit",
+    ) -> SkillView:
+        raw = self.view(context=context, invocation_mode=invocation_mode)
+        return SkillView(_effective_records(raw.records), raw.snapshot_revision)
 
     def by_skill_id(
         self,
@@ -477,28 +507,12 @@ class SkillCatalog:
             if same_name:
                 raise SkillCatalogError("SKILL_NOT_VISIBLE", ref)
             raise SkillCatalogError("SKILL_NOT_FOUND", ref)
-        candidates.sort(
-            key=lambda item: (
-                -_SCOPE_RANK.get(item.scope, 0),
-                -item.source_priority,
-                item.source_id,
-                item.skill_id,
-            )
-        )
+        candidates.sort(key=_precedence_key)
         winner = candidates[0]
-        winner_rank = (_SCOPE_RANK.get(winner.scope, 0), winner.source_priority)
-        ties = [
-            item
-            for item in candidates[1:]
-            if (_SCOPE_RANK.get(item.scope, 0), item.source_priority) == winner_rank
-        ]
-        if ties:
-            ids = ", ".join(item.skill_id for item in (winner, *ties))
-            raise SkillCatalogError("AMBIGUOUS_SKILL", f"incomparable top candidates: {ids}")
         return SkillResolution(
             winner,
             tuple(candidates[1:]),
-            f"scope={winner.scope}; sourcePriority={winner.source_priority}; sourceId={winner.source_id}",
+            f"scope={winner.scope}; sourceOrder={winner.source_id}",
             view.snapshot_revision,
         )
 
@@ -513,7 +527,7 @@ class SkillCatalog:
         if not query.strip() or not (1 <= limit <= 100):
             return ()
         terms = tuple(dict.fromkeys(term.casefold() for term in query.split() if term.strip()))
-        view = self.view(context=context, invocation_mode=invocation_mode)
+        view = self.effective(context=context, invocation_mode=invocation_mode)
 
         def score(record: SkillRecord) -> tuple[int, int, str]:
             name = record.name.casefold()

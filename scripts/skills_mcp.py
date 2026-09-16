@@ -80,7 +80,7 @@ class CatalogProvider:
         cfg = load_skills_mcp_config(self.config_file)
         catalog = SkillCatalog.scan(cfg.sources)
         self._catalog = catalog
-        self._workspace_roots = dict(cfg.workspaces)
+        self._workspace_roots = {workspace.workspace_id: workspace.path for workspace in cfg.workspaces}
         self._ttl_ms = cfg.ttl_ms
         self._deadline = now + cfg.ttl_ms / 1000.0
         return catalog
@@ -171,7 +171,7 @@ def build_server(provider: CatalogProvider) -> MCPServer:
                 raise ValueError("cursor must be non-negative and limit in [1,100]")
             catalog = provider.get(force_refresh=forceRefresh)
             context = provider.context(workspaceId, agentId)
-            view = catalog.view(context=context, invocation_mode="implicit")
+            view = catalog.effective(context=context, invocation_mode="implicit")
             rows = list(view.records)
             if sourceId is not None:
                 rows = [row for row in rows if row.source_id == sourceId]
@@ -235,7 +235,7 @@ def build_server(provider: CatalogProvider) -> MCPServer:
     @server.tool(
         name="skills.resolve",
         title="Resolve one Skill",
-        description="Resolve a canonical skillId or friendly name to one exact current binding; ambiguity and stale snapshots fail closed.",
+        description="Resolve a canonical skillId or friendly name to one exact current binding using deterministic Agent Skills precedence; stale snapshots fail closed.",
         annotations=annotations,
     )
     async def skills_resolve(
@@ -263,7 +263,6 @@ def build_server(provider: CatalogProvider) -> MCPServer:
             value = {
                 "resolved": row.metadata(),
                 "resolutionReason": resolution.reason,
-                "shadowed": [item.metadata() for item in resolution.shadowed],
                 "snapshotRevision": resolution.snapshot_revision,
                 "mainResourceUri": resource_uri,
             }

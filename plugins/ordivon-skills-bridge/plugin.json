@@ -1,0 +1,7 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "ordivon.skills-bridge",
+  "version": "0.1.0",
+  "description": "Temporary compatibility bridge exposing locally installed Agent Skills to remote MCP clients.",
+  "homepage": "https://ordivon.com"
+}
