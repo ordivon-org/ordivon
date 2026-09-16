@@ -3,6 +3,8 @@
 Date: 2026-09-16
 Status: **PORTABLE CORE FROZEN / PRODUCT ADAPTERS SEPARATE / SKILL OWNERSHIP OPEN**
 
+> Market synthesis follow-up: `docs/AGENT_PLUGIN_CORE_R3.md` is the current cross-vendor core decision. It extends this boundary audit with Claude Code, Vercel, Google, AWS, Agent Plugins 1.1 draft hardening, capability lifecycle, generation binding, context admission, trust classes, and explicit non-goals. R2 remains the detailed ownership decomposition.
+
 ## Purpose
 
 This document defines what Ordivon should and should not mean by **Agent Plugin** after reviewing the published Agent Plugins 1.0 specification and contemporary implementations across OpenAI ChatGPT/Codex, VS Code/GitHub Copilot, Cursor, OpenClaw, Kiro, Agent Skills, and MCP 2026-07-28.
