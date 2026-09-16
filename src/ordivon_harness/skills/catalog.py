@@ -588,15 +588,33 @@ class SkillCatalog:
         data = resolved.read_bytes()
         if len(data) > MAX_RESOURCE_READ_BYTES:
             raise SkillCatalogError("RESOURCE_TOO_LARGE", relative_path)
-        chunk = data[offset : offset + max_bytes]
+        post_read_package_revision = _package_revision(record.skill_root)
+        if post_read_package_revision != package_fence:
+            raise SkillCatalogError("PACKAGE_CHANGED", f"Skill package changed for {skill_id}")
         try:
-            content = chunk.decode("utf-8")
+            data.decode("utf-8")
+            data[:offset].decode("utf-8")
         except UnicodeDecodeError as exc:
             raise SkillCatalogError("UNSUPPORTED_MEDIA_TYPE", relative_path) from exc
+        end = min(len(data), offset + max_bytes)
+        while end > offset:
+            try:
+                content = data[offset:end].decode("utf-8")
+            except UnicodeDecodeError:
+                end -= 1
+                continue
+            break
+        else:
+            if offset < len(data):
+                raise SkillCatalogError(
+                    "READ_BOUNDARY_TOO_SMALL",
+                    f"maxBytes cannot contain the next UTF-8 code point for {relative_path}",
+                )
+            content = ""
         media_type = mimetypes.guess_type(resolved.name)[0] or "text/plain"
         if resolved.suffix.lower() in {".md", ".markdown"}:
             media_type = "text/markdown"
-        next_offset = offset + len(chunk) if offset + len(chunk) < len(data) else None
+        next_offset = end if end < len(data) else None
         return SkillReadResult(
             skill_id=skill_id,
             path=candidate.as_posix(),
@@ -604,7 +622,7 @@ class SkillCatalog:
             size=len(data),
             digest=_sha256(data),
             instruction_digest=current_instruction_digest,
-            package_revision=current_package_revision,
+            package_revision=post_read_package_revision,
             content=content,
             next_offset=next_offset,
         )

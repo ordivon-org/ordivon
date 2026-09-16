@@ -397,6 +397,64 @@ class SkillCatalogR2IntegrationTests(unittest.TestCase):
                 )
             self.assertEqual(captured.exception.code, "PACKAGE_CHANGED")
 
+    def test_resource_mutation_after_package_precheck_fails_closed(self) -> None:
+        from unittest import mock
+        import ordivon_harness.skills.catalog as catalog_module
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "skills"
+            write_skill(root, "alpha", "alpha", "Alpha")
+            guide = root / "alpha" / "guide.md"
+            guide.write_text("v1", encoding="utf-8")
+            catalog = SkillCatalog.scan(
+                [SkillSource("s", root, "user", 1, TrustState.APPROVED)]
+            )
+            record = catalog.resolve("s/alpha").resolved
+            original_package_revision = catalog_module._package_revision
+            mutated = False
+
+            def revision_then_mutate(skill_root: Path) -> str:
+                nonlocal mutated
+                revision = original_package_revision(skill_root)
+                if not mutated:
+                    guide.write_text("v2", encoding="utf-8")
+                    mutated = True
+                return revision
+
+            with mock.patch.object(
+                catalog_module,
+                "_package_revision",
+                side_effect=revision_then_mutate,
+            ):
+                with self.assertRaises(SkillCatalogError) as captured:
+                    catalog.read_text(
+                        "s/alpha",
+                        relative_path="guide.md",
+                        expected_package_revision=record.package_revision,
+                    )
+            self.assertEqual(captured.exception.code, "PACKAGE_CHANGED")
+
+    def test_utf8_pagination_next_offset_never_splits_codepoint(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "skills"
+            write_skill(root, "alpha", "alpha", "Alpha")
+            guide = root / "alpha" / "guide.md"
+            guide.write_text("A技B", encoding="utf-8")
+            catalog = SkillCatalog.scan(
+                [SkillSource("s", root, "user", 1, TrustState.APPROVED)]
+            )
+            first = catalog.read_text("s/alpha", relative_path="guide.md", max_bytes=2)
+            self.assertEqual(first.content, "A")
+            self.assertEqual(first.next_offset, 1)
+            second = catalog.read_text(
+                "s/alpha",
+                relative_path="guide.md",
+                offset=first.next_offset,
+                max_bytes=3,
+            )
+            self.assertEqual(second.content, "技")
+            self.assertEqual(second.next_offset, 4)
+
     def test_skill_md_mutation_trips_instruction_fence(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp) / "skills"

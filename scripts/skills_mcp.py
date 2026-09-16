@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 import hmac
 import json
 import os
@@ -463,6 +464,7 @@ def build_server(provider: CatalogProvider) -> MCPServer:
                 raise AgentSkillsConformanceError(
                     "resource is not present in the advertised Skill manifest"
                 )
+            resource = next(item for item in entry.resources if item.uri == requested_uri)
             target = (record.skill_root / path).resolve(strict=True)
             root = record.skill_root.resolve(strict=True)
             try:
@@ -470,6 +472,11 @@ def build_server(provider: CatalogProvider) -> MCPServer:
             except ValueError as exc:
                 raise AgentSkillsConformanceError("resource path escapes Skill root") from exc
             data = target.read_bytes()
+            digest = "sha256:" + hashlib.sha256(data).hexdigest()
+            if len(data) != resource.size or digest != resource.digest:
+                raise AgentSkillsConformanceError(
+                    "resource changed after manifest construction"
+                )
             try:
                 return data.decode("utf-8")
             except UnicodeDecodeError:

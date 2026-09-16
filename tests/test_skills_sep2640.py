@@ -275,6 +275,70 @@ class Sep2640SkillsTests(unittest.TestCase):
         self.assertEqual(content["uri"], alpha["uri"])
         self.assertEqual(content["text"].encode("utf-8"), skill_bytes)
 
+    def test_resources_read_rejects_bytes_changed_after_manifest_check(self) -> None:
+        from unittest import mock
+        import skills_mcp as skills_mcp_module
+
+        td, base, provider, token_file = self.make_fixture()
+        self.addCleanup(td.cleanup)
+        settings = McpSettings(base / "skills.json", token_file=token_file)
+        app = build_app(settings, provider, "x" * 64)
+        target = base / "user" / "alpha" / "SKILL.md"
+        uri = "skill://ordivon/user/alpha/SKILL.md"
+        meta = {
+            "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+            "io.modelcontextprotocol/clientCapabilities": {},
+        }
+        original_manifest_contains = skills_mcp_module.manifest_contains
+        mutated = False
+
+        def contains_then_mutate(entry, requested_uri: str) -> bool:
+            nonlocal mutated
+            result = original_manifest_contains(entry, requested_uri)
+            if result and not mutated:
+                target.write_text(
+                    "---\nname: alpha\ndescription: changed after manifest\n---\n\n# alpha\n",
+                    encoding="utf-8",
+                )
+                mutated = True
+            return result
+
+        async def exercise():
+            async with app.app.router.lifespan_context(app.app):
+                transport = httpx.ASGITransport(app=app)
+                async with httpx.AsyncClient(
+                    transport=transport, base_url="http://127.0.0.1:8895"
+                ) as client:
+                    payload = {
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "method": "resources/read",
+                        "params": {"uri": uri, "_meta": meta},
+                    }
+                    return await client.post(
+                        "/mcp",
+                        headers={
+                            "Authorization": "Bearer " + "x" * 64,
+                            "MCP-Protocol-Version": "2026-07-28",
+                            "Mcp-Method": "resources/read",
+                            "Mcp-Name": uri,
+                            "Accept": "application/json",
+                        },
+                        json=payload,
+                    )
+
+        with mock.patch.object(
+            skills_mcp_module,
+            "manifest_contains",
+            side_effect=contains_then_mutate,
+        ):
+            response = asyncio.run(exercise())
+        self.assertEqual(response.status_code, 200, response.text)
+        row = response.json()
+        self.assertIn("error", row, row)
+        self.assertEqual(row["error"]["code"], -32603)
+        self.assertNotIn("changed after manifest", json.dumps(row, sort_keys=True))
+
     def test_same_name_skills_remain_distinct_standard_uris(self) -> None:
         td, base, _provider, token_file = self.make_fixture()
         self.addCleanup(td.cleanup)
