@@ -14,6 +14,10 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
+from urllib.parse import urlsplit
+
+import jwt
+from jwt import PyJWKClient
 
 from mcp.server import MCPServer
 from mcp.server.caching import CacheHint
@@ -28,13 +32,13 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from ordivon_harness.skills import (
+from ordivon_harness.skills import (  # noqa: E402
     SkillCatalog,
     SkillCatalogError,
     SkillContext,
 )
-from ordivon_harness.skills.config import load_skills_mcp_config
-from ordivon_harness.skills.sep2640 import (
+from ordivon_harness.skills.config import load_skills_mcp_config  # noqa: E402
+from ordivon_harness.skills.sep2640 import (  # noqa: E402
     AgentSkillsConformanceError,
     manifest_contains,
     parse_skill_uri,
@@ -57,6 +61,11 @@ class McpSettings:
     port: int = DEFAULT_PORT
     body_limit_bytes: int = DEFAULT_BODY_LIMIT
     log_level: str = "INFO"
+    trust_cf_access: bool = False
+    cf_access_issuer: str | None = None
+    cf_access_audience: str | None = None
+    cf_access_jwks_url: str | None = None
+    public_origin: str | None = None
 
     def __post_init__(self) -> None:
         if not self.config_file.is_absolute() or not self.token_file.is_absolute():
@@ -67,6 +76,33 @@ class McpSettings:
             raise ValueError("port must be in [1,65535]")
         if type(self.body_limit_bytes) is not int or self.body_limit_bytes < 1:
             raise ValueError("body limit must be positive")
+        if self.trust_cf_access:
+            if not self.cf_access_issuer or not self.cf_access_issuer.startswith("https://"):
+                raise ValueError("Cloudflare Access issuer must use https")
+            if not self.cf_access_audience or not self.cf_access_audience.strip():
+                raise ValueError("Cloudflare Access audience must not be empty")
+            if self.cf_access_jwks_url is not None and not self.cf_access_jwks_url.startswith("https://"):
+                raise ValueError("Cloudflare Access JWKS URL must use https")
+        if self.public_origin is not None:
+            parsed = urlsplit(self.public_origin)
+            if (
+                parsed.scheme != "https"
+                or not parsed.hostname
+                or parsed.username is not None
+                or parsed.password is not None
+                or parsed.path not in ("", "/")
+                or parsed.query
+                or parsed.fragment
+            ):
+                raise ValueError("public origin must be one canonical HTTPS origin without path/query/fragment")
+
+    @property
+    def cf_access_jwks_endpoint(self) -> str | None:
+        if self.cf_access_jwks_url:
+            return self.cf_access_jwks_url
+        if self.cf_access_issuer:
+            return self.cf_access_issuer.rstrip("/") + "/cdn-cgi/access/certs"
+        return None
 
     @property
     def endpoint(self) -> str:
@@ -497,46 +533,148 @@ async def _problem(send, status: int, detail: str, *, authenticate: bool = False
     await send({"type": "http.response.body", "body": raw})
 
 
-class BearerAuthApp:
-    def __init__(self, app, token: str, *, body_limit_bytes: int) -> None:
+class CloudflareAccessVerifier:
+    """Validate Access assertions injected by Cloudflare Managed OAuth.
+
+    Cloudflare owns the OAuth authorization-code/refresh flow. The origin never
+    accepts the client's opaque OAuth token as identity; it accepts only a
+    signature-verified Access assertion with the configured issuer/audience.
+    """
+
+    def __init__(self, *, issuer: str, audience: str, jwks_url: str) -> None:
+        if not issuer.startswith("https://") or not jwks_url.startswith("https://"):
+            raise ValueError("Cloudflare Access issuer/JWKS must use https")
+        if not audience.strip():
+            raise ValueError("Cloudflare Access audience must not be empty")
+        self.issuer = issuer.rstrip("/")
+        self.audience = audience
+        self.jwks_url = jwks_url
+        self._keys = PyJWKClient(
+            jwks_url,
+            cache_keys=True,
+            cache_jwk_set=True,
+            lifespan=300,
+            timeout=8,
+        )
+
+    def _verify_sync(self, token: str) -> bool:
+        try:
+            header = jwt.get_unverified_header(token)
+            if header.get("alg") != "RS256":
+                return False
+            signing_key = self._keys.get_signing_key_from_jwt(token)
+            jwt.decode(
+                token,
+                signing_key.key,
+                algorithms=["RS256"],
+                audience=self.audience,
+                issuer=self.issuer,
+                leeway=30,
+                options={"require": ["exp", "iss", "aud"]},
+            )
+            return True
+        except Exception:
+            # Authentication is fail-closed. Details are intentionally not
+            # surfaced because JWT/JWKS errors may disclose identity metadata.
+            return False
+
+    async def verify(self, token: str) -> bool:
+        if not token or len(token) > 65536:
+            return False
+        return await asyncio.to_thread(self._verify_sync, token)
+
+
+class HybridAuthApp:
+    """Accept local operator Bearer OR a verified Cloudflare Access assertion.
+
+    The local token remains a loopback recovery/readiness credential. Public
+    OAuth is owned by Cloudflare Access; the origin verifies the assertion that
+    Access injects after completing that OAuth flow.
+    """
+
+    def __init__(
+        self,
+        app,
+        token: str,
+        *,
+        body_limit_bytes: int,
+        access_verifier: CloudflareAccessVerifier | None = None,
+    ) -> None:
         self.app = app
         self.expected = f"Bearer {token}".encode()
         self.body_limit_bytes = body_limit_bytes
+        self.access_verifier = access_verifier
 
     async def __call__(self, scope, receive, send):
         if scope.get("type") != "http":
             return await self.app(scope, receive, send)
         authorization = b""
+        access_assertion = b""
         for name, value in scope.get("headers", []):
-            if name.lower() == b"authorization":
+            lower = name.lower()
+            if lower == b"authorization":
                 authorization = value
-                break
-        if not hmac.compare_digest(authorization, self.expected):
-            if not await _drain(receive, max_bytes=self.body_limit_bytes):
-                return await _problem(send, 413, "request body exceeds configured limit")
-            return await _problem(send, 401, "valid Bearer credential required", authenticate=True)
-        return await self.app(scope, receive, send)
+            elif lower == b"cf-access-jwt-assertion":
+                access_assertion = value
+        if hmac.compare_digest(authorization, self.expected):
+            return await self.app(scope, receive, send)
+        if self.access_verifier is not None and access_assertion:
+            try:
+                encoded = access_assertion.decode("ascii")
+            except UnicodeDecodeError:
+                encoded = ""
+            if encoded and await self.access_verifier.verify(encoded):
+                return await self.app(scope, receive, send)
+        if not await _drain(receive, max_bytes=self.body_limit_bytes):
+            return await _problem(send, 413, "request body exceeds configured limit")
+        return await _problem(send, 401, "valid local or Cloudflare Access credential required", authenticate=True)
 
 
-def _transport_security() -> TransportSecuritySettings:
+def _transport_security(settings: McpSettings) -> TransportSecuritySettings:
+    allowed_hosts = ["127.0.0.1:*", "localhost:*", "[::1]:*"]
+    allowed_origins = ["http://127.0.0.1:*", "http://localhost:*", "http://[::1]:*"]
+    if settings.public_origin:
+        parsed = urlsplit(settings.public_origin)
+        allowed_hosts.append(parsed.netloc)
+        allowed_origins.append(f"https://{parsed.netloc}")
     return TransportSecuritySettings(
         enable_dns_rebinding_protection=True,
-        allowed_hosts=["127.0.0.1:*", "localhost:*", "[::1]:*"],
-        allowed_origins=["http://127.0.0.1:*", "http://localhost:*", "http://[::1]:*"],
+        allowed_hosts=allowed_hosts,
+        allowed_origins=allowed_origins,
     )
 
 
-def build_app(settings: McpSettings, provider: CatalogProvider, token: str):
+def build_app(
+    settings: McpSettings,
+    provider: CatalogProvider,
+    token: str,
+    *,
+    access_verifier: CloudflareAccessVerifier | None = None,
+):
     server = build_server(provider)
     app = server.streamable_http_app(
         streamable_http_path="/mcp",
         json_response=True,
         stateless_http=True,
         max_request_body_size=settings.body_limit_bytes,
-        transport_security=_transport_security(),
+        transport_security=_transport_security(settings),
         host=settings.bind_host,
     )
-    return BearerAuthApp(app, token, body_limit_bytes=settings.body_limit_bytes)
+    if access_verifier is None and settings.trust_cf_access:
+        jwks_url = settings.cf_access_jwks_endpoint
+        if jwks_url is None or settings.cf_access_issuer is None or settings.cf_access_audience is None:
+            raise RuntimeError("Cloudflare Access configuration is incomplete")
+        access_verifier = CloudflareAccessVerifier(
+            issuer=settings.cf_access_issuer,
+            audience=settings.cf_access_audience,
+            jwks_url=jwks_url,
+        )
+    return HybridAuthApp(
+        app,
+        token,
+        body_limit_bytes=settings.body_limit_bytes,
+        access_verifier=access_verifier,
+    )
 
 
 def run_http(settings: McpSettings, provider: CatalogProvider) -> None:
@@ -561,6 +699,15 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
     parser.add_argument("--body-limit-bytes", type=int, default=DEFAULT_BODY_LIMIT)
     parser.add_argument("--log-level", default="INFO")
+    parser.add_argument(
+        "--trust-cf-access",
+        action="store_true",
+        default=os.environ.get("ORDIVON_SKILLS_MCP_TRUST_CF_ACCESS", "").lower() in {"1", "true", "yes"},
+    )
+    parser.add_argument("--cf-access-issuer", default=os.environ.get("ORDIVON_SKILLS_MCP_CF_ACCESS_ISSUER"))
+    parser.add_argument("--cf-access-audience", default=os.environ.get("ORDIVON_SKILLS_MCP_CF_ACCESS_AUDIENCE"))
+    parser.add_argument("--cf-access-jwks-url", default=os.environ.get("ORDIVON_SKILLS_MCP_CF_ACCESS_JWKS_URL"))
+    parser.add_argument("--public-origin", default=os.environ.get("ORDIVON_SKILLS_MCP_PUBLIC_ORIGIN"))
     parser.add_argument("--transport", choices=["http", "stdio"], default="http")
     parser.add_argument("--check", action="store_true")
     return parser
@@ -575,6 +722,11 @@ def main() -> int:
         port=args.port,
         body_limit_bytes=args.body_limit_bytes,
         log_level=args.log_level.upper(),
+        trust_cf_access=args.trust_cf_access,
+        cf_access_issuer=args.cf_access_issuer,
+        cf_access_audience=args.cf_access_audience,
+        cf_access_jwks_url=args.cf_access_jwks_url,
+        public_origin=args.public_origin,
     )
     provider = CatalogProvider(settings.config_file)
     server = build_server(provider)

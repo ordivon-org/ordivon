@@ -27,7 +27,7 @@ The bridge does not define a portable Skill or Plugin format. Portable semantics
 | `.codex/skills` scanning | TEMP-BRIDGE | client-specific compatibility source only |
 | `.hermes/skills` scanning | TEMP-BRIDGE | client-specific compatibility source only; currently untrusted |
 | OpenClaw `metadata.openclaw.requires` | TEMP-BRIDGE | compatibility eligibility adapter only; never portable Agent Skills semantics |
-| remote static bearer middleware | KEEP-LOCAL | standard HTTP Bearer resource protection; OpenAI MCP credential stores support `static_bearer` as a first-class credential type. The secret remains client-managed and outside portable plugin data |
+| public authentication | ADOPT-UPSTREAM | Cloudflare Access Managed OAuth is the public MCP authorization layer; clients use standard OAuth discovery/authorization while the origin validates `Cf-Access-Jwt-Assertion`. No OAuth protocol is invented inside Ordivon |
 | source-qualified `sourceId/name` refs | TEMP-BRIDGE | administrative/exact compatibility addressing; not Agent Skills portable identity |
 | Cloudflare tunnel | KEEP-LOCAL | transport needed because this workstation cannot directly connect to OpenAI; not a Skill package semantic |
 | project trust gate | KEEP-LOCAL | client-owned security policy explicitly left to clients by Agent Skills/Agent Plugins |
@@ -72,8 +72,6 @@ The three Ordivon Next project Skills stay at `.agents/skills`; they are already
 
 ## Authorization boundary
 
-The portable Agent Plugin still contains no credential material. Authentication is a consumer/runtime concern. OpenAI's current MCP credential model supports both `static_bearer` and `mcp_oauth`; therefore the existing Bearer-protected resource is not itself a private protocol or a migration blocker. The preferred consumer contract is to store the Bearer token in the consuming product's credential store and send it as the standard `Authorization: Bearer ...` header.
+The portable Agent Plugin still contains no credential material. Public authentication is delegated to Cloudflare Access Managed OAuth, matching Ordivon's existing MCP ingress pattern. Cloudflare owns authorization-code, dynamic-client-registration and refresh-token mechanics; the Skills origin accepts only a cryptographically verified Access assertion for remote identity. A separate static Bearer is retained only for loopback operator/readiness access and is never sent to the public URL.
 
-OAuth/OIDC remains appropriate when per-user authorization, delegated scopes, rotation/refresh, or an existing identity provider requires it. Do not invent a local OAuth server merely to replace a supported static Bearer credential.
-
-`scripts/skills_mcp_consumer_readiness.py` performs a non-secret readiness check: the public endpoint must return a Bearer 401 challenge without credentials, while the loopback endpoint is authenticated locally to confirm the exact four-tool MCP surface. The script never sends the local token to the public URL.
+`scripts/skills_mcp_consumer_readiness.py` performs a non-secret readiness check: the public endpoint must return the Cloudflare OAuth 401 challenge with protected-resource metadata, while the loopback endpoint is authenticated locally to confirm the exact four-tool and SEP-2640 surfaces.

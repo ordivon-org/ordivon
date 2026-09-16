@@ -49,7 +49,13 @@ def public_boundary(url: str) -> dict:
         },
     )
     challenge = next((value for key, value in headers.items() if key.lower() == "www-authenticate"), "")
-    ok = status == 401 and challenge.lower().startswith("bearer")
+    lowered = challenge.lower()
+    ok = (
+        status == 401
+        and lowered.startswith("bearer")
+        and "resource_metadata=" in lowered
+        and "cloudflare-access-protected-resource" in lowered
+    )
     return {
         "ok": ok,
         "status": status,
@@ -192,7 +198,9 @@ def main() -> int:
         "kind": "ordivon.skills-mcp-consumer-readiness",
         "schemaVersion": 1,
         "endpoint": args.public_url,
-        "credentialKind": "static_bearer",
+        "credentialKind": "mcp_oauth",
+        "oauthProvider": "cloudflare_access_managed_oauth",
+        "localOperatorCredential": "static_bearer_loopback_only",
         "protocolVersion": "2026-07-28",
         "expectedTools": list(EXPECTED_TOOLS),
         "portableConfigContainsSecret": False,
