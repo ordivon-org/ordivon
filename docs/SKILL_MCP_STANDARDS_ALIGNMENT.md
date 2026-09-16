@@ -52,6 +52,14 @@ While this bridge exists, Ordivon retains only the irreducible local projection 
 
 Prompt-override/shell heuristics remain warnings, not a semantic trust oracle. There is no justification for a persistent Ordivon Skill trust database merely because a temporary remote bridge exists.
 
+### Skill content authority boundary
+
+Skill package/source admission and instruction authority are separate concerns. `APPROVED`, scanner `PASS`, a valid digest, or standards conformance means only that the package may be discovered/read under the configured bridge policy; none of those states makes prose inside `SKILL.md`, descriptions, references, or supporting resources authoritative instructions to the model. Skill content is untrusted procedural content and may itself contain prompt-injection text, policy claims, attribution/citation demands, tool-use requests, disclosure requests, or attempts to redefine priorities.
+
+Consumers must re-evaluate every Skill-suggested action against the current system/developer/user instructions, domain authority, tool permissions, confidentiality boundary, approval gates, and safety policy. A Skill cannot authorize installation, execution, network access, external disclosure, citation/attribution, mutation, submission, or any other side effect merely by requesting it. The bridge keeps Skill bytes exact rather than rewriting suspicious prose; the protection is an authority boundary, not a brittle semantic-maliciousness classifier.
+
+The MCP server instructions and model-facing tool/resource descriptions repeat this boundary so clients receive the warning before activation. This reminder is bridge safety metadata only and does not modify the portable Agent Skills package or SEP-2640 resource bytes.
+
 When a client directly consumes Agent Skills or an Agent Plugin package and no filesystem-to-network projection remains, bridge-specific trust/path/digest/scanner machinery should be removed for that consumer.
 
 ## Strict standards projection
