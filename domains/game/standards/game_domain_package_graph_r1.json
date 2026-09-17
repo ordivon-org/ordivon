@@ -42,49 +42,6 @@
   ],
   "nodes": [
     {
-      "id": "kernel.world-state",
-      "kind": "kernel",
-      "owner": "Game",
-      "title": "World / State",
-      "authority": "Authoritative Game-local state and world meaning",
-      "refs": [
-        "docs/GAME_FOUNDATIONS_RESEARCH_R29.md",
-        "docs/ARCHITECTURE.md"
-      ]
-    },
-    {
-      "id": "kernel.observation",
-      "kind": "kernel",
-      "owner": "Game",
-      "title": "Observation",
-      "authority": "Bounded subject-relative observation derived from state",
-      "refs": [
-        "docs/GAME_FOUNDATIONS_RESEARCH_R29.md",
-        "docs/STATION_ZERO_V3_P0.md"
-      ]
-    },
-    {
-      "id": "kernel.action",
-      "kind": "kernel",
-      "owner": "Game",
-      "title": "Action",
-      "authority": "Game-local semantic action identity and admission",
-      "refs": [
-        "docs/GAME_ACTION_CONTROL_SKILL_FOUNDATIONS_V1.md"
-      ]
-    },
-    {
-      "id": "kernel.transition",
-      "kind": "kernel",
-      "owner": "Game",
-      "title": "Transition / Consequence",
-      "authority": "Authoritative consequence and next-state semantics",
-      "refs": [
-        "docs/GAME_FOUNDATIONS_RESEARCH_R29.md",
-        "docs/ARCHITECTURE.md"
-      ]
-    },
-    {
       "id": "foundation.play-game",
       "kind": "foundation",
       "owner": "Game",
@@ -118,162 +75,6 @@
       "title": "Authoritative Case Determination Foundations",
       "refs": [
         "docs/GAME_AUTHORITATIVE_CASE_DETERMINATION_FOUNDATIONS_V1.md"
-      ]
-    },
-    {
-      "id": "development.d1",
-      "kind": "development-responsibility",
-      "owner": "Game profile / external methods",
-      "title": "D1 Intent / Audience Context",
-      "refs": [
-        "docs/GAME_DEVELOPMENT_CORE.md"
-      ]
-    },
-    {
-      "id": "development.d2",
-      "kind": "development-responsibility",
-      "owner": "Game",
-      "title": "D2 Play Causality",
-      "refs": [
-        "docs/GAME_DEVELOPMENT_CORE.md"
-      ]
-    },
-    {
-      "id": "development.d3",
-      "kind": "development-responsibility",
-      "owner": "Game profile / Human research owners",
-      "title": "D3 Player Learning / Legibility",
-      "refs": [
-        "docs/GAME_DEVELOPMENT_CORE.md"
-      ]
-    },
-    {
-      "id": "development.d4",
-      "kind": "development-responsibility",
-      "owner": "Research E2E with Game question semantics",
-      "title": "D4 Evidence / Prototyping",
-      "refs": [
-        "docs/GAME_DEVELOPMENT_CORE.md",
-        "docs/GAME_PLAYER_EVIDENCE_PROGRAMME.md"
-      ]
-    },
-    {
-      "id": "development.d5",
-      "kind": "development-responsibility",
-      "owner": "Game",
-      "title": "D5 Content / Progression Architecture",
-      "refs": [
-        "docs/GAME_DEVELOPMENT_CORE.md",
-        "docs/GAME_CONTENT_PROGRESSION_ARCHITECTURE.md"
-      ]
-    },
-    {
-      "id": "development.d6",
-      "kind": "development-responsibility",
-      "owner": "Game + Media / Studio",
-      "title": "D6 Expression / Feel",
-      "refs": [
-        "docs/GAME_DEVELOPMENT_CORE.md"
-      ]
-    },
-    {
-      "id": "development.d7",
-      "kind": "development-responsibility",
-      "owner": "Engineering / Workstation / Artifact with Game semantics",
-      "title": "D7 Production Realization",
-      "refs": [
-        "docs/GAME_DEVELOPMENT_CORE.md",
-        "docs/GAME_EXTERNAL_MATURE_PRACTICE_ADOPTION_R1.md"
-      ]
-    },
-    {
-      "id": "development.d8",
-      "kind": "development-responsibility",
-      "owner": "Distribution / platform / operations with Game interpretation",
-      "title": "D8 Product Ecology / Evolution",
-      "refs": [
-        "docs/GAME_DEVELOPMENT_CORE.md"
-      ]
-    },
-    {
-      "id": "stage.g0",
-      "kind": "commitment-stage",
-      "owner": "Game",
-      "title": "G0 Define",
-      "refs": [
-        "docs/DEVELOPMENT_MODEL.md"
-      ]
-    },
-    {
-      "id": "stage.g1",
-      "kind": "commitment-stage",
-      "owner": "Game",
-      "title": "G1 Preproduction / Core Design",
-      "refs": [
-        "docs/DEVELOPMENT_MODEL.md"
-      ]
-    },
-    {
-      "id": "stage.g2",
-      "kind": "commitment-stage",
-      "owner": "Game",
-      "title": "G2 Kernel / Graybox Prototype",
-      "refs": [
-        "docs/DEVELOPMENT_MODEL.md"
-      ]
-    },
-    {
-      "id": "stage.g3",
-      "kind": "commitment-stage",
-      "owner": "Game",
-      "title": "G3 Playable Prototype",
-      "refs": [
-        "docs/DEVELOPMENT_MODEL.md"
-      ]
-    },
-    {
-      "id": "stage.g4",
-      "kind": "commitment-stage",
-      "owner": "Game",
-      "title": "G4 Vertical Slice",
-      "refs": [
-        "docs/DEVELOPMENT_MODEL.md"
-      ]
-    },
-    {
-      "id": "stage.g5",
-      "kind": "commitment-stage",
-      "owner": "Game",
-      "title": "G5 Production / Content Expansion",
-      "refs": [
-        "docs/DEVELOPMENT_MODEL.md"
-      ]
-    },
-    {
-      "id": "stage.g6",
-      "kind": "commitment-stage",
-      "owner": "Game",
-      "title": "G6 Alpha / Content-complete Validation",
-      "refs": [
-        "docs/DEVELOPMENT_MODEL.md"
-      ]
-    },
-    {
-      "id": "stage.g7",
-      "kind": "commitment-stage",
-      "owner": "Game",
-      "title": "G7 Beta / Polish / Release Candidate",
-      "refs": [
-        "docs/DEVELOPMENT_MODEL.md"
-      ]
-    },
-    {
-      "id": "stage.g8",
-      "kind": "commitment-stage",
-      "owner": "Game",
-      "title": "G8 Release / Operate / Learn",
-      "refs": [
-        "docs/DEVELOPMENT_MODEL.md"
       ]
     },
     {
@@ -499,126 +300,6 @@
   ],
   "edges": [
     {
-      "from": "kernel.observation",
-      "to": "kernel.world-state",
-      "relation": "projects"
-    },
-    {
-      "from": "kernel.action",
-      "to": "kernel.transition",
-      "relation": "constrains"
-    },
-    {
-      "from": "kernel.transition",
-      "to": "kernel.world-state",
-      "relation": "realizes"
-    },
-    {
-      "from": "foundation.play-game",
-      "to": "kernel.world-state",
-      "relation": "constrains"
-    },
-    {
-      "from": "foundation.action-control-skill",
-      "to": "kernel.action",
-      "relation": "constrains"
-    },
-    {
-      "from": "foundation.challenge-failure-mastery",
-      "to": "kernel.transition",
-      "relation": "constrains"
-    },
-    {
-      "from": "foundation.case-determination",
-      "to": "kernel.action",
-      "relation": "constrains"
-    },
-    {
-      "from": "development.d1",
-      "to": "stage.g0",
-      "relation": "evidences"
-    },
-    {
-      "from": "development.d2",
-      "to": "kernel.transition",
-      "relation": "projects"
-    },
-    {
-      "from": "development.d3",
-      "to": "service.research",
-      "relation": "routes-to"
-    },
-    {
-      "from": "development.d4",
-      "to": "service.research",
-      "relation": "routes-to"
-    },
-    {
-      "from": "development.d5",
-      "to": "kernel.world-state",
-      "relation": "composes"
-    },
-    {
-      "from": "development.d6",
-      "to": "service.media",
-      "relation": "routes-to"
-    },
-    {
-      "from": "development.d7",
-      "to": "service.workstation",
-      "relation": "routes-to"
-    },
-    {
-      "from": "development.d7",
-      "to": "service.artifact",
-      "relation": "routes-to"
-    },
-    {
-      "from": "development.d8",
-      "to": "service.distribution",
-      "relation": "routes-to"
-    },
-    {
-      "from": "stage.g2",
-      "to": "development.d2",
-      "relation": "depends-on"
-    },
-    {
-      "from": "stage.g3",
-      "to": "development.d3",
-      "relation": "depends-on"
-    },
-    {
-      "from": "stage.g4",
-      "to": "development.d6",
-      "relation": "depends-on"
-    },
-    {
-      "from": "stage.g4",
-      "to": "development.d7",
-      "relation": "depends-on"
-    },
-    {
-      "from": "stage.g5",
-      "to": "development.d5",
-      "relation": "depends-on"
-    },
-    {
-      "from": "stage.g6",
-      "to": "development.d4",
-      "relation": "depends-on"
-    },
-    {
-      "from": "stage.g7",
-      "to": "development.d8",
-      "relation": "depends-on"
-    },
-    {
-      "from": "stage.g8",
-      "to": "development.d8",
-      "relation": "projects"
-    },
-    {
       "from": "mechanic.e01",
       "to": "composition.pc01",
       "relation": "composes"
@@ -639,41 +320,6 @@
       "relation": "composes"
     },
     {
-      "from": "composition.pc01",
-      "to": "kernel.observation",
-      "relation": "composes"
-    },
-    {
-      "from": "composition.pc01",
-      "to": "kernel.transition",
-      "relation": "composes"
-    },
-    {
-      "from": "composition.pc02",
-      "to": "kernel.world-state",
-      "relation": "composes"
-    },
-    {
-      "from": "composition.pc03",
-      "to": "kernel.action",
-      "relation": "composes"
-    },
-    {
-      "from": "product.station-zero-v2",
-      "to": "kernel.world-state",
-      "relation": "realizes"
-    },
-    {
-      "from": "product.station-zero-v2",
-      "to": "kernel.transition",
-      "relation": "realizes"
-    },
-    {
-      "from": "experiment.station-zero-v3",
-      "to": "kernel.observation",
-      "relation": "realizes"
-    },
-    {
       "from": "experiment.station-zero-v3",
       "to": "tool.external-json-model",
       "relation": "depends-on"
@@ -682,21 +328,6 @@
       "from": "experiment.casefile",
       "to": "foundation.case-determination",
       "relation": "composes"
-    },
-    {
-      "from": "skills.game",
-      "to": "development.d1",
-      "relation": "advises"
-    },
-    {
-      "from": "skills.game",
-      "to": "development.d2",
-      "relation": "advises"
-    },
-    {
-      "from": "skills.game",
-      "to": "development.d6",
-      "relation": "advises"
     },
     {
       "from": "tool.external-json-model",
@@ -761,22 +392,6 @@
   ],
   "constraints": [
     {
-      "id": "constraint.authority.game-semantics",
-      "kind": "authority",
-      "scope": [
-        "kernel.world-state",
-        "kernel.observation",
-        "kernel.action",
-        "kernel.transition"
-      ],
-      "statement": "Game owns Game-local semantic state, observation, action admission and consequence meaning; generic execution, transport, persistence mechanics and platform services remain with their natural owners.",
-      "failureDisposition": "MOVE_OR_DELETE_GENERIC_MECHANIC",
-      "refs": [
-        "docs/GAME_E2E_OWNERSHIP_BOUNDARY.md",
-        "docs/GAME_EXTERNAL_MATURE_PRACTICE_ADOPTION_R1.md"
-      ]
-    },
-    {
       "id": "constraint.authority.dynamic-standing",
       "kind": "authority",
       "scope": [
@@ -794,8 +409,7 @@
       "kind": "authority",
       "scope": [
         "tool.external-json-model",
-        "service.harness",
-        "kernel.action"
+        "service.harness"
       ],
       "statement": "Provider cognition produces candidate decisions only; Game alone validates identity, legality, freshness and admission before any authoritative World consequence.",
       "failureDisposition": "REJECT_CANDIDATE_EFFECT",
@@ -805,55 +419,16 @@
       ]
     },
     {
-      "id": "constraint.invariant.kernel-minimality",
-      "kind": "invariant",
-      "scope": [
-        "kernel.world-state",
-        "kernel.observation",
-        "kernel.action",
-        "kernel.transition"
-      ],
-      "statement": "The shared Game semantic kernel stays limited to World/State, Observation, Action and Transition; genre systems such as inventory, combat, quests, economy, crafting, dialogue and AI remain composition-layer structures unless a concrete counterexample defeats this representation.",
-      "failureDisposition": "KEEP_AS_COMPOSITION_OR_OPEN_REOPEN_CASE",
-      "refs": [
-        "docs/GAME_FOUNDATIONS_RESEARCH_R29.md"
-      ]
-    },
-    {
       "id": "constraint.invariant.no-direct-model-world-write",
       "kind": "invariant",
       "scope": [
-        "service.harness",
-        "kernel.world-state",
-        "kernel.action",
-        "kernel.transition"
+        "service.harness"
       ],
       "statement": "Model or Agent prose cannot directly mutate authoritative World state; it must cross Game-owned action/candidate admission and deterministic or explicitly authorized consequence resolution.",
       "failureDisposition": "FAIL_CLOSED_BEFORE_WORLD_MUTATION",
       "refs": [
         "docs/GAME_E2E_R5_DUAL_DOGFOOD_ACCEPTANCE.md",
         "docs/STATION_ZERO_V3_EXTERNAL_PROVIDER.md"
-      ]
-    },
-    {
-      "id": "constraint.invariant.stage-core-separation",
-      "kind": "invariant",
-      "scope": [
-        "stage.g0",
-        "development.d1",
-        "development.d2",
-        "development.d3",
-        "development.d4",
-        "development.d5",
-        "development.d6",
-        "development.d7",
-        "development.d8"
-      ],
-      "statement": "G0-G8 is a commitment and coordination projection while D1-D8 is a concurrent responsibility/evidence view; strengthening one D-axis must not silently advance product stage or upgrade weaker evidence axes.",
-      "failureDisposition": "RESTATE_COMPONENT_STANDING",
-      "refs": [
-        "docs/DEVELOPMENT_MODEL.md",
-        "docs/GAME_DEVELOPMENT_CORE.md"
       ]
     },
     {
@@ -874,7 +449,6 @@
       "id": "constraint.admission.external-first-extension",
       "kind": "admission",
       "scope": [
-        "development.d7",
         "service.workstation",
         "service.artifact",
         "service.runtime"
@@ -887,25 +461,9 @@
       ]
     },
     {
-      "id": "constraint.admission.core-primitive-high-bar",
-      "kind": "admission",
-      "scope": [
-        "kernel.world-state",
-        "kernel.observation",
-        "kernel.action",
-        "kernel.transition"
-      ],
-      "statement": "Ordinary gameplay mechanics may be cheap reversible experiments, but adding or changing a shared Game Core primitive requires a concrete semantic case that cannot be expressed by the four existing primitives without losing a player-relevant distinction.",
-      "failureDisposition": "PROTOTYPE_AS_LOCAL_MECHANIC_INSTEAD",
-      "refs": [
-        "docs/GAME_FOUNDATIONS_RESEARCH_R29.md"
-      ]
-    },
-    {
       "id": "constraint.evidence.mechanical-not-human",
       "kind": "evidence",
       "scope": [
-        "development.d4",
         "service.research",
         "mechanic.e01",
         "mechanic.e02",
@@ -919,23 +477,9 @@
       ]
     },
     {
-      "id": "constraint.evidence.prototype-medium-relative",
-      "kind": "evidence",
-      "scope": [
-        "stage.g2",
-        "development.d4"
-      ],
-      "statement": "The cheapest implementation is not automatically a valid prototype; the carrier must represent the dimensions needed for the target question and state omitted dimensions, comparison baseline, observation method and decision rule.",
-      "failureDisposition": "RESELECT_EVIDENCE_CARRIER",
-      "refs": [
-        "docs/DEVELOPMENT_MODEL.md"
-      ]
-    },
-    {
       "id": "constraint.evidence.test-health-boundary",
       "kind": "evidence",
       "scope": [
-        "development.d7",
         "service.runtime"
       ],
       "statement": "Repository typechecks and automated tests establish bounded implementation health only; passing them does not establish product selection, G-stage admission, Human Player Value, market demand or release authority.",
@@ -962,27 +506,9 @@
       ]
     },
     {
-      "id": "constraint.claim.pre-g0-compositions",
-      "kind": "claim-ceiling",
-      "scope": [
-        "composition.pc01",
-        "composition.pc02",
-        "composition.pc03",
-        "stage.g0"
-      ],
-      "statement": "PC01, PC02 and PC03 are reusable product-composition evidence below product selection; their mechanical survival cannot by itself select a shipped product or enter G0.",
-      "failureDisposition": "KEEP_PRODUCT_SELECTION_FALSE_UNTIL_EXPLICIT_GATE",
-      "refs": [
-        "docs/GAME_PRODUCT_THESIS_SPRINT_R1_20260914.md",
-        "docs/GAME_G0_DECISION_PACKET_R1_20260914.md"
-      ]
-    },
-    {
       "id": "constraint.claim.artifact-and-expression",
       "kind": "claim-ceiling",
       "scope": [
-        "development.d6",
-        "development.d7",
         "service.media",
         "service.artifact"
       ],
@@ -1038,8 +564,7 @@
       "id": "constraint.substitution.synthetic-not-human",
       "kind": "forbidden-substitution",
       "scope": [
-        "service.research",
-        "development.d4"
+        "service.research"
       ],
       "statement": "Fixture Agents, policy Agents, model trajectories and synthetic subjects cannot be relabeled as Human participant evidence when the target claim concerns Human experience, interpretation, preference or behaviour.",
       "failureDisposition": "HUMAN_EVIDENCE_REMAINS_UNKNOWN",
@@ -1051,8 +576,7 @@
       "id": "constraint.substitution.host-not-domain-truth",
       "kind": "forbidden-substitution",
       "scope": [
-        "service.host",
-        "kernel.world-state"
+        "service.host"
       ],
       "statement": "Host Task, checkpoint or Board persistence is continuity evidence and navigation; it does not replace Game World truth, Game product authority, Research admissibility or owner-native semantic verification.",
       "failureDisposition": "REVALIDATE_WITH_DOMAIN_OWNER",
@@ -1066,31 +590,12 @@
       "kind": "forbidden-substitution",
       "scope": [
         "service.artifact",
-        "service.media",
-        "kernel.transition"
+        "service.media"
       ],
       "statement": "A screenshot, render, file existence, provider completion or format-valid artifact cannot by itself prove that authoritative gameplay semantics, causality or requested editable structure were preserved.",
       "failureDisposition": "RUN_OWNER_SEMANTIC_AND_NATIVE_CONSUMER_VERIFICATION",
       "refs": [
         "docs/GAME_EXTERNAL_MATURE_PRACTICE_ADOPTION_R1.md"
-      ]
-    },
-    {
-      "id": "constraint.reopen.foundations",
-      "kind": "reopen-condition",
-      "scope": [
-        "foundation.play-game",
-        "foundation.action-control-skill",
-        "foundation.challenge-failure-mastery",
-        "foundation.case-determination"
-      ],
-      "statement": "Frozen foundations reopen only when a concrete game, controller, genre, accessibility case or Agent architecture produces a counterexample matching an explicit FoundationReopenCondition; novelty or new tooling alone is insufficient.",
-      "failureDisposition": "KEEP_FOUNDATION_FROZEN",
-      "refs": [
-        "docs/GAME_PLAY_DEEP_FOUNDATIONS_V1.md",
-        "docs/GAME_ACTION_CONTROL_SKILL_FOUNDATIONS_V1.md",
-        "docs/GAME_CHALLENGE_FAILURE_MASTERY_FOUNDATIONS_V1.md",
-        "docs/GAME_AUTHORITATIVE_CASE_DETERMINATION_FOUNDATIONS_V1.md"
       ]
     },
     {
@@ -1113,7 +618,6 @@
       "id": "constraint.replaceability.engine",
       "kind": "replaceability",
       "scope": [
-        "development.d7",
         "service.workstation"
       ],
       "statement": "Godot is a current proven production substrate, not Game semantic authority; Unity, Unreal, Roblox or later engines remain replaceable choices when a concrete product and evidence justify them.",
@@ -1149,41 +653,50 @@
         "docs/GAME_PRODUCTION_AGENT_ENVIRONMENT.md",
         "docs/GAME_EXTERNAL_MATURE_PRACTICE_ADOPTION_R1.md"
       ]
+    },
+    {
+      "id": "constraint.evidence.composition-noninheritance",
+      "kind": "evidence",
+      "scope": [
+        "mechanic.e01",
+        "mechanic.e02",
+        "mechanic.e03",
+        "composition.pc01",
+        "composition.pc02",
+        "composition.pc03"
+      ],
+      "statement": "Evidence(A) + Evidence(B) does not by itself establish Evidence(A+B): component evidence never automatically becomes composition evidence; every novel combination may create emergent behavior and needs evidence matched to the composition claim.",
+      "failureDisposition": "KEEP_COMPOSITION_CLAIM_UNESTABLISHED_AND_EXPLORE",
+      "refs": [
+        "docs/GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911.md",
+        "docs/GAME_CORE_EXPERIMENT_FINDINGS.md"
+      ]
+    },
+    {
+      "id": "constraint.claim.mechanical-not-product-selection",
+      "kind": "claim-ceiling",
+      "scope": [
+        "mechanic.e01",
+        "mechanic.e02",
+        "mechanic.e03",
+        "composition.pc01",
+        "composition.pc02",
+        "composition.pc03"
+      ],
+      "statement": "Mechanical survival, causal evidence, or successful recombination does not by itself select a product or establish Human Player Value; exploration stays open while product and Human claims remain evidence-bounded.",
+      "failureDisposition": "KEEP_EXPLORING_WITHOUT_UPGRADING_THE_CLAIM",
+      "refs": [
+        "docs/GAME_CORE_EXPERIMENT_FINDINGS.md",
+        "docs/GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911.md"
+      ]
     }
   ],
   "views": {
-    "semanticKernel": [
-      "kernel.world-state",
-      "kernel.observation",
-      "kernel.action",
-      "kernel.transition"
-    ],
     "foundations": [
       "foundation.play-game",
       "foundation.action-control-skill",
       "foundation.challenge-failure-mastery",
       "foundation.case-determination"
-    ],
-    "developmentResponsibilities": [
-      "development.d1",
-      "development.d2",
-      "development.d3",
-      "development.d4",
-      "development.d5",
-      "development.d6",
-      "development.d7",
-      "development.d8"
-    ],
-    "commitmentStages": [
-      "stage.g0",
-      "stage.g1",
-      "stage.g2",
-      "stage.g3",
-      "stage.g4",
-      "stage.g5",
-      "stage.g6",
-      "stage.g7",
-      "stage.g8"
     ],
     "mechanicLibrary": [
       "mechanic.e01",
@@ -1217,20 +730,14 @@
       "service.next"
     ],
     "constraints": [
-      "constraint.authority.game-semantics",
       "constraint.authority.dynamic-standing",
       "constraint.authority.provider-separation",
-      "constraint.invariant.kernel-minimality",
       "constraint.invariant.no-direct-model-world-write",
-      "constraint.invariant.stage-core-separation",
       "constraint.admission.cross-game-promotion",
       "constraint.admission.external-first-extension",
-      "constraint.admission.core-primitive-high-bar",
       "constraint.evidence.mechanical-not-human",
-      "constraint.evidence.prototype-medium-relative",
       "constraint.evidence.test-health-boundary",
       "constraint.claim.mechanic-wave-r1",
-      "constraint.claim.pre-g0-compositions",
       "constraint.claim.artifact-and-expression",
       "constraint.currentness.graph-is-projection",
       "constraint.currentness.exact-source-reentry",
@@ -1238,102 +745,34 @@
       "constraint.substitution.synthetic-not-human",
       "constraint.substitution.host-not-domain-truth",
       "constraint.substitution.render-not-semantics",
-      "constraint.reopen.foundations",
       "constraint.reopen.external-owner-boundary",
       "constraint.replaceability.engine",
       "constraint.replaceability.provider",
-      "constraint.replaceability.skills"
+      "constraint.replaceability.skills",
+      "constraint.evidence.composition-noninheritance",
+      "constraint.claim.mechanical-not-product-selection"
+    ],
+    "advisorySkills": [
+      "skill.game-development-lenses",
+      "skill.game-stage-lens",
+      "skill.game-minimal-interaction-model"
+    ],
+    "mechanismCombinationPatterns": [
+      "pattern.cs2.commitment-information-reset",
+      "pattern.dota.role-power-objective",
+      "pattern.fortnite.survival-loot-convergence",
+      "pattern.minecraft.transformation-authorship",
+      "pattern.gta.cross-system-response",
+      "pattern.elden.commitment-routing",
+      "pattern.bg3.reactivity-acknowledgement",
+      "pattern.factorio.automation-bottleneck",
+      "pattern.mariokart.mastery-volatility",
+      "pattern.animalcrossing.place-return",
+      "pattern.candycrush.stable-grammar-recontext",
+      "pattern.beatsaber.embodied-rhythm"
     ]
   },
   "contracts": [
-    {
-      "nodeId": "kernel.world-state",
-      "contract": "Preserve World / State as one of the four shared Game semantic primitives across products and experiments.",
-      "inputs": [
-        "authoritative semantic inputs",
-        "current rules/authority"
-      ],
-      "outputs": [
-        "Game-local semantic output",
-        "replay-relevant identity"
-      ],
-      "authority": "Game owns this shared semantic responsibility; storage, transport, rendering and provider mechanics do not inherit it.",
-      "dependencies": [],
-      "evidence": [
-        "node.refs + owner-native verification"
-      ],
-      "replaceability": "Semantic responsibility is fixed unless an explicit Game Core reopen case succeeds; implementation remains replaceable.",
-      "consumers": [
-        "all Game compositions/products"
-      ],
-      "currentStanding": "Stable semantic contract; live product state and Task standing require concrete owner/Host re-entry."
-    },
-    {
-      "nodeId": "kernel.observation",
-      "contract": "Preserve Observation as one of the four shared Game semantic primitives across products and experiments.",
-      "inputs": [
-        "authoritative semantic inputs",
-        "current rules/authority"
-      ],
-      "outputs": [
-        "Game-local semantic output",
-        "replay-relevant identity"
-      ],
-      "authority": "Game owns this shared semantic responsibility; storage, transport, rendering and provider mechanics do not inherit it.",
-      "dependencies": [],
-      "evidence": [
-        "node.refs + owner-native verification"
-      ],
-      "replaceability": "Semantic responsibility is fixed unless an explicit Game Core reopen case succeeds; implementation remains replaceable.",
-      "consumers": [
-        "all Game compositions/products"
-      ],
-      "currentStanding": "Stable semantic contract; live product state and Task standing require concrete owner/Host re-entry."
-    },
-    {
-      "nodeId": "kernel.action",
-      "contract": "Preserve Action as one of the four shared Game semantic primitives across products and experiments.",
-      "inputs": [
-        "authoritative semantic inputs",
-        "current rules/authority"
-      ],
-      "outputs": [
-        "Game-local semantic output",
-        "replay-relevant identity"
-      ],
-      "authority": "Game owns this shared semantic responsibility; storage, transport, rendering and provider mechanics do not inherit it.",
-      "dependencies": [],
-      "evidence": [
-        "node.refs + owner-native verification"
-      ],
-      "replaceability": "Semantic responsibility is fixed unless an explicit Game Core reopen case succeeds; implementation remains replaceable.",
-      "consumers": [
-        "all Game compositions/products"
-      ],
-      "currentStanding": "Stable semantic contract; live product state and Task standing require concrete owner/Host re-entry."
-    },
-    {
-      "nodeId": "kernel.transition",
-      "contract": "Preserve Transition / Consequence as one of the four shared Game semantic primitives across products and experiments.",
-      "inputs": [
-        "authoritative semantic inputs",
-        "current rules/authority"
-      ],
-      "outputs": [
-        "Game-local semantic output",
-        "replay-relevant identity"
-      ],
-      "authority": "Game owns this shared semantic responsibility; storage, transport, rendering and provider mechanics do not inherit it.",
-      "dependencies": [],
-      "evidence": [
-        "node.refs + owner-native verification"
-      ],
-      "replaceability": "Semantic responsibility is fixed unless an explicit Game Core reopen case succeeds; implementation remains replaceable.",
-      "consumers": [
-        "all Game compositions/products"
-      ],
-      "currentStanding": "Stable semantic contract; live product state and Task standing require concrete owner/Host re-entry."
-    },
     {
       "nodeId": "foundation.play-game",
       "contract": "Maintain Play / Game Deep Foundations as a frozen Game-semantic foundation with explicit guards and reopen conditions.",
@@ -1352,11 +791,11 @@
       "evidence": [
         "node.refs + owner-native verification"
       ],
-      "replaceability": "Frozen by default; reopen only through an explicit FoundationReopenCondition and concrete counterexample.",
+      "replaceability": "Advisory research knowledge: retain provenance while useful; future games may contradict, replace, bypass or delete this model without a framework reopen gate.",
       "consumers": [
         "downstream Game design/research"
       ],
-      "currentStanding": "Frozen unless a named reopen condition is triggered; current research work remains owner-native."
+      "currentStanding": "Historical/research standing only; re-enter exact evidence if a current claim depends on it. It does not constrain creative exploration."
     },
     {
       "nodeId": "foundation.action-control-skill",
@@ -1376,11 +815,11 @@
       "evidence": [
         "node.refs + owner-native verification"
       ],
-      "replaceability": "Frozen by default; reopen only through an explicit FoundationReopenCondition and concrete counterexample.",
+      "replaceability": "Advisory research knowledge: retain provenance while useful; future games may contradict, replace, bypass or delete this model without a framework reopen gate.",
       "consumers": [
         "downstream Game design/research"
       ],
-      "currentStanding": "Frozen unless a named reopen condition is triggered; current research work remains owner-native."
+      "currentStanding": "Historical/research standing only; re-enter exact evidence if a current claim depends on it. It does not constrain creative exploration."
     },
     {
       "nodeId": "foundation.challenge-failure-mastery",
@@ -1400,11 +839,11 @@
       "evidence": [
         "node.refs + owner-native verification"
       ],
-      "replaceability": "Frozen by default; reopen only through an explicit FoundationReopenCondition and concrete counterexample.",
+      "replaceability": "Advisory research knowledge: retain provenance while useful; future games may contradict, replace, bypass or delete this model without a framework reopen gate.",
       "consumers": [
         "downstream Game design/research"
       ],
-      "currentStanding": "Frozen unless a named reopen condition is triggered; current research work remains owner-native."
+      "currentStanding": "Historical/research standing only; re-enter exact evidence if a current claim depends on it. It does not constrain creative exploration."
     },
     {
       "nodeId": "foundation.case-determination",
@@ -1424,443 +863,11 @@
       "evidence": [
         "node.refs + owner-native verification"
       ],
-      "replaceability": "Frozen by default; reopen only through an explicit FoundationReopenCondition and concrete counterexample.",
+      "replaceability": "Advisory research knowledge: retain provenance while useful; future games may contradict, replace, bypass or delete this model without a framework reopen gate.",
       "consumers": [
         "downstream Game design/research"
       ],
-      "currentStanding": "Frozen unless a named reopen condition is triggered; current research work remains owner-native."
-    },
-    {
-      "nodeId": "development.d1",
-      "contract": "Project D1 Intent / Audience Context as one concurrent Game-development responsibility and route generic mechanics to natural owners.",
-      "inputs": [
-        "current product question",
-        "claim-specific evidence",
-        "owner-native observations"
-      ],
-      "outputs": [
-        "D1 Intent / Audience Context standing",
-        "routing decision",
-        "unresolved evidence gap"
-      ],
-      "authority": "Game owns the Game-specific responsibility/evidence projection; external standards and services retain native authority.",
-      "dependencies": [],
-      "evidence": [
-        "node.refs + owner-native verification"
-      ],
-      "replaceability": "Projection may evolve with evidence; external mechanisms remain independently replaceable.",
-      "consumers": [
-        "G0-G8 decisions"
-      ],
-      "currentStanding": "Stable responsibility view; current evidence strength must be re-entered from claim-specific owner evidence."
-    },
-    {
-      "nodeId": "development.d2",
-      "contract": "Project D2 Play Causality as one concurrent Game-development responsibility and route generic mechanics to natural owners.",
-      "inputs": [
-        "current product question",
-        "claim-specific evidence",
-        "owner-native observations"
-      ],
-      "outputs": [
-        "D2 Play Causality standing",
-        "routing decision",
-        "unresolved evidence gap"
-      ],
-      "authority": "Game owns the Game-specific responsibility/evidence projection; external standards and services retain native authority.",
-      "dependencies": [],
-      "evidence": [
-        "node.refs + owner-native verification"
-      ],
-      "replaceability": "Projection may evolve with evidence; external mechanisms remain independently replaceable.",
-      "consumers": [
-        "G0-G8 decisions"
-      ],
-      "currentStanding": "Stable responsibility view; current evidence strength must be re-entered from claim-specific owner evidence."
-    },
-    {
-      "nodeId": "development.d3",
-      "contract": "Project D3 Player Learning / Legibility as one concurrent Game-development responsibility and route generic mechanics to natural owners.",
-      "inputs": [
-        "current product question",
-        "claim-specific evidence",
-        "owner-native observations"
-      ],
-      "outputs": [
-        "D3 Player Learning / Legibility standing",
-        "routing decision",
-        "unresolved evidence gap"
-      ],
-      "authority": "Game owns the Game-specific responsibility/evidence projection; external standards and services retain native authority.",
-      "dependencies": [
-        "service.research"
-      ],
-      "evidence": [
-        "node.refs + owner-native verification"
-      ],
-      "replaceability": "Projection may evolve with evidence; external mechanisms remain independently replaceable.",
-      "consumers": [
-        "G0-G8 decisions"
-      ],
-      "currentStanding": "Stable responsibility view; current evidence strength must be re-entered from claim-specific owner evidence."
-    },
-    {
-      "nodeId": "development.d4",
-      "contract": "Project D4 Evidence / Prototyping as one concurrent Game-development responsibility and route generic mechanics to natural owners.",
-      "inputs": [
-        "current product question",
-        "claim-specific evidence",
-        "owner-native observations"
-      ],
-      "outputs": [
-        "D4 Evidence / Prototyping standing",
-        "routing decision",
-        "unresolved evidence gap"
-      ],
-      "authority": "Game owns the Game-specific responsibility/evidence projection; external standards and services retain native authority.",
-      "dependencies": [
-        "service.research"
-      ],
-      "evidence": [
-        "node.refs + owner-native verification"
-      ],
-      "replaceability": "Projection may evolve with evidence; external mechanisms remain independently replaceable.",
-      "consumers": [
-        "G0-G8 decisions"
-      ],
-      "currentStanding": "Stable responsibility view; current evidence strength must be re-entered from claim-specific owner evidence."
-    },
-    {
-      "nodeId": "development.d5",
-      "contract": "Project D5 Content / Progression Architecture as one concurrent Game-development responsibility and route generic mechanics to natural owners.",
-      "inputs": [
-        "current product question",
-        "claim-specific evidence",
-        "owner-native observations"
-      ],
-      "outputs": [
-        "D5 Content / Progression Architecture standing",
-        "routing decision",
-        "unresolved evidence gap"
-      ],
-      "authority": "Game owns the Game-specific responsibility/evidence projection; external standards and services retain native authority.",
-      "dependencies": [],
-      "evidence": [
-        "node.refs + owner-native verification"
-      ],
-      "replaceability": "Projection may evolve with evidence; external mechanisms remain independently replaceable.",
-      "consumers": [
-        "G0-G8 decisions"
-      ],
-      "currentStanding": "Stable responsibility view; current evidence strength must be re-entered from claim-specific owner evidence."
-    },
-    {
-      "nodeId": "development.d6",
-      "contract": "Project D6 Expression / Feel as one concurrent Game-development responsibility and route generic mechanics to natural owners.",
-      "inputs": [
-        "current product question",
-        "claim-specific evidence",
-        "owner-native observations"
-      ],
-      "outputs": [
-        "D6 Expression / Feel standing",
-        "routing decision",
-        "unresolved evidence gap"
-      ],
-      "authority": "Game owns the Game-specific responsibility/evidence projection; external standards and services retain native authority.",
-      "dependencies": [
-        "service.media"
-      ],
-      "evidence": [
-        "node.refs + owner-native verification"
-      ],
-      "replaceability": "Projection may evolve with evidence; external mechanisms remain independently replaceable.",
-      "consumers": [
-        "G0-G8 decisions"
-      ],
-      "currentStanding": "Stable responsibility view; current evidence strength must be re-entered from claim-specific owner evidence."
-    },
-    {
-      "nodeId": "development.d7",
-      "contract": "Project D7 Production Realization as one concurrent Game-development responsibility and route generic mechanics to natural owners.",
-      "inputs": [
-        "current product question",
-        "claim-specific evidence",
-        "owner-native observations"
-      ],
-      "outputs": [
-        "D7 Production Realization standing",
-        "routing decision",
-        "unresolved evidence gap"
-      ],
-      "authority": "Game owns the Game-specific responsibility/evidence projection; external standards and services retain native authority.",
-      "dependencies": [
-        "service.artifact",
-        "service.workstation"
-      ],
-      "evidence": [
-        "node.refs + owner-native verification"
-      ],
-      "replaceability": "Projection may evolve with evidence; external mechanisms remain independently replaceable.",
-      "consumers": [
-        "G0-G8 decisions"
-      ],
-      "currentStanding": "Stable responsibility view; current evidence strength must be re-entered from claim-specific owner evidence."
-    },
-    {
-      "nodeId": "development.d8",
-      "contract": "Project D8 Product Ecology / Evolution as one concurrent Game-development responsibility and route generic mechanics to natural owners.",
-      "inputs": [
-        "current product question",
-        "claim-specific evidence",
-        "owner-native observations"
-      ],
-      "outputs": [
-        "D8 Product Ecology / Evolution standing",
-        "routing decision",
-        "unresolved evidence gap"
-      ],
-      "authority": "Game owns the Game-specific responsibility/evidence projection; external standards and services retain native authority.",
-      "dependencies": [
-        "service.distribution"
-      ],
-      "evidence": [
-        "node.refs + owner-native verification"
-      ],
-      "replaceability": "Projection may evolve with evidence; external mechanisms remain independently replaceable.",
-      "consumers": [
-        "G0-G8 decisions"
-      ],
-      "currentStanding": "Stable responsibility view; current evidence strength must be re-entered from claim-specific owner evidence."
-    },
-    {
-      "nodeId": "stage.g0",
-      "contract": "Project G0 Define as a bounded Game commitment milestone without laundering weaker evidence dimensions.",
-      "inputs": [
-        "prior commitment state",
-        "D1-D8 evidence bundle",
-        "decision basis"
-      ],
-      "outputs": [
-        "G0 Define commitment or hold",
-        "exit-gate rationale",
-        "reopen conditions"
-      ],
-      "authority": "Game owns G0-G8 product-stage semantics only; generic software lifecycle and external release/research mechanisms remain external.",
-      "dependencies": [],
-      "evidence": [
-        "node.refs + owner-native verification"
-      ],
-      "replaceability": "Stage projection may be versioned but cannot absorb external lifecycle standards or replace component evidence.",
-      "consumers": [
-        "product coordination"
-      ],
-      "currentStanding": "Stage semantics are stable; actual product admission is dynamic decision evidence and not live truth here."
-    },
-    {
-      "nodeId": "stage.g1",
-      "contract": "Project G1 Preproduction / Core Design as a bounded Game commitment milestone without laundering weaker evidence dimensions.",
-      "inputs": [
-        "prior commitment state",
-        "D1-D8 evidence bundle",
-        "decision basis"
-      ],
-      "outputs": [
-        "G1 Preproduction / Core Design commitment or hold",
-        "exit-gate rationale",
-        "reopen conditions"
-      ],
-      "authority": "Game owns G0-G8 product-stage semantics only; generic software lifecycle and external release/research mechanisms remain external.",
-      "dependencies": [],
-      "evidence": [
-        "node.refs + owner-native verification"
-      ],
-      "replaceability": "Stage projection may be versioned but cannot absorb external lifecycle standards or replace component evidence.",
-      "consumers": [
-        "product coordination"
-      ],
-      "currentStanding": "Stage semantics are stable; actual product admission is dynamic decision evidence and not live truth here."
-    },
-    {
-      "nodeId": "stage.g2",
-      "contract": "Project G2 Kernel / Graybox Prototype as a bounded Game commitment milestone without laundering weaker evidence dimensions.",
-      "inputs": [
-        "prior commitment state",
-        "D1-D8 evidence bundle",
-        "decision basis"
-      ],
-      "outputs": [
-        "G2 Kernel / Graybox Prototype commitment or hold",
-        "exit-gate rationale",
-        "reopen conditions"
-      ],
-      "authority": "Game owns G0-G8 product-stage semantics only; generic software lifecycle and external release/research mechanisms remain external.",
-      "dependencies": [
-        "development.d2"
-      ],
-      "evidence": [
-        "node.refs + owner-native verification"
-      ],
-      "replaceability": "Stage projection may be versioned but cannot absorb external lifecycle standards or replace component evidence.",
-      "consumers": [
-        "product coordination"
-      ],
-      "currentStanding": "Stage semantics are stable; actual product admission is dynamic decision evidence and not live truth here."
-    },
-    {
-      "nodeId": "stage.g3",
-      "contract": "Project G3 Playable Prototype as a bounded Game commitment milestone without laundering weaker evidence dimensions.",
-      "inputs": [
-        "prior commitment state",
-        "D1-D8 evidence bundle",
-        "decision basis"
-      ],
-      "outputs": [
-        "G3 Playable Prototype commitment or hold",
-        "exit-gate rationale",
-        "reopen conditions"
-      ],
-      "authority": "Game owns G0-G8 product-stage semantics only; generic software lifecycle and external release/research mechanisms remain external.",
-      "dependencies": [
-        "development.d3"
-      ],
-      "evidence": [
-        "node.refs + owner-native verification"
-      ],
-      "replaceability": "Stage projection may be versioned but cannot absorb external lifecycle standards or replace component evidence.",
-      "consumers": [
-        "product coordination"
-      ],
-      "currentStanding": "Stage semantics are stable; actual product admission is dynamic decision evidence and not live truth here."
-    },
-    {
-      "nodeId": "stage.g4",
-      "contract": "Project G4 Vertical Slice as a bounded Game commitment milestone without laundering weaker evidence dimensions.",
-      "inputs": [
-        "prior commitment state",
-        "D1-D8 evidence bundle",
-        "decision basis"
-      ],
-      "outputs": [
-        "G4 Vertical Slice commitment or hold",
-        "exit-gate rationale",
-        "reopen conditions"
-      ],
-      "authority": "Game owns G0-G8 product-stage semantics only; generic software lifecycle and external release/research mechanisms remain external.",
-      "dependencies": [
-        "development.d6",
-        "development.d7"
-      ],
-      "evidence": [
-        "node.refs + owner-native verification"
-      ],
-      "replaceability": "Stage projection may be versioned but cannot absorb external lifecycle standards or replace component evidence.",
-      "consumers": [
-        "product coordination"
-      ],
-      "currentStanding": "Stage semantics are stable; actual product admission is dynamic decision evidence and not live truth here."
-    },
-    {
-      "nodeId": "stage.g5",
-      "contract": "Project G5 Production / Content Expansion as a bounded Game commitment milestone without laundering weaker evidence dimensions.",
-      "inputs": [
-        "prior commitment state",
-        "D1-D8 evidence bundle",
-        "decision basis"
-      ],
-      "outputs": [
-        "G5 Production / Content Expansion commitment or hold",
-        "exit-gate rationale",
-        "reopen conditions"
-      ],
-      "authority": "Game owns G0-G8 product-stage semantics only; generic software lifecycle and external release/research mechanisms remain external.",
-      "dependencies": [
-        "development.d5"
-      ],
-      "evidence": [
-        "node.refs + owner-native verification"
-      ],
-      "replaceability": "Stage projection may be versioned but cannot absorb external lifecycle standards or replace component evidence.",
-      "consumers": [
-        "product coordination"
-      ],
-      "currentStanding": "Stage semantics are stable; actual product admission is dynamic decision evidence and not live truth here."
-    },
-    {
-      "nodeId": "stage.g6",
-      "contract": "Project G6 Alpha / Content-complete Validation as a bounded Game commitment milestone without laundering weaker evidence dimensions.",
-      "inputs": [
-        "prior commitment state",
-        "D1-D8 evidence bundle",
-        "decision basis"
-      ],
-      "outputs": [
-        "G6 Alpha / Content-complete Validation commitment or hold",
-        "exit-gate rationale",
-        "reopen conditions"
-      ],
-      "authority": "Game owns G0-G8 product-stage semantics only; generic software lifecycle and external release/research mechanisms remain external.",
-      "dependencies": [
-        "development.d4"
-      ],
-      "evidence": [
-        "node.refs + owner-native verification"
-      ],
-      "replaceability": "Stage projection may be versioned but cannot absorb external lifecycle standards or replace component evidence.",
-      "consumers": [
-        "product coordination"
-      ],
-      "currentStanding": "Stage semantics are stable; actual product admission is dynamic decision evidence and not live truth here."
-    },
-    {
-      "nodeId": "stage.g7",
-      "contract": "Project G7 Beta / Polish / Release Candidate as a bounded Game commitment milestone without laundering weaker evidence dimensions.",
-      "inputs": [
-        "prior commitment state",
-        "D1-D8 evidence bundle",
-        "decision basis"
-      ],
-      "outputs": [
-        "G7 Beta / Polish / Release Candidate commitment or hold",
-        "exit-gate rationale",
-        "reopen conditions"
-      ],
-      "authority": "Game owns G0-G8 product-stage semantics only; generic software lifecycle and external release/research mechanisms remain external.",
-      "dependencies": [
-        "development.d8"
-      ],
-      "evidence": [
-        "node.refs + owner-native verification"
-      ],
-      "replaceability": "Stage projection may be versioned but cannot absorb external lifecycle standards or replace component evidence.",
-      "consumers": [
-        "product coordination"
-      ],
-      "currentStanding": "Stage semantics are stable; actual product admission is dynamic decision evidence and not live truth here."
-    },
-    {
-      "nodeId": "stage.g8",
-      "contract": "Project G8 Release / Operate / Learn as a bounded Game commitment milestone without laundering weaker evidence dimensions.",
-      "inputs": [
-        "prior commitment state",
-        "D1-D8 evidence bundle",
-        "decision basis"
-      ],
-      "outputs": [
-        "G8 Release / Operate / Learn commitment or hold",
-        "exit-gate rationale",
-        "reopen conditions"
-      ],
-      "authority": "Game owns G0-G8 product-stage semantics only; generic software lifecycle and external release/research mechanisms remain external.",
-      "dependencies": [],
-      "evidence": [
-        "node.refs + owner-native verification"
-      ],
-      "replaceability": "Stage projection may be versioned but cannot absorb external lifecycle standards or replace component evidence.",
-      "consumers": [
-        "product coordination"
-      ],
-      "currentStanding": "Stage semantics are stable; actual product admission is dynamic decision evidence and not live truth here."
+      "currentStanding": "Historical/research standing only; re-enter exact evidence if a current claim depends on it. It does not constrain creative exploration."
     },
     {
       "nodeId": "mechanic.e01",
@@ -2419,14 +1426,6 @@
   ],
   "constraintProfiles": [
     {
-      "constraintId": "constraint.authority.game-semantics",
-      "profileKind": "authority-boundary",
-      "enforcementMode": "fail-closed-on-authority-confusion",
-      "authorityOwner": "Game",
-      "whenUnknown": "block",
-      "dischargePolicy": "not-dischargeable-by-evidence-alone"
-    },
-    {
       "constraintId": "constraint.authority.dynamic-standing",
       "profileKind": "authority-boundary",
       "enforcementMode": "fail-closed-on-authority-confusion",
@@ -2443,23 +1442,7 @@
       "dischargePolicy": "not-dischargeable-by-evidence-alone"
     },
     {
-      "constraintId": "constraint.invariant.kernel-minimality",
-      "profileKind": "hard-invariant",
-      "enforcementMode": "must-hold-until-explicit-reopen",
-      "authorityOwner": "Game",
-      "whenUnknown": "preserve-current-invariant",
-      "dischargePolicy": "not-dischargeable; explicit-reopen-review-required"
-    },
-    {
       "constraintId": "constraint.invariant.no-direct-model-world-write",
-      "profileKind": "hard-invariant",
-      "enforcementMode": "must-hold-until-explicit-reopen",
-      "authorityOwner": "Game",
-      "whenUnknown": "preserve-current-invariant",
-      "dischargePolicy": "not-dischargeable; explicit-reopen-review-required"
-    },
-    {
-      "constraintId": "constraint.invariant.stage-core-separation",
       "profileKind": "hard-invariant",
       "enforcementMode": "must-hold-until-explicit-reopen",
       "authorityOwner": "Game",
@@ -2483,26 +1466,10 @@
       "dischargePolicy": "evidence-may-satisfy-or-support-adjudication"
     },
     {
-      "constraintId": "constraint.admission.core-primitive-high-bar",
-      "profileKind": "admission-gate",
-      "enforcementMode": "block-until-admission-basis",
-      "authorityOwner": "Game",
-      "whenUnknown": "block",
-      "dischargePolicy": "evidence-may-satisfy-or-support-adjudication"
-    },
-    {
       "constraintId": "constraint.evidence.mechanical-not-human",
       "profileKind": "evidence-gate",
       "enforcementMode": "lower-claim-until-target-evidence",
       "authorityOwner": "Research v2 + Game",
-      "whenUnknown": "unknown-or-lower-claim",
-      "dischargePolicy": "target-matched-evidence-may-satisfy-gate"
-    },
-    {
-      "constraintId": "constraint.evidence.prototype-medium-relative",
-      "profileKind": "evidence-gate",
-      "enforcementMode": "lower-claim-until-target-evidence",
-      "authorityOwner": "Game D4 + Research v2",
       "whenUnknown": "unknown-or-lower-claim",
       "dischargePolicy": "target-matched-evidence-may-satisfy-gate"
     },
@@ -2519,14 +1486,6 @@
       "profileKind": "claim-fence",
       "enforcementMode": "cap-claim-at-supported-scope",
       "authorityOwner": "Game + Research v2",
-      "whenUnknown": "keep-lower-claim",
-      "dischargePolicy": "new-evidence-may-support-explicit-claim-review"
-    },
-    {
-      "constraintId": "constraint.claim.pre-g0-compositions",
-      "profileKind": "claim-fence",
-      "enforcementMode": "cap-claim-at-supported-scope",
-      "authorityOwner": "Game",
       "whenUnknown": "keep-lower-claim",
       "dischargePolicy": "new-evidence-may-support-explicit-claim-review"
     },
@@ -2587,14 +1546,6 @@
       "dischargePolicy": "not-dischargeable; correct authority/evidence must be separately supplied"
     },
     {
-      "constraintId": "constraint.reopen.foundations",
-      "profileKind": "reopen-trigger",
-      "enforcementMode": "permit-review-not-automatic-change",
-      "authorityOwner": "Game foundation authority",
-      "whenUnknown": "keep-frozen",
-      "dischargePolicy": "counterexample-evidence-permits-reopen-review-only"
-    },
-    {
       "constraintId": "constraint.reopen.external-owner-boundary",
       "profileKind": "reopen-trigger",
       "enforcementMode": "permit-review-not-automatic-change",
@@ -2625,6 +1576,22 @@
       "authorityOwner": "Client Skill policy + Game domain owner",
       "whenUnknown": "keep-current-proven-owner-contract",
       "dischargePolicy": "replacement-evidence-supports-adjudication; contract-still-required"
+    },
+    {
+      "constraintId": "constraint.evidence.composition-noninheritance",
+      "profileKind": "evidence-gate",
+      "enforcementMode": "prevent-automatic-evidence-inheritance-without-blocking-exploration",
+      "authorityOwner": "Game claim owner + Research evidence owner",
+      "whenUnknown": "explore-composition-but-keep-composition-claim-unestablished",
+      "dischargePolicy": "composition-matched evidence may support the exact composition claim"
+    },
+    {
+      "constraintId": "constraint.claim.mechanical-not-product-selection",
+      "profileKind": "claim-fence",
+      "enforcementMode": "cap-claim-without-blocking-exploration",
+      "authorityOwner": "Game product/claim owner",
+      "whenUnknown": "continue-exploration-without-product-or-human-value-claim",
+      "dischargePolicy": "claim-specific evidence may support explicit review"
     }
   ],
   "constraintRelationKinds": [
@@ -2639,20 +1606,6 @@
   ],
   "constraintRelations": [
     {
-      "from": "constraint.authority.game-semantics",
-      "to": "constraint.invariant.kernel-minimality",
-      "relation": "strengthens",
-      "condition": "when a shared Game abstraction is proposed",
-      "effect": "Game semantic ownership reinforces keeping generic mechanics outside the core"
-    },
-    {
-      "from": "constraint.authority.game-semantics",
-      "to": "constraint.invariant.no-direct-model-world-write",
-      "relation": "strengthens",
-      "condition": "when an external actor can produce candidate actions",
-      "effect": "external capability cannot bypass Game consequence authority"
-    },
-    {
       "from": "constraint.authority.provider-separation",
       "to": "constraint.invariant.no-direct-model-world-write",
       "relation": "strengthens",
@@ -2660,32 +1613,11 @@
       "effect": "provider cognition remains candidate-only before Game admission"
     },
     {
-      "from": "constraint.admission.core-primitive-high-bar",
-      "to": "constraint.reopen.foundations",
-      "relation": "preconditions",
-      "condition": "when a new shared primitive is claimed necessary",
-      "effect": "a concrete core-change case must reach explicit foundation reopen review"
-    },
-    {
-      "from": "constraint.reopen.foundations",
-      "to": "constraint.invariant.kernel-minimality",
-      "relation": "reopen-enables",
-      "condition": "when a named FoundationReopenCondition has credible counterexample evidence",
-      "effect": "the invariant may be reviewed but is not automatically removed"
-    },
-    {
       "from": "constraint.evidence.mechanical-not-human",
       "to": "constraint.claim.mechanic-wave-r1",
       "relation": "narrows",
       "condition": "when E01-E03 evidence is mechanical or synthetic only",
       "effect": "mechanic claims remain mechanical-scope only"
-    },
-    {
-      "from": "constraint.evidence.mechanical-not-human",
-      "to": "constraint.claim.pre-g0-compositions",
-      "relation": "narrows",
-      "condition": "when PC evidence lacks Human participant evidence",
-      "effect": "composition survival cannot become Human-value or product-selection evidence"
     },
     {
       "from": "constraint.evidence.mechanical-not-human",
@@ -2707,13 +1639,6 @@
       "relation": "strengthens",
       "condition": "when native rendering or file validity succeeds",
       "effect": "artifact success cannot lift the gameplay or Human-value claim ceiling"
-    },
-    {
-      "from": "constraint.evidence.test-health-boundary",
-      "to": "constraint.claim.pre-g0-compositions",
-      "relation": "narrows",
-      "condition": "when repository tests pass",
-      "effect": "technical health cannot promote a pre-G0 composition"
     },
     {
       "from": "constraint.currentness.graph-is-projection",
@@ -2759,13 +1684,6 @@
     },
     {
       "from": "constraint.replaceability.engine",
-      "to": "constraint.evidence.prototype-medium-relative",
-      "relation": "potential-conflict",
-      "condition": "when the cheapest adequate prototype medium differs from the currently proven Godot substrate",
-      "effect": "choose the evidence-adequate carrier without turning Godot into a universal lock"
-    },
-    {
-      "from": "constraint.replaceability.engine",
       "to": "constraint.reopen.external-owner-boundary",
       "relation": "requires-adjudication-after",
       "condition": "when an engine/tool replacement appears to require moving horizontal ownership into Game",
@@ -2793,34 +1711,6 @@
       "effect": "technical access still does not grant Game or external effect authority"
     },
     {
-      "from": "constraint.replaceability.skills",
-      "to": "constraint.authority.game-semantics",
-      "relation": "strengthens",
-      "condition": "when a new Skill package is installed or exposed",
-      "effect": "advisory Skill text cannot transfer Game semantic ownership"
-    },
-    {
-      "from": "constraint.invariant.stage-core-separation",
-      "to": "constraint.claim.pre-g0-compositions",
-      "relation": "narrows",
-      "condition": "when a composition has strong local mechanical evidence",
-      "effect": "strong D-axis evidence cannot silently advance the G-stage"
-    },
-    {
-      "from": "constraint.evidence.prototype-medium-relative",
-      "to": "constraint.claim.artifact-and-expression",
-      "relation": "preconditions",
-      "condition": "when expression/feel evidence is used",
-      "effect": "the prototype/render carrier must represent the target dimensions before the claim is considered"
-    },
-    {
-      "from": "constraint.admission.cross-game-promotion",
-      "to": "constraint.invariant.kernel-minimality",
-      "relation": "potential-conflict",
-      "condition": "when repeated product-local code appears broadly reusable",
-      "effect": "reuse pressure must not inflate the shared kernel without independent semantic necessity"
-    },
-    {
       "from": "constraint.admission.cross-game-promotion",
       "to": "constraint.reopen.external-owner-boundary",
       "relation": "requires-adjudication-after",
@@ -2833,6 +1723,20 @@
       "relation": "strengthens",
       "condition": "when format tests and renders both pass",
       "effect": "technical success still cannot claim semantic or Human correctness"
+    },
+    {
+      "from": "constraint.evidence.mechanical-not-human",
+      "to": "constraint.evidence.composition-noninheritance",
+      "relation": "strengthens",
+      "condition": "when a novel combination is built from mechanically evidenced components",
+      "effect": "component mechanical evidence remains provenance for components and does not become Human or composition-level evidence"
+    },
+    {
+      "from": "constraint.evidence.composition-noninheritance",
+      "to": "constraint.claim.mechanical-not-product-selection",
+      "relation": "narrows",
+      "condition": "when a recombination is interesting or mechanically successful",
+      "effect": "the result may be explored freely while product-selection and Human-value claims remain separate"
     }
   ],
   "evidenceClasses": [
@@ -2869,8 +1773,8 @@
     {
       "id": "evidence.semantic-counterexample",
       "owner": "Game foundation authority",
-      "establishes": "a concrete case defeats a frozen semantic representation or named FoundationReopenCondition",
-      "cannotEstablish": "the replacement ontology or implementation without adjudication"
+      "establishes": "a concrete case contradicts or exceeds an existing semantic model and motivates revision, replacement or a new experiment",
+      "cannotEstablish": "a mandatory replacement ontology, universal Game law, product selection or external effect authority"
     },
     {
       "id": "evidence.native-consumer-verification",
@@ -2930,20 +1834,6 @@
       "note": "A second independent consumer is minimum evidence, not automatic promotion; the shared-owner decision remains explicit."
     },
     {
-      "constraintId": "constraint.admission.core-primitive-high-bar",
-      "evidenceClass": "evidence.semantic-counterexample",
-      "effect": "permits-reopen-review",
-      "authorityAfterEvidence": "Game foundation authority",
-      "note": "A concrete counterexample can open review of the primitive set but cannot itself rewrite Game Core."
-    },
-    {
-      "constraintId": "constraint.reopen.foundations",
-      "evidenceClass": "evidence.semantic-counterexample",
-      "effect": "permits-reopen-review",
-      "authorityAfterEvidence": "Game foundation authority",
-      "note": "Matched reopen evidence allows foundation review while preserving fail-closed standing until a new decision commits."
-    },
-    {
       "constraintId": "constraint.reopen.external-owner-boundary",
       "evidenceClass": "evidence.external-substitution-mismatch",
       "effect": "permits-reopen-review",
@@ -2977,6 +1867,20 @@
       "effect": "supports-adjudication",
       "authorityAfterEvidence": "Game D6 + Research v2",
       "note": "Human response evidence can support a broader expression/feel claim only after target-variable and population review."
+    },
+    {
+      "constraintId": "constraint.evidence.composition-noninheritance",
+      "evidenceClass": "evidence.mechanical-causal",
+      "effect": "does-not-discharge",
+      "authorityAfterEvidence": "Game claim owner + Research evidence owner",
+      "note": "Component-level mechanical evidence remains useful provenance but does not establish the behavior or value of the combined composition."
+    },
+    {
+      "constraintId": "constraint.claim.mechanical-not-product-selection",
+      "evidenceClass": "evidence.human-participant",
+      "effect": "supports-adjudication",
+      "authorityAfterEvidence": "Game product/claim owner",
+      "note": "Human evidence can support a specific Player Value review but does not automatically select a product."
     }
   ],
   "authorityAdjudicationRules": [
@@ -2998,35 +1902,16 @@
       ]
     },
     {
-      "id": "adjudication.prototype-medium-vs-current-engine",
-      "whenConstraints": [
-        "constraint.replaceability.engine",
-        "constraint.evidence.prototype-medium-relative"
-      ],
-      "authority": [
-        "Game D4 evidence owner",
-        "Game D7 production owner",
-        "Workstation v2"
-      ],
-      "decision": "Choose the carrier or engine that is adequate for the target evidence while treating current Godot proof as substrate evidence rather than universal engine authority.",
-      "defaultWhenUnresolved": "KEEP_CURRENT_PROVEN_SUBSTRATE_AND_LOWER_THE_CLAIM",
-      "refs": [
-        "docs/DEVELOPMENT_MODEL.md",
-        "docs/GAME_PRODUCTION_AGENT_ENVIRONMENT.md",
-        "docs/GAME_EXTERNAL_MATURE_STACK_R3_20260913.md"
-      ]
-    },
-    {
       "id": "adjudication.cross-game-promotion",
       "whenConstraints": [
         "constraint.admission.cross-game-promotion",
-        "constraint.invariant.kernel-minimality"
+        "constraint.admission.external-first-extension"
       ],
       "authority": [
         "Game ownership authority"
       ],
-      "decision": "Decide whether repeated product-local semantics remain local, become a thin shared profile/adapter, or meet the evidence bar for shared Game promotion.",
-      "defaultWhenUnresolved": "KEEP_PRODUCT_LOCAL",
+      "decision": "Decide whether repeated implementation structure should remain product-local, become a thin shared adapter/profile, or move to another owner. This is code/ownership organization only and never decides whether a mechanic combination may be explored.",
+      "defaultWhenUnresolved": "KEEP_IMPLEMENTATION_PRODUCT_LOCAL_BUT_ALLOW_CREATIVE_EXPLORATION",
       "refs": [
         "docs/GAME_E2E_OWNERSHIP_BOUNDARY.md",
         "docs/ARCHITECTURE.md"
@@ -3052,112 +1937,23 @@
   ],
   "decisionOperations": [
     {
-      "id": "compose",
-      "description": "Evaluate a bounded composition of existing Game nodes without product selection, stage admission, shared-core promotion or Human-value claim.",
-      "constraintSeeds": [
-        "constraint.evidence.mechanical-not-human",
-        "constraint.claim.mechanic-wave-r1",
-        "constraint.claim.pre-g0-compositions"
-      ],
-      "gateConstraints": [],
-      "requiredAdjudicationRules": [],
-      "defaultWhenUnresolved": "NO_GRAPH_BLOCK_WITH_FENCES"
-    },
-    {
-      "id": "promote-shared-core",
-      "description": "Evaluate promotion of product/mechanic semantics into shared Game Core or shared Big Game ownership.",
-      "constraintSeeds": [
-        "constraint.admission.cross-game-promotion",
-        "constraint.invariant.kernel-minimality",
-        "constraint.admission.core-primitive-high-bar",
-        "constraint.reopen.foundations"
-      ],
-      "gateConstraints": [
-        "constraint.admission.cross-game-promotion",
-        "constraint.admission.core-primitive-high-bar"
-      ],
-      "requiredAdjudicationRules": [
-        "adjudication.cross-game-promotion"
-      ],
-      "defaultWhenUnresolved": "BLOCKED_PENDING_EVIDENCE_OR_ADJUDICATION"
-    },
-    {
       "id": "claim-human-value",
-      "description": "Evaluate whether current evidence can support a Human experience, interpretation, preference or behaviour claim.",
+      "description": "Check whether evidence supports a specific Human experience/interpretation/preference/behaviour claim without restricting what may be built or combined.",
       "constraintSeeds": [
         "constraint.evidence.mechanical-not-human",
         "constraint.substitution.synthetic-not-human",
-        "constraint.claim.mechanic-wave-r1",
-        "constraint.claim.pre-g0-compositions"
+        "constraint.evidence.composition-noninheritance",
+        "constraint.claim.mechanical-not-product-selection"
       ],
       "gateConstraints": [
         "constraint.evidence.mechanical-not-human"
       ],
       "requiredAdjudicationRules": [],
-      "defaultWhenUnresolved": "BLOCKED_PENDING_EVIDENCE_OR_ADJUDICATION"
-    },
-    {
-      "id": "select-product",
-      "description": "Evaluate support around a product-selection decision without allowing pre-G0 mechanical survival to become the decision itself.",
-      "constraintSeeds": [
-        "constraint.claim.pre-g0-compositions",
-        "constraint.invariant.stage-core-separation",
-        "constraint.currentness.exact-source-reentry"
-      ],
-      "gateConstraints": [
-        "constraint.currentness.exact-source-reentry"
-      ],
-      "requiredAdjudicationRules": [],
-      "requiresAuthorityDecision": true,
-      "authorityDecisionOwner": "Game product-selection authority",
-      "defaultWhenUnresolved": "BLOCKED_PENDING_EVIDENCE_OR_ADJUDICATION"
-    },
-    {
-      "id": "enter-g0",
-      "description": "Evaluate support around G0 admission while preserving D-axis evidence and exact currentness.",
-      "constraintSeeds": [
-        "constraint.claim.pre-g0-compositions",
-        "constraint.invariant.stage-core-separation",
-        "constraint.currentness.exact-source-reentry"
-      ],
-      "gateConstraints": [
-        "constraint.currentness.exact-source-reentry"
-      ],
-      "requiredAdjudicationRules": [],
-      "requiresAuthorityDecision": true,
-      "authorityDecisionOwner": "Game G0-G8 stage authority",
-      "defaultWhenUnresolved": "BLOCKED_PENDING_EVIDENCE_OR_ADJUDICATION"
-    },
-    {
-      "id": "replace-provider",
-      "description": "Evaluate provider replacement behind the candidate-decision contract without transferring Game World/action/consequence authority.",
-      "constraintSeeds": [
-        "constraint.replaceability.provider",
-        "constraint.authority.provider-separation",
-        "constraint.invariant.no-direct-model-world-write"
-      ],
-      "gateConstraints": [],
-      "requiredAdjudicationRules": [
-        "adjudication.provider-replacement-authority"
-      ],
-      "defaultWhenUnresolved": "AUTHORITY_ADJUDICATION_REQUIRED"
-    },
-    {
-      "id": "replace-engine",
-      "description": "Evaluate an engine/substrate replacement against prototype-medium adequacy and Workstation/Game production boundaries.",
-      "constraintSeeds": [
-        "constraint.replaceability.engine",
-        "constraint.evidence.prototype-medium-relative"
-      ],
-      "gateConstraints": [],
-      "requiredAdjudicationRules": [
-        "adjudication.prototype-medium-vs-current-engine"
-      ],
-      "defaultWhenUnresolved": "AUTHORITY_ADJUDICATION_REQUIRED"
+      "defaultWhenUnresolved": "EVIDENCE_NOT_TRANSFERABLE"
     },
     {
       "id": "external-effect",
-      "description": "Evaluate an external effect without treating credentials or provider capability as effect authority.",
+      "description": "Check an external effect authority boundary; this never restricts creative exploration inside the repository.",
       "constraintSeeds": [
         "constraint.substitution.credential-not-authority",
         "constraint.currentness.exact-source-reentry"
@@ -3171,7 +1967,349 @@
       "requiredAdjudicationRules": [],
       "requiresAuthorityDecision": true,
       "authorityDecisionOwner": "Distribution/user effect authority",
-      "defaultWhenUnresolved": "BLOCKED_PENDING_EVIDENCE_OR_ADJUDICATION"
+      "defaultWhenUnresolved": "EXTERNAL_EFFECT_BLOCKED"
+    },
+    {
+      "id": "replace-provider",
+      "description": "Check provider replacement authority for runtime-agent integrations without turning provider capability into Game World authority.",
+      "constraintSeeds": [
+        "constraint.replaceability.provider",
+        "constraint.authority.provider-separation",
+        "constraint.invariant.no-direct-model-world-write"
+      ],
+      "gateConstraints": [],
+      "requiredAdjudicationRules": [
+        "adjudication.provider-replacement-authority"
+      ],
+      "defaultWhenUnresolved": "AUTHORITY_REQUIRED"
+    }
+  ],
+  "creativePolicy": {
+    "defaultCreativeDisposition": "OPEN_EXPLORATION",
+    "unmodeledMechanismDisposition": "EXPLORE_NOT_BLOCK",
+    "componentEvidenceInheritance": "NEVER_AUTOMATIC",
+    "processModels": "OPTIONAL_SKILLS",
+    "creativeCombinationRule": "Any game type, mechanic, rule, content system, control scheme, representation or interaction may be combined experimentally unless a separate real-world safety/authority boundary applies.",
+    "unknownRule": "Unknown or unmodeled creative structure is an exploration signal, not a rejection signal.",
+    "hardBoundaries": [
+      "claims remain evidence-bounded",
+      "credentials do not become authority",
+      "historical standing does not become current standing",
+      "external effects require explicit authority"
+    ]
+  },
+  "advisorySkills": [
+    {
+      "id": "skill.game-development-lenses",
+      "path": "skills/game-development-lenses/SKILL.md",
+      "covers": [
+        "D1-D8"
+      ],
+      "authority": "ADVISORY",
+      "removable": true,
+      "canBlockCreativeComposition": false
+    },
+    {
+      "id": "skill.game-stage-lens",
+      "path": "skills/game-stage-lens/SKILL.md",
+      "covers": [
+        "G0-G8"
+      ],
+      "authority": "ADVISORY",
+      "removable": true,
+      "canBlockCreativeComposition": false
+    },
+    {
+      "id": "skill.game-minimal-interaction-model",
+      "path": "skills/game-minimal-interaction-model/SKILL.md",
+      "covers": [
+        "World/State",
+        "Observation",
+        "Action",
+        "Transition/Consequence",
+        "kernel minimality hypothesis"
+      ],
+      "authority": "ADVISORY",
+      "removable": true,
+      "canBlockCreativeComposition": false
+    }
+  ],
+  "mechanismCombinationPatterns": [
+    {
+      "id": "pattern.cs2.commitment-information-reset",
+      "reference": "Counter-Strike 2",
+      "authority": "ADVISORY_HYPOTHESIS_PATTERN",
+      "mechanisms": [
+        "lethal-commitment",
+        "partial-information",
+        "short-round-reset",
+        "spatial-positioning"
+      ],
+      "hypothesis": "Costly commitment plus incomplete information plus rapid reset may make tactical mistakes legible and support accumulated skill.",
+      "confounds": [
+        "brand continuity",
+        "esports/community network",
+        "skin economy",
+        "production/network quality"
+      ],
+      "sourceRefs": [
+        "docs/GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911.md"
+      ],
+      "falsifier": "Remove lethal commitment or information scarcity; if positioning, information-seeking and tension barely change, transfer is weak.",
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "pattern.dota.role-power-objective",
+      "reference": "Dota 2",
+      "authority": "ADVISORY_HYPOTHESIS_PATTERN",
+      "mechanisms": [
+        "role-asymmetry",
+        "shared-objectives",
+        "long-power-curve",
+        "item-combinatorics"
+      ],
+      "hypothesis": "Role interdependence plus delayed power and shared objectives may turn local actions into delayed collective consequences.",
+      "confounds": [
+        "established community",
+        "esports",
+        "years of balance/content",
+        "social retention"
+      ],
+      "sourceRefs": [
+        "docs/GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911.md"
+      ],
+      "falsifier": "If local output can be maximized independently and coordination/resource timing adds little, the pattern is weak.",
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "pattern.fortnite.survival-loot-convergence",
+      "reference": "Fortnite",
+      "authority": "ADVISORY_HYPOTHESIS_PATTERN",
+      "mechanisms": [
+        "one-life-survival",
+        "uncertain-loot",
+        "forced-spatial-convergence",
+        "social-live-ecosystem"
+      ],
+      "hypothesis": "Survival, uncertainty and spatial convergence may repeatedly create route-versus-engagement decisions; ecosystem causality remains separate.",
+      "confounds": [
+        "free-to-play reach",
+        "cross-platform network",
+        "IP collaborations",
+        "creator economy"
+      ],
+      "sourceRefs": [
+        "docs/GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911.md"
+      ],
+      "falsifier": "Compare with static respawn arena; if routes, engagement and resource timing barely change, the BR transfer is weak.",
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "pattern.minecraft.transformation-authorship",
+      "reference": "Minecraft",
+      "authority": "ADVISORY_HYPOTHESIS_PATTERN",
+      "mechanisms": [
+        "persistent-transformation",
+        "self-authored-goals",
+        "resource-constraint",
+        "composable-world-grammar"
+      ],
+      "hypothesis": "A small composable transformation grammar may let players turn self-authored intentions into persistent world state.",
+      "confounds": [
+        "cultural ubiquity",
+        "multiplayer/server network",
+        "modding",
+        "creator ecosystem"
+      ],
+      "sourceRefs": [
+        "docs/GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911.md"
+      ],
+      "falsifier": "If players do not form self-authored spatial intentions or persistence does not affect later choices, the authorship claim is weak.",
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "pattern.gta.cross-system-response",
+      "reference": "Grand Theft Auto V",
+      "authority": "ADVISORY_HYPOTHESIS_PATTERN",
+      "mechanisms": [
+        "cross-system-verbs",
+        "dense-world",
+        "escalating-world-response",
+        "improvised-plans"
+      ],
+      "hypothesis": "Walking, driving, combat and world response may feel like one possibility space when actions cross subsystem boundaries.",
+      "confounds": [
+        "production scale",
+        "brand",
+        "cinematic writing",
+        "music/live operations"
+      ],
+      "sourceRefs": [
+        "docs/GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911.md"
+      ],
+      "falsifier": "If verbs remain isolated minigames and players rarely improvise cross-system plans, the transfer is weak.",
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "pattern.elden.commitment-routing",
+      "reference": "ELDEN RING",
+      "authority": "ADVISORY_HYPOTHESIS_PATTERN",
+      "mechanisms": [
+        "combat-commitment",
+        "readable-telegraphs",
+        "route-freedom",
+        "death-retry"
+      ],
+      "hypothesis": "Commitment windows and route freedom may combine skill learning with strategic avoidance/return-later choices.",
+      "confounds": [
+        "Souls legacy",
+        "worldbuilding",
+        "boss spectacle",
+        "content volume"
+      ],
+      "sourceRefs": [
+        "docs/GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911.md"
+      ],
+      "falsifier": "If retries do not change anticipation/timing or route choice does not change responses to difficulty, the transfers weaken.",
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "pattern.bg3.reactivity-acknowledgement",
+      "reference": "Baldur's Gate 3",
+      "authority": "ADVISORY_HYPOTHESIS_PATTERN",
+      "mechanisms": [
+        "multiple-solution-paths",
+        "persistent-consequence",
+        "later-acknowledgement",
+        "environmental-interaction"
+      ],
+      "hypothesis": "Agency may become credible when mechanically different solutions persist and are later acknowledged by characters/world state.",
+      "confounds": [
+        "D&D IP",
+        "writing/cinematic scale",
+        "co-op",
+        "long Early Access"
+      ],
+      "sourceRefs": [
+        "docs/GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911.md"
+      ],
+      "falsifier": "If approaches feel cosmetically equivalent or acknowledgement does not alter interpretation, the pattern is weak.",
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "pattern.factorio.automation-bottleneck",
+      "reference": "Factorio",
+      "authority": "ADVISORY_HYPOTHESIS_PATTERN",
+      "mechanisms": [
+        "manual-to-automation",
+        "persistent-leverage",
+        "bottleneck-feedback",
+        "system-redesign"
+      ],
+      "hypothesis": "Automation may become valuable when prior manual work turns into persistent capability and bottlenecks provoke architectural redesign.",
+      "confounds": [
+        "large recipe graph",
+        "years of tuning",
+        "modding",
+        "simulation quality"
+      ],
+      "sourceRefs": [
+        "docs/GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911.md"
+      ],
+      "falsifier": "If automation does not shift cognition toward diagnosis/architecture or bottlenecks stay opaque, leverage transfer is weak.",
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "pattern.mariokart.mastery-volatility",
+      "reference": "Mario Kart 8 Deluxe",
+      "authority": "ADVISORY_HYPOTHESIS_PATTERN",
+      "mechanisms": [
+        "driving-mastery",
+        "catch-up-volatility",
+        "short-races",
+        "position-sensitive-items"
+      ],
+      "hypothesis": "Stable driving mastery may coexist with comeback volatility, broadening social competition without deleting skill.",
+      "confounds": [
+        "Nintendo IP",
+        "family/local context",
+        "audiovisual polish",
+        "catalogue scale"
+      ],
+      "sourceRefs": [
+        "docs/GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911.md"
+      ],
+      "falsifier": "If items only add noise without changing comeback probability, tactical risk or rematch behavior, the pattern is weak.",
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "pattern.animalcrossing.place-return",
+      "reference": "Animal Crossing: New Horizons",
+      "authority": "ADVISORY_HYPOTHESIS_PATTERN",
+      "mechanisms": [
+        "persistent-place",
+        "low-pressure-routines",
+        "real-time-change",
+        "social-acknowledgement"
+      ],
+      "hypothesis": "Persistent decoration and routine may build place attachment while real-time change creates a gentle return promise.",
+      "confounds": [
+        "brand/characters",
+        "social sharing",
+        "release-era context",
+        "content volume"
+      ],
+      "sourceRefs": [
+        "docs/GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911.md"
+      ],
+      "falsifier": "If players do not develop place ownership/routine or return intent is only checklist completion, the pattern is weak.",
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "pattern.candycrush.stable-grammar-recontext",
+      "reference": "Candy Crush Saga",
+      "authority": "ADVISORY_HYPOTHESIS_PATTERN",
+      "mechanisms": [
+        "tiny-action-grammar",
+        "goal-recontextualization",
+        "blockers",
+        "move-scarcity"
+      ],
+      "hypothesis": "A tiny action vocabulary may stay strategically variable when goals, blockers and scarcity repeatedly change local move value.",
+      "confounds": [
+        "user acquisition",
+        "monetization",
+        "live ops",
+        "years of level tuning"
+      ],
+      "sourceRefs": [
+        "docs/GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911.md"
+      ],
+      "falsifier": "If goals/blockers do not materially alter move evaluation or retry behavior, the pattern is weak.",
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "pattern.beatsaber.embodied-rhythm",
+      "reference": "Beat Saber",
+      "authority": "ADVISORY_HYPOTHESIS_PATTERN",
+      "mechanisms": [
+        "embodied-input",
+        "rhythm-prediction",
+        "directional-mapping",
+        "multimodal-feedback"
+      ],
+      "hypothesis": "Directional whole-arm action plus immediate multimodal feedback may tightly bind rhythm prediction to motor learning.",
+      "confounds": [
+        "VR novelty",
+        "hardware affordances",
+        "licensed music",
+        "fitness/spectator appeal"
+      ],
+      "sourceRefs": [
+        "docs/GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911.md"
+      ],
+      "falsifier": "Compare with matched non-spatial rhythm control; if anticipation, motor learning or replay intent do not change, transfer is weak.",
+      "canBlockNovelCombination": false
     }
   ]
 }

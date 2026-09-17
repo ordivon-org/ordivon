@@ -5,7 +5,7 @@ title: Ordivon Game Development Model
 type: development-model
 profile: product
 lifecycle: active
-source_role: canonical
+source_role: advisory-skill-source
 visibility: public
 owners:
   - ordivon-game
@@ -15,7 +15,7 @@ audience:
   - agent
   - producer
 updated: 2026-08-17
-summary: Game-specific G0-G8 commitment/stage projection and routing profile for Ordivon games. Generic software lifecycle authority is adopted from ISO/IEC/IEEE 12207:2026; mature external methods remain authoritative in their native scopes, while Game retains product-form, Game semantics and commitment projections.
+summary: Historical/source material for the optional G0-G8 game-stage-lens Skill. The stage vocabulary is advisory, replaceable and disposable rather than Game development authority.
 evidence_status: derived
 readiness: READY
 applies_to:
@@ -25,6 +25,8 @@ related:
   - game.authority
 ---
 # Ordivon Game Development Model
+
+> **Creative-open correction — 2026-09-18.** G0–G8 is no longer canonical Game process or product-stage authority. It is packaged at `../skills/game-stage-lens/SKILL.md` as an optional coordination lens. Projects may skip, merge, reorder, rename, replace or ignore these labels. Any later wording in this historical document that says “canonical”, “gate”, “must”, or “stage authority” is superseded by this correction for cross-game use. Product-local historical receipts keep their provenance only.
 
 ## Purpose
 

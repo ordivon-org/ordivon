@@ -4,12 +4,12 @@ id: game.development-core
 title: Ordivon Game — Development Core Responsibility Model
 profile: product
 lifecycle: active
-source_role: canonical-supporting-model
+source_role: advisory-skill-source
 visibility: public
 owners:
   - ordivon-game
 updated: 2026-08-27
-summary: Current responsibility-and-evidence model underneath Ordivon Game's canonical G0-G8 stage projection. It does not create new Game Foundations or product stages; it exposes the concurrent design, player-learning, evidence, content, expression, realization and ecology responsibilities that stage labels alone cannot represent.
+summary: Historical/source material for the optional D1-D8 game-development-lenses Skill. The eight views are advisory questions, not required responsibilities, methodology or gates.
 evidence_status: derived
 readiness: CURRENT
 applies_to:
@@ -20,6 +20,8 @@ related:
   - game.core-research.reset
 ---
 # Ordivon Game — Development Core Responsibility Model
+
+> **Creative-open correction — 2026-09-18.** D1–D8 is no longer a required Game Development Core. It is packaged at `../skills/game-development-lenses/SKILL.md` as an optional disposable lens set. A game may omit, invert, merge, replace or ignore any lens. Later “model”, “law”, “minimum”, or routing language in this document is historical guidance only unless independently supported by the concrete product/evidence owner.
 
 ## 0. Authority boundary
 

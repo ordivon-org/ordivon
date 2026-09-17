@@ -39,23 +39,23 @@ Ordivon Game currently ships one executable world: **Station Zero**, a determini
 
 ## Current boundary
 
-The registered executable remains Station Zero `station-zero@2` with Ruleset `station-zero-core@3`. Station Zero v3, Casefile, Last Light, Echo Hunt, Concept Lab and Pre-G0 playables are retained as **Game Core research / regression apparatus**, not candidate product momentum. No new Ordivon Game product has been selected. Canonical G0–G8 meanings remain exclusively those in `docs/DEVELOPMENT_MODEL.md`; `docs/GAME_DEVELOPMENT_CORE.md` exposes the concurrent development responsibility/evidence state underneath that stage projection without creating new stages.
+The registered executable remains Station Zero `station-zero@2` with Ruleset `station-zero-core@3`. Station Zero v3, Casefile, Last Light, Echo Hunt, Concept Lab and Pre-G0 playables are retained as **Game Core research / regression apparatus**, not candidate product momentum. No new Ordivon Game product has been selected. D1–D8, G0–G8 and the four-part minimal interaction model are now optional repository-local Skills rather than canonical Game process or ontology. Creative composition defaults open; evidence and external effects remain separately bounded.
 
 ## Start here
 
 - [`docs/PRODUCT.md`](docs/PRODUCT.md) defines the current Station Zero product and player experience.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) defines the current Station Zero v2 product architecture and state ownership.
 - [`docs/GAME_E2E_OWNERSHIP_BOUNDARY.md`](docs/GAME_E2E_OWNERSHIP_BOUNDARY.md) defines what Big Game may own and forbids promoting product mechanics into a generic Game framework without cross-product evidence.
-- [`docs/GAME_DOMAIN_PACKAGE_GRAPH_R1.md`](docs/GAME_DOMAIN_PACKAGE_GRAPH_R1.md) is the constraint-aware Lego projection of Game kernel, foundations, D1-D8, G0-G8, mechanics/compositions, Skills/tools and horizontal service dependencies; its machine graph is `standards/game_domain_package_graph_r1.json`, and it never replaces Host/domain-owner current standing.
+- [`docs/GAME_DOMAIN_PACKAGE_GRAPH_R1.md`](docs/GAME_DOMAIN_PACKAGE_GRAPH_R1.md) is the creative-open Game knowledge graph: products, experiments, mechanics/compositions, advisory Skills, teardown-derived mechanism-combination patterns, evidence fences, tools and horizontal service dependencies.
 - [`docs/VISION.md`](docs/VISION.md) defines the broader Game direction without turning possibilities into commitments.
-- [`docs/GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md`](docs/GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md) owns product discovery before G0: learn from mature comparable games through teardown, bounded reproduction, claim-specific evidence, structured decision analysis and controlled differentiation.
+- [`docs/GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md`](docs/GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md) is an optional comparable-game discovery profile; teardown and controlled experiments are available techniques rather than mandatory product admission.
 - [`docs/GAME_R0_SUCCESS_UNIVERSE_20260911.md`](docs/GAME_R0_SUCCESS_UNIVERSE_20260911.md) owns the current R0-A/R0-B success-universe census and archetype coverage: external success surfaces are observed before feasibility filtering and are never collapsed into one fake global rank.
 - [`docs/GAME_R0_REFERENCE_STACKS_20260911.md`](docs/GAME_R0_REFERENCE_STACKS_20260911.md) owns current R0-C: flagship/canonical/cheap-causal stacks and the broad R1 reference-teardown admission.
 - [`docs/GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911.md`](docs/GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911.md) owns the current twelve-game R1 desk teardown: observed product facts are separated from causal hypotheses/confounds and small falsifiable baselines; direct-play experience claims remain pending and R2 implementation is not admitted.
 - [`docs/GAME_R1_DIRECT_PLAY_ACCESS_20260911.md`](docs/GAME_R1_DIRECT_PLAY_ACCESS_20260911.md) owns the current direct-play access census and participant-evidence access boundary; [`docs/GAME_R1_DIRECT_PLAY_OBSERVATION_SHEET.md`](docs/GAME_R1_DIRECT_PLAY_OBSERVATION_SHEET.md) is the blank session carrier. No download, purchase, account sign-in or Human evidence is implied by their existence.
 - [`docs/GAME_R0_EXTERNAL_REFERENCE_CLASS_20260911.md`](docs/GAME_R0_EXTERNAL_REFERENCE_CLASS_20260911.md) is the superseded first R0 attempt. Its Balatro / Vampire Survivors / Mini Metro set is retained only as cheap-baseline learning support.
-- [`docs/DEVELOPMENT_MODEL.md`](docs/DEVELOPMENT_MODEL.md) owns canonical G0–G8 product-stage semantics and their development routing.
-- [`docs/GAME_DEVELOPMENT_CORE.md`](docs/GAME_DEVELOPMENT_CORE.md) defines the current responsibility/evidence model beneath the stage projection: intent/audience, play causality, player learning, evidence/prototyping, content/progression architecture, expression/feel, production realization, and product ecology/evolution.
+- [`skills/game-stage-lens/SKILL.md`](skills/game-stage-lens/SKILL.md) packages G0–G8 as an optional disposable coordination lens; [`docs/DEVELOPMENT_MODEL.md`](docs/DEVELOPMENT_MODEL.md) is retained source/history.
+- [`skills/game-development-lenses/SKILL.md`](skills/game-development-lenses/SKILL.md) packages D1–D8 as optional questions; [`docs/GAME_DEVELOPMENT_CORE.md`](docs/GAME_DEVELOPMENT_CORE.md) is retained source/history rather than a required methodology.
 - [`docs/GAME_DEVELOPMENT_PARADIGM_RESEARCH.md`](docs/GAME_DEVELOPMENT_PARADIGM_RESEARCH.md) records the external-method comparison that motivated the stage-vs-core repair.
 - [`docs/GAME_EXTERNAL_MATURE_PRACTICE_ADOPTION_R1.md`](docs/GAME_EXTERNAL_MATURE_PRACTICE_ADOPTION_R1.md) is the current external-first adoption policy: directly use mature standards and platform-native mechanisms within their scope, and keep only Game-specific profiles/semantics rather than rebuilding generic HCD, research, experimentation, lifecycle, provenance or release systems.
 - [`docs/GAME_DEVELOPMENT_CASE_PRESSURE_TESTS.md`](docs/GAME_DEVELOPMENT_CASE_PRESSURE_TESTS.md) pressure-tests D1–D8 against real development histories rather than framework vocabulary alone.
@@ -64,7 +64,7 @@ The registered executable remains Station Zero `station-zero@2` with Ruleset `st
 - [`docs/GAME_PRODUCTION_AGENT_ENVIRONMENT.md`](docs/GAME_PRODUCTION_AGENT_ENVIRONMENT.md) compares current Unity/Unreal/Roblox/Godot production environments and defines consume/adapt/fork/own pressure for Agent-first development without making Game an engine/editor owner.
 - [`research/README.md`](research/README.md) is the thin canonical Game research entry point: current GDF0–GDF3, practical GPR reconstruction, coverage/frontier, R/F genealogy, negative/superseded history, and product/direction research are separated without moving the underlying evidence tree.
 - [`docs/STATION_ZERO_V3_CONTRACTION.md`](docs/STATION_ZERO_V3_CONTRACTION.md) records only Game-local contraction verdicts and reopen conditions; cross-project synthesis stays in Ordivon Computing.
-- [`docs/GAME_CORE_RESEARCH_RESET.md`](docs/GAME_CORE_RESEARCH_RESET.md) reserves G0–G8 for the normal product lifecycle and defines Station Zero/Concept Lab/Casefile as research treatments rather than product-stage winners.
+- [`docs/GAME_CORE_RESEARCH_RESET.md`](docs/GAME_CORE_RESEARCH_RESET.md) preserves the historical reset that once used G0–G8 as lifecycle vocabulary; current creative work is not stage-gated by it.
 - [`docs/GAME_FOUNDATIONS_RESEARCH_R1_R17.md`](docs/GAME_FOUNDATIONS_RESEARCH_R1_R17.md) preserves the complete first seventeen foundation rounds across game form, mechanics, loops, player value, world, subjects, agency, time, economy, society, topology, and information without selecting a product.
 - [`docs/GAME_FOUNDATIONS_RESEARCH_R18.md`](docs/GAME_FOUNDATIONS_RESEARCH_R18.md) decomposes Need, Desire, Value, Preference, Utility, Goal and Commitment, defines minimum-sufficient motivational structures across game forms, and introduces Playable Motivation without selecting a product.
 - [`docs/GAME_FOUNDATIONS_RESEARCH_R19.md`](docs/GAME_FOUNDATIONS_RESEARCH_R19.md) decomposes strategic interdependence, conflict, competition, cooperation, coordination, bargaining, negotiation, commitment, reputation and equilibrium, and introduces Playable Strategy without selecting a product.
@@ -170,7 +170,7 @@ P3: isolated playable planning layer and /v3 browser complete
 G3-era reference evidence: strategic viability, plurality, and bounded live-Agent realization accepted
 Current research role: delegation / tactical Game Core reference experiment
 New product selection: none
-Canonical product stages: G0–G8 retain only DEVELOPMENT_MODEL meanings
+Optional stage lens: G0–G8 may be used from skills/game-stage-lens/SKILL.md when useful
 Encounter budget: 20 Turns
 ```
 

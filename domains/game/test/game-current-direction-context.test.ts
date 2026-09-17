@@ -17,9 +17,10 @@ test("current direction context projects exact owner frontier without gaining pr
   assert.equal(value.direction.sourcePath, "docs/GAME_CORE_RESEARCH_RESET.md");
   assert.equal(value.direction.sourceDigest, digest(value.direction.sourcePath));
   assert.match(value.direction.exactSource, /^## Current frontier/);
-  assert.match(value.direction.exactSource, /Return to Game Core and \*\*Game Development Core\*\*/);
-  assert.match(value.direction.exactSource, /decision-relevant uncertainty removed/);
-  assert.match(value.direction.exactSource, /only later decide whether evidence is mature enough to intentionally begin a real product at canonical G0/);
+  assert.match(value.direction.exactSource, /Current Game direction is \*\*creative-open\*\*/);
+  assert.match(value.direction.exactSource, /unknown combinations are exploration targets, not invalid states/);
+  assert.match(value.direction.exactSource, /D1-D8, G0-G8.*optional repository-local Skills/);
+  assert.match(value.direction.exactSource, /decision-relevant uncertainty reduced/);
   assert.equal(value.authority.sourceDigest, digest(value.authority.sourcePath));
   assert.deepEqual(value.authority.exactGuards, [
     "`AGENTS.md` governs repository work rather than product truth.",

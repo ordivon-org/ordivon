@@ -78,22 +78,21 @@ The v3 preview is intentionally absent from `src/registry.ts` and uses its own A
 
 In a fresh detached/Runtime workspace, restore the repository's frozen local dependencies first with `pnpm bootstrap`. This is intentionally an offline, frozen-lockfile restore (`pnpm install --offline --frozen-lockfile`); if the local pnpm store cannot satisfy it, stop rather than silently reaching the network or changing dependency state.
 
-For a **new product before G0**, start from `docs/GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md`: construct a mature comparable reference class, play/teardown it, reproduce the bounded baseline, validate the player-relevant baseline with an appropriate Human method, then test controlled differences. Do not begin from an internally generated GameForm winner.
+Creative work defaults **open**. Any game type, mechanic, rule system, control scheme, content structure, representation, or interaction may be combined experimentally. Unknown or unmodeled combinations are exploration signals, not rejection signals.
 
-After G0, locate work in the canonical lifecycle from `docs/DEVELOPMENT_MODEL.md`:
+Use mature-game teardown and direct play as an experience library, not as a recipe book. `standards/game_domain_package_graph_r1.json` retains advisory mechanism-combination patterns from the comparative teardown with explicit hypotheses, confounds and falsifiers. Pattern similarity may suggest an experiment; it must never block a novel combination or transfer evidence automatically.
+
+Three repository-local Agent Skills are optional lenses only:
 
 ```text
-pre-G0: reference → teardown → reproduce → Human baseline → controlled differentiation
-G0+: identify the current development stage and false exit gate
-→ classify the blocker as gameplay, Agent participation, content, expression, runtime, or production throughput
-→ locate the sole owner
-→ make the smallest owner-local experiment/change
-→ test the relevant success/falsifier/recovery/information boundaries
-→ verify real play or real produced artifacts at the stage boundary
-→ retain, shrink, or delete the treatment
+skills/game-development-lenses/SKILL.md        # D1-D8 questions
+skills/game-stage-lens/SKILL.md               # G0-G8 coordination vocabulary
+skills/game-minimal-interaction-model/SKILL.md # World/Observation/Action/Transition working model
 ```
 
-A research series is a search method inside a development stage; it is never the product lifecycle itself.
+Use, replace, partially apply, or delete these Skills when they help or stop helping. They are not Game truth, mandatory process, product admission, or creative law.
+
+Fail closed only at real epistemic/authority boundaries: do not launder machine evidence into Human claims, component evidence into composition evidence, credentials into authority, stale state into current state, or an unauthorised proposal into an external effect.
 
 ## Required change evidence
 
@@ -127,19 +126,19 @@ A meaningful change should state:
 - `docs/PRODUCT.md` defines the current Station Zero product.
 - `docs/ARCHITECTURE.md` defines current ownership and execution boundaries.
 - `docs/VISION.md` defines long-horizon direction without authorizing current scope.
-- `docs/GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md` owns the product-discovery profile before G0: mature comparable references, teardown, bounded baseline reproduction, Human baseline validation, and controlled differentiation. Its R0–R4 labels are profile steps, not product stages.
+- `docs/GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md` is one optional external-reference discovery profile. Use it when comparable-game learning is useful; it is not a mandatory front half or creative gate.
 - `docs/GAME_R0_SUCCESS_UNIVERSE_20260911.md` owns current R0-A/R0-B success-universe census and archetype coverage. Successful games must be observed before implementation-cost filtering; unlike platform/time-window metrics remain separate.
 - `docs/GAME_R0_REFERENCE_STACKS_20260911.md` owns current R0-C and R1 reference-teardown admission. Its wave selects for archetype information coverage; it does not admit clone implementation, product selection or G0.
 - `docs/GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911.md` owns current Wave-1 comparative desk teardown. Observed facts, causal hypotheses, confounds and smallest baselines remain distinct; direct-play experience claims remain pending and the document cannot admit R2 by itself.
 - `docs/GAME_R1_DIRECT_PLAY_ACCESS_20260911.md` owns the target-only access census and explicit permission boundary; `docs/GAME_R1_DIRECT_PLAY_OBSERVATION_SHEET.md` is a blank non-sensitive Human-session carrier. Never infer ownership from install absence, auto-purchase/sign in/download from these records, or fill the sheet without a real Human session.
 - `docs/GAME_R0_EXTERNAL_REFERENCE_CLASS_20260911.md` is the superseded first R0 attempt; its Balatro / Vampire Survivors / Mini Metro set is cheap-baseline support only and has no current authority.
-- `docs/DEVELOPMENT_MODEL.md` defines cross-game classification, the Agentic Consequence Loop, development stage gates, and the Game↔Studio production boundary without registering a product.
+- `docs/DEVELOPMENT_MODEL.md` is retained source/history for the optional `game-stage-lens` Skill and related production ideas; its G0–G8 labels are not repository development law.
 - `docs/GAME_PRE_G0_DIRECTION_SEARCH.md` retains DS0 candidate/mechanism evidence; its old GameForm↔Agent coupling and search-priority semantics are historical after the decoupling correction.
 - `docs/GAME_PRE_G0_DS1_CHEAP_FALSIFIERS.md` owns the first executable structural-falsifier results and their exact claim boundary: simulation may delete weak realizations but cannot prove human Player Value; broad forms are not killed by one failed micro-treatment.
 - `docs/GAME_PRE_G0_FORM_AGENT_ROLE_DECOUPLING.md` is supporting anti-Agent-bias/coverage guidance only: GameForm selection remains independent of Agent affinity, but this document no longer selects or prioritizes products ahead of mature comparable references.
 - `docs/GAME_PRE_G0_PLAYABLE_PROOF_PORTFOLIO.md` is retained supporting prototype/falsifier apparatus; its historical C0/C1/C2 labels do not replace claim-specific mature Human playtest practice and do not authorize product selection or G0.
 - `docs/GAME_PRE_G0_PLAYABLE_WAVE1_APPARATUS.md` owns only the bounded automated A/D/I mechanical apparatus evidence; automation is below C0/C1 human Player Value standing and leaves B/C/E/F/G/H/J untested rather than inferior.
-- `docs/GAME_CORE_RESEARCH_RESET.md` reserves G0–G8 for `DEVELOPMENT_MODEL.md` and defines current post-dogfood work as Game Core research rather than product-stage progression.
+- `docs/GAME_CORE_RESEARCH_RESET.md` preserves a historical research reset and old G-stage interpretations; those labels no longer constrain current creative work.
 - `docs/GAME_CORE_DIRECTION_SPACE.md` defines the open Core → Experience direction space and experimental contract.
 - `docs/GAME_CORE_EXPERIMENT_FINDINGS.md` owns cross-treatment findings without selecting a product winner.
 - `docs/GAME_CORE_EXPERIMENT_CASEFILE.md` retains Casefile as an executable epistemic research treatment, not a G-stage candidate.

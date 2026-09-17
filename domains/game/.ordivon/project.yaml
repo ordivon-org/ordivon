@@ -36,6 +36,12 @@ managed_paths:
   - docs/GAME_PLAYER_EVIDENCE_PROGRAMME.md
   - docs/GAME_PRODUCTION_AGENT_ENVIRONMENT.md
   - docs/GAME_CORE_RESEARCH_RESET.md
+  - docs/GAME_DOMAIN_PACKAGE_GRAPH_R1.md
+  - standards/game_domain_package_graph_r1.json
+  - scripts/composition-explorer.ts
+  - skills/game-development-lenses/SKILL.md
+  - skills/game-stage-lens/SKILL.md
+  - skills/game-minimal-interaction-model/SKILL.md
   - docs/GAME_FOUNDATIONS_RESEARCH_R1_R17.md
   - docs/GAME_FOUNDATIONS_RESEARCH_R18.md
   - docs/GAME_FOUNDATIONS_RESEARCH_R19.md
@@ -67,4 +73,4 @@ enforcement: strict
 maintainers:
   - zycxfyh
 public_projection: ordivon-web
-description: Authoritative interactive game worlds developed through ordinary game-production stages, consequential Agent participation, evidence-driven play iteration, and owner-native media production.
+description: Creative-open game research and production where mechanics and game forms may be freely recombined; accumulated teardown experience is advisory, while claims, currentness, authority and external effects remain evidence- and owner-bounded.

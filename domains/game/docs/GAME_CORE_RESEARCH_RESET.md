@@ -5,7 +5,7 @@ title: Ordivon Game Core Research Reset
 type: decision
 profile: research
 lifecycle: active
-source_role: canonical
+source_role: current-frontier-with-historical-record
 visibility: public
 owners:
   - ordivon-game
@@ -15,7 +15,7 @@ audience:
   - agent
   - producer
 updated: 2026-08-16
-summary: Corrects the post-dogfood research programme so G0-G8 retain only their canonical normal-game development meanings. Station Zero, Casefile, Last Light and Echo Hunt are research treatments over Ordivon Game Core; no new product winner or product stage is currently selected.
+summary: Historical post-dogfood reset with a current creative-open frontier. G0-G8, D1-D8 and prior foundation models are optional knowledge/Skills rather than creative authority; retained experiments remain reusable evidence apparatus.
 evidence_status: derived
 readiness: READY
 applies_to:
@@ -49,7 +49,7 @@ small direction search
 
 That progression is withdrawn.
 
-`DEVELOPMENT_MODEL.md` is the only authority for G0–G8 semantics:
+At that historical reset point, `DEVELOPMENT_MODEL.md` was treated as the only authority for G0–G8 semantics. This statement is retained as provenance only and is superseded by the creative-open current frontier:
 
 ```text
 G0 Define
@@ -63,7 +63,7 @@ G7 Beta / polish / release candidate
 G8 Release / operate / learn
 ```
 
-Research rounds are search methods inside or before product development. They are not product stages. If numbered research work is useful, use `CR-*` (Core Research), `AF-*`, `GX-*`, or another explicitly research-scoped label; never redefine G0–G8.
+Research rounds are search methods in the historical programme, not product stages or creative admission law. Today G0–G8 itself is an optional Skill vocabulary, so research or product work need not map to it at all.
 
 ## Current product truth
 
@@ -92,19 +92,21 @@ Ordivon Game
 
 remains useful as a **historical pressure lens**, but current GDF0–GDF3 research does not justify treating it as a universal Game ontology. In particular, `persistent consequence` is conditional on the relevant evaluation/history horizon, `player experience` is an evidence target rather than Game-owned phenomenological truth, and some valid GameForms require neither a rich World nor cross-session persistence.
 
-Current work therefore separates:
+The historical programme separated these three representations:
 
 ```text
 Game semantic foundations             → GDF0–GDF3
-Development-use Game responsibilities → GAME_DEVELOPMENT_CORE.md
-Product stage projection              → DEVELOPMENT_MODEL.md G0–G8
+Development-use Game lenses           → GAME_DEVELOPMENT_CORE.md
+Optional stage vocabulary             → DEVELOPMENT_MODEL.md G0–G8
 ```
+
+Current creative work may use, mix, replace or ignore these representations.
 
 The research question is now broader than “which Core mapping wins?” It is:
 
 > Which stable responsibilities, causal bridges and evidence loops let Ordivon discover, validate, produce and evolve materially different games without prototype momentum, Agent affinity, measurability bias or stage labels choosing the product?
 
-The cross-paradigm evidence is retained in `GAME_DEVELOPMENT_PARADIGM_RESEARCH.md`; the current responsibility/evidence model is `GAME_DEVELOPMENT_CORE.md`.
+The cross-paradigm evidence is retained in `GAME_DEVELOPMENT_PARADIGM_RESEARCH.md`; `GAME_DEVELOPMENT_CORE.md` is historical/source material for the optional D1–D8 Skill, not the current mandatory responsibility model.
 
 Examples of candidate laws to attack rather than assume:
 
@@ -204,18 +206,15 @@ Do not currently:
 
 ## Current frontier
 
-Return to Game Core and **Game Development Core**, not to the existing prototypes.
+Current Game direction is **creative-open** rather than stage- or ontology-gated.
 
-Current direction:
-
-1. retain Station Zero, Casefile, Concept Lab and Pre-G0 playables as experiment/regression apparatus; do not advance them as products;
-2. preserve GDF0–GDF3 and GPR0–GPR7 unless a concrete reopen condition fires;
-3. treat G0–G8 as the canonical **stage projection**, while `GAME_DEVELOPMENT_CORE.md` exposes the concurrent responsibility/evidence state underneath it;
-4. use `GAME_DEVELOPMENT_CASE_PRESSURE_TESTS.md` to attack D1–D8 with materially different real development histories rather than framework vocabulary alone;
-5. deepen D5 through `GAME_CONTENT_PROGRESSION_ARCHITECTURE.md`: align Possibility, Player Capability/Model, Exposure/Content and Production graphs; preserve carrier-relative progression and evidence horizons;
-6. prefer existing mature games, paper/formal analysis, simulations and retained apparatus over creating another prototype unless a specific unresolved claim requires a new valid evidence carrier;
-7. measure research progress by **decision-relevant uncertainty removed**, not prototype count, code volume or Agent density;
-8. use `GAME_PLAYER_EVIDENCE_PROGRAMME.md` to select evidence from the decision/claim outward: EvidenceSubject, Method, Measure and Claim remain distinct; preserve population transport, evidence horizon and causal scope;
-9. use `GAME_PRODUCTION_AGENT_ENVIRONMENT.md` to consume/adapt mature external editor/engine/analytics capabilities before owning another production platform; capability pressure, control and recovery determine when to move from consume → adapt → fork → own;
-10. next falsify these two derived models only with concrete player-research or production workflows; do not turn them into databases/services until repeated operational pressure appears;
-11. only later decide whether evidence is mature enough to intentionally begin a real product at canonical G0.
+1. any game type, mechanic, rule, representation, control scheme, content structure or interaction may be combined experimentally; unknown combinations are exploration targets, not invalid states;
+2. retain Station Zero, Casefile, Concept Lab, PC01-PC03, E01-E03 and other playables as reusable experience/evidence apparatus, not as privileged product ancestors or mandatory templates;
+3. use the twelve-game teardown and future top-project teardowns as a mechanism-combination experience library with hypotheses, confounds and falsifiers; similarity suggests experiments but never authorizes or rejects a design;
+4. treat D1-D8, G0-G8 and the World/Observation/Action/Transition model as optional repository-local Skills that may be applied, replaced or deleted when useful;
+5. keep R1-R29 and later foundation work as research knowledge rather than creative admission law; a future game may contradict or replace those abstractions without first satisfying a framework reopen gate;
+6. prefer fast reversible prototypes, direct play, paper/formal analysis, simulation, engine experiments or production slices according to the actual question; no prototype medium or process model is universally required; for production tooling, consume → adapt → fork → own only as actual pressure justifies;
+7. preserve the epistemic boundary that EvidenceSubject, Method, Measure and Claim remain distinct; component evidence does not automatically become composition evidence, and machine/synthetic evidence does not automatically become Human evidence;
+8. preserve owner/currentness/effect boundaries: credentials are not authority, historical state is not current state, and external effects require explicit authority;
+9. measure progress by useful possibilities discovered, assumptions falsified, experience learned and decision-relevant uncertainty reduced—not compliance with a development framework;
+10. when a framework or Skill stops increasing insight, remove it rather than fitting the game to it.
