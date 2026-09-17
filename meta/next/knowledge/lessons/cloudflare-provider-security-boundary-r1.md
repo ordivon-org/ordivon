@@ -1,7 +1,7 @@
 # Cloudflare / Provider Security Boundary R1
 
-Date: 2026-09-17  
-Status: **REGISTERED DIAGNOSTIC MODEL**  
+Date: 2026-09-17
+Status: **REGISTERED DIAGNOSTIC MODEL**
 Graph: `knowledge/graphs/cloudflare-provider-security-boundary-r1.json`
 
 ## Kernel
