@@ -203,3 +203,16 @@ For Ordivon Security, the durable asset should therefore be a `Browser Automatio
 - provider routing that keeps browser substrate health separate from security-boundary admissibility.
 
 This lab belongs to authorized measurement and red-team environments. Production correctness must not depend on continuously defeating a third-party security challenge; the adaptive capability is measurement, attribution, regression, and safe routing.
+
+## Source-level deep dives completed
+
+The following source-level studies are the evidence-bearing expansions of this synthesis:
+
+- `browserless-source-deep-dive-r1.md` — Browserless route families, current Ordivon `/chromium` provenance, broker-owned CDP state, BrowserQL/open-source-stealth distinction.
+- `flaresolverr-source-deep-dive-r1.md` — challenge detector state machine, session/browser bundle provenance, detector-vs-policy drift taxonomy.
+- `camoufox-source-deep-dive-r1.md` — browser-distribution ownership, Juggler/control-world isolation, cross-layer identity constraints, input dispatch.
+- `seleniumbase-source-deep-dive-r1.md` — browser lifetime vs controller lifetime, WebDriver disconnect/reconnect, CDP handoff, late Playwright attachment.
+- `patchright-source-deep-dive-r1.md` — Playwright source transformations, protocol-domain observability, functional/observability trade-offs, upstream patch-impact analysis.
+- `rebrowser-patches-source-deep-dive-r1.md` — reversible mechanism patches, execution-context strategy ablations, replacement-surface analysis.
+
+These files should be consulted before changing Agent Birth browser-provider architecture or defining Browser Automation Dynamic Defense Lab experiments.
