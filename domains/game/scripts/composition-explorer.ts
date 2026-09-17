@@ -6,6 +6,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const PROJECT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const GRAPH_PATH = "standards/game_domain_package_graph_r1.json";
 const EXPERIENCE_PATH = "standards/game_mechanism_experience_library_r1.json";
+const RELATIONSHIP_PATH = "standards/game_mechanism_relationship_graph_r1.json";
 
 export type ExploreIntent = "explore" | "claim-human-value" | "external-effect" | "replace-provider";
 
@@ -94,6 +95,48 @@ export type MechanismExperienceLibrary = {
 
 type ExperienceMatch = MechanismExperience & { matchedMechanisms: string[] };
 
+export type RelationshipFacet = {
+  id: string;
+  label: string;
+  mechanismTags: string[];
+  experienceRefs: string[];
+  summary: string;
+  referenceGames: string[];
+  relationKinds: string[];
+  sourceRefs: string[];
+  authority: "ADVISORY_RETRIEVAL_ALIAS";
+  exhaustive: false;
+  canRejectUnmatchedMechanism: false;
+};
+
+export type RelationshipConditionality = {
+  id: string;
+  facetIds: string[];
+  triggerMechanisms: string[];
+  experienceRefs: string[];
+  apparentConflict: string;
+  distinguishingConditions: string[];
+  falseUniversalizations: string[];
+  cheapDiscriminator: string;
+  referenceGames: string[];
+  relationKinds: string[];
+  sourceRefs: string[];
+  authority: "ADVISORY_CONDITIONAL_HYPOTHESIS";
+  inferenceLevel: "CROSS_GAME_SOURCE_GROUNDED_CONDITIONAL";
+  humanOutcomeEstablished: false;
+  canBlockNovelCombination: false;
+};
+
+export type MechanismRelationshipGraph = {
+  graphId: string;
+  retrievalFacets: RelationshipFacet[];
+  conditionalities: RelationshipConditionality[];
+  __sourceDigest?: string;
+};
+
+type RelationshipFacetMatch = RelationshipFacet & { matchedMechanisms: string[] };
+type ConditionalityMatch = RelationshipConditionality & { matchedMechanisms: string[] };
+
 export type CreativeTrace = {
   schemaVersion: 1;
   kind: "ordivon.game.composition-exploration-trace";
@@ -119,6 +162,13 @@ export type CreativeTrace = {
     sourceDigest: string;
   };
   experienceMatches: ExperienceMatch[];
+  relationshipGraph: {
+    graphId: string;
+    sourcePath: string;
+    sourceDigest: string;
+  };
+  relationshipFacetMatches: RelationshipFacetMatch[];
+  conditionalityMatches: ConditionalityMatch[];
   epistemicFences: string[];
   requiredEvidenceClasses: string[];
   disposition: "OPEN_EXPLORATION" | "EVIDENCE_NOT_TRANSFERABLE" | "EXTERNAL_EFFECT_BLOCKED" | "AUTHORITY_REQUIRED";
@@ -149,6 +199,13 @@ export function loadMechanismExperienceLibrary(root = PROJECT_ROOT): MechanismEx
   return library;
 }
 
+export function loadMechanismRelationshipGraph(root = PROJECT_ROOT): MechanismRelationshipGraph {
+  const source = readFileSync(resolve(root, RELATIONSHIP_PATH), "utf8");
+  const graph = JSON.parse(source) as MechanismRelationshipGraph;
+  Object.defineProperty(graph, "__sourceDigest", { value: sha256(source), enumerable: false });
+  return graph;
+}
+
 function validateRequest(request: ExploreRequest, graph: CreativeGraph): void {
   if (request.elements.length === 0) throw new Error("Composition exploration requires at least one element");
   const evidenceIds = new Set(graph.evidenceClasses.map((item) => item.id));
@@ -173,10 +230,27 @@ function experienceMatches(mechanisms: string[], experiences: MechanismExperienc
     .sort((a, b) => b.matchedMechanisms.length - a.matchedMechanisms.length || a.id.localeCompare(b.id));
 }
 
+function relationshipFacetMatches(mechanisms: string[], facets: RelationshipFacet[]): RelationshipFacetMatch[] {
+  const requested = new Set(mechanisms);
+  return facets
+    .map((facet) => ({ ...facet, matchedMechanisms: facet.mechanismTags.filter((mechanism) => requested.has(mechanism)) }))
+    .filter((facet) => facet.matchedMechanisms.length > 0)
+    .sort((a, b) => b.matchedMechanisms.length - a.matchedMechanisms.length || a.id.localeCompare(b.id));
+}
+
+function conditionalityMatches(mechanisms: string[], conditionalities: RelationshipConditionality[]): ConditionalityMatch[] {
+  const requested = new Set(mechanisms);
+  return conditionalities
+    .map((conditionality) => ({ ...conditionality, matchedMechanisms: conditionality.triggerMechanisms.filter((mechanism) => requested.has(mechanism)) }))
+    .filter((conditionality) => conditionality.matchedMechanisms.length > 0)
+    .sort((a, b) => b.matchedMechanisms.length - a.matchedMechanisms.length || a.id.localeCompare(b.id));
+}
+
 export function exploreGameComposition(
   request: ExploreRequest,
   graph = loadGameCreativeGraph(),
   experienceLibrary = loadMechanismExperienceLibrary(),
+  relationshipGraph = loadMechanismRelationshipGraph(),
 ): CreativeTrace {
   validateRequest(request, graph);
   const mechanisms = unique(request.mechanisms ?? []);
@@ -217,7 +291,7 @@ export function exploreGameComposition(
   const notes = [
     graph.creativePolicy.creativeCombinationRule,
     graph.creativePolicy.unknownRule,
-    "Pattern matches are broad analogies from prior teardowns; Experience matches are finer source-grounded interaction hypotheses with cheap falsifiers. Neither is a recipe, ranking, recommendation, or rejection rule.",
+    "Pattern matches are broad analogies; Experience matches are finer source-grounded interaction hypotheses; Relationship Facets are incomplete retrieval aliases; Conditionality matches preserve apparent conflicts and cheap discriminators. None is a recipe, ranking, recommendation, compatibility verdict, or rejection rule.",
     "Evidence attached to components or reference games is not inherited by the new composition; emergent behavior may differ in either direction.",
   ];
   if (novelUnmodeledElements.length > 0) {
@@ -244,6 +318,13 @@ export function exploreGameComposition(
       sourceDigest: experienceLibrary.__sourceDigest ?? sha256(JSON.stringify(experienceLibrary)),
     },
     experienceMatches: experienceMatches(mechanisms, experienceLibrary.experiences),
+    relationshipGraph: {
+      graphId: relationshipGraph.graphId,
+      sourcePath: RELATIONSHIP_PATH,
+      sourceDigest: relationshipGraph.__sourceDigest ?? sha256(JSON.stringify(relationshipGraph)),
+    },
+    relationshipFacetMatches: relationshipFacetMatches(mechanisms, relationshipGraph.retrievalFacets),
+    conditionalityMatches: conditionalityMatches(mechanisms, relationshipGraph.conditionalities),
     epistemicFences,
     requiredEvidenceClasses: unique(requiredEvidenceClasses),
     disposition,

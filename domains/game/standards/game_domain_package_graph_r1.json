@@ -2319,5 +2319,15 @@
     "embeddedInGraph": false,
     "canBlockNovelCombination": false,
     "purpose": "Fine-grained source-grounded mechanism interactions, tensions, inversions, substitutions, failure modes, production responses and cheap falsifiers. Kept external to the domain graph so accumulated experience does not become a closed ontology."
+  },
+  "mechanismRelationshipGraph": {
+    "id": "ordivon-game-mechanism-relationship-graph-r1",
+    "path": "standards/game_mechanism_relationship_graph_r1.json",
+    "specPath": "standards/game_mechanism_relationship_spec_r1.json",
+    "authority": "ADVISORY_RELATIONSHIP_MEMORY",
+    "embeddedInGraph": false,
+    "canBlockNovelCombination": false,
+    "recommendationAuthority": "NONE",
+    "purpose": "Cross-game co-occurrence retrieval, non-exhaustive semantic facets and source-grounded Conditionalities with cheap discriminators. Kept external so relationship memory cannot become a closed mechanic ontology or compatibility gate."
   }
 }

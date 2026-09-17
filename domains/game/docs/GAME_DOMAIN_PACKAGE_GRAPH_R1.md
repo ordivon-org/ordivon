@@ -71,7 +71,7 @@ These constraints say what may be **claimed or executed**, not what may be imagi
 
 ## 4. Mechanism-combination experience library
 
-`standards/game_domain_package_graph_r1.json` keeps only a compact `mechanismCombinationPatterns` layer distilled from the earlier twelve-game comparative teardown. Fine-grained experience is externalized to `standards/game_mechanism_experience_library_r1.json` and documented by `GAME_MECHANISM_EXPERIENCE_LIBRARY_R1.md`, so the architecture graph remains small instead of becoming a mechanic ontology.
+`standards/game_domain_package_graph_r1.json` keeps only a compact `mechanismCombinationPatterns` layer distilled from the earlier twelve-game comparative teardown. Fine-grained experience is externalized to `standards/game_mechanism_experience_library_r1.json` and documented by `GAME_MECHANISM_EXPERIENCE_LIBRARY_R1.md`, so the architecture graph remains small instead of becoming a mechanic ontology. Cross-game relationship mining is externalized again to `standards/game_mechanism_relationship_graph_r1.json`; the domain graph stores only a pointer, not its mechanism nodes, co-occurrence edges, retrieval facets or Conditionalities.
 
 Examples include:
 
