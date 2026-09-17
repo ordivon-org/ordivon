@@ -98,6 +98,51 @@ module | responsibility | owns durable truth? | inputs | outputs | dependencies 
 
 Look for hidden mixed authorities: a component that simultaneously decides policy, executes effects, stores truth, and judges semantic completion is usually several modules disguised as one.
 
+### Phase 3A — LEGO / puzzle node graph
+
+Convert the responsibility map into a typed architecture graph. Borrow the composability of n8n nodes and connections, but do **not** assume every architectural node is an executable workflow step. Borrow the provider/service-seam discipline of plugin architectures such as DeepSeek Harness: consumers depend on a stable contract while the implementation behind a seam may be replaced.
+
+Use `references/node-graph-contract.md` for the canonical node and edge vocabulary.
+
+Every candidate node must declare at least:
+
+```text
+id
+kind
+one-sentence responsibility
+authority / truth ownership
+input ports
+output ports
+state or effect boundary
+dependencies / substrates
+replacement contract
+failure modes
+acceptance test
+```
+
+Recursively split a node until it passes the Atomicity Gate:
+
+1. one primary responsibility;
+2. one primary authority or effect boundary;
+3. explicit typed ports;
+4. independently replaceable behind a contract, or explicitly intrinsic;
+5. independently testable through observable behavior;
+6. no hidden child that owns materially different durable truth, policy, execution, or semantic verification.
+
+If a node fails any item, it remains `COMPOSITE` and must be decomposed again. A leaf may be marked `ATOMIC` only when further splitting would describe implementation detail rather than a distinct architectural responsibility.
+
+The target form is:
+
+```text
+PROJECT
+  -> SUBSYSTEMS
+      -> COMPOSITE NODES
+          -> ATOMIC KERNEL NODES
+              -> typed edges
+```
+
+A completed graph should be sufficient to reassemble the system from the leaf nodes plus their contracts.
+
 ## Phase 4 — State and identity algebra
 
 List the smallest persistent/logical objects needed to explain the system.
