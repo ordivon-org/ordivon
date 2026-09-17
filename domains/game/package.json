@@ -38,6 +38,7 @@
     "knowledge:mechanisms": "node scripts/mechanism-experience-query.ts",
     "knowledge:relationships": "node scripts/mechanism-relationship-query.ts",
     "knowledge:counterexamples": "node scripts/design-counterexample-query.ts",
+    "knowledge:counterexample-themes": "node scripts/counterexample-synthesis-query.ts",
     "build:relationship-graph": "node scripts/build-mechanism-relationship-graph.ts",
     "context:v3:product-value": "node experiments/station-zero-v3/scripts/product-value-context.ts",
     "eval:v3:external-provider": "node experiments/station-zero-v3/scripts/eval-station-zero-v3-external-provider.ts"

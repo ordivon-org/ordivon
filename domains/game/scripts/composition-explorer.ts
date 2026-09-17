@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+import { COUNTEREXAMPLE_SYNTHESIS_PATH, enrichCounterexampleThemes, type EnrichedCounterexampleTheme } from "./counterexample-synthesis-query.ts";
+
 const PROJECT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const GRAPH_PATH = "standards/game_domain_package_graph_r1.json";
 const EXPERIENCE_PATH = "standards/game_mechanism_experience_library_r1.json";
@@ -163,6 +165,7 @@ export type DesignCounterexampleMemory = {
 };
 
 type CounterexampleMatch = DesignCounterexample & { mechanisms: string[]; matchedMechanisms: string[] };
+type CounterexampleThemeMatch = EnrichedCounterexampleTheme & { matchedMechanisms: string[]; matchedCounterexampleRefs: string[] };
 
 export type CreativeTrace = {
   schemaVersion: 1;
@@ -202,6 +205,12 @@ export type CreativeTrace = {
     sourceDigest: string;
   };
   counterexampleMatches: CounterexampleMatch[];
+  counterexampleSynthesis: {
+    synthesisId: string;
+    sourcePath: string;
+    sourceDigest: string;
+  };
+  counterexampleThemeMatches: CounterexampleThemeMatch[];
   epistemicFences: string[];
   requiredEvidenceClasses: string[];
   disposition: "OPEN_EXPLORATION" | "EVIDENCE_NOT_TRANSFERABLE" | "EXTERNAL_EFFECT_BLOCKED" | "AUTHORITY_REQUIRED";
@@ -311,6 +320,20 @@ function counterexampleMatches(
     .sort((a, b) => b.matchedMechanisms.length - a.matchedMechanisms.length || a.id.localeCompare(b.id));
 }
 
+function counterexampleThemeMatches(mechanisms: string[], themes: EnrichedCounterexampleTheme[]): CounterexampleThemeMatch[] {
+  const requested = new Set(mechanisms);
+  return themes
+    .map((theme) => ({
+      ...theme,
+      matchedMechanisms: theme.mechanisms.filter((mechanism) => requested.has(mechanism)),
+      matchedCounterexampleRefs: theme.counterexampleMechanisms
+        .filter((entry) => entry.mechanisms.some((mechanism) => requested.has(mechanism)))
+        .map((entry) => entry.counterexampleRef),
+    }))
+    .filter((theme) => theme.matchedMechanisms.length > 0)
+    .sort((a, b) => b.matchedMechanisms.length - a.matchedMechanisms.length || a.id.localeCompare(b.id));
+}
+
 export function exploreGameComposition(
   request: ExploreRequest,
   graph = loadGameCreativeGraph(),
@@ -320,6 +343,9 @@ export function exploreGameComposition(
 ): CreativeTrace {
   validateRequest(request, graph);
   const mechanisms = unique(request.mechanisms ?? []);
+  const counterexampleSynthesisSource = readFileSync(resolve(PROJECT_ROOT, COUNTEREXAMPLE_SYNTHESIS_PATH), "utf8");
+  const counterexampleSynthesis = JSON.parse(counterexampleSynthesisSource) as { synthesisId: string };
+  const counterexampleThemes = enrichCounterexampleThemes(PROJECT_ROOT);
   const evidenceClasses = unique(request.evidenceClasses ?? []);
   const evidenceSet = new Set(evidenceClasses);
   const nodeMap = new Map(graph.nodes.map((node) => [node.id, node]));
@@ -357,7 +383,7 @@ export function exploreGameComposition(
   const notes = [
     graph.creativePolicy.creativeCombinationRule,
     graph.creativePolicy.unknownRule,
-    "Pattern matches are broad analogies; Experience matches are finer source-grounded interaction hypotheses; Relationship Facets are incomplete retrieval aliases; Conditionality matches preserve apparent conflicts; Counterexample matches expose historical assumption failures and cheap discriminators. None is a recipe, ranking, recommendation, compatibility verdict, blacklist, or rejection rule.",
+    "Pattern matches are broad analogies; Experience matches are finer source-grounded interaction hypotheses; Relationship Facets are incomplete retrieval aliases; Conditionality matches preserve apparent conflicts; Counterexample matches expose historical assumption failures; Counterexample Themes retrieve overlapping recurring failure structures. None is a recipe, taxonomy, ranking, recommendation, compatibility verdict, blacklist, or rejection rule.",
     "Evidence attached to components or reference games is not inherited by the new composition; emergent behavior may differ in either direction.",
   ];
   if (novelUnmodeledElements.length > 0) {
@@ -397,6 +423,12 @@ export function exploreGameComposition(
       sourceDigest: counterexampleMemory.__sourceDigest ?? sha256(JSON.stringify(counterexampleMemory)),
     },
     counterexampleMatches: counterexampleMatches(mechanisms, counterexampleMemory.counterexamples, experienceLibrary.experiences),
+    counterexampleSynthesis: {
+      synthesisId: counterexampleSynthesis.synthesisId,
+      sourcePath: COUNTEREXAMPLE_SYNTHESIS_PATH,
+      sourceDigest: sha256(counterexampleSynthesisSource),
+    },
+    counterexampleThemeMatches: counterexampleThemeMatches(mechanisms, counterexampleThemes),
     epistemicFences,
     requiredEvidenceClasses: unique(requiredEvidenceClasses),
     disposition,
