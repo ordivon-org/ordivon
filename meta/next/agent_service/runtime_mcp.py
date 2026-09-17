@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import shlex
 import urllib.error
@@ -7,7 +8,13 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Callable
 
-from .task_runtime import RuntimeAdapter, RuntimeJobObservation, RuntimeJobRef
+from .evidence import RuntimeArtifactPayload, RuntimeArtifactReader
+from .task_runtime import (
+    RuntimeAdapter,
+    RuntimeArtifactDescriptor,
+    RuntimeJobObservation,
+    RuntimeJobRef,
+)
 
 
 MODERN_PROTOCOL_VERSION = "2026-07-28"
@@ -216,12 +223,18 @@ class RuntimeMcpAdapter(RuntimeAdapter):
         if not isinstance(artifacts_raw, list):
             raise RuntimeMcpProtocolError("task.observe artifacts must be a list")
         artifact_ids: list[str] = []
+        artifact_descriptors: list[RuntimeArtifactDescriptor] = []
         for item in artifacts_raw:
             if not isinstance(item, dict):
                 continue
             artifact_id = item.get("artifactId")
+            kind = item.get("kind")
             if isinstance(artifact_id, str):
                 artifact_ids.append(artifact_id)
+                if isinstance(kind, str):
+                    artifact_descriptors.append(
+                        RuntimeArtifactDescriptor(artifact_id=artifact_id, kind=kind)
+                    )
         stdout_tail = result.get("stdoutTail", "")
         stderr_tail = result.get("stderrTail", "")
         if not isinstance(stdout_tail, str) or not isinstance(stderr_tail, str):
@@ -235,4 +248,94 @@ class RuntimeMcpAdapter(RuntimeAdapter):
             stdout_tail=stdout_tail,
             stderr_tail=stderr_tail,
             artifacts=tuple(artifact_ids),
+            artifact_descriptors=tuple(artifact_descriptors),
+        )
+
+
+class RuntimeMcpArtifactReader(RuntimeArtifactReader):
+    """Read one exact Runtime Artifact through the public digest-bound artifact.read surface."""
+
+    def __init__(
+        self,
+        tool_caller: ToolCaller | RuntimeMcpHttpClient,
+        *,
+        chunk_bytes: int = 1_048_576,
+        max_total_bytes: int = 4_194_304,
+    ) -> None:
+        if chunk_bytes <= 0 or chunk_bytes > 1_048_576:
+            raise ValueError("chunk_bytes must be in 1..1048576")
+        if max_total_bytes <= 0:
+            raise ValueError("max_total_bytes must be positive")
+        self._call: ToolCaller = (
+            tool_caller.tool if isinstance(tool_caller, RuntimeMcpHttpClient) else tool_caller
+        )
+        self._chunk_bytes = chunk_bytes
+        self._max_total_bytes = max_total_bytes
+
+    @classmethod
+    def from_local_runtime_env(
+        cls,
+        env_file: str | Path = "/etc/ordivon/ordivon-runtime.env",
+        *,
+        chunk_bytes: int = 1_048_576,
+        max_total_bytes: int = 4_194_304,
+    ) -> "RuntimeMcpArtifactReader":
+        return cls(
+            RuntimeMcpHttpClient.from_runtime_env(env_file),
+            chunk_bytes=chunk_bytes,
+            max_total_bytes=max_total_bytes,
+        )
+
+    def read(self, job_id: str, artifact_id: str) -> RuntimeArtifactPayload:
+        offset = 0
+        parts: list[str] = []
+        total_bytes = 0
+        expected_digest: str | None = None
+        while True:
+            result = self._call(
+                "artifact.read",
+                {
+                    "schemaVersion": SCHEMA_VERSION,
+                    "jobId": job_id,
+                    "artifactId": artifact_id,
+                    "offset": offset,
+                    "maxBytes": self._chunk_bytes,
+                },
+            )
+            if result.get("jobId") != job_id or result.get("artifactId") != artifact_id:
+                raise RuntimeMcpProtocolError("artifact.read returned mismatched identity")
+            reported_offset = result.get("offset")
+            next_offset = result.get("nextOffset")
+            eof = result.get("eof")
+            chunk_digest = result.get("digest")
+            content = result.get("content")
+            if reported_offset != offset:
+                raise RuntimeMcpProtocolError("artifact.read returned unexpected offset")
+            if not isinstance(next_offset, int) or next_offset < offset:
+                raise RuntimeMcpProtocolError("artifact.read returned invalid nextOffset")
+            if not isinstance(eof, bool) or not isinstance(chunk_digest, str) or not isinstance(content, str):
+                raise RuntimeMcpProtocolError("artifact.read omitted required artifact fields")
+            if expected_digest is None:
+                expected_digest = chunk_digest
+            elif chunk_digest != expected_digest:
+                raise RuntimeMcpProtocolError("artifact digest changed across chunks")
+            parts.append(content)
+            total_bytes += len(content.encode("utf-8"))
+            if total_bytes > self._max_total_bytes:
+                raise RuntimeMcpProtocolError("artifact exceeds Agent Service evidence byte ceiling")
+            if eof:
+                break
+            if next_offset <= offset:
+                raise RuntimeMcpProtocolError("artifact.read cursor did not advance")
+            offset = next_offset
+
+        combined = "".join(parts)
+        computed = "sha256:" + hashlib.sha256(combined.encode("utf-8")).hexdigest()
+        if expected_digest is None or computed != expected_digest:
+            raise RuntimeMcpProtocolError("reassembled artifact digest does not match Runtime digest")
+        return RuntimeArtifactPayload(
+            job_id=job_id,
+            artifact_id=artifact_id,
+            digest=expected_digest,
+            content=combined,
         )
