@@ -120,7 +120,7 @@ That establishes repeatability of this detector version under the measured two-r
 
 ## Pool runner
 
-`browser_security_pool_runner.py` turns the per-carrier collector into one neutral/read-only pool operation while preserving the Harness/Security authority split.
+`browser_security_pool_runner.py` turns the per-carrier collector into one neutral/read-only pool operation while preserving the Harness/Security authority split and the on-demand Browserless lifecycle. A managed carrier that was already active remains active. A managed carrier that was sleeping may be temporarily started through `BrowserlessAutomationService.ensure_endpoint_active()` for the observation, then is restored to sleeping only after the same carrier lease is reacquired and `/sessions` is still empty. If a new session appears, the runner fails closed and leaves the carrier active rather than stopping another consumer's work. The receipt records this per-carrier lifecycle evidence.
 
 ```text
 Harness pool runner
@@ -158,7 +158,7 @@ That run used all three production Browserless carriers and returned `NO_OBSERVE
 
 `browser_security_browserless_canary.py` is a qualification-only transaction for an immutable, locally available Browserless image. It does not mutate the production Quadlet and does not restart carriers 11/12/13.
 
-The runner derives its control arm from the **actual running production consensus** rather than from a repository template: carriers 11/12/13 must all be running and agree on immutable image, Network-v2 namespace, and the Ordivon-owned environment contract. It then uses reserved qualification instance `91` with an empty temporary profile, ephemeral headful Xvfb `:191`, the same Network-v2 namespace, and the same launch environment for two sequential arms:
+The runner derives its control arm from the **installed rendered production Quadlet**, not from a repository template and not from a requirement that all carriers be resident. The Quadlet owns immutable image, Network-v2 namespace, and Ordivon environment. Any currently active 11/12/13 carrier is cross-checked against that contract; a sleeping on-demand carrier is a legitimate lifecycle state rather than a qualification failure. The canary then uses reserved qualification instance `91` with an empty temporary profile, ephemeral headful Xvfb `:191`, the same Network-v2 namespace, and the same launch environment for two sequential arms:
 
 ```text
 production image control -> neutral witness -> Security-v2 bundle
@@ -184,11 +184,11 @@ During this work the repository template was found stale relative to the already
 
 `browserless_image_promotion.py` separates candidate qualification from production mutation. A promotion request binds the exact candidate OCI digest, canary receipt digest, source-template digest, installed rendered-Quadlet digest, Network-v2 generation, and Harness commit. The read-only default action returns only `NOOP_ALREADY_CURRENT` or `READY_TO_APPLY`; it never changes a service.
 
-The source Quadlet is a Network-v2 template, so promotion never compares or installs the raw repository bytes directly. It resolves the current Network-v2 authority through `browserless_podman_deploy.py`, renders the template, and requires the rendered candidate to differ from the installed Quadlet only at `Image=`. It also requires running carriers 11/12/13 to agree with the installed control image before mutation.
+The source Quadlet is a Network-v2 template, so promotion never compares or installs the raw repository bytes directly. It resolves the current Network-v2 authority through `browserless_podman_deploy.py`, renders the template, and requires the rendered candidate to differ from the installed Quadlet only at `Image=`. Active carriers must agree with the installed control image; sleeping on-demand carriers are recorded as inactive rather than treated as missing evidence.
 
-The explicit `--apply` path reuses the existing Agent Automation admission fence. It stops MCP admission, waits for Temporal and Browserless quiescence, snapshots the installed Quadlet, then restarts carriers in order 11 -> 12 -> 13 with exact candidate-image and health checks. A post-change Browser Security pool observation is retained durably under the candidate transaction directory. Only shared `browserBinary` and/or `controlLayer` infrastructure changes are allowed at this stage; any CF02-CF07 family change, detector drift, challenge-standing change, Network-v2 drift, or carrier-local drift rolls the Quadlet and carriers back.
+The explicit `--apply` path reuses the existing Agent Automation admission fence. It stops MCP admission, waits for Temporal and the **currently active** Browserless carriers to become quiescent, records the exact pre-promotion active/inactive topology, snapshots the installed Quadlet, then starts/restarts carriers in order 11 -> 12 -> 13 with exact candidate-image and health checks for the qualification window. A post-change Browser Security pool observation is retained durably under the candidate transaction directory. Only shared `browserBinary` and/or `controlLayer` infrastructure changes are allowed at this stage; any CF02-CF07 family change, detector drift, challenge-standing change, Network-v2 drift, or carrier-local drift rolls the Quadlet back and restores the pre-promotion carrier topology.
 
-A successful image mutation deliberately stops at `APPLIED_LKG_RESEAL_REQUIRED`: MCP remains stopped and CLI admission remains closed. Security-v2 then owns LKG reseal with `promote_browser_security_pool_lkg.py`. Harness `--finalize` requires a clean, advanced Security-v2 commit, a changed pool-index digest, current candidate image on all three carriers, and a fresh live pool result of exactly `NO_OBSERVED_DRIFT` against the resealed LKG. Only then does it start MCP and remove the admission gate.
+A successful image mutation deliberately stops at `APPLIED_LKG_RESEAL_REQUIRED`: MCP remains stopped and CLI admission remains closed. Security-v2 then owns LKG reseal with `promote_browser_security_pool_lkg.py`. Harness `--finalize` temporarily retains all three candidate carriers active for a fresh live pool against the resealed LKG and requires exactly `NO_OBSERVED_DRIFT`. It then restores the exact pre-promotion active/inactive topology before starting MCP and removing the admission gate.
 
 ```text
 paired canary PASS

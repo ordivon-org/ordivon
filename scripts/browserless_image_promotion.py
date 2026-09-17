@@ -201,24 +201,89 @@ def _require_local_image(image: str) -> None:
         raise PromotionError("candidate image is not present locally; promotion never pulls")
 
 
-def _production_carrier_images() -> dict[int, str]:
-    result: dict[int, str] = {}
-    for instance in INSTANCES:
-        proc = subprocess.run(
+def _carrier_service_active(instance: int) -> bool:
+    return (
+        subprocess.run(
+            [
+                "/usr/bin/systemctl",
+                "is-active",
+                "--quiet",
+                f"ordivon-browserless@{instance}.service",
+            ],
+            check=False,
+        ).returncode
+        == 0
+    )
+
+
+def _carrier_container_exists(instance: int) -> bool:
+    return (
+        subprocess.run(
             [
                 "/usr/bin/podman",
-                "inspect",
+                "container",
+                "exists",
                 f"ordivon-browserless-{instance}",
-                "--format",
-                "{{.ImageName}}",
             ],
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=10,
-        )
-        result[instance] = _image(proc.stdout.strip(), f"carrier-{instance} image")
+            check=False,
+        ).returncode
+        == 0
+    )
+
+
+def _production_carrier_state() -> dict[int, dict[str, Any]]:
+    result: dict[int, dict[str, Any]] = {}
+    for instance in INSTANCES:
+        active = _carrier_service_active(instance)
+        exists = _carrier_container_exists(instance)
+        if active and not exists:
+            raise PromotionError(f"active Browserless carrier {instance} has no Podman container")
+        if not active and exists:
+            raise PromotionError(
+                f"inactive Browserless carrier {instance} retains a container; lifecycle state is ambiguous"
+            )
+        image = _carrier_image(instance) if active else None
+        result[instance] = {"active": active, "image": image}
     return result
+
+
+def _active_instances(state: dict[int, dict[str, Any]]) -> set[int]:
+    return {instance for instance, row in state.items() if row.get("active") is True}
+
+
+def _validate_active_control(
+    state: dict[int, dict[str, Any]], expected_image: str, *, label: str
+) -> None:
+    bad = {
+        instance: row.get("image")
+        for instance, row in state.items()
+        if row.get("active") is True and row.get("image") != expected_image
+    }
+    if bad:
+        raise PromotionError(f"{label} active Browserless carrier image mismatch: {bad}")
+
+
+def _restore_carrier_topology(
+    active_instances: set[int], *, image: str, restart_active: bool
+) -> None:
+    if not active_instances.issubset(INSTANCES):
+        raise PromotionError("saved Browserless lifecycle topology contains an unknown instance")
+    for instance in INSTANCES:
+        unit = f"ordivon-browserless@{instance}.service"
+        if instance in active_instances:
+            action = "restart" if restart_active else "start"
+            subprocess.run(
+                ["/usr/bin/systemctl", action, unit], check=True, timeout=60
+            )
+            _wait_carrier(instance, image)
+        else:
+            subprocess.run(
+                ["/usr/bin/systemctl", "stop", unit], check=False, timeout=60
+            )
+    restored = _production_carrier_state()
+    if _active_instances(restored) != active_instances:
+        raise PromotionError("Browserless lifecycle topology failed to restore")
+    _validate_active_control(restored, image, label="restored")
 
 
 def build_plan(request_path: Path) -> dict[str, Any]:
@@ -247,9 +312,9 @@ def build_plan(request_path: Path) -> dict[str, Any]:
         raise PromotionError(
             "rendered source/installed Quadlet differ outside Image=; image-only promotion refused"
         )
-    running_images = _production_carrier_images()
-    if set(running_images.values()) != {installed_image}:
-        raise PromotionError("running Browserless carriers do not match installed control image")
+    carrier_state = _production_carrier_state()
+    _validate_active_control(carrier_state, installed_image, label="planned")
+    active_instances = _active_instances(carrier_state)
     candidate = request["candidateImage"]
     if source_image != candidate:
         raise PromotionError("source Quadlet is not pinned to candidate image")
@@ -273,7 +338,11 @@ def build_plan(request_path: Path) -> dict[str, Any]:
         "candidateImage": candidate,
         "controlImage": installed_image,
         "harnessCommit": harness_commit,
-        "runningCarrierImages": {str(k): v for k, v in sorted(running_images.items())},
+        "activeCarrierImages": {
+            str(instance): carrier_state[instance]["image"]
+            for instance in sorted(active_instances)
+        },
+        "inactiveCarrierInstances": sorted(set(INSTANCES) - active_instances),
         "sourceQuadletSha256": source_digest,
         "renderedSourceQuadletSha256": "sha256:"
         + hashlib.sha256(rendered_source_raw).hexdigest(),
@@ -302,8 +371,12 @@ def _browserless_endpoints() -> list[Any]:
     return [by_id[key] for key in expected]
 
 
-def _require_browser_quiescent() -> None:
-    for endpoint in _browserless_endpoints():
+def _require_browser_quiescent(active_instances: set[int] | None = None) -> None:
+    if active_instances is None:
+        active_instances = _active_instances(_production_carrier_state())
+    endpoints = {endpoint.endpoint_id: endpoint for endpoint in _browserless_endpoints()}
+    for instance in sorted(active_instances):
+        endpoint = endpoints[f"chatgpt-carrier-{instance}"]
         sessions = endpoint.sessions(timeout_seconds=3.0)
         if sessions:
             raise PromotionError(f"Browserless carrier busy: {endpoint.endpoint_id}")
@@ -576,10 +649,10 @@ def apply(request_path: Path) -> dict[str, Any]:
                 _persist_receipt(candidate, value)
                 return value
 
-            _require_browser_quiescent()
-            current_images = _production_carrier_images()
-            if set(current_images.values()) != {plan["controlImage"]}:
-                raise PromotionError("running Browserless control changed after promotion planning")
+            pre_state = _production_carrier_state()
+            _validate_active_control(pre_state, plan["controlImage"], label="pre-apply")
+            pre_active_instances = _active_instances(pre_state)
+            _require_browser_quiescent(pre_active_instances)
 
             transaction_root = _transaction_root(candidate)
             transaction_root.mkdir(parents=True, exist_ok=True)
@@ -606,6 +679,8 @@ def apply(request_path: Path) -> dict[str, Any]:
                     "standing": "APPLIED_LKG_RESEAL_REQUIRED",
                     "productionMutationAttempted": True,
                     "restartedInstances": restarted,
+                    "prePromotionActiveInstances": sorted(pre_active_instances),
+                    "prePromotionInactiveInstances": sorted(set(INSTANCES) - pre_active_instances),
                     "installedQuadletBeforeSha256": installed_before_digest,
                     "installedQuadletAfterSha256": sha256_file(INSTALLED_QUADLET),
                     "rollbackSnapshot": str(backup_path),
@@ -628,12 +703,15 @@ def apply(request_path: Path) -> dict[str, Any]:
             if mutation_started:
                 _atomic_write(INSTALLED_QUADLET, installed_before)
                 subprocess.run(["/usr/bin/systemctl", "daemon-reload"], check=False, timeout=30)
-                for instance in INSTANCES:
-                    subprocess.run(
-                        ["/usr/bin/systemctl", "restart", f"ordivon-browserless@{instance}.service"],
-                        check=False,
-                        timeout=60,
+                try:
+                    _restore_carrier_topology(
+                        pre_active_instances,
+                        image=plan["controlImage"],
+                        restart_active=True,
                     )
+                except Exception:
+                    # Preserve the original promotion failure while keeping admission fail-closed.
+                    pass
             value = dict(plan)
             value.update(
                 {
@@ -671,9 +749,10 @@ def finalize(request_path: Path) -> dict[str, Any]:
         raise PromotionError("installed Quadlet does not equal rendered candidate before finalize")
     if binding.get("generationDigest") != request["expectedNetworkGenerationDigest"]:
         raise PromotionError("Network-v2 generation changed before finalize")
-    running_images = _production_carrier_images()
-    if set(running_images.values()) != {candidate}:
-        raise PromotionError("running Browserless carriers do not equal finalized candidate")
+    finalize_state = _production_carrier_state()
+    if _active_instances(finalize_state) != set(INSTANCES):
+        raise PromotionError("promotion finalize requires all candidate carriers retained active")
+    _validate_active_control(finalize_state, candidate, label="finalize")
 
     security_revision = _security_clean_revision()
     previous_security = applied["preResealSecurityRevision"]
@@ -694,7 +773,7 @@ def finalize(request_path: Path) -> dict[str, Any]:
             raise PromotionError("Agent Automation worker must remain active for drain continuity")
         if release.running_workflows():
             raise PromotionError("Temporal workflows remain active during promotion finalize")
-        _require_browser_quiescent()
+        _require_browser_quiescent(set(INSTANCES))
 
         final_pool, final_receipt_path = _run_pool_observation(
             candidate=candidate, phase="finalize"
@@ -707,8 +786,18 @@ def finalize(request_path: Path) -> dict[str, Any]:
             previous_pool_index_sha256=previous_index,
         )
 
+        saved_active_raw = applied.get("prePromotionActiveInstances")
+        if (
+            not isinstance(saved_active_raw, list)
+            or any(not isinstance(value, int) for value in saved_active_raw)
+            or not set(saved_active_raw).issubset(INSTANCES)
+        ):
+            raise PromotionError("promotion receipt lacks valid pre-promotion lifecycle topology")
+        saved_active = set(saved_active_raw)
+
         started_mcp = False
         try:
+            _restore_carrier_topology(saved_active, image=candidate, restart_active=False)
             release.run(["/usr/bin/systemctl", "start", release.MCP_UNIT], timeout=30)
             started_mcp = True
             if not release.active(release.MCP_UNIT):
@@ -725,6 +814,8 @@ def finalize(request_path: Path) -> dict[str, Any]:
                     "finalPoolStanding": classification["standing"],
                     "finalizeArtifactRoot": str(final_receipt_path.parent),
                     "finalizePoolReceiptSha256": sha256_file(final_receipt_path),
+                    "restoredActiveInstances": sorted(saved_active),
+                    "restoredInactiveInstances": sorted(set(INSTANCES) - saved_active),
                     "mcpAdmissionClosed": False,
                     "cliAdmissionClosed": False,
                 }

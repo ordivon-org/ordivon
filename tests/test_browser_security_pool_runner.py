@@ -1,3 +1,4 @@
+import contextlib
 import hashlib
 import json
 import tempfile
@@ -67,8 +68,17 @@ class BrowserSecurityPoolRunnerTests(unittest.TestCase):
             index = self.make_index(security)
             artifacts = tmp_root / "artifacts"
 
-            def collect(*, carrier_id, witness_id, output, python):
-                output.write_text(json.dumps({"carrierId": carrier_id, "witnessId": witness_id}), encoding="utf-8")
+            def collect(*, carrier_id, witness_id, output, python, config_path):
+                output.write_text(
+                    json.dumps(
+                        {
+                            "carrierId": carrier_id,
+                            "witnessId": witness_id,
+                            "configPath": str(config_path),
+                        }
+                    ),
+                    encoding="utf-8",
+                )
 
             def build(*, manifest, output, security_root, python):
                 output.write_text(json.dumps({"source": manifest.name}), encoding="utf-8")
@@ -78,7 +88,24 @@ class BrowserSecurityPoolRunnerTests(unittest.TestCase):
                 "standing": "NO_OBSERVED_DRIFT",
                 "rootCauseEstablished": False,
             }
-            with mock.patch.object(runner, "_collect_carrier", side_effect=collect) as collect_mock, mock.patch.object(
+
+            @contextlib.contextmanager
+            def lifecycle(config_path, carrier_id):
+                yield {
+                    "carrierId": carrier_id,
+                    "serviceUnit": f"{carrier_id}.service",
+                    "initiallyActive": False,
+                    "lifecycleStarted": True,
+                    "restoredOriginalActiveState": True,
+                }
+
+            config_path = tmp_root / "automation.json"
+            config_path.write_text("{}\n")
+            with mock.patch.object(
+                runner, "_carrier_observation_lifecycle", side_effect=lifecycle
+            ) as lifecycle_mock, mock.patch.object(
+                runner, "_collect_carrier", side_effect=collect
+            ) as collect_mock, mock.patch.object(
                 runner, "_build_bundle", side_effect=build
             ) as build_mock, mock.patch.object(
                 runner, "_compare_pool", return_value=classification
@@ -91,6 +118,7 @@ class BrowserSecurityPoolRunnerTests(unittest.TestCase):
                     pool_index=index,
                     python="/usr/bin/python",
                     artifact_dir=artifacts,
+                    config_path=config_path,
                 )
 
             self.assertEqual(receipt["classification"], classification)
@@ -99,7 +127,18 @@ class BrowserSecurityPoolRunnerTests(unittest.TestCase):
             self.assertFalse(receipt["providerChallengeVisited"])
             self.assertFalse(receipt["providerSendAttempted"])
             self.assertEqual(collect_mock.call_count, 2)
+            self.assertEqual(lifecycle_mock.call_count, 2)
             self.assertEqual(build_mock.call_count, 2)
+            self.assertEqual(
+                [row["carrierId"] for row in receipt["carrierLifecycleEvidence"]],
+                ["chatgpt-carrier-11", "chatgpt-carrier-12"],
+            )
+            self.assertTrue(
+                all(
+                    row["restoredOriginalActiveState"]
+                    for row in receipt["carrierLifecycleEvidence"]
+                )
+            )
             compare_mock.assert_called_once()
             run_root = artifacts / "test-run"
             self.assertTrue((run_root / "pool-comparison-manifest.json").is_file())
@@ -108,6 +147,111 @@ class BrowserSecurityPoolRunnerTests(unittest.TestCase):
             for row in comparison["carriers"]:
                 self.assertIn(row["carrierId"], row["baselineBundle"])
                 self.assertIn(row["carrierId"], row["candidateBundle"])
+
+    def test_observation_lifecycle_keeps_already_active_carrier_active(self) -> None:
+        endpoint = mock.Mock(
+            endpoint_id="chatgpt-carrier-11",
+            service_unit="ordivon-browserless@11.service",
+        )
+        config = mock.Mock(browserless_pool=mock.Mock(endpoints=[endpoint]))
+        service = mock.Mock()
+        service.ensure_endpoint_active.return_value = {
+            "healthy": True,
+            "lifecycleStarted": False,
+        }
+        active = mock.Mock(returncode=0)
+        with mock.patch.object(runner, "_load_automation_config", return_value=config), mock.patch(
+            "scripts.agent_automation_browserless.BrowserlessAutomationService",
+            return_value=service,
+        ), mock.patch.object(runner.subprocess, "run", return_value=active) as run:
+            with runner._carrier_observation_lifecycle(
+                Path("/etc/fixture.json"), "chatgpt-carrier-11"
+            ) as state:
+                self.assertTrue(state["initiallyActive"])
+                self.assertFalse(state["lifecycleStarted"])
+        self.assertTrue(state["restoredOriginalActiveState"])
+        self.assertFalse(
+            any(
+                call.args[0][1:3] == ["stop", "ordivon-browserless@11.service"]
+                for call in run.call_args_list
+            )
+        )
+
+    def test_observation_lifecycle_wakes_and_restores_sleeping_carrier(self) -> None:
+        endpoint = mock.Mock(
+            endpoint_id="chatgpt-carrier-12",
+            service_unit="ordivon-browserless@12.service",
+        )
+        endpoint.sessions.return_value = []
+        config = mock.Mock(browserless_pool=mock.Mock(endpoints=[endpoint]))
+        service = mock.Mock()
+        service.ensure_endpoint_active.return_value = {
+            "healthy": True,
+            "lifecycleStarted": True,
+        }
+
+        @contextlib.contextmanager
+        def lease(*args, **kwargs):
+            yield
+
+        calls = [
+            mock.Mock(returncode=3),  # initially inactive
+            mock.Mock(returncode=0),  # stop succeeds
+            mock.Mock(returncode=3),  # remains inactive after stop
+        ]
+        with mock.patch.object(runner, "_load_automation_config", return_value=config), mock.patch(
+            "scripts.agent_automation_browserless.BrowserlessAutomationService",
+            return_value=service,
+        ), mock.patch(
+            "scripts.agent_automation_browserless._carrier_lease", side_effect=lease
+        ), mock.patch.object(runner.subprocess, "run", side_effect=calls) as run:
+            with runner._carrier_observation_lifecycle(
+                Path("/etc/fixture.json"), "chatgpt-carrier-12"
+            ) as state:
+                self.assertFalse(state["initiallyActive"])
+                self.assertTrue(state["lifecycleStarted"])
+        self.assertTrue(state["restoredOriginalActiveState"])
+        self.assertIn(
+            ["/usr/bin/systemctl", "stop", "ordivon-browserless@12.service"],
+            [call.args[0] for call in run.call_args_list],
+        )
+
+    def test_observation_lifecycle_never_stops_carrier_that_became_busy(self) -> None:
+        endpoint = mock.Mock(
+            endpoint_id="chatgpt-carrier-13",
+            service_unit="ordivon-browserless@13.service",
+        )
+        endpoint.sessions.return_value = [{"id": "new-session"}]
+        config = mock.Mock(browserless_pool=mock.Mock(endpoints=[endpoint]))
+        service = mock.Mock()
+        service.ensure_endpoint_active.return_value = {
+            "healthy": True,
+            "lifecycleStarted": True,
+        }
+
+        @contextlib.contextmanager
+        def lease(*args, **kwargs):
+            yield
+
+        with mock.patch.object(runner, "_load_automation_config", return_value=config), mock.patch(
+            "scripts.agent_automation_browserless.BrowserlessAutomationService",
+            return_value=service,
+        ), mock.patch(
+            "scripts.agent_automation_browserless._carrier_lease", side_effect=lease
+        ), mock.patch.object(
+            runner.subprocess, "run", return_value=mock.Mock(returncode=3)
+        ) as run:
+            with self.assertRaisesRegex(RuntimeError, "acquired a session"):
+                with runner._carrier_observation_lifecycle(
+                    Path("/etc/fixture.json"), "chatgpt-carrier-13"
+                ):
+                    pass
+        self.assertFalse(
+            any(
+                call.args[0][1:3] == ["stop", "ordivon-browserless@13.service"]
+                for call in run.call_args_list
+            )
+        )
 
     def test_source_revision_accepts_immutable_release_marker_without_git_checkout(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

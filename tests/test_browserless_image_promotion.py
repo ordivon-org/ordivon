@@ -130,15 +130,19 @@ class BrowserlessImagePromotionTests(unittest.TestCase):
         )
 
     @contextlib.contextmanager
-    def plan_dependencies(self, running_image=IMAGE_A):
+    def plan_dependencies(self, running_image=IMAGE_A, active_instances=(11, 12, 13)):
+        active = set(active_instances)
+        state = {
+            instance: {
+                "active": instance in active,
+                "image": running_image if instance in active else None,
+            }
+            for instance in (11, 12, 13)
+        }
         with (
             mock.patch.object(promotion, "_source_revision", return_value=COMMIT),
             mock.patch.object(promotion, "_require_canonical_commit") as canonical,
-            mock.patch.object(
-                promotion,
-                "_production_carrier_images",
-                return_value={11: running_image, 12: running_image, 13: running_image},
-            ),
+            mock.patch.object(promotion, "_production_carrier_state", return_value=state),
             mock.patch.object(
                 promotion,
                 "_render_source_quadlet",
@@ -162,11 +166,20 @@ class BrowserlessImagePromotionTests(unittest.TestCase):
         self.assertEqual(value["standing"], "NOOP_ALREADY_CURRENT")
         self.assertEqual(value["harnessCommit"], COMMIT)
         self.assertEqual(
-            value["runningCarrierImages"], {"11": IMAGE_A, "12": IMAGE_A, "13": IMAGE_A}
+            value["activeCarrierImages"], {"11": IMAGE_A, "12": IMAGE_A, "13": IMAGE_A}
         )
+        self.assertEqual(value["inactiveCarrierInstances"], [])
         self.assertFalse(value["productionMutationAttempted"])
         canonical.assert_called_once_with(COMMIT)
         local.assert_called_once_with(IMAGE_A)
+
+    def test_plan_accepts_sleeping_on_demand_carriers(self) -> None:
+        self.write_case()
+        with self.plan_dependencies(active_instances=(11,)):
+            value = promotion.build_plan(self.request)
+        self.assertEqual(value["standing"], "NOOP_ALREADY_CURRENT")
+        self.assertEqual(value["activeCarrierImages"], {"11": IMAGE_A})
+        self.assertEqual(value["inactiveCarrierInstances"], [12, 13])
 
     def test_plan_different_candidate_requires_expected_canary_standing(self) -> None:
         self.write_case(candidate=IMAGE_B, standing="PASS_EXPECTED_INFRASTRUCTURE_CHANGE")
@@ -203,7 +216,7 @@ class BrowserlessImagePromotionTests(unittest.TestCase):
     def test_plan_rejects_running_carrier_control_drift(self) -> None:
         self.write_case()
         with self.plan_dependencies(running_image=IMAGE_B):
-            with self.assertRaisesRegex(promotion.PromotionError, "running Browserless carriers"):
+            with self.assertRaisesRegex(promotion.PromotionError, "planned active Browserless carrier image mismatch"):
                 promotion.build_plan(self.request)
 
     def test_post_change_policy_allows_only_shared_browser_control_identity_drift(self) -> None:
@@ -270,7 +283,8 @@ class BrowserlessImagePromotionTests(unittest.TestCase):
             "candidateImage": IMAGE_B,
             "controlImage": IMAGE_A,
             "harnessCommit": COMMIT,
-            "runningCarrierImages": {"11": IMAGE_A, "12": IMAGE_A, "13": IMAGE_A},
+            "activeCarrierImages": {"11": IMAGE_A, "12": IMAGE_A, "13": IMAGE_A},
+            "inactiveCarrierInstances": [],
             "sourceQuadletSha256": "sha256:" + "1" * 64,
             "renderedSourceQuadletSha256": "sha256:"
             + hashlib.sha256(self.source.read_bytes()).hexdigest(),
@@ -331,8 +345,12 @@ class BrowserlessImagePromotionTests(unittest.TestCase):
             mock.patch.object(promotion, "_require_browser_quiescent"),
             mock.patch.object(
                 promotion,
-                "_production_carrier_images",
-                return_value={11: IMAGE_A, 12: IMAGE_A, 13: IMAGE_A},
+                "_production_carrier_state",
+                return_value={
+                    11: {"active": True, "image": IMAGE_A},
+                    12: {"active": True, "image": IMAGE_A},
+                    13: {"active": True, "image": IMAGE_A},
+                },
             ),
             mock.patch.object(
                 promotion,
@@ -375,8 +393,12 @@ class BrowserlessImagePromotionTests(unittest.TestCase):
             mock.patch.object(promotion, "_require_browser_quiescent"),
             mock.patch.object(
                 promotion,
-                "_production_carrier_images",
-                return_value={11: IMAGE_A, 12: IMAGE_A, 13: IMAGE_A},
+                "_production_carrier_state",
+                return_value={
+                    11: {"active": True, "image": IMAGE_A},
+                    12: {"active": True, "image": IMAGE_A},
+                    13: {"active": True, "image": IMAGE_A},
+                },
             ),
             mock.patch.object(
                 promotion,
@@ -413,6 +435,8 @@ class BrowserlessImagePromotionTests(unittest.TestCase):
                 "standing": "APPLIED_LKG_RESEAL_REQUIRED",
                 "productionMutationAttempted": True,
                 "lkgResealRequired": True,
+                "prePromotionActiveInstances": [11, 12, 13],
+                "prePromotionInactiveInstances": [],
                 "preResealSecurityRevision": "0" * 40,
                 "preResealPoolIndexSha256": "sha256:" + "e" * 64,
                 "mcpAdmissionClosed": True,
@@ -449,11 +473,16 @@ class BrowserlessImagePromotionTests(unittest.TestCase):
             ),
             mock.patch.object(
                 promotion,
-                "_production_carrier_images",
-                return_value={11: IMAGE_B, 12: IMAGE_B, 13: IMAGE_B},
+                "_production_carrier_state",
+                return_value={
+                    11: {"active": True, "image": IMAGE_B},
+                    12: {"active": True, "image": IMAGE_B},
+                    13: {"active": True, "image": IMAGE_B},
+                },
             ),
             mock.patch.object(promotion, "_security_clean_revision", return_value="2" * 40),
             mock.patch.object(promotion, "_require_browser_quiescent"),
+            mock.patch.object(promotion, "_restore_carrier_topology") as restore_topology,
             mock.patch.object(
                 promotion, "_run_pool_observation", return_value=(final_pool, final_path)
             ),
@@ -464,6 +493,9 @@ class BrowserlessImagePromotionTests(unittest.TestCase):
         self.assertEqual(value["finalSecurityRevision"], "2" * 40)
         self.assertEqual(value["finalPoolIndexSha256"], "sha256:" + "f" * 64)
         self.assertTrue(state["mcp"])
+        restore_topology.assert_called_once_with(
+            {11, 12, 13}, image=IMAGE_B, restart_active=False
+        )
         self.assertFalse(fake.ADMISSION_CLOSED.exists())
         restore.assert_not_called()
         self.assertTrue(any(call[:2] == ("/usr/bin/systemctl", "start") for call in calls if isinstance(call, tuple)))
@@ -495,11 +527,16 @@ class BrowserlessImagePromotionTests(unittest.TestCase):
             ),
             mock.patch.object(
                 promotion,
-                "_production_carrier_images",
-                return_value={11: IMAGE_B, 12: IMAGE_B, 13: IMAGE_B},
+                "_production_carrier_state",
+                return_value={
+                    11: {"active": True, "image": IMAGE_B},
+                    12: {"active": True, "image": IMAGE_B},
+                    13: {"active": True, "image": IMAGE_B},
+                },
             ),
             mock.patch.object(promotion, "_security_clean_revision", return_value="2" * 40),
             mock.patch.object(promotion, "_require_browser_quiescent"),
+            mock.patch.object(promotion, "_restore_carrier_topology"),
             mock.patch.object(
                 promotion, "_run_pool_observation", return_value=(bad, final_path)
             ),

@@ -4,6 +4,8 @@ All user-visible changes to Ordivon Harness are recorded here. Release and compa
 
 ## Unreleased
 
+- reconciled Browser Security qualification with on-demand Browserless carrier lifecycle: paired canary control now comes from the installed rendered Quadlet, pool observation may temporarily wake a sleeping managed carrier and restores it only under the carrier lease when no session appeared, and image promotion preserves/restores the exact pre-promotion active/inactive topology.
+
 - added a digest-fenced Browserless image promotion transaction with read-only plan, explicit staged apply/rollback, durable post-change evidence, Security-v2-owned per-carrier LKG reseal, and a finalize gate that reopens Agent Automation only after a changed Security revision/index and a fresh `NO_OBSERVED_DRIFT` pool witness. The source Network-v2 Quadlet is rendered before comparison/installation, and current-image live planning was verified as a no-op without touching production.
 
 - added paired Browserless image canary qualification on reserved instance 91: the runner derives an exact control from live carriers 11/12/13, runs control/candidate images sequentially in the same Network-v2 authority with neutral CF02-CF07 witnesses, and separates expected image/browser identity changes from unexpected presentation drift without mutating production. Same-image live control reproduced exactly; a known-different older local image was held on PeetPrint/User-Agent drift. The source Quadlet pin/TZ was also reconciled forward to the already-running production truth (`b1ba7b...`, `Asia/Shanghai`) from historical commit `4896113`.

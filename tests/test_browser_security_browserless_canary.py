@@ -6,13 +6,35 @@ from scripts.browser_security_browserless_canary import (
     CANARY_PORT,
     build_canary_podman_command,
     classify_canary_comparison,
-    production_control_from_rows,
+    production_control_from_quadlet,
     validate_image_ref,
 )
 
 
 IMAGE_A = "ghcr.io/browserless/chromium@sha256:" + "a" * 64
 IMAGE_B = "ghcr.io/browserless/chromium@sha256:" + "b" * 64
+
+
+def installed_quadlet(image: str = IMAGE_A, *, tz: str = "Asia/Shanghai") -> str:
+    return "\n".join(
+        [
+            "[Container]",
+            f"Image={image}",
+            "Network=ns:/run/netns/nv2-browserless-prod",
+            "Environment=CONCURRENT=1",
+            "Environment=QUEUED=8",
+            "Environment=TIMEOUT=180000",
+            "Environment=HEALTH=true",
+            "Environment=MAX_CPU_PERCENT=90",
+            "Environment=MAX_MEMORY_PERCENT=90",
+            "Environment=DEBUG=-*",
+            f"Environment=TZ={tz}",
+            "Environment=XAUTHORITY=/run/ordivon-xauth",
+            "Environment=DISPLAY=:1%i",
+            "Environment=PORT=30%i",
+            "",
+        ]
+    )
 
 
 def row(instance: int, *, image: str = IMAGE_A, namespace: str = "nv2-browserless-prod", tz: str = "Asia/Shanghai"):
@@ -64,15 +86,32 @@ class BrowserSecurityBrowserlessCanaryTests(unittest.TestCase):
             with self.subTest(value=value), self.assertRaisesRegex(ValueError, "exact"):
                 validate_image_ref(value)
 
-    def test_production_control_requires_three_running_consistent_carriers(self) -> None:
-        value = production_control_from_rows({n: row(n) for n in (11, 12, 13)})
+    def test_production_control_allows_sleeping_on_demand_carriers(self) -> None:
+        value = production_control_from_quadlet(installed_quadlet(), {11: row(11)})
         self.assertEqual(value["image"], IMAGE_A)
         self.assertEqual(value["networkNamespace"], "nv2-browserless-prod")
         self.assertEqual(value["environment"]["TZ"], "Asia/Shanghai")
-        with self.assertRaisesRegex(RuntimeError, "one immutable image"):
-            production_control_from_rows({11: row(11), 12: row(12, image=IMAGE_B), 13: row(13)})
-        with self.assertRaisesRegex(RuntimeError, "one Ordivon environment"):
-            production_control_from_rows({11: row(11), 12: row(12, tz="UTC"), 13: row(13)})
+        self.assertEqual(value["activeInstances"], [11])
+        self.assertEqual(value["inactiveInstances"], [12, 13])
+        self.assertEqual(value["controlAuthority"], "installed-rendered-quadlet")
+
+    def test_active_carrier_must_agree_with_installed_control(self) -> None:
+        with self.assertRaisesRegex(RuntimeError, "image disagrees"):
+            production_control_from_quadlet(installed_quadlet(), {11: row(11, image=IMAGE_B)})
+        with self.assertRaisesRegex(RuntimeError, "env TZ disagrees"):
+            production_control_from_quadlet(installed_quadlet(), {11: row(11, tz="UTC")})
+
+    def test_installed_control_requires_exact_image_network_and_environment(self) -> None:
+        with self.assertRaisesRegex(RuntimeError, "exactly one Image"):
+            production_control_from_quadlet(installed_quadlet().replace(f"Image={IMAGE_A}\n", ""))
+        with self.assertRaisesRegex(RuntimeError, "Network-v2 namespace"):
+            production_control_from_quadlet(
+                installed_quadlet().replace("Network=ns:/run/netns/nv2-browserless-prod\n", "")
+            )
+        with self.assertRaisesRegex(RuntimeError, "lacks env TZ"):
+            production_control_from_quadlet(
+                installed_quadlet().replace("Environment=TZ=Asia/Shanghai\n", "")
+            )
 
     def test_same_image_control_requires_complete_reproducibility(self) -> None:
         stable = classify_canary_comparison(

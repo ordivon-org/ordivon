@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Qualify one locally available Browserless image with an isolated paired canary.
 
-The transaction runs a control arm from the exact image consensus currently serving production
-carriers 11/12/13, then a candidate arm with the requested immutable image. Both arms use the same
+The transaction runs a control arm from the installed production Browserless execution contract,
+then a candidate arm with the requested immutable image. Active on-demand carriers are cross-checked
+against that contract, but sleeping carriers are not treated as failures. Both arms use the same
 Network-v2 namespace, Ordivon-owned environment, headful display geometry, empty profile class and
 neutral Browser Security witness suite. It never visits ChatGPT, solves a challenge, or crosses SEND.
 
@@ -27,6 +28,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 PRODUCTION_CONFIG = Path("/etc/ordivon/agent-automation-browserless.json")
+INSTALLED_QUADLET = Path("/etc/containers/systemd/ordivon-browserless@.container")
 SECURITY_ROOT = Path("/root/projects/ordivon-security-v2")
 PLAYWRIGHT_PYTHON = Path(
     "/root/.local/share/ordivon-workstation/conversation-relay-playwright-r4/.venv/bin/python"
@@ -81,57 +83,92 @@ def _env_map(raw: object) -> dict[str, str]:
     return values
 
 
-def production_control_from_rows(rows: dict[int, dict[str, Any]]) -> dict[str, Any]:
-    if set(rows) != set(PRODUCTION_INSTANCES):
-        raise RuntimeError("production Browserless control requires exact carriers 11/12/13")
-    images: set[str] = set()
-    namespaces: set[str] = set()
-    environments: list[dict[str, str]] = []
-    for instance in PRODUCTION_INSTANCES:
-        row = rows[instance]
+def production_control_from_quadlet(
+    raw: str, active_rows: dict[int, dict[str, Any]] | None = None
+) -> dict[str, Any]:
+    active_rows = active_rows or {}
+    if not set(active_rows).issubset(PRODUCTION_INSTANCES):
+        raise RuntimeError("active Browserless carrier set contains an unknown production instance")
+    image_rows = [line.removeprefix("Image=") for line in raw.splitlines() if line.startswith("Image=")]
+    network_rows = [
+        line.removeprefix("Network=ns:/run/netns/")
+        for line in raw.splitlines()
+        if line.startswith("Network=ns:/run/netns/")
+    ]
+    env_rows = [line.removeprefix("Environment=") for line in raw.splitlines() if line.startswith("Environment=")]
+    if len(image_rows) != 1:
+        raise RuntimeError("installed Browserless Quadlet must contain exactly one Image= line")
+    if len(network_rows) != 1 or not network_rows[0] or "/" in network_rows[0]:
+        raise RuntimeError("installed Browserless Quadlet must contain one Network-v2 namespace")
+    image = validate_image_ref(image_rows[0])
+    environment = _env_map(env_rows)
+    owned: dict[str, str] = {}
+    for key in OWNED_ENV_KEYS:
+        value = environment.get(key)
+        if value is None:
+            raise RuntimeError(f"installed Browserless Quadlet lacks env {key}")
+        owned[key] = value
+    namespace = network_rows[0]
+
+    for instance, row in sorted(active_rows.items()):
         state = row.get("State")
         if not isinstance(state, dict) or state.get("Running") is not True:
-            raise RuntimeError(f"production Browserless carrier {instance} is not running")
-        image = row.get("ImageName")
-        if not isinstance(image, str):
-            raise RuntimeError(f"production Browserless carrier {instance} lacks ImageName")
-        images.add(validate_image_ref(image))
+            raise RuntimeError(f"active Browserless carrier {instance} is not actually running")
+        observed_image = row.get("ImageName")
+        if observed_image != image:
+            raise RuntimeError(f"active Browserless carrier {instance} image disagrees with installed control")
         host = row.get("HostConfig")
         network_mode = host.get("NetworkMode") if isinstance(host, dict) else None
-        if not isinstance(network_mode, str) or not network_mode.startswith("ns:/run/netns/"):
-            raise RuntimeError(f"production Browserless carrier {instance} lacks Network-v2 netns")
-        namespaces.add(network_mode.removeprefix("ns:/run/netns/"))
+        if network_mode != f"ns:/run/netns/{namespace}":
+            raise RuntimeError(
+                f"active Browserless carrier {instance} Network-v2 namespace disagrees with installed control"
+            )
         config = row.get("Config")
-        env = _env_map(config.get("Env") if isinstance(config, dict) else None)
-        owned: dict[str, str] = {}
-        for key in OWNED_ENV_KEYS:
-            value = env.get(key)
-            if value is None:
-                raise RuntimeError(f"production Browserless carrier {instance} lacks env {key}")
-            owned[key] = value
-        environments.append(owned)
-    if len(images) != 1:
-        raise RuntimeError("production Browserless carriers do not share one immutable image")
-    if len(namespaces) != 1:
-        raise RuntimeError("production Browserless carriers do not share one Network-v2 namespace")
-    if any(env != environments[0] for env in environments[1:]):
-        raise RuntimeError("production Browserless carriers do not share one Ordivon environment")
+        observed_env = _env_map(config.get("Env") if isinstance(config, dict) else None)
+        for key, expected in owned.items():
+            if observed_env.get(key) != expected:
+                raise RuntimeError(
+                    f"active Browserless carrier {instance} env {key} disagrees with installed control"
+                )
     return {
-        "image": next(iter(images)),
-        "networkNamespace": next(iter(namespaces)),
-        "environment": environments[0],
+        "image": image,
+        "networkNamespace": namespace,
+        "environment": owned,
         "instances": list(PRODUCTION_INSTANCES),
+        "activeInstances": sorted(active_rows),
+        "inactiveInstances": sorted(set(PRODUCTION_INSTANCES) - set(active_rows)),
+        "controlAuthority": "installed-rendered-quadlet",
     }
 
 
 def discover_production_control() -> dict[str, Any]:
-    rows: dict[int, dict[str, Any]] = {}
+    try:
+        raw = INSTALLED_QUADLET.read_text(encoding="utf-8")
+    except OSError as error:
+        raise RuntimeError("installed Browserless Quadlet is unavailable") from error
+    active_rows: dict[int, dict[str, Any]] = {}
     for instance in PRODUCTION_INSTANCES:
+        unit = f"ordivon-browserless@{instance}.service"
+        active = subprocess.run(
+            ["/usr/bin/systemctl", "is-active", "--quiet", unit], check=False
+        ).returncode == 0
+        exists = subprocess.run(
+            ["/usr/bin/podman", "container", "exists", f"ordivon-browserless-{instance}"],
+            check=False,
+        ).returncode == 0
+        if not active:
+            if exists:
+                raise RuntimeError(
+                    f"inactive Browserless carrier {instance} still has a container; lifecycle state is ambiguous"
+                )
+            continue
+        if not exists:
+            raise RuntimeError(f"active Browserless carrier {instance} has no Podman container")
         value = _run_json(["/usr/bin/podman", "inspect", f"ordivon-browserless-{instance}"])
         if not isinstance(value, list) or len(value) != 1 or not isinstance(value[0], dict):
             raise RuntimeError(f"unexpected podman inspect result for carrier {instance}")
-        rows[instance] = value[0]
-    return production_control_from_rows(rows)
+        active_rows[instance] = value[0]
+    return production_control_from_quadlet(raw, active_rows)
 
 
 def classify_canary_comparison(
@@ -191,7 +228,7 @@ def _load_production_config(namespace: str) -> dict[str, Any]:
         raise RuntimeError("production config lacks Browserless endpoints")
     observed_namespaces = {row.get("networkNamespace") for row in endpoints if isinstance(row, dict)}
     if observed_namespaces != {namespace}:
-        raise RuntimeError("production config Network-v2 namespace disagrees with running carriers")
+        raise RuntimeError("production config Network-v2 namespace disagrees with installed control")
     value = dict(value)
     value["browserSubstrate"] = {
         "kind": "browserless",

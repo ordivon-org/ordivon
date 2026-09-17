@@ -8,6 +8,7 @@ This runner does not visit ChatGPT, inspect a provider challenge, or cross SEND.
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 import hashlib
 import json
 import os
@@ -20,8 +21,11 @@ from pathlib import Path
 from typing import Any
 
 HARNESS_ROOT = Path(__file__).resolve().parents[1]
+if str(HARNESS_ROOT) not in sys.path:
+    sys.path.insert(0, str(HARNESS_ROOT))
 DEFAULT_SECURITY_ROOT = Path("/root/projects/ordivon-security-v2")
 DEFAULT_POOL_INDEX = Path("fixtures/browser-security/harness-r2-live-lkg-pool-index.json")
+DEFAULT_AUTOMATION_CONFIG = Path("/etc/ordivon/agent-automation-browserless.json")
 _SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$")
 
 
@@ -104,13 +108,20 @@ def _run_checked(args: list[str], *, env: dict[str, str] | None = None) -> None:
 
 
 def _collect_carrier(
-    *, carrier_id: str, witness_id: str, output: Path, python: str
+    *,
+    carrier_id: str,
+    witness_id: str,
+    output: Path,
+    python: str,
+    config_path: Path,
 ) -> None:
     env = {**os.environ, "PYTHONPATH": str(HARNESS_ROOT)}
     _run_checked(
         [
             python,
             str(HARNESS_ROOT / "scripts/browser_security_witness_source.py"),
+            "--config",
+            str(config_path),
             "--endpoint-id",
             carrier_id,
             "--witness-id",
@@ -120,6 +131,97 @@ def _collect_carrier(
         ],
         env=env,
     )
+
+
+def _load_automation_config(config_path: Path):
+    from scripts.agent_automation_browserless import BrowserlessAutomationConfig, _read_json
+
+    return BrowserlessAutomationConfig.from_dict(_read_json(config_path))
+
+
+@contextmanager
+def _carrier_observation_lifecycle(config_path: Path, carrier_id: str):
+    from scripts.agent_automation_browserless import (
+        BrowserlessAutomationService,
+        _carrier_lease,
+    )
+
+    config = _load_automation_config(config_path)
+    endpoints = [
+        endpoint
+        for endpoint in config.browserless_pool.endpoints
+        if endpoint.endpoint_id == carrier_id
+    ]
+    if len(endpoints) != 1:
+        raise RuntimeError(f"Browserless lifecycle endpoint not unique: {carrier_id}")
+    endpoint = endpoints[0]
+    unit = endpoint.service_unit
+    initially_active: bool | None = None
+    if unit is not None:
+        initially_active = (
+            subprocess.run(
+                ["/usr/bin/systemctl", "is-active", "--quiet", unit],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            ).returncode
+            == 0
+        )
+
+    service = BrowserlessAutomationService(config)
+    observation = service.ensure_endpoint_active(endpoint)
+    if observation.get("healthy") is not True:
+        raise RuntimeError(
+            f"Browserless carrier failed observation activation: {carrier_id}: "
+            f"{observation.get('detail') or 'unhealthy'}"
+        )
+    lifecycle_started = observation.get("lifecycleStarted") is True
+    state = {
+        "carrierId": carrier_id,
+        "serviceUnit": unit,
+        "initiallyActive": initially_active,
+        "lifecycleStarted": lifecycle_started,
+        "restoredOriginalActiveState": not lifecycle_started,
+    }
+    try:
+        yield state
+    finally:
+        if lifecycle_started:
+            if unit is None:
+                raise RuntimeError(
+                    f"Browserless lifecycle started without service unit: {carrier_id}"
+                )
+            with _carrier_lease(config, carrier_id, blocking=False):
+                sessions = endpoint.sessions(timeout_seconds=3)
+                if sessions:
+                    raise RuntimeError(
+                        f"Browserless carrier acquired a session before lifecycle restore: {carrier_id}"
+                    )
+                stopped = subprocess.run(
+                    ["/usr/bin/systemctl", "stop", unit],
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                    check=False,
+                )
+                if stopped.returncode != 0:
+                    raise RuntimeError(
+                        f"Browserless carrier lifecycle restore failed: {carrier_id}: "
+                        f"systemd-stop-rc-{stopped.returncode}"
+                    )
+                active_after = subprocess.run(
+                    ["/usr/bin/systemctl", "is-active", "--quiet", unit],
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                    check=False,
+                )
+                if active_after.returncode == 0:
+                    raise RuntimeError(
+                        f"Browserless carrier remained active after lifecycle restore: {carrier_id}"
+                    )
+                state["restoredOriginalActiveState"] = True
 
 
 def _build_bundle(*, manifest: Path, output: Path, security_root: Path, python: str) -> None:
@@ -184,22 +286,27 @@ def _run_into(
     security_root: Path,
     pool_index: Path,
     python: str,
+    config_path: Path,
 ) -> dict[str, Any]:
     baseline = _load_pool_index(pool_index, security_root)
     rows: list[dict[str, str]] = []
     evidence: list[dict[str, str]] = []
+    lifecycle_evidence: list[dict[str, Any]] = []
 
     for row in baseline["carriers"]:
         carrier_id = row["carrierId"]
         source = run_root / f"{carrier_id}-candidate-manifest.json"
         bundle = run_root / f"{carrier_id}-candidate-bundle.json"
         witness_id = f"{carrier_id}-{run_id}"
-        _collect_carrier(
-            carrier_id=carrier_id,
-            witness_id=witness_id,
-            output=source,
-            python=python,
-        )
+        with _carrier_observation_lifecycle(config_path, carrier_id) as lifecycle:
+            _collect_carrier(
+                carrier_id=carrier_id,
+                witness_id=witness_id,
+                output=source,
+                python=python,
+                config_path=config_path,
+            )
+        lifecycle_evidence.append(dict(lifecycle))
         _build_bundle(manifest=source, output=bundle, security_root=security_root, python=python)
         rows.append(
             {
@@ -236,6 +343,7 @@ def _run_into(
         "harnessRevision": _source_revision(HARNESS_ROOT),
         "securityRevision": _source_revision(security_root),
         "carrierEvidence": evidence,
+        "carrierLifecycleEvidence": lifecycle_evidence,
         "classification": classification,
         "providerChallengeVisited": False,
         "providerSendAttempted": False,
@@ -253,6 +361,7 @@ def run_pool(
     pool_index: Path,
     python: str,
     artifact_dir: Path | None,
+    config_path: Path = DEFAULT_AUTOMATION_CONFIG,
 ) -> dict[str, Any]:
     run_id = _safe_id(run_id, "runId")
     security_root = security_root.resolve()
@@ -264,6 +373,7 @@ def run_pool(
                 security_root=security_root,
                 pool_index=pool_index,
                 python=python,
+                config_path=config_path,
             )
 
     run_root = artifact_dir.resolve() / run_id
@@ -275,6 +385,7 @@ def run_pool(
             security_root=security_root,
             pool_index=pool_index,
             python=python,
+            config_path=config_path,
         )
     except Exception:
         shutil.rmtree(run_root, ignore_errors=True)
@@ -287,6 +398,7 @@ def main() -> int:
     parser.add_argument("--security-root", type=Path, default=DEFAULT_SECURITY_ROOT)
     parser.add_argument("--pool-index", type=Path)
     parser.add_argument("--python", default=sys.executable)
+    parser.add_argument("--config", type=Path, default=DEFAULT_AUTOMATION_CONFIG)
     parser.add_argument("--artifact-dir", type=Path)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
@@ -303,6 +415,7 @@ def main() -> int:
         pool_index=pool_index,
         python=args.python,
         artifact_dir=args.artifact_dir,
+        config_path=args.config,
     )
     text = json.dumps(receipt, sort_keys=True, indent=2) + "\n"
     if args.output is None:
