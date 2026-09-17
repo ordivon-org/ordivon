@@ -178,3 +178,26 @@ Live acceptance on 2026-09-18 produced both controls needed to validate the inst
 Neither receipt establishes a Cloudflare/provider root cause. The second image is a known-different positive control, not a downgrade recommendation.
 
 During this work the repository template was found stale relative to the already-running production substrate. Production and historical Git commit `4896113` both bind Browserless image `b1ba7b...` with `TZ=Asia/Shanghai`, while current main still carried the older `5e3f3e...` pin. This slice forward-ports only that already-realized production truth and its exact test assertions; it does not replay the historical branch or its older challenge narrative.
+
+
+## Browserless image promotion transaction
+
+`browserless_image_promotion.py` separates candidate qualification from production mutation. A promotion request binds the exact candidate OCI digest, canary receipt digest, source-template digest, installed rendered-Quadlet digest, Network-v2 generation, and Harness commit. The read-only default action returns only `NOOP_ALREADY_CURRENT` or `READY_TO_APPLY`; it never changes a service.
+
+The source Quadlet is a Network-v2 template, so promotion never compares or installs the raw repository bytes directly. It resolves the current Network-v2 authority through `browserless_podman_deploy.py`, renders the template, and requires the rendered candidate to differ from the installed Quadlet only at `Image=`. It also requires running carriers 11/12/13 to agree with the installed control image before mutation.
+
+The explicit `--apply` path reuses the existing Agent Automation admission fence. It stops MCP admission, waits for Temporal and Browserless quiescence, snapshots the installed Quadlet, then restarts carriers in order 11 -> 12 -> 13 with exact candidate-image and health checks. A post-change Browser Security pool observation is retained durably under the candidate transaction directory. Only shared `browserBinary` and/or `controlLayer` infrastructure changes are allowed at this stage; any CF02-CF07 family change, detector drift, challenge-standing change, Network-v2 drift, or carrier-local drift rolls the Quadlet and carriers back.
+
+A successful image mutation deliberately stops at `APPLIED_LKG_RESEAL_REQUIRED`: MCP remains stopped and CLI admission remains closed. Security-v2 then owns LKG reseal with `promote_browser_security_pool_lkg.py`. Harness `--finalize` requires a clean, advanced Security-v2 commit, a changed pool-index digest, current candidate image on all three carriers, and a fresh live pool result of exactly `NO_OBSERVED_DRIFT` against the resealed LKG. Only then does it start MCP and remove the admission gate.
+
+```text
+paired canary PASS
+  -> promotion plan
+  -> apply / staged 11-12-13 restart
+  -> durable post-change evidence
+  -> Security-v2 LKG reseal + commit
+  -> Harness finalize / fresh NO_OBSERVED_DRIFT
+  -> reopen admission
+```
+
+Promotion artifacts live under `state/browserless-image-promotions/<candidate-digest>/` and include the durable promotion receipt, rollback Quadlet, post-change pool evidence, and finalize pool evidence. The transaction never pulls an image, treats a protected challenge as a detector oracle, or crosses provider SEND.

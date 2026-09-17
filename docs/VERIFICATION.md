@@ -130,3 +130,12 @@ Browserless/Chromium image changes are qualified before production mutation with
 Acceptance requires the same-image control to return `PASS_CONTROL_REPRODUCIBLE`. A different image may carry expected browser/control identity changes, but any detector-shape drift, Network-v2 authority drift, challenge metadata drift, or CF02-CF07 public observation change fails closed. The canary receipt explicitly records `productionMutationAttempted=false`, `providerChallengeVisited=false`, `providerSendAttempted=false`, and `rootCauseEstablished=false`.
 
 The 2026-09-18 negative control passed; a genuinely different older local image was held because PeetPrint and User-Agent changed. Production carriers were not restarted or rewritten in either run, and reserved instance 91 left no container, profile, X socket, or Xauthority residue.
+
+
+## Browserless image promotion transaction
+
+Promotion verification is split across authority owners. Harness verifies exact source/rendered/installed Quadlet identities, live carrier image consensus, exact paired-canary receipt, Network-v2 generation, admission fencing, Temporal/browser quiescence, staged restart health, rollback, and durable post-change evidence. Security-v2 independently rebuilds candidate bundles from manifests and recomputes old-LKG versus candidate pool drift before it may reseal per-carrier LKG fixtures.
+
+After reseal is reviewed and committed, Harness finalize requires: the promotion gate is still closed, MCP is still stopped, the worker remains active, no Workflow/browser session is active, the Security-v2 revision differs from the pre-reseal revision, the pool-index digest differs from the pre-reseal digest, and a fresh live pool against that new index returns `NO_OBSERVED_DRIFT`. Any failure preserves the closed gate; image-mutation failures additionally restore the pre-attempt Quadlet and carriers.
+
+A current-image live read-only plan on 2026-09-18 returned `NOOP_ALREADY_CURRENT`, with rendered source Quadlet SHA-256 exactly equal to the installed Quadlet, carriers 11/12/13 all on the same control image, MCP/worker/carriers active, and admission still open. No real different-image `--apply` has been executed as part of this acceptance.
