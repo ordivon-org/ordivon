@@ -38,7 +38,7 @@ Establish the minimum execution and architecture facts first:
 - WebView, Weex, React Native, Flutter, Unity/IL2CPP, Cordova, or other hybrid/runtime indicators;
 - embedded certificates, network-security configuration, assets, remote bundle loaders, and update mechanisms.
 
-Use package-native tools such as `aapt`/`apkanalyzer`, `apktool`, `jadx`, `unzip`, `file`, `readelf`, and `strings` when available. Automated scanners such as MobSF are useful triage accelerators, not substitutes for checking the underlying evidence.
+Prefer package-native tools such as `aapt`/`apkanalyzer`, `apktool`, `jadx`, `unzip`, `file`, `readelf`, and `strings` when available. Automated scanners such as MobSF are useful triage accelerators, not substitutes for checking the underlying evidence.
 
 ### ABI admission check
 
