@@ -222,3 +222,155 @@ test("every Lego node has an explicit operational contract instead of inferred o
     }
   }
 });
+
+
+test("every constraint has an enforcement profile rather than a prose-only kind", () => {
+  const graph = loadGraph() as Graph & {
+    constraintProfileKinds: string[];
+    constraintProfiles: Array<{
+      constraintId: string;
+      profileKind: string;
+      enforcementMode: string;
+      authorityOwner: string;
+      whenUnknown: string;
+      dischargePolicy: string;
+    }>;
+  };
+  const requiredKinds = [
+    "hard-invariant",
+    "authority-boundary",
+    "admission-gate",
+    "evidence-gate",
+    "claim-fence",
+    "currentness-fence",
+    "substitution-ban",
+    "reopen-trigger",
+    "replaceability-boundary",
+  ];
+  assert.deepEqual([...graph.constraintProfileKinds].sort(), [...requiredKinds].sort());
+  assert.equal(graph.constraintProfiles.length, graph.constraints.length, "every constraint needs exactly one enforcement profile");
+  unique(graph.constraintProfiles.map((profile) => profile.constraintId), "constraint profile ids");
+  const constraintIds = new Set(graph.constraints.map((constraint) => constraint.id));
+  for (const profile of graph.constraintProfiles) {
+    assert.ok(constraintIds.has(profile.constraintId), `profile targets unknown constraint ${profile.constraintId}`);
+    assert.ok(graph.constraintProfileKinds.includes(profile.profileKind), `unknown profile kind ${profile.profileKind}`);
+    assert.ok(profile.enforcementMode.length >= 8, `${profile.constraintId} needs enforcement semantics`);
+    assert.ok(profile.authorityOwner.length >= 3, `${profile.constraintId} needs an authority owner`);
+    assert.ok(profile.whenUnknown.length >= 5, `${profile.constraintId} needs unknown-state semantics`);
+    assert.ok(profile.dischargePolicy.length >= 5, `${profile.constraintId} needs discharge semantics`);
+  }
+  assert.ok(graph.constraintProfiles.some((profile) => profile.profileKind === "hard-invariant"));
+  assert.ok(graph.constraintProfiles.some((profile) => profile.profileKind === "evidence-gate"));
+  assert.ok(graph.constraintProfiles.some((profile) => profile.profileKind === "claim-fence"));
+});
+
+test("constraint-to-constraint relations are closed, typed, and directional", () => {
+  const graph = loadGraph() as Graph & {
+    constraintRelationKinds: string[];
+    constraintRelations: Array<{
+      from: string;
+      to: string;
+      relation: string;
+      condition: string;
+      effect: string;
+    }>;
+  };
+  const requiredRelations = [
+    "preconditions",
+    "strengthens",
+    "narrows",
+    "triggers",
+    "blocks",
+    "reopen-enables",
+    "potential-conflict",
+    "requires-adjudication-after",
+  ];
+  for (const relation of requiredRelations) {
+    assert.ok(graph.constraintRelationKinds.includes(relation), `missing constraint relation kind ${relation}`);
+  }
+  assert.ok(graph.constraintRelations.length >= 20, "constraint graph needs enough relations to expose real interaction");
+  const ids = new Set(graph.constraints.map((constraint) => constraint.id));
+  for (const edge of graph.constraintRelations) {
+    assert.ok(ids.has(edge.from), `constraint edge source missing: ${edge.from}`);
+    assert.ok(ids.has(edge.to), `constraint edge target missing: ${edge.to}`);
+    assert.notEqual(edge.from, edge.to, "constraint relation may not self-loop");
+    assert.ok(graph.constraintRelationKinds.includes(edge.relation), `unknown constraint relation ${edge.relation}`);
+    assert.ok(edge.condition.length >= 8, "constraint edge needs an explicit condition");
+    assert.ok(edge.effect.length >= 8, "constraint edge needs an explicit effect");
+  }
+  assert.ok(graph.constraintRelations.some((edge) => edge.relation === "potential-conflict"));
+  assert.ok(graph.constraintRelations.some((edge) => edge.relation === "requires-adjudication-after"));
+});
+
+test("evidence discharge rules never turn evidence into authority", () => {
+  const graph = loadGraph() as Graph & {
+    evidenceClasses: Array<{ id: string; owner: string; establishes: string; cannotEstablish: string }>;
+    dischargeEffects: string[];
+    evidenceDischargeRules: Array<{
+      constraintId: string;
+      evidenceClass: string;
+      effect: string;
+      authorityAfterEvidence: string;
+      note: string;
+    }>;
+    constraintProfiles: Array<{ constraintId: string; profileKind: string }>;
+  };
+  assert.ok(graph.evidenceClasses.length >= 7, "graph should name reusable evidence classes");
+  unique(graph.evidenceClasses.map((evidence) => evidence.id), "evidence class ids");
+  const evidenceIds = new Set(graph.evidenceClasses.map((evidence) => evidence.id));
+  const constraintIds = new Set(graph.constraints.map((constraint) => constraint.id));
+  const allowedEffects = new Set(["satisfies-gate", "permits-reentry", "permits-reopen-review", "narrows-claim", "supports-adjudication", "does-not-discharge"]);
+  assert.deepEqual([...graph.dischargeEffects].sort(), [...allowedEffects].sort());
+  assert.ok(graph.evidenceDischargeRules.length >= 8);
+  for (const rule of graph.evidenceDischargeRules) {
+    assert.ok(constraintIds.has(rule.constraintId), `discharge rule targets unknown constraint ${rule.constraintId}`);
+    assert.ok(evidenceIds.has(rule.evidenceClass), `unknown evidence class ${rule.evidenceClass}`);
+    assert.ok(allowedEffects.has(rule.effect), `unknown discharge effect ${rule.effect}`);
+    assert.ok(rule.authorityAfterEvidence.length >= 3, "evidence must still name post-evidence authority");
+    assert.ok(rule.note.length >= 12, "discharge semantics need explanation");
+  }
+  const hardIds = new Set(graph.constraintProfiles.filter((profile) => profile.profileKind === "hard-invariant").map((profile) => profile.constraintId));
+  assert.ok(
+    graph.evidenceDischargeRules
+      .filter((rule) => hardIds.has(rule.constraintId))
+      .every((rule) => rule.effect === "does-not-discharge" || rule.effect === "supports-adjudication"),
+    "evidence may not silently discharge a hard invariant",
+  );
+});
+
+test("authority adjudication is explicit for conditional constraint conflicts and gate completion", () => {
+  const graph = loadGraph() as Graph & {
+    authorityAdjudicationRules: Array<{
+      id: string;
+      whenConstraints: string[];
+      authority: string[];
+      decision: string;
+      defaultWhenUnresolved: string;
+      refs: string[];
+    }>;
+  };
+  assert.ok(graph.authorityAdjudicationRules.length >= 3);
+  unique(graph.authorityAdjudicationRules.map((rule) => rule.id), "adjudication rule ids");
+  const constraintIds = new Set(graph.constraints.map((constraint) => constraint.id));
+  for (const rule of graph.authorityAdjudicationRules) {
+    assert.ok(rule.whenConstraints.length >= 2, `${rule.id} must bind multiple interacting constraints`);
+    for (const constraintId of rule.whenConstraints) {
+      assert.ok(constraintIds.has(constraintId), `${rule.id} references unknown constraint ${constraintId}`);
+    }
+    assert.ok(rule.authority.length > 0, `${rule.id} needs named authority`);
+    assert.ok(rule.decision.length >= 12, `${rule.id} needs a bounded decision contract`);
+    assert.ok(rule.defaultWhenUnresolved.length >= 5, `${rule.id} needs a fail-safe default`);
+    assert.ok(rule.refs.length > 0, `${rule.id} needs authority refs`);
+  }
+});
+
+test("human documentation explains interaction semantics, discharge, and adjudication", () => {
+  const doc = readFileSync(docPath, "utf8");
+  assert.match(doc, /Constraint Interaction Graph/);
+  assert.match(doc, /Hard Invariant/);
+  assert.match(doc, /Evidence Gate/);
+  assert.match(doc, /Claim Fence/);
+  assert.match(doc, /Evidence Discharge/);
+  assert.match(doc, /Authority Adjudication/);
+  assert.match(doc, /evidence.*does not.*authority/is);
+});

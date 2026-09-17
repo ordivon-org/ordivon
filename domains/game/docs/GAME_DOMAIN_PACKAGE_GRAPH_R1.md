@@ -274,3 +274,141 @@ R1 does not create:
 - a generic game engine framework.
 
 Its job is narrower: make the current Game domain package **decomposable, queryable and constraint-aware** while preserving the authority boundaries already earned elsewhere.
+
+
+## 10. Constraint Interaction Graph
+
+The machine graph now separates three things that were previously easy to conflate:
+
+```text
+constraint identity
+    + enforcement profile
+    + relation to other constraints
+```
+
+This makes it possible to ask not only “which constraint applies?” but also “what kind of constraint is it, what happens when its truth is unknown, what evidence can affect it, and which authority must still decide after that evidence exists?”
+
+### 10.1 Enforcement profiles
+
+Every constraint has exactly one enforcement profile:
+
+| Profile | Meaning | Default when unresolved |
+|---|---|---|
+| **Hard Invariant** | Must remain true until an explicit reopen path succeeds. | Preserve the invariant. |
+| **Authority Boundary** | Defines who may mint or decide a truth/effect. | Block authority transfer. |
+| **Admission Gate** | Preconditions that must be satisfied before promotion/change. | Block admission. |
+| **Evidence Gate** | Requires target-matched evidence before a claim can be raised. | Keep unknown or lower the claim. |
+| **Claim Fence** | Caps what current evidence is allowed to imply. | Keep the lower claim. |
+| **Currentness Fence** | Requires exact owner-native re-entry before action-changing use. | Re-enter the owner. |
+| **Substitution Ban** | Rejects proxy equivalence such as credential=authority. | Reject the substitution. |
+| **Reopen Trigger** | Defines what can justify reviewing a frozen boundary. | Keep the boundary frozen. |
+| **Replaceability Boundary** | Allows implementation/provider replacement behind a preserved contract. | Keep the current proven owner contract. |
+
+These profiles are not a priority ranking. A `Claim Fence` is not “weaker” than a `Hard Invariant`; it governs a different question.
+
+### 10.2 Constraint-to-constraint edges
+
+The graph uses typed directional relations:
+
+```text
+preconditions
+strengthens
+narrows
+triggers
+blocks
+reopen-enables
+potential-conflict
+requires-adjudication-after
+```
+
+For example:
+
+```text
+synthetic-not-human
+    --strengthens-->
+mechanical-not-human
+    --narrows-->
+mechanic-wave claim ceiling
+
+core-primitive-high-bar
+    --preconditions-->
+foundation reopen
+    --reopen-enables-->
+kernel-minimality review
+```
+
+`reopen-enables` deliberately means **review becomes admissible**, not “the old invariant is now false.”
+
+Likewise, `potential-conflict` names a conditional design tension, not a contradiction in repository truth. For example, engine replaceability and prototype-medium adequacy can pull in different directions if the cheapest valid evidence carrier is not the currently proven production engine. That case requires a bounded decision, not an automatic winner.
+
+### 10.3 Evidence Discharge
+
+Evidence discharge is intentionally narrow. The graph recognizes reusable evidence classes such as mechanical-causal evidence, Human participant evidence, owner-currentness evidence, external-substitution mismatch, cross-product consumers, semantic counterexamples, native-consumer verification, and explicit effect authority.
+
+Evidence may have only one of these graph-level effects:
+
+```text
+satisfies-gate
+permits-reentry
+permits-reopen-review
+narrows-claim
+supports-adjudication
+does-not-discharge
+```
+
+A crucial invariant is:
+
+> **Evidence does not become Authority.**
+
+A test result, Human session, external mismatch, second product consumer, native render, or authenticated credential may change what review is admissible or what claim is supportable. It does not by itself mint product authority, ownership transfer, release authority, World mutation authority, or a new Game Core.
+
+Hard Invariant constraints are therefore never silently discharged by ordinary evidence. Counterexample evidence may permit an explicit reopen review; the relevant authority must still commit a new decision before the old invariant stops governing.
+
+The same distinction applies to effect authority: explicit Distribution/user effect authority can authorize a concrete effect, but that does not make a provider credential equivalent to effect authority. The substitution ban stays true.
+
+### 10.4 Authority Adjudication
+
+Some interactions end in an explicit authority decision rather than a purely mechanical rule. R1 records bounded adjudication contracts for four recurring cases:
+
+```text
+external-owner extension / ownership-boundary reopen
+prototype medium vs current engine substrate
+cross-game shared-code promotion
+provider replacement vs Game action authority
+```
+
+Each adjudication rule declares:
+
+```text
+interacting constraints
+named authority owner(s)
+bounded decision question
+fail-safe default if unresolved
+source authority refs
+```
+
+The fail-safe defaults are deliberately conservative: keep the external owner, keep the current proven substrate while lowering the claim, keep product-specific code local, or reject a provider replacement path that would bypass Game action/consequence authority.
+
+This does not create a generic arbitration service. The graph only states **where the decision belongs** and what must remain true while it is unresolved.
+
+### 10.5 Why this matters for the Lego model
+
+The Game domain can now express composition legality as a graph rather than relying on maintainer intuition:
+
+```text
+Node / Lego block
+    ↓
+applicable constraints
+    ↓
+constraint profiles
+    ↓
+constraint relations
+    ↓
+required evidence / currentness
+    ↓
+optional reopen or adjudication
+    ↓
+admitted composition / lower claim / blocked path
+```
+
+That is still not a rule engine. R1 deliberately stops before automatic semantic adjudication. The graph is a machine-readable **decision-support and falsification structure**; actual semantic commitment remains with the authority-owning Game/Research/Host/Runtime/Workstation/Artifact/Distribution surface named by the relevant record.
