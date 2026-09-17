@@ -5,7 +5,7 @@
 //! control plane starts the same launcher contract directly and relies on durable launcher/start
 //! evidence rather than inventing systemd identity.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
@@ -178,10 +178,56 @@ fn parse_wsl_interop_listeners(proc_unix: &str) -> Vec<PathBuf> {
 }
 
 #[cfg(unix)]
-fn order_wsl_interop_candidates(listeners: Vec<PathBuf>, ambient: Option<PathBuf>) -> Vec<PathBuf> {
+fn wsl_interop_listener_pid(listener: &Path) -> Option<u64> {
+    listener
+        .to_str()?
+        .strip_prefix("/run/WSL/")?
+        .strip_suffix("_interop")?
+        .parse::<u64>()
+        .ok()
+}
+
+#[cfg(unix)]
+fn proc_status_ppid(status: &str) -> Option<u64> {
+    status
+        .lines()
+        .find_map(|line| line.strip_prefix("PPid:")?.trim().parse::<u64>().ok())
+}
+
+#[cfg(unix)]
+fn is_live_wsl_session_relay(listener: &Path) -> bool {
+    let Some(pid) = wsl_interop_listener_pid(listener) else {
+        return false;
+    };
+    let Ok(status) = fs::read_to_string(format!("/proc/{pid}/status")) else {
+        return false;
+    };
+    let Some(ppid) = proc_status_ppid(&status) else {
+        return false;
+    };
+    let Ok(parent_comm) = fs::read_to_string(format!("/proc/{ppid}/comm")) else {
+        return false;
+    };
+    parent_comm.trim() == "SessionLeader"
+}
+
+#[cfg(unix)]
+fn order_wsl_interop_candidates(
+    listeners: Vec<PathBuf>,
+    ambient: Option<PathBuf>,
+    live_session_relays: &BTreeSet<PathBuf>,
+) -> Vec<PathBuf> {
     let mut rows = Vec::new();
     if let Some(ambient) = ambient.filter(|ambient| listeners.contains(ambient)) {
         rows.push(ambient);
+    }
+    for listener in listeners
+        .iter()
+        .filter(|listener| live_session_relays.contains(*listener))
+    {
+        if !rows.contains(listener) {
+            rows.push(listener.clone());
+        }
     }
     for listener in listeners {
         if !rows.contains(&listener) {
@@ -203,7 +249,12 @@ fn current_wsl_interop_candidates() -> RuntimeResult<Vec<PathBuf>> {
     })?;
     let listeners = parse_wsl_interop_listeners(&proc_unix);
     let ambient = std::env::var_os("WSL_INTEROP").map(PathBuf::from);
-    let candidates = order_wsl_interop_candidates(listeners, ambient);
+    let live_session_relays = listeners
+        .iter()
+        .filter(|listener| is_live_wsl_session_relay(listener))
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    let candidates = order_wsl_interop_candidates(listeners, ambient, &live_session_relays);
     if candidates.is_empty() {
         return Err(RuntimeError::new(
             RuntimeErrorCode::IoError,
@@ -1248,20 +1299,42 @@ w: 00000002 00000000 00010000 0001 01 11976 /run/WSL/notnumeric_interop\n";
 
     #[cfg(unix)]
     #[test]
-    fn wsl_interop_candidates_prefer_only_a_live_ambient_listener() {
+    fn wsl_interop_candidates_prefer_live_ambient_then_live_session_relay() {
         let two = PathBuf::from("/run/WSL/2_interop");
         let ten = PathBuf::from("/run/WSL/10_interop");
+        let forty_two = PathBuf::from("/run/WSL/42_interop");
+        let live_session_relays = std::collections::BTreeSet::from([forty_two.clone()]);
         assert_eq!(
-            order_wsl_interop_candidates(vec![two.clone(), ten.clone()], Some(ten.clone())),
-            vec![ten.clone(), two.clone()]
+            order_wsl_interop_candidates(
+                vec![two.clone(), ten.clone(), forty_two.clone()],
+                Some(ten.clone()),
+                &live_session_relays,
+            ),
+            vec![ten.clone(), forty_two.clone(), two.clone()]
         );
         assert_eq!(
             order_wsl_interop_candidates(
-                vec![two.clone(), ten.clone()],
-                Some(PathBuf::from("/run/WSL/99_interop"))
+                vec![two.clone(), ten.clone(), forty_two.clone()],
+                Some(PathBuf::from("/run/WSL/99_interop")),
+                &live_session_relays,
             ),
-            vec![two, ten]
+            vec![forty_two, two, ten]
         );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn wsl_interop_listener_pid_and_parent_status_are_bounded() {
+        assert_eq!(
+            wsl_interop_listener_pid(Path::new("/run/WSL/639_interop")),
+            Some(639)
+        );
+        assert_eq!(
+            wsl_interop_listener_pid(Path::new("/run/WSL/notnumeric_interop")),
+            None
+        );
+        assert_eq!(proc_status_ppid("Name:\tRelay\nPPid:\t637\n"), Some(637));
+        assert_eq!(proc_status_ppid("Name:\tRelay\n"), None);
     }
 
     #[cfg(unix)]
