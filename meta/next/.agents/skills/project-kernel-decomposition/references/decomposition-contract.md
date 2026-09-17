@@ -27,6 +27,14 @@ Not primarily: <misleading framing>.
 | module | responsibility | durable truth | input | output | replaceable by |
 |---|---|---|---|---|---|
 
+## 4A. LEGO node graph
+Use `node-graph-contract.md` when the project is complex enough to benefit from recursive node decomposition.
+
+| node | kind | atomic? | responsibility | authority | in ports | out ports | replaceable by | acceptance |
+|---|---|---|---|---|---|---|---|---|
+
+Also show the important typed edges (`DATA`, `CONTROL`, `EFFECT`, `IDENTITY`, `POLICY`, `OBSERVATION`, `EVIDENCE`, `DEPENDENCY`) and identify any remaining composite nodes.
+
 ## 5. State and identity model
 | object | identity | lifecycle | persistence | owner | relations |
 |---|---|---|---|---|---|
@@ -65,6 +73,12 @@ For every module: ADOPT / ADAPT / EXTRACT / ON_DEMAND / REJECT.
 - MODULE-COMPLETENESS TEST:
 - MINIMAL-CLONE SPEC TEST:
 - BEHAVIORAL-ACCEPTANCE TEST:
+
+When LEGO node mode is used, also report:
+- NODE-GRAPH COVERAGE:
+- ATOMICITY GATE:
+- EDGE-TYPING:
+- REASSEMBLY SUFFICIENCY:
 
 ## Verdict
 One concise sentence describing what remains after decomposition.
