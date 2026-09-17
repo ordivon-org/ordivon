@@ -22,6 +22,8 @@ Current project skills:
 
 - `.agents/skills/artifact-work/` — standards-first artifact creation and verification, with family-specific references loaded on demand.
 - `.agents/skills/enterprise-work/` — consequential multi-step/customer/business/cross-domain work composition: current external authority, bounded quality/delivery planning, natural owner/provider selection, risk/authorization, domain-native V&V and bounded acceptance. It deliberately stays dormant for trivial low-risk edits.
+- `.agents/skills/mobile-app-security/` — evidence-first authorized mobile application analysis spanning APK/AAB classification, static/native reconstruction, runtime compatibility, instrumentation, hybrid bridges, and application-generated network behavior.
+- `.agents/skills/skill-supply-chain-audit/` — third-party Skill intake and supply-chain review that keeps package scanning, source approval, instruction authority, and effect authorization separate; optionally consumes SkillSpector evidence.
 
 `AGENTS.md` carries the small set of repository-wide rules that should apply before any optional Skill is activated, including external-authority-first, natural-owner, evidence-history and execution-vs-semantic-completion boundaries.
 
