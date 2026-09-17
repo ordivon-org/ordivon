@@ -1,0 +1,97 @@
+---
+- name: Jev Ultrafast browser fast-path provider
+  hosts: operations_local
+  become: true
+  gather_facts: false
+  vars:
+    jev_repository: https://github.com/browser-use/jev-ultrafast.git
+    jev_commit: 452c1ad2dd628008f1d5608f28158d76e49e6cc0
+    jev_root: /opt/ordivon/external/jev-ultrafast
+    jev_release: "{{ jev_root }}/{{ jev_commit }}"
+    jev_current: "{{ jev_root }}/current"
+    jev_python: "{{ jev_release }}/.venv/bin/python"
+    jev_cli: "{{ jev_release }}/.venv/bin/jev"
+    browser_harness_cli: "{{ jev_release }}/.venv/bin/browser-harness"
+  tasks:
+    - name: Ensure Jev provider root exists
+      ansible.builtin.file:
+        path: "{{ jev_root }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Materialize exact Jev upstream source
+      ansible.builtin.git:
+        repo: "{{ jev_repository }}"
+        dest: "{{ jev_release }}"
+        version: "{{ jev_commit }}"
+        update: true
+        force: false
+
+    - name: Observe exact source identity
+      ansible.builtin.command:
+        argv: [/usr/bin/git, -C, "{{ jev_release }}", rev-parse, HEAD]
+      register: jev_realized_commit
+      changed_when: false
+
+    - name: Observe tracked source status
+      ansible.builtin.command:
+        argv: [/usr/bin/git, -C, "{{ jev_release }}", status, --porcelain, --untracked-files=no]
+      register: jev_tracked_status
+      changed_when: false
+
+    - name: Fail closed unless source is the pinned clean commit
+      ansible.builtin.assert:
+        that:
+          - jev_realized_commit.stdout | trim == jev_commit
+          - jev_tracked_status.stdout | trim == ''
+
+    - name: Realize the upstream frozen Python environment
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/uv
+          - sync
+          - --frozen
+          - --no-dev
+          - --python
+          - "3.12"
+      args:
+        chdir: "{{ jev_release }}"
+      register: jev_uv_sync
+      changed_when: "'Installed ' in jev_uv_sync.stderr or 'Prepared ' in jev_uv_sync.stderr"
+
+    - name: Prove exact Jev and Browser Harness package versions
+      ansible.builtin.command:
+        argv:
+          - "{{ jev_python }}"
+          - -c
+          - >-
+            import importlib.metadata as m;
+            assert m.version('jev-ultrafast') == '0.1.0';
+            assert m.version('browser-harness') == '0.1.13';
+            import jev_ultrafast, browser_harness
+      changed_when: false
+
+    - name: Prove Browser Harness CLI imports without browser mutation
+      ansible.builtin.command:
+        argv: ["{{ browser_harness_cli }}", --version]
+      changed_when: false
+
+    - name: Inspect stable Jev provider locator
+      ansible.builtin.stat:
+        path: "{{ jev_current }}"
+        follow: false
+      register: jev_current_stat
+
+    - name: Refuse destructive stable-locator takeover
+      ansible.builtin.assert:
+        that:
+          - not jev_current_stat.stat.exists or jev_current_stat.stat.islnk
+
+    - name: Promote exact healthy Jev release to stable locator
+      ansible.builtin.file:
+        src: "{{ jev_release }}"
+        dest: "{{ jev_current }}"
+        state: link
+        force: true
