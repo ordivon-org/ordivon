@@ -1,4 +1,10 @@
+import json
+import tempfile
 import unittest
+from pathlib import Path
+from unittest import mock
+
+import scripts.browser_security_browserless_canary as canary
 
 from scripts.browser_security_browserless_canary import (
     CANARY_CONTAINER,
@@ -112,6 +118,36 @@ class BrowserSecurityBrowserlessCanaryTests(unittest.TestCase):
             production_control_from_quadlet(
                 installed_quadlet().replace("Environment=TZ=Asia/Shanghai\n", "")
             )
+
+    def test_canary_config_drops_production_warm_endpoint_policy(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "automation.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "schemaVersion": 1,
+                        "browserNetworkAuthority": {"kind": "network-v2"},
+                        "browserlessWarmEndpointIds": ["chatgpt-carrier-11"],
+                        "browserSubstrate": {
+                            "kind": "browserless",
+                            "endpoints": [
+                                {
+                                    "id": "chatgpt-carrier-11",
+                                    "networkNamespace": "nv2-browserless-prod",
+                                }
+                            ],
+                        },
+                    }
+                )
+                + "\n"
+            )
+            with mock.patch.object(canary, "PRODUCTION_CONFIG", path):
+                value = canary._load_production_config("nv2-browserless-prod")
+        self.assertEqual(value["browserlessWarmEndpointIds"], [])
+        self.assertEqual(
+            [row["id"] for row in value["browserSubstrate"]["endpoints"]],
+            [canary.CANARY_ENDPOINT_ID],
+        )
 
     def test_same_image_control_requires_complete_reproducibility(self) -> None:
         stable = classify_canary_comparison(

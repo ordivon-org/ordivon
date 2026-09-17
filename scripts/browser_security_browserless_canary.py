@@ -230,6 +230,9 @@ def _load_production_config(namespace: str) -> dict[str, Any]:
     if observed_namespaces != {namespace}:
         raise RuntimeError("production config Network-v2 namespace disagrees with installed control")
     value = dict(value)
+    # The canary replaces the production pool with one isolated endpoint. Production warm-residency
+    # policy names production endpoint ids and therefore must not leak into the synthetic canary pool.
+    value["browserlessWarmEndpointIds"] = []
     value["browserSubstrate"] = {
         "kind": "browserless",
         "endpoints": [
