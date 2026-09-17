@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.browser-security-experiment",
+  "experimentId": "cloudflare-provider-security-exp-r2-20260918",
+  "date": "2026-09-18",
+  "status": "PASS_WITH_OPEN_HYPOTHESES",
+  "purpose": "Extend the R1 mechanism study with CF03 request-presentation, CF05 control-world/side-channel, CF06 cross-layer-consistency, and CF07 multi-profile observations using neutral/read-only probes.",
+  "constraints": {
+    "challengeSolved": false,
+    "challengeClicked": false,
+    "chatgptSendAttempted": false,
+    "productionChallengeUsedAsDetectorOracle": false
+  },
+  "cf03RequestPresentation": {
+    "jobId": "job-01a0b031-9cdf-7913-b0c5-732fe88c1db1",
+    "neutralTarget": "local HTTP lab in nv2-browserless-prod",
+    "arms": ["direct-late", "direct-early", "browserless"],
+    "finding": "The complete observed main-document request header set and order were identical across all three arms.",
+    "observedHeaderOrder": [
+      "Host", "Connection", "sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-platform", "Accept-Language", "Upgrade-Insecure-Requests", "User-Agent", "Accept", "Sec-Fetch-Site", "Sec-Fetch-Mode", "Sec-Fetch-User", "Sec-Fetch-Dest", "Accept-Encoding"
+    ],
+    "standing": "NO_PATH_DIFFERENCE_OBSERVED_IN_THIS_LAB"
+  },
+  "cf05ControlObservability": {
+    "consoleSideEffectProbe": {
+      "jobId": "job-01a0b031-9cdf-7913-b0c5-732fe88c1db1",
+      "arms": ["direct enable-automation probe-before-attach", "direct enable-automation attach-before-probe", "browserless current route"],
+      "errorStackGetterReads": {"log": 0, "dir": 0, "debug": 0},
+      "pageGlobalMatches": [],
+      "finding": "This detector family did not discriminate any arm on Chromium 153.0.8010.12 and must not be used as evidence in this environment.",
+      "standing": "NON_DISCRIMINATING_CURRENT_BUILD"
+    },
+    "executionContextProbe": {
+      "jobId": "job-01a0b032-60cd-7360-8eca-46c63fe8dd6e",
+      "pageShape": "main frame plus one iframe",
+      "direct": {"contextCount": 4, "shape": ["default", "playwright utility", "default", "playwright utility"]},
+      "browserless": {"contextCount": 4, "shape": ["default", "playwright utility", "default", "playwright utility"]},
+      "finding": "Both arms exposed the same execution-context structure. The Playwright utility-world suffix differed as an invocation identity, but Browserless/Puppeteer did not leave an additional world in this measurement.",
+      "standing": "NO_EXTRA_BROWSERLESS_WORLD_OBSERVED"
+    },
+    "remainingOpen": [
+      "Browserless/Puppeteer internal CDP-domain subscriptions may still differ without producing a page-visible world delta.",
+      "Runtime/Console domain state cannot be inferred from the negative page probe alone.",
+      "Browserless source-level Network.enable/listener behavior remains provenance, not proven challenge causality."
+    ]
+  },
+  "cf06CrossLayerConsistency": {
+    "browserWitnessJobId": "job-01a0b035-4233-7a23-86ea-752d0e07d36c",
+    "fontVerificationJobId": "job-01a0b035-da97-7311-a0b6-4e7308bdd2e9",
+    "network": {"country": "KR", "cloudflareColo": "ICN", "http": "http/2", "tls": "TLSv1.3", "warp": "off"},
+    "sharedBrowserPresentation": {
+      "browserVersion": "153.0.8010.12",
+      "platform": "Linux x86_64",
+      "language": "en-US",
+      "languages": ["en-US"],
+      "timezone": "Asia/Shanghai",
+      "timezoneOffsetMinutes": -480,
+      "hardwareConcurrency": 16,
+      "deviceMemoryGiB": 8,
+      "maxTouchPoints": 0,
+      "screen": "1440x1000",
+      "devicePixelRatio": 1,
+      "navigatorWebdriver": true
+    },
+    "sharedMismatch": {
+      "kind": "NETWORK_GEO_VS_BROWSER_TIMEZONE",
+      "networkCountry": "KR",
+      "browserTimezone": "Asia/Shanghai",
+      "standing": "OBSERVED_CROSS_LAYER_MISMATCH",
+      "note": "This mismatch is shared by direct and Browserless arms under the current Network-v2 namespace; it is not a Browserless-specific discriminator and is not established as a provider challenge cause."
+    },
+    "routeSpecificDifferences": {
+      "windowGeometry": {
+        "direct": {"inner": "1050x837", "outer": "1050x980"},
+        "browserless": {"inner": "1288x764", "outer": "1288x851"},
+        "standing": "OBSERVED"
+      },
+      "fontEnvironment": {
+        "standing": "OBSERVED_AND_SYSTEM_VERIFIED",
+        "examples": {
+          "host_DejaVu_Sans_resolution": "Verdana from Windows-mounted fonts",
+          "browserless_DejaVu_Sans_resolution": "DejaVu Sans from container Linux fonts",
+          "host_Arial_resolution": "Arial from Windows-mounted fonts",
+          "browserless_Arial_resolution": "Liberation Sans",
+          "host_Segoe_UI_resolution": "Segoe UI from Windows-mounted fonts",
+          "browserless_Segoe_UI_resolution": "Selawik",
+          "host_Noto_Sans_resolution": "Verdana fallback",
+          "browserless_Noto_Sans_resolution": "Ubuntu fallback"
+        },
+        "interpretation": "The Browserless container and direct host Chromium present materially different font fingerprints despite using the same Chromium binary and network namespace."
+      }
+    },
+    "standing": "REAL_DIFFERENCES_FOUND_CAUSALITY_OPEN"
+  },
+  "cf07SessionProfile": {
+    "multiCarrierPreflightJobId": "job-01a0b034-97c9-7211-b60d-af8f03530f88",
+    "profileMetadataJobId": "job-01a0b035-8e8e-7202-9060-2746aa7bba50",
+    "carrierStandings": {
+      "chatgpt-carrier-11": "CHALLENGE_GATED",
+      "chatgpt-carrier-12": "CHALLENGE_GATED",
+      "chatgpt-carrier-13": "CHALLENGE_GATED"
+    },
+    "allSubstratesHealthy": true,
+    "profileMetadata": {
+      "11": {"cookieRows": 37, "cookieHosts": 4},
+      "12": {"cookieRows": 35, "cookieHosts": 4},
+      "13": {"cookieRows": 32, "cookieHosts": 3}
+    },
+    "finding": "Three distinct persistent profiles all reached the same challenge standing while their substrates were healthy. This weakens a single-profile-local-corruption explanation but does not distinguish shared network, launch, provider-policy, or common session-history causes.",
+    "standing": "SINGLE_PROFILE_EXPLANATION_WEAKENED"
+  },
+  "modelUpdate": {
+    "CF03": "No request header-set/order difference observed between current Browserless and direct controls in the local lab.",
+    "CF05": "Two page-visible detector families failed to distinguish Browserless from direct Playwright. Broader protocol-domain differences remain open but must not be inferred from project reputation alone.",
+    "CF06": "A shared KR-network vs Asia/Shanghai-timezone mismatch exists. Browserless also has route-specific window geometry and font-environment differences caused by its containerized presentation substrate.",
+    "CF07": "All three persistent carriers are independently challenge-gated; a one-profile failure is less plausible.",
+    "CF08": "Challenge remains an observed outcome only; no R2 result establishes the provider-authoritative cause."
+  },
+  "explicitNonClaims": [
+    "R2 does not show that any observed mismatch is sufficient to trigger Cloudflare or ChatGPT challenge policy.",
+    "R2 does not show that changing timezone, fonts, launch flags, network route, or control layer would make the protected provider admissible.",
+    "R2 does not automate or recommend solving, clicking, or bypassing a provider challenge.",
+    "R2 does not treat negative detector probes as proof that Runtime/Console/CDP state is invisible."
+  ],
+  "nextWork": [
+    "turn these probes into a repeatable Browser Security witness suite with per-detector coverage declarations",
+    "capture exact launch-argument and presentation-environment digests for each admitted browser provider",
+    "add drift comparison against last-known-good witnesses without using a protected challenge as the measurement instrument"
+  ]
+}
