@@ -195,10 +195,22 @@ fn proc_status_ppid(status: &str) -> Option<u64> {
 }
 
 #[cfg(unix)]
+fn is_wsl_session_relay_comm(comm: &str) -> bool {
+    let comm = comm.trim();
+    comm.starts_with("Relay(") && comm.ends_with(')')
+}
+
+#[cfg(unix)]
 fn is_live_wsl_session_relay(listener: &Path) -> bool {
     let Some(pid) = wsl_interop_listener_pid(listener) else {
         return false;
     };
+    let Ok(comm) = fs::read_to_string(format!("/proc/{pid}/comm")) else {
+        return false;
+    };
+    if !is_wsl_session_relay_comm(&comm) {
+        return false;
+    }
     let Ok(status) = fs::read_to_string(format!("/proc/{pid}/status")) else {
         return false;
     };
@@ -1335,6 +1347,9 @@ w: 00000002 00000000 00010000 0001 01 11976 /run/WSL/notnumeric_interop\n";
         );
         assert_eq!(proc_status_ppid("Name:\tRelay\nPPid:\t637\n"), Some(637));
         assert_eq!(proc_status_ppid("Name:\tRelay\n"), None);
+        assert!(is_wsl_session_relay_comm("Relay(1035260)\n"));
+        assert!(!is_wsl_session_relay_comm("init-systemd(ar\n"));
+        assert!(!is_wsl_session_relay_comm("Relay\n"));
     }
 
     #[cfg(unix)]
