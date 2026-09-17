@@ -173,3 +173,45 @@ cross carrier as one subject drift        -> forbidden
 ```
 
 This prevents profile-local state or endpoint identity differences between carrier-11/12/13 from being misclassified as time drift. A pool-wide incident can instead be diagnosed by comparing each current carrier against its own LKG and then intersecting the changed CF families.
+
+## Pool drift classification
+
+`compare_browser_security_pool()` compares each persistent carrier only against its own LKG and then aggregates the same-subject comparisons across the pool.
+
+```text
+NO_OBSERVED_DRIFT
+  no changed CF family and no infrastructure change on any carrier
+
+DETECTOR_DRIFT
+  detector version/coverage or detector-set shape changed on any carrier;
+  subject classification is suppressed fail-closed
+
+GLOBAL_DRIFT
+  at least one identical CF-family or infrastructure signal changed on every carrier,
+  with no carrier-local residual
+
+CARRIER_LOCAL_DRIFT
+  observed changes exist only on a strict subset of carriers or differ by signal
+
+MIXED_DRIFT
+  shared pool-wide signal(s) and additional carrier-local signal(s) coexist
+```
+
+The result preserves every per-carrier bundle comparison, the shared intersection, carrier-local residuals, changed challenge standings as outcome metadata, and repair routes. It always leaves `rootCauseEstablished=false`; pool co-movement is localization evidence, not provider-authoritative causality.
+
+CLI input is an explicit comparison manifest:
+
+```json
+{
+  "schemaVersion": 1,
+  "carriers": [
+    {
+      "carrierId": "chatgpt-carrier-11",
+      "baselineBundle": "carrier11-lkg.json",
+      "candidateBundle": "carrier11-current.json"
+    }
+  ]
+}
+```
+
+At least two carriers are required. Cross-carrier bundles are not compared as if they represented one subject.

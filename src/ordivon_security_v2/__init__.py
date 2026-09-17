@@ -7,6 +7,7 @@ from .browser_security import (
     build_browser_security_witness_bundle,
     canonical_json_digest,
     compare_browser_security_bundles,
+    compare_browser_security_pool,
     compare_browser_security_witnesses,
 )
 from .evidence import EvidenceRef, build_gate_input
@@ -20,5 +21,6 @@ __all__ = [
     "build_gate_input",
     "canonical_json_digest",
     "compare_browser_security_bundles",
+    "compare_browser_security_pool",
     "compare_browser_security_witnesses",
 ]
