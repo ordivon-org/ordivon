@@ -1,0 +1,2409 @@
+{
+  "schemaVersion": 1,
+  "graphId": "ordivon-game-domain-package-graph-r1",
+  "title": "Ordivon Game Domain Package Graph R1",
+  "authorityBoundary": "game-domain-architecture-projection",
+  "dynamicStandingOwner": "Host/domain-owner re-entry; never this graph",
+  "purpose": "Machine-readable Lego graph of stable Game semantics, development views, reusable mechanics/compositions, Game-owned adapters, Skills and horizontal service dependencies. It projects existing authority; it does not create task priority, product selection, stage admission or dynamic standing.",
+  "nodeKinds": [
+    "kernel",
+    "foundation",
+    "development-responsibility",
+    "commitment-stage",
+    "mechanic",
+    "composition",
+    "product-or-experiment",
+    "skill-plane",
+    "game-tool",
+    "service"
+  ],
+  "relationKinds": [
+    "constrains",
+    "routes-to",
+    "depends-on",
+    "composes",
+    "realizes",
+    "evidences",
+    "advises",
+    "executes-through",
+    "projects",
+    "validates-with"
+  ],
+  "constraintKinds": [
+    "authority",
+    "invariant",
+    "admission",
+    "evidence",
+    "claim-ceiling",
+    "currentness",
+    "forbidden-substitution",
+    "reopen-condition",
+    "replaceability"
+  ],
+  "nodes": [
+    {
+      "id": "kernel.world-state",
+      "kind": "kernel",
+      "owner": "Game",
+      "title": "World / State",
+      "authority": "Authoritative Game-local state and world meaning",
+      "refs": [
+        "docs/GAME_FOUNDATIONS_RESEARCH_R29.md",
+        "docs/ARCHITECTURE.md"
+      ]
+    },
+    {
+      "id": "kernel.observation",
+      "kind": "kernel",
+      "owner": "Game",
+      "title": "Observation",
+      "authority": "Bounded subject-relative observation derived from state",
+      "refs": [
+        "docs/GAME_FOUNDATIONS_RESEARCH_R29.md",
+        "docs/STATION_ZERO_V3_P0.md"
+      ]
+    },
+    {
+      "id": "kernel.action",
+      "kind": "kernel",
+      "owner": "Game",
+      "title": "Action",
+      "authority": "Game-local semantic action identity and admission",
+      "refs": [
+        "docs/GAME_ACTION_CONTROL_SKILL_FOUNDATIONS_V1.md"
+      ]
+    },
+    {
+      "id": "kernel.transition",
+      "kind": "kernel",
+      "owner": "Game",
+      "title": "Transition / Consequence",
+      "authority": "Authoritative consequence and next-state semantics",
+      "refs": [
+        "docs/GAME_FOUNDATIONS_RESEARCH_R29.md",
+        "docs/ARCHITECTURE.md"
+      ]
+    },
+    {
+      "id": "foundation.play-game",
+      "kind": "foundation",
+      "owner": "Game",
+      "title": "Play / Game Deep Foundations",
+      "refs": [
+        "docs/GAME_PLAY_DEEP_FOUNDATIONS_V1.md"
+      ]
+    },
+    {
+      "id": "foundation.action-control-skill",
+      "kind": "foundation",
+      "owner": "Game",
+      "title": "Action / Control / Skill Foundations",
+      "refs": [
+        "docs/GAME_ACTION_CONTROL_SKILL_FOUNDATIONS_V1.md"
+      ]
+    },
+    {
+      "id": "foundation.challenge-failure-mastery",
+      "kind": "foundation",
+      "owner": "Game",
+      "title": "Challenge / Failure / Mastery Foundations",
+      "refs": [
+        "docs/GAME_CHALLENGE_FAILURE_MASTERY_FOUNDATIONS_V1.md"
+      ]
+    },
+    {
+      "id": "foundation.case-determination",
+      "kind": "foundation",
+      "owner": "Game",
+      "title": "Authoritative Case Determination Foundations",
+      "refs": [
+        "docs/GAME_AUTHORITATIVE_CASE_DETERMINATION_FOUNDATIONS_V1.md"
+      ]
+    },
+    {
+      "id": "development.d1",
+      "kind": "development-responsibility",
+      "owner": "Game profile / external methods",
+      "title": "D1 Intent / Audience Context",
+      "refs": [
+        "docs/GAME_DEVELOPMENT_CORE.md"
+      ]
+    },
+    {
+      "id": "development.d2",
+      "kind": "development-responsibility",
+      "owner": "Game",
+      "title": "D2 Play Causality",
+      "refs": [
+        "docs/GAME_DEVELOPMENT_CORE.md"
+      ]
+    },
+    {
+      "id": "development.d3",
+      "kind": "development-responsibility",
+      "owner": "Game profile / Human research owners",
+      "title": "D3 Player Learning / Legibility",
+      "refs": [
+        "docs/GAME_DEVELOPMENT_CORE.md"
+      ]
+    },
+    {
+      "id": "development.d4",
+      "kind": "development-responsibility",
+      "owner": "Research E2E with Game question semantics",
+      "title": "D4 Evidence / Prototyping",
+      "refs": [
+        "docs/GAME_DEVELOPMENT_CORE.md",
+        "docs/GAME_PLAYER_EVIDENCE_PROGRAMME.md"
+      ]
+    },
+    {
+      "id": "development.d5",
+      "kind": "development-responsibility",
+      "owner": "Game",
+      "title": "D5 Content / Progression Architecture",
+      "refs": [
+        "docs/GAME_DEVELOPMENT_CORE.md",
+        "docs/GAME_CONTENT_PROGRESSION_ARCHITECTURE.md"
+      ]
+    },
+    {
+      "id": "development.d6",
+      "kind": "development-responsibility",
+      "owner": "Game + Media / Studio",
+      "title": "D6 Expression / Feel",
+      "refs": [
+        "docs/GAME_DEVELOPMENT_CORE.md"
+      ]
+    },
+    {
+      "id": "development.d7",
+      "kind": "development-responsibility",
+      "owner": "Engineering / Workstation / Artifact with Game semantics",
+      "title": "D7 Production Realization",
+      "refs": [
+        "docs/GAME_DEVELOPMENT_CORE.md",
+        "docs/GAME_EXTERNAL_MATURE_PRACTICE_ADOPTION_R1.md"
+      ]
+    },
+    {
+      "id": "development.d8",
+      "kind": "development-responsibility",
+      "owner": "Distribution / platform / operations with Game interpretation",
+      "title": "D8 Product Ecology / Evolution",
+      "refs": [
+        "docs/GAME_DEVELOPMENT_CORE.md"
+      ]
+    },
+    {
+      "id": "stage.g0",
+      "kind": "commitment-stage",
+      "owner": "Game",
+      "title": "G0 Define",
+      "refs": [
+        "docs/DEVELOPMENT_MODEL.md"
+      ]
+    },
+    {
+      "id": "stage.g1",
+      "kind": "commitment-stage",
+      "owner": "Game",
+      "title": "G1 Preproduction / Core Design",
+      "refs": [
+        "docs/DEVELOPMENT_MODEL.md"
+      ]
+    },
+    {
+      "id": "stage.g2",
+      "kind": "commitment-stage",
+      "owner": "Game",
+      "title": "G2 Kernel / Graybox Prototype",
+      "refs": [
+        "docs/DEVELOPMENT_MODEL.md"
+      ]
+    },
+    {
+      "id": "stage.g3",
+      "kind": "commitment-stage",
+      "owner": "Game",
+      "title": "G3 Playable Prototype",
+      "refs": [
+        "docs/DEVELOPMENT_MODEL.md"
+      ]
+    },
+    {
+      "id": "stage.g4",
+      "kind": "commitment-stage",
+      "owner": "Game",
+      "title": "G4 Vertical Slice",
+      "refs": [
+        "docs/DEVELOPMENT_MODEL.md"
+      ]
+    },
+    {
+      "id": "stage.g5",
+      "kind": "commitment-stage",
+      "owner": "Game",
+      "title": "G5 Production / Content Expansion",
+      "refs": [
+        "docs/DEVELOPMENT_MODEL.md"
+      ]
+    },
+    {
+      "id": "stage.g6",
+      "kind": "commitment-stage",
+      "owner": "Game",
+      "title": "G6 Alpha / Content-complete Validation",
+      "refs": [
+        "docs/DEVELOPMENT_MODEL.md"
+      ]
+    },
+    {
+      "id": "stage.g7",
+      "kind": "commitment-stage",
+      "owner": "Game",
+      "title": "G7 Beta / Polish / Release Candidate",
+      "refs": [
+        "docs/DEVELOPMENT_MODEL.md"
+      ]
+    },
+    {
+      "id": "stage.g8",
+      "kind": "commitment-stage",
+      "owner": "Game",
+      "title": "G8 Release / Operate / Learn",
+      "refs": [
+        "docs/DEVELOPMENT_MODEL.md"
+      ]
+    },
+    {
+      "id": "mechanic.e01",
+      "kind": "mechanic",
+      "owner": "Game experiment",
+      "title": "E01 Counterfactual Probe",
+      "refs": [
+        "test/game-mechanic-prototype-wave-r1-e01.test.ts"
+      ]
+    },
+    {
+      "id": "mechanic.e02",
+      "kind": "mechanic",
+      "owner": "Game experiment",
+      "title": "E02 Transfer Route",
+      "refs": [
+        "test/game-mechanic-prototype-wave-r1-e02.test.ts"
+      ]
+    },
+    {
+      "id": "mechanic.e03",
+      "kind": "mechanic",
+      "owner": "Game experiment",
+      "title": "E03 Commitment Lag",
+      "refs": [
+        "test/game-mechanic-prototype-wave-r1-e03.test.ts"
+      ]
+    },
+    {
+      "id": "composition.pc01",
+      "kind": "composition",
+      "owner": "Game experiment",
+      "title": "PC01 Causal Works",
+      "refs": [
+        "experiments/product-composition-r1/pc01-causal-works-f0/design.json"
+      ]
+    },
+    {
+      "id": "composition.pc02",
+      "kind": "composition",
+      "owner": "Game experiment",
+      "title": "PC02 Persistent Workshop",
+      "refs": [
+        "docs/GAME_PRODUCT_THESIS_SPRINT_R1_20260914.md"
+      ]
+    },
+    {
+      "id": "composition.pc03",
+      "kind": "composition",
+      "owner": "Game experiment",
+      "title": "PC03 Loop Cartographer",
+      "refs": [
+        "docs/GAME_PC03_F0_APPARATUS_R1_20260914.md"
+      ]
+    },
+    {
+      "id": "product.station-zero-v2",
+      "kind": "product-or-experiment",
+      "owner": "Station Zero product",
+      "title": "Station Zero v2 Registered Product",
+      "refs": [
+        "docs/PRODUCT.md",
+        "docs/ARCHITECTURE.md"
+      ]
+    },
+    {
+      "id": "experiment.station-zero-v3",
+      "kind": "product-or-experiment",
+      "owner": "Game research",
+      "title": "Station Zero v3 Reference Experiment",
+      "refs": [
+        "docs/STATION_ZERO_V3_PRODUCT.md"
+      ]
+    },
+    {
+      "id": "experiment.casefile",
+      "kind": "product-or-experiment",
+      "owner": "Game research",
+      "title": "Casefile Epistemic Treatment",
+      "refs": [
+        "docs/GAME_CORE_EXPERIMENT_CASEFILE.md"
+      ]
+    },
+    {
+      "id": "skills.game",
+      "kind": "skill-plane",
+      "owner": "Agent Skills providers / client policy",
+      "title": "Game Agent Skills",
+      "authority": "Advisory procedures only; never Game semantic authority",
+      "refs": [
+        "docs/GAME_PRODUCTION_AGENT_ENVIRONMENT.md"
+      ]
+    },
+    {
+      "id": "tool.external-json-model",
+      "kind": "game-tool",
+      "owner": "Game thin adapter",
+      "title": "External JSON Model Adapter",
+      "refs": [
+        "tools/external-json-model.ts",
+        "docs/GAME_PROVIDER_EXECUTION_SUBTRACTION_R1_20260911.md"
+      ]
+    },
+    {
+      "id": "tool.browser-equipment",
+      "kind": "game-tool",
+      "owner": "Game thin adapter",
+      "title": "Browser Equipment Binding",
+      "refs": [
+        "tools/browser-equipment.ts"
+      ]
+    },
+    {
+      "id": "tool.canonical-digest",
+      "kind": "game-tool",
+      "owner": "Game repository mechanics",
+      "title": "Canonical Digest Helper",
+      "refs": [
+        "tools/canonical-digest.ts"
+      ]
+    },
+    {
+      "id": "service.research",
+      "kind": "service",
+      "owner": "Research v2",
+      "title": "Research E2E",
+      "refs": [
+        "docs/GAME_PLAYER_EVIDENCE_PROGRAMME.md"
+      ]
+    },
+    {
+      "id": "service.runtime",
+      "kind": "service",
+      "owner": "Ordivon Runtime",
+      "title": "Runtime Physical Execution",
+      "refs": [
+        "docs/GAME_E2E_OWNERSHIP_BOUNDARY.md"
+      ]
+    },
+    {
+      "id": "service.host",
+      "kind": "service",
+      "owner": "Host v2",
+      "title": "Durable Work Continuity",
+      "refs": [
+        "docs/GAME_E2E_OWNERSHIP_BOUNDARY.md",
+        "docs/GAME_E2E_R5_HOST_SUBSTITUTION.md"
+      ]
+    },
+    {
+      "id": "service.harness",
+      "kind": "service",
+      "owner": "Ordivon Harness",
+      "title": "Agent Cognitive Execution / Provider Continuity",
+      "refs": [
+        "docs/GAME_PROVIDER_EXECUTION_SUBTRACTION_R1_20260911.md"
+      ]
+    },
+    {
+      "id": "service.workstation",
+      "kind": "service",
+      "owner": "Workstation v2",
+      "title": "Equipment / Desired State / Node Operations",
+      "refs": [
+        "docs/GAME_DEVELOPMENT_STACK_GRADUATION_R1_20260913.md"
+      ]
+    },
+    {
+      "id": "service.artifact",
+      "kind": "service",
+      "owner": "Artifact v2",
+      "title": "Artifact Build / Validation / Delivery Evidence",
+      "refs": [
+        "docs/GAME_EXTERNAL_MATURE_PRACTICE_ADOPTION_R1.md"
+      ]
+    },
+    {
+      "id": "service.media",
+      "kind": "service",
+      "owner": "Media with Studio production plane",
+      "title": "Media / Studio Representation and Production",
+      "refs": [
+        "docs/GAME_EXTERNAL_MATURE_PRACTICE_ADOPTION_R1.md"
+      ]
+    },
+    {
+      "id": "service.distribution",
+      "kind": "service",
+      "owner": "Distribution v2 / platform-native release",
+      "title": "External Effect and Release Boundary",
+      "refs": [
+        "docs/GAME_EXTERNAL_MATURE_PRACTICE_ADOPTION_R1.md"
+      ]
+    },
+    {
+      "id": "service.network",
+      "kind": "service",
+      "owner": "Network v2",
+      "title": "Connectivity / Egress",
+      "refs": [
+        "docs/GAME_E2E_OWNERSHIP_BOUNDARY.md"
+      ]
+    },
+    {
+      "id": "service.security",
+      "kind": "service",
+      "owner": "Security v2",
+      "title": "Security Evidence / Admission Context",
+      "refs": [
+        "docs/GAME_E2E_OWNERSHIP_BOUNDARY.md"
+      ]
+    },
+    {
+      "id": "service.next",
+      "kind": "service",
+      "owner": "Ordivon Next",
+      "title": "External Authority / Policy / Capability Knowledge",
+      "refs": [
+        "docs/GAME_EXTERNAL_MATURE_PRACTICE_ADOPTION_R1.md"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "kernel.observation",
+      "to": "kernel.world-state",
+      "relation": "projects"
+    },
+    {
+      "from": "kernel.action",
+      "to": "kernel.transition",
+      "relation": "constrains"
+    },
+    {
+      "from": "kernel.transition",
+      "to": "kernel.world-state",
+      "relation": "realizes"
+    },
+    {
+      "from": "foundation.play-game",
+      "to": "kernel.world-state",
+      "relation": "constrains"
+    },
+    {
+      "from": "foundation.action-control-skill",
+      "to": "kernel.action",
+      "relation": "constrains"
+    },
+    {
+      "from": "foundation.challenge-failure-mastery",
+      "to": "kernel.transition",
+      "relation": "constrains"
+    },
+    {
+      "from": "foundation.case-determination",
+      "to": "kernel.action",
+      "relation": "constrains"
+    },
+    {
+      "from": "development.d1",
+      "to": "stage.g0",
+      "relation": "evidences"
+    },
+    {
+      "from": "development.d2",
+      "to": "kernel.transition",
+      "relation": "projects"
+    },
+    {
+      "from": "development.d3",
+      "to": "service.research",
+      "relation": "routes-to"
+    },
+    {
+      "from": "development.d4",
+      "to": "service.research",
+      "relation": "routes-to"
+    },
+    {
+      "from": "development.d5",
+      "to": "kernel.world-state",
+      "relation": "composes"
+    },
+    {
+      "from": "development.d6",
+      "to": "service.media",
+      "relation": "routes-to"
+    },
+    {
+      "from": "development.d7",
+      "to": "service.workstation",
+      "relation": "routes-to"
+    },
+    {
+      "from": "development.d7",
+      "to": "service.artifact",
+      "relation": "routes-to"
+    },
+    {
+      "from": "development.d8",
+      "to": "service.distribution",
+      "relation": "routes-to"
+    },
+    {
+      "from": "stage.g2",
+      "to": "development.d2",
+      "relation": "depends-on"
+    },
+    {
+      "from": "stage.g3",
+      "to": "development.d3",
+      "relation": "depends-on"
+    },
+    {
+      "from": "stage.g4",
+      "to": "development.d6",
+      "relation": "depends-on"
+    },
+    {
+      "from": "stage.g4",
+      "to": "development.d7",
+      "relation": "depends-on"
+    },
+    {
+      "from": "stage.g5",
+      "to": "development.d5",
+      "relation": "depends-on"
+    },
+    {
+      "from": "stage.g6",
+      "to": "development.d4",
+      "relation": "depends-on"
+    },
+    {
+      "from": "stage.g7",
+      "to": "development.d8",
+      "relation": "depends-on"
+    },
+    {
+      "from": "stage.g8",
+      "to": "development.d8",
+      "relation": "projects"
+    },
+    {
+      "from": "mechanic.e01",
+      "to": "composition.pc01",
+      "relation": "composes"
+    },
+    {
+      "from": "mechanic.e02",
+      "to": "composition.pc03",
+      "relation": "composes"
+    },
+    {
+      "from": "mechanic.e03",
+      "to": "composition.pc01",
+      "relation": "composes"
+    },
+    {
+      "from": "mechanic.e03",
+      "to": "composition.pc02",
+      "relation": "composes"
+    },
+    {
+      "from": "composition.pc01",
+      "to": "kernel.observation",
+      "relation": "composes"
+    },
+    {
+      "from": "composition.pc01",
+      "to": "kernel.transition",
+      "relation": "composes"
+    },
+    {
+      "from": "composition.pc02",
+      "to": "kernel.world-state",
+      "relation": "composes"
+    },
+    {
+      "from": "composition.pc03",
+      "to": "kernel.action",
+      "relation": "composes"
+    },
+    {
+      "from": "product.station-zero-v2",
+      "to": "kernel.world-state",
+      "relation": "realizes"
+    },
+    {
+      "from": "product.station-zero-v2",
+      "to": "kernel.transition",
+      "relation": "realizes"
+    },
+    {
+      "from": "experiment.station-zero-v3",
+      "to": "kernel.observation",
+      "relation": "realizes"
+    },
+    {
+      "from": "experiment.station-zero-v3",
+      "to": "tool.external-json-model",
+      "relation": "depends-on"
+    },
+    {
+      "from": "experiment.casefile",
+      "to": "foundation.case-determination",
+      "relation": "composes"
+    },
+    {
+      "from": "skills.game",
+      "to": "development.d1",
+      "relation": "advises"
+    },
+    {
+      "from": "skills.game",
+      "to": "development.d2",
+      "relation": "advises"
+    },
+    {
+      "from": "skills.game",
+      "to": "development.d6",
+      "relation": "advises"
+    },
+    {
+      "from": "tool.external-json-model",
+      "to": "service.harness",
+      "relation": "executes-through"
+    },
+    {
+      "from": "tool.browser-equipment",
+      "to": "service.workstation",
+      "relation": "executes-through"
+    },
+    {
+      "from": "tool.canonical-digest",
+      "to": "service.runtime",
+      "relation": "validates-with"
+    },
+    {
+      "from": "service.harness",
+      "to": "service.runtime",
+      "relation": "executes-through"
+    },
+    {
+      "from": "service.workstation",
+      "to": "service.runtime",
+      "relation": "executes-through"
+    },
+    {
+      "from": "service.media",
+      "to": "service.artifact",
+      "relation": "depends-on"
+    },
+    {
+      "from": "service.distribution",
+      "to": "service.artifact",
+      "relation": "depends-on"
+    },
+    {
+      "from": "service.harness",
+      "to": "service.network",
+      "relation": "depends-on"
+    },
+    {
+      "from": "service.harness",
+      "to": "service.security",
+      "relation": "depends-on"
+    },
+    {
+      "from": "service.research",
+      "to": "service.runtime",
+      "relation": "executes-through"
+    },
+    {
+      "from": "service.host",
+      "to": "service.runtime",
+      "relation": "projects"
+    },
+    {
+      "from": "service.next",
+      "to": "skills.game",
+      "relation": "advises"
+    }
+  ],
+  "constraints": [
+    {
+      "id": "constraint.authority.game-semantics",
+      "kind": "authority",
+      "scope": [
+        "kernel.world-state",
+        "kernel.observation",
+        "kernel.action",
+        "kernel.transition"
+      ],
+      "statement": "Game owns Game-local semantic state, observation, action admission and consequence meaning; generic execution, transport, persistence mechanics and platform services remain with their natural owners.",
+      "failureDisposition": "MOVE_OR_DELETE_GENERIC_MECHANIC",
+      "refs": [
+        "docs/GAME_E2E_OWNERSHIP_BOUNDARY.md",
+        "docs/GAME_EXTERNAL_MATURE_PRACTICE_ADOPTION_R1.md"
+      ]
+    },
+    {
+      "id": "constraint.authority.dynamic-standing",
+      "kind": "authority",
+      "scope": [
+        "service.host"
+      ],
+      "statement": "Dynamic Task, Goal, checkpoint and Board standing is re-entered through Host and the owning domain; this architecture graph cannot mint current work standing, priority or completion.",
+      "failureDisposition": "REENTER_HOST_AND_DOMAIN_OWNER",
+      "refs": [
+        "docs/GAME_DOMAIN_PACKAGE_GRAPH_R1.md",
+        "docs/authority.md"
+      ]
+    },
+    {
+      "id": "constraint.authority.provider-separation",
+      "kind": "authority",
+      "scope": [
+        "tool.external-json-model",
+        "service.harness",
+        "kernel.action"
+      ],
+      "statement": "Provider cognition produces candidate decisions only; Game alone validates identity, legality, freshness and admission before any authoritative World consequence.",
+      "failureDisposition": "REJECT_CANDIDATE_EFFECT",
+      "refs": [
+        "docs/GAME_PROVIDER_EXECUTION_SUBTRACTION_R1_20260911.md",
+        "docs/STATION_ZERO_V3_EXTERNAL_PROVIDER.md"
+      ]
+    },
+    {
+      "id": "constraint.invariant.kernel-minimality",
+      "kind": "invariant",
+      "scope": [
+        "kernel.world-state",
+        "kernel.observation",
+        "kernel.action",
+        "kernel.transition"
+      ],
+      "statement": "The shared Game semantic kernel stays limited to World/State, Observation, Action and Transition; genre systems such as inventory, combat, quests, economy, crafting, dialogue and AI remain composition-layer structures unless a concrete counterexample defeats this representation.",
+      "failureDisposition": "KEEP_AS_COMPOSITION_OR_OPEN_REOPEN_CASE",
+      "refs": [
+        "docs/GAME_FOUNDATIONS_RESEARCH_R29.md"
+      ]
+    },
+    {
+      "id": "constraint.invariant.no-direct-model-world-write",
+      "kind": "invariant",
+      "scope": [
+        "service.harness",
+        "kernel.world-state",
+        "kernel.action",
+        "kernel.transition"
+      ],
+      "statement": "Model or Agent prose cannot directly mutate authoritative World state; it must cross Game-owned action/candidate admission and deterministic or explicitly authorized consequence resolution.",
+      "failureDisposition": "FAIL_CLOSED_BEFORE_WORLD_MUTATION",
+      "refs": [
+        "docs/GAME_E2E_R5_DUAL_DOGFOOD_ACCEPTANCE.md",
+        "docs/STATION_ZERO_V3_EXTERNAL_PROVIDER.md"
+      ]
+    },
+    {
+      "id": "constraint.invariant.stage-core-separation",
+      "kind": "invariant",
+      "scope": [
+        "stage.g0",
+        "development.d1",
+        "development.d2",
+        "development.d3",
+        "development.d4",
+        "development.d5",
+        "development.d6",
+        "development.d7",
+        "development.d8"
+      ],
+      "statement": "G0-G8 is a commitment and coordination projection while D1-D8 is a concurrent responsibility/evidence view; strengthening one D-axis must not silently advance product stage or upgrade weaker evidence axes.",
+      "failureDisposition": "RESTATE_COMPONENT_STANDING",
+      "refs": [
+        "docs/DEVELOPMENT_MODEL.md",
+        "docs/GAME_DEVELOPMENT_CORE.md"
+      ]
+    },
+    {
+      "id": "constraint.admission.cross-game-promotion",
+      "kind": "admission",
+      "scope": [
+        "product.station-zero-v2",
+        "experiment.station-zero-v3"
+      ],
+      "statement": "Product-specific mechanics are not promoted into Big Game shared code merely because several files need a home; cross-game promotion requires real independent consumers and evidence that a mature external owner cannot satisfy the mechanical responsibility.",
+      "failureDisposition": "KEEP_WITH_CONCRETE_PRODUCT",
+      "refs": [
+        "docs/GAME_E2E_OWNERSHIP_BOUNDARY.md",
+        "docs/ARCHITECTURE.md"
+      ]
+    },
+    {
+      "id": "constraint.admission.external-first-extension",
+      "kind": "admission",
+      "scope": [
+        "development.d7",
+        "service.workstation",
+        "service.artifact",
+        "service.runtime"
+      ],
+      "statement": "A new generic-seeming Game infrastructure mechanism is admitted only after the exact mature external mechanism is tested, its failure condition is observed, the lost Game-specific invariant is named, and a thinner profile or adapter is insufficient.",
+      "failureDisposition": "ADOPT_EXTERNAL_OR_USE_THIN_ADAPTER",
+      "refs": [
+        "docs/GAME_EXTERNAL_MATURE_PRACTICE_ADOPTION_R1.md",
+        "docs/GAME_EXTERNAL_MATURE_STACK_R2_20260911.md"
+      ]
+    },
+    {
+      "id": "constraint.admission.core-primitive-high-bar",
+      "kind": "admission",
+      "scope": [
+        "kernel.world-state",
+        "kernel.observation",
+        "kernel.action",
+        "kernel.transition"
+      ],
+      "statement": "Ordinary gameplay mechanics may be cheap reversible experiments, but adding or changing a shared Game Core primitive requires a concrete semantic case that cannot be expressed by the four existing primitives without losing a player-relevant distinction.",
+      "failureDisposition": "PROTOTYPE_AS_LOCAL_MECHANIC_INSTEAD",
+      "refs": [
+        "docs/GAME_FOUNDATIONS_RESEARCH_R29.md"
+      ]
+    },
+    {
+      "id": "constraint.evidence.mechanical-not-human",
+      "kind": "evidence",
+      "scope": [
+        "development.d4",
+        "service.research",
+        "mechanic.e01",
+        "mechanic.e02",
+        "mechanic.e03"
+      ],
+      "statement": "Mechanical, simulation, synthetic-player and automated evaluation evidence can establish mechanics, reachability, robustness or causal differences, but cannot by identity establish Human enjoyment, comprehension, preference, retention or market response.",
+      "failureDisposition": "LOWER_CLAIM_OR_COLLECT_HUMAN_EVIDENCE",
+      "refs": [
+        "docs/GAME_PLAYER_EVIDENCE_PROGRAMME.md",
+        "docs/GAME_DEVELOPMENT_CORE.md"
+      ]
+    },
+    {
+      "id": "constraint.evidence.prototype-medium-relative",
+      "kind": "evidence",
+      "scope": [
+        "stage.g2",
+        "development.d4"
+      ],
+      "statement": "The cheapest implementation is not automatically a valid prototype; the carrier must represent the dimensions needed for the target question and state omitted dimensions, comparison baseline, observation method and decision rule.",
+      "failureDisposition": "RESELECT_EVIDENCE_CARRIER",
+      "refs": [
+        "docs/DEVELOPMENT_MODEL.md"
+      ]
+    },
+    {
+      "id": "constraint.evidence.test-health-boundary",
+      "kind": "evidence",
+      "scope": [
+        "development.d7",
+        "service.runtime"
+      ],
+      "statement": "Repository typechecks and automated tests establish bounded implementation health only; passing them does not establish product selection, G-stage admission, Human Player Value, market demand or release authority.",
+      "failureDisposition": "KEEP_TECHNICAL_PASS_SEPARATE_FROM_PRODUCT_CLAIM",
+      "refs": [
+        "docs/DEVELOPMENT_MODEL.md",
+        "docs/GAME_PLAYER_EVIDENCE_PROGRAMME.md"
+      ]
+    },
+    {
+      "id": "constraint.claim.mechanic-wave-r1",
+      "kind": "claim-ceiling",
+      "scope": [
+        "mechanic.e01",
+        "mechanic.e02",
+        "mechanic.e03"
+      ],
+      "statement": "E01, E02 and E03 KEEP standing is mechanical-scope only: it proves the exact tested causal or transfer property and does not imply enjoyment, learning, mastery, retention, market value, product selection or G0 admission.",
+      "failureDisposition": "REJECT_CLAIM_LAUNDERING",
+      "refs": [
+        "test/game-mechanic-prototype-wave-r1-e01.test.ts",
+        "test/game-mechanic-prototype-wave-r1-e02.test.ts",
+        "test/game-mechanic-prototype-wave-r1-e03.test.ts"
+      ]
+    },
+    {
+      "id": "constraint.claim.pre-g0-compositions",
+      "kind": "claim-ceiling",
+      "scope": [
+        "composition.pc01",
+        "composition.pc02",
+        "composition.pc03",
+        "stage.g0"
+      ],
+      "statement": "PC01, PC02 and PC03 are reusable product-composition evidence below product selection; their mechanical survival cannot by itself select a shipped product or enter G0.",
+      "failureDisposition": "KEEP_PRODUCT_SELECTION_FALSE_UNTIL_EXPLICIT_GATE",
+      "refs": [
+        "docs/GAME_PRODUCT_THESIS_SPRINT_R1_20260914.md",
+        "docs/GAME_G0_DECISION_PACKET_R1_20260914.md"
+      ]
+    },
+    {
+      "id": "constraint.claim.artifact-and-expression",
+      "kind": "claim-ceiling",
+      "scope": [
+        "development.d6",
+        "development.d7",
+        "service.media",
+        "service.artifact"
+      ],
+      "statement": "High-quality media, successful native rendering, build reproducibility or Artifact acceptance can prove expression and delivery properties but cannot substitute for gameplay causality or Human Player Value evidence.",
+      "failureDisposition": "PRESERVE_SEPARATE_GAME_AND_HUMAN_GATES",
+      "refs": [
+        "docs/DEVELOPMENT_MODEL.md",
+        "docs/GAME_EXTERNAL_MATURE_PRACTICE_ADOPTION_R1.md"
+      ]
+    },
+    {
+      "id": "constraint.currentness.graph-is-projection",
+      "kind": "currentness",
+      "scope": [
+        "service.host",
+        "service.next"
+      ],
+      "statement": "This graph intentionally records stable architecture and source refs, not live Task state, current provider health, installed-tool health or latest experiment verdicts; those facts require owner-native re-entry when used.",
+      "failureDisposition": "REENTER_CURRENT_OWNER_BEFORE_ACTION",
+      "refs": [
+        "docs/GAME_DOMAIN_PACKAGE_GRAPH_R1.md"
+      ]
+    },
+    {
+      "id": "constraint.currentness.exact-source-reentry",
+      "kind": "currentness",
+      "scope": [
+        "service.runtime",
+        "service.host",
+        "service.research"
+      ],
+      "statement": "Historical evidence and Board records remain provenance, but any action-changing claim about current code, provider availability, task standing or accepted evidence must bind the exact current owner source or observation rather than infer from an older record.",
+      "failureDisposition": "REENTRY_REQUIRED",
+      "refs": [
+        "docs/GAME_EXTERNAL_MATURE_PRACTICE_ADOPTION_R1.md",
+        "docs/authority.md"
+      ]
+    },
+    {
+      "id": "constraint.substitution.credential-not-authority",
+      "kind": "forbidden-substitution",
+      "scope": [
+        "service.distribution",
+        "service.harness"
+      ],
+      "statement": "Provider credentials or technical capability do not constitute user effect authority, release approval, product authority or permission to perform an external write.",
+      "failureDisposition": "NOT_ADMITTED",
+      "refs": [
+        "docs/GAME_EXTERNAL_MATURE_PRACTICE_ADOPTION_R1.md"
+      ]
+    },
+    {
+      "id": "constraint.substitution.synthetic-not-human",
+      "kind": "forbidden-substitution",
+      "scope": [
+        "service.research",
+        "development.d4"
+      ],
+      "statement": "Fixture Agents, policy Agents, model trajectories and synthetic subjects cannot be relabeled as Human participant evidence when the target claim concerns Human experience, interpretation, preference or behaviour.",
+      "failureDisposition": "HUMAN_EVIDENCE_REMAINS_UNKNOWN",
+      "refs": [
+        "docs/GAME_PLAYER_EVIDENCE_PROGRAMME.md"
+      ]
+    },
+    {
+      "id": "constraint.substitution.host-not-domain-truth",
+      "kind": "forbidden-substitution",
+      "scope": [
+        "service.host",
+        "kernel.world-state"
+      ],
+      "statement": "Host Task, checkpoint or Board persistence is continuity evidence and navigation; it does not replace Game World truth, Game product authority, Research admissibility or owner-native semantic verification.",
+      "failureDisposition": "REVALIDATE_WITH_DOMAIN_OWNER",
+      "refs": [
+        "docs/GAME_E2E_OWNERSHIP_BOUNDARY.md",
+        "docs/GAME_E2E_R5_HOST_SUBSTITUTION.md"
+      ]
+    },
+    {
+      "id": "constraint.substitution.render-not-semantics",
+      "kind": "forbidden-substitution",
+      "scope": [
+        "service.artifact",
+        "service.media",
+        "kernel.transition"
+      ],
+      "statement": "A screenshot, render, file existence, provider completion or format-valid artifact cannot by itself prove that authoritative gameplay semantics, causality or requested editable structure were preserved.",
+      "failureDisposition": "RUN_OWNER_SEMANTIC_AND_NATIVE_CONSUMER_VERIFICATION",
+      "refs": [
+        "docs/GAME_EXTERNAL_MATURE_PRACTICE_ADOPTION_R1.md"
+      ]
+    },
+    {
+      "id": "constraint.reopen.foundations",
+      "kind": "reopen-condition",
+      "scope": [
+        "foundation.play-game",
+        "foundation.action-control-skill",
+        "foundation.challenge-failure-mastery",
+        "foundation.case-determination"
+      ],
+      "statement": "Frozen foundations reopen only when a concrete game, controller, genre, accessibility case or Agent architecture produces a counterexample matching an explicit FoundationReopenCondition; novelty or new tooling alone is insufficient.",
+      "failureDisposition": "KEEP_FOUNDATION_FROZEN",
+      "refs": [
+        "docs/GAME_PLAY_DEEP_FOUNDATIONS_V1.md",
+        "docs/GAME_ACTION_CONTROL_SKILL_FOUNDATIONS_V1.md",
+        "docs/GAME_CHALLENGE_FAILURE_MASTERY_FOUNDATIONS_V1.md",
+        "docs/GAME_AUTHORITATIVE_CASE_DETERMINATION_FOUNDATIONS_V1.md"
+      ]
+    },
+    {
+      "id": "constraint.reopen.external-owner-boundary",
+      "kind": "reopen-condition",
+      "scope": [
+        "service.runtime",
+        "service.workstation",
+        "service.artifact",
+        "service.distribution"
+      ],
+      "statement": "A horizontal ownership boundary reopens only when a real Game consumer cannot preserve a necessary Game-specific invariant through the current owner, profile or thin adapter; convenience or namespace preference is insufficient.",
+      "failureDisposition": "KEEP_EXTERNAL_OWNER",
+      "refs": [
+        "docs/GAME_EXTERNAL_MATURE_PRACTICE_ADOPTION_R1.md",
+        "docs/GAME_E2E_OWNERSHIP_BOUNDARY.md"
+      ]
+    },
+    {
+      "id": "constraint.replaceability.engine",
+      "kind": "replaceability",
+      "scope": [
+        "development.d7",
+        "service.workstation"
+      ],
+      "statement": "Godot is a current proven production substrate, not Game semantic authority; Unity, Unreal, Roblox or later engines remain replaceable choices when a concrete product and evidence justify them.",
+      "failureDisposition": "RESELECT_ENGINE_WITHOUT_REDEFINING_GAME_CORE",
+      "refs": [
+        "docs/GAME_PRODUCTION_AGENT_ENVIRONMENT.md",
+        "docs/GAME_EXTERNAL_MATURE_STACK_R3_20260913.md"
+      ]
+    },
+    {
+      "id": "constraint.replaceability.provider",
+      "kind": "replaceability",
+      "scope": [
+        "tool.external-json-model",
+        "service.harness"
+      ],
+      "statement": "GPT, Claude, Hermes, a local model, deterministic fixture or scripted policy may realize cognition when admitted; provider replacement must preserve the Game-facing decision contract rather than becoming Game architecture.",
+      "failureDisposition": "REPLACE_PROVIDER_BEHIND_CONTRACT",
+      "refs": [
+        "docs/GAME_PROVIDER_EXECUTION_SUBTRACTION_R1_20260911.md",
+        "docs/STATION_ZERO_V3_EXTERNAL_PROVIDER.md"
+      ]
+    },
+    {
+      "id": "constraint.replaceability.skills",
+      "kind": "replaceability",
+      "scope": [
+        "skills.game"
+      ],
+      "statement": "Agent Skills are advisory procedural packages selected by client/runtime policy; installing, admitting or exposing a Skill does not transfer Game semantic ownership or create product-stage authority.",
+      "failureDisposition": "KEEP_SKILL_ADVISORY",
+      "refs": [
+        "docs/GAME_PRODUCTION_AGENT_ENVIRONMENT.md",
+        "docs/GAME_EXTERNAL_MATURE_PRACTICE_ADOPTION_R1.md"
+      ]
+    }
+  ],
+  "views": {
+    "semanticKernel": [
+      "kernel.world-state",
+      "kernel.observation",
+      "kernel.action",
+      "kernel.transition"
+    ],
+    "foundations": [
+      "foundation.play-game",
+      "foundation.action-control-skill",
+      "foundation.challenge-failure-mastery",
+      "foundation.case-determination"
+    ],
+    "developmentResponsibilities": [
+      "development.d1",
+      "development.d2",
+      "development.d3",
+      "development.d4",
+      "development.d5",
+      "development.d6",
+      "development.d7",
+      "development.d8"
+    ],
+    "commitmentStages": [
+      "stage.g0",
+      "stage.g1",
+      "stage.g2",
+      "stage.g3",
+      "stage.g4",
+      "stage.g5",
+      "stage.g6",
+      "stage.g7",
+      "stage.g8"
+    ],
+    "mechanicLibrary": [
+      "mechanic.e01",
+      "mechanic.e02",
+      "mechanic.e03"
+    ],
+    "compositionLibrary": [
+      "composition.pc01",
+      "composition.pc02",
+      "composition.pc03"
+    ],
+    "gameOwnedTools": [
+      "tool.external-json-model",
+      "tool.browser-equipment",
+      "tool.canonical-digest"
+    ],
+    "skills": [
+      "skills.game"
+    ],
+    "horizontalServices": [
+      "service.research",
+      "service.runtime",
+      "service.host",
+      "service.harness",
+      "service.workstation",
+      "service.artifact",
+      "service.media",
+      "service.distribution",
+      "service.network",
+      "service.security",
+      "service.next"
+    ],
+    "constraints": [
+      "constraint.authority.game-semantics",
+      "constraint.authority.dynamic-standing",
+      "constraint.authority.provider-separation",
+      "constraint.invariant.kernel-minimality",
+      "constraint.invariant.no-direct-model-world-write",
+      "constraint.invariant.stage-core-separation",
+      "constraint.admission.cross-game-promotion",
+      "constraint.admission.external-first-extension",
+      "constraint.admission.core-primitive-high-bar",
+      "constraint.evidence.mechanical-not-human",
+      "constraint.evidence.prototype-medium-relative",
+      "constraint.evidence.test-health-boundary",
+      "constraint.claim.mechanic-wave-r1",
+      "constraint.claim.pre-g0-compositions",
+      "constraint.claim.artifact-and-expression",
+      "constraint.currentness.graph-is-projection",
+      "constraint.currentness.exact-source-reentry",
+      "constraint.substitution.credential-not-authority",
+      "constraint.substitution.synthetic-not-human",
+      "constraint.substitution.host-not-domain-truth",
+      "constraint.substitution.render-not-semantics",
+      "constraint.reopen.foundations",
+      "constraint.reopen.external-owner-boundary",
+      "constraint.replaceability.engine",
+      "constraint.replaceability.provider",
+      "constraint.replaceability.skills"
+    ]
+  },
+  "contracts": [
+    {
+      "nodeId": "kernel.world-state",
+      "contract": "Preserve World / State as one of the four shared Game semantic primitives across products and experiments.",
+      "inputs": [
+        "authoritative semantic inputs",
+        "current rules/authority"
+      ],
+      "outputs": [
+        "Game-local semantic output",
+        "replay-relevant identity"
+      ],
+      "authority": "Game owns this shared semantic responsibility; storage, transport, rendering and provider mechanics do not inherit it.",
+      "dependencies": [],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Semantic responsibility is fixed unless an explicit Game Core reopen case succeeds; implementation remains replaceable.",
+      "consumers": [
+        "all Game compositions/products"
+      ],
+      "currentStanding": "Stable semantic contract; live product state and Task standing require concrete owner/Host re-entry."
+    },
+    {
+      "nodeId": "kernel.observation",
+      "contract": "Preserve Observation as one of the four shared Game semantic primitives across products and experiments.",
+      "inputs": [
+        "authoritative semantic inputs",
+        "current rules/authority"
+      ],
+      "outputs": [
+        "Game-local semantic output",
+        "replay-relevant identity"
+      ],
+      "authority": "Game owns this shared semantic responsibility; storage, transport, rendering and provider mechanics do not inherit it.",
+      "dependencies": [],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Semantic responsibility is fixed unless an explicit Game Core reopen case succeeds; implementation remains replaceable.",
+      "consumers": [
+        "all Game compositions/products"
+      ],
+      "currentStanding": "Stable semantic contract; live product state and Task standing require concrete owner/Host re-entry."
+    },
+    {
+      "nodeId": "kernel.action",
+      "contract": "Preserve Action as one of the four shared Game semantic primitives across products and experiments.",
+      "inputs": [
+        "authoritative semantic inputs",
+        "current rules/authority"
+      ],
+      "outputs": [
+        "Game-local semantic output",
+        "replay-relevant identity"
+      ],
+      "authority": "Game owns this shared semantic responsibility; storage, transport, rendering and provider mechanics do not inherit it.",
+      "dependencies": [],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Semantic responsibility is fixed unless an explicit Game Core reopen case succeeds; implementation remains replaceable.",
+      "consumers": [
+        "all Game compositions/products"
+      ],
+      "currentStanding": "Stable semantic contract; live product state and Task standing require concrete owner/Host re-entry."
+    },
+    {
+      "nodeId": "kernel.transition",
+      "contract": "Preserve Transition / Consequence as one of the four shared Game semantic primitives across products and experiments.",
+      "inputs": [
+        "authoritative semantic inputs",
+        "current rules/authority"
+      ],
+      "outputs": [
+        "Game-local semantic output",
+        "replay-relevant identity"
+      ],
+      "authority": "Game owns this shared semantic responsibility; storage, transport, rendering and provider mechanics do not inherit it.",
+      "dependencies": [],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Semantic responsibility is fixed unless an explicit Game Core reopen case succeeds; implementation remains replaceable.",
+      "consumers": [
+        "all Game compositions/products"
+      ],
+      "currentStanding": "Stable semantic contract; live product state and Task standing require concrete owner/Host re-entry."
+    },
+    {
+      "nodeId": "foundation.play-game",
+      "contract": "Maintain Play / Game Deep Foundations as a frozen Game-semantic foundation with explicit guards and reopen conditions.",
+      "inputs": [
+        "concrete game cases",
+        "counterexamples",
+        "upstream foundation semantics"
+      ],
+      "outputs": [
+        "frozen responsibilities",
+        "anti-collapse guards",
+        "reopen conditions"
+      ],
+      "authority": "Game owns only the frozen Game-semantic distinctions named by this foundation.",
+      "dependencies": [],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Frozen by default; reopen only through an explicit FoundationReopenCondition and concrete counterexample.",
+      "consumers": [
+        "downstream Game design/research"
+      ],
+      "currentStanding": "Frozen unless a named reopen condition is triggered; current research work remains owner-native."
+    },
+    {
+      "nodeId": "foundation.action-control-skill",
+      "contract": "Maintain Action / Control / Skill Foundations as a frozen Game-semantic foundation with explicit guards and reopen conditions.",
+      "inputs": [
+        "concrete game cases",
+        "counterexamples",
+        "upstream foundation semantics"
+      ],
+      "outputs": [
+        "frozen responsibilities",
+        "anti-collapse guards",
+        "reopen conditions"
+      ],
+      "authority": "Game owns only the frozen Game-semantic distinctions named by this foundation.",
+      "dependencies": [],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Frozen by default; reopen only through an explicit FoundationReopenCondition and concrete counterexample.",
+      "consumers": [
+        "downstream Game design/research"
+      ],
+      "currentStanding": "Frozen unless a named reopen condition is triggered; current research work remains owner-native."
+    },
+    {
+      "nodeId": "foundation.challenge-failure-mastery",
+      "contract": "Maintain Challenge / Failure / Mastery Foundations as a frozen Game-semantic foundation with explicit guards and reopen conditions.",
+      "inputs": [
+        "concrete game cases",
+        "counterexamples",
+        "upstream foundation semantics"
+      ],
+      "outputs": [
+        "frozen responsibilities",
+        "anti-collapse guards",
+        "reopen conditions"
+      ],
+      "authority": "Game owns only the frozen Game-semantic distinctions named by this foundation.",
+      "dependencies": [],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Frozen by default; reopen only through an explicit FoundationReopenCondition and concrete counterexample.",
+      "consumers": [
+        "downstream Game design/research"
+      ],
+      "currentStanding": "Frozen unless a named reopen condition is triggered; current research work remains owner-native."
+    },
+    {
+      "nodeId": "foundation.case-determination",
+      "contract": "Maintain Authoritative Case Determination Foundations as a frozen Game-semantic foundation with explicit guards and reopen conditions.",
+      "inputs": [
+        "concrete game cases",
+        "counterexamples",
+        "upstream foundation semantics"
+      ],
+      "outputs": [
+        "frozen responsibilities",
+        "anti-collapse guards",
+        "reopen conditions"
+      ],
+      "authority": "Game owns only the frozen Game-semantic distinctions named by this foundation.",
+      "dependencies": [],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Frozen by default; reopen only through an explicit FoundationReopenCondition and concrete counterexample.",
+      "consumers": [
+        "downstream Game design/research"
+      ],
+      "currentStanding": "Frozen unless a named reopen condition is triggered; current research work remains owner-native."
+    },
+    {
+      "nodeId": "development.d1",
+      "contract": "Project D1 Intent / Audience Context as one concurrent Game-development responsibility and route generic mechanics to natural owners.",
+      "inputs": [
+        "current product question",
+        "claim-specific evidence",
+        "owner-native observations"
+      ],
+      "outputs": [
+        "D1 Intent / Audience Context standing",
+        "routing decision",
+        "unresolved evidence gap"
+      ],
+      "authority": "Game owns the Game-specific responsibility/evidence projection; external standards and services retain native authority.",
+      "dependencies": [],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Projection may evolve with evidence; external mechanisms remain independently replaceable.",
+      "consumers": [
+        "G0-G8 decisions"
+      ],
+      "currentStanding": "Stable responsibility view; current evidence strength must be re-entered from claim-specific owner evidence."
+    },
+    {
+      "nodeId": "development.d2",
+      "contract": "Project D2 Play Causality as one concurrent Game-development responsibility and route generic mechanics to natural owners.",
+      "inputs": [
+        "current product question",
+        "claim-specific evidence",
+        "owner-native observations"
+      ],
+      "outputs": [
+        "D2 Play Causality standing",
+        "routing decision",
+        "unresolved evidence gap"
+      ],
+      "authority": "Game owns the Game-specific responsibility/evidence projection; external standards and services retain native authority.",
+      "dependencies": [],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Projection may evolve with evidence; external mechanisms remain independently replaceable.",
+      "consumers": [
+        "G0-G8 decisions"
+      ],
+      "currentStanding": "Stable responsibility view; current evidence strength must be re-entered from claim-specific owner evidence."
+    },
+    {
+      "nodeId": "development.d3",
+      "contract": "Project D3 Player Learning / Legibility as one concurrent Game-development responsibility and route generic mechanics to natural owners.",
+      "inputs": [
+        "current product question",
+        "claim-specific evidence",
+        "owner-native observations"
+      ],
+      "outputs": [
+        "D3 Player Learning / Legibility standing",
+        "routing decision",
+        "unresolved evidence gap"
+      ],
+      "authority": "Game owns the Game-specific responsibility/evidence projection; external standards and services retain native authority.",
+      "dependencies": [
+        "service.research"
+      ],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Projection may evolve with evidence; external mechanisms remain independently replaceable.",
+      "consumers": [
+        "G0-G8 decisions"
+      ],
+      "currentStanding": "Stable responsibility view; current evidence strength must be re-entered from claim-specific owner evidence."
+    },
+    {
+      "nodeId": "development.d4",
+      "contract": "Project D4 Evidence / Prototyping as one concurrent Game-development responsibility and route generic mechanics to natural owners.",
+      "inputs": [
+        "current product question",
+        "claim-specific evidence",
+        "owner-native observations"
+      ],
+      "outputs": [
+        "D4 Evidence / Prototyping standing",
+        "routing decision",
+        "unresolved evidence gap"
+      ],
+      "authority": "Game owns the Game-specific responsibility/evidence projection; external standards and services retain native authority.",
+      "dependencies": [
+        "service.research"
+      ],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Projection may evolve with evidence; external mechanisms remain independently replaceable.",
+      "consumers": [
+        "G0-G8 decisions"
+      ],
+      "currentStanding": "Stable responsibility view; current evidence strength must be re-entered from claim-specific owner evidence."
+    },
+    {
+      "nodeId": "development.d5",
+      "contract": "Project D5 Content / Progression Architecture as one concurrent Game-development responsibility and route generic mechanics to natural owners.",
+      "inputs": [
+        "current product question",
+        "claim-specific evidence",
+        "owner-native observations"
+      ],
+      "outputs": [
+        "D5 Content / Progression Architecture standing",
+        "routing decision",
+        "unresolved evidence gap"
+      ],
+      "authority": "Game owns the Game-specific responsibility/evidence projection; external standards and services retain native authority.",
+      "dependencies": [],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Projection may evolve with evidence; external mechanisms remain independently replaceable.",
+      "consumers": [
+        "G0-G8 decisions"
+      ],
+      "currentStanding": "Stable responsibility view; current evidence strength must be re-entered from claim-specific owner evidence."
+    },
+    {
+      "nodeId": "development.d6",
+      "contract": "Project D6 Expression / Feel as one concurrent Game-development responsibility and route generic mechanics to natural owners.",
+      "inputs": [
+        "current product question",
+        "claim-specific evidence",
+        "owner-native observations"
+      ],
+      "outputs": [
+        "D6 Expression / Feel standing",
+        "routing decision",
+        "unresolved evidence gap"
+      ],
+      "authority": "Game owns the Game-specific responsibility/evidence projection; external standards and services retain native authority.",
+      "dependencies": [
+        "service.media"
+      ],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Projection may evolve with evidence; external mechanisms remain independently replaceable.",
+      "consumers": [
+        "G0-G8 decisions"
+      ],
+      "currentStanding": "Stable responsibility view; current evidence strength must be re-entered from claim-specific owner evidence."
+    },
+    {
+      "nodeId": "development.d7",
+      "contract": "Project D7 Production Realization as one concurrent Game-development responsibility and route generic mechanics to natural owners.",
+      "inputs": [
+        "current product question",
+        "claim-specific evidence",
+        "owner-native observations"
+      ],
+      "outputs": [
+        "D7 Production Realization standing",
+        "routing decision",
+        "unresolved evidence gap"
+      ],
+      "authority": "Game owns the Game-specific responsibility/evidence projection; external standards and services retain native authority.",
+      "dependencies": [
+        "service.artifact",
+        "service.workstation"
+      ],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Projection may evolve with evidence; external mechanisms remain independently replaceable.",
+      "consumers": [
+        "G0-G8 decisions"
+      ],
+      "currentStanding": "Stable responsibility view; current evidence strength must be re-entered from claim-specific owner evidence."
+    },
+    {
+      "nodeId": "development.d8",
+      "contract": "Project D8 Product Ecology / Evolution as one concurrent Game-development responsibility and route generic mechanics to natural owners.",
+      "inputs": [
+        "current product question",
+        "claim-specific evidence",
+        "owner-native observations"
+      ],
+      "outputs": [
+        "D8 Product Ecology / Evolution standing",
+        "routing decision",
+        "unresolved evidence gap"
+      ],
+      "authority": "Game owns the Game-specific responsibility/evidence projection; external standards and services retain native authority.",
+      "dependencies": [
+        "service.distribution"
+      ],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Projection may evolve with evidence; external mechanisms remain independently replaceable.",
+      "consumers": [
+        "G0-G8 decisions"
+      ],
+      "currentStanding": "Stable responsibility view; current evidence strength must be re-entered from claim-specific owner evidence."
+    },
+    {
+      "nodeId": "stage.g0",
+      "contract": "Project G0 Define as a bounded Game commitment milestone without laundering weaker evidence dimensions.",
+      "inputs": [
+        "prior commitment state",
+        "D1-D8 evidence bundle",
+        "decision basis"
+      ],
+      "outputs": [
+        "G0 Define commitment or hold",
+        "exit-gate rationale",
+        "reopen conditions"
+      ],
+      "authority": "Game owns G0-G8 product-stage semantics only; generic software lifecycle and external release/research mechanisms remain external.",
+      "dependencies": [],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Stage projection may be versioned but cannot absorb external lifecycle standards or replace component evidence.",
+      "consumers": [
+        "product coordination"
+      ],
+      "currentStanding": "Stage semantics are stable; actual product admission is dynamic decision evidence and not live truth here."
+    },
+    {
+      "nodeId": "stage.g1",
+      "contract": "Project G1 Preproduction / Core Design as a bounded Game commitment milestone without laundering weaker evidence dimensions.",
+      "inputs": [
+        "prior commitment state",
+        "D1-D8 evidence bundle",
+        "decision basis"
+      ],
+      "outputs": [
+        "G1 Preproduction / Core Design commitment or hold",
+        "exit-gate rationale",
+        "reopen conditions"
+      ],
+      "authority": "Game owns G0-G8 product-stage semantics only; generic software lifecycle and external release/research mechanisms remain external.",
+      "dependencies": [],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Stage projection may be versioned but cannot absorb external lifecycle standards or replace component evidence.",
+      "consumers": [
+        "product coordination"
+      ],
+      "currentStanding": "Stage semantics are stable; actual product admission is dynamic decision evidence and not live truth here."
+    },
+    {
+      "nodeId": "stage.g2",
+      "contract": "Project G2 Kernel / Graybox Prototype as a bounded Game commitment milestone without laundering weaker evidence dimensions.",
+      "inputs": [
+        "prior commitment state",
+        "D1-D8 evidence bundle",
+        "decision basis"
+      ],
+      "outputs": [
+        "G2 Kernel / Graybox Prototype commitment or hold",
+        "exit-gate rationale",
+        "reopen conditions"
+      ],
+      "authority": "Game owns G0-G8 product-stage semantics only; generic software lifecycle and external release/research mechanisms remain external.",
+      "dependencies": [
+        "development.d2"
+      ],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Stage projection may be versioned but cannot absorb external lifecycle standards or replace component evidence.",
+      "consumers": [
+        "product coordination"
+      ],
+      "currentStanding": "Stage semantics are stable; actual product admission is dynamic decision evidence and not live truth here."
+    },
+    {
+      "nodeId": "stage.g3",
+      "contract": "Project G3 Playable Prototype as a bounded Game commitment milestone without laundering weaker evidence dimensions.",
+      "inputs": [
+        "prior commitment state",
+        "D1-D8 evidence bundle",
+        "decision basis"
+      ],
+      "outputs": [
+        "G3 Playable Prototype commitment or hold",
+        "exit-gate rationale",
+        "reopen conditions"
+      ],
+      "authority": "Game owns G0-G8 product-stage semantics only; generic software lifecycle and external release/research mechanisms remain external.",
+      "dependencies": [
+        "development.d3"
+      ],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Stage projection may be versioned but cannot absorb external lifecycle standards or replace component evidence.",
+      "consumers": [
+        "product coordination"
+      ],
+      "currentStanding": "Stage semantics are stable; actual product admission is dynamic decision evidence and not live truth here."
+    },
+    {
+      "nodeId": "stage.g4",
+      "contract": "Project G4 Vertical Slice as a bounded Game commitment milestone without laundering weaker evidence dimensions.",
+      "inputs": [
+        "prior commitment state",
+        "D1-D8 evidence bundle",
+        "decision basis"
+      ],
+      "outputs": [
+        "G4 Vertical Slice commitment or hold",
+        "exit-gate rationale",
+        "reopen conditions"
+      ],
+      "authority": "Game owns G0-G8 product-stage semantics only; generic software lifecycle and external release/research mechanisms remain external.",
+      "dependencies": [
+        "development.d6",
+        "development.d7"
+      ],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Stage projection may be versioned but cannot absorb external lifecycle standards or replace component evidence.",
+      "consumers": [
+        "product coordination"
+      ],
+      "currentStanding": "Stage semantics are stable; actual product admission is dynamic decision evidence and not live truth here."
+    },
+    {
+      "nodeId": "stage.g5",
+      "contract": "Project G5 Production / Content Expansion as a bounded Game commitment milestone without laundering weaker evidence dimensions.",
+      "inputs": [
+        "prior commitment state",
+        "D1-D8 evidence bundle",
+        "decision basis"
+      ],
+      "outputs": [
+        "G5 Production / Content Expansion commitment or hold",
+        "exit-gate rationale",
+        "reopen conditions"
+      ],
+      "authority": "Game owns G0-G8 product-stage semantics only; generic software lifecycle and external release/research mechanisms remain external.",
+      "dependencies": [
+        "development.d5"
+      ],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Stage projection may be versioned but cannot absorb external lifecycle standards or replace component evidence.",
+      "consumers": [
+        "product coordination"
+      ],
+      "currentStanding": "Stage semantics are stable; actual product admission is dynamic decision evidence and not live truth here."
+    },
+    {
+      "nodeId": "stage.g6",
+      "contract": "Project G6 Alpha / Content-complete Validation as a bounded Game commitment milestone without laundering weaker evidence dimensions.",
+      "inputs": [
+        "prior commitment state",
+        "D1-D8 evidence bundle",
+        "decision basis"
+      ],
+      "outputs": [
+        "G6 Alpha / Content-complete Validation commitment or hold",
+        "exit-gate rationale",
+        "reopen conditions"
+      ],
+      "authority": "Game owns G0-G8 product-stage semantics only; generic software lifecycle and external release/research mechanisms remain external.",
+      "dependencies": [
+        "development.d4"
+      ],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Stage projection may be versioned but cannot absorb external lifecycle standards or replace component evidence.",
+      "consumers": [
+        "product coordination"
+      ],
+      "currentStanding": "Stage semantics are stable; actual product admission is dynamic decision evidence and not live truth here."
+    },
+    {
+      "nodeId": "stage.g7",
+      "contract": "Project G7 Beta / Polish / Release Candidate as a bounded Game commitment milestone without laundering weaker evidence dimensions.",
+      "inputs": [
+        "prior commitment state",
+        "D1-D8 evidence bundle",
+        "decision basis"
+      ],
+      "outputs": [
+        "G7 Beta / Polish / Release Candidate commitment or hold",
+        "exit-gate rationale",
+        "reopen conditions"
+      ],
+      "authority": "Game owns G0-G8 product-stage semantics only; generic software lifecycle and external release/research mechanisms remain external.",
+      "dependencies": [
+        "development.d8"
+      ],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Stage projection may be versioned but cannot absorb external lifecycle standards or replace component evidence.",
+      "consumers": [
+        "product coordination"
+      ],
+      "currentStanding": "Stage semantics are stable; actual product admission is dynamic decision evidence and not live truth here."
+    },
+    {
+      "nodeId": "stage.g8",
+      "contract": "Project G8 Release / Operate / Learn as a bounded Game commitment milestone without laundering weaker evidence dimensions.",
+      "inputs": [
+        "prior commitment state",
+        "D1-D8 evidence bundle",
+        "decision basis"
+      ],
+      "outputs": [
+        "G8 Release / Operate / Learn commitment or hold",
+        "exit-gate rationale",
+        "reopen conditions"
+      ],
+      "authority": "Game owns G0-G8 product-stage semantics only; generic software lifecycle and external release/research mechanisms remain external.",
+      "dependencies": [],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Stage projection may be versioned but cannot absorb external lifecycle standards or replace component evidence.",
+      "consumers": [
+        "product coordination"
+      ],
+      "currentStanding": "Stage semantics are stable; actual product admission is dynamic decision evidence and not live truth here."
+    },
+    {
+      "nodeId": "mechanic.e01",
+      "contract": "Test E01 Counterfactual Probe as one bounded gameplay causal mechanism independently of product-selection authority.",
+      "inputs": [
+        "controlled state/rules",
+        "candidate action/policy",
+        "mechanical falsifier"
+      ],
+      "outputs": [
+        "mechanical outcome",
+        "KEEP/REVISE/DELETE evidence"
+      ],
+      "authority": "Game experiment owns only the exact tested mechanical property; no Human or product-selection authority follows.",
+      "dependencies": [],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Cheap and replaceable; KEEP does not force reuse and subsumed/no-fit mechanics should be dropped.",
+      "consumers": [
+        "composition experiments"
+      ],
+      "currentStanding": "Bounded mechanical evidence only; current task/composition standing requires Host/domain re-entry."
+    },
+    {
+      "nodeId": "mechanic.e02",
+      "contract": "Test E02 Transfer Route as one bounded gameplay causal mechanism independently of product-selection authority.",
+      "inputs": [
+        "controlled state/rules",
+        "candidate action/policy",
+        "mechanical falsifier"
+      ],
+      "outputs": [
+        "mechanical outcome",
+        "KEEP/REVISE/DELETE evidence"
+      ],
+      "authority": "Game experiment owns only the exact tested mechanical property; no Human or product-selection authority follows.",
+      "dependencies": [],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Cheap and replaceable; KEEP does not force reuse and subsumed/no-fit mechanics should be dropped.",
+      "consumers": [
+        "composition experiments"
+      ],
+      "currentStanding": "Bounded mechanical evidence only; current task/composition standing requires Host/domain re-entry."
+    },
+    {
+      "nodeId": "mechanic.e03",
+      "contract": "Test E03 Commitment Lag as one bounded gameplay causal mechanism independently of product-selection authority.",
+      "inputs": [
+        "controlled state/rules",
+        "candidate action/policy",
+        "mechanical falsifier"
+      ],
+      "outputs": [
+        "mechanical outcome",
+        "KEEP/REVISE/DELETE evidence"
+      ],
+      "authority": "Game experiment owns only the exact tested mechanical property; no Human or product-selection authority follows.",
+      "dependencies": [],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Cheap and replaceable; KEEP does not force reuse and subsumed/no-fit mechanics should be dropped.",
+      "consumers": [
+        "composition experiments"
+      ],
+      "currentStanding": "Bounded mechanical evidence only; current task/composition standing requires Host/domain re-entry."
+    },
+    {
+      "nodeId": "composition.pc01",
+      "contract": "Compose PC01 Causal Works from shared kernel semantics and selected mechanics with explicit falsifiers.",
+      "inputs": [
+        "kernel primitives",
+        "selected mechanics",
+        "composition-specific content"
+      ],
+      "outputs": [
+        "candidate product behavior",
+        "composition falsification evidence"
+      ],
+      "authority": "Game experiment owns candidate composition semantics; product selection and G0 admission remain separate.",
+      "dependencies": [],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Expected to be revised, killed or recombined cheaply before commitment without changing Game Core.",
+      "consumers": [
+        "pre-G0 comparison"
+      ],
+      "currentStanding": "Pre-G0 evidence only; current survivor/allocation standing requires Host/domain re-entry."
+    },
+    {
+      "nodeId": "composition.pc02",
+      "contract": "Compose PC02 Persistent Workshop from shared kernel semantics and selected mechanics with explicit falsifiers.",
+      "inputs": [
+        "kernel primitives",
+        "selected mechanics",
+        "composition-specific content"
+      ],
+      "outputs": [
+        "candidate product behavior",
+        "composition falsification evidence"
+      ],
+      "authority": "Game experiment owns candidate composition semantics; product selection and G0 admission remain separate.",
+      "dependencies": [],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Expected to be revised, killed or recombined cheaply before commitment without changing Game Core.",
+      "consumers": [
+        "pre-G0 comparison"
+      ],
+      "currentStanding": "Pre-G0 evidence only; current survivor/allocation standing requires Host/domain re-entry."
+    },
+    {
+      "nodeId": "composition.pc03",
+      "contract": "Compose PC03 Loop Cartographer from shared kernel semantics and selected mechanics with explicit falsifiers.",
+      "inputs": [
+        "kernel primitives",
+        "selected mechanics",
+        "composition-specific content"
+      ],
+      "outputs": [
+        "candidate product behavior",
+        "composition falsification evidence"
+      ],
+      "authority": "Game experiment owns candidate composition semantics; product selection and G0 admission remain separate.",
+      "dependencies": [],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Expected to be revised, killed or recombined cheaply before commitment without changing Game Core.",
+      "consumers": [
+        "pre-G0 comparison"
+      ],
+      "currentStanding": "Pre-G0 evidence only; current survivor/allocation standing requires Host/domain re-entry."
+    },
+    {
+      "nodeId": "product.station-zero-v2",
+      "contract": "Realize Station Zero v2 Registered Product as a concrete product or bounded research treatment over the shared Game kernel.",
+      "inputs": [
+        "Game rules/content",
+        "player or Agent actions",
+        "required service results"
+      ],
+      "outputs": [
+        "playable state/consequences",
+        "product or experiment evidence"
+      ],
+      "authority": "Concrete product/experiment owner owns its semantics; no automatic promotion into Big Game follows.",
+      "dependencies": [],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "May be versioned, replaced or retired without redefining shared Game Core.",
+      "consumers": [
+        "players/researchers"
+      ],
+      "currentStanding": "Concrete registration/experiment standing is owner-specific and must be re-entered before consequential use."
+    },
+    {
+      "nodeId": "experiment.station-zero-v3",
+      "contract": "Realize Station Zero v3 Reference Experiment as a concrete product or bounded research treatment over the shared Game kernel.",
+      "inputs": [
+        "Game rules/content",
+        "player or Agent actions",
+        "required service results"
+      ],
+      "outputs": [
+        "playable state/consequences",
+        "product or experiment evidence"
+      ],
+      "authority": "Concrete product/experiment owner owns its semantics; no automatic promotion into Big Game follows.",
+      "dependencies": [
+        "tool.external-json-model"
+      ],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "May be versioned, replaced or retired without redefining shared Game Core.",
+      "consumers": [
+        "players/researchers"
+      ],
+      "currentStanding": "Concrete registration/experiment standing is owner-specific and must be re-entered before consequential use."
+    },
+    {
+      "nodeId": "experiment.casefile",
+      "contract": "Realize Casefile Epistemic Treatment as a concrete product or bounded research treatment over the shared Game kernel.",
+      "inputs": [
+        "Game rules/content",
+        "player or Agent actions",
+        "required service results"
+      ],
+      "outputs": [
+        "playable state/consequences",
+        "product or experiment evidence"
+      ],
+      "authority": "Concrete product/experiment owner owns its semantics; no automatic promotion into Big Game follows.",
+      "dependencies": [],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "May be versioned, replaced or retired without redefining shared Game Core.",
+      "consumers": [
+        "players/researchers"
+      ],
+      "currentStanding": "Concrete registration/experiment standing is owner-specific and must be re-entered before consequential use."
+    },
+    {
+      "nodeId": "skills.game",
+      "contract": "Supply task-relevant game-development procedures under client Skill discovery/admission without owning Game semantics.",
+      "inputs": [
+        "task intent",
+        "client/workspace context",
+        "admitted Skill package"
+      ],
+      "outputs": [
+        "advisory game-development guidance"
+      ],
+      "authority": "Client/Skill provider owns package exposure; Skill text never receives Game semantic authority.",
+      "dependencies": [],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Fully replaceable and advisory; installation, admission or visibility is not Game semantic admission.",
+      "consumers": [
+        "Game development Agents"
+      ],
+      "currentStanding": "Skill catalog and visibility are dynamic client state and must be re-read when materially used."
+    },
+    {
+      "nodeId": "tool.external-json-model",
+      "contract": "Provide External JSON Model Adapter as a narrow Game-owned adapter/helper without rebuilding generic infrastructure.",
+      "inputs": [
+        "Game-local request",
+        "owner-provided capability/data"
+      ],
+      "outputs": [
+        "bounded adapter/helper result"
+      ],
+      "authority": "Game owns only the named thin adapter semantics; generic mechanics remain with downstream owners.",
+      "dependencies": [
+        "service.harness"
+      ],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Prefer deletion or replacement when a mature external owner can satisfy the same Game-facing contract.",
+      "consumers": [
+        "Game products/experiments"
+      ],
+      "currentStanding": "Stable adapter contract; executable/equipment/provider availability requires owner-native re-entry."
+    },
+    {
+      "nodeId": "tool.browser-equipment",
+      "contract": "Provide Browser Equipment Binding as a narrow Game-owned adapter/helper without rebuilding generic infrastructure.",
+      "inputs": [
+        "Game-local request",
+        "owner-provided capability/data"
+      ],
+      "outputs": [
+        "bounded adapter/helper result"
+      ],
+      "authority": "Game owns only the named thin adapter semantics; generic mechanics remain with downstream owners.",
+      "dependencies": [
+        "service.workstation"
+      ],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Prefer deletion or replacement when a mature external owner can satisfy the same Game-facing contract.",
+      "consumers": [
+        "Game products/experiments"
+      ],
+      "currentStanding": "Stable adapter contract; executable/equipment/provider availability requires owner-native re-entry."
+    },
+    {
+      "nodeId": "tool.canonical-digest",
+      "contract": "Provide Canonical Digest Helper as a narrow Game-owned adapter/helper without rebuilding generic infrastructure.",
+      "inputs": [
+        "Game-local request",
+        "owner-provided capability/data"
+      ],
+      "outputs": [
+        "bounded adapter/helper result"
+      ],
+      "authority": "Game owns only the named thin adapter semantics; generic mechanics remain with downstream owners.",
+      "dependencies": [
+        "service.runtime"
+      ],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Prefer deletion or replacement when a mature external owner can satisfy the same Game-facing contract.",
+      "consumers": [
+        "Game products/experiments"
+      ],
+      "currentStanding": "Stable adapter contract; executable/equipment/provider availability requires owner-native re-entry."
+    },
+    {
+      "nodeId": "service.research",
+      "contract": "Provide Research E2E through its natural horizontal owner while preserving Game semantic authority at the boundary.",
+      "inputs": [
+        "bounded cross-domain request",
+        "owner-native authority/configuration"
+      ],
+      "outputs": [
+        "owner-native result/evidence/standing"
+      ],
+      "authority": "The named horizontal service owner, not Game, owns service mechanics and current service truth.",
+      "dependencies": [
+        "service.runtime"
+      ],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Service internals/providers may evolve independently; Game consumes only the bounded owner contract.",
+      "consumers": [
+        "Game D1-D8 routing"
+      ],
+      "currentStanding": "External owner currentness required before any action-changing use."
+    },
+    {
+      "nodeId": "service.runtime",
+      "contract": "Provide Runtime Physical Execution through its natural horizontal owner while preserving Game semantic authority at the boundary.",
+      "inputs": [
+        "bounded cross-domain request",
+        "owner-native authority/configuration"
+      ],
+      "outputs": [
+        "owner-native result/evidence/standing"
+      ],
+      "authority": "The named horizontal service owner, not Game, owns service mechanics and current service truth.",
+      "dependencies": [],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Service internals/providers may evolve independently; Game consumes only the bounded owner contract.",
+      "consumers": [
+        "Game D1-D8 routing"
+      ],
+      "currentStanding": "External owner currentness required before any action-changing use."
+    },
+    {
+      "nodeId": "service.host",
+      "contract": "Provide Durable Work Continuity through its natural horizontal owner while preserving Game semantic authority at the boundary.",
+      "inputs": [
+        "bounded cross-domain request",
+        "owner-native authority/configuration"
+      ],
+      "outputs": [
+        "owner-native result/evidence/standing"
+      ],
+      "authority": "The named horizontal service owner, not Game, owns service mechanics and current service truth.",
+      "dependencies": [],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Service internals/providers may evolve independently; Game consumes only the bounded owner contract.",
+      "consumers": [
+        "Game D1-D8 routing"
+      ],
+      "currentStanding": "External owner currentness required before any action-changing use."
+    },
+    {
+      "nodeId": "service.harness",
+      "contract": "Provide Agent Cognitive Execution / Provider Continuity through its natural horizontal owner while preserving Game semantic authority at the boundary.",
+      "inputs": [
+        "bounded cross-domain request",
+        "owner-native authority/configuration"
+      ],
+      "outputs": [
+        "owner-native result/evidence/standing"
+      ],
+      "authority": "The named horizontal service owner, not Game, owns service mechanics and current service truth.",
+      "dependencies": [
+        "service.network",
+        "service.runtime",
+        "service.security"
+      ],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Service internals/providers may evolve independently; Game consumes only the bounded owner contract.",
+      "consumers": [
+        "Game D1-D8 routing"
+      ],
+      "currentStanding": "External owner currentness required before any action-changing use."
+    },
+    {
+      "nodeId": "service.workstation",
+      "contract": "Provide Equipment / Desired State / Node Operations through its natural horizontal owner while preserving Game semantic authority at the boundary.",
+      "inputs": [
+        "bounded cross-domain request",
+        "owner-native authority/configuration"
+      ],
+      "outputs": [
+        "owner-native result/evidence/standing"
+      ],
+      "authority": "The named horizontal service owner, not Game, owns service mechanics and current service truth.",
+      "dependencies": [
+        "service.runtime"
+      ],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Service internals/providers may evolve independently; Game consumes only the bounded owner contract.",
+      "consumers": [
+        "Game D1-D8 routing"
+      ],
+      "currentStanding": "External owner currentness required before any action-changing use."
+    },
+    {
+      "nodeId": "service.artifact",
+      "contract": "Provide Artifact Build / Validation / Delivery Evidence through its natural horizontal owner while preserving Game semantic authority at the boundary.",
+      "inputs": [
+        "bounded cross-domain request",
+        "owner-native authority/configuration"
+      ],
+      "outputs": [
+        "owner-native result/evidence/standing"
+      ],
+      "authority": "The named horizontal service owner, not Game, owns service mechanics and current service truth.",
+      "dependencies": [],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Service internals/providers may evolve independently; Game consumes only the bounded owner contract.",
+      "consumers": [
+        "Game D1-D8 routing"
+      ],
+      "currentStanding": "External owner currentness required before any action-changing use."
+    },
+    {
+      "nodeId": "service.media",
+      "contract": "Provide Media / Studio Representation and Production through its natural horizontal owner while preserving Game semantic authority at the boundary.",
+      "inputs": [
+        "bounded cross-domain request",
+        "owner-native authority/configuration"
+      ],
+      "outputs": [
+        "owner-native result/evidence/standing"
+      ],
+      "authority": "The named horizontal service owner, not Game, owns service mechanics and current service truth.",
+      "dependencies": [
+        "service.artifact"
+      ],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Service internals/providers may evolve independently; Game consumes only the bounded owner contract.",
+      "consumers": [
+        "Game D1-D8 routing"
+      ],
+      "currentStanding": "External owner currentness required before any action-changing use."
+    },
+    {
+      "nodeId": "service.distribution",
+      "contract": "Provide External Effect and Release Boundary through its natural horizontal owner while preserving Game semantic authority at the boundary.",
+      "inputs": [
+        "bounded cross-domain request",
+        "owner-native authority/configuration"
+      ],
+      "outputs": [
+        "owner-native result/evidence/standing"
+      ],
+      "authority": "The named horizontal service owner, not Game, owns service mechanics and current service truth.",
+      "dependencies": [
+        "service.artifact"
+      ],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Service internals/providers may evolve independently; Game consumes only the bounded owner contract.",
+      "consumers": [
+        "Game D1-D8 routing"
+      ],
+      "currentStanding": "External owner currentness required before any action-changing use."
+    },
+    {
+      "nodeId": "service.network",
+      "contract": "Provide Connectivity / Egress through its natural horizontal owner while preserving Game semantic authority at the boundary.",
+      "inputs": [
+        "bounded cross-domain request",
+        "owner-native authority/configuration"
+      ],
+      "outputs": [
+        "owner-native result/evidence/standing"
+      ],
+      "authority": "The named horizontal service owner, not Game, owns service mechanics and current service truth.",
+      "dependencies": [],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Service internals/providers may evolve independently; Game consumes only the bounded owner contract.",
+      "consumers": [
+        "Game D1-D8 routing"
+      ],
+      "currentStanding": "External owner currentness required before any action-changing use."
+    },
+    {
+      "nodeId": "service.security",
+      "contract": "Provide Security Evidence / Admission Context through its natural horizontal owner while preserving Game semantic authority at the boundary.",
+      "inputs": [
+        "bounded cross-domain request",
+        "owner-native authority/configuration"
+      ],
+      "outputs": [
+        "owner-native result/evidence/standing"
+      ],
+      "authority": "The named horizontal service owner, not Game, owns service mechanics and current service truth.",
+      "dependencies": [],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Service internals/providers may evolve independently; Game consumes only the bounded owner contract.",
+      "consumers": [
+        "Game D1-D8 routing"
+      ],
+      "currentStanding": "External owner currentness required before any action-changing use."
+    },
+    {
+      "nodeId": "service.next",
+      "contract": "Provide External Authority / Policy / Capability Knowledge through its natural horizontal owner while preserving Game semantic authority at the boundary.",
+      "inputs": [
+        "bounded cross-domain request",
+        "owner-native authority/configuration"
+      ],
+      "outputs": [
+        "owner-native result/evidence/standing"
+      ],
+      "authority": "The named horizontal service owner, not Game, owns service mechanics and current service truth.",
+      "dependencies": [],
+      "evidence": [
+        "node.refs + owner-native verification"
+      ],
+      "replaceability": "Service internals/providers may evolve independently; Game consumes only the bounded owner contract.",
+      "consumers": [
+        "Game D1-D8 routing"
+      ],
+      "currentStanding": "External owner currentness required before any action-changing use."
+    }
+  ]
+}
