@@ -53,6 +53,12 @@ class RuntimeJobRef:
 
 
 @dataclass(frozen=True)
+class RuntimeArtifactDescriptor:
+    artifact_id: str
+    kind: str
+
+
+@dataclass(frozen=True)
 class RuntimeJobObservation:
     job_id: str
     status: str
@@ -62,6 +68,7 @@ class RuntimeJobObservation:
     stdout_tail: str
     stderr_tail: str
     artifacts: tuple[str, ...]
+    artifact_descriptors: tuple[RuntimeArtifactDescriptor, ...] = ()
 
 
 class RuntimeAdapter(ABC):
@@ -142,10 +149,17 @@ class TaskStore:
         if not isinstance(acceptance, dict):
             raise ValueError("task acceptance must be an object")
         kind = acceptance.get("kind")
-        if kind not in {"stdout_contains", "stdout_equals"}:
+        if kind in {"stdout_contains", "stdout_equals"}:
+            if set(acceptance) != {"kind", "value"}:
+                raise ValueError("stdout acceptance requires exactly kind/value")
+        elif kind == "runtime_artifact_text_contains":
+            if set(acceptance) != {"kind", "artifactKind", "value"}:
+                raise ValueError("runtime artifact acceptance requires kind/artifactKind/value")
+            artifact_kind = acceptance.get("artifactKind")
+            if not isinstance(artifact_kind, str) or not artifact_kind.strip():
+                raise ValueError("artifactKind must be a non-empty string")
+        else:
             raise ValueError("unsupported task acceptance kind")
-        if set(acceptance) != {"kind", "value"}:
-            raise ValueError("task acceptance requires exactly kind/value")
         value = acceptance.get("value")
         if not isinstance(value, str) or not value:
             raise ValueError("task acceptance value must be a non-empty string")
