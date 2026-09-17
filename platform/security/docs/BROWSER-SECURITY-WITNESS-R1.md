@@ -215,3 +215,34 @@ CLI input is an explicit comparison manifest:
 ```
 
 At least two carriers are required. Cross-carrier bundles are not compared as if they represented one subject.
+
+
+## Pool LKG reseal authority
+
+Security-v2 owns promotion of a newly qualified Browserless pool observation into the per-carrier LKG. Harness may supply a durable post-change pool-run directory, but its classification is not trusted as the reseal decision.
+
+```text
+Harness post-change pool run
+        -> candidate manifests + bundles + pool-run receipt
+Security-v2 reseal
+        -> verify old index digest / Harness revision / Security revision
+        -> rebuild every candidate bundle from its source manifest
+        -> reload old same-carrier LKG bundles
+        -> recompute compare_browser_security_pool()
+        -> require Harness classification == Security recomputation
+        -> allow only NO_OBSERVED_DRIFT or shared browserBinary/controlLayer drift
+        -> atomically replace per-carrier fixtures + pool index
+```
+
+The reseal command is:
+
+```text
+PYTHONPATH=src:. python scripts/promote_browser_security_pool_lkg.py \
+  <post-change-run-root> \
+  --expected-harness-revision <40-hex-commit> \
+  --expected-old-index-sha256 sha256:<64hex>
+```
+
+Reseal is fail-closed. It rejects detector drift, any CF02-CF07 subject drift, challenge-standing drift, carrier-local infrastructure drift, Network-v2 authority drift, a stale old-index digest, candidate artifact digest mismatch, a candidate bundle that differs from Security-v2's own canonical rebuild, or disagreement between the Harness receipt and Security-v2's recomputed pool classification. A different Browserless/Chromium image may therefore become a new LKG only when the observable detector surface remains unchanged and the only shared infrastructure identity change is `browserBinary` and/or `controlLayer`.
+
+The generated pool index retains the stable production pool identity and comparison law, but carries a `reseal` provenance object binding the previous index digest, source pool-run receipt digest, source Harness revision, pre-commit Security revision, observed standing, and explicitly allowed infrastructure-change set. The command intentionally stops at `LKG_RESEALED_PENDING_COMMIT`; Git review/commit remains a separate owner authority. It never deploys Browserless, changes Agent Automation admission, visits a protected provider challenge, or crosses SEND.
