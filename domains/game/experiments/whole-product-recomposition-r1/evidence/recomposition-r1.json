@@ -1,0 +1,250 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.whole-product-recomposition-r1-evidence",
+  "waveId": "game-whole-product-recomposition-r1-20260918",
+  "sourceRevision": "084f4043458117071d0d1189d07713e7fec2015b",
+  "hostTaskId": "task:game-whole-product-recomposition-r1-20260915",
+  "r01": {
+    "id": "R01",
+    "targets": [
+      "composition.pc01",
+      "mechanic.e01"
+    ],
+    "e01WitnessPass": true,
+    "pc01DiagnosticCausalityPass": true,
+    "sharedMechanicalSignature": [
+      "initially-ambiguous-hidden-cause",
+      "bounded-information-action",
+      "observation-changes-corrective-choice",
+      "cause-specific-successful-correction"
+    ],
+    "pc01ExtraDimensions": [
+      "persistence-switch-cost",
+      "changing-operating-context",
+      "cross-cycle-objective-revaluation"
+    ],
+    "e01MechanicalSignatureSubsetOfPc01": true,
+    "disposition": "SUBSUMED_NO_INTEGRATION",
+    "claimBoundary": "MECHANICAL_SUBSUMPTION_ONLY_NO_PRODUCT_OR_HUMAN_CLAIM"
+  },
+  "r02": {
+    "id": "R02",
+    "targets": [
+      "composition.pc03",
+      "mechanic.e02"
+    ],
+    "e02WitnessPass": true,
+    "pc03TimingAwareComplete": true,
+    "pc03TimingInsensitiveFails": true,
+    "pc03StableRuleUses": 4,
+    "pc03StableRuleInstances": [
+      "gap-a-out/back",
+      "gap-b-out/back"
+    ],
+    "worldInvariantSameAcrossPolicies": true,
+    "e02MechanicalSignatureSubsetOfPc03": true,
+    "disposition": "SUBSUMED_NO_INTEGRATION",
+    "claimBoundary": "MECHANICAL_SUBSUMPTION_ONLY_NO_HUMAN_LEARNING_OR_PRODUCT_CLAIM"
+  },
+  "r03": {
+    "id": "R03",
+    "targets": [
+      "composition.pc01",
+      "mechanic.e03"
+    ],
+    "coupling": {
+      "lagSteps": 1,
+      "hiddenCausePersistsAcrossLag": true,
+      "nextOperatingContextForecastable": true,
+      "executionRewardContextAdvancesOneCycle": true,
+      "diagnosticObservationUsesCurrentPersistingCause": true
+    },
+    "policyChangeCases": [
+      {
+        "fromCycle": "cycle-1-baseline-output",
+        "executionContext": "cycle-2-objective-shift",
+        "previousArchitecture": "process",
+        "reactive": {
+          "diagnostic": "none",
+          "architectureByObservation": {
+            "none": "process"
+          },
+          "total": 87.7
+        },
+        "anticipatory": {
+          "diagnostic": "route",
+          "architectureByObservation": {
+            "ok": "process",
+            "fault": "route"
+          },
+          "total": 87.4
+        }
+      },
+      {
+        "fromCycle": "cycle-1-baseline-output",
+        "executionContext": "cycle-2-objective-shift",
+        "previousArchitecture": "route",
+        "reactive": {
+          "diagnostic": "process",
+          "architectureByObservation": {
+            "ok": "route",
+            "fault": "process"
+          },
+          "total": 84.80000000000001
+        },
+        "anticipatory": {
+          "diagnostic": "route",
+          "architectureByObservation": {
+            "ok": "process",
+            "fault": "route"
+          },
+          "total": 84.2
+        }
+      },
+      {
+        "fromCycle": "cycle-2-objective-shift",
+        "executionContext": "cycle-3-rule-revaluation",
+        "previousArchitecture": null,
+        "reactive": {
+          "diagnostic": "route",
+          "architectureByObservation": {
+            "ok": "process",
+            "fault": "route"
+          },
+          "total": 88.4
+        },
+        "anticipatory": {
+          "diagnostic": "route",
+          "architectureByObservation": {
+            "ok": "source",
+            "fault": "route"
+          },
+          "total": 88
+        }
+      }
+    ],
+    "diagnosisPositiveUpliftCases": [
+      {
+        "fromCycle": "cycle-1-baseline-output",
+        "executionContext": "cycle-2-objective-shift",
+        "previousArchitecture": null,
+        "uplift": 3
+      },
+      {
+        "fromCycle": "cycle-1-baseline-output",
+        "executionContext": "cycle-2-objective-shift",
+        "previousArchitecture": "source",
+        "uplift": 2.999999999999986
+      },
+      {
+        "fromCycle": "cycle-1-baseline-output",
+        "executionContext": "cycle-2-objective-shift",
+        "previousArchitecture": "process",
+        "uplift": 0.5999999999999943
+      },
+      {
+        "fromCycle": "cycle-1-baseline-output",
+        "executionContext": "cycle-2-objective-shift",
+        "previousArchitecture": "route",
+        "uplift": 5.3999999999999915
+      },
+      {
+        "fromCycle": "cycle-2-objective-shift",
+        "executionContext": "cycle-3-rule-revaluation",
+        "previousArchitecture": null,
+        "uplift": 1.5999999999999943
+      },
+      {
+        "fromCycle": "cycle-2-objective-shift",
+        "executionContext": "cycle-3-rule-revaluation",
+        "previousArchitecture": "source",
+        "uplift": 4.799999999999983
+      },
+      {
+        "fromCycle": "cycle-2-objective-shift",
+        "executionContext": "cycle-3-rule-revaluation",
+        "previousArchitecture": "process",
+        "uplift": 3.5999999999999943
+      }
+    ],
+    "maxLaggedDiagnosisUplift": 5.3999999999999915,
+    "pc01OriginalDesignHasCauseTransitionModel": false,
+    "requiresNewProductCouplingAssumption": true,
+    "disposition": "SURVIVES_MINIMAL_ADDITIVITY_FALSIFIER",
+    "claimBoundary": "SYNTHETIC_MECHANICAL_COUPLING_ONLY_NO_HUMAN_VALUE_OR_PRODUCT_SELECTION_CLAIM"
+  },
+  "r04": {
+    "id": "R04",
+    "targets": [
+      "composition.pc02",
+      "mechanic.e03"
+    ],
+    "delayedPairs": [
+      {
+        "sourceRevisionId": 1,
+        "sourceArtifactDigest": "sha256:0267f457e065765322295ed8d56f92628bc45e15caad22589b893b727487cf84",
+        "delayedUntilAfterRevisionId": 2,
+        "delayedUntilAfterArtifactDigest": "sha256:30b0baf203d950a6a734ad42c999369ca426317107d53edf9106d33ec7e3b2c5",
+        "contextRevisionId": 1,
+        "contextArtifactDigest": "sha256:0267f457e065765322295ed8d56f92628bc45e15caad22589b893b727487cf84",
+        "exactSourceIdentityPreserved": true
+      },
+      {
+        "sourceRevisionId": 2,
+        "sourceArtifactDigest": "sha256:30b0baf203d950a6a734ad42c999369ca426317107d53edf9106d33ec7e3b2c5",
+        "delayedUntilAfterRevisionId": 3,
+        "delayedUntilAfterArtifactDigest": "sha256:69a1678d304f03ce5030f242d9ff445e6063b2e3e5d0fe98cadc30cd41067f05",
+        "contextRevisionId": 2,
+        "contextArtifactDigest": "sha256:30b0baf203d950a6a734ad42c999369ca426317107d53edf9106d33ec7e3b2c5",
+        "exactSourceIdentityPreserved": true
+      }
+    ],
+    "delayedAttributionRemainsExact": true,
+    "feedbackRemainsNonAuthoritative": true,
+    "preferenceDoesNotGateProgression": true,
+    "nonRedundantMechanicalEffectDemonstrated": false,
+    "disposition": "DROP_NO_FIT",
+    "claimBoundary": "MECHANICAL_ATTRIBUTION_AND_AUTHORITY_ONLY_NO_HUMAN_RESPONSIVENESS_CLAIM"
+  },
+  "s01": {
+    "id": "S01",
+    "target": "composition.pc02",
+    "intentAffectsCommitAdmissibility": true,
+    "contextFeedbackConsumesIntent": false,
+    "affordanceDerivationConsumesIntent": false,
+    "boundary": "INTENT_CURRENTLY_CAUSAL_THROUGH_COMMIT_GATE_NOT_CONTEXT_OR_AFFORDANCE_SEMANTICS",
+    "claimBoundary": "STRUCTURAL_CARRIER_BOUNDARY_ONLY_NO_AUTHORSHIP_OR_EXPRESSIVE_INTENT_CLAIM"
+  },
+  "s02": {
+    "id": "S02",
+    "target": "mechanic.e03",
+    "costs": {
+      "perfect": 0,
+      "reactive": 8,
+      "wrongDirection": 4,
+      "alwaysCenter": 4
+    },
+    "misses": {
+      "perfect": 0,
+      "reactive": 4,
+      "wrongDirection": 2,
+      "alwaysCenter": 2
+    },
+    "boundary": "E03_ANTICIPATION_VALUE_DEPENDS_ON_EXPLOITABLE_TRANSITION_MODEL",
+    "claimBoundary": "MECHANICAL_TRANSFER_BOUNDARY_ONLY_NO_HUMAN_PLANNING_OR_FUN_CLAIM"
+  },
+  "finiteRecompositionStanding": {
+    "r01": "SUBSUMED_NO_INTEGRATION",
+    "r02": "SUBSUMED_NO_INTEGRATION",
+    "r03": "SURVIVES_MINIMAL_ADDITIVITY_FALSIFIER",
+    "r04": "DROP_NO_FIT",
+    "mechanicalSurvivors": [
+      "PC01+E03@R03-coupling"
+    ]
+  },
+  "productSelected": false,
+  "g0Entered": false,
+  "humanOutcomeEstablished": false,
+  "gameCoreChanged": false,
+  "claimBoundary": "Mechanical recomposition falsification only. No Human value, product selection, G0 admission, market claim, or Game Core change follows."
+}

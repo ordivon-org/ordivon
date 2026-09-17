@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.self-attack-wave-r1",
+  "waveId": "game-whole-product-recomposition-r1-20260918",
+  "sourceRevision": "084f4043458117071d0d1189d07713e7fec2015b",
+  "hostTaskId": "task:game-whole-product-recomposition-r1-20260915",
+  "purpose": "Attack current PC01/PC02/PC03 and E01/E02/E03 with existing Experience, Counterexample and Counterexample-Theme memory before allocating another playable integration.",
+  "claimBoundary": "Mechanical recomposition falsification only. No Human value, product selection, G0 admission, market claim, or Game Core change follows.",
+  "productSelected": false,
+  "g0Entered": false,
+  "humanOutcomeEstablished": false,
+  "canBlockNovelComposition": false,
+  "recompositionProbes": [
+    {
+      "id": "R01",
+      "targets": ["composition.pc01", "mechanic.e01"],
+      "attack": "Test whether E01's entire proven information-to-corrective-action property is already contained inside PC01's diagnosed hidden-cause architecture choice.",
+      "themeRefs": ["theme.legacy-coupling-and-sunk-investment", "theme.premature-commitment-and-premise-drift"],
+      "counterexampleRefs": ["counterexample.ftl.prototype-attachment"],
+      "falsifier": "If E01 contributes a mechanically distinct state, action, consequence or transfer relation not already present in PC01, subsumption fails; otherwise no integration is admitted.",
+      "canSelectProduct": false,
+      "canEstablishHumanValue": false
+    },
+    {
+      "id": "R02",
+      "targets": ["composition.pc03", "mechanic.e02"],
+      "attack": "Test whether E02's stable relational-rule transfer is already contained inside PC03's same-rule multi-gap bidirectional traversal.",
+      "themeRefs": ["theme.legacy-coupling-and-sunk-investment", "theme.premature-commitment-and-premise-drift"],
+      "counterexampleRefs": ["counterexample.ftl.prototype-attachment"],
+      "falsifier": "If E02 adds a transfer dimension beyond PC03's already-tested stable-rule reuse and timing-sensitive execution, subsumption fails; otherwise no integration is admitted.",
+      "canSelectProduct": false,
+      "canEstablishHumanValue": false
+    },
+    {
+      "id": "R03",
+      "targets": ["composition.pc01", "mechanic.e03"],
+      "attack": "Inject one bounded commit lag while preserving PC01 hidden-cause legibility and ask whether forecastable context age changes optimal diagnosis/commit policy rather than merely adding waiting cost.",
+      "themeRefs": ["theme.foundation-context-mismatch", "theme.local-success-global-harm"],
+      "counterexampleRefs": ["counterexample.deusex.borrowed-ai-foundation-can-produce-patch-debt", "counterexample.immortals.early-pruning-can-remove-context-the-planner-needs"],
+      "falsifier": "R03 survives only if at least one policy structure changes under lag and diagnosis still has positive expected value. The coupling is explicitly conditional on hidden cause persistence plus a forecastable next operating context.",
+      "canSelectProduct": false,
+      "canEstablishHumanValue": false
+    },
+    {
+      "id": "R04",
+      "targets": ["composition.pc02", "mechanic.e03"],
+      "attack": "Delay context response and test whether E03 can create a non-redundant consequence without breaking PC02's immutable revision/source attribution or granting audience feedback mechanical authority.",
+      "themeRefs": ["theme.authority-and-coordination-collision", "theme.proxy-target-substitution"],
+      "counterexampleRefs": ["counterexample.odyssey.multiple-ai-authorities-can-fight-over-one-agent", "counterexample.odyssey.migration-shortcuts-can-preserve-legacy-coupling"],
+      "falsifier": "If delayed feedback remains exactly revision-bound and non-authoritative, lag is mechanically inert for the current carrier and the combination is no-fit. If lag gains effect only by breaking attribution/authority, it also fails.",
+      "canSelectProduct": false,
+      "canEstablishHumanValue": false
+    }
+  ],
+  "stressProbes": [
+    {
+      "id": "S01",
+      "targets": ["composition.pc02"],
+      "attack": "Check whether the explicit intent axis currently changes downstream creation semantics or only gates commit admissibility.",
+      "themeRefs": ["theme.proxy-target-substitution"],
+      "counterexampleRefs": ["counterexample.factorio.local-success-product-mismatch"],
+      "falsifier": "Trace which downstream functions consume intent versus artifact geometry; do not upgrade a metadata/admission effect into Human authorship or expressive-intent evidence.",
+      "canSelectProduct": false,
+      "canEstablishHumanValue": false
+    },
+    {
+      "id": "S02",
+      "targets": ["mechanic.e03"],
+      "attack": "Stress E03 with imperfect transition models to expose the transfer boundary of anticipation value.",
+      "themeRefs": ["theme.foundation-context-mismatch", "theme.local-success-global-harm"],
+      "counterexampleRefs": ["counterexample.immortals.random-variety-can-break-planner-consistency"],
+      "falsifier": "Compare perfect, reactive, wrong-direction and constant-lane prediction under the unchanged lag-1 target dynamics.",
+      "canSelectProduct": false,
+      "canEstablishHumanValue": false
+    }
+  ]
+}

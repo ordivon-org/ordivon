@@ -30,6 +30,7 @@
     "eval:v3:g5-doctrine": "node experiments/station-zero-v3/scripts/eval-station-zero-v3-enemy-doctrine-axis.ts",
     "eval:v3:g5-placement": "node experiments/station-zero-v3/scripts/eval-station-zero-v3-placement-axis.ts",
     "eval:pre-g0:ds1": "node scripts/pre-g0/ds1-battery.ts",
+    "eval:recomposition:r1": "node experiments/whole-product-recomposition-r1/run.ts",
     "eval:v3:product-value:targeted-controls": "node experiments/station-zero-v3/scripts/eval-station-zero-v3-product-value.ts --lane targeted-controls",
     "eval:v3:product-value:information": "node experiments/station-zero-v3/scripts/eval-station-zero-v3-product-value.ts --lane information",
     "context:current-direction": "node scripts/current-direction-context.ts",

@@ -42,6 +42,7 @@ managed_paths:
   - docs/GAME_MECHANISM_RELATIONSHIP_GRAPH_R1.md
   - docs/GAME_DESIGN_COUNTEREXAMPLE_MEMORY_R1.md
   - docs/GAME_COUNTEREXAMPLE_SYNTHESIS_R1.md
+  - docs/GAME_WHOLE_PRODUCT_RECOMPOSITION_R1_20260918.md
   - standards/game_domain_package_graph_r1.json
   - standards/game_external_knowledge_base_r1.json
   - standards/game_mechanism_experience_library_r1.json
@@ -49,6 +50,7 @@ managed_paths:
   - standards/game_mechanism_relationship_graph_r1.json
   - standards/game_design_counterexample_memory_r1.json
   - standards/game_counterexample_synthesis_r1.json
+  - standards/game_self_attack_wave_r1.json
   - standards/game_teardown_queue_r1.json
   - standards/game_external_skill_watchlist_r1.json
   - scripts/composition-explorer.ts
@@ -58,6 +60,8 @@ managed_paths:
   - scripts/mechanism-relationship-query.ts
   - scripts/design-counterexample-query.ts
   - scripts/counterexample-synthesis-query.ts
+  - experiments/whole-product-recomposition-r1/run.ts
+  - experiments/whole-product-recomposition-r1/evidence/recomposition-r1.json
   - skills/game-development-lenses/SKILL.md
   - skills/game-stage-lens/SKILL.md
   - skills/game-minimal-interaction-model/SKILL.md
