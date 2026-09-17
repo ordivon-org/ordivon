@@ -3017,6 +3017,378 @@
       "inferenceLevel": "SOURCE_GROUNDED_HYPOTHESIS",
       "humanOutcomeEstablished": false,
       "canBlockNovelCombination": false
+    },
+    {
+      "id": "exp.overwatch.old-vision-starved-live-game",
+      "referenceGame": "Overwatch / Overwatch 2",
+      "kind": "FAILURE_MODE",
+      "mechanisms": [
+        "legacy-product-vision",
+        "live-game-success",
+        "resource-diversion",
+        "vision-lock-in",
+        "opportunity-cost"
+      ],
+      "designProblem": "When can an inherited long-range vision become harmful after the actual shipped product changes the team’s opportunity landscape?",
+      "interaction": "Team 4 continued allocating increasing resources toward a years-old PvE/MMO trajectory after Overwatch became a runaway live success, which the director later described as insufficient focus on the game they already had.",
+      "playerDecisionHypothesis": "This is primarily a production/product-topology hypothesis: resource allocation toward an inherited future can reduce the team’s ability to respond to the current player-facing product.",
+      "observedContext": "Aaron Keller explicitly connected Project Titan ancestry, the crawl-walk-run plan and later PvE investment to pulling resources away from the live Overwatch game.",
+      "confounds": [
+        "large live-service team",
+        "franchise expectations",
+        "PvE ambitions",
+        "retrospective hindsight"
+      ],
+      "transferRisks": [
+        "Long-range visions can still be valuable when premises remain current.",
+        "A live success can itself create short-termism if every future bet is abandoned."
+      ],
+      "falsifier": "If the future vision still wins under current product constraints and does not materially degrade current-product obligations, legacy origin alone is not a reason to drop it.",
+      "cheapProbe": "For one inherited roadmap thesis, rewrite its original premises using current product evidence and compare current-resource opportunity cost against a fresh alternative.",
+      "sourceRefs": [
+        "kb:blizzard-overwatch-future-2023"
+      ],
+      "tags": [
+        "failure",
+        "vision-lock-in",
+        "live-service",
+        "resource-allocation"
+      ],
+      "authority": "ADVISORY_HYPOTHESIS",
+      "inferenceLevel": "SOURCE_GROUNDED_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "exp.overwatch.hero-missions-cut-to-protect-live-game",
+      "referenceGame": "Overwatch 2",
+      "kind": "PRODUCTION_RESPONSE",
+      "mechanisms": [
+        "hero-missions",
+        "growing-scope",
+        "cohesion-failure",
+        "live-game-resource-protection",
+        "feature-cancellation"
+      ],
+      "designProblem": "When should years of work on an ambitious mode be cut rather than completed because the whole cannot cohere?",
+      "interaction": "Hero Missions accumulated talents, enemies and mission work but the team reported inability to assemble a polished cohesive experience while scope grew and live-game resources were being pulled away.",
+      "playerDecisionHypothesis": "For the shipped product, cancellation can preserve ongoing player-facing capacity when a parallel mode’s completion burden remains structurally open-ended.",
+      "observedContext": "The Overwatch director states the team struggled to find footing, tried too many things, lost focus, and ultimately cut Hero Missions rather than continue pulling from the live game.",
+      "confounds": [
+        "team reorganization",
+        "public expectations",
+        "technical investment",
+        "live-service schedule"
+      ],
+      "transferRisks": [
+        "Cutting too early can destroy option value.",
+        "A more bounded Hero Mission scope might have been feasible."
+      ],
+      "falsifier": "If a bounded slice demonstrates a closed production/quality path within an explicit resource envelope, the open-ended-scope diagnosis weakens.",
+      "cheapProbe": "Freeze one end-to-end Hero Mission-equivalent slice and enumerate all content/tool/live-ops obligations required to replicate it N times; test whether the burden scales linearly, sublinearly or explosively.",
+      "sourceRefs": [
+        "kb:blizzard-overwatch-future-2023"
+      ],
+      "tags": [
+        "cancellation",
+        "scope",
+        "cohesion",
+        "live-service"
+      ],
+      "authority": "ADVISORY_HYPOTHESIS",
+      "inferenceLevel": "SOURCE_GROUNDED_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "exp.tlouonline.satisfying-prototype-unsustainable-operating-model",
+      "referenceGame": "The Last of Us Online",
+      "kind": "FAILURE_MODE",
+      "mechanisms": [
+        "refined-gameplay",
+        "live-service-content-tail",
+        "studio-resource-topology",
+        "project-cancellation",
+        "technology-salvage"
+      ],
+      "designProblem": "Can a project with increasingly satisfying gameplay still be the wrong project for its studio?",
+      "interaction": "Naughty Dog reported the gameplay/vision becoming more refined while the long-term post-launch support model implied studio-wide resource commitments that conflicted with future single-player development.",
+      "playerDecisionHypothesis": "A playable experience can clear local design quality while failing the organization/product-portfolio feasibility boundary required to sustain it.",
+      "observedContext": "The studio explicitly framed the decision as a choice between becoming solely live-service oriented and retaining its single-player narrative focus.",
+      "confounds": [
+        "unreleased project",
+        "Sony portfolio context",
+        "unknown external demand",
+        "support-cost estimates"
+      ],
+      "transferRisks": [
+        "Studio identity can become a rationalization if opportunity costs are not quantified.",
+        "Different team topology or external support could change feasibility."
+      ],
+      "falsifier": "If post-launch obligations can be isolated to a bounded team/resource envelope without consuming the rest of the studio, the cancellation rationale no longer transfers.",
+      "cheapProbe": "Model the minimum credible 24-month content/ops staffing graph before full production and compare it with the studio’s protected parallel-project capacity.",
+      "sourceRefs": [
+        "kb:naughtydog-tlou-online-2023"
+      ],
+      "tags": [
+        "cancellation",
+        "operating-model",
+        "studio-topology",
+        "live-service"
+      ],
+      "authority": "ADVISORY_HYPOTHESIS",
+      "inferenceLevel": "SOURCE_GROUNDED_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "exp.artifact.game-side-rework-without-sustainable-population",
+      "referenceGame": "Artifact / Artifact Foundry",
+      "kind": "TENSION",
+      "mechanisms": [
+        "mechanics-economy-reboot",
+        "game-side-goals",
+        "active-player-population",
+        "continued-development-threshold",
+        "free-release"
+      ],
+      "designProblem": "Does fixing most identified game-side problems imply the reboot is now viable enough to continue?",
+      "interaction": "Valve reported being reasonably satisfied with most game-side reboot goals while active player numbers still remained below the level that justified further development.",
+      "playerDecisionHypothesis": "Product viability depends on adoption/retention/ecosystem variables that are not reducible to whether the redesigned mechanics satisfy internal game-side goals.",
+      "observedContext": "Artifact’s team stopped Foundry development after roughly a year and a half of reboot work, while preserving both versions as free playable releases.",
+      "confounds": [
+        "closed beta exposure",
+        "marketing",
+        "original reputation",
+        "CCG market",
+        "reboot access policy"
+      ],
+      "transferRisks": [
+        "Low population does not prove gameplay quality is poor.",
+        "A different launch/distribution context could produce a different viability result."
+      ],
+      "falsifier": "If a product has a credible acquisition/retention path independent of current population and the game-side changes address the bottleneck, current low population alone may not justify stopping.",
+      "cheapProbe": "Separate a reboot dashboard into game-side acceptance, acquisition, activation, retention and concurrency; refuse to let completion of one lane substitute for another.",
+      "sourceRefs": [
+        "kb:valve-artifact-future-2021"
+      ],
+      "tags": [
+        "reboot",
+        "viability",
+        "population",
+        "product-metrics"
+      ],
+      "authority": "ADVISORY_HYPOTHESIS",
+      "inferenceLevel": "SOURCE_GROUNDED_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "exp.ffxiv.relaunch-instead-of-patching-failed-foundation",
+      "referenceGame": "Final Fantasy XIV (1.0 → A Realm Reborn)",
+      "kind": "PRODUCTION_RESPONSE",
+      "mechanisms": [
+        "shipped-product-failure",
+        "full-relaunch",
+        "foundation-rebuild",
+        "parallel-replacement",
+        "business-model-commitment"
+      ],
+      "designProblem": "When can an already-shipped online product require a product-level relaunch rather than indefinite incremental repair?",
+      "interaction": "Square Enix chose a full relaunch after the unsuccessful 2010 release and rebuilt the MMORPG for A Realm Reborn in roughly two years and nine months.",
+      "playerDecisionHypothesis": "When must-have product relationships are blocked by foundation-level dependencies, replacement can be a testable option rather than treating shipped architecture as irreversible.",
+      "observedContext": "Naoki Yoshida’s GDC session is explicitly framed around causes of the initial failure, the importance of the relaunch decision, the short rebuild window and business-model commitment.",
+      "confounds": [
+        "Final Fantasy brand",
+        "large publisher resources",
+        "live service obligations",
+        "parallel transition details"
+      ],
+      "transferRisks": [
+        "A relaunch can be costlier than repair when foundations are salvageable.",
+        "Brand/community capacity may materially affect relaunch feasibility."
+      ],
+      "falsifier": "If the critical failed relationships can be restored with bounded patches whose dependency closure remains smaller than replacement, relaunch is not justified by failure alone.",
+      "cheapProbe": "Map each central failure to the owning subsystem and compare the dependency closure of repair versus one clean replacement slice before committing to either path.",
+      "sourceRefs": [
+        "kb:gdc-ffxiv-realm-reborn-2014"
+      ],
+      "tags": [
+        "relaunch",
+        "foundation",
+        "recovery",
+        "live-service"
+      ],
+      "authority": "ADVISORY_HYPOTHESIS",
+      "inferenceLevel": "SOURCE_GROUNDED_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "exp.belowzero.playable-whole-story-mismatch-reset",
+      "referenceGame": "Subnautica: Below Zero",
+      "kind": "PRODUCTION_RESPONSE",
+      "mechanisms": [
+        "near-complete-playable",
+        "living-story",
+        "survival-substrate",
+        "story-rewrite",
+        "world-character-salvage"
+      ],
+      "designProblem": "Can a nearly complete playable build still need a large narrative reset if its parts do not work together?",
+      "interaction": "Below Zero was broadly playable except the endgame, yet the team described the living-story attempt as messy and chose a new story while preserving world substrate and selected characters.",
+      "playerDecisionHypothesis": "Local asset/feature completion does not establish whole-experience coherence; large revisions can preserve validated substrate while replacing the misfitting relationship layer.",
+      "observedContext": "Unknown Worlds said the world/features were largely in place but not working in harmony, especially around story motivations and relationships.",
+      "confounds": [
+        "Early Access feedback",
+        "writer transition",
+        "production maturity",
+        "Subnautica expectations"
+      ],
+      "transferRisks": [
+        "Rewrite cost can exceed its value late in production.",
+        "A narrative problem may sometimes be fixed locally without changing the whole story."
+      ],
+      "falsifier": "If the incoherence can be reproduced by one bounded relationship and repaired without invalidating the story graph, whole-story reset is unnecessary.",
+      "cheapProbe": "Represent the story as dependency edges over existing world/character assets; identify whether the failure is local or requires rewiring many high-centrality edges before rewriting content.",
+      "sourceRefs": [
+        "kb:unknownworlds-belowzero-story-future-2019"
+      ],
+      "tags": [
+        "rewrite",
+        "coherence",
+        "early-access",
+        "salvage"
+      ],
+      "authority": "ADVISORY_HYPOTHESIS",
+      "inferenceLevel": "SOURCE_GROUNDED_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "exp.belowzero.roadmap-became-feature-commitment-pressure",
+      "referenceGame": "Subnautica: Below Zero",
+      "kind": "FAILURE_MODE",
+      "mechanisms": [
+        "long-horizon-roadmap",
+        "feature-columns",
+        "implicit-commitment",
+        "release-cadence-pressure",
+        "big-picture-loss",
+        "team-health"
+      ],
+      "designProblem": "When does a planning artifact stop representing uncertainty and start coercing the product around obsolete commitments?",
+      "interaction": "A roadmap listing many future features created pressure to finish scheduled items regardless of importance, obscured the game’s big picture and contributed to recurring crunch.",
+      "playerDecisionHypothesis": "Planning detail can create de facto commitment even when formally provisional, reducing the team’s ability to reprioritize based on current product evidence.",
+      "observedContext": "Unknown Worlds explicitly described its roadmap as becoming a tyrant and changed to structuring releases around what the game needed/what was ready rather than structuring the game around release columns.",
+      "confounds": [
+        "Early Access cadence",
+        "public roadmap visibility",
+        "team culture",
+        "release frequency"
+      ],
+      "transferRisks": [
+        "Roadmaps can improve coordination when commitment semantics are explicit.",
+        "Low-detail planning can also create ambiguity and hidden dependency risk."
+      ],
+      "falsifier": "If roadmap entries have explicit expiry/revalidation and teams can drop them without schedule/social penalty, listing future work need not create commitment pressure.",
+      "cheapProbe": "Mark each roadmap item as hypothesis, commitment or dependency with an expiry; at the next cycle, measure how many hypotheses can be deleted without escalation.",
+      "sourceRefs": [
+        "kb:unknownworlds-belowzero-roadmap-2019"
+      ],
+      "tags": [
+        "failure",
+        "roadmap",
+        "commitment",
+        "team-health"
+      ],
+      "authority": "ADVISORY_HYPOTHESIS",
+      "inferenceLevel": "SOURCE_GROUNDED_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "exp.r6.health-over-content-cadence",
+      "referenceGame": "Tom Clancy’s Rainbow Six Siege",
+      "kind": "PRODUCTION_RESPONSE",
+      "mechanisms": [
+        "seasonal-content-cadence",
+        "technical-debt",
+        "staged-deployment",
+        "rollback-switch",
+        "content-delay",
+        "map-scope-reduction"
+      ],
+      "designProblem": "When should a live game intentionally break its content cadence to restore substrate health?",
+      "interaction": "Operation Health delayed planned seasonal content, reduced annual map output and invested in servers, bug fixes, staged deployment and rollback capability.",
+      "playerDecisionHypothesis": "Protecting release cadence at the expense of unstable substrate can compound player-facing failure; temporarily reducing content throughput may preserve future iteration capacity.",
+      "observedContext": "Ubisoft publicly replaced one season with a three-month health push and added TTS→PC→console deployment plus an on/off rollback mechanism.",
+      "confounds": [
+        "healthy existing community",
+        "technical debt severity",
+        "live-service expectations",
+        "platform certification"
+      ],
+      "transferRisks": [
+        "A health initiative without bounded targets can become indefinite infrastructure work.",
+        "Content pauses can damage engagement when substrate health is not actually the bottleneck."
+      ],
+      "falsifier": "If top incidents are unrelated to deployment/substrate health or can be corrected within normal cadence, a content pause is not supported.",
+      "cheapProbe": "Rank current player-facing incident load by recurrence/severity and simulate one release with staged rollout+rollback before cancelling content work wholesale.",
+      "sourceRefs": [
+        "kb:ubisoft-r6-operation-health-2017"
+      ],
+      "tags": [
+        "live-service",
+        "technical-debt",
+        "rollback",
+        "cadence"
+      ],
+      "authority": "ADVISORY_HYPOTHESIS",
+      "inferenceLevel": "SOURCE_GROUNDED_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "exp.destiny2.foundation-reversal-weapon-slot-ammo",
+      "referenceGame": "Destiny 2: Forsaken",
+      "kind": "SUBSTITUTION",
+      "mechanisms": [
+        "year-one-foundation",
+        "weapon-slot-rules",
+        "special-ammo-return",
+        "ammo-economy-rebuild",
+        "live-migration"
+      ],
+      "designProblem": "Can a foundational shipped combat inventory rule be reversed without treating compatibility with the old model as sacred?",
+      "interaction": "Forsaken changed Kinetic/Energy slot semantics to allow powerful Primary or Special weapons and rebuilt ammo distribution around the new foundation, migrating existing weapons into the new model.",
+      "playerDecisionHypothesis": "A live system’s foundational taxonomy can be replaced when it constrains desired combat loadouts, provided migration and downstream tuning are treated as part of the change.",
+      "observedContext": "Bungie called the slot change fundamental and explicitly retuned damage output and ammo distribution to support it.",
+      "confounds": [
+        "expansion-scale release",
+        "PvE/PvP coupling",
+        "existing inventory migration",
+        "other Forsaken changes"
+      ],
+      "transferRisks": [
+        "Foundation reversal can create widespread balance/migration cost.",
+        "Not every disliked rule is a foundation-level bottleneck."
+      ],
+      "falsifier": "If the desired loadout diversity can be restored through local tuning while preserving the old slot model, a foundation rewrite is unnecessary.",
+      "cheapProbe": "Prototype the target loadout choices under old and revised slot taxonomies, then enumerate migration/tuning dependencies before rewriting the live model.",
+      "sourceRefs": [
+        "kb:bungie-d2-forsaken-update-2-0-2018"
+      ],
+      "tags": [
+        "foundation",
+        "live-migration",
+        "combat",
+        "substitution"
+      ],
+      "authority": "ADVISORY_HYPOTHESIS",
+      "inferenceLevel": "SOURCE_GROUNDED_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
     }
   ]
 }

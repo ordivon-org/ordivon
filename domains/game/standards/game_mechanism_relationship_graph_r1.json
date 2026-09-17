@@ -4,7 +4,7 @@
   "generatedOn": "2026-09-18",
   "sourceLibrary": {
     "path": "standards/game_mechanism_experience_library_r1.json",
-    "digest": "sha256:a334dca580727a4fa6ae55d3f04bac9e96822ecd95fdadbace586e11e1b81958",
+    "digest": "sha256:ca26d3b7971fcae26d04d73d536f37d292c02323b01097b2b99653b823433c87",
     "libraryId": "ordivon-game-mechanism-experience-library-r1"
   },
   "sourceSpec": {
@@ -22,6 +22,21 @@
     "conditionalitySemantics": "Conditionalities preserve apparent conflicts and context distinctions; they suggest discriminating experiments rather than verdicts."
   },
   "mechanismNodes": [
+    {
+      "id": "active-player-population",
+      "experienceRefs": [
+        "exp.artifact.game-side-rework-without-sustainable-population"
+      ],
+      "referenceGames": [
+        "Artifact / Artifact Foundry"
+      ],
+      "relationKinds": [
+        "TENSION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
     {
       "id": "active-survival",
       "experienceRefs": [
@@ -77,6 +92,21 @@
       ],
       "relationKinds": [
         "SYNERGY"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "ammo-economy-rebuild",
+      "experienceRefs": [
+        "exp.destiny2.foundation-reversal-weapon-slot-ammo"
+      ],
+      "referenceGames": [
+        "Destiny 2: Forsaken"
+      ],
+      "relationKinds": [
+        "SUBSTITUTION"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -203,6 +233,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "big-picture-loss",
+      "experienceRefs": [
+        "exp.belowzero.roadmap-became-feature-commitment-pressure"
+      ],
+      "referenceGames": [
+        "Subnautica: Below Zero"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "blank-slate-later",
       "experienceRefs": [
         "exp.gbg.copy-modify-create"
@@ -287,6 +332,21 @@
       ],
       "relationKinds": [
         "TENSION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "business-model-commitment",
+      "experienceRefs": [
+        "exp.ffxiv.relaunch-instead-of-patching-failed-foundation"
+      ],
+      "referenceGames": [
+        "Final Fantasy XIV (1.0 → A Realm Reborn)"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -452,6 +512,21 @@
       ],
       "relationKinds": [
         "REPRESENTATION_COUPLING"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "cohesion-failure",
+      "experienceRefs": [
+        "exp.overwatch.hero-missions-cut-to-protect-live-game"
+      ],
+      "referenceGames": [
+        "Overwatch 2"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -698,6 +773,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "content-delay",
+      "experienceRefs": [
+        "exp.r6.health-over-content-cadence"
+      ],
+      "referenceGames": [
+        "Tom Clancy’s Rainbow Six Siege"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "content-relationships",
       "experienceRefs": [
         "exp.dwarffortress.procgen-changes-system-design"
@@ -767,6 +857,21 @@
       ],
       "relationKinds": [
         "REPRESENTATION_COUPLING"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "continued-development-threshold",
+      "experienceRefs": [
+        "exp.artifact.game-side-rework-without-sustainable-population"
+      ],
+      "referenceGames": [
+        "Artifact / Artifact Foundry"
+      ],
+      "relationKinds": [
+        "TENSION"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -1418,6 +1523,36 @@
       "closedVocabulary": false
     },
     {
+      "id": "feature-cancellation",
+      "experienceRefs": [
+        "exp.overwatch.hero-missions-cut-to-protect-live-game"
+      ],
+      "referenceGames": [
+        "Overwatch 2"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "feature-columns",
+      "experienceRefs": [
+        "exp.belowzero.roadmap-became-feature-commitment-pressure"
+      ],
+      "referenceGames": [
+        "Subnautica: Below Zero"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "feature-omission",
       "experienceRefs": [
         "exp.rimworld.strategic-omission"
@@ -1583,12 +1718,42 @@
       "closedVocabulary": false
     },
     {
+      "id": "foundation-rebuild",
+      "experienceRefs": [
+        "exp.ffxiv.relaunch-instead-of-patching-failed-foundation"
+      ],
+      "referenceGames": [
+        "Final Fantasy XIV (1.0 → A Realm Reborn)"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "franchise-expectations",
       "experienceRefs": [
         "exp.bg3.vision-vs-inherited-expectations"
       ],
       "referenceGames": [
         "Baldur’s Gate 3"
+      ],
+      "relationKinds": [
+        "TENSION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "free-release",
+      "experienceRefs": [
+        "exp.artifact.game-side-rework-without-sustainable-population"
+      ],
+      "referenceGames": [
+        "Artifact / Artifact Foundry"
       ],
       "relationKinds": [
         "TENSION"
@@ -1643,6 +1808,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "full-relaunch",
+      "experienceRefs": [
+        "exp.ffxiv.relaunch-instead-of-patching-failed-foundation"
+      ],
+      "referenceGames": [
+        "Final Fantasy XIV (1.0 → A Realm Reborn)"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "full-run-playtest",
       "experienceRefs": [
         "exp.factorio.full-run-scope-saturation"
@@ -1682,6 +1862,21 @@
       ],
       "relationKinds": [
         "REPRESENTATION_COUPLING"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "game-side-goals",
+      "experienceRefs": [
+        "exp.artifact.game-side-rework-without-sustainable-population"
+      ],
+      "referenceGames": [
+        "Artifact / Artifact Foundry"
+      ],
+      "relationKinds": [
+        "TENSION"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -1763,6 +1958,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "growing-scope",
+      "experienceRefs": [
+        "exp.overwatch.hero-missions-cut-to-protect-live-game"
+      ],
+      "referenceGames": [
+        "Overwatch 2"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "guided-campaign",
       "experienceRefs": [
         "exp.factorio.campaign-mimicry-constrained-core"
@@ -1817,6 +2027,21 @@
       ],
       "relationKinds": [
         "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "hero-missions",
+      "experienceRefs": [
+        "exp.overwatch.hero-missions-cut-to-protect-live-game"
+      ],
+      "referenceGames": [
+        "Overwatch 2"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -2012,6 +2237,21 @@
       ],
       "relationKinds": [
         "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "implicit-commitment",
+      "experienceRefs": [
+        "exp.belowzero.roadmap-became-feature-commitment-pressure"
+      ],
+      "referenceGames": [
+        "Subnautica: Below Zero"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -2243,6 +2483,66 @@
       "closedVocabulary": false
     },
     {
+      "id": "legacy-product-vision",
+      "experienceRefs": [
+        "exp.overwatch.old-vision-starved-live-game"
+      ],
+      "referenceGames": [
+        "Overwatch / Overwatch 2"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "live-game-resource-protection",
+      "experienceRefs": [
+        "exp.overwatch.hero-missions-cut-to-protect-live-game"
+      ],
+      "referenceGames": [
+        "Overwatch 2"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "live-game-success",
+      "experienceRefs": [
+        "exp.overwatch.old-vision-starved-live-game"
+      ],
+      "referenceGames": [
+        "Overwatch / Overwatch 2"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "live-migration",
+      "experienceRefs": [
+        "exp.destiny2.foundation-reversal-weapon-slot-ammo"
+      ],
+      "referenceGames": [
+        "Destiny 2: Forsaken"
+      ],
+      "relationKinds": [
+        "SUBSTITUTION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "live-rule-mutation",
       "experienceRefs": [
         "exp.baba.rule-as-world-object"
@@ -2258,6 +2558,36 @@
       "closedVocabulary": false
     },
     {
+      "id": "live-service-content-tail",
+      "experienceRefs": [
+        "exp.tlouonline.satisfying-prototype-unsustainable-operating-model"
+      ],
+      "referenceGames": [
+        "The Last of Us Online"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "living-story",
+      "experienceRefs": [
+        "exp.belowzero.playable-whole-story-mismatch-reset"
+      ],
+      "referenceGames": [
+        "Subnautica: Below Zero"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "location-rules",
       "experienceRefs": [
         "exp.snap.locations-recontextualize-decks"
@@ -2267,6 +2597,21 @@
       ],
       "relationKinds": [
         "SYNERGY"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "long-horizon-roadmap",
+      "experienceRefs": [
+        "exp.belowzero.roadmap-became-feature-commitment-pressure"
+      ],
+      "referenceGames": [
+        "Subnautica: Below Zero"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -2327,6 +2672,21 @@
       ],
       "relationKinds": [
         "INVERSION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "map-scope-reduction",
+      "experienceRefs": [
+        "exp.r6.health-over-content-cadence"
+      ],
+      "referenceGames": [
+        "Tom Clancy’s Rainbow Six Siege"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -2402,6 +2762,21 @@
       ],
       "relationKinds": [
         "SYNERGY"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "mechanics-economy-reboot",
+      "experienceRefs": [
+        "exp.artifact.game-side-rework-without-sustainable-population"
+      ],
+      "referenceGames": [
+        "Artifact / Artifact Foundry"
+      ],
+      "relationKinds": [
+        "TENSION"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -2552,6 +2927,21 @@
       ],
       "relationKinds": [
         "INVERSION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "near-complete-playable",
+      "experienceRefs": [
+        "exp.belowzero.playable-whole-story-mismatch-reset"
+      ],
+      "referenceGames": [
+        "Subnautica: Below Zero"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -2798,6 +3188,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "opportunity-cost",
+      "experienceRefs": [
+        "exp.overwatch.old-vision-starved-live-game"
+      ],
+      "referenceGames": [
+        "Overwatch / Overwatch 2"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "optimization",
       "experienceRefs": [
         "exp.factorio.performance-from-real-scale"
@@ -2849,6 +3254,21 @@
       ],
       "referenceGames": [
         "Baldur’s Gate 3"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "parallel-replacement",
+      "experienceRefs": [
+        "exp.ffxiv.relaunch-instead-of-patching-failed-foundation"
+      ],
+      "referenceGames": [
+        "Final Fantasy XIV (1.0 → A Realm Reborn)"
       ],
       "relationKinds": [
         "PRODUCTION_RESPONSE"
@@ -3353,6 +3773,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "project-cancellation",
+      "experienceRefs": [
+        "exp.tlouonline.satisfying-prototype-unsustainable-operating-model"
+      ],
+      "referenceGames": [
+        "The Last of Us Online"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "prototype-abandonment",
       "experienceRefs": [
         "exp.ftl.feeling-before-genre"
@@ -3533,6 +3968,36 @@
       "closedVocabulary": false
     },
     {
+      "id": "refined-gameplay",
+      "experienceRefs": [
+        "exp.tlouonline.satisfying-prototype-unsustainable-operating-model"
+      ],
+      "referenceGames": [
+        "The Last of Us Online"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "release-cadence-pressure",
+      "experienceRefs": [
+        "exp.belowzero.roadmap-became-feature-commitment-pressure"
+      ],
+      "referenceGames": [
+        "Subnautica: Below Zero"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "relic-synergy",
       "experienceRefs": [
         "exp.sts.balance-not-universal-equality"
@@ -3625,6 +4090,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "resource-diversion",
+      "experienceRefs": [
+        "exp.overwatch.old-vision-starved-live-game"
+      ],
+      "referenceGames": [
+        "Overwatch / Overwatch 2"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "resource-pressure",
       "experienceRefs": [
         "exp.frostpunk.systems-carry-authorial-meaning"
@@ -3709,6 +4189,21 @@
       ],
       "relationKinds": [
         "SYNERGY"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "rollback-switch",
+      "experienceRefs": [
+        "exp.r6.health-over-content-cadence"
+      ],
+      "referenceGames": [
+        "Tom Clancy’s Rainbow Six Siege"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -3856,6 +4351,21 @@
       ],
       "referenceGames": [
         "Factorio"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "seasonal-content-cadence",
+      "experienceRefs": [
+        "exp.r6.health-over-content-cadence"
+      ],
+      "referenceGames": [
+        "Tom Clancy’s Rainbow Six Siege"
       ],
       "relationKinds": [
         "PRODUCTION_RESPONSE"
@@ -4024,6 +4534,21 @@
       ],
       "relationKinds": [
         "REPRESENTATION_COUPLING"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "shipped-product-failure",
+      "experienceRefs": [
+        "exp.ffxiv.relaunch-instead-of-patching-failed-foundation"
+      ],
+      "referenceGames": [
+        "Final Fantasy XIV (1.0 → A Realm Reborn)"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -4255,6 +4780,36 @@
       "closedVocabulary": false
     },
     {
+      "id": "special-ammo-return",
+      "experienceRefs": [
+        "exp.destiny2.foundation-reversal-weapon-slot-ammo"
+      ],
+      "referenceGames": [
+        "Destiny 2: Forsaken"
+      ],
+      "relationKinds": [
+        "SUBSTITUTION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "staged-deployment",
+      "experienceRefs": [
+        "exp.r6.health-over-content-cadence"
+      ],
+      "referenceGames": [
+        "Tom Clancy’s Rainbow Six Siege"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "state-reactivity",
       "experienceRefs": [
         "exp.heavensvault.authored-procedural-glue"
@@ -4300,6 +4855,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "story-rewrite",
+      "experienceRefs": [
+        "exp.belowzero.playable-whole-story-mismatch-reset"
+      ],
+      "referenceGames": [
+        "Subnautica: Below Zero"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "strategic-layer",
       "experienceRefs": [
         "exp.xcom.two-layer-reinforcement"
@@ -4324,6 +4894,21 @@
       ],
       "relationKinds": [
         "SUBSTITUTION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "studio-resource-topology",
+      "experienceRefs": [
+        "exp.tlouonline.satisfying-prototype-unsustainable-operating-model"
+      ],
+      "referenceGames": [
+        "The Last of Us Online"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -4414,6 +4999,21 @@
       ],
       "relationKinds": [
         "REPRESENTATION_COUPLING"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "survival-substrate",
+      "experienceRefs": [
+        "exp.belowzero.playable-whole-story-mismatch-reset"
+      ],
+      "referenceGames": [
+        "Subnautica: Below Zero"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -4594,6 +5194,51 @@
       ],
       "relationKinds": [
         "SYNERGY"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "team-health",
+      "experienceRefs": [
+        "exp.belowzero.roadmap-became-feature-commitment-pressure"
+      ],
+      "referenceGames": [
+        "Subnautica: Below Zero"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "technical-debt",
+      "experienceRefs": [
+        "exp.r6.health-over-content-cadence"
+      ],
+      "referenceGames": [
+        "Tom Clancy’s Rainbow Six Siege"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "technology-salvage",
+      "experienceRefs": [
+        "exp.tlouonline.satisfying-prototype-unsustainable-operating-model"
+      ],
+      "referenceGames": [
+        "The Last of Us Online"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -4870,6 +5515,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "vision-lock-in",
+      "experienceRefs": [
+        "exp.overwatch.old-vision-starved-live-game"
+      ],
+      "referenceGames": [
+        "Overwatch / Overwatch 2"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "visual-affordance",
       "experienceRefs": [
         "exp.totk.player-expectation-affordance"
@@ -4915,6 +5575,36 @@
       "closedVocabulary": false
     },
     {
+      "id": "weapon-slot-rules",
+      "experienceRefs": [
+        "exp.destiny2.foundation-reversal-weapon-slot-ammo"
+      ],
+      "referenceGames": [
+        "Destiny 2: Forsaken"
+      ],
+      "relationKinds": [
+        "SUBSTITUTION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "world-character-salvage",
+      "experienceRefs": [
+        "exp.belowzero.playable-whole-story-mismatch-reset"
+      ],
+      "referenceGames": [
+        "Subnautica: Below Zero"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "world-invariance",
       "experienceRefs": [
         "exp.outerwilds.knowledge-as-progression"
@@ -4924,6 +5614,21 @@
       ],
       "relationKinds": [
         "SYNERGY"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "year-one-foundation",
+      "experienceRefs": [
+        "exp.destiny2.foundation-reversal-weapon-slot-ammo"
+      ],
+      "referenceGames": [
+        "Destiny 2: Forsaken"
+      ],
+      "relationKinds": [
+        "SUBSTITUTION"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -10559,6 +11264,1106 @@
       "experienceRef": "exp.psychonauts2.constraint-expanded-design-space",
       "referenceGame": "Psychonauts 2",
       "relationKind": "INVERSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.old-vision-starved-live-game.legacy-product-vision::live-game-success",
+      "a": "legacy-product-vision",
+      "b": "live-game-success",
+      "experienceRef": "exp.overwatch.old-vision-starved-live-game",
+      "referenceGame": "Overwatch / Overwatch 2",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.old-vision-starved-live-game.legacy-product-vision::resource-diversion",
+      "a": "legacy-product-vision",
+      "b": "resource-diversion",
+      "experienceRef": "exp.overwatch.old-vision-starved-live-game",
+      "referenceGame": "Overwatch / Overwatch 2",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.old-vision-starved-live-game.legacy-product-vision::vision-lock-in",
+      "a": "legacy-product-vision",
+      "b": "vision-lock-in",
+      "experienceRef": "exp.overwatch.old-vision-starved-live-game",
+      "referenceGame": "Overwatch / Overwatch 2",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.old-vision-starved-live-game.legacy-product-vision::opportunity-cost",
+      "a": "legacy-product-vision",
+      "b": "opportunity-cost",
+      "experienceRef": "exp.overwatch.old-vision-starved-live-game",
+      "referenceGame": "Overwatch / Overwatch 2",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.old-vision-starved-live-game.live-game-success::resource-diversion",
+      "a": "live-game-success",
+      "b": "resource-diversion",
+      "experienceRef": "exp.overwatch.old-vision-starved-live-game",
+      "referenceGame": "Overwatch / Overwatch 2",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.old-vision-starved-live-game.live-game-success::vision-lock-in",
+      "a": "live-game-success",
+      "b": "vision-lock-in",
+      "experienceRef": "exp.overwatch.old-vision-starved-live-game",
+      "referenceGame": "Overwatch / Overwatch 2",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.old-vision-starved-live-game.live-game-success::opportunity-cost",
+      "a": "live-game-success",
+      "b": "opportunity-cost",
+      "experienceRef": "exp.overwatch.old-vision-starved-live-game",
+      "referenceGame": "Overwatch / Overwatch 2",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.old-vision-starved-live-game.resource-diversion::vision-lock-in",
+      "a": "resource-diversion",
+      "b": "vision-lock-in",
+      "experienceRef": "exp.overwatch.old-vision-starved-live-game",
+      "referenceGame": "Overwatch / Overwatch 2",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.old-vision-starved-live-game.opportunity-cost::resource-diversion",
+      "a": "opportunity-cost",
+      "b": "resource-diversion",
+      "experienceRef": "exp.overwatch.old-vision-starved-live-game",
+      "referenceGame": "Overwatch / Overwatch 2",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.old-vision-starved-live-game.opportunity-cost::vision-lock-in",
+      "a": "opportunity-cost",
+      "b": "vision-lock-in",
+      "experienceRef": "exp.overwatch.old-vision-starved-live-game",
+      "referenceGame": "Overwatch / Overwatch 2",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.hero-missions-cut-to-protect-live-game.growing-scope::hero-missions",
+      "a": "growing-scope",
+      "b": "hero-missions",
+      "experienceRef": "exp.overwatch.hero-missions-cut-to-protect-live-game",
+      "referenceGame": "Overwatch 2",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.hero-missions-cut-to-protect-live-game.cohesion-failure::hero-missions",
+      "a": "cohesion-failure",
+      "b": "hero-missions",
+      "experienceRef": "exp.overwatch.hero-missions-cut-to-protect-live-game",
+      "referenceGame": "Overwatch 2",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.hero-missions-cut-to-protect-live-game.hero-missions::live-game-resource-protection",
+      "a": "hero-missions",
+      "b": "live-game-resource-protection",
+      "experienceRef": "exp.overwatch.hero-missions-cut-to-protect-live-game",
+      "referenceGame": "Overwatch 2",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.hero-missions-cut-to-protect-live-game.feature-cancellation::hero-missions",
+      "a": "feature-cancellation",
+      "b": "hero-missions",
+      "experienceRef": "exp.overwatch.hero-missions-cut-to-protect-live-game",
+      "referenceGame": "Overwatch 2",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.hero-missions-cut-to-protect-live-game.cohesion-failure::growing-scope",
+      "a": "cohesion-failure",
+      "b": "growing-scope",
+      "experienceRef": "exp.overwatch.hero-missions-cut-to-protect-live-game",
+      "referenceGame": "Overwatch 2",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.hero-missions-cut-to-protect-live-game.growing-scope::live-game-resource-protection",
+      "a": "growing-scope",
+      "b": "live-game-resource-protection",
+      "experienceRef": "exp.overwatch.hero-missions-cut-to-protect-live-game",
+      "referenceGame": "Overwatch 2",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.hero-missions-cut-to-protect-live-game.feature-cancellation::growing-scope",
+      "a": "feature-cancellation",
+      "b": "growing-scope",
+      "experienceRef": "exp.overwatch.hero-missions-cut-to-protect-live-game",
+      "referenceGame": "Overwatch 2",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.hero-missions-cut-to-protect-live-game.cohesion-failure::live-game-resource-protection",
+      "a": "cohesion-failure",
+      "b": "live-game-resource-protection",
+      "experienceRef": "exp.overwatch.hero-missions-cut-to-protect-live-game",
+      "referenceGame": "Overwatch 2",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.hero-missions-cut-to-protect-live-game.cohesion-failure::feature-cancellation",
+      "a": "cohesion-failure",
+      "b": "feature-cancellation",
+      "experienceRef": "exp.overwatch.hero-missions-cut-to-protect-live-game",
+      "referenceGame": "Overwatch 2",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.hero-missions-cut-to-protect-live-game.feature-cancellation::live-game-resource-protection",
+      "a": "feature-cancellation",
+      "b": "live-game-resource-protection",
+      "experienceRef": "exp.overwatch.hero-missions-cut-to-protect-live-game",
+      "referenceGame": "Overwatch 2",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.tlouonline.satisfying-prototype-unsustainable-operating-model.live-service-content-tail::refined-gameplay",
+      "a": "live-service-content-tail",
+      "b": "refined-gameplay",
+      "experienceRef": "exp.tlouonline.satisfying-prototype-unsustainable-operating-model",
+      "referenceGame": "The Last of Us Online",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.tlouonline.satisfying-prototype-unsustainable-operating-model.refined-gameplay::studio-resource-topology",
+      "a": "refined-gameplay",
+      "b": "studio-resource-topology",
+      "experienceRef": "exp.tlouonline.satisfying-prototype-unsustainable-operating-model",
+      "referenceGame": "The Last of Us Online",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.tlouonline.satisfying-prototype-unsustainable-operating-model.project-cancellation::refined-gameplay",
+      "a": "project-cancellation",
+      "b": "refined-gameplay",
+      "experienceRef": "exp.tlouonline.satisfying-prototype-unsustainable-operating-model",
+      "referenceGame": "The Last of Us Online",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.tlouonline.satisfying-prototype-unsustainable-operating-model.refined-gameplay::technology-salvage",
+      "a": "refined-gameplay",
+      "b": "technology-salvage",
+      "experienceRef": "exp.tlouonline.satisfying-prototype-unsustainable-operating-model",
+      "referenceGame": "The Last of Us Online",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.tlouonline.satisfying-prototype-unsustainable-operating-model.live-service-content-tail::studio-resource-topology",
+      "a": "live-service-content-tail",
+      "b": "studio-resource-topology",
+      "experienceRef": "exp.tlouonline.satisfying-prototype-unsustainable-operating-model",
+      "referenceGame": "The Last of Us Online",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.tlouonline.satisfying-prototype-unsustainable-operating-model.live-service-content-tail::project-cancellation",
+      "a": "live-service-content-tail",
+      "b": "project-cancellation",
+      "experienceRef": "exp.tlouonline.satisfying-prototype-unsustainable-operating-model",
+      "referenceGame": "The Last of Us Online",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.tlouonline.satisfying-prototype-unsustainable-operating-model.live-service-content-tail::technology-salvage",
+      "a": "live-service-content-tail",
+      "b": "technology-salvage",
+      "experienceRef": "exp.tlouonline.satisfying-prototype-unsustainable-operating-model",
+      "referenceGame": "The Last of Us Online",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.tlouonline.satisfying-prototype-unsustainable-operating-model.project-cancellation::studio-resource-topology",
+      "a": "project-cancellation",
+      "b": "studio-resource-topology",
+      "experienceRef": "exp.tlouonline.satisfying-prototype-unsustainable-operating-model",
+      "referenceGame": "The Last of Us Online",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.tlouonline.satisfying-prototype-unsustainable-operating-model.studio-resource-topology::technology-salvage",
+      "a": "studio-resource-topology",
+      "b": "technology-salvage",
+      "experienceRef": "exp.tlouonline.satisfying-prototype-unsustainable-operating-model",
+      "referenceGame": "The Last of Us Online",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.tlouonline.satisfying-prototype-unsustainable-operating-model.project-cancellation::technology-salvage",
+      "a": "project-cancellation",
+      "b": "technology-salvage",
+      "experienceRef": "exp.tlouonline.satisfying-prototype-unsustainable-operating-model",
+      "referenceGame": "The Last of Us Online",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.artifact.game-side-rework-without-sustainable-population.game-side-goals::mechanics-economy-reboot",
+      "a": "game-side-goals",
+      "b": "mechanics-economy-reboot",
+      "experienceRef": "exp.artifact.game-side-rework-without-sustainable-population",
+      "referenceGame": "Artifact / Artifact Foundry",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.artifact.game-side-rework-without-sustainable-population.active-player-population::mechanics-economy-reboot",
+      "a": "active-player-population",
+      "b": "mechanics-economy-reboot",
+      "experienceRef": "exp.artifact.game-side-rework-without-sustainable-population",
+      "referenceGame": "Artifact / Artifact Foundry",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.artifact.game-side-rework-without-sustainable-population.continued-development-threshold::mechanics-economy-reboot",
+      "a": "continued-development-threshold",
+      "b": "mechanics-economy-reboot",
+      "experienceRef": "exp.artifact.game-side-rework-without-sustainable-population",
+      "referenceGame": "Artifact / Artifact Foundry",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.artifact.game-side-rework-without-sustainable-population.free-release::mechanics-economy-reboot",
+      "a": "free-release",
+      "b": "mechanics-economy-reboot",
+      "experienceRef": "exp.artifact.game-side-rework-without-sustainable-population",
+      "referenceGame": "Artifact / Artifact Foundry",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.artifact.game-side-rework-without-sustainable-population.active-player-population::game-side-goals",
+      "a": "active-player-population",
+      "b": "game-side-goals",
+      "experienceRef": "exp.artifact.game-side-rework-without-sustainable-population",
+      "referenceGame": "Artifact / Artifact Foundry",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.artifact.game-side-rework-without-sustainable-population.continued-development-threshold::game-side-goals",
+      "a": "continued-development-threshold",
+      "b": "game-side-goals",
+      "experienceRef": "exp.artifact.game-side-rework-without-sustainable-population",
+      "referenceGame": "Artifact / Artifact Foundry",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.artifact.game-side-rework-without-sustainable-population.free-release::game-side-goals",
+      "a": "free-release",
+      "b": "game-side-goals",
+      "experienceRef": "exp.artifact.game-side-rework-without-sustainable-population",
+      "referenceGame": "Artifact / Artifact Foundry",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.artifact.game-side-rework-without-sustainable-population.active-player-population::continued-development-threshold",
+      "a": "active-player-population",
+      "b": "continued-development-threshold",
+      "experienceRef": "exp.artifact.game-side-rework-without-sustainable-population",
+      "referenceGame": "Artifact / Artifact Foundry",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.artifact.game-side-rework-without-sustainable-population.active-player-population::free-release",
+      "a": "active-player-population",
+      "b": "free-release",
+      "experienceRef": "exp.artifact.game-side-rework-without-sustainable-population",
+      "referenceGame": "Artifact / Artifact Foundry",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.artifact.game-side-rework-without-sustainable-population.continued-development-threshold::free-release",
+      "a": "continued-development-threshold",
+      "b": "free-release",
+      "experienceRef": "exp.artifact.game-side-rework-without-sustainable-population",
+      "referenceGame": "Artifact / Artifact Foundry",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.ffxiv.relaunch-instead-of-patching-failed-foundation.full-relaunch::shipped-product-failure",
+      "a": "full-relaunch",
+      "b": "shipped-product-failure",
+      "experienceRef": "exp.ffxiv.relaunch-instead-of-patching-failed-foundation",
+      "referenceGame": "Final Fantasy XIV (1.0 → A Realm Reborn)",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.ffxiv.relaunch-instead-of-patching-failed-foundation.foundation-rebuild::shipped-product-failure",
+      "a": "foundation-rebuild",
+      "b": "shipped-product-failure",
+      "experienceRef": "exp.ffxiv.relaunch-instead-of-patching-failed-foundation",
+      "referenceGame": "Final Fantasy XIV (1.0 → A Realm Reborn)",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.ffxiv.relaunch-instead-of-patching-failed-foundation.parallel-replacement::shipped-product-failure",
+      "a": "parallel-replacement",
+      "b": "shipped-product-failure",
+      "experienceRef": "exp.ffxiv.relaunch-instead-of-patching-failed-foundation",
+      "referenceGame": "Final Fantasy XIV (1.0 → A Realm Reborn)",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.ffxiv.relaunch-instead-of-patching-failed-foundation.business-model-commitment::shipped-product-failure",
+      "a": "business-model-commitment",
+      "b": "shipped-product-failure",
+      "experienceRef": "exp.ffxiv.relaunch-instead-of-patching-failed-foundation",
+      "referenceGame": "Final Fantasy XIV (1.0 → A Realm Reborn)",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.ffxiv.relaunch-instead-of-patching-failed-foundation.foundation-rebuild::full-relaunch",
+      "a": "foundation-rebuild",
+      "b": "full-relaunch",
+      "experienceRef": "exp.ffxiv.relaunch-instead-of-patching-failed-foundation",
+      "referenceGame": "Final Fantasy XIV (1.0 → A Realm Reborn)",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.ffxiv.relaunch-instead-of-patching-failed-foundation.full-relaunch::parallel-replacement",
+      "a": "full-relaunch",
+      "b": "parallel-replacement",
+      "experienceRef": "exp.ffxiv.relaunch-instead-of-patching-failed-foundation",
+      "referenceGame": "Final Fantasy XIV (1.0 → A Realm Reborn)",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.ffxiv.relaunch-instead-of-patching-failed-foundation.business-model-commitment::full-relaunch",
+      "a": "business-model-commitment",
+      "b": "full-relaunch",
+      "experienceRef": "exp.ffxiv.relaunch-instead-of-patching-failed-foundation",
+      "referenceGame": "Final Fantasy XIV (1.0 → A Realm Reborn)",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.ffxiv.relaunch-instead-of-patching-failed-foundation.foundation-rebuild::parallel-replacement",
+      "a": "foundation-rebuild",
+      "b": "parallel-replacement",
+      "experienceRef": "exp.ffxiv.relaunch-instead-of-patching-failed-foundation",
+      "referenceGame": "Final Fantasy XIV (1.0 → A Realm Reborn)",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.ffxiv.relaunch-instead-of-patching-failed-foundation.business-model-commitment::foundation-rebuild",
+      "a": "business-model-commitment",
+      "b": "foundation-rebuild",
+      "experienceRef": "exp.ffxiv.relaunch-instead-of-patching-failed-foundation",
+      "referenceGame": "Final Fantasy XIV (1.0 → A Realm Reborn)",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.ffxiv.relaunch-instead-of-patching-failed-foundation.business-model-commitment::parallel-replacement",
+      "a": "business-model-commitment",
+      "b": "parallel-replacement",
+      "experienceRef": "exp.ffxiv.relaunch-instead-of-patching-failed-foundation",
+      "referenceGame": "Final Fantasy XIV (1.0 → A Realm Reborn)",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.belowzero.playable-whole-story-mismatch-reset.living-story::near-complete-playable",
+      "a": "living-story",
+      "b": "near-complete-playable",
+      "experienceRef": "exp.belowzero.playable-whole-story-mismatch-reset",
+      "referenceGame": "Subnautica: Below Zero",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.belowzero.playable-whole-story-mismatch-reset.near-complete-playable::survival-substrate",
+      "a": "near-complete-playable",
+      "b": "survival-substrate",
+      "experienceRef": "exp.belowzero.playable-whole-story-mismatch-reset",
+      "referenceGame": "Subnautica: Below Zero",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.belowzero.playable-whole-story-mismatch-reset.near-complete-playable::story-rewrite",
+      "a": "near-complete-playable",
+      "b": "story-rewrite",
+      "experienceRef": "exp.belowzero.playable-whole-story-mismatch-reset",
+      "referenceGame": "Subnautica: Below Zero",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.belowzero.playable-whole-story-mismatch-reset.near-complete-playable::world-character-salvage",
+      "a": "near-complete-playable",
+      "b": "world-character-salvage",
+      "experienceRef": "exp.belowzero.playable-whole-story-mismatch-reset",
+      "referenceGame": "Subnautica: Below Zero",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.belowzero.playable-whole-story-mismatch-reset.living-story::survival-substrate",
+      "a": "living-story",
+      "b": "survival-substrate",
+      "experienceRef": "exp.belowzero.playable-whole-story-mismatch-reset",
+      "referenceGame": "Subnautica: Below Zero",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.belowzero.playable-whole-story-mismatch-reset.living-story::story-rewrite",
+      "a": "living-story",
+      "b": "story-rewrite",
+      "experienceRef": "exp.belowzero.playable-whole-story-mismatch-reset",
+      "referenceGame": "Subnautica: Below Zero",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.belowzero.playable-whole-story-mismatch-reset.living-story::world-character-salvage",
+      "a": "living-story",
+      "b": "world-character-salvage",
+      "experienceRef": "exp.belowzero.playable-whole-story-mismatch-reset",
+      "referenceGame": "Subnautica: Below Zero",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.belowzero.playable-whole-story-mismatch-reset.story-rewrite::survival-substrate",
+      "a": "story-rewrite",
+      "b": "survival-substrate",
+      "experienceRef": "exp.belowzero.playable-whole-story-mismatch-reset",
+      "referenceGame": "Subnautica: Below Zero",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.belowzero.playable-whole-story-mismatch-reset.survival-substrate::world-character-salvage",
+      "a": "survival-substrate",
+      "b": "world-character-salvage",
+      "experienceRef": "exp.belowzero.playable-whole-story-mismatch-reset",
+      "referenceGame": "Subnautica: Below Zero",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.belowzero.playable-whole-story-mismatch-reset.story-rewrite::world-character-salvage",
+      "a": "story-rewrite",
+      "b": "world-character-salvage",
+      "experienceRef": "exp.belowzero.playable-whole-story-mismatch-reset",
+      "referenceGame": "Subnautica: Below Zero",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.belowzero.roadmap-became-feature-commitment-pressure.feature-columns::long-horizon-roadmap",
+      "a": "feature-columns",
+      "b": "long-horizon-roadmap",
+      "experienceRef": "exp.belowzero.roadmap-became-feature-commitment-pressure",
+      "referenceGame": "Subnautica: Below Zero",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.belowzero.roadmap-became-feature-commitment-pressure.implicit-commitment::long-horizon-roadmap",
+      "a": "implicit-commitment",
+      "b": "long-horizon-roadmap",
+      "experienceRef": "exp.belowzero.roadmap-became-feature-commitment-pressure",
+      "referenceGame": "Subnautica: Below Zero",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.belowzero.roadmap-became-feature-commitment-pressure.long-horizon-roadmap::release-cadence-pressure",
+      "a": "long-horizon-roadmap",
+      "b": "release-cadence-pressure",
+      "experienceRef": "exp.belowzero.roadmap-became-feature-commitment-pressure",
+      "referenceGame": "Subnautica: Below Zero",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.belowzero.roadmap-became-feature-commitment-pressure.big-picture-loss::long-horizon-roadmap",
+      "a": "big-picture-loss",
+      "b": "long-horizon-roadmap",
+      "experienceRef": "exp.belowzero.roadmap-became-feature-commitment-pressure",
+      "referenceGame": "Subnautica: Below Zero",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.belowzero.roadmap-became-feature-commitment-pressure.long-horizon-roadmap::team-health",
+      "a": "long-horizon-roadmap",
+      "b": "team-health",
+      "experienceRef": "exp.belowzero.roadmap-became-feature-commitment-pressure",
+      "referenceGame": "Subnautica: Below Zero",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.belowzero.roadmap-became-feature-commitment-pressure.feature-columns::implicit-commitment",
+      "a": "feature-columns",
+      "b": "implicit-commitment",
+      "experienceRef": "exp.belowzero.roadmap-became-feature-commitment-pressure",
+      "referenceGame": "Subnautica: Below Zero",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.belowzero.roadmap-became-feature-commitment-pressure.feature-columns::release-cadence-pressure",
+      "a": "feature-columns",
+      "b": "release-cadence-pressure",
+      "experienceRef": "exp.belowzero.roadmap-became-feature-commitment-pressure",
+      "referenceGame": "Subnautica: Below Zero",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.belowzero.roadmap-became-feature-commitment-pressure.big-picture-loss::feature-columns",
+      "a": "big-picture-loss",
+      "b": "feature-columns",
+      "experienceRef": "exp.belowzero.roadmap-became-feature-commitment-pressure",
+      "referenceGame": "Subnautica: Below Zero",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.belowzero.roadmap-became-feature-commitment-pressure.feature-columns::team-health",
+      "a": "feature-columns",
+      "b": "team-health",
+      "experienceRef": "exp.belowzero.roadmap-became-feature-commitment-pressure",
+      "referenceGame": "Subnautica: Below Zero",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.belowzero.roadmap-became-feature-commitment-pressure.implicit-commitment::release-cadence-pressure",
+      "a": "implicit-commitment",
+      "b": "release-cadence-pressure",
+      "experienceRef": "exp.belowzero.roadmap-became-feature-commitment-pressure",
+      "referenceGame": "Subnautica: Below Zero",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.belowzero.roadmap-became-feature-commitment-pressure.big-picture-loss::implicit-commitment",
+      "a": "big-picture-loss",
+      "b": "implicit-commitment",
+      "experienceRef": "exp.belowzero.roadmap-became-feature-commitment-pressure",
+      "referenceGame": "Subnautica: Below Zero",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.belowzero.roadmap-became-feature-commitment-pressure.implicit-commitment::team-health",
+      "a": "implicit-commitment",
+      "b": "team-health",
+      "experienceRef": "exp.belowzero.roadmap-became-feature-commitment-pressure",
+      "referenceGame": "Subnautica: Below Zero",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.belowzero.roadmap-became-feature-commitment-pressure.big-picture-loss::release-cadence-pressure",
+      "a": "big-picture-loss",
+      "b": "release-cadence-pressure",
+      "experienceRef": "exp.belowzero.roadmap-became-feature-commitment-pressure",
+      "referenceGame": "Subnautica: Below Zero",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.belowzero.roadmap-became-feature-commitment-pressure.release-cadence-pressure::team-health",
+      "a": "release-cadence-pressure",
+      "b": "team-health",
+      "experienceRef": "exp.belowzero.roadmap-became-feature-commitment-pressure",
+      "referenceGame": "Subnautica: Below Zero",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.belowzero.roadmap-became-feature-commitment-pressure.big-picture-loss::team-health",
+      "a": "big-picture-loss",
+      "b": "team-health",
+      "experienceRef": "exp.belowzero.roadmap-became-feature-commitment-pressure",
+      "referenceGame": "Subnautica: Below Zero",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.r6.health-over-content-cadence.seasonal-content-cadence::technical-debt",
+      "a": "seasonal-content-cadence",
+      "b": "technical-debt",
+      "experienceRef": "exp.r6.health-over-content-cadence",
+      "referenceGame": "Tom Clancy’s Rainbow Six Siege",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.r6.health-over-content-cadence.seasonal-content-cadence::staged-deployment",
+      "a": "seasonal-content-cadence",
+      "b": "staged-deployment",
+      "experienceRef": "exp.r6.health-over-content-cadence",
+      "referenceGame": "Tom Clancy’s Rainbow Six Siege",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.r6.health-over-content-cadence.rollback-switch::seasonal-content-cadence",
+      "a": "rollback-switch",
+      "b": "seasonal-content-cadence",
+      "experienceRef": "exp.r6.health-over-content-cadence",
+      "referenceGame": "Tom Clancy’s Rainbow Six Siege",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.r6.health-over-content-cadence.content-delay::seasonal-content-cadence",
+      "a": "content-delay",
+      "b": "seasonal-content-cadence",
+      "experienceRef": "exp.r6.health-over-content-cadence",
+      "referenceGame": "Tom Clancy’s Rainbow Six Siege",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.r6.health-over-content-cadence.map-scope-reduction::seasonal-content-cadence",
+      "a": "map-scope-reduction",
+      "b": "seasonal-content-cadence",
+      "experienceRef": "exp.r6.health-over-content-cadence",
+      "referenceGame": "Tom Clancy’s Rainbow Six Siege",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.r6.health-over-content-cadence.staged-deployment::technical-debt",
+      "a": "staged-deployment",
+      "b": "technical-debt",
+      "experienceRef": "exp.r6.health-over-content-cadence",
+      "referenceGame": "Tom Clancy’s Rainbow Six Siege",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.r6.health-over-content-cadence.rollback-switch::technical-debt",
+      "a": "rollback-switch",
+      "b": "technical-debt",
+      "experienceRef": "exp.r6.health-over-content-cadence",
+      "referenceGame": "Tom Clancy’s Rainbow Six Siege",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.r6.health-over-content-cadence.content-delay::technical-debt",
+      "a": "content-delay",
+      "b": "technical-debt",
+      "experienceRef": "exp.r6.health-over-content-cadence",
+      "referenceGame": "Tom Clancy’s Rainbow Six Siege",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.r6.health-over-content-cadence.map-scope-reduction::technical-debt",
+      "a": "map-scope-reduction",
+      "b": "technical-debt",
+      "experienceRef": "exp.r6.health-over-content-cadence",
+      "referenceGame": "Tom Clancy’s Rainbow Six Siege",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.r6.health-over-content-cadence.rollback-switch::staged-deployment",
+      "a": "rollback-switch",
+      "b": "staged-deployment",
+      "experienceRef": "exp.r6.health-over-content-cadence",
+      "referenceGame": "Tom Clancy’s Rainbow Six Siege",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.r6.health-over-content-cadence.content-delay::staged-deployment",
+      "a": "content-delay",
+      "b": "staged-deployment",
+      "experienceRef": "exp.r6.health-over-content-cadence",
+      "referenceGame": "Tom Clancy’s Rainbow Six Siege",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.r6.health-over-content-cadence.map-scope-reduction::staged-deployment",
+      "a": "map-scope-reduction",
+      "b": "staged-deployment",
+      "experienceRef": "exp.r6.health-over-content-cadence",
+      "referenceGame": "Tom Clancy’s Rainbow Six Siege",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.r6.health-over-content-cadence.content-delay::rollback-switch",
+      "a": "content-delay",
+      "b": "rollback-switch",
+      "experienceRef": "exp.r6.health-over-content-cadence",
+      "referenceGame": "Tom Clancy’s Rainbow Six Siege",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.r6.health-over-content-cadence.map-scope-reduction::rollback-switch",
+      "a": "map-scope-reduction",
+      "b": "rollback-switch",
+      "experienceRef": "exp.r6.health-over-content-cadence",
+      "referenceGame": "Tom Clancy’s Rainbow Six Siege",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.r6.health-over-content-cadence.content-delay::map-scope-reduction",
+      "a": "content-delay",
+      "b": "map-scope-reduction",
+      "experienceRef": "exp.r6.health-over-content-cadence",
+      "referenceGame": "Tom Clancy’s Rainbow Six Siege",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.destiny2.foundation-reversal-weapon-slot-ammo.weapon-slot-rules::year-one-foundation",
+      "a": "weapon-slot-rules",
+      "b": "year-one-foundation",
+      "experienceRef": "exp.destiny2.foundation-reversal-weapon-slot-ammo",
+      "referenceGame": "Destiny 2: Forsaken",
+      "relationKind": "SUBSTITUTION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.destiny2.foundation-reversal-weapon-slot-ammo.special-ammo-return::year-one-foundation",
+      "a": "special-ammo-return",
+      "b": "year-one-foundation",
+      "experienceRef": "exp.destiny2.foundation-reversal-weapon-slot-ammo",
+      "referenceGame": "Destiny 2: Forsaken",
+      "relationKind": "SUBSTITUTION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.destiny2.foundation-reversal-weapon-slot-ammo.ammo-economy-rebuild::year-one-foundation",
+      "a": "ammo-economy-rebuild",
+      "b": "year-one-foundation",
+      "experienceRef": "exp.destiny2.foundation-reversal-weapon-slot-ammo",
+      "referenceGame": "Destiny 2: Forsaken",
+      "relationKind": "SUBSTITUTION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.destiny2.foundation-reversal-weapon-slot-ammo.live-migration::year-one-foundation",
+      "a": "live-migration",
+      "b": "year-one-foundation",
+      "experienceRef": "exp.destiny2.foundation-reversal-weapon-slot-ammo",
+      "referenceGame": "Destiny 2: Forsaken",
+      "relationKind": "SUBSTITUTION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.destiny2.foundation-reversal-weapon-slot-ammo.special-ammo-return::weapon-slot-rules",
+      "a": "special-ammo-return",
+      "b": "weapon-slot-rules",
+      "experienceRef": "exp.destiny2.foundation-reversal-weapon-slot-ammo",
+      "referenceGame": "Destiny 2: Forsaken",
+      "relationKind": "SUBSTITUTION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.destiny2.foundation-reversal-weapon-slot-ammo.ammo-economy-rebuild::weapon-slot-rules",
+      "a": "ammo-economy-rebuild",
+      "b": "weapon-slot-rules",
+      "experienceRef": "exp.destiny2.foundation-reversal-weapon-slot-ammo",
+      "referenceGame": "Destiny 2: Forsaken",
+      "relationKind": "SUBSTITUTION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.destiny2.foundation-reversal-weapon-slot-ammo.live-migration::weapon-slot-rules",
+      "a": "live-migration",
+      "b": "weapon-slot-rules",
+      "experienceRef": "exp.destiny2.foundation-reversal-weapon-slot-ammo",
+      "referenceGame": "Destiny 2: Forsaken",
+      "relationKind": "SUBSTITUTION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.destiny2.foundation-reversal-weapon-slot-ammo.ammo-economy-rebuild::special-ammo-return",
+      "a": "ammo-economy-rebuild",
+      "b": "special-ammo-return",
+      "experienceRef": "exp.destiny2.foundation-reversal-weapon-slot-ammo",
+      "referenceGame": "Destiny 2: Forsaken",
+      "relationKind": "SUBSTITUTION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.destiny2.foundation-reversal-weapon-slot-ammo.live-migration::special-ammo-return",
+      "a": "live-migration",
+      "b": "special-ammo-return",
+      "experienceRef": "exp.destiny2.foundation-reversal-weapon-slot-ammo",
+      "referenceGame": "Destiny 2: Forsaken",
+      "relationKind": "SUBSTITUTION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.destiny2.foundation-reversal-weapon-slot-ammo.ammo-economy-rebuild::live-migration",
+      "a": "ammo-economy-rebuild",
+      "b": "live-migration",
+      "experienceRef": "exp.destiny2.foundation-reversal-weapon-slot-ammo",
+      "referenceGame": "Destiny 2: Forsaken",
+      "relationKind": "SUBSTITUTION",
       "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
       "causalRelationEstablished": false,
       "canBlockNovelCombination": false

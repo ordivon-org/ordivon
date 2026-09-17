@@ -33,6 +33,8 @@ What apparent constraint unexpectedly expanded the search space?
 
 This is not an anti-pattern catalog and not a ranking of bad decisions. Failure is contextual evidence.
 
+Current R1 contains **27 counterexamples across 23 reference projects**, including cancelled projects, shipped-product relaunches, live-service rollbacks, foundation reversals, late rewrites, planning-process failures, product-viability mismatches and cases where useful work was salvaged after cancellation.
+
 ## Record shape
 
 Each counterexample carries:
@@ -84,6 +86,26 @@ Deus Ex's large early character inventory had option value, but the postmortem a
 ### Constraints do not only subtract
 
 Psychonauts 2 provides a direct counterexample to the claim that constraints necessarily reduce creativity: its developer postmortem frames an empathy focus as expanding the design possibility space. The transferable question becomes whether a constraint creates new relationships/questions or only removes candidates.
+
+### A good local game can still have the wrong operating model
+
+The Last of Us Online is retained because Naughty Dog reported a concept whose gameplay was becoming more refined and satisfying, yet whose multi-year live-service support burden would have redirected the whole studio. The counterexample separates local gameplay progress from sustainable studio/product topology.
+
+### Old visions can outlive the premises that created them
+
+Overwatch's Hero Missions history is retained as a legacy-vision counterexample: the team connected years of PvE/MMO ambition back to Project Titan, later judged that scope and resource diversion were no longer working, and cut Hero Missions rather than continue treating the old crawl-walk-run plan as destiny.
+
+### Fixing the game side does not prove product viability
+
+Artifact Foundry is retained because Valve reported achieving most game-side reboot goals while still lacking enough active players to justify further development. Gameplay, acquisition, activation, retention and sustainable concurrency remain separate evidence lanes.
+
+### Shipped foundations are not automatically permanent
+
+Final Fantasy XIV's relaunch and Destiny 2: Forsaken's weapon/ammo foundation rewrite are retained as different-scale counterexamples to shipped-state permanence. One replaced a failed product-level foundation; the other migrated a live combat taxonomy. Neither implies that rewriting foundations is generally preferable to local repair.
+
+### Content cadence can yield to substrate health
+
+Rainbow Six Siege's Operation Health is retained because Ubisoft explicitly delayed content, reduced map output and added staged deployment/rollback capacity. This conditions the assumption that a live service must preserve content cadence even while release/substrate failure accumulates.
 
 ## Relationship to Experience and Relationship Memory
 

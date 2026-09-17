@@ -3157,6 +3157,240 @@
         "sequel modernization pattern"
       ],
       "evidenceLimit": "Primary postmortem describing one team’s design framing; does not establish that empathy constraints universally expand creative possibility."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "blizzard-overwatch-future-2023",
+      "title": "Director’s Take – Reflecting on the future of Overwatch 2",
+      "organization": "Blizzard Entertainment",
+      "url": "https://news.blizzard.com/en-gb/article/23952480/directors-take-reflecting-on-the-future-of-overwatch-2",
+      "scope": [
+        "Project Titan inheritance",
+        "Hero Missions cancellation",
+        "live-game resource allocation",
+        "vision reset"
+      ],
+      "extractedIdeas": [
+        "the team continued pursuing a years-old crawl-walk-run vision after Overwatch became a runaway live success",
+        "Hero Missions accumulated scope, struggled to cohere, and pulled resources from the live game",
+        "the team cut Hero Missions and explicitly reframed the future around the live game"
+      ],
+      "candidateUses": [
+        "legacy-vision lock-in counterexample",
+        "scope-coherence failure",
+        "live-game resource opportunity-cost probe"
+      ],
+      "evidenceLimit": "Director retrospective establishes Blizzard Team 4’s stated history, diagnosis and decision; it does not isolate a single causal variable or prove the cancelled mode could never work under another team/resource model."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "naughtydog-tlou-online-2023",
+      "title": "An Update on The Last of Us Online",
+      "organization": "Naughty Dog",
+      "url": "https://www.naughtydog.com/blog/an_update_on_the_last_of_us_online",
+      "scope": [
+        "project cancellation",
+        "live-service operating model",
+        "studio resource topology",
+        "salvage of technology/learning"
+      ],
+      "extractedIdeas": [
+        "the concept became more refined and satisfying during iteration",
+        "full production and years of post-launch support would require studio-wide resource commitment",
+        "the studio cancelled the project rather than transform into a solely live-service studio",
+        "technology and learning were retained for future projects"
+      ],
+      "candidateUses": [
+        "good-game wrong-operating-model counterexample",
+        "production ecology probe",
+        "cancel-but-salvage pattern"
+      ],
+      "evidenceLimit": "Official studio statement grounds the resource/identity rationale for cancellation; it does not establish external player reception or prove the game itself lacked product value."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "valve-artifact-future-2021",
+      "title": "The Future of Artifact",
+      "organization": "Valve / Artifact Team",
+      "url": "https://steamcommunity.com/app/583950/announcements/",
+      "scope": [
+        "reboot cancellation",
+        "player population",
+        "mechanics/economy reevaluation",
+        "free final release"
+      ],
+      "extractedIdeas": [
+        "initial sales were followed by dramatic player-count decline, triggering a full mechanics/economy reevaluation",
+        "after roughly a year and a half of reboot work the team said most game-side goals were achieved",
+        "active player numbers still did not justify further development, so development stopped"
+      ],
+      "candidateUses": [
+        "game-side-goals versus viability counterexample",
+        "reboot evaluation boundary",
+        "population viability probe"
+      ],
+      "evidenceLimit": "Official Artifact team statement reports product/team metrics and decision rationale but does not establish why active population remained low or isolate gameplay from market/community effects."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "gdc-ffxiv-realm-reborn-2014",
+      "title": "Behind the Realm Reborn",
+      "organization": "Square Enix / GDC",
+      "url": "https://www.gdcvault.com/play/1020796/Behind-the-Realm",
+      "scope": [
+        "failed live product relaunch",
+        "MMORPG rebuild",
+        "decision speed",
+        "business model commitment"
+      ],
+      "extractedIdeas": [
+        "Final Fantasy XIV was relaunched as A Realm Reborn after the unsuccessful 2010 release",
+        "Naoki Yoshida’s session explicitly analyzes causes of the initial failures and decisions behind choosing a relaunch",
+        "the replacement MMORPG was created in roughly two years and nine months under an explicit business-model commitment"
+      ],
+      "candidateUses": [
+        "relaunch-vs-incremental-repair counterexample",
+        "foundation reset pattern",
+        "parallel replacement probe"
+      ],
+      "evidenceLimit": "GDC overview and developer talk ground the relaunch decision and retrospective framing; this record does not infer unlisted causes or claim relaunch is generally superior to repair."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "unknownworlds-belowzero-story-future-2019",
+      "title": "The Future Of Below Zero’s Story",
+      "organization": "Unknown Worlds Entertainment",
+      "url": "https://unknownworlds.com/en/news/the-future-of-below-zeros-story",
+      "scope": [
+        "story rewrite",
+        "near-complete early-access build",
+        "world preservation",
+        "character salvage"
+      ],
+      "extractedIdeas": [
+        "the game was broadly playable except the endgame yet the team said the whole experience did not work in harmony",
+        "the initial living-story attempt became messy around motivations and relationships",
+        "the team chose a new story while preserving world substrate and selected characters players/team valued"
+      ],
+      "candidateUses": [
+        "near-complete-content rewrite counterexample",
+        "salvage-boundary pattern",
+        "story-system fit probe"
+      ],
+      "evidenceLimit": "Primary project-lead account establishes the team’s diagnosis and rewrite decision; it does not independently measure the causal effect of story structure on player outcomes."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "unknownworlds-belowzero-roadmap-2019",
+      "title": "Below Zero Roadmap Rebooted & Release Timeline",
+      "organization": "Unknown Worlds Entertainment",
+      "url": "https://unknownworlds.com/en/news/below-zero-roadmap-rebooted-release-timeline",
+      "scope": [
+        "roadmap process failure",
+        "feature commitment pressure",
+        "release cadence",
+        "team health"
+      ],
+      "extractedIdeas": [
+        "the roadmap attempted to list individual future features despite uncertainty",
+        "the team described the roadmap as becoming a tyrant that pressured completion of scheduled items even when not critically important",
+        "the new process structured releases around what was ready and the game’s big-picture needs rather than structuring the game around release columns"
+      ],
+      "candidateUses": [
+        "roadmap commitment pressure counterexample",
+        "release-cadence inversion",
+        "planning-vs-discovery probe"
+      ],
+      "evidenceLimit": "Primary project-lead account describes one team/process context; it does not imply roadmaps or release planning are generally harmful."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "ubisoft-r6-operation-health-2017",
+      "title": "Rainbow Six Siege Launching Operation Health to Improve Experience",
+      "organization": "Ubisoft",
+      "url": "https://news.ubisoft.com/en-us/article/137rkMW5IBbOsJNcR5q2jb/rainbow-six-siege-launching-operation-health-to-improve-experience",
+      "scope": [
+        "live-service health",
+        "content delay",
+        "deployment rollback",
+        "technical debt"
+      ],
+      "extractedIdeas": [
+        "the team paused normal seasonal content priorities for three months to focus on technical improvements and bug fixes",
+        "the new deployment process staged releases through test server, PC and console",
+        "an on/off capability was added for faster rollback",
+        "planned content moved later and the annual new-map count was reduced"
+      ],
+      "candidateUses": [
+        "content-cadence-vs-system-health counterexample",
+        "rollback-first deployment pattern",
+        "live-service debt probe"
+      ],
+      "evidenceLimit": "Official Ubisoft product communication establishes the chosen intervention and scope tradeoff; it does not by itself prove the intervention’s downstream causal impact."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "bungie-d2-forsaken-update-2-0-2018",
+      "title": "Destiny 2 Update 2.0",
+      "organization": "Bungie",
+      "url": "https://www.bungie.net/7/en/News/article/47127",
+      "scope": [
+        "weapon-slot system redesign",
+        "ammo economy",
+        "live foundation reversal",
+        "Forsaken"
+      ],
+      "extractedIdeas": [
+        "Forsaken fundamentally changed weapon-slot rules so Primary and Special weapons could occupy Kinetic or Energy slots",
+        "the change required a fresh look at player damage output and a full ammo distribution update",
+        "live Year 1 weapon identities were migrated into the new foundation rather than treating the old slot model as immutable"
+      ],
+      "candidateUses": [
+        "live-foundation reversal counterexample",
+        "migration-with-system-redesign pattern",
+        "foundation-ablation probe"
+      ],
+      "evidenceLimit": "Official patch/developer insight establishes the shipped systems change; it does not by itself identify all reasons the prior foundation underperformed or quantify player preference."
     }
   ],
   "gaps": {
