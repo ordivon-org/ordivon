@@ -1,0 +1,183 @@
+{
+  "publicObservations": [
+    {
+      "detectorId": "cf02-transport-normalized",
+      "observation": {
+        "http2AkamaiFingerprintHash": "52d84b11737d980aef856699f885ca86",
+        "httpVersion": "h2",
+        "ja4": "t13d1518h2_8daaf6152771_4980c97edce0",
+        "peetprintHash": "493a80d6a4267c7820685d29d92aa946",
+        "standing": "OBSERVED",
+        "tlsVersionNegotiated": "772"
+      }
+    },
+    {
+      "detectorId": "cf03-main-document-headers",
+      "observation": {
+        "headerOrder": [
+          "Host",
+          "Connection",
+          "sec-ch-ua",
+          "sec-ch-ua-mobile",
+          "sec-ch-ua-platform",
+          "Accept-Language",
+          "Upgrade-Insecure-Requests",
+          "User-Agent",
+          "Accept",
+          "Sec-Fetch-Site",
+          "Sec-Fetch-Mode",
+          "Sec-Fetch-User",
+          "Sec-Fetch-Dest",
+          "Accept-Encoding"
+        ]
+      }
+    },
+    {
+      "detectorId": "cf04-browser-js-presentation",
+      "observation": {
+        "deviceMemoryGiB": 8,
+        "devicePixelRatio": 1,
+        "hardwareConcurrency": 16,
+        "language": "en-US",
+        "languages": [
+          "en-US"
+        ],
+        "maxTouchPoints": 0,
+        "navigatorWebdriver": true,
+        "platform": "Linux x86_64",
+        "screen": [
+          1440,
+          1000,
+          1440,
+          1000
+        ],
+        "timezone": "Asia/Shanghai",
+        "timezoneOffsetMinutes": -480,
+        "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
+        "windowInner": [
+          1288,
+          764
+        ],
+        "windowOuter": [
+          1288,
+          851
+        ]
+      }
+    },
+    {
+      "detectorId": "cf05-control-observability",
+      "observation": {
+        "contextCount": 4,
+        "contextShape": [
+          "playwright-utility",
+          "default",
+          "playwright-utility",
+          "default"
+        ]
+      }
+    },
+    {
+      "detectorId": "cf06-cross-layer-consistency",
+      "observation": {
+        "browser": {
+          "devicePixelRatio": 1,
+          "language": "en-US",
+          "languages": [
+            "en-US"
+          ],
+          "screen": [
+            1440,
+            1000,
+            1440,
+            1000
+          ],
+          "timezone": "Asia/Shanghai",
+          "timezoneOffsetMinutes": -480,
+          "windowInner": [
+            1288,
+            764
+          ],
+          "windowOuter": [
+            1288,
+            851
+          ]
+        },
+        "fontResolution": {
+          "Arial": "Liberation Sans",
+          "DejaVu Sans": "DejaVu Sans",
+          "Noto Sans": "Ubuntu",
+          "Segoe UI": "Selawik"
+        },
+        "network": {
+          "colo": "ICN",
+          "http": "http/1.1",
+          "loc": "KR",
+          "observer": "python-urllib",
+          "tls": "TLSv1.3",
+          "warp": "off"
+        }
+      }
+    },
+    {
+      "detectorId": "cf07-profile-metadata",
+      "observation": {
+        "cookieHosts": 4,
+        "cookieRows": 37
+      }
+    }
+  ],
+  "schemaVersion": 1,
+  "witness": {
+    "browserBinaryDigest": "sha256:8c599d43aec53f2460a31ae2f4af6bd863f8258b34ff519564bc5d4726bfaa1e",
+    "challengeStanding": null,
+    "controlLayerDigest": "sha256:547e8c4c906e0412cdbe18e29ab8df0eed5c820b71aa59c11625075bb1b7669d",
+    "networkAuthorityDigest": "sha256:3c564303357d180500e528867e132cf73e18a5bb480874abde44fe554c82c9e6",
+    "observations": [
+      {
+        "coverage": "browser TLS/HTTP2 normalized fields from tls.peet.ws; JA3 intentionally excluded",
+        "detectorId": "cf02-transport-normalized",
+        "detectorVersion": "harness-browser-security-r2",
+        "family": "CF02",
+        "observationDigest": "sha256:47dc707165b58b1e9d88ba38e9df64c748e00d982ee1f5b399e4261a5a0893b1"
+      },
+      {
+        "coverage": "main-document request header set/order against local neutral HTTP probe",
+        "detectorId": "cf03-main-document-headers",
+        "detectorVersion": "harness-browser-security-r2",
+        "family": "CF03",
+        "observationDigest": "sha256:911cec6f2a0e6df61e65db90cef9446f8180fc9b64b3aa4b1d3f5d539fa07670"
+      },
+      {
+        "coverage": "page-visible browser identity, automation presentation, geometry and locale",
+        "detectorId": "cf04-browser-js-presentation",
+        "detectorVersion": "harness-browser-security-r2",
+        "family": "CF04",
+        "observationDigest": "sha256:6c79e9411ecb2091391f4a95a09bee7a050430c55869059b20ddb47f7433cfe6"
+      },
+      {
+        "coverage": "CDP Runtime execution-context shape only; protocol-domain subscription state remains uncovered",
+        "detectorId": "cf05-control-observability",
+        "detectorVersion": "harness-browser-security-r2",
+        "family": "CF05",
+        "observationDigest": "sha256:b319d03afbfd21ae176671ef342960166043e59f992e9c09f1ebeb22e8217b40"
+      },
+      {
+        "coverage": "coarse network geography, browser timezone/locale/geometry, and container font resolution",
+        "detectorId": "cf06-cross-layer-consistency",
+        "detectorVersion": "harness-browser-security-r2",
+        "family": "CF06",
+        "observationDigest": "sha256:3b38a905c1742e030b1698eac3249e4cfc68a672a97704146a269bd9eb6ea297"
+      },
+      {
+        "coverage": "non-secret Chrome persistent-profile cookie row and distinct-host counts only",
+        "detectorId": "cf07-profile-metadata",
+        "detectorVersion": "harness-browser-security-r2",
+        "family": "CF07",
+        "observationDigest": "sha256:298920bcea7b7e252f1f62a0223c75f49cfad2da50b3b4e3aa46f39d88e13ca0"
+      }
+    ],
+    "protectedChallengeUsedAsDetectorOracle": false,
+    "schemaVersion": 1,
+    "witnessId": "browserless-prod-carrier11-live-r2-run1-20260918"
+  }
+}

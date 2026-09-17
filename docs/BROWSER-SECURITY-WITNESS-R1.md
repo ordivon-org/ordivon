@@ -133,3 +133,17 @@ fixtures/browser-security/r2-reference-bundle.json
 ```
 
 It covers CF02 through CF08 with the measured normalized transport, request-header order, browser-JS presentation, partial control observability, consistency/font/geometry observations, non-secret profile metadata, and provider outcome. It is a regression/reference artifact, not a claim that any observed field causes a protected-provider challenge.
+
+
+## Live Harness r2 LKG
+
+The first repeatable live collector baseline is sealed separately from the historical R1/R2 research fixture:
+
+```text
+fixtures/browser-security/harness-r2-live-lkg-carrier11-manifest.json
+fixtures/browser-security/harness-r2-live-lkg-carrier11-bundle.json
+```
+
+It was produced by Harness detector version `harness-browser-security-r2` from `chatgpt-carrier-11` without visiting ChatGPT. Two consecutive live observations compared with zero infrastructure, detector, family, or public-field drift. The LKG binds the exact current Chromium binary, Network-v2 authority, Browserless image, and normalized 36-entry effective Chromium launch argv. Ephemeral remote-debugging port values are normalized before the control-layer digest.
+
+This fixture is a regression baseline, not a provider-admissibility baseline and not a causal claim about any challenge.
