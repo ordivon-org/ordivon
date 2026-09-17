@@ -83,6 +83,29 @@ def run(
     return subprocess.run(args, input=input_bytes, capture_output=True, check=check)
 
 
+def systemd_unit_is_masked(unit: str) -> bool:
+    """Observe an operator-owned systemd mask without changing it.
+
+    Instance masks are a higher-level workstation policy boundary. Deployment may converge
+    templates and enabled lanes, but it must not silently resurrect a deliberately masked lane.
+    """
+    proc = run(["/usr/bin/systemctl", "is-enabled", unit], check=False)
+    raw = proc.stdout or b""
+    text = raw.decode(errors="replace") if isinstance(raw, bytes) else str(raw)
+    return text.strip() == "masked"
+
+
+def browser_agent_instance_masked(instance: int) -> bool:
+    return any(
+        systemd_unit_is_masked(unit)
+        for unit in (
+            f"ordivon-browserless@{instance}.service",
+            f"ordivon-browserless-display@{instance}.service",
+            f"ordivon-browserless-operator-proxy@{instance}.service",
+        )
+    )
+
+
 def resolve_network_binding(
     contract_path: Path = ROOT / "config/agent-automation.toml",
     *,
@@ -562,17 +585,23 @@ def apply() -> dict:
         ],
         check=False,
     )
-    run(
-        [
-            "/usr/bin/systemctl",
-            "enable",
-            "--now",
-            *[
-                f"ordivon-browserless-display@{instance}.service"
-                for instance in BROWSER_AGENT_INSTANCES
-            ],
-        ]
+    active_browser_agent_instances = tuple(
+        instance
+        for instance in BROWSER_AGENT_INSTANCES
+        if not browser_agent_instance_masked(instance)
     )
+    if active_browser_agent_instances:
+        run(
+            [
+                "/usr/bin/systemctl",
+                "enable",
+                "--now",
+                *[
+                    f"ordivon-browserless-display@{instance}.service"
+                    for instance in active_browser_agent_instances
+                ],
+            ]
+        )
     run(
         [
             "/usr/bin/systemctl",
@@ -580,11 +609,17 @@ def apply() -> dict:
             "--now",
             *[
                 f"ordivon-browserless-operator-proxy@{instance}.service"
-                for instance in ALL_BROWSERLESS_INSTANCES
+                for instance in CHATGPT_INSTANCES + active_browser_agent_instances
             ],
         ]
     )
-    run(["/usr/bin/systemctl", "enable", "--now", "ordivon-browser-agent.target"])
+    if active_browser_agent_instances == BROWSER_AGENT_INSTANCES:
+        run(["/usr/bin/systemctl", "enable", "--now", "ordivon-browser-agent.target"])
+    else:
+        run(
+            ["/usr/bin/systemctl", "disable", "--now", "ordivon-browser-agent.target"],
+            check=False,
+        )
     return plan(binding)
 
 

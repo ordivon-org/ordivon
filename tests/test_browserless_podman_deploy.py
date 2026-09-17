@@ -1,5 +1,6 @@
 from __future__ import annotations
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -261,6 +262,15 @@ class BrowserlessPodmanDeploymentTests(unittest.TestCase):
         self.assertNotIn(deploy.WEBSOCKIFY_EXECUTABLE_TOKEN, rendered)
         self.assertIn("127.0.0.1:160%i", rendered)
 
+    def test_systemd_mask_observation_preserves_operator_policy(self):
+        import browserless_podman_deploy as deploy
+
+        masked = subprocess.CompletedProcess([], 1, stdout=b"masked\n", stderr=b"")
+        disabled = subprocess.CompletedProcess([], 1, stdout=b"disabled\n", stderr=b"")
+        with mock.patch.object(deploy, "run", side_effect=[masked, disabled]):
+            self.assertTrue(deploy.systemd_unit_is_masked("example@21.service"))
+            self.assertFalse(deploy.systemd_unit_is_masked("example@22.service"))
+
     def test_general_browser_lane_has_static_boot_target(self):
         target = (ROOT / "systemd/ordivon-browser-agent.target").read_text()
         self.assertIn("Requires=ordivon-browserless@21.service", target)
@@ -269,6 +279,8 @@ class BrowserlessPodmanDeploymentTests(unittest.TestCase):
         source = (ROOT / "scripts/browserless_podman_deploy.py").read_text()
         self.assertIn("BROWSER_AGENT_TARGET_DEST", source)
         self.assertIn('enable", "--now", "ordivon-browser-agent.target"', source)
+        self.assertIn('disable", "--now", "ordivon-browser-agent.target"', source)
+        self.assertIn("browser_agent_instance_masked", source)
         self.assertNotIn('enable", "--now", *[f"ordivon-browserless@{instance}.service"', source)
         self.assertIn('"serviceUnit": f"ordivon-browserless@{instance}.service"', source)
         self.assertIn('"disable",', source)
