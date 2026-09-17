@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.agent-service-architecture-delta",
+  "graphId": "ordivon-agent-service-r5-task-runtime-delta",
+  "baseGraph": "knowledge/graphs/ordivon-agent-service-r2.json",
+  "baseImplementationCommit": "1744076b10616d74460c2bb51a428339c4dc2991",
+  "implementedNodes": [
+    {"nodeId":"N05","label":"TaskStore","symbol":"agent_service.task_runtime.TaskStore"},
+    {"nodeId":"N06","label":"AssignmentStore","symbol":"agent_service.task_runtime.AssignmentStore"},
+    {"nodeId":"N11","label":"AssignmentPlanner","symbol":"agent_service.task_runtime.AssignmentPlanner"},
+    {"nodeId":"N13","label":"SemanticVerifier","symbol":"agent_service.task_runtime.SemanticVerifier"},
+    {"nodeId":"N15","label":"AssignmentActivator","symbol":"agent_service.task_runtime.AssignmentActivator"},
+    {"nodeId":"N19","label":"RuntimeAdapter","symbol":"agent_service.runtime_mcp.RuntimeMcpAdapter"}
+  ],
+  "discoveredNodes": [
+    {
+      "nodeId": "N25",
+      "label": "RuntimeJobObserver",
+      "kind": "VERIFIER_OBSERVER",
+      "realization": "RuntimeMcpAdapter.observe",
+      "reason": "R2 N22 ProviderObserver was too broad. Carrier readiness and Runtime Job evidence come from different authorities and have different retry/effect semantics; R5 keeps Runtime Job observation at the Runtime seam rather than merging it with carrier observation."
+    }
+  ],
+  "authorityLaws": [
+    "Agent Task identity is not Runtime Job identity.",
+    "Runtime status=succeeded is mechanical evidence, not Task semantic completion.",
+    "Runtime must project semanticCompletionEvaluated=false; Agent Service owns semantic verification.",
+    "Assignment owns a durable Runtime clientRequestId before Runtime admission.",
+    "Response loss before runtimeJobId persistence replays the same Runtime operation identity.",
+    "Task terminal state and Task semantic event commit atomically."
+  ],
+  "minimalFlow": [
+    "TaskStore",
+    "AssignmentPlanner",
+    "AssignmentStore",
+    "AssignmentActivator",
+    "RuntimeAdapter",
+    "RuntimeJobObserver",
+    "SemanticVerifier",
+    "TaskStore"
+  ],
+  "runtimeProvider": {
+    "transport": "MCP 2026-07-28 stateless HTTP",
+    "submitTool": "workspace.exec",
+    "observeTool": "task.observe",
+    "localEndpointSource": "/etc/ordivon/ordivon-runtime.env",
+    "registryBypass": false
+  },
+  "acceptanceScope": {
+    "r5Kinds": ["stdout_contains", "stdout_equals"],
+    "evidenceSource": "Runtime retained stdout tail plus terminal mechanical fields",
+    "futureExtension": "artifact-backed semantic evidence resolver"
+  }
+}
