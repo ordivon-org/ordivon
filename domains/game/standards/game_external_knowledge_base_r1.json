@@ -3118,16 +3118,23 @@
         "preproduction",
         "feature/character scope",
         "cutting debt",
-        "immersive-sim design"
+        "immersive-sim design",
+        "AI preproduction risk",
+        "borrowed shooter AI foundation",
+        "late requirements discovery"
       ],
       "extractedIdeas": [
         "the team created more than 200 character concepts in preproduction",
         "some later became filler the designers were reluctant to cut after mission/story purposes changed",
-        "failed earlier game proposals still contributed conceptual groundwork without dictating the final implementation"
+        "failed earlier game proposals still contributed conceptual groundwork without dictating the final implementation",
+        "AI was considered early but designed before the game’s actual AI requirements were understood, creating early features that later proved unnecessary",
+        "building on Unreal Tournament shooter AI forced continued additions/tweaks rather than a system tailored to Deus Ex, with NPC behavior changing through the end of development"
       ],
       "candidateUses": [
         "preproduction sunk-cost counterexample",
-        "failed-proposal salvage pattern"
+        "failed-proposal salvage pattern",
+        "AI requirements-before-capability counterexample",
+        "borrowed-foundation patch-debt counterexample"
       ],
       "evidenceLimit": "Primary retrospective many years after development; establishes the speaker’s account, with normal retrospective-memory limitations."
     },
@@ -3610,6 +3617,70 @@
         "procgen control probe"
       ],
       "evidenceLimit": "Primary developer account of one map generator; does not establish unified expression systems as universally preferable."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "gamedeveloper-thief-postmortem",
+      "title": "Postmortem: Thief: The Dark Project",
+      "organization": "Looking Glass Studios / Tom Leonard",
+      "url": "https://www.gamedeveloper.com/design/postmortem-i-thief-the-dark-project-i-",
+      "scope": [
+        "AI architecture",
+        "stealth requirements",
+        "late rewrite",
+        "project risk"
+      ],
+      "extractedIdeas": [
+        "the AI decision model was built before the revised stealth design was sufficiently defined and embodied assumptions closer to an action/fighting game",
+        "the team initially treated AI problems as bugs in a sound architecture, then later concluded the architecture required a rewrite",
+        "the late rewrite discarded most of the original AI implementation and the postmortem argues the decision should have happened materially earlier"
+      ],
+      "candidateUses": [
+        "AI-requirements mismatch counterexample",
+        "delayed-rewrite counterexample",
+        "repair-vs-replacement discriminator"
+      ],
+      "evidenceLimit": "Primary postmortem by Thief lead programmer Tom Leonard; retrospective timing estimates and causal interpretations remain project-specific and subject to normal retrospective limitations."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "gamedeveloper-odyssey-immortals-ai-planning",
+      "title": "Postmortem: AI action planning on Assassin's Creed Odyssey and Immortals Fenyx Rising",
+      "organization": "Ubisoft Quebec / Simon Girard",
+      "url": "https://www.gamedeveloper.com/programming/postmortem-ai-action-planning-on-assassins-creed-odyssey-and-immortals-fenyx-rising-",
+      "scope": [
+        "GOAP",
+        "Meta AI authority",
+        "legacy behavior migration",
+        "planner pruning",
+        "pacing/variety",
+        "single-pipeline convergence"
+      ],
+      "extractedIdeas": [
+        "planner and Meta AI could issue competing behavior control to the same NPC at system frontiers",
+        "wrapping complex legacy behaviors as planner Actions sped migration but violated intended modularity and left gameplay-specific coupling in blackboards/core code",
+        "aggressive pre-pruning to the nearest Smart Object could remove context needed for globally better plans and was relaxed in Immortals",
+        "random dynamic action costs became theoretically inconsistent once costs were recalculated during planning; Immortals largely replaced random with last-execution-time cost shaping for pacing",
+        "trying to converge all AI pillars onto one planner pipeline too early failed when naval and other pillars needed capabilities/timing the planner did not yet support"
+      ],
+      "candidateUses": [
+        "AI authority-boundary counterexample",
+        "migration-coupling counterexample",
+        "local-pruning global-plan counterexample",
+        "planner-consistency counterexample",
+        "premature pipeline convergence counterexample"
+      ],
+      "evidenceLimit": "Primary technical postmortem by Ubisoft AI programmer Simon Girard; lessons are grounded in Odyssey/Immortals production and do not establish GOAP or unified AI pipelines as generally good or bad."
     }
   ],
   "gaps": {

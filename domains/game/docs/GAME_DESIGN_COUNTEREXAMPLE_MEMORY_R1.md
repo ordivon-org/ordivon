@@ -33,7 +33,7 @@ What apparent constraint unexpectedly expanded the search space?
 
 This is not an anti-pattern catalog and not a ranking of bad decisions. Failure is contextual evidence.
 
-Current R1 contains **35 counterexamples across 25 reference projects**, including cancelled projects, multiplayer/social-system boundaries, economy and currency rollbacks, procedural-generation rewrites, shipped-product relaunches, live-service rollbacks, foundation reversals, late rewrites, planning-process failures, product-viability mismatches and cases where useful work was salvaged after cancellation.
+Current R1 contains **44 counterexamples across 28 reference projects**, including AI architecture failures, cancelled projects, multiplayer/social-system boundaries, economy and currency rollbacks, procedural-generation rewrites, shipped-product relaunches, live-service rollbacks, foundation reversals, late rewrites, planning-process failures, product-viability mismatches and cases where useful work was salvaged after cancellation.
 
 ## Record shape
 
@@ -122,6 +122,30 @@ Destiny 2's Unstable Cores are retained because Bungie explicitly judged them re
 ### Procedural abstraction can fail in both directions
 
 Factorio supplies both sides. Its noise compiler removed an over-clever procedure/deduplication abstraction when dependency machinery outweighed the reuse; elsewhere its fragmented terrain/resource placement representations were unified because cross-cutting generation constraints were hard to express. “Simpler” and “more unified” are therefore context-dependent responses, not opposing laws.
+
+### AI capability can arrive before its requirement
+
+Deus Ex and Thief are retained as requirement-timing counterexamples. Both projects began important AI work before the eventual interaction requirements were sufficiently stable. Deus Ex accumulated unnecessary features and adaptation around a shooter-oriented foundation; Thief later concluded that its early decision architecture did not fit the stealth game it had become. The transferable question is not whether AI should start early, but whether early work is bound to a stable observation/action/consequence contract.
+
+### Rewrite aversion can become its own failure mode
+
+Thief is also retained because the team initially interpreted repeated AI problems as bugs in an otherwise sound architecture and only later replaced most of it. This does not make rewrites preferable. It makes repair-versus-replacement a dependency-closure question rather than a standing cultural rule.
+
+### Multiple AI systems need an explicit consequence-authority boundary
+
+Assassin's Creed Odyssey is retained because Meta AI and the high-LOD GOAP planner could both try to drive the same NPC near subsystem boundaries. The counterexample does not require one global AI system; it asks whether more than one system can commit overlapping behavior without an explicit handoff.
+
+### Migration can preserve the coupling it was meant to remove
+
+Odyssey's GOAP migration is retained because wrapping complex legacy behaviors as planner Actions preserved production continuity but violated the new system's intended modularity and leaked game-specific concepts into blackboards/core code. Interface conformity is therefore not sufficient evidence of decoupling.
+
+### Planner optimizations must preserve planner invariants
+
+Immortals Fenyx Rising supplies two different counterexamples. Dynamic re-evaluation turned random action-cost noise into an inconsistent scoring mechanism, while aggressive nearest-object pre-pruning could discard candidates whose value only became clear in later plan steps. These records condition random variety and local pruning; they do not blacklist either technique.
+
+### Architectural convergence has a timing problem
+
+Odyssey's attempt to put multiple AI pillars under one planner is retained as a premature-convergence case: naval AI and the shared planner evolved in parallel, so the common capabilities were not ready when consumers needed them. The counterexample favors proving a shared contract before mandating a single pipeline, not permanent specialization.
 
 ## Relationship to Experience and Relationship Memory
 

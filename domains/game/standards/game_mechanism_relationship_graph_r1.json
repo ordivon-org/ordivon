@@ -4,7 +4,7 @@
   "generatedOn": "2026-09-18",
   "sourceLibrary": {
     "path": "standards/game_mechanism_experience_library_r1.json",
-    "digest": "sha256:b19ff73ad4aa415bfe5941f2cb7b1b80b6a9d4be6fb9cf130dfa03a1e3b1fe6b",
+    "digest": "sha256:8337e678811fc93b6dc6e34047c99e5cda427f213a5533737ced814fae6fc431",
     "libraryId": "ordivon-game-mechanism-experience-library-r1"
   },
   "sourceSpec": {
@@ -22,6 +22,21 @@
     "conditionalitySemantics": "Conditionalities preserve apparent conflicts and context distinctions; they suggest discriminating experiments rather than verdicts."
   },
   "mechanismNodes": [
+    {
+      "id": "action-game-assumptions",
+      "experienceRefs": [
+        "exp.thief.ai-built-before-stealth-requirements-mismatched-core"
+      ],
+      "referenceGames": [
+        "Thief: The Dark Project"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
     {
       "id": "active-player-population",
       "experienceRefs": [
@@ -278,6 +293,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "borrowed-shooter-ai",
+      "experienceRefs": [
+        "exp.deusex.borrowed-shooter-ai-foundation-created-patch-debt"
+      ],
+      "referenceGames": [
+        "Deus Ex"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "bounded-dlc-scope",
       "experienceRefs": [
         "exp.mooncrash.franchise-form-not-sacred"
@@ -338,6 +368,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "bug-fixing",
+      "experienceRefs": [
+        "exp.thief.delayed-ai-rewrite-amplified-cost"
+      ],
+      "referenceGames": [
+        "Thief: The Dark Project"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "buildcraft-decision",
       "experienceRefs": [
         "exp.destiny2.unstable-cores-friction-without-buildcraft"
@@ -377,6 +422,21 @@
       ],
       "relationKinds": [
         "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "capability-timing",
+      "experienceRefs": [
+        "exp.odyssey.single-ai-pipeline-premature-convergence"
+      ],
+      "referenceGames": [
+        "Assassin's Creed Odyssey"
+      ],
+      "relationKinds": [
+        "TENSION"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -713,6 +773,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "complex-actions",
+      "experienceRefs": [
+        "exp.odyssey.legacy-complex-actions-preserved-coupling"
+      ],
+      "referenceGames": [
+        "Assassin's Creed Odyssey"
+      ],
+      "relationKinds": [
+        "TENSION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "composable-grammar",
       "experienceRefs": [
         "exp.baba.data-structure-enables-design-space"
@@ -1013,6 +1088,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "core-interaction-risk",
+      "experienceRefs": [
+        "exp.thief.ai-built-before-stealth-requirements-mismatched-core"
+      ],
+      "referenceGames": [
+        "Thief: The Dark Project"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "core-spikes",
       "experienceRefs": [
         "exp.subnautica.double-down-core-spikes"
@@ -1208,6 +1298,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "decision-model-mismatch",
+      "experienceRefs": [
+        "exp.thief.ai-built-before-stealth-requirements-mismatched-core"
+      ],
+      "referenceGames": [
+        "Thief: The Dark Project"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "deduction-state",
       "experienceRefs": [
         "exp.obradinn.book-as-information-index"
@@ -1388,12 +1493,42 @@
       "closedVocabulary": false
     },
     {
+      "id": "dual-behavior-authority",
+      "experienceRefs": [
+        "exp.odyssey.planner-meta-ai-dual-authority-conflict"
+      ],
+      "referenceGames": [
+        "Assassin's Creed Odyssey"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "duplicate-controls",
       "experienceRefs": [
         "exp.factorio.gui-duplication-and-nested-tabs"
       ],
       "referenceGames": [
         "Factorio"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "dynamic-cost-recalculation",
+      "experienceRefs": [
+        "exp.immortals.random-action-cost-broke-planner-consistency"
+      ],
+      "referenceGames": [
+        "Immortals Fenyx Rising"
       ],
       "relationKinds": [
         "FAILURE_MODE"
@@ -1412,6 +1547,51 @@
       ],
       "relationKinds": [
         "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "early-ai-architecture",
+      "experienceRefs": [
+        "exp.thief.ai-built-before-stealth-requirements-mismatched-core"
+      ],
+      "referenceGames": [
+        "Thief: The Dark Project"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "early-ai-implementation",
+      "experienceRefs": [
+        "exp.deusex.ai-capability-before-requirement-created-waste"
+      ],
+      "referenceGames": [
+        "Deus Ex"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "early-candidate-pruning",
+      "experienceRefs": [
+        "exp.immortals.early-smart-object-pruning-lost-plan-context"
+      ],
+      "referenceGames": [
+        "Immortals Fenyx Rising"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -1883,6 +2063,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "foundation-mismatch",
+      "experienceRefs": [
+        "exp.deusex.borrowed-shooter-ai-foundation-created-patch-debt"
+      ],
+      "referenceGames": [
+        "Deus Ex"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "foundation-rebuild",
       "experienceRefs": [
         "exp.ffxiv.relaunch-instead-of-patching-failed-foundation"
@@ -2078,6 +2273,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "game-specific-blackboard",
+      "experienceRefs": [
+        "exp.odyssey.legacy-complex-actions-preserved-coupling"
+      ],
+      "referenceGames": [
+        "Assassin's Creed Odyssey"
+      ],
+      "relationKinds": [
+        "TENSION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "generated-history",
       "experienceRefs": [
         "exp.dwarffortress.procgen-changes-system-design"
@@ -2144,6 +2354,81 @@
       ],
       "referenceGames": [
         "Diablo III"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "global-plan-context",
+      "experienceRefs": [
+        "exp.immortals.early-smart-object-pruning-lost-plan-context"
+      ],
+      "referenceGames": [
+        "Immortals Fenyx Rising"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "goap-action-cost",
+      "experienceRefs": [
+        "exp.immortals.random-action-cost-broke-planner-consistency"
+      ],
+      "referenceGames": [
+        "Immortals Fenyx Rising"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "goap-actions",
+      "experienceRefs": [
+        "exp.odyssey.legacy-complex-actions-preserved-coupling"
+      ],
+      "referenceGames": [
+        "Assassin's Creed Odyssey"
+      ],
+      "relationKinds": [
+        "TENSION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "goap-convergence",
+      "experienceRefs": [
+        "exp.odyssey.single-ai-pipeline-premature-convergence"
+      ],
+      "referenceGames": [
+        "Assassin's Creed Odyssey"
+      ],
+      "relationKinds": [
+        "TENSION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "goap-planner",
+      "experienceRefs": [
+        "exp.odyssey.planner-meta-ai-dual-authority-conflict"
+      ],
+      "referenceGames": [
+        "Assassin's Creed Odyssey"
       ],
       "relationKinds": [
         "FAILURE_MODE"
@@ -2303,6 +2588,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "history-aware-pacing",
+      "experienceRefs": [
+        "exp.immortals.random-action-cost-broke-planner-consistency"
+      ],
+      "referenceGames": [
+        "Immortals Fenyx Rising"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "hub-return",
       "experienceRefs": [
         "exp.hades.failure-return-reactivity"
@@ -2402,6 +2702,21 @@
       ],
       "relationKinds": [
         "REPRESENTATION_COUPLING"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "immersive-sim-behavior",
+      "experienceRefs": [
+        "exp.deusex.borrowed-shooter-ai-foundation-created-patch-debt"
+      ],
+      "referenceGames": [
+        "Deus Ex"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -2693,12 +3008,42 @@
       "closedVocabulary": false
     },
     {
+      "id": "late-behavior-churn",
+      "experienceRefs": [
+        "exp.deusex.borrowed-shooter-ai-foundation-created-patch-debt"
+      ],
+      "referenceGames": [
+        "Deus Ex"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "late-multiplayer-addition",
       "experienceRefs": [
         "exp.subnautica.multiplayer-late-addition-crosscuts-architecture"
       ],
       "referenceGames": [
         "Subnautica"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "late-requirement-discovery",
+      "experienceRefs": [
+        "exp.deusex.ai-capability-before-requirement-created-waste"
+      ],
+      "referenceGames": [
+        "Deus Ex"
       ],
       "relationKinds": [
         "FAILURE_MODE"
@@ -2762,6 +3107,21 @@
       ],
       "relationKinds": [
         "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "legacy-state-machines",
+      "experienceRefs": [
+        "exp.odyssey.legacy-complex-actions-preserved-coupling"
+      ],
+      "referenceGames": [
+        "Assassin's Creed Odyssey"
+      ],
+      "relationKinds": [
+        "TENSION"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -2882,6 +3242,21 @@
       ],
       "relationKinds": [
         "SYNERGY"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "lod-boundary",
+      "experienceRefs": [
+        "exp.odyssey.planner-meta-ai-dual-authority-conflict"
+      ],
+      "referenceGames": [
+        "Assassin's Creed Odyssey"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -3083,6 +3458,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "meta-ai",
+      "experienceRefs": [
+        "exp.odyssey.planner-meta-ai-dual-authority-conflict"
+      ],
+      "referenceGames": [
+        "Assassin's Creed Odyssey"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "meta-progression",
       "experienceRefs": [
         "exp.againststorm.genre-recombination"
@@ -3092,6 +3482,21 @@
       ],
       "relationKinds": [
         "SYNERGY"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "migration-shortcut",
+      "experienceRefs": [
+        "exp.odyssey.legacy-complex-actions-preserved-coupling"
+      ],
+      "referenceGames": [
+        "Assassin's Creed Odyssey"
+      ],
+      "relationKinds": [
+        "TENSION"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -3122,6 +3527,21 @@
       ],
       "relationKinds": [
         "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "modularity-violation",
+      "experienceRefs": [
+        "exp.odyssey.legacy-complex-actions-preserved-coupling"
+      ],
+      "referenceGames": [
+        "Assassin's Creed Odyssey"
+      ],
+      "relationKinds": [
+        "TENSION"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -3218,6 +3638,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "naval-ai",
+      "experienceRefs": [
+        "exp.odyssey.single-ai-pipeline-premature-convergence"
+      ],
+      "referenceGames": [
+        "Assassin's Creed Odyssey"
+      ],
+      "relationKinds": [
+        "TENSION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "near-complete-playable",
       "experienceRefs": [
         "exp.belowzero.playable-whole-story-mismatch-reset"
@@ -3227,6 +3662,21 @@
       ],
       "relationKinds": [
         "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "nearest-object-heuristic",
+      "experienceRefs": [
+        "exp.immortals.early-smart-object-pruning-lost-plan-context"
+      ],
+      "referenceGames": [
+        "Immortals Fenyx Rising"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -3413,6 +3863,36 @@
       "closedVocabulary": false
     },
     {
+      "id": "npc-control-interruption",
+      "experienceRefs": [
+        "exp.odyssey.planner-meta-ai-dual-authority-conflict"
+      ],
+      "referenceGames": [
+        "Assassin's Creed Odyssey"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "npc-double-back",
+      "experienceRefs": [
+        "exp.immortals.early-smart-object-pruning-lost-plan-context"
+      ],
+      "referenceGames": [
+        "Immortals Fenyx Rising"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "onboarding-success",
       "experienceRefs": [
         "exp.factorio.demo-goal-success-product-mismatch"
@@ -3578,6 +4058,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "parallel-feature-development",
+      "experienceRefs": [
+        "exp.odyssey.single-ai-pipeline-premature-convergence"
+      ],
+      "referenceGames": [
+        "Assassin's Creed Odyssey"
+      ],
+      "relationKinds": [
+        "TENSION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "parallel-replacement",
       "experienceRefs": [
         "exp.ffxiv.relaunch-instead-of-patching-failed-foundation"
@@ -3602,6 +4097,21 @@
       ],
       "relationKinds": [
         "SYNERGY"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "patch-debt",
+      "experienceRefs": [
+        "exp.deusex.borrowed-shooter-ai-foundation-created-patch-debt"
+      ],
+      "referenceGames": [
+        "Deus Ex"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -3752,6 +4262,21 @@
       ],
       "relationKinds": [
         "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "planner-consistency",
+      "experienceRefs": [
+        "exp.immortals.random-action-cost-broke-planner-consistency"
+      ],
+      "referenceGames": [
+        "Immortals Fenyx Rising"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -4253,6 +4778,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "random-variety",
+      "experienceRefs": [
+        "exp.immortals.random-action-cost-broke-planner-consistency"
+      ],
+      "referenceGames": [
+        "Immortals Fenyx Rising"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "rapid-prototyping",
       "experienceRefs": [
         "exp.mariowonder.idea-pool-to-prototypes"
@@ -4478,6 +5018,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "replacement-slice",
+      "experienceRefs": [
+        "exp.thief.delayed-ai-rewrite-amplified-cost"
+      ],
+      "referenceGames": [
+        "Thief: The Dark Project"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "replay-variation",
       "experienceRefs": [
         "exp.itb.rng-boundary",
@@ -4600,6 +5155,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "rewrite-delay",
+      "experienceRefs": [
+        "exp.thief.delayed-ai-rewrite-amplified-cost"
+      ],
+      "referenceGames": [
+        "Thief: The Dark Project"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "rich-world-affordances",
       "experienceRefs": [
         "exp.totk.ability-world-multiplication"
@@ -4609,6 +5179,21 @@
       ],
       "relationKinds": [
         "SYNERGY"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "risk-frontloading",
+      "experienceRefs": [
+        "exp.deusex.ai-capability-before-requirement-created-waste"
+      ],
+      "referenceGames": [
+        "Deus Ex"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -5097,6 +5682,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "single-ai-pipeline",
+      "experienceRefs": [
+        "exp.odyssey.single-ai-pipeline-premature-convergence"
+      ],
+      "referenceGames": [
+        "Assassin's Creed Odyssey"
+      ],
+      "relationKinds": [
+        "TENSION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "single-player-commitment",
       "experienceRefs": [
         "exp.subnautica.multiplayer-late-addition-crosscuts-architecture"
@@ -5181,6 +5781,21 @@
       ],
       "relationKinds": [
         "TENSION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "smart-objects",
+      "experienceRefs": [
+        "exp.immortals.early-smart-object-pruning-lost-plan-context"
+      ],
+      "referenceGames": [
+        "Immortals Fenyx Rising"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -5307,6 +5922,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "specialized-pipelines",
+      "experienceRefs": [
+        "exp.odyssey.single-ai-pipeline-premature-convergence"
+      ],
+      "referenceGames": [
+        "Assassin's Creed Odyssey"
+      ],
+      "relationKinds": [
+        "TENSION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "staged-deployment",
       "experienceRefs": [
         "exp.r6.health-over-content-cadence"
@@ -5331,6 +5961,21 @@
       ],
       "relationKinds": [
         "SYNERGY"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "stealth-gameplay",
+      "experienceRefs": [
+        "exp.thief.ai-built-before-stealth-requirements-mismatched-core"
+      ],
+      "referenceGames": [
+        "Thief: The Dark Project"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -5457,6 +6102,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "sunk-repair-cost",
+      "experienceRefs": [
+        "exp.thief.delayed-ai-rewrite-amplified-cost"
+      ],
+      "referenceGames": [
+        "Thief: The Dark Project"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "surprise-events",
       "experienceRefs": [
         "exp.mariowonder.theme-driven-transformation"
@@ -5523,6 +6183,21 @@
       ],
       "referenceGames": [
         "Subnautica: Below Zero"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "suspect-ai-architecture",
+      "experienceRefs": [
+        "exp.thief.delayed-ai-rewrite-amplified-cost"
+      ],
+      "referenceGames": [
+        "Thief: The Dark Project"
       ],
       "relationKinds": [
         "PRODUCTION_RESPONSE"
@@ -6003,6 +6678,36 @@
       ],
       "referenceGames": [
         "RimWorld"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "unstable-gameplay-requirements",
+      "experienceRefs": [
+        "exp.deusex.ai-capability-before-requirement-created-waste"
+      ],
+      "referenceGames": [
+        "Deus Ex"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "unused-ai-features",
+      "experienceRefs": [
+        "exp.deusex.ai-capability-before-requirement-created-waste"
+      ],
+      "referenceGames": [
+        "Deus Ex"
       ],
       "relationKinds": [
         "FAILURE_MODE"
@@ -13831,6 +14536,1106 @@
       "experienceRef": "exp.factorio.autoplace-fragmented-generator-to-unified-expression",
       "referenceGame": "Factorio",
       "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.deusex.ai-capability-before-requirement-created-waste.early-ai-implementation::unstable-gameplay-requirements",
+      "a": "early-ai-implementation",
+      "b": "unstable-gameplay-requirements",
+      "experienceRef": "exp.deusex.ai-capability-before-requirement-created-waste",
+      "referenceGame": "Deus Ex",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.deusex.ai-capability-before-requirement-created-waste.early-ai-implementation::unused-ai-features",
+      "a": "early-ai-implementation",
+      "b": "unused-ai-features",
+      "experienceRef": "exp.deusex.ai-capability-before-requirement-created-waste",
+      "referenceGame": "Deus Ex",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.deusex.ai-capability-before-requirement-created-waste.early-ai-implementation::risk-frontloading",
+      "a": "early-ai-implementation",
+      "b": "risk-frontloading",
+      "experienceRef": "exp.deusex.ai-capability-before-requirement-created-waste",
+      "referenceGame": "Deus Ex",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.deusex.ai-capability-before-requirement-created-waste.early-ai-implementation::late-requirement-discovery",
+      "a": "early-ai-implementation",
+      "b": "late-requirement-discovery",
+      "experienceRef": "exp.deusex.ai-capability-before-requirement-created-waste",
+      "referenceGame": "Deus Ex",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.deusex.ai-capability-before-requirement-created-waste.unstable-gameplay-requirements::unused-ai-features",
+      "a": "unstable-gameplay-requirements",
+      "b": "unused-ai-features",
+      "experienceRef": "exp.deusex.ai-capability-before-requirement-created-waste",
+      "referenceGame": "Deus Ex",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.deusex.ai-capability-before-requirement-created-waste.risk-frontloading::unstable-gameplay-requirements",
+      "a": "risk-frontloading",
+      "b": "unstable-gameplay-requirements",
+      "experienceRef": "exp.deusex.ai-capability-before-requirement-created-waste",
+      "referenceGame": "Deus Ex",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.deusex.ai-capability-before-requirement-created-waste.late-requirement-discovery::unstable-gameplay-requirements",
+      "a": "late-requirement-discovery",
+      "b": "unstable-gameplay-requirements",
+      "experienceRef": "exp.deusex.ai-capability-before-requirement-created-waste",
+      "referenceGame": "Deus Ex",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.deusex.ai-capability-before-requirement-created-waste.risk-frontloading::unused-ai-features",
+      "a": "risk-frontloading",
+      "b": "unused-ai-features",
+      "experienceRef": "exp.deusex.ai-capability-before-requirement-created-waste",
+      "referenceGame": "Deus Ex",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.deusex.ai-capability-before-requirement-created-waste.late-requirement-discovery::unused-ai-features",
+      "a": "late-requirement-discovery",
+      "b": "unused-ai-features",
+      "experienceRef": "exp.deusex.ai-capability-before-requirement-created-waste",
+      "referenceGame": "Deus Ex",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.deusex.ai-capability-before-requirement-created-waste.late-requirement-discovery::risk-frontloading",
+      "a": "late-requirement-discovery",
+      "b": "risk-frontloading",
+      "experienceRef": "exp.deusex.ai-capability-before-requirement-created-waste",
+      "referenceGame": "Deus Ex",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.deusex.borrowed-shooter-ai-foundation-created-patch-debt.borrowed-shooter-ai::immersive-sim-behavior",
+      "a": "borrowed-shooter-ai",
+      "b": "immersive-sim-behavior",
+      "experienceRef": "exp.deusex.borrowed-shooter-ai-foundation-created-patch-debt",
+      "referenceGame": "Deus Ex",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.deusex.borrowed-shooter-ai-foundation-created-patch-debt.borrowed-shooter-ai::foundation-mismatch",
+      "a": "borrowed-shooter-ai",
+      "b": "foundation-mismatch",
+      "experienceRef": "exp.deusex.borrowed-shooter-ai-foundation-created-patch-debt",
+      "referenceGame": "Deus Ex",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.deusex.borrowed-shooter-ai-foundation-created-patch-debt.borrowed-shooter-ai::patch-debt",
+      "a": "borrowed-shooter-ai",
+      "b": "patch-debt",
+      "experienceRef": "exp.deusex.borrowed-shooter-ai-foundation-created-patch-debt",
+      "referenceGame": "Deus Ex",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.deusex.borrowed-shooter-ai-foundation-created-patch-debt.borrowed-shooter-ai::late-behavior-churn",
+      "a": "borrowed-shooter-ai",
+      "b": "late-behavior-churn",
+      "experienceRef": "exp.deusex.borrowed-shooter-ai-foundation-created-patch-debt",
+      "referenceGame": "Deus Ex",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.deusex.borrowed-shooter-ai-foundation-created-patch-debt.foundation-mismatch::immersive-sim-behavior",
+      "a": "foundation-mismatch",
+      "b": "immersive-sim-behavior",
+      "experienceRef": "exp.deusex.borrowed-shooter-ai-foundation-created-patch-debt",
+      "referenceGame": "Deus Ex",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.deusex.borrowed-shooter-ai-foundation-created-patch-debt.immersive-sim-behavior::patch-debt",
+      "a": "immersive-sim-behavior",
+      "b": "patch-debt",
+      "experienceRef": "exp.deusex.borrowed-shooter-ai-foundation-created-patch-debt",
+      "referenceGame": "Deus Ex",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.deusex.borrowed-shooter-ai-foundation-created-patch-debt.immersive-sim-behavior::late-behavior-churn",
+      "a": "immersive-sim-behavior",
+      "b": "late-behavior-churn",
+      "experienceRef": "exp.deusex.borrowed-shooter-ai-foundation-created-patch-debt",
+      "referenceGame": "Deus Ex",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.deusex.borrowed-shooter-ai-foundation-created-patch-debt.foundation-mismatch::patch-debt",
+      "a": "foundation-mismatch",
+      "b": "patch-debt",
+      "experienceRef": "exp.deusex.borrowed-shooter-ai-foundation-created-patch-debt",
+      "referenceGame": "Deus Ex",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.deusex.borrowed-shooter-ai-foundation-created-patch-debt.foundation-mismatch::late-behavior-churn",
+      "a": "foundation-mismatch",
+      "b": "late-behavior-churn",
+      "experienceRef": "exp.deusex.borrowed-shooter-ai-foundation-created-patch-debt",
+      "referenceGame": "Deus Ex",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.deusex.borrowed-shooter-ai-foundation-created-patch-debt.late-behavior-churn::patch-debt",
+      "a": "late-behavior-churn",
+      "b": "patch-debt",
+      "experienceRef": "exp.deusex.borrowed-shooter-ai-foundation-created-patch-debt",
+      "referenceGame": "Deus Ex",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.thief.ai-built-before-stealth-requirements-mismatched-core.early-ai-architecture::stealth-gameplay",
+      "a": "early-ai-architecture",
+      "b": "stealth-gameplay",
+      "experienceRef": "exp.thief.ai-built-before-stealth-requirements-mismatched-core",
+      "referenceGame": "Thief: The Dark Project",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.thief.ai-built-before-stealth-requirements-mismatched-core.action-game-assumptions::early-ai-architecture",
+      "a": "action-game-assumptions",
+      "b": "early-ai-architecture",
+      "experienceRef": "exp.thief.ai-built-before-stealth-requirements-mismatched-core",
+      "referenceGame": "Thief: The Dark Project",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.thief.ai-built-before-stealth-requirements-mismatched-core.decision-model-mismatch::early-ai-architecture",
+      "a": "decision-model-mismatch",
+      "b": "early-ai-architecture",
+      "experienceRef": "exp.thief.ai-built-before-stealth-requirements-mismatched-core",
+      "referenceGame": "Thief: The Dark Project",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.thief.ai-built-before-stealth-requirements-mismatched-core.core-interaction-risk::early-ai-architecture",
+      "a": "core-interaction-risk",
+      "b": "early-ai-architecture",
+      "experienceRef": "exp.thief.ai-built-before-stealth-requirements-mismatched-core",
+      "referenceGame": "Thief: The Dark Project",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.thief.ai-built-before-stealth-requirements-mismatched-core.action-game-assumptions::stealth-gameplay",
+      "a": "action-game-assumptions",
+      "b": "stealth-gameplay",
+      "experienceRef": "exp.thief.ai-built-before-stealth-requirements-mismatched-core",
+      "referenceGame": "Thief: The Dark Project",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.thief.ai-built-before-stealth-requirements-mismatched-core.decision-model-mismatch::stealth-gameplay",
+      "a": "decision-model-mismatch",
+      "b": "stealth-gameplay",
+      "experienceRef": "exp.thief.ai-built-before-stealth-requirements-mismatched-core",
+      "referenceGame": "Thief: The Dark Project",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.thief.ai-built-before-stealth-requirements-mismatched-core.core-interaction-risk::stealth-gameplay",
+      "a": "core-interaction-risk",
+      "b": "stealth-gameplay",
+      "experienceRef": "exp.thief.ai-built-before-stealth-requirements-mismatched-core",
+      "referenceGame": "Thief: The Dark Project",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.thief.ai-built-before-stealth-requirements-mismatched-core.action-game-assumptions::decision-model-mismatch",
+      "a": "action-game-assumptions",
+      "b": "decision-model-mismatch",
+      "experienceRef": "exp.thief.ai-built-before-stealth-requirements-mismatched-core",
+      "referenceGame": "Thief: The Dark Project",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.thief.ai-built-before-stealth-requirements-mismatched-core.action-game-assumptions::core-interaction-risk",
+      "a": "action-game-assumptions",
+      "b": "core-interaction-risk",
+      "experienceRef": "exp.thief.ai-built-before-stealth-requirements-mismatched-core",
+      "referenceGame": "Thief: The Dark Project",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.thief.ai-built-before-stealth-requirements-mismatched-core.core-interaction-risk::decision-model-mismatch",
+      "a": "core-interaction-risk",
+      "b": "decision-model-mismatch",
+      "experienceRef": "exp.thief.ai-built-before-stealth-requirements-mismatched-core",
+      "referenceGame": "Thief: The Dark Project",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.thief.delayed-ai-rewrite-amplified-cost.bug-fixing::suspect-ai-architecture",
+      "a": "bug-fixing",
+      "b": "suspect-ai-architecture",
+      "experienceRef": "exp.thief.delayed-ai-rewrite-amplified-cost",
+      "referenceGame": "Thief: The Dark Project",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.thief.delayed-ai-rewrite-amplified-cost.rewrite-delay::suspect-ai-architecture",
+      "a": "rewrite-delay",
+      "b": "suspect-ai-architecture",
+      "experienceRef": "exp.thief.delayed-ai-rewrite-amplified-cost",
+      "referenceGame": "Thief: The Dark Project",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.thief.delayed-ai-rewrite-amplified-cost.replacement-slice::suspect-ai-architecture",
+      "a": "replacement-slice",
+      "b": "suspect-ai-architecture",
+      "experienceRef": "exp.thief.delayed-ai-rewrite-amplified-cost",
+      "referenceGame": "Thief: The Dark Project",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.thief.delayed-ai-rewrite-amplified-cost.sunk-repair-cost::suspect-ai-architecture",
+      "a": "sunk-repair-cost",
+      "b": "suspect-ai-architecture",
+      "experienceRef": "exp.thief.delayed-ai-rewrite-amplified-cost",
+      "referenceGame": "Thief: The Dark Project",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.thief.delayed-ai-rewrite-amplified-cost.bug-fixing::rewrite-delay",
+      "a": "bug-fixing",
+      "b": "rewrite-delay",
+      "experienceRef": "exp.thief.delayed-ai-rewrite-amplified-cost",
+      "referenceGame": "Thief: The Dark Project",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.thief.delayed-ai-rewrite-amplified-cost.bug-fixing::replacement-slice",
+      "a": "bug-fixing",
+      "b": "replacement-slice",
+      "experienceRef": "exp.thief.delayed-ai-rewrite-amplified-cost",
+      "referenceGame": "Thief: The Dark Project",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.thief.delayed-ai-rewrite-amplified-cost.bug-fixing::sunk-repair-cost",
+      "a": "bug-fixing",
+      "b": "sunk-repair-cost",
+      "experienceRef": "exp.thief.delayed-ai-rewrite-amplified-cost",
+      "referenceGame": "Thief: The Dark Project",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.thief.delayed-ai-rewrite-amplified-cost.replacement-slice::rewrite-delay",
+      "a": "replacement-slice",
+      "b": "rewrite-delay",
+      "experienceRef": "exp.thief.delayed-ai-rewrite-amplified-cost",
+      "referenceGame": "Thief: The Dark Project",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.thief.delayed-ai-rewrite-amplified-cost.rewrite-delay::sunk-repair-cost",
+      "a": "rewrite-delay",
+      "b": "sunk-repair-cost",
+      "experienceRef": "exp.thief.delayed-ai-rewrite-amplified-cost",
+      "referenceGame": "Thief: The Dark Project",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.thief.delayed-ai-rewrite-amplified-cost.replacement-slice::sunk-repair-cost",
+      "a": "replacement-slice",
+      "b": "sunk-repair-cost",
+      "experienceRef": "exp.thief.delayed-ai-rewrite-amplified-cost",
+      "referenceGame": "Thief: The Dark Project",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.planner-meta-ai-dual-authority-conflict.goap-planner::meta-ai",
+      "a": "goap-planner",
+      "b": "meta-ai",
+      "experienceRef": "exp.odyssey.planner-meta-ai-dual-authority-conflict",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.planner-meta-ai-dual-authority-conflict.dual-behavior-authority::goap-planner",
+      "a": "dual-behavior-authority",
+      "b": "goap-planner",
+      "experienceRef": "exp.odyssey.planner-meta-ai-dual-authority-conflict",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.planner-meta-ai-dual-authority-conflict.goap-planner::npc-control-interruption",
+      "a": "goap-planner",
+      "b": "npc-control-interruption",
+      "experienceRef": "exp.odyssey.planner-meta-ai-dual-authority-conflict",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.planner-meta-ai-dual-authority-conflict.goap-planner::lod-boundary",
+      "a": "goap-planner",
+      "b": "lod-boundary",
+      "experienceRef": "exp.odyssey.planner-meta-ai-dual-authority-conflict",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.planner-meta-ai-dual-authority-conflict.dual-behavior-authority::meta-ai",
+      "a": "dual-behavior-authority",
+      "b": "meta-ai",
+      "experienceRef": "exp.odyssey.planner-meta-ai-dual-authority-conflict",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.planner-meta-ai-dual-authority-conflict.meta-ai::npc-control-interruption",
+      "a": "meta-ai",
+      "b": "npc-control-interruption",
+      "experienceRef": "exp.odyssey.planner-meta-ai-dual-authority-conflict",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.planner-meta-ai-dual-authority-conflict.lod-boundary::meta-ai",
+      "a": "lod-boundary",
+      "b": "meta-ai",
+      "experienceRef": "exp.odyssey.planner-meta-ai-dual-authority-conflict",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.planner-meta-ai-dual-authority-conflict.dual-behavior-authority::npc-control-interruption",
+      "a": "dual-behavior-authority",
+      "b": "npc-control-interruption",
+      "experienceRef": "exp.odyssey.planner-meta-ai-dual-authority-conflict",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.planner-meta-ai-dual-authority-conflict.dual-behavior-authority::lod-boundary",
+      "a": "dual-behavior-authority",
+      "b": "lod-boundary",
+      "experienceRef": "exp.odyssey.planner-meta-ai-dual-authority-conflict",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.planner-meta-ai-dual-authority-conflict.lod-boundary::npc-control-interruption",
+      "a": "lod-boundary",
+      "b": "npc-control-interruption",
+      "experienceRef": "exp.odyssey.planner-meta-ai-dual-authority-conflict",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.legacy-complex-actions-preserved-coupling.goap-actions::legacy-state-machines",
+      "a": "goap-actions",
+      "b": "legacy-state-machines",
+      "experienceRef": "exp.odyssey.legacy-complex-actions-preserved-coupling",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.legacy-complex-actions-preserved-coupling.legacy-state-machines::migration-shortcut",
+      "a": "legacy-state-machines",
+      "b": "migration-shortcut",
+      "experienceRef": "exp.odyssey.legacy-complex-actions-preserved-coupling",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.legacy-complex-actions-preserved-coupling.complex-actions::legacy-state-machines",
+      "a": "complex-actions",
+      "b": "legacy-state-machines",
+      "experienceRef": "exp.odyssey.legacy-complex-actions-preserved-coupling",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.legacy-complex-actions-preserved-coupling.legacy-state-machines::modularity-violation",
+      "a": "legacy-state-machines",
+      "b": "modularity-violation",
+      "experienceRef": "exp.odyssey.legacy-complex-actions-preserved-coupling",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.legacy-complex-actions-preserved-coupling.game-specific-blackboard::legacy-state-machines",
+      "a": "game-specific-blackboard",
+      "b": "legacy-state-machines",
+      "experienceRef": "exp.odyssey.legacy-complex-actions-preserved-coupling",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.legacy-complex-actions-preserved-coupling.goap-actions::migration-shortcut",
+      "a": "goap-actions",
+      "b": "migration-shortcut",
+      "experienceRef": "exp.odyssey.legacy-complex-actions-preserved-coupling",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.legacy-complex-actions-preserved-coupling.complex-actions::goap-actions",
+      "a": "complex-actions",
+      "b": "goap-actions",
+      "experienceRef": "exp.odyssey.legacy-complex-actions-preserved-coupling",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.legacy-complex-actions-preserved-coupling.goap-actions::modularity-violation",
+      "a": "goap-actions",
+      "b": "modularity-violation",
+      "experienceRef": "exp.odyssey.legacy-complex-actions-preserved-coupling",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.legacy-complex-actions-preserved-coupling.game-specific-blackboard::goap-actions",
+      "a": "game-specific-blackboard",
+      "b": "goap-actions",
+      "experienceRef": "exp.odyssey.legacy-complex-actions-preserved-coupling",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.legacy-complex-actions-preserved-coupling.complex-actions::migration-shortcut",
+      "a": "complex-actions",
+      "b": "migration-shortcut",
+      "experienceRef": "exp.odyssey.legacy-complex-actions-preserved-coupling",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.legacy-complex-actions-preserved-coupling.migration-shortcut::modularity-violation",
+      "a": "migration-shortcut",
+      "b": "modularity-violation",
+      "experienceRef": "exp.odyssey.legacy-complex-actions-preserved-coupling",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.legacy-complex-actions-preserved-coupling.game-specific-blackboard::migration-shortcut",
+      "a": "game-specific-blackboard",
+      "b": "migration-shortcut",
+      "experienceRef": "exp.odyssey.legacy-complex-actions-preserved-coupling",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.legacy-complex-actions-preserved-coupling.complex-actions::modularity-violation",
+      "a": "complex-actions",
+      "b": "modularity-violation",
+      "experienceRef": "exp.odyssey.legacy-complex-actions-preserved-coupling",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.legacy-complex-actions-preserved-coupling.complex-actions::game-specific-blackboard",
+      "a": "complex-actions",
+      "b": "game-specific-blackboard",
+      "experienceRef": "exp.odyssey.legacy-complex-actions-preserved-coupling",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.legacy-complex-actions-preserved-coupling.game-specific-blackboard::modularity-violation",
+      "a": "game-specific-blackboard",
+      "b": "modularity-violation",
+      "experienceRef": "exp.odyssey.legacy-complex-actions-preserved-coupling",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.immortals.random-action-cost-broke-planner-consistency.goap-action-cost::random-variety",
+      "a": "goap-action-cost",
+      "b": "random-variety",
+      "experienceRef": "exp.immortals.random-action-cost-broke-planner-consistency",
+      "referenceGame": "Immortals Fenyx Rising",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.immortals.random-action-cost-broke-planner-consistency.dynamic-cost-recalculation::goap-action-cost",
+      "a": "dynamic-cost-recalculation",
+      "b": "goap-action-cost",
+      "experienceRef": "exp.immortals.random-action-cost-broke-planner-consistency",
+      "referenceGame": "Immortals Fenyx Rising",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.immortals.random-action-cost-broke-planner-consistency.goap-action-cost::planner-consistency",
+      "a": "goap-action-cost",
+      "b": "planner-consistency",
+      "experienceRef": "exp.immortals.random-action-cost-broke-planner-consistency",
+      "referenceGame": "Immortals Fenyx Rising",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.immortals.random-action-cost-broke-planner-consistency.goap-action-cost::history-aware-pacing",
+      "a": "goap-action-cost",
+      "b": "history-aware-pacing",
+      "experienceRef": "exp.immortals.random-action-cost-broke-planner-consistency",
+      "referenceGame": "Immortals Fenyx Rising",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.immortals.random-action-cost-broke-planner-consistency.dynamic-cost-recalculation::random-variety",
+      "a": "dynamic-cost-recalculation",
+      "b": "random-variety",
+      "experienceRef": "exp.immortals.random-action-cost-broke-planner-consistency",
+      "referenceGame": "Immortals Fenyx Rising",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.immortals.random-action-cost-broke-planner-consistency.planner-consistency::random-variety",
+      "a": "planner-consistency",
+      "b": "random-variety",
+      "experienceRef": "exp.immortals.random-action-cost-broke-planner-consistency",
+      "referenceGame": "Immortals Fenyx Rising",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.immortals.random-action-cost-broke-planner-consistency.history-aware-pacing::random-variety",
+      "a": "history-aware-pacing",
+      "b": "random-variety",
+      "experienceRef": "exp.immortals.random-action-cost-broke-planner-consistency",
+      "referenceGame": "Immortals Fenyx Rising",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.immortals.random-action-cost-broke-planner-consistency.dynamic-cost-recalculation::planner-consistency",
+      "a": "dynamic-cost-recalculation",
+      "b": "planner-consistency",
+      "experienceRef": "exp.immortals.random-action-cost-broke-planner-consistency",
+      "referenceGame": "Immortals Fenyx Rising",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.immortals.random-action-cost-broke-planner-consistency.dynamic-cost-recalculation::history-aware-pacing",
+      "a": "dynamic-cost-recalculation",
+      "b": "history-aware-pacing",
+      "experienceRef": "exp.immortals.random-action-cost-broke-planner-consistency",
+      "referenceGame": "Immortals Fenyx Rising",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.immortals.random-action-cost-broke-planner-consistency.history-aware-pacing::planner-consistency",
+      "a": "history-aware-pacing",
+      "b": "planner-consistency",
+      "experienceRef": "exp.immortals.random-action-cost-broke-planner-consistency",
+      "referenceGame": "Immortals Fenyx Rising",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.immortals.early-smart-object-pruning-lost-plan-context.early-candidate-pruning::smart-objects",
+      "a": "early-candidate-pruning",
+      "b": "smart-objects",
+      "experienceRef": "exp.immortals.early-smart-object-pruning-lost-plan-context",
+      "referenceGame": "Immortals Fenyx Rising",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.immortals.early-smart-object-pruning-lost-plan-context.nearest-object-heuristic::smart-objects",
+      "a": "nearest-object-heuristic",
+      "b": "smart-objects",
+      "experienceRef": "exp.immortals.early-smart-object-pruning-lost-plan-context",
+      "referenceGame": "Immortals Fenyx Rising",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.immortals.early-smart-object-pruning-lost-plan-context.global-plan-context::smart-objects",
+      "a": "global-plan-context",
+      "b": "smart-objects",
+      "experienceRef": "exp.immortals.early-smart-object-pruning-lost-plan-context",
+      "referenceGame": "Immortals Fenyx Rising",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.immortals.early-smart-object-pruning-lost-plan-context.npc-double-back::smart-objects",
+      "a": "npc-double-back",
+      "b": "smart-objects",
+      "experienceRef": "exp.immortals.early-smart-object-pruning-lost-plan-context",
+      "referenceGame": "Immortals Fenyx Rising",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.immortals.early-smart-object-pruning-lost-plan-context.early-candidate-pruning::nearest-object-heuristic",
+      "a": "early-candidate-pruning",
+      "b": "nearest-object-heuristic",
+      "experienceRef": "exp.immortals.early-smart-object-pruning-lost-plan-context",
+      "referenceGame": "Immortals Fenyx Rising",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.immortals.early-smart-object-pruning-lost-plan-context.early-candidate-pruning::global-plan-context",
+      "a": "early-candidate-pruning",
+      "b": "global-plan-context",
+      "experienceRef": "exp.immortals.early-smart-object-pruning-lost-plan-context",
+      "referenceGame": "Immortals Fenyx Rising",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.immortals.early-smart-object-pruning-lost-plan-context.early-candidate-pruning::npc-double-back",
+      "a": "early-candidate-pruning",
+      "b": "npc-double-back",
+      "experienceRef": "exp.immortals.early-smart-object-pruning-lost-plan-context",
+      "referenceGame": "Immortals Fenyx Rising",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.immortals.early-smart-object-pruning-lost-plan-context.global-plan-context::nearest-object-heuristic",
+      "a": "global-plan-context",
+      "b": "nearest-object-heuristic",
+      "experienceRef": "exp.immortals.early-smart-object-pruning-lost-plan-context",
+      "referenceGame": "Immortals Fenyx Rising",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.immortals.early-smart-object-pruning-lost-plan-context.nearest-object-heuristic::npc-double-back",
+      "a": "nearest-object-heuristic",
+      "b": "npc-double-back",
+      "experienceRef": "exp.immortals.early-smart-object-pruning-lost-plan-context",
+      "referenceGame": "Immortals Fenyx Rising",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.immortals.early-smart-object-pruning-lost-plan-context.global-plan-context::npc-double-back",
+      "a": "global-plan-context",
+      "b": "npc-double-back",
+      "experienceRef": "exp.immortals.early-smart-object-pruning-lost-plan-context",
+      "referenceGame": "Immortals Fenyx Rising",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.single-ai-pipeline-premature-convergence.goap-convergence::single-ai-pipeline",
+      "a": "goap-convergence",
+      "b": "single-ai-pipeline",
+      "experienceRef": "exp.odyssey.single-ai-pipeline-premature-convergence",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.single-ai-pipeline-premature-convergence.parallel-feature-development::single-ai-pipeline",
+      "a": "parallel-feature-development",
+      "b": "single-ai-pipeline",
+      "experienceRef": "exp.odyssey.single-ai-pipeline-premature-convergence",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.single-ai-pipeline-premature-convergence.naval-ai::single-ai-pipeline",
+      "a": "naval-ai",
+      "b": "single-ai-pipeline",
+      "experienceRef": "exp.odyssey.single-ai-pipeline-premature-convergence",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.single-ai-pipeline-premature-convergence.capability-timing::single-ai-pipeline",
+      "a": "capability-timing",
+      "b": "single-ai-pipeline",
+      "experienceRef": "exp.odyssey.single-ai-pipeline-premature-convergence",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.single-ai-pipeline-premature-convergence.single-ai-pipeline::specialized-pipelines",
+      "a": "single-ai-pipeline",
+      "b": "specialized-pipelines",
+      "experienceRef": "exp.odyssey.single-ai-pipeline-premature-convergence",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.single-ai-pipeline-premature-convergence.goap-convergence::parallel-feature-development",
+      "a": "goap-convergence",
+      "b": "parallel-feature-development",
+      "experienceRef": "exp.odyssey.single-ai-pipeline-premature-convergence",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.single-ai-pipeline-premature-convergence.goap-convergence::naval-ai",
+      "a": "goap-convergence",
+      "b": "naval-ai",
+      "experienceRef": "exp.odyssey.single-ai-pipeline-premature-convergence",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.single-ai-pipeline-premature-convergence.capability-timing::goap-convergence",
+      "a": "capability-timing",
+      "b": "goap-convergence",
+      "experienceRef": "exp.odyssey.single-ai-pipeline-premature-convergence",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.single-ai-pipeline-premature-convergence.goap-convergence::specialized-pipelines",
+      "a": "goap-convergence",
+      "b": "specialized-pipelines",
+      "experienceRef": "exp.odyssey.single-ai-pipeline-premature-convergence",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.single-ai-pipeline-premature-convergence.naval-ai::parallel-feature-development",
+      "a": "naval-ai",
+      "b": "parallel-feature-development",
+      "experienceRef": "exp.odyssey.single-ai-pipeline-premature-convergence",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.single-ai-pipeline-premature-convergence.capability-timing::parallel-feature-development",
+      "a": "capability-timing",
+      "b": "parallel-feature-development",
+      "experienceRef": "exp.odyssey.single-ai-pipeline-premature-convergence",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.single-ai-pipeline-premature-convergence.parallel-feature-development::specialized-pipelines",
+      "a": "parallel-feature-development",
+      "b": "specialized-pipelines",
+      "experienceRef": "exp.odyssey.single-ai-pipeline-premature-convergence",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.single-ai-pipeline-premature-convergence.capability-timing::naval-ai",
+      "a": "capability-timing",
+      "b": "naval-ai",
+      "experienceRef": "exp.odyssey.single-ai-pipeline-premature-convergence",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.single-ai-pipeline-premature-convergence.naval-ai::specialized-pipelines",
+      "a": "naval-ai",
+      "b": "specialized-pipelines",
+      "experienceRef": "exp.odyssey.single-ai-pipeline-premature-convergence",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.odyssey.single-ai-pipeline-premature-convergence.capability-timing::specialized-pipelines",
+      "a": "capability-timing",
+      "b": "specialized-pipelines",
+      "experienceRef": "exp.odyssey.single-ai-pipeline-premature-convergence",
+      "referenceGame": "Assassin's Creed Odyssey",
+      "relationKind": "TENSION",
       "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
       "causalRelationEstablished": false,
       "canBlockNovelCombination": false

@@ -931,6 +931,243 @@
       "sourceRefs": [
         "kb:factorio-fff-258"
       ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.deusex.ai-capability-before-requirement-can-create-waste",
+      "kind": "REQUIREMENT_TIMING_FAILURE",
+      "referenceGames": [
+        "Deus Ex"
+      ],
+      "assumption": "Front-loading AI implementation is always risk reduction because more capability exists earlier for the game to use.",
+      "failureSignal": "Deus Ex implemented AI features early that later proved unnecessary once the game’s actual AI requirements became clear.",
+      "context": "AI work began during preproduction while the immersive-sim design and required range of NPC reactions were still evolving.",
+      "revisionOrSalvage": "Treat early AI work as contract/prototype discovery and delay broad capability commitment until a representative interaction slice makes requirements concrete.",
+      "transferBoundary": "Stable low-level capabilities can still be worth building early when they survive changing gameplay requirements.",
+      "falseUniversalizations": [
+        "AI implementation should wait until design is final.",
+        "Early technical prototyping creates more waste than value."
+      ],
+      "cheapDiscriminator": "Bind the proposed capability to one concrete observation-action-consequence slice, mutate the game requirement, and see whether the capability survives without redesign.",
+      "experienceRefs": [
+        "exp.deusex.ai-capability-before-requirement-created-waste"
+      ],
+      "sourceRefs": [
+        "kb:gdc-deus-ex-postmortem"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.deusex.borrowed-ai-foundation-can-produce-patch-debt",
+      "kind": "FOUNDATION_MISMATCH",
+      "referenceGames": [
+        "Deus Ex"
+      ],
+      "assumption": "Starting from a mature existing AI foundation is safer than building a target-specific one because most hard problems are already solved.",
+      "failureSignal": "The shooter-oriented Unreal Tournament AI required continued additions and tweaks to support Deus Ex behavior needs, with NPC behavior changing until the end of development.",
+      "context": "The target game required a broad range from fear/friendliness to hostility rather than only shooter-combat competence.",
+      "revisionOrSalvage": "Evaluate borrowed foundations by target assumption fit and use a bounded replacement slice when adaptation requires recurring semantic exceptions.",
+      "transferBoundary": "Reuse remains strongly advantageous when the source and target games share the same core behavior assumptions.",
+      "falseUniversalizations": [
+        "Borrowed AI systems should be avoided.",
+        "Patch debt proves a rewrite would have been cheaper."
+      ],
+      "cheapDiscriminator": "Implement one target behavior slice on the borrowed foundation and on a minimal target-specific model; compare exception/dependency closure rather than code age.",
+      "experienceRefs": [
+        "exp.deusex.borrowed-shooter-ai-foundation-created-patch-debt"
+      ],
+      "sourceRefs": [
+        "kb:gdc-deus-ex-postmortem"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.thief.ai-built-for-wrong-gameplay-can-block-core",
+      "kind": "CORE_INTERACTION_MISMATCH",
+      "referenceGames": [
+        "Thief: The Dark Project"
+      ],
+      "assumption": "A generally capable action-game AI architecture can be adapted later to whichever core gameplay loop the project settles on.",
+      "failureSignal": "Thief’s early AI decision model encoded assumptions mismatched to the later stealth design and ultimately required major replacement.",
+      "context": "The AI architecture predated a sufficiently mature stealth design, while the final game depended on perception, uncertainty, search and de-escalation relationships.",
+      "revisionOrSalvage": "Prototype the defining interaction loop first enough to expose AI state/authority requirements before freezing the decision architecture.",
+      "transferBoundary": "A generic model can still work if it directly represents the target game’s defining interaction transitions.",
+      "falseUniversalizations": [
+        "Stealth games require bespoke AI architectures.",
+        "Core gameplay must be fully designed before AI architecture begins."
+      ],
+      "cheapDiscriminator": "Build one stealth slice against the candidate AI model and count exceptional paths required for perception, search, escalation and return-to-normal.",
+      "experienceRefs": [
+        "exp.thief.ai-built-before-stealth-requirements-mismatched-core"
+      ],
+      "sourceRefs": [
+        "kb:gamedeveloper-thief-postmortem"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.thief.delayed-rewrite-can-be-as-risky-as-premature-rewrite",
+      "kind": "REWRITE_TIMING_FAILURE",
+      "referenceGames": [
+        "Thief: The Dark Project"
+      ],
+      "assumption": "If an architecture is already implemented, continuing local repair is safer than rewrite until repair becomes literally impossible.",
+      "failureSignal": "The team spent months treating AI failures as bugs in a sound architecture before concluding the architecture itself was wrong and discarding most of it.",
+      "context": "The gameplay requirements had changed enough that repeated defects mapped back to foundational decision assumptions rather than isolated implementation errors.",
+      "revisionOrSalvage": "Use repeated assumption-level defects to reopen repair-versus-replacement instead of treating rewrite aversion as a standing rule.",
+      "transferBoundary": "Rewrite remains dangerous when defects are local, requirements are unstable, or replacement closure exceeds repair closure.",
+      "falseUniversalizations": [
+        "Architectural rewrites should happen earlier whenever bugs recur.",
+        "Avoiding rewrite is always a sign of sunk-cost bias."
+      ],
+      "cheapDiscriminator": "Classify recurring defects by violated system assumption; compare cumulative repair closure to a replacement vertical slice before continuing patch-only work.",
+      "experienceRefs": [
+        "exp.thief.delayed-ai-rewrite-amplified-cost"
+      ],
+      "sourceRefs": [
+        "kb:gamedeveloper-thief-postmortem"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.odyssey.multiple-ai-authorities-can-fight-over-one-agent",
+      "kind": "AUTHORITY_CONFLICT",
+      "referenceGames": [
+        "Assassin's Creed Odyssey"
+      ],
+      "assumption": "Multiple AI systems can independently choose behaviors for the same actor as long as each system is locally correct.",
+      "failureSignal": "Meta AI and the high-LOD planner repeatedly interrupted one another when both attempted to drive the same NPC.",
+      "context": "A low-cost distant simulation system and an expensive local planner overlapped around LOD/player-engagement boundaries.",
+      "revisionOrSalvage": "Separate reasoning from consequence authority and make actor-control handoff explicit at subsystem boundaries.",
+      "transferBoundary": "Multiple reasoning systems can coexist safely with arbitration, leases, priorities or transactional ownership transfer.",
+      "falseUniversalizations": [
+        "Every NPC must have one AI system.",
+        "Centralized AI authority is always simpler or more correct."
+      ],
+      "cheapDiscriminator": "Instrument one actor across subsystem transitions and reject any trace where two systems can commit overlapping behavior without an explicit handoff event.",
+      "experienceRefs": [
+        "exp.odyssey.planner-meta-ai-dual-authority-conflict"
+      ],
+      "sourceRefs": [
+        "kb:gamedeveloper-odyssey-immortals-ai-planning"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.odyssey.migration-shortcuts-can-preserve-legacy-coupling",
+      "kind": "MIGRATION_COUPLING",
+      "referenceGames": [
+        "Assassin's Creed Odyssey",
+        "Immortals Fenyx Rising"
+      ],
+      "assumption": "Wrapping legacy behaviors in the new architecture is sufficient modularization because the behavior now conforms to the new interface.",
+      "failureSignal": "Complex legacy behaviors became GOAP Actions but retained coupling and highly game-specific concepts in blackboards/core code, requiring later cleanup/refactor.",
+      "context": "The migration deliberately prioritized production continuity and fast conversion over ideal action granularity.",
+      "revisionOrSalvage": "Use coarse adapters as explicit temporary boundaries with coupling audits and deletion criteria rather than treating successful wrapping as migration completion.",
+      "transferBoundary": "A coarse adapter can be the correct stable boundary when its contract is narrow and legacy concepts do not leak through it.",
+      "falseUniversalizations": [
+        "Legacy behavior must be decomposed immediately during migration.",
+        "Interface conformity proves architectural decoupling."
+      ],
+      "cheapDiscriminator": "Trace every domain-specific state/key crossing one wrapped behavior’s new-core boundary; compare coarse and decomposed forms before scaling the migration.",
+      "experienceRefs": [
+        "exp.odyssey.legacy-complex-actions-preserved-coupling"
+      ],
+      "sourceRefs": [
+        "kb:gamedeveloper-odyssey-immortals-ai-planning"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.immortals.random-variety-can-break-planner-consistency",
+      "kind": "ALGORITHM_INVARIANT_FAILURE",
+      "referenceGames": [
+        "Assassin's Creed Odyssey",
+        "Immortals Fenyx Rising"
+      ],
+      "assumption": "Adding random noise to action costs is a low-risk way to make planner behavior less repetitive.",
+      "failureSignal": "Once action costs were recalculated during each planning step, random values made the same action take different costs across branches, breaking planner consistency.",
+      "context": "Odyssey sampled costs in a way that kept randomness stable enough to ship; Immortals changed cost evaluation semantics and exposed the incompatibility.",
+      "revisionOrSalvage": "Immortals largely replaced random variety with history-aware costs based on time since last execution, preserving more stable planning semantics.",
+      "transferBoundary": "Randomness remains valid when sampled outside the planning episode or when the algorithm explicitly models stochastic cost.",
+      "falseUniversalizations": [
+        "Randomness is bad for AI planning.",
+        "Deterministic pacing systems always produce better variety."
+      ],
+      "cheapDiscriminator": "Compare per-plan frozen randomness, per-node resampling and history-aware deterministic costs; verify the planner’s branch-comparison invariants before judging variety.",
+      "experienceRefs": [
+        "exp.immortals.random-action-cost-broke-planner-consistency"
+      ],
+      "sourceRefs": [
+        "kb:gamedeveloper-odyssey-immortals-ai-planning"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.immortals.early-pruning-can-remove-context-the-planner-needs",
+      "kind": "LOCAL_OPTIMIZATION_FAILURE",
+      "referenceGames": [
+        "Assassin's Creed Odyssey",
+        "Immortals Fenyx Rising"
+      ],
+      "assumption": "Candidates that look locally worse can be pruned before planning because the planner would choose the locally best candidate anyway.",
+      "failureSignal": "Nearest-object preselection sometimes sent NPCs toward an object that made the later plan worse, including visible double-backs; Immortals retained several candidates instead.",
+      "context": "Object value depended on later plan destinations, so distance at the first step was not a sufficient dominance condition.",
+      "revisionOrSalvage": "Move pruning later or retain a bounded top-k when downstream context can reverse candidate value.",
+      "transferBoundary": "Early pruning remains correct when dominance is provable from all variables that can affect downstream cost.",
+      "falseUniversalizations": [
+        "AI planners should keep more candidates.",
+        "Local heuristics are unsafe for multi-step planning."
+      ],
+      "cheapDiscriminator": "Create a two-step scenario where first-object choice affects the second destination; compare nearest-only and top-k planning on total path cost and search budget.",
+      "experienceRefs": [
+        "exp.immortals.early-smart-object-pruning-lost-plan-context"
+      ],
+      "sourceRefs": [
+        "kb:gamedeveloper-odyssey-immortals-ai-planning"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.odyssey.one-ai-pipeline-can-be-premature-convergence",
+      "kind": "PREMATURE_ARCHITECTURAL_CONVERGENCE",
+      "referenceGames": [
+        "Assassin's Creed Odyssey"
+      ],
+      "assumption": "A single shared AI pipeline should be imposed early to avoid siloed gameplay systems and duplicated technology.",
+      "failureSignal": "Odyssey tried to place multiple pillars under the planner while naval gameplay developed in parallel and needed capabilities the shared planner did not yet support.",
+      "context": "The planner itself and major gameplay pillars were evolving simultaneously, so common contracts and required capabilities were not yet stable.",
+      "revisionOrSalvage": "Share only proven contracts/substrate early; defer full pipeline convergence until representative consumers expose actual commonality.",
+      "transferBoundary": "Early convergence is valuable when multiple consumers already share stable semantics and the platform satisfies their requirements.",
+      "falseUniversalizations": [
+        "Specialized AI pipelines are safer than unified ones.",
+        "Architecture unification should wait until every feature is complete."
+      ],
+      "cheapDiscriminator": "Implement one representative behavior from each candidate pillar against the proposed shared contract and list missing capabilities/exceptions before mandating convergence.",
+      "experienceRefs": [
+        "exp.odyssey.single-ai-pipeline-premature-convergence"
+      ],
+      "sourceRefs": [
+        "kb:gamedeveloper-odyssey-immortals-ai-planning"
+      ]
     }
   ]
 }
