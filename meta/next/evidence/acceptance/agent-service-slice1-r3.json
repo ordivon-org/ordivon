@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 1,
+  "subject": "ordivon-agent-service-slice1-r3",
+  "baseArchitectureGraph": "knowledge/graphs/ordivon-agent-service-r2.json",
+  "implementation": {
+    "package": "agent_service",
+    "compositionRoot": "agent_service.slice1.AgentServiceSlice1",
+    "persistence": "sqlite3",
+    "hostProvider": "HostAdapter seam"
+  },
+  "nodeBindings": [
+    {
+      "nodeId": "N01",
+      "label": "AgentDefinitionStore",
+      "symbol": "agent_service.slice1.AgentDefinitionStore",
+      "status": "IMPLEMENTED"
+    },
+    {
+      "nodeId": "N02",
+      "label": "AgentRevisionStore",
+      "symbol": "agent_service.slice1.AgentRevisionStore",
+      "status": "IMPLEMENTED"
+    },
+    {
+      "nodeId": "N03",
+      "label": "AgentInstanceStore",
+      "symbol": "agent_service.slice1.AgentInstanceStore",
+      "status": "IMPLEMENTED"
+    },
+    {
+      "nodeId": "N08",
+      "label": "DesiredPlacementStore",
+      "symbol": "agent_service.slice1.DesiredPlacementStore",
+      "status": "IMPLEMENTED"
+    },
+    {
+      "nodeId": "N09",
+      "label": "ServiceEventStore",
+      "symbol": "agent_service.slice1.ServiceEventStore",
+      "status": "IMPLEMENTED"
+    },
+    {
+      "nodeId": "N10",
+      "label": "BirthCoordinator",
+      "symbol": "agent_service.slice1.BirthCoordinator",
+      "status": "IMPLEMENTED"
+    },
+    {
+      "nodeId": "N14",
+      "label": "PlacementReconciler",
+      "symbol": "agent_service.slice1.PlacementReconciler",
+      "status": "IMPLEMENTED"
+    },
+    {
+      "nodeId": "N18",
+      "label": "HostAdapter",
+      "symbol": "agent_service.slice1.HostAdapter",
+      "status": "SEAM_IMPLEMENTED_PROVIDER_FAKE_ONLY"
+    },
+    {
+      "nodeId": "N22",
+      "label": "ProviderObserver",
+      "symbol": "agent_service.slice1.ProviderObserver",
+      "status": "IMPLEMENTED"
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "revision-immutability",
+      "test": "test_revision_is_immutable_and_historical_revision_remains_resolvable",
+      "status": "PASS"
+    },
+    {
+      "id": "birth-idempotency",
+      "test": "test_birth_is_idempotent_for_one_birth_request",
+      "status": "PASS"
+    },
+    {
+      "id": "desired-before-effect",
+      "test": "test_desired_placement_is_durable_before_host_effect",
+      "status": "PASS"
+    },
+    {
+      "id": "observed-ready-required",
+      "test": "test_ready_requires_positive_provider_observation",
+      "status": "PASS"
+    },
+    {
+      "id": "restart-recovery",
+      "test": "test_restart_recovers_birth_without_duplicate_agent_instance",
+      "status": "PASS"
+    },
+    {
+      "id": "idempotency-conflict",
+      "test": "test_birth_request_cannot_be_replayed_with_different_revision",
+      "status": "PASS"
+    },
+    {
+      "id": "semantic-transition-atomicity",
+      "test": "test_ready_state_and_ready_event_commit_atomically",
+      "status": "PASS"
+    },
+    {
+      "id": "readiness-loss",
+      "test": "test_lost_provider_evidence_revokes_ready_and_records_event",
+      "status": "PASS"
+    },
+    {
+      "id": "event-history",
+      "test": "test_service_events_preserve_semantic_transition_history",
+      "status": "PASS"
+    }
+  ],
+  "verification": {
+    "slice1Tests": 9,
+    "slice1Failures": 0,
+    "repositoryTests": 42,
+    "repositoryFailures": 0,
+    "resourceWarningsAsErrors": "PASS",
+    "compileall": "PASS",
+    "gitDiffCheck": "PASS"
+  },
+  "remainingBoundary": {
+    "realHostAdapter": "NOT_IMPLEMENTED",
+    "agentIdentityAdapterN16": "NOT_IN_SLICE1_REQUIRED_SET",
+    "taskAssignmentRuntimeSlice": "NOT_STARTED",
+    "a2aMcpRoutingSlice": "NOT_STARTED"
+  }
+}
