@@ -5,14 +5,17 @@ from typing import Any, Literal, NotRequired, TypedDict
 TaskStateWire = Literal["open", "completed", "abandoned"]
 
 
-class TaskWire(TypedDict):
+class TaskSummaryWire(TypedDict):
     task_id: str
     goal_id: str | None
     revision: int
     state: TaskStateWire
     checkpoint_digest: str
-    checkpoint: dict[str, Any]
     writer_label: str | None
+
+
+class TaskWire(TaskSummaryWire):
+    checkpoint: dict[str, Any]
 
 
 class HandoffWire(TypedDict):
@@ -199,7 +202,7 @@ class TaskMutationResponse(TypedDict):
         "ordivon.host-external-continuity-checkpoint",
     ]
     admission: Literal["committed", "existing"]
-    task: TaskWire
+    task: TaskSummaryWire
     handoff: HandoffWire
     checkpoint: dict[str, Any]
     writerLabel: str | None
@@ -208,7 +211,7 @@ class TaskMutationResponse(TypedDict):
 class TaskResumeResponse(TypedDict):
     schemaVersion: int
     kind: Literal["ordivon.host-external-continuity-resume"]
-    task: TaskWire
+    task: TaskSummaryWire
     handoff: HandoffWire
     checkpoint: dict[str, Any]
     writerLabel: str | None
@@ -227,7 +230,8 @@ class TaskObserveResponse(TypedDict):
 class TaskListResponse(TypedDict):
     schemaVersion: int
     kind: Literal["ordivon.host-task-list"]
-    tasks: list[TaskWire]
+    itemView: Literal["basic"]
+    tasks: list[TaskSummaryWire]
     hasMore: bool
     nextCursor: str | None
     truthBoundary: str

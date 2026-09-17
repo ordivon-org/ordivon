@@ -122,10 +122,23 @@ def test_official_mcp_v2_exposes_migrated_host_surface_and_runs_vertical_slice()
                 },
             )
             assert updated.is_error is False
+            listed_tasks = await client.call_tool(
+                "task.list", {"goalId": "goal:mcp-v2", "limit": 10}
+            )
+            assert listed_tasks.is_error is False
+            assert listed_tasks.structured_content is not None
+            assert listed_tasks.structured_content["schemaVersion"] == 4
+            assert listed_tasks.structured_content["itemView"] == "basic"
+            listed_task = listed_tasks.structured_content["tasks"][0]
+            assert listed_task["task_id"] == task_id
+            assert "checkpoint" not in listed_task
+
             resumed = await client.call_tool("task.resume", {"taskId": task_id})
             assert resumed.is_error is False
             assert resumed.structured_content is not None
+            assert resumed.structured_content["schemaVersion"] == 4
             assert resumed.structured_content["task"]["revision"] == 2
+            assert "checkpoint" not in resumed.structured_content["task"]
             assert resumed.structured_content["checkpoint"]["frontier"] == "resumable"
 
     asyncio.run(scenario())

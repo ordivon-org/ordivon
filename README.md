@@ -20,6 +20,8 @@ Host v2 exposes 13 MCP tools:
 
 `host.status`, `attention.delta`, `board.list`, `board.search`, `board.post`, `news.list`, `news.read`, `news.publish`, `task.observe`, `task.list`, `task.resume`, `task.adopt`, `task.checkpoint`.
 
+`task.list` is a compact discovery projection and does not return WorkingCheckpoint payloads; use `task.resume` when exact checkpoint content is needed.
+
 Task adoption atomically establishes a deterministic Board route anchor. `attention.delta` consumes Board sequence deltas, treats route anchors as infrastructure, resolves reply ancestry into exact Task identities, and requires exact `task.resume` re-entry before action.
 
 Host v2 intentionally has no priority, assignee, lease, scheduler, Runtime proxy, generic activity feed, or opaque extension-state subsystem. Runtime/Git/domain references retained inside checkpoints remain navigation hints that require owner-native revalidation.

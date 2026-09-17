@@ -383,32 +383,40 @@ class BoardStore:
             raise ValueError("limit must be in [1,50]")
         pattern = f"%{query}%"
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn:
-            high_row = conn.execute(
+            with conn.transaction():
+                conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+                high_row = conn.execute(
+                    "SELECT COALESCE(max(sequence),0) AS value FROM board_messages"
+                ).fetchone()
+                assert high_row is not None
+                high = int(high_row["value"])
+                rows = conn.execute(
+                    "SELECT sequence,client_message_id FROM board_messages "
+                    "WHERE sequence<=%s AND ("
+                    "to_tsvector('simple', coalesce(author_label,'') || ' ' || coalesce(topic,'') || ' ' || message) @@ plainto_tsquery('simple', %s) "
+                    "OR client_message_id ILIKE %s OR author_label ILIKE %s OR coalesce(topic,'') ILIKE %s OR message ILIKE %s) "
+                    "ORDER BY sequence DESC LIMIT %s",
+                    (high, query, pattern, pattern, pattern, pattern, limit),
+                ).fetchall()
+            live_row = conn.execute(
                 "SELECT COALESCE(max(sequence),0) AS value FROM board_messages"
             ).fetchone()
-            assert high_row is not None
-            high = int(high_row["value"])
-            rows = conn.execute(
-                "SELECT sequence,client_message_id FROM board_messages "
-                "WHERE to_tsvector('simple', coalesce(author_label,'') || ' ' || coalesce(topic,'') || ' ' || message) @@ plainto_tsquery('simple', %s) "
-                "OR client_message_id ILIKE %s OR author_label ILIKE %s OR coalesce(topic,'') ILIKE %s OR message ILIKE %s "
-                "ORDER BY sequence DESC LIMIT %s",
-                (query, pattern, pattern, pattern, pattern, limit),
-            ).fetchall()
-            return {
-                "schemaVersion": 2,
-                "kind": "ordivon.host-board-search",
-                "scope": "host-global-coordination-messages",
-                "truthRole": "search-navigation-candidates-not-domain-truth",
-                "sourceSnapshotHighWater": high,
-                "liveHighWater": high,
-                "negativeResultAuthoritative": False,
-                "requiresExactSourceReentry": True,
-                "results": [
-                    {"sequence": int(row["sequence"]), "clientMessageId": row["client_message_id"]}
-                    for row in rows
-                ],
-            }
+            assert live_row is not None
+            live_high = int(live_row["value"])
+        return {
+            "schemaVersion": 2,
+            "kind": "ordivon.host-board-search",
+            "scope": "host-global-coordination-messages",
+            "truthRole": "search-navigation-candidates-not-domain-truth",
+            "sourceSnapshotHighWater": high,
+            "liveHighWater": live_high,
+            "negativeResultAuthoritative": False,
+            "requiresExactSourceReentry": True,
+            "results": [
+                {"sequence": int(row["sequence"]), "clientMessageId": row["client_message_id"]}
+                for row in rows
+            ],
+        }
 
     @staticmethod
     def _by_id(conn: psycopg.Connection[dict[str, Any]], client_message_id: str) -> dict[str, Any]:
