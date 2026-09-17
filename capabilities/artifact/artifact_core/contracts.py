@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import hashlib
 from pathlib import Path
+from typing import Any
 
 
 def sha256_file(path: Path) -> str:
@@ -11,6 +12,18 @@ def sha256_file(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def file_fact(path: Path, name: str | None = None) -> dict[str, Any]:
+    resolved = path.resolve()
+    if not resolved.is_file():
+        raise RuntimeError(f"required file is absent: {resolved}")
+    return {
+        "name": name or resolved.name,
+        "path": str(resolved),
+        "size": resolved.stat().st_size,
+        "digest": {"sha256": sha256_file(resolved)},
+    }
 
 
 @dataclass(frozen=True)

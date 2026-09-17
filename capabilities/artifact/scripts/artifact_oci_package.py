@@ -18,10 +18,39 @@ import sys
 from typing import Any, Iterable
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
+ROOT = SCRIPT_DIR.parent
+for candidate in (ROOT, SCRIPT_DIR):
+    if str(candidate) not in sys.path:
+        sys.path.insert(0, str(candidate))
 
-import artifact_delivery as artifact
+from artifact_core.contracts import file_fact, sha256_file
+from artifact_core.profile_v1 import validate_profile_v1
+from artifact_evidence.delivery import verify_file_fact
+from artifact_trust.provenance import slsa_statement, verify_release_provenance
+
+from artifact_delivery import (
+    LOCAL_VSA_VERIFIER_ID,
+    SIGSTORE_BUNDLE_V03,
+    aggregate_vsa_gates,
+    build_presentation_source,
+    cosign_tool_fact,
+    execute_verify_stage,
+    validate_delivery_request,
+    write_json,
+)
+from types import SimpleNamespace
+
+# Compatibility-only projection for historical callers/tests. OCI implementation below
+# does not route production identity/profile/provenance/evidence logic through it.
+artifact = SimpleNamespace(
+    build_presentation_source=build_presentation_source,
+    execute_verify_stage=execute_verify_stage,
+    write_json=write_json,
+    cosign_tool_fact=cosign_tool_fact,
+    SIGSTORE_BUNDLE_V03=SIGSTORE_BUNDLE_V03,
+    LOCAL_VSA_VERIFIER_ID=LOCAL_VSA_VERIFIER_ID,
+    sha256_file=sha256_file,
+)
 
 DEFAULT_ORAS = Path(os.environ.get("ARTIFACT_ORAS", "/opt/ordivon/external/oras/1.3.4/bin/oras"))
 DEFAULT_OPA = Path(os.environ.get("ARTIFACT_OPA", "/opt/ordivon/external/opa/1.20.2/bin/opa"))
@@ -113,18 +142,18 @@ def evaluate_release_policy(policy_input: dict[str, Any]) -> dict[str, Any]:
         "input": policy_input,
         "policy": {
             "path": str(DEFAULT_RELEASE_POLICY.resolve()),
-            "sha256": artifact.sha256_file(DEFAULT_RELEASE_POLICY),
+            "sha256": sha256_file(DEFAULT_RELEASE_POLICY),
         },
         "tool": {
             "path": str(DEFAULT_OPA.resolve()),
-            "sha256": artifact.sha256_file(DEFAULT_OPA),
+            "sha256": sha256_file(DEFAULT_OPA),
             "version": "1.20.2",
         },
     }
 
 
 def copy_exact(source: Path, destination: Path, expected: dict[str, Any] | None = None) -> dict[str, Any]:
-    before = artifact.file_fact(source)
+    before = file_fact(source)
     if expected is not None:
         if expected.get("name") != before.get("name"):
             raise RuntimeError(f"staging source name drift: {source}")
@@ -134,8 +163,8 @@ def copy_exact(source: Path, destination: Path, expected: dict[str, Any] | None 
             raise RuntimeError(f"staging source digest drift: {source}")
     destination.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(source, destination)
-    after = artifact.file_fact(source)
-    staged = artifact.file_fact(destination)
+    after = file_fact(source)
+    staged = file_fact(destination)
     if before["digest"]["sha256"] != after["digest"]["sha256"] or before["size"] != after["size"]:
         raise RuntimeError(f"source changed during OCI staging: {source}")
     if staged["digest"]["sha256"] != before["digest"]["sha256"] or staged["size"] != before["size"]:
@@ -182,7 +211,7 @@ def execute_oci_package_stage(
     signer_ids: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     failures: list[str] = []
-    profile_result = artifact.validate_profile(profile_path)
+    profile_result = validate_profile_v1(profile_path, ROOT / "artifact-delivery/profile-v1.schema.json")
     profile = profile_result.get("profile", {})
     if profile_result.get("status") != "PASS":
         failures.append("delivery profile did not PASS validation")
@@ -193,12 +222,12 @@ def execute_oci_package_stage(
     if failures:
         return {"schemaVersion": 1, "kind": "artifact-oci-package-stage", "status": "FAIL", "failures": failures, "packageCreated": False, "releaseReady": False}
 
-    verify_report_fact = artifact.file_fact(verify_report_path)
-    verify_report = artifact.load_json(verify_report_path)
+    verify_report_fact = file_fact(verify_report_path)
+    verify_report = json.loads(verify_report_path.read_text(encoding="utf-8"))
     if verify_report.get("kind") != "artifact-delivery-verify-stage":
         failures.append("verify report kind is not artifact-delivery-verify-stage")
     report_artifact = verify_report.get("artifact", {}) if isinstance(verify_report.get("artifact"), dict) else {}
-    primary_fact = artifact.file_fact(primary)
+    primary_fact = file_fact(primary)
     if report_artifact.get("digest", {}).get("sha256") != primary_fact["digest"]["sha256"]:
         failures.append("verify report artifact digest does not bind the primary artifact")
     if report_artifact.get("name") != primary.name:
@@ -216,8 +245,8 @@ def execute_oci_package_stage(
             continue
         raw_fact = receipt.get("rawEvidence", {}) if isinstance(receipt.get("rawEvidence"), dict) else {}
         vsa_fact = receipt.get("vsa", {}) if isinstance(receipt.get("vsa"), dict) else {}
-        raw_check = artifact.verify_file_fact(raw_fact)
-        vsa_check = artifact.verify_file_fact(vsa_fact)
+        raw_check = verify_file_fact(raw_fact)
+        vsa_check = verify_file_fact(vsa_fact)
         receipt_checks[gate] = {"raw": raw_check, "vsa": vsa_check}
         if raw_check.get("status") != "PASS":
             failures.append(f"raw evidence file fact failed: {gate}")
@@ -232,7 +261,7 @@ def execute_oci_package_stage(
 
     bundle_paths = gate_bundles or {}
     selected_signers = signer_ids or {}
-    gate_aggregation = artifact.aggregate_vsa_gates(
+    gate_aggregation = aggregate_vsa_gates(
         profile_path,
         primary,
         vsa_paths,
@@ -258,25 +287,25 @@ def execute_oci_package_stage(
     generated_provenance: dict[str, Any] | None = None
     provenance_source = provenance_path
     if provenance_source is not None:
-        checked = artifact.verify_release_provenance(provenance_source, [primary, *companion_paths])
+        checked = verify_release_provenance(provenance_source, [primary, *companion_paths])
         if checked.get("status") != "PASS":
             failures.extend(f"release provenance: {item}" for item in checked.get("failures", []))
     elif profile.get("gates", {}).get("releaseProvenance") is True:
         if request_path is None:
             failures.append("release provenance required but neither request nor provenance was supplied")
         else:
-            request_validation = artifact.validate_delivery_request(request_path)
+            request_validation = validate_delivery_request(request_path)
             if request_validation.get("status") != "PASS":
                 failures.append("delivery request did not PASS validation for provenance generation")
             else:
                 request = request_validation["request"]
                 profile_ref = request.get("profile", {})
-                if profile_ref.get("id") != profile.get("id") or profile_ref.get("sha256") != artifact.sha256_file(profile_path):
+                if profile_ref.get("id") != profile.get("id") or profile_ref.get("sha256") != sha256_file(profile_path):
                     failures.append("delivery request profile binding does not match package profile")
                 else:
                     materials = [Path(request_validation["resolved"]["source"]["path"])]
                     materials.extend(Path(item["path"]) for item in request_validation["resolved"].get("materials", []))
-                    generated_provenance = artifact.slsa_statement(
+                    generated_provenance = slsa_statement(
                         [primary, *companion_paths],
                         materials,
                         profile_path,
@@ -331,7 +360,8 @@ def execute_oci_package_stage(
             copy_exact(provenance_source, provenance_staged)
         elif generated_provenance is not None:
             provenance_staged = staging / "provenance" / "slsa-provenance.json"
-            artifact.write_json(provenance_staged, generated_provenance)
+            provenance_staged.parent.mkdir(parents=True, exist_ok=True)
+            provenance_staged.write_text(json.dumps(generated_provenance, indent=2, sort_keys=True, ensure_ascii=False) + "\n", encoding="utf-8")
 
         gate_staged: dict[str, dict[str, Path]] = {}
         for gate in sorted(vsa_paths):
@@ -360,7 +390,7 @@ def execute_oci_package_stage(
             "--annotation",
             f"io.ordivon.profile={profile.get('id')}",
             "--annotation",
-            f"io.ordivon.profile.sha256={artifact.sha256_file(profile_path)}",
+            f"io.ordivon.profile.sha256={sha256_file(profile_path)}",
             "--annotation",
             f"io.ordivon.trust-standing={'LOCAL_UNSIGNED_DEVELOPMENT' if allow_local_unsigned else 'CRYPTOGRAPHICALLY_VERIFIED'}",
             "--format",
@@ -445,7 +475,7 @@ def execute_oci_package_stage(
         expected_release_files = [primary, *companion_paths]
         for source in expected_release_files:
             observed = layer_by_title.get(source.name)
-            expected_digest = "sha256:" + artifact.sha256_file(source)
+            expected_digest = "sha256:" + sha256_file(source)
             if not isinstance(observed, dict) or observed.get("digest") != expected_digest or observed.get("size") != source.stat().st_size:
                 raise RuntimeError(f"OCI subject layer does not exactly bind release file: {source.name}")
 
@@ -473,7 +503,7 @@ def execute_oci_package_stage(
             "local_unsigned": allow_local_unsigned,
             "trust_standing": trust_standing,
             "subject": {"digest": subject.get("digest")},
-            "profile": {"id": profile.get("id"), "sha256": artifact.sha256_file(profile_path)},
+            "profile": {"id": profile.get("id"), "sha256": sha256_file(profile_path)},
             "verification": {
                 "required_gates": sorted(gate_aggregation.get("requiredGates", [])),
                 "passed_gates": verified_gates,
@@ -492,15 +522,15 @@ def execute_oci_package_stage(
             "kind": "artifact-oci-package-stage",
             "status": "PASS",
             "profileId": profile.get("id"),
-            "profileSha256": artifact.sha256_file(profile_path),
+            "profileSha256": sha256_file(profile_path),
             "primary": primary_fact,
-            "companions": [artifact.file_fact(p) for p in companion_paths],
+            "companions": [file_fact(p) for p in companion_paths],
             "verifyReport": verify_report_fact,
             "receiptChecks": receipt_checks,
             "gateAggregation": gate_aggregation,
             "oras": {
                 "path": str(DEFAULT_ORAS.resolve()),
-                "sha256": artifact.sha256_file(DEFAULT_ORAS),
+                "sha256": sha256_file(DEFAULT_ORAS),
                 "version": "1.3.4",
             },
             "oci": {

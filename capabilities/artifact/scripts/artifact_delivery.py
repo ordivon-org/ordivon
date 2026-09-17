@@ -32,6 +32,26 @@ import zipfile
 from typing import Any, Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from artifact_core.admission import AdmissionHooks, admit_delivery_request
+from artifact_core.build_bindings import BuildCapabilityBindingRegistry
+from artifact_core.build_planning import compile_delivery_plan_from_validation
+from artifact_core.contracts import file_fact, sha256_file
+from artifact_core.profile_v1 import validate_profile_v1 as validate_profile
+from artifact_trust.provenance import slsa_statement, verify_release_provenance
+from artifact_capabilities.dispatch import execute_build_adapter
+from artifact_evidence.delivery import (
+    verify_delivery_evidence,
+    verify_file_fact,
+    verify_readback,
+    verify_render_evidence,
+    verify_target_evidence,
+    verify_visual_review,
+)
+
+BUILD_BINDING_REGISTRY = BuildCapabilityBindingRegistry(ROOT / "artifact-delivery")
 GLOBAL_ARTIFACT_TOOLCHAIN_ROOT = Path(os.environ.get("ARTIFACT_TOOLCHAIN_ROOT", "/opt/ordivon/external/artifact-toolchain"))
 GLOBAL_PANDOC = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "pandoc/3.10.2/bin/pandoc"
 GLOBAL_PANDOC_ARCHIVE = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "pandoc/3.10.2/pandoc-3.10.2-linux-amd64.tar.gz"
@@ -106,24 +126,8 @@ def utc_now() -> str:
     return dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
 
 
-def sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
-def file_fact(path: Path, name: str | None = None) -> dict[str, Any]:
-    resolved = path.resolve()
-    if not resolved.is_file():
-        raise RuntimeError(f"required file is absent: {resolved}")
-    return {
-        "name": name or resolved.name,
-        "path": str(resolved),
-        "size": resolved.stat().st_size,
-        "digest": {"sha256": sha256_file(resolved)},
-    }
 
 
 def load_json(path: Path) -> Any:
@@ -373,55 +377,6 @@ def canonicalize_generated_ooxml_metadata(path: Path) -> dict[str, Any]:
     }
 
 
-def _minimal_profile_checks(value: Any) -> list[str]:
-    errors: list[str] = []
-    if not isinstance(value, dict):
-        return ["profile must be a JSON object"]
-    required = {
-        "profileVersion",
-        "id",
-        "artifactClass",
-        "authorityMode",
-        "locale",
-        "primaryOutput",
-        "targetRenderer",
-        "gates",
-        "deliveryTargets",
-    }
-    missing = sorted(required - set(value))
-    if missing:
-        errors.append("missing required fields: " + ", ".join(missing))
-    if value.get("profileVersion") != 1:
-        errors.append("profileVersion must equal 1")
-    expected_primary = {
-        "presentation": "pptx",
-        "document": "docx",
-        "spreadsheet": "xlsx",
-        "web": "html",
-    }
-    artifact_class = value.get("artifactClass")
-    primary = value.get("primaryOutput")
-    if artifact_class in expected_primary:
-        if not isinstance(primary, dict) or primary.get("format") != expected_primary[artifact_class]:
-            errors.append(f"{artifact_class} primaryOutput.format must be {expected_primary[artifact_class]}")
-    if artifact_class in {"fixed-view", "archive", "accessible"}:
-        if not isinstance(primary, dict) or primary.get("format") not in {"pdf", "pdf-a-4", "pdf-ua-2"}:
-            errors.append(f"{artifact_class} primaryOutput.format must be a PDF format")
-    if artifact_class == "presentation":
-        for field in ("aspectRatio", "fontPolicy", "fonts"):
-            if field not in value:
-                errors.append(f"presentation profile requires {field}")
-    gates = value.get("gates")
-    if not isinstance(gates, dict):
-        errors.append("gates must be an object")
-    else:
-        for key in ("profileSchema", "structural", "target", "deliveryReadback"):
-            if not isinstance(gates.get(key), bool):
-                errors.append(f"gates.{key} must be boolean")
-        for key, flag in gates.items():
-            if not isinstance(flag, bool):
-                errors.append(f"gates.{key} must be boolean")
-    return errors
 
 
 def validate_json_document(document_path: Path, schema_path: Path, expected_kind: str | None = None) -> dict[str, Any]:
@@ -758,155 +713,65 @@ def build_semantic_svg_presentation_source(
     }
 
 
+def _admit_presentation_source(source_path: Path) -> tuple[dict[str, Any] | None, list[dict[str, Any]], list[str]]:
+    result = validate_json_document(source_path, DEFAULT_PRESENTATION_SOURCE_SCHEMA, "presentation-source")
+    failures: list[str] = []
+    if result.get("status") != "PASS":
+        failures.append("presentation source did not PASS validation")
+    document = result.get("document", {}) if isinstance(result, dict) else {}
+    materials: list[dict[str, Any]] = []
+    if isinstance(document, dict):
+        materials, material_failures = _presentation_source_material_facts(source_path, document)
+        failures.extend(material_failures)
+    return result, materials, failures
+
+
+def _admit_semantic_svg_source(source_path: Path) -> tuple[dict[str, Any] | None, list[dict[str, Any]], list[str]]:
+    result = validate_json_document(source_path, DEFAULT_PRESENTATION_SEMANTIC_SVG_SOURCE_SCHEMA, "presentation-semantic-svg-source")
+    failures: list[str] = []
+    if result.get("status") != "PASS":
+        failures.append("semantic SVG presentation source did not PASS validation")
+    document = result.get("document", {}) if isinstance(result, dict) else {}
+    materials: list[dict[str, Any]] = []
+    if isinstance(document, dict):
+        materials, material_failures = _semantic_svg_source_material_facts(source_path, document)
+        failures.extend(material_failures)
+    return result, materials, failures
+
+
 def validate_delivery_request(
     request_path: Path,
     request_schema_path: Path = DEFAULT_REQUEST_SCHEMA,
     profile_schema_path: Path = DEFAULT_SCHEMA,
 ) -> dict[str, Any]:
-    request_result = validate_json_document(request_path, request_schema_path, "artifact-delivery-request")
-    request = request_result.get("document", {})
-    failures = list(request_result.get("failures", []))
-    profile_result: dict[str, Any] | None = None
-    source_result: dict[str, Any] | None = None
-    resolved: dict[str, Any] = {}
-    source_material_results: list[dict[str, Any]] = []
-    if isinstance(request, dict):
-        profile_ref = request.get("profile", {})
-        source_ref = request.get("source", {})
-        try:
-            profile_path = _resolve_request_path(request_path, str(profile_ref.get("path", "")))
-            if sha256_file(profile_path) != profile_ref.get("sha256"):
-                failures.append("profile digest mismatch")
-            profile_result = validate_profile(profile_path, profile_schema_path)
-            if profile_result.get("status") != "PASS":
-                failures.append("referenced delivery profile did not PASS validation")
-            if profile_result.get("profile", {}).get("id") != profile_ref.get("id"):
-                failures.append("profile id does not match referenced profile bytes")
-            resolved["profile"] = file_fact(profile_path)
-        except Exception as error:
-            failures.append(f"profile reference error: {error}")
-        try:
-            source_path = _resolve_request_path(request_path, str(source_ref.get("path", "")))
-            if sha256_file(source_path) != source_ref.get("sha256"):
-                failures.append("source digest mismatch")
-            source_kind = source_ref.get("kind")
-            if source_kind == "presentation-source-v1":
-                source_result = validate_json_document(source_path, DEFAULT_PRESENTATION_SOURCE_SCHEMA, "presentation-source")
-                if source_result.get("status") != "PASS":
-                    failures.append("presentation source did not PASS validation")
-                source_document = source_result.get("document", {}) if isinstance(source_result, dict) else {}
-                if isinstance(source_document, dict):
-                    source_material_results, source_material_failures = _presentation_source_material_facts(source_path, source_document)
-                    failures.extend(source_material_failures)
-            elif source_kind == "presentation-semantic-svg-source-v1":
-                source_result = validate_json_document(
-                    source_path,
-                    DEFAULT_PRESENTATION_SEMANTIC_SVG_SOURCE_SCHEMA,
-                    "presentation-semantic-svg-source",
-                )
-                if source_result.get("status") != "PASS":
-                    failures.append("semantic SVG presentation source did not PASS validation")
-                source_document = source_result.get("document", {}) if isinstance(source_result, dict) else {}
-                if isinstance(source_document, dict):
-                    source_material_results, source_material_failures = _semantic_svg_source_material_facts(source_path, source_document)
-                    failures.extend(source_material_failures)
-            resolved["source"] = file_fact(source_path)
-        except Exception as error:
-            failures.append(f"source reference error: {error}")
-        material_results: list[dict[str, Any]] = list(source_material_results)
-        for item in request.get("materials", []) if isinstance(request.get("materials"), list) else []:
-            try:
-                material_path = _resolve_request_path(request_path, str(item.get("path", "")))
-                actual = sha256_file(material_path)
-                if actual != item.get("sha256"):
-                    failures.append(f"material digest mismatch: {item.get('path')}")
-                fact = file_fact(material_path)
-                if not any(existing.get("path") == fact.get("path") and existing.get("digest") == fact.get("digest") for existing in material_results):
-                    material_results.append(fact)
-            except Exception as error:
-                failures.append(f"material reference error: {error}")
-        resolved["materials"] = material_results
-    if request_result.get("status") != "PASS":
-        failures.append("request envelope did not PASS schema validation")
-    return {
-        "status": "PASS" if not failures else "FAIL",
-        "request": request,
-        "requestValidation": request_result,
-        "profileValidation": profile_result,
-        "sourceValidation": source_result,
-        "resolved": resolved,
-        "failures": failures,
-        "boundary": "Request validation binds exact profile/source/material bytes, including source-declared presentation template and raster-media authorities, and schema contracts only. It does not establish build success, target rendering, visual acceptance, accessibility or delivery completion.",
-    }
+    hooks = AdmissionHooks(
+        validate_json_document=validate_json_document,
+        validate_profile=validate_profile,
+        source_validators={
+            "presentation-source-v1": _admit_presentation_source,
+            "presentation-semantic-svg-source-v1": _admit_semantic_svg_source,
+        },
+        file_fact=file_fact,
+        sha256_file=sha256_file,
+    )
+    return admit_delivery_request(
+        request_path,
+        request_schema_path=request_schema_path,
+        profile_schema_path=profile_schema_path,
+        hooks=hooks,
+    )
+
 
 
 def compile_delivery_plan(request_path: Path) -> dict[str, Any]:
     validation = validate_delivery_request(request_path)
-    request = validation.get("request", {})
-    profile = (validation.get("profileValidation") or {}).get("profile", {})
-    source = request.get("source", {}) if isinstance(request, dict) else {}
-    artifact_class = profile.get("artifactClass")
-    source_kind = source.get("kind")
-    adapter_map = {
-        ("presentation", "presentation-source-v1"): {
-            "adapter": "python-pptx-presentation-source-v1",
-            "builderId": "https://ordivon.local/builders/artifact-delivery/python-pptx-v1",
-            "buildType": "https://ordivon.local/build-types/artifact-delivery/presentation-source-v1",
-        },
-        ("presentation", "presentation-semantic-svg-source-v1"): {
-            "adapter": "ppt-master-semantic-svg-v1",
-            "builderId": "https://ordivon.local/builders/artifact-delivery/ppt-master-v1",
-            "buildType": "https://ordivon.local/build-types/artifact-delivery/presentation-semantic-svg-source-v1",
-        },
-        ("document", "markdown"): {
-            "adapter": "pandoc-docx",
-            "builderId": "https://ordivon.local/builders/artifact-delivery/pandoc-v1",
-            "buildType": "https://ordivon.local/build-types/artifact-delivery/markdown-docx-v1",
-        },
-        ("web", "html-source"): {
-            "adapter": "standards-web-source",
-            "builderId": "https://ordivon.local/builders/artifact-delivery/file-copy-v1",
-            "buildType": "https://ordivon.local/build-types/artifact-delivery/html-source-v1",
-        },
-    }
-    for cls in ("presentation", "document", "spreadsheet", "fixed-view", "archive", "accessible", "web"):
-        adapter_map[(cls, "native-file")] = {
-            "adapter": "native-artifact-pass-through",
-            "builderId": "https://ordivon.local/builders/artifact-delivery/file-copy-v1",
-            "buildType": "https://ordivon.local/build-types/artifact-delivery/native-pass-through-v1",
-        }
-    selection = adapter_map.get((artifact_class, source_kind))
-    failures = list(validation.get("failures", []))
-    if selection is None:
-        failures.append(f"no v1 build adapter for artifactClass={artifact_class!r}, source.kind={source_kind!r}")
-    else:
-        builder = request.get("builder", {}) if isinstance(request, dict) else {}
-        if builder.get("id") != selection["builderId"]:
-            failures.append("request builder.id does not match the selected mature adapter")
-        if builder.get("buildType") != selection["buildType"]:
-            failures.append("request builder.buildType does not match the selected mature adapter")
-    gates = profile.get("gates", {}) if isinstance(profile, dict) else {}
-    required_gates = sorted(name for name, required in gates.items() if required is True)
-    expected_outputs = [profile.get("primaryOutput")] + list(profile.get("companions", [])) if profile else []
-    return {
-        "schemaVersion": 1,
-        "kind": "artifact-delivery-derived-plan",
-        "status": "PASS" if not failures else "FAIL",
-        "requestId": request.get("requestId") if isinstance(request, dict) else None,
-        "requestSha256": sha256_file(request_path),
-        "profileId": profile.get("id") if isinstance(profile, dict) else None,
-        "artifactClass": artifact_class,
-        "sourceKind": source_kind,
-        "buildAdapter": selection["adapter"] if selection else None,
-        "builder": {"id": selection["builderId"], "buildType": selection["buildType"]} if selection else None,
-        "resolvedInputs": validation.get("resolved", {}),
-        "expectedOutputs": expected_outputs,
-        "requiredGates": required_gates,
-        "deliveryTargets": list(profile.get("deliveryTargets", [])) if isinstance(profile, dict) else [],
-        "stages": ["build", "verify", "package", "release"],
-        "failures": failures,
-        "boundary": "This is a derived execution projection from immutable request/profile bytes, not durable workflow state. Temporal owns durable retries/timers/admission when execution is wired to the existing workflow substrate.",
-    }
+    return compile_delivery_plan_from_validation(
+        request_path,
+        validation,
+        registry=BUILD_BINDING_REGISTRY,
+        sha256_file=sha256_file,
+    )
+
 
 
 def _primary_suffix(profile: dict[str, Any]) -> str:
@@ -952,62 +817,18 @@ def execute_build_stage(request_path: Path, output_directory: Path | None = None
     suffix = _primary_suffix(profile)
     output_path = output_directory / _request_output_name(str(request["requestId"]), suffix)
     adapter = plan["buildAdapter"]
-    adapter_result: dict[str, Any]
-    if adapter == "python-pptx-presentation-source-v1":
-        adapter_result = build_presentation_source(source_path, profile_path, output_path)
-    elif adapter == "ppt-master-semantic-svg-v1":
-        adapter_result = build_semantic_svg_presentation_source(source_path, profile_path, output_path)
-    elif adapter == "pandoc-docx":
-        pandoc = _selected_external_file("ARTIFACT_PANDOC", GLOBAL_PANDOC, ROOT / ".cache/artifact-toolchain/pandoc/current/bin/pandoc")
-        if not pandoc.is_file():
-            adapter_result = {"status": "FAIL", "error": f"Pandoc not found: {pandoc}"}
-        else:
-            source_date_epoch = os.environ.get("SOURCE_DATE_EPOCH")
-            source_date_epoch_fact: dict[str, Any] = {
-                "name": "SOURCE_DATE_EPOCH",
-                "present": source_date_epoch is not None,
-                "value": source_date_epoch,
-                "standard": "https://reproducible-builds.org/docs/source-date-epoch/",
-            }
-            if source_date_epoch is not None and re.fullmatch(r"[0-9]+", source_date_epoch) is None:
-                adapter_result = {
-                    "status": "FAIL",
-                    "error": "SOURCE_DATE_EPOCH must be a non-negative base-10 integer number of seconds",
-                    "reproducibleBuildEnvironment": source_date_epoch_fact,
-                }
-            else:
-                pandoc_env = os.environ.copy()
-                if source_date_epoch is None:
-                    pandoc_env.pop("SOURCE_DATE_EPOCH", None)
-                else:
-                    source_date_epoch_fact["unixSeconds"] = int(source_date_epoch)
-                    pandoc_env["SOURCE_DATE_EPOCH"] = source_date_epoch
-                proc = subprocess.run(
-                    [str(pandoc), str(source_path), "-o", str(output_path)],
-                    text=True,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    check=False,
-                    timeout=60,
-                    env=pandoc_env,
-                )
-                adapter_result = {
-                    "status": "PASS" if proc.returncode == 0 and output_path.is_file() else "FAIL",
-                    "returnCode": proc.returncode,
-                    "stdout": proc.stdout[-2000:],
-                    "stderr": proc.stderr[-4000:],
-                    "artifact": file_fact(output_path) if output_path.is_file() else None,
-                    "reproducibleBuildEnvironment": source_date_epoch_fact,
-                }
-    elif adapter in {"standards-web-source", "native-artifact-pass-through"}:
-        shutil.copyfile(source_path, output_path)
-        adapter_result = {
-            "status": "PASS" if sha256_file(source_path) == sha256_file(output_path) else "FAIL",
-            "source": file_fact(source_path),
-            "artifact": file_fact(output_path),
-        }
-    else:
-        adapter_result = {"status": "FAIL", "error": f"unimplemented adapter: {adapter}"}
+    pandoc = _selected_external_file("ARTIFACT_PANDOC", GLOBAL_PANDOC, ROOT / ".cache/artifact-toolchain/pandoc/current/bin/pandoc")
+    adapter_result = execute_build_adapter(
+        adapter,
+        source_path=source_path,
+        profile_path=profile_path,
+        output_path=output_path,
+        presentation_builders={
+            "python-pptx-presentation-source-v1": build_presentation_source,
+            "ppt-master-semantic-svg-v1": build_semantic_svg_presentation_source,
+        },
+        pandoc=pandoc,
+    )
     failures: list[str] = []
     if adapter_result.get("status") != "PASS":
         failures.append(f"build adapter did not PASS: {adapter}")
@@ -1560,41 +1381,6 @@ def build_presentation_source(
     }
 
 
-def validate_profile(profile_path: Path, schema_path: Path = DEFAULT_SCHEMA) -> dict[str, Any]:
-    profile = load_json(profile_path)
-    schema = load_json(schema_path)
-    errors = _minimal_profile_checks(profile)
-    validator = "jsonschema"
-    schema_status = "NOT_RUN"
-    schema_error: str | None = None
-    if importlib.util.find_spec("jsonschema") is None:
-        validator = "unavailable"
-        schema_error = "Python jsonschema package is not installed"
-    else:
-        try:
-            import jsonschema  # type: ignore
-
-            jsonschema.Draft202012Validator.check_schema(schema)
-            instance = dict(profile)
-            instance.pop("$schema", None)
-            jsonschema.Draft202012Validator(schema).validate(instance)
-            schema_status = "PASS"
-        except Exception as error:  # pragma: no cover - depends on optional validator
-            schema_status = "FAIL"
-            schema_error = str(error)
-            errors.append(f"JSON Schema validation failed: {error}")
-    return {
-        "status": "PASS" if not errors and schema_status == "PASS" else "FAIL",
-        "profile": profile,
-        "minimalContractErrors": errors,
-        "jsonSchema": {
-            "dialect": "https://json-schema.org/draft/2020-12/schema",
-            "validator": validator,
-            "status": schema_status,
-            "error": schema_error,
-            "schemaPath": str(schema_path.resolve()),
-        },
-    }
 
 
 def _normalized_posix_relative(value: str, field: str) -> PurePosixPath:
@@ -3295,227 +3081,22 @@ def aggregate_vsa_gates(
     }
 
 
-def verify_file_fact(fact: dict[str, Any]) -> dict[str, Any]:
-    failures: list[str] = []
-    path_value = fact.get("path")
-    path = Path(path_value) if isinstance(path_value, str) and path_value else None
-    if path is None or not path.is_file():
-        failures.append("referenced file is absent")
-        return {"status": "FAIL", "path": path_value, "failures": failures}
-    actual = file_fact(path)
-    if fact.get("name") != actual.get("name"):
-        failures.append("file name mismatch")
-    if fact.get("size") != actual.get("size"):
-        failures.append("file size mismatch")
-    if fact.get("digest", {}).get("sha256") != actual.get("digest", {}).get("sha256"):
-        failures.append("file SHA-256 mismatch")
-    return {"status": "PASS" if not failures else "FAIL", "path": str(path), "actual": actual, "failures": failures}
 
 
 
 
 
-def verify_release_provenance(provenance_path: Path, subjects: Iterable[Path]) -> dict[str, Any]:
-    failures: list[str] = []
-    value = load_json(provenance_path)
-    expected = {path.name: sha256_file(path) for path in subjects}
-    if value.get("_type") != IN_TOTO_STATEMENT_V1:
-        failures.append("provenance is not an in-toto Statement v1")
-    if value.get("predicateType") != SLSA_PROVENANCE_V1:
-        failures.append("provenance predicateType is not SLSA Provenance v1")
-    observed: dict[str, str] = {}
-    for item in value.get("subject", []) if isinstance(value.get("subject"), list) else []:
-        if isinstance(item, dict) and isinstance(item.get("name"), str):
-            digest = item.get("digest", {}).get("sha256") if isinstance(item.get("digest"), dict) else None
-            if isinstance(digest, str):
-                observed[item["name"]] = digest
-    if observed != expected:
-        failures.append("provenance subjects do not exactly bind the release primary/companions")
-    builder = value.get("predicate", {}).get("runDetails", {}).get("builder", {}).get("id")
-    if not isinstance(builder, str) or not urllib.parse.urlparse(builder).scheme:
-        failures.append("provenance builder.id is absent or not a URI")
-    return {
-        "status": "PASS" if not failures else "FAIL",
-        "statement": file_fact(provenance_path),
-        "expectedSubjects": expected,
-        "observedSubjects": observed,
-        "builderId": builder,
-        "failures": failures,
-    }
 
 
 
-def verify_render_evidence(render_dir: Path, expected_slides: int) -> dict[str, Any]:
-    pngs = (
-        sorted(p for p in render_dir.iterdir() if p.is_file() and p.suffix.casefold() == ".png")
-        if render_dir.is_dir()
-        else []
-    )
-    bad = [str(p) for p in pngs if p.stat().st_size <= 0]
-    ok = len(pngs) == expected_slides and not bad and expected_slides > 0
-    return {
-        "status": "PASS" if ok else "FAIL",
-        "renderDirectory": str(render_dir.resolve()),
-        "expectedSlideCount": expected_slides,
-        "observedPngCount": len(pngs),
-        "emptyFiles": bad,
-        "digests": [{"name": p.name, "sha256": sha256_file(p)} for p in pngs],
-        "note": "Presence/count/digest evidence does not replace visual defect review.",
-    }
 
 
-def verify_target_evidence(
-    evidence_path: Path,
-    pptx: Path,
-    pdf: Path | None,
-    expected_slides: int,
-    render_result: dict[str, Any] | None = None,
-) -> dict[str, Any]:
-    value = load_json(evidence_path)
-    failures: list[str] = []
-    expected_pptx = sha256_file(pptx)
-    if value.get("artifact", {}).get("sha256") != expected_pptx:
-        failures.append("target evidence PPTX digest does not match the inspected artifact")
-    renderer = value.get("renderer", {})
-    if renderer.get("name") != "Microsoft PowerPoint Desktop":
-        failures.append("target evidence renderer is not Microsoft PowerPoint Desktop")
-    if int(value.get("result", {}).get("slideCount", -1)) != expected_slides:
-        failures.append("target evidence slide count mismatch")
-    if pdf is not None:
-        expected_pdf = sha256_file(pdf)
-        if value.get("result", {}).get("pdfSha256") != expected_pdf:
-            failures.append("target evidence PDF digest mismatch")
-    if not value.get("renderer", {}).get("version"):
-        failures.append("target evidence omitted PowerPoint version")
-    if render_result is not None and render_result.get("status") == "PASS":
-        expected_render_map = {item["name"]: item["sha256"] for item in render_result.get("digests", [])}
-        target_pngs = value.get("result", {}).get("pngs")
-        if not isinstance(target_pngs, list):
-            failures.append("target evidence omitted PNG digest list")
-        else:
-            observed_render_map = {
-                str(item.get("name")): str(item.get("sha256"))
-                for item in target_pngs
-                if isinstance(item, dict)
-            }
-            if observed_render_map != expected_render_map:
-                failures.append("target evidence PNG digests do not match rendered evidence")
-        if int(value.get("result", {}).get("pngCount", -1)) != expected_slides:
-            failures.append("target evidence PNG count mismatch")
-    return {
-        "status": "PASS" if not failures else "FAIL",
-        "evidencePath": str(evidence_path.resolve()),
-        "renderer": renderer,
-        "failures": failures,
-    }
 
 
-def verify_visual_review(evidence_path: Path, pptx: Path, render_result: dict[str, Any]) -> dict[str, Any]:
-    value = load_json(evidence_path)
-    failures: list[str] = []
-    expected_artifact = sha256_file(pptx)
-    if value.get("artifactSha256") != expected_artifact:
-        failures.append("visual review artifact digest mismatch")
-    if value.get("verdict") != "PASS":
-        failures.append("visual review verdict is not PASS")
-    blocking = value.get("blockingDefects")
-    if not isinstance(blocking, list) or blocking:
-        failures.append("visual review must provide an empty blockingDefects list")
-    expected_renders = {item["name"]: item["sha256"] for item in render_result.get("digests", [])}
-    observed_renders = value.get("renderDigests")
-    if not isinstance(observed_renders, dict) or observed_renders != expected_renders:
-        failures.append("visual review render digests do not bind the exact rendered evidence")
-    methods = value.get("methods")
-    if not isinstance(methods, list) or not methods or not all(isinstance(item, str) and item for item in methods):
-        failures.append("visual review must name at least one review method")
-    return {
-        "status": "PASS" if not failures else "FAIL",
-        "evidencePath": str(evidence_path.resolve()),
-        "methods": methods if isinstance(methods, list) else [],
-        "blockingDefects": blocking if isinstance(blocking, list) else None,
-        "failures": failures,
-        "boundary": "Visual-review evidence is bound to exact PPTX and render digests; structural/target/delivery validators remain independent gates.",
-    }
 
 
-def verify_readback(
-    source: Path,
-    readback: Path,
-    destination: str | None = None,
-    destination_reference: str | None = None,
-    artifact_role: str | None = None,
-) -> dict[str, Any]:
-    source_fact = file_fact(source)
-    read_fact = file_fact(readback)
-    matched = source_fact["digest"]["sha256"] == read_fact["digest"]["sha256"]
-    return {
-        "status": "PASS" if matched else "FAIL",
-        "destination": destination,
-        "destinationReference": destination_reference,
-        "artifactRole": artifact_role,
-        "source": source_fact,
-        "readback": read_fact,
-        "digestMatched": matched,
-    }
 
 
-def verify_delivery_evidence(
-    evidence_paths: Iterable[Path],
-    profile: dict[str, Any],
-    pptx: Path,
-    pdf: Path | None,
-) -> dict[str, Any]:
-    expected_artifacts: dict[str, str] = {"primary": sha256_file(pptx)}
-    required_companions = [
-        item for item in profile.get("companions", []) if item.get("required") is True
-    ]
-    if required_companions:
-        if pdf is None:
-            return {
-                "status": "FAIL",
-                "failures": ["required companion delivery cannot be verified without a companion PDF"],
-                "evidence": [],
-            }
-        expected_artifacts["companion"] = sha256_file(pdf)
-    expected_pairs = {
-        (str(destination), role)
-        for destination in profile.get("deliveryTargets", [])
-        for role in expected_artifacts
-    }
-    seen: set[tuple[str, str]] = set()
-    failures: list[str] = []
-    evidence: list[dict[str, Any]] = []
-    for path in evidence_paths:
-        value = load_json(path)
-        destination = value.get("destination")
-        role = value.get("artifactRole")
-        pair = (str(destination), str(role))
-        item_failures: list[str] = []
-        if pair not in expected_pairs:
-            item_failures.append(f"unexpected destination/artifactRole pair: {pair}")
-        elif pair in seen:
-            item_failures.append(f"duplicate destination/artifactRole evidence: {pair}")
-        else:
-            seen.add(pair)
-        if value.get("status") != "PASS" or value.get("digestMatched") is not True:
-            item_failures.append("read-back evidence did not PASS exact digest comparison")
-        expected_digest = expected_artifacts.get(str(role))
-        if expected_digest is not None and value.get("source", {}).get("digest", {}).get("sha256") != expected_digest:
-            item_failures.append("read-back evidence source digest does not match the current build artifact")
-        if not value.get("destinationReference"):
-            item_failures.append("read-back evidence omitted destinationReference")
-        failures.extend(f"{path}: {item}" for item in item_failures)
-        evidence.append({"path": str(path.resolve()), "destination": destination, "artifactRole": role, "failures": item_failures})
-    missing = sorted(expected_pairs - seen)
-    if missing:
-        failures.append("missing required destination/artifactRole read-back evidence: " + repr(missing))
-    return {
-        "status": "PASS" if not failures else "FAIL",
-        "expected": sorted(expected_pairs),
-        "evidence": evidence,
-        "failures": failures,
-        "boundary": "The delivery adapter owns the external write/read operation; this gate verifies exact returned bytes plus destination reference without inventing a transport protocol.",
-    }
 
 
 def snapshot_materials(paths: Iterable[Path]) -> dict[str, Any]:
@@ -3534,50 +3115,6 @@ def _require_uri(value: str, field: str) -> str:
     return value
 
 
-def slsa_statement(
-    subjects: Iterable[Path],
-    materials: Iterable[Path],
-    profile_path: Path,
-    builder_id: str,
-    build_type: str,
-) -> dict[str, Any]:
-    builder_id = _require_uri(builder_id, "builder-id")
-    build_type = _require_uri(build_type, "build-type")
-    profile = load_json(profile_path)
-    subject_values = [
-        {"name": path.name, "digest": {"sha256": sha256_file(path)}} for path in subjects
-    ]
-    dependencies = [
-        {
-            "uri": path.resolve().as_uri(),
-            "digest": {"sha256": sha256_file(path)},
-        }
-        for path in materials
-    ]
-    dependencies.append(
-        {
-            "uri": profile_path.resolve().as_uri(),
-            "digest": {"sha256": sha256_file(profile_path)},
-        }
-    )
-    return {
-        "_type": IN_TOTO_STATEMENT_V1,
-        "subject": subject_values,
-        "predicateType": SLSA_PROVENANCE_V1,
-        "predicate": {
-            "buildDefinition": {
-                "buildType": build_type,
-                "externalParameters": {"deliveryProfile": profile.get("id")},
-                "internalParameters": {},
-                "resolvedDependencies": dependencies,
-            },
-            "runDetails": {
-                "builder": {"id": builder_id},
-                "metadata": {"invocationId": f"artifact-build-{utc_now()}"},
-                "byproducts": [],
-            },
-        },
-    }
 
 
 def presentation_gate(
