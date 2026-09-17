@@ -4,6 +4,8 @@ All user-visible changes to Ordivon Runtime are recorded here. The repository fo
 
 ## Unreleased
 
+- Windows-native execution now prefers a live WSL Session Relay interop listener after any valid ambient `WSL_INTEROP`, instead of falling through numeric listener order that could select the long-lived `/run/WSL/2_interop` init listener and intermittently fail with `UtilAcceptVsock: accept4 failed 110`; other listeners remain bounded fallbacks, and launcher retry semantics are otherwise unchanged.
+
 - Runtime release acceptance now separates live server Tool-catalog truth from external MCP-client Tool projection. Snapshot/review-based clients must refresh and re-observe their effective Tool set after catalog changes; if the controlling client does not expose `release.apply` and `release.get`, self-release is `HOLD_CONNECTOR_REFRESH_REQUIRED` and generic `workspace.exec` of the deployer is not an accepted substitute. Runtime execution and deployment mechanics are unchanged.
 
 - Runtime Job timeout policy now separates the operator default from the hard maximum: `ORDIVON_DEFAULT_RUNTIME_MS` resolves only omitted Agent-facing `timeoutMs`, while `ORDIVON_MAX_RUNTIME_MS` remains the fail-closed admission ceiling for explicit values. Existing installations that omit the new setting preserve historical `default=max` behavior; the packaged profile chooses a 1-hour default and 24-hour maximum so long scientific/engineering Jobs can request more than one hour without silently widening ordinary omitted-timeout work. `runtime.describe` and operator status project both values; durable Execution Plans, runner deadlines, replay, and reconciliation semantics are unchanged.
