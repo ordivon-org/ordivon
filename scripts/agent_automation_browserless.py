@@ -108,6 +108,8 @@ class BrowserlessAutomationConfig:
     human_handoff_mode: str = "self-hosted-vnc"
     browser_session_timeout_ms: int = 480000
     browserless_start_timeout_seconds: int = 20
+    browserless_idle_ttl_seconds: int = 900
+    browserless_warm_endpoint_ids: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if self.human_handoff_mode not in {"self-hosted-vnc", "live-url"}:
@@ -119,6 +121,13 @@ class BrowserlessAutomationConfig:
         )
         if self.browserless_start_timeout_seconds <= 0:
             raise ValueError("browserlessStartTimeoutSeconds must be positive")
+        if self.browserless_idle_ttl_seconds <= 0:
+            raise ValueError("browserlessIdleTtlSeconds must be positive")
+        if len(set(self.browserless_warm_endpoint_ids)) != len(self.browserless_warm_endpoint_ids):
+            raise ValueError("browserlessWarmEndpointIds must be unique")
+        endpoint_ids = {endpoint.endpoint_id for endpoint in self.browserless_pool.endpoints}
+        if set(self.browserless_warm_endpoint_ids) - endpoint_ids:
+            raise ValueError("browserlessWarmEndpointIds contains unknown endpoint")
         if self.browser_session_timeout_ms < required_session_budget:
             raise ValueError(
                 "browserlessSessionTimeoutMs must cover human handoff + post-verification stabilization + margin"
@@ -128,6 +137,11 @@ class BrowserlessAutomationConfig:
     def from_dict(cls, value: dict) -> "BrowserlessAutomationConfig":
         if value.get("schemaVersion") != 1:
             raise ValueError("schemaVersion=1 required")
+        warm = value.get("browserlessWarmEndpointIds", [])
+        if not isinstance(warm, list) or any(
+            not isinstance(item, str) or not item for item in warm
+        ):
+            raise ValueError("browserlessWarmEndpointIds must be a list of non-empty strings")
         return cls(
             state_root=_abs(value["stateRoot"]),
             browserless_pool=BrowserlessPool.from_dict(value["browserSubstrate"]),
@@ -167,6 +181,8 @@ class BrowserlessAutomationConfig:
             browserless_start_timeout_seconds=int(
                 value.get("browserlessStartTimeoutSeconds", 20)
             ),
+            browserless_idle_ttl_seconds=int(value.get("browserlessIdleTtlSeconds", 900)),
+            browserless_warm_endpoint_ids=tuple(warm),
         )
 
     @property
@@ -208,6 +224,18 @@ PRE_SEND_CARRIER_FAILOVER_STANDINGS = frozenset(
         "CONNECT_FAILED",
     }
 )
+
+
+def _carrier_last_use_path(config: BrowserlessAutomationConfig, endpoint_id: str) -> Path:
+    return config.state_root / "carrier-lifecycle" / f"{_suffix(endpoint_id, 32)}.last-use"
+
+
+def _touch_carrier_last_use(config: BrowserlessAutomationConfig, endpoint_id: str) -> Path:
+    path = _carrier_last_use_path(config, endpoint_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.touch(exist_ok=True)
+    os.chmod(path, 0o600)
+    return path
 
 
 @contextmanager
@@ -400,6 +428,8 @@ class BrowserlessAutomationService:
             health = dict(health)
             health["serviceUnit"] = unit
             health["lifecycleStarted"] = started
+            if health.get("healthy") is True:
+                _touch_carrier_last_use(self.config, endpoint.endpoint_id)
         return health
 
     def _require_provider_ready(self, endpoint_id: str) -> dict:

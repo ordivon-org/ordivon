@@ -1,0 +1,8 @@
+[Unit]
+Description=Conservative idle reaper for managed Browserless carriers
+After=network-v2-browserless.target
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/root/.local/share/ordivon-workstation/agent-automation-mcp-v1/.venv/bin/python /opt/ordivon/agent-automation/current/scripts/browserless_idle_reaper.py --config /etc/ordivon/agent-automation-browserless.json

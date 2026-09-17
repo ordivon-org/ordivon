@@ -40,6 +40,10 @@ OPERATOR_PROXY_SOURCE = ROOT / "systemd/ordivon-browserless-operator-proxy@.serv
 OPERATOR_PROXY_DEST = Path("/etc/systemd/system/ordivon-browserless-operator-proxy@.service")
 DISPLAY_SOURCE = ROOT / "systemd/ordivon-browserless-display@.service"
 DISPLAY_DEST = Path("/etc/systemd/system/ordivon-browserless-display@.service")
+IDLE_REAPER_SOURCE = ROOT / "systemd/ordivon-browserless-idle-reaper.service"
+IDLE_REAPER_DEST = Path("/etc/systemd/system/ordivon-browserless-idle-reaper.service")
+IDLE_REAPER_TIMER_SOURCE = ROOT / "systemd/ordivon-browserless-idle-reaper.timer"
+IDLE_REAPER_TIMER_DEST = Path("/etc/systemd/system/ordivon-browserless-idle-reaper.timer")
 HUMAN_VNC_SOURCE = ROOT / "systemd/ordivon-browserless-human-vnc@.service"
 HUMAN_VNC_DEST = Path("/etc/systemd/system/ordivon-browserless-human-vnc@.service")
 HUMAN_WEB_SOURCE = ROOT / "systemd/ordivon-browserless-human-web@.service"
@@ -348,6 +352,8 @@ def render_config(binding: dict | None = None) -> dict:
         "browserlessHumanHandoffMode": "self-hosted-vnc",
         "browserlessSessionTimeoutMs": 480000,
         "browserlessStartTimeoutSeconds": 20,
+        "browserlessIdleTtlSeconds": 900,
+        "browserlessWarmEndpointIds": ["chatgpt-carrier-11"],
         "browserNetworkAuthority": {
             k: binding[k] for k in ("kind", "name", "generationDigest", "serviceUnit")
         },
@@ -561,6 +567,8 @@ def apply() -> dict:
         )
     for source, destination in (
         (DISPLAY_SOURCE, DISPLAY_DEST),
+        (IDLE_REAPER_SOURCE, IDLE_REAPER_DEST),
+        (IDLE_REAPER_TIMER_SOURCE, IDLE_REAPER_TIMER_DEST),
         (HUMAN_VNC_SOURCE, HUMAN_VNC_DEST),
         (BROWSER_AGENT_TARGET_SOURCE, BROWSER_AGENT_TARGET_DEST),
     ):
@@ -572,6 +580,7 @@ def apply() -> dict:
         HUMAN_WEB_DEST.write_bytes(human_web_raw)
         os.chmod(HUMAN_WEB_DEST, 0o644)
     run(["/usr/bin/systemctl", "daemon-reload"])
+    run(["/usr/bin/systemctl", "enable", "--now", "ordivon-browserless-idle-reaper.timer"])
     # ChatGPT carrier displays are lifecycle dependencies, not boot-time services. Generic
     # browser-agent displays remain static because browser-agent.target is intentionally warm.
     run(

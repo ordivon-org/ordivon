@@ -1,0 +1,12 @@
+[Unit]
+Description=Periodically reclaim idle Browserless carriers
+
+[Timer]
+OnBootSec=15min
+OnUnitActiveSec=5min
+RandomizedDelaySec=30s
+AccuracySec=15s
+Unit=ordivon-browserless-idle-reaper.service
+
+[Install]
+WantedBy=timers.target

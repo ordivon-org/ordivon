@@ -283,6 +283,9 @@ class BrowserlessPodmanDeploymentTests(unittest.TestCase):
         self.assertIn("browser_agent_instance_masked", source)
         self.assertNotIn('enable", "--now", *[f"ordivon-browserless@{instance}.service"', source)
         self.assertIn('"serviceUnit": f"ordivon-browserless@{instance}.service"', source)
+        self.assertIn('"browserlessIdleTtlSeconds": 900', source)
+        self.assertIn('"browserlessWarmEndpointIds": ["chatgpt-carrier-11"]', source)
+        self.assertIn('ordivon-browserless-idle-reaper.timer', source)
         self.assertIn('"disable",', source)
 
     def test_browserless_executes_podman_without_docker_execution_path(self):

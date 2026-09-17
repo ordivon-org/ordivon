@@ -1218,6 +1218,9 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 observed = service.ensure_endpoint_active(endpoint)
             self.assertTrue(observed["healthy"])
             self.assertTrue(observed["lifecycleStarted"])
+            stamps = list((service.config.state_root / "carrier-lifecycle").glob("*.last-use"))
+            self.assertEqual(len(stamps), 1)
+            self.assertEqual(stamps[0].stat().st_mode & 0o777, 0o600)
             self.assertEqual(run.call_args_list[1].args[0], ["/usr/bin/systemctl", "start", "ordivon-browserless@11.service"])
 
     def test_provider_preflight_returns_carrier_busy_without_opening_browser(self):
