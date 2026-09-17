@@ -151,14 +151,30 @@ def _compare_pool(*, manifest: Path, security_root: Path, python: str) -> dict[s
     return value
 
 
-def _git_head(root: Path) -> str:
+def _source_revision(root: Path) -> str:
     proc = subprocess.run(
         ["/usr/bin/git", "-C", str(root), "rev-parse", "HEAD"],
-        check=True,
+        check=False,
         capture_output=True,
         text=True,
     )
-    return proc.stdout.strip()
+    revision = proc.stdout.strip()
+    if proc.returncode == 0 and re.fullmatch(r"[0-9a-f]{40}", revision):
+        return revision
+    marker = root / ".ordivon-agent-automation-release.json"
+    try:
+        value = json.loads(marker.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise RuntimeError(f"source revision unavailable for {root}") from error
+    commit = value.get("commit") if isinstance(value, dict) else None
+    if (
+        not isinstance(value, dict)
+        or value.get("schemaVersion") != 1
+        or not isinstance(commit, str)
+        or not re.fullmatch(r"[0-9a-f]{40}", commit)
+    ):
+        raise RuntimeError(f"immutable release marker is invalid for {root}")
+    return commit
 
 
 def _run_into(
@@ -217,8 +233,8 @@ def _run_into(
         "runId": run_id,
         "poolId": baseline["poolId"],
         "poolIndexSha256": baseline["indexSha256"],
-        "harnessRevision": _git_head(HARNESS_ROOT),
-        "securityRevision": _git_head(security_root),
+        "harnessRevision": _source_revision(HARNESS_ROOT),
+        "securityRevision": _source_revision(security_root),
         "carrierEvidence": evidence,
         "classification": classification,
         "providerChallengeVisited": False,

@@ -14,7 +14,7 @@ audience:
   - operator
   - researcher
   - agent
-updated: 2026-08-19
+updated: 2026-09-18
 summary: Claim classes, evidence strength, historical evidence interpretation and current release gates.
 evidence_status: verified
 readiness: READY
@@ -52,6 +52,7 @@ The current release gate includes:
 - documentation and evidence-index validation;
 - wheel metadata validation, isolated installation, CLI smoke testing and dependency audit;
 - bounded atomic Event-batch replay/rollback tests and the deterministic scale smoke.
+- Agent Automation pre-switch Browser Security qualification after admission closure and workflow drain, using same-carrier LKG comparisons across the Browserless pool. Drift is localization evidence only; the qualification never claims provider-authoritative root cause.
 
 ## Evidence index and revision binding
 
@@ -113,3 +114,11 @@ Use these terms consistently:
 - **unsupported**: no contract or safe path exists.
 
 Tests and evidence verify bounded behavior. They do not turn Runtime success into semantic Task completion or remove Provider/domain uncertainty.
+
+## Browser Security release qualification
+
+Agent Automation activation uses the immutable candidate's own `browser_security_pool_runner.py` and `browser_security_witness_source.py` after new admission is closed and the production Temporal task queue is drained, but before the worker stops and before `/opt/ordivon/agent-automation/current` changes. The runner verifies Security-v2 LKG bundle digests, observes the current Browserless pool through neutral/read-only probes, and delegates canonicalization/classification to Security-v2.
+
+The release owner admits only `NO_OBSERVED_DRIFT` as an automatic PASS. `DETECTOR_DRIFT`, `GLOBAL_DRIFT`, `CARRIER_LOCAL_DRIFT`, `MIXED_DRIFT`, malformed receipts, baseline digest failure, busy carriers, or collector failure produce HOLD. A private `0600` qualification receipt binds the candidate commit, Security revision, pool identity/index digest, classification standing, and the explicit facts that no provider challenge was visited and no provider SEND was attempted.
+
+This is a **pre-switch currentness gate**, not proof of the behavioral effect of a Browserless/Chromium launch change that has not yet been deployed. Browser-substrate mutation still requires a separate candidate/canary and post-change witness transaction before promotion.

@@ -14,7 +14,7 @@ audience:
   - builder
   - operator
   - agent
-updated: 2026-08-04
+updated: 2026-09-18
 summary: Version identities, release gates, compatibility obligations and deprecation rules for Harness.
 evidence_status: verified
 readiness: READY
@@ -74,7 +74,8 @@ A releasable commit requires:
 7. secret scanning and CodeQL;
 8. Changelog entry;
 9. live receipt when Provider, Runtime, Tool recovery, cancellation or completion semantics change;
-10. named limitations and compatibility impact.
+10. named limitations and compatibility impact;
+11. for Agent Automation activation, a quiescent pre-switch Browser Security pool qualification bound to the exact candidate commit and Security-v2 LKG index. Only `NO_OBSERVED_DRIFT` passes automatically; detector, shared, carrier-local, mixed drift, or collection failure holds the release and retains a private qualification receipt.
 
 ## Version source
 

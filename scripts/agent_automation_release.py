@@ -26,6 +26,10 @@ MCP_PY = Path("/root/.local/share/ordivon-workstation/agent-automation-mcp-v1/.v
 WORKER_PY = Path(
     "/root/.local/share/ordivon-workstation/temporal-agent-automation/.venv/bin/python"
 )
+BROWSER_SECURITY_PY = Path(
+    "/root/.local/share/ordivon-workstation/conversation-relay-playwright-r4/.venv/bin/python"
+)
+SECURITY_ROOT = Path("/root/projects/ordivon-security-v2")
 MCP_UNIT = "ordivon-agent-automation-mcp.service"
 WORKER_UNIT = "ordivon-agent-temporal-worker.service"
 SYSTEMD = Path("/etc/systemd/system")
@@ -48,6 +52,8 @@ RELEASE_PATHS = (
     "scripts/agent_automation_registry.py",
     "scripts/agent_automation_release.py",
     "scripts/browser_use_browserless.py",
+    "scripts/browser_security_witness_source.py",
+    "scripts/browser_security_pool_runner.py",
     "scripts/browserless_display_auth.py",
     "scripts/browserless_human_handoff.py",
     "scripts/browserless_human_interaction.py",
@@ -299,6 +305,116 @@ def plan(repo: Path, revision: str) -> dict:
     }
 
 
+def _browser_security_qualification_path(commit: str) -> Path:
+    return ADMISSION_ROOT / "browser-security-qualifications" / f"{commit}.json"
+
+
+def _persist_browser_security_qualification(commit: str, value: dict) -> None:
+    write_atomic(
+        _browser_security_qualification_path(commit),
+        json.dumps(value, sort_keys=True).encode() + b"\n",
+        0o600,
+    )
+
+
+def require_browser_security_release_qualification(release: Path, commit: str) -> dict:
+    runner = release / "scripts" / "browser_security_pool_runner.py"
+    witness = release / "scripts" / "browser_security_witness_source.py"
+    if not runner.is_file() or not witness.is_file():
+        value = {
+            "schemaVersion": 1,
+            "kind": "ordivon.agent-automation-browser-security-qualification",
+            "standing": "HOLD",
+            "candidateCommit": commit,
+            "detail": "candidate lacks Browser Security qualification scripts",
+        }
+        _persist_browser_security_qualification(commit, value)
+        raise ReleaseError(value["detail"])
+
+    run_id = f"release-{commit[:12]}"
+    proc = run(
+        [
+            str(BROWSER_SECURITY_PY),
+            str(runner),
+            "--run-id",
+            run_id,
+            "--security-root",
+            str(SECURITY_ROOT),
+        ],
+        check=False,
+        timeout=240,
+    )
+    if proc.returncode != 0:
+        detail = (proc.stderr or proc.stdout or f"rc={proc.returncode}").strip().replace("\n", " ")[-1600:]
+        value = {
+            "schemaVersion": 1,
+            "kind": "ordivon.agent-automation-browser-security-qualification",
+            "standing": "HOLD",
+            "candidateCommit": commit,
+            "detail": f"Browser Security pool runner failed: {detail}",
+        }
+        _persist_browser_security_qualification(commit, value)
+        raise ReleaseError(value["detail"])
+    try:
+        pool = json.loads(proc.stdout)
+    except json.JSONDecodeError as error:
+        value = {
+            "schemaVersion": 1,
+            "kind": "ordivon.agent-automation-browser-security-qualification",
+            "standing": "HOLD",
+            "candidateCommit": commit,
+            "detail": "Browser Security pool runner returned non-JSON",
+        }
+        _persist_browser_security_qualification(commit, value)
+        raise ReleaseError(value["detail"]) from error
+
+    classification = pool.get("classification") if isinstance(pool, dict) else None
+    valid = (
+        isinstance(pool, dict)
+        and pool.get("kind") == "ordivon.browser-security-pool-run"
+        and pool.get("harnessRevision") == commit
+        and isinstance(pool.get("securityRevision"), str)
+        and re.fullmatch(r"[0-9a-f]{40}", pool["securityRevision"]) is not None
+        and isinstance(pool.get("poolIndexSha256"), str)
+        and re.fullmatch(r"sha256:[0-9a-f]{64}", pool["poolIndexSha256"]) is not None
+        and pool.get("providerChallengeVisited") is False
+        and pool.get("providerSendAttempted") is False
+        and isinstance(classification, dict)
+        and classification.get("rootCauseEstablished") is False
+        and isinstance(classification.get("standing"), str)
+    )
+    if not valid:
+        value = {
+            "schemaVersion": 1,
+            "kind": "ordivon.agent-automation-browser-security-qualification",
+            "standing": "HOLD",
+            "candidateCommit": commit,
+            "detail": "Browser Security pool receipt failed release-binding validation",
+        }
+        _persist_browser_security_qualification(commit, value)
+        raise ReleaseError(value["detail"])
+
+    drift = classification["standing"]
+    value = {
+        "schemaVersion": 1,
+        "kind": "ordivon.agent-automation-browser-security-qualification",
+        "standing": "PASS" if drift == "NO_OBSERVED_DRIFT" else "HOLD",
+        "candidateCommit": commit,
+        "securityRevision": pool["securityRevision"],
+        "poolId": pool.get("poolId"),
+        "poolIndexSha256": pool["poolIndexSha256"],
+        "classificationStanding": drift,
+        "carrierCount": len(pool.get("carrierEvidence") or []),
+        "providerChallengeVisited": False,
+        "providerSendAttempted": False,
+        "rootCauseEstablished": False,
+    }
+    _persist_browser_security_qualification(commit, value)
+    if value["standing"] != "PASS":
+        raise ReleaseError(f"Browser Security qualification HOLD: {drift}")
+    return value
+
+
 def atomic_link(target: Path, link: Path) -> None:
     link.parent.mkdir(parents=True, exist_ok=True)
     tmp = link.with_name(link.name + ".next")
@@ -478,6 +594,9 @@ def activate(repo: Path, revision: str) -> dict:
                     "cliAdmissionClosed": True,
                     "release": rel,
                 }
+            browser_security_qualification = require_browser_security_release_qualification(
+                release, commit
+            )
             run(["/usr/bin/systemctl", "stop", WORKER_UNIT], timeout=30)
             atomic_link(release, CURRENT)
             switched = True
@@ -516,6 +635,7 @@ def activate(repo: Path, revision: str) -> dict:
                 "productionRoot": str(CURRENT.resolve()),
                 "runningWorkflowCount": 0,
                 "mcp": receipt,
+                "browserSecurityQualification": browser_security_qualification,
                 "cliAdmissionClosed": False,
             }
         except Exception:

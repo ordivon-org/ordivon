@@ -83,7 +83,7 @@ class BrowserSecurityPoolRunnerTests(unittest.TestCase):
             ) as build_mock, mock.patch.object(
                 runner, "_compare_pool", return_value=classification
             ) as compare_mock, mock.patch.object(
-                runner, "_git_head", side_effect=["harness-head", "security-head"]
+                runner, "_source_revision", side_effect=["harness-head", "security-head"]
             ):
                 receipt = runner.run_pool(
                     run_id="test-run",
@@ -108,6 +108,35 @@ class BrowserSecurityPoolRunnerTests(unittest.TestCase):
             for row in comparison["carriers"]:
                 self.assertIn(row["carrierId"], row["baselineBundle"])
                 self.assertIn(row["carrierId"], row["candidateBundle"])
+
+    def test_source_revision_accepts_immutable_release_marker_without_git_checkout(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            commit = "a" * 40
+            (root / ".ordivon-agent-automation-release.json").write_text(
+                json.dumps({"schemaVersion": 1, "commit": commit, "archiveDigest": "sha256:x"}),
+                encoding="utf-8",
+            )
+            with mock.patch.object(
+                runner.subprocess,
+                "run",
+                return_value=mock.Mock(returncode=128, stdout="", stderr="not a git repo"),
+            ):
+                self.assertEqual(runner._source_revision(root), commit)
+
+    def test_source_revision_rejects_invalid_release_marker(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".ordivon-agent-automation-release.json").write_text(
+                json.dumps({"schemaVersion": 1, "commit": "short"}), encoding="utf-8"
+            )
+            with mock.patch.object(
+                runner.subprocess,
+                "run",
+                return_value=mock.Mock(returncode=128, stdout="", stderr="not a git repo"),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "marker is invalid"):
+                    runner._source_revision(root)
 
     def test_invalid_run_id_is_rejected_before_collection(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

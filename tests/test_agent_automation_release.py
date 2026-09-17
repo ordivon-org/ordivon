@@ -16,6 +16,9 @@ import agent_automation_release as r  # noqa: E402
 REAL_REQUIRE_OPERATOR_CARRIER_AVAILABLE = r.require_operator_carrier_available
 REAL_REQUIRE_WORKER_RUNTIME_IMPORTABLE = r.require_worker_runtime_importable
 REAL_REQUIRE_MCP_RUNTIME_IMPORTABLE = r.require_mcp_runtime_importable
+REAL_REQUIRE_BROWSER_SECURITY_RELEASE_QUALIFICATION = (
+    r.require_browser_security_release_qualification
+)
 
 
 class ReleaseTests(unittest.TestCase):
@@ -29,6 +32,16 @@ class ReleaseTests(unittest.TestCase):
             patch.object(r, "require_operator_carrier_available", return_value=None),
             patch.object(r, "require_mcp_runtime_importable", return_value=None),
             patch.object(r, "require_worker_runtime_importable", return_value=None),
+            patch.object(
+                r,
+                "require_browser_security_release_qualification",
+                return_value={
+                    "schemaVersion": 1,
+                    "kind": "ordivon.agent-automation-browser-security-qualification",
+                    "standing": "PASS",
+                    "classificationStanding": "NO_OBSERVED_DRIFT",
+                },
+            ),
         ]
         for p in self._admission_patchers:
             p.start()
@@ -90,6 +103,8 @@ class ReleaseTests(unittest.TestCase):
     def test_release_archive_does_not_duplicate_workstation_operator_carrier(self):
         self.assertNotIn("scripts/agent_automation_wrapper.py", r.RELEASE_PATHS)
         self.assertFalse((ROOT / "scripts/agent_automation_wrapper.py").exists())
+        self.assertIn("scripts/browser_security_witness_source.py", r.RELEASE_PATHS)
+        self.assertIn("scripts/browser_security_pool_runner.py", r.RELEASE_PATHS)
 
     def test_worker_runtime_import_preflight_uses_exact_temporal_worker_python(self):
         with tempfile.TemporaryDirectory() as td:
@@ -130,6 +145,121 @@ class ReleaseTests(unittest.TestCase):
             with patch.object(r, "run", return_value=failed):
                 with self.assertRaisesRegex(r.ReleaseError, "exact MCP control runtime"):
                     REAL_REQUIRE_MCP_RUNTIME_IMPORTABLE(release)
+
+    def test_browser_security_release_qualification_pass_is_candidate_bound_and_persisted(self):
+        with tempfile.TemporaryDirectory() as td:
+            release = Path(td)
+            (release / "scripts").mkdir()
+            (release / "scripts/browser_security_pool_runner.py").write_text("# runner\n")
+            (release / "scripts/browser_security_witness_source.py").write_text("# witness\n")
+            commit = "a" * 40
+            pool = {
+                "schemaVersion": 1,
+                "kind": "ordivon.browser-security-pool-run",
+                "runId": "release-aaaaaaaaaaaa",
+                "poolId": "browserless-prod-r2-20260918",
+                "poolIndexSha256": "sha256:" + "b" * 64,
+                "harnessRevision": commit,
+                "securityRevision": "c" * 40,
+                "carrierEvidence": [{}, {}, {}],
+                "classification": {
+                    "standing": "NO_OBSERVED_DRIFT",
+                    "rootCauseEstablished": False,
+                },
+                "providerChallengeVisited": False,
+                "providerSendAttempted": False,
+            }
+            completed = subprocess.CompletedProcess([], 0, stdout=json.dumps(pool), stderr="")
+            with patch.object(r, "run", return_value=completed) as invoked:
+                value = REAL_REQUIRE_BROWSER_SECURITY_RELEASE_QUALIFICATION(release, commit)
+            self.assertEqual(value["standing"], "PASS")
+            self.assertEqual(value["candidateCommit"], commit)
+            self.assertEqual(value["classificationStanding"], "NO_OBSERVED_DRIFT")
+            argv = invoked.call_args.args[0]
+            self.assertEqual(argv[0], str(r.BROWSER_SECURITY_PY))
+            self.assertEqual(argv[1], str(release / "scripts/browser_security_pool_runner.py"))
+            receipt = r._browser_security_qualification_path(commit)
+            self.assertTrue(receipt.is_file())
+            self.assertEqual(json.loads(receipt.read_text())["standing"], "PASS")
+            self.assertEqual(receipt.stat().st_mode & 0o777, 0o600)
+
+    def test_browser_security_release_qualification_drift_holds_and_persists(self):
+        with tempfile.TemporaryDirectory() as td:
+            release = Path(td)
+            (release / "scripts").mkdir()
+            (release / "scripts/browser_security_pool_runner.py").write_text("# runner\n")
+            (release / "scripts/browser_security_witness_source.py").write_text("# witness\n")
+            commit = "d" * 40
+            pool = {
+                "kind": "ordivon.browser-security-pool-run",
+                "poolId": "browserless-prod-r2-20260918",
+                "poolIndexSha256": "sha256:" + "e" * 64,
+                "harnessRevision": commit,
+                "securityRevision": "f" * 40,
+                "carrierEvidence": [{}, {}, {}],
+                "classification": {
+                    "standing": "GLOBAL_DRIFT",
+                    "rootCauseEstablished": False,
+                },
+                "providerChallengeVisited": False,
+                "providerSendAttempted": False,
+            }
+            completed = subprocess.CompletedProcess([], 0, stdout=json.dumps(pool), stderr="")
+            with patch.object(r, "run", return_value=completed):
+                with self.assertRaisesRegex(r.ReleaseError, "qualification HOLD: GLOBAL_DRIFT"):
+                    REAL_REQUIRE_BROWSER_SECURITY_RELEASE_QUALIFICATION(release, commit)
+            value = json.loads(r._browser_security_qualification_path(commit).read_text())
+            self.assertEqual(value["standing"], "HOLD")
+            self.assertEqual(value["classificationStanding"], "GLOBAL_DRIFT")
+
+    def test_browser_security_release_qualification_runner_failure_holds(self):
+        with tempfile.TemporaryDirectory() as td:
+            release = Path(td)
+            (release / "scripts").mkdir()
+            (release / "scripts/browser_security_pool_runner.py").write_text("# runner\n")
+            (release / "scripts/browser_security_witness_source.py").write_text("# witness\n")
+            commit = "1" * 40
+            failed = subprocess.CompletedProcess([], 9, stdout="", stderr="carrier busy")
+            with patch.object(r, "run", return_value=failed):
+                with self.assertRaisesRegex(r.ReleaseError, "pool runner failed"):
+                    REAL_REQUIRE_BROWSER_SECURITY_RELEASE_QUALIFICATION(release, commit)
+            value = json.loads(r._browser_security_qualification_path(commit).read_text())
+            self.assertEqual(value["standing"], "HOLD")
+            self.assertIn("carrier busy", value["detail"])
+
+    def test_browser_security_qualification_runs_after_drain_before_worker_stop_and_switch(self):
+        tree = ast.parse((ROOT / "scripts/agent_automation_release.py").read_text())
+        fn = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "activate")
+        calls = [node for node in ast.walk(fn) if isinstance(node, ast.Call)]
+        observe = min(
+            node.lineno
+            for node in calls
+            if isinstance(node.func, ast.Name) and node.func.id == "running_workflows"
+        )
+        qualify = next(
+            node.lineno
+            for node in calls
+            if isinstance(node.func, ast.Name)
+            and node.func.id == "require_browser_security_release_qualification"
+        )
+        worker_stop = next(
+            node.lineno
+            for node in calls
+            if isinstance(node.func, ast.Name)
+            and node.func.id == "run"
+            and node.args
+            and isinstance(node.args[0], ast.List)
+            and any(isinstance(elt, ast.Constant) and elt.value == "stop" for elt in node.args[0].elts)
+            and any(isinstance(elt, ast.Name) and elt.id == "WORKER_UNIT" for elt in node.args[0].elts)
+        )
+        switch = next(
+            node.lineno
+            for node in calls
+            if isinstance(node.func, ast.Name) and node.func.id == "atomic_link"
+        )
+        self.assertLess(observe, qualify)
+        self.assertLess(qualify, worker_stop)
+        self.assertLess(worker_stop, switch)
 
     def test_operator_carrier_preflight_precedes_admission_fence_and_service_mutation(self):
         tree = ast.parse((ROOT / "scripts/agent_automation_release.py").read_text())
