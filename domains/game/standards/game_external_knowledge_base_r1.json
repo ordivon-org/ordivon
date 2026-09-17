@@ -2885,6 +2885,278 @@
         "progression-phase observation"
       ],
       "evidenceLimit": "One internal developer playthrough cannot establish newcomer overload or general player value; it is primary production/design evidence for what the team observed and changed."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "factorio-fff-331",
+      "title": "Factorio Friday Facts #331 — Campaign cancelled / Character GUI reset",
+      "organization": "Wube Software",
+      "url": "https://www.factorio.com/blog/post/fff-331",
+      "scope": [
+        "campaign cancellation",
+        "tutorial/freeplay fit",
+        "discarding sunk work",
+        "release scope"
+      ],
+      "extractedIdeas": [
+        "the expanding campaign was playable but less fun than freeplay because bounded quests/areas/ruins constrained the experience it tried to represent",
+        "the team abandoned the campaign for 1.0 rather than keep reinventing the core game",
+        "the Character GUI had already delayed release twice before most work was discarded and restarted with a different owner"
+      ],
+      "candidateUses": [
+        "product-representation mismatch counterexample",
+        "sunk-work reset pattern",
+        "scope cancellation evidence"
+      ],
+      "evidenceLimit": "Primary developer account for Factorio; establishes what Wube tried, observed and changed, not a universal rule against campaigns or rewrites."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "factorio-fff-342",
+      "title": "Factorio Friday Facts #342 — The new old tutorial",
+      "organization": "Wube Software",
+      "url": "https://www.factorio.com/blog/post/fff-342",
+      "scope": [
+        "tutorial removal",
+        "demo-product fit",
+        "audience broadening versus product identity"
+      ],
+      "extractedIdeas": [
+        "the NPE achieved many stated onboarding goals and received positive first-player feedback",
+        "the team still removed it because the experience was not aligned with the intended core game and became a poor demo once the larger campaign was cancelled"
+      ],
+      "candidateUses": [
+        "local-metric-success versus product-fit counterexample",
+        "demo fidelity pattern"
+      ],
+      "evidenceLimit": "Primary retrospective on one tutorial/demo; positive feedback and internal vision statements do not quantify population-wide experience."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "factorio-fff-351",
+      "title": "Factorio Friday Facts #351 — Beacon re-redesign & Simplified fluid mixing",
+      "organization": "Wube Software",
+      "url": "https://www.factorio.com/blog/post/fff-351",
+      "scope": [
+        "visual salience redesign",
+        "fluid mixing prevention",
+        "complexity rollback",
+        "recovery design"
+      ],
+      "extractedIdeas": [
+        "an individually impressive beacon redesign took too much visual attention in dense real factory context and was redesigned again",
+        "strictly preventing all unwanted fluid mixing accumulated exceptional complexity over roughly a year and a half",
+        "the replacement targeted common accidental cases and added a quick recovery action instead of enforcing perfect prevention everywhere"
+      ],
+      "candidateUses": [
+        "contextual visual-density counterexample",
+        "strict prevention versus recoverability pattern",
+        "complexity rollback"
+      ],
+      "evidenceLimit": "Primary developer account of specific Factorio systems; does not establish that recovery is generally better than prevention."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "factorio-fff-363",
+      "title": "Factorio Friday Facts #363 — Character tab removal",
+      "organization": "Wube Software",
+      "url": "https://www.factorio.com/blog/post/fff-363",
+      "scope": [
+        "GUI removal",
+        "duplication",
+        "nested tabs",
+        "play-experience revision"
+      ],
+      "extractedIdeas": [
+        "a Character tab that initially looked useful was later judged filler because it duplicated controls and information elsewhere",
+        "nested tab interaction broke flow in frequent crafting use, so the flatter GUI became default after play experience"
+      ],
+      "candidateUses": [
+        "duplicate-interface failure mode",
+        "play-before-default pattern",
+        "remove-not-polish counterexample"
+      ],
+      "evidenceLimit": "Primary developer account of Factorio UI; does not prove flat navigation is generally superior."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "gdc-diablo3-making",
+      "title": "Shout at the Devil: The Making of Diablo III",
+      "organization": "Blizzard Entertainment / GDC",
+      "url": "https://www.gdcvault.com/play/1017813/Shout-at-the-Devil-",
+      "scope": [
+        "design pillars",
+        "postmortem",
+        "conflicting priorities"
+      ],
+      "extractedIdeas": [
+        "the postmortem evaluates which design pillars Diablo III struggled to express",
+        "prioritizing high-level values against one another is itself part of design failure analysis"
+      ],
+      "candidateUses": [
+        "design-pillar failure mining",
+        "goal-conflict counterexample"
+      ],
+      "evidenceLimit": "Developer postmortem of one shipped game; lessons remain project-relative."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "gdc-diablo3-redemption",
+      "title": "Against the Burning Hells: Diablo III's Road to Redemption with Reaper of Souls",
+      "organization": "Blizzard Entertainment / GDC",
+      "url": "https://www.gdcvault.com/play/1021776/Against-the-Burning-Hells-Diablo",
+      "scope": [
+        "auction-house removal",
+        "core philosophy shift",
+        "itemization",
+        "rewards"
+      ],
+      "extractedIdeas": [
+        "the team made major shifts in gameplay philosophy, itemization and rewards between Diablo III and Reaper of Souls",
+        "the controversial Auction House was removed as part of that redesign"
+      ],
+      "candidateUses": [
+        "live-system removal counterexample",
+        "core-loop restoration pattern"
+      ],
+      "evidenceLimit": "Primary developer retrospective; does not isolate the causal contribution of any one redesign to later outcomes."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "blizzard-diablo3-auction-house-update",
+      "title": "Diablo III Auction House Update",
+      "organization": "Blizzard Entertainment",
+      "url": "https://news.blizzard.com/en-gb/article/10974978/diablo-iii-auction-house-update",
+      "scope": [
+        "auction house removal",
+        "core loot loop",
+        "trade convenience"
+      ],
+      "extractedIdeas": [
+        "the Auction House was designed for convenient and secure trade",
+        "Blizzard later stated that despite its benefits and use it undermined the core loop of killing monsters for loot and announced complete removal"
+      ],
+      "candidateUses": [
+        "secondary-loop displacement counterexample",
+        "feature-benefit versus core-loop cost"
+      ],
+      "evidenceLimit": "Official developer rationale for removal; it establishes the team’s diagnosis and action, not an independently estimated causal effect size."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "blizzard-diablo3-itemization-update",
+      "title": "Developer Journal: Itemization Update — Farm Monsters, Not the Auction House",
+      "organization": "Blizzard Entertainment",
+      "url": "https://news.blizzard.com/en-gb/article/10056636/developer-journal-itemization-update",
+      "scope": [
+        "itemization",
+        "auction-house incentives",
+        "endgame activity substitution"
+      ],
+      "extractedIdeas": [
+        "developers explicitly asked whether the auction house had shifted the perceived correct way to play from killing monsters to market activity",
+        "the response explored strengthening exciting item acquisition rather than treating feature deletion as the only possible fix"
+      ],
+      "candidateUses": [
+        "incentive displacement pattern",
+        "remove-versus-redesign discriminator"
+      ],
+      "evidenceLimit": "Official design journal capturing a design diagnosis and candidate remedies at that time; not a controlled experiment."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "gdc-deus-ex-postmortem",
+      "title": "Classic Game Postmortem: Deus Ex",
+      "organization": "Warren Spector / GDC",
+      "url": "https://gdcvault.com/play/1024338/Classic-Game-Postmortem-Deus-Ex",
+      "scope": [
+        "preproduction",
+        "feature/character scope",
+        "cutting debt",
+        "immersive-sim design"
+      ],
+      "extractedIdeas": [
+        "the team created more than 200 character concepts in preproduction",
+        "some later became filler the designers were reluctant to cut after mission/story purposes changed",
+        "failed earlier game proposals still contributed conceptual groundwork without dictating the final implementation"
+      ],
+      "candidateUses": [
+        "preproduction sunk-cost counterexample",
+        "failed-proposal salvage pattern"
+      ],
+      "evidenceLimit": "Primary retrospective many years after development; establishes the speaker’s account, with normal retrospective-memory limitations."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "gdc-psychonauts2-postmortem",
+      "title": "Psychonauts 2 Design Postmortem",
+      "organization": "Double Fine Productions / GDC",
+      "url": "https://www.gdcvault.com/play/1027887/-Psychonauts-2-Design",
+      "scope": [
+        "sequel design",
+        "modernization",
+        "empathy constraint",
+        "possibility space"
+      ],
+      "extractedIdeas": [
+        "the team balanced legacy with modernization and broad accessibility",
+        "the talk argues that focusing on empathy expanded the design possibility space rather than merely limiting acceptable content"
+      ],
+      "candidateUses": [
+        "constraint-can-expand-search counterexample",
+        "sequel modernization pattern"
+      ],
+      "evidenceLimit": "Primary postmortem describing one team’s design framing; does not establish that empathy constraints universally expand creative possibility."
     }
   ],
   "gaps": {

@@ -71,7 +71,7 @@ These constraints say what may be **claimed or executed**, not what may be imagi
 
 ## 4. Mechanism-combination experience library
 
-`standards/game_domain_package_graph_r1.json` keeps only a compact `mechanismCombinationPatterns` layer distilled from the earlier twelve-game comparative teardown. Fine-grained experience is externalized to `standards/game_mechanism_experience_library_r1.json` and documented by `GAME_MECHANISM_EXPERIENCE_LIBRARY_R1.md`, so the architecture graph remains small instead of becoming a mechanic ontology. Cross-game relationship mining is externalized again to `standards/game_mechanism_relationship_graph_r1.json`; the domain graph stores only a pointer, not its mechanism nodes, co-occurrence edges, retrieval facets or Conditionalities.
+`standards/game_domain_package_graph_r1.json` keeps only a compact `mechanismCombinationPatterns` layer distilled from the earlier twelve-game comparative teardown. Fine-grained experience is externalized to `standards/game_mechanism_experience_library_r1.json` and documented by `GAME_MECHANISM_EXPERIENCE_LIBRARY_R1.md`, so the architecture graph remains small instead of becoming a mechanic ontology. Cross-game relationship mining is externalized again to `standards/game_mechanism_relationship_graph_r1.json`; Design Counterexample Memory is externalized to `standards/game_design_counterexample_memory_r1.json`. The domain graph stores only pointers, not relationship nodes/edges/facets/Conditionalities or counterexample records.
 
 Examples include:
 
@@ -141,6 +141,8 @@ It reports:
 - optional Skill lenses;
 - relevant teardown-derived coarse pattern analogies;
 - fine-grained Mechanism Experience matches with confounds, transfer risks, falsifiers and cheap probes;
+- cross-game Relationship Facets and Conditionalities;
+- contextual Design Counterexample matches with failure signals and cheap discriminators;
 - epistemic fences;
 - claim-specific evidence requirements;
 - authority/effect boundaries when the requested intent crosses them.

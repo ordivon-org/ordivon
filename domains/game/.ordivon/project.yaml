@@ -40,11 +40,13 @@ managed_paths:
   - docs/GAME_EXTERNAL_KNOWLEDGE_BASE_R1.md
   - docs/GAME_MECHANISM_EXPERIENCE_LIBRARY_R1.md
   - docs/GAME_MECHANISM_RELATIONSHIP_GRAPH_R1.md
+  - docs/GAME_DESIGN_COUNTEREXAMPLE_MEMORY_R1.md
   - standards/game_domain_package_graph_r1.json
   - standards/game_external_knowledge_base_r1.json
   - standards/game_mechanism_experience_library_r1.json
   - standards/game_mechanism_relationship_spec_r1.json
   - standards/game_mechanism_relationship_graph_r1.json
+  - standards/game_design_counterexample_memory_r1.json
   - standards/game_teardown_queue_r1.json
   - standards/game_external_skill_watchlist_r1.json
   - scripts/composition-explorer.ts
@@ -52,6 +54,7 @@ managed_paths:
   - scripts/mechanism-experience-query.ts
   - scripts/build-mechanism-relationship-graph.ts
   - scripts/mechanism-relationship-query.ts
+  - scripts/design-counterexample-query.ts
   - skills/game-development-lenses/SKILL.md
   - skills/game-stage-lens/SKILL.md
   - skills/game-minimal-interaction-model/SKILL.md

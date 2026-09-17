@@ -4,7 +4,7 @@
   "generatedOn": "2026-09-18",
   "sourceLibrary": {
     "path": "standards/game_mechanism_experience_library_r1.json",
-    "digest": "sha256:3ce978fd9dd235cc576ee45cbb26fdd0323a521700412ae141b7d3e77303ee7e",
+    "digest": "sha256:a334dca580727a4fa6ae55d3f04bac9e96822ecd95fdadbace586e11e1b81958",
     "libraryId": "ordivon-game-mechanism-experience-library-r1"
   },
   "sourceSpec": {
@@ -128,6 +128,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "audience-broadening",
+      "experienceRefs": [
+        "exp.factorio.demo-goal-success-product-mismatch"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "TENSION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "authored-scenes",
       "experienceRefs": [
         "exp.heavensvault.authored-procedural-glue"
@@ -218,6 +233,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "bounded-map-progression",
+      "experienceRefs": [
+        "exp.factorio.campaign-mimicry-constrained-core"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "bounded-randomness",
       "experienceRefs": [
         "exp.itb.rng-boundary"
@@ -287,6 +317,36 @@
       ],
       "relationKinds": [
         "SUBSTITUTION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "changed-story-purpose",
+      "experienceRefs": [
+        "exp.deusex.preproduction-inventory-became-cutting-debt"
+      ],
+      "referenceGames": [
+        "Deus Ex"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "character-concepts",
+      "experienceRefs": [
+        "exp.deusex.preproduction-inventory-became-cutting-debt"
+      ],
+      "referenceGames": [
+        "Deus Ex"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -422,6 +482,21 @@
       ],
       "relationKinds": [
         "SYNERGY"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "common-case-guard",
+      "experienceRefs": [
+        "exp.factorio.strict-prevention-to-fast-recovery"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "SUBSTITUTION"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -683,6 +758,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "contextual-readability",
+      "experienceRefs": [
+        "exp.factorio.visual-salience-context-failure"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "REPRESENTATION_COUPLING"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "control-response",
       "experienceRefs": [
         "exp.dmc5.experience-backward-detail"
@@ -737,6 +827,21 @@
       ],
       "relationKinds": [
         "LEARNING_SCAFFOLD"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "core-freedom-loss",
+      "experienceRefs": [
+        "exp.factorio.campaign-mimicry-constrained-core"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -803,6 +908,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "creative-constraint",
+      "experienceRefs": [
+        "exp.psychonauts2.constraint-expanded-design-space"
+      ],
+      "referenceGames": [
+        "Psychonauts 2"
+      ],
+      "relationKinds": [
+        "INVERSION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "cross-discipline-tools",
       "experienceRefs": [
         "exp.bg3.organization-bounds-design-space"
@@ -848,6 +968,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "cutting-friction",
+      "experienceRefs": [
+        "exp.deusex.preproduction-inventory-became-cutting-debt"
+      ],
+      "referenceGames": [
+        "Deus Ex"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "deduction-state",
       "experienceRefs": [
         "exp.obradinn.book-as-information-index"
@@ -878,6 +1013,36 @@
       "closedVocabulary": false
     },
     {
+      "id": "demo-product-fidelity",
+      "experienceRefs": [
+        "exp.factorio.demo-goal-success-product-mismatch"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "TENSION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "dense-repetition",
+      "experienceRefs": [
+        "exp.factorio.visual-salience-context-failure"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "REPRESENTATION_COUPLING"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "design-feasibility",
       "experienceRefs": [
         "exp.bg3.organization-bounds-design-space"
@@ -887,6 +1052,21 @@
       ],
       "relationKinds": [
         "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "design-possibility-expansion",
+      "experienceRefs": [
+        "exp.psychonauts2.constraint-expanded-design-space"
+      ],
+      "referenceGames": [
+        "Psychonauts 2"
+      ],
+      "relationKinds": [
+        "INVERSION"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -983,6 +1163,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "duplicate-controls",
+      "experienceRefs": [
+        "exp.factorio.gui-duplication-and-nested-tabs"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "early-access",
       "experienceRefs": [
         "exp.hades.modular-structure-open-development"
@@ -1007,6 +1202,21 @@
       ],
       "relationKinds": [
         "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "empathy-focus",
+      "experienceRefs": [
+        "exp.psychonauts2.constraint-expanded-design-space"
+      ],
+      "referenceGames": [
+        "Psychonauts 2"
+      ],
+      "relationKinds": [
+        "INVERSION"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -1178,6 +1388,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "fast-error-recovery",
+      "experienceRefs": [
+        "exp.factorio.strict-prevention-to-fast-recovery"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "SUBSTITUTION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "fast-retry",
       "experienceRefs": [
         "exp.celeste.room-sequence-teaching"
@@ -1202,6 +1427,21 @@
       ],
       "relationKinds": [
         "INVERSION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "feature-removal",
+      "experienceRefs": [
+        "exp.diablo3.auction-house-undermined-loot-loop"
+      ],
+      "referenceGames": [
+        "Diablo III"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -1244,6 +1484,36 @@
       ],
       "referenceGames": [
         "Heaven’s Vault"
+      ],
+      "relationKinds": [
+        "SUBSTITUTION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "flat-navigation",
+      "experienceRefs": [
+        "exp.factorio.gui-duplication-and-nested-tabs"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "fluid-mixing",
+      "experienceRefs": [
+        "exp.factorio.strict-prevention-to-fast-recovery"
+      ],
+      "referenceGames": [
+        "Factorio"
       ],
       "relationKinds": [
         "SUBSTITUTION"
@@ -1328,6 +1598,36 @@
       "closedVocabulary": false
     },
     {
+      "id": "freeplay-mimicry",
+      "experienceRefs": [
+        "exp.factorio.campaign-mimicry-constrained-core"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "frequent-action-flow",
+      "experienceRefs": [
+        "exp.factorio.gui-duplication-and-nested-tabs"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "frequent-alteration",
       "experienceRefs": [
         "exp.ftl.throwaway-change-as-normal"
@@ -1367,6 +1667,21 @@
       ],
       "relationKinds": [
         "TENSION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "functional-importance",
+      "experienceRefs": [
+        "exp.factorio.visual-salience-context-failure"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "REPRESENTATION_COUPLING"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -1427,6 +1742,36 @@
       ],
       "relationKinds": [
         "SUBSTITUTION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "global-market-efficiency",
+      "experienceRefs": [
+        "exp.diablo3.auction-house-undermined-loot-loop"
+      ],
+      "referenceGames": [
+        "Diablo III"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "guided-campaign",
+      "experienceRefs": [
+        "exp.factorio.campaign-mimicry-constrained-core"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -1688,6 +2033,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "incentive-displacement",
+      "experienceRefs": [
+        "exp.diablo3.auction-house-undermined-loot-loop"
+      ],
+      "referenceGames": [
+        "Diablo III"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "input-buffering",
       "experienceRefs": [
         "exp.deadcells.micro-control-details"
@@ -1763,6 +2123,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "isolated-visual-quality",
+      "experienceRefs": [
+        "exp.factorio.visual-salience-context-failure"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "REPRESENTATION_COUPLING"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "iterative-playtest",
       "experienceRefs": [
         "exp.portal2.preserve-identity-change-space"
@@ -1802,6 +2177,21 @@
       ],
       "relationKinds": [
         "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "large-preproduction-inventory",
+      "experienceRefs": [
+        "exp.deusex.preproduction-inventory-became-cutting-debt"
+      ],
+      "referenceGames": [
+        "Deus Ex"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -1892,6 +2282,21 @@
       ],
       "relationKinds": [
         "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "loot-acquisition-loop",
+      "experienceRefs": [
+        "exp.diablo3.auction-house-undermined-loot-loop"
+      ],
+      "referenceGames": [
+        "Diablo III"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -1997,6 +2402,21 @@
       ],
       "relationKinds": [
         "SYNERGY"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "mental-link-cost",
+      "experienceRefs": [
+        "exp.factorio.gui-duplication-and-nested-tabs"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -2117,6 +2537,36 @@
       ],
       "relationKinds": [
         "SUBSTITUTION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "narrative-platforming",
+      "experienceRefs": [
+        "exp.psychonauts2.constraint-expanded-design-space"
+      ],
+      "referenceGames": [
+        "Psychonauts 2"
+      ],
+      "relationKinds": [
+        "INVERSION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "nested-tabs",
+      "experienceRefs": [
+        "exp.factorio.gui-duplication-and-nested-tabs"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -2267,6 +2717,21 @@
       ],
       "relationKinds": [
         "SYNERGY"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "onboarding-success",
+      "experienceRefs": [
+        "exp.factorio.demo-goal-success-product-mismatch"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "TENSION"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -2687,6 +3152,21 @@
       ],
       "relationKinds": [
         "REPRESENTATION_COUPLING"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "positive-new-player-feedback",
+      "experienceRefs": [
+        "exp.factorio.demo-goal-success-product-mismatch"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "TENSION"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -3325,6 +3805,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "salience-saturation",
+      "experienceRefs": [
+        "exp.factorio.visual-salience-context-failure"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "REPRESENTATION_COUPLING"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "scope-allocation",
       "experienceRefs": [
         "exp.subnautica.double-down-core-spikes"
@@ -3385,6 +3880,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "secure-player-trading",
+      "experienceRefs": [
+        "exp.diablo3.auction-house-undermined-loot-loop"
+      ],
+      "referenceGames": [
+        "Diablo III"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "selective-genre-conventions",
       "experienceRefs": [
         "exp.pacificdrive.taxonomy-not-genre-checklist"
@@ -3439,6 +3949,21 @@
       ],
       "relationKinds": [
         "SUBSTITUTION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "sequel-modernization",
+      "experienceRefs": [
+        "exp.psychonauts2.constraint-expanded-design-space"
+      ],
+      "referenceGames": [
+        "Psychonauts 2"
+      ],
+      "relationKinds": [
+        "INVERSION"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -3514,6 +4039,21 @@
       ],
       "relationKinds": [
         "SYNERGY"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "short-term-quests",
+      "experienceRefs": [
+        "exp.factorio.campaign-mimicry-constrained-core"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -3775,6 +4315,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "strict-error-prevention",
+      "experienceRefs": [
+        "exp.factorio.strict-prevention-to-fast-recovery"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "SUBSTITUTION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "studio-vision",
       "experienceRefs": [
         "exp.bg3.vision-vs-inherited-expectations"
@@ -3784,6 +4339,21 @@
       ],
       "relationKinds": [
         "TENSION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "sunk-cost-retention",
+      "experienceRefs": [
+        "exp.deusex.preproduction-inventory-became-cutting-debt"
+      ],
+      "referenceGames": [
+        "Deus Ex"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -3889,6 +4459,21 @@
       ],
       "relationKinds": [
         "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "system-complexity-growth",
+      "experienceRefs": [
+        "exp.factorio.strict-prevention-to-fast-recovery"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "SUBSTITUTION"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -4264,6 +4849,21 @@
       ],
       "relationKinds": [
         "SUBSTITUTION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "vision-alignment",
+      "experienceRefs": [
+        "exp.factorio.demo-goal-success-product-mismatch"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "TENSION"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -9079,6 +9679,886 @@
       "experienceRef": "exp.animalwell.community-search-harm",
       "referenceGame": "Animal Well",
       "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.campaign-mimicry-constrained-core.freeplay-mimicry::guided-campaign",
+      "a": "freeplay-mimicry",
+      "b": "guided-campaign",
+      "experienceRef": "exp.factorio.campaign-mimicry-constrained-core",
+      "referenceGame": "Factorio",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.campaign-mimicry-constrained-core.bounded-map-progression::guided-campaign",
+      "a": "bounded-map-progression",
+      "b": "guided-campaign",
+      "experienceRef": "exp.factorio.campaign-mimicry-constrained-core",
+      "referenceGame": "Factorio",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.campaign-mimicry-constrained-core.guided-campaign::short-term-quests",
+      "a": "guided-campaign",
+      "b": "short-term-quests",
+      "experienceRef": "exp.factorio.campaign-mimicry-constrained-core",
+      "referenceGame": "Factorio",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.campaign-mimicry-constrained-core.core-freedom-loss::guided-campaign",
+      "a": "core-freedom-loss",
+      "b": "guided-campaign",
+      "experienceRef": "exp.factorio.campaign-mimicry-constrained-core",
+      "referenceGame": "Factorio",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.campaign-mimicry-constrained-core.bounded-map-progression::freeplay-mimicry",
+      "a": "bounded-map-progression",
+      "b": "freeplay-mimicry",
+      "experienceRef": "exp.factorio.campaign-mimicry-constrained-core",
+      "referenceGame": "Factorio",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.campaign-mimicry-constrained-core.freeplay-mimicry::short-term-quests",
+      "a": "freeplay-mimicry",
+      "b": "short-term-quests",
+      "experienceRef": "exp.factorio.campaign-mimicry-constrained-core",
+      "referenceGame": "Factorio",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.campaign-mimicry-constrained-core.core-freedom-loss::freeplay-mimicry",
+      "a": "core-freedom-loss",
+      "b": "freeplay-mimicry",
+      "experienceRef": "exp.factorio.campaign-mimicry-constrained-core",
+      "referenceGame": "Factorio",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.campaign-mimicry-constrained-core.bounded-map-progression::short-term-quests",
+      "a": "bounded-map-progression",
+      "b": "short-term-quests",
+      "experienceRef": "exp.factorio.campaign-mimicry-constrained-core",
+      "referenceGame": "Factorio",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.campaign-mimicry-constrained-core.bounded-map-progression::core-freedom-loss",
+      "a": "bounded-map-progression",
+      "b": "core-freedom-loss",
+      "experienceRef": "exp.factorio.campaign-mimicry-constrained-core",
+      "referenceGame": "Factorio",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.campaign-mimicry-constrained-core.core-freedom-loss::short-term-quests",
+      "a": "core-freedom-loss",
+      "b": "short-term-quests",
+      "experienceRef": "exp.factorio.campaign-mimicry-constrained-core",
+      "referenceGame": "Factorio",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.demo-goal-success-product-mismatch.onboarding-success::positive-new-player-feedback",
+      "a": "onboarding-success",
+      "b": "positive-new-player-feedback",
+      "experienceRef": "exp.factorio.demo-goal-success-product-mismatch",
+      "referenceGame": "Factorio",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.demo-goal-success-product-mismatch.demo-product-fidelity::onboarding-success",
+      "a": "demo-product-fidelity",
+      "b": "onboarding-success",
+      "experienceRef": "exp.factorio.demo-goal-success-product-mismatch",
+      "referenceGame": "Factorio",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.demo-goal-success-product-mismatch.onboarding-success::vision-alignment",
+      "a": "onboarding-success",
+      "b": "vision-alignment",
+      "experienceRef": "exp.factorio.demo-goal-success-product-mismatch",
+      "referenceGame": "Factorio",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.demo-goal-success-product-mismatch.audience-broadening::onboarding-success",
+      "a": "audience-broadening",
+      "b": "onboarding-success",
+      "experienceRef": "exp.factorio.demo-goal-success-product-mismatch",
+      "referenceGame": "Factorio",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.demo-goal-success-product-mismatch.demo-product-fidelity::positive-new-player-feedback",
+      "a": "demo-product-fidelity",
+      "b": "positive-new-player-feedback",
+      "experienceRef": "exp.factorio.demo-goal-success-product-mismatch",
+      "referenceGame": "Factorio",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.demo-goal-success-product-mismatch.positive-new-player-feedback::vision-alignment",
+      "a": "positive-new-player-feedback",
+      "b": "vision-alignment",
+      "experienceRef": "exp.factorio.demo-goal-success-product-mismatch",
+      "referenceGame": "Factorio",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.demo-goal-success-product-mismatch.audience-broadening::positive-new-player-feedback",
+      "a": "audience-broadening",
+      "b": "positive-new-player-feedback",
+      "experienceRef": "exp.factorio.demo-goal-success-product-mismatch",
+      "referenceGame": "Factorio",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.demo-goal-success-product-mismatch.demo-product-fidelity::vision-alignment",
+      "a": "demo-product-fidelity",
+      "b": "vision-alignment",
+      "experienceRef": "exp.factorio.demo-goal-success-product-mismatch",
+      "referenceGame": "Factorio",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.demo-goal-success-product-mismatch.audience-broadening::demo-product-fidelity",
+      "a": "audience-broadening",
+      "b": "demo-product-fidelity",
+      "experienceRef": "exp.factorio.demo-goal-success-product-mismatch",
+      "referenceGame": "Factorio",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.demo-goal-success-product-mismatch.audience-broadening::vision-alignment",
+      "a": "audience-broadening",
+      "b": "vision-alignment",
+      "experienceRef": "exp.factorio.demo-goal-success-product-mismatch",
+      "referenceGame": "Factorio",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.strict-prevention-to-fast-recovery.strict-error-prevention::system-complexity-growth",
+      "a": "strict-error-prevention",
+      "b": "system-complexity-growth",
+      "experienceRef": "exp.factorio.strict-prevention-to-fast-recovery",
+      "referenceGame": "Factorio",
+      "relationKind": "SUBSTITUTION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.strict-prevention-to-fast-recovery.common-case-guard::strict-error-prevention",
+      "a": "common-case-guard",
+      "b": "strict-error-prevention",
+      "experienceRef": "exp.factorio.strict-prevention-to-fast-recovery",
+      "referenceGame": "Factorio",
+      "relationKind": "SUBSTITUTION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.strict-prevention-to-fast-recovery.fast-error-recovery::strict-error-prevention",
+      "a": "fast-error-recovery",
+      "b": "strict-error-prevention",
+      "experienceRef": "exp.factorio.strict-prevention-to-fast-recovery",
+      "referenceGame": "Factorio",
+      "relationKind": "SUBSTITUTION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.strict-prevention-to-fast-recovery.fluid-mixing::strict-error-prevention",
+      "a": "fluid-mixing",
+      "b": "strict-error-prevention",
+      "experienceRef": "exp.factorio.strict-prevention-to-fast-recovery",
+      "referenceGame": "Factorio",
+      "relationKind": "SUBSTITUTION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.strict-prevention-to-fast-recovery.common-case-guard::system-complexity-growth",
+      "a": "common-case-guard",
+      "b": "system-complexity-growth",
+      "experienceRef": "exp.factorio.strict-prevention-to-fast-recovery",
+      "referenceGame": "Factorio",
+      "relationKind": "SUBSTITUTION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.strict-prevention-to-fast-recovery.fast-error-recovery::system-complexity-growth",
+      "a": "fast-error-recovery",
+      "b": "system-complexity-growth",
+      "experienceRef": "exp.factorio.strict-prevention-to-fast-recovery",
+      "referenceGame": "Factorio",
+      "relationKind": "SUBSTITUTION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.strict-prevention-to-fast-recovery.fluid-mixing::system-complexity-growth",
+      "a": "fluid-mixing",
+      "b": "system-complexity-growth",
+      "experienceRef": "exp.factorio.strict-prevention-to-fast-recovery",
+      "referenceGame": "Factorio",
+      "relationKind": "SUBSTITUTION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.strict-prevention-to-fast-recovery.common-case-guard::fast-error-recovery",
+      "a": "common-case-guard",
+      "b": "fast-error-recovery",
+      "experienceRef": "exp.factorio.strict-prevention-to-fast-recovery",
+      "referenceGame": "Factorio",
+      "relationKind": "SUBSTITUTION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.strict-prevention-to-fast-recovery.common-case-guard::fluid-mixing",
+      "a": "common-case-guard",
+      "b": "fluid-mixing",
+      "experienceRef": "exp.factorio.strict-prevention-to-fast-recovery",
+      "referenceGame": "Factorio",
+      "relationKind": "SUBSTITUTION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.strict-prevention-to-fast-recovery.fast-error-recovery::fluid-mixing",
+      "a": "fast-error-recovery",
+      "b": "fluid-mixing",
+      "experienceRef": "exp.factorio.strict-prevention-to-fast-recovery",
+      "referenceGame": "Factorio",
+      "relationKind": "SUBSTITUTION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.gui-duplication-and-nested-tabs.duplicate-controls::nested-tabs",
+      "a": "duplicate-controls",
+      "b": "nested-tabs",
+      "experienceRef": "exp.factorio.gui-duplication-and-nested-tabs",
+      "referenceGame": "Factorio",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.gui-duplication-and-nested-tabs.duplicate-controls::mental-link-cost",
+      "a": "duplicate-controls",
+      "b": "mental-link-cost",
+      "experienceRef": "exp.factorio.gui-duplication-and-nested-tabs",
+      "referenceGame": "Factorio",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.gui-duplication-and-nested-tabs.duplicate-controls::frequent-action-flow",
+      "a": "duplicate-controls",
+      "b": "frequent-action-flow",
+      "experienceRef": "exp.factorio.gui-duplication-and-nested-tabs",
+      "referenceGame": "Factorio",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.gui-duplication-and-nested-tabs.duplicate-controls::flat-navigation",
+      "a": "duplicate-controls",
+      "b": "flat-navigation",
+      "experienceRef": "exp.factorio.gui-duplication-and-nested-tabs",
+      "referenceGame": "Factorio",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.gui-duplication-and-nested-tabs.mental-link-cost::nested-tabs",
+      "a": "mental-link-cost",
+      "b": "nested-tabs",
+      "experienceRef": "exp.factorio.gui-duplication-and-nested-tabs",
+      "referenceGame": "Factorio",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.gui-duplication-and-nested-tabs.frequent-action-flow::nested-tabs",
+      "a": "frequent-action-flow",
+      "b": "nested-tabs",
+      "experienceRef": "exp.factorio.gui-duplication-and-nested-tabs",
+      "referenceGame": "Factorio",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.gui-duplication-and-nested-tabs.flat-navigation::nested-tabs",
+      "a": "flat-navigation",
+      "b": "nested-tabs",
+      "experienceRef": "exp.factorio.gui-duplication-and-nested-tabs",
+      "referenceGame": "Factorio",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.gui-duplication-and-nested-tabs.frequent-action-flow::mental-link-cost",
+      "a": "frequent-action-flow",
+      "b": "mental-link-cost",
+      "experienceRef": "exp.factorio.gui-duplication-and-nested-tabs",
+      "referenceGame": "Factorio",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.gui-duplication-and-nested-tabs.flat-navigation::mental-link-cost",
+      "a": "flat-navigation",
+      "b": "mental-link-cost",
+      "experienceRef": "exp.factorio.gui-duplication-and-nested-tabs",
+      "referenceGame": "Factorio",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.gui-duplication-and-nested-tabs.flat-navigation::frequent-action-flow",
+      "a": "flat-navigation",
+      "b": "frequent-action-flow",
+      "experienceRef": "exp.factorio.gui-duplication-and-nested-tabs",
+      "referenceGame": "Factorio",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.visual-salience-context-failure.dense-repetition::isolated-visual-quality",
+      "a": "dense-repetition",
+      "b": "isolated-visual-quality",
+      "experienceRef": "exp.factorio.visual-salience-context-failure",
+      "referenceGame": "Factorio",
+      "relationKind": "REPRESENTATION_COUPLING",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.visual-salience-context-failure.isolated-visual-quality::salience-saturation",
+      "a": "isolated-visual-quality",
+      "b": "salience-saturation",
+      "experienceRef": "exp.factorio.visual-salience-context-failure",
+      "referenceGame": "Factorio",
+      "relationKind": "REPRESENTATION_COUPLING",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.visual-salience-context-failure.functional-importance::isolated-visual-quality",
+      "a": "functional-importance",
+      "b": "isolated-visual-quality",
+      "experienceRef": "exp.factorio.visual-salience-context-failure",
+      "referenceGame": "Factorio",
+      "relationKind": "REPRESENTATION_COUPLING",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.visual-salience-context-failure.contextual-readability::isolated-visual-quality",
+      "a": "contextual-readability",
+      "b": "isolated-visual-quality",
+      "experienceRef": "exp.factorio.visual-salience-context-failure",
+      "referenceGame": "Factorio",
+      "relationKind": "REPRESENTATION_COUPLING",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.visual-salience-context-failure.dense-repetition::salience-saturation",
+      "a": "dense-repetition",
+      "b": "salience-saturation",
+      "experienceRef": "exp.factorio.visual-salience-context-failure",
+      "referenceGame": "Factorio",
+      "relationKind": "REPRESENTATION_COUPLING",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.visual-salience-context-failure.dense-repetition::functional-importance",
+      "a": "dense-repetition",
+      "b": "functional-importance",
+      "experienceRef": "exp.factorio.visual-salience-context-failure",
+      "referenceGame": "Factorio",
+      "relationKind": "REPRESENTATION_COUPLING",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.visual-salience-context-failure.contextual-readability::dense-repetition",
+      "a": "contextual-readability",
+      "b": "dense-repetition",
+      "experienceRef": "exp.factorio.visual-salience-context-failure",
+      "referenceGame": "Factorio",
+      "relationKind": "REPRESENTATION_COUPLING",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.visual-salience-context-failure.functional-importance::salience-saturation",
+      "a": "functional-importance",
+      "b": "salience-saturation",
+      "experienceRef": "exp.factorio.visual-salience-context-failure",
+      "referenceGame": "Factorio",
+      "relationKind": "REPRESENTATION_COUPLING",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.visual-salience-context-failure.contextual-readability::salience-saturation",
+      "a": "contextual-readability",
+      "b": "salience-saturation",
+      "experienceRef": "exp.factorio.visual-salience-context-failure",
+      "referenceGame": "Factorio",
+      "relationKind": "REPRESENTATION_COUPLING",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.visual-salience-context-failure.contextual-readability::functional-importance",
+      "a": "contextual-readability",
+      "b": "functional-importance",
+      "experienceRef": "exp.factorio.visual-salience-context-failure",
+      "referenceGame": "Factorio",
+      "relationKind": "REPRESENTATION_COUPLING",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.diablo3.auction-house-undermined-loot-loop.global-market-efficiency::secure-player-trading",
+      "a": "global-market-efficiency",
+      "b": "secure-player-trading",
+      "experienceRef": "exp.diablo3.auction-house-undermined-loot-loop",
+      "referenceGame": "Diablo III",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.diablo3.auction-house-undermined-loot-loop.loot-acquisition-loop::secure-player-trading",
+      "a": "loot-acquisition-loop",
+      "b": "secure-player-trading",
+      "experienceRef": "exp.diablo3.auction-house-undermined-loot-loop",
+      "referenceGame": "Diablo III",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.diablo3.auction-house-undermined-loot-loop.incentive-displacement::secure-player-trading",
+      "a": "incentive-displacement",
+      "b": "secure-player-trading",
+      "experienceRef": "exp.diablo3.auction-house-undermined-loot-loop",
+      "referenceGame": "Diablo III",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.diablo3.auction-house-undermined-loot-loop.feature-removal::secure-player-trading",
+      "a": "feature-removal",
+      "b": "secure-player-trading",
+      "experienceRef": "exp.diablo3.auction-house-undermined-loot-loop",
+      "referenceGame": "Diablo III",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.diablo3.auction-house-undermined-loot-loop.global-market-efficiency::loot-acquisition-loop",
+      "a": "global-market-efficiency",
+      "b": "loot-acquisition-loop",
+      "experienceRef": "exp.diablo3.auction-house-undermined-loot-loop",
+      "referenceGame": "Diablo III",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.diablo3.auction-house-undermined-loot-loop.global-market-efficiency::incentive-displacement",
+      "a": "global-market-efficiency",
+      "b": "incentive-displacement",
+      "experienceRef": "exp.diablo3.auction-house-undermined-loot-loop",
+      "referenceGame": "Diablo III",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.diablo3.auction-house-undermined-loot-loop.feature-removal::global-market-efficiency",
+      "a": "feature-removal",
+      "b": "global-market-efficiency",
+      "experienceRef": "exp.diablo3.auction-house-undermined-loot-loop",
+      "referenceGame": "Diablo III",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.diablo3.auction-house-undermined-loot-loop.incentive-displacement::loot-acquisition-loop",
+      "a": "incentive-displacement",
+      "b": "loot-acquisition-loop",
+      "experienceRef": "exp.diablo3.auction-house-undermined-loot-loop",
+      "referenceGame": "Diablo III",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.diablo3.auction-house-undermined-loot-loop.feature-removal::loot-acquisition-loop",
+      "a": "feature-removal",
+      "b": "loot-acquisition-loop",
+      "experienceRef": "exp.diablo3.auction-house-undermined-loot-loop",
+      "referenceGame": "Diablo III",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.diablo3.auction-house-undermined-loot-loop.feature-removal::incentive-displacement",
+      "a": "feature-removal",
+      "b": "incentive-displacement",
+      "experienceRef": "exp.diablo3.auction-house-undermined-loot-loop",
+      "referenceGame": "Diablo III",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.deusex.preproduction-inventory-became-cutting-debt.character-concepts::large-preproduction-inventory",
+      "a": "character-concepts",
+      "b": "large-preproduction-inventory",
+      "experienceRef": "exp.deusex.preproduction-inventory-became-cutting-debt",
+      "referenceGame": "Deus Ex",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.deusex.preproduction-inventory-became-cutting-debt.changed-story-purpose::large-preproduction-inventory",
+      "a": "changed-story-purpose",
+      "b": "large-preproduction-inventory",
+      "experienceRef": "exp.deusex.preproduction-inventory-became-cutting-debt",
+      "referenceGame": "Deus Ex",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.deusex.preproduction-inventory-became-cutting-debt.large-preproduction-inventory::sunk-cost-retention",
+      "a": "large-preproduction-inventory",
+      "b": "sunk-cost-retention",
+      "experienceRef": "exp.deusex.preproduction-inventory-became-cutting-debt",
+      "referenceGame": "Deus Ex",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.deusex.preproduction-inventory-became-cutting-debt.cutting-friction::large-preproduction-inventory",
+      "a": "cutting-friction",
+      "b": "large-preproduction-inventory",
+      "experienceRef": "exp.deusex.preproduction-inventory-became-cutting-debt",
+      "referenceGame": "Deus Ex",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.deusex.preproduction-inventory-became-cutting-debt.changed-story-purpose::character-concepts",
+      "a": "changed-story-purpose",
+      "b": "character-concepts",
+      "experienceRef": "exp.deusex.preproduction-inventory-became-cutting-debt",
+      "referenceGame": "Deus Ex",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.deusex.preproduction-inventory-became-cutting-debt.character-concepts::sunk-cost-retention",
+      "a": "character-concepts",
+      "b": "sunk-cost-retention",
+      "experienceRef": "exp.deusex.preproduction-inventory-became-cutting-debt",
+      "referenceGame": "Deus Ex",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.deusex.preproduction-inventory-became-cutting-debt.character-concepts::cutting-friction",
+      "a": "character-concepts",
+      "b": "cutting-friction",
+      "experienceRef": "exp.deusex.preproduction-inventory-became-cutting-debt",
+      "referenceGame": "Deus Ex",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.deusex.preproduction-inventory-became-cutting-debt.changed-story-purpose::sunk-cost-retention",
+      "a": "changed-story-purpose",
+      "b": "sunk-cost-retention",
+      "experienceRef": "exp.deusex.preproduction-inventory-became-cutting-debt",
+      "referenceGame": "Deus Ex",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.deusex.preproduction-inventory-became-cutting-debt.changed-story-purpose::cutting-friction",
+      "a": "changed-story-purpose",
+      "b": "cutting-friction",
+      "experienceRef": "exp.deusex.preproduction-inventory-became-cutting-debt",
+      "referenceGame": "Deus Ex",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.deusex.preproduction-inventory-became-cutting-debt.cutting-friction::sunk-cost-retention",
+      "a": "cutting-friction",
+      "b": "sunk-cost-retention",
+      "experienceRef": "exp.deusex.preproduction-inventory-became-cutting-debt",
+      "referenceGame": "Deus Ex",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.psychonauts2.constraint-expanded-design-space.creative-constraint::empathy-focus",
+      "a": "creative-constraint",
+      "b": "empathy-focus",
+      "experienceRef": "exp.psychonauts2.constraint-expanded-design-space",
+      "referenceGame": "Psychonauts 2",
+      "relationKind": "INVERSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.psychonauts2.constraint-expanded-design-space.creative-constraint::narrative-platforming",
+      "a": "creative-constraint",
+      "b": "narrative-platforming",
+      "experienceRef": "exp.psychonauts2.constraint-expanded-design-space",
+      "referenceGame": "Psychonauts 2",
+      "relationKind": "INVERSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.psychonauts2.constraint-expanded-design-space.creative-constraint::design-possibility-expansion",
+      "a": "creative-constraint",
+      "b": "design-possibility-expansion",
+      "experienceRef": "exp.psychonauts2.constraint-expanded-design-space",
+      "referenceGame": "Psychonauts 2",
+      "relationKind": "INVERSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.psychonauts2.constraint-expanded-design-space.creative-constraint::sequel-modernization",
+      "a": "creative-constraint",
+      "b": "sequel-modernization",
+      "experienceRef": "exp.psychonauts2.constraint-expanded-design-space",
+      "referenceGame": "Psychonauts 2",
+      "relationKind": "INVERSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.psychonauts2.constraint-expanded-design-space.empathy-focus::narrative-platforming",
+      "a": "empathy-focus",
+      "b": "narrative-platforming",
+      "experienceRef": "exp.psychonauts2.constraint-expanded-design-space",
+      "referenceGame": "Psychonauts 2",
+      "relationKind": "INVERSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.psychonauts2.constraint-expanded-design-space.design-possibility-expansion::empathy-focus",
+      "a": "design-possibility-expansion",
+      "b": "empathy-focus",
+      "experienceRef": "exp.psychonauts2.constraint-expanded-design-space",
+      "referenceGame": "Psychonauts 2",
+      "relationKind": "INVERSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.psychonauts2.constraint-expanded-design-space.empathy-focus::sequel-modernization",
+      "a": "empathy-focus",
+      "b": "sequel-modernization",
+      "experienceRef": "exp.psychonauts2.constraint-expanded-design-space",
+      "referenceGame": "Psychonauts 2",
+      "relationKind": "INVERSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.psychonauts2.constraint-expanded-design-space.design-possibility-expansion::narrative-platforming",
+      "a": "design-possibility-expansion",
+      "b": "narrative-platforming",
+      "experienceRef": "exp.psychonauts2.constraint-expanded-design-space",
+      "referenceGame": "Psychonauts 2",
+      "relationKind": "INVERSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.psychonauts2.constraint-expanded-design-space.narrative-platforming::sequel-modernization",
+      "a": "narrative-platforming",
+      "b": "sequel-modernization",
+      "experienceRef": "exp.psychonauts2.constraint-expanded-design-space",
+      "referenceGame": "Psychonauts 2",
+      "relationKind": "INVERSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.psychonauts2.constraint-expanded-design-space.design-possibility-expansion::sequel-modernization",
+      "a": "design-possibility-expansion",
+      "b": "sequel-modernization",
+      "experienceRef": "exp.psychonauts2.constraint-expanded-design-space",
+      "referenceGame": "Psychonauts 2",
+      "relationKind": "INVERSION",
       "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
       "causalRelationEstablished": false,
       "canBlockNovelCombination": false

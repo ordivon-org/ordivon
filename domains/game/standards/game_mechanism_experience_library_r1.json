@@ -2687,6 +2687,336 @@
         "community",
         "safety"
       ]
+    },
+    {
+      "id": "exp.factorio.campaign-mimicry-constrained-core",
+      "referenceGame": "Factorio",
+      "kind": "FAILURE_MODE",
+      "mechanisms": [
+        "guided-campaign",
+        "freeplay-mimicry",
+        "bounded-map-progression",
+        "short-term-quests",
+        "core-freedom-loss"
+      ],
+      "designProblem": "Can a guided campaign represent a sandbox core without losing the freedom that makes the core work?",
+      "interaction": "The expanding campaign tried to approximate freeplay while adding segmented map/quest constraints; the team judged the resulting playable form less fun than freeplay and cancelled it for 1.0.",
+      "playerDecisionHypothesis": "Adding guidance that substitutes for self-directed goal formation may change the very decision structure the tutorial/campaign is meant to demonstrate.",
+      "observedContext": "FFF #331 explicitly says the expanding campaign introduced unexpected problems and was not fun to play in comparison with Freeplay, leading Wube to abandon the campaign for the 1.0 focus.",
+      "confounds": [
+        "Factorio sandbox audience",
+        "campaign implementation maturity",
+        "team vision",
+        "release deadline"
+      ],
+      "transferRisks": [
+        "A campaign with a different goal than representing freeplay may work well.",
+        "The failure cannot be attributed to guidance alone."
+      ],
+      "falsifier": "A guided version that preserves the same self-authored planning choices as freeplay would weaken the claim that the guidance structure caused the mismatch.",
+      "cheapProbe": "Take one sandbox slice and compare self-authored goals with quest-gated progression while holding mechanics constant; inspect which actions/routes become unavailable or externally selected.",
+      "sourceRefs": [
+        "kb:factorio-fff-331"
+      ],
+      "tags": [
+        "failure",
+        "campaign",
+        "product-fit",
+        "guidance"
+      ],
+      "authority": "ADVISORY_HYPOTHESIS",
+      "inferenceLevel": "SOURCE_GROUNDED_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "exp.factorio.demo-goal-success-product-mismatch",
+      "referenceGame": "Factorio",
+      "kind": "TENSION",
+      "mechanisms": [
+        "onboarding-success",
+        "positive-new-player-feedback",
+        "demo-product-fidelity",
+        "vision-alignment",
+        "audience-broadening"
+      ],
+      "designProblem": "Can an onboarding/demo succeed on local learning and appeal metrics while still be the wrong representation of the product?",
+      "interaction": "The NPE attracted and pleased new/story-oriented players yet was removed because the team believed its experience was not aligned with the core game and no longer led into the cancelled campaign.",
+      "playerDecisionHypothesis": "Optimizing a demonstrator for immediate accessibility can select for behaviors/preferences that do not represent the long-horizon product.",
+      "observedContext": "FFF #342 says the NPE met many goals and received overwhelmingly positive feedback near the end, but Wube still removed it on product-vision/demo-fit grounds.",
+      "confounds": [
+        "internal vision authority",
+        "demo population",
+        "campaign cancellation changed downstream context",
+        "no controlled retention comparison"
+      ],
+      "transferRisks": [
+        "Positive onboarding metrics are not evidence of product mismatch by themselves.",
+        "Vision alignment can be invoked too vaguely unless the differing player decisions are named."
+      ],
+      "falsifier": "If users exposed to the demo later encounter the same goal formation, constraint profile and core decisions as the main game, the mismatch claim weakens.",
+      "cheapProbe": "List the top decisions in the demo and first hour of core play; compare which goals are authored by the player versus assigned externally before measuring preference.",
+      "sourceRefs": [
+        "kb:factorio-fff-342",
+        "kb:factorio-fff-331"
+      ],
+      "tags": [
+        "failure",
+        "onboarding",
+        "metric-proxy",
+        "product-fit"
+      ],
+      "authority": "ADVISORY_HYPOTHESIS",
+      "inferenceLevel": "SOURCE_GROUNDED_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "exp.factorio.strict-prevention-to-fast-recovery",
+      "referenceGame": "Factorio",
+      "kind": "SUBSTITUTION",
+      "mechanisms": [
+        "strict-error-prevention",
+        "system-complexity-growth",
+        "common-case-guard",
+        "fast-error-recovery",
+        "fluid-mixing"
+      ],
+      "designProblem": "Should an undesirable state be globally impossible, or should common accidents be prevented while rare cases remain recoverable?",
+      "interaction": "A strict no-fluid-mixing concept accumulated exceptional edge-case complexity; Wube replaced it with common-case prevention plus a direct flush/recovery action for complex cases.",
+      "playerDecisionHypothesis": "Fast recovery can preserve the intended invariant at player scale without encoding every possible prevention edge case into construction rules.",
+      "observedContext": "FFF #351 says strict prevention had compounded complexity for over a year and a half, then describes a simplified prevention system plus quick fluid flushing.",
+      "confounds": [
+        "legacy system built before the invariant",
+        "fluid network implementation",
+        "rare construction operations"
+      ],
+      "transferRisks": [
+        "Some domains cannot tolerate entering the invalid state at all.",
+        "Recovery can hide repeated errors if cost is too low or consequences propagate."
+      ],
+      "falsifier": "If a bounded implementation can enforce strict prevention with lower complexity and no new interaction friction, the substitution rationale weakens.",
+      "cheapProbe": "Implement the same error policy as exhaustive prevention and common-case prevention+undo/flush; count edge-case branches and recovery steps for the exact target system.",
+      "sourceRefs": [
+        "kb:factorio-fff-351"
+      ],
+      "tags": [
+        "failure",
+        "complexity",
+        "recovery",
+        "error-policy"
+      ],
+      "authority": "ADVISORY_HYPOTHESIS",
+      "inferenceLevel": "SOURCE_GROUNDED_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "exp.factorio.gui-duplication-and-nested-tabs",
+      "referenceGame": "Factorio",
+      "kind": "FAILURE_MODE",
+      "mechanisms": [
+        "duplicate-controls",
+        "nested-tabs",
+        "mental-link-cost",
+        "frequent-action-flow",
+        "flat-navigation"
+      ],
+      "designProblem": "When does an apparently organized GUI structure add conceptual and interaction cost instead of clarity?",
+      "interaction": "The Character tab duplicated information/actions elsewhere and nested crafting tabs interrupted frequent use; play experience led to tab removal and a flatter default.",
+      "playerDecisionHypothesis": "Duplicated representations can require users to maintain unnecessary equivalence mappings, while nesting can add mode-selection cost to high-frequency actions.",
+      "observedContext": "FFF #363 explicitly calls the Character tab filler/duplication and reports the nested-tab interaction as uncomfortable enough to revert the default.",
+      "confounds": [
+        "Factorio desktop UI density",
+        "expert developer usage",
+        "specific frequency of crafting actions"
+      ],
+      "transferRisks": [
+        "Tabs can still clarify genuinely distinct tasks.",
+        "Flat layouts can overload screens when information density differs."
+      ],
+      "falsifier": "If duplicated locations reduce search cost for distinct workflows without creating inconsistent state or extra mode switches, the failure pattern does not transfer.",
+      "cheapProbe": "Measure one frequent task with duplicated+nested access versus single-location flat access; count mode switches and ambiguous equivalent controls rather than aesthetic preference.",
+      "sourceRefs": [
+        "kb:factorio-fff-363"
+      ],
+      "tags": [
+        "failure",
+        "ui",
+        "duplication",
+        "flow"
+      ],
+      "authority": "ADVISORY_HYPOTHESIS",
+      "inferenceLevel": "SOURCE_GROUNDED_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "exp.factorio.visual-salience-context-failure",
+      "referenceGame": "Factorio",
+      "kind": "REPRESENTATION_COUPLING",
+      "mechanisms": [
+        "isolated-visual-quality",
+        "dense-repetition",
+        "salience-saturation",
+        "functional-importance",
+        "contextual-readability"
+      ],
+      "designProblem": "Can a visually strong asset be wrong once repeated at production density?",
+      "interaction": "A striking Beacon redesign pulled excessive attention in dense factories and was redesigned again toward lower salience appropriate to its repeated/supporting role.",
+      "playerDecisionHypothesis": "Visual hierarchy should reflect gameplay/attention priority at the density and zoom where an entity is actually used, not only isolated asset quality.",
+      "observedContext": "FFF #351 states the prior redesign was impressive but too visually dominant, especially because Beacons can appear everywhere, leading to a new redesign.",
+      "confounds": [
+        "art direction",
+        "zoom level",
+        "entity density",
+        "late-game factory layouts"
+      ],
+      "transferRisks": [
+        "High salience can be desirable for rare critical objects.",
+        "Density and camera distance change the relevant representation constraint."
+      ],
+      "falsifier": "If isolated and dense-context evaluations produce the same attention hierarchy for the target asset, context saturation is not the issue.",
+      "cheapProbe": "Render the same candidate at single-object, typical-density and worst-case-density views; compare visual attention target order before polishing details.",
+      "sourceRefs": [
+        "kb:factorio-fff-351"
+      ],
+      "tags": [
+        "failure",
+        "visual-design",
+        "density",
+        "salience"
+      ],
+      "authority": "ADVISORY_HYPOTHESIS",
+      "inferenceLevel": "SOURCE_GROUNDED_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "exp.diablo3.auction-house-undermined-loot-loop",
+      "referenceGame": "Diablo III",
+      "kind": "FAILURE_MODE",
+      "mechanisms": [
+        "secure-player-trading",
+        "global-market-efficiency",
+        "loot-acquisition-loop",
+        "incentive-displacement",
+        "feature-removal"
+      ],
+      "designProblem": "Can a useful secondary system make the efficient player strategy bypass the activity that defines the core game?",
+      "interaction": "The Auction House solved trade convenience/security but made market acquisition compete with killing monsters for loot; Blizzard ultimately removed it while redesigning itemization/rewards.",
+      "playerDecisionHypothesis": "When a secondary system dominates expected reward acquisition, rational use of that system can displace the intended core decision loop even if the feature has independent value.",
+      "observedContext": "Blizzard explicitly said the Auction House had benefits and heavy use but undermined Diablo’s core gameplay, then removed it alongside Loot 2.0/Reaper of Souls reward changes.",
+      "confounds": [
+        "real-money and gold markets",
+        "launch itemization",
+        "drop rates",
+        "player economy",
+        "live-service changes happened together"
+      ],
+      "transferRisks": [
+        "Trade can reinforce rather than replace a core loop when acquisition incentives are structured differently.",
+        "The removal was part of a multi-system redesign, so no isolated effect size follows."
+      ],
+      "falsifier": "If the secondary market remains available but expected advancement still requires and rewards the core activity at comparable rates, displacement may not occur.",
+      "cheapProbe": "Model two reward paths—core activity and external/secondary exchange—and sweep acquisition efficiency until optimal play switches; inspect whether the intended loop remains on the frontier.",
+      "sourceRefs": [
+        "kb:blizzard-diablo3-auction-house-update",
+        "kb:blizzard-diablo3-itemization-update",
+        "kb:gdc-diablo3-redemption"
+      ],
+      "tags": [
+        "failure",
+        "economy",
+        "incentives",
+        "core-loop"
+      ],
+      "authority": "ADVISORY_HYPOTHESIS",
+      "inferenceLevel": "SOURCE_GROUNDED_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "exp.deusex.preproduction-inventory-became-cutting-debt",
+      "referenceGame": "Deus Ex",
+      "kind": "FAILURE_MODE",
+      "mechanisms": [
+        "large-preproduction-inventory",
+        "character-concepts",
+        "changed-story-purpose",
+        "sunk-cost-retention",
+        "cutting-friction"
+      ],
+      "designProblem": "Can extensive preproduction create assets/options that later become harder to remove than they are useful?",
+      "interaction": "A very large early character list sometimes inspired missions but also produced filler that designers were reluctant to cut after roles/story needs changed.",
+      "playerDecisionHypothesis": "Preproduction artifacts can become implicit commitments unless each item must re-earn relevance against the evolving game.",
+      "observedContext": "Warren Spector’s Deus Ex postmortem says the team created more than 200 characters and that some became filler they were reluctant to cut as mission/story purposes changed.",
+      "confounds": [
+        "large narrative game",
+        "retrospective account",
+        "characters can have option value",
+        "different asset costs"
+      ],
+      "transferRisks": [
+        "Broad ideation is not itself the failure; premature attachment is.",
+        "Cheap conceptual inventories can remain useful when deletion is culturally/mechanically easy."
+      ],
+      "falsifier": "If items from a large preproduction inventory are routinely deleted/recombined without affecting decision quality or schedule, the inventory itself is not harmful.",
+      "cheapProbe": "Tag every preproduction item with current use, replacement cost and kill date; run a review where unbound items are deleted by default and measure how many later prove necessary.",
+      "sourceRefs": [
+        "kb:gdc-deus-ex-postmortem"
+      ],
+      "tags": [
+        "failure",
+        "preproduction",
+        "sunk-cost",
+        "scope"
+      ],
+      "authority": "ADVISORY_HYPOTHESIS",
+      "inferenceLevel": "SOURCE_GROUNDED_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "exp.psychonauts2.constraint-expanded-design-space",
+      "referenceGame": "Psychonauts 2",
+      "kind": "INVERSION",
+      "mechanisms": [
+        "creative-constraint",
+        "empathy-focus",
+        "narrative-platforming",
+        "design-possibility-expansion",
+        "sequel-modernization"
+      ],
+      "designProblem": "Do ethical/experiential constraints necessarily reduce creative possibility?",
+      "interaction": "Double Fine frames an empathy-focused constraint as expanding what the team could explore while modernizing a legacy narrative platformer.",
+      "playerDecisionHypothesis": "A constraint can create new search directions when it changes the questions/design relationships being explored rather than merely forbidding content.",
+      "observedContext": "The Psychonauts 2 GDC design postmortem explicitly presents empathy as expanding the design possibility space rather than limiting it.",
+      "confounds": [
+        "project-specific theme",
+        "experienced team",
+        "postmortem framing",
+        "no controlled alternative production"
+      ],
+      "transferRisks": [
+        "Vague values do not automatically generate useful constraints.",
+        "A constraint can still overconstrain a different target experience."
+      ],
+      "falsifier": "If adding the constraint only deletes candidates without producing new mechanism/story relations or better discriminators, it is not expanding the local search space.",
+      "cheapProbe": "For one design prompt, generate candidates with and without one explicit value constraint; compare not quality scores but the number and structural diversity of new relationship hypotheses created.",
+      "sourceRefs": [
+        "kb:gdc-psychonauts2-postmortem"
+      ],
+      "tags": [
+        "counterexample",
+        "constraint",
+        "creativity",
+        "sequel"
+      ],
+      "authority": "ADVISORY_HYPOTHESIS",
+      "inferenceLevel": "SOURCE_GROUNDED_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
     }
   ]
 }

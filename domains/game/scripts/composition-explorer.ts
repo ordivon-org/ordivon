@@ -7,6 +7,7 @@ const PROJECT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const GRAPH_PATH = "standards/game_domain_package_graph_r1.json";
 const EXPERIENCE_PATH = "standards/game_mechanism_experience_library_r1.json";
 const RELATIONSHIP_PATH = "standards/game_mechanism_relationship_graph_r1.json";
+const COUNTEREXAMPLE_PATH = "standards/game_design_counterexample_memory_r1.json";
 
 export type ExploreIntent = "explore" | "claim-human-value" | "external-effect" | "replace-provider";
 
@@ -137,6 +138,32 @@ export type MechanismRelationshipGraph = {
 type RelationshipFacetMatch = RelationshipFacet & { matchedMechanisms: string[] };
 type ConditionalityMatch = RelationshipConditionality & { matchedMechanisms: string[] };
 
+export type DesignCounterexample = {
+  id: string;
+  kind: string;
+  referenceGames: string[];
+  assumption: string;
+  failureSignal: string;
+  context: string;
+  revisionOrSalvage: string;
+  transferBoundary: string;
+  falseUniversalizations: string[];
+  cheapDiscriminator: string;
+  experienceRefs: string[];
+  sourceRefs: string[];
+  authority: "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS";
+  humanOutcomeEstablished: false;
+  canBlockNovelCombination: false;
+};
+
+export type DesignCounterexampleMemory = {
+  memoryId: string;
+  counterexamples: DesignCounterexample[];
+  __sourceDigest?: string;
+};
+
+type CounterexampleMatch = DesignCounterexample & { mechanisms: string[]; matchedMechanisms: string[] };
+
 export type CreativeTrace = {
   schemaVersion: 1;
   kind: "ordivon.game.composition-exploration-trace";
@@ -169,6 +196,12 @@ export type CreativeTrace = {
   };
   relationshipFacetMatches: RelationshipFacetMatch[];
   conditionalityMatches: ConditionalityMatch[];
+  counterexampleMemory: {
+    memoryId: string;
+    sourcePath: string;
+    sourceDigest: string;
+  };
+  counterexampleMatches: CounterexampleMatch[];
   epistemicFences: string[];
   requiredEvidenceClasses: string[];
   disposition: "OPEN_EXPLORATION" | "EVIDENCE_NOT_TRANSFERABLE" | "EXTERNAL_EFFECT_BLOCKED" | "AUTHORITY_REQUIRED";
@@ -204,6 +237,13 @@ export function loadMechanismRelationshipGraph(root = PROJECT_ROOT): MechanismRe
   const graph = JSON.parse(source) as MechanismRelationshipGraph;
   Object.defineProperty(graph, "__sourceDigest", { value: sha256(source), enumerable: false });
   return graph;
+}
+
+export function loadDesignCounterexampleMemory(root = PROJECT_ROOT): DesignCounterexampleMemory {
+  const source = readFileSync(resolve(root, COUNTEREXAMPLE_PATH), "utf8");
+  const memory = JSON.parse(source) as DesignCounterexampleMemory;
+  Object.defineProperty(memory, "__sourceDigest", { value: sha256(source), enumerable: false });
+  return memory;
 }
 
 function validateRequest(request: ExploreRequest, graph: CreativeGraph): void {
@@ -246,11 +286,37 @@ function conditionalityMatches(mechanisms: string[], conditionalities: Relations
     .sort((a, b) => b.matchedMechanisms.length - a.matchedMechanisms.length || a.id.localeCompare(b.id));
 }
 
+function counterexampleMatches(
+  mechanisms: string[],
+  counterexamples: DesignCounterexample[],
+  experiences: MechanismExperience[],
+): CounterexampleMatch[] {
+  const requested = new Set(mechanisms);
+  const experienceMap = new Map(experiences.map((experience) => [experience.id, experience]));
+  return counterexamples
+    .map((counterexample) => {
+      const resolved = counterexample.experienceRefs.map((ref) => {
+        const experience = experienceMap.get(ref);
+        if (!experience) throw new Error(`${counterexample.id} references unknown Experience ${ref}`);
+        return experience;
+      });
+      const candidateMechanisms = unique(resolved.flatMap((experience) => experience.mechanisms)).sort();
+      return {
+        ...counterexample,
+        mechanisms: candidateMechanisms,
+        matchedMechanisms: candidateMechanisms.filter((mechanism) => requested.has(mechanism)),
+      };
+    })
+    .filter((counterexample) => counterexample.matchedMechanisms.length > 0)
+    .sort((a, b) => b.matchedMechanisms.length - a.matchedMechanisms.length || a.id.localeCompare(b.id));
+}
+
 export function exploreGameComposition(
   request: ExploreRequest,
   graph = loadGameCreativeGraph(),
   experienceLibrary = loadMechanismExperienceLibrary(),
   relationshipGraph = loadMechanismRelationshipGraph(),
+  counterexampleMemory = loadDesignCounterexampleMemory(),
 ): CreativeTrace {
   validateRequest(request, graph);
   const mechanisms = unique(request.mechanisms ?? []);
@@ -291,7 +357,7 @@ export function exploreGameComposition(
   const notes = [
     graph.creativePolicy.creativeCombinationRule,
     graph.creativePolicy.unknownRule,
-    "Pattern matches are broad analogies; Experience matches are finer source-grounded interaction hypotheses; Relationship Facets are incomplete retrieval aliases; Conditionality matches preserve apparent conflicts and cheap discriminators. None is a recipe, ranking, recommendation, compatibility verdict, or rejection rule.",
+    "Pattern matches are broad analogies; Experience matches are finer source-grounded interaction hypotheses; Relationship Facets are incomplete retrieval aliases; Conditionality matches preserve apparent conflicts; Counterexample matches expose historical assumption failures and cheap discriminators. None is a recipe, ranking, recommendation, compatibility verdict, blacklist, or rejection rule.",
     "Evidence attached to components or reference games is not inherited by the new composition; emergent behavior may differ in either direction.",
   ];
   if (novelUnmodeledElements.length > 0) {
@@ -325,6 +391,12 @@ export function exploreGameComposition(
     },
     relationshipFacetMatches: relationshipFacetMatches(mechanisms, relationshipGraph.retrievalFacets),
     conditionalityMatches: conditionalityMatches(mechanisms, relationshipGraph.conditionalities),
+    counterexampleMemory: {
+      memoryId: counterexampleMemory.memoryId,
+      sourcePath: COUNTEREXAMPLE_PATH,
+      sourceDigest: counterexampleMemory.__sourceDigest ?? sha256(JSON.stringify(counterexampleMemory)),
+    },
+    counterexampleMatches: counterexampleMatches(mechanisms, counterexampleMemory.counterexamples, experienceLibrary.experiences),
     epistemicFences,
     requiredEvidenceClasses: unique(requiredEvidenceClasses),
     disposition,
