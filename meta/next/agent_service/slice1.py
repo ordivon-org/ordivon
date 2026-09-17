@@ -76,10 +76,12 @@ class ProviderObservation:
     evidence_ref: str | None
 
 
-class HostAdapter(ABC):
-    """Provider seam for local/remote carrier presence.
+class CarrierProviderAdapter(ABC):
+    """Provider seam for realizing and observing an Agent carrier.
 
-    The adapter reports provider facts. It never owns Agent Service semantic state.
+    The provider may be Workstation-managed Agent Automation, a hosted Agent service,
+    Kubernetes, or another placement substrate. It reports provider facts and performs
+    provider-local effects; it never owns Agent Service semantic state.
     """
 
     @abstractmethod
@@ -93,6 +95,11 @@ class HostAdapter(ABC):
     @abstractmethod
     def observe(self, placement_id: str) -> ProviderObservation:
         raise NotImplementedError
+
+
+# R3 compatibility name. Host v2 is not the natural owner of placement effects;
+# new code should use CarrierProviderAdapter.
+HostAdapter = CarrierProviderAdapter
 
 
 class _SqliteNode:
@@ -384,11 +391,11 @@ class BirthCoordinator:
 
 
 class ProviderObserver:
-    def __init__(self, host_adapter: HostAdapter) -> None:
-        self._host_adapter = host_adapter
+    def __init__(self, carrier_adapter: CarrierProviderAdapter) -> None:
+        self._carrier_adapter = carrier_adapter
 
     def observe(self, placement_id: str) -> ProviderObservation:
-        observation = self._host_adapter.observe(placement_id)
+        observation = self._carrier_adapter.observe(placement_id)
         if observation.placement_id != placement_id:
             raise ValueError("provider returned observation for different placement")
         return observation
@@ -402,7 +409,7 @@ class PlacementReconciler:
         instances: AgentInstanceStore,
         placements: DesiredPlacementStore,
         events: ServiceEventStore,
-        host_adapter: HostAdapter,
+        carrier_adapter: CarrierProviderAdapter,
         observer: ProviderObserver,
     ) -> None:
         self._connection = connection
@@ -410,7 +417,7 @@ class PlacementReconciler:
         self._instances = instances
         self._placements = placements
         self._events = events
-        self._host_adapter = host_adapter
+        self._carrier_adapter = carrier_adapter
         self._observer = observer
 
     def reconcile(self, instance_id: str) -> AgentInstance:
@@ -421,9 +428,9 @@ class PlacementReconciler:
             raise RuntimeError(f"agent instance {instance.id} has no desired placement")
 
         if placement.desired_state == "READY":
-            self._host_adapter.ensure(placement.id, instance.id, revision.id)
+            self._carrier_adapter.ensure(placement.id, instance.id, revision.id)
         elif placement.desired_state == "RETIRED":
-            self._host_adapter.retire(placement.id, instance.id)
+            self._carrier_adapter.retire(placement.id, instance.id)
         else:
             raise ValueError(f"unsupported desired state: {placement.desired_state}")
 
@@ -460,7 +467,9 @@ class PlacementReconciler:
 class AgentServiceSlice1:
     """Thin composition root for the first clean-room Agent Service vertical slice."""
 
-    def __init__(self, connection: sqlite3.Connection, host_adapter: HostAdapter) -> None:
+    def __init__(
+        self, connection: sqlite3.Connection, carrier_adapter: CarrierProviderAdapter
+    ) -> None:
         self._connection = connection
         self.definitions = AgentDefinitionStore(connection)
         self.revisions = AgentRevisionStore(connection)
@@ -468,26 +477,37 @@ class AgentServiceSlice1:
         self.placements = DesiredPlacementStore(connection)
         self.events = ServiceEventStore(connection)
         self.birth = BirthCoordinator(connection, self.revisions, self.instances, self.placements, self.events)
-        self.observer = ProviderObserver(host_adapter)
+        self.observer = ProviderObserver(carrier_adapter)
         self.reconciler = PlacementReconciler(
             connection,
             self.revisions,
             self.instances,
             self.placements,
             self.events,
-            host_adapter,
+            carrier_adapter,
             self.observer,
         )
 
     @classmethod
-    def open(cls, db_path: str | Path, host_adapter: HostAdapter) -> "AgentServiceSlice1":
+    def open(
+        cls,
+        db_path: str | Path,
+        carrier_adapter: CarrierProviderAdapter | None = None,
+        *,
+        host_adapter: CarrierProviderAdapter | None = None,
+    ) -> "AgentServiceSlice1":
+        if carrier_adapter is not None and host_adapter is not None:
+            raise ValueError("pass carrier_adapter or legacy host_adapter, not both")
+        provider = carrier_adapter if carrier_adapter is not None else host_adapter
+        if provider is None:
+            raise ValueError("carrier_adapter is required")
         path = Path(db_path)
         path.parent.mkdir(parents=True, exist_ok=True)
         connection = sqlite3.connect(path)
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA foreign_keys = ON")
         cls._initialize_schema(connection)
-        return cls(connection, host_adapter)
+        return cls(connection, provider)
 
     @staticmethod
     def _initialize_schema(connection: sqlite3.Connection) -> None:
