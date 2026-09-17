@@ -1,0 +1,207 @@
+{
+  "browserBinaryDigest": "sha256:8c599d43aec53f2460a31ae2f4af6bd863f8258b34ff519564bc5d4726bfaa1e",
+  "challengeStanding": null,
+  "controlLayer": {
+    "browserVersion": "153.0.8010.12",
+    "containerImageIdentity": "sha256:b1ba7b054af2891a8199f884d4bd249cf8c3bd2fa8a97b339077e40f92803ba8",
+    "controlClient": "playwright-connect-over-cdp",
+    "effectiveLaunchArgvNormalized": [
+      "--allow-pre-commit-input",
+      "--disable-background-networking",
+      "--disable-background-timer-throttling",
+      "--disable-backgrounding-occluded-windows",
+      "--disable-breakpad",
+      "--disable-client-side-phishing-detection",
+      "--disable-component-extensions-with-background-pages",
+      "--disable-crash-reporter",
+      "--disable-default-apps",
+      "--disable-dev-shm-usage",
+      "--disable-hang-monitor",
+      "--disable-infobars",
+      "--disable-ipc-flooding-protection",
+      "--disable-popup-blocking",
+      "--disable-prompt-on-repost",
+      "--disable-renderer-backgrounding",
+      "--disable-search-engine-choice-screen",
+      "--disable-sync",
+      "--enable-automation",
+      "--export-tagged-pdf",
+      "--force-color-profile=srgb",
+      "--generate-pdf-document-outline",
+      "--metrics-recording-only",
+      "--no-first-run",
+      "--password-store=basic",
+      "--use-mock-keychain",
+      "--disable-features=Translate,AcceptCHFrame,MediaRouter,OptimizationHints,WebUIReloadButton,WebUIOmniboxPopup,WebUIOmniboxAimPopup,ProcessPerSiteUpToMainFrameThreshold,IsolateSandboxedIframes,LocalNetworkAccessChecks",
+      "--enable-features=PdfOopif",
+      "--user-data-dir=/data",
+      "--disable-extensions",
+      "about:blank",
+      "--remote-debugging-port=<ephemeral>",
+      "--no-sandbox",
+      "--no-first-run",
+      "--disable-component-update",
+      "--user-data-dir=/data"
+    ],
+    "endpointId": "chatgpt-carrier-12",
+    "headless": false,
+    "launchArgs": [],
+    "launchOwner": "browserless-puppeteer",
+    "networkNamespace": "nv2-browserless-prod",
+    "routeFamily": "browserless/chromium",
+    "userDataDir": "/data"
+  },
+  "networkAuthority": {
+    "generationDigest": "sha256:643ae566ae3343f869c25e43920aa9ef741e8f0fa2a4f031767ef9f1853425be",
+    "kind": "network-v2",
+    "name": "browserless-prod",
+    "serviceUnit": "network-v2-browserless.target"
+  },
+  "readings": [
+    {
+      "coverage": "browser TLS/HTTP2 normalized fields from tls.peet.ws; JA3 intentionally excluded",
+      "detectorId": "cf02-transport-normalized",
+      "detectorVersion": "harness-browser-security-r2",
+      "family": "CF02",
+      "publicObservation": {
+        "http2AkamaiFingerprintHash": "52d84b11737d980aef856699f885ca86",
+        "httpVersion": "h2",
+        "ja4": "t13d1518h2_8daaf6152771_4980c97edce0",
+        "peetprintHash": "493a80d6a4267c7820685d29d92aa946",
+        "standing": "OBSERVED",
+        "tlsVersionNegotiated": "772"
+      }
+    },
+    {
+      "coverage": "main-document request header set/order against local neutral HTTP probe",
+      "detectorId": "cf03-main-document-headers",
+      "detectorVersion": "harness-browser-security-r2",
+      "family": "CF03",
+      "publicObservation": {
+        "headerOrder": [
+          "Host",
+          "Connection",
+          "sec-ch-ua",
+          "sec-ch-ua-mobile",
+          "sec-ch-ua-platform",
+          "Accept-Language",
+          "Upgrade-Insecure-Requests",
+          "User-Agent",
+          "Accept",
+          "Sec-Fetch-Site",
+          "Sec-Fetch-Mode",
+          "Sec-Fetch-User",
+          "Sec-Fetch-Dest",
+          "Accept-Encoding"
+        ]
+      }
+    },
+    {
+      "coverage": "page-visible browser identity, automation presentation, geometry and locale",
+      "detectorId": "cf04-browser-js-presentation",
+      "detectorVersion": "harness-browser-security-r2",
+      "family": "CF04",
+      "publicObservation": {
+        "deviceMemoryGiB": 8,
+        "devicePixelRatio": 1,
+        "hardwareConcurrency": 16,
+        "language": "en-US",
+        "languages": [
+          "en-US"
+        ],
+        "maxTouchPoints": 0,
+        "navigatorWebdriver": true,
+        "platform": "Linux x86_64",
+        "screen": [
+          1440,
+          1000,
+          1440,
+          1000
+        ],
+        "timezone": "Asia/Shanghai",
+        "timezoneOffsetMinutes": -480,
+        "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
+        "windowInner": [
+          1288,
+          764
+        ],
+        "windowOuter": [
+          1288,
+          851
+        ]
+      }
+    },
+    {
+      "coverage": "CDP Runtime execution-context shape only; protocol-domain subscription state remains uncovered",
+      "detectorId": "cf05-control-observability",
+      "detectorVersion": "harness-browser-security-r2",
+      "family": "CF05",
+      "publicObservation": {
+        "contextCount": 4,
+        "contextShape": [
+          "playwright-utility",
+          "default",
+          "playwright-utility",
+          "default"
+        ]
+      }
+    },
+    {
+      "coverage": "coarse network geography, browser timezone/locale/geometry, and container font resolution",
+      "detectorId": "cf06-cross-layer-consistency",
+      "detectorVersion": "harness-browser-security-r2",
+      "family": "CF06",
+      "publicObservation": {
+        "browser": {
+          "devicePixelRatio": 1,
+          "language": "en-US",
+          "languages": [
+            "en-US"
+          ],
+          "screen": [
+            1440,
+            1000,
+            1440,
+            1000
+          ],
+          "timezone": "Asia/Shanghai",
+          "timezoneOffsetMinutes": -480,
+          "windowInner": [
+            1288,
+            764
+          ],
+          "windowOuter": [
+            1288,
+            851
+          ]
+        },
+        "fontResolution": {
+          "Arial": "Liberation Sans",
+          "DejaVu Sans": "DejaVu Sans",
+          "Noto Sans": "Ubuntu",
+          "Segoe UI": "Selawik"
+        },
+        "network": {
+          "colo": "ICN",
+          "http": "http/1.1",
+          "loc": "KR",
+          "observer": "python-urllib",
+          "tls": "TLSv1.3",
+          "warp": "off"
+        }
+      }
+    },
+    {
+      "coverage": "non-secret Chrome persistent-profile cookie row and distinct-host counts only",
+      "detectorId": "cf07-profile-metadata",
+      "detectorVersion": "harness-browser-security-r2",
+      "family": "CF07",
+      "publicObservation": {
+        "cookieHosts": 4,
+        "cookieRows": 35
+      }
+    }
+  ],
+  "schemaVersion": 1,
+  "witnessId": "browserless-prod-carrier12-live-r2-lkg-20260918"
+}

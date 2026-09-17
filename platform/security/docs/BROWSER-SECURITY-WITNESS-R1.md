@@ -147,3 +147,29 @@ fixtures/browser-security/harness-r2-live-lkg-carrier11-bundle.json
 It was produced by Harness detector version `harness-browser-security-r2` from `chatgpt-carrier-11` without visiting ChatGPT. Two consecutive live observations compared with zero infrastructure, detector, family, or public-field drift. The LKG binds the exact current Chromium binary, Network-v2 authority, Browserless image, and normalized 36-entry effective Chromium launch argv. Ephemeral remote-debugging port values are normalized before the control-layer digest.
 
 This fixture is a regression baseline, not a provider-admissibility baseline and not a causal claim about any challenge.
+
+## Live Harness r2 pool LKG
+
+The production Browserless pool now has one neutral/read-only LKG per persistent carrier:
+
+```text
+fixtures/browser-security/harness-r2-live-lkg-carrier11-manifest.json
+fixtures/browser-security/harness-r2-live-lkg-carrier11-bundle.json
+fixtures/browser-security/harness-r2-live-lkg-carrier12-manifest.json
+fixtures/browser-security/harness-r2-live-lkg-carrier12-bundle.json
+fixtures/browser-security/harness-r2-live-lkg-carrier13-manifest.json
+fixtures/browser-security/harness-r2-live-lkg-carrier13-bundle.json
+fixtures/browser-security/harness-r2-live-lkg-pool-index.json
+```
+
+The pool index binds each carrier identity to its manifest/bundle digest, browser binary digest, detector version, Network-v2 authority, and control-layer endpoint identity.
+
+The comparison law is subject-scoped:
+
+```text
+same carrier candidate vs same carrier LKG -> allowed drift comparison
+cross-carrier comparison                  -> descriptive differential only
+cross carrier as one subject drift        -> forbidden
+```
+
+This prevents profile-local state or endpoint identity differences between carrier-11/12/13 from being misclassified as time drift. A pool-wide incident can instead be diagnosed by comparing each current carrier against its own LKG and then intersecting the changed CF families.
