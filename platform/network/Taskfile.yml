@@ -35,6 +35,9 @@ tasks:
       - install -m 0644 config/sing-box/direct.json /etc/network-v2/sing-box/direct.json
       - install -m 0644 config/blackbox/blackbox.yml /etc/network-v2/blackbox/blackbox.yml
       - install -m 0644 config/prometheus/prometheus.yml /etc/network-v2/prometheus/prometheus.yml
+      - install -d -m 0755 /etc/sysctl.d
+      - install -m 0644 config/sysctl/90-network-v2-forwarding.conf /etc/sysctl.d/90-network-v2-forwarding.conf
+      - /usr/bin/sysctl --system >/dev/null
       - for: { var: R0_SYSTEMD_UNITS }
         cmd: install -m 0644 {{.ITEM}} /etc/systemd/system/{{base .ITEM}}
       - systemctl daemon-reload
@@ -55,6 +58,8 @@ tasks:
       - cmp -s config/sing-box/direct.json /etc/network-v2/sing-box/direct.json
       - cmp -s config/blackbox/blackbox.yml /etc/network-v2/blackbox/blackbox.yml
       - cmp -s config/prometheus/prometheus.yml /etc/network-v2/prometheus/prometheus.yml
+      - cmp -s config/sysctl/90-network-v2-forwarding.conf /etc/sysctl.d/90-network-v2-forwarding.conf
+      - test "$(sysctl -n net.ipv4.ip_forward)" = 1
       - systemctl is-active --quiet network-v2-r0.target
       - systemctl is-enabled --quiet network-v2-r0.target
       - test "$(systemctl is-enabled network-v2-dnsproxy.service 2>/dev/null || true)" = disabled
