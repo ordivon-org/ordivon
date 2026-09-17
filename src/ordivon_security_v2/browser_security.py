@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+import hashlib
+import json
+from dataclasses import dataclass
 
 
 DETECTOR_FAMILIES = frozenset({"CF02", "CF03", "CF04", "CF05", "CF06", "CF07", "CF08"})
@@ -151,17 +153,19 @@ def compare_browser_security_witnesses(
             continue
         if left.family != right.family:
             raise ValueError(f"detector family changed for {detector_id}")
-        if left.detector_version != right.detector_version:
+        if left.detector_version != right.detector_version or left.coverage != right.coverage:
             detector_drift.add(detector_id)
-            rows.append(
-                {
-                    "detectorId": detector_id,
-                    "family": left.family,
-                    "status": "DETECTOR_DRIFT",
-                    "baselineVersion": left.detector_version,
-                    "candidateVersion": right.detector_version,
-                }
-            )
+            row = {
+                "detectorId": detector_id,
+                "family": left.family,
+                "status": "DETECTOR_DRIFT",
+                "baselineVersion": left.detector_version,
+                "candidateVersion": right.detector_version,
+            }
+            if left.coverage != right.coverage:
+                row["baselineCoverage"] = left.coverage
+                row["candidateCoverage"] = right.coverage
+            rows.append(row)
             continue
         status = "UNCHANGED" if left.observation_digest == right.observation_digest else "CHANGED"
         if status == "CHANGED":
@@ -186,3 +190,209 @@ def compare_browser_security_witnesses(
         "challengeStandingChanged": baseline.challenge_standing != candidate.challenge_standing,
         "rootCauseEstablished": False,
     }
+
+
+_SENSITIVE_PUBLIC_KEYS = frozenset(
+    {
+        "authorization",
+        "cookievalue",
+        "password",
+        "privatekey",
+        "secret",
+        "setcookie",
+        "token",
+        "accesstoken",
+        "refreshtoken",
+        "clientsecret",
+    }
+)
+
+
+def _canonical_json_bytes(value: object) -> bytes:
+    try:
+        return json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            allow_nan=False,
+        ).encode("utf-8")
+    except (TypeError, ValueError) as error:
+        raise ValueError("browser-security observation must be canonical JSON data") from error
+
+
+def canonical_json_digest(value: object) -> str:
+    return "sha256:" + hashlib.sha256(_canonical_json_bytes(value)).hexdigest()
+
+
+def _normalized_key(value: str) -> str:
+    return "".join(ch for ch in value.lower() if ch.isalnum())
+
+
+def _validate_public_observation(value: object, path: str = "$") -> None:
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if not isinstance(key, str):
+                raise ValueError(f"public observation key at {path} must be text")
+            if _normalized_key(key) in _SENSITIVE_PUBLIC_KEYS:
+                raise ValueError(f"sensitive field is forbidden in public observation: {path}.{key}")
+            _validate_public_observation(child, f"{path}.{key}")
+        return
+    if isinstance(value, list):
+        for index, child in enumerate(value):
+            _validate_public_observation(child, f"{path}[{index}]")
+        return
+    if value is None or isinstance(value, (str, int, float, bool)):
+        _canonical_json_bytes(value)
+        return
+    raise ValueError(f"public observation at {path} must be JSON data")
+
+
+@dataclass(frozen=True, slots=True)
+class BrowserSecurityWitnessBundle:
+    witness: BrowserSecurityWitness
+    public_observations: tuple[tuple[str, object], ...]
+
+    @classmethod
+    def from_dict(cls, value: dict[str, object]) -> "BrowserSecurityWitnessBundle":
+        expected = {"schemaVersion", "witness", "publicObservations"}
+        if not isinstance(value, dict) or set(value) != expected:
+            raise ValueError("browser-security witness bundle must contain exactly the canonical fields")
+        if value["schemaVersion"] != 1:
+            raise ValueError("schemaVersion=1 required")
+        witness_raw = value["witness"]
+        if not isinstance(witness_raw, dict):
+            raise ValueError("witness must be an object")
+        witness = BrowserSecurityWitness.from_dict(witness_raw)
+        raw = value["publicObservations"]
+        if not isinstance(raw, list):
+            raise ValueError("publicObservations must be a list")
+        public: list[tuple[str, object]] = []
+        for row in raw:
+            if not isinstance(row, dict) or set(row) != {"detectorId", "observation"}:
+                raise ValueError("public observation row must contain detectorId and observation")
+            detector_id = _required_text(row["detectorId"], "detectorId")
+            observation = row["observation"]
+            _validate_public_observation(observation)
+            public.append((detector_id, observation))
+        public.sort(key=lambda item: item[0])
+        public_ids = [detector_id for detector_id, _ in public]
+        if len(public_ids) != len(set(public_ids)):
+            raise ValueError("duplicate detectorId in public observations")
+        witness_map = witness.observation_map()
+        if set(public_ids) != set(witness_map):
+            raise ValueError("public observation detector set must match witness detector set")
+        for detector_id, observation in public:
+            if canonical_json_digest(observation) != witness_map[detector_id].observation_digest:
+                raise ValueError(f"public observation digest mismatch for {detector_id}")
+        return cls(witness=witness, public_observations=tuple(public))
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "schemaVersion": 1,
+            "witness": self.witness.to_dict(),
+            "publicObservations": [
+                {"detectorId": detector_id, "observation": observation}
+                for detector_id, observation in self.public_observations
+            ],
+        }
+
+    def public_observation_map(self) -> dict[str, object]:
+        return dict(self.public_observations)
+
+
+def build_browser_security_witness_bundle(
+    *,
+    witness_id: str,
+    browser_binary_digest: str,
+    control_layer: object,
+    network_authority: object,
+    readings: list[dict[str, object]],
+    challenge_standing: str | None = None,
+) -> BrowserSecurityWitnessBundle:
+    if not isinstance(readings, list) or not readings:
+        raise ValueError("at least one browser-security detector reading is required")
+    observations: list[DetectorObservation] = []
+    public: list[tuple[str, object]] = []
+    expected = {"detectorId", "family", "detectorVersion", "coverage", "publicObservation"}
+    for row in readings:
+        if not isinstance(row, dict) or set(row) != expected:
+            raise ValueError("detector reading must contain exactly the canonical fields")
+        detector_id = _required_text(row["detectorId"], "detectorId")
+        family = _required_text(row["family"], "family")
+        if family not in DETECTOR_FAMILIES:
+            raise ValueError(f"unsupported browser-security detector family: {family}")
+        public_observation = row["publicObservation"]
+        _validate_public_observation(public_observation)
+        observations.append(
+            DetectorObservation(
+                detector_id=detector_id,
+                family=family,
+                detector_version=_required_text(row["detectorVersion"], "detectorVersion"),
+                observation_digest=canonical_json_digest(public_observation),
+                coverage=_required_text(row["coverage"], "coverage"),
+            )
+        )
+        public.append((detector_id, public_observation))
+    observations.sort(key=lambda row: row.detector_id)
+    public.sort(key=lambda item: item[0])
+    if len({row.detector_id for row in observations}) != len(observations):
+        raise ValueError("duplicate detectorId in detector readings")
+    witness = BrowserSecurityWitness(
+        witness_id=_required_text(witness_id, "witnessId"),
+        browser_binary_digest=_digest(browser_binary_digest, "browserBinaryDigest"),
+        control_layer_digest=canonical_json_digest(control_layer),
+        network_authority_digest=canonical_json_digest(network_authority),
+        observations=tuple(observations),
+        challenge_standing=(
+            None if challenge_standing is None else _required_text(challenge_standing, "challengeStanding")
+        ),
+        protected_challenge_used_as_detector_oracle=False,
+    )
+    return BrowserSecurityWitnessBundle(witness=witness, public_observations=tuple(public))
+
+
+def _changed_json_paths(left: object, right: object, path: str = "$") -> list[str]:
+    if type(left) is not type(right):
+        return [path]
+    if isinstance(left, dict):
+        changed: list[str] = []
+        for key in sorted(set(left) | set(right)):
+            child_path = f"{path}.{key}"
+            if key not in left or key not in right:
+                changed.append(child_path)
+            else:
+                changed.extend(_changed_json_paths(left[key], right[key], child_path))
+        return changed
+    if isinstance(left, list):
+        if len(left) != len(right):
+            return [path]
+        changed: list[str] = []
+        for index, (a, b) in enumerate(zip(left, right)):
+            changed.extend(_changed_json_paths(a, b, f"{path}[{index}]"))
+        return changed
+    return [] if left == right else [path]
+
+
+def compare_browser_security_bundles(
+    baseline: BrowserSecurityWitnessBundle, candidate: BrowserSecurityWitnessBundle
+) -> dict[str, object]:
+    result = compare_browser_security_witnesses(baseline.witness, candidate.witness)
+    baseline_public = baseline.public_observation_map()
+    candidate_public = candidate.public_observation_map()
+    drift_ids = set(result["detectorDrift"])
+    changes: list[dict[str, object]] = []
+    for row in result["detectors"]:
+        detector_id = row["detectorId"]
+        if row["status"] != "CHANGED" or detector_id in drift_ids:
+            continue
+        changes.append(
+            {
+                "detectorId": detector_id,
+                "changedPaths": _changed_json_paths(
+                    baseline_public[detector_id], candidate_public[detector_id]
+                ),
+            }
+        )
+    result["publicObservationChanges"] = changes
+    return result
