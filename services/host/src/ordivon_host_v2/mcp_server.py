@@ -28,7 +28,7 @@ from .contracts import (
     TaskObserveResponse,
     TaskResumeResponse,
 )
-from .models import CheckpointInput, TaskState
+from .models import CheckpointInput, TaskState, TaskView
 from .news import NewsStore
 from .news_contract import NewsEditionInput
 from .service import HostV2
@@ -36,6 +36,17 @@ from .service import HostV2
 
 def _request_id(prefix: str, value: dict[str, Any]) -> str:
     return f"{prefix}:{canonical_digest(value).removeprefix('sha256:')}"
+
+
+def _task_summary(task: TaskView) -> dict[str, Any]:
+    return {
+        "task_id": task.task_id,
+        "goal_id": task.goal_id,
+        "revision": task.revision,
+        "state": task.state.value,
+        "checkpoint_digest": task.checkpoint_digest,
+        "writer_label": task.writer_label,
+    }
 
 
 def build_server(dsn: str | None = None) -> MCPServer:
@@ -162,8 +173,8 @@ def build_server(dsn: str | None = None) -> MCPServer:
         cursor: str | None = None,
         includeTerminal: bool = False,
     ) -> TaskListResponse:
-        """List Host semantic-continuity tasks; not a priority or ownership surface."""
-        tasks, has_more, next_cursor = service.list_tasks_page(
+        """List compact Host task inventory; use task.resume for exact checkpoint content."""
+        tasks, has_more, next_cursor = service.list_task_summaries_page(
             include_terminal=includeTerminal,
             limit=limit,
             goal_id=goalId,
@@ -171,12 +182,13 @@ def build_server(dsn: str | None = None) -> MCPServer:
             cursor=cursor,
         )
         return {
-            "schemaVersion": 3,
+            "schemaVersion": 4,
             "kind": "ordivon.host-task-list",
-            "tasks": [item.model_dump(mode="json") for item in tasks],
+            "itemView": "basic",
+            "tasks": tasks,
             "hasMore": has_more,
             "nextCursor": next_cursor,
-            "truthBoundary": "continuity inventory only; not work priority, owner standing, or domain truth",
+            "truthBoundary": "compact continuity inventory only; use task.resume for exact checkpoint content; not work priority, owner standing, or domain truth",
         }
 
     @mcp.tool(name="task.resume")
@@ -184,9 +196,9 @@ def build_server(dsn: str | None = None) -> MCPServer:
         """Recover one exact semantic checkpoint without querying foreign owners."""
         task = service.resume(taskId, expectedRevision)
         return {
-            "schemaVersion": 3,
+            "schemaVersion": 4,
             "kind": "ordivon.host-external-continuity-resume",
-            "task": task.model_dump(mode="json"),
+            "task": _task_summary(task),
             "handoff": service._handoff(task),
             "checkpoint": task.checkpoint,
             "writerLabel": task.writer_label,
@@ -215,10 +227,10 @@ def build_server(dsn: str | None = None) -> MCPServer:
             client_request_id=_request_id("task-adopt", request),
         )
         return {
-            "schemaVersion": 3,
+            "schemaVersion": 4,
             "kind": "ordivon.host-external-continuity-adopt",
             "admission": result.admission.value,
-            "task": result.task.model_dump(mode="json"),
+            "task": _task_summary(result.task),
             "handoff": service._handoff(result.task),
             "checkpoint": result.task.checkpoint,
             "writerLabel": result.task.writer_label,
@@ -265,10 +277,10 @@ def build_server(dsn: str | None = None) -> MCPServer:
             state=state,
         )
         return {
-            "schemaVersion": 3,
+            "schemaVersion": 4,
             "kind": "ordivon.host-external-continuity-checkpoint",
             "admission": result.admission.value,
-            "task": result.task.model_dump(mode="json"),
+            "task": _task_summary(result.task),
             "handoff": service._handoff(result.task),
             "checkpoint": result.task.checkpoint,
             "writerLabel": result.task.writer_label,

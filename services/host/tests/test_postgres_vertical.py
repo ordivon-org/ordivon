@@ -233,6 +233,39 @@ def test_task_list_keyset_cursor_is_scope_bound_and_complete() -> None:
 
 
 
+def test_task_summary_page_omits_checkpoint_payload(monkeypatch: pytest.MonkeyPatch) -> None:
+    h = host()
+    task_id = tid("summary-page")
+    goal_id = f"goal:v2:summary:{uuid4().hex}"
+    h.adopt(
+        task_id=task_id,
+        goal_id=goal_id,
+        checkpoint=CheckpointInput(payload={"large": "payload", "runtime": {"workspaceId": "ws:test"}}),
+        client_request_id=f"a:{task_id}",
+    )
+    expected_digest = h.resume(task_id, 1).checkpoint_digest
+
+    def fail_hydration(*args: object, **kwargs: object) -> None:
+        raise AssertionError("compact task inventory must not hydrate TaskView/checkpoint payloads")
+
+    monkeypatch.setattr(h, "_resume_in_tx", fail_hydration)
+    page, has_more, cursor = h.list_task_summaries_page(goal_id=goal_id, limit=10)
+    assert has_more is False
+    assert cursor is None
+    assert page == [
+        {
+            "task_id": task_id,
+            "goal_id": goal_id,
+            "revision": 1,
+            "state": "open",
+            "checkpoint_digest": expected_digest,
+            "writer_label": None,
+        }
+    ]
+    assert "checkpoint" not in page[0]
+
+
+
 def test_postgres_native_status_summary_integrity_and_history() -> None:
     import psycopg
 

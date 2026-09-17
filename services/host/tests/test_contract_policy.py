@@ -90,3 +90,10 @@ def test_work_standing_truth_role_stays_caller_authored() -> None:
     schema_text = str(full_checkpoint_schema())
     assert "checkpoint-authored-work-standing" in schema_text
     assert "caller-authored workStanding" in schema_text
+
+
+def test_board_search_binds_results_to_reported_snapshot_high_water() -> None:
+    text = (Path(__file__).parents[1] / "src" / "ordivon_host_v2" / "board.py").read_text()
+    search = text.split("    def search(self, *, query: str, limit: int = 20)", 1)[1]
+    assert "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY" in search
+    assert '"WHERE sequence<=%s AND ("' in search

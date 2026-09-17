@@ -195,7 +195,7 @@ class HostV2:
                 "observedAtMs": observed_at_ms,
                 "detail": detail,
                 "interface": {
-                    "surfaceVersion": 7,
+                    "surfaceVersion": 8,
                     "toolCount": len(tool_names),
                     "toolNames": tool_names,
                     "readTools": [
@@ -456,6 +456,74 @@ class HostV2:
                 ],
                 "truthBoundary": "Host continuity mechanics only; checkpoint claims and foreign references require owner-native revalidation",
             }
+
+    def list_task_summaries_page(
+        self,
+        *,
+        include_terminal: bool = False,
+        limit: int = 100,
+        goal_id: str | None = None,
+        runtime_workspace_id: str | None = None,
+        cursor: str | None = None,
+    ) -> tuple[list[dict[str, Any]], bool, str | None]:
+        """Return one compact current-task inventory page without hydrating checkpoints."""
+        if not 1 <= limit <= 500:
+            raise ValueError("limit must be in [1,500]")
+        scope = {
+            "includeTerminal": include_terminal,
+            "goalId": goal_id,
+            "runtimeWorkspaceId": runtime_workspace_id,
+        }
+        clauses = [] if include_terminal else ["t.state='open'"]
+        params: list[Any] = []
+        if goal_id is not None:
+            clauses.append("t.goal_id=%s")
+            params.append(goal_id)
+        if runtime_workspace_id is not None:
+            clauses.append("c.payload #>> '{runtime,workspaceId}' = %s")
+            params.append(runtime_workspace_id)
+        if cursor is not None:
+            position = decode_cursor(cursor, "task.list", scope)
+            created_at = position.get("createdAt")
+            task_id = position.get("taskId")
+            if not isinstance(created_at, str) or not isinstance(task_id, str):
+                raise ValueError("task.list cursor position is invalid")
+            clauses.append(
+                "(t.created_at < %s::timestamptz OR (t.created_at = %s::timestamptz AND t.task_id < %s))"
+            )
+            params.extend([created_at, created_at, task_id])
+        where = "WHERE " + " AND ".join(clauses) if clauses else ""
+        params.append(limit + 1)
+        with psycopg.connect(self.dsn, row_factory=dict_row) as conn:
+            rows = conn.execute(
+                "SELECT t.task_id,t.goal_id,t.revision,t.state,t.created_at,"
+                "c.checkpoint_digest,c.writer_label FROM tasks t "
+                "JOIN checkpoints c ON c.task_id=t.task_id AND c.revision=t.revision "
+                f"{where} ORDER BY t.created_at DESC,t.task_id DESC LIMIT %s",
+                params,
+            ).fetchall()
+        has_more = len(rows) > limit
+        page = rows[:limit]
+        tasks = [
+            {
+                "task_id": row["task_id"],
+                "goal_id": row["goal_id"],
+                "revision": int(row["revision"]),
+                "state": row["state"],
+                "checkpoint_digest": row["checkpoint_digest"],
+                "writer_label": row["writer_label"],
+            }
+            for row in page
+        ]
+        next_cursor = None
+        if has_more and page:
+            last = page[-1]
+            next_cursor = encode_cursor(
+                "task.list",
+                scope,
+                {"createdAt": last["created_at"].isoformat(), "taskId": last["task_id"]},
+            )
+        return tasks, has_more, next_cursor
 
     def list_tasks(
         self,
