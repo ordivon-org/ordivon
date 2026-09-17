@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Thin OCI packaging adapter for Artifact Build & Delivery v2.
 
-Artifact policy/verification semantics remain in artifact_delivery.py. OCI identity,
+Artifact verification/build compatibility remains in artifact_delivery.py while trust semantics live in artifact_trust. OCI identity,
 layout, manifests and subject/referrer relationships are delegated to ORAS/OCI 1.1.
 This module deliberately does not implement a registry, OCI manifest serializer or a
 second package-index/release-manifest format.
@@ -27,13 +27,15 @@ from artifact_core.contracts import file_fact, sha256_file
 from artifact_core.profile_v1 import validate_profile_v1
 from artifact_evidence.delivery import verify_file_fact
 from artifact_trust.provenance import slsa_statement, verify_release_provenance
-
-from artifact_delivery import (
+from artifact_trust.vsa import (
     LOCAL_VSA_VERIFIER_ID,
     SIGSTORE_BUNDLE_V03,
     aggregate_vsa_gates,
-    build_presentation_source,
     cosign_tool_fact,
+)
+
+from artifact_delivery import (
+    build_presentation_source,
     execute_verify_stage,
     validate_delivery_request,
     write_json,
