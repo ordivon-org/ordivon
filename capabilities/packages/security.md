@@ -46,3 +46,21 @@ For each real task:
 `entity + threat/risk context -> applicable framework outcomes -> selected controls/tools -> evidence -> residual risk/standing`
 
 A scan completing successfully is not security acceptance by itself.
+
+## Active research line: browser automation dynamic defense
+
+Agent/web automation creates a moving security-observability boundary that should be treated as a Security measurement and adaptation problem rather than a one-time browser setting.
+
+Current external-first study: `knowledge/lessons/browser-automation-dynamic-defense-r1.md`.
+
+The Security package should be able to support authorized laboratory workloads that produce:
+
+- version-fenced browser/control-layer/network/profile witnesses;
+- native-browser negative controls and standard-automation positive controls;
+- control-attachment state (`native/unattached`, protocol-attached, WebDriver-attached, GUI/human) and transition evidence;
+- cross-layer browser-identity consistency observations;
+- automation-leak and detector-coverage taxonomies;
+- last-known-good / first-known-bad drift records;
+- time-to-detect, time-to-attribute and time-to-safe-route measurements.
+
+Browser substrate health and security-boundary admissibility are separate states. A successful browser action, challenge interaction, or third-party detector score is not by itself Security acceptance.
