@@ -127,6 +127,16 @@ class BrowserlessSubstrateTests(unittest.TestCase):
             self.assertNotIn("127.0.0.1%3A3011%2Fdevtools%2Fpage", out)
             self.assertNotIn("operatorHttpEndpoint", endpoint.identity_digest)
 
+    def test_service_unit_is_optional_control_metadata_not_endpoint_identity(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            base = self.endpoint(root)
+            managed = self.endpoint(root, serviceUnit="ordivon-browserless@11.service")
+            self.assertEqual(managed.service_unit, "ordivon-browserless@11.service")
+            self.assertEqual(base.identity_digest, managed.identity_digest)
+            with self.assertRaisesRegex(ValueError, "systemd .service unit name"):
+                self.endpoint(root, serviceUnit="../bad.service")
+
     def test_pool_selection_is_deterministic(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)

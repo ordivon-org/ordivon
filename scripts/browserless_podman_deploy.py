@@ -294,6 +294,7 @@ def render_config(binding: dict | None = None) -> dict:
                 "operatorHttpEndpoint": f"http://127.0.0.1:131{instance}",
                 "userDataDir": "/data",
                 "headless": False,
+                "serviceUnit": f"ordivon-browserless@{instance}.service",
             }
         )
     return {
@@ -323,6 +324,7 @@ def render_config(binding: dict | None = None) -> dict:
         "browserlessHumanHandoffMs": 300000,
         "browserlessHumanHandoffMode": "self-hosted-vnc",
         "browserlessSessionTimeoutMs": 480000,
+        "browserlessStartTimeoutSeconds": 20,
         "browserNetworkAuthority": {
             k: binding[k] for k in ("kind", "name", "generationDigest", "serviceUnit")
         },
@@ -547,6 +549,19 @@ def apply() -> dict:
         HUMAN_WEB_DEST.write_bytes(human_web_raw)
         os.chmod(HUMAN_WEB_DEST, 0o644)
     run(["/usr/bin/systemctl", "daemon-reload"])
+    # ChatGPT carrier displays are lifecycle dependencies, not boot-time services. Generic
+    # browser-agent displays remain static because browser-agent.target is intentionally warm.
+    run(
+        [
+            "/usr/bin/systemctl",
+            "disable",
+            *[
+                f"ordivon-browserless-display@{instance}.service"
+                for instance in CHATGPT_INSTANCES
+            ],
+        ],
+        check=False,
+    )
     run(
         [
             "/usr/bin/systemctl",
@@ -554,7 +569,7 @@ def apply() -> dict:
             "--now",
             *[
                 f"ordivon-browserless-display@{instance}.service"
-                for instance in ALL_BROWSERLESS_INSTANCES
+                for instance in BROWSER_AGENT_INSTANCES
             ],
         ]
     )

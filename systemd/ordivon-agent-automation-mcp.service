@@ -1,7 +1,7 @@
 [Unit]
 Description=Ordivon Agent Automation MCP
-After=network-online.target ordivon-agent-temporal-worker.service ordivon-browserless@11.service ordivon-browserless@12.service ordivon-browserless@13.service
-Wants=network-online.target ordivon-browserless@11.service ordivon-browserless@12.service ordivon-browserless@13.service
+After=network-online.target ordivon-agent-temporal-worker.service
+Wants=network-online.target
 Requires=ordivon-agent-temporal-worker.service
 
 [Service]

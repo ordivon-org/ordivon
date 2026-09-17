@@ -270,6 +270,8 @@ class BrowserlessPodmanDeploymentTests(unittest.TestCase):
         self.assertIn("BROWSER_AGENT_TARGET_DEST", source)
         self.assertIn('enable", "--now", "ordivon-browser-agent.target"', source)
         self.assertNotIn('enable", "--now", *[f"ordivon-browserless@{instance}.service"', source)
+        self.assertIn('"serviceUnit": f"ordivon-browserless@{instance}.service"', source)
+        self.assertIn('"disable",', source)
 
     def test_browserless_executes_podman_without_docker_execution_path(self):
         source = (ROOT / "scripts/browserless_podman_deploy.py").read_text()

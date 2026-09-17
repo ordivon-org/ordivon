@@ -63,6 +63,7 @@ class BrowserlessEndpoint:
     launch_args: tuple[str, ...] = ()
     operator_http_endpoint: str | None = None
     headless: bool | None = None
+    service_unit: str | None = None
 
     @classmethod
     def from_dict(cls, value: dict) -> "BrowserlessEndpoint":
@@ -111,6 +112,17 @@ class BrowserlessEndpoint:
         headless = value.get("headless")
         if headless is not None and not isinstance(headless, bool):
             raise BrowserlessConfigError("browserless headless must be boolean when present")
+        service_unit = value.get("serviceUnit")
+        if service_unit is not None:
+            service_unit = _nonempty(service_unit, "browserless serviceUnit")
+            if (
+                not service_unit.endswith(".service")
+                or "/" in service_unit
+                or any(ch.isspace() for ch in service_unit)
+            ):
+                raise BrowserlessConfigError(
+                    "browserless serviceUnit must be one systemd .service unit name"
+                )
         return cls(
             endpoint_id=endpoint_id,
             websocket_endpoint=websocket,
@@ -121,6 +133,7 @@ class BrowserlessEndpoint:
             launch_args=tuple(raw_args),
             operator_http_endpoint=operator_http,
             headless=headless,
+            service_unit=service_unit,
         )
 
     @property

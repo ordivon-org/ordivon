@@ -107,6 +107,7 @@ class BrowserlessAutomationConfig:
     human_handoff_ms: int = 60000
     human_handoff_mode: str = "self-hosted-vnc"
     browser_session_timeout_ms: int = 480000
+    browserless_start_timeout_seconds: int = 20
 
     def __post_init__(self) -> None:
         if self.human_handoff_mode not in {"self-hosted-vnc", "live-url"}:
@@ -116,6 +117,8 @@ class BrowserlessAutomationConfig:
         required_session_budget = (
             self.human_handoff_ms + max(30000, self.wait_stable_seconds * 1000) + 30000
         )
+        if self.browserless_start_timeout_seconds <= 0:
+            raise ValueError("browserlessStartTimeoutSeconds must be positive")
         if self.browser_session_timeout_ms < required_session_budget:
             raise ValueError(
                 "browserlessSessionTimeoutMs must cover human handoff + post-verification stabilization + margin"
@@ -161,6 +164,9 @@ class BrowserlessAutomationConfig:
             ),
             human_handoff_mode=str(value.get("browserlessHumanHandoffMode", "self-hosted-vnc")),
             browser_session_timeout_ms=int(value.get("browserlessSessionTimeoutMs", 480000)),
+            browserless_start_timeout_seconds=int(
+                value.get("browserlessStartTimeoutSeconds", 20)
+            ),
         )
 
     @property
@@ -349,6 +355,53 @@ class BrowserlessAutomationService:
         result["activeHumanHandoffs"] = active
         return result
 
+    def ensure_endpoint_active(self, endpoint) -> dict:
+        """Ensure one explicitly managed Browserless carrier is active, then observe health.
+
+        Endpoint health remains observational. Lifecycle mutation exists only when the endpoint
+        configuration explicitly binds one systemd service unit; unmanaged/test endpoints retain
+        the previous observation-only behavior.
+        """
+        raw_unit = getattr(endpoint, "service_unit", None)
+        unit = raw_unit if isinstance(raw_unit, str) and raw_unit else None
+        started = False
+        if unit is not None:
+            observed = subprocess.run(
+                ["/usr/bin/systemctl", "is-active", "--quiet", unit],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+            if observed.returncode != 0:
+                proc = subprocess.run(
+                    ["/usr/bin/systemctl", "start", unit],
+                    capture_output=True,
+                    text=True,
+                    timeout=self.config.browserless_start_timeout_seconds,
+                    check=False,
+                )
+                if proc.returncode != 0:
+                    return {
+                        "id": endpoint.endpoint_id,
+                        "healthy": False,
+                        "identityDigest": endpoint.identity_digest,
+                        "detail": f"systemd-start-rc-{proc.returncode}",
+                        "serviceUnit": unit,
+                        "lifecycleStarted": False,
+                    }
+                started = True
+        deadline = time.monotonic() + self.config.browserless_start_timeout_seconds
+        health = endpoint.health(timeout_seconds=5)
+        while not health.get("healthy") and unit is not None and time.monotonic() < deadline:
+            time.sleep(0.25)
+            health = endpoint.health(timeout_seconds=3)
+        if unit is not None:
+            health = dict(health)
+            health["serviceUnit"] = unit
+            health["lifecycleStarted"] = started
+        return health
+
     def _require_provider_ready(self, endpoint_id: str) -> dict:
         observation = self.provider_preflight(endpoint_id)
         standing = observation.get("standing")
@@ -368,7 +421,7 @@ class BrowserlessAutomationService:
         for endpoint in self.config.browserless_pool.candidates(birth.effect_id):
             health = observed.get(endpoint.endpoint_id)
             if health is None:
-                health = endpoint.health(timeout_seconds=5)
+                health = self.ensure_endpoint_active(endpoint)
                 observed[endpoint.endpoint_id] = health
             if health.get("healthy"):
                 return endpoint
@@ -748,7 +801,7 @@ class BrowserlessAutomationService:
         inside the same lease that remains held through exact endpoint binding and SEND.
         """
         endpoint = self._endpoint_by_id(endpoint_id)
-        substrate = endpoint.health(timeout_seconds=5)
+        substrate = self.ensure_endpoint_active(endpoint)
         if not substrate.get("healthy"):
             return {
                 "schemaVersion": 1,

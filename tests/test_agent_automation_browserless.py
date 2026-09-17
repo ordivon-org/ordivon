@@ -1194,6 +1194,32 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 if proc.stderr is not None:
                     proc.stderr.close()
 
+    def test_managed_carrier_starts_on_demand_before_health(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            raw = config(root)
+            raw["browserSubstrate"]["endpoints"][0]["serviceUnit"] = "ordivon-browserless@11.service"
+            raw["browserlessStartTimeoutSeconds"] = 1
+            service = BrowserlessAutomationService(BrowserlessAutomationConfig.from_dict(raw))
+            endpoint = service.config.browserless_pool.endpoints[0]
+            with (
+                mock.patch(
+                    "agent_automation_browserless.subprocess.run",
+                    side_effect=[
+                        mock.Mock(returncode=3, stdout="", stderr=""),
+                        mock.Mock(returncode=0, stdout="", stderr=""),
+                    ],
+                ) as run,
+                mock.patch(
+                    "browserless_substrate.BrowserlessEndpoint.health",
+                    return_value={"id": "carrier-a", "healthy": True},
+                ),
+            ):
+                observed = service.ensure_endpoint_active(endpoint)
+            self.assertTrue(observed["healthy"])
+            self.assertTrue(observed["lifecycleStarted"])
+            self.assertEqual(run.call_args_list[1].args[0], ["/usr/bin/systemctl", "start", "ordivon-browserless@11.service"])
+
     def test_provider_preflight_returns_carrier_busy_without_opening_browser(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)

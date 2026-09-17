@@ -61,6 +61,12 @@ class BrowserlessEffectAdapter:
         return binding
 
     def _target(self, birth, endpoint):
+        if isinstance(getattr(endpoint, "service_unit", None), str):
+            health = self.context.ensure_endpoint_active(endpoint)
+            if not health.get("healthy"):
+                raise BrowserlessAutomationHold(
+                    f"Browserless carrier unavailable: {endpoint.endpoint_id}; {health.get('detail') or 'UNHEALTHY'}"
+                )
         return BrowserlessMaterializationTarget(
             endpoint=endpoint,
             state_dir=self.context._occurrence_dir(birth),
@@ -291,6 +297,12 @@ class BrowserlessEffectAdapter:
                     "provider-bound occurrence has no current carrier binding"
                 )
             endpoint = self.context._endpoint_by_id(binding["endpointId"])
+            if isinstance(getattr(endpoint, "service_unit", None), str):
+                health = self.context.ensure_endpoint_active(endpoint)
+                if not health.get("healthy"):
+                    raise BrowserlessAutomationHold(
+                        f"Browserless carrier unavailable: {endpoint.endpoint_id}; {health.get('detail') or 'UNHEALTHY'}"
+                    )
             receipt_out = (
                 self.context._occurrence_dir(birth) / "turns" / f"{_suffix(turn_request_id)}.json"
             )
