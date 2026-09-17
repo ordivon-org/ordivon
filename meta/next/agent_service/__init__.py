@@ -13,6 +13,15 @@ from .goals import (
 )
 from .host_board import HostBoardMcpAdapter
 from .runtime_mcp import RuntimeMcpAdapter, RuntimeMcpArtifactReader, RuntimeMcpHttpClient
+from .semantics import (
+    A2AAgentCardProjector,
+    AgentIdentityStore,
+    AgentServiceR8,
+    CapabilityAdvertisementStore,
+    DelegationEnvelopeStore,
+    SessionItemStore,
+    SessionStore,
+)
 from .slice1 import AgentServiceSlice1, CarrierProviderAdapter, HostAdapter, ProviderObservation
 from .task_runtime import (
     AgentServiceR5,
@@ -23,13 +32,18 @@ from .task_runtime import (
 )
 
 __all__ = [
+    "A2AAgentCardProjector",
+    "AgentIdentityStore",
     "AgentServiceSlice1",
     "AgentServiceR5",
     "AgentServiceR6",
     "AgentServiceR7",
+    "AgentServiceR8",
     "BoardAdapter",
     "BoardProjectionReceipt",
+    "CapabilityAdvertisementStore",
     "CarrierProviderAdapter",
+    "DelegationEnvelopeStore",
     "GoalGraphMutationGuard",
     "GoalStore",
     "GoalTaskLinkStore",
@@ -44,6 +58,8 @@ __all__ = [
     "RuntimeMcpAdapter",
     "RuntimeMcpArtifactReader",
     "RuntimeMcpHttpClient",
+    "SessionItemStore",
+    "SessionStore",
     "TaskDependencyStore",
     "TaskReadinessProjector",
     "VerificationRecord",
