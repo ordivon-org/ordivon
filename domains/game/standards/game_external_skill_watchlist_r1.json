@@ -1,0 +1,215 @@
+{
+  "schemaVersion": 1,
+  "watchlistId": "ordivon-game-external-skill-watchlist-r1",
+  "createdOn": "2026-09-18",
+  "principles": [
+    "Skill and Tool remain separate: Skill teaches durable task behavior; Tool performs concrete operations; MCP is a discovery/transport surface, not semantic authority.",
+    "Tool-using Skills should bind or re-enter exact tool/version currentness when command/API drift can matter.",
+    "A Skill is advisory by default and cannot inherit Game, Research, Human-evidence, release or external-effect authority from installation, trust or popularity.",
+    "Prefer concise behavior-changing instructions; push volatile catalog/API details to discoverable tools or references.",
+    "Extract Skills from demonstrated workflows and failure modes, not from successful project prose alone."
+  ],
+  "skills": [
+    {
+      "id": "abagames-exploring-design-space",
+      "name": "exploring-game-design-space",
+      "url": "https://github.com/abagames/agentic-gamedev-skills/blob/main/.agents/skills/exploring-game-design-space/SKILL.md",
+      "trigger": "Open-ended mechanic-space exploration before implementation",
+      "goodParts": [
+        "structural diversity before theme",
+        "stable IDs",
+        "falsifiable next questions",
+        "no speculative fun ranking"
+      ],
+      "risks": [
+        "fixed default search budgets may not fit all tasks",
+        "mechanical breadth can still miss cultural/social/art dimensions"
+      ],
+      "ordivonDisposition": "HIGH_PRIORITY_ADOPT_OR_PORT: strongly aligned with creative-open; preserve local evidence/authority fences.",
+      "instructionAuthority": "ADVISORY",
+      "sourceState": "WEB_WATCHLIST"
+    },
+    {
+      "id": "abagames-designing-mini-games",
+      "name": "designing-mini-games",
+      "url": "https://github.com/abagames/agentic-gamedev-skills",
+      "trigger": "Designing compact playable mechanics and controls",
+      "goodParts": [
+        "explicit rules/controls/hazards/difficulty",
+        "guards against idle/mash dominant strategies"
+      ],
+      "risks": [
+        "mini-game framing may overfocus short loops"
+      ],
+      "ordivonDisposition": "REVIEW_FOR_PORT: useful mechanic realization Skill, not universal game-form template.",
+      "instructionAuthority": "ADVISORY",
+      "sourceState": "WEB_WATCHLIST"
+    },
+    {
+      "id": "abagames-minimal-rules",
+      "name": "designing-minimal-game-rules",
+      "url": "https://github.com/abagames/agentic-gamedev-skills",
+      "trigger": "Reducing a seed to a minimal testable rule system",
+      "goodParts": [
+        "stress tests simple strategies",
+        "minimal surviving core"
+      ],
+      "risks": [
+        "minimality can discard intentionally rich/social/narrative interactions"
+      ],
+      "ordivonDisposition": "PORT_AS_OPTIONAL_LENS only; never restore kernel-minimality law.",
+      "instructionAuthority": "ADVISORY",
+      "sourceState": "WEB_WATCHLIST"
+    },
+    {
+      "id": "abagames-extracting-skills",
+      "name": "extracting-agent-skills",
+      "url": "https://github.com/abagames/agentic-gamedev-skills/blob/main/.agents/skills/extracting-agent-skills/SKILL.md",
+      "trigger": "Harvesting reusable procedures from completed/failed work",
+      "goodParts": [
+        "behavior-changing extraction",
+        "failed projects can yield strong skills",
+        "transferability gate"
+      ],
+      "risks": [
+        "can over-generalize if evidence set is weak"
+      ],
+      "ordivonDisposition": "HIGH_PRIORITY_ADOPT_OR_PORT into Ordivon Skill lifecycle.",
+      "instructionAuthority": "ADVISORY",
+      "sourceState": "WEB_WATCHLIST"
+    },
+    {
+      "id": "epic-unreal-skill-authoring",
+      "name": "unreal-skill",
+      "url": "https://github.com/EpicGames/unreal-engine-skills-for-claude-code-plugin/blob/main/skills/unreal-skill/SKILL.md",
+      "trigger": "Creating/reviewing durable project or plugin Agent Skills",
+      "goodParts": [
+        "Novel/Collegial/Flexible/Durable/Agnostic/Parsimonious",
+        "keep tool-discoverable details out of Skill"
+      ],
+      "risks": [
+        "Unreal registry mechanics are engine-specific"
+      ],
+      "ordivonDisposition": "ADOPT PRINCIPLES into generic Skill quality gate; keep implementation owner-specific.",
+      "instructionAuthority": "ADVISORY",
+      "sourceState": "WEB_WATCHLIST"
+    },
+    {
+      "id": "epic-create-toolset",
+      "name": "create-toolset",
+      "url": "https://github.com/EpicGames/unreal-engine-skills-for-claude-code-plugin/blob/main/skills/create-toolset/SKILL.md",
+      "trigger": "Designing AI-callable tool APIs",
+      "goodParts": [
+        "clean/complete/composable/DRY",
+        "avoid raw engine API mirroring"
+      ],
+      "risks": [
+        "CRUD symmetry not appropriate for every read-only/safety surface"
+      ],
+      "ordivonDisposition": "USE AS TOOL DESIGN REFERENCE, not mandatory API law.",
+      "instructionAuthority": "ADVISORY",
+      "sourceState": "WEB_WATCHLIST"
+    },
+    {
+      "id": "epic-unreal-mcp",
+      "name": "unreal-mcp",
+      "url": "https://github.com/EpicGames/unreal-engine-skills-for-claude-code-plugin/blob/main/skills/unreal-mcp/SKILL.md",
+      "trigger": "Operating an unfamiliar Unreal project via MCP",
+      "goodParts": [
+        "separate Skill discovery from Tool discovery",
+        "load project Skills by task"
+      ],
+      "risks": [
+        "project-skill precedence cannot override domain/security authority"
+      ],
+      "ordivonDisposition": "ADOPT discovery pattern in Agent Plugin architecture.",
+      "instructionAuthority": "ADVISORY",
+      "sourceState": "WEB_WATCHLIST"
+    },
+    {
+      "id": "gda",
+      "name": "gda",
+      "url": "https://github.com/aigengame/godot-agent/blob/main/src/gda/skill/SKILL.md",
+      "trigger": "Agent-driven Godot build/edit/inspect/live verification",
+      "goodParts": [
+        "structured JSON operation surface",
+        "headless + live evidence",
+        "same capability exposed by CLI/Skill/MCP"
+      ],
+      "risks": [
+        "pre-1.0 command surface",
+        "large skill body/token cost"
+      ],
+      "ordivonDisposition": "EVALUATE AS GODOT TOOL OWNER; prefer exact version pin and thin Skill.",
+      "instructionAuthority": "ADVISORY",
+      "sourceState": "WEB_WATCHLIST"
+    },
+    {
+      "id": "gda-version-lock",
+      "name": "gda skill version lock",
+      "url": "https://github.com/aigengame/godot-agent/blob/main/docs/gda-skill.md",
+      "trigger": "Keeping a tool-using Skill synchronized with its executable",
+      "goodParts": [
+        "Skill emitted by installed CLI",
+        "single-source version alignment"
+      ],
+      "risks": [
+        "not needed for purely conceptual Skills"
+      ],
+      "ordivonDisposition": "HIGH_PRIORITY DESIGN PATTERN for Tool+Skill Agent Plugins.",
+      "instructionAuthority": "ADVISORY",
+      "sourceState": "WEB_WATCHLIST"
+    },
+    {
+      "id": "sickn33-game-design",
+      "name": "game-design",
+      "url": "https://github.com/sickn33/agentic-awesome-skills",
+      "trigger": "Generic game-design advice",
+      "goodParts": [
+        "compact GDD/progression/balance vocabulary",
+        "iteration/playtest reminder"
+      ],
+      "risks": [
+        "universal 30-second-loop claim",
+        "simplistic player taxonomy/reward claims",
+        "can accidentally become design law"
+      ],
+      "ordivonDisposition": "KEEP LOW-CONFIDENCE ADVISORY ONLY; use as anti-dogmatism test case.",
+      "instructionAuthority": "ADVISORY",
+      "sourceState": "WEB_WATCHLIST"
+    },
+    {
+      "id": "sickn33-engine-selection",
+      "name": "engine-selection",
+      "url": "https://github.com/sickn33/agentic-awesome-skills",
+      "trigger": "Comparing game engines/frameworks before implementation",
+      "goodParts": [
+        "platform/genre/architecture routing",
+        "multiple runtimes considered"
+      ],
+      "risks": [
+        "catalog ages quickly",
+        "selection criteria need current engine evidence"
+      ],
+      "ordivonDisposition": "KEEP as advisory router with forced currentness re-entry.",
+      "instructionAuthority": "ADVISORY",
+      "sourceState": "WEB_WATCHLIST"
+    },
+    {
+      "id": "sickn33-godot-patterns",
+      "name": "godot-gdscript-patterns",
+      "url": "https://github.com/sickn33/agentic-awesome-skills",
+      "trigger": "Godot 4 implementation patterns",
+      "goodParts": [
+        "signals/scenes/state machines/optimization guidance"
+      ],
+      "risks": [
+        "version/API drift",
+        "community best practices may conflict with official current docs"
+      ],
+      "ordivonDisposition": "USE only with exact Godot version and official-doc cross-check.",
+      "instructionAuthority": "ADVISORY",
+      "sourceState": "WEB_WATCHLIST"
+    }
+  ]
+}
