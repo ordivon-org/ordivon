@@ -8,21 +8,27 @@ verifier semantics. Runtime remains physical execution authority.
 from __future__ import annotations
 
 import argparse
-import ast
 import json
 import os
+import sys
 from pathlib import Path
 from typing import Any, Mapping
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from artifact_core.bindings import CapabilityBindingRegistry
+from artifact_core.profiles import ProfileRegistry
+
 ART = ROOT / "artifact-delivery"
 TAXONOMY = ART / "taxonomy-v1.json"
-PROFILE_MAPPING = ART / "shadow-v2/profile-v2-mapping-manifest-r1.json"
-DONOR = ART / "donor-r1/manifest.json"
 VERIFY = ROOT / "scripts/artifact_verify.py"
 DELIVERY = ROOT / "scripts/artifact_delivery.py"
 DOCTOR = ROOT / "scripts/artifact_delivery_toolchain_doctor.py"
 ARTIFACT_PYTHON = Path(os.environ.get("ARTIFACT_PYTHON", "/root/.local/share/ordivon-workstation/artifact-delivery-python-v1/current/bin/python"))
+BINDING_REGISTRY = CapabilityBindingRegistry(ART)
+PROFILE_REGISTRY = ProfileRegistry(ART)
 
 
 def _load_json(path: Path) -> Any:
@@ -30,15 +36,7 @@ def _load_json(path: Path) -> Any:
 
 
 def _service_profiles() -> list[str]:
-    tree = ast.parse(VERIFY.read_text(encoding="utf-8"))
-    for node in tree.body:
-        if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) and node.target.id == "ROUTES":
-            value = ast.literal_eval(node.value)
-            return sorted(str(x) for x in value)
-        if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == "ROUTES" for t in node.targets):
-            value = ast.literal_eval(node.value)
-            return sorted(str(x) for x in value)
-    raise RuntimeError("Artifact verification ROUTES literal is unavailable")
+    return sorted(binding.profile_id for binding in BINDING_REGISTRY.list(operation="verify"))
 
 
 def _plan(script: Path, args: list[str], *, postcondition: str) -> dict[str, Any]:
@@ -103,47 +101,54 @@ def _gate(status: str, *basis: str) -> dict[str, Any]:
 
 
 def profile_coverage(profile_id: str | None = None, family_id: str | None = None) -> dict[str, Any]:
-    """Project explicit profile contracts into a conservative eight-gate coverage matrix."""
-    mapping = _load_json(PROFILE_MAPPING)
-    donor = _load_json(DONOR)
-    donor_by_id = {x["profileId"]: x for x in donor.get("profiles", [])}
+    """Project current profile contracts into a conservative eight-gate matrix."""
+    taxonomy = _load_json(TAXONOMY)
     rows: list[dict[str, Any]] = []
-    for item in mapping.get("mappings", []):
-        if profile_id is not None and item.get("profileId") != profile_id:
+    for family in taxonomy.get("families", []):
+        family_name = str(family.get("id", ""))
+        if family_id is not None and family_name != family_id:
             continue
-        if family_id is not None and item.get("family") != family_id:
-            continue
-        value = _load_json(ROOT / str(item["mapped"]))
-        evidence = value.get("requiredEvidence", {})
-        authorities = list(value.get("targetAuthorities", []))
-        outputs = list(value.get("outputs", []))
-        purposes = set(value.get("classification", {}).get("purposes", []))
-        native = [x for x in authorities if x.get("authorityClass") == "native-consumer" and x.get("required")]
-        editable_declared = any(x.get("editable") is True for x in outputs) or any("editable" in str(x).lower() or "authoring" in str(x).lower() for x in purposes)
-        structural_keys = [x for x in ("structural", "nativeDrc", "nativeSimulation", "profileSchema") if evidence.get(x, {}).get("required")]
-        semantic_keys = [x for x in ("semantic", "boardContract", "measurements") if evidence.get(x, {}).get("required")]
-        visual_required = bool(evidence.get("visual", {}).get("required"))
-        target_required = bool(evidence.get("target", {}).get("required")) or bool(native)
-        donor_row = donor_by_id.get(item["profileId"], {})
-        binding = donor_row.get("capabilityBinding") or {}
-        gates = {
-            "parse": _gate("IMPLIED_BY_VALIDATION_CONTRACT", *structural_keys) if structural_keys else _gate("NOT_EXPLICITLY_MODELED"),
-            "build": _gate("BUILD_ROUTE_DECLARED", item.get("sourceKind", "")) if item.get("sourceKind") == "production-v1" else _gate("VERIFY_OR_SOURCE_AUTHORITY_ONLY", item.get("sourceKind", "")),
-            "structuralValidate": _gate("EXPLICIT_REQUIRED", *structural_keys) if structural_keys else _gate("NOT_EXPLICITLY_MODELED"),
-            "semanticValidate": _gate("EXPLICIT_REQUIRED", *semantic_keys) if semantic_keys else _gate("NOT_EXPLICITLY_MODELED"),
-            "nativeConsumerOpen": _gate("EXPLICIT_REQUIRED", *(str(x.get("name")) for x in native)) if target_required else _gate("NOT_EXPLICITLY_MODELED"),
-            "nativeRender": _gate("EXPLICIT_REQUIRED", "visual", *(str(x.get("name")) for x in native)) if visual_required and target_required else (_gate("VISUAL_GATE_WITHOUT_NATIVE_RENDER_CONTRACT", "visual") if visual_required else _gate("NOT_EXPLICITLY_MODELED")),
-            "roundTripEdit": _gate("EDITABLE_OUTPUT_DECLARED_BUT_ROUNDTRIP_GATE_UNMODELED", "editable output/purpose") if editable_declared else _gate("NOT_APPLICABLE_OR_UNDECLARED"),
-            "deliveryReadback": _gate("EXPLICIT_REQUIRED", "deliveryReadback") if evidence.get("deliveryReadback", {}).get("required") else _gate("NOT_EXPLICITLY_MODELED"),
-        }
-        rows.append({
-            "profileId": item["profileId"],
-            "family": item["family"],
-            "sourceKind": item.get("sourceKind"),
-            "mappingValidation": item.get("validation"),
-            "capabilityStanding": binding.get("standing", "NO_LIVE_BINDING_IN_DONOR"),
-            "gates": gates,
-        })
+        for current_profile_id in family.get("currentProfiles", []):
+            current_profile_id = str(current_profile_id)
+            if profile_id is not None and current_profile_id != profile_id:
+                continue
+            record = PROFILE_REGISTRY.resolve(current_profile_id)
+            value = record.canonical
+            evidence = value.get("requiredEvidence", {})
+            authorities = list(value.get("targetAuthorities", []))
+            outputs = list(value.get("outputs", []))
+            purposes = set(value.get("classification", {}).get("purposes", []))
+            native = [x for x in authorities if x.get("authorityClass") == "native-consumer" and x.get("required")]
+            editable_declared = any(x.get("editable") is True for x in outputs) or any("editable" in str(x).lower() or "authoring" in str(x).lower() for x in purposes)
+            structural_keys = [x for x in ("structural", "nativeDrc", "nativeSimulation", "profileSchema") if evidence.get(x, {}).get("required")]
+            semantic_keys = [x for x in ("semantic", "boardContract", "measurements") if evidence.get(x, {}).get("required")]
+            visual_required = bool(evidence.get("visual", {}).get("required"))
+            target_required = bool(evidence.get("target", {}).get("required")) or bool(native)
+            try:
+                capability_standing = BINDING_REGISTRY.resolve(current_profile_id, "verify").standing
+            except KeyError:
+                capability_standing = "NO_LIVE_BINDING_IN_REGISTRY"
+            except RuntimeError:
+                capability_standing = "BINDING_UNAVAILABLE"
+            source_kind = "production-v1" if record.source_kind == "production-v1-adapted" else "standards-first-shadow"
+            gates = {
+                "parse": _gate("IMPLIED_BY_VALIDATION_CONTRACT", *structural_keys) if structural_keys else _gate("NOT_EXPLICITLY_MODELED"),
+                "build": _gate("BUILD_ROUTE_DECLARED", source_kind) if source_kind == "production-v1" else _gate("VERIFY_OR_SOURCE_AUTHORITY_ONLY", source_kind),
+                "structuralValidate": _gate("EXPLICIT_REQUIRED", *structural_keys) if structural_keys else _gate("NOT_EXPLICITLY_MODELED"),
+                "semanticValidate": _gate("EXPLICIT_REQUIRED", *semantic_keys) if semantic_keys else _gate("NOT_EXPLICITLY_MODELED"),
+                "nativeConsumerOpen": _gate("EXPLICIT_REQUIRED", *(str(x.get("name")) for x in native)) if target_required else _gate("NOT_EXPLICITLY_MODELED"),
+                "nativeRender": _gate("EXPLICIT_REQUIRED", "visual", *(str(x.get("name")) for x in native)) if visual_required and target_required else (_gate("VISUAL_GATE_WITHOUT_NATIVE_RENDER_CONTRACT", "visual") if visual_required else _gate("NOT_EXPLICITLY_MODELED")),
+                "roundTripEdit": _gate("EDITABLE_OUTPUT_DECLARED_BUT_ROUNDTRIP_GATE_UNMODELED", "editable output/purpose") if editable_declared else _gate("NOT_APPLICABLE_OR_UNDECLARED"),
+                "deliveryReadback": _gate("EXPLICIT_REQUIRED", "deliveryReadback") if evidence.get("deliveryReadback", {}).get("required") else _gate("NOT_EXPLICITLY_MODELED"),
+            }
+            rows.append({
+                "profileId": current_profile_id,
+                "family": record.family,
+                "sourceKind": source_kind,
+                "mappingValidation": "PASS",
+                "capabilityStanding": capability_standing,
+                "gates": gates,
+            })
     if profile_id is not None and not rows:
         raise ValueError(f"unknown Artifact profile: {profile_id}")
     if family_id is not None and not rows:
@@ -161,9 +166,8 @@ def profile_coverage(profile_id: str | None = None, family_id: str | None = None
         "gateIds": list(COVERAGE_GATE_IDS),
         "summary": summary,
         "profiles": rows,
-        "boundary": "This matrix projects what each current profile explicitly requires or declares. Contract presence, mapping validation, and LOCAL_LIVE_PROVEN capability never imply PASS for a particular artifact occurrence. Round-trip editing remains unproven unless a future profile defines and satisfies an explicit mutation/read-back gate.",
+        "boundary": "This matrix projects current profile files plus current capability bindings. Registry presence and LOCAL_LIVE_PROVEN capability never imply PASS for a particular artifact occurrence. Round-trip editing remains unproven unless a future profile defines and satisfies an explicit mutation/read-back gate.",
     }
-
 
 def verify_proposal(request: str) -> dict[str, Any]:
     path = Path(request)

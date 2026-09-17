@@ -229,5 +229,12 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
             self.assertIn("profile is not on the Artifact verification R1 service surface: web-r1", result["failures"])
 
 
+    def test_verification_routes_are_owned_by_capability_registry_not_python_constant(self):
+        self.assertFalse(hasattr(M, "ROUTES"))
+        binding = M.BINDING_REGISTRY.resolve("still-image-png-srgb-r1", "verify")
+        self.assertEqual(binding.entrypoint.module, "scripts/artifact_still_image.py")
+        self.assertEqual(binding.entrypoint.callable, "verify_png_srgb")
+
+
 if __name__ == "__main__":
     unittest.main()

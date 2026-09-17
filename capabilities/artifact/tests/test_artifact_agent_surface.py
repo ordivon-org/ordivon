@@ -68,4 +68,17 @@ class ArtifactAgentSurfaceTests(unittest.TestCase):
         self.assertIn("bounded metric single-solid STEP/BREP profile", status["boundary"])
 
 
+    def test_service_profile_discovery_does_not_parse_verifier_python_source(self):
+        source = (ROOT / "scripts/artifact_agent_surface.py").read_text(encoding="utf-8")
+        self.assertNotIn("ast.parse", source)
+        self.assertNotIn("ROUTES", source)
+        self.assertIn("still-image-png-srgb-r1", M._service_profiles())
+
+
+    def test_runtime_surface_does_not_depend_on_generated_migration_manifests(self):
+        source = (ROOT / "scripts/artifact_agent_surface.py").read_text(encoding="utf-8")
+        self.assertNotIn("profile-v2-mapping-manifest-r1.json", source)
+        self.assertNotIn("donor-r1/manifest.json", source)
+
+
 if __name__ == "__main__": unittest.main()

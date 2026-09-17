@@ -1,0 +1,234 @@
+{
+  "schemaVersion": 1,
+  "kind": "artifact-capability-binding-registry",
+  "bindings": [
+    {
+      "profileId": "audio-flac-pcm16-r1",
+      "operation": "verify",
+      "capabilityId": "artifact.audio.flac.verify",
+      "entrypoint": {
+        "module": "scripts/artifact_audio.py",
+        "callable": "verify_flac"
+      },
+      "objectContractRequired": true,
+      "standingRef": "artifact-delivery/shadow-bindings/audio-flac-pcm16-local-r1.json",
+      "requiredStanding": "LOCAL_LIVE_PROVEN"
+    },
+    {
+      "profileId": "audio-ogg-vorbis-r1",
+      "operation": "verify",
+      "capabilityId": "artifact.verify.audio-ogg-vorbis-r1",
+      "entrypoint": {
+        "module": "scripts/artifact_ogg_vorbis.py",
+        "callable": "verify_ogg_vorbis"
+      },
+      "objectContractRequired": true,
+      "standingRef": "artifact-delivery/shadow-bindings/audio-ogg-vorbis-local-r1.json",
+      "requiredStanding": "LOCAL_LIVE_PROVEN"
+    },
+    {
+      "profileId": "audio-wave-pcm16-r1",
+      "operation": "verify",
+      "capabilityId": "artifact.verify.audio-wave-pcm16-r1",
+      "entrypoint": {
+        "module": "scripts/artifact_wave.py",
+        "callable": "verify_wave"
+      },
+      "objectContractRequired": true,
+      "standingRef": "artifact-delivery/shadow-bindings/audio-wave-pcm16-local-r1.json",
+      "requiredStanding": "LOCAL_LIVE_PROVEN"
+    },
+    {
+      "profileId": "dataset-parquet-flat-r1",
+      "operation": "verify",
+      "capabilityId": "artifact.verify.dataset-parquet-flat-r1",
+      "entrypoint": {
+        "module": "scripts/artifact_dataset.py",
+        "callable": "verify_parquet"
+      },
+      "objectContractRequired": true,
+      "standingRef": "artifact-delivery/shadow-bindings/dataset-parquet-flat-local-r1.json",
+      "requiredStanding": "LOCAL_LIVE_PROVEN"
+    },
+    {
+      "profileId": "design-2d-aseprite-horizontal-sheet-r1",
+      "operation": "verify",
+      "capabilityId": "artifact.verify.design-2d-aseprite-horizontal-sheet-r1",
+      "entrypoint": {
+        "module": "scripts/artifact_aseprite.py",
+        "callable": "verify_aseprite"
+      },
+      "objectContractRequired": true,
+      "standingRef": "artifact-delivery/shadow-bindings/design-2d-aseprite-local-r1.json",
+      "requiredStanding": "LOCAL_LIVE_PROVEN"
+    },
+    {
+      "profileId": "design-2d-tiled-tmj-object-map-r1",
+      "operation": "verify",
+      "capabilityId": "artifact.verify.design-2d-tiled-tmj-object-map-r1",
+      "entrypoint": {
+        "module": "scripts/artifact_tiled.py",
+        "callable": "verify_tiled_tmj"
+      },
+      "objectContractRequired": true,
+      "standingRef": "artifact-delivery/shadow-bindings/design-2d-tiled-tmj-local-r1.json",
+      "requiredStanding": "LOCAL_LIVE_PROVEN"
+    },
+    {
+      "profileId": "design-3d-glb-material-scene-r1",
+      "operation": "verify",
+      "capabilityId": "artifact.verify.design-3d-glb-material-scene-r1",
+      "entrypoint": {
+        "module": "scripts/artifact_design3d.py",
+        "callable": "verify_glb"
+      },
+      "objectContractRequired": true,
+      "standingRef": "artifact-delivery/shadow-bindings/design-3d-glb-material-scene-local-r1.json",
+      "requiredStanding": "LOCAL_LIVE_PROVEN"
+    },
+    {
+      "profileId": "design-3d-glb-skinned-animation-r1",
+      "operation": "verify",
+      "capabilityId": "artifact.verify.design-3d-glb-skinned-animation-r1",
+      "entrypoint": {
+        "module": "scripts/artifact_design3d.py",
+        "callable": "verify_glb"
+      },
+      "objectContractRequired": true,
+      "standingRef": "artifact-delivery/shadow-bindings/design-3d-glb-skinned-animation-local-r1.json",
+      "requiredStanding": "LOCAL_LIVE_PROVEN"
+    },
+    {
+      "profileId": "design-3d-glb-static-mesh-r1",
+      "operation": "verify",
+      "capabilityId": "artifact.verify.design-3d-glb-static-mesh-r1",
+      "entrypoint": {
+        "module": "scripts/artifact_design3d.py",
+        "callable": "verify_glb"
+      },
+      "objectContractRequired": true,
+      "standingRef": "artifact-delivery/shadow-bindings/design-3d-glb-static-mesh-local-r1.json",
+      "requiredStanding": "LOCAL_LIVE_PROVEN"
+    },
+    {
+      "profileId": "design-3d-step-solid-r1",
+      "operation": "verify",
+      "capabilityId": "artifact.verify.design-3d-step-solid-r1",
+      "entrypoint": {
+        "module": "scripts/artifact_cad_step.py",
+        "callable": "verify_step_solid"
+      },
+      "objectContractRequired": true,
+      "standingRef": "artifact-delivery/shadow-bindings/cad-step-solid-local-r1.json",
+      "requiredStanding": "LOCAL_LIVE_PROVEN"
+    },
+    {
+      "profileId": "eda-kicad-pcb-gerber-r1",
+      "operation": "verify",
+      "capabilityId": "artifact.verify.eda-kicad-pcb-gerber-r1",
+      "entrypoint": {
+        "module": "scripts/artifact_eda.py",
+        "callable": "verify_kicad_pcb"
+      },
+      "objectContractRequired": true,
+      "standingRef": "artifact-delivery/shadow-bindings/eda-kicad-pcb-local-r1.json",
+      "requiredStanding": "LOCAL_LIVE_PROVEN"
+    },
+    {
+      "profileId": "eda-spice-transient-measure-r1",
+      "operation": "verify",
+      "capabilityId": "artifact.verify.eda-spice-transient-measure-r1",
+      "entrypoint": {
+        "module": "scripts/artifact_spice.py",
+        "callable": "verify_spice_transient"
+      },
+      "objectContractRequired": true,
+      "standingRef": "artifact-delivery/shadow-bindings/eda-spice-transient-local-r1.json",
+      "requiredStanding": "LOCAL_LIVE_PROVEN"
+    },
+    {
+      "profileId": "geospatial-geopackage-point-r1",
+      "operation": "verify",
+      "capabilityId": "artifact.verify.geospatial-geopackage-point-r1",
+      "entrypoint": {
+        "module": "scripts/artifact_geospatial.py",
+        "callable": "verify_geopackage"
+      },
+      "objectContractRequired": true,
+      "standingRef": "artifact-delivery/shadow-bindings/geospatial-geopackage-point-local-r1.json",
+      "requiredStanding": "LOCAL_LIVE_PROVEN"
+    },
+    {
+      "profileId": "message-internet-text-r1",
+      "operation": "verify",
+      "capabilityId": "artifact.verify.message-internet-text-r1",
+      "entrypoint": {
+        "module": "scripts/artifact_message.py",
+        "callable": "verify_message"
+      },
+      "objectContractRequired": true,
+      "standingRef": "artifact-delivery/shadow-bindings/message-internet-text-local-r1.json",
+      "requiredStanding": "LOCAL_LIVE_PROVEN"
+    },
+    {
+      "profileId": "moving-image-matroska-ffv1-v3-r1",
+      "operation": "verify",
+      "capabilityId": "artifact.verify.moving-image-matroska-ffv1-v3-r1",
+      "entrypoint": {
+        "module": "scripts/artifact_moving_image.py",
+        "callable": "verify_moving_image"
+      },
+      "objectContractRequired": true,
+      "standingRef": "artifact-delivery/shadow-bindings/moving-image-matroska-ffv1-local-r1.json",
+      "requiredStanding": "LOCAL_LIVE_PROVEN"
+    },
+    {
+      "profileId": "software-release-linux-elf-executable-r1",
+      "operation": "verify",
+      "capabilityId": "artifact.verify.software-release-linux-elf-executable-r1",
+      "entrypoint": {
+        "module": "scripts/artifact_software_release_elf.py",
+        "callable": "verify_linux_elf"
+      },
+      "objectContractRequired": true,
+      "standingRef": "artifact-delivery/shadow-bindings/software-release-linux-elf-executable-local-r1.json",
+      "requiredStanding": "LOCAL_LIVE_PROVEN"
+    },
+    {
+      "profileId": "still-image-png-srgb-r1",
+      "operation": "verify",
+      "capabilityId": "artifact.verify.still-image-png-srgb-r1",
+      "entrypoint": {
+        "module": "scripts/artifact_still_image.py",
+        "callable": "verify_png_srgb"
+      },
+      "objectContractRequired": false,
+      "standingRef": "artifact-delivery/shadow-bindings/still-image-png-srgb-local-r1.json",
+      "requiredStanding": "LOCAL_LIVE_PROVEN"
+    },
+    {
+      "profileId": "still-image-svg-static-r1",
+      "operation": "verify",
+      "capabilityId": "artifact.verify.still-image-svg-static-r1",
+      "entrypoint": {
+        "module": "scripts/artifact_svg.py",
+        "callable": "verify_svg"
+      },
+      "objectContractRequired": false,
+      "standingRef": "artifact-delivery/shadow-bindings/still-image-svg-static-local-r1.json",
+      "requiredStanding": "LOCAL_LIVE_PROVEN"
+    },
+    {
+      "profileId": "web-archive-warc-response-r1",
+      "operation": "verify",
+      "capabilityId": "artifact.verify.web-archive-warc-response-r1",
+      "entrypoint": {
+        "module": "scripts/artifact_web_archive.py",
+        "callable": "verify_warc"
+      },
+      "objectContractRequired": true,
+      "standingRef": "artifact-delivery/shadow-bindings/web-archive-warc-response-local-r1.json",
+      "requiredStanding": "LOCAL_LIVE_PROVEN"
+    }
+  ]
+}
