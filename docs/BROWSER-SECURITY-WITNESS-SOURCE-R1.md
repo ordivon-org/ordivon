@@ -117,3 +117,39 @@ rootCauseEstablished   false
 ```
 
 That establishes repeatability of this detector version under the measured two-run sample; it does not establish a Cloudflare or provider challenge cause.
+
+## Pool runner
+
+`browser_security_pool_runner.py` turns the per-carrier collector into one neutral/read-only pool operation while preserving the Harness/Security authority split.
+
+```text
+Harness pool runner
+  -> verify Security-v2 pool-index + each baseline bundle SHA-256
+  -> collect carrier-11 current source manifest
+  -> Security-v2 canonicalize carrier-11
+  -> collect carrier-12 current source manifest
+  -> Security-v2 canonicalize carrier-12
+  -> collect carrier-13 current source manifest
+  -> Security-v2 canonicalize carrier-13
+  -> Security-v2 pool classification
+```
+
+Harness does not reimplement drift semantics. The Security-v2 result is embedded unchanged in the run receipt.
+
+Example:
+
+```text
+python scripts/browser_security_pool_runner.py \
+  --run-id pool-check-20260918 \
+  --security-root /root/projects/ordivon-security-v2
+```
+
+Use `--artifact-dir` when the candidate manifests, canonical bundles, comparison manifest, and final receipt should be retained. The runner verifies the digest-fenced LKG bundles before collection and refuses pool-index paths that escape the configured Security-v2 root.
+
+The R1 live dogfood receipt is sealed at:
+
+```text
+evidence/browser-security/pool-runner-r1-acceptance-20260918.json
+```
+
+That run used all three production Browserless carriers and returned `NO_OBSERVED_DRIFT` with CF02-CF07 unchanged, no detector drift, no browser/control/network authority drift, `providerChallengeVisited=false`, and `providerSendAttempted=false`.

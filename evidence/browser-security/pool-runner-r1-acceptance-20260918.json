@@ -1,0 +1,195 @@
+{
+  "carrierEvidence": [
+    {
+      "baselineBundleSha256": "sha256:a5edb47e67570cee733e18db7371d671fcd28fe4a7a44b38ad6d3e6b8fb0dc80",
+      "candidateBundleSha256": "sha256:fbb39551370b2ed3d7b6d6ffb5f0d3672ba6303aaddc4ce5a55ee2589f98f521",
+      "candidateManifestSha256": "sha256:52d3d317523cdfe8334b59ade61c2a3381cf0950b3336723dfa2b9237cbaf06c",
+      "carrierId": "chatgpt-carrier-11"
+    },
+    {
+      "baselineBundleSha256": "sha256:da7b9496da7b7430a733e48a3dd12f0026a4d555ba0308a5deaa8d358f5957a2",
+      "candidateBundleSha256": "sha256:b140543938761ebf02a5573ac4e5352d1335fa33ffde2726d697de489987eb22",
+      "candidateManifestSha256": "sha256:f0139609cd79a43c29af662671f8bd16ce87fea5fbeb3056be77f53a7e2b0dd3",
+      "carrierId": "chatgpt-carrier-12"
+    },
+    {
+      "baselineBundleSha256": "sha256:daf798c3b7f84172aff765c444b9c9ccd31522fac16f103d6a05b197da2687a3",
+      "candidateBundleSha256": "sha256:63d329baebe71cafcc4d8489d037893d5b1e7f10adee87e2d77176f7110488f7",
+      "candidateManifestSha256": "sha256:60e34df5900be5b74e742ed1844df2a45d4cec6158ce9e732d7844fb362f52eb",
+      "carrierId": "chatgpt-carrier-13"
+    }
+  ],
+  "classification": {
+    "carrierIds": [
+      "chatgpt-carrier-11",
+      "chatgpt-carrier-12",
+      "chatgpt-carrier-13"
+    ],
+    "carrierLocalChangedFamilies": {},
+    "carrierLocalInfrastructureChanges": {},
+    "challengeStandingChangedCarriers": [],
+    "detectorDriftCarriers": [],
+    "perCarrier": {
+      "chatgpt-carrier-11": {
+        "baselineWitnessId": "browserless-prod-carrier11-live-r2-run1-20260918",
+        "candidateWitnessId": "chatgpt-carrier-11-pool-dogfood-r1-20260918",
+        "challengeStandingChanged": false,
+        "changedFamilies": [],
+        "detectorDrift": [],
+        "detectors": [
+          {
+            "detectorId": "cf02-transport-normalized",
+            "family": "CF02",
+            "status": "UNCHANGED"
+          },
+          {
+            "detectorId": "cf03-main-document-headers",
+            "family": "CF03",
+            "status": "UNCHANGED"
+          },
+          {
+            "detectorId": "cf04-browser-js-presentation",
+            "family": "CF04",
+            "status": "UNCHANGED"
+          },
+          {
+            "detectorId": "cf05-control-observability",
+            "family": "CF05",
+            "status": "UNCHANGED"
+          },
+          {
+            "detectorId": "cf06-cross-layer-consistency",
+            "family": "CF06",
+            "status": "UNCHANGED"
+          },
+          {
+            "detectorId": "cf07-profile-metadata",
+            "family": "CF07",
+            "status": "UNCHANGED"
+          }
+        ],
+        "infrastructureChanges": {
+          "browserBinary": false,
+          "controlLayer": false,
+          "networkAuthority": false
+        },
+        "publicObservationChanges": [],
+        "repairRoutes": [],
+        "rootCauseEstablished": false,
+        "schemaVersion": 1
+      },
+      "chatgpt-carrier-12": {
+        "baselineWitnessId": "browserless-prod-carrier12-live-r2-lkg-20260918",
+        "candidateWitnessId": "chatgpt-carrier-12-pool-dogfood-r1-20260918",
+        "challengeStandingChanged": false,
+        "changedFamilies": [],
+        "detectorDrift": [],
+        "detectors": [
+          {
+            "detectorId": "cf02-transport-normalized",
+            "family": "CF02",
+            "status": "UNCHANGED"
+          },
+          {
+            "detectorId": "cf03-main-document-headers",
+            "family": "CF03",
+            "status": "UNCHANGED"
+          },
+          {
+            "detectorId": "cf04-browser-js-presentation",
+            "family": "CF04",
+            "status": "UNCHANGED"
+          },
+          {
+            "detectorId": "cf05-control-observability",
+            "family": "CF05",
+            "status": "UNCHANGED"
+          },
+          {
+            "detectorId": "cf06-cross-layer-consistency",
+            "family": "CF06",
+            "status": "UNCHANGED"
+          },
+          {
+            "detectorId": "cf07-profile-metadata",
+            "family": "CF07",
+            "status": "UNCHANGED"
+          }
+        ],
+        "infrastructureChanges": {
+          "browserBinary": false,
+          "controlLayer": false,
+          "networkAuthority": false
+        },
+        "publicObservationChanges": [],
+        "repairRoutes": [],
+        "rootCauseEstablished": false,
+        "schemaVersion": 1
+      },
+      "chatgpt-carrier-13": {
+        "baselineWitnessId": "browserless-prod-carrier13-live-r2-lkg-20260918",
+        "candidateWitnessId": "chatgpt-carrier-13-pool-dogfood-r1-20260918",
+        "challengeStandingChanged": false,
+        "changedFamilies": [],
+        "detectorDrift": [],
+        "detectors": [
+          {
+            "detectorId": "cf02-transport-normalized",
+            "family": "CF02",
+            "status": "UNCHANGED"
+          },
+          {
+            "detectorId": "cf03-main-document-headers",
+            "family": "CF03",
+            "status": "UNCHANGED"
+          },
+          {
+            "detectorId": "cf04-browser-js-presentation",
+            "family": "CF04",
+            "status": "UNCHANGED"
+          },
+          {
+            "detectorId": "cf05-control-observability",
+            "family": "CF05",
+            "status": "UNCHANGED"
+          },
+          {
+            "detectorId": "cf06-cross-layer-consistency",
+            "family": "CF06",
+            "status": "UNCHANGED"
+          },
+          {
+            "detectorId": "cf07-profile-metadata",
+            "family": "CF07",
+            "status": "UNCHANGED"
+          }
+        ],
+        "infrastructureChanges": {
+          "browserBinary": false,
+          "controlLayer": false,
+          "networkAuthority": false
+        },
+        "publicObservationChanges": [],
+        "repairRoutes": [],
+        "rootCauseEstablished": false,
+        "schemaVersion": 1
+      }
+    },
+    "repairRoutes": [],
+    "rootCauseEstablished": false,
+    "schemaVersion": 1,
+    "sharedChangedFamilies": [],
+    "sharedInfrastructureChanges": [],
+    "standing": "NO_OBSERVED_DRIFT",
+    "subjectClassificationSuppressed": false
+  },
+  "harnessRevision": "70863e35233e5155cb92b99374343df2ef1b5127",
+  "kind": "ordivon.browser-security-pool-run",
+  "poolId": "browserless-prod-r2-20260918",
+  "poolIndexSha256": "sha256:16e7fd96547591c046d9962b0593e2b265ead8ac480c4cc3e41ecff24c89f417",
+  "providerChallengeVisited": false,
+  "providerSendAttempted": false,
+  "runId": "pool-dogfood-r1-20260918",
+  "schemaVersion": 1,
+  "securityRevision": "3b030cff683ed9fc9b3e7b0f44bb6087fa21a3cd"
+}
