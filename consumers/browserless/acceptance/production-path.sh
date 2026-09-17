@@ -16,6 +16,9 @@ for unit in network-v2-browserless.target network-v2-browserless-netns.service n
   test "$(systemctl is-active "$unit")" = active
 done
 ip netns list | awk '{print $1}' | grep -qx "$NS"
+# The forwarding rules are insufficient when WSL has reset the host-global forwarding
+# sysctl. Treat the kernel routing switch as part of the production data-plane contract.
+test "$(sysctl -n net.ipv4.ip_forward)" = 1
 iptables-legacy -C FORWARD -i "$HOST_IF" -s "$NS_CIDR" -m comment --comment "$FORWARD_COMMENT" -j ACCEPT
 iptables-legacy -C FORWARD -o "$HOST_IF" -d "$NS_CIDR" -m conntrack --ctstate RELATED,ESTABLISHED -m comment --comment "$FORWARD_COMMENT" -j ACCEPT
 
