@@ -1,5 +1,17 @@
 """Ordivon Agent Service clean-room kernel."""
 
+from .delivery import (
+    AgentInterfaceAdvertisementStore,
+    AgentServiceR9,
+    DelegationRoutePlanner,
+    DeliveryAdapter,
+    DeliveryCoordinator,
+    DeliveryReceiptStore,
+    PolicyAdapter,
+    PolicyDecisionStore,
+    PolicyEvaluationCoordinator,
+    TransportBindingStore,
+)
 from .evidence import AgentServiceR6, RuntimeArtifactReader, VerificationRecord
 from .goals import (
     AgentServiceR7,
@@ -34,21 +46,30 @@ from .task_runtime import (
 __all__ = [
     "A2AAgentCardProjector",
     "AgentIdentityStore",
+    "AgentInterfaceAdvertisementStore",
     "AgentServiceSlice1",
     "AgentServiceR5",
     "AgentServiceR6",
     "AgentServiceR7",
     "AgentServiceR8",
+    "AgentServiceR9",
     "BoardAdapter",
     "BoardProjectionReceipt",
     "CapabilityAdvertisementStore",
     "CarrierProviderAdapter",
     "DelegationEnvelopeStore",
+    "DelegationRoutePlanner",
+    "DeliveryAdapter",
+    "DeliveryCoordinator",
+    "DeliveryReceiptStore",
     "GoalGraphMutationGuard",
     "GoalStore",
     "GoalTaskLinkStore",
     "HostAdapter",
     "HostBoardMcpAdapter",
+    "PolicyAdapter",
+    "PolicyDecisionStore",
+    "PolicyEvaluationCoordinator",
     "ProviderObservation",
     "RuntimeAdapter",
     "RuntimeArtifactDescriptor",
@@ -62,5 +83,6 @@ __all__ = [
     "SessionStore",
     "TaskDependencyStore",
     "TaskReadinessProjector",
+    "TransportBindingStore",
     "VerificationRecord",
 ]
