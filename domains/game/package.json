@@ -33,6 +33,7 @@
     "eval:v3:product-value:targeted-controls": "node experiments/station-zero-v3/scripts/eval-station-zero-v3-product-value.ts --lane targeted-controls",
     "eval:v3:product-value:information": "node experiments/station-zero-v3/scripts/eval-station-zero-v3-product-value.ts --lane information",
     "context:current-direction": "node scripts/current-direction-context.ts",
+    "decision:composition": "node scripts/composition-legality.ts",
     "context:v3:product-value": "node experiments/station-zero-v3/scripts/product-value-context.ts",
     "eval:v3:external-provider": "node experiments/station-zero-v3/scripts/eval-station-zero-v3-external-provider.ts"
   },

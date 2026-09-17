@@ -3049,5 +3049,129 @@
         "docs/STATION_ZERO_V3_EXTERNAL_PROVIDER.md"
       ]
     }
+  ],
+  "decisionOperations": [
+    {
+      "id": "compose",
+      "description": "Evaluate a bounded composition of existing Game nodes without product selection, stage admission, shared-core promotion or Human-value claim.",
+      "constraintSeeds": [
+        "constraint.evidence.mechanical-not-human",
+        "constraint.claim.mechanic-wave-r1",
+        "constraint.claim.pre-g0-compositions"
+      ],
+      "gateConstraints": [],
+      "requiredAdjudicationRules": [],
+      "defaultWhenUnresolved": "NO_GRAPH_BLOCK_WITH_FENCES"
+    },
+    {
+      "id": "promote-shared-core",
+      "description": "Evaluate promotion of product/mechanic semantics into shared Game Core or shared Big Game ownership.",
+      "constraintSeeds": [
+        "constraint.admission.cross-game-promotion",
+        "constraint.invariant.kernel-minimality",
+        "constraint.admission.core-primitive-high-bar",
+        "constraint.reopen.foundations"
+      ],
+      "gateConstraints": [
+        "constraint.admission.cross-game-promotion",
+        "constraint.admission.core-primitive-high-bar"
+      ],
+      "requiredAdjudicationRules": [
+        "adjudication.cross-game-promotion"
+      ],
+      "defaultWhenUnresolved": "BLOCKED_PENDING_EVIDENCE_OR_ADJUDICATION"
+    },
+    {
+      "id": "claim-human-value",
+      "description": "Evaluate whether current evidence can support a Human experience, interpretation, preference or behaviour claim.",
+      "constraintSeeds": [
+        "constraint.evidence.mechanical-not-human",
+        "constraint.substitution.synthetic-not-human",
+        "constraint.claim.mechanic-wave-r1",
+        "constraint.claim.pre-g0-compositions"
+      ],
+      "gateConstraints": [
+        "constraint.evidence.mechanical-not-human"
+      ],
+      "requiredAdjudicationRules": [],
+      "defaultWhenUnresolved": "BLOCKED_PENDING_EVIDENCE_OR_ADJUDICATION"
+    },
+    {
+      "id": "select-product",
+      "description": "Evaluate support around a product-selection decision without allowing pre-G0 mechanical survival to become the decision itself.",
+      "constraintSeeds": [
+        "constraint.claim.pre-g0-compositions",
+        "constraint.invariant.stage-core-separation",
+        "constraint.currentness.exact-source-reentry"
+      ],
+      "gateConstraints": [
+        "constraint.currentness.exact-source-reentry"
+      ],
+      "requiredAdjudicationRules": [],
+      "requiresAuthorityDecision": true,
+      "authorityDecisionOwner": "Game product-selection authority",
+      "defaultWhenUnresolved": "BLOCKED_PENDING_EVIDENCE_OR_ADJUDICATION"
+    },
+    {
+      "id": "enter-g0",
+      "description": "Evaluate support around G0 admission while preserving D-axis evidence and exact currentness.",
+      "constraintSeeds": [
+        "constraint.claim.pre-g0-compositions",
+        "constraint.invariant.stage-core-separation",
+        "constraint.currentness.exact-source-reentry"
+      ],
+      "gateConstraints": [
+        "constraint.currentness.exact-source-reentry"
+      ],
+      "requiredAdjudicationRules": [],
+      "requiresAuthorityDecision": true,
+      "authorityDecisionOwner": "Game G0-G8 stage authority",
+      "defaultWhenUnresolved": "BLOCKED_PENDING_EVIDENCE_OR_ADJUDICATION"
+    },
+    {
+      "id": "replace-provider",
+      "description": "Evaluate provider replacement behind the candidate-decision contract without transferring Game World/action/consequence authority.",
+      "constraintSeeds": [
+        "constraint.replaceability.provider",
+        "constraint.authority.provider-separation",
+        "constraint.invariant.no-direct-model-world-write"
+      ],
+      "gateConstraints": [],
+      "requiredAdjudicationRules": [
+        "adjudication.provider-replacement-authority"
+      ],
+      "defaultWhenUnresolved": "AUTHORITY_ADJUDICATION_REQUIRED"
+    },
+    {
+      "id": "replace-engine",
+      "description": "Evaluate an engine/substrate replacement against prototype-medium adequacy and Workstation/Game production boundaries.",
+      "constraintSeeds": [
+        "constraint.replaceability.engine",
+        "constraint.evidence.prototype-medium-relative"
+      ],
+      "gateConstraints": [],
+      "requiredAdjudicationRules": [
+        "adjudication.prototype-medium-vs-current-engine"
+      ],
+      "defaultWhenUnresolved": "AUTHORITY_ADJUDICATION_REQUIRED"
+    },
+    {
+      "id": "external-effect",
+      "description": "Evaluate an external effect without treating credentials or provider capability as effect authority.",
+      "constraintSeeds": [
+        "constraint.substitution.credential-not-authority",
+        "constraint.currentness.exact-source-reentry"
+      ],
+      "gateConstraints": [
+        "constraint.currentness.exact-source-reentry"
+      ],
+      "requiredEvidenceAll": [
+        "evidence.explicit-effect-authority"
+      ],
+      "requiredAdjudicationRules": [],
+      "requiresAuthorityDecision": true,
+      "authorityDecisionOwner": "Distribution/user effect authority",
+      "defaultWhenUnresolved": "BLOCKED_PENDING_EVIDENCE_OR_ADJUDICATION"
+    }
   ]
 }

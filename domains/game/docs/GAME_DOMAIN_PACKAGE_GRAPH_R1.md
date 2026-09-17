@@ -412,3 +412,61 @@ admitted composition / lower claim / blocked path
 ```
 
 That is still not a rule engine. R1 deliberately stops before automatic semantic adjudication. The graph is a machine-readable **decision-support and falsification structure**; actual semantic commitment remains with the authority-owning Game/Research/Host/Runtime/Workstation/Artifact/Distribution surface named by the relevant record.
+
+
+## 11. Composition Legality / Decision Trace evaluator
+
+The repository exposes a thin evaluator at [`../scripts/composition-legality.ts`](../scripts/composition-legality.ts). Its job is to execute the graph projection, not to become a new semantic authority.
+
+Example:
+
+```bash
+pnpm decision:composition -- \
+  --operation compose \
+  --nodes mechanic.e03,composition.pc02 \
+  --evidence evidence.mechanical-causal
+```
+
+The machine result includes:
+
+```text
+involved nodes
+applicable constraints
+hard invariants
+authority boundaries
+claim fences
+unsatisfied gates
+required evidence classes
+reopen reviews
+authority adjudication rules
+relevant constraint-relation edges
+a deterministic explanation trace
+```
+
+The graph itself declares the supported operation profiles and their constraint seeds/gates. The evaluator therefore does not hide product policy in TypeScript. R1 supports these bounded operations:
+
+```text
+compose
+promote-shared-core
+claim-human-value
+select-product
+enter-g0
+replace-provider
+replace-engine
+external-effect
+```
+
+The output disposition vocabulary is deliberately narrow:
+
+```text
+NO_GRAPH_BLOCK
+NO_GRAPH_BLOCK_WITH_FENCES
+BLOCKED_PENDING_EVIDENCE_OR_ADJUDICATION
+AUTHORITY_ADJUDICATION_REQUIRED
+```
+
+`NO_GRAPH_BLOCK` does **not** mean “approved”, “true”, “selected”, “released”, or “safe to perform any external effect”. It means only that this exact graph projection found no unresolved graph-level gate for the bounded request. The trace always reports `semanticAuthorityClaimed=false`, `productSelected=false`, and `g0Entered=false` because those truths cannot be minted by this evaluator.
+
+For the concrete `E03 -> PC02` composition request, mechanical evidence can leave the composition structurally unblocked while retaining both the mechanic-wave mechanical claim ceiling and the pre-G0 product-selection fence. Asking instead to promote that composition into shared Game Core activates the cross-game-promotion gate and core-primitive high bar; cross-product-consumer and semantic-counterexample evidence can permit review/adjudication, but still cannot auto-promote the core.
+
+Currentness is equally explicit: the evaluator binds the exact workspace graph digest and reports `WORKSPACE_GRAPH_ONLY_NOT_LIVE_OWNER_STATE`. Any decision that depends on live Task, provider, tool, release, participant-study, or service standing must still re-enter the natural owner named by the graph.
