@@ -76,6 +76,7 @@ A releasable commit requires:
 9. live receipt when Provider, Runtime, Tool recovery, cancellation or completion semantics change;
 10. named limitations and compatibility impact;
 11. for Agent Automation activation, a quiescent pre-switch Browser Security pool qualification bound to the exact candidate commit and Security-v2 LKG index. Only `NO_OBSERVED_DRIFT` passes automatically; detector, shared, carrier-local, mixed drift, or collection failure holds the release and retains a private qualification receipt.
+12. a Browserless image-pin change requires a paired canary receipt produced from the running 11/12/13 production consensus and the exact candidate image digest before any production substrate mutation. Same-image negative control must be reproducible; unexpected CF02-CF07, detector, challenge-metadata, or Network-v2 drift holds the image. Canary PASS is qualification evidence only and does not itself authorize deployment.
 
 ## Version source
 

@@ -144,15 +144,32 @@ def _container_image_identity(container: str) -> str:
 
 
 def _browser_binary_digest(container: str) -> str:
-    path = "/usr/local/bin/playwright-browsers/chromium-1243/chrome-linux64/chrome"
     proc = subprocess.run(
-        ["/usr/bin/podman", "exec", container, "/usr/bin/sha256sum", path],
+        [
+            "/usr/bin/podman",
+            "exec",
+            container,
+            "/bin/sh",
+            "-lc",
+            "set -eu; find /usr/local/bin/playwright-browsers -type f "
+            "-path '*/chrome-linux64/chrome' -print | sort",
+        ],
         capture_output=True,
         text=True,
         timeout=10,
         check=True,
     )
-    digest = proc.stdout.strip().split()[0]
+    paths = [line.strip() for line in proc.stdout.splitlines() if line.strip()]
+    if len(paths) != 1 or not paths[0].startswith("/usr/local/bin/playwright-browsers/"):
+        raise RuntimeError("Browserless container must expose exactly one Chromium chrome binary")
+    digest_proc = subprocess.run(
+        ["/usr/bin/podman", "exec", container, "/usr/bin/sha256sum", paths[0]],
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=True,
+    )
+    digest = digest_proc.stdout.strip().split()[0]
     if not re.fullmatch(r"[0-9a-f]{64}", digest):
         raise RuntimeError("invalid Chromium digest returned by Browserless container")
     return "sha256:" + digest

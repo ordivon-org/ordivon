@@ -1,0 +1,73 @@
+{
+  "canaryInstance": 91,
+  "candidateBundleSha256": "sha256:1366ff0200785c76a3087bb27795596e356daae0820a06fe727a8f0e6d31cae7",
+  "candidateImage": "ghcr.io/browserless/chromium@sha256:b1ba7b054af2891a8199f884d4bd249cf8c3bd2fa8a97b339077e40f92803ba8",
+  "candidateManifestSha256": "sha256:87b3d81cd600261ec228713e68eae977e09111289e96bae24ba2f8305c86972f",
+  "comparison": {
+    "baselineWitnessId": "browserless-canary-control",
+    "candidateWitnessId": "browserless-canary-candidate",
+    "challengeStandingChanged": false,
+    "changedFamilies": [],
+    "detectorDrift": [],
+    "detectors": [
+      {
+        "detectorId": "cf02-transport-normalized",
+        "family": "CF02",
+        "status": "UNCHANGED"
+      },
+      {
+        "detectorId": "cf03-main-document-headers",
+        "family": "CF03",
+        "status": "UNCHANGED"
+      },
+      {
+        "detectorId": "cf04-browser-js-presentation",
+        "family": "CF04",
+        "status": "UNCHANGED"
+      },
+      {
+        "detectorId": "cf05-control-observability",
+        "family": "CF05",
+        "status": "UNCHANGED"
+      },
+      {
+        "detectorId": "cf06-cross-layer-consistency",
+        "family": "CF06",
+        "status": "UNCHANGED"
+      },
+      {
+        "detectorId": "cf07-profile-metadata",
+        "family": "CF07",
+        "status": "UNCHANGED"
+      }
+    ],
+    "infrastructureChanges": {
+      "browserBinary": false,
+      "controlLayer": false,
+      "networkAuthority": false
+    },
+    "publicObservationChanges": [],
+    "repairRoutes": [],
+    "rootCauseEstablished": false,
+    "schemaVersion": 1
+  },
+  "controlBundleSha256": "sha256:b4d0bc6d78a177271fb2da0eec5d776978fb2664f8692a359ee677e8270871ce",
+  "controlImage": "ghcr.io/browserless/chromium@sha256:b1ba7b054af2891a8199f884d4bd249cf8c3bd2fa8a97b339077e40f92803ba8",
+  "controlManifestSha256": "sha256:ac671957373493738803f2eab0d2a4f13aaeadb2a385c93b8198eafeb08fbf1b",
+  "expectedImageChange": false,
+  "kind": "ordivon.browser-security-browserless-canary-r1",
+  "networkNamespace": "nv2-browserless-prod",
+  "pass": true,
+  "productionInstances": [
+    11,
+    12,
+    13
+  ],
+  "productionMutationAttempted": false,
+  "providerChallengeVisited": false,
+  "providerSendAttempted": false,
+  "rootCauseEstablished": false,
+  "schemaVersion": 1,
+  "securityRevision": "3b030cff683ed9fc9b3e7b0f44bb6087fa21a3cd",
+  "standing": "PASS_CONTROL_REPRODUCIBLE"
+}

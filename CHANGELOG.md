@@ -4,6 +4,8 @@ All user-visible changes to Ordivon Harness are recorded here. Release and compa
 
 ## Unreleased
 
+- added paired Browserless image canary qualification on reserved instance 91: the runner derives an exact control from live carriers 11/12/13, runs control/candidate images sequentially in the same Network-v2 authority with neutral CF02-CF07 witnesses, and separates expected image/browser identity changes from unexpected presentation drift without mutating production. Same-image live control reproduced exactly; a known-different older local image was held on PeetPrint/User-Agent drift. The source Quadlet pin/TZ was also reconciled forward to the already-running production truth (`b1ba7b...`, `Asia/Shanghai`) from historical commit `4896113`.
+
 - added a fail-closed Browser Security qualification to Agent Automation activation: after admission closure and Temporal drain but before worker stop/source switch, the immutable candidate runs its neutral three-carrier witness suite against Security-v2 per-carrier LKGs; only `NO_OBSERVED_DRIFT` passes automatically, while detector/global/local/mixed drift or collection failure preserves HOLD with a private candidate-bound receipt. This is a pre-switch currentness gate, not a claim that an undeployed Browserless/Chromium launch change has been behaviorally qualified.
 
 - moved transport correlation out of current Run authority: new `HarnessRunContract` objects write schema v2 without `correlation`, while schema-v1 correlation remains an exact historical reader/round-trip path; the unused public `HarnessCorrelationContext` wrapper is retired.

@@ -29,7 +29,8 @@ class BrowserlessPodmanDeploymentTests(unittest.TestCase):
 
     def test_quadlet_consumes_network_v2_authority(self):
         text = (ROOT / "containers/ordivon-browserless@.container").read_text()
-        self.assertIn("ghcr.io/browserless/chromium@sha256:", text)
+        self.assertIn("ghcr.io/browserless/chromium@sha256:b1ba7b054af2891a8199f884d4bd249cf8c3bd2fa8a97b339077e40f92803ba8", text)
+        self.assertIn("Environment=TZ=Asia/Shanghai", text)
         self.assertIn("Network=ns:/run/netns/@NETWORK_NAMESPACE@", text)
         self.assertIn("BindsTo=@NETWORK_AUTHORITY_SERVICE@", text)
         self.assertNotIn("@SURFPATH_NAMESPACE@", text)

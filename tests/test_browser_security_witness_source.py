@@ -2,10 +2,11 @@ import json
 import sqlite3
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from pathlib import Path
 
 from scripts.browser_security_witness_source import (
+    _browser_binary_digest,
     _collect_host_facts,
     assemble_manifest,
     browserless_container_name,
@@ -37,6 +38,34 @@ class BrowserSecurityWitnessSourceTests(unittest.TestCase):
         self.assertEqual(facts["browserBinaryDigest"], D_BROWSER)
         self.assertEqual(facts["profileMetadata"], {"cookieRows": 3, "cookieHosts": 2})
         self.assertEqual(facts["fontResolution"]["Arial"], "Font Family")
+
+    @patch("scripts.browser_security_witness_source.subprocess.run")
+    def test_browser_binary_digest_discovers_versioned_chromium_path(self, run) -> None:
+        run.side_effect = [
+            Mock(
+                stdout="/usr/local/bin/playwright-browsers/chromium-9999/chrome-linux64/chrome\n",
+                returncode=0,
+            ),
+            Mock(stdout=("c" * 64) + "  /path/chrome\n", returncode=0),
+        ]
+        self.assertEqual(_browser_binary_digest("ordivon-browserless-91"), "sha256:" + "c" * 64)
+        self.assertIn("find /usr/local/bin/playwright-browsers", run.call_args_list[0].args[0][-1])
+        self.assertEqual(
+            run.call_args_list[1].args[0][-1],
+            "/usr/local/bin/playwright-browsers/chromium-9999/chrome-linux64/chrome",
+        )
+
+    @patch("scripts.browser_security_witness_source.subprocess.run")
+    def test_browser_binary_digest_rejects_ambiguous_chromium_layout(self, run) -> None:
+        run.return_value = Mock(
+            stdout=(
+                "/usr/local/bin/playwright-browsers/chromium-a/chrome-linux64/chrome\n"
+                "/usr/local/bin/playwright-browsers/chromium-b/chrome-linux64/chrome\n"
+            ),
+            returncode=0,
+        )
+        with self.assertRaisesRegex(RuntimeError, "exactly one Chromium"):
+            _browser_binary_digest("ordivon-browserless-91")
 
     def test_profile_cookie_metadata_reads_counts_only(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

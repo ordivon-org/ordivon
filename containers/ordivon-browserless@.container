@@ -8,7 +8,7 @@ Requires=ordivon-browserless-display@%i.service
 After=ordivon-browserless-display@%i.service
 
 [Container]
-Image=ghcr.io/browserless/chromium@sha256:5e3f3e59e5d8d545f0766534e3d76dc4fb6ac17b9e05f52d125dd51e3908f631
+Image=ghcr.io/browserless/chromium@sha256:b1ba7b054af2891a8199f884d4bd249cf8c3bd2fa8a97b339077e40f92803ba8
 ContainerName=ordivon-browserless-%i
 HostName=ordivon-browserless-%i
 Network=ns:/run/netns/@NETWORK_NAMESPACE@
@@ -23,6 +23,7 @@ Environment=MAX_CPU_PERCENT=90
 Environment=MAX_MEMORY_PERCENT=90
 Environment=DEBUG=-*
 Environment=DISPLAY=:1%i
+Environment=TZ=Asia/Shanghai
 Environment=XAUTHORITY=/run/ordivon-xauth
 Environment=PORT=30%i
 Secret=ordivon-browserless-token,type=env,target=TOKEN

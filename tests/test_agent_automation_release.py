@@ -105,6 +105,7 @@ class ReleaseTests(unittest.TestCase):
         self.assertFalse((ROOT / "scripts/agent_automation_wrapper.py").exists())
         self.assertIn("scripts/browser_security_witness_source.py", r.RELEASE_PATHS)
         self.assertIn("scripts/browser_security_pool_runner.py", r.RELEASE_PATHS)
+        self.assertIn("scripts/browser_security_browserless_canary.py", r.RELEASE_PATHS)
 
     def test_worker_runtime_import_preflight_uses_exact_temporal_worker_python(self):
         with tempfile.TemporaryDirectory() as td:

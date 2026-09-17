@@ -153,3 +153,28 @@ evidence/browser-security/pool-runner-r1-acceptance-20260918.json
 ```
 
 That run used all three production Browserless carriers and returned `NO_OBSERVED_DRIFT` with CF02-CF07 unchanged, no detector drift, no browser/control/network authority drift, `providerChallengeVisited=false`, and `providerSendAttempted=false`.
+
+## Browserless paired canary qualification
+
+`browser_security_browserless_canary.py` is a qualification-only transaction for an immutable, locally available Browserless image. It does not mutate the production Quadlet and does not restart carriers 11/12/13.
+
+The runner derives its control arm from the **actual running production consensus** rather than from a repository template: carriers 11/12/13 must all be running and agree on immutable image, Network-v2 namespace, and the Ordivon-owned environment contract. It then uses reserved qualification instance `91` with an empty temporary profile, ephemeral headful Xvfb `:191`, the same Network-v2 namespace, and the same launch environment for two sequential arms:
+
+```text
+production image control -> neutral witness -> Security-v2 bundle
+candidate image          -> neutral witness -> Security-v2 bundle
+                                      \-> bundle differential -> canary standing
+```
+
+The candidate image must already exist locally and must be supplied by exact `ghcr.io/browserless/chromium@sha256:<digest>` identity. The canary never pulls an image, never visits ChatGPT, never uses a protected challenge as an oracle, never crosses SEND, and never promotes the candidate. Temporary container/profile/X11 authority/socket state is removed after each run.
+
+Qualification distinguishes expected infrastructure identity change from unexpected observable presentation drift. A different image may change browser binary and control-layer digests, but detector drift, Network-v2 authority drift, challenge metadata drift, or any changed CF02-CF07 public observation holds the candidate. A same-image control must reproduce with no infrastructure or subject drift.
+
+Live acceptance on 2026-09-18 produced both controls needed to validate the instrument:
+
+- `evidence/browser-security/browserless-canary-control-r1-20260918.json`: current production image `b1ba7b...` versus itself -> `PASS_CONTROL_REPRODUCIBLE`; CF02-CF07 and all infrastructure digests unchanged.
+- `evidence/browser-security/browserless-canary-known-different-r1-20260918.json`: older local image `5e3f3e...` versus current production -> `HOLD_PRESENTATION_DRIFT`; CF02 `peetprintHash` and CF04 `userAgent` changed while Network-v2 authority remained unchanged.
+
+Neither receipt establishes a Cloudflare/provider root cause. The second image is a known-different positive control, not a downgrade recommendation.
+
+During this work the repository template was found stale relative to the already-running production substrate. Production and historical Git commit `4896113` both bind Browserless image `b1ba7b...` with `TZ=Asia/Shanghai`, while current main still carried the older `5e3f3e...` pin. This slice forward-ports only that already-realized production truth and its exact test assertions; it does not replay the historical branch or its older challenge narrative.

@@ -122,3 +122,11 @@ Agent Automation activation uses the immutable candidate's own `browser_security
 The release owner admits only `NO_OBSERVED_DRIFT` as an automatic PASS. `DETECTOR_DRIFT`, `GLOBAL_DRIFT`, `CARRIER_LOCAL_DRIFT`, `MIXED_DRIFT`, malformed receipts, baseline digest failure, busy carriers, or collector failure produce HOLD. A private `0600` qualification receipt binds the candidate commit, Security revision, pool identity/index digest, classification standing, and the explicit facts that no provider challenge was visited and no provider SEND was attempted.
 
 This is a **pre-switch currentness gate**, not proof of the behavioral effect of a Browserless/Chromium launch change that has not yet been deployed. Browser-substrate mutation still requires a separate candidate/canary and post-change witness transaction before promotion.
+
+## Browserless paired image canary
+
+Browserless/Chromium image changes are qualified before production mutation with reserved instance 91. The control image is discovered from the live 11/12/13 consensus; candidate identity is an exact locally present OCI digest. Control and candidate run sequentially with an empty profile class, the same Network-v2 namespace, equivalent Ordivon-owned environment, 1440x1000 headful Xvfb geometry, and the same neutral Browser Security detectors.
+
+Acceptance requires the same-image control to return `PASS_CONTROL_REPRODUCIBLE`. A different image may carry expected browser/control identity changes, but any detector-shape drift, Network-v2 authority drift, challenge metadata drift, or CF02-CF07 public observation change fails closed. The canary receipt explicitly records `productionMutationAttempted=false`, `providerChallengeVisited=false`, `providerSendAttempted=false`, and `rootCauseEstablished=false`.
+
+The 2026-09-18 negative control passed; a genuinely different older local image was held because PeetPrint and User-Agent changed. Production carriers were not restarted or rewritten in either run, and reserved instance 91 left no container, profile, X socket, or Xauthority residue.

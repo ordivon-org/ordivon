@@ -1,0 +1,92 @@
+{
+  "canaryInstance": 91,
+  "candidateBundleSha256": "sha256:aa3e8878cfae32acc88e019dbcbffcf248ff36ef37521844057bb0cecf8c9b87",
+  "candidateImage": "ghcr.io/browserless/chromium@sha256:5e3f3e59e5d8d545f0766534e3d76dc4fb6ac17b9e05f52d125dd51e3908f631",
+  "candidateManifestSha256": "sha256:dd3389237f03789dc7a49e47cd7f757c580af36bd67c0681c361afacec15c2db",
+  "comparison": {
+    "baselineWitnessId": "browserless-canary-control",
+    "candidateWitnessId": "browserless-canary-candidate",
+    "challengeStandingChanged": false,
+    "changedFamilies": [
+      "CF02",
+      "CF04"
+    ],
+    "detectorDrift": [],
+    "detectors": [
+      {
+        "detectorId": "cf02-transport-normalized",
+        "family": "CF02",
+        "status": "CHANGED"
+      },
+      {
+        "detectorId": "cf03-main-document-headers",
+        "family": "CF03",
+        "status": "UNCHANGED"
+      },
+      {
+        "detectorId": "cf04-browser-js-presentation",
+        "family": "CF04",
+        "status": "CHANGED"
+      },
+      {
+        "detectorId": "cf05-control-observability",
+        "family": "CF05",
+        "status": "UNCHANGED"
+      },
+      {
+        "detectorId": "cf06-cross-layer-consistency",
+        "family": "CF06",
+        "status": "UNCHANGED"
+      },
+      {
+        "detectorId": "cf07-profile-metadata",
+        "family": "CF07",
+        "status": "UNCHANGED"
+      }
+    ],
+    "infrastructureChanges": {
+      "browserBinary": true,
+      "controlLayer": true,
+      "networkAuthority": false
+    },
+    "publicObservationChanges": [
+      {
+        "changedPaths": [
+          "$.peetprintHash"
+        ],
+        "detectorId": "cf02-transport-normalized"
+      },
+      {
+        "changedPaths": [
+          "$.userAgent"
+        ],
+        "detectorId": "cf04-browser-js-presentation"
+      }
+    ],
+    "repairRoutes": [
+      "network/provider-path",
+      "browser-launch-js-presentation"
+    ],
+    "rootCauseEstablished": false,
+    "schemaVersion": 1
+  },
+  "controlBundleSha256": "sha256:b4d0bc6d78a177271fb2da0eec5d776978fb2664f8692a359ee677e8270871ce",
+  "controlImage": "ghcr.io/browserless/chromium@sha256:b1ba7b054af2891a8199f884d4bd249cf8c3bd2fa8a97b339077e40f92803ba8",
+  "controlManifestSha256": "sha256:ac671957373493738803f2eab0d2a4f13aaeadb2a385c93b8198eafeb08fbf1b",
+  "expectedImageChange": true,
+  "kind": "ordivon.browser-security-browserless-canary-r1",
+  "networkNamespace": "nv2-browserless-prod",
+  "pass": false,
+  "productionInstances": [
+    11,
+    12,
+    13
+  ],
+  "productionMutationAttempted": false,
+  "providerChallengeVisited": false,
+  "providerSendAttempted": false,
+  "rootCauseEstablished": false,
+  "schemaVersion": 1,
+  "securityRevision": "3b030cff683ed9fc9b3e7b0f44bb6087fa21a3cd",
+  "standing": "HOLD_PRESENTATION_DRIFT"
+}

@@ -54,6 +54,7 @@ RELEASE_PATHS = (
     "scripts/browser_use_browserless.py",
     "scripts/browser_security_witness_source.py",
     "scripts/browser_security_pool_runner.py",
+    "scripts/browser_security_browserless_canary.py",
     "scripts/browserless_display_auth.py",
     "scripts/browserless_human_handoff.py",
     "scripts/browserless_human_interaction.py",
