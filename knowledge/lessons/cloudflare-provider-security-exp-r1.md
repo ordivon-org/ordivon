@@ -1,7 +1,7 @@
 # Cloudflare / Provider Security Experiment R1
 
-Date: 2026-09-17  
-Standing: **BASELINE COMPLETE / ABLATIONS COMPLETE / ROOT CAUSE OPEN**  
+Date: 2026-09-17
+Standing: **BASELINE COMPLETE / ABLATIONS COMPLETE / ROOT CAUSE OPEN**
 Evidence: `evidence/browser-security/cloudflare-provider-security-exp-r1-20260917.json`
 
 ## Result in one sentence
