@@ -1,0 +1,65 @@
+{
+  "architectureDelta": "knowledge/graphs/ordivon-agent-service-r11-remote-evidence-delta.json",
+  "authorityAssertions": {
+    "alternateFallbackBindingMayExecuteAfterPrimaryClaim": false,
+    "executionClaimTransferImplemented": false,
+    "localAssignmentAndRemoteBindingMayExecuteSameTask": false,
+    "r10HistoricalReceiptRequiresRemoteResendForAdoption": false,
+    "remoteArtifactDigestMismatchCreatesTaskVerdict": false,
+    "remoteClaimCommittedBeforeExternalSend": true,
+    "remoteDeliveryMayBypassGoalDependencies": false,
+    "remoteDeliveryMovesTaskToRunning": true,
+    "remoteSemanticVerificationUsesExistingEvidenceSemanticVerifier": true,
+    "remoteSuccessfulExecutionRequiresArtifactEvidence": true,
+    "remoteTerminalDirectlyCompletesTask": false,
+    "remoteVerificationReceiptStoresRawArtifactContent": false,
+    "responseLossReopensTaskForAlternateExecution": false,
+    "safeFailoverImplemented": false,
+    "taskMayHaveMultipleExecutionClaims": false,
+    "transportBindingOwnsExecutionBeforeDelivery": false,
+    "transportNeutralAcceptanceKindRenameImplemented": false
+  },
+  "baseImplementationCommit": "80234d0aadf151225aaa1854920a43c8a4008788",
+  "date": "2026-09-18",
+  "discoveredNodes": [
+    "N58",
+    "N59",
+    "N60",
+    "N61",
+    "N62",
+    "N63",
+    "N64"
+  ],
+  "kind": "ordivon.agent-service-remote-evidence-r11-acceptance",
+  "refinedBaseNodes": [
+    "N11",
+    "N13"
+  ],
+  "schemaVersion": 1,
+  "semanticDogfood": {
+    "claimMode": "REMOTE_BINDING",
+    "claimOwnerMatchesBinding": true,
+    "evidenceContainsDigest": true,
+    "evidenceContainsRawAcceptedText": false,
+    "evidenceResolver": "remote_artifact_text",
+    "finalGoal": "SUCCEEDED",
+    "finalTask": "SUCCEEDED",
+    "goalAfterDelivery": "RUNNING",
+    "remoteTerminal": true,
+    "status": "PASS",
+    "taskAfterDelivery": "RUNNING",
+    "taskAfterRemoteTerminal": "RUNNING",
+    "verificationAccepted": true,
+    "verificationStage": "semantic"
+  },
+  "verification": {
+    "compileall": "PASS",
+    "gitDiffCheck": "PASS",
+    "publicApiTests": 1,
+    "remoteEvidenceTests": 11,
+    "repositoryFailures": 0,
+    "repositoryTests": 155,
+    "resourceWarningsAsErrors": "PASS"
+  },
+  "verificationState": "PASS"
+}

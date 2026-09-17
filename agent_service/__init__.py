@@ -24,6 +24,16 @@ from .goals import (
     TaskReadinessProjector,
 )
 from .host_board import HostBoardMcpAdapter
+from .remote_evidence import (
+    AgentServiceR11,
+    ClaimAwareAssignmentPlanner,
+    ClaimAwareDeliveryCoordinator,
+    RemoteArtifactEvidenceResolver,
+    RemoteArtifactReader,
+    RemoteTaskCompletionReconciler,
+    RemoteTaskVerificationStore,
+    TaskExecutionClaimStore,
+)
 from .runtime_mcp import RuntimeMcpAdapter, RuntimeMcpArtifactReader, RuntimeMcpHttpClient
 from .semantics import (
     A2AAgentCardProjector,
@@ -65,11 +75,14 @@ __all__ = [
     "AgentServiceR8",
     "AgentServiceR9",
     "AgentServiceR10",
+    "AgentServiceR11",
     "AuditEnvelopeProjector",
     "BoardAdapter",
     "BoardProjectionReceipt",
     "CapabilityAdvertisementStore",
     "CarrierProviderAdapter",
+    "ClaimAwareAssignmentPlanner",
+    "ClaimAwareDeliveryCoordinator",
     "CredentialReferenceStore",
     "DelegationEnvelopeStore",
     "DelegationRoutePlanner",
@@ -88,9 +101,13 @@ __all__ = [
     "PolicyDecisionStore",
     "PolicyEvaluationCoordinator",
     "ProviderObservation",
+    "RemoteArtifactEvidenceResolver",
+    "RemoteArtifactReader",
     "RemoteCorrelationReconciler",
     "RemoteDeliveryObservationStore",
     "RemoteDeliveryObserver",
+    "RemoteTaskCompletionReconciler",
+    "RemoteTaskVerificationStore",
     "RuntimeAdapter",
     "RuntimeArtifactDescriptor",
     "RuntimeArtifactReader",
@@ -102,6 +119,7 @@ __all__ = [
     "SessionItemStore",
     "SessionStore",
     "TaskDependencyStore",
+    "TaskExecutionClaimStore",
     "TaskReadinessProjector",
     "TransportBindingStore",
     "VerificationRecord",
