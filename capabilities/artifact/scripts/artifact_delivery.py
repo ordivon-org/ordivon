@@ -42,6 +42,15 @@ from artifact_core.profile_v1 import validate_profile_v1 as validate_profile
 from artifact_trust.provenance import slsa_statement, verify_release_provenance
 import artifact_trust.vsa as trust_vsa
 from artifact_capabilities.dispatch import execute_build_adapter
+from artifact_capabilities.presentation import (
+    PresentationBuildHooks,
+    admit_presentation_source as presentation_admit_source,
+    admit_semantic_svg_source as presentation_admit_semantic_svg_source,
+    build_presentation_source as presentation_build_source,
+    build_semantic_svg_presentation_source as presentation_build_semantic_svg_source,
+)
+import artifact_capabilities.presentation.common as presentation_common
+import artifact_capabilities.presentation.ppt_master as presentation_ppt_master
 from artifact_evidence.delivery import (
     verify_delivery_evidence,
     verify_file_fact,
@@ -398,6 +407,31 @@ def validate_json_document(document_path: Path, schema_path: Path, expected_kind
     }
 
 
+def _presentation_build_hooks() -> PresentationBuildHooks:
+    return PresentationBuildHooks(
+        validate_json_document=validate_json_document,
+        inspect_pptx=inspect_pptx,
+        verify_semantics=verify_presentation_semantics,
+        normalize_python_pptx=normalize_zip_member_timestamps,
+        canonicalize_ppt_master=canonicalize_generated_ooxml_metadata,
+    )
+
+
+# Compatibility-only private projections for historical tests/callers.
+_resolve_semantic_svg_source_path = presentation_common._resolve_semantic_svg_source_path
+_safe_project_relative_path = presentation_common._safe_project_relative_path
+_semantic_svg_source_material_facts = presentation_common._semantic_svg_source_material_facts
+_ppt_master_provider_facts = presentation_ppt_master._ppt_master_provider_facts
+_resolve_presentation_template = presentation_common._resolve_presentation_template
+_resolve_presentation_image = presentation_common._resolve_presentation_image
+_presentation_source_material_facts = presentation_common._presentation_source_material_facts
+_presentation_template_package_fact = presentation_common._presentation_template_package_fact
+_presentation_layout_by_id = presentation_common._presentation_layout_by_id
+_presentation_layout_fact = presentation_common._presentation_layout_fact
+_apply_text_to_shape = presentation_common._apply_text_to_shape
+_hex_color = presentation_common._hex_color
+
+
 def _resolve_request_path(request_path: Path, relative: str) -> Path:
     candidate = Path(relative)
     if candidate.is_absolute():
@@ -405,137 +439,12 @@ def _resolve_request_path(request_path: Path, relative: str) -> Path:
     return (request_path.resolve().parent / candidate).resolve()
 
 
-def _resolve_semantic_svg_source_path(source_path: Path, relative: str) -> Path:
-    candidate = Path(relative)
-    if candidate.is_absolute():
-        raise RuntimeError(f"semantic SVG source path must be relative: {relative!r}")
-    source_root = source_path.resolve().parent
-    resolved = (source_root / candidate).resolve()
-    try:
-        resolved.relative_to(source_root)
-    except ValueError as error:
-        raise RuntimeError(f"semantic SVG source path escapes source directory: {relative!r}") from error
-    return resolved
 
 
-def _safe_project_relative_path(value: str) -> PurePosixPath:
-    path = PurePosixPath(value)
-    if path.is_absolute() or not path.parts or any(part in {"", ".", ".."} for part in path.parts):
-        raise RuntimeError(f"unsafe provider project-relative path: {value!r}")
-    return path
 
 
-def _semantic_svg_source_material_facts(source_path: Path, source: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
-    materials: list[dict[str, Any]] = []
-    failures: list[str] = []
-    seen_page_ids: set[str] = set()
-    for index, page in enumerate(source.get("pages", []) if isinstance(source.get("pages"), list) else []):
-        page_id = str(page.get("id", ""))
-        if page_id in seen_page_ids:
-            failures.append(f"duplicate semantic SVG page id: {page_id}")
-        seen_page_ids.add(page_id)
-        try:
-            page_path = _resolve_semantic_svg_source_path(source_path, str(page.get("path", "")))
-            if page_path.suffix.lower() != ".svg":
-                failures.append(f"semantic SVG page {page_id or index + 1} must use .svg")
-            actual = sha256_file(page_path)
-            if actual != page.get("sha256"):
-                failures.append(f"semantic SVG page digest mismatch: {page_id or index + 1}")
-            fact = file_fact(page_path)
-            fact["purpose"] = "semantic-svg-page"
-            fact["pageId"] = page_id
-            materials.append(fact)
-        except Exception as error:
-            failures.append(f"semantic SVG page reference error ({page_id or index + 1}): {error}")
-    seen_targets: set[str] = set()
-    for item in source.get("materials", []) if isinstance(source.get("materials"), list) else []:
-        try:
-            target = _safe_project_relative_path(str(item.get("projectRelativePath", "")))
-            target_key = target.as_posix()
-            if target_key.startswith("svg_output/"):
-                failures.append(f"semantic SVG provider material may not target reserved svg_output/: {target_key}")
-            if target_key in seen_targets:
-                failures.append(f"duplicate semantic SVG provider material target: {target_key}")
-            seen_targets.add(target_key)
-            material_path = _resolve_semantic_svg_source_path(source_path, str(item.get("path", "")))
-            actual = sha256_file(material_path)
-            if actual != item.get("sha256"):
-                failures.append(f"semantic SVG provider material digest mismatch: {item.get('path')}")
-            fact = file_fact(material_path)
-            fact["purpose"] = item.get("purpose") or "semantic-svg-material"
-            fact["projectRelativePath"] = target_key
-            materials.append(fact)
-        except Exception as error:
-            failures.append(f"semantic SVG provider material reference error: {error}")
-    return materials, failures
 
 
-def _ppt_master_provider_facts() -> tuple[dict[str, Any], list[str]]:
-    failures: list[str] = []
-    try:
-        lock = load_json(PPT_MASTER_PROVIDER_LOCK)
-    except Exception as error:
-        return {"lock": {"path": str(PPT_MASTER_PROVIDER_LOCK)}}, [f"PPT Master provider lock could not be read: {error}"]
-    configured_root = os.environ.get("ARTIFACT_PPT_MASTER_ROOT")
-    root = Path(configured_root or "/opt/ordivon/external/ppt-master/current").resolve()
-    python_path = Path(os.path.abspath(os.path.expanduser(os.environ.get("ARTIFACT_PPT_MASTER_PYTHON", str(root / ".venv-exp/bin/python")))))
-    entrypoints = lock.get("entrypoints", {}) if isinstance(lock, dict) else {}
-    quality_checker = root / str(entrypoints.get("qualityChecker", ""))
-    exporter = root / str(entrypoints.get("exporter", ""))
-    expected_commit = str((lock.get("source", {}) if isinstance(lock, dict) else {}).get("commit", ""))
-    observed_commit: str | None = None
-    tracked_worktree_clean = False
-    if not root.is_dir():
-        failures.append(f"PPT Master provider root is unavailable: {root}")
-    else:
-        proc = subprocess.run(
-            ["/usr/bin/git", "-C", str(root), "rev-parse", "HEAD"],
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=False,
-            timeout=20,
-        )
-        if proc.returncode != 0:
-            failures.append("PPT Master provider root is not a readable Git checkout")
-        else:
-            observed_commit = proc.stdout.strip()
-            if observed_commit != expected_commit:
-                failures.append(f"PPT Master provider commit mismatch: expected {expected_commit}, got {observed_commit}")
-            status_proc = subprocess.run(
-                ["/usr/bin/git", "-C", str(root), "status", "--porcelain", "--untracked-files=no"],
-                text=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                check=False,
-                timeout=20,
-            )
-            if status_proc.returncode != 0:
-                failures.append("PPT Master provider tracked-worktree status could not be established")
-            elif status_proc.stdout.strip():
-                failures.append("PPT Master provider tracked worktree differs from the pinned commit")
-            else:
-                tracked_worktree_clean = True
-    for label, path in (("python", python_path), ("qualityChecker", quality_checker), ("exporter", exporter)):
-        if not path.is_file():
-            failures.append(f"PPT Master provider {label} is unavailable: {path}")
-    provider_files = {}
-    for label, path in (("python", python_path), ("qualityChecker", quality_checker), ("exporter", exporter)):
-        if path.is_file():
-            provider_files[label] = file_fact(path)
-    provider = {
-        "providerId": lock.get("providerId") if isinstance(lock, dict) else None,
-        "root": str(root),
-        "expectedCommit": expected_commit,
-        "observedCommit": observed_commit,
-        "python": str(python_path),
-        "qualityChecker": str(quality_checker),
-        "exporter": str(exporter),
-        "files": provider_files,
-        "trackedWorktreeClean": tracked_worktree_clean,
-        "lock": file_fact(PPT_MASTER_PROVIDER_LOCK) if PPT_MASTER_PROVIDER_LOCK.is_file() else {"path": str(PPT_MASTER_PROVIDER_LOCK)},
-    }
-    return provider, failures
 
 
 def build_semantic_svg_presentation_source(
@@ -544,176 +453,24 @@ def build_semantic_svg_presentation_source(
     output_path: Path,
     source_schema_path: Path = DEFAULT_PRESENTATION_SEMANTIC_SVG_SOURCE_SCHEMA,
 ) -> dict[str, Any]:
-    source_result = validate_json_document(source_path, source_schema_path, "presentation-semantic-svg-source")
-    profile_result = validate_profile(profile_path)
-    source = source_result.get("document", {}) if isinstance(source_result, dict) else {}
-    profile = profile_result.get("profile", {}) if isinstance(profile_result, dict) else {}
-    failures: list[str] = []
-    if source_result.get("status") != "PASS":
-        failures.append("semantic SVG presentation source schema did not PASS")
-    if profile_result.get("status") != "PASS":
-        failures.append("delivery profile schema did not PASS")
-    if isinstance(source, dict) and source.get("profileId") != profile.get("id"):
-        failures.append("semantic SVG presentation source profileId does not match selected profile")
-    source_materials, material_failures = _semantic_svg_source_material_facts(source_path, source if isinstance(source, dict) else {})
-    failures.extend(material_failures)
-    provider, provider_failures = _ppt_master_provider_facts()
-    failures.extend(provider_failures)
-    if failures:
-        return {
-            "status": "FAIL",
-            "source": file_fact(source_path),
-            "profile": file_fact(profile_path),
-            "provider": provider,
-            "sourceValidation": source_result,
-            "materials": source_materials,
-            "failures": failures,
-        }
+    return presentation_build_semantic_svg_source(
+        source_path, profile_path, output_path, source_schema_path, hooks=_presentation_build_hooks()
+    )
 
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    quality_receipt: dict[str, Any] = {}
-    export_receipt: dict[str, Any] = {}
-    with tempfile.TemporaryDirectory(prefix="ordivon-artifact-ppt-master-parent-") as temp_dir:
-        project = Path(temp_dir) / "ordivon-artifact-ppt-master-project"
-        project.mkdir()
-        svg_output = project / "svg_output"
-        svg_output.mkdir(parents=True)
-        (project / "validation").mkdir()
-        (project / "exports").mkdir()
-        for index, page in enumerate(source.get("pages", []), start=1):
-            page_path = _resolve_semantic_svg_source_path(source_path, str(page["path"]))
-            destination = svg_output / f"{index:03d}_{page_path.name}"
-            shutil.copyfile(page_path, destination)
-        for item in source.get("materials", []):
-            material_path = _resolve_semantic_svg_source_path(source_path, str(item["path"]))
-            relative = _safe_project_relative_path(str(item["projectRelativePath"]))
-            destination = project.joinpath(*relative.parts)
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(material_path, destination)
-        quality_cmd = [
-            provider["python"],
-            provider["qualityChecker"],
-            str(project),
-            "--quick-generate",
-            "--canonical-authoring",
-            "--stage",
-            "final",
-            "--json",
-        ]
-        quality_proc = subprocess.run(
-            quality_cmd,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=False,
-            timeout=120,
-        )
-        report_path = project / "validation/svg_quality_report.json"
-        quality_receipt = {
-            "returnCode": quality_proc.returncode,
-            "stdoutTail": quality_proc.stdout[-6000:],
-            "stderrTail": quality_proc.stderr[-4000:],
-            "reportDigest": sha256_file(report_path) if report_path.is_file() else None,
-        }
-        if quality_proc.returncode != 0:
-            failures.append("PPT Master semantic SVG quality gate did not PASS")
-        if not failures:
-            export_cmd = [
-                provider["python"],
-                provider["exporter"],
-                str(project),
-                "--quick-generate",
-                "--primary-language",
-                str(source["locale"]),
-                "-t",
-                "none",
-                "-o",
-                str(output_path),
-            ]
-            if bool(source.get("nativeChartsAndTables")):
-                export_cmd.insert(-2, "--native-charts-and-tables")
-            export_proc = subprocess.run(
-                export_cmd,
-                text=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                check=False,
-                timeout=180,
-            )
-            export_receipt = {
-                "returnCode": export_proc.returncode,
-                "stdoutTail": export_proc.stdout[-6000:],
-                "stderrTail": export_proc.stderr[-4000:],
-            }
-            if export_proc.returncode != 0 or not output_path.is_file():
-                failures.append("PPT Master semantic SVG export did not PASS")
-
-    if failures or not output_path.is_file():
-        return {
-            "status": "FAIL",
-            "source": file_fact(source_path),
-            "profile": file_fact(profile_path),
-            "provider": provider,
-            "sourceValidation": source_result,
-            "materials": source_materials,
-            "quality": quality_receipt,
-            "export": export_receipt,
-            "failures": failures or ["primary PPTX output is absent"],
-        }
-    container_normalization = canonicalize_generated_ooxml_metadata(output_path)
-    built = inspect_pptx(output_path, profile.get("semanticPolicy", {}).get("placeholderPatterns", []))
-    semantic = verify_presentation_semantics(profile, built)
-    if built.get("status") != "PASS":
-        failures.append("PPT Master output failed package/relationship inspection")
-    if semantic.get("status") != "PASS":
-        failures.append("PPT Master output failed presentation semantic checks")
-    return {
-        "status": "PASS" if not failures else "FAIL",
-        "source": file_fact(source_path),
-        "profile": file_fact(profile_path),
-        "artifact": file_fact(output_path),
-        "presentationId": source.get("presentationId"),
-        "builder": {
-            "implementation": "ppt-master",
-            "providerId": provider.get("providerId"),
-            "commit": provider.get("observedCommit"),
-        },
-        "provider": provider,
-        "materials": source_materials,
-        "quality": quality_receipt,
-        "export": export_receipt,
-        "containerNormalization": container_normalization,
-        "inspection": built,
-        "semantic": semantic,
-        "failures": failures,
-        "boundary": "Builder PASS establishes digest-bound semantic SVG/material inputs, exact external PPT Master source identity, provider quality-gate success, and native PPTX package/semantic checks. Artifact Open XML SDK, Microsoft PowerPoint target, visual, accessibility and delivery gates remain independent.",
-    }
 
 
 def _admit_presentation_source(source_path: Path) -> tuple[dict[str, Any] | None, list[dict[str, Any]], list[str]]:
-    result = validate_json_document(source_path, DEFAULT_PRESENTATION_SOURCE_SCHEMA, "presentation-source")
-    failures: list[str] = []
-    if result.get("status") != "PASS":
-        failures.append("presentation source did not PASS validation")
-    document = result.get("document", {}) if isinstance(result, dict) else {}
-    materials: list[dict[str, Any]] = []
-    if isinstance(document, dict):
-        materials, material_failures = _presentation_source_material_facts(source_path, document)
-        failures.extend(material_failures)
-    return result, materials, failures
+    return presentation_admit_source(
+        source_path, validate_json_document=validate_json_document, source_schema_path=DEFAULT_PRESENTATION_SOURCE_SCHEMA
+    )
+
 
 
 def _admit_semantic_svg_source(source_path: Path) -> tuple[dict[str, Any] | None, list[dict[str, Any]], list[str]]:
-    result = validate_json_document(source_path, DEFAULT_PRESENTATION_SEMANTIC_SVG_SOURCE_SCHEMA, "presentation-semantic-svg-source")
-    failures: list[str] = []
-    if result.get("status") != "PASS":
-        failures.append("semantic SVG presentation source did not PASS validation")
-    document = result.get("document", {}) if isinstance(result, dict) else {}
-    materials: list[dict[str, Any]] = []
-    if isinstance(document, dict):
-        materials, material_failures = _semantic_svg_source_material_facts(source_path, document)
-        failures.extend(material_failures)
-    return result, materials, failures
+    return presentation_admit_semantic_svg_source(
+        source_path, validate_json_document=validate_json_document, source_schema_path=DEFAULT_PRESENTATION_SEMANTIC_SVG_SOURCE_SCHEMA
+    )
+
 
 
 def validate_delivery_request(
@@ -993,178 +750,20 @@ def verify_document_dependencies(request_path: Path, document: Path, pandoc: Pat
 
 
 
-def _hex_color(value: str):
-    from pptx.dml.color import RGBColor
-    return RGBColor.from_string(value.upper())
 
 
-def _resolve_presentation_template(source_path: Path, template: dict[str, Any]) -> tuple[Path | None, list[str]]:
-    failures: list[str] = []
-    if template.get("format") != "pptx":
-        failures.append("presentation template format must be pptx for the current python-pptx adapter")
-    path_value = template.get("path")
-    digest_value = template.get("sha256")
-    if not isinstance(path_value, str) or not path_value:
-        failures.append("presentation template path is required")
-        return None, failures
-    path = Path(path_value)
-    if not path.is_absolute():
-        path = source_path.resolve().parent / path
-    path = path.resolve()
-    if path.suffix.lower() != ".pptx":
-        failures.append("current presentation template adapter accepts a slide-free .pptx authority; true .potx ingestion is not claimed")
-    if not path.is_file():
-        failures.append(f"presentation template is absent: {path}")
-        return path, failures
-    actual = sha256_file(path)
-    if not isinstance(digest_value, str) or actual != digest_value:
-        failures.append(f"presentation template digest mismatch: expected {digest_value}, got {actual}")
-    return path, failures
 
 
-def _resolve_presentation_image(source_path: Path, element: dict[str, Any]) -> tuple[Path | None, list[str]]:
-    failures: list[str] = []
-    path_value = element.get("path")
-    digest_value = element.get("sha256")
-    if not isinstance(path_value, str) or not path_value:
-        return None, ["presentation image path is required"]
-    path = Path(path_value)
-    if not path.is_absolute():
-        path = source_path.resolve().parent / path
-    path = path.resolve()
-    if path.suffix.lower() not in {".png", ".jpg", ".jpeg"}:
-        failures.append(f"presentation image format is not admitted by v1 raster adapter: {path.suffix.lower()}")
-    if not path.is_file():
-        failures.append(f"presentation image is absent: {path}")
-        return path, failures
-    actual = sha256_file(path)
-    if not isinstance(digest_value, str) or actual != digest_value:
-        failures.append(f"presentation image digest mismatch: expected {digest_value}, got {actual}")
-    try:
-        from PIL import Image
-        with Image.open(path) as image:
-            image.verify()
-    except Exception as error:
-        failures.append(f"presentation image bytes are not a valid admitted raster image: {error}")
-    return path, failures
 
 
-def _presentation_source_material_facts(source_path: Path, source: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
-    materials: list[dict[str, Any]] = []
-    failures: list[str] = []
-    template = source.get("template")
-    if isinstance(template, dict):
-        template_path, template_failures = _resolve_presentation_template(source_path, template)
-        failures.extend(template_failures)
-        if template_path is not None and template_path.is_file() and not template_failures:
-            materials.append(file_fact(template_path))
-    for slide in source.get("slides", []) if isinstance(source.get("slides"), list) else []:
-        for element in slide.get("elements", []) if isinstance(slide.get("elements"), list) else []:
-            if element.get("kind") != "image":
-                continue
-            image_path, image_failures = _resolve_presentation_image(source_path, element)
-            failures.extend(f"{slide.get('id')}/{element.get('id')}: {item}" for item in image_failures)
-            if image_path is not None and image_path.is_file() and not image_failures:
-                fact = file_fact(image_path)
-                if not any(existing.get("path") == fact.get("path") and existing.get("digest") == fact.get("digest") for existing in materials):
-                    materials.append(fact)
-    return materials, failures
 
 
-def _presentation_template_package_fact(path: Path) -> dict[str, Any]:
-    theme_parts: list[dict[str, Any]] = []
-    master_parts: list[dict[str, Any]] = []
-    layout_parts: list[dict[str, Any]] = []
-    with zipfile.ZipFile(path) as package:
-        for name, target in (
-            (r"ppt/theme/theme\d+\.xml", theme_parts),
-            (r"ppt/slideMasters/slideMaster\d+\.xml", master_parts),
-            (r"ppt/slideLayouts/slideLayout\d+\.xml", layout_parts),
-        ):
-            pattern = re.compile(name)
-            for member in sorted(item for item in package.namelist() if pattern.fullmatch(item)):
-                data = package.read(member)
-                target.append({"part": member, "sha256": hashlib.sha256(data).hexdigest(), "size": len(data)})
-    return {
-        "artifact": file_fact(path),
-        "themeParts": theme_parts,
-        "masterParts": master_parts,
-        "layoutParts": layout_parts,
-    }
 
 
-def _presentation_layout_by_id(prs: Any, layout_id: str) -> tuple[Any | None, list[str]]:
-    wanted = layout_id.casefold()
-    matches = [layout for layout in prs.slide_layouts if str(layout.name).casefold() == wanted]
-    if len(matches) == 1:
-        return matches[0], []
-    if not matches:
-        return None, [f"presentation layout not found in selected template/master set: {layout_id}"]
-    return None, [f"presentation layout name is ambiguous in selected template/master set: {layout_id}"]
 
 
-def _presentation_layout_fact(layout: Any) -> dict[str, Any]:
-    master = layout.slide_master
-    placeholders = []
-    for placeholder in layout.placeholders:
-        placeholders.append({
-            "idx": int(placeholder.placeholder_format.idx),
-            "name": str(placeholder.name),
-            "type": str(placeholder.placeholder_format.type),
-        })
-    return {
-        "name": str(layout.name),
-        "part": str(layout.part.partname),
-        "masterPart": str(master.part.partname),
-        "placeholders": placeholders,
-    }
 
 
-def _apply_text_to_shape(shape: Any, element: dict[str, Any], align_map: dict[str, Any]) -> None:
-    from pptx.enum.text import PP_ALIGN
-    from pptx.util import Pt
-
-    frame = shape.text_frame
-    frame.clear()
-    paragraph = frame.paragraphs[0]
-    paragraph.text = element.get("text", "")
-    if element.get("align") is not None:
-        paragraph.alignment = align_map.get(element.get("align"), PP_ALIGN.LEFT)
-    runs = list(paragraph.runs)
-    if not runs:
-        runs = [paragraph.add_run()]
-    for run in runs:
-        if element.get("fontFamily") is not None:
-            run.font.name = element["fontFamily"]
-        if element.get("fontSizePt") is not None:
-            run.font.size = Pt(float(element["fontSizePt"]))
-        if "bold" in element:
-            run.font.bold = bool(element["bold"])
-        if "italic" in element:
-            run.font.italic = bool(element["italic"])
-        if element.get("colorHex"):
-            run.font.color.rgb = _hex_color(str(element["colorHex"]))
-        if element.get("opacity") is not None:
-            opacity = float(element["opacity"])
-            if opacity < 0 or opacity > 1:
-                raise ValueError(f"presentation text opacity must be between 0 and 1: {opacity}")
-            # DrawingML alpha is the standard 0..100000 opacity scalar. python-pptx
-            # creates a distinct run after each soft line break, so every run must
-            # carry the same resolved font/style/alpha rather than styling only the
-            # first run and letting later lines fall back to visible defaults.
-            if opacity < 1:
-                from pptx.oxml.xmlchemy import OxmlElement
-                from pptx.oxml.ns import qn
-                r_pr = run._r.get_or_add_rPr()
-                solid_fill = r_pr.find(qn("a:solidFill"))
-                if solid_fill is None or len(solid_fill) == 0:
-                    raise RuntimeError("text opacity requires a resolved solid font color")
-                color_node = solid_fill[0]
-                for existing in list(color_node.findall(qn("a:alpha"))):
-                    color_node.remove(existing)
-                alpha = OxmlElement("a:alpha")
-                alpha.set("val", str(int(round(opacity * 100000))))
-                color_node.append(alpha)
 
 
 def build_presentation_source(
@@ -1173,189 +772,10 @@ def build_presentation_source(
     output_path: Path,
     source_schema_path: Path = DEFAULT_PRESENTATION_SOURCE_SCHEMA,
 ) -> dict[str, Any]:
-    source_result = validate_json_document(source_path, source_schema_path, "presentation-source")
-    profile_result = validate_profile(profile_path)
-    failures: list[str] = []
-    source = source_result.get("document", {})
-    profile = profile_result.get("profile", {})
-    if source_result.get("status") != "PASS":
-        failures.append("presentation source schema did not PASS")
-    if profile_result.get("status") != "PASS":
-        failures.append("delivery profile schema did not PASS")
-    if source.get("sourceMode") != "native-composition":
-        failures.append("v1 native builder accepts sourceMode=native-composition only")
-    if source.get("profileId") != profile.get("id"):
-        failures.append("presentation source profileId does not match selected profile")
-    if source.get("aspectRatio") != profile.get("aspectRatio"):
-        failures.append("presentation source aspectRatio does not match selected profile")
-    declared_fonts = {str(item.get("family")) for item in profile.get("fonts", [])}
-    width = float(source.get("slideSizeInches", {}).get("width", 0))
-    height = float(source.get("slideSizeInches", {}).get("height", 0))
-    if width <= 0 or height <= 0:
-        failures.append("presentation slide size must be positive")
-    template_path: Path | None = None
-    template_spec = source.get("template")
-    if isinstance(template_spec, dict):
-        template_path, template_failures = _resolve_presentation_template(source_path, template_spec)
-        failures.extend(template_failures)
-    slide_ids: set[str] = set()
-    for slide in source.get("slides", []) if isinstance(source.get("slides"), list) else []:
-        slide_id = str(slide.get("id"))
-        if slide_id in slide_ids:
-            failures.append(f"duplicate slide id: {slide_id}")
-        slide_ids.add(slide_id)
-        if template_path is not None and not slide.get("layoutId"):
-            failures.append(f"template-bound slide requires layoutId: {slide_id}")
-        element_ids: set[str] = set()
-        for element in slide.get("elements", []) if isinstance(slide.get("elements"), list) else []:
-            element_id = str(element.get("id"))
-            if element_id in element_ids:
-                failures.append(f"duplicate element id on {slide_id}: {element_id}")
-            element_ids.add(element_id)
-            kind = element.get("kind")
-            if kind == "text":
-                family = element.get("fontFamily")
-                if family is not None and str(family) not in declared_fonts:
-                    failures.append(f"undeclared font family on {slide_id}/{element_id}: {family}")
-                if element.get("opacity") is not None and element.get("colorHex") is None:
-                    failures.append(f"text opacity requires explicit colorHex on {slide_id}/{element_id}")
-                needs_box = element.get("placeholderIdx") is None
-            elif kind == "image":
-                _, image_failures = _resolve_presentation_image(source_path, element)
-                failures.extend(f"{slide_id}/{element_id}: {item}" for item in image_failures)
-                needs_box = True
-            else:
-                failures.append(f"unsupported presentation element kind on {slide_id}/{element_id}: {kind}")
-                needs_box = False
-            if needs_box:
-                box = element.get("box", {})
-                x, y, w, h = (float(box.get(key, 0)) for key in ("x", "y", "w", "h"))
-                if x < 0 or y < 0 or w <= 0 or h <= 0 or x + w > width + 1e-6 or y + h > height + 1e-6:
-                    failures.append(f"out-of-bounds box on {slide_id}/{element_id}")
-    if failures:
-        return {
-            "status": "FAIL",
-            "source": file_fact(source_path),
-            "profile": file_fact(profile_path),
-            "failures": failures,
-        }
-    from pptx import Presentation
-    from pptx.enum.text import PP_ALIGN
-    from pptx.util import Inches
+    return presentation_build_source(
+        source_path, profile_path, output_path, source_schema_path, hooks=_presentation_build_hooks()
+    )
 
-    align_map = {
-        "left": PP_ALIGN.LEFT,
-        "center": PP_ALIGN.CENTER,
-        "right": PP_ALIGN.RIGHT,
-        "justify": PP_ALIGN.JUSTIFY,
-    }
-    prs = Presentation(str(template_path)) if template_path is not None else Presentation()
-    template_fact: dict[str, Any] | None = None
-    if template_path is not None:
-        if len(prs.slides) != 0:
-            failures.append("presentation template authority must contain zero slides in v1 to prevent sample-slide contamination")
-        template_width = float(prs.slide_width) / 914400.0
-        template_height = float(prs.slide_height) / 914400.0
-        if abs(template_width - width) > 1e-5 or abs(template_height - height) > 1e-5:
-            failures.append(
-                f"presentation template slide size mismatch: template={template_width:.6f}x{template_height:.6f}, source={width:.6f}x{height:.6f}"
-            )
-        template_fact = _presentation_template_package_fact(template_path)
-    else:
-        prs.slide_width = Inches(width)
-        prs.slide_height = Inches(height)
-    layout_bindings: list[dict[str, Any]] = []
-    planned: list[tuple[dict[str, Any], Any]] = []
-    for slide_spec in source.get("slides", []):
-        layout_id = str(slide_spec.get("layoutId") or "Blank")
-        layout, layout_failures = _presentation_layout_by_id(prs, layout_id)
-        failures.extend(f"{slide_spec.get('id')}: {item}" for item in layout_failures)
-        if layout is None:
-            continue
-        placeholder_indices = {int(p.placeholder_format.idx): p for p in layout.placeholders}
-        for element in slide_spec.get("elements", []):
-            if element.get("kind") == "text" and element.get("placeholderIdx") is not None:
-                idx = int(element["placeholderIdx"])
-                placeholder = placeholder_indices.get(idx)
-                if placeholder is None:
-                    failures.append(f"{slide_spec.get('id')}/{element.get('id')}: placeholder idx {idx} is absent from layout {layout.name}")
-                elif not placeholder.has_text_frame:
-                    failures.append(f"{slide_spec.get('id')}/{element.get('id')}: placeholder idx {idx} on layout {layout.name} has no text frame")
-        planned.append((slide_spec, layout))
-        layout_bindings.append({"slideId": slide_spec.get("id"), "layout": _presentation_layout_fact(layout)})
-    if failures:
-        return {
-            "status": "FAIL",
-            "source": file_fact(source_path),
-            "profile": file_fact(profile_path),
-            "template": template_fact,
-            "layoutBindings": layout_bindings,
-            "failures": failures,
-        }
-    media_bindings: list[dict[str, Any]] = []
-    for slide_spec, layout in planned:
-        slide = prs.slides.add_slide(layout)
-        placeholders = {int(p.placeholder_format.idx): p for p in slide.placeholders}
-        for element in slide_spec.get("elements", []):
-            kind = element.get("kind")
-            if kind == "text":
-                if element.get("placeholderIdx") is not None:
-                    shape = placeholders[int(element["placeholderIdx"])]
-                    _apply_text_to_shape(shape, element, align_map)
-                else:
-                    box = element["box"]
-                    shape = slide.shapes.add_textbox(Inches(box["x"]), Inches(box["y"]), Inches(box["w"]), Inches(box["h"]))
-                    _apply_text_to_shape(shape, element, align_map)
-            elif kind == "image":
-                image_path, image_failures = _resolve_presentation_image(source_path, element)
-                if image_failures or image_path is None:
-                    raise RuntimeError(f"presentation image binding changed after validation: {image_failures}")
-                box = element["box"]
-                shape = slide.shapes.add_picture(str(image_path), Inches(box["x"]), Inches(box["y"]), Inches(box["w"]), Inches(box["h"]))
-                # python-pptx exposes native descr metadata but does not provide a stable high-level
-                # setter for decorative state. Preserve user-authored accessibility intent in the
-                # receipt and use descr for non-decorative images; accessibility remains an
-                # independent target gate rather than being inferred from this field alone.
-                if not bool(element.get("decorative")) and element.get("altText"):
-                    cNvPr = shape._element.xpath('.//p:cNvPr')[0]
-                    cNvPr.set('descr', str(element["altText"]))
-                media_bindings.append({
-                    "slideId": slide_spec.get("id"),
-                    "elementId": element.get("id"),
-                    "artifact": file_fact(image_path),
-                    "decorative": bool(element.get("decorative")),
-                    "altText": element.get("altText"),
-                    "shapeId": int(shape.shape_id),
-                })
-            else:
-                raise RuntimeError(f"unsupported presentation element kind: {kind}")
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    prs.save(output_path)
-    container_normalization = normalize_zip_member_timestamps(output_path)
-    built = inspect_pptx(output_path, profile.get("semanticPolicy", {}).get("placeholderPatterns", []))
-    semantic = verify_presentation_semantics(profile, built)
-    post_failures: list[str] = []
-    if built.get("status") != "PASS":
-        post_failures.append("built PPTX failed package/relationship inspection")
-    if semantic.get("status") != "PASS":
-        post_failures.append("built PPTX failed presentation semantic checks")
-    return {
-        "status": "PASS" if not post_failures else "FAIL",
-        "source": file_fact(source_path),
-        "profile": file_fact(profile_path),
-        "artifact": file_fact(output_path),
-        "presentationId": source.get("presentationId"),
-        "slideCount": len(source.get("slides", [])),
-        "builder": {"implementation": "python-pptx", "version": importlib.metadata.version("python-pptx")},
-        "containerNormalization": container_normalization,
-        "template": template_fact,
-        "layoutBindings": layout_bindings,
-        "mediaBindings": media_bindings,
-        "inspection": built,
-        "semantic": semantic,
-        "failures": post_failures,
-        "boundary": "Builder PASS establishes source/profile binding plus native PPTX package/semantic checks. Open XML SDK, target PowerPoint, visual, accessibility and delivery gates remain independent.",
-    }
 
 
 
