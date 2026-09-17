@@ -597,6 +597,15 @@ class DelegationEnvelopeStore:
             )
         return value
 
+    def get(self, delegation_id: str) -> DelegationEnvelope:
+        row = self._connection.execute(
+            "SELECT * FROM delegation_envelopes WHERE id = ?",
+            (delegation_id,),
+        ).fetchone()
+        if row is None:
+            raise KeyError(delegation_id)
+        return self._from_row(row)
+
     def get_by_client_id(
         self, client_delegation_id: str, required: bool = True
     ) -> DelegationEnvelope | None:
