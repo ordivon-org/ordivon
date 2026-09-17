@@ -71,7 +71,7 @@ These constraints say what may be **claimed or executed**, not what may be imagi
 
 ## 4. Mechanism-combination experience library
 
-`standards/game_domain_package_graph_r1.json` contains `mechanismCombinationPatterns` distilled from the twelve-game comparative teardown.
+`standards/game_domain_package_graph_r1.json` keeps only a compact `mechanismCombinationPatterns` layer distilled from the earlier twelve-game comparative teardown. Fine-grained experience is externalized to `standards/game_mechanism_experience_library_r1.json` and documented by `GAME_MECHANISM_EXPERIENCE_LIBRARY_R1.md`, so the architecture graph remains small instead of becoming a mechanic ontology.
 
 Examples include:
 
@@ -139,7 +139,8 @@ It reports:
 
 - known vs unmodeled elements;
 - optional Skill lenses;
-- relevant teardown-derived pattern analogies;
+- relevant teardown-derived coarse pattern analogies;
+- fine-grained Mechanism Experience matches with confounds, transfer risks, falsifiers and cheap probes;
 - epistemic fences;
 - claim-specific evidence requirements;
 - authority/effect boundaries when the requested intent crosses them.

@@ -2858,6 +2858,33 @@
       "canCreateGameHardConstraint": false,
       "retrievedOn": "2026-09-18",
       "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "organization": "Wube Software",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "factorio-fff-160",
+      "title": "Factorio Friday Facts #160 — Playtesting",
+      "url": "https://www.factorio.com/blog/post/fff-160",
+      "scope": [
+        "full-run playtesting",
+        "scope saturation",
+        "progression phases"
+      ],
+      "extractedIdeas": [
+        "a full start-to-finish playthrough exposed cumulative content density that incremental feature work obscured",
+        "the team concluded more vanilla content risked excessive size/complexity and shifted attention toward optimizations and contextual teaching"
+      ],
+      "candidateUses": [
+        "full-run scope audit",
+        "content saturation pattern",
+        "progression-phase observation"
+      ],
+      "evidenceLimit": "One internal developer playthrough cannot establish newcomer overload or general player value; it is primary production/design evidence for what the team observed and changed."
     }
   ],
   "gaps": {

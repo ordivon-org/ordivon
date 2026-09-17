@@ -5,6 +5,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const PROJECT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const GRAPH_PATH = "standards/game_domain_package_graph_r1.json";
+const EXPERIENCE_PATH = "standards/game_mechanism_experience_library_r1.json";
 
 export type ExploreIntent = "explore" | "claim-human-value" | "external-effect" | "replace-provider";
 
@@ -64,6 +65,35 @@ export type CreativeGraph = {
 
 type PatternMatch = Pattern & { matchedMechanisms: string[] };
 
+export type MechanismExperience = {
+  id: string;
+  referenceGame: string;
+  kind: string;
+  mechanisms: string[];
+  designProblem: string;
+  interaction: string;
+  playerDecisionHypothesis: string;
+  observedContext: string;
+  confounds: string[];
+  transferRisks: string[];
+  falsifier: string;
+  cheapProbe: string;
+  sourceRefs: string[];
+  authority: "ADVISORY_HYPOTHESIS";
+  inferenceLevel: "SOURCE_GROUNDED_HYPOTHESIS";
+  humanOutcomeEstablished: false;
+  canBlockNovelCombination: false;
+  tags: string[];
+};
+
+export type MechanismExperienceLibrary = {
+  libraryId: string;
+  experiences: MechanismExperience[];
+  __sourceDigest?: string;
+};
+
+type ExperienceMatch = MechanismExperience & { matchedMechanisms: string[] };
+
 export type CreativeTrace = {
   schemaVersion: 1;
   kind: "ordivon.game.composition-exploration-trace";
@@ -83,6 +113,12 @@ export type CreativeTrace = {
   novelUnmodeledElements: string[];
   advisorySkills: AdvisorySkill[];
   patternMatches: PatternMatch[];
+  experienceLibrary: {
+    libraryId: string;
+    sourcePath: string;
+    sourceDigest: string;
+  };
+  experienceMatches: ExperienceMatch[];
   epistemicFences: string[];
   requiredEvidenceClasses: string[];
   disposition: "OPEN_EXPLORATION" | "EVIDENCE_NOT_TRANSFERABLE" | "EXTERNAL_EFFECT_BLOCKED" | "AUTHORITY_REQUIRED";
@@ -106,6 +142,13 @@ export function loadGameCreativeGraph(root = PROJECT_ROOT): CreativeGraph {
   return graph;
 }
 
+export function loadMechanismExperienceLibrary(root = PROJECT_ROOT): MechanismExperienceLibrary {
+  const source = readFileSync(resolve(root, EXPERIENCE_PATH), "utf8");
+  const library = JSON.parse(source) as MechanismExperienceLibrary;
+  Object.defineProperty(library, "__sourceDigest", { value: sha256(source), enumerable: false });
+  return library;
+}
+
 function validateRequest(request: ExploreRequest, graph: CreativeGraph): void {
   if (request.elements.length === 0) throw new Error("Composition exploration requires at least one element");
   const evidenceIds = new Set(graph.evidenceClasses.map((item) => item.id));
@@ -122,7 +165,19 @@ function patternMatches(mechanisms: string[], patterns: Pattern[]): PatternMatch
     .sort((a, b) => b.matchedMechanisms.length - a.matchedMechanisms.length || a.id.localeCompare(b.id));
 }
 
-export function exploreGameComposition(request: ExploreRequest, graph = loadGameCreativeGraph()): CreativeTrace {
+function experienceMatches(mechanisms: string[], experiences: MechanismExperience[]): ExperienceMatch[] {
+  const requested = new Set(mechanisms);
+  return experiences
+    .map((experience) => ({ ...experience, matchedMechanisms: experience.mechanisms.filter((mechanism) => requested.has(mechanism)) }))
+    .filter((experience) => experience.matchedMechanisms.length > 0)
+    .sort((a, b) => b.matchedMechanisms.length - a.matchedMechanisms.length || a.id.localeCompare(b.id));
+}
+
+export function exploreGameComposition(
+  request: ExploreRequest,
+  graph = loadGameCreativeGraph(),
+  experienceLibrary = loadMechanismExperienceLibrary(),
+): CreativeTrace {
   validateRequest(request, graph);
   const mechanisms = unique(request.mechanisms ?? []);
   const evidenceClasses = unique(request.evidenceClasses ?? []);
@@ -162,8 +217,8 @@ export function exploreGameComposition(request: ExploreRequest, graph = loadGame
   const notes = [
     graph.creativePolicy.creativeCombinationRule,
     graph.creativePolicy.unknownRule,
-    "Pattern matches are analogies/hypotheses from prior teardowns, not recipes, rankings, or rejection rules.",
-    "Evidence attached to components is not inherited by the new composition; emergent behavior may differ in either direction.",
+    "Pattern matches are broad analogies from prior teardowns; Experience matches are finer source-grounded interaction hypotheses with cheap falsifiers. Neither is a recipe, ranking, recommendation, or rejection rule.",
+    "Evidence attached to components or reference games is not inherited by the new composition; emergent behavior may differ in either direction.",
   ];
   if (novelUnmodeledElements.length > 0) {
     notes.push("Unmodeled elements were preserved verbatim as exploration inputs instead of rejected by the graph.");
@@ -183,6 +238,12 @@ export function exploreGameComposition(request: ExploreRequest, graph = loadGame
     novelUnmodeledElements,
     advisorySkills: [...graph.advisorySkills],
     patternMatches: patternMatches(mechanisms, graph.mechanismCombinationPatterns),
+    experienceLibrary: {
+      libraryId: experienceLibrary.libraryId,
+      sourcePath: EXPERIENCE_PATH,
+      sourceDigest: experienceLibrary.__sourceDigest ?? sha256(JSON.stringify(experienceLibrary)),
+    },
+    experienceMatches: experienceMatches(mechanisms, experienceLibrary.experiences),
     epistemicFences,
     requiredEvidenceClasses: unique(requiredEvidenceClasses),
     disposition,

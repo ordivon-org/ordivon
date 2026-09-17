@@ -2311,5 +2311,13 @@
       "falsifier": "Compare with matched non-spatial rhythm control; if anticipation, motor learning or replay intent do not change, transfer is weak.",
       "canBlockNovelCombination": false
     }
-  ]
+  ],
+  "mechanismExperienceLibrary": {
+    "id": "ordivon-game-mechanism-experience-library-r1",
+    "path": "standards/game_mechanism_experience_library_r1.json",
+    "authority": "ADVISORY_HYPOTHESIS_MEMORY",
+    "embeddedInGraph": false,
+    "canBlockNovelCombination": false,
+    "purpose": "Fine-grained source-grounded mechanism interactions, tensions, inversions, substitutions, failure modes, production responses and cheap falsifiers. Kept external to the domain graph so accumulated experience does not become a closed ontology."
+  }
 }

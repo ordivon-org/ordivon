@@ -35,6 +35,7 @@
     "context:current-direction": "node scripts/current-direction-context.ts",
     "explore:composition": "node scripts/composition-explorer.ts",
     "knowledge:external": "node scripts/external-knowledge-query.ts",
+    "knowledge:mechanisms": "node scripts/mechanism-experience-query.ts",
     "context:v3:product-value": "node experiments/station-zero-v3/scripts/product-value-context.ts",
     "eval:v3:external-provider": "node experiments/station-zero-v3/scripts/eval-station-zero-v3-external-provider.ts"
   },
