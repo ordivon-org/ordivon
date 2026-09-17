@@ -88,7 +88,7 @@ Do not reduce the report to that exit code. Inspect at least:
 - suppressed findings when they materially affect interpretation;
 - whether LLM analysis was requested/available if the claim depends on semantic scanning.
 
-A `SAFE`/low aggregate summary cannot erase a high-severity individual issue. Partial analysis cannot be described as complete. Recursive collection summaries may carry less per-Skill detail than single-Skill JSON, so use per-Skill scans for admission evidence when that distinction matters.
+A `SAFE`/low aggregate summary cannot erase a high-severity individual issue. Partial analysis cannot be described as complete. Recursive collection summaries may carry less detail than single-Skill JSON, so prefer one-Skill-at-a-time scans for admission evidence when that distinction matters.
 
 ## 5. Classify the result without creating a trust oracle
 
