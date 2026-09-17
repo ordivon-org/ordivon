@@ -4,7 +4,7 @@
   "generatedOn": "2026-09-18",
   "sourceLibrary": {
     "path": "standards/game_mechanism_experience_library_r1.json",
-    "digest": "sha256:ca26d3b7971fcae26d04d73d536f37d292c02323b01097b2b99653b823433c87",
+    "digest": "sha256:b19ff73ad4aa415bfe5941f2cb7b1b80b6a9d4be6fb9cf130dfa03a1e3b1fe6b",
     "libraryId": "ordivon-game-mechanism-experience-library-r1"
   },
   "sourceSpec": {
@@ -218,6 +218,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "automatic-deduplication",
+      "experienceRefs": [
+        "exp.factorio.noise-procedure-abstraction-removed"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "SUBSTITUTION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "balance-metrics",
       "experienceRefs": [
         "exp.sts.telemetry-plus-judgement"
@@ -317,6 +332,21 @@
       ],
       "relationKinds": [
         "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "buildcraft-decision",
+      "experienceRefs": [
+        "exp.destiny2.unstable-cores-friction-without-buildcraft"
+      ],
+      "referenceGames": [
+        "Destiny 2"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -617,6 +647,36 @@
       ],
       "relationKinds": [
         "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "compatibility-baggage",
+      "experienceRefs": [
+        "exp.destiny2.legendary-shards-economy-baggage"
+      ],
+      "referenceGames": [
+        "Destiny 2"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "compiler-complexity",
+      "experienceRefs": [
+        "exp.factorio.noise-procedure-abstraction-removed"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "SUBSTITUTION"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -1043,6 +1103,36 @@
       "closedVocabulary": false
     },
     {
+      "id": "cross-procedure-dependency",
+      "experienceRefs": [
+        "exp.factorio.noise-procedure-abstraction-removed"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "SUBSTITUTION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "crosscutting-architecture",
+      "experienceRefs": [
+        "exp.subnautica.multiplayer-late-addition-crosscuts-architecture"
+      ],
+      "referenceGames": [
+        "Subnautica"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "curiosity-hook",
       "experienceRefs": [
         "exp.outerwilds.curiosity-instead-of-missions"
@@ -1067,6 +1157,36 @@
       ],
       "relationKinds": [
         "REPRESENTATION_COUPLING"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "currency-deprecation",
+      "experienceRefs": [
+        "exp.destiny2.unstable-cores-friction-without-buildcraft"
+      ],
+      "referenceGames": [
+        "Destiny 2"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "currency-phaseout",
+      "experienceRefs": [
+        "exp.destiny2.legendary-shards-economy-baggage"
+      ],
+      "referenceGames": [
+        "Destiny 2"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -1298,6 +1418,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "economy-migration",
+      "experienceRefs": [
+        "exp.destiny2.legendary-shards-economy-baggage"
+      ],
+      "referenceGames": [
+        "Destiny 2"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "editor-iteration",
       "experienceRefs": [
         "exp.baba.data-structure-enables-design-space"
@@ -1424,6 +1559,21 @@
       ],
       "referenceGames": [
         "Baba Is You"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "expression-tree-unification",
+      "experienceRefs": [
+        "exp.factorio.autoplace-fragmented-generator-to-unified-expression"
+      ],
+      "referenceGames": [
+        "Factorio"
       ],
       "relationKinds": [
         "PRODUCTION_RESPONSE"
@@ -1628,6 +1778,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "fixed-role-ratio",
+      "experienceRefs": [
+        "exp.overwatch.role-queue-solved-composition-created-population-bottleneck"
+      ],
+      "referenceGames": [
+        "Overwatch / Overwatch 2"
+      ],
+      "relationKinds": [
+        "TENSION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "flat-navigation",
       "experienceRefs": [
         "exp.factorio.gui-duplication-and-nested-tabs"
@@ -1733,6 +1898,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "fragmented-representations",
+      "experienceRefs": [
+        "exp.factorio.autoplace-fragmented-generator-to-unified-expression"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "franchise-expectations",
       "experienceRefs": [
         "exp.bg3.vision-vs-inherited-expectations"
@@ -1754,6 +1934,21 @@
       ],
       "referenceGames": [
         "Artifact / Artifact Foundry"
+      ],
+      "relationKinds": [
+        "TENSION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "free-role-selection",
+      "experienceRefs": [
+        "exp.overwatch.role-flexibility-externalized-social-negotiation"
+      ],
+      "referenceGames": [
+        "Overwatch"
       ],
       "relationKinds": [
         "TENSION"
@@ -2288,6 +2483,36 @@
       "closedVocabulary": false
     },
     {
+      "id": "incidental-users",
+      "experienceRefs": [
+        "exp.overwatch.leaver-xp-penalty-missed-target"
+      ],
+      "referenceGames": [
+        "Overwatch 2"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "infusion-currency",
+      "experienceRefs": [
+        "exp.destiny2.unstable-cores-friction-without-buildcraft"
+      ],
+      "referenceGames": [
+        "Destiny 2"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "input-buffering",
       "experienceRefs": [
         "exp.deadcells.micro-control-details"
@@ -2312,6 +2537,21 @@
       ],
       "relationKinds": [
         "SUBSTITUTION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "intent-mismatch",
+      "experienceRefs": [
+        "exp.overwatch.leaver-xp-penalty-missed-target"
+      ],
+      "referenceGames": [
+        "Overwatch 2"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -2453,6 +2693,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "late-multiplayer-addition",
+      "experienceRefs": [
+        "exp.subnautica.multiplayer-late-addition-crosscuts-architecture"
+      ],
+      "referenceGames": [
+        "Subnautica"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "later-open-problems",
       "experienceRefs": [
         "exp.pikmin4.train-planning-before-breadth"
@@ -2483,6 +2738,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "leaver-behavior",
+      "experienceRefs": [
+        "exp.overwatch.leaver-xp-penalty-missed-target"
+      ],
+      "referenceGames": [
+        "Overwatch 2"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "legacy-product-vision",
       "experienceRefs": [
         "exp.overwatch.old-vision-starved-live-game"
@@ -2492,6 +2762,21 @@
       ],
       "relationKinds": [
         "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "legacy-universal-currency",
+      "experienceRefs": [
+        "exp.destiny2.legendary-shards-economy-baggage"
+      ],
+      "referenceGames": [
+        "Destiny 2"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -3053,6 +3338,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "noise-procedures",
+      "experienceRefs": [
+        "exp.factorio.noise-procedure-abstraction-removed"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "SUBSTITUTION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "non-skill-test-outcomes",
       "experienceRefs": [
         "exp.rimworld.story-generator-framing"
@@ -3218,6 +3518,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "optional-coop",
+      "experienceRefs": [
+        "exp.subnautica.multiplayer-late-addition-crosscuts-architecture"
+      ],
+      "referenceGames": [
+        "Subnautica"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "optional-dialogue-engagement",
       "experienceRefs": [
         "exp.hades.optional-narrative-depth"
@@ -3287,6 +3602,21 @@
       ],
       "relationKinds": [
         "SYNERGY"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "pathological-generation",
+      "experienceRefs": [
+        "exp.factorio.autoplace-fragmented-generator-to-unified-expression"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -3593,6 +3923,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "pre-match-negotiation",
+      "experienceRefs": [
+        "exp.overwatch.role-flexibility-externalized-social-negotiation"
+      ],
+      "referenceGames": [
+        "Overwatch"
+      ],
+      "relationKinds": [
+        "TENSION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "precise-controls",
       "experienceRefs": [
         "exp.deadcells.hidden-forgiveness-precision"
@@ -3626,6 +3971,21 @@
       "id": "previously-rejected-complexity",
       "experienceRefs": [
         "exp.factorio.reopen-old-solution-after-system-change"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "procedural-autoplace",
+      "experienceRefs": [
+        "exp.factorio.autoplace-fragmented-generator-to-unified-expression"
       ],
       "referenceGames": [
         "Factorio"
@@ -3722,6 +4082,21 @@
       ],
       "relationKinds": [
         "TENSION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "progression-friction",
+      "experienceRefs": [
+        "exp.destiny2.unstable-cores-friction-without-buildcraft"
+      ],
+      "referenceGames": [
+        "Destiny 2"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -3842,6 +4217,36 @@
       ],
       "relationKinds": [
         "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "queue-suspension",
+      "experienceRefs": [
+        "exp.overwatch.leaver-xp-penalty-missed-target"
+      ],
+      "referenceGames": [
+        "Overwatch 2"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "queue-time-bottleneck",
+      "experienceRefs": [
+        "exp.overwatch.role-queue-solved-composition-created-population-bottleneck"
+      ],
+      "referenceGames": [
+        "Overwatch / Overwatch 2"
+      ],
+      "relationKinds": [
+        "TENSION"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -3998,6 +4403,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "release-delay",
+      "experienceRefs": [
+        "exp.subnautica.multiplayer-late-addition-crosscuts-architecture"
+      ],
+      "referenceGames": [
+        "Subnautica"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "relic-synergy",
       "experienceRefs": [
         "exp.sts.balance-not-universal-equality"
@@ -4105,6 +4525,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "resource-placement-control",
+      "experienceRefs": [
+        "exp.factorio.autoplace-fragmented-generator-to-unified-expression"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "resource-pressure",
       "experienceRefs": [
         "exp.frostpunk.systems-carry-authorial-meaning"
@@ -4191,6 +4626,38 @@
         "SYNERGY"
       ],
       "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "role-population-imbalance",
+      "experienceRefs": [
+        "exp.overwatch.role-queue-solved-composition-created-population-bottleneck"
+      ],
+      "referenceGames": [
+        "Overwatch / Overwatch 2"
+      ],
+      "relationKinds": [
+        "TENSION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "role-queue",
+      "experienceRefs": [
+        "exp.overwatch.role-flexibility-externalized-social-negotiation",
+        "exp.overwatch.role-queue-solved-composition-created-population-bottleneck"
+      ],
+      "referenceGames": [
+        "Overwatch",
+        "Overwatch / Overwatch 2"
+      ],
+      "relationKinds": [
+        "TENSION"
+      ],
+      "appearanceCount": 2,
       "authority": "RETRIEVAL_INDEX_ONLY",
       "closedVocabulary": false
     },
@@ -4585,6 +5052,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "simpler-noise-program",
+      "experienceRefs": [
+        "exp.factorio.noise-procedure-abstraction-removed"
+      ],
+      "referenceGames": [
+        "Factorio"
+      ],
+      "relationKinds": [
+        "SUBSTITUTION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "simulation-events",
       "experienceRefs": [
         "exp.rimworld.story-generator-framing"
@@ -4609,6 +5091,21 @@
       ],
       "relationKinds": [
         "REPRESENTATION_COUPLING"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "single-player-commitment",
+      "experienceRefs": [
+        "exp.subnautica.multiplayer-late-addition-crosscuts-architecture"
+      ],
+      "referenceGames": [
+        "Subnautica"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -4699,6 +5196,21 @@
       ],
       "relationKinds": [
         "SYNERGY"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "social-pressure",
+      "experienceRefs": [
+        "exp.overwatch.role-flexibility-externalized-social-negotiation"
+      ],
+      "referenceGames": [
+        "Overwatch"
+      ],
+      "relationKinds": [
+        "TENSION"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -5200,6 +5712,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "team-composition",
+      "experienceRefs": [
+        "exp.overwatch.role-flexibility-externalized-social-negotiation"
+      ],
+      "referenceGames": [
+        "Overwatch"
+      ],
+      "relationKinds": [
+        "TENSION"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "team-health",
       "experienceRefs": [
         "exp.belowzero.roadmap-became-feature-commitment-pressure"
@@ -5209,6 +5736,21 @@
       ],
       "relationKinds": [
         "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "team-size-change",
+      "experienceRefs": [
+        "exp.overwatch.role-queue-solved-composition-created-population-bottleneck"
+      ],
+      "referenceGames": [
+        "Overwatch / Overwatch 2"
+      ],
+      "relationKinds": [
+        "TENSION"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -5485,6 +6027,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "vendor-costs",
+      "experienceRefs": [
+        "exp.destiny2.legendary-shards-economy-baggage"
+      ],
+      "referenceGames": [
+        "Destiny 2"
+      ],
+      "relationKinds": [
+        "PRODUCTION_RESPONSE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "viewport-redesign",
       "experienceRefs": [
         "exp.papersplease.port-meal-not-plate"
@@ -5575,6 +6132,21 @@
       "closedVocabulary": false
     },
     {
+      "id": "weapon-experimentation",
+      "experienceRefs": [
+        "exp.destiny2.unstable-cores-friction-without-buildcraft"
+      ],
+      "referenceGames": [
+        "Destiny 2"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
       "id": "weapon-slot-rules",
       "experienceRefs": [
         "exp.destiny2.foundation-reversal-weapon-slot-ammo"
@@ -5614,6 +6186,21 @@
       ],
       "relationKinds": [
         "SYNERGY"
+      ],
+      "appearanceCount": 1,
+      "authority": "RETRIEVAL_INDEX_ONLY",
+      "closedVocabulary": false
+    },
+    {
+      "id": "xp-penalty",
+      "experienceRefs": [
+        "exp.overwatch.leaver-xp-penalty-missed-target"
+      ],
+      "referenceGames": [
+        "Overwatch 2"
+      ],
+      "relationKinds": [
+        "FAILURE_MODE"
       ],
       "appearanceCount": 1,
       "authority": "RETRIEVAL_INDEX_ONLY",
@@ -12364,6 +12951,886 @@
       "experienceRef": "exp.destiny2.foundation-reversal-weapon-slot-ammo",
       "referenceGame": "Destiny 2: Forsaken",
       "relationKind": "SUBSTITUTION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.subnautica.multiplayer-late-addition-crosscuts-architecture.late-multiplayer-addition::optional-coop",
+      "a": "late-multiplayer-addition",
+      "b": "optional-coop",
+      "experienceRef": "exp.subnautica.multiplayer-late-addition-crosscuts-architecture",
+      "referenceGame": "Subnautica",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.subnautica.multiplayer-late-addition-crosscuts-architecture.crosscutting-architecture::optional-coop",
+      "a": "crosscutting-architecture",
+      "b": "optional-coop",
+      "experienceRef": "exp.subnautica.multiplayer-late-addition-crosscuts-architecture",
+      "referenceGame": "Subnautica",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.subnautica.multiplayer-late-addition-crosscuts-architecture.optional-coop::release-delay",
+      "a": "optional-coop",
+      "b": "release-delay",
+      "experienceRef": "exp.subnautica.multiplayer-late-addition-crosscuts-architecture",
+      "referenceGame": "Subnautica",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.subnautica.multiplayer-late-addition-crosscuts-architecture.optional-coop::single-player-commitment",
+      "a": "optional-coop",
+      "b": "single-player-commitment",
+      "experienceRef": "exp.subnautica.multiplayer-late-addition-crosscuts-architecture",
+      "referenceGame": "Subnautica",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.subnautica.multiplayer-late-addition-crosscuts-architecture.crosscutting-architecture::late-multiplayer-addition",
+      "a": "crosscutting-architecture",
+      "b": "late-multiplayer-addition",
+      "experienceRef": "exp.subnautica.multiplayer-late-addition-crosscuts-architecture",
+      "referenceGame": "Subnautica",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.subnautica.multiplayer-late-addition-crosscuts-architecture.late-multiplayer-addition::release-delay",
+      "a": "late-multiplayer-addition",
+      "b": "release-delay",
+      "experienceRef": "exp.subnautica.multiplayer-late-addition-crosscuts-architecture",
+      "referenceGame": "Subnautica",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.subnautica.multiplayer-late-addition-crosscuts-architecture.late-multiplayer-addition::single-player-commitment",
+      "a": "late-multiplayer-addition",
+      "b": "single-player-commitment",
+      "experienceRef": "exp.subnautica.multiplayer-late-addition-crosscuts-architecture",
+      "referenceGame": "Subnautica",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.subnautica.multiplayer-late-addition-crosscuts-architecture.crosscutting-architecture::release-delay",
+      "a": "crosscutting-architecture",
+      "b": "release-delay",
+      "experienceRef": "exp.subnautica.multiplayer-late-addition-crosscuts-architecture",
+      "referenceGame": "Subnautica",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.subnautica.multiplayer-late-addition-crosscuts-architecture.crosscutting-architecture::single-player-commitment",
+      "a": "crosscutting-architecture",
+      "b": "single-player-commitment",
+      "experienceRef": "exp.subnautica.multiplayer-late-addition-crosscuts-architecture",
+      "referenceGame": "Subnautica",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.subnautica.multiplayer-late-addition-crosscuts-architecture.release-delay::single-player-commitment",
+      "a": "release-delay",
+      "b": "single-player-commitment",
+      "experienceRef": "exp.subnautica.multiplayer-late-addition-crosscuts-architecture",
+      "referenceGame": "Subnautica",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.role-flexibility-externalized-social-negotiation.free-role-selection::pre-match-negotiation",
+      "a": "free-role-selection",
+      "b": "pre-match-negotiation",
+      "experienceRef": "exp.overwatch.role-flexibility-externalized-social-negotiation",
+      "referenceGame": "Overwatch",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.role-flexibility-externalized-social-negotiation.free-role-selection::social-pressure",
+      "a": "free-role-selection",
+      "b": "social-pressure",
+      "experienceRef": "exp.overwatch.role-flexibility-externalized-social-negotiation",
+      "referenceGame": "Overwatch",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.role-flexibility-externalized-social-negotiation.free-role-selection::team-composition",
+      "a": "free-role-selection",
+      "b": "team-composition",
+      "experienceRef": "exp.overwatch.role-flexibility-externalized-social-negotiation",
+      "referenceGame": "Overwatch",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.role-flexibility-externalized-social-negotiation.free-role-selection::role-queue",
+      "a": "free-role-selection",
+      "b": "role-queue",
+      "experienceRef": "exp.overwatch.role-flexibility-externalized-social-negotiation",
+      "referenceGame": "Overwatch",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.role-flexibility-externalized-social-negotiation.pre-match-negotiation::social-pressure",
+      "a": "pre-match-negotiation",
+      "b": "social-pressure",
+      "experienceRef": "exp.overwatch.role-flexibility-externalized-social-negotiation",
+      "referenceGame": "Overwatch",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.role-flexibility-externalized-social-negotiation.pre-match-negotiation::team-composition",
+      "a": "pre-match-negotiation",
+      "b": "team-composition",
+      "experienceRef": "exp.overwatch.role-flexibility-externalized-social-negotiation",
+      "referenceGame": "Overwatch",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.role-flexibility-externalized-social-negotiation.pre-match-negotiation::role-queue",
+      "a": "pre-match-negotiation",
+      "b": "role-queue",
+      "experienceRef": "exp.overwatch.role-flexibility-externalized-social-negotiation",
+      "referenceGame": "Overwatch",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.role-flexibility-externalized-social-negotiation.social-pressure::team-composition",
+      "a": "social-pressure",
+      "b": "team-composition",
+      "experienceRef": "exp.overwatch.role-flexibility-externalized-social-negotiation",
+      "referenceGame": "Overwatch",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.role-flexibility-externalized-social-negotiation.role-queue::social-pressure",
+      "a": "role-queue",
+      "b": "social-pressure",
+      "experienceRef": "exp.overwatch.role-flexibility-externalized-social-negotiation",
+      "referenceGame": "Overwatch",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.role-flexibility-externalized-social-negotiation.role-queue::team-composition",
+      "a": "role-queue",
+      "b": "team-composition",
+      "experienceRef": "exp.overwatch.role-flexibility-externalized-social-negotiation",
+      "referenceGame": "Overwatch",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.role-queue-solved-composition-created-population-bottleneck.fixed-role-ratio::role-queue",
+      "a": "fixed-role-ratio",
+      "b": "role-queue",
+      "experienceRef": "exp.overwatch.role-queue-solved-composition-created-population-bottleneck",
+      "referenceGame": "Overwatch / Overwatch 2",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.role-queue-solved-composition-created-population-bottleneck.role-population-imbalance::role-queue",
+      "a": "role-population-imbalance",
+      "b": "role-queue",
+      "experienceRef": "exp.overwatch.role-queue-solved-composition-created-population-bottleneck",
+      "referenceGame": "Overwatch / Overwatch 2",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.role-queue-solved-composition-created-population-bottleneck.queue-time-bottleneck::role-queue",
+      "a": "queue-time-bottleneck",
+      "b": "role-queue",
+      "experienceRef": "exp.overwatch.role-queue-solved-composition-created-population-bottleneck",
+      "referenceGame": "Overwatch / Overwatch 2",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.role-queue-solved-composition-created-population-bottleneck.role-queue::team-size-change",
+      "a": "role-queue",
+      "b": "team-size-change",
+      "experienceRef": "exp.overwatch.role-queue-solved-composition-created-population-bottleneck",
+      "referenceGame": "Overwatch / Overwatch 2",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.role-queue-solved-composition-created-population-bottleneck.fixed-role-ratio::role-population-imbalance",
+      "a": "fixed-role-ratio",
+      "b": "role-population-imbalance",
+      "experienceRef": "exp.overwatch.role-queue-solved-composition-created-population-bottleneck",
+      "referenceGame": "Overwatch / Overwatch 2",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.role-queue-solved-composition-created-population-bottleneck.fixed-role-ratio::queue-time-bottleneck",
+      "a": "fixed-role-ratio",
+      "b": "queue-time-bottleneck",
+      "experienceRef": "exp.overwatch.role-queue-solved-composition-created-population-bottleneck",
+      "referenceGame": "Overwatch / Overwatch 2",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.role-queue-solved-composition-created-population-bottleneck.fixed-role-ratio::team-size-change",
+      "a": "fixed-role-ratio",
+      "b": "team-size-change",
+      "experienceRef": "exp.overwatch.role-queue-solved-composition-created-population-bottleneck",
+      "referenceGame": "Overwatch / Overwatch 2",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.role-queue-solved-composition-created-population-bottleneck.queue-time-bottleneck::role-population-imbalance",
+      "a": "queue-time-bottleneck",
+      "b": "role-population-imbalance",
+      "experienceRef": "exp.overwatch.role-queue-solved-composition-created-population-bottleneck",
+      "referenceGame": "Overwatch / Overwatch 2",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.role-queue-solved-composition-created-population-bottleneck.role-population-imbalance::team-size-change",
+      "a": "role-population-imbalance",
+      "b": "team-size-change",
+      "experienceRef": "exp.overwatch.role-queue-solved-composition-created-population-bottleneck",
+      "referenceGame": "Overwatch / Overwatch 2",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.role-queue-solved-composition-created-population-bottleneck.queue-time-bottleneck::team-size-change",
+      "a": "queue-time-bottleneck",
+      "b": "team-size-change",
+      "experienceRef": "exp.overwatch.role-queue-solved-composition-created-population-bottleneck",
+      "referenceGame": "Overwatch / Overwatch 2",
+      "relationKind": "TENSION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.leaver-xp-penalty-missed-target.leaver-behavior::xp-penalty",
+      "a": "leaver-behavior",
+      "b": "xp-penalty",
+      "experienceRef": "exp.overwatch.leaver-xp-penalty-missed-target",
+      "referenceGame": "Overwatch 2",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.leaver-xp-penalty-missed-target.intent-mismatch::leaver-behavior",
+      "a": "intent-mismatch",
+      "b": "leaver-behavior",
+      "experienceRef": "exp.overwatch.leaver-xp-penalty-missed-target",
+      "referenceGame": "Overwatch 2",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.leaver-xp-penalty-missed-target.incidental-users::leaver-behavior",
+      "a": "incidental-users",
+      "b": "leaver-behavior",
+      "experienceRef": "exp.overwatch.leaver-xp-penalty-missed-target",
+      "referenceGame": "Overwatch 2",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.leaver-xp-penalty-missed-target.leaver-behavior::queue-suspension",
+      "a": "leaver-behavior",
+      "b": "queue-suspension",
+      "experienceRef": "exp.overwatch.leaver-xp-penalty-missed-target",
+      "referenceGame": "Overwatch 2",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.leaver-xp-penalty-missed-target.intent-mismatch::xp-penalty",
+      "a": "intent-mismatch",
+      "b": "xp-penalty",
+      "experienceRef": "exp.overwatch.leaver-xp-penalty-missed-target",
+      "referenceGame": "Overwatch 2",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.leaver-xp-penalty-missed-target.incidental-users::xp-penalty",
+      "a": "incidental-users",
+      "b": "xp-penalty",
+      "experienceRef": "exp.overwatch.leaver-xp-penalty-missed-target",
+      "referenceGame": "Overwatch 2",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.leaver-xp-penalty-missed-target.queue-suspension::xp-penalty",
+      "a": "queue-suspension",
+      "b": "xp-penalty",
+      "experienceRef": "exp.overwatch.leaver-xp-penalty-missed-target",
+      "referenceGame": "Overwatch 2",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.leaver-xp-penalty-missed-target.incidental-users::intent-mismatch",
+      "a": "incidental-users",
+      "b": "intent-mismatch",
+      "experienceRef": "exp.overwatch.leaver-xp-penalty-missed-target",
+      "referenceGame": "Overwatch 2",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.leaver-xp-penalty-missed-target.intent-mismatch::queue-suspension",
+      "a": "intent-mismatch",
+      "b": "queue-suspension",
+      "experienceRef": "exp.overwatch.leaver-xp-penalty-missed-target",
+      "referenceGame": "Overwatch 2",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.overwatch.leaver-xp-penalty-missed-target.incidental-users::queue-suspension",
+      "a": "incidental-users",
+      "b": "queue-suspension",
+      "experienceRef": "exp.overwatch.leaver-xp-penalty-missed-target",
+      "referenceGame": "Overwatch 2",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.destiny2.unstable-cores-friction-without-buildcraft.infusion-currency::progression-friction",
+      "a": "infusion-currency",
+      "b": "progression-friction",
+      "experienceRef": "exp.destiny2.unstable-cores-friction-without-buildcraft",
+      "referenceGame": "Destiny 2",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.destiny2.unstable-cores-friction-without-buildcraft.infusion-currency::weapon-experimentation",
+      "a": "infusion-currency",
+      "b": "weapon-experimentation",
+      "experienceRef": "exp.destiny2.unstable-cores-friction-without-buildcraft",
+      "referenceGame": "Destiny 2",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.destiny2.unstable-cores-friction-without-buildcraft.buildcraft-decision::infusion-currency",
+      "a": "buildcraft-decision",
+      "b": "infusion-currency",
+      "experienceRef": "exp.destiny2.unstable-cores-friction-without-buildcraft",
+      "referenceGame": "Destiny 2",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.destiny2.unstable-cores-friction-without-buildcraft.currency-deprecation::infusion-currency",
+      "a": "currency-deprecation",
+      "b": "infusion-currency",
+      "experienceRef": "exp.destiny2.unstable-cores-friction-without-buildcraft",
+      "referenceGame": "Destiny 2",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.destiny2.unstable-cores-friction-without-buildcraft.progression-friction::weapon-experimentation",
+      "a": "progression-friction",
+      "b": "weapon-experimentation",
+      "experienceRef": "exp.destiny2.unstable-cores-friction-without-buildcraft",
+      "referenceGame": "Destiny 2",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.destiny2.unstable-cores-friction-without-buildcraft.buildcraft-decision::progression-friction",
+      "a": "buildcraft-decision",
+      "b": "progression-friction",
+      "experienceRef": "exp.destiny2.unstable-cores-friction-without-buildcraft",
+      "referenceGame": "Destiny 2",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.destiny2.unstable-cores-friction-without-buildcraft.currency-deprecation::progression-friction",
+      "a": "currency-deprecation",
+      "b": "progression-friction",
+      "experienceRef": "exp.destiny2.unstable-cores-friction-without-buildcraft",
+      "referenceGame": "Destiny 2",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.destiny2.unstable-cores-friction-without-buildcraft.buildcraft-decision::weapon-experimentation",
+      "a": "buildcraft-decision",
+      "b": "weapon-experimentation",
+      "experienceRef": "exp.destiny2.unstable-cores-friction-without-buildcraft",
+      "referenceGame": "Destiny 2",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.destiny2.unstable-cores-friction-without-buildcraft.currency-deprecation::weapon-experimentation",
+      "a": "currency-deprecation",
+      "b": "weapon-experimentation",
+      "experienceRef": "exp.destiny2.unstable-cores-friction-without-buildcraft",
+      "referenceGame": "Destiny 2",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.destiny2.unstable-cores-friction-without-buildcraft.buildcraft-decision::currency-deprecation",
+      "a": "buildcraft-decision",
+      "b": "currency-deprecation",
+      "experienceRef": "exp.destiny2.unstable-cores-friction-without-buildcraft",
+      "referenceGame": "Destiny 2",
+      "relationKind": "FAILURE_MODE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.destiny2.legendary-shards-economy-baggage.legacy-universal-currency::vendor-costs",
+      "a": "legacy-universal-currency",
+      "b": "vendor-costs",
+      "experienceRef": "exp.destiny2.legendary-shards-economy-baggage",
+      "referenceGame": "Destiny 2",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.destiny2.legendary-shards-economy-baggage.economy-migration::legacy-universal-currency",
+      "a": "economy-migration",
+      "b": "legacy-universal-currency",
+      "experienceRef": "exp.destiny2.legendary-shards-economy-baggage",
+      "referenceGame": "Destiny 2",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.destiny2.legendary-shards-economy-baggage.currency-phaseout::legacy-universal-currency",
+      "a": "currency-phaseout",
+      "b": "legacy-universal-currency",
+      "experienceRef": "exp.destiny2.legendary-shards-economy-baggage",
+      "referenceGame": "Destiny 2",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.destiny2.legendary-shards-economy-baggage.compatibility-baggage::legacy-universal-currency",
+      "a": "compatibility-baggage",
+      "b": "legacy-universal-currency",
+      "experienceRef": "exp.destiny2.legendary-shards-economy-baggage",
+      "referenceGame": "Destiny 2",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.destiny2.legendary-shards-economy-baggage.economy-migration::vendor-costs",
+      "a": "economy-migration",
+      "b": "vendor-costs",
+      "experienceRef": "exp.destiny2.legendary-shards-economy-baggage",
+      "referenceGame": "Destiny 2",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.destiny2.legendary-shards-economy-baggage.currency-phaseout::vendor-costs",
+      "a": "currency-phaseout",
+      "b": "vendor-costs",
+      "experienceRef": "exp.destiny2.legendary-shards-economy-baggage",
+      "referenceGame": "Destiny 2",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.destiny2.legendary-shards-economy-baggage.compatibility-baggage::vendor-costs",
+      "a": "compatibility-baggage",
+      "b": "vendor-costs",
+      "experienceRef": "exp.destiny2.legendary-shards-economy-baggage",
+      "referenceGame": "Destiny 2",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.destiny2.legendary-shards-economy-baggage.currency-phaseout::economy-migration",
+      "a": "currency-phaseout",
+      "b": "economy-migration",
+      "experienceRef": "exp.destiny2.legendary-shards-economy-baggage",
+      "referenceGame": "Destiny 2",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.destiny2.legendary-shards-economy-baggage.compatibility-baggage::economy-migration",
+      "a": "compatibility-baggage",
+      "b": "economy-migration",
+      "experienceRef": "exp.destiny2.legendary-shards-economy-baggage",
+      "referenceGame": "Destiny 2",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.destiny2.legendary-shards-economy-baggage.compatibility-baggage::currency-phaseout",
+      "a": "compatibility-baggage",
+      "b": "currency-phaseout",
+      "experienceRef": "exp.destiny2.legendary-shards-economy-baggage",
+      "referenceGame": "Destiny 2",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.noise-procedure-abstraction-removed.automatic-deduplication::noise-procedures",
+      "a": "automatic-deduplication",
+      "b": "noise-procedures",
+      "experienceRef": "exp.factorio.noise-procedure-abstraction-removed",
+      "referenceGame": "Factorio",
+      "relationKind": "SUBSTITUTION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.noise-procedure-abstraction-removed.cross-procedure-dependency::noise-procedures",
+      "a": "cross-procedure-dependency",
+      "b": "noise-procedures",
+      "experienceRef": "exp.factorio.noise-procedure-abstraction-removed",
+      "referenceGame": "Factorio",
+      "relationKind": "SUBSTITUTION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.noise-procedure-abstraction-removed.compiler-complexity::noise-procedures",
+      "a": "compiler-complexity",
+      "b": "noise-procedures",
+      "experienceRef": "exp.factorio.noise-procedure-abstraction-removed",
+      "referenceGame": "Factorio",
+      "relationKind": "SUBSTITUTION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.noise-procedure-abstraction-removed.noise-procedures::simpler-noise-program",
+      "a": "noise-procedures",
+      "b": "simpler-noise-program",
+      "experienceRef": "exp.factorio.noise-procedure-abstraction-removed",
+      "referenceGame": "Factorio",
+      "relationKind": "SUBSTITUTION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.noise-procedure-abstraction-removed.automatic-deduplication::cross-procedure-dependency",
+      "a": "automatic-deduplication",
+      "b": "cross-procedure-dependency",
+      "experienceRef": "exp.factorio.noise-procedure-abstraction-removed",
+      "referenceGame": "Factorio",
+      "relationKind": "SUBSTITUTION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.noise-procedure-abstraction-removed.automatic-deduplication::compiler-complexity",
+      "a": "automatic-deduplication",
+      "b": "compiler-complexity",
+      "experienceRef": "exp.factorio.noise-procedure-abstraction-removed",
+      "referenceGame": "Factorio",
+      "relationKind": "SUBSTITUTION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.noise-procedure-abstraction-removed.automatic-deduplication::simpler-noise-program",
+      "a": "automatic-deduplication",
+      "b": "simpler-noise-program",
+      "experienceRef": "exp.factorio.noise-procedure-abstraction-removed",
+      "referenceGame": "Factorio",
+      "relationKind": "SUBSTITUTION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.noise-procedure-abstraction-removed.compiler-complexity::cross-procedure-dependency",
+      "a": "compiler-complexity",
+      "b": "cross-procedure-dependency",
+      "experienceRef": "exp.factorio.noise-procedure-abstraction-removed",
+      "referenceGame": "Factorio",
+      "relationKind": "SUBSTITUTION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.noise-procedure-abstraction-removed.cross-procedure-dependency::simpler-noise-program",
+      "a": "cross-procedure-dependency",
+      "b": "simpler-noise-program",
+      "experienceRef": "exp.factorio.noise-procedure-abstraction-removed",
+      "referenceGame": "Factorio",
+      "relationKind": "SUBSTITUTION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.noise-procedure-abstraction-removed.compiler-complexity::simpler-noise-program",
+      "a": "compiler-complexity",
+      "b": "simpler-noise-program",
+      "experienceRef": "exp.factorio.noise-procedure-abstraction-removed",
+      "referenceGame": "Factorio",
+      "relationKind": "SUBSTITUTION",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.autoplace-fragmented-generator-to-unified-expression.fragmented-representations::procedural-autoplace",
+      "a": "fragmented-representations",
+      "b": "procedural-autoplace",
+      "experienceRef": "exp.factorio.autoplace-fragmented-generator-to-unified-expression",
+      "referenceGame": "Factorio",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.autoplace-fragmented-generator-to-unified-expression.procedural-autoplace::resource-placement-control",
+      "a": "procedural-autoplace",
+      "b": "resource-placement-control",
+      "experienceRef": "exp.factorio.autoplace-fragmented-generator-to-unified-expression",
+      "referenceGame": "Factorio",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.autoplace-fragmented-generator-to-unified-expression.pathological-generation::procedural-autoplace",
+      "a": "pathological-generation",
+      "b": "procedural-autoplace",
+      "experienceRef": "exp.factorio.autoplace-fragmented-generator-to-unified-expression",
+      "referenceGame": "Factorio",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.autoplace-fragmented-generator-to-unified-expression.expression-tree-unification::procedural-autoplace",
+      "a": "expression-tree-unification",
+      "b": "procedural-autoplace",
+      "experienceRef": "exp.factorio.autoplace-fragmented-generator-to-unified-expression",
+      "referenceGame": "Factorio",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.autoplace-fragmented-generator-to-unified-expression.fragmented-representations::resource-placement-control",
+      "a": "fragmented-representations",
+      "b": "resource-placement-control",
+      "experienceRef": "exp.factorio.autoplace-fragmented-generator-to-unified-expression",
+      "referenceGame": "Factorio",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.autoplace-fragmented-generator-to-unified-expression.fragmented-representations::pathological-generation",
+      "a": "fragmented-representations",
+      "b": "pathological-generation",
+      "experienceRef": "exp.factorio.autoplace-fragmented-generator-to-unified-expression",
+      "referenceGame": "Factorio",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.autoplace-fragmented-generator-to-unified-expression.expression-tree-unification::fragmented-representations",
+      "a": "expression-tree-unification",
+      "b": "fragmented-representations",
+      "experienceRef": "exp.factorio.autoplace-fragmented-generator-to-unified-expression",
+      "referenceGame": "Factorio",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.autoplace-fragmented-generator-to-unified-expression.pathological-generation::resource-placement-control",
+      "a": "pathological-generation",
+      "b": "resource-placement-control",
+      "experienceRef": "exp.factorio.autoplace-fragmented-generator-to-unified-expression",
+      "referenceGame": "Factorio",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.autoplace-fragmented-generator-to-unified-expression.expression-tree-unification::resource-placement-control",
+      "a": "expression-tree-unification",
+      "b": "resource-placement-control",
+      "experienceRef": "exp.factorio.autoplace-fragmented-generator-to-unified-expression",
+      "referenceGame": "Factorio",
+      "relationKind": "PRODUCTION_RESPONSE",
+      "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
+      "causalRelationEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "edge.exp.factorio.autoplace-fragmented-generator-to-unified-expression.expression-tree-unification::pathological-generation",
+      "a": "expression-tree-unification",
+      "b": "pathological-generation",
+      "experienceRef": "exp.factorio.autoplace-fragmented-generator-to-unified-expression",
+      "referenceGame": "Factorio",
+      "relationKind": "PRODUCTION_RESPONSE",
       "authority": "OBSERVED_WITHIN_SOURCE_GROUNDED_EXPERIENCE",
       "causalRelationEstablished": false,
       "canBlockNovelCombination": false

@@ -3391,6 +3391,225 @@
         "foundation-ablation probe"
       ],
       "evidenceLimit": "Official patch/developer insight establishes the shipped systems change; it does not by itself identify all reasons the prior foundation underperformed or quantify player preference."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "unknownworlds-subnautica-multiplayer-2015",
+      "title": "Subnautica Multiplayer: When, If, How, And Why",
+      "organization": "Unknown Worlds Entertainment",
+      "url": "https://unknownworlds.com/en/news/subnautica-multiplayer-when-if-how-and-why",
+      "scope": [
+        "multiplayer cancellation",
+        "architecture timing",
+        "release scope"
+      ],
+      "extractedIdeas": [
+        "Subnautica was initially conceived with co-op in mind but multiplayer was skipped to ship sooner",
+        "later addition would affect nearly everything and require work approaching a restart",
+        "the team ultimately committed the original game to single-player"
+      ],
+      "candidateUses": [
+        "late-multiplayer architecture counterexample",
+        "social feature timing probe"
+      ],
+      "evidenceLimit": "Primary studio account establishes the team’s architecture/schedule judgement for Subnautica; it does not imply multiplayer is intrinsically harmful or impossible for the franchise."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "blizzard-overwatch-role-queue-2019",
+      "title": "Introducing Role Queue",
+      "organization": "Blizzard Entertainment",
+      "url": "https://news.blizzard.com/en-gb/article/23060961/introducing-role-queue",
+      "scope": [
+        "team composition",
+        "social pressure",
+        "role queue",
+        "matchmaking"
+      ],
+      "extractedIdeas": [
+        "open role selection created tension, pressure, disappointment and hostility during team formation",
+        "Role Queue moved role negotiation before matchmaking and guaranteed a role distribution",
+        "the structural intervention also required hero balance changes and per-role matchmaking"
+      ],
+      "candidateUses": [
+        "social-negotiation externality counterexample",
+        "structure-versus-freedom probe"
+      ],
+      "evidenceLimit": "Official design rationale states intended problems and intervention; it does not independently prove all social outcomes or that fixed roles are universally superior."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "blizzard-overwatch-5v5-6v6-2024",
+      "title": "Director’s Take: Opening up the conversation on 5v5 and 6v6",
+      "organization": "Blizzard Entertainment",
+      "url": "https://news.blizzard.com/en-us/article/24104605/director-s-take-opening-up-the-conversation-on-5v5-and-6v6",
+      "scope": [
+        "role queue retrospective",
+        "queue population",
+        "5v5",
+        "6v6"
+      ],
+      "extractedIdeas": [
+        "Role Queue solved composition/social/balance problems but exposed queue-time dependence on relative role populations",
+        "tank demand remained the constraining population in 2-2-2",
+        "the 1-2-2 format better matched observed role demand and reduced queue times"
+      ],
+      "candidateUses": [
+        "structural-fix second-order-cost counterexample",
+        "population bottleneck probe"
+      ],
+      "evidenceLimit": "Director retrospective and queue-time data describe Overwatch-specific role populations; they do not establish a universal optimal team size or role ratio."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "blizzard-overwatch-leavers-2023",
+      "title": "Defense Matrix – Deterring Leavers in Overwatch 2",
+      "organization": "Blizzard Entertainment",
+      "url": "https://news.blizzard.com/en-us/article/24009615/defense-matrix-deterring-leavers-in-overwatch-2",
+      "scope": [
+        "leaver penalties",
+        "social harm",
+        "behavior deterrence",
+        "false positives"
+      ],
+      "extractedIdeas": [
+        "a 75% Battle Pass XP penalty was not enough to deter deliberate leavers",
+        "the same penalty also affected players who left unintentionally",
+        "the team changed the intervention to queue suspensions intended to better target repeat leaving behavior"
+      ],
+      "candidateUses": [
+        "mis-targeted punishment counterexample",
+        "behavioral-policy discriminator"
+      ],
+      "evidenceLimit": "Official design account establishes the team’s diagnosis and policy change; it does not estimate causal deterrence effects for all player populations."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "bungie-d2-unstable-cores-2025",
+      "title": "Destiny 2 Update 9.1.5.1",
+      "organization": "Bungie",
+      "url": "https://www.bungie.net/7/en/News/Article/destiny_update_9_1_5_1",
+      "scope": [
+        "currency deprecation",
+        "infusion economy",
+        "buildcraft friction"
+      ],
+      "extractedIdeas": [
+        "Unstable Cores were judged too restrictive across power levels",
+        "the currency failed to create interesting buildcraft decisions",
+        "Bungie chose full deprecation and replacement with existing currencies"
+      ],
+      "candidateUses": [
+        "currency-friction-without-choice counterexample",
+        "economy deletion probe"
+      ],
+      "evidenceLimit": "Official economy diagnosis and deprecation decision; does not imply resource costs are generally undesirable."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "bungie-d2-legendary-shards-2023",
+      "title": "This Week in Destiny – Legendary Shard deprecation",
+      "organization": "Bungie",
+      "url": "https://www.bungie.net/7/en/news/article/this-week-in-destiny-11-16",
+      "scope": [
+        "legacy currency",
+        "economy simplification",
+        "vendor costs"
+      ],
+      "extractedIdeas": [
+        "Bungie announced a staged removal of Legendary Shards from vendor/economy costs",
+        "multiple vendor costs were migrated toward engrams and Glimmer",
+        "the long-lived universal currency was phased out rather than retained for compatibility"
+      ],
+      "candidateUses": [
+        "legacy-currency baggage counterexample",
+        "currency-role audit"
+      ],
+      "evidenceLimit": "Official phase-out record demonstrates removal of one mature currency; it does not by itself establish every motivation or prove fewer currencies are always better."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "factorio-fff-390",
+      "title": "Factorio Friday Facts #390 — Noise expressions 2.0",
+      "organization": "Wube Software",
+      "url": "https://factorio.com/blog/post/fff-390",
+      "scope": [
+        "procedural generation",
+        "compiler abstraction",
+        "deduplication rollback"
+      ],
+      "extractedIdeas": [
+        "automatic cross-procedure deduplication introduced dependency and compilation complexity",
+        "the developer removed procedures entirely instead of perfecting the abstraction",
+        "the simpler representation improved map-generation runtime and compilation in measured cases"
+      ],
+      "candidateUses": [
+        "smart-abstraction-removal counterexample",
+        "procgen representation probe"
+      ],
+      "evidenceLimit": "Primary technical account of Factorio’s noise compiler; performance observations are implementation-specific and do not prove simpler procedural architectures are generally superior."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "factorio-fff-258",
+      "title": "Factorio Friday Facts #258 — New autoplace",
+      "organization": "Wube Software",
+      "url": "https://factorio.com/blog/post/fff-258",
+      "scope": [
+        "procedural map generation",
+        "resource placement",
+        "generator refactor"
+      ],
+      "extractedIdeas": [
+        "separate terrain and object-autoplace representations limited control over resource placement",
+        "the generator could produce pathological maps and settings with weak effects",
+        "Wube undertook a large refactor to compile old specifications into a unified expression-tree representation"
+      ],
+      "candidateUses": [
+        "fragmented-generator representation counterexample",
+        "procgen control probe"
+      ],
+      "evidenceLimit": "Primary developer account of one map generator; does not establish unified expression systems as universally preferable."
     }
   ],
   "gaps": {

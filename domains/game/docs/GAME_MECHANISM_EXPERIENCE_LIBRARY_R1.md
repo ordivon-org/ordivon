@@ -26,7 +26,7 @@ Reference teardown
     -> Probe          cheap way to try to falsify transfer
 ```
 
-Current R1 contains **89 experiences** across **46 reference games/projects** and **374 mechanism tags**.
+Current R1 contains **97 experiences** across **48 reference games/projects** and **413 mechanism tags**.
 
 It is deliberately **Creative-Open**. An Experience is not a recipe, score, best practice mandate, legality gate or product recommendation. It says only: a primary source gives us enough reason to preserve this relationship as an advisory hypothesis worth remembering and testing.
 
@@ -54,12 +54,12 @@ R1 intentionally includes more than synergy:
 
 - **INVERSION** — 4
 - **SYNERGY** — 15
-- **SUBSTITUTION** — 11
+- **SUBSTITUTION** — 12
 - **LEARNING_SCAFFOLD** — 4
 - **REPRESENTATION_COUPLING** — 14
-- **FAILURE_MODE** — 10
-- **TENSION** — 12
-- **PRODUCTION_RESPONSE** — 19
+- **FAILURE_MODE** — 13
+- **TENSION** — 14
+- **PRODUCTION_RESPONSE** — 21
 
 This matters because useful design knowledge is often negative or conditional: a convention was inverted, a feature was removed, two goals pulled against each other, an old rejected idea became feasible only after the surrounding system changed, or production structure constrained what could be designed.
 

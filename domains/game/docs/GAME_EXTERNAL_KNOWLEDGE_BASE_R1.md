@@ -17,7 +17,7 @@ readiness: ACTIVE_EXPANDING
 
 ## 1. Purpose
 
-This is an **external knowledge substrate**, not a second Game constitution. External knowledge may **never become a Game constitution** merely because it is famous, formal, popular, or useful elsewhere. The current R1 corpus contains **130 source records**, **56 teardown targets**, **37 source-bound targets**, and **12 external Skill/tooling candidates**. Fine-grained transfer hypotheses extracted from those sources live separately in the Mechanism Experience Library so source registry and derived design memory remain distinct.
+This is an **external knowledge substrate**, not a second Game constitution. External knowledge may **never become a Game constitution** merely because it is famous, formal, popular, or useful elsewhere. The current R1 corpus contains **138 source records**, **56 teardown targets**, **37 source-bound targets**, and **12 external Skill/tooling candidates**. Fine-grained transfer hypotheses extracted from those sources live separately in the Mechanism Experience Library so source registry and derived design memory remain distinct.
 
 The ingestion rule is deliberately Creative-Open:
 

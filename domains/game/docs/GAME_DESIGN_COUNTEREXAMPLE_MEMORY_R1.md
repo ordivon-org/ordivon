@@ -33,7 +33,7 @@ What apparent constraint unexpectedly expanded the search space?
 
 This is not an anti-pattern catalog and not a ranking of bad decisions. Failure is contextual evidence.
 
-Current R1 contains **27 counterexamples across 23 reference projects**, including cancelled projects, shipped-product relaunches, live-service rollbacks, foundation reversals, late rewrites, planning-process failures, product-viability mismatches and cases where useful work was salvaged after cancellation.
+Current R1 contains **35 counterexamples across 25 reference projects**, including cancelled projects, multiplayer/social-system boundaries, economy and currency rollbacks, procedural-generation rewrites, shipped-product relaunches, live-service rollbacks, foundation reversals, late rewrites, planning-process failures, product-viability mismatches and cases where useful work was salvaged after cancellation.
 
 ## Record shape
 
@@ -106,6 +106,22 @@ Final Fantasy XIV's relaunch and Destiny 2: Forsaken's weapon/ammo foundation re
 ### Content cadence can yield to substrate health
 
 Rainbow Six Siege's Operation Health is retained because Ubisoft explicitly delayed content, reduced map output and added staged deployment/rollback capacity. This conditions the assumption that a live service must preserve content cadence even while release/substrate failure accumulates.
+
+### Social freedom can externalize coordination cost
+
+Overwatch's Role Queue history is retained as a paired counterexample. Open role selection maximized local flexibility but pushed composition bargaining into a short social window; fixed role ratios reduced that burden but then exposed queue throughput to unequal role populations. The useful unit is not “free versus fixed roles” but where coordination cost is paid.
+
+### Multiplayer can be architectural rather than additive
+
+Subnautica is retained because co-op was considered early, deferred for schedule reasons, and later judged expensive enough to affect nearly everything. This does not make multiplayer a mandatory day-one commitment; it makes late multiplayer a hypothesis that should be tested against state authority, persistence, interaction conflict and reconnect costs.
+
+### Currency friction must earn a decision role
+
+Destiny 2's Unstable Cores are retained because Bungie explicitly judged them restrictive without producing interesting buildcraft decisions. Legendary Shard deprecation supplies a different economy boundary: a mature universal currency can become compatibility/balance baggage when newer systems no longer need the same abstraction.
+
+### Procedural abstraction can fail in both directions
+
+Factorio supplies both sides. Its noise compiler removed an over-clever procedure/deduplication abstraction when dependency machinery outweighed the reuse; elsewhere its fragmented terrain/resource placement representations were unified because cross-cutting generation constraints were hard to express. “Simpler” and “more unified” are therefore context-dependent responses, not opposing laws.
 
 ## Relationship to Experience and Relationship Memory
 

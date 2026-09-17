@@ -721,6 +721,216 @@
       "sourceRefs": [
         "kb:bungie-d2-forsaken-update-2-0-2018"
       ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.subnautica.multiplayer-is-not-necessarily-a-bolt-on-feature",
+      "kind": "SOCIAL_ARCHITECTURE_BOUNDARY",
+      "referenceGames": [
+        "Subnautica"
+      ],
+      "assumption": "Multiplayer can be deferred until the single-player game is mature because it is an optional social feature.",
+      "failureSignal": "Unknown Worlds concluded that adding multiplayer late would affect nearly everything and require many months/years or near-restart-scale work.",
+      "context": "The original concept considered co-op, but multiplayer was skipped during early development to ship sooner; the architecture then matured around single-player assumptions.",
+      "revisionOrSalvage": "The original game committed to single-player while leaving multiplayer as a possibility for a future/new game built around it.",
+      "transferBoundary": "This applies when multiplayer changes authority, persistence, simulation or interaction ownership; network-ready architectures can have a different cost profile.",
+      "falseUniversalizations": [
+        "Multiplayer should always be designed from day one.",
+        "Single-player architecture is simpler and therefore better."
+      ],
+      "cheapDiscriminator": "Build one co-op vertical slice spanning state authority, save/load, interaction conflict and reconnect before treating multiplayer as a deferrable checkbox.",
+      "experienceRefs": [
+        "exp.subnautica.multiplayer-late-addition-crosscuts-architecture"
+      ],
+      "sourceRefs": [
+        "kb:unknownworlds-subnautica-multiplayer-2015"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.overwatch.social-freedom-can-externalize-negotiation-cost",
+      "kind": "SOCIAL_COORDINATION_EXTERNALITY",
+      "referenceGames": [
+        "Overwatch"
+      ],
+      "assumption": "More freedom in team composition necessarily increases player agency without meaningful systemic cost.",
+      "failureSignal": "Open role choice pushed composition negotiation into a short social window and Blizzard cited pressure, disappointment and hostility as recurring problems.",
+      "context": "Players had heterogeneous role preferences but team performance strongly depended on role coverage.",
+      "revisionOrSalvage": "Role Queue moved role commitment into matchmaking and guaranteed a composition structure, trading some composition freedom for reduced negotiation burden.",
+      "transferBoundary": "Premade groups or games with weak role dependencies may preserve open selection without the same social cost.",
+      "falseUniversalizations": [
+        "Fixed roles create healthier social play by default.",
+        "Open composition systems inevitably become toxic."
+      ],
+      "cheapDiscriminator": "Count forced concessions, unresolved role gaps and negotiation actions under free selection versus precommitted-role matchmaking before evaluating subjective preference.",
+      "experienceRefs": [
+        "exp.overwatch.role-flexibility-externalized-social-negotiation"
+      ],
+      "sourceRefs": [
+        "kb:blizzard-overwatch-role-queue-2019"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.overwatch.structural-fix-can-create-population-bottleneck",
+      "kind": "SECOND_ORDER_MATCHMAKING_COST",
+      "referenceGames": [
+        "Overwatch",
+        "Overwatch 2"
+      ],
+      "assumption": "Once a fixed role structure solves composition and social problems, keeping that structure is mostly a balance problem rather than a population-flow problem.",
+      "failureSignal": "Fixed 2-2-2 queues were throughput-limited by tank supply; Blizzard later reported 1-2-2 matched observed demand better and reduced waits.",
+      "context": "Role popularity was persistently uneven, making the least-popular required role a matchmaking bottleneck.",
+      "revisionOrSalvage": "Team composition rules were reconsidered alongside 5v5 rather than treating the earlier social fix as costless infrastructure.",
+      "transferBoundary": "The bottleneck disappears when role arrival rates match required ratios or roles are substitutable.",
+      "falseUniversalizations": [
+        "Role Queue was a mistake.",
+        "Team size should be chosen to match popularity alone."
+      ],
+      "cheapDiscriminator": "Use measured role arrival rates to model match throughput under candidate team ratios before locking composition constraints.",
+      "experienceRefs": [
+        "exp.overwatch.role-queue-solved-composition-created-population-bottleneck"
+      ],
+      "sourceRefs": [
+        "kb:blizzard-overwatch-5v5-6v6-2024",
+        "kb:blizzard-overwatch-role-queue-2019"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.overwatch.weak-penalty-can-miss-intent-and-hit-incidental-users",
+      "kind": "BEHAVIOR_POLICY_TARGETING_FAILURE",
+      "referenceGames": [
+        "Overwatch 2"
+      ],
+      "assumption": "A broad low-severity reward penalty is a safe first-line deterrent because it discourages harmful behavior without strongly punishing edge cases.",
+      "failureSignal": "Blizzard said the XP penalty was insufficient for deliberate leavers while still negatively affecting unintentional leavers.",
+      "context": "Leaving can arise from both deliberate disruption and incidental disconnect/life events, but the initial penalty did not distinguish intent well.",
+      "revisionOrSalvage": "The team moved toward escalating queue suspensions tied to repeated leaving patterns.",
+      "transferBoundary": "Different telemetry, reward value or behavior distributions can make softer penalties effective.",
+      "falseUniversalizations": [
+        "Harsh penalties are better deterrents.",
+        "Behavior systems should infer player intent directly."
+      ],
+      "cheapDiscriminator": "Segment repeat-pattern and isolated leaving cohorts, then compare expected penalty salience and false-positive exposure before changing severity.",
+      "experienceRefs": [
+        "exp.overwatch.leaver-xp-penalty-missed-target"
+      ],
+      "sourceRefs": [
+        "kb:blizzard-overwatch-leavers-2023"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.destiny2.currency-friction-does-not-imply-interesting-choice",
+      "kind": "ECONOMY_FRICTION_FAILURE",
+      "referenceGames": [
+        "Destiny 2"
+      ],
+      "assumption": "Adding a scarce currency to upgrades creates meaningful progression decisions because players must choose when to spend it.",
+      "failureSignal": "Bungie concluded Unstable Cores were broadly restrictive but did not drive interesting buildcraft decisions, then chose deprecation.",
+      "context": "The currency gated infusion for both campaign progression and endgame experimentation across many items.",
+      "revisionOrSalvage": "Infusion costs were moved back to established currencies rather than preserving the new resource for sunk-design reasons.",
+      "transferBoundary": "Scarcity remains valuable when it creates distinct opportunity costs among meaningful alternatives.",
+      "falseUniversalizations": [
+        "Upgrade currencies are bad design.",
+        "Removing friction always improves experimentation."
+      ],
+      "cheapDiscriminator": "Enumerate which branches of player strategy change because of the currency; if it only delays all branches similarly, test deletion or replacement.",
+      "experienceRefs": [
+        "exp.destiny2.unstable-cores-friction-without-buildcraft"
+      ],
+      "sourceRefs": [
+        "kb:bungie-d2-unstable-cores-2025"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.destiny2.universal-currency-can-become-economy-baggage",
+      "kind": "LEGACY_ECONOMY_BOUNDARY",
+      "referenceGames": [
+        "Destiny 2"
+      ],
+      "assumption": "A mature universal currency should be retained because compatibility and player familiarity make it cheaper than economy migration.",
+      "failureSignal": "Legendary Shards were progressively removed from vendor/crafting costs and ultimately phased out despite their long history and broad integration.",
+      "context": "Veteran balances, inflation and newer engram/resource systems had changed the economy around the currency.",
+      "revisionOrSalvage": "Costs migrated toward more specific currencies/resources and the old currency was sunset in stages.",
+      "transferBoundary": "A universal currency with a coherent unique role may still reduce complexity rather than add baggage.",
+      "falseUniversalizations": [
+        "Old currencies should eventually be removed.",
+        "More specialized currencies always produce better economies."
+      ],
+      "cheapDiscriminator": "Map every source/spend edge and the unique decision it creates; treat compatibility-only edges with no distinct decision as migration candidates, not automatic deletions.",
+      "experienceRefs": [
+        "exp.destiny2.legendary-shards-economy-baggage"
+      ],
+      "sourceRefs": [
+        "kb:bungie-d2-legendary-shards-2023"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.factorio.smarter-procgen-abstraction-can-lose-to-simpler-representation",
+      "kind": "PROCEDURAL_ABSTRACTION_FAILURE",
+      "referenceGames": [
+        "Factorio"
+      ],
+      "assumption": "More reusable/deduplicated procedural-generation abstractions are necessarily better because they reduce repeated computation and authoring duplication.",
+      "failureSignal": "Cross-procedure deduplication created dependency and compile/runtime complexity; Wube removed the procedure abstraction and reported better performance in measured cases.",
+      "context": "Noise programs were compiled for distinct generation outputs and actual reuse did not justify dependency machinery.",
+      "revisionOrSalvage": "The generator moved to simpler multi-output programs with inlining and automatic lifetime reuse.",
+      "transferBoundary": "Reusable subgraphs can still win when reuse is substantial or authoring correctness dominates performance.",
+      "falseUniversalizations": [
+        "Flattened procedural graphs are faster by default.",
+        "Abstraction is harmful in generation systems."
+      ],
+      "cheapDiscriminator": "Compare a representative graph as reusable procedures and a flattened multi-output form across compile time, runtime, authoring duplication and dependency complexity.",
+      "experienceRefs": [
+        "exp.factorio.noise-procedure-abstraction-removed"
+      ],
+      "sourceRefs": [
+        "kb:factorio-fff-390"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.factorio.fragmented-procgen-representations-can-block-control",
+      "kind": "PROCEDURAL_REPRESENTATION_MISMATCH",
+      "referenceGames": [
+        "Factorio"
+      ],
+      "assumption": "Independent procedural subsystems can evolve separately as long as each works locally; integration can be handled with settings and adapters.",
+      "failureSignal": "Separate terrain and resource/autoplace systems made desired placement behavior difficult to express, produced pathological outputs and motivated a large unification refactor.",
+      "context": "Cross-cutting requirements such as predictable starting resources depended on several procedural dimensions that lived in incompatible representations.",
+      "revisionOrSalvage": "Legacy specifications were compiled into a common expression-tree representation while preserving compatibility at the boundary.",
+      "transferBoundary": "Small generators with few cross-system constraints may not benefit from unification.",
+      "falseUniversalizations": [
+        "All procedural systems should share one representation.",
+        "Generator bugs imply the architecture needs a rewrite."
+      ],
+      "cheapDiscriminator": "Express one important cross-system invariant in the current architecture and count special cases/adapters versus a shared intermediate representation before rewriting.",
+      "experienceRefs": [
+        "exp.factorio.autoplace-fragmented-generator-to-unified-expression"
+      ],
+      "sourceRefs": [
+        "kb:factorio-fff-258"
+      ]
     }
   ]
 }
