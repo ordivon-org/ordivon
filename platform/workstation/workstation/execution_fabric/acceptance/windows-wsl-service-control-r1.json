@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.execution-fabric.provider-acceptance",
+  "providerId": "provider/windows-local/wsl-service-control-v1",
+  "status": "live_cross_node_accepted",
+  "sourceSha256": "sha256:1f326b9f68a676d6c65193a217f9d859fb62aee3dc62ba3c24a9358ad0f7f268",
+  "targetNodeIds": ["linux-local"],
+  "capabilities": [
+    "capability/service/probe",
+    "capability/service/ensure"
+  ],
+  "acceptance": {
+    "mutationPath": {
+      "jobId": "job-01a0b418-c496-79b1-b26c-77ccfa071dc4",
+      "attemptId": "attempt-01a0b418-c496-79b1-b26c-77d1119035aa",
+      "profile": "acceptance",
+      "before": "inactive",
+      "after": "active",
+      "mutationAttempted": true
+    },
+    "idempotentSecondEnsure": {
+      "jobId": "job-01a0b418-fa86-7092-bd2e-63b1d92ba36f",
+      "attemptId": "attempt-01a0b418-fa86-7092-bd2e-63c26d1b73f4",
+      "profile": "acceptance",
+      "before": "active",
+      "after": "active",
+      "mutationAttempted": false
+    },
+    "realControlPlaneProbe": {
+      "jobId": "job-01a0b419-1097-7871-b442-912d9b21b6cf",
+      "attemptId": "attempt-01a0b419-1097-7871-b442-913ccc15e557",
+      "profile": "control-plane",
+      "healthy": true,
+      "mutationAttempted": false
+    },
+    "realControlPlaneEnsureNoop": {
+      "jobId": "job-01a0b419-1e1a-7630-8719-3e9d05c76f9d",
+      "attemptId": "attempt-01a0b419-1e1a-7630-8719-3eaf545cf999",
+      "profile": "control-plane",
+      "healthy": true,
+      "mutationAttempted": false
+    },
+    "acceptanceUnitCleanup": {
+      "jobId": "job-01a0b419-67cf-7ee2-9e29-fb2b7685196a",
+      "attemptId": "attempt-01a0b419-67cf-7ee2-9e29-fb3c4ccd089e",
+      "status": "pass"
+    }
+  },
+  "nativeControlPlaneClaimed": false,
+  "notes": "The provider executes natively on Windows and explicitly targets linux-local via WSL. Independent Windows control-plane ownership remains a separate future gate."
+}

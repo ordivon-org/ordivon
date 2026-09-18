@@ -71,3 +71,16 @@ It was accepted in both directions through windows_native execution:
 - the deliberately non-authorizing R2 template returned authorized=false and a non-zero exit.
 
 The provider does not issue, renew, or mutate authority. It only evaluates supplied evidence.
+
+## EF6e explicit cross-node service control
+
+provider/windows-local/wsl-service-control-v1 executes on windows-local and declares
+targetNodeIds=["linux-local"]. It can probe and converge the allowlisted Linux control-plane
+services through WSL without transferring resource ownership to Windows.
+
+Acceptance proved both the mutation path on a temporary systemd unit and idempotent convergence,
+then proved the real Runtime/Host control-plane profile was already healthy and therefore no-op.
+
+The WSL recovery workflow pins its service probe/ensure steps to this cross-node provider. A fully
+resolved workflow binding means every step has a Provider mapping; it does not yet claim that
+windows-local has an independent native Runtime control plane. nativeControlPlane remains false.

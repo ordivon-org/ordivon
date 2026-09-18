@@ -27,6 +27,7 @@ def test_current_catalog_records_only_proven_providers():
         "provider/linux-local/service-observer-v1",
         "provider/windows-local/windows-wsl-observer-v1",
         "provider/windows-local/authority-validation-v1",
+        "provider/windows-local/wsl-service-control-v1",
     }
     assert providers["provider/linux-local/windows-native-launcher-v1"]["platform"] == "windows"
     assert providers["provider/linux-local/runtime-control-observer-v1"]["capabilities"] == [
@@ -41,9 +42,12 @@ def test_current_catalog_records_only_proven_providers():
     assert windows["providers"] == [
         "provider/windows-local/authority-validation-v1",
         "provider/windows-local/windows-wsl-observer-v1",
+        "provider/windows-local/wsl-service-control-v1",
     ]
     assert windows["capabilities"] == [
         "capability/authority/validate",
+        "capability/service/ensure",
+        "capability/service/probe",
         "capability/wsl/probe",
         "capability/wsl/verify-offline",
     ]
@@ -54,12 +58,15 @@ def test_real_workflows_partially_resolve_without_shell_fallback():
 
     wsl = M.resolve(load(WORKFLOWS / "wsl-control-plane-recovery-r1.json"), catalog)
     assert wsl["dispatchStarted"] is False
-    assert wsl["fullyResolved"] is False
+    assert wsl["fullyResolved"] is True
     wsl_by_step = {item["stepId"]: item for item in wsl["bindings"]}
     assert wsl_by_step["step/probe-control-plane"]["disposition"] == "resolved"
     assert wsl_by_step["step/verify-runtime-health"]["disposition"] == "resolved"
     assert wsl_by_step["step/probe-wsl"]["disposition"] == "resolved"
-    assert wsl_by_step["step/ensure-control-plane"]["disposition"] == "unresolved"
+    assert wsl_by_step["step/probe-control-plane"]["selectedProviderId"] == "provider/windows-local/wsl-service-control-v1"
+    assert wsl_by_step["step/ensure-control-plane"]["disposition"] == "resolved"
+    assert wsl_by_step["step/ensure-control-plane"]["selectedProviderId"] == "provider/windows-local/wsl-service-control-v1"
+    assert wsl["fullyResolved"] is True
 
     compact = M.resolve(load(WORKFLOWS / "d-drive-vhd-compact-r2.json"), catalog)
     assert compact["dispatchStarted"] is False
@@ -182,3 +189,102 @@ def test_provider_backlog_covers_all_real_unresolved_capabilities_once_by_family
     assert not current_provider_ids.intersection(
         item["providerFamilyId"] for item in planned
     )
+
+
+def test_cross_node_provider_requires_explicit_target_node_reachability():
+    plan = {
+        "schemaVersion": 1,
+        "workflowId": "workflow/cross-node",
+        "ownerId": "controller/test",
+        "executionStarted": False,
+        "steps": [{
+            "schemaVersion": 1,
+            "stepId": "step/remote",
+            "kind": "recover",
+            "resourceId": "resource/linux-service",
+            "requestedCapabilityId": "capability/service/ensure",
+            "authorityMode": "recovery",
+            "conflictMode": "exclusive_write",
+            "dependsOn": [],
+            "effectDispatched": False,
+        }],
+    }
+    catalog = {
+        "schemaVersion": 1,
+        "resources": [{
+            "schemaVersion": 1,
+            "resourceId": "resource/linux-service",
+            "resourceKind": "service-group",
+            "nodeId": "linux-node",
+            "conflictDomains": [],
+        }],
+        "nodes": [
+            {
+                "schemaVersion": 1,
+                "nodeId": "windows-node",
+                "platform": "windows",
+                "nativeControlPlane": False,
+                "trustDomain": "ordivon.local",
+                "providers": ["provider/windows/remote-service"],
+                "capabilities": ["capability/service/ensure"],
+                "authorityContexts": ["windows/limited"],
+            },
+            {
+                "schemaVersion": 1,
+                "nodeId": "linux-node",
+                "platform": "linux",
+                "nativeControlPlane": True,
+                "trustDomain": "ordivon.local",
+                "providers": [],
+                "capabilities": [],
+                "authorityContexts": ["linux/root"],
+            },
+        ],
+        "providers": [{
+            "schemaVersion": 1,
+            "providerId": "provider/windows/remote-service",
+            "nodeId": "windows-node",
+            "platform": "windows",
+            "capabilities": ["capability/service/ensure"],
+            "targetNodeIds": ["linux-node"],
+        }],
+    }
+    binding = M.resolve(plan, catalog)
+    assert binding["fullyResolved"] is True
+    assert binding["bindings"][0]["selectedNodeId"] == "windows-node"
+
+    catalog["providers"][0]["targetNodeIds"] = []
+    binding = M.resolve(plan, catalog)
+    assert binding["fullyResolved"] is False
+    assert binding["bindings"][0]["disposition"] == "unresolved"
+
+
+def test_catalog_rejects_unknown_cross_node_target():
+    catalog = {
+        "schemaVersion": 1,
+        "resources": [],
+        "nodes": [{
+            "schemaVersion": 1,
+            "nodeId": "windows-node",
+            "platform": "windows",
+            "nativeControlPlane": False,
+            "trustDomain": "ordivon.local",
+            "providers": ["provider/windows/remote"],
+            "capabilities": ["capability/test"],
+            "authorityContexts": [],
+        }],
+        "providers": [{
+            "schemaVersion": 1,
+            "providerId": "provider/windows/remote",
+            "nodeId": "windows-node",
+            "platform": "windows",
+            "capabilities": ["capability/test"],
+            "targetNodeIds": ["missing-node"],
+        }],
+    }
+    try:
+        M.validate_catalog(catalog)
+    except ValueError as error:
+        assert "unknown nodes" in str(error)
+    else:
+        raise AssertionError("unknown target node must fail catalog validation")
