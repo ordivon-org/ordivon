@@ -42,7 +42,7 @@
   ],
   "integration": {
     "latestMainBaseRevision": "fa9781fe07cd6b26766e5cd946a1d27abe41416f",
-    "integratedRoutingRevision": "01afb37f6b6c7cf45fa2c12400ac7422a08b3c98",
+    "integratedRoutingRevision": "92c704e0064d804ff11a6eff5d69e77bfc1817a5",
     "coexistingLens": "lego-regime-shift",
     "checks": [
       {
@@ -68,6 +68,7 @@
         "result": "PASS"
       }
     ],
-    "claim": "Question Compiler R1 integrates cleanly with the concurrently added regime-shift lens; the compiler routes eligible turning-point/deep-uncertainty questions to that narrower lens rather than absorbing its procedure."
+    "claim": "Question Compiler R1 integrates cleanly with the concurrently added regime-shift lens; the compiler routes eligible turning-point/deep-uncertainty questions to that narrower lens rather than absorbing its procedure.",
+    "canonicalEvidenceRevision": "7f0afcb0c0471d4194b6f90988ede5302e154c90"
   }
 }
