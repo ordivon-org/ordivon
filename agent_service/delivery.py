@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import sqlite3
 import time
 import uuid
@@ -33,6 +34,7 @@ class AgentInterfaceAdvertisement:
     id: str
     revision_id: str
     transport: str
+    protocol_version: str | None
     url: str
     priority: int
     security_requirements: dict[str, list[str]]
@@ -50,6 +52,7 @@ class AgentInterfaceAdvertisementStore:
         revision_id: str,
         *,
         transport: str,
+        protocol_version: str,
         url: str,
         priority: int,
         security_requirements: dict[str, list[str]],
@@ -60,6 +63,20 @@ class AgentInterfaceAdvertisementStore:
             raise KeyError(revision_id)
         if not isinstance(transport, str) or not transport.strip():
             raise ValueError("interface transport must be non-empty")
+        normalized_transport = transport.strip()
+        if not isinstance(protocol_version, str) or not protocol_version.strip():
+            raise ValueError("interface protocol_version must be non-empty")
+        normalized_protocol_version = protocol_version.strip()
+        if normalized_transport == "a2a-jsonrpc" and re.fullmatch(r"[0-9]+\.[0-9]+", normalized_protocol_version) is None:
+            raise ValueError("A2A protocol_version must use Major.Minor without patch")
+        if normalized_transport == "mcp":
+            if re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", normalized_protocol_version) is None:
+                raise ValueError("MCP protocol_version must use YYYY-MM-DD")
+            try:
+                import datetime as _datetime
+                _datetime.date.fromisoformat(normalized_protocol_version)
+            except ValueError as error:
+                raise ValueError("MCP protocol_version must be a valid date version") from error
         if not isinstance(url, str) or not url.strip():
             raise ValueError("interface url must be non-empty")
         if not isinstance(priority, int) or priority < 0:
@@ -78,20 +95,37 @@ class AgentInterfaceAdvertisementStore:
                     normalized_scopes.append(scope.strip())
             normalized_security[scheme.strip()] = normalized_scopes
         existing = self.get_by_identity(
-            revision_id, transport.strip(), url.strip(), required=False
+            revision_id,
+            normalized_transport,
+            normalized_protocol_version,
+            url.strip(),
+            required=False,
         )
         candidate = (priority, normalized_security)
         if existing is not None:
             historical = (existing.priority, existing.security_requirements)
             if historical != candidate:
                 raise ValueError(
-                    "interface advertisement is immutable for revision/transport/url"
+                    "interface advertisement is immutable for revision/transport/protocolVersion/url"
                 )
             return existing
+        legacy = self._connection.execute(
+            """
+            SELECT id FROM agent_interface_advertisements
+            WHERE revision_id = ? AND transport = ? AND url = ? AND protocol_version IS NULL
+            LIMIT 1
+            """,
+            (revision_id, normalized_transport, url.strip()),
+        ).fetchone()
+        if legacy is not None:
+            raise RuntimeError(
+                "legacy interface row has no protocol_version; explicit operator migration is required"
+            )
         identity_material = _canonical_json(
             {
                 "revisionId": revision_id,
-                "transport": transport.strip(),
+                "transport": normalized_transport,
+                "protocolVersion": normalized_protocol_version,
                 "url": url.strip(),
                 "priority": priority,
                 "securityRequirements": normalized_security,
@@ -100,7 +134,8 @@ class AgentInterfaceAdvertisementStore:
         value = AgentInterfaceAdvertisement(
             id="iface_" + hashlib.sha256(identity_material.encode("utf-8")).hexdigest(),
             revision_id=revision_id,
-            transport=transport.strip(),
+            transport=normalized_transport,
+            protocol_version=normalized_protocol_version,
             url=url.strip(),
             priority=priority,
             security_requirements=normalized_security,
@@ -108,11 +143,12 @@ class AgentInterfaceAdvertisementStore:
         )
         with self._connection:
             self._connection.execute(
-                "INSERT INTO agent_interface_advertisements(id, revision_id, transport, url, priority, security_requirements_json, created_at_ns) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO agent_interface_advertisements(id, revision_id, transport, protocol_version, url, priority, security_requirements_json, created_at_ns) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     value.id,
                     value.revision_id,
                     value.transport,
+                    value.protocol_version,
                     value.url,
                     value.priority,
                     _canonical_json(value.security_requirements),
@@ -133,19 +169,20 @@ class AgentInterfaceAdvertisementStore:
         self,
         revision_id: str,
         transport: str,
+        protocol_version: str,
         url: str,
         required: bool = True,
     ) -> AgentInterfaceAdvertisement | None:
         row = self._connection.execute(
             """
             SELECT * FROM agent_interface_advertisements
-            WHERE revision_id = ? AND transport = ? AND url = ?
+            WHERE revision_id = ? AND transport = ? AND protocol_version = ? AND url = ?
             """,
-            (revision_id, transport, url),
+            (revision_id, transport, protocol_version, url),
         ).fetchone()
         if row is None:
             if required:
-                raise LookupError((revision_id, transport, url))
+                raise LookupError((revision_id, transport, protocol_version, url))
             return None
         return self._from_row(row)
 
@@ -162,6 +199,7 @@ class AgentInterfaceAdvertisementStore:
             id=row["id"],
             revision_id=row["revision_id"],
             transport=row["transport"],
+            protocol_version=row["protocol_version"],
             url=row["url"],
             priority=row["priority"],
             security_requirements=json.loads(row["security_requirements_json"]),
@@ -331,6 +369,7 @@ class TransportBinding:
     policy_decision_id: str
     interface_id: str
     transport: str
+    protocol_version: str | None
     endpoint: str
     delivery_request_id: str
     security_requirements: dict[str, list[str]]
@@ -367,7 +406,11 @@ class TransportBindingStore:
         policy_decision_id: str,
         interface: AgentInterfaceAdvertisement,
     ) -> TransportBinding:
-        material = f"{delegation_id}\0{policy_decision_id}\0{interface.id}".encode("utf-8")
+        if not isinstance(interface.protocol_version, str) or not interface.protocol_version:
+            raise RuntimeError(
+                "legacy interface advertisement lacks protocol_version; explicit re-advertisement is required"
+            )
+        material = f"{delegation_id}\0{policy_decision_id}\0{interface.id}\0{interface.protocol_version}".encode("utf-8")
         binding_id = "bind_" + hashlib.sha256(material).hexdigest()
         try:
             existing = self.get(binding_id)
@@ -379,6 +422,7 @@ class TransportBindingStore:
                 policy_decision_id,
                 interface.id,
                 interface.transport,
+                interface.protocol_version,
                 interface.url,
                 interface.security_requirements,
             )
@@ -387,6 +431,7 @@ class TransportBindingStore:
                 existing.policy_decision_id,
                 existing.interface_id,
                 existing.transport,
+                existing.protocol_version,
                 existing.endpoint,
                 existing.security_requirements,
             )
@@ -400,6 +445,7 @@ class TransportBindingStore:
             policy_decision_id=policy_decision_id,
             interface_id=interface.id,
             transport=interface.transport,
+            protocol_version=interface.protocol_version,
             endpoint=interface.url,
             delivery_request_id=delivery_request_id,
             security_requirements=interface.security_requirements,
@@ -411,8 +457,8 @@ class TransportBindingStore:
                     """
                     INSERT INTO transport_bindings(
                         id, delegation_id, policy_decision_id, interface_id, transport,
-                        endpoint, delivery_request_id, security_requirements_json, created_at_ns
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        protocol_version, endpoint, delivery_request_id, security_requirements_json, created_at_ns
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         value.id,
@@ -420,6 +466,7 @@ class TransportBindingStore:
                         value.policy_decision_id,
                         value.interface_id,
                         value.transport,
+                        value.protocol_version,
                         value.endpoint,
                         value.delivery_request_id,
                         _canonical_json(value.security_requirements),
@@ -433,6 +480,7 @@ class TransportBindingStore:
                 value.policy_decision_id,
                 value.interface_id,
                 value.transport,
+                value.protocol_version,
                 value.endpoint,
                 value.delivery_request_id,
                 value.security_requirements,
@@ -442,6 +490,7 @@ class TransportBindingStore:
                 existing.policy_decision_id,
                 existing.interface_id,
                 existing.transport,
+                existing.protocol_version,
                 existing.endpoint,
                 existing.delivery_request_id,
                 existing.security_requirements,
@@ -459,6 +508,7 @@ class TransportBindingStore:
             policy_decision_id=row["policy_decision_id"],
             interface_id=row["interface_id"],
             transport=row["transport"],
+            protocol_version=row["protocol_version"],
             endpoint=row["endpoint"],
             delivery_request_id=row["delivery_request_id"],
             security_requirements=json.loads(row["security_requirements_json"]),
@@ -726,11 +776,12 @@ class AgentServiceR9:
                 id TEXT PRIMARY KEY,
                 revision_id TEXT NOT NULL REFERENCES agent_revisions(id),
                 transport TEXT NOT NULL,
+                protocol_version TEXT,
                 url TEXT NOT NULL,
                 priority INTEGER NOT NULL,
                 security_requirements_json TEXT NOT NULL,
                 created_at_ns INTEGER NOT NULL,
-                UNIQUE(revision_id, transport, url)
+                UNIQUE(revision_id, transport, protocol_version, url)
             );
 
             CREATE TABLE IF NOT EXISTS policy_decisions (
@@ -750,6 +801,7 @@ class AgentServiceR9:
                 policy_decision_id TEXT NOT NULL REFERENCES policy_decisions(id),
                 interface_id TEXT NOT NULL REFERENCES agent_interface_advertisements(id),
                 transport TEXT NOT NULL,
+                protocol_version TEXT,
                 endpoint TEXT NOT NULL,
                 delivery_request_id TEXT NOT NULL UNIQUE,
                 security_requirements_json TEXT NOT NULL,
@@ -770,6 +822,15 @@ class AgentServiceR9:
             );
             """
         )
+        for table in ("agent_interface_advertisements", "transport_bindings"):
+            columns = {
+                row["name"]
+                for row in connection.execute(f"PRAGMA table_info({table})").fetchall()
+            }
+            if "protocol_version" not in columns:
+                connection.execute(
+                    f"ALTER TABLE {table} ADD COLUMN protocol_version TEXT"
+                )
         connection.commit()
 
     def close(self) -> None:

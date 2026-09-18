@@ -95,7 +95,7 @@ class A2AJsonRpcHttpClient:
 
     def __init__(
         self,
-        protocol_version: str | A2AVersionResolver,
+        protocol_version: str | A2AVersionResolver | None = None,
         *,
         header_provider: HeaderProvider | None = None,
         timeout_seconds: float = 20.0,
@@ -118,13 +118,23 @@ class A2AJsonRpcHttpClient:
         request_identity: str,
     ) -> dict[str, Any]:
         _safe_http_endpoint(binding.endpoint)
-        version = (
+        configured_version = (
             self._protocol_version(binding)
             if callable(self._protocol_version)
             else self._protocol_version
         )
+        bound_version = getattr(binding, "protocol_version", None)
+        if (
+            isinstance(bound_version, str)
+            and bound_version
+            and isinstance(configured_version, str)
+            and configured_version
+            and bound_version != configured_version.strip()
+        ):
+            raise ValueError("configured A2A protocol version conflicts with immutable Binding")
+        version = bound_version or configured_version
         if not isinstance(version, str) or not version.strip():
-            raise ValueError("A2A protocol version resolver returned an empty version")
+            raise ValueError("A2A protocol version is absent from Binding and client configuration")
         payload = {
             "jsonrpc": "2.0",
             "id": request_identity,
@@ -192,6 +202,11 @@ class MCPTasksHttpClient:
         request_identity: str,
     ) -> dict[str, Any]:
         _safe_http_endpoint(binding.endpoint)
+        bound_version = getattr(binding, "protocol_version", None)
+        if bound_version is not None and bound_version != self.PROTOCOL_VERSION:
+            raise ValueError(
+                "MCP Binding protocol_version does not match MCPTasksHttpClient protocol"
+            )
         task_id = params.get("taskId")
         if method in {"tasks/get", "tasks/cancel", "tasks/update"} and (
             not isinstance(task_id, str) or not task_id

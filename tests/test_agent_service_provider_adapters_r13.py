@@ -211,6 +211,7 @@ class AgentServiceProviderAdaptersR13Tests(unittest.TestCase):
         service.interfaces.advertise(
             tr.id,
             transport="a2a-jsonrpc",
+            protocol_version="1.0",
             url="https://a2a.example.test/rpc",
             priority=10,
             security_requirements={},
@@ -218,6 +219,7 @@ class AgentServiceProviderAdaptersR13Tests(unittest.TestCase):
         service.interfaces.advertise(
             tr.id,
             transport="mcp",
+            protocol_version="2026-07-28",
             url="https://mcp.example.test/mcp",
             priority=20,
             security_requirements={},

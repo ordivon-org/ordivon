@@ -224,6 +224,7 @@ class AgentServiceFailoverR12Tests(unittest.TestCase):
         service.interfaces.advertise(
             target_revision.id,
             transport="a2a-jsonrpc",
+            protocol_version="1.0",
             url=f"https://agents.example.test/{suffix}",
             priority=10,
             security_requirements={},
@@ -231,6 +232,7 @@ class AgentServiceFailoverR12Tests(unittest.TestCase):
         service.interfaces.advertise(
             target_revision.id,
             transport="mcp",
+            protocol_version="2026-07-28",
             url=f"https://mcp.example.test/{suffix}",
             priority=20,
             security_requirements={},
