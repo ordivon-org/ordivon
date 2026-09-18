@@ -25,12 +25,19 @@
       "trustDomain": "ordivon.local"
     },
     {
-      "authorityContexts": [],
-      "capabilities": [],
+      "authorityContexts": [
+        "windows/limited"
+      ],
+      "capabilities": [
+        "capability/wsl/probe",
+        "capability/wsl/verify-offline"
+      ],
       "nativeControlPlane": false,
       "nodeId": "windows-local",
       "platform": "windows",
-      "providers": [],
+      "providers": [
+        "provider/windows-local/windows-wsl-observer-v1"
+      ],
       "schemaVersion": 1,
       "trustDomain": "ordivon.local"
     }
@@ -71,6 +78,16 @@
       "nodeId": "linux-local",
       "platform": "windows",
       "providerId": "provider/linux-local/windows-native-launcher-v1",
+      "schemaVersion": 1
+    },
+    {
+      "capabilities": [
+        "capability/wsl/probe",
+        "capability/wsl/verify-offline"
+      ],
+      "nodeId": "windows-local",
+      "platform": "windows",
+      "providerId": "provider/windows-local/windows-wsl-observer-v1",
       "schemaVersion": 1
     }
   ],

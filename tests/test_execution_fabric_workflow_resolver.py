@@ -25,6 +25,7 @@ def test_current_catalog_records_only_proven_providers():
         "provider/linux-local/windows-native-launcher-v1",
         "provider/linux-local/runtime-control-observer-v1",
         "provider/linux-local/service-observer-v1",
+        "provider/windows-local/windows-wsl-observer-v1",
     }
     assert providers["provider/linux-local/windows-native-launcher-v1"]["platform"] == "windows"
     assert providers["provider/linux-local/runtime-control-observer-v1"]["capabilities"] == [
@@ -36,7 +37,11 @@ def test_current_catalog_records_only_proven_providers():
     ]
     windows = next(node for node in catalog["nodes"] if node["nodeId"] == "windows-local")
     assert windows["nativeControlPlane"] is False
-    assert windows["providers"] == []
+    assert windows["providers"] == ["provider/windows-local/windows-wsl-observer-v1"]
+    assert windows["capabilities"] == [
+        "capability/wsl/probe",
+        "capability/wsl/verify-offline",
+    ]
 
 
 def test_real_workflows_partially_resolve_without_shell_fallback():
@@ -48,7 +53,7 @@ def test_real_workflows_partially_resolve_without_shell_fallback():
     wsl_by_step = {item["stepId"]: item for item in wsl["bindings"]}
     assert wsl_by_step["step/probe-control-plane"]["disposition"] == "resolved"
     assert wsl_by_step["step/verify-runtime-health"]["disposition"] == "resolved"
-    assert wsl_by_step["step/probe-wsl"]["disposition"] == "unresolved"
+    assert wsl_by_step["step/probe-wsl"]["disposition"] == "resolved"
     assert wsl_by_step["step/ensure-control-plane"]["disposition"] == "unresolved"
 
     compact = M.resolve(load(WORKFLOWS / "d-drive-vhd-compact-r2.json"), catalog)
