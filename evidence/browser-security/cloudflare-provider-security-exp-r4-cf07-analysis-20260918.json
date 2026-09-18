@@ -1,0 +1,144 @@
+{
+  "carrierBindingDistribution": {
+    "coefficientOfVariation": 0.0666,
+    "counts": {
+      "chatgpt-carrier-11": 114,
+      "chatgpt-carrier-12": 98,
+      "chatgpt-carrier-13": 101
+    },
+    "interpretation": "Bindings are distributed across all three carriers; no carrier has a dominant historical binding share.",
+    "maxMinusMin": 16,
+    "shares": {
+      "chatgpt-carrier-11": 0.3642,
+      "chatgpt-carrier-12": 0.3131,
+      "chatgpt-carrier-13": 0.3227
+    }
+  },
+  "challengeOutcomeUsedAsDetectorOracle": false,
+  "currentLifecycle": {
+    "chatgpt-carrier-11": {
+      "active": true,
+      "humanTransportActive": false,
+      "lastUseAgeSeconds": 842,
+      "sessionCount": 0,
+      "sessionObservation": "OBSERVED_COUNT_ONLY"
+    },
+    "chatgpt-carrier-12": {
+      "active": false,
+      "humanTransportActive": false,
+      "lastUseAgeSeconds": 826,
+      "sessionCount": null,
+      "sessionObservation": "NOT_NEEDED_SLEEPING"
+    },
+    "chatgpt-carrier-13": {
+      "active": false,
+      "humanTransportActive": false,
+      "lastUseAgeSeconds": 814,
+      "sessionCount": null,
+      "sessionObservation": "NOT_NEEDED_SLEEPING"
+    }
+  },
+  "date": "2026-09-18",
+  "hypothesisUpdate": {
+    "currentBirthRequestBurstIsSufficientCause": {
+      "reason": "The birth ledger had zero new requests in the prior 24 hours, yet current production read-only preflight has still observed CHALLENGE_GATED. This does not exclude IP/provider reputation, other traffic, or persistent challenge history.",
+      "standing": "WEAKENED"
+    },
+    "historicalBurstOrReputationContribution": {
+      "reason": "Historical inter-arrival times show bursty periods and the snapshot cannot observe provider reputation state.",
+      "standing": "OPEN"
+    },
+    "profileSpecificCorruption": {
+      "reason": "Three distinct profiles were independently gated in R2; R4 adds balanced usage histories but does not inspect credential/session contents.",
+      "standing": "WEAKENED_NOT_FALSIFIED"
+    },
+    "semanticProviderSessionAge": {
+      "reason": "Last-use stamps and profile filesystem times are lifecycle/filesystem metadata, not authoritative provider-session creation time.",
+      "standing": "UNMEASURED"
+    },
+    "singleOverusedCarrierExplainsSharedChallenge": {
+      "reason": "All three carriers have substantial and relatively balanced historical binding counts, while prior R2 preflight observed all three CHALLENGE_GATED.",
+      "standing": "WEAKENED"
+    }
+  },
+  "interpretationGuard": {
+    "metadataSnapshotPrecededOutcomeAnchor": true,
+    "outcomeAnchorMayRefreshSelectedCarrierLifecycleLastUse": true,
+    "providerCausalityEstablished": false
+  },
+  "kind": "ordivon.browser-security-cf07-analysis-r4",
+  "outcomeAnchor": {
+    "challengeOutcomeUsedAsDetectorOracle": false,
+    "endpointId": "chatgpt-carrier-11",
+    "evidence": "evidence/browser-security/cloudflare-provider-security-exp-r4-cf07-outcome-anchor-20260918.json",
+    "providerEffectAttempted": false,
+    "sendAttempted": false,
+    "sha256": "sha256:bbc9cde55fa919dc37b153c083b197896228ca8c89d8e2d842c0998d57b6fa1c",
+    "standing": "CHALLENGE_GATED"
+  },
+  "privacyBoundary": {
+    "forbiddenDataClasses": [
+      "cookie values",
+      "browser history contents",
+      "saved credentials/tokens",
+      "prompt text",
+      "turn text",
+      "handoff URLs",
+      "attempt receipt bodies",
+      "SQLite request_json",
+      "SQLite detail",
+      "SQLite provider_coordinate",
+      "provider page content"
+    ],
+    "forbiddenDataClassesRead": [],
+    "metadataOnly": true,
+    "providerEffectAttempted": false,
+    "providerSendAttempted": false,
+    "providerVisited": false,
+    "sleepingCarrierWoken": false
+  },
+  "providerCausalityEstablished": false,
+  "receiptCountDistribution": {
+    "attempt": {
+      "chatgpt-carrier-11": 113,
+      "chatgpt-carrier-12": 98,
+      "chatgpt-carrier-13": 101
+    },
+    "humanHandoff": {
+      "chatgpt-carrier-11": 0,
+      "chatgpt-carrier-12": 0,
+      "chatgpt-carrier-13": 1
+    },
+    "preEffect": {
+      "chatgpt-carrier-11": 60,
+      "chatgpt-carrier-12": 49,
+      "chatgpt-carrier-13": 55
+    },
+    "turn": {
+      "chatgpt-carrier-11": 25,
+      "chatgpt-carrier-12": 14,
+      "chatgpt-carrier-13": 37
+    }
+  },
+  "requestCadence": {
+    "createdWithin": {
+      "1h": 0,
+      "24h": 0,
+      "6h": 0,
+      "72h": 165
+    },
+    "interarrivalSeconds": {
+      "count": 312,
+      "max": 50174.969,
+      "median": 12.453,
+      "min": 0.0,
+      "p90": 779.011
+    },
+    "interpretation": "Historical Agent Automation traffic was bursty, but there were no new birth-ledger requests in the last 24 hours at snapshot time.",
+    "newestRequestAgeSeconds": 137082,
+    "newestUpdateAgeSeconds": 134113,
+    "totalRequests": 313
+  },
+  "schemaVersion": 1,
+  "sourceEvidence": "evidence/browser-security/cloudflare-provider-security-exp-r4-cf07-metadata-20260918.json"
+}
