@@ -469,7 +469,7 @@ def run_live(output: Path) -> dict[str, Any]:
                 and row["taskIdCorrect"]
                 and row["revisionCorrect"]
             )
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001 - provider boundary is recorded, not hidden
             row["latencyMs"] = round((time.monotonic() - started) * 1000, 3)
             row["status"] = "provider_error"
             row["errorType"] = type(error).__name__
@@ -510,8 +510,8 @@ def summarize(result: dict[str, Any]) -> dict[str, Any]:
         rev_ok = sum(bool(row.get("revisionCorrect")) for row in completed if row.get("taskIdCorrect"))
         correct_task = sum(bool(row.get("taskIdCorrect")) for row in completed)
         one_tool = sum(row.get("toolCallCount") == 1 for row in completed)
-        def mean(field: str) -> float | None:
-            return None if not completed else round(statistics.mean(row[field] for row in completed), 3)
+        def mean(field: str, rows: list[dict[str, Any]] = completed) -> float | None:
+            return None if not rows else round(statistics.mean(row[field] for row in rows), 3)
         prompt_tokens = [
             usage_value(row.get("usage", {}), "prompt_tokens", "inputTokens")
             for row in completed
