@@ -2458,6 +2458,31 @@ fn runtime_describe_projects_agent_affordances_without_selecting_a_target() {
     assert!(result.input_authorities.is_empty());
     assert_eq!(result.targets.len(), 2);
     assert!(!result.structured_release_configured);
+    assert!(result.execution_fabric.descriptive_only);
+    assert!(!result.execution_fabric.grants_authority);
+    assert!(!result.execution_fabric.selects_provider);
+    assert_eq!(result.execution_fabric.node.node_id.as_str(), "test-node");
+    assert_eq!(
+        result.execution_fabric.node.platform,
+        ordivon_runtime_spi::FabricPlatform::Linux
+    );
+    assert!(result.execution_fabric.node.native_control_plane);
+    assert_eq!(
+        result.execution_fabric.node.trust_domain.as_str(),
+        "ordivon.local"
+    );
+    assert_eq!(result.execution_fabric.resources.len(), 2);
+    assert_eq!(result.execution_fabric.capabilities.len(), 2);
+    assert_eq!(result.execution_fabric.providers.len(), 1);
+    assert_eq!(
+        result.execution_fabric.providers[0].provider_id.as_str(),
+        "provider/test-node/local-linux-runner-v1"
+    );
+    assert_eq!(
+        result.execution_fabric.node.capabilities[0].as_str(),
+        "capability/execution/local-linux"
+    );
+    assert!(result.execution_fabric.node.authority_contexts.is_empty());
     let linux = result
         .targets
         .iter()
@@ -2520,6 +2545,15 @@ fn runtime_describe_projects_agent_affordances_without_selecting_a_target() {
         "windowsImmutableInputAuthorities",
         "hostDependencyCommitments",
         "hostDependencyContinuityScope",
+        "executionFabric",
+        "descriptiveOnly",
+        "grantsAuthority",
+        "selectsProvider",
+        "resources",
+        "providers",
+        "capabilities",
+        "trustDomain",
+        "nativeControlPlane",
     ] {
         assert!(
             output.contains(expected),
