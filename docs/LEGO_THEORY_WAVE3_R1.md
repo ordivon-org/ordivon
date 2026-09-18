@@ -1,7 +1,7 @@
 # LEGO Theory Wave 3 R1
 
 Date: 2026-09-18
-Status: ACTIVE EXPERIMENTAL OVERLAY / PROSPECTIVE VALIDATION REQUIRED
+Status: ACTIVE / PROSPECTIVELY VALIDATED WITH CONDITIONAL ALGORITHMIC ADOPTION
 
 ## Purpose
 
@@ -96,3 +96,31 @@ Use different system shapes:
 - organizational cybernetics -> Agent Service / multi-agent organization.
 
 A theory earns retention only through corrected decisions, falsifiable experiments, newly exposed pathologies, or justified no-change outcomes.
+
+## Prospective validation result
+
+Canonical evidence:
+- knowledge/lessons/lego-wave3-prospective-validation-r1.md
+- evidence/acceptance/lego-theory-wave3-prospective-r1.json
+- knowledge/lessons/lego-wave23-self-audit-r1.md
+
+Standing:
+- exploration policy: PROSPECTIVELY_VALIDATED_SCOPE_GUARD; concrete bandit algorithms remain conditional on repeated comparable feedback;
+- C-K design: PROSPECTIVELY_VALIDATED_GENERATIVE_DESIGN_LENS;
+- evolutionary search: PROSPECTIVELY_VALIDATED_EVALUATOR_GUARD; algorithmic adoption remains conditional on a trustworthy evaluator;
+- organizational cybernetics: PROSPECTIVELY_VALIDATED_ORGANIZATIONAL_BOUNDARY_LENS.
+
+### Routing separation
+
+Do not treat the three search/design lenses as interchangeable:
+
+1. Desired object not yet known -> C-K Design.
+2. Options already defined and repeated comparable feedback exists -> Exploration Policy.
+3. Candidate representation and evaluator are trustworthy enough for population variation -> Evolutionary Search.
+4. Problem is autonomy/coordination/control/environment/policy across organizational units -> Organizational Cybernetics.
+
+Do not activate all four merely because a task contains the words search, exploration, adaptation, or optimization.
+
+### Core promotion verdict
+
+No Wave 3 object is promoted into the common LEGO schema. Algorithmic search remains subordinate to domain authority and independent verification.
