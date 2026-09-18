@@ -1,0 +1,102 @@
+{
+  "date": "2026-09-18",
+  "eventAllowlist": [
+    "schemaVersion",
+    "kind",
+    "observedAtMs",
+    "endpointId",
+    "standing",
+    "lifecycleStarted",
+    "sessionCountClass",
+    "providerEffectAttempted",
+    "clicked",
+    "composerFilled",
+    "sendAttempted",
+    "assistantOutputRead",
+    "profileFirstObservedAtMs",
+    "semanticProviderSessionCreationKnown"
+  ],
+  "events": [
+    {
+      "assistantOutputRead": false,
+      "clicked": false,
+      "composerFilled": false,
+      "endpointId": "chatgpt-carrier-11",
+      "lifecycleStarted": false,
+      "observedAtMs": 1789722777455,
+      "profileFirstObservedAtMs": 1789722777455,
+      "providerEffectAttempted": false,
+      "semanticProviderSessionCreationKnown": false,
+      "sendAttempted": false,
+      "sessionCountClass": "ZERO",
+      "standing": "CHALLENGE_GATED"
+    },
+    {
+      "assistantOutputRead": false,
+      "clicked": false,
+      "composerFilled": false,
+      "endpointId": "chatgpt-carrier-12",
+      "lifecycleStarted": true,
+      "observedAtMs": 1789722814865,
+      "profileFirstObservedAtMs": 1789722814865,
+      "providerEffectAttempted": false,
+      "semanticProviderSessionCreationKnown": false,
+      "sendAttempted": false,
+      "sessionCountClass": "ZERO",
+      "standing": "CHALLENGE_GATED"
+    }
+  ],
+  "excludedDataClasses": [
+    "pageRef",
+    "detail text",
+    "substrateHealth payload",
+    "URL",
+    "cookie values",
+    "tokens",
+    "prompt or turn text",
+    "provider page content"
+  ],
+  "interpretationGuard": {
+    "note": "These two production observations validate prospective metadata instrumentation and lifecycle compatibility only. They do not establish a cadence, reputation, session-age, or provider-challenge cause.",
+    "providerCausalityEstablished": false,
+    "rootCauseEstablished": false,
+    "semanticProviderSessionCreationKnown": false,
+    "twoEventsEstablishCadenceEffect": false
+  },
+  "kind": "ordivon.browser-security-cf07-prospective-telemetry-r6",
+  "lifecycleAcceptance": {
+    "carrier11": "SKIP_WARM_FLOOR",
+    "carrier12": "REAPED",
+    "carrier13": "ALREADY_COLD",
+    "telemetryPreservedOnDemandLifecycle": true
+  },
+  "persistence": {
+    "eventFileMode": "0600",
+    "eventWriteModel": "CREATE_NEW_PER_EVENT",
+    "profileMarkerMode": "0600",
+    "profileMarkerWriteModel": "CREATE_ONCE_PER_ENDPOINT"
+  },
+  "production": {
+    "browserlessImage": "ghcr.io/browserless/chromium@sha256:b1ba7b054af2891a8199f884d4bd249cf8c3bd2fa8a97b339077e40f92803ba8",
+    "doctorHealthyAfterReap": true,
+    "eventCountAfterAcceptance": 2,
+    "harnessReleaseCommit": "dc23c0c6894f415cc6eca624a8740c856ab9009b",
+    "profileMarkerCountAfterAcceptance": 2,
+    "topologyAfter": {
+      "chatgpt-carrier-11": "ACTIVE_WARM",
+      "chatgpt-carrier-12": "SLEEPING",
+      "chatgpt-carrier-13": "SLEEPING"
+    }
+  },
+  "safetyBoundary": {
+    "assistantOutputRead": false,
+    "challengeInteracted": false,
+    "clicked": false,
+    "composerFilled": false,
+    "credentialContentsReadForTelemetry": false,
+    "providerEffectAttempted": false,
+    "sendAttempted": false
+  },
+  "schemaVersion": 1,
+  "standing": "PROSPECTIVE_CF07_TELEMETRY_LIVE_ACCEPTED_CAUSALITY_OPEN"
+}
