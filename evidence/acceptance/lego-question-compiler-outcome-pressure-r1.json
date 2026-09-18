@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.lego-question-compiler-outcome-pressure-r1-acceptance",
+  "date": "2026-09-18",
+  "truthRole": "method-outcome-pressure-acceptance-not-domain-outcome-truth",
+  "analysis": "evidence/analysis/lego-question-compiler-outcome-pressure-r1.json",
+  "lesson": "knowledge/lessons/lego-question-compiler-outcome-pressure-r1.md",
+  "sourceBaseRevision": "4ec87fee31135995f096339b2598e0b925ca9729",
+  "controlStabilityIntegratedCandidateRevision": "0092260f8b9ab7d92fb0334f1b363e1db894036a",
+  "checks": {
+    "outcomePressureTests": "PASS_6_OF_6",
+    "questionCompilerDedicatedTests": "PASS_6_OF_6",
+    "controlStabilityTests": "PASS_9_OF_9_ON_LATEST_BASE",
+    "repositoryRegression": "PASS_253_OF_253",
+    "legoPlanValidator": "PASS_6_NODES_4_EDGES_5_SLICES_0_ACTIVE",
+    "jsonParse": "PASS",
+    "gitDiffCheck": "PASS"
+  },
+  "canaries": {
+    "agentService": {
+      "standing": "DECISION_ALLOCATION_CHANGED",
+      "change": "broad feature expansion -> freshness conservation + authority-lifetime contract + event-level E2E funnel",
+      "finalOutcomeImprovementProven": false
+    },
+    "researchPaper2": {
+      "standing": "DECISION_ALLOCATION_CHANGED",
+      "change": "candidate generation / first-pass scaling -> Stage2 calibration + access-boundary + human full-text eligibility service-time measurement",
+      "finalOutcomeImprovementProven": false
+    }
+  },
+  "verdict": "PASS_DECISION_ALLOCATION_EFFECT__BLOCK_OUTCOME_PROMOTION",
+  "promotion": {
+    "questionCompilerOutcomeValidated": false,
+    "commonSchemaExpansion": false,
+    "nextGate": "At least one downstream accepted project outcome must improve under a prospective before/after or otherwise defensible comparison."
+  }
+}

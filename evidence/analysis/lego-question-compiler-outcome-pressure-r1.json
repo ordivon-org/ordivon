@@ -1,0 +1,261 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.lego-question-compiler-outcome-pressure-r1",
+  "date": "2026-09-18",
+  "truthRole": "derived-decision-allocation-evidence-not-domain-outcome-truth",
+  "method": {
+    "skillId": "project-ordivon-next/lego-question-compiler",
+    "packageRevision": "sha256:860e1a047777774483f64e1d942262430665fb02940a1a22339da72784cb7b3b"
+  },
+  "agentBirth": {
+    "source": {
+      "ledgerPath": "/root/.local/state/ordivon-workstation/agent-automation/state/birth-ledger.sqlite",
+      "ledgerSha256": "sha256:b71da6cfc713d4d83f505f368b512a47ae64e1c7fb6d8c1a1df3a148f46455af",
+      "rowCount": 313,
+      "observedCreatedMinUtc": "2026-09-13T10:01:47.695000+00:00",
+      "observedUpdatedMaxUtc": "2026-09-16T15:19:46.386000+00:00",
+      "freshnessStanding": "HISTORICAL_ONLY_NO_RECENT_24H_ROWS_AT_PRIOR_REGIME_CANARY"
+    },
+    "standingCounts": {
+      "bound": 150,
+      "pre-effect-failed": 129,
+      "submit-observed": 6,
+      "unknown": 27,
+      "human-required": 1
+    },
+    "effectOutcomeAmbiguous": 33,
+    "unresolvedCompatibilityCount": 34,
+    "preEffectFailureTopCauses": {
+      "humanHandoffUnavailable": 80,
+      "conversationHistoryRateLimitModal": 32,
+      "composerNotEmpty": 15,
+      "composerUnavailableTimeout": 2
+    },
+    "lastUpdateSpanProxySeconds": {
+      "caveat": "updated_at_ms - created_at_ms is a last-update-span proxy, not identified state-transition or recovery latency because the ledger stores only the current request row and no transition history.",
+      "bound": {
+        "n": 150,
+        "median": 0,
+        "p90": 389.2425,
+        "max": 18774.251,
+        "zeroCount": 123
+      },
+      "pre-effect-failed": {
+        "n": 129,
+        "median": 0,
+        "p90": 170.6574,
+        "max": 3321.882,
+        "zeroCount": 91
+      },
+      "submit-observed": {
+        "n": 6,
+        "median": 236.3935,
+        "p90": 5779.3085,
+        "max": 7982.809,
+        "zeroCount": 1
+      },
+      "unknown": {
+        "n": 27,
+        "median": 194.944,
+        "p90": 4227.6626,
+        "max": 7965.089,
+        "zeroCount": 6
+      },
+      "human-required": {
+        "n": 1,
+        "median": 2969.217,
+        "p90": 2969.217,
+        "max": 2969.217,
+        "zeroCount": 0
+      }
+    },
+    "effectGenerationCounts": {
+      "1": 240,
+      "2": 51,
+      "3": 12,
+      "4": 8,
+      "5": 2
+    },
+    "multiGenerationFinalStandingRates": {
+      "bound": {
+        "multi": 27,
+        "total": 150,
+        "rate": 0.18
+      },
+      "pre-effect-failed": {
+        "multi": 38,
+        "total": 129,
+        "rate": 0.29457364341085274
+      },
+      "submit-observed": {
+        "multi": 2,
+        "total": 6,
+        "rate": 0.3333333333333333
+      },
+      "unknown": {
+        "multi": 5,
+        "total": 27,
+        "rate": 0.18518518518518517
+      },
+      "human-required": {
+        "multi": 1,
+        "total": 1,
+        "rate": 1
+      }
+    },
+    "integratedR14": {
+      "acceptance": "evidence/acceptance/agent-service-r14-main-integration-r1.json",
+      "sourceIntegration": "IN_MAIN_VERIFIED",
+      "productionDeployment": "NOT_ADMITTED",
+      "unresolvedSemanticGate": "authority-lifetime-revocation"
+    },
+    "controlStability": {
+      "evidence": "evidence/analysis/agent-service-control-stability-r1.json",
+      "scenarioCount": 9,
+      "classificationCounts": {
+        "CONVERGES": 2,
+        "FAIL_CLOSED": 3,
+        "CONTRACT_DEPENDENCY_EXPOSED": 1,
+        "OSCILLATION_EXPOSED": 1,
+        "STALE_OBSERVATION_EXPOSED": 1,
+        "FAILURE_DOMAIN_UNMODELED_EXPOSED": 1
+      },
+      "firstRecommendedProductionChange": "FRESHNESS_CONSERVATION",
+      "noProductionControlLawPromoted": true
+    },
+    "observationGap": {
+      "transitionHistoryAvailableInBirthLedger": false,
+      "trueRecoveryLatencyIdentified": false,
+      "requiredNextObservation": "event-level intent -> provider admission -> effect attempt -> provider/effect evidence -> semantic acceptance funnel with freshness/generation coordinates"
+    },
+    "decisionChange": [
+      "Do not resume broad Agent Service feature expansion merely because R14 source integration is complete.",
+      "Prioritize freshness conservation before any generic readiness hysteresis.",
+      "Resolve authority-lifetime/revocation semantics before production deployment.",
+      "Instrument an event-level end-to-end accepted-throughput funnel before assigning current bottleneck percentages.",
+      "Keep failure-domain independence as a derived reliability experiment rather than a new universal core field."
+    ]
+  },
+  "researchPaper2": {
+    "source": {
+      "paper2Revision": "4692609a75caa016134e8686ebfa4da49a4ae20f",
+      "digests": {
+        "firstPassFreeze": "sha256:2296cd47b8799be0ade0af40a9b9a30d90fe079fd83214395e1fd194aa4e38b0",
+        "fulltextAcquisitionClosure": "sha256:3c10eebf513e726df5aebef7e9dc508ce2b36e267c106d47b9ddb1996967363a",
+        "fulltextEligibilityReadiness": "sha256:c705e7a7ff43401fb588bae2d9198203c35f5e180b7f67d9a11aecd55cefb709",
+        "stage2Method": "sha256:f06c44645ab5ff525d919182cda8dcfc0ca88191825d7450ed63d34dec42d091",
+        "calibrationFrame": "sha256:18caa6a8f3db5b3ebd64b315093f262e3f71651579ad5172298f8beffa302c9c",
+        "studyLinkageCandidates": "sha256:3daacc04bbf8b58db2cd7e7c0b5ce6c6b6360f670d8dfca3caad23ebe46ee928"
+      }
+    },
+    "titleAbstractFirstPass": {
+      "pairedRecords": 4142,
+      "formalBatches": 87,
+      "agreement": 3569,
+      "disagreements": 573,
+      "reviewerA": {
+        "records": 4142,
+        "activeWorkerMs": 1755306,
+        "activeThroughputReviewerRecordsPerMin": 141.5821514881166,
+        "batchWallMs": {
+          "median": 16803,
+          "p90": 28149.000000000007,
+          "max": 55261
+        },
+        "modelCalls": 220,
+        "totalTokens": 3743012
+      },
+      "reviewerB": {
+        "records": 4142,
+        "activeWorkerMs": 1703101,
+        "activeThroughputReviewerRecordsPerMin": 145.92205629613278,
+        "batchWallMs": {
+          "median": 17429,
+          "p90": 26199.800000000003,
+          "max": 40674
+        },
+        "modelCalls": 212,
+        "totalTokens": 3630352
+      },
+      "combined": {
+        "reviewerRecords": 8284,
+        "activeWorkerMs": 3458407,
+        "activeThroughputReviewerRecordsPerMin": 143.7193482432808
+      },
+      "claimBoundary": "Mechanical same-model-family first-pass completion is not independent-human inter-rater reliability or scientific eligibility closure."
+    },
+    "fulltext": {
+      "escalationRecords": 1396,
+      "localPdfReady": 793,
+      "retrievalBoundaryReviewRequired": 603,
+      "acquisitionRoutesMechanicallyClosed": true,
+      "acquisitionClosureIsEligibilityClosure": false,
+      "openAlexOA": {
+        "records": 353,
+        "batches": 6,
+        "allRuntimeBatchesSucceeded": true,
+        "activeRunnerMs": 1039044,
+        "activeRunnerThroughputRecordsPerMin": 20.384122327832124,
+        "batchDurationMs": {
+          "median": 179052,
+          "p90": 198657,
+          "max": 206197
+        }
+      },
+      "doiStage": {
+        "records": 665,
+        "batches": 11,
+        "allRuntimeBatchesSucceeded": true,
+        "activeRunnerMs": 946488,
+        "activeRunnerThroughputRecordsPerMin": 42.155843497223415,
+        "batchDurationMs": {
+          "median": 70677,
+          "p90": 150617,
+          "max": 172761
+        }
+      },
+      "arxivDirect": {
+        "records": 517,
+        "batches": 9,
+        "originalRuntimeSucceededBatches": 7,
+        "originalRuntimeFailedBatches": 2,
+        "routeStanding": "ROUTE_COMPLETE_WITH_ACCESS_BOUNDARY_AFTER_REPAIR_AND_BOUNDARY_ACCOUNTING",
+        "batchDurationMs": {
+          "median": 95088,
+          "p90": 140269.6,
+          "max": 142984
+        }
+      }
+    },
+    "stage2": {
+      "status": "CALIBRATION_OPEN_FINAL_ELIGIBILITY_CLOSED",
+      "calibrationReports": 8,
+      "finalHumanIndependenceBoundary": "Strict final full-text eligibility under the declared Cochrane-aligned authority requires at least two people independently; agent/LLM decisions remain advisory.",
+      "linkageCandidateComponents": 61,
+      "linkageCandidateRecords": 128,
+      "automaticMergeAllowed": false,
+      "currentScientificGates": [
+        "accessibility-boundary resolution",
+        "two independent final full-text determinations under declared authority",
+        "study/report/version linking",
+        "title/abstract correlated-error audit",
+        "snowballing/coverage closure",
+        "red-team",
+        "preregistration/protocol closure"
+      ]
+    },
+    "decisionChange": [
+      "Do not spend marginal capacity on additional candidate generation or more first-pass title/abstract throughput at the current stage.",
+      "Run the frozen 8-report Stage2 calibration next.",
+      "Measure accessibility-boundary service time separately from scientific full-text eligibility service time.",
+      "Use agent/LLM work only as advisory evidence extraction/screening until final human independence requirements are satisfied.",
+      "Pressure-test Research-v2 RS1 using stage-native transitions rather than introducing a universal Research queue/state ontology."
+    ]
+  },
+  "standing": "DECISION_ALLOCATION_EFFECT_OBSERVED__DOWNSTREAM_ACCEPTED_OUTCOME_PENDING",
+  "promotion": {
+    "commonLegoSchemaExpansion": false,
+    "questionFamilyPromotion": false,
+    "rationale": "The method changed next experiments and resource allocation in two domains, but no downstream accepted project outcome improvement has yet been measured."
+  }
+}
