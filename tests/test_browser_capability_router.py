@@ -192,6 +192,59 @@ class BrowserCapabilityRouterTests(unittest.TestCase):
         self.assertNotIn("HarnessProviderUsePolicy", text)
 
 
+    def test_cold_browser_use_endpoint_is_ready_on_demand_without_starting_it(self):
+        route = {
+            "readiness": {
+                "kind": "browser_use_browserless",
+                "configPath": "/tmp/fake-browser-use.json",
+            }
+        }
+
+        class Endpoint:
+            endpoint_id = "browser-agent-22"
+            service_unit = "ordivon-browserless@22.service"
+            activation_unit = "ordivon-browser-agent.target"
+
+            def health(self):
+                raise AssertionError("cold activatable route must not health-probe inactive carrier")
+
+        class Pool:
+            endpoints = (Endpoint(),)
+
+            @classmethod
+            def from_dict(cls, _value):
+                return cls()
+
+        fake_config = {
+            "browserUseExecutable": "/bin/true",
+            "browserSubstrate": {"kind": "browserless", "endpoints": []},
+        }
+
+        def run(args, **_kwargs):
+            if args[:2] == ["/usr/bin/systemctl", "is-enabled"]:
+                return __import__("subprocess").CompletedProcess(args, 0, stdout="generated\n", stderr="")
+            if args[:3] == ["/usr/bin/systemctl", "is-active", "--quiet"]:
+                return __import__("subprocess").CompletedProcess(args, 3, stdout="", stderr="")
+            if args[:4] == ["/usr/bin/systemctl", "show", "-p", "LoadState"]:
+                return __import__("subprocess").CompletedProcess(args, 0, stdout="loaded\n", stderr="")
+            raise AssertionError(args)
+
+        with (
+            mock.patch.object(R.Path, "is_file", return_value=True),
+            mock.patch.object(R.os, "access", return_value=True),
+            mock.patch.object(R, "_read_json", return_value=fake_config),
+            mock.patch.dict(
+                sys.modules,
+                {"browserless_substrate": mock.Mock(BrowserlessPool=Pool)},
+            ),
+            mock.patch.object(R.subprocess, "run", side_effect=run),
+        ):
+            value = R._probe_browser_use(route)
+        self.assertTrue(value["ready"])
+        self.assertEqual(value["standing"], "READY_ON_DEMAND")
+        self.assertEqual(value["activatableEndpointIds"], ["browser-agent-22"])
+        self.assertEqual(value["healthyEndpointIds"], [])
+
 class BrowserUseBindingTests(unittest.TestCase):
     def test_renderer_accepts_resolved_browser_use_executable(self):
         import browserless_podman_deploy as deploy

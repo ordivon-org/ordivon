@@ -203,58 +203,110 @@ def _probe_browser_use(route: Mapping[str, Any]) -> dict[str, Any]:
         value = _read_json(path)
         executable = Path(str(value.get("browserUseExecutable") or ""))
         pool = BrowserlessPool.from_dict(value.get("browserSubstrate"))
-        masked = []
+        executable_ready = executable.is_file() and os.access(executable, os.X_OK)
+        masked: list[str] = []
+        healthy_ids: list[str] = []
+        activatable_ids: list[str] = []
         for endpoint in pool.endpoints:
-            service_unit = getattr(endpoint, "service_unit", None)
-            if not isinstance(service_unit, str) or not service_unit:
-                continue
-            proc = subprocess.run(
-                ["/usr/bin/systemctl", "is-enabled", service_unit],
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                timeout=5,
-                check=False,
-            )
-            if proc.stdout.strip() == "masked":
+            units = [
+                unit
+                for unit in (
+                    getattr(endpoint, "service_unit", None),
+                    getattr(endpoint, "activation_unit", None),
+                )
+                if isinstance(unit, str) and unit
+            ]
+            endpoint_masked = False
+            for unit in units:
+                proc = subprocess.run(
+                    ["/usr/bin/systemctl", "is-enabled", unit],
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    timeout=5,
+                    check=False,
+                )
+                if proc.stdout.strip() == "masked":
+                    endpoint_masked = True
+                    break
+            if endpoint_masked:
                 masked.append(endpoint.endpoint_id)
+                continue
+
+            service_unit = getattr(endpoint, "service_unit", None)
+            active = False
+            if isinstance(service_unit, str) and service_unit:
+                active_proc = subprocess.run(
+                    ["/usr/bin/systemctl", "is-active", "--quiet", service_unit],
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    timeout=5,
+                    check=False,
+                )
+                active = active_proc.returncode == 0
+            if active:
+                health = endpoint.health()
+                if health.get("healthy") is True:
+                    healthy_ids.append(endpoint.endpoint_id)
+                    continue
+
+            activation_unit = getattr(endpoint, "activation_unit", None)
+            if isinstance(activation_unit, str) and activation_unit:
+                load = subprocess.run(
+                    ["/usr/bin/systemctl", "show", "-p", "LoadState", "--value", activation_unit],
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    timeout=5,
+                    check=False,
+                )
+                if load.returncode == 0 and load.stdout.strip() == "loaded":
+                    activatable_ids.append(endpoint.endpoint_id)
+
         if masked and len(masked) == len(pool.endpoints):
             return {
                 "ready": False,
                 "standing": "POLICY_DISABLED",
                 "executable": str(executable),
-                "executableReady": executable.is_file() and os.access(executable, os.X_OK),
+                "executableReady": executable_ready,
                 "policyDisabledEndpointIds": masked,
                 "browserlessHealthy": False,
                 "healthyEndpointIds": [],
+                "activatableEndpointIds": [],
             }
-        health = pool.health()
     except Exception as error:
         return {
             "ready": False,
             "standing": "READINESS_PROBE_FAILED",
             "detail": f"{type(error).__name__}: {str(error)[:500]}",
         }
-    executable_ready = executable.is_file() and os.access(executable, os.X_OK)
-    pool_ready = health.get("healthy") is True
-    ready = executable_ready and pool_ready
+
+    ready = executable_ready and bool(healthy_ids or activatable_ids)
+    standing = (
+        "READY"
+        if executable_ready and healthy_ids
+        else "READY_ON_DEMAND"
+        if executable_ready and activatable_ids
+        else "EXECUTABLE_UNAVAILABLE"
+        if not executable_ready
+        else "BROWSERLESS_UNAVAILABLE"
+    )
     return {
         "ready": ready,
-        "standing": (
-            "READY"
-            if ready
-            else "EXECUTABLE_UNAVAILABLE"
-            if not executable_ready
-            else "BROWSERLESS_UNAVAILABLE"
-        ),
+        "standing": standing,
         "executable": str(executable),
         "executableReady": executable_ready,
-        "browserlessHealthy": pool_ready,
-        "healthyEndpointIds": [
-            row.get("id") for row in health.get("endpoints", []) if row.get("healthy") is True
-        ],
+        "browserlessHealthy": bool(healthy_ids),
+        "healthyEndpointIds": healthy_ids,
+        "activatableEndpointIds": activatable_ids,
+        "policyDisabledEndpointIds": masked,
     }
 
 

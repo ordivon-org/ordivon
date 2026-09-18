@@ -55,7 +55,7 @@ DATA_ROOT = Path("/var/lib/ordivon/browserless")
 CONFIG_FILE = Path("/etc/ordivon/agent-automation-browserless.json")
 BROWSER_USE_CONFIG_FILE = Path("/etc/ordivon/browser-use-browserless.json")
 CHATGPT_INSTANCES = (11, 12, 13)
-BROWSER_AGENT_INSTANCES = (21,)
+BROWSER_AGENT_INSTANCES = (22,)
 ALL_BROWSERLESS_INSTANCES = CHATGPT_INSTANCES + BROWSER_AGENT_INSTANCES
 PLAYWRIGHT_PYTHON = Path(
     "/root/.local/share/ordivon-workstation/conversation-relay-playwright-r4/.venv/bin/python"
@@ -403,6 +403,12 @@ def render_browser_use_config(
                 "userDataDir": "/data",
                 "headless": False,
                 "serviceUnit": f"ordivon-browserless@{instance}.service",
+                "activationUnit": "ordivon-browser-agent.target",
+                "idleStopUnits": [
+                    "ordivon-browser-agent.target",
+                    f"ordivon-browserless@{instance}.service",
+                    f"ordivon-browserless-operator-proxy@{instance}.service",
+                ],
             }
         )
     return {
@@ -603,36 +609,31 @@ def apply() -> dict:
         os.chmod(HUMAN_WEB_DEST, 0o644)
     run(["/usr/bin/systemctl", "daemon-reload"])
     run(["/usr/bin/systemctl", "enable", "--now", "ordivon-browserless-idle-reaper.timer"])
-    # ChatGPT carrier displays are lifecycle dependencies, not boot-time services. Generic
-    # browser-agent displays remain static because browser-agent.target is intentionally warm.
+    # Browserless carriers/displays are lifecycle dependencies, not boot-time services.
+    # ChatGPT keeps only its small operator proxies resident; generic Browser Use is entirely
+    # cold-on-demand through ordivon-browser-agent.target.
     run(
         [
             "/usr/bin/systemctl",
             "disable",
             *[
                 f"ordivon-browserless-display@{instance}.service"
-                for instance in CHATGPT_INSTANCES
+                for instance in CHATGPT_INSTANCES + BROWSER_AGENT_INSTANCES
             ],
         ],
         check=False,
     )
-    active_browser_agent_instances = tuple(
-        instance
-        for instance in BROWSER_AGENT_INSTANCES
-        if not browser_agent_instance_masked(instance)
+    run(
+        [
+            "/usr/bin/systemctl",
+            "disable",
+            *[
+                f"ordivon-browserless-operator-proxy@{instance}.service"
+                for instance in BROWSER_AGENT_INSTANCES
+            ],
+        ],
+        check=False,
     )
-    if active_browser_agent_instances:
-        run(
-            [
-                "/usr/bin/systemctl",
-                "enable",
-                "--now",
-                *[
-                    f"ordivon-browserless-display@{instance}.service"
-                    for instance in active_browser_agent_instances
-                ],
-            ]
-        )
     run(
         [
             "/usr/bin/systemctl",
@@ -640,17 +641,14 @@ def apply() -> dict:
             "--now",
             *[
                 f"ordivon-browserless-operator-proxy@{instance}.service"
-                for instance in CHATGPT_INSTANCES + active_browser_agent_instances
+                for instance in CHATGPT_INSTANCES
             ],
         ]
     )
-    if active_browser_agent_instances == BROWSER_AGENT_INSTANCES:
-        run(["/usr/bin/systemctl", "enable", "--now", "ordivon-browser-agent.target"])
-    else:
-        run(
-            ["/usr/bin/systemctl", "disable", "--now", "ordivon-browser-agent.target"],
-            check=False,
-        )
+    run(
+        ["/usr/bin/systemctl", "disable", "--now", "ordivon-browser-agent.target"],
+        check=False,
+    )
     return plan(binding)
 
 

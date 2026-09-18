@@ -15,6 +15,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import subprocess
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -64,6 +65,8 @@ class BrowserlessEndpoint:
     operator_http_endpoint: str | None = None
     headless: bool | None = None
     service_unit: str | None = None
+    activation_unit: str | None = None
+    idle_stop_units: tuple[str, ...] = ()
 
     @classmethod
     def from_dict(cls, value: dict) -> "BrowserlessEndpoint":
@@ -123,6 +126,34 @@ class BrowserlessEndpoint:
                 raise BrowserlessConfigError(
                     "browserless serviceUnit must be one systemd .service unit name"
                 )
+        activation_unit = value.get("activationUnit")
+        if activation_unit is not None:
+            activation_unit = _nonempty(activation_unit, "browserless activationUnit")
+            if (
+                not activation_unit.endswith((".service", ".target"))
+                or "/" in activation_unit
+                or any(ch.isspace() for ch in activation_unit)
+            ):
+                raise BrowserlessConfigError(
+                    "browserless activationUnit must be one systemd service/target unit name"
+                )
+        raw_idle_stop = value.get("idleStopUnits", [])
+        if (
+            not isinstance(raw_idle_stop, list)
+            or any(
+                not isinstance(item, str)
+                or not item
+                or "/" in item
+                or any(ch.isspace() for ch in item)
+                or not item.endswith((".service", ".target"))
+                for item in raw_idle_stop
+            )
+        ):
+            raise BrowserlessConfigError(
+                "browserless idleStopUnits must be systemd service/target unit names"
+            )
+        if len(raw_idle_stop) != len(set(raw_idle_stop)):
+            raise BrowserlessConfigError("browserless idleStopUnits must not contain duplicates")
         return cls(
             endpoint_id=endpoint_id,
             websocket_endpoint=websocket,
@@ -134,7 +165,99 @@ class BrowserlessEndpoint:
             operator_http_endpoint=operator_http,
             headless=headless,
             service_unit=service_unit,
+            activation_unit=activation_unit,
+            idle_stop_units=tuple(raw_idle_stop),
         )
+
+    def ensure_active(self, *, start_timeout_seconds: float = 20.0) -> dict:
+        """Start only an explicitly configured lifecycle unit, then observe Browserless health."""
+        if self.activation_unit is None:
+            return self.health(timeout_seconds=min(5.0, start_timeout_seconds))
+        for unit in (self.service_unit, self.activation_unit):
+            if not unit:
+                continue
+            enabled = subprocess.run(
+                ["/usr/bin/systemctl", "is-enabled", unit],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+            if enabled.stdout.strip() == "masked":
+                return {
+                    "id": self.endpoint_id,
+                    "healthy": False,
+                    "identityDigest": self.identity_digest,
+                    "detail": "policy-disabled-mask",
+                    "policyDisabledUnit": unit,
+                    "lifecycleStarted": False,
+                }
+        active = subprocess.run(
+            ["/usr/bin/systemctl", "is-active", "--quiet", self.activation_unit],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        started = False
+        if active.returncode != 0:
+            proc = subprocess.run(
+                ["/usr/bin/systemctl", "start", self.activation_unit],
+                capture_output=True,
+                text=True,
+                timeout=max(5.0, start_timeout_seconds),
+                check=False,
+            )
+            if proc.returncode != 0:
+                return {
+                    "id": self.endpoint_id,
+                    "healthy": False,
+                    "identityDigest": self.identity_digest,
+                    "detail": f"systemd-start-rc-{proc.returncode}",
+                    "activationUnit": self.activation_unit,
+                    "lifecycleStarted": False,
+                }
+            started = True
+        deadline = time.monotonic() + start_timeout_seconds
+        health = self.health(timeout_seconds=min(5.0, start_timeout_seconds))
+        while not health.get("healthy") and time.monotonic() < deadline:
+            time.sleep(0.25)
+            health = self.health(timeout_seconds=3)
+        result = dict(health)
+        result["activationUnit"] = self.activation_unit
+        result["lifecycleStarted"] = started
+        return result
+
+    def release_if_idle(self) -> dict:
+        """Stop only explicitly configured cold-lane units after proving no Browserless session exists."""
+        if not self.idle_stop_units:
+            return {"standing": "NOT_MANAGED", "stoppedUnits": []}
+        try:
+            sessions = self.sessions(timeout_seconds=3)
+        except Exception as error:
+            return {
+                "standing": "HOLD_SESSION_OBSERVATION_FAILED",
+                "detail": type(error).__name__,
+                "stoppedUnits": [],
+            }
+        if sessions:
+            return {
+                "standing": "SKIP_ACTIVE_SESSION",
+                "sessionCount": len(sessions),
+                "stoppedUnits": [],
+            }
+        proc = subprocess.run(
+            ["/usr/bin/systemctl", "stop", *self.idle_stop_units],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+        return {
+            "standing": "COLD" if proc.returncode == 0 else "STOP_FAILED",
+            "returnCode": proc.returncode,
+            "stoppedUnits": list(self.idle_stop_units) if proc.returncode == 0 else [],
+        }
 
     @property
     def public_connection_endpoint(self) -> str:

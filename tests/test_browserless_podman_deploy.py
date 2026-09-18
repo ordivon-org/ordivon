@@ -134,7 +134,7 @@ class BrowserlessPodmanDeploymentTests(unittest.TestCase):
         )
         b = deploy.render_browser_use_config(binding)
         self.assertEqual(
-            [x["id"] for x in b["browserSubstrate"]["endpoints"]], ["browser-agent-21"]
+            [x["id"] for x in b["browserSubstrate"]["endpoints"]], ["browser-agent-22"]
         )
         self.assertTrue(
             all(
@@ -271,22 +271,38 @@ class BrowserlessPodmanDeploymentTests(unittest.TestCase):
             self.assertTrue(deploy.systemd_unit_is_masked("example@21.service"))
             self.assertFalse(deploy.systemd_unit_is_masked("example@22.service"))
 
-    def test_general_browser_lane_has_static_boot_target(self):
+    def test_general_browser_lane_is_cold_on_demand(self):
+        import browserless_podman_deploy as deploy
+
         target = (ROOT / "systemd/ordivon-browser-agent.target").read_text()
-        self.assertIn("Requires=ordivon-browserless@21.service", target)
-        self.assertIn("WantedBy=multi-user.target", target)
+        self.assertIn("Requires=ordivon-browserless@22.service", target)
+        self.assertIn("Requires=ordivon-browserless-operator-proxy@22.service", target)
+        self.assertNotIn("WantedBy=multi-user.target", target)
 
         source = (ROOT / "scripts/browserless_podman_deploy.py").read_text()
         self.assertIn("BROWSER_AGENT_TARGET_DEST", source)
-        self.assertIn('enable", "--now", "ordivon-browser-agent.target"', source)
+        self.assertNotIn('enable", "--now", "ordivon-browser-agent.target"', source)
         self.assertIn('disable", "--now", "ordivon-browser-agent.target"', source)
-        self.assertIn("browser_agent_instance_masked", source)
         self.assertNotIn('enable", "--now", *[f"ordivon-browserless@{instance}.service"', source)
         self.assertIn('"serviceUnit": f"ordivon-browserless@{instance}.service"', source)
+        self.assertIn('"activationUnit": "ordivon-browser-agent.target"', source)
+        self.assertIn('"idleStopUnits": [', source)
         self.assertIn('"browserlessIdleTtlSeconds": 900', source)
         self.assertIn('"browserlessWarmEndpointIds": ["chatgpt-carrier-11"]', source)
         self.assertIn('ordivon-browserless-idle-reaper.timer', source)
-        self.assertIn('"disable",', source)
+
+        browser = deploy.render_browser_use_config(self.binding())
+        endpoint = browser["browserSubstrate"]["endpoints"][0]
+        self.assertEqual(endpoint["id"], "browser-agent-22")
+        self.assertEqual(endpoint["activationUnit"], "ordivon-browser-agent.target")
+        self.assertEqual(
+            endpoint["idleStopUnits"],
+            [
+                "ordivon-browser-agent.target",
+                "ordivon-browserless@22.service",
+                "ordivon-browserless-operator-proxy@22.service",
+            ],
+        )
 
     def test_browserless_executes_podman_without_docker_execution_path(self):
         source = (ROOT / "scripts/browserless_podman_deploy.py").read_text()

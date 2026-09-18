@@ -167,6 +167,24 @@
         "operator mask mutation",
         "Runtime Job creation"
       ]
+    },
+    {
+      "id": "BCR13",
+      "label": "GenericBrowserColdOnDemand",
+      "kind": "normal_readiness_lifecycle",
+      "state": "IMPLEMENTED_PENDING_DEPLOY",
+      "dependencies": ["BCR03", "BCR04"],
+      "evidence": [
+        "scripts/browserless_substrate.py",
+        "scripts/browser_use_browserless.py",
+        "scripts/browserless_podman_deploy.py",
+        "docs/BROWSER_READINESS_OPS_R6.md"
+      ],
+      "mustNotOwn": [
+        "legacy browser-agent-21 unmask",
+        "ChatGPT carrier reuse",
+        "benchmark-specific route enablement"
+      ]
     }
   ],
   "edges": [
@@ -185,7 +203,9 @@
     {"from": "BCR06", "to": "BCR11", "type": "FROZEN_MEASUREMENT_CONTRACT"},
     {"from": "BCR04", "to": "BCR12", "type": "NORMAL_READINESS"},
     {"from": "BCR11", "to": "BCR12", "type": "FROZEN_PAIR_SCHEDULE"},
-    {"from": "BCR12", "to": "BCR09", "type": "PAIRED_ADMISSION_TEMPLATES"}
+    {"from": "BCR12", "to": "BCR09", "type": "PAIRED_ADMISSION_TEMPLATES"},
+    {"from": "BCR03", "to": "BCR13", "type": "NORMAL_READINESS"},
+    {"from": "BCR13", "to": "BCR04", "type": "READY_ON_DEMAND"}
   ],
   "currentRoutes": [
     "jev-fast-windows-v1",
@@ -200,8 +220,8 @@
     "visual-browser-v1": "NOT_MATERIALIZED"
   },
   "nextSlice": {
-    "id": "BCR-S5-RUN",
-    "objective": "Execute the frozen paired browser-route campaign only after Jev and Browser Use independently satisfy their normal readiness policy; admit every trial through Runtime and reconcile every result through BCR10.",
-    "status": "BLOCKED_BY_ROUTE_READINESS"
+    "id": "BCR-R6-DEPLOY",
+    "objective": "Deploy browser-agent-22 as the normal cold-on-demand generic Browser Use lane without changing the operator mask on legacy browser-agent-21, then re-evaluate S5 readiness. Jev credential provisioning remains separate.",
+    "status": "READY_AFTER_R6_GATE"
   }
 }

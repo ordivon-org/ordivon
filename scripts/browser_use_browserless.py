@@ -93,6 +93,13 @@ def _run_browser_use(
 
 
 def ensure_daemon(executable: str, endpoint, session_id: str) -> None:
+    if getattr(endpoint, "activation_unit", None):
+        lifecycle = endpoint.ensure_active(start_timeout_seconds=20.0)
+        if lifecycle.get("healthy") is not True:
+            raise RuntimeError(
+                "Browserless on-demand activation failed: "
+                + str(lifecycle.get("detail") or lifecycle.get("status") or "unhealthy")
+            )
     proc = _run_browser_use(
         executable,
         'import json\nprint(json.dumps({"standing":"DAEMON_READY","page":page_info()},sort_keys=True))\n',
@@ -271,6 +278,11 @@ def close_session(executable: str, endpoint, session_id: str) -> dict:
         timeout=30,
         check=False,
     )
+    lifecycle = (
+        endpoint.release_if_idle()
+        if proc.returncode == 0 and getattr(endpoint, "idle_stop_units", ())
+        else {"standing": "NOT_EVALUATED", "stoppedUnits": []}
+    )
     return {
         "schemaVersion": 1,
         "kind": "ordivon.browser-use-session-close",
@@ -278,6 +290,7 @@ def close_session(executable: str, endpoint, session_id: str) -> dict:
         "browserlessEndpointId": endpoint.endpoint_id,
         "standing": "CLOSED" if proc.returncode == 0 else "HOLD",
         "returnCode": proc.returncode,
+        "lifecycle": lifecycle,
     }
 
 

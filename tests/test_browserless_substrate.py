@@ -178,5 +178,44 @@ class BrowserlessSubstrateTests(unittest.TestCase):
             self.assertNotIn("secret-token", json.dumps(result))
 
 
+
+
+class BrowserlessColdLifecycleTests(unittest.TestCase):
+    def endpoint(self):
+        import browserless_substrate as substrate
+        with tempfile.TemporaryDirectory() as d:
+            token = Path(d) / "token"
+            token.write_text("x" * 32)
+            return substrate.BrowserlessEndpoint.from_dict(
+                {
+                    "id": "browser-agent-22",
+                    "websocketEndpoint": "ws://127.0.0.1:3022/chromium",
+                    "httpEndpoint": "http://127.0.0.1:3022",
+                    "tokenFile": str(token),
+                    "serviceUnit": "ordivon-browserless@22.service",
+                    "activationUnit": "ordivon-browser-agent.target",
+                    "idleStopUnits": [
+                        "ordivon-browser-agent.target",
+                        "ordivon-browserless@22.service",
+                    ],
+                }
+            )
+
+    def test_lifecycle_bindings_are_parsed_without_entering_connection_identity(self):
+        endpoint = self.endpoint()
+        self.assertEqual(endpoint.activation_unit, "ordivon-browser-agent.target")
+        self.assertEqual(
+            endpoint.idle_stop_units,
+            ("ordivon-browser-agent.target", "ordivon-browserless@22.service"),
+        )
+
+    def test_release_if_idle_fails_closed_when_sessions_exist(self):
+        endpoint = self.endpoint()
+        with mock.patch.object(type(endpoint), "sessions", return_value=[{"id": "live"}]):
+            value = endpoint.release_if_idle()
+        self.assertEqual(value["standing"], "SKIP_ACTIVE_SESSION")
+        self.assertEqual(value["stoppedUnits"], [])
+
+
 if __name__ == "__main__":
     unittest.main()

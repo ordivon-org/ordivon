@@ -31,7 +31,7 @@ class BrowserUseBrowserlessTests(unittest.TestCase):
             ["chatgpt-carrier-11", "chatgpt-carrier-12", "chatgpt-carrier-13"],
         )
         self.assertEqual(
-            [x["id"] for x in browser["browserSubstrate"]["endpoints"]], ["browser-agent-21"]
+            [x["id"] for x in browser["browserSubstrate"]["endpoints"]], ["browser-agent-22"]
         )
         self.assertTrue(
             set(x["id"] for x in birth["browserSubstrate"]["endpoints"]).isdisjoint(
@@ -94,6 +94,58 @@ class BrowserUseBrowserlessTests(unittest.TestCase):
         self.assertNotIn("BU_CDP_WS", calls[1][1])
         self.assertNotIn("BU_CDP_URL", calls[1][1])
         self.assertEqual(calls[1][1]["BH_REQUIRE_EXISTING_DAEMON"], "1")
+
+    def test_ensure_daemon_activates_explicit_cold_lane_before_cdp(self):
+        import browser_use_browserless as launcher
+
+        class Endpoint:
+            endpoint_id = "browser-agent-22"
+            activation_unit = "ordivon-browser-agent.target"
+
+            def ensure_active(self, start_timeout_seconds=20.0):
+                self.timeout = start_timeout_seconds
+                return {"healthy": True, "lifecycleStarted": True}
+
+            def authenticated_operator_connection_endpoint(self, timeout_ms=None):
+                return "ws://127.0.0.1:13122/chromium?token=secret"
+
+        endpoint = Endpoint()
+        with mock.patch.object(
+            launcher,
+            "_run_browser_use",
+            return_value=mock.Mock(returncode=0, stdout="{}", stderr=""),
+        ) as run:
+            launcher.ensure_daemon("/bin/browser-use", endpoint, "task:1")
+        self.assertEqual(endpoint.timeout, 20.0)
+        self.assertEqual(run.call_count, 1)
+
+    def test_close_reclaims_explicit_cold_lane_only_after_session_close(self):
+        import browser_use_browserless as launcher
+
+        class Endpoint:
+            endpoint_id = "browser-agent-22"
+            idle_stop_units = (
+                "ordivon-browser-agent.target",
+                "ordivon-browserless@22.service",
+            )
+
+            def authenticated_operator_connection_endpoint(self, timeout_ms=None):
+                return "ws://127.0.0.1:13122/chromium?token=secret"
+
+            def release_if_idle(self):
+                return {
+                    "standing": "COLD",
+                    "stoppedUnits": list(self.idle_stop_units),
+                }
+
+        with mock.patch.object(
+            launcher.subprocess,
+            "run",
+            return_value=mock.Mock(returncode=0, stdout="", stderr=""),
+        ):
+            value = launcher.close_session("/bin/browser-use", Endpoint(), "task:1")
+        self.assertEqual(value["standing"], "CLOSED")
+        self.assertEqual(value["lifecycle"]["standing"], "COLD")
 
     def test_public_surface_is_structured_not_arbitrary_python(self):
         import browser_use_browserless as launcher
