@@ -1181,7 +1181,7 @@ class AgentServiceR12:
             "definitions", "revisions", "instances", "placements", "events", "birth", "observer",
             "reconciler", "tasks", "assignments", "execution_activator", "completion", "verifications",
             "goals", "goal_graph_guard", "goal_task_links", "task_dependencies", "task_readiness",
-            "task_graph", "goal_reconciler", "board_receipts", "board_projector", "identities",
+            "task_graph", "goal_reconciler", "board_projector", "identities",
             "sessions", "session_items", "delegations", "a2a_cards",
             "transport_bindings", "routes",
             "credential_references", "identity_proof_records", "identity_proofs", "remote_observations",

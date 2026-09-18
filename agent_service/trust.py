@@ -682,7 +682,7 @@ class AgentServiceR10:
             "definitions", "revisions", "instances", "placements", "events", "birth", "observer",
             "reconciler", "tasks", "assignments", "planner", "execution_activator", "completion",
             "verifications", "goals", "goal_graph_guard", "goal_task_links", "task_dependencies",
-            "task_readiness", "task_graph", "goal_planner", "goal_reconciler", "board_receipts",
+            "task_readiness", "task_graph", "goal_planner", "goal_reconciler",
             "board_projector", "identities", "sessions", "session_items",
             "delegations", "a2a_cards",
             "transport_bindings", "routes", "delivery",

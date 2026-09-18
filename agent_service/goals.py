@@ -366,72 +366,65 @@ class BoardProjectionReceipt:
     created_at_ns: int
 
 
-class BoardProjectionReceiptStore:
-    def __init__(self, connection: sqlite3.Connection) -> None:
-        self._connection = connection
+def _board_projection_receipt_from_event(event: ServiceEvent) -> BoardProjectionReceipt:
+    if (
+        event.aggregate_type != "BoardProjection"
+        or event.event_type != "BoardProjectionCommitted"
+    ):
+        raise ValueError("event is not a Board projection receipt")
+    payload = event.payload
+    if payload.get("sourceEventId") != event.aggregate_id:
+        raise RuntimeError("Board projection source-event identity mismatch")
+    goal_id = payload.get("goalId")
+    client_message_id = payload.get("clientMessageId")
+    provider_sequence = payload.get("providerSequence")
+    if not isinstance(goal_id, str) or not goal_id:
+        raise RuntimeError("Board projection receipt lacks goal identity")
+    if not isinstance(client_message_id, str) or not client_message_id:
+        raise RuntimeError("Board projection receipt lacks client message identity")
+    if provider_sequence is not None and not isinstance(provider_sequence, int):
+        raise RuntimeError("Board projection provider sequence must be integer or null")
+    return BoardProjectionReceipt(
+        id=event.id,
+        service_event_id=event.aggregate_id,
+        goal_id=goal_id,
+        client_message_id=client_message_id,
+        provider_sequence=provider_sequence,
+        created_at_ns=event.created_at_ns,
+    )
 
-    def get_by_event(self, service_event_id: str) -> BoardProjectionReceipt | None:
-        row = self._connection.execute(
-            """
-            SELECT id, service_event_id, goal_id, client_message_id, provider_sequence, created_at_ns
-            FROM board_projection_receipts WHERE service_event_id = ?
-            """,
-            (service_event_id,),
-        ).fetchone()
-        return None if row is None else self._from_row(row)
 
-    def list_for_goal(self, goal_id: str) -> list[BoardProjectionReceipt]:
-        rows = self._connection.execute(
-            """
-            SELECT id, service_event_id, goal_id, client_message_id, provider_sequence, created_at_ns
-            FROM board_projection_receipts WHERE goal_id = ? ORDER BY created_at_ns, id
-            """,
-            (goal_id,),
-        ).fetchall()
-        return [self._from_row(row) for row in rows]
+def _board_projection_receipt_get_by_event(
+    events: ServiceEventStore,
+    service_event_id: str,
+) -> BoardProjectionReceipt | None:
+    history = events.list_for("BoardProjection", service_event_id)
+    receipts = [item for item in history if item.event_type == "BoardProjectionCommitted"]
+    if not receipts:
+        return None
+    if len(receipts) != 1:
+        raise RuntimeError("Board projection receipt stream contains multiple committed receipts")
+    return _board_projection_receipt_from_event(receipts[0])
 
-    def create(self, event: ServiceEvent, goal_id: str, message: BoardMessageRef) -> BoardProjectionReceipt:
-        existing = self.get_by_event(event.id)
-        if existing is not None:
-            if existing.client_message_id != message.client_message_id:
-                raise RuntimeError("Board projection receipt identity mismatch")
-            return existing
-        receipt = BoardProjectionReceipt(
-            id=_id("boardproj"),
-            service_event_id=event.id,
-            goal_id=goal_id,
-            client_message_id=message.client_message_id,
-            provider_sequence=message.provider_sequence,
-            created_at_ns=_now_ns(),
-        )
-        with self._connection:
-            self._connection.execute(
-                """
-                INSERT INTO board_projection_receipts(
-                    id, service_event_id, goal_id, client_message_id, provider_sequence, created_at_ns
-                ) VALUES (?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    receipt.id,
-                    receipt.service_event_id,
-                    receipt.goal_id,
-                    receipt.client_message_id,
-                    receipt.provider_sequence,
-                    receipt.created_at_ns,
-                ),
-            )
-        return receipt
 
-    @staticmethod
-    def _from_row(row: sqlite3.Row) -> BoardProjectionReceipt:
-        return BoardProjectionReceipt(
-            id=row["id"],
-            service_event_id=row["service_event_id"],
-            goal_id=row["goal_id"],
-            client_message_id=row["client_message_id"],
-            provider_sequence=row["provider_sequence"],
-            created_at_ns=row["created_at_ns"],
-        )
+def _board_projection_receipt_create(
+    events: ServiceEventStore,
+    source_event: ServiceEvent,
+    goal_id: str,
+    message: BoardMessageRef,
+) -> BoardProjectionReceipt:
+    event = events.append_once(
+        "BoardProjection",
+        source_event.id,
+        "BoardProjectionCommitted",
+        {
+            "sourceEventId": source_event.id,
+            "goalId": goal_id,
+            "clientMessageId": message.client_message_id,
+            "providerSequence": message.provider_sequence,
+        },
+    )
+    return _board_projection_receipt_from_event(event)
 
 
 class GoalBoardProjector:
@@ -444,12 +437,10 @@ class GoalBoardProjector:
         self,
         goals: GoalStore,
         events: ServiceEventStore,
-        receipts: BoardProjectionReceiptStore,
         adapter: BoardAdapter | None,
     ) -> None:
         self._goals = goals
         self._events = events
-        self._receipts = receipts
         self._adapter = adapter
 
     @staticmethod
@@ -473,7 +464,7 @@ class GoalBoardProjector:
     def _project_event(self, goal_id: str, event: ServiceEvent) -> BoardProjectionReceipt:
         if self._adapter is None:
             raise RuntimeError("no Board adapter configured")
-        existing = self._receipts.get_by_event(event.id)
+        existing = _board_projection_receipt_get_by_event(self._events, event.id)
         if existing is not None:
             return existing
         self._goals.get(goal_id)
@@ -493,7 +484,7 @@ class GoalBoardProjector:
         )
         if posted.client_message_id != client_message_id:
             raise RuntimeError("Board provider returned mismatched client message identity")
-        return self._receipts.create(event, goal_id, posted)
+        return _board_projection_receipt_create(self._events, event, goal_id, posted)
 
     def project_latest(self, goal_id: str) -> BoardProjectionReceipt:
         events = self._events.list_for("Goal", goal_id)
@@ -552,11 +543,9 @@ class AgentServiceR7:
         self.goal_reconciler = GoalReconciler(
             self._connection, self.goals, self.goal_task_links, self.events
         )
-        self.board_receipts = BoardProjectionReceiptStore(self._connection)
         self.board_projector = GoalBoardProjector(
             self.goals,
             self.events,
-            self.board_receipts,
             board_adapter,
         )
 
@@ -581,6 +570,15 @@ class AgentServiceR7:
 
     @staticmethod
     def _initialize_schema(connection: sqlite3.Connection) -> None:
+        legacy_board_projection_receipts = connection.execute(
+            "SELECT 1 FROM sqlite_master "
+            "WHERE type = 'table' AND name = 'board_projection_receipts'"
+        ).fetchone()
+        if legacy_board_projection_receipts is not None:
+            raise RuntimeError(
+                "legacy board_projection_receipts schema is unsupported; "
+                "perform explicit destructive migration before opening this revision"
+            )
         connection.executescript(
             """
             CREATE TABLE IF NOT EXISTS service_goals (
@@ -608,14 +606,6 @@ class AgentServiceR7:
                 CHECK(task_id <> depends_on_task_id)
             );
 
-            CREATE TABLE IF NOT EXISTS board_projection_receipts (
-                id TEXT PRIMARY KEY,
-                service_event_id TEXT NOT NULL UNIQUE REFERENCES service_events(id),
-                goal_id TEXT NOT NULL REFERENCES service_goals(id),
-                client_message_id TEXT NOT NULL UNIQUE,
-                provider_sequence INTEGER,
-                created_at_ns INTEGER NOT NULL
-            );
             """
         )
         connection.commit()
