@@ -2,7 +2,7 @@
 name = "ordivon-studio-tools"
 version = "0.1.0a0"
 description = "Asset, timed-text, timeline, and media inspection tools for Ordivon Studio"
-requires-python = ">=3.12"
+requires-python = "==3.14.7"
 dependencies = [
   "jsonschema==4.25.1",
 ]
