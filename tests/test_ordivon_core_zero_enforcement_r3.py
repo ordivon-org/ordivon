@@ -85,6 +85,7 @@ class OrdivonCoreZeroEnforcementR3Tests(unittest.TestCase):
                 "EffectAuthorizationCoordinator",
                 "DeliveryReceiptStore",
                 "BoardProjectionReceiptStore",
+                "VerificationRecordStore",
             }.issubset(retired)
         )
         self.assertTrue(retired.isdisjoint(observed))

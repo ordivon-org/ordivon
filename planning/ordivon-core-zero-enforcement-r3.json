@@ -239,7 +239,6 @@
       "TransportCredentialBindingCoordinator",
       "TransportCredentialBindingStore",
       "VerificationRecord",
-      "VerificationRecordStore",
       "_SqliteNode"
     ],
     "semantics": "Existing classes are migration debt, not accepted architecture. This set is a ceiling: deletion is always allowed; additions are not."
@@ -294,7 +293,8 @@
     "EffectAuthorizationDecisionStore",
     "PolicyDecision",
     "PolicyDecisionStore",
-    "PolicyEvaluationCoordinator"
+    "PolicyEvaluationCoordinator",
+    "VerificationRecordStore"
   ],
   "retiredPersistenceSurfaces": [
     "agent_interface_advertisements",
@@ -302,7 +302,8 @@
     "capability_advertisements",
     "delivery_receipts",
     "effect_authorization_decisions",
-    "policy_decisions"
+    "policy_decisions",
+    "task_verifications"
   ],
   "retiredForeignKeyAuthorities": [
     "board_projection_receipts.goal_id -> service_goals.id",
@@ -310,6 +311,8 @@
     "delivery_receipts.binding_id -> transport_bindings.id",
     "effect_authorization_decisions.binding_id -> transport_bindings.id",
     "effect_authorization_decisions.delegation_id -> delegation_envelopes.id",
+    "task_verifications.assignment_id -> service_assignments.id",
+    "task_verifications.task_id -> service_tasks.id",
     "transport_bindings.interface_id -> agent_interface_advertisements.id",
     "transport_bindings.policy_decision_id -> policy_decisions.id"
   ]
