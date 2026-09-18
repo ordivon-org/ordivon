@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.acceptance-evidence",
+  "subject": "lego-question-compiler-cross-domain-framing-r1",
+  "truthRole": "prospective-framing-canary-evidence",
+  "date": "2026-09-18",
+  "methodPackageRevision": "sha256:860e1a047777774483f64e1d942262430665fb02940a1a22339da72784cb7b3b",
+  "cases": [
+    {
+      "id": "agent-service-agent-birth",
+      "sourceRevision": "13c107efce5b721112c804285408196ea944a162",
+      "result": "FRAMING_PASS",
+      "changedNextAction": "Measure a frozen Birth lifecycle/recovery attribution census before adding raw capability."
+    },
+    {
+      "id": "research-v2-paper2",
+      "researchRevision": "5b1d81e3fbb418a713d1a72d339e058fec55b2bb",
+      "paper2Revision": "4692609a75caa016134e8686ebfa4da49a4ae20f",
+      "result": "FRAMING_PASS",
+      "observedCounts": {
+        "pairedFirstPass": 4142,
+        "decisionAgreement": 3569,
+        "disagreements": 573,
+        "fulltextEscalation": 1396,
+        "localPdfReady": 793,
+        "retrievalBoundaryReviewRequired": 603
+      },
+      "changedNextAction": "Pressure-test Research-v2 on stage-native downstream queues instead of increasing candidate generation."
+    }
+  ],
+  "standing": "CROSS_DOMAIN_FRAMING_PASS_OUTCOME_VALIDATION_PENDING",
+  "acceptedClaims": [
+    "Question Compiler produced decision-relevant reframing on two materially different non-poker domains.",
+    "Both canaries bind surviving questions to bounded evidence or experiments and prune at least one misleading or already-resolved question."
+  ],
+  "nonClaims": [
+    "No downstream canary experiment has yet proven better final project outcomes.",
+    "No common LEGO schema expansion is justified.",
+    "No bottleneck hypothesis is established merely by compiling the questions."
+  ]
+}
