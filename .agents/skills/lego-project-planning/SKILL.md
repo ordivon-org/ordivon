@@ -41,6 +41,7 @@ Do not run every lens automatically. Activate only when the system shape justifi
 - `lego-dsm`: dense dependencies, cycles, repeated cross-module changes, unclear replacement seams, or suspected bad decomposition.
 - `lego-feedback-control`: dynamic state, feedback, delay, observation, recovery, robustness, or regulation.
 - `lego-stpa`: high-consequence loss/security risk, unsafe interactions, control actions, automation, humans/organizations, or failures not reducible to one broken component.
+- `lego-regime-shift`: candidate turning point, stock/flow divergence, buffers/delays, constraint migration, reflexive adaptation, or a partly irreversible decision under deep uncertainty.
 
 Lens outputs are derived analysis evidence. They alter the plan only through an explicit architecture decision supported by project-native evidence.
 

@@ -181,6 +181,7 @@ Route when applicable:
 - **lego-dsm** — suspected coupling, cycles, hubs, or wrong decomposition.
 - **lego-feedback-control** — dynamic state, observation, delay, regulation, disturbance, recovery.
 - **lego-stpa** — unacceptable loss from unsafe control/interactions.
+- **lego-regime-shift** — suspected turning point, lagged downstream outputs, stock/flow divergence, buffers/delays, constraint migration, or partly irreversible decisions under deep uncertainty.
 - **domain science / experimental design / statistics** — when the question becomes empirical and the domain has a mature method.
 - **security analysis** — when exploitability concerns actual security boundaries; do not treat a metaphorical attacker as authorization for intrusive testing.
 
@@ -329,3 +330,4 @@ Canonical local references:
 - .agents/skills/lego-feedback-control/SKILL.md
 - .agents/skills/lego-dsm/SKILL.md
 - .agents/skills/lego-stpa/SKILL.md
+- .agents/skills/lego-regime-shift/SKILL.md
