@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "resources": [
+    {
+      "schemaVersion": 1,
+      "resourceId": "runtime/linux-archlinux",
+      "resourceKind": "runtime-node",
+      "nodeId": "linux-local",
+      "conflictDomains": ["runtime/linux-archlinux"]
+    },
+    {
+      "schemaVersion": 1,
+      "resourceId": "service/linux/control-plane",
+      "resourceKind": "service-group",
+      "nodeId": "linux-local",
+      "conflictDomains": ["services/linux-control-plane"]
+    },
+    {
+      "schemaVersion": 1,
+      "resourceId": "filesystem/linux-root",
+      "resourceKind": "filesystem",
+      "nodeId": "linux-local",
+      "conflictDomains": ["filesystem/linux-root"]
+    },
+    {
+      "schemaVersion": 1,
+      "resourceId": "distro/archlinux",
+      "resourceKind": "wsl-distribution",
+      "nodeId": "windows-local",
+      "conflictDomains": ["wsl/archlinux"]
+    },
+    {
+      "schemaVersion": 1,
+      "resourceId": "storage/d-drive/ext4-vhdx",
+      "resourceKind": "virtual-disk",
+      "nodeId": "windows-local",
+      "conflictDomains": ["storage/d-drive", "wsl/archlinux"]
+    }
+  ],
+  "nodes": [
+    {
+      "schemaVersion": 1,
+      "nodeId": "linux-local",
+      "platform": "linux",
+      "nativeControlPlane": true,
+      "trustDomain": "ordivon.local",
+      "providers": [
+        "provider/linux-local/local-linux-runner-v1",
+        "provider/linux-local/windows-native-launcher-v1"
+      ],
+      "capabilities": [
+        "capability/execution/local-linux",
+        "capability/execution/windows-native"
+      ],
+      "authorityContexts": ["linux/root", "windows/limited"]
+    },
+    {
+      "schemaVersion": 1,
+      "nodeId": "windows-local",
+      "platform": "windows",
+      "nativeControlPlane": false,
+      "trustDomain": "ordivon.local",
+      "providers": [],
+      "capabilities": [],
+      "authorityContexts": []
+    }
+  ],
+  "providers": [
+    {
+      "schemaVersion": 1,
+      "providerId": "provider/linux-local/local-linux-runner-v1",
+      "nodeId": "linux-local",
+      "platform": "linux",
+      "capabilities": ["capability/execution/local-linux"]
+    },
+    {
+      "schemaVersion": 1,
+      "providerId": "provider/linux-local/windows-native-launcher-v1",
+      "nodeId": "linux-local",
+      "platform": "windows",
+      "capabilities": ["capability/execution/windows-native"]
+    }
+  ]
+}

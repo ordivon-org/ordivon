@@ -16,3 +16,20 @@ Current forcing workflows:
 
 Promotion rule: a workflow realization may replace an accepted maintenance script only after it
 reproduces the same gates, evidence, failure recovery, and destructive acceptance.
+
+## EF6b dry-run binding
+
+workflow_resolver.py resolves workflow steps only against explicitly advertised Resource/Node/Provider
+descriptors. It never executes a shell fallback. Zero provider matches remain unresolved; multiple
+matches remain ambiguous.
+
+catalog/current-r1.json records only currently proven provider reality:
+
+- the local Linux runner;
+- the Windows native launcher attached to the Linux Runtime node;
+- windows-local exists as a future control domain but does not yet claim a native control plane or
+  machine-control providers.
+
+provider-backlog-r1.json groups current unresolved workflow capabilities into six planned provider
+families. A planned provider is not discoverable or routable until it is implemented, tested,
+materialized, and added to the current catalog.
