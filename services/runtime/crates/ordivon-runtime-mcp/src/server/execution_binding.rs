@@ -78,6 +78,13 @@ pub struct ExecutionContext {
 }
 
 impl ExecutionContext {
+    fn with_principal(&self, principal: impl Into<String>) -> Self {
+        Self {
+            principal: principal.into(),
+            global_limit: self.global_limit,
+        }
+    }
+
     fn bind_patch(&self, request: WorkspacePatchToolRequest) -> DurableWorkspacePatchRequest {
         DurableWorkspacePatchRequest {
             schema_version: request.schema_version,

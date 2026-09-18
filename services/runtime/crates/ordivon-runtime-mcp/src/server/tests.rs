@@ -157,6 +157,46 @@ fn exec_tool_request(
 }
 
 #[test]
+fn authenticated_http_parts_project_request_local_principal() {
+    let mut request = axum::http::Request::new(());
+    request
+        .extensions_mut()
+        .insert(AuthenticatedPrincipalBinding::new(
+            "principal:remote-agent",
+            "remote_bearer",
+        ));
+    let (parts, _) = request.into_parts();
+    assert_eq!(
+        authenticated_principal_from_http_parts(&parts).as_deref(),
+        Some("principal:remote-agent")
+    );
+}
+
+#[test]
+fn effective_principal_changes_bound_execution_authority_identity() {
+    let sandbox = Sandbox::new("effective-principal-binding");
+    let server = sandbox.server();
+    let base =
+        server
+            .state
+            .execution
+            .bind(exec_tool_request(Some(1_000), Some(1_024), Some(1_024)));
+    let remote = server
+        .state
+        .execution
+        .with_principal("principal:remote-agent")
+        .bind(exec_tool_request(Some(1_000), Some(1_024), Some(1_024)));
+    let base_candidate = base.authority_shadow_candidate().unwrap();
+    let remote_candidate = remote.authority_shadow_candidate().unwrap();
+    assert_eq!(base_candidate.principal_id.as_str(), "principal:mcp-test");
+    assert_eq!(
+        remote_candidate.principal_id.as_str(),
+        "principal:remote-agent"
+    );
+    assert_ne!(base_candidate.principal_id, remote_candidate.principal_id);
+}
+
+#[test]
 fn authority_shadow_candidate_projects_real_bound_execution_without_enforcement() {
     let sandbox = Sandbox::new("authority-shadow-candidate");
     let server = sandbox.server();

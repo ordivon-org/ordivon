@@ -80,12 +80,14 @@ impl RuntimeServer {
     )]
     async fn release_apply(
         &self,
+        principal: EffectivePrincipal,
         Parameters(request): Parameters<RuntimeReleaseApplyToolRequest>,
     ) -> ToolOutcome<RuntimeReleaseAdmission> {
         let runtime = self.state.runtime.clone();
         let release_config = self.state.release.clone();
-        let principal = self.state.execution.principal.clone();
-        let global_limit = self.state.execution.global_limit;
+        let execution = self.state.execution.with_principal(principal.0);
+        let principal = execution.principal.clone();
+        let global_limit = execution.global_limit;
         self.run_core("release.apply", move || {
             let release_request = RuntimeReleaseRequest {
                 schema_version: request.schema_version,
@@ -280,10 +282,11 @@ impl RuntimeServer {
     )]
     async fn release_get(
         &self,
+        principal: EffectivePrincipal,
         Parameters(request): Parameters<RuntimeReleaseGetToolRequest>,
     ) -> ToolOutcome<RuntimeReleaseProjection> {
         let runtime = self.state.runtime.clone();
-        let principal = self.state.execution.principal.clone();
+        let principal = principal.0;
         self.run_core("release.get", move || {
             runtime
                 .get_runtime_release_effect(&RuntimeReleaseGetRequest {
@@ -549,10 +552,15 @@ impl RuntimeServer {
     )]
     async fn workspace_patch(
         &self,
+        principal: EffectivePrincipal,
         Parameters(request): Parameters<WorkspacePatchToolRequest>,
     ) -> ToolOutcome<DurableWorkspacePatchResult> {
         let runtime = self.state.runtime.clone();
-        let request = self.state.execution.bind_patch(request);
+        let request = self
+            .state
+            .execution
+            .with_principal(principal.0)
+            .bind_patch(request);
         self.run_core("workspace.patch", move || {
             runtime
                 .patch_workspace_durable(&request)
@@ -575,10 +583,15 @@ impl RuntimeServer {
     )]
     async fn workspace_patch_get(
         &self,
+        principal: EffectivePrincipal,
         Parameters(request): Parameters<WorkspacePatchStatusToolRequest>,
     ) -> ToolOutcome<WorkspacePatchOperationStatus> {
         let runtime = self.state.runtime.clone();
-        let request = self.state.execution.bind_patch_status(request);
+        let request = self
+            .state
+            .execution
+            .with_principal(principal.0)
+            .bind_patch_status(request);
         self.run_core("workspace.patch.get", move || {
             runtime
                 .workspace_patch_status(&request)
@@ -632,10 +645,15 @@ impl RuntimeServer {
     )]
     async fn workspace_exec(
         &self,
+        principal: EffectivePrincipal,
         Parameters(request): Parameters<WorkspaceExecRequest>,
     ) -> ToolOutcome<TaskObservation> {
         let runtime = self.state.runtime.clone();
-        let request = self.state.execution.bind(request);
+        let request = self
+            .state
+            .execution
+            .with_principal(principal.0)
+            .bind(request);
         self.record_authority_shadow_for_bound_task("workspace.exec", &request);
         self.run_core("workspace.exec", move || match request {
             BoundTaskRun::Legacy(request) => runtime.run_task(&request).map_err(ToolError::from),
@@ -660,10 +678,15 @@ impl RuntimeServer {
     )]
     async fn workspace_exec_bound(
         &self,
+        principal: EffectivePrincipal,
         Parameters(request): Parameters<WorkspaceExecBoundRequest>,
     ) -> ToolOutcome<TaskObservation> {
         let runtime = self.state.runtime.clone();
-        let (proposal, inputs) = self.state.execution.bind_bound(request);
+        let (proposal, inputs) = self
+            .state
+            .execution
+            .with_principal(principal.0)
+            .bind_bound(request);
         self.record_authority_shadow_for_proposal("workspace.execBound", &proposal);
         self.run_core("workspace.execBound", move || {
             runtime
@@ -687,10 +710,12 @@ impl RuntimeServer {
     )]
     async fn workspace_exec_bound_trusted(
         &self,
+        principal: EffectivePrincipal,
         Parameters(request): Parameters<WorkspaceExecBoundRequest>,
     ) -> ToolOutcome<TaskObservation> {
         let runtime = self.state.runtime.clone();
-        let (proposal, inputs) = match self.state.execution.bind_bound_trusted(request) {
+        let execution = self.state.execution.with_principal(principal.0);
+        let (proposal, inputs) = match execution.bind_bound_trusted(request) {
             Ok(bound) => bound,
             Err(error) => return ToolOutcome::Error(error),
         };
@@ -717,10 +742,12 @@ impl RuntimeServer {
     )]
     async fn workspace_exec_plan(
         &self,
+        principal: EffectivePrincipal,
         Parameters(request): Parameters<WorkspaceExecPlanRequest>,
     ) -> ToolOutcome<TaskObservation> {
         let runtime = self.state.runtime.clone();
-        let request = match self.state.execution.bind_plan(request) {
+        let execution = self.state.execution.with_principal(principal.0);
+        let request = match execution.bind_plan(request) {
             Ok(request) => request,
             Err(error) => return ToolOutcome::Error(error),
         };
