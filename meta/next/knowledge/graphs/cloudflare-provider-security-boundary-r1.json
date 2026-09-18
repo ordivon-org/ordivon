@@ -141,15 +141,17 @@
         "challenge history",
         "attachment transitions"
       ],
-      "currentStanding": "PARTIAL",
+      "currentStanding": "METADATA_CHARACTERIZED_CAUSALITY_OPEN",
       "localEvidence": [
-        "persistent /data profile proven",
-        "session/handoff lifecycle exists",
-        "R2 three independent persistent profiles all returned CHALLENGE_GATED without reading cookie values"
+        "persistent /data profile proven and carrier lifecycle/lease contract exists",
+        "R2 three independent persistent profiles all returned CHALLENGE_GATED without reading cookie values",
+        "R4 metadata-only snapshot found 313 historical bindings distributed 114/98/101 across carriers (CV 0.0666)",
+        "R4 birth ledger had zero new requests in the prior 24 hours while a current read-only carrier-11 preflight remained CHALLENGE_GATED"
       ],
       "missingWitness": [
-        "session-age/cadence/control-transition witness",
-        "native session comparison"
+        "semantic provider-session creation age",
+        "prospective non-secret provider-preflight cadence telemetry",
+        "provider reputation/rate-policy state"
       ],
       "repairClass": "session-behavior"
     },
@@ -325,8 +327,9 @@
     "provider relevance of launch/browser presentation",
     "page-visible consequence of control-layer differences",
     "cross-layer font/geometry/runtime presentation contribution",
-    "session/behavior contribution",
-    "provider policy/rate/reputation contribution"
+    "provider policy/rate/reputation contribution",
+    "historical session/behavior or provider reputation contribution",
+    "provider policy/rate/reputation contribution independent of current Birth request burst"
   ],
   "experimentLaw": {
     "goal": "attribute observable differences, not automate challenge defeat",
@@ -399,5 +402,5 @@
     "agentBirthInterfaceMapping": "PASS",
     "repairRoutingDefined": "PASS"
   },
-  "lastUpdated": "2026-09-18"
+  "lastUpdated": "2026-09-18-r4"
 }

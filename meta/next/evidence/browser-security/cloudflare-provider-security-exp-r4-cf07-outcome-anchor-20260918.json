@@ -1,0 +1,17 @@
+{
+  "assistantOutputRead": false,
+  "challengeOutcomeUsedAsDetectorOracle": false,
+  "clicked": false,
+  "composerFilled": false,
+  "endpointId": "chatgpt-carrier-11",
+  "kind": "ordivon.browser-security-cf07-provider-outcome-anchor-r4",
+  "observedAtMs": 1789706182078,
+  "pageOrChallengeDetailRetained": false,
+  "providerCausalityEstablished": false,
+  "providerEffectAttempted": false,
+  "providerVisited": true,
+  "purpose": "Anchor current provider admissibility standing against the metadata-only CF07 cadence snapshot; not a detector experiment.",
+  "schemaVersion": 1,
+  "sendAttempted": false,
+  "standing": "CHALLENGE_GATED"
+}
