@@ -1,0 +1,103 @@
+{
+  "analyzedImplementationCommit": "0721009237365ea61cd975bd187be5171f1dcd52",
+  "classificationCounts": {
+    "CONTRACT_DEPENDENCY_EXPOSED": 1,
+    "CONVERGES": 2,
+    "FAILURE_DOMAIN_UNMODELED_EXPOSED": 1,
+    "FAIL_CLOSED": 3,
+    "OSCILLATION_EXPOSED": 1,
+    "STALE_OBSERVATION_EXPOSED": 1
+  },
+  "kind": "ordivon.agent-service-control-stability-r1-experiment",
+  "scenarioCount": 9,
+  "scenarios": {
+    "S1_PLACEMENT_FLAP": {
+      "classification": "OSCILLATION_EXPOSED",
+      "ensureCalls": 5,
+      "events": [
+        "AGENT_BIRTH_REQUESTED",
+        "AGENT_READY",
+        "AGENT_READINESS_LOST",
+        "AGENT_READY",
+        "AGENT_READINESS_LOST",
+        "AGENT_READY"
+      ],
+      "hysteresisPresent": false,
+      "instanceStates": [
+        "READY",
+        "PROVISIONING",
+        "READY",
+        "PROVISIONING",
+        "READY"
+      ],
+      "interpretation": "Every observed READY/UNKNOWN edge is propagated immediately into AgentInstance readiness; there is no dwell/hysteresis layer in the placement loop."
+    },
+    "S2_STALE_PLACEMENT_OBSERVATION": {
+      "classification": "STALE_OBSERVATION_EXPOSED",
+      "interpretation": "ProviderObservation contains no freshness/order coordinate, so a late stale READY fact is observationally indistinguishable from a fresh recovery.",
+      "observationCarriesFreshness": false,
+      "stateAfterFreshUnknown": "PROVISIONING",
+      "stateAfterLateStaleReady": "READY"
+    },
+    "S3_RUNTIME_RESPONSE_LOSS_IDEMPOTENT": {
+      "boundMatchesFirstExternalJob": true,
+      "classification": "CONVERGES",
+      "externalJobCount": 1,
+      "sameClientRequestIdentity": true,
+      "submitCalls": 2,
+      "taskState": "RUNNING"
+    },
+    "S4_RUNTIME_RESPONSE_LOSS_NONIDEMPOTENT": {
+      "boundMatchesFirstExternalJob": false,
+      "classification": "CONTRACT_DEPENDENCY_EXPOSED",
+      "externalJobCount": 2,
+      "interpretation": "Agent Service reuses the exact Runtime clientRequestId, but if the Runtime adapter violates that replay contract after response loss, the first external Job is not locally observable.",
+      "orphanExternalJobPresent": true,
+      "sameClientRequestIdentity": true,
+      "submitCalls": 2,
+      "taskState": "RUNNING"
+    },
+    "S5_CREDENTIAL_EXPIRES_BETWEEN_CALLS": {
+      "classification": "FAIL_CLOSED",
+      "firstHeaderResolved": true,
+      "interpretation": "Credential material is re-admitted per call; once the durable proof is no longer current, the external secret provider is not invoked again.",
+      "materialProviderCalls": 1,
+      "secondCallBlocked": true
+    },
+    "S6_SINGLE_OWNER_BLOCKS_REMOTE_OVERLAP": {
+      "claimMode": "LOCAL_ASSIGNMENT",
+      "claimOwnerMatchesAssignment": true,
+      "classification": "FAIL_CLOSED",
+      "deliveryCalls": 0,
+      "interpretation": "A local Assignment and remote Binding cannot concurrently own the same Task; the remote provider effect is blocked before DeliveryAdapter.send.",
+      "remoteDeliveryBlocked": true
+    },
+    "S7_FAILOVER_EXACT_REPLAY": {
+      "claimTransferredToFallback": true,
+      "classification": "CONVERGES",
+      "interpretation": "Exact failover replay returns the durable transfer and does not re-invoke quiescence or replay-safety effects.",
+      "quiescenceCalls": 1,
+      "replaySafetyCalls": 1,
+      "sameTransferId": true
+    },
+    "S8_SHARED_FAILURE_DOMAIN_FALLBACK": {
+      "claimTransferredToFallback": true,
+      "classification": "FAILURE_DOMAIN_UNMODELED_EXPOSED",
+      "failureDomainModeled": false,
+      "interpretation": "R12 proves source quiescence and replay safety, but current Binding identity carries no failure-domain coordinate; two transports on the same provider hostname are accepted as fallback.",
+      "sameHostname": true,
+      "sourceHostname": "shared-provider.example.test",
+      "targetHostname": "shared-provider.example.test",
+      "transferAdmitted": true
+    },
+    "S9_REMOTE_SUCCESS_THEN_FAILURE": {
+      "classification": "FAIL_CLOSED",
+      "failoverBlocked": true,
+      "historicalSuccessPresent": true,
+      "interpretation": "A later provider regression cannot erase historical terminal success; failover is rejected before cancel/replay-safety actuation.",
+      "quiescenceCalls": 0,
+      "replaySafetyCalls": 0
+    }
+  },
+  "schemaVersion": 1
+}
