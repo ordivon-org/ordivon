@@ -136,10 +136,11 @@ def require_transport(cfg: dict[str, Any]) -> None:
     if not (repository / "config").is_file():
         raise RuntimeError(f"owner capsule restic repository is unavailable: {repository}")
     env = restic_env(cfg)
-    checked(restic_command("cat", "config"), env=env, timeout=30)
     # Provider-native stale-lock reconciliation. Default unlock removes stale locks;
-    # it is intentionally not --remove-all.
+    # it is intentionally not --remove-all. Run it before any lock-taking repository
+    # probe so an abandoned exclusive lock cannot block the recovery path itself.
     checked(restic_command("unlock"), env=env, timeout=30)
+    checked(restic_command("cat", "config"), env=env, timeout=30)
 
 
 def staging_parent(cfg: dict[str, Any]) -> Path:

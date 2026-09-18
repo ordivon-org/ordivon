@@ -366,10 +366,12 @@ def ensure_repository(env: dict[str, str]) -> None:
         raise RuntimeError(f"restic password file missing: {password}")
     config = repository / "config"
     if config.is_file():
-        checked(restic_command("cat", "config"), env=env, timeout=30)
         # Default restic unlock removes only stale locks. Never use --remove-all here:
         # a live repository user must remain authoritative over its active lock.
+        # Unlock must precede any lock-taking repository probe, otherwise a stale
+        # exclusive lock can prevent the recovery path from reaching its own repair.
         checked(restic_command("unlock"), env=env, timeout=30)
+        checked(restic_command("cat", "config"), env=env, timeout=30)
         return
     if repository.exists() and any(repository.iterdir()):
         raise RuntimeError(f"refusing to initialize non-empty semantic repository: {repository}")

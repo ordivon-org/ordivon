@@ -84,6 +84,36 @@ class SemanticBackupGitAuthorityTests(unittest.TestCase):
         self.assertEqual(command[keep_index + 1], str(MODULE.REC["retain_semantic_snapshots"]))
         self.assertIn("--prune", command)
 
+    def test_existing_repository_unlocks_stale_locks_before_config_probe(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            repository = root / "semantic"
+            repository.mkdir()
+            (repository / "config").write_bytes(b"restic-config")
+            password = root / "password"
+            password.write_text("secret\n")
+            calls: list[list[str]] = []
+
+            def fake_checked(args, *, env=None, timeout=60):
+                calls.append(list(args))
+                return ""
+
+            with mock.patch.dict(
+                MODULE.REC,
+                {
+                    "semantic_repository": str(repository),
+                    "restic_password_file": str(password),
+                },
+                clear=False,
+            ), mock.patch.object(MODULE, "require_mount"), mock.patch.object(
+                MODULE, "checked", side_effect=fake_checked
+            ):
+                MODULE.ensure_repository({})
+
+            self.assertEqual(calls[0], MODULE.restic_command("unlock"))
+            self.assertEqual(calls[1], MODULE.restic_command("cat", "config"))
+            self.assertNotIn("--remove-all", calls[0])
+
     def test_semantic_staging_parent_is_private_contract_selected_node_state(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             parent = Path(raw) / "semantic-stage"
