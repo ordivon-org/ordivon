@@ -1,0 +1,177 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-game",
+    "purpose": "Own authoritative interactive game products and game-specific research while keeping mechanics, lenses, teardowns, and experiments composable rather than turning one product's rules into universal Game law.",
+    "sourceEvidence": [
+      "README.md",
+      "docs/ARCHITECTURE.md",
+      "docs/GAME_DOMAIN_PACKAGE_GRAPH_R1.md",
+      "standards/game_domain_package_graph_r1.json"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "G01",
+      "label": "ProductAuthority",
+      "kind": "domain_state",
+      "responsibility": "Own the current executable product/ruleset identity and player-visible game semantics.",
+      "authority": "Game product owner",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "README.md",
+        "docs/ARCHITECTURE.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "generic Agent Runtime truth"
+      ],
+      "acceptance": [
+        "Current executable and ruleset are explicit."
+      ]
+    },
+    {
+      "id": "G02",
+      "label": "MechanismLibrary",
+      "kind": "knowledge_projection",
+      "responsibility": "Retain source-grounded mechanics, relationships, tensions, and counterexamples as advisory reusable material.",
+      "authority": "Game knowledge owner",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "README.md",
+        "docs/GAME_MECHANISM_RELATIONSHIP_GRAPH_R1.md",
+        "standards/game_mechanism_relationship_graph_r1.json"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "compatibility verdicts",
+        "creative rejection authority"
+      ],
+      "acceptance": [
+        "Retrieval returns evidence and conditions without blocking novel combinations."
+      ]
+    },
+    {
+      "id": "G03",
+      "label": "ExperimentLane",
+      "kind": "experimental",
+      "responsibility": "Run bounded playable or mechanical probes without silently promoting them to product direction.",
+      "authority": "Game research/experiment owner",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "README.md",
+        "experiments/README.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "product selection"
+      ],
+      "acceptance": [
+        "Experiment outcomes remain scoped to their hypothesis and evidence."
+      ]
+    },
+    {
+      "id": "G04",
+      "label": "CompositionPlanner",
+      "kind": "creative_planning",
+      "responsibility": "Compose product-native mechanics from optional lenses, mechanism evidence, and current product intent.",
+      "authority": "Game design owner",
+      "state": "DESIGNED",
+      "sharedRefs": [],
+      "evidence": [
+        "README.md",
+        "docs/GAME_WHOLE_PRODUCT_RECOMPOSITION_R1_20260918.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "universal game ontology"
+      ],
+      "acceptance": [
+        "A proposed composition names assumptions/falsifiers instead of claiming guaranteed fun."
+      ]
+    },
+    {
+      "id": "G05",
+      "label": "PlayerEvidence",
+      "kind": "verifier",
+      "responsibility": "Separate mechanical/agent checks from claims about human play experience.",
+      "authority": "Game evidence owner",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "README.md",
+        "docs/GAME_PLAYER_EVIDENCE_PROGRAMME.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "invented human preference"
+      ],
+      "acceptance": [
+        "Human-response claims remain unobserved unless actual scoped evidence exists."
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "G02",
+      "to": "G04",
+      "type": "DATA",
+      "label": "advisory mechanism evidence"
+    },
+    {
+      "from": "G03",
+      "to": "G04",
+      "type": "EVIDENCE",
+      "label": "bounded experiment results"
+    },
+    {
+      "from": "G04",
+      "to": "G01",
+      "type": "CONTROL",
+      "label": "only admitted product composition changes product"
+    },
+    {
+      "from": "G01",
+      "to": "G05",
+      "type": "EVIDENCE",
+      "label": "player-facing claims require separate evidence"
+    }
+  ],
+  "slices": [
+    {
+      "id": "GS1",
+      "objective": "Use the mechanism/counterexample library to propose one bounded next product/mechanic experiment without promoting advisory patterns into design law.",
+      "status": "PROPOSED",
+      "nodeIds": [
+        "G02",
+        "G03",
+        "G04"
+      ],
+      "acceptance": [
+        "Proposal cites source-grounded mechanisms, states falsifiers, and remains separate from product selection until evidence exists."
+      ],
+      "evidence": [],
+      "blockers": [],
+      "nextAction": "Select one current design question and create the smallest playable falsifier."
+    }
+  ],
+  "gaps": [
+    "No new product direction is currently admitted by the planning projection."
+  ],
+  "doNotOwn": [
+    "generic game-engine ownership",
+    "universal creativity rules",
+    "human enjoyment authority without evidence"
+  ],
+  "review": {
+    "sourceRevision": "ed88293c1c7e9a6c3c0c09692a301211c001a35f",
+    "updatedAt": "2026-09-18",
+    "standing": "INITIAL",
+    "notes": "Initial project-native LEGO planning projection. It does not replace owner-native architecture or evidence."
+  }
+}
