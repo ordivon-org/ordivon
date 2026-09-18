@@ -93,7 +93,6 @@
       "AgentIdentityStore",
       "AgentInstance",
       "AgentInstanceStore",
-      "AgentInterfaceAdvertisementStore",
       "AgentRevision",
       "AgentRevisionStore",
       "AgentServiceR10",
@@ -293,10 +292,15 @@
   ],
   "retiredLegacyTypes": [
     "AgentInterfaceAdvertisement",
+    "AgentInterfaceAdvertisementStore",
     "CapabilityAdvertisement",
     "CapabilityAdvertisementStore"
   ],
   "retiredPersistenceSurfaces": [
+    "agent_interface_advertisements",
     "capability_advertisements"
+  ],
+  "retiredForeignKeyAuthorities": [
+    "transport_bindings.interface_id -> agent_interface_advertisements.id"
   ]
 }

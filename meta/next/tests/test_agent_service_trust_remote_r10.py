@@ -120,16 +120,21 @@ class AgentServiceTrustRemoteR10Tests(unittest.TestCase):
         self.addCleanup(service.close)
         return service
 
-    def _agent(self, service: AgentServiceR10, name: str):
+    def _agent(self, service: AgentServiceR10, name: str, *, routes=None):
         definition = service.definitions.create(name)
-        revision = service.revisions.create(definition.id, {"name": name, "harness": "r10", "skills": [{
+        revision = service.revisions.create(definition.id, {
+            "name": name,
+            "harness": "r10",
+            "skills": [{
                 "id": "review",
                 "name": "Review",
                 "description": "review",
                 "tags": ["review"],
                 "inputModes": ["text/plain"],
                 "outputModes": ["text/markdown"],
-            }]})
+            }],
+            "routes": routes or [],
+        })
         identity = service.identities.create(definition.id, stable_name=name, description=name)
         instance = service.birth.birth(f"birth:{name}:r10", revision.id)
         service.reconciler.reconcile(instance.id)
@@ -137,14 +142,16 @@ class AgentServiceTrustRemoteR10Tests(unittest.TestCase):
 
     def _delivery(self, service: AgentServiceR10):
         source_revision, source_identity, source_instance = self._agent(service, "source")
-        target_revision, target_identity, _ = self._agent(service, "target")
-        service.interfaces.advertise(
-            target_revision.id,
-            transport="a2a-jsonrpc",
-            protocol_version="1.0",
-            url="https://agents.example.test/target",
-            priority=10,
-            security_requirements={"oauth2": ["review.invoke"]},
+        target_revision, target_identity, _ = self._agent(
+            service,
+            "target",
+            routes=[{
+                "transport": "a2a-jsonrpc",
+                "protocolVersion": "1.0",
+                "url": "https://agents.example.test/target",
+                "priority": 10,
+                "securityRequirements": {"oauth2": ["review.invoke"]},
+            }],
         )
         goal = service.goals.create("r10 goal")
         task = service.tasks.create(

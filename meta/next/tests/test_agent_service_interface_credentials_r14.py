@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sqlite3
 import tempfile
 import unittest
 from dataclasses import replace
@@ -85,40 +86,55 @@ class AgentServiceInterfaceCredentialsR14Tests(unittest.TestCase):
         self.addCleanup(service.close)
         return service
 
-    def _agent(self, service, name):
+    def _agent(self, service, name, *, routes=None):
         definition = service.definitions.create(name)
-        revision = service.revisions.create(definition.id, {"name": name, "skills": [{
+        revision = service.revisions.create(definition.id, {
+            "name": name,
+            "skills": [{
                 "id": "review",
                 "name": "Review",
                 "description": "review",
                 "tags": ["review"],
                 "inputModes": ["text/plain"],
                 "outputModes": ["text/markdown"],
-            }]})
+            }],
+            "routes": routes or [],
+        })
         identity = service.identities.create(definition.id, stable_name=name, description=name)
         instance = service.birth.birth(f"birth:{name}:r14", revision.id)
         service.reconciler.reconcile(instance.id)
         return revision, identity, instance
 
-    def _setup(self, service, *, a2a_version="1.0", security=None):
+    def _setup(
+        self,
+        service,
+        *,
+        a2a_version="1.0",
+        mcp_version="2026-07-28",
+        security=None,
+    ):
         sr, si, inst = self._agent(service, "source-r14")
-        tr, ti, _ = self._agent(service, "target-r14")
-        a2a = service.interfaces.advertise(
-            tr.id,
-            transport="a2a-jsonrpc",
-            protocol_version=a2a_version,
-            url="https://agents.example.test/rpc",
-            priority=10,
-            security_requirements=security or {},
+        tr, ti, _ = self._agent(
+            service,
+            "target-r14",
+            routes=[
+                {
+                    "transport": "a2a-jsonrpc",
+                    "protocolVersion": a2a_version,
+                    "url": "https://agents.example.test/rpc",
+                    "priority": 10,
+                    "securityRequirements": security or {},
+                },
+                {
+                    "transport": "mcp",
+                    "protocolVersion": mcp_version,
+                    "url": "https://agents.example.test/mcp",
+                    "priority": 20,
+                    "securityRequirements": security or {},
+                },
+            ],
         )
-        mcp = service.interfaces.advertise(
-            tr.id,
-            transport="mcp",
-            protocol_version="2026-07-28",
-            url="https://agents.example.test/mcp",
-            priority=20,
-            security_requirements=security or {},
-        )
+        a2a, mcp = tr.spec["routes"]
         task = service.tasks.create(
             description="r14",
             required_revision_id=sr.id,
@@ -156,15 +172,8 @@ class AgentServiceInterfaceCredentialsR14Tests(unittest.TestCase):
     def test_interface_requires_explicit_protocol_version(self):
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp)/"s.db")
-            revision, _, _ = self._agent(service, "version-required")
-            with self.assertRaises(TypeError):
-                service.interfaces.advertise(
-                    revision.id,
-                    transport="a2a-jsonrpc",
-                    url="https://agents.example.test/rpc",
-                    priority=10,
-                    security_requirements={},
-                )
+            with self.assertRaises(ValueError):
+                self._setup(service, a2a_version=None)
 
     def test_protocol_version_is_immutable_interface_and_binding_identity(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -177,30 +186,14 @@ class AgentServiceInterfaceCredentialsR14Tests(unittest.TestCase):
     def test_a2a_protocol_version_must_be_major_minor_without_patch(self):
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp)/"s.db")
-            revision, _, _ = self._agent(service, "bad-a2a-version")
             with self.assertRaises(ValueError):
-                service.interfaces.advertise(
-                    revision.id,
-                    transport="a2a-jsonrpc",
-                    protocol_version="1.0.0",
-                    url="https://agents.example.test/rpc",
-                    priority=10,
-                    security_requirements={},
-                )
+                self._setup(service, a2a_version="1.0.0")
 
     def test_mcp_protocol_version_must_be_date_version(self):
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp)/"s.db")
-            revision, _, _ = self._agent(service, "bad-mcp-version")
             with self.assertRaises(ValueError):
-                service.interfaces.advertise(
-                    revision.id,
-                    transport="mcp",
-                    protocol_version="latest",
-                    url="https://agents.example.test/mcp",
-                    priority=10,
-                    security_requirements={},
-                )
+                self._setup(service, mcp_version="latest")
 
     def test_a2a_http_client_uses_binding_protocol_version_without_resolver(self):
         captured = []
@@ -423,38 +416,28 @@ class AgentServiceInterfaceCredentialsR14Tests(unittest.TestCase):
             self.assertEqual(first.id, second.id)
 
 
-    def test_legacy_interface_without_protocol_version_fails_closed_until_operator_migration(self):
+    def test_legacy_interface_table_fails_closed_until_destructive_migration(self):
         with tempfile.TemporaryDirectory() as tmp:
-            service = self._open(Path(tmp)/"s.db")
-            revision, _, _ = self._agent(service, "legacy-version")
-            service._connection.execute(
+            db = Path(tmp)/"s.db"
+            connection = sqlite3.connect(db)
+            connection.execute(
                 """
-                INSERT INTO agent_interface_advertisements(
-                    id,revision_id,transport,protocol_version,url,priority,
-                    security_requirements_json,created_at_ns
-                ) VALUES (?,?,?,?,?,?,?,?)
-                """,
-                (
-                    "iface_legacy",
-                    revision.id,
-                    "a2a-jsonrpc",
-                    None,
-                    "https://agents.example.test/legacy",
-                    10,
-                    "{}",
-                    1,
-                ),
-            )
-            service._connection.commit()
-            with self.assertRaises(RuntimeError):
-                service.interfaces.advertise(
-                    revision.id,
-                    transport="a2a-jsonrpc",
-                    protocol_version="1.0",
-                    url="https://agents.example.test/legacy",
-                    priority=10,
-                    security_requirements={},
+                CREATE TABLE agent_interface_advertisements (
+                    id TEXT PRIMARY KEY,
+                    revision_id TEXT,
+                    transport TEXT,
+                    protocol_version TEXT,
+                    url TEXT,
+                    priority INTEGER,
+                    security_requirements_json TEXT,
+                    created_at_ns INTEGER
                 )
+                """
+            )
+            connection.commit()
+            connection.close()
+            with self.assertRaises(RuntimeError):
+                self._open(db)
 
     def test_credential_reference_chain_injects_transient_authorization_into_bound_a2a_request(self):
         proof_adapter = ProofAdapter()

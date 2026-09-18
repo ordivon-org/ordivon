@@ -29,159 +29,115 @@ def _canonical_json(value: Any) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
-class AgentInterfaceAdvertisementStore:
-    """Migration store for deployment route profiles; it owns no protocol interface type."""
+def _route_profiles_from_revision_spec(
+    revision_id: str,
+    spec: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """Validate immutable deployment route profiles embedded in an AgentRevision."""
+    raw = spec.get("routes", [])
+    if not isinstance(raw, list):
+        raise ValueError("AgentRevision routes must be an array")
 
-    def __init__(self, connection: sqlite3.Connection) -> None:
-        self._connection = connection
+    profiles: list[dict[str, Any]] = []
+    by_coordinate: dict[tuple[str, str, str], dict[str, Any]] = {}
+    for item in raw:
+        if not isinstance(item, dict):
+            raise ValueError("AgentRevision route must be an object")
 
-    def advertise(
-        self,
-        revision_id: str,
-        *,
-        transport: str,
-        protocol_version: str,
-        url: str,
-        priority: int,
-        security_requirements: dict[str, list[str]],
-    ) -> dict[str, Any]:
-        if self._connection.execute(
-            "SELECT 1 FROM agent_revisions WHERE id = ?", (revision_id,)
-        ).fetchone() is None:
-            raise KeyError(revision_id)
+        transport = item.get("transport")
+        protocol_version = item.get("protocolVersion")
+        url = item.get("url")
+        priority = item.get("priority", 0)
+        security_requirements = item.get("securityRequirements", {})
+
         if not isinstance(transport, str) or not transport.strip():
-            raise ValueError("interface transport must be non-empty")
+            raise ValueError("route transport must be non-empty")
         normalized_transport = transport.strip()
         if not isinstance(protocol_version, str) or not protocol_version.strip():
-            raise ValueError("interface protocol_version must be non-empty")
+            raise ValueError("route protocolVersion must be non-empty")
         normalized_protocol_version = protocol_version.strip()
-        if normalized_transport == "a2a-jsonrpc" and re.fullmatch(r"[0-9]+\.[0-9]+", normalized_protocol_version) is None:
-            raise ValueError("A2A protocol_version must use Major.Minor without patch")
+
+        if (
+            normalized_transport == "a2a-jsonrpc"
+            and re.fullmatch(r"[0-9]+\.[0-9]+", normalized_protocol_version) is None
+        ):
+            raise ValueError("A2A protocolVersion must use Major.Minor without patch")
         if normalized_transport == "mcp":
-            if re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", normalized_protocol_version) is None:
-                raise ValueError("MCP protocol_version must use YYYY-MM-DD")
+            if (
+                re.fullmatch(
+                    r"[0-9]{4}-[0-9]{2}-[0-9]{2}",
+                    normalized_protocol_version,
+                )
+                is None
+            ):
+                raise ValueError("MCP protocolVersion must use YYYY-MM-DD")
             try:
                 import datetime as _datetime
+
                 _datetime.date.fromisoformat(normalized_protocol_version)
             except ValueError as error:
-                raise ValueError("MCP protocol_version must be a valid date version") from error
+                raise ValueError("MCP protocolVersion must be a valid date version") from error
+
         if not isinstance(url, str) or not url.strip():
-            raise ValueError("interface url must be non-empty")
+            raise ValueError("route url must be non-empty")
+        normalized_url = url.strip()
         if not isinstance(priority, int) or priority < 0:
-            raise ValueError("interface priority must be a non-negative integer")
+            raise ValueError("route priority must be a non-negative integer")
         if not isinstance(security_requirements, dict):
-            raise ValueError("security_requirements must be an object")
+            raise ValueError("route securityRequirements must be an object")
+
         normalized_security: dict[str, list[str]] = {}
         for scheme, scopes in security_requirements.items():
-            if not isinstance(scheme, str) or not scheme.strip() or not isinstance(scopes, list):
-                raise ValueError("invalid interface security requirement")
+            if (
+                not isinstance(scheme, str)
+                or not scheme.strip()
+                or not isinstance(scopes, list)
+            ):
+                raise ValueError("invalid route security requirement")
             normalized_scopes: list[str] = []
             for scope in scopes:
                 if not isinstance(scope, str) or not scope.strip():
-                    raise ValueError("security requirement scopes must be non-empty strings")
-                if scope.strip() not in normalized_scopes:
-                    normalized_scopes.append(scope.strip())
+                    raise ValueError(
+                        "route security requirement scopes must be non-empty strings"
+                    )
+                normalized_scope = scope.strip()
+                if normalized_scope not in normalized_scopes:
+                    normalized_scopes.append(normalized_scope)
             normalized_security[scheme.strip()] = normalized_scopes
-        existing = self.get_by_identity(
-            revision_id,
+
+        material = {
+            "revisionId": revision_id,
+            "transport": normalized_transport,
+            "protocolVersion": normalized_protocol_version,
+            "url": normalized_url,
+            "priority": priority,
+            "securityRequirements": normalized_security,
+        }
+        profile = {
+            "profileId": "iface_"
+            + hashlib.sha256(_canonical_json(material).encode("utf-8")).hexdigest(),
+            "transport": normalized_transport,
+            "protocolVersion": normalized_protocol_version,
+            "url": normalized_url,
+            "priority": priority,
+            "securityRequirements": normalized_security,
+        }
+        coordinate = (
             normalized_transport,
             normalized_protocol_version,
-            url.strip(),
-            required=False,
+            normalized_url,
         )
-        candidate = (priority, normalized_security)
-        if existing is not None:
-            historical = (existing["priority"], existing["securityRequirements"])
-            if historical != candidate:
+        previous = by_coordinate.get(coordinate)
+        if previous is not None:
+            if previous != profile:
                 raise ValueError(
-                    "interface advertisement is immutable for revision/transport/protocolVersion/url"
+                    "route coordinate is duplicated with conflicting profile data"
                 )
-            return existing
-        legacy = self._connection.execute(
-            """
-            SELECT id FROM agent_interface_advertisements
-            WHERE revision_id = ? AND transport = ? AND url = ? AND protocol_version IS NULL
-            LIMIT 1
-            """,
-            (revision_id, normalized_transport, url.strip()),
-        ).fetchone()
-        if legacy is not None:
-            raise RuntimeError(
-                "legacy interface row has no protocol_version; explicit operator migration is required"
-            )
-        identity_material = _canonical_json(
-            {
-                "revisionId": revision_id,
-                "transport": normalized_transport,
-                "protocolVersion": normalized_protocol_version,
-                "url": url.strip(),
-                "priority": priority,
-                "securityRequirements": normalized_security,
-            }
-        )
-        profile_id = "iface_" + hashlib.sha256(identity_material.encode("utf-8")).hexdigest()
-        with self._connection:
-            self._connection.execute(
-                "INSERT INTO agent_interface_advertisements(id, revision_id, transport, protocol_version, url, priority, security_requirements_json, created_at_ns) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (
-                    profile_id,
-                    revision_id,
-                    normalized_transport,
-                    normalized_protocol_version,
-                    url.strip(),
-                    priority,
-                    _canonical_json(normalized_security),
-                    _now_ns(),
-                ),
-            )
-        return self.get(profile_id)
+            continue
+        by_coordinate[coordinate] = profile
+        profiles.append(profile)
 
-    def get(self, interface_id: str) -> dict[str, Any]:
-        row = self._connection.execute(
-            "SELECT * FROM agent_interface_advertisements WHERE id = ?", (interface_id,)
-        ).fetchone()
-        if row is None:
-            raise KeyError(interface_id)
-        return self._from_row(row)
-
-    def get_by_identity(
-        self,
-        revision_id: str,
-        transport: str,
-        protocol_version: str,
-        url: str,
-        required: bool = True,
-    ) -> dict[str, Any] | None:
-        row = self._connection.execute(
-            """
-            SELECT * FROM agent_interface_advertisements
-            WHERE revision_id = ? AND transport = ? AND protocol_version = ? AND url = ?
-            """,
-            (revision_id, transport, protocol_version, url),
-        ).fetchone()
-        if row is None:
-            if required:
-                raise LookupError((revision_id, transport, protocol_version, url))
-            return None
-        return self._from_row(row)
-
-    def list_for_revision(self, revision_id: str) -> list[dict[str, Any]]:
-        rows = self._connection.execute(
-            "SELECT * FROM agent_interface_advertisements WHERE revision_id = ? ORDER BY priority, transport, id",
-            (revision_id,),
-        ).fetchall()
-        return [self._from_row(row) for row in rows]
-
-    @staticmethod
-    def _from_row(row: sqlite3.Row) -> dict[str, Any]:
-        return {
-            "profileId": row["id"],
-            "transport": row["transport"],
-            "protocolVersion": row["protocol_version"],
-            "url": row["url"],
-            "priority": row["priority"],
-            "securityRequirements": json.loads(row["security_requirements_json"]),
-        }
+    return profiles
 
 
 @dataclass(frozen=True)
@@ -496,14 +452,14 @@ class TransportBindingStore:
 class DelegationRoutePlanner:
     def __init__(
         self,
+        connection: sqlite3.Connection,
         delegations: Any,
         decisions: PolicyDecisionStore,
-        interfaces: AgentInterfaceAdvertisementStore,
         bindings: TransportBindingStore,
     ) -> None:
+        self._connection = connection
         self._delegations = delegations
         self._decisions = decisions
-        self._interfaces = interfaces
         self._bindings = bindings
 
     def plan(
@@ -519,9 +475,18 @@ class DelegationRoutePlanner:
             raise ValueError("PolicyDecision belongs to different DelegationEnvelope")
         if not decision.allowed:
             raise PermissionError(decision.reason or "delegation denied by policy")
-        interfaces = self._interfaces.list_for_revision(envelope.target_revision_id)
+        revision = self._connection.execute(
+            "SELECT spec_json FROM agent_revisions WHERE id = ?",
+            (envelope.target_revision_id,),
+        ).fetchone()
+        if revision is None:
+            raise KeyError(envelope.target_revision_id)
+        interfaces = _route_profiles_from_revision_spec(
+            envelope.target_revision_id,
+            json.loads(revision["spec_json"]),
+        )
         if not interfaces:
-            raise LookupError("target revision advertises no route interfaces")
+            raise LookupError("target revision declares no route profiles")
         normalized_preferences = [item.strip() for item in preferred_transports if isinstance(item, str) and item.strip()]
         selected: dict[str, Any] | None = None
         for transport in normalized_preferences:
@@ -702,16 +667,15 @@ class AgentServiceR9:
             "delegations", "a2a_cards",
         ):
             setattr(self, name, getattr(r8, name))
-        self.interfaces = AgentInterfaceAdvertisementStore(self._connection)
         self.policy_decisions = PolicyDecisionStore(self._connection)
         self.policy = PolicyEvaluationCoordinator(
             self.delegations, self.policy_decisions, policy_adapter
         )
         self.transport_bindings = TransportBindingStore(self._connection)
         self.routes = DelegationRoutePlanner(
+            self._connection,
             self.delegations,
             self.policy_decisions,
-            self.interfaces,
             self.transport_bindings,
         )
         self.delivery_receipts = DeliveryReceiptStore(self._connection)
@@ -750,20 +714,17 @@ class AgentServiceR9:
 
     @staticmethod
     def _initialize_schema(connection: sqlite3.Connection) -> None:
+        legacy_interface_table = connection.execute(
+            "SELECT 1 FROM sqlite_master "
+            "WHERE type = 'table' AND name = 'agent_interface_advertisements'"
+        ).fetchone()
+        if legacy_interface_table is not None:
+            raise RuntimeError(
+                "legacy agent_interface_advertisements schema is unsupported; "
+                "perform explicit destructive migration before opening this revision"
+            )
         connection.executescript(
             """
-            CREATE TABLE IF NOT EXISTS agent_interface_advertisements (
-                id TEXT PRIMARY KEY,
-                revision_id TEXT NOT NULL REFERENCES agent_revisions(id),
-                transport TEXT NOT NULL,
-                protocol_version TEXT,
-                url TEXT NOT NULL,
-                priority INTEGER NOT NULL,
-                security_requirements_json TEXT NOT NULL,
-                created_at_ns INTEGER NOT NULL,
-                UNIQUE(revision_id, transport, protocol_version, url)
-            );
-
             CREATE TABLE IF NOT EXISTS policy_decisions (
                 id TEXT PRIMARY KEY,
                 client_policy_request_id TEXT NOT NULL UNIQUE,
@@ -779,7 +740,7 @@ class AgentServiceR9:
                 id TEXT PRIMARY KEY,
                 delegation_id TEXT NOT NULL REFERENCES delegation_envelopes(id),
                 policy_decision_id TEXT NOT NULL REFERENCES policy_decisions(id),
-                interface_id TEXT NOT NULL REFERENCES agent_interface_advertisements(id),
+                interface_id TEXT NOT NULL,
                 transport TEXT NOT NULL,
                 protocol_version TEXT,
                 endpoint TEXT NOT NULL,
@@ -802,15 +763,16 @@ class AgentServiceR9:
             );
             """
         )
-        for table in ("agent_interface_advertisements", "transport_bindings"):
-            columns = {
-                row["name"]
-                for row in connection.execute(f"PRAGMA table_info({table})").fetchall()
-            }
-            if "protocol_version" not in columns:
-                connection.execute(
-                    f"ALTER TABLE {table} ADD COLUMN protocol_version TEXT"
-                )
+        columns = {
+            row["name"]
+            for row in connection.execute(
+                "PRAGMA table_info(transport_bindings)"
+            ).fetchall()
+        }
+        if "protocol_version" not in columns:
+            connection.execute(
+                "ALTER TABLE transport_bindings ADD COLUMN protocol_version TEXT"
+            )
         connection.commit()
 
     def close(self) -> None:

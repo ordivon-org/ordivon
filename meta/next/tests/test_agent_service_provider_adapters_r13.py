@@ -189,16 +189,20 @@ class AgentServiceProviderAdaptersR13Tests(unittest.TestCase):
         self.addCleanup(service.close)
         return service
 
-    def _agent(self, service, name):
+    def _agent(self, service, name, *, routes=None):
         definition = service.definitions.create(name)
-        revision = service.revisions.create(definition.id, {"name": name, "skills": [{
+        revision = service.revisions.create(definition.id, {
+            "name": name,
+            "skills": [{
                 "id": "review",
                 "name": "Review",
                 "description": "review",
                 "tags": ["review"],
                 "inputModes": ["text/plain"],
                 "outputModes": ["text/markdown"],
-            }]})
+            }],
+            "routes": routes or [],
+        })
         identity = service.identities.create(definition.id, stable_name=name, description=name)
         instance = service.birth.birth(f"birth:{name}:r13", revision.id)
         service.reconciler.reconcile(instance.id)
@@ -206,22 +210,25 @@ class AgentServiceProviderAdaptersR13Tests(unittest.TestCase):
 
     def _bindings(self, service):
         sr, si, inst = self._agent(service, "source")
-        tr, ti, _ = self._agent(service, "target")
-        service.interfaces.advertise(
-            tr.id,
-            transport="a2a-jsonrpc",
-            protocol_version="1.0",
-            url="https://a2a.example.test/rpc",
-            priority=10,
-            security_requirements={},
-        )
-        service.interfaces.advertise(
-            tr.id,
-            transport="mcp",
-            protocol_version="2026-07-28",
-            url="https://mcp.example.test/mcp",
-            priority=20,
-            security_requirements={},
+        tr, ti, _ = self._agent(
+            service,
+            "target",
+            routes=[
+                {
+                    "transport": "a2a-jsonrpc",
+                    "protocolVersion": "1.0",
+                    "url": "https://a2a.example.test/rpc",
+                    "priority": 10,
+                    "securityRequirements": {},
+                },
+                {
+                    "transport": "mcp",
+                    "protocolVersion": "2026-07-28",
+                    "url": "https://mcp.example.test/mcp",
+                    "priority": 20,
+                    "securityRequirements": {},
+                },
+            ],
         )
         task = service.tasks.create(
             description="r13",
