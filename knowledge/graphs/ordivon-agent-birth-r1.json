@@ -8,7 +8,8 @@
     "moduleCompletenessTest": "PASS",
     "nodeGraphCoverage": "PASS",
     "oneSentenceTest": "PASS",
-    "providerBoundaryDiagnosis": "IMPLEMENTED_TESTED_IN_HARNESS_MAIN",
+    "providerBoundaryDiagnosis": "PRODUCTION_ACTIVE_POST_CUTOVER_VERIFIED",
+    "providerBoundaryProductionRelease": "3f10f7bb7cb732e3b873fcc2aacb6ae7e9cf52f4",
     "providerBoundaryRepairNonConflation": "PASS",
     "reassemblySufficiency": "PASS"
   },
