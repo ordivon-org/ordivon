@@ -200,6 +200,20 @@ Use two existing complex flows as forcing functions:
 
 Replace bespoke orchestration with reusable capabilities/providers/controllers while retaining exact safety/evidence gates.
 
+Current EF6 contract slice (2026-09-18):
+
+- SPI defines WorkflowStepKind, WorkflowStep, and WorkflowPlan as execution-free DAG contracts;
+- steps bind resource, requested capability, optional preferred provider, authority mode,
+  conflict mode, dependencies, optional evidence policy, and optional compensation identity;
+- plans reject duplicate steps, unknown dependencies, dependency cycles, invalid compensation
+  references, and any claim that a plan/step has already started or dispatched an effect;
+- WSL recovery forcing test expresses observe -> gate -> recover -> verify;
+- D-drive compact forcing test expresses admission fence, health/authorization gates, trim,
+  WSL offline transition, exclusive-open gate, compact, recovery, and post-doctor verification;
+- the current R2 PowerShell/Bash flow remains execution truth until a Workstation-owned
+  workflow realization reaches equivalent destructive acceptance;
+- Runtime continues to own only admitted Job/Attempt truth; the SPI contract executes nothing.
+
 ## EF7 — Dual native nodes
 
 Complete runtime/windows-main and runtime/linux-archlinux as independent node-local authorities with separate mutable Registries and Workspaces.
