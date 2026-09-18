@@ -52,6 +52,25 @@ Canonical references:
 
 Question Compiler output is derived analysis. A generated question cannot update project truth or the LEGO plan by itself.
 
+### LEGO Lens Router
+
+Use after the question/decision is sufficiently bound and multiple methods could apply.
+
+It selects a **Minimum Sufficient Theory Set** rather than maximizing theory coverage.
+
+Canonical references:
+- docs/LEGO_LENS_ROUTER_R1.md
+- .agents/skills/lego-lens-router/SKILL.md
+- knowledge/registries/lego-lens-registry-r1.json
+
+The router may return:
+- one or more lenses;
+- a validated composite profile;
+- DOMAIN_METHOD;
+- NO_LENS.
+
+Question Compiler asks better questions; Lens Router chooses the smallest useful method set; Project Planning begins only after enough uncertainty is resolved.
+
 ## Wave 1 lenses
 
 ### Systems Engineering
@@ -311,7 +330,7 @@ Evidence:
 Wave 3 routing is phase-specific: C-K expands unknown concepts, Exploration Policy allocates repeated trials among known comparable options, Evolutionary Search varies populations only after representation/evaluator validity exists, and Organizational Cybernetics diagnoses organizational control rather than candidate search.
 
 
-## Agent Security LEGO — cross-domain validated lens
+## Agent Security LEGO — cross-domain validated composite profile
 
 Canonical lens:
 - `knowledge/lessons/agent-security-lego-r1.md`
@@ -338,3 +357,17 @@ Repeated cross-domain evidence promotes six **analytical laws** into the shared 
 These laws reinforce existing Ordivon laws including `intent_not_authority`, `attempt_before_effect_when_durable`, `observation_not_semantic_success`, and `unknown_external_outcome_is_first_class`.
 
 No mandatory project-plan field is added. `schemas/project-lego-plan-r1.schema.json` remains unchanged.
+
+## Lens-library growth law
+
+Almost any mature discipline may become an Ordivon lens candidate, but usefulness as a discipline is not sufficient for registry admission.
+
+A candidate must establish a distinct decision question, mature substrate, activation/prerequisite/contraindication boundary, overlap audit, stop condition, prospective case, and retention evidence.
+
+The theory library is therefore open-ended while the Core remains deliberately closed.
+
+The current optimization target is not "more disciplines"; it is:
+
+`minimum sufficient theory for the current decision`.
+
+No Wave 4 is implied by discovering another useful academic field.

@@ -31,36 +31,13 @@ If the real target, decision, state, mechanism, or evidence boundary is still un
 
 ## Optional analysis/theory routing
 
-- `lego-question-compiler`: pre-planning or mid-analysis framing when the problem is vague, overloaded, solution-shaped, or insufficiently falsifiable. Its output is questions, not plan truth.
+- `lego-question-compiler`: use when the target, decision, mechanism, or evidence boundary is still vague. It frames questions; it does not select the full method set.
+- `lego-lens-router`: use when the question is sufficiently bound but several theory lenses/domain methods could plausibly apply. It selects the Minimum Sufficient Theory Set from the canonical registry and may return NO_LENS or DOMAIN_METHOD.
 
-## Optional mature-theory lenses
+Do not maintain a duplicate static lens catalog in this Skill. The canonical inventory, activation conditions, prerequisites, contraindications, overlap and composite-profile relations live in:
 
-Do not run every lens automatically. Activate only when the system shape justifies the extra analysis.
-
-- `lego-systems-engineering`: unclear scope, environment, lifecycle, system-of-systems boundary, or interface ownership.
-- `lego-dsm`: dense dependencies, cycles, repeated cross-module changes, unclear replacement seams, or suspected bad decomposition.
-- `lego-feedback-control`: dynamic state, feedback, delay, observation, recovery, robustness, or regulation.
-- `lego-stpa`: high-consequence loss/security risk, unsafe interactions, control actions, automation, humans/organizations, or failures not reducible to one broken component.
-- `lego-regime-shift`: candidate turning point, stock/flow divergence, buffers/delays, constraint migration, reflexive adaptation, or a partly irreversible decision under deep uncertainty.
-- `lego-compositional-contracts`: independently developed/replaceable components, assume-guarantee seams, local-to-global correctness, or substitutability questions.
-- `lego-causal-intervention`: causal/mechanism claims, intervention decisions, confounding, ablation, identifiability, or observation-versus-cause ambiguity.
-- `lego-fmea-fta`: explicit component/process failure modes, failure propagation, top undesired events, reliability barriers, recovery, or fault-injection planning.
-- `lego-information-flow`: sensitive/untrusted information crossing prompts, credentials, logs, artifacts, telemetry, model/tool/provider boundaries, or declassification points.
-- `lego-exploration-policy`: repeated uncertain choices, experiment/search budget allocation, adaptive routing, pure exploration, or exploration-exploitation trade-offs.
-- `lego-ck-design`: open-ended invention where the desired object is not fully known and concepts/knowledge must expand together.
-- `lego-evolutionary-search`: large/discrete/non-differentiable candidate populations, variation/selection, diversity, lineage, or bounded search under independent evaluation.
-- `lego-organizational-cybernetics`: multi-agent/team autonomy, coordination, internal control, environment/future intelligence, policy/identity, recursion, or variety mismatch.
-
-### Wave 3 routing guard
-
-Do not stack the generative/search lenses by default.
-
-- Desired object/concept is not yet known: prefer `lego-ck-design`.
-- Known comparable options repeat under attributable feedback: consider `lego-exploration-policy`.
-- Candidate representation + evaluator are already meaningful and population variation is the task: consider `lego-evolutionary-search`.
-- Multi-agent/team autonomy, coordination, environment sensing or policy/identity is the task: use `lego-organizational-cybernetics`.
-
-Bandit/evolutionary algorithms are not admitted merely because a search space exists. Exploration policy requires repeated comparable feedback; evolutionary search requires a trustworthy evaluator.
+- `knowledge/registries/lego-lens-registry-r1.json`
+- `docs/LEGO_LENS_ROUTER_R1.md`
 
 Lens outputs are derived analysis evidence. They alter the plan only through an explicit architecture decision supported by project-native evidence.
 
@@ -95,6 +72,7 @@ Another Agent should be able to answer from the plan:
 Canonical references:
 - docs/LEGO_PROJECT_PLANNING_R1.md
 - docs/LEGO_QUESTION_COMPILER_R1.md
+- docs/LEGO_LENS_ROUTER_R1.md
 - docs/LEGO_THEORY_LAYER_R1.md
 - schemas/project-lego-plan-r1.schema.json
 - knowledge/lessons/agent-architecture-lego-catalog-r1.md for optional Agent-architecture coordinates

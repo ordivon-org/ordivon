@@ -42,12 +42,13 @@ Do not invoke merely to create more questions.
    - CONTROL — which variables are genuine intervention levers?
    - COUNTERFACTUAL — what changes if a node, assumption, rule, or interface is removed/replaced?
    - FALSIFICATION — what observation would discriminate between competing explanations?
-4. **Bind the natural method owner.** Record the analysis family best suited to the surviving uncertainty—systems engineering, DSM, feedback control, STPA, regime-shift/deep-uncertainty analysis, domain science, experiments, statistics, or another mature external method—without making cross-Skill invocation part of this Skill's authority.
-5. **Prune aggressively.** Keep questions that can change a decision, distinguish hypotheses, expose a hidden boundary, or justify a bounded experiment. Merge duplicates. Drop rhetorical, unanswerable, and purely curiosity-generating questions.
-6. **Order by information value, not drama.** Prefer questions whose answers eliminate the largest consequential uncertainty at acceptable evidence cost.
-7. **Emit a bounded question set.** Default to 3-7 primary questions plus optional follow-ups, not a giant checklist.
-8. **Bind each primary question to evidence or an experiment.** State how it could be answered and what result would change the current model.
-9. **Stop.** When remaining questions would not change the current decision or experiment, hand off to the relevant analysis/planning Skill.
+4. **Emit a problem signature for routing.** Record only evidence-backed signals relevant to method selection: boundary ambiguity, dynamics, coupling, consequence, causal claim, information boundary, failure/reliability question, generative uncertainty, repeated comparable feedback, evaluator quality, organization/recursion, and domain-native owner.
+5. **Hand method selection to `lego-lens-router`.** The Question Compiler frames the uncertainty; it does not maintain or choose from an ever-growing theory catalog itself. The router may select a LEGO lens, a composite profile, a domain-native method, or NO_LENS.
+6. **Prune aggressively.** Keep questions that can change a decision, distinguish hypotheses, expose a hidden boundary, or justify a bounded experiment. Merge duplicates. Drop rhetorical, unanswerable, and purely curiosity-generating questions.
+7. **Order by information value, not drama.** Prefer questions whose answers eliminate the largest consequential uncertainty at acceptable evidence cost.
+8. **Emit a bounded question set.** Default to 3-7 primary questions plus optional follow-ups, not a giant checklist.
+9. **Bind each primary question to evidence or an experiment.** State how it could be answered and what result would change the current model.
+10. **Stop.** When remaining questions would not change the current decision or experiment, hand off to the relevant analysis/planning Skill.
 
 ## Output
 
@@ -57,7 +58,7 @@ Produce:
 - 3-7 primary compiled questions;
 - for each: family, why it matters, evidence/experiment route, discriminating outcomes;
 - discarded questions and why they were pruned when useful;
-- next handoff: investigate, experiment, or plan.
+- next handoff: investigate, experiment, lens-route, domain-method, or plan.
 
 ## Quality tests
 
@@ -84,4 +85,6 @@ Stop compiling when the remaining uncertainty is already localized to a concrete
 Canonical references:
 - docs/LEGO_QUESTION_COMPILER_R1.md
 - docs/LEGO_THEORY_LAYER_R1.md
+- docs/LEGO_LENS_ROUTER_R1.md
+- knowledge/registries/lego-lens-registry-r1.json
 - knowledge/lessons/lego-theory-foundations-r1.md
