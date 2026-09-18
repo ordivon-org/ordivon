@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-artifact-v2",
+    "purpose": "Own artifact construction, native-format validation, package assembly, evidence binding, trust gates, and artifact-specific durable delivery semantics without replacing mature format/tool owners.",
+    "sourceEvidence": [
+      "README.md",
+      "docs/artifact-build-delivery-e2e-v1.md",
+      "docs/artifact-build-delivery-e2e-toolchain-v1.md",
+      "docs/SOURCE_AUTHORITY_ACCEPTANCE_20260912.md"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "A01",
+      "label": "ArtifactContract",
+      "kind": "domain_contract",
+      "responsibility": "Bind requested artifact outcome, format family, acceptance, and evidence boundary.",
+      "authority": "Artifact domain",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "README.md",
+        "docs/artifact-build-delivery-e2e-v1.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "provider-native format semantics"
+      ],
+      "acceptance": [
+        "Artifact work is routed to an explicit family/acceptance boundary."
+      ]
+    },
+    {
+      "id": "A02",
+      "label": "NativeBuildAdapter",
+      "kind": "adapter",
+      "responsibility": "Compose replaceable mature writers/builders to produce native artifact bytes.",
+      "authority": "Artifact domain orchestration; provider owns mechanics",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "docs/artifact-build-delivery-e2e-toolchain-v1.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "native tool internals"
+      ],
+      "acceptance": [
+        "Builder/provider can be replaced without changing Artifact acceptance semantics."
+      ]
+    },
+    {
+      "id": "A03",
+      "label": "ValidationEvidence",
+      "kind": "verifier",
+      "responsibility": "Bind structural/native-consumer/semantic validation evidence to exact artifact outputs.",
+      "authority": "Artifact domain",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [
+        "L09"
+      ],
+      "evidence": [
+        "README.md",
+        "docs/SOURCE_AUTHORITY_ACCEPTANCE_20260912.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "human preference unless explicitly measured"
+      ],
+      "acceptance": [
+        "Artifact acceptance is evidence-backed rather than inferred from file creation."
+      ]
+    },
+    {
+      "id": "A04",
+      "label": "ArtifactIdentity",
+      "kind": "state_authority",
+      "responsibility": "Keep artifact/release identities and exact selected bytes/evidence references separate from transient build process state.",
+      "authority": "Artifact domain",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [
+        "L18"
+      ],
+      "evidence": [
+        "README.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "Runtime Job truth"
+      ],
+      "acceptance": [
+        "Exact artifact output can be resolved independently of the builder process."
+      ]
+    },
+    {
+      "id": "A05",
+      "label": "ArtifactObservation",
+      "kind": "provenance",
+      "responsibility": "Record one production/capture observation with a generic producer reference while allowing content-version reuse.",
+      "authority": "Artifact domain",
+      "state": "DESIGNED",
+      "sharedRefs": [
+        "L19"
+      ],
+      "evidence": [],
+      "dependencies": [],
+      "mustNotOwn": [
+        "producer domain semantics"
+      ],
+      "acceptance": [
+        "Two independent producers may reference the same content version without losing event identity."
+      ],
+      "nextAction": "Pressure-test ProducerRef against PPTX, media, software-release, and dataset outputs before implementation."
+    }
+  ],
+  "edges": [
+    {
+      "from": "A01",
+      "to": "A02",
+      "type": "CONTROL",
+      "label": "artifact outcome drives native build"
+    },
+    {
+      "from": "A02",
+      "to": "A03",
+      "type": "EVIDENCE",
+      "label": "built bytes enter validation"
+    },
+    {
+      "from": "A03",
+      "to": "A04",
+      "type": "EVIDENCE",
+      "label": "accepted evidence binds artifact identity"
+    },
+    {
+      "from": "A04",
+      "to": "A05",
+      "type": "IDENTITY",
+      "label": "candidate version/observation separation"
+    }
+  ],
+  "slices": [
+    {
+      "id": "AS1",
+      "objective": "Generalize artifact provenance from build output identity to Version + Observation + generic ProducerRef.",
+      "status": "PROPOSED",
+      "nodeIds": [
+        "A04",
+        "A05"
+      ],
+      "acceptance": [
+        "A ProducerRef model works for at least four artifact families without importing Runtime/Media/Game semantics."
+      ],
+      "evidence": [],
+      "blockers": [],
+      "nextAction": "Run a cross-family model pressure test before changing code."
+    }
+  ],
+  "gaps": [
+    "Artifact Version/Observation semantics are not yet declared as a universal cross-family contract in this repository."
+  ],
+  "doNotOwn": [
+    "external publication/provider effect authority",
+    "Runtime physical execution truth",
+    "human preference authority"
+  ],
+  "review": {
+    "sourceRevision": "7e1e093046f49d2d1aa1546717512c4a11b7a9b0",
+    "updatedAt": "2026-09-18",
+    "standing": "INITIAL",
+    "notes": "Initial project-native LEGO planning projection. It does not replace owner-native architecture or evidence."
+  },
+  "sharedCatalog": {
+    "catalogId": "agent-architecture-lego-catalog-r1",
+    "note": "Optional shared coordinates only; project-native semantics remain authoritative."
+  }
+}
