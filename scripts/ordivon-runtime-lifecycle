@@ -34,7 +34,7 @@ DEFAULT_POLICY = {
     "schemaVersion": 1,
     "defaultClass": "ephemeral",
     "classes": {
-        "ephemeral": {"retentionHours": 48.0, "forceCloseDirtyAfterRetention": True},
+        "ephemeral": {"retentionHours": 48.0, "forceCloseDirtyAfterRetention": False},
         "review": {"retentionHours": 168.0, "forceCloseDirtyAfterRetention": False},
         "pinned": {"retentionHours": None, "forceCloseDirtyAfterRetention": False},
     },
