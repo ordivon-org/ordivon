@@ -29,14 +29,20 @@
       "stepId": "step/doctor-preflight"
     },
     {
-      "candidateNodeIds": [],
-      "candidateProviderIds": [],
+      "candidateNodeIds": [
+        "windows-local"
+      ],
+      "candidateProviderIds": [
+        "provider/windows-local/authority-validation-v1"
+      ],
       "dispatchStarted": false,
-      "disposition": "unresolved",
-      "reasonCode": "reason/no-capable-provider",
+      "disposition": "resolved",
+      "reasonCode": "reason/workflow-binding-resolved",
       "requestedCapabilityId": "capability/authority/validate",
       "resourceId": "storage/d-drive/ext4-vhdx",
       "schemaVersion": 1,
+      "selectedNodeId": "windows-local",
+      "selectedProviderId": "provider/windows-local/authority-validation-v1",
       "stepId": "step/validate-authorization"
     },
     {

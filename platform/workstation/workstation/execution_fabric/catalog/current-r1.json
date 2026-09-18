@@ -29,6 +29,7 @@
         "windows/limited"
       ],
       "capabilities": [
+        "capability/authority/validate",
         "capability/wsl/probe",
         "capability/wsl/verify-offline"
       ],
@@ -36,6 +37,7 @@
       "nodeId": "windows-local",
       "platform": "windows",
       "providers": [
+        "provider/windows-local/authority-validation-v1",
         "provider/windows-local/windows-wsl-observer-v1"
       ],
       "schemaVersion": 1,
@@ -78,6 +80,15 @@
       "nodeId": "linux-local",
       "platform": "windows",
       "providerId": "provider/linux-local/windows-native-launcher-v1",
+      "schemaVersion": 1
+    },
+    {
+      "capabilities": [
+        "capability/authority/validate"
+      ],
+      "nodeId": "windows-local",
+      "platform": "windows",
+      "providerId": "provider/windows-local/authority-validation-v1",
       "schemaVersion": 1
     },
     {

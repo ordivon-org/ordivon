@@ -89,17 +89,17 @@
       "capabilities": [
         "capability/authority/validate"
       ],
-      "implementedCapabilities": [],
-      "missingCapabilities": [
+      "implementedCapabilities": [
         "capability/authority/validate"
       ],
+      "missingCapabilities": [],
       "providerFamilyId": "provider-family/authority-validation",
       "rationale": "Validate short-lived authority receipts and bindings as a control-plane capability; never treat shell possession as authority.",
-      "status": "missing",
+      "status": "implemented",
       "targetNodeId": "windows-local"
     }
   ],
   "schemaVersion": 1,
   "sourceCatalog": "catalog/current-r1.json",
-  "status": "planned_not_implemented"
+  "status": "active_with_gaps"
 }
