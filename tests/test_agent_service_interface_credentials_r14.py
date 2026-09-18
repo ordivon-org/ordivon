@@ -157,15 +157,15 @@ class AgentServiceInterfaceCredentialsR14Tests(unittest.TestCase):
             payload={"text":"review"},
             evidence_contract={"kind":"review-markdown"},
         )
-        decision = service.policy.evaluate(
-            client_policy_request_id="r14:policy",
-            delegation_id=envelope.id,
-        )
         a2a_binding = service.routes.plan(
-            envelope.id, decision.id, preferred_transports=["a2a-jsonrpc"]
+            envelope.id,
+            client_policy_request_id="r14:policy",
+            preferred_transports=["a2a-jsonrpc"],
         )
         mcp_binding = service.routes.plan(
-            envelope.id, decision.id, preferred_transports=["mcp"]
+            envelope.id,
+            client_policy_request_id="r14:policy",
+            preferred_transports=["mcp"],
         )
         return si, envelope, a2a, mcp, a2a_binding, mcp_binding
 

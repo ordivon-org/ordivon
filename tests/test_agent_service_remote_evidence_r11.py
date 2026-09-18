@@ -230,12 +230,17 @@ class AgentServiceRemoteEvidenceR11Tests(unittest.TestCase):
             payload={"text":"review"},
             evidence_contract={"kind":"review-markdown"},
         )
-        decision = service.policy.evaluate(
-            client_policy_request_id=f"r11:policy:{task.id}",
-            delegation_id=envelope.id,
+        policy_request_id = f"r11:policy:{task.id}"
+        a2a = service.routes.plan(
+            envelope.id,
+            client_policy_request_id=policy_request_id,
+            preferred_transports=["a2a-jsonrpc"],
         )
-        a2a = service.routes.plan(envelope.id, decision.id, preferred_transports=["a2a-jsonrpc"])
-        mcp = service.routes.plan(envelope.id, decision.id, preferred_transports=["mcp"])
+        mcp = service.routes.plan(
+            envelope.id,
+            client_policy_request_id=policy_request_id,
+            preferred_transports=["mcp"],
+        )
         return source_revision, task, goal, envelope, a2a, mcp
 
     def test_local_assignment_claim_blocks_remote_delivery_for_same_task(self) -> None:

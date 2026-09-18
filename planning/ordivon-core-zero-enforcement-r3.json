@@ -187,7 +187,6 @@
       "MCPTasksHttpClient",
       "PlacementReconciler",
       "PolicyAdapter",
-      "PolicyEvaluationCoordinator",
       "PolicyObservation",
       "PolicyRequest",
       "ProviderObservation",
@@ -294,7 +293,8 @@
     "CapabilityAdvertisement",
     "CapabilityAdvertisementStore",
     "PolicyDecision",
-    "PolicyDecisionStore"
+    "PolicyDecisionStore",
+    "PolicyEvaluationCoordinator"
   ],
   "retiredPersistenceSurfaces": [
     "agent_interface_advertisements",

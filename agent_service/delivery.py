@@ -166,64 +166,59 @@ class PolicyAdapter(ABC):
         raise NotImplementedError
 
 
-class PolicyEvaluationCoordinator:
-    """Evaluate current policy and retain only a generic historical receipt event."""
+def _evaluate_policy_receipt(
+    *,
+    delegations: Any,
+    events: ServiceEventStore,
+    adapter: PolicyAdapter | None,
+    client_policy_request_id: str,
+    delegation_id: str,
+) -> ServiceEvent:
+    """Evaluate or replay one route-admission policy receipt without local policy authority."""
+    request_id = client_policy_request_id.strip()
+    if not request_id:
+        raise ValueError("client_policy_request_id must be non-empty")
 
-    def __init__(
-        self,
-        delegations: Any,
-        events: ServiceEventStore,
-        adapter: PolicyAdapter | None,
-    ) -> None:
-        self._delegations = delegations
-        self._events = events
-        self._adapter = adapter
+    historical = events.list_for("PolicyEvaluation", request_id)
+    if historical:
+        if len(historical) != 1 or historical[0].event_type != "PolicyEvaluated":
+            raise RuntimeError("policy evaluation receipt stream is malformed")
+        event = historical[0]
+        if event.payload.get("delegationId") != delegation_id:
+            raise ValueError("policy request identity already bound to different delegation")
+        return event
 
-    def evaluate(self, *, client_policy_request_id: str, delegation_id: str) -> ServiceEvent:
-        request_id = client_policy_request_id.strip()
-        if not request_id:
-            raise ValueError("client_policy_request_id must be non-empty")
-
-        historical = self._events.list_for("PolicyEvaluation", request_id)
-        if historical:
-            if len(historical) != 1 or historical[0].event_type != "PolicyEvaluated":
-                raise RuntimeError("policy evaluation receipt stream is malformed")
-            event = historical[0]
-            if event.payload.get("delegationId") != delegation_id:
-                raise ValueError("policy request identity already bound to different delegation")
-            return event
-
-        if self._adapter is None:
-            raise RuntimeError("no PolicyAdapter configured")
-        envelope = self._delegations.get(delegation_id)
-        request = PolicyRequest(
-            delegation_id=envelope.id,
-            session_id=envelope.session_id,
-            task_id=envelope.task_id,
-            source_identity_id=envelope.source_identity_id,
-            source_instance_id=envelope.source_instance_id,
-            target_identity_id=envelope.target_identity_id,
-            target_revision_id=envelope.target_revision_id,
-            capability_key=envelope.capability_key,
-        )
-        observation = self._adapter.evaluate(request)
-        if not isinstance(observation, PolicyObservation):
-            raise TypeError("PolicyAdapter must return PolicyObservation")
-        if not observation.policy_revision.strip():
-            raise ValueError("PolicyObservation.policy_revision must be non-empty")
-        scopes = tuple(dict.fromkeys(observation.granted_permissions))
-        return self._events.append(
-            "PolicyEvaluation",
-            request_id,
-            "PolicyEvaluated",
-            {
-                "delegationId": envelope.id,
-                "allowed": bool(observation.allowed),
-                "reason": observation.reason,
-                "policyRevision": observation.policy_revision,
-                "grantedPermissions": list(scopes),
-            },
-        )
+    if adapter is None:
+        raise RuntimeError("no PolicyAdapter configured")
+    envelope = delegations.get(delegation_id)
+    request = PolicyRequest(
+        delegation_id=envelope.id,
+        session_id=envelope.session_id,
+        task_id=envelope.task_id,
+        source_identity_id=envelope.source_identity_id,
+        source_instance_id=envelope.source_instance_id,
+        target_identity_id=envelope.target_identity_id,
+        target_revision_id=envelope.target_revision_id,
+        capability_key=envelope.capability_key,
+    )
+    observation = adapter.evaluate(request)
+    if not isinstance(observation, PolicyObservation):
+        raise TypeError("PolicyAdapter must return PolicyObservation")
+    if not observation.policy_revision.strip():
+        raise ValueError("PolicyObservation.policy_revision must be non-empty")
+    scopes = tuple(dict.fromkeys(observation.granted_permissions))
+    return events.append(
+        "PolicyEvaluation",
+        request_id,
+        "PolicyEvaluated",
+        {
+            "delegationId": envelope.id,
+            "allowed": bool(observation.allowed),
+            "reason": observation.reason,
+            "policyRevision": observation.policy_revision,
+            "grantedPermissions": list(scopes),
+        },
+    )
 
 
 @dataclass(frozen=True)
@@ -405,22 +400,30 @@ class DelegationRoutePlanner:
         connection: sqlite3.Connection,
         delegations: Any,
         events: ServiceEventStore,
+        policy_adapter: PolicyAdapter | None,
         bindings: TransportBindingStore,
     ) -> None:
         self._connection = connection
         self._delegations = delegations
         self._events = events
+        self._policy_adapter = policy_adapter
         self._bindings = bindings
 
     def plan(
         self,
         delegation_id: str,
-        policy_receipt_id: str,
         *,
+        client_policy_request_id: str,
         preferred_transports: list[str],
     ) -> TransportBinding:
         envelope = self._delegations.get(delegation_id)
-        receipt = self._events.get(policy_receipt_id)
+        receipt = _evaluate_policy_receipt(
+            delegations=self._delegations,
+            events=self._events,
+            adapter=self._policy_adapter,
+            client_policy_request_id=client_policy_request_id,
+            delegation_id=envelope.id,
+        )
         if receipt.aggregate_type != "PolicyEvaluation" or receipt.event_type != "PolicyEvaluated":
             raise ValueError("policy receipt is not a policy evaluation event")
         if receipt.payload.get("delegationId") != envelope.id:
@@ -629,14 +632,12 @@ class AgentServiceR9:
             "delegations", "a2a_cards",
         ):
             setattr(self, name, getattr(r8, name))
-        self.policy = PolicyEvaluationCoordinator(
-            self.delegations, self.events, policy_adapter
-        )
         self.transport_bindings = TransportBindingStore(self._connection)
         self.routes = DelegationRoutePlanner(
             self._connection,
             self.delegations,
             self.events,
+            policy_adapter,
             self.transport_bindings,
         )
         self.delivery_receipts = DeliveryReceiptStore(self._connection)

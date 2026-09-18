@@ -10,7 +10,6 @@ from agent_service.delivery import (
     DeliveryCoordinator,
     DeliveryReceiptStore,
     PolicyAdapter,
-    PolicyEvaluationCoordinator,
     TransportBindingStore,
 )
 
@@ -21,7 +20,7 @@ class AgentServiceDeliveryPublicApiR9Tests(unittest.TestCase):
         self.assertFalse(hasattr(agent_service, "AgentInterfaceAdvertisementStore"))
         self.assertIs(agent_service.PolicyAdapter, PolicyAdapter)
         self.assertFalse(hasattr(agent_service, "PolicyDecisionStore"))
-        self.assertIs(agent_service.PolicyEvaluationCoordinator, PolicyEvaluationCoordinator)
+        self.assertFalse(hasattr(agent_service, "PolicyEvaluationCoordinator"))
         self.assertIs(agent_service.DelegationRoutePlanner, DelegationRoutePlanner)
         self.assertIs(agent_service.TransportBindingStore, TransportBindingStore)
         self.assertIs(agent_service.DeliveryAdapter, DeliveryAdapter)

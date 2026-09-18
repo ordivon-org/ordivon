@@ -286,20 +286,18 @@ def _remote_setup(
         payload={"text": "review"},
         evidence_contract={"kind": "review-markdown"},
     )
-    decision = service.policy.evaluate(
-        client_policy_request_id=f"stability:policy:{suffix}",
-        delegation_id=envelope.id,
-    )
+    policy_request_id = f"stability:policy:{suffix}"
     primary = service.routes.plan(
         envelope.id,
-        decision.id,
+        client_policy_request_id=policy_request_id,
         preferred_transports=["a2a-jsonrpc"],
     )
     fallback = service.routes.plan(
         envelope.id,
-        decision.id,
+        client_policy_request_id=policy_request_id,
         preferred_transports=["mcp"],
     )
+    policy_receipt = service.events.get(primary.policy_receipt_id)
     return {
         "sourceRevision": source_revision,
         "sourceIdentity": source_identity,
@@ -308,7 +306,7 @@ def _remote_setup(
         "targetIdentity": target_identity,
         "task": task,
         "envelope": envelope,
-        "decision": decision,
+        "decision": policy_receipt,
         "primary": primary,
         "fallback": fallback,
     }

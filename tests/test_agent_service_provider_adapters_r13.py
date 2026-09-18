@@ -249,12 +249,16 @@ class AgentServiceProviderAdaptersR13Tests(unittest.TestCase):
             payload={"text":"review"},
             evidence_contract={"kind":"review-markdown"},
         )
-        decision = service.policy.evaluate(
+        a2a = service.routes.plan(
+            envelope.id,
             client_policy_request_id="r13:policy",
-            delegation_id=envelope.id,
+            preferred_transports=["a2a-jsonrpc"],
         )
-        a2a = service.routes.plan(envelope.id, decision.id, preferred_transports=["a2a-jsonrpc"])
-        mcp = service.routes.plan(envelope.id, decision.id, preferred_transports=["mcp"])
+        mcp = service.routes.plan(
+            envelope.id,
+            client_policy_request_id="r13:policy",
+            preferred_transports=["mcp"],
+        )
         return task, envelope, a2a, mcp
 
     def _receipt_and_context(self, service, binding):

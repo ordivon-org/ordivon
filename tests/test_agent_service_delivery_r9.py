@@ -206,48 +206,50 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
         policy = FakePolicy(allowed=False)
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db", policy=policy)
-            envelope, _, _, target_revision = self._setup_delegation(service)
-            decision = service.policy.evaluate(
-                client_policy_request_id="policy:deny",
-                delegation_id=envelope.id,
-            )
+            envelope, _, _, _ = self._setup_delegation(service)
 
-            self.assertFalse(decision.payload["allowed"])
             with self.assertRaises(PermissionError):
-                service.routes.plan(envelope.id, decision.id, preferred_transports=["a2a-jsonrpc"])
+                service.routes.plan(
+                    envelope.id,
+                    client_policy_request_id="policy:deny",
+                    preferred_transports=["a2a-jsonrpc"],
+                )
+            receipts = service.events.list_for("PolicyEvaluation", "policy:deny")
+            self.assertEqual(len(receipts), 1)
+            self.assertFalse(receipts[0].payload["allowed"])
 
     def test_policy_exact_replay_uses_historical_decision_without_re_evaluation(self) -> None:
         policy = FakePolicy(allowed=True, revision="policy-r1", permissions=("review.invoke",))
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db", policy=policy)
             envelope, _, _, _ = self._setup_delegation(service)
-            first = service.policy.evaluate(
+            first = service.routes.plan(
+                envelope.id,
                 client_policy_request_id="policy:replay",
-                delegation_id=envelope.id,
+                preferred_transports=["a2a-jsonrpc"],
             )
             policy.allowed = False
-            replay = service.policy.evaluate(
+            replay = service.routes.plan(
+                envelope.id,
                 client_policy_request_id="policy:replay",
-                delegation_id=envelope.id,
+                preferred_transports=["a2a-jsonrpc"],
             )
 
             self.assertEqual(first.id, replay.id)
-            self.assertTrue(replay.payload["allowed"])
-            self.assertEqual(replay.payload["grantedPermissions"], ["review.invoke"])
+            self.assertEqual(first.policy_receipt_id, replay.policy_receipt_id)
+            receipt = service.events.get(replay.policy_receipt_id)
+            self.assertTrue(receipt.payload["allowed"])
+            self.assertEqual(replay.granted_permissions, ("review.invoke",))
             self.assertEqual(policy.calls, 1)
 
     def test_route_planner_selects_only_advertised_interface_after_allowed_policy(self) -> None:
         policy = FakePolicy(allowed=True)
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db", policy=policy)
-            envelope, _, _, target_revision = self._setup_delegation(service)
-            decision = service.policy.evaluate(
-                client_policy_request_id="policy:allow-route",
-                delegation_id=envelope.id,
-            )
+            envelope, _, _, _ = self._setup_delegation(service)
             binding = service.routes.plan(
                 envelope.id,
-                decision.id,
+                client_policy_request_id="policy:allow-route",
                 preferred_transports=["a2a-jsonrpc", "mcp"],
             )
 
@@ -256,25 +258,25 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
             self.assertFalse(hasattr(binding, "remote_task_id"))
             self.assertFalse(hasattr(binding, "remote_context_id"))
 
-
     def test_same_delegation_can_have_distinct_immutable_route_bindings_for_fallback(self) -> None:
         policy = FakePolicy(allowed=True)
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db", policy=policy)
-            envelope, _, _, target_revision = self._setup_delegation(service)
-            decision = service.policy.evaluate(
-                client_policy_request_id="policy:fallback",
-                delegation_id=envelope.id,
-            )
+            envelope, _, _, _ = self._setup_delegation(service)
 
             primary = service.routes.plan(
-                envelope.id, decision.id, preferred_transports=["a2a-jsonrpc"]
+                envelope.id,
+                client_policy_request_id="policy:fallback",
+                preferred_transports=["a2a-jsonrpc"],
             )
             fallback = service.routes.plan(
-                envelope.id, decision.id, preferred_transports=["mcp"]
+                envelope.id,
+                client_policy_request_id="policy:fallback",
+                preferred_transports=["mcp"],
             )
 
             self.assertNotEqual(primary.id, fallback.id)
+            self.assertEqual(primary.policy_receipt_id, fallback.policy_receipt_id)
             self.assertEqual(primary.delegation_id, fallback.delegation_id)
             self.assertEqual(primary.transport, "a2a-jsonrpc")
             self.assertEqual(fallback.transport, "mcp")
@@ -284,13 +286,13 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
         policy = FakePolicy(allowed=True)
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db", policy=policy)
-            envelope, _, _, target_revision = self._setup_delegation(service)
+            envelope, _, _, _ = self._setup_delegation(service)
             other = service.delegations.get_by_client_id("r9:delegation")
-            decision = service.policy.evaluate(
+            service.routes.plan(
+                other.id,
                 client_policy_request_id="policy:bound",
-                delegation_id=other.id,
+                preferred_transports=["a2a-jsonrpc"],
             )
-            # manufacture a second delegation with a different exact identity
             second = service.delegations.create(
                 client_delegation_id="r9:delegation:2",
                 session_id=other.session_id,
@@ -305,7 +307,11 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
             )
 
             with self.assertRaises(ValueError):
-                service.routes.plan(second.id, decision.id, preferred_transports=["a2a-jsonrpc"])
+                service.routes.plan(
+                    second.id,
+                    client_policy_request_id="policy:bound",
+                    preferred_transports=["a2a-jsonrpc"],
+                )
 
     def test_delivery_response_loss_replays_same_request_and_remote_correlation(self) -> None:
         policy = FakePolicy(allowed=True)
@@ -318,13 +324,9 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
                 deliveries={"a2a-jsonrpc": delivery},
             )
             envelope, session, task, target_revision = self._setup_delegation(service)
-            decision = service.policy.evaluate(
-                client_policy_request_id="policy:deliver",
-                delegation_id=envelope.id,
-            )
             binding = service.routes.plan(
                 envelope.id,
-                decision.id,
+                client_policy_request_id="policy:deliver",
                 preferred_transports=["a2a-jsonrpc"],
             )
 
@@ -354,11 +356,11 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
                 deliveries={"mcp": delivery},
             )
             envelope, _, _, target_revision = self._setup_delegation(service)
-            decision = service.policy.evaluate(
+            binding = service.routes.plan(
+                envelope.id,
                 client_policy_request_id="policy:mcp",
-                delegation_id=envelope.id,
+                preferred_transports=["mcp"],
             )
-            binding = service.routes.plan(envelope.id, decision.id, preferred_transports=["mcp"])
             receipt = service.delivery.deliver(binding.id)
 
             self.assertIsNone(receipt.remote_task_id)
@@ -371,11 +373,11 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
             db = Path(tmp) / "service.db"
             first = self._open(db, policy=policy, deliveries={"a2a-jsonrpc": delivery})
             envelope, _, _, target_revision = self._setup_delegation(first)
-            decision = first.policy.evaluate(
+            binding = first.routes.plan(
+                envelope.id,
                 client_policy_request_id="policy:restart",
-                delegation_id=envelope.id,
+                preferred_transports=["a2a-jsonrpc"],
             )
-            binding = first.routes.plan(envelope.id, decision.id, preferred_transports=["a2a-jsonrpc"])
             receipt = first.delivery.deliver(binding.id)
             first.close()
 
@@ -389,7 +391,7 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
             )
             self.addCleanup(second.close)
 
-            self.assertTrue(second.events.get(decision.id).payload["allowed"])
+            self.assertTrue(second.events.get(binding.policy_receipt_id).payload["allowed"])
             self.assertFalse(hasattr(second, "policy_decisions"))
             self.assertEqual(second.transport_bindings.get(binding.id).endpoint, binding.endpoint)
             self.assertEqual(second.delivery_receipts.get(receipt.id).remote_task_id, receipt.remote_task_id)
