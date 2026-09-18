@@ -547,17 +547,18 @@
     {
       "id": "E02",
       "name": "r6-vs-r7-compact-read",
-      "status": "ADMISSION_GATES_PASS_INTEGRATION_CANDIDATE_ELIGIBLE",
-      "candidate": "b118559a87725e22237d22b218d40861838dae5e",
+      "status": "INTEGRATED_CANDIDATE_VERIFIED_PENDING_RELEASE_REVIEW",
+      "candidate": "4dd46961180750a85cafb3bed4631a5b4f885a84",
       "question": "Does compact task inventory materially reduce discovery cost while preserving exact task.resume semantics?",
       "primaryMetrics": [
         "M02",
         "M03"
       ],
-      "finding": "On 267 live non-terminal Tasks, compact task.list projects 2,024,956 UTF-8 bytes to 81,686 bytes (-95.97%, 24.79x smaller). Static query-path count falls from ~540 SQL statements across six pages to 6. An 11-Task resume sample falls 47.60% by removing checkpoint duplication.",
-      "nextGate": "Integrate compact-read commit with R2/E01 evidence, rerun complete PostgreSQL/contract verification, then perform separate release/cutover review before production deployment.",
+      "finding": "Compact-read resource, database, and fresh-consumer gates all pass. E01: 24/24 fresh-model calls completed with 12/12 exact resume selection in both R6-full and R7-compact arms; compact reduced mean prompt tokens 46.10%. Integrated candidate then passed PostgreSQL 18.6 UTF-8 Alembic 0001->0004, 30/30 tests with zero skips, Ruff, diff check, and history Doctor.",
+      "nextGate": "Separate release/cutover review. Do not infer production deployment from candidate verification.",
       "evidence": [
-        "planning/host-e02-compact-read-measurement-r1.json"
+        "planning/host-e02-compact-read-measurement-r1.json",
+        "planning/host-r7-integration-verification-r1.json"
       ]
     },
     {

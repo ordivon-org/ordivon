@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.host-integration-verification",
+  "truthRole": "verification-result-not-production-deployment-authority",
+  "candidate": {
+    "integratedHead": "4dd46961180750a85cafb3bed4631a5b4f885a84",
+    "compactReadIntegrationCommit": "ca6cf13802a53ab47a2e8687ab322eaaf8012386",
+    "e01ResultCommit": "034071f5a2ce02ba92200e3c0f2b5cb430092ad8",
+    "e01PreregistrationCommit": "5140de5852b8ac9f6220086cd1c679cf989f6711",
+    "originalCompactReadCommit": "c45379e211d21f48cbb2e51b01a357fd518ae746",
+    "containsCurrentnessExperiment": false
+  },
+  "e01": {
+    "mechanicalRealHostSample": {
+      "tasks": 8,
+      "revisionDigestStateMatches": 8
+    },
+    "freshConsumerAB": {
+      "plannedCalls": 24,
+      "completedCalls": 24,
+      "providerErrors": 0,
+      "r6FullExactResumeSelection": "12/12",
+      "r7CompactExactResumeSelection": "12/12",
+      "requestBytesReductionPercent": 54.4498,
+      "promptTokensReductionPercent": 46.1013,
+      "tokenUpperBoundReductionPercent": 53.9952,
+      "classification": "PASS"
+    }
+  },
+  "e02": {
+    "liveTaskListPopulation": 267,
+    "r6SerializedUtf8Bytes": 2024956,
+    "r7SerializedUtf8Bytes": 81686,
+    "reductionPercent": 95.966,
+    "compressionRatio": 24.7895,
+    "staticSqlStatementsR6": 540,
+    "staticSqlStatementsR7": 6,
+    "resumeSampleSize": 11,
+    "resumeBytesReductionPercent": 47.5951
+  },
+  "integratedVerification": {
+    "postgresVersion": "18.6",
+    "encoding": "UTF8",
+    "alembicPath": [
+      "0001",
+      "0002",
+      "0003",
+      "0004"
+    ],
+    "pytest": {
+      "passed": 30,
+      "skipped": 0
+    },
+    "ruff": "PASS",
+    "gitDiffCheck": "PASS",
+    "hostHistoryDoctor": "PASS",
+    "journalSchema": 4,
+    "surfaceVersion": 8,
+    "toolCount": 13,
+    "temporaryPostgresCleanup": "PASS",
+    "runtimeJobId": "job-01a0b402-7c95-7241-bef2-e95c3a6e4b4b"
+  },
+  "standing": "INTEGRATED_CANDIDATE_VERIFIED_PENDING_RELEASE_REVIEW",
+  "productionMutation": false,
+  "productionReleaseObservedBeforeCandidate": "b5cf31f9a1d177576886fe545e870e685a80fc2e"
+}
