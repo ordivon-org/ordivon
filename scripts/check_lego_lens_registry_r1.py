@@ -51,6 +51,46 @@ for lens in lenses:
     if unknown:
         fail(f"{lens['id']}: consumes unknown lenses {unknown}")
 
+
+reserve = data.get("reservePool", [])
+if not isinstance(reserve, list):
+    fail("reservePool must be a list")
+reserve_ids = set()
+reserve_required = {
+    "id", "status", "family", "sourceSubstrate", "uniqueQuestion",
+    "discoverySignals", "requiredAssumptions", "nearestActiveLenses",
+    "promotionTrigger", "currentBlocker"
+}
+for item in reserve:
+    missing = sorted(reserve_required - set(item))
+    if missing:
+        fail(f"reserve {item.get('id','<unknown>')} missing {missing}")
+    rid = item["id"]
+    if rid in ids:
+        fail(f"reserve id collides with active lens: {rid}")
+    if rid in reserve_ids:
+        fail(f"duplicate reserve id: {rid}")
+    reserve_ids.add(rid)
+    if item["status"] not in {"RESERVE_ONLY", "RESERVE_SHADOW_TESTED"}:
+        fail(f"{rid}: invalid reserve status")
+    if "skillRef" in item:
+        fail(f"{rid}: reserve entries must not carry skillRef")
+    for field in ("discoverySignals", "requiredAssumptions", "nearestActiveLenses"):
+        if not isinstance(item[field], list):
+            fail(f"{rid}: {field} must be list")
+
+all_known = ids | reserve_ids
+for item in reserve:
+    unknown = sorted(set(item["nearestActiveLenses"]) - all_known)
+    if unknown:
+        fail(f"{item['id']}: nearestActiveLenses unknown {unknown}")
+
+reserve_policy = data.get("reservePoolPolicy", {})
+if reserve_policy.get("routerMaySelectReserve") is not False:
+    fail("reservePoolPolicy.routerMaySelectReserve must be false")
+if reserve_policy.get("reserveMayHaveSkillRef") is not False:
+    fail("reservePoolPolicy.reserveMayHaveSkillRef must be false")
+
 policy = data.get("selectionPolicy", {})
 if policy.get("allowNoLens") is not True:
     fail("selectionPolicy.allowNoLens must be true")
@@ -63,5 +103,6 @@ print(json.dumps({
     "lenses": len(lenses),
     "disciplineLenses": sum(x["kind"] == "discipline_lens" for x in lenses),
     "compositeProfiles": sum(x["kind"] == "composite_profile" for x in lenses),
-    "defaultMaxSelected": policy.get("defaultMaxSelected")
+    "defaultMaxSelected": policy.get("defaultMaxSelected"),
+    "reservePool": len(reserve)
 }, ensure_ascii=False))

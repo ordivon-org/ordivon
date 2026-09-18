@@ -303,3 +303,4 @@ Result:
 - the compiler therefore retained queueing theory in the reserve pool and **did not create a permanent active queueing lens**.
 
 This is a positive R1 result because it demonstrates discovery plus rejection of premature activation rather than monotonic lens accumulation.
+- docs/LEGO_LENS_UNIVERSE_R1.md

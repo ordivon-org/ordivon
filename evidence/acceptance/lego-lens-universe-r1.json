@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.lego-lens-universe-acceptance",
+  "date": "2026-09-18",
+  "standing": "PASS_RESERVE_POOL_ACTIVE",
+  "activeLensCount": 14,
+  "disciplineLensCount": 12,
+  "compositeProfileCount": 2,
+  "reservePoolCount": 23,
+  "properties": {
+    "routerMaySelectReserve": false,
+    "reserveMayHaveSkillRef": false,
+    "coreSchemaChanged": false,
+    "activeReserveIdCollision": false,
+    "queueingShadowStatePreserved": true,
+    "noAutomaticWaveCreation": true
+  },
+  "pressureChecks": [
+    {
+      "id": "game-theory",
+      "expected": "RESERVE_ONLY",
+      "observed": "RESERVE_ONLY",
+      "reason": "No current prospective method-gap case justifies an active generic game-theory lens."
+    },
+    {
+      "id": "information-theory",
+      "expected": "RESERVE_ONLY",
+      "observed": "RESERVE_ONLY",
+      "reason": "Quantitative random variables/distributions/operators are not yet evidenced in a cross-domain case."
+    },
+    {
+      "id": "statistical-physics-complexity",
+      "expected": "RESERVE_ONLY",
+      "observed": "RESERVE_ONLY",
+      "reason": "Metaphor risk remains high without a real microstate/interacting-ensemble mapping."
+    },
+    {
+      "id": "queueing-theory",
+      "expected": "RESERVE_SHADOW_TESTED",
+      "observed": "RESERVE_SHADOW_TESTED",
+      "reason": "Shadow pilot found valid primitive mapping but insufficient real capacity measurements for activation."
+    }
+  ],
+  "nonClaims": [
+    "The reserve pool is not exhaustive.",
+    "Reserve membership does not imply applicability.",
+    "A discipline may remain domain-native rather than ever becoming an Ordivon lens.",
+    "The reserve pool is discovery metadata, not project truth."
+  ]
+}
