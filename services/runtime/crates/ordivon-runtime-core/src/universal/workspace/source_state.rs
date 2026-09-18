@@ -210,6 +210,7 @@ fn parse_nul_paths(bytes: &[u8], label: &str) -> Result<Vec<String>, UniversalEx
         .collect()
 }
 
+#[cfg(unix)]
 fn workspace_source_entry(
     workspace: &Path,
     relative: &str,
@@ -287,6 +288,21 @@ fn workspace_source_entry(
     })
 }
 
+#[cfg(not(unix))]
+fn workspace_source_entry(
+    _workspace: &Path,
+    _relative: &str,
+    _index_mode: Option<&str>,
+) -> Result<WorkspaceSourceEntry, UniversalExecError> {
+    Err(UniversalExecError::new(
+        UniversalExecErrorCode::ToolUnavailable,
+        "native workspace source-state identity is not implemented for this platform",
+        Some("workspaceId"),
+        false,
+    ))
+}
+
+#[cfg(unix)]
 fn is_git_worktree(path: &Path) -> Result<bool, UniversalExecError> {
     let output = Command::new("git")
         .arg("-C")
@@ -297,6 +313,7 @@ fn is_git_worktree(path: &Path) -> Result<bool, UniversalExecError> {
     Ok(output.status.success() && output.stdout == b"true\n")
 }
 
+#[cfg(unix)]
 fn same_source_metadata(left: &fs::Metadata, right: &fs::Metadata) -> bool {
     left.dev() == right.dev()
         && left.ino() == right.ino()

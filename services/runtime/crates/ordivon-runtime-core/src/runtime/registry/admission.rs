@@ -547,12 +547,11 @@ impl Registry {
 
     fn acquire_admission_fence(&self) -> RuntimeResult<File> {
         let path = self.config.admission_fence_path();
-        let file = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .create(true)
-            .truncate(false)
-            .mode(0o600)
+        let mut options = OpenOptions::new();
+        options.read(true).write(true).create(true).truncate(false);
+        #[cfg(unix)]
+        options.mode(0o600);
+        let file = options
             .open(&path)
             .map_err(|error| {
                 RuntimeError::new(

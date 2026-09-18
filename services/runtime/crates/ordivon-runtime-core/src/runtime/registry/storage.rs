@@ -3,12 +3,11 @@ impl Registry {
         config.validate()?;
         create_private_directory(&config.store_root)?;
         create_private_directory(&config.attempts_root())?;
-        let admission_fence = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .create(true)
-            .truncate(false)
-            .mode(0o600)
+        let mut admission_options = OpenOptions::new();
+        admission_options.read(true).write(true).create(true).truncate(false);
+        #[cfg(unix)]
+        admission_options.mode(0o600);
+        let admission_fence = admission_options
             .open(config.admission_fence_path())
             .map_err(|error| {
                 RuntimeError::new(

@@ -193,12 +193,20 @@ pub fn write_workspace_text(
         fs::set_permissions(&path, permissions)
             .map_err(|error| io_error(&path, "set permissions", error))?;
     } else {
-        let mut permissions = fs::metadata(&path)
+        let permissions = fs::metadata(&path)
             .map_err(|error| io_error(&path, "inspect", error))?
             .permissions();
-        permissions.set_mode(0o644);
-        fs::set_permissions(&path, permissions)
-            .map_err(|error| io_error(&path, "set permissions", error))?;
+        #[cfg(unix)]
+        {
+            let mut permissions = permissions;
+            permissions.set_mode(0o644);
+            fs::set_permissions(&path, permissions)
+                .map_err(|error| io_error(&path, "set permissions", error))?;
+        }
+        #[cfg(not(unix))]
+        {
+            let _ = permissions;
+        }
     }
     Ok(WorkspaceWriteResult {
         workspace_id: request.workspace_id.clone(),

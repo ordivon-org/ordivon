@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom, Write};
+#[cfg(unix)]
 use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -46,16 +47,16 @@ use super::{
 use crate::universal::{
     canonical_directory, create_git_workspace_compact, inspect_workspace_patch_plan,
     list_open_workspace_record_inventory, load_workspace_record, mutate_workspace,
-    open_regular_file_beneath, patch_workspace, plan_workspace_patch, remove_git_workspace,
-    resolve_workspace_cwd, result_from_workspace_patch_plan, sha256_bytes, sha256_file,
-    workspace_cleanup_dependents, workspace_git_common_dir_at, workspace_head_and_dirty_at,
-    workspace_head_revision, workspace_source_state_digest, write_bytes_atomic, write_json_atomic,
-    CompactWorkspaceOpenResult, GitWorkspaceCreateRequest, RunnerExecutionStep,
-    RunnerHostDependencyCommitment, RunnerInputCommitment, RunnerPayloadConfig,
-    RunnerStartEvidence, RunnerTaskProgress, RunnerTaskRequest, RunnerTaskResult,
-    UniversalExecutorConfig, WorkspaceCloseRequest, WorkspaceCloseResult, WorkspaceDiffRequest,
-    WorkspaceMutateRequest, WorkspaceMutateResult, WorkspacePatchPlanState, WorkspacePatchRequest,
-    WorkspacePatchResult, UNIVERSAL_EXEC_SCHEMA_VERSION,
+    open_directory_nofollow, open_regular_file_beneath, patch_workspace, plan_workspace_patch,
+    remove_git_workspace, resolve_workspace_cwd, result_from_workspace_patch_plan, sha256_bytes,
+    sha256_file, workspace_cleanup_dependents, workspace_git_common_dir_at,
+    workspace_head_and_dirty_at, workspace_head_revision, workspace_source_state_digest,
+    write_bytes_atomic, write_json_atomic, CompactWorkspaceOpenResult, GitWorkspaceCreateRequest,
+    RunnerExecutionStep, RunnerHostDependencyCommitment, RunnerInputCommitment,
+    RunnerPayloadConfig, RunnerStartEvidence, RunnerTaskProgress, RunnerTaskRequest,
+    RunnerTaskResult, UniversalExecutorConfig, WorkspaceCloseRequest, WorkspaceCloseResult,
+    WorkspaceDiffRequest, WorkspaceMutateRequest, WorkspaceMutateResult, WorkspacePatchPlanState,
+    WorkspacePatchRequest, WorkspacePatchResult, UNIVERSAL_EXEC_SCHEMA_VERSION,
 };
 
 const RUNNER_REQUEST_FILE: &str = "request.json";
@@ -733,6 +734,49 @@ mod output_tail_tests {
         );
         fs::remove_dir_all(root).unwrap();
     }
+}
+
+fn configure_private_create(options: &mut OpenOptions, mode: u32) {
+    #[cfg(unix)]
+    {
+        options.mode(mode);
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = (options, mode);
+    }
+}
+
+#[cfg(unix)]
+fn protect_posix_path(path: &Path, mode: u32, operation: &str) -> RuntimeResult<()> {
+    fs::set_permissions(path, fs::Permissions::from_mode(mode))
+        .map_err(|error| io_error(operation, error))
+}
+
+#[cfg(not(unix))]
+fn protect_posix_path(_path: &Path, _mode: u32, operation: &str) -> RuntimeResult<()> {
+    Err(RuntimeError::new(
+        RuntimeErrorCode::ToolUnavailable,
+        format!("{operation}: native Windows ACL realization is not implemented"),
+        None,
+        false,
+    ))
+}
+
+#[cfg(unix)]
+fn open_regular_file_nofollow(path: &Path) -> std::io::Result<File> {
+    OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_NOFOLLOW)
+        .open(path)
+}
+
+#[cfg(not(unix))]
+fn open_regular_file_nofollow(_path: &Path) -> std::io::Result<File> {
+    Err(std::io::Error::new(
+        std::io::ErrorKind::Unsupported,
+        "secure no-follow regular-file open is not implemented for this platform",
+    ))
 }
 
 fn write_bytes_synced(path: &Path, bytes: &[u8]) -> RuntimeResult<()> {

@@ -5,7 +5,9 @@
 //! control plane starts the same launcher contract directly and relies on durable launcher/start
 //! evidence rather than inventing systemd identity.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
+#[cfg(unix)]
+use std::collections::BTreeSet;
 use std::fs;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
@@ -102,6 +104,7 @@ impl WindowsExecutionConfig {
         Ok(())
     }
 
+    #[cfg(unix)]
     fn wsl_distribution(&self) -> RuntimeResult<&str> {
         self.wsl_distribution.as_deref().ok_or_else(|| {
             RuntimeError::invalid(

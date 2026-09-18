@@ -3,8 +3,8 @@ use rusqlite::{
 };
 use sha2::{Digest, Sha256};
 use std::fs::{self, File, OpenOptions};
-use std::os::unix::fs::OpenOptionsExt;
-use std::os::unix::fs::PermissionsExt;
+#[cfg(unix)]
+use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
@@ -1801,6 +1801,11 @@ fn create_private_directory(path: &Path) -> RuntimeResult<()> {
             false,
         )
     })?;
+    protect_private_directory(path)
+}
+
+#[cfg(unix)]
+fn protect_private_directory(path: &Path) -> RuntimeResult<()> {
     fs::set_permissions(path, fs::Permissions::from_mode(0o700)).map_err(|error| {
         RuntimeError::new(
             RuntimeErrorCode::IoError,
@@ -1811,6 +1816,17 @@ fn create_private_directory(path: &Path) -> RuntimeResult<()> {
     })
 }
 
+#[cfg(not(unix))]
+fn protect_private_directory(_path: &Path) -> RuntimeResult<()> {
+    Err(RuntimeError::new(
+        RuntimeErrorCode::ToolUnavailable,
+        "native private Runtime state ACL realization is not implemented for this platform",
+        Some("storeRoot"),
+        false,
+    ))
+}
+
+#[cfg(unix)]
 fn set_private_file(path: &Path) -> RuntimeResult<()> {
     fs::set_permissions(path, fs::Permissions::from_mode(0o600)).map_err(|error| {
         RuntimeError::new(
@@ -1820,4 +1836,14 @@ fn set_private_file(path: &Path) -> RuntimeResult<()> {
             false,
         )
     })
+}
+
+#[cfg(not(unix))]
+fn set_private_file(_path: &Path) -> RuntimeResult<()> {
+    Err(RuntimeError::new(
+        RuntimeErrorCode::ToolUnavailable,
+        "native private Runtime file ACL realization is not implemented for this platform",
+        Some("dbPath"),
+        false,
+    ))
 }

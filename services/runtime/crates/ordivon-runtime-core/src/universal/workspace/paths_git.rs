@@ -317,6 +317,7 @@ fn tool_failed(operation: &str, stderr: &[u8]) -> UniversalExecError {
     UniversalExecError::new(code, format!("{operation} failed: {message}"), None, false)
 }
 
+#[cfg(unix)]
 fn transfer_workspace_ownership(root: &Path, uid: u32, gid: u32) -> Result<(), UniversalExecError> {
     fn chown_nofollow(path: &Path, uid: u32, gid: u32) -> Result<(), UniversalExecError> {
         let c_path = std::ffi::CString::new(path.as_os_str().as_encoded_bytes()).map_err(|_| {
@@ -378,4 +379,18 @@ fn transfer_workspace_ownership(root: &Path, uid: u32, gid: u32) -> Result<(), U
         ));
     }
     Ok(())
+}
+
+#[cfg(not(unix))]
+fn transfer_workspace_ownership(
+    _root: &Path,
+    _uid: u32,
+    _gid: u32,
+) -> Result<(), UniversalExecError> {
+    Err(UniversalExecError::new(
+        UniversalExecErrorCode::ToolUnavailable,
+        "native workspace ownership transfer is not implemented for this platform",
+        Some("workspacePath"),
+        false,
+    ))
 }
