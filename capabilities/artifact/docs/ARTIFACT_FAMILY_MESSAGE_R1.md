@@ -29,11 +29,11 @@ Raw bytes are checked independently from parser behavior. A message that parsers
 
 ### Python email parser
 
-Python 3.14.6 stdlib `email` provides the first parser view and must report no parser defects. It also exposes addresses, message headers, MIME facts and decoded body.
+Python 3.14.7 stdlib `email` provides the first parser view and must report no parser defects. It also exposes addresses, message headers, MIME facts and decoded body.
 
 ### Node mailparser
 
-`mailparser 3.9.26` provides an independent parser view. Its npm dependency closure is frozen by package-lock identity under `/opt/ordivon/external/mailparser-js/3.9.26`.
+`mailparser 3.9.26` provides an independent parser view under the Artifact Node 26.9.0 toolchain. Its npm dependency closure is frozen by package-lock identity under `/opt/ordivon/external/mailparser-js/3.9.26`.
 
 Both parser views are normalized to a common semantic representation before comparison.
 

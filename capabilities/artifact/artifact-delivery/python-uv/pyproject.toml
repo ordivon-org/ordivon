@@ -1,7 +1,7 @@
 [project]
 name = "ordivon-artifact-delivery-runtime"
 version = "1.0.0"
-requires-python = ">=3.14,<3.15"
+requires-python = "==3.14.7"
 dependencies = [
   "attrs==26.1.0",
   "Pillow==12.3.0",

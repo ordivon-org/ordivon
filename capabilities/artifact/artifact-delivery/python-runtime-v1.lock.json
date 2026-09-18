@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "artifact-delivery-python-runtime-lock",
-  "pythonRuntime": "3.14.6",
+  "pythonRuntime": "3.14.7",
   "pythonPackages": {
     "attrs": "26.1.0",
     "Pillow": "12.3.0",
@@ -19,15 +19,15 @@
   },
   "uvProject": {
     "path": "artifact-delivery/python-uv",
-    "pyprojectSha256": "sha256:ef6bb17c9d42bb275e59f6e7eaede63cf07aa4ef39a94404abb0df031196d4f8",
-    "uvLockSha256": "sha256:923a0908e0f8f803e3dd5f5f01d8a2cc27c47c9dcc5dd7cb51867fd930da12e1"
+    "pyprojectSha256": "sha256:fa0bc043a70f6799280e798b4c0ac0f9fcde083b2935f86a0f6b2ac902a73ab0",
+    "uvLockSha256": "sha256:1aed4a8c0586790fdab07eb83e406891d02adbe7e496b025c4f480c8d86a3c9d"
   },
   "stableRoot": "/root/.local/share/ordivon-workstation/artifact-delivery-python-v1",
   "stablePython": "/root/.local/share/ordivon-workstation/artifact-delivery-python-v1/current/bin/python",
-  "materializationPolicy": "artifact-owned-uv-lock-frozen-offline-sync-plus-exact-system-python-binding",
+  "materializationPolicy": "artifact-owned-uv-lock-frozen-offline-sync-plus-exact-mise-toolchain-python-binding",
   "nonClaims": [
     "Python package closure readiness does not select Pandoc, veraPDF, Nu Html Checker, Cosign, .NET, browsers or Office targets",
     "uv.lock artifact hashes and generation byte digests prove the selected Python package closure, not Artifact visual, target-render, accessibility, delivery or release acceptance",
-    "exact system Python bytes are bound as an Artifact runtime prerequisite; this does not make Artifact the owner of machine-wide Python desired state"
+    "exact mise-managed Python bytes are bound as an Artifact runtime prerequisite; this does not make Artifact the owner of machine-wide Python desired state"
   ]
 }

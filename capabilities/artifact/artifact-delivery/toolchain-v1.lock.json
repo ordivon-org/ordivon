@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
-  "capturedOn": "2026-09-09",
+  "capturedOn": "2026-09-19",
   "selectionPolicy": "Exact observed tool versions and source/archive digests for the verified v1 composition. This lock does not replace standards or acceptance contracts.",
   "python": {
-    "runtime": "3.14.6",
+    "runtime": "3.14.7",
     "jsonschema": "4.26.0",
     "python-pptx": "1.0.2",
     "XlsxWriter": "3.2.9",
     "opentelemetry-sdk": "1.44.0"
   },
   "node": {
-    "runtime": "26.7.0",
+    "runtime": "26.9.0",
     "playwright": "1.63.0",
     "axe-core-playwright": "4.13.0",
     "opentelemetry-api": "1.9.1",

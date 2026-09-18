@@ -6,17 +6,17 @@
   "bindings": {
     "pythonParser": {
       "tool": "Python email package",
-      "version": "Python 3.14.6 stdlib",
-      "pythonPath": "/usr/bin/python",
-      "pythonSha256": "2700be1aabe3687bd597f21b0eac3b9bbdf7417e93035255a9286c67935b59bd",
-      "modulePath": "/usr/lib/python3.14/email/__init__.py",
+      "version": "Python 3.14.7 stdlib",
+      "pythonPath": "/root/.local/share/mise/installs/python/3.14.7/bin/python3.14",
+      "pythonSha256": "241bf774a81580bb760adf960b48df7e6b23b1de026c9c912d4ca6be1a08241e",
+      "modulePath": "/root/.local/share/mise/installs/python/3.14.7/lib/python3.14/email/__init__.py",
       "moduleSha256": "dafca994154b9a6eb2b69d0e6e69e7596f397c2aec9bc62702259f4b39bd111a"
     },
     "nodeParser": {
       "tool": "mailparser",
       "version": "3.9.26",
-      "nodePath": "/usr/bin/node",
-      "nodeSha256": "d51d79e0e04abfe366345496a8e1379d56493271af4e0d6f27dd6ba76be628ea",
+      "nodePath": "/root/.local/share/mise/installs/node/26.9.0/bin/node",
+      "nodeSha256": "05757b064ad2a221b41874794da42361c9bab033c7c33c1f1b458c25a7de7e59",
       "packagePath": "/opt/ordivon/external/mailparser-js/3.9.26/node_modules/mailparser",
       "packageLockSha256": "91b52f0709bc90453e38b42197405233324afbc2d41d148a45272721b6854d9e"
     }

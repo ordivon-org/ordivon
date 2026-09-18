@@ -9,8 +9,8 @@ ROOT=Path(__file__).resolve().parents[1]
 MAIN=Path('/root/projects/ordivon-artifact-v2')
 LOCK_PATH=ROOT/'artifact-delivery/python-runtime-v1.lock.json'
 WRAPPER_SOURCE=ROOT/'scripts/artifact_delivery_python_wrapper.py'
-UV=Path('/usr/bin/uv')
-SYSTEM_PYTHON=Path('/usr/bin/python')
+UV=Path(os.environ.get('ARTIFACT_UV','/root/.local/share/mise/installs/uv/0.12.16/uv-x86_64-unknown-linux-musl/uv'))
+SYSTEM_PYTHON=Path(os.environ.get('ARTIFACT_PYTHON','/root/.local/share/mise/installs/python/3.14.7/bin/python3.14'))
 
 
 def sha(path:Path)->str:
@@ -67,7 +67,7 @@ def python_status(lock:dict[str,Any])->dict[str,str]:
     p=run([str(SYSTEM_PYTHON),'-c','import json,platform,sys;print(json.dumps({"version":platform.python_version(),"executable":sys.executable}))'],timeout=30)
     if p.returncode:raise RuntimeError('Artifact Python interpreter probe failed: '+p.stderr[-2000:])
     observed=json.loads(p.stdout)
-    if observed['version']!=lock['pythonRuntime']:raise RuntimeError(f"system Python drifted: {observed['version']}")
+    if observed['version']!=lock['pythonRuntime']:raise RuntimeError(f"Artifact Python authority drifted: {observed['version']}")
     resolved=SYSTEM_PYTHON.resolve(strict=True)
     return {'version':observed['version'],'requestedPath':str(SYSTEM_PYTHON),'resolvedPath':str(resolved),'sha256':'sha256:'+sha(resolved)}
 

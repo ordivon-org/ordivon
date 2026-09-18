@@ -24,5 +24,5 @@ class T(unittest.TestCase):
  def test_html_valid_mime_outside_profile(self):
   v=self.runv(raw(ctype='text/html; charset=utf-8'));self.assertEqual(v['status'],'FAIL');self.assertTrue(any('MIME facts' in x for x in v['failures']))
  def test_binding_digests(self):
-  b=json.loads((ROOT/'artifact-delivery/shadow-bindings/message-internet-text-local-r1.json').read_text());self.assertEqual(hashlib.sha256(Path('/usr/bin/python').read_bytes()).hexdigest(),b['bindings']['pythonParser']['pythonSha256']);self.assertEqual(hashlib.sha256(Path('/opt/ordivon/external/mailparser-js/3.9.26/package-lock.json').read_bytes()).hexdigest(),b['bindings']['nodeParser']['packageLockSha256'])
+  b=json.loads((ROOT/'artifact-delivery/shadow-bindings/message-internet-text-local-r1.json').read_text());py=Path(b['bindings']['pythonParser']['pythonPath']);node=Path(b['bindings']['nodeParser']['nodePath']);self.assertEqual(hashlib.sha256(py.read_bytes()).hexdigest(),b['bindings']['pythonParser']['pythonSha256']);self.assertEqual(hashlib.sha256(node.read_bytes()).hexdigest(),b['bindings']['nodeParser']['nodeSha256']);self.assertEqual(hashlib.sha256(Path('/opt/ordivon/external/mailparser-js/3.9.26/package-lock.json').read_bytes()).hexdigest(),b['bindings']['nodeParser']['packageLockSha256'])
 if __name__=='__main__':unittest.main()

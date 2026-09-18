@@ -9,7 +9,7 @@ WRAP_SPEC=importlib.util.spec_from_file_location('artifact_delivery_python_wrapp
 class ArtifactDeliveryEnvironmentTests(unittest.TestCase):
     def test_lock_is_uv_owned_complete_python_package_closure(self):
         lock=json.loads((ROOT/'artifact-delivery/python-runtime-v1.lock.json').read_text())
-        self.assertEqual(lock['pythonRuntime'],'3.14.6');self.assertEqual(lock['pythonPackages']['lxml'],'6.1.3')
+        self.assertEqual(lock['pythonRuntime'],'3.14.7');self.assertEqual(lock['pythonPackages']['lxml'],'6.1.3')
         self.assertEqual(lock['pythonPackages']['Pillow'],'12.3.0');self.assertNotIn('vendoredEquipment',lock);self.assertNotIn('hostSystemPackages',lock);self.assertNotIn('hostFencedPackages',lock)
         self.assertEqual(lock['uvProject']['path'],'artifact-delivery/python-uv');self.assertTrue(lock['uvProject']['uvLockSha256'].startswith('sha256:'))
     def test_uv_project_pins_every_accepted_distribution(self):
@@ -28,10 +28,10 @@ class ArtifactDeliveryEnvironmentTests(unittest.TestCase):
         wrapper=(ROOT/'scripts/artifact_delivery_python_wrapper.py').read_text();self.assertIn("'PYTHONDONTWRITEBYTECODE':'1'",wrapper)
     def test_materializer_and_wrapper_share_environment_tree_canonicalization(self):
         with tempfile.TemporaryDirectory() as d:
-            root=Path(d);(root/'pkg').mkdir();(root/'pkg/data').write_bytes(b'bytes');(root/'python').symlink_to('/usr/bin/python')
+            root=Path(d);(root/'pkg').mkdir();(root/'pkg/data').write_bytes(b'bytes');(root/'python').symlink_to('/bin/sh')
             self.assertEqual(M.tree_digest(root),W.tree_digest(root));first=W.tree_digest(root);(root/'pkg/data').write_bytes(b'drift');self.assertNotEqual(first,W.tree_digest(root))
     def test_generation_spec_binds_uv_and_interpreter_identity(self):
-        lock=M.load_lock();project={'project':'/x','pyprojectSha256':'sha256:p','uvLockSha256':'sha256:u'};python={'version':'3.14.6','requestedPath':'/usr/bin/python','resolvedPath':'/usr/bin/python3.14','sha256':'sha256:i'}
+        lock=M.load_lock();project={'project':'/x','pyprojectSha256':'sha256:p','uvLockSha256':'sha256:u'};python={'version':'3.14.7','requestedPath':'/toolchain/python','resolvedPath':'/toolchain/python3.14','sha256':'sha256:i'}
         spec=M.generation_spec(lock,project,python);self.assertEqual(spec['uvLockSha256'],'sha256:u');self.assertEqual(spec['pythonExecutableSha256'],'sha256:i');self.assertEqual(spec['pythonPackages']['lxml'],'6.1.3')
     def test_read_only_tree_changes_mode_before_digest(self):
         with tempfile.TemporaryDirectory() as d:
