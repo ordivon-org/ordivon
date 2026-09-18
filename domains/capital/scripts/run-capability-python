@@ -1,20 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-uv_bin="${MARKET_CAPITAL_UV:-/usr/bin/uv}"
-research_python="${MARKET_CAPITAL_RESEARCH_PYTHON:-/root/projects/ordivon-research-v2/.venv/bin/python}"
+mise_bin="${MARKET_CAPITAL_MISE:-$(command -v mise || true)}"
+python_bin="$root/.venv/bin/python"
 
-if [[ ! -x "$uv_bin" ]]; then
-  echo "uv unavailable: $uv_bin" >&2
+if [[ -z "$mise_bin" || ! -x "$mise_bin" ]]; then
+  echo "mise unavailable; Market Capital toolchain authority requires mise" >&2
   exit 2
-fi
-if [[ ! -x "$research_python" ]]; then
-  echo "research capability unavailable: $research_python" >&2
-  exit 3
 fi
 
 cd "$root"
-"$uv_bin" sync --frozen >/dev/null
-project_site="$("$uv_bin" run python -c 'import site; print(site.getsitepackages()[0])')"
-export PYTHONPATH="$root/src:$project_site${PYTHONPATH:+:$PYTHONPATH}"
-exec "$research_python" "$@"
+"$mise_bin" exec -- uv sync --frozen --group research --group nautilus --group test >/dev/null
+export PYTHONPATH="$root/src${PYTHONPATH:+:$PYTHONPATH}"
+
+if [[ ! -x "$python_bin" ]]; then
+  echo "Market Capital Python environment unavailable after uv sync: $python_bin" >&2
+  exit 3
+fi
+
+exec "$python_bin" "$@"

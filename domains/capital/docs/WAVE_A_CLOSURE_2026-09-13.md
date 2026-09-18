@@ -14,7 +14,7 @@ The full Wave A unit suite is reproducible through the admitted Research Capabil
 
 ## Capability ownership
 
-Market Capital no longer pretends its empty `pyproject.toml` owns the scientific Python stack. `config/capability_dependencies.json` explicitly delegates dataframe validation, Parquet and experiment lineage to the Research Capability environment. Market Capital owns its thin domain mappings, schemas and acceptance gates.
+Historical Wave A closure delegated the scientific Python environment to the Research Capability virtualenv. The latest-only toolchain migration on 2026-09-19 removed that cross-repository interpreter dependency because Market Capital source directly imports jsonschema, MLflow, pandas, Pandera and PyArrow. Those direct imports are now Market-owned, locked dependency groups under Python 3.14.7. Research remains a cross-domain workflow/method capability only when invoked through an explicit provider contract; another repository's `.venv` is not an authority boundary.
 
 ## Raw SEC filing / Arelle boundary
 

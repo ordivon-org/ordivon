@@ -1,33 +1,74 @@
 #!/usr/bin/env bash
 set -euo pipefail
-research_python="${MARKET_CAPITAL_RESEARCH_PYTHON:-/root/projects/ordivon-research-v2/.venv/bin/python}"
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+mise_bin="${MARKET_CAPITAL_MISE:-$(command -v mise || true)}"
+market_python="$root/.venv/bin/python"
 arelle="${MARKET_CAPITAL_ARELLE:-/root/.local/bin/arelleCmdLine}"
 tigerbeetle="${MARKET_CAPITAL_TIGERBEETLE:-/usr/local/bin/tigerbeetle}"
 tigerbeetle_python="${MARKET_CAPITAL_TIGERBEETLE_PYTHON:-/opt/ordivon/external/tigerbeetle/0.17.9/python-client/bin/python}"
-if [[ ! -x "$research_python" ]]; then
-  echo "research capability unavailable: $research_python" >&2
+
+cd "$root"
+if [[ -z "$mise_bin" || ! -x "$mise_bin" ]]; then
+  echo "mise unavailable; Market Capital toolchain authority requires mise" >&2
   exit 2
 fi
-"$research_python" - <<'PY'
-import importlib.util, json
-mods = ["jsonschema", "mlflow", "pandas", "pandera", "pyarrow"]
-missing = [m for m in mods if importlib.util.find_spec(m) is None]
-print(json.dumps({"researchPythonModules": {m: m not in missing for m in mods}}, sort_keys=True))
+"$mise_bin" exec -- uv sync --frozen --group research --group nautilus --group test >/dev/null
+
+"$market_python" - <<'PY'
+import importlib.metadata as metadata
+import importlib.util
+import json
+import sys
+
+expected = {
+    "jsonschema": "4.26.0",
+    "mlflow": "3.16.1",
+    "pandas": "3.0.6",
+    "pandera": "0.33.1",
+    "pyarrow": "25.0.1",
+    "pytest": "9.1.1",
+    "nautilus-trader": "1.231.0",
+    "websockets": "17.1",
+}
+modules = {
+    "jsonschema": "jsonschema",
+    "mlflow": "mlflow",
+    "pandas": "pandas",
+    "pandera": "pandera",
+    "pyarrow": "pyarrow",
+    "pytest": "pytest",
+    "nautilus-trader": "nautilus_trader",
+    "websockets": "websockets",
+}
+missing = [dist for dist, mod in modules.items() if importlib.util.find_spec(mod) is None]
+versions = {dist: metadata.version(dist) for dist in expected if dist not in missing}
+print(json.dumps({
+    "python": sys.version.split()[0],
+    "marketOwnedPythonModules": {dist: dist not in missing for dist in modules},
+    "versions": versions,
+}, sort_keys=True))
+if sys.version.split()[0] != "3.14.7":
+    raise SystemExit(f"unexpected Market Python version: {sys.version.split()[0]}")
 if missing:
-    raise SystemExit("missing research modules: " + ", ".join(missing))
+    raise SystemExit("missing Market-owned modules: " + ", ".join(missing))
+drift = {dist: (expected[dist], versions[dist]) for dist in expected if versions[dist] != expected[dist]}
+if drift:
+    raise SystemExit("Market dependency version drift: " + repr(drift))
 PY
+
 if [[ ! -x "$arelle" ]]; then
   echo "Arelle core unavailable: $arelle" >&2
-  exit 3
+  exit 4
 fi
 "$arelle" --version
+
 if [[ ! -x "$tigerbeetle" ]]; then
   echo "TigerBeetle binary unavailable: $tigerbeetle" >&2
-  exit 4
+  exit 5
 fi
 if [[ ! -x "$tigerbeetle_python" ]]; then
   echo "TigerBeetle client environment unavailable: $tigerbeetle_python" >&2
-  exit 5
+  exit 6
 fi
 "$tigerbeetle" version
 "$tigerbeetle_python" - <<'PY'

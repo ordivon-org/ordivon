@@ -2,9 +2,24 @@
 name = "ordivon-market-capital-cleanroom"
 version = "0.1.0"
 description = "Standards-first clean-room Market Capital composition"
-requires-python = ">=3.12"
+requires-python = "==3.14.7"
 dependencies = [
-    "websockets>=17,<18",
+    "websockets==17.1",
+]
+
+[dependency-groups]
+research = [
+    "jsonschema==4.26.0",
+    "mlflow==3.16.1",
+    "pandas==3.0.6",
+    "pandera==0.33.1",
+    "pyarrow==25.0.1",
+]
+nautilus = [
+    "nautilus-trader==1.231.0",
+]
+test = [
+    "pytest==9.1.1",
 ]
 
 [tool.uv]
