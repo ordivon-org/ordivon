@@ -117,7 +117,8 @@ def full_checkpoint_schema() -> dict[str, Any]:
         "oneOf": [_inline_schema(WorkingCheckpointV1), _inline_schema(WorkingCheckpointV2)],
         "description": (
             "A complete Host semantic working checkpoint. v2 adds caller-authored workStanding; "
-            "neither version grants foreign Runtime/domain authority."
+            "Host validates and persists that claim shape but does not interpret it as priority, "
+            "ownership, execution authority, or foreign Runtime/domain truth."
         ),
     }
 

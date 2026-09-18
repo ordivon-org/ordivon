@@ -467,6 +467,12 @@
         },
         "relatedTaskEdges": 470,
         "wakeConditions": 430
+      },
+      "semanticContractionGuard": {
+        "runtimeConsumerOutsideCheckpointContract": false,
+        "roundTripPreserved": true,
+        "ordinaryPatchPreservesStanding": true,
+        "policyTestFile": "tests/test_contract_policy.py"
       }
     }
   },
@@ -545,9 +551,9 @@
     {
       "id": "E03",
       "name": "work-standing-consumer-census",
-      "status": "SOURCE_CENSUS_AND_LIVE_DATA_CENSUS_COMPLETE",
-      "finding": "No production/runtime consumer code was found, but 233/266 non-terminal Tasks currently carry WorkingCheckpoint v2 workStanding. It is widely present claim data, not safe for direct schema deletion.",
-      "nextGate": "Test semantic contraction first: preserve/read/rewrite v2 bytes while removing any Host-side interpretation. Only then test migration or envelope deletion."
+      "status": "SEMANTIC_CONTRACTION_GUARD_PASS",
+      "finding": "Current Host runtime already does not consume workStanding outside checkpoint_contract. Executable policy tests now enforce that no runtime module reads workStanding, v2 claims round-trip, and ordinary checkpoint patches preserve standing bytes.",
+      "nextGate": "Keep v2 envelope compatibility. Revisit physical schema migration only if a later measured simplification benefit exceeds migration cost."
     },
     {
       "id": "E04",

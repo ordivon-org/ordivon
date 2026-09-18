@@ -173,6 +173,16 @@ Next steps:
 
 Persistence alone is not proof of semantic necessity, but high live prevalence is a real compatibility constraint.
 
+### E03 result — semantic contraction guard
+
+Current Host already satisfies the narrower contraction hypothesis: no runtime module outside `checkpoint_contract.py` reads `workStanding`. R2 now freezes this as executable policy:
+
+- runtime source outside the checkpoint contract must not consume `workStanding`;
+- WorkingCheckpoint v2 must round-trip its caller-authored standing claim;
+- an unrelated exact-revision checkpoint patch must preserve the standing claim unchanged.
+
+Therefore E03 does **not** justify a production data migration. The useful subtraction is semantic: Host stores and validates the claim envelope while refusing to turn it into Host authority.
+
 ## Experiment E04 — Currentness destroyer
 
 Run only against the experimental currentness projection family.
