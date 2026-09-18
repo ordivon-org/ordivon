@@ -129,8 +129,14 @@ class AgentServiceSemanticsR8Tests(unittest.TestCase):
                 tags=["research", "review"],
             )
 
-            self.assertEqual(first.id, replay.id)
-            self.assertFalse(hasattr(first, "authorized"))
+            self.assertIsInstance(first, dict)
+            self.assertEqual(first, replay)
+            self.assertEqual(first["id"], "literature-review")
+            self.assertEqual(
+                set(first),
+                {"id", "name", "description", "tags", "inputModes", "outputModes"},
+            )
+            self.assertNotIn("authorized", first)
             with self.assertRaises(ValueError):
                 service.capabilities.advertise(
                     revision.id,
@@ -395,9 +401,24 @@ class AgentServiceSemanticsR8Tests(unittest.TestCase):
             )
 
             rendered = repr(card)
-            self.assertEqual(card["protocolVersion"], "1.0.0")
             self.assertEqual(card["name"], "researcher")
+            self.assertEqual(card["version"], revision.id)
+            self.assertNotIn("protocolVersion", card)
+            self.assertNotIn("url", card)
+            self.assertNotIn("preferredTransport", card)
+            self.assertEqual(
+                card["supportedInterfaces"],
+                [
+                    {
+                        "url": "https://agents.example.test/researcher",
+                        "protocolBinding": "JSONRPC",
+                        "protocolVersion": "1.0",
+                    }
+                ],
+            )
+            self.assertEqual(card["defaultInputModes"], ["text/plain"])
             self.assertEqual(card["skills"][0]["id"], "literature-review")
+            self.assertEqual(card["skills"][0]["inputModes"], ["text/plain"])
             self.assertNotIn(instance.id, rendered)
             self.assertNotIn(session.id, rendered)
             self.assertNotIn("birth:", rendered)
@@ -436,7 +457,7 @@ class AgentServiceSemanticsR8Tests(unittest.TestCase):
             )
             self.addCleanup(second.close)
             self.assertEqual(second.identities.get(identity.id).stable_name, "researcher")
-            self.assertEqual(second.capabilities.list_for_revision(revision.id)[0].key, "review")
+            self.assertEqual(second.capabilities.list_for_revision(revision.id)[0]["id"], "review")
             self.assertEqual(second.sessions.get(session.id).state, "OPEN")
             self.assertEqual(second.session_items.list_for(session.id)[0].content["text"], "persist")
 
