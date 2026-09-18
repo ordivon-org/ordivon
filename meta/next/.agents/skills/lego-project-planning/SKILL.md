@@ -46,6 +46,10 @@ Do not run every lens automatically. Activate only when the system shape justifi
 - `lego-causal-intervention`: causal/mechanism claims, intervention decisions, confounding, ablation, identifiability, or observation-versus-cause ambiguity.
 - `lego-fmea-fta`: explicit component/process failure modes, failure propagation, top undesired events, reliability barriers, recovery, or fault-injection planning.
 - `lego-information-flow`: sensitive/untrusted information crossing prompts, credentials, logs, artifacts, telemetry, model/tool/provider boundaries, or declassification points.
+- `lego-exploration-policy`: repeated uncertain choices, experiment/search budget allocation, adaptive routing, pure exploration, or exploration-exploitation trade-offs.
+- `lego-ck-design`: open-ended invention where the desired object is not fully known and concepts/knowledge must expand together.
+- `lego-evolutionary-search`: large/discrete/non-differentiable candidate populations, variation/selection, diversity, lineage, or bounded search under independent evaluation.
+- `lego-organizational-cybernetics`: multi-agent/team autonomy, coordination, internal control, environment/future intelligence, policy/identity, recursion, or variety mismatch.
 
 Lens outputs are derived analysis evidence. They alter the plan only through an explicit architecture decision supported by project-native evidence.
 

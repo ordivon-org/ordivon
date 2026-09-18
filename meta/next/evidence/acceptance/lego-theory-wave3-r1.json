@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.lego-theory-wave3-initial-acceptance",
+  "date": "2026-09-18",
+  "standing": "PRE_PROSPECTIVE_VALIDATION",
+  "sourceRevision": "4dc1946b045db352f043e4d198a9a4a996e55d56",
+  "lenses": [
+    "lego-exploration-policy",
+    "lego-ck-design",
+    "lego-evolutionary-search",
+    "lego-organizational-cybernetics"
+  ],
+  "corePromotion": {
+    "schemaChanged": false,
+    "newMandatoryFields": []
+  },
+  "acceptanceRequired": [
+    "all four Skill packages parse and are admitted by the project Skill source",
+    "existing LEGO plan schema remains unchanged",
+    "each lens receives a prospective case with a distinct system shape",
+    "search/creativity metrics remain separate from product/domain truth",
+    "organizational-cybernetics mappings remain diagnostic rather than mandatory topology"
+  ],
+  "nonClaims": [
+    "Bandit reward does not define domain value.",
+    "C-K concepts are not facts.",
+    "Evolutionary fitness does not authorize production promotion.",
+    "The VSM five-function mapping is not treated as empirically universal."
+  ]
+}
