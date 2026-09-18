@@ -167,7 +167,7 @@ impl Runtime {
                         )
                     })?;
                     let observed =
-                        observe_windows_launcher_owner(windows, evidence.launcher_process_id)?;
+                        observe_windows_process_owner(windows, evidence.launcher_process_id)?;
                     if target_start.is_file() {
                         continue;
                     }
@@ -297,7 +297,7 @@ impl Runtime {
             .attempt_supervisor_owner(&attempt.attempt_id)?
             .is_none()
         {
-            release_terminal_unit(&attempt.unit_name);
+            release_linux_process_owner(&attempt.unit_name);
         }
         Ok(())
     }
