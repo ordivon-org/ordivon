@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.agent-service-architecture-delta",
+  "graphId": "ordivon-agent-service-r12-proved-failover-delta",
+  "baseGraph": "knowledge/graphs/ordivon-agent-service-r2.json",
+  "baseImplementationCommit": "595dfcbc50e82a7280025461f6db2ae8592f465c",
+  "refinedPriorNodes": [
+    {
+      "nodeId": "N58",
+      "label": "TaskExecutionClaimStore",
+      "refinement": "R12 permits REMOTE_BINDING ownership transfer only through compare-and-swap after independent quiescence and replay-safety evidence."
+    },
+    {
+      "nodeId": "N60",
+      "label": "ClaimAwareDeliveryCoordinator",
+      "refinement": "R12 wraps delivery with a quiescence-attempt freeze gate so a source Binding cannot be re-delivered after failover preparation begins."
+    }
+  ],
+  "discoveredNodes": [
+    {
+      "nodeId": "N65",
+      "label": "ExecutionQuiescenceRequestStore",
+      "kind": "STATE_AUTHORITY",
+      "symbol": "agent_service.failover.ExecutionQuiescenceRequestStore",
+      "reason": "Quiescence intent must be durable before any external cancel/query effect so response loss cannot reopen the old Binding for delivery."
+    },
+    {
+      "nodeId": "N66",
+      "label": "ExecutionQuiescenceProofStore",
+      "kind": "EVIDENCE_RECEIPT_STORE",
+      "symbol": "agent_service.failover.ExecutionQuiescenceProofStore",
+      "reason": "Provider/task lifecycle evidence that the old execution owner can no longer execute is historical proof, not Task semantic completion."
+    },
+    {
+      "nodeId": "N67",
+      "label": "ExecutionQuiescenceCoordinator",
+      "kind": "RECONCILER",
+      "symbol": "agent_service.failover.ExecutionQuiescenceCoordinator",
+      "reason": "Exact replay, remote correlation, terminal-state interpretation, pre-effect request persistence and provider quiescence adapters require one bounded lifecycle."
+    },
+    {
+      "nodeId": "N68",
+      "label": "ReplaySafetyDecisionStore",
+      "kind": "EVIDENCE_RECEIPT_STORE",
+      "symbol": "agent_service.failover.ReplaySafetyDecisionStore",
+      "reason": "Whether re-executing work is effect-safe is distinct durable evidence from whether the prior executor stopped."
+    },
+    {
+      "nodeId": "N69",
+      "label": "ReplaySafetyCoordinator",
+      "kind": "DECISION_ROUTER",
+      "symbol": "agent_service.failover.ReplaySafetyCoordinator",
+      "reason": "Effect-domain replay safety must bind one Task/source/target/quiescence proof and cannot be inferred from protocol cancellation alone."
+    },
+    {
+      "nodeId": "N70",
+      "label": "ExecutionClaimTransferStore",
+      "kind": "STATE_AUTHORITY",
+      "symbol": "agent_service.failover.ExecutionClaimTransferStore",
+      "reason": "Every remote execution-owner transfer needs exact replay identity, ordered history and references to both prerequisite decisions."
+    },
+    {
+      "nodeId": "N71",
+      "label": "ExecutionClaimTransferCoordinator",
+      "kind": "RECONCILER",
+      "symbol": "agent_service.failover.ExecutionClaimTransferCoordinator",
+      "reason": "The actual ownership switch must be a local compare-and-swap after source and target preflight plus both positive proofs."
+    },
+    {
+      "nodeId": "N72",
+      "label": "TransferAwareDeliveryCoordinator",
+      "kind": "GATEWAY",
+      "symbol": "agent_service.failover.TransferAwareDeliveryCoordinator",
+      "reason": "Any durable quiescence attempt freezes that Binding from subsequent delivery, including during provider response-loss ambiguity."
+    },
+    {
+      "nodeId": "N73",
+      "label": "FailoverCoordinator",
+      "kind": "COMPOSITION_ORCHESTRATOR",
+      "symbol": "agent_service.failover.FailoverCoordinator",
+      "reason": "Failover composes pure preflight -> quiescence proof -> replay-safety decision -> CAS transfer under three exact request identities."
+    }
+  ],
+  "flow": [
+    "R11 TaskExecutionClaim = REMOTE_BINDING(source)",
+    "pure source/target preflight",
+    "N65 ExecutionQuiescenceRequestStore REQUESTED",
+    "N67 ExecutionQuiescenceCoordinator",
+    "provider quiescence adapter or terminal-unsuccessful observation",
+    "N66 ExecutionQuiescenceProofStore",
+    "N69 ReplaySafetyCoordinator",
+    "effect-domain ReplaySafetyAdapter",
+    "N68 ReplaySafetyDecisionStore",
+    "N71 ExecutionClaimTransferCoordinator CAS source -> target",
+    "N70 ExecutionClaimTransferStore",
+    "N72 TransferAwareDeliveryCoordinator",
+    "fallback delivery",
+    "R11 remote evidence / semantic verification"
+  ],
+  "authorityLaws": [
+    "Cancel request or cancel acknowledgement is not quiescence proof.",
+    "Quiescence intent is persisted before any provider quiescence/cancel effect.",
+    "Once any quiescence attempt exists for a source Binding, that Binding is frozen from new delivery; provider response loss cannot reopen it.",
+    "A terminal observation may directly establish quiescence only when terminal=true and successful=false.",
+    "Terminal=true with successful=null is not sufficient; an ExecutionQuiescenceAdapter must explicitly prove quiescence.",
+    "Any historical terminal successful=true observation blocks failover even if a later provider observation regresses to failure/cancelled.",
+    "Quiescence proves that the old owner cannot continue; it does not prove that prior side effects are absent, rolled back, compensated, or idempotently replayable.",
+    "Replay safety is a separate target-bound decision. Recognized positive classifications are NO_EFFECTS, ROLLED_BACK, COMPENSATED and IDEMPOTENT_REPLAY.",
+    "PARTIAL_EFFECTS, UNKNOWN or any other unsafe decision blocks ownership transfer.",
+    "A source/target pair is structurally preflighted before any external quiescence effect; cross-Delegation or dirty targets fail without touching the provider.",
+    "The fallback target must be pristine: no DeliveryReceipt, remote observation history, quiescence-attempt history, prior transfer history, or existing Task verification.",
+    "ExecutionClaim transfer requires the exact positive quiescence proof and exact positive replay-safety decision for the same Task/source/target.",
+    "Transfer uses compare-and-swap against the current REMOTE_BINDING owner; stale ownership fails closed.",
+    "The Task remains RUNNING across failover and fallback delivery; only the R11 evidence/verifier path may produce semantic Task completion.",
+    "A late result from the old source cannot steal Task completion after ownership moved because R11 completion requires the current execution claim.",
+    "Transport/request idempotency is not promoted into a universal business-side-effect exactly-once claim."
+  ],
+  "standardsBasis": [
+    {
+      "standard": "A2A current specification",
+      "use": "Cancel Task is an attempted cancellation whose success is not guaranteed; terminal task lifecycle and operation idempotency do not imply business-side-effect rollback or replay safety."
+    },
+    {
+      "standard": "MCP 2026-07-28 Tasks extension",
+      "use": "tasks/cancel is cooperative intent; acknowledgement does not guarantee work stopped, and a task may remain working or ultimately complete after cancellation acknowledgement."
+    }
+  ]
+}

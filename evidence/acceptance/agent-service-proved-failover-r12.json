@@ -1,0 +1,75 @@
+{
+  "architectureDelta": "knowledge/graphs/ordivon-agent-service-r12-proved-failover-delta.json",
+  "authorityAssertions": {
+    "businessSideEffectExactlyOnceGuaranteed": false,
+    "cancelAcknowledgementEqualsQuiescence": false,
+    "claimTransferRequiresPositiveQuiescence": true,
+    "claimTransferRequiresPositiveReplaySafety": true,
+    "claimTransferUsesCompareAndSwap": true,
+    "crossDelegationFailoverAllowed": false,
+    "dirtyFallbackTargetAllowed": false,
+    "fallbackDeliveryDirectlyCompletesTask": false,
+    "historicalTerminalSuccessAllowsFailover": false,
+    "invalidFallbackTriggersProviderQuiescenceEffect": false,
+    "lateOldOwnerMayCompleteTaskAfterTransfer": false,
+    "liveA2AQuiescenceAdapterImplemented": false,
+    "liveMCPQuiescenceAdapterImplemented": false,
+    "liveReplaySafetyAdapterImplemented": false,
+    "negativeQuiescenceProofAllowsReplaySafety": false,
+    "oldBindingMayDeliverAfterQuiescenceAttempt": false,
+    "partialEffectsAreReplaySafe": false,
+    "quiescenceEqualsReplaySafety": false,
+    "quiescenceRequestPersistedBeforeProviderEffect": true,
+    "quiescenceResponseLossAllowsSourceRedelivery": false,
+    "replaySafetyDecisionIsTargetBound": true,
+    "terminalUnknownAutomaticallyEstablishesQuiescence": false,
+    "terminalUnsuccessfulMayEstablishQuiescence": true
+  },
+  "baseImplementationCommit": "595dfcbc50e82a7280025461f6db2ae8592f465c",
+  "date": "2026-09-18",
+  "discoveredNodes": [
+    "N65",
+    "N66",
+    "N67",
+    "N68",
+    "N69",
+    "N70",
+    "N71",
+    "N72",
+    "N73"
+  ],
+  "kind": "ordivon.agent-service-proved-failover-r12-acceptance",
+  "refinedPriorNodes": [
+    "N58",
+    "N60"
+  ],
+  "schemaVersion": 1,
+  "semanticDogfood": {
+    "claimOwnerAfterTransfer": true,
+    "fallbackReceiptBindingMatches": true,
+    "fallbackSendCount": 1,
+    "oldBindingFrozen": true,
+    "quiescenceRequestState": "PROVED",
+    "quiescent": true,
+    "replayClassification": "COMPENSATED",
+    "replaySafe": true,
+    "sourceOwnerBeforeTransfer": true,
+    "sourceSendCount": 1,
+    "status": "PASS",
+    "taskState": "RUNNING"
+  },
+  "standardsBasis": {
+    "a2a": "Current A2A Cancel Task semantics: cancellation is attempted and not guaranteed; task lifecycle/idempotency does not imply rollback of business effects.",
+    "mcp": "2026-07-28 Tasks extension: tasks/cancel is cooperative intent; ACK does not prove stopped execution and task may remain working or ultimately complete."
+  },
+  "verification": {
+    "compileall": "PASS",
+    "failoverTests": 16,
+    "gitDiffCheck": "PASS",
+    "publicApiTests": 1,
+    "repositoryFailures": 0,
+    "repositoryTests": 172,
+    "resourceWarningsAsErrors": "PASS"
+  },
+  "verificationState": "PASS"
+}

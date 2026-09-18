@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.agent-service-architecture-delta",
+  "graphId": "ordivon-agent-service-r6-evidence-delta",
+  "baseGraph": "knowledge/graphs/ordivon-agent-service-r2.json",
+  "baseImplementationCommit": "4a3d107d41c14ea2d34fc4ef49d7cd056e32bab9",
+  "refinedNodes": [
+    {
+      "nodeId": "N15",
+      "previousLabel": "AssignmentActivator",
+      "label": "AssignmentExecutionActivator",
+      "symbol": "agent_service.evidence.AssignmentExecutionActivator",
+      "refinement": "R5 implementation coupled execution activation and semantic completion. R6 narrows N15 to ASSIGNED -> RUNNING plus Runtime Job binding only."
+    },
+    {
+      "nodeId": "N13",
+      "previousLabel": "SemanticVerifier",
+      "label": "EvidenceSemanticVerifier",
+      "symbol": "agent_service.evidence.EvidenceSemanticVerifier",
+      "refinement": "R6 makes semantic verification pure over normalized evidence; Runtime mechanical state is checked earlier by a separate gate."
+    }
+  ],
+  "discoveredNodes": [
+    {
+      "nodeId": "N26",
+      "label": "TaskCompletionReconciler",
+      "kind": "RECONCILER",
+      "symbol": "agent_service.evidence.TaskCompletionReconciler",
+      "reason": "Execution admission and semantic completion have different triggers, recovery points and authority. Completion must be replayable independently after Agent Service restart."
+    },
+    {
+      "nodeId": "N27",
+      "label": "RuntimeArtifactReader",
+      "kind": "ADAPTER_GATEWAY",
+      "symbol": "agent_service.evidence.RuntimeArtifactReader",
+      "provider": "agent_service.runtime_mcp.RuntimeMcpArtifactReader",
+      "reason": "Runtime Artifact bytes/digests are a distinct read-only authority surface from Runtime Job admission/observation."
+    },
+    {
+      "nodeId": "N28",
+      "label": "EvidenceResolverRegistry",
+      "kind": "DECISION_ROUTER",
+      "symbol": "agent_service.evidence.EvidenceResolverRegistry",
+      "reason": "Raw Runtime evidence must be normalized according to the Task acceptance contract before semantic verification."
+    },
+    {
+      "nodeId": "N29",
+      "label": "VerificationRecordStore",
+      "kind": "STATE_AUTHORITY",
+      "symbol": "agent_service.evidence.VerificationRecordStore",
+      "reason": "Semantic verdict provenance must survive restart without turning Agent Service into a second Runtime Artifact store."
+    },
+    {
+      "nodeId": "N30",
+      "label": "RuntimeEvidenceGate",
+      "kind": "VERIFIER_OBSERVER",
+      "symbol": "agent_service.evidence.RuntimeEvidenceGate",
+      "reason": "Mechanical failure/delivery truth must gate semantic interpretation, and Runtime must never claim semanticCompletionEvaluated=true."
+    }
+  ],
+  "retainedNode": {
+    "nodeId": "N25",
+    "label": "RuntimeJobObserver",
+    "introducedBy": "R5",
+    "realization": "agent_service.runtime_mcp.RuntimeMcpAdapter.observe"
+  },
+  "flow": [
+    "N15 AssignmentExecutionActivator",
+    "N19 RuntimeAdapter",
+    "N25 RuntimeJobObserver",
+    "N30 RuntimeEvidenceGate",
+    "N28 EvidenceResolverRegistry",
+    "N27 RuntimeArtifactReader when required",
+    "N13 EvidenceSemanticVerifier",
+    "N29 VerificationRecordStore",
+    "N26 TaskCompletionReconciler",
+    "N05 TaskStore"
+  ],
+  "truthClasses": [
+    {
+      "truth": "mechanical execution",
+      "owner": "Runtime",
+      "examples": ["Job status", "Attempt terminality", "deliveryDisposition"]
+    },
+    {
+      "truth": "artifact bytes and artifact digest",
+      "owner": "Runtime",
+      "examples": ["stdout Artifact", "result Artifact", "terminal evidence Artifact"]
+    },
+    {
+      "truth": "normalized task evidence",
+      "owner": "Agent Service evidence resolver",
+      "persistence": "ephemeral facts plus durable provenance only"
+    },
+    {
+      "truth": "semantic acceptance verdict",
+      "owner": "Agent Service SemanticVerifier"
+    },
+    {
+      "truth": "verification provenance",
+      "owner": "Agent Service VerificationRecordStore",
+      "rawArtifactCopy": false
+    }
+  ],
+  "authorityLaws": [
+    "Assignment activation and Task completion are separate lifecycle nodes.",
+    "Runtime mechanical success is necessary but insufficient for Task success.",
+    "Runtime Artifact bytes remain Runtime truth; Agent Service stores references and digests, not raw Artifact copies.",
+    "Evidence resolution is acceptance-specific and replaceable independently from Runtime execution.",
+    "SemanticVerifier consumes normalized evidence, not process exit state.",
+    "VerificationRecord + Task terminal state + Assignment terminal state + semantic events commit atomically.",
+    "Completion reconciliation is idempotent and may resume after Agent Service reconstruction."
+  ],
+  "currentResolvers": [
+    "stdout_contains -> bounded task.observe stdoutTail compatibility resolver",
+    "stdout_equals -> bounded task.observe stdoutTail compatibility resolver",
+    "runtime_artifact_text_contains -> digest-bound Runtime artifact.read resolver"
+  ]
+}

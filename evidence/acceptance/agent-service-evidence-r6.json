@@ -1,0 +1,88 @@
+{
+  "architectureDelta": "knowledge/graphs/ordivon-agent-service-r6-evidence-delta.json",
+  "authorityAssertions": {
+    "activationOwnsSemanticCompletion": false,
+    "agentServiceDuplicatesRuntimeArtifactBytes": false,
+    "completionReplayIdempotent": true,
+    "runtimeOwnsArtifactBytes": true,
+    "semanticVerifierConsumesMechanicalProcessState": false,
+    "verificationTerminalCommitAtomic": true
+  },
+  "baseImplementationCommit": "4a3d107d41c14ea2d34fc4ef49d7cd056e32bab9",
+  "date": "2026-09-18",
+  "discoveredNodes": [
+    "N26",
+    "N27",
+    "N28",
+    "N29",
+    "N30"
+  ],
+  "kind": "ordivon.agent-service-evidence-r6-acceptance",
+  "liveSmokes": [
+    {
+      "artifactDigest": "sha256:7f6365651b4f6ed305465277d04c43303648798d1e8c3160774aa69ec2d8f6e3",
+      "id": "runtime-artifact-semantic-success",
+      "runtimeJobId": "job-01a0b058-e3ae-7bf1-a4ab-af7fa33bd238",
+      "status": "PASS",
+      "taskState": "SUCCEEDED",
+      "verificationStage": "semantic"
+    },
+    {
+      "artifactDigest": "sha256:b3c2432cf578feea4c5e26e31d383d7ea5ccf8e1178bebc80fa93637072c6898",
+      "failureReason": "acceptance:runtime_artifact_text_contains:not_satisfied",
+      "id": "runtime-artifact-semantic-mismatch",
+      "runtimeJobId": "job-01a0b059-9e2d-7d60-9a19-a42343f707c4",
+      "status": "PASS",
+      "taskState": "FAILED",
+      "verificationStage": "semantic"
+    },
+    {
+      "artifactDigest": "sha256:c83e2a8d3ee40c7d00cf6727abec600ed8fe1a9f7f85afa9c31bf98eb1e0790f",
+      "id": "completion-after-agent-service-reconstruction",
+      "runtimeJobIdAfterReopen": "job-01a0b059-a0ec-72f0-a895-9c4bbf72e5ac",
+      "runtimeJobIdBeforeClose": "job-01a0b059-a0ec-72f0-a895-9c4bbf72e5ac",
+      "sameRuntimeJob": true,
+      "status": "PASS",
+      "taskState": "SUCCEEDED"
+    },
+    {
+      "artifactDigest": "sha256:e6d17ce67adda81e29390fda3218f8da6ec51f030d780168388a82d6ddee19bf",
+      "id": "verification-receipt-does-not-copy-raw-runtime-artifact",
+      "rawMarkerPresentInVerificationReceipt": false,
+      "runtimeJobId": "job-01a0b05b-3cb5-7be0-bb21-7a9b597c28df",
+      "status": "PASS",
+      "taskState": "SUCCEEDED"
+    }
+  ],
+  "refinedNodes": [
+    "N15",
+    "N13"
+  ],
+  "runtimeArtifactReader": {
+    "checks": [
+      "job identity",
+      "artifact identity",
+      "offset continuity",
+      "cursor progress",
+      "cross-chunk digest stability",
+      "reassembled digest",
+      "max total evidence bytes"
+    ],
+    "provider": "RuntimeMcpArtifactReader",
+    "tool": "artifact.read"
+  },
+  "schemaVersion": 1,
+  "verification": {
+    "compileall": "PASS",
+    "evidenceTests": 9,
+    "gitDiffCheck": "PASS",
+    "publicApiTests": 1,
+    "r5RuntimeMcpRegressionTests": 6,
+    "r5TaskRuntimeRegressionTests": 10,
+    "repositoryFailures": 0,
+    "repositoryTests": 90,
+    "resourceWarningsAsErrors": "PASS",
+    "runtimeArtifactTests": 4
+  },
+  "verificationState": "PASS"
+}

@@ -1,0 +1,100 @@
+{
+  "architectureDelta": "knowledge/graphs/ordivon-agent-service-r4-authority-delta.json",
+  "authorityCorrection": {
+    "compatibilityAliasRetained": true,
+    "from": "HostAdapter",
+    "hostV2PlacementAuthority": false,
+    "naturalLocalCarrierOwner": "WorkstationV2",
+    "nodeId": "N18",
+    "providerSemanticsOwner": "HarnessAgentAutomation",
+    "to": "CarrierProviderAdapter"
+  },
+  "baseImplementationCommit": "afa0f74577eb240fa8e12431e5606f9b4694f15e",
+  "date": "2026-09-17",
+  "kind": "ordivon.agent-service-carrier-r4-acceptance",
+  "liveSmokes": [
+    {
+      "expected": "UNRECORDED",
+      "id": "synthetic-read-only-census",
+      "observed": "UNRECORDED",
+      "providerEffectAdmitted": false,
+      "status": "PASS"
+    },
+    {
+      "agentId": "P3-P9-R2-PREEXEC-A10",
+      "campaignId": "campaign:paper3-p9-r2-preexec-rereview-20260915-r1",
+      "expected": "READY",
+      "id": "existing-bound-read-only-census",
+      "observed": "READY",
+      "providerEffectAdmitted": false,
+      "providerResourcePresent": true,
+      "status": "PASS"
+    },
+    {
+      "after": "READY",
+      "before": "PROVISIONING",
+      "events": [
+        "AGENT_BIRTH_REQUESTED",
+        "AGENT_READY"
+      ],
+      "id": "agent-service-to-production-ledger-reconcile",
+      "observedState": "READY",
+      "providerEffectAdmitted": false,
+      "status": "PASS"
+    }
+  ],
+  "productionObservation": {
+    "birthLedger": {
+      "bound": 150,
+      "effectOutcomeAmbiguous": 33,
+      "humanRequired": 1,
+      "preEffectFailed": 129,
+      "prepared": 0,
+      "requests": 313,
+      "submitObserved": 6,
+      "unknown": 27,
+      "unresolved": 34,
+      "unresolvedAffectsHealth": false
+    },
+    "browserlessEndpointsHealthy": 3,
+    "carrierExecutable": true,
+    "carrierExists": true,
+    "doctorHealthy": true
+  },
+  "providerReducer": {
+    "bound": "READY",
+    "human-required": "HUMAN_REQUIRED",
+    "pre-effect-failed": "PRE_EFFECT_FAILED",
+    "prepared": "PROVISIONING",
+    "ready-confirmed": "READY",
+    "submit-observed": "AMBIGUOUS",
+    "unknown": "AMBIGUOUS",
+    "unrecorded": "UNRECORDED"
+  },
+  "safety": {
+    "humanRequiredAutoResumeForbidden": true,
+    "preEffectFailedSameIdentityReentry": true,
+    "retireSupported": false,
+    "submitObservedRedispatchForbidden": true,
+    "unknownRedispatchForbidden": true
+  },
+  "schemaVersion": 1,
+  "sourceEvidence": {
+    "harnessRevision": "a8bce1376a848c197abcd9d3c1c565ed75cb1617",
+    "hostV2Revision": "b5cf31f9a1d177576886fe545e870e685a80fc2e",
+    "stableCarrierEntrypoint": "/root/tools/bin/agent-automation",
+    "workstationV2Revision": "cf4b267c2e3269b50633acf0dc2408a31567d8dd"
+  },
+  "verification": {
+    "carrierFailures": 0,
+    "carrierTests": 18,
+    "compileall": "PASS",
+    "gitDiffCheck": "PASS",
+    "repositoryFailures": 0,
+    "repositoryTests": 60,
+    "resourceWarningsAsErrors": "PASS",
+    "slice1Failures": 0,
+    "slice1Tests": 9
+  },
+  "verificationState": "PASS"
+}
