@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.host-experiment-result",
+  "truthRole": "measurement-result-not-production-authority",
+  "experimentId": "E02",
+  "name": "r6-vs-r7-compact-read",
+  "observedAt": "2026-09-18",
+  "liveBaseline": {
+    "releaseRevision": "b5cf31f9a1d177576886fe545e870e685a80fc2e",
+    "surfaceVersion": 7,
+    "taskListBehavior": "full current TaskView including checkpoint payload"
+  },
+  "candidate": {
+    "sourceCommit": "c45379e211d21f48cbb2e51b01a357fd518ae746",
+    "r2TransplantCommit": "b118559a87725e22237d22b218d40861838dae5e",
+    "workspaceId": "ws-host-e02-compact-read-20260918",
+    "containsCurrentnessExperiment": false
+  },
+  "taskListMeasurement": {
+    "population": "all non-terminal live Host Tasks at measurement time",
+    "taskCount": 267,
+    "pagesAtLimit50": 6,
+    "r6SerializedUtf8Bytes": 2024956,
+    "r7ProjectedSerializedUtf8Bytes": 81686,
+    "reductionPercent": 95.9660358052,
+    "compressionRatio": 24.7895110545,
+    "averageR6TaskBytes": 7573.0786516854,
+    "averageR7SummaryBytes": 293.2734082397,
+    "taskPayloadReductionPercent": 96.1274215979
+  },
+  "queryStructure": {
+    "basis": "static code-path count, not measured database latency",
+    "r6PerPage": "1 inventory query + 2 hydration queries per returned Task",
+    "r7PerPage": "1 bounded join query returning compact summaries",
+    "r6StatementsForObserved267Tasks6Pages": 540,
+    "r7StatementsForObserved267Tasks6Pages": 6,
+    "statementCountRatio": 90
+  },
+  "taskResumeMeasurement": {
+    "sampleSize": 11,
+    "sampling": "10 newest non-terminal Tasks plus the largest task.list payload observed in the population",
+    "r6SerializedUtf8Bytes": 169215,
+    "r7ProjectedSerializedUtf8Bytes": 88677,
+    "reductionPercent": 47.5950713589,
+    "averageR6Bytes": 15383.1818181818,
+    "averageR7Bytes": 8061.5454545455,
+    "mechanism": "R7 returns compact task identity/revision capsule plus one top-level checkpoint instead of duplicating checkpoint inside task and top-level"
+  },
+  "verification": {
+    "transplantBase": "95aad2db6d29fbea0507feddcd000439ac3dfca7",
+    "pytest": "10 passed / 20 skipped",
+    "ruff": "PASS",
+    "gitDiffCheck": "PASS",
+    "currentnessContaminationCheck": "PASS",
+    "databaseIntegrationCaveat": "PostgreSQL integration tests were skipped because ORDIVON_HOST_V2_TEST_DSN is not configured in this isolated workspace session."
+  },
+  "interpretation": {
+    "resourceStanding": "STRONG_POSITIVE",
+    "semanticStanding": "PROMISING_CANDIDATE_NOT_YET_PRODUCTION_ADMITTED",
+    "reason": "Discovery payload and query count fall sharply while exact checkpoint hydration remains task.resume. Production promotion still requires an isolated PostgreSQL integration run and re-entry outcome check."
+  }
+}

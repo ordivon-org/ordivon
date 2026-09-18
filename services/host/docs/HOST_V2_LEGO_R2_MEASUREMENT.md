@@ -160,6 +160,16 @@ Measure:
 
 Acceptance requires lower discovery cost without lowering exact-reentry correctness.
 
+### E02 measured result — strong resource win
+
+Using all 267 non-terminal live Tasks at the measurement cut, the deployed R6 `task.list` wire totaled **2,024,956 UTF-8 bytes** across six 50-item pages. Projecting those exact Tasks into the R7 candidate wire totaled **81,686 bytes**: a **95.97% reduction**, or about **24.79× smaller**.
+
+The code-path structure contracts at the same time. R6 performs one inventory query and then two hydration queries per returned Task; for the observed 267 Tasks across six pages this is about **540 SQL statements**. R7 returns each page with one bounded join query, or **6 statements** for the same traversal. This is a static statement-count analysis, not a database-latency benchmark.
+
+For `task.resume`, an 11-Task sample measured **169,215 bytes → 88,677 bytes**, a **47.60% reduction**, because R7 keeps one top-level checkpoint and makes the nested `task` object a compact identity/revision capsule.
+
+The compact-read commit was transplanted by itself onto the R2 base as `b118559a87725e22237d22b218d40861838dae5e`. Verification found no currentness experiment code or schema references; pytest/Ruff/diff checks pass. PostgreSQL integration tests remain skipped in this isolated session because no test DSN is configured, so E02 is a **strong positive resource result, not yet production admission**.
+
 ## Experiment E03 — workStanding consumer census
 
 The source census found no production/runtime consumer code, but the live-data census found `workStanding` in 233/266 non-terminal checkpoints. Therefore the next experiment is **semantic contraction before schema deletion**.
