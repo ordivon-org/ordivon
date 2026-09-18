@@ -45,7 +45,10 @@ The experiment visited only data:text/html, did not visit ChatGPT or another pro
 
 Controlled run1 and controlled run2 are byte-identical.
 
-    whole evidence:
+    raw evidence file bytes (each run):
+    sha256:664034c1c524154e9e877d767932e5b00e34722cd4678c0b949ae0d28924af60
+
+    canonical whole-evidence JSON:
     sha256:5ee012acbab0aea05a66d3d2a3601785038dbdd0a3920146c993a0a8ab1f9f5f
 
     selected evidence:
