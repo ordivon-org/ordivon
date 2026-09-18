@@ -1,0 +1,996 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.causal-lag-horizon-r6-mechanical-acceptance",
+  "designId": "pc01-causal-works-f0",
+  "designDigest": "sha256:19a258b457f4bbdeaf1e97a24c01bd9b800f0e50a4e3ffebe857e75290e0ac7c",
+  "parentR5EvidenceDigest": "sha256:194486746b494487c899ed11607d283a7241d9a39ba83a011031fa4ad5592a37",
+  "sourceBaseRevision": "bb742432e1ac9b73a259492e0020757fe7e04793",
+  "methodSnapshot": {
+    "ordivonNextRevision": "2231438e8f293742c1f5f1a2622b3e567003f5e0",
+    "authority": "ANALYSIS_METHOD_PROVENANCE_ONLY"
+  },
+  "lensRouting": {
+    "target": "Choose between composition saturation and horizon-aware contract planning.",
+    "selectedLegoLens": "lego-ck-design",
+    "domainMethods": [
+      "exact-combinatorial-enumeration",
+      "finite-horizon-dynamic-programming"
+    ],
+    "rejectedOrDeferred": [
+      {
+        "lens": "lego-exploration-policy",
+        "reason": "deterministic exhaustive search remains cheaper and exactly attributable"
+      },
+      {
+        "lens": "lego-feedback-control",
+        "reason": "no new durable controller/runtime responsibility is required by this oracle-only slice"
+      },
+      {
+        "lens": "lego-information-flow",
+        "reason": "oracle privacy remains an existing evidence boundary; no new information-flow architecture decision is introduced"
+      }
+    ],
+    "routingStanding": "DOMAIN_METHOD_PLUS_ONE_GENERATIVE_LENS"
+  },
+  "branchCompetition": {
+    "saturation": {
+      "schemaVersion": 1,
+      "kind": "ordivon.game.causal-lag-r6-composition-saturation",
+      "localUnitCount": 27,
+      "localEquivalenceClasses": 20,
+      "redundantLocalUnits": 7,
+      "uniqueFraction": 0.7407407407407407,
+      "baselineOnlyEquivalenceClasses": 7,
+      "sequenceSaturation": [
+        {
+          "length": 1,
+          "validSequenceCount": 27,
+          "distinctEquivalenceWords": 20,
+          "uniqueFraction": 0.7407407407407407
+        },
+        {
+          "length": 2,
+          "validSequenceCount": 243,
+          "distinctEquivalenceWords": 180,
+          "uniqueFraction": 0.7407407407407407
+        },
+        {
+          "length": 3,
+          "validSequenceCount": 2187,
+          "distinctEquivalenceWords": 1620,
+          "uniqueFraction": 0.7407407407407407
+        },
+        {
+          "length": 4,
+          "validSequenceCount": 19683,
+          "distinctEquivalenceWords": 14580,
+          "uniqueFraction": 0.7407407407407407
+        },
+        {
+          "length": 5,
+          "validSequenceCount": 177147,
+          "distinctEquivalenceWords": 131220,
+          "uniqueFraction": 0.7407407407407407
+        }
+      ],
+      "saturationEstablished": false,
+      "interpretation": "LOCAL_EQUIVALENCE_EXISTS_BUT_SEQUENCE_COMPRESSION_DOES_NOT_WORSEN_THROUGH_BOUND",
+      "productSelected": false,
+      "humanOutcomeEstablished": false
+    },
+    "horizon": {
+      "testedHorizons": [
+        2,
+        3
+      ],
+      "persistences": [
+        0.2,
+        0.9
+      ],
+      "previousArchitectures": [
+        "source",
+        "process",
+        "route"
+      ],
+      "targetGrid": {
+        "minimum": 40,
+        "step": 5,
+        "maximumRule": "100 × horizon"
+      },
+      "targetSensitiveWindowStates": 96,
+      "adjacentTargetPolicyTransitions": 625,
+      "sensitiveStates": [
+        {
+          "horizon": 2,
+          "startBeat": 1,
+          "persistence": 0.2,
+          "previousArchitecture": "source",
+          "transitionCount": 3
+        },
+        {
+          "horizon": 2,
+          "startBeat": 1,
+          "persistence": 0.2,
+          "previousArchitecture": "process",
+          "transitionCount": 2
+        },
+        {
+          "horizon": 2,
+          "startBeat": 1,
+          "persistence": 0.2,
+          "previousArchitecture": "route",
+          "transitionCount": 3
+        },
+        {
+          "horizon": 2,
+          "startBeat": 1,
+          "persistence": 0.9,
+          "previousArchitecture": "source",
+          "transitionCount": 7
+        },
+        {
+          "horizon": 2,
+          "startBeat": 1,
+          "persistence": 0.9,
+          "previousArchitecture": "process",
+          "transitionCount": 5
+        },
+        {
+          "horizon": 2,
+          "startBeat": 1,
+          "persistence": 0.9,
+          "previousArchitecture": "route",
+          "transitionCount": 10
+        },
+        {
+          "horizon": 2,
+          "startBeat": 2,
+          "persistence": 0.2,
+          "previousArchitecture": "source",
+          "transitionCount": 4
+        },
+        {
+          "horizon": 2,
+          "startBeat": 2,
+          "persistence": 0.2,
+          "previousArchitecture": "process",
+          "transitionCount": 2
+        },
+        {
+          "horizon": 2,
+          "startBeat": 2,
+          "persistence": 0.2,
+          "previousArchitecture": "route",
+          "transitionCount": 7
+        },
+        {
+          "horizon": 2,
+          "startBeat": 2,
+          "persistence": 0.9,
+          "previousArchitecture": "source",
+          "transitionCount": 6
+        },
+        {
+          "horizon": 2,
+          "startBeat": 2,
+          "persistence": 0.9,
+          "previousArchitecture": "process",
+          "transitionCount": 5
+        },
+        {
+          "horizon": 2,
+          "startBeat": 2,
+          "persistence": 0.9,
+          "previousArchitecture": "route",
+          "transitionCount": 6
+        },
+        {
+          "horizon": 2,
+          "startBeat": 3,
+          "persistence": 0.2,
+          "previousArchitecture": "source",
+          "transitionCount": 6
+        },
+        {
+          "horizon": 2,
+          "startBeat": 3,
+          "persistence": 0.2,
+          "previousArchitecture": "process",
+          "transitionCount": 8
+        },
+        {
+          "horizon": 2,
+          "startBeat": 3,
+          "persistence": 0.2,
+          "previousArchitecture": "route",
+          "transitionCount": 4
+        },
+        {
+          "horizon": 2,
+          "startBeat": 3,
+          "persistence": 0.9,
+          "previousArchitecture": "source",
+          "transitionCount": 11
+        },
+        {
+          "horizon": 2,
+          "startBeat": 3,
+          "persistence": 0.9,
+          "previousArchitecture": "process",
+          "transitionCount": 7
+        },
+        {
+          "horizon": 2,
+          "startBeat": 3,
+          "persistence": 0.9,
+          "previousArchitecture": "route",
+          "transitionCount": 6
+        },
+        {
+          "horizon": 2,
+          "startBeat": 4,
+          "persistence": 0.2,
+          "previousArchitecture": "source",
+          "transitionCount": 6
+        },
+        {
+          "horizon": 2,
+          "startBeat": 4,
+          "persistence": 0.2,
+          "previousArchitecture": "process",
+          "transitionCount": 10
+        },
+        {
+          "horizon": 2,
+          "startBeat": 4,
+          "persistence": 0.2,
+          "previousArchitecture": "route",
+          "transitionCount": 2
+        },
+        {
+          "horizon": 2,
+          "startBeat": 4,
+          "persistence": 0.9,
+          "previousArchitecture": "source",
+          "transitionCount": 9
+        },
+        {
+          "horizon": 2,
+          "startBeat": 4,
+          "persistence": 0.9,
+          "previousArchitecture": "process",
+          "transitionCount": 8
+        },
+        {
+          "horizon": 2,
+          "startBeat": 4,
+          "persistence": 0.9,
+          "previousArchitecture": "route",
+          "transitionCount": 6
+        },
+        {
+          "horizon": 2,
+          "startBeat": 5,
+          "persistence": 0.2,
+          "previousArchitecture": "process",
+          "transitionCount": 6
+        },
+        {
+          "horizon": 2,
+          "startBeat": 5,
+          "persistence": 0.2,
+          "previousArchitecture": "route",
+          "transitionCount": 6
+        },
+        {
+          "horizon": 2,
+          "startBeat": 5,
+          "persistence": 0.9,
+          "previousArchitecture": "source",
+          "transitionCount": 6
+        },
+        {
+          "horizon": 2,
+          "startBeat": 5,
+          "persistence": 0.9,
+          "previousArchitecture": "process",
+          "transitionCount": 8
+        },
+        {
+          "horizon": 2,
+          "startBeat": 5,
+          "persistence": 0.9,
+          "previousArchitecture": "route",
+          "transitionCount": 7
+        },
+        {
+          "horizon": 2,
+          "startBeat": 6,
+          "persistence": 0.2,
+          "previousArchitecture": "source",
+          "transitionCount": 4
+        },
+        {
+          "horizon": 2,
+          "startBeat": 6,
+          "persistence": 0.2,
+          "previousArchitecture": "process",
+          "transitionCount": 4
+        },
+        {
+          "horizon": 2,
+          "startBeat": 6,
+          "persistence": 0.2,
+          "previousArchitecture": "route",
+          "transitionCount": 7
+        },
+        {
+          "horizon": 2,
+          "startBeat": 6,
+          "persistence": 0.9,
+          "previousArchitecture": "source",
+          "transitionCount": 5
+        },
+        {
+          "horizon": 2,
+          "startBeat": 6,
+          "persistence": 0.9,
+          "previousArchitecture": "process",
+          "transitionCount": 7
+        },
+        {
+          "horizon": 2,
+          "startBeat": 6,
+          "persistence": 0.9,
+          "previousArchitecture": "route",
+          "transitionCount": 6
+        },
+        {
+          "horizon": 2,
+          "startBeat": 7,
+          "persistence": 0.2,
+          "previousArchitecture": "source",
+          "transitionCount": 3
+        },
+        {
+          "horizon": 2,
+          "startBeat": 7,
+          "persistence": 0.2,
+          "previousArchitecture": "route",
+          "transitionCount": 3
+        },
+        {
+          "horizon": 2,
+          "startBeat": 7,
+          "persistence": 0.9,
+          "previousArchitecture": "source",
+          "transitionCount": 5
+        },
+        {
+          "horizon": 2,
+          "startBeat": 7,
+          "persistence": 0.9,
+          "previousArchitecture": "process",
+          "transitionCount": 2
+        },
+        {
+          "horizon": 2,
+          "startBeat": 7,
+          "persistence": 0.9,
+          "previousArchitecture": "route",
+          "transitionCount": 10
+        },
+        {
+          "horizon": 2,
+          "startBeat": 8,
+          "persistence": 0.2,
+          "previousArchitecture": "source",
+          "transitionCount": 5
+        },
+        {
+          "horizon": 2,
+          "startBeat": 8,
+          "persistence": 0.2,
+          "previousArchitecture": "process",
+          "transitionCount": 2
+        },
+        {
+          "horizon": 2,
+          "startBeat": 8,
+          "persistence": 0.2,
+          "previousArchitecture": "route",
+          "transitionCount": 6
+        },
+        {
+          "horizon": 2,
+          "startBeat": 8,
+          "persistence": 0.9,
+          "previousArchitecture": "source",
+          "transitionCount": 7
+        },
+        {
+          "horizon": 2,
+          "startBeat": 8,
+          "persistence": 0.9,
+          "previousArchitecture": "process",
+          "transitionCount": 5
+        },
+        {
+          "horizon": 2,
+          "startBeat": 8,
+          "persistence": 0.9,
+          "previousArchitecture": "route",
+          "transitionCount": 7
+        },
+        {
+          "horizon": 2,
+          "startBeat": 9,
+          "persistence": 0.2,
+          "previousArchitecture": "source",
+          "transitionCount": 9
+        },
+        {
+          "horizon": 2,
+          "startBeat": 9,
+          "persistence": 0.2,
+          "previousArchitecture": "process",
+          "transitionCount": 9
+        },
+        {
+          "horizon": 2,
+          "startBeat": 9,
+          "persistence": 0.9,
+          "previousArchitecture": "source",
+          "transitionCount": 10
+        },
+        {
+          "horizon": 2,
+          "startBeat": 9,
+          "persistence": 0.9,
+          "previousArchitecture": "process",
+          "transitionCount": 8
+        },
+        {
+          "horizon": 2,
+          "startBeat": 9,
+          "persistence": 0.9,
+          "previousArchitecture": "route",
+          "transitionCount": 12
+        },
+        {
+          "horizon": 3,
+          "startBeat": 1,
+          "persistence": 0.2,
+          "previousArchitecture": "source",
+          "transitionCount": 5
+        },
+        {
+          "horizon": 3,
+          "startBeat": 1,
+          "persistence": 0.2,
+          "previousArchitecture": "route",
+          "transitionCount": 7
+        },
+        {
+          "horizon": 3,
+          "startBeat": 1,
+          "persistence": 0.9,
+          "previousArchitecture": "source",
+          "transitionCount": 13
+        },
+        {
+          "horizon": 3,
+          "startBeat": 1,
+          "persistence": 0.9,
+          "previousArchitecture": "process",
+          "transitionCount": 5
+        },
+        {
+          "horizon": 3,
+          "startBeat": 1,
+          "persistence": 0.9,
+          "previousArchitecture": "route",
+          "transitionCount": 12
+        },
+        {
+          "horizon": 3,
+          "startBeat": 2,
+          "persistence": 0.2,
+          "previousArchitecture": "source",
+          "transitionCount": 5
+        },
+        {
+          "horizon": 3,
+          "startBeat": 2,
+          "persistence": 0.2,
+          "previousArchitecture": "process",
+          "transitionCount": 2
+        },
+        {
+          "horizon": 3,
+          "startBeat": 2,
+          "persistence": 0.2,
+          "previousArchitecture": "route",
+          "transitionCount": 6
+        },
+        {
+          "horizon": 3,
+          "startBeat": 2,
+          "persistence": 0.9,
+          "previousArchitecture": "source",
+          "transitionCount": 8
+        },
+        {
+          "horizon": 3,
+          "startBeat": 2,
+          "persistence": 0.9,
+          "previousArchitecture": "process",
+          "transitionCount": 7
+        },
+        {
+          "horizon": 3,
+          "startBeat": 2,
+          "persistence": 0.9,
+          "previousArchitecture": "route",
+          "transitionCount": 10
+        },
+        {
+          "horizon": 3,
+          "startBeat": 3,
+          "persistence": 0.2,
+          "previousArchitecture": "source",
+          "transitionCount": 5
+        },
+        {
+          "horizon": 3,
+          "startBeat": 3,
+          "persistence": 0.2,
+          "previousArchitecture": "process",
+          "transitionCount": 5
+        },
+        {
+          "horizon": 3,
+          "startBeat": 3,
+          "persistence": 0.2,
+          "previousArchitecture": "route",
+          "transitionCount": 4
+        },
+        {
+          "horizon": 3,
+          "startBeat": 3,
+          "persistence": 0.9,
+          "previousArchitecture": "source",
+          "transitionCount": 12
+        },
+        {
+          "horizon": 3,
+          "startBeat": 3,
+          "persistence": 0.9,
+          "previousArchitecture": "process",
+          "transitionCount": 10
+        },
+        {
+          "horizon": 3,
+          "startBeat": 3,
+          "persistence": 0.9,
+          "previousArchitecture": "route",
+          "transitionCount": 12
+        },
+        {
+          "horizon": 3,
+          "startBeat": 4,
+          "persistence": 0.2,
+          "previousArchitecture": "source",
+          "transitionCount": 7
+        },
+        {
+          "horizon": 3,
+          "startBeat": 4,
+          "persistence": 0.2,
+          "previousArchitecture": "process",
+          "transitionCount": 10
+        },
+        {
+          "horizon": 3,
+          "startBeat": 4,
+          "persistence": 0.2,
+          "previousArchitecture": "route",
+          "transitionCount": 2
+        },
+        {
+          "horizon": 3,
+          "startBeat": 4,
+          "persistence": 0.9,
+          "previousArchitecture": "source",
+          "transitionCount": 12
+        },
+        {
+          "horizon": 3,
+          "startBeat": 4,
+          "persistence": 0.9,
+          "previousArchitecture": "process",
+          "transitionCount": 8
+        },
+        {
+          "horizon": 3,
+          "startBeat": 4,
+          "persistence": 0.9,
+          "previousArchitecture": "route",
+          "transitionCount": 10
+        },
+        {
+          "horizon": 3,
+          "startBeat": 5,
+          "persistence": 0.2,
+          "previousArchitecture": "process",
+          "transitionCount": 3
+        },
+        {
+          "horizon": 3,
+          "startBeat": 5,
+          "persistence": 0.2,
+          "previousArchitecture": "route",
+          "transitionCount": 3
+        },
+        {
+          "horizon": 3,
+          "startBeat": 5,
+          "persistence": 0.9,
+          "previousArchitecture": "source",
+          "transitionCount": 5
+        },
+        {
+          "horizon": 3,
+          "startBeat": 5,
+          "persistence": 0.9,
+          "previousArchitecture": "process",
+          "transitionCount": 8
+        },
+        {
+          "horizon": 3,
+          "startBeat": 5,
+          "persistence": 0.9,
+          "previousArchitecture": "route",
+          "transitionCount": 9
+        },
+        {
+          "horizon": 3,
+          "startBeat": 6,
+          "persistence": 0.2,
+          "previousArchitecture": "source",
+          "transitionCount": 4
+        },
+        {
+          "horizon": 3,
+          "startBeat": 6,
+          "persistence": 0.2,
+          "previousArchitecture": "process",
+          "transitionCount": 6
+        },
+        {
+          "horizon": 3,
+          "startBeat": 6,
+          "persistence": 0.2,
+          "previousArchitecture": "route",
+          "transitionCount": 9
+        },
+        {
+          "horizon": 3,
+          "startBeat": 6,
+          "persistence": 0.9,
+          "previousArchitecture": "source",
+          "transitionCount": 6
+        },
+        {
+          "horizon": 3,
+          "startBeat": 6,
+          "persistence": 0.9,
+          "previousArchitecture": "process",
+          "transitionCount": 8
+        },
+        {
+          "horizon": 3,
+          "startBeat": 6,
+          "persistence": 0.9,
+          "previousArchitecture": "route",
+          "transitionCount": 10
+        },
+        {
+          "horizon": 3,
+          "startBeat": 7,
+          "persistence": 0.2,
+          "previousArchitecture": "source",
+          "transitionCount": 1
+        },
+        {
+          "horizon": 3,
+          "startBeat": 7,
+          "persistence": 0.2,
+          "previousArchitecture": "route",
+          "transitionCount": 3
+        },
+        {
+          "horizon": 3,
+          "startBeat": 7,
+          "persistence": 0.9,
+          "previousArchitecture": "source",
+          "transitionCount": 7
+        },
+        {
+          "horizon": 3,
+          "startBeat": 7,
+          "persistence": 0.9,
+          "previousArchitecture": "process",
+          "transitionCount": 6
+        },
+        {
+          "horizon": 3,
+          "startBeat": 7,
+          "persistence": 0.9,
+          "previousArchitecture": "route",
+          "transitionCount": 11
+        },
+        {
+          "horizon": 3,
+          "startBeat": 8,
+          "persistence": 0.2,
+          "previousArchitecture": "source",
+          "transitionCount": 6
+        },
+        {
+          "horizon": 3,
+          "startBeat": 8,
+          "persistence": 0.2,
+          "previousArchitecture": "process",
+          "transitionCount": 4
+        },
+        {
+          "horizon": 3,
+          "startBeat": 8,
+          "persistence": 0.2,
+          "previousArchitecture": "route",
+          "transitionCount": 6
+        },
+        {
+          "horizon": 3,
+          "startBeat": 8,
+          "persistence": 0.9,
+          "previousArchitecture": "source",
+          "transitionCount": 8
+        },
+        {
+          "horizon": 3,
+          "startBeat": 8,
+          "persistence": 0.9,
+          "previousArchitecture": "process",
+          "transitionCount": 5
+        },
+        {
+          "horizon": 3,
+          "startBeat": 8,
+          "persistence": 0.9,
+          "previousArchitecture": "route",
+          "transitionCount": 8
+        }
+      ],
+      "horizonRelationEstablished": true,
+      "interpretation": "REMAINING_CONTRACT_TARGET_CAN_CHANGE_CURRENT_POLICY_UNDER_FIXED_LOCAL_STATE"
+    },
+    "selectedBranch": "HORIZON_AWARE_CONTRACT_PLANNING",
+    "saturationBranchStanding": "DEFER_NEW_AXIS_FROM_SATURATION"
+  },
+  "volatileWitness": {
+    "definition": {
+      "id": "r6-volatile-beats-2-3",
+      "persistence": 0.2,
+      "previousArchitecture": "route",
+      "units": [
+        {
+          "sourceCycleIndex": 0,
+          "executionCycleIndex": 1,
+          "pressureProfileId": "SCAN_CHEAP"
+        },
+        {
+          "sourceCycleIndex": 1,
+          "executionCycleIndex": 1,
+          "pressureProfileId": "BASELINE"
+        }
+      ]
+    },
+    "myopic": {
+      "schemaVersion": 1,
+      "kind": "ordivon.game.causal-lag-r6-myopic-oracle",
+      "objective": "IMMEDIATE_EXPECTED_NET",
+      "expectedImmediateNet": 78.8,
+      "policy": {
+        "diagnostic": "none",
+        "architectureByObservation": {
+          "NONE": "process"
+        }
+      },
+      "solverAuthority": "MECHANICAL_ORACLE_ONLY",
+      "productSelected": false,
+      "g0Entered": false,
+      "humanOutcomeEstablished": false,
+      "gameCoreChanged": false
+    },
+    "target155": {
+      "schemaVersion": 1,
+      "kind": "ordivon.game.causal-lag-r6-horizon-oracle",
+      "objective": "CONTRACT_SUCCESS_PROBABILITY_THEN_EXPECTED_NET",
+      "horizon": 2,
+      "remainingTarget": 155,
+      "persistence": 0.2,
+      "previousArchitecture": "route",
+      "window": [
+        {
+          "sourceCycleIndex": 0,
+          "executionCycleIndex": 1,
+          "pressureProfileId": "SCAN_CHEAP"
+        },
+        {
+          "sourceCycleIndex": 1,
+          "executionCycleIndex": 1,
+          "pressureProfileId": "BASELINE"
+        }
+      ],
+      "successProbability": 0.68704,
+      "expectedTotalNet": 157.808,
+      "firstPolicyImmediateExpectedNet": 76.7,
+      "firstPolicy": {
+        "diagnostic": "process",
+        "architectureByObservation": {
+          "FAULT": "process",
+          "OK": "route"
+        }
+      },
+      "solverAuthority": "MECHANICAL_ORACLE_ONLY",
+      "newPlayerVerbsAdded": 0,
+      "productSelected": false,
+      "g0Entered": false,
+      "humanOutcomeEstablished": false,
+      "gameCoreChanged": false
+    },
+    "target160": {
+      "schemaVersion": 1,
+      "kind": "ordivon.game.causal-lag-r6-horizon-oracle",
+      "objective": "CONTRACT_SUCCESS_PROBABILITY_THEN_EXPECTED_NET",
+      "horizon": 2,
+      "remainingTarget": 160,
+      "persistence": 0.2,
+      "previousArchitecture": "route",
+      "window": [
+        {
+          "sourceCycleIndex": 0,
+          "executionCycleIndex": 1,
+          "pressureProfileId": "SCAN_CHEAP"
+        },
+        {
+          "sourceCycleIndex": 1,
+          "executionCycleIndex": 1,
+          "pressureProfileId": "BASELINE"
+        }
+      ],
+      "successProbability": 0.636,
+      "expectedTotalNet": 158.52,
+      "firstPolicyImmediateExpectedNet": 75.3,
+      "firstPolicy": {
+        "diagnostic": "none",
+        "architectureByObservation": {
+          "NONE": "route"
+        }
+      },
+      "solverAuthority": "MECHANICAL_ORACLE_ONLY",
+      "newPlayerVerbsAdded": 0,
+      "productSelected": false,
+      "g0Entered": false,
+      "humanOutcomeEstablished": false,
+      "gameCoreChanged": false
+    },
+    "interpretation": "LOCALLY_LOWER_IMMEDIATE_EV_INFORMATION_CAN_INCREASE_CONTRACT_SUCCESS_PROBABILITY"
+  },
+  "stableWitness": {
+    "definition": {
+      "id": "r6-stable-beats-4-5",
+      "persistence": 0.9,
+      "previousArchitecture": "process",
+      "units": [
+        {
+          "sourceCycleIndex": 1,
+          "executionCycleIndex": 2,
+          "pressureProfileId": "BASELINE"
+        },
+        {
+          "sourceCycleIndex": 2,
+          "executionCycleIndex": 2,
+          "pressureProfileId": "SCAN_EXPENSIVE"
+        }
+      ]
+    },
+    "target185": {
+      "schemaVersion": 1,
+      "kind": "ordivon.game.causal-lag-r6-horizon-oracle",
+      "objective": "CONTRACT_SUCCESS_PROBABILITY_THEN_EXPECTED_NET",
+      "horizon": 2,
+      "remainingTarget": 185,
+      "persistence": 0.9,
+      "previousArchitecture": "process",
+      "window": [
+        {
+          "sourceCycleIndex": 1,
+          "executionCycleIndex": 2,
+          "pressureProfileId": "BASELINE"
+        },
+        {
+          "sourceCycleIndex": 2,
+          "executionCycleIndex": 2,
+          "pressureProfileId": "SCAN_EXPENSIVE"
+        }
+      ],
+      "successProbability": 0.70846,
+      "expectedTotalNet": 174.236,
+      "firstPolicyImmediateExpectedNet": 78.776,
+      "firstPolicy": {
+        "diagnostic": "route",
+        "architectureByObservation": {
+          "FAULT": "route",
+          "OK": "source"
+        }
+      },
+      "solverAuthority": "MECHANICAL_ORACLE_ONLY",
+      "newPlayerVerbsAdded": 0,
+      "productSelected": false,
+      "g0Entered": false,
+      "humanOutcomeEstablished": false,
+      "gameCoreChanged": false
+    },
+    "target190": {
+      "schemaVersion": 1,
+      "kind": "ordivon.game.causal-lag-r6-horizon-oracle",
+      "objective": "CONTRACT_SUCCESS_PROBABILITY_THEN_EXPECTED_NET",
+      "horizon": 2,
+      "remainingTarget": 190,
+      "persistence": 0.9,
+      "previousArchitecture": "process",
+      "window": [
+        {
+          "sourceCycleIndex": 1,
+          "executionCycleIndex": 2,
+          "pressureProfileId": "BASELINE"
+        },
+        {
+          "sourceCycleIndex": 2,
+          "executionCycleIndex": 2,
+          "pressureProfileId": "SCAN_EXPENSIVE"
+        }
+      ],
+      "successProbability": 0.549,
+      "expectedTotalNet": 172.548,
+      "firstPolicyImmediateExpectedNet": 78.4,
+      "firstPolicy": {
+        "diagnostic": "none",
+        "architectureByObservation": {
+          "NONE": "route"
+        }
+      },
+      "solverAuthority": "MECHANICAL_ORACLE_ONLY",
+      "newPlayerVerbsAdded": 0,
+      "productSelected": false,
+      "g0Entered": false,
+      "humanOutcomeEstablished": false,
+      "gameCoreChanged": false
+    },
+    "interpretation": "TARGET_SENSITIVITY_IS_NOT_LIMITED_TO_THE_VOLATILE_REGIME"
+  },
+  "browserCarrierCreated": false,
+  "browserCarrierReason": "The exact oracle consumes persistence probabilities and success-model information that are not player observations; a browser carrier would risk confusing falsification truth with player-visible game state.",
+  "runtimeKernelChanged": false,
+  "projectNodeAdded": false,
+  "newPlayerVerbsAdded": 0,
+  "pass": true,
+  "productSelected": false,
+  "g0Entered": false,
+  "humanOutcomeEstablished": false,
+  "gameCoreChanged": false,
+  "claimBoundary": "FINITE_HORIZON_MECHANICAL_POLICY_SENSITIVITY_ONLY_NO_HUMAN_STRATEGY_OR_PRODUCT_VALUE_CLAIM"
+}

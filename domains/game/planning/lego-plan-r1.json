@@ -184,7 +184,7 @@
       "id": "G08",
       "label": "BreadthVerifier",
       "kind": "verifier",
-      "responsibility": "Mechanically distinguish meaningful existing-mechanic content variation from nominal reskins by enumerating policy effects and bounded terminal witnesses.",
+      "responsibility": "Mechanically distinguish meaningful existing-mechanic content variation from nominal reskins by enumerating policy effects, composition equivalence, finite-horizon target sensitivity, and bounded terminal witnesses.",
       "authority": "Game experiment/evidence owner",
       "state": "VERIFIED",
       "sharedRefs": [],
@@ -192,13 +192,15 @@
         "experiments/product-composition-r1/causal-lag-content-r4/evidence/mechanical-acceptance-r4.json",
         "test/game-causal-lag-content-r4.test.ts",
         "experiments/product-composition-r1/causal-lag-pressure-r5/evidence/mechanical-acceptance-r5.json",
-        "test/game-causal-lag-pressure-r5.test.ts"
+        "test/game-causal-lag-pressure-r5.test.ts",
+        "experiments/product-composition-r1/causal-lag-horizon-r6/evidence/mechanical-acceptance-r6.json",
+        "test/game-causal-lag-horizon-r6.test.ts"
       ],
       "dependencies": [
         "G06",
         "G07"
       ],
-      "replacementContract": "A replacement must keep mechanical policy-diversity evidence separate from Human-value claims and retain explicit tested state-space bounds.",
+      "replacementContract": "A replacement must keep mechanical policy-diversity, composition-equivalence and finite-horizon target-sensitivity evidence separate from Human-value claims, preserve explicit tested state-space bounds, and never require oracle-only hidden state to become player-visible.",
       "mustNotOwn": [
         "Human fun",
         "Human learning",
@@ -208,6 +210,8 @@
       "acceptance": [
         "The tested 3x3 transition space reports exact evaluated-state and policy-signature counts.",
         "Bounded pressure-axis screening distinguishes variables that change local policy from target-only terminal pressure.",
+        "Bounded composition-equivalence screening reports exact local/sequence compression without declaring saturation from local redundancy alone.",
+        "A bounded finite-horizon oracle can test whether remaining contract target changes current policy while preserving the player/oracle information boundary.",
         "Representative breadth/pressure runs retain both reachable success and mathematically unrecoverable failure.",
         "No Human or product authority is minted."
       ]
@@ -327,13 +331,38 @@
         "test/game-causal-lag-pressure-r5.test.ts"
       ],
       "blockers": []
+    },
+    {
+      "id": "GS4",
+      "objective": "Compare R5 composition saturation against horizon-aware contract planning using only existing contexts, pressures, carryover semantics and reward tables; establish whether remaining contract margin can change current mechanical policy without adding verbs or a runtime planner.",
+      "status": "COMPLETE",
+      "nodeIds": [
+        "G06",
+        "G07",
+        "G08"
+      ],
+      "acceptance": [
+        "The 27 context×pressure units yield 20 bounded policy-equivalence classes, and sequence-equivalence unique fraction does not worsen through length 5; saturation is not established.",
+        "Exact two- and three-beat R5-window screening reports target-sensitive current policies under explicit persistence, previous-architecture and remaining-target grids.",
+        "A volatile witness shows a lower-immediate-EV diagnostic policy can be contract-success-optimal, and changing only remaining target changes the current policy.",
+        "A stable witness independently shows target-sensitive current policy.",
+        "The exact solver remains an oracle/evaluator, does not modify R3 runtime semantics, and is not exposed as a player browser surface.",
+        "Human strategy, pacing, fun, product selection, G0 and Game Core claims remain closed."
+      ],
+      "evidence": [
+        "experiments/product-composition-r1/causal-lag-horizon-r6/README.md",
+        "experiments/product-composition-r1/causal-lag-horizon-r6/evidence/mechanical-acceptance-r6.json",
+        "test/game-causal-lag-horizon-r6.test.ts"
+      ],
+      "blockers": []
     }
   ],
   "gaps": [
-    "R5 establishes mechanical pressure topology but not Human pacing quality, comprehension, learning, enjoyment, retention, or market value.",
-    "Switch-inertia and persistence scheduling remain deferred until information-pressure content shows a concrete saturation/failure.",
-    "Contract-margin pressure requires a horizon-aware/session-level objective before it can honestly claim to change strategy.",
-    "Large-scale authored content production economics and final audiovisual expression remain unmeasured."
+    "R6 establishes finite-horizon mechanical target sensitivity but not Human strategic reasoning, comprehension, pacing quality, enjoyment, retention or market value.",
+    "The R6 oracle consumes exact persistence/model knowledge that the player does not observe; whether player-visible transition history supports a sufficiently useful estimator/policy remains unresolved.",
+    "The exact horizon oracle is intentionally bounded to at most three beats and does not establish a globally optimal ten-beat player policy.",
+    "Composition saturation is not established through length five, so a second pressure axis or new mechanic remains deferred rather than admitted.",
+    "Large-scale content authoring economics and final audiovisual expression remain unmeasured."
   ],
   "doNotOwn": [
     "generic game-engine ownership",
@@ -341,9 +370,9 @@
     "human enjoyment authority without evidence"
   ],
   "review": {
-    "sourceRevision": "152bcecb82e5c55ce1df8b5dd9aaedac64f06509",
+    "sourceRevision": "bb742432e1ac9b73a259492e0020757fe7e04793",
     "updatedAt": "2026-09-18",
     "standing": "STABLE",
-    "notes": "R5 used Ordivon Next method revision 0032108f2fa9ce019e3735623e5b37fed23fc3a8 to screen pressure axes. The existing G06-G08 responsibilities were sufficient, so GS3 was added without inflating the project graph with a new theory or pressure service node."
+    "notes": "R6 used Ordivon Next method revision 2231438e8f293742c1f5f1a2622b3e567003f5e0. Lens Router selected C-K for branch generation and domain-native exact enumeration/finite-horizon DP for the actual decision tests. Existing G06-G08 responsibilities were sufficient; GS4 was added with no G09 and no runtime-planner promotion."
   }
 }

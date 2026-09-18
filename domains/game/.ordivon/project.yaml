@@ -102,6 +102,10 @@ managed_paths:
   - experiments/product-composition-r1/causal-lag-pressure-r5/scripts/mechanical-acceptance.ts
   - experiments/product-composition-r1/causal-lag-pressure-r5/scripts/e2e-causal-lag-pressure-r5.ts
   - experiments/product-composition-r1/causal-lag-pressure-r5/evidence/mechanical-acceptance-r5.json
+  - experiments/product-composition-r1/causal-lag-horizon-r6/README.md
+  - experiments/product-composition-r1/causal-lag-horizon-r6/horizon-policy.js
+  - experiments/product-composition-r1/causal-lag-horizon-r6/scripts/mechanical-acceptance.ts
+  - experiments/product-composition-r1/causal-lag-horizon-r6/evidence/mechanical-acceptance-r6.json
   - skills/game-development-lenses/SKILL.md
   - skills/game-stage-lens/SKILL.md
   - skills/game-minimal-interaction-model/SKILL.md

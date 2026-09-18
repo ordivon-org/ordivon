@@ -52,7 +52,8 @@
     "e2e:causal-lag:r4": "node experiments/product-composition-r1/causal-lag-content-r4/scripts/e2e-causal-lag-content-r4.ts",
     "eval:causal-lag:r4": "node experiments/product-composition-r1/causal-lag-content-r4/scripts/mechanical-acceptance.ts",
     "e2e:causal-lag:r5": "node experiments/product-composition-r1/causal-lag-pressure-r5/scripts/e2e-causal-lag-pressure-r5.ts",
-    "eval:causal-lag:r5": "node experiments/product-composition-r1/causal-lag-pressure-r5/scripts/mechanical-acceptance.ts"
+    "eval:causal-lag:r5": "node experiments/product-composition-r1/causal-lag-pressure-r5/scripts/mechanical-acceptance.ts",
+    "eval:causal-lag:r6": "node experiments/product-composition-r1/causal-lag-horizon-r6/scripts/mechanical-acceptance.ts"
   },
   "license": "Apache-2.0",
   "devDependencies": {
