@@ -1185,6 +1185,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ordivon-runtime-spi"
+version = "0.1.0"
+dependencies = [
+ "schemars",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "p256"
 version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"

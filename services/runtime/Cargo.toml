@@ -2,6 +2,7 @@
 members = [
     "crates/ordivon-runtime-mcp",
     "crates/ordivon-runtime-core",
+    "crates/ordivon-runtime-spi",
 ]
 resolver = "2"
 
