@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon-lego-regime-shift-lens-acceptance",
+  "date": "2026-09-18",
+  "status": "PASS_LOCAL_STRUCTURE__PROSPECTIVE_VALIDATION_PENDING",
+  "truthRole": "acceptance-evidence-not-domain-truth",
+  "artifacts": [
+    "docs/LEGO_REGIME_SHIFT_DECISION_R1.md",
+    ".agents/skills/lego-regime-shift/SKILL.md",
+    "templates/LEGO_REGIME_CARD_R1.md",
+    "planning/lego-regime-shift-validation-r1.md"
+  ],
+  "checks": {
+    "thinCorePreserved": true,
+    "newMandatoryPlanningSchemaFields": false,
+    "warningSeparatedFromForecast": true,
+    "forecastSeparatedFromDecision": true,
+    "competingHypothesesRequired": true,
+    "falsifiersRequired": true,
+    "buffersAndDelaysRequired": true,
+    "robustActionAndSignpostsRequired": true,
+    "externalFoundationsRecorded": true,
+    "prospectiveCanaryPlanFrozen": true
+  },
+  "knownLimits": [
+    "Generic early-warning statistics are model-dependent and can produce false positives or misses.",
+    "The lens does not establish a universal tipping-point detector.",
+    "Skill MCP cannot treat a Runtime-isolated workspace ID as a pre-registered Skill workspace; global discoverability is not yet established.",
+    "Cross-domain promotion requires prospective validation on real Ordivon cases."
+  ],
+  "prospectiveValidation": {
+    "domains": ["Agent Service", "Research", "Game"],
+    "passRule": "At least two of three canaries must expose a decision-relevant buffer/delay/constraint-migration fact not already explicit in baseline, with at least one concept rejected or simplified.",
+    "status": "PENDING"
+  }
+}
