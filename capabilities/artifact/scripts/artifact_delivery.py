@@ -56,6 +56,11 @@ from artifact_verifiers.document import (
     verify_document_dependencies as document_verify_dependencies,
     verify_document_semantic_correspondence as document_verify_semantics,
 )
+from artifact_verifiers.web import (
+    verify_html_conformance as web_verify_conformance,
+    verify_web_local as web_verify_local,
+    vnu_jar as web_vnu_jar,
+)
 from artifact_verifiers.openxml import (
     verify_openxml_artifact as openxml_verify_artifact,
 )
@@ -91,8 +96,6 @@ GLOBAL_ARTIFACT_TOOLCHAIN_ROOT = Path(os.environ.get("ARTIFACT_TOOLCHAIN_ROOT", 
 GLOBAL_PANDOC = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "pandoc/3.10.2/bin/pandoc"
 GLOBAL_PANDOC_ARCHIVE = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "pandoc/3.10.2/pandoc-3.10.2-linux-amd64.tar.gz"
 GLOBAL_VERAPDF = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "verapdf/1.30.2/verapdf"
-GLOBAL_VNU = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "vnu/26.9.7/vnu.jar"
-GLOBAL_NODE_PACKAGE_ROOT = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "node/1.63.0"
 
 
 def _selected_external_file(env_name: str, global_candidate: Path, legacy_candidate: Path) -> Path:
@@ -1021,99 +1024,18 @@ def verify_openxml_artifact(path: Path) -> dict[str, Any]:
 
 
 def _vnu_jar() -> Path | None:
-    configured = os.environ.get("ARTIFACT_VNU")
-    if configured:
-        path = Path(configured)
-        return path if path.is_file() else None
-    if GLOBAL_VNU.is_file():
-        return GLOBAL_VNU
-    local = ROOT / ".cache/artifact-toolchain/vnu/vnu.jar"
-    return local if local.is_file() else None
+    return web_vnu_jar()
+
 
 
 def verify_html_conformance(path: Path) -> dict[str, Any]:
-    artifact = file_fact(path)
-    jar = _vnu_jar()
-    java = shutil.which("java")
-    if jar is None or java is None:
-        return {
-            "status": "NOT_RUN",
-            "artifact": artifact,
-            "error": "Nu Html Checker or Java is unavailable",
-        }
-    proc = subprocess.run(
-        [java, "-jar", str(jar), "--format", "json", str(path)],
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-        timeout=60,
-    )
-    parsed: dict[str, Any] | None = None
-    messages: list[Any] = []
-    version: str | None = None
-    parse_error: str | None = None
-    try:
-        payload = proc.stdout.strip() or proc.stderr.strip()
-        parsed = json.loads(payload)
-        messages = parsed.get("messages", []) if isinstance(parsed, dict) else []
-        version = parsed.get("version") if isinstance(parsed, dict) else None
-    except Exception as error:
-        parse_error = str(error)
-    return {
-        "status": "PASS" if proc.returncode == 0 and parsed is not None and not messages else "FAIL",
-        "artifact": artifact,
-        "validator": {
-            "implementation": "Nu Html Checker",
-            "version": version,
-            "jar": str(jar),
-            "jarSha256": sha256_file(jar),
-        },
-        "messageCount": len(messages),
-        "messages": messages[:100],
-        "exitCode": proc.returncode,
-        "parseError": parse_error,
-        "stderr": proc.stderr.strip()[:4000],
-        "boundary": "Nu Html Checker conformance evidence covers HTML/CSS/SVG syntax/content-model checks; browser behavior, accessibility and deployed-origin behavior remain independent.",
-    }
+    return web_verify_conformance(path)
+
 
 
 def verify_web_local(path: Path) -> dict[str, Any]:
-    artifact = file_fact(path)
-    node = shutil.which("node")
-    verifier = ROOT / "artifact-delivery/node/verify_html.mjs"
-    if node is None or not verifier.is_file():
-        return {"status": "NOT_RUN", "artifact": artifact, "error": "Node/Playwright HTML verifier is unavailable"}
-    node_env = os.environ.copy()
-    if "ARTIFACT_NODE_PACKAGE_ROOT" not in node_env and (GLOBAL_NODE_PACKAGE_ROOT / "package.json").is_file():
-        node_env["ARTIFACT_NODE_PACKAGE_ROOT"] = str(GLOBAL_NODE_PACKAGE_ROOT)
-    proc = subprocess.run(
-        [node, str(verifier), str(path.resolve())],
-        cwd=ROOT / "artifact-delivery/node",
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-        timeout=90,
-        env=node_env,
-    )
-    parsed: dict[str, Any] | None = None
-    parse_error: str | None = None
-    try:
-        parsed = json.loads(proc.stdout)
-    except Exception as error:
-        parse_error = str(error)
-    digest_ok = parsed is not None and parsed.get("subject", {}).get("sha256") == artifact["digest"]["sha256"]
-    return {
-        "status": "PASS" if proc.returncode == 0 and parsed and parsed.get("status") == "PASS" and digest_ok else "FAIL",
-        "artifact": artifact,
-        "verifierOutput": parsed,
-        "digestBound": digest_ok,
-        "exitCode": proc.returncode,
-        "parseError": parse_error,
-        "stderr": proc.stderr.strip()[:4000],
-        "boundary": "Local Playwright/axe evidence only; delivery profile policy decides which renderers are required and unsupported-host WebKit cannot be promoted to PASS.",
-    }
+    return web_verify_local(path)
+
 
 
 ni_sha256_uri = trust_vsa.ni_sha256_uri
@@ -1203,8 +1125,8 @@ def _verification_stage_hooks() -> VerificationStageHooks:
         verify_presentation_semantics=presentation_verify_semantics,
         verify_pdf=pdf_verify_structural,
         verify_pdf_conformance=pdf_verify_conformance,
-        verify_html_conformance=verify_html_conformance,
-        verify_web_local=verify_web_local,
+        verify_html_conformance=web_verify_conformance,
+        verify_web_local=web_verify_local,
     )
 
 
