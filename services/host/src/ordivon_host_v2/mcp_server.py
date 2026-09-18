@@ -20,17 +20,12 @@ from .contracts import (
     BoardPostResponse,
     BoardSearchResponse,
     HostStatusResponse,
-    NewsListResponse,
-    NewsPublishResponse,
-    NewsReadResponse,
     TaskListResponse,
     TaskMutationResponse,
     TaskObserveResponse,
     TaskResumeResponse,
 )
 from .models import CheckpointInput, TaskState, TaskView
-from .news import NewsStore
-from .news_contract import NewsEditionInput
 from .service import HostV2
 
 
@@ -53,7 +48,6 @@ def build_server(dsn: str | None = None) -> MCPServer:
     effective_dsn = dsn or os.environ["ORDIVON_HOST_V2_DSN"]
     service = HostV2(effective_dsn)
     board = BoardStore(effective_dsn)
-    news = NewsStore(effective_dsn)
     mcp = MCPServer("ordivon-host-v2")
 
     @mcp.tool(name="host.status")
@@ -112,49 +106,6 @@ def build_server(dsn: str | None = None) -> MCPServer:
             reply_to_client_message_id=replyToClientMessageId,
         )
 
-    @mcp.tool(name="news.list")
-    def news_list(
-        limit: int = 30,
-        cursor: str | None = None,
-        fromDate: str | None = None,
-        toDate: str | None = None,
-    ) -> NewsListResponse:
-        """List durable external-news publication revisions."""
-        return news.list(limit=limit, cursor=cursor, from_date=fromDate, to_date=toDate)
-
-    @mcp.tool(name="news.read")
-    def news_read(
-        editionId: str | None = None,
-        revision: int | None = None,
-        sections: list[str] | None = None,
-        categories: list[str] | None = None,
-        threadKeys: list[str] | None = None,
-        includeRenderedBrief: bool = False,
-    ) -> NewsReadResponse:
-        """Read the latest or one exact external-news edition revision."""
-        return news.read(
-            edition_id=editionId,
-            revision=revision,
-            sections=sections,
-            categories=categories,
-            thread_keys=threadKeys,
-            include_rendered_brief=includeRenderedBrief,
-        )
-
-    @mcp.tool(name="news.publish")
-    def news_publish(
-        clientPublishId: str,
-        editionId: str,
-        expectedRevision: int,
-        edition: NewsEditionInput,
-    ) -> NewsPublishResponse:
-        """Publish one revision-fenced external-news edition."""
-        return news.publish(
-            client_publish_id=clientPublishId,
-            edition_id=editionId,
-            expected_revision=expectedRevision,
-            edition=edition.model_dump(mode="json"),
-        )
 
     @mcp.tool(name="task.observe")
     def task_observe(

@@ -15,21 +15,20 @@ from ordivon_host_v2.board import (
     _TASK_ROUTE_ANCHOR_TOPIC,
     BoardStore,
 )
-from ordivon_host_v2.news import NewsStore
 
 DSN = os.environ.get("ORDIVON_HOST_V2_TEST_DSN")
 pytestmark = pytest.mark.skipif(not DSN, reason="ORDIVON_HOST_V2_TEST_DSN not set")
 
 
-def stores() -> tuple[HostV2, BoardStore, NewsStore]:
+def stores() -> tuple[HostV2, BoardStore]:
     assert DSN is not None
     host = HostV2(DSN)
     host.initialize()
-    return host, BoardStore(DSN), NewsStore(DSN)
+    return host, BoardStore(DSN)
 
 
 def test_board_filtered_incremental_exhaustion_advances_fence() -> None:
-    _, board, _ = stores()
+    _, board = stores()
     marker = uuid4().hex
     first = board.post(
         client_message_id=f"msg:{marker}:1", author_label="agent:a", message="a", topic="a"
@@ -47,7 +46,7 @@ def test_board_filtered_incremental_exhaustion_advances_fence() -> None:
 
 
 def test_board_list_rejects_invalid_query_coordinates() -> None:
-    _, board, _ = stores()
+    _, board = stores()
     with pytest.raises(ValueError, match="afterSequence"):
         board.list(after_sequence=-1)
     with pytest.raises(ValueError, match="topic"):
@@ -59,7 +58,7 @@ def test_board_list_rejects_invalid_query_coordinates() -> None:
 
 
 def test_reserved_task_route_anchor_rejects_squatting_and_attention_routes_reply() -> None:
-    host, board, _ = stores()
+    host, board = stores()
     task_id = f"task:v2:attention:{uuid4().hex}"
     host.adopt(
         task_id=task_id,
@@ -113,11 +112,3 @@ def test_reserved_task_route_anchor_rejects_squatting_and_attention_routes_reply
         "expectedRevision": 1,
         "reason": "Board collaboration does not update Task truth; resume the exact Host revision before acting",
     }
-
-
-def test_news_list_rejects_invalid_date_scope() -> None:
-    _, _, news = stores()
-    with pytest.raises(ValueError, match="fromDate"):
-        news.list(from_date="ZZZ")
-    with pytest.raises(ValueError, match="fromDate must be <= toDate"):
-        news.list(from_date="2026-09-15", to_date="2026-09-14")

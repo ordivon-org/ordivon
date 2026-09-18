@@ -67,12 +67,6 @@ class HostV2:
             board_row = conn.execute(
                 "SELECT count(*) AS messages,COALESCE(max(sequence),0) AS high FROM board_messages"
             ).fetchone()
-            news_row = conn.execute(
-                "SELECT count(*) AS publications,count(DISTINCT edition_id) AS editions FROM news_publications"
-            ).fetchone()
-            latest_news = conn.execute(
-                "SELECT edition_id,revision FROM news_publications ORDER BY sequence DESC LIMIT 1"
-            ).fetchone()
             recent_rows = []
             if recent_limit:
                 recent_rows = conn.execute(
@@ -131,13 +125,6 @@ class HostV2:
                     ).fetchone()["value"]
                 )
                 add_check("board.reply_integrity", reply_bad == 0, f"dangling={reply_bad}")
-                news_bad = int(
-                    conn.execute(
-                        "SELECT count(*) AS value FROM (SELECT edition_id,min(revision) AS lo,max(revision) AS hi,count(*) AS n "
-                        "FROM news_publications GROUP BY edition_id) x WHERE lo<>1 OR hi<>n"
-                    ).fetchone()["value"]
-                )
-                add_check("news.revision_history", news_bad == 0, f"invalidEditions={news_bad}")
 
                 if detail == "history":
                     task_history_bad = int(
@@ -180,9 +167,6 @@ class HostV2:
                 "board.list",
                 "board.search",
                 "board.post",
-                "news.list",
-                "news.read",
-                "news.publish",
                 "task.observe",
                 "task.list",
                 "task.resume",
@@ -195,7 +179,7 @@ class HostV2:
                 "observedAtMs": observed_at_ms,
                 "detail": detail,
                 "interface": {
-                    "surfaceVersion": 8,
+                    "surfaceVersion": 9,
                     "toolCount": len(tool_names),
                     "toolNames": tool_names,
                     "readTools": [
@@ -203,13 +187,11 @@ class HostV2:
                         "attention.delta",
                         "board.list",
                         "board.search",
-                        "news.list",
-                        "news.read",
                         "task.observe",
                         "task.list",
                         "task.resume",
                     ],
-                    "writeTools": ["board.post", "news.publish", "task.adopt", "task.checkpoint"],
+                    "writeTools": ["board.post", "task.adopt", "task.checkpoint"],
                     "runtimeProxy": False,
                 },
                 "authority": {
@@ -225,13 +207,6 @@ class HostV2:
                     "messages": int(board_row["messages"]),
                     "lastSequence": int(board_row["high"]),
                     "truthRole": "durable-collaboration-messages",
-                },
-                "news": {
-                    "editions": int(news_row["editions"]),
-                    "publications": int(news_row["publications"]),
-                    "latestEditionId": None if latest_news is None else latest_news["edition_id"],
-                    "latestRevision": None if latest_news is None else int(latest_news["revision"]),
-                    "truthRole": "external-news-projection-not-world-truth",
                 },
                 "deployment": {
                     "status": "not-observed",
