@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.browser-security-detector-coverage-r3",
+  "date": "2026-09-18",
+  "rootCauseStanding": "OPEN",
+  "protectedChallengeUsedAsDetectorOracle": false,
+  "families": [
+    {
+      "id": "CF02",
+      "standing": "MEASURED_NO_ROUTE_DIFFERENCE_FOR_CURRENT_DETECTORS",
+      "detectors": [
+        "JA4",
+        "PeetPrint",
+        "HTTP/2 fingerprint",
+        "TLS negotiated version"
+      ],
+      "evidence": [
+        "R1 same JA4/PeetPrint/HTTP2 across direct and Browserless",
+        "observation-validity gate separates observer outage from subject drift"
+      ],
+      "gaps": [
+        "JA3 remained noisy/non-attributable",
+        "unmeasured transport features may exist"
+      ]
+    },
+    {
+      "id": "CF03",
+      "standing": "MEASURED_NO_ROUTE_DIFFERENCE_FOR_CURRENT_DETECTORS",
+      "detectors": [
+        "main-document header set/order"
+      ],
+      "evidence": [
+        "R2 direct-late/direct-early/Browserless header set/order identical"
+      ],
+      "gaps": [
+        "not every HTTP presentation field is covered"
+      ]
+    },
+    {
+      "id": "CF04",
+      "standing": "PARTIAL_SUPPORTED_MECHANISM",
+      "detectors": [
+        "navigator.webdriver",
+        "page-visible browser identity"
+      ],
+      "evidence": [
+        "R1 --enable-automation sufficient to reproduce webdriver=true",
+        "R3 direct and Browserless intentionally matched at webdriver=true"
+      ],
+      "gaps": [
+        "provider-specific relevance not established"
+      ]
+    },
+    {
+      "id": "CF05",
+      "standing": "PARTIAL_NEUTRAL_DIFFERENTIAL",
+      "detectors": [
+        "console/Error side effect",
+        "execution-context shape",
+        "Browser.getBrowserCommandLine",
+        "SystemInfo.getInfo",
+        "Target.getTargets"
+      ],
+      "evidence": [
+        "R2 console/Error probe non-discriminating",
+        "R2 execution-context shape same",
+        "R3 repeatable browser-level command-line/GPU/target-type differences"
+      ],
+      "gaps": [
+        "other sessions' enabled CDP domains are not directly queryable",
+        "page-visible consequence of browser-level differences not established",
+        "provider-specific relevance not established"
+      ]
+    },
+    {
+      "id": "CF06",
+      "standing": "REPEATABLE_NEUTRAL_DIFFERENTIAL",
+      "detectors": [
+        "timezone/locale/geometry",
+        "fontconfig resolution",
+        "canvas text metrics",
+        "SystemInfo GPU summary",
+        "WebGL availability"
+      ],
+      "evidence": [
+        "R2 KR egress vs Asia/Shanghai timezone mismatch shared by both routes",
+        "R3 host/container font resolution differs for all probed families",
+        "R3 canvas widths differ for DejaVu Sans/Ubuntu/Selawik/Verdana",
+        "R3 page geometry differs repeatably",
+        "R3 browser-level GPU summaries differ repeatably",
+        "R3 WebGL unavailable in both arms and therefore non-discriminating"
+      ],
+      "gaps": [
+        "geometry source is mixed launch/window-management, not fully localized",
+        "page-visible GPU differential unavailable in current build",
+        "provider-specific relevance not established"
+      ]
+    },
+    {
+      "id": "CF07",
+      "standing": "PARTIAL",
+      "detectors": [
+        "profile cookie row count",
+        "distinct profile host count",
+        "carrier lifecycle"
+      ],
+      "evidence": [
+        "three independent persistent profiles all CHALLENGE_GATED",
+        "no cookie values read"
+      ],
+      "gaps": [
+        "session age/cadence/control-transition witness",
+        "correlated history remains possible"
+      ]
+    },
+    {
+      "id": "CF08",
+      "standing": "OBSERVED_OUTCOME_CAUSE_UNKNOWN",
+      "detectors": [
+        "provider challenge metadata/read-only preflight"
+      ],
+      "evidence": [
+        "production preflight CHALLENGE_GATED with providerEffectAttempted=false and sendAttempted=false"
+      ],
+      "gaps": [
+        "upstream cause unknown"
+      ]
+    }
+  ],
+  "nextNeutralPriorities": [
+    "separate Browserless/Puppeteer launch defaults from container filesystem/runtime effects",
+    "localize browser-level GPU difference to library/container runtime without treating it as page-visible evidence",
+    "expand CF07 session-age/cadence metadata without reading credential contents"
+  ]
+}

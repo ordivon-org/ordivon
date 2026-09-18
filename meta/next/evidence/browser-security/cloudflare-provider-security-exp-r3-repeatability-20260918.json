@@ -1,0 +1,18 @@
+{
+  "allSelectedFieldsStable": true,
+  "checks": {
+    "browserlessCurrent.browser": true,
+    "browserlessCurrent.page": true,
+    "controls": true,
+    "differences": true,
+    "directEnableAutomation.browser": true,
+    "directEnableAutomation.page": true,
+    "systemFontResolution": true
+  },
+  "kind": "ordivon.browser-security-neutral-differential-r3-repeatability",
+  "protectedProviderVisited": false,
+  "providerCausalityEstablished": false,
+  "run1Sha256": "sha256:82995409641d45efe53a2014425bd1df398db69d1310c1104bee0985d86bd007",
+  "run2Sha256": "sha256:82995409641d45efe53a2014425bd1df398db69d1310c1104bee0985d86bd007",
+  "schemaVersion": 1
+}
