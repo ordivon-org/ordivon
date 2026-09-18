@@ -51,6 +51,11 @@ from artifact_capabilities.presentation import (
 )
 import artifact_capabilities.presentation.common as presentation_common
 import artifact_capabilities.presentation.ppt_master as presentation_ppt_master
+from artifact_verifiers.document import (
+    DocumentDependencyHooks,
+    verify_document_dependencies as document_verify_dependencies,
+    verify_document_semantic_correspondence as document_verify_semantics,
+)
 from artifact_verifiers.presentation import (
     PresentationGateHooks,
     inspect_pptx as presentation_inspect_pptx,
@@ -594,172 +599,31 @@ def execute_build_stage(request_path: Path, output_directory: Path | None = None
     }
 
 
-def _pandoc_inline_text(values: Any) -> str:
-    if not isinstance(values, list):
-        return ""
-    parts: list[str] = []
-    for node in values:
-        if not isinstance(node, dict):
-            continue
-        kind = node.get("t")
-        content = node.get("c")
-        if kind == "Str" and isinstance(content, str):
-            parts.append(content)
-        elif kind in {"Space", "SoftBreak", "LineBreak"}:
-            parts.append(" ")
-        elif kind in {"Emph", "Strong", "Strikeout", "Superscript", "Subscript", "SmallCaps", "Underline"}:
-            parts.append(_pandoc_inline_text(content))
-        elif kind in {"Code", "Math"} and isinstance(content, list) and len(content) >= 2:
-            parts.append(str(content[1]))
-        elif kind in {"Link", "Image"} and isinstance(content, list) and len(content) >= 2:
-            parts.append(_pandoc_inline_text(content[1]))
-        elif kind in {"Span", "Cite"} and isinstance(content, list) and len(content) >= 2:
-            parts.append(_pandoc_inline_text(content[1]))
-    return re.sub(r"\s+", " ", "".join(parts)).strip()
 
 
-def _pandoc_semantic_projection(blocks: Any) -> list[dict[str, Any]]:
-    if not isinstance(blocks, list):
-        return []
-    projection: list[dict[str, Any]] = []
-    for block in blocks:
-        if not isinstance(block, dict):
-            continue
-        kind = block.get("t")
-        content = block.get("c")
-        if kind == "Header" and isinstance(content, list) and len(content) >= 3:
-            projection.append({"kind": "heading", "level": int(content[0]), "text": _pandoc_inline_text(content[2])})
-        elif kind in {"Para", "Plain"}:
-            projection.append({"kind": "paragraph", "text": _pandoc_inline_text(content)})
-        elif kind == "OrderedList" and isinstance(content, list) and len(content) >= 2 and isinstance(content[1], list):
-            for item in content[1]:
-                text = " | ".join(entry["text"] for entry in _pandoc_semantic_projection(item) if entry.get("text"))
-                projection.append({"kind": "ordered-item", "text": text})
-        elif kind == "BulletList" and isinstance(content, list):
-            for item in content:
-                text = " | ".join(entry["text"] for entry in _pandoc_semantic_projection(item) if entry.get("text"))
-                projection.append({"kind": "bullet-item", "text": text})
-        elif kind == "BlockQuote":
-            projection.extend(_pandoc_semantic_projection(content))
-        elif kind == "Div" and isinstance(content, list) and len(content) >= 2:
-            projection.extend(_pandoc_semantic_projection(content[1]))
-        elif kind == "CodeBlock" and isinstance(content, list) and len(content) >= 2:
-            projection.append({"kind": "code-block", "text": str(content[1])})
-        elif kind == "HorizontalRule":
-            projection.append({"kind": "horizontal-rule", "text": ""})
-    return projection
 
 
-def _pandoc_meta_text(value: Any) -> str | list[str] | None:
-    if not isinstance(value, dict):
-        return None
-    kind = value.get("t")
-    content = value.get("c")
-    if kind == "MetaString" and isinstance(content, str):
-        return content
-    if kind == "MetaInlines":
-        return _pandoc_inline_text(content)
-    if kind == "MetaList" and isinstance(content, list):
-        return [str(item) for item in (_pandoc_meta_text(entry) for entry in content) if item is not None]
-    return None
 
 
-def _run_pandoc_ast(pandoc: Path, source: Path, from_format: str) -> dict[str, Any]:
-    proc = subprocess.run(
-        [str(pandoc), "--from", from_format, "--to", "json", str(source)],
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-        timeout=60,
+
+
+def verify_document_semantic_correspondence(
+    source: Path, document: Path, pandoc: Path | None = None,
+) -> dict[str, Any]:
+    return document_verify_semantics(source, document, pandoc)
+
+
+
+def verify_document_dependencies(
+    request_path: Path, document: Path, pandoc: Path | None = None,
+    pandoc_archive: Path | None = None, toolchain_lock: Path | None = None,
+    openxml_validator: Path | None = None,
+) -> dict[str, Any]:
+    return document_verify_dependencies(
+        request_path, document, pandoc, pandoc_archive, toolchain_lock,
+        openxml_validator, hooks=_document_dependency_hooks(),
     )
-    if proc.returncode != 0:
-        raise RuntimeError(f"Pandoc semantic parse failed for {from_format}: {proc.stderr[-2000:]}")
-    value = json.loads(proc.stdout)
-    if not isinstance(value, dict) or not isinstance(value.get("blocks"), list):
-        raise RuntimeError(f"Pandoc semantic parse did not return a document AST for {from_format}")
-    return value
 
-
-def verify_document_semantic_correspondence(source: Path, document: Path, pandoc: Path | None = None) -> dict[str, Any]:
-    executable = pandoc or _selected_external_file("ARTIFACT_PANDOC", GLOBAL_PANDOC, ROOT / ".cache/artifact-toolchain/pandoc/current/bin/pandoc")
-    failures: list[str] = []
-    if not executable.is_file() or not os.access(executable, os.X_OK):
-        return {"status": "FAIL", "source": file_fact(source), "artifact": file_fact(document), "pandoc": {"path": str(executable), "status": "NOT_AVAILABLE"}, "failures": ["Pandoc semantic verifier is unavailable"]}
-    version_proc = subprocess.run([str(executable), "--version"], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False, timeout=20)
-    version = version_proc.stdout.splitlines()[0] if version_proc.returncode == 0 and version_proc.stdout else "unknown"
-    try:
-        source_ast = _run_pandoc_ast(executable, source, "markdown")
-        document_ast = _run_pandoc_ast(executable, document, "docx")
-    except Exception as error:
-        return {"status": "FAIL", "source": file_fact(source), "artifact": file_fact(document), "pandoc": {"path": str(executable.resolve()), "sha256": sha256_file(executable), "version": version}, "failures": [str(error)]}
-    source_projection = _pandoc_semantic_projection(source_ast.get("blocks"))
-    document_projection = _pandoc_semantic_projection(document_ast.get("blocks"))
-    if not source_projection:
-        failures.append("source semantic projection is empty")
-    if source_projection != document_projection:
-        failures.append("normalized Pandoc source/document semantic projections differ")
-    source_meta = source_ast.get("meta", {}) if isinstance(source_ast.get("meta"), dict) else {}
-    document_meta = document_ast.get("meta", {}) if isinstance(document_ast.get("meta"), dict) else {}
-    compared_meta: dict[str, Any] = {}
-    for key in ("title", "subtitle", "author"):
-        if key not in source_meta:
-            continue
-        expected = _pandoc_meta_text(source_meta.get(key))
-        observed = _pandoc_meta_text(document_meta.get(key))
-        compared_meta[key] = {"source": expected, "document": observed, "matched": expected == observed}
-        if expected != observed:
-            failures.append(f"document metadata did not preserve source {key}")
-    return {"status": "PASS" if not failures else "FAIL", "source": file_fact(source), "artifact": file_fact(document), "pandoc": {"path": str(executable.resolve()), "sha256": sha256_file(executable), "version": version}, "sourceProjection": source_projection, "documentProjection": document_projection, "metadata": compared_meta, "failures": failures, "boundary": "PASS establishes normalized Markdown->DOCX semantic correspondence through the locked Pandoc parser on both sides. The builder and semantic parser share Pandoc and therefore this is not independent IV&V; Word target behavior, visual review and accessibility remain separate gates."}
-
-
-def verify_document_dependencies(request_path: Path, document: Path, pandoc: Path | None = None, pandoc_archive: Path | None = None, toolchain_lock: Path | None = None, openxml_validator: Path | None = None) -> dict[str, Any]:
-    validation = validate_delivery_request(request_path)
-    plan = compile_delivery_plan(request_path)
-    lock_path = toolchain_lock or ROOT / "artifact-delivery/toolchain-v1.lock.json"
-    executable = pandoc or _selected_external_file("ARTIFACT_PANDOC", GLOBAL_PANDOC, ROOT / ".cache/artifact-toolchain/pandoc/current/bin/pandoc")
-    archive = pandoc_archive or _selected_external_file("ARTIFACT_PANDOC_ARCHIVE", GLOBAL_PANDOC_ARCHIVE, ROOT / ".cache/artifact-toolchain/pandoc/pandoc-3.10.2-linux-amd64.tar.gz")
-    validator = openxml_validator or Path(os.environ.get("ARTIFACT_OPENXML_VALIDATOR", "/root/.local/share/ordivon-workstation/artifact-openxml-v1/current/bin/validate-openxml"))
-    failures: list[str] = []
-    if validation.get("status") != "PASS":
-        failures.append("delivery request did not PASS exact input validation")
-    if plan.get("status") != "PASS" or plan.get("artifactClass") != "document" or plan.get("buildAdapter") != "pandoc-docx":
-        failures.append("delivery plan did not select the mature pandoc-docx document adapter")
-    try:
-        lock = load_json(lock_path)
-        pandoc_lock = lock.get("pandoc", {}) if isinstance(lock, dict) else {}
-    except Exception as error:
-        pandoc_lock = {}
-        failures.append(f"toolchain lock could not be read: {error}")
-    pandoc_fact: dict[str, Any] = {"path": str(executable)}
-    if not executable.is_file() or not os.access(executable, os.X_OK):
-        failures.append("locked Pandoc executable is unavailable")
-    else:
-        proc = subprocess.run([str(executable), "--version"], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False, timeout=20)
-        version_line = proc.stdout.splitlines()[0] if proc.returncode == 0 and proc.stdout else ""
-        digest = sha256_file(executable)
-        expected_version = str(pandoc_lock.get("version", ""))
-        expected_digest = pandoc_lock.get("binarySha256")
-        pandoc_fact = {**file_fact(executable), "version": version_line, "expectedVersion": f"pandoc {expected_version}", "versionMatched": version_line == f"pandoc {expected_version}", "expectedSha256": expected_digest, "digestMatched": digest == expected_digest}
-        if not pandoc_fact["versionMatched"]:
-            failures.append("Pandoc version does not match the toolchain lock")
-        if not pandoc_fact["digestMatched"]:
-            failures.append("Pandoc binary digest does not match the toolchain lock")
-    archive_fact: dict[str, Any] = {"path": str(archive)}
-    if not archive.is_file():
-        failures.append("locked Pandoc release archive is unavailable")
-    else:
-        expected_archive = pandoc_lock.get("linuxAmd64ArchiveSha256")
-        archive_fact = {**file_fact(archive), "expectedSha256": expected_archive, "digestMatched": sha256_file(archive) == expected_archive}
-        if not archive_fact["digestMatched"]:
-            failures.append("Pandoc release archive digest does not match the toolchain lock")
-    validator_fact: dict[str, Any] = {"path": str(validator)}
-    if not validator.is_file() or not os.access(validator, os.X_OK):
-        failures.append("locked Open XML validator runtime is unavailable")
-    else:
-        validator_fact = file_fact(validator)
-    resolved = validation.get("resolved", {}) if isinstance(validation.get("resolved"), dict) else {}
-    return {"status": "PASS" if not failures else "FAIL", "artifact": file_fact(document), "request": file_fact(request_path), "profile": resolved.get("profile"), "source": resolved.get("source"), "declaredMaterials": resolved.get("materials", []), "pandoc": pandoc_fact, "pandocReleaseArchive": archive_fact, "openXmlValidator": validator_fact, "toolchainLock": file_fact(lock_path) if lock_path.is_file() else {"path": str(lock_path)}, "failures": failures, "boundary": "Dependency PASS binds the exact request/source/profile plus locked Pandoc builder bytes, official release archive digest, and Open XML validator availability. It does not establish Microsoft Word target behavior, PDF companion correctness, accessibility, visual acceptance, or release-signature authenticity."}
 
 
 
@@ -1408,14 +1272,29 @@ def verify_signed_verification_summary(
 _write_raw_and_vsa = write_gate_receipt
 
 
+def _document_dependency_hooks() -> DocumentDependencyHooks:
+    return DocumentDependencyHooks(
+        validate_delivery_request=validate_delivery_request,
+        compile_delivery_plan=compile_delivery_plan,
+    )
+
+
+def _document_dependency_stage_verifier(
+    request_path: Path, document: Path,
+) -> dict[str, Any]:
+    return document_verify_dependencies(
+        request_path, document, hooks=_document_dependency_hooks()
+    )
+
+
 def _verification_stage_hooks() -> VerificationStageHooks:
     return VerificationStageHooks(
         validate_profile=validate_profile,
         primary_suffix=_primary_suffix,
         verify_openxml_artifact=verify_openxml_artifact,
         validate_delivery_request=validate_delivery_request,
-        verify_document_semantic_correspondence=verify_document_semantic_correspondence,
-        verify_document_dependencies=verify_document_dependencies,
+        verify_document_semantic_correspondence=document_verify_semantics,
+        verify_document_dependencies=_document_dependency_stage_verifier,
         inspect_pptx=presentation_inspect_pptx,
         verify_presentation_semantics=presentation_verify_semantics,
         verify_pdf=verify_pdf,
