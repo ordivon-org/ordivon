@@ -1,0 +1,84 @@
+{
+  "date": "2026-09-18",
+  "kind": "ordivon.browser-security-neutral-window-placement-r9-repeatability",
+  "mechanismCanonicalSha256": "sha256:eddcafb45f16a6cccf3cc7d6d65eba377f9918091dc18766aa4e94d0717d2fba",
+  "mechanismCheck": {
+    "innerViewportPreserved": true,
+    "outerReproducedExactly": true,
+    "productionReferenceOuter": [
+      1288,
+      851
+    ],
+    "projectedPlacementOuter": [
+      1288,
+      851
+    ],
+    "seededObservedOuter": [
+      1288,
+      851
+    ],
+    "targetTopologyPreserved": true
+  },
+  "productionWindowPlacementProjection": {
+    "bottom": 851,
+    "left": 0,
+    "maximized": false,
+    "right": 1288,
+    "top": 0,
+    "work_area_bottom": 1000,
+    "work_area_left": 0,
+    "work_area_right": 1440,
+    "work_area_top": 0
+  },
+  "projectedProductionProfileFields": [
+    "left",
+    "top",
+    "right",
+    "bottom",
+    "maximized",
+    "work_area_left",
+    "work_area_top",
+    "work_area_right",
+    "work_area_bottom"
+  ],
+  "providerCausalityEstablished": false,
+  "r8Reference": {
+    "r8Run1Path": "evidence/browser-security/cloudflare-provider-security-exp-r8-fresh-service-run1-20260918.json",
+    "r8Run1Sha256": "sha256:d6c59d1efb230c445caea36ac4501ee3a579a0e05f670523714181c650198b9b",
+    "r8Standing": "NEUTRAL_FRESH_SERVICE_ATTRIBUTION_ONLY_ROOT_CAUSE_OPEN"
+  },
+  "rootCauseEstablished": false,
+  "run1": {
+    "jobId": "job-01a0b3eb-fe87-7a83-aa22-6a6a4fd14039",
+    "path": "evidence/browser-security/cloudflare-provider-security-exp-r9-window-placement-run1-20260918.json",
+    "sha256": "sha256:1f4dc26e898b05fa432534d0d143b5dae1765e4b12604009189689b749e3f2b7"
+  },
+  "run2": {
+    "jobId": "job-01a0b3ec-4e5a-71d0-b0fb-623bab250f9d",
+    "path": "evidence/browser-security/cloudflare-provider-security-exp-r9-window-placement-run2-20260918.json",
+    "sha256": "sha256:1f4dc26e898b05fa432534d0d143b5dae1765e4b12604009189689b749e3f2b7"
+  },
+  "safetyBoundary": {
+    "challengeInteracted": false,
+    "cookieValuesRead": false,
+    "productionBrowserConnected": false,
+    "productionProfileCopied": false,
+    "projectedProductionProfileFields": [
+      "left",
+      "top",
+      "right",
+      "bottom",
+      "maximized",
+      "work_area_left",
+      "work_area_top",
+      "work_area_right",
+      "work_area_bottom"
+    ],
+    "protectedProviderVisited": false,
+    "providerSendAttempted": false
+  },
+  "schemaVersion": 1,
+  "standing": "BYTE_IDENTICAL_WINDOW_PLACEMENT_CAUSAL_REPEATABILITY",
+  "wholeEvidenceByteIdentical": true,
+  "wholeEvidenceCanonicalSha256": "sha256:7110ca4e4554bb43f7f2f60476e88b99bbb1f70690dacdf16bf3635bb8e7f3c4"
+}
