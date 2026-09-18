@@ -202,9 +202,9 @@ class AgentServiceEffectAuthorityR15Tests(unittest.TestCase):
 
             self.assertEqual(delivery.calls, 0)
             self.assertEqual(policy.calls, 2)
-            effect = service.effect_authorization_records.get_by_binding(binding.id)
-            self.assertFalse(effect.allowed)
-            self.assertEqual(effect.policy_revision, "policy-r2")
+            effect = service.events.list_for("EffectAuthorization", binding.id)[0]
+            self.assertFalse(effect.payload["allowed"])
+            self.assertEqual(effect.payload["policyRevision"], "policy-r2")
 
     def test_denied_effect_identity_stays_denied_when_policy_later_changes(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -231,9 +231,9 @@ class AgentServiceEffectAuthorityR15Tests(unittest.TestCase):
                 "same denied effect identity must not be silently re-authorized",
             )
             self.assertEqual(delivery.calls, 0)
-            frozen = service.effect_authorization_records.get_by_binding(binding.id)
-            self.assertFalse(frozen.allowed)
-            self.assertEqual(frozen.policy_revision, "policy-r2")
+            frozen = service.events.list_for("EffectAuthorization", binding.id)[0]
+            self.assertFalse(frozen.payload["allowed"])
+            self.assertEqual(frozen.payload["policyRevision"], "policy-r2")
 
     def test_session_close_is_continuity_close_not_implicit_revocation(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -248,8 +248,8 @@ class AgentServiceEffectAuthorityR15Tests(unittest.TestCase):
             self.assertEqual(receipt.binding_id, binding.id)
             self.assertEqual(delivery.calls, 1)
             self.assertEqual(policy.calls, 2)
-            effect = service.effect_authorization_records.get_by_binding(binding.id)
-            self.assertTrue(effect.allowed)
+            effect = service.events.list_for("EffectAuthorization", binding.id)[0]
+            self.assertTrue(effect.payload["allowed"])
 
     def test_effect_authorization_is_frozen_to_exact_binding_effect_identity(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -262,8 +262,8 @@ class AgentServiceEffectAuthorityR15Tests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "simulated response loss"):
                 service.delivery.deliver(binding.id)
 
-            effect = service.effect_authorization_records.get_by_binding(binding.id)
-            self.assertTrue(effect.allowed)
+            effect = service.events.list_for("EffectAuthorization", binding.id)[0]
+            self.assertTrue(effect.payload["allowed"])
             self.assertEqual(policy.calls, 2)
 
             policy.allowed = False
