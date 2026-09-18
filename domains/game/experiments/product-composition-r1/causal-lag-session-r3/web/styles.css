@@ -1,0 +1,12 @@
+.contract-bar{margin-top:22px;border:1px solid #293647;background:rgba(16,23,34,.9);border-radius:12px;padding:15px 18px;display:grid;grid-template-columns:repeat(4,1fr) 1.35fr;gap:12px;align-items:center}
+.contract-bar>div{display:grid;gap:5px;border-right:1px solid #293647;padding-right:12px}
+.contract-bar>div:last-child{border-right:0;padding-right:0}
+.contract-bar span{font-size:9px;letter-spacing:.14em;color:#72859a}
+.contract-bar strong{font:700 14px ui-monospace,SFMono-Regular,Menlo,monospace;color:#e4ebf3}
+.contract-outcome{min-height:40px;place-items:center;text-align:center;font-size:12px;font-weight:800;letter-spacing:.12em;color:#afbdcc}
+.contract-outcome[data-state="success"]{color:#b9d7bd}
+.contract-outcome[data-state="failure"]{color:#dfae9c}
+.built-card{margin-bottom:12px;border:1px solid #3b4a5b;background:#0b1119;border-radius:8px;padding:12px;font:700 12px ui-monospace,SFMono-Regular,Menlo,monospace;color:#dce5ee}
+.start-button{min-width:170px}
+@media(max-width:1050px){.contract-bar{grid-template-columns:repeat(2,1fr)}.contract-bar>div{border-right:0;border-bottom:1px solid #293647;padding:0 0 10px}.contract-bar>div:last-child{grid-column:1/-1;border-bottom:0;padding-bottom:0}}
+@media(max-width:650px){.contract-bar{grid-template-columns:1fr}.contract-bar>div:last-child{grid-column:auto}}

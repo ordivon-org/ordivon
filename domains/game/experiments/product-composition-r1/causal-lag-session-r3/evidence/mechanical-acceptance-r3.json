@@ -1,0 +1,328 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.causal-lag-session-r3-mechanical-acceptance",
+  "designId": "pc01-causal-works-f0",
+  "designDigest": "sha256:19a258b457f4bbdeaf1e97a24c01bd9b800f0e50a4e3ffebe857e75290e0ac7c",
+  "sessionRules": {
+    "roundCount": 4,
+    "targetTotal": 320,
+    "initialArchitecture": "route",
+    "contextChain": [
+      {
+        "sourceCycleIndex": 0,
+        "executionCycleIndex": 1
+      },
+      {
+        "sourceCycleIndex": 1,
+        "executionCycleIndex": 2
+      },
+      {
+        "sourceCycleIndex": 2,
+        "executionCycleIndex": 0
+      },
+      {
+        "sourceCycleIndex": 0,
+        "executionCycleIndex": 1
+      }
+    ]
+  },
+  "continuityWitness": {
+    "firstRound": {
+      "schemaVersion": 1,
+      "kind": "ordivon.game.causal-lag-session-r3-state",
+      "sessionStatus": "ACTIVE",
+      "totalNet": 86,
+      "contract": {
+        "targetTotal": 320,
+        "remainingTarget": 234,
+        "maxRecoverableTotal": 386,
+        "status": "ACTIVE"
+      },
+      "history": [
+        {
+          "round": 1,
+          "sourceCause": "process",
+          "executionCause": "process",
+          "persisted": true,
+          "previousArchitecture": "route",
+          "architecture": "process",
+          "diagnostic": "route",
+          "net": 86
+        }
+      ],
+      "current": {
+        "round": 1,
+        "phase": "resolved",
+        "previousArchitecture": "route",
+        "currentContext": {
+          "id": "cycle-1-baseline-output",
+          "operatingContext": "balanced contract; first architecture is still cheap to revise",
+          "visibleSymptom": "primary output misses target while aggregate capacity still appears viable"
+        },
+        "executionForecast": {
+          "id": "cycle-2-objective-shift",
+          "operatingContext": "objective shifts toward route-sensitive delivery; yesterday's architecture is not deleted",
+          "visibleSymptom": "priority output misses the new contract while the previous architecture remains operational"
+        },
+        "inspection": {
+          "diagnostic": "route",
+          "observation": "OK"
+        },
+        "selectedArchitecture": "process",
+        "resolution": {
+          "sourceCause": "process",
+          "executionCause": "process",
+          "architecture": "process",
+          "baseReward": 100,
+          "diagnosticCost": 6,
+          "switchCost": 8,
+          "net": 86
+        }
+      },
+      "productSelected": false,
+      "g0Entered": false,
+      "humanOutcomeEstablished": false,
+      "gameCoreChanged": false
+    },
+    "secondRound": {
+      "schemaVersion": 1,
+      "kind": "ordivon.game.causal-lag-session-r3-state",
+      "sessionStatus": "ACTIVE",
+      "totalNet": 86,
+      "contract": {
+        "targetTotal": 320,
+        "remainingTarget": 234,
+        "maxRecoverableTotal": 386,
+        "status": "ACTIVE"
+      },
+      "history": [
+        {
+          "round": 1,
+          "sourceCause": "process",
+          "executionCause": "process",
+          "persisted": true,
+          "previousArchitecture": "route",
+          "architecture": "process",
+          "diagnostic": "route",
+          "net": 86
+        }
+      ],
+      "current": {
+        "round": 2,
+        "phase": "decision",
+        "previousArchitecture": "process",
+        "currentContext": {
+          "id": "cycle-2-objective-shift",
+          "operatingContext": "objective shifts toward route-sensitive delivery; yesterday's architecture is not deleted",
+          "visibleSymptom": "priority output misses the new contract while the previous architecture remains operational"
+        },
+        "executionForecast": {
+          "id": "cycle-3-rule-revaluation",
+          "operatingContext": "rule change raises the value of source resilience; scanning may no longer be worth its opportunity cost",
+          "visibleSymptom": "new operating rule makes input sufficiency the dominant uncertainty while the built system persists"
+        },
+        "inspection": null,
+        "selectedArchitecture": "",
+        "resolution": null
+      },
+      "productSelected": false,
+      "g0Entered": false,
+      "humanOutcomeEstablished": false,
+      "gameCoreChanged": false
+    }
+  },
+  "terminalWitnesses": {
+    "success": {
+      "schemaVersion": 1,
+      "kind": "ordivon.game.causal-lag-session-r3-state",
+      "sessionStatus": "SUCCESS",
+      "totalNet": 400,
+      "contract": {
+        "targetTotal": 320,
+        "remainingTarget": 0,
+        "maxRecoverableTotal": 400,
+        "status": "ACHIEVED"
+      },
+      "history": [
+        {
+          "round": 1,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "route",
+          "architecture": "route",
+          "diagnostic": "none",
+          "net": 100
+        },
+        {
+          "round": 2,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "route",
+          "architecture": "route",
+          "diagnostic": "none",
+          "net": 100
+        },
+        {
+          "round": 3,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "route",
+          "architecture": "route",
+          "diagnostic": "none",
+          "net": 100
+        },
+        {
+          "round": 4,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "route",
+          "architecture": "route",
+          "diagnostic": "none",
+          "net": 100
+        }
+      ],
+      "current": {
+        "round": 4,
+        "phase": "resolved",
+        "previousArchitecture": "route",
+        "currentContext": {
+          "id": "cycle-1-baseline-output",
+          "operatingContext": "balanced contract; first architecture is still cheap to revise",
+          "visibleSymptom": "primary output misses target while aggregate capacity still appears viable"
+        },
+        "executionForecast": {
+          "id": "cycle-2-objective-shift",
+          "operatingContext": "objective shifts toward route-sensitive delivery; yesterday's architecture is not deleted",
+          "visibleSymptom": "priority output misses the new contract while the previous architecture remains operational"
+        },
+        "inspection": null,
+        "selectedArchitecture": "route",
+        "resolution": {
+          "sourceCause": "route",
+          "executionCause": "route",
+          "architecture": "route",
+          "baseReward": 100,
+          "diagnosticCost": 0,
+          "switchCost": 0,
+          "net": 100
+        }
+      },
+      "productSelected": false,
+      "g0Entered": false,
+      "humanOutcomeEstablished": false,
+      "gameCoreChanged": false
+    },
+    "failure": {
+      "schemaVersion": 1,
+      "kind": "ordivon.game.causal-lag-session-r3-state",
+      "sessionStatus": "FAILURE",
+      "totalNet": 115,
+      "contract": {
+        "targetTotal": 320,
+        "remainingTarget": 205,
+        "maxRecoverableTotal": 315,
+        "status": "FAILED_UNRECOVERABLE"
+      },
+      "history": [
+        {
+          "round": 1,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "route",
+          "architecture": "source",
+          "diagnostic": "none",
+          "net": 47
+        },
+        {
+          "round": 2,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "source",
+          "architecture": "source",
+          "diagnostic": "none",
+          "net": 68
+        }
+      ],
+      "current": {
+        "round": 2,
+        "phase": "resolved",
+        "previousArchitecture": "source",
+        "currentContext": {
+          "id": "cycle-2-objective-shift",
+          "operatingContext": "objective shifts toward route-sensitive delivery; yesterday's architecture is not deleted",
+          "visibleSymptom": "priority output misses the new contract while the previous architecture remains operational"
+        },
+        "executionForecast": {
+          "id": "cycle-3-rule-revaluation",
+          "operatingContext": "rule change raises the value of source resilience; scanning may no longer be worth its opportunity cost",
+          "visibleSymptom": "new operating rule makes input sufficiency the dominant uncertainty while the built system persists"
+        },
+        "inspection": null,
+        "selectedArchitecture": "source",
+        "resolution": {
+          "sourceCause": "route",
+          "executionCause": "route",
+          "architecture": "source",
+          "baseReward": 68,
+          "diagnosticCost": 0,
+          "switchCost": 0,
+          "net": 68
+        }
+      },
+      "productSelected": false,
+      "g0Entered": false,
+      "humanOutcomeEstablished": false,
+      "gameCoreChanged": false
+    }
+  },
+  "publicBoundary": {
+    "preResolution": {
+      "schemaVersion": 1,
+      "kind": "ordivon.game.causal-lag-session-r3-state",
+      "sessionStatus": "ACTIVE",
+      "totalNet": 0,
+      "contract": {
+        "targetTotal": 320,
+        "remainingTarget": 320,
+        "maxRecoverableTotal": 400,
+        "status": "ACTIVE"
+      },
+      "history": [],
+      "current": {
+        "round": 1,
+        "phase": "decision",
+        "previousArchitecture": "route",
+        "currentContext": {
+          "id": "cycle-1-baseline-output",
+          "operatingContext": "balanced contract; first architecture is still cheap to revise",
+          "visibleSymptom": "primary output misses target while aggregate capacity still appears viable"
+        },
+        "executionForecast": {
+          "id": "cycle-2-objective-shift",
+          "operatingContext": "objective shifts toward route-sensitive delivery; yesterday's architecture is not deleted",
+          "visibleSymptom": "priority output misses the new contract while the previous architecture remains operational"
+        },
+        "inspection": null,
+        "selectedArchitecture": "",
+        "resolution": null
+      },
+      "productSelected": false,
+      "g0Entered": false,
+      "humanOutcomeEstablished": false,
+      "gameCoreChanged": false
+    },
+    "publicLeak": false
+  },
+  "pass": true,
+  "productSelected": false,
+  "g0Entered": false,
+  "humanOutcomeEstablished": false,
+  "gameCoreChanged": false,
+  "claimBoundary": "STATEFUL_SESSION_MECHANICS_ONLY_NO_HUMAN_VALUE_OR_PRODUCT_SELECTION_CLAIM"
+}

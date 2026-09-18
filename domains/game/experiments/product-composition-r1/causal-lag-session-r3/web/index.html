@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Causal Lag · Stateful Run</title>
+  <link rel="stylesheet" href="../../pc01-e03-playable-r1/web/styles.css">
+  <link rel="stylesheet" href="../../pc01-e03-multiround-r2/web/styles.css">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="masthead">
+      <div>
+        <p class="eyebrow">Causal Lag · R3 stateful session</p>
+        <h1>Causal Lag · Stateful Run</h1>
+        <p class="lede">Hold a four-shift service contract while causes evolve, architectures persist, and every diagnosis or rebuild consumes margin.</p>
+      </div>
+      <div class="run-controls">
+        <div class="round-chip" data-round>NOT STARTED</div>
+        <button type="button" class="commit start-button" data-start>START CONTRACT</button>
+        <button type="button" class="secondary" data-new hidden>NEW CONTRACT</button>
+      </div>
+    </header>
+
+    <section class="contract-bar" data-contract>
+      <div><span>CONTRACT</span><strong>TARGET · 320</strong></div>
+      <div><span>RUN NET</span><strong data-total>0</strong></div>
+      <div><span>REMAINING</span><strong data-remaining>320</strong></div>
+      <div><span>MAX RECOVERABLE</span><strong data-max>400</strong></div>
+      <div class="contract-outcome" data-outcome>AWAITING START</div>
+    </section>
+
+    <section class="memory-layout">
+      <aside class="memory-panel">
+        <div class="panel-head">
+          <div>
+            <span class="card-kicker">SYSTEM MEMORY</span>
+            <h2>Run history</h2>
+          </div>
+        </div>
+        <div class="built-card" data-built>BUILT · ROUTE</div>
+        <p class="memory-help">Your committed architecture survives into the next round. The execution cause becomes the next current cause.</p>
+        <div class="history-list" data-history>
+          <div class="history-empty">START THE CONTRACT TO BEGIN</div>
+        </div>
+      </aside>
+
+      <div class="play-column">
+        <section class="timeline" aria-label="current and forecast contexts">
+          <article class="context-card current">
+            <span class="card-kicker">CURRENT SIGNAL</span>
+            <h2 data-current-id>—</h2>
+            <p data-current-context>Contract not started.</p>
+            <p class="signal" data-current-symptom></p>
+          </article>
+
+          <div class="lag-card">
+            <span>COMMAND ETA</span>
+            <strong>1 CONTEXT SHIFT</strong>
+            <div class="arrow">→</div>
+            <p>Your architecture choice lands in the forecast context, not the current one.</p>
+          </div>
+
+          <article class="context-card forecast">
+            <span class="card-kicker">EXECUTION FORECAST</span>
+            <h2 data-forecast-id>—</h2>
+            <p data-forecast-context>Start the run to receive the next operating context.</p>
+            <p class="signal" data-forecast-symptom></p>
+          </article>
+        </section>
+
+        <section class="decision-grid">
+          <article class="panel architecture-panel">
+            <div class="panel-head">
+              <div>
+                <span class="card-kicker">COMMITMENT</span>
+                <h2>Architecture</h2>
+              </div>
+              <p>Switch cost · 8</p>
+            </div>
+            <div class="architecture-flow">
+              <button type="button" data-arch="source" disabled><span>01</span><strong>SOURCE</strong><small>input resilience</small></button>
+              <div class="connector">→</div>
+              <button type="button" data-arch="process" disabled><span>02</span><strong>PROCESS</strong><small>conversion stability</small></button>
+              <div class="connector">→</div>
+              <button type="button" data-arch="route" disabled><span>03</span><strong>ROUTE</strong><small>delivery resilience</small></button>
+              <div class="connector">→</div>
+              <div class="output-node"><span>04</span><strong>OUTPUT</strong><small>scores into the contract</small></div>
+            </div>
+          </article>
+
+          <article class="panel diagnostic-panel">
+            <div class="panel-head">
+              <div>
+                <span class="card-kicker">OPTIONAL INFORMATION</span>
+                <h2>Diagnostic</h2>
+              </div>
+              <p>One scan · cost 6</p>
+            </div>
+            <div class="diagnostic-actions">
+              <button type="button" data-inspect="process" disabled>PROCESS SCAN</button>
+              <button type="button" data-inspect="route" disabled>ROUTE SCAN</button>
+            </div>
+            <div class="inspection-readout" data-inspection>NO SCAN USED</div>
+            <p class="microcopy">A scan describes the current cause only. The cause can change before the command lands.</p>
+          </article>
+        </section>
+
+        <section class="commit-strip">
+          <div>
+            <span class="card-kicker">SESSION STATE</span>
+            <p data-status>Start the contract to begin.</p>
+          </div>
+          <div class="commit-actions">
+            <button type="button" class="secondary" data-next hidden>NEXT SHIFT</button>
+            <button type="button" class="commit" data-commit disabled>COMMIT FOR EXECUTION</button>
+          </div>
+        </section>
+
+        <section class="aftermath" data-aftermath aria-live="polite">AFTERMATH · unresolved</section>
+      </div>
+    </section>
+
+    <footer>
+      Four-round stateful session · architecture and latent cause persist · contract target is game-level R3 state, not a PC01 reward rewrite.
+    </footer>
+  </main>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
