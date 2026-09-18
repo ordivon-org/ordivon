@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.browser-benchmark-suite",
+  "benchmarkId": "bcr-s2-generic-core-r1",
+  "tasks": [
+    {
+      "taskId": "generic-navigate-click-r1",
+      "providerFlow": "generic",
+      "requiredFeatures": [
+        "navigate",
+        "click"
+      ],
+      "preferredFeatures": [],
+      "outcomeCheckIds": [
+        "target-state-visible"
+      ],
+      "variants": [
+        {
+          "caseId": "generic-navigate-click-jev",
+          "routeId": "jev-fast-windows-v1"
+        },
+        {
+          "caseId": "generic-navigate-click-browser-use",
+          "routeId": "browser-use-browserless-v1"
+        }
+      ]
+    }
+  ]
+}

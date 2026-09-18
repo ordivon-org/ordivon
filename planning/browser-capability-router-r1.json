@@ -41,13 +41,32 @@
       "kind": "effect_boundary",
       "state": "NOT_IMPLEMENTED",
       "mustNotOwn": ["effect fencing already owned by selected adapter"]
+    },
+    {
+      "id": "BCR06",
+      "label": "BenchmarkContract",
+      "kind": "measurement_boundary",
+      "state": "IMPLEMENTED",
+      "dependencies": ["BCR04"],
+      "evidence": [
+        "config/browser-benchmark-suite.json",
+        "scripts/browser_benchmark_contract.py",
+        "docs/BROWSER_BENCHMARK_CONTRACT_S2.md"
+      ],
+      "mustNotOwn": [
+        "browser effects",
+        "provider authorization",
+        "Runtime execution truth",
+        "semantic success inference"
+      ]
     }
   ],
   "edges": [
     {"from": "BCR01", "to": "BCR04", "type": "DATA"},
     {"from": "BCR02", "to": "BCR04", "type": "POLICY"},
     {"from": "BCR03", "to": "BCR04", "type": "READINESS"},
-    {"from": "BCR04", "to": "BCR05", "type": "SELECTED_ROUTE"}
+    {"from": "BCR04", "to": "BCR05", "type": "SELECTED_ROUTE"},
+    {"from": "BCR04", "to": "BCR06", "type": "ROUTE_PLAN"}
   ],
   "currentRoutes": [
     "jev-fast-windows-v1",
@@ -62,8 +81,8 @@
     "visual-browser-v1": "NOT_MATERIALIZED"
   },
   "nextSlice": {
-    "id": "BCR-S2",
-    "objective": "Prepare a provider-neutral benchmark contract and execution receipt schema without faking unavailable Jev or overriding operator-disabled Browser Use.",
-    "status": "READY"
+    "id": "BCR-S3",
+    "objective": "Add replaceable effectful benchmark runner adapters that emit bound execution observations without moving provider or Runtime authority into the benchmark contract.",
+    "status": "READY_AFTER_S2_ACCEPTANCE"
   }
 }
