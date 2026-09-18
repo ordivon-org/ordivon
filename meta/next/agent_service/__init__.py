@@ -5,7 +5,6 @@ from .delivery import (
     DelegationRoutePlanner,
     DeliveryAdapter,
     DeliveryCoordinator,
-    DeliveryReceiptStore,
     PolicyAdapter,
     TransportBindingStore,
 )
@@ -151,7 +150,6 @@ __all__ = [
     "DelegationRoutePlanner",
     "DeliveryAdapter",
     "DeliveryCoordinator",
-    "DeliveryReceiptStore",
     "ExecutionClaimTransferCoordinator",
     "ExecutionClaimTransferStore",
     "ExecutionQuiescenceAdapter",

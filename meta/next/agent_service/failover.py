@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .delivery import DeliveryAdapter, DeliveryReceiptStore, PolicyAdapter, TransportBinding, TransportBindingStore
+from .delivery import DeliveryAdapter, PolicyAdapter, TransportBinding, TransportBindingStore, _delivery_receipt_get_by_binding
 from .evidence import RuntimeArtifactReader
 from .goals import BoardAdapter, GoalAssignmentPlanner
 from .remote_evidence import (
@@ -351,7 +351,7 @@ class ExecutionQuiescenceCoordinator:
         claims: TaskExecutionClaimStore,
         delegations: Any,
         bindings: TransportBindingStore,
-        receipts: DeliveryReceiptStore,
+        receipts: ServiceEventStore,
         observations: RemoteDeliveryObservationStore,
         requests: ExecutionQuiescenceRequestStore,
         proofs: ExecutionQuiescenceProofStore,
@@ -392,7 +392,7 @@ class ExecutionQuiescenceCoordinator:
         claim = self._claims.get(task.id)
         if (claim.mode, claim.owner_id) != ("REMOTE_BINDING", binding.id):
             raise RuntimeError("quiescence proof requires Binding to own the Task execution claim")
-        receipt = self._receipts.get_by_binding(binding.id, required=False)
+        receipt = _delivery_receipt_get_by_binding(self._receipts, binding.id, required=False)
         history = self._observations.list_for_binding(binding.id)
         latest = None if not history else history[-1]
 
@@ -673,7 +673,7 @@ class ReplaySafetyCoordinator:
         claims: TaskExecutionClaimStore,
         delegations: Any,
         bindings: TransportBindingStore,
-        receipts: DeliveryReceiptStore,
+        receipts: ServiceEventStore,
         observations: RemoteDeliveryObservationStore,
         quiescence_proofs: ExecutionQuiescenceProofStore,
         decisions: ReplaySafetyDecisionStore,
@@ -743,7 +743,7 @@ class ReplaySafetyCoordinator:
             source_binding=source,
             target_binding=target,
             quiescence_proof=proof,
-            source_receipt=self._receipts.get_by_binding(source.id, required=False),
+            source_receipt=_delivery_receipt_get_by_binding(self._receipts, source.id, required=False),
             source_observations=history,
         )
         if not isinstance(observation, ReplaySafetyObservation):
@@ -914,7 +914,7 @@ class ExecutionClaimTransferCoordinator:
         claims: TaskExecutionClaimStore,
         delegations: Any,
         bindings: TransportBindingStore,
-        receipts: DeliveryReceiptStore,
+        receipts: ServiceEventStore,
         observations: RemoteDeliveryObservationStore,
         remote_verifications: RemoteTaskVerificationStore,
         quiescence_requests: ExecutionQuiescenceRequestStore,
@@ -950,7 +950,7 @@ class ExecutionClaimTransferCoordinator:
         claim = self._claims.get(task.id)
         if (claim.mode, claim.owner_id) != ("REMOTE_BINDING", source.id):
             raise RuntimeError("claim transfer source is not the current remote execution owner")
-        if self._receipts.get_by_binding(target.id, required=False) is not None:
+        if _delivery_receipt_get_by_binding(self._receipts, target.id, required=False) is not None:
             raise RuntimeError("claim transfer target already has a delivery receipt")
         if self._observations.list_for_binding(target.id):
             raise RuntimeError("claim transfer target already has remote observation history")
@@ -1023,7 +1023,7 @@ class ExecutionClaimTransferCoordinator:
             raise RuntimeError("claim transfer requires replay-safe decision")
         if self._transfers.get_by_quiescence_proof(proof.id) is not None:
             raise RuntimeError("quiescence proof has already been consumed by another transfer")
-        if self._receipts.get_by_binding(target.id, required=False) is not None:
+        if _delivery_receipt_get_by_binding(self._receipts, target.id, required=False) is not None:
             raise RuntimeError("claim transfer target already has a delivery receipt")
         if self._observations.list_for_binding(target.id):
             raise RuntimeError("claim transfer target already has remote observation history")
@@ -1183,7 +1183,7 @@ class AgentServiceR12:
             "goals", "goal_graph_guard", "goal_task_links", "task_dependencies", "task_readiness",
             "task_graph", "goal_reconciler", "board_receipts", "board_projector", "identities",
             "sessions", "session_items", "delegations", "a2a_cards",
-            "transport_bindings", "routes", "delivery_receipts",
+            "transport_bindings", "routes",
             "credential_references", "identity_proof_records", "identity_proofs", "remote_observations",
             "remote_reconciler", "audit", "execution_claims", "remote_verifications",
             "remote_artifacts", "remote_semantic_verifier", "remote_completion",
@@ -1207,7 +1207,7 @@ class AgentServiceR12:
             self.execution_claims,
             self.delegations,
             self.transport_bindings,
-            self.delivery_receipts,
+            self.events,
             self.remote_observations,
             self.quiescence_requests,
             self.quiescence_proof_records,
@@ -1221,7 +1221,7 @@ class AgentServiceR12:
             self.execution_claims,
             self.delegations,
             self.transport_bindings,
-            self.delivery_receipts,
+            self.events,
             self.remote_observations,
             self.quiescence_proof_records,
             self.replay_safety_decisions,
@@ -1235,7 +1235,7 @@ class AgentServiceR12:
             self.execution_claims,
             self.delegations,
             self.transport_bindings,
-            self.delivery_receipts,
+            self.events,
             self.remote_observations,
             self.remote_verifications,
             self.quiescence_requests,
@@ -1252,7 +1252,7 @@ class AgentServiceR12:
             self.task_readiness,
             self.delegations,
             self.transport_bindings,
-            self.delivery_receipts,
+            self.events,
             delivery_adapters,
             quiescence_requests=self.quiescence_requests,
         )

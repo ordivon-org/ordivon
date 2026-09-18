@@ -10,6 +10,7 @@ from .delivery import (
     PolicyObservation,
     PolicyRequest,
     TransportBindingStore,
+    _delivery_receipt_get_by_binding,
 )
 from .slice1 import ServiceEvent, ServiceEventStore
 from .transport_credentials import AgentServiceR14
@@ -28,14 +29,12 @@ class EffectAuthorizedDeliveryCoordinator:
         self,
         *,
         delegate: Any,
-        receipts: Any,
         bindings: TransportBindingStore,
         delegations: Any,
         events: ServiceEventStore,
         policy_adapter: PolicyAdapter | None,
     ) -> None:
         self._delegate = delegate
-        self._receipts = receipts
         self._bindings = bindings
         self._delegations = delegations
         self._events = events
@@ -87,7 +86,7 @@ class EffectAuthorizedDeliveryCoordinator:
         )
 
     def deliver(self, binding_id: str) -> DeliveryReceipt:
-        existing = self._receipts.get_by_binding(binding_id, required=False)
+        existing = _delivery_receipt_get_by_binding(self._events, binding_id, required=False)
         if existing is not None:
             return self._delegate.deliver(binding_id)
 
@@ -112,7 +111,6 @@ class AgentServiceR15:
         self._connection = r14._connection
         self.delivery = EffectAuthorizedDeliveryCoordinator(
             delegate=r14.delivery,
-            receipts=r14.delivery_receipts,
             bindings=r14.transport_bindings,
             delegations=r14.delegations,
             events=r14.events,

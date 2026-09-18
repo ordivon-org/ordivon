@@ -507,76 +507,75 @@ class DeliveryReceipt:
     created_at_ns: int
 
 
-class DeliveryReceiptStore:
-    def __init__(self, connection: sqlite3.Connection) -> None:
-        self._connection = connection
+def _delivery_receipt_from_event(event: ServiceEvent) -> DeliveryReceipt:
+    if event.aggregate_type != "Delivery" or event.event_type != "DeliveryCommitted":
+        raise ValueError("event is not a delivery receipt")
+    payload = event.payload
+    if payload.get("bindingId") != event.aggregate_id:
+        raise RuntimeError("delivery receipt binding identity mismatch")
+    return DeliveryReceipt(
+        id=event.id,
+        binding_id=event.aggregate_id,
+        delivery_request_id=payload["deliveryRequestId"],
+        admission=payload["admission"],
+        status=payload["status"],
+        provider_request_id=payload.get("providerRequestId"),
+        remote_task_id=payload.get("remoteTaskId"),
+        remote_context_id=payload.get("remoteContextId"),
+        created_at_ns=event.created_at_ns,
+    )
 
-    def get(self, receipt_id: str) -> DeliveryReceipt:
-        row = self._connection.execute(
-            "SELECT * FROM delivery_receipts WHERE id = ?", (receipt_id,)
-        ).fetchone()
-        if row is None:
-            raise KeyError(receipt_id)
-        return self._from_row(row)
 
-    def get_by_binding(self, binding_id: str, required: bool = True) -> DeliveryReceipt | None:
-        row = self._connection.execute(
-            "SELECT * FROM delivery_receipts WHERE binding_id = ?", (binding_id,)
-        ).fetchone()
-        if row is None:
-            if required:
-                raise KeyError(binding_id)
-            return None
-        return self._from_row(row)
+def _delivery_receipt_get(events: ServiceEventStore, receipt_id: str) -> DeliveryReceipt:
+    return _delivery_receipt_from_event(events.get(receipt_id))
 
-    def list_for_binding(self, binding_id: str) -> list[DeliveryReceipt]:
-        row = self.get_by_binding(binding_id, required=False)
-        return [] if row is None else [row]
 
-    def create(self, binding: TransportBinding, observation: DeliveryObservation) -> DeliveryReceipt:
-        if observation.admission not in {"committed", "existing"}:
-            raise ValueError("DeliveryObservation admission must be committed or existing")
-        value = DeliveryReceipt(
-            id=_id("drcpt"),
-            binding_id=binding.id,
-            delivery_request_id=binding.delivery_request_id,
-            admission=observation.admission,
-            status=observation.status,
-            provider_request_id=observation.provider_request_id,
-            remote_task_id=observation.remote_task_id,
-            remote_context_id=observation.remote_context_id,
-            created_at_ns=_now_ns(),
-        )
-        with self._connection:
-            self._connection.execute(
-                "INSERT INTO delivery_receipts(id, binding_id, delivery_request_id, admission, status, provider_request_id, remote_task_id, remote_context_id, created_at_ns) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (
-                    value.id,
-                    value.binding_id,
-                    value.delivery_request_id,
-                    value.admission,
-                    value.status,
-                    value.provider_request_id,
-                    value.remote_task_id,
-                    value.remote_context_id,
-                    value.created_at_ns,
-                ),
-            )
-        return value
+def _delivery_receipt_get_by_binding(
+    events: ServiceEventStore,
+    binding_id: str,
+    required: bool = True,
+) -> DeliveryReceipt | None:
+    history = events.list_for("Delivery", binding_id)
+    receipts = [item for item in history if item.event_type == "DeliveryCommitted"]
+    if not receipts:
+        if required:
+            raise KeyError(binding_id)
+        return None
+    if len(receipts) != 1:
+        raise RuntimeError("delivery receipt stream contains multiple committed receipts")
+    return _delivery_receipt_from_event(receipts[0])
 
-    @staticmethod
-    def _from_row(row: sqlite3.Row) -> DeliveryReceipt:
-        return DeliveryReceipt(
-            id=row["id"],
-            binding_id=row["binding_id"],
-            delivery_request_id=row["delivery_request_id"],
-            admission=row["admission"],
-            status=row["status"],
-            provider_request_id=row["provider_request_id"],
-            remote_task_id=row["remote_task_id"],
-            remote_context_id=row["remote_context_id"],
-            created_at_ns=row["created_at_ns"],
-        )
+
+def _delivery_receipt_list_for_binding(
+    events: ServiceEventStore,
+    binding_id: str,
+) -> list[DeliveryReceipt]:
+    receipt = _delivery_receipt_get_by_binding(events, binding_id, required=False)
+    return [] if receipt is None else [receipt]
+
+
+def _delivery_receipt_create(
+    events: ServiceEventStore,
+    binding: TransportBinding,
+    observation: DeliveryObservation,
+) -> DeliveryReceipt:
+    if observation.admission not in {"committed", "existing"}:
+        raise ValueError("DeliveryObservation admission must be committed or existing")
+    event = events.append_once(
+        "Delivery",
+        binding.id,
+        "DeliveryCommitted",
+        {
+            "bindingId": binding.id,
+            "deliveryRequestId": binding.delivery_request_id,
+            "admission": observation.admission,
+            "status": observation.status,
+            "providerRequestId": observation.provider_request_id,
+            "remoteTaskId": observation.remote_task_id,
+            "remoteContextId": observation.remote_context_id,
+        },
+    )
+    return _delivery_receipt_from_event(event)
 
 
 class DeliveryCoordinator:
@@ -584,16 +583,18 @@ class DeliveryCoordinator:
         self,
         delegations: Any,
         bindings: TransportBindingStore,
-        receipts: DeliveryReceiptStore,
+        events: ServiceEventStore,
         adapters: dict[str, DeliveryAdapter],
     ) -> None:
         self._delegations = delegations
         self._bindings = bindings
-        self._receipts = receipts
+        self._events = events
         self._adapters = dict(adapters)
 
     def deliver(self, binding_id: str) -> DeliveryReceipt:
-        existing = self._receipts.get_by_binding(binding_id, required=False)
+        existing = _delivery_receipt_get_by_binding(
+            self._events, binding_id, required=False
+        )
         if existing is not None:
             return existing
         binding = self._bindings.get(binding_id)
@@ -608,7 +609,7 @@ class DeliveryCoordinator:
         )
         if not isinstance(observation, DeliveryObservation):
             raise TypeError("DeliveryAdapter must return DeliveryObservation")
-        return self._receipts.create(binding, observation)
+        return _delivery_receipt_create(self._events, binding, observation)
 
 
 class AgentServiceR9:
@@ -640,11 +641,10 @@ class AgentServiceR9:
             policy_adapter,
             self.transport_bindings,
         )
-        self.delivery_receipts = DeliveryReceiptStore(self._connection)
         self.delivery = DeliveryCoordinator(
             self.delegations,
             self.transport_bindings,
-            self.delivery_receipts,
+            self.events,
             delivery_adapters,
         )
 
@@ -694,6 +694,15 @@ class AgentServiceR9:
                 "legacy policy_decisions schema is unsupported; "
                 "perform explicit destructive migration before opening this revision"
             )
+        legacy_delivery_receipts = connection.execute(
+            "SELECT 1 FROM sqlite_master "
+            "WHERE type = 'table' AND name = 'delivery_receipts'"
+        ).fetchone()
+        if legacy_delivery_receipts is not None:
+            raise RuntimeError(
+                "legacy delivery_receipts schema is unsupported; "
+                "perform explicit destructive migration before opening this revision"
+            )
         connection.executescript(
             """
             CREATE TABLE IF NOT EXISTS transport_bindings (
@@ -710,18 +719,6 @@ class AgentServiceR9:
                 security_requirements_json TEXT NOT NULL,
                 created_at_ns INTEGER NOT NULL,
                 UNIQUE(delegation_id, policy_receipt_id, interface_id)
-            );
-
-            CREATE TABLE IF NOT EXISTS delivery_receipts (
-                id TEXT PRIMARY KEY,
-                binding_id TEXT NOT NULL UNIQUE REFERENCES transport_bindings(id),
-                delivery_request_id TEXT NOT NULL UNIQUE,
-                admission TEXT NOT NULL,
-                status TEXT NOT NULL,
-                provider_request_id TEXT,
-                remote_task_id TEXT,
-                remote_context_id TEXT,
-                created_at_ns INTEGER NOT NULL
             );
             """
         )

@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agent_service.delivery import DeliveryAdapter, DeliveryObservation, PolicyAdapter, PolicyObservation
+from agent_service.delivery import DeliveryAdapter, DeliveryObservation, PolicyAdapter, PolicyObservation, _delivery_receipt_create, _delivery_receipt_get_by_binding
 from agent_service.evidence import RuntimeArtifactPayload, RuntimeArtifactReader
 from agent_service.failover import (
     AgentServiceR12,
@@ -376,7 +376,7 @@ class AgentServiceFailoverR12Tests(unittest.TestCase):
             self.assertTrue(proof.quiescent)
             with self.assertRaises(RuntimeError):
                 service.delivery.deliver(primary.id)
-            self.assertEqual(service.delivery_receipts.get_by_binding(primary.id).id, original.id)
+            self.assertEqual(_delivery_receipt_get_by_binding(service.events, primary.id).id, original.id)
             self.assertEqual(len([x for x in delivery.calls if x[0] == primary.id]), 1)
 
     def test_terminal_unsuccessful_observation_proves_quiescence_without_adapter(self) -> None:
@@ -569,7 +569,8 @@ class AgentServiceFailoverR12Tests(unittest.TestCase):
             service = self._open(Path(tmp) / "service.db", quiescence_adapter=quiescence, replay_safety_adapter=replay)
             task, envelope, primary, fallback = self._setup(service)
             self._deliver_primary(service, primary)
-            service.delivery_receipts.create(
+            _delivery_receipt_create(
+                service.events,
                 fallback,
                 DeliveryObservation(
                     admission="committed",
