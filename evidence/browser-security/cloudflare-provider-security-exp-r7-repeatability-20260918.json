@@ -1,0 +1,36 @@
+{
+  "controls": {
+    "browserlessImage": "ghcr.io/browserless/chromium@sha256:b1ba7b054af2891a8199f884d4bd249cf8c3bd2fa8a97b339077e40f92803ba8",
+    "chromiumDigest": "sha256:8c599d43aec53f2460a31ae2f4af6bd863f8258b34ff519564bc5d4726bfaa1e",
+    "managedLauncherFlagsMatchedToProduction": true,
+    "networkNamespace": "nv2-browserless-prod",
+    "neutralPage": "data:text/html",
+    "presentationEnvironment": {
+      "LANG": "C.UTF-8",
+      "TZ": "Asia/Shanghai"
+    }
+  },
+  "date": "2026-09-18",
+  "kind": "ordivon.browser-security-neutral-launcher-ablation-r7-repeatability",
+  "pairwiseCanonicalSha256": "sha256:6636efce540db243eb02703d06ef894d025d5e83efaaa5fd2e518360260a240c",
+  "providerCausalityEstablished": false,
+  "rootCauseEstablished": false,
+  "run1": {
+    "path": "evidence/browser-security/cloudflare-provider-security-exp-r7-controlled-run1-20260918.json",
+    "sha256": "sha256:5b4dc770db2bc7c714619889d4d7af72ecb12bb415e3214b582c77086a5b0bd4"
+  },
+  "run2": {
+    "path": "evidence/browser-security/cloudflare-provider-security-exp-r7-controlled-run2-20260918.json",
+    "sha256": "sha256:5b4dc770db2bc7c714619889d4d7af72ecb12bb415e3214b582c77086a5b0bd4"
+  },
+  "safetyBoundary": {
+    "challengeInteracted": false,
+    "cookieValuesRead": false,
+    "protectedProviderVisited": false,
+    "providerSendAttempted": false
+  },
+  "schemaVersion": 1,
+  "standing": "BYTE_IDENTICAL_CONTROLLED_REPEATABILITY",
+  "wholeEvidenceByteIdentical": true,
+  "wholeEvidenceCanonicalSha256": "sha256:b89bc18af1ea3faffea7588f8adeabad09211fe0d9bed4990bd3d6b8cc1d72b5"
+}
