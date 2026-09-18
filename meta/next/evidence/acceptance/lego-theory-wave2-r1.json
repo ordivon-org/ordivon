@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "ordivon.lego-theory-wave2-initial-acceptance",
   "date": "2026-09-18",
-  "standing": "PRE_PROSPECTIVE_VALIDATION",
+  "standing": "PASS_PROSPECTIVE_VALIDATED_WITH_FOLLOWUPS",
   "sourceRevision": "71efb7caa4f85af9a538451ebbadabf8945e7230",
   "lenses": [
     "lego-compositional-contracts",
@@ -25,5 +25,21 @@
     "Causal graphs are assumption-bearing models rather than project truth.",
     "FMEA/FTA do not replace STPA for interaction hazards.",
     "Information-flow analysis is not a proof of side-channel freedom."
-  ]
+  ],
+  "integratedMainCommit": "2b6386968ec188f59b117cb8a0b5a437ff92c012",
+  "skillSourceAcceptance": {
+    "sourceId": "project-ordivon-next",
+    "health": "READY",
+    "discovered": 17,
+    "valid": 17,
+    "invalid": 0,
+    "admitted": 17
+  },
+  "prospectiveEvidence": "evidence/acceptance/lego-theory-wave2-prospective-r1.json",
+  "lensStanding": {
+    "lego-compositional-contracts": "PROSPECTIVELY_VALIDATED_REPLACEMENT_LENS",
+    "lego-causal-intervention": "PROSPECTIVELY_VALIDATED_CAUSAL_BOUNDARY_LENS",
+    "lego-fmea-fta": "PROSPECTIVELY_VALIDATED_RELIABILITY_LENS",
+    "lego-information-flow": "PROSPECTIVELY_VALIDATED_INFORMATION_BOUNDARY_LENS"
+  }
 }

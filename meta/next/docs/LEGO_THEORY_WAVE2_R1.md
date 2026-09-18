@@ -1,7 +1,7 @@
 # LEGO Theory Wave 2 R1
 
 Date: 2026-09-18
-Status: ACTIVE EXPERIMENTAL OVERLAY / PROSPECTIVE VALIDATION REQUIRED
+Status: ACTIVE / PROSPECTIVELY VALIDATED R1 / FOLLOW-UPS OPEN
 
 ## Purpose
 
@@ -108,13 +108,17 @@ Canonical authorities recorded for R1:
 - NASA fault-tree-analysis definitions/practice;
 - information-flow security / noninterference literature and Cornell systems-security teaching.
 
-## Planned prospective cases
+## Prospective validation standing
 
-The first prospective wave should deliberately use different system shapes:
+Detailed evidence:
+- `knowledge/lessons/lego-wave2-prospective-validation-r1.md`
+- `evidence/acceptance/lego-theory-wave2-prospective-r1.json`
 
-- compositional contracts -> Runtime/Host or Agent Plugin replacement seam;
-- causal intervention -> Browser/provider-security differential experiments;
-- FMEA/FTA -> Agent Birth or Runtime recovery path;
-- information flow -> Agent Service R14 credential/reference/material path.
+Observed first-wave results:
 
-No finding enters LEGO Core from one case.
+- **Compositional Contracts — PROSPECTIVELY_VALIDATED_REPLACEMENT_LENS.** Harness H05 replacement acceptance was strengthened from happy-path compatibility to assume-guarantee substitutability.
+- **Causal Intervention — PROSPECTIVELY_VALIDATED_CAUSAL_BOUNDARY_LENS.** Browser/provider-security evidence supports bounded local attribution while the protected-provider challenge effect remains explicitly NOT IDENTIFIED.
+- **FMEA / FTA — PROSPECTIVELY_VALIDATED_RELIABILITY_LENS.** Continuation UNKNOWN is safely non-repeatable but lacks an explicit turn-level convergence owner.
+- **Information Flow — PROSPECTIVELY_VALIDATED_INFORMATION_BOUNDARY_LENS.** Agent Service R14's "secret-free locator" wording was corrected: opaque credential locators may themselves be sensitive even though resolved credential/header material remains external.
+
+No finding enters LEGO Core from one case, and Wave 2 introduced no common schema field.
