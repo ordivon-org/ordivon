@@ -586,10 +586,9 @@
         "src/ordivon_harness/adaptive_edit.py",
         "src/ordivon_harness/execution_binding.py",
         "src/ordivon_harness/runtime_port.py",
-        "src/ordivon_harness/ordivon/",
-        "pyproject.toml",
-        "uv.lock"
-      ]
+        "src/ordivon_harness/ordivon/"
+      ],
+      "runtimeDependencyClosureDigest": "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829"
     },
     {
       "claimId": "harness.edit.adaptive-r2-live-deepseek-flash-addressing",
@@ -602,10 +601,9 @@
         "src/ordivon_harness/adaptive_edit.py",
         "src/ordivon_harness/execution_binding.py",
         "src/ordivon_harness/runtime_port.py",
-        "src/ordivon_harness/ordivon/",
-        "pyproject.toml",
-        "uv.lock"
-      ]
+        "src/ordivon_harness/ordivon/"
+      ],
+      "runtimeDependencyClosureDigest": "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829"
     },
     {
       "claimId": "harness.edit.adaptive-r2-live-deepseek-flash-multiregion",
@@ -618,10 +616,9 @@
         "src/ordivon_harness/adaptive_edit.py",
         "src/ordivon_harness/execution_binding.py",
         "src/ordivon_harness/runtime_port.py",
-        "src/ordivon_harness/ordivon/",
-        "pyproject.toml",
-        "uv.lock"
-      ]
+        "src/ordivon_harness/ordivon/"
+      ],
+      "runtimeDependencyClosureDigest": "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829"
     },
     {
       "claimId": "harness.lsp.r7.clangd-runtime-patch",
@@ -633,10 +630,9 @@
         "src/anc_canonical/",
         "src/ordivon_harness/adaptive_edit.py",
         "src/ordivon_harness/execution_binding.py",
-        "src/ordivon_harness/lsp_workspace_edit.py",
-        "pyproject.toml",
-        "uv.lock"
-      ]
+        "src/ordivon_harness/lsp_workspace_edit.py"
+      ],
+      "runtimeDependencyClosureDigest": "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829"
     },
     {
       "claimId": "harness.lsp.r7.taplo-runtime-patch",
@@ -647,11 +643,10 @@
         "src/anc_canonical/",
         "src/ordivon_harness/adaptive_edit.py",
         "src/ordivon_harness/execution_binding.py",
-        "src/ordivon_harness/lsp_workspace_edit.py",
-        "pyproject.toml",
-        "uv.lock"
+        "src/ordivon_harness/lsp_workspace_edit.py"
       ],
-      "scope": "Second local R7 provider-path receipt: Taplo 0.10.0 rename returned WorkspaceEdit, the same Harness adapter compiled it under default UTF-16 position semantics, and Runtime committed the exact patch. Bare pygls lifecycle gaps for workspace/configuration and diagnostics remain observed, so no default transport is selected."
+      "scope": "Second local R7 provider-path receipt: Taplo 0.10.0 rename returned WorkspaceEdit, the same Harness adapter compiled it under default UTF-16 position semantics, and Runtime committed the exact patch. Bare pygls lifecycle gaps for workspace/configuration and diagnostics remain observed, so no default transport is selected.",
+      "runtimeDependencyClosureDigest": "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829"
     },
     {
       "claimId": "harness.lsp.r7.lsp-client-lifecycle",
@@ -662,11 +657,10 @@
         "src/anc_canonical/",
         "src/ordivon_harness/adaptive_edit.py",
         "src/ordivon_harness/lsp_provider_port.py",
-        "src/ordivon_harness/lsp_workspace_edit.py",
-        "pyproject.toml",
-        "uv.lock"
+        "src/ordivon_harness/lsp_workspace_edit.py"
       ],
-      "scope": "Revision-bound R7 lifecycle donor receipt: lsp-client 0.3.9 handled Taplo configuration and diagnostics, returned rename as a proposal, serialized directly into the Harness WorkspaceEdit adapter, and left disk unchanged. It remains a replaceable provider candidate, not a Harness core dependency."
+      "scope": "Revision-bound R7 lifecycle donor receipt: lsp-client 0.3.9 handled Taplo configuration and diagnostics, returned rename as a proposal, serialized directly into the Harness WorkspaceEdit adapter, and left disk unchanged. It remains a replaceable provider candidate, not a Harness core dependency.",
+      "runtimeDependencyClosureDigest": "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829"
     },
     {
       "claimId": "harness.lsp.r7.lifecycle-faults",
@@ -674,11 +668,10 @@
       "status": "verified",
       "implementationRevision": "cd4507032204e807e3d0acf4fb974c2c0122e033",
       "implementationPaths": [
-        "src/ordivon_harness/lsp_provider_port.py",
-        "pyproject.toml",
-        "uv.lock"
+        "src/ordivon_harness/lsp_provider_port.py"
       ],
-      "scope": "Negative R7 lifecycle receipt: caller cancellation and language-server crash preserved the proposal-only/no-write boundary, but lsp-client 0.3.9 did not emit an observed $/cancelRequest and cleanup ended through bounded timeout/error paths. Default provider admission remains blocked."
+      "scope": "Negative R7 lifecycle receipt: caller cancellation and language-server crash preserved the proposal-only/no-write boundary, but lsp-client 0.3.9 did not emit an observed $/cancelRequest and cleanup ended through bounded timeout/error paths. Default provider admission remains blocked.",
+      "runtimeDependencyClosureDigest": "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829"
     },
     {
       "claimId": "harness.dap.r8.gdb-launch",
@@ -687,11 +680,10 @@
       "implementationRevision": "bd8aeec146f4db9e3cf4dd91f88541447ba78004",
       "implementationPaths": [
         "src/anc_canonical/",
-        "src/ordivon_harness/dap_provider_port.py",
-        "pyproject.toml",
-        "uv.lock"
+        "src/ordivon_harness/dap_provider_port.py"
       ],
-      "scope": "Revision-bound DAP R8 receipt: GDB 17.2 native DAP launched a C inferior, stopped at a breakpoint, exposed stack/scopes/variables, evaluated a+b=5, and continued to termination. GDB/provider owns this target process path; evaluate remains effect-capable and mutation capabilities are not read-only authority."
+      "scope": "Revision-bound DAP R8 receipt: GDB 17.2 native DAP launched a C inferior, stopped at a breakpoint, exposed stack/scopes/variables, evaluated a+b=5, and continued to termination. GDB/provider owns this target process path; evaluate remains effect-capable and mutation capabilities are not read-only authority.",
+      "runtimeDependencyClosureDigest": "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829"
     },
     {
       "claimId": "harness.dap.r8.runtime-owned-attach",
@@ -700,11 +692,10 @@
       "implementationRevision": "4d6e7163d8ad977423d6c4ecf7c8a78691d3f442",
       "implementationPaths": [
         "src/anc_canonical/",
-        "src/ordivon_harness/dap_provider_port.py",
-        "pyproject.toml",
-        "uv.lock"
+        "src/ordivon_harness/dap_provider_port.py"
       ],
-      "scope": "Revision-bound DAP R8 ownership receipt: Runtime started and owned the gdbserver+inferior Job; GDB 17.2 DAP attached remotely, hit a breakpoint, observed stack/variables, then continued to exit. processOwner=runtime and effectExecutor=dap-provider are physically separated; stop-epoch handle freshness is validated across attach and breakpoint stops."
+      "scope": "Revision-bound DAP R8 ownership receipt: Runtime started and owned the gdbserver+inferior Job; GDB 17.2 DAP attached remotely, hit a breakpoint, observed stack/variables, then continued to exit. processOwner=runtime and effectExecutor=dap-provider are physically separated; stop-epoch handle freshness is validated across attach and breakpoint stops.",
+      "runtimeDependencyClosureDigest": "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829"
     }
   ]
 }

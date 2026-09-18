@@ -8,6 +8,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+import tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE = ROOT / "evidence"
@@ -17,7 +18,12 @@ _VERIFIED_IMPLEMENTATION_PATHS = (
     "uv.lock",
     "scripts/harness_p0_scale_acceptance.py",
 )
-_REQUIRED_SCOPED_DEPENDENCY_PATHS = frozenset({"pyproject.toml", "uv.lock"})
+_SCOPED_VERIFIED_IMPLEMENTATION_PATHS = (
+    "src/",
+    "scripts/harness_p0_scale_acceptance.py",
+)
+_RUNTIME_DEPENDENCY_CLOSURE_KIND = "ordivon.harness-runtime-dependency-closure"
+_RUNTIME_DEPENDENCY_INVALIDATOR = "@runtime-dependency-closure"
 _INDEX_REVISION_HINT_FIELDS = (
     "implementationSourceRevision",
     "implementationRevision",
@@ -61,7 +67,7 @@ def _normalize_implementation_paths(value: object) -> tuple[str, ...] | None:
         if not any(
             _path_matches_scope(item.rstrip("/"), root.rstrip("/"))
             or _path_matches_scope(item, root)
-            for root in _VERIFIED_IMPLEMENTATION_PATHS
+            for root in _SCOPED_VERIFIED_IMPLEMENTATION_PATHS
         ):
             raise ValueError(
                 f"implementationPaths entry is outside verified implementation roots: {item}"
@@ -71,9 +77,114 @@ def _normalize_implementation_paths(value: object) -> tuple[str, ...] | None:
         raise ValueError("implementationPaths entries must be unique")
     if not any(item.startswith("src/") for item in normalized):
         raise ValueError("scoped verified evidence must bind at least one src/ implementation path")
-    if not _REQUIRED_SCOPED_DEPENDENCY_PATHS.issubset(normalized):
-        raise ValueError("scoped verified evidence must bind pyproject.toml and uv.lock")
     return tuple(normalized)
+
+
+def _git_file_bytes(revision: str, relative_path: str) -> bytes:
+    if (
+        not isinstance(revision, str)
+        or not revision
+        or revision.startswith("-")
+        or any(ch.isspace() for ch in revision)
+    ):
+        raise ValueError("revision must be a non-empty Git revision token")
+    return subprocess.check_output(
+        ["git", "show", f"{revision}:{relative_path}"],
+        cwd=ROOT,
+    )
+
+
+def _runtime_dependency_closure_projection(revision: str) -> dict[str, object]:
+    lock = tomllib.loads(_git_file_bytes(revision, "uv.lock").decode("utf-8"))
+    packages = [item for item in lock.get("package", []) if isinstance(item, dict)]
+    by_name: dict[str, dict[str, object]] = {}
+    for package in packages:
+        name = str(package.get("name") or "").lower()
+        if not name:
+            raise ValueError("uv.lock contains a package without a name")
+        if name in by_name:
+            raise ValueError(f"uv.lock contains ambiguous duplicate package name: {name}")
+        by_name[name] = package
+
+    root = by_name.get("ordivon-harness")
+    if root is None:
+        raise ValueError("uv.lock omits the Harness root package")
+
+    def normalized_dependency_rows(value: object) -> list[dict[str, object]]:
+        if not isinstance(value, list):
+            return []
+        rows = [dict(item) for item in value if isinstance(item, dict)]
+        return sorted(
+            rows,
+            key=lambda item: json.dumps(
+                item, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+            ),
+        )
+
+    root_dependencies = normalized_dependency_rows(root.get("dependencies"))
+    pending = [
+        str(item.get("name") or "").lower()
+        for item in root_dependencies
+        if isinstance(item.get("name"), str)
+    ]
+    reachable: set[str] = set()
+    while pending:
+        name = pending.pop()
+        if not name or name in reachable:
+            continue
+        package = by_name.get(name)
+        if package is None:
+            raise ValueError(f"runtime dependency is absent from uv.lock: {name}")
+        reachable.add(name)
+        pending.extend(
+            str(item.get("name") or "").lower()
+            for item in normalized_dependency_rows(package.get("dependencies"))
+            if isinstance(item.get("name"), str)
+        )
+
+    metadata = root.get("metadata")
+    root_requirements = normalized_dependency_rows(
+        metadata.get("requires-dist") if isinstance(metadata, dict) else None
+    )
+    closure_packages: list[dict[str, object]] = []
+    for name in sorted(reachable):
+        package = by_name[name]
+        closure_packages.append(
+            {
+                "name": name,
+                "version": str(package.get("version") or ""),
+                "source": dict(package.get("source") or {}),
+                "dependencies": normalized_dependency_rows(package.get("dependencies")),
+            }
+        )
+    return {
+        "schemaVersion": 1,
+        "kind": _RUNTIME_DEPENDENCY_CLOSURE_KIND,
+        "rootPackage": "ordivon-harness",
+        "rootDependencies": root_dependencies,
+        "rootRequirements": root_requirements,
+        "packages": closure_packages,
+    }
+
+
+def _runtime_dependency_closure_digest(revision: str) -> str:
+    encoded = json.dumps(
+        _runtime_dependency_closure_projection(revision),
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+    return "sha256:" + hashlib.sha256(encoded).hexdigest()
+
+
+def _valid_sha256_digest(value: object) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == 71
+        and value.startswith("sha256:")
+        and all(ch in "0123456789abcdef" for ch in value[7:])
+    )
 
 
 def _invalidating_paths(
@@ -92,7 +203,9 @@ def _invalidating_paths(
 
 
 def _verified_revision_is_current(
-    revision: str, implementation_paths: tuple[str, ...] | None = None
+    revision: str,
+    implementation_paths: tuple[str, ...] | None = None,
+    runtime_dependency_closure_digest: str | None = None,
 ) -> tuple[bool, list[str]]:
     ancestor = subprocess.run(
         ["git", "merge-base", "--is-ancestor", revision, "HEAD"],
@@ -102,6 +215,19 @@ def _verified_revision_is_current(
     if ancestor.returncode != 0:
         return False, []
     invalidating = _invalidating_paths(revision, "HEAD", implementation_paths)
+    if implementation_paths is None:
+        if runtime_dependency_closure_digest is not None:
+            raise ValueError("unscoped currentness cannot bind a scoped runtime dependency digest")
+    else:
+        if not _valid_sha256_digest(runtime_dependency_closure_digest):
+            raise ValueError("scoped currentness requires a valid runtime dependency closure digest")
+        historical = _runtime_dependency_closure_digest(revision)
+        if historical != runtime_dependency_closure_digest:
+            raise ValueError(
+                "scoped runtime dependency digest differs from its implementation revision"
+            )
+        if _runtime_dependency_closure_digest("HEAD") != runtime_dependency_closure_digest:
+            invalidating.append(_RUNTIME_DEPENDENCY_INVALIDATOR)
     return not invalidating, invalidating
 
 
@@ -218,6 +344,7 @@ def main() -> int:
         revision = entry.get("implementationRevision")
         status = entry.get("status")
         revision_binding = entry.get("revisionBinding", "embedded")
+        runtime_dependency_digest = entry.get("runtimeDependencyClosureDigest")
         try:
             implementation_paths = _normalize_implementation_paths(entry.get("implementationPaths"))
         except ValueError as error:
@@ -240,6 +367,29 @@ def main() -> int:
         if not isinstance(revision, str) or len(revision) != 40:
             errors.append(f"invalid implementation revision: {claim_id}")
             continue
+        if implementation_paths is None:
+            if runtime_dependency_digest is not None:
+                errors.append(
+                    f"unscoped evidence must not carry runtimeDependencyClosureDigest: {claim_id}"
+                )
+        else:
+            if not _valid_sha256_digest(runtime_dependency_digest):
+                errors.append(
+                    f"scoped evidence requires valid runtimeDependencyClosureDigest: {claim_id}"
+                )
+            else:
+                try:
+                    historical_dependency_digest = _runtime_dependency_closure_digest(revision)
+                except (OSError, subprocess.CalledProcessError, UnicodeDecodeError, ValueError, tomllib.TOMLDecodeError) as error:
+                    errors.append(
+                        f"cannot resolve historical runtime dependency closure for {claim_id}: {error}"
+                    )
+                else:
+                    if historical_dependency_digest != runtime_dependency_digest:
+                        errors.append(
+                            "runtime dependency closure digest differs from implementation "
+                            f"revision for {claim_id}"
+                        )
         path = EVIDENCE / filename
         if not path.is_file():
             errors.append(f"missing evidence file: {filename}")
@@ -324,7 +474,19 @@ def main() -> int:
                 if checks.get("cliCommandsVerified") != 19:
                     errors.append("C3 API receipt CLI command count differs")
         if status == "verified":
-            current, invalidating = _verified_revision_is_current(revision, implementation_paths)
+            try:
+                current, invalidating = _verified_revision_is_current(
+                    revision,
+                    implementation_paths,
+                    runtime_dependency_closure_digest=(
+                        runtime_dependency_digest
+                        if isinstance(runtime_dependency_digest, str)
+                        else None
+                    ),
+                )
+            except (OSError, subprocess.CalledProcessError, UnicodeDecodeError, ValueError, tomllib.TOMLDecodeError) as error:
+                errors.append(f"cannot evaluate verified currentness for {claim_id}: {error}")
+                continue
             if not current:
                 errors.append(
                     f"verified receipt is stale for {claim_id}: invalidating={invalidating}"

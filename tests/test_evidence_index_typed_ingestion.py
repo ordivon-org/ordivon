@@ -248,22 +248,20 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
             "src/ordivon_harness/execution_binding.py",
             "src/ordivon_harness/runtime_port.py",
             "src/ordivon_harness/ordivon/",
-            "pyproject.toml",
-            "uv.lock",
         )
         current, invalidating = check_evidence._verified_revision_is_current(
-            "9d936e98d8c02772aa2becc924ba9006c71aa989", adaptive_scope
+            "9d936e98d8c02772aa2becc924ba9006c71aa989",
+            adaptive_scope,
+            runtime_dependency_closure_digest="sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829",
         )
         self.assertTrue(current, invalidating)
         self.assertEqual(invalidating, [])
 
-        lsp_scope = (
-            "src/ordivon_harness/lsp_workspace_edit.py",
-            "pyproject.toml",
-            "uv.lock",
-        )
+        lsp_scope = ("src/ordivon_harness/lsp_workspace_edit.py",)
         current, invalidating = check_evidence._verified_revision_is_current(
-            "9d936e98d8c02772aa2becc924ba9006c71aa989", lsp_scope
+            "9d936e98d8c02772aa2becc924ba9006c71aa989",
+            lsp_scope,
+            runtime_dependency_closure_digest="sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829",
         )
         self.assertFalse(current)
         self.assertEqual(invalidating, ["src/ordivon_harness/lsp_workspace_edit.py"])
@@ -274,8 +272,6 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
             [
                 "src/ordivon_harness/adaptive_edit.py",
                 "src/ordivon_harness/ordivon/",
-                "pyproject.toml",
-                "uv.lock",
             ]
         )
         self.assertEqual(
@@ -283,18 +279,51 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
             (
                 "src/ordivon_harness/adaptive_edit.py",
                 "src/ordivon_harness/ordivon/",
-                "pyproject.toml",
-                "uv.lock",
             ),
         )
         for invalid in (
             [],
             ["docs/"],
             ["src/ordivon_harness/adaptive_edit.py", "pyproject.toml"],
-            ["../src/", "pyproject.toml", "uv.lock"],
+            ["../src/"],
         ):
             with self.assertRaises(ValueError):
                 normalize(invalid)
+
+    def test_scoped_evidence_binds_semantic_runtime_dependency_closure(self) -> None:
+        entries = self._entries()
+        scoped = [
+            entry for entry in entries.values()
+            if entry.get("status") == "verified" and "implementationPaths" in entry
+        ]
+        self.assertEqual(len(scoped), 9)
+        for entry in scoped:
+            self.assertEqual(
+                entry.get("runtimeDependencyClosureDigest"),
+                "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829",
+                entry.get("claimId"),
+            )
+            self.assertNotIn("pyproject.toml", entry["implementationPaths"])
+            self.assertNotIn("uv.lock", entry["implementationPaths"])
+            self.assertEqual(
+                check_evidence._runtime_dependency_closure_digest(
+                    str(entry["implementationRevision"])
+                ),
+                "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829",
+            )
+        self.assertEqual(
+            check_evidence._runtime_dependency_closure_digest("HEAD"),
+            "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829",
+        )
+
+    def test_scoped_runtime_dependency_digest_fails_closed_on_wrong_revision_binding(self) -> None:
+        scope = ("src/ordivon_harness/adaptive_edit.py",)
+        with self.assertRaisesRegex(ValueError, "differs from its implementation revision"):
+            check_evidence._verified_revision_is_current(
+                "9d936e98d8c02772aa2becc924ba9006c71aa989",
+                scope,
+                runtime_dependency_closure_digest="sha256:" + "0" * 64,
+            )
 
     def test_index_creation_lineage_binding_accepts_exact_and_rejects_nonancestor(self) -> None:
         validator = check_evidence._validate_index_creation_lineage_binding
