@@ -93,7 +93,6 @@
       "AgentIdentityStore",
       "AgentInstance",
       "AgentInstanceStore",
-      "AgentInterfaceAdvertisement",
       "AgentInterfaceAdvertisementStore",
       "AgentRevision",
       "AgentRevisionStore",
@@ -294,6 +293,7 @@
     "profile != runtime_authority"
   ],
   "retiredLegacyTypes": [
+    "AgentInterfaceAdvertisement",
     "CapabilityAdvertisement"
   ]
 }

@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "id": "ordivon-interface-profile-elimination-r5",
+  "date": "2026-09-19",
+  "status": "SECOND_PRODUCTION_DELETION",
+  "parent": "ordivon-a2a-native-elimination-r4",
+  "architecturalCore": "EMPTY",
+  "deletedLocalTypes": [
+    "AgentInterfaceAdvertisement"
+  ],
+  "cumulativeDeletedLocalTypes": [
+    "CapabilityAdvertisement",
+    "AgentInterfaceAdvertisement"
+  ],
+  "topLevelTypeDebt": {
+    "r3Baseline": 171,
+    "r4": 170,
+    "r5": 169,
+    "cumulativeDelta": -2
+  },
+  "replacementLocalPrimitives": [],
+  "remainingRepresentation": {
+    "kind": "plain deployment route profile",
+    "fields": [
+      "profileId",
+      "transport",
+      "protocolVersion",
+      "url",
+      "priority",
+      "securityRequirements"
+    ],
+    "authoritative": false
+  },
+  "ownershipSplit": {
+    "a2a": "A2A AgentInterface / AgentCard",
+    "mcp": "MCP-facing adapter/deployment configuration",
+    "priority": "deployment profile/policy",
+    "securityRequirements": "policy and credential-binding input",
+    "immutableEffectRoute": "TransportBinding migration debt"
+  },
+  "remainingMigrationDebt": [
+    "AgentInterfaceAdvertisementStore",
+    "agent_interface_advertisements",
+    "CapabilityAdvertisementStore",
+    "capability_advertisements",
+    "TransportBinding",
+    "TransportBindingStore",
+    "transport_bindings"
+  ],
+  "ratchet": {
+    "ceiling": 169,
+    "retiredLegacyTypes": [
+      "CapabilityAdvertisement",
+      "AgentInterfaceAdvertisement"
+    ],
+    "reintroductionAllowed": false
+  }
+}

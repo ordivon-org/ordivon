@@ -29,20 +29,8 @@ def _canonical_json(value: Any) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
-@dataclass(frozen=True)
-class AgentInterfaceAdvertisement:
-    id: str
-    revision_id: str
-    transport: str
-    protocol_version: str | None
-    url: str
-    priority: int
-    security_requirements: dict[str, list[str]]
-    created_at_ns: int
-
-
 class AgentInterfaceAdvertisementStore:
-    """Revision-scoped route/discovery interface metadata, never credential material."""
+    """Migration store for deployment route profiles; it owns no protocol interface type."""
 
     def __init__(self, connection: sqlite3.Connection) -> None:
         self._connection = connection
@@ -56,7 +44,7 @@ class AgentInterfaceAdvertisementStore:
         url: str,
         priority: int,
         security_requirements: dict[str, list[str]],
-    ) -> AgentInterfaceAdvertisement:
+    ) -> dict[str, Any]:
         if self._connection.execute(
             "SELECT 1 FROM agent_revisions WHERE id = ?", (revision_id,)
         ).fetchone() is None:
@@ -103,7 +91,7 @@ class AgentInterfaceAdvertisementStore:
         )
         candidate = (priority, normalized_security)
         if existing is not None:
-            historical = (existing.priority, existing.security_requirements)
+            historical = (existing["priority"], existing["securityRequirements"])
             if historical != candidate:
                 raise ValueError(
                     "interface advertisement is immutable for revision/transport/protocolVersion/url"
@@ -131,33 +119,24 @@ class AgentInterfaceAdvertisementStore:
                 "securityRequirements": normalized_security,
             }
         )
-        value = AgentInterfaceAdvertisement(
-            id="iface_" + hashlib.sha256(identity_material.encode("utf-8")).hexdigest(),
-            revision_id=revision_id,
-            transport=normalized_transport,
-            protocol_version=normalized_protocol_version,
-            url=url.strip(),
-            priority=priority,
-            security_requirements=normalized_security,
-            created_at_ns=_now_ns(),
-        )
+        profile_id = "iface_" + hashlib.sha256(identity_material.encode("utf-8")).hexdigest()
         with self._connection:
             self._connection.execute(
                 "INSERT INTO agent_interface_advertisements(id, revision_id, transport, protocol_version, url, priority, security_requirements_json, created_at_ns) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 (
-                    value.id,
-                    value.revision_id,
-                    value.transport,
-                    value.protocol_version,
-                    value.url,
-                    value.priority,
-                    _canonical_json(value.security_requirements),
-                    value.created_at_ns,
+                    profile_id,
+                    revision_id,
+                    normalized_transport,
+                    normalized_protocol_version,
+                    url.strip(),
+                    priority,
+                    _canonical_json(normalized_security),
+                    _now_ns(),
                 ),
             )
-        return value
+        return self.get(profile_id)
 
-    def get(self, interface_id: str) -> AgentInterfaceAdvertisement:
+    def get(self, interface_id: str) -> dict[str, Any]:
         row = self._connection.execute(
             "SELECT * FROM agent_interface_advertisements WHERE id = ?", (interface_id,)
         ).fetchone()
@@ -172,7 +151,7 @@ class AgentInterfaceAdvertisementStore:
         protocol_version: str,
         url: str,
         required: bool = True,
-    ) -> AgentInterfaceAdvertisement | None:
+    ) -> dict[str, Any] | None:
         row = self._connection.execute(
             """
             SELECT * FROM agent_interface_advertisements
@@ -186,7 +165,7 @@ class AgentInterfaceAdvertisementStore:
             return None
         return self._from_row(row)
 
-    def list_for_revision(self, revision_id: str) -> list[AgentInterfaceAdvertisement]:
+    def list_for_revision(self, revision_id: str) -> list[dict[str, Any]]:
         rows = self._connection.execute(
             "SELECT * FROM agent_interface_advertisements WHERE revision_id = ? ORDER BY priority, transport, id",
             (revision_id,),
@@ -194,17 +173,15 @@ class AgentInterfaceAdvertisementStore:
         return [self._from_row(row) for row in rows]
 
     @staticmethod
-    def _from_row(row: sqlite3.Row) -> AgentInterfaceAdvertisement:
-        return AgentInterfaceAdvertisement(
-            id=row["id"],
-            revision_id=row["revision_id"],
-            transport=row["transport"],
-            protocol_version=row["protocol_version"],
-            url=row["url"],
-            priority=row["priority"],
-            security_requirements=json.loads(row["security_requirements_json"]),
-            created_at_ns=row["created_at_ns"],
-        )
+    def _from_row(row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "profileId": row["id"],
+            "transport": row["transport"],
+            "protocolVersion": row["protocol_version"],
+            "url": row["url"],
+            "priority": row["priority"],
+            "securityRequirements": json.loads(row["security_requirements_json"]),
+        }
 
 
 @dataclass(frozen=True)
@@ -404,13 +381,13 @@ class TransportBindingStore:
         *,
         delegation_id: str,
         policy_decision_id: str,
-        interface: AgentInterfaceAdvertisement,
+        interface: dict[str, Any],
     ) -> TransportBinding:
-        if not isinstance(interface.protocol_version, str) or not interface.protocol_version:
+        if not isinstance(interface["protocolVersion"], str) or not interface["protocolVersion"]:
             raise RuntimeError(
                 "legacy interface advertisement lacks protocol_version; explicit re-advertisement is required"
             )
-        material = f"{delegation_id}\0{policy_decision_id}\0{interface.id}\0{interface.protocol_version}".encode("utf-8")
+        material = f"{delegation_id}\0{policy_decision_id}\0{interface['profileId']}\0{interface['protocolVersion']}".encode("utf-8")
         binding_id = "bind_" + hashlib.sha256(material).hexdigest()
         try:
             existing = self.get(binding_id)
@@ -420,11 +397,11 @@ class TransportBindingStore:
             candidate = (
                 delegation_id,
                 policy_decision_id,
-                interface.id,
-                interface.transport,
-                interface.protocol_version,
-                interface.url,
-                interface.security_requirements,
+                interface["profileId"],
+                interface["transport"],
+                interface["protocolVersion"],
+                interface["url"],
+                interface["securityRequirements"],
             )
             historical = (
                 existing.delegation_id,
@@ -443,12 +420,12 @@ class TransportBindingStore:
             id=binding_id,
             delegation_id=delegation_id,
             policy_decision_id=policy_decision_id,
-            interface_id=interface.id,
-            transport=interface.transport,
-            protocol_version=interface.protocol_version,
-            endpoint=interface.url,
+            interface_id=interface["profileId"],
+            transport=interface["transport"],
+            protocol_version=interface["protocolVersion"],
+            endpoint=interface["url"],
             delivery_request_id=delivery_request_id,
-            security_requirements=interface.security_requirements,
+            security_requirements=interface["securityRequirements"],
             created_at_ns=_now_ns(),
         )
         try:
@@ -546,14 +523,17 @@ class DelegationRoutePlanner:
         if not interfaces:
             raise LookupError("target revision advertises no route interfaces")
         normalized_preferences = [item.strip() for item in preferred_transports if isinstance(item, str) and item.strip()]
-        selected: AgentInterfaceAdvertisement | None = None
+        selected: dict[str, Any] | None = None
         for transport in normalized_preferences:
-            candidates = [item for item in interfaces if item.transport == transport]
+            candidates = [item for item in interfaces if item["transport"] == transport]
             if candidates:
-                selected = sorted(candidates, key=lambda item: (item.priority, item.id))[0]
+                selected = sorted(candidates, key=lambda item: (item["priority"], item["profileId"]))[0]
                 break
         if selected is None and not normalized_preferences:
-            selected = sorted(interfaces, key=lambda item: (item.priority, item.transport, item.id))[0]
+            selected = sorted(
+                interfaces,
+                key=lambda item: (item["priority"], item["transport"], item["profileId"]),
+            )[0]
         if selected is None:
             raise LookupError("none of the preferred transports are advertised by target revision")
         return self._bindings.create(

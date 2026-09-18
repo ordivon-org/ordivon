@@ -184,9 +184,21 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
                 security_requirements={"oauth2": ["review.invoke"]},
             )
 
-            self.assertEqual(first.id, replay.id)
-            self.assertFalse(hasattr(first, "access_token"))
-            self.assertFalse(hasattr(first, "credential"))
+            self.assertIsInstance(first, dict)
+            self.assertEqual(first, replay)
+            self.assertEqual(
+                set(first),
+                {
+                    "profileId",
+                    "transport",
+                    "protocolVersion",
+                    "url",
+                    "priority",
+                    "securityRequirements",
+                },
+            )
+            self.assertNotIn("access_token", first)
+            self.assertNotIn("credential", first)
             alternate = service.interfaces.advertise(
                 target_revision.id,
                 transport="a2a-jsonrpc",
@@ -195,7 +207,7 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
                 priority=20,
                 security_requirements={"oauth2": ["review.invoke"]},
             )
-            self.assertNotEqual(first.id, alternate.id)
+            self.assertNotEqual(first["profileId"], alternate["profileId"])
             with self.assertRaises(ValueError):
                 service.interfaces.advertise(
                     target_revision.id,

@@ -171,7 +171,7 @@ class AgentServiceInterfaceCredentialsR14Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp)/"s.db")
             _, _, iface, _, binding, _ = self._setup(service)
-            self.assertEqual(iface.protocol_version, "1.0")
+            self.assertEqual(iface["protocolVersion"], "1.0")
             self.assertEqual(binding.protocol_version, "1.0")
             self.assertIn("protocol_version", binding.__dataclass_fields__)
 
