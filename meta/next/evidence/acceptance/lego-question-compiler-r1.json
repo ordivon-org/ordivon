@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.acceptance-evidence",
+  "subject": "lego-question-compiler-r1",
+  "truthRole": "local-structural-and-regression-evidence",
+  "date": "2026-09-18",
+  "workspaceId": "ws-lego-question-compiler-r1-20260918",
+  "baseRevision": "d0fdf35c83b658f98e0d4baccc9513922415ccd9",
+  "artifacts": [
+    ".agents/skills/lego-question-compiler/SKILL.md",
+    "docs/LEGO_QUESTION_COMPILER_R1.md",
+    "knowledge/lessons/poker-ai-lego-question-compiler-pilot-r1.md",
+    "tests/test_lego_question_compiler_r1.py"
+  ],
+  "checks": [
+    {
+      "command": "python3 -m unittest tests.test_lego_question_compiler_r1",
+      "result": "PASS",
+      "tests": 6
+    },
+    {
+      "command": "python3 -m unittest discover -s tests",
+      "result": "PASS",
+      "tests": 51
+    }
+  ],
+  "acceptedClaims": [
+    "The Question Compiler R1 Skill and method contract exist and preserve the derived-analysis-not-truth boundary.",
+    "The default primary question set is bounded and the pilot includes explicit pruning, discriminating outcomes, and a real INVESTIGATE/EXPERIMENT/PLAN handoff.",
+    "R1 introduces no machine-readable Question schema.",
+    "The repository regression suite passes with the R1 files present."
+  ],
+  "nonClaims": [
+    "This does not prove that Question Compiler improves project outcomes across domains.",
+    "This does not justify promoting game-theoretic or information-theoretic vocabulary into the common LEGO schema.",
+    "This does not establish completeness of the question families."
+  ],
+  "nextEvidence": [
+    "Prospective application on at least two non-poker Ordivon domains.",
+    "Compare compiled questions against an uncompiled baseline for decision/experiment changes.",
+    "Promote shared concepts only after repeated cross-domain evidence."
+  ]
+}
