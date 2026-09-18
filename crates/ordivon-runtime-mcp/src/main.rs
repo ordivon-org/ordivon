@@ -588,6 +588,7 @@ fn load_config() -> Result<AppConfig, Box<dyn std::error::Error>> {
             release,
             input_ingress,
             trace_path,
+            authority_shadow_leases: Vec::new(),
         },
     })
 }

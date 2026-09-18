@@ -6,6 +6,8 @@ pub struct ServerConfig {
     pub release: Option<RuntimeReleaseExecutionConfig>,
     pub input_ingress: Option<InputIngressExecutionConfig>,
     pub trace_path: Option<PathBuf>,
+    /// Observation-only Authority leases. They are evaluated only for shadow telemetry.
+    pub authority_shadow_leases: Vec<AuthorityLease>,
 }
 
 #[derive(Clone)]
@@ -22,6 +24,7 @@ struct ServerState {
     release: Option<RuntimeReleaseExecutionConfig>,
     input_ingress: Option<InputIngressExecutionConfig>,
     trace_path: Option<PathBuf>,
+    authority_shadow_leases: Vec<AuthorityLease>,
 }
 
 impl RuntimeServer {
@@ -105,6 +108,7 @@ impl RuntimeServer {
             release: config.release,
             input_ingress: config.input_ingress,
             trace_path: config.trace_path,
+            authority_shadow_leases: config.authority_shadow_leases,
         });
         Ok(Self {
             state,

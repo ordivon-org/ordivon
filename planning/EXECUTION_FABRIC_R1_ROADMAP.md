@@ -88,8 +88,26 @@ Current EF3 contract slice (2026-09-18):
   later Resource/Controller concern;
 - evaluator performs no I/O, mutation, admission, dispatch, renewal, revocation, or policy-provider call;
 - the evaluator is not wired into Runtime admission, so a false wouldAllow result cannot block an effect;
-- SPI tests: 8/8 PASS;
-- MCP regression remains 55/55 PASS.
+- SPI tests: 8/8 PASS.
+
+EF3b live-shadow telemetry slice (2026-09-18):
+
+- each execution MCP surface (workspace.exec, workspace.execBound,
+  workspace.execBoundTrusted, workspace.execPlan) derives an AuthorityEffectCandidate from
+  the actual bound Runtime execution request before admission;
+- candidate projection binds principal, workspace resource scope, execution capability,
+  requested Linux execution profile or Windows authority, open_control mode, and
+  observation-only exclusive_write conflict semantics;
+- the candidate is evaluated against an operator-supplied in-memory shadow lease set and
+  appended to the existing Runtime trace JSONL with the decision and overlap classification;
+- production configuration currently supplies an empty lease set, so this is telemetry only;
+- a false wouldAllow, evaluator failure, malformed candidate, poisoned trace lock, or trace
+  write failure cannot veto, alter, or replace the Runtime execution call;
+- MCP regression: 57/57 PASS;
+- SPI contracts: 8/8 PASS;
+- execution-fabric boundary: 1/1 PASS;
+- Runtime Core fast regression: 231/231 PASS with the known long-running property test filtered;
+- cargo check, cargo fmt --check, and git diff --check: PASS.
 
 ## EF4 — Provider normalization
 
