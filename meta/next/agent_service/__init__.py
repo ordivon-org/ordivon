@@ -16,7 +16,6 @@ from .effect_authority import (
 from .failover import (
     AgentServiceR12,
     ExecutionClaimTransferCoordinator,
-    ExecutionClaimTransferStore,
     ExecutionQuiescenceAdapter,
     ExecutionQuiescenceCoordinator,
     ExecutionQuiescenceProofStore,
@@ -150,7 +149,6 @@ __all__ = [
     "DeliveryAdapter",
     "DeliveryCoordinator",
     "ExecutionClaimTransferCoordinator",
-    "ExecutionClaimTransferStore",
     "ExecutionQuiescenceAdapter",
     "ExecutionQuiescenceCoordinator",
     "ExecutionQuiescenceProofStore",
