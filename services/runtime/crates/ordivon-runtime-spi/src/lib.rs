@@ -465,6 +465,85 @@ pub fn preview_provider_health(
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+pub struct ControllerActionProposal {
+    pub schema_version: u32,
+    pub controller_id: FabricId,
+    pub resource_id: FabricId,
+    pub requested_capability_id: FabricId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preferred_provider_id: Option<FabricId>,
+    pub authority_mode: AuthorityMode,
+    pub conflict_mode: ConflictMode,
+    pub reason_code: FabricId,
+    /// Always false in the Execution Fabric R1 proposal contract. A proposal is intent,
+    /// not admission, authority, dispatch, or proof that an effect occurred.
+    pub effect_dispatched: bool,
+}
+
+impl ControllerActionProposal {
+    pub fn validate(&self) -> Result<(), FabricContractError> {
+        require_schema(self.schema_version)?;
+        if self.effect_dispatched {
+            return Err(FabricContractError::InvalidControllerProposal(
+                "controller action proposal cannot claim a dispatched effect",
+            ));
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ProviderHealthPlan {
+    pub schema_version: u32,
+    pub preview: ControllerPreview,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub action: Option<ControllerActionProposal>,
+}
+
+/// Convert provider-health desired/observed state into a pure action proposal.
+///
+/// The proposal is deliberately one layer above Runtime admission: it names a requested
+/// capability and authority/conflict semantics but cannot acquire a lease, select a final
+/// provider, dispatch an effect, retry, or mutate the observed resource.
+pub fn plan_provider_health(
+    observation: &ProviderHealthObservation,
+) -> Result<ProviderHealthPlan, FabricContractError> {
+    let preview = preview_provider_health(observation)?;
+    let action = match preview.disposition {
+        ControllerReconcileDisposition::ActionRequired => {
+            let requested_capability_id = FabricId::parse(if observation.desired_available {
+                "capability/provider/recover"
+            } else {
+                "capability/provider/deactivate"
+            })?;
+            Some(ControllerActionProposal {
+                schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+                controller_id: observation.controller_id.clone(),
+                resource_id: observation.resource_id.clone(),
+                requested_capability_id,
+                preferred_provider_id: observation.provider_id.clone(),
+                authority_mode: AuthorityMode::Recovery,
+                conflict_mode: ConflictMode::ExclusiveWrite,
+                reason_code: observation.reason_code.clone(),
+                effect_dispatched: false,
+            })
+        }
+        ControllerReconcileDisposition::Converged
+        | ControllerReconcileDisposition::ObservationIncomplete => None,
+    };
+    if let Some(action) = &action {
+        action.validate()?;
+    }
+    Ok(ProviderHealthPlan {
+        schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+        preview,
+        action,
+    })
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct EvidenceReference {
     pub schema_version: u32,
     pub evidence_id: FabricId,
@@ -514,6 +593,7 @@ pub enum FabricContractError {
     DuplicateId(&'static str, String),
     InvalidLease(&'static str),
     InvalidDigest,
+    InvalidControllerProposal(&'static str),
 }
 
 impl fmt::Display for FabricContractError {
@@ -527,6 +607,9 @@ impl fmt::Display for FabricContractError {
             Self::DuplicateId(name, id) => write!(f, "{name} contains duplicate id {id}"),
             Self::InvalidLease(message) => write!(f, "invalid authority lease: {message}"),
             Self::InvalidDigest => write!(f, "evidence digest must be sha256:<64 hex characters>"),
+            Self::InvalidControllerProposal(message) => {
+                write!(f, "invalid controller action proposal: {message}")
+            }
         }
     }
 }
@@ -838,6 +921,73 @@ mod tests {
             ControllerReconcileDisposition::ObservationIncomplete
         );
         assert_eq!(preview.observed_state, id("state/provider-unknown"));
+    }
+
+    #[test]
+    fn provider_health_plan_proposes_recovery_without_dispatching() {
+        let observation = ProviderHealthObservation {
+            schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+            controller_id: id("controller/provider-health/windows"),
+            resource_id: id("execution-target/windows-main/windows-native"),
+            provider_id: Some(id("provider/windows-main/windows-native-launcher-v1")),
+            desired_available: true,
+            observed: ProviderAvailability::Unavailable,
+            reason_code: id("reason/execution-provider-unavailable"),
+        };
+        let plan = plan_provider_health(&observation).unwrap();
+        assert_eq!(
+            plan.preview.disposition,
+            ControllerReconcileDisposition::ActionRequired
+        );
+        let action = plan
+            .action
+            .expect("action required should produce proposal");
+        assert_eq!(
+            action.requested_capability_id,
+            id("capability/provider/recover")
+        );
+        assert_eq!(action.authority_mode, AuthorityMode::Recovery);
+        assert_eq!(action.conflict_mode, ConflictMode::ExclusiveWrite);
+        assert!(!action.effect_dispatched);
+    }
+
+    #[test]
+    fn provider_health_plan_emits_no_action_when_converged_or_unknown() {
+        for observed in [
+            ProviderAvailability::Available,
+            ProviderAvailability::Unknown,
+        ] {
+            let observation = ProviderHealthObservation {
+                schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+                controller_id: id("controller/provider-health/test"),
+                resource_id: id("execution-target/node/test"),
+                provider_id: None,
+                desired_available: true,
+                observed,
+                reason_code: id("reason/provider-state"),
+            };
+            let plan = plan_provider_health(&observation).unwrap();
+            assert!(plan.action.is_none());
+        }
+    }
+
+    #[test]
+    fn controller_action_proposal_cannot_claim_dispatch() {
+        let action = ControllerActionProposal {
+            schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+            controller_id: id("controller/provider-health/test"),
+            resource_id: id("execution-target/node/test"),
+            requested_capability_id: id("capability/provider/recover"),
+            preferred_provider_id: None,
+            authority_mode: AuthorityMode::Recovery,
+            conflict_mode: ConflictMode::ExclusiveWrite,
+            reason_code: id("reason/provider-unavailable"),
+            effect_dispatched: true,
+        };
+        assert!(matches!(
+            action.validate(),
+            Err(FabricContractError::InvalidControllerProposal(_))
+        ));
     }
 
     #[test]

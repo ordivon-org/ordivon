@@ -34,8 +34,9 @@ use ordivon_runtime_core::{
     WORKSPACE_ID_MAX_LENGTH, WORKSPACE_ID_MIN_LENGTH, WORKSPACE_ID_PATTERN,
 };
 use ordivon_runtime_spi::{
-    evaluate_authority_shadow, preview_provider_health, AuthorityEffectCandidate, AuthorityLease,
+    evaluate_authority_shadow, plan_provider_health, AuthorityEffectCandidate, AuthorityLease,
     AuthorityMode, CapabilityDescriptor as FabricCapabilityDescriptor, ConflictMode,
+    ControllerActionProposal as FabricControllerActionProposal,
     ControllerPreview as FabricControllerPreview, FabricContractError, FabricId, FabricPlatform,
     NodeDescriptor as FabricNodeDescriptor, ProviderAvailability,
     ProviderDescriptor as FabricProviderDescriptor, ProviderHealthObservation,

@@ -2595,6 +2595,18 @@ fn execution_fabric_provider_health_preview_reports_action_required_without_acti
         controller.reason_code.as_str(),
         "reason/execution-provider-unavailable"
     );
+    let action = observation
+        .proposed_actions
+        .iter()
+        .find(|action| action.controller_id == controller.controller_id)
+        .expect("action-required controller should expose a proposal");
+    assert_eq!(
+        action.requested_capability_id.as_str(),
+        "capability/provider/recover"
+    );
+    assert_eq!(action.authority_mode, AuthorityMode::Recovery);
+    assert_eq!(action.conflict_mode, ConflictMode::ExclusiveWrite);
+    assert!(!action.effect_dispatched);
 }
 
 #[test]
@@ -2644,6 +2656,7 @@ fn runtime_describe_projects_agent_affordances_without_selecting_a_target() {
         "provider/test-node/local-linux-runner-v1"
     );
     assert_eq!(result.execution_fabric.controllers.len(), 1);
+    assert!(result.execution_fabric.proposed_actions.is_empty());
     assert_eq!(
         result.execution_fabric.controllers[0]
             .controller_id
@@ -2735,6 +2748,11 @@ fn runtime_describe_projects_agent_affordances_without_selecting_a_target() {
         "desiredState",
         "observedState",
         "disposition",
+        "proposedActions",
+        "requestedCapabilityId",
+        "authorityMode",
+        "conflictMode",
+        "effectDispatched",
     ] {
         assert!(
             output.contains(expected),

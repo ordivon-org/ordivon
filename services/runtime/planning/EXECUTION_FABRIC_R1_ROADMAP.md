@@ -171,6 +171,26 @@ Current EF5 provider-health preview slice (2026-09-18):
 - Runtime Core fast regression: 231/231 PASS with the known long-running property test filtered;
 - cargo check, cargo fmt --check, and git diff --check: PASS.
 
+
+EF5b controller-action proposal slice (2026-09-18):
+
+- SPI defines ControllerActionProposal and ProviderHealthPlan;
+- an action_required provider-health preview may propose capability/provider/recover
+  (or capability/provider/deactivate for the opposite desired state) without performing it;
+- proposals bind controller, resource, requested capability, optional preferred provider,
+  authority mode, conflict mode, and reason code;
+- proposal validation requires effectDispatched=false, structurally preventing a controller
+  intent object from claiming that Runtime admission or a physical effect already occurred;
+- converged and observation_incomplete previews produce no action proposal;
+- runtime.describe.executionFabric exposes proposals separately from controller previews;
+- action proposals have no process, Runtime admission, dispatch, systemd, spawn, or lease-
+  acquisition surface: CONTROLLER_ACTION_PROPOSAL_NO_EFFECT_SURFACE=PASS;
+- SPI tests: 14/14 PASS;
+- MCP regression: 58/58 PASS;
+- execution-fabric boundary tests: 2/2 PASS;
+- Runtime Core fast regression: 231/231 PASS with the known long-running property test filtered;
+- cargo fmt --check and git diff --check: PASS.
+
 ## EF6 — Workflow composition
 
 Use two existing complex flows as forcing functions:
