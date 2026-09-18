@@ -34,10 +34,7 @@
     "receipts": [
       "evidence/consumption-evidence.json",
       "evidence/collaboration-polish-r2.json",
-      "evidence/artifact-vnu-r2.json",
       "evidence/artifact-browser-matrix-r2.json",
-      "evidence/chromium-interaction-r2.json",
-      "evidence/chromium-mobile-pan-r2.json",
       "evidence/friction.json",
       "evidence/friction-production-schema.json",
       "evidence/friction-gpkg-determinism.json",
@@ -46,20 +43,25 @@
       "evidence/friction-interactive-accessibility.json",
       "evidence/friction-interactive-html-conformance.json",
       "evidence/friction-playwright-config-cli.json",
+      "evidence/artifact-browser-matrix-r3.json",
+      "evidence/friction-interactive-keyboard-focus.json",
+      "evidence/artifact-browser-matrix-r4.json",
+      "evidence/friction-interactive-touch-targets.json"
+    ],
+    "evidence": [
+      "evidence/artifact-vnu-r2.json",
+      "evidence/chromium-interaction-r2.json",
+      "evidence/chromium-mobile-pan-r2.json",
       "evidence/chromium-final-interaction-r2.json",
       "evidence/chromium-final-console-r2.json",
       "evidence/artifact-vnu-r3.json",
-      "evidence/artifact-browser-matrix-r3.json",
       "evidence/keyboard-focus-baseline-r3.json",
       "evidence/keyboard-focus-verified-r3.json",
       "evidence/chromium-console-keyboard-r3.json",
-      "evidence/friction-interactive-keyboard-focus.json",
       "evidence/touch-target-baseline-r4.json",
       "evidence/touch-accessibility-gates-r4.json",
       "evidence/chromium-console-touch-r4.json",
-      "evidence/artifact-vnu-r4.json",
-      "evidence/artifact-browser-matrix-r4.json",
-      "evidence/friction-interactive-touch-targets.json"
+      "evidence/artifact-vnu-r4.json"
     ]
   },
   "outputs": [

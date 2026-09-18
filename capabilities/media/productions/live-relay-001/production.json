@@ -48,7 +48,6 @@
   },
   "sources": {
     "claims": "claims.json",
-    "assets": "source/provenance.json",
     "scripts": [
       "run-live-relay.ps1"
     ],
@@ -57,6 +56,9 @@
       "evidence/obs-session-final.json",
       "evidence/friction-controller-pre-finally-r1.json",
       "artifact-evidence/moving-image-verification.json"
+    ],
+    "sourceDocuments": [
+      "source/provenance.json"
     ]
   },
   "outputs": [

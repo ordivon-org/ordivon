@@ -3,13 +3,18 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import platform
+import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-UV = Path("/usr/bin/uv")
 RECEIPT = ROOT / ".venv" / ".ordivon-materialization.json"
 INPUTS = ("pyproject.toml", "uv.lock", ".python-version")
+EXPECTED_PYTHON = (ROOT / ".python-version").read_text(encoding="utf-8").strip()
+EXPECTED_JSONSCHEMA = "4.26.0"
+EXPECTED_OTIO = "0.18.1"
 
 
 def digest(path: Path) -> str:
@@ -25,9 +30,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Explicitly materialize Studio's Python dependency capability and emit an exact local receipt.")
     parser.add_argument("--extra", action="append", default=[], choices=["resolve"])
     args = parser.parse_args()
-    if not UV.is_file():
-        raise SystemExit("/usr/bin/uv is unavailable; Workstation Python supply must be repaired before Studio acquisition")
-    command = [str(UV), "sync", "--frozen"]
+    uv = shutil.which("uv")
+    if not uv:
+        raise SystemExit("uv is unavailable on PATH; run this command through the repository mise toolchain")
+    if platform.python_version() != EXPECTED_PYTHON:
+        raise SystemExit(f"Studio expects Python {EXPECTED_PYTHON}, got {platform.python_version()}; run through mise")
+    command = [uv, "sync", "--python", sys.executable, "--frozen"]
     for extra in sorted(set(args.extra)):
         command.extend(["--extra", extra])
     completed = subprocess.run(command, cwd=ROOT, check=False)
@@ -37,16 +45,20 @@ def main() -> int:
     if not python.is_file():
         raise SystemExit("uv sync returned success without .venv/bin/python")
     extras = sorted(set(args.extra))
-    probe = ["import importlib.metadata as m; assert m.version('jsonschema') == '4.25.1'"]
+    probe = [
+        "import importlib.metadata as m, platform",
+        f"assert platform.python_version() == {EXPECTED_PYTHON!r}",
+        f"assert m.version('jsonschema') == {EXPECTED_JSONSCHEMA!r}",
+    ]
     if "resolve" in extras:
-        probe.append("assert m.version('opentimelineio') == '0.18.1'")
-    subprocess.run([str(python), "-c", "; ".join(probe)], cwd=ROOT, check=True, timeout=15)
+        probe.append(f"assert m.version('opentimelineio') == {EXPECTED_OTIO!r}")
+    subprocess.run([str(python), "-c", "; ".join(probe)], cwd=ROOT, check=True, timeout=30)
     receipt = {
         "schemaVersion": 1,
         "kind": "ordivon.studio-python-materialization-receipt",
         "inputs": {name: digest(ROOT / name) for name in INPUTS},
         "extras": extras,
-        "uv": command_output([str(UV), "--version"]),
+        "uv": command_output([uv, "--version"]),
         "python": command_output([str(python), "--version"]),
     }
     RECEIPT.parent.mkdir(parents=True, exist_ok=True)

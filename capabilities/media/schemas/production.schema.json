@@ -4,21 +4,51 @@
   "title": "Ordivon Studio Production v1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "id", "title", "status", "intent", "audiences", "sourceBindings", "workingProfile", "sources", "outputs"],
+  "required": [
+    "schemaVersion",
+    "id",
+    "title",
+    "status",
+    "intent",
+    "audiences",
+    "sourceBindings",
+    "workingProfile",
+    "sources",
+    "outputs"
+  ],
   "properties": {
-    "schemaVersion": {"const": 1},
+    "schemaVersion": {
+      "const": 1
+    },
     "id": {
       "type": "string",
       "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
     },
-    "title": {"type": "string", "minLength": 1},
-    "status": {"enum": ["design", "production", "review", "published", "archived"]},
-    "intent": {"type": "string", "minLength": 1},
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "design",
+        "production",
+        "review",
+        "published",
+        "archived"
+      ]
+    },
+    "intent": {
+      "type": "string",
+      "minLength": 1
+    },
     "audiences": {
       "type": "array",
       "minItems": 1,
       "uniqueItems": true,
-      "items": {"type": "string", "minLength": 1}
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     },
     "sourceBindings": {
       "type": "array",
@@ -26,15 +56,29 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "repository", "revision", "role"],
+        "required": [
+          "id",
+          "repository",
+          "revision",
+          "role"
+        ],
         "properties": {
           "id": {
             "type": "string",
             "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
           },
-          "repository": {"type": "string", "minLength": 1},
-          "revision": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
-          "role": {"type": "string", "minLength": 1}
+          "repository": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revision": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{40}$"
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     },
@@ -46,37 +90,75 @@
         "frameRate": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["numerator", "denominator"],
+          "required": [
+            "numerator",
+            "denominator"
+          ],
           "properties": {
-            "numerator": {"type": "integer", "minimum": 1},
-            "denominator": {"type": "integer", "minimum": 1}
+            "numerator": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "denominator": {
+              "type": "integer",
+              "minimum": 1
+            }
           }
         },
         "canvas": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["width", "height"],
+          "required": [
+            "width",
+            "height"
+          ],
           "properties": {
-            "width": {"type": "integer", "minimum": 1},
-            "height": {"type": "integer", "minimum": 1}
+            "width": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 1
+            }
           }
         },
         "color": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["still", "video"],
+          "required": [
+            "still",
+            "video"
+          ],
           "properties": {
-            "still": {"type": "string"},
-            "video": {"type": "string"}
+            "still": {
+              "type": "string"
+            },
+            "video": {
+              "type": "string"
+            }
           }
         },
         "audio": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["sampleRate", "sourceBitDepth"],
+          "required": [
+            "sampleRate",
+            "sourceBitDepth"
+          ],
           "properties": {
-            "sampleRate": {"type": "integer", "minimum": 8000},
-            "sourceBitDepth": {"type": "integer", "enum": [16, 24, 32]}
+            "sampleRate": {
+              "type": "integer",
+              "minimum": 8000
+            },
+            "sourceBitDepth": {
+              "type": "integer",
+              "enum": [
+                16,
+                24,
+                32
+              ]
+            }
           }
         }
       }
@@ -84,18 +166,69 @@
     "sources": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["claims"],
+      "required": [
+        "claims"
+      ],
       "properties": {
-        "claims": {"type": "string"},
-        "assets": {"type": "string"},
-        "article": {"type": "string"},
-        "scripts": {"type": "array", "items": {"type": "string"}},
-        "timedText": {"type": "array", "items": {"type": "string"}},
-        "receipts": {"type": "array", "items": {"type": "string"}},
-        "motion": {"type": "array", "items": {"type": "string"}},
-        "resolveProjectAsset": {"type": "string"},
-        "otioSnapshots": {"type": "array", "items": {"type": "string"}},
-        "cognition": {"type": "string"}
+        "claims": {
+          "type": "string"
+        },
+        "assets": {
+          "type": "string"
+        },
+        "article": {
+          "type": "string"
+        },
+        "scripts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "timedText": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "receipts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "motion": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "resolveProjectAsset": {
+          "type": "string"
+        },
+        "otioSnapshots": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "cognition": {
+          "type": "string"
+        },
+        "evidence": {
+          "type": "array",
+          "description": "Raw or tool-native evidence files that are retained as evidence but do not claim the Studio receipt envelope.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sourceDocuments": {
+          "type": "array",
+          "description": "Self-describing source or provenance documents that are inputs to the production but are not asset manifests.",
+          "items": {
+            "type": "string"
+          }
+        }
       }
     },
     "outputs": {
@@ -103,17 +236,38 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "kind", "status"],
+        "required": [
+          "id",
+          "kind",
+          "status"
+        ],
         "properties": {
           "id": {
             "type": "string",
             "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
           },
           "kind": {
-            "enum": ["article", "video", "audio", "image", "captions", "interactive", "publication-package"]
+            "enum": [
+              "article",
+              "video",
+              "audio",
+              "image",
+              "captions",
+              "interactive",
+              "publication-package"
+            ]
           },
-          "status": {"enum": ["planned", "rendered", "approved", "published"]},
-          "profile": {"type": "string"},
+          "status": {
+            "enum": [
+              "planned",
+              "rendered",
+              "approved",
+              "published"
+            ]
+          },
+          "profile": {
+            "type": "string"
+          },
           "blobDigest": {
             "type": "string",
             "pattern": "^sha256:[a-f0-9]{64}$"

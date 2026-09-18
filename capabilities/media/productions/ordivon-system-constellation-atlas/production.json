@@ -25,13 +25,15 @@
   },
   "sources": {
     "claims": "claims.json",
-    "assets": "source/repositories.json",
     "scripts": [
       "generate.py"
     ],
     "receipts": [
       "consumption-evidence.json",
       "friction.json"
+    ],
+    "sourceDocuments": [
+      "source/repositories.json"
     ]
   },
   "outputs": [

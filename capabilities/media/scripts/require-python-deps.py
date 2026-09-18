@@ -10,6 +10,9 @@ ROOT = Path(__file__).resolve().parents[1]
 RECEIPT = ROOT / ".venv" / ".ordivon-materialization.json"
 PYTHON = ROOT / ".venv" / "bin" / "python"
 INPUTS = ("pyproject.toml", "uv.lock", ".python-version")
+EXPECTED_PYTHON = (ROOT / ".python-version").read_text(encoding="utf-8").strip()
+EXPECTED_JSONSCHEMA = "4.26.0"
+EXPECTED_OTIO = "0.18.1"
 
 
 def digest(path: Path) -> str:
@@ -49,10 +52,14 @@ def main() -> int:
     actual_extras = set(receipt.get("extras", []))
     if not required_extras.issubset(actual_extras):
         return fail(f"missing required Python extras: {sorted(required_extras - actual_extras)}", resolve="resolve" in required_extras)
-    probe = ["import importlib.metadata as m; assert m.version('jsonschema') == '4.25.1'"]
+    probe = [
+        "import importlib.metadata as m, platform",
+        f"assert platform.python_version() == {EXPECTED_PYTHON!r}",
+        f"assert m.version('jsonschema') == {EXPECTED_JSONSCHEMA!r}",
+    ]
     if "resolve" in required_extras:
-        probe.append("assert m.version('opentimelineio') == '0.18.1'")
-    result = subprocess.run([str(PYTHON), "-c", "; ".join(probe)], cwd=ROOT, capture_output=True, text=True, timeout=15, check=False)
+        probe.append(f"assert m.version('opentimelineio') == {EXPECTED_OTIO!r}")
+    result = subprocess.run([str(PYTHON), "-c", "; ".join(probe)], cwd=ROOT, capture_output=True, text=True, timeout=30, check=False)
     if result.returncode != 0:
         return fail("installed Python package state does not satisfy the expected versions", resolve="resolve" in required_extras)
     print("studio_python_dependencies=ready")

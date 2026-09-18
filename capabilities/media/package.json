@@ -19,8 +19,8 @@
     "media:v2:render:introduction": "pnpm tokens:build && pnpm --filter @ordivon/studio-motion render:introduction && pnpm media:v2:probe:introduction",
     "deps:check": "pnpm deps:js:check && pnpm deps:python:check",
     "bootstrap:js": "pnpm install --frozen-lockfile",
-    "bootstrap:python": "/usr/bin/python3 scripts/materialize-python.py",
-    "bootstrap:resolve": "/usr/bin/python3 scripts/materialize-python.py --extra resolve",
+    "bootstrap:python": "python3 scripts/materialize-python.py",
+    "bootstrap:resolve": "python3 scripts/materialize-python.py --extra resolve",
     "bootstrap": "pnpm bootstrap:js && pnpm bootstrap:python",
     "tokens:build": "node --experimental-strip-types packages/identity/scripts/build-tokens.ts",
     "models:check": "pnpm deps:python:check && .venv/bin/python -m ordivon_studio.models",
@@ -63,13 +63,13 @@
     "culture:r6:uncertainty": "pnpm deps:python:check && .venv/bin/python scripts/run-r6-creative-alpha.py uncertainty",
     "culture:r6:portfolio": "pnpm deps:python:check && .venv/bin/python scripts/run-r6-creative-alpha.py portfolio",
     "deps:js:check": "node scripts/require-js-deps.mjs",
-    "deps:python:check": "/usr/bin/python3 scripts/require-python-deps.py",
-    "deps:python:resolve:check": "/usr/bin/python3 scripts/require-python-deps.py --extra resolve"
+    "deps:python:check": "python3 scripts/require-python-deps.py",
+    "deps:python:resolve:check": "python3 scripts/require-python-deps.py --extra resolve"
   },
   "devDependencies": {
-    "@types/node": "26.1.2",
-    "@types/react": "19.2.17",
-    "@types/react-dom": "19.2.3",
+    "@types/node": "26.6.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
     "typescript": "7.0.2"
   }
 }

@@ -49,6 +49,34 @@ class ModelTests(unittest.TestCase):
         self.assertFalse((production_root / "assets.json").exists())
         self.assertEqual(validate_repository(), [])
 
+    def test_receipt_references_are_only_enveloped_records(self) -> None:
+        production = json.loads((ROOT / "productions/archive-archipelago-001/production.json").read_text(encoding="utf-8"))
+        self.assertIn("evidence", production["sources"])
+        self.assertGreater(len(production["sources"]["evidence"]), 0)
+        for relative_path in production["sources"]["receipts"]:
+            receipt = json.loads((ROOT / "productions/archive-archipelago-001" / relative_path).read_text(encoding="utf-8"))
+            self.assertEqual(receipt.get("schemaVersion"), 1, relative_path)
+            self.assertIsInstance(receipt.get("kind"), str, relative_path)
+            self.assertTrue(receipt["kind"], relative_path)
+
+    def test_source_documents_do_not_claim_asset_manifest_semantics(self) -> None:
+        for production_id in ["live-relay-001", "ordivon-system-constellation-atlas"]:
+            production = json.loads((ROOT / "productions" / production_id / "production.json").read_text(encoding="utf-8"))
+            self.assertNotIn("assets", production["sources"])
+            self.assertGreater(len(production["sources"]["sourceDocuments"]), 0)
+            for relative_path in production["sources"]["sourceDocuments"]:
+                self.assertTrue((ROOT / "productions" / production_id / relative_path).is_file())
+
+    def test_current_claim_contract_replaces_legacy_boundary_shape(self) -> None:
+        validator = _validator("claims.schema.json")
+        for production_id in ["convergence-object-001", "ordivon-system-constellation-atlas"]:
+            claims = json.loads((ROOT / "productions" / production_id / "claims.json").read_text(encoding="utf-8"))
+            self.assertEqual(list(validator.iter_errors(claims)), [])
+            self.assertEqual(claims["productionId"], production_id)
+            for claim in claims["claims"]:
+                self.assertNotIn("allowedMeaning", claim)
+                self.assertNotIn("boundary", claim)
+
     def test_declared_media_assets_still_fail_schema_when_invalid(self) -> None:
         assets = json.loads((ROOT / "productions/runtime-introduction/assets.json").read_text(encoding="utf-8"))
         assets["assets"][0].pop("rights")

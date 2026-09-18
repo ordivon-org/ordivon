@@ -1,15 +1,42 @@
 {
   "schemaVersion": 1,
+  "productionId": "convergence-object-001",
   "claims": [
     {
       "id": "concept-boundary",
-      "allowedMeaning": "CONVERGENCE OBJECT 001 is a creative spatial interpretation of distinct signals retaining identity while approaching a common resolution core.",
-      "boundary": "The sculpture is not an architecture diagram and does not assert current Runtime, Host, Research, or organizational topology."
+      "source": {
+        "binding": "media",
+        "path": "productions/convergence-object-001/build.py"
+      },
+      "meaning": "CONVERGENCE OBJECT 001 is a creative spatial interpretation of distinct signals retaining identity while approaching a common resolution core.",
+      "evidence": [
+        "productions/convergence-object-001/render/convergence-object-001.png",
+        "productions/convergence-object-001/source/convergence-object-001.blend"
+      ],
+      "allowedWording": [
+        "CONVERGENCE OBJECT 001 is a creative spatial interpretation of distinct signals retaining identity while approaching a common resolution core."
+      ],
+      "avoid": [
+        "The sculpture is not an architecture diagram and does not assert current Runtime, Host, Research, or organizational topology."
+      ]
     },
     {
       "id": "roundtrip-boundary",
-      "allowedMeaning": "The delivered GLB was independently imported by Blender 5.2.1 with the expected named geometry/material families and non-collapsed spatial extent.",
-      "boundary": "This does not establish identical rendering or editability in every GLB consumer."
+      "source": {
+        "binding": "media",
+        "path": "productions/convergence-object-001/verify_import.py"
+      },
+      "meaning": "The delivered GLB was independently imported by Blender 5.2.1 with the expected named geometry/material families and non-collapsed spatial extent.",
+      "evidence": [
+        "productions/convergence-object-001/roundtrip-receipt.json",
+        "productions/convergence-object-001/render/convergence-object-001.glb"
+      ],
+      "allowedWording": [
+        "The delivered GLB was independently imported by Blender 5.2.1 with the expected named geometry/material families and non-collapsed spatial extent."
+      ],
+      "avoid": [
+        "This does not establish identical rendering or editability in every GLB consumer."
+      ]
     }
   ]
 }
