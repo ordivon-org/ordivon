@@ -15,28 +15,33 @@ from .slice1 import ServiceEvent, ServiceEventStore
 from .transport_credentials import AgentServiceR14
 
 
-class EffectAuthorizationCoordinator:
+class EffectAuthorizedDeliveryCoordinator:
     """
-    Authorize one exact delivery effect immediately before its first external attempt.
+    Guard only a new external effect attempt.
 
-    Historical allow/deny is only an immutable generic event receipt keyed by binding.
-    Current authorization semantics remain owned by the external PolicyAdapter boundary.
+    Existing local delivery receipts replay without inventing a new authorization event.
+    A frozen generic effect-authorization receipt survives retry of the same exact
+    delivery_request_id; a new Binding/effect identity requires a new current decision.
     """
 
     def __init__(
         self,
         *,
+        delegate: Any,
+        receipts: Any,
         bindings: TransportBindingStore,
         delegations: Any,
         events: ServiceEventStore,
         policy_adapter: PolicyAdapter | None,
     ) -> None:
+        self._delegate = delegate
+        self._receipts = receipts
         self._bindings = bindings
         self._delegations = delegations
         self._events = events
         self._policy_adapter = policy_adapter
 
-    def authorize(self, binding_id: str) -> ServiceEvent:
+    def _authorization_receipt(self, binding_id: str) -> ServiceEvent:
         historical = self._events.list_for("EffectAuthorization", binding_id)
         if historical:
             if len(historical) != 1 or historical[0].event_type != "EffectAuthorizationEvaluated":
@@ -81,33 +86,12 @@ class EffectAuthorizationCoordinator:
             },
         )
 
-
-class EffectAuthorizedDeliveryCoordinator:
-    """
-    Guard only a new external effect attempt.
-
-    Existing local receipts are replayed without inventing a new authorization event.
-    A frozen effect-authorization decision survives retry of the same exact
-    delivery_request_id; a new Binding/effect identity requires a new current decision.
-    """
-
-    def __init__(
-        self,
-        *,
-        delegate: Any,
-        receipts: Any,
-        authorizations: EffectAuthorizationCoordinator,
-    ) -> None:
-        self._delegate = delegate
-        self._receipts = receipts
-        self._authorizations = authorizations
-
     def deliver(self, binding_id: str) -> DeliveryReceipt:
         existing = self._receipts.get_by_binding(binding_id, required=False)
         if existing is not None:
             return self._delegate.deliver(binding_id)
 
-        decision = self._authorizations.authorize(binding_id)
+        decision = self._authorization_receipt(binding_id)
         if not bool(decision.payload.get("allowed")):
             raise PermissionError(
                 decision.payload.get("reason") or "delivery effect denied by current policy"
@@ -126,16 +110,13 @@ class AgentServiceR15:
     ) -> None:
         self._r14 = r14
         self._connection = r14._connection
-        self.effect_authorizations = EffectAuthorizationCoordinator(
+        self.delivery = EffectAuthorizedDeliveryCoordinator(
+            delegate=r14.delivery,
+            receipts=r14.delivery_receipts,
             bindings=r14.transport_bindings,
             delegations=r14.delegations,
             events=r14.events,
             policy_adapter=effect_policy_adapter,
-        )
-        self.delivery = EffectAuthorizedDeliveryCoordinator(
-            delegate=r14.delivery,
-            receipts=r14.delivery_receipts,
-            authorizations=self.effect_authorizations,
         )
 
     def __getattr__(self, name: str) -> Any:
