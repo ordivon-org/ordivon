@@ -212,7 +212,7 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
                 delegation_id=envelope.id,
             )
 
-            self.assertFalse(decision.allowed)
+            self.assertFalse(decision.payload["allowed"])
             with self.assertRaises(PermissionError):
                 service.routes.plan(envelope.id, decision.id, preferred_transports=["a2a-jsonrpc"])
 
@@ -232,8 +232,8 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
             )
 
             self.assertEqual(first.id, replay.id)
-            self.assertTrue(replay.allowed)
-            self.assertEqual(replay.granted_permissions, ("review.invoke",))
+            self.assertTrue(replay.payload["allowed"])
+            self.assertEqual(replay.payload["grantedPermissions"], ["review.invoke"])
             self.assertEqual(policy.calls, 1)
 
     def test_route_planner_selects_only_advertised_interface_after_allowed_policy(self) -> None:
@@ -389,7 +389,8 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
             )
             self.addCleanup(second.close)
 
-            self.assertEqual(second.policy_decisions.get(decision.id).allowed, True)
+            self.assertTrue(second.events.get(decision.id).payload["allowed"])
+            self.assertFalse(hasattr(second, "policy_decisions"))
             self.assertEqual(second.transport_bindings.get(binding.id).endpoint, binding.endpoint)
             self.assertEqual(second.delivery_receipts.get(receipt.id).remote_task_id, receipt.remote_task_id)
             replay = second.delivery.deliver(binding.id)

@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "id": "ordivon-policy-receipt-elimination-r8",
+  "date": "2026-09-19",
+  "status": "FIFTH_PRODUCTION_DELETION",
+  "parent": "ordivon-revision-native-route-elimination-r7",
+  "architecturalCore": "EMPTY",
+  "deletedLocalTypes": [
+    "PolicyDecision",
+    "PolicyDecisionStore"
+  ],
+  "deletedPersistenceSurfaces": [
+    "policy_decisions"
+  ],
+  "deletedApiSurfaces": [
+    "service.policy_decisions",
+    "agent_service.PolicyDecisionStore"
+  ],
+  "retiredForeignKeyAuthorities": [
+    "transport_bindings.policy_decision_id -> policy_decisions.id"
+  ],
+  "topLevelTypeDebt": {
+    "r3Baseline": 171,
+    "r4": 170,
+    "r5": 169,
+    "r6": 168,
+    "r7": 167,
+    "r8": 165,
+    "cumulativeDelta": -6
+  },
+  "currentPolicyOwner": {
+    "boundary": "PolicyAdapter",
+    "candidateExternalOwner": "OPA",
+    "localPolicyOntology": false
+  },
+  "historicalReceipt": {
+    "representation": "existing service_events journal",
+    "aggregateType": "PolicyEvaluation",
+    "eventType": "PolicyEvaluated",
+    "authoritativePolicyStore": false
+  },
+  "transportBindingSnapshot": [
+    "policy_receipt_id",
+    "policy_revision",
+    "granted_permissions"
+  ],
+  "replacementLocalPrimitives": [],
+  "effectTimeAuthorization": {
+    "retained": true,
+    "reason": "current policy is re-evaluated immediately before the first external effect"
+  },
+  "destructiveMigration": {
+    "legacyTable": "policy_decisions",
+    "behavior": "FAIL_CLOSED_ON_OPEN",
+    "compatibilityShim": false
+  },
+  "validation": {
+    "targetedTests": 33,
+    "targetedStatus": "PASS",
+    "agentServiceTests": 204,
+    "agentServiceSkipped": 5,
+    "agentServiceStatus": "PASS",
+    "fullRepositoryTests": 303,
+    "fullRepositorySkipped": 5,
+    "fullRepositoryStatus": "PASS",
+    "observedTopLevelClasses": 165,
+    "legacyCeilingCount": 165
+  },
+  "nextCandidates": [
+    "PolicyEvaluationCoordinator"
+  ]
+}

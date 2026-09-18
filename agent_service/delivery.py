@@ -13,7 +13,7 @@ from typing import Any
 
 from .evidence import RuntimeArtifactReader
 from .semantics import AgentServiceR8, DelegationEnvelope
-from .slice1 import CarrierProviderAdapter
+from .slice1 import CarrierProviderAdapter, ServiceEvent, ServiceEventStore
 from .task_runtime import RuntimeAdapter
 
 
@@ -166,110 +166,33 @@ class PolicyAdapter(ABC):
         raise NotImplementedError
 
 
-@dataclass(frozen=True)
-class PolicyDecision:
-    id: str
-    client_policy_request_id: str
-    delegation_id: str
-    allowed: bool
-    reason: str | None
-    policy_revision: str
-    granted_permissions: tuple[str, ...]
-    created_at_ns: int
-
-
-class PolicyDecisionStore:
-    def __init__(self, connection: sqlite3.Connection) -> None:
-        self._connection = connection
-
-    def get(self, decision_id: str) -> PolicyDecision:
-        row = self._connection.execute(
-            "SELECT * FROM policy_decisions WHERE id = ?", (decision_id,)
-        ).fetchone()
-        if row is None:
-            raise KeyError(decision_id)
-        return self._from_row(row)
-
-    def get_by_client_request(
-        self, client_policy_request_id: str, required: bool = True
-    ) -> PolicyDecision | None:
-        row = self._connection.execute(
-            "SELECT * FROM policy_decisions WHERE client_policy_request_id = ?",
-            (client_policy_request_id,),
-        ).fetchone()
-        if row is None:
-            if required:
-                raise KeyError(client_policy_request_id)
-            return None
-        return self._from_row(row)
-
-    def create(
-        self,
-        *,
-        client_policy_request_id: str,
-        delegation_id: str,
-        observation: PolicyObservation,
-    ) -> PolicyDecision:
-        scopes = tuple(dict.fromkeys(observation.granted_permissions))
-        value = PolicyDecision(
-            id=_id("pdec"),
-            client_policy_request_id=client_policy_request_id,
-            delegation_id=delegation_id,
-            allowed=bool(observation.allowed),
-            reason=observation.reason,
-            policy_revision=observation.policy_revision,
-            granted_permissions=scopes,
-            created_at_ns=_now_ns(),
-        )
-        with self._connection:
-            self._connection.execute(
-                "INSERT INTO policy_decisions(id, client_policy_request_id, delegation_id, allowed, reason, policy_revision, granted_permissions_json, created_at_ns) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (
-                    value.id,
-                    value.client_policy_request_id,
-                    value.delegation_id,
-                    1 if value.allowed else 0,
-                    value.reason,
-                    value.policy_revision,
-                    _canonical_json(list(value.granted_permissions)),
-                    value.created_at_ns,
-                ),
-            )
-        return value
-
-    @staticmethod
-    def _from_row(row: sqlite3.Row) -> PolicyDecision:
-        return PolicyDecision(
-            id=row["id"],
-            client_policy_request_id=row["client_policy_request_id"],
-            delegation_id=row["delegation_id"],
-            allowed=bool(row["allowed"]),
-            reason=row["reason"],
-            policy_revision=row["policy_revision"],
-            granted_permissions=tuple(json.loads(row["granted_permissions_json"])),
-            created_at_ns=row["created_at_ns"],
-        )
-
-
 class PolicyEvaluationCoordinator:
+    """Evaluate current policy and retain only a generic historical receipt event."""
+
     def __init__(
         self,
         delegations: Any,
-        decisions: PolicyDecisionStore,
+        events: ServiceEventStore,
         adapter: PolicyAdapter | None,
     ) -> None:
         self._delegations = delegations
-        self._decisions = decisions
+        self._events = events
         self._adapter = adapter
 
-    def evaluate(self, *, client_policy_request_id: str, delegation_id: str) -> PolicyDecision:
-        if not client_policy_request_id.strip():
+    def evaluate(self, *, client_policy_request_id: str, delegation_id: str) -> ServiceEvent:
+        request_id = client_policy_request_id.strip()
+        if not request_id:
             raise ValueError("client_policy_request_id must be non-empty")
-        existing = self._decisions.get_by_client_request(client_policy_request_id, required=False)
-        if existing is not None:
-            if existing.delegation_id != delegation_id:
+
+        historical = self._events.list_for("PolicyEvaluation", request_id)
+        if historical:
+            if len(historical) != 1 or historical[0].event_type != "PolicyEvaluated":
+                raise RuntimeError("policy evaluation receipt stream is malformed")
+            event = historical[0]
+            if event.payload.get("delegationId") != delegation_id:
                 raise ValueError("policy request identity already bound to different delegation")
-            return existing
+            return event
+
         if self._adapter is None:
             raise RuntimeError("no PolicyAdapter configured")
         envelope = self._delegations.get(delegation_id)
@@ -288,10 +211,18 @@ class PolicyEvaluationCoordinator:
             raise TypeError("PolicyAdapter must return PolicyObservation")
         if not observation.policy_revision.strip():
             raise ValueError("PolicyObservation.policy_revision must be non-empty")
-        return self._decisions.create(
-            client_policy_request_id=client_policy_request_id,
-            delegation_id=delegation_id,
-            observation=observation,
+        scopes = tuple(dict.fromkeys(observation.granted_permissions))
+        return self._events.append(
+            "PolicyEvaluation",
+            request_id,
+            "PolicyEvaluated",
+            {
+                "delegationId": envelope.id,
+                "allowed": bool(observation.allowed),
+                "reason": observation.reason,
+                "policyRevision": observation.policy_revision,
+                "grantedPermissions": list(scopes),
+            },
         )
 
 
@@ -299,7 +230,9 @@ class PolicyEvaluationCoordinator:
 class TransportBinding:
     id: str
     delegation_id: str
-    policy_decision_id: str
+    policy_receipt_id: str
+    policy_revision: str
+    granted_permissions: tuple[str, ...]
     interface_id: str
     transport: str
     protocol_version: str | None
@@ -336,14 +269,16 @@ class TransportBindingStore:
         self,
         *,
         delegation_id: str,
-        policy_decision_id: str,
+        policy_receipt_id: str,
+        policy_revision: str,
+        granted_permissions: tuple[str, ...],
         interface: dict[str, Any],
     ) -> TransportBinding:
         if not isinstance(interface["protocolVersion"], str) or not interface["protocolVersion"]:
             raise RuntimeError(
                 "legacy interface advertisement lacks protocol_version; explicit re-advertisement is required"
             )
-        material = f"{delegation_id}\0{policy_decision_id}\0{interface['profileId']}\0{interface['protocolVersion']}".encode("utf-8")
+        material = f"{delegation_id}\0{policy_receipt_id}\0{interface['profileId']}\0{interface['protocolVersion']}".encode("utf-8")
         binding_id = "bind_" + hashlib.sha256(material).hexdigest()
         try:
             existing = self.get(binding_id)
@@ -352,7 +287,9 @@ class TransportBindingStore:
         if existing is not None:
             candidate = (
                 delegation_id,
-                policy_decision_id,
+                policy_receipt_id,
+                policy_revision,
+                granted_permissions,
                 interface["profileId"],
                 interface["transport"],
                 interface["protocolVersion"],
@@ -361,7 +298,9 @@ class TransportBindingStore:
             )
             historical = (
                 existing.delegation_id,
-                existing.policy_decision_id,
+                existing.policy_receipt_id,
+                existing.policy_revision,
+                existing.granted_permissions,
                 existing.interface_id,
                 existing.transport,
                 existing.protocol_version,
@@ -375,7 +314,9 @@ class TransportBindingStore:
         value = TransportBinding(
             id=binding_id,
             delegation_id=delegation_id,
-            policy_decision_id=policy_decision_id,
+            policy_receipt_id=policy_receipt_id,
+            policy_revision=policy_revision,
+            granted_permissions=tuple(dict.fromkeys(granted_permissions)),
             interface_id=interface["profileId"],
             transport=interface["transport"],
             protocol_version=interface["protocolVersion"],
@@ -389,14 +330,17 @@ class TransportBindingStore:
                 self._connection.execute(
                     """
                     INSERT INTO transport_bindings(
-                        id, delegation_id, policy_decision_id, interface_id, transport,
-                        protocol_version, endpoint, delivery_request_id, security_requirements_json, created_at_ns
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        id, delegation_id, policy_receipt_id, policy_revision, granted_permissions_json,
+                        interface_id, transport, protocol_version, endpoint, delivery_request_id,
+                        security_requirements_json, created_at_ns
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         value.id,
                         value.delegation_id,
-                        value.policy_decision_id,
+                        value.policy_receipt_id,
+                        value.policy_revision,
+                        _canonical_json(list(value.granted_permissions)),
                         value.interface_id,
                         value.transport,
                         value.protocol_version,
@@ -410,7 +354,9 @@ class TransportBindingStore:
             existing = self.get(binding_id)
             candidate = (
                 value.delegation_id,
-                value.policy_decision_id,
+                value.policy_receipt_id,
+                value.policy_revision,
+                value.granted_permissions,
                 value.interface_id,
                 value.transport,
                 value.protocol_version,
@@ -420,7 +366,9 @@ class TransportBindingStore:
             )
             historical = (
                 existing.delegation_id,
-                existing.policy_decision_id,
+                existing.policy_receipt_id,
+                existing.policy_revision,
+                existing.granted_permissions,
                 existing.interface_id,
                 existing.transport,
                 existing.protocol_version,
@@ -438,7 +386,9 @@ class TransportBindingStore:
         return TransportBinding(
             id=row["id"],
             delegation_id=row["delegation_id"],
-            policy_decision_id=row["policy_decision_id"],
+            policy_receipt_id=row["policy_receipt_id"],
+            policy_revision=row["policy_revision"],
+            granted_permissions=tuple(json.loads(row["granted_permissions_json"])),
             interface_id=row["interface_id"],
             transport=row["transport"],
             protocol_version=row["protocol_version"],
@@ -454,27 +404,37 @@ class DelegationRoutePlanner:
         self,
         connection: sqlite3.Connection,
         delegations: Any,
-        decisions: PolicyDecisionStore,
+        events: ServiceEventStore,
         bindings: TransportBindingStore,
     ) -> None:
         self._connection = connection
         self._delegations = delegations
-        self._decisions = decisions
+        self._events = events
         self._bindings = bindings
 
     def plan(
         self,
         delegation_id: str,
-        policy_decision_id: str,
+        policy_receipt_id: str,
         *,
         preferred_transports: list[str],
     ) -> TransportBinding:
         envelope = self._delegations.get(delegation_id)
-        decision = self._decisions.get(policy_decision_id)
-        if decision.delegation_id != envelope.id:
-            raise ValueError("PolicyDecision belongs to different DelegationEnvelope")
-        if not decision.allowed:
-            raise PermissionError(decision.reason or "delegation denied by policy")
+        receipt = self._events.get(policy_receipt_id)
+        if receipt.aggregate_type != "PolicyEvaluation" or receipt.event_type != "PolicyEvaluated":
+            raise ValueError("policy receipt is not a policy evaluation event")
+        if receipt.payload.get("delegationId") != envelope.id:
+            raise ValueError("policy receipt belongs to different DelegationEnvelope")
+        if not bool(receipt.payload.get("allowed")):
+            raise PermissionError(receipt.payload.get("reason") or "delegation denied by policy")
+        policy_revision = receipt.payload.get("policyRevision")
+        if not isinstance(policy_revision, str) or not policy_revision.strip():
+            raise RuntimeError("policy receipt lacks policy revision")
+        granted_permissions = tuple(
+            item
+            for item in receipt.payload.get("grantedPermissions", [])
+            if isinstance(item, str)
+        )
         revision = self._connection.execute(
             "SELECT spec_json FROM agent_revisions WHERE id = ?",
             (envelope.target_revision_id,),
@@ -503,7 +463,9 @@ class DelegationRoutePlanner:
             raise LookupError("none of the preferred transports are advertised by target revision")
         return self._bindings.create(
             delegation_id=envelope.id,
-            policy_decision_id=decision.id,
+            policy_receipt_id=receipt.id,
+            policy_revision=policy_revision,
+            granted_permissions=granted_permissions,
             interface=selected,
         )
 
@@ -667,15 +629,14 @@ class AgentServiceR9:
             "delegations", "a2a_cards",
         ):
             setattr(self, name, getattr(r8, name))
-        self.policy_decisions = PolicyDecisionStore(self._connection)
         self.policy = PolicyEvaluationCoordinator(
-            self.delegations, self.policy_decisions, policy_adapter
+            self.delegations, self.events, policy_adapter
         )
         self.transport_bindings = TransportBindingStore(self._connection)
         self.routes = DelegationRoutePlanner(
             self._connection,
             self.delegations,
-            self.policy_decisions,
+            self.events,
             self.transport_bindings,
         )
         self.delivery_receipts = DeliveryReceiptStore(self._connection)
@@ -723,23 +684,23 @@ class AgentServiceR9:
                 "legacy agent_interface_advertisements schema is unsupported; "
                 "perform explicit destructive migration before opening this revision"
             )
+        legacy_policy_table = connection.execute(
+            "SELECT 1 FROM sqlite_master "
+            "WHERE type = 'table' AND name = 'policy_decisions'"
+        ).fetchone()
+        if legacy_policy_table is not None:
+            raise RuntimeError(
+                "legacy policy_decisions schema is unsupported; "
+                "perform explicit destructive migration before opening this revision"
+            )
         connection.executescript(
             """
-            CREATE TABLE IF NOT EXISTS policy_decisions (
-                id TEXT PRIMARY KEY,
-                client_policy_request_id TEXT NOT NULL UNIQUE,
-                delegation_id TEXT NOT NULL REFERENCES delegation_envelopes(id),
-                allowed INTEGER NOT NULL CHECK(allowed IN (0, 1)),
-                reason TEXT,
-                policy_revision TEXT NOT NULL,
-                granted_permissions_json TEXT NOT NULL,
-                created_at_ns INTEGER NOT NULL
-            );
-
             CREATE TABLE IF NOT EXISTS transport_bindings (
                 id TEXT PRIMARY KEY,
                 delegation_id TEXT NOT NULL REFERENCES delegation_envelopes(id),
-                policy_decision_id TEXT NOT NULL REFERENCES policy_decisions(id),
+                policy_receipt_id TEXT NOT NULL,
+                policy_revision TEXT NOT NULL,
+                granted_permissions_json TEXT NOT NULL,
                 interface_id TEXT NOT NULL,
                 transport TEXT NOT NULL,
                 protocol_version TEXT,
@@ -747,7 +708,7 @@ class AgentServiceR9:
                 delivery_request_id TEXT NOT NULL UNIQUE,
                 security_requirements_json TEXT NOT NULL,
                 created_at_ns INTEGER NOT NULL,
-                UNIQUE(delegation_id, policy_decision_id, interface_id)
+                UNIQUE(delegation_id, policy_receipt_id, interface_id)
             );
 
             CREATE TABLE IF NOT EXISTS delivery_receipts (

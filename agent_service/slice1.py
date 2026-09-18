@@ -302,6 +302,23 @@ class ServiceEventStore(_SqliteNode):
         )
         return event
 
+    def get(self, event_id: str) -> ServiceEvent:
+        row = self._connection.execute(
+            "SELECT id, aggregate_type, aggregate_id, sequence, event_type, payload_json, created_at_ns FROM service_events WHERE id = ?",
+            (event_id,),
+        ).fetchone()
+        if row is None:
+            raise KeyError(event_id)
+        return ServiceEvent(
+            id=row["id"],
+            aggregate_type=row["aggregate_type"],
+            aggregate_id=row["aggregate_id"],
+            sequence=row["sequence"],
+            event_type=row["event_type"],
+            payload=json.loads(row["payload_json"]),
+            created_at_ns=row["created_at_ns"],
+        )
+
     def list_for(self, aggregate_type: str, aggregate_id: str) -> list[ServiceEvent]:
         rows = self._connection.execute(
             "SELECT id, aggregate_type, aggregate_id, sequence, event_type, payload_json, created_at_ns FROM service_events WHERE aggregate_type = ? AND aggregate_id = ? ORDER BY sequence",

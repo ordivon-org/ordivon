@@ -233,7 +233,6 @@ class TransportCredentialBindingCoordinator:
         *,
         bindings: Any,
         delegations: Any,
-        policy_decisions: Any,
         credential_references: Any,
         identity_proofs: Any,
         records: TransportCredentialBindingStore,
@@ -241,7 +240,6 @@ class TransportCredentialBindingCoordinator:
         self._connection = connection
         self._bindings = bindings
         self._delegations = delegations
-        self._policy_decisions = policy_decisions
         self._credential_references = credential_references
         self._identity_proofs = identity_proofs
         self._records = records
@@ -278,9 +276,8 @@ class TransportCredentialBindingCoordinator:
         if scheme not in binding.security_requirements:
             raise ValueError("security_scheme is not declared by immutable TransportBinding")
         envelope = self._delegations.get(binding.delegation_id)
-        decision = self._policy_decisions.get(binding.policy_decision_id)
-        if not decision.allowed or decision.delegation_id != envelope.id:
-            raise PermissionError("binding is not backed by an allowed PolicyDecision")
+        if binding.delegation_id != envelope.id:
+            raise PermissionError("binding delegation identity mismatch")
 
         proof = self._identity_proofs.get(identity_proof_id)
         if not proof.authenticated or not self._identity_proofs.is_current(proof.id):
@@ -298,11 +295,11 @@ class TransportCredentialBindingCoordinator:
                 f"credential reference lacks required scopes: {missing_credential}"
             )
         missing_policy = [
-            scope for scope in required_scopes if scope not in decision.granted_permissions
+            scope for scope in required_scopes if scope not in binding.granted_permissions
         ]
         if missing_policy:
             raise PermissionError(
-                f"PolicyDecision does not grant required scopes: {missing_policy}"
+                f"immutable policy receipt snapshot does not grant required scopes: {missing_policy}"
             )
         if not _resource_covers_endpoint(credential.resource, binding.endpoint):
             raise ValueError(
@@ -462,7 +459,6 @@ class AgentServiceR14:
             self._connection,
             bindings=r13.transport_bindings,
             delegations=r13.delegations,
-            policy_decisions=r13.policy_decisions,
             credential_references=r13.credential_references,
             identity_proofs=r13.identity_proofs,
             records=self.transport_credential_records,
