@@ -7,7 +7,6 @@ from .delivery import (
     DeliveryCoordinator,
     DeliveryReceiptStore,
     PolicyAdapter,
-    PolicyEvaluationCoordinator,
     TransportBindingStore,
 )
 from .evidence import AgentServiceR6, RuntimeArtifactReader, VerificationRecord
@@ -175,7 +174,6 @@ __all__ = [
     "IdentityProofCoordinator",
     "IdentityProofRecordStore",
     "PolicyAdapter",
-    "PolicyEvaluationCoordinator",
     "ProviderObservation",
     "RemoteArtifactEvidenceResolver",
     "RemoteArtifactReader",

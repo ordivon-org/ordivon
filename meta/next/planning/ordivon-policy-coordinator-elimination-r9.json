@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "id": "ordivon-policy-coordinator-elimination-r9",
+  "date": "2026-09-19",
+  "status": "SIXTH_PRODUCTION_DELETION",
+  "parent": "ordivon-policy-receipt-elimination-r8",
+  "architecturalCore": "EMPTY",
+  "deletedLocalTypes": [
+    "PolicyEvaluationCoordinator"
+  ],
+  "deletedApiSurfaces": [
+    "agent_service.PolicyEvaluationCoordinator",
+    "service.policy"
+  ],
+  "replacementLocalPrimitives": [],
+  "routeAdmission": {
+    "owner": "DelegationRoutePlanner",
+    "policyRequestIdentityArgument": "client_policy_request_id",
+    "historicalReceiptRepresentation": "existing service_events journal",
+    "helper": "_evaluate_policy_receipt",
+    "helperIsSemanticAuthority": false
+  },
+  "policyBoundaryTypesRetained": [
+    "PolicyAdapter",
+    "PolicyRequest",
+    "PolicyObservation"
+  ],
+  "effectTimeAuthorizationStillSeparate": true,
+  "topLevelTypeDebt": {
+    "r3Baseline": 171,
+    "r4": 170,
+    "r5": 169,
+    "r6": 168,
+    "r7": 167,
+    "r8": 165,
+    "r9": 164,
+    "cumulativeDelta": -7
+  },
+  "validation": {
+    "ratchetAndPublicApiTests": 9,
+    "governedDeliveryChainTests": 90,
+    "agentServiceTests": 206,
+    "agentServiceSkipped": 5,
+    "agentServiceStatus": "PASS",
+    "fullRepositoryTests": 305,
+    "fullRepositorySkipped": 5,
+    "fullRepositoryStatus": "PASS",
+    "observedTopLevelClasses": 164,
+    "legacyCeilingCount": 164
+  },
+  "nextAudit": "remaining delivery/effect-state authorities"
+}

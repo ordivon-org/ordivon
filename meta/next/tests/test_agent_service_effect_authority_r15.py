@@ -164,16 +164,13 @@ class AgentServiceEffectAuthorityR15Tests(unittest.TestCase):
             payload={"text": "review"},
             evidence_contract={"kind": "review-markdown"},
         )
-        route_decision = service.policy.evaluate(
-            client_policy_request_id="r15:route-policy",
-            delegation_id=envelope.id,
-        )
         binding = service.routes.plan(
             envelope.id,
-            route_decision.id,
+            client_policy_request_id="r15:route-policy",
             preferred_transports=["a2a-jsonrpc"],
         )
-        return session, envelope, route_decision, binding
+        route_receipt = service.events.get(binding.policy_receipt_id)
+        return session, envelope, route_receipt, binding
 
     def test_missing_effect_policy_fails_closed_before_external_send(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -193,8 +190,8 @@ class AgentServiceEffectAuthorityR15Tests(unittest.TestCase):
             policy = MutablePolicy(allowed=True)
             delivery = CountingDelivery()
             service = self._open(Path(tmp) / "s.db", policy, delivery)
-            _, _, route_decision, binding = self._setup(service)
-            self.assertTrue(route_decision.payload["allowed"])
+            _, _, route_receipt, binding = self._setup(service)
+            self.assertTrue(route_receipt.payload["allowed"])
             self.assertEqual(policy.calls, 1)
 
             policy.allowed = False

@@ -1183,7 +1183,7 @@ class AgentServiceR12:
             "goals", "goal_graph_guard", "goal_task_links", "task_dependencies", "task_readiness",
             "task_graph", "goal_reconciler", "board_receipts", "board_projector", "identities",
             "sessions", "session_items", "delegations", "a2a_cards",
-            "policy", "transport_bindings", "routes", "delivery_receipts",
+            "transport_bindings", "routes", "delivery_receipts",
             "credential_references", "identity_proof_records", "identity_proofs", "remote_observations",
             "remote_reconciler", "audit", "execution_claims", "remote_verifications",
             "remote_artifacts", "remote_semantic_verifier", "remote_completion",

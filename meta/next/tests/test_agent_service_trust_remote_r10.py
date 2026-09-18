@@ -178,13 +178,9 @@ class AgentServiceTrustRemoteR10Tests(unittest.TestCase):
             payload={"text": "review"},
             evidence_contract={"kind": "text/markdown"},
         )
-        decision = service.policy.evaluate(
-            client_policy_request_id="r10:policy",
-            delegation_id=envelope.id,
-        )
         binding = service.routes.plan(
             envelope.id,
-            decision.id,
+            client_policy_request_id="r10:policy",
             preferred_transports=["a2a-jsonrpc"],
         )
         receipt = service.delivery.deliver(binding.id)
