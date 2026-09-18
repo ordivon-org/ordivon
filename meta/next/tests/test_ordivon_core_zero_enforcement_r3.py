@@ -63,6 +63,18 @@ class OrdivonCoreZeroEnforcementR3Tests(unittest.TestCase):
             "and a non-authority role before admission",
         )
 
+    def test_retired_legacy_types_cannot_reenter_the_ceiling_or_source(self) -> None:
+        profile = _load_profile()
+        observed = _top_level_classes(AGENT_SERVICE)
+        legacy_ceiling = set(
+            profile["legacyTypeCeilings"]["agentServiceTopLevelClasses"]
+        )
+        retired = set(profile["retiredLegacyTypes"])
+
+        self.assertIn("CapabilityAdvertisement", retired)
+        self.assertTrue(retired.isdisjoint(observed))
+        self.assertTrue(retired.isdisjoint(legacy_ceiling))
+
     def test_post_baseline_types_cannot_become_local_semantic_authority(self) -> None:
         profile = _load_profile()
         for entry in profile["approvedPostBaselineTypes"]:

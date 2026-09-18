@@ -118,20 +118,8 @@ class AgentIdentityStore:
         )
 
 
-@dataclass(frozen=True)
-class CapabilityAdvertisement:
-    id: str
-    revision_id: str
-    key: str
-    description: str
-    input_modes: tuple[str, ...]
-    output_modes: tuple[str, ...]
-    tags: tuple[str, ...]
-    created_at_ns: int
-
-
 class CapabilityAdvertisementStore:
-    """Immutable revision-scoped discovery metadata; never authorization state."""
+    """Migration store that exposes standard A2A AgentSkill objects, never a local capability type."""
 
     def __init__(self, connection: sqlite3.Connection) -> None:
         self._connection = connection
@@ -145,7 +133,7 @@ class CapabilityAdvertisementStore:
         input_modes: list[str],
         output_modes: list[str],
         tags: list[str],
-    ) -> CapabilityAdvertisement:
+    ) -> dict[str, Any]:
         if self._connection.execute(
             "SELECT 1 FROM agent_revisions WHERE id = ?", (revision_id,)
         ).fetchone() is None:
@@ -161,10 +149,10 @@ class CapabilityAdvertisementStore:
         candidate = (description.strip(), inputs, outputs, normalized_tags)
         if existing is not None:
             historical = (
-                existing.description,
-                existing.input_modes,
-                existing.output_modes,
-                existing.tags,
+                existing["description"],
+                tuple(existing["inputModes"]),
+                tuple(existing["outputModes"]),
+                tuple(existing["tags"]),
             )
             if historical != candidate:
                 raise ValueError("capability advertisement is immutable for one revision/key")
@@ -172,42 +160,34 @@ class CapabilityAdvertisementStore:
         identity_material = _canonical_json(
             {
                 "revisionId": revision_id,
-                "key": key.strip(),
+                "id": key.strip(),
+                "name": key.strip(),
                 "description": candidate[0],
                 "inputModes": inputs,
                 "outputModes": outputs,
                 "tags": normalized_tags,
             }
         )
-        value = CapabilityAdvertisement(
-            id="cap_" + hashlib.sha256(identity_material.encode("utf-8")).hexdigest(),
-            revision_id=revision_id,
-            key=key.strip(),
-            description=candidate[0],
-            input_modes=inputs,
-            output_modes=outputs,
-            tags=normalized_tags,
-            created_at_ns=_now_ns(),
-        )
+        storage_id = "cap_" + hashlib.sha256(identity_material.encode("utf-8")).hexdigest()
         with self._connection:
             self._connection.execute(
                 "INSERT INTO capability_advertisements(id, revision_id, capability_key, description, input_modes_json, output_modes_json, tags_json, created_at_ns) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 (
-                    value.id,
-                    value.revision_id,
-                    value.key,
-                    value.description,
-                    _canonical_json(list(value.input_modes)),
-                    _canonical_json(list(value.output_modes)),
-                    _canonical_json(list(value.tags)),
-                    value.created_at_ns,
+                    storage_id,
+                    revision_id,
+                    key.strip(),
+                    candidate[0],
+                    _canonical_json(list(inputs)),
+                    _canonical_json(list(outputs)),
+                    _canonical_json(list(normalized_tags)),
+                    _now_ns(),
                 ),
             )
-        return value
+        return self.get_by_key(revision_id, key.strip())
 
     def get_by_key(
         self, revision_id: str, key: str, required: bool = True
-    ) -> CapabilityAdvertisement | None:
+    ) -> dict[str, Any] | None:
         row = self._connection.execute(
             "SELECT * FROM capability_advertisements WHERE revision_id = ? AND capability_key = ?",
             (revision_id, key),
@@ -218,7 +198,7 @@ class CapabilityAdvertisementStore:
             return None
         return self._from_row(row)
 
-    def list_for_revision(self, revision_id: str) -> list[CapabilityAdvertisement]:
+    def list_for_revision(self, revision_id: str) -> list[dict[str, Any]]:
         rows = self._connection.execute(
             "SELECT * FROM capability_advertisements WHERE revision_id = ? ORDER BY capability_key, id",
             (revision_id,),
@@ -226,17 +206,16 @@ class CapabilityAdvertisementStore:
         return [self._from_row(row) for row in rows]
 
     @staticmethod
-    def _from_row(row: sqlite3.Row) -> CapabilityAdvertisement:
-        return CapabilityAdvertisement(
-            id=row["id"],
-            revision_id=row["revision_id"],
-            key=row["capability_key"],
-            description=row["description"],
-            input_modes=tuple(json.loads(row["input_modes_json"])),
-            output_modes=tuple(json.loads(row["output_modes_json"])),
-            tags=tuple(json.loads(row["tags_json"])),
-            created_at_ns=row["created_at_ns"],
-        )
+    def _from_row(row: sqlite3.Row) -> dict[str, Any]:
+        key = row["capability_key"]
+        return {
+            "id": key,
+            "name": key,
+            "description": row["description"],
+            "tags": list(json.loads(row["tags_json"])),
+            "inputModes": list(json.loads(row["input_modes_json"])),
+            "outputModes": list(json.loads(row["output_modes_json"])),
+        }
 
 
 @dataclass(frozen=True)
@@ -638,7 +617,19 @@ class DelegationEnvelopeStore:
 
 
 class A2AAgentCardProjector:
-    """Pure discovery projection. It never exports Instance, Session, credential, or policy state."""
+    """Pure A2A 1.0 Agent Card projection; never a second discovery authority."""
+
+    _PROTOCOL_BINDING_ALIASES = {
+        "a2a-jsonrpc": "JSONRPC",
+        "jsonrpc": "JSONRPC",
+        "grpc": "GRPC",
+        "http+json": "HTTP+JSON",
+        "rest": "HTTP+JSON",
+    }
+    _MEDIA_TYPE_ALIASES = {
+        "text": "text/plain",
+        "json": "application/json",
+    }
 
     def __init__(
         self,
@@ -650,6 +641,16 @@ class A2AAgentCardProjector:
         self._identities = identities
         self._capabilities = capabilities
 
+    @classmethod
+    def _protocol_binding(cls, value: str) -> str:
+        normalized = value.strip()
+        return cls._PROTOCOL_BINDING_ALIASES.get(normalized.lower(), normalized)
+
+    @classmethod
+    def _media_type(cls, value: str) -> str:
+        normalized = value.strip()
+        return cls._MEDIA_TYPE_ALIASES.get(normalized.lower(), normalized)
+
     def project(
         self,
         *,
@@ -659,7 +660,7 @@ class A2AAgentCardProjector:
     ) -> dict[str, Any]:
         identity = self._identities.get(identity_id)
         revision = self._connection.execute(
-            "SELECT definition_id FROM agent_revisions WHERE id = ?", (revision_id,)
+            "SELECT definition_id, spec_json FROM agent_revisions WHERE id = ?", (revision_id,)
         ).fetchone()
         if revision is None:
             raise KeyError(revision_id)
@@ -667,36 +668,70 @@ class A2AAgentCardProjector:
             raise ValueError("Agent Card revision does not belong to identity")
         if not isinstance(interfaces, list) or not interfaces:
             raise ValueError("Agent Card requires at least one supported interface")
+
         normalized_interfaces: list[dict[str, str]] = []
         for interface in interfaces:
             if not isinstance(interface, dict):
                 raise ValueError("interface must be an object")
             url = interface.get("url")
-            transport = interface.get("transport")
-            if not isinstance(url, str) or not url.strip() or not isinstance(transport, str) or not transport.strip():
-                raise ValueError("interface requires non-empty url and transport")
-            normalized_interfaces.append({"url": url.strip(), "transport": transport.strip()})
+            binding = interface.get("protocolBinding", interface.get("transport"))
+            protocol_version = interface.get("protocolVersion", "1.0")
+            if (
+                not isinstance(url, str)
+                or not url.strip()
+                or not isinstance(binding, str)
+                or not binding.strip()
+                or not isinstance(protocol_version, str)
+                or not protocol_version.strip()
+            ):
+                raise ValueError(
+                    "interface requires non-empty url, protocolBinding, and protocolVersion"
+                )
+            normalized_interfaces.append(
+                {
+                    "url": url.strip(),
+                    "protocolBinding": self._protocol_binding(binding),
+                    "protocolVersion": protocol_version.strip(),
+                }
+            )
+
         capabilities = self._capabilities.list_for_revision(revision_id)
-        input_modes = sorted({mode for capability in capabilities for mode in capability.input_modes})
-        output_modes = sorted({mode for capability in capabilities for mode in capability.output_modes})
+        input_modes = sorted(
+            {
+                self._media_type(mode)
+                for capability in capabilities
+                for mode in capability["inputModes"]
+            }
+        )
+        output_modes = sorted(
+            {
+                self._media_type(mode)
+                for capability in capabilities
+                for mode in capability["outputModes"]
+            }
+        )
+        revision_spec = json.loads(revision["spec_json"])
+        agent_version = revision_spec.get("version")
+        if not isinstance(agent_version, str) or not agent_version.strip():
+            agent_version = revision_id
+
         return {
-            "protocolVersion": "1.0.0",
             "name": identity.stable_name,
             "description": identity.description,
-            "url": normalized_interfaces[0]["url"],
-            "preferredTransport": normalized_interfaces[0]["transport"],
             "supportedInterfaces": normalized_interfaces,
+            "version": agent_version.strip(),
             "capabilities": {},
             "defaultInputModes": input_modes,
             "defaultOutputModes": output_modes,
             "skills": [
                 {
-                    "id": capability.key,
-                    "name": capability.key,
-                    "description": capability.description,
-                    "tags": list(capability.tags),
-                    "inputModes": list(capability.input_modes),
-                    "outputModes": list(capability.output_modes),
+                    **capability,
+                    "inputModes": [
+                        self._media_type(mode) for mode in capability["inputModes"]
+                    ],
+                    "outputModes": [
+                        self._media_type(mode) for mode in capability["outputModes"]
+                    ],
                 }
                 for capability in capabilities
             ],

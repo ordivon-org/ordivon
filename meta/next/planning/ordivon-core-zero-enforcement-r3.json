@@ -125,7 +125,6 @@
       "BoundCredentialHeaderProvider",
       "BrowserlessTurnEffectCoordinate",
       "BrowserlessTurnEffectLedgerReader",
-      "CapabilityAdvertisement",
       "CapabilityAdvertisementStore",
       "CarrierCommandError",
       "CarrierProfileError",
@@ -293,5 +292,8 @@
     "execution_terminal != semantic_complete",
     "process_exit_zero != claim_proven",
     "profile != runtime_authority"
+  ],
+  "retiredLegacyTypes": [
+    "CapabilityAdvertisement"
   ]
 }
