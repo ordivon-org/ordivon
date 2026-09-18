@@ -62,14 +62,20 @@
       "stepId": "step/terminate-wsl"
     },
     {
-      "candidateNodeIds": [],
-      "candidateProviderIds": [],
+      "candidateNodeIds": [
+        "windows-local"
+      ],
+      "candidateProviderIds": [
+        "provider/windows-local/windows-wsl-observer-v1"
+      ],
       "dispatchStarted": false,
-      "disposition": "unresolved",
-      "reasonCode": "reason/no-capable-provider",
+      "disposition": "resolved",
+      "reasonCode": "reason/workflow-binding-resolved",
       "requestedCapabilityId": "capability/wsl/verify-offline",
       "resourceId": "distro/archlinux",
       "schemaVersion": 1,
+      "selectedNodeId": "windows-local",
+      "selectedProviderId": "provider/windows-local/windows-wsl-observer-v1",
       "stepId": "step/confirm-distro-offline"
     },
     {

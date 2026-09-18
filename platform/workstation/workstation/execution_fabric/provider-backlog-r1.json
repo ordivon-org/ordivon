@@ -56,15 +56,16 @@
         "capability/wsl/terminate",
         "capability/wsl/verify-offline"
       ],
-      "implementedCapabilities": [],
-      "missingCapabilities": [
+      "implementedCapabilities": [
         "capability/wsl/probe",
-        "capability/wsl/terminate",
         "capability/wsl/verify-offline"
+      ],
+      "missingCapabilities": [
+        "capability/wsl/terminate"
       ],
       "providerFamilyId": "provider-family/windows-wsl",
       "rationale": "Own WSL lifecycle from the Windows control domain; do not infer WSL lifecycle from generic Windows process execution.",
-      "status": "missing",
+      "status": "partial",
       "targetNodeId": "windows-local"
     },
     {

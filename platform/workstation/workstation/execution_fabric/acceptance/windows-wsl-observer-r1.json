@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.execution-fabric.provider-acceptance",
+  "providerId": "provider/windows-local/windows-wsl-observer-v1",
+  "status": "live_read_accepted",
+  "sourceSha256": "sha256:9dd981102d49e0968c778143004442dc5bd0f5939208ffda73eb8457ae4a9c01",
+  "materializedPath": "C:\\ProgramData\\Ordivon\\ExecutionFabric\\WindowsWslProvider\\9dd981102d49e0968c778143004442dc5bd0f5939208ffda73eb8457ae4a9c01\\WindowsWslProvider.ps1",
+  "capabilities": [
+    "capability/wsl/probe",
+    "capability/wsl/verify-offline"
+  ],
+  "acceptance": {
+    "probe": {
+      "jobId": "job-01a0b410-95b8-7160-8e2d-a81e58e08b75",
+      "attemptId": "attempt-01a0b410-95b8-7160-8e2d-a826925b92e9",
+      "executionTarget": "windows_native",
+      "distro": "archlinux",
+      "exists": true,
+      "running": true,
+      "verified": true,
+      "mutationAttempted": false
+    },
+    "verifyOfflineWhileRunning": {
+      "jobId": "job-01a0b410-a1c6-76b0-af08-58f58d5c706d",
+      "attemptId": "attempt-01a0b410-a1c6-76b0-af08-5905247a0f90",
+      "executionTarget": "windows_native",
+      "distro": "archlinux",
+      "exists": true,
+      "running": true,
+      "verified": false,
+      "mutationAttempted": false
+    }
+  },
+  "nativeControlPlaneClaimed": false,
+  "notes": "The provider executes as a native Windows process but the current authoritative Runtime control plane remains linux-local."
+}
