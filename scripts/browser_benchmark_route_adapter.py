@@ -373,6 +373,71 @@ def build_run_request(
     return request
 
 
+def _finalize_run_result(value: dict[str, Any]) -> dict[str, Any]:
+    result = dict(value)
+    result["resultDigest"] = router.canonical_digest(result)
+    return result
+
+
+def validate_run_result(
+    raw: Mapping[str, Any],
+    *,
+    expected_run_id: str | None = None,
+    expected_request_digest: str | None = None,
+    expected_case_digest: str | None = None,
+    expected_route_id: str | None = None,
+) -> dict[str, Any]:
+    if (
+        raw.get("schemaVersion") != 1
+        or raw.get("kind") != "ordivon.browser-benchmark-route-run-result"
+    ):
+        raise ValueError("route run result identity mismatch")
+    run_id = raw.get("runId")
+    if not isinstance(run_id, str) or not RUN_ID.fullmatch(run_id):
+        raise ValueError("route run result has invalid runId")
+    for key in ("requestDigest", "caseDigest", "routePlanDigest", "routeId", "adapterReceiptDigest"):
+        value = raw.get(key)
+        if not isinstance(value, str) or not value:
+            raise ValueError(f"route run result has invalid {key}")
+    if expected_run_id is not None and run_id != expected_run_id:
+        raise ValueError("route run result runId differs")
+    if expected_request_digest is not None and raw["requestDigest"] != expected_request_digest:
+        raise ValueError("route run result requestDigest differs")
+    if expected_case_digest is not None and raw["caseDigest"] != expected_case_digest:
+        raise ValueError("route run result caseDigest differs")
+    if expected_route_id is not None and raw["routeId"] != expected_route_id:
+        raise ValueError("route run result routeId differs")
+    standing = raw.get("standing")
+    if standing not in {"PRE_EFFECT_ABORTED", "EXECUTED"}:
+        raise ValueError("route run result standing is invalid")
+    provider_effect = raw.get("providerEffectMayHaveOccurred")
+    if type(provider_effect) is not bool:
+        raise ValueError("route run result providerEffectMayHaveOccurred is invalid")
+    adapter_receipt = raw.get("adapterReceipt")
+    if not isinstance(adapter_receipt, dict):
+        raise ValueError("route run result adapterReceipt is invalid")
+    if router.canonical_digest(adapter_receipt) != raw["adapterReceiptDigest"]:
+        raise ValueError("route run result adapterReceiptDigest differs")
+    benchmark_receipt = raw.get("benchmarkReceipt")
+    if standing == "PRE_EFFECT_ABORTED":
+        if provider_effect or benchmark_receipt is not None:
+            raise ValueError("PRE_EFFECT_ABORTED route result has effect/benchmark receipt")
+    else:
+        if not isinstance(benchmark_receipt, dict):
+            raise ValueError("EXECUTED route result requires benchmarkReceipt")
+        benchmark.validate_receipt(benchmark_receipt)
+        if benchmark_receipt.get("standing") != "EXECUTED":
+            raise ValueError("route run benchmarkReceipt is not EXECUTED")
+        for key in ("caseDigest", "routePlanDigest", "routeId"):
+            if benchmark_receipt.get(key) != raw.get(key):
+                raise ValueError(f"route run benchmarkReceipt differs: {key}")
+    expected = dict(raw)
+    claimed = expected.pop("resultDigest", None)
+    if claimed != router.canonical_digest(expected):
+        raise ValueError("route run result digest mismatch")
+    return dict(raw)
+
+
 def run_request(
     raw: Mapping[str, Any],
     *,
@@ -397,20 +462,22 @@ def run_request(
     if standing == "PRE_EFFECT_ABORTED":
         if provider_effect:
             raise ValueError("PRE_EFFECT_ABORTED cannot claim provider effect")
-        return {
-            "schemaVersion": 1,
-            "kind": "ordivon.browser-benchmark-route-run-result",
-            "runId": request["runId"],
-            "requestDigest": request["requestDigest"],
-            "standing": "PRE_EFFECT_ABORTED",
-            "caseDigest": case["caseDigest"],
-            "routePlanDigest": preflight["routePlanDigest"],
-            "routeId": route_id,
-            "providerEffectMayHaveOccurred": False,
-            "adapterReceiptDigest": adapter_digest,
-            "adapterReceipt": adapter_receipt,
-            "benchmarkReceipt": None,
-        }
+        return _finalize_run_result(
+            {
+                "schemaVersion": 1,
+                "kind": "ordivon.browser-benchmark-route-run-result",
+                "runId": request["runId"],
+                "requestDigest": request["requestDigest"],
+                "standing": "PRE_EFFECT_ABORTED",
+                "caseDigest": case["caseDigest"],
+                "routePlanDigest": preflight["routePlanDigest"],
+                "routeId": route_id,
+                "providerEffectMayHaveOccurred": False,
+                "adapterReceiptDigest": adapter_digest,
+                "adapterReceipt": adapter_receipt,
+                "benchmarkReceipt": None,
+            }
+        )
     if standing != "EXECUTION_OBSERVED":
         raise ValueError("route adapter standing is invalid")
     metrics = _metric_cells(adapter_result.get("metrics") or {})
@@ -430,20 +497,22 @@ def run_request(
         "outcomeWitness": witness,
     }
     final = benchmark.finalize_execution(preflight, observation)
-    return {
-        "schemaVersion": 1,
-        "kind": "ordivon.browser-benchmark-route-run-result",
-        "runId": request["runId"],
-        "requestDigest": request["requestDigest"],
-        "standing": "EXECUTED",
-        "caseDigest": case["caseDigest"],
-        "routePlanDigest": preflight["routePlanDigest"],
-        "routeId": route_id,
-        "providerEffectMayHaveOccurred": provider_effect,
-        "adapterReceiptDigest": adapter_digest,
-        "adapterReceipt": adapter_receipt,
-        "benchmarkReceipt": final,
-    }
+    return _finalize_run_result(
+        {
+            "schemaVersion": 1,
+            "kind": "ordivon.browser-benchmark-route-run-result",
+            "runId": request["runId"],
+            "requestDigest": request["requestDigest"],
+            "standing": "EXECUTED",
+            "caseDigest": case["caseDigest"],
+            "routePlanDigest": preflight["routePlanDigest"],
+            "routeId": route_id,
+            "providerEffectMayHaveOccurred": provider_effect,
+            "adapterReceiptDigest": adapter_digest,
+            "adapterReceipt": adapter_receipt,
+            "benchmarkReceipt": final,
+        }
+    )
 
 
 def main() -> int:

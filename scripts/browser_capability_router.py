@@ -327,17 +327,33 @@ def plan_route(
     if explicit is not None and explicit not in route_by_id:
         raise ValueError(f"unknown explicitRouteId: {explicit}")
 
-    for route in policy["routes"]:
-        if route["providerFlow"] != request["providerFlow"]:
-            continue
+    if explicit is not None:
+        exact = route_by_id[explicit]
+        candidate_routes = (
+            [exact] if exact["providerFlow"] == request["providerFlow"] else []
+        )
+    else:
+        candidate_routes = [
+            route
+            for route in policy["routes"]
+            if route["providerFlow"] == request["providerFlow"]
+        ]
+
+    for route in candidate_routes:
         provides = set(route["provides"])
         missing_features = sorted(required - provides)
         compatible = not missing_features
-        readiness = (
-            dict(overrides[route["routeId"]])
-            if route["routeId"] in overrides
-            else probe_route(route, required)
-        )
+        if not compatible:
+            readiness = {
+                "ready": False,
+                "standing": "NOT_PROBED_STATIC_INCOMPATIBLE",
+            }
+        else:
+            readiness = (
+                dict(overrides[route["routeId"]])
+                if route["routeId"] in overrides
+                else probe_route(route, required)
+            )
         ready = readiness.get("ready") is True
         rows.append(
             {

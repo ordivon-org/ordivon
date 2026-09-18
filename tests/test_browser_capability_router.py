@@ -83,6 +83,52 @@ class BrowserCapabilityRouterTests(unittest.TestCase):
         )
         self.assertEqual(len(value["candidates"]), 1)
 
+    def test_explicit_route_probes_only_the_exact_route(self):
+        policy = self.policy()
+        calls = []
+
+        def probe(route, required):
+            calls.append((route["routeId"], set(required)))
+            if route["routeId"] == "jev-fast-windows-v1":
+                raise AssertionError("sibling Jev route must not be probed")
+            return {"ready": True, "standing": "READY"}
+
+        with mock.patch.object(R, "probe_route", side_effect=probe):
+            value = R.plan_route(
+                self.req(explicitRouteId="browser-use-browserless-v1"),
+                policy=policy,
+            )
+        self.assertEqual(value["standing"], "SELECTED")
+        self.assertEqual(value["selectedRoute"]["routeId"], "browser-use-browserless-v1")
+        self.assertEqual(
+            calls,
+            [("browser-use-browserless-v1", set())],
+        )
+        self.assertEqual(
+            [row["routeId"] for row in value["candidates"]],
+            ["browser-use-browserless-v1"],
+        )
+
+    def test_static_incompatible_exact_route_is_not_readiness_probed(self):
+        with mock.patch.object(
+            R,
+            "probe_route",
+            side_effect=AssertionError("incompatible route must not be probed"),
+        ):
+            value = R.plan_route(
+                self.req(
+                    requiredFeatures=["tabs"],
+                    explicitRouteId="jev-fast-windows-v1",
+                ),
+                policy=self.policy(),
+            )
+        self.assertEqual(value["standing"], "HOLD_EXPLICIT_ROUTE_INCOMPATIBLE")
+        self.assertEqual(len(value["candidates"]), 1)
+        self.assertEqual(
+            value["candidates"][0]["readiness"]["standing"],
+            "NOT_PROBED_STATIC_INCOMPATIBLE",
+        )
+
     def test_explicit_route_never_silently_falls_back(self):
         value = R.plan_route(
             self.req(explicitRouteId="jev-fast-windows-v1"),

@@ -136,12 +136,21 @@ def _execution_proposal(
     windows_path_fn: Callable[[Path], str] = _default_windows_path,
 ) -> dict[str, Any]:
     route_id = case["routeId"]
+    route_request = _read_json(request_path)
+    run_id = route_request.get("runId")
+    route_request_digest = route_request.get("requestDigest")
+    if not isinstance(run_id, str) or not route_adapter.RUN_ID.fullmatch(run_id):
+        raise ValueError("route-run request has invalid runId")
+    if not isinstance(route_request_digest, str) or not route_request_digest.startswith("sha256:"):
+        raise ValueError("route-run request has invalid requestDigest")
     common = {
         "schemaVersion": 1,
         "kind": "ordivon.browser-benchmark-runtime-execution-proposal",
+        "runId": run_id,
         "caseId": case["caseId"],
         "caseDigest": case["caseDigest"],
         "routeId": route_id,
+        "routeRunRequestDigest": route_request_digest,
         "adapterScriptDigest": _sha256_file(ROUTE_ADAPTER),
         "requestFileDigest": _sha256_file(request_path),
         "requiredSecretEnvironment": _required_secret_environment(policy, case),

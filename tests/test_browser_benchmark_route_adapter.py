@@ -90,6 +90,14 @@ class BrowserBenchmarkRouteAdapterTests(unittest.TestCase):
             adapters={"jev-fast-windows-v1": fake},
         )
         self.assertEqual(result["standing"], "EXECUTED")
+        self.assertTrue(result["resultDigest"].startswith("sha256:"))
+        A.validate_run_result(
+            result,
+            expected_run_id="run:test:1",
+            expected_request_digest=request["requestDigest"],
+            expected_case_digest=request["case"]["caseDigest"],
+            expected_route_id="jev-fast-windows-v1",
+        )
         receipt = result["benchmarkReceipt"]
         self.assertEqual(receipt["standing"], "EXECUTED")
         self.assertEqual(receipt["outcomeWitness"]["standing"], "PASS")
@@ -116,8 +124,37 @@ class BrowserBenchmarkRouteAdapterTests(unittest.TestCase):
             adapters={"jev-fast-windows-v1": fake},
         )
         self.assertEqual(result["standing"], "PRE_EFFECT_ABORTED")
+        self.assertTrue(result["resultDigest"].startswith("sha256:"))
+        A.validate_run_result(
+            result,
+            expected_run_id="run:test:1",
+            expected_request_digest=request["requestDigest"],
+            expected_case_digest=request["case"]["caseDigest"],
+            expected_route_id="jev-fast-windows-v1",
+        )
         self.assertIsNone(result["benchmarkReceipt"])
         self.assertFalse(result["providerEffectMayHaveOccurred"])
+
+    def test_route_result_identity_drift_fails_closed(self) -> None:
+        request = self.run_request("jev-fast-windows-v1")
+
+        def fake(_case, _run_id):
+            return {
+                "standing": "PRE_EFFECT_ABORTED",
+                "providerEffectMayHaveOccurred": False,
+                "adapterReceipt": {"kind": "fake", "standing": "NO_EFFECT"},
+                "metrics": {},
+                "outcomeWitness": {"standing": "UNVERIFIED", "checks": []},
+            }
+
+        result = A.run_request(request, adapters={"jev-fast-windows-v1": fake})
+        changed = dict(result)
+        changed["routeId"] = "browser-use-browserless-v1"
+        with self.assertRaisesRegex(ValueError, "routeId differs"):
+            A.validate_run_result(
+                changed,
+                expected_route_id="jev-fast-windows-v1",
+            )
 
     def test_jev_adapter_maps_explicit_provider_witness(self) -> None:
         case = self.cases["jev-fast-windows-v1"]

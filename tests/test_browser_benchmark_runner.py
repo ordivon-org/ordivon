@@ -58,6 +58,8 @@ class BrowserBenchmarkRunnerTests(unittest.TestCase):
             proposal = result["executionProposal"]
             self.assertEqual(result["standing"], "READY_FOR_RUNTIME")
             self.assertEqual(proposal["executionTarget"], "local_linux")
+            self.assertEqual(proposal["runId"], "run:bu:1")
+            self.assertTrue(proposal["routeRunRequestDigest"].startswith("sha256:"))
             self.assertEqual(proposal["executable"], "/usr/bin/python3")
             self.assertEqual(proposal["requiredSecretEnvironment"], [])
             self.assertIn("browser_benchmark_route_adapter.py", proposal["args"][0])
@@ -90,6 +92,8 @@ class BrowserBenchmarkRunnerTests(unittest.TestCase):
             )
         proposal = result["executionProposal"]
         self.assertEqual(proposal["executionTarget"], "windows_native")
+        self.assertEqual(proposal["runId"], "run:jev:proposal")
+        self.assertTrue(proposal["routeRunRequestDigest"].startswith("sha256:"))
         self.assertEqual(proposal["windowsAuthority"], "limited")
         self.assertEqual(
             proposal["requiredSecretEnvironment"],

@@ -1,5 +1,7 @@
 # Changelog
 
+- added Browser Capability Router S4 Runtime handoff and reconciliation: S3 proposals now bind runId and route-run request identity, route results carry resultDigest, local Linux admission templates use Runtime hostDependencies for adapter/request continuity, Windows explicitly reports its weaker proposal-only UNC continuity, Runtime process success is kept separate from route execution and semantic PASS, and explicit route requests isolate readiness to the exact route after static eligibility checks instead of probing sibling routes. Current live routes remain PREEXEC_BLOCKED and no benchmark Runtime admission is emitted.
+
 - added Browser Capability Router S3 route runners and Runtime proposal handoff: S2 task identity now binds exact executable fixture semantics, Jev admits only bounded data:text/html fixtures, Browser Use executes an exact structured affordance program, readiness races fail as PRE_EFFECT_ABORTED before effects, Windows Jev execution is proposed for windows_native through the pinned Workstation Python and WSL UNC source path, and secret values never enter benchmark proposals.
 
 - added Browser Capability Router S2 benchmark contract: benchmark variants bind explicit route IDs, preflight produces READY/PREEXEC_BLOCKED receipts without browser effects, execution observations must bind case/plan/route/outcome identity before EXECUTED finalization, missing metrics remain NOT_OBSERVED, and adapter completion cannot imply semantic PASS.
