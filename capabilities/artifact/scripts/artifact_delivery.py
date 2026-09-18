@@ -51,6 +51,14 @@ from artifact_capabilities.presentation import (
 )
 import artifact_capabilities.presentation.common as presentation_common
 import artifact_capabilities.presentation.ppt_master as presentation_ppt_master
+from artifact_verifiers.presentation import (
+    PresentationGateHooks,
+    inspect_pptx as presentation_inspect_pptx,
+    presentation_gate as presentation_verification_gate,
+    verify_font_manifest as presentation_verify_fonts,
+    verify_openxml_evidence as presentation_verify_openxml_evidence,
+    verify_presentation_semantics as presentation_verify_semantics,
+)
 from artifact_verification import (
     VerificationStageHooks,
     execute_verify_stage as verification_execute_stage,
@@ -415,8 +423,8 @@ def validate_json_document(document_path: Path, schema_path: Path, expected_kind
 def _presentation_build_hooks() -> PresentationBuildHooks:
     return PresentationBuildHooks(
         validate_json_document=validate_json_document,
-        inspect_pptx=inspect_pptx,
-        verify_semantics=verify_presentation_semantics,
+        inspect_pptx=presentation_inspect_pptx,
+        verify_semantics=presentation_verify_semantics,
         normalize_python_pptx=normalize_zip_member_timestamps,
         canonicalize_ppt_master=canonicalize_generated_ooxml_metadata,
     )
@@ -1097,194 +1105,18 @@ def _resolve_relationship_target(base: str, target: str) -> str | None:
 
 
 def inspect_pptx(path: Path, placeholder_patterns: Iterable[str] = ()) -> dict[str, Any]:
-    artifact = file_fact(path)
-    failures: list[str] = []
-    warnings: list[str] = []
-    unresolved_relationships: list[dict[str, str]] = []
-    font_names: set[str] = set()
-    render_explicit_font_names: set[str] = set()
-    placeholder_hits: list[dict[str, str]] = []
-    slide_count = 0
-    hidden_slides = 0
-    slide_size: dict[str, int] | None = None
+    return presentation_inspect_pptx(path, placeholder_patterns)
 
-    if not zipfile.is_zipfile(path):
-        return {"status": "FAIL", "artifact": artifact, "failures": ["not a ZIP/OPC package"]}
-
-    with zipfile.ZipFile(path) as package:
-        names = set(package.namelist())
-        unsafe = _safe_zip_names(names)
-        if unsafe:
-            failures.append(f"unsafe package paths: {unsafe[:5]}")
-        required = {
-            "[Content_Types].xml",
-            "_rels/.rels",
-            "ppt/presentation.xml",
-            "ppt/_rels/presentation.xml.rels",
-        }
-        missing = sorted(required - names)
-        if missing:
-            failures.append("missing required OPC/PPTX parts: " + ", ".join(missing))
-
-        for rels_name in sorted(n for n in names if n.endswith(".rels")):
-            try:
-                root = ET.fromstring(package.read(rels_name))
-            except Exception as error:
-                failures.append(f"invalid relationships XML {rels_name}: {error}")
-                continue
-            base = _relationship_base(rels_name)
-            for rel in root.findall(f"{{{OOXML_REL_NS}}}Relationship"):
-                if rel.attrib.get("TargetMode") == "External":
-                    continue
-                target = rel.attrib.get("Target", "")
-                resolved = _resolve_relationship_target(base, target)
-                if resolved is None:
-                    warnings.append(f"unresolved non-file relationship target in {rels_name}: {target}")
-                    continue
-                if resolved not in names:
-                    unresolved_relationships.append({"rels": rels_name, "target": target, "resolved": resolved})
-        if unresolved_relationships:
-            failures.append(f"{len(unresolved_relationships)} internal relationship target(s) are missing")
-
-        if "ppt/presentation.xml" in names:
-            try:
-                root = ET.fromstring(package.read("ppt/presentation.xml"))
-                ids = root.findall(f".//{{{PRESENTATION_NS}}}sldId")
-                slide_count = len(ids)
-                size_node = root.find(f".//{{{PRESENTATION_NS}}}sldSz")
-                if size_node is not None:
-                    try:
-                        cx = int(size_node.attrib.get("cx", "0"))
-                        cy = int(size_node.attrib.get("cy", "0"))
-                        if cx > 0 and cy > 0:
-                            slide_size = {"cx": cx, "cy": cy}
-                    except (TypeError, ValueError):
-                        pass
-            except Exception as error:
-                failures.append(f"invalid ppt/presentation.xml: {error}")
-
-        patterns = [re.compile(p, re.IGNORECASE) for p in placeholder_patterns]
-        render_xml_names = sorted(
-            n
-            for n in names
-            if re.fullmatch(r"ppt/slides/slide\d+\.xml", n)
-            or re.fullmatch(r"ppt/slideLayouts/slideLayout\d+\.xml", n)
-            or re.fullmatch(r"ppt/slideMasters/slideMaster\d+\.xml", n)
-        )
-        for xml_name in render_xml_names:
-            try:
-                root = ET.fromstring(package.read(xml_name))
-            except Exception as error:
-                failures.append(f"invalid render-relevant XML {xml_name}: {error}")
-                continue
-            is_slide = bool(re.fullmatch(r"ppt/slides/slide\d+\.xml", xml_name))
-            if is_slide and root.attrib.get("show") in {"0", "false", "False"}:
-                hidden_slides += 1
-            if is_slide:
-                texts = [node.text or "" for node in root.findall(f".//{{{DRAWING_NS}}}t")]
-                joined = "\n".join(texts)
-                for pattern in patterns:
-                    match = pattern.search(joined)
-                    if match:
-                        placeholder_hits.append({"slide": xml_name, "pattern": pattern.pattern, "match": match.group(0)})
-            for node in root.iter():
-                typeface = node.attrib.get("typeface")
-                if typeface and not typeface.startswith("+"):
-                    font_names.add(typeface)
-                    render_explicit_font_names.add(typeface)
-
-        for xml_name in sorted(n for n in names if n.startswith("ppt/theme/") and n.endswith(".xml")):
-            try:
-                root = ET.fromstring(package.read(xml_name))
-            except Exception:
-                continue
-            for node in root.iter():
-                typeface = node.attrib.get("typeface")
-                if typeface and not typeface.startswith("+"):
-                    font_names.add(typeface)
-
-    if slide_count <= 0:
-        failures.append("presentation has no slides")
-    if placeholder_hits:
-        failures.append(f"placeholder text found in {len(placeholder_hits)} slide occurrence(s)")
-    return {
-        "status": "PASS" if not failures else "FAIL",
-        "artifact": artifact,
-        "package": {
-            "kind": "OOXML/OPC PPTX",
-            "slideCount": slide_count,
-            "hiddenSlideCount": hidden_slides,
-            "slideSizeEmu": slide_size,
-            "aspectRatio": (round(slide_size["cx"] / slide_size["cy"], 8) if slide_size else None),
-            "referencedTypefaceNames": sorted(font_names),
-            "renderExplicitTypefaceNames": sorted(render_explicit_font_names),
-            "unresolvedRelationships": unresolved_relationships,
-            "placeholderHits": placeholder_hits,
-        },
-        "scope": {
-            "packageChecks": "performed",
-            "OOXMLSchemaValidation": "NOT_RUN",
-            "note": "Package/relationship/XML checks do not replace an ISO/IEC 29500 schema validator such as Open XML SDK validation.",
-        },
-        "warnings": warnings,
-        "failures": failures,
-    }
 
 
 def verify_openxml_evidence(evidence_path: Path, artifact: Path) -> dict[str, Any]:
-    value = load_json(evidence_path)
-    failures: list[str] = []
-    expected_digest = sha256_file(artifact)
-    if value.get("artifact", {}).get("sha256") != expected_digest:
-        failures.append("Open XML validation evidence artifact digest mismatch")
-    validator = value.get("validator", {})
-    if validator.get("implementation") != "DocumentFormat.OpenXml":
-        failures.append("Open XML validation evidence did not use DocumentFormat.OpenXml")
-    if validator.get("api") != "OpenXmlValidator":
-        failures.append("Open XML validation evidence did not use OpenXmlValidator")
-    if not validator.get("packageVersion"):
-        failures.append("Open XML validation evidence omitted package version")
-    if value.get("status") != "PASS":
-        failures.append("Open XML validator did not PASS")
-    if int(value.get("validationErrorCount", -1)) != 0:
-        failures.append("Open XML validator reported validation errors")
-    return {
-        "status": "PASS" if not failures else "FAIL",
-        "evidencePath": str(evidence_path.resolve()),
-        "validator": validator,
-        "failures": failures,
-    }
+    return presentation_verify_openxml_evidence(evidence_path, artifact)
+
 
 
 def verify_presentation_semantics(profile: dict[str, Any], pptx_result: dict[str, Any]) -> dict[str, Any]:
-    failures: list[str] = []
-    package = pptx_result.get("package", {})
-    slide_count = int(package.get("slideCount", 0))
-    policy = profile.get("semanticPolicy", {})
-    minimum = policy.get("minimumSlideCount")
-    maximum = policy.get("maximumSlideCount")
-    if isinstance(minimum, int) and slide_count < minimum:
-        failures.append(f"slide count {slide_count} is below minimum {minimum}")
-    if isinstance(maximum, int) and slide_count > maximum:
-        failures.append(f"slide count {slide_count} exceeds maximum {maximum}")
-    declared_aspect = profile.get("aspectRatio")
-    observed = package.get("aspectRatio")
-    target_ratios = {"16:9": 16 / 9, "4:3": 4 / 3}
-    if declared_aspect in target_ratios:
-        if not isinstance(observed, (int, float)):
-            failures.append("presentation slide size/aspect ratio is unavailable")
-        elif abs(float(observed) - target_ratios[declared_aspect]) > 0.002:
-            failures.append(f"presentation aspect ratio {observed:.6f} does not satisfy profile {declared_aspect}")
-    return {
-        "status": "PASS" if not failures else "FAIL",
-        "slideCount": slide_count,
-        "minimumSlideCount": minimum,
-        "maximumSlideCount": maximum,
-        "declaredAspectRatio": declared_aspect,
-        "observedAspectRatio": observed,
-        "slideSizeEmu": package.get("slideSizeEmu"),
-        "failures": failures,
-    }
+    return presentation_verify_semantics(profile, pptx_result)
+
 
 
 def verify_font_manifest(
@@ -1292,47 +1124,8 @@ def verify_font_manifest(
     font_dir: Path,
     observed_typefaces: Iterable[str] = (),
 ) -> dict[str, Any]:
-    results: list[dict[str, Any]] = []
-    failures: list[str] = []
-    declared = {str(font.get("family", "")).casefold(): str(font.get("family", "")) for font in profile.get("fonts", [])}
-    observed = sorted({str(name) for name in observed_typefaces if str(name)})
-    undeclared = [name for name in observed if name.casefold() not in declared]
-    for name in undeclared:
-        failures.append(f"artifact render graph directly references undeclared typeface: {name}")
-    for font in profile.get("fonts", []):
-        family = str(font.get("family", ""))
-        required = bool(font.get("required"))
-        files: list[dict[str, Any]] = []
-        for filename in font.get("targetFiles", []):
-            path = font_dir / str(filename)
-            present = path.is_file() and not path.is_symlink()
-            fact = {
-                "name": str(filename),
-                "path": str(path),
-                "present": present,
-                "sha256": sha256_file(path) if present else None,
-            }
-            files.append(fact)
-            if required and not present:
-                failures.append(f"required font file missing for {family}: {filename}")
-        if required and not font.get("targetFiles"):
-            failures.append(f"required font {family} has no targetFiles binding")
-        results.append(
-            {
-                "family": family,
-                "required": required,
-                "embeddingPermission": font.get("embeddingPermission"),
-                "files": files,
-            }
-        )
-    return {
-        "status": "PASS" if not failures else "FAIL",
-        "fontDirectory": str(font_dir),
-        "observedRenderExplicitTypefaces": observed,
-        "undeclaredObservedTypefaces": undeclared,
-        "fonts": results,
-        "failures": failures,
-    }
+    return presentation_verify_fonts(profile, font_dir, observed_typefaces)
+
 
 
 def verify_pdf(path: Path) -> dict[str, Any]:
@@ -1623,8 +1416,8 @@ def _verification_stage_hooks() -> VerificationStageHooks:
         validate_delivery_request=validate_delivery_request,
         verify_document_semantic_correspondence=verify_document_semantic_correspondence,
         verify_document_dependencies=verify_document_dependencies,
-        inspect_pptx=inspect_pptx,
-        verify_presentation_semantics=verify_presentation_semantics,
+        inspect_pptx=presentation_inspect_pptx,
+        verify_presentation_semantics=presentation_verify_semantics,
         verify_pdf=verify_pdf,
         verify_pdf_conformance=verify_pdf_conformance,
         verify_html_conformance=verify_html_conformance,
@@ -1688,100 +1481,16 @@ def _require_uri(value: str, field: str) -> str:
 
 
 def presentation_gate(
-    profile_path: Path,
-    pptx: Path,
-    pdf: Path | None,
-    render_dir: Path | None,
-    openxml_evidence: Path | None,
-    target_evidence: Path | None,
-    visual_evidence: Path | None,
-    delivery_evidence: Iterable[Path],
-    font_dir: Path,
+    profile_path: Path, pptx: Path, pdf: Path | None, render_dir: Path | None,
+    openxml_evidence: Path | None, target_evidence: Path | None,
+    visual_evidence: Path | None, delivery_evidence: Iterable[Path], font_dir: Path,
 ) -> dict[str, Any]:
-    profile_result = validate_profile(profile_path)
-    profile = profile_result["profile"]
-    gates = profile.get("gates", {})
-    placeholders = profile.get("semanticPolicy", {}).get("placeholderPatterns", [])
-    pptx_result = inspect_pptx(pptx, placeholders)
-    slide_count = int(pptx_result.get("package", {}).get("slideCount", 0))
-    if openxml_evidence is None:
-        openxml_result = {"status": "NOT_RUN", "reason": "no DocumentFormat.OpenXml validation evidence supplied"}
-    else:
-        openxml_result = verify_openxml_evidence(openxml_evidence, pptx)
-    if pptx_result.get("status") != "PASS":
-        structural_status = "FAIL"
-    elif openxml_result.get("status") != "PASS":
-        structural_status = openxml_result.get("status", "FAIL")
-    else:
-        structural_status = "PASS"
-    semantic_result = verify_presentation_semantics(profile, pptx_result)
-    font_result = verify_font_manifest(
-        profile,
-        font_dir,
-        pptx_result.get("package", {}).get("renderExplicitTypefaceNames", []),
+    return presentation_verification_gate(
+        profile_path, pptx, pdf, render_dir, openxml_evidence, target_evidence,
+        visual_evidence, delivery_evidence, font_dir,
+        hooks=PresentationGateHooks(verify_pdf=verify_pdf),
     )
-    pdf_result: dict[str, Any]
-    if pdf is None:
-        pdf_result = {"status": "NOT_RUN", "reason": "no companion PDF supplied"}
-    else:
-        pdf_result = verify_pdf(pdf)
-    render_result: dict[str, Any]
-    if render_dir is None:
-        render_result = {"status": "NOT_RUN", "reason": "no rendered PNG directory supplied"}
-    else:
-        render_result = verify_render_evidence(render_dir, slide_count)
-    target_result: dict[str, Any]
-    if target_evidence is None:
-        target_result = {"status": "NOT_RUN", "reason": "no target PowerPoint evidence supplied"}
-    else:
-        target_result = verify_target_evidence(target_evidence, pptx, pdf, slide_count, render_result)
-    visual_result: dict[str, Any]
-    if visual_evidence is None:
-        visual_result = {"status": "NOT_RUN", "reason": "no digest-bound visual review evidence supplied"}
-    elif render_result.get("status") != "PASS":
-        visual_result = {"status": "FAIL", "reason": "render evidence integrity failed before visual review"}
-    else:
-        visual_result = verify_visual_review(visual_evidence, pptx, render_result)
-    delivery_paths = list(delivery_evidence)
-    if not delivery_paths:
-        delivery_result = {"status": "NOT_RUN", "reason": "no destination read-back evidence supplied"}
-    else:
-        delivery_result = verify_delivery_evidence(delivery_paths, profile, pptx, pdf)
 
-    component = {
-        "profileSchema": profile_result["status"],
-        "structural": structural_status,
-        "dependency": font_result["status"],
-        "semantic": semantic_result["status"],
-        "companionPdf": pdf_result["status"],
-        "visual": visual_result["status"],
-        "target": target_result["status"],
-        "deliveryReadback": delivery_result["status"],
-    }
-    required_failures = [
-        name
-        for name, required in gates.items()
-        if required and (name not in component or component[name] != "PASS")
-    ]
-    return {
-        "status": "PASS" if not required_failures else "FAIL",
-        "profileId": profile.get("id"),
-        "artifact": file_fact(pptx),
-        "requiredGateFailures": required_failures,
-        "components": {
-            "profile": profile_result,
-            "pptx": pptx_result,
-            "openXmlValidation": openxml_result,
-            "semantic": semantic_result,
-            "fonts": font_result,
-            "pdf": pdf_result,
-            "renders": render_result,
-            "visualReview": visual_result,
-            "target": target_result,
-            "deliveryReadback": delivery_result,
-        },
-        "truthBoundary": "PASS requires every profile-required gate represented here, including target PowerPoint evidence, visual review, and destination read-back. External delivery adapters still own the actual write/read effects.",
-    }
 
 
 def write_json(path: Path, value: Any) -> None:
