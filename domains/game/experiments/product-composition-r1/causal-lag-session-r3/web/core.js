@@ -12,6 +12,26 @@ export const SESSION_RULES=Object.freeze({
   ]),
 });
 
+function validateSessionRules(design,rules){
+  if(!rules||!Array.isArray(rules.contextChain)||rules.contextChain.length===0){
+    throw new Error('sessionRules require a non-empty contextChain');
+  }
+  if(rules.roundCount!==rules.contextChain.length){
+    throw new Error('sessionRules roundCount must equal contextChain length');
+  }
+  if(!(Number(rules.targetTotal)>0))throw new Error('sessionRules targetTotal must be positive');
+  validateArchitecture(design,rules.initialArchitecture);
+  for(const [index,chain] of rules.contextChain.entries()){
+    if(!Number.isInteger(chain.sourceCycleIndex)||!design.cycles[chain.sourceCycleIndex]){
+      throw new Error(`sessionRules sourceCycleIndex invalid at round ${index+1}`);
+    }
+    if(!Number.isInteger(chain.executionCycleIndex)||!design.cycles[chain.executionCycleIndex]){
+      throw new Error(`sessionRules executionCycleIndex invalid at round ${index+1}`);
+    }
+  }
+  return rules;
+}
+
 function priorEntries(cycle){
   return Object.entries(cycle.causePrior).map(([cause,p])=>[cause,Number(p)]);
 }
@@ -40,7 +60,7 @@ function sampleExecutionCause(run,roundIndex){
     validateCause(run.design,scripted);
     return scripted;
   }
-  const chain=SESSION_RULES.contextChain[roundIndex];
+  const chain=run.sessionRules.contextChain[roundIndex];
   const sourceCycle=run.design.cycles[chain.sourceCycleIndex];
   const persistence=REGIMES[run.hiddenRegime].persistence;
   if(run.random()<persistence)return run.latentCause;
@@ -53,8 +73,8 @@ function observation(diagnostic,cause){
 }
 
 function startRound(run){
-  if(run.roundIndex>=SESSION_RULES.roundCount)throw new Error('session has no remaining round');
-  const chain=SESSION_RULES.contextChain[run.roundIndex];
+  if(run.roundIndex>=run.sessionRules.roundCount)throw new Error('session has no remaining round');
+  const chain=run.sessionRules.contextChain[run.roundIndex];
   const executionCause=sampleExecutionCause(run,run.roundIndex);
   run.current={
     round:run.roundIndex+1,
@@ -70,15 +90,27 @@ function startRound(run){
   };
 }
 
+function maxBaseReward(design,executionCycleIndex){
+  const cycle=design.cycles[executionCycleIndex];
+  let best=-Infinity;
+  for(const byArchitecture of Object.values(cycle.rewardByCauseAndArchitecture)){
+    for(const value of Object.values(byArchitecture))best=Math.max(best,Number(value));
+  }
+  if(!Number.isFinite(best))throw new Error('execution cycle has no finite reward');
+  return best;
+}
+
 function maxRecoverableTotal(run){
-  const remainingRounds=SESSION_RULES.roundCount-run.history.length;
-  return run.totalNet+remainingRounds*100;
+  let total=run.totalNet;
+  for(let i=run.history.length;i<run.sessionRules.roundCount;i++){
+    total+=maxBaseReward(run.design,run.sessionRules.contextChain[i].executionCycleIndex);
+  }
+  return total;
 }
 
 function updateSessionStanding(run){
-  const remainingRounds=SESSION_RULES.roundCount-run.history.length;
   const maxRecoverable=maxRecoverableTotal(run);
-  if(run.history.length===SESSION_RULES.roundCount){
+  if(run.history.length===run.sessionRules.roundCount){
     run.sessionStatus=run.totalNet>=run.targetTotal?'SUCCESS':'FAILURE';
     run.contractStatus=run.sessionStatus==='SUCCESS'?'ACHIEVED':'FAILED_UNRECOVERABLE';
     return;
@@ -99,13 +131,17 @@ export function createSessionRun(
     initialCause=null,
     initialArchitecture=SESSION_RULES.initialArchitecture,
     transitionScript=null,
-    targetTotal=SESSION_RULES.targetTotal,
+    sessionRules=SESSION_RULES,
+    targetTotal=null,
     random=Math.random,
   }={},
 ){
   if(!REGIMES[regime])throw new Error(`unknown regime: ${regime}`);
+  const resolvedRules=validateSessionRules(design,sessionRules);
+  const resolvedTarget=targetTotal??resolvedRules.targetTotal;
+  if(!(Number(resolvedTarget)>0))throw new Error('targetTotal must be positive');
   validateArchitecture(design,initialArchitecture);
-  const cycle0=design.cycles[SESSION_RULES.contextChain[0].sourceCycleIndex];
+  const cycle0=design.cycles[resolvedRules.contextChain[0].sourceCycleIndex];
   const cause=initialCause??sampleCause(cycle0,random);
   validateCause(design,cause);
   const run={
@@ -113,7 +149,8 @@ export function createSessionRun(
     hiddenRegime:regime,
     transitionScript,
     random,
-    targetTotal,
+    sessionRules:resolvedRules,
+    targetTotal:Number(resolvedTarget),
     roundIndex:0,
     currentArchitecture:initialArchitecture,
     latentCause:cause,
@@ -201,7 +238,7 @@ export function nextRound(run){
   if(run.sessionStatus!=='ACTIVE')throw new Error('session is terminal');
   if(!run.current||run.current.phase!=='resolved')throw new Error('resolve current round before advancing');
   run.roundIndex+=1;
-  if(run.roundIndex>=SESSION_RULES.roundCount)throw new Error('session is terminal');
+  if(run.roundIndex>=run.sessionRules.roundCount)throw new Error('session is terminal');
   startRound(run);
   return publicView(run);
 }

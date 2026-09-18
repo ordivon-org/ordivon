@@ -1,0 +1,428 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.causal-lag-content-r4-mechanical-acceptance",
+  "designId": "pc01-causal-works-f0",
+  "designDigest": "sha256:19a258b457f4bbdeaf1e97a24c01bd9b800f0e50a4e3ffebe857e75290e0ac7c",
+  "legoMethod": {
+    "methodSnapshot": {
+      "project": "ordivon-next",
+      "observedRevision": "4ec87fee31135995f096339b2598e0b925ca9729",
+      "authority": "ANALYSIS_METHOD_PROVENANCE_ONLY"
+    },
+    "questionCompiler": {
+      "target": "Expand Causal Lag beyond one fixed four-round path without adding unproven player verbs.",
+      "decision": "Prefer existing-mechanic composition if it produces mechanically distinct policies and composes through explicit seams.",
+      "survivingQuestions": [
+        "Do existing context transitions already alter optimal policies?",
+        "Can authored content units compose without owning reward/session authority?",
+        "Can the R3 session kernel accept compiled rules without a fork?",
+        "Does one representative arc retain reachable success and failure?",
+        "Which Human-value claims remain unresolved after mechanical breadth?"
+      ],
+      "handoff": "PLAN_THEN_BOUNDED_EXPERIMENT"
+    },
+    "ckDesign": {
+      "c0": "A broader Causal Lag game produced by recombining the existing kernel before adding new primitives.",
+      "selectedBranch": "context-transition recombination + authored semantic roles",
+      "deferredBranches": [
+        "diagnostic reliability variation",
+        "forecast degradation",
+        "new architecture families",
+        "new resource/economy layers",
+        "meta progression"
+      ],
+      "knowledgeGain": "The existing 3x3 transition space yields seven distinct optimal policy signatures over the tested state grid."
+    },
+    "compositionalContracts": {
+      "contentUnitAssumption": "source/execution context indices resolve to existing PC01 contexts and role is authored metadata only",
+      "contentUnitGuarantee": "one valid context transition with no reward/session authority",
+      "runRecipeAssumption": "adjacent execution/source contexts match and target is theoretically reachable",
+      "runRecipeGuarantee": "R3-compatible sessionRules",
+      "seamClosed": true
+    },
+    "feedbackControl": {
+      "regulatedOutcome": "session contract total relative to target",
+      "state": [
+        "latent cause",
+        "built architecture",
+        "round index",
+        "total net",
+        "resolved history"
+      ],
+      "observations": [
+        "current symptom",
+        "execution-context forecast",
+        "history",
+        "contract margin"
+      ],
+      "controller": "player policy",
+      "effects": [
+        "inspect",
+        "select architecture",
+        "commit"
+      ],
+      "disturbance": "hidden cause transition under run-level persistence regime",
+      "delay": "one context shift between commitment and execution",
+      "r4Change": "content varies the context path while preserving the control loop"
+    }
+  },
+  "compiledRecipe": {
+    "schemaVersion": 1,
+    "kind": "ordivon.game.causal-lag-content-r4-compiled-recipe",
+    "recipeId": "causal-lag-breadth-arc-r4",
+    "unitCount": 7,
+    "units": [
+      {
+        "id": "intro-baseline-hold",
+        "role": "INTRODUCE",
+        "sourceCycleIndex": 0,
+        "executionCycleIndex": 0
+      },
+      {
+        "id": "practice-objective-shift",
+        "role": "PRACTICE",
+        "sourceCycleIndex": 0,
+        "executionCycleIndex": 1
+      },
+      {
+        "id": "vary-route-hold",
+        "role": "VARY",
+        "sourceCycleIndex": 1,
+        "executionCycleIndex": 1
+      },
+      {
+        "id": "combine-rule-revaluation",
+        "role": "COMBINE",
+        "sourceCycleIndex": 1,
+        "executionCycleIndex": 2
+      },
+      {
+        "id": "stress-revaluation-hold",
+        "role": "STRESS",
+        "sourceCycleIndex": 2,
+        "executionCycleIndex": 2
+      },
+      {
+        "id": "recontext-return-baseline",
+        "role": "RECONTEXTUALIZE",
+        "sourceCycleIndex": 2,
+        "executionCycleIndex": 0
+      },
+      {
+        "id": "conclude-objective-shift",
+        "role": "CONCLUDE",
+        "sourceCycleIndex": 0,
+        "executionCycleIndex": 1
+      }
+    ],
+    "maxTheoreticalBase": 700,
+    "sessionRules": {
+      "roundCount": 7,
+      "targetTotal": 560,
+      "initialArchitecture": "route",
+      "contextChain": [
+        {
+          "sourceCycleIndex": 0,
+          "executionCycleIndex": 0
+        },
+        {
+          "sourceCycleIndex": 0,
+          "executionCycleIndex": 1
+        },
+        {
+          "sourceCycleIndex": 1,
+          "executionCycleIndex": 1
+        },
+        {
+          "sourceCycleIndex": 1,
+          "executionCycleIndex": 2
+        },
+        {
+          "sourceCycleIndex": 2,
+          "executionCycleIndex": 2
+        },
+        {
+          "sourceCycleIndex": 2,
+          "executionCycleIndex": 0
+        },
+        {
+          "sourceCycleIndex": 0,
+          "executionCycleIndex": 1
+        }
+      ]
+    },
+    "productSelected": false,
+    "g0Entered": false,
+    "humanOutcomeEstablished": false,
+    "gameCoreChanged": false
+  },
+  "transitionAnalysis": {
+    "schemaVersion": 1,
+    "kind": "ordivon.game.causal-lag-content-r4-transition-analysis",
+    "transitionCount": 9,
+    "evaluatedStates": 81,
+    "distinctPolicySignatures": 7,
+    "transitionsWithMultiplePolicies": 9,
+    "transitions": [
+      {
+        "sourceCycleIndex": 0,
+        "executionCycleIndex": 0,
+        "distinctPolicySignatures": 3
+      },
+      {
+        "sourceCycleIndex": 0,
+        "executionCycleIndex": 1,
+        "distinctPolicySignatures": 2
+      },
+      {
+        "sourceCycleIndex": 0,
+        "executionCycleIndex": 2,
+        "distinctPolicySignatures": 3
+      },
+      {
+        "sourceCycleIndex": 1,
+        "executionCycleIndex": 0,
+        "distinctPolicySignatures": 3
+      },
+      {
+        "sourceCycleIndex": 1,
+        "executionCycleIndex": 1,
+        "distinctPolicySignatures": 3
+      },
+      {
+        "sourceCycleIndex": 1,
+        "executionCycleIndex": 2,
+        "distinctPolicySignatures": 4
+      },
+      {
+        "sourceCycleIndex": 2,
+        "executionCycleIndex": 0,
+        "distinctPolicySignatures": 2
+      },
+      {
+        "sourceCycleIndex": 2,
+        "executionCycleIndex": 1,
+        "distinctPolicySignatures": 3
+      },
+      {
+        "sourceCycleIndex": 2,
+        "executionCycleIndex": 2,
+        "distinctPolicySignatures": 2
+      }
+    ],
+    "newPlayerVerbsAdded": 0,
+    "humanOutcomeEstablished": false
+  },
+  "terminalWitnesses": {
+    "success": {
+      "schemaVersion": 1,
+      "kind": "ordivon.game.causal-lag-session-r3-state",
+      "sessionStatus": "SUCCESS",
+      "totalNet": 700,
+      "contract": {
+        "targetTotal": 560,
+        "remainingTarget": 0,
+        "maxRecoverableTotal": 700,
+        "status": "ACHIEVED"
+      },
+      "history": [
+        {
+          "round": 1,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "route",
+          "architecture": "route",
+          "diagnostic": "none",
+          "net": 100
+        },
+        {
+          "round": 2,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "route",
+          "architecture": "route",
+          "diagnostic": "none",
+          "net": 100
+        },
+        {
+          "round": 3,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "route",
+          "architecture": "route",
+          "diagnostic": "none",
+          "net": 100
+        },
+        {
+          "round": 4,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "route",
+          "architecture": "route",
+          "diagnostic": "none",
+          "net": 100
+        },
+        {
+          "round": 5,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "route",
+          "architecture": "route",
+          "diagnostic": "none",
+          "net": 100
+        },
+        {
+          "round": 6,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "route",
+          "architecture": "route",
+          "diagnostic": "none",
+          "net": 100
+        },
+        {
+          "round": 7,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "route",
+          "architecture": "route",
+          "diagnostic": "none",
+          "net": 100
+        }
+      ],
+      "current": {
+        "round": 7,
+        "phase": "resolved",
+        "previousArchitecture": "route",
+        "currentContext": {
+          "id": "cycle-1-baseline-output",
+          "operatingContext": "balanced contract; first architecture is still cheap to revise",
+          "visibleSymptom": "primary output misses target while aggregate capacity still appears viable"
+        },
+        "executionForecast": {
+          "id": "cycle-2-objective-shift",
+          "operatingContext": "objective shifts toward route-sensitive delivery; yesterday's architecture is not deleted",
+          "visibleSymptom": "priority output misses the new contract while the previous architecture remains operational"
+        },
+        "inspection": null,
+        "selectedArchitecture": "route",
+        "resolution": {
+          "sourceCause": "route",
+          "executionCause": "route",
+          "architecture": "route",
+          "baseReward": 100,
+          "diagnosticCost": 0,
+          "switchCost": 0,
+          "net": 100
+        }
+      },
+      "productSelected": false,
+      "g0Entered": false,
+      "humanOutcomeEstablished": false,
+      "gameCoreChanged": false
+    },
+    "failure": {
+      "schemaVersion": 1,
+      "kind": "ordivon.game.causal-lag-session-r3-state",
+      "sessionStatus": "FAILURE",
+      "totalNet": 238,
+      "contract": {
+        "targetTotal": 560,
+        "remainingTarget": 322,
+        "maxRecoverableTotal": 538,
+        "status": "FAILED_UNRECOVERABLE"
+      },
+      "history": [
+        {
+          "round": 1,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "route",
+          "architecture": "source",
+          "diagnostic": "none",
+          "net": 60
+        },
+        {
+          "round": 2,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "source",
+          "architecture": "source",
+          "diagnostic": "none",
+          "net": 55
+        },
+        {
+          "round": 3,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "source",
+          "architecture": "source",
+          "diagnostic": "none",
+          "net": 55
+        },
+        {
+          "round": 4,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "source",
+          "architecture": "source",
+          "diagnostic": "none",
+          "net": 68
+        }
+      ],
+      "current": {
+        "round": 4,
+        "phase": "resolved",
+        "previousArchitecture": "source",
+        "currentContext": {
+          "id": "cycle-2-objective-shift",
+          "operatingContext": "objective shifts toward route-sensitive delivery; yesterday's architecture is not deleted",
+          "visibleSymptom": "priority output misses the new contract while the previous architecture remains operational"
+        },
+        "executionForecast": {
+          "id": "cycle-3-rule-revaluation",
+          "operatingContext": "rule change raises the value of source resilience; scanning may no longer be worth its opportunity cost",
+          "visibleSymptom": "new operating rule makes input sufficiency the dominant uncertainty while the built system persists"
+        },
+        "inspection": null,
+        "selectedArchitecture": "source",
+        "resolution": {
+          "sourceCause": "route",
+          "executionCause": "route",
+          "architecture": "source",
+          "baseReward": 68,
+          "diagnosticCost": 0,
+          "switchCost": 0,
+          "net": 68
+        }
+      },
+      "productSelected": false,
+      "g0Entered": false,
+      "humanOutcomeEstablished": false,
+      "gameCoreChanged": false
+    }
+  },
+  "defaultR3Compatibility": {
+    "roundCount": 4,
+    "targetTotal": 320,
+    "firstSourceCycleIndex": 0,
+    "firstExecutionCycleIndex": 1
+  },
+  "pass": true,
+  "productSelected": false,
+  "g0Entered": false,
+  "humanOutcomeEstablished": false,
+  "gameCoreChanged": false,
+  "claimBoundary": "CONTENT_GRAMMAR_AND_POLICY_BREADTH_MECHANICS_ONLY_NO_HUMAN_VALUE_OR_PRODUCT_SELECTION_CLAIM"
+}

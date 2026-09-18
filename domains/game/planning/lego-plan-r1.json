@@ -114,6 +114,93 @@
       "acceptance": [
         "Human-response claims remain unobserved unless actual scoped evidence exists."
       ]
+    },
+    {
+      "id": "G06",
+      "label": "StatefulSessionKernel",
+      "kind": "domain_state",
+      "responsibility": "Own the bounded Causal Lag run state machine: persistent architecture/cause, delayed execution, cumulative contract standing, and session termination while accepting validated session-rule inputs.",
+      "authority": "Causal Lag experiment/session owner",
+      "state": "VERIFIED",
+      "sharedRefs": [],
+      "evidence": [
+        "experiments/product-composition-r1/causal-lag-session-r3/README.md",
+        "experiments/product-composition-r1/causal-lag-session-r3/evidence/mechanical-acceptance-r3.json",
+        "test/game-causal-lag-content-r4.test.ts"
+      ],
+      "dependencies": [
+        "G03"
+      ],
+      "replacementContract": "A replacement must preserve the public state/transition semantics, default R3 four-round behavior, and fail-closed validation of supplied session rules.",
+      "mustNotOwn": [
+        "PC01 reward-table authorship",
+        "content-role meaning",
+        "Human learning or enjoyment truth"
+      ],
+      "acceptance": [
+        "Default R3 session remains four rounds with target 320.",
+        "A validated external sessionRules contract can substitute the context path without forking the session engine."
+      ]
+    },
+    {
+      "id": "G07",
+      "label": "ContentGrammarCompiler",
+      "kind": "creative_planning",
+      "responsibility": "Own thin Causal Lag content-unit and run-recipe composition over existing contexts, validating exact seams and compiling recipes into session rules.",
+      "authority": "Causal Lag content-design owner",
+      "state": "VERIFIED",
+      "sharedRefs": [],
+      "evidence": [
+        "experiments/product-composition-r1/causal-lag-content-r4/README.md",
+        "experiments/product-composition-r1/causal-lag-content-r4/content-grammar.js",
+        "test/game-causal-lag-content-r4.test.ts"
+      ],
+      "dependencies": [
+        "G04",
+        "G06"
+      ],
+      "replacementContract": "A replacement may change authoring representation but must preserve context-seam validation, target reachability checks, no reward/session authority, and R3-compatible compiled output.",
+      "mustNotOwn": [
+        "universal Game content ontology",
+        "PC01 rewards",
+        "diagnostic semantics",
+        "architecture semantics",
+        "Human difficulty labels"
+      ],
+      "acceptance": [
+        "Content units contain only authored role plus existing source/execution context identities.",
+        "Adjacent units fail closed unless the execution/source context seam discharges.",
+        "One seven-beat recipe compiles into the verified StatefulSessionKernel."
+      ]
+    },
+    {
+      "id": "G08",
+      "label": "BreadthVerifier",
+      "kind": "verifier",
+      "responsibility": "Mechanically distinguish meaningful existing-mechanic content variation from nominal reskins by enumerating policy effects and bounded terminal witnesses.",
+      "authority": "Game experiment/evidence owner",
+      "state": "VERIFIED",
+      "sharedRefs": [],
+      "evidence": [
+        "experiments/product-composition-r1/causal-lag-content-r4/evidence/mechanical-acceptance-r4.json",
+        "test/game-causal-lag-content-r4.test.ts"
+      ],
+      "dependencies": [
+        "G06",
+        "G07"
+      ],
+      "replacementContract": "A replacement must keep mechanical policy-diversity evidence separate from Human-value claims and retain explicit tested state-space bounds.",
+      "mustNotOwn": [
+        "Human fun",
+        "Human learning",
+        "product ranking",
+        "content-selection authority"
+      ],
+      "acceptance": [
+        "The tested 3x3 transition space reports exact evaluated-state and policy-signature counts.",
+        "The representative arc retains both reachable success and mathematically unrecoverable failure.",
+        "No Human or product authority is minted."
+      ]
     }
   ],
   "edges": [
@@ -140,13 +227,37 @@
       "to": "G05",
       "type": "EVIDENCE",
       "label": "player-facing claims require separate evidence"
+    },
+    {
+      "from": "G04",
+      "to": "G07",
+      "type": "CONTROL",
+      "label": "authored composition intent"
+    },
+    {
+      "from": "G07",
+      "to": "G06",
+      "type": "CONTROL",
+      "label": "validated compiled session rules"
+    },
+    {
+      "from": "G06",
+      "to": "G08",
+      "type": "EVIDENCE",
+      "label": "stateful session trajectories and terminal outcomes"
+    },
+    {
+      "from": "G08",
+      "to": "G04",
+      "type": "EVIDENCE",
+      "label": "bounded mechanical breadth findings"
     }
   ],
   "slices": [
     {
       "id": "GS1",
       "objective": "Use the mechanism/counterexample library to propose one bounded next product/mechanic experiment without promoting advisory patterns into design law.",
-      "status": "PROPOSED",
+      "status": "COMPLETE",
       "nodeIds": [
         "G02",
         "G03",
@@ -155,13 +266,39 @@
       "acceptance": [
         "Proposal cites source-grounded mechanisms, states falsifiers, and remains separate from product selection until evidence exists."
       ],
-      "evidence": [],
-      "blockers": [],
-      "nextAction": "Select one current design question and create the smallest playable falsifier."
+      "evidence": [
+        "docs/GAME_WHOLE_PRODUCT_RECOMPOSITION_R1_20260918.md",
+        "experiments/product-composition-r1/causal-lag-content-r4/evidence/mechanical-acceptance-r4.json"
+      ],
+      "blockers": []
+    },
+    {
+      "id": "GS2",
+      "objective": "Prove that Causal Lag can gain content breadth by composing existing context transitions into one stateful seven-beat arc without adding player verbs or duplicating the session kernel.",
+      "status": "COMPLETE",
+      "nodeIds": [
+        "G06",
+        "G07",
+        "G08"
+      ],
+      "acceptance": [
+        "Content-unit seams compose exactly and compile into R3-compatible session rules.",
+        "The existing 3x3 transition space yields multiple mechanically distinct policy signatures.",
+        "The seven-beat browser arc reaches both SUCCESS and unrecoverable FAILURE in deterministic witnesses.",
+        "Human/product/Game Core claims remain closed."
+      ],
+      "evidence": [
+        "experiments/product-composition-r1/causal-lag-content-r4/README.md",
+        "experiments/product-composition-r1/causal-lag-content-r4/evidence/mechanical-acceptance-r4.json",
+        "test/game-causal-lag-content-r4.test.ts"
+      ],
+      "blockers": []
     }
   ],
   "gaps": [
-    "No new product direction is currently admitted by the planning projection."
+    "R4 proves one seven-beat breadth arc but not a longer campaign/run topology or sustainable large-scale content production.",
+    "Pressure dimensions beyond context recombination remain deferred until existing breadth saturates or a concrete failure requires them.",
+    "Human comprehension, perceived difficulty, enjoyment, retention, and market value remain unobserved."
   ],
   "doNotOwn": [
     "generic game-engine ownership",
@@ -169,9 +306,9 @@
     "human enjoyment authority without evidence"
   ],
   "review": {
-    "sourceRevision": "ed88293c1c7e9a6c3c0c09692a301211c001a35f",
+    "sourceRevision": "2ba13d6e031da1ba9bbc0b8f87aefa4963143cba",
     "updatedAt": "2026-09-18",
-    "standing": "INITIAL",
-    "notes": "Initial project-native LEGO planning projection. It does not replace owner-native architecture or evidence."
+    "standing": "STABLE",
+    "notes": "Updated after the first prospective Game use of the current Ordivon LEGO theory stack. Only architecture-relevant responsibilities exposed by the verified R3/R4 implementation were added; theory lenses remain external analysis aids rather than project nodes."
   }
 }
