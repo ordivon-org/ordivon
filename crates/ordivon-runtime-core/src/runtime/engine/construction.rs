@@ -60,10 +60,7 @@ impl Runtime {
                     "inputAuthorities.root",
                 ));
             }
-            let root = OpenOptions::new()
-                .read(true)
-                .custom_flags(libc::O_DIRECTORY | libc::O_CLOEXEC | libc::O_NOFOLLOW)
-                .open(&authority.root)
+            let root = open_directory_nofollow(&authority.root)
                 .map_err(|error| io_error("open input authority root", error))?;
             let metadata = root
                 .metadata()

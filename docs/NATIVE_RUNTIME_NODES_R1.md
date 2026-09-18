@@ -147,6 +147,41 @@ Execution payload admission is now target-aware. `local_linux` retains Linux exe
 
 With cargo-xwin + LLVM 22 as a real MSVC compile gate, this slice reduced native-Windows Core compile errors from 71 to 53 while Linux Core 231/231 and MCP 55/55 remained green. The remaining failures are concentrated in Runtime private-state permissions and Universal Workspace Unix identity semantics.
 
+## R3e progress — Windows-compilable transactional Core closure
+
+The remaining 53 MSVC compile failures were one ownership cluster rather than 53 independent
+features: POSIX permission modes, UID/GID ownership, no-follow/open flags, Unix symlink metadata,
+Linux executable-bit observation, and Workspace inode/time race witnesses were still imported by
+shared modules.
+
+R3e moves those assumptions back behind their owning platform boundaries without inventing Windows
+equivalents:
+
+- input-authority root opening reuses the existing secure no-follow abstraction; non-Unix remains
+  fail-closed until a native implementation exists;
+- immutable-input and Attempt-bundle POSIX mode enforcement is isolated from shared request/state
+  semantics;
+- trusted-local temporary symlink presentation remains Unix-native and returns TOOL_UNAVAILABLE on
+  non-Unix rather than silently weakening its ownership/mode invariant;
+- Registry private-state POSIX permissions remain exact on Unix, while native Windows startup
+  deliberately fails closed until R5 supplies an ACL realization;
+- Workspace source-state inode/time identity and UID/GID transfer remain Unix-native; the non-Unix
+  paths expose an explicit unavailable boundary instead of substituting weaker pathname checks;
+- Linux provider executable-bit semantics stay Linux-owned.
+
+Acceptance on the integration candidate:
+
+- RUSTFLAGS=-D warnings cargo xwin check -p ordivon-runtime-core --lib --target
+  x86_64-pc-windows-msvc: PASS, **0 errors / 0 warnings**;
+- Linux Runtime Core fast regression: **231/231 PASS**, with only the known long-running Registry
+  reference-model property explicitly filtered;
+- Runtime MCP library: **60/60 PASS**;
+- Runtime MCP binary/auth tests: **8/8 PASS**;
+- cargo fmt --all -- --check and git diff --check: PASS.
+
+This closes the R3 compile boundary only. It does **not** claim R4 native Windows dispatch ownership,
+R5 Windows Registry/Workspace/Artifact ACL/state semantics, or R6 SCM service acceptance.
+
 ## R1 acceptance
 
 - `RuntimeCapabilities` includes node identity.

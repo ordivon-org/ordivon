@@ -429,11 +429,10 @@ impl Runtime {
         }
 
         let lease_path = materialization_root.join(format!(".{job_id}.lease"));
-        let lease = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .create_new(true)
-            .mode(0o600)
+        let mut lease_options = OpenOptions::new();
+        lease_options.read(true).write(true).create_new(true);
+        configure_private_create(&mut lease_options, 0o600);
+        let lease = lease_options
             .open(&lease_path)
             .map_err(|error| io_error("create input staging lease", error))?;
         if let Err(error) = lease.try_lock() {
@@ -450,8 +449,7 @@ impl Runtime {
         let result = (|| {
             fs::create_dir(&staging)
                 .map_err(|error| io_error("create input staging directory", error))?;
-            fs::set_permissions(&staging, fs::Permissions::from_mode(0o700))
-                .map_err(|error| io_error("protect input staging directory", error))?;
+            protect_posix_path(&staging, 0o700, "protect input staging directory")?;
             for (index, input) in inputs.iter().enumerate() {
                 let authority = self
                     .input_authorities
@@ -479,8 +477,7 @@ impl Runtime {
                         &format!("inputs[{index}].expectedDigest"),
                     ));
                 }
-                fs::set_permissions(&target, fs::Permissions::from_mode(0o444))
-                    .map_err(|error| io_error("protect materialized input", error))?;
+                protect_posix_path(&target, 0o444, "protect materialized input")?;
             }
             sync_directory(&staging)?;
             fs::rename(&staging, &prepared_root)
@@ -673,6 +670,7 @@ impl Runtime {
         false
     }
 
+    #[cfg(unix)]
     fn ensure_trusted_workspace_tmp_presentation(
         &self,
         workspace_id: &str,
@@ -804,6 +802,19 @@ impl Runtime {
             "trusted temporary presentation changed concurrently during creation",
             Some("workspaceId"),
             true,
+        ))
+    }
+
+    #[cfg(not(unix))]
+    fn ensure_trusted_workspace_tmp_presentation(
+        &self,
+        _workspace_id: &str,
+    ) -> RuntimeResult<PathBuf> {
+        Err(RuntimeError::new(
+            RuntimeErrorCode::ToolUnavailable,
+            "trusted-local temporary presentation requires a native platform implementation",
+            Some("workspaceId"),
+            false,
         ))
     }
 
@@ -1102,8 +1113,7 @@ impl Runtime {
             ));
             fs::create_dir(&staging).map_err(|error| io_error("create staging bundle", error))?;
             let publish = (|| {
-                fs::set_permissions(&staging, fs::Permissions::from_mode(0o700))
-                    .map_err(|error| io_error("protect staging bundle", error))?;
+                protect_posix_path(&staging, 0o700, "protect staging bundle")?;
                 write_bytes_synced(&staging.join(RUNNER_REQUEST_FILE), &request_bytes)?;
                 write_bytes_synced(&staging.join(PLAN_FILE), &plan_bytes)?;
                 write_bytes_synced(&staging.join(BUNDLE_MANIFEST_FILE), &manifest_bytes)?;

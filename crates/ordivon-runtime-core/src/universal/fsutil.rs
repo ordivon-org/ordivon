@@ -206,7 +206,7 @@ pub(crate) fn validate_args(args: &[String]) -> Result<(), UniversalExecError> {
     Ok(())
 }
 
-#[cfg(not(unix))]
+#[cfg(all(not(unix), test))]
 pub(crate) fn linux_exec_string_limit_bytes() -> Result<usize, UniversalExecError> {
     Err(UniversalExecError::new(
         UniversalExecErrorCode::ToolUnavailable,
@@ -216,7 +216,7 @@ pub(crate) fn linux_exec_string_limit_bytes() -> Result<usize, UniversalExecErro
     ))
 }
 
-#[cfg(not(unix))]
+#[cfg(all(not(unix), test))]
 pub(crate) fn linux_exec_payload_limit_bytes() -> Result<usize, UniversalExecError> {
     Err(UniversalExecError::new(
         UniversalExecErrorCode::ToolUnavailable,
@@ -226,7 +226,7 @@ pub(crate) fn linux_exec_payload_limit_bytes() -> Result<usize, UniversalExecErr
     ))
 }
 
-#[cfg(not(unix))]
+#[cfg(all(not(unix), test))]
 pub(crate) fn validate_args(args: &[String]) -> Result<(), UniversalExecError> {
     if args.iter().any(|arg| arg.as_bytes().contains(&0)) {
         return Err(invalid("args contains NUL", "args"));

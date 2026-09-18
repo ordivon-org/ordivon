@@ -5,6 +5,7 @@
 
 use std::collections::BTreeMap;
 use std::fs;
+#[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
@@ -25,6 +26,16 @@ use crate::universal::UniversalExecutorConfig;
 
 const SYSTEMCTL_OBSERVATION_TIMEOUT: Duration = Duration::from_secs(1);
 const OBSERVATION_COMMAND_POLL: Duration = Duration::from_millis(10);
+
+#[cfg(unix)]
+fn is_executable_file(metadata: &fs::Metadata) -> bool {
+    metadata.is_file() && metadata.permissions().mode() & 0o111 != 0
+}
+
+#[cfg(not(unix))]
+fn is_executable_file(_metadata: &fs::Metadata) -> bool {
+    false
+}
 
 pub(crate) fn validate_executable(
     config: &UniversalExecutorConfig,
@@ -54,7 +65,7 @@ pub(crate) fn validate_executable(
             false,
         )
     })?;
-    if !metadata.is_file() || metadata.permissions().mode() & 0o111 == 0 {
+    if !is_executable_file(&metadata) {
         return Err(RuntimeError::invalid(
             "executable must resolve to an executable file",
             field,
@@ -100,10 +111,7 @@ pub(crate) fn validate_executable(
 
 pub(crate) fn validate_runner(path: &Path) -> RuntimeResult<PathBuf> {
     let metadata = fs::symlink_metadata(path).map_err(|error| io_error("inspect Runner", error))?;
-    if metadata.file_type().is_symlink()
-        || !metadata.is_file()
-        || metadata.permissions().mode() & 0o111 == 0
-    {
+    if metadata.file_type().is_symlink() || !is_executable_file(&metadata) {
         return Err(RuntimeError::invalid(
             "Runner must be a non-symlink executable file",
             "runnerPath",

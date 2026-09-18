@@ -32,6 +32,7 @@ pub enum UniversalExecErrorCode {
 }
 
 impl UniversalExecErrorCode {
+    #[cfg(unix)]
     pub(crate) fn as_str(&self) -> &'static str {
         match self {
             Self::InvalidRequest => "INVALID_REQUEST",

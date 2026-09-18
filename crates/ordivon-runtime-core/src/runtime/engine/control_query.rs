@@ -879,10 +879,10 @@ fn open_authority_file(root_file: &File, relative: &str, index: usize) -> Runtim
 }
 
 fn copy_input_and_digest(mut source: File, target: &Path) -> RuntimeResult<String> {
-    let mut output = OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .mode(0o600)
+    let mut output_options = OpenOptions::new();
+    output_options.write(true).create_new(true);
+    configure_private_create(&mut output_options, 0o600);
+    let mut output = output_options
         .open(target)
         .map_err(|error| io_error("create materialized input", error))?;
     std::io::copy(&mut source, &mut output)
@@ -1108,10 +1108,7 @@ fn release_receipt_json(path: &Path) -> Result<Option<(serde_json::Value, String
     if metadata.len() > MAX_RUNTIME_RELEASE_RECEIPT_BYTES {
         return Err("RELEASE_RECEIPT_FILE_TOO_LARGE".to_string());
     }
-    let mut file = OpenOptions::new()
-        .read(true)
-        .custom_flags(libc::O_NOFOLLOW)
-        .open(path)
+    let mut file = open_regular_file_nofollow(path)
         .map_err(|_| "RELEASE_RECEIPT_OPEN_FAILED".to_string())?;
     let mut bytes = Vec::new();
     std::io::Read::by_ref(&mut file)
