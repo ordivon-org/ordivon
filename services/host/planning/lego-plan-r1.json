@@ -1,0 +1,183 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-host-v2",
+    "purpose": "Own durable external-continuity Tasks, checkpoints, Board collaboration, and exact re-entry navigation without becoming a scheduler, priority authority, Runtime proxy, or domain truth owner.",
+    "sourceEvidence": [
+      "README.md",
+      "docs/HOST_V2_R6_CLEANUP.md",
+      "docs/HOST_V2_R5_PRODUCTION_CUTOVER.md"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "O01",
+      "label": "TaskContinuity",
+      "kind": "state_authority",
+      "responsibility": "Persist exact Host Task revisions and semantic working checkpoints for external continuity.",
+      "authority": "Host",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [
+        "L12"
+      ],
+      "evidence": [
+        "README.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "domain completion",
+        "Runtime currentness"
+      ],
+      "acceptance": [
+        "Exact task.resume can re-enter one revision-fenced continuity point."
+      ]
+    },
+    {
+      "id": "O02",
+      "label": "Board",
+      "kind": "state_authority",
+      "responsibility": "Persist collaboration records and deterministic Task route anchors without creating priority or ownership.",
+      "authority": "Host",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "README.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "authenticated identity",
+        "task priority"
+      ],
+      "acceptance": [
+        "Board messages remain collaboration records only."
+      ]
+    },
+    {
+      "id": "O03",
+      "label": "AttentionDelta",
+      "kind": "projection",
+      "responsibility": "Project bounded Board-sequence deltas into exact Task re-entry navigation.",
+      "authority": "Host projection",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [
+        "L11"
+      ],
+      "evidence": [
+        "README.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "inbox/unread authority",
+        "work admission"
+      ],
+      "acceptance": [
+        "Delta consumer must still resume exact Task before acting."
+      ]
+    },
+    {
+      "id": "O04",
+      "label": "PostgresJournal",
+      "kind": "persistence",
+      "responsibility": "Own Host durable object/revision storage using PostgreSQL and canonical JSON semantics.",
+      "authority": "Host",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [
+        "L10"
+      ],
+      "evidence": [
+        "README.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "Runtime ledger"
+      ],
+      "acceptance": [
+        "Restart preserves Host revision identity and task/board continuity."
+      ]
+    },
+    {
+      "id": "O05",
+      "label": "CursorContract",
+      "kind": "continuity_contract",
+      "responsibility": "Generalize only the revision/cursor/history-gap pattern needed by future Agent Service consumers without turning Host into their state owner.",
+      "authority": "Host-facing compatibility seam",
+      "state": "DESIGNED",
+      "sharedRefs": [
+        "L11"
+      ],
+      "evidence": [],
+      "dependencies": [],
+      "mustNotOwn": [
+        "Agent Service Task semantics"
+      ],
+      "acceptance": [
+        "Consumer can request bounded changes and detect a history gap without full rescan or inferred currentness."
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "O04",
+      "to": "O01",
+      "type": "DEPENDENCY",
+      "label": "durable task revisions"
+    },
+    {
+      "from": "O04",
+      "to": "O02",
+      "type": "DEPENDENCY",
+      "label": "durable board sequence"
+    },
+    {
+      "from": "O02",
+      "to": "O03",
+      "type": "DATA",
+      "label": "board delta projection"
+    },
+    {
+      "from": "O01",
+      "to": "O03",
+      "type": "IDENTITY",
+      "label": "route delta to exact task revision"
+    }
+  ],
+  "slices": [
+    {
+      "id": "OS1",
+      "objective": "Pressure-test a small reusable revision/cursor/history-gap contract against task.resume and attention.delta without adding scheduler or priority semantics.",
+      "status": "PROPOSED",
+      "nodeIds": [
+        "O03",
+        "O05"
+      ],
+      "acceptance": [
+        "A consumer can incrementally reconcile changes and detect gaps while exact task.resume remains the semantic re-entry boundary."
+      ],
+      "evidence": [],
+      "blockers": [],
+      "nextAction": "Write contract tests first; add no new Host authority unless a consumer gap is demonstrated."
+    }
+  ],
+  "gaps": [
+    "Cross-consumer generic cursor semantics remain a candidate seam, not current Host authority."
+  ],
+  "doNotOwn": [
+    "priority",
+    "assignee",
+    "scheduler",
+    "Runtime proxy",
+    "domain truth"
+  ],
+  "review": {
+    "sourceRevision": "b5cf31f9a1d177576886fe545e870e685a80fc2e",
+    "updatedAt": "2026-09-18",
+    "standing": "INITIAL",
+    "notes": "Initial project-native LEGO planning projection. It does not replace owner-native architecture or evidence."
+  },
+  "sharedCatalog": {
+    "catalogId": "agent-architecture-lego-catalog-r1",
+    "note": "Optional shared coordinates only; project-native semantics remain authoritative."
+  }
+}
