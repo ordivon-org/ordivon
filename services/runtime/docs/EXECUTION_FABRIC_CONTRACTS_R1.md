@@ -76,3 +76,19 @@ Content-addressed proof reference with producer identity. It does not normalize 
 ## Compatibility rule
 
 Adding a descriptor to a node or provider does not authorize execution. Authority descriptors do not imply Runtime admission. Runtime execution remains governed by existing Job/Attempt contracts until a later explicitly accepted EF phase wires shadow/enforcement semantics into admission.
+
+
+## Provider execution locality versus resource-home locality
+
+ProviderDescriptor.nodeId names the node on which the Provider executes. It does not imply that
+the Provider may only control resources homed on that node.
+
+ProviderDescriptor.targetNodeIds is an explicit cross-node reachability declaration:
+
+- an empty set means local-node-only;
+- the Provider's own node is always reachable;
+- any additional resource-home node must be named explicitly;
+- resolver binding fails closed for unknown target nodes.
+
+This distinction is required for recovery paths such as a Windows control-edge Provider operating
+on Linux services inside WSL after the Linux Runtime control plane is unavailable.
