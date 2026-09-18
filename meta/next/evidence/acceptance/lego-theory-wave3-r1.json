@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "kind": "ordivon.lego-theory-wave3-initial-acceptance",
+  "kind": "ordivon.lego-theory-wave3-acceptance",
   "date": "2026-09-18",
-  "standing": "PRE_PROSPECTIVE_VALIDATION",
+  "standing": "PROSPECTIVELY_VALIDATED_WITH_CONDITIONAL_ALGORITHMIC_ADOPTION",
   "sourceRevision": "4dc1946b045db352f043e4d198a9a4a996e55d56",
   "lenses": [
     "lego-exploration-policy",
@@ -10,21 +10,40 @@
     "lego-evolutionary-search",
     "lego-organizational-cybernetics"
   ],
+  "prospectiveEvidence": "evidence/acceptance/lego-theory-wave3-prospective-r1.json",
+  "selfAudit": "knowledge/lessons/lego-wave23-self-audit-r1.md",
+  "lensStanding": {
+    "lego-exploration-policy": {
+      "standing": "PROSPECTIVELY_VALIDATED_SCOPE_GUARD",
+      "algorithmicAdoption": "CONDITIONAL_REPEATED_COMPARABLE_FEEDBACK_REQUIRED"
+    },
+    "lego-ck-design": {
+      "standing": "PROSPECTIVELY_VALIDATED_GENERATIVE_DESIGN_LENS"
+    },
+    "lego-evolutionary-search": {
+      "standing": "PROSPECTIVELY_VALIDATED_EVALUATOR_GUARD",
+      "algorithmicAdoption": "CONDITIONAL_TRUSTED_EVALUATOR_REQUIRED"
+    },
+    "lego-organizational-cybernetics": {
+      "standing": "PROSPECTIVELY_VALIDATED_ORGANIZATIONAL_BOUNDARY_LENS"
+    }
+  },
   "corePromotion": {
     "schemaChanged": false,
     "newMandatoryFields": []
   },
-  "acceptanceRequired": [
-    "all four Skill packages parse and are admitted by the project Skill source",
-    "existing LEGO plan schema remains unchanged",
-    "each lens receives a prospective case with a distinct system shape",
-    "search/creativity metrics remain separate from product/domain truth",
-    "organizational-cybernetics mappings remain diagnostic rather than mandatory topology"
-  ],
+  "routingGuard": {
+    "unknownObject": "lego-ck-design",
+    "knownRepeatedComparableChoices": "lego-exploration-policy",
+    "knownRepresentationAndTrustedEvaluatorPopulationSearch": "lego-evolutionary-search",
+    "organizationalCoordinationAndAdaptation": "lego-organizational-cybernetics",
+    "stackAllByDefault": false
+  },
   "nonClaims": [
     "Bandit reward does not define domain value.",
     "C-K concepts are not facts.",
     "Evolutionary fitness does not authorize production promotion.",
-    "The VSM five-function mapping is not treated as empirically universal."
+    "The VSM five-function mapping is not treated as empirically universal.",
+    "Prospective validation of a lens does not make it mandatory for every project."
   ]
 }

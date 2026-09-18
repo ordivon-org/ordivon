@@ -51,6 +51,17 @@ Do not run every lens automatically. Activate only when the system shape justifi
 - `lego-evolutionary-search`: large/discrete/non-differentiable candidate populations, variation/selection, diversity, lineage, or bounded search under independent evaluation.
 - `lego-organizational-cybernetics`: multi-agent/team autonomy, coordination, internal control, environment/future intelligence, policy/identity, recursion, or variety mismatch.
 
+### Wave 3 routing guard
+
+Do not stack the generative/search lenses by default.
+
+- Desired object/concept is not yet known: prefer `lego-ck-design`.
+- Known comparable options repeat under attributable feedback: consider `lego-exploration-policy`.
+- Candidate representation + evaluator are already meaningful and population variation is the task: consider `lego-evolutionary-search`.
+- Multi-agent/team autonomy, coordination, environment sensing or policy/identity is the task: use `lego-organizational-cybernetics`.
+
+Bandit/evolutionary algorithms are not admitted merely because a search space exists. Exploration policy requires repeated comparable feedback; evolutionary search requires a trustworthy evaluator.
+
 Lens outputs are derived analysis evidence. They alter the plan only through an explicit architecture decision supported by project-native evidence.
 
 Do not expand the project plan schema merely to mirror theory vocabulary.

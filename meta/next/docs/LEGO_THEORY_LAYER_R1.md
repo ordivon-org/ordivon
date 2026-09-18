@@ -295,4 +295,17 @@ Wave 3 adds four optional lenses for generative/adaptive work:
 - `lego-evolutionary-search`;
 - `lego-organizational-cybernetics`.
 
-They remain `PRE_PROSPECTIVE_VALIDATION`. None adds mandatory fields to the common LEGO schema. Search reward, design concepts, evolutionary fitness, and organizational-model coordinates remain derived evidence rather than project truth.
+Wave 3 has passed its first prospective validation with conditional algorithmic adoption. None adds mandatory fields to the common LEGO schema. Search reward, design concepts, evolutionary fitness, and organizational-model coordinates remain derived evidence rather than project truth.
+
+Standing:
+- `lego-exploration-policy` — PROSPECTIVELY_VALIDATED_SCOPE_GUARD; algorithmic adoption remains conditional on repeated comparable feedback;
+- `lego-ck-design` — PROSPECTIVELY_VALIDATED_GENERATIVE_DESIGN_LENS;
+- `lego-evolutionary-search` — PROSPECTIVELY_VALIDATED_EVALUATOR_GUARD; algorithmic adoption remains conditional on a trustworthy evaluator;
+- `lego-organizational-cybernetics` — PROSPECTIVELY_VALIDATED_ORGANIZATIONAL_BOUNDARY_LENS.
+
+Evidence:
+- `knowledge/lessons/lego-wave3-prospective-validation-r1.md`;
+- `evidence/acceptance/lego-theory-wave3-prospective-r1.json`;
+- `knowledge/lessons/lego-wave23-self-audit-r1.md`.
+
+Wave 3 routing is phase-specific: C-K expands unknown concepts, Exploration Policy allocates repeated trials among known comparable options, Evolutionary Search varies populations only after representation/evaluator validity exists, and Organizational Cybernetics diagnoses organizational control rather than candidate search.
