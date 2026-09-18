@@ -117,7 +117,9 @@
         "Runtime lifecycle"
       ],
       "acceptance": [
-        "A second harness implementation can run behind the same caller-facing contract."
+        "A second harness implementation can run behind the same caller-facing contract.",
+        "A replacement adapter must not require stronger caller/environment authority assumptions than the admitted HarnessRunContract and provider binding declare.",
+        "A replacement adapter must preserve required guarantees: admitted Tool surface cannot widen, UNKNOWN cannot become retry permission, Provider transport success cannot become semantic completion, and Runtime/Task authority cannot move into the adapter."
       ]
     }
   ],
@@ -157,11 +159,13 @@
         "H05"
       ],
       "acceptance": [
-        "Native/current harness and one alternate adapter satisfy the same prepared-run contract without schema changes in caller Task or Runtime."
+        "Native/current harness and one alternate adapter satisfy the same prepared-run contract without schema changes in caller Task or Runtime.",
+        "Assume-guarantee review shows every replacement assumption is already discharged by the existing Run/provider environment or is explicitly rejected.",
+        "Fault/ambiguity characterization shows the alternate adapter does not weaken no-blind-redispatch, Tool-authority, completion, or Runtime/Task ownership guarantees."
       ],
       "evidence": [],
       "blockers": [],
-      "nextAction": "Inventory current provider seams and implement the smallest adapter proof rather than a new harness."
+      "nextAction": "Freeze the H05 assume-guarantee obligations, then test one alternate adapter for both positive compatibility and negative substitutability before promoting the SPI."
     }
   ],
   "gaps": [
@@ -177,7 +181,7 @@
     "sourceRevision": "11c4aa9ef825dea871180e1376e39c779d5d13e9",
     "updatedAt": "2026-09-18",
     "standing": "INITIAL",
-    "notes": "Initial project-native LEGO planning projection. It does not replace owner-native architecture or evidence."
+    "notes": "Initial project-native LEGO planning projection. It does not replace owner-native architecture or evidence. Wave-2 compositional-contract review strengthened H05 substitutability: same API/run success is insufficient unless replacement assumptions are discharged and authority/effect guarantees are preserved."
   },
   "sharedCatalog": {
     "catalogId": "agent-architecture-lego-catalog-r1",
