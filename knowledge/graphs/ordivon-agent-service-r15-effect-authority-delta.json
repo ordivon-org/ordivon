@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.agent-service-architecture-delta",
+  "graphId": "ordivon-agent-service-r15-effect-authority-delta",
+  "baseGraph": "knowledge/graphs/ordivon-agent-service-r14-interface-credential-effect-delta.json",
+  "baseImplementationCommit": "67b9f61ede96afc20a575882797cf99cfab42d19",
+  "refinedPriorNodes": [
+    {
+      "nodeId": "N07",
+      "label": "SessionStore",
+      "refinement": "Session CLOSED remains a semantic continuity boundary: it blocks new SessionItems and new DelegationEnvelopes but is not itself an authorization revocation primitive for already-created delivery effect identities."
+    },
+    {
+      "nodeId": "N45",
+      "label": "PolicyDecisionStore",
+      "refinement": "R9 PolicyDecision remains the durable route-time policy snapshot. R15 does not reinterpret that historical decision as sufficient current authority for the first external delivery effect."
+    },
+    {
+      "nodeId": "N72",
+      "label": "TransferAwareDeliveryCoordinator",
+      "refinement": "R15 wraps the existing R12 transfer-aware delivery path with an effect-time authorization gate; quiescence, replay-safety, claim-transfer and same-binding recovery ownership remain unchanged."
+    }
+  ],
+  "discoveredNodes": [
+    {
+      "nodeId": "N87",
+      "label": "EffectAuthorizationDecisionStore",
+      "kind": "STATE_AUTHORITY",
+      "symbol": "agent_service.effect_authority.EffectAuthorizationDecisionStore",
+      "reason": "A current authorization observation must be durably frozen to one exact immutable TransportBinding/effect identity before the first external send attempt, separately from route-time policy."
+    },
+    {
+      "nodeId": "N88",
+      "label": "EffectAuthorizationCoordinator",
+      "kind": "POLICY_GATE",
+      "symbol": "agent_service.effect_authority.EffectAuthorizationCoordinator",
+      "reason": "The first external delivery effect requires a fresh PolicyAdapter observation and fail-closed behavior when no current policy authority is configured."
+    },
+    {
+      "nodeId": "N89",
+      "label": "EffectAuthorizedDeliveryCoordinator",
+      "kind": "RECONCILER",
+      "symbol": "agent_service.effect_authority.EffectAuthorizedDeliveryCoordinator",
+      "reason": "Existing receipts replay without inventing a new effect authorization, while a new external send is blocked until the exact Binding has an allowed effect authorization decision."
+    },
+    {
+      "nodeId": "N90",
+      "label": "AgentServiceR15",
+      "kind": "COMPOSITION_ROOT",
+      "symbol": "agent_service.effect_authority.AgentServiceR15",
+      "reason": "R15 adds effect-time current local policy authorization over the frozen R14 delivery identity without rewriting R9-R14 historical semantics."
+    }
+  ],
+  "flow": [
+    "R9 route-time PolicyDecision -> immutable TransportBinding",
+    "first R15 delivery attempt -> N88 current PolicyAdapter observation",
+    "N87 freeze allow/deny for exact binding/effect identity",
+    "deny or missing policy authority -> fail closed before provider send",
+    "allow -> N89 delegates to existing N72 TransferAwareDeliveryCoordinator",
+    "existing DeliveryReceipt -> local replay without a new provider effect or authorization event",
+    "same binding/effect recovery -> reuse frozen N87 decision",
+    "new/failover Binding -> new N87 effect authorization required"
+  ],
+  "authorityLaws": [
+    "SemanticSession is continuity state, not an authorization token or implicit revocation authority.",
+    "Closing a Session prevents new SessionItems and new DelegationEnvelopes but does not retroactively erase an already-created DelegationEnvelope, TransportBinding or frozen effect authorization decision.",
+    "Route-time PolicyDecision establishes historical route admissibility only; it is not sufficient current authority for the first external delivery effect.",
+    "Every new external delivery effect identity must obtain one current PolicyAdapter observation immediately before crossing the local provider-effect boundary.",
+    "Missing effect-time PolicyAdapter fails closed before adapter.send.",
+    "Allowed and denied effect authorization decisions are both durable and bound to exactly one TransportBinding.",
+    "A denied frozen effect identity is not silently re-evaluated into allow; a later newly authorized action requires a new effect identity/Binding.",
+    "Once an external effect identity has an allowed decision, recovery of that exact identity reuses the frozen decision rather than turning policy drift into a second logical effect.",
+    "An existing durable DeliveryReceipt is historical evidence of an already-observed provider admission and does not require a new authorization event merely to be replayed locally.",
+    "R15 does not weaken R12 quiescence/replay-safety/claim-transfer rules, R11 semantic-completion rules, or R14 credential currentness checks.",
+    "Remote providers remain responsible for their own authentication and authorization on each protocol operation; R15 is a local authority gate, not a substitute for provider authorization.",
+    "R15 does not claim that Session closure can never be an input to policy. A PolicyAdapter may deny current effect authorization based on Session or other revocation state; that decision belongs to the policy authority."
+  ],
+  "standardsBasis": [
+    {
+      "standard": "A2A Protocol current specification",
+      "source": "https://a2a-protocol.org/dev/specification/",
+      "use": "Authorization checks apply at protocol-operation boundaries; scope, validity and revocation semantics remain implementation/credential-issuer defined rather than being implied by task/session continuity."
+    },
+    {
+      "standard": "Model Context Protocol 2026-07-28",
+      "source": "https://blog.modelcontextprotocol.io/posts/2026-07-28/",
+      "use": "The protocol core is stateless and each request is self-describing, supporting the separation of Ordivon semantic continuity from transport authorization state."
+    }
+  ],
+  "nonClaims": [
+    "R15 does not define a universal revocation service.",
+    "R15 does not make provider effects exactly-once.",
+    "R15 does not retroactively cancel an effect that may already have crossed the provider boundary.",
+    "R15 does not equate Session CLOSED with policy denial.",
+    "R15 does not replace credential expiry/currentness checks or remote-provider authorization."
+  ]
+}
