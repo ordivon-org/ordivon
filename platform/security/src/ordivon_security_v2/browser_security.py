@@ -352,6 +352,61 @@ def build_browser_security_witness_bundle(
     return BrowserSecurityWitnessBundle(witness=witness, public_observations=tuple(public))
 
 
+def classify_browser_security_observation_validity(
+    observation: object,
+) -> dict[str, object]:
+    """Classify whether one public observation is usable for subject-drift comparison.
+
+    Collector-side external observer failures are represented inside the public observation rather
+    than by changing the witness schema. Security-v2 treats those failure sentinels as observation
+    validity, not as browser subject evidence.
+    """
+
+    issues: list[dict[str, str]] = []
+
+    def visit(value: object, path: str) -> None:
+        if isinstance(value, dict):
+            standing = value.get("standing")
+            if isinstance(standing, str):
+                normalized = standing.strip().upper()
+                if normalized == "UNAVAILABLE":
+                    issue = {
+                        "path": path,
+                        "standing": "OBSERVER_UNAVAILABLE",
+                        "sourceStanding": normalized,
+                    }
+                    detail = value.get("detail")
+                    if isinstance(detail, str) and detail.strip():
+                        issue["detail"] = detail.strip()
+                    issues.append(issue)
+                elif normalized in {"ERROR", "FAILED"}:
+                    issue = {
+                        "path": path,
+                        "standing": "DETECTOR_FAILED",
+                        "sourceStanding": normalized,
+                    }
+                    detail = value.get("detail")
+                    if isinstance(detail, str) and detail.strip():
+                        issue["detail"] = detail.strip()
+                    issues.append(issue)
+            for key, child in value.items():
+                visit(child, f"{path}.{key}")
+            return
+        if isinstance(value, list):
+            for index, child in enumerate(value):
+                visit(child, f"{path}[{index}]")
+
+    visit(observation, "$")
+    if not issues:
+        return {"standing": "VALID", "issues": []}
+    standing = (
+        "DETECTOR_FAILED"
+        if any(issue["standing"] == "DETECTOR_FAILED" for issue in issues)
+        else "OBSERVER_UNAVAILABLE"
+    )
+    return {"standing": standing, "issues": issues}
+
+
 def _changed_json_paths(left: object, right: object, path: str = "$") -> list[str]:
     if type(left) is not type(right):
         return [path]
@@ -381,10 +436,58 @@ def compare_browser_security_bundles(
     baseline_public = baseline.public_observation_map()
     candidate_public = candidate.public_observation_map()
     drift_ids = set(result["detectorDrift"])
+    invalid_ids: set[str] = set()
+    validity_rows: list[dict[str, object]] = []
+
+    detector_rows = {row["detectorId"]: row for row in result["detectors"]}
+    for detector_id in sorted(set(baseline_public) | set(candidate_public)):
+        row = detector_rows.get(detector_id)
+        family = row.get("family") if isinstance(row, dict) else None
+        before = (
+            classify_browser_security_observation_validity(baseline_public[detector_id])
+            if detector_id in baseline_public
+            else {"standing": "MISSING", "issues": []}
+        )
+        after = (
+            classify_browser_security_observation_validity(candidate_public[detector_id])
+            if detector_id in candidate_public
+            else {"standing": "MISSING", "issues": []}
+        )
+        validity_rows.append(
+            {
+                "detectorId": detector_id,
+                "family": family,
+                "baseline": before,
+                "candidate": after,
+            }
+        )
+        if before["standing"] != "VALID" or after["standing"] != "VALID":
+            invalid_ids.add(detector_id)
+            if isinstance(row, dict) and row.get("status") not in {
+                "ADDED",
+                "MISSING",
+                "DETECTOR_DRIFT",
+            }:
+                row["status"] = "OBSERVATION_INVALID"
+
+    valid_changed_families = {
+        row["family"]
+        for row in result["detectors"]
+        if row.get("status") == "CHANGED" and isinstance(row.get("family"), str)
+    }
+    result["changedFamilies"] = sorted(valid_changed_families)
+    result["repairRoutes"] = [
+        REPAIR_ROUTES[family] for family in sorted(valid_changed_families)
+    ]
+
     changes: list[dict[str, object]] = []
     for row in result["detectors"]:
         detector_id = row["detectorId"]
-        if row["status"] != "CHANGED" or detector_id in drift_ids:
+        if (
+            row["status"] != "CHANGED"
+            or detector_id in drift_ids
+            or detector_id in invalid_ids
+        ):
             continue
         changes.append(
             {
@@ -395,6 +498,9 @@ def compare_browser_security_bundles(
             }
         )
     result["publicObservationChanges"] = changes
+    result["observationValidity"] = validity_rows
+    result["invalidObservationDetectors"] = sorted(invalid_ids)
+    result["observationClassificationSuppressed"] = bool(invalid_ids)
     return result
 
 
@@ -408,6 +514,7 @@ def compare_browser_security_pool(
     family_changes: dict[str, set[str]] = {}
     infrastructure_changes: dict[str, set[str]] = {}
     detector_drift_carriers: list[str] = []
+    observation_invalid_carriers: dict[str, list[str]] = {}
     challenge_change_carriers: list[str] = []
 
     for carrier_id in sorted(carriers):
@@ -432,6 +539,9 @@ def compare_browser_security_pool(
         )
         if result["detectorDrift"] or detector_shape_drift:
             detector_drift_carriers.append(carrier_id)
+        invalid_observations = result.get("invalidObservationDetectors")
+        if isinstance(invalid_observations, list) and invalid_observations:
+            observation_invalid_carriers[carrier_id] = list(invalid_observations)
         if result["challengeStandingChanged"]:
             challenge_change_carriers.append(carrier_id)
 
@@ -442,6 +552,7 @@ def compare_browser_security_pool(
             "standing": "DETECTOR_DRIFT",
             "carrierIds": carrier_ids,
             "detectorDriftCarriers": detector_drift_carriers,
+            "observationInvalidCarriers": observation_invalid_carriers,
             "subjectClassificationSuppressed": True,
             "sharedChangedFamilies": [],
             "carrierLocalChangedFamilies": {},
@@ -450,6 +561,24 @@ def compare_browser_security_pool(
             "challengeStandingChangedCarriers": challenge_change_carriers,
             "perCarrier": comparisons,
             "repairRoutes": [],
+            "rootCauseEstablished": False,
+        }
+
+    if observation_invalid_carriers:
+        return {
+            "schemaVersion": 1,
+            "standing": "OBSERVATION_INVALID",
+            "carrierIds": carrier_ids,
+            "detectorDriftCarriers": [],
+            "observationInvalidCarriers": observation_invalid_carriers,
+            "subjectClassificationSuppressed": True,
+            "sharedChangedFamilies": [],
+            "carrierLocalChangedFamilies": {},
+            "sharedInfrastructureChanges": [],
+            "carrierLocalInfrastructureChanges": {},
+            "challengeStandingChangedCarriers": challenge_change_carriers,
+            "perCarrier": comparisons,
+            "repairRoutes": ["observation-validity"],
             "rootCauseEstablished": False,
         }
 
@@ -487,6 +616,7 @@ def compare_browser_security_pool(
         "standing": standing,
         "carrierIds": carrier_ids,
         "detectorDriftCarriers": [],
+        "observationInvalidCarriers": {},
         "subjectClassificationSuppressed": False,
         "sharedChangedFamilies": sorted(shared_families),
         "carrierLocalChangedFamilies": local_families,
