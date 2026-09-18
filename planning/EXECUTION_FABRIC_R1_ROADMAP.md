@@ -29,6 +29,20 @@ Candidate cuts, in preference order:
 
 Gate: current transactional Runtime fixtures must remain green.
 
+Current EF1 slice (2026-09-18):
+
+- engine physical dispatch now crosses a private `physical_provider` facade instead of calling Linux/Windows raw dispatch functions directly;
+- the facade is intentionally mechanical only and does not own provider selection, policy, workflow, retry, or generic effect semantics;
+- `ordivon-runtime-spi` contract tests: 5/5 PASS;
+- execution-fabric boundary test: 1/1 PASS;
+- Runtime Core fast regression: 231/231 PASS with the pre-existing long-running
+  `registry_reference_model_properties::request_identity_and_terminal_winner_match_reference_model`
+  property test explicitly filtered;
+- the unfiltered Core run reached that property test after all prior tests passed, then hit the
+  120-second execution Gate before that property test completed; this is recorded as
+  NOT-RUN-TO-COMPLETION, not as a full-suite PASS;
+- `cargo fmt --all -- --check`: PASS.
+
 ## EF2 — Observation model
 
 Project ResourceDescriptor, CapabilityDescriptor, ProviderDescriptor and NodeDescriptor from current real Runtime configuration. Observation is descriptive only.

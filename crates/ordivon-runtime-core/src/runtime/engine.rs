@@ -13,6 +13,7 @@ use super::evidence::prepare_runner_terminal_from_bundle;
 use super::patch::{
     durable_patch_request_digest, validate_durable_patch_request, validate_patch_status_request,
 };
+use super::physical_provider::{dispatch_linux, dispatch_windows_native, dispatch_windows_via_wsl};
 use super::platform::*;
 use super::registry::JobSnapshot;
 use super::supervisor::{
