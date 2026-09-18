@@ -1,5 +1,6 @@
 use std::fs;
 use std::net::SocketAddr;
+#[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -726,9 +727,7 @@ fn read_private_token_file_for(
     if !metadata.file_type().is_file() {
         return Err(format!("{label} path must be a regular file").into());
     }
-    if metadata.permissions().mode() & 0o077 != 0 {
-        return Err(format!("{label} file must not be accessible by group or others").into());
-    }
+    validate_private_token_file_permissions(&metadata, label)?;
     if metadata.len() > MAX_BEARER_TOKEN_FILE_BYTES {
         return Err(format!("{label} file exceeds the configured bound").into());
     }
@@ -738,6 +737,28 @@ fn read_private_token_file_for(
         return Err(format!("{label} file must contain one non-whitespace token").into());
     }
     Ok(token.to_owned())
+}
+
+#[cfg(unix)]
+fn validate_private_token_file_permissions(
+    metadata: &fs::Metadata,
+    label: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if metadata.permissions().mode() & 0o077 != 0 {
+        return Err(format!("{label} file must not be accessible by group or others").into());
+    }
+    Ok(())
+}
+
+#[cfg(not(unix))]
+fn validate_private_token_file_permissions(
+    _metadata: &fs::Metadata,
+    label: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    Err(format!(
+        "{label} native Windows ACL validation is not implemented; refusing bearer-token startup"
+    )
+    .into())
 }
 
 fn optional_env(name: &str) -> Result<Option<String>, Box<dyn std::error::Error>> {
