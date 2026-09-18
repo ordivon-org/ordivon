@@ -164,3 +164,26 @@ Recorded case:
 This case exercises kernel extraction, primitive decomposition, typed relations, metaphor separation, missing-node discovery, failure probing, recomposition, Ordivon transfer, and falsification hooks.
 
 It introduces only promotion candidates, not new mandatory core fields. Repeated cross-domain evidence is required before any candidate is promoted into the shared LEGO kernel.
+
+
+## Active experimental lens: Regime Shift & Deep-Uncertainty Decision
+
+Canonical references:
+- docs/LEGO_REGIME_SHIFT_DECISION_R1.md
+- .agents/skills/lego-regime-shift/SKILL.md
+- evidence/acceptance/lego-regime-shift-lens-r1.json
+
+Use when observed outputs may lag upstream structural change, when buffers/delays hide state, or when decisions are partly irreversible under deep uncertainty.
+
+Core sequence:
+
+State -> Flow/Derivative -> Buffer -> Delay -> Threshold -> Feedback -> Regime Hypothesis -> Falsifier -> Robust Action
+
+Hard non-equivalences:
+- warning signal != forecast
+- forecast != decision
+- current level != marginal direction
+- coherent narrative != causal mechanism
+- regime hypothesis != project truth
+
+This lens remains an overlay. It adds no mandatory field to project-lego-plan-r1.json. Promotion requires prospective cross-domain evidence.
