@@ -253,9 +253,9 @@
     "a universal workflow engine"
   ],
   "review": {
-    "sourceRevision": "463ff68f2787c5a7bac3ff44ee7b590d9c6251d3",
+    "sourceRevision": "01afb37f6b6c7cf45fa2c12400ac7422a08b3c98",
     "updatedAt": "2026-09-18",
     "standing": "STABLE",
-    "notes": "LEGO Project Planning R1 remains stable. Question Compiler R1 is a verified experimental analysis lens with one poker pilot; cross-domain outcome improvement remains unproven."
+    "notes": "LEGO Project Planning R1 remains stable. Question Compiler R1 is a verified experimental cross-cutting analysis lens with one poker pilot; it routes eligible turning-point/deep-uncertainty questions to lego-regime-shift. Cross-domain outcome improvement remains unproven."
   }
 }
