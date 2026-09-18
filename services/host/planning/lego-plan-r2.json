@@ -403,7 +403,7 @@
   },
   "claimOnlyFields": {
     "workStanding": {
-      "standing": "STRONG_DELETION_CANDIDATE_PENDING_DESTRUCTIVE_FIXTURE",
+      "standing": "WIDELY_PRESENT_CLAIM_DATA_SEMANTIC_SUBTRACTION_CANDIDATE",
       "mainRuntimeConsumersObserved": 0,
       "fields": [
         "attention",
@@ -416,12 +416,58 @@
         "wake",
         "carrier"
       ],
-      "rule": "Persistence and validation do not establish a Host verdict. Any field without demonstrated consumer value remains eligible for subtraction.",
+      "rule": "No production/runtime consumer code was found, but workStanding is present in 233/266 current non-terminal checkpoints. Treat Host interpretation/control semantics as subtraction candidates; do not delete the persisted envelope without a migration/compatibility proof.",
       "crossRepositorySourceConsumersObserved": 0,
       "crossRepositoryNonRuntimeOccurrences": [
         "ordivon-paper1-emse-r3-frozen eval fixtures",
         "ordivon-research-v2 eval fixtures"
-      ]
+      ],
+      "liveOpenTaskCensus": {
+        "observedNonTerminalTasks": 266,
+        "schemaV1": 33,
+        "schemaV2WithWorkStanding": 233,
+        "shareWithWorkStanding": 0.8759398496,
+        "attention": {
+          "ACTIVE": 105,
+          "HOLD": 15,
+          "WAIT": 82,
+          "BACKGROUND": 30,
+          "NONE": 1
+        },
+        "executionAdmission": {
+          "ADMITTED_NOW": 98,
+          "REENTRY_REQUIRED": 58,
+          "BLOCKED": 66,
+          "NOT_APPLICABLE": 11
+        },
+        "valueNow": {
+          "POSITIVE_VALUE_NOW": 136,
+          "NO_POSITIVE_VALUE_NOW": 97
+        },
+        "progress": {
+          "OPEN_FRONTIER": 159,
+          "LOCALLY_COMPLETE": 51,
+          "SATURATED": 23
+        },
+        "lineage": {
+          "SELF_STANDING": 231,
+          "SUPERSEDED": 1,
+          "SUBSUMED": 1
+        },
+        "wakeMode": {
+          "NONE": 80,
+          "ANY": 149,
+          "ALL": 4
+        },
+        "carrier": {
+          "RETAIN": 208,
+          "CLOSE_CLEAN": 5,
+          "DIRTY_HANDOFF": 3,
+          "UNSPECIFIED": 17
+        },
+        "relatedTaskEdges": 470,
+        "wakeConditions": 430
+      }
     }
   },
   "measurements": [
@@ -499,9 +545,9 @@
     {
       "id": "E03",
       "name": "work-standing-consumer-census",
-      "status": "CROSS_REPO_SOURCE_CENSUS_COMPLETE",
-      "finding": "No production/runtime consumer was found across /root/projects. Remaining external hits are frozen evaluation fixtures; one media text hit was a lexical false positive.",
-      "nextGate": "Run a destructive removal fixture and verify no consumer-observable regression before deletion."
+      "status": "SOURCE_CENSUS_AND_LIVE_DATA_CENSUS_COMPLETE",
+      "finding": "No production/runtime consumer code was found, but 233/266 non-terminal Tasks currently carry WorkingCheckpoint v2 workStanding. It is widely present claim data, not safe for direct schema deletion.",
+      "nextGate": "Test semantic contraction first: preserve/read/rewrite v2 bytes while removing any Host-side interpretation. Only then test migration or envelope deletion."
     },
     {
       "id": "E04",
