@@ -65,7 +65,6 @@ class HostStatusResponse(TypedDict):
     interface: HostInterfaceWire
     authority: HostAuthorityWire
     board: dict[str, Any]
-    news: dict[str, Any]
     deployment: dict[str, Any]
     continuity: dict[str, int]
     recentActivity: list[dict[str, Any]]
@@ -159,40 +158,6 @@ class AttentionResponse(TypedDict):
     unroutedMessages: list[dict[str, Any]]
     truthBoundary: str
 
-
-class NewsPublicationWire(TypedDict):
-    sequence: int
-    clientPublishId: str
-    editionId: str
-    expectedRevision: int
-    revision: int
-    editionDigest: str
-    recordedAtMs: int
-
-
-class NewsPublishResponse(TypedDict):
-    schemaVersion: int
-    kind: Literal["ordivon.host-news-publish-receipt"]
-    admission: Literal["committed", "existing"]
-    publication: NewsPublicationWire
-    truthBoundary: str
-
-
-class NewsListResponse(TypedDict):
-    schemaVersion: int
-    kind: Literal["ordivon.host-news-list"]
-    scope: str
-    editions: list[NewsPublicationWire]
-    hasMore: bool
-    nextCursor: str | None
-    truthBoundary: str
-
-
-class NewsReadResponse(TypedDict):
-    schemaVersion: int
-    kind: Literal["ordivon.host-news-read"]
-    edition: dict[str, Any]
-    truthBoundary: str
 
 
 class TaskMutationResponse(TypedDict):

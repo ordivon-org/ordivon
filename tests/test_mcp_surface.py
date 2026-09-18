@@ -31,23 +31,6 @@ def _checkpoint(task_id: str, frontier: str) -> dict[str, object]:
     }
 
 
-def _news_edition(edition_id: str) -> dict[str, object]:
-    return {
-        "schemaVersion": 1,
-        "kind": "ordivon.external-news-edition",
-        "truthRole": "external-news-projection",
-        "editionId": edition_id,
-        "editionDate": "2099-12-31",
-        "timezone": "UTC",
-        "generatedAtMs": 1,
-        "coverageStartMs": None,
-        "coverageEndMs": None,
-        "marketCutoffMs": None,
-        "producerLabel": "test",
-        "renderedBrief": "",
-        "items": [],
-    }
-
 
 def test_official_mcp_v2_exposes_migrated_host_surface_and_runs_vertical_slice() -> None:
     assert DSN is not None
@@ -64,9 +47,6 @@ def test_official_mcp_v2_exposes_migrated_host_surface_and_runs_vertical_slice()
                 "board.list",
                 "board.search",
                 "board.post",
-                "news.list",
-                "news.read",
-                "news.publish",
                 "task.observe",
                 "task.list",
                 "task.resume",
@@ -83,14 +63,6 @@ def test_official_mcp_v2_exposes_migrated_host_surface_and_runs_vertical_slice()
             for tool in listed.tools:
                 assert tool.output_schema is not None
                 assert tool.output_schema.get("additionalProperties") is not True
-            news_publish_schema = by_name["news.publish"].input_schema
-            edition_schema = news_publish_schema["properties"]["edition"]
-            edition_ref = edition_schema["$ref"].removeprefix("#/$defs/")
-            edition_definition = news_publish_schema["$defs"][edition_ref]
-            assert {"editionId", "editionDate", "items", "renderedBrief"} <= set(
-                edition_definition["properties"]
-            )
-            assert edition_definition["additionalProperties"] is False
 
             status = await client.call_tool(
                 "host.status", {"detail": "integrity", "recentLimit": 0}
@@ -99,6 +71,10 @@ def test_official_mcp_v2_exposes_migrated_host_surface_and_runs_vertical_slice()
             assert status.structured_content is not None
             assert status.structured_content["detail"] == "integrity"
             assert status.structured_content["authority"]["journalBackend"] == "postgresql"
+            assert status.structured_content["interface"]["surfaceVersion"] == 9
+            assert status.structured_content["interface"]["toolCount"] == 10
+            assert set(status.structured_content["interface"]["toolNames"]) == names
+            assert "news" not in status.structured_content
             assert status.structured_content["doctor"]["healthy"] is True
 
             adopted = await client.call_tool(
@@ -143,45 +119,6 @@ def test_official_mcp_v2_exposes_migrated_host_surface_and_runs_vertical_slice()
 
     asyncio.run(scenario())
 
-
-
-def test_news_list_keyset_cursor_is_scope_bound_and_complete() -> None:
-    assert DSN is not None
-    from ordivon_host_v2.news import NewsStore
-
-    HostV2(DSN).initialize()
-    store = NewsStore(DSN)
-    marker = uuid4().hex
-    for index in range(3):
-        edition_id = f"news:r4-page:{marker}:{index}"
-        store.publish(
-            client_publish_id=f"publish:{edition_id}",
-            edition_id=edition_id,
-            expected_revision=0,
-            edition=_news_edition(edition_id),
-        )
-    first = store.list(limit=2, from_date="2099-12-31", to_date="2099-12-31")
-    assert len(first["editions"]) == 2
-    assert first["hasMore"] is True
-    assert isinstance(first["nextCursor"], str)
-    second = store.list(
-        limit=2,
-        cursor=first["nextCursor"],
-        from_date="2099-12-31",
-        to_date="2099-12-31",
-    )
-    assert len(second["editions"]) == 1
-    assert second["hasMore"] is False
-    assert second["nextCursor"] is None
-    ids = {item["editionId"] for item in first["editions"] + second["editions"]}
-    assert ids == {f"news:r4-page:{marker}:{index}" for index in range(3)}
-    with pytest.raises(ValueError, match="query scope"):
-        store.list(
-            limit=2,
-            cursor=first["nextCursor"],
-            from_date="2099-12-30",
-            to_date="2099-12-31",
-        )
 
 
 
