@@ -21,6 +21,7 @@ GRAPH_FILES = [
     "ordivon-agent-service-r13-provider-adapters-delta.json",
     "ordivon-agent-service-r14-interface-credential-effect-delta.json",
     "ordivon-agent-service-r15-effect-authority-delta.json",
+    "ordivon-agent-service-r16-readonly-deployment-delta.json",
 ]
 
 REFERENCE_KEYS = (
