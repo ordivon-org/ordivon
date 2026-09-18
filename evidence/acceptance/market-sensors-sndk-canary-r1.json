@@ -1,0 +1,139 @@
+{
+  "acceptedClaims": [
+    "OKX public SNDK repeated sensor capture is operational through Network v2 without account credentials.",
+    "OI change can be derived from the latest two completed 5m and 1H provider history buckets instead of an incomplete current bucket.",
+    "Repeated microstructure distinguishes persistent joint book/trade tilt from mixed or nonpersistent observations.",
+    "Underlying reopen reconciliation is operationally ready and remains PENDING without cash-market reopen evidence.",
+    "No financial write or live execution authority is introduced."
+  ],
+  "date": "2026-09-19",
+  "implementation": {
+    "docs": [
+      "docs/MARKET_SENSORS_R1.md"
+    ],
+    "modules": [
+      "src/market_capital/market_sensors.py",
+      "src/market_capital/okx_sensor_capture.py"
+    ],
+    "scripts": [
+      "scripts/run-okx-instrument-sensors-r1",
+      "scripts/reconcile-underlying-reopen-r1"
+    ]
+  },
+  "instrumentId": "SNDK-USDT-SWAP",
+  "kind": "ordivon.acceptance-evidence",
+  "livePublicCanary": {
+    "brokerCredentialsUsed": false,
+    "externalFinancialWritesAttempted": false,
+    "latestMarketReference": {
+      "ask": "1789",
+      "bid": "1788.9",
+      "instrumentId": "SNDK-USDT-SWAP",
+      "last": "1788.9",
+      "observedAtMs": 1789762218402,
+      "tickerSourceTimeMs": 1789762217275
+    },
+    "openInterestChange1HCompleted": {
+      "asOfMs": 1789762218402,
+      "completedBucketsOnly": true,
+      "endObservedAtMs": 1789758000000,
+      "endOpenInterestUsd": "86197529.982600",
+      "externalFinancialWriteAttempted": false,
+      "historyPeriodMs": 3600000,
+      "instrumentId": "SNDK-USDT-SWAP",
+      "kind": "ordivon.market-capital.open-interest-change",
+      "openInterestChangePct": "-3.878184",
+      "openInterestChangeUsd": "-3477773.195700",
+      "sampleCount": 2,
+      "schemaVersion": 1,
+      "spanMs": 3600000,
+      "startObservedAtMs": 1789754400000,
+      "startOpenInterestUsd": "89675303.178300",
+      "truthRole": "derived-observation-not-crowding-truth"
+    },
+    "openInterestChange5mCompleted": {
+      "asOfMs": 1789762218402,
+      "completedBucketsOnly": true,
+      "endObservedAtMs": 1789761600000,
+      "endOpenInterestUsd": "87049142.756800",
+      "externalFinancialWriteAttempted": false,
+      "historyPeriodMs": 300000,
+      "instrumentId": "SNDK-USDT-SWAP",
+      "kind": "ordivon.market-capital.open-interest-change",
+      "openInterestChangePct": "0.987978",
+      "openInterestChangeUsd": "851612.774200",
+      "sampleCount": 2,
+      "schemaVersion": 1,
+      "spanMs": 300000,
+      "startObservedAtMs": 1789761300000,
+      "startOpenInterestUsd": "86197529.982600",
+      "truthRole": "derived-observation-not-crowding-truth"
+    },
+    "openInterestChangeCaptureWindow": {
+      "endObservedAtMs": 1789762218402,
+      "endOpenInterestUsd": "87075351.026400",
+      "externalFinancialWriteAttempted": false,
+      "instrumentId": "SNDK-USDT-SWAP",
+      "kind": "ordivon.market-capital.open-interest-change",
+      "openInterestChangePct": "0.000000",
+      "openInterestChangeUsd": "0.000000",
+      "sampleCount": 5,
+      "schemaVersion": 1,
+      "spanMs": 6149,
+      "startObservedAtMs": 1789762212253,
+      "startOpenInterestUsd": "87075351.026400",
+      "truthRole": "derived-observation-not-crowding-truth"
+    },
+    "privateAccountDataUsed": false,
+    "rawArtifactSha256": "sha256:8e0de5889f54b7fcbb7654128fec3344f212800868551602e6cc5ea01dedd97d",
+    "repeatedMicrostructure": {
+      "endObservedAtMs": 1789762218402,
+      "externalFinancialWriteAttempted": false,
+      "forecastProbabilityProduced": false,
+      "instrumentId": "SNDK-USDT-SWAP",
+      "kind": "ordivon.market-capital.repeated-microstructure",
+      "maxSpreadBps": "0.559018",
+      "meanBookImbalance": "0.123122",
+      "meanTradeBuyShare": "0.497111",
+      "medianSpreadBps": "0.559018",
+      "negativeBookImbalanceRatio": "0.000000",
+      "persistenceRatioRequired": "0.750000",
+      "positiveBookImbalanceRatio": "1.000000",
+      "sampleCount": 5,
+      "schemaVersion": 1,
+      "spanMs": 6149,
+      "standing": "MIXED_OR_NONPERSISTENT_FLOW",
+      "startObservedAtMs": 1789762212253,
+      "tradeBuyShareAboveHalfRatio": "0.400000",
+      "tradeBuyShareBelowHalfRatio": "0.600000",
+      "tradeRecommendationProduced": false,
+      "truthRole": "repeated-observation-not-price-direction-truth"
+    },
+    "sampleCount": 5,
+    "standing": "PASS_OKX_REPEATED_SENSOR_WINDOW"
+  },
+  "nonClaims": [
+    "The canary does not forecast SNDK price direction.",
+    "OI changes alone do not establish leverage crowding or causal mechanism.",
+    "Repeated microstructure standing is not a reversal or continuation signal.",
+    "Reopen reconciliation will not classify validation until an explicit tolerance and underlying observation are supplied."
+  ],
+  "reopenReconciliation": {
+    "externalFinancialWriteAttempted": false,
+    "note": "Tolerance remains unset while underlying reopen observation is absent; it becomes mandatory once cash-market evidence is supplied.",
+    "standing": "RECONCILIATION_PENDING",
+    "validationToleranceBps": null,
+    "weekendObservedAtMs": 1789762218402,
+    "weekendPerpPrice": "1788.900000"
+  },
+  "schemaVersion": 1,
+  "subject": "market-sensors-sndk-canary-r1",
+  "truthRole": "public-read-only-observation-and-implementation-evidence",
+  "verification": {
+    "canonicalSuite": "161 passed",
+    "focusedPureTests": "21 passed",
+    "gitDiffCheck": "PASS",
+    "networkV2ServiceAfterCanary": "inactive",
+    "networkV2TargetAfterCanary": "inactive"
+  }
+}

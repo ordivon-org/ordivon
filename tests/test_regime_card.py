@@ -75,6 +75,24 @@ class RegimeCardTests(unittest.TestCase):
         self.assertFalse(card["tradeRecommendationProduced"])
         self.assertNotIn("H2_OUT_OF_HOURS_DERIVATIVE_DISLOCATION", {h["id"] for h in card["competingHypotheses"]})
 
+    def test_single_microstructure_snapshot_does_not_close_repeated_evidence_gap(self):
+        card = build_regime_card(
+            market=self.market(),
+            context={"underlyingMarketOpen": False, "indexSourceMode": "OUT_OF_HOURS"},
+        )
+        self.assertIn("REPEATED_MICROSTRUCTURE_EVIDENCE_MISSING", card["evidenceGaps"])
+
+    def test_repeated_microstructure_metadata_closes_repeated_gap(self):
+        market = self.market()
+        market["microstructureSampleCount"] = 5
+        market["microstructureStanding"] = "PERSISTENT_SELL_TILT_OBSERVED"
+        card = build_regime_card(
+            market=market,
+            context={"underlyingMarketOpen": False, "indexSourceMode": "OUT_OF_HOURS"},
+        )
+        self.assertNotIn("REPEATED_MICROSTRUCTURE_EVIDENCE_MISSING", card["evidenceGaps"])
+        self.assertEqual(card["observedState"]["microstructureSampleCount"], 5)
+
     def test_invalid_market_fails_closed(self):
         market = self.market()
         market["index"] = "0"
