@@ -179,7 +179,7 @@ class AgentServiceEffectAuthorityR15Tests(unittest.TestCase):
             service = self._open(Path(tmp) / "s.db", route_policy, delivery)
             _, _, _, binding = self._setup(service)
 
-            service.effect_authorizations._policy_adapter = None
+            service.delivery._policy_adapter = None
             with self.assertRaisesRegex(RuntimeError, "no PolicyAdapter configured"):
                 service.delivery.deliver(binding.id)
 
