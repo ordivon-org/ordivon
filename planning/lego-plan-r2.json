@@ -403,7 +403,7 @@
   },
   "claimOnlyFields": {
     "workStanding": {
-      "standing": "CLAIM_ONLY_DELETION_REVIEW",
+      "standing": "STRONG_DELETION_CANDIDATE_PENDING_DESTRUCTIVE_FIXTURE",
       "mainRuntimeConsumersObserved": 0,
       "fields": [
         "attention",
@@ -416,7 +416,12 @@
         "wake",
         "carrier"
       ],
-      "rule": "Persistence and validation do not establish a Host verdict. Any field without demonstrated consumer value remains eligible for subtraction."
+      "rule": "Persistence and validation do not establish a Host verdict. Any field without demonstrated consumer value remains eligible for subtraction.",
+      "crossRepositorySourceConsumersObserved": 0,
+      "crossRepositoryNonRuntimeOccurrences": [
+        "ordivon-paper1-emse-r3-frozen eval fixtures",
+        "ordivon-research-v2 eval fixtures"
+      ]
     }
   },
   "measurements": [
@@ -494,9 +499,9 @@
     {
       "id": "E03",
       "name": "work-standing-consumer-census",
-      "status": "FIRST_PASS_COMPLETE",
-      "finding": "No runtime consumer in current main was found outside checkpoint contract/validation.",
-      "nextGate": "Search external consumers before deletion or further semantic expansion."
+      "status": "CROSS_REPO_SOURCE_CENSUS_COMPLETE",
+      "finding": "No production/runtime consumer was found across /root/projects. Remaining external hits are frozen evaluation fixtures; one media text hit was a lexical false positive.",
+      "nextGate": "Run a destructive removal fixture and verify no consumer-observable regression before deletion."
     },
     {
       "id": "E04",
