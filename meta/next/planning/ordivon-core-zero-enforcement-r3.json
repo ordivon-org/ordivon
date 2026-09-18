@@ -119,7 +119,6 @@
       "BoardAdapter",
       "BoardMessageRef",
       "BoardProjectionReceipt",
-      "BoardProjectionReceiptStore",
       "BoundCredentialHeaderProvider",
       "BrowserlessTurnEffectCoordinate",
       "BrowserlessTurnEffectLedgerReader",
@@ -286,6 +285,7 @@
   "retiredLegacyTypes": [
     "AgentInterfaceAdvertisement",
     "AgentInterfaceAdvertisementStore",
+    "BoardProjectionReceiptStore",
     "CapabilityAdvertisement",
     "CapabilityAdvertisementStore",
     "DeliveryReceiptStore",
@@ -298,12 +298,15 @@
   ],
   "retiredPersistenceSurfaces": [
     "agent_interface_advertisements",
+    "board_projection_receipts",
     "capability_advertisements",
     "delivery_receipts",
     "effect_authorization_decisions",
     "policy_decisions"
   ],
   "retiredForeignKeyAuthorities": [
+    "board_projection_receipts.goal_id -> service_goals.id",
+    "board_projection_receipts.service_event_id -> service_events.id",
     "delivery_receipts.binding_id -> transport_bindings.id",
     "effect_authorization_decisions.binding_id -> transport_bindings.id",
     "effect_authorization_decisions.delegation_id -> delegation_envelopes.id",

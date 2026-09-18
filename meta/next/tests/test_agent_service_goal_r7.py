@@ -4,7 +4,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agent_service.goals import AgentServiceR7, BoardAdapter, BoardMessageRef
+from agent_service.goals import (
+    AgentServiceR7,
+    BoardAdapter,
+    BoardMessageRef,
+    _board_projection_receipt_get_by_event,
+)
 from agent_service.evidence import RuntimeArtifactPayload, RuntimeArtifactReader
 from agent_service.slice1 import CarrierProviderAdapter, ProviderObservation
 from agent_service.task_runtime import RuntimeAdapter, RuntimeJobObservation, RuntimeJobRef
@@ -236,14 +241,22 @@ class AgentServiceGoalR7Tests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 service.board_projector.project_latest(goal.id)
 
-            self.assertEqual(service.board_receipts.list_for_goal(goal.id), [])
+            source_event = service.events.list_for("Goal", goal.id)[-1]
+            self.assertIsNone(
+                _board_projection_receipt_get_by_event(service.events, source_event.id)
+            )
             first_client_id = board.calls[0][0]
             receipt = service.board_projector.project_latest(goal.id)
 
             self.assertEqual(board.calls[1][0], first_client_id)
             self.assertEqual(receipt.client_message_id, first_client_id)
             self.assertEqual(len(board.messages), 1)
-            self.assertEqual(len(service.board_receipts.list_for_goal(goal.id)), 1)
+            self.assertEqual(
+                _board_projection_receipt_get_by_event(
+                    service.events, source_event.id
+                ).id,
+                receipt.id,
+            )
 
     def test_board_failure_never_rolls_back_or_redefines_goal_truth(self) -> None:
         board = FakeBoard()
