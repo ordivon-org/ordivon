@@ -282,3 +282,17 @@ Standing:
 Evidence:
 - `knowledge/lessons/lego-wave2-prospective-validation-r1.md`
 - `evidence/acceptance/lego-theory-wave2-prospective-r1.json`
+
+## Active Wave 3 experimental lenses
+
+Canonical package:
+- `docs/LEGO_THEORY_WAVE3_R1.md`
+- `evidence/acceptance/lego-theory-wave3-r1.json`
+
+Wave 3 adds four optional lenses for generative/adaptive work:
+- `lego-exploration-policy`;
+- `lego-ck-design`;
+- `lego-evolutionary-search`;
+- `lego-organizational-cybernetics`.
+
+They remain `PRE_PROSPECTIVE_VALIDATION`. None adds mandatory fields to the common LEGO schema. Search reward, design concepts, evolutionary fitness, and organizational-model coordinates remain derived evidence rather than project truth.
