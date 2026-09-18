@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "workflowId": "workflow/d-drive-vhd-compact-r2",
+  "ownerId": "controller/maintenance/windows-edge",
+  "steps": [
+    {
+      "schemaVersion": 1,
+      "stepId": "step/fence-admission",
+      "kind": "gate",
+      "resourceId": "runtime/linux-archlinux",
+      "requestedCapabilityId": "capability/runtime/drain",
+      "authorityMode": "maintenance",
+      "conflictMode": "exclusive_write",
+      "dependsOn": [],
+      "evidencePolicyId": "evidence/d-drive-compact-r2",
+      "effectDispatched": false
+    },
+    {
+      "schemaVersion": 1,
+      "stepId": "step/doctor-preflight",
+      "kind": "gate",
+      "resourceId": "runtime/linux-archlinux",
+      "requestedCapabilityId": "capability/runtime/doctor",
+      "authorityMode": "maintenance",
+      "conflictMode": "shared_read",
+      "dependsOn": ["step/fence-admission"],
+      "evidencePolicyId": "evidence/d-drive-compact-r2",
+      "effectDispatched": false
+    },
+    {
+      "schemaVersion": 1,
+      "stepId": "step/validate-authorization",
+      "kind": "gate",
+      "resourceId": "storage/d-drive/ext4-vhdx",
+      "requestedCapabilityId": "capability/authority/validate",
+      "authorityMode": "maintenance",
+      "conflictMode": "shared_read",
+      "dependsOn": ["step/doctor-preflight"],
+      "evidencePolicyId": "evidence/d-drive-compact-r2",
+      "effectDispatched": false
+    },
+    {
+      "schemaVersion": 1,
+      "stepId": "step/trim-filesystem",
+      "kind": "act",
+      "resourceId": "filesystem/linux-root",
+      "requestedCapabilityId": "capability/storage/trim",
+      "authorityMode": "maintenance",
+      "conflictMode": "exclusive_write",
+      "dependsOn": ["step/validate-authorization"],
+      "evidencePolicyId": "evidence/d-drive-compact-r2",
+      "effectDispatched": false
+    },
+    {
+      "schemaVersion": 1,
+      "stepId": "step/terminate-wsl",
+      "kind": "act",
+      "resourceId": "distro/archlinux",
+      "requestedCapabilityId": "capability/wsl/terminate",
+      "authorityMode": "maintenance",
+      "conflictMode": "exclusive_write",
+      "dependsOn": ["step/trim-filesystem"],
+      "evidencePolicyId": "evidence/d-drive-compact-r2",
+      "effectDispatched": false
+    },
+    {
+      "schemaVersion": 1,
+      "stepId": "step/confirm-distro-offline",
+      "kind": "gate",
+      "resourceId": "distro/archlinux",
+      "requestedCapabilityId": "capability/wsl/verify-offline",
+      "authorityMode": "maintenance",
+      "conflictMode": "shared_read",
+      "dependsOn": ["step/terminate-wsl"],
+      "evidencePolicyId": "evidence/d-drive-compact-r2",
+      "effectDispatched": false
+    },
+    {
+      "schemaVersion": 1,
+      "stepId": "step/exclusive-open",
+      "kind": "gate",
+      "resourceId": "storage/d-drive/ext4-vhdx",
+      "requestedCapabilityId": "capability/storage/exclusive-open",
+      "authorityMode": "maintenance",
+      "conflictMode": "exclusive_write",
+      "dependsOn": ["step/confirm-distro-offline"],
+      "evidencePolicyId": "evidence/d-drive-compact-r2",
+      "effectDispatched": false
+    },
+    {
+      "schemaVersion": 1,
+      "stepId": "step/compact-vhd",
+      "kind": "act",
+      "resourceId": "storage/d-drive/ext4-vhdx",
+      "requestedCapabilityId": "capability/storage/compact",
+      "authorityMode": "maintenance",
+      "conflictMode": "exclusive_write",
+      "dependsOn": ["step/exclusive-open"],
+      "evidencePolicyId": "evidence/d-drive-compact-r2",
+      "effectDispatched": false
+    },
+    {
+      "schemaVersion": 1,
+      "stepId": "step/verify-vhd-non-growth",
+      "kind": "verify",
+      "resourceId": "storage/d-drive/ext4-vhdx",
+      "requestedCapabilityId": "capability/storage/verify-non-growth",
+      "authorityMode": "maintenance",
+      "conflictMode": "shared_read",
+      "dependsOn": ["step/compact-vhd"],
+      "evidencePolicyId": "evidence/d-drive-compact-r2",
+      "effectDispatched": false
+    },
+    {
+      "schemaVersion": 1,
+      "stepId": "step/recover-control-plane",
+      "kind": "recover",
+      "resourceId": "runtime/linux-archlinux",
+      "requestedCapabilityId": "capability/runtime/recover",
+      "authorityMode": "recovery",
+      "conflictMode": "exclusive_write",
+      "dependsOn": ["step/verify-vhd-non-growth"],
+      "evidencePolicyId": "evidence/d-drive-compact-r2",
+      "effectDispatched": false
+    },
+    {
+      "schemaVersion": 1,
+      "stepId": "step/verify-runtime-health",
+      "kind": "verify",
+      "resourceId": "runtime/linux-archlinux",
+      "requestedCapabilityId": "capability/runtime/health",
+      "authorityMode": "recovery",
+      "conflictMode": "shared_read",
+      "dependsOn": ["step/recover-control-plane"],
+      "evidencePolicyId": "evidence/d-drive-compact-r2",
+      "effectDispatched": false
+    },
+    {
+      "schemaVersion": 1,
+      "stepId": "step/post-doctor",
+      "kind": "verify",
+      "resourceId": "runtime/linux-archlinux",
+      "requestedCapabilityId": "capability/runtime/doctor",
+      "authorityMode": "recovery",
+      "conflictMode": "shared_read",
+      "dependsOn": ["step/verify-runtime-health"],
+      "evidencePolicyId": "evidence/d-drive-compact-r2",
+      "effectDispatched": false
+    }
+  ],
+  "executionStarted": false
+}
