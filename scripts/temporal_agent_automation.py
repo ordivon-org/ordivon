@@ -24,7 +24,7 @@ with workflow.unsafe.imports_passed_through():
         BrowserlessAutomationConfig,
         BrowserlessAutomationHold,
         BrowserlessAutomationService,
-        PRE_SEND_CARRIER_FAILOVER_STANDINGS,
+        diagnose_provider_preflight,
         _carrier_lease,
         _read_json,
     )
@@ -189,7 +189,8 @@ class BrowserlessActivities:
                         observation = current_context._provider_preflight_under_carrier_lease(
                             endpoint_id
                         )
-                        if observation.get("standing") in PRE_SEND_CARRIER_FAILOVER_STANDINGS:
+                        diagnosis = diagnose_provider_preflight(observation)
+                        if diagnosis["carrierRouting"] == "FAILOVER_ALLOWED":
                             rejected.append(f"{endpoint_id}:{observation.get('standing')}")
                             continue
                         return self._effects(current).materialize_birth(

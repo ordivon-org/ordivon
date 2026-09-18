@@ -69,6 +69,7 @@ RELEASE_PATHS = (
     "scripts/playwright_browserless_human_resume.py",
     "scripts/playwright_browserless_provider_preflight.py",
     "scripts/playwright_browserless_turn_once.py",
+    "scripts/provider_boundary_diagnosis.py",
     "scripts/temporal_agent_automation.py",
     "scripts/temporal_agent_automation_deploy.py",
     "scripts/temporal_agent_automation_launch.py",

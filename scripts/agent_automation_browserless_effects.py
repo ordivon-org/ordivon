@@ -20,7 +20,7 @@ try:
         BrowserlessAutomationConflict,
         BrowserlessAutomationHold,
         BrowserlessAutomationService,
-        PRE_SEND_CARRIER_FAILOVER_STANDINGS,
+        diagnose_provider_preflight,
         _suffix,
         _write_private,
     )
@@ -34,7 +34,7 @@ except ModuleNotFoundError:
         BrowserlessAutomationConflict,
         BrowserlessAutomationHold,
         BrowserlessAutomationService,
-        PRE_SEND_CARRIER_FAILOVER_STANDINGS,
+        diagnose_provider_preflight,
         _suffix,
         _write_private,
     )
@@ -128,6 +128,7 @@ class BrowserlessEffectAdapter:
             if endpoint_id is not None
             else self.config.browserless_pool.select(birth.effect_id)
         )
+        provider_boundary_diagnosis = None
         if endpoint_id is not None:
             observation = provider_preflight
             if (
@@ -148,7 +149,16 @@ class BrowserlessEffectAdapter:
                     raise BrowserlessAutomationConflict(
                         f"worker provider preflight violated read-only contract: {key}"
                     )
-            if observation.get("standing") in PRE_SEND_CARRIER_FAILOVER_STANDINGS:
+            provider_boundary_diagnosis = diagnose_provider_preflight(observation)
+            provided_diagnosis = observation.get("providerBoundaryDiagnosis")
+            if (
+                provided_diagnosis is not None
+                and provided_diagnosis != provider_boundary_diagnosis
+            ):
+                raise BrowserlessAutomationConflict(
+                    "worker provider preflight diagnosis disagrees with policy classifier"
+                )
+            if provider_boundary_diagnosis["carrierRouting"] == "FAILOVER_ALLOWED":
                 return {
                     "schemaVersion": 1,
                     "kind": "ordivon.browserless-birth",
@@ -157,13 +167,14 @@ class BrowserlessEffectAdapter:
                     "effectId": birth.effect_id,
                     "endpointId": endpoint.endpoint_id,
                     "providerPreflight": observation,
+                    "providerBoundaryDiagnosis": provider_boundary_diagnosis,
                     "census": census,
                 }
         binding = self._write_binding(birth, endpoint)
         receipt = SQLiteConversationMaterializer(
             self.config.ledger, self._target(birth, endpoint)
         ).materialize(birth.materialization_request())
-        return {
+        result = {
             "schemaVersion": 1,
             "kind": "ordivon.browserless-birth",
             "action": "materialize",
@@ -182,6 +193,9 @@ class BrowserlessEffectAdapter:
             },
             "census": campaign_census(spec, self.config.ledger),
         }
+        if provider_boundary_diagnosis is not None:
+            result["providerBoundaryDiagnosis"] = provider_boundary_diagnosis
+        return result
 
     def resume_after_human(self, spec_path: Path, agent_id: str) -> dict:
         spec = self.context.load_spec(spec_path)

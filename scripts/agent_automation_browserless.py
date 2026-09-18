@@ -33,6 +33,11 @@ try:
     from sqlite_conversation_materializer import SQLiteConversationMaterializer
     from standard_identifiers import require_uuid7
     from browserless_human_handoff import load_verified_handoff
+    from provider_boundary_diagnosis import (
+        CARRIER_FAILOVER_STANDINGS,
+        diagnose_provider_preflight,
+        provider_boundary_policy,
+    )
 except ModuleNotFoundError:
     from scripts.browserless_substrate import BrowserlessPool
     from scripts.campaign_birth import (
@@ -43,6 +48,14 @@ except ModuleNotFoundError:
     from scripts.sqlite_conversation_materializer import SQLiteConversationMaterializer
     from scripts.standard_identifiers import require_uuid7
     from scripts.browserless_human_handoff import load_verified_handoff
+    from scripts.provider_boundary_diagnosis import (
+        CARRIER_FAILOVER_STANDINGS,
+        diagnose_provider_preflight,
+        provider_boundary_policy,
+    )
+
+
+PRE_SEND_CARRIER_FAILOVER_STANDINGS = CARRIER_FAILOVER_STANDINGS
 
 
 def _abs(value: str | Path) -> Path:
@@ -214,16 +227,8 @@ class BrowserlessCarrierBusy(RuntimeError):
     pass
 
 
-# Only carrier/transport-local pre-SEND unavailability may rotate to another profile. Provider
-# policy, authentication, challenge and ambiguous UI states remain on the selected carrier.
-PRE_SEND_CARRIER_FAILOVER_STANDINGS = frozenset(
-    {
-        "SUBSTRATE_UNAVAILABLE",
-        "CARRIER_BUSY",
-        "PROVIDER_UNAVAILABLE",
-        "CONNECT_FAILED",
-    }
-)
+# PRE_SEND_CARRIER_FAILOVER_STANDINGS is imported from the pure Provider Boundary policy LEGO.
+# Provider policy/auth/challenge/UI observations remain on the selected carrier.
 
 
 def _carrier_last_use_path(config: BrowserlessAutomationConfig, endpoint_id: str) -> Path:
@@ -402,6 +407,7 @@ class BrowserlessAutomationService:
                 "standing": "WRITE_FAILED",
                 "errorClass": type(error).__name__,
             }
+        result["providerBoundaryDiagnosis"] = diagnose_provider_preflight(result)
         return result
 
     @staticmethod
@@ -1152,6 +1158,7 @@ class BrowserlessAutomationService:
             "kind": "ordivon.browserless-agent-automation-doctor",
             "healthy": health["healthy"] and ledger["healthy"],
             "browserSubstrate": health,
+            "providerBoundaryPolicy": provider_boundary_policy(),
             "ledger": ledger,
         }
 

@@ -1405,6 +1405,15 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             self.assertFalse(result["providerEffectAttempted"])
             self.assertEqual(result["cf07Telemetry"]["standing"], "RECORDED")
             self.assertEqual(result["cf07Telemetry"]["sessionCountClass"], "ZERO")
+            diagnosis = result["providerBoundaryDiagnosis"]
+            self.assertEqual(
+                diagnosis["state"], "SUBSTRATE_HEALTHY_PROVIDER_NOT_ADMISSIBLE"
+            )
+            self.assertEqual(diagnosis["substrateStanding"], "HEALTHY")
+            self.assertEqual(diagnosis["providerAdmission"], "NOT_ADMISSIBLE")
+            self.assertEqual(diagnosis["carrierRouting"], "PRESERVE_SELECTED_CARRIER")
+            self.assertTrue(diagnosis["humanVerificationEligible"])
+            self.assertFalse(diagnosis["automaticInfrastructureMutationAllowed"])
             command = run.call_args.args[0]
             self.assertIn("--endpoint-id", command)
             self.assertNotIn("send", " ".join(command).lower())
@@ -1436,6 +1445,16 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 result["browserSubstrate"]["endpoints"][0]["lifecycleStanding"],
                 "UNMANAGED_OBSERVED",
             )
+            policy = result["providerBoundaryPolicy"]
+            self.assertEqual(policy["policyVersion"], "provider-boundary-r1")
+            self.assertEqual(
+                policy["neutralAttributionReference"],
+                {
+                    "reference": "browser-security-r9",
+                    "standing": "REFERENCE_ONLY_NOT_LIVE_ASSERTION",
+                },
+            )
+            self.assertFalse(policy["automaticInfrastructureMutationFromProviderBoundary"])
 
     def test_doctor_marks_cold_managed_endpoint_sleeping_without_curl(self):
         with tempfile.TemporaryDirectory() as d:
@@ -1878,6 +1897,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                     "composerFilled": False,
                     "sendAttempted": False,
                     "assistantOutputRead": False,
+                    "substrateHealth": {"healthy": True},
                 }
 
                 class Target:
@@ -1897,6 +1917,20 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                     )
                 self.assertEqual(result["action"], "materialize")
                 self.assertEqual(result["receipt"]["standing"], "pre-effect-failed")
+                diagnosis = result["providerBoundaryDiagnosis"]
+                self.assertEqual(diagnosis["carrierRouting"], "PRESERVE_SELECTED_CARRIER")
+                self.assertFalse(diagnosis["automaticInfrastructureMutationAllowed"])
+                for action in (
+                    "rotate-carrier",
+                    "restart-carrier",
+                    "clear-profile",
+                    "mutate-launcher-flags",
+                    "mutate-network-authority",
+                ):
+                    self.assertIn(action, diagnosis["forbiddenAutomaticInfrastructureRepairs"])
+                if standing in {"CHALLENGE_GATED", "AUTH_REQUIRED"}:
+                    self.assertTrue(diagnosis["humanVerificationEligible"])
+                    self.assertIn("human-verification", diagnosis["allowedAutomaticActions"])
                 target.assert_called_once()
                 binding = json.loads(
                     next(
