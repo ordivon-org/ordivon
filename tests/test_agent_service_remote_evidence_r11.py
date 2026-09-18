@@ -16,6 +16,7 @@ from agent_service.remote_evidence import (
     AgentServiceR11,
     RemoteArtifactPayload,
     RemoteArtifactReader,
+    _remote_task_verification_get_by_task,
 )
 from agent_service.slice1 import CarrierProviderAdapter, ProviderObservation
 from agent_service.task_runtime import RuntimeAdapter, RuntimeJobObservation, RuntimeJobRef
@@ -417,7 +418,7 @@ class AgentServiceRemoteEvidenceR11Tests(unittest.TestCase):
                 service.remote_completion.reconcile(a2a.id)
 
             self.assertEqual(service.tasks.get(task.id).state, "RUNNING")
-            self.assertIsNone(service.remote_verifications.get_by_task(task.id, required=False))
+            self.assertIsNone(_remote_task_verification_get_by_task(service.events, task.id, required=False))
 
     def test_remote_verification_is_durable_and_exact_replay_safe(self) -> None:
         text = "ACCEPTED"
@@ -457,7 +458,7 @@ class AgentServiceRemoteEvidenceR11Tests(unittest.TestCase):
                 remote_artifact_readers={},
             )
             self.addCleanup(second.close)
-            restored = second.remote_verifications.get_by_task(task.id)
+            restored = _remote_task_verification_get_by_task(second.events, task.id)
             self.assertEqual(restored.id, record.id)
             self.assertEqual(second.tasks.get(task.id).state, "SUCCEEDED")
 

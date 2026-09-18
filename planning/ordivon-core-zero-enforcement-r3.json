@@ -200,7 +200,6 @@
       "RemoteProviderObservation",
       "RemoteTaskCompletionReconciler",
       "RemoteTaskVerificationRecord",
-      "RemoteTaskVerificationStore",
       "ReplaySafetyAdapter",
       "ReplaySafetyCoordinator",
       "ReplaySafetyDecision",
@@ -294,6 +293,7 @@
     "PolicyDecision",
     "PolicyDecisionStore",
     "PolicyEvaluationCoordinator",
+    "RemoteTaskVerificationStore",
     "VerificationRecordStore"
   ],
   "retiredPersistenceSurfaces": [
@@ -303,6 +303,7 @@
     "delivery_receipts",
     "effect_authorization_decisions",
     "policy_decisions",
+    "remote_task_verifications",
     "task_verifications"
   ],
   "retiredForeignKeyAuthorities": [
@@ -311,6 +312,9 @@
     "delivery_receipts.binding_id -> transport_bindings.id",
     "effect_authorization_decisions.binding_id -> transport_bindings.id",
     "effect_authorization_decisions.delegation_id -> delegation_envelopes.id",
+    "remote_task_verifications.binding_id -> transport_bindings.id",
+    "remote_task_verifications.remote_observation_id -> remote_delivery_observations.id",
+    "remote_task_verifications.task_id -> service_tasks.id",
     "task_verifications.assignment_id -> service_assignments.id",
     "task_verifications.task_id -> service_tasks.id",
     "transport_bindings.interface_id -> agent_interface_advertisements.id",
