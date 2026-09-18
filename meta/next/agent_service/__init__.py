@@ -13,6 +13,13 @@ from .delivery import (
     TransportBindingStore,
 )
 from .evidence import AgentServiceR6, RuntimeArtifactReader, VerificationRecord
+from .effect_authority import (
+    AgentServiceR15,
+    EffectAuthorizationCoordinator,
+    EffectAuthorizationDecision,
+    EffectAuthorizationDecisionStore,
+    EffectAuthorizedDeliveryCoordinator,
+)
 from .failover import (
     AgentServiceR12,
     ExecutionClaimTransferCoordinator,
@@ -106,6 +113,11 @@ from .trust import (
 )
 
 __all__ = [
+    "AgentServiceR15",
+    "EffectAuthorizationCoordinator",
+    "EffectAuthorizationDecision",
+    "EffectAuthorizationDecisionStore",
+    "EffectAuthorizedDeliveryCoordinator",
     "BrowserlessTurnEffectLedgerReader",
     "BrowserlessTurnEffectCoordinate",
     "TransportCredentialBindingStore",
