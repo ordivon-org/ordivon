@@ -258,3 +258,17 @@ A lens earns retention when it produces at least one of:
 - a justified no-change decision.
 
 Otherwise stop the lens rather than generate more analysis.
+
+## Active Wave 2 experimental lenses
+
+Canonical package:
+- `docs/LEGO_THEORY_WAVE2_R1.md`
+- `evidence/acceptance/lego-theory-wave2-r1.json`
+
+Wave 2 currently adds four optional lenses:
+- `lego-compositional-contracts`;
+- `lego-causal-intervention`;
+- `lego-fmea-fta`;
+- `lego-information-flow`.
+
+They remain `PRE_PROSPECTIVE_VALIDATION`. None adds mandatory fields to the common LEGO schema.
