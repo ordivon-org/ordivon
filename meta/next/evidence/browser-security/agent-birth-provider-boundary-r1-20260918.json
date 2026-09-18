@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.agent-birth-provider-boundary-r1-evidence",
+  "date": "2026-09-18",
+  "standing": "SOURCE_MAIN_IMPLEMENTED_TESTED_PRODUCTION_CUTOVER_NOT_YET_CLAIMED",
+  "harness": {
+    "mainCommit": "3f10f7bb7cb732e3b873fcc2aacb6ae7e9cf52f4",
+    "commitMessage": "agent-birth: classify provider boundary holds",
+    "providerBoundaryModule": "scripts/provider_boundary_diagnosis.py"
+  },
+  "browserSecurityReference": {
+    "reference": "browser-security-r9",
+    "nextCommit": "cde99ed6583eea92989a210e4be262d4e0a413e4",
+    "standing": "REFERENCE_ONLY_NOT_LIVE_ASSERTION",
+    "providerRootCauseEstablished": false
+  },
+  "runtimeSemantics": {
+    "healthyChallengeState": "SUBSTRATE_HEALTHY_PROVIDER_NOT_ADMISSIBLE",
+    "challengeCarrierRouting": "PRESERVE_SELECTED_CARRIER",
+    "challengeHumanVerificationEligible": true,
+    "automaticInfrastructureMutationAllowed": false,
+    "forbiddenAutomaticInfrastructureRepairs": [
+      "rotate-carrier",
+      "restart-carrier",
+      "clear-profile",
+      "mutate-launcher-flags",
+      "mutate-network-authority"
+    ],
+    "carrierFailoverStandings": [
+      "CARRIER_BUSY",
+      "CONNECT_FAILED",
+      "PROVIDER_UNAVAILABLE",
+      "SUBSTRATE_UNAVAILABLE"
+    ]
+  },
+  "verification": {
+    "workspaceExpandedGateJobId": "job-01a0b407-ba3e-7920-8b9e-cd021276d0d4",
+    "harnessMainPostVerifyJobId": "job-01a0b409-337e-79d3-aacd-dca8e2ca651f",
+    "relevantTests": 95,
+    "browserlessSkipped": 3,
+    "ruff": "PASS",
+    "pyCompile": "PASS",
+    "diffCheck": "PASS"
+  },
+  "safetyBoundary": {
+    "challengeSolvedAutomatically": false,
+    "challengeClickedByThisChange": false,
+    "providerPromptSentByVerification": false,
+    "providerCookiesRead": false,
+    "protectedChallengeUsedAsDetectorOracle": false
+  },
+  "production": {
+    "observedReleaseBeforeCutover": "dc23c0c6894f415cc6eca624a8740c856ab9009b",
+    "cutoverClaimed": false
+  }
+}
