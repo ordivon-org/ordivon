@@ -38,6 +38,21 @@ from .goals import (
     TaskReadinessProjector,
 )
 from .host_board import HostBoardMcpAdapter
+from .provider_adapters import (
+    A2AJsonRpcHttpClient,
+    A2AQuiescenceAdapter,
+    AgentServiceR13,
+    EffectLedgerEffect,
+    EffectLedgerReader,
+    EffectLedgerReplaySafetyAdapter,
+    EffectLedgerSnapshot,
+    MCPTaskQuiescenceAdapter,
+    MCPTasksHttpClient,
+    ProviderProtocolError,
+    ProviderRemoteError,
+    QuiescencePending,
+    RemoteExecutionCompleted,
+)
 from .remote_evidence import (
     AgentServiceR11,
     ClaimAwareAssignmentPlanner,
@@ -79,6 +94,19 @@ from .trust import (
 )
 
 __all__ = [
+    "RemoteExecutionCompleted",
+    "QuiescencePending",
+    "ProviderRemoteError",
+    "ProviderProtocolError",
+    "MCPTasksHttpClient",
+    "MCPTaskQuiescenceAdapter",
+    "EffectLedgerSnapshot",
+    "EffectLedgerReplaySafetyAdapter",
+    "EffectLedgerReader",
+    "EffectLedgerEffect",
+    "AgentServiceR13",
+    "A2AQuiescenceAdapter",
+    "A2AJsonRpcHttpClient",
     "A2AAgentCardProjector",
     "AgentIdentityStore",
     "AgentInterfaceAdvertisementStore",
