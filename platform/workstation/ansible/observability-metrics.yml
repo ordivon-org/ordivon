@@ -19,13 +19,15 @@
         owner: root
         group: root
         mode: "0644"
-      notify: Reload systemd and restart Netdata
+      notify:
+        - Reload systemd
+        - Try-restart Netdata if profile is active
 
-    - name: Enable and start Netdata
+    - name: Keep Netdata cold by default
       ansible.builtin.systemd_service:
         name: netdata.service
-        enabled: true
-        state: started
+        enabled: false
+        state: stopped
 
     - name: Install Operations v2 Prometheus configuration
       ansible.builtin.copy:
@@ -34,7 +36,7 @@
         owner: root
         group: root
         mode: "0644"
-      notify: Restart Operations Prometheus
+      notify: Try-restart Operations Prometheus if active
 
     - name: Bind Operations Prometheus to loopback on its own port
       ansible.builtin.copy:
@@ -43,7 +45,7 @@
         owner: root
         group: root
         mode: "0644"
-      notify: Restart Operations Prometheus
+      notify: Try-restart Operations Prometheus if active
 
     - name: Bind node exporter to loopback on the Operations v2 port
       ansible.builtin.copy:
@@ -52,32 +54,36 @@
         owner: root
         group: root
         mode: "0644"
-      notify: Restart node exporter
+      notify: Try-restart node exporter if active
 
-    - name: Enable and start node exporter
+    - name: Keep node exporter cold by default
       ansible.builtin.systemd_service:
         name: prometheus-node-exporter.service
-        enabled: true
-        state: started
+        enabled: false
+        state: stopped
 
-    - name: Enable and start Operations Prometheus
+    - name: Keep Operations Prometheus cold by default
       ansible.builtin.systemd_service:
         name: prometheus.service
-        enabled: true
-        state: started
+        enabled: false
+        state: stopped
 
   handlers:
-    - name: Restart node exporter
+    - name: Reload systemd
       ansible.builtin.systemd_service:
-        name: prometheus-node-exporter.service
-        state: restarted
-
-    - name: Restart Operations Prometheus
-      ansible.builtin.systemd_service:
-        name: prometheus.service
-        state: restarted
-    - name: Reload systemd and restart Netdata
-      ansible.builtin.systemd_service:
-        name: netdata.service
         daemon_reload: true
-        state: restarted
+
+    - name: Try-restart Netdata if profile is active
+      ansible.builtin.command:
+        argv: [/usr/bin/systemctl, try-restart, netdata.service]
+      changed_when: false
+
+    - name: Try-restart node exporter if active
+      ansible.builtin.command:
+        argv: [/usr/bin/systemctl, try-restart, prometheus-node-exporter.service]
+      changed_when: false
+
+    - name: Try-restart Operations Prometheus if active
+      ansible.builtin.command:
+        argv: [/usr/bin/systemctl, try-restart, prometheus.service]
+      changed_when: false

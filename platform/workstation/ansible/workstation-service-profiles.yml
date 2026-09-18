@@ -1,0 +1,102 @@
+---
+- name: Workstation v2 service profiles
+  hosts: operations_local
+  become: true
+  gather_facts: false
+  vars:
+    heavy_observability_services:
+      - netdata.service
+      - loki.service
+      - vector.service
+      - ordivon-grafana.service
+    default_cold_observability_services:
+      - netdata.service
+      - loki.service
+      - vector.service
+      - prometheus.service
+      - prometheus-node-exporter.service
+      - ordivon-gatus.service
+  tasks:
+    - name: Install heavy observability profile target
+      ansible.builtin.copy:
+        src: ../systemd/ordivon-observability-heavy.target
+        dest: /etc/systemd/system/ordivon-observability-heavy.target
+        owner: root
+        group: root
+        mode: "0644"
+      register: heavy_observability_target
+
+    - name: Ensure heavy observability service drop-in directories exist
+      ansible.builtin.file:
+        path: "/etc/systemd/system/{{ item }}.d"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      loop:
+        - netdata.service
+        - loki.service
+        - vector.service
+
+    - name: Bind heavy observability services to the opt-in profile target
+      ansible.builtin.copy:
+        src: "../systemd/service-profiles/{{ item }}.d/20-ordivon-observability-heavy.conf"
+        dest: "/etc/systemd/system/{{ item }}.d/20-ordivon-observability-heavy.conf"
+        owner: root
+        group: root
+        mode: "0644"
+      loop:
+        - netdata.service
+        - loki.service
+        - vector.service
+      register: heavy_observability_dropins
+
+    - name: Reload systemd after service profile changes
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+      when:
+        - not ansible_check_mode
+        - heavy_observability_target.changed or heavy_observability_dropins.changed
+
+    - name: Unmask Grafana now that Quadlet no longer boot-enables it
+      ansible.builtin.systemd_service:
+        name: ordivon-grafana.service
+        masked: false
+        daemon_reload: true
+      failed_when: false
+      when: not ansible_check_mode
+
+    - name: Keep heavy observability profile stopped by default
+      ansible.builtin.systemd_service:
+        name: ordivon-observability-heavy.target
+        state: stopped
+      when: not ansible_check_mode
+
+    - name: Keep Workstation-owned observability services disabled and cold by default
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        enabled: false
+        state: stopped
+      loop: "{{ default_cold_observability_services }}"
+      when: not ansible_check_mode
+
+    - name: Keep Grafana cold by default
+      ansible.builtin.systemd_service:
+        name: ordivon-grafana.service
+        state: stopped
+        daemon_reload: true
+      when: not ansible_check_mode
+
+    - name: Keep Docker socket available for on-demand activation
+      ansible.builtin.systemd_service:
+        name: docker.socket
+        enabled: true
+        state: started
+      when: not ansible_check_mode
+
+    - name: Keep Docker daemon out of the boot set
+      ansible.builtin.systemd_service:
+        name: docker.service
+        enabled: false
+        state: stopped
+      when: not ansible_check_mode

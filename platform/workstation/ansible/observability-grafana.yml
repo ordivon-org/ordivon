@@ -8,6 +8,7 @@
     grafana_state_dir: /var/lib/ordivon-operations/grafana
     grafana_config_dir: /etc/ordivon-grafana
     grafana_quadlet_dir: /etc/containers/systemd
+    ordivon_heavy_observability_acceptance: false
   tasks:
     - name: Ensure official pinned Grafana OCI image is already admitted locally
       ansible.builtin.command:
@@ -65,7 +66,6 @@
         owner: root
         group: root
         mode: "0644"
-      register: grafana_env
 
     - name: Provision Prometheus and Loki datasources
       ansible.builtin.copy:
@@ -74,7 +74,6 @@
         owner: root
         group: root
         mode: "0644"
-      register: grafana_datasources
 
     - name: Remove stale datasource file from provisioning root
       ansible.builtin.file:
@@ -88,26 +87,23 @@
         owner: root
         group: root
         mode: "0644"
-      register: grafana_quadlet
 
     - name: Regenerate systemd units after Quadlet changes
       ansible.builtin.systemd_service:
         daemon_reload: true
 
-    - name: Enable and start official Grafana OCI service
+    - name: Keep Grafana cold by default
       ansible.builtin.systemd_service:
         name: ordivon-grafana.service
-        enabled: true
-        state: restarted
+        masked: false
+        state: stopped
         daemon_reload: true
-      when: grafana_env.changed or grafana_datasources.changed or grafana_quadlet.changed
 
-    - name: Ensure Grafana OCI service remains started on idempotent replay
-      ansible.builtin.systemd_service:
-        name: ordivon-grafana.service
-        enabled: true
-        state: started
-        daemon_reload: true
+    - name: Require explicit heavy observability activation before Grafana acceptance
+      ansible.builtin.command:
+        argv: [/usr/bin/systemctl, is-active, --quiet, ordivon-observability-heavy.target]
+      changed_when: false
+      when: ordivon_heavy_observability_acceptance | bool
 
     - name: Wait for Grafana health endpoint
       ansible.builtin.uri:
@@ -119,6 +115,7 @@
       retries: 40
       delay: 1
       until: grafana_health.status == 200
+      when: ordivon_heavy_observability_acceptance | bool
 
     - name: Read provisioned Grafana datasources
       ansible.builtin.uri:
@@ -127,6 +124,7 @@
         status_code: 200
         return_content: true
       register: grafana_datasource_inventory
+      when: ordivon_heavy_observability_acceptance | bool
 
     - name: Require immutable Prometheus and Loki datasource contracts
       ansible.builtin.assert:
@@ -143,6 +141,7 @@
             | selectattr('type', 'equalto', 'loki')
             | selectattr('readOnly', 'equalto', true)
             | list | length == 1
+      when: ordivon_heavy_observability_acceptance | bool
 
     - name: Verify Prometheus through Grafana datasource proxy
       ansible.builtin.uri:
@@ -151,12 +150,14 @@
         status_code: 200
         return_content: true
       register: grafana_prometheus_proxy
+      when: ordivon_heavy_observability_acceptance | bool
 
     - name: Require Prometheus proxy to return live series
       ansible.builtin.assert:
         that:
           - grafana_prometheus_proxy.json.status == 'success'
           - grafana_prometheus_proxy.json.data.result | length > 0
+      when: ordivon_heavy_observability_acceptance | bool
 
     - name: Verify Loki through Grafana datasource proxy
       ansible.builtin.uri:
@@ -165,18 +166,19 @@
         status_code: 200
         return_content: true
       register: grafana_loki_proxy
+      when: ordivon_heavy_observability_acceptance | bool
 
     - name: Require Loki proxy to return labels
       ansible.builtin.assert:
         that:
           - grafana_loki_proxy.json.status == 'success'
           - grafana_loki_proxy.json.data | length > 0
+      when: ordivon_heavy_observability_acceptance | bool
 
-    - name: Remove legacy Arch Grafana package only after official OCI acceptance
+    - name: Remove legacy Arch Grafana package after official OCI cutover
       community.general.pacman:
         name: grafana
         state: absent
-      register: grafana_package_retired
 
     - name: Remove obsolete packaged Grafana override directory
       ansible.builtin.file:
@@ -187,7 +189,7 @@
       ansible.builtin.systemd_service:
         daemon_reload: true
 
-    - name: Recheck official Grafana OCI after package retirement
+    - name: Recheck official Grafana OCI during explicit acceptance
       ansible.builtin.uri:
         url: http://127.0.0.1:3000/api/health
         method: GET
@@ -197,3 +199,4 @@
       retries: 10
       delay: 1
       until: grafana_post_retirement_health.status == 200
+      when: ordivon_heavy_observability_acceptance | bool
