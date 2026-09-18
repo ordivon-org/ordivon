@@ -1,0 +1,52 @@
+{
+  "bindings": [
+    {
+      "candidateNodeIds": [],
+      "candidateProviderIds": [],
+      "dispatchStarted": false,
+      "disposition": "unresolved",
+      "reasonCode": "reason/no-capable-provider",
+      "requestedCapabilityId": "capability/wsl/probe",
+      "resourceId": "distro/archlinux",
+      "schemaVersion": 1,
+      "stepId": "step/probe-wsl"
+    },
+    {
+      "candidateNodeIds": [],
+      "candidateProviderIds": [],
+      "dispatchStarted": false,
+      "disposition": "unresolved",
+      "reasonCode": "reason/no-capable-provider",
+      "requestedCapabilityId": "capability/service/probe",
+      "resourceId": "service/linux/control-plane",
+      "schemaVersion": 1,
+      "stepId": "step/probe-control-plane"
+    },
+    {
+      "candidateNodeIds": [],
+      "candidateProviderIds": [],
+      "dispatchStarted": false,
+      "disposition": "unresolved",
+      "reasonCode": "reason/no-capable-provider",
+      "requestedCapabilityId": "capability/service/ensure",
+      "resourceId": "service/linux/control-plane",
+      "schemaVersion": 1,
+      "stepId": "step/ensure-control-plane"
+    },
+    {
+      "candidateNodeIds": [],
+      "candidateProviderIds": [],
+      "dispatchStarted": false,
+      "disposition": "unresolved",
+      "reasonCode": "reason/no-capable-provider",
+      "requestedCapabilityId": "capability/runtime/health",
+      "resourceId": "runtime/linux-archlinux",
+      "schemaVersion": 1,
+      "stepId": "step/verify-runtime-health"
+    }
+  ],
+  "dispatchStarted": false,
+  "fullyResolved": false,
+  "schemaVersion": 1,
+  "workflowId": "workflow/wsl-control-plane-recovery-r1"
+}
