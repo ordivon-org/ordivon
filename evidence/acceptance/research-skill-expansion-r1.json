@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.research-skill-expansion-acceptance",
+  "date": "2026-09-19",
+  "status": "PASS_EXPANSION_5_SKILLS",
+  "upstream": {
+    "repository": "K-Dense-AI/scientific-agent-skills",
+    "revision": "330c8e764435a731eff571e3efdda70b363d0792"
+  },
+  "promoted": [
+    {
+      "skill": "paper-lookup",
+      "packageDigest": "sha256:f4409b44c4f87bf600a031c841b1f4993cd750880294f4f6b97608f2edc1aed0"
+    },
+    {
+      "skill": "citation-management",
+      "packageDigest": "sha256:1c1984097dff712c29c7af9199ed850b7302033952e5f22b6a36a13547a53949"
+    },
+    {
+      "skill": "hypothesis-generation",
+      "packageDigest": "sha256:f5ec7e04d5557a7c3296aa331e468b9dfdf76791ea9f1918fb150c895ea4e962"
+    },
+    {
+      "skill": "scientific-critical-thinking",
+      "packageDigest": "sha256:ae68d60c997e2f2e2306d2aca4179f87ca7bb6327ea777d81dc5dddc172630db"
+    },
+    {
+      "skill": "exploratory-data-analysis",
+      "packageDigest": "sha256:39b01db61eeed9329579b7bf48f67cf9247a0abe117045e9ca049b52d3cc3dc7"
+    }
+  ],
+  "deferred": [
+    {
+      "skill": "research-lookup",
+      "reason": "parallel-cli and PARALLEL_API_KEY unavailable; immediate retrieval gap covered by paper-lookup"
+    },
+    {
+      "skill": "statistical-power",
+      "reason": "principal scientific Python dependencies absent; no immediate Paper-1 planning requirement"
+    },
+    {
+      "skill": "venue-templates",
+      "reason": "no EMSE/Springer-specific authority; live official venue policy remains authoritative"
+    }
+  ],
+  "literatureReview": {
+    "retained": "msimchowitz/writing-skills",
+    "kDenseCurrentRevisionPromoted": false,
+    "reasons": [
+      "Parallel-first dependency",
+      "mandatory cross-skill AI-figure instruction",
+      "remote-shell installer path"
+    ],
+    "retainedDebt": [
+      "paper-writing dependency unavailable",
+      "general-writing dependency unavailable"
+    ]
+  },
+  "intakeEvidence": {
+    "skillSpector": "UNAVAILABLE_NOT_CLAIMED",
+    "pythonCompile": "PASS_ALL_STAGED_PYTHON",
+    "symlinks": 0,
+    "bulkInstall": false,
+    "existingSkillsOverwritten": false
+  },
+  "skillMcp": {
+    "preflight": "PASS",
+    "serviceRestart": "PASS_ACTIVE",
+    "catalogRevision": "sha256:19c4ee8b0ab234f6cc666c14df8d0dea58bcae75741256fbd90fcda2c54dd096",
+    "snapshotRevision": "sha256:b93a848140436a4f0056fd939357be62c54e25e090c04477de9a12974ea0dd8b",
+    "confidenceTier": "THIRD_PARTY_AUDITED",
+    "scanState": "WARN_NOT_REINTERPRETED_AS_PASS"
+  },
+  "invariant": "Exact audited Skill IDs only; no collection-wide trust promotion and no execution authority granted by installation."
+}
