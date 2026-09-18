@@ -1,9 +1,9 @@
 # Ordivon Agent Birth — LEGO / Puzzle Decomposition R1
 
-Status: **CURRENT SOURCE DECOMPOSED / MIGRATION-READY / PRODUCTION BEHAVIOR PRESERVED**
-Date: 2026-09-17
-Current source examined: `/root/projects/ordivon-harness` @ `a8bce1376a848c197abcd9d3c1c565ed75cb1617`
-Observed production Agent Automation release: `6864da68310753dd04295b7749b9cc16973fef4a`
+Status: **CURRENT SOURCE DECOMPOSED / MIGRATION-READY / PROVIDER-BOUNDARY DIAGNOSIS ADDED**
+Date: 2026-09-18
+Current source examined: `/root/projects/ordivon-harness` @ `3f10f7bb7cb732e3b873fcc2aacb6ae7e9cf52f4`
+Observed production Agent Automation release before Provider Boundary cutover: `dc23c0c6894f415cc6eca624a8740c856ab9009b`
 Node graph: `knowledge/graphs/ordivon-agent-birth-r1.json`
 
 ## 1. One-sentence kernel
@@ -72,7 +72,7 @@ Workstation v2 stable node-local bindings
 
 ## 4. LEGO assemblies
 
-The 36 atomic architectural nodes reassemble into nine useful assemblies:
+The 37 atomic architectural nodes reassemble into nine useful assemblies:
 
 ```text
 A. Interface shell
@@ -95,10 +95,11 @@ C. Admission + durable orchestration
    AB13 BirthWorkflow
    AB14 BirthActivityWorker
 
-D. Carrier routing
+D. Carrier routing + provider-boundary diagnosis
    AB15 CarrierCandidateRouter
    AB16 CarrierLease
    AB17 ProviderPreflightObserver
+   AB37 ProviderBoundaryDiagnosis
    AB18 CarrierBindingStore
 
 E. Provider-effect fence
@@ -153,6 +154,7 @@ The post-Birth continuation assembly is deliberately separated from Birth proper
 | AB15 CarrierCandidateRouter | Router | deterministic carrier ordering and narrow pre-SEND failover | routing decision | provider adapter |
 | AB16 CarrierLease | Adapter | exclusive use of one persistent Browserless profile | process-local lock evidence | provider adapter |
 | AB17 ProviderPreflightObserver | Observer | read-only carrier/provider admission check | observation | provider adapter |
+| AB37 ProviderBoundaryDiagnosis | Router | classify provider admission vs carrier failure and constrain repair routing | none | provider adapter / Agent Service policy |
 | AB18 CarrierBindingStore | State | bind `effectId` to exact endpoint identity | current carrier binding | provider adapter |
 | AB19 MaterializationRequestBuilder | Transform | build carrier-neutral immutable request/digest | none | provider contract |
 | AB20 BirthEffectLedger | State | persist effect intent, standing, evidence, generation | provider-effect truth | provider effect adapter |
@@ -237,7 +239,32 @@ turnRequestId != effectId
 
 This is the main reason the future Agent Service must introduce `AgentInstanceId` rather than reusing current `agentId` or `effectId`.
 
-## 7. Birth effect state machine
+## 7. Provider Boundary state — do not collapse provider admission into substrate health
+
+Provider preflight now feeds a separate pure diagnosis node, `AB37 ProviderBoundaryDiagnosis`.
+
+For a healthy carrier that observes `CHALLENGE_GATED`, the runtime classification is:
+
+```text
+SUBSTRATE_HEALTHY_PROVIDER_NOT_ADMISSIBLE
+```
+
+This means:
+
+```text
+carrier routing        PRESERVE_SELECTED_CARRIER
+provider admission     NOT_ADMISSIBLE
+human verification     eligible
+automatic Browserless/Profile/Launcher/Network repair
+                       forbidden
+provider root cause    not established
+```
+
+Only narrow carrier/transport-local pre-SEND standings may fail over to another candidate. The Browser Security R9 result is carried only as `REFERENCE_ONLY_NOT_LIVE_ASSERTION`; preflight does not claim to re-run R1-R9 on every observation.
+
+Detailed evidence and routing law: `knowledge/lessons/agent-birth-provider-boundary-r1.md`.
+
+## 8. Birth effect state machine
 
 The current carrier-neutral standing set is:
 
@@ -278,7 +305,7 @@ BOUND / READY_CONFIRMED
 
 `effect_generation` counts admitted physical effect attempts under one stable request/effect identity. It is not a new semantic Agent generation.
 
-## 8. Full campaign Birth flow
+## 9. Full campaign Birth flow
 
 ```text
 MCP / CLI
@@ -356,7 +383,7 @@ AB20 persist observed standing/evidence
 AB05 derived census
 ```
 
-## 9. Ambiguous-effect recovery flow
+## 10. Ambiguous-effect recovery flow
 
 ```text
 UNKNOWN / SUBMIT_OBSERVED
@@ -390,7 +417,7 @@ ledger      safeToResend=false
 
 Loss of the old carrier destroys observation authority; it does **not** create resend authority.
 
-## 10. Human verification flow
+## 11. Human verification flow
 
 ```text
 provider challenge before SEND
@@ -418,7 +445,7 @@ provider revalidation / SEND
 
 Human verification is therefore a **recovery branch of the same effect identity**, not creation of a new Agent.
 
-## 11. Failure model
+## 12. Failure model
 
 ### Before Temporal admission
 
@@ -448,7 +475,7 @@ The ledger transitions through the ambiguity fence before the external call. If 
 
 A stale endpoint identity cannot be silently rebound for an ambiguous effect. New carriers may be considered only on the pre-SEND side where absence of provider effect is established.
 
-## 12. Current production boundaries
+## 13. Current production boundaries
 
 A major finding from source + live inspection:
 
@@ -473,7 +500,7 @@ Agent Service Slice 1
 
 They must not be described as current Birth dependencies merely because they exist elsewhere in Ordivon.
 
-## 13. Migration into Agent Service
+## 14. Migration into Agent Service
 
 The clean migration is not "move all Agent Birth code into Agent Service".
 
@@ -532,7 +559,7 @@ Provisioning and continued conversation are adjacent, but they are not the same 
 
 Until then, keeping the tiny CAS is safer than prematurely merging it.
 
-## 14. Minimal clean-room Birth kernel
+## 15. Minimal clean-room Birth kernel
 
 If Agent Birth had to be rebuilt from zero while consuming mature substrates, the minimum faithful clone is only:
 
@@ -551,7 +578,7 @@ If Agent Birth had to be rebuilt from zero while consuming mature substrates, th
 
 Everything else is shell, provider mechanics, or post-Birth Session behavior.
 
-## 15. Minimal behavioral acceptance suite
+## 16. Minimal behavioral acceptance suite
 
 A faithful reimplementation must prove at least:
 
@@ -578,7 +605,7 @@ A faithful reimplementation must prove at least:
 
 Most of these invariants already have direct regression tests in the current Harness suite; the decomposition turns those tests into explicit architectural contracts.
 
-## 16. What to keep vs what not to copy
+## 17. What to keep vs what not to copy
 
 ### KEEP / EXTRACT
 
@@ -616,7 +643,7 @@ Most of these invariants already have direct regression tests in the current Har
 - provider-specific human-interaction transport;
 - current MCP/CLI surface as semantic source of truth.
 
-## 17. Final acceptance
+## 18. Final acceptance
 
 ```text
 ONE-SENTENCE TEST:          PASS
