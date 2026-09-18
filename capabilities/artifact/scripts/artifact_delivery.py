@@ -51,6 +51,11 @@ from artifact_capabilities.presentation import (
 )
 import artifact_capabilities.presentation.common as presentation_common
 import artifact_capabilities.presentation.ppt_master as presentation_ppt_master
+from artifact_verification import (
+    VerificationStageHooks,
+    execute_verify_stage as verification_execute_stage,
+    write_gate_receipt,
+)
 from artifact_evidence.delivery import (
     verify_delivery_evidence,
     verify_file_fact,
@@ -1604,262 +1609,43 @@ def verify_signed_verification_summary(
     )
 
 
-def _write_raw_and_vsa(
-    output_dir: Path,
-    gate: str,
-    subject: Path,
+
+
+# Compatibility alias for historical private callers; implementation is owned by artifact_verification.
+_write_raw_and_vsa = write_gate_receipt
+
+
+def _verification_stage_hooks() -> VerificationStageHooks:
+    return VerificationStageHooks(
+        validate_profile=validate_profile,
+        primary_suffix=_primary_suffix,
+        verify_openxml_artifact=verify_openxml_artifact,
+        validate_delivery_request=validate_delivery_request,
+        verify_document_semantic_correspondence=verify_document_semantic_correspondence,
+        verify_document_dependencies=verify_document_dependencies,
+        inspect_pptx=inspect_pptx,
+        verify_presentation_semantics=verify_presentation_semantics,
+        verify_pdf=verify_pdf,
+        verify_pdf_conformance=verify_pdf_conformance,
+        verify_html_conformance=verify_html_conformance,
+        verify_web_local=verify_web_local,
+    )
+
+
+def execute_verify_stage(
     profile_path: Path,
-    raw: dict[str, Any],
-    verifier_id: str,
-    verifier_versions: dict[str, str],
-    passed: bool | None = None,
+    artifact: Path,
+    output_dir: Path,
+    request_path: Path | None = None,
 ) -> dict[str, Any]:
-    output_dir.mkdir(parents=True, exist_ok=True)
-    raw_path = output_dir / f"{gate}.raw.json"
-    write_json(raw_path, raw)
-    result_passed = raw.get("status") == "PASS" if passed is None else passed
-    statement = verification_summary_statement(
-        subject,
+    return verification_execute_stage(
         profile_path,
-        verifier_id,
-        verifier_versions,
-        result_passed,
-    )
-    statement_path = output_dir / f"{gate}.vsa.json"
-    write_json(statement_path, statement)
-    checked = verify_verification_summary(statement_path, subject, profile_path, [verifier_id])
-    return {
-        "gate": gate,
-        "status": "PASS" if checked.get("status") == "PASS" and result_passed else "FAIL",
-        "verificationResult": "PASSED" if result_passed else "FAILED",
-        "rawEvidence": file_fact(raw_path),
-        "vsa": file_fact(statement_path),
-        "vsaValidation": checked,
-    }
-
-
-def execute_verify_stage(profile_path: Path, artifact: Path, output_dir: Path, request_path: Path | None = None) -> dict[str, Any]:
-    profile_result = validate_profile(profile_path)
-    profile = profile_result.get("profile", {})
-    artifact_class = profile.get("artifactClass")
-    receipts: dict[str, Any] = {}
-    failures: list[str] = []
-    if profile_result.get("status") != "PASS":
-        failures.append("delivery profile did not PASS validation")
-    expected_suffix = _primary_suffix(profile) if profile else None
-    if expected_suffix and artifact.suffix.casefold() != expected_suffix:
-        failures.append(f"artifact suffix {artifact.suffix} does not match profile primary output {expected_suffix}")
-    if not artifact.is_file():
-        failures.append("artifact file is absent")
-    if failures:
-        return {
-            "schemaVersion": 1,
-            "kind": "artifact-delivery-verify-stage",
-            "status": "FAIL",
-            "profileId": profile.get("id"),
-            "failures": failures,
-            "receipts": receipts,
-        }
-
-    profile_raw = {
-        "status": profile_result.get("status"),
-        "profile": file_fact(profile_path),
-        "jsonSchema": profile_result.get("jsonSchema"),
-        "minimalContractErrors": profile_result.get("minimalContractErrors", []),
-        "boundary": "Delivery-profile schema/contract validation only; artifact-format, target, visual, accessibility and delivery gates remain independent.",
-    }
-    receipts["profileSchema"] = _write_raw_and_vsa(
-        output_dir,
-        "profileSchema",
         artifact,
-        profile_path,
-        profile_raw,
-        LOCAL_VSA_VERIFIER_ID,
-        {"jsonschema": importlib.metadata.version("jsonschema")},
+        output_dir,
+        request_path,
+        hooks=_verification_stage_hooks(),
     )
 
-    if artifact_class in {"presentation", "document", "spreadsheet"}:
-        raw = verify_openxml_artifact(artifact)
-        version = str(raw.get("validatorOutput", {}).get("validator", {}).get("packageVersion", "unknown"))
-        receipts["structural"] = _write_raw_and_vsa(
-            output_dir,
-            "structural",
-            artifact,
-            profile_path,
-            raw,
-            LOCAL_VSA_VERIFIER_ID,
-            {"DocumentFormat.OpenXml": version},
-        )
-        if artifact_class == "document" and request_path is not None:
-            request_validation = validate_delivery_request(request_path)
-            if request_validation.get("status") == "PASS":
-                source_path = Path(request_validation["resolved"]["source"]["path"])
-                semantic_raw = verify_document_semantic_correspondence(source_path, artifact)
-            else:
-                semantic_raw = {
-                    "status": "FAIL",
-                    "artifact": file_fact(artifact),
-                    "request": file_fact(request_path),
-                    "failures": ["delivery request did not PASS before document semantic verification"],
-                }
-            receipts["semantic"] = _write_raw_and_vsa(
-                output_dir,
-                "semantic",
-                artifact,
-                profile_path,
-                semantic_raw,
-                LOCAL_VSA_VERIFIER_ID,
-                {"Pandoc": str(semantic_raw.get("pandoc", {}).get("version", "unknown"))},
-            )
-            dependency_raw = verify_document_dependencies(request_path, artifact)
-            receipts["dependency"] = _write_raw_and_vsa(
-                output_dir,
-                "dependency",
-                artifact,
-                profile_path,
-                dependency_raw,
-                LOCAL_VSA_VERIFIER_ID,
-                {"Pandoc": str(dependency_raw.get("pandoc", {}).get("version", "unknown")), "OpenXML": "locked-runtime"},
-            )
-        if artifact_class == "presentation":
-            inspected = inspect_pptx(artifact, profile.get("semanticPolicy", {}).get("placeholderPatterns", []))
-            semantic = verify_presentation_semantics(profile, inspected)
-            raw_semantic = {
-                "status": "PASS" if inspected.get("status") == "PASS" and semantic.get("status") == "PASS" else "FAIL",
-                "artifact": file_fact(artifact),
-                "inspection": inspected,
-                "semantic": semantic,
-                "boundary": "Presentation-local package/slide semantic checks only; target rendering, visual review and delivery remain separate.",
-            }
-            receipts["semantic"] = _write_raw_and_vsa(
-                output_dir,
-                "semantic",
-                artifact,
-                profile_path,
-                raw_semantic,
-                LOCAL_VSA_VERIFIER_ID,
-                {"python-pptx": importlib.metadata.version("python-pptx")},
-            )
-    elif artifact_class in {"fixed-view", "archive", "accessible"}:
-        raw = verify_pdf(artifact)
-        qpdf_version = "unknown"
-        if shutil.which("qpdf"):
-            qproc = subprocess.run([shutil.which("qpdf"), "--version"], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False, timeout=10)
-            qpdf_version = qproc.stdout.splitlines()[0] if qproc.stdout else "unknown"
-        receipts["structural"] = _write_raw_and_vsa(
-            output_dir,
-            "structural",
-            artifact,
-            profile_path,
-            raw,
-            LOCAL_VSA_VERIFIER_ID,
-            {"qpdf": qpdf_version},
-        )
-        if profile.get("gates", {}).get("conformance") is True:
-            flavour = profile.get("conformancePolicy", {}).get("pdfFlavour")
-            if not isinstance(flavour, str):
-                conformance_raw = {"status": "FAIL", "error": "profile requires conformance but omits conformancePolicy.pdfFlavour"}
-            else:
-                conformance_raw = verify_pdf_conformance(artifact, flavour)
-            receipts["conformance"] = _write_raw_and_vsa(
-                output_dir,
-                "conformance",
-                artifact,
-                profile_path,
-                conformance_raw,
-                LOCAL_VSA_VERIFIER_ID,
-                {"veraPDF": "1.30.2"},
-            )
-    elif artifact_class == "web":
-        conformance = verify_html_conformance(artifact)
-        receipts["conformance"] = _write_raw_and_vsa(
-            output_dir,
-            "conformance",
-            artifact,
-            profile_path,
-            conformance,
-            LOCAL_VSA_VERIFIER_ID,
-            {"Nu Html Checker": str(conformance.get("validator", {}).get("version") or "unknown")},
-        )
-        receipts["structural"] = _write_raw_and_vsa(
-            output_dir,
-            "structural",
-            artifact,
-            profile_path,
-            conformance,
-            LOCAL_VSA_VERIFIER_ID,
-            {"Nu Html Checker": str(conformance.get("validator", {}).get("version") or "unknown")},
-        )
-        web = verify_web_local(artifact)
-        output = web.get("verifierOutput", {}) if isinstance(web.get("verifierOutput"), dict) else {}
-        browsers = output.get("browsers", {}) if isinstance(output.get("browsers"), dict) else {}
-        chromium = browsers.get("chromium", {}) if isinstance(browsers.get("chromium"), dict) else {}
-        accessibility_passed = chromium.get("status") == "PASS" and chromium.get("accessibility", {}).get("status") == "PASS"
-        receipts["accessibility"] = _write_raw_and_vsa(
-            output_dir,
-            "accessibility",
-            artifact,
-            profile_path,
-            web,
-            LOCAL_VSA_VERIFIER_ID,
-            {
-                "@axe-core/playwright": str(output.get("tooling", {}).get("axePlaywright", "unknown")),
-                "@playwright/test": str(output.get("tooling", {}).get("playwright", "unknown")),
-            },
-            accessibility_passed,
-        )
-        required_names = [str(profile.get("targetRenderer", {}).get("name"))] if profile.get("targetRenderer", {}).get("required") is True else []
-        required_names.extend(
-            str(item.get("name"))
-            for item in profile.get("secondaryRenderers", [])
-            if item.get("required") is True
-        )
-        browser_by_name = {
-            str(item.get("name")): item
-            for item in browsers.values()
-            if isinstance(item, dict) and item.get("name")
-        }
-        target_passed = bool(required_names) and all(browser_by_name.get(name, {}).get("status") == "PASS" for name in required_names)
-        target_raw = {
-            "status": "PASS" if target_passed else "FAIL",
-            "artifact": file_fact(artifact),
-            "requiredRenderers": required_names,
-            "browserResults": browser_by_name,
-            "failures": [name for name in required_names if browser_by_name.get(name, {}).get("status") != "PASS"],
-            "boundary": "Target renderer policy requires every profile-required primary/secondary renderer. Unsupported-host WebKit remains a hard failure rather than a local compatibility waiver.",
-        }
-        receipts["target"] = _write_raw_and_vsa(
-            output_dir,
-            "target",
-            artifact,
-            profile_path,
-            target_raw,
-            LOCAL_VSA_VERIFIER_ID,
-            {"@playwright/test": str(output.get("tooling", {}).get("playwright", "unknown"))},
-            target_passed,
-        )
-    else:
-        failures.append(f"no verify-stage adapters for artifactClass={artifact_class!r}")
-
-    executed_failures = [gate for gate, item in receipts.items() if item.get("status") != "PASS"]
-    required_gates = {name for name, flag in profile.get("gates", {}).items() if flag is True}
-    generated = set(receipts)
-    pending = sorted(required_gates - generated)
-    if executed_failures:
-        failures.append("executed verifier gate(s) failed: " + ", ".join(sorted(executed_failures)))
-    return {
-        "schemaVersion": 1,
-        "kind": "artifact-delivery-verify-stage",
-        "status": "PASS" if not failures else "FAIL",
-        "profileId": profile.get("id"),
-        "artifact": file_fact(artifact),
-        "receipts": receipts,
-        "profileRequiredGates": sorted(required_gates),
-        "pendingRequiredGates": pending,
-        "profileVerificationComplete": not failures and not pending,
-        "failures": failures,
-        "boundary": "Verify-stage status covers only adapters executed here. profileVerificationComplete is the stronger statement and remains false until every profile-required gate has independent evidence. Generated VSAs are unsigned local statements; external trust requires signature/root-of-trust verification.",
-    }
 
 
 def aggregate_vsa_gates(
