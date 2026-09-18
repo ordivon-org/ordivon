@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Research-engineering owner for game semantics, development-core evidence, authoritative interactive worlds, and retained playable experiments.",
   "engines": {
-    "node": ">=26.0.0"
+    "node": "26.9.0"
   },
   "scripts": {
     "bootstrap": "pnpm install --offline --frozen-lockfile",
@@ -57,10 +57,10 @@
   },
   "license": "Apache-2.0",
   "devDependencies": {
-    "@types/node": "^26.1.1",
+    "@types/node": "26.1.2",
     "fast-check": "^4.9.0",
-    "typescript": "^7.0.2",
+    "typescript": "7.0.2",
     "playwright": "1.62.0"
   },
-  "packageManager": "pnpm@10.33.2"
+  "packageManager": "pnpm@12.4.2"
 }
