@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.acceptance-evidence",
+  "subject": "lego-question-compiler-skill-discovery-r1",
+  "truthRole": "skill-discovery-and-scan-evidence",
+  "date": "2026-09-18",
+  "sourceRevision": "5049f8db91a40052f34cc9bc27aa319319470730",
+  "skillId": "project-ordivon-next/lego-question-compiler",
+  "instructionDigest": "sha256:c965eb10bd5f2cfcab3f06c8158abc016b5568932f2955ac5dd7a2413d04edab",
+  "packageRevision": "sha256:860e1a047777774483f64e1d942262430665fb02940a1a22339da72784cb7b3b",
+  "packageManifest": [
+    {
+      "path": ".agents/skills/lego-question-compiler/SKILL.md",
+      "type": "regular-file"
+    }
+  ],
+  "localScanner": {
+    "state": "PASS",
+    "riskTags": [],
+    "findings": [],
+    "declaredDependencies": [],
+    "requiredDependencies": []
+  },
+  "skillsMcpResolution": {
+    "trustState": "TRUSTED",
+    "scanState": "PASS",
+    "riskTags": [],
+    "confidenceTier": "THIRD_PARTY_SCANNED",
+    "instructionAuthority": "ADVISORY",
+    "implicitInvocation": true,
+    "explicitInvocation": true,
+    "projection": "ADVISORY_SANITIZED",
+    "removedRiskTags": []
+  },
+  "skillspector": {
+    "state": "UNAVAILABLE",
+    "claim": "No SkillSpector pass claim is made."
+  },
+  "designDecision": "Question Compiler records the natural mature method owner/family but does not make cross-Skill invocation part of its own authority. Exact Skill-to-Skill mapping remains documentation/routing context outside the Skill's control authority.",
+  "acceptedClaims": [
+    "The exact Question Compiler package is discoverable by the live Skill MCP.",
+    "The exact package passes the local deterministic Skill scanner with no risk tags.",
+    "Implicit and explicit invocation are both admitted for the current exact package revision."
+  ],
+  "nonClaims": [
+    "Discovery admission does not prove cross-domain usefulness of the method.",
+    "Skill MCP admission does not grant tool/effect authority.",
+    "SkillSpector was unavailable and therefore contributes no passing evidence."
+  ]
+}

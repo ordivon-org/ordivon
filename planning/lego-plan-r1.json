@@ -147,7 +147,8 @@
         "docs/LEGO_QUESTION_COMPILER_R1.md",
         ".agents/skills/lego-question-compiler/SKILL.md",
         "knowledge/lessons/poker-ai-lego-question-compiler-pilot-r1.md",
-        "evidence/acceptance/lego-question-compiler-r1.json"
+        "evidence/acceptance/lego-question-compiler-r1.json",
+        "evidence/acceptance/lego-question-compiler-skill-discovery-r1.json"
       ],
       "dependencies": [],
       "replacementContract": "The compiler may be replaced or refined without changing project/domain truth; downstream planning consumes only evidence-supported decisions.",
@@ -159,7 +160,8 @@
         "universal question ontology"
       ],
       "acceptance": [
-        "R1 keeps primary questions bounded, requires pruning and evidence/experiment handoff, adds no common Question schema, and passes repository regression."
+        "R1 keeps primary questions bounded, requires pruning and evidence/experiment handoff, adds no common Question schema, and passes repository regression.",
+        "The live Skill MCP resolves the exact package with scan PASS and both implicit and explicit invocation admitted."
       ],
       "nextAction": "Prospectively test on at least two non-poker Ordivon domains before promoting any new shared LEGO concept."
     }
@@ -235,7 +237,8 @@
         "Compiler Skill, method contract, and poker pilot exist; dedicated tests and full repository regression pass; no Question schema is introduced."
       ],
       "evidence": [
-        "evidence/acceptance/lego-question-compiler-r1.json"
+        "evidence/acceptance/lego-question-compiler-r1.json",
+        "evidence/acceptance/lego-question-compiler-skill-discovery-r1.json"
       ],
       "blockers": []
     }
@@ -253,9 +256,9 @@
     "a universal workflow engine"
   ],
   "review": {
-    "sourceRevision": "92c704e0064d804ff11a6eff5d69e77bfc1817a5",
+    "sourceRevision": "5049f8db91a40052f34cc9bc27aa319319470730",
     "updatedAt": "2026-09-18",
     "standing": "STABLE",
-    "notes": "LEGO Project Planning R1 remains stable. Question Compiler R1 is a verified experimental cross-cutting analysis lens with one poker pilot; it routes eligible turning-point/deep-uncertainty questions to lego-regime-shift. Cross-domain outcome improvement remains unproven."
+    "notes": "LEGO Project Planning R1 remains stable. Question Compiler R1 is a verified experimental cross-cutting analysis lens and is live in Skill MCP with scan PASS plus implicit/explicit invocation. One poker pilot exists; cross-domain outcome improvement remains unproven."
   }
 }
