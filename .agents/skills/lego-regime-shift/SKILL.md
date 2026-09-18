@@ -22,7 +22,7 @@ Use this lens to distinguish visible output from latent system state and to turn
 6. Identify the dominant constraint and possible constraint migration.
 7. Maintain competing hypotheses: noise, cycle, structural change, regime/threshold shift, exogenous shock.
 8. For each hypothesis state predictions, contradictions, discriminating evidence, and falsifiers.
-9. Use early-warning statistics only when a mechanistic model makes them meaningful; record false-alarm/miss risk.
+9. Apply early-warning statistics only when a mechanistic model makes them meaningful; record false-alarm/miss risk.
 10. Model actor adaptation and reflexivity.
 11. Separate chronology, mechanism, causal effect, necessity, and counterfactual.
 12. Stress-test actions across plausible futures.
