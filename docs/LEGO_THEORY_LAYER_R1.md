@@ -271,4 +271,14 @@ Wave 2 currently adds four optional lenses:
 - `lego-fmea-fta`;
 - `lego-information-flow`.
 
-They remain `PRE_PROSPECTIVE_VALIDATION`. None adds mandatory fields to the common LEGO schema.
+Wave 2 has now passed its first prospective cross-domain validation with follow-ups. None adds mandatory fields to the common LEGO schema.
+
+Standing:
+- `lego-compositional-contracts` — PROSPECTIVELY_VALIDATED_REPLACEMENT_LENS;
+- `lego-causal-intervention` — PROSPECTIVELY_VALIDATED_CAUSAL_BOUNDARY_LENS;
+- `lego-fmea-fta` — PROSPECTIVELY_VALIDATED_RELIABILITY_LENS;
+- `lego-information-flow` — PROSPECTIVELY_VALIDATED_INFORMATION_BOUNDARY_LENS.
+
+Evidence:
+- `knowledge/lessons/lego-wave2-prospective-validation-r1.md`
+- `evidence/acceptance/lego-theory-wave2-prospective-r1.json`
