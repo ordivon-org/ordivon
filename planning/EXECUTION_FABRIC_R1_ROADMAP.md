@@ -49,6 +49,20 @@ Project ResourceDescriptor, CapabilityDescriptor, ProviderDescriptor and NodeDes
 
 Gate: descriptor output cannot grant authority or change admission.
 
+Current EF2 slice (2026-09-18):
+
+- `runtime.describe` projects an additive `executionFabric` observation from existing `RuntimeCapabilities`;
+- the projection reports current Runtime node identity, configured execution-target resources,
+  execution capabilities, current provider snapshots, and observed Windows authority contexts;
+- the projection carries `descriptiveOnly=true`, `grantsAuthority=false`, and
+  `selectsProvider=false`;
+- Runtime Core does not depend on `ordivon-runtime-spi`; projection stays in the MCP adapter layer;
+- no AuthorityLease is created and no admission/dispatch path reads the projection;
+- MCP regression: 55/55 PASS;
+- SPI contracts: 5/5 PASS;
+- execution-fabric boundary test: 1/1 PASS;
+- `cargo fmt --all -- --check` and `git diff --check`: PASS.
+
 ## EF3 — Authority shadow
 
 Introduce AuthorityVector and AuthorityLease evaluation in shadow mode.

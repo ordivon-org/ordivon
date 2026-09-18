@@ -109,6 +109,163 @@ pub struct RuntimeDescribeRequest {
 
 #[derive(Clone, Debug, Serialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+pub struct ExecutionFabricObservation {
+    pub schema_version: u32,
+    /// This projection is descriptive. It neither grants authority nor selects a provider.
+    pub descriptive_only: bool,
+    pub grants_authority: bool,
+    pub selects_provider: bool,
+    pub node: FabricNodeDescriptor,
+    pub resources: Vec<FabricResourceDescriptor>,
+    pub capabilities: Vec<FabricCapabilityDescriptor>,
+    pub providers: Vec<FabricProviderDescriptor>,
+}
+
+impl ExecutionFabricObservation {
+    fn from_runtime_capabilities(capabilities: &RuntimeCapabilities) -> Self {
+        let node_id = FabricId::parse(capabilities.node.node_id.clone())
+            .expect("validated Runtime node ID must be a valid Execution Fabric ID");
+        let platform = match capabilities.node.platform {
+            RuntimeNodePlatform::Linux => FabricPlatform::Linux,
+            RuntimeNodePlatform::Windows => FabricPlatform::Windows,
+            RuntimeNodePlatform::Other => FabricPlatform::Unknown,
+        };
+        // R1 uses one local trust-domain label only as an observation namespace.
+        // It is not a credential, authorization decision, or SPIFFE deployment claim.
+        let trust_domain = FabricId::parse("ordivon.local")
+            .expect("static Execution Fabric trust domain must be valid");
+
+        let mut resources = vec![FabricResourceDescriptor {
+            schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+            resource_id: FabricId::parse(format!("runtime/{}", node_id.as_str()))
+                .expect("Runtime resource ID must be valid"),
+            resource_kind: FabricId::parse("runtime-node")
+                .expect("static Runtime resource kind must be valid"),
+            node_id: Some(node_id.clone()),
+            conflict_domains: Vec::new(),
+        }];
+        let mut fabric_capabilities = Vec::new();
+        let mut providers = Vec::new();
+        let mut node_capabilities = Vec::new();
+        let mut node_providers = Vec::new();
+        let mut authority_contexts = Vec::new();
+
+        for target in &capabilities.targets {
+            let (target_name, capability_name) = match target.target {
+                ExecutionTarget::LocalLinux => ("local-linux", "capability/execution/local-linux"),
+                ExecutionTarget::WindowsNative => {
+                    ("windows-native", "capability/execution/windows-native")
+                }
+            };
+            if target.configured {
+                resources.push(FabricResourceDescriptor {
+                    schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+                    resource_id: FabricId::parse(format!(
+                        "execution-target/{}/{}",
+                        node_id.as_str(),
+                        target_name
+                    ))
+                    .expect("execution target resource ID must be valid"),
+                    resource_kind: FabricId::parse("execution-target")
+                        .expect("static execution target resource kind must be valid"),
+                    node_id: Some(node_id.clone()),
+                    conflict_domains: Vec::new(),
+                });
+            }
+
+            let capability_id =
+                FabricId::parse(capability_name).expect("static execution capability ID must be valid");
+            fabric_capabilities.push(FabricCapabilityDescriptor {
+                schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+                capability_id: capability_id.clone(),
+                resource_kind: FabricId::parse("execution-target")
+                    .expect("static execution target resource kind must be valid"),
+                observation_only: false,
+            });
+            if target.available {
+                node_capabilities.push(capability_id.clone());
+            }
+
+            if let Some(provider) = &target.execution_provider {
+                let provider_suffix = match provider.contract {
+                    ExecutionProviderContract::LocalLinuxRunnerV1 => "local-linux-runner-v1",
+                    ExecutionProviderContract::WindowsNativeLauncherV1 => {
+                        "windows-native-launcher-v1"
+                    }
+                };
+                let provider_id = FabricId::parse(format!(
+                    "provider/{}/{}",
+                    node_id.as_str(),
+                    provider_suffix
+                ))
+                .expect("execution provider ID must be valid");
+                providers.push(FabricProviderDescriptor {
+                    schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+                    provider_id: provider_id.clone(),
+                    node_id: node_id.clone(),
+                    platform,
+                    capabilities: vec![capability_id],
+                });
+                node_providers.push(provider_id);
+            }
+
+            if target.target == ExecutionTarget::WindowsNative {
+                for authority in &target.windows_authorities {
+                    let value = match authority {
+                        WindowsAuthority::Limited => "windows/limited",
+                        WindowsAuthority::Elevated => "windows/elevated",
+                    };
+                    authority_contexts.push(
+                        FabricId::parse(value)
+                            .expect("static Windows authority context must be valid"),
+                    );
+                }
+            }
+        }
+
+        let node = FabricNodeDescriptor {
+            schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+            node_id,
+            platform,
+            native_control_plane: capabilities.node.native,
+            trust_domain,
+            providers: node_providers,
+            capabilities: node_capabilities,
+            authority_contexts,
+        };
+        node.validate()
+            .expect("Runtime capability projection must produce a valid Fabric node");
+        for resource in &resources {
+            resource
+                .validate()
+                .expect("Runtime capability projection must produce valid Fabric resources");
+        }
+        for capability in &fabric_capabilities {
+            capability
+                .validate()
+                .expect("Runtime capability projection must produce valid Fabric capabilities");
+        }
+        for provider in &providers {
+            provider
+                .validate()
+                .expect("Runtime capability projection must produce valid Fabric providers");
+        }
+
+        Self {
+            schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+            descriptive_only: true,
+            grants_authority: false,
+            selects_provider: false,
+            node,
+            resources,
+            capabilities: fabric_capabilities,
+            providers,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct RuntimeDescribeResult {
     pub schema_version: u32,
     pub node: RuntimeNodeIdentity,
@@ -121,6 +278,7 @@ pub struct RuntimeDescribeResult {
     pub input_ingress_authorities: Vec<String>,
     pub targets: Vec<RuntimeExecutionTargetCapability>,
     pub structured_release_configured: bool,
+    pub execution_fabric: ExecutionFabricObservation,
 }
 
 impl RuntimeDescribeResult {
@@ -130,6 +288,7 @@ impl RuntimeDescribeResult {
         structured_release_configured: bool,
         input_ingress_authorities: Vec<String>,
     ) -> Self {
+        let execution_fabric = ExecutionFabricObservation::from_runtime_capabilities(&capabilities);
         Self {
             schema_version: capabilities.schema_version,
             node: capabilities.node,
@@ -142,6 +301,7 @@ impl RuntimeDescribeResult {
             input_ingress_authorities,
             targets: capabilities.targets,
             structured_release_configured,
+            execution_fabric,
         }
     }
 }
