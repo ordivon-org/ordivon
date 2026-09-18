@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.agent-service-effect-authority-r15-acceptance",
+  "date": "2026-09-18",
+  "truthRole": "source-implementation-acceptance-not-production-deployment-truth",
+  "baseMainCommit": "67b9f61ede96afc20a575882797cf99cfab42d19",
+  "architectureDelta": "knowledge/graphs/ordivon-agent-service-r15-effect-authority-delta.json",
+  "implementation": {
+    "module": "agent_service/effect_authority.py",
+    "compositionRoot": "AgentServiceR15",
+    "runtimeHistoryRewritten": false,
+    "productionEffects": false
+  },
+  "authorityContract": {
+    "sessionCloseIsImplicitRevocation": false,
+    "sessionIsContinuityAuthority": true,
+    "routeTimePolicyIsHistoricalSnapshot": true,
+    "firstExternalEffectRequiresCurrentPolicyObservation": true,
+    "missingCurrentPolicyFailsClosed": true,
+    "deniedEffectIdentityMayBeSilentlyReauthorized": false,
+    "sameEffectRecoveryReusesFrozenAuthorization": true,
+    "existingReceiptReplayRequiresNewAuthorization": false,
+    "newBindingRequiresNewAuthorization": true,
+    "providerAuthorizationStillRequired": true,
+    "credentialCurrentnessStillRequired": true
+  },
+  "discoveredNodes": {
+    "N87": "EffectAuthorizationDecisionStore",
+    "N88": "EffectAuthorizationCoordinator",
+    "N89": "EffectAuthorizedDeliveryCoordinator",
+    "N90": "AgentServiceR15"
+  },
+  "verification": {
+    "dedicatedEffectAuthorityTests": 6,
+    "graphIdentityRegressionTests": 1,
+    "graphFiles": 13,
+    "graphNodeCount": 90,
+    "hardGraphIdentityCollisions": 0,
+    "agentServiceTests": 188,
+    "agentServiceFailures": 0,
+    "repositoryTests": 244,
+    "repositoryFailures": 0,
+    "compileall": "PASS",
+    "gitDiffCheck": "PASS"
+  },
+  "standardsBasis": [
+    {
+      "standard": "A2A Protocol current specification",
+      "source": "https://a2a-protocol.org/dev/specification/",
+      "localConclusion": "Authorization belongs at operation/effect boundaries; scope, validity and revocation semantics are implementation/credential-authority concerns rather than implicit Session semantics."
+    },
+    {
+      "standard": "Model Context Protocol 2026-07-28",
+      "source": "https://blog.modelcontextprotocol.io/posts/2026-07-28/",
+      "localConclusion": "Stateless protocol requests support keeping Ordivon SemanticSession separate from transport authorization lifetime."
+    }
+  ],
+  "standings": {
+    "sourceImplementation": "READY_TO_INTEGRATE_MAIN",
+    "authorityLifetimeQuestion": "RESOLVED_BY_EXPLICIT_SEPARATION",
+    "productionDeployment": "NOT_ADMITTED"
+  },
+  "remainingProductionGates": [
+    "Define the concrete Agent Service deployment/API composition.",
+    "Run bounded deployment canary without replacing provider-native authorization/effect authorities.",
+    "Recheck current provider admission before consequential effects.",
+    "Instrument intent -> effect authorization -> provider admission -> effect evidence -> semantic acceptance as one end-to-end funnel.",
+    "Preserve rollback to the legacy Agent Automation path until deployment canary acceptance."
+  ]
+}
