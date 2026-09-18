@@ -1,0 +1,207 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.pc01-e03-playable-r1-mechanical-acceptance",
+  "designId": "pc01-causal-works-f0",
+  "designDigest": "sha256:19a258b457f4bbdeaf1e97a24c01bd9b800f0e50a4e3ffebe857e75290e0ac7c",
+  "scenarios": {
+    "route-shift": {
+      "id": "route-shift",
+      "sourceCycleIndex": 0,
+      "executionCycleIndex": 1,
+      "previousArchitecture": "route",
+      "lagSteps": 1
+    },
+    "source-rule": {
+      "id": "source-rule",
+      "sourceCycleIndex": 1,
+      "executionCycleIndex": 2,
+      "previousArchitecture": "",
+      "lagSteps": 1
+    }
+  },
+  "witness": {
+    "schemaVersion": 1,
+    "kind": "ordivon.game.pc01-e03-playable-r1-witness",
+    "routeShift": {
+      "scenarioId": "route-shift",
+      "anticipatory": {
+        "policy": {
+          "diagnostic": "route",
+          "architectureByObservation": {
+            "OK": "process",
+            "FAULT": "route"
+          }
+        },
+        "expectedValue": 84.2
+      },
+      "reactive": {
+        "policy": {
+          "diagnostic": "process",
+          "architectureByObservation": {
+            "OK": "route",
+            "FAULT": "process"
+          }
+        },
+        "expectedValue": 84.8
+      },
+      "reactiveExecutionValue": 83.6,
+      "noDiagnosis": {
+        "policy": {
+          "diagnostic": "none",
+          "architectureByObservation": {
+            "NONE": "process"
+          }
+        },
+        "expectedValue": 78.8
+      },
+      "noPersistence": {
+        "policy": {
+          "diagnostic": "none",
+          "architectureByObservation": {
+            "NONE": "process"
+          }
+        },
+        "expectedValue": 78.80000000000001
+      },
+      "noPersistenceNoDiagnosis": {
+        "policy": {
+          "diagnostic": "none",
+          "architectureByObservation": {
+            "NONE": "process"
+          }
+        },
+        "expectedValue": 78.80000000000001
+      },
+      "forecastChangesPolicy": true,
+      "diagnosisAddsValue": true,
+      "persistenceRequiredForDiagnosisValue": true,
+      "pass": true
+    },
+    "sourceRule": {
+      "scenarioId": "source-rule",
+      "anticipatory": {
+        "policy": {
+          "diagnostic": "route",
+          "architectureByObservation": {
+            "OK": "source",
+            "FAULT": "route"
+          }
+        },
+        "expectedValue": 88
+      },
+      "reactive": {
+        "policy": {
+          "diagnostic": "route",
+          "architectureByObservation": {
+            "OK": "process",
+            "FAULT": "route"
+          }
+        },
+        "expectedValue": 88.4
+      },
+      "reactiveExecutionValue": 86.8,
+      "noDiagnosis": {
+        "policy": {
+          "diagnostic": "none",
+          "architectureByObservation": {
+            "NONE": "route"
+          }
+        },
+        "expectedValue": 86.4
+      },
+      "noPersistence": {
+        "policy": {
+          "diagnostic": "none",
+          "architectureByObservation": {
+            "NONE": "route"
+          }
+        },
+        "expectedValue": 86.4
+      },
+      "noPersistenceNoDiagnosis": {
+        "policy": {
+          "diagnostic": "none",
+          "architectureByObservation": {
+            "NONE": "route"
+          }
+        },
+        "expectedValue": 86.4
+      },
+      "forecastChangesPolicy": true,
+      "diagnosisAddsValue": true,
+      "persistenceRequiredForDiagnosisValue": true,
+      "pass": true
+    },
+    "pass": true,
+    "productSelected": false,
+    "g0Entered": false,
+    "humanOutcomeEstablished": false,
+    "gameCoreChanged": false,
+    "claimBoundary": "PLAYABLE_MECHANICAL_COUPLING_ONLY_NO_HUMAN_VALUE_OR_PRODUCT_SELECTION_CLAIM"
+  },
+  "deterministicInteractiveTraces": {
+    "routeShift": {
+      "inspection": {
+        "diagnostic": "route",
+        "observation": "OK"
+      },
+      "resolution": {
+        "sourceCause": "process",
+        "executionCause": "process",
+        "currentContextId": "cycle-1-baseline-output",
+        "executionContextId": "cycle-2-objective-shift",
+        "diagnostic": "route",
+        "observation": "OK",
+        "architecture": "process",
+        "baseReward": 100,
+        "diagnosticCost": 6,
+        "switchCost": 8,
+        "net": 86
+      }
+    },
+    "sourceRule": {
+      "inspection": {
+        "diagnostic": "route",
+        "observation": "OK"
+      },
+      "resolution": {
+        "sourceCause": "source",
+        "executionCause": "source",
+        "currentContextId": "cycle-2-objective-shift",
+        "executionContextId": "cycle-3-rule-revaluation",
+        "diagnostic": "route",
+        "observation": "OK",
+        "architecture": "source",
+        "baseReward": 100,
+        "diagnosticCost": 6,
+        "switchCost": 0,
+        "net": 94
+      }
+    },
+    "persistenceAblation": {
+      "inspection": {
+        "diagnostic": "process",
+        "observation": "FAULT"
+      },
+      "resolution": {
+        "sourceCause": "process",
+        "executionCause": "route",
+        "currentContextId": "cycle-1-baseline-output",
+        "executionContextId": "cycle-2-objective-shift",
+        "diagnostic": "process",
+        "observation": "FAULT",
+        "architecture": "process",
+        "baseReward": 70,
+        "diagnosticCost": 6,
+        "switchCost": 8,
+        "net": 56
+      }
+    }
+  },
+  "pass": true,
+  "productSelected": false,
+  "g0Entered": false,
+  "humanOutcomeEstablished": false,
+  "gameCoreChanged": false,
+  "claimBoundary": "PLAYABLE_MECHANICAL_COUPLING_ONLY_NO_HUMAN_VALUE_OR_PRODUCT_SELECTION_CLAIM"
+}

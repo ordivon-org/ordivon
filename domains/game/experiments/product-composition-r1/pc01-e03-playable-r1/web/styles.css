@@ -1,0 +1,51 @@
+*{box-sizing:border-box}
+:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0a0e14;color:#e8edf5;font-synthesis:none}
+body{margin:0;min-height:100vh;background:radial-gradient(circle at 18% 0%,#172232 0,#0a0e14 42%),#0a0e14}
+button,select{font:inherit}
+button{cursor:pointer}
+button:disabled{cursor:not-allowed;opacity:.42}
+.shell{width:min(1240px,calc(100% - 40px));margin:0 auto;padding:38px 0 28px}
+.masthead{display:flex;justify-content:space-between;gap:32px;align-items:flex-start;border-bottom:1px solid #263140;padding-bottom:24px}
+.eyebrow,.card-kicker{margin:0 0 8px;text-transform:uppercase;letter-spacing:.14em;font-size:11px;font-weight:700;color:#8aa0b9}
+h1{font-size:46px;line-height:1;margin:0;letter-spacing:-.04em}
+.lede{max-width:690px;color:#acb9c9;font-size:17px;line-height:1.5;margin:14px 0 0}
+.run-controls{display:flex;gap:10px;align-items:flex-end}
+.run-controls label{display:grid;gap:6px;color:#8fa0b3;font-size:12px;text-transform:uppercase;letter-spacing:.08em}
+select,.secondary{height:40px;border:1px solid #334154;background:#111925;color:#e8edf5;border-radius:7px;padding:0 12px}
+.timeline{display:grid;grid-template-columns:1fr 190px 1fr;gap:16px;align-items:stretch;margin:28px 0 18px}
+.context-card,.lag-card,.panel,.commit-strip,.aftermath{border:1px solid #293647;background:rgba(16,23,34,.88);border-radius:12px}
+.context-card{padding:20px;min-height:190px}
+.context-card h2{font:600 14px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;color:#d8e1ec;margin:10px 0}
+.context-card p{color:#aebbc9;line-height:1.45;margin:8px 0}
+.context-card .signal{color:#f2f5f8}
+.current{box-shadow:inset 3px 0 0 #8797aa}
+.forecast{box-shadow:inset 3px 0 0 #c2a873}
+.lag-card{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:16px;color:#99a8ba}
+.lag-card span{font-size:10px;letter-spacing:.15em}
+.lag-card strong{font-size:14px;color:#f1e3c4;margin-top:5px}
+.lag-card .arrow{font-size:34px;line-height:1;color:#c2a873;margin:12px 0}
+.lag-card p{font-size:11px;line-height:1.4;margin:0}
+.decision-grid{display:grid;grid-template-columns:1.65fr .75fr;gap:18px}
+.panel{padding:20px}
+.panel-head{display:flex;justify-content:space-between;align-items:end;gap:20px;margin-bottom:18px}
+.panel-head h2{font-size:22px;margin:0}
+.panel-head p{font:12px ui-monospace,SFMono-Regular,Menlo,monospace;color:#8fa0b3;margin:0}
+.architecture-flow{display:grid;grid-template-columns:1fr 28px 1fr 28px 1fr 28px 1.08fr;align-items:center}
+.architecture-flow button,.output-node{min-height:116px;border:1px solid #354456;background:#111a26;border-radius:9px;color:#dae3ee;padding:13px;text-align:left;display:flex;flex-direction:column;gap:9px}
+.architecture-flow button:hover{border-color:#65768a}
+.architecture-flow button.selected{border-color:#d6e0ec;background:#1a293b;box-shadow:0 0 0 1px #d6e0ec inset}
+.architecture-flow span,.output-node span{font:10px ui-monospace,SFMono-Regular,Menlo,monospace;color:#70849a}
+.architecture-flow strong,.output-node strong{font-size:15px;letter-spacing:.04em}
+.architecture-flow small,.output-node small{color:#8496aa;line-height:1.25}
+.connector{text-align:center;color:#63768a;font-size:20px}
+.output-node{border-style:dashed;background:#151520}
+.diagnostic-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.diagnostic-actions button{min-height:44px;border:1px solid #3a495b;background:#121b27;color:#e4ebf3;border-radius:7px;font-size:12px;font-weight:700}
+.inspection-readout{margin-top:12px;padding:14px;border-radius:8px;background:#080c12;border:1px solid #263342;font:600 13px ui-monospace,SFMono-Regular,Menlo,monospace;color:#f1e3c4}
+.microcopy{font-size:11px;color:#7f91a4;line-height:1.45;margin-bottom:0}
+.commit-strip{margin-top:18px;padding:18px 20px;display:flex;justify-content:space-between;align-items:center;gap:24px}
+.commit-strip p{margin:5px 0 0;color:#a6b5c5}
+.commit{min-width:240px;height:48px;border:1px solid #d0b47b;background:#d0b47b;color:#111820;border-radius:8px;font-weight:800;letter-spacing:.04em}
+.aftermath{margin-top:12px;min-height:62px;padding:20px;font:600 13px/1.65 ui-monospace,SFMono-Regular,Menlo,monospace;color:#c8d3df}
+footer{margin-top:18px;color:#687a8d;font-size:11px;text-align:center}
+@media(max-width:900px){.masthead{display:block}.run-controls{margin-top:20px}.timeline,.decision-grid{grid-template-columns:1fr}.lag-card{min-height:115px}.lag-card .arrow{transform:rotate(90deg)}.architecture-flow{grid-template-columns:1fr}.connector{transform:rotate(90deg);height:24px}.commit-strip{align-items:stretch;flex-direction:column}.commit{width:100%}}

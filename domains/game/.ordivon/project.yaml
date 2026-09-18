@@ -62,6 +62,14 @@ managed_paths:
   - scripts/counterexample-synthesis-query.ts
   - experiments/whole-product-recomposition-r1/run.ts
   - experiments/whole-product-recomposition-r1/evidence/recomposition-r1.json
+  - experiments/product-composition-r1/pc01-e03-playable-r1/README.md
+  - experiments/product-composition-r1/pc01-e03-playable-r1/web/core.js
+  - experiments/product-composition-r1/pc01-e03-playable-r1/web/app.js
+  - experiments/product-composition-r1/pc01-e03-playable-r1/web/index.html
+  - experiments/product-composition-r1/pc01-e03-playable-r1/web/styles.css
+  - experiments/product-composition-r1/pc01-e03-playable-r1/scripts/mechanical-acceptance.ts
+  - experiments/product-composition-r1/pc01-e03-playable-r1/scripts/e2e-pc01-e03-playable.ts
+  - experiments/product-composition-r1/pc01-e03-playable-r1/evidence/mechanical-acceptance-r1.json
   - skills/game-development-lenses/SKILL.md
   - skills/game-stage-lens/SKILL.md
   - skills/game-minimal-interaction-model/SKILL.md
