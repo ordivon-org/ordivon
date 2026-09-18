@@ -19,6 +19,7 @@ XAUTH_ROOT = Path("/run/ordivon/browserless-xauth")
 BROWSERLESS_UID = 999
 BROWSERLESS_GID = 999
 QUALIFICATION_INSTANCE = 91
+PRODUCTION_INSTANCES = frozenset({11, 12, 13, 21, 22})
 
 
 def validate_instance(raw: str | int) -> int:
@@ -26,9 +27,10 @@ def validate_instance(raw: str | int) -> int:
         value = int(raw)
     except (TypeError, ValueError) as error:
         raise ValueError("Browserless display instance must be an integer") from error
-    if value not in {11, 12, 13, 21, QUALIFICATION_INSTANCE}:
+    if value not in PRODUCTION_INSTANCES | {QUALIFICATION_INSTANCE}:
         raise ValueError(
-            "Browserless display instance must be 11, 12, 13, 21, or reserved qualification instance 91"
+            "Browserless display instance must be one configured production instance "
+            "or reserved qualification instance 91"
         )
     return value
 

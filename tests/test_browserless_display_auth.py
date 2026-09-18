@@ -16,8 +16,10 @@ class DisplayAuthTests(unittest.TestCase):
         self.assertEqual(A.display_number(11), 111)
         self.assertEqual(A.display_number(13), 113)
         self.assertEqual(A.display_number(21), 121)
+        self.assertEqual(A.display_number(22), 122)
         self.assertEqual(A.display_number(A.QUALIFICATION_INSTANCE), 191)
-        for value in (10, 14, 20, 22, 90, 92, "x"):
+        self.assertEqual(A.PRODUCTION_INSTANCES, frozenset({11, 12, 13, 21, 22}))
+        for value in (10, 14, 20, 23, 90, 92, "x"):
             with self.assertRaises(ValueError):
                 A.validate_instance(value)
 

@@ -81,6 +81,12 @@ small ChatGPT operator proxies enabled as before.
 
 The source-level deployment plan and Browser-focused tests must pass before any workstation apply.
 
+The live first-activation witness exposed one dependency-closure omission: the immutable
+browserless-display-auth release allowlist still admitted 21 but not the new 22 instance. R6.1
+retains 21 for rollback compatibility, adds 22 to the bounded production display-auth set, and
+requires the commit-addressed Agent Automation release to advance before the live retry. The
+systemd mask remains the authority that keeps retired 21 unavailable.
+
 ## Jev standing
 
 R6 does not invent or extract a Jev credential.

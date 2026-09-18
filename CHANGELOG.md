@@ -1,5 +1,7 @@
 # Changelog
 
+- fixed the R6 generic Browser Use migration dependency closure: Browserless display-auth now admits production instance 22 while retaining masked legacy 21 for rollback compatibility; live activation had failed before provider effects because the immutable Agent Automation release still carried the pre-migration display instance allowlist.
+
 - added Browser readiness R6 cold-on-demand migration: generic Browser Use moves from the operator-masked legacy browser-agent-21 lane to independent browser-agent-22, with explicit activation/idle-stop lifecycle bindings, READY_ON_DEMAND Router semantics, bounded activation before CDP use, and fail-closed reclaim only after an empty Browserless session observation. ChatGPT carriers remain isolated and the legacy 21 mask is not changed.
 
 - added Browser Capability Router S5 prospective pairing: a digest-bound paired manifest freezes the same Jev/Browser Use task before readiness observation, alternates AB/BA order, requires both exact routes to be READY under normal policy before materializing any trial, and emits only S4 admission templates rather than Runtime Jobs. The current live eight-pair campaign remains blocked with Jev CREDENTIAL_MISSING and Browser Use POLICY_DISABLED, so zero trial state was materialized.
