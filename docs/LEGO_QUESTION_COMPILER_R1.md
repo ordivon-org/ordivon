@@ -171,21 +171,42 @@ Ask what evidence would discriminate competing explanations.
 Typical probe:
 "What result would make us abandon the current mechanism story?"
 
-### Q3 — Mature-lens routing
+### Q3 — Method-selection handoff
 
-Question Compiler does not absorb other disciplines.
+Question Compiler does not own or maintain the growing theory catalog.
 
-Route when applicable:
+After compiling a bounded question set, emit the evidence-backed problem signature required by the Lens Router:
 
-- **lego-systems-engineering** — unclear system boundary, environment, interface, lifecycle, or local/global outcome.
-- **lego-dsm** — suspected coupling, cycles, hubs, or wrong decomposition.
-- **lego-feedback-control** — dynamic state, observation, delay, regulation, disturbance, recovery.
-- **lego-stpa** — unacceptable loss from unsafe control/interactions.
-- **lego-regime-shift** — suspected turning point, lagged downstream outputs, stock/flow divergence, buffers/delays, constraint migration, or partly irreversible decisions under deep uncertainty.
-- **domain science / experimental design / statistics** — when the question becomes empirical and the domain has a mature method.
-- **security analysis** — when exploitability concerns actual security boundaries; do not treat a metaphorical attacker as authorization for intrusive testing.
+- exact target/decision;
+- domain-native method owner if one exists;
+- boundary/interface ambiguity;
+- dependency/coupling ambiguity;
+- dynamic feedback/delay;
+- consequence/safety/security;
+- replacement/composition;
+- causal/intervention claim;
+- failure/reliability question;
+- sensitive information/observer question;
+- regime/deep uncertainty;
+- open-ended concept generation;
+- repeated comparable feedback;
+- candidate representation/evaluator quality;
+- organization/coordination/recursion.
 
-The compiler chooses questions; the natural owner supplies the rigorous method.
+Then hand off to `lego-lens-router`.
+
+The router selects the Minimum Sufficient Theory Set and may return:
+- a primitive discipline lens;
+- a validated composite profile;
+- DOMAIN_METHOD;
+- NO_LENS.
+
+This separation prevents Question Compiler from becoming a static catalog of every discipline Ordivon learns.
+
+Canonical references:
+- docs/LEGO_LENS_ROUTER_R1.md
+- knowledge/registries/lego-lens-registry-r1.json
+- .agents/skills/lego-lens-router/SKILL.md
 
 ### Q4 — Pruning
 
@@ -225,9 +246,11 @@ A successful compile ends in one of three modes:
 
 1. **INVESTIGATE** — evidence already exists and should be read.
 2. **EXPERIMENT** — uncertainty needs a bounded prospective test.
-3. **PLAN** — uncertainty is sufficiently reduced to enter LEGO Project Planning or a domain workflow.
+3. **LENS_ROUTE** — the question is bound but method selection is still needed.
+4. **DOMAIN_METHOD** — a mature domain-native method already owns the question.
+5. **PLAN** — uncertainty is sufficiently reduced to enter LEGO Project Planning or a domain workflow.
 
-Question generation itself is not a fourth permanent work mode.
+Question generation itself is not a permanent work mode.
 
 ## Default output contract
 
