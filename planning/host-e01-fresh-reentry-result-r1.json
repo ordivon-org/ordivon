@@ -1,0 +1,983 @@
+{
+  "kind": "ordivon.host-e01-fresh-reentry-result",
+  "providerModel": "deepseek-flash",
+  "schemaVersion": 1,
+  "status": "completed",
+  "summary": {
+    "classification": "PASS",
+    "completedCalls": 24,
+    "thresholds": {
+      "bCompletedMin": 11,
+      "bExactResumeRateMin": 0.916667,
+      "bMayTrailAByAtMost": 0.083333,
+      "bRequestBytesMustBeLower": true,
+      "bTokenUpperBoundMustBeLower": true,
+      "bZeroOrMultipleToolCallsMustEqual": 0,
+      "overallCompletedMin": 22
+    },
+    "treatments": {
+      "A": {
+        "completed": 12,
+        "exactResumeSelectionRate": 1.0,
+        "exactResumeSelections": 12,
+        "meanLatencyMs": 2833.941,
+        "meanPromptTokens": 3804.667,
+        "meanProviderRequestBytes": 15204.833,
+        "meanRequestTokenUpperBound": 15332.833,
+        "planned": 12,
+        "providerErrors": 0,
+        "revisionAccuracyConditionalOnCorrectTask": 1.0,
+        "taskIdAccuracy": 1.0,
+        "zeroOrMultipleToolCallCount": 0
+      },
+      "B": {
+        "completed": 12,
+        "exactResumeSelectionRate": 1.0,
+        "exactResumeSelections": 12,
+        "meanLatencyMs": 2308.542,
+        "meanPromptTokens": 2050.667,
+        "meanProviderRequestBytes": 6925.833,
+        "meanRequestTokenUpperBound": 7053.833,
+        "planned": 12,
+        "providerErrors": 0,
+        "revisionAccuracyConditionalOnCorrectTask": 1.0,
+        "taskIdAccuracy": 1.0,
+        "zeroOrMultipleToolCallCount": 0
+      }
+    }
+  },
+  "trials": [
+    {
+      "argumentError": null,
+      "arguments": {
+        "expectedRevision": 4,
+        "taskId": "task:host-compact-read-measurement-r1"
+      },
+      "caseId": "E01-01",
+      "exactResumeSelection": true,
+      "latencyMs": 3894.679,
+      "ordinal": 1,
+      "providerRequestBytes": 15221,
+      "providerRequestDigest": "sha256:a40f8b7d4404a3553f667ea5706746eeafd309211c750e1a8dd845069a09a3f9",
+      "requestTokenUpperBound": 15349,
+      "revisionCorrect": true,
+      "status": "completed",
+      "targetRevision": 4,
+      "targetTaskId": "task:host-compact-read-measurement-r1",
+      "taskIdCorrect": true,
+      "toolCallCount": 1,
+      "toolName": "task_resume",
+      "treatment": "A",
+      "usage": {
+        "completion_tokens": 61,
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 3807,
+        "prompt_tokens": 3807,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "providerModel": "deepseek-flash",
+        "providerRequestMode": "non-thinking",
+        "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+        "total_tokens": 3868
+      }
+    },
+    {
+      "argumentError": null,
+      "arguments": {
+        "expectedRevision": 4,
+        "taskId": "task:host-compact-read-measurement-r1"
+      },
+      "caseId": "E01-01",
+      "exactResumeSelection": true,
+      "latencyMs": 2276.974,
+      "ordinal": 2,
+      "providerRequestBytes": 6942,
+      "providerRequestDigest": "sha256:5c6683183f2c6feb53e8c64b5d6a83fbf114fea937ee87f6e89d13df9b8c44e9",
+      "requestTokenUpperBound": 7070,
+      "revisionCorrect": true,
+      "status": "completed",
+      "targetRevision": 4,
+      "targetTaskId": "task:host-compact-read-measurement-r1",
+      "taskIdCorrect": true,
+      "toolCallCount": 1,
+      "toolName": "task_resume",
+      "treatment": "B",
+      "usage": {
+        "completion_tokens": 61,
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 1285,
+        "prompt_tokens": 2053,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "providerModel": "deepseek-flash",
+        "providerRequestMode": "non-thinking",
+        "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+        "total_tokens": 2114
+      }
+    },
+    {
+      "argumentError": null,
+      "arguments": {
+        "expectedRevision": 7,
+        "taskId": "task:paper-rereview-closure-r1"
+      },
+      "caseId": "E01-02",
+      "exactResumeSelection": true,
+      "latencyMs": 2130.873,
+      "ordinal": 3,
+      "providerRequestBytes": 6930,
+      "providerRequestDigest": "sha256:f4311b4d7fc3a74e16742570dae37ed1f5d938b581809fe504dd6598dc7249be",
+      "requestTokenUpperBound": 7058,
+      "revisionCorrect": true,
+      "status": "completed",
+      "targetRevision": 7,
+      "targetTaskId": "task:paper-rereview-closure-r1",
+      "taskIdCorrect": true,
+      "toolCallCount": 1,
+      "toolName": "task_resume",
+      "treatment": "B",
+      "usage": {
+        "completion_tokens": 60,
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 1285,
+        "prompt_tokens": 2053,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "providerModel": "deepseek-flash",
+        "providerRequestMode": "non-thinking",
+        "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+        "total_tokens": 2113
+      }
+    },
+    {
+      "argumentError": null,
+      "arguments": {
+        "expectedRevision": 7,
+        "taskId": "task:paper-rereview-closure-r1"
+      },
+      "caseId": "E01-02",
+      "exactResumeSelection": true,
+      "latencyMs": 2528.144,
+      "ordinal": 4,
+      "providerRequestBytes": 15209,
+      "providerRequestDigest": "sha256:fbe599750fbe8e06e9bfae93caecc4047beb17e1441afd1b913744e24aa2cf5e",
+      "requestTokenUpperBound": 15337,
+      "revisionCorrect": true,
+      "status": "completed",
+      "targetRevision": 7,
+      "targetTaskId": "task:paper-rereview-closure-r1",
+      "taskIdCorrect": true,
+      "toolCallCount": 1,
+      "toolName": "task_resume",
+      "treatment": "A",
+      "usage": {
+        "completion_tokens": 60,
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 3039,
+        "prompt_tokens": 3807,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "providerModel": "deepseek-flash",
+        "providerRequestMode": "non-thinking",
+        "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+        "total_tokens": 3867
+      }
+    },
+    {
+      "argumentError": null,
+      "arguments": {
+        "expectedRevision": 3,
+        "taskId": "task:game-causal-lag-loop-r1"
+      },
+      "caseId": "E01-03",
+      "exactResumeSelection": true,
+      "latencyMs": 2660.784,
+      "ordinal": 5,
+      "providerRequestBytes": 15218,
+      "providerRequestDigest": "sha256:c676d0009cebb4e2940a309dd843e5f49b2a7ae309affb3f290fd09a3addfcf6",
+      "requestTokenUpperBound": 15346,
+      "revisionCorrect": true,
+      "status": "completed",
+      "targetRevision": 3,
+      "targetTaskId": "task:game-causal-lag-loop-r1",
+      "taskIdCorrect": true,
+      "toolCallCount": 1,
+      "toolName": "task_resume",
+      "treatment": "A",
+      "usage": {
+        "completion_tokens": 60,
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 3041,
+        "prompt_tokens": 3809,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "providerModel": "deepseek-flash",
+        "providerRequestMode": "non-thinking",
+        "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+        "total_tokens": 3869
+      }
+    },
+    {
+      "argumentError": null,
+      "arguments": {
+        "expectedRevision": 3,
+        "taskId": "task:game-causal-lag-loop-r1"
+      },
+      "caseId": "E01-03",
+      "exactResumeSelection": true,
+      "latencyMs": 2117.523,
+      "ordinal": 6,
+      "providerRequestBytes": 6939,
+      "providerRequestDigest": "sha256:52a0f65fcba3969dbd7d0e09d2add5109863ef037ff69790367b76f334000a44",
+      "requestTokenUpperBound": 7067,
+      "revisionCorrect": true,
+      "status": "completed",
+      "targetRevision": 3,
+      "targetTaskId": "task:game-causal-lag-loop-r1",
+      "taskIdCorrect": true,
+      "toolCallCount": 1,
+      "toolName": "task_resume",
+      "treatment": "B",
+      "usage": {
+        "completion_tokens": 60,
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 1287,
+        "prompt_tokens": 2055,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "providerModel": "deepseek-flash",
+        "providerRequestMode": "non-thinking",
+        "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+        "total_tokens": 2115
+      }
+    },
+    {
+      "argumentError": null,
+      "arguments": {
+        "expectedRevision": 5,
+        "taskId": "task:artifact-binary-handoff-r1"
+      },
+      "caseId": "E01-04",
+      "exactResumeSelection": true,
+      "latencyMs": 2267.618,
+      "ordinal": 7,
+      "providerRequestBytes": 6927,
+      "providerRequestDigest": "sha256:228517ad8e83aa5e65da8fef207bb624718b9af2fc61f002a0181e46dccdfc5d",
+      "requestTokenUpperBound": 7055,
+      "revisionCorrect": true,
+      "status": "completed",
+      "targetRevision": 5,
+      "targetTaskId": "task:artifact-binary-handoff-r1",
+      "taskIdCorrect": true,
+      "toolCallCount": 1,
+      "toolName": "task_resume",
+      "treatment": "B",
+      "usage": {
+        "completion_tokens": 59,
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 1283,
+        "prompt_tokens": 2051,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "providerModel": "deepseek-flash",
+        "providerRequestMode": "non-thinking",
+        "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+        "total_tokens": 2110
+      }
+    },
+    {
+      "argumentError": null,
+      "arguments": {
+        "expectedRevision": 5,
+        "taskId": "task:artifact-binary-handoff-r1"
+      },
+      "caseId": "E01-04",
+      "exactResumeSelection": true,
+      "latencyMs": 2584.451,
+      "ordinal": 8,
+      "providerRequestBytes": 15206,
+      "providerRequestDigest": "sha256:c4ec5e55328413617ab176b9be502c642c7e58d312f665da31efdd450631bf31",
+      "requestTokenUpperBound": 15334,
+      "revisionCorrect": true,
+      "status": "completed",
+      "targetRevision": 5,
+      "targetTaskId": "task:artifact-binary-handoff-r1",
+      "taskIdCorrect": true,
+      "toolCallCount": 1,
+      "toolName": "task_resume",
+      "treatment": "A",
+      "usage": {
+        "completion_tokens": 59,
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 3037,
+        "prompt_tokens": 3805,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "providerModel": "deepseek-flash",
+        "providerRequestMode": "non-thinking",
+        "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+        "total_tokens": 3864
+      }
+    },
+    {
+      "argumentError": null,
+      "arguments": {
+        "expectedRevision": 2,
+        "taskId": "task:runtime-provider-seam-r1"
+      },
+      "caseId": "E01-05",
+      "exactResumeSelection": true,
+      "latencyMs": 2643.495,
+      "ordinal": 9,
+      "providerRequestBytes": 15205,
+      "providerRequestDigest": "sha256:ba4109afa8b74109a8427feb753fc9b2e3d5c8d14fa47b81db1e487f7d1f7ff2",
+      "requestTokenUpperBound": 15333,
+      "revisionCorrect": true,
+      "status": "completed",
+      "targetRevision": 2,
+      "targetTaskId": "task:runtime-provider-seam-r1",
+      "taskIdCorrect": true,
+      "toolCallCount": 1,
+      "toolName": "task_resume",
+      "treatment": "A",
+      "usage": {
+        "completion_tokens": 59,
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 3037,
+        "prompt_tokens": 3805,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "providerModel": "deepseek-flash",
+        "providerRequestMode": "non-thinking",
+        "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+        "total_tokens": 3864
+      }
+    },
+    {
+      "argumentError": null,
+      "arguments": {
+        "expectedRevision": 2,
+        "taskId": "task:runtime-provider-seam-r1"
+      },
+      "caseId": "E01-05",
+      "exactResumeSelection": true,
+      "latencyMs": 2457.195,
+      "ordinal": 10,
+      "providerRequestBytes": 6926,
+      "providerRequestDigest": "sha256:5be8f25eaf8af56808620dfd15923b41a31aac39ed4bddaaa8d76eae4289551e",
+      "requestTokenUpperBound": 7054,
+      "revisionCorrect": true,
+      "status": "completed",
+      "targetRevision": 2,
+      "targetTaskId": "task:runtime-provider-seam-r1",
+      "taskIdCorrect": true,
+      "toolCallCount": 1,
+      "toolName": "task_resume",
+      "treatment": "B",
+      "usage": {
+        "completion_tokens": 59,
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 1283,
+        "prompt_tokens": 2051,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "providerModel": "deepseek-flash",
+        "providerRequestMode": "non-thinking",
+        "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+        "total_tokens": 2110
+      }
+    },
+    {
+      "argumentError": null,
+      "arguments": {
+        "expectedRevision": 9,
+        "taskId": "task:security-skill-hardening-r1"
+      },
+      "caseId": "E01-06",
+      "exactResumeSelection": true,
+      "latencyMs": 2323.638,
+      "ordinal": 11,
+      "providerRequestBytes": 6923,
+      "providerRequestDigest": "sha256:4efe7297e1ddf35911601f8f4b43a2bfd8dc88827083f17d911e837de372df5e",
+      "requestTokenUpperBound": 7051,
+      "revisionCorrect": true,
+      "status": "completed",
+      "targetRevision": 9,
+      "targetTaskId": "task:security-skill-hardening-r1",
+      "taskIdCorrect": true,
+      "toolCallCount": 1,
+      "toolName": "task_resume",
+      "treatment": "B",
+      "usage": {
+        "completion_tokens": 59,
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 1280,
+        "prompt_tokens": 2048,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "providerModel": "deepseek-flash",
+        "providerRequestMode": "non-thinking",
+        "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+        "total_tokens": 2107
+      }
+    },
+    {
+      "argumentError": null,
+      "arguments": {
+        "expectedRevision": 9,
+        "taskId": "task:security-skill-hardening-r1"
+      },
+      "caseId": "E01-06",
+      "exactResumeSelection": true,
+      "latencyMs": 2809.812,
+      "ordinal": 12,
+      "providerRequestBytes": 15202,
+      "providerRequestDigest": "sha256:174da3e83a76b0487cfda74c7329e63cc196e0acc9c0b7f25ce742eb9aea9d27",
+      "requestTokenUpperBound": 15330,
+      "revisionCorrect": true,
+      "status": "completed",
+      "targetRevision": 9,
+      "targetTaskId": "task:security-skill-hardening-r1",
+      "taskIdCorrect": true,
+      "toolCallCount": 1,
+      "toolName": "task_resume",
+      "treatment": "A",
+      "usage": {
+        "completion_tokens": 59,
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 3034,
+        "prompt_tokens": 3802,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "providerModel": "deepseek-flash",
+        "providerRequestMode": "non-thinking",
+        "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+        "total_tokens": 3861
+      }
+    },
+    {
+      "argumentError": null,
+      "arguments": {
+        "expectedRevision": 6,
+        "taskId": "task:agent-carrier-fallback-r1"
+      },
+      "caseId": "E01-07",
+      "exactResumeSelection": true,
+      "latencyMs": 2775.792,
+      "ordinal": 13,
+      "providerRequestBytes": 15204,
+      "providerRequestDigest": "sha256:1a45f27939cd089570edc0107a9884662f6faf3816272db458296ea368b17968",
+      "requestTokenUpperBound": 15332,
+      "revisionCorrect": true,
+      "status": "completed",
+      "targetRevision": 6,
+      "targetTaskId": "task:agent-carrier-fallback-r1",
+      "taskIdCorrect": true,
+      "toolCallCount": 1,
+      "toolName": "task_resume",
+      "treatment": "A",
+      "usage": {
+        "completion_tokens": 59,
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 3038,
+        "prompt_tokens": 3806,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "providerModel": "deepseek-flash",
+        "providerRequestMode": "non-thinking",
+        "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+        "total_tokens": 3865
+      }
+    },
+    {
+      "argumentError": null,
+      "arguments": {
+        "expectedRevision": 6,
+        "taskId": "task:agent-carrier-fallback-r1"
+      },
+      "caseId": "E01-07",
+      "exactResumeSelection": true,
+      "latencyMs": 2531.032,
+      "ordinal": 14,
+      "providerRequestBytes": 6925,
+      "providerRequestDigest": "sha256:40a41c67e2214810bdfc574e07d9fa63097c186666000356089c8ff67b2f5dc4",
+      "requestTokenUpperBound": 7053,
+      "revisionCorrect": true,
+      "status": "completed",
+      "targetRevision": 6,
+      "targetTaskId": "task:agent-carrier-fallback-r1",
+      "taskIdCorrect": true,
+      "toolCallCount": 1,
+      "toolName": "task_resume",
+      "treatment": "B",
+      "usage": {
+        "completion_tokens": 59,
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 1284,
+        "prompt_tokens": 2052,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "providerModel": "deepseek-flash",
+        "providerRequestMode": "non-thinking",
+        "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+        "total_tokens": 2111
+      }
+    },
+    {
+      "argumentError": null,
+      "arguments": {
+        "expectedRevision": 8,
+        "taskId": "task:market-readonly-observer-r1"
+      },
+      "caseId": "E01-08",
+      "exactResumeSelection": true,
+      "latencyMs": 2258.488,
+      "ordinal": 15,
+      "providerRequestBytes": 6920,
+      "providerRequestDigest": "sha256:8ae33e4a620d43ffe11c61f136c0cdeb4688d4f199812551f9939ca3aa3a32b7",
+      "requestTokenUpperBound": 7048,
+      "revisionCorrect": true,
+      "status": "completed",
+      "targetRevision": 8,
+      "targetTaskId": "task:market-readonly-observer-r1",
+      "taskIdCorrect": true,
+      "toolCallCount": 1,
+      "toolName": "task_resume",
+      "treatment": "B",
+      "usage": {
+        "completion_tokens": 59,
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 1282,
+        "prompt_tokens": 2050,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "providerModel": "deepseek-flash",
+        "providerRequestMode": "non-thinking",
+        "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+        "total_tokens": 2109
+      }
+    },
+    {
+      "argumentError": null,
+      "arguments": {
+        "expectedRevision": 8,
+        "taskId": "task:market-readonly-observer-r1"
+      },
+      "caseId": "E01-08",
+      "exactResumeSelection": true,
+      "latencyMs": 2755.019,
+      "ordinal": 16,
+      "providerRequestBytes": 15199,
+      "providerRequestDigest": "sha256:c67af56793e0552c812bf15a9a819abc6cc17f0c24c33629db514454ab9bde21",
+      "requestTokenUpperBound": 15327,
+      "revisionCorrect": true,
+      "status": "completed",
+      "targetRevision": 8,
+      "targetTaskId": "task:market-readonly-observer-r1",
+      "taskIdCorrect": true,
+      "toolCallCount": 1,
+      "toolName": "task_resume",
+      "treatment": "A",
+      "usage": {
+        "completion_tokens": 59,
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 3036,
+        "prompt_tokens": 3804,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "providerModel": "deepseek-flash",
+        "providerRequestMode": "non-thinking",
+        "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+        "total_tokens": 3863
+      }
+    },
+    {
+      "argumentError": null,
+      "arguments": {
+        "expectedRevision": 4,
+        "taskId": "task:paper-dual-coder-screening-r1"
+      },
+      "caseId": "E01-09",
+      "exactResumeSelection": true,
+      "latencyMs": 3171.374,
+      "ordinal": 17,
+      "providerRequestBytes": 15187,
+      "providerRequestDigest": "sha256:0b06f9f6b14629b81a35b7b72a7094c311ef401076bac0cbf1784c58042f1fd7",
+      "requestTokenUpperBound": 15315,
+      "revisionCorrect": true,
+      "status": "completed",
+      "targetRevision": 4,
+      "targetTaskId": "task:paper-dual-coder-screening-r1",
+      "taskIdCorrect": true,
+      "toolCallCount": 1,
+      "toolName": "task_resume",
+      "treatment": "A",
+      "usage": {
+        "completion_tokens": 61,
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 3033,
+        "prompt_tokens": 3801,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "providerModel": "deepseek-flash",
+        "providerRequestMode": "non-thinking",
+        "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+        "total_tokens": 3862
+      }
+    },
+    {
+      "argumentError": null,
+      "arguments": {
+        "expectedRevision": 4,
+        "taskId": "task:paper-dual-coder-screening-r1"
+      },
+      "caseId": "E01-09",
+      "exactResumeSelection": true,
+      "latencyMs": 2262.787,
+      "ordinal": 18,
+      "providerRequestBytes": 6908,
+      "providerRequestDigest": "sha256:f32f7762f3a428a792370b7f90aeebd27d430619be892ebd4fbf045583798ce7",
+      "requestTokenUpperBound": 7036,
+      "revisionCorrect": true,
+      "status": "completed",
+      "targetRevision": 4,
+      "targetTaskId": "task:paper-dual-coder-screening-r1",
+      "taskIdCorrect": true,
+      "toolCallCount": 1,
+      "toolName": "task_resume",
+      "treatment": "B",
+      "usage": {
+        "completion_tokens": 61,
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 1279,
+        "prompt_tokens": 2047,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "providerModel": "deepseek-flash",
+        "providerRequestMode": "non-thinking",
+        "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+        "total_tokens": 2108
+      }
+    },
+    {
+      "argumentError": null,
+      "arguments": {
+        "expectedRevision": 10,
+        "taskId": "task:agent-plugin-standards-bridge-r1"
+      },
+      "caseId": "E01-10",
+      "exactResumeSelection": true,
+      "latencyMs": 2138.399,
+      "ordinal": 19,
+      "providerRequestBytes": 6902,
+      "providerRequestDigest": "sha256:11fe27d59247387ed6917da1f01896d66bb200ed6b701feb10a3b3e5575e2958",
+      "requestTokenUpperBound": 7030,
+      "revisionCorrect": true,
+      "status": "completed",
+      "targetRevision": 10,
+      "targetTaskId": "task:agent-plugin-standards-bridge-r1",
+      "taskIdCorrect": true,
+      "toolCallCount": 1,
+      "toolName": "task_resume",
+      "treatment": "B",
+      "usage": {
+        "completion_tokens": 61,
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 1277,
+        "prompt_tokens": 2045,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "providerModel": "deepseek-flash",
+        "providerRequestMode": "non-thinking",
+        "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+        "total_tokens": 2106
+      }
+    },
+    {
+      "argumentError": null,
+      "arguments": {
+        "expectedRevision": 10,
+        "taskId": "task:agent-plugin-standards-bridge-r1"
+      },
+      "caseId": "E01-10",
+      "exactResumeSelection": true,
+      "latencyMs": 2722.172,
+      "ordinal": 20,
+      "providerRequestBytes": 15181,
+      "providerRequestDigest": "sha256:d22416108c6634fe91c1477b6c7c79d63ae46213240adeab0289ac80f5206585",
+      "requestTokenUpperBound": 15309,
+      "revisionCorrect": true,
+      "status": "completed",
+      "targetRevision": 10,
+      "targetTaskId": "task:agent-plugin-standards-bridge-r1",
+      "taskIdCorrect": true,
+      "toolCallCount": 1,
+      "toolName": "task_resume",
+      "treatment": "A",
+      "usage": {
+        "completion_tokens": 61,
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 3031,
+        "prompt_tokens": 3799,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "providerModel": "deepseek-flash",
+        "providerRequestMode": "non-thinking",
+        "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+        "total_tokens": 3860
+      }
+    },
+    {
+      "argumentError": null,
+      "arguments": {
+        "expectedRevision": 5,
+        "taskId": "task:wsl-safe-restart-preflight-r1"
+      },
+      "caseId": "E01-11",
+      "exactResumeSelection": true,
+      "latencyMs": 2867.123,
+      "ordinal": 21,
+      "providerRequestBytes": 15210,
+      "providerRequestDigest": "sha256:4b379dcb36b419856901195a481133e6509fc8d442af2693edbfa85192159edb",
+      "requestTokenUpperBound": 15338,
+      "revisionCorrect": true,
+      "status": "completed",
+      "targetRevision": 5,
+      "targetTaskId": "task:wsl-safe-restart-preflight-r1",
+      "taskIdCorrect": true,
+      "toolCallCount": 1,
+      "toolName": "task_resume",
+      "treatment": "A",
+      "usage": {
+        "completion_tokens": 60,
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 3038,
+        "prompt_tokens": 3806,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "providerModel": "deepseek-flash",
+        "providerRequestMode": "non-thinking",
+        "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+        "total_tokens": 3866
+      }
+    },
+    {
+      "argumentError": null,
+      "arguments": {
+        "expectedRevision": 5,
+        "taskId": "task:wsl-safe-restart-preflight-r1"
+      },
+      "caseId": "E01-11",
+      "exactResumeSelection": true,
+      "latencyMs": 2390.771,
+      "ordinal": 22,
+      "providerRequestBytes": 6931,
+      "providerRequestDigest": "sha256:d177c82529c5d27aa3a93331e23fb4585adb5527b172ff67cf4280c3a3f5a634",
+      "requestTokenUpperBound": 7059,
+      "revisionCorrect": true,
+      "status": "completed",
+      "targetRevision": 5,
+      "targetTaskId": "task:wsl-safe-restart-preflight-r1",
+      "taskIdCorrect": true,
+      "toolCallCount": 1,
+      "toolName": "task_resume",
+      "treatment": "B",
+      "usage": {
+        "completion_tokens": 60,
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 1284,
+        "prompt_tokens": 2052,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "providerModel": "deepseek-flash",
+        "providerRequestMode": "non-thinking",
+        "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+        "total_tokens": 2112
+      }
+    },
+    {
+      "argumentError": null,
+      "arguments": {
+        "expectedRevision": 11,
+        "taskId": "task:browser-trust-boundary-measurement-r1"
+      },
+      "caseId": "E01-12",
+      "exactResumeSelection": true,
+      "latencyMs": 2547.204,
+      "ordinal": 23,
+      "providerRequestBytes": 6937,
+      "providerRequestDigest": "sha256:05bd47778a64e2bc845914f13071224fddde10c12dcb1bd9ea40b1879232ac8b",
+      "requestTokenUpperBound": 7065,
+      "revisionCorrect": true,
+      "status": "completed",
+      "targetRevision": 11,
+      "targetTaskId": "task:browser-trust-boundary-measurement-r1",
+      "taskIdCorrect": true,
+      "toolCallCount": 1,
+      "toolName": "task_resume",
+      "treatment": "B",
+      "usage": {
+        "completion_tokens": 62,
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 1283,
+        "prompt_tokens": 2051,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "providerModel": "deepseek-flash",
+        "providerRequestMode": "non-thinking",
+        "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+        "total_tokens": 2113
+      }
+    },
+    {
+      "argumentError": null,
+      "arguments": {
+        "expectedRevision": 11,
+        "taskId": "task:browser-trust-boundary-measurement-r1"
+      },
+      "caseId": "E01-12",
+      "exactResumeSelection": true,
+      "latencyMs": 2594.443,
+      "ordinal": 24,
+      "providerRequestBytes": 15216,
+      "providerRequestDigest": "sha256:bb6fd86a3846334b4bdb2bd09d797679be237f47d7fd476795cd792945f9d942",
+      "requestTokenUpperBound": 15344,
+      "revisionCorrect": true,
+      "status": "completed",
+      "targetRevision": 11,
+      "targetTaskId": "task:browser-trust-boundary-measurement-r1",
+      "taskIdCorrect": true,
+      "toolCallCount": 1,
+      "toolName": "task_resume",
+      "treatment": "A",
+      "usage": {
+        "completion_tokens": 62,
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 3037,
+        "prompt_tokens": 3805,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "providerModel": "deepseek-flash",
+        "providerRequestMode": "non-thinking",
+        "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+        "total_tokens": 3867
+      }
+    }
+  ],
+  "truthRole": "measurement-result-not-production-authority",
+  "validation": {
+    "caseCount": 12,
+    "cases": [
+      {
+        "aMessageBytes": 12459,
+        "bMessageBytes": 4180,
+        "caseId": "E01-01",
+        "targetRevision": 4,
+        "targetTaskId": "task:host-compact-read-measurement-r1"
+      },
+      {
+        "aMessageBytes": 12447,
+        "bMessageBytes": 4168,
+        "caseId": "E01-02",
+        "targetRevision": 7,
+        "targetTaskId": "task:paper-rereview-closure-r1"
+      },
+      {
+        "aMessageBytes": 12456,
+        "bMessageBytes": 4177,
+        "caseId": "E01-03",
+        "targetRevision": 3,
+        "targetTaskId": "task:game-causal-lag-loop-r1"
+      },
+      {
+        "aMessageBytes": 12444,
+        "bMessageBytes": 4165,
+        "caseId": "E01-04",
+        "targetRevision": 5,
+        "targetTaskId": "task:artifact-binary-handoff-r1"
+      },
+      {
+        "aMessageBytes": 12443,
+        "bMessageBytes": 4164,
+        "caseId": "E01-05",
+        "targetRevision": 2,
+        "targetTaskId": "task:runtime-provider-seam-r1"
+      },
+      {
+        "aMessageBytes": 12440,
+        "bMessageBytes": 4161,
+        "caseId": "E01-06",
+        "targetRevision": 9,
+        "targetTaskId": "task:security-skill-hardening-r1"
+      },
+      {
+        "aMessageBytes": 12442,
+        "bMessageBytes": 4163,
+        "caseId": "E01-07",
+        "targetRevision": 6,
+        "targetTaskId": "task:agent-carrier-fallback-r1"
+      },
+      {
+        "aMessageBytes": 12437,
+        "bMessageBytes": 4158,
+        "caseId": "E01-08",
+        "targetRevision": 8,
+        "targetTaskId": "task:market-readonly-observer-r1"
+      },
+      {
+        "aMessageBytes": 12425,
+        "bMessageBytes": 4146,
+        "caseId": "E01-09",
+        "targetRevision": 4,
+        "targetTaskId": "task:paper-dual-coder-screening-r1"
+      },
+      {
+        "aMessageBytes": 12419,
+        "bMessageBytes": 4140,
+        "caseId": "E01-10",
+        "targetRevision": 10,
+        "targetTaskId": "task:agent-plugin-standards-bridge-r1"
+      },
+      {
+        "aMessageBytes": 12448,
+        "bMessageBytes": 4169,
+        "caseId": "E01-11",
+        "targetRevision": 5,
+        "targetTaskId": "task:wsl-safe-restart-preflight-r1"
+      },
+      {
+        "aMessageBytes": 12454,
+        "bMessageBytes": 4175,
+        "caseId": "E01-12",
+        "targetRevision": 11,
+        "targetTaskId": "task:browser-trust-boundary-measurement-r1"
+      }
+    ],
+    "plannedCalls": 24,
+    "status": "passed"
+  }
+}

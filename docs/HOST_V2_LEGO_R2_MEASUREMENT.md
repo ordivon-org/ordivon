@@ -266,3 +266,19 @@ A Host change may move toward main only when all are explicit:
 9. **Rollback:** how is the change removed without corrupting durable identity?
 
 This document is a measurement and architecture program. It does not itself modify production authority.
+
+
+## E01 fresh-consumer re-entry result — PASS
+
+E01a locally checked 8 current non-terminal Host Tasks. For every sample, the `task.list` Task identity, revision, state, and checkpoint digest matched `task.resume(expectedRevision=...)` exactly: **8/8 pass**. Only metadata and digests are retained in the measurement record.
+
+E01b froze a 12-case synthetic continuity corpus before provider calls. Treatment A used an R6-like full TaskView inventory; Treatment B used the R7 compact six-field summary. Both exposed the identical single `task_resume(taskId, expectedRevision)` Tool and no prior conversation context. All **24/24** calls completed with no provider error.
+
+- A exact resume selection: **12/12 (100%)**
+- B exact resume selection: **12/12 (100%)**
+- mean provider request bytes: **15,204.8 → 6,925.8 (-54.45%)**
+- mean prompt tokens: **3,804.7 → 2,050.7 (-46.10%)**
+- mean request-token upper bound: **15,332.8 → 7,053.8 (-54.00%)**
+- mean latency: **2,833.9 ms → 2,308.5 ms (-18.54%)**, descriptive only because provider latency was not a causal primary endpoint.
+
+The preregistered E01 classification is **PASS**. Combined with E02's live-wire resource measurement and isolated PostgreSQL integration, the fresh-consumer outcome gate no longer blocks compact-read integration. This does not by itself authorize production deployment; an integrated candidate and release/cutover review remain separate gates.
