@@ -78,6 +78,17 @@ def factory(**kw):
     return lambda url, goal, screenshots=False: FakeAgent(url, goal, screenshots, **kw)
 
 
+def test_bounded_html_data_url_is_admitted_for_deterministic_fixture():
+    value = M.validate_request(
+        req(url="data:text/html;charset=utf-8,%3Cbutton%3EOk%3C%2Fbutton%3E")
+    )
+    assert value["url"].startswith("data:text/html")
+    with pytest.raises(ValueError, match="bounded text/html"):
+        M.validate_request(req(url="data:text/plain,not-html"))
+    with pytest.raises(ValueError, match="exceeds 65536"):
+        M.validate_request(req(url="data:text/html," + ("x" * 70000)))
+
+
 def test_missing_typesafe_blocks_before_fence(tmp_path):
     out = M.execute_request(req(), state_root=tmp_path, env={}, agent_factory=factory())
     assert out["standing"] == "CREDENTIAL_MISSING"

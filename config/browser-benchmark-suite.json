@@ -23,7 +23,19 @@
           "caseId": "generic-navigate-click-browser-use",
           "routeId": "browser-use-browserless-v1"
         }
-      ]
+      ],
+      "executionContract": {
+        "kind": "inline-html-click-v1",
+        "documentHtml": "<!doctype html><html><head><meta charset=\"utf-8\"><title>Ordivon Browser Benchmark</title></head><body><button id=\"complete\" onclick=\"document.getElementById('status').textContent='BCR_TARGET_OK'\">Complete Benchmark</button><div id=\"status\">BCR_TARGET_PENDING</div></body></html>",
+        "goal": "Click the button named Complete Benchmark and stop when BCR_TARGET_OK is visible.",
+        "buttonRole": "button",
+        "buttonName": "Complete Benchmark",
+        "successText": "BCR_TARGET_OK",
+        "witness": {
+          "kind": "textContains",
+          "value": "BCR_TARGET_OK"
+        }
+      }
     }
   ]
 }

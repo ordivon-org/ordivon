@@ -74,9 +74,13 @@ or fabricate execution metrics.
 
 ## Identity and anti-Goodhart constraints
 
-A route-locked benchmark receipt carries suiteDigest, taskDigest, caseDigest, routePlanDigest, and
-routeId. An execution observation must match the same case, plan, route, and predeclared outcome
-check set.
+A route-locked benchmark case binds the executable task semantics as part of taskDigest: the exact
+inline HTML fixture, goal, target role/name, success text, and witness contract. Changing the button,
+goal, fixture, or success state therefore changes task identity.
+
+A route-locked benchmark receipt carries suiteDigest, taskDigest, caseDigest, routePlanDigest,
+routeId, and executionContractDigest. An execution observation must match the same case, plan,
+route, and predeclared outcome check set.
 
 Fallback is invalid for the benchmark variant. If a route is unavailable, the correct result is
 PREEXEC_BLOCKED rather than silently executing a different route.

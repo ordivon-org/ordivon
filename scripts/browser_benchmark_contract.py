@@ -60,6 +60,47 @@ def _strings(value: object, field: str, *, allow_empty: bool = True) -> tuple[st
     return rows
 
 
+def _execution_contract(value: object) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise ValueError("executionContract must be an object")
+    if set(value) != {
+        "kind",
+        "documentHtml",
+        "goal",
+        "buttonRole",
+        "buttonName",
+        "successText",
+        "witness",
+    }:
+        raise ValueError("executionContract has unexpected fields")
+    if value.get("kind") != "inline-html-click-v1":
+        raise ValueError("executionContract kind mismatch")
+    document_html = _trimmed(value.get("documentHtml"), "executionContract.documentHtml")
+    if len(document_html.encode("utf-8")) > 32768:
+        raise ValueError("executionContract.documentHtml exceeds 32768 UTF-8 bytes")
+    goal = _trimmed(value.get("goal"), "executionContract.goal")
+    button_role = _trimmed(value.get("buttonRole"), "executionContract.buttonRole")
+    button_name = _trimmed(value.get("buttonName"), "executionContract.buttonName")
+    success_text = _trimmed(value.get("successText"), "executionContract.successText")
+    witness = value.get("witness")
+    if (
+        not isinstance(witness, dict)
+        or set(witness) != {"kind", "value"}
+        or witness.get("kind") != "textContains"
+        or _trimmed(witness.get("value"), "executionContract.witness.value") != success_text
+    ):
+        raise ValueError("executionContract witness must bind the declared successText")
+    return {
+        "kind": "inline-html-click-v1",
+        "documentHtml": document_html,
+        "goal": goal,
+        "buttonRole": button_role,
+        "buttonName": button_name,
+        "successText": success_text,
+        "witness": {"kind": "textContains", "value": success_text},
+    }
+
+
 def load_suite(
     path: Path = DEFAULT_SUITE, *, policy: Mapping[str, Any] | None = None
 ) -> dict[str, Any]:
@@ -86,6 +127,7 @@ def load_suite(
         required = _strings(raw.get("requiredFeatures", []), "requiredFeatures")
         preferred = _strings(raw.get("preferredFeatures", []), "preferredFeatures")
         outcome_checks = _strings(raw.get("outcomeCheckIds"), "outcomeCheckIds", allow_empty=False)
+        execution_contract = _execution_contract(raw.get("executionContract"))
         variants = raw.get("variants")
         if not isinstance(variants, list) or len(variants) < 2:
             raise ValueError(f"benchmark task {task_id} requires at least two route variants")
@@ -113,6 +155,7 @@ def load_suite(
             "requiredFeatures": list(required),
             "preferredFeatures": list(preferred),
             "outcomeCheckIds": list(outcome_checks),
+            "executionContract": execution_contract,
         }
         normalized_tasks.append(
             {
@@ -155,6 +198,8 @@ def compile_cases(suite: Mapping[str, Any]) -> list[dict[str, Any]]:
                 "routeId": variant["routeId"],
                 "routeRequest": route_request,
                 "outcomeCheckIds": list(task["outcomeCheckIds"]),
+                "executionContract": dict(task["executionContract"]),
+                "executionContractDigest": router.canonical_digest(task["executionContract"]),
                 "metricNames": list(METRIC_CONTRACT),
             }
             case["caseDigest"] = router.canonical_digest(case)
@@ -221,6 +266,7 @@ def preflight_case(
         "routeId": case["routeId"],
         "routePlanDigest": plan["planDigest"],
         "outcomeCheckIds": list(case["outcomeCheckIds"]),
+        "executionContractDigest": case["executionContractDigest"],
         "standing": "READY" if ready else "PREEXEC_BLOCKED",
         "blocker": None if ready else _blocker_from_plan(case, plan),
         "adapterReceiptDigest": None,
@@ -296,7 +342,7 @@ def validate_receipt(
         raise ValueError("benchmark receipt standing is invalid")
     for key in (
         "benchmarkId", "suiteDigest", "taskId", "taskDigest",
-        "caseId", "caseDigest", "routeId", "routePlanDigest",
+        "caseId", "caseDigest", "routeId", "routePlanDigest", "executionContractDigest",
     ):
         _trimmed(receipt.get(key), key)
     outcome_check_ids = _strings(
@@ -305,7 +351,7 @@ def validate_receipt(
     if case is not None:
         for key in (
             "benchmarkId", "suiteDigest", "taskId", "taskDigest",
-            "caseId", "caseDigest", "routeId",
+            "caseId", "caseDigest", "routeId", "executionContractDigest",
         ):
             if receipt.get(key) != case.get(key):
                 raise ValueError(f"benchmark receipt differs from case: {key}")

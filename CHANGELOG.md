@@ -1,5 +1,7 @@
 # Changelog
 
+- added Browser Capability Router S3 route runners and Runtime proposal handoff: S2 task identity now binds exact executable fixture semantics, Jev admits only bounded data:text/html fixtures, Browser Use executes an exact structured affordance program, readiness races fail as PRE_EFFECT_ABORTED before effects, Windows Jev execution is proposed for windows_native through the pinned Workstation Python and WSL UNC source path, and secret values never enter benchmark proposals.
+
 - added Browser Capability Router S2 benchmark contract: benchmark variants bind explicit route IDs, preflight produces READY/PREEXEC_BLOCKED receipts without browser effects, execution observations must bind case/plan/route/outcome identity before EXECUTED finalization, missing metrics remain NOT_OBSERVED, and adapter completion cannot imply semantic PASS.
 
 - replaced file-level pyproject.toml/uv.lock invalidation for scoped verified evidence with an exact revision-bound Harness runtime dependency graph digest. Scoped evidence still binds its explicit implementation source paths; test/dev-only lock changes no longer invalidate unrelated Adaptive Edit/LSP/DAP receipts, while runtime graph changes still fail currentness.

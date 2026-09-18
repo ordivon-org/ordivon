@@ -42,6 +42,28 @@ class BrowserBenchmarkContractTests(unittest.TestCase):
             self.assertEqual(case["routeRequest"]["explicitRouteId"], case["routeId"])
             self.assertEqual(case["routeRequest"]["requiredFeatures"], ["navigate", "click"])
             self.assertEqual(case["outcomeCheckIds"], ["target-state-visible"])
+            self.assertEqual(case["executionContract"]["kind"], "inline-html-click-v1")
+            self.assertEqual(case["executionContract"]["buttonName"], "Complete Benchmark")
+            self.assertEqual(case["executionContract"]["successText"], "BCR_TARGET_OK")
+            self.assertEqual(
+                case["executionContractDigest"],
+                R.canonical_digest(case["executionContract"]),
+            )
+
+    def test_task_digest_binds_executable_task_semantics(self) -> None:
+        baseline = self.suite["tasks"][0]
+        original = baseline["taskDigest"]
+        changed_contract = dict(baseline["executionContract"])
+        changed_contract["buttonName"] = "Different Button"
+        changed_task = {
+            "taskId": baseline["taskId"],
+            "providerFlow": baseline["providerFlow"],
+            "requiredFeatures": list(baseline["requiredFeatures"]),
+            "preferredFeatures": list(baseline["preferredFeatures"]),
+            "outcomeCheckIds": list(baseline["outcomeCheckIds"]),
+            "executionContract": changed_contract,
+        }
+        self.assertNotEqual(original, R.canonical_digest(changed_task))
 
     def test_preflight_ready_does_not_execute_or_fake_metrics(self) -> None:
         case = self.by_route["jev-fast-windows-v1"]

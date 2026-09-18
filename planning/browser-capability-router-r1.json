@@ -39,8 +39,15 @@
       "id": "BCR05",
       "label": "ExecutorDispatch",
       "kind": "effect_boundary",
-      "state": "NOT_IMPLEMENTED",
-      "mustNotOwn": ["effect fencing already owned by selected adapter"]
+      "state": "PROPOSAL_BOUNDARY_IMPLEMENTED",
+      "evidence": [
+        "scripts/browser_benchmark_runner.py",
+        "scripts/browser_benchmark_route_adapter.py"
+      ],
+      "mustNotOwn": [
+        "Runtime admission",
+        "effect fencing already owned by selected adapter"
+      ]
     },
     {
       "id": "BCR06",
@@ -59,6 +66,38 @@
         "Runtime execution truth",
         "semantic success inference"
       ]
+    },
+    {
+      "id": "BCR07",
+      "label": "RouteRunnerAdapters",
+      "kind": "replaceable_effect_adapter",
+      "state": "IMPLEMENTED",
+      "dependencies": ["BCR06"],
+      "evidence": [
+        "scripts/browser_benchmark_route_adapter.py",
+        "tests/test_browser_benchmark_route_adapter.py"
+      ],
+      "mustNotOwn": [
+        "route fallback",
+        "Runtime physical truth",
+        "task authorization"
+      ]
+    },
+    {
+      "id": "BCR08",
+      "label": "RuntimeExecutionProposal",
+      "kind": "authority_preserving_handoff",
+      "state": "IMPLEMENTED",
+      "dependencies": ["BCR06", "BCR07"],
+      "evidence": [
+        "scripts/browser_benchmark_runner.py",
+        "tests/test_browser_benchmark_runner.py"
+      ],
+      "mustNotOwn": [
+        "Runtime admission",
+        "secret value storage",
+        "semantic success"
+      ]
     }
   ],
   "edges": [
@@ -66,7 +105,10 @@
     {"from": "BCR02", "to": "BCR04", "type": "POLICY"},
     {"from": "BCR03", "to": "BCR04", "type": "READINESS"},
     {"from": "BCR04", "to": "BCR05", "type": "SELECTED_ROUTE"},
-    {"from": "BCR04", "to": "BCR06", "type": "ROUTE_PLAN"}
+    {"from": "BCR04", "to": "BCR06", "type": "ROUTE_PLAN"},
+    {"from": "BCR06", "to": "BCR08", "type": "PREPARE"},
+    {"from": "BCR08", "to": "BCR07", "type": "RUNTIME_EXECUTION_PROPOSAL"},
+    {"from": "BCR07", "to": "BCR06", "type": "BOUND_EXECUTION_OBSERVATION"}
   ],
   "currentRoutes": [
     "jev-fast-windows-v1",
@@ -81,8 +123,8 @@
     "visual-browser-v1": "NOT_MATERIALIZED"
   },
   "nextSlice": {
-    "id": "BCR-S3",
-    "objective": "Add replaceable effectful benchmark runner adapters that emit bound execution observations without moving provider or Runtime authority into the benchmark contract.",
-    "status": "READY_AFTER_S2_ACCEPTANCE"
+    "id": "BCR-S4",
+    "objective": "Integrate Runtime proposal admission/result reconciliation into the caller/Agent-Service layer and run prospective A/B only when each exact route independently reaches READY; do not alter credential or operator-mask policy to obtain data.",
+    "status": "READY_AFTER_S3_ACCEPTANCE"
   }
 }

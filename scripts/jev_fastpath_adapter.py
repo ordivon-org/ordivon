@@ -29,7 +29,7 @@ from urllib.parse import urlparse
 from urllib.request import urlopen
 
 REQUEST_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
-ALLOWED_SCHEMES = {"http", "https", "file"}
+ALLOWED_SCHEMES = {"http", "https", "file", "data"}
 WITNESS_KEYS = {"urlEquals", "urlPrefix", "titleContains", "textContains"}
 DEFAULT_STATE_ROOT = Path(
     os.environ.get(
@@ -80,6 +80,15 @@ def validate_request(raw: Mapping[str, Any]) -> dict[str, Any]:
     parsed = urlparse(url)
     if parsed.scheme not in ALLOWED_SCHEMES:
         raise ValueError("url scheme is not admitted")
+    if parsed.scheme == "data":
+        lowered = url.lower()
+        if not (
+            lowered.startswith("data:text/html,")
+            or lowered.startswith("data:text/html;charset=utf-8,")
+        ):
+            raise ValueError("data URL must be bounded text/html")
+        if len(url.encode("utf-8")) > 65536:
+            raise ValueError("data URL exceeds 65536 UTF-8 bytes")
     goal = str(raw.get("goal") or "").strip()
     if not goal:
         raise ValueError("goal is required")
