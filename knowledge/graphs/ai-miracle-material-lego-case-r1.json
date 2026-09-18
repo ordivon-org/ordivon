@@ -1,0 +1,528 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.lego-case-study-graph",
+  "id": "ai-miracle-material-lego-case-r1",
+  "date": "2026-09-18",
+  "status": "RECORDED_CASE_STUDY_R1",
+  "truthRole": "derived-structural-analysis-not-source-truth",
+  "source": {
+    "type": "conversation_supplied_article_text",
+    "note": "Structural decomposition of the article text supplied in the working conversation; quantitative anecdotes and forecasts are not independently validated by this record."
+  },
+  "kernel": {
+    "statement": "Cheap, replicable machine cognition can change the scarcity regime of knowledge work, causing bottlenecks to migrate into context, verification, coordination, judgment, and governance and making structural redesign possible.",
+    "primaryTransformation": [
+      "scarcity_change",
+      "bottleneck_migration",
+      "structural_redesign",
+      "organizational_form_change"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "L01",
+      "name": "CognitiveSubstrate",
+      "canonical": "COGNITIVE_SUBSTRATE",
+      "origin": "article_native",
+      "responsibility": "Provide replicable and parallelizable machine cognition."
+    },
+    {
+      "id": "L02",
+      "name": "ScarcityInversion",
+      "canonical": "SCARCITY_INVERSION",
+      "origin": "article_native",
+      "responsibility": "Model bottleneck migration after cognition becomes less scarce."
+    },
+    {
+      "id": "L03",
+      "name": "StateContextFabric",
+      "canonical": "STATE_CONTEXT_FABRIC",
+      "origin": "article_native",
+      "responsibility": "Expose task-relevant organizational state to machine actors."
+    },
+    {
+      "id": "L04",
+      "name": "VerificationOracle",
+      "canonical": "VERIFICATION_ORACLE",
+      "origin": "article_native",
+      "responsibility": "Determine whether produced work is correct, sufficient, safe, or complete."
+    },
+    {
+      "id": "L05",
+      "name": "AutonomyHorizon",
+      "canonical": "AUTONOMY_HORIZON",
+      "origin": "article_native",
+      "responsibility": "Represent how long useful work can proceed without human intervention."
+    },
+    {
+      "id": "L06",
+      "name": "CognitiveOrchestration",
+      "canonical": "COGNITIVE_ORCHESTRATION",
+      "origin": "article_native",
+      "responsibility": "Allow a human or controller to direct multiple concurrent cognitive workers."
+    },
+    {
+      "id": "L07",
+      "name": "HumanControlTopology",
+      "canonical": "HUMAN_CONTROL_TOPOLOGY",
+      "origin": "article_native",
+      "responsibility": "Place human authority at action, supervision, policy, exception, or fully external positions as task consequence requires."
+    },
+    {
+      "id": "L08",
+      "name": "CoordinationCompression",
+      "canonical": "COORDINATION_COMPRESSION",
+      "origin": "article_native",
+      "responsibility": "Route and compress information as actor count and interaction density grow."
+    },
+    {
+      "id": "L09",
+      "name": "AINativeRedesign",
+      "canonical": "AI_NATIVE_REDESIGN",
+      "origin": "article_native",
+      "responsibility": "Redesign workflow topology around machine cognition rather than bolt AI onto inherited human workflows."
+    },
+    {
+      "id": "L10",
+      "name": "OrganizationalObservability",
+      "canonical": "ORGANIZATIONAL_OBSERVABILITY",
+      "origin": "article_derived",
+      "responsibility": "Make large human-machine organizations traceable, auditable, observable, and recoverable without requiring full human legibility."
+    },
+    {
+      "id": "L11",
+      "name": "CoordinatedScale",
+      "canonical": "COORDINATED_SCALE",
+      "origin": "article_derived",
+      "responsibility": "Scale agent capacity without losing useful throughput to coordination, verification, or state inconsistency."
+    },
+    {
+      "id": "L12",
+      "name": "EmergentOrganizationalForm",
+      "canonical": "EMERGENT_ORGANIZATIONAL_FORM",
+      "origin": "article_native",
+      "responsibility": "Represent new organization/economic forms enabled by the changed substrate and coordination regime."
+    },
+    {
+      "id": "X01",
+      "name": "Reliability",
+      "canonical": "RELIABILITY",
+      "origin": "missing_engineering_node",
+      "responsibility": "Bound, detect, contain, retry, and recover from accumulated failures."
+    },
+    {
+      "id": "X02",
+      "name": "Security",
+      "canonical": "SECURITY",
+      "origin": "missing_engineering_node",
+      "responsibility": "Protect identities, instructions, credentials, tools, state, and external effects."
+    },
+    {
+      "id": "X03",
+      "name": "PermissionAuthority",
+      "canonical": "PERMISSION_AUTHORITY",
+      "origin": "missing_engineering_node",
+      "responsibility": "Separate technical capability from authorization and delegation."
+    },
+    {
+      "id": "X04",
+      "name": "Recovery",
+      "canonical": "RECOVERY",
+      "origin": "missing_engineering_node",
+      "responsibility": "Resume or compensate long-horizon work after execution, semantic, or external uncertainty."
+    },
+    {
+      "id": "X05",
+      "name": "IncentivesObjectiveAlignment",
+      "canonical": "INCENTIVES_OBJECTIVE_ALIGNMENT",
+      "origin": "missing_engineering_node",
+      "responsibility": "Keep local optimizers aligned with real outcomes and expose Goodhart failure."
+    },
+    {
+      "id": "X06",
+      "name": "Economics",
+      "canonical": "ECONOMICS",
+      "origin": "missing_engineering_node",
+      "responsibility": "Account for compute, latency, verification, review, infrastructure, and failure cost."
+    },
+    {
+      "id": "X07",
+      "name": "Governance",
+      "canonical": "GOVERNANCE",
+      "origin": "missing_engineering_node",
+      "responsibility": "Own goals, policy, accountability, risk acceptance, and irreversible decision authority."
+    },
+    {
+      "id": "X08",
+      "name": "LearningEvolution",
+      "canonical": "LEARNING_EVOLUTION",
+      "origin": "missing_engineering_node",
+      "responsibility": "Improve compositions and methods from operating evidence while preserving verification and rollback."
+    }
+  ],
+  "metaphors": [
+    {
+      "id": "M01",
+      "name": "Steel",
+      "operator": "new_material_changes_structural_ceiling",
+      "question": "What structural limit changes when the load-bearing material changes?"
+    },
+    {
+      "id": "M02",
+      "name": "Steam",
+      "operator": "new_resource_changes_system_topology",
+      "question": "How should the whole system be laid out once the old resource constraint disappears?"
+    },
+    {
+      "id": "M03",
+      "name": "Megacity",
+      "operator": "scale_changes_legibility_and_governance_regime",
+      "question": "What control and observability regime is needed after full human legibility is lost?"
+    }
+  ],
+  "edges": [
+    {
+      "from": "L01",
+      "to": "L02",
+      "type": "CAUSES",
+      "label": "cheaper replicable cognition changes scarcity regime"
+    },
+    {
+      "from": "L02",
+      "to": "L03",
+      "type": "EXPOSES_BOTTLENECK",
+      "label": "context becomes limiting"
+    },
+    {
+      "from": "L02",
+      "to": "L04",
+      "type": "EXPOSES_BOTTLENECK",
+      "label": "verification becomes limiting"
+    },
+    {
+      "from": "L03",
+      "to": "L05",
+      "type": "ENABLES",
+      "label": "better state access lengthens useful autonomy"
+    },
+    {
+      "from": "L04",
+      "to": "L05",
+      "type": "ENABLES",
+      "label": "verification enables autonomous correction"
+    },
+    {
+      "from": "X03",
+      "to": "L05",
+      "type": "CONSTRAINS",
+      "label": "authority bounds allowed autonomous action"
+    },
+    {
+      "from": "X04",
+      "to": "L05",
+      "type": "ENABLES",
+      "label": "recovery supports long-horizon execution"
+    },
+    {
+      "from": "L05",
+      "to": "L06",
+      "type": "ENABLES",
+      "label": "autonomous workers can be orchestrated concurrently"
+    },
+    {
+      "from": "L07",
+      "to": "L05",
+      "type": "CONTROLS",
+      "label": "human authority placement bounds autonomy"
+    },
+    {
+      "from": "L06",
+      "to": "L08",
+      "type": "INCREASES_NEED_FOR",
+      "label": "more concurrent actors require routing/compression"
+    },
+    {
+      "from": "L08",
+      "to": "L09",
+      "type": "MOTIVATES",
+      "label": "machine coordination makes topology redesign attractive"
+    },
+    {
+      "from": "L09",
+      "to": "L11",
+      "type": "ENABLES",
+      "label": "redesign removes inherited human bottlenecks"
+    },
+    {
+      "from": "L11",
+      "to": "L10",
+      "type": "REQUIRES",
+      "label": "scale beyond human legibility needs observability"
+    },
+    {
+      "from": "L10",
+      "to": "L12",
+      "type": "ENABLES",
+      "label": "observable complex systems can support new organizational forms"
+    },
+    {
+      "from": "X01",
+      "to": "L11",
+      "type": "CONSTRAINS",
+      "label": "error accumulation can cap useful scale"
+    },
+    {
+      "from": "X02",
+      "to": "L11",
+      "type": "CONSTRAINS",
+      "label": "attack surface grows with capability and scale"
+    },
+    {
+      "from": "X06",
+      "to": "L11",
+      "type": "CONSTRAINS",
+      "label": "cost can dominate nominal agent capacity"
+    },
+    {
+      "from": "X07",
+      "to": "L12",
+      "type": "REQUIRES",
+      "label": "new organizational forms require governance"
+    },
+    {
+      "from": "X05",
+      "to": "L12",
+      "type": "CONSTRAINS",
+      "label": "objective failure can make scale counterproductive"
+    },
+    {
+      "from": "X08",
+      "to": "L09",
+      "type": "FEEDBACK",
+      "label": "operating evidence changes future composition"
+    }
+  ],
+  "recomposition": {
+    "name": "AI_NATIVE_ORGANIZATIONAL_RUNTIME",
+    "layers": [
+      {
+        "order": 1,
+        "name": "CognitiveSubstrate",
+        "members": [
+          "L01"
+        ]
+      },
+      {
+        "order": 2,
+        "name": "Context",
+        "members": [
+          "L03"
+        ]
+      },
+      {
+        "order": 3,
+        "name": "Capability",
+        "members": []
+      },
+      {
+        "order": 4,
+        "name": "Execution",
+        "members": [
+          "L05",
+          "X03",
+          "X04"
+        ]
+      },
+      {
+        "order": 5,
+        "name": "Verification",
+        "members": [
+          "L04",
+          "X01"
+        ]
+      },
+      {
+        "order": 6,
+        "name": "Coordination",
+        "members": [
+          "L06",
+          "L08",
+          "L11"
+        ]
+      },
+      {
+        "order": 7,
+        "name": "AgentOrganization",
+        "members": [
+          "L09"
+        ]
+      },
+      {
+        "order": 8,
+        "name": "Observability",
+        "members": [
+          "L10",
+          "X02",
+          "X06"
+        ]
+      },
+      {
+        "order": 9,
+        "name": "HumanGovernance",
+        "members": [
+          "L07",
+          "X05",
+          "X07",
+          "X08"
+        ]
+      }
+    ]
+  },
+  "ordivonMapping": [
+    {
+      "concept": "CognitiveSubstrate",
+      "coordinates": [
+        "Model",
+        "Agent"
+      ]
+    },
+    {
+      "concept": "StateContextFabric",
+      "coordinates": [
+        "Workspace",
+        "Memory",
+        "SourceEvidence"
+      ]
+    },
+    {
+      "concept": "ProceduralContext",
+      "coordinates": [
+        "Skill"
+      ]
+    },
+    {
+      "concept": "ActionCapability",
+      "coordinates": [
+        "Tool",
+        "MCP",
+        "AgentPlugin"
+      ]
+    },
+    {
+      "concept": "Execution",
+      "coordinates": [
+        "Runtime",
+        "Job",
+        "Attempt"
+      ]
+    },
+    {
+      "concept": "WorkUnit",
+      "coordinates": [
+        "Task",
+        "BoundedSlice"
+      ]
+    },
+    {
+      "concept": "Coordination",
+      "coordinates": [
+        "AgentService",
+        "Scheduler",
+        "A2A"
+      ]
+    },
+    {
+      "concept": "Authority",
+      "coordinates": [
+        "Host",
+        "ProviderOwner",
+        "DomainOwner"
+      ]
+    },
+    {
+      "concept": "VerificationOracle",
+      "coordinates": [
+        "Tests",
+        "Evidence",
+        "Acceptance"
+      ]
+    },
+    {
+      "concept": "ObservableOutput",
+      "coordinates": [
+        "Artifact"
+      ]
+    },
+    {
+      "concept": "OrganizationalObservability",
+      "coordinates": [
+        "TaskProjection",
+        "EvidenceProjection",
+        "StateProjection"
+      ]
+    },
+    {
+      "concept": "Recovery",
+      "coordinates": [
+        "Resume",
+        "Checkpoint",
+        "AttemptContinuity"
+      ]
+    },
+    {
+      "concept": "HumanControlTopology",
+      "coordinates": [
+        "Goal",
+        "Policy",
+        "Gate",
+        "Review"
+      ]
+    }
+  ],
+  "laws": [
+    {
+      "id": "LAW_A",
+      "name": "ScarcityMigration",
+      "statement": "When a resource becomes abundant, bottlenecks migrate rather than disappear.",
+      "caseChain": [
+        "cognition",
+        "context",
+        "verification",
+        "coordination",
+        "judgment",
+        "governance"
+      ]
+    },
+    {
+      "id": "LAW_B",
+      "name": "AutonomyCeiling",
+      "statement": "Useful autonomy is bounded by the weakest required system property.",
+      "conceptualForm": "A_max ~ min(capability, context, verification, permission, recovery)"
+    },
+    {
+      "id": "LAW_C",
+      "name": "RedesignMultiplier",
+      "statement": "The realized value of a new substrate depends strongly on surrounding system redesign.",
+      "conceptualForm": "realized_value ~ capability * system_redesign"
+    }
+  ],
+  "falsificationQuestions": [
+    "Are there domains where model capability rises substantially but context or verification do not become the next bottlenecks?",
+    "Does adding autonomous agents increase coordination cost faster than useful throughput?",
+    "At what task classes does human-on-the-loop supervision fail because review is delayed or too weak?",
+    "Does verification cost dominate generation savings in non-code knowledge work?",
+    "Do security and permission constraints cap autonomy before context or verification?",
+    "Does greater autonomy increase correlated failure modes?",
+    "Which productivity claims survive outcome-level measurement rather than task-completion counting?"
+  ],
+  "promotionCandidates": [
+    "SCARCITY_MIGRATION",
+    "AUTONOMY_CEILING",
+    "CONTROL_TOPOLOGY",
+    "ORGANIZATIONAL_OBSERVABILITY",
+    "METAPHOR_TYPE_SEPARATION",
+    "MISSING_NODE_SCAN",
+    "FALSIFICATION_SECTION"
+  ],
+  "promotionRule": "No candidate becomes shared-core truth from this case alone; require repeated cross-domain evidence."
+}
