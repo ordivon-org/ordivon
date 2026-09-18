@@ -70,6 +70,14 @@ managed_paths:
   - experiments/product-composition-r1/pc01-e03-playable-r1/scripts/mechanical-acceptance.ts
   - experiments/product-composition-r1/pc01-e03-playable-r1/scripts/e2e-pc01-e03-playable.ts
   - experiments/product-composition-r1/pc01-e03-playable-r1/evidence/mechanical-acceptance-r1.json
+  - experiments/product-composition-r1/pc01-e03-multiround-r2/README.md
+  - experiments/product-composition-r1/pc01-e03-multiround-r2/web/core.js
+  - experiments/product-composition-r1/pc01-e03-multiround-r2/web/app.js
+  - experiments/product-composition-r1/pc01-e03-multiround-r2/web/index.html
+  - experiments/product-composition-r1/pc01-e03-multiround-r2/web/styles.css
+  - experiments/product-composition-r1/pc01-e03-multiround-r2/scripts/mechanical-acceptance.ts
+  - experiments/product-composition-r1/pc01-e03-multiround-r2/scripts/e2e-pc01-e03-multiround-r2.ts
+  - experiments/product-composition-r1/pc01-e03-multiround-r2/evidence/mechanical-acceptance-r2.json
   - skills/game-development-lenses/SKILL.md
   - skills/game-stage-lens/SKILL.md
   - skills/game-minimal-interaction-model/SKILL.md
