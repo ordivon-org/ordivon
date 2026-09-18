@@ -187,8 +187,6 @@
       "MCPTasksHttpClient",
       "PlacementReconciler",
       "PolicyAdapter",
-      "PolicyDecision",
-      "PolicyDecisionStore",
       "PolicyEvaluationCoordinator",
       "PolicyObservation",
       "PolicyRequest",
@@ -294,13 +292,17 @@
     "AgentInterfaceAdvertisement",
     "AgentInterfaceAdvertisementStore",
     "CapabilityAdvertisement",
-    "CapabilityAdvertisementStore"
+    "CapabilityAdvertisementStore",
+    "PolicyDecision",
+    "PolicyDecisionStore"
   ],
   "retiredPersistenceSurfaces": [
     "agent_interface_advertisements",
-    "capability_advertisements"
+    "capability_advertisements",
+    "policy_decisions"
   ],
   "retiredForeignKeyAuthorities": [
-    "transport_bindings.interface_id -> agent_interface_advertisements.id"
+    "transport_bindings.interface_id -> agent_interface_advertisements.id",
+    "transport_bindings.policy_decision_id -> policy_decisions.id"
   ]
 }

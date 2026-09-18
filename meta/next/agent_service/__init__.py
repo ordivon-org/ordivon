@@ -7,7 +7,6 @@ from .delivery import (
     DeliveryCoordinator,
     DeliveryReceiptStore,
     PolicyAdapter,
-    PolicyDecisionStore,
     PolicyEvaluationCoordinator,
     TransportBindingStore,
 )
@@ -176,7 +175,6 @@ __all__ = [
     "IdentityProofCoordinator",
     "IdentityProofRecordStore",
     "PolicyAdapter",
-    "PolicyDecisionStore",
     "PolicyEvaluationCoordinator",
     "ProviderObservation",
     "RemoteArtifactEvidenceResolver",

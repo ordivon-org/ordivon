@@ -194,7 +194,7 @@ class AgentServiceEffectAuthorityR15Tests(unittest.TestCase):
             delivery = CountingDelivery()
             service = self._open(Path(tmp) / "s.db", policy, delivery)
             _, _, route_decision, binding = self._setup(service)
-            self.assertTrue(route_decision.allowed)
+            self.assertTrue(route_decision.payload["allowed"])
             self.assertEqual(policy.calls, 1)
 
             policy.allowed = False
