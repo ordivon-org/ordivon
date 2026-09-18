@@ -1,6 +1,6 @@
 ---
 name: lego-systems-engineering
-description: Apply systems-engineering and systems-thinking framing to an already evidenced complex project: define the system of interest, environment, boundaries, interfaces, lifecycle, stakeholder outcomes, and whole-system properties before or while decomposing it into LEGO nodes. Use when scope is ambiguous, the project is a system-of-systems, local optimizations may conflict, or interfaces dominate behavior. Do not use as a generic project-management checklist.
+description: "Apply systems-engineering and systems-thinking framing to an already evidenced complex project: define the system of interest, environment, boundaries, interfaces, lifecycle, stakeholder outcomes, and whole-system properties before or while decomposing it into LEGO nodes. Use when scope is ambiguous, the project is a system-of-systems, local optimizations may conflict, or interfaces dominate behavior. Do not use as a generic project-management checklist."
 compatibility: Cross-platform. Produces analysis evidence; it does not alter project truth by itself.
 metadata:
   source-authority: INCOSE systems engineering / systems thinking
