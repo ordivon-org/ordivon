@@ -1,0 +1,517 @@
+{
+  "schemaVersion": 2,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-artifact-v2",
+    "redecomposition": "ARTIFACT_STANDING_KERNEL_R2",
+    "purpose": "Bind exact subject bytes to declared profile semantics, route admitted capabilities, preserve bounded evidence observations, and derive only justified Artifact standing; treat build, trust, packaging, durability, CLI, and transport as optional provider/adapter layers.",
+    "sourceRevision": "10d0f076c32621f50f7c60ef6f847e19ea2cc9ec",
+    "evidence": [
+      "README.md",
+      "docs/artifact-build-delivery-e2e-v1.md",
+      "docs/ARTIFACT_VERIFICATION_SERVICE_R1.md",
+      "docs/ARTIFACT_KNOWLEDGE_TO_ACTION_DONOR_R1.md",
+      "docs/ARTIFACT_CAPABILITY_DECOMPOSITION_WAVE_A15_R1.md",
+      "artifact_core/contracts.py",
+      "artifact_core/profiles.py",
+      "artifact_core/bindings.py",
+      "artifact_core/operations.py",
+      "artifact_operations/contract.py",
+      "artifact_operations/providers/direct_python.py",
+      "artifact_verification/stage.py",
+      "artifact_trust/vsa.py",
+      "scripts/artifact_verify.py",
+      "scripts/artifact_oci_package.py",
+      "scripts/artifact_r2_mailbox.py"
+    ]
+  },
+  "observedTopology": {
+    "projectPythonPackageCycles": 0,
+    "capabilityVerifyBindings": 19,
+    "shadowProfiles": 20,
+    "productionV1ExampleProfiles": 13,
+    "deliveryFacadeLines": 750,
+    "directPythonProviderLines": 608,
+    "trustVsaLines": 808,
+    "ociPackageStageLines": 362,
+    "directPythonProviderProjectFanout": 17,
+    "productionPythonDeliveryFacadeImports": 0
+  },
+  "nodes": [
+    {
+      "id": "K01",
+      "label": "SubjectCommitment",
+      "kind": "kernel",
+      "responsibility": "Bind the exact bytes and optional exact object-contract bytes under evaluation.",
+      "currentEvidence": [
+        "artifact_core/contracts.py",
+        "artifact_operations/contract.py"
+      ],
+      "mustNotOwn": [
+        "transport",
+        "storage",
+        "producer process truth"
+      ]
+    },
+    {
+      "id": "K02",
+      "label": "ProfileSemantics",
+      "kind": "kernel",
+      "responsibility": "Define the bounded claims, evidence expectations, targets and non-claims applicable to one Artifact profile.",
+      "currentEvidence": [
+        "artifact_core/profiles.py",
+        "artifact_core/profile_v1.py"
+      ],
+      "mustNotOwn": [
+        "provider mechanics",
+        "universal workflow sequence"
+      ]
+    },
+    {
+      "id": "K03",
+      "label": "CapabilityBinding",
+      "kind": "kernel",
+      "responsibility": "Resolve profile plus operation to one admitted capability implementation and its standing.",
+      "currentEvidence": [
+        "artifact_core/bindings.py",
+        "artifact_core/build_bindings.py",
+        "artifact-delivery/capability-bindings-v1.json",
+        "artifact-delivery/build-capability-bindings-v1.json"
+      ],
+      "mustNotOwn": [
+        "implementation internals"
+      ]
+    },
+    {
+      "id": "K04",
+      "label": "EvidenceObservation",
+      "kind": "kernel",
+      "responsibility": "Represent what one bounded method actually observed over exact subject bytes.",
+      "currentEvidence": [
+        "artifact_evidence/delivery.py",
+        "artifact_evidence/snapshot.py",
+        "artifact_verification/evidence.py"
+      ],
+      "state": "PARTIALLY_IMPLICIT",
+      "mustNotOwn": [
+        "cryptographic trust requirement",
+        "consumer-domain acceptance"
+      ]
+    },
+    {
+      "id": "K05",
+      "label": "StandingDecision",
+      "kind": "kernel",
+      "responsibility": "Derive only the claims justified by profile semantics plus admitted observations.",
+      "currentEvidence": [
+        "artifact_verification/stage.py",
+        "scripts/artifact_verify.py",
+        "artifact_trust/vsa.py"
+      ],
+      "state": "SEMANTICALLY_SPLIT",
+      "mustNotOwn": [
+        "transport success",
+        "human preference"
+      ]
+    },
+    {
+      "id": "P01",
+      "label": "BuildProvider",
+      "kind": "plugin",
+      "responsibility": "Produce candidate native bytes from admitted exact source/material commitments.",
+      "currentEvidence": [
+        "artifact_capabilities/dispatch.py",
+        "artifact_capabilities/document.py",
+        "artifact_capabilities/presentation"
+      ],
+      "mustNotOwn": [
+        "Artifact standing"
+      ]
+    },
+    {
+      "id": "P02",
+      "label": "VerifierPlugin",
+      "kind": "plugin",
+      "responsibility": "Produce bounded evidence observations for one profile/capability over exact subject bytes.",
+      "currentEvidence": [
+        "artifact-delivery/capability-bindings-v1.json",
+        "scripts/artifact_verify.py"
+      ],
+      "observedImplementations": 17,
+      "mustNotOwn": [
+        "universal artifact ontology"
+      ]
+    },
+    {
+      "id": "P03",
+      "label": "TrustOverlay",
+      "kind": "plugin",
+      "responsibility": "Authenticate or authorize evidence/standing using explicit trust policy and cryptographic material.",
+      "currentEvidence": [
+        "artifact_trust/vsa.py"
+      ],
+      "state": "MULTI_RESPONSIBILITY_OWNER",
+      "mustNotOwn": [
+        "base observation existence"
+      ]
+    },
+    {
+      "id": "P04",
+      "label": "PackageAssembler",
+      "kind": "plugin",
+      "responsibility": "Assemble artifact, evidence and trust material into an external package/release representation.",
+      "currentEvidence": [
+        "scripts/artifact_oci_package.py"
+      ],
+      "state": "ORCHESTRATION_CONCENTRATION",
+      "mustNotOwn": [
+        "kernel claim semantics"
+      ]
+    },
+    {
+      "id": "A01",
+      "label": "OperationAdapter",
+      "kind": "adapter",
+      "responsibility": "Map generic Artifact operation requests to kernel and provider services.",
+      "currentEvidence": [
+        "artifact_operations/contract.py",
+        "artifact_operations/providers/direct_python.py"
+      ],
+      "state": "COMPOSITION_ROOT_HIGH_FANOUT",
+      "mustNotOwn": [
+        "new domain semantics"
+      ]
+    },
+    {
+      "id": "A02",
+      "label": "DurableRuntimeAdapter",
+      "kind": "adapter",
+      "responsibility": "Provide replay-safe durable execution without becoming Artifact semantic authority.",
+      "currentEvidence": [
+        "scripts/artifact_delivery_temporal_support.py",
+        "scripts/temporal_artifact_delivery.py"
+      ],
+      "mustNotOwn": [
+        "Artifact standing"
+      ]
+    },
+    {
+      "id": "A03",
+      "label": "CLIAdapter",
+      "kind": "adapter",
+      "responsibility": "Expose stable human/tool command surfaces and compatibility entrypoints.",
+      "currentEvidence": [
+        "scripts/artifact_delivery.py",
+        "scripts/artifact_agent_surface.py"
+      ],
+      "mustNotOwn": [
+        "canonical implementation semantics"
+      ]
+    },
+    {
+      "id": "C01",
+      "label": "ProfileV1Compatibility",
+      "kind": "compatibility",
+      "responsibility": "Preserve production Office/Web profile-v1 behavior while proving equivalence to any future normalized evaluation model.",
+      "currentEvidence": [
+        "artifact_core/profile_v1.py",
+        "artifact_verification/stage.py"
+      ],
+      "state": "ACTIVE_REQUIRED"
+    },
+    {
+      "id": "C02",
+      "label": "DeliveryCompatibilityFacade",
+      "kind": "compatibility",
+      "responsibility": "Preserve existing Delivery Python/CLI names while canonical owners remain elsewhere.",
+      "currentEvidence": [
+        "scripts/artifact_delivery.py",
+        "artifact-delivery/compatibility-retirement-manifest-v1.json"
+      ],
+      "state": "35_LIVE_CALLABLES"
+    },
+    {
+      "id": "X01",
+      "label": "TransportCapability",
+      "kind": "externalize",
+      "responsibility": "Move bytes or issue bounded transport capabilities.",
+      "currentEvidence": [
+        "scripts/artifact_r2_mailbox.py",
+        "docs/ARTIFACT_KNOWLEDGE_TO_ACTION_DONOR_R1.md"
+      ],
+      "state": "DO_NOT_PROMOTE"
+    },
+    {
+      "id": "X02",
+      "label": "ToolchainEnvironment",
+      "kind": "externalize",
+      "responsibility": "Probe and manage execution-tool availability and environment facts.",
+      "currentEvidence": [
+        "scripts/artifact_delivery_toolchain_doctor.py",
+        "scripts/artifact_delivery_environment.py"
+      ],
+      "state": "OPERATIONAL_NOT_KERNEL"
+    },
+    {
+      "id": "X03",
+      "label": "ConsumerDomainAcceptance",
+      "kind": "external",
+      "responsibility": "Decide whether technically standing Artifact bytes are appropriate for Game, Research, Media or another caller.",
+      "currentEvidence": [
+        "docs/ARTIFACT_VERIFICATION_SERVICE_R1.md"
+      ],
+      "state": "OUTSIDE_ARTIFACT"
+    },
+    {
+      "id": "X04",
+      "label": "HumanPreferenceAuthority",
+      "kind": "external",
+      "responsibility": "Supply subjective visual/editorial/business preference judgments when explicitly required.",
+      "currentEvidence": [
+        "README.md",
+        "docs/artifact-build-delivery-e2e-v1.md"
+      ],
+      "state": "OUTSIDE_ARTIFACT"
+    }
+  ],
+  "edges": [
+    {
+      "from": "K01",
+      "to": "P02",
+      "type": "INPUT",
+      "label": "exact subject bytes"
+    },
+    {
+      "from": "K02",
+      "to": "K03",
+      "type": "POLICY",
+      "label": "profile selects admitted capability"
+    },
+    {
+      "from": "K03",
+      "to": "P02",
+      "type": "ROUTE",
+      "label": "binding selects verifier implementation"
+    },
+    {
+      "from": "P02",
+      "to": "K04",
+      "type": "EVIDENCE",
+      "label": "bounded observations"
+    },
+    {
+      "from": "K02",
+      "to": "K05",
+      "type": "POLICY",
+      "label": "claim/evidence boundary"
+    },
+    {
+      "from": "K04",
+      "to": "K05",
+      "type": "EVIDENCE",
+      "label": "observations justify bounded standing"
+    },
+    {
+      "from": "P01",
+      "to": "K01",
+      "type": "PRODUCES",
+      "label": "candidate bytes only"
+    },
+    {
+      "from": "K04",
+      "to": "P03",
+      "type": "INPUT",
+      "label": "evidence may be authenticated"
+    },
+    {
+      "from": "K05",
+      "to": "P03",
+      "type": "INPUT",
+      "label": "standing may be authenticated"
+    },
+    {
+      "from": "K01",
+      "to": "P04",
+      "type": "INPUT",
+      "label": "artifact bytes"
+    },
+    {
+      "from": "K05",
+      "to": "P04",
+      "type": "POLICY",
+      "label": "package eligibility"
+    },
+    {
+      "from": "P03",
+      "to": "P04",
+      "type": "OPTIONAL_TRUST",
+      "label": "signed evidence/standing"
+    },
+    {
+      "from": "A01",
+      "to": "K01",
+      "type": "ORCHESTRATES"
+    },
+    {
+      "from": "A01",
+      "to": "P01",
+      "type": "ORCHESTRATES"
+    },
+    {
+      "from": "A01",
+      "to": "P02",
+      "type": "ORCHESTRATES"
+    },
+    {
+      "from": "A01",
+      "to": "P03",
+      "type": "ORCHESTRATES"
+    },
+    {
+      "from": "A01",
+      "to": "P04",
+      "type": "ORCHESTRATES"
+    },
+    {
+      "from": "A02",
+      "to": "A01",
+      "type": "DURABILITY",
+      "label": "replay-safe execution"
+    },
+    {
+      "from": "A03",
+      "to": "A01",
+      "type": "ADAPTER",
+      "label": "CLI/API compatibility"
+    },
+    {
+      "from": "C01",
+      "to": "K02",
+      "type": "ADAPTS"
+    },
+    {
+      "from": "C01",
+      "to": "P02",
+      "type": "ADAPTS"
+    },
+    {
+      "from": "C02",
+      "to": "A01",
+      "type": "COMPATIBILITY"
+    },
+    {
+      "from": "X01",
+      "to": "K01",
+      "type": "SUPPLIES_OR_EXPORTS_BYTES",
+      "label": "never standing"
+    },
+    {
+      "from": "K05",
+      "to": "X03",
+      "type": "INPUT",
+      "label": "consumer may use Artifact standing as evidence, not authority"
+    }
+  ],
+  "divergences": [
+    {
+      "id": "D01",
+      "label": "DualEvaluationBackbones",
+      "observation": "Production Office/Web verification and standards-first family verification use different evaluation models.",
+      "priority": "P0"
+    },
+    {
+      "id": "D02",
+      "label": "CompositionRootConcentration",
+      "observation": "DirectPythonOperationProvider has 17 project-module dependencies and a 513-line class.",
+      "priority": "P1"
+    },
+    {
+      "id": "D03",
+      "label": "TrustMultiResponsibility",
+      "observation": "artifact_trust/vsa.py combines statement, policy, crypto-tool effect and aggregation responsibilities.",
+      "priority": "P1"
+    },
+    {
+      "id": "D04",
+      "label": "OciOrchestrationConcentration",
+      "observation": "execute_oci_package_stage is 362 lines with 30 conditional branches.",
+      "priority": "P1"
+    },
+    {
+      "id": "D05",
+      "label": "TransportBoundaryDrift",
+      "observation": "R2 mailbox implementation remains in the Artifact repository despite donor classification DO_NOT_PROMOTE.",
+      "priority": "P1"
+    },
+    {
+      "id": "D06",
+      "label": "ImplicitVerifierPluginProtocol",
+      "observation": "Nineteen capability bindings already route to family verifier module/callable entrypoints, but plugin packaging/interface is not formalized.",
+      "priority": "P1"
+    }
+  ],
+  "slices": [
+    {
+      "id": "R2-S1",
+      "objective": "Pressure-test one common EvaluationRequest/EvidenceObservation/StandingDecision model against four real profiles without changing production routing.",
+      "status": "NEXT",
+      "nodeIds": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "C01",
+        "P02"
+      ]
+    },
+    {
+      "id": "R2-S2",
+      "objective": "Separate Trust statement, policy, Sigstore effect and aggregation responsibilities at the design/test boundary.",
+      "status": "PLANNED",
+      "nodeIds": [
+        "P03"
+      ]
+    },
+    {
+      "id": "R2-S3",
+      "objective": "Map DirectPython operation-kind branches into independent handlers while preserving one composition root.",
+      "status": "PLANNED",
+      "nodeIds": [
+        "A01"
+      ]
+    },
+    {
+      "id": "R2-S4",
+      "objective": "Model OCI package plan/admission/staging/layout/release-decision as package-plugin internals without changing bytes.",
+      "status": "PLANNED",
+      "nodeIds": [
+        "P04"
+      ]
+    },
+    {
+      "id": "R2-S5",
+      "objective": "Classify mailbox, doctor, environment and transport/publication tooling into retain, quarantine or externalize.",
+      "status": "PLANNED",
+      "nodeIds": [
+        "X01",
+        "X02"
+      ]
+    }
+  ],
+  "questions": [
+    "Can one EvaluationRequest represent both profile-v1 Office/Web verification and profile-v2 family verification without semantic loss?",
+    "What is the minimum EvidenceObservation schema that works across target render, structural validators, family validators and readback?",
+    "Should StandingDecision be profile/policy-owned rather than verifier-owned?",
+    "Can Trust remain completely downstream of unsigned evidence observations?",
+    "Can profile-v1 Office/Web become a verifier plugin without prematurely promoting profile-v2?",
+    "Should R2 mailbox move to an external delivery-infrastructure plugin/repository or remain quarantined compatibility tooling?",
+    "What explicit lifecycle policy should govern Delivery compatibility wrappers and DeliveryCliOperationProvider?"
+  ],
+  "review": {
+    "updatedAt": "2026-09-18",
+    "standing": "REDECOMPOSITION_R1",
+    "notes": "R2 intentionally changes the decomposition axis from historical workflow/file ownership to exact-byte identity, profile semantics, evidence observations, standing, and optional provider/adapters."
+  }
+}
