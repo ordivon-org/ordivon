@@ -39,5 +39,35 @@
     "Prospective application on at least two non-poker Ordivon domains.",
     "Compare compiled questions against an uncompiled baseline for decision/experiment changes.",
     "Promote shared concepts only after repeated cross-domain evidence."
-  ]
+  ],
+  "integration": {
+    "latestMainBaseRevision": "fa9781fe07cd6b26766e5cd946a1d27abe41416f",
+    "integratedRoutingRevision": "01afb37f6b6c7cf45fa2c12400ac7422a08b3c98",
+    "coexistingLens": "lego-regime-shift",
+    "checks": [
+      {
+        "command": "python3 -m unittest tests.test_lego_question_compiler_r1",
+        "result": "PASS",
+        "tests": 6
+      },
+      {
+        "command": "python3 -m unittest discover -s tests",
+        "result": "PASS",
+        "tests": 51
+      },
+      {
+        "command": "python3 scripts/check_project_lego_plan_r1.py planning/lego-plan-r1.json",
+        "result": "PASS",
+        "nodes": 6,
+        "edges": 4,
+        "slices": 3,
+        "activeSlices": 0
+      },
+      {
+        "command": "git diff --check",
+        "result": "PASS"
+      }
+    ],
+    "claim": "Question Compiler R1 integrates cleanly with the concurrently added regime-shift lens; the compiler routes eligible turning-point/deep-uncertainty questions to that narrower lens rather than absorbing its procedure."
+  }
 }
