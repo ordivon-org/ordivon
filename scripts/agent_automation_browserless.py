@@ -921,8 +921,66 @@ class BrowserlessAutomationService:
                 "substrateHealth": substrate,
             }
 
+    def _doctor_browser_substrate_health(self) -> dict:
+        rows: list[dict] = []
+        warm = set(self.config.browserless_warm_endpoint_ids)
+        for endpoint in self.config.browserless_pool.endpoints:
+            raw_unit = getattr(endpoint, "service_unit", None)
+            unit = raw_unit if isinstance(raw_unit, str) and raw_unit else None
+            if unit is None:
+                row = endpoint.health()
+                row = dict(row)
+                row["lifecycleStanding"] = "UNMANAGED_OBSERVED"
+                rows.append(row)
+                continue
+
+            observed = subprocess.run(
+                ["/usr/bin/systemctl", "is-active", "--quiet", unit],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+            if observed.returncode == 0:
+                row = dict(endpoint.health())
+                row["serviceUnit"] = unit
+                row["lifecycleStanding"] = "ACTIVE"
+                rows.append(row)
+                continue
+
+            base = {
+                "id": endpoint.endpoint_id,
+                "identityDigest": endpoint.identity_digest,
+                "networkNamespace": endpoint.network_namespace,
+                "serviceUnit": unit,
+                "observedActive": False,
+            }
+            if endpoint.endpoint_id in warm:
+                rows.append(
+                    {
+                        **base,
+                        "healthy": False,
+                        "lifecycleStanding": "WARM_ENDPOINT_INACTIVE",
+                        "detail": "configured warm endpoint is not active",
+                    }
+                )
+            else:
+                rows.append(
+                    {
+                        **base,
+                        "healthy": True,
+                        "lifecycleStanding": "SLEEPING_ON_DEMAND",
+                    }
+                )
+
+        return {
+            "kind": "browserless",
+            "healthy": bool(rows) and all(row["healthy"] for row in rows),
+            "endpoints": rows,
+        }
+
     def doctor(self) -> dict:
-        health = self.config.browserless_pool.health()
+        health = self._doctor_browser_substrate_health()
 
         class Noop:
             def materialize(self, request):

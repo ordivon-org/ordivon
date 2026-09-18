@@ -8,8 +8,8 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-import browserless_idle_reaper as reaper
-from agent_automation_browserless import (
+import browserless_idle_reaper as reaper  # noqa: E402
+from agent_automation_browserless import (  # noqa: E402
     BrowserlessAutomationConfig,
     BrowserlessAutomationService,
     BrowserlessCarrierBusy,
@@ -94,7 +94,6 @@ class BrowserlessIdleReaperTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             svc = self.service(Path(d))
             self.stale_stamp(svc, "carrier-12")
-            ep = next(e for e in svc.config.browserless_pool.endpoints if e.endpoint_id == "carrier-12")
             with mock.patch.object(reaper, "_active", return_value=True), mock.patch("browserless_substrate.BrowserlessEndpoint.sessions", return_value=[{"id": "s"}]), mock.patch.object(reaper, "_stop") as stop:
                 value = reaper.reap_once(svc, now=10_000.0)
             row = next(r for r in value["carriers"] if r["endpointId"] == "carrier-12")
@@ -105,7 +104,6 @@ class BrowserlessIdleReaperTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             svc = self.service(Path(d))
             self.stale_stamp(svc, "carrier-12")
-            ep = next(e for e in svc.config.browserless_pool.endpoints if e.endpoint_id == "carrier-12")
             stopped = mock.Mock(returncode=0, stdout="", stderr="")
             def active(unit):
                 return unit == "ordivon-browserless@12.service"
@@ -149,7 +147,6 @@ class BrowserlessIdleReaperTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             svc = self.service(Path(d))
             self.stale_stamp(svc, "carrier-12")
-            ep = next(e for e in svc.config.browserless_pool.endpoints if e.endpoint_id == "carrier-12")
             with mock.patch.object(reaper, "_active", return_value=True), mock.patch("browserless_substrate.BrowserlessEndpoint.sessions", side_effect=RuntimeError("x")), mock.patch.object(reaper, "_stop") as stop:
                 value = reaper.reap_once(svc, now=10_000.0)
             row = next(r for r in value["carriers"] if r["endpointId"] == "carrier-12")

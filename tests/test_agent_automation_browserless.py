@@ -454,8 +454,8 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             service = BrowserlessAutomationService(
                 BrowserlessAutomationConfig.from_dict(config(root))
             )
-            birth = service._birth(service.load_spec(sp), "A01")
             endpoint = service.config.browserless_pool.endpoints[0]
+            birth = service._birth(service.load_spec(sp), "A01")
             binding = service._binding_path(birth)
             binding.parent.mkdir(parents=True, exist_ok=True)
             binding.write_text(
@@ -539,8 +539,8 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             service = BrowserlessAutomationService(
                 BrowserlessAutomationConfig.from_dict(config(root))
             )
-            birth = service._birth(service.load_spec(sp), "A01")
             endpoint = service.config.browserless_pool.endpoints[0]
+            birth = service._birth(service.load_spec(sp), "A01")
             binding = service._binding_path(birth)
             binding.parent.mkdir(parents=True, exist_ok=True)
             binding.write_text(
@@ -1284,19 +1284,71 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
         self.assertNotIn("def compile(self, spec_path", text)
         self.assertNotIn("write_compilation", text)
 
-    def test_doctor_delegates_browser_health_to_browserless(self):
+    def test_doctor_observes_unmanaged_browser_health(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             service = BrowserlessAutomationService(
                 BrowserlessAutomationConfig.from_dict(config(root))
             )
+            endpoint = service.config.browserless_pool.endpoints[0]
             with mock.patch(
-                "agent_automation_browserless.BrowserlessPool.health",
-                return_value={"kind": "browserless", "healthy": True, "endpoints": []},
+                "browserless_substrate.BrowserlessEndpoint.health",
+                return_value={
+                    "id": endpoint.endpoint_id,
+                    "healthy": True,
+                    "identityDigest": endpoint.identity_digest,
+                },
             ):
                 result = service.doctor()
             self.assertTrue(result["healthy"])
             self.assertEqual(result["browserSubstrate"]["kind"], "browserless")
+            self.assertEqual(
+                result["browserSubstrate"]["endpoints"][0]["lifecycleStanding"],
+                "UNMANAGED_OBSERVED",
+            )
+
+    def test_doctor_marks_cold_managed_endpoint_sleeping_without_curl(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            raw = config(root)
+            endpoint_raw = raw["browserSubstrate"]["endpoints"][0]
+            endpoint_raw["serviceUnit"] = "ordivon-browserless@12.service"
+            service = BrowserlessAutomationService(BrowserlessAutomationConfig.from_dict(raw))
+            with (
+                mock.patch(
+                    "agent_automation_browserless.subprocess.run",
+                    return_value=mock.Mock(returncode=3, stdout="", stderr=""),
+                ),
+                mock.patch("browserless_substrate.BrowserlessEndpoint.health") as health,
+            ):
+                result = service.doctor()
+            health.assert_not_called()
+            row = result["browserSubstrate"]["endpoints"][0]
+            self.assertEqual(row["lifecycleStanding"], "SLEEPING_ON_DEMAND")
+            self.assertTrue(row["healthy"])
+            self.assertTrue(result["healthy"])
+
+    def test_doctor_fails_closed_when_warm_endpoint_is_inactive(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            raw = config(root)
+            endpoint_raw = raw["browserSubstrate"]["endpoints"][0]
+            endpoint_raw["serviceUnit"] = "ordivon-browserless@11.service"
+            raw["browserlessWarmEndpointIds"] = ["carrier-a"]
+            service = BrowserlessAutomationService(BrowserlessAutomationConfig.from_dict(raw))
+            with (
+                mock.patch(
+                    "agent_automation_browserless.subprocess.run",
+                    return_value=mock.Mock(returncode=3, stdout="", stderr=""),
+                ),
+                mock.patch("browserless_substrate.BrowserlessEndpoint.health") as health,
+            ):
+                result = service.doctor()
+            health.assert_not_called()
+            row = result["browserSubstrate"]["endpoints"][0]
+            self.assertEqual(row["lifecycleStanding"], "WARM_ENDPOINT_INACTIVE")
+            self.assertFalse(row["healthy"])
+            self.assertFalse(result["healthy"])
 
     def test_turn_effect_ledger_uses_current_neutral_names(self):
         facade = (ROOT / "scripts/agent_automation_browserless.py").read_text()
