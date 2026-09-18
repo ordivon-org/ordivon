@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "lego-project-planning-r1",
+  "date": "2026-09-18",
+  "status": "PASS_WITH_EXPLICIT_DEFERRED_TARGET",
+  "contract": {
+    "doc": "docs/LEGO_PROJECT_PLANNING_R1.md",
+    "schema": "schemas/project-lego-plan-r1.schema.json",
+    "validator": "scripts/check_project_lego_plan_r1.py",
+    "skill": ".agents/skills/lego-project-planning/SKILL.md",
+    "centralPlan": "planning/lego-plan-r1.json"
+  },
+  "validation": {
+    "centralPositiveAndNegative": {
+      "jobId": "job-01a0b2b6-7330-7553-bab7-71643d02030d",
+      "standing": "PASS",
+      "negativeCases": [
+        "unknown edge",
+        "VERIFIED without evidence",
+        "COMPLETE slice without evidence"
+      ]
+    },
+    "twelvePlanStructure": {
+      "jobId": "job-01a0b2ba-6b5a-79d1-b968-6a14b708ff17",
+      "standing": "PASS"
+    },
+    "evidencePathReadback": {
+      "jobId": "job-01a0b2ba-8b58-7130-8494-6993a2336778",
+      "standing": "PASS"
+    },
+    "promotedMainReadback": {
+      "jobId": "job-01a0b2bc-9bc4-72c2-adde-d66d424d5e06",
+      "standing": "PASS"
+    }
+  },
+  "rollout": {
+    "adoptedCount": 12,
+    "deferredCount": 1,
+    "deferred": [
+      "ordivon-workstation-v2"
+    ],
+    "promoted": [
+      {
+        "project": "ordivon-artifact-v2",
+        "commit": "92426b3180bf2747de761535ce4022681dcc460c"
+      },
+      {
+        "project": "ordivon-distribution-v2",
+        "commit": "171e54100d189be86d46f7b83176f961ef9d1ca8"
+      },
+      {
+        "project": "ordivon-game",
+        "commit": "268d6662eb43ef3ec6fbb34779383ec3b526ea82"
+      },
+      {
+        "project": "ordivon-harness",
+        "commit": "f56beffb37031a731fe568ae50f0938a2398e7d7"
+      },
+      {
+        "project": "ordivon-host-v2",
+        "commit": "ea8c29ae0f3781290de174345de1d86764f89809"
+      },
+      {
+        "project": "ordivon-market-capital-next",
+        "commit": "4aaaa8e175cf3d8689aa8097894f830a596350c3"
+      },
+      {
+        "project": "ordivon-media",
+        "commit": "9d44e99b7decdcd79d7764157939f64ef0fcba3e"
+      },
+      {
+        "project": "ordivon-network-v2",
+        "commit": "0c1da2aeb50f11a70aafb3523116c21bf42c486e"
+      },
+      {
+        "project": "ordivon-research-v2",
+        "commit": "5b1d81e3fbb418a713d1a72d339e058fec55b2bb"
+      },
+      {
+        "project": "ordivon-runtime",
+        "commit": "fbb4d17a941a88fd2c8422d91a33f07ad9f98ad7"
+      },
+      {
+        "project": "ordivon-security-v2",
+        "commit": "cebc2402d28f46a2a64a51b5d12cb002ccbf4dc7"
+      },
+      {
+        "project": "ordivon-web",
+        "commit": "ead8d7a03fdd384972d87c1e26c354cddd349df9"
+      }
+    ]
+  },
+  "acceptance": {
+    "planningProjectionNotAuthority": "PASS",
+    "projectNativeVocabularyPreserved": "PASS",
+    "crossReferencesValidated": "PASS",
+    "evidenceReferencesExist": "PASS",
+    "implementedVerifiedEvidenceRule": "PASS",
+    "boundedSliceContract": "PASS",
+    "concurrencySafePromotion": "PASS",
+    "dirtyWorktreeFailClosed": "PASS"
+  },
+  "notes": [
+    "Artifact advanced concurrently during rollout; its first promotion was blocked by the expected-head fence, then the plan commit was replayed onto the newer main and promoted only after a second CAS check.",
+    "Workstation was not modified because its main worktree was dirty.",
+    "Workload repositories are not automatically treated as long-lived owner/platform repositories."
+  ]
+}

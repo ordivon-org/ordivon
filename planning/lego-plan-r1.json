@@ -1,0 +1,211 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-next",
+    "purpose": "Compose mature knowledge, capabilities, and project authorities into verified outcomes while remaining thinner than the systems it composes.",
+    "sourceEvidence": [
+      "docs/ARCHITECTURE.md",
+      "knowledge/lessons/agent-architecture-lego-catalog-r1.md",
+      "docs/AGENT_PLUGIN_CORE_R3.md"
+    ]
+  },
+  "sharedCatalog": {
+    "catalogId": "agent-architecture-lego-catalog-r1",
+    "note": "Used only for exact Agent/Harness/Runtime-related shared coordinates."
+  },
+  "nodes": [
+    {
+      "id": "N01",
+      "label": "CapabilityCatalog",
+      "kind": "registry",
+      "responsibility": "Describe available mature capabilities and their natural authorities without absorbing their semantics.",
+      "authority": "ordivon-next composition catalog",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "capabilities/README.md",
+        "docs/ARCHITECTURE.md"
+      ],
+      "dependencies": [],
+      "replacementContract": "Catalog/provider records remain replaceable projections over external owners.",
+      "mustNotOwn": [
+        "provider-native truth",
+        "domain semantic truth"
+      ],
+      "acceptance": [
+        "Capabilities can be discovered without redefining their external owner."
+      ]
+    },
+    {
+      "id": "N02",
+      "label": "CompositionModel",
+      "kind": "composition",
+      "responsibility": "Compose task-local capabilities from a real problem through plan, act, and verify boundaries.",
+      "authority": "ordivon-next composition semantics",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "docs/ARCHITECTURE.md",
+        "compositions/problem-to-plan-reasoning-waist-r1.md"
+      ],
+      "dependencies": [
+        "N01"
+      ],
+      "replacementContract": "Composition method can evolve without changing provider/domain authorities.",
+      "mustNotOwn": [
+        "generic workflow engine execution truth"
+      ],
+      "acceptance": [
+        "A composition identifies selected owners, effects, and verification boundaries."
+      ]
+    },
+    {
+      "id": "N03",
+      "label": "AgentArchitectureCatalog",
+      "kind": "reference_catalog",
+      "responsibility": "Provide optional reusable LEGO coordinates for Agent architecture comparison and planning.",
+      "authority": "ordivon-next knowledge reference",
+      "state": "VERIFIED",
+      "sharedRefs": [],
+      "evidence": [
+        "knowledge/lessons/agent-architecture-lego-catalog-r1.md",
+        "knowledge/graphs/agent-architecture-lego-catalog-r1.json",
+        "evidence/acceptance/agent-architecture-lego-catalog-r1.json"
+      ],
+      "dependencies": [],
+      "replacementContract": "Catalog evolves only through evidence and Atomicity review.",
+      "mustNotOwn": [
+        "project architecture truth"
+      ],
+      "acceptance": [
+        "Core-24 graph references close and acceptance receipt passes."
+      ]
+    },
+    {
+      "id": "N04",
+      "label": "LegoPlanningContract",
+      "kind": "planning_projection",
+      "responsibility": "Project verified understanding into small nodes and bounded implementation slices without becoming project truth.",
+      "authority": "ordivon-next planning contract",
+      "state": "VERIFIED",
+      "sharedRefs": [],
+      "evidence": [
+        "docs/LEGO_PROJECT_PLANNING_R1.md",
+        "schemas/project-lego-plan-r1.schema.json",
+        ".agents/skills/lego-project-planning/SKILL.md",
+        "evidence/acceptance/lego-project-planning-r1.json"
+      ],
+      "dependencies": [
+        "N03"
+      ],
+      "replacementContract": "Projects consume the JSON contract; planning tooling may be replaced.",
+      "mustNotOwn": [
+        "project current state",
+        "execution admission",
+        "domain completion"
+      ],
+      "acceptance": [
+        "R1 validator passes this repository plan and pilot project plans."
+      ],
+      "nextAction": "Use R1 on future project planning updates; change the contract only from demonstrated planning failure."
+    },
+    {
+      "id": "N05",
+      "label": "ProjectRollout",
+      "kind": "adoption",
+      "responsibility": "Adopt LEGO planning as a thin local projection across Ordivon owner repositories without forcing shared ontology.",
+      "authority": "each project remains owner of its own plan",
+      "state": "VERIFIED",
+      "sharedRefs": [],
+      "evidence": [
+        "planning/lego-planning-rollout-r1.json",
+        "evidence/acceptance/lego-project-planning-r1.json"
+      ],
+      "dependencies": [
+        "N04"
+      ],
+      "replacementContract": "Each repository evolves project-native nodes independently while preserving R1 projection law.",
+      "mustNotOwn": [
+        "cross-project semantic truth"
+      ],
+      "acceptance": [
+        "Each admitted core repository has a structurally valid project-native plan or an explicit deferred rollout reason."
+      ],
+      "nextAction": "Adopt Workstation only after its current dirty worktree is clean and revalidated."
+    }
+  ],
+  "edges": [
+    {
+      "from": "N01",
+      "to": "N02",
+      "type": "DATA",
+      "label": "available capability/authority references"
+    },
+    {
+      "from": "N03",
+      "to": "N04",
+      "type": "DEPENDENCY",
+      "label": "optional shared Agent architecture coordinates"
+    },
+    {
+      "from": "N04",
+      "to": "N05",
+      "type": "CONTROL",
+      "label": "planning adoption contract"
+    }
+  ],
+  "slices": [
+    {
+      "id": "S01",
+      "objective": "Freeze LEGO Project Planning R1 contract, schema, validator, and Skill.",
+      "status": "COMPLETE",
+      "nodeIds": [
+        "N04"
+      ],
+      "acceptance": [
+        "Validator accepts the canonical Ordivon-next plan and rejects broken references/evidence claims."
+      ],
+      "evidence": [
+        "evidence/acceptance/lego-project-planning-r1.json"
+      ],
+      "blockers": []
+    },
+    {
+      "id": "S02",
+      "objective": "Roll out project-native LEGO plans to clean core repositories without changing their domain authorities.",
+      "status": "COMPLETE",
+      "nodeIds": [
+        "N05"
+      ],
+      "acceptance": [
+        "Each clean target repository has a validated planning/lego-plan-r1.json; dirty repositories are deferred rather than overwritten."
+      ],
+      "evidence": [
+        "planning/lego-planning-rollout-r1.json",
+        "evidence/acceptance/lego-project-planning-r1.json"
+      ],
+      "blockers": [
+        "ordivon-workstation-v2 was intentionally deferred because its main worktree was dirty at R1 rollout time."
+      ]
+    }
+  ],
+  "gaps": [
+    "Cross-repository plan visualization is not implemented and is not required for R1.",
+    "No global priority scheduler is implied by project slices."
+  ],
+  "doNotOwn": [
+    "project-native truth",
+    "Runtime execution truth",
+    "Host continuity truth",
+    "Research/Game/Security/Media semantics",
+    "a universal workflow engine"
+  ],
+  "review": {
+    "sourceRevision": "b937120e0b7ea6345d3696c5a9c2b3dbc50e455a",
+    "updatedAt": "2026-09-18",
+    "standing": "STABLE",
+    "notes": "R1 contract verified; 12 clean owner repositories adopted project-native plans. Workstation is explicitly deferred because its main worktree was dirty."
+  }
+}
