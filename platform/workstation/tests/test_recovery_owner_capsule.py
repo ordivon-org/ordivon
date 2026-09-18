@@ -21,6 +21,31 @@ def test_finance_is_declarative_owner_capsule() -> None:
     assert cfg["retain_snapshots"] == 14
 
 
+def test_existing_repository_unlocks_stale_locks_before_config_probe(tmp_path: Path) -> None:
+    repository = tmp_path / "semantic"
+    repository.mkdir()
+    (repository / "config").write_bytes(b"restic-config")
+    password = tmp_path / "password"
+    password.write_text("secret\n")
+    cfg = {
+        "repository": str(repository),
+        "password_file": str(password),
+    }
+    calls: list[list[str]] = []
+
+    def fake_checked(args, *, env=None, timeout=60):
+        calls.append(list(args))
+        return subprocess.CompletedProcess(args, 0, "", "")
+
+    with mock.patch.object(M, "checked", side_effect=fake_checked):
+        M.require_transport(cfg)
+
+    restic_calls = [call for call in calls if call and call[0] == M.RESTIC]
+    assert restic_calls[0] == M.restic_command("unlock")
+    assert restic_calls[1] == M.restic_command("cat", "config")
+    assert "--remove-all" not in restic_calls[0]
+
+
 def test_backup_snapshot_id_requires_one_summary() -> None:
     text = '\n'.join([
         json.dumps({"message_type": "status", "percent_done": 0.5}),
