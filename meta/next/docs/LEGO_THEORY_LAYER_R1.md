@@ -309,3 +309,32 @@ Evidence:
 - `knowledge/lessons/lego-wave23-self-audit-r1.md`.
 
 Wave 3 routing is phase-specific: C-K expands unknown concepts, Exploration Policy allocates repeated trials among known comparable options, Evolutionary Search varies populations only after representation/evaluator validity exists, and Organizational Cybernetics diagnoses organizational control rather than candidate search.
+
+
+## Agent Security LEGO — cross-domain validated lens
+
+Canonical lens:
+- `knowledge/lessons/agent-security-lego-r1.md`
+
+Validation chain:
+- ZCode reference case: `knowledge/lessons/zcode-workspace-snapshot-security-lego-r1.md`
+- coding-agent destroyer: `knowledge/lessons/agent-security-cross-system-destroyer-r1.md`
+- unrelated-domain destroyer: `knowledge/lessons/agent-security-cross-domain-destroyer-r1.md`
+- machine graph: `knowledge/graphs/agent-security-cross-domain-destroyer-r1.json`
+
+The lens was first pressure-tested across ZCode, Codex, Claude Code, Cursor, OpenCode and OpenClaw, then across browser automation/Agent Birth, Artifact Build & Delivery, Market Capital, Game/Station Zero, and Gmail/Google Calendar connected-app action surfaces.
+
+The cross-domain round deliberately reuses Wave 2 Information Flow for source/transform/store/channel/sink reasoning rather than inventing a competing information-flow ontology.
+
+Repeated cross-domain evidence promotes six **analytical laws** into the shared LEGO Theory layer:
+
+1. **REGIME_BOUND_CLAIMS** — capability/security claims bind to an exact operating regime, not a product/system name alone.
+2. **POLICY_BINDING_EVENT** — a control must state when it becomes effective; policy applied after commit cannot retroactively constrain the committed effect.
+3. **EXPLICIT_AUTHORITY_PROPAGATION** — composed actors/components must state how authority is delegated, attenuated, clamped, independent, or escalatable.
+4. **PERSISTENCE_CLASS_SEPARATION** — persistence/retention/deletion is object-class specific rather than one system-wide boolean or duration.
+5. **EFFECT_COMMIT_POINT** — distinguish proposal/intent/preview/draft from the operation that crosses into consequential effect.
+6. **EFFECT_RECONCILIATION_ORACLE** — consequential or ambiguous effects require owner-native read-back/reconciliation rather than process-success inference or blind retry.
+
+These laws reinforce existing Ordivon laws including `intent_not_authority`, `attempt_before_effect_when_durable`, `observation_not_semantic_success`, and `unknown_external_outcome_is_first_class`.
+
+No mandatory project-plan field is added. `schemas/project-lego-plan-r1.schema.json` remains unchanged.

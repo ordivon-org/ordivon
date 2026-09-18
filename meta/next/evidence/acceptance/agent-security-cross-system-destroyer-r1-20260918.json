@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "agent-security-cross-system-destroyer-r1-20260918",
+  "date": "2026-09-18",
+  "standing": "PASS_AGENT_DOMAIN_NO_SHARED_KERNEL_PROMOTION",
+  "systems": [
+    "ZCode",
+    "OpenAI Codex",
+    "Anthropic Claude Code",
+    "Cursor",
+    "OpenCode",
+    "OpenClaw"
+  ],
+  "checks": {
+    "officialSourcePriority": "PASS_EXCEPT_ZCODE_PUBLIC_RE_CASE",
+    "productVsRegimeNonConflation": "PASS",
+    "localVsCloudSeparation": "PASS",
+    "approvalVsContainmentSeparation": "PASS",
+    "egressPlaneSeparation": "PASS",
+    "persistenceClassSeparation": "PASS",
+    "policyBindingTimeDiscovered": "PASS",
+    "delegationInheritanceDiscovered": "PASS",
+    "sharedKernelThinnessPreserved": "PASS",
+    "productRankingAvoided": "PASS"
+  },
+  "stableAgentSecurityPrimitives": [
+    "AS01",
+    "AS02",
+    "AS03",
+    "AS04",
+    "AS05",
+    "AS06",
+    "AS09",
+    "AS10",
+    "AS11",
+    "AS12"
+  ],
+  "conditionalPrimitives": [
+    "AS07",
+    "AS08"
+  ],
+  "newCandidates": [
+    "XAS13",
+    "XAS14",
+    "XAS15",
+    "XAS16"
+  ],
+  "sharedKernelPromotion": "NO",
+  "nextValidation": "cross-domain destroyer outside coding-agent products"
+}

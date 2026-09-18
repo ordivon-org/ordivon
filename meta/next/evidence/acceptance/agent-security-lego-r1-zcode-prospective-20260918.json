@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "agent-security-lego-r1-zcode-prospective-20260918",
+  "date": "2026-09-18",
+  "target": "Agent Security LEGO R1 prospective validation on ZCode workspace snapshot case",
+  "workspaceId": "ws-lego-prospective-security-r1-20260918",
+  "standing": "PASS_PROSPECTIVE_CASE_NOT_CORE_PROMOTION",
+  "artifacts": [
+    "knowledge/lessons/agent-security-lego-r1.md",
+    "knowledge/lessons/zcode-workspace-snapshot-security-lego-r1.md",
+    "knowledge/graphs/zcode-workspace-snapshot-security-lego-r1.json",
+    "docs/LEGO_THEORY_LAYER_R1.md",
+    "capabilities/packages/security.md"
+  ],
+  "checks": {
+    "thinKernelPreserved": "PASS",
+    "agentPluginBoundaryPreserved": "PASS",
+    "evidenceStandingExplicit": "PASS",
+    "motiveNonConflation": "PASS",
+    "authorityGraph": "PASS",
+    "triggerGraph": "PASS",
+    "readWriteDeriveNetworkPersistSets": "PASS",
+    "egressPlaneSeparation": "PASS",
+    "remotePersistenceDistinctFromTransit": "PASS",
+    "keyAuthorityExplicit": "PASS",
+    "actuatorPlacementExplicit": "PASS",
+    "sideEffectObservabilityExplicit": "PASS",
+    "disclosureAlignmentTestDefined": "PASS",
+    "falsificationPlanDefined": "PASS",
+    "jsonSyntax": "PASS",
+    "gitDiffCheck": "PASS"
+  },
+  "unresolved": [
+    "No independent local reproduction of ZCode behavior was performed in this case.",
+    "Current/latest ZCode version behavior is not established by this repository record.",
+    "Exact remote retention and deletion semantics remain unresolved.",
+    "Exact server-side access and decryption operations remain unresolved.",
+    "Cross-domain repetition is still required before any shared LEGO kernel promotion."
+  ],
+  "promotionDecision": {
+    "sharedKernel": "NO_CHANGE",
+    "securityLens": "ADMIT_EXPERIMENTAL_R1",
+    "candidates": [
+      "TRIGGER_FIRST_CLASS",
+      "DERIVE_SET",
+      "EGRESS_PLANE_SEPARATION",
+      "REMOTE_PERSISTENCE_STATE",
+      "ACTUATOR_PLACEMENT",
+      "SIDE_EFFECT_LEDGER",
+      "DISCLOSURE_ALIGNMENT"
+    ]
+  }
+}

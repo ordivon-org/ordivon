@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "agent-security-cross-domain-destroyer-r1-20260918",
+  "date": "2026-09-18",
+  "standing": "PASS_CROSS_DOMAIN_ANALYTICAL_LAWS_PROMOTED_NO_SCHEMA_EXPANSION",
+  "domains": [
+    "browser automation / Agent Birth",
+    "Artifact Build & Delivery",
+    "Market Capital",
+    "Game / Station Zero",
+    "Gmail + Google Calendar connected-app tool surfaces"
+  ],
+  "checks": {
+    "unrelatedDomainCoverage": "PASS",
+    "informationFlowDuplicationAvoided": "PASS",
+    "regimeIdentity": "PASS_5_OF_5",
+    "policyBindingTime": "PASS_5_OF_5",
+    "authorityPropagation": "PASS_5_OF_5",
+    "persistenceClassVector": "PASS_5_OF_5",
+    "effectCommitPoint": "PASS_5_OF_5",
+    "effectReconciliationOracle": "PASS_5_OF_5",
+    "privateConnectedAppDataRead": "NO",
+    "thinKernel": "PASS_NO_SCHEMA_EXPANSION"
+  },
+  "promotedAnalyticalLaws": [
+    "REGIME_BOUND_CLAIMS",
+    "POLICY_BINDING_EVENT",
+    "EXPLICIT_AUTHORITY_PROPAGATION",
+    "PERSISTENCE_CLASS_SEPARATION",
+    "EFFECT_COMMIT_POINT",
+    "EFFECT_RECONCILIATION_ORACLE"
+  ],
+  "newSecurityPrimitives": [
+    "XAS17",
+    "XAS18"
+  ],
+  "sharedSchemaChanged": false
+}
