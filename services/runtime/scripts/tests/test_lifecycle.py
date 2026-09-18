@@ -874,5 +874,20 @@ class LifecycleTests(unittest.TestCase):
             )
 
 
+    def test_default_policy_never_force_closes_dirty_workspace(self) -> None:
+        ephemeral = self.module["DEFAULT_POLICY"]["classes"]["ephemeral"]
+        self.assertFalse(ephemeral["forceCloseDirtyAfterRetention"])
+
+    def test_packaged_default_policy_never_force_closes_dirty_workspace(self) -> None:
+        policy = json.loads(
+            (REPO / "packaging/systemd/ordivon-workspace-retention.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertFalse(
+            policy["classes"]["ephemeral"]["forceCloseDirtyAfterRetention"]
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

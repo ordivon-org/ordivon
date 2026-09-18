@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "defaultClass": "ephemeral",
   "classes": {
-    "ephemeral": {"retentionHours": 48, "forceCloseDirtyAfterRetention": true},
+    "ephemeral": {"retentionHours": 48, "forceCloseDirtyAfterRetention": false},
     "review": {"retentionHours": 168, "forceCloseDirtyAfterRetention": false},
     "pinned": {"retentionHours": null, "forceCloseDirtyAfterRetention": false}
   },
