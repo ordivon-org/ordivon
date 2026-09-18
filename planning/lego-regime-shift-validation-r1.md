@@ -115,3 +115,36 @@ Otherwise:
 
 This plan does not claim that any listed hypothesis is currently true.
 The canaries are prospective tests, not conclusions.
+
+
+## Canary A result — Agent Service
+
+Status: **PASS / DECISION-RELEVANT NEW INFORMATION**
+
+Evidence:
+- `knowledge/lessons/agent-service-regime-card-r1.md`
+- `evidence/analysis/agent-service-regime-card-r1.json`
+
+Observed incremental value beyond the frozen Wave-1 baseline:
+- separated validated implementation stock from main-line/deployed capability flow;
+- identified the live legacy Automation stack as a buffer masking the absence of deployed Agent Service;
+- prevented stale 2026-09-13..16 ledger counts from being misused as current throughput;
+- established a fresh current divergence: Browserless substrate healthy while provider admission is `CHALLENGE_GATED`;
+- established that R14/current-main mergeability is currently clean, weakening "technical merge conflict" as the explanation for integration delay;
+- changed the next bounded action from broad feature expansion to staged integration + E2E funnel measurement.
+
+Competing-hypothesis outcome:
+- H0 ordinary noise: weakened, not eliminated;
+- H1 raw capability dominant: unknown and currently downstream of stronger observed gates;
+- H2 orchestration/integration migration: supported candidate;
+- H3 trust/observation migration: supported candidate;
+- H4 resource limits dominant: not supported by this cut, not falsified.
+
+Anti-ontology result:
+- critical-transition statistics / critical-slowing-down / generic tipping-point thresholds were explicitly **not activated** because no justified continuous tipping-point model exists for this case.
+
+Cross-domain standing:
+- Canary A = PASS;
+- Canary B Research = PENDING;
+- Canary C Game = PENDING;
+- R2 promotion remains blocked until the original cross-domain pass condition is satisfied.

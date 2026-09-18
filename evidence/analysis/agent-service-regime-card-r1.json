@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.lego-regime-card",
+  "cardId": "agent-service-regime-card-r1-20260918",
+  "date": "2026-09-18",
+  "truthRole": "derived-analysis-not-world-truth",
+  "lens": "LEGO Regime Shift & Deep-Uncertainty Decision R1",
+  "baseline": "LEGO Theory Wave 1",
+  "target": {
+    "currentMain": "2b6386968ec188f59b117cb8a0b5a437ff92c012",
+    "r14": "0721009237365ea61cd975bd187be5171f1dcd52",
+    "commonBase": "bd2dee7accd50482ccb16f2c03a5e8c4bc9eb9a3",
+    "mainUniqueCommits": 26,
+    "r14UniqueCommits": 14,
+    "currentMainHasAgentServiceTree": false,
+    "mergeTreeRc": 0,
+    "samePathChangeCollisions": 0
+  },
+  "currentObservations": {
+    "hostIntegrityHealthy": true,
+    "liveAgentAutomationMcp": true,
+    "liveAgentTemporalWorker": true,
+    "liveBrowserlessCarrier11": true,
+    "dedicatedAgentServiceObserved": false,
+    "providerPreflight": {
+      "endpointId": "chatgpt-carrier-11",
+      "standing": "CHALLENGE_GATED",
+      "substrateHealthy": true,
+      "substrateHttpStatus": 204,
+      "providerEffectAttempted": false,
+      "composerFilled": false,
+      "sendAttempted": false,
+      "assistantOutputRead": false
+    }
+  },
+  "r14Verification": {
+    "repositoryTests": 214,
+    "repositoryFailures": 0,
+    "interfaceCredentialTests": 15,
+    "browserlessEffectReaderTests": 5,
+    "publicApiTests": 1
+  },
+  "historicalLedger": {
+    "requests": 313,
+    "bound": 150,
+    "preEffectFailed": 129,
+    "submitObserved": 6,
+    "unknown": 27,
+    "humanRequired": 1,
+    "effectOutcomeAmbiguous": 33,
+    "unresolved": 34,
+    "recent24hUpdates": 0,
+    "observedDateRange": [
+      "2026-09-13",
+      "2026-09-16"
+    ],
+    "preEffectFailureTopCauses": {
+      "humanHandoffUnavailable": 80,
+      "conversationHistoryRateLimitModal": 32,
+      "composerNotEmpty": 15,
+      "composerUnavailableTimeout": 2
+    }
+  },
+  "hypotheses": {
+    "H0": "WEAKENED_NOT_ELIMINATED",
+    "H1": "UNKNOWN_CURRENTLY_DOWNSTREAM_OF_STRONGER_GATES",
+    "H2": "SUPPORTED_CURRENT_CANDIDATE",
+    "H3": "SUPPORTED_CURRENT_CANDIDATE",
+    "H4": "NOT_SUPPORTED_BY_CURRENT_CUT_NOT_FALSIFIED"
+  },
+  "constraintMigration": {
+    "from": "missing raw Agent Service mechanics",
+    "to": [
+      "integration/deployment propagation",
+      "provider admission/trust boundary",
+      "E2E outcome observability and semantic acceptance"
+    ]
+  },
+  "localRejectedOperators": [
+    "critical-transition statistics",
+    "critical-slowing-down alarm",
+    "generic tipping-point threshold"
+  ],
+  "decisionChange": "Pause broad R15 feature expansion; integrate R14 on an isolated current-main candidate, resolve known semantic/evidence gates, then instrument and measure the end-to-end accepted-throughput funnel before choosing the next capability investment.",
+  "verdict": "PASS_DECISION_RELEVANT_BUFFER_DELAY_CONSTRAINT_MIGRATION",
+  "crossDomainStanding": "CANARY_A_COMPLETE__B_C_PENDING"
+}
