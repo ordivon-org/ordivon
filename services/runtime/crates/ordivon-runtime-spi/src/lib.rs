@@ -542,6 +542,172 @@ pub fn plan_provider_health(
     })
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkflowStepKind {
+    Observe,
+    Gate,
+    Act,
+    Verify,
+    Recover,
+    Compensate,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowStep {
+    pub schema_version: u32,
+    pub step_id: FabricId,
+    pub kind: WorkflowStepKind,
+    pub resource_id: FabricId,
+    pub requested_capability_id: FabricId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preferred_provider_id: Option<FabricId>,
+    pub authority_mode: AuthorityMode,
+    pub conflict_mode: ConflictMode,
+    #[serde(default)]
+    pub depends_on: Vec<FabricId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub evidence_policy_id: Option<FabricId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub compensates_step_id: Option<FabricId>,
+    /// Always false in an R1 WorkflowPlan. A plan names intended effects and gates;
+    /// Runtime admission/dispatch truth continues to live in Runtime Job/Attempt state.
+    pub effect_dispatched: bool,
+}
+
+impl WorkflowStep {
+    pub fn validate(&self) -> Result<(), FabricContractError> {
+        require_schema(self.schema_version)?;
+        require_unique_ids("workflowStep.dependsOn", &self.depends_on)?;
+        if self.depends_on.contains(&self.step_id) {
+            return Err(FabricContractError::InvalidWorkflowPlan(
+                "workflow step cannot depend on itself",
+            ));
+        }
+        if self.effect_dispatched {
+            return Err(FabricContractError::InvalidWorkflowPlan(
+                "workflow step cannot claim a dispatched effect",
+            ));
+        }
+        match (self.kind, self.compensates_step_id.is_some()) {
+            (WorkflowStepKind::Compensate, false) => {
+                return Err(FabricContractError::InvalidWorkflowPlan(
+                    "compensation step must name compensatesStepId",
+                ));
+            }
+            (WorkflowStepKind::Compensate, true) => {}
+            (_, true) => {
+                return Err(FabricContractError::InvalidWorkflowPlan(
+                    "only compensation steps may name compensatesStepId",
+                ));
+            }
+            (_, false) => {}
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowPlan {
+    pub schema_version: u32,
+    pub workflow_id: FabricId,
+    pub owner_id: FabricId,
+    #[serde(default)]
+    pub steps: Vec<WorkflowStep>,
+    /// Always false in the R1 planning contract. Workflow execution belongs to a
+    /// workflow/controller owner above Runtime admission.
+    pub execution_started: bool,
+}
+
+impl WorkflowPlan {
+    pub fn validate(&self) -> Result<(), FabricContractError> {
+        require_schema(self.schema_version)?;
+        if self.steps.is_empty() {
+            return Err(FabricContractError::EmptySet("workflowPlan.steps"));
+        }
+        if self.execution_started {
+            return Err(FabricContractError::InvalidWorkflowPlan(
+                "workflow plan cannot claim execution has started",
+            ));
+        }
+
+        for (index, step) in self.steps.iter().enumerate() {
+            step.validate()?;
+            if self.steps[..index]
+                .iter()
+                .any(|existing| existing.step_id == step.step_id)
+            {
+                return Err(FabricContractError::DuplicateId(
+                    "workflowPlan.steps",
+                    step.step_id.to_string(),
+                ));
+            }
+        }
+
+        for step in &self.steps {
+            for dependency in &step.depends_on {
+                if !self
+                    .steps
+                    .iter()
+                    .any(|candidate| &candidate.step_id == dependency)
+                {
+                    return Err(FabricContractError::InvalidWorkflowPlan(
+                        "workflow dependency references unknown step",
+                    ));
+                }
+            }
+            if let Some(compensates) = &step.compensates_step_id {
+                if !self
+                    .steps
+                    .iter()
+                    .any(|candidate| &candidate.step_id == compensates)
+                {
+                    return Err(FabricContractError::InvalidWorkflowPlan(
+                        "compensation references unknown step",
+                    ));
+                }
+            }
+        }
+
+        let mut visit_state = vec![0_u8; self.steps.len()];
+        for index in 0..self.steps.len() {
+            validate_workflow_acyclic(self, index, &mut visit_state)?;
+        }
+        Ok(())
+    }
+}
+
+fn validate_workflow_acyclic(
+    plan: &WorkflowPlan,
+    index: usize,
+    state: &mut [u8],
+) -> Result<(), FabricContractError> {
+    match state[index] {
+        2 => return Ok(()),
+        1 => {
+            return Err(FabricContractError::InvalidWorkflowPlan(
+                "workflow dependency graph contains a cycle",
+            ));
+        }
+        _ => {}
+    }
+    state[index] = 1;
+    for dependency in &plan.steps[index].depends_on {
+        let dependency_index = plan
+            .steps
+            .iter()
+            .position(|candidate| &candidate.step_id == dependency)
+            .ok_or(FabricContractError::InvalidWorkflowPlan(
+                "workflow dependency references unknown step",
+            ))?;
+        validate_workflow_acyclic(plan, dependency_index, state)?;
+    }
+    state[index] = 2;
+    Ok(())
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct EvidenceReference {
@@ -594,6 +760,7 @@ pub enum FabricContractError {
     InvalidLease(&'static str),
     InvalidDigest,
     InvalidControllerProposal(&'static str),
+    InvalidWorkflowPlan(&'static str),
 }
 
 impl fmt::Display for FabricContractError {
@@ -609,6 +776,9 @@ impl fmt::Display for FabricContractError {
             Self::InvalidDigest => write!(f, "evidence digest must be sha256:<64 hex characters>"),
             Self::InvalidControllerProposal(message) => {
                 write!(f, "invalid controller action proposal: {message}")
+            }
+            Self::InvalidWorkflowPlan(message) => {
+                write!(f, "invalid workflow plan: {message}")
             }
         }
     }
@@ -987,6 +1157,192 @@ mod tests {
         assert!(matches!(
             action.validate(),
             Err(FabricContractError::InvalidControllerProposal(_))
+        ));
+    }
+
+    fn workflow_step(
+        step_id: &str,
+        kind: WorkflowStepKind,
+        resource_id: &str,
+        capability_id: &str,
+        depends_on: &[&str],
+    ) -> WorkflowStep {
+        WorkflowStep {
+            schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+            step_id: id(step_id),
+            kind,
+            resource_id: id(resource_id),
+            requested_capability_id: id(capability_id),
+            preferred_provider_id: None,
+            authority_mode: AuthorityMode::Maintenance,
+            conflict_mode: ConflictMode::ExclusiveWrite,
+            depends_on: depends_on.iter().map(|value| id(value)).collect(),
+            evidence_policy_id: Some(id("evidence/workflow-r1")),
+            compensates_step_id: None,
+            effect_dispatched: false,
+        }
+    }
+
+    #[test]
+    fn workflow_plan_expresses_wsl_recovery_without_claiming_execution() {
+        let plan = WorkflowPlan {
+            schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+            workflow_id: id("workflow/wsl-control-plane-recovery-r1"),
+            owner_id: id("controller/recovery/windows-edge"),
+            steps: vec![
+                workflow_step(
+                    "step/probe-wsl",
+                    WorkflowStepKind::Observe,
+                    "distro/archlinux",
+                    "capability/wsl/probe",
+                    &[],
+                ),
+                workflow_step(
+                    "step/probe-services",
+                    WorkflowStepKind::Gate,
+                    "service/linux/control-plane",
+                    "capability/service/probe",
+                    &["step/probe-wsl"],
+                ),
+                workflow_step(
+                    "step/ensure-services",
+                    WorkflowStepKind::Recover,
+                    "service/linux/control-plane",
+                    "capability/service/start",
+                    &["step/probe-services"],
+                ),
+                workflow_step(
+                    "step/verify-runtime-health",
+                    WorkflowStepKind::Verify,
+                    "runtime/linux-archlinux",
+                    "capability/runtime/health",
+                    &["step/ensure-services"],
+                ),
+            ],
+            execution_started: false,
+        };
+        plan.validate().unwrap();
+        assert!(plan.steps.iter().all(|step| !step.effect_dispatched));
+    }
+
+    #[test]
+    fn workflow_plan_expresses_compact_safety_gates_as_dependencies() {
+        let plan = WorkflowPlan {
+            schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+            workflow_id: id("workflow/d-drive-vhd-compact-r2"),
+            owner_id: id("controller/maintenance/windows-edge"),
+            steps: vec![
+                workflow_step(
+                    "step/fence-admission",
+                    WorkflowStepKind::Gate,
+                    "runtime/linux-archlinux",
+                    "capability/runtime/drain",
+                    &[],
+                ),
+                workflow_step(
+                    "step/verify-health",
+                    WorkflowStepKind::Gate,
+                    "runtime/linux-archlinux",
+                    "capability/runtime/doctor",
+                    &["step/fence-admission"],
+                ),
+                workflow_step(
+                    "step/validate-authorization",
+                    WorkflowStepKind::Gate,
+                    "storage/d-drive/ext4-vhdx",
+                    "capability/authority/validate",
+                    &["step/verify-health"],
+                ),
+                workflow_step(
+                    "step/trim-filesystem",
+                    WorkflowStepKind::Act,
+                    "filesystem/linux-root",
+                    "capability/storage/trim",
+                    &["step/validate-authorization"],
+                ),
+                workflow_step(
+                    "step/terminate-wsl",
+                    WorkflowStepKind::Act,
+                    "distro/archlinux",
+                    "capability/wsl/terminate",
+                    &["step/trim-filesystem"],
+                ),
+                workflow_step(
+                    "step/exclusive-open",
+                    WorkflowStepKind::Gate,
+                    "storage/d-drive/ext4-vhdx",
+                    "capability/storage/exclusive-open",
+                    &["step/terminate-wsl"],
+                ),
+                workflow_step(
+                    "step/compact-vhd",
+                    WorkflowStepKind::Act,
+                    "storage/d-drive/ext4-vhdx",
+                    "capability/storage/compact",
+                    &["step/exclusive-open"],
+                ),
+                workflow_step(
+                    "step/recover-control-plane",
+                    WorkflowStepKind::Recover,
+                    "runtime/linux-archlinux",
+                    "capability/runtime/recover",
+                    &["step/compact-vhd"],
+                ),
+                workflow_step(
+                    "step/post-doctor",
+                    WorkflowStepKind::Verify,
+                    "runtime/linux-archlinux",
+                    "capability/runtime/doctor",
+                    &["step/recover-control-plane"],
+                ),
+            ],
+            execution_started: false,
+        };
+        plan.validate().unwrap();
+        assert_eq!(plan.steps.len(), 9);
+    }
+
+    #[test]
+    fn workflow_plan_rejects_cycles_unknown_dependencies_and_dispatch_claims() {
+        let mut cycle = WorkflowPlan {
+            schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+            workflow_id: id("workflow/cycle"),
+            owner_id: id("controller/test"),
+            steps: vec![
+                workflow_step(
+                    "step/a",
+                    WorkflowStepKind::Act,
+                    "resource/a",
+                    "capability/a",
+                    &["step/b"],
+                ),
+                workflow_step(
+                    "step/b",
+                    WorkflowStepKind::Verify,
+                    "resource/b",
+                    "capability/b",
+                    &["step/a"],
+                ),
+            ],
+            execution_started: false,
+        };
+        assert!(matches!(
+            cycle.validate(),
+            Err(FabricContractError::InvalidWorkflowPlan(_))
+        ));
+
+        cycle.steps[0].depends_on = vec![id("step/missing")];
+        cycle.steps[1].depends_on.clear();
+        assert!(matches!(
+            cycle.validate(),
+            Err(FabricContractError::InvalidWorkflowPlan(_))
+        ));
+
+        cycle.steps[0].depends_on.clear();
+        cycle.steps[0].effect_dispatched = true;
+        assert!(matches!(
+            cycle.validate(),
+            Err(FabricContractError::InvalidWorkflowPlan(_))
         ));
     }
 
