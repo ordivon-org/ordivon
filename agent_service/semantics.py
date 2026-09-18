@@ -118,104 +118,52 @@ class AgentIdentityStore:
         )
 
 
-class CapabilityAdvertisementStore:
-    """Migration store that exposes standard A2A AgentSkill objects, never a local capability type."""
+def _agent_skills_from_revision_spec(spec: dict[str, Any]) -> list[dict[str, Any]]:
+    """Validate and return A2A AgentSkill values embedded in an immutable revision spec."""
+    raw = spec.get("skills", [])
+    if not isinstance(raw, list):
+        raise ValueError("AgentRevision skills must be an array of A2A AgentSkill objects")
 
-    def __init__(self, connection: sqlite3.Connection) -> None:
-        self._connection = connection
+    skills: list[dict[str, Any]] = []
+    seen_ids: set[str] = set()
+    for item in raw:
+        if not isinstance(item, dict):
+            raise ValueError("AgentRevision skill must be an object")
+        normalized = json.loads(_canonical_json(item))
+        for field in ("id", "name", "description"):
+            value = normalized.get(field)
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(f"A2A AgentSkill requires non-empty {field}")
+            normalized[field] = value.strip()
+        tags = normalized.get("tags")
+        if not isinstance(tags, list):
+            raise ValueError("A2A AgentSkill requires tags array")
+        normalized["tags"] = list(_normalized_strings(tags, "tags"))
+        skill_id = normalized["id"]
+        if skill_id in seen_ids:
+            raise ValueError(f"duplicate A2A AgentSkill id: {skill_id}")
+        seen_ids.add(skill_id)
 
-    def advertise(
-        self,
-        revision_id: str,
-        *,
-        key: str,
-        description: str,
-        input_modes: list[str],
-        output_modes: list[str],
-        tags: list[str],
-    ) -> dict[str, Any]:
-        if self._connection.execute(
-            "SELECT 1 FROM agent_revisions WHERE id = ?", (revision_id,)
-        ).fetchone() is None:
-            raise KeyError(revision_id)
-        if not isinstance(key, str) or not key.strip() or not isinstance(description, str) or not description.strip():
-            raise ValueError("capability key and description must be non-empty")
-        inputs = _normalized_strings(input_modes, "input_modes")
-        outputs = _normalized_strings(output_modes, "output_modes")
-        normalized_tags = _normalized_strings(tags, "tags")
-        if not inputs or not outputs:
-            raise ValueError("capability requires at least one input and output mode")
-        existing = self.get_by_key(revision_id, key.strip(), required=False)
-        candidate = (description.strip(), inputs, outputs, normalized_tags)
-        if existing is not None:
-            historical = (
-                existing["description"],
-                tuple(existing["inputModes"]),
-                tuple(existing["outputModes"]),
-                tuple(existing["tags"]),
-            )
-            if historical != candidate:
-                raise ValueError("capability advertisement is immutable for one revision/key")
-            return existing
-        identity_material = _canonical_json(
-            {
-                "revisionId": revision_id,
-                "id": key.strip(),
-                "name": key.strip(),
-                "description": candidate[0],
-                "inputModes": inputs,
-                "outputModes": outputs,
-                "tags": normalized_tags,
-            }
-        )
-        storage_id = "cap_" + hashlib.sha256(identity_material.encode("utf-8")).hexdigest()
-        with self._connection:
-            self._connection.execute(
-                "INSERT INTO capability_advertisements(id, revision_id, capability_key, description, input_modes_json, output_modes_json, tags_json, created_at_ns) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (
-                    storage_id,
-                    revision_id,
-                    key.strip(),
-                    candidate[0],
-                    _canonical_json(list(inputs)),
-                    _canonical_json(list(outputs)),
-                    _canonical_json(list(normalized_tags)),
-                    _now_ns(),
-                ),
-            )
-        return self.get_by_key(revision_id, key.strip())
+        for field in ("examples", "inputModes", "outputModes"):
+            if field in normalized:
+                values = normalized[field]
+                if not isinstance(values, list):
+                    raise ValueError(f"A2A AgentSkill {field} must be an array")
+                normalized[field] = list(_normalized_strings(values, field))
+        if "securityRequirements" in normalized and not isinstance(
+            normalized["securityRequirements"], list
+        ):
+            raise ValueError("A2A AgentSkill securityRequirements must be an array")
+        skills.append(normalized)
+    return skills
 
-    def get_by_key(
-        self, revision_id: str, key: str, required: bool = True
-    ) -> dict[str, Any] | None:
-        row = self._connection.execute(
-            "SELECT * FROM capability_advertisements WHERE revision_id = ? AND capability_key = ?",
-            (revision_id, key),
-        ).fetchone()
-        if row is None:
-            if required:
-                raise LookupError(f"capability {key!r} not advertised by revision {revision_id}")
-            return None
-        return self._from_row(row)
 
-    def list_for_revision(self, revision_id: str) -> list[dict[str, Any]]:
-        rows = self._connection.execute(
-            "SELECT * FROM capability_advertisements WHERE revision_id = ? ORDER BY capability_key, id",
-            (revision_id,),
-        ).fetchall()
-        return [self._from_row(row) for row in rows]
-
-    @staticmethod
-    def _from_row(row: sqlite3.Row) -> dict[str, Any]:
-        key = row["capability_key"]
-        return {
-            "id": key,
-            "name": key,
-            "description": row["description"],
-            "tags": list(json.loads(row["tags_json"])),
-            "inputModes": list(json.loads(row["input_modes_json"])),
-            "outputModes": list(json.loads(row["output_modes_json"])),
-        }
+def _agent_skill_by_id(spec: dict[str, Any], skill_id: str) -> dict[str, Any]:
+    normalized_id = skill_id.strip()
+    for skill in _agent_skills_from_revision_spec(spec):
+        if skill["id"] == normalized_id:
+            return skill
+    raise LookupError(f"skill {normalized_id!r} not present in immutable AgentRevision")
 
 
 @dataclass(frozen=True)
@@ -453,13 +401,11 @@ class DelegationEnvelopeStore:
         connection: sqlite3.Connection,
         sessions: SessionStore,
         identities: AgentIdentityStore,
-        capabilities: CapabilityAdvertisementStore,
         task_graph: Any,
     ) -> None:
         self._connection = connection
         self._sessions = sessions
         self._identities = identities
-        self._capabilities = capabilities
         self._task_graph = task_graph
 
     def create(
@@ -526,7 +472,8 @@ class DelegationEnvelopeStore:
         if source_revision is None or source_revision["definition_id"] != source_identity.definition_id:
             raise ValueError("source AgentInstance does not belong to source AgentIdentity")
         target_revision = self._connection.execute(
-            "SELECT definition_id FROM agent_revisions WHERE id = ?", (target_revision_id,)
+            "SELECT definition_id, spec_json FROM agent_revisions WHERE id = ?",
+            (target_revision_id,),
         ).fetchone()
         if target_revision is None:
             raise KeyError(target_revision_id)
@@ -536,7 +483,10 @@ class DelegationEnvelopeStore:
             "SELECT 1 FROM service_tasks WHERE id = ?", (task_id,)
         ).fetchone() is None:
             raise KeyError(task_id)
-        self._capabilities.get_by_key(target_revision_id, capability_key.strip())
+        _agent_skill_by_id(
+            json.loads(target_revision["spec_json"]),
+            capability_key.strip(),
+        )
         if session.goal_id is not None:
             linked_goal = self._task_graph.goal_for_task(task_id)
             if linked_goal.id != session.goal_id:
@@ -635,11 +585,9 @@ class A2AAgentCardProjector:
         self,
         connection: sqlite3.Connection,
         identities: AgentIdentityStore,
-        capabilities: CapabilityAdvertisementStore,
     ) -> None:
         self._connection = connection
         self._identities = identities
-        self._capabilities = capabilities
 
     @classmethod
     def _protocol_binding(cls, value: str) -> str:
@@ -695,22 +643,22 @@ class A2AAgentCardProjector:
                 }
             )
 
-        capabilities = self._capabilities.list_for_revision(revision_id)
+        revision_spec = json.loads(revision["spec_json"])
+        skills = _agent_skills_from_revision_spec(revision_spec)
         input_modes = sorted(
             {
                 self._media_type(mode)
-                for capability in capabilities
-                for mode in capability["inputModes"]
+                for skill in skills
+                for mode in skill.get("inputModes", [])
             }
-        )
+        ) or ["text/plain"]
         output_modes = sorted(
             {
                 self._media_type(mode)
-                for capability in capabilities
-                for mode in capability["outputModes"]
+                for skill in skills
+                for mode in skill.get("outputModes", [])
             }
-        )
-        revision_spec = json.loads(revision["spec_json"])
+        ) or ["text/plain"]
         agent_version = revision_spec.get("version")
         if not isinstance(agent_version, str) or not agent_version.strip():
             agent_version = revision_id
@@ -725,15 +673,29 @@ class A2AAgentCardProjector:
             "defaultOutputModes": output_modes,
             "skills": [
                 {
-                    **capability,
-                    "inputModes": [
-                        self._media_type(mode) for mode in capability["inputModes"]
-                    ],
-                    "outputModes": [
-                        self._media_type(mode) for mode in capability["outputModes"]
-                    ],
+                    **skill,
+                    **(
+                        {
+                            "inputModes": [
+                                self._media_type(mode)
+                                for mode in skill["inputModes"]
+                            ]
+                        }
+                        if "inputModes" in skill
+                        else {}
+                    ),
+                    **(
+                        {
+                            "outputModes": [
+                                self._media_type(mode)
+                                for mode in skill["outputModes"]
+                            ]
+                        }
+                        if "outputModes" in skill
+                        else {}
+                    ),
                 }
-                for capability in capabilities
+                for skill in skills
             ],
         }
 
@@ -753,18 +715,16 @@ class AgentServiceR8:
         ):
             setattr(self, name, getattr(r7, name))
         self.identities = AgentIdentityStore(self._connection)
-        self.capabilities = CapabilityAdvertisementStore(self._connection)
         self.sessions = SessionStore(self._connection, self.identities)
         self.session_items = SessionItemStore(self._connection, self.sessions, self.identities)
         self.delegations = DelegationEnvelopeStore(
             self._connection,
             self.sessions,
             self.identities,
-            self.capabilities,
             self.task_graph,
         )
         self.a2a_cards = A2AAgentCardProjector(
-            self._connection, self.identities, self.capabilities
+            self._connection, self.identities
         )
 
     @classmethod
@@ -797,18 +757,6 @@ class AgentServiceR8:
                 stable_name TEXT NOT NULL UNIQUE,
                 description TEXT NOT NULL,
                 created_at_ns INTEGER NOT NULL
-            );
-
-            CREATE TABLE IF NOT EXISTS capability_advertisements (
-                id TEXT PRIMARY KEY,
-                revision_id TEXT NOT NULL REFERENCES agent_revisions(id),
-                capability_key TEXT NOT NULL,
-                description TEXT NOT NULL,
-                input_modes_json TEXT NOT NULL,
-                output_modes_json TEXT NOT NULL,
-                tags_json TEXT NOT NULL,
-                created_at_ns INTEGER NOT NULL,
-                UNIQUE(revision_id, capability_key)
             );
 
             CREATE TABLE IF NOT EXISTS semantic_sessions (

@@ -160,7 +160,14 @@ class AgentServiceRemoteEvidenceR11Tests(unittest.TestCase):
 
     def _agent(self, service: AgentServiceR11, name: str):
         definition = service.definitions.create(name)
-        revision = service.revisions.create(definition.id, {"name": name, "harness": "r11"})
+        revision = service.revisions.create(definition.id, {"name": name, "harness": "r11", "skills": [{
+                "id": "review",
+                "name": "Review",
+                "description": "review",
+                "tags": ["review"],
+                "inputModes": ["text/plain"],
+                "outputModes": ["text/markdown"],
+            }]})
         identity = service.identities.create(definition.id, stable_name=name, description=name)
         instance = service.birth.birth(f"birth:{name}:r11", revision.id)
         service.reconciler.reconcile(instance.id)
@@ -177,14 +184,6 @@ class AgentServiceRemoteEvidenceR11Tests(unittest.TestCase):
     def _remote_setup(self, service: AgentServiceR11, *, with_goal: bool = False):
         source_revision, source_identity, source_instance = self._agent(service, "source")
         target_revision, target_identity, _ = self._agent(service, "target")
-        service.capabilities.advertise(
-            target_revision.id,
-            key="review",
-            description="review",
-            input_modes=["text"],
-            output_modes=["text/markdown"],
-            tags=["review"],
-        )
         service.interfaces.advertise(
             target_revision.id,
             transport="a2a-jsonrpc",

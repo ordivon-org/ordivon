@@ -98,7 +98,14 @@ class AgentServiceEffectAuthorityR15Tests(unittest.TestCase):
 
     def _agent(self, service, name: str):
         definition = service.definitions.create(name)
-        revision = service.revisions.create(definition.id, {"name": name})
+        revision = service.revisions.create(definition.id, {"name": name, "skills": [{
+                "id": "review",
+                "name": "Review",
+                "description": "review",
+                "tags": ["review"],
+                "inputModes": ["text/plain"],
+                "outputModes": ["text/markdown"],
+            }]})
         identity = service.identities.create(
             definition.id,
             stable_name=name,
@@ -111,14 +118,6 @@ class AgentServiceEffectAuthorityR15Tests(unittest.TestCase):
     def _setup(self, service):
         source_revision, source_identity, source_instance = self._agent(service, "source-r15")
         target_revision, target_identity, _ = self._agent(service, "target-r15")
-        service.capabilities.advertise(
-            target_revision.id,
-            key="review",
-            description="review",
-            input_modes=["text"],
-            output_modes=["text"],
-            tags=["review"],
-        )
         service.interfaces.advertise(
             target_revision.id,
             transport="a2a-jsonrpc",

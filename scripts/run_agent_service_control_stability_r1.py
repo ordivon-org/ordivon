@@ -172,7 +172,20 @@ def _agent(service: Any, name: str) -> tuple[Any, Any, Any]:
     definition = service.definitions.create(name)
     revision = service.revisions.create(
         definition.id,
-        {"name": name, "stability": "r1"},
+        {
+            "name": name,
+            "stability": "r1",
+            "skills": [
+                {
+                    "id": "review",
+                    "name": "Review",
+                    "description": "review",
+                    "tags": ["review"],
+                    "inputModes": ["text/plain"],
+                    "outputModes": ["text/markdown"],
+                }
+            ],
+        },
     )
     identity = service.identities.create(
         definition.id,
@@ -210,14 +223,6 @@ def _remote_setup(
         service, f"source-{suffix}"
     )
     target_revision, target_identity, _ = _agent(service, f"target-{suffix}")
-    service.capabilities.advertise(
-        target_revision.id,
-        key="review",
-        description="review",
-        input_modes=["text"],
-        output_modes=["text/markdown"],
-        tags=["review"],
-    )
     if same_hostname:
         a2a_url = f"https://shared-provider.example.test/{suffix}/a2a"
         mcp_url = f"https://shared-provider.example.test/{suffix}/mcp"

@@ -87,7 +87,14 @@ class AgentServiceInterfaceCredentialsR14Tests(unittest.TestCase):
 
     def _agent(self, service, name):
         definition = service.definitions.create(name)
-        revision = service.revisions.create(definition.id, {"name": name})
+        revision = service.revisions.create(definition.id, {"name": name, "skills": [{
+                "id": "review",
+                "name": "Review",
+                "description": "review",
+                "tags": ["review"],
+                "inputModes": ["text/plain"],
+                "outputModes": ["text/markdown"],
+            }]})
         identity = service.identities.create(definition.id, stable_name=name, description=name)
         instance = service.birth.birth(f"birth:{name}:r14", revision.id)
         service.reconciler.reconcile(instance.id)
@@ -96,14 +103,6 @@ class AgentServiceInterfaceCredentialsR14Tests(unittest.TestCase):
     def _setup(self, service, *, a2a_version="1.0", security=None):
         sr, si, inst = self._agent(service, "source-r14")
         tr, ti, _ = self._agent(service, "target-r14")
-        service.capabilities.advertise(
-            tr.id,
-            key="review",
-            description="review",
-            input_modes=["text"],
-            output_modes=["text"],
-            tags=["review"],
-        )
         a2a = service.interfaces.advertise(
             tr.id,
             transport="a2a-jsonrpc",

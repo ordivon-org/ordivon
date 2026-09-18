@@ -124,7 +124,6 @@
       "BoundCredentialHeaderProvider",
       "BrowserlessTurnEffectCoordinate",
       "BrowserlessTurnEffectLedgerReader",
-      "CapabilityAdvertisementStore",
       "CarrierCommandError",
       "CarrierProfileError",
       "CarrierProviderAdapter",
@@ -294,6 +293,10 @@
   ],
   "retiredLegacyTypes": [
     "AgentInterfaceAdvertisement",
-    "CapabilityAdvertisement"
+    "CapabilityAdvertisement",
+    "CapabilityAdvertisementStore"
+  ],
+  "retiredPersistenceSurfaces": [
+    "capability_advertisements"
   ]
 }
