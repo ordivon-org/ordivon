@@ -20,7 +20,24 @@ class RepositoryBoundaryTests(unittest.TestCase):
         self.assertIn("jsonschema>=4.26,<5", requirements)
         self.assertFalse(any("ordivon-protocol" in requirement for requirement in requirements))
         self.assertNotIn("optional-dependencies", project["project"])
-        self.assertEqual(project.get("dependency-groups"), {"dev": ["ruff==0.15.17"]})
+        self.assertEqual(
+            project.get("dependency-groups"),
+            {
+                "dev": ["ruff==0.15.17"],
+                "test": [
+                    "mcp==2.0.0",
+                    "uvicorn==0.52.1",
+                    "PyYAML==6.0.3",
+                    "pyjwt==2.13.0",
+                    "rfc8785==0.1.4",
+                    "pytest==9.1.1",
+                ],
+            },
+        )
+        self.assertEqual(
+            (project.get("tool") or {}).get("uv", {}).get("default-groups"),
+            ["dev", "test"],
+        )
         self.assertNotIn("ordivon-host", str(project.get("dependency-groups", {})))
         package = ROOT / "src" / "ordivon_harness"
         self.assertFalse((package / "_host_compat").exists())

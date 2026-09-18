@@ -19,17 +19,21 @@ TXT
 require_uv() { [[ -n "$uv_bin" ]] || { echo 'Harness owner environment requires uv' >&2; exit 1; }; }
 bootstrap() {
   require_uv
-  UV_PROJECT_ENVIRONMENT="$env_dir" "$uv_bin" sync --frozen --group dev
+  UV_PROJECT_ENVIRONMENT="$env_dir" "$uv_bin" sync --frozen --group dev --group test
 }
 doctor() {
   [[ -x "$python_bin" ]] || { echo "Harness owner environment is not materialized: $python_bin" >&2; exit 1; }
   "$python_bin" - <<'PY'
 import importlib.metadata as md
 import sys
-for module in ("ordivon_harness", "anc_canonical", "jsonschema", "ruff"):
+for module in ("ordivon_harness", "anc_canonical", "jsonschema", "yaml", "pytest", "ruff"):
     __import__(module)
 if sys.version_info[:2] != (3, 12):
     raise SystemExit(f"Harness requires Python 3.12, got {sys.version.split()[0]}")
+if md.version("PyYAML") != "6.0.3":
+    raise SystemExit("unexpected PyYAML version")
+if md.version("pytest") != "9.1.1":
+    raise SystemExit("unexpected pytest version")
 if md.version("ruff") != "0.15.17":
     raise SystemExit("unexpected Ruff version")
 print("owner environment doctor: valid profile=test")
@@ -41,7 +45,7 @@ run_tests() {
   doctor
   cd "$repo"
   "$python_bin" -m ruff check src tests scripts
-  "$python_bin" -W error::ResourceWarning -m unittest discover -s tests -q
+  "$python_bin" -W error::ResourceWarning -m pytest -q tests
 }
 case "$mode" in
   bootstrap) bootstrap ;;

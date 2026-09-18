@@ -48,7 +48,7 @@ case "$mode" in
     cd "$repo"
     "$python_bin" -m compileall -q src tests scripts evals
     "$python_bin" -m ruff check src tests scripts
-    "$python_bin" -W error::ResourceWarning -m unittest discover -s tests -v
+    "$python_bin" -W error::ResourceWarning -m pytest -q tests
     "$python_bin" scripts/check_dependencies.py
     "$python_bin" scripts/check_docs.py
     "$python_bin" scripts/check_evidence.py

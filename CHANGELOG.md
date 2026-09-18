@@ -1,5 +1,8 @@
 # Changelog
 
+- closed the Harness owner test-profile drift introduced when pytest-style Jev tests and YAML-backed Skill parsing entered the repository: a separate locked test group now carries pytest 9.1.1, the exact pinned Skills MCP runtime dependency set, and rfc8785 0.1.4 required by Agent Automation registry tests, and owner/local/CI/release deterministic test entrypoints use pytest over tests/. Pytest remains test authority only; Skills MCP keeps its separate pinned production requirements.
+
+
 All user-visible changes to Ordivon Harness are recorded here. Release and compatibility rules are defined in `docs/RELEASES.md`.
 
 ## Unreleased
