@@ -158,16 +158,21 @@ class AgentServiceRemoteEvidenceR11Tests(unittest.TestCase):
         self.addCleanup(service.close)
         return service
 
-    def _agent(self, service: AgentServiceR11, name: str):
+    def _agent(self, service: AgentServiceR11, name: str, *, routes=None):
         definition = service.definitions.create(name)
-        revision = service.revisions.create(definition.id, {"name": name, "harness": "r11", "skills": [{
+        revision = service.revisions.create(definition.id, {
+            "name": name,
+            "harness": "r11",
+            "skills": [{
                 "id": "review",
                 "name": "Review",
                 "description": "review",
                 "tags": ["review"],
                 "inputModes": ["text/plain"],
                 "outputModes": ["text/markdown"],
-            }]})
+            }],
+            "routes": routes or [],
+        })
         identity = service.identities.create(definition.id, stable_name=name, description=name)
         instance = service.birth.birth(f"birth:{name}:r11", revision.id)
         service.reconciler.reconcile(instance.id)
@@ -183,22 +188,25 @@ class AgentServiceRemoteEvidenceR11Tests(unittest.TestCase):
 
     def _remote_setup(self, service: AgentServiceR11, *, with_goal: bool = False):
         source_revision, source_identity, source_instance = self._agent(service, "source")
-        target_revision, target_identity, _ = self._agent(service, "target")
-        service.interfaces.advertise(
-            target_revision.id,
-            transport="a2a-jsonrpc",
-            protocol_version="1.0",
-            url="https://agents.example.test/target",
-            priority=10,
-            security_requirements={},
-        )
-        service.interfaces.advertise(
-            target_revision.id,
-            transport="mcp",
-            protocol_version="2026-07-28",
-            url="https://mcp.example.test/target",
-            priority=20,
-            security_requirements={},
+        target_revision, target_identity, _ = self._agent(
+            service,
+            "target",
+            routes=[
+                {
+                    "transport": "a2a-jsonrpc",
+                    "protocolVersion": "1.0",
+                    "url": "https://agents.example.test/target",
+                    "priority": 10,
+                    "securityRequirements": {},
+                },
+                {
+                    "transport": "mcp",
+                    "protocolVersion": "2026-07-28",
+                    "url": "https://mcp.example.test/target",
+                    "priority": 20,
+                    "securityRequirements": {},
+                },
+            ],
         )
         task = self._task(service, source_revision.id)
         goal = None

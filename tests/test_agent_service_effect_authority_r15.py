@@ -96,16 +96,20 @@ class AgentServiceEffectAuthorityR15Tests(unittest.TestCase):
         self.addCleanup(service.close)
         return service
 
-    def _agent(self, service, name: str):
+    def _agent(self, service, name: str, *, routes=None):
         definition = service.definitions.create(name)
-        revision = service.revisions.create(definition.id, {"name": name, "skills": [{
+        revision = service.revisions.create(definition.id, {
+            "name": name,
+            "skills": [{
                 "id": "review",
                 "name": "Review",
                 "description": "review",
                 "tags": ["review"],
                 "inputModes": ["text/plain"],
                 "outputModes": ["text/markdown"],
-            }]})
+            }],
+            "routes": routes or [],
+        })
         identity = service.identities.create(
             definition.id,
             stable_name=name,
@@ -117,14 +121,16 @@ class AgentServiceEffectAuthorityR15Tests(unittest.TestCase):
 
     def _setup(self, service):
         source_revision, source_identity, source_instance = self._agent(service, "source-r15")
-        target_revision, target_identity, _ = self._agent(service, "target-r15")
-        service.interfaces.advertise(
-            target_revision.id,
-            transport="a2a-jsonrpc",
-            protocol_version="1.0",
-            url="https://agents.example.test/rpc",
-            priority=10,
-            security_requirements={},
+        target_revision, target_identity, _ = self._agent(
+            service,
+            "target-r15",
+            routes=[{
+                "transport": "a2a-jsonrpc",
+                "protocolVersion": "1.0",
+                "url": "https://agents.example.test/rpc",
+                "priority": 10,
+                "securityRequirements": {},
+            }],
         )
         task = service.tasks.create(
             description="r15",

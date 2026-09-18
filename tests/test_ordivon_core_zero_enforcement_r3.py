@@ -76,6 +76,7 @@ class OrdivonCoreZeroEnforcementR3Tests(unittest.TestCase):
                 "CapabilityAdvertisement",
                 "CapabilityAdvertisementStore",
                 "AgentInterfaceAdvertisement",
+                "AgentInterfaceAdvertisementStore",
             }.issubset(retired)
         )
         self.assertTrue(retired.isdisjoint(observed))

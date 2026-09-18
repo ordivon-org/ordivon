@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "id": "ordivon-revision-native-route-elimination-r7",
+  "date": "2026-09-19",
+  "status": "FOURTH_PRODUCTION_DELETION",
+  "parent": "ordivon-revision-native-skill-elimination-r6",
+  "architecturalCore": "EMPTY",
+  "deletedLocalTypes": [
+    "AgentInterfaceAdvertisementStore"
+  ],
+  "deletedPersistenceSurfaces": [
+    "agent_interface_advertisements"
+  ],
+  "deletedApiSurfaces": [
+    "service.interfaces",
+    "agent_service.AgentInterfaceAdvertisementStore"
+  ],
+  "retiredForeignKeyAuthorities": [
+    "transport_bindings.interface_id -> agent_interface_advertisements.id"
+  ],
+  "cumulativeDeletedLocalTypes": [
+    "CapabilityAdvertisement",
+    "AgentInterfaceAdvertisement",
+    "CapabilityAdvertisementStore",
+    "AgentInterfaceAdvertisementStore"
+  ],
+  "topLevelTypeDebt": {
+    "r3Baseline": 171,
+    "r4": 170,
+    "r5": 169,
+    "r6": 168,
+    "r7": 167,
+    "cumulativeDelta": -4
+  },
+  "replacementRepresentation": {
+    "location": "AgentRevision.spec[\"routes\"]",
+    "authority": "immutable revision/deployment profile",
+    "authoritativeProtocolOntology": false,
+    "profileId": "sha256(canonical(revisionId,transport,protocolVersion,url,priority,securityRequirements))"
+  },
+  "replacementLocalPrimitives": [],
+  "transportBindingBoundary": {
+    "retained": true,
+    "reason": [
+      "response-loss replay continuity",
+      "immutable selected endpoint/version/security snapshot",
+      "deterministic delivery request identity"
+    ],
+    "interfaceIdIsForeignKey": false
+  },
+  "destructiveMigration": {
+    "legacyTable": "agent_interface_advertisements",
+    "behavior": "FAIL_CLOSED_ON_OPEN",
+    "compatibilityShim": false
+  },
+  "validation": {
+    "deliveryR9Tests": 9,
+    "deliveryR9Status": "PASS",
+    "interfaceCredentialR14Tests": 15,
+    "interfaceCredentialR14Status": "PASS",
+    "agentServiceTests": 202,
+    "agentServiceSkipped": 5,
+    "agentServiceStatus": "PASS",
+    "fullRepositoryTests": 301,
+    "fullRepositorySkipped": 5,
+    "fullRepositoryStatus": "PASS"
+  },
+  "nextCandidates": [
+    "PolicyDecision",
+    "PolicyDecisionStore",
+    "policy_decisions",
+    "PolicyEvaluationCoordinator"
+  ]
+}

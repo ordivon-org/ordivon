@@ -683,7 +683,7 @@ class AgentServiceR10:
             "verifications", "goals", "goal_graph_guard", "goal_task_links", "task_dependencies",
             "task_readiness", "task_graph", "goal_planner", "goal_reconciler", "board_receipts",
             "board_projector", "identities", "sessions", "session_items",
-            "delegations", "a2a_cards", "interfaces", "policy_decisions", "policy",
+            "delegations", "a2a_cards", "policy_decisions", "policy",
             "transport_bindings", "routes", "delivery_receipts", "delivery",
         ):
             setattr(self, name, getattr(r9, name))

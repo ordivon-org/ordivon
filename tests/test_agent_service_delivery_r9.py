@@ -117,16 +117,21 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
         self.addCleanup(service.close)
         return service
 
-    def _agent(self, service: AgentServiceR9, name: str):
+    def _agent(self, service: AgentServiceR9, name: str, *, routes=None):
         definition = service.definitions.create(name)
-        revision = service.revisions.create(definition.id, {"name": name, "harness": "r9", "skills": [{
+        revision = service.revisions.create(definition.id, {
+            "name": name,
+            "harness": "r9",
+            "skills": [{
                 "id": "review",
                 "name": "Review",
                 "description": "review",
                 "tags": ["review"],
                 "inputModes": ["text/plain"],
                 "outputModes": ["text/markdown"],
-            }]})
+            }],
+            "routes": routes or [],
+        })
         identity = service.identities.create(definition.id, stable_name=name, description=name)
         instance = service.birth.birth(f"birth:{name}:r9", revision.id)
         service.reconciler.reconcile(instance.id)
@@ -134,7 +139,26 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
 
     def _setup_delegation(self, service: AgentServiceR9):
         source_revision, source_identity, source_instance = self._agent(service, "source")
-        target_revision, target_identity, _ = self._agent(service, "target")
+        target_revision, target_identity, _ = self._agent(
+            service,
+            "target",
+            routes=[
+                {
+                    "transport": "a2a-jsonrpc",
+                    "protocolVersion": "1.0",
+                    "url": "https://agents.example.test/target",
+                    "priority": 10,
+                    "securityRequirements": {},
+                },
+                {
+                    "transport": "mcp",
+                    "protocolVersion": "2026-07-28",
+                    "url": "https://mcp.example.test/target",
+                    "priority": 20,
+                    "securityRequirements": {"oauth2": ["tools.call"]},
+                },
+            ],
+        )
         goal = service.goals.create("r9 goal")
         task = service.tasks.create(
             description="review task",
@@ -162,74 +186,27 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
         )
         return envelope, session, task, target_revision
 
-    def test_interface_advertisement_is_revision_scoped_and_contains_requirements_not_credentials(self) -> None:
+    def test_route_profiles_are_revision_native_without_second_interface_store(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db")
             _, _, _, target_revision = self._setup_delegation(service)
-            first = service.interfaces.advertise(
-                target_revision.id,
-                transport="a2a-jsonrpc",
-                protocol_version="1.0",
-                url="https://agents.example.test/target",
-                priority=10,
-                security_requirements={"oauth2": ["review.invoke"]},
-            )
-            replay = service.interfaces.advertise(
-                target_revision.id,
-                transport="a2a-jsonrpc",
-                protocol_version="1.0",
-                url="https://agents.example.test/target",
-                priority=10,
-                security_requirements={"oauth2": ["review.invoke"]},
-            )
+            persisted = service.revisions.get(target_revision.id).spec["routes"]
 
-            self.assertIsInstance(first, dict)
-            self.assertEqual(first, replay)
-            self.assertEqual(
-                set(first),
-                {
-                    "profileId",
-                    "transport",
-                    "protocolVersion",
-                    "url",
-                    "priority",
-                    "securityRequirements",
-                },
-            )
-            self.assertNotIn("access_token", first)
-            self.assertNotIn("credential", first)
-            alternate = service.interfaces.advertise(
-                target_revision.id,
-                transport="a2a-jsonrpc",
-                protocol_version="1.0",
-                url="https://agents-backup.example.test/target",
-                priority=20,
-                security_requirements={"oauth2": ["review.invoke"]},
-            )
-            self.assertNotEqual(first["profileId"], alternate["profileId"])
-            with self.assertRaises(ValueError):
-                service.interfaces.advertise(
-                    target_revision.id,
-                    transport="a2a-jsonrpc",
-                    protocol_version="1.0",
-                    url="https://agents.example.test/target",
-                    priority=99,
-                    security_requirements={"oauth2": ["review.invoke"]},
-                )
+            self.assertEqual(len(persisted), 2)
+            self.assertEqual(persisted[0]["transport"], "a2a-jsonrpc")
+            self.assertEqual(persisted[0]["protocolVersion"], "1.0")
+            self.assertFalse(hasattr(service, "interfaces"))
+            table = service._connection.execute(
+                "SELECT 1 FROM sqlite_master "
+                "WHERE type='table' AND name='agent_interface_advertisements'"
+            ).fetchone()
+            self.assertIsNone(table)
 
     def test_denied_policy_decision_blocks_route_even_when_capability_is_advertised(self) -> None:
         policy = FakePolicy(allowed=False)
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db", policy=policy)
             envelope, _, _, target_revision = self._setup_delegation(service)
-            service.interfaces.advertise(
-                target_revision.id,
-                transport="a2a-jsonrpc",
-                protocol_version="1.0",
-                url="https://agents.example.test/target",
-                priority=10,
-                security_requirements={},
-            )
             decision = service.policy.evaluate(
                 client_policy_request_id="policy:deny",
                 delegation_id=envelope.id,
@@ -264,22 +241,6 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db", policy=policy)
             envelope, _, _, target_revision = self._setup_delegation(service)
-            service.interfaces.advertise(
-                target_revision.id,
-                transport="mcp",
-                protocol_version="2026-07-28",
-                url="https://mcp.example.test/target",
-                priority=20,
-                security_requirements={},
-            )
-            service.interfaces.advertise(
-                target_revision.id,
-                transport="a2a-jsonrpc",
-                protocol_version="1.0",
-                url="https://agents.example.test/target",
-                priority=10,
-                security_requirements={},
-            )
             decision = service.policy.evaluate(
                 client_policy_request_id="policy:allow-route",
                 delegation_id=envelope.id,
@@ -301,22 +262,6 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db", policy=policy)
             envelope, _, _, target_revision = self._setup_delegation(service)
-            service.interfaces.advertise(
-                target_revision.id,
-                transport="a2a-jsonrpc",
-                protocol_version="1.0",
-                url="https://agents.example.test/target",
-                priority=10,
-                security_requirements={},
-            )
-            service.interfaces.advertise(
-                target_revision.id,
-                transport="mcp",
-                protocol_version="2026-07-28",
-                url="https://mcp.example.test/target",
-                priority=20,
-                security_requirements={},
-            )
             decision = service.policy.evaluate(
                 client_policy_request_id="policy:fallback",
                 delegation_id=envelope.id,
@@ -340,14 +285,6 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db", policy=policy)
             envelope, _, _, target_revision = self._setup_delegation(service)
-            service.interfaces.advertise(
-                target_revision.id,
-                transport="a2a-jsonrpc",
-                protocol_version="1.0",
-                url="https://agents.example.test/target",
-                priority=10,
-                security_requirements={},
-            )
             other = service.delegations.get_by_client_id("r9:delegation")
             decision = service.policy.evaluate(
                 client_policy_request_id="policy:bound",
@@ -381,14 +318,6 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
                 deliveries={"a2a-jsonrpc": delivery},
             )
             envelope, session, task, target_revision = self._setup_delegation(service)
-            service.interfaces.advertise(
-                target_revision.id,
-                transport="a2a-jsonrpc",
-                protocol_version="1.0",
-                url="https://agents.example.test/target",
-                priority=10,
-                security_requirements={},
-            )
             decision = service.policy.evaluate(
                 client_policy_request_id="policy:deliver",
                 delegation_id=envelope.id,
@@ -425,14 +354,6 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
                 deliveries={"mcp": delivery},
             )
             envelope, _, _, target_revision = self._setup_delegation(service)
-            service.interfaces.advertise(
-                target_revision.id,
-                transport="mcp",
-                protocol_version="2026-07-28",
-                url="https://mcp.example.test/target",
-                priority=10,
-                security_requirements={"oauth2": ["tools.call"]},
-            )
             decision = service.policy.evaluate(
                 client_policy_request_id="policy:mcp",
                 delegation_id=envelope.id,
@@ -450,14 +371,6 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
             db = Path(tmp) / "service.db"
             first = self._open(db, policy=policy, deliveries={"a2a-jsonrpc": delivery})
             envelope, _, _, target_revision = self._setup_delegation(first)
-            first.interfaces.advertise(
-                target_revision.id,
-                transport="a2a-jsonrpc",
-                protocol_version="1.0",
-                url="https://agents.example.test/target",
-                priority=10,
-                security_requirements={},
-            )
             decision = first.policy.evaluate(
                 client_policy_request_id="policy:restart",
                 delegation_id=envelope.id,

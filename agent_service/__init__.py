@@ -1,7 +1,6 @@
 """Ordivon Agent Service clean-room kernel."""
 
 from .delivery import (
-    AgentInterfaceAdvertisementStore,
     AgentServiceR9,
     DelegationRoutePlanner,
     DeliveryAdapter,
@@ -140,7 +139,6 @@ __all__ = [
     "A2AJsonRpcHttpClient",
     "A2AAgentCardProjector",
     "AgentIdentityStore",
-    "AgentInterfaceAdvertisementStore",
     "AgentServiceSlice1",
     "AgentServiceR5",
     "AgentServiceR6",

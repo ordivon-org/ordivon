@@ -168,7 +168,12 @@ def _open_r12(
     )
 
 
-def _agent(service: Any, name: str) -> tuple[Any, Any, Any]:
+def _agent(
+    service: Any,
+    name: str,
+    *,
+    routes: list[dict[str, Any]] | None = None,
+) -> tuple[Any, Any, Any]:
     definition = service.definitions.create(name)
     revision = service.revisions.create(
         definition.id,
@@ -185,6 +190,7 @@ def _agent(service: Any, name: str) -> tuple[Any, Any, Any]:
                     "outputModes": ["text/markdown"],
                 }
             ],
+            "routes": routes or [],
         },
     )
     identity = service.identities.create(
@@ -222,28 +228,31 @@ def _remote_setup(
     source_revision, source_identity, source_instance = _agent(
         service, f"source-{suffix}"
     )
-    target_revision, target_identity, _ = _agent(service, f"target-{suffix}")
     if same_hostname:
         a2a_url = f"https://shared-provider.example.test/{suffix}/a2a"
         mcp_url = f"https://shared-provider.example.test/{suffix}/mcp"
     else:
         a2a_url = f"https://a2a.example.test/{suffix}"
         mcp_url = f"https://mcp.example.test/{suffix}"
-    service.interfaces.advertise(
-        target_revision.id,
-        transport="a2a-jsonrpc",
-        protocol_version="1.0",
-        url=a2a_url,
-        priority=10,
-        security_requirements=security or {},
-    )
-    service.interfaces.advertise(
-        target_revision.id,
-        transport="mcp",
-        protocol_version="2026-07-28",
-        url=mcp_url,
-        priority=20,
-        security_requirements=security or {},
+    target_revision, target_identity, _ = _agent(
+        service,
+        f"target-{suffix}",
+        routes=[
+            {
+                "transport": "a2a-jsonrpc",
+                "protocolVersion": "1.0",
+                "url": a2a_url,
+                "priority": 10,
+                "securityRequirements": security or {},
+            },
+            {
+                "transport": "mcp",
+                "protocolVersion": "2026-07-28",
+                "url": mcp_url,
+                "priority": 20,
+                "securityRequirements": security or {},
+            },
+        ],
     )
     task = service.tasks.create(
         description=f"remote-stability-{suffix}",
