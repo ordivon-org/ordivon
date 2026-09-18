@@ -1,0 +1,213 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-runtime",
+    "purpose": "Turn admitted operations into durable Workspace/Job/Attempt-controlled physical execution with bounded evidence, cancellation, reconciliation, and recovery while leaving Task meaning and semantic completion to callers.",
+    "sourceEvidence": [
+      "README.md",
+      "docs/runtime.md",
+      "docs/effect-kernel.md",
+      "docs/operations.md"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "T01",
+      "label": "Workspace",
+      "kind": "state_authority",
+      "responsibility": "Bind physical work to an isolated Git workspace and exact observed source state.",
+      "authority": "Runtime",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "README.md",
+        "docs/runtime.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "project semantic truth"
+      ],
+      "acceptance": [
+        "Workspace identity/current source state can be re-read exactly."
+      ]
+    },
+    {
+      "id": "T02",
+      "label": "JobAttempt",
+      "kind": "state_authority",
+      "responsibility": "Persist idempotent Job identity and physical Attempt lifecycle separately from caller Task semantics.",
+      "authority": "Runtime",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [
+        "L05"
+      ],
+      "evidence": [
+        "README.md",
+        "docs/runtime.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "Host/Agent Task identity"
+      ],
+      "acceptance": [
+        "Retry/Attempt does not fabricate a new semantic Task."
+      ]
+    },
+    {
+      "id": "T03",
+      "label": "ExecutionOwnership",
+      "kind": "effect_executor",
+      "responsibility": "Own process tree, resource limits, cancellation, and target-specific execution supervision.",
+      "authority": "Runtime",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [
+        "L06"
+      ],
+      "evidence": [
+        "README.md",
+        "docs/operations.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "scheduler/priority"
+      ],
+      "acceptance": [
+        "Cancellation/recovery target owned physical execution."
+      ]
+    },
+    {
+      "id": "T04",
+      "label": "ResultArtifact",
+      "kind": "evidence_binding",
+      "responsibility": "Retain bounded stdout/stderr/results/artifacts/terminal evidence with exact digests.",
+      "authority": "Runtime",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [
+        "L09"
+      ],
+      "evidence": [
+        "README.md",
+        "docs/runtime.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "domain semantic acceptance"
+      ],
+      "acceptance": [
+        "Result evidence remains available after process exit."
+      ]
+    },
+    {
+      "id": "T05",
+      "label": "EffectKernel",
+      "kind": "reconciler",
+      "responsibility": "Preserve ambiguous/lost/orphaned effects and reconcile rather than guessing success or redispatching opaque work.",
+      "authority": "Runtime",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [
+        "L17"
+      ],
+      "evidence": [
+        "README.md",
+        "docs/effect-kernel.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "external provider semantic truth"
+      ],
+      "acceptance": [
+        "Unknown outcomes remain explicit."
+      ]
+    },
+    {
+      "id": "T06",
+      "label": "ExactLeaseGeneration",
+      "kind": "lifecycle_identity",
+      "responsibility": "Bind destructive lifecycle mutation to the exact current execution/generation when multiple lifecycle actors can race.",
+      "authority": "Runtime",
+      "state": "DESIGNED",
+      "sharedRefs": [
+        "L07",
+        "L08"
+      ],
+      "evidence": [],
+      "dependencies": [],
+      "mustNotOwn": [
+        "logical Task identity"
+      ],
+      "acceptance": [
+        "A stale watchdog/canceller cannot affect a replacement execution generation."
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "T01",
+      "to": "T02",
+      "type": "IDENTITY",
+      "label": "source-bound job admission"
+    },
+    {
+      "from": "T02",
+      "to": "T03",
+      "type": "CONTROL",
+      "label": "attempt execution"
+    },
+    {
+      "from": "T03",
+      "to": "T04",
+      "type": "EVIDENCE",
+      "label": "physical result/evidence"
+    },
+    {
+      "from": "T04",
+      "to": "T05",
+      "type": "OBSERVATION",
+      "label": "reconciliation input"
+    },
+    {
+      "from": "T06",
+      "to": "T03",
+      "type": "IDENTITY",
+      "label": "candidate exact lifecycle ownership"
+    }
+  ],
+  "slices": [
+    {
+      "id": "TS1",
+      "objective": "Demonstrate or falsify a stale-owner/ABA lifecycle race; introduce explicit Lease/Generation only if the current contracts cannot prevent it.",
+      "status": "PROPOSED",
+      "nodeIds": [
+        "T03",
+        "T06"
+      ],
+      "acceptance": [
+        "A deterministic concurrency test either proves current identity fencing sufficient or fails and justifies exact Lease/Generation semantics."
+      ],
+      "evidence": [],
+      "blockers": [],
+      "nextAction": "Write the failing race test before adding lifecycle identity objects."
+    }
+  ],
+  "gaps": [
+    "Exact Lease/RuntimeGeneration are comparison coordinates, not yet claimed as implemented Runtime primitives by this plan."
+  ],
+  "doNotOwn": [
+    "Task/Goal meaning",
+    "model/provider loop",
+    "domain completion",
+    "generic scheduler"
+  ],
+  "review": {
+    "sourceRevision": "ec70759ff9f945c3a0f181f9988c5cf3d169806f",
+    "updatedAt": "2026-09-18",
+    "standing": "INITIAL",
+    "notes": "Initial project-native LEGO planning projection. It does not replace owner-native architecture or evidence."
+  },
+  "sharedCatalog": {
+    "catalogId": "agent-architecture-lego-catalog-r1",
+    "note": "Optional shared coordinates only; project-native semantics remain authoritative."
+  }
+}
