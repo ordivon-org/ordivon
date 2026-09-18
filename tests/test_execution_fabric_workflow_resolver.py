@@ -26,6 +26,7 @@ def test_current_catalog_records_only_proven_providers():
         "provider/linux-local/runtime-control-observer-v1",
         "provider/linux-local/service-observer-v1",
         "provider/windows-local/windows-wsl-observer-v1",
+        "provider/windows-local/authority-validation-v1",
     }
     assert providers["provider/linux-local/windows-native-launcher-v1"]["platform"] == "windows"
     assert providers["provider/linux-local/runtime-control-observer-v1"]["capabilities"] == [
@@ -37,8 +38,12 @@ def test_current_catalog_records_only_proven_providers():
     ]
     windows = next(node for node in catalog["nodes"] if node["nodeId"] == "windows-local")
     assert windows["nativeControlPlane"] is False
-    assert windows["providers"] == ["provider/windows-local/windows-wsl-observer-v1"]
+    assert windows["providers"] == [
+        "provider/windows-local/authority-validation-v1",
+        "provider/windows-local/windows-wsl-observer-v1",
+    ]
     assert windows["capabilities"] == [
+        "capability/authority/validate",
         "capability/wsl/probe",
         "capability/wsl/verify-offline",
     ]
@@ -66,6 +71,7 @@ def test_real_workflows_partially_resolve_without_shell_fallback():
         "step/post-doctor",
     ):
         assert compact_by_step[step_id]["disposition"] == "resolved"
+    assert compact_by_step["step/validate-authorization"]["disposition"] == "resolved"
     assert compact_by_step["step/compact-vhd"]["disposition"] == "unresolved"
     assert compact_by_step["step/terminate-wsl"]["disposition"] == "unresolved"
 
@@ -156,9 +162,9 @@ def test_unresolved_capability_summary_is_deterministic():
 def test_provider_backlog_covers_all_real_unresolved_capabilities_once_by_family():
     catalog = load(CATALOG)
     backlog = load(ROOT / "workstation" / "execution_fabric" / "provider-backlog-r1.json")
-    assert backlog["status"] == "planned_not_implemented"
+    assert backlog["status"] == "active_with_gaps"
     planned = backlog["plannedProviders"]
-    assert {item["status"] for item in planned} <= {"missing", "partial"}
+    assert {item["status"] for item in planned} <= {"missing", "partial", "implemented"}
 
     unresolved = set()
     for name in ("wsl-control-plane-recovery-r1.json", "d-drive-vhd-compact-r2.json"):

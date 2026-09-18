@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.execution-fabric.provider-acceptance",
+  "providerId": "provider/windows-local/authority-validation-v1",
+  "status": "live_validation_accepted",
+  "sourceSha256": "sha256:dba66abe2ca9635cd7c9b65624e98a3a72f4e3de5e43dbfbc2b28d98ea981b9a",
+  "capabilities": [
+    "capability/authority/validate"
+  ],
+  "acceptance": {
+    "positive": {
+      "jobId": "job-01a0b413-4a2a-7d63-94da-e7094f53f11d",
+      "attemptId": "attempt-01a0b413-4a2a-7d63-94da-e71dc054393a",
+      "executionTarget": "windows_native",
+      "authorized": true,
+      "exitCode": 0,
+      "mutationAttempted": false,
+      "issuanceAttempted": false,
+      "renewalAttempted": false
+    },
+    "negativeTemplate": {
+      "jobId": "job-01a0b413-57c7-71b2-a339-87a4123ee9cb",
+      "attemptId": "attempt-01a0b413-57c7-71b2-a339-87b32873cbb8",
+      "executionTarget": "windows_native",
+      "authorized": false,
+      "exitCode": 3,
+      "mutationAttempted": false,
+      "issuanceAttempted": false,
+      "renewalAttempted": false
+    }
+  },
+  "notes": "Synthetic positive receipt proves validation semantics only. It is not a compact authorization and carries no execution authority outside the test invocation."
+}

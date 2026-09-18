@@ -59,3 +59,15 @@ control plane is not yet claimed.
 The mutating capability capability/wsl/terminate remains missing and is intentionally not
 advertised by the current catalog until its separate actuator contract and destructive acceptance
 are complete.
+
+## EF6d authority validation
+
+provider/windows-local/authority-validation-v1 is live accepted for
+capability/authority/validate using the D-drive compact R2 receipt profile.
+
+It was accepted in both directions through windows_native execution:
+
+- a short-lived synthetic receipt satisfying the exact profile validated successfully;
+- the deliberately non-authorizing R2 template returned authorized=false and a non-zero exit.
+
+The provider does not issue, renew, or mutate authority. It only evaluates supplied evidence.
