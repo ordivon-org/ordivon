@@ -73,7 +73,7 @@ A repository census at the R2 planning cut found no runtime consumer of `workSta
 - wake
 - carrier
 
-This does not authorize immediate deletion: external consumers still need to be checked. It does block further semantic expansion without demonstrated consumer value.
+A cross-repository source census under `/root/projects` then found no production/runtime consumer. Remaining external hits were frozen Research/Paper1 evaluation fixtures; one Media hit was a lexical false positive. This promotes `workStanding` to a **strong deletion candidate**, but deletion still requires a destructive fixture proving no consumer-observable regression.
 
 ### Currentness
 
@@ -154,16 +154,16 @@ Acceptance requires lower discovery cost without lowering exact-reentry correctn
 
 ## Experiment E03 — workStanding consumer census
 
-The first in-repository pass found schema/validation only.
+The in-repository pass found schema/validation only. A subsequent cross-repository source census under `/root/projects` found no production/runtime consumer; remaining hits were frozen evaluation fixtures.
 
 Next steps:
 
-1. search all Ordivon repositories and Agent/plugin consumers;
-2. classify each field as REQUIRED / CONVENIENCE / UNUSED / UNKNOWN;
-3. construct a destructive removal fixture for UNUSED candidates;
+1. construct a destructive removal fixture;
+2. run Host and representative downstream evaluation/consumer tests without `workStanding`;
+3. classify each field as REQUIRED / CONVENIENCE / UNUSED / UNKNOWN based on observed failures;
 4. retain a field only when a concrete consumer failure demonstrates value.
 
-Persistence alone is not consumer evidence.
+Persistence and fixture presence alone are not consumer evidence.
 
 ## Experiment E04 — Currentness destroyer
 
