@@ -88,6 +88,19 @@ Question Compiler -> Lens Router -> existing lens / DOMAIN_METHOD / NO_LENS -> L
 
 Lens Compiler output is derived analysis. It cannot grant itself project/domain authority or self-promote a candidate into the active lens registry.
 
+### LEGO Lens Portfolio & Evolution
+
+Use after repeated Router/Compiler applications or whenever a case reports many active disciplines. Portfolio distinguishes durable cross-cutting LENS roles from DOMAIN_METHOD and OPERATOR roles, pressure-tests the active set against MSTS, and recommends ADMIT / KEEP / MERGE / RETIRE / RESERVE without changing project truth.
+
+Canonical references:
+- docs/LEGO_LENS_PORTFOLIO_R1.md
+- .agents/skills/lego-lens-portfolio/SKILL.md
+- evidence/acceptance/lego-lens-portfolio-pressure-test-r1.json
+
+The key law is: many invoked methods do not imply many durable active lenses. Domain methods may remain decisive while staying outside the model-visible lens registry.
+
+Question Compiler -> Lens Router -> Lens Compiler when needed -> application evidence -> Lens Portfolio for longitudinal contraction and lifecycle governance.
+
 ## Wave 1 lenses
 
 ### Systems Engineering

@@ -84,6 +84,8 @@ Examples:
 
 Operators are not counted as theory lenses.
 
+Lens Portfolio is the longitudinal operator for retention, merge, retirement, and role normalization after evidence accumulates. Router still owns only the current decision's MSTS.
+
 ## Input — Problem Signature
 
 The router works from a bounded decision and an evidence-backed problem signature.

@@ -164,6 +164,7 @@ Stop when the Router gap disappears, an existing/domain-native method owns the q
 Canonical references:
 - docs/LEGO_LENS_COMPILER_R1.md
 - docs/LEGO_LENS_ROUTER_R1.md
+- docs/LEGO_LENS_PORTFOLIO_R1.md
 - knowledge/registries/lego-lens-registry-r1.json
 - docs/LEGO_THEORY_LAYER_R1.md
 - docs/LEGO_QUESTION_COMPILER_R1.md

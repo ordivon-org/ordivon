@@ -176,7 +176,7 @@ Registry outcome: the useful procedure is absorbed into an existing lens because
 
 Registry outcome: the lens repeatedly adds vocabulary or cost without unique decision value, or its assumptions do not survive real cases.
 
-Compiler can recommend these outcomes but does not mutate the registry. No lifecycle state promotes theory vocabulary into the shared LEGO schema automatically.
+Compiler can recommend these outcomes but does not mutate the registry. Longitudinal KEEP / MERGE / RETIRE / RESERVE governance belongs to LEGO Lens Portfolio. No lifecycle state promotes theory vocabulary into the shared LEGO schema automatically.
 
 ## Evaluation
 

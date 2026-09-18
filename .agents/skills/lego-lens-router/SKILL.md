@@ -70,7 +70,7 @@ Routing output is derived analysis. It never changes architecture or project tru
 
 ## Non-claims
 
-The router does not prove the chosen lens set is globally optimal or complete. It minimizes obvious redundancy and analysis cost under current evidence. Lens Compiler may discover a candidate method after a bounded NO_LENS method gap, but cannot bypass this router's registry admission/overlap checks.
+The router does not prove the chosen lens set is globally optimal or complete. It minimizes obvious redundancy and analysis cost under current evidence. Lens Compiler may discover a candidate method after a bounded NO_LENS method gap, but cannot bypass this router's registry admission/overlap checks. Repeated retention, merge, retirement, and lens-vs-domain-method normalization belong to lego-lens-portfolio rather than per-decision routing.
 
 ## Stop condition
 
@@ -82,3 +82,4 @@ Canonical references:
 - docs/LEGO_QUESTION_COMPILER_R1.md
 - docs/LEGO_THEORY_LAYER_R1.md
 - docs/LEGO_LENS_COMPILER_R1.md
+- docs/LEGO_LENS_PORTFOLIO_R1.md
