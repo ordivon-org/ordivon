@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.agent-service-readonly-deployment-r16-acceptance",
+  "date": "2026-09-18",
+  "truthRole": "source-deployment-bundle-acceptance-not-live-production-truth",
+  "baseMainCommit": "5413e02d8a184077b1cfde9b8726963758bbacb4",
+  "architectureDelta": "knowledge/graphs/ordivon-agent-service-r16-readonly-deployment-delta.json",
+  "surface": {
+    "defaultEndpoint": "http://127.0.0.1:8894/mcp",
+    "protocol": "MCP 2026-07-28 stateless HTTP",
+    "bindScope": "literal-loopback-only",
+    "bearerAuthRequired": true,
+    "tools": [
+      "architecture.identity",
+      "deployment.snapshot",
+      "service.contract",
+      "service.doctor"
+    ],
+    "toolCount": 4,
+    "allToolsReadOnly": true,
+    "writeSurfaceEnabled": false,
+    "providerEffectSurfaceEnabled": false,
+    "runtimeMutationSurfaceEnabled": false,
+    "hostMutationSurfaceEnabled": false
+  },
+  "bundle": {
+    "server": "scripts/agent_service_mcp.py",
+    "systemdUnit": "systemd/ordivon-agent-service-canary-mcp.service",
+    "requirements": "config/agent-service-mcp-requirements.txt",
+    "dedicatedTests": "tests/test_agent_service_mcp_canary_r16.py"
+  },
+  "dependencyPins": {
+    "mcp": "2.0.0",
+    "uvicorn": "0.52.1",
+    "pydantic": "2.13.4",
+    "starlette": "1.6.0",
+    "anyio": "4.15.0"
+  },
+  "verification": {
+    "graphIdentity": {
+      "graphFiles": 14,
+      "nodeCount": 92,
+      "hardIdentityCollisions": 0,
+      "regressionTests": 1,
+      "status": "PASS"
+    },
+    "mcpDeploymentVenv": {
+      "dedicatedTests": 5,
+      "failures": 0,
+      "status": "PASS"
+    },
+    "repositorySystemPython": {
+      "tests": 274,
+      "failures": 0,
+      "skips": 5,
+      "skipReason": "R16 MCP canary tests are intentionally skipped when the system interpreter lacks the MCP deployment dependency; the same tests passed 5/5 in the deployment MCP venv.",
+      "status": "PASS_WITH_EXPECTED_ENVIRONMENT_SKIPS"
+    },
+    "ephemeralNetworkSmoke": {
+      "port": 18894,
+      "installedAsSystemd": false,
+      "unauthenticatedHttpStatus": 401,
+      "authenticatedToolsListHttpStatus": 200,
+      "protocolVersion": "2026-07-28",
+      "exactTools": [
+        "architecture.identity",
+        "deployment.snapshot",
+        "service.contract",
+        "service.doctor"
+      ],
+      "wireReadOnlyAnnotationsVerified": true,
+      "providerEffects": false,
+      "runtimeJobId": "job-01a0b405-2cff-7393-92d5-77ffed703aa0",
+      "status": "PASS"
+    },
+    "compileall": "PASS",
+    "gitDiffCheck": "PASS"
+  },
+  "architecture": {
+    "discoveredNodes": {
+      "N91": "AgentServiceReadOnlyMcpFacade",
+      "N92": "AgentServiceCanaryDeployment"
+    },
+    "antiOntology": "Bearer middleware, systemd hardening and dependency pins remain deployment details rather than separate LEGO authority nodes."
+  },
+  "standings": {
+    "sourceDeploymentBundle": "READY_TO_INTEGRATE_MAIN",
+    "liveLoopbackCanary": "NOT_YET_INSTALLED",
+    "productionReadOnlyQualification": "NOT_YET_LIVE",
+    "productionWriteEffectSurface": "NOT_ADMITTED",
+    "legacyAgentAutomation": "UNCHANGED"
+  },
+  "promotionGate": [
+    "Integrate this source bundle into the current main revision and rerun the full repository suite on the exact merged tree.",
+    "Only then install a parallel live 8894 read-only canary; do not replace or disable Agent Automation.",
+    "Qualify live bearer auth, exact four-tool surface, service.doctor and restart behavior.",
+    "Do not expose write/effect tools without a new explicit architecture and acceptance slice."
+  ]
+}
