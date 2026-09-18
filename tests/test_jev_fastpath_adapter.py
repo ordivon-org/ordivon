@@ -228,3 +228,89 @@ def test_request_file_accepts_windows_powershell_utf8_bom(tmp_path):
     path.write_bytes(b"\xef\xbb\xbf" + b'{"requestId":"bom-r1","url":"https://example.test","goal":"Read"}')
     value = M._read_request(str(path))
     assert value["requestId"] == "bom-r1"
+
+
+def test_missing_credentials_never_bootstrap_managed_chrome(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        M,
+        "_launch_managed_chrome",
+        lambda _env=None: (_ for _ in ()).throw(AssertionError("browser must not launch")),
+    )
+    out = M.execute_request(
+        req(),
+        state_root=tmp_path,
+        env={
+            "ORDIVON_JEV_CHROME_PATH": "C:/Chrome/chrome.exe",
+            "ORDIVON_JEV_CHROME_PROFILE": "C:/profile",
+        },
+        agent_factory=None,
+    )
+    assert out["standing"] == "CREDENTIAL_MISSING"
+
+
+def test_readiness_can_be_run_ready_from_managed_chrome_bootstrap(monkeypatch, tmp_path):
+    chrome = tmp_path / "chrome.exe"
+    chrome.write_bytes(b"x")
+    monkeypatch.setattr(M, "_is_windows_native", lambda: True)
+    monkeypatch.setattr(M, "_python_utf8_mode", lambda: True)
+    monkeypatch.setattr(
+        M.importlib.metadata,
+        "version",
+        lambda package: {"jev-ultrafast": "0.1.0", "browser-harness": "0.1.13"}[package],
+    )
+    monkeypatch.setattr(
+        M,
+        "urlopen",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError("cold")),
+    )
+    out = M.provider_readiness(
+        {
+            "ORDIVON_JEV_CHROME_PATH": str(chrome),
+            "ORDIVON_JEV_CHROME_PROFILE": str(tmp_path / "profile"),
+            "ORDIVON_JEV_CDP_PORT": "9333",
+            "TYPESAFE_API_KEY": "x",
+        }
+    )
+    assert out["browserSubstrateReadyNow"] is False
+    assert out["browserBootstrapAvailable"] is True
+    assert out["readyForRun"] is True
+
+
+def test_managed_chrome_rejects_ambiguous_live_port(monkeypatch, tmp_path):
+    chrome = tmp_path / "chrome.exe"
+    chrome.write_bytes(b"x")
+    monkeypatch.setattr(M, "_is_windows_native", lambda: True)
+
+    class Live:
+        def __enter__(self):
+            return self
+        def __exit__(self, *_args):
+            return False
+
+    monkeypatch.setattr(M, "urlopen", lambda *_args, **_kwargs: Live())
+    with pytest.raises(RuntimeError, match="ambiguous browser reuse"):
+        M._launch_managed_chrome(
+            {
+                "ORDIVON_JEV_CHROME_PATH": str(chrome),
+                "ORDIVON_JEV_CHROME_PROFILE": str(tmp_path / "profile"),
+                "ORDIVON_JEV_CDP_PORT": "9333",
+            }
+        )
+
+
+def test_windows_utf8_mode_is_a_pre_effect_gate(tmp_path, monkeypatch):
+    monkeypatch.setattr(M, "_is_windows_native", lambda: True)
+    monkeypatch.setattr(M, "_python_utf8_mode", lambda: False)
+    monkeypatch.setattr(
+        M,
+        "_launch_managed_chrome",
+        lambda _env=None: (_ for _ in ()).throw(AssertionError("browser must not launch")),
+    )
+    out = M.execute_request(
+        req(),
+        state_root=tmp_path,
+        env={"TYPESAFE_API_KEY": "x"},
+        agent_factory=None,
+    )
+    assert out["standing"] == "PROVIDER_ENV_INVALID"
+    assert out["providerEffectMayHaveOccurred"] is False

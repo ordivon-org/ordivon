@@ -20,7 +20,10 @@ import json
 import os
 from pathlib import Path
 import re
+import subprocess
+import sys
 import tempfile
+import time
 from typing import Any, Callable, Mapping
 from urllib.parse import urlparse
 from urllib.request import urlopen
@@ -122,6 +125,125 @@ def credential_readiness(env: Mapping[str, str] | None = None, *, require_text: 
     }
 
 
+
+def _is_windows_native() -> bool:
+    return os.name == "nt"
+
+
+def _python_utf8_mode() -> bool:
+    return bool(sys.flags.utf8_mode)
+
+
+def managed_chrome_readiness(env: Mapping[str, str] | None = None) -> dict[str, Any]:
+    env = env or os.environ
+    path = str(env.get("ORDIVON_JEV_CHROME_PATH") or "")
+    profile = str(env.get("ORDIVON_JEV_CHROME_PROFILE") or "")
+    raw_port = str(env.get("ORDIVON_JEV_CDP_PORT") or "9333")
+    try:
+        port = int(raw_port)
+    except ValueError:
+        port = -1
+    configured = bool(path and profile and 1024 <= port <= 65535)
+    return {
+        "configured": configured,
+        "executablePresent": bool(path and Path(path).is_file()),
+        "profileConfigured": bool(profile),
+        "port": port if 1024 <= port <= 65535 else None,
+        "available": bool(configured and Path(path).is_file() and _is_windows_native()),
+    }
+
+
+def _launch_managed_chrome(env: Mapping[str, str] | None = None) -> dict[str, Any] | None:
+    """Launch a dedicated Windows Chrome only when explicitly bound by Workstation.
+
+    This runs after credential admission and before the durable browser-action fence.
+    The regular user Chrome profile is never inspected or reused.
+    """
+    env = env or os.environ
+    if env.get("BU_CDP_URL") or env.get("BU_CDP_WS"):
+        return None
+    ready = managed_chrome_readiness(env)
+    if not ready["available"]:
+        return None
+    path = Path(str(env["ORDIVON_JEV_CHROME_PATH"]))
+    profile = Path(str(env["ORDIVON_JEV_CHROME_PROFILE"]))
+    port = int(ready["port"])
+    endpoint = f"http://127.0.0.1:{port}"
+    try:
+        with urlopen(endpoint + "/json/version", timeout=0.5):
+            raise RuntimeError("managed Jev CDP port is already live; refusing ambiguous browser reuse")
+    except RuntimeError:
+        raise
+    except Exception:
+        pass
+    profile.mkdir(parents=True, exist_ok=True)
+    process = subprocess.Popen(
+        [
+            str(path),
+            "--remote-debugging-address=127.0.0.1",
+            f"--remote-debugging-port={port}",
+            f"--user-data-dir={profile}",
+            "--no-first-run",
+            "--no-default-browser-check",
+            "about:blank",
+        ],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    deadline = time.monotonic() + 15
+    version: dict[str, Any] | None = None
+    while time.monotonic() < deadline:
+        if process.poll() is not None:
+            break
+        try:
+            with urlopen(endpoint + "/json/version", timeout=1) as response:
+                candidate = json.loads(response.read())
+            if isinstance(candidate, dict) and candidate.get("webSocketDebuggerUrl"):
+                version = candidate
+                break
+        except Exception:
+            time.sleep(0.2)
+    if version is None:
+        try:
+            process.terminate()
+        except Exception:
+            pass
+        raise RuntimeError("managed Jev Chrome did not reach CDP readiness")
+    os.environ["BU_CDP_URL"] = endpoint
+    os.environ.setdefault("BU_NAME", "ordivon-jev")
+    os.environ.setdefault("BH_TAB_MARKER", "0")
+    os.environ.setdefault("BH_UPDATE_CHECK", "0")
+    return {
+        "process": process,
+        "endpoint": endpoint,
+        "browser": version.get("Browser"),
+        "protocolVersion": version.get("Protocol-Version"),
+        "profile": str(profile),
+    }
+
+
+def _cleanup_managed_chrome(launch: Mapping[str, Any] | None) -> None:
+    if not launch:
+        return
+    process = launch.get("process")
+    if process is None:
+        return
+    try:
+        if process.poll() is None:
+            if _is_windows_native():
+                subprocess.run(
+                    ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    timeout=5,
+                    check=False,
+                )
+            else:
+                process.terminate()
+    except Exception:
+        pass
+
+
 def provider_readiness(env: Mapping[str, str] | None = None, *, require_text: bool = False) -> dict[str, Any]:
     env = env or os.environ
     packages: dict[str, str | None] = {}
@@ -162,19 +284,28 @@ def provider_readiness(env: Mapping[str, str] | None = None, *, require_text: bo
         cdp["webSocketConfigured"] = True
 
     credentials = credential_readiness(env, require_text=require_text)
-    browser_substrate_ready = bool(daemon["browserReady"] or cdp["reachable"])
+    managed_chrome = managed_chrome_readiness(env)
+    browser_substrate_ready_now = bool(daemon["browserReady"] or cdp["reachable"])
+    browser_bootstrap_available = bool(managed_chrome["available"])
+    python_utf8_ready = bool(not _is_windows_native() or _python_utf8_mode())
     return {
         "schemaVersion": 1,
         "kind": "ordivon.jev-fastpath-readiness",
         "packages": packages,
         "browserHarness": daemon,
         "cdp": cdp,
-        "browserSubstrateReady": browser_substrate_ready,
+        "managedChrome": managed_chrome,
+        "browserSubstrateReadyNow": browser_substrate_ready_now,
+        "browserSubstrateReady": browser_substrate_ready_now,
+        "browserBootstrapAvailable": browser_bootstrap_available,
+        "pythonUtf8Mode": _python_utf8_mode(),
+        "pythonUtf8Ready": python_utf8_ready,
         "credentials": credentials,
         "readyForRun": bool(
             packages["jev-ultrafast"]
             and packages["browser-harness"]
-            and browser_substrate_ready
+            and (browser_substrate_ready_now or browser_bootstrap_available)
+            and python_utf8_ready
             and credentials["ready"]
         ),
         "nonClaims": ["browser_semantic_success", "provider_network_serviceable", "task_authorized"],
@@ -313,8 +444,22 @@ def execute_request(
             "providerEffectMayHaveOccurred": False,
             "outcomeWitness": {"standing": "UNVERIFIED", "checks": []},
         }
+    if _is_windows_native() and not _python_utf8_mode():
+        return {
+            "schemaVersion": 1,
+            "kind": "ordivon.jev-fastpath-receipt",
+            "requestId": request["requestId"],
+            "requestDigest": digest(request),
+            "standing": "PROVIDER_ENV_INVALID",
+            "detail": "Windows Jev requires Python UTF-8 mode (PYTHONUTF8=1)",
+            "replayed": False,
+            "providerEffectMayHaveOccurred": False,
+            "outcomeWitness": {"standing": "UNVERIFIED", "checks": []},
+        }
 
+    managed_launch = None
     if agent_factory is None:
+        managed_launch = _launch_managed_chrome(env)
         from jev_ultrafast import Agent
 
         agent_factory = Agent
@@ -354,6 +499,8 @@ def execute_request(
                 }
         except Exception:
             pass
+    finally:
+        _cleanup_managed_chrome(managed_launch)
 
     if error is not None:
         standing = "FAILED_AFTER_ACTIONS" if history else "FAILED_BEFORE_ACTION"
