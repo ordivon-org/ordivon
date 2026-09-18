@@ -82,14 +82,15 @@ class ArtifactDecompositionA3TrustTests(unittest.TestCase):
     def test_oci_consumes_trust_package_not_delivery_trust_symbols(self) -> None:
         source = (ROOT / "scripts/artifact_oci_package.py").read_text(encoding="utf-8")
         self.assertIn("from artifact_trust.vsa import", source)
-        delivery_import = source.split("from artifact_delivery import (", 1)[1].split(")", 1)[0]
+        self.assertNotIn("from artifact_delivery import", source)
+        self.assertNotIn("import artifact_delivery", source)
         for symbol in (
             "LOCAL_VSA_VERIFIER_ID",
             "SIGSTORE_BUNDLE_V03",
             "aggregate_vsa_gates",
             "cosign_tool_fact",
         ):
-            self.assertNotIn(symbol, delivery_import)
+            self.assertIn(symbol, source)
 
     def test_trust_package_does_not_import_delivery_monolith(self) -> None:
         source = (ROOT / "artifact_trust/vsa.py").read_text(encoding="utf-8")

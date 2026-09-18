@@ -12,7 +12,11 @@ SPEC = importlib.util.spec_from_file_location("artifact_oci_package", ROOT / "sc
 MODULE = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(MODULE)
-ARTIFACT = MODULE.artifact
+
+DELIVERY_SPEC = importlib.util.spec_from_file_location("artifact_delivery_fixture", ROOT / "scripts/artifact_delivery.py")
+DELIVERY = importlib.util.module_from_spec(DELIVERY_SPEC)
+assert DELIVERY_SPEC.loader is not None
+DELIVERY_SPEC.loader.exec_module(DELIVERY)
 
 
 class ArtifactOciPackageTests(unittest.TestCase):
@@ -28,18 +32,18 @@ class ArtifactOciPackageTests(unittest.TestCase):
         profile_path = root / "profile.json"
         profile_path.write_text(json.dumps(profile))
         pptx = root / "artifact.pptx"
-        built = ARTIFACT.build_presentation_source(
+        built = DELIVERY.build_presentation_source(
             ROOT / "artifact-delivery/examples/presentation-native-smoke-source-r1.json",
             ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json",
             pptx,
         )
         self.assertEqual(built["status"], "PASS", built)
         verify_dir = root / "verify"
-        verified = ARTIFACT.execute_verify_stage(profile_path, pptx, verify_dir)
+        verified = DELIVERY.execute_verify_stage(profile_path, pptx, verify_dir)
         self.assertEqual(verified["status"], "PASS", verified)
         self.assertTrue(verified["profileVerificationComplete"], verified)
         report = root / "verify-stage.json"
-        ARTIFACT.write_json(report, verified)
+        DELIVERY.write_json(report, verified)
         return profile_path, pptx, report, verified
 
     def test_local_unsigned_uses_oci_layout_and_referrers_without_legacy_package_manifest(self):
@@ -68,7 +72,7 @@ class ArtifactOciPackageTests(unittest.TestCase):
             self.assertFalse((package / ".staging").exists())
 
     def _cosign_material(self, root: Path):
-        tool = ARTIFACT.cosign_tool_fact()
+        tool = MODULE.cosign_tool_fact()
         if tool.get("status") != "PASS":
             self.skipTest("cosign is not available")
         cosign = Path(tool["path"])
@@ -87,13 +91,13 @@ class ArtifactOciPackageTests(unittest.TestCase):
         policy = {
             "policyVersion": 1,
             "id": "test-vsa-trust-r1",
-            "acceptedBundleMediaTypes": [ARTIFACT.SIGSTORE_BUNDLE_V03],
+            "acceptedBundleMediaTypes": [MODULE.SIGSTORE_BUNDLE_V03],
             "signers": [{
                 "id": "release-signer",
                 "mode": "public-key",
-                "allowedVerifierIds": [ARTIFACT.LOCAL_VSA_VERIFIER_ID],
+                "allowedVerifierIds": [MODULE.LOCAL_VSA_VERIFIER_ID],
                 "requireTransparencyLog": False,
-                "publicKey": {"path": public_key.name, "sha256": ARTIFACT.sha256_file(public_key)},
+                "publicKey": {"path": public_key.name, "sha256": MODULE.sha256_file(public_key)},
             }],
         }
         policy_path = root / "vsa-trust-policy.json"
@@ -114,7 +118,7 @@ class ArtifactOciPackageTests(unittest.TestCase):
         )
         self.assertEqual(proc.returncode, 0, proc.stderr)
         value = json.loads(bundle.read_text())
-        self.assertEqual(value["mediaType"], ARTIFACT.SIGSTORE_BUNDLE_V03)
+        self.assertEqual(value["mediaType"], MODULE.SIGSTORE_BUNDLE_V03)
 
     def test_signed_vsa_package_is_release_ready_and_bundles_are_oci_referrer_layers(self):
         if not MODULE.DEFAULT_ORAS.is_file():

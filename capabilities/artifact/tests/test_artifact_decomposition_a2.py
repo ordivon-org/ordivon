@@ -185,9 +185,10 @@ class ArtifactDecompositionA2Tests(unittest.TestCase):
 
     def test_oci_has_no_broad_delivery_monolith_import(self) -> None:
         source = (ROOT / "scripts/artifact_oci_package.py").read_text(encoding="utf-8")
-        self.assertNotIn("import artifact_delivery as artifact", source)
+        self.assertNotIn("import artifact_delivery", source)
+        self.assertNotIn("from artifact_delivery import", source)
         self.assertIn("aggregate_vsa_gates,", source)
-        self.assertIn("validate_delivery_request,", source)
+        self.assertIn("from artifact_core.admission import", source)
 
 
 if __name__ == "__main__":

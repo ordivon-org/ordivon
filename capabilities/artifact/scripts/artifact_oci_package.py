@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Thin OCI packaging adapter for Artifact Build & Delivery v2.
 
-Artifact verification/build compatibility remains in artifact_delivery.py while trust semantics live in artifact_trust. OCI identity,
-layout, manifests and subject/referrer relationships are delegated to ORAS/OCI 1.1.
-This module deliberately does not implement a registry, OCI manifest serializer or a
-second package-index/release-manifest format.
+OCI consumes Artifact Core admission/identity, Evidence, and Trust owners directly.
+OCI identity, layout, manifests and subject/referrer relationships are delegated to
+ORAS/OCI 1.1. This module deliberately does not implement a registry, OCI manifest
+serializer, Artifact build/verification facade, or a second package-index/release-
+manifest format.
 """
 from __future__ import annotations
 
@@ -23,8 +24,11 @@ for candidate in (ROOT, SCRIPT_DIR):
     if str(candidate) not in sys.path:
         sys.path.insert(0, str(candidate))
 
+from artifact_core.admission import AdmissionHooks, admit_delivery_request
 from artifact_core.contracts import file_fact, sha256_file
+from artifact_core.json_validation import validate_json_document
 from artifact_core.profile_v1 import validate_profile_v1
+from artifact_capabilities.presentation import admit_presentation_source, admit_semantic_svg_source
 from artifact_evidence.delivery import verify_file_fact
 from artifact_trust.provenance import slsa_statement, verify_release_provenance
 from artifact_trust.vsa import (
@@ -32,26 +36,6 @@ from artifact_trust.vsa import (
     SIGSTORE_BUNDLE_V03,
     aggregate_vsa_gates,
     cosign_tool_fact,
-)
-
-from artifact_delivery import (
-    build_presentation_source,
-    execute_verify_stage,
-    validate_delivery_request,
-    write_json,
-)
-from types import SimpleNamespace
-
-# Compatibility-only projection for historical callers/tests. OCI implementation below
-# does not route production identity/profile/provenance/evidence logic through it.
-artifact = SimpleNamespace(
-    build_presentation_source=build_presentation_source,
-    execute_verify_stage=execute_verify_stage,
-    write_json=write_json,
-    cosign_tool_fact=cosign_tool_fact,
-    SIGSTORE_BUNDLE_V03=SIGSTORE_BUNDLE_V03,
-    LOCAL_VSA_VERIFIER_ID=LOCAL_VSA_VERIFIER_ID,
-    sha256_file=sha256_file,
 )
 
 DEFAULT_ORAS = Path(os.environ.get("ARTIFACT_ORAS", "/opt/ordivon/external/oras/1.3.4/bin/oras"))
@@ -81,6 +65,50 @@ FORMAT_SUFFIXES = {
     "pdf-a-4": ".pdf",
     "pdf-ua-2": ".pdf",
 }
+
+
+DEFAULT_PROFILE_SCHEMA = ROOT / "artifact-delivery/profile-v1.schema.json"
+DEFAULT_REQUEST_SCHEMA = ROOT / "artifact-delivery/request-v1.schema.json"
+
+
+def _admit_presentation_source(
+    source_path: Path,
+) -> tuple[dict[str, Any] | None, list[dict[str, Any]], list[str]]:
+    return admit_presentation_source(
+        source_path,
+        validate_json_document=validate_json_document,
+    )
+
+
+def _admit_semantic_svg_source(
+    source_path: Path,
+) -> tuple[dict[str, Any] | None, list[dict[str, Any]], list[str]]:
+    return admit_semantic_svg_source(
+        source_path,
+        validate_json_document=validate_json_document,
+    )
+
+
+def validate_delivery_request(
+    request_path: Path,
+    request_schema_path: Path = DEFAULT_REQUEST_SCHEMA,
+    profile_schema_path: Path = DEFAULT_PROFILE_SCHEMA,
+) -> dict[str, Any]:
+    return admit_delivery_request(
+        request_path,
+        request_schema_path=request_schema_path,
+        profile_schema_path=profile_schema_path,
+        hooks=AdmissionHooks(
+            validate_json_document=validate_json_document,
+            validate_profile=validate_profile_v1,
+            source_validators={
+                "presentation-source-v1": _admit_presentation_source,
+                "presentation-semantic-svg-source-v1": _admit_semantic_svg_source,
+            },
+            file_fact=file_fact,
+            sha256_file=sha256_file,
+        ),
+    )
 
 
 def media_type(path: Path) -> str:

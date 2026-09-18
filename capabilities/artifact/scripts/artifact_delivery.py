@@ -35,6 +35,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from artifact_core.admission import AdmissionHooks, admit_delivery_request
+from artifact_core.json_validation import validate_json_document as core_validate_json_document
 from artifact_core.build_bindings import BuildCapabilityBindingRegistry
 from artifact_core.build_planning import compile_delivery_plan_from_validation
 from artifact_core.contracts import file_fact, sha256_file
@@ -394,46 +395,11 @@ def canonicalize_generated_ooxml_metadata(path: Path) -> dict[str, Any]:
 
 
 
-def validate_json_document(document_path: Path, schema_path: Path, expected_kind: str | None = None) -> dict[str, Any]:
-    value = load_json(document_path)
-    schema = load_json(schema_path)
-    failures: list[str] = []
-    if not isinstance(value, dict):
-        failures.append("document must be a JSON object")
-    elif expected_kind is not None and value.get("kind") != expected_kind:
-        failures.append(f"document kind must equal {expected_kind}")
-    validator = "jsonschema"
-    schema_status = "NOT_RUN"
-    schema_error: str | None = None
-    if importlib.util.find_spec("jsonschema") is None:
-        validator = "unavailable"
-        schema_error = "Python jsonschema package is not installed"
-    else:
-        try:
-            import jsonschema  # type: ignore
+def validate_json_document(
+    document_path: Path, schema_path: Path, expected_kind: str | None = None,
+) -> dict[str, Any]:
+    return core_validate_json_document(document_path, schema_path, expected_kind)
 
-            jsonschema.Draft202012Validator.check_schema(schema)
-            instance = dict(value) if isinstance(value, dict) else value
-            if isinstance(instance, dict):
-                instance.pop("$schema", None)
-            jsonschema.Draft202012Validator(schema, format_checker=jsonschema.FormatChecker()).validate(instance)
-            schema_status = "PASS"
-        except Exception as error:
-            schema_status = "FAIL"
-            schema_error = str(error)
-            failures.append(f"JSON Schema validation failed: {error}")
-    return {
-        "status": "PASS" if not failures and schema_status == "PASS" else "FAIL",
-        "document": value,
-        "failures": failures,
-        "jsonSchema": {
-            "dialect": "https://json-schema.org/draft/2020-12/schema",
-            "validator": validator,
-            "status": schema_status,
-            "error": schema_error,
-            "schemaPath": str(schema_path.resolve()),
-        },
-    }
 
 
 def _presentation_build_hooks() -> PresentationBuildHooks:
