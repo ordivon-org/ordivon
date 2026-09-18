@@ -150,7 +150,10 @@
         "evidence/acceptance/lego-question-compiler-r1.json",
         "evidence/acceptance/lego-question-compiler-skill-discovery-r1.json",
         "knowledge/lessons/lego-question-compiler-cross-domain-canaries-r1.md",
-        "evidence/acceptance/lego-question-compiler-cross-domain-framing-r1.json"
+        "evidence/acceptance/lego-question-compiler-cross-domain-framing-r1.json",
+        "knowledge/lessons/lego-question-compiler-outcome-pressure-r1.md",
+        "evidence/analysis/lego-question-compiler-outcome-pressure-r1.json",
+        "evidence/acceptance/lego-question-compiler-outcome-pressure-r1.json"
       ],
       "dependencies": [],
       "replacementContract": "The compiler may be replaced or refined without changing project/domain truth; downstream planning consumes only evidence-supported decisions.",
@@ -164,9 +167,10 @@
       "acceptance": [
         "R1 keeps primary questions bounded, requires pruning and evidence/experiment handoff, adds no common Question schema, and passes repository regression.",
         "The live Skill MCP resolves the exact package with scan PASS and both implicit and explicit invocation admitted.",
-        "Two non-poker prospective canaries produce decision-relevant reframing with explicit pruning and experiment handoff; downstream outcome improvement remains unproven."
+        "Two non-poker prospective canaries produce decision-relevant reframing with explicit pruning and experiment handoff; downstream outcome improvement remains unproven.",
+        "Agent Service and Research/Paper2 outcome-pressure tests each change the next bounded experiment/resource allocation while explicitly blocking final-outcome and schema-promotion claims."
       ],
-      "nextAction": "Execute the Agent Birth transition/recovery census and Paper2 stage-native queue/service-time pressure test, then compare whether work allocation or architecture decisions change."
+      "nextAction": "Close the next outcome gate: E1 preserve freshness and measure event-level accepted-throughput; E2 run the frozen Stage2 calibration and measure access/adjudication/full-text eligibility service times. Promote nothing until downstream accepted outcomes change."
     }
   ],
   "edges": [
@@ -260,12 +264,31 @@
         "evidence/acceptance/lego-question-compiler-cross-domain-framing-r1.json"
       ],
       "blockers": []
+    },
+    {
+      "id": "S05",
+      "objective": "Execute the first outcome-side Question Compiler pressure tests and verify that they change bounded experiments/resource allocation without claiming final project outcome improvement.",
+      "status": "COMPLETE",
+      "nodeIds": [
+        "N06"
+      ],
+      "acceptance": [
+        "E1 redirects Agent Service from broad feature expansion to freshness/authority/funnel evidence.",
+        "E2 redirects Research/Paper2 from generation/first-pass scaling to Stage2 calibration and separately measured downstream queues.",
+        "Neither canary promotes a common schema or claims downstream accepted outcome improvement."
+      ],
+      "evidence": [
+        "knowledge/lessons/lego-question-compiler-outcome-pressure-r1.md",
+        "evidence/analysis/lego-question-compiler-outcome-pressure-r1.json",
+        "evidence/acceptance/lego-question-compiler-outcome-pressure-r1.json"
+      ],
+      "blockers": []
     }
   ],
   "gaps": [
     "Cross-repository plan visualization is not implemented and is not required for R1.",
     "No global priority scheduler is implied by project slices.",
-    "Cross-domain framing is supported by one poker pilot plus Agent Birth and Research/Paper2 prospective canaries; downstream outcome improvement is not yet established."
+    "Question Compiler now has cross-domain framing plus two decision-allocation pressure tests; downstream accepted outcome improvement is not yet established."
   ],
   "doNotOwn": [
     "project-native truth",
@@ -275,9 +298,9 @@
     "a universal workflow engine"
   ],
   "review": {
-    "sourceRevision": "5049f8db91a40052f34cc9bc27aa319319470730",
+    "sourceRevision": "0092260",
     "updatedAt": "2026-09-18",
     "standing": "STABLE",
-    "notes": "LEGO Project Planning R1 remains stable. Question Compiler R1 is live in Skill MCP and now has one poker pilot plus two non-poker prospective framing passes (Agent Birth; Research/Paper2). Downstream outcome improvement remains unproven."
+    "notes": "LEGO Project Planning R1 remains stable. Question Compiler is live and now has framing plus decision-allocation evidence in Agent Service and Research/Paper2. Final downstream accepted-outcome improvement remains unproven; no schema promotion is admitted."
   }
 }
