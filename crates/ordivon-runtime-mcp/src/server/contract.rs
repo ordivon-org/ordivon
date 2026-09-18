@@ -120,6 +120,7 @@ pub struct ExecutionFabricObservation {
     pub capabilities: Vec<FabricCapabilityDescriptor>,
     pub providers: Vec<FabricProviderDescriptor>,
     pub controllers: Vec<FabricControllerPreview>,
+    pub proposed_actions: Vec<FabricControllerActionProposal>,
 }
 
 impl ExecutionFabricObservation {
@@ -151,6 +152,7 @@ impl ExecutionFabricObservation {
         let mut node_providers = Vec::new();
         let mut authority_contexts = Vec::new();
         let mut controllers = Vec::new();
+        let mut proposed_actions = Vec::new();
 
         for target in &capabilities.targets {
             let (target_name, capability_name) = match target.target {
@@ -242,7 +244,7 @@ impl ExecutionFabricObservation {
                             .expect("static provider-health reason must be valid"),
                     )
                 };
-                let controller = preview_provider_health(&ProviderHealthObservation {
+                let plan = plan_provider_health(&ProviderHealthObservation {
                     schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
                     controller_id: FabricId::parse(format!(
                         "controller/provider-health/{}/{}",
@@ -256,8 +258,11 @@ impl ExecutionFabricObservation {
                     observed,
                     reason_code,
                 })
-                .expect("Runtime provider-health projection must be a valid controller preview");
-                controllers.push(controller);
+                .expect("Runtime provider-health projection must be a valid controller plan");
+                controllers.push(plan.preview);
+                if let Some(action) = plan.action {
+                    proposed_actions.push(action);
+                }
             }
 
             if target.target == ExecutionTarget::WindowsNative {
@@ -312,6 +317,7 @@ impl ExecutionFabricObservation {
             capabilities: fabric_capabilities,
             providers,
             controllers,
+            proposed_actions,
         }
     }
 }
