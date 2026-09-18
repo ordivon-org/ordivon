@@ -151,8 +151,6 @@ def utc_now() -> str:
 
 
 
-def load_json(path: Path) -> Any:
-    return json.loads(path.read_text(encoding="utf-8"))
 
 
 
@@ -810,18 +808,8 @@ def _delivery_trust_toolchain_config() -> trust_vsa.TrustToolchainConfig:
     )
 
 
-def _cosign_executable() -> Path | None:
-    return trust_vsa._cosign_executable(_delivery_trust_toolchain_config())
 
 
-def _cosign_selection_provenance(
-    executable: Path,
-    executable_digest: str,
-    cosign_lock: dict[str, Any],
-) -> dict[str, Any]:
-    return trust_vsa._cosign_selection_provenance(
-        executable, executable_digest, cosign_lock, _delivery_trust_toolchain_config()
-    )
 
 
 def cosign_tool_fact() -> dict[str, Any]:
@@ -931,11 +919,6 @@ def snapshot_materials(paths: Iterable[Path]) -> dict[str, Any]:
     }
 
 
-def _require_uri(value: str, field: str) -> str:
-    parsed = urllib.parse.urlparse(value)
-    if not parsed.scheme:
-        raise RuntimeError(f"{field} must be a URI")
-    return value
 
 
 

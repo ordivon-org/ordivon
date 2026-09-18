@@ -18,10 +18,13 @@ import shutil
 import subprocess
 import tempfile
 from typing import Any
-
-import artifact_delivery as artifact_delivery_runtime
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+import artifact_trust.vsa as artifact_trust_vsa
 GLOBAL_ARTIFACT_TOOLCHAIN_ROOT = Path(os.environ.get("ARTIFACT_TOOLCHAIN_ROOT", "/opt/ordivon/external/artifact-toolchain"))
 GLOBAL_PANDOC = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "pandoc/3.10.2/bin/pandoc"
 GLOBAL_VERAPDF = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "verapdf/1.30.2/verapdf"
@@ -328,7 +331,7 @@ def main() -> int:
         observed_digest = hashlib.sha256(Path(cosign).read_bytes()).hexdigest()
         expected_cosign = LOCK["cosign"]
         standard_floor = tuple(int(item) for item in expected_cosign["standardizedBundleMinimumVersion"].split("."))
-        source_text = (ROOT / "scripts/artifact_delivery.py").read_text()
+        source_text = (ROOT / "artifact_trust/vsa.py").read_text()
         standard_bundle_policy_ok = (
             proc.returncode == 0
             and bool(version_tuple)
@@ -351,7 +354,7 @@ def main() -> int:
             publicKeyStanding=expected_cosign.get("publicKeyStandardBundleStanding"),
             keylessStanding=expected_cosign.get("keylessStandardBundleStanding"),
         )
-        runtime_cosign = artifact_delivery_runtime.cosign_tool_fact()
+        runtime_cosign = artifact_trust_vsa.cosign_tool_fact()
         provenance = runtime_cosign.get("provenance", {}) if isinstance(runtime_cosign, dict) else {}
         provenance_ok = runtime_cosign.get("status") == "PASS" and provenance.get("status") == "PASS"
         record(
