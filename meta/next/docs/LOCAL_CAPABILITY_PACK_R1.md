@@ -90,3 +90,20 @@ When a gap appears:
 `real task -> search mature skill/tool -> review -> pin/install -> use -> verify outcome`
 
 Only build local capability when no mature option is sufficient and the gap repeats.
+
+
+## Research skill expansion — 2026-09-19
+
+Paper-1 demonstrated that the 2026-09-13 minimal research set left composition gaps between scholarly lookup, citation integrity, rival-hypothesis construction, critical evidence audit, and bounded EDA.
+
+Five additional K-Dense skills were reviewed at exact revision `330c8e764435a731eff571e3efdda70b363d0792` and admitted at Codex user scope:
+
+- `paper-lookup`
+- `citation-management`
+- `hypothesis-generation`
+- `scientific-critical-thinking`
+- `exploratory-data-analysis`
+
+`research-lookup`, `statistical-power`, and `venue-templates` remain deferred for dependency/scope reasons. The current K-Dense `literature-review` was also reviewed but not promoted; the existing lightweight literature-review remains temporarily in place.
+
+The five admitted Skill IDs were separately promoted through the Skill MCP audited gate after deterministic package review. This does not widen trust to the K-Dense repository as a whole. See `docs/RESEARCH_SKILL_EXPANSION_R1.md` and `evidence/acceptance/research-skill-expansion-r1.json`.
