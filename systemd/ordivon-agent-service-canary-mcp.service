@@ -1,0 +1,37 @@
+[Unit]
+Description=Ordivon Agent Service read-only MCP canary
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ordivon-agent-service
+Group=ordivon-agent-service
+WorkingDirectory=/opt/ordivon/agent-service-canary/current
+Environment=ORDIVON_AGENT_SERVICE_SOURCE_ROOT=/opt/ordivon/agent-service-canary/current
+ExecStartPre=/opt/ordivon/agent-service-canary/current/.venv/bin/python /opt/ordivon/agent-service-canary/current/scripts/agent_service_mcp.py --source-root /opt/ordivon/agent-service-canary/current --token-file /etc/ordivon/agent-service-mcp.token --bind 127.0.0.1 --port 8894 --check
+ExecStart=/opt/ordivon/agent-service-canary/current/.venv/bin/python /opt/ordivon/agent-service-canary/current/scripts/agent_service_mcp.py --source-root /opt/ordivon/agent-service-canary/current --token-file /etc/ordivon/agent-service-mcp.token --bind 127.0.0.1 --port 8894 --log-level INFO
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=20
+KillMode=control-group
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target
