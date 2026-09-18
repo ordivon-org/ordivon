@@ -231,6 +231,8 @@ def campaign_census(spec: CampaignLaunchSpec, ledger_path: Path) -> dict:
         row = rows.get(request.request_id)
         materialization = None
         provider = None
+        effect_generation = None
+        updated_at_ms = None
         if row is None:
             counts["unrecorded"] += 1
         else:
@@ -242,6 +244,11 @@ def campaign_census(spec: CampaignLaunchSpec, ledger_path: Path) -> dict:
                 if row["provider_coordinate"]
                 else None
             )
+            keys = set(row.keys())
+            if "effect_generation" in keys and row["effect_generation"] is not None:
+                effect_generation = int(row["effect_generation"])
+            if "updated_at_ms" in keys and row["updated_at_ms"] is not None:
+                updated_at_ms = int(row["updated_at_ms"])
             counts[materialization.value] += 1
         projected.append(
             {
@@ -249,6 +256,8 @@ def campaign_census(spec: CampaignLaunchSpec, ledger_path: Path) -> dict:
                 "effectId": birth.effect_id,
                 "materializationStanding": materialization.value if materialization else None,
                 "providerResource": provider,
+                "effectGeneration": effect_generation,
+                "updatedAtMs": updated_at_ms,
                 "blindResendForbidden": materialization
                 in {
                     MaterializationStanding.UNKNOWN,
