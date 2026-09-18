@@ -142,6 +142,7 @@ class AgentServiceTrustRemoteR10Tests(unittest.TestCase):
         service.interfaces.advertise(
             target_revision.id,
             transport="a2a-jsonrpc",
+            protocol_version="1.0",
             url="https://agents.example.test/target",
             priority=10,
             security_requirements={"oauth2": ["review.invoke"]},

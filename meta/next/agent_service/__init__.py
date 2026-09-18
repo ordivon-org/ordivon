@@ -38,6 +38,10 @@ from .goals import (
     TaskReadinessProjector,
 )
 from .host_board import HostBoardMcpAdapter
+from .local_effect_readers import (
+    BrowserlessTurnEffectCoordinate,
+    BrowserlessTurnEffectLedgerReader,
+)
 from .provider_adapters import (
     A2AJsonRpcHttpClient,
     A2AQuiescenceAdapter,
@@ -81,6 +85,14 @@ from .task_runtime import (
     RuntimeJobObservation,
     RuntimeJobRef,
 )
+from .transport_credentials import (
+    AgentServiceR14,
+    BoundCredentialHeaderProvider,
+    CredentialHeaderMaterial,
+    CredentialMaterialProvider,
+    TransportCredentialBindingCoordinator,
+    TransportCredentialBindingStore,
+)
 from .trust import (
     AgentServiceR10,
     AuditEnvelopeProjector,
@@ -94,6 +106,14 @@ from .trust import (
 )
 
 __all__ = [
+    "BrowserlessTurnEffectLedgerReader",
+    "BrowserlessTurnEffectCoordinate",
+    "TransportCredentialBindingStore",
+    "TransportCredentialBindingCoordinator",
+    "CredentialMaterialProvider",
+    "CredentialHeaderMaterial",
+    "BoundCredentialHeaderProvider",
+    "AgentServiceR14",
     "RemoteExecutionCompleted",
     "QuiescencePending",
     "ProviderRemoteError",

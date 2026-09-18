@@ -170,6 +170,7 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
             first = service.interfaces.advertise(
                 target_revision.id,
                 transport="a2a-jsonrpc",
+                protocol_version="1.0",
                 url="https://agents.example.test/target",
                 priority=10,
                 security_requirements={"oauth2": ["review.invoke"]},
@@ -177,6 +178,7 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
             replay = service.interfaces.advertise(
                 target_revision.id,
                 transport="a2a-jsonrpc",
+                protocol_version="1.0",
                 url="https://agents.example.test/target",
                 priority=10,
                 security_requirements={"oauth2": ["review.invoke"]},
@@ -188,6 +190,7 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
             alternate = service.interfaces.advertise(
                 target_revision.id,
                 transport="a2a-jsonrpc",
+                protocol_version="1.0",
                 url="https://agents-backup.example.test/target",
                 priority=20,
                 security_requirements={"oauth2": ["review.invoke"]},
@@ -197,6 +200,7 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
                 service.interfaces.advertise(
                     target_revision.id,
                     transport="a2a-jsonrpc",
+                    protocol_version="1.0",
                     url="https://agents.example.test/target",
                     priority=99,
                     security_requirements={"oauth2": ["review.invoke"]},
@@ -210,6 +214,7 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
             service.interfaces.advertise(
                 target_revision.id,
                 transport="a2a-jsonrpc",
+                protocol_version="1.0",
                 url="https://agents.example.test/target",
                 priority=10,
                 security_requirements={},
@@ -251,6 +256,7 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
             service.interfaces.advertise(
                 target_revision.id,
                 transport="mcp",
+                protocol_version="2026-07-28",
                 url="https://mcp.example.test/target",
                 priority=20,
                 security_requirements={},
@@ -258,6 +264,7 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
             service.interfaces.advertise(
                 target_revision.id,
                 transport="a2a-jsonrpc",
+                protocol_version="1.0",
                 url="https://agents.example.test/target",
                 priority=10,
                 security_requirements={},
@@ -286,6 +293,7 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
             service.interfaces.advertise(
                 target_revision.id,
                 transport="a2a-jsonrpc",
+                protocol_version="1.0",
                 url="https://agents.example.test/target",
                 priority=10,
                 security_requirements={},
@@ -293,6 +301,7 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
             service.interfaces.advertise(
                 target_revision.id,
                 transport="mcp",
+                protocol_version="2026-07-28",
                 url="https://mcp.example.test/target",
                 priority=20,
                 security_requirements={},
@@ -323,6 +332,7 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
             service.interfaces.advertise(
                 target_revision.id,
                 transport="a2a-jsonrpc",
+                protocol_version="1.0",
                 url="https://agents.example.test/target",
                 priority=10,
                 security_requirements={},
@@ -363,6 +373,7 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
             service.interfaces.advertise(
                 target_revision.id,
                 transport="a2a-jsonrpc",
+                protocol_version="1.0",
                 url="https://agents.example.test/target",
                 priority=10,
                 security_requirements={},
@@ -406,6 +417,7 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
             service.interfaces.advertise(
                 target_revision.id,
                 transport="mcp",
+                protocol_version="2026-07-28",
                 url="https://mcp.example.test/target",
                 priority=10,
                 security_requirements={"oauth2": ["tools.call"]},
@@ -430,6 +442,7 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
             first.interfaces.advertise(
                 target_revision.id,
                 transport="a2a-jsonrpc",
+                protocol_version="1.0",
                 url="https://agents.example.test/target",
                 priority=10,
                 security_requirements={},
