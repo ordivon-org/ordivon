@@ -33,3 +33,13 @@ catalog/current-r1.json records only currently proven provider reality:
 provider-backlog-r1.json groups current unresolved workflow capabilities into six planned provider
 families. A planned provider is not discoverable or routable until it is implemented, tested,
 materialized, and added to the current catalog.
+
+## EF6c accepted read providers
+
+The current catalog now includes two live-read-accepted Linux-side providers:
+
+- provider/linux-local/runtime-control-observer-v1 exposes runtime health and doctor;
+- provider/linux-local/service-observer-v1 exposes exact allowlisted Runtime + Host service probe.
+
+They are observation providers only. They do not advertise runtime drain/recover or service ensure,
+because those mutating capabilities have not yet reached the same acceptance state.
