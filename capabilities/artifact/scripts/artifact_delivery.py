@@ -56,6 +56,11 @@ from artifact_verifiers.document import (
     verify_document_dependencies as document_verify_dependencies,
     verify_document_semantic_correspondence as document_verify_semantics,
 )
+from artifact_verifiers.pdf import (
+    verapdf_executable as pdf_verapdf_executable,
+    verify_pdf as pdf_verify_structural,
+    verify_pdf_conformance as pdf_verify_conformance,
+)
 from artifact_verifiers.presentation import (
     PresentationGateHooks,
     inspect_pptx as presentation_inspect_pptx,
@@ -993,93 +998,18 @@ def verify_font_manifest(
 
 
 def verify_pdf(path: Path) -> dict[str, Any]:
-    artifact = file_fact(path)
-    qpdf = shutil.which("qpdf")
-    if not qpdf:
-        return {
-            "status": "FAIL",
-            "artifact": artifact,
-            "validator": "qpdf",
-            "error": "qpdf is not installed",
-            "profileValidation": "NOT_RUN",
-        }
-    proc = subprocess.run(
-        [qpdf, "--check", str(path)],
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-        timeout=30,
-    )
-    return {
-        "status": "PASS" if proc.returncode == 0 else "FAIL",
-        "artifact": artifact,
-        "validator": qpdf,
-        "exitCode": proc.returncode,
-        "stdout": proc.stdout.strip()[:4000],
-        "stderr": proc.stderr.strip()[:4000],
-        "profileValidation": "NOT_RUN",
-        "note": "qpdf structural checking does not establish PDF/A or PDF/UA conformance; use veraPDF/PAC in those profiles.",
-    }
+    return pdf_verify_structural(path)
+
 
 
 def _verapdf_executable() -> Path | None:
-    configured = os.environ.get("ARTIFACT_VERAPDF")
-    if configured:
-        path = Path(configured)
-        return path if path.is_file() else None
-    if GLOBAL_VERAPDF.is_file():
-        return GLOBAL_VERAPDF
-    local = ROOT / ".cache/artifact-toolchain/verapdf/current/verapdf"
-    if local.is_file():
-        return local
-    system = shutil.which("verapdf")
-    return Path(system) if system else None
+    return pdf_verapdf_executable()
+
 
 
 def verify_pdf_conformance(path: Path, flavour: str) -> dict[str, Any]:
-    artifact = file_fact(path)
-    if flavour not in {"4", "4f", "4e", "ua1", "ua2", "wt1r", "wt1a"}:
-        return {"status": "FAIL", "artifact": artifact, "flavour": flavour, "error": "unsupported veraPDF flavour"}
-    executable = _verapdf_executable()
-    if executable is None:
-        return {"status": "NOT_RUN", "artifact": artifact, "flavour": flavour, "error": "veraPDF is not installed"}
-    proc = subprocess.run(
-        [str(executable), "--format", "json", "--flavour", flavour, str(path)],
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-        timeout=60,
-    )
-    compliant = False
-    profile_name: str | None = None
-    failed_rules: int | None = None
-    failed_checks: int | None = None
-    parse_error: str | None = None
-    try:
-        parsed = json.loads(proc.stdout)
-        validation = parsed["report"]["jobs"][0]["validationResult"][0]
-        compliant = validation.get("compliant") is True
-        profile_name = validation.get("profileName")
-        details = validation.get("details", {})
-        failed_rules = details.get("failedRules")
-        failed_checks = details.get("failedChecks")
-    except Exception as error:
-        parse_error = str(error)
-    return {
-        "status": "PASS" if compliant and proc.returncode == 0 else "FAIL",
-        "artifact": artifact,
-        "validator": {"implementation": "veraPDF", "executable": str(executable), "flavour": flavour},
-        "profileName": profile_name,
-        "compliant": compliant,
-        "failedRules": failed_rules,
-        "failedChecks": failed_checks,
-        "exitCode": proc.returncode,
-        "parseError": parse_error,
-        "stderr": proc.stderr.strip()[:4000],
-        "boundary": "veraPDF conformance is machine-checkable profile evidence only; human accessibility/use review and target-viewer acceptance remain separate gates.",
-    }
+    return pdf_verify_conformance(path, flavour)
+
 
 
 def verify_openxml_artifact(path: Path) -> dict[str, Any]:
@@ -1297,8 +1227,8 @@ def _verification_stage_hooks() -> VerificationStageHooks:
         verify_document_dependencies=_document_dependency_stage_verifier,
         inspect_pptx=presentation_inspect_pptx,
         verify_presentation_semantics=presentation_verify_semantics,
-        verify_pdf=verify_pdf,
-        verify_pdf_conformance=verify_pdf_conformance,
+        verify_pdf=pdf_verify_structural,
+        verify_pdf_conformance=pdf_verify_conformance,
         verify_html_conformance=verify_html_conformance,
         verify_web_local=verify_web_local,
     )
@@ -1367,7 +1297,7 @@ def presentation_gate(
     return presentation_verification_gate(
         profile_path, pptx, pdf, render_dir, openxml_evidence, target_evidence,
         visual_evidence, delivery_evidence, font_dir,
-        hooks=PresentationGateHooks(verify_pdf=verify_pdf),
+        hooks=PresentationGateHooks(verify_pdf=pdf_verify_structural),
     )
 
 
