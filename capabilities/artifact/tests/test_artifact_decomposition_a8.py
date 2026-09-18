@@ -52,12 +52,15 @@ class ArtifactPdfVerifierDecompositionA8Tests(unittest.TestCase):
             self.assertTrue(callable(item))
 
     def test_verify_stage_and_presentation_gate_wire_directly_to_pdf_verifier(self):
-        source = DELIVERY.read_text(encoding="utf-8")
-        self.assertIn("verify_pdf=pdf_verify_structural", source)
-        self.assertIn("verify_pdf_conformance=pdf_verify_conformance", source)
+        provider = (
+            ROOT / "artifact_operations/providers/direct_python.py"
+        ).read_text(encoding="utf-8")
+        delivery = DELIVERY.read_text(encoding="utf-8")
+        self.assertIn("verify_pdf=verify_pdf", provider)
+        self.assertIn("verify_pdf_conformance=verify_pdf_conformance", provider)
         self.assertIn(
             "hooks=PresentationGateHooks(verify_pdf=pdf_verify_structural)",
-            source,
+            delivery,
         )
 
 

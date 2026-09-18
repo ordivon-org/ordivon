@@ -55,13 +55,15 @@ class ArtifactDocumentVerifierDecompositionA7Tests(unittest.TestCase):
         self.assertTrue(hasattr(DocumentDependencyHooks, "__dataclass_fields__"))
 
     def test_verify_stage_wiring_targets_document_verifier_package(self):
-        source = DELIVERY.read_text(encoding="utf-8")
+        source = (
+            ROOT / "artifact_operations/providers/direct_python.py"
+        ).read_text(encoding="utf-8")
         self.assertIn(
-            "verify_document_semantic_correspondence=document_verify_semantics",
+            "verify_document_semantic_correspondence=verify_document_semantic_correspondence",
             source,
         )
         self.assertIn(
-            "verify_document_dependencies=_document_dependency_stage_verifier",
+            "verify_document_dependencies=self._document_dependency_stage_verifier",
             source,
         )
 

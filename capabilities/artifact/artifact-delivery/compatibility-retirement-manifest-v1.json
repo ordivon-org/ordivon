@@ -123,6 +123,12 @@
   ],
   "kind": "artifact-delivery-compatibility-retirement-manifest",
   "observations": {
+    "a15": {
+      "privateDropGatesSatisfied": 10,
+      "publicCompatibilityNamesPreserved": true,
+      "referenceProjectionOwner": "artifact_capabilities.presentation.reference_projection",
+      "snapshotOwner": "artifact_evidence.snapshot"
+    },
     "productionCliConsumers": [
       "scripts/artifact_agent_surface.py",
       "scripts/artifact_delivery_toolchain_doctor.py",
@@ -145,22 +151,10 @@
       "DEPRECATE",
       "DROP"
     ],
-    "nextWave": "A15 facade reduction must satisfy each entry retirementGate before deletion",
+    "nextWave": "A16 may address remaining DEPRECATE seam and CLI-parser extraction only from the frozen post-A15 surface",
     "rule": "tests alone do not create a production API obligation; production CLI/Python consumers, documented compatibility promises, and migration evidence do"
   },
   "retiredSymbols": [
-    {
-      "reason": "zero-live-callers",
-      "replacement": "artifact_core.json_validation.load_json when needed",
-      "symbol": "load_json",
-      "wave": "A14"
-    },
-    {
-      "reason": "zero-live-callers",
-      "replacement": "artifact_trust owner validation",
-      "symbol": "_require_uri",
-      "wave": "A14"
-    },
     {
       "reason": "zero-live-callers",
       "replacement": "artifact_trust.vsa internal selector",
@@ -172,32 +166,123 @@
       "replacement": "artifact_trust.vsa internal provenance",
       "symbol": "_cosign_selection_provenance",
       "wave": "A14"
+    },
+    {
+      "reason": "zero-live-callers",
+      "replacement": "artifact_trust owner validation",
+      "symbol": "_require_uri",
+      "wave": "A14"
+    },
+    {
+      "reason": "zero-live-callers",
+      "replacement": "artifact_core.json_validation.load_json when needed",
+      "symbol": "load_json",
+      "wave": "A14"
+    },
+    {
+      "reason": "retirement-gate-satisfied",
+      "replacement": "Delivery request admission delegates to DirectPython provider",
+      "symbol": "_admit_presentation_source",
+      "wave": "A15"
+    },
+    {
+      "reason": "retirement-gate-satisfied",
+      "replacement": "Delivery request admission delegates to DirectPython provider",
+      "symbol": "_admit_semantic_svg_source",
+      "wave": "A15"
+    },
+    {
+      "reason": "retirement-gate-satisfied",
+      "replacement": "Delivery verify entrypoint delegates to DirectPython provider",
+      "symbol": "_document_dependency_hooks",
+      "wave": "A15"
+    },
+    {
+      "reason": "retirement-gate-satisfied",
+      "replacement": "Delivery verify entrypoint delegates to DirectPython provider",
+      "symbol": "_document_dependency_stage_verifier",
+      "wave": "A15"
+    },
+    {
+      "reason": "moved-to-owner",
+      "replacement": "artifact_capabilities.presentation.reference_projection",
+      "symbol": "_normalized_posix_relative",
+      "wave": "A15"
+    },
+    {
+      "reason": "moved-to-owner",
+      "replacement": "artifact_capabilities.presentation.reference_projection",
+      "symbol": "_normalized_sha256",
+      "wave": "A15"
+    },
+    {
+      "reason": "retirement-gate-satisfied",
+      "replacement": "Delivery presentation builders delegate to DirectPython provider",
+      "symbol": "_presentation_build_hooks",
+      "wave": "A15"
+    },
+    {
+      "reason": "retirement-gate-satisfied",
+      "replacement": "Delivery build/verify entrypoints delegate to DirectPython provider",
+      "symbol": "_primary_suffix",
+      "wave": "A15"
+    },
+    {
+      "reason": "moved-to-owner",
+      "replacement": "artifact_capabilities.presentation.reference_projection",
+      "symbol": "_relationship_base",
+      "wave": "A15"
+    },
+    {
+      "reason": "retirement-gate-satisfied",
+      "replacement": "Delivery execute_build_stage delegates to DirectPython provider",
+      "symbol": "_request_output_name",
+      "wave": "A15"
+    },
+    {
+      "reason": "moved-to-owner",
+      "replacement": "artifact_capabilities.presentation.reference_projection",
+      "symbol": "_resolve_relationship_target",
+      "wave": "A15"
+    },
+    {
+      "reason": "retirement-gate-satisfied",
+      "replacement": "Delivery execute_build_stage delegates to DirectPython provider",
+      "symbol": "_resolve_request_path",
+      "wave": "A15"
+    },
+    {
+      "reason": "moved-to-owner",
+      "replacement": "artifact_capabilities.presentation.reference_projection",
+      "symbol": "_safe_zip_names",
+      "wave": "A15"
+    },
+    {
+      "reason": "retirement-gate-satisfied",
+      "replacement": "DirectPython provider owns build tool selection",
+      "symbol": "_selected_external_file",
+      "wave": "A15"
+    },
+    {
+      "reason": "retirement-gate-satisfied",
+      "replacement": "Delivery verify entrypoint delegates to DirectPython provider",
+      "symbol": "_verification_stage_hooks",
+      "wave": "A15"
+    },
+    {
+      "reason": "moved-to-owner",
+      "replacement": "artifact_evidence.snapshot.utc_now",
+      "symbol": "utc_now",
+      "wave": "A15"
     }
   ],
   "schemaVersion": 1,
   "sourceAuthority": {
-    "baselineCommit": "1fe184da9adbe1159f3d5038000c0c79187ba6b4",
+    "baselineCommit": "306153f61a95fdb2ea0c3696229f64946b807ddd",
+    "currentWave": "A15",
     "path": "scripts/artifact_delivery.py"
   },
   "symbols": [
-    {
-      "consumerClass": "private-facade-wiring",
-      "currentOwner": "scripts.artifact_delivery",
-      "disposition": "DROP",
-      "retirementGate": "A15: validate_delivery_request delegates to DirectPython provider admission",
-      "standing": "ACTIVE_BLOCKED",
-      "symbol": "_admit_presentation_source",
-      "targetOwner": "none-after-retirement"
-    },
-    {
-      "consumerClass": "private-facade-wiring",
-      "currentOwner": "scripts.artifact_delivery",
-      "disposition": "DROP",
-      "retirementGate": "A15: validate_delivery_request delegates to DirectPython provider admission",
-      "standing": "ACTIVE_BLOCKED",
-      "symbol": "_admit_semantic_svg_source",
-      "targetOwner": "none-after-retirement"
-    },
     {
       "consumerClass": "legacy-python-and-or-cli-compatibility",
       "currentOwner": "scripts.artifact_delivery",
@@ -217,42 +302,6 @@
       "targetOwner": "artifact_trust.vsa.default_trust_toolchain_config"
     },
     {
-      "consumerClass": "private-facade-wiring",
-      "currentOwner": "scripts.artifact_delivery",
-      "disposition": "DROP",
-      "retirementGate": "A15: execute_verify_stage delegates to DirectPython provider verification service",
-      "standing": "ACTIVE_BLOCKED",
-      "symbol": "_document_dependency_hooks",
-      "targetOwner": "none-after-retirement"
-    },
-    {
-      "consumerClass": "private-facade-wiring",
-      "currentOwner": "scripts.artifact_delivery",
-      "disposition": "DROP",
-      "retirementGate": "A15: execute_verify_stage delegates to DirectPython provider verification service",
-      "standing": "ACTIVE_BLOCKED",
-      "symbol": "_document_dependency_stage_verifier",
-      "targetOwner": "none-after-retirement"
-    },
-    {
-      "consumerClass": "private-implementation",
-      "currentOwner": "scripts.artifact_delivery",
-      "disposition": "MOVE_TO_OWNER",
-      "retirementGate": "A15: extract implementation to target owner, keep Delivery CLI wrapper where the verb remains supported",
-      "standing": "ACTIVE_BLOCKED",
-      "symbol": "_normalized_posix_relative",
-      "targetOwner": "artifact_capabilities.presentation.reference_projection"
-    },
-    {
-      "consumerClass": "private-implementation",
-      "currentOwner": "scripts.artifact_delivery",
-      "disposition": "MOVE_TO_OWNER",
-      "retirementGate": "A15: extract implementation to target owner, keep Delivery CLI wrapper where the verb remains supported",
-      "standing": "ACTIVE_BLOCKED",
-      "symbol": "_normalized_sha256",
-      "targetOwner": "artifact_capabilities.presentation.reference_projection"
-    },
-    {
       "consumerClass": "cli-infrastructure",
       "currentOwner": "scripts.artifact_delivery",
       "disposition": "KEEP_CLI",
@@ -262,78 +311,6 @@
       "targetOwner": "scripts.artifact_delivery"
     },
     {
-      "consumerClass": "private-facade-wiring",
-      "currentOwner": "scripts.artifact_delivery",
-      "disposition": "DROP",
-      "retirementGate": "A15: presentation compatibility wrappers consume owner-owned hook factory/service",
-      "standing": "ACTIVE_BLOCKED",
-      "symbol": "_presentation_build_hooks",
-      "targetOwner": "none-after-retirement"
-    },
-    {
-      "consumerClass": "private-facade-wiring",
-      "currentOwner": "scripts.artifact_delivery",
-      "disposition": "DROP",
-      "retirementGate": "A15: build/verify compatibility wrappers delegate to owner services",
-      "standing": "ACTIVE_BLOCKED",
-      "symbol": "_primary_suffix",
-      "targetOwner": "none-after-retirement"
-    },
-    {
-      "consumerClass": "private-implementation",
-      "currentOwner": "scripts.artifact_delivery",
-      "disposition": "MOVE_TO_OWNER",
-      "retirementGate": "A15: extract implementation to target owner, keep Delivery CLI wrapper where the verb remains supported",
-      "standing": "ACTIVE_BLOCKED",
-      "symbol": "_relationship_base",
-      "targetOwner": "artifact_capabilities.presentation.reference_projection"
-    },
-    {
-      "consumerClass": "private-facade-wiring",
-      "currentOwner": "scripts.artifact_delivery",
-      "disposition": "DROP",
-      "retirementGate": "A15: execute_build_stage becomes a thin DirectPython provider wrapper",
-      "standing": "ACTIVE_BLOCKED",
-      "symbol": "_request_output_name",
-      "targetOwner": "none-after-retirement"
-    },
-    {
-      "consumerClass": "private-implementation",
-      "currentOwner": "scripts.artifact_delivery",
-      "disposition": "MOVE_TO_OWNER",
-      "retirementGate": "A15: extract implementation to target owner, keep Delivery CLI wrapper where the verb remains supported",
-      "standing": "ACTIVE_BLOCKED",
-      "symbol": "_resolve_relationship_target",
-      "targetOwner": "artifact_capabilities.presentation.reference_projection"
-    },
-    {
-      "consumerClass": "private-facade-wiring",
-      "currentOwner": "scripts.artifact_delivery",
-      "disposition": "DROP",
-      "retirementGate": "A15: execute_build_stage becomes a thin DirectPython provider wrapper",
-      "standing": "ACTIVE_BLOCKED",
-      "symbol": "_resolve_request_path",
-      "targetOwner": "none-after-retirement"
-    },
-    {
-      "consumerClass": "private-implementation",
-      "currentOwner": "scripts.artifact_delivery",
-      "disposition": "MOVE_TO_OWNER",
-      "retirementGate": "A15: extract implementation to target owner, keep Delivery CLI wrapper where the verb remains supported",
-      "standing": "ACTIVE_BLOCKED",
-      "symbol": "_safe_zip_names",
-      "targetOwner": "artifact_capabilities.presentation.reference_projection"
-    },
-    {
-      "consumerClass": "private-facade-wiring",
-      "currentOwner": "scripts.artifact_delivery",
-      "disposition": "DROP",
-      "retirementGate": "A15: execute_build_stage becomes a thin DirectPython provider wrapper",
-      "standing": "ACTIVE_BLOCKED",
-      "symbol": "_selected_external_file",
-      "targetOwner": "none-after-retirement"
-    },
-    {
       "consumerClass": "legacy-python-and-or-cli-compatibility",
       "currentOwner": "scripts.artifact_delivery",
       "disposition": "KEEP_COMPAT_WRAPPER",
@@ -341,15 +318,6 @@
       "standing": "KEEP",
       "symbol": "_verapdf_executable",
       "targetOwner": "artifact_verifiers.pdf.toolchain"
-    },
-    {
-      "consumerClass": "private-facade-wiring",
-      "currentOwner": "scripts.artifact_delivery",
-      "disposition": "DROP",
-      "retirementGate": "A15: execute_verify_stage delegates to DirectPython provider verification service",
-      "standing": "ACTIVE_BLOCKED",
-      "symbol": "_verification_stage_hooks",
-      "targetOwner": "none-after-retirement"
     },
     {
       "consumerClass": "legacy-python-and-or-cli-compatibility",
@@ -373,19 +341,19 @@
       "consumerClass": "legacy-python-and-or-cli-compatibility",
       "currentOwner": "scripts.artifact_delivery",
       "disposition": "KEEP_COMPAT_WRAPPER",
-      "retirementGate": "retain CLI/Python compatibility; OCI tests still use Delivery only as fixture preparation",
+      "retirementGate": "A15 thin wrapper established; retain public CLI/Python compatibility until explicit consumer migration permits removal",
       "standing": "KEEP",
       "symbol": "build_presentation_source",
-      "targetOwner": "artifact_capabilities.presentation.python_pptx"
+      "targetOwner": "artifact_operations.providers.direct_python.DirectPythonOperationProvider.build_presentation_source"
     },
     {
       "consumerClass": "legacy-python-and-or-cli-compatibility",
       "currentOwner": "scripts.artifact_delivery",
       "disposition": "KEEP_COMPAT_WRAPPER",
-      "retirementGate": "retain while legacy Delivery API callers exist; canonical owner already extracted",
+      "retirementGate": "A15 thin wrapper established; retain public CLI/Python compatibility until explicit consumer migration permits removal",
       "standing": "KEEP",
       "symbol": "build_semantic_svg_presentation_source",
-      "targetOwner": "artifact_capabilities.presentation.ppt_master"
+      "targetOwner": "artifact_operations.providers.direct_python.DirectPythonOperationProvider.build_semantic_svg_presentation_source"
     },
     {
       "consumerClass": "legacy-python-and-or-cli-compatibility",
@@ -400,17 +368,17 @@
       "consumerClass": "legacy-python-and-or-cli-compatibility",
       "currentOwner": "scripts.artifact_delivery",
       "disposition": "KEEP_COMPAT_WRAPPER",
-      "retirementGate": "retain compile-request/Python compatibility until A15 wrapper reduction",
+      "retirementGate": "A15 thin wrapper established; retain public CLI/Python compatibility until explicit consumer migration permits removal",
       "standing": "KEEP",
       "symbol": "compile_delivery_plan",
-      "targetOwner": "artifact_operations.providers.direct_python"
+      "targetOwner": "artifact_operations.providers.direct_python.DirectPythonOperationProvider.compile_delivery_plan"
     },
     {
-      "consumerClass": "cli-command-and-legacy-test",
+      "consumerClass": "legacy-python-and-or-cli-compatibility",
       "currentOwner": "scripts.artifact_delivery",
-      "disposition": "MOVE_TO_OWNER",
-      "retirementGate": "A15: extract implementation to target owner, keep Delivery CLI wrapper where the verb remains supported",
-      "standing": "ACTIVE_BLOCKED",
+      "disposition": "KEEP_COMPAT_WRAPPER",
+      "retirementGate": "canonical implementation moved in A15; retain Delivery CLI/Python name until production CLI consumers migrate or compatibility is explicitly retired",
+      "standing": "KEEP",
       "symbol": "compose_reference_hybrid_source",
       "targetOwner": "artifact_capabilities.presentation.reference_projection"
     },
@@ -436,19 +404,19 @@
       "consumerClass": "legacy-python-and-or-cli-compatibility",
       "currentOwner": "scripts.artifact_delivery",
       "disposition": "KEEP_COMPAT_WRAPPER",
-      "retirementGate": "retain build-request/Python compatibility; agent surface and Toolchain Doctor still consume CLI verb",
+      "retirementGate": "A15 thin wrapper established; retain public CLI/Python compatibility until explicit consumer migration permits removal",
       "standing": "KEEP",
       "symbol": "execute_build_stage",
-      "targetOwner": "artifact_operations.providers.direct_python"
+      "targetOwner": "artifact_operations.providers.direct_python.DirectPythonOperationProvider.execute_build_stage"
     },
     {
       "consumerClass": "legacy-python-and-or-cli-compatibility",
       "currentOwner": "scripts.artifact_delivery",
       "disposition": "KEEP_COMPAT_WRAPPER",
-      "retirementGate": "retain verify-stage CLI/Python compatibility; Toolchain Doctor still consumes CLI verb",
+      "retirementGate": "A15 thin wrapper established; retain public CLI/Python compatibility until explicit consumer migration permits removal",
       "standing": "KEEP",
       "symbol": "execute_verify_stage",
-      "targetOwner": "artifact_verification.stage"
+      "targetOwner": "artifact_operations.providers.direct_python.DirectPythonOperationProvider.execute_verify_stage"
     },
     {
       "consumerClass": "legacy-python-and-or-cli-compatibility",
@@ -487,40 +455,31 @@
       "targetOwner": "artifact_verifiers.presentation.gate"
     },
     {
-      "consumerClass": "cli-command-and-legacy-test",
+      "consumerClass": "legacy-python-and-or-cli-compatibility",
       "currentOwner": "scripts.artifact_delivery",
-      "disposition": "MOVE_TO_OWNER",
-      "retirementGate": "A15: extract implementation to target owner, keep Delivery CLI wrapper where the verb remains supported",
-      "standing": "ACTIVE_BLOCKED",
+      "disposition": "KEEP_COMPAT_WRAPPER",
+      "retirementGate": "canonical implementation moved in A15; retain Delivery CLI/Python name until production CLI consumers migrate or compatibility is explicitly retired",
+      "standing": "KEEP",
       "symbol": "project_opc_members",
       "targetOwner": "artifact_capabilities.presentation.reference_projection"
     },
     {
-      "consumerClass": "cli-command-and-legacy-test",
+      "consumerClass": "legacy-python-and-or-cli-compatibility",
       "currentOwner": "scripts.artifact_delivery",
-      "disposition": "MOVE_TO_OWNER",
-      "retirementGate": "A15: extract implementation to target owner, keep Delivery CLI wrapper where the verb remains supported",
-      "standing": "ACTIVE_BLOCKED",
+      "disposition": "KEEP_COMPAT_WRAPPER",
+      "retirementGate": "canonical implementation moved in A15; retain Delivery CLI/Python name until production CLI consumers migrate or compatibility is explicitly retired",
+      "standing": "KEEP",
       "symbol": "snapshot_materials",
-      "targetOwner": "artifact_evidence.snapshot"
-    },
-    {
-      "consumerClass": "cli-command-and-legacy-test",
-      "currentOwner": "scripts.artifact_delivery",
-      "disposition": "MOVE_TO_OWNER",
-      "retirementGate": "A15: extract implementation to target owner, keep Delivery CLI wrapper where the verb remains supported",
-      "standing": "ACTIVE_BLOCKED",
-      "symbol": "utc_now",
       "targetOwner": "artifact_evidence.snapshot"
     },
     {
       "consumerClass": "legacy-python-and-or-cli-compatibility",
       "currentOwner": "scripts.artifact_delivery",
       "disposition": "KEEP_COMPAT_WRAPPER",
-      "retirementGate": "retain CLI/Python compatibility until A15 facade delegates DirectPython provider and downstream imports are migrated",
+      "retirementGate": "A15 thin wrapper established; retain public CLI/Python compatibility until explicit consumer migration permits removal",
       "standing": "KEEP",
       "symbol": "validate_delivery_request",
-      "targetOwner": "artifact_operations.providers.direct_python"
+      "targetOwner": "artifact_operations.providers.direct_python.DirectPythonOperationProvider.validate_delivery_request"
     },
     {
       "consumerClass": "legacy-python-and-or-cli-compatibility",

@@ -61,9 +61,14 @@ class ArtifactWebVerifierDecompositionA10Tests(unittest.TestCase):
             self.assertTrue(callable(item))
 
     def test_verify_stage_wires_directly_to_web_verifier(self):
-        source = DELIVERY.read_text(encoding="utf-8")
-        self.assertIn("verify_html_conformance=web_verify_conformance", source)
-        self.assertIn("verify_web_local=web_verify_local", source)
+        source = (
+            ROOT / "artifact_operations/providers/direct_python.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "verify_html_conformance=verify_html_conformance",
+            source,
+        )
+        self.assertIn("verify_web_local=verify_web_local", source)
 
 
 if __name__ == "__main__":

@@ -167,7 +167,7 @@ class DirectPythonOperationProvider:
             canonicalize_ppt_master=canonicalize_generated_ooxml_metadata,
         )
 
-    def _build_presentation_source(
+    def build_presentation_source(
         self, source_path: Path, profile_path: Path, output_path: Path
     ) -> dict[str, Any]:
         return build_presentation_source(
@@ -178,7 +178,7 @@ class DirectPythonOperationProvider:
             hooks=self._presentation_build_hooks(),
         )
 
-    def _build_semantic_svg_presentation_source(
+    def build_semantic_svg_presentation_source(
         self, source_path: Path, profile_path: Path, output_path: Path
     ) -> dict[str, Any]:
         return build_semantic_svg_presentation_source(
@@ -222,8 +222,8 @@ class DirectPythonOperationProvider:
             profile_path=profile_path,
             output_path=output_path,
             presentation_builders={
-                "python-pptx-presentation-source-v1": self._build_presentation_source,
-                "ppt-master-semantic-svg-v1": self._build_semantic_svg_presentation_source,
+                "python-pptx-presentation-source-v1": self.build_presentation_source,
+                "ppt-master-semantic-svg-v1": self.build_semantic_svg_presentation_source,
             },
             pandoc=self.pandoc,
         )
@@ -261,6 +261,25 @@ class DirectPythonOperationProvider:
         return verify_document_dependencies(
             request_path,
             document,
+            hooks=self._document_dependency_hooks(),
+        )
+
+    def verify_document_dependencies(
+        self,
+        request_path: Path,
+        document: Path,
+        pandoc: Path | None = None,
+        pandoc_archive: Path | None = None,
+        toolchain_lock: Path | None = None,
+        openxml_validator: Path | None = None,
+    ) -> dict[str, Any]:
+        return verify_document_dependencies(
+            request_path,
+            document,
+            pandoc,
+            pandoc_archive,
+            toolchain_lock,
+            openxml_validator,
             hooks=self._document_dependency_hooks(),
         )
 

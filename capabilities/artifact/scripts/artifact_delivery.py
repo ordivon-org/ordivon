@@ -40,10 +40,13 @@ from artifact_core.build_bindings import BuildCapabilityBindingRegistry
 from artifact_core.build_planning import compile_delivery_plan_from_validation
 from artifact_core.contracts import file_fact, sha256_file
 from artifact_core.profile_v1 import validate_profile_v1 as validate_profile
+from artifact_operations.providers import DirectPythonOperationProvider
 from artifact_trust.provenance import slsa_statement, verify_release_provenance
 import artifact_trust.vsa as trust_vsa
 from artifact_capabilities.dispatch import execute_build_adapter
 from artifact_capabilities.presentation import (
+    compose_reference_hybrid_source as presentation_compose_reference_hybrid_source,
+    project_opc_members as presentation_project_opc_members,
     DETERMINISTIC_OPC_CORE_TIMESTAMP,
     DETERMINISTIC_ZIP_DATETIME,
     PresentationBuildHooks,
@@ -88,6 +91,7 @@ from artifact_verification import (
     execute_verify_stage as verification_execute_stage,
     write_gate_receipt,
 )
+from artifact_evidence.snapshot import snapshot_materials as evidence_snapshot_materials
 from artifact_evidence.delivery import (
     verify_delivery_evidence,
     verify_file_fact,
@@ -104,15 +108,6 @@ GLOBAL_PANDOC_ARCHIVE = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "pandoc/3.10.2/pandoc-3
 GLOBAL_VERAPDF = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "verapdf/1.30.2/verapdf"
 
 
-def _selected_external_file(env_name: str, global_candidate: Path, legacy_candidate: Path) -> Path:
-    configured = os.environ.get(env_name)
-    if configured:
-        return Path(configured)
-    if global_candidate.is_file():
-        return global_candidate
-    if legacy_candidate.is_file():
-        return legacy_candidate
-    return global_candidate
 
 
 DEFAULT_SCHEMA = ROOT / "artifact-delivery/profile-v1.schema.json"
@@ -143,8 +138,6 @@ PRESENTATION_NS = "http://schemas.openxmlformats.org/presentationml/2006/main"
 DRAWING_NS = "http://schemas.openxmlformats.org/drawingml/2006/main"
 
 
-def utc_now() -> str:
-    return dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 
@@ -189,14 +182,6 @@ def validate_json_document(
 
 
 
-def _presentation_build_hooks() -> PresentationBuildHooks:
-    return PresentationBuildHooks(
-        validate_json_document=validate_json_document,
-        inspect_pptx=presentation_inspect_pptx,
-        verify_semantics=presentation_verify_semantics,
-        normalize_python_pptx=normalize_zip_member_timestamps,
-        canonicalize_ppt_master=canonicalize_generated_ooxml_metadata,
-    )
 
 
 # Compatibility-only private projections for historical tests/callers.
@@ -214,11 +199,6 @@ _apply_text_to_shape = presentation_common._apply_text_to_shape
 _hex_color = presentation_common._hex_color
 
 
-def _resolve_request_path(request_path: Path, relative: str) -> Path:
-    candidate = Path(relative)
-    if candidate.is_absolute():
-        return candidate.resolve()
-    return (request_path.resolve().parent / candidate).resolve()
 
 
 
@@ -230,28 +210,18 @@ def _resolve_request_path(request_path: Path, relative: str) -> Path:
 
 
 def build_semantic_svg_presentation_source(
-    source_path: Path,
-    profile_path: Path,
-    output_path: Path,
-    source_schema_path: Path = DEFAULT_PRESENTATION_SEMANTIC_SVG_SOURCE_SCHEMA,
+    source_path: Path, profile_path: Path, output_path: Path,
 ) -> dict[str, Any]:
-    return presentation_build_semantic_svg_source(
-        source_path, profile_path, output_path, source_schema_path, hooks=_presentation_build_hooks()
+    return DirectPythonOperationProvider().build_semantic_svg_presentation_source(
+        source_path, profile_path, output_path
     )
 
 
 
-def _admit_presentation_source(source_path: Path) -> tuple[dict[str, Any] | None, list[dict[str, Any]], list[str]]:
-    return presentation_admit_source(
-        source_path, validate_json_document=validate_json_document, source_schema_path=DEFAULT_PRESENTATION_SOURCE_SCHEMA
-    )
 
 
 
-def _admit_semantic_svg_source(source_path: Path) -> tuple[dict[str, Any] | None, list[dict[str, Any]], list[str]]:
-    return presentation_admit_semantic_svg_source(
-        source_path, validate_json_document=validate_json_document, source_schema_path=DEFAULT_PRESENTATION_SEMANTIC_SVG_SOURCE_SCHEMA
-    )
+
 
 
 
@@ -260,107 +230,28 @@ def validate_delivery_request(
     request_schema_path: Path = DEFAULT_REQUEST_SCHEMA,
     profile_schema_path: Path = DEFAULT_SCHEMA,
 ) -> dict[str, Any]:
-    hooks = AdmissionHooks(
-        validate_json_document=validate_json_document,
-        validate_profile=validate_profile,
-        source_validators={
-            "presentation-source-v1": _admit_presentation_source,
-            "presentation-semantic-svg-source-v1": _admit_semantic_svg_source,
-        },
-        file_fact=file_fact,
-        sha256_file=sha256_file,
+    return DirectPythonOperationProvider().validate_delivery_request(
+        request_path, request_schema_path, profile_schema_path
     )
-    return admit_delivery_request(
-        request_path,
-        request_schema_path=request_schema_path,
-        profile_schema_path=profile_schema_path,
-        hooks=hooks,
-    )
+
 
 
 
 def compile_delivery_plan(request_path: Path) -> dict[str, Any]:
-    validation = validate_delivery_request(request_path)
-    return compile_delivery_plan_from_validation(
-        request_path,
-        validation,
-        registry=BUILD_BINDING_REGISTRY,
-        sha256_file=sha256_file,
-    )
+    return DirectPythonOperationProvider().compile_delivery_plan(request_path)
 
 
 
-def _primary_suffix(profile: dict[str, Any]) -> str:
-    suffixes = {
-        "pptx": ".pptx",
-        "docx": ".docx",
-        "xlsx": ".xlsx",
-        "html": ".html",
-        "pdf": ".pdf",
-        "pdf-a-4": ".pdf",
-        "pdf-ua-2": ".pdf",
-    }
-    fmt = str(profile.get("primaryOutput", {}).get("format", ""))
-    suffix = suffixes.get(fmt)
-    if suffix is None:
-        raise RuntimeError(f"unsupported primary output format: {fmt}")
-    return suffix
 
 
-def _request_output_name(request_id: str, suffix: str) -> str:
-    stem = re.sub(r"[^A-Za-z0-9._-]+", "-", request_id).strip("-._") or "artifact"
-    return stem + suffix
 
 
-def execute_build_stage(request_path: Path, output_directory: Path | None = None) -> dict[str, Any]:
-    plan = compile_delivery_plan(request_path)
-    if plan.get("status") != "PASS":
-        return {
-            "schemaVersion": 1,
-            "kind": "artifact-delivery-build-stage",
-            "status": "FAIL",
-            "plan": plan,
-            "failures": ["derived delivery plan did not PASS"],
-        }
-    validation = validate_delivery_request(request_path)
-    request = validation["request"]
-    profile = validation["profileValidation"]["profile"]
-    source_path = Path(validation["resolved"]["source"]["path"])
-    profile_path = Path(validation["resolved"]["profile"]["path"])
-    if output_directory is None:
-        output_directory = _resolve_request_path(request_path, str(request["outputDirectory"]))
-    output_directory.mkdir(parents=True, exist_ok=True)
-    suffix = _primary_suffix(profile)
-    output_path = output_directory / _request_output_name(str(request["requestId"]), suffix)
-    adapter = plan["buildAdapter"]
-    pandoc = _selected_external_file("ARTIFACT_PANDOC", GLOBAL_PANDOC, ROOT / ".cache/artifact-toolchain/pandoc/current/bin/pandoc")
-    adapter_result = execute_build_adapter(
-        adapter,
-        source_path=source_path,
-        profile_path=profile_path,
-        output_path=output_path,
-        presentation_builders={
-            "python-pptx-presentation-source-v1": build_presentation_source,
-            "ppt-master-semantic-svg-v1": build_semantic_svg_presentation_source,
-        },
-        pandoc=pandoc,
-    )
-    failures: list[str] = []
-    if adapter_result.get("status") != "PASS":
-        failures.append(f"build adapter did not PASS: {adapter}")
-    if not output_path.is_file():
-        failures.append("primary output file is absent")
-    return {
-        "schemaVersion": 1,
-        "kind": "artifact-delivery-build-stage",
-        "status": "PASS" if not failures else "FAIL",
-        "request": file_fact(request_path),
-        "plan": plan,
-        "adapterResult": adapter_result,
-        "artifact": file_fact(output_path) if output_path.is_file() else None,
-        "failures": failures,
-        "boundary": "Build-stage PASS means exact request/profile/source bytes produced the primary artifact through the selected adapter. Independent verification, target rendering, packaging, provenance and release gates are not implied.",
-    }
+
+def execute_build_stage(
+    request_path: Path, output_directory: Path | None = None,
+) -> dict[str, Any]:
+    return DirectPythonOperationProvider().execute_build_stage(request_path, output_directory)
+
 
 
 
@@ -383,10 +274,10 @@ def verify_document_dependencies(
     pandoc_archive: Path | None = None, toolchain_lock: Path | None = None,
     openxml_validator: Path | None = None,
 ) -> dict[str, Any]:
-    return document_verify_dependencies(
-        request_path, document, pandoc, pandoc_archive, toolchain_lock,
-        openxml_validator, hooks=_document_dependency_hooks(),
+    return DirectPythonOperationProvider().verify_document_dependencies(
+        request_path, document, pandoc, pandoc_archive, toolchain_lock, openxml_validator
     )
+
 
 
 
@@ -408,328 +299,42 @@ def verify_document_dependencies(
 
 
 def build_presentation_source(
-    source_path: Path,
-    profile_path: Path,
-    output_path: Path,
-    source_schema_path: Path = DEFAULT_PRESENTATION_SOURCE_SCHEMA,
+    source_path: Path, profile_path: Path, output_path: Path,
 ) -> dict[str, Any]:
-    return presentation_build_source(
-        source_path, profile_path, output_path, source_schema_path, hooks=_presentation_build_hooks()
+    return DirectPythonOperationProvider().build_presentation_source(
+        source_path, profile_path, output_path
     )
 
 
 
 
 
-def _normalized_posix_relative(value: str, field: str) -> PurePosixPath:
-    if not isinstance(value, str) or not value or "\\" in value:
-        raise RuntimeError(f"{field} must be one normalized POSIX relative path")
-    path = PurePosixPath(value)
-    if path.is_absolute() or ".." in path.parts or str(path) != value or value in {".", ""}:
-        raise RuntimeError(f"{field} must be one normalized POSIX relative path")
-    return path
 
 
-def _normalized_sha256(value: Any, field: str) -> str:
-    if not isinstance(value, str):
-        raise RuntimeError(f"{field} must be sha256:<64-hex>")
-    lowered = value.lower()
-    if not re.fullmatch(r"sha256:[0-9a-f]{64}", lowered):
-        raise RuntimeError(f"{field} must be sha256:<64-hex>")
-    return lowered
 
 
-def project_opc_members(package_path: Path, manifest_path: Path, output_root: Path) -> dict[str, Any]:
-    validation = validate_json_document(
-        manifest_path,
-        DEFAULT_OPC_MEMBER_PROJECTION_SCHEMA,
-        "artifact-delivery-opc-member-projection",
-    )
-    if validation.get("status") != "PASS":
-        return {
-            "status": "FAIL",
-            "package": file_fact(package_path) if package_path.is_file() else {"path": str(package_path)},
-            "manifest": file_fact(manifest_path),
-            "failures": ["OPC member projection manifest schema did not PASS"],
-            "validation": validation,
-        }
-    manifest = validation["document"]
-    if package_path.is_symlink():
-        raise RuntimeError("OPC parent package must be one regular non-symlink file")
-    package = package_path.resolve()
-    if not package.is_file():
-        raise RuntimeError("OPC parent package must be one regular non-symlink file")
-    parent_digest = "sha256:" + sha256_file(package)
-    expected_parent = _normalized_sha256(manifest["parentPackage"]["sha256"], "parentPackage.sha256")
-    if parent_digest != expected_parent:
-        raise RuntimeError(f"OPC parent package digest mismatch: expected {expected_parent}, observed {parent_digest}")
-    expected_parent_size = int(manifest["parentPackage"]["expectedSizeBytes"])
-    if package.stat().st_size != expected_parent_size:
-        raise RuntimeError(
-            f"OPC parent package size mismatch: expected {expected_parent_size}, observed {package.stat().st_size}"
-        )
-    if not zipfile.is_zipfile(package):
-        raise RuntimeError("OPC parent package is not a ZIP/OPC package")
 
-    if output_root.exists() and output_root.is_symlink():
-        raise RuntimeError("OPC projection output root must be a real directory")
-    root = output_root.resolve()
-    root.mkdir(parents=True, exist_ok=True)
-    if not root.is_dir():
-        raise RuntimeError("OPC projection output root must be a real directory")
+def project_opc_members(
+    package_path: Path, manifest_path: Path, output_root: Path,
+) -> dict[str, Any]:
+    return presentation_project_opc_members(package_path, manifest_path, output_root)
 
-    projected: list[dict[str, Any]] = []
-    replayed = 0
-    declared_parts: set[str] = set()
-    declared_outputs: set[str] = set()
-    with zipfile.ZipFile(package) as archive:
-        all_infos = archive.infolist()
-        unsafe = _safe_zip_names(info.filename for info in all_infos)
-        if unsafe:
-            raise RuntimeError(f"OPC package contains unsafe member paths: {unsafe[:5]}")
-        by_name: dict[str, list[zipfile.ZipInfo]] = {}
-        for info in all_infos:
-            by_name.setdefault(info.filename, []).append(info)
-
-        for index, raw in enumerate(manifest["members"]):
-            part = str(_normalized_posix_relative(raw["part"], f"members[{index}].part"))
-            output_relative = _normalized_posix_relative(
-                raw["outputRelativePath"], f"members[{index}].outputRelativePath"
-            )
-            expected_digest = _normalized_sha256(raw["sha256"], f"members[{index}].sha256")
-            expected_size = int(raw["expectedSizeBytes"])
-            if part in declared_parts:
-                raise RuntimeError(f"OPC projection manifest duplicates part: {part}")
-            if str(output_relative) in declared_outputs:
-                raise RuntimeError(f"OPC projection manifest duplicates outputRelativePath: {output_relative}")
-            declared_parts.add(part)
-            declared_outputs.add(str(output_relative))
-            matches = by_name.get(part, [])
-            if len(matches) != 1:
-                raise RuntimeError(f"OPC projected part must occur exactly once: {part} count={len(matches)}")
-            info = matches[0]
-            if info.is_dir():
-                raise RuntimeError(f"OPC projected part is a directory: {part}")
-            if info.flag_bits & 0x1:
-                raise RuntimeError(f"OPC projected part is encrypted and not admitted: {part}")
-            if info.file_size != expected_size:
-                raise RuntimeError(
-                    f"OPC projected part size mismatch for {part}: expected {expected_size}, observed {info.file_size}"
-                )
-            data = archive.read(info)
-            observed_digest = "sha256:" + hashlib.sha256(data).hexdigest()
-            if observed_digest != expected_digest:
-                raise RuntimeError(
-                    f"OPC projected part digest mismatch for {part}: expected {expected_digest}, observed {observed_digest}"
-                )
-
-            target = root.joinpath(*output_relative.parts)
-            target_parent = target.parent
-            target_parent.mkdir(parents=True, exist_ok=True)
-            cursor = root
-            for component in output_relative.parts[:-1]:
-                cursor = cursor / component
-                if cursor.is_symlink():
-                    raise RuntimeError(f"OPC projection output parent is a symlink: {cursor}")
-            if target.exists() or target.is_symlink():
-                if target.is_symlink() or not target.is_file():
-                    raise RuntimeError(f"OPC projection target is not a regular file: {target}")
-                existing_digest = "sha256:" + sha256_file(target)
-                if target.stat().st_size != expected_size or existing_digest != expected_digest:
-                    raise RuntimeError(f"OPC projection refuses to overwrite conflicting target: {target}")
-                replayed += 1
-            else:
-                temporary = target.with_name(f".{target.name}.{os.getpid()}.part")
-                if temporary.exists() or temporary.is_symlink():
-                    temporary.unlink()
-                try:
-                    with temporary.open("xb") as handle:
-                        handle.write(data)
-                        handle.flush()
-                        os.fsync(handle.fileno())
-                    if temporary.stat().st_size != expected_size or "sha256:" + sha256_file(temporary) != expected_digest:
-                        raise RuntimeError(f"OPC projected temporary bytes changed before commit: {part}")
-                    os.replace(temporary, target)
-                finally:
-                    if temporary.exists():
-                        temporary.unlink()
-            projected.append({
-                "part": part,
-                "outputRelativePath": str(output_relative),
-                "expectedSizeBytes": expected_size,
-                "sha256": expected_digest,
-                "output": file_fact(target),
-            })
-    return {
-        "status": "PASS",
-        "kind": "artifact-delivery-opc-member-projection-receipt",
-        "truthRole": "exact-package-part-byte-projection-only-not-domain-or-visual-acceptance",
-        "package": file_fact(package),
-        "manifest": file_fact(manifest_path),
-        "projectionId": manifest["projectionId"],
-        "outputRoot": str(root),
-        "members": projected,
-        "replayedMemberCount": replayed,
-        "nonClaims": [
-            "no provider/source identity beyond the parent package binding",
-            "no visual parity claim",
-            "no accessibility claim",
-            "no business-content validation claim",
-        ],
-    }
 
 
 def compose_reference_hybrid_source(
-    semantic_source_path: Path,
-    reference_map_path: Path,
-    visual_root: Path,
-    output_path: Path,
+    semantic_source_path: Path, reference_map_path: Path,
+    visual_root: Path, output_path: Path,
 ) -> dict[str, Any]:
-    semantic_validation = validate_json_document(
-        semantic_source_path,
-        DEFAULT_PRESENTATION_SOURCE_SCHEMA,
-        "presentation-source",
+    return presentation_compose_reference_hybrid_source(
+        semantic_source_path, reference_map_path, visual_root, output_path
     )
-    reference_validation = validate_json_document(
-        reference_map_path,
-        DEFAULT_PRESENTATION_SOURCE_SCHEMA,
-        "presentation-source",
-    )
-    if semantic_validation.get("status") != "PASS" or reference_validation.get("status") != "PASS":
-        return {
-            "status": "FAIL",
-            "failures": ["semantic source and reference map must both pass the presentation-source schema"],
-            "semanticValidation": semantic_validation,
-            "referenceValidation": reference_validation,
-        }
-    semantic = json.loads(json.dumps(semantic_validation["document"]))
-    reference = reference_validation["document"]
-    failures: list[str] = []
-    for field in ("profileId", "aspectRatio", "slideSizeInches"):
-        if semantic.get(field) != reference.get(field):
-            failures.append(f"semantic/reference {field} mismatch")
-    semantic_slides = semantic.get("slides", [])
-    reference_slides = reference.get("slides", [])
-    if len(semantic_slides) != len(reference_slides):
-        failures.append("semantic/reference slide count mismatch")
-    root = visual_root.resolve()
-    width = float(semantic.get("slideSizeInches", {}).get("width", 0))
-    height = float(semantic.get("slideSizeInches", {}).get("height", 0))
-    for index, (slide, ref_slide) in enumerate(zip(semantic_slides, reference_slides), 1):
-        if slide.get("id") != ref_slide.get("id"):
-            failures.append(f"slide identity mismatch at index {index}")
-            continue
-        legacy = ref_slide.get("legacySource")
-        if not isinstance(legacy, dict) or int(legacy.get("slideIndex", -1)) != index:
-            failures.append(f"reference map lacks exact legacySource binding for slide {index}")
-            continue
-        digest = _normalized_sha256("sha256:" + str(legacy.get("sha256", "")), f"slides[{index-1}].legacySource.sha256")
-        visual = root / f"slide-{index:02d}.jpeg"
-        if not visual.is_file() or visual.is_symlink():
-            failures.append(f"projected visual is absent/non-regular for slide {index}: {visual}")
-            continue
-        observed = "sha256:" + sha256_file(visual)
-        if observed != digest:
-            failures.append(f"projected visual digest mismatch for slide {index}: expected {digest}, observed {observed}")
-            continue
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_parent = output_path.resolve().parent
-        relative_visual = os.path.relpath(visual, output_parent).replace(os.sep, "/")
-        image = {
-            "kind": "image",
-            "id": "frozen-visual-authority",
-            "path": relative_visual,
-            "sha256": digest.removeprefix("sha256:"),
-            "box": {"x": 0.0, "y": 0.0, "w": width, "h": height},
-            "decorative": False,
-            "altText": (
-                f"Frozen visual authority for slide {index}; native semantic overlays remain independently editable, "
-                "and accessibility/use review is still required."
-            ),
-        }
-        elements = slide.get("elements")
-        if not isinstance(elements, list):
-            failures.append(f"semantic slide elements are invalid for slide {index}")
-            continue
-        if any(element.get("id") == image["id"] for element in elements if isinstance(element, dict)):
-            failures.append(f"semantic slide already contains reserved hybrid element id on slide {index}")
-            continue
-        slide["elements"] = [image, *elements]
-    if failures:
-        return {
-            "status": "FAIL",
-            "semanticSource": file_fact(semantic_source_path),
-            "referenceMap": file_fact(reference_map_path),
-            "failures": failures,
-        }
-    semantic["presentationId"] = str(semantic.get("presentationId", "presentation")) + "-hybrid"
-    note = str(semantic.get("notes") or "").strip()
-    boundary = (
-        "Hybrid source mechanically composes frozen raster visual authority beneath native semantic overlays. "
-        "Decorative raster standing is composition-only; accessibility, visual parity, target-render and business-content acceptance remain independent gates."
-    )
-    semantic["notes"] = (note + " " + boundary).strip()
-    write_json(output_path, semantic)
-    validation = validate_json_document(output_path, DEFAULT_PRESENTATION_SOURCE_SCHEMA, "presentation-source")
-    if validation.get("status") != "PASS":
-        return {
-            "status": "FAIL",
-            "semanticSource": file_fact(semantic_source_path),
-            "referenceMap": file_fact(reference_map_path),
-            "hybridSource": file_fact(output_path),
-            "failures": ["composed hybrid source failed presentation-source schema"],
-            "validation": validation,
-        }
-    return {
-        "status": "PASS",
-        "kind": "artifact-delivery-reference-hybrid-source-receipt",
-        "truthRole": "frozen-raster-plus-native-semantic-composition-only-not-acceptance",
-        "semanticSource": file_fact(semantic_source_path),
-        "referenceMap": file_fact(reference_map_path),
-        "hybridSource": file_fact(output_path),
-        "visualRoot": str(root),
-        "slideCount": len(semantic_slides),
-        "nonClaims": [
-            "no accessibility claim",
-            "no visual parity claim",
-            "no Microsoft PowerPoint target claim",
-            "no business-content validation claim",
-        ],
-    }
 
 
-def _safe_zip_names(names: Iterable[str]) -> list[str]:
-    bad: list[str] = []
-    for name in names:
-        p = PurePosixPath(name)
-        if p.is_absolute() or ".." in p.parts:
-            bad.append(name)
-    return bad
 
 
-def _relationship_base(rels_name: str) -> str:
-    if rels_name == "_rels/.rels":
-        return ""
-    marker = "/_rels/"
-    if marker not in rels_name or not rels_name.endswith(".rels"):
-        return ""
-    left, right = rels_name.split(marker, 1)
-    owner = posixpath.join(left, right[:-5])
-    return posixpath.dirname(owner)
 
 
-def _resolve_relationship_target(base: str, target: str) -> str | None:
-    target = target.split("#", 1)[0]
-    parsed = urllib.parse.urlparse(target)
-    if parsed.scheme:
-        return None
-    if target.startswith("/"):
-        resolved = posixpath.normpath(target.lstrip("/"))
-    else:
-        resolved = posixpath.normpath(posixpath.join(base, target))
-    if resolved.startswith("../") or resolved == "..":
-        return None
-    return resolved
+
 
 
 def inspect_pptx(path: Path, placeholder_patterns: Iterable[str] = ()) -> dict[str, Any]:
@@ -841,51 +446,20 @@ def verify_signed_verification_summary(
 _write_raw_and_vsa = write_gate_receipt
 
 
-def _document_dependency_hooks() -> DocumentDependencyHooks:
-    return DocumentDependencyHooks(
-        validate_delivery_request=validate_delivery_request,
-        compile_delivery_plan=compile_delivery_plan,
-    )
 
 
-def _document_dependency_stage_verifier(
-    request_path: Path, document: Path,
-) -> dict[str, Any]:
-    return document_verify_dependencies(
-        request_path, document, hooks=_document_dependency_hooks()
-    )
 
 
-def _verification_stage_hooks() -> VerificationStageHooks:
-    return VerificationStageHooks(
-        validate_profile=validate_profile,
-        primary_suffix=_primary_suffix,
-        verify_openxml_artifact=openxml_verify_artifact,
-        validate_delivery_request=validate_delivery_request,
-        verify_document_semantic_correspondence=document_verify_semantics,
-        verify_document_dependencies=_document_dependency_stage_verifier,
-        inspect_pptx=presentation_inspect_pptx,
-        verify_presentation_semantics=presentation_verify_semantics,
-        verify_pdf=pdf_verify_structural,
-        verify_pdf_conformance=pdf_verify_conformance,
-        verify_html_conformance=web_verify_conformance,
-        verify_web_local=web_verify_local,
-    )
 
 
 def execute_verify_stage(
-    profile_path: Path,
-    artifact: Path,
-    output_dir: Path,
+    profile_path: Path, artifact: Path, output_dir: Path,
     request_path: Path | None = None,
 ) -> dict[str, Any]:
-    return verification_execute_stage(
-        profile_path,
-        artifact,
-        output_dir,
-        request_path,
-        hooks=_verification_stage_hooks(),
+    return DirectPythonOperationProvider().execute_verify_stage(
+        profile_path, artifact, output_dir, request_path
     )
+
 
 
 
@@ -911,12 +485,8 @@ def aggregate_vsa_gates(
 
 
 def snapshot_materials(paths: Iterable[Path]) -> dict[str, Any]:
-    materials = [file_fact(path) for path in paths]
-    return {
-        "capturedAt": utc_now(),
-        "materials": materials,
-        "note": "Operational immutable-input snapshot. Durable build provenance should be emitted as an in-toto Statement/SLSA Provenance predicate.",
-    }
+    return evidence_snapshot_materials(paths)
+
 
 
 

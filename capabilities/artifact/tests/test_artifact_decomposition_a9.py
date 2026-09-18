@@ -42,8 +42,13 @@ class ArtifactOpenXmlVerifierDecompositionA9Tests(unittest.TestCase):
         self.assertTrue(callable(verify_openxml_artifact))
 
     def test_verify_stage_wires_directly_to_openxml_verifier(self):
-        source = DELIVERY.read_text(encoding="utf-8")
-        self.assertIn("verify_openxml_artifact=openxml_verify_artifact", source)
+        source = (
+            ROOT / "artifact_operations/providers/direct_python.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "verify_openxml_artifact=verify_openxml_artifact",
+            source,
+        )
 
     def test_document_dependency_reuses_openxml_toolchain_owner(self):
         document_toolchain = (
