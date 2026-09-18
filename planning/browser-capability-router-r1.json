@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.browser-domain-lego-plan",
+  "truthRole": "planning-projection-not-runtime-truth",
+  "purpose": "Select one exact ready browser-domain route from explicit caller requirements without moving provider authorization, browser effects, Harness Run truth, or Runtime execution truth into the router.",
+  "nodes": [
+    {
+      "id": "BCR01",
+      "label": "RequirementInput",
+      "kind": "caller_contract",
+      "state": "IMPLEMENTED",
+      "owns": ["providerFlow", "requiredFeatures", "preferredFeatures", "explicitRouteId"],
+      "mustNotOwn": ["natural-language intent inference", "provider authorization"]
+    },
+    {
+      "id": "BCR02",
+      "label": "RoutePolicy",
+      "kind": "replaceable_data_policy",
+      "state": "IMPLEMENTED",
+      "evidence": ["config/browser-capability-routes.json"],
+      "mustNotOwn": ["global capability registry", "Harness Run authority"]
+    },
+    {
+      "id": "BCR03",
+      "label": "ReadinessProjection",
+      "kind": "observation",
+      "state": "IMPLEMENTED",
+      "dependencies": ["Workstation Jev status", "Browserless health", "Agent Automation doctor", "systemd mask state"],
+      "mustNotOwn": ["browser effects", "operator policy mutation"]
+    },
+    {
+      "id": "BCR04",
+      "label": "DeterministicRoutePlan",
+      "kind": "decision_router",
+      "state": "IMPLEMENTED",
+      "mustNotOwn": ["semantic success", "Runtime execution truth"]
+    },
+    {
+      "id": "BCR05",
+      "label": "ExecutorDispatch",
+      "kind": "effect_boundary",
+      "state": "NOT_IMPLEMENTED",
+      "mustNotOwn": ["effect fencing already owned by selected adapter"]
+    }
+  ],
+  "edges": [
+    {"from": "BCR01", "to": "BCR04", "type": "DATA"},
+    {"from": "BCR02", "to": "BCR04", "type": "POLICY"},
+    {"from": "BCR03", "to": "BCR04", "type": "READINESS"},
+    {"from": "BCR04", "to": "BCR05", "type": "SELECTED_ROUTE"}
+  ],
+  "currentRoutes": [
+    "jev-fast-windows-v1",
+    "browser-use-browserless-v1",
+    "chatgpt-agent-automation-browserless-v1",
+    "visual-browser-v1"
+  ],
+  "currentStanding": {
+    "jev-fast-windows-v1": "CREDENTIAL_MISSING",
+    "browser-use-browserless-v1": "POLICY_DISABLED",
+    "chatgpt-agent-automation-browserless-v1": "READY",
+    "visual-browser-v1": "NOT_MATERIALIZED"
+  },
+  "nextSlice": {
+    "id": "BCR-S2",
+    "objective": "Prepare a provider-neutral benchmark contract and execution receipt schema without faking unavailable Jev or overriding operator-disabled Browser Use.",
+    "status": "READY"
+  }
+}

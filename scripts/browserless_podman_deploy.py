@@ -361,13 +361,34 @@ def render_config(binding: dict | None = None) -> dict:
     }
 
 
-def render_browser_use_config(binding: dict | None = None) -> dict:
+def resolve_browser_use_executable() -> str:
+    """Resolve the installed Browser Use CLI without assuming the uv shim still exists."""
+    candidates = []
+    on_path = shutil.which("browser-use")
+    if on_path:
+        candidates.append(Path(on_path))
+    candidates.append(Path.home() / ".local/share/uv/tools/browser-use/bin/browser-use")
+    seen = set()
+    for candidate in candidates:
+        resolved = candidate.resolve()
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        if resolved.is_file() and os.access(resolved, os.X_OK):
+            return str(resolved)
+    raise RuntimeError("Browser Use executable is not materialized")
+
+
+def render_browser_use_config(
+    binding: dict | None = None, *, browser_use_executable: str | None = None
+) -> dict:
     """Render the isolated Browser Use Browserless pool.
 
     This pool is deliberately separate from Agent Automation's ChatGPT carriers: generic web
     tasks must not consume authenticated ChatGPT profiles or Birth capacity.
     """
     binding = binding or resolve_network_binding()
+    executable = browser_use_executable or resolve_browser_use_executable()
     network_namespace = binding["namespace"]
     endpoints = []
     for instance in BROWSER_AGENT_INSTANCES:
@@ -381,12 +402,13 @@ def render_browser_use_config(binding: dict | None = None) -> dict:
                 "operatorHttpEndpoint": f"http://127.0.0.1:131{instance}",
                 "userDataDir": "/data",
                 "headless": False,
+                "serviceUnit": f"ordivon-browserless@{instance}.service",
             }
         )
     return {
         "schemaVersion": 1,
         "kind": "ordivon.browser-use-browserless-pool",
-        "browserUseExecutable": "/root/.local/bin/browser-use",
+        "browserUseExecutable": executable,
         "browserUseSkill": "/root/.agents/skills/browser-use/SKILL.md",
         "browserNetworkAuthority": {
             k: binding[k] for k in ("kind", "name", "generationDigest", "serviceUnit")
