@@ -134,6 +134,34 @@
         "Each admitted core repository has a structurally valid project-native plan or an explicit deferred rollout reason."
       ],
       "nextAction": "Adopt Workstation only after its current dirty worktree is clean and revalidated."
+    },
+    {
+      "id": "N06",
+      "label": "LegoQuestionCompiler",
+      "kind": "analysis_lens",
+      "responsibility": "Compile vague or overloaded problems into a bounded set of evidence-bound, decision-relevant questions before or between deeper analysis and planning.",
+      "authority": "ordivon-next analysis method",
+      "state": "VERIFIED",
+      "sharedRefs": [],
+      "evidence": [
+        "docs/LEGO_QUESTION_COMPILER_R1.md",
+        ".agents/skills/lego-question-compiler/SKILL.md",
+        "knowledge/lessons/poker-ai-lego-question-compiler-pilot-r1.md",
+        "evidence/acceptance/lego-question-compiler-r1.json"
+      ],
+      "dependencies": [],
+      "replacementContract": "The compiler may be replaced or refined without changing project/domain truth; downstream planning consumes only evidence-supported decisions.",
+      "mustNotOwn": [
+        "project-native truth",
+        "domain science",
+        "work priority",
+        "execution admission",
+        "universal question ontology"
+      ],
+      "acceptance": [
+        "R1 keeps primary questions bounded, requires pruning and evidence/experiment handoff, adds no common Question schema, and passes repository regression."
+      ],
+      "nextAction": "Prospectively test on at least two non-poker Ordivon domains before promoting any new shared LEGO concept."
     }
   ],
   "edges": [
@@ -154,6 +182,12 @@
       "to": "N05",
       "type": "CONTROL",
       "label": "planning adoption contract"
+    },
+    {
+      "from": "N06",
+      "to": "N04",
+      "type": "CONTROL",
+      "label": "question framing hands sufficiently resolved work into evidence-bound LEGO planning"
     }
   ],
   "slices": [
@@ -189,11 +223,27 @@
       "blockers": [
         "ordivon-workstation-v2 was intentionally deferred because its main worktree was dirty at R1 rollout time."
       ]
+    },
+    {
+      "id": "S03",
+      "objective": "Add and verify LEGO Question Compiler R1 without expanding the common LEGO schema.",
+      "status": "COMPLETE",
+      "nodeIds": [
+        "N06"
+      ],
+      "acceptance": [
+        "Compiler Skill, method contract, and poker pilot exist; dedicated tests and full repository regression pass; no Question schema is introduced."
+      ],
+      "evidence": [
+        "evidence/acceptance/lego-question-compiler-r1.json"
+      ],
+      "blockers": []
     }
   ],
   "gaps": [
     "Cross-repository plan visualization is not implemented and is not required for R1.",
-    "No global priority scheduler is implied by project slices."
+    "No global priority scheduler is implied by project slices.",
+    "Cross-domain outcome improvement from LEGO Question Compiler is not yet established; R1 has one recorded poker pilot."
   ],
   "doNotOwn": [
     "project-native truth",
@@ -203,9 +253,9 @@
     "a universal workflow engine"
   ],
   "review": {
-    "sourceRevision": "b937120e0b7ea6345d3696c5a9c2b3dbc50e455a",
+    "sourceRevision": "463ff68f2787c5a7bac3ff44ee7b590d9c6251d3",
     "updatedAt": "2026-09-18",
     "standing": "STABLE",
-    "notes": "R1 contract verified; 12 clean owner repositories adopted project-native plans. Workstation is explicitly deferred because its main worktree was dirty."
+    "notes": "LEGO Project Planning R1 remains stable. Question Compiler R1 is a verified experimental analysis lens with one poker pilot; cross-domain outcome improvement remains unproven."
   }
 }
