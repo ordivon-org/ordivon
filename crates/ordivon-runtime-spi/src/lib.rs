@@ -117,10 +117,17 @@ impl CapabilityDescriptor {
 pub struct ProviderDescriptor {
     pub schema_version: u32,
     pub provider_id: FabricId,
+    /// Node on which the Provider itself executes.
     pub node_id: FabricId,
     pub platform: FabricPlatform,
     #[serde(default)]
     pub capabilities: Vec<FabricId>,
+    /// Additional resource-home nodes this Provider can explicitly control/observe.
+    ///
+    /// Empty means local-node-only. The Provider's own node is always reachable.
+    /// This separates resource ownership/locality from actuator execution locality.
+    #[serde(default)]
+    pub target_node_ids: Vec<FabricId>,
 }
 
 impl ProviderDescriptor {
@@ -129,7 +136,12 @@ impl ProviderDescriptor {
         if self.capabilities.is_empty() {
             return Err(FabricContractError::EmptySet("capabilities"));
         }
-        require_unique_ids("capabilities", &self.capabilities)
+        require_unique_ids("capabilities", &self.capabilities)?;
+        require_unique_ids("targetNodeIds", &self.target_node_ids)
+    }
+
+    pub fn can_target_node(&self, target_node_id: &FabricId) -> bool {
+        &self.node_id == target_node_id || self.target_node_ids.contains(target_node_id)
     }
 }
 
@@ -891,6 +903,16 @@ pub fn resolve_workflow_bindings(
                 "provider is not advertised by its node",
             ));
         }
+        for target_node_id in &provider.target_node_ids {
+            if !nodes
+                .iter()
+                .any(|candidate| &candidate.node_id == target_node_id)
+            {
+                return Err(FabricContractError::InvalidWorkflowBinding(
+                    "provider targets unknown resource node",
+                ));
+            }
+        }
     }
 
     let mut bindings = Vec::with_capacity(plan.steps.len());
@@ -924,7 +946,7 @@ pub fn resolve_workflow_bindings(
                     && resource
                         .node_id
                         .as_ref()
-                        .is_none_or(|node_id| &provider.node_id == node_id)
+                        .is_none_or(|node_id| provider.can_target_node(node_id))
                     && step
                         .preferred_provider_id
                         .as_ref()
@@ -1150,6 +1172,7 @@ mod tests {
             node_id: id("runtime/windows-main"),
             platform: FabricPlatform::Windows,
             capabilities: vec![],
+            target_node_ids: Vec::new(),
         };
         assert_eq!(
             provider.validate(),
@@ -1690,6 +1713,7 @@ mod tests {
             node_id: id("runtime/test-node"),
             platform: FabricPlatform::Linux,
             capabilities: vec![id("capability/test/do")],
+            target_node_ids: Vec::new(),
         }
     }
 
@@ -1802,6 +1826,7 @@ mod tests {
                 node_id: id("runtime/test-node"),
                 platform: FabricPlatform::Linux,
                 capabilities: vec![id("capability/test/other")],
+                target_node_ids: Vec::new(),
             }],
         )
         .unwrap();
@@ -1809,6 +1834,128 @@ mod tests {
             missing_capability.bindings[0].reason_code,
             id("reason/no-capable-provider")
         );
+    }
+
+    #[test]
+    fn workflow_binding_allows_explicit_cross_node_provider_reachability() {
+        let plan = binding_fixture_plan(None);
+        let resource = binding_fixture_resource(Some("runtime/target-node"));
+        let provider = ProviderDescriptor {
+            schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+            provider_id: id("provider/control-node/remote"),
+            node_id: id("runtime/control-node"),
+            platform: FabricPlatform::Windows,
+            capabilities: vec![id("capability/test/do")],
+            target_node_ids: vec![id("runtime/target-node")],
+        };
+        let control_node = NodeDescriptor {
+            schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+            node_id: id("runtime/control-node"),
+            platform: FabricPlatform::Windows,
+            native_control_plane: true,
+            trust_domain: id("ordivon.local"),
+            providers: vec![id("provider/control-node/remote")],
+            capabilities: vec![id("capability/test/do")],
+            authority_contexts: vec![id("windows/system")],
+        };
+        let target_node = NodeDescriptor {
+            schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+            node_id: id("runtime/target-node"),
+            platform: FabricPlatform::Linux,
+            native_control_plane: true,
+            trust_domain: id("ordivon.local"),
+            providers: Vec::new(),
+            capabilities: Vec::new(),
+            authority_contexts: vec![id("linux/root")],
+        };
+
+        let binding = resolve_workflow_bindings(
+            &plan,
+            &[resource],
+            &[control_node, target_node],
+            &[provider],
+        )
+        .unwrap();
+        assert!(binding.fully_resolved);
+        assert_eq!(
+            binding.bindings[0].selected_node_id,
+            Some(id("runtime/control-node"))
+        );
+        assert_eq!(
+            binding.bindings[0].selected_provider_id,
+            Some(id("provider/control-node/remote"))
+        );
+    }
+
+    #[test]
+    fn workflow_binding_does_not_cross_nodes_without_explicit_reachability() {
+        let plan = binding_fixture_plan(None);
+        let resource = binding_fixture_resource(Some("runtime/target-node"));
+        let provider = ProviderDescriptor {
+            schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+            provider_id: id("provider/control-node/local-only"),
+            node_id: id("runtime/control-node"),
+            platform: FabricPlatform::Windows,
+            capabilities: vec![id("capability/test/do")],
+            target_node_ids: Vec::new(),
+        };
+        let control_node = NodeDescriptor {
+            schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+            node_id: id("runtime/control-node"),
+            platform: FabricPlatform::Windows,
+            native_control_plane: true,
+            trust_domain: id("ordivon.local"),
+            providers: vec![id("provider/control-node/local-only")],
+            capabilities: vec![id("capability/test/do")],
+            authority_contexts: vec![id("windows/system")],
+        };
+        let target_node = NodeDescriptor {
+            schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+            node_id: id("runtime/target-node"),
+            platform: FabricPlatform::Linux,
+            native_control_plane: true,
+            trust_domain: id("ordivon.local"),
+            providers: Vec::new(),
+            capabilities: Vec::new(),
+            authority_contexts: vec![id("linux/root")],
+        };
+
+        let binding = resolve_workflow_bindings(
+            &plan,
+            &[resource],
+            &[control_node, target_node],
+            &[provider],
+        )
+        .unwrap();
+        assert!(!binding.fully_resolved);
+        assert_eq!(
+            binding.bindings[0].disposition,
+            WorkflowBindingDisposition::Unresolved
+        );
+    }
+
+    #[test]
+    fn workflow_binding_rejects_unknown_cross_node_target() {
+        let plan = binding_fixture_plan(None);
+        let provider = ProviderDescriptor {
+            schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+            provider_id: id("provider/test/remote"),
+            node_id: id("runtime/test-node"),
+            platform: FabricPlatform::Linux,
+            capabilities: vec![id("capability/test/do")],
+            target_node_ids: vec![id("runtime/missing-node")],
+        };
+        let error = resolve_workflow_bindings(
+            &plan,
+            &[binding_fixture_resource(Some("runtime/test-node"))],
+            &[binding_fixture_node(&["provider/test/remote"])],
+            &[provider],
+        )
+        .unwrap_err();
+        assert!(matches!(
+            error,
+            FabricContractError::InvalidWorkflowBinding(_)
+        ));
     }
 
     #[test]

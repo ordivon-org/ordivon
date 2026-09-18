@@ -225,7 +225,9 @@ EF6b dry-run binding slice (2026-09-18):
   AMBIGUOUS with no selection;
 - binding plans and step bindings are structurally unable to claim dispatchStarted=true;
 - provider catalogs fail closed if a provider references an unknown node or is not advertised
-  by that node.
+  by that node;
+- cross-node control is explicit: Provider nodeId is execution locality while targetNodeIds
+  declares additional resource-home nodes reachable by that Provider; empty remains local-only.
 
 ## EF7 — Dual native nodes
 

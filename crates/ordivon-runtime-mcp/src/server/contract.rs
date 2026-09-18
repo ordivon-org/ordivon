@@ -210,6 +210,7 @@ impl ExecutionFabricObservation {
                     node_id: node_id.clone(),
                     platform,
                     capabilities: vec![capability_id],
+                    target_node_ids: Vec::new(),
                 });
                 node_providers.push(provider_id.clone());
                 Some(provider_id)
