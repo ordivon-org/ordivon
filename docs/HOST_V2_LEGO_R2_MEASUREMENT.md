@@ -73,7 +73,15 @@ A repository census at the R2 planning cut found no runtime consumer of `workSta
 - wake
 - carrier
 
-A cross-repository source census under `/root/projects` then found no production/runtime consumer. Remaining external hits were frozen Research/Paper1 evaluation fixtures; one Media hit was a lexical false positive. This promotes `workStanding` to a **strong deletion candidate**, but deletion still requires a destructive fixture proving no consumer-observable regression.
+A cross-repository source census under `/root/projects` found no production/runtime consumer code. Remaining external source hits were frozen Research/Paper1 evaluation fixtures; one Media hit was a lexical false positive.
+
+However, a live non-terminal Task census then found **233 of 266 open continuity records (87.6%)** are WorkingCheckpoint v2 and carry `workStanding`; only 33 are v1. This falsifies the stronger claim that the envelope is directly deletable. The correct standing is:
+
+- **Host interpretation/control semantics:** subtraction candidate;
+- **persisted v2 claim envelope:** widely present compatibility data;
+- **direct schema deletion:** blocked until migration/compatibility evidence exists.
+
+Selected live distributions: `ADMITTED_NOW=98`, `REENTRY_REQUIRED=58`, `BLOCKED=66`; `ACTIVE=105`, `WAIT=82`, `BACKGROUND=30`, `HOLD=15`; 470 related-task edges and 430 wake conditions are present in current open checkpoints.
 
 ### Currentness
 
@@ -154,16 +162,16 @@ Acceptance requires lower discovery cost without lowering exact-reentry correctn
 
 ## Experiment E03 — workStanding consumer census
 
-The in-repository pass found schema/validation only. A subsequent cross-repository source census under `/root/projects` found no production/runtime consumer; remaining hits were frozen evaluation fixtures.
+The source census found no production/runtime consumer code, but the live-data census found `workStanding` in 233/266 non-terminal checkpoints. Therefore the next experiment is **semantic contraction before schema deletion**.
 
 Next steps:
 
-1. construct a destructive removal fixture;
-2. run Host and representative downstream evaluation/consumer tests without `workStanding`;
-3. classify each field as REQUIRED / CONVENIENCE / UNUSED / UNKNOWN based on observed failures;
-4. retain a field only when a concrete consumer failure demonstrates value.
+1. construct a candidate that preserves v2 read/write/replay compatibility while removing any Host-side interpretation of standing fields;
+2. run current Host tests plus representative downstream recovery/evaluation tests;
+3. measure whether continuity outcomes change when the fields are treated purely as caller-owned payload;
+4. only if that passes, design an explicit v2→simpler-envelope migration experiment.
 
-Persistence and fixture presence alone are not consumer evidence.
+Persistence alone is not proof of semantic necessity, but high live prevalence is a real compatibility constraint.
 
 ## Experiment E04 — Currentness destroyer
 
