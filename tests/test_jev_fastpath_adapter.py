@@ -221,3 +221,10 @@ def test_provider_readiness_distinguishes_cold_daemon_from_reachable_cdp(monkeyp
     assert out["cdp"]["browser"] == "Chrome/152"
     assert "webSocketDebuggerUrl" not in json.dumps(out)
     assert out["browserSubstrateReady"] is True
+
+
+def test_request_file_accepts_windows_powershell_utf8_bom(tmp_path):
+    path = tmp_path / "request.json"
+    path.write_bytes(b"\xef\xbb\xbf" + b'{"requestId":"bom-r1","url":"https://example.test","goal":"Read"}')
+    value = M._read_request(str(path))
+    assert value["requestId"] == "bom-r1"

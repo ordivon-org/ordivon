@@ -406,7 +406,9 @@ def _read_request(path: str) -> dict[str, Any]:
 
         value = json.load(sys.stdin)
     else:
-        value = json.loads(Path(path).read_text(encoding="utf-8"))
+        # Windows PowerShell 5.1 emits a UTF-8 BOM for Set-Content -Encoding UTF8.
+        # utf-8-sig accepts both BOM and ordinary UTF-8 without weakening JSON parsing.
+        value = json.loads(Path(path).read_text(encoding="utf-8-sig"))
     if not isinstance(value, dict):
         raise ValueError("request must be a JSON object")
     return value
