@@ -78,6 +78,7 @@ impl CloudflareAccessVerifier {
     /// Runtime's local availability depend on network reachability. JWKS are
     /// loaded lazily on the first Access-authenticated request and refreshed
     /// only when a previously unknown `kid` appears.
+    #[cfg(test)]
     pub(crate) async fn verify(&self, token: &str) -> bool {
         self.verify_identity(token).await.is_some()
     }

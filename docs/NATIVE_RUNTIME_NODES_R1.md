@@ -182,6 +182,34 @@ Acceptance on the integration candidate:
 This closes the R3 compile boundary only. It does **not** claim R4 native Windows dispatch ownership,
 R5 Windows Registry/Workspace/Artifact ACL/state semantics, or R6 SCM service acceptance.
 
+## R4a progress — native binary and direct-launch compile boundary
+
+The same Runtime MCP/binary now cross-compiles for x86_64-pc-windows-msvc with warnings denied.
+The committed WindowsNative dispatch branch already distinguishes the control-plane locality by
+configuration:
+
+- wsl_distribution=None binds directly to dispatch_windows_native and the repository-owned Windows
+  Job launcher;
+- a configured WSL distribution remains the Linux/WSL-hosted transport and crosses
+  dispatch_windows_via_wsl;
+- the native spawn path rejects a WSL distribution, canonicalizes the launcher, emits launcher-start
+  evidence, and does not introduce systemd identity into the native branch.
+
+Bearer-token POSIX mode validation was also separated from shared binary compilation. Native Windows
+startup remains deliberately fail-closed until a Windows ACL validator exists; this avoids treating
+the successful cross-compile as service-readiness evidence.
+
+Acceptance:
+
+- RUSTFLAGS=-D warnings cargo xwin check -p ordivon-runtime-mcp --target
+  x86_64-pc-windows-msvc: PASS;
+- Linux Runtime MCP library: **60/60 PASS**;
+- Linux Runtime MCP binary/auth tests: **8/8 PASS**.
+
+R4a proves the native direct-launch code and complete Runtime MCP binary compile together. R4 is not
+yet live-accepted: R5 native state/ACL remains a startup prerequisite and R6 owns SCM/restart
+acceptance.
+
 ## R1 acceptance
 
 - `RuntimeCapabilities` includes node identity.
