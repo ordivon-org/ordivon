@@ -150,6 +150,27 @@ Introduce small reconcilers with explicit desired/observed state. Initial contro
 
 No mega-controller.
 
+Current EF5 provider-health preview slice (2026-09-18):
+
+- SPI defines ControllerReconcileDisposition, ProviderAvailability,
+  ProviderHealthObservation, ControllerPreview, and pure preview_provider_health;
+- controller preview explicitly separates desired state, observed state, disposition,
+  and reason code;
+- dispositions are converged, action_required, and observation_incomplete;
+- runtime.describe.executionFabric now projects one ProviderHealthController preview for
+  each configured execution target;
+- an available local-linux provider projects converged;
+- a configured but unavailable provider projects action_required;
+- incomplete provider observation projects observation_incomplete;
+- the controller preview does not execute, acquire authority, choose a provider, retry,
+  wait, mutate Runtime state, or claim semantic completion;
+- static action-surface audit: CONTROLLER_PREVIEW_NO_ACTION_SURFACE=PASS;
+- SPI tests: 11/11 PASS;
+- MCP regression: 58/58 PASS;
+- execution-fabric boundary tests: 2/2 PASS;
+- Runtime Core fast regression: 231/231 PASS with the known long-running property test filtered;
+- cargo check, cargo fmt --check, and git diff --check: PASS.
+
 ## EF6 — Workflow composition
 
 Use two existing complex flows as forcing functions:

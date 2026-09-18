@@ -119,6 +119,7 @@ pub struct ExecutionFabricObservation {
     pub resources: Vec<FabricResourceDescriptor>,
     pub capabilities: Vec<FabricCapabilityDescriptor>,
     pub providers: Vec<FabricProviderDescriptor>,
+    pub controllers: Vec<FabricControllerPreview>,
 }
 
 impl ExecutionFabricObservation {
@@ -149,6 +150,7 @@ impl ExecutionFabricObservation {
         let mut node_capabilities = Vec::new();
         let mut node_providers = Vec::new();
         let mut authority_contexts = Vec::new();
+        let mut controllers = Vec::new();
 
         for target in &capabilities.targets {
             let (target_name, capability_name) = match target.target {
@@ -157,15 +159,16 @@ impl ExecutionFabricObservation {
                     ("windows-native", "capability/execution/windows-native")
                 }
             };
+            let target_resource_id = FabricId::parse(format!(
+                "execution-target/{}/{}",
+                node_id.as_str(),
+                target_name
+            ))
+            .expect("execution target resource ID must be valid");
             if target.configured {
                 resources.push(FabricResourceDescriptor {
                     schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
-                    resource_id: FabricId::parse(format!(
-                        "execution-target/{}/{}",
-                        node_id.as_str(),
-                        target_name
-                    ))
-                    .expect("execution target resource ID must be valid"),
+                    resource_id: target_resource_id.clone(),
                     resource_kind: FabricId::parse("execution-target")
                         .expect("static execution target resource kind must be valid"),
                     node_id: Some(node_id.clone()),
@@ -186,7 +189,7 @@ impl ExecutionFabricObservation {
                 node_capabilities.push(capability_id.clone());
             }
 
-            if let Some(provider) = &target.execution_provider {
+            let provider_id = if let Some(provider) = &target.execution_provider {
                 let provider_suffix = match provider.contract {
                     ExecutionProviderContract::LocalLinuxRunnerV1 => "local-linux-runner-v1",
                     ExecutionProviderContract::WindowsNativeLauncherV1 => {
@@ -206,7 +209,55 @@ impl ExecutionFabricObservation {
                     platform,
                     capabilities: vec![capability_id],
                 });
-                node_providers.push(provider_id);
+                node_providers.push(provider_id.clone());
+                Some(provider_id)
+            } else {
+                None
+            };
+
+            if target.configured {
+                let (observed, reason_code) = if target.available {
+                    (
+                        ProviderAvailability::Available,
+                        FabricId::parse("reason/provider-available")
+                            .expect("static provider-health reason must be valid"),
+                    )
+                } else if let Some(issue) = target.availability_issue.as_deref() {
+                    let reason = match issue {
+                        "EXECUTION_PROVIDER_UNAVAILABLE" => {
+                            "reason/execution-provider-unavailable"
+                        }
+                        "WINDOWS_AUTHORITY_UNAVAILABLE" => "reason/windows-authority-unavailable",
+                        _ => "reason/provider-unavailable",
+                    };
+                    (
+                        ProviderAvailability::Unavailable,
+                        FabricId::parse(reason)
+                            .expect("static provider-health reason must be valid"),
+                    )
+                } else {
+                    (
+                        ProviderAvailability::Unknown,
+                        FabricId::parse("reason/provider-observation-incomplete")
+                            .expect("static provider-health reason must be valid"),
+                    )
+                };
+                let controller = preview_provider_health(&ProviderHealthObservation {
+                    schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+                    controller_id: FabricId::parse(format!(
+                        "controller/provider-health/{}/{}",
+                        node_id.as_str(),
+                        target_name
+                    ))
+                    .expect("provider-health controller ID must be valid"),
+                    resource_id: target_resource_id,
+                    provider_id,
+                    desired_available: true,
+                    observed,
+                    reason_code,
+                })
+                .expect("Runtime provider-health projection must be a valid controller preview");
+                controllers.push(controller);
             }
 
             if target.target == ExecutionTarget::WindowsNative {
@@ -260,6 +311,7 @@ impl ExecutionFabricObservation {
             resources,
             capabilities: fabric_capabilities,
             providers,
+            controllers,
         }
     }
 }

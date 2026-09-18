@@ -375,6 +375,94 @@ fn classify_authority_overlap(
     AuthorityConflictClassification::SharedObservation
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum ControllerReconcileDisposition {
+    Converged,
+    ActionRequired,
+    ObservationIncomplete,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum ProviderAvailability {
+    Available,
+    Unavailable,
+    Unknown,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ProviderHealthObservation {
+    pub schema_version: u32,
+    pub controller_id: FabricId,
+    pub resource_id: FabricId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider_id: Option<FabricId>,
+    pub desired_available: bool,
+    pub observed: ProviderAvailability,
+    pub reason_code: FabricId,
+}
+
+impl ProviderHealthObservation {
+    pub fn validate(&self) -> Result<(), FabricContractError> {
+        require_schema(self.schema_version)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ControllerPreview {
+    pub schema_version: u32,
+    pub controller_id: FabricId,
+    pub resource_id: FabricId,
+    pub desired_state: FabricId,
+    pub observed_state: FabricId,
+    pub disposition: ControllerReconcileDisposition,
+    pub reason_code: FabricId,
+}
+
+/// Pure reconciliation preview for provider availability.
+///
+/// This function does not execute an action, acquire authority, choose a provider,
+/// retry, wait, mutate Runtime state, or imply semantic completion.
+pub fn preview_provider_health(
+    observation: &ProviderHealthObservation,
+) -> Result<ControllerPreview, FabricContractError> {
+    observation.validate()?;
+    let desired_state = FabricId::parse(if observation.desired_available {
+        "state/provider-available"
+    } else {
+        "state/provider-unavailable"
+    })?;
+    let observed_state = FabricId::parse(match observation.observed {
+        ProviderAvailability::Available => "state/provider-available",
+        ProviderAvailability::Unavailable => "state/provider-unavailable",
+        ProviderAvailability::Unknown => "state/provider-unknown",
+    })?;
+    let disposition = match observation.observed {
+        ProviderAvailability::Unknown => ControllerReconcileDisposition::ObservationIncomplete,
+        ProviderAvailability::Available if observation.desired_available => {
+            ControllerReconcileDisposition::Converged
+        }
+        ProviderAvailability::Unavailable if !observation.desired_available => {
+            ControllerReconcileDisposition::Converged
+        }
+        ProviderAvailability::Available | ProviderAvailability::Unavailable => {
+            ControllerReconcileDisposition::ActionRequired
+        }
+    };
+    Ok(ControllerPreview {
+        schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+        controller_id: observation.controller_id.clone(),
+        resource_id: observation.resource_id.clone(),
+        desired_state,
+        observed_state,
+        disposition,
+        reason_code: observation.reason_code.clone(),
+    })
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct EvidenceReference {
@@ -692,6 +780,64 @@ mod tests {
         assert_eq!(decision.conflict, AuthorityConflictClassification::None);
         assert!(decision.matching_lease_ids.is_empty());
         assert!(decision.overlapping_lease_ids.is_empty());
+    }
+
+    #[test]
+    fn provider_health_preview_reports_converged_without_acting() {
+        let observation = ProviderHealthObservation {
+            schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+            controller_id: id("controller/provider-health/linux"),
+            resource_id: id("execution-target/node/local-linux"),
+            provider_id: Some(id("provider/node/local-linux-runner-v1")),
+            desired_available: true,
+            observed: ProviderAvailability::Available,
+            reason_code: id("reason/provider-available"),
+        };
+        let preview = preview_provider_health(&observation).unwrap();
+        assert_eq!(
+            preview.disposition,
+            ControllerReconcileDisposition::Converged
+        );
+        assert_eq!(preview.desired_state, id("state/provider-available"));
+        assert_eq!(preview.observed_state, id("state/provider-available"));
+    }
+
+    #[test]
+    fn provider_health_preview_reports_action_required_for_unavailable_provider() {
+        let observation = ProviderHealthObservation {
+            schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+            controller_id: id("controller/provider-health/windows"),
+            resource_id: id("execution-target/node/windows-native"),
+            provider_id: None,
+            desired_available: true,
+            observed: ProviderAvailability::Unavailable,
+            reason_code: id("reason/execution-provider-unavailable"),
+        };
+        let preview = preview_provider_health(&observation).unwrap();
+        assert_eq!(
+            preview.disposition,
+            ControllerReconcileDisposition::ActionRequired
+        );
+        assert_eq!(preview.observed_state, id("state/provider-unavailable"));
+    }
+
+    #[test]
+    fn provider_health_preview_preserves_unknown_observation_as_incomplete() {
+        let observation = ProviderHealthObservation {
+            schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+            controller_id: id("controller/provider-health/unknown"),
+            resource_id: id("execution-target/node/unknown"),
+            provider_id: None,
+            desired_available: true,
+            observed: ProviderAvailability::Unknown,
+            reason_code: id("reason/provider-observation-incomplete"),
+        };
+        let preview = preview_provider_health(&observation).unwrap();
+        assert_eq!(
+            preview.disposition,
+            ControllerReconcileDisposition::ObservationIncomplete
+        );
+        assert_eq!(preview.observed_state, id("state/provider-unknown"));
     }
 
     #[test]
