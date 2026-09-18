@@ -172,6 +172,12 @@
       "to": "T03",
       "type": "IDENTITY",
       "label": "candidate exact lifecycle ownership"
+    },
+    {
+      "from": "T05",
+      "to": "T03",
+      "type": "CONTROL",
+      "label": "reconciliation constrains recovery/redispatch"
     }
   ],
   "slices": [
@@ -204,7 +210,7 @@
     "sourceRevision": "ec70759ff9f945c3a0f181f9988c5cf3d169806f",
     "updatedAt": "2026-09-18",
     "standing": "INITIAL",
-    "notes": "Initial project-native LEGO planning projection. It does not replace owner-native architecture or evidence."
+    "notes": "Initial project-native LEGO planning projection. It does not replace owner-native architecture or evidence. Wave-1 feedback-control review made the T03→T04→T05→T03 execution/observation/reconciliation loop explicit; this adds no new authority."
   },
   "sharedCatalog": {
     "catalogId": "agent-architecture-lego-catalog-r1",
