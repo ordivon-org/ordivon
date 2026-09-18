@@ -14,6 +14,12 @@ pub(crate) struct CloudflareAccessConfig {
     pub(crate) jwks_url: String,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct VerifiedAccessIdentity {
+    pub(crate) issuer: String,
+    pub(crate) subject: Option<String>,
+}
+
 #[derive(Clone)]
 pub(crate) struct CloudflareAccessVerifier {
     issuer: Arc<str>,
@@ -73,19 +79,26 @@ impl CloudflareAccessVerifier {
     /// loaded lazily on the first Access-authenticated request and refreshed
     /// only when a previously unknown `kid` appears.
     pub(crate) async fn verify(&self, token: &str) -> bool {
+        self.verify_identity(token).await.is_some()
+    }
+
+    pub(crate) async fn verify_identity(&self, token: &str) -> Option<VerifiedAccessIdentity> {
         match self.verify_cached(token).await {
-            Ok(()) => true,
-            Err(VerificationError::Invalid) => false,
+            Ok(identity) => Some(identity),
+            Err(VerificationError::Invalid) => None,
             Err(VerificationError::UnknownKey) => {
                 if self.refresh_keys_if_due().await.is_err() {
-                    return false;
+                    return None;
                 }
-                self.verify_cached(token).await.is_ok()
+                self.verify_cached(token).await.ok()
             }
         }
     }
 
-    async fn verify_cached(&self, token: &str) -> Result<(), VerificationError> {
+    async fn verify_cached(
+        &self,
+        token: &str,
+    ) -> Result<VerifiedAccessIdentity, VerificationError> {
         let header = decode_header(token).map_err(|_| VerificationError::Invalid)?;
         if header.alg != Algorithm::RS256 {
             return Err(VerificationError::Invalid);
@@ -100,9 +113,19 @@ impl CloudflareAccessVerifier {
         validation.set_audience(&[self.audience.as_ref()]);
         validation.set_issuer(&[self.issuer.as_ref()]);
         validation.set_required_spec_claims(&["exp", "iss", "aud"]);
-        decode::<serde_json::Value>(token, &key, &validation)
-            .map(|_| ())
-            .map_err(|_| VerificationError::Invalid)
+        let claims = decode::<serde_json::Value>(token, &key, &validation)
+            .map_err(|_| VerificationError::Invalid)?
+            .claims;
+        let subject = claims
+            .get("sub")
+            .and_then(serde_json::Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(str::to_string);
+        Ok(VerifiedAccessIdentity {
+            issuer: self.issuer.to_string(),
+            subject,
+        })
     }
 
     async fn refresh_keys_if_due(&self) -> Result<(), String> {
@@ -205,6 +228,25 @@ OB+Y0ifP2QwnQFxNXvlKKA==
             &EncodingKey::from_rsa_pem(TEST_PRIVATE_KEY.as_bytes()).unwrap(),
         )
         .unwrap()
+    }
+
+    #[tokio::test]
+    async fn verified_identity_exposes_only_validated_subject_claim() {
+        let verifier = verifier();
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        let identity = verifier
+            .verify_identity(&token(
+                "https://access.example.com",
+                "runtime-audience",
+                now + 300,
+            ))
+            .await
+            .expect("valid Access token should project verified identity");
+        assert_eq!(identity.issuer, "https://access.example.com");
+        assert_eq!(identity.subject.as_deref(), Some("test-user"));
     }
 
     #[tokio::test]

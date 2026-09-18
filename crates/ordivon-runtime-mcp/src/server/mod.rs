@@ -42,6 +42,7 @@ use ordivon_runtime_spi::{
     ProviderDescriptor as FabricProviderDescriptor, ProviderHealthObservation,
     ResourceDescriptor as FabricResourceDescriptor, EXECUTION_FABRIC_SCHEMA_VERSION,
 };
+use rmcp::handler::server::common::FromContextPart;
 use rmcp::handler::server::router::tool::ToolRouter;
 use rmcp::handler::server::tool::{IntoCallToolResult, ToolCallContext};
 use rmcp::handler::server::wrapper::Parameters;
@@ -61,6 +62,52 @@ use crate::{append_rotating_jsonl, DEFAULT_TRACE_ROTATION_BYTES};
 
 static GLOBAL_TRACE_SEQUENCE: AtomicU64 = AtomicU64::new(1);
 static GLOBAL_TRACE_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AuthenticatedPrincipalBinding {
+    principal: String,
+    auth_source: String,
+}
+
+impl AuthenticatedPrincipalBinding {
+    pub fn new(principal: impl Into<String>, auth_source: impl Into<String>) -> Self {
+        Self {
+            principal: principal.into(),
+            auth_source: auth_source.into(),
+        }
+    }
+
+    pub fn principal(&self) -> &str {
+        &self.principal
+    }
+
+    pub fn auth_source(&self) -> &str {
+        &self.auth_source
+    }
+}
+
+fn authenticated_principal_from_http_parts(parts: &axum::http::request::Parts) -> Option<String> {
+    parts
+        .extensions
+        .get::<AuthenticatedPrincipalBinding>()
+        .map(|binding| binding.principal.clone())
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct EffectivePrincipal(String);
+
+impl FromContextPart<ToolCallContext<'_, RuntimeServer>> for EffectivePrincipal {
+    fn from_context_part(context: &mut ToolCallContext<RuntimeServer>) -> Result<Self, McpError> {
+        let request_principal = context
+            .request_context
+            .extensions
+            .get::<axum::http::request::Parts>()
+            .and_then(authenticated_principal_from_http_parts);
+        Ok(Self(request_principal.unwrap_or_else(|| {
+            context.service.state.execution.principal.clone()
+        })))
+    }
+}
 
 include!("contract.rs");
 include!("execution_binding.rs");
