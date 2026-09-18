@@ -144,8 +144,6 @@
       "DesiredPlacement",
       "DesiredPlacementStore",
       "EffectAuthorizationCoordinator",
-      "EffectAuthorizationDecision",
-      "EffectAuthorizationDecisionStore",
       "EffectAuthorizedDeliveryCoordinator",
       "EffectLedgerEffect",
       "EffectLedgerReader",
@@ -292,6 +290,8 @@
     "AgentInterfaceAdvertisementStore",
     "CapabilityAdvertisement",
     "CapabilityAdvertisementStore",
+    "EffectAuthorizationDecision",
+    "EffectAuthorizationDecisionStore",
     "PolicyDecision",
     "PolicyDecisionStore",
     "PolicyEvaluationCoordinator"
@@ -299,9 +299,12 @@
   "retiredPersistenceSurfaces": [
     "agent_interface_advertisements",
     "capability_advertisements",
+    "effect_authorization_decisions",
     "policy_decisions"
   ],
   "retiredForeignKeyAuthorities": [
+    "effect_authorization_decisions.binding_id -> transport_bindings.id",
+    "effect_authorization_decisions.delegation_id -> delegation_envelopes.id",
     "transport_bindings.interface_id -> agent_interface_advertisements.id",
     "transport_bindings.policy_decision_id -> policy_decisions.id"
   ]

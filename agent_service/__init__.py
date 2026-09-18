@@ -13,8 +13,6 @@ from .evidence import AgentServiceR6, RuntimeArtifactReader, VerificationRecord
 from .effect_authority import (
     AgentServiceR15,
     EffectAuthorizationCoordinator,
-    EffectAuthorizationDecision,
-    EffectAuthorizationDecisionStore,
     EffectAuthorizedDeliveryCoordinator,
 )
 from .failover import (
@@ -111,8 +109,6 @@ from .trust import (
 __all__ = [
     "AgentServiceR15",
     "EffectAuthorizationCoordinator",
-    "EffectAuthorizationDecision",
-    "EffectAuthorizationDecisionStore",
     "EffectAuthorizedDeliveryCoordinator",
     "BrowserlessTurnEffectLedgerReader",
     "BrowserlessTurnEffectCoordinate",
