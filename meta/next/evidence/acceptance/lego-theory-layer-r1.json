@@ -6,7 +6,7 @@
   "sourceRevision": "6aee69c74dae24d28fa48b975e510873fc2973ab",
   "integratedMainRevision": "c3b5afaae706bd9b3a91a0187d76fc0e054a2d55",
   "workspaceId": "ws-lego-theory-r1-20260918",
-  "standing": "PASS_WITH_PROSPECTIVE_VALIDATION_REQUIRED",
+  "standing": "PASS_WAVE1_PROSPECTIVE_VALIDATED_WITH_FOLLOWUPS",
   "checks": [
     {
       "id": "existing-plan-schema-compatibility",
@@ -32,6 +32,11 @@
       "id": "project-skill-source-discovery",
       "result": "PASS",
       "evidence": "Skill service project-ordivon-next source refreshed READY with discovered=11, valid=11, invalid=0, admitted=11. modelVisible=0 in the current non-project context is expected context scoping, not a package failure."
+    },
+    {
+      "id": "wave1-prospective-cross-domain",
+      "result": "PASS_WITH_FOLLOWUPS",
+      "evidence": "evidence/acceptance/lego-theory-wave1-prospective-r1.json"
     }
   ],
   "wave1": [
@@ -40,9 +45,20 @@
     "feedback-control",
     "stpa-stamp"
   ],
+  "wave1Standing": {
+    "systems-engineering": "KEEP_OPTIONAL_FOUNDATION",
+    "design-structure-matrix": "KEEP_CONDITIONAL_MORE_DENSE_SYSTEM_EVIDENCE_NEEDED",
+    "feedback-control": "PROSPECTIVELY_VALIDATED_OPTIONAL_LENS",
+    "stpa-stamp": "PROSPECTIVELY_VALIDATED_HIGH_CONSEQUENCE_LENS"
+  },
+  "corePromotion": {
+    "schemaChanged": false,
+    "newMandatoryFields": []
+  },
   "nonClaims": [
-    "This acceptance does not prove the lenses improve outcomes across domains.",
     "This acceptance does not certify professional STPA or control-theory analysis.",
-    "The external disciplines remain the intellectual authorities."
+    "The external disciplines remain the intellectual authorities.",
+    "Prospective validation of a lens does not make it mandatory for every project.",
+    "The Agent Service authority-lifetime finding is an unresolved contract question, not an automatic bug verdict."
   ]
 }

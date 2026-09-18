@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.lego-theory-wave1-prospective-validation",
+  "date": "2026-09-18",
+  "standing": "PASS_WITH_FOLLOWUPS",
+  "sourceMainRevision": "d0fdf35c83b658f98e0d4baccc9513922415ccd9",
+  "cases": [
+    {
+      "id": "runtime",
+      "lenses": ["systems-engineering", "dsm", "feedback-control"],
+      "result": "POSITIVE_MODEL_CORRECTION",
+      "finding": "reconciliation feedback edge T05->T03 was missing from the planning projection",
+      "integratedCommit": "cf0e0adf118d4f143fd7117d6a9592343261d8e0"
+    },
+    {
+      "id": "game",
+      "lenses": ["systems-engineering", "feedback-control"],
+      "result": "POSITIVE_MODEL_CORRECTION",
+      "finding": "PlayerEvidence feedback to CompositionPlanner was present in domain evidence but absent from the planning graph",
+      "validatedDetachedCommit": "3138d9157e3c933287be1cc3b1879aea7eef3593",
+      "integrationStanding": "DEFERRED_DUE_TO_EXISTING_BRANCH_DIVERGENCE"
+    },
+    {
+      "id": "agent-service-r14",
+      "lenses": ["systems-engineering", "stpa"],
+      "result": "POSITIVE_HAZARD_DISCOVERY",
+      "sourceRevision": "0721009237365ea61cd975bd187be5171f1dcd52",
+      "finding": "delivery remains admitted after the source SemanticSession is closed; authority lifetime/revocation semantics are not yet explicit",
+      "characterizationJobId": "job-01a0b3a6-06dc-7433-9e35-6f17093b8b29",
+      "classification": "UNRESOLVED_AUTHORITY_LIFETIME_CONTRACT_NOT_YET_A_BUG_VERDICT"
+    },
+    {
+      "id": "browser-provider-security",
+      "lenses": ["systems-engineering", "feedback-control", "stpa"],
+      "result": "CONFIRMATORY",
+      "finding": "existing diagnostic loop and fail-closed challenge/effect constraints already embody the relevant systems/control principles"
+    }
+  ],
+  "lensVerdicts": {
+    "systems-engineering": "KEEP_OPTIONAL_FOUNDATION",
+    "dsm": "KEEP_CONDITIONAL_MORE_DENSE_SYSTEM_EVIDENCE_NEEDED",
+    "feedback-control": "PROSPECTIVELY_VALIDATED_OPTIONAL_LENS",
+    "stpa-stamp": "PROSPECTIVELY_VALIDATED_HIGH_CONSEQUENCE_LENS"
+  },
+  "corePromotion": {
+    "schemaChanged": false,
+    "newMandatoryFields": [],
+    "reason": "All useful Wave 1 findings fit existing graph/evidence mechanisms or remain domain-specific unresolved constraints."
+  },
+  "followups": [
+    "Resolve Agent Service authority lifetime/revocation semantics before treating closed-session delivery as accepted or rejected behavior.",
+    "Integrate the validated Game feedback-edge commit only after reconciling its already-diverged main branch.",
+    "Apply DSM to a genuinely dense dependency graph before elevating its validation standing."
+  ]
+}

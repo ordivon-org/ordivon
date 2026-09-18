@@ -1,7 +1,7 @@
 # LEGO Theory Layer R1
 
 Date: 2026-09-18
-Status: ACTIVE EXPERIMENTAL OVERLAY R1
+Status: ACTIVE / WAVE 1 PROSPECTIVELY VALIDATED R1
 
 ## Purpose
 
@@ -211,3 +211,50 @@ Hard non-equivalences:
 - regime hypothesis != project truth
 
 This lens remains an overlay. It adds no mandatory field to project-lego-plan-r1.json. Promotion requires prospective cross-domain evidence.
+
+## Wave 1 prospective validation
+
+Cross-domain prospective validation is recorded in:
+
+- `knowledge/lessons/lego-wave1-prospective-validation-r1.md`
+- `evidence/acceptance/lego-theory-wave1-prospective-r1.json`
+
+Observed results:
+
+- **Systems Engineering — KEEP_OPTIONAL_FOUNDATION.** It consistently protected system boundaries, external authority, and whole-system framing. Its Wave 1 value was mostly confirmatory rather than architecture-changing.
+- **DSM — KEEP_CONDITIONAL.** The Runtime trial did not justify a re-cut of its intentionally sparse graph. DSM remains useful for dense/cyclic systems, but broader Ordivon standing requires a genuinely dense dependency case.
+- **Feedback Control — PROSPECTIVELY_VALIDATED_OPTIONAL_LENS.** It exposed missing feedback edges in two unrelated domains: Runtime reconciliation back into execution control, and Game player evidence back into composition hypotheses.
+- **STAMP/STPA — PROSPECTIVELY_VALIDATED_HIGH_CONSEQUENCE_LENS.** It exposed an Agent Service authority-lifetime/revocation question even after the R14 implementation's focused and full repository tests passed, while also confirming existing Browser Security fail-closed control constraints.
+
+Concrete evidence:
+
+- Runtime feedback-loop correction integrated at `cf0e0adf118d4f143fd7117d6a9592343261d8e0`.
+- Game feedback-loop correction validated at detached commit `3138d9157e3c933287be1cc3b1879aea7eef3593`; it was not integrated during the trial because the existing Game main already had branch divergence.
+- Agent Service R14 characterization showed that an already-created Binding can still deliver after its SemanticSession is closed. This is recorded as an unresolved authority-lifetime contract, not automatically classified as a bug.
+- Browser/provider-security analysis was confirmatory: challenge state remains observation rather than root-cause truth, and consequential effects remain behind fail-closed boundaries.
+
+### Wave 1 promotion verdict
+
+No theory-specific field is promoted into the shared LEGO Core or `project-lego-plan-r1` schema.
+
+Useful findings fit existing graph/evidence mechanisms:
+
+- feedback can be represented with existing CONTROL / OBSERVATION edges;
+- hazards remain derived evidence until a domain owner adopts a constraint;
+- DSM matrices remain derived projections;
+- boundary/context maps remain optional analyses;
+- authority lifetime remains a domain/system-contract question until repeated evidence justifies a shared primitive.
+
+The stronger admission rule for later lenses is:
+
+`theory usefulness != vocabulary richness`
+
+A lens earns retention when it produces at least one of:
+
+- a corrected boundary;
+- a corrected edge;
+- a falsifiable experiment;
+- a newly exposed hazard;
+- a justified no-change decision.
+
+Otherwise stop the lens rather than generate more analysis.
