@@ -13,6 +13,8 @@ metadata:
 
 The LEGO plan is a planning projection, not project truth.
 
+If the real target, decision, state, mechanism, or evidence boundary is still unclear, use `lego-question-compiler` first. Do not turn unresolved questions into invented planning nodes.
+
 ## Workflow
 
 1. Read project-native authority first: README, architecture/ownership docs, source, tests, and current evidence.
@@ -26,6 +28,10 @@ The LEGO plan is a planning projection, not project truth.
 9. Record gaps and do-not-own boundaries.
 10. Validate structure when the R1 validator is available.
 11. After implementation, re-read reality before updating node state.
+
+## Optional analysis/theory routing
+
+- `lego-question-compiler`: pre-planning or mid-analysis framing when the problem is vague, overloaded, solution-shaped, or insufficiently falsifiable. Its output is questions, not plan truth.
 
 ## Optional mature-theory lenses
 
@@ -68,6 +74,7 @@ Another Agent should be able to answer from the plan:
 
 Canonical references:
 - docs/LEGO_PROJECT_PLANNING_R1.md
+- docs/LEGO_QUESTION_COMPILER_R1.md
 - docs/LEGO_THEORY_LAYER_R1.md
 - schemas/project-lego-plan-r1.schema.json
 - knowledge/lessons/agent-architecture-lego-catalog-r1.md for optional Agent-architecture coordinates

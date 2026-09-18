@@ -38,6 +38,20 @@ Every theory lens must state:
 8. Stop condition — when further use adds little value.
 9. Sources — mature external authorities on which the procedure is based.
 
+## Cross-cutting analysis operator
+
+### LEGO Question Compiler
+
+Use before or between theory lenses when the target question is vague, overloaded, prematurely solution-shaped, or insufficiently falsifiable.
+
+It does not add another ontology. It compiles a small decision-relevant question set from existing evidence, routes questions to the natural mature lens/domain owner, prunes low-value breadth, and binds retained questions to evidence or bounded experiments.
+
+Canonical references:
+- docs/LEGO_QUESTION_COMPILER_R1.md
+- .agents/skills/lego-question-compiler/SKILL.md
+
+Question Compiler output is derived analysis. A generated question cannot update project truth or the LEGO plan by itself.
+
 ## Wave 1 lenses
 
 ### Systems Engineering
@@ -154,6 +168,16 @@ Adoption is evidence-driven, not chronology-driven.
 
 
 ## Recorded LEGO cases
+
+### Poker AI / imperfect-information strategy
+
+Recorded pilot:
+- knowledge/lessons/poker-ai-lego-question-compiler-pilot-r1.md
+
+This pilot tests the Question Compiler against the Libratus/Pluribus narrative. It converts a broad "math versus psychology" story into bounded state/observability, action-space, exploitability, information-flow, emergence/control, and counterfactual questions with explicit evidence or experiment routes.
+
+It is a method pilot, not a promotion of game-theoretic vocabulary into the common LEGO schema.
+
 
 ### AI as Miracle Material / Infinite Minds article
 
