@@ -119,14 +119,16 @@
       "id": "G06",
       "label": "StatefulSessionKernel",
       "kind": "domain_state",
-      "responsibility": "Own the bounded Causal Lag run state machine: persistent architecture/cause, delayed execution, cumulative contract standing, and session termination while accepting validated session-rule inputs.",
+      "responsibility": "Own the bounded Causal Lag run state machine: persistent architecture/cause, delayed execution, cumulative contract standing, current resolved cost pressure, and session termination while accepting validated session-rule inputs.",
       "authority": "Causal Lag experiment/session owner",
       "state": "VERIFIED",
       "sharedRefs": [],
       "evidence": [
         "experiments/product-composition-r1/causal-lag-session-r3/README.md",
         "experiments/product-composition-r1/causal-lag-session-r3/evidence/mechanical-acceptance-r3.json",
-        "test/game-causal-lag-content-r4.test.ts"
+        "test/game-causal-lag-content-r4.test.ts",
+        "experiments/product-composition-r1/causal-lag-pressure-r5/evidence/mechanical-acceptance-r5.json",
+        "test/game-causal-lag-pressure-r5.test.ts"
       ],
       "dependencies": [
         "G03"
@@ -139,27 +141,31 @@
       ],
       "acceptance": [
         "Default R3 session remains four rounds with target 320.",
-        "A validated external sessionRules contract can substitute the context path without forking the session engine."
+        "A validated external sessionRules contract can substitute the context path without forking the session engine.",
+        "An optional resolved pressureChain may substitute current diagnostic/switch costs per round; absence preserves design-default costs."
       ]
     },
     {
       "id": "G07",
       "label": "ContentGrammarCompiler",
       "kind": "creative_planning",
-      "responsibility": "Own thin Causal Lag content-unit and run-recipe composition over existing contexts, validating exact seams and compiling recipes into session rules.",
+      "responsibility": "Own thin Causal Lag content-unit and run-recipe composition over existing contexts plus named pressure-profile references, validating exact seams and compiling recipes into session rules without moving numeric rule authority into content.",
       "authority": "Causal Lag content-design owner",
       "state": "VERIFIED",
       "sharedRefs": [],
       "evidence": [
         "experiments/product-composition-r1/causal-lag-content-r4/README.md",
         "experiments/product-composition-r1/causal-lag-content-r4/content-grammar.js",
-        "test/game-causal-lag-content-r4.test.ts"
+        "test/game-causal-lag-content-r4.test.ts",
+        "experiments/product-composition-r1/causal-lag-pressure-r5/README.md",
+        "experiments/product-composition-r1/causal-lag-pressure-r5/pressure-topology.js",
+        "test/game-causal-lag-pressure-r5.test.ts"
       ],
       "dependencies": [
         "G04",
         "G06"
       ],
-      "replacementContract": "A replacement may change authoring representation but must preserve context-seam validation, target reachability checks, no reward/session authority, and R3-compatible compiled output.",
+      "replacementContract": "A replacement may change authoring representation but must preserve context-seam validation, target reachability checks, profile-identity resolution, no direct numeric rule ownership in content, and R3-compatible compiled output.",
       "mustNotOwn": [
         "universal Game content ontology",
         "PC01 rewards",
@@ -168,9 +174,10 @@
         "Human difficulty labels"
       ],
       "acceptance": [
-        "Content units contain only authored role plus existing source/execution context identities.",
+        "Base content units contain only authored role plus existing source/execution context identities.",
+        "Pressure-refined units may add only a stable pressureProfileId, never numeric cost semantics.",
         "Adjacent units fail closed unless the execution/source context seam discharges.",
-        "One seven-beat recipe compiles into the verified StatefulSessionKernel."
+        "Seven-beat R4 and ten-beat R5 recipes both compile into the verified StatefulSessionKernel."
       ]
     },
     {
@@ -183,7 +190,9 @@
       "sharedRefs": [],
       "evidence": [
         "experiments/product-composition-r1/causal-lag-content-r4/evidence/mechanical-acceptance-r4.json",
-        "test/game-causal-lag-content-r4.test.ts"
+        "test/game-causal-lag-content-r4.test.ts",
+        "experiments/product-composition-r1/causal-lag-pressure-r5/evidence/mechanical-acceptance-r5.json",
+        "test/game-causal-lag-pressure-r5.test.ts"
       ],
       "dependencies": [
         "G06",
@@ -198,7 +207,8 @@
       ],
       "acceptance": [
         "The tested 3x3 transition space reports exact evaluated-state and policy-signature counts.",
-        "The representative arc retains both reachable success and mathematically unrecoverable failure.",
+        "Bounded pressure-axis screening distinguishes variables that change local policy from target-only terminal pressure.",
+        "Representative breadth/pressure runs retain both reachable success and mathematically unrecoverable failure.",
         "No Human or product authority is minted."
       ]
     }
@@ -293,12 +303,37 @@
         "test/game-causal-lag-content-r4.test.ts"
       ],
       "blockers": []
+    },
+    {
+      "id": "GS3",
+      "objective": "Screen existing Causal Lag pressure variables and prove one longer ten-beat information-pressure topology without adding player verbs, changing hidden regime semantics, or creating a new project node.",
+      "status": "COMPLETE",
+      "nodeIds": [
+        "G06",
+        "G07",
+        "G08"
+      ],
+      "acceptance": [
+        "Deterministic local-policy screening compares persistence, diagnostic cost, switch cost and contract target under explicit bounded level sets.",
+        "Information cost is selected because it changes policy broadly and its effect is conditioned by the existing stability regime.",
+        "Content references pressure by profile identity while resolved numeric costs remain session inputs.",
+        "R4 no-pressure behavior remains compatible.",
+        "The ten-beat browser run reaches both SUCCESS and unrecoverable FAILURE with hidden regime still private.",
+        "Human pacing/product/Game Core claims remain closed."
+      ],
+      "evidence": [
+        "experiments/product-composition-r1/causal-lag-pressure-r5/README.md",
+        "experiments/product-composition-r1/causal-lag-pressure-r5/evidence/mechanical-acceptance-r5.json",
+        "test/game-causal-lag-pressure-r5.test.ts"
+      ],
+      "blockers": []
     }
   ],
   "gaps": [
-    "R4 proves one seven-beat breadth arc but not a longer campaign/run topology or sustainable large-scale content production.",
-    "Pressure dimensions beyond context recombination remain deferred until existing breadth saturates or a concrete failure requires them.",
-    "Human comprehension, perceived difficulty, enjoyment, retention, and market value remain unobserved."
+    "R5 establishes mechanical pressure topology but not Human pacing quality, comprehension, learning, enjoyment, retention, or market value.",
+    "Switch-inertia and persistence scheduling remain deferred until information-pressure content shows a concrete saturation/failure.",
+    "Contract-margin pressure requires a horizon-aware/session-level objective before it can honestly claim to change strategy.",
+    "Large-scale authored content production economics and final audiovisual expression remain unmeasured."
   ],
   "doNotOwn": [
     "generic game-engine ownership",
@@ -306,9 +341,9 @@
     "human enjoyment authority without evidence"
   ],
   "review": {
-    "sourceRevision": "2ba13d6e031da1ba9bbc0b8f87aefa4963143cba",
+    "sourceRevision": "152bcecb82e5c55ce1df8b5dd9aaedac64f06509",
     "updatedAt": "2026-09-18",
     "standing": "STABLE",
-    "notes": "Updated after the first prospective Game use of the current Ordivon LEGO theory stack. Only architecture-relevant responsibilities exposed by the verified R3/R4 implementation were added; theory lenses remain external analysis aids rather than project nodes."
+    "notes": "R5 used Ordivon Next method revision 0032108f2fa9ce019e3735623e5b37fed23fc3a8 to screen pressure axes. The existing G06-G08 responsibilities were sufficient, so GS3 was added without inflating the project graph with a new theory or pressure service node."
   }
 }

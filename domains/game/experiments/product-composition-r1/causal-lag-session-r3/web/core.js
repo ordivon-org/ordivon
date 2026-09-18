@@ -29,6 +29,22 @@ function validateSessionRules(design,rules){
       throw new Error(`sessionRules executionCycleIndex invalid at round ${index+1}`);
     }
   }
+  if(rules.pressureChain!==undefined){
+    if(!Array.isArray(rules.pressureChain)||rules.pressureChain.length!==rules.roundCount){
+      throw new Error('sessionRules pressureChain length must equal roundCount');
+    }
+    for(const [index,pressure] of rules.pressureChain.entries()){
+      if(!pressure||typeof pressure.profileId!=='string'||pressure.profileId.length===0){
+        throw new Error(`sessionRules pressure profileId invalid at round ${index+1}`);
+      }
+      if(!Number.isFinite(Number(pressure.diagnosticCost))||Number(pressure.diagnosticCost)<0){
+        throw new Error(`sessionRules diagnosticCost invalid at round ${index+1}`);
+      }
+      if(!Number.isFinite(Number(pressure.switchCost))||Number(pressure.switchCost)<0){
+        throw new Error(`sessionRules switchCost invalid at round ${index+1}`);
+      }
+    }
+  }
   return rules;
 }
 
@@ -72,6 +88,22 @@ function observation(diagnostic,cause){
   return diagnostic===cause?'FAULT':'OK';
 }
 
+function pressureForRound(run,roundIndex){
+  const pressure=run.sessionRules.pressureChain?.[roundIndex];
+  if(pressure){
+    return {
+      profileId:pressure.profileId,
+      diagnosticCost:Number(pressure.diagnosticCost),
+      switchCost:Number(pressure.switchCost),
+    };
+  }
+  return {
+    profileId:'DESIGN_DEFAULT',
+    diagnosticCost:Number(run.design.diagnosticCost),
+    switchCost:Number(run.design.switchCost),
+  };
+}
+
 function startRound(run){
   if(run.roundIndex>=run.sessionRules.roundCount)throw new Error('session has no remaining round');
   const chain=run.sessionRules.contextChain[run.roundIndex];
@@ -84,6 +116,7 @@ function startRound(run){
     sourceCause:run.latentCause,
     executionCause,
     previousArchitecture:run.currentArchitecture,
+    costPressure:pressureForRound(run,run.roundIndex),
     inspection:null,
     selectedArchitecture:'',
     resolution:null,
@@ -196,10 +229,10 @@ export function commitRound(run){
       run.current.executionCause
     ][run.current.selectedArchitecture]
   );
-  const diagnosticCost=diagnostic==='none'?0:Number(run.design.diagnosticCost);
+  const diagnosticCost=diagnostic==='none'?0:Number(run.current.costPressure.diagnosticCost);
   const switching=
     run.current.previousArchitecture!==run.current.selectedArchitecture
-      ? Number(run.design.switchCost)
+      ? Number(run.current.costPressure.switchCost)
       : 0;
   const net=baseReward-diagnosticCost-switching;
 
@@ -253,6 +286,7 @@ export function publicView(run){
       round:current.round,
       phase:current.phase,
       previousArchitecture:current.previousArchitecture,
+      costPressure:{...current.costPressure},
       currentContext:{
         id:sourceCycle.id,
         operatingContext:sourceCycle.operatingContext,
