@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.agent-service-architecture-delta",
+  "graphId": "ordivon-agent-service-r13-provider-adapters-delta",
+  "baseGraph": "knowledge/graphs/ordivon-agent-service-r2.json",
+  "baseImplementationCommit": "5915c494c8ecabd97fc9a5233e1d76a3a18fa44a",
+  "refinedPriorNodes": [
+    {
+      "nodeId": "N67",
+      "label": "ExecutionQuiescenceCoordinator",
+      "refinement": "R13 supplies protocol-specific A2A and MCP Tasks quiescence adapters without changing R12 quiescence authority."
+    },
+    {
+      "nodeId": "N69",
+      "label": "ReplaySafetyCoordinator",
+      "refinement": "R13 supplies an effect-ledger evidence adapter; R12 still owns durable ReplaySafetyDecision truth."
+    }
+  ],
+  "discoveredNodes": [
+    {
+      "nodeId": "N74",
+      "label": "A2AJsonRpcHttpClient",
+      "kind": "PROTOCOL_CLIENT",
+      "symbol": "agent_service.provider_adapters.A2AJsonRpcHttpClient",
+      "reason": "A2A JSON-RPC needs explicit protocol-version binding, exact JSON-RPC request identity and out-of-band authentication headers."
+    },
+    {
+      "nodeId": "N75",
+      "label": "A2AQuiescenceAdapter",
+      "kind": "PROVIDER_ADAPTER",
+      "symbol": "agent_service.provider_adapters.A2AQuiescenceAdapter",
+      "reason": "A2A CancelTask/GetTask states must be translated into R12 quiescence semantics without treating cancellation attempts as semantic completion."
+    },
+    {
+      "nodeId": "N76",
+      "label": "MCPTasksHttpClient",
+      "kind": "PROTOCOL_CLIENT",
+      "symbol": "agent_service.provider_adapters.MCPTasksHttpClient",
+      "reason": "MCP 2026-07-28 Tasks requires per-request extension capability metadata and task-routing headers on tasks/* requests."
+    },
+    {
+      "nodeId": "N77",
+      "label": "MCPTaskQuiescenceAdapter",
+      "kind": "PROVIDER_ADAPTER",
+      "symbol": "agent_service.provider_adapters.MCPTaskQuiescenceAdapter",
+      "reason": "tasks/cancel acknowledgement is not quiescence; subsequent tasks/get status must drive R12 proof."
+    },
+    {
+      "nodeId": "N78",
+      "label": "EffectLedgerReader",
+      "kind": "EVIDENCE_PROVIDER_SEAM",
+      "symbol": "agent_service.provider_adapters.EffectLedgerReader",
+      "reason": "Replay safety must consume effect-complete external evidence without turning Agent Service into a second effect ledger."
+    },
+    {
+      "nodeId": "N79",
+      "label": "EffectLedgerReplaySafetyAdapter",
+      "kind": "EVIDENCE_ADAPTER",
+      "symbol": "agent_service.provider_adapters.EffectLedgerReplaySafetyAdapter",
+      "reason": "Explicit effect, rollback, compensation and target-bound idempotency evidence is normalized into R12 ReplaySafetyObservation."
+    },
+    {
+      "nodeId": "N80",
+      "label": "AgentServiceR13",
+      "kind": "COMPOSITION_ROOT",
+      "symbol": "agent_service.provider_adapters.AgentServiceR13",
+      "reason": "Provider-specific quiescence and external effect-ledger readers are wired into the frozen R12 semantic failover protocol."
+    }
+  ],
+  "flow": [
+    "R12 failover preflight / durable quiescence request",
+    "N75 A2AQuiescenceAdapter or N77 MCPTaskQuiescenceAdapter",
+    "N74 A2AJsonRpcHttpClient or N76 MCPTasksHttpClient",
+    "provider task lifecycle evidence",
+    "R12 ExecutionQuiescenceProof",
+    "N78 EffectLedgerReader",
+    "N79 EffectLedgerReplaySafetyAdapter",
+    "R12 ReplaySafetyDecision",
+    "R12 CAS ExecutionClaimTransfer",
+    "fallback delivery",
+    "R11 evidence / semantic verification"
+  ],
+  "authorityLaws": [
+    "A2A CancelTask success is not by itself quiescence; the returned or subsequently fetched Task state must be interpreted.",
+    "A2A TaskNotCancelableError (-32002) is reconciled with GetTask because the task may already be terminal.",
+    "A2A TaskNotFoundError is not interpreted as quiescence because purging does not reveal whether the prior execution completed, failed, or was cancelled.",
+    "A2A TASK_STATE_COMPLETED routes to semantic verification rather than failover.",
+    "A2A protocol version is explicit per client/binding configuration and is never guessed from endpoint URL.",
+    "MCP tasks/cancel acknowledgement is not quiescence; R13 always follows it with tasks/get.",
+    "MCP completed routes to semantic verification; cancelled and failed prove execution quiescence but not replay safety.",
+    "MCP 2026-07-28 Tasks capability is attached per request and Mcp-Name is bound to taskId for task routing.",
+    "Remote non-loopback provider HTTP is rejected; HTTPS is required. Loopback HTTP remains available for local trusted integration.",
+    "Authentication headers are supplied by an out-of-band header provider and are not persisted in Agent Service semantic objects or rendered client reprs.",
+    "An empty effect list implies NO_EFFECTS only when the external effect-ledger snapshot explicitly declares complete coverage.",
+    "Incomplete effect coverage produces UNKNOWN, not safe replay.",
+    "PARTIAL or UNKNOWN effect state is not replay safe.",
+    "ROLLED_BACK and COMPENSATED classifications require explicit effect-ledger evidence.",
+    "A COMMITTED effect is replay safe only when the ledger provides a non-empty idempotency key bound to the exact fallback Binding.",
+    "Effect-ledger snapshot identity is bound to Task, source Binding and target Binding and mismatches fail closed.",
+    "R13 creates no effect database or shadow effect authority; it reads external evidence through EffectLedgerReader.",
+    "R13 does not change R12 durable quiescence/replay/claim-transfer authority and does not change R11 semantic completion authority.",
+    "Protocol idempotency and target-bound effect idempotency evidence do not become a universal exactly-once guarantee."
+  ],
+  "standardsBasis": [
+    {
+      "standard": "A2A current specification",
+      "use": "CancelTask is idempotent but cancellation success is not guaranteed; GetTask is idempotent; clients explicitly send A2A-Version; terminal states include COMPLETED, FAILED, CANCELED and REJECTED."
+    },
+    {
+      "standard": "MCP 2026-07-28 + io.modelcontextprotocol/tasks extension",
+      "use": "Modern MCP is stateless; client capabilities ride each request; tasks/cancel is cooperative acknowledgement; tasks/get observes status; Streamable HTTP task requests bind Mcp-Name to taskId."
+    }
+  ]
+}

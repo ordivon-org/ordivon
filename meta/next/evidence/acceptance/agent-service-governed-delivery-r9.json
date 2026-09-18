@@ -1,0 +1,71 @@
+{
+  "architectureDelta": "knowledge/graphs/ordivon-agent-service-r9-governed-delivery-delta.json",
+  "authorityAssertions": {
+    "capabilityAdvertisementBypassesPolicy": false,
+    "concreteLiveA2AProviderImplemented": false,
+    "concreteLiveMCPDelegationProviderImplemented": false,
+    "deliveryRequestIdentityDeterministicPerBinding": true,
+    "deniedPolicyCanRoute": false,
+    "interfaceSecurityRequirementsContainCredentials": false,
+    "policyDecisionCanAuthorizeDifferentDelegation": false,
+    "policyPermissionsEqualOAuthScopes": false,
+    "remoteContextIdEqualsLocalSessionId": false,
+    "remoteCorrelationStoredOnlyInDeliveryReceipt": true,
+    "remoteTaskIdEqualsLocalTaskId": false,
+    "sameDelegationMayHaveMultipleRouteBindings": true,
+    "sameTransportMayAdvertiseMultipleEndpoints": true,
+    "transportBindingContainsRemoteTaskContext": false
+  },
+  "baseImplementationCommit": "709faa6b1127de4d5f96ba3969c112db74112b55",
+  "date": "2026-09-18",
+  "deferredBaseNodes": [
+    "N20",
+    "N21"
+  ],
+  "discoveredNodes": [
+    "N44",
+    "N45",
+    "N46",
+    "N47",
+    "N48",
+    "N49",
+    "N50"
+  ],
+  "kind": "ordivon.agent-service-governed-delivery-r9-acceptance",
+  "refinedBaseNodes": [
+    "N12",
+    "N17"
+  ],
+  "schemaVersion": 1,
+  "semanticDogfood": {
+    "bindingCount": 2,
+    "fallbackTransport": "mcp",
+    "policyAllowed": true,
+    "policyPermissions": [
+      "review.invoke"
+    ],
+    "primaryHasRemoteTask": false,
+    "primaryTransport": "a2a-jsonrpc",
+    "receiptRemoteContext": "remote-context-dogfood",
+    "receiptRemoteTask": "remote-task-dogfood",
+    "remoteContextDiffersFromLocalSession": true,
+    "remoteTaskDiffersFromLocalTask": true,
+    "sessionHasRemoteContext": false,
+    "status": "PASS",
+    "taskHasRemoteTask": false
+  },
+  "standardsBasis": {
+    "a2a": "1.0.0 remote task/context correlation and Agent interface/security discovery model",
+    "mcp": "2026-07-28 transport authorization remains distinct from semantic Session/application policy"
+  },
+  "verification": {
+    "compileall": "PASS",
+    "deliveryTests": 9,
+    "gitDiffCheck": "PASS",
+    "publicApiTests": 1,
+    "repositoryFailures": 0,
+    "repositoryTests": 132,
+    "resourceWarningsAsErrors": "PASS"
+  },
+  "verificationState": "PASS"
+}

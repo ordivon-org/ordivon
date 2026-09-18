@@ -1,0 +1,76 @@
+{
+  "architectureDelta": "knowledge/graphs/ordivon-agent-service-r7-goal-board-delta.json",
+  "authorityAssertions": {
+    "boardFailureCanRollbackGoalTruth": false,
+    "boardProjectionExactReplay": true,
+    "goalStateDerivedFromTaskTruth": true,
+    "goalTaskGraphFacadeHasIndependentTruth": false,
+    "graphMutableAfterExecutionStarts": false,
+    "hostBoardOwnsGoalTruth": false,
+    "hostBoardOwnsTaskTruth": false,
+    "taskReadinessPersisted": false
+  },
+  "baseImplementationCommit": "9ad9fea48591c0c323aa234ca0365355e09e61b6",
+  "dag": {
+    "cycleRejected": true,
+    "mutationFreeze": "Goal PENDING and all linked Tasks PENDING",
+    "readinessDerived": true,
+    "sameGoalEdgesOnly": true,
+    "selfDependencyRejected": true
+  },
+  "date": "2026-09-18",
+  "discoveredNodes": [
+    "N31",
+    "N32",
+    "N33",
+    "N34",
+    "N35",
+    "N36",
+    "N37",
+    "N38"
+  ],
+  "hostProvider": {
+    "endpoint": "http://127.0.0.1:8898/mcp",
+    "hostRevision": "b5cf31f9a1d177576886fe545e870e685a80fc2e",
+    "protocol": "2025-11-25",
+    "tool": "board.post",
+    "transport": "streamable-http"
+  },
+  "implementedBaseNodes": [
+    "N04",
+    "N23"
+  ],
+  "kind": "ordivon.agent-service-goal-board-r7-acceptance",
+  "liveSmokes": [
+    {
+      "clientMessageId": "agent-service-goal-event-v1:df096a466a8464ba023c67d9f9749582147183f8d4b7182fde0c678a3923c7fc",
+      "goalId": "goal_3425fe794c19413fa1b25eacedbaf32b",
+      "goalState": "SUCCEEDED",
+      "hostSequence": 17722,
+      "hostTruthRole": "coordination-message-not-domain-truth",
+      "id": "post-refactor-goal-board-projection",
+      "sourceEventId": "evt_e8f9ae66ce0c4bc09f7ae73125487925",
+      "status": "PASS"
+    },
+    {
+      "admission": "existing",
+      "clientMessageId": "agent-service-goal-event-v1:df096a466a8464ba023c67d9f9749582147183f8d4b7182fde0c678a3923c7fc",
+      "duplicateCreated": false,
+      "hostSequence": 17722,
+      "id": "host-board-exact-replay",
+      "status": "PASS"
+    }
+  ],
+  "schemaVersion": 1,
+  "verification": {
+    "compileall": "PASS",
+    "gitDiffCheck": "PASS",
+    "goalDagTests": 13,
+    "hostBoardAdapterTests": 6,
+    "publicApiTests": 1,
+    "repositoryFailures": 0,
+    "repositoryTests": 110,
+    "resourceWarningsAsErrors": "PASS"
+  },
+  "verificationState": "PASS"
+}
