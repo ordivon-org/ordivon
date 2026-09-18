@@ -388,3 +388,4 @@ The current optimization target is not "more disciplines"; it is:
 `minimum sufficient theory for the current decision`.
 
 No Wave 4 is implied by discovering another useful academic field.
+- docs/LEGO_LENS_UNIVERSE_R1.md

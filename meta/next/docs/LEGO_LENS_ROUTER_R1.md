@@ -316,3 +316,4 @@ Canonical local references:
 - docs/LEGO_THEORY_WAVE3_R1.md
 - knowledge/registries/lego-lens-registry-r1.json
 - docs/LEGO_LENS_COMPILER_R1.md
+- docs/LEGO_LENS_UNIVERSE_R1.md
