@@ -654,7 +654,7 @@ impl Runtime {
                 launcher_process_creation_time_file_time,
                 ..
             } = owner;
-            let observed = observe_windows_launcher_owner(windows, launcher_process_id)?;
+            let observed = observe_windows_process_owner(windows, launcher_process_id)?;
             return Ok(observed.process_alive
                 && observed.process_creation_time_file_time
                     == Some(launcher_process_creation_time_file_time));
@@ -913,7 +913,7 @@ impl Runtime {
                 )
             })?;
             let observation =
-                observe_windows_launcher_owner(windows, evidence.launcher_process_id)?;
+                observe_windows_process_owner(windows, evidence.launcher_process_id)?;
             if Path::new(&attempt.bundle_path).join(RESULT_FILE).is_file() {
                 return self.reconcile_runner_result(attempt);
             }
@@ -1019,7 +1019,7 @@ impl Runtime {
         )? {
             return Ok(());
         }
-        let observation = observe_windows_launcher_owner(windows, *launcher_process_id)?;
+        let observation = observe_windows_process_owner(windows, *launcher_process_id)?;
         if Path::new(&attempt.bundle_path).join(RESULT_FILE).exists() {
             return self.reconcile_runner_result(attempt);
         }
@@ -1072,46 +1072,7 @@ impl Runtime {
         {
             return self.reconcile_provider_owned_attempt(attempt, &plan, &owner);
         }
-        let expected = supervisor_identity(attempt)?;
-        let properties = systemctl_show(&attempt.unit_name)?;
-        let current_boot_id = read_trimmed("/proc/sys/kernel/random/boot_id")?;
-        let unit_state = if unit_is_active(&properties) {
-            SupervisorUnitState::Running
-        } else if properties
-            .get("LoadState")
-            .is_some_and(|state| state == "not-found")
-        {
-            SupervisorUnitState::NotFound
-        } else {
-            SupervisorUnitState::Terminal
-        };
-        let recorded_pid_alive = process_identity(attempt.main_pid.unwrap_or_default())
-            .is_some_and(|identity| {
-                attempt.process_start_identity.as_deref() == Some(identity.as_str())
-            });
-        let observation = SupervisorObservation {
-            boot_id: current_boot_id,
-            unit_state,
-            invocation_id: nonempty_property(&properties, "InvocationID"),
-            control_group: nonempty_property(&properties, "ControlGroup"),
-            main_pid: properties
-                .get("MainPID")
-                .and_then(|value| value.parse::<u32>().ok())
-                .filter(|pid| *pid > 0),
-            main_process_start_identity: properties
-                .get("MainPID")
-                .and_then(|value| value.parse::<u32>().ok())
-                .and_then(process_identity),
-            recorded_pid_alive,
-            recorded_pid_start_identity: attempt.main_pid.and_then(process_identity),
-            result: nonempty_property(&properties, "Result"),
-            exec_main_code: properties
-                .get("ExecMainCode")
-                .and_then(|value| value.parse().ok()),
-            exec_main_status: properties
-                .get("ExecMainStatus")
-                .and_then(|value| value.parse().ok()),
-        };
+        let (expected, observation) = observe_linux_process_owner(attempt)?;
         let intent = match attempt.termination_intent {
             super::AttemptTerminationIntent::Natural => TerminationIntent::Natural,
             super::AttemptTerminationIntent::StopRequested => TerminationIntent::StopRequested,

@@ -122,6 +122,24 @@ Migrate physical effects one family at a time:
 
 Each migration must prove provider replacement does not alter Runtime Job/Attempt truth.
 
+Current EF4 process-lifecycle slice (2026-09-18):
+
+- physical_provider now owns the Engine-facing process-owner observation seam for both Linux
+  systemd/cgroup execution and Windows launcher/Job Object execution;
+- Linux provider observation returns exact persisted SupervisorIdentity plus current
+  SupervisorObservation assembled from systemd, boot, PID-start identity, and result facts;
+- Windows provider observation wraps exact launcher PID + process-creation identity observation;
+- Linux terminal-unit release now also crosses the physical_provider seam;
+- Engine no longer directly calls observe_windows_launcher_owner, supervisor_identity(attempt),
+  or release_terminal_unit for these lifecycle paths;
+- this deliberately does not introduce a universal provider trait, scheduler, provider selection,
+  evidence normalization, or cross-platform false equivalence;
+- execution-fabric boundary tests: 2/2 PASS;
+- Runtime Core fast regression: 231/231 PASS with the known long-running property test filtered;
+- MCP regression: 57/57 PASS;
+- SPI contracts: 8/8 PASS;
+- cargo check, cargo fmt --check, and git diff --check: PASS.
+
 ## EF5 — Controller fabric
 
 Introduce small reconcilers with explicit desired/observed state. Initial controllers:
