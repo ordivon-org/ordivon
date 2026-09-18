@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "ordivon-residual-elimination-r2",
+  "date": "2026-09-19",
+  "status": "CORE_ZERO_PROVISIONAL",
+  "parent": "ordivon-core-elimination-r1",
+  "acceptedIrreduciblePrimitives": [],
+  "residualCandidates": [],
+  "reclassifiedResponsibilities": [
+    {
+      "id": "R1",
+      "name": "cross-standard identity mapping",
+      "disposition": "ADAPTER_ONLY",
+      "owner": "native identifiers + explicit foreign-id mappings + OTel/PROV correlation"
+    },
+    {
+      "id": "R2",
+      "name": "non-idempotent external-effect reconciliation",
+      "disposition": "STANDARD_PATTERN",
+      "owner": "provider idempotency/query + outbox/inbox + saga + explicit UNKNOWN"
+    },
+    {
+      "id": "R3",
+      "name": "semantic completion binding",
+      "disposition": "DOMAIN_VERIFIER",
+      "owner": "domain verifier + CMMN/SACM/provenance evidence"
+    },
+    {
+      "id": "R4",
+      "name": "cross-standard conformance",
+      "disposition": "TCK_ONLY",
+      "owner": "profile + behavioral conformance tests"
+    }
+  ],
+  "architecturalCore": "EMPTY",
+  "operationalRemainder": [
+    "external components",
+    "thin adapters",
+    "migration code",
+    "domain-specific verifiers",
+    "conformance tests",
+    "deployment manifests",
+    "documentation"
+  ],
+  "deletionRule": "Delete only after behavioral parity; a migration blocker does not promote the whole old subsystem back into core."
+}
