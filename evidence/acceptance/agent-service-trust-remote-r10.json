@@ -1,0 +1,64 @@
+{
+  "architectureDelta": "knowledge/graphs/ordivon-agent-service-r10-trust-remote-delta.json",
+  "authorityAssertions": {
+    "agentIdentityEqualsAuthenticatedPrincipal": false,
+    "auditCreatesShadowStateAuthority": false,
+    "auditExportsCredentialLocator": false,
+    "auditExportsDelegationPayload": false,
+    "auditUsesValidatedEffectiveRemoteCorrelation": true,
+    "credentialReferenceContainsSecretMaterial": false,
+    "establishedRemoteCorrelationMayDrift": false,
+    "identicalRemoteObservationCreatesDuplicateSnapshot": false,
+    "identityProofExactReplayUsesHistoricalReceipt": true,
+    "identityProofFreshnessIsDerived": true,
+    "identityProofGrantsAuthorization": false,
+    "identityProofIssuerMismatchFailsClosed": true,
+    "liveA2AAuthenticatedClientImplemented": false,
+    "liveMCPAuthenticatedClientImplemented": false,
+    "liveSecretProviderImplemented": false,
+    "remoteCorrelationMayBeEstablishedAfterDelivery": true,
+    "remoteTerminalDirectlyCompletesLocalTask": false
+  },
+  "baseImplementationCommit": "2ff2c1ad3decea4e9b00d245cc30caf1c5bc564e",
+  "date": "2026-09-18",
+  "deferredBaseNodes": [
+    "N24"
+  ],
+  "discoveredNodes": [
+    "N51",
+    "N52",
+    "N53",
+    "N54",
+    "N55",
+    "N56",
+    "N57"
+  ],
+  "kind": "ordivon.agent-service-trust-remote-r10-acceptance",
+  "refinedBaseNodes": [
+    "N16"
+  ],
+  "schemaVersion": 1,
+  "semanticDogfood": {
+    "auditLeaksCredentialLocator": false,
+    "auditLeaksDelegationPayload": false,
+    "auditShadowTable": false,
+    "identityHasPrincipal": false,
+    "localTaskState": "PENDING",
+    "proofAuthenticated": true,
+    "remoteContextMatchesReceipt": true,
+    "remoteSuccessful": true,
+    "remoteTaskMatchesReceipt": true,
+    "remoteTerminal": true,
+    "status": "PASS"
+  },
+  "verification": {
+    "compileall": "PASS",
+    "gitDiffCheck": "PASS",
+    "publicApiTests": 1,
+    "repositoryFailures": 0,
+    "repositoryTests": 143,
+    "resourceWarningsAsErrors": "PASS",
+    "trustRemoteTests": 10
+  },
+  "verificationState": "PASS"
+}

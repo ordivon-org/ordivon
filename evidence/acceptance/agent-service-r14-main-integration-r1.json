@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.agent-service-r14-main-integration-r1-acceptance",
+  "date": "2026-09-18",
+  "truthRole": "source-integration-acceptance-not-production-deployment-truth",
+  "workspaceId": "ws-agent-service-r14-main-integration-r1-20260918",
+  "sourceMainCommit": "804225e88926840e04a011668bfaf057b16cdf50",
+  "r14Commit": "0721009237365ea61cd975bd187be5171f1dcd52",
+  "merge": {
+    "conflicts": 0,
+    "merged": true,
+    "productionEffects": false
+  },
+  "corrections": {
+    "runtimeSemanticsChanged": false,
+    "r14GraphIdentity": {
+      "AgentInterfaceAdvertisementStore": {
+        "incorrect": "N40",
+        "correct": "N44"
+      },
+      "TransportBindingStore": {
+        "incorrect": "N42",
+        "correct": "N48"
+      }
+    },
+    "r14LessonStatus": {
+      "before": "IMPLEMENTED / FINAL VERIFICATION PENDING",
+      "after": "IMPLEMENTED / ACCEPTANCE PASS"
+    },
+    "graphIdentityRegressionGateAdded": true,
+    "explicitCompatibilityAliases": [
+      {
+        "nodeId": "N13",
+        "canonical": "EvidenceSemanticVerifier",
+        "historicalReference": "SemanticVerifier"
+      }
+    ]
+  },
+  "verification": {
+    "preCorrection": {
+      "compileall": "PASS",
+      "agentServiceTests": 181,
+      "failures": 0,
+      "elapsedSeconds": 95.088
+    },
+    "graphIdentity": {
+      "graphFiles": 12,
+      "nodeCount": 86,
+      "hardIdentityCollisions": 0,
+      "status": "PASS"
+    },
+    "final": {
+      "compileall": "PASS",
+      "agentServiceTests": 182,
+      "failures": 0,
+      "elapsedSeconds": 77.951,
+      "gitDiffCheck": "PASS"
+    }
+  },
+  "semanticGates": {
+    "authorityLifetimeRevocation": {
+      "standing": "UNRESOLVED_BLOCKS_PRODUCTION_DEPLOYMENT",
+      "question": "Does an admitted/bound delivery remain authorized after Session closure, or must effect-time delivery revalidate current Session/delegation/policy authority?",
+      "implementationChosen": false
+    }
+  },
+  "currentOperationalObservation": {
+    "liveLegacyAgentAutomationStillObserved": true,
+    "dedicatedAgentServiceProductionServiceObserved": false,
+    "providerPreflight": "CHALLENGE_GATED",
+    "browserlessSubstrateHealthy": true
+  },
+  "standings": {
+    "sourceIntegration": "READY_TO_INTEGRATE_MAIN",
+    "runtimeSemantics": "UNCHANGED_BY_INTEGRATION_CORRECTIONS",
+    "productionDeployment": "NOT_ADMITTED"
+  },
+  "nextActions": [
+    "Integrate the verified source candidate into current main under a revision fence.",
+    "Resolve authority lifetime/revocation semantics with an explicit contract and test.",
+    "Define the Agent Service deployment/API composition without replacing natural provider authorities.",
+    "Run a bounded production-adjacent canary only after semantic admission.",
+    "Instrument intent -> provider admission -> effect -> evidence -> semantic acceptance as one E2E funnel."
+  ]
+}
