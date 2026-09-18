@@ -42,7 +42,7 @@ Do not invoke merely to create more questions.
    - CONTROL — which variables are genuine intervention levers?
    - COUNTERFACTUAL — what changes if a node, assumption, rule, or interface is removed/replaced?
    - FALSIFICATION — what observation would discriminate between competing explanations?
-4. **Route to mature lenses.** Use systems-engineering, DSM, feedback-control, STPA, regime-shift/deep-uncertainty analysis, domain science, experiments, statistics, or other external methods only when their activation conditions fit.
+4. **Bind the natural method owner.** Record the analysis family best suited to the surviving uncertainty—systems engineering, DSM, feedback control, STPA, regime-shift/deep-uncertainty analysis, domain science, experiments, statistics, or another mature external method—without making cross-Skill invocation part of this Skill's authority.
 5. **Prune aggressively.** Keep questions that can change a decision, distinguish hypotheses, expose a hidden boundary, or justify a bounded experiment. Merge duplicates. Drop rhetorical, unanswerable, and purely curiosity-generating questions.
 6. **Order by information value, not drama.** Prefer questions whose answers eliminate the largest consequential uncertainty at acceptable evidence cost.
 7. **Emit a bounded question set.** Default to 3-7 primary questions plus optional follow-ups, not a giant checklist.
