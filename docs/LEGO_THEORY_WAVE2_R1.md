@@ -122,3 +122,21 @@ Observed first-wave results:
 - **Information Flow — PROSPECTIVELY_VALIDATED_INFORMATION_BOUNDARY_LENS.** Agent Service R14's "secret-free locator" wording was corrected: opaque credential locators may themselves be sensitive even though resolved credential/header material remains external.
 
 No finding enters LEGO Core from one case, and Wave 2 introduced no common schema field.
+
+
+## Relationship to Agent Security LEGO cross-domain validation
+
+Agent Security LEGO consumes this Wave 2 Information Flow lens rather than duplicating it.
+
+Cross-domain validation adds adjacent control/effect questions that Information Flow alone does not own:
+- exact operating-regime identity;
+- policy binding event/time;
+- authority propagation across composed actors/providers;
+- persistence-class separation;
+- effect commit point/reversibility;
+- effect reconciliation oracle.
+
+Reference:
+- `knowledge/lessons/agent-security-cross-domain-destroyer-r1.md`
+
+These are promoted as optional shared analytical laws, not Wave 2 replacement lenses and not common schema fields.

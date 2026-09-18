@@ -64,3 +64,30 @@ The Security package should be able to support authorized laboratory workloads t
 - time-to-detect, time-to-attribute and time-to-safe-route measurements.
 
 Browser substrate health and security-boundary admissibility are separate states. A successful browser action, challenge interaction, or third-party detector score is not by itself Security acceptance.
+
+
+## Active research line: authority, egress and effect topology
+
+Agent Security LEGO is the current reusable security/control lens for systems with ambient authority, hidden or multiple egress planes, persistent state, delegated execution, or consequential external effects.
+
+Canonical lens:
+- `knowledge/lessons/agent-security-lego-r1.md`.
+
+Validation:
+- `knowledge/lessons/zcode-workspace-snapshot-security-lego-r1.md`;
+- `knowledge/lessons/agent-security-cross-system-destroyer-r1.md`;
+- `knowledge/lessons/agent-security-cross-domain-destroyer-r1.md`.
+
+For applicable workloads, Security may derive:
+- READ / WRITE / DERIVE / NETWORK / PERSIST sets;
+- exact security-regime identity;
+- trigger-to-effect graph;
+- actuator-to-stage and policy-binding-time map;
+- authority delegation/attenuation/clamping map;
+- persistence-class vector;
+- effect commit point and reversibility class;
+- side-effect observation coverage;
+- effect reconciliation oracle;
+- disclosure-versus-implementation alignment.
+
+XAS13-XAS18 are cross-domain validated analytical dimensions. They are not Agent Plugin fields, not a replacement for NIST/OWASP/provider-native controls, and not mandatory project-plan schema fields.
