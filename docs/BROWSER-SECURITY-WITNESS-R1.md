@@ -186,6 +186,11 @@ DETECTOR_DRIFT
   detector version/coverage or detector-set shape changed on any carrier;
   subject classification is suppressed fail-closed
 
+OBSERVATION_INVALID
+  one or more public observations are not valid subject evidence because the observer or detector
+  reported an explicit unavailable/error/failed standing; subject classification is suppressed
+  fail-closed and the result routes to observation-validity instead of a CF-family repair owner
+
 GLOBAL_DRIFT
   at least one identical CF-family or infrastructure signal changed on every carrier,
   with no carrier-local residual
@@ -246,3 +251,37 @@ PYTHONPATH=src:. python scripts/promote_browser_security_pool_lkg.py \
 Reseal is fail-closed. It rejects detector drift, any CF02-CF07 subject drift, challenge-standing drift, carrier-local infrastructure drift, Network-v2 authority drift, a stale old-index digest, candidate artifact digest mismatch, a candidate bundle that differs from Security-v2's own canonical rebuild, or disagreement between the Harness receipt and Security-v2's recomputed pool classification. A different Browserless/Chromium image may therefore become a new LKG only when the observable detector surface remains unchanged and the only shared infrastructure identity change is `browserBinary` and/or `controlLayer`.
 
 The generated pool index retains the stable production pool identity and comparison law, but carries a `reseal` provenance object binding the previous index digest, source pool-run receipt digest, source Harness revision, pre-commit Security revision, observed standing, and explicitly allowed infrastructure-change set. The command intentionally stops at `LKG_RESEALED_PENDING_COMMIT`; Git review/commit remains a separate owner authority. It never deploys Browserless, changes Agent Automation admission, visits a protected provider challenge, or crosses SEND.
+
+
+## Observation validity gate
+
+Browser Security distinguishes **the subject changed** from **the observation failed**. Existing bundle schema v1 is retained: collector-side failure sentinels remain public observations, while Security-v2 interprets explicit `standing` values during comparison.
+
+```text
+standing=OBSERVED (or no failure sentinel)
+        -> VALID
+        -> eligible for subject drift comparison
+
+standing=UNAVAILABLE
+        -> OBSERVER_UNAVAILABLE
+        -> not subject evidence
+
+standing=ERROR / FAILED
+        -> DETECTOR_FAILED
+        -> not subject evidence
+```
+
+The classifier is recursive, so an unavailable nested observer such as `CF06.network` invalidates that detector observation without pretending that the browser/timezone/font subject changed. Invalid detector rows are marked `OBSERVATION_INVALID`; they do not contribute to `changedFamilies`, `publicObservationChanges`, or CF-family repair routes.
+
+At pool level, any invalid carrier observation yields:
+
+```text
+standing = OBSERVATION_INVALID
+subjectClassificationSuppressed = true
+repairRoutes = ["observation-validity"]
+rootCauseEstablished = false
+```
+
+Detector-shape/version drift still takes precedence as `DETECTOR_DRIFT`. This gate is intentionally fail-closed: an unavailable observer cannot make a release qualify as `NO_OBSERVED_DRIFT`, but it also cannot be mislabeled as CF02/CF06 subject drift.
+
+The 2026-09-18 Network-v2 forwarding incident is the motivating regression case. With host `net.ipv4.ip_forward=0`, the Browserless namespace retained routes and WireGuard TX increased, while `tls.peet.ws` and Cloudflare trace became unavailable. The historical candidate bundles now replay as `OBSERVATION_INVALID` for CF02/CF06 rather than `GLOBAL_DRIFT`; after forwarding recovery, the same pool returns `NO_OBSERVED_DRIFT`.
