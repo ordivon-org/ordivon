@@ -1,15 +1,22 @@
 {
   "schemaVersion": 1,
   "kind": "ordivon.market-capital.capability-dependencies",
-  "principle": "reuse mature capability environments through explicit contracts; do not duplicate their dependency stacks",
+  "principle": "direct Python imports are owned and locked by Market Capital; cross-domain capabilities use explicit contracts, never another repository's virtualenv",
   "capabilities": {
     "research": {
-      "provider": "Ordivon Research Capability",
-      "providerRepo": "/root/projects/ordivon-research-v2",
-      "interpreterEnv": "MARKET_CAPITAL_RESEARCH_PYTHON",
-      "defaultInterpreter": "/root/projects/ordivon-research-v2/.venv/bin/python",
-      "requiredPythonModules": ["jsonschema", "mlflow", "pandas", "pandera", "pyarrow"],
-      "responsibility": "scientific dataframe validation, Parquet materialization, experiment lineage and research artifacts"
+      "provider": "Market Capital research dependency group composed from upstream libraries",
+      "dependencyGroup": "research",
+      "pythonVersion": "3.14.7",
+      "interpreter": "./.venv/bin/python",
+      "requiredPythonModules": [
+        "jsonschema",
+        "mlflow",
+        "pandas",
+        "pandera",
+        "pyarrow"
+      ],
+      "responsibility": "scientific dataframe validation, Parquet materialization, experiment lineage and research artifacts used directly by Market Capital source",
+      "nonResponsibility": "does not borrow or execute through ordivon-research-v2 virtualenv; cross-domain Research workflows require a separate explicit provider contract"
     },
     "xbrlValidation": {
       "provider": "Arelle + SEC EDGAR plugins",
@@ -23,7 +30,9 @@
       "version": "0.17.9",
       "binary": "/usr/local/bin/tigerbeetle",
       "clientInterpreter": "/opt/ordivon/external/tigerbeetle/0.17.9/python-client/bin/python",
-      "requiredPythonModules": ["tigerbeetle"],
+      "requiredPythonModules": [
+        "tigerbeetle"
+      ],
       "responsibility": "double-entry accounting conservation, atomic transfer mechanics and provider transfer identity only",
       "nonResponsibility": "does not mint CapitalTruth, settlement, legal ownership, deployability, ExternalFinancialWriteAdmission or EffectAuthority"
     }
