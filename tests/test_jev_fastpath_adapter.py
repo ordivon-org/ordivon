@@ -202,3 +202,22 @@ def test_receipt_redacts_goal_and_text(tmp_path):
     assert "Type " + secret not in raw
     assert secret not in raw
     assert out["finalPage"]["textDigest"].startswith("sha256:")
+
+
+def test_provider_readiness_distinguishes_cold_daemon_from_reachable_cdp(monkeypatch):
+    class Response:
+        def __enter__(self):
+            return self
+        def __exit__(self, *_args):
+            return False
+        def read(self):
+            return b'{"Browser":"Chrome/152","Protocol-Version":"1.3","webSocketDebuggerUrl":"ws://secret"}'
+
+    monkeypatch.setattr(M, "urlopen", lambda *_args, **_kwargs: Response())
+    out = M.provider_readiness(
+        {"BU_CDP_URL": "http://127.0.0.1:9333", "TYPESAFE_API_KEY": "x"}
+    )
+    assert out["cdp"]["reachable"] is True
+    assert out["cdp"]["browser"] == "Chrome/152"
+    assert "webSocketDebuggerUrl" not in json.dumps(out)
+    assert out["browserSubstrateReady"] is True

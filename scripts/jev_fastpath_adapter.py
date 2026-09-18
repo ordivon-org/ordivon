@@ -23,6 +23,7 @@ import re
 import tempfile
 from typing import Any, Callable, Mapping
 from urllib.parse import urlparse
+from urllib.request import urlopen
 
 REQUEST_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 ALLOWED_SCHEMES = {"http", "https", "file"}
@@ -140,15 +141,42 @@ def provider_readiness(env: Mapping[str, str] | None = None, *, require_text: bo
         }
     except Exception:
         pass
+
+    cdp = {"configured": False, "reachable": False, "browser": None, "protocolVersion": None}
+    if env.get("BU_CDP_URL"):
+        cdp["configured"] = True
+        try:
+            base = str(env["BU_CDP_URL"]).rstrip("/")
+            with urlopen(base + "/json/version", timeout=1.5) as response:
+                value = json.loads(response.read())
+            cdp.update(
+                reachable=True,
+                browser=value.get("Browser"),
+                protocolVersion=value.get("Protocol-Version"),
+                webSocketPresent=bool(value.get("webSocketDebuggerUrl")),
+            )
+        except Exception:
+            pass
+    elif env.get("BU_CDP_WS"):
+        cdp["configured"] = True
+        cdp["webSocketConfigured"] = True
+
     credentials = credential_readiness(env, require_text=require_text)
+    browser_substrate_ready = bool(daemon["browserReady"] or cdp["reachable"])
     return {
         "schemaVersion": 1,
         "kind": "ordivon.jev-fastpath-readiness",
         "packages": packages,
         "browserHarness": daemon,
-        "explicitCdpConfigured": bool(env.get("BU_CDP_URL") or env.get("BU_CDP_WS")),
+        "cdp": cdp,
+        "browserSubstrateReady": browser_substrate_ready,
         "credentials": credentials,
-        "readyForRun": bool(packages["jev-ultrafast"] and packages["browser-harness"] and credentials["ready"]),
+        "readyForRun": bool(
+            packages["jev-ultrafast"]
+            and packages["browser-harness"]
+            and browser_substrate_ready
+            and credentials["ready"]
+        ),
         "nonClaims": ["browser_semantic_success", "provider_network_serviceable", "task_authorized"],
     }
 
