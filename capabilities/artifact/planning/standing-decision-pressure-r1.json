@@ -1,0 +1,47 @@
+{
+  "candidateVerifierPluginRule": {
+    "claimResultsKeySet": "EXACTLY_PROFILE_REQUIRED_EVIDENCE_KEY_SET",
+    "missingRequiredClaim": "INVALID_PLUGIN_RESULT_OR_PENDING_STANDING_FAIL_CLOSED",
+    "nativeResult": "PRESERVED_UNMODIFIED_AND_CANONICAL_DIGEST_BOUND",
+    "overallStatus": "DERIVED_BY_STANDING_DECISION_NOT_PLUGIN_AUTHORITY",
+    "requiredClaimResultStatus": [
+      "PASS",
+      "FAIL",
+      "NOT_EVALUATED"
+    ]
+  },
+  "kind": "artifact-standing-decision-pressure-test",
+  "nextSlice": {
+    "id": "R2-S1B",
+    "objective": "Pressure-test the explicit claimResults verifier-plugin contract on WAVE, PNG and legacy verify-stage adapters before changing production routing."
+  },
+  "provenProperties": [
+    "A common EvaluationRequest can represent production-v1 compatibility routes and registered standards-first verify routes without inventing one universal execution sequence.",
+    "A common EvidenceObservation envelope can round-trip legacy verify-stage results and family verification service results canonically without imposing one native verifier schema.",
+    "The envelope fails closed when common projections or native evidence drift.",
+    "Verification status and evidence completeness are independent axes.",
+    "A StandingDecision can be derived fail-closed from profile requiredEvidence plus explicit claimResults.",
+    "Native verifier aggregate PASS is insufficient for profile PASS when any required evidence key lacks an explicit claim result.",
+    "Trust status and release status remain independent of verification PASS."
+  ],
+  "rejectedShortcuts": [
+    "infer claim satisfaction from verifier aggregate PASS",
+    "infer claim mapping by string similarity",
+    "treat standing.bindings keys as a universal requiredEvidence mapping",
+    "treat consumer acceptance standing as Artifact kernel standing",
+    "replace family-native result schemas with one universal Artifact AST"
+  ],
+  "requiredEvidenceCensus": {
+    "boundVerifyProfiles": 19,
+    "profilesWithFullStandingBindingKeyCoverage": 0,
+    "profilesWithFullVerifierSourceLiteralCoverage": 0,
+    "requiredEvidenceKeys": 102,
+    "sameNameKeysInStandingBindings": 10,
+    "sameNameKeysInStandingProof": 9,
+    "sameNameStringLiteralsInVerifierSource": 69
+  },
+  "schemaVersion": 1,
+  "sourceRevision": "e75f8400129adf7e7d6f0f613f342c01a30acbd1",
+  "standing": "R2_S1_PRESSURE_TEST_COMPLETE_EXPLICIT_CLAIM_RESULTS_REQUIRED",
+  "truthRole": "planning-projection-not-production-contract"
+}

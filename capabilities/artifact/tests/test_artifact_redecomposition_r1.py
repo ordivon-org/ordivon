@@ -57,9 +57,10 @@ class ArtifactRedecompositionR1Tests(unittest.TestCase):
 
     def test_next_slice_is_evaluation_model_pressure_test(self) -> None:
         slices = {item["id"]: item for item in self.plan["slices"]}
-        self.assertEqual(slices["R2-S1"]["status"], "NEXT")
-        self.assertIn("K05", slices["R2-S1"]["nodeIds"])
-        self.assertIn("C01", slices["R2-S1"]["nodeIds"])
+        self.assertEqual(slices["R2-S1"]["status"], "PRESSURE_TEST_COMPLETE")
+        self.assertEqual(slices["R2-S1B"]["status"], "PRESSURE_TEST_COMPLETE")
+        self.assertEqual(slices["R2-S1C"]["status"], "NEXT")
+        self.assertIn("K05", slices["R2-S1C"]["nodeIds"])
 
     def test_current_empirical_topology_is_recorded(self) -> None:
         topology = self.plan["observedTopology"]

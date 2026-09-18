@@ -1,0 +1,46 @@
+{
+  "cases": {
+    "audio-wave-pcm16-r1": {
+      "safeMappedClaims": [
+        "referenceContainerView",
+        "independentTechnicalView",
+        "decoderMatrix",
+        "pcmIdentity"
+      ],
+      "standing": "NATIVE_RESULT_EXPANSION_REQUIRED",
+      "unaddressableClaims": {
+        "contractSchema": "Current native result does not expose a distinct contractSchema status object. Aggregate PASS/control-flow inference is not accepted as claim authority."
+      }
+    },
+    "legacy-verify-stage": {
+      "reason": "Profile claim keys can be enumerated exactly; emitted gate receipts map directly and absent gates can be represented as NOT_EVALUATED without inference.",
+      "standing": "ADAPTER_SUFFICIENT"
+    },
+    "still-image-png-srgb-r1": {
+      "safeMappedClaims": [
+        "datastreamValidity",
+        "metadataObservation",
+        "decoderMatrix"
+      ],
+      "standing": "NATIVE_RESULT_EXPANSION_REQUIRED",
+      "unaddressableClaims": {
+        "profileFacts": "Current native result spreads profile-fact evaluation across image/png facts and aggregate failures; re-evaluating profile policy in an adapter would duplicate verifier semantics."
+      }
+    }
+  },
+  "contractRule": {
+    "claimResultsKeySet": "EXACTLY_PROFILE_REQUIRED_EVIDENCE_KEY_SET",
+    "missingClaim": "REJECT_OR_NOT_EVALUATED_NEVER_INFER_PASS",
+    "nativeFields": "PRESERVED_FOR_BACKWARD_COMPATIBILITY",
+    "routeChanges": "NONE_IN_PRESSURE_TEST"
+  },
+  "kind": "artifact-claim-results-adapter-pressure-test",
+  "nextSlice": {
+    "id": "R2-S1C",
+    "objective": "Add backward-compatible explicit claimResults to WAVE and PNG native verifier outputs and prove current callers/results remain valid."
+  },
+  "schemaVersion": 1,
+  "sourceRevision": "e75f8400129adf7e7d6f0f613f342c01a30acbd1",
+  "standing": "R2_S1B_PRESSURE_TEST_COMPLETE_SELECTIVE_NATIVE_EXPANSION_REQUIRED",
+  "truthRole": "planning-projection-not-production-contract"
+}

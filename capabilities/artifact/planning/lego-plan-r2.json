@@ -36,7 +36,8 @@
     "trustVsaLines": 808,
     "ociPackageStageLines": 362,
     "directPythonProviderProjectFanout": 17,
-    "productionPythonDeliveryFacadeImports": 0
+    "productionPythonDeliveryFacadeImports": 0,
+    "requiredEvidenceKeysAcrossBoundVerifyProfiles": 102
   },
   "nodes": [
     {
@@ -449,13 +450,19 @@
       "label": "ImplicitVerifierPluginProtocol",
       "observation": "Nineteen capability bindings already route to family verifier module/callable entrypoints, but plugin packaging/interface is not formalized.",
       "priority": "P1"
+    },
+    {
+      "id": "D07",
+      "label": "ClaimAddressabilityGap",
+      "observation": "Across 19 bound verify profiles, 102 requiredEvidence keys exist but no profile has complete same-name coverage in standing bindings or verifier source; generic standing cannot safely infer missing claim mappings.",
+      "priority": "P0"
     }
   ],
   "slices": [
     {
       "id": "R2-S1",
       "objective": "Pressure-test one common EvaluationRequest/EvidenceObservation/StandingDecision model against four real profiles without changing production routing.",
-      "status": "NEXT",
+      "status": "PRESSURE_TEST_COMPLETE",
       "nodeIds": [
         "K01",
         "K02",
@@ -463,6 +470,32 @@
         "K04",
         "K05",
         "C01",
+        "P02"
+      ],
+      "result": "COMMON_REQUEST_AND_LOSSLESS_OBSERVATION_PROVEN_EXPLICIT_CLAIM_RESULTS_REQUIRED"
+    },
+    {
+      "id": "R2-S1B",
+      "objective": "Pressure-test an explicit claimResults VerifierPlugin contract on WAVE, PNG and legacy verify-stage compatibility without changing production routing.",
+      "status": "PRESSURE_TEST_COMPLETE",
+      "nodeIds": [
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "P02",
+        "C01"
+      ],
+      "result": "LEGACY_ADAPTER_SUFFICIENT_WAVE_AND_PNG_NATIVE_EXPANSION_REQUIRED"
+    },
+    {
+      "id": "R2-S1C",
+      "objective": "Add backward-compatible explicit claimResults to WAVE and PNG native verifier outputs and prove existing routes/callers remain unchanged.",
+      "status": "NEXT",
+      "nodeIds": [
+        "K02",
+        "K04",
+        "K05",
         "P02"
       ]
     },
