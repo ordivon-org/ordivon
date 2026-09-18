@@ -19,7 +19,7 @@ from .remote_evidence import (
     TaskExecutionClaimStore,
     _remote_task_verification_get_by_task,
 )
-from .slice1 import CarrierProviderAdapter, ServiceEventStore
+from .slice1 import CarrierProviderAdapter, ServiceEvent, ServiceEventStore
 from .task_runtime import RuntimeAdapter, TaskStore
 from .trust import (
     IdentityProofAdapter,
@@ -785,55 +785,100 @@ class ExecutionClaimTransferRecord:
     created_at_ns: int
 
 
-class ExecutionClaimTransferStore:
-    def __init__(self, connection: sqlite3.Connection) -> None:
-        self._connection = connection
+def _execution_claim_transfer_from_event(
+    event: ServiceEvent,
+) -> ExecutionClaimTransferRecord:
+    if (
+        event.aggregate_type != "ExecutionClaimTransfer"
+        or event.event_type != "ExecutionClaimTransferred"
+    ):
+        raise ValueError("event is not an execution claim transfer receipt")
+    payload = event.payload
+    if payload.get("clientTransferRequestId") != event.aggregate_id:
+        raise RuntimeError("claim transfer request identity mismatch")
+    return ExecutionClaimTransferRecord(
+        id=event.id,
+        client_transfer_request_id=event.aggregate_id,
+        task_id=payload["taskId"],
+        from_binding_id=payload["fromBindingId"],
+        to_binding_id=payload["toBindingId"],
+        quiescence_proof_id=payload["quiescenceProofId"],
+        replay_safety_decision_id=payload["replaySafetyDecisionId"],
+        sequence=int(payload["sequence"]),
+        created_at_ns=event.created_at_ns,
+    )
 
-    def get(self, transfer_id: str) -> ExecutionClaimTransferRecord:
-        row = self._connection.execute(
-            "SELECT * FROM execution_claim_transfers WHERE id = ?", (transfer_id,)
-        ).fetchone()
-        if row is None:
-            raise KeyError(transfer_id)
-        return self._from_row(row)
 
-    def get_by_client_request(
-        self, client_transfer_request_id: str, required: bool = True
-    ) -> ExecutionClaimTransferRecord | None:
-        row = self._connection.execute(
-            "SELECT * FROM execution_claim_transfers WHERE client_transfer_request_id = ?",
-            (client_transfer_request_id,),
-        ).fetchone()
-        if row is None:
-            if required:
-                raise KeyError(client_transfer_request_id)
-            return None
-        return self._from_row(row)
+def _execution_claim_transfer_get_by_client_request(
+    events: ServiceEventStore,
+    client_transfer_request_id: str,
+    required: bool = True,
+) -> ExecutionClaimTransferRecord | None:
+    history = events.list_for("ExecutionClaimTransfer", client_transfer_request_id)
+    receipts = [item for item in history if item.event_type == "ExecutionClaimTransferred"]
+    if not receipts:
+        if required:
+            raise KeyError(client_transfer_request_id)
+        return None
+    if len(receipts) != 1:
+        raise RuntimeError("claim transfer receipt stream contains multiple records")
+    return _execution_claim_transfer_from_event(receipts[0])
 
-    def get_by_quiescence_proof(self, proof_id: str) -> ExecutionClaimTransferRecord | None:
-        row = self._connection.execute(
-            "SELECT * FROM execution_claim_transfers WHERE quiescence_proof_id = ?", (proof_id,)
-        ).fetchone()
-        return None if row is None else self._from_row(row)
 
-    def has_binding_history(self, binding_id: str) -> bool:
-        row = self._connection.execute(
-            "SELECT 1 FROM execution_claim_transfers WHERE from_binding_id = ? OR to_binding_id = ? LIMIT 1",
-            (binding_id, binding_id),
-        ).fetchone()
-        return row is not None
+def _execution_claim_transfer_task_history(
+    events: ServiceEventStore,
+    task_id: str,
+) -> list[ExecutionClaimTransferRecord]:
+    records: list[ExecutionClaimTransferRecord] = []
+    for task_event in events.list_for("Task", task_id):
+        if task_event.event_type != "REMOTE_EXECUTION_CLAIM_TRANSFERRED":
+            continue
+        transfer_id = task_event.payload.get("claimTransferId")
+        if not isinstance(transfer_id, str) or not transfer_id:
+            raise RuntimeError("claim transfer Task event lacks transfer identity")
+        record = _execution_claim_transfer_from_event(events.get(transfer_id))
+        if record.task_id != task_id:
+            raise RuntimeError("claim transfer receipt Task identity mismatch")
+        records.append(record)
+    return records
 
-    def create_in_transaction(
-        self,
-        *,
-        client_transfer_request_id: str,
-        task_id: str,
-        from_binding_id: str,
-        to_binding_id: str,
-        quiescence_proof_id: str,
-        replay_safety_decision_id: str,
-    ) -> ExecutionClaimTransferRecord:
-        existing = self.get_by_client_request(client_transfer_request_id, required=False)
+
+def _execution_claim_transfer_get_by_quiescence_proof(
+    events: ServiceEventStore,
+    task_id: str,
+    proof_id: str,
+) -> ExecutionClaimTransferRecord | None:
+    for record in _execution_claim_transfer_task_history(events, task_id):
+        if record.quiescence_proof_id == proof_id:
+            return record
+    return None
+
+
+def _execution_claim_transfer_has_binding_history(
+    events: ServiceEventStore,
+    task_id: str,
+    binding_id: str,
+) -> bool:
+    return any(
+        binding_id in {record.from_binding_id, record.to_binding_id}
+        for record in _execution_claim_transfer_task_history(events, task_id)
+    )
+
+
+def _execution_claim_transfer_create_in_transaction(
+    events: ServiceEventStore,
+    *,
+    client_transfer_request_id: str,
+    task_id: str,
+    from_binding_id: str,
+    to_binding_id: str,
+    quiescence_proof_id: str,
+    replay_safety_decision_id: str,
+) -> ExecutionClaimTransferRecord:
+    existing = _execution_claim_transfer_get_by_client_request(
+        events, client_transfer_request_id, required=False
+    )
+    if existing is not None:
         candidate = (
             task_id,
             from_binding_id,
@@ -841,66 +886,56 @@ class ExecutionClaimTransferStore:
             quiescence_proof_id,
             replay_safety_decision_id,
         )
-        if existing is not None:
-            historical = (
-                existing.task_id,
-                existing.from_binding_id,
-                existing.to_binding_id,
-                existing.quiescence_proof_id,
-                existing.replay_safety_decision_id,
-            )
-            if candidate != historical:
-                raise RuntimeError("claim transfer replay conflicts with committed transfer")
-            return existing
-        sequence_row = self._connection.execute(
-            "SELECT COALESCE(MAX(sequence), 0) AS max_sequence FROM execution_claim_transfers WHERE task_id = ?",
-            (task_id,),
-        ).fetchone()
-        value = ExecutionClaimTransferRecord(
-            id=_id("claimtransfer"),
-            client_transfer_request_id=client_transfer_request_id,
-            task_id=task_id,
-            from_binding_id=from_binding_id,
-            to_binding_id=to_binding_id,
-            quiescence_proof_id=quiescence_proof_id,
-            replay_safety_decision_id=replay_safety_decision_id,
-            sequence=int(sequence_row["max_sequence"]) + 1,
-            created_at_ns=_now_ns(),
+        historical = (
+            existing.task_id,
+            existing.from_binding_id,
+            existing.to_binding_id,
+            existing.quiescence_proof_id,
+            existing.replay_safety_decision_id,
         )
-        self._connection.execute(
-            """
-            INSERT INTO execution_claim_transfers(
-                id, client_transfer_request_id, task_id, from_binding_id, to_binding_id,
-                quiescence_proof_id, replay_safety_decision_id, sequence, created_at_ns
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                value.id,
-                value.client_transfer_request_id,
-                value.task_id,
-                value.from_binding_id,
-                value.to_binding_id,
-                value.quiescence_proof_id,
-                value.replay_safety_decision_id,
-                value.sequence,
-                value.created_at_ns,
-            ),
-        )
-        return value
+        if candidate != historical:
+            raise RuntimeError("claim transfer replay conflicts with committed transfer")
+        return existing
 
-    @staticmethod
-    def _from_row(row: sqlite3.Row) -> ExecutionClaimTransferRecord:
-        return ExecutionClaimTransferRecord(
-            id=row["id"],
-            client_transfer_request_id=row["client_transfer_request_id"],
-            task_id=row["task_id"],
-            from_binding_id=row["from_binding_id"],
-            to_binding_id=row["to_binding_id"],
-            quiescence_proof_id=row["quiescence_proof_id"],
-            replay_safety_decision_id=row["replay_safety_decision_id"],
-            sequence=row["sequence"],
-            created_at_ns=row["created_at_ns"],
-        )
+    history = _execution_claim_transfer_task_history(events, task_id)
+    sequence = max((record.sequence for record in history), default=0) + 1
+    event = events.append_once_in_transaction(
+        "ExecutionClaimTransfer",
+        client_transfer_request_id,
+        "ExecutionClaimTransferred",
+        {
+            "clientTransferRequestId": client_transfer_request_id,
+            "taskId": task_id,
+            "fromBindingId": from_binding_id,
+            "toBindingId": to_binding_id,
+            "quiescenceProofId": quiescence_proof_id,
+            "replaySafetyDecisionId": replay_safety_decision_id,
+            "sequence": sequence,
+        },
+    )
+    record = _execution_claim_transfer_from_event(event)
+
+    events.append_once_in_transaction(
+        "ExecutionClaimTransferProof",
+        quiescence_proof_id,
+        "ExecutionClaimTransferProofConsumed",
+        {
+            "claimTransferId": record.id,
+            "clientTransferRequestId": client_transfer_request_id,
+            "taskId": task_id,
+        },
+    )
+    events.append_once_in_transaction(
+        "ExecutionClaimTransferDecision",
+        replay_safety_decision_id,
+        "ExecutionClaimTransferDecisionConsumed",
+        {
+            "claimTransferId": record.id,
+            "clientTransferRequestId": client_transfer_request_id,
+            "taskId": task_id,
+        },
+    )
+    return record
 
 
 class ExecutionClaimTransferCoordinator:
@@ -919,7 +954,6 @@ class ExecutionClaimTransferCoordinator:
         quiescence_requests: ExecutionQuiescenceRequestStore,
         quiescence_proofs: ExecutionQuiescenceProofStore,
         replay_safety_decisions: ReplaySafetyDecisionStore,
-        transfers: ExecutionClaimTransferStore,
     ) -> None:
         self._connection = connection
         self._tasks = tasks
@@ -932,7 +966,6 @@ class ExecutionClaimTransferCoordinator:
         self._quiescence_requests = quiescence_requests
         self._quiescence_proofs = quiescence_proofs
         self._replay_safety_decisions = replay_safety_decisions
-        self._transfers = transfers
 
     def preflight(self, *, from_binding_id: str, to_binding_id: str) -> tuple[Any, TransportBinding, TransportBinding]:
         if from_binding_id == to_binding_id:
@@ -956,7 +989,7 @@ class ExecutionClaimTransferCoordinator:
             raise RuntimeError("claim transfer target has quiescence-attempt history")
         if self._quiescence_proofs.latest_for_binding(target.id, quiescent_only=True) is not None:
             raise RuntimeError("claim transfer target was previously quiesced/frozen")
-        if self._transfers.has_binding_history(target.id):
+        if _execution_claim_transfer_has_binding_history(self._events, task.id, target.id):
             raise RuntimeError("claim transfer target is not pristine")
         if _remote_task_verification_get_by_task(self._events, task.id, required=False) is not None:
             raise RuntimeError("verified Task cannot transfer execution claim")
@@ -974,7 +1007,7 @@ class ExecutionClaimTransferCoordinator:
         if not isinstance(client_transfer_request_id, str) or not client_transfer_request_id.strip():
             raise ValueError("client_transfer_request_id must be non-empty")
         request_id = client_transfer_request_id.strip()
-        existing = self._transfers.get_by_client_request(request_id, required=False)
+        existing = _execution_claim_transfer_get_by_client_request(self._events, request_id, required=False)
         if existing is not None:
             candidate = (
                 from_binding_id,
@@ -1019,7 +1052,7 @@ class ExecutionClaimTransferCoordinator:
             raise ValueError("replay safety decision does not authorize this exact transfer")
         if not decision.safe:
             raise RuntimeError("claim transfer requires replay-safe decision")
-        if self._transfers.get_by_quiescence_proof(proof.id) is not None:
+        if _execution_claim_transfer_get_by_quiescence_proof(self._events, task.id, proof.id) is not None:
             raise RuntimeError("quiescence proof has already been consumed by another transfer")
         if _delivery_receipt_get_by_binding(self._receipts, target.id, required=False) is not None:
             raise RuntimeError("claim transfer target already has a delivery receipt")
@@ -1027,7 +1060,7 @@ class ExecutionClaimTransferCoordinator:
             raise RuntimeError("claim transfer target already has remote observation history")
         if self._quiescence_proofs.latest_for_binding(target.id, quiescent_only=True) is not None:
             raise RuntimeError("claim transfer target was previously quiesced/frozen")
-        if self._transfers.has_binding_history(target.id):
+        if _execution_claim_transfer_has_binding_history(self._events, task.id, target.id):
             raise RuntimeError("claim transfer target is not pristine")
         if _remote_task_verification_get_by_task(self._events, task.id, required=False) is not None:
             raise RuntimeError("verified Task cannot transfer execution claim")
@@ -1048,7 +1081,8 @@ class ExecutionClaimTransferCoordinator:
             )
             if cursor.rowcount != 1:
                 raise RuntimeError("execution claim changed before transfer commit")
-            transfer = self._transfers.create_in_transaction(
+            transfer = _execution_claim_transfer_create_in_transaction(
+                self._events,
                 client_transfer_request_id=request_id,
                 task_id=task.id,
                 from_binding_id=source.id,
@@ -1100,14 +1134,14 @@ class FailoverCoordinator:
         replay_safety: ReplaySafetyCoordinator,
         replay_safety_records: ReplaySafetyDecisionStore,
         claim_transfers: ExecutionClaimTransferCoordinator,
-        transfer_records: ExecutionClaimTransferStore,
+        events: ServiceEventStore,
     ) -> None:
         self._quiescence = quiescence
         self._quiescence_records = quiescence_records
         self._replay_safety = replay_safety
         self._replay_safety_records = replay_safety_records
         self._claim_transfers = claim_transfers
-        self._transfer_records = transfer_records
+        self._events = events
 
     def failover(
         self,
@@ -1127,7 +1161,7 @@ class FailoverCoordinator:
         failover_id = client_failover_request_id.strip()
         quiescence_id = client_quiescence_request_id.strip()
         replay_id = client_replay_safety_request_id.strip()
-        existing = self._transfer_records.get_by_client_request(failover_id, required=False)
+        existing = _execution_claim_transfer_get_by_client_request(self._events, failover_id, required=False)
         if existing is not None:
             proof = self._quiescence_records.get(existing.quiescence_proof_id)
             decision = self._replay_safety_records.get(existing.replay_safety_decision_id)
@@ -1225,7 +1259,6 @@ class AgentServiceR12:
             self.replay_safety_decisions,
             replay_safety_adapter,
         )
-        self.claim_transfer_records = ExecutionClaimTransferStore(self._connection)
         self.claim_transfers = ExecutionClaimTransferCoordinator(
             self._connection,
             self.tasks,
@@ -1238,7 +1271,6 @@ class AgentServiceR12:
             self.quiescence_requests,
             self.quiescence_proof_records,
             self.replay_safety_decisions,
-            self.claim_transfer_records,
         )
         self.delivery = TransferAwareDeliveryCoordinator(
             self._connection,
@@ -1259,7 +1291,7 @@ class AgentServiceR12:
             self.replay_safety,
             self.replay_safety_decisions,
             self.claim_transfers,
-            self.claim_transfer_records,
+            self.events,
         )
 
     @classmethod
@@ -1302,6 +1334,15 @@ class AgentServiceR12:
 
     @staticmethod
     def _initialize_schema(connection: sqlite3.Connection) -> None:
+        legacy_execution_claim_transfers = connection.execute(
+            "SELECT 1 FROM sqlite_master "
+            "WHERE type = 'table' AND name = 'execution_claim_transfers'"
+        ).fetchone()
+        if legacy_execution_claim_transfers is not None:
+            raise RuntimeError(
+                "legacy execution_claim_transfers schema is unsupported; "
+                "perform explicit destructive migration before opening this revision"
+            )
         connection.executescript(
             """
             CREATE TABLE IF NOT EXISTS execution_quiescence_requests (
@@ -1343,19 +1384,6 @@ class AgentServiceR12:
                 created_at_ns INTEGER NOT NULL
             );
 
-            CREATE TABLE IF NOT EXISTS execution_claim_transfers (
-                id TEXT PRIMARY KEY,
-                client_transfer_request_id TEXT NOT NULL UNIQUE,
-                task_id TEXT NOT NULL REFERENCES service_tasks(id),
-                from_binding_id TEXT NOT NULL REFERENCES transport_bindings(id),
-                to_binding_id TEXT NOT NULL REFERENCES transport_bindings(id),
-                quiescence_proof_id TEXT NOT NULL UNIQUE REFERENCES execution_quiescence_proofs(id),
-                replay_safety_decision_id TEXT NOT NULL UNIQUE REFERENCES replay_safety_decisions(id),
-                sequence INTEGER NOT NULL,
-                created_at_ns INTEGER NOT NULL,
-                UNIQUE(task_id, sequence),
-                CHECK(from_binding_id <> to_binding_id)
-            );
             """
         )
         connection.commit()
