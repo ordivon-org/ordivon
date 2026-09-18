@@ -310,6 +310,22 @@ class ServiceEventStore(_SqliteNode):
         payload: dict[str, Any] | None = None,
     ) -> ServiceEvent:
         """Append exactly one immutable event for an aggregate identity."""
+        with self._connection:
+            return self.append_once_in_transaction(
+                aggregate_type,
+                aggregate_id,
+                event_type,
+                payload,
+            )
+
+    def append_once_in_transaction(
+        self,
+        aggregate_type: str,
+        aggregate_id: str,
+        event_type: str,
+        payload: dict[str, Any] | None = None,
+    ) -> ServiceEvent:
+        """Transaction-scoped exactly-once append; caller owns commit/rollback."""
         payload = payload or {}
 
         def read_existing() -> ServiceEvent | None:
@@ -330,47 +346,46 @@ class ServiceEventStore(_SqliteNode):
                 created_at_ns=row["created_at_ns"],
             )
 
-        with self._connection:
-            existing = read_existing()
-            if existing is not None:
-                if existing.event_type != event_type or existing.payload != payload:
-                    raise RuntimeError(
-                        "append_once identity is already bound to different event content"
-                    )
-                return existing
-            event = ServiceEvent(
-                id=_id("evt"),
-                aggregate_type=aggregate_type,
-                aggregate_id=aggregate_id,
-                sequence=1,
-                event_type=event_type,
-                payload=payload,
-                created_at_ns=_now_ns(),
-            )
-            try:
-                self._connection.execute(
-                    "INSERT INTO service_events(id, aggregate_type, aggregate_id, sequence, event_type, payload_json, created_at_ns) "
-                    "VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    (
-                        event.id,
-                        event.aggregate_type,
-                        event.aggregate_id,
-                        event.sequence,
-                        event.event_type,
-                        _canonical_json(event.payload),
-                        event.created_at_ns,
-                    ),
+        existing = read_existing()
+        if existing is not None:
+            if existing.event_type != event_type or existing.payload != payload:
+                raise RuntimeError(
+                    "append_once identity is already bound to different event content"
                 )
-            except sqlite3.IntegrityError:
-                existing = read_existing()
-                if existing is None:
-                    raise
-                if existing.event_type != event_type or existing.payload != payload:
-                    raise RuntimeError(
-                        "append_once identity raced with different event content"
-                    ) from None
-                return existing
-            return event
+            return existing
+        event = ServiceEvent(
+            id=_id("evt"),
+            aggregate_type=aggregate_type,
+            aggregate_id=aggregate_id,
+            sequence=1,
+            event_type=event_type,
+            payload=payload,
+            created_at_ns=_now_ns(),
+        )
+        try:
+            self._connection.execute(
+                "INSERT INTO service_events(id, aggregate_type, aggregate_id, sequence, event_type, payload_json, created_at_ns) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (
+                    event.id,
+                    event.aggregate_type,
+                    event.aggregate_id,
+                    event.sequence,
+                    event.event_type,
+                    _canonical_json(event.payload),
+                    event.created_at_ns,
+                ),
+            )
+        except sqlite3.IntegrityError:
+            existing = read_existing()
+            if existing is None:
+                raise
+            if existing.event_type != event_type or existing.payload != payload:
+                raise RuntimeError(
+                    "append_once identity raced with different event content"
+                ) from None
+            return existing
+        return event
 
     def get(self, event_id: str) -> ServiceEvent:
         row = self._connection.execute(

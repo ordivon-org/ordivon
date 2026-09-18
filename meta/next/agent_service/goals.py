@@ -521,7 +521,6 @@ class AgentServiceR7:
         self.planner = r6.planner
         self.execution_activator = r6.execution_activator
         self.completion = r6.completion
-        self.verifications = r6.verifications
         self.goals = GoalStore(self._connection, self.events)
         self.goal_graph_guard = GoalGraphMutationGuard(self._connection, self.goals, self.tasks)
         self.goal_task_links = GoalTaskLinkStore(

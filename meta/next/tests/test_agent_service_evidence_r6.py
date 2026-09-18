@@ -11,6 +11,7 @@ from agent_service.evidence import (
     ArtifactDigestMismatch,
     RuntimeArtifactPayload,
     RuntimeArtifactReader,
+    _verification_record_list_for_task,
 )
 from agent_service.slice1 import CarrierProviderAdapter, ProviderObservation
 from agent_service.task_runtime import RuntimeAdapter, RuntimeArtifactDescriptor, RuntimeJobObservation, RuntimeJobRef
@@ -124,7 +125,7 @@ class AgentServiceEvidenceR6Tests(unittest.TestCase):
             service.execution_activator.activate(assignment.id)
 
             self.assertEqual(service.tasks.get(task.id).state, "RUNNING")
-            self.assertEqual(service.verifications.list_for_task(task.id), [])
+            self.assertEqual(_verification_record_list_for_task(service.events, task.id), [])
 
             service.completion.reconcile(assignment.id)
             self.assertEqual(service.tasks.get(task.id).state, "SUCCEEDED")
@@ -152,7 +153,7 @@ class AgentServiceEvidenceR6Tests(unittest.TestCase):
 
             service.completion.reconcile(assignment.id)
 
-            records = service.verifications.list_for_task(task.id)
+            records = _verification_record_list_for_task(service.events, task.id)
             self.assertEqual(len(records), 1)
             self.assertTrue(records[0].accepted)
             self.assertEqual(records[0].evidence["resolver"], "stdout_tail")
@@ -199,7 +200,7 @@ class AgentServiceEvidenceR6Tests(unittest.TestCase):
             service.completion.reconcile(assignment.id)
 
             self.assertEqual(service.tasks.get(task.id).state, "SUCCEEDED")
-            record = service.verifications.list_for_task(task.id)[0]
+            record = _verification_record_list_for_task(service.events, task.id)[0]
             self.assertEqual(record.evidence["artifactId"], artifact_id)
             self.assertEqual(record.evidence["digest"], sha256_text(content))
             self.assertEqual(artifacts.reads, [(active.runtime_job_id, artifact_id)])
@@ -241,7 +242,7 @@ class AgentServiceEvidenceR6Tests(unittest.TestCase):
                 service.completion.reconcile(assignment.id)
 
             self.assertEqual(service.tasks.get(task.id).state, "RUNNING")
-            self.assertEqual(service.verifications.list_for_task(task.id), [])
+            self.assertEqual(_verification_record_list_for_task(service.events, task.id), [])
 
     def test_completion_replay_does_not_duplicate_verdict_or_terminal_event(self) -> None:
         runtime = FakeRuntime()
@@ -267,7 +268,7 @@ class AgentServiceEvidenceR6Tests(unittest.TestCase):
             service.completion.reconcile(assignment.id)
             service.completion.reconcile(assignment.id)
 
-            self.assertEqual(len(service.verifications.list_for_task(task.id)), 1)
+            self.assertEqual(len(_verification_record_list_for_task(service.events, task.id)), 1)
             event_types = [event.event_type for event in service.events.list_for("Task", task.id)]
             self.assertEqual(event_types.count("TASK_SUCCEEDED"), 1)
             self.assertEqual(event_types.count("TASK_VERIFIED"), 1)
@@ -296,7 +297,7 @@ class AgentServiceEvidenceR6Tests(unittest.TestCase):
             service.completion.reconcile(assignment.id)
 
             self.assertEqual(service.tasks.get(task.id).state, "FAILED")
-            record = service.verifications.list_for_task(task.id)[0]
+            record = _verification_record_list_for_task(service.events, task.id)[0]
             self.assertFalse(record.accepted)
             self.assertEqual(record.reason, "runtime:failed")
             self.assertEqual(record.stage, "mechanical")
@@ -322,13 +323,17 @@ class AgentServiceEvidenceR6Tests(unittest.TestCase):
                 artifacts=(),
             )
 
-            with patch.object(service.verifications, "create_in_transaction", side_effect=RuntimeError("receipt failed")):
+            with patch.object(
+                service.events,
+                "append_once_in_transaction",
+                side_effect=RuntimeError("receipt failed"),
+            ):
                 with self.assertRaises(RuntimeError):
                     service.completion.reconcile(assignment.id)
 
             self.assertEqual(service.tasks.get(task.id).state, "RUNNING")
             self.assertEqual(service.assignments.get(assignment.id).state, "ACTIVE")
-            self.assertEqual(service.verifications.list_for_task(task.id), [])
+            self.assertEqual(_verification_record_list_for_task(service.events, task.id), [])
             self.assertNotIn(
                 "TASK_SUCCEEDED",
                 [event.event_type for event in service.events.list_for("Task", task.id)],
@@ -359,7 +364,7 @@ class AgentServiceEvidenceR6Tests(unittest.TestCase):
                 service.completion.reconcile(assignment.id)
 
             self.assertEqual(service.tasks.get(task.id).state, "RUNNING")
-            self.assertEqual(service.verifications.list_for_task(task.id), [])
+            self.assertEqual(_verification_record_list_for_task(service.events, task.id), [])
 
 
 if __name__ == "__main__":
