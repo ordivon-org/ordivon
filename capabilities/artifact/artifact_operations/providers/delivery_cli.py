@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import json
 import os
 from pathlib import Path
@@ -8,6 +7,7 @@ import subprocess
 from typing import Any
 
 from artifact_operations.receipt import expected_file, operation_file_fact
+from .common import PreparedOperation
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_ARTIFACT_PYTHON = Path(
@@ -25,12 +25,6 @@ def _simple_fact(value: dict[str, Any]) -> dict[str, Any]:
         "name": value.get("name") or Path(value["path"]).name,
         "size": value.get("size"),
     }
-
-
-@dataclass(frozen=True)
-class PreparedOperation:
-    immutable_inputs: dict[str, Any]
-    context: dict[str, Any]
 
 
 class DeliveryCliOperationProvider:

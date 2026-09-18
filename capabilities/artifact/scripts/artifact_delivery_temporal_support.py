@@ -12,7 +12,10 @@ from artifact_operations import (
     operation_key,
     validate_public_trust_material_envelope,
 )
-from artifact_operations.providers import DeliveryCliOperationProvider
+from artifact_operations.providers import (
+    DirectPythonOperationProvider,
+    DeliveryCliOperationProvider,
+)
 
 DEFAULT_ARTIFACT_PYTHON = Path(
     "/root/.local/share/ordivon-workstation/artifact-delivery-python-v1/current/bin/python"
@@ -34,12 +37,16 @@ class ReceiptFencedArtifactExecutor:
         artifact_cli: Path | None = None,
         artifact_oci_cli: Path | None = None,
     ) -> None:
-        provider_kwargs: dict[str, Any] = {"artifact_python": artifact_python}
-        if artifact_cli is not None:
-            provider_kwargs["artifact_cli"] = artifact_cli
-        if artifact_oci_cli is not None:
-            provider_kwargs["artifact_oci_cli"] = artifact_oci_cli
-        self.provider = DeliveryCliOperationProvider(**provider_kwargs)
+        if artifact_cli is not None or artifact_oci_cli is not None:
+            provider_kwargs: dict[str, Any] = {"artifact_python": artifact_python}
+            if artifact_cli is not None:
+                provider_kwargs["artifact_cli"] = artifact_cli
+            if artifact_oci_cli is not None:
+                provider_kwargs["artifact_oci_cli"] = artifact_oci_cli
+            selected_provider: Any = DeliveryCliOperationProvider(**provider_kwargs)
+        else:
+            selected_provider = DirectPythonOperationProvider()
+        self.provider = selected_provider
         self.executor = ArtifactOperationExecutor(state_root, provider=self.provider)
 
     @staticmethod
