@@ -17,12 +17,6 @@ LEGACY_PANDOC_ARCHIVE = (
     ROOT / ".cache/artifact-toolchain/pandoc/pandoc-3.10.2-linux-amd64.tar.gz"
 )
 DEFAULT_TOOLCHAIN_LOCK = ROOT / "artifact-delivery/toolchain-v1.lock.json"
-DEFAULT_OPENXML_VALIDATOR = Path(
-    os.environ.get(
-        "ARTIFACT_OPENXML_VALIDATOR",
-        "/root/.local/share/ordivon-workstation/artifact-openxml-v1/current/bin/validate-openxml",
-    )
-)
 
 
 def selected_external_file(

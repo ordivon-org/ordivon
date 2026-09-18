@@ -56,6 +56,9 @@ from artifact_verifiers.document import (
     verify_document_dependencies as document_verify_dependencies,
     verify_document_semantic_correspondence as document_verify_semantics,
 )
+from artifact_verifiers.openxml import (
+    verify_openxml_artifact as openxml_verify_artifact,
+)
 from artifact_verifiers.pdf import (
     verapdf_executable as pdf_verapdf_executable,
     verify_pdf as pdf_verify_structural,
@@ -1013,37 +1016,8 @@ def verify_pdf_conformance(path: Path, flavour: str) -> dict[str, Any]:
 
 
 def verify_openxml_artifact(path: Path) -> dict[str, Any]:
-    artifact = file_fact(path)
-    validator = Path(os.environ.get("ARTIFACT_OPENXML_VALIDATOR", "/root/.local/share/ordivon-workstation/artifact-openxml-v1/current/bin/validate-openxml"))
-    if not validator.is_file():
-        return {
-            "status": "NOT_RUN",
-            "artifact": artifact,
-            "error": "DocumentFormat.OpenXml validator runtime is unavailable",
-        }
-    proc = subprocess.run(
-        [str(validator), str(path)],
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-        timeout=60,
-    )
-    parsed: dict[str, Any] | None = None
-    parse_error: str | None = None
-    try:
-        parsed = json.loads(proc.stdout)
-    except Exception as error:
-        parse_error = str(error)
-    return {
-        "status": "PASS" if proc.returncode == 0 and parsed and parsed.get("status") == "PASS" else "FAIL",
-        "artifact": artifact,
-        "validatorOutput": parsed,
-        "exitCode": proc.returncode,
-        "parseError": parse_error,
-        "stderr": proc.stderr.strip()[:4000],
-        "boundary": "DocumentFormat.OpenXml schema/semantic validation only; Office target rendering, visual acceptance and delivery remain independent.",
-    }
+    return openxml_verify_artifact(path)
+
 
 
 def _vnu_jar() -> Path | None:
@@ -1221,7 +1195,7 @@ def _verification_stage_hooks() -> VerificationStageHooks:
     return VerificationStageHooks(
         validate_profile=validate_profile,
         primary_suffix=_primary_suffix,
-        verify_openxml_artifact=verify_openxml_artifact,
+        verify_openxml_artifact=openxml_verify_artifact,
         validate_delivery_request=validate_delivery_request,
         verify_document_semantic_correspondence=document_verify_semantics,
         verify_document_dependencies=_document_dependency_stage_verifier,

@@ -8,8 +8,8 @@ import subprocess
 from typing import Any, Callable
 
 from artifact_core.contracts import file_fact, sha256_file
+from artifact_verifiers.openxml import openxml_validator_executable
 from .toolchain import (
-    DEFAULT_OPENXML_VALIDATOR,
     DEFAULT_TOOLCHAIN_LOCK,
     GLOBAL_PANDOC,
     GLOBAL_PANDOC_ARCHIVE,
@@ -48,7 +48,7 @@ def verify_document_dependencies(
     archive = pandoc_archive or selected_external_file(
         "ARTIFACT_PANDOC_ARCHIVE", GLOBAL_PANDOC_ARCHIVE, LEGACY_PANDOC_ARCHIVE
     )
-    validator = openxml_validator or DEFAULT_OPENXML_VALIDATOR
+    validator = openxml_validator or openxml_validator_executable()
     failures: list[str] = []
 
     if validation.get("status") != "PASS":
