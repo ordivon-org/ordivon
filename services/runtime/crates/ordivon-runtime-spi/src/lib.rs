@@ -708,6 +708,298 @@ fn validate_workflow_acyclic(
     Ok(())
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkflowBindingDisposition {
+    Resolved,
+    Unresolved,
+    Ambiguous,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowStepBinding {
+    pub schema_version: u32,
+    pub step_id: FabricId,
+    pub resource_id: FabricId,
+    pub requested_capability_id: FabricId,
+    pub disposition: WorkflowBindingDisposition,
+    #[serde(default)]
+    pub candidate_node_ids: Vec<FabricId>,
+    #[serde(default)]
+    pub candidate_provider_ids: Vec<FabricId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selected_node_id: Option<FabricId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selected_provider_id: Option<FabricId>,
+    pub reason_code: FabricId,
+    /// Always false in the EF6b resolver. Binding is planning truth, not Runtime dispatch truth.
+    pub dispatch_started: bool,
+}
+
+impl WorkflowStepBinding {
+    pub fn validate(&self) -> Result<(), FabricContractError> {
+        require_schema(self.schema_version)?;
+        require_unique_ids(
+            "workflowStepBinding.candidateNodeIds",
+            &self.candidate_node_ids,
+        )?;
+        require_unique_ids(
+            "workflowStepBinding.candidateProviderIds",
+            &self.candidate_provider_ids,
+        )?;
+        if self.dispatch_started {
+            return Err(FabricContractError::InvalidWorkflowBinding(
+                "workflow binding cannot claim dispatch has started",
+            ));
+        }
+        match self.disposition {
+            WorkflowBindingDisposition::Resolved => {
+                if self.selected_node_id.is_none() || self.selected_provider_id.is_none() {
+                    return Err(FabricContractError::InvalidWorkflowBinding(
+                        "resolved workflow binding requires selected node and provider",
+                    ));
+                }
+                if self.candidate_provider_ids.len() != 1 || self.candidate_node_ids.len() != 1 {
+                    return Err(FabricContractError::InvalidWorkflowBinding(
+                        "resolved workflow binding must have exactly one candidate",
+                    ));
+                }
+            }
+            WorkflowBindingDisposition::Unresolved | WorkflowBindingDisposition::Ambiguous => {
+                if self.selected_node_id.is_some() || self.selected_provider_id.is_some() {
+                    return Err(FabricContractError::InvalidWorkflowBinding(
+                        "non-resolved workflow binding cannot select a node or provider",
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowBindingPlan {
+    pub schema_version: u32,
+    pub workflow_id: FabricId,
+    pub fully_resolved: bool,
+    #[serde(default)]
+    pub bindings: Vec<WorkflowStepBinding>,
+    /// Always false in EF6b. A dry-run binding plan never dispatches.
+    pub dispatch_started: bool,
+}
+
+impl WorkflowBindingPlan {
+    pub fn validate(&self) -> Result<(), FabricContractError> {
+        require_schema(self.schema_version)?;
+        if self.bindings.is_empty() {
+            return Err(FabricContractError::EmptySet(
+                "workflowBindingPlan.bindings",
+            ));
+        }
+        if self.dispatch_started {
+            return Err(FabricContractError::InvalidWorkflowBinding(
+                "workflow binding plan cannot claim dispatch has started",
+            ));
+        }
+        for (index, binding) in self.bindings.iter().enumerate() {
+            binding.validate()?;
+            if self.bindings[..index]
+                .iter()
+                .any(|existing| existing.step_id == binding.step_id)
+            {
+                return Err(FabricContractError::DuplicateId(
+                    "workflowBindingPlan.bindings",
+                    binding.step_id.to_string(),
+                ));
+            }
+        }
+        let observed_fully_resolved = self
+            .bindings
+            .iter()
+            .all(|binding| binding.disposition == WorkflowBindingDisposition::Resolved);
+        if observed_fully_resolved != self.fully_resolved {
+            return Err(FabricContractError::InvalidWorkflowBinding(
+                "fullyResolved does not match step binding dispositions",
+            ));
+        }
+        Ok(())
+    }
+}
+
+/// Resolve one WorkflowPlan against a concrete Resource/Node/Provider catalog without routing,
+/// policy, authority acquisition, Runtime admission, or dispatch.
+///
+/// EF6b is deliberately conservative:
+/// - missing resources are unresolved;
+/// - a resource pinned to one node only considers providers on that node;
+/// - preferredProviderId is an exact filter, not a hint;
+/// - zero providers is unresolved;
+/// - one provider is resolved;
+/// - multiple providers is ambiguous and remains unselected.
+pub fn resolve_workflow_bindings(
+    plan: &WorkflowPlan,
+    resources: &[ResourceDescriptor],
+    nodes: &[NodeDescriptor],
+    providers: &[ProviderDescriptor],
+) -> Result<WorkflowBindingPlan, FabricContractError> {
+    plan.validate()?;
+
+    for (index, resource) in resources.iter().enumerate() {
+        resource.validate()?;
+        if resources[..index]
+            .iter()
+            .any(|existing| existing.resource_id == resource.resource_id)
+        {
+            return Err(FabricContractError::DuplicateId(
+                "workflowBinding.resources",
+                resource.resource_id.to_string(),
+            ));
+        }
+    }
+    for (index, node) in nodes.iter().enumerate() {
+        node.validate()?;
+        if nodes[..index]
+            .iter()
+            .any(|existing| existing.node_id == node.node_id)
+        {
+            return Err(FabricContractError::DuplicateId(
+                "workflowBinding.nodes",
+                node.node_id.to_string(),
+            ));
+        }
+    }
+    for (index, provider) in providers.iter().enumerate() {
+        provider.validate()?;
+        if providers[..index]
+            .iter()
+            .any(|existing| existing.provider_id == provider.provider_id)
+        {
+            return Err(FabricContractError::DuplicateId(
+                "workflowBinding.providers",
+                provider.provider_id.to_string(),
+            ));
+        }
+        let Some(node) = nodes.iter().find(|node| node.node_id == provider.node_id) else {
+            return Err(FabricContractError::InvalidWorkflowBinding(
+                "provider references unknown node",
+            ));
+        };
+        if !node.providers.contains(&provider.provider_id) {
+            return Err(FabricContractError::InvalidWorkflowBinding(
+                "provider is not advertised by its node",
+            ));
+        }
+    }
+
+    let mut bindings = Vec::with_capacity(plan.steps.len());
+    for step in &plan.steps {
+        let Some(resource) = resources
+            .iter()
+            .find(|resource| resource.resource_id == step.resource_id)
+        else {
+            bindings.push(WorkflowStepBinding {
+                schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+                step_id: step.step_id.clone(),
+                resource_id: step.resource_id.clone(),
+                requested_capability_id: step.requested_capability_id.clone(),
+                disposition: WorkflowBindingDisposition::Unresolved,
+                candidate_node_ids: Vec::new(),
+                candidate_provider_ids: Vec::new(),
+                selected_node_id: None,
+                selected_provider_id: None,
+                reason_code: FabricId::parse("reason/workflow-resource-unresolved")?,
+                dispatch_started: false,
+            });
+            continue;
+        };
+
+        let mut candidates = providers
+            .iter()
+            .filter(|provider| {
+                provider
+                    .capabilities
+                    .contains(&step.requested_capability_id)
+                    && resource
+                        .node_id
+                        .as_ref()
+                        .is_none_or(|node_id| &provider.node_id == node_id)
+                    && step
+                        .preferred_provider_id
+                        .as_ref()
+                        .is_none_or(|preferred| &provider.provider_id == preferred)
+            })
+            .collect::<Vec<_>>();
+        candidates.sort_by(|left, right| left.provider_id.cmp(&right.provider_id));
+
+        let mut candidate_node_ids = candidates
+            .iter()
+            .map(|provider| provider.node_id.clone())
+            .collect::<Vec<_>>();
+        candidate_node_ids.sort();
+        candidate_node_ids.dedup();
+        let candidate_provider_ids = candidates
+            .iter()
+            .map(|provider| provider.provider_id.clone())
+            .collect::<Vec<_>>();
+
+        let (disposition, selected_node_id, selected_provider_id, reason_code) =
+            match candidates.as_slice() {
+                [] => (
+                    WorkflowBindingDisposition::Unresolved,
+                    None,
+                    None,
+                    FabricId::parse(if step.preferred_provider_id.is_some() {
+                        "reason/preferred-provider-unavailable"
+                    } else {
+                        "reason/no-capable-provider"
+                    })?,
+                ),
+                [provider] => (
+                    WorkflowBindingDisposition::Resolved,
+                    Some(provider.node_id.clone()),
+                    Some(provider.provider_id.clone()),
+                    FabricId::parse("reason/workflow-binding-resolved")?,
+                ),
+                _ => (
+                    WorkflowBindingDisposition::Ambiguous,
+                    None,
+                    None,
+                    FabricId::parse("reason/multiple-capable-providers")?,
+                ),
+            };
+
+        let binding = WorkflowStepBinding {
+            schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+            step_id: step.step_id.clone(),
+            resource_id: step.resource_id.clone(),
+            requested_capability_id: step.requested_capability_id.clone(),
+            disposition,
+            candidate_node_ids,
+            candidate_provider_ids,
+            selected_node_id,
+            selected_provider_id,
+            reason_code,
+            dispatch_started: false,
+        };
+        binding.validate()?;
+        bindings.push(binding);
+    }
+
+    let binding_plan = WorkflowBindingPlan {
+        schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+        workflow_id: plan.workflow_id.clone(),
+        fully_resolved: bindings
+            .iter()
+            .all(|binding| binding.disposition == WorkflowBindingDisposition::Resolved),
+        bindings,
+        dispatch_started: false,
+    };
+    binding_plan.validate()?;
+    Ok(binding_plan)
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct EvidenceReference {
@@ -761,6 +1053,7 @@ pub enum FabricContractError {
     InvalidDigest,
     InvalidControllerProposal(&'static str),
     InvalidWorkflowPlan(&'static str),
+    InvalidWorkflowBinding(&'static str),
 }
 
 impl fmt::Display for FabricContractError {
@@ -779,6 +1072,9 @@ impl fmt::Display for FabricContractError {
             }
             Self::InvalidWorkflowPlan(message) => {
                 write!(f, "invalid workflow plan: {message}")
+            }
+            Self::InvalidWorkflowBinding(message) => {
+                write!(f, "invalid workflow binding: {message}")
             }
         }
     }
@@ -1343,6 +1639,190 @@ mod tests {
         assert!(matches!(
             cycle.validate(),
             Err(FabricContractError::InvalidWorkflowPlan(_))
+        ));
+    }
+
+    fn binding_fixture_plan(preferred_provider_id: Option<&str>) -> WorkflowPlan {
+        let mut step = workflow_step(
+            "step/do-thing",
+            WorkflowStepKind::Act,
+            "resource/test",
+            "capability/test/do",
+            &[],
+        );
+        step.preferred_provider_id = preferred_provider_id.map(id);
+        WorkflowPlan {
+            schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+            workflow_id: id("workflow/binding-fixture"),
+            owner_id: id("controller/binding-fixture"),
+            steps: vec![step],
+            execution_started: false,
+        }
+    }
+
+    fn binding_fixture_resource(node_id: Option<&str>) -> ResourceDescriptor {
+        ResourceDescriptor {
+            schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+            resource_id: id("resource/test"),
+            resource_kind: id("resource-kind/test"),
+            node_id: node_id.map(id),
+            conflict_domains: Vec::new(),
+        }
+    }
+
+    fn binding_fixture_node(provider_ids: &[&str]) -> NodeDescriptor {
+        NodeDescriptor {
+            schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+            node_id: id("runtime/test-node"),
+            platform: FabricPlatform::Linux,
+            native_control_plane: true,
+            trust_domain: id("ordivon.local"),
+            providers: provider_ids.iter().map(|value| id(value)).collect(),
+            capabilities: vec![id("capability/test/do")],
+            authority_contexts: vec![id("linux/root")],
+        }
+    }
+
+    fn binding_fixture_provider(provider_id: &str) -> ProviderDescriptor {
+        ProviderDescriptor {
+            schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+            provider_id: id(provider_id),
+            node_id: id("runtime/test-node"),
+            platform: FabricPlatform::Linux,
+            capabilities: vec![id("capability/test/do")],
+        }
+    }
+
+    #[test]
+    fn workflow_binding_resolves_only_unique_provider_without_dispatch() {
+        let plan = binding_fixture_plan(None);
+        let provider = binding_fixture_provider("provider/test/a");
+        let binding = resolve_workflow_bindings(
+            &plan,
+            &[binding_fixture_resource(Some("runtime/test-node"))],
+            &[binding_fixture_node(&["provider/test/a"])],
+            &[provider],
+        )
+        .unwrap();
+        assert!(binding.fully_resolved);
+        assert!(!binding.dispatch_started);
+        assert_eq!(
+            binding.bindings[0].disposition,
+            WorkflowBindingDisposition::Resolved
+        );
+        assert_eq!(
+            binding.bindings[0].selected_provider_id,
+            Some(id("provider/test/a"))
+        );
+        assert!(!binding.bindings[0].dispatch_started);
+    }
+
+    #[test]
+    fn workflow_binding_leaves_multiple_capable_providers_ambiguous() {
+        let plan = binding_fixture_plan(None);
+        let binding = resolve_workflow_bindings(
+            &plan,
+            &[binding_fixture_resource(Some("runtime/test-node"))],
+            &[binding_fixture_node(&[
+                "provider/test/a",
+                "provider/test/b",
+            ])],
+            &[
+                binding_fixture_provider("provider/test/b"),
+                binding_fixture_provider("provider/test/a"),
+            ],
+        )
+        .unwrap();
+        assert!(!binding.fully_resolved);
+        assert_eq!(
+            binding.bindings[0].disposition,
+            WorkflowBindingDisposition::Ambiguous
+        );
+        assert_eq!(
+            binding.bindings[0].candidate_provider_ids,
+            vec![id("provider/test/a"), id("provider/test/b")]
+        );
+        assert!(binding.bindings[0].selected_provider_id.is_none());
+    }
+
+    #[test]
+    fn workflow_binding_preferred_provider_is_exact_not_a_hint() {
+        let resolved = resolve_workflow_bindings(
+            &binding_fixture_plan(Some("provider/test/b")),
+            &[binding_fixture_resource(Some("runtime/test-node"))],
+            &[binding_fixture_node(&[
+                "provider/test/a",
+                "provider/test/b",
+            ])],
+            &[
+                binding_fixture_provider("provider/test/a"),
+                binding_fixture_provider("provider/test/b"),
+            ],
+        )
+        .unwrap();
+        assert!(resolved.fully_resolved);
+        assert_eq!(
+            resolved.bindings[0].selected_provider_id,
+            Some(id("provider/test/b"))
+        );
+
+        let unresolved = resolve_workflow_bindings(
+            &binding_fixture_plan(Some("provider/test/missing")),
+            &[binding_fixture_resource(Some("runtime/test-node"))],
+            &[binding_fixture_node(&["provider/test/a"])],
+            &[binding_fixture_provider("provider/test/a")],
+        )
+        .unwrap();
+        assert_eq!(
+            unresolved.bindings[0].disposition,
+            WorkflowBindingDisposition::Unresolved
+        );
+        assert_eq!(
+            unresolved.bindings[0].reason_code,
+            id("reason/preferred-provider-unavailable")
+        );
+    }
+
+    #[test]
+    fn workflow_binding_reports_missing_resource_or_capability_unresolved() {
+        let missing_resource =
+            resolve_workflow_bindings(&binding_fixture_plan(None), &[], &[], &[]).unwrap();
+        assert_eq!(
+            missing_resource.bindings[0].reason_code,
+            id("reason/workflow-resource-unresolved")
+        );
+
+        let missing_capability = resolve_workflow_bindings(
+            &binding_fixture_plan(None),
+            &[binding_fixture_resource(Some("runtime/test-node"))],
+            &[binding_fixture_node(&["provider/test/other"])],
+            &[ProviderDescriptor {
+                schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+                provider_id: id("provider/test/other"),
+                node_id: id("runtime/test-node"),
+                platform: FabricPlatform::Linux,
+                capabilities: vec![id("capability/test/other")],
+            }],
+        )
+        .unwrap();
+        assert_eq!(
+            missing_capability.bindings[0].reason_code,
+            id("reason/no-capable-provider")
+        );
+    }
+
+    #[test]
+    fn workflow_binding_rejects_provider_not_advertised_by_node() {
+        let error = resolve_workflow_bindings(
+            &binding_fixture_plan(None),
+            &[binding_fixture_resource(Some("runtime/test-node"))],
+            &[binding_fixture_node(&[])],
+            &[binding_fixture_provider("provider/test/a")],
+        )
+        .unwrap_err();
+        assert!(matches!(
+            error,
+            FabricContractError::InvalidWorkflowBinding(_)
         ));
     }
 

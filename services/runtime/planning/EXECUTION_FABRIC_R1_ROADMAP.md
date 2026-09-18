@@ -214,6 +214,19 @@ Current EF6 contract slice (2026-09-18):
   workflow realization reaches equivalent destructive acceptance;
 - Runtime continues to own only admitted Job/Attempt truth; the SPI contract executes nothing.
 
+EF6b dry-run binding slice (2026-09-18):
+
+- SPI defines WorkflowBindingDisposition, WorkflowStepBinding, and WorkflowBindingPlan;
+- resolve_workflow_bindings maps each workflow step against explicit Resource/Node/Provider
+  descriptors without routing, policy, authority acquisition, Runtime admission, or dispatch;
+- resource node locality constrains candidate providers when resource.nodeId is present;
+- preferredProviderId is an exact filter, never a best-effort hint;
+- zero candidates is UNRESOLVED, one candidate is RESOLVED, and multiple candidates are
+  AMBIGUOUS with no selection;
+- binding plans and step bindings are structurally unable to claim dispatchStarted=true;
+- provider catalogs fail closed if a provider references an unknown node or is not advertised
+  by that node.
+
 ## EF7 — Dual native nodes
 
 Complete runtime/windows-main and runtime/linux-archlinux as independent node-local authorities with separate mutable Registries and Workspaces.
