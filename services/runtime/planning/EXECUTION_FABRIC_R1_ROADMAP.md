@@ -78,6 +78,19 @@ Required output per candidate effect:
 
 Gate: shadow decisions never block or alter existing effects.
 
+Current EF3 contract slice (2026-09-18):
+
+- SPI defines AuthorityEffectCandidate and AuthorityShadowDecision;
+- pure shadow evaluation compares active leases against exact trust-domain/resource scope,
+  principal, capability, OS authority, mode, and conflict mode;
+- overlap is classified as none, shared observation, cooperative, exclusive, or adversarial;
+- R1 deliberately uses exact resource-scope overlap only; conflict-domain expansion remains a
+  later Resource/Controller concern;
+- evaluator performs no I/O, mutation, admission, dispatch, renewal, revocation, or policy-provider call;
+- the evaluator is not wired into Runtime admission, so a false wouldAllow result cannot block an effect;
+- SPI tests: 8/8 PASS;
+- MCP regression remains 55/55 PASS.
+
 ## EF4 — Provider normalization
 
 Migrate physical effects one family at a time:

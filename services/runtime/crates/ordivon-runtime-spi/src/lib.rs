@@ -253,6 +253,130 @@ impl AuthorityLease {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+pub struct AuthorityEffectCandidate {
+    pub schema_version: u32,
+    pub principal_id: FabricId,
+    pub trust_domain: FabricId,
+    pub resource_scope: FabricId,
+    pub capability_id: FabricId,
+    pub os_authority: FabricId,
+    pub mode: AuthorityMode,
+    pub conflict_mode: ConflictMode,
+}
+
+impl AuthorityEffectCandidate {
+    pub fn validate(&self) -> Result<(), FabricContractError> {
+        require_schema(self.schema_version)
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum AuthorityConflictClassification {
+    None,
+    SharedObservation,
+    CooperativeOverlap,
+    ExclusiveOverlap,
+    AdversarialOverlap,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct AuthorityShadowDecision {
+    pub schema_version: u32,
+    pub shadow_only: bool,
+    pub would_allow: bool,
+    pub conflict: AuthorityConflictClassification,
+    #[serde(default)]
+    pub matching_lease_ids: Vec<FabricId>,
+    #[serde(default)]
+    pub overlapping_lease_ids: Vec<FabricId>,
+}
+
+/// Evaluate one candidate against already-materialized leases without enforcing the result.
+///
+/// R1 overlap is deliberately exact-resource-scope only. Conflict-domain expansion belongs to
+/// the later Resource/Controller layer. This function performs no I/O, mutation, admission,
+/// dispatch, revocation, renewal, or policy-provider call.
+pub fn evaluate_authority_shadow(
+    candidate: &AuthorityEffectCandidate,
+    leases: &[AuthorityLease],
+    now_ms: u64,
+) -> Result<AuthorityShadowDecision, FabricContractError> {
+    candidate.validate()?;
+
+    let mut matching = Vec::new();
+    let mut overlapping = Vec::new();
+    let mut overlap_modes = Vec::new();
+
+    for lease in leases {
+        lease.validate()?;
+        if !lease.is_active_at(now_ms) {
+            continue;
+        }
+        let authority = &lease.authority;
+        if authority.trust_domain != candidate.trust_domain
+            || authority.resource_scope != candidate.resource_scope
+        {
+            continue;
+        }
+        overlapping.push(lease.lease_id.clone());
+        overlap_modes.push(authority.conflict_mode);
+
+        if authority.principal_id == candidate.principal_id
+            && authority.capabilities.contains(&candidate.capability_id)
+            && authority.os_authority == candidate.os_authority
+            && authority.mode == candidate.mode
+            && authority.conflict_mode == candidate.conflict_mode
+        {
+            matching.push(lease.lease_id.clone());
+        }
+    }
+
+    let conflict = classify_authority_overlap(candidate.conflict_mode, &overlap_modes);
+    Ok(AuthorityShadowDecision {
+        schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+        shadow_only: true,
+        would_allow: !matching.is_empty(),
+        conflict,
+        matching_lease_ids: matching,
+        overlapping_lease_ids: overlapping,
+    })
+}
+
+fn classify_authority_overlap(
+    requested: ConflictMode,
+    existing: &[ConflictMode],
+) -> AuthorityConflictClassification {
+    if existing.is_empty() {
+        return AuthorityConflictClassification::None;
+    }
+    if existing
+        .iter()
+        .any(|mode| *mode == ConflictMode::AdversarialLab)
+        || requested == ConflictMode::AdversarialLab
+    {
+        return AuthorityConflictClassification::AdversarialOverlap;
+    }
+    if existing
+        .iter()
+        .any(|mode| *mode == ConflictMode::ExclusiveWrite)
+        || requested == ConflictMode::ExclusiveWrite
+    {
+        return AuthorityConflictClassification::ExclusiveOverlap;
+    }
+    if existing
+        .iter()
+        .any(|mode| *mode == ConflictMode::CooperativeWrite)
+        || requested == ConflictMode::CooperativeWrite
+    {
+        return AuthorityConflictClassification::CooperativeOverlap;
+    }
+    AuthorityConflictClassification::SharedObservation
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct EvidenceReference {
     pub schema_version: u32,
     pub evidence_id: FabricId,
@@ -410,6 +534,164 @@ mod tests {
         let mut bad = value;
         bad.digest = "sha256:not-a-digest".into();
         assert_eq!(bad.validate(), Err(FabricContractError::InvalidDigest));
+    }
+
+    #[test]
+    fn authority_shadow_is_descriptive_and_never_self_enforcing() {
+        let candidate = AuthorityEffectCandidate {
+            schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+            principal_id: id("agent/windows/red-01"),
+            trust_domain: id("ordivon.local"),
+            resource_scope: id("machine/windows-main"),
+            capability_id: id("capability/windows/service-stop"),
+            os_authority: id("windows/system"),
+            mode: AuthorityMode::SecurityLab,
+            conflict_mode: ConflictMode::AdversarialLab,
+        };
+        let lease = AuthorityLease {
+            schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+            lease_id: id("lease/security-lab/red-01"),
+            authority: AuthorityVector {
+                schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+                principal_id: candidate.principal_id.clone(),
+                trust_domain: candidate.trust_domain.clone(),
+                resource_scope: candidate.resource_scope.clone(),
+                capabilities: vec![candidate.capability_id.clone()],
+                os_authority: candidate.os_authority.clone(),
+                mode: candidate.mode,
+                conflict_mode: candidate.conflict_mode,
+                enforcement: AuthorityEnforcement::Shadow,
+                budget_id: None,
+                evidence_policy_id: None,
+            },
+            issued_at_ms: 100,
+            expires_at_ms: 1_000,
+            revoked_at_ms: None,
+        };
+
+        let decision = evaluate_authority_shadow(&candidate, &[lease], 500).unwrap();
+        assert!(decision.shadow_only);
+        assert!(decision.would_allow);
+        assert_eq!(
+            decision.conflict,
+            AuthorityConflictClassification::AdversarialOverlap
+        );
+        assert_eq!(
+            decision.matching_lease_ids,
+            vec![id("lease/security-lab/red-01")]
+        );
+        assert_eq!(
+            decision.overlapping_lease_ids,
+            vec![id("lease/security-lab/red-01")]
+        );
+    }
+
+    #[test]
+    fn authority_shadow_classifies_exclusive_overlap_without_granting_candidate() {
+        let candidate = AuthorityEffectCandidate {
+            schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+            principal_id: id("agent/windows/maintenance-02"),
+            trust_domain: id("ordivon.local"),
+            resource_scope: id("distro/archlinux"),
+            capability_id: id("capability/wsl/terminate"),
+            os_authority: id("windows/administrator"),
+            mode: AuthorityMode::Maintenance,
+            conflict_mode: ConflictMode::ExclusiveWrite,
+        };
+        let existing = AuthorityLease {
+            schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+            lease_id: id("lease/maintenance/owner-01"),
+            authority: AuthorityVector {
+                schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+                principal_id: id("agent/windows/maintenance-01"),
+                trust_domain: candidate.trust_domain.clone(),
+                resource_scope: candidate.resource_scope.clone(),
+                capabilities: vec![candidate.capability_id.clone()],
+                os_authority: candidate.os_authority.clone(),
+                mode: candidate.mode,
+                conflict_mode: ConflictMode::ExclusiveWrite,
+                enforcement: AuthorityEnforcement::Shadow,
+                budget_id: None,
+                evidence_policy_id: None,
+            },
+            issued_at_ms: 100,
+            expires_at_ms: 1_000,
+            revoked_at_ms: None,
+        };
+
+        let decision = evaluate_authority_shadow(&candidate, &[existing], 500).unwrap();
+        assert!(decision.shadow_only);
+        assert!(!decision.would_allow);
+        assert_eq!(
+            decision.conflict,
+            AuthorityConflictClassification::ExclusiveOverlap
+        );
+        assert!(decision.matching_lease_ids.is_empty());
+        assert_eq!(
+            decision.overlapping_lease_ids,
+            vec![id("lease/maintenance/owner-01")]
+        );
+    }
+
+    #[test]
+    fn authority_shadow_ignores_expired_or_different_resource_leases() {
+        let candidate = AuthorityEffectCandidate {
+            schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+            principal_id: id("agent/linux/blue-01"),
+            trust_domain: id("ordivon.local"),
+            resource_scope: id("service/linux/runtime"),
+            capability_id: id("capability/service/start"),
+            os_authority: id("linux/root"),
+            mode: AuthorityMode::Recovery,
+            conflict_mode: ConflictMode::ExclusiveWrite,
+        };
+        let expired = AuthorityLease {
+            schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+            lease_id: id("lease/expired"),
+            authority: AuthorityVector {
+                schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+                principal_id: candidate.principal_id.clone(),
+                trust_domain: candidate.trust_domain.clone(),
+                resource_scope: candidate.resource_scope.clone(),
+                capabilities: vec![candidate.capability_id.clone()],
+                os_authority: candidate.os_authority.clone(),
+                mode: candidate.mode,
+                conflict_mode: candidate.conflict_mode,
+                enforcement: AuthorityEnforcement::Shadow,
+                budget_id: None,
+                evidence_policy_id: None,
+            },
+            issued_at_ms: 10,
+            expires_at_ms: 20,
+            revoked_at_ms: None,
+        };
+        let other_resource = AuthorityLease {
+            schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+            lease_id: id("lease/other-resource"),
+            authority: AuthorityVector {
+                schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+                principal_id: candidate.principal_id.clone(),
+                trust_domain: candidate.trust_domain.clone(),
+                resource_scope: id("service/linux/host"),
+                capabilities: vec![candidate.capability_id.clone()],
+                os_authority: candidate.os_authority.clone(),
+                mode: candidate.mode,
+                conflict_mode: candidate.conflict_mode,
+                enforcement: AuthorityEnforcement::Shadow,
+                budget_id: None,
+                evidence_policy_id: None,
+            },
+            issued_at_ms: 100,
+            expires_at_ms: 1_000,
+            revoked_at_ms: None,
+        };
+
+        let decision =
+            evaluate_authority_shadow(&candidate, &[expired, other_resource], 500).unwrap();
+        assert!(!decision.would_allow);
+        assert_eq!(decision.conflict, AuthorityConflictClassification::None);
+        assert!(decision.matching_lease_ids.is_empty());
+        assert!(decision.overlapping_lease_ids.is_empty());
     }
 
     #[test]
