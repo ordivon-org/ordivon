@@ -151,3 +151,16 @@ Wave 3 candidates:
 - organizational cybernetics / viable-systems ideas.
 
 Adoption is evidence-driven, not chronology-driven.
+
+
+## Recorded LEGO cases
+
+### AI as Miracle Material / Infinite Minds article
+
+Recorded case:
+- knowledge/lessons/ai-miracle-material-lego-case-r1.md
+- knowledge/graphs/ai-miracle-material-lego-case-r1.json
+
+This case exercises kernel extraction, primitive decomposition, typed relations, metaphor separation, missing-node discovery, failure probing, recomposition, Ordivon transfer, and falsification hooks.
+
+It introduces only promotion candidates, not new mandatory core fields. Repeated cross-domain evidence is required before any candidate is promoted into the shared LEGO kernel.
