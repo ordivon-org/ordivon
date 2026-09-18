@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.lego-theory-wave2-initial-acceptance",
+  "date": "2026-09-18",
+  "standing": "PRE_PROSPECTIVE_VALIDATION",
+  "sourceRevision": "71efb7caa4f85af9a538451ebbadabf8945e7230",
+  "lenses": [
+    "lego-compositional-contracts",
+    "lego-causal-intervention",
+    "lego-fmea-fta",
+    "lego-information-flow"
+  ],
+  "corePromotion": {
+    "schemaChanged": false,
+    "newMandatoryFields": []
+  },
+  "acceptanceRequired": [
+    "all four Skill packages parse and are admitted by the project Skill source",
+    "existing LEGO plan schema remains unchanged",
+    "each lens receives at least one prospective real-system case",
+    "promotion requires architecture-relevant evidence rather than terminology reuse"
+  ],
+  "nonClaims": [
+    "Category-theoretic terminology is not required for compositional-contract use.",
+    "Causal graphs are assumption-bearing models rather than project truth.",
+    "FMEA/FTA do not replace STPA for interaction hazards.",
+    "Information-flow analysis is not a proof of side-channel freedom."
+  ]
+}

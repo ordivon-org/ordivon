@@ -42,6 +42,10 @@ Do not run every lens automatically. Activate only when the system shape justifi
 - `lego-feedback-control`: dynamic state, feedback, delay, observation, recovery, robustness, or regulation.
 - `lego-stpa`: high-consequence loss/security risk, unsafe interactions, control actions, automation, humans/organizations, or failures not reducible to one broken component.
 - `lego-regime-shift`: candidate turning point, stock/flow divergence, buffers/delays, constraint migration, reflexive adaptation, or a partly irreversible decision under deep uncertainty.
+- `lego-compositional-contracts`: independently developed/replaceable components, assume-guarantee seams, local-to-global correctness, or substitutability questions.
+- `lego-causal-intervention`: causal/mechanism claims, intervention decisions, confounding, ablation, identifiability, or observation-versus-cause ambiguity.
+- `lego-fmea-fta`: explicit component/process failure modes, failure propagation, top undesired events, reliability barriers, recovery, or fault-injection planning.
+- `lego-information-flow`: sensitive/untrusted information crossing prompts, credentials, logs, artifacts, telemetry, model/tool/provider boundaries, or declassification points.
 
 Lens outputs are derived analysis evidence. They alter the plan only through an explicit architecture decision supported by project-native evidence.
 
