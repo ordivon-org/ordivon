@@ -540,7 +540,7 @@
     {
       "id": "E02",
       "name": "r6-vs-r7-compact-read",
-      "status": "STRONG_POSITIVE_RESOURCE_RESULT_PENDING_DB_INTEGRATION",
+      "status": "RESOURCE_AND_DB_INTEGRATION_PASS_PENDING_FRESH_REENTRY",
       "candidate": "b118559a87725e22237d22b218d40861838dae5e",
       "question": "Does compact task inventory materially reduce discovery cost while preserving exact task.resume semantics?",
       "primaryMetrics": [
@@ -548,7 +548,7 @@
         "M03"
       ],
       "finding": "On 267 live non-terminal Tasks, compact task.list projects 2,024,956 UTF-8 bytes to 81,686 bytes (-95.97%, 24.79x smaller). Static query-path count falls from ~540 SQL statements across six pages to 6. An 11-Task resume sample falls 47.60% by removing checkpoint duplication.",
-      "nextGate": "Run isolated PostgreSQL integration tests and fresh-consumer re-entry comparison before production admission.",
+      "nextGate": "Run E01 fresh-consumer re-entry comparison against R6 and compact-read candidate before production admission.",
       "evidence": [
         "planning/host-e02-compact-read-measurement-r1.json"
       ]

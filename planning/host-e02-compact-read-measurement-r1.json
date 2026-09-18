@@ -48,15 +48,23 @@
   },
   "verification": {
     "transplantBase": "95aad2db6d29fbea0507feddcd000439ac3dfca7",
-    "pytest": "10 passed / 20 skipped",
+    "pytest": "30 passed / 0 skipped on ephemeral PostgreSQL",
     "ruff": "PASS",
     "gitDiffCheck": "PASS",
     "currentnessContaminationCheck": "PASS",
-    "databaseIntegrationCaveat": "PostgreSQL integration tests were skipped because ORDIVON_HOST_V2_TEST_DSN is not configured in this isolated workspace session."
+    "databaseIntegrationCaveat": null,
+    "ephemeralPostgres": {
+      "version": "18.6",
+      "encoding": "UTF8",
+      "address": "127.0.0.1:55439",
+      "owner": "postgres system user",
+      "alembicPath": "0001 -> 0002 -> 0003 -> 0004",
+      "cleanup": "PASS; cluster stopped and temporary directory removed"
+    }
   },
   "interpretation": {
     "resourceStanding": "STRONG_POSITIVE",
-    "semanticStanding": "PROMISING_CANDIDATE_NOT_YET_PRODUCTION_ADMITTED",
-    "reason": "Discovery payload and query count fall sharply while exact checkpoint hydration remains task.resume. Production promotion still requires an isolated PostgreSQL integration run and re-entry outcome check."
+    "semanticStanding": "RESOURCE_AND_DB_INTEGRATION_PASS_PENDING_FRESH_REENTRY",
+    "reason": "Discovery payload and query count fall sharply; exact checkpoint hydration remains task.resume; isolated PostgreSQL 18.6 migration and full 30-test suite pass. Fresh-consumer re-entry remains the final outcome gate before production admission."
   }
 }

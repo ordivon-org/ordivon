@@ -168,7 +168,7 @@ The code-path structure contracts at the same time. R6 performs one inventory qu
 
 For `task.resume`, an 11-Task sample measured **169,215 bytes → 88,677 bytes**, a **47.60% reduction**, because R7 keeps one top-level checkpoint and makes the nested `task` object a compact identity/revision capsule.
 
-The compact-read commit was transplanted by itself onto the R2 base as `b118559a87725e22237d22b218d40861838dae5e`. Verification found no currentness experiment code or schema references; pytest/Ruff/diff checks pass. PostgreSQL integration tests remain skipped in this isolated session because no test DSN is configured, so E02 is a **strong positive resource result, not yet production admission**.
+The compact-read commit was transplanted by itself onto the R2 base as `b118559a87725e22237d22b218d40861838dae5e`. Verification found no currentness experiment code or schema references; pytest/Ruff/diff checks pass. A subsequent isolated PostgreSQL **18.6 / UTF-8** run completed Alembic `0001→0002→0003→0004` and the complete candidate suite passed **30/30 tests**, followed by Ruff and diff checks. The temporary cluster ran under the system `postgres` account and was stopped/removed after the run. E02 therefore passes the resource and database-integration gates; **fresh-consumer re-entry remains the final outcome gate before production admission**.
 
 ## Experiment E03 — workStanding consumer census
 
