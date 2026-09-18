@@ -1,0 +1,556 @@
+{
+  "arms": {
+    "browserlessCurrent": {
+      "browser": {
+        "browserContextCount": 0,
+        "commandLineArguments": [
+          "/usr/local/bin/playwright-browsers/chromium-1243/chrome-linux64/chrome",
+          "--allow-pre-commit-input",
+          "--disable-background-networking",
+          "--disable-background-timer-throttling",
+          "--disable-backgrounding-occluded-windows",
+          "--disable-breakpad",
+          "--disable-client-side-phishing-detection",
+          "--disable-component-extensions-with-background-pages",
+          "--disable-crash-reporter",
+          "--disable-default-apps",
+          "--disable-dev-shm-usage",
+          "--disable-hang-monitor",
+          "--disable-infobars",
+          "--disable-ipc-flooding-protection",
+          "--disable-popup-blocking",
+          "--disable-prompt-on-repost",
+          "--disable-renderer-backgrounding",
+          "--disable-search-engine-choice-screen",
+          "--disable-sync",
+          "--enable-automation",
+          "--export-tagged-pdf",
+          "--force-color-profile=srgb",
+          "--generate-pdf-document-outline",
+          "--metrics-recording-only",
+          "--no-first-run",
+          "--password-store=basic",
+          "--use-mock-keychain",
+          "--disable-features=Translate,AcceptCHFrame,MediaRouter,OptimizationHints,WebUIReloadButton,WebUIOmniboxPopup,WebUIOmniboxAimPopup,ProcessPerSiteUpToMainFrameThreshold,IsolateSandboxedIframes,LocalNetworkAccessChecks",
+          "--enable-features=PdfOopif",
+          "--user-data-dir=<profile>",
+          "--disable-extensions",
+          "--remote-debugging-port=<ephemeral>",
+          "--no-sandbox",
+          "--no-first-run",
+          "--disable-component-update",
+          "--user-data-dir=<profile>",
+          "--ozone-platform=x11",
+          "--flag-switches-begin",
+          "--flag-switches-end",
+          "about:blank"
+        ],
+        "systemInfo": {
+          "commandLine": [
+            "/usr/local/bin/playwright-browsers/chromium-1243/chrome-linux64/chrome",
+            "--allow-pre-commit-input",
+            "--disable-background-networking",
+            "--disable-background-timer-throttling",
+            "--disable-backgrounding-occluded-windows",
+            "--disable-breakpad",
+            "--disable-client-side-phishing-detection",
+            "--disable-component-extensions-with-background-pages",
+            "--disable-crash-reporter",
+            "--disable-default-apps",
+            "--disable-dev-shm-usage",
+            "--disable-hang-monitor",
+            "--disable-infobars",
+            "--disable-ipc-flooding-protection",
+            "--disable-popup-blocking",
+            "--disable-prompt-on-repost",
+            "--disable-renderer-backgrounding",
+            "--disable-search-engine-choice-screen",
+            "--disable-sync",
+            "--enable-automation",
+            "--export-tagged-pdf",
+            "--force-color-profile=srgb",
+            "--generate-pdf-document-outline",
+            "--metrics-recording-only",
+            "--no-first-run",
+            "--password-store=basic",
+            "--use-mock-keychain",
+            "--disable-features=Translate,AcceptCHFrame,MediaRouter,OptimizationHints,WebUIReloadButton,WebUIOmniboxPopup,WebUIOmniboxAimPopup,ProcessPerSiteUpToMainFrameThreshold,IsolateSandboxedIframes,LocalNetworkAccessChecks",
+            "--enable-features=PdfOopif",
+            "--user-data-dir=<profile>",
+            "--disable-extensions",
+            "--remote-debugging-port=<ephemeral>",
+            "--no-sandbox",
+            "--no-first-run",
+            "--disable-component-update",
+            "--user-data-dir=<profile>",
+            "--ozone-platform=x11",
+            "--flag-switches-begin",
+            "--flag-switches-end",
+            "about:blank"
+          ],
+          "gpuDevices": [
+            {
+              "deviceId": 0,
+              "deviceString": "ANGLE (Mesa, llvmpipe (LLVM 20.1.2 256 bits), OpenGL 4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.2)",
+              "vendorId": 0,
+              "vendorString": "Google Inc. (Mesa)"
+            }
+          ],
+          "modelName": "",
+          "modelVersion": ""
+        },
+        "targetTypeCounts": {
+          "page": 2
+        },
+        "version": {
+          "jsVersion": "15.3.76.4",
+          "product": "Chrome/153.0.8010.12",
+          "protocolVersion": "1.3",
+          "revision": "@971a7443b0c9b0a9b2860529b33331b76077ec62",
+          "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+        }
+      },
+      "browserVersion": "153.0.8010.12",
+      "page": {
+        "canvasTextWidths": {
+          "Arial": 239.2266,
+          "DejaVu Sans": 269.7656,
+          "Liberation Sans": 239.2266,
+          "Noto Sans": 220.8594,
+          "Segoe UI": 234.2188,
+          "Selawik": 234.2188,
+          "Ubuntu": 240.6564,
+          "Verdana": 220.8594
+        },
+        "deviceMemoryGiB": null,
+        "devicePixelRatio": 1,
+        "fontChecks": {
+          "Arial": true,
+          "DejaVu Sans": true,
+          "Liberation Sans": true,
+          "Noto Sans": true,
+          "Segoe UI": true,
+          "Selawik": true,
+          "Ubuntu": true,
+          "Verdana": true
+        },
+        "hardwareConcurrency": 16,
+        "language": "en-US",
+        "languages": [
+          "en-US"
+        ],
+        "maxTouchPoints": 0,
+        "platform": "Linux x86_64",
+        "prefersColorSchemeDark": false,
+        "prefersReducedMotion": false,
+        "screen": [
+          1440,
+          1000,
+          1440,
+          1000,
+          24,
+          24
+        ],
+        "timezone": "Asia/Shanghai",
+        "timezoneOffsetMinutes": -480,
+        "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
+        "webdriver": true,
+        "webgl": {
+          "available": false
+        },
+        "windowInner": [
+          800,
+          600
+        ],
+        "windowOuter": [
+          1288,
+          851
+        ]
+      }
+    },
+    "containerDirect": {
+      "browser": {
+        "browserContextCount": 0,
+        "commandLineArguments": [
+          "/usr/local/bin/playwright-browsers/chromium-1243/chrome-linux64/chrome",
+          "--remote-debugging-port=<ephemeral>",
+          "--user-data-dir=<profile>",
+          "--no-sandbox",
+          "--disable-dev-shm-usage",
+          "--enable-automation",
+          "--window-size=1440,1000",
+          "--no-first-run",
+          "--no-default-browser-check",
+          "--ozone-platform=x11",
+          "--flag-switches-begin",
+          "--flag-switches-end",
+          "about:blank"
+        ],
+        "systemInfo": {
+          "commandLine": [
+            "/usr/local/bin/playwright-browsers/chromium-1243/chrome-linux64/chrome",
+            "--remote-debugging-port=<ephemeral>",
+            "--user-data-dir=<profile>",
+            "--no-sandbox",
+            "--disable-dev-shm-usage",
+            "--enable-automation",
+            "--window-size=1440,1000",
+            "--no-first-run",
+            "--no-default-browser-check",
+            "--ozone-platform=x11",
+            "--flag-switches-begin",
+            "--flag-switches-end",
+            "about:blank"
+          ],
+          "gpuDevices": [
+            {
+              "deviceId": 0,
+              "deviceString": "ANGLE (Mesa, llvmpipe (LLVM 20.1.2 256 bits), OpenGL 4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.2)",
+              "vendorId": 0,
+              "vendorString": "Google Inc. (Mesa)"
+            }
+          ],
+          "modelName": "",
+          "modelVersion": ""
+        },
+        "targetTypeCounts": {
+          "browser_ui": 2,
+          "page": 1,
+          "service_worker": 2
+        },
+        "version": {
+          "jsVersion": "15.3.76.4",
+          "product": "Chrome/153.0.8010.12",
+          "protocolVersion": "1.3",
+          "revision": "@971a7443b0c9b0a9b2860529b33331b76077ec62",
+          "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+        }
+      },
+      "browserVersion": "153.0.8010.12",
+      "page": {
+        "canvasTextWidths": {
+          "Arial": 239.2266,
+          "DejaVu Sans": 269.7656,
+          "Liberation Sans": 239.2266,
+          "Noto Sans": 220.8594,
+          "Segoe UI": 234.2188,
+          "Selawik": 234.2188,
+          "Ubuntu": 240.6564,
+          "Verdana": 220.8594
+        },
+        "deviceMemoryGiB": null,
+        "devicePixelRatio": 1,
+        "fontChecks": {
+          "Arial": true,
+          "DejaVu Sans": true,
+          "Liberation Sans": true,
+          "Noto Sans": true,
+          "Segoe UI": true,
+          "Selawik": true,
+          "Ubuntu": true,
+          "Verdana": true
+        },
+        "hardwareConcurrency": 16,
+        "language": "en-US",
+        "languages": [
+          "en-US"
+        ],
+        "maxTouchPoints": 0,
+        "platform": "Linux x86_64",
+        "prefersColorSchemeDark": false,
+        "prefersReducedMotion": false,
+        "screen": [
+          1440,
+          1000,
+          1440,
+          1000,
+          24,
+          24
+        ],
+        "timezone": "Asia/Shanghai",
+        "timezoneOffsetMinutes": -480,
+        "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
+        "webdriver": true,
+        "webgl": {
+          "available": false
+        },
+        "windowInner": [
+          1439,
+          856
+        ],
+        "windowOuter": [
+          1439,
+          999
+        ]
+      }
+    },
+    "hostDirect": {
+      "browser": {
+        "browserContextCount": 0,
+        "commandLineArguments": [
+          "/root/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome",
+          "--remote-debugging-port=<ephemeral>",
+          "--user-data-dir=<profile>",
+          "--no-sandbox",
+          "--disable-dev-shm-usage",
+          "--enable-automation",
+          "--window-size=1440,1000",
+          "--no-first-run",
+          "--no-default-browser-check",
+          "--ozone-platform=x11",
+          "--flag-switches-begin",
+          "--flag-switches-end",
+          "about:blank"
+        ],
+        "systemInfo": {
+          "commandLine": [
+            "/root/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome",
+            "--remote-debugging-port=<ephemeral>",
+            "--user-data-dir=<profile>",
+            "--no-sandbox",
+            "--disable-dev-shm-usage",
+            "--enable-automation",
+            "--window-size=1440,1000",
+            "--no-first-run",
+            "--no-default-browser-check",
+            "--ozone-platform=x11",
+            "--flag-switches-begin",
+            "--flag-switches-end",
+            "about:blank"
+          ],
+          "gpuDevices": [
+            {
+              "deviceId": 142,
+              "deviceString": "",
+              "vendorId": 5140,
+              "vendorString": ""
+            },
+            {
+              "deviceId": 142,
+              "deviceString": "",
+              "vendorId": 5140,
+              "vendorString": ""
+            }
+          ],
+          "modelName": "",
+          "modelVersion": ""
+        },
+        "targetTypeCounts": {
+          "browser_ui": 2,
+          "page": 1,
+          "service_worker": 2
+        },
+        "version": {
+          "jsVersion": "15.3.76.4",
+          "product": "Chrome/153.0.8010.12",
+          "protocolVersion": "1.3",
+          "revision": "@971a7443b0c9b0a9b2860529b33331b76077ec62",
+          "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+        }
+      },
+      "browserVersion": "153.0.8010.12",
+      "page": {
+        "canvasTextWidths": {
+          "Arial": 239.2266,
+          "DejaVu Sans": 220.8594,
+          "Liberation Sans": 239.2266,
+          "Noto Sans": 220.8594,
+          "Segoe UI": 234.2188,
+          "Selawik": 220.8594,
+          "Ubuntu": 220.8594,
+          "Verdana": 271.9922
+        },
+        "deviceMemoryGiB": null,
+        "devicePixelRatio": 1,
+        "fontChecks": {
+          "Arial": true,
+          "DejaVu Sans": true,
+          "Liberation Sans": true,
+          "Noto Sans": true,
+          "Segoe UI": true,
+          "Selawik": true,
+          "Ubuntu": true,
+          "Verdana": true
+        },
+        "hardwareConcurrency": 16,
+        "language": "en-US",
+        "languages": [
+          "en-US"
+        ],
+        "maxTouchPoints": 0,
+        "platform": "Linux x86_64",
+        "prefersColorSchemeDark": false,
+        "prefersReducedMotion": false,
+        "screen": [
+          1440,
+          1000,
+          1440,
+          1000,
+          24,
+          24
+        ],
+        "timezone": "Asia/Shanghai",
+        "timezoneOffsetMinutes": -480,
+        "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
+        "webdriver": true,
+        "webgl": {
+          "available": false
+        },
+        "windowInner": [
+          1439,
+          856
+        ],
+        "windowOuter": [
+          1439,
+          999
+        ]
+      }
+    }
+  },
+  "controls": {
+    "browserlessChromiumDigest": "sha256:8c599d43aec53f2460a31ae2f4af6bd863f8258b34ff519564bc5d4726bfaa1e",
+    "browserlessImage": "ghcr.io/browserless/chromium@sha256:b1ba7b054af2891a8199f884d4bd249cf8c3bd2fa8a97b339077e40f92803ba8",
+    "containerDirectChromiumDigest": "sha256:8c599d43aec53f2460a31ae2f4af6bd863f8258b34ff519564bc5d4726bfaa1e",
+    "directLaunchArgumentsMatched": true,
+    "hostChromiumDigest": "sha256:8c599d43aec53f2460a31ae2f4af6bd863f8258b34ff519564bc5d4726bfaa1e",
+    "networkNamespace": "nv2-browserless-prod",
+    "neutralPage": "data:text/html",
+    "presentationEnvironmentMatched": {
+      "LANG": "C.UTF-8",
+      "TZ": "Asia/Shanghai"
+    },
+    "sameChromiumBinary": true,
+    "webdriverMatchedByDesign": true
+  },
+  "date": "2026-09-18",
+  "interpretationGuard": {
+    "browserlessPathAttributionIsAssociational": true,
+    "challengeOutcomeUsedAsDetectorOracle": false,
+    "containerRuntimeAttributionIsAssociational": true,
+    "note": "Host-to-container isolates container/runtime-associated presentation; container-to-Browserless isolates Browserless path-associated launch/control presentation while preserving the same image and Chromium bytes.",
+    "providerCausalityEstablished": false
+  },
+  "kind": "ordivon.browser-security-neutral-attribution-r5",
+  "pairwiseDifferences": {
+    "containerDirectToBrowserless": {
+      "browserChangedPaths": [
+        "$.commandLineArguments",
+        "$.systemInfo.commandLine",
+        "$.targetTypeCounts.browser_ui",
+        "$.targetTypeCounts.page",
+        "$.targetTypeCounts.service_worker"
+      ],
+      "canvasWidthFamilies": [],
+      "fontResolutionFamilies": [],
+      "pageChangedPaths": [
+        "$.windowInner[0]",
+        "$.windowInner[1]",
+        "$.windowOuter[0]",
+        "$.windowOuter[1]"
+      ]
+    },
+    "hostDirectToBrowserless": {
+      "browserChangedPaths": [
+        "$.commandLineArguments",
+        "$.systemInfo.commandLine",
+        "$.systemInfo.gpuDevices",
+        "$.targetTypeCounts.browser_ui",
+        "$.targetTypeCounts.page",
+        "$.targetTypeCounts.service_worker"
+      ],
+      "canvasWidthFamilies": [
+        "DejaVu Sans",
+        "Ubuntu",
+        "Selawik",
+        "Verdana"
+      ],
+      "fontResolutionFamilies": [
+        "Arial",
+        "Segoe UI",
+        "Noto Sans",
+        "DejaVu Sans",
+        "Liberation Sans",
+        "Ubuntu",
+        "Selawik",
+        "Verdana"
+      ],
+      "pageChangedPaths": [
+        "$.canvasTextWidths.DejaVu Sans",
+        "$.canvasTextWidths.Selawik",
+        "$.canvasTextWidths.Ubuntu",
+        "$.canvasTextWidths.Verdana",
+        "$.windowInner[0]",
+        "$.windowInner[1]",
+        "$.windowOuter[0]",
+        "$.windowOuter[1]"
+      ]
+    },
+    "hostToContainerDirect": {
+      "browserChangedPaths": [
+        "$.systemInfo.gpuDevices"
+      ],
+      "canvasWidthFamilies": [
+        "DejaVu Sans",
+        "Ubuntu",
+        "Selawik",
+        "Verdana"
+      ],
+      "fontResolutionFamilies": [
+        "Arial",
+        "Segoe UI",
+        "Noto Sans",
+        "DejaVu Sans",
+        "Liberation Sans",
+        "Ubuntu",
+        "Selawik",
+        "Verdana"
+      ],
+      "pageChangedPaths": [
+        "$.canvasTextWidths.DejaVu Sans",
+        "$.canvasTextWidths.Selawik",
+        "$.canvasTextWidths.Ubuntu",
+        "$.canvasTextWidths.Verdana"
+      ]
+    }
+  },
+  "safetyBoundary": {
+    "challengeInteracted": false,
+    "cookieValuesRead": false,
+    "protectedProviderVisited": false,
+    "providerSendAttempted": false
+  },
+  "schemaVersion": 1,
+  "standing": "NEUTRAL_ATTRIBUTION_ONLY_ROOT_CAUSE_OPEN",
+  "systemFontResolution": {
+    "browserlessContainer": {
+      "Arial": "Liberation Sans",
+      "DejaVu Sans": "DejaVu Sans",
+      "Liberation Sans": "Liberation Sans",
+      "Noto Sans": "Ubuntu",
+      "Segoe UI": "Selawik",
+      "Selawik": "Selawik",
+      "Ubuntu": "Ubuntu",
+      "Verdana": "Ubuntu"
+    },
+    "containerDirect": {
+      "Arial": "Liberation Sans",
+      "DejaVu Sans": "DejaVu Sans",
+      "Liberation Sans": "Liberation Sans",
+      "Noto Sans": "Ubuntu",
+      "Segoe UI": "Selawik",
+      "Selawik": "Selawik",
+      "Ubuntu": "Ubuntu",
+      "Verdana": "Ubuntu"
+    },
+    "hostDirect": {
+      "Arial": "Arial",
+      "DejaVu Sans": "Verdana",
+      "Liberation Sans": "Arial",
+      "Noto Sans": "Verdana",
+      "Segoe UI": "Segoe UI",
+      "Selawik": "Verdana",
+      "Ubuntu": "Verdana",
+      "Verdana": "Verdana"
+    }
+  }
+}

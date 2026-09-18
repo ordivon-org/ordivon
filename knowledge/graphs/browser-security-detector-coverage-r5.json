@@ -1,0 +1,147 @@
+{
+  "date": "2026-09-18",
+  "families": [
+    {
+      "detectors": [
+        "JA4",
+        "PeetPrint",
+        "HTTP/2 fingerprint",
+        "TLS negotiated version"
+      ],
+      "evidence": [
+        "R1 same JA4/PeetPrint/HTTP2 across direct and Browserless",
+        "observation-validity gate separates observer outage from subject drift"
+      ],
+      "gaps": [
+        "JA3 remained noisy/non-attributable",
+        "unmeasured transport features may exist"
+      ],
+      "id": "CF02",
+      "standing": "MEASURED_NO_ROUTE_DIFFERENCE_FOR_CURRENT_DETECTORS"
+    },
+    {
+      "detectors": [
+        "main-document header set/order"
+      ],
+      "evidence": [
+        "R2 direct-late/direct-early/Browserless header set/order identical"
+      ],
+      "gaps": [
+        "not every HTTP presentation field is covered"
+      ],
+      "id": "CF03",
+      "standing": "MEASURED_NO_ROUTE_DIFFERENCE_FOR_CURRENT_DETECTORS"
+    },
+    {
+      "detectors": [
+        "navigator.webdriver",
+        "page-visible browser identity"
+      ],
+      "evidence": [
+        "R1 --enable-automation sufficient to reproduce webdriver=true",
+        "R3 direct and Browserless intentionally matched at webdriver=true"
+      ],
+      "gaps": [
+        "provider-specific relevance not established"
+      ],
+      "id": "CF04",
+      "standing": "PARTIAL_SUPPORTED_MECHANISM"
+    },
+    {
+      "detectors": [
+        "console/Error side effect",
+        "execution-context shape",
+        "Browser.getBrowserCommandLine",
+        "SystemInfo.getInfo",
+        "Target.getTargets"
+      ],
+      "evidence": [
+        "R2 console/Error probe non-discriminating",
+        "R2 execution-context shape same",
+        "R5 container-direct to Browserless command-line and target-topology differences repeatable",
+        "R5 font/canvas/GPU confounders removed from Browserless-path residual"
+      ],
+      "gaps": [
+        "page-visible consequence of browser-level command-line/target differences not established",
+        "other sessions enabled CDP domains remain not directly queryable",
+        "provider-specific relevance not established"
+      ],
+      "id": "CF05",
+      "standing": "PARTIAL_NEUTRAL_ATTRIBUTION"
+    },
+    {
+      "detectors": [
+        "timezone/locale/geometry",
+        "fontconfig resolution",
+        "canvas text metrics",
+        "SystemInfo GPU summary",
+        "WebGL availability"
+      ],
+      "evidence": [
+        "R2 KR egress vs Asia/Shanghai timezone mismatch shared by both original routes",
+        "R5 TZ/LANG matched between container-direct and Browserless",
+        "R5 host-direct to container-direct font resolution/canvas differences repeatable",
+        "R5 host-direct to container-direct browser-level GPU difference repeatable",
+        "R5 container-direct to Browserless fonts/canvas/GPU unchanged",
+        "R5 container-direct to Browserless window geometry different and repeatable",
+        "page WebGL unavailable and non-discriminating in current build"
+      ],
+      "gaps": [
+        "Browserless-path geometry remains mixed launch/window-management attribution",
+        "page-visible consequence of browser-level target/command-line differences not established",
+        "provider-specific relevance not established"
+      ],
+      "id": "CF06",
+      "standing": "REPEATABLE_NEUTRAL_ATTRIBUTION_SPLIT"
+    },
+    {
+      "detectors": [
+        "carrier active/sleeping state",
+        "carrier lease availability",
+        "session count for already-active carrier only",
+        "last-use age",
+        "profile-root filesystem stat ages",
+        "aggregate carrier-binding counts/times",
+        "aggregate birth-ledger standing/timing/effect-generation"
+      ],
+      "evidence": [
+        "R4 metadata-only snapshot read no cookies, prompt/turn text, handoff URLs, attempt receipt bodies, provider content, request_json/detail/provider_coordinate",
+        "313 historical bindings distributed 114/98/101 across carriers (shares 36.42%/31.31%/32.27%; CV 0.0666)",
+        "R4 snapshot observed 0 new birth-ledger requests in the prior 24 hours",
+        "R4 current read-only carrier-11 outcome anchor remained CHALLENGE_GATED without SEND",
+        "R2 independently observed all three persistent profiles CHALLENGE_GATED"
+      ],
+      "gaps": [
+        "semantic provider-session creation age remains unmeasured",
+        "provider reputation/rate-policy state remains unobservable",
+        "durable per-preflight cadence telemetry is not yet available",
+        "credential/session contents intentionally not inspected"
+      ],
+      "id": "CF07",
+      "standing": "METADATA_CHARACTERIZED_CAUSALITY_OPEN"
+    },
+    {
+      "detectors": [
+        "provider challenge metadata/read-only preflight"
+      ],
+      "evidence": [
+        "production preflight CHALLENGE_GATED with providerEffectAttempted=false and sendAttempted=false"
+      ],
+      "gaps": [
+        "upstream cause unknown"
+      ],
+      "id": "CF08",
+      "standing": "OBSERVED_OUTCOME_CAUSE_UNKNOWN"
+    }
+  ],
+  "kind": "ordivon.browser-security-detector-coverage-r5",
+  "nextNeutralPriorities": [
+    "separate Browserless launcher defaults from Browserless service/control lifecycle with matched neutral container-direct ablations",
+    "test page-visible consequences of residual command-line/target/geometry differences without protected-provider access",
+    "add prospective non-secret per-carrier preflight/lifecycle metadata from R4 plan"
+  ],
+  "previousCoverage": "knowledge/graphs/browser-security-detector-coverage-r4.json",
+  "protectedChallengeUsedAsDetectorOracle": false,
+  "rootCauseStanding": "OPEN",
+  "schemaVersion": 1
+}

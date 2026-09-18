@@ -1,0 +1,40 @@
+{
+  "controls": {
+    "browserlessImage": "ghcr.io/browserless/chromium@sha256:b1ba7b054af2891a8199f884d4bd249cf8c3bd2fa8a97b339077e40f92803ba8",
+    "directLaunchArgumentsMatched": true,
+    "networkNamespace": "nv2-browserless-prod",
+    "neutralPage": "data:text/html",
+    "presentationEnvironmentMatched": {
+      "LANG": "C.UTF-8",
+      "TZ": "Asia/Shanghai"
+    },
+    "sameChromiumBinary": true,
+    "webdriverMatchedByDesign": true
+  },
+  "date": "2026-09-18",
+  "kind": "ordivon.browser-security-neutral-attribution-r5-repeatability",
+  "pairwiseDifferencesCanonicalSha256": "sha256:40fccba3dd7411f01fc59ba2de15a4fc5cb1b1b099a26081edbfea13fdc84d8f",
+  "providerCausalityEstablished": false,
+  "rootCauseEstablished": false,
+  "run1": {
+    "jobId": "job-01a0b355-cebb-7582-89c6-90da186e8777",
+    "path": "evidence/browser-security/cloudflare-provider-security-exp-r5-controlled-run1-20260918.json",
+    "sha256": "sha256:664034c1c524154e9e877d767932e5b00e34722cd4678c0b949ae0d28924af60"
+  },
+  "run2": {
+    "jobId": "job-01a0b35f-e582-7383-ae40-a8753b0ac90f",
+    "path": "evidence/browser-security/cloudflare-provider-security-exp-r5-controlled-run2-20260918.json",
+    "sha256": "sha256:664034c1c524154e9e877d767932e5b00e34722cd4678c0b949ae0d28924af60"
+  },
+  "safetyBoundary": {
+    "challengeInteracted": false,
+    "cookieValuesRead": false,
+    "protectedProviderVisited": false,
+    "providerSendAttempted": false
+  },
+  "schemaVersion": 1,
+  "selectedEvidenceCanonicalSha256": "sha256:ef01a38f692a8649fc085932a084df26d19f27e1b5119fe1731cbbaa915a2601",
+  "standing": "BYTE_IDENTICAL_CONTROLLED_REPEATABILITY",
+  "wholeEvidenceByteIdentical": true,
+  "wholeEvidenceCanonicalSha256": "sha256:5ee012acbab0aea05a66d3d2a3601785038dbdd0a3920146c993a0a8ab1f9f5f"
+}
