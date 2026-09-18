@@ -172,7 +172,7 @@
       "id": "BCR13",
       "label": "GenericBrowserColdOnDemand",
       "kind": "normal_readiness_lifecycle",
-      "state": "IMPLEMENTED_PENDING_DEPLOY",
+      "state": "DEPLOYED_LIVE_VERIFIED",
       "dependencies": ["BCR03", "BCR04"],
       "evidence": [
         "scripts/browserless_substrate.py",
@@ -215,13 +215,13 @@
   ],
   "currentStanding": {
     "jev-fast-windows-v1": "CREDENTIAL_MISSING",
-    "browser-use-browserless-v1": "POLICY_DISABLED",
+    "browser-use-browserless-v1": "READY_ON_DEMAND",
     "chatgpt-agent-automation-browserless-v1": "READY",
     "visual-browser-v1": "NOT_MATERIALIZED"
   },
   "nextSlice": {
-    "id": "BCR-R6-DEPLOY",
-    "objective": "Deploy browser-agent-22 as the normal cold-on-demand generic Browser Use lane without changing the operator mask on legacy browser-agent-21, then re-evaluate S5 readiness. Jev credential provisioning remains separate.",
-    "status": "READY_AFTER_R6_GATE"
+    "id": "BCR-R7-JEV-CREDENTIAL",
+    "objective": "Materialize a secure operator-provided TypeSafe credential binding for the Jev Windows route without serializing the secret into Router, benchmark, Runtime proposal, or repository state; then re-evaluate the frozen S5 paired gate.",
+    "status": "BLOCKED_BY_OPERATOR_CREDENTIAL_INPUT"
   }
 }

@@ -1,5 +1,7 @@
 # Changelog
 
+- live-verified R6.1 generic Browser Use cold-on-demand operation: Agent Automation release activation passed NO_OBSERVED_DRIFT qualification, a fresh Runtime-backed fixed click trial reconciled as BENCHMARK_EXECUTED/PASS, and browser-agent-22 returned to fully cold state after close; S5 is now blocked only by the Jev TypeSafe credential.
+
 - fixed the R6 generic Browser Use migration dependency closure: Browserless display-auth now admits production instance 22 while retaining masked legacy 21 for rollback compatibility; live activation had failed before provider effects because the immutable Agent Automation release still carried the pre-migration display instance allowlist.
 
 - added Browser readiness R6 cold-on-demand migration: generic Browser Use moves from the operator-masked legacy browser-agent-21 lane to independent browser-agent-22, with explicit activation/idle-stop lifecycle bindings, READY_ON_DEMAND Router semantics, bounded activation before CDP use, and fail-closed reclaim only after an empty Browserless session observation. ChatGPT carriers remain isolated and the legacy 21 mask is not changed.

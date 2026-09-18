@@ -96,3 +96,33 @@ name-only search of the normal Ordivon configuration roots found no existing bin
 those names. Jev therefore remains a separate credential-provisioning blocker.
 
 No secret value is read or emitted by this readiness work.
+
+
+## Live verification — 2026-09-18
+
+R6.1 was promoted through the commit-addressed Agent Automation release at commit
+ae0938168df227e2075653d73517d9a2fc161e72. Browser Security qualification returned
+NO_OBSERVED_DRIFT before activation.
+
+A fresh Browser Use benchmark trial then exercised the normal cold-on-demand path:
+
+- Runtime executionDisposition: succeeded;
+- Runtime deliveryDisposition: committed;
+- route standing: EXECUTED;
+- semantic witness: PASS;
+- actionCount: 2;
+- modelRequestCount: 0;
+- bootstrapElapsedMs: 3962;
+- taskElapsedMs: 959;
+- totalElapsedMs: 4921.
+
+S4 reconciliation independently returned BENCHMARK_EXECUTED / PASS.
+
+After session close, browser-agent target 22, carrier 22, Xvfb display 22, and operator proxy 22 were
+all inactive; no browser-agent-22 container or 3022/13122 listener remained. Router immediately
+returned READY_ON_DEMAND again.
+
+The legacy 21 carrier/display/proxy masks remained unchanged throughout.
+
+The S5 live gate now has exactly one blocker: Jev remains CREDENTIAL_MISSING while Browser Use is
+READY_ON_DEMAND. No paired trials are materialized until both routes are normally ready.
