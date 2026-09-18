@@ -23,9 +23,12 @@
       "requestedCapabilityId": "capability/service/probe",
       "authorityMode": "recovery",
       "conflictMode": "shared_read",
-      "dependsOn": ["step/probe-wsl"],
+      "dependsOn": [
+        "step/probe-wsl"
+      ],
       "evidencePolicyId": "evidence/wsl-recovery-r1",
-      "effectDispatched": false
+      "effectDispatched": false,
+      "preferredProviderId": "provider/windows-local/wsl-service-control-v1"
     },
     {
       "schemaVersion": 1,
@@ -35,9 +38,12 @@
       "requestedCapabilityId": "capability/service/ensure",
       "authorityMode": "recovery",
       "conflictMode": "exclusive_write",
-      "dependsOn": ["step/probe-control-plane"],
+      "dependsOn": [
+        "step/probe-control-plane"
+      ],
       "evidencePolicyId": "evidence/wsl-recovery-r1",
-      "effectDispatched": false
+      "effectDispatched": false,
+      "preferredProviderId": "provider/windows-local/wsl-service-control-v1"
     },
     {
       "schemaVersion": 1,
@@ -47,7 +53,9 @@
       "requestedCapabilityId": "capability/runtime/health",
       "authorityMode": "recovery",
       "conflictMode": "shared_read",
-      "dependsOn": ["step/ensure-control-plane"],
+      "dependsOn": [
+        "step/ensure-control-plane"
+      ],
       "evidencePolicyId": "evidence/wsl-recovery-r1",
       "effectDispatched": false
     }

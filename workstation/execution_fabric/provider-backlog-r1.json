@@ -27,14 +27,13 @@
         "capability/service/ensure"
       ],
       "implementedCapabilities": [
-        "capability/service/probe"
-      ],
-      "missingCapabilities": [
+        "capability/service/probe",
         "capability/service/ensure"
       ],
+      "missingCapabilities": [],
       "providerFamilyId": "provider-family/linux-service-control",
-      "rationale": "Expose exact allowlisted service observation/convergence instead of embedding systemctl commands in workflows.",
-      "status": "partial",
+      "rationale": "Linux control-plane services are now observable locally and remotely reconcilable from windows-local via an explicit cross-node WSL provider.",
+      "status": "implemented",
       "targetNodeId": "linux-local"
     },
     {

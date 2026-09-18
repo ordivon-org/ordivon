@@ -30,6 +30,8 @@
       ],
       "capabilities": [
         "capability/authority/validate",
+        "capability/service/ensure",
+        "capability/service/probe",
         "capability/wsl/probe",
         "capability/wsl/verify-offline"
       ],
@@ -38,7 +40,8 @@
       "platform": "windows",
       "providers": [
         "provider/windows-local/authority-validation-v1",
-        "provider/windows-local/windows-wsl-observer-v1"
+        "provider/windows-local/windows-wsl-observer-v1",
+        "provider/windows-local/wsl-service-control-v1"
       ],
       "schemaVersion": 1,
       "trustDomain": "ordivon.local"
@@ -100,6 +103,19 @@
       "platform": "windows",
       "providerId": "provider/windows-local/windows-wsl-observer-v1",
       "schemaVersion": 1
+    },
+    {
+      "capabilities": [
+        "capability/service/probe",
+        "capability/service/ensure"
+      ],
+      "nodeId": "windows-local",
+      "platform": "windows",
+      "providerId": "provider/windows-local/wsl-service-control-v1",
+      "schemaVersion": 1,
+      "targetNodeIds": [
+        "linux-local"
+      ]
     }
   ],
   "resources": [

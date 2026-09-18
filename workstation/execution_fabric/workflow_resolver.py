@@ -37,6 +37,14 @@ def validate_catalog(catalog: dict[str, Any]) -> None:
             raise ValueError(f"provider not advertised by node: {provider['providerId']}")
         if not provider.get("capabilities"):
             raise ValueError(f"provider has no capabilities: {provider['providerId']}")
+        targets = provider.get("targetNodeIds", [])
+        if len(targets) != len(set(targets)):
+            raise ValueError(f"provider has duplicate targetNodeIds: {provider['providerId']}")
+        unknown_targets = sorted(set(targets) - set(node_map))
+        if unknown_targets:
+            raise ValueError(
+                f"provider targets unknown nodes: {provider['providerId']} -> {unknown_targets}"
+            )
 
 
 def validate_workflow(plan: dict[str, Any]) -> None:
@@ -93,6 +101,7 @@ def resolve(plan: dict[str, Any], catalog: dict[str, Any]) -> dict[str, Any]:
             and (
                 resource.get("nodeId") is None
                 or provider["nodeId"] == resource.get("nodeId")
+                or resource.get("nodeId") in provider.get("targetNodeIds", [])
             )
             and (
                 step.get("preferredProviderId") is None

@@ -19,10 +19,10 @@
     },
     {
       "candidateNodeIds": [
-        "linux-local"
+        "windows-local"
       ],
       "candidateProviderIds": [
-        "provider/linux-local/service-observer-v1"
+        "provider/windows-local/wsl-service-control-v1"
       ],
       "dispatchStarted": false,
       "disposition": "resolved",
@@ -30,19 +30,25 @@
       "requestedCapabilityId": "capability/service/probe",
       "resourceId": "service/linux/control-plane",
       "schemaVersion": 1,
-      "selectedNodeId": "linux-local",
-      "selectedProviderId": "provider/linux-local/service-observer-v1",
+      "selectedNodeId": "windows-local",
+      "selectedProviderId": "provider/windows-local/wsl-service-control-v1",
       "stepId": "step/probe-control-plane"
     },
     {
-      "candidateNodeIds": [],
-      "candidateProviderIds": [],
+      "candidateNodeIds": [
+        "windows-local"
+      ],
+      "candidateProviderIds": [
+        "provider/windows-local/wsl-service-control-v1"
+      ],
       "dispatchStarted": false,
-      "disposition": "unresolved",
-      "reasonCode": "reason/no-capable-provider",
+      "disposition": "resolved",
+      "reasonCode": "reason/workflow-binding-resolved",
       "requestedCapabilityId": "capability/service/ensure",
       "resourceId": "service/linux/control-plane",
       "schemaVersion": 1,
+      "selectedNodeId": "windows-local",
+      "selectedProviderId": "provider/windows-local/wsl-service-control-v1",
       "stepId": "step/ensure-control-plane"
     },
     {
@@ -64,7 +70,7 @@
     }
   ],
   "dispatchStarted": false,
-  "fullyResolved": false,
+  "fullyResolved": true,
   "schemaVersion": 1,
   "workflowId": "workflow/wsl-control-plane-recovery-r1"
 }
