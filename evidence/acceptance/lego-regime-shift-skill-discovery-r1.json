@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.acceptance-evidence",
+  "subject": "lego-regime-shift-skill-discovery-r1",
+  "truthRole": "skill-discovery-and-scan-evidence",
+  "date": "2026-09-19",
+  "sourceRevision": "8414834a7d1f31a0ed6fa97796b250b6a47116dd",
+  "skillId": "project-ordivon-next/lego-regime-shift",
+  "workspaceContext": {
+    "skillWorkspaceId": "ordivon-next",
+    "runtimeWorkspaceIdIsNotSkillWorkspaceId": true,
+    "boundary": "Skill MCP accepts only pre-registered Skill workspace identities; Runtime ws-* handles are separate physical execution identities."
+  },
+  "liveSkillsMcp": {
+    "searchQuery": "regime",
+    "searchReturnedExactSkill": true,
+    "resolveInvocationMode": "implicit",
+    "resolveSucceeded": true,
+    "catalogRevision": "sha256:99ed5bf861a4d028feea1381f00582f5f7d273c03dcb785bef1af9f99c13652c",
+    "snapshotRevision": "sha256:665328098c0043053ae9c216176d678195e171f861a55704e45cf7ec33335f41",
+    "instructionDigest": "sha256:e1f8adcbacec78eabd57fe0a4bec58942fe5d0769af00b639bc52e19e699644c",
+    "packageRevision": "sha256:e34041214355ad181305baae9a914faec7a673bc465e40bf7167f59e75f8cd63",
+    "trustState": "TRUSTED",
+    "scanState": "PASS",
+    "riskTags": [],
+    "implicitInvocation": true,
+    "explicitInvocation": true
+  },
+  "falsePositiveRepair": {
+    "previousScanState": "WARN",
+    "previousRiskTag": "CROSS_SKILL_ROUTING",
+    "previousFinding": "cross-skill routing directive: SKILL.md",
+    "rootCause": "The phrase 'Use early-warning statistics' matched the scanner's conservative 'use <hyphenated-token>' cross-Skill routing pattern even though early-warning was ordinary analytical terminology, not a Skill reference.",
+    "repair": "Changed only that phrase to 'Apply early-warning statistics'; no scanner policy or trust threshold was weakened.",
+    "localReplayAfterRepair": {
+      "scanState": "PASS",
+      "riskTags": [],
+      "findings": [],
+      "implicitInvocation": true,
+      "explicitInvocation": true
+    }
+  },
+  "verification": {
+    "focusedRepoTests": "20 passed",
+    "lensRegistryCheck": "PASS",
+    "liveRefreshAfterCanonicalIntegration": "PASS"
+  },
+  "acceptedClaims": [
+    "lego-regime-shift is discoverable in the live Skill MCP when the pre-registered ordivon-next Skill context is supplied.",
+    "The current exact package scans PASS and is admitted for both implicit and explicit invocation.",
+    "Runtime workspace identity and Skill workspace context remain intentionally separate."
+  ],
+  "nonClaims": [
+    "The project Skill is not globally visible outside applicable project context.",
+    "Skill discovery does not grant Runtime, provider, financial, or other effect authority.",
+    "This evidence does not change the intellectual authority of the external disciplines consumed by the regime-shift lens."
+  ]
+}
