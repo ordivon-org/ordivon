@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.acceptance-evidence",
+  "subject": "lego-theory-layer-r1",
+  "date": "2026-09-18",
+  "sourceRevision": "6aee69c74dae24d28fa48b975e510873fc2973ab",
+  "workspaceId": "ws-lego-theory-r1-20260918",
+  "standing": "PASS_WITH_PROSPECTIVE_VALIDATION_REQUIRED",
+  "checks": [
+    {
+      "id": "existing-plan-schema-compatibility",
+      "result": "PASS",
+      "evidence": "scripts/check_project_lego_plan_r1.py planning/lego-plan-r1.json returned ok=true"
+    },
+    {
+      "id": "skill-package-shape",
+      "result": "PASS",
+      "evidence": "lego-project-planning plus four Wave 1 lens SKILL.md files contain required name/description frontmatter"
+    },
+    {
+      "id": "core-schema-freeze",
+      "result": "PASS",
+      "evidence": "schemas/project-lego-plan-r1.schema.json unchanged"
+    },
+    {
+      "id": "reflexive-analysis",
+      "result": "PASS_WITH_CONSTRAINTS",
+      "evidence": "knowledge/lessons/lego-self-analysis-wave1-r1.md"
+    },
+    {
+      "id": "global-skill-discovery",
+      "result": "PENDING_INTEGRATION",
+      "evidence": "Skill MCP does not consume temporary Runtime workspace ids; re-check after integration into canonical ordivon-next source"
+    }
+  ],
+  "wave1": [
+    "systems-engineering",
+    "design-structure-matrix",
+    "feedback-control",
+    "stpa-stamp"
+  ],
+  "nonClaims": [
+    "This acceptance does not prove the lenses improve outcomes across domains.",
+    "This acceptance does not certify professional STPA or control-theory analysis.",
+    "The external disciplines remain the intellectual authorities."
+  ]
+}

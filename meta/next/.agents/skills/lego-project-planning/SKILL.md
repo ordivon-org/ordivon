@@ -5,6 +5,7 @@ compatibility: Cross-platform. Project plans use planning/lego-plan-r1.json.
 metadata:
   source-authority: ordivon-next
   planning-contract: docs/LEGO_PROJECT_PLANNING_R1.md
+  theory-layer: docs/LEGO_THEORY_LAYER_R1.md
   schema: schemas/project-lego-plan-r1.schema.json
 ---
 
@@ -25,6 +26,19 @@ The LEGO plan is a planning projection, not project truth.
 9. Record gaps and do-not-own boundaries.
 10. Validate structure when the R1 validator is available.
 11. After implementation, re-read reality before updating node state.
+
+## Optional mature-theory lenses
+
+Do not run every lens automatically. Activate only when the system shape justifies the extra analysis.
+
+- `lego-systems-engineering`: unclear scope, environment, lifecycle, system-of-systems boundary, or interface ownership.
+- `lego-dsm`: dense dependencies, cycles, repeated cross-module changes, unclear replacement seams, or suspected bad decomposition.
+- `lego-feedback-control`: dynamic state, feedback, delay, observation, recovery, robustness, or regulation.
+- `lego-stpa`: high-consequence loss/security risk, unsafe interactions, control actions, automation, humans/organizations, or failures not reducible to one broken component.
+
+Lens outputs are derived analysis evidence. They alter the plan only through an explicit architecture decision supported by project-native evidence.
+
+Do not expand the project plan schema merely to mirror theory vocabulary.
 
 ## State law
 
@@ -54,5 +68,6 @@ Another Agent should be able to answer from the plan:
 
 Canonical references:
 - docs/LEGO_PROJECT_PLANNING_R1.md
+- docs/LEGO_THEORY_LAYER_R1.md
 - schemas/project-lego-plan-r1.schema.json
 - knowledge/lessons/agent-architecture-lego-catalog-r1.md for optional Agent-architecture coordinates
