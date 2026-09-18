@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+if [[ $# -lt 1 || $# -gt 4 ]]; then
+  echo "usage: run-okx-instrument-sensors-r1 INSTRUMENT [OUTPUT_JSON] [ROUNDS] [INTERVAL_SECONDS]" >&2
+  exit 2
+fi
+instrument="$1"
+out="${2:-$repo/.artifacts/okx-public-sensors-r1/${instrument}.json}"
+rounds="${3:-5}"
+interval="${4:-1.0}"
+
+binding="$("$repo/scripts/check-network-v2-public-data")"
+proxy="$(printf '%s' "$binding" | /usr/bin/jq -r '.authorities.okxRest.proxy')"
+if [[ -z "$proxy" || "$proxy" == "null" ]]; then
+  echo "OKX Network v2 public REST proxy missing" >&2
+  exit 3
+fi
+
+ready=0
+for _ in {1..12}; do
+  if /usr/bin/curl -fsS --proxy "$proxy" --connect-timeout 1 --max-time 3       "https://openapi.okx.com/api/v5/public/time" >/dev/null 2>&1; then
+    ready=1
+    break
+  fi
+  /usr/bin/sleep 0.25
+done
+if [[ "$ready" != 1 ]]; then
+  echo "OKX Network v2 public REST proxy active-unit check passed but endpoint is not ready" >&2
+  exit 4
+fi
+
+PYTHONPATH="$repo/src" /usr/bin/python3 -m market_capital.okx_sensor_capture \
+  --instrument "$instrument" \
+  --proxy "$proxy" \
+  --output "$out" \
+  --rounds "$rounds" \
+  --interval-seconds "$interval"

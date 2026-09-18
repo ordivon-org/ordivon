@@ -110,14 +110,27 @@ def build_regime_card(
     )
 
     oi_change_pct = _maybe_d(market.get("openInterestChangePct"), "market.openInterestChangePct")
+    oi_change_span_ms = market.get("openInterestChangeSpanMs")
+    oi_change_sample_count = market.get("openInterestChangeSampleCount")
     book_imbalance = _maybe_d(market.get("bookImbalance"), "market.bookImbalance")
     trade_buy_share = _maybe_d(market.get("tradeBuyShare"), "market.tradeBuyShare")
+    microstructure_standing = market.get("microstructureStanding")
+    microstructure_sample_count = market.get("microstructureSampleCount")
     funding_mean = _maybe_d(market.get("fundingRecentMean"), "market.fundingRecentMean")
+
+    if oi_change_span_ms is not None and (not isinstance(oi_change_span_ms, int) or oi_change_span_ms < 1):
+        raise RegimeCardError("market.openInterestChangeSpanMs must be a positive integer")
+    if oi_change_sample_count is not None and (not isinstance(oi_change_sample_count, int) or oi_change_sample_count < 2):
+        raise RegimeCardError("market.openInterestChangeSampleCount must be at least two")
+    if microstructure_sample_count is not None and (
+        not isinstance(microstructure_sample_count, int) or microstructure_sample_count < 2
+    ):
+        raise RegimeCardError("market.microstructureSampleCount must be at least two")
 
     gaps: list[str] = []
     if oi_change_pct is None:
         gaps.append("OPEN_INTEREST_CHANGE_MISSING")
-    if book_imbalance is None:
+    if microstructure_sample_count is None or book_imbalance is None or trade_buy_share is None:
         gaps.append("REPEATED_MICROSTRUCTURE_EVIDENCE_MISSING")
     if trade_buy_share is None:
         gaps.append("RECENT_TRADE_FLOW_MISSING")
@@ -254,6 +267,10 @@ def build_regime_card(
             "fundingRecentMean": _fmt(funding_mean) if funding_mean is not None else None,
             "openInterestUsd": _fmt(oi_usd),
             "openInterestChangePct": _fmt(oi_change_pct) if oi_change_pct is not None else None,
+            "openInterestChangeSpanMs": oi_change_span_ms,
+            "openInterestChangeSampleCount": oi_change_sample_count,
+            "microstructureStanding": microstructure_standing,
+            "microstructureSampleCount": microstructure_sample_count,
             "shortHorizonMomentumExtended": short_horizon_extended,
             "dailyMomentumExtended": long_horizon_extended,
         },
