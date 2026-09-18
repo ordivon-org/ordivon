@@ -10,138 +10,394 @@
       "id": "CF01",
       "label": "EdgePolicyDecision",
       "kind": "DECISION_ROUTER",
-      "observables": ["WAF/rate-limit/bot-policy/challenge action", "provider response class"],
+      "observables": [
+        "WAF/rate-limit/bot-policy/challenge action",
+        "provider response class"
+      ],
       "currentStanding": "UNKNOWN_CAUSE",
-      "localEvidence": ["provider challenge observed", "no provider-authoritative cause"],
-      "missingWitness": ["provider-authoritative rule/action reason"],
+      "localEvidence": [
+        "provider challenge observed",
+        "no provider-authoritative cause"
+      ],
+      "missingWitness": [
+        "provider-authoritative rule/action reason"
+      ],
       "repairClass": "policy-attribution"
     },
     {
       "id": "CF02",
       "label": "TransportFingerprint",
       "kind": "VERIFIER_OBSERVER",
-      "observables": ["egress identity", "TLS client fingerprint", "JA3/JA4-class signals", "HTTP protocol version"],
-      "currentStanding": "PARTIAL",
-      "localEvidence": ["Network v2 connectivity and egress path proven"],
-      "missingWitness": ["browser-carrier TLS/JA4 witness", "native-vs-automation transport differential"],
+      "observables": [
+        "egress identity",
+        "TLS client fingerprint",
+        "JA3/JA4-class signals",
+        "HTTP protocol version"
+      ],
+      "currentStanding": "MEASURED_NO_ROUTE_DIFFERENCE_CURRENT_DETECTORS",
+      "localEvidence": [
+        "Network-v2 connectivity and egress path proven",
+        "R1 direct-vs-Browserless JA4/PeetPrint/HTTP2 matched",
+        "Security-v2 observation-validity gate now separates observer outage from subject drift"
+      ],
+      "missingWitness": [
+        "unmeasured transport features may exist",
+        "provider-specific attribution"
+      ],
       "repairClass": "network-presentation"
     },
     {
       "id": "CF03",
       "label": "HttpPresentation",
       "kind": "VERIFIER_OBSERVER",
-      "observables": ["User-Agent", "UA-CH", "header set/order", "sec-fetch/accept presentation"],
-      "currentStanding": "PARTIAL",
-      "localEvidence": ["local Cloudflare BIC experiment showed client-presentation differences matter"],
-      "missingWitness": ["exact Browserless browser HTTP presentation", "native control comparison"],
+      "observables": [
+        "User-Agent",
+        "UA-CH",
+        "header set/order",
+        "sec-fetch/accept presentation"
+      ],
+      "currentStanding": "MEASURED_NO_ROUTE_DIFFERENCE_CURRENT_DETECTORS",
+      "localEvidence": [
+        "R2 direct-late/direct-early/Browserless main-document header set/order identical"
+      ],
+      "missingWitness": [
+        "unmeasured HTTP presentation fields may exist",
+        "provider-specific attribution"
+      ],
       "repairClass": "http-presentation"
     },
     {
       "id": "CF04",
       "label": "BrowserJsPresentation",
       "kind": "VERIFIER_OBSERVER",
-      "observables": ["navigator/browser properties", "headless/browser signals", "page-visible automation-related properties"],
-      "currentStanding": "SUSPICIOUS_OBSERVED",
-      "localEvidence": ["current production route observed navigator.webdriver=true", "public BotD classified automation in local study"],
-      "missingWitness": ["same-browser native/late-attach differential", "provider-specific attribution"],
+      "observables": [
+        "navigator/browser properties",
+        "headless/browser signals",
+        "page-visible automation-related properties"
+      ],
+      "currentStanding": "PARTIAL_SUPPORTED_MECHANISM",
+      "localEvidence": [
+        "R1 --enable-automation was sufficient to reproduce navigator.webdriver=true",
+        "R3 direct and Browserless intentionally matched at navigator.webdriver=true"
+      ],
+      "missingWitness": [
+        "provider-specific relevance of launch/browser presentation"
+      ],
       "repairClass": "browser-presentation"
     },
     {
       "id": "CF05",
       "label": "AutomationControlObservability",
       "kind": "VERIFIER_OBSERVER",
-      "observables": ["control attachment state", "CDP/WebDriver protocol-domain side effects", "execution-context/init-script/debugger artifacts", "launch-owner/control-layer digest"],
-      "currentStanding": "HIGH_PRIORITY_HYPOTHESIS",
-      "localEvidence": ["current path is Puppeteer-launched Browserless CDP plus Playwright connect_over_cdp", "old Ordivon used direct Chromium then late CDP attach", "Browserless installs its own CDP listeners/domains before Ordivon work"],
-      "missingWitness": ["controlled same-Chromium attachment-state A/B", "page-observable control-layer witness"],
+      "observables": [
+        "control attachment state",
+        "CDP/WebDriver protocol-domain side effects",
+        "execution-context/init-script/debugger artifacts",
+        "launch-owner/control-layer digest"
+      ],
+      "currentStanding": "PARTIAL_NEUTRAL_DIFFERENTIAL",
+      "localEvidence": [
+        "R2 console/Error side-effect probe was non-discriminating",
+        "R2 execution-context shape matched",
+        "R3 browser-level command-line, GPU summary, and target-type topology differences were repeatable"
+      ],
+      "missingWitness": [
+        "page-visible consequence of browser-level differences",
+        "other-session CDP domain enablement is not directly queryable",
+        "provider-specific attribution"
+      ],
       "repairClass": "control-layer"
     },
     {
       "id": "CF06",
       "label": "CrossLayerConsistency",
       "kind": "VERIFIER_OBSERVER",
-      "observables": ["browser/OS/GPU/screen/locale/timezone/network consistency", "browser-version vs transport/presentation coherence"],
-      "currentStanding": "UNMEASURED",
-      "localEvidence": ["Camoufox/source studies established consistency-graph model"],
-      "missingWitness": ["current production consistency witness", "native control consistency witness"],
+      "observables": [
+        "browser/OS/GPU/screen/locale/timezone/network consistency",
+        "browser-version vs transport/presentation coherence"
+      ],
+      "currentStanding": "REPEATABLE_NEUTRAL_DIFFERENTIAL",
+      "localEvidence": [
+        "R2 KR egress vs Asia/Shanghai timezone mismatch observed in both routes",
+        "R3 host/container font resolution and canvas metric differences repeatable",
+        "R3 window geometry difference repeatable with mixed launch/window-management attribution",
+        "R3 browser-level GPU summary differs while page WebGL is unavailable in both arms"
+      ],
+      "missingWitness": [
+        "page-visible GPU differential unavailable in current build",
+        "geometry source not fully localized",
+        "provider-specific attribution"
+      ],
       "repairClass": "identity-consistency"
     },
     {
       "id": "CF07",
       "label": "SessionBehavior",
       "kind": "VERIFIER_OBSERVER",
-      "observables": ["profile/session continuity", "request cadence", "navigation sequence", "challenge history", "attachment transitions"],
+      "observables": [
+        "profile/session continuity",
+        "request cadence",
+        "navigation sequence",
+        "challenge history",
+        "attachment transitions"
+      ],
       "currentStanding": "PARTIAL",
-      "localEvidence": ["persistent /data profile proven", "session/handoff lifecycle exists"],
-      "missingWitness": ["session-age/cadence/control-transition witness", "native session comparison"],
+      "localEvidence": [
+        "persistent /data profile proven",
+        "session/handoff lifecycle exists",
+        "R2 three independent persistent profiles all returned CHALLENGE_GATED without reading cookie values"
+      ],
+      "missingWitness": [
+        "session-age/cadence/control-transition witness",
+        "native session comparison"
+      ],
       "repairClass": "session-behavior"
     },
     {
       "id": "CF08",
       "label": "ChallengeState",
       "kind": "STATE_AUTHORITY",
-      "observables": ["challenge metadata", "challenge iframe", "__cf_chl_* route/query", "human-required state", "challenge clearance outcome"],
+      "observables": [
+        "challenge metadata",
+        "challenge iframe",
+        "__cf_chl_* route/query",
+        "human-required state",
+        "challenge clearance outcome"
+      ],
       "currentStanding": "OBSERVED",
-      "localEvidence": ["chatgpt_provider_gate recognizes challenge metadata", "production preflight observed CHALLENGE_GATED with providerEffectAttempted=false"],
-      "missingWitness": ["precise upstream cause"],
+      "localEvidence": [
+        "chatgpt_provider_gate recognizes challenge metadata",
+        "production preflight observed CHALLENGE_GATED with providerEffectAttempted=false"
+      ],
+      "missingWitness": [
+        "precise upstream cause"
+      ],
       "repairClass": "challenge-state"
     }
   ],
   "edges": [
-    {"from":"CF02","to":"CF01","type":"EVIDENCE","label":"transport presentation contributes to edge decision"},
-    {"from":"CF03","to":"CF01","type":"EVIDENCE","label":"HTTP presentation contributes to edge decision"},
-    {"from":"CF04","to":"CF01","type":"EVIDENCE","label":"browser JS presentation contributes to edge decision"},
-    {"from":"CF05","to":"CF04","type":"DEPENDENCY","label":"control layer may alter page-visible browser state"},
-    {"from":"CF05","to":"CF01","type":"EVIDENCE","label":"control-layer observability is a candidate detection family"},
-    {"from":"CF06","to":"CF01","type":"EVIDENCE","label":"cross-layer contradictions may contribute to classification"},
-    {"from":"CF07","to":"CF01","type":"EVIDENCE","label":"session/request behavior contributes to classification"},
-    {"from":"CF01","to":"CF08","type":"CONTROL","label":"edge/provider decision may produce challenge"}
+    {
+      "from": "CF02",
+      "to": "CF01",
+      "type": "EVIDENCE",
+      "label": "transport presentation contributes to edge decision"
+    },
+    {
+      "from": "CF03",
+      "to": "CF01",
+      "type": "EVIDENCE",
+      "label": "HTTP presentation contributes to edge decision"
+    },
+    {
+      "from": "CF04",
+      "to": "CF01",
+      "type": "EVIDENCE",
+      "label": "browser JS presentation contributes to edge decision"
+    },
+    {
+      "from": "CF05",
+      "to": "CF04",
+      "type": "DEPENDENCY",
+      "label": "control layer may alter page-visible browser state"
+    },
+    {
+      "from": "CF05",
+      "to": "CF01",
+      "type": "EVIDENCE",
+      "label": "control-layer observability is a candidate detection family"
+    },
+    {
+      "from": "CF06",
+      "to": "CF01",
+      "type": "EVIDENCE",
+      "label": "cross-layer contradictions may contribute to classification"
+    },
+    {
+      "from": "CF07",
+      "to": "CF01",
+      "type": "EVIDENCE",
+      "label": "session/request behavior contributes to classification"
+    },
+    {
+      "from": "CF01",
+      "to": "CF08",
+      "type": "CONTROL",
+      "label": "edge/provider decision may produce challenge"
+    }
   ],
   "agentBirthMappings": [
-    {"agentBirthNode":"AB15","label":"CarrierCandidateRouter","providerBoundaryNodes":["CF02","CF07"],"note":"candidate/path selection changes network/session context; challenge state must not be used as blind cross-carrier retry authority"},
-    {"agentBirthNode":"AB16","label":"CarrierLease","providerBoundaryNodes":["CF07"],"note":"preserves one persistent profile/session context"},
-    {"agentBirthNode":"AB17","label":"ProviderPreflightObserver","providerBoundaryNodes":["CF01","CF08"],"note":"observes admissibility/challenge without claiming root cause"},
-    {"agentBirthNode":"AB18","label":"CarrierBindingStore","providerBoundaryNodes":["CF02","CF07"],"note":"binds exact physical carrier for later attribution/reconciliation"},
-    {"agentBirthNode":"AB22","label":"BrowserlessMaterializationAdapter","providerBoundaryNodes":["CF04","CF05","CF06","CF07"],"note":"route family and control stack define browser presentation provenance"},
-    {"agentBirthNode":"AB23","label":"ChatGPTSubmitExecutor","providerBoundaryNodes":["CF08"],"note":"must not cross SEND while challenge-gated"},
-    {"agentBirthNode":"AB24","label":"SubmitEvidenceInterpreter","providerBoundaryNodes":["CF08"],"note":"turns visible challenge evidence into provider-effect standing without inventing cause"},
-    {"agentBirthNode":"AB26","label":"BirthReconciler","providerBoundaryNodes":["CF07","CF08"],"note":"same-effect observation only; ambiguity never authorizes blind resend"},
-    {"agentBirthNode":"AB28","label":"HumanHandoffReceipt","providerBoundaryNodes":["CF08"],"note":"durable proof of pre-SEND human-required state"},
-    {"agentBirthNode":"AB29","label":"HumanHandoffLivenessObserver","providerBoundaryNodes":["CF07","CF08"],"note":"separates historical handoff from current session truth"}
+    {
+      "agentBirthNode": "AB15",
+      "label": "CarrierCandidateRouter",
+      "providerBoundaryNodes": [
+        "CF02",
+        "CF07"
+      ],
+      "note": "candidate/path selection changes network/session context; challenge state must not be used as blind cross-carrier retry authority"
+    },
+    {
+      "agentBirthNode": "AB16",
+      "label": "CarrierLease",
+      "providerBoundaryNodes": [
+        "CF07"
+      ],
+      "note": "preserves one persistent profile/session context"
+    },
+    {
+      "agentBirthNode": "AB17",
+      "label": "ProviderPreflightObserver",
+      "providerBoundaryNodes": [
+        "CF01",
+        "CF08"
+      ],
+      "note": "observes admissibility/challenge without claiming root cause"
+    },
+    {
+      "agentBirthNode": "AB18",
+      "label": "CarrierBindingStore",
+      "providerBoundaryNodes": [
+        "CF02",
+        "CF07"
+      ],
+      "note": "binds exact physical carrier for later attribution/reconciliation"
+    },
+    {
+      "agentBirthNode": "AB22",
+      "label": "BrowserlessMaterializationAdapter",
+      "providerBoundaryNodes": [
+        "CF04",
+        "CF05",
+        "CF06",
+        "CF07"
+      ],
+      "note": "route family and control stack define browser presentation provenance"
+    },
+    {
+      "agentBirthNode": "AB23",
+      "label": "ChatGPTSubmitExecutor",
+      "providerBoundaryNodes": [
+        "CF08"
+      ],
+      "note": "must not cross SEND while challenge-gated"
+    },
+    {
+      "agentBirthNode": "AB24",
+      "label": "SubmitEvidenceInterpreter",
+      "providerBoundaryNodes": [
+        "CF08"
+      ],
+      "note": "turns visible challenge evidence into provider-effect standing without inventing cause"
+    },
+    {
+      "agentBirthNode": "AB26",
+      "label": "BirthReconciler",
+      "providerBoundaryNodes": [
+        "CF07",
+        "CF08"
+      ],
+      "note": "same-effect observation only; ambiguity never authorizes blind resend"
+    },
+    {
+      "agentBirthNode": "AB28",
+      "label": "HumanHandoffReceipt",
+      "providerBoundaryNodes": [
+        "CF08"
+      ],
+      "note": "durable proof of pre-SEND human-required state"
+    },
+    {
+      "agentBirthNode": "AB29",
+      "label": "HumanHandoffLivenessObserver",
+      "providerBoundaryNodes": [
+        "CF07",
+        "CF08"
+      ],
+      "note": "separates historical handoff from current session truth"
+    }
   ],
   "currentFalsifiedHypotheses": [
     "broken localhost HTTP/WebSocket bridge",
-    "missing persistent Browserless profile"
+    "missing persistent Browserless profile",
+    "window geometry difference is explained solely by --window-size"
   ],
   "currentOpenHypotheses": [
-    "transport/TLS presentation contribution",
-    "HTTP presentation contribution",
-    "browser JS presentation contribution",
-    "automation-control attachment contribution",
-    "cross-layer consistency contribution",
+    "unmeasured transport/HTTP presentation contribution",
+    "provider relevance of launch/browser presentation",
+    "page-visible consequence of control-layer differences",
+    "cross-layer font/geometry/runtime presentation contribution",
     "session/behavior contribution",
     "provider policy/rate/reputation contribution"
   ],
   "experimentLaw": {
     "goal": "attribute observable differences, not automate challenge defeat",
-    "controls": ["same target", "same browser build where possible", "same profile class", "same network authority where possible"],
-    "varyOneAtATime": ["launchOwner", "controlAttachmentState", "browserlessRouteFamily", "controlLayerDigest", "networkAuthority", "profileIdentity", "sessionAge"],
-    "requiredWitness": ["last-known-good", "first-known-bad", "exact browser/control/network/profile versions", "per-CF-node observations", "challenge standing"],
-    "resultClasses": ["SUPPORTED", "FALSIFIED", "UNCHANGED", "UNRESOLVED"]
+    "controls": [
+      "same target",
+      "same browser build where possible",
+      "same profile class",
+      "same network authority where possible"
+    ],
+    "varyOneAtATime": [
+      "launchOwner",
+      "controlAttachmentState",
+      "browserlessRouteFamily",
+      "controlLayerDigest",
+      "networkAuthority",
+      "profileIdentity",
+      "sessionAge"
+    ],
+    "requiredWitness": [
+      "last-known-good",
+      "first-known-bad",
+      "exact browser/control/network/profile versions",
+      "per-CF-node observations",
+      "challenge standing"
+    ],
+    "resultClasses": [
+      "SUPPORTED",
+      "FALSIFIED",
+      "UNCHANGED",
+      "UNRESOLVED"
+    ]
   },
   "repairRouting": [
-    {"when":"CF02 changes","route":"Network/provider path investigation"},
-    {"when":"CF03 changes","route":"HTTP/browser presentation investigation"},
-    {"when":"CF04 changes","route":"browser runtime/presentation investigation"},
-    {"when":"CF05 changes","route":"control-layer/attachment investigation"},
-    {"when":"CF06 changes","route":"cross-layer consistency investigation"},
-    {"when":"CF07 changes","route":"profile/session lifecycle investigation"},
-    {"when":"CF08 only changes while CF02-CF07 remain stable","route":"provider-policy/drift attribution; preserve HUMAN_REQUIRED/pre-effect fence"}
+    {
+      "when": "observation invalid/unavailable",
+      "route": "observer/network validity investigation before CF-family attribution"
+    },
+    {
+      "when": "CF02 changes",
+      "route": "Network/provider path investigation"
+    },
+    {
+      "when": "CF03 changes",
+      "route": "HTTP/browser presentation investigation"
+    },
+    {
+      "when": "CF04 changes",
+      "route": "browser runtime/presentation investigation"
+    },
+    {
+      "when": "CF05 changes",
+      "route": "control-layer/attachment investigation"
+    },
+    {
+      "when": "CF06 changes",
+      "route": "cross-layer consistency investigation"
+    },
+    {
+      "when": "CF07 changes",
+      "route": "profile/session lifecycle investigation"
+    },
+    {
+      "when": "CF08 only changes while CF02-CF07 remain stable",
+      "route": "provider-policy/drift attribution; preserve HUMAN_REQUIRED/pre-effect fence"
+    }
   ],
   "acceptance": {
-    "nodeGraphCoverage":"PASS",
-    "rootCauseNonConflation":"PASS",
-    "agentBirthInterfaceMapping":"PASS",
-    "repairRoutingDefined":"PASS"
-  }
+    "nodeGraphCoverage": "PASS",
+    "rootCauseNonConflation": "PASS",
+    "agentBirthInterfaceMapping": "PASS",
+    "repairRoutingDefined": "PASS"
+  },
+  "lastUpdated": "2026-09-18"
 }
