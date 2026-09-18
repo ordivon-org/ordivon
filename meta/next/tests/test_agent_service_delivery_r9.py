@@ -119,7 +119,14 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
 
     def _agent(self, service: AgentServiceR9, name: str):
         definition = service.definitions.create(name)
-        revision = service.revisions.create(definition.id, {"name": name, "harness": "r9"})
+        revision = service.revisions.create(definition.id, {"name": name, "harness": "r9", "skills": [{
+                "id": "review",
+                "name": "Review",
+                "description": "review",
+                "tags": ["review"],
+                "inputModes": ["text/plain"],
+                "outputModes": ["text/markdown"],
+            }]})
         identity = service.identities.create(definition.id, stable_name=name, description=name)
         instance = service.birth.birth(f"birth:{name}:r9", revision.id)
         service.reconciler.reconcile(instance.id)
@@ -128,14 +135,6 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
     def _setup_delegation(self, service: AgentServiceR9):
         source_revision, source_identity, source_instance = self._agent(service, "source")
         target_revision, target_identity, _ = self._agent(service, "target")
-        service.capabilities.advertise(
-            target_revision.id,
-            key="review",
-            description="review",
-            input_modes=["text"],
-            output_modes=["text/markdown"],
-            tags=["review"],
-        )
         goal = service.goals.create("r9 goal")
         task = service.tasks.create(
             description="review task",

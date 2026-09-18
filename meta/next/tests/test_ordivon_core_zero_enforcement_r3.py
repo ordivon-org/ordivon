@@ -72,7 +72,11 @@ class OrdivonCoreZeroEnforcementR3Tests(unittest.TestCase):
         retired = set(profile["retiredLegacyTypes"])
 
         self.assertTrue(
-            {"CapabilityAdvertisement", "AgentInterfaceAdvertisement"}.issubset(retired)
+            {
+                "CapabilityAdvertisement",
+                "CapabilityAdvertisementStore",
+                "AgentInterfaceAdvertisement",
+            }.issubset(retired)
         )
         self.assertTrue(retired.isdisjoint(observed))
         self.assertTrue(retired.isdisjoint(legacy_ceiling))

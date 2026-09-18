@@ -191,7 +191,14 @@ class AgentServiceProviderAdaptersR13Tests(unittest.TestCase):
 
     def _agent(self, service, name):
         definition = service.definitions.create(name)
-        revision = service.revisions.create(definition.id, {"name": name})
+        revision = service.revisions.create(definition.id, {"name": name, "skills": [{
+                "id": "review",
+                "name": "Review",
+                "description": "review",
+                "tags": ["review"],
+                "inputModes": ["text/plain"],
+                "outputModes": ["text/markdown"],
+            }]})
         identity = service.identities.create(definition.id, stable_name=name, description=name)
         instance = service.birth.birth(f"birth:{name}:r13", revision.id)
         service.reconciler.reconcile(instance.id)
@@ -200,14 +207,6 @@ class AgentServiceProviderAdaptersR13Tests(unittest.TestCase):
     def _bindings(self, service):
         sr, si, inst = self._agent(service, "source")
         tr, ti, _ = self._agent(service, "target")
-        service.capabilities.advertise(
-            tr.id,
-            key="review",
-            description="review",
-            input_modes=["text"],
-            output_modes=["text"],
-            tags=["review"],
-        )
         service.interfaces.advertise(
             tr.id,
             transport="a2a-jsonrpc",
