@@ -1,84 +1,126 @@
 {
-  "schemaVersion": 1,
-  "resources": [
-    {
-      "schemaVersion": 1,
-      "resourceId": "runtime/linux-archlinux",
-      "resourceKind": "runtime-node",
-      "nodeId": "linux-local",
-      "conflictDomains": ["runtime/linux-archlinux"]
-    },
-    {
-      "schemaVersion": 1,
-      "resourceId": "service/linux/control-plane",
-      "resourceKind": "service-group",
-      "nodeId": "linux-local",
-      "conflictDomains": ["services/linux-control-plane"]
-    },
-    {
-      "schemaVersion": 1,
-      "resourceId": "filesystem/linux-root",
-      "resourceKind": "filesystem",
-      "nodeId": "linux-local",
-      "conflictDomains": ["filesystem/linux-root"]
-    },
-    {
-      "schemaVersion": 1,
-      "resourceId": "distro/archlinux",
-      "resourceKind": "wsl-distribution",
-      "nodeId": "windows-local",
-      "conflictDomains": ["wsl/archlinux"]
-    },
-    {
-      "schemaVersion": 1,
-      "resourceId": "storage/d-drive/ext4-vhdx",
-      "resourceKind": "virtual-disk",
-      "nodeId": "windows-local",
-      "conflictDomains": ["storage/d-drive", "wsl/archlinux"]
-    }
-  ],
   "nodes": [
     {
-      "schemaVersion": 1,
-      "nodeId": "linux-local",
-      "platform": "linux",
-      "nativeControlPlane": true,
-      "trustDomain": "ordivon.local",
-      "providers": [
-        "provider/linux-local/local-linux-runner-v1",
-        "provider/linux-local/windows-native-launcher-v1"
+      "authorityContexts": [
+        "linux/root",
+        "windows/limited"
       ],
       "capabilities": [
         "capability/execution/local-linux",
-        "capability/execution/windows-native"
+        "capability/execution/windows-native",
+        "capability/runtime/doctor",
+        "capability/runtime/health",
+        "capability/service/probe"
       ],
-      "authorityContexts": ["linux/root", "windows/limited"]
+      "nativeControlPlane": true,
+      "nodeId": "linux-local",
+      "platform": "linux",
+      "providers": [
+        "provider/linux-local/local-linux-runner-v1",
+        "provider/linux-local/runtime-control-observer-v1",
+        "provider/linux-local/service-observer-v1",
+        "provider/linux-local/windows-native-launcher-v1"
+      ],
+      "schemaVersion": 1,
+      "trustDomain": "ordivon.local"
     },
     {
-      "schemaVersion": 1,
+      "authorityContexts": [],
+      "capabilities": [],
+      "nativeControlPlane": false,
       "nodeId": "windows-local",
       "platform": "windows",
-      "nativeControlPlane": false,
-      "trustDomain": "ordivon.local",
       "providers": [],
-      "capabilities": [],
-      "authorityContexts": []
+      "schemaVersion": 1,
+      "trustDomain": "ordivon.local"
     }
   ],
   "providers": [
     {
-      "schemaVersion": 1,
-      "providerId": "provider/linux-local/local-linux-runner-v1",
+      "capabilities": [
+        "capability/execution/local-linux"
+      ],
       "nodeId": "linux-local",
       "platform": "linux",
-      "capabilities": ["capability/execution/local-linux"]
+      "providerId": "provider/linux-local/local-linux-runner-v1",
+      "schemaVersion": 1
     },
     {
-      "schemaVersion": 1,
-      "providerId": "provider/linux-local/windows-native-launcher-v1",
+      "capabilities": [
+        "capability/runtime/doctor",
+        "capability/runtime/health"
+      ],
+      "nodeId": "linux-local",
+      "platform": "linux",
+      "providerId": "provider/linux-local/runtime-control-observer-v1",
+      "schemaVersion": 1
+    },
+    {
+      "capabilities": [
+        "capability/service/probe"
+      ],
+      "nodeId": "linux-local",
+      "platform": "linux",
+      "providerId": "provider/linux-local/service-observer-v1",
+      "schemaVersion": 1
+    },
+    {
+      "capabilities": [
+        "capability/execution/windows-native"
+      ],
       "nodeId": "linux-local",
       "platform": "windows",
-      "capabilities": ["capability/execution/windows-native"]
+      "providerId": "provider/linux-local/windows-native-launcher-v1",
+      "schemaVersion": 1
     }
-  ]
+  ],
+  "resources": [
+    {
+      "conflictDomains": [
+        "runtime/linux-archlinux"
+      ],
+      "nodeId": "linux-local",
+      "resourceId": "runtime/linux-archlinux",
+      "resourceKind": "runtime-node",
+      "schemaVersion": 1
+    },
+    {
+      "conflictDomains": [
+        "services/linux-control-plane"
+      ],
+      "nodeId": "linux-local",
+      "resourceId": "service/linux/control-plane",
+      "resourceKind": "service-group",
+      "schemaVersion": 1
+    },
+    {
+      "conflictDomains": [
+        "filesystem/linux-root"
+      ],
+      "nodeId": "linux-local",
+      "resourceId": "filesystem/linux-root",
+      "resourceKind": "filesystem",
+      "schemaVersion": 1
+    },
+    {
+      "conflictDomains": [
+        "wsl/archlinux"
+      ],
+      "nodeId": "windows-local",
+      "resourceId": "distro/archlinux",
+      "resourceKind": "wsl-distribution",
+      "schemaVersion": 1
+    },
+    {
+      "conflictDomains": [
+        "storage/d-drive",
+        "wsl/archlinux"
+      ],
+      "nodeId": "windows-local",
+      "resourceId": "storage/d-drive/ext4-vhdx",
+      "resourceKind": "virtual-disk",
+      "schemaVersion": 1
+    }
+  ],
+  "schemaVersion": 1
 }

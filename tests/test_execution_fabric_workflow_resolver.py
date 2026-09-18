@@ -16,29 +16,53 @@ def load(path):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def test_current_catalog_records_only_proven_execution_providers():
+def test_current_catalog_records_only_proven_providers():
     catalog = load(CATALOG)
     M.validate_catalog(catalog)
     providers = {item["providerId"]: item for item in catalog["providers"]}
     assert set(providers) == {
         "provider/linux-local/local-linux-runner-v1",
         "provider/linux-local/windows-native-launcher-v1",
+        "provider/linux-local/runtime-control-observer-v1",
+        "provider/linux-local/service-observer-v1",
     }
     assert providers["provider/linux-local/windows-native-launcher-v1"]["platform"] == "windows"
+    assert providers["provider/linux-local/runtime-control-observer-v1"]["capabilities"] == [
+        "capability/runtime/doctor",
+        "capability/runtime/health",
+    ]
+    assert providers["provider/linux-local/service-observer-v1"]["capabilities"] == [
+        "capability/service/probe"
+    ]
     windows = next(node for node in catalog["nodes"] if node["nodeId"] == "windows-local")
     assert windows["nativeControlPlane"] is False
     assert windows["providers"] == []
 
 
-def test_real_workflows_fail_open_to_visibility_not_shell_fallback():
+def test_real_workflows_partially_resolve_without_shell_fallback():
     catalog = load(CATALOG)
-    for name in ("wsl-control-plane-recovery-r1.json", "d-drive-vhd-compact-r2.json"):
-        binding = M.resolve(load(WORKFLOWS / name), catalog)
-        assert binding["dispatchStarted"] is False
-        assert binding["fullyResolved"] is False
-        assert binding["bindings"]
-        assert all(item["disposition"] == "unresolved" for item in binding["bindings"])
-        assert all(item["candidateProviderIds"] == [] for item in binding["bindings"])
+
+    wsl = M.resolve(load(WORKFLOWS / "wsl-control-plane-recovery-r1.json"), catalog)
+    assert wsl["dispatchStarted"] is False
+    assert wsl["fullyResolved"] is False
+    wsl_by_step = {item["stepId"]: item for item in wsl["bindings"]}
+    assert wsl_by_step["step/probe-control-plane"]["disposition"] == "resolved"
+    assert wsl_by_step["step/verify-runtime-health"]["disposition"] == "resolved"
+    assert wsl_by_step["step/probe-wsl"]["disposition"] == "unresolved"
+    assert wsl_by_step["step/ensure-control-plane"]["disposition"] == "unresolved"
+
+    compact = M.resolve(load(WORKFLOWS / "d-drive-vhd-compact-r2.json"), catalog)
+    assert compact["dispatchStarted"] is False
+    assert compact["fullyResolved"] is False
+    compact_by_step = {item["stepId"]: item for item in compact["bindings"]}
+    for step_id in (
+        "step/doctor-preflight",
+        "step/verify-runtime-health",
+        "step/post-doctor",
+    ):
+        assert compact_by_step[step_id]["disposition"] == "resolved"
+    assert compact_by_step["step/compact-vhd"]["disposition"] == "unresolved"
+    assert compact_by_step["step/terminate-wsl"]["disposition"] == "unresolved"
 
 
 def test_unique_synthetic_provider_resolves_and_ambiguity_never_auto_selects():
@@ -120,7 +144,8 @@ def test_unresolved_capability_summary_is_deterministic():
     assert capabilities == sorted(set(capabilities))
     assert "capability/storage/compact" in capabilities
     assert "capability/wsl/terminate" in capabilities
-    assert "capability/runtime/doctor" in capabilities
+    assert "capability/runtime/doctor" not in capabilities
+    assert "capability/runtime/health" not in capabilities
 
 
 def test_provider_backlog_covers_all_real_unresolved_capabilities_once_by_family():
@@ -128,7 +153,7 @@ def test_provider_backlog_covers_all_real_unresolved_capabilities_once_by_family
     backlog = load(ROOT / "workstation" / "execution_fabric" / "provider-backlog-r1.json")
     assert backlog["status"] == "planned_not_implemented"
     planned = backlog["plannedProviders"]
-    assert all(item["status"] == "missing" for item in planned)
+    assert {item["status"] for item in planned} <= {"missing", "partial"}
 
     unresolved = set()
     for name in ("wsl-control-plane-recovery-r1.json", "d-drive-vhd-compact-r2.json"):
@@ -138,7 +163,7 @@ def test_provider_backlog_covers_all_real_unresolved_capabilities_once_by_family
     planned_capabilities = {
         capability
         for provider in planned
-        for capability in provider["capabilities"]
+        for capability in provider["missingCapabilities"]
     }
     assert planned_capabilities == unresolved
 

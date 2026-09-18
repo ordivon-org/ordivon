@@ -12,14 +12,20 @@
       "stepId": "step/probe-wsl"
     },
     {
-      "candidateNodeIds": [],
-      "candidateProviderIds": [],
+      "candidateNodeIds": [
+        "linux-local"
+      ],
+      "candidateProviderIds": [
+        "provider/linux-local/service-observer-v1"
+      ],
       "dispatchStarted": false,
-      "disposition": "unresolved",
-      "reasonCode": "reason/no-capable-provider",
+      "disposition": "resolved",
+      "reasonCode": "reason/workflow-binding-resolved",
       "requestedCapabilityId": "capability/service/probe",
       "resourceId": "service/linux/control-plane",
       "schemaVersion": 1,
+      "selectedNodeId": "linux-local",
+      "selectedProviderId": "provider/linux-local/service-observer-v1",
       "stepId": "step/probe-control-plane"
     },
     {
@@ -34,14 +40,20 @@
       "stepId": "step/ensure-control-plane"
     },
     {
-      "candidateNodeIds": [],
-      "candidateProviderIds": [],
+      "candidateNodeIds": [
+        "linux-local"
+      ],
+      "candidateProviderIds": [
+        "provider/linux-local/runtime-control-observer-v1"
+      ],
       "dispatchStarted": false,
-      "disposition": "unresolved",
-      "reasonCode": "reason/no-capable-provider",
+      "disposition": "resolved",
+      "reasonCode": "reason/workflow-binding-resolved",
       "requestedCapabilityId": "capability/runtime/health",
       "resourceId": "runtime/linux-archlinux",
       "schemaVersion": 1,
+      "selectedNodeId": "linux-local",
+      "selectedProviderId": "provider/linux-local/runtime-control-observer-v1",
       "stepId": "step/verify-runtime-health"
     }
   ],
