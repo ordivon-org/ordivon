@@ -63,6 +63,12 @@ The boundary must cover only physical mechanics Runtime already owns:
 
 Linux realization remains systemd/cgroup. Windows realization remains Windows Job Object + native process identity/handles. Platform-specific evidence remains explicit instead of being normalized into false equivalence.
 
+## WSL control-plane recovery shim
+
+Real WSL cold-restart acceptance exposed a narrower availability requirement before native Windows Runtime R6 exists: a Windows-owned process must be able to bootstrap the current WSL-hosted Runtime/Host services after the WSL control path disappears. `scripts/windows-wsl-control-plane-supervisor.ps1` provides that one-shot mechanical shim. It may probe service state and, only in explicit ensure mode after an unhealthy probe, issue `systemctl start` plus bounded readiness probes. It owns no Runtime Registry, Job/Attempt semantics, scheduling, redispatch, or semantic recovery.
+
+This shim is deliberately **not** the Windows service target below. It is a migration bridge and may be retired once `windows-main` is a real independent control plane. See [`windows-wsl-recovery-supervisor-r1.md`](windows-wsl-recovery-supervisor-r1.md).
+
 ## Windows service target
 
 ```text
