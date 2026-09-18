@@ -64,7 +64,6 @@ from .remote_evidence import (
     RemoteArtifactEvidenceResolver,
     RemoteArtifactReader,
     RemoteTaskCompletionReconciler,
-    RemoteTaskVerificationStore,
     TaskExecutionClaimStore,
 )
 from .runtime_mcp import RuntimeMcpAdapter, RuntimeMcpArtifactReader, RuntimeMcpHttpClient
@@ -173,7 +172,6 @@ __all__ = [
     "RemoteDeliveryObservationStore",
     "RemoteDeliveryObserver",
     "RemoteTaskCompletionReconciler",
-    "RemoteTaskVerificationStore",
     "ReplaySafetyAdapter",
     "ReplaySafetyCoordinator",
     "ReplaySafetyDecisionStore",

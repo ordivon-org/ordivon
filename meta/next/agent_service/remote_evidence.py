@@ -26,7 +26,7 @@ from .evidence import (
     RuntimeArtifactReader,
 )
 from .goals import BoardAdapter, GoalAssignmentPlanner, TaskReadinessProjector
-from .slice1 import CarrierProviderAdapter, ServiceEventStore
+from .slice1 import CarrierProviderAdapter, ServiceEvent, ServiceEventStore
 from .task_runtime import (
     Assignment,
     AssignmentStore,
@@ -406,100 +406,71 @@ class RemoteTaskVerificationRecord:
     created_at_ns: int
 
 
-class RemoteTaskVerificationStore:
-    def __init__(self, connection: sqlite3.Connection) -> None:
-        self._connection = connection
+def _remote_task_verification_from_event(event: ServiceEvent) -> RemoteTaskVerificationRecord:
+    if (
+        event.aggregate_type != "RemoteVerification"
+        or event.event_type != "RemoteVerificationRecorded"
+    ):
+        raise ValueError("event is not a remote Task verification receipt")
+    payload = event.payload
+    if payload.get("taskId") != event.aggregate_id:
+        raise RuntimeError("remote verification Task identity mismatch")
+    return RemoteTaskVerificationRecord(
+        id=event.id,
+        task_id=event.aggregate_id,
+        binding_id=payload["bindingId"],
+        remote_observation_id=payload["remoteObservationId"],
+        stage=payload["stage"],
+        accepted=bool(payload["accepted"]),
+        reason=payload.get("reason"),
+        evidence=payload["evidence"],
+        created_at_ns=event.created_at_ns,
+    )
 
-    def get_by_task(
-        self, task_id: str, required: bool = True
-    ) -> RemoteTaskVerificationRecord | None:
-        row = self._connection.execute(
-            "SELECT * FROM remote_task_verifications WHERE task_id = ?", (task_id,)
-        ).fetchone()
-        if row is None:
-            if required:
-                raise KeyError(task_id)
-            return None
-        return self._from_row(row)
 
-    def create_in_transaction(
-        self,
-        *,
-        task_id: str,
-        binding_id: str,
-        remote_observation_id: str,
-        stage: str,
-        accepted: bool,
-        reason: str | None,
-        evidence: dict[str, Any],
-    ) -> RemoteTaskVerificationRecord:
-        normalized_evidence = json.loads(_canonical_json(evidence))
-        existing = self.get_by_task(task_id, required=False)
-        candidate = (
-            binding_id,
-            remote_observation_id,
-            stage,
-            bool(accepted),
-            reason,
-            normalized_evidence,
-        )
-        if existing is not None:
-            historical = (
-                existing.binding_id,
-                existing.remote_observation_id,
-                existing.stage,
-                existing.accepted,
-                existing.reason,
-                existing.evidence,
-            )
-            if candidate != historical:
-                raise RuntimeError("remote Task verification already exists with different evidence")
-            return existing
-        value = RemoteTaskVerificationRecord(
-            id=_id("rverify"),
-            task_id=task_id,
-            binding_id=binding_id,
-            remote_observation_id=remote_observation_id,
-            stage=stage,
-            accepted=bool(accepted),
-            reason=reason,
-            evidence=normalized_evidence,
-            created_at_ns=_now_ns(),
-        )
-        self._connection.execute(
-            """
-            INSERT INTO remote_task_verifications(
-                id, task_id, binding_id, remote_observation_id, stage,
-                accepted, reason, evidence_json, created_at_ns
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                value.id,
-                value.task_id,
-                value.binding_id,
-                value.remote_observation_id,
-                value.stage,
-                1 if value.accepted else 0,
-                value.reason,
-                _canonical_json(value.evidence),
-                value.created_at_ns,
-            ),
-        )
-        return value
+def _remote_task_verification_get_by_task(
+    events: ServiceEventStore,
+    task_id: str,
+    required: bool = True,
+) -> RemoteTaskVerificationRecord | None:
+    history = events.list_for("RemoteVerification", task_id)
+    receipts = [item for item in history if item.event_type == "RemoteVerificationRecorded"]
+    if not receipts:
+        if required:
+            raise KeyError(task_id)
+        return None
+    if len(receipts) != 1:
+        raise RuntimeError("remote verification receipt stream contains multiple records")
+    return _remote_task_verification_from_event(receipts[0])
 
-    @staticmethod
-    def _from_row(row: sqlite3.Row) -> RemoteTaskVerificationRecord:
-        return RemoteTaskVerificationRecord(
-            id=row["id"],
-            task_id=row["task_id"],
-            binding_id=row["binding_id"],
-            remote_observation_id=row["remote_observation_id"],
-            stage=row["stage"],
-            accepted=bool(row["accepted"]),
-            reason=row["reason"],
-            evidence=json.loads(row["evidence_json"]),
-            created_at_ns=row["created_at_ns"],
-        )
+
+def _remote_task_verification_create_in_transaction(
+    events: ServiceEventStore,
+    *,
+    task_id: str,
+    binding_id: str,
+    remote_observation_id: str,
+    stage: str,
+    accepted: bool,
+    reason: str | None,
+    evidence: dict[str, Any],
+) -> RemoteTaskVerificationRecord:
+    normalized_evidence = json.loads(_canonical_json(evidence))
+    event = events.append_once_in_transaction(
+        "RemoteVerification",
+        task_id,
+        "RemoteVerificationRecorded",
+        {
+            "taskId": task_id,
+            "bindingId": binding_id,
+            "remoteObservationId": remote_observation_id,
+            "stage": stage,
+            "accepted": bool(accepted),
+            "reason": reason,
+            "evidence": normalized_evidence,
+        },
+    )
+    return _remote_task_verification_from_event(event)
 
 
 class RemoteTaskCompletionReconciler:
@@ -515,7 +486,6 @@ class RemoteTaskCompletionReconciler:
         bindings: TransportBindingStore,
         receipts: ServiceEventStore,
         observations: RemoteDeliveryObservationStore,
-        verifications: RemoteTaskVerificationStore,
         resolver: RemoteArtifactEvidenceResolver,
         verifier: EvidenceSemanticVerifier,
     ) -> None:
@@ -527,7 +497,6 @@ class RemoteTaskCompletionReconciler:
         self._bindings = bindings
         self._receipts = receipts
         self._observations = observations
-        self._verifications = verifications
         self._resolver = resolver
         self._verifier = verifier
 
@@ -535,7 +504,7 @@ class RemoteTaskCompletionReconciler:
         binding = self._bindings.get(binding_id)
         envelope = self._delegations.get(binding.delegation_id)
         task = self._tasks.get(envelope.task_id)
-        existing = self._verifications.get_by_task(task.id, required=False)
+        existing = _remote_task_verification_get_by_task(self._events, task.id, required=False)
         if existing is not None:
             if existing.binding_id != binding.id:
                 raise RuntimeError("Task verification belongs to a different remote Binding")
@@ -581,7 +550,8 @@ class RemoteTaskCompletionReconciler:
         task_state = "SUCCEEDED" if verdict.accepted else "FAILED"
         terminal_event = "TASK_SUCCEEDED" if verdict.accepted else "TASK_FAILED"
         with self._connection:
-            record = self._verifications.create_in_transaction(
+            record = _remote_task_verification_create_in_transaction(
+                self._events,
                 task_id=task.id,
                 binding_id=binding.id,
                 remote_observation_id=observation.id,
@@ -665,7 +635,6 @@ class AgentServiceR11:
             self.events,
             delivery_adapters,
         )
-        self.remote_verifications = RemoteTaskVerificationStore(self._connection)
         self.remote_artifacts = RemoteArtifactEvidenceResolver(remote_artifact_readers)
         self.remote_semantic_verifier = EvidenceSemanticVerifier()
         self.remote_completion = RemoteTaskCompletionReconciler(
@@ -677,7 +646,6 @@ class AgentServiceR11:
             self.transport_bindings,
             self.events,
             self.remote_observations,
-            self.remote_verifications,
             self.remote_artifacts,
             self.remote_semantic_verifier,
         )
@@ -718,6 +686,15 @@ class AgentServiceR11:
 
     @staticmethod
     def _initialize_schema(connection: sqlite3.Connection) -> None:
+        legacy_remote_task_verifications = connection.execute(
+            "SELECT 1 FROM sqlite_master "
+            "WHERE type = 'table' AND name = 'remote_task_verifications'"
+        ).fetchone()
+        if legacy_remote_task_verifications is not None:
+            raise RuntimeError(
+                "legacy remote_task_verifications schema is unsupported; "
+                "perform explicit destructive migration before opening this revision"
+            )
         connection.executescript(
             """
             CREATE TABLE IF NOT EXISTS task_execution_claims (
@@ -725,18 +702,6 @@ class AgentServiceR11:
                 task_id TEXT NOT NULL UNIQUE REFERENCES service_tasks(id),
                 mode TEXT NOT NULL CHECK(mode IN ('LOCAL_ASSIGNMENT', 'REMOTE_BINDING')),
                 owner_id TEXT NOT NULL,
-                created_at_ns INTEGER NOT NULL
-            );
-
-            CREATE TABLE IF NOT EXISTS remote_task_verifications (
-                id TEXT PRIMARY KEY,
-                task_id TEXT NOT NULL UNIQUE REFERENCES service_tasks(id),
-                binding_id TEXT NOT NULL UNIQUE REFERENCES transport_bindings(id),
-                remote_observation_id TEXT NOT NULL REFERENCES remote_delivery_observations(id),
-                stage TEXT NOT NULL,
-                accepted INTEGER NOT NULL CHECK(accepted IN (0, 1)),
-                reason TEXT,
-                evidence_json TEXT NOT NULL,
                 created_at_ns INTEGER NOT NULL
             );
             """

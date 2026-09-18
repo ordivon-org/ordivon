@@ -16,8 +16,8 @@ from .remote_evidence import (
     ClaimAwareAssignmentPlanner,
     ClaimAwareDeliveryCoordinator,
     RemoteArtifactReader,
-    RemoteTaskVerificationStore,
     TaskExecutionClaimStore,
+    _remote_task_verification_get_by_task,
 )
 from .slice1 import CarrierProviderAdapter, ServiceEventStore
 from .task_runtime import RuntimeAdapter, TaskStore
@@ -916,7 +916,6 @@ class ExecutionClaimTransferCoordinator:
         bindings: TransportBindingStore,
         receipts: ServiceEventStore,
         observations: RemoteDeliveryObservationStore,
-        remote_verifications: RemoteTaskVerificationStore,
         quiescence_requests: ExecutionQuiescenceRequestStore,
         quiescence_proofs: ExecutionQuiescenceProofStore,
         replay_safety_decisions: ReplaySafetyDecisionStore,
@@ -930,7 +929,6 @@ class ExecutionClaimTransferCoordinator:
         self._bindings = bindings
         self._receipts = receipts
         self._observations = observations
-        self._remote_verifications = remote_verifications
         self._quiescence_requests = quiescence_requests
         self._quiescence_proofs = quiescence_proofs
         self._replay_safety_decisions = replay_safety_decisions
@@ -960,7 +958,7 @@ class ExecutionClaimTransferCoordinator:
             raise RuntimeError("claim transfer target was previously quiesced/frozen")
         if self._transfers.has_binding_history(target.id):
             raise RuntimeError("claim transfer target is not pristine")
-        if self._remote_verifications.get_by_task(task.id, required=False) is not None:
+        if _remote_task_verification_get_by_task(self._events, task.id, required=False) is not None:
             raise RuntimeError("verified Task cannot transfer execution claim")
         return task, source, target
 
@@ -1031,7 +1029,7 @@ class ExecutionClaimTransferCoordinator:
             raise RuntimeError("claim transfer target was previously quiesced/frozen")
         if self._transfers.has_binding_history(target.id):
             raise RuntimeError("claim transfer target is not pristine")
-        if self._remote_verifications.get_by_task(task.id, required=False) is not None:
+        if _remote_task_verification_get_by_task(self._events, task.id, required=False) is not None:
             raise RuntimeError("verified Task cannot transfer execution claim")
         source_history = self._observations.list_for_binding(source.id)
         if any(item.terminal and item.successful is True for item in source_history):
@@ -1185,7 +1183,7 @@ class AgentServiceR12:
             "sessions", "session_items", "delegations", "a2a_cards",
             "transport_bindings", "routes",
             "credential_references", "identity_proof_records", "identity_proofs", "remote_observations",
-            "remote_reconciler", "audit", "execution_claims", "remote_verifications",
+            "remote_reconciler", "audit", "execution_claims",
             "remote_artifacts", "remote_semantic_verifier", "remote_completion",
         ):
             setattr(self, name, getattr(r11, name))
@@ -1237,7 +1235,6 @@ class AgentServiceR12:
             self.transport_bindings,
             self.events,
             self.remote_observations,
-            self.remote_verifications,
             self.quiescence_requests,
             self.quiescence_proof_records,
             self.replay_safety_decisions,
