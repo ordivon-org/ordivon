@@ -1,0 +1,19 @@
+# Workstation v2 owns only exact node-local materialization for the Windows Jev provider.
+# Harness owns request routing, effect fencing, outcome witnesses, and semantic success.
+[jev_windows_provider]
+uv_version = "0.12.3"
+uv_asset_url = "https://github.com/astral-sh/uv/releases/download/0.12.3/uv-x86_64-pc-windows-msvc.zip"
+uv_asset_sha256 = "sha256:b23350c79e8ad0192b8124af13a0f17e8d4e4549524785e1aef389ae5a06990e"
+uv_exe_sha256 = "sha256:68a22cbab1674647bcda32120b214e6480f875414e3333f49f87ae99b4b0e0fa"
+python_version = "3.12.13"
+python_distribution_dir = "cpython-3.12.13-windows-x86_64-none"
+source_repo = "https://github.com/browser-use/jev-ultrafast.git"
+source_revision = "452c1ad2dd628008f1d5608f28158d76e49e6cc0"
+jev_version = "0.1.0"
+browser_harness_version = "0.1.13"
+external_root_relative = "Ordivon/External"
+profile_relative = "Ordivon/Chrome-CDP/jev-fastpath-v1"
+chrome_path = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+cdp_port = 9338
+require_python_utf8 = true
+receipt_path = "/root/.local/state/ordivon-workstation/windows-jev-fastpath-provider.json"
