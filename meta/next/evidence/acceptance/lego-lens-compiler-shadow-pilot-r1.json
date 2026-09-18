@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.lego-lens-compiler-shadow-pilot-r1",
+  "date": "2026-09-18",
+  "truthRole": "derived-meta-method-evidence-not-agent-service-production-truth",
+  "target": "Agent Service queue/capacity/accepted-throughput question",
+  "candidateDiscipline": "queueing theory / operations research",
+  "sourceAnchors": [
+    "Little 1961: A Proof for the Queuing Formula: L = lambda W",
+    "Little 2011: Little's Law as Viewed on Its 50th Anniversary",
+    "Kim and Whitt 2013: Statistical Analysis with Little's Law"
+  ],
+  "problemSignature": {
+    "durableRunIdentity": true,
+    "workerExecution": true,
+    "queueWakeupPattern": true,
+    "acceptedThroughputInstrumentationRequested": true,
+    "measuredArrivalRateAvailable": false,
+    "measuredServiceTimeDistributionAvailable": false,
+    "measuredQueueLengthAvailable": false,
+    "measuredWorkerUtilizationAvailable": false,
+    "capacitySaturationDemonstrated": false,
+    "providerAdmissionCurrentlyChallengeGated": true
+  },
+  "typeCheck": {
+    "primitiveFit": "PARTIAL_PASS",
+    "assumptionFit": "INSUFFICIENT_CURRENT_EVIDENCE",
+    "operatorFit": "CONDITIONAL",
+    "observabilityFit": "REQUIRES_NEW_INSTRUMENTATION",
+    "decisionReturnPath": "FUTURE_CAPACITY_FRONTIER_ONLY",
+    "metaphorOnly": false
+  },
+  "uniqueContribution": "Instrument arrival, work-in-process, waiting, service, utilization, provider wait, and semantic acceptance separately instead of treating aggregate throughput as one queue metric.",
+  "rejectedPromotions": [
+    "no new queue implementation",
+    "no worker-pool expansion from this pilot",
+    "no M/M/1 or M/M/c model without evidence",
+    "no permanent lego-queueing skill",
+    "no active-lens promotion"
+  ],
+  "lifecycleVerdict": "RESERVE_POOL_REACTIVATE_ON_MEASURED_CAPACITY_FRONTIER",
+  "lensCompilerOutcome": "PASS_DISCOVERED_VALID_METHOD_AND_REJECTED_PREMATURE_ACTIVATION"
+}

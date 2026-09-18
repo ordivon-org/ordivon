@@ -34,6 +34,7 @@ Choose the smallest theory set that can materially improve the current decision.
 9. Order lenses only when dependencies require it.
 10. Stop when another lens would not change the next bounded action.
 11. Emit handoff: INVESTIGATE / EXPERIMENT / PLAN / DOMAIN_METHOD / NO_LENS.
+12. If and only if NO_LENS leaves a material method gap, hand the bounded uncovered residue to `lego-lens-compiler`. If the domain-native method is already sufficient, stop instead.
 
 ## Critical routing distinctions
 
@@ -69,7 +70,7 @@ Routing output is derived analysis. It never changes architecture or project tru
 
 ## Non-claims
 
-The router does not prove the chosen lens set is globally optimal or complete. It minimizes obvious redundancy and analysis cost under current evidence.
+The router does not prove the chosen lens set is globally optimal or complete. It minimizes obvious redundancy and analysis cost under current evidence. Lens Compiler may discover a candidate method after a bounded NO_LENS method gap, but cannot bypass this router's registry admission/overlap checks.
 
 ## Stop condition
 
@@ -80,3 +81,4 @@ Canonical references:
 - knowledge/registries/lego-lens-registry-r1.json
 - docs/LEGO_QUESTION_COMPILER_R1.md
 - docs/LEGO_THEORY_LAYER_R1.md
+- docs/LEGO_LENS_COMPILER_R1.md

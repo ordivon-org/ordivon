@@ -201,12 +201,16 @@ The router selects the Minimum Sufficient Theory Set and may return:
 - DOMAIN_METHOD;
 - NO_LENS.
 
+If the router returns NO_LENS while a material, decision-relevant method gap remains, hand that uncovered residue to `lego-lens-compiler`. The compiler may search and type-check a mature external discipline as a temporary candidate; it does not bypass the router or self-admit the candidate into the active registry.
+
 This separation prevents Question Compiler from becoming a static catalog of every discipline Ordivon learns.
 
 Canonical references:
 - docs/LEGO_LENS_ROUTER_R1.md
 - knowledge/registries/lego-lens-registry-r1.json
 - .agents/skills/lego-lens-router/SKILL.md
+- docs/LEGO_LENS_COMPILER_R1.md
+- .agents/skills/lego-lens-compiler/SKILL.md
 
 ### Q4 — Pruning
 
@@ -280,7 +284,7 @@ For each:
 Only when the pruning decision is useful evidence.
 
 ### Handoff
-INVESTIGATE / EXPERIMENT / PLAN.
+INVESTIGATE / EXPERIMENT / LENS_ROUTE / DOMAIN_METHOD / PLAN.
 
 No machine-readable schema is introduced in R1. Cross-domain proof is required before any common schema promotion.
 

@@ -219,6 +219,13 @@ Stop routing when:
 
 The router emits a handoff, not a permanent analysis mode.
 
+When the correct result is `NO_LENS`, distinguish two cases:
+
+- **NO_LENS_SUFFICIENT** — the domain-native method/evidence route is sufficient; stop.
+- **NO_LENS_METHOD_GAP** — a material decision-relevant uncertainty remains but no admitted lens naturally owns it; hand only that uncovered residue to `lego-lens-compiler` for source-grounded candidate discovery and type-checking.
+
+This distinction does not create two new registry lens types. Lens Compiler is an operator and cannot self-admit its output; any durable candidate returns through this router's lens-admission contract.
+
 ## Default output
 
 ### Target
@@ -299,7 +306,8 @@ A retired lens may remain as historical knowledge without staying model-visible 
 - no automatic activation from keywords;
 - no unlimited multi-lens ensemble;
 - no promotion of registry fields into project truth;
-- no Wave 4 merely to increase coverage.
+- no Wave 4 merely to increase coverage;
+- no using Lens Compiler to bypass a matching admitted lens or domain-native owner.
 
 Canonical local references:
 - docs/LEGO_QUESTION_COMPILER_R1.md
@@ -307,3 +315,4 @@ Canonical local references:
 - docs/LEGO_THEORY_WAVE2_R1.md
 - docs/LEGO_THEORY_WAVE3_R1.md
 - knowledge/registries/lego-lens-registry-r1.json
+- docs/LEGO_LENS_COMPILER_R1.md

@@ -15,6 +15,7 @@
   "operators": [
     "lego-question-compiler",
     "lego-lens-router",
+    "lego-lens-compiler",
     "lego-project-planning"
   ],
   "lenses": [

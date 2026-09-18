@@ -40,12 +40,13 @@ class LegoQuestionCompilerR1Tests(unittest.TestCase):
     def test_contract_preserves_thin_core(self):
         self.assertIn("no universal 12- or 17-question checklist", self.contract)
         self.assertIn("No machine-readable schema is introduced in R1.", self.contract)
-        self.assertIn("The compiler chooses questions; the natural owner supplies the rigorous method.", self.contract)
+        self.assertIn("Question Compiler does not own or maintain the growing theory catalog.", self.contract)
+        self.assertIn("lego-lens-router", self.contract)
 
     def test_contract_ends_in_real_handoff(self):
-        for mode in ("INVESTIGATE", "EXPERIMENT", "PLAN"):
+        for mode in ("INVESTIGATE", "EXPERIMENT", "LENS_ROUTE", "DOMAIN_METHOD", "PLAN"):
             self.assertIn(mode, self.contract)
-        self.assertIn("Question generation itself is not a fourth permanent work mode.", self.contract)
+        self.assertIn("Question generation itself is not a permanent work mode.", self.contract)
 
     def test_poker_pilot_is_bounded_and_falsifiable(self):
         primary = re.findall(r"^### PQ\d+\s+—", self.pilot, flags=re.MULTILINE)

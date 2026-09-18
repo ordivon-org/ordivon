@@ -71,6 +71,23 @@ The router may return:
 
 Question Compiler asks better questions; Lens Router chooses the smallest useful method set; Project Planning begins only after enough uncertainty is resolved.
 
+### LEGO Lens Compiler
+
+Use only when Lens Router returns `NO_LENS` (or an explicitly bounded uncovered method residue remains) and the decision still lacks a natural rigorous owner.
+
+Lens Compiler does **not** select among active lenses and does not own the lens registry. It searches mature external disciplines for the missing operator, type-checks target-to-discipline mappings, rejects metaphor-only analogies, compiles a thin temporary lens card, and produces shadow/prospective evidence for later registry admission.
+
+Canonical references:
+- docs/LEGO_LENS_COMPILER_R1.md
+- .agents/skills/lego-lens-compiler/SKILL.md
+- templates/LEGO_LENS_CARD_R1.md
+
+The candidate theory space may be large; the active registry remains sparse. There is no automatic Wave 4 merely because more disciplines exist.
+
+Question Compiler -> Lens Router -> existing lens / DOMAIN_METHOD / NO_LENS -> Lens Compiler only for a material missing-method gap -> shadow/prospective evidence -> registry admission/merge/retirement.
+
+Lens Compiler output is derived analysis. It cannot grant itself project/domain authority or self-promote a candidate into the active lens registry.
+
 ## Wave 1 lenses
 
 ### Systems Engineering
