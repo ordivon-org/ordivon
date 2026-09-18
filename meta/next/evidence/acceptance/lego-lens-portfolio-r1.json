@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.lego-lens-portfolio-r1-acceptance",
+  "date": "2026-09-18",
+  "standing": "PASS_INITIAL_CROSS_DOMAIN_PORTFOLIO_GOVERNANCE",
+  "operator": {
+    "skill": ".agents/skills/lego-lens-portfolio/SKILL.md",
+    "contract": "docs/LEGO_LENS_PORTFOLIO_R1.md",
+    "registeredAsOperator": true,
+    "registeredAsLens": false
+  },
+  "registry": {
+    "lensCount": 14,
+    "operatorCount": 5,
+    "reservePoolCount": 23,
+    "canonicalReserveOwner": "docs/LEGO_LENS_UNIVERSE_R1.md -> knowledge/registries/lego-lens-registry-r1.json.reservePool",
+    "lensCountChangedByPortfolio": false,
+    "coreSchemaChanged": false
+  },
+  "validation": {
+    "agentServicePressureTest": {
+      "sourceActiveCount": 8,
+      "contractedLensCount": 2,
+      "domainMethodCount": 6,
+      "projectTruthChanged": false,
+      "verdict": "PASS_CONTRACT_ACTIVE_LENS_SET_WITHOUT_DECISION_LOSS"
+    },
+    "gameWave3Audit": {
+      "forcedContraction": false,
+      "distinctLensCount": 3,
+      "registryMutation": "NONE",
+      "projectTruthChanged": false,
+      "verdict": "PASS_PRESERVE_DISTINCT_LENSES_WITH_PHASE_GUARDS"
+    },
+    "executableAudit": {
+      "ledger": "evidence/analysis/lego-lens-portfolio-ledger-r1.json",
+      "script": "scripts/lego_lens_portfolio_audit_r1.py",
+      "caseCount": 4,
+      "maxSelectedLensCount": 2,
+      "domainMethodUses": 6,
+      "casesOverThreeLenses": 0,
+      "contractionCount": 1
+    }
+  },
+  "nonClaims": [
+    "Portfolio does not prove the active registry globally optimal.",
+    "One contraction and one preservation audit do not calibrate a universal lens utility score.",
+    "Domain methods are not lower-value than lenses; the distinction is routing and authority.",
+    "No project or domain truth was changed by portfolio governance."
+  ],
+  "nextGate": "Run portfolio audits on additional unrelated domains and accumulate longitudinal evidence before any automatic registry retirement or admission."
+}

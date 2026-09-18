@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.lego-lens-portfolio-pressure-test-r1",
+  "date": "2026-09-18",
+  "truthRole": "derived-method-governance-not-project-truth",
+  "sourceCase": {
+    "name": "Agent Service readiness damping",
+    "commit": "4f4942e428bbf24c58e3bc4e360805c93ed82fc6",
+    "originalLensGraphDigest": "sha256:ad00e8d5460cd3aef89372e728fe57cfceda2d463dfa7b1dc2b6c00932445243",
+    "originalActiveCount": 8,
+    "originalInformativeCount": 1,
+    "originalDeferredCount": 1,
+    "originalRejectedCount": 1
+  },
+  "normalized": {
+    "selectedMsts": ["feedback-control", "stpa"],
+    "lensCount": 2,
+    "domainMethods": [
+      "distributed-systems",
+      "signal-processing",
+      "real-time-systems",
+      "optimization-or",
+      "experimental-design",
+      "formal-reachability"
+    ],
+    "domainMethodCount": 6,
+    "informativeOnly": ["complexity-nonlinear"],
+    "deferred": ["bayesian-decision"],
+    "rejected": ["game-theory"]
+  },
+  "projectTruthChanged": false,
+  "registryMutation": "NONE",
+  "verdict": "PASS_CONTRACT_ACTIVE_LENS_SET_WITHOUT_DECISION_LOSS"
+}

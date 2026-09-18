@@ -16,6 +16,7 @@
     "lego-question-compiler",
     "lego-lens-router",
     "lego-lens-compiler",
+    "lego-lens-portfolio",
     "lego-project-planning"
   ],
   "lenses": [
