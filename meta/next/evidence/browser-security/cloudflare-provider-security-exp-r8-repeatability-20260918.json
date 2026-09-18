@@ -1,0 +1,53 @@
+{
+  "comparisonsCanonicalSha256": "sha256:702573c9ee9839074efbfcd93ed8898421aee92afc3a05eef40721e044083ed9",
+  "date": "2026-09-18",
+  "freshService": {
+    "cleanup": {
+      "containerAbsent": true,
+      "profileAbsent": true,
+      "xSocketAbsent": true,
+      "xauthAbsent": true
+    },
+    "preCollectionPageCount": 1,
+    "targetTypeCounts": {
+      "page": 2
+    },
+    "windowInner": [
+      800,
+      600
+    ],
+    "windowOuter": [
+      1050,
+      980
+    ]
+  },
+  "kind": "ordivon.browser-security-neutral-fresh-service-r8-repeatability",
+  "providerCausalityEstablished": false,
+  "r7Reference": {
+    "r7Run1Path": "evidence/browser-security/cloudflare-provider-security-exp-r7-controlled-run1-20260918.json",
+    "r7Run1Sha256": "sha256:5b4dc770db2bc7c714619889d4d7af72ecb12bb415e3214b582c77086a5b0bd4",
+    "r7Standing": "NEUTRAL_LAUNCHER_ATTRIBUTION_ONLY_ROOT_CAUSE_OPEN"
+  },
+  "rootCauseEstablished": false,
+  "run1": {
+    "jobId": "job-01a0b3e4-a8b7-7012-9d48-0ed4941c23d5",
+    "path": "evidence/browser-security/cloudflare-provider-security-exp-r8-fresh-service-run1-20260918.json",
+    "sha256": "sha256:d6c59d1efb230c445caea36ac4501ee3a579a0e05f670523714181c650198b9b"
+  },
+  "run2": {
+    "jobId": "job-01a0b3e4-d616-77e3-b5af-7f4e78102b00",
+    "path": "evidence/browser-security/cloudflare-provider-security-exp-r8-fresh-service-run2-20260918.json",
+    "sha256": "sha256:d6c59d1efb230c445caea36ac4501ee3a579a0e05f670523714181c650198b9b"
+  },
+  "safetyBoundary": {
+    "challengeInteracted": false,
+    "cookieValuesRead": false,
+    "productionBrowserConnected": false,
+    "protectedProviderVisited": false,
+    "providerSendAttempted": false
+  },
+  "schemaVersion": 1,
+  "standing": "BYTE_IDENTICAL_FRESH_SERVICE_REPEATABILITY",
+  "wholeEvidenceByteIdentical": true,
+  "wholeEvidenceCanonicalSha256": "sha256:e990fa78d9456552b7aa892f0fcbc02c665f43208d58a99a069e5248b22c5b33"
+}
