@@ -16,6 +16,7 @@ from agent_automation_browserless import (  # noqa: E402
     BrowserlessAutomationConflict,
     BrowserlessAutomationHold,
     BrowserlessAutomationService,
+    BrowserlessCarrierBusy,
     _prompt_file_text,
 )
 from agent_automation_browserless_effects import BrowserlessEffectAdapter  # noqa: E402
@@ -1223,6 +1224,107 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             self.assertEqual(stamps[0].stat().st_mode & 0o777, 0o600)
             self.assertEqual(run.call_args_list[1].args[0], ["/usr/bin/systemctl", "start", "ordivon-browserless@11.service"])
 
+    def test_cf07_preflight_telemetry_persists_only_allowlisted_metadata(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            service = BrowserlessAutomationService(
+                BrowserlessAutomationConfig.from_dict(config(root))
+            )
+            source = {
+                "schemaVersion": 1,
+                "kind": "ordivon.browserless-provider-preflight",
+                "endpointId": "carrier-a",
+                "standing": "CHALLENGE_GATED",
+                "pageRef": "https://chatgpt.com/?secret=query",
+                "detail": "sensitive-diagnostic-detail",
+                "providerEffectAttempted": False,
+                "clicked": False,
+                "composerFilled": False,
+                "sendAttempted": False,
+                "assistantOutputRead": False,
+                "substrateHealth": {"healthy": True, "token": "must-not-persist"},
+            }
+            observed = service._record_cf07_preflight(
+                source,
+                lifecycle_started=True,
+                session_count_class="ZERO",
+            )
+            self.assertEqual(observed["standing"], "CHALLENGE_GATED")
+            self.assertEqual(observed["cf07Telemetry"]["standing"], "RECORDED")
+            events = list(
+                (service.config.state_root / "cf07-provider-preflight-events").glob("*.json")
+            )
+            self.assertEqual(len(events), 1)
+            event = json.loads(events[0].read_text())
+            self.assertEqual(
+                set(event),
+                {
+                    "schemaVersion",
+                    "kind",
+                    "observedAtMs",
+                    "endpointId",
+                    "standing",
+                    "lifecycleStarted",
+                    "sessionCountClass",
+                    "providerEffectAttempted",
+                    "clicked",
+                    "composerFilled",
+                    "sendAttempted",
+                    "assistantOutputRead",
+                    "profileFirstObservedAtMs",
+                    "semanticProviderSessionCreationKnown",
+                },
+            )
+            self.assertEqual(event["standing"], "CHALLENGE_GATED")
+            self.assertTrue(event["lifecycleStarted"])
+            self.assertEqual(event["sessionCountClass"], "ZERO")
+            self.assertFalse(event["semanticProviderSessionCreationKnown"])
+            serialized = json.dumps(event, sort_keys=True)
+            self.assertNotIn("chatgpt.com", serialized)
+            self.assertNotIn("secret", serialized)
+            self.assertNotIn("sensitive-diagnostic-detail", serialized)
+            self.assertNotIn("must-not-persist", serialized)
+            self.assertEqual(events[0].stat().st_mode & 0o777, 0o600)
+
+    def test_cf07_profile_first_observed_marker_is_create_once(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            service = BrowserlessAutomationService(
+                BrowserlessAutomationConfig.from_dict(config(root))
+            )
+            source = {
+                "schemaVersion": 1,
+                "kind": "ordivon.browserless-provider-preflight",
+                "endpointId": "carrier-a",
+                "standing": "CHALLENGE_GATED",
+                "providerEffectAttempted": False,
+                "clicked": False,
+                "composerFilled": False,
+                "sendAttempted": False,
+                "assistantOutputRead": False,
+            }
+            first = service._record_cf07_preflight(
+                source, lifecycle_started=False, session_count_class="ZERO"
+            )
+            second = service._record_cf07_preflight(
+                source, lifecycle_started=False, session_count_class="ZERO"
+            )
+            self.assertEqual(
+                first["cf07Telemetry"]["profileFirstObservedAtMs"],
+                second["cf07Telemetry"]["profileFirstObservedAtMs"],
+            )
+            markers = list(
+                (service.config.state_root / "cf07-profile-first-observed").glob("*.json")
+            )
+            events = list(
+                (service.config.state_root / "cf07-provider-preflight-events").glob("*.json")
+            )
+            self.assertEqual(len(markers), 1)
+            self.assertEqual(len(events), 2)
+            marker_value = json.loads(markers[0].read_text())
+            self.assertFalse(marker_value["semanticProviderSessionCreationKnown"])
+            self.assertEqual(markers[0].stat().st_mode & 0o777, 0o600)
+
     def test_provider_preflight_returns_carrier_busy_without_opening_browser(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
@@ -1240,7 +1342,33 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 result = service.provider_preflight("carrier-a")
             self.assertEqual(result["standing"], "CARRIER_BUSY")
             self.assertFalse(result["providerEffectAttempted"])
+            self.assertEqual(result["cf07Telemetry"]["standing"], "RECORDED")
+            self.assertEqual(result["cf07Telemetry"]["sessionCountClass"], "NONZERO")
             endpoint.sessions.assert_called_once_with(timeout_seconds=3)
+            run.assert_not_called()
+
+    def test_provider_preflight_records_lease_busy_without_opening_browser(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            service = BrowserlessAutomationService(
+                BrowserlessAutomationConfig.from_dict(config(root))
+            )
+            endpoint = mock.Mock()
+            endpoint.endpoint_id = "carrier-a"
+            endpoint.health.return_value = {"healthy": True, "id": "carrier-a"}
+            with (
+                mock.patch.object(service, "_endpoint_by_id", return_value=endpoint),
+                mock.patch(
+                    "agent_automation_browserless._carrier_lease",
+                    side_effect=BrowserlessCarrierBusy("busy"),
+                ),
+                mock.patch("agent_automation_browserless.subprocess.run") as run,
+            ):
+                result = service.provider_preflight("carrier-a")
+            self.assertEqual(result["standing"], "CARRIER_BUSY")
+            self.assertEqual(result["cf07Telemetry"]["standing"], "RECORDED")
+            self.assertEqual(result["cf07Telemetry"]["sessionCountClass"], "LEASE_BUSY")
+            endpoint.health.assert_called_once_with(timeout_seconds=5)
             run.assert_not_called()
 
     def test_provider_preflight_requires_explicit_endpoint_and_read_only_receipt(self):
@@ -1275,6 +1403,8 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 result = service.provider_preflight("carrier-a")
             self.assertEqual(result["standing"], "CHALLENGE_GATED")
             self.assertFalse(result["providerEffectAttempted"])
+            self.assertEqual(result["cf07Telemetry"]["standing"], "RECORDED")
+            self.assertEqual(result["cf07Telemetry"]["sessionCountClass"], "ZERO")
             command = run.call_args.args[0]
             self.assertIn("--endpoint-id", command)
             self.assertNotIn("send", " ".join(command).lower())

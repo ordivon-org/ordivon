@@ -238,6 +238,122 @@ def _touch_carrier_last_use(config: BrowserlessAutomationConfig, endpoint_id: st
     return path
 
 
+_CF07_SESSION_COUNT_CLASSES = frozenset({"ZERO", "NONZERO", "NOT_OBSERVED", "LEASE_BUSY"})
+
+
+def _write_private_create_new(path: Path, value: object) -> bool:
+    """Create one private JSON file without replacing an existing authority object."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = json.dumps(value, sort_keys=True, indent=2, ensure_ascii=False) + "\n"
+    try:
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError:
+        return False
+    with os.fdopen(fd, "w", encoding="utf-8") as handle:
+        handle.write(payload)
+    return True
+
+
+def _cf07_profile_first_observed(
+    config: BrowserlessAutomationConfig, endpoint_id: str, *, observed_at_ms: int
+) -> int:
+    """Return Ordivon's first observation timestamp for one carrier profile."""
+    root = config.state_root / "cf07-profile-first-observed"
+    path = root / f"{_suffix(endpoint_id, 32)}.json"
+    marker = {
+        "schemaVersion": 1,
+        "kind": "ordivon.cf07-profile-first-observed",
+        "endpointId": endpoint_id,
+        "firstObservedAtMs": observed_at_ms,
+        "semanticProviderSessionCreationKnown": False,
+    }
+    if _write_private_create_new(path, marker):
+        return observed_at_ms
+    existing = _read_json(path)
+    if set(existing) != {
+        "schemaVersion",
+        "kind",
+        "endpointId",
+        "firstObservedAtMs",
+        "semanticProviderSessionCreationKnown",
+    }:
+        raise BrowserlessAutomationConflict("CF07 profile-first-observed marker has unexpected fields")
+    if (
+        existing.get("schemaVersion") != 1
+        or existing.get("kind") != "ordivon.cf07-profile-first-observed"
+        or existing.get("endpointId") != endpoint_id
+        or existing.get("semanticProviderSessionCreationKnown") is not False
+        or not isinstance(existing.get("firstObservedAtMs"), int)
+        or existing["firstObservedAtMs"] < 0
+    ):
+        raise BrowserlessAutomationConflict("CF07 profile-first-observed marker is invalid")
+    return existing["firstObservedAtMs"]
+
+
+def _cf07_preflight_event(
+    config: BrowserlessAutomationConfig,
+    row: dict,
+    *,
+    lifecycle_started: bool,
+    session_count_class: str,
+) -> dict:
+    """Persist one content-minimal prospective CF07 provider-preflight metadata event."""
+    if session_count_class not in _CF07_SESSION_COUNT_CLASSES:
+        raise ValueError("unsupported CF07 session-count class")
+    endpoint_id = row.get("endpointId")
+    standing = row.get("standing")
+    if not isinstance(endpoint_id, str) or not endpoint_id:
+        raise BrowserlessAutomationConflict("CF07 telemetry requires endpointId")
+    if not isinstance(standing, str) or not standing:
+        raise BrowserlessAutomationConflict("CF07 telemetry requires standing")
+    for key in (
+        "providerEffectAttempted",
+        "clicked",
+        "composerFilled",
+        "sendAttempted",
+        "assistantOutputRead",
+    ):
+        if row.get(key) is not False:
+            raise BrowserlessAutomationConflict(
+                f"CF07 telemetry refuses non-read-only provider observation: {key}"
+            )
+
+    observed_at_ms = time.time_ns() // 1_000_000
+    first_observed_at_ms = _cf07_profile_first_observed(
+        config, endpoint_id, observed_at_ms=observed_at_ms
+    )
+    event = {
+        "schemaVersion": 1,
+        "kind": "ordivon.cf07-provider-preflight-metadata",
+        "observedAtMs": observed_at_ms,
+        "endpointId": endpoint_id,
+        "standing": standing,
+        "lifecycleStarted": bool(lifecycle_started),
+        "sessionCountClass": session_count_class,
+        "providerEffectAttempted": False,
+        "clicked": False,
+        "composerFilled": False,
+        "sendAttempted": False,
+        "assistantOutputRead": False,
+        "profileFirstObservedAtMs": first_observed_at_ms,
+        "semanticProviderSessionCreationKnown": False,
+    }
+    nonce = _suffix(f"{endpoint_id}:{time.time_ns()}:{os.getpid()}", 16)
+    path = (
+        config.state_root
+        / "cf07-provider-preflight-events"
+        / f"{observed_at_ms}-{_suffix(endpoint_id, 16)}-{nonce}.json"
+    )
+    if not _write_private_create_new(path, event):
+        raise BrowserlessAutomationConflict("CF07 provider-preflight event identity collision")
+    return {
+        "standing": "RECORDED",
+        "observedAtMs": observed_at_ms,
+        "profileFirstObservedAtMs": first_observed_at_ms,
+        "sessionCountClass": session_count_class,
+    }
+
+
 @contextmanager
 def _carrier_lease(config: BrowserlessAutomationConfig, endpoint_id: str, *, blocking: bool):
     """Serialize every interactive use of one persistent Browserless profile across processes.
@@ -264,6 +380,29 @@ class BrowserlessAutomationService:
     def __init__(self, config: BrowserlessAutomationConfig) -> None:
         self.config = config
         self.config.state_root.mkdir(parents=True, exist_ok=True)
+
+    def _record_cf07_preflight(
+        self,
+        row: dict,
+        *,
+        lifecycle_started: bool,
+        session_count_class: str,
+    ) -> dict:
+        """Attach non-authoritative telemetry standing without changing provider standing."""
+        result = dict(row)
+        try:
+            result["cf07Telemetry"] = _cf07_preflight_event(
+                self.config,
+                result,
+                lifecycle_started=lifecycle_started,
+                session_count_class=session_count_class,
+            )
+        except Exception as error:
+            result["cf07Telemetry"] = {
+                "standing": "WRITE_FAILED",
+                "errorClass": type(error).__name__,
+            }
+        return result
 
     @staticmethod
     def load_spec(path: Path) -> CampaignLaunchSpec:
@@ -832,34 +971,44 @@ class BrowserlessAutomationService:
         """
         endpoint = self._endpoint_by_id(endpoint_id)
         substrate = self.ensure_endpoint_active(endpoint)
+        lifecycle_started = substrate.get("lifecycleStarted") is True
         if not substrate.get("healthy"):
-            return {
-                "schemaVersion": 1,
-                "kind": "ordivon.browserless-provider-preflight",
-                "endpointId": endpoint.endpoint_id,
-                "standing": "SUBSTRATE_UNAVAILABLE",
-                "providerEffectAttempted": False,
-                "clicked": False,
-                "composerFilled": False,
-                "sendAttempted": False,
-                "assistantOutputRead": False,
-                "substrateHealth": substrate,
-            }
+            return self._record_cf07_preflight(
+                {
+                    "schemaVersion": 1,
+                    "kind": "ordivon.browserless-provider-preflight",
+                    "endpointId": endpoint.endpoint_id,
+                    "standing": "SUBSTRATE_UNAVAILABLE",
+                    "providerEffectAttempted": False,
+                    "clicked": False,
+                    "composerFilled": False,
+                    "sendAttempted": False,
+                    "assistantOutputRead": False,
+                    "substrateHealth": substrate,
+                },
+                lifecycle_started=lifecycle_started,
+                session_count_class="NOT_OBSERVED",
+            )
         # A session can predate the current Ordivon lease contract or come from a non-cooperating
         # client. The filesystem lease alone therefore does not prove exclusive Browserless use.
-        if endpoint.sessions(timeout_seconds=3):
-            return {
-                "schemaVersion": 1,
-                "kind": "ordivon.browserless-provider-preflight",
-                "endpointId": endpoint.endpoint_id,
-                "standing": "CARRIER_BUSY",
-                "providerEffectAttempted": False,
-                "clicked": False,
-                "composerFilled": False,
-                "sendAttempted": False,
-                "assistantOutputRead": False,
-                "substrateHealth": substrate,
-            }
+        sessions = endpoint.sessions(timeout_seconds=3)
+        if sessions:
+            return self._record_cf07_preflight(
+                {
+                    "schemaVersion": 1,
+                    "kind": "ordivon.browserless-provider-preflight",
+                    "endpointId": endpoint.endpoint_id,
+                    "standing": "CARRIER_BUSY",
+                    "providerEffectAttempted": False,
+                    "clicked": False,
+                    "composerFilled": False,
+                    "sendAttempted": False,
+                    "assistantOutputRead": False,
+                    "substrateHealth": substrate,
+                },
+                lifecycle_started=lifecycle_started,
+                session_count_class="NONZERO",
+            )
         cmd = [
             *endpoint.exec_prefix,
             str(self.config.playwright_python),
@@ -898,7 +1047,11 @@ class BrowserlessAutomationService:
                     f"Browserless provider preflight violated read-only contract: {key}"
                 )
         row["substrateHealth"] = substrate
-        return row
+        return self._record_cf07_preflight(
+            row,
+            lifecycle_started=lifecycle_started,
+            session_count_class="ZERO",
+        )
 
     def provider_preflight(self, endpoint_id: str) -> dict:
         endpoint = self._endpoint_by_id(endpoint_id)
@@ -908,18 +1061,22 @@ class BrowserlessAutomationService:
                 return self._provider_preflight_under_carrier_lease(endpoint.endpoint_id)
         except BrowserlessCarrierBusy:
             substrate = endpoint.health(timeout_seconds=5)
-            return {
-                "schemaVersion": 1,
-                "kind": "ordivon.browserless-provider-preflight",
-                "endpointId": endpoint.endpoint_id,
-                "standing": "CARRIER_BUSY",
-                "providerEffectAttempted": False,
-                "clicked": False,
-                "composerFilled": False,
-                "sendAttempted": False,
-                "assistantOutputRead": False,
-                "substrateHealth": substrate,
-            }
+            return self._record_cf07_preflight(
+                {
+                    "schemaVersion": 1,
+                    "kind": "ordivon.browserless-provider-preflight",
+                    "endpointId": endpoint.endpoint_id,
+                    "standing": "CARRIER_BUSY",
+                    "providerEffectAttempted": False,
+                    "clicked": False,
+                    "composerFilled": False,
+                    "sendAttempted": False,
+                    "assistantOutputRead": False,
+                    "substrateHealth": substrate,
+                },
+                lifecycle_started=False,
+                session_count_class="LEASE_BUSY",
+            )
 
     def _doctor_browser_substrate_health(self) -> dict:
         rows: list[dict] = []

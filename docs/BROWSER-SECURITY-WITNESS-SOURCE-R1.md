@@ -201,3 +201,43 @@ paired canary PASS
 ```
 
 Promotion artifacts live under `state/browserless-image-promotions/<candidate-digest>/` and include the durable promotion receipt, rollback Quadlet, post-change pool evidence, and finalize pool evidence. The transaction never pulls an image, treats a protected challenge as a detector oracle, or crosses provider SEND.
+
+
+## Prospective CF07 provider-preflight telemetry
+
+`BrowserlessAutomationService.provider_preflight()` now records content-minimal prospective CF07 metadata without making telemetry an admission authority.
+
+Each successful telemetry write creates a new private JSON event under:
+
+```text
+<stateRoot>/cf07-provider-preflight-events/
+```
+
+The event allowlist is limited to:
+
+```text
+observedAtMs
+endpointId
+standing
+lifecycleStarted
+sessionCountClass
+providerEffectAttempted=false
+clicked=false
+composerFilled=false
+sendAttempted=false
+assistantOutputRead=false
+profileFirstObservedAtMs
+semanticProviderSessionCreationKnown=false
+```
+
+The session-count class distinguishes `ZERO`, `NONZERO`, `NOT_OBSERVED`, and `LEASE_BUSY`. The event does not copy `pageRef`, detail text, substrate-health payloads, URLs, cookie values, tokens, prompts, turns, or provider page content.
+
+The first observation of each endpoint also creates one private create-once marker under:
+
+```text
+<stateRoot>/cf07-profile-first-observed/
+```
+
+`profileFirstObservedAtMs` means only “first observed by Ordivon CF07 telemetry.” It is explicitly not interpreted as provider-session creation time.
+
+Telemetry is non-authoritative. A write failure leaves the provider-preflight `standing` unchanged and adds `cf07Telemetry.standing=WRITE_FAILED` with only the local error class. A successful write reports `RECORDED`. This preserves provider admission behavior while making future cadence/history claims prospectively auditable.
