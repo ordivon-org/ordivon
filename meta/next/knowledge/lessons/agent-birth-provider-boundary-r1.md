@@ -1,7 +1,7 @@
 # Agent Birth Provider Boundary R1
 
 Date: 2026-09-18
-Standing: **IMPLEMENTED + TESTED IN HARNESS MAIN / PRODUCTION RELEASE CUTOVER NOT YET CLAIMED**
+Standing: **PRODUCTION ACTIVE + POST-CUTOVER VERIFIED**
 
 ## One-sentence result
 
@@ -170,6 +170,31 @@ Ruff                              PASS
 py_compile                        PASS
 git diff --check                  PASS
 ```
+
+## Production cutover
+
+The Provider Boundary policy is now active in the immutable Agent Automation release:
+
+```text
+3f10f7bb7cb732e3b873fcc2aacb6ae7e9cf52f4
+```
+
+Release qualification returned `NO_OBSERVED_DRIFT` across the three-carrier neutral Browser Security pool with `providerChallengeVisited=false`, `providerSendAttempted=false`, and `rootCauseEstablished=false`.
+
+Post-cutover verification from the immutable `current` release proved:
+
+```text
+MCP                 active
+Temporal worker     active
+admission gate      OPEN
+running workflows   0
+doctor               healthy
+carrier-11           active
+carrier-12           sleeping
+carrier-13           sleeping
+```
+
+`AutomationDoctor` from the active release projects `provider-boundary-r1` and the Browser Security R9 reference-only repair policy. No Browserless carrier restart, image mutation, profile clearing, launcher mutation, or Network-v2 mutation was part of this cutover.
 
 ## Remaining boundary
 

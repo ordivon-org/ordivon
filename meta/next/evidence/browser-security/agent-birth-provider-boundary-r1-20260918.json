@@ -1,24 +1,56 @@
 {
-  "schemaVersion": 1,
-  "kind": "ordivon.agent-birth-provider-boundary-r1-evidence",
+  "browserSecurityReference": {
+    "nextCommit": "cde99ed6583eea92989a210e4be262d4e0a413e4",
+    "providerRootCauseEstablished": false,
+    "reference": "browser-security-r9",
+    "standing": "REFERENCE_ONLY_NOT_LIVE_ASSERTION"
+  },
   "date": "2026-09-18",
-  "standing": "SOURCE_MAIN_IMPLEMENTED_TESTED_PRODUCTION_CUTOVER_NOT_YET_CLAIMED",
   "harness": {
-    "mainCommit": "3f10f7bb7cb732e3b873fcc2aacb6ae7e9cf52f4",
     "commitMessage": "agent-birth: classify provider boundary holds",
+    "mainCommit": "3f10f7bb7cb732e3b873fcc2aacb6ae7e9cf52f4",
     "providerBoundaryModule": "scripts/provider_boundary_diagnosis.py"
   },
-  "browserSecurityReference": {
-    "reference": "browser-security-r9",
-    "nextCommit": "cde99ed6583eea92989a210e4be262d4e0a413e4",
-    "standing": "REFERENCE_ONLY_NOT_LIVE_ASSERTION",
-    "providerRootCauseEstablished": false
+  "kind": "ordivon.agent-birth-provider-boundary-r1-evidence",
+  "production": {
+    "activationJobId": "job-01a0b40f-9021-7162-ba85-f1b23263e2f7",
+    "activeRelease": "3f10f7bb7cb732e3b873fcc2aacb6ae7e9cf52f4",
+    "admissionGate": "OPEN",
+    "archiveDigest": "sha256:e0663ed54eae46e19141fe70b300323675726a8cc0170fdcd7f3fa80e197ff86",
+    "carrierTopology": {
+      "11": "active",
+      "12": "sleeping",
+      "13": "sleeping"
+    },
+    "cutoverClaimed": true,
+    "doctorHealthy": true,
+    "mcp": "active",
+    "postCutoverVerificationJobId": "job-01a0b410-7c46-7913-ac35-65dd7a6c3306",
+    "previousRelease": "dc23c0c6894f415cc6eca624a8740c856ab9009b",
+    "runningWorkflowCount": 0,
+    "worker": "active"
+  },
+  "releaseQualification": {
+    "carrierCount": 3,
+    "classificationStanding": "NO_OBSERVED_DRIFT",
+    "poolIndexSha256": "sha256:16e7fd96547591c046d9962b0593e2b265ead8ac480c4cc3e41ecff24c89f417",
+    "providerChallengeVisited": false,
+    "providerSendAttempted": false,
+    "qualificationJobId": "job-01a0b40e-462b-7f72-972a-8e7141f45c58",
+    "rootCauseEstablished": false,
+    "securityRevision": "da837c829113a94780e88227f562aa932dde00a3",
+    "standing": "PASS"
   },
   "runtimeSemantics": {
-    "healthyChallengeState": "SUBSTRATE_HEALTHY_PROVIDER_NOT_ADMISSIBLE",
+    "automaticInfrastructureMutationAllowed": false,
+    "carrierFailoverStandings": [
+      "CARRIER_BUSY",
+      "CONNECT_FAILED",
+      "PROVIDER_UNAVAILABLE",
+      "SUBSTRATE_UNAVAILABLE"
+    ],
     "challengeCarrierRouting": "PRESERVE_SELECTED_CARRIER",
     "challengeHumanVerificationEligible": true,
-    "automaticInfrastructureMutationAllowed": false,
     "forbiddenAutomaticInfrastructureRepairs": [
       "rotate-carrier",
       "restart-carrier",
@@ -26,31 +58,24 @@
       "mutate-launcher-flags",
       "mutate-network-authority"
     ],
-    "carrierFailoverStandings": [
-      "CARRIER_BUSY",
-      "CONNECT_FAILED",
-      "PROVIDER_UNAVAILABLE",
-      "SUBSTRATE_UNAVAILABLE"
-    ]
-  },
-  "verification": {
-    "workspaceExpandedGateJobId": "job-01a0b407-ba3e-7920-8b9e-cd021276d0d4",
-    "harnessMainPostVerifyJobId": "job-01a0b409-337e-79d3-aacd-dca8e2ca651f",
-    "relevantTests": 95,
-    "browserlessSkipped": 3,
-    "ruff": "PASS",
-    "pyCompile": "PASS",
-    "diffCheck": "PASS"
+    "healthyChallengeState": "SUBSTRATE_HEALTHY_PROVIDER_NOT_ADMISSIBLE"
   },
   "safetyBoundary": {
-    "challengeSolvedAutomatically": false,
     "challengeClickedByThisChange": false,
-    "providerPromptSentByVerification": false,
+    "challengeSolvedAutomatically": false,
+    "protectedChallengeUsedAsDetectorOracle": false,
     "providerCookiesRead": false,
-    "protectedChallengeUsedAsDetectorOracle": false
+    "providerPromptSentByVerification": false
   },
-  "production": {
-    "observedReleaseBeforeCutover": "dc23c0c6894f415cc6eca624a8740c856ab9009b",
-    "cutoverClaimed": false
+  "schemaVersion": 1,
+  "standing": "PRODUCTION_ACTIVE_VERIFIED",
+  "verification": {
+    "browserlessSkipped": 3,
+    "diffCheck": "PASS",
+    "harnessMainPostVerifyJobId": "job-01a0b409-337e-79d3-aacd-dca8e2ca651f",
+    "pyCompile": "PASS",
+    "relevantTests": 95,
+    "ruff": "PASS",
+    "workspaceExpandedGateJobId": "job-01a0b407-ba3e-7920-8b9e-cd021276d0d4"
   }
 }

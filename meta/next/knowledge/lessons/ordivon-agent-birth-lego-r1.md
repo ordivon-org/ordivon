@@ -3,7 +3,7 @@
 Status: **CURRENT SOURCE DECOMPOSED / MIGRATION-READY / PROVIDER-BOUNDARY DIAGNOSIS ADDED**
 Date: 2026-09-18
 Current source examined: `/root/projects/ordivon-harness` @ `3f10f7bb7cb732e3b873fcc2aacb6ae7e9cf52f4`
-Observed production Agent Automation release before Provider Boundary cutover: `dc23c0c6894f415cc6eca624a8740c856ab9009b`
+Observed production Agent Automation release: `3f10f7bb7cb732e3b873fcc2aacb6ae7e9cf52f4` (Provider Boundary R1 active)
 Node graph: `knowledge/graphs/ordivon-agent-birth-r1.json`
 
 ## 1. One-sentence kernel
