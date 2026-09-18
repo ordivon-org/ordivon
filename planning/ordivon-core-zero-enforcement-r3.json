@@ -140,7 +140,6 @@
       "DeliveryCoordinator",
       "DeliveryObservation",
       "DeliveryReceipt",
-      "DeliveryReceiptStore",
       "DesiredPlacement",
       "DesiredPlacementStore",
       "EffectAuthorizedDeliveryCoordinator",
@@ -289,6 +288,7 @@
     "AgentInterfaceAdvertisementStore",
     "CapabilityAdvertisement",
     "CapabilityAdvertisementStore",
+    "DeliveryReceiptStore",
     "EffectAuthorizationCoordinator",
     "EffectAuthorizationDecision",
     "EffectAuthorizationDecisionStore",
@@ -299,10 +299,12 @@
   "retiredPersistenceSurfaces": [
     "agent_interface_advertisements",
     "capability_advertisements",
+    "delivery_receipts",
     "effect_authorization_decisions",
     "policy_decisions"
   ],
   "retiredForeignKeyAuthorities": [
+    "delivery_receipts.binding_id -> transport_bindings.id",
     "effect_authorization_decisions.binding_id -> transport_bindings.id",
     "effect_authorization_decisions.delegation_id -> delegation_envelopes.id",
     "transport_bindings.interface_id -> agent_interface_advertisements.id",

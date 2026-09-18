@@ -10,6 +10,8 @@ from agent_service.delivery import (
     DeliveryObservation,
     PolicyAdapter,
     PolicyObservation,
+    _delivery_receipt_get,
+    _delivery_receipt_list_for_binding,
 )
 from agent_service.evidence import RuntimeArtifactPayload, RuntimeArtifactReader
 from agent_service.slice1 import CarrierProviderAdapter, ProviderObservation
@@ -332,7 +334,7 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
 
             with self.assertRaises(RuntimeError):
                 service.delivery.deliver(binding.id)
-            self.assertEqual(service.delivery_receipts.list_for_binding(binding.id), [])
+            self.assertEqual(_delivery_receipt_list_for_binding(service.events, binding.id), [])
 
             receipt = service.delivery.deliver(binding.id)
 
@@ -394,7 +396,7 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
             self.assertTrue(second.events.get(binding.policy_receipt_id).payload["allowed"])
             self.assertFalse(hasattr(second, "policy_decisions"))
             self.assertEqual(second.transport_bindings.get(binding.id).endpoint, binding.endpoint)
-            self.assertEqual(second.delivery_receipts.get(receipt.id).remote_task_id, receipt.remote_task_id)
+            self.assertEqual(_delivery_receipt_get(second.events, receipt.id).remote_task_id, receipt.remote_task_id)
             replay = second.delivery.deliver(binding.id)
             self.assertEqual(replay.id, receipt.id)
 

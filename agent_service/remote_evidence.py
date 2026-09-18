@@ -13,10 +13,11 @@ from typing import Any
 from .delivery import (
     DeliveryAdapter,
     DeliveryObservation,
-    DeliveryReceiptStore,
     PolicyAdapter,
     TransportBinding,
     TransportBindingStore,
+    _delivery_receipt_create,
+    _delivery_receipt_get_by_binding,
 )
 from .evidence import (
     ArtifactDigestMismatch,
@@ -201,7 +202,7 @@ class ClaimAwareDeliveryCoordinator:
         readiness: TaskReadinessProjector,
         delegations: Any,
         bindings: TransportBindingStore,
-        receipts: DeliveryReceiptStore,
+        receipts: ServiceEventStore,
         adapters: dict[str, DeliveryAdapter],
     ) -> None:
         self._connection = connection
@@ -283,7 +284,7 @@ class ClaimAwareDeliveryCoordinator:
     def deliver(self, binding_id: str):
         binding = self._bindings.get(binding_id)
         envelope = self._delegations.get(binding.delegation_id)
-        existing = self._receipts.get_by_binding(binding_id, required=False)
+        existing = _delivery_receipt_get_by_binding(self._receipts, binding_id, required=False)
         if existing is not None:
             self._claim_remote(binding, envelope, allow_terminal=True)
             return existing
@@ -300,7 +301,7 @@ class ClaimAwareDeliveryCoordinator:
             raise TypeError("DeliveryAdapter must return DeliveryObservation")
         if observation.admission not in {"committed", "existing"}:
             raise ValueError("DeliveryObservation admission must be committed or existing")
-        return self._receipts.create(binding, observation)
+        return _delivery_receipt_create(self._receipts, binding, observation)
 
 
 @dataclass(frozen=True)
@@ -512,7 +513,7 @@ class RemoteTaskCompletionReconciler:
         claims: TaskExecutionClaimStore,
         delegations: Any,
         bindings: TransportBindingStore,
-        receipts: DeliveryReceiptStore,
+        receipts: ServiceEventStore,
         observations: RemoteDeliveryObservationStore,
         verifications: RemoteTaskVerificationStore,
         resolver: RemoteArtifactEvidenceResolver,
@@ -542,7 +543,7 @@ class RemoteTaskCompletionReconciler:
         claim = self._claims.get(task.id)
         if (claim.mode, claim.owner_id) != ("REMOTE_BINDING", binding.id):
             raise RuntimeError("remote completion does not own Task execution claim")
-        self._receipts.get_by_binding(binding.id)
+        _delivery_receipt_get_by_binding(self._receipts, binding.id)
         observation = self._observations.latest_for_binding(binding.id, required=False)
         if observation is None or not observation.terminal:
             return None
@@ -550,7 +551,7 @@ class RemoteTaskCompletionReconciler:
             raise RuntimeError(f"remote completion cannot verify Task state {task.state}")
 
         if observation.successful is True:
-            receipt = self._receipts.get_by_binding(binding.id)
+            receipt = _delivery_receipt_get_by_binding(self._receipts, binding.id)
             evidence = self._resolver.resolve(
                 task.acceptance,
                 binding=binding,
@@ -637,7 +638,7 @@ class AgentServiceR11:
             "goals", "goal_graph_guard", "goal_task_links", "task_dependencies", "task_readiness",
             "task_graph", "goal_reconciler", "board_receipts", "board_projector", "identities",
             "sessions", "session_items", "delegations", "a2a_cards",
-            "transport_bindings", "routes", "delivery_receipts",
+            "transport_bindings", "routes",
             "credential_references", "identity_proof_records", "identity_proofs", "remote_observations",
             "remote_reconciler", "audit",
         ):
@@ -661,7 +662,7 @@ class AgentServiceR11:
             self.task_readiness,
             self.delegations,
             self.transport_bindings,
-            self.delivery_receipts,
+            self.events,
             delivery_adapters,
         )
         self.remote_verifications = RemoteTaskVerificationStore(self._connection)
@@ -674,7 +675,7 @@ class AgentServiceR11:
             self.execution_claims,
             self.delegations,
             self.transport_bindings,
-            self.delivery_receipts,
+            self.events,
             self.remote_observations,
             self.remote_verifications,
             self.remote_artifacts,

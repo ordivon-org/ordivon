@@ -8,7 +8,6 @@ from agent_service.delivery import (
     DelegationRoutePlanner,
     DeliveryAdapter,
     DeliveryCoordinator,
-    DeliveryReceiptStore,
     PolicyAdapter,
     TransportBindingStore,
 )
@@ -25,7 +24,7 @@ class AgentServiceDeliveryPublicApiR9Tests(unittest.TestCase):
         self.assertIs(agent_service.TransportBindingStore, TransportBindingStore)
         self.assertIs(agent_service.DeliveryAdapter, DeliveryAdapter)
         self.assertIs(agent_service.DeliveryCoordinator, DeliveryCoordinator)
-        self.assertIs(agent_service.DeliveryReceiptStore, DeliveryReceiptStore)
+        self.assertFalse(hasattr(agent_service, "DeliveryReceiptStore"))
 
 
 if __name__ == "__main__":

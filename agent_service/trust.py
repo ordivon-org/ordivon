@@ -14,10 +14,11 @@ from .delivery import (
     DeliveryAdapter,
     PolicyAdapter,
     TransportBinding,
+    _delivery_receipt_get_by_binding,
 )
 from .evidence import RuntimeArtifactReader
 from .semantics import DelegationEnvelope
-from .slice1 import CarrierProviderAdapter
+from .slice1 import CarrierProviderAdapter, ServiceEventStore
 from .task_runtime import RuntimeAdapter
 
 
@@ -563,19 +564,19 @@ class RemoteCorrelationReconciler:
         self,
         delegations: Any,
         bindings: Any,
-        delivery_receipts: Any,
+        delivery_events: ServiceEventStore,
         observations: RemoteDeliveryObservationStore,
         observers: dict[str, RemoteDeliveryObserver],
     ) -> None:
         self._delegations = delegations
         self._bindings = bindings
-        self._delivery_receipts = delivery_receipts
+        self._delivery_events = delivery_events
         self._observations = observations
         self._observers = dict(observers)
 
     def reconcile(self, binding_id: str) -> RemoteDeliverySnapshot:
         binding = self._bindings.get(binding_id)
-        receipt = self._delivery_receipts.get_by_binding(binding_id)
+        receipt = _delivery_receipt_get_by_binding(self._delivery_events, binding_id)
         envelope = self._delegations.get(binding.delegation_id)
         observer = self._observers.get(binding.transport)
         if observer is None:
@@ -607,13 +608,13 @@ class AuditEnvelopeProjector:
         self,
         proofs: IdentityProofRecordStore,
         bindings: Any,
-        delivery_receipts: Any,
+        delivery_events: ServiceEventStore,
         observations: RemoteDeliveryObservationStore,
         delegations: Any,
     ) -> None:
         self._proofs = proofs
         self._bindings = bindings
-        self._delivery_receipts = delivery_receipts
+        self._delivery_events = delivery_events
         self._observations = observations
         self._delegations = delegations
 
@@ -636,7 +637,7 @@ class AuditEnvelopeProjector:
 
     def project_remote_delivery(self, binding_id: str) -> dict[str, Any]:
         binding = self._bindings.get(binding_id)
-        receipt = self._delivery_receipts.get_by_binding(binding_id)
+        receipt = _delivery_receipt_get_by_binding(self._delivery_events, binding_id)
         envelope = self._delegations.get(binding.delegation_id)
         latest = self._observations.latest_for_binding(binding_id, required=False)
         remote_task_id = receipt.remote_task_id
@@ -684,7 +685,7 @@ class AgentServiceR10:
             "task_readiness", "task_graph", "goal_planner", "goal_reconciler", "board_receipts",
             "board_projector", "identities", "sessions", "session_items",
             "delegations", "a2a_cards",
-            "transport_bindings", "routes", "delivery_receipts", "delivery",
+            "transport_bindings", "routes", "delivery",
         ):
             setattr(self, name, getattr(r9, name))
         self.credential_references = CredentialReferenceStore(self._connection)
@@ -699,14 +700,14 @@ class AgentServiceR10:
         self.remote_reconciler = RemoteCorrelationReconciler(
             self.delegations,
             self.transport_bindings,
-            self.delivery_receipts,
+            self.events,
             self.remote_observations,
             remote_delivery_observers,
         )
         self.audit = AuditEnvelopeProjector(
             self.identity_proof_records,
             self.transport_bindings,
-            self.delivery_receipts,
+            self.events,
             self.remote_observations,
             self.delegations,
         )
