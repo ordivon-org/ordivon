@@ -64,6 +64,7 @@ impl Sandbox {
                 release: None,
                 input_ingress: None,
                 trace_path: None,
+                authority_shadow_leases: Vec::new(),
             },
             default_runtime_ms,
         )
@@ -112,6 +113,7 @@ impl Sandbox {
                 max_bytes: 8 * 1024 * 1024,
             }),
             trace_path: None,
+            authority_shadow_leases: Vec::new(),
         })
         .unwrap()
     }
@@ -152,6 +154,125 @@ fn exec_tool_request(
         stdout_tail_bytes: 0,
         stderr_tail_bytes: 0,
     }
+}
+
+#[test]
+fn authority_shadow_candidate_projects_real_bound_execution_without_enforcement() {
+    let sandbox = Sandbox::new("authority-shadow-candidate");
+    let server = sandbox.server();
+    let bound =
+        server
+            .state
+            .execution
+            .bind(exec_tool_request(Some(1_000), Some(1_024), Some(1_024)));
+    let candidate = bound.authority_shadow_candidate().unwrap();
+
+    assert_eq!(candidate.principal_id.as_str(), "principal:mcp-test");
+    assert_eq!(
+        candidate.resource_scope.as_str(),
+        "workspace/workspace:test"
+    );
+    assert_eq!(
+        candidate.capability_id.as_str(),
+        "capability/execution/local-linux"
+    );
+    assert_eq!(candidate.os_authority.as_str(), "linux/trusted-local");
+    assert_eq!(candidate.mode, AuthorityMode::OpenControl);
+    assert_eq!(candidate.conflict_mode, ConflictMode::ExclusiveWrite);
+}
+
+#[test]
+fn authority_shadow_trace_records_false_decision_without_blocking_path() {
+    let sandbox = Sandbox::new("authority-shadow-trace");
+    let trace_path = sandbox.root.join("authority-shadow.jsonl");
+
+    let mut config = ServerConfig {
+        runtime: RuntimeConfig {
+            node_id: "test-node".to_string(),
+            registry: RegistryConfig {
+                db_path: sandbox.root.join("registry-shadow/registry.sqlite3"),
+                store_root: sandbox.root.join("registry-shadow"),
+                busy_timeout_ms: 5000,
+            },
+            executor: UniversalExecutorConfig {
+                store_root: sandbox.root.join("store-shadow"),
+                workspace_root: None,
+                workspace_uid: None,
+                workspace_gid: None,
+                runner_path: PathBuf::from("/usr/bin/true"),
+                allowed_executable_roots: vec![PathBuf::from("/usr/bin")],
+                max_runtime_ms: 10_000,
+                max_output_bytes: 1024 * 1024,
+            },
+            startup_grace_ms: 1000,
+            windows: None,
+        },
+        input_authorities: Vec::new(),
+        execution: ExecutionContext {
+            principal: "principal:mcp-test".to_string(),
+            global_limit: 4,
+        },
+        release: None,
+        input_ingress: None,
+        trace_path: Some(trace_path.clone()),
+        authority_shadow_leases: Vec::new(),
+    };
+    let server = RuntimeServer::new(config.clone()).unwrap();
+    let bound =
+        server
+            .state
+            .execution
+            .bind(exec_tool_request(Some(1_000), Some(1_024), Some(1_024)));
+
+    // With no configured lease the hypothetical decision is false, but the recorder returns
+    // no Result and cannot veto the actual execution path.
+    server.record_authority_shadow_for_bound_task("workspace.exec", &bound);
+    let first = fs::read_to_string(&trace_path).unwrap();
+    let first: Value = serde_json::from_str(first.lines().next().unwrap()).unwrap();
+    assert_eq!(first["event"], "authority_shadow");
+    assert_eq!(first["enforcement"], "shadow");
+    assert_eq!(first["leaseCount"], 0);
+    assert_eq!(first["decision"]["shadowOnly"], true);
+    assert_eq!(first["decision"]["wouldAllow"], false);
+
+    let candidate = bound.authority_shadow_candidate().unwrap();
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as u64;
+    config.authority_shadow_leases = vec![AuthorityLease {
+        schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+        lease_id: FabricId::parse("lease/test/matching").unwrap(),
+        authority: ordivon_runtime_spi::AuthorityVector {
+            schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+            principal_id: candidate.principal_id.clone(),
+            trust_domain: candidate.trust_domain.clone(),
+            resource_scope: candidate.resource_scope.clone(),
+            capabilities: vec![candidate.capability_id.clone()],
+            os_authority: candidate.os_authority.clone(),
+            mode: candidate.mode,
+            conflict_mode: candidate.conflict_mode,
+            enforcement: ordivon_runtime_spi::AuthorityEnforcement::Shadow,
+            budget_id: None,
+            evidence_policy_id: None,
+        },
+        issued_at_ms: now.saturating_sub(1_000),
+        expires_at_ms: now.saturating_add(60_000),
+        revoked_at_ms: None,
+    }];
+    let trace_path_2 = sandbox.root.join("authority-shadow-match.jsonl");
+    config.trace_path = Some(trace_path_2.clone());
+    let server = RuntimeServer::new(config).unwrap();
+    let bound =
+        server
+            .state
+            .execution
+            .bind(exec_tool_request(Some(1_000), Some(1_024), Some(1_024)));
+    server.record_authority_shadow_for_bound_task("workspace.exec", &bound);
+    let second = fs::read_to_string(&trace_path_2).unwrap();
+    let second: Value = serde_json::from_str(second.lines().next().unwrap()).unwrap();
+    assert_eq!(second["decision"]["wouldAllow"], true);
+    assert_eq!(second["decision"]["conflict"], "exclusive_overlap");
 }
 
 fn plan_step(id: &str, timeout_ms: Option<u64>) -> ExecutionStepProposal {
@@ -937,6 +1058,7 @@ print(json.dumps({{
                 max_bytes: 8 * 1024 * 1024,
             }),
             trace_path: None,
+            authority_shadow_leases: Vec::new(),
         })
         .unwrap();
         let secret_url = "https://example.invalid/file?token=SIGNED-URL-MUST-NOT-BE-FETCHED";
@@ -1149,6 +1271,7 @@ fn private_ip_download_host_is_rejected_at_configuration_boundary() {
             max_bytes: 8 * 1024 * 1024,
         }),
         trace_path: None,
+        authority_shadow_leases: Vec::new(),
     });
     assert!(server.is_err(), "private/loopback IP download hosts must fail closed even if operator config accidentally lists them");
 }

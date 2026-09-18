@@ -34,9 +34,11 @@ use ordivon_runtime_core::{
     WORKSPACE_ID_MAX_LENGTH, WORKSPACE_ID_MIN_LENGTH, WORKSPACE_ID_PATTERN,
 };
 use ordivon_runtime_spi::{
-    CapabilityDescriptor as FabricCapabilityDescriptor, FabricId, FabricPlatform,
-    NodeDescriptor as FabricNodeDescriptor, ProviderDescriptor as FabricProviderDescriptor,
-    ResourceDescriptor as FabricResourceDescriptor, EXECUTION_FABRIC_SCHEMA_VERSION,
+    evaluate_authority_shadow, AuthorityEffectCandidate, AuthorityLease, AuthorityMode,
+    CapabilityDescriptor as FabricCapabilityDescriptor, ConflictMode, FabricContractError,
+    FabricId, FabricPlatform, NodeDescriptor as FabricNodeDescriptor,
+    ProviderDescriptor as FabricProviderDescriptor, ResourceDescriptor as FabricResourceDescriptor,
+    EXECUTION_FABRIC_SCHEMA_VERSION,
 };
 use rmcp::handler::server::router::tool::ToolRouter;
 use rmcp::handler::server::tool::{IntoCallToolResult, ToolCallContext};

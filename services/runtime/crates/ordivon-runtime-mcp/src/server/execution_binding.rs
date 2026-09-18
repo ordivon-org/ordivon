@@ -3,6 +3,74 @@ enum BoundTaskRun {
     Proposal(TaskRunProposal),
 }
 
+impl BoundTaskRun {
+    fn authority_shadow_candidate(&self) -> Result<AuthorityEffectCandidate, FabricContractError> {
+        match self {
+            Self::Legacy(request) => authority_shadow_candidate(
+                &request.principal,
+                &request.execution.workspace_id,
+                request.execution.execution_profile,
+                request.execution.execution_target,
+                request.execution.windows_authority,
+            ),
+            Self::Proposal(request) => authority_shadow_candidate(
+                &request.principal,
+                &request.execution.workspace_id,
+                request.execution.execution_profile,
+                request.execution.execution_target,
+                request.execution.windows_authority,
+            ),
+        }
+    }
+}
+
+fn proposal_authority_shadow_candidate(
+    request: &TaskRunProposal,
+) -> Result<AuthorityEffectCandidate, FabricContractError> {
+    authority_shadow_candidate(
+        &request.principal,
+        &request.execution.workspace_id,
+        request.execution.execution_profile,
+        request.execution.execution_target,
+        request.execution.windows_authority,
+    )
+}
+
+fn authority_shadow_candidate(
+    principal: &str,
+    workspace_id: &str,
+    execution_profile: ExecutionProfile,
+    execution_target: ExecutionTarget,
+    windows_authority: WindowsAuthority,
+) -> Result<AuthorityEffectCandidate, FabricContractError> {
+    let capability_id = match execution_target {
+        ExecutionTarget::LocalLinux => "capability/execution/local-linux",
+        ExecutionTarget::WindowsNative => "capability/execution/windows-native",
+    };
+    let os_authority = match execution_target {
+        ExecutionTarget::LocalLinux => match execution_profile {
+            ExecutionProfile::TrustedLocal => "linux/trusted-local",
+            ExecutionProfile::ContainedLocal => "linux/contained-local",
+        },
+        ExecutionTarget::WindowsNative => match windows_authority {
+            WindowsAuthority::Limited => "windows/limited",
+            WindowsAuthority::Elevated => "windows/elevated",
+        },
+    };
+    Ok(AuthorityEffectCandidate {
+        schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
+        principal_id: FabricId::parse(principal.to_string())?,
+        trust_domain: FabricId::parse("ordivon.local")?,
+        resource_scope: FabricId::parse(format!("workspace/{workspace_id}"))?,
+        capability_id: FabricId::parse(capability_id)?,
+        os_authority: FabricId::parse(os_authority)?,
+        mode: AuthorityMode::OpenControl,
+        // Execution tools are effect-capable. R1 observes them conservatively as writers;
+        // this is conflict telemetry only and does not serialize or deny execution.
+        conflict_mode: ConflictMode::ExclusiveWrite,
+    })
+}
+
 #[derive(Clone)]
 pub struct ExecutionContext {
     pub principal: String,

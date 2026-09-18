@@ -39,6 +39,80 @@ impl RuntimeServer {
         }
     }
 
+    fn record_authority_shadow_for_bound_task(&self, tool: &str, request: &BoundTaskRun) {
+        self.record_authority_shadow_candidate(tool, request.authority_shadow_candidate());
+    }
+
+    fn record_authority_shadow_for_proposal(&self, tool: &str, request: &TaskRunProposal) {
+        self.record_authority_shadow_candidate(tool, proposal_authority_shadow_candidate(request));
+    }
+
+    fn record_authority_shadow_candidate(
+        &self,
+        tool: &str,
+        candidate: Result<AuthorityEffectCandidate, FabricContractError>,
+    ) {
+        let Some(path) = &self.state.trace_path else {
+            return;
+        };
+        let observed_unix_ms = unix_ms();
+        let record = match candidate {
+            Ok(candidate) => {
+                let now_ms = observed_unix_ms.try_into().unwrap_or(u64::MAX);
+                match evaluate_authority_shadow(
+                    &candidate,
+                    &self.state.authority_shadow_leases,
+                    now_ms,
+                ) {
+                    Ok(decision) => json!({
+                        "traceId": next_trace_id("authority-shadow"),
+                        "event": "authority_shadow",
+                        "tool": tool,
+                        "observedUnixMs": observed_unix_ms,
+                        "enforcement": "shadow",
+                        "leaseCount": self.state.authority_shadow_leases.len(),
+                        "candidate": candidate,
+                        "decision": decision,
+                    }),
+                    Err(error) => json!({
+                        "traceId": next_trace_id("authority-shadow"),
+                        "event": "authority_shadow",
+                        "tool": tool,
+                        "observedUnixMs": observed_unix_ms,
+                        "enforcement": "shadow",
+                        "leaseCount": self.state.authority_shadow_leases.len(),
+                        "candidate": candidate,
+                        "evaluationError": error.to_string(),
+                    }),
+                }
+            }
+            Err(error) => json!({
+                "traceId": next_trace_id("authority-shadow"),
+                "event": "authority_shadow",
+                "tool": tool,
+                "observedUnixMs": observed_unix_ms,
+                "enforcement": "shadow",
+                "leaseCount": self.state.authority_shadow_leases.len(),
+                "candidateError": error.to_string(),
+            }),
+        };
+
+        let _guard = match GLOBAL_TRACE_LOCK.get_or_init(|| Mutex::new(())).lock() {
+            Ok(guard) => guard,
+            Err(error) => {
+                tracing::warn!("trace lock poisoned while writing authority shadow: {error}");
+                return;
+            }
+        };
+        if let Err(error) = append_rotating_jsonl(path, &record, DEFAULT_TRACE_ROTATION_BYTES) {
+            // Shadow telemetry must never become an execution dependency.
+            tracing::warn!(
+                "cannot append authority shadow trace {}: {error}",
+                path.display()
+            );
+        }
+    }
+
     fn record_trace(&self, tool: &str, trace: &TraceSummary, ok: bool) {
         let Some(path) = &self.state.trace_path else {
             return;

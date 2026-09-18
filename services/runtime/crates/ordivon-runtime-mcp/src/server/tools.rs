@@ -636,6 +636,7 @@ impl RuntimeServer {
     ) -> ToolOutcome<TaskObservation> {
         let runtime = self.state.runtime.clone();
         let request = self.state.execution.bind(request);
+        self.record_authority_shadow_for_bound_task("workspace.exec", &request);
         self.run_core("workspace.exec", move || match request {
             BoundTaskRun::Legacy(request) => runtime.run_task(&request).map_err(ToolError::from),
             BoundTaskRun::Proposal(proposal) => runtime
@@ -663,6 +664,7 @@ impl RuntimeServer {
     ) -> ToolOutcome<TaskObservation> {
         let runtime = self.state.runtime.clone();
         let (proposal, inputs) = self.state.execution.bind_bound(request);
+        self.record_authority_shadow_for_proposal("workspace.execBound", &proposal);
         self.run_core("workspace.execBound", move || {
             runtime
                 .run_task_proposal_with_inputs(&proposal, &inputs)
@@ -692,6 +694,7 @@ impl RuntimeServer {
             Ok(bound) => bound,
             Err(error) => return ToolOutcome::Error(error),
         };
+        self.record_authority_shadow_for_proposal("workspace.execBoundTrusted", &proposal);
         self.run_core("workspace.execBoundTrusted", move || {
             runtime
                 .run_task_proposal_with_inputs(&proposal, &inputs)
@@ -721,6 +724,7 @@ impl RuntimeServer {
             Ok(request) => request,
             Err(error) => return ToolOutcome::Error(error),
         };
+        self.record_authority_shadow_for_bound_task("workspace.execPlan", &request);
         self.run_core("workspace.execPlan", move || match request {
             BoundTaskRun::Legacy(request) => runtime.run_task(&request).map_err(ToolError::from),
             BoundTaskRun::Proposal(proposal) => runtime
