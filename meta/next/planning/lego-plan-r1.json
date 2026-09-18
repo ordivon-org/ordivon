@@ -298,7 +298,7 @@
     "a universal workflow engine"
   ],
   "review": {
-    "sourceRevision": "0092260",
+    "sourceRevision": "11d8581ef24990315e77f9a8f11e0a4b22ab5dcf",
     "updatedAt": "2026-09-18",
     "standing": "STABLE",
     "notes": "LEGO Project Planning R1 remains stable. Question Compiler is live and now has framing plus decision-allocation evidence in Agent Service and Research/Paper2. Final downstream accepted-outcome improvement remains unproven; no schema promotion is admitted."
