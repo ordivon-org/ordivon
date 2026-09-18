@@ -134,6 +134,39 @@
         "Runtime physical truth",
         "semantic success inference without witness"
       ]
+    },
+    {
+      "id": "BCR11",
+      "label": "ProspectivePairManifest",
+      "kind": "measurement_design",
+      "state": "IMPLEMENTED",
+      "dependencies": ["BCR06"],
+      "evidence": [
+        "scripts/browser_benchmark_prospective.py",
+        "tests/test_browser_benchmark_prospective.py",
+        "docs/BROWSER_BENCHMARK_PROSPECTIVE_S5.md"
+      ],
+      "mustNotOwn": [
+        "route readiness",
+        "Runtime admission",
+        "model intelligence ranking"
+      ]
+    },
+    {
+      "id": "BCR12",
+      "label": "DualNormalReadinessGate",
+      "kind": "prospective_admission_gate",
+      "state": "IMPLEMENTED_BLOCKED_LIVE",
+      "dependencies": ["BCR04", "BCR09", "BCR11"],
+      "evidence": [
+        "scripts/browser_benchmark_prospective.py",
+        "tests/test_browser_benchmark_prospective.py"
+      ],
+      "mustNotOwn": [
+        "credential injection",
+        "operator mask mutation",
+        "Runtime Job creation"
+      ]
     }
   ],
   "edges": [
@@ -148,7 +181,11 @@
     {"from": "BCR08", "to": "BCR09", "type": "ADMISSION_TEMPLATE"},
     {"from": "BCR09", "to": "BCR10", "type": "RUNTIME_OBSERVATION"},
     {"from": "BCR07", "to": "BCR10", "type": "ROUTE_RESULT"},
-    {"from": "BCR10", "to": "BCR06", "type": "RECONCILED_MEASUREMENT"}
+    {"from": "BCR10", "to": "BCR06", "type": "RECONCILED_MEASUREMENT"},
+    {"from": "BCR06", "to": "BCR11", "type": "FROZEN_MEASUREMENT_CONTRACT"},
+    {"from": "BCR04", "to": "BCR12", "type": "NORMAL_READINESS"},
+    {"from": "BCR11", "to": "BCR12", "type": "FROZEN_PAIR_SCHEDULE"},
+    {"from": "BCR12", "to": "BCR09", "type": "PAIRED_ADMISSION_TEMPLATES"}
   ],
   "currentRoutes": [
     "jev-fast-windows-v1",
@@ -163,8 +200,8 @@
     "visual-browser-v1": "NOT_MATERIALIZED"
   },
   "nextSlice": {
-    "id": "BCR-S5",
-    "objective": "Run a prospective paired browser-route benchmark only after Jev and Browser Use independently satisfy their normal readiness policy; preserve exact route locking and the S4 Runtime reconciliation chain.",
+    "id": "BCR-S5-RUN",
+    "objective": "Execute the frozen paired browser-route campaign only after Jev and Browser Use independently satisfy their normal readiness policy; admit every trial through Runtime and reconcile every result through BCR10.",
     "status": "BLOCKED_BY_ROUTE_READINESS"
   }
 }
