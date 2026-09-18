@@ -25,6 +25,13 @@ class GatusDeploymentTests(unittest.TestCase):
         self.assertIn('ed1107b41a30e22047eecfb6dbc3be5e39829d5a', text)
         self.assertNotIn('curl ', text.split('== 1. 安装二进制 ==')[0])
 
+    def test_default_deploy_preserves_cold_on_demand_lifecycle(self) -> None:
+        text = DEPLOY.read_text()
+        self.assertIn("--activate", text)
+        self.assertIn("systemctl disable --now ordivon-gatus.service", text)
+        self.assertIn("systemctl start ordivon-gatus.service", text)
+        self.assertNotIn("systemctl enable ordivon-gatus.service", text)
+
     def test_service_remains_loopback_only_and_hardened(self) -> None:
         text = UNIT.read_text()
         self.assertIn('Environment=GATUS_ADDRESS=127.0.0.1', text)

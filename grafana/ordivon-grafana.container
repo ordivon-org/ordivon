@@ -2,6 +2,7 @@
 Description=Ordivon Operations Grafana visualization
 Wants=prometheus.service loki.service
 After=prometheus.service loki.service network-online.target
+PartOf=ordivon-observability-heavy.target
 
 [Container]
 Image=docker.io/grafana/grafana@sha256:1dec240d14e232597dce9bfa56dae55f4397b138cdc91e3ee92ac6b157e2fc49
@@ -24,6 +25,3 @@ Restart=on-failure
 RestartSec=3s
 TimeoutStartSec=120
 TimeoutStopSec=30
-
-[Install]
-WantedBy=multi-user.target

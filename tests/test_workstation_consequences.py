@@ -50,25 +50,30 @@ def test_bash_login_and_nonlogin_match_home_manager_policy() -> None:
         assert values["CDF"] == values["FF"] == values["FP"] == "function"
 
 
-def test_netdata_is_loopback_reachable() -> None:
-    active = subprocess.run(
-        ["/usr/bin/systemctl", "is-active", "netdata.service"],
-        text=True, capture_output=True, timeout=10,
-    )
-    assert active.returncode == 0 and active.stdout.strip() == "active", active.stderr or active.stdout
-    sockets = subprocess.run(
+def test_default_workstation_observability_services_remain_cold() -> None:
+    for service in (
+        "netdata.service",
+        "prometheus.service",
+        "prometheus-node-exporter.service",
+        "ordivon-gatus.service",
+    ):
+        active = subprocess.run(
+            ["/usr/bin/systemctl", "is-active", service],
+            text=True, capture_output=True, timeout=10,
+        )
+        enabled = subprocess.run(
+            ["/usr/bin/systemctl", "is-enabled", service],
+            text=True, capture_output=True, timeout=10,
+        )
+        assert active.stdout.strip() == "inactive", (service, active.stdout, active.stderr)
+        assert enabled.stdout.strip() == "disabled", (service, enabled.stdout, enabled.stderr)
+
+    netdata_socket = subprocess.run(
         ["/usr/bin/ss", "-ltnH", "sport", "=", ":19999"],
         text=True, capture_output=True, timeout=10,
     )
-    assert sockets.returncode == 0, sockets.stderr
-    lines = [line for line in sockets.stdout.splitlines() if line.strip()]
-    assert lines and all("127.0.0.1:19999" in line for line in lines), sockets.stdout
-    info = subprocess.run(
-        ["/usr/bin/curl", "--noproxy", "*", "--fail", "--silent", "--show-error",
-         "http://127.0.0.1:19999/api/v1/info"],
-        text=True, capture_output=True, timeout=10,
-    )
-    assert info.returncode == 0, info.stderr or info.stdout
+    assert netdata_socket.returncode == 0, netdata_socket.stderr
+    assert not netdata_socket.stdout.strip(), netdata_socket.stdout
 
 def _osquery(query: str) -> list[dict[str, str]]:
     import json
