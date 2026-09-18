@@ -282,3 +282,11 @@ E01b froze a 12-case synthetic continuity corpus before provider calls. Treatmen
 - mean latency: **2,833.9 ms → 2,308.5 ms (-18.54%)**, descriptive only because provider latency was not a causal primary endpoint.
 
 The preregistered E01 classification is **PASS**. Combined with E02's live-wire resource measurement and isolated PostgreSQL integration, the fresh-consumer outcome gate no longer blocks compact-read integration. This does not by itself authorize production deployment; an integrated candidate and release/cutover review remain separate gates.
+
+## R7 integrated candidate verification
+
+After E01 passed, the compact-read implementation was integrated with the R2/E03/E01 evidence chain. The candidate at verification time was `4dd46961180750a85cafb3bed4631a5b4f885a84`.
+
+A fresh PostgreSQL **18.6 / UTF-8** cluster was initialized on an isolated temporary port. Alembic advanced the empty authority through `0001→0002→0003→0004`. With `ORDIVON_HOST_V2_TEST_DSN` bound to that cluster, the complete suite passed **30/30 tests with zero skips**. Ruff and `git diff --check` passed. A direct `host.status(detail=history)` probe reported healthy history, schema 4, surfaceVersion 8, and 13 tools. The temporary PostgreSQL cluster was stopped and removed.
+
+This establishes an **integrated candidate**, not a production deployment. The remaining gate is release/cutover review against the currently installed Host release.
