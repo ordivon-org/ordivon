@@ -24,12 +24,19 @@ Current R1 routes:
 | --- | --- | --- | --- |
 | jev-fast-windows-v1 | jev_fast | windows_chrome | generic |
 | browser-use-browserless-v1 | browser_use_structured | browserless | generic |
+| cft-human-session-v1 | cft_human_session | systemd_cft | generic |
 | chatgpt-agent-automation-browserless-v1 | chatgpt_provider_flow | browserless | chatgpt_agent_automation |
 | visual-browser-v1 | visual | unbound | generic |
 
 Browserless is therefore not treated as a peer reasoning engine to Browser Use or Jev. It is a
 browser/session substrate. The ChatGPT route remains a specialized provider flow because it owns
-SEND fencing, human handoff, and exact authenticated carrier continuity.
+SEND fencing, provider-effect ambiguity fencing, and ChatGPT-specific authenticated carrier continuity.
+
+Generic human-assisted browsing is a separate capability. cft-human-session-v1 is selected only
+when callers explicitly require human-handoff; it does not replace the ordinary Jev or structured
+Browser Use routes. Its readiness adapter is projection-only and composes Workstation v2's exact
+browser:playwright-chromium equipment binding with systemd, native loopback CDP, Xvfb, x11vnc,
+and noVNC/websockify. Browser lifetime is therefore independent of the attaching Playwright client.
 
 ## Selection contract
 

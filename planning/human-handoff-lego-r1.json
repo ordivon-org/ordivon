@@ -1,0 +1,321 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.human-handoff-lego-plan",
+  "truthRole": "planning-projection-not-runtime-or-provider-truth",
+  "purpose": "Replace worker-held human-verification waiting with mature provider session persistence plus Temporal durable waiting, while retaining only thin provider adapters and exact effect/evidence fences.",
+  "sourceRevision": "39b2da708b9449aa4d95e8309c5b943060a11e16",
+  "externalStandards": [
+    {
+      "id": "browserless-session-management",
+      "role": "browser session persistence and reconnect",
+      "target": "Browserless v2 current stable, exact OCI digest after qualification"
+    },
+    {
+      "id": "temporal-durable-wait",
+      "role": "human-in-the-loop durable wait and resume signal",
+      "target": "Workflow state + Signal/Update; no worker reservation while awaiting a human"
+    },
+    {
+      "id": "cas",
+      "role": "provider-native login protocol when the provider exposes CAS",
+      "target": "thin adapter only; do not reinterpret CAS as OAuth"
+    },
+    {
+      "id": "oauth-oidc-pkce",
+      "role": "provider-native authorization where actually supported",
+      "target": "Authorization Code + PKCE; no browser-cookie extraction"
+    },
+    {
+      "id": "systemd-podman-oci",
+      "role": "carrier lifecycle and immutable image identity",
+      "target": "existing Quadlet + exact OCI digest + canary/promotion transaction"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "HH01",
+      "label": "ProviderIdentityProtocol",
+      "kind": "thin_protocol_adapter",
+      "disposition": "KEEP_THIN_ADAPTER",
+      "responsibility": "Represent provider-native identity protocol (CAS, OAuth/OIDC where actually offered) without inventing a new login protocol.",
+      "authority": "provider + operator credentials",
+      "mustNotOwn": [
+        "credential extraction",
+        "browser session lifecycle",
+        "workflow waiting"
+      ],
+      "evidence": [
+        "provider login URL/metadata",
+        "provider-specific adapter"
+      ]
+    },
+    {
+      "id": "HH02",
+      "label": "HumanInteractionSurface",
+      "kind": "ui_transport",
+      "disposition": "KEEP_NARROW",
+      "responsibility": "Expose the exact headful display to an authorized human through loopback x11vnc/noVNC.",
+      "authority": "operator-local UI only",
+      "mustNotOwn": [
+        "session durability",
+        "effect authority",
+        "workflow state"
+      ],
+      "evidence": [
+        "browserless_human_interaction.py",
+        "ordivon-browserless-display@.service"
+      ]
+    },
+    {
+      "id": "HH03",
+      "label": "BrowserSessionCarrier",
+      "kind": "provider_session",
+      "disposition": "REPLACE_WITH_STANDARD",
+      "responsibility": "Keep the exact browser session alive across client/worker lifetimes.",
+      "current": "Latest Browserless OSS v2.56.7 is already deployed; live CDP probe shows Browserless.reconnect is not exposed in this OSS image.",
+      "target": "systemd-owned Chrome for Testing 153 + custom user-data-dir + loopback native CDP; Playwright clients attach/detach without owning browser lifetime",
+      "mustNotOwn": [
+        "human wait orchestration",
+        "Task truth"
+      ],
+      "evidence": [
+        "CfT 153.0.8010.12 sha256:8c599d43aec53f2460a31ae2f4af6bd863f8258b34ff519564bc5d4726bfaa1e",
+        "headless systemd/CfT detach-reattach probe PASS",
+        "headful Xvfb+x11vnc+noVNC+CFT detach-reattach probe PASS"
+      ]
+    },
+    {
+      "id": "HH04",
+      "label": "DurableHumanWait",
+      "kind": "workflow_state",
+      "disposition": "REPLACE_WITH_STANDARD",
+      "responsibility": "Persist HUMAN_REQUIRED without retaining an Activity, Runtime Job, runner process, or carrier lease.",
+      "current": "separate human-resume workflow plus provider-side bounded wait in self-hosted-vnc path",
+      "target": "Temporal Workflow durable wait + exact Signal/Update-bound resume",
+      "mustNotOwn": [
+        "browser process",
+        "provider credentials"
+      ]
+    },
+    {
+      "id": "HH05",
+      "label": "ResumeAdmission",
+      "kind": "authority_fence",
+      "disposition": "KEEP_AND_NARROW",
+      "responsibility": "Bind resume to exact effectId, promptDigest, endpoint/session identity and handoff digest before re-entering provider automation.",
+      "authority": "Harness effect adapter",
+      "mustNotOwn": [
+        "blind retry",
+        "semantic success inference"
+      ]
+    },
+    {
+      "id": "HH06",
+      "label": "ProviderEffectFence",
+      "kind": "effect_evidence",
+      "disposition": "KEEP",
+      "responsibility": "Prove whether SEND was crossed and preserve UNKNOWN rather than redispatching blindly.",
+      "evidence": [
+        "providerEffectAttempted=false",
+        "handoffDigest",
+        "bindingDigest",
+        "pre-effect receipts"
+      ]
+    },
+    {
+      "id": "HH07",
+      "label": "BrowserlessImageQualification",
+      "kind": "supply_chain_and_promotion",
+      "disposition": "KEEP_FOR_BROWSERLESS_ROUTES_NOT_ON_HUMAN_SESSION_REPLACEMENT_PATH",
+      "responsibility": "Qualify and promote exact Browserless OCI digests through paired canary, Security reseal and digest-fenced promotion.",
+      "evidence": [
+        "scripts/browser_security_browserless_canary.py",
+        "scripts/browserless_image_promotion.py",
+        "docs/RELEASES.md"
+      ]
+    },
+    {
+      "id": "HH08",
+      "label": "ExecutionReconciliation",
+      "kind": "runtime_truth_reconciliation",
+      "disposition": "KEEP",
+      "responsibility": "Converge missing/stale runner state through Runtime task.observe rather than DB edits or process killing.",
+      "authority": "Runtime Job/Attempt truth"
+    },
+    {
+      "id": "HH09",
+      "label": "AttachedHumanPolling",
+      "kind": "legacy_control_loop",
+      "disposition": "DELETE_AFTER_REPLACEMENT",
+      "responsibility": "Legacy wait_for_human_provider_admission loop that keeps Playwright attached and consumes execution capacity.",
+      "evidence": [
+        "scripts/playwright_browserless_chatgpt_submit.py"
+      ]
+    },
+    {
+      "id": "HH10",
+      "label": "GenericHumanSessionRoute",
+      "kind": "browser_domain_route",
+      "disposition": "ADD_THIN_ROUTE",
+      "responsibility": "Expose generic human-assisted browser work as an explicit router capability backed by the systemd/CfT session carrier, rather than ad-hoc Browserless execution.",
+      "authority": "browser-domain route policy only",
+      "mustNotOwn": [
+        "provider identity semantics",
+        "session process lifecycle implementation",
+        "Temporal wait state",
+        "Runtime truth"
+      ],
+      "dependencies": [
+        "HH02",
+        "HH03",
+        "HH04",
+        "HH05",
+        "HH06"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "HH01",
+      "to": "HH03",
+      "type": "AUTHENTICATED_PROVIDER_CONTEXT"
+    },
+    {
+      "from": "HH03",
+      "to": "HH02",
+      "type": "EXACT_SESSION_UI"
+    },
+    {
+      "from": "HH03",
+      "to": "HH04",
+      "type": "SESSION_HANDLE"
+    },
+    {
+      "from": "HH04",
+      "to": "HH05",
+      "type": "RESUME_SIGNAL"
+    },
+    {
+      "from": "HH05",
+      "to": "HH06",
+      "type": "EFFECT_ADMISSION"
+    },
+    {
+      "from": "HH06",
+      "to": "HH08",
+      "type": "PHYSICAL_EVIDENCE"
+    },
+    {
+      "from": "HH07",
+      "to": "HH03",
+      "type": "QUALIFIED_SUBSTRATE"
+    },
+    {
+      "from": "HH09",
+      "to": "HH04",
+      "type": "REPLACED_BY"
+    },
+    {
+      "from": "HH10",
+      "to": "HH03",
+      "type": "SELECTED_SESSION_CARRIER"
+    },
+    {
+      "from": "HH10",
+      "to": "HH04",
+      "type": "DURABLE_WAIT_CONTRACT"
+    }
+  ],
+  "slices": [
+    {
+      "id": "HH-S1-DECOMPOSE",
+      "status": "COMPLETE",
+      "objective": "Freeze responsibility and authority boundaries before code changes.",
+      "acceptance": [
+        "No provider/session/wait/effect authority is conflated.",
+        "Every retained Ordivon component is an adapter, fence, or projection."
+      ]
+    },
+    {
+      "id": "HH-S2-SUBSTRATE-CAPABILITY",
+      "status": "COMPLETE",
+      "objective": "Resolve Browserless capability boundary and prove a mature open-source durable browser-session carrier.",
+      "acceptance": [
+        "Current Browserless OSS identity resolved to v2.56.7 exact production digest.",
+        "Browserless.reconnect absence proven on the production OSS route.",
+        "systemd-owned CfT 153 survives Playwright client detach/reattach.",
+        "Headful Xvfb+x11vnc+noVNC surface remains usable while CfT survives client detach."
+      ],
+      "evidence": [
+        "Browserless production digest sha256:b1ba7b054af2891a8199f884d4bd249cf8c3bd2fa8a97b339077e40f92803ba8 equals v2.56.7 amd64 semantic image.",
+        "Browserless.reconnect live probe: method not found.",
+        "CfT systemd detach/reattach probes PASS."
+      ]
+    },
+    {
+      "id": "HH-S3-ROUTE-ADMISSION",
+      "status": "COMPLETE",
+      "objective": "Register generic human-assisted browsing as an explicit browser-domain route backed by systemd/CfT instead of overloading Browserless.",
+      "acceptance": [
+        "generic + human-handoff selects only the new route when ready.",
+        "ordinary generic requests preserve existing Jev/Browserless priority behavior.",
+        "readiness is read-only and proves exact CfT/systemd prerequisites without starting a browser.",
+        "route metadata does not acquire provider/session/effect authority."
+      ],
+      "evidence": [
+        "Router TDD: generic human-handoff RED HOLD_NO_COMPATIBLE_ROUTE -> GREEN cft-human-session-v1.",
+        "cft_human_session doctor TDD PASS.",
+        "Live read-only route plan SELECTED cft-human-session-v1 with Workstation CfT binding.",
+        "Non-root systemd sandbox probe PASS with User=ordivon, NoNewPrivileges, ProtectSystem=strict, ProtectHome=yes and native Chrome sandbox."
+      ]
+    },
+    {
+      "id": "HH-S4-DURABLE-HANDOFF-TDD",
+      "status": "PENDING",
+      "objective": "Make provider materialization return HUMAN_REQUIRED immediately after durable session handoff; no Activity/Runtime worker remains occupied.",
+      "acceptance": [
+        "RED proves old self-hosted path waits.",
+        "GREEN proves materialize returns promptly with durable session coordinate.",
+        "No SEND before resume."
+      ]
+    },
+    {
+      "id": "HH-S5-TEMPORAL-SIGNAL",
+      "status": "PENDING",
+      "objective": "Move human waiting into Temporal Workflow durable state and resume it by exact handoff-bound Signal/Update.",
+      "acceptance": [
+        "No worker slot or Browserless client lease is held while awaiting human input.",
+        "Duplicate/mismatched resume is rejected deterministically.",
+        "Workflow restart preserves waiting state."
+      ]
+    },
+    {
+      "id": "HH-S6-DELETE-LEGACY",
+      "status": "PENDING",
+      "objective": "Delete attached polling and redundant mode-specific lifecycle branches after live acceptance.",
+      "acceptance": [
+        "wait_for_human_provider_admission removed.",
+        "No self-hosted-vnc vs live-url lifecycle fork remains; UI transport may remain provider-specific.",
+        "Full Harness regression and live handoff witness pass."
+      ]
+    }
+  ],
+  "doNotOwn": [
+    "provider identity protocol semantics",
+    "Browserless session implementation",
+    "human waiting scheduler",
+    "Runtime physical execution truth",
+    "provider semantic success"
+  ],
+  "knownEvidence": [
+    "Current production Browserless image reports org.opencontainers.image.version=24.04.",
+    "Live Browserless 22 probe through the declared operator bridge returns Protocol error: Browserless.reconnect wasn't found.",
+    "Current Harness has AgentHumanResumeWorkflow but no durable wait/signal in AgentBirthWorkflow.",
+    "Current self-hosted-vnc submit path contains wait_for_human_provider_admission().",
+    "Existing Browserless image canary/promotion transaction already provides the correct image-upgrade authority boundary.",
+    "Production Browserless image digest already equals upstream v2.56.7 amd64 image; no image upgrade is required.",
+    "CfT 153.0.8010.12 is already locally materialized and matches the Chromium version supported by Browserless v2.56.7.",
+    "Generic Browser Use route currently does not advertise human-handoff; the capability is only formalized on the specialized ChatGPT route.",
+    "Non-root CfT systemd probe PASS after moving session state to /var/lib/ordivon-human-browser-sessions; no --no-sandbox required."
+  ]
+}

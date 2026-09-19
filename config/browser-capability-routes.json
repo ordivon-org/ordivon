@@ -65,6 +65,34 @@
       ]
     },
     {
+      "routeId": "cft-human-session-v1",
+      "providerFlow": "generic",
+      "executor": "cft_human_session",
+      "substrate": "systemd_cft",
+      "priority": 25,
+      "provides": [
+        "navigate",
+        "observe-dom",
+        "click",
+        "text-entry",
+        "scroll",
+        "tabs",
+        "back",
+        "persistent-profile",
+        "caller-directed",
+        "human-handoff",
+        "headful"
+      ],
+      "readiness": {
+        "kind": "cft_human_session",
+        "scriptPath": "scripts/cft_human_session.py"
+      },
+      "evidence": [
+        "planning/human-handoff-lego-r1.json",
+        "docs/superpowers/plans/2026-09-19-durable-human-handoff-standards-replacement.md"
+      ]
+    },
+    {
       "routeId": "chatgpt-agent-automation-browserless-v1",
       "providerFlow": "chatgpt_agent_automation",
       "executor": "chatgpt_provider_flow",

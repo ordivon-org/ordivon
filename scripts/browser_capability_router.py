@@ -310,6 +310,64 @@ def _probe_browser_use(route: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _probe_cft_human_session(route: Mapping[str, Any]) -> dict[str, Any]:
+    cfg = route["readiness"]
+    raw_script = cfg.get("scriptPath")
+    if not isinstance(raw_script, str) or not raw_script or raw_script.startswith("/"):
+        return {"ready": False, "standing": "ADAPTER_PATH_INVALID"}
+    script = (SOURCE_ROOT / raw_script).resolve()
+    try:
+        script.relative_to(SOURCE_ROOT.resolve())
+    except ValueError:
+        return {"ready": False, "standing": "ADAPTER_PATH_INVALID"}
+
+    rc, doctor, stderr = _subprocess_json(
+        ["/usr/bin/python3", str(script), "doctor"], timeout=20
+    )
+    if rc != 0 or not isinstance(doctor, dict):
+        return {
+            "ready": False,
+            "standing": "ADAPTER_UNAVAILABLE",
+            "probeReturnCode": rc,
+            "probeError": stderr[:500] or None,
+        }
+
+    equipment = doctor.get("browserEquipment")
+    if not isinstance(equipment, dict):
+        return {"ready": False, "standing": "EQUIPMENT_BINDING_INVALID"}
+    equipment_id = equipment.get("equipmentId")
+    executable_digest = equipment.get("executableDigest")
+    binding_digest = equipment.get("bindingDigest")
+    digest_ok = (
+        isinstance(executable_digest, str)
+        and executable_digest.startswith("sha256:")
+        and len(executable_digest) == 71
+        and isinstance(binding_digest, str)
+        and binding_digest.startswith("sha256:")
+        and len(binding_digest) == 71
+    )
+    identity_ok = equipment_id == "browser:playwright-chromium" and digest_ok
+    healthy = (
+        doctor.get("healthy") is True
+        and doctor.get("standing") == "READY"
+        and doctor.get("sessionOwner") == "systemd"
+        and doctor.get("cdpAuthority") == "loopback"
+        and identity_ok
+    )
+    return {
+        "ready": healthy,
+        "standing": "READY" if healthy else "CFT_HUMAN_SESSION_UNHEALTHY",
+        "sessionOwner": doctor.get("sessionOwner"),
+        "cdpAuthority": doctor.get("cdpAuthority"),
+        "humanSurface": doctor.get("humanSurface"),
+        "browserEquipmentId": equipment_id,
+        "browserEquipmentDigest": executable_digest if digest_ok else None,
+        "browserEquipmentBindingDigest": binding_digest if digest_ok else None,
+        "probeReturnCode": rc,
+        "probeError": stderr[:500] or None,
+    }
+
+
 def _probe_agent_automation(route: Mapping[str, Any]) -> dict[str, Any]:
     try:
         from agent_automation_browserless import BrowserlessAutomationConfig, BrowserlessAutomationService
@@ -354,6 +412,8 @@ def probe_route(route: Mapping[str, Any], required_features: set[str]) -> dict[s
         return _probe_jev(route, required_features)
     if kind == "browser_use_browserless":
         return _probe_browser_use(route)
+    if kind == "cft_human_session":
+        return _probe_cft_human_session(route)
     if kind == "agent_automation_browserless":
         return _probe_agent_automation(route)
     if kind == "not_materialized":

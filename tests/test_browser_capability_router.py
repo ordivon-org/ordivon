@@ -59,6 +59,18 @@ class BrowserCapabilityRouterTests(unittest.TestCase):
         self.assertEqual(value["standing"], "SELECTED")
         self.assertEqual(value["selectedRoute"]["routeId"], "browser-use-browserless-v1")
 
+    def test_generic_human_handoff_selects_dedicated_cft_session_route(self):
+        value = R.plan_route(
+            self.req(requiredFeatures=["human-handoff"]),
+            policy=self.policy(),
+            readiness_overrides=self.ready("cft-human-session-v1"),
+        )
+        self.assertEqual(value["standing"], "SELECTED")
+        self.assertEqual(value["selectedRoute"]["routeId"], "cft-human-session-v1")
+        self.assertEqual(value["selectedRoute"]["executor"], "cft_human_session")
+        self.assertEqual(value["selectedRoute"]["substrate"], "systemd_cft")
+
+
     def test_visual_requirement_holds_when_visual_provider_is_not_materialized(self):
         value = R.plan_route(
             self.req(requiredFeatures=["visual-understanding"]),
@@ -167,6 +179,36 @@ class BrowserCapabilityRouterTests(unittest.TestCase):
         )
         self.assertEqual(a["planDigest"], b["planDigest"])
         self.assertEqual(a["requestDigest"], b["requestDigest"])
+
+    def test_cft_human_session_probe_consumes_read_only_adapter_doctor(self):
+        route = next(x for x in self.policy()["routes"] if x["routeId"] == "cft-human-session-v1")
+        doctor = {
+            "healthy": True,
+            "standing": "READY",
+            "browserEquipment": {
+                "equipmentId": "browser:playwright-chromium",
+                "executableDigest": "sha256:" + "8" * 64,
+                "bindingDigest": "sha256:" + "c" * 64,
+            },
+            "sessionOwner": "systemd",
+            "cdpAuthority": "loopback",
+            "humanSurface": "xvfb-x11vnc-novnc",
+        }
+        calls = []
+
+        def run(args, **_kwargs):
+            calls.append(args)
+            return (0, doctor, "")
+
+        with mock.patch.object(R, "_subprocess_json", side_effect=run):
+            value = R.probe_route(route, {"human-handoff"})
+        self.assertTrue(value["ready"])
+        self.assertEqual(value["standing"], "READY")
+        self.assertEqual(value["sessionOwner"], "systemd")
+        self.assertEqual(value["browserEquipmentDigest"], "sha256:" + "8" * 64)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0][-1], "doctor")
+        self.assertNotIn("token", json.dumps(value).lower())
 
     def test_jev_probe_requires_declared_credentials_without_exposing_values(self):
         route = next(x for x in self.policy()["routes"] if x["routeId"] == "jev-fast-windows-v1")
