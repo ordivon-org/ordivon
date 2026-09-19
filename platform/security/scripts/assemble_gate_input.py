@@ -7,7 +7,6 @@ from pathlib import Path
 
 from ordivon_security_v2 import EvidenceRef, build_gate_input
 
-
 PROVIDERS = (
     ("gitleaks", "sarif", "gitleaks.sarif"),
     ("semgrep", "sarif", "semgrep.sarif"),

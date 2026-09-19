@@ -10,7 +10,6 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-
 EXPECTED_STANDINGS = {
     "admission-only": "ADMITTED_NOT_EXECUTED",
     "execution-only": "EXECUTED_UNVERIFIED",

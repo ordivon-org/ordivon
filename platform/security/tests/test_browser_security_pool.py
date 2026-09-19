@@ -7,7 +7,6 @@ import unittest
 
 from ordivon_security_v2 import build_browser_security_witness_bundle, compare_browser_security_pool
 
-
 D_BROWSER = "sha256:" + "a" * 64
 D_BROWSER_2 = "sha256:" + "b" * 64
 

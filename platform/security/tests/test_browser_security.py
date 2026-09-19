@@ -2,7 +2,6 @@ import unittest
 
 from ordivon_security_v2 import BrowserSecurityWitness, compare_browser_security_witnesses
 
-
 D0 = "sha256:" + "0" * 64
 D1 = "sha256:" + "1" * 64
 D2 = "sha256:" + "2" * 64

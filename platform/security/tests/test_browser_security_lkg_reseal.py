@@ -11,7 +11,6 @@ from ordivon_security_v2 import (
 )
 from scripts import promote_browser_security_pool_lkg as reseal
 
-
 HARNESS = "1" * 40
 SECURITY = "2" * 40
 NETWORK = "sha256:" + "3" * 64
