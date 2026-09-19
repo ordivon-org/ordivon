@@ -4,9 +4,10 @@ impl Runtime {
         Self::new_with_input_authorities_and_default_runtime(config, Vec::new(), default_runtime_ms)
     }
 
-    /// Construction boundary for operator-owned immutable input authorities.
-    /// Authority roots are Runtime-instance configuration, never action input.
-    pub fn new_with_input_authorities(
+    /// Test convenience for operator-owned immutable input authorities.
+    /// Production construction uses the explicit default-runtime boundary.
+    #[cfg(test)]
+    pub(crate) fn new_with_input_authorities(
         config: RuntimeConfig,
         input_authorities: Vec<InputAuthority>,
     ) -> RuntimeResult<Self> {
