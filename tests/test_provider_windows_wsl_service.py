@@ -1,8 +1,8 @@
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
-PS1=ROOT/"workstation/execution_fabric/providers/windows_wsl_service/WindowsWslServiceControlProvider.ps1"
-MAT=ROOT/"workstation/execution_fabric/providers/windows_wsl_service/materialize.py"
+PS1=ROOT/"workstation/providers/windows_wsl_service/WindowsWslServiceControlProvider.ps1"
+MAT=ROOT/"workstation/providers/windows_wsl_service/materialize.py"
 
 def test_service_provider_has_fixed_profiles_and_no_arbitrary_shell():
     text=PS1.read_text()

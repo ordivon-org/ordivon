@@ -4,8 +4,8 @@ import argparse, hashlib, json, shutil
 from pathlib import Path
 
 SOURCE = Path(__file__).with_name("AuthorityValidationProvider.ps1")
-ROOT = Path("/mnt/c/ProgramData/Ordivon/ExecutionFabric/AuthorityValidationProvider")
-RECEIPT = Path("/mnt/c/ProgramData/Ordivon/ExecutionFabric/receipts/authority-validation-provider.json")
+ROOT = Path("/mnt/c/ProgramData/Ordivon/Workstation/Providers/AuthorityValidationProvider")
+RECEIPT = Path("/mnt/c/ProgramData/Ordivon/Workstation/Providers/receipts/authority-validation-provider.json")
 
 def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()

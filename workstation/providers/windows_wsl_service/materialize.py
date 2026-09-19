@@ -4,8 +4,8 @@ import argparse, hashlib, json, shutil
 from pathlib import Path
 
 SOURCE=Path(__file__).with_name("WindowsWslServiceControlProvider.ps1")
-ROOT=Path("/mnt/c/ProgramData/Ordivon/ExecutionFabric/WindowsWslServiceControlProvider")
-RECEIPT=Path("/mnt/c/ProgramData/Ordivon/ExecutionFabric/receipts/windows-wsl-service-control-provider.json")
+ROOT=Path("/mnt/c/ProgramData/Ordivon/Workstation/Providers/WindowsWslServiceControlProvider")
+RECEIPT=Path("/mnt/c/ProgramData/Ordivon/Workstation/Providers/receipts/windows-wsl-service-control-provider.json")
 
 def digest(path: Path)->str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
