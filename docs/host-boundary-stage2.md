@@ -174,7 +174,7 @@ The current MCP Tool names remain:
 
 ```text
 task.observe
-task.list
+job.list
 task.cancel
 ```
 

@@ -773,7 +773,7 @@ impl RuntimeServer {
     }
 
     #[tool(
-        name = "task.list",
+        name = "job.list",
         description = "List newest Jobs first from the current durable Registry projection with request identity, Workspace, command summary, exact Attempt state, execution and delivery disposition, recovery requirement, timestamps, duration, and Artifact count using a stable cursor. Optionally filter by exact workspaceId, clientRequestId, or their intersection so a reconnecting caller can recover historical Jobs without scanning the global ledger. This call does not reconcile or dispatch Jobs; use task.observe for targeted reconciliation. Runtime never claims Task/domain semantic completion.",
         output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<RuntimeJobListResult>>(),
         annotations(
@@ -784,12 +784,12 @@ impl RuntimeServer {
             open_world_hint = false
         )
     )]
-    async fn task_list(
+    async fn job_list(
         &self,
         Parameters(request): Parameters<RuntimeJobListRequest>,
     ) -> ToolOutcome<RuntimeJobListResult> {
         let runtime = self.state.runtime.clone();
-        self.run_core("task.list", move || {
+        self.run_core("job.list", move || {
             runtime.list_jobs(&request).map_err(ToolError::from)
         })
         .await

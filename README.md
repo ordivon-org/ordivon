@@ -143,7 +143,7 @@ workspace.open
 → workspace.close
 ```
 
-After response loss, reuse the exact `clientRequestId` or reconnect through `workspace.list`, `workspace.get`, `task.list`, and `task.observe`. Do not create a new operation merely because delivery is uncertain.
+After response loss, reuse the exact `clientRequestId` or reconnect through `workspace.list`, `workspace.get`, `job.list`, and `task.observe`. Do not create a new operation merely because delivery is uncertain.
 
 `workspace.content` is the binary observation companion to `workspace.read`: it projects one exact digest-bound Workspace PNG/JPEG as native MCP image content. The caller supplies the expected SHA-256 digest, so a mutable Workspace cannot silently substitute different pixels after the observation identity has been chosen. It creates no Artifact or review ledger.
 

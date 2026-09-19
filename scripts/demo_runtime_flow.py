@@ -26,7 +26,7 @@ TERMINAL = {"succeeded", "failed", "timed_out", "cancelled", "lost", "orphaned"}
 REQUIRED_TOOLS = {
     "artifact.read",
     "task.cancel",
-    "task.list",
+    "job.list",
     "task.observe",
     "workspace.close",
     "workspace.diff",
@@ -244,7 +244,7 @@ def cleanup(client: McpClient | None, workspace_id: str | None, client_request_i
         return
     if client_request_id:
         try:
-            listed = client.call_tool("task.list", {"limit": 20, "clientRequestId": client_request_id})
+            listed = client.call_tool("job.list", {"limit": 20, "clientRequestId": client_request_id})
             for job in listed.get("jobs", []):
                 if isinstance(job, dict) and job.get("status") not in TERMINAL and isinstance(job.get("jobId"), str):
                     client.call_tool("task.cancel", {"schemaVersion": SCHEMA_VERSION, "jobId": job["jobId"]})
@@ -396,10 +396,10 @@ def run_demo(
             events.append(event("RECOVER", f"same {short(job_id)}"))
             client = recovered_client
 
-            listed = client.call_tool("task.list", {"limit": 20, "clientRequestId": execution_request_id})
+            listed = client.call_tool("job.list", {"limit": 20, "clientRequestId": execution_request_id})
             matching = [job for job in listed.get("jobs", []) if isinstance(job, dict) and job.get("jobId") == job_id]
             if len(matching) != 1:
-                raise DemoError("task.list did not recover exactly one matching Job")
+                raise DemoError("job.list did not recover exactly one matching Job")
 
             observations, terminal = wait_for_terminal(client, job_id, events)
             if not any(observation.get("status") not in TERMINAL for observation in observations):

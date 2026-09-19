@@ -165,7 +165,7 @@ The exact Tool names and descriptions are generated in [`reference/tools.md`](re
 
 ## 8. Recover or remove
 
-- Reconnect to existing work through `workspace.list`, `workspace.get`, `task.list`, and `task.observe`.
+- Reconnect to existing work through `workspace.list`, `workspace.get`, `job.list`, and `task.observe`.
 - Observe one Workspace locally without reconciliation with `ordivon-runtime-inspect workspace --database /var/lib/ordivon/registry/registry.sqlite3 --store-root /var/lib/ordivon/runtime --workspace-id <workspace> --pretty`; use ordinary `watch -n 1` when repeated terminal refresh is useful.
 - Back up and restore through `scripts/backup.py` and `scripts/restore.py`.
 - Repair only through the documented doctor/repair sequence in [`recovery.md`](recovery.md).
@@ -181,6 +181,6 @@ python3 scripts/demo_runtime_flow.py \
   --receipt /tmp/ordivon-runtime-demo.json
 ```
 
-The demonstration creates a temporary Git source repository from `examples/runtime-demo`, opens an exact-revision Workspace, applies one digest-guarded synchronous `workspace.mutate`, admits a three-step `workspace.execPlan`, recreates the MCP client, replays the exact execution request, recovers the same Job through `task.list`, reads terminal evidence, reviews the structured diff, and compare-and-closes the reviewed `sourceStateDigest`.
+The demonstration creates a temporary Git source repository from `examples/runtime-demo`, opens an exact-revision Workspace, applies one digest-guarded synchronous `workspace.mutate`, admits a three-step `workspace.execPlan`, recreates the MCP client, replays the exact execution request, recovers the same Job through `job.list`, reads terminal evidence, reviews the structured diff, and compare-and-closes the reviewed `sourceStateDigest`.
 
 Its terminal output is a compact projection of real Runtime responses. The receipt contains selected identities, statuses, timings and digests for media or documentation use; it excludes the bearer token, local source paths, Runtime state roots and unrelated Jobs.
