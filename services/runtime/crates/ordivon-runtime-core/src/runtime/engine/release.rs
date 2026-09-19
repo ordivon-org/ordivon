@@ -9,6 +9,7 @@ impl Runtime {
             &request.principal,
             &request.client_request_id,
             &request_digest,
+            None,
         )?
         else {
             return Ok(None);
@@ -71,6 +72,7 @@ impl Runtime {
             &request.principal,
             &request.client_request_id,
             &request_digest,
+            None,
         )? {
             let committed = self
                 .registry

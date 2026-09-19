@@ -908,10 +908,12 @@ fn host_dependency_identities(
     dependencies
 }
 
+#[cfg(test)]
 pub(crate) fn operation_request_identity_digest(request: &JobRunRequest) -> RuntimeResult<String> {
     operation_request_identity_digest_from_parts(operation_request_identity(request))
 }
 
+#[cfg(test)]
 fn operation_request_identity(request: &JobRunRequest) -> OperationRequestIdentity {
     OperationRequestIdentity {
         schema_version: request.schema_version,
@@ -1000,6 +1002,58 @@ fn proposal_request_identity(proposal: &JobRunProposal) -> ProposalRequestIdenti
         foreign_references: proposal.execution.foreign_references.clone(),
         host_dependencies: host_dependency_identities(&proposal.execution.host_dependencies),
     }
+}
+
+pub(crate) fn legacy_request_identity_digest_from_proposal(
+    proposal: &JobRunProposal,
+) -> RuntimeResult<Option<String>> {
+    let Some(timeout_ms) = proposal.execution.timeout_ms else {
+        return Ok(None);
+    };
+    let Some(stdout_limit_bytes) = proposal.execution.stdout_limit_bytes else {
+        return Ok(None);
+    };
+    let Some(stderr_limit_bytes) = proposal.execution.stderr_limit_bytes else {
+        return Ok(None);
+    };
+    let mut steps = Vec::with_capacity(proposal.execution.steps.len());
+    for step in &proposal.execution.steps {
+        let Some(step_timeout_ms) = step.timeout_ms else {
+            return Ok(None);
+        };
+        steps.push(UniversalExecutionStep {
+            id: step.id.clone(),
+            executable: normalize_path_text(&step.executable),
+            args: step.args.clone(),
+            cwd_relative: normalize_relative_path_text(&step.cwd_relative),
+            env: step.env.clone(),
+            timeout_ms: step_timeout_ms,
+            continue_on_error: step.continue_on_error,
+        });
+    }
+    operation_request_identity_digest_from_parts(OperationRequestIdentity {
+        schema_version: proposal.schema_version,
+        principal: proposal.principal.clone(),
+        workspace_id: proposal.execution.workspace_id.clone(),
+        executable: normalize_path_text(&proposal.execution.executable),
+        args: proposal.execution.args.clone(),
+        cwd_relative: normalize_relative_path_text(&proposal.execution.cwd_relative),
+        env: proposal.execution.env.clone(),
+        timeout_ms,
+        stdout_limit_bytes,
+        stderr_limit_bytes,
+        steps,
+        budget: proposal.execution.budget.clone(),
+        execution_profile: proposal.execution.execution_profile,
+        execution_target: proposal.execution.execution_target,
+        windows_authority: identity_windows_authority(
+            proposal.execution.execution_target,
+            proposal.execution.windows_authority,
+        ),
+        foreign_references: proposal.execution.foreign_references.clone(),
+        host_dependencies: host_dependency_identities(&proposal.execution.host_dependencies),
+    })
+    .map(Some)
 }
 
 pub(crate) fn proposal_request_identity_digest(proposal: &JobRunProposal) -> RuntimeResult<String> {

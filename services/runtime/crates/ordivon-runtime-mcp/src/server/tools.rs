@@ -592,11 +592,8 @@ impl RuntimeServer {
             .execution
             .with_principal(principal.0)
             .bind(request);
-        self.run_core("workspace.exec", move || match request {
-            BoundTaskRun::Legacy(request) => runtime.run_job(&request).map_err(ToolError::from),
-            BoundTaskRun::Proposal(proposal) => {
-                runtime.run_job_proposal(&proposal).map_err(ToolError::from)
-            }
+        self.run_core("workspace.exec", move || {
+            runtime.run_job_proposal(&request).map_err(ToolError::from)
         })
         .await
     }
@@ -686,11 +683,8 @@ impl RuntimeServer {
             Ok(request) => request,
             Err(error) => return ToolOutcome::Error(error),
         };
-        self.run_core("workspace.execPlan", move || match request {
-            BoundTaskRun::Legacy(request) => runtime.run_job(&request).map_err(ToolError::from),
-            BoundTaskRun::Proposal(proposal) => {
-                runtime.run_job_proposal(&proposal).map_err(ToolError::from)
-            }
+        self.run_core("workspace.execPlan", move || {
+            runtime.run_job_proposal(&request).map_err(ToolError::from)
         })
         .await
     }

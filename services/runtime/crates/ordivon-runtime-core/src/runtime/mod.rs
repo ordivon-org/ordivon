@@ -61,8 +61,10 @@ pub use repair::{
     RuntimeRepairActionKind, RuntimeRepairConfig, RuntimeRepairReport, RuntimeRepairRequest,
     RuntimeStaleCancelReport, RuntimeStaleCancelRequest, RUNTIME_REPAIR_SCHEMA_VERSION,
 };
+#[cfg(test)]
+pub(crate) use types::operation_request_identity_digest;
 pub(crate) use types::{
-    input_bound_proposal_request_identity_digest, operation_request_identity_digest,
+    input_bound_proposal_request_identity_digest, legacy_request_identity_digest_from_proposal,
     operation_request_identity_digest_from_plan, proposal_request_identity_digest,
     validate_client_request_id, validate_logical_id, AdmissionOutcome, AttemptRecord,
     CreatedAdmission, EffectiveInputBinding, InputAccessMode, JobProjection, ReservationRecord,
