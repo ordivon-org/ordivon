@@ -103,10 +103,15 @@ function Invoke-McpRequest {
     if ($message.id -ne $Id) {
         throw "MCP $Method returned an unexpected response id."
     }
-    if ($null -ne $message.error) {
-        throw "MCP $Method returned an error: $($message.error | ConvertTo-Json -Compress)"
+    $errorProperty = $message.PSObject.Properties['error']
+    if ($null -ne $errorProperty -and $null -ne $errorProperty.Value) {
+        throw "MCP $Method returned an error: $($errorProperty.Value | ConvertTo-Json -Compress)"
     }
-    return $message.result
+    $resultProperty = $message.PSObject.Properties['result']
+    if ($null -eq $resultProperty -or $null -eq $resultProperty.Value) {
+        throw "MCP $Method response omitted result."
+    }
+    return $resultProperty.Value
 }
 
 function Invoke-McpTool {
@@ -116,13 +121,15 @@ function Invoke-McpTool {
         [Parameter(Mandatory = $true)][int]$Id
     )
     $result = Invoke-McpRequest -Method 'tools/call' -Params @{ name = $Name; arguments = $Arguments } -Id $Id -ToolName $Name
-    if ($result.isError -eq $true) {
+    $isErrorProperty = $result.PSObject.Properties['isError']
+    if ($null -ne $isErrorProperty -and $isErrorProperty.Value -eq $true) {
         throw "MCP tool $Name returned isError."
     }
-    if ($null -eq $result.structuredContent) {
+    $structuredProperty = $result.PSObject.Properties['structuredContent']
+    if ($null -eq $structuredProperty -or $null -eq $structuredProperty.Value) {
         throw "MCP tool $Name omitted structuredContent."
     }
-    return $result.structuredContent
+    return $structuredProperty.Value
 }
 
 function Get-ServiceWitness {

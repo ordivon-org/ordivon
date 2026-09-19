@@ -48,3 +48,12 @@ def test_r6c_harness_uses_mcp_metadata_and_never_prints_bearer_value():
     assert "Authorization = ('Bearer ' + $script:BearerToken)" in text
     assert "Write-Output $script:BearerToken" not in text
     assert "ConvertTo-Json $script:BearerToken" not in text
+
+
+def test_r6c_harness_handles_optional_json_properties_under_strict_mode():
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert "$message.PSObject.Properties['error']" in text
+    assert "$message.PSObject.Properties['result']" in text
+    assert "$result.PSObject.Properties['isError']" in text
+    assert "$result.PSObject.Properties['structuredContent']" in text
+    assert "$message.error" not in text
