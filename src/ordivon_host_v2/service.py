@@ -415,7 +415,6 @@ class HostV2:
                 "schemaVersion": 3,
                 "kind": "ordivon.host-task-observation",
                 "task": task.model_dump(mode="json"),
-                "handoff": self._handoff(task),
                 "recentEvents": [
                     {
                         "revision": int(row["revision"]),
@@ -616,17 +615,6 @@ class HostV2:
             checkpoint=payload,
             writer_label=cp["writer_label"],
         )
-
-    @staticmethod
-    def _handoff(task: TaskView) -> dict[str, Any]:
-        return {
-            "taskId": task.task_id,
-            "taskRevision": task.revision,
-            "state": task.state.value,
-            "goalId": task.goal_id,
-            "nextAdmissible": ["checkpoint"] if task.state is TaskState.OPEN else [],
-            "truthBoundary": "navigation capsule only; not current external-owner truth",
-        }
 
     @staticmethod
     def _claim_receipt(

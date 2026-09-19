@@ -18,15 +18,6 @@ class TaskWire(TaskSummaryWire):
     checkpoint: dict[str, Any]
 
 
-class HandoffWire(TypedDict):
-    taskId: str
-    taskRevision: int
-    state: TaskStateWire
-    goalId: str | None
-    nextAdmissible: list[str]
-    truthBoundary: str
-
-
 class DoctorCheckWire(TypedDict):
     name: str
     status: Literal["ok", "error"]
@@ -92,7 +83,6 @@ class BoardPostResponse(TypedDict):
     kind: Literal["ordivon.host-board-post-receipt"]
     admission: Literal["committed", "existing"]
     message: BoardMessageWire
-    replyOccupancy: dict[str, Any] | None
     truthBoundary: str
 
 
@@ -169,7 +159,6 @@ class TaskMutationResponse(TypedDict):
     ]
     admission: Literal["committed", "existing"]
     task: TaskSummaryWire
-    handoff: HandoffWire
     checkpoint: dict[str, Any]
     writerLabel: str | None
 
@@ -178,7 +167,6 @@ class TaskResumeResponse(TypedDict):
     schemaVersion: int
     kind: Literal["ordivon.host-external-continuity-resume"]
     task: TaskSummaryWire
-    handoff: HandoffWire
     checkpoint: dict[str, Any]
     writerLabel: str | None
     truthBoundary: str
@@ -188,7 +176,6 @@ class TaskObserveResponse(TypedDict):
     schemaVersion: int
     kind: Literal["ordivon.host-task-observation"]
     task: TaskWire
-    handoff: HandoffWire
     recentEvents: list[dict[str, Any]]
     truthBoundary: str
 
