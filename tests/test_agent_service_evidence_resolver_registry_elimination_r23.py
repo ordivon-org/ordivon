@@ -17,7 +17,7 @@ class EvidenceResolverRegistryEliminationR23Tests(unittest.TestCase):
 
     def test_resolution_is_a_pure_module_function(self) -> None:
         self.assertTrue(callable(evidence._resolve_evidence))
-        self.assertTrue(hasattr(evidence, "RuntimeArtifactReader"))
+        self.assertFalse(hasattr(evidence, "RuntimeArtifactReader"))
         self.assertTrue(callable(evidence._verify_evidence_semantics))
 
 

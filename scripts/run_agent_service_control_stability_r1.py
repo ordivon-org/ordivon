@@ -17,7 +17,7 @@ if str(_REPO_ROOT) not in sys.path:
 from agent_service.failover import AgentServiceR12
 from agent_service.provider_adapters import EffectLedgerReader
 from agent_service.slice1 import AgentServiceSlice1, ProviderObservation
-from agent_service.task_runtime import RuntimeAdapter, RuntimeJobObservation, RuntimeJobRef
+from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
 from agent_service.transport_credentials import AgentServiceR14
 from agent_service.trust import RemoteProviderObservation, _remote_delivery_observation_list_for_binding, _remote_delivery_observation_record
 
@@ -72,7 +72,7 @@ class SequenceCarrier:
         )
 
 
-class WorkingRuntime(RuntimeAdapter):
+class WorkingRuntime:
     def __init__(self) -> None:
         self.submit_calls: list[str] = []
         self.external_jobs: list[str] = []
@@ -125,7 +125,7 @@ class ResponseLossRuntime(WorkingRuntime):
 def _open_r14(
     db: Path,
     *,
-    runtime: RuntimeAdapter | None = None,
+    runtime: object | None = None,
     carrier: object | None = None,
     delivery: RecordingDelivery | None = None,
     proof_adapter: ProofAdapter | None = None,

@@ -7,7 +7,6 @@ from pathlib import Path
 from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import (
     AgentServiceR5,
-    RuntimeAdapter,
     RuntimeJobObservation,
     RuntimeJobRef,
 )
@@ -28,7 +27,7 @@ class ReadyCarrier:
         )
 
 
-class FakeRuntime(RuntimeAdapter):
+class FakeRuntime:
     def __init__(self) -> None:
         self.submissions: list[tuple[str, dict]] = []
         self.jobs: dict[str, RuntimeJobObservation] = {}

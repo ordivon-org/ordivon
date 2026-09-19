@@ -22,7 +22,6 @@ from .delivery import (
 from .evidence import (
     ArtifactDigestMismatch,
     EvidenceBundle,
-    RuntimeArtifactReader,
     _verify_evidence_semantics,
 )
 from .goals import BoardAdapter, GoalAssignmentPlanner, TaskReadinessProjector
@@ -30,7 +29,6 @@ from .slice1 import ServiceEvent, ServiceEventStore
 from .task_runtime import (
     Assignment,
     AssignmentStore,
-    RuntimeAdapter,
     SemanticVerdict,
     TaskStore,
 )
@@ -648,8 +646,8 @@ class AgentServiceR11:
         db_path: str | Path,
         *,
         carrier_adapter: Any,
-        runtime_adapter: RuntimeAdapter,
-        artifact_reader: RuntimeArtifactReader,
+        runtime_adapter: Any,
+        artifact_reader: Any,
         policy_adapter: PolicyAdapter | None = None,
         delivery_adapters: dict[str, DeliveryAdapter] | None = None,
         identity_proof_adapter: IdentityProofAdapter | None = None,

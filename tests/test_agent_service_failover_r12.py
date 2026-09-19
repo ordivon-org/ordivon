@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 from agent_service.delivery import DeliveryAdapter, DeliveryObservation, PolicyAdapter, PolicyObservation, _delivery_receipt_create, _delivery_receipt_get_by_binding
-from agent_service.evidence import RuntimeArtifactPayload, RuntimeArtifactReader
+from agent_service.evidence import RuntimeArtifactPayload
 from agent_service.failover import (
     AgentServiceR12,
     ExecutionQuiescenceAdapter,
@@ -16,7 +16,7 @@ from agent_service.failover import (
     _execution_quiescence_proof_get_by_client_request,
 )
 from agent_service.slice1 import ProviderObservation
-from agent_service.task_runtime import RuntimeAdapter, RuntimeJobObservation, RuntimeJobRef
+from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
 from agent_service.trust import RemoteProviderObservation, _remote_delivery_observation_record
 
 
@@ -31,7 +31,7 @@ class ReadyCarrier:
         return ProviderObservation(placement_id=placement_id, state="READY", evidence_ref="test://ready")
 
 
-class FakeRuntime(RuntimeAdapter):
+class FakeRuntime:
     def submit(self, client_request_id: str, execution: dict) -> RuntimeJobRef:
         return RuntimeJobRef(job_id=f"job:{client_request_id}")
 
@@ -48,7 +48,7 @@ class FakeRuntime(RuntimeAdapter):
         )
 
 
-class NoopRuntimeArtifactReader(RuntimeArtifactReader):
+class NoopRuntimeArtifactReader:
     def read(self, job_id: str, artifact_id: str) -> RuntimeArtifactPayload:
         raise AssertionError("runtime artifact read not expected")
 

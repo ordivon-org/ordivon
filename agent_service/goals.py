@@ -10,9 +10,9 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 
-from .evidence import AgentServiceR6, RuntimeArtifactReader
+from .evidence import AgentServiceR6
 from .slice1 import ServiceEvent, ServiceEventStore
-from .task_runtime import Assignment, AssignmentPlanner, AgentTask, RuntimeAdapter, TaskStore
+from .task_runtime import Assignment, AssignmentPlanner, AgentTask, TaskStore
 
 
 def _now_ns() -> int:
@@ -554,8 +554,8 @@ class AgentServiceR7:
         db_path: str | Path,
         *,
         carrier_adapter: Any,
-        runtime_adapter: RuntimeAdapter,
-        artifact_reader: RuntimeArtifactReader,
+        runtime_adapter: Any,
+        artifact_reader: Any,
         board_adapter: BoardAdapter | None = None,
     ) -> "AgentServiceR7":
         r6 = AgentServiceR6.open(

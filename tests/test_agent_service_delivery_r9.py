@@ -13,9 +13,9 @@ from agent_service.delivery import (
     _delivery_receipt_get,
     _delivery_receipt_list_for_binding,
 )
-from agent_service.evidence import RuntimeArtifactPayload, RuntimeArtifactReader
+from agent_service.evidence import RuntimeArtifactPayload
 from agent_service.slice1 import ProviderObservation
-from agent_service.task_runtime import RuntimeAdapter, RuntimeJobObservation, RuntimeJobRef
+from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
 
 
 class ReadyCarrier:
@@ -29,7 +29,7 @@ class ReadyCarrier:
         return ProviderObservation(placement_id=placement_id, state="READY", evidence_ref="test://ready")
 
 
-class FakeRuntime(RuntimeAdapter):
+class FakeRuntime:
     def submit(self, client_request_id: str, execution: dict) -> RuntimeJobRef:
         return RuntimeJobRef(job_id=f"job:{client_request_id}")
 
@@ -46,7 +46,7 @@ class FakeRuntime(RuntimeAdapter):
         )
 
 
-class NoopArtifactReader(RuntimeArtifactReader):
+class NoopArtifactReader:
     def read(self, job_id: str, artifact_id: str) -> RuntimeArtifactPayload:
         raise AssertionError("artifact read not expected")
 
