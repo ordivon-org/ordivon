@@ -106,4 +106,4 @@ Five additional K-Dense skills were reviewed at exact revision `330c8e764435a731
 
 `research-lookup`, `statistical-power`, and `venue-templates` remain deferred for dependency/scope reasons. The current K-Dense `literature-review` was also reviewed but not promoted; the existing lightweight literature-review remains temporarily in place.
 
-The five admitted Skill IDs were separately promoted through the Skill MCP audited gate after deterministic package review. This does not widen trust to the K-Dense repository as a whole. See `docs/RESEARCH_SKILL_EXPANSION_R1.md` and `evidence/acceptance/research-skill-expansion-r1.json`.
+The five admitted Skill IDs were separately promoted through the Skill MCP audited gate after deterministic package review. This does not widen trust to the K-Dense repository as a whole. See `migrations/records/research-skill-expansion-r1-20260919.md` and `evidence/acceptance/research-skill-expansion-r1.json`.
