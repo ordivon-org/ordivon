@@ -42,3 +42,17 @@ A requested candle limit is not claimed as a common effective sample size.
 Model and non-model classifications are maintained in config/quantitative_component_inventory.json and validated by JSON Schema 2020-12. Federal Reserve SR 26-2 is used proportionately as a model-governance reference.
 
 Hard boundaries remain: no allocation, no recommended hedge size, no inferred risk tolerance, no trade recommendation, and no external financial write.
+
+## Model outcomes and drift monitoring
+
+The registered dependence model has a separate non-model monitoring control.
+
+It records paired-sample overlap and interval regularity, strictly later realized holdout performance, realized residual variance and variance reduction, OLS and Huber realized error, beta/correlation/residual-variance changes, and SciPy Wasserstein/KS distribution-drift measurements.
+
+No local traffic-light threshold is embedded. If decision thresholds are later required, they must be explicit policy inputs justified independently of the measurement code.
+
+## Tail risk
+
+Portfolio reports may include a tail-risk node produced from registered empirical historical expected-shortfall calculations.
+
+The node preserves sample identity, return horizon, confidence level, and liquidity-horizon metadata. Liquidity-horizon metadata does not imply scaling. The current implementation is not a Basel capital engine.

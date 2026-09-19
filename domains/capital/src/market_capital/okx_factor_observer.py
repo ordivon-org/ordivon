@@ -10,6 +10,7 @@ from typing import Any, Mapping, Sequence
 from urllib.parse import urlencode
 
 from .portfolio_risk import PortfolioRiskError, build_factor_observatory, completed_log_returns, validate_dependence_model
+from .model_monitoring import assess_paired_return_data_quality, build_tail_risk_report, measure_dependence_drift, monitor_dependence_outcomes
 
 
 BASE_URL = "https://openapi.okx.com"
@@ -98,6 +99,8 @@ def capture_okx_factor_observatory(
     limit: int = 180,
     include_validation: bool = False,
     validation_splits: int = 5,
+    include_monitoring: bool = False,
+    monitoring_holdout: int = 30,
 ) -> dict[str, Any]:
     if not base_instrument_id.strip():
         raise OkxFactorObserverError("base_instrument_id is required")
@@ -169,6 +172,67 @@ def capture_okx_factor_observatory(
                 for factor, inst in specs
             ],
         }
+
+    if include_monitoring:
+        if monitoring_holdout < 8:
+            raise OkxFactorObserverError("monitoring_holdout must be >= 8")
+        monitoring_rows = []
+        for factor, inst in specs:
+            overlap = sorted(set(returns[base_instrument_id]) & set(returns[inst]))
+            if len(overlap) < monitoring_holdout + 20:
+                raise OkxFactorObserverError(
+                    f"{inst}: insufficient overlap for reference + monitoring holdout"
+                )
+            split = len(overlap) - monitoring_holdout
+            ref_ts = overlap[:split]
+            realized_ts = overlap[split:]
+            ref_base = {t: returns[base_instrument_id][t] for t in ref_ts}
+            ref_proxy = {t: returns[inst][t] for t in ref_ts}
+            realized_base = {t: returns[base_instrument_id][t] for t in realized_ts}
+            realized_proxy = {t: returns[inst][t] for t in realized_ts}
+            monitoring_rows.append({
+                "factor": factor,
+                "proxyInstrumentId": inst,
+                "dataQuality": assess_paired_return_data_quality(
+                    base_returns=returns[base_instrument_id],
+                    proxy_returns=returns[inst],
+                    expected_interval_ms=86_400_000,
+                ),
+                "outcomes": monitor_dependence_outcomes(
+                    base_instrument_id=base_instrument_id,
+                    proxy_instrument_id=inst,
+                    reference_base_returns=ref_base,
+                    reference_proxy_returns=ref_proxy,
+                    realized_base_returns=realized_base,
+                    realized_proxy_returns=realized_proxy,
+                ),
+                "drift": measure_dependence_drift(
+                    base_instrument_id=base_instrument_id,
+                    proxy_instrument_id=inst,
+                    reference_base_returns=ref_base,
+                    reference_proxy_returns=ref_proxy,
+                    current_base_returns=realized_base,
+                    current_proxy_returns=realized_proxy,
+                ),
+            })
+        base_values = [returns[base_instrument_id][t] for t in sorted(returns[base_instrument_id])]
+        result["modelMonitoring"] = {
+            "validatedComponentId": "portfolio-dependence-analysis",
+            "holdoutReturnCount": monitoring_holdout,
+            "rows": monitoring_rows,
+        }
+        result["tailRisk"] = build_tail_risk_report(
+            [
+                {
+                    "seriesId": base_instrument_id,
+                    "returns": base_values,
+                    "returnHorizon": "1D_LOG_RETURN",
+                    "sampleLabel": "OKX_COMPLETED_1D_HISTORY",
+                    "liquidityHorizonDays": None,
+                }
+            ],
+            confidence=0.975,
+        )
     return result
 
 
@@ -180,6 +244,8 @@ def main() -> int:
     ap.add_argument("--limit", type=int, default=180)
     ap.add_argument("--include-validation", action="store_true")
     ap.add_argument("--validation-splits", type=int, default=5)
+    ap.add_argument("--include-monitoring", action="store_true")
+    ap.add_argument("--monitoring-holdout", type=int, default=30)
     ap.add_argument("--output", type=Path)
     args = ap.parse_args()
 
@@ -197,6 +263,8 @@ def main() -> int:
         limit=args.limit,
         include_validation=args.include_validation,
         validation_splits=args.validation_splits,
+        include_monitoring=args.include_monitoring,
+        monitoring_holdout=args.monitoring_holdout,
     )
     rendered = json.dumps(result, indent=2, sort_keys=True) + "\n"
     if args.output:

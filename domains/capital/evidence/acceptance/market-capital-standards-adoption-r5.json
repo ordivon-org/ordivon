@@ -1,0 +1,31 @@
+{
+  "baselineHead": "9bf540b40921ff2c826a78a579f2d06d78eebe57",
+  "changes": [
+    "paired return data-quality measurement aligned to BCBS 239 principles",
+    "strictly later model outcomes monitoring",
+    "continuous parameter and distribution drift measurement using SciPy/sklearn",
+    "tail-risk report integration using empirical historical expected shortfall",
+    "OKX public runner monitoring integration"
+  ],
+  "date": "2026-09-19",
+  "externalFinancialWriteAttempted": false,
+  "kind": "ordivon.acceptance-evidence",
+  "modelGovernance": {
+    "activeModelCount": 1,
+    "dependenceModelStatus": "VALIDATION_REQUIRED",
+    "localHealthThresholdsIntroduced": false,
+    "monitoringControl": "dependence-model-monitoring"
+  },
+  "privateAccountDataUsed": false,
+  "regulatoryComplianceClaimed": false,
+  "schemaVersion": 1,
+  "subject": "market-capital-standards-adoption-r5",
+  "verification": {
+    "activeSourceRetiredOntologyScan": "PASS_ZERO_MATCHES",
+    "canonicalSuite": "173 passed",
+    "componentInventory": "PASS: 15 total, 1 active model, 1 validation-required model, 13 non-model, 1 retired model",
+    "focusedTests": "22 passed",
+    "gitDiffCheck": "PASS",
+    "publicMonitoringCanary": "PASS: SNDK vs MU/SMH/QQQ with 30-return holdout"
+  }
+}

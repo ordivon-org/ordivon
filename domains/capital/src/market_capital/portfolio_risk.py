@@ -655,6 +655,8 @@ def build_portfolio_risk_report(
     exposure_ledger: Mapping[str, Any],
     factor_observatory: Mapping[str, Any] | None = None,
     risk_budget: Mapping[str, Any] | None = None,
+    model_monitoring: Mapping[str, Any] | None = None,
+    tail_risk_report: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Compose exposure, dependence, and risk-limit results into a read-only risk report."""
 
@@ -675,6 +677,8 @@ def build_portfolio_risk_report(
         "nodes": {
             "exposureLedger": exposure_ledger,
             "factorDependenceAnalysis": factor_observatory,
+            "modelMonitoring": model_monitoring,
+            "tailRisk": tail_risk_report,
             "riskLimitEvaluation": budget_eval,
         },
     }
