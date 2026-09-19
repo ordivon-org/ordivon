@@ -50,7 +50,7 @@ No repo is automatically merged into Ordivon Next.
 | `ordivon-security-v2` | Cross-cutting discipline/tooling source | map controls/validators; avoid a universal security platform |
 | `ordivon-workstation-v2` | Enabling system | consume substrate facts/capabilities |
 | `ordivon-host` v1 / `ordivon-host-v2` | v1 retired historical mixed responsibilities; v2 retained narrow continuity/work-state utility | preserve v1 retirement/provenance; keep v2 minimal and external; use mature owners for workflow, agent orchestration, execution, integration and observability |
-| `ordivon-harness` / Agent Birth | **retained Harness semantic core** + agent execution/provisioning history | keep Harness as one of the three Ordivon cores; stabilize Run/cognition/authority/effect/recovery ports and compose mature external Agent mechanisms behind replaceable adapters |
+| `ordivon-harness` / Agent Birth | replaceable execution/cognition carrier + agent execution/provisioning history | retain only behaviors proven necessary by real workloads; compose mature external mechanisms behind replaceable adapters; no Ordivon core is preserved by ancestry |
 
 ## 5. Promotion rule
 

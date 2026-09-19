@@ -1,0 +1,190 @@
+{
+  "schemaVersion": 1,
+  "id": "governance-persistence-ratchet-r1",
+  "date": "2026-09-19",
+  "status": "ACTIVE_MIGRATION_RATCHET",
+  "truthRole": "migration-policy-not-domain-truth",
+  "objective": "Minimize durable governance state; prefer natural external owners, ephemeral carriers, owner-native evidence, pure decisions, stateless methods, and rebuildable indexes.",
+  "sunsetCondition": {
+    "kind": "DELETE_RATCHET_WHEN_REDUNDANT",
+    "condition": "Remove this ratchet after the same constraints are enforced by natural owners and three consecutive lifecycle audits show no governance abstraction growth or stale-carrier backlog requiring this local guard."
+  },
+  "standards": [
+    {
+      "name": "OMG CMMN 1.1",
+      "role": "adaptive case continuity for genuinely non-predefined knowledge work",
+      "url": "https://www.omg.org/spec/CMMN/"
+    },
+    {
+      "name": "Temporal",
+      "role": "durable workflow execution/recovery when executable workflow durability is actually required",
+      "url": "https://docs.temporal.io/"
+    },
+    {
+      "name": "Kubernetes Job TTL / GC / finalizers",
+      "role": "negative lifecycle for finished execution carriers and owned dependents",
+      "url": "https://kubernetes.io/docs/concepts/workloads/controllers/ttlafterfinished/"
+    },
+    {
+      "name": "Git worktree",
+      "role": "ephemeral parallel working trees with explicit remove/prune lifecycle",
+      "url": "https://git-scm.com/docs/git-worktree"
+    },
+    {
+      "name": "W3C PROV",
+      "role": "provenance relationships among entities, activities and agents",
+      "url": "https://www.w3.org/TR/prov-primer/"
+    },
+    {
+      "name": "in-toto Attestation Framework",
+      "role": "portable attestations/claims",
+      "url": "https://in-toto.io/docs/specs/"
+    },
+    {
+      "name": "SLSA Provenance",
+      "role": "content-linked provenance, builder identity, invocation and dependencies",
+      "url": "https://slsa.dev/spec/v1.2/build-provenance"
+    },
+    {
+      "name": "OpenLineage",
+      "role": "job/run/dataset lineage metadata",
+      "url": "https://openlineage.io/docs/spec/"
+    },
+    {
+      "name": "OPA",
+      "role": "decoupled policy decision point; enforcement stays with the caller",
+      "url": "https://www.openpolicyagent.org/docs"
+    },
+    {
+      "name": "MCP 2026-07-28",
+      "role": "stateless/self-contained protocol requests and capability discovery; analogy only for operator invocation",
+      "url": "https://modelcontextprotocol.io/specification/2026-07-28"
+    },
+    {
+      "name": "MCP Registry",
+      "role": "discovery metadata pointing to packages/services rather than universal runtime ownership",
+      "url": "https://registry.modelcontextprotocol.io"
+    },
+    {
+      "name": "OCI Distribution",
+      "role": "content-addressed objects/descriptors and registry-as-distribution rather than semantic authority",
+      "url": "https://github.com/opencontainers/distribution-spec/blob/main/spec.md"
+    }
+  ],
+  "roles": {
+    "Task": {
+      "type": "semantic_continuity_claim",
+      "durability": "CONDITIONAL",
+      "authority": "Host continuity only; domain truth remains with natural owner",
+      "admission": "Persist only when work must survive conversation/process loss and cannot be reconstructed cheaply from a natural owner.",
+      "retirement": "Terminalize when locally complete or saturated, no positive value remains, and no explicit wake condition requires retained continuity.",
+      "mustNotBecome": [
+        "priority authority",
+        "domain truth",
+        "execution authority",
+        "global project object"
+      ]
+    },
+    "Workspace": {
+      "type": "physical_mutable_carrier",
+      "durability": "EPHEMERAL",
+      "authority": "Runtime physical workspace state",
+      "admission": "Open only for an isolated mutable execution need.",
+      "retirement": "Close after active jobs are zero, required output is committed/preserved, dirty state is resolved or explicitly handed off, and no current semantic claimant requires the carrier.",
+      "mustNotBecome": [
+        "project identity",
+        "task identity",
+        "long-term archive",
+        "semantic completion record"
+      ]
+    },
+    "Evidence": {
+      "type": "owner_native_observation_or_provenance_reference",
+      "durability": "REFERENCE_FIRST",
+      "authority": "Natural producing system",
+      "admission": "Persist compact claim/provenance linkage when replay or verification requires it; keep raw bytes in their natural owner when possible.",
+      "retirement": "Derived analysis may be deleted when reproducible from retained sources; immutable attestations remain attached to the subject when required.",
+      "mustNotBecome": [
+        "duplicate world-state database",
+        "generic evidence warehouse",
+        "process-success synonym"
+      ]
+    },
+    "Gate": {
+      "type": "decision_predicate",
+      "durability": "STATELESS",
+      "authority": "Policy/domain decision rule; enforcement remains separate",
+      "admission": "Prefer pure predicate; use OPA only when shared declarative policy distribution/evaluation is materially needed.",
+      "retirement": "Delete or merge when it no longer changes admission, promotion, effect or completion decisions.",
+      "mustNotBecome": [
+        "GateStore",
+        "GateCoordinator",
+        "workflow stage with own lifecycle"
+      ]
+    },
+    "Lens": {
+      "type": "optional_analytical_method",
+      "durability": "DEFINITION_ONLY",
+      "authority": "Mature external discipline; lens output is derived analysis",
+      "admission": "Active only after prospective unique decision/test/boundary value; 0 lenses remains valid.",
+      "retirement": "MERGE/RESERVE/RETIRE when unique decision delta disappears.",
+      "mustNotBecome": [
+        "project truth",
+        "runtime object",
+        "mandatory ontology"
+      ]
+    },
+    "Operator": {
+      "type": "reasoning_transformation",
+      "durability": "DEFINITION_ONLY",
+      "authority": "Procedure, not system state",
+      "admission": "No new meta-operator unless it removes/subsumes an existing operator or proves a materially orthogonal transformation.",
+      "retirement": "Delete/merge when equivalent composition exists or governance cost exceeds decision delta.",
+      "mustNotBecome": [
+        "operator instance database",
+        "meta-operator recursion",
+        "automatic authority"
+      ]
+    },
+    "Registry": {
+      "type": "discovery_index_or_natural_authority_registry",
+      "durability": "REBUILDABLE_BY_DEFAULT",
+      "authority": "Index only unless the external standard explicitly defines the registry as natural owner",
+      "admission": "Prefer natural upstream registries; local registry must be rebuildable from source definitions.",
+      "retirement": "Delete local registry when it only wraps a fixed dispatch map or duplicates upstream discovery.",
+      "mustNotBecome": [
+        "global semantic state",
+        "workflow stage",
+        "second source of truth"
+      ]
+    }
+  },
+  "growthRatchets": {
+    "legoActiveLensCeiling": 14,
+    "legoOperatorCeiling": 5,
+    "projectPlanForbiddenNewRequiredConcepts": [
+      "gate",
+      "gates",
+      "lens",
+      "lenses",
+      "operator",
+      "operators",
+      "registry",
+      "registries"
+    ],
+    "rule": "Ceilings may shrink. Raising a ceiling requires a replacement/retirement in the same change plus prospective evidence; simple additive growth is rejected."
+  },
+  "liveBaseline": {
+    "observedAt": "2026-09-19",
+    "hostOpenTasks": 270,
+    "hostNoPositiveValueNow": 97,
+    "hostLocallyComplete": 51,
+    "hostSaturated": 23,
+    "runtimeOpenWorkspaces": 150,
+    "runtimeDirtyWorkspaces": 39,
+    "runtimeWorkspacesWithActiveJobs": 3,
+    "runtimeOrdivonNextWorkspaces": 90,
+    "runtimeCoreZeroNamedWorkspaces": 51,
+    "interpretation": "Diagnostic baseline only; these counts are not themselves deletion authority."
+  }
+}

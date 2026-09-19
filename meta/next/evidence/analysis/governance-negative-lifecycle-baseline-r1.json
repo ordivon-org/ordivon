@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "governance-negative-lifecycle-baseline-r1",
+  "observedAt": "2026-09-19",
+  "truthRole": "point-in-time-cross-owner-diagnostic-not-deletion-authority",
+  "host": {
+    "openTasks": 270,
+    "noPositiveValueNow": 97,
+    "locallyComplete": 51,
+    "saturated": 23,
+    "closeClean": 5
+  },
+  "runtime": {
+    "openWorkspacesObservedAcrossPages": 150,
+    "dirty": 39,
+    "withActiveJobs": 3,
+    "ordivonNext": 90,
+    "coreZeroOrCoreEliminationNamed": 51
+  },
+  "interpretation": [
+    "Host continuity creation/retention materially exceeds terminalization.",
+    "Runtime workspace creation materially exceeds physical reclamation.",
+    "Counts identify review pressure only; exact owner/current-state checks are required before mutation."
+  ]
+}
