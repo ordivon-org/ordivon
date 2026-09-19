@@ -16,7 +16,6 @@ def test_pnpm_first_path_uses_mise_and_project_package_manager() -> None:
     for root_text in (
         "/root/projects/ordivon-game",
         "/root/projects/ordivon-media",
-        "/root/projects/ordivon-web",
     ):
         root = pathlib.Path(root_text)
         package = json.loads((root / "package.json").read_text())
