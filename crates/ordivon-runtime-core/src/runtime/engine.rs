@@ -831,6 +831,29 @@ fn durable_runtime_rename(
         .map_err(map_universal_error)
 }
 
+pub(crate) fn native_windows_owner_matches_launcher_identity(
+    owner: &AttemptSupervisorOwner,
+    launcher_process_id: u32,
+    launcher_process_creation_time_file_time: Option<u64>,
+    launcher_image_digest: Option<&str>,
+    job_name: &str,
+) -> bool {
+    match owner {
+        AttemptSupervisorOwner::WindowsLauncherV1 {
+            launcher_process_id: expected_process_id,
+            launcher_process_creation_time_file_time: expected_creation_time,
+            launcher_image_digest: expected_image_digest,
+            job_name: expected_job_name,
+            ..
+        } => {
+            launcher_process_id == *expected_process_id
+                && launcher_process_creation_time_file_time == Some(*expected_creation_time)
+                && launcher_image_digest == Some(expected_image_digest.as_str())
+                && job_name == expected_job_name
+        }
+    }
+}
+
 fn now_ms() -> RuntimeResult<u64> {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)

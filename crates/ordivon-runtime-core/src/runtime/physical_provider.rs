@@ -17,7 +17,7 @@ use super::supervisor::{
 };
 use super::windows::{
     observe_windows_launcher_owner, spawn_windows_native, WindowsExecutionConfig,
-    WindowsNativeRunSpec,
+    WindowsNativeLaunchObservation, WindowsNativeRunSpec,
 };
 use super::{AttemptRecord, RuntimeResult};
 
@@ -29,7 +29,9 @@ pub(crate) fn dispatch_windows_via_wsl(spec: &WindowsSystemdRunSpec<'_>) -> Runt
     windows_systemd_run(spec)
 }
 
-pub(crate) fn dispatch_windows_native(spec: &WindowsNativeRunSpec<'_>) -> RuntimeResult<u32> {
+pub(crate) fn dispatch_windows_native(
+    spec: &WindowsNativeRunSpec<'_>,
+) -> RuntimeResult<WindowsNativeLaunchObservation> {
     spawn_windows_native(spec)
 }
 
