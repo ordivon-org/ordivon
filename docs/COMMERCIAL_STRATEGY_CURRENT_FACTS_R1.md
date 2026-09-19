@@ -144,6 +144,24 @@ The following remain intentionally open rather than being papered over by archit
 8. **Economic thresholds** — target contribution margin, sales-cycle tolerance, cash-collection policy and customer-concentration limits are not yet evidence-calibrated.
 9. **Moat claim** — workflow/learning-loop advantage is a hypothesis, not an established moat.
 
+## 8A. Active discovery surface — university students
+
+As of 2026-09-20, university students are admitted only as a **high-priority discovery population**, not a validated ICP.
+
+Current task-local census and experiment plan:
+
+- `STUDENT_MARKET_PRIMITIVE_CENSUS_R1.md`
+- `STUDENT_BEACHHEAD_DISCOVERY_EXPERIMENTS_R1.md`
+
+The current shortlist for external evidence collection is:
+
+1. student research execution/reproducibility;
+2. technical project/capstone execution evidence;
+3. evidence-backed technical career transition;
+4. student founder/indie-builder execution.
+
+Generic tutoring, generic coding assistance, literature search, résumé generation and generic job search are intentionally not treated as beachheads because strong mature providers already occupy those layers. The shortlist remains hypotheses until interviews, commitment-quality evidence and paid pilots exist.
+
 ## 9. Immediate order of work
 
 The next commercial work should therefore be market-facing rather than infrastructure-facing:
