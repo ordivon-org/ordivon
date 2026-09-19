@@ -55,6 +55,31 @@ def record(runtime: Path, workspace_id: str, source_repo: Path) -> None:
 
 
 class CacheRetentionTests(unittest.TestCase):
+    def test_cache_accepts_compact_open_record_identity_from_filename(self) -> None:
+        module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-cache"))
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            runtime = root / "runtime"
+            source = root / "source"
+            source.mkdir()
+            records = runtime / "workspace-records"
+            records.mkdir(parents=True)
+            (records / "compact.json").write_text(
+                json.dumps(
+                    {
+                        "schemaVersion": 1,
+                        "sourceRepo": str(source),
+                        "sourceRevision": "a" * 40,
+                        "createdUnixMs": 1,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            loaded, issues = module["load_open_records"](runtime)
+            self.assertEqual(issues, [])
+            self.assertEqual(loaded, [{"workspaceId": "compact", "sourceRepo": str(source)}])
+            self.assertEqual(module["workspace_record_standing"](runtime, "compact"), "open")
+
     def test_cache_watermark_has_no_legacy_sixteen_tib_ceiling(self) -> None:
         module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-cache"))
         beyond = 16 * 1024 * 1024 * 1024 * 1024 + 1

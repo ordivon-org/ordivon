@@ -1118,7 +1118,7 @@ def workspace_status(
     records_root = store_root / "workspace-records"
     workspaces_root = store_root / "workspaces"
     counts = {"open": 0, "closed": 0, "invalid": 0}
-    open_records: list[dict[str, Any]] = []
+    open_records: list[tuple[str, dict[str, Any]]] = []
     if records_root.is_dir():
         for path in sorted(records_root.glob("*.json")):
             try:
@@ -1130,8 +1130,12 @@ def workspace_status(
             if state == "closed":
                 counts["closed"] += 1
             elif state == "open":
+                legacy_workspace_id = record.get("workspaceId")
+                if legacy_workspace_id is not None and legacy_workspace_id != path.stem:
+                    counts["invalid"] += 1
+                    continue
                 counts["open"] += 1
-                open_records.append(record)
+                open_records.append((path.stem, record))
             else:
                 counts["invalid"] += 1
     else:
@@ -1144,12 +1148,21 @@ def workspace_status(
     truncated = len(open_records) > maximum
     dirty = stale_dirty = missing = unreadable = 0
     stale_before_ms = int(time.time() * 1000) - stale_dirty_hours * 3_600_000
-    for record in open_records[:maximum]:
-        raw_path = record.get("workspacePath")
-        if not isinstance(raw_path, str) or not Path(raw_path).is_absolute():
-            unreadable += 1
-            continue
-        path = Path(raw_path)
+    for workspace_id, record in open_records[:maximum]:
+        path = workspaces_root / workspace_id
+        legacy_workspace_path = record.get("workspacePath")
+        if legacy_workspace_path is not None:
+            if not isinstance(legacy_workspace_path, str) or not Path(legacy_workspace_path).is_absolute():
+                unreadable += 1
+                continue
+            recorded_path = Path(legacy_workspace_path)
+            if recorded_path.exists() and path.exists():
+                if recorded_path.resolve() != path.resolve():
+                    unreadable += 1
+                    continue
+            elif recorded_path != path:
+                unreadable += 1
+                continue
         if not path.is_dir():
             missing += 1
             continue

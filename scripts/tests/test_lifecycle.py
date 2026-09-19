@@ -73,6 +73,30 @@ class LifecycleTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-lifecycle"))
 
+    def test_open_record_accepts_identity_derived_from_record_location(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            record_path = root / "workspace-records" / "compact.json"
+            record_path.parent.mkdir()
+            record_path.write_text(
+                json.dumps(
+                    {
+                        "schemaVersion": 1,
+                        "sourceRepo": str(root / "source"),
+                        "sourceRevision": "a" * 40,
+                        "createdUnixMs": 1,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            value = self.module["load_open_record"](
+                record_path,
+                "compact",
+                root / "workspaces" / "compact",
+            )
+            self.assertNotIn("workspaceId", value)
+            self.assertNotIn("workspacePath", value)
+
     def test_trusted_tmp_presentation_matches_runtime_hash_vector(self) -> None:
         self.assertEqual(
             self.module["trusted_tmp_presentation_path"](Path("/tmp"), "workspace-env"),

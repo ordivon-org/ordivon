@@ -401,6 +401,34 @@ def fake_systemctl(root: Path) -> Path:
 
 
 class DeployReclaimTests(unittest.TestCase):
+    def test_reclaim_accepts_compact_open_record_identity_from_location(self) -> None:
+        module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-reclaim"))
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            workspace_id = "compact"
+            record_path = root / "workspace-records" / f"{workspace_id}.json"
+            record_path.parent.mkdir()
+            record_path.write_text(
+                json.dumps(
+                    {
+                        "schemaVersion": 1,
+                        "sourceRepo": str(root / "source"),
+                        "sourceRevision": "a" * 40,
+                        "createdUnixMs": 1,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            result = module["classify_record"](
+                record_path,
+                root / "workspaces" / workspace_id,
+                workspace_id,
+                active_job_ids=["job-1"],
+                measure_bytes=False,
+            )
+            self.assertEqual(result["classification"], "blocked_active")
+            self.assertEqual(result["workspaceId"], workspace_id)
+
     def test_runtime_binds_before_background_maintenance_reconciliation(self) -> None:
         source = (REPO / "crates/ordivon-runtime-mcp/src/main.rs").read_text(encoding="utf-8")
         bind = source.index("tokio::net::TcpListener::bind(app.bind).await?")
