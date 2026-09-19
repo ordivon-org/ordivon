@@ -1,0 +1,53 @@
+[dependency-groups]
+runtime = [
+  "mcp-types>=2.2.0",
+  "rfc8785>=0.1.4",
+  "sqlite-utils>=4.2.1",
+]
+deployment = [
+  { include-group = "runtime" },
+  "mcp>=2.2.0",
+  "uvicorn",
+]
+test = [
+  { include-group = "deployment" },
+]
+architecture = [
+  "import-linter",
+]
+reasoning = [
+  "ortools",
+  "pyshacl",
+  "rdflib",
+  "unified-planning",
+  "z3-solver",
+]
+
+[tool.uv]
+package = false
+default-groups = ["test"]
+
+[tool.importlinter]
+root_package = "agent_service"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Runtime MCP semantic adapter must not own HTTP transport"
+type = "forbidden"
+source_modules = ["agent_service.runtime_mcp"]
+forbidden_modules = ["urllib", "requests", "httpx", "aiohttp"]
+as_packages = false
+
+[[tool.importlinter.contracts]]
+name = "Host board semantic adapter must not own HTTP transport"
+type = "forbidden"
+source_modules = ["agent_service.host_board"]
+forbidden_modules = ["urllib", "requests", "httpx", "aiohttp"]
+as_packages = false
+
+[[tool.importlinter.contracts]]
+name = "Provider semantic adapters must not own HTTP transport"
+type = "forbidden"
+source_modules = ["agent_service.provider_adapters"]
+forbidden_modules = ["urllib", "requests", "httpx", "aiohttp"]
+as_packages = false

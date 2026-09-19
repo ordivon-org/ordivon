@@ -80,3 +80,17 @@ The optional `.agents/skills/enterprise-work/` Skill is a thin router from conse
 ## Current common capability coverage
 
 See `docs/CAPABILITY_PACKAGES_R1.md` for the current high-frequency Capability Package working map. It is a task-oriented coverage inventory, not a fixed architecture.
+
+
+## Repository validation
+
+This repository is managed as a non-package Python project. The interpreter is pinned by `.python-version`, dependency groups are declared in `pyproject.toml`, and exact resolutions are recorded in `uv.lock`.
+
+Core validation from a clean checkout:
+
+```bash
+uv run --locked python -m unittest discover -s tests -p 'test_*.py' -v
+uv run --locked --group architecture lint-imports
+```
+
+The default `test` group composes the runtime and deployment dependencies required by the complete unit and repository test suite. Heavier reasoning dependencies are kept in a separate group and are not installed by default.
