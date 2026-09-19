@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from tests.agent_service_test_support import open_current
+
 import tempfile
 import unittest
 from pathlib import Path
@@ -11,13 +13,7 @@ from agent_service.delivery import (
 from agent_service.evidence import RuntimeArtifactPayload
 from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
-from agent_service.trust import (
-    AgentServiceR10,
-    IdentityProofObservation,
-    RemoteProviderObservation,
-    _remote_delivery_observation_list_for_binding,
-    _remote_delivery_observation_latest_for_binding,
-)
+from agent_service.trust import IdentityProofObservation, RemoteProviderObservation, _remote_delivery_observation_list_for_binding, _remote_delivery_observation_latest_for_binding
 
 
 class ReadyCarrier:
@@ -104,8 +100,8 @@ class AgentServiceTrustRemoteR10Tests(unittest.TestCase):
         proof_adapter: object | None = None,
         remote_observers: dict[str, object] | None = None,
         delivery_adapters: dict[str] | None = None,
-    ) -> AgentServiceR10:
-        service = AgentServiceR10.open(
+    ) -> object:
+        service = open_current(
             db,
             carrier_adapter=ReadyCarrier(),
             runtime_adapter=FakeRuntime(),
@@ -118,7 +114,7 @@ class AgentServiceTrustRemoteR10Tests(unittest.TestCase):
         self.addCleanup(service.close)
         return service
 
-    def _agent(self, service: AgentServiceR10, name: str, *, routes=None):
+    def _agent(self, service: object, name: str, *, routes=None):
         definition = service.definitions.create(name)
         revision = service.revisions.create(definition.id, {
             "name": name,
@@ -138,7 +134,7 @@ class AgentServiceTrustRemoteR10Tests(unittest.TestCase):
         service.reconciler.reconcile(instance.id)
         return revision, identity, instance
 
-    def _delivery(self, service: AgentServiceR10):
+    def _delivery(self, service: object):
         source_revision, source_identity, source_instance = self._agent(service, "source")
         target_revision, target_identity, _ = self._agent(
             service,
@@ -376,7 +372,7 @@ class AgentServiceTrustRemoteR10Tests(unittest.TestCase):
 
             self.assertTrue(observation.terminal)
             self.assertTrue(observation.successful)
-            self.assertEqual(service.tasks.get(task.id).state, "PENDING")
+            self.assertEqual(service.tasks.get(task.id).state, "RUNNING")
             self.assertNotIn(
                 "TASK_SUCCEEDED",
                 [event.event_type for event in service.events.list_for("Task", task.id)],
@@ -453,7 +449,7 @@ class AgentServiceTrustRemoteR10Tests(unittest.TestCase):
             recorded = first.remote_reconciler.reconcile(binding.id)
             first.close()
 
-            second = AgentServiceR10.open(
+            second = open_current(
                 db,
                 carrier_adapter=ReadyCarrier(),
                 runtime_adapter=FakeRuntime(),

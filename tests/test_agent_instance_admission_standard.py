@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from tests.agent_service_test_support import open_current
+
 import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
 
-from agent_service.slice1 import AgentServiceSlice1, ProviderObservation
+from agent_service.slice1 import ProviderObservation
 
 
 class ReadyCarrier:
@@ -26,7 +28,7 @@ class ReadyCarrier:
 class AgentInstanceAdmissionStandardTests(unittest.TestCase):
     def test_instance_create_is_idempotent_and_birth_facade_is_absent(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            service = AgentServiceSlice1.open(Path(tmp) / "service.db", carrier_adapter=ReadyCarrier())
+            service = open_current(Path(tmp) / "service.db", carrier_adapter=ReadyCarrier())
             self.addCleanup(service.close)
             definition = service.definitions.create("researcher")
             revision = service.revisions.create(definition.id, {"harness": "test"})
@@ -47,7 +49,7 @@ class AgentInstanceAdmissionStandardTests(unittest.TestCase):
 
     def test_same_client_request_cannot_change_revision(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            service = AgentServiceSlice1.open(Path(tmp) / "service.db", carrier_adapter=ReadyCarrier())
+            service = open_current(Path(tmp) / "service.db", carrier_adapter=ReadyCarrier())
             self.addCleanup(service.close)
             definition = service.definitions.create("researcher")
             first_revision = service.revisions.create(definition.id, {"v": 1})
@@ -112,7 +114,7 @@ class AgentInstanceLegacySchemaMigrationTests(unittest.TestCase):
             db.commit()
             db.close()
 
-            service = AgentServiceSlice1.open(db_path, carrier_adapter=ReadyCarrier())
+            service = open_current(db_path, carrier_adapter=ReadyCarrier())
             self.addCleanup(service.close)
 
             columns = {

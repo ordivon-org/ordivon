@@ -6,7 +6,6 @@ import agent_service
 from agent_service.provider_adapters import (
     A2AJsonRpcHttpClient,
     A2AQuiescenceAdapter,
-    AgentServiceR13,
     EffectLedgerEffect,
     EffectLedgerReplaySafetyAdapter,
     EffectLedgerSnapshot,
@@ -21,7 +20,7 @@ from agent_service.provider_adapters import (
 
 class AgentServiceProviderAdaptersPublicApiR13Tests(unittest.TestCase):
     def test_package_exports_r13_provider_bricks(self) -> None:
-        self.assertIs(agent_service.AgentServiceR13, AgentServiceR13)
+        self.assertFalse(hasattr(agent_service, "AgentServiceR13"))
         self.assertIs(agent_service.A2AJsonRpcHttpClient, A2AJsonRpcHttpClient)
         self.assertIs(agent_service.A2AQuiescenceAdapter, A2AQuiescenceAdapter)
         self.assertIs(agent_service.MCPTasksHttpClient, MCPTasksHttpClient)

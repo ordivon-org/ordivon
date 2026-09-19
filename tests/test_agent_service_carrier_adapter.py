@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from tests.agent_service_test_support import open_current
+
 import json
 import tempfile
 import unittest
 from pathlib import Path
 
-from agent_service.slice1 import AgentRevision, AgentServiceSlice1, ProviderObservation
+from agent_service.slice1 import AgentRevision, ProviderObservation
 from agent_service.carriers.agent_automation import (
     AgentAutomationCarrierAdapter,
     CarrierCommandError,
@@ -46,7 +48,7 @@ class CarrierProviderApiTests(unittest.TestCase):
 
     def test_open_accepts_structural_carrier(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            service = AgentServiceSlice1.open(
+            service = open_current(
                 Path(tmp) / "service.db",
                 carrier_adapter=NoopCarrier(),
             )
@@ -55,7 +57,7 @@ class CarrierProviderApiTests(unittest.TestCase):
     def test_open_rejects_retired_host_adapter_keyword(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             with self.assertRaises(TypeError):
-                AgentServiceSlice1.open(
+                open_current(
                     Path(tmp) / "service.db",
                     host_adapter=NoopCarrier(),
                 )

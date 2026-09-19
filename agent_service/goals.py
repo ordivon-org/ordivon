@@ -9,7 +9,6 @@ import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
-from .evidence import AgentServiceR6
 from .slice1 import ServiceEvent, ServiceEventStore
 from .task_runtime import Assignment, AssignmentPlanner, AgentTask, TaskStore
 
@@ -534,74 +533,3 @@ def _initialize_schema(connection: sqlite3.Connection) -> None:
         """
     )
     connection.commit()
-
-
-class AgentServiceR7:
-    """R7 composition: Goal/DAG/convergence/Board projection above R6 durable Task truth."""
-
-    def __init__(self, r6: AgentServiceR6, board_adapter: Any | None) -> None:
-        self._r6 = r6
-        self._connection = r6._connection
-        self.definitions = r6.definitions
-        self.revisions = r6.revisions
-        self.instances = r6.instances
-        self.placements = r6.placements
-        self.events = r6.events
-        self.reconciler = r6.reconciler
-        self.tasks = r6.tasks
-        self.assignments = r6.assignments
-        self.planner = r6.planner
-        self.execution_activator = r6.execution_activator
-        self.completion = r6.completion
-        self.goals = GoalStore(self._connection, self.events)
-        self.goal_graph_guard = GoalGraphMutationGuard(self._connection, self.goals, self.tasks)
-        self.goal_task_links = GoalTaskLinkStore(
-            self._connection, self.goals, self.tasks, self.goal_graph_guard
-        )
-        self.task_dependencies = TaskDependencyStore(
-            self._connection, self.goal_task_links, self.goal_graph_guard
-        )
-        self.task_readiness = TaskReadinessProjector(
-            self.tasks, self.goal_task_links, self.task_dependencies
-        )
-        self.task_graph = GoalTaskGraph(
-            self.goal_task_links,
-            self.task_dependencies,
-            self.task_readiness,
-            self.goal_graph_guard,
-        )
-        self.goal_planner = GoalAssignmentPlanner(self.task_readiness, self.planner)
-        self.goal_reconciler = GoalReconciler(
-            self._connection, self.goals, self.goal_task_links, self.events
-        )
-        self.board_projector = GoalBoardProjector(
-            self.goals,
-            self.events,
-            board_adapter,
-        )
-
-    @classmethod
-    def open(
-        cls,
-        db_path: str | Path,
-        *,
-        carrier_adapter: Any,
-        runtime_adapter: Any,
-        artifact_reader: Any,
-        board_adapter: Any | None = None,
-    ) -> "AgentServiceR7":
-        r6 = AgentServiceR6.open(
-            db_path,
-            carrier_adapter=carrier_adapter,
-            runtime_adapter=runtime_adapter,
-            artifact_reader=artifact_reader,
-        )
-        cls._initialize_schema(r6._connection)
-        return cls(r6, board_adapter)
-
-    @staticmethod
-    def _initialize_schema(connection: sqlite3.Connection) -> None:
-        _initialize_schema(connection)
-
-    def close(self) -> None:
-        self._r6.close()

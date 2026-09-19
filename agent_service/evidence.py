@@ -11,7 +11,6 @@ from typing import Any
 
 from .slice1 import ServiceEvent, ServiceEventStore
 from .task_runtime import (
-    AgentServiceR5,
     Assignment,
     AssignmentStore,
     RuntimeJobObservation,
@@ -383,67 +382,3 @@ def _initialize_schema(connection: sqlite3.Connection) -> None:
             "legacy task_verifications schema is unsupported; "
             "perform explicit destructive migration before opening this revision"
         )
-
-
-class AgentServiceR6:
-    """R6 composition: R5 durable work plus explicit evidence/verification completion."""
-
-    def __init__(
-        self,
-        r5: AgentServiceR5,
-        runtime_adapter: Any,
-        artifact_reader: Any,
-    ) -> None:
-        artifact_reader = _require_artifact_reader(artifact_reader)
-        self._r5 = r5
-        self._connection = r5._connection
-        self.definitions = r5.definitions
-        self.revisions = r5.revisions
-        self.instances = r5.instances
-        self.placements = r5.placements
-        self.events = r5.events
-        self.reconciler = r5.reconciler
-        self.tasks = r5.tasks
-        self.assignments = r5.assignments
-        self.planner = r5.planner
-        self.legacy_activator = r5.activator
-        self.execution_activator = AssignmentExecutionActivator(
-            self._connection,
-            self.tasks,
-            self.assignments,
-            self.events,
-            runtime_adapter,
-        )
-        self.completion = TaskCompletionReconciler(
-            self._connection,
-            self.tasks,
-            self.assignments,
-            self.events,
-            runtime_adapter,
-            artifact_reader,
-        )
-
-    @classmethod
-    def open(
-        cls,
-        db_path: str | Path,
-        *,
-        carrier_adapter: Any,
-        runtime_adapter: Any,
-        artifact_reader: Any,
-    ) -> "AgentServiceR6":
-        _require_artifact_reader(artifact_reader)
-        r5 = AgentServiceR5.open(
-            db_path,
-            carrier_adapter=carrier_adapter,
-            runtime_adapter=runtime_adapter,
-        )
-        cls._initialize_schema(r5._connection)
-        return cls(r5, runtime_adapter, artifact_reader)
-
-    @staticmethod
-    def _initialize_schema(connection: sqlite3.Connection) -> None:
-        _initialize_schema(connection)
-
-    def close(self) -> None:
-        self._r5.close()

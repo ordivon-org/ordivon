@@ -12,7 +12,6 @@ from .delivery import (
     _delivery_receipt_get_by_binding,
 )
 from .slice1 import ServiceEvent, ServiceEventStore
-from .transport_credentials import AgentServiceR14
 
 
 class EffectAuthorizedDeliveryCoordinator:
@@ -107,49 +106,3 @@ def _initialize_schema(connection: sqlite3.Connection) -> None:
             "legacy effect_authorization_decisions schema is unsupported; "
             "perform explicit destructive migration before opening this revision"
         )
-
-
-class AgentServiceR15:
-    """R15: current effect authorization over the frozen R14 delivery identity."""
-
-    def __init__(
-        self,
-        r14: AgentServiceR14,
-        *,
-        effect_policy_adapter: Any | None,
-    ) -> None:
-        self._r14 = r14
-        self._connection = r14._connection
-        self.delivery = EffectAuthorizedDeliveryCoordinator(
-            delegate=r14.delivery,
-            bindings=r14.transport_bindings,
-            delegations=r14.delegations,
-            events=r14.events,
-            policy_adapter=effect_policy_adapter,
-        )
-
-    def __getattr__(self, name: str) -> Any:
-        return getattr(self._r14, name)
-
-    @classmethod
-    def open(
-        cls,
-        db_path: str | Path,
-        *,
-        policy_adapter: Any | None = None,
-        **kwargs: Any,
-    ) -> "AgentServiceR15":
-        r14 = AgentServiceR14.open(
-            db_path,
-            policy_adapter=policy_adapter,
-            **kwargs,
-        )
-        cls._initialize_schema(r14._connection)
-        return cls(r14, effect_policy_adapter=policy_adapter)
-
-    @staticmethod
-    def _initialize_schema(connection: sqlite3.Connection) -> None:
-        _initialize_schema(connection)
-
-    def close(self) -> None:
-        self._r14.close()

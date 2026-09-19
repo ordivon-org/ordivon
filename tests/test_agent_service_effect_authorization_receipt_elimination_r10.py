@@ -27,7 +27,7 @@ class EffectAuthorizationReceiptEliminationR10Tests(unittest.TestCase):
         self.addCleanup(connection.close)
         connection.execute("CREATE TABLE effect_authorization_decisions(id TEXT PRIMARY KEY)")
         with self.assertRaisesRegex(RuntimeError, "legacy effect_authorization_decisions"):
-            effect_authority.AgentServiceR15._initialize_schema(connection)
+            effect_authority._initialize_schema(connection)
 
 
 if __name__ == "__main__":

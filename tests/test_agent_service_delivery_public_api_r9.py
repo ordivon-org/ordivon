@@ -4,7 +4,6 @@ import unittest
 
 import agent_service
 from agent_service.delivery import (
-    AgentServiceR9,
     DelegationRoutePlanner,
     DeliveryCoordinator,
     TransportBindingStore,
@@ -13,7 +12,7 @@ from agent_service.delivery import (
 
 class AgentServiceDeliveryPublicApiR9Tests(unittest.TestCase):
     def test_package_exports_governed_delivery_bricks(self) -> None:
-        self.assertIs(agent_service.AgentServiceR9, AgentServiceR9)
+        self.assertFalse(hasattr(agent_service, "AgentServiceR9"))
         self.assertFalse(hasattr(agent_service, "AgentInterfaceAdvertisementStore"))
         self.assertFalse(hasattr(agent_service, "PolicyAdapter"))
         self.assertFalse(hasattr(agent_service, "PolicyDecisionStore"))

@@ -1,15 +1,13 @@
 from __future__ import annotations
 
+from tests.agent_service_test_support import open_task_runtime_fixture
+
 import tempfile
 import unittest
 from pathlib import Path
 
 from agent_service.slice1 import ProviderObservation
-from agent_service.task_runtime import (
-    AgentServiceR5,
-    RuntimeJobObservation,
-    RuntimeJobRef,
-)
+from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
 
 
 class ReadyCarrier:
@@ -56,8 +54,8 @@ class FakeRuntime:
 
 
 class AgentServiceTaskRuntimeTests(unittest.TestCase):
-    def _open(self, db: Path, runtime: FakeRuntime) -> AgentServiceR5:
-        service = AgentServiceR5.open(
+    def _open(self, db: Path, runtime: FakeRuntime) -> object:
+        service = open_task_runtime_fixture(
             db,
             carrier_adapter=ReadyCarrier(),
             runtime_adapter=runtime,
@@ -65,7 +63,7 @@ class AgentServiceTaskRuntimeTests(unittest.TestCase):
         self.addCleanup(service.close)
         return service
 
-    def _ready_agent(self, service: AgentServiceR5):
+    def _ready_agent(self, service: object):
         definition = service.definitions.create("worker")
         revision = service.revisions.create(definition.id, {"harness": "test"})
         instance = service.instances.create("request-worker-1", revision.id)
@@ -73,7 +71,7 @@ class AgentServiceTaskRuntimeTests(unittest.TestCase):
         self.assertEqual(service.instances.get(instance.id).state, "READY")
         return revision, instance
 
-    def _task(self, service: AgentServiceR5, revision_id: str, marker: str = "SEMANTIC_OK"):
+    def _task(self, service: object, revision_id: str, marker: str = "SEMANTIC_OK"):
         return service.tasks.create(
             description="produce the expected semantic marker",
             required_revision_id=revision_id,
@@ -243,7 +241,7 @@ class AgentServiceTaskRuntimeTests(unittest.TestCase):
             stable_request_id = assignment.client_request_id
             first.close()
 
-            second = AgentServiceR5.open(db, carrier_adapter=ReadyCarrier(), runtime_adapter=runtime)
+            second = open_task_runtime_fixture(db, carrier_adapter=ReadyCarrier(), runtime_adapter=runtime)
             self.addCleanup(second.close)
             recovered = second.assignments.get(assignment.id)
             second.activator.activate(recovered.id)

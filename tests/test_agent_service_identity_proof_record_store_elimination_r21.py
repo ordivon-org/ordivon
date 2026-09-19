@@ -32,7 +32,7 @@ class IdentityProofRecordStoreEliminationR21Tests(unittest.TestCase):
         self.addCleanup(connection.close)
         connection.execute("CREATE TABLE identity_proof_records(id TEXT PRIMARY KEY)")
         with self.assertRaisesRegex(RuntimeError, "legacy identity_proof_records"):
-            trust.AgentServiceR10._initialize_schema(connection)
+            trust._initialize_schema(connection)
 
 
 if __name__ == "__main__":

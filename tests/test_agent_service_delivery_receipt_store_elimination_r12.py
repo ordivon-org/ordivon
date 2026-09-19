@@ -31,7 +31,7 @@ class DeliveryReceiptStoreEliminationR12Tests(unittest.TestCase):
         self.addCleanup(connection.close)
         connection.execute("CREATE TABLE delivery_receipts(id TEXT PRIMARY KEY)")
         with self.assertRaisesRegex(RuntimeError, "legacy delivery_receipts"):
-            delivery.AgentServiceR9._initialize_schema(connection)
+            delivery._initialize_schema(connection)
 
 
 if __name__ == "__main__":

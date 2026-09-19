@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from tests.agent_service_test_support import open_current
+
 import tempfile
 import unittest
 from pathlib import Path
@@ -30,7 +32,7 @@ class ProviderObserverEliminationR25Tests(unittest.TestCase):
 
     def test_placement_identity_still_fails_closed_before_mutation(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            service = slice1.AgentServiceSlice1.open(
+            service = open_current(
                 Path(tmp) / "service.db",
                 carrier_adapter=WrongPlacementCarrier(),
             )

@@ -9,7 +9,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .goals import AgentServiceR7
 
 
 def _now_ns() -> int:
@@ -744,58 +743,3 @@ def _initialize_schema(connection: sqlite3.Connection) -> None:
         """
     )
     connection.commit()
-
-
-class AgentServiceR8:
-    """R8 composition: transport-neutral identity/capability/session/delegation semantics."""
-
-    def __init__(self, r7: AgentServiceR7) -> None:
-        self._r7 = r7
-        self._connection = r7._connection
-        for name in (
-            "definitions", "revisions", "instances", "placements", "events",
-            "reconciler", "tasks", "assignments", "planner", "execution_activator", "completion",
-            "goals", "goal_graph_guard", "goal_task_links", "task_dependencies",
-            "task_readiness", "task_graph", "goal_planner", "goal_reconciler",
-            "board_projector",
-        ):
-            setattr(self, name, getattr(r7, name))
-        self.identities = AgentIdentityStore(self._connection)
-        self.sessions = SessionStore(self._connection, self.identities)
-        self.session_items = SessionItemStore(self._connection, self.sessions, self.identities)
-        self.delegations = DelegationEnvelopeStore(
-            self._connection,
-            self.sessions,
-            self.identities,
-            self.task_graph,
-        )
-        self.a2a_cards = A2AAgentCardProjector(
-            self._connection, self.identities
-        )
-
-    @classmethod
-    def open(
-        cls,
-        db_path: str | Path,
-        *,
-        carrier_adapter: Any,
-        runtime_adapter: Any,
-        artifact_reader: Any,
-        board_adapter: Any | None = None,
-    ) -> "AgentServiceR8":
-        r7 = AgentServiceR7.open(
-            db_path,
-            carrier_adapter=carrier_adapter,
-            runtime_adapter=runtime_adapter,
-            artifact_reader=artifact_reader,
-            board_adapter=board_adapter,
-        )
-        cls._initialize_schema(r7._connection)
-        return cls(r7)
-
-    @staticmethod
-    def _initialize_schema(connection: sqlite3.Connection) -> None:
-        _initialize_schema(connection)
-
-    def close(self) -> None:
-        self._r7.close()

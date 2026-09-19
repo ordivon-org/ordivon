@@ -4,7 +4,6 @@ import unittest
 
 import agent_service
 from agent_service.failover import (
-    AgentServiceR12,
     ExecutionClaimTransferCoordinator,
     ExecutionQuiescenceCoordinator,
     ExecutionQuiescenceRequestStore,
@@ -16,7 +15,7 @@ from agent_service.failover import (
 
 class AgentServiceFailoverPublicApiR12Tests(unittest.TestCase):
     def test_package_exports_r12_failover_bricks(self) -> None:
-        self.assertIs(agent_service.AgentServiceR12, AgentServiceR12)
+        self.assertFalse(hasattr(agent_service, "AgentServiceR12"))
         self.assertFalse(hasattr(agent_service, "ExecutionQuiescenceAdapter"))
         self.assertIs(agent_service.ExecutionQuiescenceRequestStore, ExecutionQuiescenceRequestStore)
         self.assertFalse(hasattr(agent_service, "ExecutionQuiescenceProofStore"))

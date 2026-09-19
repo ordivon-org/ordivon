@@ -34,7 +34,7 @@ class ExecutionQuiescenceProofStoreEliminationR18Tests(unittest.TestCase):
         self.addCleanup(connection.close)
         connection.execute("CREATE TABLE execution_quiescence_proofs(id TEXT PRIMARY KEY)")
         with self.assertRaisesRegex(RuntimeError, "legacy execution_quiescence_proofs"):
-            failover.AgentServiceR12._initialize_schema(connection)
+            failover._initialize_schema(connection)
 
 
 if __name__ == "__main__":

@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class BirthCoordinatorEliminationR24Tests(unittest.TestCase):
     def test_birth_coordinator_class_and_double_facade_are_deleted(self) -> None:
         self.assertFalse(hasattr(slice1, "BirthCoordinator"))
-        self.assertFalse(hasattr(slice1.AgentServiceSlice1, "birth"))
+        self.assertFalse(hasattr(slice1, "AgentServiceSlice1"))
         source = (ROOT / "agent_service" / "slice1.py").read_text(encoding="utf-8")
         self.assertNotIn("self.birth = BirthCoordinator", source)
 

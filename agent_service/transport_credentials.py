@@ -13,7 +13,6 @@ import rfc8785
 
 from .delivery import TransportBinding
 from .provider_adapters import (
-    AgentServiceR13,
     ProviderCaller,
 )
 from .slice1 import ServiceEvent, ServiceEventStore
@@ -509,80 +508,3 @@ def _initialize_schema(connection: sqlite3.Connection) -> None:
             "legacy transport_credential_bindings schema is unsupported; "
             "perform explicit destructive migration before opening this revision"
         )
-
-
-class AgentServiceR14:
-    """R14: immutable interface protocol versions plus reference-only transport credentials."""
-
-    def __init__(
-        self,
-        r13: AgentServiceR13,
-        *,
-        credential_material_provider: Any | None,
-    ) -> None:
-        self._r13 = r13
-        self._connection = r13._r12._connection
-        self.transport_credentials = TransportCredentialBindingCoordinator(
-            self._connection,
-            bindings=r13.transport_bindings,
-            delegations=r13.delegations,
-            credential_references=r13.credential_references,
-            identity_proofs=r13.identity_proofs,
-            events=r13.events,
-        )
-        self.credential_headers = BoundCredentialHeaderProvider(
-            events=r13.events,
-            credential_references=r13.credential_references,
-            identity_proofs=r13.identity_proofs,
-            material_provider=credential_material_provider,
-        )
-
-    def __getattr__(self, name: str) -> Any:
-        return getattr(self._r13, name)
-
-    @classmethod
-    def open(
-        cls,
-        db_path: str | Path,
-        *,
-        carrier_adapter: Any,
-        runtime_adapter: Any,
-        artifact_reader: Any,
-        delivery_adapters: dict[str],
-        credential_material_provider: Any | None = None,
-        a2a_caller: ProviderCaller | None = None,
-        mcp_tasks_caller: ProviderCaller | None = None,
-        effect_ledger_reader: Any | None = None,
-        policy_adapter: Any | None = None,
-        identity_proof_adapter: Any | None = None,
-        remote_delivery_observers: dict[str, Any] | None = None,
-        remote_artifact_readers: dict[str, Any] | None = None,
-        board_adapter: Any | None = None,
-    ) -> "AgentServiceR14":
-        r13 = AgentServiceR13.open(
-            db_path,
-            carrier_adapter=carrier_adapter,
-            runtime_adapter=runtime_adapter,
-            artifact_reader=artifact_reader,
-            delivery_adapters=delivery_adapters,
-            a2a_caller=a2a_caller,
-            mcp_tasks_caller=mcp_tasks_caller,
-            effect_ledger_reader=effect_ledger_reader,
-            policy_adapter=policy_adapter,
-            identity_proof_adapter=identity_proof_adapter,
-            remote_delivery_observers=remote_delivery_observers or {},
-            remote_artifact_readers=remote_artifact_readers or {},
-            board_adapter=board_adapter,
-        )
-        cls._initialize_schema(r13._r12._connection)
-        return cls(
-            r13,
-            credential_material_provider=credential_material_provider,
-        )
-
-    @staticmethod
-    def _initialize_schema(connection: sqlite3.Connection) -> None:
-        _initialize_schema(connection)
-
-    def close(self) -> None:
-        self._r13.close()

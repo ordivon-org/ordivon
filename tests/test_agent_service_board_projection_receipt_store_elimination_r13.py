@@ -29,7 +29,7 @@ class BoardProjectionReceiptStoreEliminationR13Tests(unittest.TestCase):
         self.addCleanup(connection.close)
         connection.execute("CREATE TABLE board_projection_receipts(id TEXT PRIMARY KEY)")
         with self.assertRaisesRegex(RuntimeError, "legacy board_projection_receipts"):
-            goals.AgentServiceR7._initialize_schema(connection)
+            goals._initialize_schema(connection)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from tests.agent_service_test_support import open_current
+
 import tempfile
 import unittest
 
@@ -8,21 +10,8 @@ from pathlib import Path
 
 from agent_service.delivery import DeliveryObservation, PolicyObservation
 from agent_service.evidence import RuntimeArtifactPayload
-from agent_service.failover import AgentServiceR12, _replay_safety_decision_get
-from agent_service.provider_adapters import (
-    A2AJsonRpcHttpClient,
-    A2AQuiescenceAdapter,
-    AgentServiceR13,
-    EffectLedgerEffect,
-    EffectLedgerReplaySafetyAdapter,
-    EffectLedgerSnapshot,
-    MCPTaskQuiescenceAdapter,
-    MCPTasksHttpClient,
-    ProviderProtocolError,
-    ProviderRemoteError,
-    QuiescencePending,
-    RemoteExecutionCompleted,
-)
+from agent_service.failover import _replay_safety_decision_get
+from agent_service.provider_adapters import A2AJsonRpcHttpClient, A2AQuiescenceAdapter, EffectLedgerEffect, EffectLedgerReplaySafetyAdapter, EffectLedgerSnapshot, MCPTaskQuiescenceAdapter, MCPTasksHttpClient, ProviderProtocolError, ProviderRemoteError, QuiescencePending, RemoteExecutionCompleted
 from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
 
@@ -176,7 +165,7 @@ class DynamicNoEffectsReader:
 
 class AgentServiceProviderAdaptersR13Tests(unittest.TestCase):
     def _service(self, db: Path, *, q_adapter=None, replay_adapter=None):
-        service = AgentServiceR12.open(
+        service = open_current(
             db,
             carrier_adapter=ReadyCarrier(),
             runtime_adapter=FakeRuntime(),
