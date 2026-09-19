@@ -5,6 +5,10 @@ use std::io::{BufRead, BufReader, Read};
 use std::os::unix::ffi::OsStrExt;
 #[cfg(unix)]
 use std::os::unix::fs::{MetadataExt, PermissionsExt};
+#[cfg(windows)]
+use std::os::windows::ffi::OsStrExt as WindowsOsStrExt;
+#[cfg(windows)]
+use std::os::windows::fs::MetadataExt as WindowsMetadataExt;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::thread::{self, JoinHandle};

@@ -210,6 +210,59 @@ R4a proves the native direct-launch code and complete Runtime MCP binary compile
 yet live-accepted: R5 native state/ACL remains a startup prerequisite and R6 owns SCM/restart
 acceptance.
 
+## R5 progress — Windows-owned node/state semantics
+
+The native Windows node now owns platform semantics rather than compiling through Linux-shaped
+defaults:
+
+- the Linux Runner is optional and local_linux is advertised only by a Linux Runtime node with a
+  configured Runner;
+- executable-root lists use the host path-list parser, so native drive-letter paths are not split
+  on ':'; native Windows requires an explicit allowed-root set;
+- Linux-hosted windows_native retains its WSL-mounted executable constraint while native Windows
+  accepts native absolute paths subject to the same configured-root and digest checks;
+- Windows source-state commitments use stable Windows metadata plus a second semantic digest
+  observation instead of POSIX inode/mode assumptions;
+- UID/GID ownership knobs fail closed on non-Unix nodes;
+- Runtime Registry/store directories and Registry files use a native protected DACL primitive;
+- the private DACL authority is LocalSystem + Builtin Administrators + the current Runtime token
+  identity, which is compatible with later SCM virtual-account/service-SID ownership;
+- bearer-token files are checked by reading their security descriptor: inheritance must be
+  protected and every explicit FullControl ACE must resolve to the approved Runtime principals;
+- native execution PATH/HOME use Windows PATH/USERPROFILE and Windows path-list rules; Linux execve
+  limits no longer participate in native Windows startup.
+
+One earlier isolated Windows candidate launch reached the native Job launcher and exposed the
+previous Linux ORDIVON_EXEC_PATH assumption at runtime. That defect is now removed. A subsequent
+persistent candidate start was blocked by the external execution safety layer, so R5 is not claimed
+as live-accepted yet.
+
+## R6a progress — SCM service host compile boundary
+
+The Runtime binary now contains a native SCM host instead of requiring a wrapper service:
+
+- explicit --windows-service mode enters StartServiceCtrlDispatcherW;
+- ServiceMain immediately registers RegisterServiceCtrlHandlerExW and reports START_PENDING;
+- the same async Runtime server body is shared by console and SCM hosting;
+- RUNNING is reported only after Runtime construction and loopback socket binding have succeeded;
+- STOP and SHUTDOWN controls report STOP_PENDING and cancel the shared graceful-shutdown token;
+- SCM state reporting uses SetServiceStatus and exposes no independent Runtime Job/Registry logic.
+
+Acceptance on the integration candidate:
+
+- RUSTFLAGS=-D warnings cargo xwin check -p ordivon-runtime-mcp --target
+  x86_64-pc-windows-msvc: PASS, **0 errors / 0 warnings**;
+- Linux Runtime Core fast regression: **231/231 PASS**, with only the known long-running Registry
+  reference-model property explicitly filtered;
+- Runtime MCP library: **60/60 PASS**;
+- Runtime MCP binary/auth tests: **8/8 PASS**;
+- cargo fmt --all -- --check and git diff --check: PASS.
+
+R6a is only the service-host compile boundary. R6b still owns SCM installation materialization:
+virtual account NT SERVICE\\OrdivonRuntime, SERVICE_SID_TYPE_UNRESTRICTED, protected ProgramData
+state/token ACLs, failure actions, and exact service configuration read-back. R6c owns cold
+start/restart/stop/reconciliation acceptance with WSL absent or terminated.
+
 ## R1 acceptance
 
 - `RuntimeCapabilities` includes node identity.

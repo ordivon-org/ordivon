@@ -8,6 +8,10 @@
 mod runtime;
 #[cfg(feature = "universal-executor")]
 mod universal;
+#[cfg(windows)]
+mod windows_security;
+#[cfg(windows)]
+pub use windows_security::validate_private_file_acl as validate_windows_private_file_acl;
 
 #[cfg(feature = "universal-executor")]
 pub use universal::{

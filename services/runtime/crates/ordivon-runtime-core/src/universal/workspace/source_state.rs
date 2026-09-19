@@ -210,7 +210,6 @@ fn parse_nul_paths(bytes: &[u8], label: &str) -> Result<Vec<String>, UniversalEx
         .collect()
 }
 
-#[cfg(unix)]
 fn workspace_source_entry(
     workspace: &Path,
     relative: &str,
@@ -235,15 +234,15 @@ fn workspace_source_entry(
         }
         Err(error) => return Err(io_error(&path, "inspect source state", error)),
     };
-    let mode = before.permissions().mode() & 0o7777;
+    let mode = source_entry_mode(&before, index_mode);
     let (kind, byte_length, digest) = if before.file_type().is_symlink() {
         let target =
             fs::read_link(&path).map_err(|error| io_error(&path, "read source symlink", error))?;
-        let bytes = target.as_os_str().as_bytes();
+        let bytes = symlink_target_bytes(&target);
         (
             "symlink".to_string(),
             bytes.len() as u64,
-            sha256_bytes(bytes),
+            sha256_bytes(&bytes),
         )
     } else if before.is_file() {
         ("file".to_string(), before.len(), sha256_file(&path)?)
@@ -279,6 +278,15 @@ fn workspace_source_entry(
             true,
         ));
     }
+    #[cfg(windows)]
+    if !windows_source_semantics_unchanged(&path, &kind, &digest)? {
+        return Err(UniversalExecError::new(
+            UniversalExecErrorCode::WorkspaceMutationIncomplete,
+            format!("source path semantics changed while its commitment was computed: {relative}"),
+            Some("workspaceId"),
+            true,
+        ));
+    }
     Ok(WorkspaceSourceEntry {
         path: relative.to_string(),
         kind,
@@ -288,21 +296,33 @@ fn workspace_source_entry(
     })
 }
 
-#[cfg(not(unix))]
-fn workspace_source_entry(
-    _workspace: &Path,
-    _relative: &str,
-    _index_mode: Option<&str>,
-) -> Result<WorkspaceSourceEntry, UniversalExecError> {
-    Err(UniversalExecError::new(
-        UniversalExecErrorCode::ToolUnavailable,
-        "native workspace source-state identity is not implemented for this platform",
-        Some("workspaceId"),
-        false,
-    ))
+#[cfg(unix)]
+fn source_entry_mode(metadata: &fs::Metadata, _index_mode: Option<&str>) -> u32 {
+    metadata.permissions().mode() & 0o7777
+}
+
+#[cfg(windows)]
+fn source_entry_mode(_metadata: &fs::Metadata, index_mode: Option<&str>) -> u32 {
+    index_mode
+        .and_then(|mode| u32::from_str_radix(mode, 8).ok())
+        .map(|mode| mode & 0o7777)
+        .unwrap_or(0)
 }
 
 #[cfg(unix)]
+fn symlink_target_bytes(target: &Path) -> Vec<u8> {
+    target.as_os_str().as_bytes().to_vec()
+}
+
+#[cfg(windows)]
+fn symlink_target_bytes(target: &Path) -> Vec<u8> {
+    target
+        .as_os_str()
+        .encode_wide()
+        .flat_map(u16::to_le_bytes)
+        .collect()
+}
+
 fn is_git_worktree(path: &Path) -> Result<bool, UniversalExecError> {
     let output = Command::new("git")
         .arg("-C")
@@ -323,4 +343,37 @@ fn same_source_metadata(left: &fs::Metadata, right: &fs::Metadata) -> bool {
         && left.mtime_nsec() == right.mtime_nsec()
         && left.ctime() == right.ctime()
         && left.ctime_nsec() == right.ctime_nsec()
+}
+
+#[cfg(windows)]
+fn same_source_metadata(left: &fs::Metadata, right: &fs::Metadata) -> bool {
+    left.file_size() == right.file_size()
+        && left.creation_time() == right.creation_time()
+        && left.last_write_time() == right.last_write_time()
+        && left.file_attributes() == right.file_attributes()
+}
+
+#[cfg(windows)]
+fn windows_source_semantics_unchanged(
+    path: &Path,
+    kind: &str,
+    expected_digest: &str,
+) -> Result<bool, UniversalExecError> {
+    let observed = match kind {
+        "file" => sha256_file(path)?,
+        "symlink" => {
+            let target =
+                fs::read_link(path).map_err(|error| io_error(path, "reread source symlink", error))?;
+            sha256_bytes(&symlink_target_bytes(&target))
+        }
+        "git-worktree" => workspace_source_state_digest_at(path)?,
+        "gitlink-uninitialized" => {
+            if is_git_worktree(path)? {
+                return Ok(false);
+            }
+            sha256_bytes(b"gitlink-uninitialized")
+        }
+        _ => return Ok(false),
+    };
+    Ok(observed == expected_digest)
 }

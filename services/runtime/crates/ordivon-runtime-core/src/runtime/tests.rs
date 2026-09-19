@@ -135,7 +135,7 @@ fn runtime_config(sandbox: &Sandbox) -> RuntimeConfig {
             workspace_root: None,
             workspace_uid: None,
             workspace_gid: None,
-            runner_path: PathBuf::from("/usr/bin/true"),
+            runner_path: Some(PathBuf::from("/usr/bin/true")),
             allowed_executable_roots: vec![PathBuf::from("/")],
             max_runtime_ms: 60_000,
             max_output_bytes: 1_048_576,
