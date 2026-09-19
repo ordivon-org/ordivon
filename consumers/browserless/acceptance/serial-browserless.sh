@@ -260,7 +260,7 @@ podman run -d --rm --name "$CONTAINER" --pull=never --network "ns:/run/netns/$NS
 BROWSER_READY=0
 for i in $(seq 1 120); do
   if ip netns exec "$NS" curl -fsS --connect-timeout 1 --max-time 3 "http://127.0.0.1:$PORT/json/version?token=$TOKEN" >"$TMP_DIR/version.json" 2>/dev/null; then
-    BROWSER_READY=1; echo browser_ready_attempt=$i; break
+    BROWSER_READY=1; echo browser_ready_attempt="$i"; break
   fi
   sleep .25
 done

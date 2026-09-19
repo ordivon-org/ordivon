@@ -4,6 +4,7 @@ set -euo pipefail
 ENV_FILE=${ENV_FILE:-/etc/network-v2/browserless/provider.env}
 if [ -f "$ENV_FILE" ]; then
   set -a
+  # shellcheck source=/dev/null
   . "$ENV_FILE"
   set +a
 fi
