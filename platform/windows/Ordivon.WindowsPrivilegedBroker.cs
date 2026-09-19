@@ -196,11 +196,11 @@ internal static class OrdivonWindowsPrivilegedBroker
 
     private static void ValidateServerConfiguration(Options options)
     {
-        options.LauncherPath = Path.GetFullPath(options.LauncherPath);
+        options.LauncherPath = Path.GetFullPath(NormalizeBrokerPath(options.LauncherPath));
         if (!File.Exists(options.LauncherPath)) throw new InvalidOperationException("launcher does not exist");
         if (!String.Equals(Sha256File(options.LauncherPath), options.LauncherSha256, StringComparison.Ordinal))
             throw new InvalidOperationException("launcher SHA-256 does not match configured digest");
-        options.AllowedBundleRoot = Path.GetFullPath(options.AllowedBundleRoot);
+        options.AllowedBundleRoot = Path.GetFullPath(NormalizeBrokerPath(options.AllowedBundleRoot));
         if (!Directory.Exists(options.AllowedBundleRoot)) throw new InvalidOperationException("allowed bundle root does not exist");
         new SecurityIdentifier(options.AllowedClientSid);
     }
@@ -304,7 +304,12 @@ internal static class OrdivonWindowsPrivilegedBroker
             pipe.Connect(ClientConnectTimeoutMs);
             WriteFrame(pipe, request);
             string response = ReadFrame(pipe);
-            Console.Out.Write(response);
+            byte[] responseBytes = Encoding.UTF8.GetBytes(response);
+            using (Stream stdout = Console.OpenStandardOutput())
+            {
+                stdout.Write(responseBytes, 0, responseBytes.Length);
+                stdout.Flush();
+            }
         }
         return 0;
     }
@@ -482,12 +487,12 @@ internal static class OrdivonWindowsPrivilegedBroker
             throw new InvalidOperationException("broker spawn omitted required Runtime launcher identity");
         if (Contains(args, "--emit-launcher-start"))
             throw new InvalidOperationException("broker spawn requires parent-owned launcher-start evidence");
-        string fullBundle = Path.GetFullPath(bundle);
+        string fullBundle = Path.GetFullPath(NormalizeBrokerPath(bundle));
         if (!IsUnderRoot(fullBundle, options.AllowedBundleRoot))
             throw new InvalidOperationException("runtime bundle is outside broker authority root");
         if (!Directory.Exists(fullBundle))
             throw new InvalidOperationException("runtime bundle does not exist");
-        string fullStderr = Path.GetFullPath(launcherStderrPath);
+        string fullStderr = Path.GetFullPath(NormalizeBrokerPath(launcherStderrPath));
         string expectedStderr = Path.GetFullPath(Path.Combine(fullBundle, "launcher-stderr.log"));
         if (!String.Equals(fullStderr, expectedStderr, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException(
@@ -497,10 +502,28 @@ internal static class OrdivonWindowsPrivilegedBroker
 
     private static bool IsUnderRoot(string path, string root)
     {
-        string normalizedRoot = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+        string normalizedRoot = Path.GetFullPath(NormalizeBrokerPath(root))
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
             + Path.DirectorySeparatorChar;
-        string normalizedPath = Path.GetFullPath(path);
+        string normalizedPath = Path.GetFullPath(NormalizeBrokerPath(path));
         return normalizedPath.StartsWith(normalizedRoot, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string NormalizeBrokerPath(string value)
+    {
+        if (String.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+        if (value.StartsWith(@"\\?\UNC\", StringComparison.OrdinalIgnoreCase))
+        {
+            return @"\\" + value.Substring(8);
+        }
+        if (value.StartsWith(@"\\?\", StringComparison.OrdinalIgnoreCase))
+        {
+            return value.Substring(4);
+        }
+        return value;
     }
 
     private static bool IsSafeRequestId(string value)
