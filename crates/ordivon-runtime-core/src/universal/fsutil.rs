@@ -8,6 +8,8 @@ use std::io::{Read, Write};
 use std::os::fd::{AsRawFd, FromRawFd};
 #[cfg(unix)]
 use std::os::unix::fs::OpenOptionsExt;
+#[cfg(windows)]
+use std::os::windows::ffi::OsStrExt as WindowsOsStrExt;
 use std::path::{Component, Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -414,10 +416,84 @@ pub(crate) fn write_bytes_atomic(path: &Path, bytes: &[u8]) -> Result<(), Univer
     file.write_all(bytes)
         .and_then(|_| file.sync_all())
         .map_err(|error| io_error(&temp, "write", error))?;
-    fs::rename(&temp, path).map_err(|error| io_error(path, "rename", error))?;
-    sync_directory(parent)
+    rename_path_durable(&temp, path, true, "publish atomic file")
 }
 
+pub(crate) fn rename_path_durable(
+    source: &Path,
+    destination: &Path,
+    replace_existing: bool,
+    operation: &str,
+) -> Result<(), UniversalExecError> {
+    #[cfg(windows)]
+    {
+        use windows_sys::Win32::Storage::FileSystem::{
+            MoveFileExW, MOVEFILE_REPLACE_EXISTING, MOVEFILE_WRITE_THROUGH,
+        };
+
+        let source_wide = source
+            .as_os_str()
+            .encode_wide()
+            .chain(std::iter::once(0))
+            .collect::<Vec<_>>();
+        let destination_wide = destination
+            .as_os_str()
+            .encode_wide()
+            .chain(std::iter::once(0))
+            .collect::<Vec<_>>();
+        let mut flags = MOVEFILE_WRITE_THROUGH;
+        if replace_existing {
+            flags |= MOVEFILE_REPLACE_EXISTING;
+        }
+        let moved = unsafe { MoveFileExW(source_wide.as_ptr(), destination_wide.as_ptr(), flags) };
+        if moved == 0 {
+            return Err(io_error(
+                destination,
+                operation,
+                std::io::Error::last_os_error(),
+            ));
+        }
+        return Ok(());
+    }
+
+    #[cfg(not(windows))]
+    {
+        let _ = replace_existing;
+        fs::rename(source, destination).map_err(|error| io_error(destination, operation, error))?;
+
+        #[cfg(unix)]
+        {
+            if let Some(destination_parent) = destination.parent() {
+                sync_directory(destination_parent)?;
+            }
+            if let (Some(source_parent), Some(destination_parent)) =
+                (source.parent(), destination.parent())
+            {
+                if source_parent != destination_parent {
+                    sync_directory(source_parent)?;
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+#[cfg(unix)]
+pub(crate) fn sync_directory(path: &Path) -> Result<(), UniversalExecError> {
+    File::open(path)
+        .and_then(|directory| directory.sync_all())
+        .map_err(|error| io_error(path, "sync directory", error))
+}
+
+#[cfg(windows)]
+pub(crate) fn sync_directory(_path: &Path) -> Result<(), UniversalExecError> {
+    // Windows has no documented POSIX fsync(directory) equivalent. File bytes are
+    // flushed before publication and rename durability is owned by MoveFileExW with
+    // MOVEFILE_WRITE_THROUGH in rename_path_durable.
+    Ok(())
+}
+
+#[cfg(not(any(unix, windows)))]
 pub(crate) fn sync_directory(path: &Path) -> Result<(), UniversalExecError> {
     File::open(path)
         .and_then(|directory| directory.sync_all())

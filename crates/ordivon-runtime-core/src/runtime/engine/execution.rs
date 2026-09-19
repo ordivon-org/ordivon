@@ -504,9 +504,12 @@ impl Runtime {
                 protect_posix_path(&target, 0o444, "protect materialized input")?;
             }
             sync_directory(&staging)?;
-            fs::rename(&staging, &prepared_root)
-                .map_err(|error| io_error("publish prepared immutable input set", error))?;
-            sync_directory(&materialization_root)?;
+            durable_runtime_rename(
+                &staging,
+                &prepared_root,
+                false,
+                "publish prepared immutable input set",
+            )?;
             let effective_inputs = verify_effective_input_set(&prepared_root, inputs)?;
             Ok(PreparedInputSet {
                 input_set_id,
@@ -578,12 +581,17 @@ impl Runtime {
             ));
         }
         verify_effective_input_set(&prepared_root, &requests)?;
-        match fs::rename(&prepared_root, &owned_root) {
-            Ok(()) => sync_directory(&self.executor.job_inputs_root())?,
+        match durable_runtime_rename(
+            &prepared_root,
+            &owned_root,
+            false,
+            "adopt prepared immutable inputs for Job",
+        ) {
+            Ok(()) => {}
             Err(error) if owned_root.exists() => {
                 let _ = error;
             }
-            Err(error) => return Err(io_error("adopt prepared immutable inputs for Job", error)),
+            Err(error) => return Err(error),
         }
         verify_effective_input_set(&owned_root, &requests)?;
         Ok(())
@@ -1142,15 +1150,20 @@ impl Runtime {
                 write_bytes_synced(&staging.join(PLAN_FILE), &plan_bytes)?;
                 write_bytes_synced(&staging.join(BUNDLE_MANIFEST_FILE), &manifest_bytes)?;
                 sync_directory(&staging)?;
-                match fs::rename(&staging, &final_path) {
-                    Ok(()) => sync_directory(parent)?,
+                match durable_runtime_rename(
+                    &staging,
+                    &final_path,
+                    false,
+                    "commit Attempt bundle",
+                ) {
+                    Ok(()) => {}
                     Err(error) if final_path.is_dir() => {
                         let _ = error;
                         fs::remove_dir_all(&staging).map_err(|cleanup_error| {
                             io_error("remove losing bundle staging directory", cleanup_error)
                         })?;
                     }
-                    Err(error) => return Err(io_error("commit Attempt bundle", error)),
+                    Err(error) => return Err(error),
                 }
                 verify_published_bundle(&final_path, &request_bytes, &plan_bytes, &manifest_bytes)
             })();
