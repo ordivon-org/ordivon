@@ -1,12 +1,12 @@
 [build-system]
-requires = ["setuptools>=75"]
+requires = ["setuptools==84.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "ordivon-security-v2"
 version = "0.1.0"
 description = "External-first security evidence and policy waist for Ordivon"
-requires-python = ">=3.12,<3.13"
+requires-python = "==3.14.7"
 dependencies = []
 
 [tool.setuptools.packages.find]
