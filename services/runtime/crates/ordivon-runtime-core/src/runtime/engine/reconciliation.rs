@@ -686,7 +686,7 @@ impl Runtime {
         Ok(false)
     }
 
-    pub fn reconcile_attempt(&self, attempt_id: &str) -> RuntimeResult<()> {
+    pub(crate) fn reconcile_attempt(&self, attempt_id: &str) -> RuntimeResult<()> {
         let attempt = self.registry.get_attempt(attempt_id)?;
         if attempt.state.is_terminal() {
             return Ok(());

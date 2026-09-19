@@ -24,6 +24,66 @@ use std::sync::{Arc, Barrier};
 use std::thread;
 use uuid::Uuid;
 
+fn proposal_from_concrete_request(request: &JobRunRequest) -> JobRunProposal {
+    JobRunProposal {
+        schema_version: request.schema_version,
+        client_request_id: request.client_request_id.clone(),
+        principal: request.principal.clone(),
+        global_limit: request.global_limit,
+        execution: ExecutionProposal {
+            workspace_id: request.execution.workspace_id.clone(),
+            executable: request.execution.executable.clone(),
+            args: request.execution.args.clone(),
+            cwd_relative: request.execution.cwd_relative.clone(),
+            env: request.execution.env.clone(),
+            timeout_ms: Some(request.execution.timeout_ms),
+            stdout_limit_bytes: Some(request.execution.stdout_limit_bytes),
+            stderr_limit_bytes: Some(request.execution.stderr_limit_bytes),
+            steps: request
+                .execution
+                .steps
+                .iter()
+                .map(|step| ExecutionStepProposal {
+                    id: step.id.clone(),
+                    executable: step.executable.clone(),
+                    args: step.args.clone(),
+                    cwd_relative: step.cwd_relative.clone(),
+                    env: step.env.clone(),
+                    timeout_ms: Some(step.timeout_ms),
+                    continue_on_error: step.continue_on_error,
+                })
+                .collect(),
+            budget: request.execution.budget.clone(),
+            execution_profile: request.execution.execution_profile,
+            execution_target: request.execution.execution_target,
+            windows_authority: request.execution.windows_authority,
+            foreign_references: request.execution.foreign_references.clone(),
+            host_dependencies: request.execution.host_dependencies.clone(),
+        },
+        wait_ms: request.wait_ms,
+        stdout_tail_bytes: request.stdout_tail_bytes,
+        stderr_tail_bytes: request.stderr_tail_bytes,
+    }
+}
+
+trait RunJobWithInputsViaProposalTestExt {
+    fn run_job_with_inputs_via_proposal(
+        &self,
+        request: &JobRunRequest,
+        inputs: &[InputBindingRequest],
+    ) -> RuntimeResult<JobObservation>;
+}
+
+impl RunJobWithInputsViaProposalTestExt for Runtime {
+    fn run_job_with_inputs_via_proposal(
+        &self,
+        request: &JobRunRequest,
+        inputs: &[InputBindingRequest],
+    ) -> RuntimeResult<JobObservation> {
+        self.run_job_proposal_with_inputs(&proposal_from_concrete_request(request), inputs)
+    }
+}
+
 #[test]
 fn transient_main_pid_observation_loss_is_narrowly_classified() {
     for message in [
@@ -1462,49 +1522,6 @@ fn input_bound_task_request(workspace_id: &str, client_request_id: &str) -> JobR
 }
 
 #[test]
-fn input_bound_identity_is_order_independent_but_binding_sensitive() {
-    let request = input_bound_task_request("workspace:test", "request:input-identity");
-    let digest_a = digest(b"input-a");
-    let digest_b = digest(b"input-b");
-    let inputs = vec![
-        InputBindingRequest {
-            authority: "finance".to_string(),
-            relative_object: "fragments/a.parquet".to_string(),
-            expected_digest: digest_a.clone(),
-            presentation_relative_path: "data/a.parquet".to_string(),
-        },
-        InputBindingRequest {
-            authority: "finance".to_string(),
-            relative_object: "fragments/b.parquet".to_string(),
-            expected_digest: digest_b.clone(),
-            presentation_relative_path: "data/b.parquet".to_string(),
-        },
-    ];
-    let first = input_bound_request_identity_digest(&request, &inputs).unwrap();
-    assert!(first.starts_with(INPUT_BOUND_IDENTITY_PREFIX));
-
-    let reversed = vec![inputs[1].clone(), inputs[0].clone()];
-    assert_eq!(
-        input_bound_request_identity_digest(&request, &reversed).unwrap(),
-        first
-    );
-
-    let mut changed_digest = inputs.clone();
-    changed_digest[0].expected_digest = digest(b"different");
-    assert_ne!(
-        input_bound_request_identity_digest(&request, &changed_digest).unwrap(),
-        first
-    );
-
-    let mut changed_presentation = inputs;
-    changed_presentation[0].presentation_relative_path = "other/a.parquet".to_string();
-    assert_ne!(
-        input_bound_request_identity_digest(&request, &changed_presentation).unwrap(),
-        first
-    );
-}
-
-#[test]
 fn input_bound_proposal_identity_preserves_proposal_and_binding_semantics() {
     let request = input_bound_task_request("workspace:test", "request:input-proposal-identity");
     let proposal = JobRunProposal {
@@ -1590,7 +1607,7 @@ fn local_linux_immutable_inputs_accept_trusted_local_and_continue_to_workspace_r
     let mut request = input_bound_task_request("workspace-does-not-exist", "request:input-trusted");
     request.execution.execution_profile = ExecutionProfile::TrustedLocal;
     let error = runtime
-        .run_job_with_inputs(
+        .run_job_with_inputs_via_proposal(
             &request,
             &[InputBindingRequest {
                 authority: "finance".to_string(),
@@ -1615,7 +1632,7 @@ fn windows_immutable_inputs_reject_elevated_authority_before_workspace_resolutio
     request.execution.execution_target = ExecutionTarget::WindowsNative;
     request.execution.windows_authority = WindowsAuthority::Elevated;
     let error = runtime
-        .run_job_with_inputs(
+        .run_job_with_inputs_via_proposal(
             &request,
             &[InputBindingRequest {
                 authority: "finance".to_string(),
@@ -1713,11 +1730,17 @@ fn input_digest_mismatch_fails_before_job_admission() {
         expected_digest: digest(b"different-bytes"),
         presentation_relative_path: "data/fragment.parquet".to_string(),
     }];
-    let error = runtime.run_job_with_inputs(&request, &inputs).unwrap_err();
+    let error = runtime
+        .run_job_with_inputs_via_proposal(&request, &inputs)
+        .unwrap_err();
     assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
     assert!(error.message.contains("materialized input digest mismatch"));
     assert_eq!(runtime.registry().active_reservation_count().unwrap(), 0);
-    let identity = input_bound_request_identity_digest(&request, &inputs).unwrap();
+    let identity = input_bound_proposal_request_identity_digest(
+        &proposal_from_concrete_request(&request),
+        &inputs,
+    )
+    .unwrap();
     assert!(runtime
         .registry()
         .find_idempotent_job(&request.principal, &request.client_request_id, &identity)
@@ -1750,7 +1773,7 @@ fn input_authority_rejects_dotdot_and_symlink_escape_before_admission() {
     .unwrap();
 
     let dotdot = runtime
-        .run_job_with_inputs(
+        .run_job_with_inputs_via_proposal(
             &request,
             &[InputBindingRequest {
                 authority: "finance".to_string(),
@@ -1764,7 +1787,7 @@ fn input_authority_rejects_dotdot_and_symlink_escape_before_admission() {
     assert!(dotdot.field.as_deref().unwrap().contains("relativeObject"));
 
     let symlink = runtime
-        .run_job_with_inputs(
+        .run_job_with_inputs_via_proposal(
             &request,
             &[InputBindingRequest {
                 authority: "finance".to_string(),

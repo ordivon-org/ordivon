@@ -1020,8 +1020,34 @@ mod trusted_systemd_command_tests {
             presentation_relative_path: "data/fragment.bin".to_string(),
         }])
         .unwrap();
+        let proposal = super::super::JobRunProposal {
+            schema_version: request.schema_version,
+            client_request_id: request.client_request_id.clone(),
+            principal: request.principal.clone(),
+            global_limit: request.global_limit,
+            execution: super::super::ExecutionProposal {
+                workspace_id: request.execution.workspace_id.clone(),
+                executable: request.execution.executable.clone(),
+                args: request.execution.args.clone(),
+                cwd_relative: request.execution.cwd_relative.clone(),
+                env: request.execution.env.clone(),
+                timeout_ms: Some(request.execution.timeout_ms),
+                stdout_limit_bytes: Some(request.execution.stdout_limit_bytes),
+                stderr_limit_bytes: Some(request.execution.stderr_limit_bytes),
+                steps: Vec::new(),
+                budget: request.execution.budget.clone(),
+                execution_profile: request.execution.execution_profile,
+                execution_target: request.execution.execution_target,
+                windows_authority: request.execution.windows_authority,
+                foreign_references: request.execution.foreign_references.clone(),
+                host_dependencies: request.execution.host_dependencies.clone(),
+            },
+            wait_ms: request.wait_ms,
+            stdout_tail_bytes: request.stdout_tail_bytes,
+            stderr_tail_bytes: request.stderr_tail_bytes,
+        };
         let identity =
-            super::super::input_bound_request_identity_digest(&request, &inputs).unwrap();
+            super::super::input_bound_proposal_request_identity_digest(&proposal, &inputs).unwrap();
         let barrier = Arc::new(std::sync::Barrier::new(2));
         let mut handles = Vec::new();
         for index in 0..2 {

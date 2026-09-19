@@ -5,40 +5,6 @@ impl Runtime {
         self.run_concrete_job(request, request_identity_digest)
     }
 
-    /// Core execution path for exact immutable foreign inputs.
-    /// Existing Jobs replay before current authority roots are consulted.
-    pub fn run_job_with_inputs(
-        &self,
-        request: &JobRunRequest,
-        inputs: &[InputBindingRequest],
-    ) -> RuntimeResult<JobObservation> {
-        validate_run_request_structure(request)?;
-        let inputs = canonical_input_binding_requests(inputs)?;
-        let request_identity_digest = super::input_bound_request_identity_digest(request, &inputs)?;
-        let (job_id, created) = {
-            let _guard = self.lock_lifecycle()?;
-            if let Some(existing) = self.registry.find_idempotent_job(
-                &request.principal,
-                &request.client_request_id,
-                &request_identity_digest,
-            )? {
-                (existing.job_id, false)
-            } else {
-                let job_id =
-                    self.admit_new_job_with_inputs(request, request_identity_digest, &inputs)?;
-                (job_id, true)
-            }
-        };
-        if created {
-            self.ensure_newly_admitted_job_dispatched(&job_id)?;
-        }
-        self.observe_admitted_job(
-            &job_id,
-            request.wait_ms,
-            request.stdout_tail_bytes,
-            request.stderr_tail_bytes,
-        )
-    }
 
     /// Admit an Agent-authored proposal with exact immutable inputs. Proposal identity plus the
     /// canonical input bindings is fixed before current operator policy or authority roots are

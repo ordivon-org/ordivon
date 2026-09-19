@@ -853,13 +853,6 @@ struct InputBindingIdentity {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-struct InputBoundRequestIdentity {
-    operation: OperationRequestIdentity,
-    inputs: Vec<InputBindingIdentity>,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
 struct InputBoundProposalIdentity {
     proposal: ProposalRequestIdentity,
     inputs: Vec<InputBindingIdentity>,
@@ -969,28 +962,6 @@ fn input_binding_identities(inputs: &[InputBindingRequest]) -> Vec<InputBindingI
             ))
     });
     inputs
-}
-
-pub(crate) fn input_bound_request_identity_digest(
-    request: &JobRunRequest,
-    inputs: &[InputBindingRequest],
-) -> RuntimeResult<String> {
-    let identity = InputBoundRequestIdentity {
-        operation: operation_request_identity(request),
-        inputs: input_binding_identities(inputs),
-    };
-    let bytes = serde_json::to_vec(&identity).map_err(|error| {
-        RuntimeError::new(
-            RuntimeErrorCode::InvalidRequest,
-            format!("cannot serialize input-bound request identity: {error}"),
-            None,
-            false,
-        )
-    })?;
-    Ok(format!(
-        "{INPUT_BOUND_IDENTITY_PREFIX}{}",
-        crate::universal::sha256_bytes(&bytes)
-    ))
 }
 
 fn proposal_request_identity(proposal: &JobRunProposal) -> ProposalRequestIdentity {
