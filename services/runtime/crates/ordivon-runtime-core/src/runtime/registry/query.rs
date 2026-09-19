@@ -372,29 +372,7 @@ impl Registry {
         load_attempt(&connection, attempt_id)
     }
 
-    pub fn get_current_attempt(&self, job_id: &str) -> RuntimeResult<Option<AttemptRecord>> {
-        let connection = self.open_connection()?;
-        let attempt_id: Option<String> = connection
-            .query_row(
-                "SELECT current_attempt_id FROM jobs WHERE job_id=?1",
-                [job_id],
-                |row| row.get(0),
-            )
-            .optional()
-            .map_err(|error| RuntimeError::from_sql(error, "cannot read current Attempt"))?
-            .ok_or_else(|| {
-                RuntimeError::new(
-                    RuntimeErrorCode::JobNotFound,
-                    "Job not found",
-                    Some("jobId"),
-                    false,
-                )
-            })?;
-        attempt_id
-            .map(|attempt_id| load_attempt(&connection, &attempt_id))
-            .transpose()
-    }
-
+    #[cfg(any(test, feature = "operator-tools"))]
     pub fn get_reservation(&self, attempt_id: &str) -> RuntimeResult<ReservationRecord> {
         let connection = self.open_connection()?;
         load_reservation(&connection, attempt_id)
@@ -455,6 +433,7 @@ impl Registry {
         load_job_snapshot(&connection, job_id)
     }
 
+    #[cfg(test)]
     pub fn project_job(&self, job_id: &str) -> RuntimeResult<JobProjection> {
         Ok(self.job_snapshot(job_id)?.projection)
     }

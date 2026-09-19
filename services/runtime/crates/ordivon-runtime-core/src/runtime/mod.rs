@@ -46,7 +46,8 @@ pub use inspection::{
     DEFAULT_ARCHIVE_SAMPLE_LIMIT, DEFAULT_WORKSPACE_INSPECTION_JOB_LIMIT, MAX_ARCHIVE_SAMPLE_LIMIT,
     MAX_WORKSPACE_INSPECTION_JOB_LIMIT,
 };
-pub use registry::{Registry, RegistryConfig};
+pub(crate) use registry::Registry;
+pub use registry::RegistryConfig;
 #[cfg(test)]
 pub(crate) use registry::{
     RUNTIME_CONDITION_RETIREMENT_MIGRATION_CHECKSUM, RUNTIME_MIGRATION_CHECKSUM,
@@ -94,5 +95,7 @@ pub use types::{
 };
 pub use windows::WindowsExecutionConfig;
 
+#[cfg(test)]
+mod integration_tests;
 #[cfg(test)]
 mod tests;

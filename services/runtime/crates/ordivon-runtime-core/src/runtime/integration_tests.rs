@@ -1,6 +1,4 @@
-#![cfg(feature = "transactional-runtime")]
-
-use ordivon_runtime_core::{
+use crate::{
     create_git_workspace, remove_git_workspace, write_workspace_text, ArtifactReadRequest,
     AttemptState, ExecutionBudget, ForeignReference, GitWorkspaceCreateRequest,
     HostDependencyBinding, InputAuthority, InputBindingRequest, JobCancelRequest,
@@ -102,7 +100,7 @@ fn runtime_transactional_runtime_executes_replays_and_releases_capacity() {
     .unwrap();
     let runtime = Runtime::new(RuntimeConfig {
         node_id: "test-node".to_string(),
-        registry: ordivon_runtime_core::RegistryConfig {
+        registry: crate::RegistryConfig {
             db_path: root.join("registry/registry.sqlite3"),
             store_root: root.join("registry"),
             busy_timeout_ms: 5000,
@@ -127,10 +125,10 @@ fn runtime_transactional_runtime_executes_replays_and_releases_capacity() {
             stdout_limit_bytes: 65_536,
             stderr_limit_bytes: 65_536,
             steps: Vec::new(),
-            budget: ordivon_runtime_core::ExecutionBudget::default(),
-            execution_profile: ordivon_runtime_core::ExecutionProfile::TrustedLocal,
-            execution_target: ordivon_runtime_core::ExecutionTarget::LocalLinux,
-            windows_authority: ordivon_runtime_core::WindowsAuthority::Limited,
+            budget: crate::ExecutionBudget::default(),
+            execution_profile: crate::ExecutionProfile::TrustedLocal,
+            execution_target: crate::ExecutionTarget::LocalLinux,
+            windows_authority: crate::WindowsAuthority::Limited,
             foreign_references: Vec::new(),
             host_dependencies: Vec::new(),
         },
@@ -426,14 +424,14 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
     let windows_capability = runtime_capabilities
         .targets
         .iter()
-        .find(|target| target.target == ordivon_runtime_core::ExecutionTarget::WindowsNative)
+        .find(|target| target.target == crate::ExecutionTarget::WindowsNative)
         .unwrap();
     assert!(windows_capability.configured);
     assert!(windows_capability.available);
     assert!(windows_capability.immutable_inputs);
     assert_eq!(
         windows_capability.windows_immutable_input_authorities,
-        vec![ordivon_runtime_core::WindowsAuthority::Limited]
+        vec![crate::WindowsAuthority::Limited]
     );
 
     let request = JobRunRequest {
@@ -462,9 +460,9 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
                 tasks_max: Some(4),
                 cpu_quota_percent: Some(100),
             },
-            execution_profile: ordivon_runtime_core::ExecutionProfile::TrustedLocal,
-            execution_target: ordivon_runtime_core::ExecutionTarget::WindowsNative,
-            windows_authority: ordivon_runtime_core::WindowsAuthority::Limited,
+            execution_profile: crate::ExecutionProfile::TrustedLocal,
+            execution_target: crate::ExecutionTarget::WindowsNative,
+            windows_authority: crate::WindowsAuthority::Limited,
             foreign_references: Vec::new(),
             host_dependencies: Vec::new(),
         },
@@ -498,12 +496,12 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
         serde_json::from_str(&committed_job.execution_plan_json).unwrap();
     assert_eq!(
         committed_plan.execution_target,
-        ordivon_runtime_core::ExecutionTarget::WindowsNative
+        crate::ExecutionTarget::WindowsNative
     );
     let committed_windows = committed_plan.windows_execution_context.as_ref().unwrap();
     assert_eq!(
         committed_windows.token_class,
-        ordivon_runtime_core::WindowsTokenClass::Limited
+        crate::WindowsTokenClass::Limited
     );
     assert_eq!(
         committed_windows.environment_source,
@@ -653,11 +651,11 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
         serde_json::from_str(&input_job.execution_plan_json).unwrap();
     assert_eq!(
         input_plan.execution_profile,
-        ordivon_runtime_core::ExecutionProfile::TrustedLocal
+        crate::ExecutionProfile::TrustedLocal
     );
     assert_eq!(
         input_plan.windows_authority,
-        ordivon_runtime_core::WindowsAuthority::Limited
+        crate::WindowsAuthority::Limited
     );
     assert_eq!(input_plan.effective_inputs.len(), 1);
     let input_set_id = input_plan.input_set_id.as_deref().unwrap();
@@ -717,10 +715,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
     let stale_error = runtime
         .run_job_with_inputs(&stale_request, std::slice::from_ref(&input_binding_v1))
         .unwrap_err();
-    assert_eq!(
-        stale_error.code,
-        ordivon_runtime_core::RuntimeErrorCode::InvalidRequest
-    );
+    assert_eq!(stale_error.code, crate::RuntimeErrorCode::InvalidRequest);
     assert!(stale_error
         .message
         .contains("materialized input digest mismatch"));
@@ -763,8 +758,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
     let mut elevated_input_request = current_request.clone();
     elevated_input_request.client_request_id =
         format!("request:windows-input-elevated:{}", Uuid::now_v7());
-    elevated_input_request.execution.windows_authority =
-        ordivon_runtime_core::WindowsAuthority::Elevated;
+    elevated_input_request.execution.windows_authority = crate::WindowsAuthority::Elevated;
     let elevated_input_error = runtime
         .run_job_with_inputs(
             &elevated_input_request,
@@ -773,7 +767,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
         .unwrap_err();
     assert_eq!(
         elevated_input_error.code,
-        ordivon_runtime_core::RuntimeErrorCode::InvalidRequest
+        crate::RuntimeErrorCode::InvalidRequest
     );
     assert_eq!(
         elevated_input_error.field.as_deref(),
@@ -811,7 +805,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
     let elevated_marker = format!("ELEVATED_{}", Uuid::now_v7());
     let mut elevated_request = request.clone();
     elevated_request.client_request_id = format!("request:windows-elevated:{}", Uuid::now_v7());
-    elevated_request.execution.windows_authority = ordivon_runtime_core::WindowsAuthority::Elevated;
+    elevated_request.execution.windows_authority = crate::WindowsAuthority::Elevated;
     elevated_request.execution.args = vec!["authority-probe".to_string(), elevated_marker.clone()];
     let elevated = runtime.run_job(&elevated_request).unwrap();
     assert_eq!(elevated.status, "succeeded", "{}", elevated.stderr_tail);
@@ -825,12 +819,12 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
         serde_json::from_str(&elevated_job.execution_plan_json).unwrap();
     assert_eq!(
         elevated_plan.windows_authority,
-        ordivon_runtime_core::WindowsAuthority::Elevated
+        crate::WindowsAuthority::Elevated
     );
     let elevated_context = elevated_plan.windows_execution_context.as_ref().unwrap();
     assert_eq!(
         elevated_context.token_class,
-        ordivon_runtime_core::WindowsTokenClass::Elevated
+        crate::WindowsTokenClass::Elevated
     );
     assert_eq!(
         elevated_context.token_user_sid,
@@ -1577,9 +1571,9 @@ fn runtime_windows_native_wsl_restart_prepare_or_recover() {
                     tasks_max: Some(8),
                     cpu_quota_percent: Some(100),
                 },
-                execution_profile: ordivon_runtime_core::ExecutionProfile::TrustedLocal,
-                execution_target: ordivon_runtime_core::ExecutionTarget::WindowsNative,
-                windows_authority: ordivon_runtime_core::WindowsAuthority::Limited,
+                execution_profile: crate::ExecutionProfile::TrustedLocal,
+                execution_target: crate::ExecutionTarget::WindowsNative,
+                windows_authority: crate::WindowsAuthority::Limited,
                 foreign_references: Vec::new(),
                 host_dependencies: Vec::new(),
             },
@@ -1695,9 +1689,9 @@ fn runtime_windows_native_wsl_restart_prepare_or_recover() {
                 tasks_max: Some(8),
                 cpu_quota_percent: Some(100),
             },
-            execution_profile: ordivon_runtime_core::ExecutionProfile::TrustedLocal,
-            execution_target: ordivon_runtime_core::ExecutionTarget::WindowsNative,
-            windows_authority: ordivon_runtime_core::WindowsAuthority::Limited,
+            execution_profile: crate::ExecutionProfile::TrustedLocal,
+            execution_target: crate::ExecutionTarget::WindowsNative,
+            windows_authority: crate::WindowsAuthority::Limited,
             foreign_references: Vec::new(),
             host_dependencies: Vec::new(),
         },
@@ -1773,7 +1767,7 @@ print(json.dumps({"input": path.read_text().strip(), "write": write_result}, sor
     let runtime = context.runtime_with_input_authorities(2_000, authorities);
     let mut request = context.request("input_probe.py", 0);
     request.client_request_id = format!("request:immutable-input:{}", Uuid::now_v7());
-    request.execution.execution_profile = ordivon_runtime_core::ExecutionProfile::ContainedLocal;
+    request.execution.execution_profile = crate::ExecutionProfile::ContainedLocal;
     let submitted = runtime.run_job_with_inputs(&request, &inputs).unwrap();
     fs::write(&source, b"S1\n").unwrap();
 
@@ -1848,10 +1842,7 @@ print(json.dumps({"input": path.read_text().strip(), "write": write_result}, sor
     let conflict = restarted
         .run_job_with_inputs(&request, &changed_inputs)
         .unwrap_err();
-    assert_eq!(
-        conflict.code,
-        ordivon_runtime_core::RuntimeErrorCode::IdempotencyConflict
-    );
+    assert_eq!(conflict.code, crate::RuntimeErrorCode::IdempotencyConflict);
     assert_eq!(restarted.registry().active_reservation_count().unwrap(), 0);
 }
 
@@ -1891,7 +1882,7 @@ print(json.dumps({
     );
     let mut request = context.request("trusted_input_probe.py", 30_000);
     request.client_request_id = format!("request:immutable-input-trusted:{}", Uuid::now_v7());
-    request.execution.execution_profile = ordivon_runtime_core::ExecutionProfile::TrustedLocal;
+    request.execution.execution_profile = crate::ExecutionProfile::TrustedLocal;
     let inputs = vec![InputBindingRequest {
         authority: "finance-provider-observer-materials".to_string(),
         relative_object: "config.toml".to_string(),
@@ -1911,7 +1902,7 @@ print(json.dumps({
     let plan = runtime.registry().execution_plan(&terminal.job_id).unwrap();
     assert_eq!(
         plan.execution_profile,
-        ordivon_runtime_core::ExecutionProfile::TrustedLocal
+        crate::ExecutionProfile::TrustedLocal
     );
     assert_eq!(plan.effective_inputs.len(), 1);
     assert_eq!(
@@ -1951,14 +1942,11 @@ fn runtime_failed_capacity_admission_discards_prepared_state_and_rechecks_curren
     }];
     let mut blocked = context.request("input-capacity-blocked", 0);
     blocked.client_request_id = format!("request:input-capacity-blocked:{}", Uuid::now_v7());
-    blocked.execution.execution_profile = ordivon_runtime_core::ExecutionProfile::ContainedLocal;
+    blocked.execution.execution_profile = crate::ExecutionProfile::ContainedLocal;
     blocked.execution.executable = "/usr/bin/true".to_string();
     blocked.execution.args.clear();
     let error = runtime.run_job_with_inputs(&blocked, &inputs).unwrap_err();
-    assert_eq!(
-        error.code,
-        ordivon_runtime_core::RuntimeErrorCode::ConcurrencyLimit
-    );
+    assert_eq!(error.code, crate::RuntimeErrorCode::ConcurrencyLimit);
     assert!(fs::read_dir(context.executor.input_materializations_root())
         .unwrap()
         .filter_map(Result::ok)
@@ -1983,10 +1971,7 @@ fn runtime_failed_capacity_admission_discards_prepared_state_and_rechecks_curren
         })
         .unwrap();
     let drift = runtime.run_job_with_inputs(&blocked, &inputs).unwrap_err();
-    assert_eq!(
-        drift.code,
-        ordivon_runtime_core::RuntimeErrorCode::InvalidRequest
-    );
+    assert_eq!(drift.code, crate::RuntimeErrorCode::InvalidRequest);
     assert_eq!(drift.field.as_deref(), Some("inputs[0].expectedDigest"));
 }
 
@@ -2015,7 +2000,7 @@ fn runtime_opened_input_authority_survives_configured_path_replacement() {
     std::os::unix::fs::symlink(&outside, &authority_path).unwrap();
     let mut request = context.request("authority-capability", 30_000);
     request.client_request_id = format!("request:authority-capability:{}", Uuid::now_v7());
-    request.execution.execution_profile = ordivon_runtime_core::ExecutionProfile::ContainedLocal;
+    request.execution.execution_profile = crate::ExecutionProfile::ContainedLocal;
     request.execution.executable = "/usr/bin/python3.14".to_string();
     request.execution.args = vec![
         "-c".to_string(),
@@ -2155,10 +2140,10 @@ impl IntegrationContext {
                 stdout_limit_bytes: 1_048_576,
                 stderr_limit_bytes: 1_048_576,
                 steps: Vec::new(),
-                budget: ordivon_runtime_core::ExecutionBudget::default(),
-                execution_profile: ordivon_runtime_core::ExecutionProfile::TrustedLocal,
-                execution_target: ordivon_runtime_core::ExecutionTarget::LocalLinux,
-                windows_authority: ordivon_runtime_core::WindowsAuthority::Limited,
+                budget: crate::ExecutionBudget::default(),
+                execution_profile: crate::ExecutionProfile::TrustedLocal,
+                execution_target: crate::ExecutionTarget::LocalLinux,
+                windows_authority: crate::WindowsAuthority::Limited,
                 foreign_references: Vec::new(),
                 host_dependencies: Vec::new(),
             },
@@ -2389,10 +2374,10 @@ print("WRITE_OK=" + pathlib.Path("contained-output.txt").read_text(), flush=True
             stderr_limit_bytes: 65_536,
             steps: Vec::new(),
             budget: ExecutionBudget::default(),
-            execution_profile: ordivon_runtime_core::ExecutionProfile::ContainedLocal,
-            execution_target: ordivon_runtime_core::ExecutionTarget::LocalLinux,
-            windows_authority: ordivon_runtime_core::WindowsAuthority::Limited,
-            foreign_references: vec![ordivon_runtime_core::ForeignReference {
+            execution_profile: crate::ExecutionProfile::ContainedLocal,
+            execution_target: crate::ExecutionTarget::LocalLinux,
+            windows_authority: crate::WindowsAuthority::Limited,
+            foreign_references: vec![crate::ForeignReference {
                 namespace: "ordivon.edge".to_string(),
                 reference_type: "supervisor_generation".to_string(),
                 id: "contained-integration-supervisor".to_string(),
@@ -2527,10 +2512,7 @@ fn runtime_replays_same_request_after_effect_changes_or_workspace_closure() {
         .args
         .push("different-request".to_string());
     let error = runtime.run_job(&changed_request).unwrap_err();
-    assert_eq!(
-        error.code,
-        ordivon_runtime_core::RuntimeErrorCode::IdempotencyConflict
-    );
+    assert_eq!(error.code, crate::RuntimeErrorCode::IdempotencyConflict);
 
     runtime
         .close_workspace(&WorkspaceCloseRequest {
@@ -2587,10 +2569,7 @@ fn runtime_blocks_workspace_mutation_while_source_state_is_committed_by_active_j
             }],
         })
         .unwrap_err();
-    assert_eq!(
-        error.code,
-        ordivon_runtime_core::RuntimeErrorCode::WorkspaceBusy
-    );
+    assert_eq!(error.code, crate::RuntimeErrorCode::WorkspaceBusy);
     assert!(!context
         .executor
         .store_root
@@ -2659,8 +2638,8 @@ fn runtime_systemd_path_rejects_source_drift_before_target_spawn() {
                 schema_version: RUNTIME_SCHEMA_VERSION,
                 client_request_id: format!("request:systemd-source-drift:{}", Uuid::now_v7()),
                 request_identity_digest: None,
-                execution_provider: Some(ordivon_runtime_core::ExecutionProviderSnapshot {
-                    contract: ordivon_runtime_core::ExecutionProviderContract::LocalLinuxRunnerV1,
+                execution_provider: Some(crate::ExecutionProviderSnapshot {
+                    contract: crate::ExecutionProviderContract::LocalLinuxRunnerV1,
                     executable_digest: runner_digest.clone(),
                     wsl_distribution: None,
                 }),
@@ -2858,10 +2837,7 @@ fn runtime_incremental_observe_and_safe_close_preserve_active_work() {
             expected_source_state_digest: None,
         })
         .unwrap_err();
-    assert_eq!(
-        close_error.code,
-        ordivon_runtime_core::RuntimeErrorCode::WorkspaceBusy
-    );
+    assert_eq!(close_error.code, crate::RuntimeErrorCode::WorkspaceBusy);
 
     let mut stdout_offset = 0;
     let mut stdout = String::new();
@@ -2871,7 +2847,7 @@ fn runtime_incremental_observe_and_safe_close_preserve_active_work() {
                 schema_version: RUNTIME_SCHEMA_VERSION,
                 job_id: started.job_id.clone(),
                 wait_ms: 200,
-                wait_until: ordivon_runtime_core::JobObserveWaitUntil::Terminal,
+                wait_until: crate::JobObserveWaitUntil::Terminal,
                 stdout_tail_bytes: 5,
                 stderr_tail_bytes: 5,
                 stdout_offset: Some(stdout_offset),
@@ -3058,7 +3034,7 @@ fn runtime_reconcile_all_isolates_one_broken_job_and_converges_another() {
     assert_eq!(report.failures.len(), 1);
     assert_eq!(
         report.failures[0].code,
-        ordivon_runtime_core::RuntimeErrorCode::JobAlreadyResolved
+        crate::RuntimeErrorCode::JobAlreadyResolved
     );
     assert_eq!(report.failures[0].job_id, bad.job_id);
     assert_eq!(
@@ -3113,10 +3089,7 @@ fn runtime_interactive_close_blocks_until_exact_job_is_reconciled() {
             expected_source_state_digest: None,
         })
         .unwrap_err();
-    assert_eq!(
-        blocked.code,
-        ordivon_runtime_core::RuntimeErrorCode::WorkspaceBusy
-    );
+    assert_eq!(blocked.code, crate::RuntimeErrorCode::WorkspaceBusy);
     assert_eq!(runtime.registry().active_reservation_count().unwrap(), 1);
     assert!(
         !runtime
@@ -3288,7 +3261,7 @@ fn runtime_core_restart_recovers_running_attempt_and_terminal_result() {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: started.job_id,
             wait_ms: 10_000,
-            wait_until: ordivon_runtime_core::JobObserveWaitUntil::Terminal,
+            wait_until: crate::JobObserveWaitUntil::Terminal,
             stdout_tail_bytes: 8192,
             stderr_tail_bytes: 8192,
             stdout_offset: None,
@@ -3384,10 +3357,10 @@ impl IntegrationContext {
                 stdout_limit_bytes: 65_536,
                 stderr_limit_bytes: 65_536,
                 steps: Vec::new(),
-                budget: ordivon_runtime_core::ExecutionBudget::default(),
-                execution_profile: ordivon_runtime_core::ExecutionProfile::TrustedLocal,
-                execution_target: ordivon_runtime_core::ExecutionTarget::LocalLinux,
-                windows_authority: ordivon_runtime_core::WindowsAuthority::Limited,
+                budget: crate::ExecutionBudget::default(),
+                execution_profile: crate::ExecutionProfile::TrustedLocal,
+                execution_target: crate::ExecutionTarget::LocalLinux,
+                windows_authority: crate::WindowsAuthority::Limited,
                 windows_execution_context: None,
                 foreign_references: Vec::new(),
                 input_set_id: None,
@@ -3400,12 +3373,10 @@ impl IntegrationContext {
     }
 }
 
-fn created_admission(
-    outcome: ordivon_runtime_core::AdmissionOutcome,
-) -> ordivon_runtime_core::CreatedAdmission {
+fn created_admission(outcome: crate::AdmissionOutcome) -> crate::CreatedAdmission {
     match outcome {
-        ordivon_runtime_core::AdmissionOutcome::Created(created) => *created,
-        ordivon_runtime_core::AdmissionOutcome::Existing { .. } => {
+        crate::AdmissionOutcome::Created(created) => *created,
+        crate::AdmissionOutcome::Existing { .. } => {
             panic!("expected a new admission")
         }
     }
@@ -3587,7 +3558,7 @@ fn runtime_live_unit_without_launch_token_is_orphaned_and_holds_capacity() {
             .get_reservation(&attempt.attempt_id)
             .unwrap()
             .state,
-        ordivon_runtime_core::ReservationState::HeldOrphaned
+        crate::ReservationState::HeldOrphaned
     );
 
     // A later orphan-recovery pass must keep trusting the exact live transient unit.
@@ -3604,7 +3575,7 @@ fn runtime_live_unit_without_launch_token_is_orphaned_and_holds_capacity() {
             .get_reservation(&attempt.attempt_id)
             .unwrap()
             .state,
-        ordivon_runtime_core::ReservationState::HeldOrphaned
+        crate::ReservationState::HeldOrphaned
     );
 
     let stopped = Command::new("systemctl")
@@ -3649,7 +3620,7 @@ fn runtime_reconciler_rebuilds_bundle_after_admission_commit() {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: created.job.job_id,
             wait_ms: 10_000,
-            wait_until: ordivon_runtime_core::JobObserveWaitUntil::Terminal,
+            wait_until: crate::JobObserveWaitUntil::Terminal,
             stdout_tail_bytes: 1024,
             stderr_tail_bytes: 1024,
             stdout_offset: None,
@@ -3703,7 +3674,7 @@ fn runtime_corrupt_runner_result_is_orphaned_and_quarantined() {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: started.job_id,
             wait_ms: 0,
-            wait_until: ordivon_runtime_core::JobObserveWaitUntil::Terminal,
+            wait_until: crate::JobObserveWaitUntil::Terminal,
             stdout_tail_bytes: 1024,
             stderr_tail_bytes: 1024,
             stdout_offset: None,
@@ -3722,7 +3693,7 @@ fn runtime_corrupt_runner_result_is_orphaned_and_quarantined() {
             .get_reservation(&attempt.attempt_id)
             .unwrap()
             .state,
-        ordivon_runtime_core::ReservationState::HeldOrphaned
+        crate::ReservationState::HeldOrphaned
     );
 }
 
@@ -3965,9 +3936,9 @@ fn runtime_finance_i8_graduation_matches_canonical_semantics_with_job_owned_inpu
             stderr_limit_bytes: 2 * 1024 * 1024,
             steps: Vec::new(),
             budget: ExecutionBudget::default(),
-            execution_profile: ordivon_runtime_core::ExecutionProfile::ContainedLocal,
-            execution_target: ordivon_runtime_core::ExecutionTarget::LocalLinux,
-            windows_authority: ordivon_runtime_core::WindowsAuthority::Limited,
+            execution_profile: crate::ExecutionProfile::ContainedLocal,
+            execution_target: crate::ExecutionTarget::LocalLinux,
+            windows_authority: crate::WindowsAuthority::Limited,
             foreign_references: vec![ForeignReference {
                 namespace: "ordivon.finance".to_string(),
                 reference_type: "state_version".to_string(),
@@ -4186,8 +4157,8 @@ fn runtime_provider_bound_job_rejects_linux_runner_drift_before_dispatch() {
 
     let runtime = context.runtime(1_000);
     let mut submit = context.direct_submit("request:provider-bound-linux", 1);
-    submit.execution_provider = Some(ordivon_runtime_core::ExecutionProviderSnapshot {
-        contract: ordivon_runtime_core::ExecutionProviderContract::LocalLinuxRunnerV1,
+    submit.execution_provider = Some(crate::ExecutionProviderSnapshot {
+        contract: crate::ExecutionProviderContract::LocalLinuxRunnerV1,
         executable_digest: file_digest(&staged_runner),
         wsl_distribution: None,
     });
@@ -4286,8 +4257,8 @@ fn runtime_host_dependency_drift_fails_before_dispatch() {
     fs::write(&dependency, b"HOST_DEP_V1").unwrap();
     let expected_digest = file_digest(&dependency);
     let mut submit = context.direct_submit("request:host-dependency-drift", 1);
-    submit.execution_provider = Some(ordivon_runtime_core::ExecutionProviderSnapshot {
-        contract: ordivon_runtime_core::ExecutionProviderContract::LocalLinuxRunnerV1,
+    submit.execution_provider = Some(crate::ExecutionProviderSnapshot {
+        contract: crate::ExecutionProviderContract::LocalLinuxRunnerV1,
         executable_digest: file_digest(
             context
                 .executor
@@ -4529,8 +4500,8 @@ fn runtime_provider_bound_runner_start_binds_actual_runner_image() {
             .as_deref()
             .expect("Linux integration context must configure runner_path"),
     );
-    submit.execution_provider = Some(ordivon_runtime_core::ExecutionProviderSnapshot {
-        contract: ordivon_runtime_core::ExecutionProviderContract::LocalLinuxRunnerV1,
+    submit.execution_provider = Some(crate::ExecutionProviderSnapshot {
+        contract: crate::ExecutionProviderContract::LocalLinuxRunnerV1,
         executable_digest: provider_digest.clone(),
         wsl_distribution: None,
     });
@@ -4691,11 +4662,11 @@ fn runtime_provider_bound_job_rejects_windows_launcher_drift_before_dispatch() {
 
     let powershell = PathBuf::from("/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe");
     let mut submit = context.direct_submit("request:provider-bound-windows", 1);
-    submit.plan.execution_target = ordivon_runtime_core::ExecutionTarget::WindowsNative;
+    submit.plan.execution_target = crate::ExecutionTarget::WindowsNative;
     submit.plan.executable = powershell.to_string_lossy().into_owned();
     submit.plan.executable_digest = file_digest(&powershell);
-    submit.execution_provider = Some(ordivon_runtime_core::ExecutionProviderSnapshot {
-        contract: ordivon_runtime_core::ExecutionProviderContract::WindowsNativeLauncherV1,
+    submit.execution_provider = Some(crate::ExecutionProviderSnapshot {
+        contract: crate::ExecutionProviderContract::WindowsNativeLauncherV1,
         executable_digest: file_digest(&staged_launcher),
         wsl_distribution: Some(wsl_distribution),
     });

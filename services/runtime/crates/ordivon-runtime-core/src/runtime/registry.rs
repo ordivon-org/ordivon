@@ -12,16 +12,17 @@ use uuid::Uuid;
 #[cfg(feature = "operator-tools")]
 use super::repair::{AdminRepairAudit, AdminRepairOperation};
 use super::supervisor::{validate_attempt_supervisor_owner, AttemptSupervisorOwner};
+#[cfg(any(test, feature = "operator-tools"))]
+use super::RuntimeInvariantViolation;
 use super::{
     operation_request_identity_digest_from_plan, validate_client_request_id, AdmissionOutcome,
     ArtifactRegistration, AttemptRecord, AttemptState, AttemptTerminationIntent, CreatedAdmission,
     ExecutionProviderContract, ExecutionProviderSnapshot, HostDependencyBinding, JobDesiredState,
     JobProjection, JobResolution, ReservationRecord, ReservationState, RunnerIdentity,
     RuntimeArtifactRecord, RuntimeDeliveryDisposition, RuntimeError, RuntimeErrorCode,
-    RuntimeExecutionPlan, RuntimeInvariantViolation, RuntimeJobListCursor, RuntimeJobListRequest,
-    RuntimeJobListResult, RuntimeJobRecord, RuntimeJobSummary, RuntimeReleaseContract,
-    RuntimeReleaseEffectBinding, RuntimeResult, SubmitRequest, TerminalCommit,
-    MAX_RUNTIME_LIST_LIMIT, RUNTIME_SCHEMA_VERSION,
+    RuntimeExecutionPlan, RuntimeJobListCursor, RuntimeJobListRequest, RuntimeJobListResult,
+    RuntimeJobRecord, RuntimeJobSummary, RuntimeReleaseContract, RuntimeReleaseEffectBinding,
+    RuntimeResult, SubmitRequest, TerminalCommit, MAX_RUNTIME_LIST_LIMIT, RUNTIME_SCHEMA_VERSION,
 };
 
 const MIGRATION_V1: i64 = 1;
@@ -936,6 +937,7 @@ fn resolution_for_state(state: AttemptState) -> RuntimeResult<JobResolution> {
     }
 }
 
+#[cfg(any(test, feature = "operator-tools"))]
 pub(crate) fn inspect_runtime_invariants_connection(
     connection: &Connection,
 ) -> RuntimeResult<Vec<RuntimeInvariantViolation>> {

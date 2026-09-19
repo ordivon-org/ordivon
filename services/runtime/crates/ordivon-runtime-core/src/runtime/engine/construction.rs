@@ -110,7 +110,8 @@ impl Runtime {
         Ok(runtime)
     }
 
-    pub fn registry(&self) -> &Registry {
+    #[cfg(test)]
+    pub(crate) fn registry(&self) -> &Registry {
         &self.registry
     }
 
