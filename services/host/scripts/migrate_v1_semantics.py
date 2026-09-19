@@ -11,11 +11,11 @@ from pathlib import Path
 from typing import Any
 
 import psycopg
+from ordivon_host_v2.news import news_edition_digest
 from psycopg.rows import dict_row
 
 from ordivon_host_v2.board import board_message_digest
 from ordivon_host_v2.canonical import canonical_digest
-from ordivon_host_v2.news import news_edition_digest
 
 BUNDLE_VERSION = 1
 EXTERNAL_CONTINUITY = "ordivon.host.external-continuity.v1"
