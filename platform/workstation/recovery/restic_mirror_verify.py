@@ -12,8 +12,8 @@ import argparse
 import hashlib
 import json
 import os
-from pathlib import Path
 import subprocess
+from pathlib import Path
 from typing import Any
 
 RESTIC = "/usr/bin/restic"

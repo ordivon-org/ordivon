@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import argparse, datetime as dt, json, urllib.request, uuid
+
+import argparse
+import datetime as dt
+import json
+import urllib.request
+import uuid
 from pathlib import Path
 
 URL='http://127.0.0.1:5678/webhook/ordivon-distribution-adapter-smoke-v1'
@@ -14,7 +19,7 @@ def event_for(mode:str,event_id:str,intent_file:Path|None)->dict:
     else:
         data_intent={'intentId':'provider-readback-only','occurrenceRef':'synthetic-read-only','provider':'github','effectName':'provider_readback','artifact':None}
         decision={'action':'preflight_ready','reason':'read-only-provider-positive-control','externalEffectPerformed':False}
-    return {'specversion':'1.0','id':event_id,'source':'urn:ordivon:operations:n8n-distribution-acceptance','type':'io.ordivon.distribution.admission.v1','time':dt.datetime.now(dt.timezone.utc).isoformat(),'datacontenttype':'application/json','data':{'intent':data_intent,'decision':decision}}
+    return {'specversion':'1.0','id':event_id,'source':'urn:ordivon:operations:n8n-distribution-acceptance','type':'io.ordivon.distribution.admission.v1','time':dt.datetime.now(dt.UTC).isoformat(),'datacontenttype':'application/json','data':{'intent':data_intent,'decision':decision}}
 
 def invoke(event:dict)->dict:
     req=urllib.request.Request(URL,data=json.dumps(event,separators=(',',':')).encode(),method='POST',headers={'Content-Type':'application/json','Accept':'application/json'})

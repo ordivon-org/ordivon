@@ -13,11 +13,11 @@ import fcntl
 import hashlib
 import json
 import os
-from pathlib import Path
 import socket
 import subprocess
 import tempfile
 import tomllib
+from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -60,7 +60,7 @@ class OperationLock:
         holder = {
             "pid": os.getpid(),
             "operation": self.operation,
-            "startedUtc": dt.datetime.now(dt.timezone.utc).isoformat(),
+            "startedUtc": dt.datetime.now(dt.UTC).isoformat(),
         }
         self.handle.seek(0)
         self.handle.truncate()
@@ -287,7 +287,7 @@ def backup_locked(cfg: dict[str, Any]) -> dict[str, Any]:
     require_transport(cfg)
     owner = str(cfg["owner"])
     exporter = resolved_exporter(cfg)
-    stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    stamp = dt.datetime.now(dt.UTC).strftime("%Y%m%dT%H%M%SZ")
     with tempfile.TemporaryDirectory(prefix=f"ordivon-owner-{owner}-", dir=staging_parent(cfg)) as raw:
         stage = Path(raw) / f"owner-capsule-{owner}"
         stage.mkdir()

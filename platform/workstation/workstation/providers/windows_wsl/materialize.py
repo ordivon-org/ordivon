@@ -4,8 +4,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-from pathlib import Path
 import shutil
+from pathlib import Path
 
 SOURCE = Path(__file__).with_name("WindowsWslProvider.ps1")
 ROOT = Path("/mnt/c/ProgramData/Ordivon/Workstation/Providers/WindowsWslProvider")

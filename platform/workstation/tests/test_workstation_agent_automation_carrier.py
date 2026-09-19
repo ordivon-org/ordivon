@@ -1,9 +1,17 @@
 from __future__ import annotations
-import fcntl, os, subprocess, sys, tempfile, time, unittest
+
+import fcntl
+import subprocess
+import sys
+import tempfile
+import time
+import unittest
 from pathlib import Path
 from unittest.mock import patch
+
 ROOT=Path(__file__).resolve().parents[1]; sys.path.insert(0,str(ROOT/'workstation'))
 import agent_automation_carrier as w
+
 
 class AgentAutomationWrapperTests(unittest.TestCase):
     def test_wrapper_targets_browserless_temporal_facade_not_legacy_tool(self):
@@ -41,7 +49,7 @@ class AgentAutomationWrapperTests(unittest.TestCase):
 
     def test_mutating_cli_lease_blocks_behind_cross_process_release_fence(self):
         with tempfile.TemporaryDirectory() as td:
-            root=Path(td); lock=root/'release.lock'; closed=root/'closed.json'; ready=root/'ready'
+            root=Path(td); lock=root/'release.lock'; ready=root/'ready'
             lock.touch()
             code=(
                 "import sys; from pathlib import Path; sys.path.insert(0,sys.argv[1]); "

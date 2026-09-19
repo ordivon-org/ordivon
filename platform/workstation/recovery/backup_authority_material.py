@@ -8,12 +8,12 @@ import datetime as dt
 import hashlib
 import json
 import os
-from pathlib import Path
 import subprocess
 import tarfile
 import tempfile
 import time
 import tomllib
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CFG = tomllib.loads(Path(__file__).with_name("recovery.toml").read_text())
@@ -135,7 +135,7 @@ def write_dpapi_receipt(outdir: Path, recipient: str, *, verification_basis: str
         "blobSha256": sha256_file(blob),
         "restoreScriptSha256": sha256_file(restore),
         "verificationBasis": verification_basis,
-        "recordedAt": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "recordedAt": dt.datetime.now(dt.UTC).isoformat(),
         "evidence": evidence or {},
     }
     temporary = receipt_path.with_suffix(receipt_path.suffix + ".tmp")
@@ -287,7 +287,7 @@ def main() -> int:
         return 2
 
     outdir.mkdir(parents=True, exist_ok=True)
-    stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    stamp = dt.datetime.now(dt.UTC).strftime("%Y%m%dT%H%M%SZ")
     bundle = outdir / f"ordivon-authority-{stamp}.tar.age"
     manifest = outdir / f"ordivon-authority-{stamp}.manifest.txt"
     recipient = age_recipient()

@@ -65,7 +65,7 @@ async def run(address: str) -> dict:
         "id": token,
         "source": "urn:ordivon:temporal-production-green-acceptance",
         "type": REQUEST_TYPE,
-        "time": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "time": dt.datetime.now(dt.UTC).isoformat(),
         "datacontenttype": "application/json",
         "data": {"message": "temporal-to-n8n", "workflowId": workflow_id},
     }

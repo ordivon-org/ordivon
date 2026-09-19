@@ -6,10 +6,11 @@ import base64
 import hashlib
 import json
 import os
-from pathlib import Path
 import subprocess
 import tomllib
-from typing import Any, Mapping
+from collections.abc import Mapping
+from pathlib import Path
+from typing import Any
 
 SOURCE_CATALOG = Path(__file__).with_name("software.toml")
 CATALOG = Path(os.environ.get("ORDIVON_WORKSTATION_V2_CATALOG", str(SOURCE_CATALOG if SOURCE_CATALOG.is_file() else Path("/etc/ordivon/workstation-v2/software.toml"))))

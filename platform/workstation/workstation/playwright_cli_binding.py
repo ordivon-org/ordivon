@@ -10,9 +10,10 @@ from __future__ import annotations
 import argparse
 import json
 import os
-from pathlib import Path
 import tempfile
-from typing import Any, Mapping
+from collections.abc import Mapping
+from pathlib import Path
+from typing import Any
 
 import equipment_binding
 import tool_binding as core

@@ -11,15 +11,15 @@ import argparse
 import hashlib
 import json
 import os
-from pathlib import Path
 import re
 import shutil
 import subprocess
 import tempfile
 import tomllib
+import zipfile
+from pathlib import Path
 from typing import Any
 from urllib.request import urlopen
-import zipfile
 
 DEFAULT_CONTRACT = Path(__file__).with_name("jev-fastpath-provider.toml")
 REVISION = re.compile(r"^[0-9a-f]{40}$")

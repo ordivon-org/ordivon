@@ -31,3 +31,7 @@ addopts = "-q"
 [tool.ruff]
 target-version = "py314"
 line-length = 100
+
+[tool.ruff.lint]
+select = ["E9", "F", "I", "UP"]
+ignore = ["UP022"] # explicit PIPE capture is retained at operational subprocess boundaries
