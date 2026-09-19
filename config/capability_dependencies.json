@@ -34,8 +34,8 @@
       "duckdbBinary": "/opt/ordivon/external/duckdb/1.5.5-1/duckdb",
       "duckdbVersion": "1.5.5",
       "interpreter": "./.venv/bin/python",
-      "nonResponsibility": "does not borrow or execute through ordivon-research-v2 virtualenv; cross-domain Research workflows require a separate explicit provider contract",
-      "provider": "Ordivon Capital Market-domain research dependency group composed from upstream libraries",
+      "nonResponsibility": "does not implement a generic Research/Data platform, lineage graph, scientific-method authority, Wave-A research pipeline, or borrow the ordivon-research-v2 virtualenv",
+      "provider": "Upstream MLflow/Pandera/Pandas/PyArrow/jsonschema libraries consumed directly by the Market domain",
       "pythonVersion": "3.14.7",
       "requiredPythonModules": [
         "jsonschema",
@@ -44,14 +44,7 @@
         "pandera",
         "pyarrow"
       ],
-      "responsibility": "scientific dataframe validation, Parquet materialization, experiment lineage and research artifacts currently consumed by the Market domain; generic research/data mechanics are migration candidates for the shared Ordivon Research/Data substrate"
-    },
-    "xbrlValidation": {
-      "commandEnv": "MARKET_CAPITAL_ARELLE",
-      "currentBoundary": "SEC-compatible isolated Arelle 2.39.8 + EDGAR 26.1.3 + XULE 30052 is admitted; full real-filing EFM validation remains pending runtime closure after a 300-second Apple 2025 10-K validation timeout",
-      "defaultCommand": "/root/.local/bin/arelleCmdLine",
-      "provider": "Arelle + SEC EDGAR plugins",
-      "requiredFor": "raw SEC filing EFM validation"
+      "responsibility": "Market monitoring-evidence validation/materialization/tracking plus quantitative-inventory schema validation; MLflow tracking backend selection is caller/environment-owned"
     }
   },
   "kind": "ordivon.capital.capability-dependencies",

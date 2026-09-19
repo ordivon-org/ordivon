@@ -38,8 +38,8 @@ public sealed class MarketCapitalValidationAlgorithm : QCAlgorithm
 
     public override void Initialize()
     {
-        var startText = Environment.GetEnvironmentVariable("MARKET_CAPITAL_BACKTEST_START") ?? "2013-10-07";
-        var endText = Environment.GetEnvironmentVariable("MARKET_CAPITAL_BACKTEST_END") ?? "2013-10-11";
+        var startText = Environment.GetEnvironmentVariable("ORDIVON_CAPITAL_MARKET_BACKTEST_START") ?? "2013-10-07";
+        var endText = Environment.GetEnvironmentVariable("ORDIVON_CAPITAL_MARKET_BACKTEST_END") ?? "2013-10-11";
         var start = DateTime.ParseExact(startText, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
         var end = DateTime.ParseExact(endText, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
         if (end < start) throw new InvalidOperationException("backtest end precedes start");
@@ -48,28 +48,28 @@ public sealed class MarketCapitalValidationAlgorithm : QCAlgorithm
         SetCash(100000);
         SetBenchmark(_ => 0m);
         Settings.MinimumOrderMarginPortfolioPercentage = 0m;
-        var executionBufferText = Environment.GetEnvironmentVariable("MARKET_CAPITAL_EXECUTION_CASH_BUFFER_WEIGHT") ?? "0.01";
+        var executionBufferText = Environment.GetEnvironmentVariable("ORDIVON_CAPITAL_MARKET_EXECUTION_CASH_BUFFER_WEIGHT") ?? "0.01";
         if (!decimal.TryParse(executionBufferText, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var executionBuffer) || executionBuffer < 0m || executionBuffer >= 1m)
         {
-            throw new InvalidOperationException("invalid MARKET_CAPITAL_EXECUTION_CASH_BUFFER_WEIGHT");
+            throw new InvalidOperationException("invalid ORDIVON_CAPITAL_MARKET_EXECUTION_CASH_BUFFER_WEIGHT");
         }
         Settings.FreePortfolioValuePercentage = executionBuffer;
         Debug($"MC_FEASIBILITY_POLICY|freePortfolioValuePercentage={executionBuffer}");
 
-        var path = Environment.GetEnvironmentVariable("MARKET_CAPITAL_TARGET_PORTFOLIO");
+        var path = Environment.GetEnvironmentVariable("ORDIVON_CAPITAL_MARKET_TARGET_PORTFOLIO");
         if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
         {
-            throw new InvalidOperationException("MARKET_CAPITAL_TARGET_PORTFOLIO must name one exact target portfolio artifact");
+            throw new InvalidOperationException("ORDIVON_CAPITAL_MARKET_TARGET_PORTFOLIO must name one exact target portfolio artifact");
         }
 
         var targetBytes = File.ReadAllBytes(path);
         _targetPortfolioSha256 = Convert.ToHexString(SHA256.HashData(targetBytes)).ToLowerInvariant();
-        _fixIntentEnabled = string.Equals(Environment.GetEnvironmentVariable("MARKET_CAPITAL_FIX_INTENT_ENABLED"), "true", StringComparison.OrdinalIgnoreCase);
-        _planOnly = string.Equals(Environment.GetEnvironmentVariable("MARKET_CAPITAL_PLAN_ONLY"), "true", StringComparison.OrdinalIgnoreCase);
+        _fixIntentEnabled = string.Equals(Environment.GetEnvironmentVariable("ORDIVON_CAPITAL_MARKET_FIX_INTENT_ENABLED"), "true", StringComparison.OrdinalIgnoreCase);
+        _planOnly = string.Equals(Environment.GetEnvironmentVariable("ORDIVON_CAPITAL_MARKET_PLAN_ONLY"), "true", StringComparison.OrdinalIgnoreCase);
         if (_planOnly && !_fixIntentEnabled) throw new InvalidOperationException("plan-only mode requires FIX intent admission");
-        var tif = Environment.GetEnvironmentVariable("MARKET_CAPITAL_FIX_TIME_IN_FORCE");
+        var tif = Environment.GetEnvironmentVariable("ORDIVON_CAPITAL_MARKET_FIX_TIME_IN_FORCE");
         _fixTimeInForce = string.Equals(tif, "AT_THE_OPENING", StringComparison.OrdinalIgnoreCase) ? QfTimeInForce.AT_THE_OPENING : QfTimeInForce.DAY;
-        var intentTime = Environment.GetEnvironmentVariable("MARKET_CAPITAL_ORDER_INTENT_TIME_UTC");
+        var intentTime = Environment.GetEnvironmentVariable("ORDIVON_CAPITAL_MARKET_ORDER_INTENT_TIME_UTC");
         if (!string.IsNullOrWhiteSpace(intentTime))
         {
             _orderIntentTimeUtc = DateTime.Parse(intentTime, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal);
@@ -130,9 +130,9 @@ public sealed class MarketCapitalValidationAlgorithm : QCAlgorithm
 
     private static void EnsureQuickFixAssemblyResolution()
     {
-        var directory = Environment.GetEnvironmentVariable("MARKET_CAPITAL_FIX_ASSEMBLY_DIRECTORY");
+        var directory = Environment.GetEnvironmentVariable("ORDIVON_CAPITAL_MARKET_FIX_ASSEMBLY_DIRECTORY");
         if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))
-            throw new InvalidOperationException("MARKET_CAPITAL_FIX_ASSEMBLY_DIRECTORY is unavailable");
+            throw new InvalidOperationException("ORDIVON_CAPITAL_MARKET_FIX_ASSEMBLY_DIRECTORY is unavailable");
         AssemblyLoadContext.Default.Resolving += (context, name) =>
         {
             if (name.Name is not ("QuickFix" or "QuickFix.FIX44" or "Microsoft.Extensions.Logging.Abstractions" or "Microsoft.Extensions.DependencyInjection.Abstractions")) return null;

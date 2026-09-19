@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from ordivon_capital.market.model_lineage import monitoring_dataframe, persist_monitoring_evidence
+from ordivon_capital.market.monitoring_persistence import monitoring_dataframe, persist_monitoring_evidence
 
 
 DUCKDB = Path("/opt/ordivon/external/duckdb/1.5.5-1/duckdb")
@@ -58,9 +58,11 @@ def test_persist_monitoring_evidence_parquet_duckdb_mlflow(tmp_path):
         evidence_path=evidence_path,
         output_dir=tmp_path / "out",
         duckdb_binary=DUCKDB,
+        tracking_uri=f"sqlite:///{tmp_path / 'mlflow.db'}",
     )
     assert result["rowCount"] == 1
     assert int(result["duckdbReadback"]["row_count"]) == 1
     assert len(result["mlflowRunId"]) == 32
     assert Path(result["parquetPath"]).is_file()
-    assert (tmp_path / "out" / "mlflow.db").is_file()
+    assert (tmp_path / "mlflow.db").is_file()
+    assert result["mlflowTrackingUri"].startswith("sqlite:")

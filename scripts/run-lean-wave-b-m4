@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 repo="$(cd "$(dirname "$0")/.." && pwd)"
-lean="${MARKET_CAPITAL_LEAN_ROOT:-/root/external/quantconnect-lean/18074}"
+lean="${ORDIVON_CAPITAL_MARKET_LEAN_ROOT:-/root/external/quantconnect-lean/18074}"
 out="$repo/.artifacts/wave-b-m4/results"
 "$repo/scripts/check-lean-runtime"
 "$repo/scripts/check-execution-policy" --mode non-live >/dev/null
@@ -9,12 +9,12 @@ mkdir -p "$repo/.artifacts/wave-b-m3"
 "$repo/scripts/fetch-nasdaq-wave-b-m3" > "$repo/.artifacts/wave-b-m3/fetch-manifest-output.json"
 DOTNET_CLI_TELEMETRY_OPTOUT=1 dotnet build "$repo/wave_b/algorithm/MarketCapitalValidationAlgorithm.csproj" -c Release --nologo -p:LeanReleaseRoot="$lean/Launcher/bin/Release"
 rm -rf "$out" && mkdir -p "$out"
-export MARKET_CAPITAL_TARGET_PORTFOLIO="$repo/wave_b/fixtures/wave_a_target_portfolio.json"
-export MARKET_CAPITAL_EXECUTION_CASH_BUFFER_WEIGHT="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["executionCashBufferWeight"])' "$repo/config/execution_feasibility.json")"
-export MARKET_CAPITAL_BACKTEST_START="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["startDate"])' "$repo/config/historical_validation_data.json")"
-export MARKET_CAPITAL_BACKTEST_END="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["endDate"])' "$repo/config/historical_validation_data.json")"
-export MARKET_CAPITAL_FIX_INTENT_ENABLED=true
-export MARKET_CAPITAL_FIX_ASSEMBLY_DIRECTORY="$repo/wave_b/algorithm/bin/Release/net10.0"
+export ORDIVON_CAPITAL_MARKET_TARGET_PORTFOLIO="$repo/wave_b/fixtures/wave_a_target_portfolio.json"
+export ORDIVON_CAPITAL_MARKET_EXECUTION_CASH_BUFFER_WEIGHT="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["executionCashBufferWeight"])' "$repo/config/execution_feasibility.json")"
+export ORDIVON_CAPITAL_MARKET_BACKTEST_START="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["startDate"])' "$repo/config/historical_validation_data.json")"
+export ORDIVON_CAPITAL_MARKET_BACKTEST_END="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["endDate"])' "$repo/config/historical_validation_data.json")"
+export ORDIVON_CAPITAL_MARKET_FIX_INTENT_ENABLED=true
+export ORDIVON_CAPITAL_MARKET_FIX_ASSEMBLY_DIRECTORY="$repo/wave_b/algorithm/bin/Release/net10.0"
 (
  cd "$lean/Launcher/bin/Release"
  ./QuantConnect.Lean.Launcher --config "$lean/Launcher/config.json" --environment backtesting \

@@ -42,7 +42,7 @@
     "ambient credential discovery remains forbidden; only the explicitly owner-authorized observer bindings may be used for bounded permission verification and read-only observation",
     "Owner Principal mandate is already present for the explicitly bound read-only observer credentials; provider permission/currentness must be verified independently",
     "read-only admission must not imply TRADE, withdrawal, demo-order or live-order authority",
-    "venue-native account/order/trade reality remains authoritative; Market Capital may only normalize and reconcile it",
+    "venue-native account/order/trade reality remains authoritative; the Ordivon Capital Market domain may only normalize and reconcile it",
     "observer credential locations are explicitly bound; secret bytes remain external to the repository and executor credentials are excluded",
     "fresh private-account permission verification must succeed before privateAccountDataAllowed may become true",
     "normalization is pure and must not read credentials, open network connections, or create execution authority"

@@ -98,6 +98,16 @@ def test_every_active_responsibility_has_a_resolved_external_owner_standing():
 def test_research_data_is_external_owned_not_a_capital_data_platform():
     by_id = {row["id"]: row for row in CENSUS["responsibilities"]}
     row = by_id["research-data-and-model-governance"]
-    assert row["localStanding"] == "THIN_GLUE_CROSS_DOMAIN_EXTRACTION_PENDING"
+    assert row["localStanding"] == "THIN_MARKET_BINDING_EXTERNAL_CONFIG_OWNER"
     assert "MLflow" in row["externalOwners"]
-    assert "OpenLineage target in shared Research/Data substrate" in row["externalOwners"]
+    assert "OpenLineage for any future actual lineage-event surface" in row["externalOwners"]
+    assert "No local lineage graph" in row["localResponsibility"]
+    assert "generic Research/Data platform" in row["localResponsibility"]
+
+
+def test_retained_old_names_are_explicit_external_or_provider_identity_contracts():
+    by_id = {row["id"]: row for row in CENSUS["retainedCompatibilityContracts"]}
+    assert by_id["prometheus-market-capital-metric-prefix"]["standing"] == "RETAINED_EXTERNAL_OBSERVABILITY_COMPATIBILITY"
+    assert by_id["tigerbeetle-market-capital-stable-provider-ids"]["standing"] == "RETAINED_PROVIDER_IDEMPOTENCY_IDENTITY"
+    assert by_id["wave-a-frozen-target-fixture"]["standing"] == "RETAINED_FROZEN_FIXTURE_IDENTITY"
+    assert by_id["historical-physical-repo-source-coordinate"]["standing"] == "RETAINED_RESEARCH_PROVENANCE_SOURCE_COORDINATE"

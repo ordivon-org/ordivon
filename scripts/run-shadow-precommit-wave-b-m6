@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 repo="$(cd "$(dirname "$0")/.." && pwd)"
-lean="${MARKET_CAPITAL_LEAN_ROOT:-/root/external/quantconnect-lean/18074}"
+lean="${ORDIVON_CAPITAL_MARKET_LEAN_ROOT:-/root/external/quantconnect-lean/18074}"
 out="$repo/.artifacts/wave-b-m6/results"
 "$repo/scripts/check-lean-runtime"
 mkdir -p "$repo/.artifacts/wave-b-m3"
@@ -10,15 +10,15 @@ DOTNET_CLI_TELEMETRY_OPTOUT=1 dotnet build "$repo/wave_b/algorithm/MarketCapital
 rm -rf "$out" && mkdir -p "$out"
 "$repo/scripts/check-execution-policy" --mode non-live --output "$out/authority.json" >/dev/null
 read_cfg(){ python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))[sys.argv[2]])' "$repo/config/shadow_precommit.json" "$1"; }
-export MARKET_CAPITAL_TARGET_PORTFOLIO="$repo/wave_b/fixtures/wave_a_target_portfolio.json"
-export MARKET_CAPITAL_EXECUTION_CASH_BUFFER_WEIGHT="$(read_cfg executionCashBufferWeight)"
-export MARKET_CAPITAL_BACKTEST_START="$(read_cfg pricingSessionDate)"
-export MARKET_CAPITAL_BACKTEST_END="$(read_cfg pricingSessionDate)"
-export MARKET_CAPITAL_FIX_INTENT_ENABLED=true
-export MARKET_CAPITAL_PLAN_ONLY=true
-export MARKET_CAPITAL_FIX_TIME_IN_FORCE=AT_THE_OPENING
-export MARKET_CAPITAL_ORDER_INTENT_TIME_UTC="$(read_cfg precommitTimeUtc)"
-export MARKET_CAPITAL_FIX_ASSEMBLY_DIRECTORY="$repo/wave_b/algorithm/bin/Release/net10.0"
+export ORDIVON_CAPITAL_MARKET_TARGET_PORTFOLIO="$repo/wave_b/fixtures/wave_a_target_portfolio.json"
+export ORDIVON_CAPITAL_MARKET_EXECUTION_CASH_BUFFER_WEIGHT="$(read_cfg executionCashBufferWeight)"
+export ORDIVON_CAPITAL_MARKET_BACKTEST_START="$(read_cfg pricingSessionDate)"
+export ORDIVON_CAPITAL_MARKET_BACKTEST_END="$(read_cfg pricingSessionDate)"
+export ORDIVON_CAPITAL_MARKET_FIX_INTENT_ENABLED=true
+export ORDIVON_CAPITAL_MARKET_PLAN_ONLY=true
+export ORDIVON_CAPITAL_MARKET_FIX_TIME_IN_FORCE=AT_THE_OPENING
+export ORDIVON_CAPITAL_MARKET_ORDER_INTENT_TIME_UTC="$(read_cfg precommitTimeUtc)"
+export ORDIVON_CAPITAL_MARKET_FIX_ASSEMBLY_DIRECTORY="$repo/wave_b/algorithm/bin/Release/net10.0"
 (
  cd "$lean/Launcher/bin/Release"
  ./QuantConnect.Lean.Launcher --config "$lean/Launcher/config.json" --environment backtesting \

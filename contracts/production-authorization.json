@@ -1,7 +1,7 @@
 {
   "externalFinancialWriteAllowed": false,
   "kind": "ordivon.capital.market.production-authorization",
-  "reason": "canonical Market Capital production/live external financial writes are not admitted",
+  "reason": "canonical Ordivon Capital Market-domain production/live external financial writes are not admitted",
   "schemaVersion": 1,
   "state": "BLOCK_NOT_GRANTED"
 }

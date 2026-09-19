@@ -87,7 +87,7 @@ for symbol, assetclass in specs:
         "lastDate": normalized[-1][0].isoformat()
     })
 
-lean = Path(os.environ.get("MARKET_CAPITAL_LEAN_ROOT", "/root/external/quantconnect-lean/18074"))
+lean = Path(os.environ.get("ORDIVON_CAPITAL_MARKET_LEAN_ROOT", "/root/external/quantconnect-lean/18074"))
 for name in ("market-hours", "symbol-properties", "alternative"):
     os.symlink(lean/"Data"/name, data/name, target_is_directory=True)
 (root/"manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True)+"\n")

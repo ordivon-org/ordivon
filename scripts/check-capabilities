@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-mise_bin="${MARKET_CAPITAL_MISE:-$(command -v mise || true)}"
+mise_bin="${ORDIVON_CAPITAL_MISE:-$(command -v mise || true)}"
 market_python="$root/.venv/bin/python"
-arelle="${MARKET_CAPITAL_ARELLE:-/root/.local/bin/arelleCmdLine}"
-tigerbeetle="${MARKET_CAPITAL_TIGERBEETLE:-/usr/local/bin/tigerbeetle}"
-tigerbeetle_python="${MARKET_CAPITAL_TIGERBEETLE_PYTHON:-/opt/ordivon/external/tigerbeetle/0.17.9/python-client/bin/python}"
+tigerbeetle="${ORDIVON_CAPITAL_TIGERBEETLE:-/usr/local/bin/tigerbeetle}"
+tigerbeetle_python="${ORDIVON_CAPITAL_TIGERBEETLE_PYTHON:-/opt/ordivon/external/tigerbeetle/0.17.9/python-client/bin/python}"
 
 cd "$root"
 if [[ -z "$mise_bin" || ! -x "$mise_bin" ]]; then
@@ -56,11 +55,6 @@ if drift:
     raise SystemExit("Market dependency version drift: " + repr(drift))
 PY
 
-if [[ ! -x "$arelle" ]]; then
-  echo "Arelle core unavailable: $arelle" >&2
-  exit 4
-fi
-"$arelle" --version
 
 if [[ ! -x "$tigerbeetle" ]]; then
   echo "TigerBeetle binary unavailable: $tigerbeetle" >&2

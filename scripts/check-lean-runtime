@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-root="${MARKET_CAPITAL_LEAN_ROOT:-/root/external/quantconnect-lean/18074}"
+root="${ORDIVON_CAPITAL_MARKET_LEAN_ROOT:-/root/external/quantconnect-lean/18074}"
 expected_commit="8ee075a39918f2df6fe9e0a5944e366fb60d10dc"
 expected_archive="a1a87dd28d610f08204f23442dbb6f9ca51c1a97db6510e828946d5d5a067a24"
 [[ -x /usr/bin/dotnet ]] || { echo 'dotnet unavailable' >&2; exit 2; }

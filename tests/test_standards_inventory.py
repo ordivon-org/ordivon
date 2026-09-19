@@ -59,7 +59,7 @@ def test_active_analytical_component_ids_are_registered():
         ROOT / "src/ordivon_capital/market/prospective_validation.py",
         ROOT / "src/ordivon_capital/market/crypto_public_shadow.py",
         ROOT / "src/ordivon_capital/market/model_monitoring.py",
-        ROOT / "src/ordivon_capital/market/model_lineage.py",
+        ROOT / "src/ordivon_capital/market/monitoring_persistence.py",
     ]
     import re
     declared = set()

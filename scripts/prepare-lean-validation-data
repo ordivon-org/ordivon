@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from pathlib import Path
 import os, shutil, zipfile
-lean = Path(os.environ.get("MARKET_CAPITAL_LEAN_ROOT", "/root/external/quantconnect-lean/18074"))
+lean = Path(os.environ.get("ORDIVON_CAPITAL_MARKET_LEAN_ROOT", "/root/external/quantconnect-lean/18074"))
 root = Path(__file__).resolve().parents[1] / ".artifacts" / "wave-b-m1" / "data"
 if root.exists(): shutil.rmtree(root)
 (root / "equity/usa/daily").mkdir(parents=True)

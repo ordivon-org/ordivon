@@ -4,13 +4,14 @@ import argparse
 import json
 from pathlib import Path
 
-from .model_lineage import persist_monitoring_evidence
+from .monitoring_persistence import persist_monitoring_evidence
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--evidence", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--tracking-uri", default=None)
     parser.add_argument(
         "--duckdb",
         type=Path,
@@ -21,6 +22,7 @@ def main() -> int:
         evidence_path=args.evidence,
         output_dir=args.output_dir,
         duckdb_binary=args.duckdb,
+        tracking_uri=args.tracking_uri,
     )
     print(json.dumps(result, sort_keys=True))
     return 0

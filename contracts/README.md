@@ -1,4 +1,4 @@
-# Market Capital contracts
+# Ordivon Capital — Market-domain contracts
 
 Current contracts are selected only through current configuration and current code references; directory presence alone does not confer authority.
 
