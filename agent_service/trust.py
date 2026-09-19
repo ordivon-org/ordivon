@@ -18,7 +18,7 @@ from .delivery import (
 )
 from .evidence import RuntimeArtifactReader
 from .semantics import DelegationEnvelope
-from .slice1 import CarrierProviderAdapter, ServiceEventStore
+from .slice1 import CarrierProviderAdapter, ServiceEvent, ServiceEventStore
 from .task_runtime import RuntimeAdapter
 
 
@@ -438,125 +438,112 @@ class RemoteDeliverySnapshot:
     created_at_ns: int
 
 
-class RemoteDeliveryObservationStore:
-    """Append-only provider snapshots; remote lifecycle is not local Task semantic truth."""
+def _remote_delivery_observation_from_event(
+    event: ServiceEvent,
+) -> RemoteDeliverySnapshot:
+    if (
+        event.aggregate_type != "RemoteDeliveryObservation"
+        or event.event_type != "RemoteDeliveryObserved"
+    ):
+        raise ValueError("event is not a remote delivery observation")
+    payload = event.payload
+    if payload.get("bindingId") != event.aggregate_id:
+        raise RuntimeError("remote delivery observation Binding identity mismatch")
+    raw_success = payload.get("successful")
+    if raw_success is not None and not isinstance(raw_success, bool):
+        raise RuntimeError("remote delivery observation successful must be boolean or null")
+    artifact_refs = payload.get("artifactRefs", [])
+    if not isinstance(artifact_refs, list) or not all(isinstance(x, str) for x in artifact_refs):
+        raise RuntimeError("remote delivery observation artifactRefs must be a string array")
+    return RemoteDeliverySnapshot(
+        id=event.id,
+        binding_id=event.aggregate_id,
+        sequence=event.sequence,
+        provider_status=payload["providerStatus"],
+        terminal=bool(payload["terminal"]),
+        successful=raw_success,
+        remote_task_id=payload.get("remoteTaskId"),
+        remote_context_id=payload.get("remoteContextId"),
+        artifact_refs=tuple(artifact_refs),
+        evidence_ref=payload["evidenceRef"],
+        observed_at_ms=int(payload["observedAtMs"]),
+        created_at_ns=event.created_at_ns,
+    )
 
-    def __init__(self, connection: sqlite3.Connection) -> None:
-        self._connection = connection
 
-    def list_for_binding(self, binding_id: str) -> list[RemoteDeliverySnapshot]:
-        rows = self._connection.execute(
-            """
-            SELECT * FROM remote_delivery_observations
-            WHERE binding_id = ? ORDER BY sequence
-            """,
-            (binding_id,),
-        ).fetchall()
-        return [self._from_row(row) for row in rows]
+def _remote_delivery_observation_list_for_binding(
+    events: ServiceEventStore,
+    binding_id: str,
+) -> list[RemoteDeliverySnapshot]:
+    return [
+        _remote_delivery_observation_from_event(event)
+        for event in events.list_for("RemoteDeliveryObservation", binding_id)
+        if event.event_type == "RemoteDeliveryObserved"
+    ]
 
-    def latest_for_binding(
-        self, binding_id: str, required: bool = True
-    ) -> RemoteDeliverySnapshot | None:
-        row = self._connection.execute(
-            """
-            SELECT * FROM remote_delivery_observations
-            WHERE binding_id = ? ORDER BY sequence DESC LIMIT 1
-            """,
-            (binding_id,),
-        ).fetchone()
-        if row is None:
-            if required:
-                raise KeyError(binding_id)
-            return None
-        return self._from_row(row)
 
-    def record(
-        self,
-        *,
-        binding_id: str,
-        observation: RemoteProviderObservation,
-        observed_at_ms: int | None = None,
-    ) -> RemoteDeliverySnapshot:
-        latest = self.latest_for_binding(binding_id, required=False)
-        candidate = (
-            observation.provider_status,
-            bool(observation.terminal),
-            observation.successful,
-            observation.remote_task_id,
-            observation.remote_context_id,
-            tuple(observation.artifact_refs),
-            observation.evidence_ref,
+def _remote_delivery_observation_latest_for_binding(
+    events: ServiceEventStore,
+    binding_id: str,
+    required: bool = True,
+) -> RemoteDeliverySnapshot | None:
+    history = _remote_delivery_observation_list_for_binding(events, binding_id)
+    if not history:
+        if required:
+            raise KeyError(binding_id)
+        return None
+    return history[-1]
+
+
+def _remote_delivery_observation_record(
+    events: ServiceEventStore,
+    *,
+    binding_id: str,
+    observation: RemoteProviderObservation,
+    observed_at_ms: int | None = None,
+) -> RemoteDeliverySnapshot:
+    latest = _remote_delivery_observation_latest_for_binding(
+        events, binding_id, required=False
+    )
+    candidate = (
+        observation.provider_status,
+        bool(observation.terminal),
+        observation.successful,
+        observation.remote_task_id,
+        observation.remote_context_id,
+        tuple(observation.artifact_refs),
+        observation.evidence_ref,
+    )
+    if latest is not None:
+        historical = (
+            latest.provider_status,
+            latest.terminal,
+            latest.successful,
+            latest.remote_task_id,
+            latest.remote_context_id,
+            latest.artifact_refs,
+            latest.evidence_ref,
         )
-        if latest is not None:
-            historical = (
-                latest.provider_status,
-                latest.terminal,
-                latest.successful,
-                latest.remote_task_id,
-                latest.remote_context_id,
-                latest.artifact_refs,
-                latest.evidence_ref,
-            )
-            if candidate == historical:
-                return latest
-        sequence = 1 if latest is None else latest.sequence + 1
-        value = RemoteDeliverySnapshot(
-            id=_id("robs"),
-            binding_id=binding_id,
-            sequence=sequence,
-            provider_status=observation.provider_status,
-            terminal=bool(observation.terminal),
-            successful=observation.successful,
-            remote_task_id=observation.remote_task_id,
-            remote_context_id=observation.remote_context_id,
-            artifact_refs=tuple(observation.artifact_refs),
-            evidence_ref=observation.evidence_ref,
-            observed_at_ms=_now_ms() if observed_at_ms is None else int(observed_at_ms),
-            created_at_ns=_now_ns(),
-        )
-        with self._connection:
-            self._connection.execute(
-                """
-                INSERT INTO remote_delivery_observations(
-                    id, binding_id, sequence, provider_status, terminal, successful,
-                    remote_task_id, remote_context_id, artifact_refs_json, evidence_ref,
-                    observed_at_ms, created_at_ns
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    value.id,
-                    value.binding_id,
-                    value.sequence,
-                    value.provider_status,
-                    1 if value.terminal else 0,
-                    None if value.successful is None else (1 if value.successful else 0),
-                    value.remote_task_id,
-                    value.remote_context_id,
-                    _canonical_json(list(value.artifact_refs)),
-                    value.evidence_ref,
-                    value.observed_at_ms,
-                    value.created_at_ns,
-                ),
-            )
-        return value
+        if candidate == historical:
+            return latest
 
-    @staticmethod
-    def _from_row(row: sqlite3.Row) -> RemoteDeliverySnapshot:
-        raw_success = row["successful"]
-        return RemoteDeliverySnapshot(
-            id=row["id"],
-            binding_id=row["binding_id"],
-            sequence=row["sequence"],
-            provider_status=row["provider_status"],
-            terminal=bool(row["terminal"]),
-            successful=None if raw_success is None else bool(raw_success),
-            remote_task_id=row["remote_task_id"],
-            remote_context_id=row["remote_context_id"],
-            artifact_refs=tuple(json.loads(row["artifact_refs_json"])),
-            evidence_ref=row["evidence_ref"],
-            observed_at_ms=row["observed_at_ms"],
-            created_at_ns=row["created_at_ns"],
-        )
+    event = events.append(
+        "RemoteDeliveryObservation",
+        binding_id,
+        "RemoteDeliveryObserved",
+        {
+            "bindingId": binding_id,
+            "providerStatus": observation.provider_status,
+            "terminal": bool(observation.terminal),
+            "successful": observation.successful,
+            "remoteTaskId": observation.remote_task_id,
+            "remoteContextId": observation.remote_context_id,
+            "artifactRefs": list(observation.artifact_refs),
+            "evidenceRef": observation.evidence_ref,
+            "observedAtMs": _now_ms() if observed_at_ms is None else int(observed_at_ms),
+        },
+    )
+    return _remote_delivery_observation_from_event(event)
 
 
 class RemoteCorrelationReconciler:
@@ -565,13 +552,11 @@ class RemoteCorrelationReconciler:
         delegations: Any,
         bindings: Any,
         delivery_events: ServiceEventStore,
-        observations: RemoteDeliveryObservationStore,
         observers: dict[str, RemoteDeliveryObserver],
     ) -> None:
         self._delegations = delegations
         self._bindings = bindings
         self._delivery_events = delivery_events
-        self._observations = observations
         self._observers = dict(observers)
 
     def reconcile(self, binding_id: str) -> RemoteDeliverySnapshot:
@@ -592,13 +577,13 @@ class RemoteCorrelationReconciler:
             raise ValueError("remote task correlation changed from delivery receipt")
         if receipt.remote_context_id is not None and observation.remote_context_id != receipt.remote_context_id:
             raise ValueError("remote context correlation changed from delivery receipt")
-        latest = self._observations.latest_for_binding(binding.id, required=False)
+        latest = _remote_delivery_observation_latest_for_binding(self._delivery_events, binding.id, required=False)
         if latest is not None:
             if latest.remote_task_id is not None and observation.remote_task_id != latest.remote_task_id:
                 raise ValueError("remote task correlation changed from established observation")
             if latest.remote_context_id is not None and observation.remote_context_id != latest.remote_context_id:
                 raise ValueError("remote context correlation changed from established observation")
-        return self._observations.record(binding_id=binding.id, observation=observation)
+        return _remote_delivery_observation_record(self._delivery_events, binding_id=binding.id, observation=observation)
 
 
 class AuditEnvelopeProjector:
@@ -609,13 +594,11 @@ class AuditEnvelopeProjector:
         proofs: IdentityProofRecordStore,
         bindings: Any,
         delivery_events: ServiceEventStore,
-        observations: RemoteDeliveryObservationStore,
         delegations: Any,
     ) -> None:
         self._proofs = proofs
         self._bindings = bindings
         self._delivery_events = delivery_events
-        self._observations = observations
         self._delegations = delegations
 
     def project_identity_proof(self, proof_id: str) -> dict[str, Any]:
@@ -639,7 +622,7 @@ class AuditEnvelopeProjector:
         binding = self._bindings.get(binding_id)
         receipt = _delivery_receipt_get_by_binding(self._delivery_events, binding_id)
         envelope = self._delegations.get(binding.delegation_id)
-        latest = self._observations.latest_for_binding(binding_id, required=False)
+        latest = _remote_delivery_observation_latest_for_binding(self._delivery_events, binding_id, required=False)
         remote_task_id = receipt.remote_task_id
         remote_context_id = receipt.remote_context_id
         if latest is not None:
@@ -696,19 +679,16 @@ class AgentServiceR10:
             self.identity_proof_records,
             identity_proof_adapter,
         )
-        self.remote_observations = RemoteDeliveryObservationStore(self._connection)
         self.remote_reconciler = RemoteCorrelationReconciler(
             self.delegations,
             self.transport_bindings,
             self.events,
-            self.remote_observations,
             remote_delivery_observers,
         )
         self.audit = AuditEnvelopeProjector(
             self.identity_proof_records,
             self.transport_bindings,
             self.events,
-            self.remote_observations,
             self.delegations,
         )
 
@@ -744,6 +724,15 @@ class AgentServiceR10:
 
     @staticmethod
     def _initialize_schema(connection: sqlite3.Connection) -> None:
+        legacy_remote_delivery_observations = connection.execute(
+            "SELECT 1 FROM sqlite_master "
+            "WHERE type = 'table' AND name = 'remote_delivery_observations'"
+        ).fetchone()
+        if legacy_remote_delivery_observations is not None:
+            raise RuntimeError(
+                "legacy remote_delivery_observations schema is unsupported; "
+                "perform explicit destructive migration before opening this revision"
+            )
         connection.executescript(
             """
             CREATE TABLE IF NOT EXISTS credential_references (
@@ -773,21 +762,6 @@ class AgentServiceR10:
                 created_at_ns INTEGER NOT NULL
             );
 
-            CREATE TABLE IF NOT EXISTS remote_delivery_observations (
-                id TEXT PRIMARY KEY,
-                binding_id TEXT NOT NULL REFERENCES transport_bindings(id),
-                sequence INTEGER NOT NULL,
-                provider_status TEXT NOT NULL,
-                terminal INTEGER NOT NULL CHECK(terminal IN (0, 1)),
-                successful INTEGER CHECK(successful IS NULL OR successful IN (0, 1)),
-                remote_task_id TEXT,
-                remote_context_id TEXT,
-                artifact_refs_json TEXT NOT NULL,
-                evidence_ref TEXT NOT NULL,
-                observed_at_ms INTEGER NOT NULL,
-                created_at_ns INTEGER NOT NULL,
-                UNIQUE(binding_id, sequence)
-            );
             """
         )
         connection.commit()

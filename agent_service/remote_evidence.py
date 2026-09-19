@@ -37,9 +37,9 @@ from .task_runtime import (
 from .trust import (
     AgentServiceR10,
     IdentityProofAdapter,
-    RemoteDeliveryObservationStore,
     RemoteDeliveryObserver,
     RemoteDeliverySnapshot,
+    _remote_delivery_observation_latest_for_binding,
 )
 
 
@@ -485,7 +485,7 @@ class RemoteTaskCompletionReconciler:
         delegations: Any,
         bindings: TransportBindingStore,
         receipts: ServiceEventStore,
-        observations: RemoteDeliveryObservationStore,
+        observations: ServiceEventStore,
         resolver: RemoteArtifactEvidenceResolver,
         verifier: EvidenceSemanticVerifier,
     ) -> None:
@@ -513,7 +513,7 @@ class RemoteTaskCompletionReconciler:
         if (claim.mode, claim.owner_id) != ("REMOTE_BINDING", binding.id):
             raise RuntimeError("remote completion does not own Task execution claim")
         _delivery_receipt_get_by_binding(self._receipts, binding.id)
-        observation = self._observations.latest_for_binding(binding.id, required=False)
+        observation = _remote_delivery_observation_latest_for_binding(self._observations, binding.id, required=False)
         if observation is None or not observation.terminal:
             return None
         if task.state != "RUNNING":
@@ -609,7 +609,7 @@ class AgentServiceR11:
             "task_graph", "goal_reconciler", "board_projector", "identities",
             "sessions", "session_items", "delegations", "a2a_cards",
             "transport_bindings", "routes",
-            "credential_references", "identity_proof_records", "identity_proofs", "remote_observations",
+            "credential_references", "identity_proof_records", "identity_proofs",
             "remote_reconciler", "audit",
         ):
             setattr(self, name, getattr(r10, name))
@@ -645,7 +645,7 @@ class AgentServiceR11:
             self.delegations,
             self.transport_bindings,
             self.events,
-            self.remote_observations,
+            self.events,
             self.remote_artifacts,
             self.remote_semantic_verifier,
         )

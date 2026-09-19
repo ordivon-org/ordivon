@@ -23,9 +23,10 @@ from .slice1 import CarrierProviderAdapter, ServiceEvent, ServiceEventStore
 from .task_runtime import RuntimeAdapter, TaskStore
 from .trust import (
     IdentityProofAdapter,
-    RemoteDeliveryObservationStore,
     RemoteDeliveryObserver,
     RemoteDeliverySnapshot,
+    _remote_delivery_observation_list_for_binding,
+    _remote_delivery_observation_latest_for_binding,
 )
 
 
@@ -330,7 +331,7 @@ class ExecutionQuiescenceCoordinator:
         delegations: Any,
         bindings: TransportBindingStore,
         receipts: ServiceEventStore,
-        observations: RemoteDeliveryObservationStore,
+        observations: ServiceEventStore,
         requests: ExecutionQuiescenceRequestStore,
         adapters: dict[str, ExecutionQuiescenceAdapter],
     ) -> None:
@@ -369,7 +370,7 @@ class ExecutionQuiescenceCoordinator:
         if (claim.mode, claim.owner_id) != ("REMOTE_BINDING", binding.id):
             raise RuntimeError("quiescence proof requires Binding to own the Task execution claim")
         receipt = _delivery_receipt_get_by_binding(self._receipts, binding.id, required=False)
-        history = self._observations.list_for_binding(binding.id)
+        history = _remote_delivery_observation_list_for_binding(self._observations, binding.id)
         latest = None if not history else history[-1]
 
         if any(item.terminal and item.successful is True for item in history):
@@ -632,7 +633,7 @@ class ReplaySafetyCoordinator:
         delegations: Any,
         bindings: TransportBindingStore,
         receipts: ServiceEventStore,
-        observations: RemoteDeliveryObservationStore,
+        observations: ServiceEventStore,
         adapter: ReplaySafetyAdapter | None,
     ) -> None:
         self._connection = connection
@@ -687,7 +688,7 @@ class ReplaySafetyCoordinator:
             raise ValueError("quiescence proof does not belong to source Binding")
         if not proof.quiescent:
             raise RuntimeError("replay safety evaluation requires positive quiescence proof")
-        history = tuple(self._observations.list_for_binding(source.id))
+        history = tuple(_remote_delivery_observation_list_for_binding(self._observations, source.id))
         if any(item.terminal and item.successful is True for item in history):
             raise RuntimeError("successful terminal source must be verified, not replayed")
         observation = self._adapter.evaluate_replay_safety(
@@ -905,7 +906,7 @@ class ExecutionClaimTransferCoordinator:
         delegations: Any,
         bindings: TransportBindingStore,
         receipts: ServiceEventStore,
-        observations: RemoteDeliveryObservationStore,
+        observations: ServiceEventStore,
         quiescence_requests: ExecutionQuiescenceRequestStore,
     ) -> None:
         self._connection = connection
@@ -934,7 +935,7 @@ class ExecutionClaimTransferCoordinator:
             raise RuntimeError("claim transfer source is not the current remote execution owner")
         if _delivery_receipt_get_by_binding(self._receipts, target.id, required=False) is not None:
             raise RuntimeError("claim transfer target already has a delivery receipt")
-        if self._observations.list_for_binding(target.id):
+        if _remote_delivery_observation_list_for_binding(self._observations, target.id):
             raise RuntimeError("claim transfer target already has remote observation history")
         if self._quiescence_requests.latest_for_binding(target.id) is not None:
             raise RuntimeError("claim transfer target has quiescence-attempt history")
@@ -1007,7 +1008,7 @@ class ExecutionClaimTransferCoordinator:
             raise RuntimeError("quiescence proof has already been consumed by another transfer")
         if _delivery_receipt_get_by_binding(self._receipts, target.id, required=False) is not None:
             raise RuntimeError("claim transfer target already has a delivery receipt")
-        if self._observations.list_for_binding(target.id):
+        if _remote_delivery_observation_list_for_binding(self._observations, target.id):
             raise RuntimeError("claim transfer target already has remote observation history")
         if _execution_quiescence_proof_latest_for_binding(self._events, task.id, target.id, quiescent_only=True) is not None:
             raise RuntimeError("claim transfer target was previously quiesced/frozen")
@@ -1015,7 +1016,7 @@ class ExecutionClaimTransferCoordinator:
             raise RuntimeError("claim transfer target is not pristine")
         if _remote_task_verification_get_by_task(self._events, task.id, required=False) is not None:
             raise RuntimeError("verified Task cannot transfer execution claim")
-        source_history = self._observations.list_for_binding(source.id)
+        source_history = _remote_delivery_observation_list_for_binding(self._observations, source.id)
         if any(item.terminal and item.successful is True for item in source_history):
             raise RuntimeError("successful terminal source must be verified, not failed over")
         later = [item for item in source_history if item.created_at_ns > proof.created_at_ns]
@@ -1163,7 +1164,7 @@ class AgentServiceR12:
             "task_graph", "goal_reconciler", "board_projector", "identities",
             "sessions", "session_items", "delegations", "a2a_cards",
             "transport_bindings", "routes",
-            "credential_references", "identity_proof_records", "identity_proofs", "remote_observations",
+            "credential_references", "identity_proof_records", "identity_proofs",
             "remote_reconciler", "audit", "execution_claims",
             "remote_artifacts", "remote_semantic_verifier", "remote_completion",
         ):
@@ -1186,7 +1187,7 @@ class AgentServiceR12:
             self.delegations,
             self.transport_bindings,
             self.events,
-            self.remote_observations,
+            self.events,
             self.quiescence_requests,
             execution_quiescence_adapters,
         )
@@ -1198,7 +1199,7 @@ class AgentServiceR12:
             self.delegations,
             self.transport_bindings,
             self.events,
-            self.remote_observations,
+            self.events,
             replay_safety_adapter,
         )
         self.claim_transfers = ExecutionClaimTransferCoordinator(
@@ -1209,7 +1210,7 @@ class AgentServiceR12:
             self.delegations,
             self.transport_bindings,
             self.events,
-            self.remote_observations,
+            self.events,
             self.quiescence_requests,
         )
         self.delivery = TransferAwareDeliveryCoordinator(

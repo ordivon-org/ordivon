@@ -191,7 +191,6 @@
       "RemoteArtifactPayload",
       "RemoteArtifactReader",
       "RemoteCorrelationReconciler",
-      "RemoteDeliveryObservationStore",
       "RemoteDeliveryObserver",
       "RemoteDeliverySnapshot",
       "RemoteExecutionCompleted",
@@ -292,6 +291,7 @@
     "PolicyDecision",
     "PolicyDecisionStore",
     "PolicyEvaluationCoordinator",
+    "RemoteDeliveryObservationStore",
     "RemoteTaskVerificationStore",
     "ReplaySafetyDecisionStore",
     "VerificationRecordStore"
@@ -305,6 +305,7 @@
     "execution_claim_transfers",
     "execution_quiescence_proofs",
     "policy_decisions",
+    "remote_delivery_observations",
     "remote_task_verifications",
     "replay_safety_decisions",
     "task_verifications"
@@ -323,6 +324,7 @@
     "execution_quiescence_proofs.basis_remote_observation_id -> remote_delivery_observations.id",
     "execution_quiescence_proofs.binding_id -> transport_bindings.id",
     "execution_quiescence_proofs.task_id -> service_tasks.id",
+    "remote_delivery_observations.binding_id -> transport_bindings.id",
     "remote_task_verifications.binding_id -> transport_bindings.id",
     "remote_task_verifications.remote_observation_id -> remote_delivery_observations.id",
     "remote_task_verifications.task_id -> service_tasks.id",
