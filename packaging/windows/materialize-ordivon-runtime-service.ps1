@@ -201,9 +201,21 @@ foreach ($directory in @(
 )) {
     [IO.Directory]::CreateDirectory($directory) | Out-Null
 }
-Copy-Item -LiteralPath $runtimeSource -Destination $runtimeTarget -Force
-Copy-Item -LiteralPath $launcherSource -Destination $launcherTarget -Force
-Copy-Item -LiteralPath $tokenSourceResolved -Destination $tokenTarget -Force
+function Copy-UnlessSameFile([string]$Source, [string]$Destination) {
+    $sourceFull = [IO.Path]::GetFullPath($Source)
+    $destinationFull = [IO.Path]::GetFullPath($Destination)
+    if ([string]::Equals(
+        $sourceFull,
+        $destinationFull,
+        [StringComparison]::OrdinalIgnoreCase)) {
+        return
+    }
+    Copy-Item -LiteralPath $Source -Destination $Destination -Force
+}
+
+Copy-UnlessSameFile $runtimeSource $runtimeTarget
+Copy-UnlessSameFile $launcherSource $launcherTarget
+Copy-UnlessSameFile $tokenSourceResolved $tokenTarget
 
 $templatePath = Join-Path $PSScriptRoot 'ordivon-runtime.env.example'
 $template = [IO.File]::ReadAllText($templatePath)
