@@ -1,6 +1,8 @@
 import fnmatch
+import importlib.util
 import json
 from pathlib import Path
+import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
 CENSUS = json.loads((ROOT / "config/external_owner_census.json").read_text())
@@ -25,7 +27,16 @@ def test_external_owner_census_has_no_unowned_active_python_module():
 
 
 def test_old_market_capital_python_namespace_is_retired():
-    assert not (ROOT / "src" / ("market" + "_capital")).exists()
+    legacy_path = "src/" + "market" + "_capital"
+    tracked = subprocess.run(
+        ["git", "ls-files", f"{legacy_path}/**"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    assert tracked == ""
+    assert importlib.util.find_spec("market" + "_capital") is None
     for path in [ROOT / "src", ROOT / "tests", ROOT / "scripts", ROOT / "tools"]:
         for file in path.rglob("*"):
             if not file.is_file():
