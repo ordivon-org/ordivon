@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-record",
+  "id": "iso-iec-5259-2-2024",
+  "identity": {
+    "issuer": {
+      "id": "iso-iec",
+      "name": "ISO/IEC"
+    },
+    "title": "ISO/IEC 5259-2:2024 — Artificial intelligence — Data quality for analytics and machine learning (ML) — Part 2: Data quality measures",
+    "authorityKind": "international-standard",
+    "identityMode": "versioned",
+    "versionLabel": "2024",
+    "officialSource": "https://www.iso.org/standard/81860.html",
+    "publicationDate": "2024-11"
+  },
+  "discovery": {
+    "aliases": [
+      "ISO/IEC 5259-2:2024",
+      "ISO 5259-2"
+    ],
+    "topics": [
+      "data-quality",
+      "analytics",
+      "machine-learning",
+      "quality-measures",
+      "fitness-for-purpose"
+    ],
+    "domains": [
+      "data",
+      "analytics",
+      "research",
+      "ai"
+    ]
+  },
+  "access": {
+    "metadata": "public",
+    "fullText": "licensed",
+    "note": "ISO metadata and preview are public; normative full text is licensed."
+  },
+  "relations": {
+    "supersedes": [],
+    "supersededBy": [],
+    "related": [
+      "bitol-odcs-3.2.0"
+    ]
+  },
+  "provenance": {
+    "registeredDate": "2026-09-20",
+    "registrationBasis": [
+      "data-semantics-externalization-r1",
+      "official ISO catalog page checked 2026-09-20"
+    ]
+  }
+}

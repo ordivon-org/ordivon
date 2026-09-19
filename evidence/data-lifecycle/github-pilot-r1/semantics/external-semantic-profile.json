@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "kind": "external-data-semantic-profile",
+  "profileId": "github-pilot-r1-semantic-profile",
+  "externalOwners": {
+    "statisticalStructure": "sdmx-3.1",
+    "observationStatus": "sdmx-cl-obs-status-2.3",
+    "unitCodes": "ucum-spec",
+    "unitVocabulary": "qudt-units-3.5.1",
+    "qualityMeasures": "iso-iec-5259-2-2024",
+    "dataContract": "bitol-odcs-3.2.0"
+  },
+  "principles": {
+    "missingness": "Preserve source nulls and never infer an SDMX observation-status code unless the source provides evidence for that status.",
+    "units": "Attach explicit unit semantics; do not infer mathematical range solely from the unit symbol or column-name suffix.",
+    "keys": "Model semantic dimensions separately from physical key normalization. Derived key helpers must not overwrite the source dimension.",
+    "quality": "Thresholds are use-case-specific executable contract policy; the external quality standard owns the measurement model, not the threshold value."
+  },
+  "datasets": {
+    "crossref-member-participation": {
+      "semanticDimensions": [
+        "current_up_to",
+        "iso3_code"
+      ],
+      "physicalPrimaryKey": [
+        "current_up_to",
+        "iso3_code"
+      ],
+      "missingStatusAvailable": false
+    },
+    "crossref-metadata-coverage": {
+      "semanticDimensions": [
+        "current_up_to",
+        "iso3_code",
+        "document_type",
+        "document_subtype"
+      ],
+      "physicalPrimaryKey": [
+        "current_up_to",
+        "iso3_code",
+        "document_type",
+        "document_subtype_key"
+      ],
+      "missingStatusAvailable": false,
+      "sourceNullSemantics": {
+        "document_subtype": {
+          "sourceMeaning": "Applicable only when document_type is posted-content; null is retained for other document types.",
+          "physicalKeyNormalization": {
+            "derivedColumn": "document_subtype_key",
+            "nullReplacement": ""
+          },
+          "observationStatusPolicy": "Do not assign CL_OBS_STATUS; this is source-defined dimension applicability, not an observation-value status."
+        }
+      }
+    },
+    "se4all-energy": {
+      "semanticDimensions": [
+        "country_code",
+        "yr"
+      ],
+      "descriptiveDimensions": [
+        "country_name"
+      ],
+      "physicalPrimaryKey": [
+        "country_code",
+        "yr"
+      ],
+      "missingStatusAvailable": false,
+      "observationStatusPolicy": "Source NA values are preserved as null. No SDMX CL_OBS_STATUS code is invented because the source does not provide one.",
+      "measures": {
+        "access_non_solid_fuel_urban_pop_pct": {
+          "unitUcum": "%",
+          "unitQudt": "http://qudt.org/vocab/unit/PERCENT",
+          "quantitySemantics": "population-share",
+          "validity": {
+            "minimum": 0,
+            "maximum": 100,
+            "tolerance": 0.1,
+            "basis": "Source definition is percentage of urban population with access; tolerance is pilot fitness-for-use policy for source rounding."
+          }
+        },
+        "access_electricity_total_pop_pct": {
+          "unitUcum": "%",
+          "unitQudt": "http://qudt.org/vocab/unit/PERCENT",
+          "quantitySemantics": "population-share",
+          "validity": {
+            "minimum": 0,
+            "maximum": 100,
+            "tolerance": 0.1,
+            "basis": "Source definition is percentage of total population with electricity access; tolerance is pilot fitness-for-use policy for source rounding."
+          }
+        },
+        "renewable_energy_consumption_tfec_pct": {
+          "unitUcum": "%",
+          "unitQudt": "http://qudt.org/vocab/unit/PERCENT",
+          "quantitySemantics": "share-of-total-final-energy-consumption",
+          "validity": {
+            "minimum": 0,
+            "maximum": 100,
+            "tolerance": 0.1,
+            "basis": "Source definition is renewable-energy share of TFEC."
+          }
+        },
+        "share_of_renewable_capacity_in_total_capacity_pct": {
+          "unitUcum": "%",
+          "unitQudt": "http://qudt.org/vocab/unit/PERCENT",
+          "quantitySemantics": "share-of-total-capacity",
+          "validity": {
+            "minimum": 0,
+            "maximum": 100,
+            "tolerance": 0.1,
+            "basis": "Source definition is share of renewable capacity in total capacity."
+          }
+        },
+        "final_to_primary_energy_ratio_pct": {
+          "unitUcum": "%",
+          "unitQudt": "http://qudt.org/vocab/unit/PERCENT",
+          "quantitySemantics": "energy-ratio",
+          "validity": {
+            "minimum": 0,
+            "maximum": null,
+            "tolerance": 0,
+            "basis": "No universal upper bound is inferred from percent unit alone."
+          }
+        },
+        "transmission_and_distribution_losses_pct": {
+          "unitUcum": "%",
+          "unitQudt": "http://qudt.org/vocab/unit/PERCENT",
+          "quantitySemantics": "derived-loss-ratio",
+          "validity": {
+            "minimum": 0,
+            "maximum": null,
+            "tolerance": 0,
+            "basis": "No universal upper bound is inferred from percent unit alone; source values above 100 are preserved."
+          }
+        }
+      }
+    }
+  }
+}

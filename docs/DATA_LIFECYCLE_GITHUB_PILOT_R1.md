@@ -3,6 +3,8 @@
 Date: 2026-09-20  
 Base lifecycle census: `docs/DATA_LIFECYCLE_CENSUS_R1.md`
 
+Semantic externalization: `docs/DATA_SEMANTICS_EXTERNALIZATION_R1.md`
+
 ## Purpose
 
 Exercise the cross-domain data lifecycle with real, externally curated GitHub datasets rather than synthetic fixtures.
@@ -59,7 +61,7 @@ GitHub commit-pinned source
   -> manifest with exact content hashes
 ```
 
-Raw CSV and derived Parquet are deliberately not retained in Git. They are reproducibly reacquired/rematerialized from exact Git commit + expected SHA-256. The repository retains contracts, catalog/lineage evidence, quality evidence, compact analysis outputs and the executable pilot.
+Raw CSV and derived Parquet are deliberately not retained in Git. They are reproducibly reacquired/rematerialized from exact Git commit + expected SHA-256. Stable source policy, semantic profile, contracts, catalog metadata, quality evidence and compact analysis outputs are versioned. Run-specific acquisition receipts and OpenLineage events are written under ignored runtime evidence directories so replay does not overwrite historical operational events.
 
 ## External-standard validation
 
@@ -75,7 +77,7 @@ OpenLineage validation:
 - OpenLineage schema id: 2.0.2;
 - source commit: `e248b98e3146ff4437df76fcb07c83913d41f727`;
 - schema SHA-256: `69f68bee00b9beac88a87059c0102410e7bb05f3f43c46d02a0409831eceb0d2`;
-- four runtime events passed the official schema: START + COMPLETE for Crossref and SE4ALL transforms.
+- the frozen R1 sample contained four validated events (START + COMPLETE for Crossref and SE4ALL); current executions emit run-specific OpenLineage events under `runtime-lineage/`, which are not overwritten into stable Git products.
 
 DCAT:
 

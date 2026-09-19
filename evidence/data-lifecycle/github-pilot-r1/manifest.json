@@ -1,12 +1,12 @@
 {
   "files": {
     ".gitignore": {
-      "bytes": 16,
-      "sha256": "2a5c5129cef105ebfadbc47c7f06223aabc3ede97a2c4280a8d3613b0a884b18"
+      "bytes": 52,
+      "sha256": "f46884dd84bd76b3f0e29a5d28c932112556a882090c55f2c14993d5e72e9bc5"
     },
     "analysis/analysis-summary.json": {
-      "bytes": 387,
-      "sha256": "a348ba0c46ac8214b4c3529b65427756dcb26a08c923dbd4f591646402f48ce2"
+      "bytes": 378,
+      "sha256": "bfa82f405a71c034fc06bab4a87ccafac02a879a19ad7f62eed985d5b18f0641"
     },
     "analysis/crossref-country-metadata-rates.csv": {
       "bytes": 11026,
@@ -21,16 +21,16 @@
       "sha256": "76515da858589b6c225e732b020982cbc047b08e8fd9ecc213d952d1e816cdeb"
     },
     "contracts/crossref-member-participation.odcs.json": {
-      "bytes": 8853,
-      "sha256": "26fbfde1e9f0c78d343e209858415031018aac45b5703c54973df62abb736bf8"
+      "bytes": 10107,
+      "sha256": "064a0b502c663b113e2dd151166dd561cb62fc4bb6f79447496e76939d000397"
     },
     "contracts/crossref-metadata-coverage.odcs.json": {
-      "bytes": 17476,
-      "sha256": "8163ff1692ade59284b28cc964529984fa1f3e6acff8845dee49752abbaaadef"
+      "bytes": 20481,
+      "sha256": "5605e85db827d81be2000252db5885aa3ca9b42b3cdef95703de12946a65c6b8"
     },
     "contracts/se4all-energy.odcs.json": {
-      "bytes": 19922,
-      "sha256": "1cfe8a6984a5e90c1ca7d14efcfd4558f28a0bf9e39fc745ed803059a8e38a68"
+      "bytes": 24578,
+      "sha256": "abb9ac17264e51301bae749d3f9a482a74bb471acd1ef38da4c3e0b3e1ba203b"
     },
     "derived/crossref-member-participation.parquet": {
       "bytes": 87388,
@@ -53,8 +53,8 @@
       "sha256": "0a6c983f3bf3361d36418fe8695d7e32a3432d8eadafa34e4aa9d352ad6d2a23"
     },
     "quality-report.json": {
-      "bytes": 1674,
-      "sha256": "51676d2107173666f7a245bfe220c4e679cf39fb058536f873384c6390fd8ea9"
+      "bytes": 5298,
+      "sha256": "ba73974ab50c1b4691c5b841c88442f31cc494f57218ae405855a3429d48d06b"
     },
     "raw/crossref-member-participation.csv": {
       "bytes": 399206,
@@ -67,6 +67,14 @@
     "raw/se4all-energy.csv": {
       "bytes": 1733061,
       "sha256": "87ad1ef2d9713693c17ab57f9e2d995cf427b6c32a088597877301a15f307f0b"
+    },
+    "semantics/external-semantic-profile.json": {
+      "bytes": 5237,
+      "sha256": "f3b43eb5150e2bb0d02c1a5e6d0d846745f9f8d4644df15f50f5e75e7a1cfb8d"
+    },
+    "source/acquisition-policy.json": {
+      "bytes": 2711,
+      "sha256": "d05b1986e3a2e0aa6197e39fc81490fb8dfa4f60e2565395e48e6918e336ad14"
     },
     "source/repository.txt": {
       "bytes": 51,

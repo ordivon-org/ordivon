@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-observation",
+  "authorityId": "qudt-units-3.5.1",
+  "basis": "official-source",
+  "lifecycleStatus": "current",
+  "observedDate": "2026-09-20",
+  "officialSource": "https://www.qudt.org/doc/DOC_VOCAB-UNITS.html",
+  "versionObserved": "3.5.1",
+  "note": "QUDT documentation identifies the Units graph as version 3.5.1, modified 2026-08-29."
+}

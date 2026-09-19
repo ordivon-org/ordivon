@@ -19,6 +19,22 @@
     {
       "property": "sourceGitCommit",
       "value": "f4d1b35ca09d8c0d875451635daef9179adfc9e0"
+    },
+    {
+      "property": "semanticProfile",
+      "value": "evidence/data-lifecycle/github-pilot-r1/semantics/external-semantic-profile.json"
+    },
+    {
+      "property": "statisticalStructureOwner",
+      "value": "sdmx-3.1"
+    },
+    {
+      "property": "unitCodeOwner",
+      "value": "ucum-spec"
+    },
+    {
+      "property": "qualityMeasureOwner",
+      "value": "iso-iec-5259-2-2024"
     }
   ],
   "dataProduct": "crossref-metadata-country",
@@ -46,7 +62,8 @@
           "physicalType": "date",
           "primaryKey": true,
           "primaryKeyPosition": 1,
-          "required": true
+          "required": true,
+          "semanticType": "dimension"
         },
         {
           "classification": "public",
@@ -56,7 +73,8 @@
           "physicalType": "varchar",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "column"
         },
         {
           "classification": "public",
@@ -66,7 +84,8 @@
           "physicalType": "varchar",
           "primaryKey": true,
           "primaryKeyPosition": 2,
-          "required": true
+          "required": true,
+          "semanticType": "dimension"
         },
         {
           "classification": "public",
@@ -76,17 +95,29 @@
           "physicalType": "varchar",
           "primaryKey": true,
           "primaryKeyPosition": 3,
-          "required": true
+          "required": true,
+          "semanticType": "dimension"
         },
         {
           "classification": "public",
+          "customProperties": [
+            {
+              "property": "sourceNullMeaning",
+              "value": "Applicable only when document_type is posted-content; null is retained for other document types."
+            },
+            {
+              "property": "observationStatusPolicy",
+              "value": "Do not assign CL_OBS_STATUS; this is source-defined dimension applicability, not an observation-value status."
+            }
+          ],
           "logicalType": "string",
           "name": "document_subtype",
           "physicalName": "document_subtype",
           "physicalType": "varchar",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "dimension"
         },
         {
           "classification": "public",
@@ -96,7 +127,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -106,7 +138,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -116,7 +149,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -126,7 +160,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -136,7 +171,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -146,7 +182,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -156,7 +193,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -166,7 +204,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -176,7 +215,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -186,7 +226,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -196,7 +237,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -206,7 +248,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -216,7 +259,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -226,7 +270,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -236,7 +281,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -246,7 +292,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -256,7 +303,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -266,7 +314,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -276,7 +325,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -286,7 +336,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -296,7 +347,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -306,7 +358,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -316,7 +369,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -326,7 +380,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -336,7 +391,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -346,7 +402,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -356,7 +413,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -366,7 +424,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -376,7 +435,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -386,7 +446,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -396,7 +457,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -406,7 +468,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -416,7 +479,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -426,7 +490,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -436,7 +501,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -446,7 +512,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -456,7 +523,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -466,7 +534,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -476,7 +545,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -486,7 +556,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -496,7 +567,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -506,7 +578,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -516,7 +589,8 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -526,17 +600,29 @@
           "physicalType": "bigint",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
+          "customProperties": [
+            {
+              "property": "derivedFromNullableDimension",
+              "value": "document_subtype"
+            },
+            {
+              "property": "nullReplacementForPhysicalKey",
+              "value": ""
+            }
+          ],
           "logicalType": "string",
           "name": "document_subtype_key",
           "physicalName": "document_subtype_key",
           "physicalType": "varchar",
           "primaryKey": true,
           "primaryKeyPosition": 4,
-          "required": true
+          "required": true,
+          "semanticType": "dimension"
         }
       ]
     }

@@ -1,0 +1,34 @@
+{
+  "datasets": {
+    "crossref-member-participation": {
+      "allowedTransports": [
+        "https://cdn.jsdelivr.net/gh/rfordatascience/tidytuesday@f4d1b35ca09d8c0d875451635daef9179adfc9e0/data/2026/2026-05-19/member_participation_stats_by_country.csv",
+        "https://raw.githubusercontent.com/rfordatascience/tidytuesday/f4d1b35ca09d8c0d875451635daef9179adfc9e0/data/2026/2026-05-19/member_participation_stats_by_country.csv"
+      ],
+      "canonicalUrl": "https://raw.githubusercontent.com/rfordatascience/tidytuesday/f4d1b35ca09d8c0d875451635daef9179adfc9e0/data/2026/2026-05-19/member_participation_stats_by_country.csv",
+      "sha256": "0f220075cedec9443c1a7343771cff7cce1c3892d6e0717f7e6fecbcdb0ad2af",
+      "sourceIdentity": "github:rfordatascience/tidytuesday@f4d1b35ca09d8c0d875451635daef9179adfc9e0:data/2026/2026-05-19/member_participation_stats_by_country.csv"
+    },
+    "crossref-metadata-coverage": {
+      "allowedTransports": [
+        "https://cdn.jsdelivr.net/gh/rfordatascience/tidytuesday@f4d1b35ca09d8c0d875451635daef9179adfc9e0/data/2026/2026-05-19/metadata_coverage_stats_by_country.csv",
+        "https://raw.githubusercontent.com/rfordatascience/tidytuesday/f4d1b35ca09d8c0d875451635daef9179adfc9e0/data/2026/2026-05-19/metadata_coverage_stats_by_country.csv"
+      ],
+      "canonicalUrl": "https://raw.githubusercontent.com/rfordatascience/tidytuesday/f4d1b35ca09d8c0d875451635daef9179adfc9e0/data/2026/2026-05-19/metadata_coverage_stats_by_country.csv",
+      "sha256": "2e37a30acc28f47bf724ca1038fbe840ab1be84cd66790ae69aa62a6731f0ad4",
+      "sourceIdentity": "github:rfordatascience/tidytuesday@f4d1b35ca09d8c0d875451635daef9179adfc9e0:data/2026/2026-05-19/metadata_coverage_stats_by_country.csv"
+    },
+    "se4all-energy": {
+      "allowedTransports": [
+        "https://cdn.jsdelivr.net/gh/rfordatascience/tidytuesday@f4d1b35ca09d8c0d875451635daef9179adfc9e0/data/2026/2026-05-26/energy_cleaned.csv",
+        "https://raw.githubusercontent.com/rfordatascience/tidytuesday/f4d1b35ca09d8c0d875451635daef9179adfc9e0/data/2026/2026-05-26/energy_cleaned.csv"
+      ],
+      "canonicalUrl": "https://raw.githubusercontent.com/rfordatascience/tidytuesday/f4d1b35ca09d8c0d875451635daef9179adfc9e0/data/2026/2026-05-26/energy_cleaned.csv",
+      "sha256": "87ad1ef2d9713693c17ab57f9e2d995cf427b6c32a088597877301a15f307f0b",
+      "sourceIdentity": "github:rfordatascience/tidytuesday@f4d1b35ca09d8c0d875451635daef9179adfc9e0:data/2026/2026-05-26/energy_cleaned.csv"
+    }
+  },
+  "identityRule": "Git commit + repository path + expected SHA-256 define source identity; transport URL is operational only.",
+  "kind": "digest-verified-acquisition-policy",
+  "schemaVersion": 1
+}
