@@ -23,9 +23,9 @@ Authority: WinGet Configuration + DSC v3. Source: `workstation/windows/workstati
 
 `playwright_cli_binding.py` is a narrower node-local compatibility binding for the installed Microsoft `@playwright/cli`. It combines the exact CLI entrypoint with the already-bound Playwright Chromium executable and materializes an upstream-native JSON config (`browserName=chromium`, exact `executablePath`, headless mode, and the root/WSL `chromiumSandbox=false` launch fact). It does **not** proxy or rename Playwright commands; callers invoke Microsoft `playwright-cli` directly using the returned command prefix/config/environment.
 
-## Windows Runtime provider realization
+## Native Windows Runtime boundary
 
-`workstation/windows/runtime_provider.py` and `runtime-provider.toml` now own the node-side materialization contract for Runtime's Windows launcher, including exact source/compiler binding, the AF_VSOCK systemd drop-in, Runtime operator environment, and materialization receipt. Runtime continues to own Job/Attempt semantics and activation/restart. After deployment, the stable local entry is `/root/tools/bin/workstation-windows-runtime-provider status|apply`; `apply` stages provider bytes/configuration but deliberately does not restart Runtime.
+Workstation no longer materializes a Windows launcher into the Linux Runtime. Native Windows Runtime installation, SCM identity, launcher bytes, authority profile, Job Objects and acceptance are owned directly by Runtime plus Windows platform mechanisms. The former WSL-hosted provider is a live transition carrier only until native cutover; `ansible/retire-wsl-windows-runtime-provider.yml` is an idempotent post-acceptance cleanup using ordinary Ansible `state: absent` operations. It must not run before the native Windows post-cutover gates pass.
 
 ## Stable node carriers
 

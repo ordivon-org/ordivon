@@ -1,0 +1,53 @@
+---
+- name: Retire the legacy WSL-hosted Windows Runtime provider carrier
+  hosts: operations_local
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Remove legacy Windows launcher path from Linux Runtime environment
+      ansible.builtin.lineinfile:
+        path: /etc/ordivon/ordivon-runtime.env
+        regexp: '^ORDIVON_WINDOWS_LAUNCHER_PATH='
+        state: absent
+
+    - name: Remove legacy WSL distribution binding from Linux Runtime environment
+      ansible.builtin.lineinfile:
+        path: /etc/ordivon/ordivon-runtime.env
+        regexp: '^ORDIVON_WINDOWS_WSL_DISTRIBUTION='
+        state: absent
+
+    - name: Remove WSL Windows-provider systemd address-family drop-in
+      ansible.builtin.file:
+        path: /etc/systemd/system/ordivon-runtime.service.d/20-windows-provider.conf
+        state: absent
+      notify: Reload systemd
+
+    - name: Remove legacy stable provider entrypoint
+      ansible.builtin.file:
+        path: /root/tools/bin/workstation-windows-runtime-provider
+        state: absent
+
+    - name: Remove installed legacy provider implementation
+      ansible.builtin.file:
+        path: /usr/local/libexec/ordivon/workstation-v2/runtime_provider.py
+        state: absent
+
+    - name: Remove installed legacy provider contract
+      ansible.builtin.file:
+        path: /usr/local/libexec/ordivon/workstation-v2/runtime-provider.toml
+        state: absent
+
+    - name: Remove legacy provider materialization receipt
+      ansible.builtin.file:
+        path: /root/.local/state/ordivon-workstation/windows-runtime-provider.json
+        state: absent
+
+    - name: Remove versioned WSL Windows launcher materialization tree
+      ansible.builtin.file:
+        path: /mnt/c/ProgramData/Ordivon/Runtime/WindowsJobLauncher
+        state: absent
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true
