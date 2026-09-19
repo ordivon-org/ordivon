@@ -57,8 +57,14 @@ def test_official_mcp_v2_exposes_migrated_host_surface_and_runs_vertical_slice()
             adopt_schema = by_name["task.adopt"].input_schema
             checkpoint_schema = by_name["task.checkpoint"].input_schema
             status_schema = by_name["host.status"].input_schema
-            assert len(adopt_schema["properties"]["initialCheckpoint"]["oneOf"]) == 2
-            assert len(checkpoint_schema["properties"]["checkpoint"]["oneOf"]) == 2
+            initial_checkpoint_schema = adopt_schema["properties"]["initialCheckpoint"]
+            next_checkpoint_schema = checkpoint_schema["properties"]["checkpoint"]
+            assert "oneOf" not in initial_checkpoint_schema
+            assert "oneOf" not in next_checkpoint_schema
+            assert initial_checkpoint_schema["properties"]["schemaVersion"]["const"] == 1
+            assert next_checkpoint_schema["properties"]["schemaVersion"]["const"] == 1
+            assert "workStanding" not in initial_checkpoint_schema["properties"]
+            assert "workStanding" not in next_checkpoint_schema["properties"]
             assert {"detail", "recentLimit"} <= set(status_schema["properties"])
             for tool in listed.tools:
                 assert tool.output_schema is not None

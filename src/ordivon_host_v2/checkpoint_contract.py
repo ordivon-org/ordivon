@@ -13,46 +13,7 @@ class WorkingCheckpointRuntime(BaseModel):
     observedHeadRevision: str | None = Field(default=None, max_length=512)
 
 
-class WorkingCheckpointWake(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    mode: Literal["ANY", "ALL", "NONE", "UNKNOWN"]
-    conditions: list[str] = Field(max_length=8)
-
-
-class WorkingCheckpointStanding(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    schemaVersion: Literal[1]
-    truthRole: Literal["checkpoint-authored-work-standing"]
-    attention: Literal["ACTIVE", "BACKGROUND", "WAIT", "HOLD", "NONE", "UNSPECIFIED"]
-    executionAdmission: Literal[
-        "ADMITTED_NOW", "REENTRY_REQUIRED", "BLOCKED", "NOT_APPLICABLE", "UNKNOWN"
-    ]
-    valueNow: Literal["POSITIVE_VALUE_NOW", "NO_POSITIVE_VALUE_NOW", "UNKNOWN"]
-    progress: Literal["OPEN_FRONTIER", "SATURATED", "LOCALLY_COMPLETE", "UNKNOWN"]
-    lineage: Literal["SELF_STANDING", "SUBSUMED", "SUPERSEDED", "UNKNOWN"]
-    relatedTaskIds: list[str] = Field(max_length=8)
-    blockerKinds: list[
-        Literal[
-            "EVENT",
-            "OWNER",
-            "CONSUMER",
-            "HUMAN",
-            "DEPENDENCY",
-            "SOURCE_CHANGE",
-            "AUTHORITY",
-            "RESOURCE",
-            "POLICY",
-            "OTHER",
-            "UNKNOWN",
-        ]
-    ] = Field(max_length=8)
-    wake: WorkingCheckpointWake
-    carrier: Literal["RETAIN", "CLOSE_CLEAN", "DIRTY_HANDOFF", "UNSPECIFIED"]
-
-
-class WorkingCheckpointV1(BaseModel):
+class WorkingCheckpoint(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     schemaVersion: Literal[1]
@@ -67,11 +28,6 @@ class WorkingCheckpointV1(BaseModel):
     constraints: list[str] = Field(max_length=64)
     nextActions: list[str] = Field(max_length=64)
     runtime: WorkingCheckpointRuntime | None
-
-
-class WorkingCheckpointV2(WorkingCheckpointV1):
-    schemaVersion: Literal[2]
-    workStanding: WorkingCheckpointStanding
 
 
 def _inline_schema(model: type[BaseModel]) -> dict[str, Any]:
@@ -99,14 +55,13 @@ def _inline_schema(model: type[BaseModel]) -> dict[str, Any]:
 
 
 def full_checkpoint_schema() -> dict[str, Any]:
-    return {
-        "oneOf": [_inline_schema(WorkingCheckpointV1), _inline_schema(WorkingCheckpointV2)],
-        "description": (
-            "A complete Host semantic working checkpoint. v2 adds caller-authored workStanding; "
-            "Host validates and persists that claim shape but does not interpret it as priority, "
-            "ownership, execution authority, or foreign Runtime/domain truth."
-        ),
-    }
+    schema = _inline_schema(WorkingCheckpoint)
+    schema["description"] = (
+        "A complete Host semantic working checkpoint. Host validates and persists this caller "
+        "claim but does not interpret it as priority, ownership, execution authority, or foreign "
+        "Runtime/domain truth."
+    )
+    return schema
 
 
 WorkingCheckpointInput = Annotated[
@@ -118,13 +73,7 @@ WorkingCheckpointInput = Annotated[
 def validate_full_checkpoint(task_id: str, value: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise TypeError("checkpoint must be an object")
-    version = value.get("schemaVersion")
-    if version == 1:
-        parsed: BaseModel = WorkingCheckpointV1.model_validate(value)
-    elif version == 2:
-        parsed = WorkingCheckpointV2.model_validate(value)
-    else:
-        raise ValueError("checkpoint schemaVersion must be 1 or 2")
+    parsed = WorkingCheckpoint.model_validate(value)
     encoded = parsed.model_dump(mode="json")
     if encoded["taskId"] != task_id:
         raise ValueError("checkpoint taskId must equal taskId")
