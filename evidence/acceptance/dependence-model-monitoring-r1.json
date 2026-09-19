@@ -1,0 +1,323 @@
+{
+  "baseInstrumentId": "SNDK-USDT-SWAP",
+  "baselineHead": "9bf540b40921ff2c826a78a579f2d06d78eebe57",
+  "brokerCredentialsUsed": false,
+  "date": "2026-09-19",
+  "externalFinancialWriteAttempted": false,
+  "holdoutReturnCount": 30,
+  "kind": "ordivon.acceptance-evidence",
+  "limitations": [
+    "Monitoring statistics are continuous evidence and do not constitute automatic model approval or rejection.",
+    "The reference/holdout split is developer-operated and not independent validation.",
+    "Historical realized variance reduction does not guarantee future hedge effectiveness.",
+    "Expected shortfall is empirical historical tail measurement without liquidity-horizon scaling or regulatory-capital treatment."
+  ],
+  "modelMonitoring": {
+    "holdoutReturnCount": 30,
+    "rows": [
+      {
+        "dataQuality": {
+          "baseObservationCount": 178,
+          "componentId": "dependence-model-monitoring",
+          "firstOverlapObservedAtMs": 1774368000000,
+          "frameworkReference": "BCBS239_PROPORTIONAL_REFERENCE",
+          "intervalStatistics": {
+            "expectedIntervalMs": 86400000,
+            "intervalDeviationMs": {
+              "maxAbsolute": 0,
+              "medianAbsolute": 0
+            },
+            "maxObservedIntervalMs": 86400000,
+            "medianObservedIntervalMs": 86400000
+          },
+          "kind": "ordivon.market-capital.paired-return-data-quality",
+          "lastOverlapObservedAtMs": 1789660800000,
+          "overlapObservationCount": 178,
+          "overlapToBaseRatio": "1.000000",
+          "overlapToProxyRatio": "1.000000",
+          "overlapToUnionRatio": "1.000000",
+          "proxyObservationCount": 178,
+          "schemaVersion": 1,
+          "unionObservationCount": 178
+        },
+        "drift": {
+          "baseInstrumentId": "SNDK-USDT-SWAP",
+          "componentId": "dependence-model-monitoring",
+          "currentObservationCount": 30,
+          "distributionDrift": {
+            "baseReturnKsPValue": "0.056477",
+            "baseReturnKsStatistic": "0.259459",
+            "baseReturnWassersteinDistance": "0.02051013",
+            "proxyReturnKsPValue": "0.068388",
+            "proxyReturnKsStatistic": "0.252252",
+            "proxyReturnWassersteinDistance": "0.01919808"
+          },
+          "kind": "ordivon.market-capital.dependence-model-drift-measurement",
+          "parameterDrift": {
+            "betaDelta": "0.120935",
+            "correlationDelta": "-0.007439",
+            "currentBeta": "1.190456",
+            "currentCorrelation": "0.837073",
+            "currentResidualVariance": "0.0003571016",
+            "referenceBeta": "1.069521",
+            "referenceCorrelation": "0.844512",
+            "referenceResidualVariance": "0.0010326768",
+            "residualVarianceRatio": "0.345802"
+          },
+          "proxyInstrumentId": "MU-USDT-SWAP",
+          "referenceObservationCount": 148,
+          "schemaVersion": 1,
+          "validatedComponentId": "portfolio-dependence-analysis"
+        },
+        "factor": "MEMORY",
+        "outcomes": {
+          "baseInstrumentId": "SNDK-USDT-SWAP",
+          "challenger": {
+            "beta": "1.059495",
+            "estimator": "sklearn.linear_model.HuberRegressor",
+            "intercept": "-0.001199",
+            "realizedMeanAbsoluteError": "0.01382484",
+            "realizedResidualVariance": "0.0003672186",
+            "realizedUnhedgedVariance": "0.0011930843",
+            "realizedVarianceReductionVsUnhedged": "0.692211"
+          },
+          "componentId": "dependence-model-monitoring",
+          "kind": "ordivon.market-capital.dependence-model-outcomes-monitoring",
+          "primary": {
+            "beta": "1.069521",
+            "estimator": "sklearn.linear_model.LinearRegression",
+            "intercept": "-0.000685",
+            "realizedMeanAbsoluteError": "0.01392619",
+            "realizedResidualVariance": "0.0003657288",
+            "realizedUnhedgedVariance": "0.0011930843",
+            "realizedVarianceReductionVsUnhedged": "0.693459"
+          },
+          "proxyInstrumentId": "MU-USDT-SWAP",
+          "realizedEndObservedAtMs": 1789660800000,
+          "realizedObservationCount": 30,
+          "realizedStartObservedAtMs": 1787155200000,
+          "referenceEndObservedAtMs": 1787068800000,
+          "referenceObservationCount": 148,
+          "referenceStartObservedAtMs": 1774368000000,
+          "schemaVersion": 1,
+          "validatedComponentId": "portfolio-dependence-analysis"
+        },
+        "proxyInstrumentId": "MU-USDT-SWAP"
+      },
+      {
+        "dataQuality": {
+          "baseObservationCount": 178,
+          "componentId": "dependence-model-monitoring",
+          "firstOverlapObservedAtMs": 1781798400000,
+          "frameworkReference": "BCBS239_PROPORTIONAL_REFERENCE",
+          "intervalStatistics": {
+            "expectedIntervalMs": 86400000,
+            "intervalDeviationMs": {
+              "maxAbsolute": 0,
+              "medianAbsolute": 0
+            },
+            "maxObservedIntervalMs": 86400000,
+            "medianObservedIntervalMs": 86400000
+          },
+          "kind": "ordivon.market-capital.paired-return-data-quality",
+          "lastOverlapObservedAtMs": 1789660800000,
+          "overlapObservationCount": 92,
+          "overlapToBaseRatio": "0.516854",
+          "overlapToProxyRatio": "1.000000",
+          "overlapToUnionRatio": "0.516854",
+          "proxyObservationCount": 92,
+          "schemaVersion": 1,
+          "unionObservationCount": 178
+        },
+        "drift": {
+          "baseInstrumentId": "SNDK-USDT-SWAP",
+          "componentId": "dependence-model-monitoring",
+          "currentObservationCount": 30,
+          "distributionDrift": {
+            "baseReturnKsPValue": "0.156485",
+            "baseReturnKsStatistic": "0.240860",
+            "baseReturnWassersteinDistance": "0.03194978",
+            "proxyReturnKsPValue": "0.316733",
+            "proxyReturnKsStatistic": "0.204301",
+            "proxyReturnWassersteinDistance": "0.00881519"
+          },
+          "kind": "ordivon.market-capital.dependence-model-drift-measurement",
+          "parameterDrift": {
+            "betaDelta": "-1.058329",
+            "correlationDelta": "-0.300484",
+            "currentBeta": "1.207936",
+            "currentCorrelation": "0.481828",
+            "currentResidualVariance": "0.0009160997",
+            "referenceBeta": "2.266265",
+            "referenceCorrelation": "0.782313",
+            "referenceResidualVariance": "0.0021310398",
+            "residualVarianceRatio": "0.429884"
+          },
+          "proxyInstrumentId": "SMH-USDT-SWAP",
+          "referenceObservationCount": 62,
+          "schemaVersion": 1,
+          "validatedComponentId": "portfolio-dependence-analysis"
+        },
+        "factor": "SEMICONDUCTOR",
+        "outcomes": {
+          "baseInstrumentId": "SNDK-USDT-SWAP",
+          "challenger": {
+            "beta": "2.282240",
+            "estimator": "sklearn.linear_model.HuberRegressor",
+            "intercept": "0.000586",
+            "realizedMeanAbsoluteError": "0.02370240",
+            "realizedResidualVariance": "0.0011351894",
+            "realizedUnhedgedVariance": "0.0011930843",
+            "realizedVarianceReductionVsUnhedged": "0.048525"
+          },
+          "componentId": "dependence-model-monitoring",
+          "kind": "ordivon.market-capital.dependence-model-outcomes-monitoring",
+          "primary": {
+            "beta": "2.266265",
+            "estimator": "sklearn.linear_model.LinearRegression",
+            "intercept": "0.000640",
+            "realizedMeanAbsoluteError": "0.02365730",
+            "realizedResidualVariance": "0.0011287220",
+            "realizedUnhedgedVariance": "0.0011930843",
+            "realizedVarianceReductionVsUnhedged": "0.053946"
+          },
+          "proxyInstrumentId": "SMH-USDT-SWAP",
+          "realizedEndObservedAtMs": 1789660800000,
+          "realizedObservationCount": 30,
+          "realizedStartObservedAtMs": 1787155200000,
+          "referenceEndObservedAtMs": 1787068800000,
+          "referenceObservationCount": 62,
+          "referenceStartObservedAtMs": 1781798400000,
+          "schemaVersion": 1,
+          "validatedComponentId": "portfolio-dependence-analysis"
+        },
+        "proxyInstrumentId": "SMH-USDT-SWAP"
+      },
+      {
+        "dataQuality": {
+          "baseObservationCount": 178,
+          "componentId": "dependence-model-monitoring",
+          "firstOverlapObservedAtMs": 1774368000000,
+          "frameworkReference": "BCBS239_PROPORTIONAL_REFERENCE",
+          "intervalStatistics": {
+            "expectedIntervalMs": 86400000,
+            "intervalDeviationMs": {
+              "maxAbsolute": 0,
+              "medianAbsolute": 0
+            },
+            "maxObservedIntervalMs": 86400000,
+            "medianObservedIntervalMs": 86400000
+          },
+          "kind": "ordivon.market-capital.paired-return-data-quality",
+          "lastOverlapObservedAtMs": 1789660800000,
+          "overlapObservationCount": 178,
+          "overlapToBaseRatio": "1.000000",
+          "overlapToProxyRatio": "1.000000",
+          "overlapToUnionRatio": "1.000000",
+          "proxyObservationCount": 178,
+          "schemaVersion": 1,
+          "unionObservationCount": 178
+        },
+        "drift": {
+          "baseInstrumentId": "SNDK-USDT-SWAP",
+          "componentId": "dependence-model-monitoring",
+          "currentObservationCount": 30,
+          "distributionDrift": {
+            "baseReturnKsPValue": "0.056477",
+            "baseReturnKsStatistic": "0.259459",
+            "baseReturnWassersteinDistance": "0.02051013",
+            "proxyReturnKsPValue": "0.242612",
+            "proxyReturnKsStatistic": "0.198198",
+            "proxyReturnWassersteinDistance": "0.00432209"
+          },
+          "kind": "ordivon.market-capital.dependence-model-drift-measurement",
+          "parameterDrift": {
+            "betaDelta": "-2.183189",
+            "correlationDelta": "-0.446142",
+            "currentBeta": "1.104011",
+            "currentCorrelation": "0.189165",
+            "currentResidualVariance": "0.0011503918",
+            "referenceBeta": "3.287199",
+            "referenceCorrelation": "0.635307",
+            "referenceResidualVariance": "0.0021473967",
+            "residualVarianceRatio": "0.535715"
+          },
+          "proxyInstrumentId": "QQQ-USDT-SWAP",
+          "referenceObservationCount": 148,
+          "schemaVersion": 1,
+          "validatedComponentId": "portfolio-dependence-analysis"
+        },
+        "factor": "TECH_BETA",
+        "outcomes": {
+          "baseInstrumentId": "SNDK-USDT-SWAP",
+          "challenger": {
+            "beta": "3.244897",
+            "estimator": "sklearn.linear_model.HuberRegressor",
+            "intercept": "0.000890",
+            "realizedMeanAbsoluteError": "0.02508081",
+            "realizedResidualVariance": "0.0013109351",
+            "realizedUnhedgedVariance": "0.0011930843",
+            "realizedVarianceReductionVsUnhedged": "-0.098778"
+          },
+          "componentId": "dependence-model-monitoring",
+          "kind": "ordivon.market-capital.dependence-model-outcomes-monitoring",
+          "primary": {
+            "beta": "3.287199",
+            "estimator": "sklearn.linear_model.LinearRegression",
+            "intercept": "0.001034",
+            "realizedMeanAbsoluteError": "0.02512739",
+            "realizedResidualVariance": "0.0013173423",
+            "realizedUnhedgedVariance": "0.0011930843",
+            "realizedVarianceReductionVsUnhedged": "-0.104148"
+          },
+          "proxyInstrumentId": "QQQ-USDT-SWAP",
+          "realizedEndObservedAtMs": 1789660800000,
+          "realizedObservationCount": 30,
+          "realizedStartObservedAtMs": 1787155200000,
+          "referenceEndObservedAtMs": 1787068800000,
+          "referenceObservationCount": 148,
+          "referenceStartObservedAtMs": 1774368000000,
+          "schemaVersion": 1,
+          "validatedComponentId": "portfolio-dependence-analysis"
+        },
+        "proxyInstrumentId": "QQQ-USDT-SWAP"
+      }
+    ],
+    "validatedComponentId": "portfolio-dependence-analysis"
+  },
+  "privateAccountDataUsed": false,
+  "requestedCandleLimit": 180,
+  "schemaVersion": 1,
+  "sourceAuthority": "OKX_PUBLIC_COMPLETED_1D_CANDLES",
+  "standing": "OUTCOMES_AND_DRIFT_MEASURED_NO_LOCAL_THRESHOLDS",
+  "subject": "dependence-model-monitoring-r1",
+  "tailRisk": {
+    "componentId": "tail-risk-report",
+    "confidence": "0.975000",
+    "kind": "ordivon.market-capital.tail-risk-report",
+    "liquidityHorizonScalingApplied": false,
+    "schemaVersion": 1,
+    "series": [
+      {
+        "calculation": {
+          "componentId": "historical-expected-shortfall",
+          "confidence": "0.975000",
+          "expectedShortfallLossFraction": "0.13934722",
+          "kind": "ordivon.market-capital.historical-expected-shortfall",
+          "liquidityHorizonScalingApplied": false,
+          "method": "EMPIRICAL_HISTORICAL_TAIL_MEAN",
+          "observationCount": 178,
+          "regulatoryCapitalCalculation": false,
+          "schemaVersion": 1,
+          "tailObservationCount": 5,
+          "valueAtRiskLossFraction": "0.13205251"
+        },
+        "liquidityHorizonDays": null,
+        "returnHorizon": "1D_LOG_RETURN",
+        "sampleLabel": "OKX_COMPLETED_1D_HISTORY",
+        "seriesId": "SNDK-USDT-SWAP"
+      }
+    ],
+    "seriesCount": 1
+  }
+}

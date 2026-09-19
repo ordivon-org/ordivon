@@ -58,6 +58,7 @@ def test_active_analytical_component_ids_are_registered():
         ROOT / "src/market_capital/portfolio_counterfactuals.py",
         ROOT / "src/market_capital/prospective_validation.py",
         ROOT / "src/market_capital/crypto_public_shadow.py",
+        ROOT / "src/market_capital/model_monitoring.py",
     ]
     import re
     declared = set()

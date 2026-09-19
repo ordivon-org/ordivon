@@ -179,6 +179,77 @@
       ]
     },
     {
+      "id": "dependence-model-monitoring",
+      "implementation": "src/market_capital/model_monitoring.py",
+      "classification": "CONTROL",
+      "sr26ModelStanding": "NON_MODEL",
+      "status": "ACTIVE",
+      "purpose": "Measure dependence-model data quality, realized out-of-time outcomes, parameter drift, and return-distribution drift without inventing local pass/fail thresholds.",
+      "materiality": "NOT_APPLICABLE",
+      "assumptions": [],
+      "limitations": [
+        "Monitoring statistics do not independently validate or approve the underlying model.",
+        "KS p-values and Wasserstein distances are reported continuously and are not converted into local traffic-light classifications.",
+        "Outcomes monitoring requires a strictly later realized sample than the frozen reference sample."
+      ],
+      "validation": {
+        "standing": "NOT_APPLICABLE",
+        "evidenceRefs": [
+          "evidence/acceptance/dependence-model-monitoring-r1.json"
+        ]
+      },
+      "monitoring": {
+        "standing": "ACTIVE",
+        "requirements": [
+          "Preserve reference/realized time boundaries.",
+          "Record paired-sample completeness and interval statistics.",
+          "Record OOS residual risk and continuous parameter/distribution drift."
+        ]
+      },
+      "permittedUses": [
+        "Model outcomes monitoring.",
+        "Model drift measurement.",
+        "Risk-data quality measurement."
+      ],
+      "prohibitedUses": [
+        "Automatic model approval.",
+        "Automatic hedge sizing.",
+        "Local threshold-based health classification."
+      ]
+    },
+    {
+      "id": "tail-risk-report",
+      "implementation": "src/market_capital/model_monitoring.py::build_tail_risk_report",
+      "classification": "ADAPTER",
+      "sr26ModelStanding": "NON_MODEL",
+      "status": "ACTIVE",
+      "purpose": "Compose registered empirical expected-shortfall calculations with explicit sample and horizon metadata for read-only risk reporting.",
+      "materiality": "NOT_APPLICABLE",
+      "assumptions": [],
+      "limitations": [
+        "Liquidity-horizon metadata is descriptive only; no scaling is performed.",
+        "The report is not a regulatory capital calculation."
+      ],
+      "validation": {
+        "standing": "NOT_APPLICABLE",
+        "evidenceRefs": [
+          "evidence/acceptance/dependence-model-monitoring-r1.json"
+        ]
+      },
+      "monitoring": {
+        "standing": "NOT_APPLICABLE",
+        "requirements": []
+      },
+      "permittedUses": [
+        "Read-only tail-risk reporting."
+      ],
+      "prohibitedUses": [
+        "Automatic allocation.",
+        "Regulatory capital calculation.",
+        "Order approval."
+      ]
+    },
+    {
       "id": "historical-expected-shortfall",
       "implementation": "src/market_capital/portfolio_risk.py::historical_expected_shortfall",
       "classification": "NON_MODEL_CALCULATION",
