@@ -15,12 +15,12 @@ from agent_service.failover import (
     _replay_safety_decision_get_by_client_request,
     _execution_quiescence_proof_get_by_client_request,
 )
-from agent_service.slice1 import CarrierProviderAdapter, ProviderObservation
+from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import RuntimeAdapter, RuntimeJobObservation, RuntimeJobRef
 from agent_service.trust import RemoteProviderObservation, _remote_delivery_observation_record
 
 
-class ReadyCarrier(CarrierProviderAdapter):
+class ReadyCarrier:
     def ensure(self, placement_id: str, agent_instance_id: str, revision_id: str) -> None:
         return None
 

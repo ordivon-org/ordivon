@@ -16,7 +16,7 @@ if str(_REPO_ROOT) not in sys.path:
 
 from agent_service.failover import AgentServiceR12
 from agent_service.provider_adapters import EffectLedgerReader
-from agent_service.slice1 import AgentServiceSlice1, CarrierProviderAdapter, ProviderObservation
+from agent_service.slice1 import AgentServiceSlice1, ProviderObservation
 from agent_service.task_runtime import RuntimeAdapter, RuntimeJobObservation, RuntimeJobRef
 from agent_service.transport_credentials import AgentServiceR14
 from agent_service.trust import RemoteProviderObservation, _remote_delivery_observation_list_for_binding, _remote_delivery_observation_record
@@ -32,7 +32,7 @@ from tests.test_agent_service_interface_credentials_r14 import MaterialProvider,
 from tests.test_agent_service_provider_adapters_r13 import DynamicNoEffectsReader
 
 
-class ReadyCarrier(CarrierProviderAdapter):
+class ReadyCarrier:
     def ensure(self, placement_id: str, agent_instance_id: str, revision_id: str) -> None:
         return None
 
@@ -47,7 +47,7 @@ class ReadyCarrier(CarrierProviderAdapter):
         )
 
 
-class SequenceCarrier(CarrierProviderAdapter):
+class SequenceCarrier:
     def __init__(self, observations: list[tuple[str, str]]) -> None:
         self._observations = list(observations)
         self.ensure_calls = 0
@@ -126,7 +126,7 @@ def _open_r14(
     db: Path,
     *,
     runtime: RuntimeAdapter | None = None,
-    carrier: CarrierProviderAdapter | None = None,
+    carrier: object | None = None,
     delivery: RecordingDelivery | None = None,
     proof_adapter: ProofAdapter | None = None,
     material_provider: MaterialProvider | None = None,

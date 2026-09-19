@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from agent_service.slice1 import AgentRevision, CarrierProviderAdapter, ProviderObservation
+from agent_service.slice1 import AgentRevision, ProviderObservation
 
 
 class CarrierProfileError(ValueError):
@@ -90,7 +90,7 @@ def _subprocess_runner(argv: list[str]) -> dict:
     return value
 
 
-class AgentAutomationCarrierAdapter(CarrierProviderAdapter):
+class AgentAutomationCarrierAdapter:
     """Bind Agent Service placement to the Workstation-stable Agent Automation carrier.
 
     This adapter understands only the existing public operator surface:

@@ -26,7 +26,7 @@ from .evidence import (
     _verify_evidence_semantics,
 )
 from .goals import BoardAdapter, GoalAssignmentPlanner, TaskReadinessProjector
-from .slice1 import CarrierProviderAdapter, ServiceEvent, ServiceEventStore
+from .slice1 import ServiceEvent, ServiceEventStore
 from .task_runtime import (
     Assignment,
     AssignmentStore,
@@ -651,7 +651,7 @@ class AgentServiceR11:
         cls,
         db_path: str | Path,
         *,
-        carrier_adapter: CarrierProviderAdapter,
+        carrier_adapter: Any,
         runtime_adapter: RuntimeAdapter,
         artifact_reader: RuntimeArtifactReader,
         policy_adapter: PolicyAdapter | None = None,

@@ -5,7 +5,6 @@ import json
 import sqlite3
 import time
 import uuid
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -76,30 +75,11 @@ class ProviderObservation:
     evidence_ref: str | None
 
 
-class CarrierProviderAdapter(ABC):
-    """Provider seam for realizing and observing an Agent carrier.
-
-    The provider may be Workstation-managed Agent Automation, a hosted Agent service,
-    Kubernetes, or another placement substrate. It reports provider facts and performs
-    provider-local effects; it never owns Agent Service semantic state.
-    """
-
-    @abstractmethod
-    def ensure(self, placement_id: str, agent_instance_id: str, revision_id: str) -> None:
-        raise NotImplementedError
-
-    @abstractmethod
-    def retire(self, placement_id: str, agent_instance_id: str) -> None:
-        raise NotImplementedError
-
-    @abstractmethod
-    def observe(self, placement_id: str) -> ProviderObservation:
-        raise NotImplementedError
-
-
-# R3 compatibility name. Host v2 is not the natural owner of placement effects;
-# new code should use CarrierProviderAdapter.
-HostAdapter = CarrierProviderAdapter
+def _require_carrier_provider(provider: Any) -> Any:
+    for method_name in ("ensure", "retire", "observe"):
+        if not callable(getattr(provider, method_name, None)):
+            raise TypeError(f"carrier provider must expose callable {method_name}()")
+    return provider
 
 
 class _SqliteNode:
@@ -489,7 +469,7 @@ class PlacementReconciler:
         instances: AgentInstanceStore,
         placements: DesiredPlacementStore,
         events: ServiceEventStore,
-        carrier_adapter: CarrierProviderAdapter,
+        carrier_adapter: Any,
     ) -> None:
         self._connection = connection
         self._revisions = revisions
@@ -546,8 +526,9 @@ class AgentServiceSlice1:
     """Thin composition root for the first clean-room Agent Service vertical slice."""
 
     def __init__(
-        self, connection: sqlite3.Connection, carrier_adapter: CarrierProviderAdapter
+        self, connection: sqlite3.Connection, carrier_adapter: Any
     ) -> None:
+        carrier_adapter = _require_carrier_provider(carrier_adapter)
         self._connection = connection
         self.definitions = AgentDefinitionStore(connection)
         self.revisions = AgentRevisionStore(connection)
@@ -568,15 +549,11 @@ class AgentServiceSlice1:
     def open(
         cls,
         db_path: str | Path,
-        carrier_adapter: CarrierProviderAdapter | None = None,
-        *,
-        host_adapter: CarrierProviderAdapter | None = None,
+        carrier_adapter: Any | None = None,
     ) -> "AgentServiceSlice1":
-        if carrier_adapter is not None and host_adapter is not None:
-            raise ValueError("pass carrier_adapter or legacy host_adapter, not both")
-        provider = carrier_adapter if carrier_adapter is not None else host_adapter
-        if provider is None:
+        if carrier_adapter is None:
             raise ValueError("carrier_adapter is required")
+        provider = _require_carrier_provider(carrier_adapter)
         path = Path(db_path)
         path.parent.mkdir(parents=True, exist_ok=True)
         connection = sqlite3.connect(path)

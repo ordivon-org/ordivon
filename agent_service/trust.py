@@ -18,7 +18,7 @@ from .delivery import (
 )
 from .evidence import RuntimeArtifactReader
 from .semantics import DelegationEnvelope
-from .slice1 import CarrierProviderAdapter, ServiceEvent, ServiceEventStore
+from .slice1 import ServiceEvent, ServiceEventStore
 from .task_runtime import RuntimeAdapter
 
 
@@ -693,7 +693,7 @@ class AgentServiceR10:
         cls,
         db_path: str | Path,
         *,
-        carrier_adapter: CarrierProviderAdapter,
+        carrier_adapter: Any,
         runtime_adapter: RuntimeAdapter,
         artifact_reader: RuntimeArtifactReader,
         policy_adapter: PolicyAdapter | None = None,

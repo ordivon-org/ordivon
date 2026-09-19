@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .slice1 import AgentServiceSlice1, CarrierProviderAdapter, ServiceEventStore
+from .slice1 import AgentServiceSlice1, ServiceEventStore
 
 
 def _now_ns() -> int:
@@ -494,7 +494,7 @@ class AgentServiceR5:
         cls,
         db_path: str | Path,
         *,
-        carrier_adapter: CarrierProviderAdapter,
+        carrier_adapter: Any,
         runtime_adapter: RuntimeAdapter,
     ) -> "AgentServiceR5":
         placement = AgentServiceSlice1.open(db_path, carrier_adapter=carrier_adapter)

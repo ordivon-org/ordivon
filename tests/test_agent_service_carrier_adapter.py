@@ -5,8 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agent_service import CarrierProviderAdapter as ExportedCarrierProviderAdapter
-from agent_service.slice1 import AgentRevision, AgentServiceSlice1, CarrierProviderAdapter, HostAdapter, ProviderObservation
+from agent_service.slice1 import AgentRevision, AgentServiceSlice1, ProviderObservation
 from agent_service.carriers.agent_automation import (
     AgentAutomationCarrierAdapter,
     CarrierCommandError,
@@ -27,7 +26,7 @@ class FakeRunner:
         return self.responses.pop(0)
 
 
-class NoopCarrier(CarrierProviderAdapter):
+class NoopCarrier:
     def ensure(self, placement_id: str, agent_instance_id: str, revision_id: str) -> None:
         return None
 
@@ -39,25 +38,25 @@ class NoopCarrier(CarrierProviderAdapter):
 
 
 class CarrierProviderApiTests(unittest.TestCase):
-    def test_package_exports_carrier_provider_adapter(self) -> None:
-        self.assertIs(ExportedCarrierProviderAdapter, CarrierProviderAdapter)
+    def test_package_does_not_export_retired_carrier_interface_brands(self) -> None:
+        import agent_service
 
-    def test_open_accepts_new_carrier_adapter_name(self) -> None:
+        self.assertFalse(hasattr(agent_service, "CarrierProviderAdapter"))
+        self.assertFalse(hasattr(agent_service, "HostAdapter"))
+
+    def test_open_accepts_structural_carrier(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            service = AgentServiceSlice1.open(Path(tmp) / "service.db", carrier_adapter=NoopCarrier())
+            service = AgentServiceSlice1.open(
+                Path(tmp) / "service.db",
+                carrier_adapter=NoopCarrier(),
+            )
             service.close()
 
-    def test_open_preserves_host_adapter_compatibility_name(self) -> None:
+    def test_open_rejects_retired_host_adapter_keyword(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            service = AgentServiceSlice1.open(Path(tmp) / "service.db", host_adapter=NoopCarrier())
-            service.close()
-
-    def test_open_rejects_two_provider_arguments(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            with self.assertRaises(ValueError):
+            with self.assertRaises(TypeError):
                 AgentServiceSlice1.open(
                     Path(tmp) / "service.db",
-                    carrier_adapter=NoopCarrier(),
                     host_adapter=NoopCarrier(),
                 )
 
@@ -100,9 +99,6 @@ class AgentAutomationCarrierAdapterTests(unittest.TestCase):
         if bind:
             adapter.bind_placement("place-1", resolved.id)
         return adapter
-
-    def test_host_adapter_name_remains_compatibility_alias(self) -> None:
-        self.assertIs(HostAdapter, CarrierProviderAdapter)
 
     def test_observe_maps_bound_census_to_ready(self) -> None:
         runner = FakeRunner(

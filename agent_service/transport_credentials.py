@@ -19,7 +19,7 @@ from .provider_adapters import (
     ProviderCaller,
 )
 from .remote_evidence import RemoteArtifactReader
-from .slice1 import CarrierProviderAdapter, ServiceEvent, ServiceEventStore
+from .slice1 import ServiceEvent, ServiceEventStore
 from .task_runtime import RuntimeAdapter
 from .trust import (
     CredentialReference,
@@ -548,7 +548,7 @@ class AgentServiceR14:
         cls,
         db_path: str | Path,
         *,
-        carrier_adapter: CarrierProviderAdapter,
+        carrier_adapter: Any,
         runtime_adapter: RuntimeAdapter,
         artifact_reader: RuntimeArtifactReader,
         delivery_adapters: dict[str, DeliveryAdapter],

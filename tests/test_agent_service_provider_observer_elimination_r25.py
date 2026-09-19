@@ -7,7 +7,7 @@ from pathlib import Path
 import agent_service.slice1 as slice1
 
 
-class WrongPlacementCarrier(slice1.CarrierProviderAdapter):
+class WrongPlacementCarrier:
     def ensure(self, placement_id: str, agent_instance_id: str, revision_id: str) -> None:
         return None
 

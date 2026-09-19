@@ -13,11 +13,11 @@ from agent_service.evidence import (
     RuntimeArtifactReader,
     _verification_record_list_for_task,
 )
-from agent_service.slice1 import CarrierProviderAdapter, ProviderObservation
+from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import RuntimeAdapter, RuntimeArtifactDescriptor, RuntimeJobObservation, RuntimeJobRef
 
 
-class ReadyCarrier(CarrierProviderAdapter):
+class ReadyCarrier:
     def ensure(self, placement_id: str, agent_instance_id: str, revision_id: str) -> None:
         return None
 
