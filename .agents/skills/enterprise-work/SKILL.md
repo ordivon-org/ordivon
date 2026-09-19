@@ -62,6 +62,7 @@ Do not copy licensed standards into local instructions.
 | project-shaped management | ISO 21502; use only the practices needed by the real project |
 | material risk | ISO 31000 concepts in the natural project/domain record |
 | management-system audit | ISO 19011 when an actual audit objective exists |
+| company strategy choices | Roger Martin Strategy Choice Cascade as a choice structure + company-specific market evidence |
 | early startup/customer discovery | YC / Lean Startup / Strategyzer as advisory practice + real customer evidence |
 | early B2B sales | YC early-stage sales guidance + founder-led buyer evidence |
 | lead/deal CRM | current CRM provider; evaluate Frappe CRM for new pipeline work |
@@ -94,7 +95,7 @@ Provider state is authoritative only for that provider's responsibility.
 
 ## 5. Commercial currentness rules
 
-Do not create Ordivon-native Sales, GTM, Pricing, Customer-Success, Contracting, FP&A, Payroll, Support, Hiring or Procurement frameworks.
+Do not create Ordivon-native Strategy, Sales, GTM, Pricing, Customer-Success, Contracting, FP&A, Payroll, Support, Hiring or Procurement frameworks.
 
 Current provider boundary:
 
@@ -147,8 +148,9 @@ A new local abstraction is admissible only after repeated measured substitution 
 ## References to load only when needed
 
 - External authority/currentness/evidence boundary: `../../../docs/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R2.md`
+- Company-specific strategy facts/open choices: `../../../docs/COMMERCIAL_STRATEGY_CURRENT_FACTS_R1.md`
 - Detailed provider/currentness and historical dogfood map: `../../../docs/ENTERPRISE_OPERATING_MODEL_R1.md`
 - Current capability/provider coverage: `../../../docs/CAPABILITY_PACKAGES_R1.md`
-- Commercial migrations: `../../../migrations/records/commercial-practice-externalization-r1.md` and `commercial-practice-externalization-r2.md`
+- Commercial migrations: `../../../migrations/records/commercial-practice-externalization-r1.md`, `commercial-practice-externalization-r2.md`, `commercial-practice-externalization-r3.md`, and `commercial-strategy-debt-externalization-r1.md`
 
 For artifact production/verification, activate `artifact-work` instead of duplicating artifact-family procedure here.

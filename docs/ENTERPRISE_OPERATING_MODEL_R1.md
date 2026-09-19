@@ -270,6 +270,14 @@ Management review is broader than audit. At an appropriate cadence and maturity,
 
 At Ordivon's present early stage, review should stay lightweight and evidence-driven rather than simulate a large-company committee calendar.
 
+## 8A. Company strategy boundary
+
+This operating model is deliberately **not** Ordivon's company strategy. It governs how chosen work is operated; it does not decide which market/customer/workflow should be chosen or why Ordivon will win there.
+
+For current company-specific strategic choices and open market evidence, use `COMMERCIAL_STRATEGY_CURRENT_FACTS_R1.md`. That record uses Roger Martin's Strategy Choice Cascade as an external choice structure, Strategyzer for business-model/value-proposition hypotheses, Lean Startup for validated learning, and YC guidance for founder-led early sales. None of those references substitutes for real paid/customer evidence.
+
+Do not infer `where to play` or `how to win` from capability-package breadth, ERP readiness, management-system completeness, or internal dogfood success.
+
 ## 9. Commercial Work boundary
 
 For external commercialization, the public front door may accept a broad natural-language problem, but the organization should not commit to an unbounded problem statement.
