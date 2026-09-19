@@ -16,7 +16,7 @@ use windows_sys::Win32::Security::{
     PROTECTED_DACL_SECURITY_INFORMATION, SECURITY_MAX_SID_SIZE, SE_DACL_PROTECTED,
     SUB_CONTAINERS_AND_OBJECTS_INHERIT, TOKEN_QUERY, TOKEN_USER,
 };
-use windows_sys::Win32::Storage::FileSystem::FILE_ALL_ACCESS;
+use windows_sys::Win32::Storage::FileSystem::{FILE_ALL_ACCESS, FILE_GENERIC_READ};
 use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
 
 pub(crate) fn protect_private_directory(path: &Path) -> io::Result<()> {
@@ -27,13 +27,26 @@ pub(crate) fn protect_private_file(path: &Path) -> io::Result<()> {
     protect_private_path(path, false)
 }
 
-/// Validate the exact private-file ACL policy used by Runtime-owned Windows secrets/state.
-///
-/// The DACL must be protected from inheritance and may grant full control only to LocalSystem,
-/// Builtin Administrators, and the identity under which this Runtime process is executing.
-/// Every one of those effective principals must be represented. No localized command output or
-/// account-name parsing participates in this boundary.
+/// Validate the exact writable private-state ACL used by Runtime-owned Windows files.
 pub fn validate_private_file_acl(path: &Path) -> io::Result<()> {
+    validate_private_file_acl_with_principal_access(path, PrincipalAccess::FullControl)
+}
+
+/// Validate a private configuration/secret file that the Runtime identity may read but not write.
+pub fn validate_private_readonly_file_acl(path: &Path) -> io::Result<()> {
+    validate_private_file_acl_with_principal_access(path, PrincipalAccess::ReadOnly)
+}
+
+#[derive(Clone, Copy)]
+enum PrincipalAccess {
+    FullControl,
+    ReadOnly,
+}
+
+fn validate_private_file_acl_with_principal_access(
+    path: &Path,
+    principal_access: PrincipalAccess,
+) -> io::Result<()> {
     let mut system = WellKnownSid::new(WinLocalSystemSid)?;
     let mut administrators = WellKnownSid::new(WinBuiltinAdministratorsSid)?;
     let mut principal = CurrentTokenUserSid::load()?;
@@ -107,33 +120,46 @@ pub fn validate_private_file_acl(path: &Path) -> io::Result<()> {
                 "private Windows file ACL contains a non-SID trustee",
             ));
         }
-        if !matches!(entry.grfAccessMode, SET_ACCESS | GRANT_ACCESS)
-            || entry.grfAccessPermissions & FILE_ALL_ACCESS != FILE_ALL_ACCESS
-        {
+        if !matches!(entry.grfAccessMode, SET_ACCESS | GRANT_ACCESS) {
             return Err(io::Error::new(
                 io::ErrorKind::PermissionDenied,
-                "private Windows file ACL contains a non-FullControl allow entry",
+                "private Windows file ACL contains a non-allow entry",
             ));
         }
+
         let sid = entry.Trustee.ptstrName.cast();
-        let mut matched = false;
-        for (index, candidate) in allowed.iter().enumerate() {
-            if unsafe { EqualSid(sid, *candidate) } != 0 {
-                observed_allowed[index] = true;
-                matched = true;
-                break;
+        let matched_index = allowed
+            .iter()
+            .position(|candidate| unsafe { EqualSid(sid, *candidate) } != 0)
+            .ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::PermissionDenied,
+                    "private Windows file ACL grants access to an unexpected principal",
+                )
+            })?;
+
+        let required = if matched_index < 2 {
+            FILE_ALL_ACCESS
+        } else {
+            match principal_access {
+                PrincipalAccess::FullControl => FILE_ALL_ACCESS,
+                PrincipalAccess::ReadOnly => FILE_GENERIC_READ,
             }
-        }
-        if !matched {
+        };
+        if entry.grfAccessPermissions != required {
             return Err(io::Error::new(
                 io::ErrorKind::PermissionDenied,
-                "private Windows file ACL grants access to an unexpected principal",
+                format!(
+                    "private Windows file ACL principal {matched_index} has unexpected access mask 0x{:08x}, expected 0x{required:08x}",
+                    entry.grfAccessPermissions
+                ),
             ));
         }
+        observed_allowed[matched_index] = true;
     }
 
-    // Current identity can legitimately be SYSTEM or an Administrator. Require each distinct
-    // effective SID, not three syntactically separate ACEs.
+    // Current identity can legitimately be SYSTEM. Require each distinct effective SID, not
+    // three syntactically separate ACEs.
     for index in 0..allowed.len() {
         let duplicate_of_earlier =
             (0..index).any(|prior| unsafe { EqualSid(allowed[index], allowed[prior]) != 0 });

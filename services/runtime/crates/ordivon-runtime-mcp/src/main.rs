@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+use std::ffi::OsString;
 use std::fs;
 use std::net::SocketAddr;
 #[cfg(unix)]
@@ -83,6 +85,143 @@ struct AppConfig {
     principal_mode: PrincipalMode,
     remote_principal: Option<String>,
 }
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct ProcessBootstrap {
+    windows_service: bool,
+    env_file: Option<PathBuf>,
+}
+
+const MAX_RUNTIME_ENV_FILE_BYTES: u64 = 64 * 1024;
+
+fn bootstrap_process_environment(
+    args: impl IntoIterator<Item = OsString>,
+) -> Result<ProcessBootstrap, Box<dyn std::error::Error>> {
+    let bootstrap = parse_process_args(args)?;
+    if let Some(path) = bootstrap.env_file.as_deref() {
+        for (name, value) in read_private_runtime_env_file(path)? {
+            std::env::set_var(name, value);
+        }
+    }
+    Ok(bootstrap)
+}
+
+fn parse_process_args(
+    args: impl IntoIterator<Item = OsString>,
+) -> Result<ProcessBootstrap, Box<dyn std::error::Error>> {
+    let mut windows_service = false;
+    let mut env_file = None;
+    let mut args = args.into_iter();
+    while let Some(argument) = args.next() {
+        if argument == "--windows-service" {
+            if windows_service {
+                return Err("--windows-service may be specified only once".into());
+            }
+            windows_service = true;
+        } else if argument == "--env-file" {
+            if env_file.is_some() {
+                return Err("--env-file may be specified only once".into());
+            }
+            let value = args.next().ok_or("--env-file requires an absolute path")?;
+            let path = PathBuf::from(value);
+            if !path.is_absolute() {
+                return Err("--env-file requires an absolute path".into());
+            }
+            env_file = Some(path);
+        } else {
+            return Err(format!(
+                "unsupported Runtime process argument: {}",
+                argument.to_string_lossy()
+            )
+            .into());
+        }
+    }
+    Ok(ProcessBootstrap {
+        windows_service,
+        env_file,
+    })
+}
+
+fn read_private_runtime_env_file(
+    path: &Path,
+) -> Result<BTreeMap<String, String>, Box<dyn std::error::Error>> {
+    if !path.is_absolute() {
+        return Err("Runtime env file path must be absolute".into());
+    }
+    let metadata = fs::symlink_metadata(path)?;
+    if !metadata.file_type().is_file() {
+        return Err("Runtime env file path must be a regular file".into());
+    }
+    validate_private_runtime_file_permissions(path, &metadata, "Runtime env file")?;
+    if metadata.len() > MAX_RUNTIME_ENV_FILE_BYTES {
+        return Err("Runtime env file exceeds the configured bound".into());
+    }
+    let text = fs::read_to_string(path)?;
+    parse_runtime_env_text(&text)
+}
+
+fn parse_runtime_env_text(
+    text: &str,
+) -> Result<BTreeMap<String, String>, Box<dyn std::error::Error>> {
+    let mut values = BTreeMap::new();
+    for (index, raw_line) in text.lines().enumerate() {
+        let line = raw_line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        let (name, value) = line
+            .split_once('=')
+            .ok_or_else(|| format!("Runtime env line {} must use NAME=VALUE", index + 1))?;
+        let name = name.trim();
+        let value = value.trim();
+        let valid_name = !name.is_empty()
+            && name
+                .chars()
+                .all(|ch| ch == '_' || ch.is_ascii_uppercase() || ch.is_ascii_digit())
+            && !name.as_bytes()[0].is_ascii_digit();
+        if !valid_name || (name != "RUST_LOG" && !name.starts_with("ORDIVON_")) {
+            return Err(format!("Runtime env line {} uses an unsupported key", index + 1).into());
+        }
+        if matches!(name, "ORDIVON_BEARER_TOKEN" | "ORDIVON_REMOTE_BEARER_TOKEN") {
+            return Err(format!(
+                "Runtime env line {} embeds a bearer secret; use the corresponding *_FILE key",
+                index + 1
+            )
+            .into());
+        }
+        if value.as_bytes().contains(&0) {
+            return Err(format!("Runtime env line {} contains NUL", index + 1).into());
+        }
+        if values.insert(name.to_string(), value.to_string()).is_some() {
+            return Err(format!("Runtime env line {} duplicates key {name}", index + 1).into());
+        }
+    }
+    Ok(values)
+}
+
+#[cfg(unix)]
+fn validate_private_runtime_file_permissions(
+    _path: &Path,
+    metadata: &fs::Metadata,
+    label: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if metadata.permissions().mode() & 0o077 != 0 {
+        return Err(format!("{label} must not be accessible by group or others").into());
+    }
+    Ok(())
+}
+
+#[cfg(windows)]
+fn validate_private_runtime_file_permissions(
+    path: &Path,
+    _metadata: &fs::Metadata,
+    label: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    ordivon_runtime_core::validate_windows_private_readonly_file_acl(path).map_err(|error| {
+        format!("{label} does not satisfy the native Windows read-only ACL contract: {error}")
+            .into()
+    })
+}
+
 fn initialize_tracing() {
     let _ = tracing_subscriber::registry()
         .with(
@@ -96,14 +235,19 @@ fn initialize_tracing() {
 #[cfg(not(windows))]
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let bootstrap = bootstrap_process_environment(std::env::args_os().skip(1))?;
+    if bootstrap.windows_service {
+        return Err("--windows-service is available only on Windows".into());
+    }
     initialize_tracing();
     run_runtime_server(CancellationToken::new(), true, None).await
 }
 
 #[cfg(windows)]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let bootstrap = bootstrap_process_environment(std::env::args_os().skip(1))?;
     initialize_tracing();
-    if windows_service::requested() {
+    if bootstrap.windows_service {
         windows_service::dispatch()?;
         return Ok(());
     }
@@ -800,8 +944,8 @@ fn validate_private_token_file_permissions(
     _metadata: &fs::Metadata,
     label: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    ordivon_runtime_core::validate_windows_private_file_acl(path).map_err(|error| {
-        format!("{label} file does not satisfy the native Windows private ACL contract: {error}")
+    ordivon_runtime_core::validate_windows_private_readonly_file_acl(path).map_err(|error| {
+        format!("{label} file does not satisfy the native Windows read-only ACL contract: {error}")
             .into()
     })
 }
@@ -878,8 +1022,9 @@ fn unix_ms() -> u128 {
 #[cfg(test)]
 mod tests {
     use super::{
-        authenticate_request, cloudflare_access_principal, read_private_token_file,
-        request_auth_source, validate_loopback_bind, AuthSource, HttpState, PrincipalMode,
+        authenticate_request, cloudflare_access_principal, parse_process_args,
+        parse_runtime_env_text, read_private_token_file, request_auth_source,
+        validate_loopback_bind, AuthSource, HttpState, PrincipalMode,
     };
     use axum::http::{header, HeaderMap, HeaderValue};
     use std::fs;
@@ -906,6 +1051,59 @@ mod tests {
         assert!(validate_loopback_bind("127.0.0.1:8897".parse().unwrap()).is_ok());
         assert!(validate_loopback_bind("[::1]:8897".parse().unwrap()).is_ok());
         assert!(validate_loopback_bind("0.0.0.0:8897".parse().unwrap()).is_err());
+    }
+
+    #[test]
+    fn process_bootstrap_accepts_only_service_and_absolute_env_file_arguments() {
+        let parsed = parse_process_args([
+            std::ffi::OsString::from("--windows-service"),
+            std::ffi::OsString::from("--env-file"),
+            std::ffi::OsString::from("/tmp/ordivon-runtime.env"),
+        ])
+        .unwrap();
+        assert!(parsed.windows_service);
+        assert_eq!(
+            parsed.env_file.as_deref(),
+            Some(std::path::Path::new("/tmp/ordivon-runtime.env"))
+        );
+
+        assert!(parse_process_args([std::ffi::OsString::from("--unknown")]).is_err());
+        assert!(parse_process_args([
+            std::ffi::OsString::from("--env-file"),
+            std::ffi::OsString::from("relative.env"),
+        ])
+        .is_err());
+        assert!(parse_process_args([
+            std::ffi::OsString::from("--env-file"),
+            std::ffi::OsString::from("/tmp/a.env"),
+            std::ffi::OsString::from("--env-file"),
+            std::ffi::OsString::from("/tmp/b.env"),
+        ])
+        .is_err());
+    }
+
+    #[test]
+    fn runtime_env_text_is_strict_and_never_accepts_inline_bearer_secrets() {
+        let parsed = parse_runtime_env_text(
+            "# native service config\n\
+             RUST_LOG=ordivon_runtime_mcp=info\n\
+             ORDIVON_BIND=127.0.0.1:8897\n\
+             ORDIVON_BEARER_TOKEN_FILE=C:\\ProgramData\\Ordivon\\Runtime\\secrets\\runtime-mcp.token\n",
+        )
+        .unwrap();
+        assert_eq!(parsed["ORDIVON_BIND"], "127.0.0.1:8897");
+        assert!(parsed.contains_key("ORDIVON_BEARER_TOKEN_FILE"));
+
+        assert!(parse_runtime_env_text("PATH=C:\\Windows\n").is_err());
+        assert!(parse_runtime_env_text("ORDIVON_BIND=one\nORDIVON_BIND=two\n").is_err());
+        assert!(parse_runtime_env_text(
+            "ORDIVON_BEARER_TOKEN=inline-secret-that-must-not-enter-config\n"
+        )
+        .is_err());
+        assert!(parse_runtime_env_text(
+            "ORDIVON_REMOTE_BEARER_TOKEN=inline-secret-that-must-not-enter-config\n"
+        )
+        .is_err());
     }
 
     #[test]
