@@ -14,12 +14,12 @@ Runtime does not own task semantics, workflow policy, project management, or dom
 
 The current production trace contains 288,604 observed tool calls in the counted sample. The dominant loop is:
 
-`workspace.open -> workspace.read/mutate -> workspace.exec/execPlan -> task.observe/get -> workspace.close`
+`workspace.open -> workspace.read/mutate -> workspace.exec/execPlan -> job.observe/get -> workspace.close`
 
 | Tool | Calls | Share |
 |---|---:|---:|
 | workspace.exec | 140,792 | 48.78% |
-| task.observe | 37,162 | 12.88% |
+| job.observe | 37,162 | 12.88% |
 | workspace.read | 29,484 | 10.22% |
 | workspace.mutate | 15,284 | 5.30% |
 | workspace.close | 12,373 | 4.29% |

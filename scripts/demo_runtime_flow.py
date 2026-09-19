@@ -27,7 +27,7 @@ REQUIRED_TOOLS = {
     "artifact.read",
     "task.cancel",
     "job.list",
-    "task.observe",
+    "job.observe",
     "workspace.close",
     "workspace.diff",
     "workspace.execPlan",
@@ -200,7 +200,7 @@ def wait_for_terminal(client: McpClient, job_id: str, events: list[dict[str, str
     deadline = time.monotonic() + 30
     while time.monotonic() < deadline:
         observed = client.call_tool(
-            "task.observe",
+            "job.observe",
             {
                 "schemaVersion": SCHEMA_VERSION,
                 "jobId": job_id,

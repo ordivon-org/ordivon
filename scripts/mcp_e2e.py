@@ -36,7 +36,7 @@ EXPECTED_TOOLS = {
     "task.cancel",
     "job.get",
     "job.list",
-    "task.observe",
+    "job.observe",
     "workspace.changes",
     "workspace.close",
     "workspace.content",
@@ -538,7 +538,7 @@ def wait_terminal(client: McpClient, job_id: str, timeout: float = 30.0) -> dict
     last: dict[str, Any] | None = None
     while time.monotonic() < deadline:
         last = client.tool(
-            "task.observe",
+            "job.observe",
             {
                 "schemaVersion": SCHEMA_VERSION,
                 "jobId": job_id,
@@ -1618,7 +1618,7 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
         )
 
         observed = client.tool(
-            "task.observe",
+            "job.observe",
             {
                 "schemaVersion": SCHEMA_VERSION,
                 "jobId": job_id,
@@ -1630,7 +1630,7 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
         check("task-observe", observed.get("status") == "succeeded", observed)
 
         too_small = client.tool_result(
-            "task.observe",
+            "job.observe",
             {
                 "schemaVersion": SCHEMA_VERSION,
                 "jobId": job_id,
@@ -1653,7 +1653,7 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
         incremental_parts: list[str] = []
         while True:
             incremental = client.tool(
-                "task.observe",
+                "job.observe",
                 {
                     "schemaVersion": SCHEMA_VERSION,
                     "jobId": job_id,
@@ -1737,7 +1737,7 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
         cancel_ready_deadline = time.monotonic() + 120.0
         while time.monotonic() < cancel_ready_deadline:
             cancel_ready = client.tool(
-                "task.observe",
+                "job.observe",
                 {
                     "schemaVersion": SCHEMA_VERSION,
                     "jobId": cancel_job_id,
@@ -1804,7 +1804,7 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
             restarted_meta,
         )
         after_restart = client.tool(
-            "task.observe",
+            "job.observe",
             {
                 "schemaVersion": SCHEMA_VERSION,
                 "jobId": job_id,

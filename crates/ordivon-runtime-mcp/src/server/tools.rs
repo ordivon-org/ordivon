@@ -571,7 +571,7 @@ impl RuntimeServer {
 
     #[tool(
         name = "workspace.exec",
-        description = "Run one effect-opaque command inside a workspace with the installed service user's trusted-local authority. execution.executable must be an absolute host path and execution.cwdRelative must be relative to the Workspace root. For trusted_local local_linux only, execution.hostDependencies may declare known absolute regular host prerequisite files with exact SHA-256 digests; Runtime binds them into operation identity, validates them at admission and before dispatch, then Runner establishes path/topology drift witnesses before its final digest checks and keeps those witnesses active through the Attempt. Runtime likewise witnesses the target executable path through each step while preserving normal pathname semantics. A witnessed Runtime-host-namespace write/replace/rename/delete fails closed instead of being reported as a successful committed realization. Host Dependency continuity evidence carries scope runtime_host_namespace_path_witness: trusted_local target code retains its authority and may intentionally establish another mount/root namespace view, so this witness is not target namespace isolation or proof that the target consumed the committed bytes. This is an explicit partial prerequisite/path-continuity contract, not automatic dependency discovery, immutability, or a complete environment snapshot. Duplicate clientRequestId admission is idempotent and exact replay resolves the existing Job before consulting current dependency bytes. Omitted waitMs performs only a brief 2-second observation after durable admission; long work returns the same Job for task.observe rather than holding the MCP request open. Results expose exact Attempt state, execution and delivery disposition, recovery requirement, and explicitly do not claim semantic completion or external-effect idempotency.",
+        description = "Run one effect-opaque command inside a workspace with the installed service user's trusted-local authority. execution.executable must be an absolute host path and execution.cwdRelative must be relative to the Workspace root. For trusted_local local_linux only, execution.hostDependencies may declare known absolute regular host prerequisite files with exact SHA-256 digests; Runtime binds them into operation identity, validates them at admission and before dispatch, then Runner establishes path/topology drift witnesses before its final digest checks and keeps those witnesses active through the Attempt. Runtime likewise witnesses the target executable path through each step while preserving normal pathname semantics. A witnessed Runtime-host-namespace write/replace/rename/delete fails closed instead of being reported as a successful committed realization. Host Dependency continuity evidence carries scope runtime_host_namespace_path_witness: trusted_local target code retains its authority and may intentionally establish another mount/root namespace view, so this witness is not target namespace isolation or proof that the target consumed the committed bytes. This is an explicit partial prerequisite/path-continuity contract, not automatic dependency discovery, immutability, or a complete environment snapshot. Duplicate clientRequestId admission is idempotent and exact replay resolves the existing Job before consulting current dependency bytes. Omitted waitMs performs only a brief 2-second observation after durable admission; long work returns the same Job for job.observe rather than holding the MCP request open. Results expose exact Attempt state, execution and delivery disposition, recovery requirement, and explicitly do not claim semantic completion or external-effect idempotency.",
         output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<TaskObservation>>(),
         annotations(
             title = "Execute transactional workspace job",
@@ -603,7 +603,7 @@ impl RuntimeServer {
 
     #[tool(
         name = "workspace.execBound",
-        description = "Admit one execution with exact immutable inputs from operator-configured named authorities. local_linux uses contained_local and a read-only /run/ordivon/inputs bind. windows_native uses trusted_local with the limited Windows token only and a provider-owned native read-only input presentation; elevated Windows input-bound execution is rejected. Each input names only an authority, relative object, expected SHA-256 digest, and presentation-relative path. Runtime resolves and copies bytes only on new admission, freezes effective input commitments into the Job, and exact replay returns the historical Job before consulting current authority state. Omitted waitMs performs only a brief 2-second observation after durable admission; long work returns the same Job for task.observe. This is physical execution evidence only and does not imply domain semantic completion or target-byte isolation from separate elevated host authority.",
+        description = "Admit one execution with exact immutable inputs from operator-configured named authorities. local_linux uses contained_local and a read-only /run/ordivon/inputs bind. windows_native uses trusted_local with the limited Windows token only and a provider-owned native read-only input presentation; elevated Windows input-bound execution is rejected. Each input names only an authority, relative object, expected SHA-256 digest, and presentation-relative path. Runtime resolves and copies bytes only on new admission, freezes effective input commitments into the Job, and exact replay returns the historical Job before consulting current authority state. Omitted waitMs performs only a brief 2-second observation after durable admission; long work returns the same Job for job.observe. This is physical execution evidence only and does not imply domain semantic completion or target-byte isolation from separate elevated host authority.",
         output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<TaskObservation>>(),
         annotations(
             title = "Execute with immutable inputs",
@@ -665,7 +665,7 @@ impl RuntimeServer {
 
     #[tool(
         name = "workspace.execPlan",
-        description = "Run an ordered structured execution plan inside one Workspace. Steps use absolute executables and explicit args, run sequentially, stop on the first failure by default, and continue only when that step explicitly sets continueOnError. For trusted_local local_linux only, execution.hostDependencies may bind known absolute regular host prerequisite files by exact SHA-256 across the whole Job. Runtime validates them at admission and before dispatch; Runner then establishes path/topology drift witnesses before final digest validation and keeps them active across the complete plan, while each target executable path is independently witnessed through its step. Runtime fails closed on witnessed runtime drift without pretending that the files are immutable or that it inferred a complete environment closure. Exact replay resolves the committed Job before current dependency checks. Omitted waitMs performs only a brief 2-second observation after durable admission; long work returns the same Job for task.observe. The Job exposes step progress plus exact Attempt state, execution and delivery disposition, and recovery requirement without asking the caller to infer them from output.",
+        description = "Run an ordered structured execution plan inside one Workspace. Steps use absolute executables and explicit args, run sequentially, stop on the first failure by default, and continue only when that step explicitly sets continueOnError. For trusted_local local_linux only, execution.hostDependencies may bind known absolute regular host prerequisite files by exact SHA-256 across the whole Job. Runtime validates them at admission and before dispatch; Runner then establishes path/topology drift witnesses before final digest validation and keeps them active across the complete plan, while each target executable path is independently witnessed through its step. Runtime fails closed on witnessed runtime drift without pretending that the files are immutable or that it inferred a complete environment closure. Exact replay resolves the committed Job before current dependency checks. Omitted waitMs performs only a brief 2-second observation after durable admission; long work returns the same Job for job.observe. The Job exposes step progress plus exact Attempt state, execution and delivery disposition, and recovery requirement without asking the caller to infer them from output.",
         output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<TaskObservation>>(),
         annotations(
             title = "Execute fail-fast workspace plan",
@@ -697,7 +697,7 @@ impl RuntimeServer {
 
     #[tool(
         name = "job.get",
-        description = "Read one exact durable Job as a projection-only Runtime inspection. This never reconciles, dispatches, cancels, or otherwise advances the Job. The Job projection includes the exact sourceRevision and admission-frozen workspaceSourceDigest from its committed execution plan, so later Workspace movement cannot be mistaken for the source state this Job actually bound. It also returns bounded Attempt history, mechanical convergence, Artifact/episode summaries, and a bounded event timeline with event detail omitted; use artifact.read for retained stdout/stderr/results and task.observe only when targeted reconciliation or waiting is intended.",
+        description = "Read one exact durable Job as a projection-only Runtime inspection. This never reconciles, dispatches, cancels, or otherwise advances the Job. The Job projection includes the exact sourceRevision and admission-frozen workspaceSourceDigest from its committed execution plan, so later Workspace movement cannot be mistaken for the source state this Job actually bound. It also returns bounded Attempt history, mechanical convergence, Artifact/episode summaries, and a bounded event timeline with event detail omitted; use artifact.read for retained stdout/stderr/results and job.observe only when targeted reconciliation or waiting is intended.",
         output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<RuntimeJobInspection>>(),
         annotations(
             title = "Get transactional job",
@@ -727,7 +727,7 @@ impl RuntimeServer {
     }
 
     #[tool(
-        name = "task.observe",
+        name = "job.observe",
         description = "Observe or briefly await one exact Job and reconcile that Job before projection. If the durable Job is still accepted with desiredState=run, this call may dispatch that already-committed execution intent; it never creates a new Job. Exact Attempt state, terminal execution disposition, delivery certainty, recovery requirement, result availability, and semanticCompletionEvaluated=false are projected explicitly. Omit offsets for tail mode, or pass stdoutOffset/stderrOffset with at least 4 tail bytes to read only new retained UTF-8 text and continue from returned next offsets.",
         output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<TaskObservation>>(),
         annotations(
@@ -738,12 +738,12 @@ impl RuntimeServer {
             open_world_hint = true
         )
     )]
-    async fn task_observe(
+    async fn job_observe(
         &self,
         Parameters(request): Parameters<TaskObserveRequest>,
     ) -> ToolOutcome<TaskObservation> {
         let runtime = self.state.runtime.clone();
-        self.run_core("task.observe", move || {
+        self.run_core("job.observe", move || {
             runtime.observe_task(&request).map_err(ToolError::from)
         })
         .await
@@ -774,7 +774,7 @@ impl RuntimeServer {
 
     #[tool(
         name = "job.list",
-        description = "List newest Jobs first from the current durable Registry projection with request identity, Workspace, command summary, exact Attempt state, execution and delivery disposition, recovery requirement, timestamps, duration, and Artifact count using a stable cursor. Optionally filter by exact workspaceId, clientRequestId, or their intersection so a reconnecting caller can recover historical Jobs without scanning the global ledger. This call does not reconcile or dispatch Jobs; use task.observe for targeted reconciliation. Runtime never claims Task/domain semantic completion.",
+        description = "List newest Jobs first from the current durable Registry projection with request identity, Workspace, command summary, exact Attempt state, execution and delivery disposition, recovery requirement, timestamps, duration, and Artifact count using a stable cursor. Optionally filter by exact workspaceId, clientRequestId, or their intersection so a reconnecting caller can recover historical Jobs without scanning the global ledger. This call does not reconcile or dispatch Jobs; use job.observe for targeted reconciliation. Runtime never claims Task/domain semantic completion.",
         output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<RuntimeJobListResult>>(),
         annotations(
             title = "List transactional jobs",

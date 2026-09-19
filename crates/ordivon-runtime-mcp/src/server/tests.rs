@@ -1275,7 +1275,7 @@ fn tool_effect_annotations_match_runtime_behavior() {
         ("task.cancel", false, true, true, false),
         ("job.get", true, false, true, false),
         ("job.list", true, false, true, false),
-        ("task.observe", false, true, true, true),
+        ("job.observe", false, true, true, true),
         ("workspace.close", false, true, true, false),
         ("workspace.changes", true, false, true, false),
         ("workspace.content", true, false, true, false),
@@ -1396,11 +1396,11 @@ fn tool_catalog_uses_transactional_job_contract() {
             "input.ingest",
             "job.get",
             "job.list",
+            "job.observe",
             "release.apply",
             "release.get",
             "runtime.describe",
             "task.cancel",
-            "task.observe",
             "workspace.changes",
             "workspace.close",
             "workspace.content",
@@ -1601,7 +1601,7 @@ fn tool_catalog_uses_transactional_job_contract() {
 
     let observe = tools
         .iter()
-        .find(|tool| tool.name.as_ref() == "task.observe")
+        .find(|tool| tool.name.as_ref() == "job.observe")
         .unwrap();
     let observe_schema = serde_json::to_value(&observe.input_schema).unwrap();
     assert_eq!(
@@ -1642,7 +1642,7 @@ fn tool_catalog_uses_transactional_job_contract() {
 }
 
 #[test]
-fn task_observation_serializes_discoverable_artifacts() {
+fn job_observation_serializes_discoverable_artifacts() {
     let observation = TaskObservation {
         job_id: "job-test".to_string(),
         operation_digest: "sha256:operation-test".to_string(),

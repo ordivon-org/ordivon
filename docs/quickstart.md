@@ -155,7 +155,7 @@ workspace.open
 workspace.read
 workspace.mutate
 workspace.execPlan
-task.observe
+job.observe
 artifact.read
 workspace.diff
 workspace.close
@@ -165,7 +165,7 @@ The exact Tool names and descriptions are generated in [`reference/tools.md`](re
 
 ## 8. Recover or remove
 
-- Reconnect to existing work through `workspace.list`, `workspace.get`, `job.list`, and `task.observe`.
+- Reconnect to existing work through `workspace.list`, `workspace.get`, `job.list`, and `job.observe`.
 - Observe one Workspace locally without reconciliation with `ordivon-runtime-inspect workspace --database /var/lib/ordivon/registry/registry.sqlite3 --store-root /var/lib/ordivon/runtime --workspace-id <workspace> --pretty`; use ordinary `watch -n 1` when repeated terminal refresh is useful.
 - Back up and restore through `scripts/backup.py` and `scripts/restore.py`.
 - Repair only through the documented doctor/repair sequence in [`recovery.md`](recovery.md).
