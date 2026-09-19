@@ -1,6 +1,7 @@
-import bpy
 import json
 from pathlib import Path
+
+import bpy
 
 ROOT = Path(__file__).resolve().parent
 # Round-trip verification is disposable execution evidence; do not emit .blend1 backup carriers.

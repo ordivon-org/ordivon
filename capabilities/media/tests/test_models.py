@@ -5,8 +5,12 @@ import json
 import unittest
 from pathlib import Path
 
-from ordivon_studio.models import _validate_cognition_record, _validate_runtime_receipt, _validator, validate_repository
-
+from ordivon_studio.models import (
+    _validate_cognition_record,
+    _validate_runtime_receipt,
+    _validator,
+    validate_repository,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 RECEIPT = json.loads(

@@ -1,21 +1,25 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import statistics
 import subprocess
 import sys
 import time
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from ordivon_studio.equipment import discover_equipment, load_equipment_world, summarize_trial  # noqa: E402
+from ordivon_studio.equipment import (  # noqa: E402
+    discover_equipment,
+    load_equipment_world,
+    summarize_trial,
+)
 
 OUT = ROOT / "out" / "equipment" / "e7"
 E6 = ROOT / "out" / "equipment" / "e6"
@@ -178,8 +182,8 @@ def main() -> None:
             "typstImageMagick": {"downloadMiB": 24.83, "installedMiB": 67.41, "postcondition": "installed", "runtimeDisposition": "EXECUTABLE_RUNTIME_DRIFT-after-package-effect"},
             "godot": {"downloadMiB": 88.12, "installedMiB": 229.29, "postcondition": "installed", "runtimeDisposition": "EXECUTABLE_RUNTIME_DRIFT-after-package-effect"},
             "blender": {"plannedDownloadMiB": 743.20, "plannedInstalledMiB": 3069.84, "result": "timed-out-after-900000ms-before-transaction", "postcondition": "not-installed"},
-            "inkscape": {"plannedDownloadMiB": 77.89, "plannedInstalledMiB": 524.97, "result": "timed-out-after-300000ms-before-transaction", "postcondition": "not-installed", "orphanDownloaderObserved": true},
-            "recovery": {"stalePacmanLocksSafelyClearedAfterNoHolderWasConfirmed": 3, "currentInkscapeLockDeliberatelyPreservedWhileOrphanDownloaderInUninterruptibleIo": true},
+            "inkscape": {"plannedDownloadMiB": 77.89, "plannedInstalledMiB": 524.97, "result": "timed-out-after-300000ms-before-transaction", "postcondition": "not-installed", "orphanDownloaderObserved": True},
+            "recovery": {"stalePacmanLocksSafelyClearedAfterNoHolderWasConfirmed": 3, "currentInkscapeLockDeliberatelyPreservedWhileOrphanDownloaderInUninterruptibleIo": True},
             "architectureConclusion": "System package provisioning changes host executable topology and should be a Host/Computer provisioning concern, not ordinary Studio Workspace execution semantics."
         },
         "benchmarks": {

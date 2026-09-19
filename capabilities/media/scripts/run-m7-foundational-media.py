@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import shutil
 import subprocess
 import sys
 from datetime import UTC, datetime
@@ -26,8 +25,10 @@ from ordivon_studio.foundational_media import (  # noqa: E402
     still_intervention_report,
     still_visual_features,
 )
-from ordivon_studio.rich_perception import audio_structure_features, media_intervention_report  # noqa: E402
-
+from ordivon_studio.rich_perception import (  # noqa: E402
+    audio_structure_features,
+    media_intervention_report,
+)
 
 COMMON_TEXT = (
     "The response was lost. The operation outcome is unknown. "

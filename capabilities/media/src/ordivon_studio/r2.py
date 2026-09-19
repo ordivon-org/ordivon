@@ -9,7 +9,6 @@ from urllib.parse import quote
 
 from .assets import hash_file, r2_object_key
 
-
 _PROVIDER = "cloudflare-r2-account-api"
 _DEFAULT_API_BASE = "https://api.cloudflare.com/client/v4"
 

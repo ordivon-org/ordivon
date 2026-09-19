@@ -9,7 +9,6 @@ from jsonschema import Draft202012Validator
 
 from .timed_text import iter_cues
 
-
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_DIRECTORY = ROOT / "schemas"
 PRODUCTION_DIRECTORY = ROOT / "productions"

@@ -1,10 +1,9 @@
 from __future__ import annotations
 
+import json
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from hashlib import sha256
-import json
-
 
 BOARD_THREAD_TRUTH_ROLE = "derived-coordination-view-not-task-or-domain-truth"
 COLLECTION_TRUTH_ROLE = "curation-relation-not-member-truth"

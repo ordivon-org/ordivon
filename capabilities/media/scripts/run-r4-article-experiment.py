@@ -6,7 +6,6 @@ from pathlib import Path
 
 from ordivon_studio.rich_perception import canonical_digest, run_guardian_article_experiment
 
-
 DEFAULT_SECTIONS = ("world", "technology", "culture", "business", "science", "lifeandstyle")
 
 

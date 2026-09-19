@@ -8,7 +8,6 @@ from unittest.mock import patch
 
 from ordivon_studio.review import build_video_review_packet
 
-
 GOOD_PROBE = {
     "streams": [
         {

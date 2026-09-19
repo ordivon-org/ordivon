@@ -2,7 +2,6 @@ import json
 import unittest
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 CONTEXT = ROOT / "research" / "expression" / "context.json"
 SOURCES = ROOT / "research" / "expression" / "sources.json"

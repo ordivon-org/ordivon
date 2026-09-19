@@ -5,7 +5,6 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-
 BT709_H264_METADATA = (
     "h264_metadata="
     "video_full_range_flag=0:"

@@ -7,10 +7,10 @@ import random
 import statistics
 import subprocess
 import time
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable, Mapping, Sequence
-
+from typing import Any
 
 M7_EVIDENCE_KIND = "ordivon.studio-m7-foundational-media-evidence"
 

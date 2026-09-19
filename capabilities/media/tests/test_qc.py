@@ -8,7 +8,6 @@ from pathlib import Path
 
 from ordivon_studio.qc import measure_loudness, validate_loudness, validate_video_probe
 
-
 GOOD_VIDEO = {
     "codec_type": "video",
     "codec_name": "h264",

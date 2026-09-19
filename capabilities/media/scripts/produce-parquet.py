@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import argparse, json
+
+import argparse
+import json
 from pathlib import Path
+
 import pyarrow as pa
 import pyarrow.parquet as pq
+
 TYPE_MAP={'int64':pa.int64(),'string':pa.string(),'float64':pa.float64(),'boolean':pa.bool_()}
 def main()->int:
  p=argparse.ArgumentParser(description='Write a flat primitive Parquet file with explicit schema/nullability.')

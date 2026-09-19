@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import argparse, os, sys
+
+import argparse
+import os
+import sys
 from io import BytesIO
 from pathlib import Path
 
@@ -8,6 +11,7 @@ SITE = os.environ.get("ORDIVON_WARCIO_SITE", "/opt/ordivon/external/warcio-py/1.
 sys.path.insert(0, SITE)
 from warcio.statusandheaders import StatusAndHeaders
 from warcio.warcwriter import WARCWriter
+
 
 def main() -> int:
     p=argparse.ArgumentParser(description="Write one bounded WARC/1.1 HTTP response record.")

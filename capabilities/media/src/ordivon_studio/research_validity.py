@@ -5,12 +5,12 @@ import json
 import math
 import random
 import sqlite3
+from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
 from statistics import NormalDist
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any
 
 from .grounded_meaning import canonical_digest
-
 
 OUTCOME_ROLES = ("primary", "guardrail", "secondary", "exploratory")
 EVENT_TYPES = (
@@ -32,7 +32,7 @@ def seed_commitment(seed: str) -> str:
 
 
 def _seed_int(seed: str, namespace: str) -> int:
-    digest = hashlib.sha256(f"{seed}\x00{namespace}".encode("utf-8")).digest()
+    digest = hashlib.sha256(f"{seed}\x00{namespace}".encode()).digest()
     return int.from_bytes(digest[:16], "big")
 
 

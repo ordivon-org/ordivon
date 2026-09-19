@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from hashlib import sha256
 import json
 import os
-from pathlib import Path
 import shutil
 import subprocess
 import sys
 import tempfile
+from hashlib import sha256
+from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 _browser = os.environ.get("ORDIVON_CHROMIUM") or shutil.which("chromium") or shutil.which("chromium-browser")

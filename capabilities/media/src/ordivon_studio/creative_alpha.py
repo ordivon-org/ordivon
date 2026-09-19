@@ -1,15 +1,13 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import random
 from collections import defaultdict
-from pathlib import Path
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from .grounded_meaning import canonical_digest
 from .research_validity import seed_commitment
-
 
 VARIANTS = ("explicit-chain", "fragmented", "evidence-delayed")
 PRIMARY_TREATMENT = "explicit-chain"
@@ -258,7 +256,6 @@ def _receipt_representatives(receipt: Mapping[str, Any]) -> dict[str, Mapping[st
 
 def build_observer_bundle(*, protocol: Mapping[str, Any], web_receipts: Sequence[Mapping[str, Any]], replicates: int | None = None) -> dict[str, Any]:
     mechanism_specs = {str(item["mechanismId"]): item for item in protocol["mechanisms"]}
-    receipts = {str(receipt["experimentId"]).rsplit("-", 1)[-1].upper(): receipt for receipt in web_receipts}
     # Prefer explicit manifest experiment binding over filename/order inference.
     bound: dict[str, Mapping[str, Any]] = {}
     for mechanism_id, spec in mechanism_specs.items():

@@ -1,7 +1,8 @@
-import bpy
 import math
-from mathutils import Vector
 from pathlib import Path
+
+import bpy
+from mathutils import Vector
 
 ROOT = Path(__file__).resolve().parent
 RENDER = ROOT / "render"

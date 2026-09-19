@@ -1,6 +1,9 @@
 from __future__ import annotations
+
 import unittest
+
 from ordivon_studio.figma_provider import figma_provider_surface, route_figma_operation
+
 
 class FigmaProviderTests(unittest.TestCase):
     def test_shared_context_prefers_current_desktop_without_claiming_truth(self):

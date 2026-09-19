@@ -16,7 +16,6 @@ from typing import Any
 
 import opentimelineio as otio
 
-
 # Media v2 R5 boundary: generic editorial inspection/range validation is owned by
 # the external-first OpenTimelineIO gate under media-v2/, using pinned otiotool.
 # The OTIO traversal/writer helpers retained in this module are legacy compatibility
@@ -316,12 +315,12 @@ def install_runner(
 
 
 def _new_operation_id(kind: str) -> str:
-    timestamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dt%H%M%Sz").lower()
+    timestamp = dt.datetime.now(dt.UTC).strftime("%Y%m%dt%H%M%Sz").lower()
     return f"resolve-{kind}-{timestamp}-{secrets.token_hex(4)}"
 
 
 def _requested_at() -> str:
-    return dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return dt.datetime.now(dt.UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 def _validate_operation_id(operation_id: str) -> str:

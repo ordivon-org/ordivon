@@ -13,7 +13,6 @@ import os
 import re
 from pathlib import Path
 
-
 ADAPTER_VERSION = "0.5.0"
 CONFIG_NAME = "ordivon-runner.config.json"
 OPERATION_NAME = "resolve-operation.json"

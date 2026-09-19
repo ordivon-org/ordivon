@@ -4,7 +4,6 @@ import unittest
 
 from ordivon_studio.timed_text import export_srt, export_webvtt, validate_timed_text_delivery
 
-
 DOCUMENT = {
     "language": "en",
     "timeBase": {"ticksPerSecond": 1000},

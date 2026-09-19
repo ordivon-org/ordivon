@@ -10,12 +10,11 @@ from pathlib import Path
 from unittest.mock import patch
 
 import opentimelineio as otio
+
 import ordivon_studio.resolve_runner_menu as runner_menu
 from ordivon_studio.resolve_adapter import (
     ASSEMBLY_CONFORM_PROJECT_PREFIX,
     ASSEMBLY_CONFORM_TIMELINE_NAME,
-    ASSEMBLY_PROJECT_NAME,
-    ASSEMBLY_TIMELINE_NAME,
     CONFIG_FILENAME,
     OPERATION_FILENAME,
     RUNNER_FILENAME,
@@ -30,7 +29,6 @@ from ordivon_studio.resolve_adapter import (
     validate_result,
 )
 from ordivon_studio.resolve_runner_menu import execute_operation, validate_operation
-
 
 ASSEMBLY_LAYOUT = [
     ("hook-placeholder", "runtime-hook-placeholder", "00-hook-placeholder.mp4", 180, True, "01_PLACEHOLDERS"),

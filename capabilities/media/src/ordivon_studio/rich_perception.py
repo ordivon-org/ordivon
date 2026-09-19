@@ -13,17 +13,16 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import zlib
+from collections.abc import Iterable, Sequence
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
 from datetime import UTC, datetime
 from html.parser import HTMLParser
 from pathlib import Path
-from typing import Any, Iterable, Sequence
+from typing import Any
 
 from .assets import probe_media
 from .observatory import TITLE_FEATURES, build_matched_pairs, collect_guardian, title_features
 from .perception import analyze_temporal_change
-
 
 RICH_ARTICLE_KIND = "ordivon.studio-rich-article-experiment"
 RICH_MEDIA_KIND = "ordivon.studio-rich-media-experiment"

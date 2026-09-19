@@ -13,7 +13,6 @@ from ordivon_studio.grounded_meaning import (
     validate_grounded_result,
 )
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 

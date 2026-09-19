@@ -11,8 +11,8 @@ import argparse
 import hashlib
 import json
 from collections import Counter
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 from markdown_it import MarkdownIt
 from markdown_it.tree import SyntaxTreeNode

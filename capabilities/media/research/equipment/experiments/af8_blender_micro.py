@@ -1,6 +1,7 @@
-from pathlib import Path
-import bpy
 import math
+from pathlib import Path
+
+import bpy
 
 ROOT = Path(__file__).resolve().parents[3]
 OUT = ROOT / "out" / "af8"
@@ -30,6 +31,7 @@ def look_at(obj, point=(0.0, 0.0, 0.0)):
     obj.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
 
 import mathutils
+
 look_at(camera)
 
 bpy.ops.object.light_add(type="AREA", location=(3.5, -2.0, 5.0))

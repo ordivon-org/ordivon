@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 from __future__ import annotations
+
 import argparse
-from email.message import EmailMessage
-from email import policy
-from email.utils import format_datetime
 from datetime import datetime
+from email import policy
+from email.message import EmailMessage
+from email.utils import format_datetime
 from pathlib import Path
+
 
 def main() -> int:
     p=argparse.ArgumentParser(description="Compose one bounded RFC5322/MIME UTF-8 text/plain message.")

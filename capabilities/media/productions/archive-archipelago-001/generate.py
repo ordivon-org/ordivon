@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import hashlib, html, json, math
+
+import hashlib
+import html
+import json
+import math
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -139,7 +143,7 @@ svg.append(f'<text x="{lx+22}" y="{ly+145}" fill="#6e7681" font-family="Inter,Se
 short=(cat.get('catalogDigest') or 'unknown').replace('sha256:','')[:16]
 svg.append('<line x1="86" y1="906" x2="1514" y2="906" stroke="#21262d"/>')
 svg.append(f'<text x="86" y="934" fill="#6e7681" font-family="ui-monospace,SFMono-Regular,Consolas,monospace" font-size="12">SOURCE CATALOG {html.escape(short)}… · frozen snapshot · exact details in GeoPackage / interactive companion</text>')
-svg.append(f'<text x="1514" y="934" fill="#6e7681" text-anchor="end" font-family="ui-monospace,SFMono-Regular,Consolas,monospace" font-size="12">NO GEOGRAPHY · NO DEPENDENCY INFERENCE</text>')
+svg.append('<text x="1514" y="934" fill="#6e7681" text-anchor="end" font-family="ui-monospace,SFMono-Regular,Consolas,monospace" font-size="12">NO GEOGRAPHY · NO DEPENDENCY INFERENCE</text>')
 svg.append('</svg>')
 (OUT/'archive-archipelago-001.svg').write_text('\n'.join(svg)+'\n',encoding='utf-8')
 

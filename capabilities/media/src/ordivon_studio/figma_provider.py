@@ -6,8 +6,8 @@ provider evidence, never inferred from installation alone.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
-from typing import Any, Mapping
+from dataclasses import asdict, dataclass
+from typing import Any
 
 _DESKTOP = "figma-desktop"
 _REMOTE = "figma-remote"

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import json
 import subprocess
+from collections.abc import Iterable, Mapping
 from pathlib import Path
-from typing import Any, Iterable, Mapping
-
+from typing import Any
 
 INDEX_KIND = "ordivon.media.creative-index"
 

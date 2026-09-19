@@ -8,13 +8,13 @@ import statistics
 import sys
 import urllib.parse
 import urllib.request
+from collections.abc import Iterable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 from urllib.parse import urlparse
-
 
 OBSERVATION_KIND = "ordivon.studio-cultural-observation"
 SNAPSHOT_KIND = "ordivon.studio-cultural-snapshot"

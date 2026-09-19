@@ -3,11 +3,11 @@ from __future__ import annotations
 import hashlib
 import json
 import subprocess
-import sys
 import time
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "out" / "equipment" / "e6"

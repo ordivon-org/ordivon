@@ -3,8 +3,9 @@ from __future__ import annotations
 import argparse
 import json
 import subprocess
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
 
 from ordivon_studio.rich_perception import (
     audio_structure_features,
@@ -15,7 +16,6 @@ from ordivon_studio.rich_perception import (
     media_intervention_report,
     video_structure_features,
 )
-
 
 FFMPEG = "/usr/bin/ffmpeg"
 

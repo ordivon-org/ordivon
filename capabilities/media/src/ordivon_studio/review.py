@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from .assets import hash_file, probe_media
 from .perception import build_video_perception_bundle
@@ -114,8 +115,6 @@ def build_video_review_packet(
         requested_frames=list(dict.fromkeys(int(frame) for frame in frames)),
         ffmpeg=ffmpeg,
     )
-    frame_records = perception["selectedFrames"]
-
     sources = production.get("sources")
     cognition = sources.get("cognition") if isinstance(sources, dict) else None
     claims = sources.get("claims") if isinstance(sources, dict) else None
