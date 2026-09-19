@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PROFILE_PATH = ROOT / "planning" / "ordivon-core-zero-enforcement-r3.json"
+PROFILE_PATH = ROOT / "policies" / "external-ownership-boundary.json"
 AGENT_SERVICE = ROOT / "agent_service"
 
 ALLOWED_NON_AUTHORITY_ROLES = {
@@ -33,12 +33,12 @@ def _top_level_classes(root: Path) -> set[str]:
 def _load_profile() -> dict:
     if not PROFILE_PATH.exists():
         raise AssertionError(
-            "CORE_ZERO profile is missing; architecture-zero is still prose-only"
+            "external ownership boundary profile is missing; architecture policy is prose-only"
         )
     return json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
 
 
-class OrdivonCoreZeroEnforcementR3Tests(unittest.TestCase):
+class ExternalOwnershipBoundaryTests(unittest.TestCase):
     def test_architectural_core_and_residuals_are_empty(self) -> None:
         profile = _load_profile()
         self.assertEqual(profile["architecturalCore"], "EMPTY")
