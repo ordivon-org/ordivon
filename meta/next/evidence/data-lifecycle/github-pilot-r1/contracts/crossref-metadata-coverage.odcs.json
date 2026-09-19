@@ -1,0 +1,546 @@
+{
+  "apiVersion": "v3.2.0",
+  "authoritativeDefinitions": [
+    {
+      "description": "Exact Git source revision used for acquisition.",
+      "type": "canonical",
+      "url": "https://github.com/rfordatascience/tidytuesday/blob/f4d1b35ca09d8c0d875451635daef9179adfc9e0/data/2026/2026-05-19/metadata_coverage_stats_by_country.csv"
+    }
+  ],
+  "customProperties": [
+    {
+      "property": "sourceSha256",
+      "value": "2e37a30acc28f47bf724ca1038fbe840ab1be84cd66790ae69aa62a6731f0ad4"
+    },
+    {
+      "property": "derivedParquetSha256",
+      "value": "5f05a22f1edb829b1cdeb7faaf6ea1fbffab596b7c70b6550d182576d4206e6b"
+    },
+    {
+      "property": "sourceGitCommit",
+      "value": "f4d1b35ca09d8c0d875451635daef9179adfc9e0"
+    }
+  ],
+  "dataProduct": "crossref-metadata-country",
+  "description": {
+    "limitations": "Descriptive pilot contract; upstream source semantics and causal interpretation remain outside this contract.",
+    "purpose": "External GitHub dataset used to exercise the Ordivon data lifecycle pilot.",
+    "usage": "Reproducible data-lifecycle validation and descriptive analysis."
+  },
+  "domain": "external-public-data",
+  "id": "269b2217-cc4b-57fd-9ea7-7540c4c3b6a7",
+  "kind": "DataContract",
+  "name": "crossref-metadata-coverage",
+  "schema": [
+    {
+      "description": "Crossref metadata coverage statistics by country and document type",
+      "name": "crossref-metadata-coverage",
+      "physicalName": "crossref-metadata-coverage.parquet",
+      "physicalType": "parquet",
+      "properties": [
+        {
+          "classification": "public",
+          "logicalType": "date",
+          "name": "current_up_to",
+          "physicalName": "current_up_to",
+          "physicalType": "date",
+          "primaryKey": true,
+          "primaryKeyPosition": 1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "string",
+          "name": "region_id",
+          "physicalName": "region_id",
+          "physicalType": "varchar",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "string",
+          "name": "iso3_code",
+          "physicalName": "iso3_code",
+          "physicalType": "varchar",
+          "primaryKey": true,
+          "primaryKeyPosition": 2,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "string",
+          "name": "document_type",
+          "physicalName": "document_type",
+          "physicalType": "varchar",
+          "primaryKey": true,
+          "primaryKeyPosition": 3,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "string",
+          "name": "document_subtype",
+          "physicalName": "document_subtype",
+          "physicalType": "varchar",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "n_dois",
+          "physicalName": "n_dois",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "with_ref",
+          "physicalName": "with_ref",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "with_doi_ref",
+          "physicalName": "with_doi_ref",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "references",
+          "physicalName": "references",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "references_with_dois",
+          "physicalName": "references_with_dois",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "references_with_doi_asserted_by_publisher",
+          "physicalName": "references_with_doi_asserted_by_publisher",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "references_with_doi_asserted_by_crossref",
+          "physicalName": "references_with_doi_asserted_by_crossref",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "citations_received",
+          "physicalName": "citations_received",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "with_abstract",
+          "physicalName": "with_abstract",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "with_license",
+          "physicalName": "with_license",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "with_crossmark",
+          "physicalName": "with_crossmark",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "with_crossmark_update",
+          "physicalName": "with_crossmark_update",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "crossmark_updates",
+          "physicalName": "crossmark_updates",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "update_assertions",
+          "physicalName": "update_assertions",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "update_assertions_from_publisher",
+          "physicalName": "update_assertions_from_publisher",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "update_assertions_from_retraction_watch",
+          "physicalName": "update_assertions_from_retraction_watch",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "with_textmining",
+          "physicalName": "with_textmining",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "with_status_info",
+          "physicalName": "with_status_info",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "acknowledges_funding",
+          "physicalName": "acknowledges_funding",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "award_number_assertions",
+          "physicalName": "award_number_assertions",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "with_grant_id",
+          "physicalName": "with_grant_id",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "grant_id_assertions",
+          "physicalName": "grant_id_assertions",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "with_funder_id",
+          "physicalName": "with_funder_id",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "funder_id_assertions",
+          "physicalName": "funder_id_assertions",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "with_orcid",
+          "physicalName": "with_orcid",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "with_orcid_for_authors",
+          "physicalName": "with_orcid_for_authors",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "with_orcid_for_chairs",
+          "physicalName": "with_orcid_for_chairs",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "with_orcid_for_editors",
+          "physicalName": "with_orcid_for_editors",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "with_orcid_for_translators",
+          "physicalName": "with_orcid_for_translators",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "orcid_assertions",
+          "physicalName": "orcid_assertions",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "orcid_for_authors_assertions",
+          "physicalName": "orcid_for_authors_assertions",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "orcid_for_chairs_assertions",
+          "physicalName": "orcid_for_chairs_assertions",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "orcid_for_editors_assertions",
+          "physicalName": "orcid_for_editors_assertions",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "orcid_for_translators_assertions",
+          "physicalName": "orcid_for_translators_assertions",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "with_ror_id",
+          "physicalName": "with_ror_id",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "with_ror_id_for_affiliations",
+          "physicalName": "with_ror_id_for_affiliations",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "with_ror_id_for_institutions",
+          "physicalName": "with_ror_id_for_institutions",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "with_ror_id_for_funders",
+          "physicalName": "with_ror_id_for_funders",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "ror_id_assertions",
+          "physicalName": "ror_id_assertions",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "ror_id_for_affiliations_assertions",
+          "physicalName": "ror_id_for_affiliations_assertions",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "ror_id_for_institutions_assertions",
+          "physicalName": "ror_id_for_institutions_assertions",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "ror_id_for_funders_assertions",
+          "physicalName": "ror_id_for_funders_assertions",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "preprint_to_article_links",
+          "physicalName": "preprint_to_article_links",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "retractions",
+          "physicalName": "retractions",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true
+        },
+        {
+          "classification": "public",
+          "logicalType": "string",
+          "name": "document_subtype_key",
+          "physicalName": "document_subtype_key",
+          "physicalType": "varchar",
+          "primaryKey": true,
+          "primaryKeyPosition": 4,
+          "required": true
+        }
+      ]
+    }
+  ],
+  "status": "active",
+  "version": "1.0.0"
+}

@@ -1,0 +1,13 @@
+{
+  "crossref": {
+    "eligibleCountryCount": 122,
+    "memberVsWorkRorSharePearsonR": 0.48571481886469675
+  },
+  "interpretationBoundary": "Descriptive outputs only; no causal inference is claimed.",
+  "se4all": {
+    "countries": 251,
+    "country_mean_electricity_access_pct": 76.14938391784486,
+    "country_mean_renewable_tfec_pct": 28.52762906043333,
+    "latest_year": 2010
+  }
+}

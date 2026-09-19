@@ -1,0 +1,87 @@
+{
+  "@context": {
+    "dcat": "http://www.w3.org/ns/dcat#",
+    "dct": "http://purl.org/dc/terms/"
+  },
+  "@id": "urn:ordivon:catalog:github-pilot-r1",
+  "@type": "dcat:Catalog",
+  "dcat:dataset": [
+    {
+      "@id": "urn:ordivon:dataset:crossref-member-participation:0f220075cedec9443c1a7343771cff7cce1c3892d6e0717f7e6fecbcdb0ad2af",
+      "@type": "dcat:Dataset",
+      "dcat:distribution": [
+        {
+          "@type": "dcat:Distribution",
+          "dcat:downloadURL": {
+            "@id": "https://raw.githubusercontent.com/rfordatascience/tidytuesday/f4d1b35ca09d8c0d875451635daef9179adfc9e0/data/2026/2026-05-19/member_participation_stats_by_country.csv"
+          },
+          "dct:format": "text/csv",
+          "dct:identifier": "sha256:0f220075cedec9443c1a7343771cff7cce1c3892d6e0717f7e6fecbcdb0ad2af"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "dct:format": "application/vnd.apache.parquet",
+          "dct:identifier": "sha256:e46ac005911a8d6b17214d1bd4cce82e28cf00ee1b9bd69cdcb25b54f63f4a8e"
+        }
+      ],
+      "dct:identifier": "sha256:0f220075cedec9443c1a7343771cff7cce1c3892d6e0717f7e6fecbcdb0ad2af",
+      "dct:rights": "TidyTuesday curation requires source data to be publicly available and free for reuse; upstream license terms remain source-specific and are not inferred here.",
+      "dct:source": {
+        "@id": "https://raw.githubusercontent.com/rfordatascience/tidytuesday/f4d1b35ca09d8c0d875451635daef9179adfc9e0/data/2026/2026-05-19/member_participation_stats_by_country.csv"
+      },
+      "dct:title": "Crossref member participation statistics by country"
+    },
+    {
+      "@id": "urn:ordivon:dataset:crossref-metadata-coverage:2e37a30acc28f47bf724ca1038fbe840ab1be84cd66790ae69aa62a6731f0ad4",
+      "@type": "dcat:Dataset",
+      "dcat:distribution": [
+        {
+          "@type": "dcat:Distribution",
+          "dcat:downloadURL": {
+            "@id": "https://raw.githubusercontent.com/rfordatascience/tidytuesday/f4d1b35ca09d8c0d875451635daef9179adfc9e0/data/2026/2026-05-19/metadata_coverage_stats_by_country.csv"
+          },
+          "dct:format": "text/csv",
+          "dct:identifier": "sha256:2e37a30acc28f47bf724ca1038fbe840ab1be84cd66790ae69aa62a6731f0ad4"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "dct:format": "application/vnd.apache.parquet",
+          "dct:identifier": "sha256:5f05a22f1edb829b1cdeb7faaf6ea1fbffab596b7c70b6550d182576d4206e6b"
+        }
+      ],
+      "dct:identifier": "sha256:2e37a30acc28f47bf724ca1038fbe840ab1be84cd66790ae69aa62a6731f0ad4",
+      "dct:rights": "TidyTuesday curation requires source data to be publicly available and free for reuse; upstream license terms remain source-specific and are not inferred here.",
+      "dct:source": {
+        "@id": "https://raw.githubusercontent.com/rfordatascience/tidytuesday/f4d1b35ca09d8c0d875451635daef9179adfc9e0/data/2026/2026-05-19/metadata_coverage_stats_by_country.csv"
+      },
+      "dct:title": "Crossref metadata coverage statistics by country and document type"
+    },
+    {
+      "@id": "urn:ordivon:dataset:se4all-energy:87ad1ef2d9713693c17ab57f9e2d995cf427b6c32a088597877301a15f307f0b",
+      "@type": "dcat:Dataset",
+      "dcat:distribution": [
+        {
+          "@type": "dcat:Distribution",
+          "dcat:downloadURL": {
+            "@id": "https://raw.githubusercontent.com/rfordatascience/tidytuesday/f4d1b35ca09d8c0d875451635daef9179adfc9e0/data/2026/2026-05-26/energy_cleaned.csv"
+          },
+          "dct:format": "text/csv",
+          "dct:identifier": "sha256:87ad1ef2d9713693c17ab57f9e2d995cf427b6c32a088597877301a15f307f0b"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "dct:format": "application/vnd.apache.parquet",
+          "dct:identifier": "sha256:141fdab942b23cac74c595f8d2618021a74c83f4feb532c9ef4348038d693f91"
+        }
+      ],
+      "dct:identifier": "sha256:87ad1ef2d9713693c17ab57f9e2d995cf427b6c32a088597877301a15f307f0b",
+      "dct:rights": "TidyTuesday curation requires source data to be publicly available and free for reuse; upstream license terms remain source-specific and are not inferred here.",
+      "dct:source": {
+        "@id": "https://raw.githubusercontent.com/rfordatascience/tidytuesday/f4d1b35ca09d8c0d875451635daef9179adfc9e0/data/2026/2026-05-26/energy_cleaned.csv"
+      },
+      "dct:title": "Sustainable Energy for All country historical indicators"
+    }
+  ],
+  "dct:identifier": "f4d1b35ca09d8c0d875451635daef9179adfc9e0",
+  "dct:title": "Ordivon GitHub Data Lifecycle Pilot R1"
+}
