@@ -233,7 +233,8 @@ fn validate_closed_identity(
 ) -> Result<(), UniversalExecError> {
     if record.schema_version != UNIVERSAL_EXEC_SCHEMA_VERSION
         || record.state != "closed"
-        || (!record.workspace_id.is_empty() && record.workspace_id != workspace_id)
+        || (!record.legacy_workspace_id.is_empty()
+            && record.legacy_workspace_id != workspace_id)
     {
         return Err(UniversalExecError::new(
             UniversalExecErrorCode::MetadataCorrupt,

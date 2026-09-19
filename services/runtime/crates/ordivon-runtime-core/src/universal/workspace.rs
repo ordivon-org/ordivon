@@ -33,18 +33,20 @@ use sha2::{Digest, Sha256};
 struct ClosedWorkspaceRecord {
     schema_version: u32,
     state: String,
-    #[serde(default, skip_serializing)]
-    workspace_id: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    source_repo: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    source_revision: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    final_head: Option<String>,
+    #[serde(default, skip_serializing, rename = "workspaceId")]
+    legacy_workspace_id: String,
+    #[serde(default, skip_serializing, rename = "sourceRepo")]
+    _legacy_source_repo: Option<String>,
+    #[serde(default, skip_serializing, rename = "sourceRevision")]
+    _legacy_source_revision: Option<String>,
+    #[serde(default, skip_serializing, rename = "finalHead")]
+    _legacy_final_head: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     source_state_digest: Option<String>,
-    closed_unix_ms: u128,
-    removal_result: String,
+    #[serde(default, skip_serializing, rename = "closedUnixMs")]
+    _legacy_closed_unix_ms: Option<u128>,
+    #[serde(default, skip_serializing, rename = "removalResult")]
+    _legacy_removal_result: Option<String>,
 }
 
 #[derive(Debug, Default)]

@@ -600,8 +600,7 @@ class LifecycleTests(unittest.TestCase):
             report = json.loads(result.stdout)
             self.assertEqual(report["actions"][0]["action"], "workspace_quarantined")
             tombstone = json.loads(record.read_text(encoding="utf-8"))
-            self.assertEqual(tombstone["state"], "closed")
-            self.assertEqual(tombstone["removalResult"], "quarantined_broken")
+            self.assertEqual(tombstone, {"schemaVersion": 1, "state": "closed"})
             quarantined = Path(report["actions"][0]["quarantinePath"])
             self.assertEqual((quarantined / "important.txt").read_text(), "preserve me\n")
             self.assertEqual(report["actions"][0]["removedTmpPresentation"], str(tmp_presentation))
@@ -658,11 +657,7 @@ class LifecycleTests(unittest.TestCase):
             self.assertIn(str(target), worktrees)
             self.assertNotIn(str(workspace) + "\n", worktrees)
             tombstone = json.loads((records / f"{workspace_id}.json").read_text(encoding="utf-8"))
-            self.assertEqual(tombstone["state"], "closed")
-            self.assertEqual(tombstone["removalResult"], "quarantined_orphan")
-            self.assertEqual(tombstone["finalHead"], revision)
-            self.assertNotIn("sourceRepo", tombstone)
-            self.assertNotIn("sourceRevision", tombstone)
+            self.assertEqual(tombstone, {"schemaVersion": 1, "state": "closed"})
             inspect = subprocess.run(
                 [sys.executable, "scripts/ordivon-runtime-reclaim", "inspect", "--database", str(database), "--runtime-store-root", str(runtime)],
                 cwd=REPO, check=True, text=True, capture_output=True,
