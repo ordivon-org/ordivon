@@ -624,6 +624,71 @@ class AgentServiceFailoverR12Tests(unittest.TestCase):
             self.assertEqual(quiescence.calls, [])
             self.assertEqual(replay.calls, [])
 
+    def test_committed_failover_identity_cannot_be_reused_for_different_target(self) -> None:
+        quiescence = RecordingQuiescenceAdapter(quiescent=True)
+        replay = RecordingReplaySafetyAdapter(safe=True, classification="NO_EFFECTS")
+        with tempfile.TemporaryDirectory() as tmp:
+            service = self._open(
+                Path(tmp) / "service.db",
+                quiescence_adapter=quiescence,
+                replay_safety_adapter=replay,
+            )
+            task, _, primary, fallback = self._setup(service, "conflict-a")
+            _, _, _, other_fallback = self._setup(service, "conflict-b")
+            self._deliver_primary(service, primary)
+            first = self._failover(service, primary, fallback, "identity-conflict")
+            self.assertEqual(service.execution_claims.get(task.id).owner_id, fallback.id)
+            quiescence_calls = len(quiescence.calls)
+            replay_calls = len(replay.calls)
+
+            with self.assertRaisesRegex(
+                ValueError,
+                "failover replay conflicts with committed transfer",
+            ):
+                service.failover.failover(
+                    client_failover_request_id="r12:failover:identity-conflict",
+                    client_quiescence_request_id="r12:quiescence:identity-conflict",
+                    client_replay_safety_request_id="r12:replay:identity-conflict",
+                    from_binding_id=primary.id,
+                    to_binding_id=other_fallback.id,
+                )
+
+            self.assertEqual(first.to_binding_id, fallback.id)
+            self.assertEqual(service.execution_claims.get(task.id).owner_id, fallback.id)
+            self.assertEqual(len(quiescence.calls), quiescence_calls)
+            self.assertEqual(len(replay.calls), replay_calls)
+
+    def test_committed_failover_identity_cannot_change_subrequest_identities(self) -> None:
+        quiescence = RecordingQuiescenceAdapter(quiescent=True)
+        replay = RecordingReplaySafetyAdapter(safe=True, classification="NO_EFFECTS")
+        with tempfile.TemporaryDirectory() as tmp:
+            service = self._open(
+                Path(tmp) / "service.db",
+                quiescence_adapter=quiescence,
+                replay_safety_adapter=replay,
+            )
+            task, _, primary, fallback = self._setup(service, "subrequest-conflict")
+            self._deliver_primary(service, primary)
+            self._failover(service, primary, fallback, "subrequest-conflict")
+            quiescence_calls = len(quiescence.calls)
+            replay_calls = len(replay.calls)
+
+            with self.assertRaisesRegex(
+                ValueError,
+                "failover replay conflicts with committed transfer",
+            ):
+                service.failover.failover(
+                    client_failover_request_id="r12:failover:subrequest-conflict",
+                    client_quiescence_request_id="r12:quiescence:changed",
+                    client_replay_safety_request_id="r12:replay:changed",
+                    from_binding_id=primary.id,
+                    to_binding_id=fallback.id,
+                )
+
+            self.assertEqual(service.execution_claims.get(task.id).owner_id, fallback.id)
+            self.assertEqual(len(quiescence.calls), quiescence_calls)
+            self.assertEqual(len(replay.calls), replay_calls)
+
     def test_late_old_owner_success_cannot_steal_task_after_transfer_and_failover_replay_is_exact(self) -> None:
         quiescence = RecordingQuiescenceAdapter(quiescent=True)
         replay = RecordingReplaySafetyAdapter(safe=True, classification="NO_EFFECTS")

@@ -1,21 +1,17 @@
 # Compositions
 
-A composition is a reusable, evidence-backed problem-solving recipe.
+A composition is an optional reusable recipe that has survived repeated real workloads. It is not a mandatory Ordivon architecture layer.
 
-Conceptually:
+Record a maintained composition only when materially different executions repeatedly demonstrate the same useful relationship among:
 
-```text
-ProblemClass
-  + applicability conditions
-  + knowledge/methods
-  + selected capabilities/providers
-  + workflow/decision points
-  + validators/acceptance criteria
-  -> verified outcome
-```
+- a problem class and applicability conditions;
+- mature external knowledge/methods;
+- selected providers/capabilities;
+- decision or execution sequence;
+- domain/native validation.
 
-Compositions are expected to become one of Ordivon's primary long-lived assets. Prefer recording successful relationships and applicability evidence over adding bespoke infrastructure.
+Do not promote a one-off smoke test, provider demo, migration plan, or historical architecture exercise into a permanent composition. Keep those with their natural owner: provider records, experiments, planning, evidence, or migration history.
 
-The former generic enterprise-work composition was retired after its routing knowledge moved into the thin `enterprise-work` Skill and external authority/provider records. Do not recreate a generic enterprise lifecycle as a reusable composition.
+The former generic enterprise-work composition was retired after its routing knowledge moved to the thin `enterprise-work` Skill and external authority/provider records. The former Reasoning Waist problem-to-plan skeleton is likewise a provider smoke, not a demonstrated cross-workload composition; its current executable truth lives in `capabilities/providers/reasoning-waist.md` and `scripts/check_reasoning_waist_r1.py`.
 
-Current reasoning composition: `problem-to-plan-reasoning-waist-r1.md` binds mature graph validation, configuration/constraint solving, and planner-neutral plan generation without owning domain semantics or execution.
+A composition earns long-lived status from repeated real reuse, not from having a diagram.

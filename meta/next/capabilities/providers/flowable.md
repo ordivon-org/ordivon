@@ -5,7 +5,7 @@
 - License: Apache-2.0 for the open-source engine
 - Role: executable OMG BPMN / CMMN / DMN provider
 - Migration mode: external replaceable provider; no Ordivon fork
-- Local standing: **MATERIALIZED / ENGINE-BOOT-SMOKE-PASS / PRODUCTION-HOLD-UNTIL-WORKLOAD**
+- Current local standing: **NOT MATERIALIZED / HISTORICAL ENGINE-BOOT-SMOKE-PASS ONLY**
 
 ## Use when
 
@@ -44,6 +44,8 @@ A disposable container boot proved:
 
 Runtime attempt-local loopback publication did not provide a stable cross-attempt path to the published host port, so this R1 smoke does not claim cross-namespace REST integration acceptance. A real workload should provide the next acceptance boundary.
 
-## Forward rule
+## Currentness and forward rule
 
-Keep the image/materialization available, but do not maintain Flowable as an always-on service until a real BPMN/CMMN/DMN workload justifies it.
+The 2026-09-14 image and engine-boot observations above are historical evidence. A 2026-09-20 local probe found no current `localhost/ordivon-flowable-rest:8.0.0` image in Podman or Docker. Do not inherit the historical `MATERIALIZED` standing.
+
+If a real BPMN/CMMN/DMN workload appears, rematerialize a mature Flowable release, revalidate the engine and workload boundary, and record a new observation. Do not maintain Flowable as an always-on service merely to preserve architectural completeness.

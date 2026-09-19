@@ -7,7 +7,6 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
-from unittest import mock
 
 
 MCP_AVAILABLE = importlib.util.find_spec("mcp") is not None
@@ -31,13 +30,12 @@ class AgentServiceMcpCanaryR16Tests(unittest.TestCase):
             token = self._token(Path(tmp))
             with self.assertRaises(ValueError):
                 self.module.McpSettings(
-                    source_root=Path.cwd().resolve(),
                     token_file=token.resolve(),
                     bind_host="0.0.0.0",
                 )
 
     def test_contract_is_read_only_and_production_blocked(self):
-        value = self.module._contract(Path.cwd().resolve())
+        value = self.module._contract()
         self.assertEqual(value["status"], "PASS")
         self.assertEqual(value["compositionRoot"], "open_agent_service")
         self.assertFalse(value["writeSurfaceEnabled"])
@@ -46,21 +44,16 @@ class AgentServiceMcpCanaryR16Tests(unittest.TestCase):
         self.assertFalse(value["hostMutationSurfaceEnabled"])
         self.assertEqual(value["productionDeployment"], "NOT_ADMITTED")
 
-    def test_contract_does_not_depend_on_historical_acceptance_files(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            with mock.patch.object(
-                self.module,
-                "_graph_identity",
-                return_value={"status": "PASS", "graphFiles": 1, "nodeCount": 1},
-            ):
-                value = self.module._contract(Path(tmp))
+    def test_contract_has_no_historical_architecture_dependency(self):
+        value = self.module._contract()
+        self.assertNotIn("graphFiles", value)
+        self.assertNotIn("graphNodeCount", value)
         self.assertEqual(value["deploymentMode"], "READ_ONLY_CANARY")
         self.assertEqual(value["productionDeployment"], "NOT_ADMITTED")
 
     def test_server_exposes_exactly_four_read_only_tools(self):
         with tempfile.TemporaryDirectory() as tmp:
             settings = self.module.McpSettings(
-                source_root=Path.cwd().resolve(),
                 token_file=self._token(Path(tmp)).resolve(),
                 port=8894,
             )
@@ -68,7 +61,7 @@ class AgentServiceMcpCanaryR16Tests(unittest.TestCase):
             tools = server._tool_manager.list_tools()
             self.assertEqual(
                 sorted(tool.name for tool in tools),
-                ["architecture.identity", "deployment.snapshot", "service.contract", "service.doctor"],
+                ["deployment.snapshot", "service.contract", "service.doctor"],
             )
             for tool in tools:
                 self.assertTrue(tool.annotations.read_only_hint)
@@ -83,8 +76,6 @@ class AgentServiceMcpCanaryR16Tests(unittest.TestCase):
                 [
                     os.sys.executable,
                     "scripts/agent_service_mcp.py",
-                    "--source-root",
-                    str(Path.cwd().resolve()),
                     "--token-file",
                     str(token.resolve()),
                     "--bind",
@@ -100,7 +91,7 @@ class AgentServiceMcpCanaryR16Tests(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(proc.returncode, 0, proc.stderr)
-            self.assertIn('"toolCount": 4', proc.stdout)
+            self.assertIn('"toolCount": 3', proc.stdout)
             self.assertIn('"readOnlyCanary": true', proc.stdout)
             self.assertIn('"productionDeployment": "NOT_ADMITTED"', proc.stdout)
 
