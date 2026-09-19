@@ -210,56 +210,55 @@ class RuntimeEvidenceGate:
         return SemanticVerdict(True, None)
 
 
-class EvidenceResolverRegistry:
-    def __init__(self, artifact_reader: RuntimeArtifactReader) -> None:
-        self._artifact_reader = artifact_reader
-
-    def resolve(self, acceptance: dict[str, Any], observation: RuntimeJobObservation) -> EvidenceBundle:
-        kind = acceptance["kind"]
-        if kind in {"stdout_contains", "stdout_equals"}:
-            content = observation.stdout_tail
-            return EvidenceBundle(
-                resolver="stdout_tail",
-                facts={"text": content},
-                provenance={
-                    "runtimeJobId": observation.job_id,
-                    "digest": _sha256_text(content),
-                    "byteLength": len(content.encode("utf-8")),
-                },
+def _resolve_evidence(
+    artifact_reader: RuntimeArtifactReader,
+    acceptance: dict[str, Any],
+    observation: RuntimeJobObservation,
+) -> EvidenceBundle:
+    kind = acceptance["kind"]
+    if kind in {"stdout_contains", "stdout_equals"}:
+        content = observation.stdout_tail
+        return EvidenceBundle(
+            resolver="stdout_tail",
+            facts={"text": content},
+            provenance={
+                "runtimeJobId": observation.job_id,
+                "digest": _sha256_text(content),
+                "byteLength": len(content.encode("utf-8")),
+            },
+        )
+    if kind == "runtime_artifact_text_contains":
+        artifact_kind = acceptance["artifactKind"]
+        matches = [
+            descriptor
+            for descriptor in observation.artifact_descriptors
+            if descriptor.kind == artifact_kind
+        ]
+        if len(matches) != 1:
+            raise RuntimeError(
+                f"expected exactly one Runtime artifact of kind {artifact_kind!r}, found {len(matches)}"
             )
-        if kind == "runtime_artifact_text_contains":
-            artifact_kind = acceptance["artifactKind"]
-            matches = [
-                descriptor
-                for descriptor in observation.artifact_descriptors
-                if descriptor.kind == artifact_kind
-            ]
-            if len(matches) != 1:
-                raise RuntimeError(
-                    f"expected exactly one Runtime artifact of kind {artifact_kind!r}, found {len(matches)}"
-                )
-            descriptor = matches[0]
-            payload = self._artifact_reader.read(observation.job_id, descriptor.artifact_id)
-            if payload.job_id != observation.job_id or payload.artifact_id != descriptor.artifact_id:
-                raise RuntimeError("Runtime artifact reader returned mismatched identity")
-            computed = _sha256_text(payload.content)
-            if computed != payload.digest:
-                raise ArtifactDigestMismatch(
-                    f"Runtime artifact digest mismatch: {computed} != {payload.digest}"
-                )
-            return EvidenceBundle(
-                resolver="runtime_artifact_text",
-                facts={"text": payload.content},
-                provenance={
-                    "runtimeJobId": observation.job_id,
-                    "artifactId": payload.artifact_id,
-                    "artifactKind": artifact_kind,
-                    "digest": payload.digest,
-                    "byteLength": len(payload.content.encode("utf-8")),
-                },
+        descriptor = matches[0]
+        payload = artifact_reader.read(observation.job_id, descriptor.artifact_id)
+        if payload.job_id != observation.job_id or payload.artifact_id != descriptor.artifact_id:
+            raise RuntimeError("Runtime artifact reader returned mismatched identity")
+        computed = _sha256_text(payload.content)
+        if computed != payload.digest:
+            raise ArtifactDigestMismatch(
+                f"Runtime artifact digest mismatch: {computed} != {payload.digest}"
             )
-        raise ValueError(f"unsupported acceptance kind: {kind}")
-
+        return EvidenceBundle(
+            resolver="runtime_artifact_text",
+            facts={"text": payload.content},
+            provenance={
+                "runtimeJobId": observation.job_id,
+                "artifactId": payload.artifact_id,
+                "artifactKind": artifact_kind,
+                "digest": payload.digest,
+                "byteLength": len(payload.content.encode("utf-8")),
+            },
+        )
+    raise ValueError(f"unsupported acceptance kind: {kind}")
 
 class EvidenceSemanticVerifier:
     """Pure semantic verifier over normalized evidence, not Runtime process state."""
@@ -293,7 +292,7 @@ class TaskCompletionReconciler:
         events: ServiceEventStore,
         runtime: RuntimeAdapter,
         mechanical_gate: RuntimeEvidenceGate,
-        resolvers: EvidenceResolverRegistry,
+        artifact_reader: RuntimeArtifactReader,
         verifier: EvidenceSemanticVerifier,
     ) -> None:
         self._connection = connection
@@ -302,7 +301,7 @@ class TaskCompletionReconciler:
         self._events = events
         self._runtime = runtime
         self._mechanical_gate = mechanical_gate
-        self._resolvers = resolvers
+        self._artifact_reader = artifact_reader
         self._verifier = verifier
 
     def reconcile(self, assignment_id: str) -> Assignment:
@@ -324,7 +323,7 @@ class TaskCompletionReconciler:
             return assignment
 
         if mechanical.accepted:
-            evidence = self._resolvers.resolve(task.acceptance, observation)
+            evidence = _resolve_evidence(self._artifact_reader, task.acceptance, observation)
             verdict = self._verifier.verify(task.acceptance, evidence)
             stage = "semantic"
             receipt = evidence.receipt()
@@ -413,7 +412,6 @@ class AgentServiceR6:
             runtime_adapter,
         )
         self.mechanical_gate = RuntimeEvidenceGate()
-        self.evidence_resolvers = EvidenceResolverRegistry(artifact_reader)
         self.semantic_verifier = EvidenceSemanticVerifier()
         self.completion = TaskCompletionReconciler(
             self._connection,
@@ -422,7 +420,7 @@ class AgentServiceR6:
             self.events,
             runtime_adapter,
             self.mechanical_gate,
-            self.evidence_resolvers,
+            artifact_reader,
             self.semantic_verifier,
         )
 
