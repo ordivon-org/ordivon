@@ -126,3 +126,23 @@ def test_broker_configuration_is_native_windows_only_and_atomic():
     assert "must be configured together" in main
     assert "supported only on native Windows Runtime" in main
     assert "Linux/WSL-hosted Windows execution cannot configure the native privileged broker" in windows
+
+def test_broker_normalizes_runtime_verbatim_paths_before_legacy_path_api():
+    text = BROKER.read_text(encoding="utf-8")
+    assert "NormalizeBrokerPath" in text
+    assert 'StartsWith(@"\\\\?\\UNC\\", StringComparison.OrdinalIgnoreCase)' in text
+    assert 'StartsWith(@"\\\\?\\", StringComparison.OrdinalIgnoreCase)' in text
+    assert "Path.GetFullPath(NormalizeBrokerPath(options.LauncherPath))" in text
+    assert "Path.GetFullPath(NormalizeBrokerPath(options.AllowedBundleRoot))" in text
+    assert "Path.GetFullPath(NormalizeBrokerPath(bundle))" in text
+    assert "Path.GetFullPath(NormalizeBrokerPath(launcherStderrPath))" in text
+    assert "Path.GetFullPath(NormalizeBrokerPath(root))" in text
+    assert "Path.GetFullPath(NormalizeBrokerPath(path))" in text
+
+
+def test_broker_client_writes_protocol_json_as_utf8_bytes_not_console_codepage():
+    text = BROKER.read_text(encoding="utf-8")
+    assert "Encoding.UTF8.GetBytes(response)" in text
+    assert "Console.OpenStandardOutput()" in text
+    assert "stdout.Write(responseBytes, 0, responseBytes.Length)" in text
+    assert "Console.Out.Write(response)" not in text
