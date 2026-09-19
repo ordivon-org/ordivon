@@ -14,7 +14,6 @@ conversation surface may implement the same protocol outside this module.
 from __future__ import annotations
 
 import hashlib
-import rfc8785
 from dataclasses import dataclass
 from enum import Enum
 from typing import Protocol
@@ -56,6 +55,8 @@ def _digest(value: str, label: str) -> str:
 
 
 def _canonical_digest(value: object) -> str:
+    import rfc8785
+
     return "sha256:" + hashlib.sha256(rfc8785.dumps(value)).hexdigest()
 
 

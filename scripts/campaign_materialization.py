@@ -13,7 +13,6 @@ import hashlib
 import json
 import sqlite3
 
-import rfc8785
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -37,6 +36,8 @@ def _text(value: str, label: str, *, max_bytes: int = 65536) -> str:
 
 
 def canonical_digest(value: object) -> str:
+    import rfc8785
+
     return "sha256:" + hashlib.sha256(rfc8785.dumps(value)).hexdigest()
 
 
