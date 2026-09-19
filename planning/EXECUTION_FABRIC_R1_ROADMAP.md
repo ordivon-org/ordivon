@@ -191,43 +191,24 @@ EF5b controller-action proposal slice (2026-09-18):
 - Runtime Core fast regression: 231/231 PASS with the known long-running property test filtered;
 - cargo fmt --check and git diff --check: PASS.
 
-## EF6 — Workflow composition
+## EF6 — Workflow composition — SUPERSEDED
 
-Use two existing complex flows as forcing functions:
+Status: **RETIRED 2026-09-19**.
 
-1. WSL control-plane recovery;
-2. D-drive VHD compact.
+The execution-free `WorkflowPlan` / `WorkflowStep` / compensation / binding contracts
+were removed from `ordivon-runtime-spi`. They duplicated workflow-language and
+compensation semantics without owning Runtime execution truth.
 
-Replace bespoke orchestration with reusable capabilities/providers/controllers while retaining exact safety/evidence gates.
+Routing after W2:
 
-Current EF6 contract slice (2026-09-18):
+- durable long-lived orchestration -> Temporal;
+- standards-native process/decision interchange -> BPMN/DMN when required;
+- distributed compensation -> Saga / effect-owner contract;
+- Workstation machine-maintenance flows -> Workstation/Operations orchestrator;
+- Runtime -> Resource/Capability/Provider descriptions plus physical Job/Attempt/evidence.
 
-- SPI defines WorkflowStepKind, WorkflowStep, and WorkflowPlan as execution-free DAG contracts;
-- steps bind resource, requested capability, optional preferred provider, authority mode,
-  conflict mode, dependencies, optional evidence policy, and optional compensation identity;
-- plans reject duplicate steps, unknown dependencies, dependency cycles, invalid compensation
-  references, and any claim that a plan/step has already started or dispatched an effect;
-- WSL recovery forcing test expresses observe -> gate -> recover -> verify;
-- D-drive compact forcing test expresses admission fence, health/authorization gates, trim,
-  WSL offline transition, exclusive-open gate, compact, recovery, and post-doctor verification;
-- the current R2 PowerShell/Bash flow remains execution truth until a Workstation-owned
-  workflow realization reaches equivalent destructive acceptance;
-- Runtime continues to own only admitted Job/Attempt truth; the SPI contract executes nothing.
-
-EF6b dry-run binding slice (2026-09-18):
-
-- SPI defines WorkflowBindingDisposition, WorkflowStepBinding, and WorkflowBindingPlan;
-- resolve_workflow_bindings maps each workflow step against explicit Resource/Node/Provider
-  descriptors without routing, policy, authority acquisition, Runtime admission, or dispatch;
-- resource node locality constrains candidate providers when resource.nodeId is present;
-- preferredProviderId is an exact filter, never a best-effort hint;
-- zero candidates is UNRESOLVED, one candidate is RESOLVED, and multiple candidates are
-  AMBIGUOUS with no selection;
-- binding plans and step bindings are structurally unable to claim dispatchStarted=true;
-- provider catalogs fail closed if a provider references an unknown node or is not advertised
-  by that node;
-- cross-node control is explicit: Provider nodeId is execution locality while targetNodeIds
-  declares additional resource-home nodes reachable by that Provider; empty remains local-only.
+The original WSL-recovery and D-drive-compaction examples remain historical forcing
+functions only; they no longer justify a Runtime-owned workflow schema.
 
 ## EF7 — Dual native nodes
 
