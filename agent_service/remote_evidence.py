@@ -6,7 +6,6 @@ import sqlite3
 import time
 import uuid
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any, Literal, overload
 
 from .delivery import (
@@ -21,7 +20,7 @@ from .evidence import (
     EvidenceBundle,
     _verify_evidence_semantics,
 )
-from .goals import GoalAssignmentPlanner, TaskReadinessProjector
+from .goals import TaskReadinessProjector
 from .slice1 import ServiceEvent, ServiceEventStore
 from .task_runtime import (
     Assignment,

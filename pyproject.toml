@@ -61,7 +61,7 @@ typeCheckingMode = "basic"
 target-version = "py314"
 
 [tool.ruff.lint]
-select = ["E9", "F63", "F7", "F82"]
+select = ["E4", "E7", "E9", "F"]
 
 [tool.importlinter]
 root_package = "agent_service"

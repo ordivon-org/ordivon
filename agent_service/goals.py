@@ -8,7 +8,6 @@ from graphlib import CycleError, TopologicalSorter
 import time
 import uuid
 from dataclasses import dataclass
-from pathlib import Path
 
 from .slice1 import ServiceEvent, ServiceEventStore
 from .task_runtime import Assignment, AgentTask, TaskStore
