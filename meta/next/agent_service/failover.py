@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from .delivery import DeliveryAdapter, PolicyAdapter, TransportBinding, TransportBindingStore, _delivery_receipt_get_by_binding
-from .evidence import RuntimeArtifactReader
+from .evidence import Any
 from .goals import BoardAdapter, GoalAssignmentPlanner
 from .remote_evidence import (
     AgentServiceR11,
@@ -20,7 +20,7 @@ from .remote_evidence import (
     _remote_task_verification_get_by_task,
 )
 from .slice1 import ServiceEvent, ServiceEventStore
-from .task_runtime import RuntimeAdapter, TaskStore
+from .task_runtime import TaskStore
 from .trust import (
     IdentityProofAdapter,
     RemoteDeliveryObserver,
@@ -1239,8 +1239,8 @@ class AgentServiceR12:
         db_path: str | Path,
         *,
         carrier_adapter: Any,
-        runtime_adapter: RuntimeAdapter,
-        artifact_reader: RuntimeArtifactReader,
+        runtime_adapter: Any,
+        artifact_reader: Any,
         policy_adapter: PolicyAdapter | None = None,
         delivery_adapters: dict[str, DeliveryAdapter] | None = None,
         identity_proof_adapter: IdentityProofAdapter | None = None,

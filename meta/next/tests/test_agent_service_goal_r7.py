@@ -10,9 +10,9 @@ from agent_service.goals import (
     BoardMessageRef,
     _board_projection_receipt_get_by_event,
 )
-from agent_service.evidence import RuntimeArtifactPayload, RuntimeArtifactReader
+from agent_service.evidence import RuntimeArtifactPayload
 from agent_service.slice1 import ProviderObservation
-from agent_service.task_runtime import RuntimeAdapter, RuntimeJobObservation, RuntimeJobRef
+from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
 
 
 class ReadyCarrier:
@@ -26,7 +26,7 @@ class ReadyCarrier:
         return ProviderObservation(placement_id=placement_id, state="READY", evidence_ref="test://ready")
 
 
-class FakeRuntime(RuntimeAdapter):
+class FakeRuntime:
     def __init__(self) -> None:
         self.by_request: dict[str, str] = {}
         self.jobs: dict[str, RuntimeJobObservation] = {}
@@ -52,7 +52,7 @@ class FakeRuntime(RuntimeAdapter):
         return self.jobs[job_id]
 
 
-class NoopArtifactReader(RuntimeArtifactReader):
+class NoopArtifactReader:
     def read(self, job_id: str, artifact_id: str) -> RuntimeArtifactPayload:
         raise AssertionError("artifact read not expected")
 

@@ -16,10 +16,10 @@ from .delivery import (
     TransportBinding,
     _delivery_receipt_get_by_binding,
 )
-from .evidence import RuntimeArtifactReader
+from .evidence import Any
 from .semantics import DelegationEnvelope
 from .slice1 import ServiceEvent, ServiceEventStore
-from .task_runtime import RuntimeAdapter
+from .task_runtime import Any
 
 
 def _now_ns() -> int:
@@ -690,8 +690,8 @@ class AgentServiceR10:
         db_path: str | Path,
         *,
         carrier_adapter: Any,
-        runtime_adapter: RuntimeAdapter,
-        artifact_reader: RuntimeArtifactReader,
+        runtime_adapter: Any,
+        artifact_reader: Any,
         policy_adapter: PolicyAdapter | None = None,
         delivery_adapters: dict[str, DeliveryAdapter] | None = None,
         identity_proof_adapter: IdentityProofAdapter | None = None,

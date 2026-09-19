@@ -13,10 +13,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .evidence import RuntimeArtifactReader
+from .evidence import Any
 from .semantics import AgentServiceR8, DelegationEnvelope
 from .slice1 import ServiceEvent, ServiceEventStore
-from .task_runtime import RuntimeAdapter
+from .task_runtime import Any
 
 
 def _now_ns() -> int:
@@ -652,8 +652,8 @@ class AgentServiceR9:
         db_path: str | Path,
         *,
         carrier_adapter: Any,
-        runtime_adapter: RuntimeAdapter,
-        artifact_reader: RuntimeArtifactReader,
+        runtime_adapter: Any,
+        artifact_reader: Any,
         policy_adapter: PolicyAdapter | None = None,
         delivery_adapters: dict[str, DeliveryAdapter] | None = None,
         board_adapter: Any | None = None,

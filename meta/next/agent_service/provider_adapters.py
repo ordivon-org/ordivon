@@ -17,10 +17,10 @@ from .failover import (
     ReplaySafetyObservation,
 )
 from .trust import IdentityProofAdapter, RemoteDeliveryObserver, RemoteDeliverySnapshot
-from .evidence import RuntimeArtifactReader
+from .evidence import Any
 from .goals import BoardAdapter
 from .slice1 import Any
-from .task_runtime import RuntimeAdapter
+from .task_runtime import Any
 
 
 class ProviderProtocolError(RuntimeError):
@@ -708,8 +708,8 @@ class AgentServiceR13:
         db_path: str | Any,
         *,
         carrier_adapter: Any,
-        runtime_adapter: RuntimeAdapter,
-        artifact_reader: RuntimeArtifactReader,
+        runtime_adapter: Any,
+        artifact_reader: Any,
         delivery_adapters: dict[str, DeliveryAdapter],
         a2a_caller: ProviderCaller | None = None,
         mcp_tasks_caller: ProviderCaller | None = None,

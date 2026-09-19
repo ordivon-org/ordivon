@@ -9,10 +9,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .evidence import RuntimeArtifactReader
+from .evidence import Any
 from .goals import AgentServiceR7
 from .slice1 import Any
-from .task_runtime import RuntimeAdapter
+from .task_runtime import Any
 
 
 def _now_ns() -> int:
@@ -729,8 +729,8 @@ class AgentServiceR8:
         db_path: str | Path,
         *,
         carrier_adapter: Any,
-        runtime_adapter: RuntimeAdapter,
-        artifact_reader: RuntimeArtifactReader,
+        runtime_adapter: Any,
+        artifact_reader: Any,
         board_adapter: Any | None = None,
     ) -> "AgentServiceR8":
         r7 = AgentServiceR7.open(

@@ -10,11 +10,10 @@ from agent_service.evidence import (
     AgentServiceR6,
     ArtifactDigestMismatch,
     RuntimeArtifactPayload,
-    RuntimeArtifactReader,
     _verification_record_list_for_task,
 )
 from agent_service.slice1 import ProviderObservation
-from agent_service.task_runtime import RuntimeAdapter, RuntimeArtifactDescriptor, RuntimeJobObservation, RuntimeJobRef
+from agent_service.task_runtime import RuntimeArtifactDescriptor, RuntimeJobObservation, RuntimeJobRef
 
 
 class ReadyCarrier:
@@ -28,7 +27,7 @@ class ReadyCarrier:
         return ProviderObservation(placement_id=placement_id, state="READY", evidence_ref="test://ready")
 
 
-class FakeRuntime(RuntimeAdapter):
+class FakeRuntime:
     def __init__(self) -> None:
         self.jobs: dict[str, RuntimeJobObservation] = {}
         self.by_request: dict[str, str] = {}
@@ -54,7 +53,7 @@ class FakeRuntime(RuntimeAdapter):
         return self.jobs[job_id]
 
 
-class FakeArtifactReader(RuntimeArtifactReader):
+class FakeArtifactReader:
     def __init__(self) -> None:
         self.payloads: dict[tuple[str, str], RuntimeArtifactPayload] = {}
         self.reads: list[tuple[str, str]] = []

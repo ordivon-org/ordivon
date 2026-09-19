@@ -8,9 +8,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Callable
 
-from .evidence import RuntimeArtifactPayload, RuntimeArtifactReader
+from .evidence import RuntimeArtifactPayload
 from .task_runtime import (
-    RuntimeAdapter,
     RuntimeArtifactDescriptor,
     RuntimeJobObservation,
     RuntimeJobRef,
@@ -165,7 +164,7 @@ class RuntimeMcpHttpClient:
 ToolCaller = Callable[[str, dict[str, Any]], dict[str, Any]]
 
 
-class RuntimeMcpAdapter(RuntimeAdapter):
+class RuntimeMcpAdapter:
     """N19 provider: translate Agent Service work into Runtime Job operations."""
 
     def __init__(self, tool_caller: ToolCaller | RuntimeMcpHttpClient) -> None:
@@ -252,7 +251,7 @@ class RuntimeMcpAdapter(RuntimeAdapter):
         )
 
 
-class RuntimeMcpArtifactReader(RuntimeArtifactReader):
+class RuntimeMcpArtifactReader:
     """Read one exact Runtime Artifact through the public digest-bound artifact.read surface."""
 
     def __init__(

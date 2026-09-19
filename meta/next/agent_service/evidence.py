@@ -5,7 +5,6 @@ import json
 import sqlite3
 import time
 import uuid
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -15,7 +14,6 @@ from .task_runtime import (
     AgentServiceR5,
     Assignment,
     AssignmentStore,
-    RuntimeAdapter,
     RuntimeJobObservation,
     SemanticVerdict,
     TaskStore,
@@ -46,10 +44,10 @@ class RuntimeArtifactPayload:
     content: str
 
 
-class RuntimeArtifactReader(ABC):
-    @abstractmethod
-    def read(self, job_id: str, artifact_id: str) -> RuntimeArtifactPayload:
-        raise NotImplementedError
+def _require_artifact_reader(reader: Any) -> Any:
+    if not callable(getattr(reader, "read", None)):
+        raise TypeError("artifact reader must expose callable read()")
+    return reader
 
 
 @dataclass(frozen=True)
@@ -163,7 +161,7 @@ class AssignmentExecutionActivator:
         tasks: TaskStore,
         assignments: AssignmentStore,
         events: ServiceEventStore,
-        runtime: RuntimeAdapter,
+        runtime: Any,
     ) -> None:
         self._connection = connection
         self._tasks = tasks
@@ -207,7 +205,7 @@ def _evaluate_runtime_evidence_gate(
 
 
 def _resolve_evidence(
-    artifact_reader: RuntimeArtifactReader,
+    artifact_reader: Any,
     acceptance: dict[str, Any],
     observation: RuntimeJobObservation,
 ) -> EvidenceBundle:
@@ -287,9 +285,10 @@ class TaskCompletionReconciler:
         tasks: TaskStore,
         assignments: AssignmentStore,
         events: ServiceEventStore,
-        runtime: RuntimeAdapter,
-        artifact_reader: RuntimeArtifactReader,
+        runtime: Any,
+        artifact_reader: Any,
     ) -> None:
+        artifact_reader = _require_artifact_reader(artifact_reader)
         self._connection = connection
         self._tasks = tasks
         self._assignments = assignments
@@ -380,9 +379,10 @@ class AgentServiceR6:
     def __init__(
         self,
         r5: AgentServiceR5,
-        runtime_adapter: RuntimeAdapter,
-        artifact_reader: RuntimeArtifactReader,
+        runtime_adapter: Any,
+        artifact_reader: Any,
     ) -> None:
+        artifact_reader = _require_artifact_reader(artifact_reader)
         self._r5 = r5
         self._connection = r5._connection
         self.definitions = r5.definitions
@@ -417,9 +417,10 @@ class AgentServiceR6:
         db_path: str | Path,
         *,
         carrier_adapter: Any,
-        runtime_adapter: RuntimeAdapter,
-        artifact_reader: RuntimeArtifactReader,
+        runtime_adapter: Any,
+        artifact_reader: Any,
     ) -> "AgentServiceR6":
+        _require_artifact_reader(artifact_reader)
         r5 = AgentServiceR5.open(
             db_path,
             carrier_adapter=carrier_adapter,

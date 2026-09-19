@@ -4,7 +4,6 @@ import json
 import sqlite3
 import time
 import uuid
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -67,16 +66,11 @@ class RuntimeJobObservation:
     artifact_descriptors: tuple[RuntimeArtifactDescriptor, ...] = ()
 
 
-class RuntimeAdapter(ABC):
-    """Mechanical execution seam. It never decides Agent Service Task success."""
-
-    @abstractmethod
-    def submit(self, client_request_id: str, execution: dict[str, Any]) -> RuntimeJobRef:
-        raise NotImplementedError
-
-    @abstractmethod
-    def observe(self, job_id: str) -> RuntimeJobObservation:
-        raise NotImplementedError
+def _require_runtime_provider(provider: Any) -> Any:
+    for method_name in ("submit", "observe"):
+        if not callable(getattr(provider, method_name, None)):
+            raise TypeError(f"runtime provider must expose callable {method_name}()")
+    return provider
 
 
 class TaskStore:
@@ -390,7 +384,7 @@ class AssignmentActivator:
         tasks: TaskStore,
         assignments: AssignmentStore,
         events: ServiceEventStore,
-        runtime: RuntimeAdapter,
+        runtime: Any,
         verifier: SemanticVerifier,
     ) -> None:
         self._connection = connection
@@ -456,7 +450,8 @@ class AssignmentActivator:
 class AgentServiceR5:
     """R4 placement slice plus the R5 Task -> Assignment -> Runtime -> verification slice."""
 
-    def __init__(self, placement: AgentServiceSlice1, runtime_adapter: RuntimeAdapter) -> None:
+    def __init__(self, placement: AgentServiceSlice1, runtime_adapter: Any) -> None:
+        runtime_adapter = _require_runtime_provider(runtime_adapter)
         self._placement = placement
         self._connection = placement._connection
         self._closed = False
@@ -491,8 +486,9 @@ class AgentServiceR5:
         db_path: str | Path,
         *,
         carrier_adapter: Any,
-        runtime_adapter: RuntimeAdapter,
+        runtime_adapter: Any,
     ) -> "AgentServiceR5":
+        _require_runtime_provider(runtime_adapter)
         placement = AgentServiceSlice1.open(db_path, carrier_adapter=carrier_adapter)
         cls._initialize_schema(placement._connection)
         return cls(placement, runtime_adapter)

@@ -13,7 +13,7 @@ from typing import Any
 import rfc8785
 
 from .delivery import DeliveryAdapter, PolicyAdapter, TransportBinding
-from .evidence import RuntimeArtifactReader
+from .evidence import Any
 from .goals import BoardAdapter
 from .provider_adapters import (
     AgentServiceR13,
@@ -22,7 +22,7 @@ from .provider_adapters import (
 )
 from .remote_evidence import RemoteArtifactReader
 from .slice1 import ServiceEvent, ServiceEventStore
-from .task_runtime import RuntimeAdapter
+from .task_runtime import Any
 from .trust import (
     CredentialReference,
     IdentityProofAdapter,
@@ -549,8 +549,8 @@ class AgentServiceR14:
         db_path: str | Path,
         *,
         carrier_adapter: Any,
-        runtime_adapter: RuntimeAdapter,
-        artifact_reader: RuntimeArtifactReader,
+        runtime_adapter: Any,
+        artifact_reader: Any,
         delivery_adapters: dict[str, DeliveryAdapter],
         credential_material_provider: CredentialMaterialProvider | None = None,
         a2a_caller: ProviderCaller | None = None,
