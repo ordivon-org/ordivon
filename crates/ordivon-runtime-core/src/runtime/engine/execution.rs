@@ -58,6 +58,11 @@ impl Runtime {
         allowed_executable_roots.sort();
         allowed_executable_roots.dedup();
         let input_authorities = self.input_authorities.keys().cloned().collect::<Vec<_>>();
+        let credential_authorities = self
+            .credential_authorities
+            .keys()
+            .cloned()
+            .collect::<Vec<_>>();
 
         let linux_configured = self.node_identity.platform == super::RuntimeNodePlatform::Linux
             && self.executor.runner_path.is_some();
@@ -146,6 +151,7 @@ impl Runtime {
             max_output_bytes: self.executor.max_output_bytes,
             allowed_executable_roots,
             input_authorities,
+            credential_authorities,
             targets: vec![linux, windows],
         }
     }
@@ -336,12 +342,28 @@ impl Runtime {
                     super::WindowsAuthority::Limited => super::WindowsTokenClass::Limited,
                     super::WindowsAuthority::Elevated => super::WindowsTokenClass::Elevated,
                 };
+                let privileged_broker_digest =
+                    if request.execution.windows_authority == super::WindowsAuthority::Elevated {
+                        windows
+                            .privileged_broker
+                            .as_ref()
+                            .map(|broker| broker.executable_digest())
+                            .transpose()?
+                    } else {
+                        None
+                    };
+                let environment_source = if privileged_broker_digest.is_some() {
+                    "windows_privileged_broker_profile_allowlist_v1"
+                } else {
+                    "windows_user_machine_profile_allowlist_v1"
+                };
                 (
                     snapshot.environment,
                     Some(super::WindowsExecutionContext {
                         token_class,
                         token_user_sid: snapshot.token_user_sid,
-                        environment_source: "windows_user_machine_profile_allowlist_v1".to_string(),
+                        environment_source: environment_source.to_string(),
+                        privileged_broker_digest,
                     }),
                 )
             }
@@ -416,6 +438,7 @@ impl Runtime {
             foreign_references: request.execution.foreign_references.clone(),
             input_set_id: None,
             effective_inputs: Vec::new(),
+            credential_set_id: None,
             principal: request.principal.clone(),
         })
     }
@@ -494,10 +517,7 @@ impl Runtime {
                 let observed_digest = copy_input_and_digest(source, &target)?;
                 if observed_digest != input.expected_digest {
                     return Err(RuntimeError::invalid(
-                        format!(
-                            "materialized input digest mismatch: expected {}, observed {observed_digest}",
-                            input.expected_digest
-                        ),
+                        "materialized input digest does not match the caller commitment",
                         &format!("inputs[{index}].expectedDigest"),
                     ));
                 }
@@ -525,6 +545,159 @@ impl Runtime {
         let _ = fs::remove_file(&lease_path);
         let _ = sync_directory(&materialization_root);
         result
+    }
+
+    pub(super) fn materialize_credential_bindings(
+        &self,
+        request: &JobRunRequest,
+        job_id: &str,
+        credentials: &[CredentialBindingRequest],
+    ) -> RuntimeResult<PreparedCredentialSet> {
+        let materialization_root = self.executor.credential_materializations_root();
+        fs::create_dir_all(&materialization_root)
+            .map_err(|error| io_error("create credential materialization root", error))?;
+        let prepared_root = materialization_root.join(job_id);
+        let owned_root = self.executor.job_credential_path(job_id);
+        if prepared_root.exists() || owned_root.exists() {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::RegistryCorrupt,
+                "preallocated encrypted credential snapshot identity already has physical state",
+                Some("jobId"),
+                false,
+            ));
+        }
+
+        let lease_path = materialization_root.join(format!(".{job_id}.lease"));
+        let mut lease_options = OpenOptions::new();
+        lease_options.read(true).write(true).create_new(true);
+        configure_private_create(&mut lease_options, 0o600);
+        let lease = lease_options
+            .open(&lease_path)
+            .map_err(|error| io_error("create credential staging lease", error))?;
+        if let Err(error) = lease.try_lock() {
+            let error = match error {
+                std::fs::TryLockError::WouldBlock => {
+                    std::io::Error::from(std::io::ErrorKind::WouldBlock)
+                }
+                std::fs::TryLockError::Error(error) => error,
+            };
+            let _ = fs::remove_file(&lease_path);
+            return Err(io_error("lock credential staging lease", error));
+        }
+
+        let staging =
+            materialization_root.join(format!(".{job_id}.staging-{}", Uuid::now_v7()));
+        let result = (|| {
+            fs::create_dir(&staging)
+                .map_err(|error| io_error("create credential staging directory", error))?;
+            protect_posix_path(
+                &staging,
+                0o700,
+                "protect credential staging directory",
+            )?;
+
+            for (index, credential) in credentials.iter().enumerate() {
+                let authority = self
+                    .credential_authorities
+                    .get(&credential.authority)
+                    .ok_or_else(|| {
+                        RuntimeError::invalid(
+                            "credential authority is unavailable",
+                            &format!("credentials[{index}].authority"),
+                        )
+                    })?;
+                if !authority.allowed_principals.contains(&request.principal) {
+                    return Err(RuntimeError::new(
+                        RuntimeErrorCode::InvalidRequest,
+                        "authenticated principal is not authorized for credential authority",
+                        Some(&format!("credentials[{index}].authority")),
+                        false,
+                    ));
+                }
+                // Authorization is deliberately checked before resolving the credential object.
+                let source =
+                    open_credential_file(authority.root.as_ref(), &credential.credential, index)?;
+                let target = staging.join(&credential.credential);
+                let _ = copy_input_and_digest(source, &target)?;
+                protect_posix_path(&target, 0o400, "protect encrypted credential snapshot")?;
+            }
+
+            sync_directory(&staging)?;
+            durable_runtime_rename(
+                &staging,
+                &prepared_root,
+                false,
+                "publish prepared encrypted credential snapshot set",
+            )?;
+            let (credential_set_id, _) = inspect_credential_snapshot(&prepared_root)?;
+            Ok(PreparedCredentialSet {
+                credential_set_id,
+                prepared_root: prepared_root.clone(),
+            })
+        })();
+        if result.is_err() {
+            let _ = fs::remove_dir_all(&staging);
+            let _ = fs::remove_dir_all(&prepared_root);
+        }
+        drop(lease);
+        let _ = fs::remove_file(&lease_path);
+        let _ = sync_directory(&materialization_root);
+        result
+    }
+
+    fn discard_prepared_credential_set(&self, prepared_root: &Path) -> RuntimeResult<()> {
+        if !prepared_root.exists() {
+            return Ok(());
+        }
+        fs::remove_dir_all(prepared_root)
+            .map_err(|error| io_error("remove unowned prepared credential set", error))?;
+        if let Some(parent) = prepared_root.parent() {
+            sync_directory(parent)?;
+        }
+        Ok(())
+    }
+
+    fn ensure_job_credential_ownership(&self, job_id: &str) -> RuntimeResult<()> {
+        let plan = self.registry.execution_plan(job_id)?;
+        let Some(credential_set_id) = plan.credential_set_id.as_deref() else {
+            return Ok(());
+        };
+
+        let owned_root = self.executor.job_credential_path(job_id);
+        let prepared_root = self.executor.credential_materializations_root().join(job_id);
+        fs::create_dir_all(self.executor.job_credentials_root())
+            .map_err(|error| io_error("create Job credential ownership root", error))?;
+
+        if owned_root.exists() {
+            let _ = verify_credential_snapshot(&owned_root, credential_set_id)?;
+            if prepared_root.exists() {
+                self.discard_prepared_credential_set(&prepared_root)?;
+            }
+            return Ok(());
+        }
+        if !prepared_root.exists() {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::ReconciliationRequired,
+                "committed Job credentials are missing both prepared and Job-owned snapshots",
+                Some("executionPlan.credentialSetId"),
+                true,
+            ));
+        }
+        let _ = verify_credential_snapshot(&prepared_root, credential_set_id)?;
+        match durable_runtime_rename(
+            &prepared_root,
+            &owned_root,
+            false,
+            "adopt prepared credentials for Job",
+        ) {
+            Ok(()) => {}
+            Err(error) if owned_root.exists() => {
+                let _ = error;
+            }
+            Err(error) => return Err(error),
+        }
+        let _ = verify_credential_snapshot(&owned_root, credential_set_id)?;
+        Ok(())
     }
 
     fn discard_prepared_input_set(&self, prepared_root: &Path) -> RuntimeResult<()> {
@@ -1221,6 +1394,15 @@ impl Runtime {
                 } else {
                     None
                 };
+                let (credential_source_root, credential_names) =
+                    if let Some(credential_set_id) = plan.credential_set_id.as_deref() {
+                        self.ensure_job_credential_ownership(&starting.job_id)?;
+                        let path = self.executor.job_credential_path(&starting.job_id);
+                        let names = verify_credential_snapshot(&path, credential_set_id)?;
+                        (Some(path), names)
+                    } else {
+                        (None, Vec::new())
+                    };
                 systemd_run(&SystemdRunSpec {
                     unit_name: &starting.unit_name,
                     runner: &runner,
@@ -1231,6 +1413,8 @@ impl Runtime {
                         .as_deref()
                         .map(Path::new),
                     input_set_path: input_set_path.as_deref(),
+                    credential_source_root: credential_source_root.as_deref(),
+                    credential_names: &credential_names,
                     runtime_ceiling_ms: runtime_ceiling,
                     budget: &plan.budget,
                     execution_profile: plan.execution_profile,
@@ -1277,6 +1461,10 @@ impl Runtime {
                         attempt_id: &starting.attempt_id,
                         launch_token_digest: &starting.launch_token_digest,
                         authority: plan.windows_authority,
+                        expected_privileged_broker_digest: plan
+                            .windows_execution_context
+                            .as_ref()
+                            .and_then(|context| context.privileged_broker_digest.as_deref()),
                         executable: Path::new(&plan.executable),
                         args: &plan.args,
                         cwd: Path::new(&plan.cwd),
@@ -1616,15 +1804,37 @@ impl Runtime {
             super::WindowsAuthority::Limited => super::WindowsTokenClass::Limited,
             super::WindowsAuthority::Elevated => super::WindowsTokenClass::Elevated,
         };
+        let broker_backed = context.privileged_broker_digest.is_some();
+        let expected_environment_source = if broker_backed {
+            "windows_privileged_broker_profile_allowlist_v1"
+        } else {
+            "windows_user_machine_profile_allowlist_v1"
+        };
         if context.token_class != expected_token_class
-            || context.environment_source != "windows_user_machine_profile_allowlist_v1"
+            || context.environment_source != expected_environment_source
+            || (plan.windows_authority == super::WindowsAuthority::Limited && broker_backed)
+            || (broker_backed && windows.privileged_broker.is_none())
         {
             return Err(RuntimeError::new(
                 RuntimeErrorCode::RegistryCorrupt,
-                "committed Windows requested/effective authority is inconsistent",
+                "committed Windows requested/effective authority or privileged provider binding is inconsistent",
                 Some("windowsExecutionContext"),
                 false,
             ));
+        }
+        if let Some(expected_broker_digest) = context.privileged_broker_digest.as_deref() {
+            windows
+                .privileged_broker
+                .as_ref()
+                .ok_or_else(|| {
+                    RuntimeError::new(
+                        RuntimeErrorCode::RegistryCorrupt,
+                        "broker-bound Windows execution context has no configured privileged broker",
+                        Some("windowsExecutionContext.privilegedBrokerDigest"),
+                        false,
+                    )
+                })?
+                .verify_digest(expected_broker_digest)?;
         }
         let expected_job_name = format!("Ordivon.{}", attempt.attempt_id);
         let expected_image =

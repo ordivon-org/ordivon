@@ -283,6 +283,10 @@ impl Runtime {
     }
 
     pub fn reconcile_maintenance_batch(&self, limit: u32) -> RuntimeResult<ReconciliationReport> {
+        // Encrypted credentials are execution capabilities, not historical artifacts. Durable
+        // Job resolution is sufficient authority to retire their Job-owned ciphertext without
+        // inventing an age-based retention policy.
+        self.reconcile_prepared_credential_sets(STALE_PREPARED_INPUT_AGE_MS)?;
         let attempts = self.registry.list_maintenance_attempts_bounded(limit)?;
         let mut report = ReconciliationReport::default();
         self.reconcile_candidates_into(attempts, &mut report)?;
@@ -300,6 +304,7 @@ impl Runtime {
         report: &mut ReconciliationReport,
     ) -> RuntimeResult<()> {
         self.reconcile_prepared_input_sets(STALE_PREPARED_INPUT_AGE_MS)?;
+        self.reconcile_prepared_credential_sets(STALE_PREPARED_INPUT_AGE_MS)?;
         let attempts = self.registry.list_held_orphaned_attempts()?;
         self.reconcile_candidates_into(attempts, report)
     }
@@ -418,6 +423,179 @@ impl Runtime {
             }
             fs::remove_file(entry.path())
                 .map_err(|error| io_error("remove abandoned input staging lease", error))?;
+            drop(lease);
+            sync_directory(&root)?;
+        }
+        Ok(())
+    }
+
+    pub(super) fn reconcile_prepared_credential_sets(
+        &self,
+        stale_age_ms: u64,
+    ) -> RuntimeResult<()> {
+        let root = self.executor.credential_materializations_root();
+        fs::create_dir_all(&root)
+            .map_err(|error| io_error("create credential materialization root", error))?;
+        let now = SystemTime::now();
+
+        for entry in fs::read_dir(&root)
+            .map_err(|error| io_error("enumerate prepared credential sets", error))?
+        {
+            let entry =
+                entry.map_err(|error| io_error("read prepared credential set entry", error))?;
+            let metadata = entry
+                .metadata()
+                .map_err(|error| io_error("inspect prepared credential set", error))?;
+            if !metadata.is_dir() {
+                continue;
+            }
+            let name = entry.file_name();
+            let Some(job_id) = name.to_str() else {
+                continue;
+            };
+            if !job_id.starts_with("job-") {
+                continue;
+            }
+            match self.registry.get_job(job_id) {
+                Ok(job) => {
+                    if job.resolution.is_some() {
+                        self.discard_prepared_credential_set(&entry.path())?;
+                        continue;
+                    }
+                    let plan: RuntimeExecutionPlan = serde_json::from_str(&job.execution_plan_json)
+                        .map_err(|error| {
+                            RuntimeError::new(
+                                RuntimeErrorCode::RegistryCorrupt,
+                                format!("stored execution plan is invalid: {error}"),
+                                Some("executionPlan"),
+                                false,
+                            )
+                        })?;
+                    if plan.credential_set_id.is_none() {
+                        continue;
+                    }
+                    if self.ensure_job_credential_ownership(job_id).is_err() {
+                        // The committed unresolved Job owns its frozen encrypted credential
+                        // snapshot. Never reopen the current credential authority during recovery.
+                        continue;
+                    }
+                }
+                Err(error) if error.code == RuntimeErrorCode::JobNotFound => {
+                    let old_enough = metadata
+                        .modified()
+                        .ok()
+                        .and_then(|modified| now.duration_since(modified).ok())
+                        .is_some_and(|age| age.as_millis() >= u128::from(stale_age_ms));
+                    if old_enough {
+                        self.discard_prepared_credential_set(&entry.path())?;
+                    }
+                }
+                Err(error) => return Err(error),
+            }
+        }
+
+        let owned_root = self.executor.job_credentials_root();
+        fs::create_dir_all(&owned_root)
+            .map_err(|error| io_error("create Job credential ownership root", error))?;
+        for entry in fs::read_dir(&owned_root)
+            .map_err(|error| io_error("enumerate Job-owned encrypted credentials", error))?
+        {
+            let entry = entry
+                .map_err(|error| io_error("read Job-owned encrypted credential entry", error))?;
+            let metadata = entry
+                .metadata()
+                .map_err(|error| io_error("inspect Job-owned encrypted credential set", error))?;
+            if !metadata.is_dir() {
+                continue;
+            }
+            let name = entry.file_name();
+            let Some(job_id) = name.to_str() else {
+                continue;
+            };
+            if !job_id.starts_with("job-") {
+                continue;
+            }
+            match self.registry.get_job(job_id) {
+                Ok(job) if job.resolution.is_some() => {
+                    fs::remove_dir_all(entry.path()).map_err(|error| {
+                        io_error("retire resolved Job encrypted credentials", error)
+                    })?;
+                    sync_directory(&owned_root)?;
+                }
+                Ok(_) => {}
+                Err(error) if error.code == RuntimeErrorCode::JobNotFound => {
+                    let old_enough = metadata
+                        .modified()
+                        .ok()
+                        .and_then(|modified| now.duration_since(modified).ok())
+                        .is_some_and(|age| age.as_millis() >= u128::from(stale_age_ms));
+                    if old_enough {
+                        fs::remove_dir_all(entry.path()).map_err(|error| {
+                            io_error("remove unowned Job encrypted credentials", error)
+                        })?;
+                        sync_directory(&owned_root)?;
+                    }
+                }
+                Err(error) => return Err(error),
+            }
+        }
+
+        for entry in fs::read_dir(&root)
+            .map_err(|error| io_error("enumerate credential staging leases", error))?
+        {
+            let entry =
+                entry.map_err(|error| io_error("read credential staging lease entry", error))?;
+            let name = entry.file_name();
+            let Some(job_id) = name
+                .to_str()
+                .and_then(|name| name.strip_prefix('.'))
+                .and_then(|name| name.strip_suffix(".lease"))
+                .filter(|job_id| job_id.starts_with("job-"))
+            else {
+                continue;
+            };
+            let metadata = fs::symlink_metadata(entry.path())
+                .map_err(|error| io_error("inspect credential staging lease", error))?;
+            if metadata.file_type().is_symlink() || !metadata.is_file() {
+                continue;
+            }
+            let old_enough = metadata
+                .modified()
+                .ok()
+                .and_then(|modified| now.duration_since(modified).ok())
+                .is_some_and(|age| age.as_millis() >= u128::from(stale_age_ms));
+            if !old_enough {
+                continue;
+            }
+            let lease = match OpenOptions::new().read(true).write(true).open(entry.path()) {
+                Ok(lease) => lease,
+                Err(_) => continue,
+            };
+            if lease.try_lock().is_err() {
+                continue;
+            }
+            let prefix = format!(".{job_id}.staging-");
+            for staging in fs::read_dir(&root).map_err(|error| {
+                io_error("enumerate abandoned credential staging directories", error)
+            })? {
+                let staging = staging
+                    .map_err(|error| io_error("read abandoned credential staging entry", error))?;
+                let staging_name = staging.file_name();
+                if staging_name
+                    .to_str()
+                    .is_some_and(|name| name.starts_with(&prefix))
+                    && staging
+                        .file_type()
+                        .map(|kind| kind.is_dir())
+                        .unwrap_or(false)
+                {
+                    fs::remove_dir_all(staging.path()).map_err(|error| {
+                        io_error("remove abandoned credential staging directory", error)
+                    })?;
+                }
+            }
+            fs::remove_file(entry.path())
+                .map_err(|error| io_error("remove abandoned credential staging lease", error))?;
             drop(lease);
             sync_directory(&root)?;
         }
@@ -655,7 +833,17 @@ impl Runtime {
                 launcher_process_creation_time_file_time,
                 ..
             } = owner;
-            let observed = observe_windows_launcher_owner(windows, launcher_process_id)?;
+            let plan = self.registry.execution_plan(&attempt.job_id)?;
+            let expected_broker_digest = plan
+                .windows_execution_context
+                .as_ref()
+                .and_then(|context| context.privileged_broker_digest.as_deref());
+            let observed = observe_windows_launcher_owner(
+                windows,
+                plan.windows_authority,
+                expected_broker_digest,
+                launcher_process_id,
+            )?;
             return Ok(observed.process_alive
                 && observed.process_creation_time_file_time
                     == Some(launcher_process_creation_time_file_time));
@@ -860,8 +1048,14 @@ impl Runtime {
                 false,
             ));
         }
+        let expected_broker_digest = plan
+            .windows_execution_context
+            .as_ref()
+            .and_then(|context| context.privileged_broker_digest.as_deref());
         let disposition = terminate_windows_launcher_owner_for_deadline(
             windows,
+            plan.windows_authority,
+            expected_broker_digest,
             launcher_process_id,
             launcher_process_creation_time_file_time,
         )?;
@@ -913,8 +1107,16 @@ impl Runtime {
                     true,
                 )
             })?;
-            let observation =
-                observe_windows_launcher_owner(windows, evidence.launcher_process_id)?;
+            let expected_broker_digest = plan
+                .windows_execution_context
+                .as_ref()
+                .and_then(|context| context.privileged_broker_digest.as_deref());
+            let observation = observe_windows_launcher_owner(
+                windows,
+                plan.windows_authority,
+                expected_broker_digest,
+                evidence.launcher_process_id,
+            )?;
             if Path::new(&attempt.bundle_path).join(RESULT_FILE).is_file() {
                 return self.reconcile_runner_result(attempt);
             }
@@ -1020,7 +1222,16 @@ impl Runtime {
         )? {
             return Ok(());
         }
-        let observation = observe_windows_launcher_owner(windows, *launcher_process_id)?;
+        let expected_broker_digest = plan
+            .windows_execution_context
+            .as_ref()
+            .and_then(|context| context.privileged_broker_digest.as_deref());
+        let observation = observe_windows_launcher_owner(
+            windows,
+            plan.windows_authority,
+            expected_broker_digest,
+            *launcher_process_id,
+        )?;
         if Path::new(&attempt.bundle_path).join(RESULT_FILE).exists() {
             return self.reconcile_runner_result(attempt);
         }

@@ -369,6 +369,8 @@ pub(crate) struct WindowsExecutionContext {
     pub token_class: WindowsTokenClass,
     pub token_user_sid: String,
     pub environment_source: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub privileged_broker_digest: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
@@ -406,6 +408,26 @@ pub struct HostDependencyBinding {
 pub struct InputAuthority {
     pub name: String,
     pub root: PathBuf,
+}
+
+/// Operator-owned systemd-encrypted credential source. Encrypted blobs are selected by opaque
+/// logical name, authorized against the authenticated Runtime principal, snapshotted on new
+/// admission, and never require the caller to know a content digest. Runtime never stores the
+/// plaintext credential in its durable Job store.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CredentialAuthority {
+    pub name: String,
+    pub root: PathBuf,
+    pub allowed_principals: Vec<String>,
+}
+
+/// Agent/domain-authored request for one named credential. Unlike immutable artifact inputs,
+/// credentials deliberately do not expose or require a caller-held digest.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CredentialBindingRequest {
+    pub authority: String,
+    pub credential: String,
 }
 
 /// Agent/domain-authored request for one exact object inside a named input authority.
@@ -600,6 +622,8 @@ pub struct RuntimeCapabilities {
     pub max_output_bytes: u64,
     pub allowed_executable_roots: Vec<String>,
     pub input_authorities: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub credential_authorities: Vec<String>,
     pub targets: Vec<RuntimeExecutionTargetCapability>,
 }
 
@@ -738,6 +762,8 @@ pub(crate) struct RuntimeExecutionPlan {
     pub input_set_id: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub effective_inputs: Vec<EffectiveInputBinding>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub credential_set_id: Option<String>,
     pub principal: String,
 }
 
@@ -762,6 +788,7 @@ pub(crate) const REQUEST_IDENTITY_PREFIX: &str = "runtime-request-v1:";
 pub(crate) const PROPOSAL_IDENTITY_PREFIX: &str = "runtime-request-v2:";
 pub(crate) const INPUT_BOUND_IDENTITY_PREFIX: &str = "runtime-request-input-v1:";
 pub(crate) const INPUT_BOUND_PROPOSAL_IDENTITY_PREFIX: &str = "runtime-request-input-v2:";
+pub(crate) const CREDENTIAL_BOUND_PROPOSAL_IDENTITY_PREFIX: &str = "runtime-request-credential-v1:";
 pub(crate) const RUNTIME_RELEASE_IDENTITY_PREFIX: &str = "runtime-release-v1:";
 
 #[derive(Serialize)]
@@ -853,6 +880,20 @@ struct InputBindingIdentity {
 struct InputBoundProposalIdentity {
     proposal: ProposalRequestIdentity,
     inputs: Vec<InputBindingIdentity>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CredentialBindingIdentity {
+    authority: String,
+    credential: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CredentialBoundProposalIdentity {
+    proposal: ProposalRequestIdentity,
+    credentials: Vec<CredentialBindingIdentity>,
 }
 
 #[derive(Serialize)]
@@ -961,6 +1002,22 @@ fn input_binding_identities(inputs: &[InputBindingRequest]) -> Vec<InputBindingI
             ))
     });
     inputs
+}
+
+fn credential_binding_identities(
+    credentials: &[CredentialBindingRequest],
+) -> Vec<CredentialBindingIdentity> {
+    let mut credentials = credentials
+        .iter()
+        .map(|credential| CredentialBindingIdentity {
+            authority: credential.authority.clone(),
+            credential: credential.credential.clone(),
+        })
+        .collect::<Vec<_>>();
+    credentials.sort_by(|left, right| {
+        (&left.authority, &left.credential).cmp(&(&right.authority, &right.credential))
+    });
+    credentials
 }
 
 fn proposal_request_identity(proposal: &JobRunProposal) -> ProposalRequestIdentity {
@@ -1086,6 +1143,28 @@ pub(crate) fn input_bound_proposal_request_identity_digest(
     })?;
     Ok(format!(
         "{INPUT_BOUND_PROPOSAL_IDENTITY_PREFIX}{}",
+        crate::universal::sha256_bytes(&bytes)
+    ))
+}
+
+pub(crate) fn credential_bound_proposal_request_identity_digest(
+    proposal: &JobRunProposal,
+    credentials: &[CredentialBindingRequest],
+) -> RuntimeResult<String> {
+    let identity = CredentialBoundProposalIdentity {
+        proposal: proposal_request_identity(proposal),
+        credentials: credential_binding_identities(credentials),
+    };
+    let bytes = serde_json::to_vec(&identity).map_err(|error| {
+        RuntimeError::new(
+            RuntimeErrorCode::InvalidRequest,
+            format!("cannot serialize credential-bound proposal identity: {error}"),
+            None,
+            false,
+        )
+    })?;
+    Ok(format!(
+        "{CREDENTIAL_BOUND_PROPOSAL_IDENTITY_PREFIX}{}",
         crate::universal::sha256_bytes(&bytes)
     ))
 }
