@@ -3,13 +3,13 @@ use super::{
 };
 use crate::{
     create_git_workspace, remove_git_workspace, write_workspace_text, ArtifactReadRequest,
-    AttemptState, ExecutionBudget, ForeignReference, GitWorkspaceCreateRequest,
-    HostDependencyBinding, InputAuthority, InputBindingRequest, JobCancelRequest,
-    JobObserveRequest, JobObserveWaitUntil, JobRunRequest, RegistryConfig, Runtime, RuntimeConfig,
-    RuntimeJobListRequest, UniversalExecutionRequest, UniversalExecutorConfig,
-    WindowsExecutionConfig, WorkspaceCloseRequest, WorkspaceMutateRequest, WorkspaceMutation,
-    WorkspaceMutationMode, WorkspaceWriteRequest, RUNTIME_SCHEMA_VERSION,
-    UNIVERSAL_EXEC_SCHEMA_VERSION,
+    AttemptState, ExecutionBudget, ExecutionProposal, ExecutionStepProposal, ForeignReference,
+    GitWorkspaceCreateRequest, HostDependencyBinding, InputAuthority, InputBindingRequest,
+    JobCancelRequest, JobObservation, JobObserveRequest, JobObserveWaitUntil, JobRunProposal,
+    JobRunRequest, RegistryConfig, Runtime, RuntimeConfig, RuntimeJobListRequest, RuntimeResult,
+    UniversalExecutionRequest, UniversalExecutorConfig, WindowsExecutionConfig,
+    WorkspaceCloseRequest, WorkspaceMutateRequest, WorkspaceMutation, WorkspaceMutationMode,
+    WorkspaceWriteRequest, RUNTIME_SCHEMA_VERSION, UNIVERSAL_EXEC_SCHEMA_VERSION,
 };
 use rusqlite::Connection;
 use sha2::{Digest, Sha256};
@@ -22,6 +22,66 @@ use std::sync::{Arc, Barrier};
 use std::thread;
 use std::time::{Duration, Instant};
 use uuid::Uuid;
+
+fn proposal_from_concrete_request(request: &JobRunRequest) -> JobRunProposal {
+    JobRunProposal {
+        schema_version: request.schema_version,
+        client_request_id: request.client_request_id.clone(),
+        principal: request.principal.clone(),
+        global_limit: request.global_limit,
+        execution: ExecutionProposal {
+            workspace_id: request.execution.workspace_id.clone(),
+            executable: request.execution.executable.clone(),
+            args: request.execution.args.clone(),
+            cwd_relative: request.execution.cwd_relative.clone(),
+            env: request.execution.env.clone(),
+            timeout_ms: Some(request.execution.timeout_ms),
+            stdout_limit_bytes: Some(request.execution.stdout_limit_bytes),
+            stderr_limit_bytes: Some(request.execution.stderr_limit_bytes),
+            steps: request
+                .execution
+                .steps
+                .iter()
+                .map(|step| ExecutionStepProposal {
+                    id: step.id.clone(),
+                    executable: step.executable.clone(),
+                    args: step.args.clone(),
+                    cwd_relative: step.cwd_relative.clone(),
+                    env: step.env.clone(),
+                    timeout_ms: Some(step.timeout_ms),
+                    continue_on_error: step.continue_on_error,
+                })
+                .collect(),
+            budget: request.execution.budget.clone(),
+            execution_profile: request.execution.execution_profile,
+            execution_target: request.execution.execution_target,
+            windows_authority: request.execution.windows_authority,
+            foreign_references: request.execution.foreign_references.clone(),
+            host_dependencies: request.execution.host_dependencies.clone(),
+        },
+        wait_ms: request.wait_ms,
+        stdout_tail_bytes: request.stdout_tail_bytes,
+        stderr_tail_bytes: request.stderr_tail_bytes,
+    }
+}
+
+trait RunJobWithInputsViaProposalTestExt {
+    fn run_job_with_inputs_via_proposal(
+        &self,
+        request: &JobRunRequest,
+        inputs: &[InputBindingRequest],
+    ) -> RuntimeResult<JobObservation>;
+}
+
+impl RunJobWithInputsViaProposalTestExt for Runtime {
+    fn run_job_with_inputs_via_proposal(
+        &self,
+        request: &JobRunRequest,
+        inputs: &[InputBindingRequest],
+    ) -> RuntimeResult<JobObservation> {
+        self.run_job_proposal_with_inputs(&proposal_from_concrete_request(request), inputs)
+    }
+}
 
 fn digest(value: &[u8]) -> String {
     format!("sha256:{}", hex::encode(Sha256::digest(value)))
@@ -623,7 +683,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
         presentation_relative_path: "payload/bound-input.txt".to_string(),
     };
     let input_first = runtime
-        .run_job_with_inputs(&input_request, std::slice::from_ref(&input_binding_v1))
+        .run_job_with_inputs_via_proposal(&input_request, std::slice::from_ref(&input_binding_v1))
         .unwrap();
     assert_eq!(
         input_first.status, "succeeded",
@@ -703,7 +763,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
     let input_v2 = b"P5_WINDOWS_BOUND_V2\n";
     fs::write(&input_authority_file, input_v2).unwrap();
     let replay = runtime
-        .run_job_with_inputs(&input_request, std::slice::from_ref(&input_binding_v1))
+        .run_job_with_inputs_via_proposal(&input_request, std::slice::from_ref(&input_binding_v1))
         .unwrap();
     assert_eq!(replay.job_id, input_first.job_id);
     assert_eq!(replay.attempt_id, input_first.attempt_id);
@@ -713,7 +773,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
     let mut stale_request = input_request.clone();
     stale_request.client_request_id = format!("request:windows-input-stale:{}", Uuid::now_v7());
     let stale_error = runtime
-        .run_job_with_inputs(&stale_request, std::slice::from_ref(&input_binding_v1))
+        .run_job_with_inputs_via_proposal(&stale_request, std::slice::from_ref(&input_binding_v1))
         .unwrap_err();
     assert_eq!(stale_error.code, crate::RuntimeErrorCode::InvalidRequest);
     assert!(stale_error
@@ -727,7 +787,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
         ..input_binding_v1.clone()
     };
     let current = runtime
-        .run_job_with_inputs(&current_request, std::slice::from_ref(&input_binding_v2))
+        .run_job_with_inputs_via_proposal(&current_request, std::slice::from_ref(&input_binding_v2))
         .unwrap();
     assert_eq!(current.status, "succeeded", "{}", current.stderr_tail);
     for marker in [
@@ -760,7 +820,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
         format!("request:windows-input-elevated:{}", Uuid::now_v7());
     elevated_input_request.execution.windows_authority = crate::WindowsAuthority::Elevated;
     let elevated_input_error = runtime
-        .run_job_with_inputs(
+        .run_job_with_inputs_via_proposal(
             &elevated_input_request,
             std::slice::from_ref(&input_binding_v2),
         )
@@ -1765,7 +1825,9 @@ print(json.dumps({"input": path.read_text().strip(), "write": write_result}, sor
     let mut request = context.request("input_probe.py", 0);
     request.client_request_id = format!("request:immutable-input:{}", Uuid::now_v7());
     request.execution.execution_profile = crate::ExecutionProfile::ContainedLocal;
-    let submitted = runtime.run_job_with_inputs(&request, &inputs).unwrap();
+    let submitted = runtime
+        .run_job_with_inputs_via_proposal(&request, &inputs)
+        .unwrap();
     fs::write(&source, b"S1\n").unwrap();
 
     let final_observation = runtime
@@ -1830,14 +1892,16 @@ print(json.dumps({"input": path.read_text().strip(), "write": write_result}, sor
     fs::remove_dir_all(&authority_root).unwrap();
     // Durable replay must not consult current authority or require it to be configured.
     let restarted = context.runtime(2_000);
-    let replay = restarted.run_job_with_inputs(&request, &inputs).unwrap();
+    let replay = restarted
+        .run_job_with_inputs_via_proposal(&request, &inputs)
+        .unwrap();
     assert_eq!(replay.job_id, final_observation.job_id);
     assert_eq!(replay.status, "succeeded");
 
     let mut changed_inputs = inputs.clone();
     changed_inputs[0].expected_digest = digest(b"different-input\n");
     let conflict = restarted
-        .run_job_with_inputs(&request, &changed_inputs)
+        .run_job_with_inputs_via_proposal(&request, &changed_inputs)
         .unwrap_err();
     assert_eq!(conflict.code, crate::RuntimeErrorCode::IdempotencyConflict);
     assert_eq!(restarted.registry().active_reservation_count().unwrap(), 0);
@@ -1887,7 +1951,9 @@ print(json.dumps({
         presentation_relative_path: "finance/config.toml".to_string(),
     }];
     let host_netns = fs::read_link("/proc/self/ns/net").unwrap();
-    let terminal = runtime.run_job_with_inputs(&request, &inputs).unwrap();
+    let terminal = runtime
+        .run_job_with_inputs_via_proposal(&request, &inputs)
+        .unwrap();
     assert_eq!(terminal.status, "succeeded", "{}", terminal.stderr_tail);
     let stdout: serde_json::Value = serde_json::from_str(terminal.stdout_tail.trim()).unwrap();
     assert_eq!(stdout["input"], "OPAQUE-CONFIG");
@@ -1942,7 +2008,9 @@ fn runtime_failed_capacity_admission_discards_prepared_state_and_rechecks_curren
     blocked.execution.execution_profile = crate::ExecutionProfile::ContainedLocal;
     blocked.execution.executable = "/usr/bin/true".to_string();
     blocked.execution.args.clear();
-    let error = runtime.run_job_with_inputs(&blocked, &inputs).unwrap_err();
+    let error = runtime
+        .run_job_with_inputs_via_proposal(&blocked, &inputs)
+        .unwrap_err();
     assert_eq!(error.code, crate::RuntimeErrorCode::ConcurrencyLimit);
     assert!(fs::read_dir(context.executor.input_materializations_root())
         .unwrap()
@@ -1967,7 +2035,9 @@ fn runtime_failed_capacity_admission_discards_prepared_state_and_rechecks_curren
             stderr_offset: None,
         })
         .unwrap();
-    let drift = runtime.run_job_with_inputs(&blocked, &inputs).unwrap_err();
+    let drift = runtime
+        .run_job_with_inputs_via_proposal(&blocked, &inputs)
+        .unwrap_err();
     assert_eq!(drift.code, crate::RuntimeErrorCode::InvalidRequest);
     assert_eq!(drift.field.as_deref(), Some("inputs[0].expectedDigest"));
 }
@@ -2009,7 +2079,9 @@ fn runtime_opened_input_authority_survives_configured_path_replacement() {
         expected_digest: digest(b"ALLOWED"),
         presentation_relative_path: "data.bin".to_string(),
     }];
-    let terminal = runtime.run_job_with_inputs(&request, &inputs).unwrap();
+    let terminal = runtime
+        .run_job_with_inputs_via_proposal(&request, &inputs)
+        .unwrap();
     assert_eq!(terminal.status, "succeeded", "{}", terminal.stderr_tail);
     assert_eq!(terminal.stdout_tail.trim(), "ALLOWED");
     assert_eq!(
@@ -3950,7 +4022,9 @@ fn runtime_finance_i8_graduation_matches_canonical_semantics_with_job_owned_inpu
         stderr_tail_bytes: 64 * 1024,
     };
 
-    let terminal = runtime.run_job_with_inputs(&request, &inputs).unwrap();
+    let terminal = runtime
+        .run_job_with_inputs_via_proposal(&request, &inputs)
+        .unwrap();
     assert_eq!(terminal.status, "succeeded", "{}", terminal.stderr_tail);
     let result: serde_json::Value = serde_json::from_str(&terminal.stdout_tail).unwrap();
     assert_eq!(result["stateVersionBefore"], "234:bb27b51397f6add8");
@@ -4018,7 +4092,9 @@ fn runtime_finance_i8_graduation_matches_canonical_semantics_with_job_owned_inpu
         windows: None,
     })
     .unwrap();
-    let replay = restarted.run_job_with_inputs(&request, &inputs).unwrap();
+    let replay = restarted
+        .run_job_with_inputs_via_proposal(&request, &inputs)
+        .unwrap();
     assert_eq!(replay.job_id, terminal.job_id);
     assert_eq!(replay.status, "succeeded");
     eprintln!(

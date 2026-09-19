@@ -64,15 +64,15 @@ pub use repair::{
 #[cfg(any(test, feature = "operator-tools"))]
 pub use types::RuntimeInvariantViolation;
 pub(crate) use types::{
-    input_bound_proposal_request_identity_digest, input_bound_request_identity_digest,
-    operation_request_identity_digest, operation_request_identity_digest_from_plan,
-    proposal_request_identity_digest, validate_client_request_id, validate_logical_id,
-    AdmissionOutcome, AttemptRecord, CreatedAdmission, EffectiveInputBinding, InputAccessMode,
-    JobProjection, ReservationRecord, RunnerIdentity, RuntimeArtifactRecord, RuntimeExecutionPlan,
-    RuntimeExecutionStep, RuntimeJobRecord, RuntimeReleaseEffectBinding, SubmitRequest,
-    WindowsExecutionContext, WindowsTokenClass, INPUT_BOUND_IDENTITY_PREFIX,
-    INPUT_BOUND_PROPOSAL_IDENTITY_PREFIX, MAX_ARTIFACT_READ_BYTES, MAX_RUNTIME_LIST_LIMIT,
-    PROPOSAL_IDENTITY_PREFIX, REQUEST_IDENTITY_PREFIX, RUNTIME_RELEASE_IDENTITY_PREFIX,
+    input_bound_proposal_request_identity_digest, operation_request_identity_digest,
+    operation_request_identity_digest_from_plan, proposal_request_identity_digest,
+    validate_client_request_id, validate_logical_id, AdmissionOutcome, AttemptRecord,
+    CreatedAdmission, EffectiveInputBinding, InputAccessMode, JobProjection, ReservationRecord,
+    RunnerIdentity, RuntimeArtifactRecord, RuntimeExecutionPlan, RuntimeExecutionStep,
+    RuntimeJobRecord, RuntimeReleaseEffectBinding, SubmitRequest, WindowsExecutionContext,
+    WindowsTokenClass, INPUT_BOUND_IDENTITY_PREFIX, INPUT_BOUND_PROPOSAL_IDENTITY_PREFIX,
+    MAX_ARTIFACT_READ_BYTES, MAX_RUNTIME_LIST_LIMIT, PROPOSAL_IDENTITY_PREFIX,
+    REQUEST_IDENTITY_PREFIX, RUNTIME_RELEASE_IDENTITY_PREFIX,
 };
 pub use types::{
     runtime_release_effect_id, runtime_release_request_identity_digest, ArtifactDescriptor,
