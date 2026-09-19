@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import argparse
-import json
 import sys
 import tempfile
 import urllib.parse
@@ -706,29 +704,9 @@ def run_experiments() -> dict[str, Any]:
     return {
         "schemaVersion": 1,
         "kind": "ordivon.agent-service-control-stability-r1-experiment",
-        "analyzedImplementationCommit": "0721009237365ea61cd975bd187be5171f1dcd52",
         "scenarioCount": len(scenarios),
         "classificationCounts": dict(sorted(counts.items())),
         "scenarios": scenarios,
     }
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--write", type=Path)
-    args = parser.parse_args()
-    payload = json.dumps(
-        run_experiments(),
-        indent=2,
-        sort_keys=True,
-        ensure_ascii=False,
-    ) + "\n"
-    if args.write is not None:
-        args.write.parent.mkdir(parents=True, exist_ok=True)
-        args.write.write_text(payload)
-    else:
-        print(payload, end="")
-
-
-if __name__ == "__main__":
-    main()

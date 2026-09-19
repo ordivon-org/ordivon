@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import unittest
 
-from scripts.run_agent_service_control_stability_r1 import run_experiments
+from tests.agent_service_control_stability_support import run_experiments
 
 
-class AgentServiceControlStabilityR1Tests(unittest.TestCase):
+class AgentServiceControlStabilityTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.report = run_experiments()
