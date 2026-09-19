@@ -1172,6 +1172,9 @@ fn job_request_identity_digest(job: &RuntimeJobRecord) -> RuntimeResult<String> 
             .starts_with(super::INPUT_BOUND_PROPOSAL_IDENTITY_PREFIX)
         || job
             .request_digest
+            .starts_with(super::CREDENTIAL_BOUND_PROPOSAL_IDENTITY_PREFIX)
+        || job
+            .request_digest
             .starts_with(super::RUNTIME_RELEASE_IDENTITY_PREFIX)
     {
         validate_request_identity_digest(&job.request_digest)?;
@@ -1195,6 +1198,7 @@ fn validate_request_identity_digest(value: &str) -> RuntimeResult<()> {
         .or_else(|| value.strip_prefix(super::PROPOSAL_IDENTITY_PREFIX))
         .or_else(|| value.strip_prefix(super::INPUT_BOUND_IDENTITY_PREFIX))
         .or_else(|| value.strip_prefix(super::INPUT_BOUND_PROPOSAL_IDENTITY_PREFIX))
+        .or_else(|| value.strip_prefix(super::CREDENTIAL_BOUND_PROPOSAL_IDENTITY_PREFIX))
         .or_else(|| value.strip_prefix(super::RUNTIME_RELEASE_IDENTITY_PREFIX))
         .ok_or_else(|| {
             RuntimeError::invalid(

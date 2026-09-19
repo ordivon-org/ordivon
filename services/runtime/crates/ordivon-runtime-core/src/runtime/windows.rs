@@ -26,6 +26,9 @@ use windows_sys::Win32::Foundation::FILETIME;
 use windows_sys::Win32::System::Threading::GetProcessTimes;
 
 use super::supervisor::WindowsLauncherOwnerObservation;
+#[cfg(windows)]
+use super::windows_broker;
+use super::windows_broker::WindowsPrivilegedBrokerConfig;
 use super::{ExecutionBudget, RuntimeError, RuntimeErrorCode, RuntimeResult, WindowsAuthority};
 
 const WINDOWS_BASELINE_ENVIRONMENT_NAMES: &[&str] = &[
@@ -80,6 +83,7 @@ pub struct WindowsExecutionConfig {
     /// `None` is reserved for a native Windows control plane and removes WSL from the provider
     /// identity rather than inventing a sentinel distribution name.
     pub wsl_distribution: Option<String>,
+    pub privileged_broker: Option<WindowsPrivilegedBrokerConfig>,
 }
 
 impl WindowsExecutionConfig {
@@ -108,6 +112,19 @@ impl WindowsExecutionConfig {
             ));
         }
         validate_windows_control_plane(self)?;
+        if let Some(broker) = &self.privileged_broker {
+            broker.validate_shape()?;
+            if broker.executable_path == self.launcher_path {
+                return Err(RuntimeError::invalid(
+                    "Windows privileged broker must be distinct from the Job launcher",
+                    "windows.privilegedBrokerPath",
+                ));
+            }
+            #[cfg(windows)]
+            {
+                let _ = broker.executable_digest()?;
+            }
+        }
         Ok(())
     }
 
@@ -134,6 +151,12 @@ fn launcher_is_executable(_metadata: &fs::Metadata) -> bool {
 
 #[cfg(unix)]
 fn validate_windows_control_plane(config: &WindowsExecutionConfig) -> RuntimeResult<()> {
+    if config.privileged_broker.is_some() {
+        return Err(RuntimeError::invalid(
+            "Linux/WSL-hosted Windows execution cannot configure the native privileged broker",
+            "windows.privilegedBrokerPath",
+        ));
+    }
     mounted_windows_path(&config.launcher_path).ok_or_else(|| {
         RuntimeError::invalid(
             "Windows launcher must reside on a WSL-mounted Windows drive",
@@ -338,6 +361,65 @@ where
     Ok((output, None))
 }
 
+#[derive(Debug)]
+struct WindowsLauncherCapture {
+    success: bool,
+    exit_code: Option<i32>,
+    stdout: Vec<u8>,
+    stderr: Vec<u8>,
+    transport: Option<PathBuf>,
+}
+
+fn capture_windows_launcher(
+    config: &WindowsExecutionConfig,
+    authority: WindowsAuthority,
+    expected_broker_digest: Option<&str>,
+    launcher_args: &[String],
+    context: &str,
+) -> RuntimeResult<WindowsLauncherCapture> {
+    config.validate()?;
+    #[cfg(not(windows))]
+    let _ = (authority, expected_broker_digest);
+
+    #[cfg(windows)]
+    if authority == WindowsAuthority::Elevated {
+        if let Some(broker) = config.privileged_broker.as_ref() {
+            let capture =
+                windows_broker::capture(broker, expected_broker_digest, context, launcher_args)?;
+            return Ok(WindowsLauncherCapture {
+                success: capture.exit_code == 0,
+                exit_code: Some(capture.exit_code),
+                stdout: capture.stdout,
+                stderr: capture.stderr,
+                transport: None,
+            });
+        }
+    }
+
+    let launcher = fs::canonicalize(&config.launcher_path).map_err(|error| {
+        RuntimeError::new(
+            RuntimeErrorCode::IoError,
+            format!("canonicalize Windows launcher: {error}"),
+            Some("windows.launcherPath"),
+            false,
+        )
+    })?;
+    let (output, transport) = windows_launcher_output_with_transport(
+        &launcher,
+        |command| {
+            command.args(launcher_args);
+        },
+        context,
+    )?;
+    Ok(WindowsLauncherCapture {
+        success: output.status.success(),
+        exit_code: output.status.code(),
+        stdout: output.stdout,
+        stderr: output.stderr,
+        transport,
+    })
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct WindowsRuntimeContextSnapshot {
@@ -433,6 +515,8 @@ struct WindowsDeadlineOwnerTerminationSnapshot {
 
 pub(crate) fn observe_windows_launcher_owner(
     config: &WindowsExecutionConfig,
+    authority: WindowsAuthority,
+    expected_broker_digest: Option<&str>,
     process_id: u32,
 ) -> RuntimeResult<WindowsLauncherOwnerObservation> {
     config.validate()?;
@@ -444,25 +528,19 @@ pub(crate) fn observe_windows_launcher_owner(
             false,
         ));
     }
-    let launcher = fs::canonicalize(&config.launcher_path).map_err(|error| {
-        RuntimeError::new(
-            RuntimeErrorCode::IoError,
-            format!("canonicalize Windows launcher owner probe: {error}"),
-            Some("windows.launcherPath"),
-            false,
-        )
-    })?;
-    let (output, _) = windows_launcher_output_with_transport(
-        &launcher,
-        |command| {
-            command
-                .arg("--describe-process-owner")
-                .arg("--process-id")
-                .arg(process_id.to_string());
-        },
-        "describe Windows launcher owner",
+    let launcher_args = vec![
+        "--describe-process-owner".to_string(),
+        "--process-id".to_string(),
+        process_id.to_string(),
+    ];
+    let output = capture_windows_launcher(
+        config,
+        authority,
+        expected_broker_digest,
+        &launcher_args,
+        "describe-windows-launcher-owner",
     )?;
-    if !output.status.success() {
+    if !output.success {
         return Err(RuntimeError::new(
             RuntimeErrorCode::IoError,
             format!(
@@ -513,6 +591,8 @@ pub(crate) fn observe_windows_launcher_owner(
 
 pub(crate) fn terminate_windows_launcher_owner_for_deadline(
     config: &WindowsExecutionConfig,
+    authority: WindowsAuthority,
+    expected_broker_digest: Option<&str>,
     process_id: u32,
     process_creation_time_file_time: u64,
 ) -> RuntimeResult<WindowsDeadlineOwnerTerminationDisposition> {
@@ -525,25 +605,19 @@ pub(crate) fn terminate_windows_launcher_owner_for_deadline(
             false,
         ));
     }
-    let launcher = fs::canonicalize(&config.launcher_path).map_err(|error| {
-        RuntimeError::new(
-            RuntimeErrorCode::IoError,
-            format!("canonicalize Windows launcher deadline owner: {error}"),
-            Some("windows.launcherPath"),
-            false,
-        )
-    })?;
-    let (output, _) = windows_launcher_output_with_transport(
-        &launcher,
-        |command| {
-            command
-                .arg("--terminate-process-owner-for-deadline")
-                .arg("--process-id")
-                .arg(process_id.to_string())
-                .arg("--process-creation-time-file-time")
-                .arg(process_creation_time_file_time.to_string());
-        },
-        "terminate Windows launcher deadline owner",
+    let launcher_args = vec![
+        "--terminate-process-owner-for-deadline".to_string(),
+        "--process-id".to_string(),
+        process_id.to_string(),
+        "--process-creation-time-file-time".to_string(),
+        process_creation_time_file_time.to_string(),
+    ];
+    let output = capture_windows_launcher(
+        config,
+        authority,
+        expected_broker_digest,
+        &launcher_args,
+        "terminate-windows-launcher-deadline-owner",
     )?;
     if output.stdout.len() > 64 * 1024 || output.stderr.len() > 64 * 1024 {
         return Err(RuntimeError::new(
@@ -553,11 +627,12 @@ pub(crate) fn terminate_windows_launcher_owner_for_deadline(
             false,
         ));
     }
-    if !output.status.success() {
+    if !output.success {
         return Err(RuntimeError::new(
             RuntimeErrorCode::IoError,
             format!(
-                "Windows launcher deadline owner termination failed: {}",
+                "Windows launcher deadline owner termination failed (exit {:?}): {}",
+                output.exit_code,
                 String::from_utf8_lossy(&output.stderr).trim()
             ),
             Some("windows.launcherDeadlineOwner"),
@@ -638,6 +713,7 @@ pub(crate) struct WindowsNativeRunSpec<'a> {
     pub attempt_id: &'a str,
     pub launch_token_digest: &'a str,
     pub authority: WindowsAuthority,
+    pub expected_privileged_broker_digest: Option<&'a str>,
     pub executable: &'a Path,
     pub args: &'a [String],
     pub cwd: &'a Path,
@@ -691,28 +767,23 @@ pub(crate) fn snapshot_windows_runtime_context_with_transport(
     authority: WindowsAuthority,
 ) -> RuntimeResult<(WindowsRuntimeContextSnapshot, Option<PathBuf>)> {
     config.validate()?;
-    let launcher = fs::canonicalize(&config.launcher_path).map_err(|error| {
-        RuntimeError::new(
-            RuntimeErrorCode::IoError,
-            format!("canonicalize Windows launcher: {error}"),
-            Some("windows.launcherPath"),
-            false,
-        )
-    })?;
-    let (output, transport) = windows_launcher_output_with_transport(
-        &launcher,
-        |command| {
-            command
-                .arg("--describe-runtime-context")
-                .arg("--authority")
-                .arg(authority.as_str());
-            for name in WINDOWS_BASELINE_ENVIRONMENT_NAMES {
-                command.arg("--context-env").arg(name);
-            }
-        },
-        "describe Windows runtime context",
+    let mut launcher_args = vec![
+        "--describe-runtime-context".to_string(),
+        "--authority".to_string(),
+        authority.as_str().to_string(),
+    ];
+    for name in WINDOWS_BASELINE_ENVIRONMENT_NAMES {
+        launcher_args.push("--context-env".to_string());
+        launcher_args.push((*name).to_string());
+    }
+    let output = capture_windows_launcher(
+        config,
+        authority,
+        None,
+        &launcher_args,
+        "describe-windows-runtime-context",
     )?;
-    if !output.status.success() {
+    if !output.success {
         return Err(RuntimeError::new(
             RuntimeErrorCode::IoError,
             format!(
@@ -741,7 +812,7 @@ pub(crate) fn snapshot_windows_runtime_context_with_transport(
             )
         })?;
     validate_windows_runtime_context(&snapshot, authority)?;
-    Ok((snapshot, transport))
+    Ok((snapshot, output.transport))
 }
 
 fn validate_windows_runtime_context(
@@ -1026,6 +1097,43 @@ pub(crate) fn spawn_windows_native(
         emit_launcher_start: false,
     };
     let launcher_stderr_path = spec.bundle_path.join("launcher-stderr.log");
+    let mut command = Command::new(&launcher);
+    append_windows_launcher_arguments(&mut command, &invocation)?;
+    if spec.authority == WindowsAuthority::Elevated {
+        if let Some(broker) = spec.config.privileged_broker.as_ref() {
+            let expected_broker_digest = spec.expected_privileged_broker_digest.ok_or_else(|| {
+                RuntimeError::new(
+                    RuntimeErrorCode::RegistryCorrupt,
+                    "elevated native Windows dispatch through broker has no admission-frozen broker digest",
+                    Some("windowsExecutionContext.privilegedBrokerDigest"),
+                    false,
+                )
+            })?;
+            let launcher_args = command
+                .get_args()
+                .map(|argument| {
+                    argument.to_str().map(str::to_string).ok_or_else(|| {
+                        RuntimeError::invalid(
+                            "Windows launcher argument must be UTF-8 for privileged broker transport",
+                            "execution",
+                        )
+                    })
+                })
+                .collect::<RuntimeResult<Vec<_>>>()?;
+            let observation = windows_broker::spawn(
+                broker,
+                expected_broker_digest,
+                &format!("spawn-{}", spec.attempt_id),
+                &launcher_args,
+                &launcher_stderr_path,
+            )?;
+            return Ok(WindowsNativeLaunchObservation {
+                launcher_process_id: observation.launcher_process_id,
+                launcher_process_creation_time_file_time: observation
+                    .launcher_process_creation_time_file_time,
+            });
+        }
+    }
     let launcher_stderr = fs::File::create(&launcher_stderr_path).map_err(|error| {
         RuntimeError::new(
             RuntimeErrorCode::IoError,
@@ -1034,8 +1142,6 @@ pub(crate) fn spawn_windows_native(
             false,
         )
     })?;
-    let mut command = Command::new(launcher);
-    append_windows_launcher_arguments(&mut command, &invocation)?;
     command
         .stdin(Stdio::null())
         .stdout(Stdio::null())
@@ -1097,6 +1203,7 @@ pub(crate) fn spawn_windows_native(
         spec.attempt_id,
         spec.launch_token_digest,
         spec.authority,
+        spec.expected_privileged_broker_digest,
         spec.executable,
         spec.args,
         spec.cwd,
@@ -1352,6 +1459,7 @@ mod tests {
         let config = WindowsExecutionConfig {
             launcher_path: PathBuf::from("/mnt/c/launcher.exe"),
             wsl_distribution: Some("archlinux".to_string()),
+            privileged_broker: None,
         };
         assert_eq!(
             windows_visible_path(

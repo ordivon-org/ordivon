@@ -661,6 +661,37 @@ impl RuntimeServer {
     }
 
     #[tool(
+        name = "workspace.execCredentialBoundTrusted",
+        description = "Admit one trusted-local Linux execution with operator-owned credentials selected by opaque authority/credential-name references. The authenticated principal must be explicitly allowlisted by the selected CredentialAuthority. Callers never provide or receive credential digests or host paths. On new admission Runtime snapshots only the authorized systemd-encrypted credential blob, freezes that ciphertext version into the Job, and lets systemd decrypt it for the target through LoadCredentialEncrypted/CREDENTIALS_DIRECTORY. Exact replay returns the historical Job before consulting current credential state. This tool does not imply provider/domain permission, does not admit Windows execution, and does not make external effects idempotent.",
+        output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<JobObservation>>(),
+        annotations(
+            title = "Execute trusted-local with credentials",
+            read_only_hint = false,
+            destructive_hint = true,
+            idempotent_hint = false,
+            open_world_hint = true
+        )
+    )]
+    async fn workspace_exec_credential_bound_trusted(
+        &self,
+        principal: EffectivePrincipal,
+        Parameters(request): Parameters<WorkspaceExecCredentialBoundRequest>,
+    ) -> ToolOutcome<JobObservation> {
+        let runtime = self.state.runtime.clone();
+        let execution = self.state.execution.with_principal(principal.0);
+        let (proposal, credentials) = match execution.bind_credential_bound_trusted(request) {
+            Ok(bound) => bound,
+            Err(error) => return ToolOutcome::Error(error),
+        };
+        self.run_core("workspace.execCredentialBoundTrusted", move || {
+            runtime
+                .run_job_proposal_with_credentials(&proposal, &credentials)
+                .map_err(ToolError::from)
+        })
+        .await
+    }
+
+    #[tool(
         name = "workspace.execPlan",
         description = "Run an ordered structured execution plan inside one Workspace. Steps use absolute executables and explicit args, run sequentially, stop on the first failure by default, and continue only when that step explicitly sets continueOnError. For trusted_local local_linux only, execution.hostDependencies may bind known absolute regular host prerequisite files by exact SHA-256 across the whole Job. Runtime validates them at admission and before dispatch; Runner then establishes path/topology drift witnesses before final digest validation and keeps them active across the complete plan, while each target executable path is independently witnessed through its step. Runtime fails closed on witnessed runtime drift without pretending that the files are immutable or that it inferred a complete environment closure. Exact replay resolves the committed Job before current dependency checks. Omitted waitMs performs only a brief 2-second observation after durable admission; long work returns the same Job for job.observe. The Job exposes step progress plus exact Attempt state, execution and delivery disposition, and recovery requirement without asking the caller to infer them from output.",
         output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<JobObservation>>(),

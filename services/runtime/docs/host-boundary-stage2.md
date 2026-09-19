@@ -228,7 +228,7 @@ Runtime continues to execute the exact request and preserve its physical evidenc
 
 ## Optional projection gate
 
-`TaskObservation` and `RuntimeJobSummary` currently omit foreign references. Stage 2 does not add them.
+`JobObservation` and `RuntimeJobSummary` currently omit foreign references. Stage 2 does not add them.
 
 A projection becomes justified only when the live experiment shows that reading terminal evidence is a repeated material cost or prevents timely recovery. Until then:
 

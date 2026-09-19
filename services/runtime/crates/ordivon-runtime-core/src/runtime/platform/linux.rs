@@ -131,6 +131,8 @@ pub(crate) struct SystemdRunSpec<'a> {
     pub(crate) workspace_path: &'a Path,
     pub(crate) workspace_git_common_dir: Option<&'a Path>,
     pub(crate) input_set_path: Option<&'a Path>,
+    pub(crate) credential_source_root: Option<&'a Path>,
+    pub(crate) credential_names: &'a [String],
     pub(crate) runtime_ceiling_ms: u64,
     pub(crate) budget: &'a super::super::ExecutionBudget,
     pub(crate) execution_profile: super::super::ExecutionProfile,
@@ -170,6 +172,8 @@ pub(crate) fn build_systemd_run_command(spec: &SystemdRunSpec<'_>) -> RuntimeRes
     let workspace_path = spec.workspace_path;
     let workspace_git_common_dir = spec.workspace_git_common_dir;
     let input_set_path = spec.input_set_path;
+    let credential_source_root = spec.credential_source_root;
+    let credential_names = spec.credential_names;
     let runtime_ceiling_ms = spec.runtime_ceiling_ms;
     let budget = spec.budget;
     let execution_profile = spec.execution_profile;
@@ -207,8 +211,29 @@ pub(crate) fn build_systemd_run_command(spec: &SystemdRunSpec<'_>) -> RuntimeRes
                     "--property=BindReadOnlyPaths={source}:{CONTAINED_INPUT_ROOT}"
                 ));
             }
+            if !credential_names.is_empty() {
+                let root = credential_source_root.ok_or_else(|| {
+                    RuntimeError::invalid(
+                        "credential bindings require a Job-owned credential source root",
+                        "execution.credentials",
+                    )
+                })?;
+                for credential_name in credential_names {
+                    let source = root.join(credential_name);
+                    let source = systemd_path_value(&source)?;
+                    command.arg(format!(
+                        "--property=LoadCredentialEncrypted={credential_name}:{source}"
+                    ));
+                }
+            }
         }
         super::super::ExecutionProfile::ContainedLocal => {
+            if !credential_names.is_empty() || credential_source_root.is_some() {
+                return Err(RuntimeError::invalid(
+                    "credential delivery is not admitted for contained_local",
+                    "execution.executionProfile",
+                ));
+            }
             append_contained_properties(
                 &mut command,
                 runner,
@@ -944,6 +969,8 @@ mod tests {
             workspace_path: Path::new("/tmp/ordivon-test-workspace"),
             workspace_git_common_dir: None,
             input_set_path: None,
+            credential_source_root: None,
+            credential_names: &[],
             runtime_ceiling_ms: 5_000,
             budget: &budget,
             execution_profile: super::super::super::ExecutionProfile::TrustedLocal,
@@ -993,5 +1020,35 @@ mod tests {
                 .unwrap();
         assert!(output.status.success());
         assert_eq!(output.stdout, b"ok");
+    }
+
+    #[test]
+    fn systemd_run_command_uses_native_encrypted_credential_for_job_snapshot() {
+        let budget = super::super::super::ExecutionBudget::default();
+        let environment = BTreeMap::new();
+        let credential_names = vec!["api_key".to_string()];
+        let command = build_systemd_run_command(&SystemdRunSpec {
+            unit_name: "ordivon-credential-test.service",
+            runner: Path::new("/usr/bin/true"),
+            bundle_path: Path::new("/tmp/ordivon-credential-bundle"),
+            workspace_path: Path::new("/tmp/ordivon-credential-workspace"),
+            workspace_git_common_dir: None,
+            input_set_path: None,
+            credential_source_root: Some(Path::new("/tmp/job-credentials/job-test")),
+            credential_names: &credential_names,
+            runtime_ceiling_ms: 5_000,
+            budget: &budget,
+            execution_profile: super::super::super::ExecutionProfile::TrustedLocal,
+            environment: &environment,
+        })
+        .unwrap();
+        let args = command
+            .get_args()
+            .map(|arg| arg.to_string_lossy().into_owned())
+            .collect::<Vec<_>>();
+        assert!(args.iter().any(|arg| {
+            arg == "--property=LoadCredentialEncrypted=api_key:/tmp/job-credentials/job-test/api_key"
+        }));
+        assert!(!args.iter().any(|arg| arg.contains("sha256:")));
     }
 }

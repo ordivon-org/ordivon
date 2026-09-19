@@ -1,7 +1,12 @@
 impl Runtime {
     pub fn new(config: RuntimeConfig) -> RuntimeResult<Self> {
         let default_runtime_ms = config.executor.max_runtime_ms;
-        Self::new_with_input_authorities_and_default_runtime(config, Vec::new(), default_runtime_ms)
+        Self::new_with_authorities_and_default_runtime(
+            config,
+            Vec::new(),
+            Vec::new(),
+            default_runtime_ms,
+        )
     }
 
     /// Test convenience for operator-owned immutable input authorities.
@@ -12,9 +17,10 @@ impl Runtime {
         input_authorities: Vec<InputAuthority>,
     ) -> RuntimeResult<Self> {
         let default_runtime_ms = config.executor.max_runtime_ms;
-        Self::new_with_input_authorities_and_default_runtime(
+        Self::new_with_authorities_and_default_runtime(
             config,
             input_authorities,
+            Vec::new(),
             default_runtime_ms,
         )
     }
@@ -24,6 +30,24 @@ impl Runtime {
     pub fn new_with_input_authorities_and_default_runtime(
         config: RuntimeConfig,
         input_authorities: Vec<InputAuthority>,
+        default_runtime_ms: u64,
+    ) -> RuntimeResult<Self> {
+        Self::new_with_authorities_and_default_runtime(
+            config,
+            input_authorities,
+            Vec::new(),
+            default_runtime_ms,
+        )
+    }
+
+    /// Construction boundary for artifact and credential authorities.
+    ///
+    /// Artifact authorities remain caller-digest-bound. Credential authorities are principal-
+    /// authorized opaque-name sources whose content digests stay Runtime-internal.
+    pub fn new_with_authorities_and_default_runtime(
+        config: RuntimeConfig,
+        input_authorities: Vec<InputAuthority>,
+        credential_authorities: Vec<CredentialAuthority>,
         default_runtime_ms: u64,
     ) -> RuntimeResult<Self> {
         super::validate_logical_id(&config.node_id, "nodeId")?;
@@ -87,6 +111,69 @@ impl Runtime {
                 ));
             }
         }
+        let mut configured_credential_authorities = BTreeMap::new();
+        for authority in credential_authorities {
+            validate_input_authority_name(
+                &authority.name,
+                "credentialAuthorities.name",
+            )?;
+            if !authority.root.is_absolute() {
+                return Err(RuntimeError::invalid(
+                    "credential authority root must be absolute",
+                    "credentialAuthorities.root",
+                ));
+            }
+            if authority.allowed_principals.is_empty() {
+                return Err(RuntimeError::invalid(
+                    "credential authority must allow at least one authenticated principal",
+                    "credentialAuthorities.allowedPrincipals",
+                ));
+            }
+            let mut allowed_principals = BTreeSet::new();
+            for principal in authority.allowed_principals {
+                if principal.is_empty()
+                    || principal.len() > 256
+                    || principal.chars().any(char::is_control)
+                {
+                    return Err(RuntimeError::invalid(
+                        "credential authority principal must be non-empty, control-free, and at most 256 characters",
+                        "credentialAuthorities.allowedPrincipals",
+                    ));
+                }
+                if !allowed_principals.insert(principal) {
+                    return Err(RuntimeError::invalid(
+                        "credential authority allowed principals must be unique",
+                        "credentialAuthorities.allowedPrincipals",
+                    ));
+                }
+            }
+            let root = open_directory_nofollow(&authority.root)
+                .map_err(|error| io_error("open credential authority root", error))?;
+            let metadata = root
+                .metadata()
+                .map_err(|error| io_error("inspect credential authority root", error))?;
+            if !metadata.is_dir() {
+                return Err(RuntimeError::invalid(
+                    "credential authority root must be a directory",
+                    "credentialAuthorities.root",
+                ));
+            }
+            if configured_credential_authorities
+                .insert(
+                    authority.name,
+                    OpenedCredentialAuthority {
+                        root: Arc::new(root),
+                        allowed_principals,
+                    },
+                )
+                .is_some()
+            {
+                return Err(RuntimeError::invalid(
+                    "credential authority names must be unique",
+                    "credentialAuthorities.name",
+                ));
+            }
+        }
         let registry = Registry::initialize(config.registry)?;
         let execution_path = configured_execution_path()?;
         let execution_home = configured_execution_home()?;
@@ -104,6 +191,7 @@ impl Runtime {
             execution_home,
             windows: config.windows,
             input_authorities: configured_input_authorities,
+            credential_authorities: configured_credential_authorities,
             lifecycle_lock: Arc::new(Mutex::new(())),
             control_terminal_lock: Arc::new(Mutex::new(())),
         };

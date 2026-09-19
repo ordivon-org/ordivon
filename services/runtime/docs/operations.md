@@ -91,6 +91,33 @@ Typical invocations are intentionally thin:
 
 Do not add a Runtime wrapper or MCP projection merely to rename one of these commands. Add a narrow adapter only after repeated real failures show that callers cannot safely express the operation through explicit arguments, or when structured effect semantics must be enforced rather than merely documented.
 
+## Encrypted credential provisioning
+
+Runtime does not invent a secret store. Linux credential decryption is owned by systemd. Create one operator-only authority directory, encrypt each credential before placing it there, and configure only the authority root plus the authenticated Runtime principals allowed to use it. For a host-key-backed credential on a machine whose systemd credential key has already been initialized, a minimal provisioning flow is:
+
+```bash
+install -d -m 0700 /var/lib/ordivon/credentials/finance-provider
+umask 077
+printf '%s' "$PROVIDER_API_KEY" | systemd-creds encrypt \
+  --with-key=host \
+  --name=api_key \
+  - \
+  /var/lib/ordivon/credentials/finance-provider/api_key
+unset PROVIDER_API_KEY
+```
+
+Do not put the plaintext in the Runtime environment file. Configure the authority itself in the Runtime environment file, for example:
+
+```text
+ORDIVON_CREDENTIAL_AUTHORITIES_JSON=[{"name":"finance-provider","root":"/var/lib/ordivon/credentials/finance-provider","allowedPrincipals":["principal:local-owner"]}]
+```
+
+`allowedPrincipals` is mandatory and non-empty. Runtime checks that authenticated principal before object resolution. `runtime.describe` intentionally exposes only the configured authority names. New credential-bound execution accepts only an authority name and credential name; systemd receives the Job-owned encrypted snapshot through `LoadCredentialEncrypted=` and exposes decrypted files below `CREDENTIALS_DIRECTORY`.
+
+Rotation is replacement plus a new Runtime request identity: write a newly encrypted blob to the authority under the same logical credential name, then admit a new `workspace.execCredentialBoundTrusted` request. Replaying the old `clientRequestId` must return the historical Job/result without reopening the authority, even after Runtime restart. Durable terminal Jobs do not retain their encrypted snapshot; periodic Runtime reconciliation removes it without a secret-specific TTL.
+
+Host-key encryption is a deployment choice, not a universal security claim. Verify the protection of `/var/lib/systemd/credential.secret` and its backing storage on the actual host. If policy requires TPM2-bound credentials, provision and qualify that systemd mode separately before claiming it; do not infer TPM protection from successful `systemd-creds encrypt --with-key=host`. Root and the service authority remain outside this confidentiality boundary.
+
 ## Local deployment
 
 `scripts/ordivon-runtime-deploy` replaces the ad hoc deployment shell used during development. It has four commands:
@@ -128,7 +155,7 @@ scripts/ordivon-runtime-deploy plan \
   --database /var/lib/ordivon/registry/registry.sqlite3 \
   --env-file /etc/ordivon/ordivon-runtime.env \
   --receipt-root /var/lib/ordivon/deployments \
-  --expected-tool-count 24 \
+  --expected-tool-count 25 \
   --pretty
 
 scripts/ordivon-runtime-deploy apply \
@@ -141,7 +168,7 @@ scripts/ordivon-runtime-deploy apply \
   --database /var/lib/ordivon/registry/registry.sqlite3 \
   --env-file /etc/ordivon/ordivon-runtime.env \
   --receipt-root /var/lib/ordivon/deployments \
-  --expected-tool-count 24 \
+  --expected-tool-count 25 \
   --drain-seconds 30
 ```
 
@@ -162,7 +189,7 @@ Eligibility requires:
 
 Runtime startup does not run an unbounded reconciliation scan before binding MCP ingress. Core construction performs the recovery that must precede serving (including recoverable orphan/input ownership convergence); after the listener is established, the existing maintenance loop fires immediately and processes recovery-required, held-orphaned, and other nonterminal Attempts in operator-bounded batches (`ORDIVON_RECONCILE_BATCH_SIZE`, default 32). Registry history size therefore does not gate socket readiness.
 
-The tool first stages receipt-local previous artifacts without replacing the running release. It then takes an exclusive Registry `admission.lock`. Runtime new admission takes a shared lock only after exact replay has been checked, so a deployed Runtime returns retryable `DEPLOYMENT_IN_PROGRESS` for new work while already committed requests remain replayable. Under the exclusive fence, `apply` waits for active/held reservations to drain naturally and then stops MCP ingress immediately. It rechecks the Registry with ingress closed, reruns the complete deployment plan, and writes that final plan to the receipt before any release replacement. Only then are `.next` / `.previous` install artifacts staged. For a full release, the deployer verifies that the two timeout-policy keys still match the pre-drain observation, atomically updates only those keys in the installation-owned environment file, and then commits the staged Runtime artifact set below `--install-dir`; unrelated environment lines are preserved. If the post-commit probe fails, recovery restores both the receipt-local previous Runtime artifact set and the previous values or absence of those two timeout-policy keys before restarting the old service. The new service must become `active`, complete modern discovery, expose the expected 24-Tool catalog including `release.apply`, `release.get`, `runtime.describe`, and `workspace.content`, and match the bound candidate identities.
+The tool first stages receipt-local previous artifacts without replacing the running release. It then takes an exclusive Registry `admission.lock`. Runtime new admission takes a shared lock only after exact replay has been checked, so a deployed Runtime returns retryable `DEPLOYMENT_IN_PROGRESS` for new work while already committed requests remain replayable. Under the exclusive fence, `apply` waits for active/held reservations to drain naturally and then stops MCP ingress immediately. It rechecks the Registry with ingress closed, reruns the complete deployment plan, and writes that final plan to the receipt before any release replacement. Only then are `.next` / `.previous` install artifacts staged. For a full release, the deployer verifies that the two timeout-policy keys still match the pre-drain observation, atomically updates only those keys in the installation-owned environment file, and then commits the staged Runtime artifact set below `--install-dir`; unrelated environment lines are preserved. If the post-commit probe fails, recovery restores both the receipt-local previous Runtime artifact set and the previous values or absence of those two timeout-policy keys before restarting the old service. The new service must become `active`, complete modern discovery, expose the expected 25-Tool catalog including `release.apply`, `release.get`, `runtime.describe`, and `workspace.content`, and match the bound candidate identities.
 
 Structured self-release is opt-in operator authority. Set `ORDIVON_RELEASE_SOURCE_REPO` to the canonical Runtime source repository; optional `ORDIVON_RELEASE_INSTALL_DIR`, `ORDIVON_RELEASE_ENV_FILE`, `ORDIVON_RELEASE_RECEIPT_ROOT`, `ORDIVON_RELEASE_REQUIRED_REF`, and `ORDIVON_RELEASE_TIMEOUT_MS` refine the installation-owned boundary. `ORDIVON_RELEASE_DRAIN_TIMEOUT_MS` is an installation-owned deployer policy for structured releases: when present, the candidate deployer uses that positive millisecond window while holding the exclusive admission fence, rather than the compatibility CLI drain value supplied by an older Runtime. Agents cannot set or override this value through `release.apply`, and the applied plan records both the effective drain duration and its policy source. The Registry database is derived from `ORDIVON_REGISTRY_ROOT`. Callers do not provide these host paths. `runtime.describe.structuredReleaseConfigured` reports whether the authority exists. `release.apply` accepts only a Workspace identity, exact Commit, exact candidate-manifest digest, expected Tool count, and durable `clientRequestId`. If the initiating connection disappears while Runtime replaces itself, do **not** send a new release request: reconnect and call `release.get` with the same `clientRequestId`. A deterministic `effect-<effectId>` receipt is the release-effect evidence; generic process exit or transport loss is not. Explicit rollback remains `ordivon-runtime-deploy rollback --receipt <receipt>` and is never selected automatically by Runtime.
 

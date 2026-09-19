@@ -23,7 +23,8 @@ same concern.
 |---|---|---|---|---|
 | Windows daemon lifecycle | Windows Service Control Manager (SCM): StartServiceCtrlDispatcherW, ServiceMain, RegisterServiceCtrlHandlerExW, SetServiceStatus | Linux systemd Runtime plus WSL-hosted Windows provider | Native service reports START_PENDING/RUNNING/STOP_PENDING/STOPPED correctly and survives cold restart | Windows-main no longer needs WSL/systemd for its own lifecycle |
 | Windows service identity | SCM virtual account NT SERVICE\\OrdivonRuntime + SERVICE_CONFIG_SERVICE_SID_INFO | interactive/admin/limited launcher token identity | Service token contains service SID; Runtime state ACL resolves only approved service/system/admin identities | no generic user identity required for Windows-main |
-| Windows process-tree ownership | Windows Job Objects | repository-owned Windows Job launcher, sometimes reached through WSL | native dispatch/observe/cancel/recovery evidence under Windows-main | WSL transport is removed from native branch; launcher stays only as the Job Object provider |
+| Windows privileged execution | SCM LocalSystem service + protected Named Pipe DACL + Windows access tokens | WSL/interactively elevated parent process | limited Runtime remains default; explicit elevated requests use a digest-pinned broker whose pipe admits only SYSTEM, Administrators and the exact Runtime service SID; broker returns parent-observed launcher PID + creation FILETIME | no Windows administrator operation requires WSL, UAC interaction, or an always-elevated Runtime daemon |
+| Windows process-tree ownership | Windows Job Objects | repository-owned Windows Job launcher, sometimes reached through WSL | native dispatch/observe/cancel/recovery evidence under Windows-main; direct and broker dispatch both bind the same launcher PID + creation FILETIME supervisor identity | WSL transport is removed from native branch; launcher stays only as the Job Object provider |
 | Windows private state | Windows security descriptors / protected DACLs | POSIX mode assumptions or fail-closed Windows stubs | Registry/store/token ACL read-back matches machine policy and rejects inherited/unexpected principals | no chmod/Unix ACL semantics on Windows paths |
 | Machine-wide Windows state root | Known Folder FOLDERID_ProgramData / ProgramData | literal paths and Linux store defaults | native config resolves machine data root and all state remains beneath it | no Linux /var/lib defaults in Windows node startup |
 | Windows recovery | SCM failure actions + Runtime durable Job reconciliation | external watchdog/supervisor scripts | crash restart plus Registry reconciliation passes without duplicate dispatch | custom Windows watchdog is deleted |
@@ -50,6 +51,31 @@ R5 is complete only when all of these are true:
 - no Linux execve, UID/GID, POSIX mode, /var/lib, /run or WSL-mount semantic is required for
   native Windows node startup;
 - Linux regression remains green.
+
+## Windows authority completion
+
+The Runtime daemon and privileged execution authority are separate platform roles. The Runtime
+service remains least-privilege by default. Complete native Windows authority additionally requires:
+
+- `windows/limited` works without the broker;
+- `windows/elevated` is available only through a native privileged broker that proves an elevated
+  Windows token;
+- the broker runs as a distinct SCM service under LocalSystem and exposes no network listener;
+- broker IPC uses a protected Named Pipe DACL admitting only LocalSystem, Builtin Administrators
+  and the exact Runtime service SID;
+- the broker executes only the digest-pinned repository Windows launcher, never an arbitrary
+  caller-selected privileged executable;
+- every elevated Job freezes the broker executable digest in durable Windows execution context;
+- broker digest drift fails closed before dispatch, observation, cancellation/deadline control or
+  reconciliation;
+- broker launch returns the launcher PID and creation FILETIME observed from the broker-owned
+  process handle, preserving the same supervisor identity contract as direct native dispatch;
+- the broker may not ask the launcher to self-publish first-stage launcher evidence; Runtime remains
+  the owner that commits `WindowsLauncherStartEvidence`;
+- limited requests never traverse the broker.
+
+Ordivon therefore owns durable authority selection and evidence binding, while SCM, service SIDs,
+Named Pipe security, Windows tokens and Job Objects remain the platform authorities.
 
 ## Windows R6 acceptance
 

@@ -2,6 +2,7 @@
 pub struct ServerConfig {
     pub runtime: RuntimeConfig,
     pub input_authorities: Vec<InputAuthority>,
+    pub credential_authorities: Vec<CredentialAuthority>,
     pub execution: ExecutionContext,
     pub release: Option<RuntimeReleaseExecutionConfig>,
     pub input_ingress: Option<InputIngressExecutionConfig>,
@@ -36,9 +37,10 @@ impl RuntimeServer {
     ) -> Result<Self, ToolError> {
         let executor = config.runtime.executor.clone();
         executor.ensure_store().map_err(ToolError::from)?;
-        let runtime = Runtime::new_with_input_authorities_and_default_runtime(
+        let runtime = Runtime::new_with_authorities_and_default_runtime(
             config.runtime,
             config.input_authorities,
+            config.credential_authorities,
             default_runtime_ms,
         )
         .map_err(ToolError::from)?;
