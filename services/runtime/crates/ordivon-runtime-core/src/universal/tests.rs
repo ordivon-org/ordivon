@@ -148,6 +148,18 @@ fn workspace_round_trip_is_isolated_and_digest_guarded() {
     )
     .unwrap();
     assert_ne!(Path::new(&record.workspace_path), source);
+    let persisted_record: serde_json::Value =
+        serde_json::from_slice(&fs::read(config.workspace_record_path("workspace-1")).unwrap())
+            .unwrap();
+    assert!(
+        persisted_record.get("workspacePath").is_none(),
+        "new Workspace records must derive path from workspacesRoot/workspaceId"
+    );
+    let reloaded = load_workspace_record(&config, "workspace-1").unwrap();
+    assert_eq!(
+        Path::new(&reloaded.workspace_path),
+        canonical_directory(&config.workspace_path("workspace-1"), "workspacePath").unwrap()
+    );
 
     let read = read_workspace_text(
         &config,

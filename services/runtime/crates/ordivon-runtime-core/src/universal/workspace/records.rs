@@ -71,17 +71,9 @@ pub fn load_workspace_record(
     config: &UniversalExecutorConfig,
     workspace_id: &str,
 ) -> Result<WorkspaceRecord, UniversalExecError> {
-    let record = load_workspace_record_metadata(config, workspace_id)?;
+    let mut record = load_workspace_record_metadata(config, workspace_id)?;
     let expected = canonical_directory(&config.workspace_path(workspace_id), "workspacePath")?;
-    let recorded = canonical_directory(Path::new(&record.workspace_path), "workspacePath")?;
-    if expected != recorded {
-        return Err(UniversalExecError::new(
-            UniversalExecErrorCode::MetadataCorrupt,
-            "workspace record path mismatch",
-            Some("workspacePath"),
-            false,
-        ));
-    }
+    record.workspace_path = expected.to_string_lossy().into_owned();
     Ok(record)
 }
 
@@ -101,7 +93,34 @@ fn load_workspace_record_metadata(
             false,
         ));
     }
-    decode_open_workspace_record(&bytes, workspace_id)
+    let record = decode_open_workspace_record(&bytes, workspace_id)?;
+    bind_workspace_record_path(config, workspace_id, record)
+}
+
+fn bind_workspace_record_path(
+    config: &UniversalExecutorConfig,
+    workspace_id: &str,
+    mut record: WorkspaceRecord,
+) -> Result<WorkspaceRecord, UniversalExecError> {
+    let legacy_path = record.workspace_path.clone();
+    if !legacy_path.is_empty()
+        && !workspace_record_path_matches_identity(config, workspace_id, &legacy_path)
+    {
+        return Err(UniversalExecError::new(
+            UniversalExecErrorCode::MetadataCorrupt,
+            "workspace record path does not match its identity",
+            Some("workspacePath"),
+            false,
+        ));
+    }
+    let expected = config.workspace_path(workspace_id);
+    let derived = if expected.exists() {
+        canonical_directory(&expected, "workspacePath")?
+    } else {
+        expected
+    };
+    record.workspace_path = derived.to_string_lossy().into_owned();
+    Ok(record)
 }
 
 fn workspace_record_path_matches_identity(

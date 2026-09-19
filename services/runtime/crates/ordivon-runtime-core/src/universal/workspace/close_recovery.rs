@@ -54,7 +54,11 @@ pub fn remove_git_workspace(
             source_state_digest: closed.source_state_digest,
         });
     }
-    let record = decode_open_workspace_record(&bytes, &request.workspace_id)?;
+    let record = bind_workspace_record_path(
+        config,
+        &request.workspace_id,
+        decode_open_workspace_record(&bytes, &request.workspace_id)?,
+    )?;
 
     if !target.exists() {
         if !workspace_record_path_matches_identity(

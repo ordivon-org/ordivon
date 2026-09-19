@@ -52,6 +52,10 @@ pub struct WorkspaceRecord {
     pub workspace_id: String,
     pub source_repo: String,
     pub source_revision: String,
+    /// Legacy read-compatibility only. New records omit workspacePath; Runtime
+    /// reconstructs the physical path from workspaces_root/workspaceId.
+    #[serde(default, skip_serializing)]
+    #[schemars(skip)]
     pub workspace_path: String,
     pub created_unix_ms: u128,
 }
