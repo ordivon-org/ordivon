@@ -1,0 +1,250 @@
+{
+  "acceptedClaims": [
+    "P1-P4 can compose without producing an allocation or trade recommendation.",
+    "Factor observatory supports multiple explicit proxies per named factor.",
+    "Dependence evidence carries per-proxy overlap counts, rolling beta ranges, downside dependence, and structural sign-change warnings.",
+    "Without explicit stability policy, dependence standing remains UNCLASSIFIED_NO_STABILITY_POLICY.",
+    "Without explicit risk budget, P4 remains INCOMPLETE rather than inferring risk tolerance.",
+    "OKX public factor capture is reproducible through the Network v2 public REST authority without broker credentials."
+  ],
+  "date": "2026-09-19",
+  "implementation": {
+    "docs": "docs/PORTFOLIO_RISK_OBSERVATORY_R1.md",
+    "modules": [
+      "src/market_capital/portfolio_risk.py",
+      "src/market_capital/okx_factor_observer.py"
+    ],
+    "runner": "scripts/run-okx-factor-observatory-r1"
+  },
+  "implementedNodes": [
+    "P1_EXPOSURE_LEDGER",
+    "P2_FACTOR_OBSERVATORY",
+    "P3_REGIME_CONDITIONED_DEPENDENCE",
+    "P4_RISK_BUDGET"
+  ],
+  "kind": "ordivon.acceptance-evidence",
+  "nonClaims": [
+    "Historical proxy dependence is not a forecast of future correlation.",
+    "Proxy labels do not prove causal factor exposure.",
+    "The observatory does not recommend a hedge instrument or size.",
+    "The observatory does not grant external financial write authority."
+  ],
+  "policyBoundaries": {
+    "hiddenDependenceThresholds": false,
+    "legacyWaveAIPSUsedAsUserRiskTolerance": false,
+    "minimumVarianceBetaIsRecommendation": false,
+    "riskBudgetRequiresExplicitInputs": true,
+    "stabilityClassificationRequiresExplicitPolicy": true
+  },
+  "privateRuntimeCanary": {
+    "allocationProduced": false,
+    "executed": true,
+    "exposureLedgerProduced": true,
+    "externalFinancialWriteAttempted": false,
+    "hedgeSizeRecommended": false,
+    "riskBudgetStandingWithoutUserPolicy": "INCOMPLETE",
+    "riskToleranceInferred": false,
+    "tradeRecommendationProduced": false,
+    "valuesPersistedToSourceControl": false
+  },
+  "publicCanary": {
+    "baseInstrumentId": "SNDK-USDT-SWAP",
+    "brokerCredentialsUsed": false,
+    "externalFinancialWriteAttempted": false,
+    "factors": [
+      {
+        "factor": "alternative_macro",
+        "proxies": [
+          {
+            "downsideCorrelation": "0.203813",
+            "fullCorrelation": "0.248385",
+            "instrumentId": "XAU-USDT-SWAP",
+            "mediumCorrelation": "0.133060",
+            "overlapReturnCount": 178,
+            "rollingBetaMax": "4.111616",
+            "rollingBetaMedian": "1.091780",
+            "rollingBetaMin": "-1.517024",
+            "shortCorrelation": "-0.235614",
+            "standing": "UNCLASSIFIED_NO_STABILITY_POLICY",
+            "structuralWarnings": [
+              "CORRELATION_SIGN_CHANGE",
+              "ROLLING_BETA_SIGN_CHANGE"
+            ]
+          }
+        ],
+        "proxyCount": 1
+      },
+      {
+        "factor": "broad_equity",
+        "proxies": [
+          {
+            "downsideCorrelation": "0.206270",
+            "fullCorrelation": "0.377138",
+            "instrumentId": "SPY-USDT-SWAP",
+            "mediumCorrelation": "0.197303",
+            "overlapReturnCount": 178,
+            "rollingBetaMax": "7.495691",
+            "rollingBetaMedian": "3.174963",
+            "rollingBetaMin": "-2.668001",
+            "shortCorrelation": "-0.174275",
+            "standing": "UNCLASSIFIED_NO_STABILITY_POLICY",
+            "structuralWarnings": [
+              "CORRELATION_SIGN_CHANGE",
+              "ROLLING_BETA_SIGN_CHANGE"
+            ]
+          }
+        ],
+        "proxyCount": 1
+      },
+      {
+        "factor": "broad_growth",
+        "proxies": [
+          {
+            "downsideCorrelation": "0.481286",
+            "fullCorrelation": "0.610721",
+            "instrumentId": "QQQ-USDT-SWAP",
+            "mediumCorrelation": "0.546690",
+            "overlapReturnCount": 178,
+            "rollingBetaMax": "5.712698",
+            "rollingBetaMedian": "2.801683",
+            "rollingBetaMin": "-0.092996",
+            "shortCorrelation": "0.153889",
+            "standing": "UNCLASSIFIED_NO_STABILITY_POLICY",
+            "structuralWarnings": [
+              "ROLLING_BETA_SIGN_CHANGE"
+            ]
+          }
+        ],
+        "proxyCount": 1
+      },
+      {
+        "factor": "crypto",
+        "proxies": [
+          {
+            "downsideCorrelation": "0.036601",
+            "fullCorrelation": "0.159900",
+            "instrumentId": "BTC-USDT-SWAP",
+            "mediumCorrelation": "0.048189",
+            "overlapReturnCount": 178,
+            "rollingBetaMax": "2.912416",
+            "rollingBetaMedian": "0.551058",
+            "rollingBetaMin": "-0.903483",
+            "shortCorrelation": "0.105701",
+            "standing": "UNCLASSIFIED_NO_STABILITY_POLICY",
+            "structuralWarnings": [
+              "ROLLING_BETA_SIGN_CHANGE"
+            ]
+          },
+          {
+            "downsideCorrelation": "0.036498",
+            "fullCorrelation": "0.148024",
+            "instrumentId": "ETH-USDT-SWAP",
+            "mediumCorrelation": "0.040522",
+            "overlapReturnCount": 178,
+            "rollingBetaMax": "1.758422",
+            "rollingBetaMedian": "0.442142",
+            "rollingBetaMin": "-0.849660",
+            "shortCorrelation": "0.104305",
+            "standing": "UNCLASSIFIED_NO_STABILITY_POLICY",
+            "structuralWarnings": [
+              "ROLLING_BETA_SIGN_CHANGE"
+            ]
+          }
+        ],
+        "proxyCount": 2
+      },
+      {
+        "factor": "memory",
+        "proxies": [
+          {
+            "downsideCorrelation": "0.750657",
+            "fullCorrelation": "0.843824",
+            "instrumentId": "MU-USDT-SWAP",
+            "mediumCorrelation": "0.879055",
+            "overlapReturnCount": 178,
+            "rollingBetaMax": "1.633257",
+            "rollingBetaMedian": "1.113090",
+            "rollingBetaMin": "0.363104",
+            "shortCorrelation": "0.838221",
+            "standing": "UNCLASSIFIED_NO_STABILITY_POLICY",
+            "structuralWarnings": []
+          },
+          {
+            "downsideCorrelation": "0.576235",
+            "fullCorrelation": "0.737601",
+            "instrumentId": "WDC-USDT-SWAP",
+            "mediumCorrelation": "0.777772",
+            "overlapReturnCount": 129,
+            "rollingBetaMax": "1.360564",
+            "rollingBetaMedian": "0.907533",
+            "rollingBetaMin": "0.474881",
+            "shortCorrelation": "0.630703",
+            "standing": "UNCLASSIFIED_NO_STABILITY_POLICY",
+            "structuralWarnings": []
+          }
+        ],
+        "proxyCount": 2
+      },
+      {
+        "factor": "semiconductor",
+        "proxies": [
+          {
+            "downsideCorrelation": "0.691294",
+            "fullCorrelation": "0.750325",
+            "instrumentId": "SMH-USDT-SWAP",
+            "mediumCorrelation": "0.686360",
+            "overlapReturnCount": 92,
+            "rollingBetaMax": "2.998367",
+            "rollingBetaMedian": "2.224275",
+            "rollingBetaMin": "0.811922",
+            "shortCorrelation": "0.518350",
+            "standing": "UNCLASSIFIED_NO_STABILITY_POLICY",
+            "structuralWarnings": []
+          },
+          {
+            "downsideCorrelation": "0.571786",
+            "fullCorrelation": "0.643278",
+            "instrumentId": "AMD-USDT-SWAP",
+            "mediumCorrelation": "0.692319",
+            "overlapReturnCount": 178,
+            "rollingBetaMax": "1.550722",
+            "rollingBetaMedian": "0.971386",
+            "rollingBetaMin": "0.068560",
+            "shortCorrelation": "0.309673",
+            "standing": "UNCLASSIFIED_NO_STABILITY_POLICY",
+            "structuralWarnings": []
+          },
+          {
+            "downsideCorrelation": "0.399031",
+            "fullCorrelation": "0.382393",
+            "instrumentId": "NVDA-USDT-SWAP",
+            "mediumCorrelation": "0.349321",
+            "overlapReturnCount": 178,
+            "rollingBetaMax": "4.012678",
+            "rollingBetaMedian": "1.062329",
+            "rollingBetaMin": "-0.172946",
+            "shortCorrelation": "0.326860",
+            "standing": "UNCLASSIFIED_NO_STABILITY_POLICY",
+            "structuralWarnings": [
+              "ROLLING_BETA_SIGN_CHANGE"
+            ]
+          }
+        ],
+        "proxyCount": 3
+      }
+    ],
+    "privateAccountDataUsed": false,
+    "rawArtifactSha256": "sha256:6e953b31c7a3a9f7ff1453be232da8630c25f2c7b26a48cff950a3f72b30079a",
+    "requestedCandleLimit": 180,
+    "sourceAuthority": "OKX_PUBLIC_COMPLETED_1D_CANDLES",
+    "tradeRecommendationProduced": false
+  },
+  "schemaVersion": 1,
+  "subject": "portfolio-risk-observatory-p1-p4-r1",
+  "truthRole": "implementation-and-public-market-evidence-not-allocation-truth",
+  "verification": {
+    "canonicalSuite": "171 passed",
+    "focusedTests": "10 passed",
+    "gitDiffCheck": "PASS"
+  }
+}
