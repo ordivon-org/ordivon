@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-record",
+  "id": "bitol-odcs-3.2.0",
+  "identity": {
+    "authorityKind": "open-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "bitol",
+      "name": "Bitol"
+    },
+    "officialSource": "https://bitol.io/data-contracts-data-products-for-ai/",
+    "publicationDate": "2026-09-08",
+    "title": "Open Data Contract Standard (ODCS) v3.2.0",
+    "versionLabel": "3.2.0"
+  },
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": "Bitol publishes the standard and validation schema openly."
+  },
+  "discovery": {
+    "aliases": [
+      "ODCS 3.2.0",
+      "Open Data Contract Standard 3.2.0"
+    ],
+    "domains": [
+      "data",
+      "analytics",
+      "governance"
+    ],
+    "topics": [
+      "data-contract",
+      "schema",
+      "data-quality",
+      "service-level",
+      "producer-consumer",
+      "governance",
+      "interoperability"
+    ]
+  },
+  "provenance": {
+    "registeredDate": "2026-09-20",
+    "registrationBasis": [
+      "docs/DATA_LIFECYCLE_CENSUS_R1.md",
+      "Bitol 2026-09-08 joint ODCS/ODPS release checked 2026-09-20"
+    ]
+  },
+  "relations": {
+    "related": [
+      "bitol-odps-1.1.0",
+      "w3c-dcat-3-2024",
+      "openlineage-spec"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  }
+}

@@ -1,6 +1,6 @@
 {
   "authorityId": "lean-startup-principles",
-  "basis": "official-source-currentness-check",
+  "basis": "official-source",
   "kind": "ordivon.external-authority-observation",
   "lifecycleStatus": "current",
   "note": "Official Lean Startup principles page remains available; use Build-Measure-Learn and validated learning as experimentation guidance, not as proof of market demand.",

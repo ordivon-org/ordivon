@@ -275,6 +275,66 @@
     },
     {
       "aliases": [
+        "ODCS 3.2.0",
+        "Open Data Contract Standard 3.2.0"
+      ],
+      "authorityKind": "open-standard",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "analytics",
+        "data",
+        "governance"
+      ],
+      "id": "bitol-odcs-3.2.0",
+      "identityMode": "versioned",
+      "issuer": "Bitol",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:505e1f686fb681683c8b97a10250c07bc1eb4532e76c51567a619f108f3318d9",
+      "recordDigest": "sha256:66775525a2554dd83e21223d7cb64fff2fabe67d854260e739c28fb90f3b8600",
+      "title": "Open Data Contract Standard (ODCS) v3.2.0",
+      "topics": [
+        "data-contract",
+        "data-quality",
+        "governance",
+        "interoperability",
+        "producer-consumer",
+        "schema",
+        "service-level"
+      ],
+      "versionLabel": "3.2.0"
+    },
+    {
+      "aliases": [
+        "ODPS 1.1.0",
+        "Open Data Product Standard 1.1.0"
+      ],
+      "authorityKind": "open-standard",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "analytics",
+        "data",
+        "governance"
+      ],
+      "id": "bitol-odps-1.1.0",
+      "identityMode": "versioned",
+      "issuer": "Bitol",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:1333545023bb245e537414d65f6a99aafa1da18e0bcdeb75b71e9d254e0b2392",
+      "recordDigest": "sha256:7625ded8071c654713eaa1e94805dbb0a70e66d1a2933489352805df0bb1d38b",
+      "title": "Open Data Product Standard (ODPS) v1.1.0",
+      "topics": [
+        "consumption",
+        "data-product",
+        "governance",
+        "interoperability",
+        "ownership",
+        "ports",
+        "quality"
+      ],
+      "versionLabel": "1.1.0"
+    },
+    {
+      "aliases": [
         "C2PA",
         "C2PA 2.4",
         "Content Credentials"
@@ -628,7 +688,7 @@
       "identityMode": "rolling-source",
       "issuer": "Frappe",
       "lifecycleStatus": "current",
-      "observationDigest": "sha256:b3e2e4e090fbf16f4c5453456c43a3d05e5c736afdcaeb35188febbd7a7c70cc",
+      "observationDigest": "sha256:3fe95a5d653488c7c496df95aa5c0138037a4505ecdf78ac4329381d416bae23",
       "recordDigest": "sha256:30463851d9e55673d444a9b3c01500982d94371f48428b91b9d153dbeb435840",
       "title": "ERPNext Budget provider documentation",
       "topics": [
@@ -656,7 +716,7 @@
       "identityMode": "rolling-source",
       "issuer": "Frappe",
       "lifecycleStatus": "scheduled-for-removal-v17",
-      "observationDigest": "sha256:9ddec85cfe683f0dd62a1fb43e7521fdf7c82de1fef5383083859b2d9c66badb",
+      "observationDigest": "sha256:7745fd6f2177da026aca5828adb76809af6f7a371cfc561a744bdc815dbe5c70",
       "recordDigest": "sha256:cf6901d8d69d972785a1e20139043a4ac6d35338421cd731be2bf9f4c85bb25f",
       "title": "ERPNext CRM provider documentation",
       "topics": [
@@ -738,7 +798,7 @@
       "identityMode": "rolling-source",
       "issuer": "Frappe",
       "lifecycleStatus": "current",
-      "observationDigest": "sha256:ae1a922710d70093fc65d514f985a9122d1aa5341a0d4eb0212004790d067e14",
+      "observationDigest": "sha256:6bc83684138ae3fe65964f5024b2811112b4f4c10e44ca33aee697287b1357d5",
       "recordDigest": "sha256:c8ca0bc30d39425e9591c1345f7c6a8ec7c2fb01be4caa1959aeca1adcde984a",
       "title": "Frappe CRM provider documentation",
       "topics": [
@@ -765,7 +825,7 @@
       "identityMode": "rolling-source",
       "issuer": "Frappe",
       "lifecycleStatus": "current",
-      "observationDigest": "sha256:424a9407ab013f323b126e054dc6ab4755eaeb17cb7f8058cc64f4e8de4f20af",
+      "observationDigest": "sha256:ad58ebd8ff17cf9d2d398ce482f2148f3405c0a099c3a800aed5a9318313ecb8",
       "recordDigest": "sha256:7da5bc64e46f236eb1e094784ca0e178ed05664b0a1d0ac100f37174e738e6f4",
       "title": "Frappe Helpdesk provider documentation",
       "topics": [
@@ -793,7 +853,7 @@
       "identityMode": "rolling-source",
       "issuer": "Frappe",
       "lifecycleStatus": "current",
-      "observationDigest": "sha256:c721ad45a7c06ca32e4898d696ebb8dd5826956d2a87c42897ae5ce6c43b7eda",
+      "observationDigest": "sha256:2d375ed8ce762ab642b54b997c350cac96fe60c8b3224f0cc63324c2cb5d3c54",
       "recordDigest": "sha256:4a61db4d7a71c7072dcd9d6e8d67dfbc204737b8924044de4495b0882537b3f3",
       "title": "Frappe HR Payroll provider documentation",
       "topics": [
@@ -873,7 +933,7 @@
       "identityMode": "rolling-source",
       "issuer": "Google Analytics",
       "lifecycleStatus": "current",
-      "observationDigest": "sha256:e507626bc3bb3d97a85210e6307c73c234b8913294738ff8d5618cc8f2936379",
+      "observationDigest": "sha256:aaeab8dc9c75a0824c6fcccdf6c5fcc2a926680de28871be7340ca292f2969fa",
       "recordDigest": "sha256:2b6d360e35ed9f4fc3545d6d21f0d2cba74451af95a3758f63507e9f5a1da3f5",
       "title": "Google Analytics traffic-source dimensions and attribution guidance",
       "topics": [
@@ -903,7 +963,7 @@
       "identityMode": "rolling-source",
       "issuer": "Google Search Central",
       "lifecycleStatus": "current",
-      "observationDigest": "sha256:137b28cc36889aa4536f3ba184320d9cd2458ea3200e3819304edc0e5a4a6b13",
+      "observationDigest": "sha256:9ca0d28385e11bac78ea42b70b13846e19803c7fd0a83e9d0792341c97388072",
       "recordDigest": "sha256:75fd83238f1306bbd83c5525d1fc7fba69c1c68df0992e53799100ee4f8a7673",
       "title": "Google Search Essentials",
       "topics": [
@@ -932,7 +992,7 @@
       "identityMode": "rolling-source",
       "issuer": "IAB Tech Lab",
       "lifecycleStatus": "current-portfolio",
-      "observationDigest": "sha256:cee608a3737034ce1924f54682c4702c1f37f40cea2b4a3b04dfa72dea918120",
+      "observationDigest": "sha256:855ce03ea45f4f6fc5762a09653620ef36719980b2d10780d061572cab6d072e",
       "recordDigest": "sha256:65b1c7e673b106dd8e24b9c83ac5f67c92a3fc6915a4213c8f44d5668087ace1",
       "title": "IAB Tech Lab Privacy Standards Portfolio",
       "topics": [
@@ -960,7 +1020,7 @@
       "identityMode": "versioned",
       "issuer": "International Chamber of Commerce / ESOMAR",
       "lifecycleStatus": "current-fifth-edition",
-      "observationDigest": "sha256:b639ed07f8074b2efa00969ed53afdfd56d7ab882426bdcd6764aedc2ca42251",
+      "observationDigest": "sha256:365d6c13ce1749b078b1da12996d538f21c2e80aea65d4a89f24f595bc6ec72f",
       "recordDigest": "sha256:e2cc94a4468f31a81ddc8f06cd0aff25f58ff64f0e1b87342055fe179059efa0",
       "title": "ICC/ESOMAR International Code on Market, Opinion and Social Research and Data Analytics",
       "topics": [
@@ -988,7 +1048,7 @@
       "identityMode": "versioned",
       "issuer": "International Chamber of Commerce",
       "lifecycleStatus": "current-eleventh-edition",
-      "observationDigest": "sha256:cf699e6da670ed39fe843ab03e067f7a77e574925c07c4a3c28011325a7bd44a",
+      "observationDigest": "sha256:6497374a067facac4cd35a30835dc418f77c8b21aefb3366e40857e6b87dd29e",
       "recordDigest": "sha256:b4a13cc25e0a9bcc7a1a5dc94a34c6bde2c6cee4d0c6ff7a03c13676e609a11e",
       "title": "ICC Advertising and Marketing Communications Code",
       "topics": [
@@ -1076,7 +1136,7 @@
       "identityMode": "versioned",
       "issuer": "ISO",
       "lifecycleStatus": "current-confirmed",
-      "observationDigest": "sha256:92d0a4f85028a5f3648e2a4d5df5eeeefc47a4ab9fb654e2afce751d8028c6dc",
+      "observationDigest": "sha256:e9f7929d9908a4751fc7963a7d9a845bc8f92f55cb1c5942920340b28a74df04",
       "recordDigest": "sha256:3c194e8193020cb53ff1280f718d0533b724eedbd46b738b09524fd5e8a49f63",
       "title": "ISO 10002:2018 — Quality management — Customer satisfaction — Guidelines for complaints handling in organizations",
       "topics": [
@@ -1105,7 +1165,7 @@
       "identityMode": "versioned",
       "issuer": "ISO",
       "lifecycleStatus": "current-confirmed",
-      "observationDigest": "sha256:57145b426d7ef12ba0667e86b804f30463ef6d8a6f57e30232a2c0b50eeb2629",
+      "observationDigest": "sha256:f445f2a01b7bc1bbe5835ed29e8e089c5c286b4d7ba0cc13f1020a7b8f12f606",
       "recordDigest": "sha256:0b80876a4173a1789a0cb378d6bb5418069ce59b2c41a0df1463e2096df6d1bf",
       "title": "ISO 10004:2018 — Quality management — Customer satisfaction — Guidelines for monitoring and measuring",
       "topics": [
@@ -1376,7 +1436,7 @@
       "identityMode": "versioned",
       "issuer": "ISO",
       "lifecycleStatus": "published-current",
-      "observationDigest": "sha256:4d91d437ae420edae79a1fc94b28e279b35b5e3c53ffb2fd15718839cdedff2c",
+      "observationDigest": "sha256:124de744ee47d31b3adc0cc3300660130643f8c2688aa7f5119b130255a0d135",
       "recordDigest": "sha256:1714a80bd502ed0d6ade5034d4fbe8ac24c82fe755a56852d434d0670c44bc9c",
       "title": "ISO 20252:2026 — Market, opinion and social research, including insights and data analytics — Vocabulary and service requirements",
       "topics": [
@@ -1404,7 +1464,7 @@
       "identityMode": "versioned",
       "issuer": "ISO",
       "lifecycleStatus": "current-confirmed",
-      "observationDigest": "sha256:09c677d11434d1b180333fb9558c191beab62f84a268e18093028bc3fdb93f6a",
+      "observationDigest": "sha256:1e65a04d3f8fd010b93f43f3b98e1e7a313e8fac227d0c4019085fe5bab7cd6c",
       "recordDigest": "sha256:7977a41c97136d2d23caa51c411fa996aa9ca7c7c06a4a12790c8a3421916989",
       "title": "ISO 20400:2017 — Sustainable procurement — Guidance",
       "topics": [
@@ -1457,7 +1517,7 @@
       "identityMode": "versioned",
       "issuer": "ISO",
       "lifecycleStatus": "published-current",
-      "observationDigest": "sha256:e84eaca3caa972ee32406f7d38e0ffa5b25f773c89676f872296132bdcd72a26",
+      "observationDigest": "sha256:1c3c7dcecd9798cc01fc8f2d3ef42cbee0218524ac2896f16d6612956e2f6b6f",
       "recordDigest": "sha256:dad360c37771e66e789f93795baa7b80ed837a1fd6dd18181aeb285ff7c1cab6",
       "title": "ISO 20671-1:2021 — Brand evaluation — Part 1: Principles and fundamentals",
       "topics": [
@@ -1594,7 +1654,7 @@
       "identityMode": "versioned",
       "issuer": "ISO",
       "lifecycleStatus": "published-current",
-      "observationDigest": "sha256:3e6ca071d805ace781a487846748e6bed8ca9eab6e64450df7f9af98f723bff6",
+      "observationDigest": "sha256:c0c9914961099e032e9d8b78325e8fad29d1a45d0d7c98d4216849f2f62a4e5b",
       "recordDigest": "sha256:e15e1bc49f0ffd5829fdebf3dc0dbfc4fc5796d1da00f7da89c8ce93f9eb15e3",
       "title": "ISO 30405:2023 — Human resource management — Guidelines on recruitment",
       "topics": [
@@ -1700,7 +1760,7 @@
       "identityMode": "versioned",
       "issuer": "ISO",
       "lifecycleStatus": "current",
-      "observationDigest": "sha256:4957bd1cf86a9c9ef143e3e9d5d1e020dd5f0915ae06f537e4792c731bb96cb8",
+      "observationDigest": "sha256:f4401dff12497e4b465d60c4e2454f658c3a7cf6ae3d7acec3d964187916e52f",
       "recordDigest": "sha256:0c189afdf6306a987161bf4077620c56cb204a05f13a1b7f607174e6be5e029c",
       "title": "ISO 37500:2014 — Guidance on outsourcing",
       "topics": [
@@ -1753,7 +1813,7 @@
       "identityMode": "versioned",
       "issuer": "ISO",
       "lifecycleStatus": "superseded",
-      "observationDigest": "sha256:b070fd0735d2da72a0632ad1bf7a439dd14c75b122b98f47065e1e3a70b39fa7",
+      "observationDigest": "sha256:637f2b1c54e1d9cda64804266d98755f9fbd39272db7f774cce4e234cac0f744",
       "recordDigest": "sha256:1f5727005e8612271b9850a99947e703de5e32f070713e6eaf09240281f20d75",
       "title": "ISO 9001:2015 with Amendment 1:2024 — Quality management systems — Requirements",
       "topics": [
@@ -1778,7 +1838,7 @@
       "identityMode": "versioned",
       "issuer": "ISO",
       "lifecycleStatus": "published-current",
-      "observationDigest": "sha256:5d4ffc3b6ad8f4cf1b449dc1899a5fee887be1e8b9913bc9656dda2953ef4606",
+      "observationDigest": "sha256:412d8a49af5e71b0669117c7aaa031c5ca3714799d1adc72c26c895e3ff95a0b",
       "recordDigest": "sha256:f377fb16c6c86d7b2270da16ff927dbfa725cd73006cb011c223fef25ce2b17b",
       "title": "ISO 9001:2026 — Quality management systems — Requirements",
       "topics": [
@@ -1914,7 +1974,7 @@
       "identityMode": "versioned",
       "issuer": "ISO/IEC",
       "lifecycleStatus": "published-confirmed",
-      "observationDigest": "sha256:9e8059b7746d9992e370db968ba93478eb521feb5dae448bca9cd0ac05d07a11",
+      "observationDigest": "sha256:04746ef9626b7ced8f48b2db3869c4a836c374f800e2abbbab3ef6bfcf418b8f",
       "recordDigest": "sha256:91617ebaf927354e2abd09b9c12d22e9df0eb58a1731b06471f8becf6f5c6cb7",
       "title": "ISO/IEC 20000-1:2018 with Amendment 1:2024 — Service management system requirements",
       "topics": [
@@ -2189,7 +2249,7 @@
       "identityMode": "rolling-source",
       "issuer": "Lean Startup Co.",
       "lifecycleStatus": "current",
-      "observationDigest": "sha256:695e33f27de37d3a323976811899bab424ba2db1ff3165f5eb6c8a31e1626301",
+      "observationDigest": "sha256:d341ffbf495d92e20952893c8bb0a39df28b4333ea1a0011e90efb4832516481",
       "recordDigest": "sha256:93189857f99576306ee52ce93dd139973052f49f253606281bfc5aeec21799de",
       "title": "The Lean Startup Principles",
       "topics": [
@@ -2276,7 +2336,7 @@
       "identityMode": "versioned",
       "issuer": "Media Rating Council",
       "lifecycleStatus": "listed-current",
-      "observationDigest": "sha256:c3e3a9c79b4d5696863dc3da9e5fa44084923e18d906d9b6120e30ec5c18a802",
+      "observationDigest": "sha256:f995732214304ea8687a21e3e5c2c1cca5b97ee006a0ce6844d72fecefe1f7ff",
       "recordDigest": "sha256:3a157ddf1a5179e765cc6e4173dafc3b060a0a04caaa38d00d87fc037f1a4367",
       "title": "MRC Outcomes and Data Quality Standards",
       "topics": [
@@ -3422,7 +3482,7 @@
       "identityMode": "rolling-source",
       "issuer": "Roger L. Martin",
       "lifecycleStatus": "current",
-      "observationDigest": "sha256:e82a17368c64572c98ba28d6fdc4e522c10223a7853b72689986d9f1ea354c2d",
+      "observationDigest": "sha256:09d8eef0989c2865c17dbde2255fc50dbde80360732b67865e8c49e5fc2e8803",
       "recordDigest": "sha256:143ad00fa83901b73a8a41910f81e7bcb32b7aa161b66af3a6869ac8ae78fa51",
       "title": "Strategy",
       "topics": [
@@ -3480,7 +3540,7 @@
       "identityMode": "versioned",
       "issuer": "State Administration for Market Regulation",
       "lifecycleStatus": "current",
-      "observationDigest": "sha256:95fe6df25f2f7b4f88ae51fb50c60ce571828182c67efe21733fa92f78a4da3c",
+      "observationDigest": "sha256:dbe0c48f8df2507e9d78019f63c3646ea7dd0b6086446419091727328b6c481f",
       "recordDigest": "sha256:636c22ad0d1700646e6c7cba795798debd87b3466469ca9a260895fbea60cddb",
       "title": "经营主体登记文书规范和提交材料规范（2026年版）",
       "topics": [
@@ -3587,7 +3647,7 @@
       "identityMode": "rolling-source",
       "issuer": "Strategyzer",
       "lifecycleStatus": "current",
-      "observationDigest": "sha256:c829257297ed7acc6d949cf9e98733f3a636f17bef47b589f6077fdc62f50284",
+      "observationDigest": "sha256:776ab27c04c931f5abe312def101ee5c38a070929cc22e6b154d2a3f29d7ba28",
       "recordDigest": "sha256:be19a17d3f3d7ec1eb0fd102422a11a99c60dd7f974e0641f9e8beb839504e3c",
       "title": "The Business Model Canvas",
       "topics": [
@@ -3614,7 +3674,7 @@
       "identityMode": "rolling-source",
       "issuer": "Strategyzer",
       "lifecycleStatus": "current",
-      "observationDigest": "sha256:01c2bdb324bb9f5515709c620bd424acf5d076aed9b9aa03f500a83a81f37ab8",
+      "observationDigest": "sha256:10b2518e9380df36357cd46bb87c230a5776f9c5824634b8ec15217462c92b62",
       "recordDigest": "sha256:9cd18423bb70cc822b248660916ff05fc00c7dbd74a8e0b0486c73cf20134615",
       "title": "The Value Proposition Canvas",
       "topics": [
@@ -3641,7 +3701,7 @@
       "identityMode": "rolling-source",
       "issuer": "Stripe",
       "lifecycleStatus": "current",
-      "observationDigest": "sha256:32dce6e5b8459d721a5373dbfc2def41002e96ebbb5dd18d6fbbc6398615bbac",
+      "observationDigest": "sha256:84be6369b5fb126da0009fc8bfd091e5e0d23610194a7023971d51cb37dfae45",
       "recordDigest": "sha256:9acf728eccf3179ffe1943d93985717830b01e189cdf984a0480dfe90f7b4b87",
       "title": "A Guide to SaaS Pricing and Packaging",
       "topics": [
@@ -3709,6 +3769,38 @@
         "enterprise-transformation"
       ],
       "versionLabel": "10th Edition"
+    },
+    {
+      "aliases": [
+        "Data Catalog Vocabulary v3",
+        "DCAT 3",
+        "W3C DCAT 3"
+      ],
+      "authorityKind": "web-standard",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "analytics",
+        "data",
+        "governance",
+        "research"
+      ],
+      "id": "w3c-dcat-3-2024",
+      "identityMode": "versioned",
+      "issuer": "W3C",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:c2cfe5a1caf27d9119ef39aa72433e4a5d5614e3a8567d4606bd449b267fb6e1",
+      "recordDigest": "sha256:60f855880d4c114d04b29d763835db941458ad2db29763725dfcf8bb3c31f2a3",
+      "title": "Data Catalog Vocabulary (DCAT) - Version 3",
+      "topics": [
+        "data-catalog",
+        "data-service",
+        "dataset",
+        "dataset-series",
+        "interoperability",
+        "metadata",
+        "versioning"
+      ],
+      "versionLabel": "3"
     },
     {
       "aliases": [
@@ -3809,8 +3901,8 @@
       "identityMode": "versioned",
       "issuer": "Commerce & Contract Management Institute / World Commerce & Contracting",
       "lifecycleStatus": "current-fourth-edition",
-      "observationDigest": "sha256:4f8d46362f8538aa1c803b5246f543701c8d713c9420e56c82f106ac46ea083e",
-      "recordDigest": "sha256:59f6743a7088ba75c72202a4f7cfde4664e347645e82a05e98529a95aa1bfd9c",
+      "observationDigest": "sha256:433b6e728559d3c24b1912ab6e95082f61bdb03140ee4043762bb0f37bd067d3",
+      "recordDigest": "sha256:169ecf14e797a3e01805fe8833c883a80b30aed9075752c17872fad02c4a82a9",
       "title": "Contract Management Standard — Fourth Edition",
       "topics": [
         "award",
@@ -3892,7 +3984,7 @@
       "identityMode": "versioned",
       "issuer": "Y Combinator",
       "lifecycleStatus": "current",
-      "observationDigest": "sha256:10554b613217f941da7046fad527cb9332528248ba435e2dc99da51d50dda392",
+      "observationDigest": "sha256:bb565704c4b9aafb9273605d74e463f1e04dce370bdada8e86e2084c07883fc9",
       "recordDigest": "sha256:d2ac924564cc0057e8549ca1011e333e2ba209220d134ad2c52c266aeb85b751",
       "title": "YC's Essential Startup Advice",
       "topics": [
@@ -3919,7 +4011,7 @@
       "identityMode": "versioned",
       "issuer": "Y Combinator",
       "lifecycleStatus": "current-reference",
-      "observationDigest": "sha256:61b618f992171d1041832ba008119f3ea087170c38b070d6b5635f6957a98555",
+      "observationDigest": "sha256:83425d0778eabaa970c1373a2e3414028c92b533f9de79d8be925afec4d68ad1",
       "recordDigest": "sha256:95580ca3156e14beb3bcb70a1151a3f0dcb4b4e7f23847d91b67472c09770a3e",
       "title": "How to Sell by Tyler Bosmeny",
       "topics": [
@@ -3932,7 +4024,7 @@
     }
   ],
   "kind": "ordivon.external-authority-discovery-index",
-  "recordCount": 142,
-  "recordsDigest": "sha256:593a03e1477342b1a6f45a1b4f94dd26d9b32feeb2f08608f9fb52ea7fc8bf15",
+  "recordCount": 145,
+  "recordsDigest": "sha256:4e3669b60787bd5453d3efb9303f6a2cbe657a804fbe90c86b9cb6be3c3771ab",
   "schemaVersion": 1
 }

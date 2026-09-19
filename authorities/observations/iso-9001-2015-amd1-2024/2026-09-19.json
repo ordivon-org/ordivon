@@ -1,6 +1,6 @@
 {
   "authorityId": "iso-9001-2015-amd1-2024",
-  "basis": "official-source-currentness-check",
+  "basis": "official-source",
   "kind": "ordivon.external-authority-observation",
   "lifecycleStatus": "superseded",
   "note": "ISO 9001:2026 was published on 2026-09-16 and supersedes the 2015 edition and its 2024 amendment as the current edition.",

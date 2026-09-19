@@ -1,6 +1,6 @@
 {
   "authorityId": "worldcc-contract-management-standard-4e",
-  "basis": "official-source-currentness-check",
+  "basis": "official-source",
   "kind": "ordivon.external-authority-observation",
   "lifecycleStatus": "current-fourth-edition",
   "note": "WorldCC describes the Fourth Edition as the current global voluntary framework spanning pre-award, award and post-award contract management.",

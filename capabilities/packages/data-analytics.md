@@ -1,6 +1,6 @@
 # Package: Data & Analytics
 
-Last census: 2026-09-14
+Last census: 2026-09-20
 Standing: **READY_FOR_REAL_WORK**
 
 ## Outcome scope
@@ -82,6 +82,15 @@ dedicated production filtered/hybrid vector retrieval
 Qdrant becomes appropriate when vector search itself needs independent production behavior such as filter-aware ANN, dense+sparse/multivector hybrid retrieval, search-specific quantization/memory tuning, tenant-aware sharding or independent horizontal scale. See `capabilities/providers/qdrant.md` and `knowledge/lessons/qdrant-vector-search-kernel.md`.
 
 Do not duplicate authoritative relational/domain records into a separate vector service without a measured retrieval benefit and explicit source/version linkage.
+
+## 2026-09-20 cross-domain lifecycle census
+
+The real cross-domain census is now recorded in:
+
+- `docs/DATA_LIFECYCLE_CENSUS_R1.md`
+- `planning/data-lifecycle-census-r1.json`
+
+The census preserves the earlier conclusion that no generic data-platform product is justified, while identifying proven cross-domain gaps in dataset catalog metadata, operational lineage, data-contract/product interoperability, rights/retention binding, and outcome-to-collection feedback. These are to be filled with DCAT, OpenLineage/W3C PROV, Bitol ODCS/ODPS and existing governance/security owners rather than new Ordivon protocols.
 
 ## Concrete current gaps
 

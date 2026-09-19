@@ -1,6 +1,6 @@
 {
   "authorityId": "iso-9001-2026",
-  "basis": "official-source-currentness-check",
+  "basis": "official-source",
   "kind": "ordivon.external-authority-observation",
   "lifecycleStatus": "published-current",
   "note": "ISO 9001:2026 was published on 2026-09-16 and is now the current edition.",

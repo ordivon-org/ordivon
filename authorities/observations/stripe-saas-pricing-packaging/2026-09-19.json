@@ -1,6 +1,6 @@
 {
   "authorityId": "stripe-saas-pricing-packaging",
-  "basis": "official-source-currentness-check",
+  "basis": "official-source",
   "kind": "ordivon.external-authority-observation",
   "lifecycleStatus": "current",
   "note": "Current Stripe guidance frames SaaS pricing around value metric, pricing model, packaging tiers and measurement. Apply only to SaaS-like products where that model fits.",
