@@ -14,9 +14,9 @@ use std::time::{Duration, Instant};
 
 use super::{
     canonical_directory, now_unix_ms, sha256_file, workspace_source_state_digest_at,
-    write_json_atomic, CapturedOutput, RunnerExecutionStep, RunnerStartEvidence, RunnerStepResult,
-    RunnerTaskProgress, RunnerTaskRequest, RunnerTaskResult, TaskTerminalStatus,
-    UniversalExecError, UniversalExecErrorCode, UNIVERSAL_EXEC_SCHEMA_VERSION,
+    write_json_atomic, CapturedOutput, RunnerExecutionStep, RunnerProgress, RunnerRequest,
+    RunnerResult, RunnerStartEvidence, RunnerStepResult, RunnerTerminalStatus, UniversalExecError,
+    UniversalExecErrorCode, UNIVERSAL_EXEC_SCHEMA_VERSION,
 };
 
 const REQUEST_FILE: &str = "request.json";
@@ -71,7 +71,7 @@ pub fn run_job_runner(task_dir: &Path) -> Result<(), UniversalExecError> {
             infrastructure_error_code.clone(),
             error.to_string(),
         )
-        .unwrap_or_else(|secondary| RunnerTaskResult {
+        .unwrap_or_else(|secondary| RunnerResult {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             task_id: request.task_id.clone(),
             job_id: request.job_id.clone(),
@@ -79,7 +79,7 @@ pub fn run_job_runner(task_dir: &Path) -> Result<(), UniversalExecError> {
             launch_token_digest: request.launch_token.as_deref().map(sha256_text),
             payload_uid: request.payload.as_ref().map(|payload| payload.uid),
             payload_gid: request.payload.as_ref().map(|payload| payload.gid),
-            status: TaskTerminalStatus::Failed,
+            status: RunnerTerminalStatus::Failed,
             exit_code: None,
             timed_out: false,
             infrastructure_error_code: Some(infrastructure_error_code),
@@ -98,9 +98,7 @@ pub fn run_job_runner(task_dir: &Path) -> Result<(), UniversalExecError> {
     write_json_atomic(&task_dir.join(RESULT_FILE), &result)
 }
 
-fn observe_workspace_source(
-    request: &RunnerTaskRequest,
-) -> Result<Option<String>, UniversalExecError> {
+fn observe_workspace_source(request: &RunnerRequest) -> Result<Option<String>, UniversalExecError> {
     if request.workspace_source_digest.is_none() {
         return Ok(None);
     }
@@ -118,7 +116,7 @@ fn observe_workspace_source(
 }
 
 fn validate_workspace_source_commitment(
-    request: &RunnerTaskRequest,
+    request: &RunnerRequest,
     observed: Option<&str>,
 ) -> Result<(), UniversalExecError> {
     match (request.workspace_source_digest.as_deref(), observed) {
@@ -275,9 +273,7 @@ fn validate_input_tree_exact(
     Ok(())
 }
 
-fn validate_host_dependency_commitments(
-    request: &RunnerTaskRequest,
-) -> Result<(), UniversalExecError> {
+fn validate_host_dependency_commitments(request: &RunnerRequest) -> Result<(), UniversalExecError> {
     for (index, dependency) in request.host_dependencies.iter().enumerate() {
         let field = format!("hostDependencies[{index}]");
         let path = Path::new(&dependency.path);
@@ -319,7 +315,7 @@ fn validate_host_dependency_commitments(
     Ok(())
 }
 
-fn validate_input_commitments(request: &RunnerTaskRequest) -> Result<(), UniversalExecError> {
+fn validate_input_commitments(request: &RunnerRequest) -> Result<(), UniversalExecError> {
     if let Some(root) = request.input_presentation_root.as_deref() {
         validate_input_tree_exact(Path::new(root), &request.input_commitments)?;
     }
@@ -379,10 +375,10 @@ fn validate_input_commitments(request: &RunnerTaskRequest) -> Result<(), Univers
 
 fn execute_request(
     task_dir: &Path,
-    request: &RunnerTaskRequest,
+    request: &RunnerRequest,
     started_unix_ms: u128,
     mut host_dependency_watch: Option<&mut PathDriftWatch>,
-) -> Result<RunnerTaskResult, UniversalExecError> {
+) -> Result<RunnerResult, UniversalExecError> {
     validate_request_identity(request)?;
     let workspace = canonical_directory(
         Path::new(
@@ -549,17 +545,17 @@ fn execute_request(
     }
 
     let terminal_status = if cancelled {
-        TaskTerminalStatus::Cancelled
+        RunnerTerminalStatus::Cancelled
     } else if failed_step_id.is_some() || any_timed_out {
-        TaskTerminalStatus::Failed
+        RunnerTerminalStatus::Failed
     } else {
-        TaskTerminalStatus::Completed
+        RunnerTerminalStatus::Completed
     };
     let terminal_progress = match terminal_status {
-        TaskTerminalStatus::Completed => "succeeded",
-        TaskTerminalStatus::Cancelled => "cancelled",
-        TaskTerminalStatus::Failed if any_timed_out => "timed_out",
-        TaskTerminalStatus::Failed => "failed",
+        RunnerTerminalStatus::Completed => "succeeded",
+        RunnerTerminalStatus::Cancelled => "cancelled",
+        RunnerTerminalStatus::Failed if any_timed_out => "timed_out",
+        RunnerTerminalStatus::Failed => "failed",
     };
     write_progress(
         task_dir,
@@ -578,7 +574,7 @@ fn execute_request(
         captured_output_from_file(task_dir, request, true, stdout_retained, stdout_dropped)?;
     let stderr =
         captured_output_from_file(task_dir, request, false, stderr_retained, stderr_dropped)?;
-    Ok(RunnerTaskResult {
+    Ok(RunnerResult {
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         task_id: request.task_id.clone(),
         job_id: request.job_id.clone(),
@@ -620,7 +616,7 @@ struct StepOutcome {
 
 fn execute_step(
     task_dir: &Path,
-    request: &RunnerTaskRequest,
+    request: &RunnerRequest,
     workspace: &Path,
     step: &RunnerExecutionStep,
     mut context: StepExecutionContext<'_>,
@@ -912,7 +908,7 @@ fn capture_stream_append(
 
 fn captured_output_from_file(
     task_dir: &Path,
-    request: &RunnerTaskRequest,
+    request: &RunnerRequest,
     stdout: bool,
     retained: u64,
     dropped: u64,
@@ -944,7 +940,7 @@ fn captured_output_from_file(
 #[allow(clippy::too_many_arguments)]
 fn write_progress(
     task_dir: &Path,
-    request: &RunnerTaskRequest,
+    request: &RunnerRequest,
     revision: &mut u64,
     status: &str,
     completed_steps: u32,
@@ -958,7 +954,7 @@ fn write_progress(
     *revision = revision.saturating_add(1);
     write_json_atomic(
         &task_dir.join(PROGRESS_FILE),
-        &RunnerTaskProgress {
+        &RunnerProgress {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             task_id: request.task_id.clone(),
             revision: *revision,
@@ -1328,7 +1324,7 @@ fn path_runtime_drift(kind: PathDriftKind, path: &Path, mask: u32) -> UniversalE
     )
 }
 
-fn load_request(task_dir: &Path) -> Result<RunnerTaskRequest, UniversalExecError> {
+fn load_request(task_dir: &Path) -> Result<RunnerRequest, UniversalExecError> {
     let path = task_dir.join(REQUEST_FILE);
     let bytes = fs::read(&path).map_err(|error| {
         UniversalExecError::new(
@@ -1348,7 +1344,7 @@ fn load_request(task_dir: &Path) -> Result<RunnerTaskRequest, UniversalExecError
     })
 }
 
-fn validate_request_identity(request: &RunnerTaskRequest) -> Result<(), UniversalExecError> {
+fn validate_request_identity(request: &RunnerRequest) -> Result<(), UniversalExecError> {
     if request.schema_version != UNIVERSAL_EXEC_SCHEMA_VERSION {
         return Err(runner_error("unsupported runner request schema"));
     }
@@ -1528,12 +1524,12 @@ fn configure_payload_drop(
 
 fn failure_result(
     task_dir: &Path,
-    request: &RunnerTaskRequest,
+    request: &RunnerRequest,
     started_unix_ms: u128,
     infrastructure_error_code: String,
     message: String,
-) -> Result<RunnerTaskResult, UniversalExecError> {
-    Ok(RunnerTaskResult {
+) -> Result<RunnerResult, UniversalExecError> {
+    Ok(RunnerResult {
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         task_id: request.task_id.clone(),
         job_id: request.job_id.clone(),
@@ -1541,7 +1537,7 @@ fn failure_result(
         launch_token_digest: request.launch_token.as_deref().map(sha256_text),
         payload_uid: request.payload.as_ref().map(|payload| payload.uid),
         payload_gid: request.payload.as_ref().map(|payload| payload.gid),
-        status: TaskTerminalStatus::Failed,
+        status: RunnerTerminalStatus::Failed,
         exit_code: None,
         timed_out: false,
         infrastructure_error_code: Some(infrastructure_error_code),
@@ -1630,7 +1626,7 @@ fn sha256_text(value: &str) -> String {
 
 fn write_runner_start(
     task_dir: &Path,
-    request: &RunnerTaskRequest,
+    request: &RunnerRequest,
     observed_workspace_source_digest: Option<&str>,
     observed_unix_ms: u128,
 ) -> Result<(), UniversalExecError> {

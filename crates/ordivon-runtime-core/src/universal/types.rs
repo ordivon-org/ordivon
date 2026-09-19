@@ -636,7 +636,7 @@ pub(crate) struct RunnerInputCommitment {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub(crate) struct RunnerTaskRequest {
+pub(crate) struct RunnerRequest {
     pub schema_version: u32,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub job_id: Option<String>,
@@ -702,7 +702,7 @@ pub(crate) struct RunnerStartEvidence {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub(crate) enum TaskTerminalStatus {
+pub(crate) enum RunnerTerminalStatus {
     Completed,
     Failed,
     Cancelled,
@@ -735,7 +735,7 @@ pub(crate) struct RunnerStepResult {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub(crate) struct RunnerTaskProgress {
+pub(crate) struct RunnerProgress {
     pub schema_version: u32,
     pub task_id: String,
     pub revision: u64,
@@ -757,7 +757,7 @@ pub(crate) struct RunnerTaskProgress {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub(crate) struct RunnerTaskResult {
+pub(crate) struct RunnerResult {
     pub schema_version: u32,
     pub task_id: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -770,7 +770,7 @@ pub(crate) struct RunnerTaskResult {
     pub payload_uid: Option<u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub payload_gid: Option<u32>,
-    pub status: TaskTerminalStatus,
+    pub status: RunnerTerminalStatus,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub exit_code: Option<i32>,
     pub timed_out: bool,
