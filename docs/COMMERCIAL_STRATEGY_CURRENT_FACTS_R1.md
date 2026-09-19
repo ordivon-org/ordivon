@@ -22,7 +22,7 @@ The following claims are supported by current local source/evidence and should n
 - Ordivon is still PRE-T0 as a legal company; no registered entity, corporate bank account, corporate payment rail or real company revenue is currently evidenced.
 - The intended near-term commercialization motion is **service first, then productize repeated paid work** rather than building a speculative SaaS product before customer evidence.
 - The technical substrate already spans research, engineering, artifacts, automation, security, distribution and other capabilities, but capability breadth is a supply-side fact, not a market strategy.
-- Commercial operations deliberately use mature external methods/providers rather than private Ordivon Sales/GTM/Pricing/CRM/FP&A/HR/Support frameworks.
+- Commercial operations deliberately use mature external methods/providers rather than private Ordivon Marketing/Channel/SEO/Attribution/Sales/GTM/Pricing/CRM/FP&A/HR/Support frameworks.
 - Founder/accountable-owner exposure to buyer conversations, pricing objections, acceptance interpretation and product trade-offs is preserved because those are learning evidence.
 - ERPNext/Frappe is proven only for the tested transactional/accounting slice; the acceptance fixtures were not real sales.
 - No real ICP, beachhead vertical, beachhead workflow, paid pilot, repeat customer, product-market fit or proprietary learning advantage is yet proven.
@@ -137,7 +137,7 @@ The following remain intentionally open rather than being papered over by archit
 1. **ICP** — no initial customer segment is frozen.
 2. **Beachhead workflow** — no workflow is frozen.
 3. **First paid offer** — no exact offer/price is frozen.
-4. **Distribution channel** — founder-led sales is the current method, but no real pipeline is evidenced.
+4. **Distribution channel** — `COMMERCIAL_CHANNEL_EXPERIMENT_R1` now defines the first bounded falsification across founder-led outbound, evidence-driven content and technical-community distribution, but no contact/publication effect, qualified pipeline or winning channel is yet evidenced.
 5. **Learning-rights architecture in contracts** — principles are now explicit, but no real customer agreement has tested them.
 6. **Outcome/evaluation dataset** — no external-customer outcome corpus exists.
 7. **Service-to-product promotion evidence** — no real paid repetition exists.
@@ -152,7 +152,8 @@ The next commercial work should therefore be market-facing rather than infrastru
 candidate workflow portfolio
  -> customer/problem discovery
  -> narrow first offer
- -> founder-led outreach/sales
+ -> run COMMERCIAL_CHANNEL_EXPERIMENT_R1
+ -> founder-led outreach / evidence content / technical-community distribution as separately authorized
  -> paid pilot
  -> delivery + acceptance + economics
  -> explicit learning-rights evidence
@@ -169,3 +170,7 @@ Do not deploy additional CRM/helpdesk/HR/FP&A/CLM infrastructure merely to make 
 - Strategyzer, Value Proposition Canvas: https://www.strategyzer.com/library/the-value-proposition-canvas
 - Lean Startup principles: https://theleanstartup.com/principles
 - Y Combinator, How to Sell: https://www.ycombinator.com/blog/how-to-sell-by-tyler-bosmeny/
+- ISO 20252:2026 market/opinion/social research: https://www.iso.org/standard/88881.html
+- ICC/ESOMAR International Code 2025: https://iccwbo.org/news-publications/business-solutions/iccesomar-international-code-market-opinion-social-research-data-analytics/
+- ICC Advertising and Marketing Communications Code 2024: https://iccwbo.org/business-solutions/the-icc-advertising-and-marketing-communications-code/
+- Google Search Essentials: https://developers.google.com/search/docs/essentials
