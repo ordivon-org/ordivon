@@ -17,6 +17,7 @@ use axum::response::{IntoResponse, Response};
 use axum::Router;
 use ordivon_runtime_core::{
     InputAuthority, RegistryConfig, RuntimeConfig, UniversalExecutorConfig, WindowsExecutionConfig,
+    WindowsPrivilegedBrokerConfig,
 };
 use ordivon_runtime_mcp::server::{
     AuthenticatedPrincipalBinding, ExecutionContext, InputIngressExecutionConfig,
@@ -590,18 +591,50 @@ fn load_config() -> Result<AppConfig, Box<dyn std::error::Error>> {
     } else {
         optional_env("ORDIVON_RUNNER_PATH")?.map(PathBuf::from)
     };
+    let privileged_broker = match (
+        optional_env("ORDIVON_WINDOWS_PRIVILEGED_BROKER_PATH")?,
+        optional_env("ORDIVON_WINDOWS_PRIVILEGED_BROKER_PIPE")?,
+    ) {
+        (None, None) => None,
+        (Some(path), Some(pipe_name)) if cfg!(windows) => Some(WindowsPrivilegedBrokerConfig {
+            executable_path: PathBuf::from(path),
+            pipe_name,
+        }),
+        (Some(_), Some(_)) => {
+            return Err(
+                "ORDIVON_WINDOWS_PRIVILEGED_BROKER_* is supported only on native Windows Runtime"
+                    .into(),
+            )
+        }
+        _ => {
+            return Err(
+                "ORDIVON_WINDOWS_PRIVILEGED_BROKER_PATH and ORDIVON_WINDOWS_PRIVILEGED_BROKER_PIPE must be configured together"
+                    .into(),
+            )
+        }
+    };
     let windows = match (
         optional_env("ORDIVON_WINDOWS_LAUNCHER_PATH")?,
         optional_env("ORDIVON_WINDOWS_WSL_DISTRIBUTION")?,
     ) {
-        (None, None) => None,
+        (None, None) => {
+            if privileged_broker.is_some() {
+                return Err(
+                    "ORDIVON_WINDOWS_PRIVILEGED_BROKER_* requires ORDIVON_WINDOWS_LAUNCHER_PATH"
+                        .into(),
+                );
+            }
+            None
+        }
         (Some(launcher), Some(wsl_distribution)) => Some(WindowsExecutionConfig {
             launcher_path: PathBuf::from(launcher),
             wsl_distribution: Some(wsl_distribution),
+            privileged_broker: None,
         }),
         (Some(launcher), None) if cfg!(windows) => Some(WindowsExecutionConfig {
             launcher_path: PathBuf::from(launcher),
             wsl_distribution: None,
+            privileged_broker,
         }),
         (Some(_), None) => {
             return Err(

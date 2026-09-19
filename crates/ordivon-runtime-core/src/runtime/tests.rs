@@ -1451,6 +1451,7 @@ fn windows_execution_context_is_durable_plan_evidence_not_request_identity_input
         token_class: super::WindowsTokenClass::Limited,
         token_user_sid: "S-1-5-21-test-1001".to_string(),
         environment_source: "windows_user_machine_profile_allowlist_v1".to_string(),
+        privileged_broker_digest: None,
     };
     let value = serde_json::to_value(&context).unwrap();
     assert_eq!(value["tokenClass"], "limited");
@@ -2077,6 +2078,7 @@ fn terminal_evidence_is_a_durable_artifact_with_native_binding() {
         token_class: super::WindowsTokenClass::Limited,
         token_user_sid: "S-1-5-21-test-1001".to_string(),
         environment_source: "windows_user_machine_profile_allowlist_v1".to_string(),
+        privileged_broker_digest: None,
     });
     submit.plan.foreign_references.push(ForeignReference {
         namespace: "ordivon.edge".to_string(),
@@ -6784,6 +6786,7 @@ fn native_windows_running_attempt_replay_after_registry_reopen_does_not_redrive(
         token_class: super::WindowsTokenClass::Limited,
         token_user_sid: "S-1-5-21-test-1001".to_string(),
         environment_source: "windows_user_machine_profile_allowlist_v1".to_string(),
+        privileged_broker_digest: None,
     });
 
     let created = created(sandbox.registry.submit(&submission).unwrap());

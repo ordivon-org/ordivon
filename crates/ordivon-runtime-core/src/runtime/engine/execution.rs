@@ -336,12 +336,28 @@ impl Runtime {
                     super::WindowsAuthority::Limited => super::WindowsTokenClass::Limited,
                     super::WindowsAuthority::Elevated => super::WindowsTokenClass::Elevated,
                 };
+                let privileged_broker_digest =
+                    if request.execution.windows_authority == super::WindowsAuthority::Elevated {
+                        windows
+                            .privileged_broker
+                            .as_ref()
+                            .map(|broker| broker.executable_digest())
+                            .transpose()?
+                    } else {
+                        None
+                    };
+                let environment_source = if privileged_broker_digest.is_some() {
+                    "windows_privileged_broker_profile_allowlist_v1"
+                } else {
+                    "windows_user_machine_profile_allowlist_v1"
+                };
                 (
                     snapshot.environment,
                     Some(super::WindowsExecutionContext {
                         token_class,
                         token_user_sid: snapshot.token_user_sid,
-                        environment_source: "windows_user_machine_profile_allowlist_v1".to_string(),
+                        environment_source: environment_source.to_string(),
+                        privileged_broker_digest,
                     }),
                 )
             }
@@ -1277,6 +1293,10 @@ impl Runtime {
                         attempt_id: &starting.attempt_id,
                         launch_token_digest: &starting.launch_token_digest,
                         authority: plan.windows_authority,
+                        expected_privileged_broker_digest: plan
+                            .windows_execution_context
+                            .as_ref()
+                            .and_then(|context| context.privileged_broker_digest.as_deref()),
                         executable: Path::new(&plan.executable),
                         args: &plan.args,
                         cwd: Path::new(&plan.cwd),
@@ -1616,15 +1636,37 @@ impl Runtime {
             super::WindowsAuthority::Limited => super::WindowsTokenClass::Limited,
             super::WindowsAuthority::Elevated => super::WindowsTokenClass::Elevated,
         };
+        let broker_backed = context.privileged_broker_digest.is_some();
+        let expected_environment_source = if broker_backed {
+            "windows_privileged_broker_profile_allowlist_v1"
+        } else {
+            "windows_user_machine_profile_allowlist_v1"
+        };
         if context.token_class != expected_token_class
-            || context.environment_source != "windows_user_machine_profile_allowlist_v1"
+            || context.environment_source != expected_environment_source
+            || (plan.windows_authority == super::WindowsAuthority::Limited && broker_backed)
+            || (broker_backed && windows.privileged_broker.is_none())
         {
             return Err(RuntimeError::new(
                 RuntimeErrorCode::RegistryCorrupt,
-                "committed Windows requested/effective authority is inconsistent",
+                "committed Windows requested/effective authority or privileged provider binding is inconsistent",
                 Some("windowsExecutionContext"),
                 false,
             ));
+        }
+        if let Some(expected_broker_digest) = context.privileged_broker_digest.as_deref() {
+            windows
+                .privileged_broker
+                .as_ref()
+                .ok_or_else(|| {
+                    RuntimeError::new(
+                        RuntimeErrorCode::RegistryCorrupt,
+                        "broker-bound Windows execution context has no configured privileged broker",
+                        Some("windowsExecutionContext.privilegedBrokerDigest"),
+                        false,
+                    )
+                })?
+                .verify_digest(expected_broker_digest)?;
         }
         let expected_job_name = format!("Ordivon.{}", attempt.attempt_id);
         let expected_image =

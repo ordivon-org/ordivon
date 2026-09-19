@@ -369,6 +369,8 @@ pub struct WindowsExecutionContext {
     pub token_class: WindowsTokenClass,
     pub token_user_sid: String,
     pub environment_source: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub privileged_broker_digest: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
