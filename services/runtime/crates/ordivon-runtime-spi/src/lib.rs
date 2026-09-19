@@ -152,13 +152,12 @@ pub struct NodeDescriptor {
     pub node_id: FabricId,
     pub platform: FabricPlatform,
     pub native_control_plane: bool,
-    pub trust_domain: FabricId,
     #[serde(default)]
     pub providers: Vec<FabricId>,
     #[serde(default)]
     pub capabilities: Vec<FabricId>,
     #[serde(default)]
-    pub authority_contexts: Vec<FabricId>,
+    pub execution_contexts: Vec<FabricId>,
 }
 
 impl NodeDescriptor {
@@ -166,7 +165,7 @@ impl NodeDescriptor {
         require_schema(self.schema_version)?;
         require_unique_ids("providers", &self.providers)?;
         require_unique_ids("capabilities", &self.capabilities)?;
-        require_unique_ids("authorityContexts", &self.authority_contexts)
+        require_unique_ids("executionContexts", &self.execution_contexts)
     }
 }
 
@@ -625,10 +624,9 @@ mod tests {
             node_id: id("runtime/linux-archlinux"),
             platform: FabricPlatform::Linux,
             native_control_plane: true,
-            trust_domain: id("trust/ordivon-local"),
             providers: vec![id("provider/linux/systemd")],
             capabilities: vec![id("service.start"), id("service.stop")],
-            authority_contexts: vec![id("linux/user"), id("linux/root")],
+            execution_contexts: vec![id("linux/user"), id("linux/root")],
         };
         descriptor.validate().unwrap();
 

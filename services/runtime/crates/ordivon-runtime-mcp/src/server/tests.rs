@@ -2568,10 +2568,6 @@ fn runtime_describe_projects_agent_affordances_without_selecting_a_target() {
         ordivon_runtime_spi::FabricPlatform::Linux
     );
     assert!(result.execution_fabric.node.native_control_plane);
-    assert_eq!(
-        result.execution_fabric.node.trust_domain.as_str(),
-        "ordivon.local"
-    );
     assert_eq!(result.execution_fabric.resources.len(), 2);
     assert_eq!(result.execution_fabric.capabilities.len(), 2);
     assert_eq!(result.execution_fabric.providers.len(), 1);
@@ -2595,7 +2591,7 @@ fn runtime_describe_projects_agent_affordances_without_selecting_a_target() {
         result.execution_fabric.node.capabilities[0].as_str(),
         "capability/execution/local-linux"
     );
-    assert!(result.execution_fabric.node.authority_contexts.is_empty());
+    assert!(result.execution_fabric.node.execution_contexts.is_empty());
     let linux = result
         .targets
         .iter()
@@ -2665,7 +2661,6 @@ fn runtime_describe_projects_agent_affordances_without_selecting_a_target() {
         "resources",
         "providers",
         "capabilities",
-        "trustDomain",
         "nativeControlPlane",
         "controllers",
         "controllerId",

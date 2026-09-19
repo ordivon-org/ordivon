@@ -1,16 +1,16 @@
 # Ordivon Execution Fabric R1
 
-Status: EF0 contract freeze candidate.
+Status: HISTORICAL EF0 REFERENCE; CURRENT BOUNDARIES ARE STANDARDS-FIRST W2/W5.
 
 ## One-line kernel
 
-Ordivon Execution Fabric is a composable physical-capability substrate. Runtime Kernel owns only durable physical execution truth; Nodes, Providers, Sensors, Authority, Controllers, Workflows and routing compose around it without moving their independent authority into Runtime Core.
+Ordivon Execution Fabric is a composable physical-capability substrate. Runtime Kernel owns durable physical execution truth; concrete Nodes and Providers remain replaceable implementation boundaries. Durable workflow, workload identity and authorization semantics are delegated to their mature external owners rather than modeled as Runtime fabric primitives.
 
 ## Architectural laws
 
 1. Kernel minimality. Job, Attempt, operation/admission identity, dispatch, physical owner, terminal convergence, recovery classification and evidence binding are Runtime Kernel truth.
-2. Capability is not authority. Installed capability describes what can be done. Authority describes whether one principal may activate it against one resource now.
-3. Authority is not OS privilege. root, Administrator and SYSTEM are operating-system execution contexts. Ordivon Authority separately carries resource scope, mode, conflict semantics, TTL/budget and evidence policy.
+2. Capability is not authorization. Installed capability describes what can be done; authorization is decided and enforced by the natural security owner/PEP.
+3. OS privilege is not workload identity or authorization. root, Administrator and SYSTEM are concrete operating-system execution contexts owned by Runtime/provider mechanics.
 4. Node locality. Each native Runtime node owns its own mutable Registry, Workspace and Artifact state.
 5. No shared mutable cross-node Registry. Cross-node transfer uses immutable revisions, digests or provider-native immutable identities.
 6. Provider replaceability. Linux systemd/cgroup, Windows Job Object, browser engines, storage and network mechanisms remain Provider realizations rather than Kernel meaning.
@@ -72,33 +72,22 @@ Agent Service / Agent Swarms
 
 Kernel does not own provider selection policy, domain semantic completion, long-duration workflow orchestration, security campaign logic or machine-wide desired state.
 
-## Authority vector
+## Identity / authorization boundary
 
-Authority is multi-dimensional:
+The former Ordivon AuthorityVector/AuthorityLease model is retired.
 
-~~~
-principal
-trustDomain
-resourceScope
-capabilitySet
-osAuthority
-mode
-conflictMode
-enforcement
-budget
-evidencePolicy
-time/lease
-~~~
+Current routing:
 
-Initial enforcement stages:
+- workload identity -> SPIFFE/SPIRE when actually deployed;
+- delegated HTTP authorization -> OAuth and current security BCPs;
+- policy decision -> OPA or another explicit PDP;
+- enforcement -> natural PEP at the effect boundary;
+- OS execution context -> Runtime/provider contract;
+- resource conflict/concurrency -> resource/execution coordinator;
+- budget/evidence policy -> their own domain owners.
 
-- shadow — calculate and record decisions; do not block effects.
-- permissive — preserve strong capability while arbitrating declared physical conflicts.
-- enforcing — policy decisions actively gate admission/effect activation.
-
-Authority modes include open_control, normal, maintenance, recovery, security, security_lab, emergency and strict.
-
-Conflict modes include observer, shared_read, exclusive_write, cooperative_write and adversarial_lab. High OS privilege and conflict semantics are deliberately orthogonal.
+Node descriptors therefore expose executionContexts rather than authorityContexts and do not
+carry a synthetic trustDomain field.
 
 ## Node law
 
@@ -124,10 +113,10 @@ Agents may propose desired state or workflows. Controllers own repeated converge
 - EF0 — freeze vocabulary/contracts with no behavior change.
 - EF1 — make Runtime Kernel/provider boundary explicit without changing Job/Attempt semantics.
 - EF2 — expose Resource/Capability/Provider/Node descriptors as observation.
-- EF3 — add Authority Fabric in shadow mode.
+- EF3 — RETIRED: local shadow Authority Fabric removed; route identity/authz/policy to standards owners.
 - EF4 — normalize OS/browser/storage/network effects behind Providers.
 - EF5 — introduce small reconciliation Controllers.
-- EF6 — replace monolithic recovery/maintenance scripts with Workflow compositions.
+- EF6 — RETIRED: generic Workflow composition removed; use Temporal/BPMN/Saga or the owning Operations orchestrator.
 - EF7 — complete independent native Windows and Linux nodes.
 - EF8 — route capability requests to Node + Provider outside Kernel.
 - EF9 — controlled multi-agent security campaigns with explicit adversarial conflict semantics and complete evidence.
