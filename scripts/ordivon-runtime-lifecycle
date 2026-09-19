@@ -908,10 +908,6 @@ def quarantine_orphan_directory(
     tombstone = {
         "schemaVersion": SCHEMA_VERSION,
         "state": "closed",
-        "workspaceId": workspace_id,
-        "finalHead": observed_head if isinstance(observed_head, str) else None,
-        "closedUnixMs": int(time.time() * 1000),
-        "removalResult": "quarantined_orphan",
     }
     # The tombstone is committed before the move so another Runtime process cannot
     # reuse this identity in the rename window. sourceRepo/sourceRevision are
@@ -991,12 +987,6 @@ def quarantine_one(
     closed = {
         "schemaVersion": SCHEMA_VERSION,
         "state": "closed",
-        "workspaceId": workspace_id,
-        "sourceRepo": record["sourceRepo"],
-        "sourceRevision": record["sourceRevision"],
-        "finalHead": None,
-        "closedUnixMs": int(time.time() * 1000),
-        "removalResult": "quarantined_broken",
     }
     write_json_atomic(record_path, closed)
     return {

@@ -92,7 +92,7 @@ pub fn remove_git_workspace(
             ));
         }
         cleanup_workspace_caches(config, &request.workspace_id)?;
-        write_closed_workspace_record(&record_path, &record, final_head, None, "already_missing")?;
+        write_closed_workspace_record(&record_path, None)?;
         return Ok(WorkspaceCloseResult {
             workspace_id: request.workspace_id.clone(),
             removed: false,
@@ -145,13 +145,7 @@ pub fn remove_git_workspace(
     }
     cleanup_workspace_caches(config, &request.workspace_id)?;
     remove_git_worktree_from_workspace(&recorded, request.force)?;
-    write_closed_workspace_record(
-        &record_path,
-        &record,
-        Some(final_head),
-        Some(source_state_digest.clone()),
-        "removed",
-    )?;
+    write_closed_workspace_record(&record_path, Some(source_state_digest.clone()))?;
     Ok(WorkspaceCloseResult {
         workspace_id: request.workspace_id.clone(),
         removed: true,
@@ -233,21 +227,18 @@ fn cleanup_workspace_caches(
 
 fn write_closed_workspace_record(
     record_path: &Path,
-    open: &WorkspaceRecord,
-    final_head: Option<String>,
     source_state_digest: Option<String>,
-    removal_result: &str,
 ) -> Result<(), UniversalExecError> {
     let closed = ClosedWorkspaceRecord {
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         state: "closed".to_string(),
-        workspace_id: open.workspace_id.clone(),
-        source_repo: Some(open.source_repo.clone()),
-        source_revision: Some(open.source_revision.clone()),
-        final_head,
+        legacy_workspace_id: String::new(),
+        _legacy_source_repo: None,
+        _legacy_source_revision: None,
+        _legacy_final_head: None,
         source_state_digest,
-        closed_unix_ms: now_unix_ms()?,
-        removal_result: removal_result.to_string(),
+        _legacy_closed_unix_ms: None,
+        _legacy_removal_result: None,
     };
     write_json_atomic(record_path, &closed)
 }

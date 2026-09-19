@@ -2525,8 +2525,11 @@ fn workspace_close_preserves_changed_head_and_is_idempotent() {
         serde_json::from_slice(&fs::read(config.workspace_record_path(workspace_id)).unwrap())
             .unwrap();
     assert_eq!(tombstone["state"], "closed");
-    assert_eq!(tombstone["finalHead"], final_head);
-    assert_eq!(tombstone["removalResult"], "removed");
+    assert!(tombstone.get("finalHead").is_none());
+    assert!(tombstone.get("removalResult").is_none());
+    assert!(tombstone.get("closedUnixMs").is_none());
+    assert!(tombstone.get("sourceRepo").is_none());
+    assert!(tombstone.get("sourceRevision").is_none());
 
     let second = remove_git_workspace(
         &config,
@@ -2613,8 +2616,8 @@ fn workspace_close_recovers_final_head_after_physical_removal() {
         serde_json::from_slice(&fs::read(config.workspace_record_path(workspace_id)).unwrap())
             .unwrap();
     assert_eq!(tombstone["state"], "closed");
-    assert_eq!(tombstone["finalHead"], final_head);
-    assert_eq!(tombstone["removalResult"], "already_missing");
+    assert!(tombstone.get("finalHead").is_none());
+    assert!(tombstone.get("removalResult").is_none());
 }
 
 #[test]
@@ -2658,7 +2661,7 @@ fn workspace_close_repairs_missing_directory_but_rejects_orphan_directory() {
         serde_json::from_slice(&fs::read(config.workspace_record_path(workspace_id)).unwrap())
             .unwrap();
     assert_eq!(tombstone["state"], "closed");
-    assert_eq!(tombstone["removalResult"], "already_missing");
+    assert!(tombstone.get("removalResult").is_none());
 
     let orphan_id = "workspace-orphan-directory";
     config.ensure_store().unwrap();
