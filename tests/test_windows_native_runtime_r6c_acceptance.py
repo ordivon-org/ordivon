@@ -87,21 +87,24 @@ def test_r6c_authority_profile_runs_real_limited_and_elevated_windows_jobs():
     text = SCRIPT.read_text(encoding="utf-8")
     assert "'AuthorityProfile'" in text
     assert "Invoke-AuthorityProfile" in text
-    assert "[string]$RuntimeRoot" in text
-    assert "ordivon-windows-job-launcher.exe" in text
+    assert "WindowsPowerShell" in text
+    assert "whoami.exe" in text
     assert "windowsAuthority = $Authority" in text
-    assert "'--describe-runtime-context'" in text
-    assert "'limited'" in text
-    assert "'elevated'" in text
-    assert "tokenIsElevated -ne $false" in text
-    assert "tokenIntegrityLevelRid -gt 8192" in text
-    assert "tokenIsElevated -ne $true" in text
-    assert "tokenIntegrityLevelRid -lt 12288" in text
+    assert "administratorsEnabled = $admin" in text
+    assert "tokenIntegrityLevelRid = $rid" in text
+    assert "limited authority target unexpectedly has Administrators enabled" in text
+    assert "limited authority target exceeds Medium integrity" in text
+    assert "elevated authority target does not have Administrators enabled" in text
+    assert "elevated authority target is below High integrity" in text
     assert "sameDedicatedUserSid" in text
+    assert "'--describe-runtime-context'" not in text[text.index("function Invoke-AuthorityProfile"):text.index("function Invoke-ActiveJobRecovery")]
 
 
-def test_r6c_authority_profile_requires_runtime_to_advertise_both_authorities():
+def test_r6c_authority_profile_requires_runtime_to_advertise_both_authorities_first():
     text = SCRIPT.read_text(encoding="utf-8")
-    assert "$authorities = @($windowsNative.windowsAuthorities)" in text
-    assert "@('limited', 'elevated')" in text
-    assert "does not advertise required authority" in text
+    fn = text[text.index("function Invoke-AuthorityProfile"):text.index("function Invoke-ActiveJobRecovery")]
+    assert "$authorities = @($windowsNative.windowsAuthorities)" in fn
+    assert "@('limited', 'elevated')" in fn
+    assert "does not advertise required authority" in fn
+    assert fn.index("does not advertise required authority") < fn.index("Ensure-TestRepository")
+    assert "executionProvider = $windowsNative.executionProvider" in fn
