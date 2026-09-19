@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 repo="$(cd "$(dirname "$0")/.." && pwd)"
-"$repo/scripts/check-capital-authority" --mode non-live >/dev/null
+"$repo/scripts/check-execution-policy" --mode non-live >/dev/null
 "$repo/scripts/check-nautilus-candidate" >/dev/null
 candidate=/root/external/nautilus-trader/2.0.0rc4/.venv/bin/python
 out="$repo/.artifacts/crypto-shadow-mechanics-r1"

@@ -6,7 +6,7 @@ from market_capital.portfolio_risk import (
     analyze_dependence,
     build_exposure_ledger,
     build_factor_observatory,
-    build_portfolio_risk_observatory,
+    build_portfolio_risk_report,
     completed_log_returns,
     evaluate_risk_budget,
 )
@@ -39,7 +39,6 @@ class PortfolioRiskTests(unittest.TestCase):
         factors = {x["factor"]: x["signedExposureUsd"] for x in ledger["factorExposure"]}
         self.assertEqual(factors["tech"], "125.000000")
         self.assertEqual(factors["semiconductor"], "120.000000")
-        self.assertFalse(ledger["privateRealityPersisted"])
 
     def test_completed_log_returns_rejects_unsorted_prices(self):
         with self.assertRaises(PortfolioRiskError):
@@ -69,13 +68,9 @@ class PortfolioRiskTests(unittest.TestCase):
             medium_window=60,
             rolling_window=20,
         )
-        self.assertEqual(out["standing"], "UNCLASSIFIED_NO_STABILITY_POLICY")
         self.assertIn("ROLLING_BETA_SIGN_CHANGE", out["structuralWarnings"])
-        self.assertIsNone(out["stabilityPolicy"])
-        self.assertFalse(out["minimumVarianceBetaIsRecommendation"])
-        self.assertFalse(out["tradeRecommendationProduced"])
 
-    def test_dependence_classification_requires_explicit_stability_policy(self):
+    def test_dependence_output_has_no_unvalidated_local_classifier(self):
         base = {i: 0.01 * math.sin(i / 4) for i in range(1, 90)}
         proxy = {i: 0.008 * math.sin(i / 4 + 0.02) for i in range(1, 90)}
         out = analyze_dependence(
@@ -83,15 +78,10 @@ class PortfolioRiskTests(unittest.TestCase):
             base_returns=base,
             proxy_instrument_id="B",
             proxy_returns=proxy,
-            stability_policy={
-                "highPositiveCorrelationFloor": "0.7",
-                "lowAbsoluteCorrelationCeiling": "0.3",
-                "maxShortMediumCorrelationGap": "0.25",
-                "maxRollingBetaRangeToMedianAbs": "1.0",
-            },
         )
-        self.assertIsNotNone(out["stabilityPolicy"])
-        self.assertNotEqual(out["standing"], "UNCLASSIFIED_NO_STABILITY_POLICY")
+        self.assertEqual(out["componentId"], "portfolio-dependence-analysis")
+        self.assertNotIn("standing", out)
+        self.assertNotIn("stabilityPolicy", out)
 
     def test_factor_observatory_allows_multiple_proxies_per_factor_but_rejects_duplicate_pair(self):
         base = {i: 0.001 * math.sin(i / 5) for i in range(1, 70)}
@@ -127,7 +117,6 @@ class PortfolioRiskTests(unittest.TestCase):
         )
         out = evaluate_risk_budget(exposure_ledger=ledger, budget={"maxGrossToEquity": "2"})
         self.assertEqual(out["standing"], "INCOMPLETE")
-        self.assertFalse(out["riskToleranceInferred"])
 
     def test_risk_budget_reports_named_breaches_without_recommending_trade(self):
         ledger = build_exposure_ledger(
@@ -155,17 +144,16 @@ class PortfolioRiskTests(unittest.TestCase):
                 "MAX_EQUITY_LOSS_AT_NAMED_SHOCK",
             },
         )
-        self.assertFalse(out["tradeRecommendationProduced"])
 
-    def test_observatory_does_not_become_allocator(self):
+    def test_risk_report_composes_without_allocation_fields(self):
         ledger = build_exposure_ledger(
             equity_usd="100",
             available_equity_usd="100",
             positions=[],
         )
-        out = build_portfolio_risk_observatory(exposure_ledger=ledger)
-        self.assertFalse(out["allocationProduced"])
-        self.assertFalse(out["hedgeSizeRecommended"])
+        out = build_portfolio_risk_report(exposure_ledger=ledger)
+        self.assertEqual(out["kind"], "ordivon.market-capital.portfolio-risk-report")
+        self.assertNotIn("allocationProduced", out)
         self.assertEqual(out["nodes"]["riskLimitEvaluation"]["standing"], "INCOMPLETE")
 
 

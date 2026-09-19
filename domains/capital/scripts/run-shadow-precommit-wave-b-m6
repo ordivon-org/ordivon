@@ -8,7 +8,7 @@ mkdir -p "$repo/.artifacts/wave-b-m3"
 "$repo/scripts/fetch-nasdaq-wave-b-m3" > "$repo/.artifacts/wave-b-m3/fetch-manifest-output.json"
 DOTNET_CLI_TELEMETRY_OPTOUT=1 dotnet build "$repo/wave_b/algorithm/MarketCapitalValidationAlgorithm.csproj" -c Release --nologo -p:LeanReleaseRoot="$lean/Launcher/bin/Release"
 rm -rf "$out" && mkdir -p "$out"
-"$repo/scripts/check-capital-authority" --mode non-live --output "$out/authority.json" >/dev/null
+"$repo/scripts/check-execution-policy" --mode non-live --output "$out/authority.json" >/dev/null
 read_cfg(){ python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))[sys.argv[2]])' "$repo/config/shadow_precommit.json" "$1"; }
 export MARKET_CAPITAL_TARGET_PORTFOLIO="$repo/wave_b/fixtures/wave_a_target_portfolio.json"
 export MARKET_CAPITAL_EXECUTION_CASH_BUFFER_WEIGHT="$(read_cfg executionCashBufferWeight)"

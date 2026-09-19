@@ -28,10 +28,12 @@ class WaveBContractTests(unittest.TestCase):
         self.assertLess(doc["executionCashBufferWeight"], 1)
         self.assertFalse(doc["externalFinancialWritesAllowed"])
 
-    def test_m3_market_data_admission_is_non_causal_and_non_live(self):
-        doc = json.loads((ROOT / "config/market_data_admission.json").read_text())
+    def test_m3_historical_validation_data_is_scoped_and_non_live(self):
+        doc = json.loads((ROOT / "config/historical_validation_data.json").read_text())
         self.assertEqual(doc["provider"], "Nasdaq")
-        self.assertEqual(doc["causalStanding"], "NON_CAUSAL_EXECUTION_VALIDATION_ONLY")
+        self.assertEqual(doc["validationPurpose"], "EXECUTION_MECHANICS_AND_DATA_PLUMBING")
+        self.assertFalse(doc["strategyPerformanceInferenceAllowed"])
+        self.assertEqual(doc["riskDataReference"], "BCBS239_PROPORTIONAL_REFERENCE")
         self.assertEqual(doc["symbols"], ["AAPL", "MSFT", "NVDA"])
         self.assertFalse(doc["externalFinancialWritesAllowed"])
 
@@ -45,12 +47,12 @@ class WaveBContractTests(unittest.TestCase):
         self.assertFalse(doc["brokerCredentialsAllowed"])
         self.assertFalse(doc["externalFinancialWritesAllowed"])
 
-    def test_m5_causal_shadow_gate_is_fail_closed_and_non_live(self):
-        doc = json.loads((ROOT / "config/causal_shadow.json").read_text())
-        self.assertEqual(doc["dailyBarCausalityRule"], "session_date_strictly_after_decision_date_in_session_timezone")
-        self.assertEqual(doc["commonCutRule"], "all_required_series_must_contain_the_same_post_decision_session_date")
-        self.assertTrue(doc["fix44Required"])
-        self.assertTrue(doc["executionFeasibilityRequired"])
+    def test_m5_prospective_validation_is_fail_closed_and_non_live(self):
+        doc = json.loads((ROOT / "config/prospective_validation.json").read_text())
+        self.assertEqual(doc["postDecisionRule"], "session_date_strictly_after_decision_date_in_session_timezone")
+        self.assertEqual(doc["alignedSessionRule"], "all_required_series_must_contain_the_same_post_decision_session_date")
+        self.assertNotIn("fix44Required", doc)
+        self.assertNotIn("executionFeasibilityRequired", doc)
         self.assertFalse(doc["brokerCredentialsAllowed"])
         self.assertFalse(doc["externalFinancialWritesAllowed"])
 

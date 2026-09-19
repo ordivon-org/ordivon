@@ -52,7 +52,7 @@ def main() -> int:
     steps.append(run_step("R4_CAPABILITY_CENSUS", [str(ROOT / "scripts/check-capabilities")]))
     steps.append(run_step("PRIVATE_REALITY_PREFLIGHT", [str(ROOT / "scripts/check-private-reality-readonly-preflight")]))
     steps.append(run_step("PRIVATE_REALITY_BINDINGS", [str(ROOT / "scripts/check-private-reality-credential-bindings")]))
-    steps.append(run_step("EFFECT_BOUNDARY", [str(ROOT / "scripts/check-capital-authority")]))
+    steps.append(run_step("EFFECT_BOUNDARY", [str(ROOT / "scripts/check-execution-policy")]))
 
     write_admission = load_json("contracts/external-financial-write-admission-v1.json")
     private_policy = load_json("config/private_reality_policy.json")

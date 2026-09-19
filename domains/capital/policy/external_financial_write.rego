@@ -1,10 +1,20 @@
-package market_capital.external_write
+package market_capital.execution
 
-default allow := false
+default allow_non_live := false
+default allow_external_write := false
 
-allow if {
-    input.state == "ADMITTED"
-    input.externalFinancialWriteAllowed == true
-    input.providerWriteCapabilityBound == true
-    input.effectVerifier == "IMPLEMENTED_BOUND_CURRENT"
+allow_non_live if {
+    input.currentLane == "NON_LIVE"
+    input.writePolicy.state == "NOT_ADMITTED"
+    input.writePolicy.externalFinancialWriteAllowed == false
+    input.writePolicy.providerWriteCapabilityBound == false
+    input.writePolicy.effectVerifier != "IMPLEMENTED_BOUND_CURRENT"
+}
+
+allow_external_write if {
+    input.currentLane == "EXTERNAL_WRITE"
+    input.writePolicy.state == "ADMITTED"
+    input.writePolicy.externalFinancialWriteAllowed == true
+    input.writePolicy.providerWriteCapabilityBound == true
+    input.writePolicy.effectVerifier == "IMPLEMENTED_BOUND_CURRENT"
 }

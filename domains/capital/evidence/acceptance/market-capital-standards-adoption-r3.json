@@ -1,0 +1,41 @@
+{
+  "baselineHead": "ec6699ea875b9872c8a3840e8ece3cfa44d1cbaf",
+  "componentInventory": {
+    "activeModelCount": 1,
+    "componentCount": 12,
+    "nonModelComponentCount": 10,
+    "retiredModelCount": 1,
+    "validationRequiredModelCount": 1
+  },
+  "date": "2026-09-19",
+  "externalFinancialWriteAttempted": false,
+  "kind": "ordivon.acceptance-evidence",
+  "regulatoryComplianceClaimed": false,
+  "replacements": [
+    "duplicate Python execution policy -> OPA PDP + Python PEP",
+    "runtime external-boundary contract dependency -> documentary-only responsibility map",
+    "per-artifact governance narration -> centralized SR 26-2 component inventory",
+    "custom dependence stability classifier -> raw SciPy/NumPy diagnostics",
+    "custom microstructure persistence classifier -> raw descriptive statistics",
+    "sameCutScope -> explicit BCBS-239-style risk-data quality dimensions",
+    "causal_shadow -> prospective holdout validation",
+    "market_data_admission causal standing -> scoped historical validation purpose"
+  ],
+  "retainedWithReason": [
+    "TigerBeetle pending/post/void mechanics and deterministic identity binding",
+    "venue/FIX reconciliation mapping",
+    "explicit risk-limit controls"
+  ],
+  "schemaVersion": 1,
+  "scope": "implementation verification; not a regulatory-compliance claim",
+  "subject": "market-capital-standards-adoption-r3",
+  "verification": {
+    "activeSourceRetiredOntologyScan": "PASS_ZERO_MATCHES",
+    "canonicalSuite": "166 passed",
+    "componentInventory": "PASS: 12 total, 1 active model, 1 validation-required model, 10 non-model, 1 retired model",
+    "executionPolicy": "PASS: OPA allowNonLive=true, allowExternalWrite=false",
+    "focusedTests": "52 passed",
+    "frozenHistoricalEvidenceModified": false,
+    "gitDiffCheck": "PASS"
+  }
+}

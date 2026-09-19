@@ -1,7 +1,7 @@
 # Market Capital Standards Adoption R1
 
 Date: 2026-09-19
-Status: ACTIVE ARCHITECTURE BASELINE
+Status: SUPERSEDED BY STANDARDS_ADOPTION_R3
 
 ## Objective
 

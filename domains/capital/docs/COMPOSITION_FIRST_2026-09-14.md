@@ -44,8 +44,7 @@ Market Capital may retain only the semantics that external components cannot est
 
 - decision evidence/currentness binding;
 - decision → standard execution-intent mapping;
-- proof identity/currentness across component boundaries;
-- Reservation != Grant;
+- provider and artifact identity binding across component boundaries;
 - fail-closed reconciliation mapping from authoritative venue state to TigerBeetle pending-transfer resolution;
 - OPA external-write policy inputs, capability attenuation, revocation, and reconciliation boundaries;
 - reconciliation result over authoritative venue reality.

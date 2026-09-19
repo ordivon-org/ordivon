@@ -3,7 +3,7 @@ set -euo pipefail
 repo="$(cd "$(dirname "$0")/.." && pwd)"
 out="$repo/.artifacts/crypto-stream-resilience-r3"
 rm -rf "$out"; mkdir -p "$out"
-"$repo/scripts/check-capital-authority" --mode non-live >/dev/null
+"$repo/scripts/check-execution-policy" --mode non-live >/dev/null
 "$repo/scripts/check-crypto-execution-lane" >/dev/null
 "$repo/scripts/check-crypto-data-adapter-policy" >/dev/null
 "$repo/scripts/check-clock-quality-gate" >/dev/null

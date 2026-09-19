@@ -42,3 +42,39 @@ def test_active_source_and_current_docs_do_not_depend_on_lego_or_lens_router():
             text = file.read_text()
             for token in forbidden:
                 assert token not in text, f"{token!r} remains active in {file}"
+
+
+def test_active_analytical_component_ids_are_registered():
+    inventory = _inventory()
+    registered = {row["id"] for row in inventory["components"]}
+    source_paths = [
+        ROOT / "src/market_capital/market_sensors.py",
+        ROOT / "src/market_capital/portfolio_risk.py",
+        ROOT / "src/market_capital/portfolio_counterfactuals.py",
+        ROOT / "src/market_capital/prospective_validation.py",
+        ROOT / "src/market_capital/crypto_public_shadow.py",
+    ]
+    import re
+    declared = set()
+    for path in source_paths:
+        declared.update(re.findall(r'"componentId":\s*"([^"]+)"', path.read_text()))
+    assert declared
+    assert declared <= registered
+
+
+def test_retired_custom_ontology_does_not_reenter_active_source():
+    forbidden = (
+        "truthRole",
+        "causalStanding",
+        "causalEvidenceAvailable",
+        "sameCutScope",
+        "regime-shift",
+        "Lens Router",
+        "Portfolio Risk LEGO",
+        "EffectAuthority",
+        "ExternalFinancialWriteAdmission",
+    )
+    for path in (ROOT / "src/market_capital").glob("*.py"):
+        text = path.read_text()
+        for token in forbidden:
+            assert token not in text, f"retired token {token!r} re-entered {path}"

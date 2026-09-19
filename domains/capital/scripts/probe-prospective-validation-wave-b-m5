@@ -10,10 +10,10 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from market_capital.causal_shadow import evaluate_causal_shadow, decision_session_date
+from market_capital.prospective_validation import evaluate_prospective_validation, decision_session_date
 
 repo = Path(__file__).resolve().parents[1]
-cfg = json.loads((repo / "config/causal_shadow.json").read_text())
+cfg = json.loads((repo / "config/prospective_validation.json").read_text())
 target = repo / "wave_b/fixtures/wave_a_target_portfolio.json"
 actual_target_digest = hashlib.sha256(target.read_bytes()).hexdigest()
 expected_target_digest = cfg["decisionArtifact"]["targetPortfolioSha256"]
@@ -34,7 +34,7 @@ headers = {"User-Agent": ua, "Accept": "application/json, text/plain, */*", "Acc
 
 series_dates: dict[str, set[date]] = {}
 series_evidence = []
-# Query from the decision session date. The causal evaluator independently rejects same-day bars.
+# Query from the decision session date. Prospective validation independently rejects same-day bars.
 from_date = boundary_date.isoformat()
 to_date = current_session_date.isoformat()
 for item in cfg["requiredSeries"]:
@@ -75,22 +75,20 @@ for item in cfg["requiredSeries"]:
         "sessionDates": [d.isoformat() for d in sorted(dates)],
     })
 
-result = evaluate_causal_shadow(
+result = evaluate_prospective_validation(
     decision_boundary=decision,
     session_timezone=cfg["sessionTimezone"],
     series_dates=series_dates,
 )
 result.update({
     "schemaVersion": 1,
-    "kind": "ordivon.market-capital.causal-shadow-status",
+    "kind": "ordivon.market-capital.prospective-validation-status",
     "observedAt": now.isoformat(),
     "decisionBoundaryUtc": decision.isoformat(),
     "decisionSessionDate": boundary_date.isoformat(),
     "currentSessionDate": current_session_date.isoformat(),
     "provider": cfg["provider"],
     "targetPortfolioSha256": actual_target_digest,
-    "fix44Required": bool(cfg["fix44Required"]),
-    "executionFeasibilityRequired": bool(cfg["executionFeasibilityRequired"]),
     "brokerCredentialsUsed": False,
     "externalFinancialWritesAttempted": False,
     "series": series_evidence,

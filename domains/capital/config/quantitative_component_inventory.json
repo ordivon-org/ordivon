@@ -26,7 +26,9 @@
       ],
       "validation": {
         "standing": "VALIDATION_REQUIRED",
-        "evidenceRefs": ["evidence/acceptance/portfolio-risk-observatory-p1-p4-r1.json"]
+        "evidenceRefs": [
+          "evidence/acceptance/portfolio-risk-observatory-p1-p4-r1.json"
+        ]
       },
       "monitoring": {
         "standing": "REQUIRED",
@@ -51,31 +53,29 @@
     {
       "id": "repeated-microstructure-summary",
       "implementation": "src/market_capital/market_sensors.py::repeated_microstructure",
-      "classification": "ANALYTICAL_HEURISTIC",
-      "sr26ModelStanding": "CLASSIFICATION_REVIEW",
-      "status": "RESEARCH_ONLY",
-      "purpose": "Summarize repeated book and trade-flow observations without producing a price forecast.",
-      "materiality": "LOW",
-      "assumptions": [
-        "Repeated snapshots provide a more informative descriptive window than a single snapshot."
-      ],
+      "classification": "NON_MODEL_CALCULATION",
+      "sr26ModelStanding": "NON_MODEL",
+      "status": "ACTIVE",
+      "purpose": "Calculate descriptive book-imbalance, trade-flow-share, and spread statistics over repeated observations without classifying direction.",
+      "materiality": "NOT_APPLICABLE",
+      "assumptions": [],
       "limitations": [
-        "Persistence thresholds are policy choices rather than universal market constants.",
         "REST trade windows may overlap and are not independent samples.",
-        "Observed flow persistence does not imply future price direction."
+        "Descriptive flow statistics do not imply future price direction."
       ],
       "validation": {
-        "standing": "DEVELOPMENT_TESTED",
-        "evidenceRefs": ["evidence/acceptance/market-sensors-sndk-canary-r1.json"]
-      },
-      "monitoring": {
-        "standing": "REQUIRED",
-        "requirements": [
-          "Monitor source-time overlap and trade-window duplication.",
-          "Do not promote the heuristic to predictive use without separate validation."
+        "standing": "NOT_APPLICABLE",
+        "evidenceRefs": [
+          "evidence/acceptance/market-sensors-sndk-canary-r1.json"
         ]
       },
-      "permittedUses": ["Descriptive market monitoring."],
+      "monitoring": {
+        "standing": "NOT_APPLICABLE",
+        "requirements": []
+      },
+      "permittedUses": [
+        "Descriptive market monitoring."
+      ],
       "prohibitedUses": [
         "Directional signal generation.",
         "Trade recommendation.",
@@ -96,10 +96,17 @@
       ],
       "validation": {
         "standing": "NOT_APPLICABLE",
-        "evidenceRefs": ["evidence/acceptance/market-sensors-sndk-canary-r1.json"]
+        "evidenceRefs": [
+          "evidence/acceptance/market-sensors-sndk-canary-r1.json"
+        ]
       },
-      "monitoring": {"standing": "NOT_APPLICABLE", "requirements": []},
-      "permittedUses": ["Derived observation."],
+      "monitoring": {
+        "standing": "NOT_APPLICABLE",
+        "requirements": []
+      },
+      "permittedUses": [
+        "Derived observation."
+      ],
       "prohibitedUses": [
         "Standalone crowding conclusion.",
         "Trade recommendation."
@@ -120,11 +127,52 @@
       ],
       "validation": {
         "standing": "NOT_APPLICABLE",
-        "evidenceRefs": ["evidence/acceptance/portfolio-risk-observatory-p1-p4-r1.json"]
+        "evidenceRefs": [
+          "evidence/acceptance/portfolio-risk-observatory-p1-p4-r1.json"
+        ]
       },
-      "monitoring": {"standing": "NOT_APPLICABLE", "requirements": []},
-      "permittedUses": ["Exposure monitoring.", "Risk-limit input."],
-      "prohibitedUses": ["Allocation recommendation."]
+      "monitoring": {
+        "standing": "NOT_APPLICABLE",
+        "requirements": []
+      },
+      "permittedUses": [
+        "Exposure monitoring.",
+        "Risk-limit input."
+      ],
+      "prohibitedUses": [
+        "Allocation recommendation."
+      ]
+    },
+    {
+      "id": "factor-proxy-aggregation",
+      "implementation": "src/market_capital/portfolio_risk.py::build_factor_observatory",
+      "classification": "ADAPTER",
+      "sr26ModelStanding": "NON_MODEL",
+      "status": "ACTIVE",
+      "purpose": "Group explicit proxy instruments by named research factor and attach registered historical dependence-model outputs.",
+      "materiality": "NOT_APPLICABLE",
+      "assumptions": [],
+      "limitations": [
+        "A proxy label does not establish a causal factor model.",
+        "The aggregation inherits limitations and validation standing from the registered dependence model."
+      ],
+      "validation": {
+        "standing": "NOT_APPLICABLE",
+        "evidenceRefs": [
+          "evidence/acceptance/portfolio-risk-observatory-p1-p4-r1.json"
+        ]
+      },
+      "monitoring": {
+        "standing": "NOT_APPLICABLE",
+        "requirements": []
+      },
+      "permittedUses": [
+        "Organize explicit research proxies and registered dependence-model outputs."
+      ],
+      "prohibitedUses": [
+        "Causal factor attribution.",
+        "Automatic hedge selection."
+      ]
     },
     {
       "id": "risk-limit-evaluator",
@@ -141,10 +189,17 @@
       ],
       "validation": {
         "standing": "NOT_APPLICABLE",
-        "evidenceRefs": ["evidence/acceptance/portfolio-risk-observatory-p1-p4-r1.json"]
+        "evidenceRefs": [
+          "evidence/acceptance/portfolio-risk-observatory-p1-p4-r1.json"
+        ]
       },
-      "monitoring": {"standing": "NOT_APPLICABLE", "requirements": []},
-      "permittedUses": ["Risk-limit compliance check."],
+      "monitoring": {
+        "standing": "NOT_APPLICABLE",
+        "requirements": []
+      },
+      "permittedUses": [
+        "Risk-limit compliance check."
+      ],
       "prohibitedUses": [
         "Inferring investor risk appetite.",
         "Trade sizing."
@@ -165,11 +220,22 @@
       ],
       "validation": {
         "standing": "NOT_APPLICABLE",
-        "evidenceRefs": ["evidence/acceptance/portfolio-counterfactuals-p5-p6-r1.json"]
+        "evidenceRefs": [
+          "evidence/acceptance/portfolio-counterfactuals-p5-p6-r1.json"
+        ]
       },
-      "monitoring": {"standing": "NOT_APPLICABLE", "requirements": []},
-      "permittedUses": ["What-if analysis.", "Pre-trade research."],
-      "prohibitedUses": ["Order generation.", "Automatic scenario ranking."]
+      "monitoring": {
+        "standing": "NOT_APPLICABLE",
+        "requirements": []
+      },
+      "permittedUses": [
+        "What-if analysis.",
+        "Pre-trade research."
+      ],
+      "prohibitedUses": [
+        "Order generation.",
+        "Automatic scenario ranking."
+      ]
     },
     {
       "id": "pre-trade-evidence-control",
@@ -185,11 +251,21 @@
       ],
       "validation": {
         "standing": "NOT_APPLICABLE",
-        "evidenceRefs": ["evidence/acceptance/portfolio-counterfactuals-p5-p6-r1.json"]
+        "evidenceRefs": [
+          "evidence/acceptance/portfolio-counterfactuals-p5-p6-r1.json"
+        ]
       },
-      "monitoring": {"standing": "NOT_APPLICABLE", "requirements": []},
-      "permittedUses": ["Pre-trade evidence completeness control."],
-      "prohibitedUses": ["Trade approval.", "External financial write admission."]
+      "monitoring": {
+        "standing": "NOT_APPLICABLE",
+        "requirements": []
+      },
+      "permittedUses": [
+        "Pre-trade evidence completeness control."
+      ],
+      "prohibitedUses": [
+        "Trade approval.",
+        "External financial write admission."
+      ]
     },
     {
       "id": "underlying-reopen-reconciliation",
@@ -206,11 +282,83 @@
       ],
       "validation": {
         "standing": "NOT_APPLICABLE",
-        "evidenceRefs": ["evidence/acceptance/market-sensors-sndk-canary-r1.json"]
+        "evidenceRefs": [
+          "evidence/acceptance/market-sensors-sndk-canary-r1.json"
+        ]
       },
-      "monitoring": {"standing": "NOT_APPLICABLE", "requirements": []},
-      "permittedUses": ["Session-boundary reconciliation."],
-      "prohibitedUses": ["Causal attribution.", "Trade recommendation."]
+      "monitoring": {
+        "standing": "NOT_APPLICABLE",
+        "requirements": []
+      },
+      "permittedUses": [
+        "Session-boundary reconciliation."
+      ],
+      "prohibitedUses": [
+        "Causal attribution.",
+        "Trade recommendation."
+      ]
+    },
+    {
+      "id": "prospective-validation",
+      "implementation": "src/market_capital/prospective_validation.py::evaluate_prospective_validation",
+      "classification": "CONTROL",
+      "sr26ModelStanding": "NON_MODEL",
+      "status": "ACTIVE",
+      "purpose": "Enforce temporal separation between a frozen decision and aligned post-decision holdout observations without claiming causal identification.",
+      "materiality": "NOT_APPLICABLE",
+      "assumptions": [],
+      "limitations": [
+        "Post-decision timing prevents look-ahead leakage but does not establish causality.",
+        "All required series must share an eligible session date before the holdout is considered available."
+      ],
+      "validation": {
+        "standing": "NOT_APPLICABLE",
+        "evidenceRefs": [
+          "evidence/wave-b-m5-status-20260913.json"
+        ]
+      },
+      "monitoring": {
+        "standing": "NOT_APPLICABLE",
+        "requirements": []
+      },
+      "permittedUses": [
+        "Prospective holdout eligibility control."
+      ],
+      "prohibitedUses": [
+        "Causal-effect inference.",
+        "Automatic strategy-performance conclusion."
+      ]
+    },
+    {
+      "id": "public-market-risk-data-quality",
+      "implementation": "src/market_capital/crypto_public_shadow.py::analyze",
+      "classification": "CONTROL",
+      "sr26ModelStanding": "NON_MODEL",
+      "status": "ACTIVE",
+      "purpose": "Check source authority, required-input completeness, bounded timeliness, clock agreement, and lineage for cross-venue public market observations.",
+      "materiality": "NOT_APPLICABLE",
+      "assumptions": [],
+      "limitations": [
+        "BCBS 239 is used proportionately as a risk-data engineering reference, not as a regulatory-compliance claim.",
+        "Bounded contemporaneous quote comparison does not establish executable arbitrage."
+      ],
+      "validation": {
+        "standing": "NOT_APPLICABLE",
+        "evidenceRefs": [
+          "evidence/crypto-public-shadow-r1-20260913.json"
+        ]
+      },
+      "monitoring": {
+        "standing": "NOT_APPLICABLE",
+        "requirements": []
+      },
+      "permittedUses": [
+        "Risk-data quality and lineage control for public market observations."
+      ],
+      "prohibitedUses": [
+        "Execution-price guarantee.",
+        "Causal market inference."
+      ]
     },
     {
       "id": "regime-card-r1",
@@ -228,9 +376,17 @@
         "Its regime taxonomy was locally invented rather than owned by a mature financial risk methodology.",
         "Its lens routing duplicated model-governance and scenario-analysis concepts available in mature practice."
       ],
-      "validation": {"standing": "RETIRED_UNVALIDATED", "evidenceRefs": []},
-      "monitoring": {"standing": "RETIRED", "requirements": []},
-      "permittedUses": ["Historical repository archaeology only."],
+      "validation": {
+        "standing": "RETIRED_UNVALIDATED",
+        "evidenceRefs": []
+      },
+      "monitoring": {
+        "standing": "RETIRED",
+        "requirements": []
+      },
+      "permittedUses": [
+        "Historical repository archaeology only."
+      ],
       "prohibitedUses": [
         "Current market analysis.",
         "Risk decision support.",

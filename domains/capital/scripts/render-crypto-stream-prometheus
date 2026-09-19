@@ -5,7 +5,7 @@ from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'src'))
-from market_capital.authority import verify_internal_authority
+from market_capital.execution_policy import evaluate_execution_policy
 
 def load(path: Path): return json.loads(path.read_text())
 
@@ -17,16 +17,9 @@ def main():
     r3=load(ROOT/'evidence/crypto-stream-resilience-r3-20260914.json')
     clock_cfg=load(ROOT/'config/clock_quality_gate.json')
     clock=load(ROOT/clock_cfg['latestEvidence'])
-    authority=verify_internal_authority(ROOT, ROOT/'config/execution_authority.json')
-    authority_cfg=authority['config']
+    authority=evaluate_execution_policy(ROOT, ROOT/'config/execution_policy.json')
     r2_ok=r2['standing']=='PASS_STREAMING_REPEATED_PUBLIC_SHADOW_WITH_NETWORK_V2_FAILOVER'
-    authority_write_admitted=(
-        authority_cfg.get('currentLane') != 'NON_LIVE'
-        and authority['externalWriteAdmitted']
-        and authority['externalWriteVerifier'] == 'IMPLEMENTED_BOUND_CURRENT'
-        and authority['providerWriteCapabilityBound']
-        and authority['externalFinancialWriteAllowedByContract']
-    )
+    authority_write_admitted=bool(authority['allowExternalWrite'])
     clock_private_admitted=bool(
         clock['consequence']['demoExecutionAdmission']
         and clock['consequence']['liveExecutionAdmission']

@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 repo = Path(__file__).resolve().parents[1]
-cfg = json.loads((repo / "config/market_data_admission.json").read_text())
+cfg = json.loads((repo / "config/historical_validation_data.json").read_text())
 root = repo / ".artifacts/wave-b-m3"
 raw = root / "raw"
 data = root / "data"
@@ -24,7 +24,8 @@ manifest = {
     "retrievedAt": datetime.now(timezone.utc).isoformat(),
     "startDate": cfg["startDate"],
     "endDate": cfg["endDate"],
-    "causalStanding": cfg["causalStanding"],
+    "validationPurpose": cfg["validationPurpose"],
+    "strategyPerformanceInferenceAllowed": cfg["strategyPerformanceInferenceAllowed"],
     "series": []
 }
 

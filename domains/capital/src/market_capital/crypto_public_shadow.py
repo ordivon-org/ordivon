@@ -121,7 +121,6 @@ def analyze(capture_path: Path, transport_binding_path: Path) -> dict[str, Any]:
                 "midDifferenceBpsOkxMinusBinance": _bps(omid - bmid, bmid),
                 "crossBuyBinanceSellOkxGrossBps": _bps(oq["bid"] - bq["ask"], bq["ask"]),
                 "crossBuyOkxSellBinanceGrossBps": _bps(bq["bid"] - oq["ask"], oq["ask"]),
-                "claimBoundary": "observation only; not an arbitrage, fill, fee, latency, transfer, or execution claim",
             }
 
     if binding.get("kind") != "ordivon.market-capital.network-v2-public-data-binding":
@@ -146,6 +145,7 @@ def analyze(capture_path: Path, transport_binding_path: Path) -> dict[str, Any]:
     return {
         "schemaVersion": 1,
         "kind": "ordivon.market-capital.crypto-public-shadow-observation",
+        "componentId": "public-market-risk-data-quality",
         "standing": standing,
         "transport": {
             "kind": "network-v2-exact-authority-set",
@@ -181,7 +181,24 @@ def analyze(capture_path: Path, transport_binding_path: Path) -> dict[str, Any]:
             },
         },
         "comparisons": comparisons,
-        "sameCutScope": "claim-scoped: only bounded contemporaneous best-bid/ask observation; not universal same-cut",
+        "riskDataQuality": {
+            "frameworkReference": "BCBS239_PROPORTIONAL_REFERENCE",
+            "sourceAuthorityBound": True,
+            "requiredInputsComplete": True,
+            "comparisonScope": "BOUNDED_CONTEMPORANEOUS_BBO",
+            "timeliness": {
+                "priceRequestIntersectionMs": float(Decimal(intersection_ns) / Decimal(1_000_000)),
+                "priceRequestUnionMs": float(Decimal(union_ns) / Decimal(1_000_000)),
+                "maxPriceRequestRttMs": float(max_rtt_ms),
+                "venueClockAgreementMs": float(venue_clock_agreement_ms),
+                "boundedComparisonAllowed": bounded_comparison,
+            },
+            "lineage": {
+                "captureSha256": hashlib.sha256(capture_path.read_bytes()).hexdigest(),
+                "transportBindingDigest": binding.get("bindingDigest"),
+                "authorityDigests": {k:v.get("authorityDigest") for k,v in sorted(binding["authorities"].items())},
+            },
+        },
         "brokerCredentialsUsed": False,
         "privateAccountDataUsed": False,
         "externalFinancialWritesAttempted": False,

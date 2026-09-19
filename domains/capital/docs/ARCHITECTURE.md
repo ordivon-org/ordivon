@@ -6,9 +6,9 @@ Market Capital is one canonical composition, not a federation of Ordivon finance
 
 Canonical flow:
 
-`Evidence -> Decision -> ExecutionIntent -> Authority -> External Effect -> Reality -> Reconciliation -> Evidence`
+`Provider/Data Evidence -> Frozen Decision -> Standard Execution Intent -> OPA Policy Decision -> Provider Effect -> Authoritative Venue Reality -> Reconciliation -> Accounting`
 
-Engine-local fills, protocol acknowledgements, workflow success and passing tests never establish capital truth or production authority by themselves.
+Engine-local fills, protocol acknowledgements, workflow success and passing tests never replace authoritative venue/account/custody/settlement reality.
 
 ## 1. Evidence and research
 
@@ -29,7 +29,7 @@ Risk-data architecture uses BCBS 239 principles as the reference for source iden
 
 ## Composition-first rule
 
-Market Capital does not own mechanisms already provided by authoritative venues or mature components. Venue APIs own market/account/order reality; QuantConnect LEAN and NautilusTrader own admitted trading-engine mechanics; FIX Latest / FIX Orchestra is the order-semantic reference while QuickFIX/n and explicit legacy FIX profiles provide wire compatibility where required; TigerBeetle owns admitted double-entry accounting conservation and atomic transfer mechanics; PFMI and ISO 20022 remain post-trade reference semantics; Prometheus/Grafana own monitoring mechanics. Market Capital retains only thin decision/proof/authority/reconciliation seams. Custom mechanisms require a documented substitution failure. See `docs/COMPOSITION_FIRST_2026-09-14.md`.
+Market Capital does not own mechanisms already provided by authoritative venues or mature components. Venue APIs own market/account/order reality; QuantConnect LEAN and NautilusTrader own admitted trading-engine mechanics; FIX Latest / FIX Orchestra is the order-semantic reference while QuickFIX/n and explicit legacy FIX profiles provide wire compatibility where required; TigerBeetle owns admitted double-entry accounting conservation and atomic transfer mechanics; PFMI and ISO 20022 remain post-trade reference semantics; Prometheus/Grafana own monitoring mechanics. Market Capital retains only narrow mappings, policy enforcement, data-quality checks, and reconciliation seams. Custom mechanisms require a documented substitution failure. See `docs/COMPOSITION_FIRST_2026-09-14.md`.
 
 ### Capital accounting substrate
 
@@ -37,7 +37,7 @@ TigerBeetle owns accounting conservation, pending-transfer encumbrance, and POST
 
 ## 2. Decision
 
-Portfolio construction produces an immutable decision artifact with a causal decision boundary. Decision-time inputs and future execution-time observations are kept distinct. Future market data must not silently rewrite a frozen decision or precommit.
+Portfolio construction produces an immutable decision artifact with a frozen decision boundary. Prospective evaluation uses only strictly post-decision aligned holdout observations. Post-decision timing prevents leakage; it does not establish causality. Future market data must not silently rewrite a frozen decision or precommit.
 
 ## 3. Execution intent
 
@@ -49,17 +49,16 @@ The former custom semantic core is retired. Current boundaries are owned by prov
 
 Retained local seams are:
 
-- observation/same-cut;
-- proof binding/currentness;
-- registry/parcel/scarcity identity;
-- Reservation != Grant;
-- authoritative reconciliation to TigerBeetle reservation-resolution mapping;
-- revocation/recovery boundaries;
-- OPA-governed external-write policy over explicit provider/verifier inputs.
+- provider-native observation normalization and BCBS-239-style quality/lineage checks;
+- frozen-decision to standard execution-intent mapping;
+- OPA policy input construction and fail-closed policy enforcement;
+- venue-native order/fill state to FIX lifecycle normalization;
+- authoritative reconciliation to TigerBeetle pending-transfer resolution;
+- provider restart/recovery identity bindings required by the composition.
 
-The execution boundary is `src/market_capital/authority.py` plus `config/execution_authority.json` and the contracts under `contracts/`. It expresses whether a concrete provider/executor external-effect surface is implemented, bound and current; it is not a Human/product approval gate.
+The execution-policy enforcement point is `src/market_capital/execution_policy.py` plus `config/execution_policy.json`. OPA is the policy decision point; Python only supplies facts, requests decisions, and fails closed.
 
-All current runners must pass this in-repository effect boundary before LEAN starts. External financial write admission is `NOT_ADMITTED`; no provider write capability is bound and the external-write verifier is `NOT_IMPLEMENTED`.
+All current runners must pass the OPA-governed execution-policy enforcement point before LEAN starts. The current policy input yields `allowExternalWrite=false`; no live external-write execution path is implemented.
 
 ## 5. External financial infrastructure
 
@@ -88,7 +87,7 @@ Initial common universe: BTC/USDT and ETH/USDT. OKX Demo and Binance Demo/Testne
 
 - Wave A: investment/research loop closed.
 - Wave B M1-M4: LEAN mechanics, feasibility, provider-origin historical data and FIX semantics admitted in bounded non-live lanes.
-- Wave B M5: causal post-decision gate implemented.
+- Wave B M5: prospective post-decision holdout validation implemented; no causal inference is claimed.
 - Wave B M6: pre-decision shadow order precommit frozen.
 - Wave B M6.1: semantic/authority core migrated directly into the canonical repository; temporary cross-repo architecture removed.
 - Wave B M6.2: NautilusTrader `2.0.0rc4` admitted only as a non-live candidate; OMS/Risk controls passed, but simulated `AT_THE_OPEN` execution is blocked as unsupported.

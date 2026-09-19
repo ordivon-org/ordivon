@@ -4,7 +4,7 @@ Current contracts are selected only through current configuration and current co
 
 ## Current
 
-- `external-boundary-v1.json` — current component-responsibility boundary.
+- `external-boundary-v1.json` — historical/documentary component-responsibility map; it is not loaded by the active execution-policy path.
 - `external-write-policy-input-v1.json` — current external-effect admission contract. It records whether a concrete provider/executor financial-write capability is implemented, bound, current, and admitted; it is not a generic production approval or Human authorization bit.
 
 ## Frozen historical compatibility
