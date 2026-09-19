@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
 
+import rfc8785
+
 from .provider_adapters import (
     EffectLedgerEffect,
     EffectLedgerReader,
@@ -46,8 +48,10 @@ def _evidence_ref(
         if receipt_json is None
         else "sha256:" + hashlib.sha256(receipt_json.encode("utf-8")).hexdigest(),
     }
-    raw = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    return "browserless-turn-ledger://sha256:" + hashlib.sha256(raw).hexdigest()
+    return (
+        "browserless-turn-ledger://sha256:"
+        + hashlib.sha256(rfc8785.dumps(payload)).hexdigest()
+    )
 
 
 def _validate_coordinate(value: BrowserlessTurnEffectCoordinate) -> BrowserlessTurnEffectCoordinate:

@@ -6,6 +6,8 @@ import re
 import sqlite3
 import time
 import uuid
+
+import rfc8785
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
@@ -115,7 +117,7 @@ def _route_profiles_from_revision_spec(
         }
         profile = {
             "profileId": "iface_"
-            + hashlib.sha256(_canonical_json(material).encode("utf-8")).hexdigest(),
+            + hashlib.sha256(rfc8785.dumps(material)).hexdigest(),
             "transport": normalized_transport,
             "protocolVersion": normalized_protocol_version,
             "url": normalized_url,
