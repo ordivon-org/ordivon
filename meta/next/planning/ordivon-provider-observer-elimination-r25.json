@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "ordivon-provider-observer-elimination-r25",
+  "date": "2026-09-19",
+  "status": "TWENTY_FIRST_PRODUCTION_DELETION",
+  "parent": "ordivon-birth-coordinator-elimination-r24",
+  "architecturalCore": "EMPTY",
+  "deletedLocalTypes": [
+    "ProviderObserver"
+  ],
+  "deletedApiSurfaces": [
+    "service.observer"
+  ],
+  "replacementLocalTypes": [],
+  "retainedOwners": {
+    "externalObservation": "CarrierProviderAdapter",
+    "identityValidation": "DesiredPlacementStore.record_observation",
+    "durableObservation": "DesiredPlacementStore",
+    "readinessInterpretation": "PlacementReconciler"
+  },
+  "proofWitness": {
+    "carrier": "WrongPlacementCarrier",
+    "expectedFailure": "observation placement identity mismatch",
+    "durableMutationOccurred": false
+  },
+  "topLevelTypeDebt": {
+    "r3Baseline": 171,
+    "r20": 152,
+    "r21": 151,
+    "r22": 151,
+    "r23": 150,
+    "r24": 149,
+    "r25": 148,
+    "cumulativeDelta": -23
+  },
+  "validation": {
+    "targetedTests": 43,
+    "structuralTests": 49,
+    "agentServiceTests": 247,
+    "agentServiceSkipped": 5,
+    "fullRepositoryTests": 346,
+    "fullRepositorySkipped": 5,
+    "observedTopLevelClasses": 148,
+    "legacyCeilingCount": 148
+  }
+}

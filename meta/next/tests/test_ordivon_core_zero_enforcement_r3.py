@@ -95,6 +95,7 @@ class OrdivonCoreZeroEnforcementR3Tests(unittest.TestCase):
                 "IdentityProofRecordStore",
                 "EvidenceResolverRegistry",
                 "BirthCoordinator",
+                "ProviderObserver",
             }.issubset(retired)
         )
         self.assertTrue(retired.isdisjoint(observed))

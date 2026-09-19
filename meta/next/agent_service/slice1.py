@@ -485,17 +485,6 @@ def _birth_agent(
     return instance
 
 
-class ProviderObserver:
-    def __init__(self, carrier_adapter: CarrierProviderAdapter) -> None:
-        self._carrier_adapter = carrier_adapter
-
-    def observe(self, placement_id: str) -> ProviderObservation:
-        observation = self._carrier_adapter.observe(placement_id)
-        if observation.placement_id != placement_id:
-            raise ValueError("provider returned observation for different placement")
-        return observation
-
-
 class PlacementReconciler:
     def __init__(
         self,
@@ -505,7 +494,6 @@ class PlacementReconciler:
         placements: DesiredPlacementStore,
         events: ServiceEventStore,
         carrier_adapter: CarrierProviderAdapter,
-        observer: ProviderObserver,
     ) -> None:
         self._connection = connection
         self._revisions = revisions
@@ -513,7 +501,6 @@ class PlacementReconciler:
         self._placements = placements
         self._events = events
         self._carrier_adapter = carrier_adapter
-        self._observer = observer
 
     def reconcile(self, instance_id: str) -> AgentInstance:
         instance = self._instances.get(instance_id)
@@ -529,7 +516,7 @@ class PlacementReconciler:
         else:
             raise ValueError(f"unsupported desired state: {placement.desired_state}")
 
-        observation = self._observer.observe(placement.id)
+        observation = self._carrier_adapter.observe(placement.id)
         self._placements.record_observation(placement.id, observation)
 
         current = self._instances.get(instance.id)
@@ -571,7 +558,6 @@ class AgentServiceSlice1:
         self.instances = AgentInstanceStore(connection)
         self.placements = DesiredPlacementStore(connection)
         self.events = ServiceEventStore(connection)
-        self.observer = ProviderObserver(carrier_adapter)
         self.reconciler = PlacementReconciler(
             connection,
             self.revisions,
@@ -579,7 +565,6 @@ class AgentServiceSlice1:
             self.placements,
             self.events,
             carrier_adapter,
-            self.observer,
         )
 
     def birth(self, birth_request_id: str, revision_id: str) -> AgentInstance:
