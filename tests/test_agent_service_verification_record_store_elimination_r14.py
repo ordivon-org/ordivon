@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import sqlite3
 import unittest
+
+from agent_service.schema_migrations import apply_schema_migrations
 from pathlib import Path
 
 import agent_service.evidence as evidence
@@ -29,7 +31,7 @@ class VerificationRecordStoreEliminationR14Tests(unittest.TestCase):
         self.addCleanup(connection.close)
         connection.execute("CREATE TABLE task_verifications(id TEXT PRIMARY KEY)")
         with self.assertRaisesRegex(RuntimeError, "legacy task_verifications"):
-            evidence._initialize_schema(connection)
+            apply_schema_migrations(connection)
 
 
 if __name__ == "__main__":
