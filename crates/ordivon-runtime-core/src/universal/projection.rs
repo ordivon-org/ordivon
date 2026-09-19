@@ -5,7 +5,7 @@ use super::{
     UniversalExecutorConfig, WorkspaceDiffRequest, WorkspaceReadRequest, WorkspaceReadSliceRequest,
 };
 
-pub fn create_git_workspace(
+pub(crate) fn create_git_workspace(
     config: &UniversalExecutorConfig,
     request: &GitWorkspaceCreateRequest,
 ) -> Result<CompactWorkspaceOpenResult, UniversalExecError> {

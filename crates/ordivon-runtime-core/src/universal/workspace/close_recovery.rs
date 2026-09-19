@@ -1,4 +1,4 @@
-pub fn remove_git_workspace(
+pub(crate) fn remove_git_workspace(
     config: &UniversalExecutorConfig,
     request: &WorkspaceCloseRequest,
 ) -> Result<WorkspaceCloseResult, UniversalExecError> {
