@@ -1,9 +1,10 @@
 impl Registry {
+    #[cfg(test)]
     pub fn list_nonterminal_attempts(&self) -> RuntimeResult<Vec<AttemptRecord>> {
         self.list_nonterminal_attempts_with_limit(None)
     }
 
-
+    #[cfg(test)]
     fn list_nonterminal_attempts_with_limit(
         &self,
         limit: Option<u32>,

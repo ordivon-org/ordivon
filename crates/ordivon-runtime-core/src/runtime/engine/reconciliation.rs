@@ -263,7 +263,8 @@ impl Runtime {
         self.reconcile_attempt(&attempt.attempt_id)
     }
 
-    pub fn reconcile_all(&self) -> RuntimeResult<ReconciliationReport> {
+    #[cfg(test)]
+    pub(crate) fn reconcile_all(&self) -> RuntimeResult<ReconciliationReport> {
         let mut report = ReconciliationReport::default();
         self.reconcile_recoverable_orphans_into(&mut report)?;
         let attempts = self.registry.list_nonterminal_attempts()?;
@@ -271,7 +272,7 @@ impl Runtime {
         Ok(report)
     }
 
-    pub fn reconcile_workspace(&self, workspace_id: &str) -> RuntimeResult<ReconciliationReport> {
+    pub(crate) fn reconcile_workspace(&self, workspace_id: &str) -> RuntimeResult<ReconciliationReport> {
         let attempts = self.registry.list_workspace_reconciliation_attempts(
             workspace_id,
             INTERACTIVE_RECONCILIATION_LIMIT,
@@ -288,7 +289,7 @@ impl Runtime {
         Ok(report)
     }
 
-    pub fn reconcile_recoverable_orphans(&self) -> RuntimeResult<ReconciliationReport> {
+    pub(crate) fn reconcile_recoverable_orphans(&self) -> RuntimeResult<ReconciliationReport> {
         let mut report = ReconciliationReport::default();
         self.reconcile_recoverable_orphans_into(&mut report)?;
         Ok(report)

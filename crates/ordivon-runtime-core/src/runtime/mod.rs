@@ -61,6 +61,8 @@ pub use repair::{
     RuntimeRepairActionKind, RuntimeRepairConfig, RuntimeRepairReport, RuntimeRepairRequest,
     RuntimeStaleCancelReport, RuntimeStaleCancelRequest, RUNTIME_REPAIR_SCHEMA_VERSION,
 };
+#[cfg(any(test, feature = "operator-tools"))]
+pub use types::RuntimeInvariantViolation;
 pub(crate) use types::{
     input_bound_proposal_request_identity_digest, input_bound_request_identity_digest,
     operation_request_identity_digest, operation_request_identity_digest_from_plan,
@@ -81,17 +83,16 @@ pub use types::{
     InputAuthority, InputBindingRequest, JobCancelRequest, JobDesiredState, JobObservation,
     JobObserveRequest, JobObserveWaitUntil, JobResolution, JobRunProposal, JobRunRequest,
     ReservationState, RuntimeCapabilities, RuntimeDeliveryDisposition,
-    RuntimeExecutionTargetCapability, RuntimeInvariantViolation, RuntimeJobListCursor,
-    RuntimeJobListRequest, RuntimeJobListResult, RuntimeJobSummary, RuntimeNodeIdentity,
-    RuntimeNodePlatform, RuntimeReleaseAdmission, RuntimeReleaseContract,
-    RuntimeReleaseDisposition, RuntimeReleaseGetRequest, RuntimeReleaseProjection,
-    RuntimeReleaseRequest, RuntimeWorkspaceGetRequest, RuntimeWorkspaceIssue,
-    RuntimeWorkspaceIssueStage, RuntimeWorkspaceListCursor, RuntimeWorkspaceListRequest,
-    RuntimeWorkspaceListResult, RuntimeWorkspaceSummary, TerminalCommit, UniversalExecutionRequest,
-    UniversalExecutionStep, WindowsAuthority, CLIENT_REQUEST_ID_MAX_LENGTH,
-    CLIENT_REQUEST_ID_MIN_LENGTH, CLIENT_REQUEST_ID_PATTERN, LOGICAL_ID_MAX_LENGTH,
-    LOGICAL_ID_MIN_LENGTH, LOGICAL_ID_PATTERN, MAX_TASK_TAIL_BYTES, MAX_TASK_WAIT_MS,
-    RUNTIME_SCHEMA_VERSION,
+    RuntimeExecutionTargetCapability, RuntimeJobListCursor, RuntimeJobListRequest,
+    RuntimeJobListResult, RuntimeJobSummary, RuntimeNodeIdentity, RuntimeNodePlatform,
+    RuntimeReleaseAdmission, RuntimeReleaseContract, RuntimeReleaseDisposition,
+    RuntimeReleaseGetRequest, RuntimeReleaseProjection, RuntimeReleaseRequest,
+    RuntimeWorkspaceGetRequest, RuntimeWorkspaceIssue, RuntimeWorkspaceIssueStage,
+    RuntimeWorkspaceListCursor, RuntimeWorkspaceListRequest, RuntimeWorkspaceListResult,
+    RuntimeWorkspaceSummary, TerminalCommit, UniversalExecutionRequest, UniversalExecutionStep,
+    WindowsAuthority, CLIENT_REQUEST_ID_MAX_LENGTH, CLIENT_REQUEST_ID_MIN_LENGTH,
+    CLIENT_REQUEST_ID_PATTERN, LOGICAL_ID_MAX_LENGTH, LOGICAL_ID_MIN_LENGTH, LOGICAL_ID_PATTERN,
+    MAX_TASK_TAIL_BYTES, MAX_TASK_WAIT_MS, RUNTIME_SCHEMA_VERSION,
 };
 pub use windows::WindowsExecutionConfig;
 
