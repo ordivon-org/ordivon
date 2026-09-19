@@ -98,6 +98,13 @@ class OrdivonCoreZeroEnforcementR3Tests(unittest.TestCase):
                 "ProviderObserver",
                 "RuntimeEvidenceGate",
                 "EvidenceSemanticVerifier",
+                "AgentServiceSlice1",
+                "AssignmentPlanner",
+                "SemanticVerifier",
+                "AssignmentActivator",
+                "DeliveryCoordinator",
+                "GoalTaskGraph",
+                "RuntimeArtifactReader",
             }.issubset(retired)
         )
         self.assertTrue(retired.isdisjoint(observed))

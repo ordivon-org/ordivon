@@ -164,22 +164,27 @@ class SqliteMigrationsStandardTests(unittest.TestCase):
             self.assertIn("protocol_version", columns)
             connection.close()
 
-    def test_known_legacy_schema_fails_before_migration_ledger_is_created(self) -> None:
-        from agent_service.schema_migrations import apply_schema_migrations
+    def test_all_declared_legacy_tables_fail_before_migration_ledger_is_created(self) -> None:
+        from agent_service.schema_migrations import LEGACY_TABLES, apply_schema_migrations
 
-        with tempfile.TemporaryDirectory() as td:
-            connection = sqlite3.connect(Path(td) / "service.db")
-            connection.execute("CREATE TABLE task_verifications (id TEXT PRIMARY KEY)")
-            with self.assertRaisesRegex(RuntimeError, "legacy task_verifications"):
-                apply_schema_migrations(connection)
-            names = {
-                row[0]
-                for row in connection.execute(
-                    "SELECT name FROM sqlite_master WHERE type='table'"
-                )
-            }
-            self.assertNotIn("_sqlite_migrations", names)
-            connection.close()
+        self.assertGreater(len(LEGACY_TABLES), 1)
+        for table in LEGACY_TABLES:
+            with self.subTest(table=table):
+                connection = sqlite3.connect(":memory:")
+                try:
+                    connection.execute(f"CREATE TABLE {table}(id TEXT PRIMARY KEY)")
+                    with self.assertRaisesRegex(RuntimeError, f"legacy {table}"):
+                        apply_schema_migrations(connection)
+                    names = {
+                        row[0]
+                        for row in connection.execute(
+                            "SELECT name FROM sqlite_master WHERE type='table'"
+                        )
+                    }
+                    self.assertNotIn("_sqlite_migrations", names)
+                finally:
+                    connection.close()
+
 
 
 if __name__ == "__main__":

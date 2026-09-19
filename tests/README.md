@@ -9,6 +9,6 @@ Current test responsibilities fall into four practical groups:
 - **architecture regression tests** — stable constraints such as “semantic adapters must not own HTTP transport” or “Runtime execution evidence must not become semantic completion”;
 - **migration/schema ratchets** — temporary or long-lived guards that prevent deleted legacy stores/classes/tables from silently returning while historical data boundaries are still relevant.
 
-Prefer stable behavior/architecture names for new tests. A historical `R<n>`, `elimination`, or `retired` name is not a new taxonomy; it records an existing migration ratchet and should disappear or be renamed when the invariant is absorbed by a stable contract, schema migration, or mature architecture tool.
+Prefer stable behavior/architecture names for current tests. Revision tokens belong only to genuinely versioned subjects such as a frozen experiment or an active migration ratchet. `elimination` / `retired` construction names should disappear once their invariant is absorbed by a stable contract, schema migration, or architecture ratchet. Agent Service behavior tests therefore use stable names; legacy SQLite rejection is owned centrally by `schema_migrations.LEGACY_TABLES`, and retired type non-reintroduction is owned by the Core-Zero ratchet.
 
 Coverage is an observation, not a correctness score. Use branch coverage to locate untested risk paths, then add tests for consequential behavior rather than chasing a repository-wide percentage threshold.
