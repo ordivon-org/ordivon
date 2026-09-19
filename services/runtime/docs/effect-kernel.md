@@ -77,7 +77,7 @@ Current implementation mapping:
 | Physical ownership | cgroup-owned process tree |
 | Execution evidence | Runner Result and Artifacts |
 | Recovery | Registry, Runner evidence, and systemd/cgroup reconciliation |
-| Structured effects | Runtime self-release uses a release-bound Job plus deterministic deployment receipt; `workspace.patch` uses a direct atomic filesystem transaction plus prepared/committed/unknown Patch receipt without a Job/Runner |
+| Structured effects | Runtime self-release uses a release-bound Job plus deterministic deployment receipt. The former dedicated Workspace Patch effect was retired because it duplicated durable effect lifecycle already provided by Jobs |
 
 The model must not grow merely to resemble a workflow engine, scheduler, policy platform, or Agent framework.
 
@@ -158,7 +158,7 @@ These classes are recovery contracts, not caller labels.
 
 The public API must not accept a caller-asserted `effectClass` for arbitrary execution. Doing so would create a false guarantee.
 
-A non-opaque class is allowed only through a structured operation whose implementation owns and tests the complete Effect Contract. Two materially different Runtime effects now meet that bar. Runtime self-release binds an exact Workspace commit, candidate-manifest digest, operator-owned deployment authority, deterministic effect identity, candidate deployer executable, and durable Job; `release.get` joins that Job with the deterministic deployment receipt without dispatching or retrying. `workspace.patch` binds an exact text-mutation request, complete before/after file digests, and a durable Patch operation before direct filesystem mutation; exact replay returns the original committed receipt, while `workspace.patch.get` reconciles prepared state to committed or `unknown` without creating a Job or repeating a mixed mutation. These implementations share a contract shape, not a common execution mechanism.
+A non-opaque class is allowed only through a structured operation whose implementation owns and tests the complete Effect Contract. Runtime self-release currently meets that bar: it binds an exact Workspace commit, candidate-manifest digest, operator-owned deployment authority, deterministic effect identity, candidate deployer executable, and durable Job; `release.get` joins that Job with the deterministic deployment receipt without dispatching or retrying. The former Workspace Patch experiment supplied a second mechanism for comparison, but it was retired once claimant audit showed that its durable replay/reconciliation state duplicated the existing Job/Attempt ledger rather than proving a durable need for a second lifecycle.
 
 ## Current proof and current gap
 
@@ -176,7 +176,7 @@ Current Ordivon Runtime already proves:
 - pre-spawn source-state revalidation and exclusion of Runtime-mediated mutation while a Job is active or held;
 - first-admission commitment of the Runtime-owned Linux Runner or Windows launcher contract/digest, with pre-dispatch drift rejection and identity-bound terminal evidence;
 - Runtime self-release as a real `RECONCILABLE` external effect: stable principal/client request identity, operation-v5 binding to release side truth, deterministic deployment receipt, exact replay before current-world checks, and projection-only `release.get` reconciliation across Runtime ingress replacement;
-- `workspace.patch` as a second materially different structured effect: stable request identity, durable pre-mutation intent plus complete before/after digest plan, atomic filesystem commit, exact replay, and `workspace.patch.get` reconciliation that preserves mixed physical state as `unknown`;
+- retired Workspace Patch experiment: previously supplied a materially different structured-effect comparison, then was deleted after claimant audit showed no independent production need for its separate durable lifecycle;
 - explicit trusted-local Linux Host Dependency commitments for known host runtime prerequisite files: admission-time digest validation, additive Job side truth, operation-v6 identity, pre-dispatch drift rejection, Runner pre-validation path/topology witnessing through the whole Attempt, explicit `HOST_DEPENDENCY_RUNTIME_DRIFT`, and terminal continuity evidence;
 - target executable realization witnessing on local Linux: Runner establishes a path/topology witness before its final executable hash and keeps it through the step, preserving ordinary pathname semantics while converting runtime pathname replacement/write/delete into `EXECUTABLE_RUNTIME_DRIFT`;
 - current provider-bound Linux Runner start evidence binds the actual `/proc/self/exe` image digest and, while live, Core independently cross-checks the systemd MainPID image against the committed provider;
@@ -189,13 +189,13 @@ The source-state commitment is deliberately scoped. It excludes ignored caches a
 It does not yet prove:
 
 - the number or identity of external effects performed inside an arbitrary command;
-- a general external effect receipt across arbitrary operations; release and Workspace Patch each own adapter-specific evidence and do not turn opaque commands into structured effects;
+- a general external effect receipt across arbitrary operations; self-release owns adapter-specific evidence and does not turn opaque commands into structured effects;
 - automatic or complete target environment closure. P2 proved that a dynamically loaded host dependency can change output while target ELF digest and prior operation identity remain unchanged; P3 then proved that pre-spawn revalidation alone still allowed delayed `dlopen()` to consume replacement bytes. Runtime now witnesses declared filesystem paths through execution but still refuses to pretend that this discovers every loader, module, driver, network, service, mount-namespace, or other ambient dependency;
 - generic target/tool-contract continuity beyond the Runtime-owned Runner/Windows launcher and the explicitly committed release/Host Dependency contracts;
 - operation-scoped authority beyond the trusted-local principal;
 - external-world preconditions outside the Git Workspace other than immutable-input bytes and explicitly declared trusted-local Host Dependency prerequisite files;
 - wall-clock time, network responses, ignored Workspace inputs, or other ambient process dependencies; target processes receive a committed configured execution environment plus explicit request overrides rather than inheriting the Runtime service environment;
-- generic effect-aware retry or reconciliation across arbitrary adapters. Release and Workspace Patch prove a shared contract vocabulary, but they do not justify a generic `EffectAdapter`, caller `effectClass`, or common physical dispatcher.
+- generic effect-aware retry or reconciliation across arbitrary adapters. The retired Workspace Patch experiment was useful comparative evidence, but its deletion strengthens the case against a generic `EffectAdapter`, caller `effectClass`, or common physical dispatcher.
 
 These are real gaps. They must not be hidden by process success, Artifact presence, tracing, or additional orchestration layers.
 
@@ -239,7 +239,7 @@ P3 attacked the remaining gap between “Runtime validated this path” and “t
 
 Two stronger-looking mechanisms were tested and rejected. A single-file systemd read-only bind did not stabilize future pathname resolution when the parent directory entry was replaced. Sealed memfd execution did provide exact bytes for ELF and shebang targets, but changed `__file__`, `sys.argv[0]`, and `/proc/self/exe`, so making it the default would silently change the target world to satisfy Runtime's evidence model. P3 keeps the weaker but truthful path-witness contract.
 
-P3 also audited `workspace.close`, cache prune, reclaim, and lifecycle operations as possible third structured effects. None graduated. `workspace.close` physically removes the Git worktree before its closed tombstone is published, so it lacks durable pre-mutation intent; cache/reclaim/lifecycle receipts lack stable effect identity plus exact replay/reconciliation semantics. Runtime therefore still has exactly two structured effects—self-release and Workspace Patch—and P3 adds **no** generic Effect framework.
+P3 also audited `workspace.close`, cache prune, reclaim, and lifecycle operations as possible additional structured effects. None graduated. `workspace.close` physically removes the Git worktree before its closed tombstone is published, so it lacks durable pre-mutation intent; cache/reclaim/lifecycle receipts lack stable effect identity plus exact replay/reconciliation semantics. The later retirement of Workspace Patch leaves self-release as the only currently graduated structured external effect and adds **no** generic Effect framework.
 
 ## P4 same-authority view result and effect re-audit
 
@@ -247,11 +247,11 @@ P4 attacked the explicit boundary P3 left open instead of treating the host-path
 
 That result does **not** justify silently restricting `trusted_local`. A target with the same authority is deliberately trusted to use that authority; turning Host Dependency declarations into a security sandbox would change the execution contract, and a process-local syscall filter would not create an independent trust boundary against same-authority delegation. P4 therefore keeps execution semantics unchanged and makes the existing proof boundary machine-readable instead: `runtime.describe` and terminal Host Dependency continuity evidence carry scope `runtime_host_namespace_path_witness`. Strong target-view integrity remains a different problem that requires an explicit reduced-authority or external-isolation contract and a real workload before implementation.
 
-P4 also re-audited every state-changing public surface rather than promoting the next convenient mutation into an Effect. `workspace.open` can be reconciled by an explicit Workspace identity but repeating open is not exact effect replay and there is no durable pre-mutation Effect receipt; `workspace.close` still lacks durable pre-mutation intent; `workspace.mutate` intentionally has no durable `clientRequestId` receipt; `task.cancel` durably controls Runtime lifecycle but cannot prove or reconcile external side effects already performed by the target; `workspace.exec`, `workspace.execPlan`, `workspace.execBound`, and `workspace.execBoundTrusted` remain execution contracts rather than external-effect contracts. No third structured Effect graduated. Runtime still has exactly self-release and Workspace Patch, so there is still no evidence for a generic `EffectAdapter`, `EffectRegistry`, caller effect class, common physical dispatcher, or generic effect-aware retry.
+P4 also re-audited every state-changing public surface rather than promoting the next convenient mutation into an Effect. `workspace.open` can be reconciled by an explicit Workspace identity but repeating open is not exact effect replay and there is no durable pre-mutation Effect receipt; `workspace.close` still lacks durable pre-mutation intent; `workspace.mutate` intentionally has no durable `clientRequestId` receipt; `task.cancel` durably controls Runtime lifecycle but cannot prove or reconcile external side effects already performed by the target; `workspace.exec`, `workspace.execPlan`, `workspace.execBound`, and `workspace.execBoundTrusted` remain execution contracts rather than external-effect contracts. Workspace Patch was subsequently retired rather than promoted into a generic framework. Self-release is therefore the sole current structured external effect, and there is still no evidence for a generic `EffectAdapter`, `EffectRegistry`, caller effect class, common physical dispatcher, or generic effect-aware retry.
 
-## Two-effect result and next implementation gate
+## Retired two-effect experiment and current implementation gate
 
-Runtime now has two materially different structured effects: self-release and Workspace Patch. Their implementations prove seven shared contract-level invariants without proving that a shared code framework is useful:
+Runtime previously had two materially different structured effects: self-release and Workspace Patch. That comparison was useful evidence, but Workspace Patch was later retired because its separate durable lifecycle duplicated the Job/Attempt ledger without an independent production claimant. The historical comparison still supports these contract-level invariants:
 
 ```text
 stable request/effect identity
@@ -263,7 +263,7 @@ stable request/effect identity
 + preserved uncertainty instead of guessed completion
 ```
 
-The mechanisms remain deliberately different: release is an asynchronous Job/Runner operation whose external receipt may become terminal before the generic Job lifecycle converges; Workspace Patch is a direct atomic filesystem transaction with no Job/Runner and may reconcile a prepared receipt to `unknown` when physical files are mixed. P2 therefore records the shared contract but does **not** introduce a generic `EffectAdapter`, `EffectRegistry`, or caller-supplied class. A common code abstraction requires demonstrated duplicated implementation burden, not merely conceptual similarity. Arbitrary execution remains opaque and fail-closed.
+The historical mechanisms were deliberately different: release is an asynchronous Job/Runner operation whose external receipt may become terminal before the generic Job lifecycle converges, while the retired Workspace Patch used a direct atomic filesystem transaction with its own reconciliation state. Deleting the latter is stronger evidence than abstracting both: Runtime does **not** introduce a generic `EffectAdapter`, `EffectRegistry`, or caller-supplied class. A common code abstraction requires demonstrated production need, not merely conceptual similarity. Arbitrary execution remains opaque and fail-closed.
 
 ## Boundary
 

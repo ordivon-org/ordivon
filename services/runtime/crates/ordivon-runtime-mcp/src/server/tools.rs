@@ -484,7 +484,7 @@ impl RuntimeServer {
 
     #[tool(
         name = "workspace.mutate",
-        description = "Apply one atomic validated batch. mode must be exactly WRITE, APPEND, or REPLACE_EXACT; REPLACE_EXACT requires expectedText. expectedDigest is required when a target already exists and protects the complete file version. Active or held Jobs block mutation without being reconciled or dispatched by this call. This tool has no durable clientRequestId replay receipt: after an uncertain response, inspect current Workspace state before retrying. Prefer workspace.patch when response-loss reconciliation is required.",
+        description = "Apply one atomic validated batch. mode must be exactly WRITE, APPEND, or REPLACE_EXACT; REPLACE_EXACT requires expectedText. expectedDigest is required when a target already exists and protects the complete file version. Active or held Jobs block mutation without being reconciled or dispatched by this call. This tool has no durable clientRequestId replay receipt: after an uncertain response, inspect current Workspace state before retrying. Use workspace.exec with a mature mutation tool when durable Job replay/recovery is required.",
         output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<WorkspaceMutateResult>>(),
         annotations(
             title = "Mutate workspace files",
@@ -534,68 +534,6 @@ impl RuntimeServer {
                 },
             )
             .map_err(ToolError::from)
-        })
-        .await
-    }
-
-    #[tool(
-        name = "workspace.patch",
-        description = "Apply one digest-guarded atomic text patch under a durable clientRequestId. Active or held Jobs block mutation without being reconciled or dispatched by this call. Exact replay returns the committed receipt; changed input conflicts; uncertain mixed outcomes require reconciliation.",
-        output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<DurableWorkspacePatchResult>>(),
-        annotations(
-            title = "Apply durable workspace patch",
-            read_only_hint = false,
-            destructive_hint = true,
-            idempotent_hint = true,
-            open_world_hint = false
-        )
-    )]
-    async fn workspace_patch(
-        &self,
-        principal: EffectivePrincipal,
-        Parameters(request): Parameters<WorkspacePatchToolRequest>,
-    ) -> ToolOutcome<DurableWorkspacePatchResult> {
-        let runtime = self.state.runtime.clone();
-        let request = self
-            .state
-            .execution
-            .with_principal(principal.0)
-            .bind_patch(request);
-        self.run_core("workspace.patch", move || {
-            runtime
-                .patch_workspace_durable(&request)
-                .map_err(ToolError::from)
-        })
-        .await
-    }
-
-    #[tool(
-        name = "workspace.patch.get",
-        description = "Reconcile one durable Workspace Patch receipt by exact clientRequestId without applying an uncommitted patch. This call may advance Runtime receipt state from prepared to committed or unknown after inspecting physical file state.",
-        output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<WorkspacePatchOperationStatus>>(),
-        annotations(
-            title = "Inspect durable workspace patch",
-            read_only_hint = false,
-            destructive_hint = false,
-            idempotent_hint = true,
-            open_world_hint = false
-        )
-    )]
-    async fn workspace_patch_get(
-        &self,
-        principal: EffectivePrincipal,
-        Parameters(request): Parameters<WorkspacePatchStatusToolRequest>,
-    ) -> ToolOutcome<WorkspacePatchOperationStatus> {
-        let runtime = self.state.runtime.clone();
-        let request = self
-            .state
-            .execution
-            .with_principal(principal.0)
-            .bind_patch_status(request);
-        self.run_core("workspace.patch.get", move || {
-            runtime
-                .workspace_patch_status(&request)
-                .map_err(ToolError::from)
         })
         .await
     }

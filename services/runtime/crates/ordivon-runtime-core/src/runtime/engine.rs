@@ -11,9 +11,6 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
 use super::evidence::prepare_runner_terminal_from_bundle;
-use super::patch::{
-    durable_patch_request_digest, validate_durable_patch_request, validate_patch_status_request,
-};
 use super::physical_provider::{
     dispatch_linux, dispatch_windows_native, dispatch_windows_via_wsl, observe_linux_process_owner,
     observe_windows_process_owner, release_linux_process_owner,
@@ -29,27 +26,23 @@ use super::{
     runtime_release_effect_id, runtime_release_request_identity_digest, validate_client_request_id,
     validate_logical_id, AdmissionOutcome, ArtifactDescriptor, ArtifactReadRequest,
     ArtifactReadResult, ArtifactRegistration, AttemptRecord, AttemptState,
-    AttemptTerminationIntent, DurableWorkspacePatchRequest, DurableWorkspacePatchResult,
-    EffectiveInputBinding, ExecutionProviderContract, ExecutionProviderSnapshot,
-    HostDependencyBinding, InputAccessMode, InputAuthority, InputBindingRequest, JobDesiredState,
-    JobResolution, Registry, RegistryConfig, RunnerIdentity, RuntimeArtifactRecord,
-    RuntimeCapabilities, RuntimeError, RuntimeErrorCode, RuntimeExecutionPlan,
-    RuntimeExecutionStep, RuntimeExecutionTargetCapability, RuntimeJobListRequest,
-    RuntimeJobListResult, RuntimeReleaseAdmission, RuntimeReleaseContract,
+    AttemptTerminationIntent, EffectiveInputBinding, ExecutionProviderContract,
+    ExecutionProviderSnapshot, HostDependencyBinding, InputAccessMode, InputAuthority,
+    InputBindingRequest, JobDesiredState, JobResolution, Registry, RegistryConfig, RunnerIdentity,
+    RuntimeArtifactRecord, RuntimeCapabilities, RuntimeError, RuntimeErrorCode,
+    RuntimeExecutionPlan, RuntimeExecutionStep, RuntimeExecutionTargetCapability,
+    RuntimeJobListRequest, RuntimeJobListResult, RuntimeReleaseAdmission, RuntimeReleaseContract,
     RuntimeReleaseDisposition, RuntimeReleaseEffectBinding, RuntimeReleaseGetRequest,
     RuntimeReleaseProjection, RuntimeReleaseRequest, RuntimeResult, RuntimeWorkspaceGetRequest,
     RuntimeWorkspaceIssue, RuntimeWorkspaceIssueStage, RuntimeWorkspaceListRequest,
     RuntimeWorkspaceListResult, RuntimeWorkspaceSummary, SubmitRequest, TaskCancelRequest,
     TaskObservation, TaskObserveRequest, TaskObserveWaitUntil, TaskRunRequest, TerminalCommit,
-    WorkspacePatchOperationState, WorkspacePatchOperationStatus, WorkspacePatchStatusRequest,
     MAX_ARTIFACT_READ_BYTES, MAX_TASK_TAIL_BYTES, MAX_TASK_WAIT_MS, RUNTIME_SCHEMA_VERSION,
 };
 use crate::universal::{
-    canonical_directory, create_git_workspace_compact, inspect_workspace_patch_plan,
-    list_open_workspace_record_inventory, load_workspace_record, mutate_workspace,
-    open_directory_nofollow, open_regular_file_beneath, patch_workspace, plan_workspace_patch,
-    remove_git_workspace, rename_path_durable, resolve_workspace_cwd,
-    result_from_workspace_patch_plan, sha256_bytes, sha256_file,
+    canonical_directory, create_git_workspace_compact, list_open_workspace_record_inventory,
+    load_workspace_record, mutate_workspace, open_directory_nofollow, open_regular_file_beneath,
+    remove_git_workspace, rename_path_durable, resolve_workspace_cwd, sha256_bytes, sha256_file,
     sync_directory as sync_universal_directory, workspace_cleanup_dependents,
     workspace_git_common_dir_at, workspace_head_and_dirty_at, workspace_head_revision,
     workspace_source_state_digest, write_bytes_atomic, write_json_atomic,
@@ -57,8 +50,7 @@ use crate::universal::{
     RunnerHostDependencyCommitment, RunnerInputCommitment, RunnerPayloadConfig,
     RunnerStartEvidence, RunnerTaskProgress, RunnerTaskRequest, RunnerTaskResult,
     UniversalExecutorConfig, WorkspaceCloseRequest, WorkspaceCloseResult, WorkspaceDiffRequest,
-    WorkspaceMutateRequest, WorkspaceMutateResult, WorkspacePatchPlanState, WorkspacePatchRequest,
-    WorkspacePatchResult, UNIVERSAL_EXEC_SCHEMA_VERSION,
+    WorkspaceMutateRequest, WorkspaceMutateResult, UNIVERSAL_EXEC_SCHEMA_VERSION,
 };
 
 const RUNNER_REQUEST_FILE: &str = "request.json";

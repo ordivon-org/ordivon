@@ -249,7 +249,6 @@ fn every_workspace_id_tool_schema_projects_the_core_workspace_id_law() {
         "workspace.content",
         "workspace.mutate",
         "workspace.changes",
-        "workspace.patch",
         "workspace.diff",
         "workspace.exec",
         "workspace.execBound",
@@ -378,8 +377,6 @@ fn every_client_request_id_tool_schema_projects_one_runtime_identity_law() {
     for name in [
         "release.apply",
         "release.get",
-        "workspace.patch",
-        "workspace.patch.get",
         "workspace.exec",
         "workspace.execBound",
         "workspace.execBoundTrusted",
@@ -1291,8 +1288,6 @@ fn tool_effect_annotations_match_runtime_behavior() {
         ("workspace.list", true, false, true, false),
         ("workspace.mutate", false, true, false, false),
         ("workspace.open", false, false, false, false),
-        ("workspace.patch", false, true, true, false),
-        ("workspace.patch.get", false, false, true, false),
         ("workspace.read", true, false, true, false),
     ];
     assert_eq!(tools.len(), expected.len());
@@ -1418,8 +1413,6 @@ fn tool_catalog_uses_transactional_job_contract() {
             "workspace.list",
             "workspace.mutate",
             "workspace.open",
-            "workspace.patch",
-            "workspace.patch.get",
             "workspace.read",
         ]
     );
@@ -1584,17 +1577,6 @@ fn tool_catalog_uses_transactional_job_contract() {
         );
     }
 
-    let patch = tools
-        .iter()
-        .find(|tool| tool.name.as_ref() == "workspace.patch")
-        .unwrap();
-    let patch_schema = serde_json::to_value(&patch.input_schema).unwrap();
-    assert_eq!(
-        patch_schema.pointer("/properties/files/minItems"),
-        Some(&serde_json::json!(1))
-    );
-    assert!(patch_schema.pointer("/properties/files/maxItems").is_none());
-
     let mutate = tools
         .iter()
         .find(|tool| tool.name.as_ref() == "workspace.mutate")
@@ -1619,45 +1601,6 @@ fn tool_catalog_uses_transactional_job_contract() {
                 |description| description.contains("Required when the target already exists")
             )
     );
-
-    let patch = tools
-        .iter()
-        .find(|tool| tool.name.as_ref() == "workspace.patch")
-        .unwrap();
-    assert_eq!(
-        patch
-            .annotations
-            .as_ref()
-            .and_then(|annotations| annotations.idempotent_hint),
-        Some(true)
-    );
-    let patch_schema = serde_json::to_value(&patch.input_schema).unwrap();
-    assert!(patch_schema
-        .pointer("/properties/clientRequestId")
-        .is_some());
-    assert!(patch_schema.pointer("/properties/files/minItems").is_some());
-    assert!(patch_schema.pointer("/properties/principal").is_none());
-    assert_eq!(
-        patch_schema.pointer("/$defs/WorkspaceTextPosition/properties/line/minimum"),
-        Some(&serde_json::json!(1))
-    );
-
-    let patch_get = tools
-        .iter()
-        .find(|tool| tool.name.as_ref() == "workspace.patch.get")
-        .unwrap();
-    assert_eq!(
-        patch_get
-            .annotations
-            .as_ref()
-            .and_then(|annotations| annotations.read_only_hint),
-        Some(false)
-    );
-    let patch_get_schema = serde_json::to_value(&patch_get.input_schema).unwrap();
-    assert!(patch_get_schema
-        .pointer("/properties/clientRequestId")
-        .is_some());
-    assert!(patch_get_schema.pointer("/properties/principal").is_none());
 
     let observe = tools
         .iter()
@@ -2104,7 +2047,7 @@ fn every_public_tool_publishes_structured_output_contract() {
     let sandbox = Sandbox::new("all-output-schemas");
     let server = sandbox.server();
     let tools = server.tool_router.list_all();
-    assert_eq!(tools.len(), 24);
+    assert_eq!(tools.len(), 22);
     for tool in tools {
         let schema = tool
             .output_schema
@@ -2587,4 +2530,25 @@ fn tools_list_projection_carries_required_private_zero_ttl_cache_hints() {
         Some(&serde_json::json!("complete"))
     );
     assert!(value.get("tools").and_then(Value::as_array).is_some());
+}
+
+#[test]
+fn workspace_patch_control_plane_is_retired_in_favor_of_durable_exec() {
+    let server = Sandbox::new("workspace-patch-retired").server();
+    let names = server
+        .tool_router
+        .list_all()
+        .into_iter()
+        .map(|tool| tool.name.to_string())
+        .collect::<Vec<_>>();
+    assert!(
+        !names
+            .iter()
+            .any(|name| name == "workspace.patch" || name == "workspace.patch.get"),
+        "workspace.patch must not survive as a second durable effect lifecycle: {names:?}"
+    );
+    assert!(
+        names.iter().any(|name| name == "workspace.exec"),
+        "durable Job execution remains the response-loss-safe mutation substrate"
+    );
 }

@@ -9,9 +9,8 @@ use super::supervisor::AttemptSupervisorOwner;
 use super::*;
 use crate::universal::{
     CapturedOutput, RunnerTaskResult, TaskTerminalStatus, UniversalExecutorConfig,
-    WorkspaceCloseRequest, WorkspaceFilePatch, WorkspaceMutateRequest, WorkspaceMutation,
-    WorkspaceMutationMode, WorkspacePatchRequest, WorkspaceTextEdit, WorkspaceTextPosition,
-    WorkspaceTextRange, UNIVERSAL_EXEC_SCHEMA_VERSION,
+    WorkspaceCloseRequest, WorkspaceMutateRequest, WorkspaceMutation, WorkspaceMutationMode,
+    UNIVERSAL_EXEC_SCHEMA_VERSION,
 };
 use rusqlite::Connection;
 use sha2::{Digest, Sha256};
@@ -627,12 +626,12 @@ fn run_git_command(directory: &Path, args: &[&str]) {
     );
 }
 
-fn durable_patch_fixture(
+fn workspace_fixture(
     label: &str,
     workspace_id: &str,
 ) -> (Sandbox, Runtime, UniversalExecutorConfig) {
     let sandbox = Sandbox::new(label, 5000);
-    let source = sandbox.root.join("patch-source");
+    let source = sandbox.root.join("workspace-source");
     fs::create_dir_all(&source).unwrap();
     fs::write(source.join("README.md"), "alpha\n").unwrap();
     fs::write(source.join("SECOND.md"), "beta\n").unwrap();
@@ -657,164 +656,6 @@ fn durable_patch_fixture(
         })
         .unwrap();
     (sandbox, runtime, executor)
-}
-
-fn durable_patch_request(
-    executor: &UniversalExecutorConfig,
-    workspace_id: &str,
-    client_request_id: &str,
-    include_second: bool,
-) -> DurableWorkspacePatchRequest {
-    let workspace = executor.workspace_path(workspace_id);
-    let mut files = vec![WorkspaceFilePatch {
-        relative_path: "README.md".to_string(),
-        expected_digest: Some(file_digest(&workspace.join("README.md"))),
-        edits: vec![WorkspaceTextEdit {
-            range: WorkspaceTextRange {
-                start: WorkspaceTextPosition { line: 1, column: 0 },
-                end: WorkspaceTextPosition { line: 1, column: 5 },
-            },
-            expected_text: "alpha".to_string(),
-            replacement: "omega".to_string(),
-        }],
-    }];
-    if include_second {
-        files.push(WorkspaceFilePatch {
-            relative_path: "SECOND.md".to_string(),
-            expected_digest: Some(file_digest(&workspace.join("SECOND.md"))),
-            edits: vec![WorkspaceTextEdit {
-                range: WorkspaceTextRange {
-                    start: WorkspaceTextPosition { line: 1, column: 0 },
-                    end: WorkspaceTextPosition { line: 1, column: 4 },
-                },
-                expected_text: "beta".to_string(),
-                replacement: "gamma".to_string(),
-            }],
-        });
-    }
-    DurableWorkspacePatchRequest {
-        schema_version: RUNTIME_SCHEMA_VERSION,
-        principal: "principal:durable-patch-test".to_string(),
-        client_request_id: client_request_id.to_string(),
-        patch: WorkspacePatchRequest {
-            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
-            workspace_id: workspace_id.to_string(),
-            files,
-            max_diff_bytes: 16 * 1024,
-        },
-    }
-}
-
-#[test]
-fn durable_workspace_patch_replays_exact_receipt_and_conflicts_on_changed_request() {
-    let workspace_id = "workspace-durable-patch-replay";
-    let (_sandbox, runtime, executor) = durable_patch_fixture("durable-patch-replay", workspace_id);
-    let request = durable_patch_request(
-        &executor,
-        workspace_id,
-        "request:durable-patch:replay",
-        false,
-    );
-
-    let first = runtime.patch_workspace_durable(&request).unwrap();
-    assert!(!first.replayed);
-    assert_eq!(
-        fs::read_to_string(executor.workspace_path(workspace_id).join("README.md")).unwrap(),
-        "omega\n"
-    );
-
-    let replay = runtime.patch_workspace_durable(&request).unwrap();
-    assert!(replay.replayed);
-    assert_eq!(replay.operation_id, first.operation_id);
-    assert_eq!(replay.request_digest, first.request_digest);
-    assert_eq!(replay.patch, first.patch);
-
-    let mut changed = request.clone();
-    changed.patch.files[0].edits[0].replacement = "other".to_string();
-    let error = runtime.patch_workspace_durable(&changed).unwrap_err();
-    assert_eq!(error.code, RuntimeErrorCode::IdempotencyConflict);
-    assert_eq!(error.field.as_deref(), Some("clientRequestId"));
-}
-
-#[test]
-fn durable_workspace_patch_recovers_committed_files_after_receipt_loss() {
-    let workspace_id = "workspace-durable-patch-receipt-loss";
-    let (sandbox, runtime, executor) =
-        durable_patch_fixture("durable-patch-receipt-loss", workspace_id);
-    let request = durable_patch_request(
-        &executor,
-        workspace_id,
-        "request:durable-patch:receipt-loss",
-        false,
-    );
-    let first = runtime.patch_workspace_durable(&request).unwrap();
-
-    let connection = Connection::open(&sandbox.registry.config().db_path).unwrap();
-    connection
-        .execute(
-            "UPDATE workspace_patch_operations SET state='prepared',result_json=NULL WHERE operation_id=?1",
-            [&first.operation_id],
-        )
-        .unwrap();
-    drop(connection);
-
-    let recovered = runtime.patch_workspace_durable(&request).unwrap();
-    assert!(recovered.replayed);
-    assert_eq!(recovered.operation_id, first.operation_id);
-    assert_eq!(recovered.patch, first.patch);
-    let status = runtime
-        .workspace_patch_status(&WorkspacePatchStatusRequest {
-            schema_version: RUNTIME_SCHEMA_VERSION,
-            principal: request.principal.clone(),
-            client_request_id: request.client_request_id.clone(),
-        })
-        .unwrap();
-    assert_eq!(status.state, WorkspacePatchOperationState::Committed);
-    assert_eq!(status.patch, Some(first.patch));
-}
-
-#[test]
-fn durable_workspace_patch_marks_mixed_physical_state_unknown_without_replay() {
-    let workspace_id = "workspace-durable-patch-mixed";
-    let (sandbox, runtime, executor) = durable_patch_fixture("durable-patch-mixed", workspace_id);
-    let request =
-        durable_patch_request(&executor, workspace_id, "request:durable-patch:mixed", true);
-    let first = runtime.patch_workspace_durable(&request).unwrap();
-
-    let connection = Connection::open(&sandbox.registry.config().db_path).unwrap();
-    connection
-        .execute(
-            "UPDATE workspace_patch_operations SET state='prepared',result_json=NULL WHERE operation_id=?1",
-            [&first.operation_id],
-        )
-        .unwrap();
-    drop(connection);
-    fs::write(
-        executor.workspace_path(workspace_id).join("README.md"),
-        "alpha\n",
-    )
-    .unwrap();
-
-    let status = runtime
-        .workspace_patch_status(&WorkspacePatchStatusRequest {
-            schema_version: RUNTIME_SCHEMA_VERSION,
-            principal: request.principal.clone(),
-            client_request_id: request.client_request_id.clone(),
-        })
-        .unwrap();
-    assert_eq!(status.state, WorkspacePatchOperationState::Unknown);
-    assert_eq!(status.patch, None);
-    assert_eq!(
-        fs::read_to_string(executor.workspace_path(workspace_id).join("README.md")).unwrap(),
-        "alpha\n"
-    );
-    assert_eq!(
-        fs::read_to_string(executor.workspace_path(workspace_id).join("SECOND.md")).unwrap(),
-        "gamma\n"
-    );
-
-    let error = runtime.patch_workspace_durable(&request).unwrap_err();
-    assert_eq!(error.code, RuntimeErrorCode::ReconciliationRequired);
 }
 
 #[test]
@@ -864,7 +705,7 @@ fn task_observe_reconciliation_is_scoped_to_the_requested_job() {
 #[test]
 fn projection_and_workspace_guards_do_not_dispatch_accepted_jobs() {
     let workspace_id = "workspace-observation-contract";
-    let (sandbox, runtime, executor) = durable_patch_fixture("observation-contract", workspace_id);
+    let (sandbox, runtime, executor) = workspace_fixture("observation-contract", workspace_id);
 
     let mut target_request = request(&sandbox, "request:observation-contract:target", 8);
     target_request.plan.workspace_id = workspace_id.to_string();
@@ -957,16 +798,6 @@ fn projection_and_workspace_guards_do_not_dispatch_accepted_jobs() {
         })
         .unwrap_err();
     assert_eq!(mutate_error.code, RuntimeErrorCode::WorkspaceBusy);
-    assert_still_accepted();
-
-    let patch_request = durable_patch_request(
-        &executor,
-        workspace_id,
-        "request:observation-contract:patch",
-        false,
-    );
-    let patch_error = runtime.patch_workspace(&patch_request.patch).unwrap_err();
-    assert_eq!(patch_error.code, RuntimeErrorCode::WorkspaceBusy);
     assert_still_accepted();
 
     let close_error = runtime
@@ -1859,7 +1690,7 @@ fn windows_immutable_input_tree_digest_matches_native_provider_contract() {
 #[test]
 fn input_digest_mismatch_fails_before_job_admission() {
     let (sandbox, original_runtime, _executor) =
-        durable_patch_fixture("input-digest-mismatch", "workspace-input-digest-mismatch");
+        workspace_fixture("input-digest-mismatch", "workspace-input-digest-mismatch");
     drop(original_runtime);
     let authority = sandbox.root.join("authority");
     fs::create_dir_all(&authority).unwrap();
@@ -1897,7 +1728,7 @@ fn input_digest_mismatch_fails_before_job_admission() {
 #[test]
 fn input_authority_rejects_dotdot_and_symlink_escape_before_admission() {
     let (sandbox, original_runtime, _executor) =
-        durable_patch_fixture("input-authority-escape", "workspace-input-authority-escape");
+        workspace_fixture("input-authority-escape", "workspace-input-authority-escape");
     drop(original_runtime);
     let authority = sandbox.root.join("authority");
     let outside = sandbox.root.join("outside");
@@ -2837,7 +2668,7 @@ fn list_is_bounded_and_cursor_stable() {
 
 #[test]
 fn workspace_close_preserves_git_authority_owned_by_an_open_child() {
-    let (sandbox, runtime, executor) = durable_patch_fixture(
+    let (sandbox, runtime, executor) = workspace_fixture(
         "workspace-dependent-git-authority",
         "workspace-dependent-parent",
     );
@@ -2993,7 +2824,7 @@ fn workspace_close_preserves_child_git_authority_through_store_alias() {
 
 #[test]
 fn workspace_close_tracks_git_authority_not_source_path_text() {
-    let (_sandbox, runtime, executor) = durable_patch_fixture(
+    let (_sandbox, runtime, executor) = workspace_fixture(
         "workspace-dependent-authority-not-path",
         "workspace-authority-parent",
     );
@@ -3039,7 +2870,7 @@ fn concurrent_workspace_open_and_parent_close_never_create_a_broken_child() {
     use std::thread;
 
     let (sandbox, runtime, executor) =
-        durable_patch_fixture("workspace-dependent-race", "workspace-race-bootstrap");
+        workspace_fixture("workspace-dependent-race", "workspace-race-bootstrap");
     runtime
         .close_workspace(&WorkspaceCloseRequest {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
@@ -3048,7 +2879,7 @@ fn concurrent_workspace_open_and_parent_close_never_create_a_broken_child() {
             expected_source_state_digest: None,
         })
         .unwrap();
-    let stable_source = sandbox.root.join("patch-source");
+    let stable_source = sandbox.root.join("workspace-source");
 
     for index in 0..12 {
         let parent_id = format!("workspace-race-parent-{index}");
@@ -3147,7 +2978,7 @@ fn concurrent_workspace_open_and_parent_close_never_create_a_broken_child() {
 #[test]
 fn workspace_get_distinguishes_opening_revision_from_current_head() {
     let (sandbox, runtime, executor) =
-        durable_patch_fixture("workspace-get-source-repo", "workspace-get-source-repo");
+        workspace_fixture("workspace-get-source-repo", "workspace-get-source-repo");
     let initial = runtime
         .get_workspace(&RuntimeWorkspaceGetRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
@@ -3156,7 +2987,7 @@ fn workspace_get_distinguishes_opening_revision_from_current_head() {
         .unwrap();
     assert_eq!(
         Path::new(&initial.source_repo),
-        fs::canonicalize(sandbox.root.join("patch-source")).unwrap()
+        fs::canonicalize(sandbox.root.join("workspace-source")).unwrap()
     );
     assert_eq!(initial.source_revision, initial.current_head_revision);
 
@@ -3196,7 +3027,7 @@ fn workspace_get_distinguishes_opening_revision_from_current_head() {
 #[test]
 fn workspace_list_accepts_lexical_alias_for_same_physical_store_root() {
     let (sandbox, _runtime, executor) =
-        durable_patch_fixture("workspace-list-path-alias", "workspace-list-path-alias");
+        workspace_fixture("workspace-list-path-alias", "workspace-list-path-alias");
     let alias_root = sandbox.root.join("runtime-alias");
     std::os::unix::fs::symlink(&executor.store_root, &alias_root).unwrap();
 
@@ -3224,7 +3055,7 @@ fn workspace_list_accepts_lexical_alias_for_same_physical_store_root() {
 #[test]
 fn workspace_inspection_is_projection_only_and_keeps_terminal_attempt_truth() {
     let (sandbox, _runtime, executor) =
-        durable_patch_fixture("workspace-inspection", "workspace-inspection");
+        workspace_fixture("workspace-inspection", "workspace-inspection");
     let workspace = executor.workspace_path("workspace-inspection");
     fs::write(workspace.join("UNTRACKED.txt"), "observer\n").unwrap();
 
@@ -3322,8 +3153,8 @@ fn workspace_inspection_is_projection_only_and_keeps_terminal_attempt_truth() {
 #[test]
 fn workspace_list_cursor_pagination_is_complete_and_unique() {
     let (sandbox, runtime, _executor) =
-        durable_patch_fixture("workspace-list-cursor", "workspace-list-cursor-0");
-    let source = sandbox.root.join("patch-source");
+        workspace_fixture("workspace-list-cursor", "workspace-list-cursor-0");
+    let source = sandbox.root.join("workspace-source");
     for index in 1..4 {
         runtime
             .open_workspace(&crate::GitWorkspaceCreateRequest {
@@ -3368,7 +3199,7 @@ fn workspace_list_cursor_pagination_is_complete_and_unique() {
 #[test]
 fn workspace_list_isolates_workspace_local_projection_failure_with_stage() {
     let (_sandbox, runtime, executor) =
-        durable_patch_fixture("workspace-list-local-issue", "workspace-list-local-issue");
+        workspace_fixture("workspace-list-local-issue", "workspace-list-local-issue");
     let record_path = executor.workspace_record_path("workspace-list-local-issue");
     let mut record: serde_json::Value =
         serde_json::from_slice(&fs::read(&record_path).unwrap()).unwrap();
@@ -3399,7 +3230,7 @@ fn workspace_list_isolates_workspace_local_projection_failure_with_stage() {
 
 #[test]
 fn workspace_list_surfaces_invalid_current_physical_candidate() {
-    let (_sandbox, runtime, executor) = durable_patch_fixture(
+    let (_sandbox, runtime, executor) = workspace_fixture(
         "workspace-list-invalid-current",
         "workspace-list-current-valid",
     );
@@ -3429,7 +3260,7 @@ fn workspace_list_surfaces_invalid_current_physical_candidate() {
 #[test]
 fn workspace_list_ignores_corrupt_history_without_a_physical_open_workspace() {
     let (_sandbox, runtime, executor) =
-        durable_patch_fixture("workspace-list-history-poison", "workspace-list-current");
+        workspace_fixture("workspace-list-history-poison", "workspace-list-current");
     fs::write(
         executor
             .workspace_records_root()
@@ -5640,7 +5471,7 @@ fn newer_schema_and_checksum_drift_fail_closed() {
     connection
         .execute(
             "INSERT INTO schema_migrations(version,name,checksum,applied_at_ms) VALUES(?1,'future','sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',0)",
-            [6],
+            [7],
         )
         .unwrap();
     drop(connection);
@@ -5693,6 +5524,18 @@ fn newer_schema_and_checksum_drift_fail_closed() {
         .unwrap();
     drop(connection);
     let error = Registry::initialize(condition_drift.registry.config().clone()).unwrap_err();
+    assert_eq!(error.code, RuntimeErrorCode::MigrationChecksumMismatch);
+
+    let patch_retirement_drift = Sandbox::new("workspace-patch-retirement-checksum-drift", 5000);
+    let connection = Connection::open(&patch_retirement_drift.registry.config().db_path).unwrap();
+    connection
+        .execute(
+            "UPDATE schema_migrations SET checksum='sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff' WHERE version=6",
+            [],
+        )
+        .unwrap();
+    drop(connection);
+    let error = Registry::initialize(patch_retirement_drift.registry.config().clone()).unwrap_err();
     assert_eq!(error.code, RuntimeErrorCode::MigrationChecksumMismatch);
 }
 
@@ -5747,7 +5590,7 @@ fn query_indexes_are_recreated_without_advancing_schema_version() {
             row.get(0)
         })
         .unwrap();
-    assert_eq!(max_version, 5);
+    assert_eq!(max_version, 6);
     for index in [
         "idx_jobs_client_request_id_created",
         "idx_jobs_workspace_created",
@@ -5770,41 +5613,6 @@ fn query_indexes_are_recreated_without_advancing_schema_version() {
         )
         .unwrap();
     assert!(!redundant_event_index_exists);
-}
-
-#[test]
-fn workspace_patch_storage_is_recreated_without_advancing_schema_version() {
-    let sandbox = Sandbox::new("workspace-patch-storage-recreate", 5000);
-    let connection = Connection::open(&sandbox.registry.config().db_path).unwrap();
-    connection
-        .execute("DROP TABLE workspace_patch_operations", [])
-        .unwrap();
-    drop(connection);
-
-    Registry::initialize(sandbox.registry.config().clone()).unwrap();
-    let connection = Connection::open(&sandbox.registry.config().db_path).unwrap();
-    let max_version: i64 = connection
-        .query_row("SELECT MAX(version) FROM schema_migrations", [], |row| {
-            row.get(0)
-        })
-        .unwrap();
-    let table: String = connection
-        .query_row(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='workspace_patch_operations'",
-            [],
-            |row| row.get(0),
-        )
-        .unwrap();
-    let index: String = connection
-        .query_row(
-            "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_workspace_patch_operations_workspace'",
-            [],
-            |row| row.get(0),
-        )
-        .unwrap();
-    assert_eq!(max_version, 5);
-    assert_eq!(table, "workspace_patch_operations");
-    assert_eq!(index, "idx_workspace_patch_operations_workspace");
 }
 
 #[test]
@@ -6173,7 +5981,7 @@ fn v4_condition_retirement_preserves_recovery_and_reservation_currentness() {
             row.get(0)
         })
         .unwrap();
-    assert_eq!(version, 5);
+    assert_eq!(version, 6);
     let old_table: bool = connection
         .query_row(
             "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='attempt_conditions')",
@@ -6242,6 +6050,64 @@ fn v4_condition_retirement_preserves_recovery_and_reservation_currentness() {
 }
 
 #[test]
+fn workspace_patch_retirement_migration_drops_legacy_storage() {
+    let sandbox = Sandbox::new("workspace-patch-retirement", 5_000);
+    let config = sandbox.registry.config().clone();
+    let connection = Connection::open(&config.db_path).unwrap();
+    connection
+        .execute("DELETE FROM schema_migrations WHERE version=6", [])
+        .unwrap();
+    connection
+        .execute_batch(
+            "CREATE TABLE workspace_patch_operations (
+                operation_id TEXT PRIMARY KEY,
+                workspace_id TEXT NOT NULL
+             );
+             CREATE INDEX idx_workspace_patch_operations_workspace
+             ON workspace_patch_operations(workspace_id);",
+        )
+        .unwrap();
+    drop(connection);
+
+    let registry = Registry::initialize(config).unwrap();
+    let connection = Connection::open(&registry.config().db_path).unwrap();
+    let max_version: i64 = connection
+        .query_row("SELECT MAX(version) FROM schema_migrations", [], |row| {
+            row.get(0)
+        })
+        .unwrap();
+    assert_eq!(max_version, 6);
+
+    let table_exists: bool = connection
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='workspace_patch_operations')",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert!(!table_exists);
+    let index_exists: bool = connection
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='index' AND name='idx_workspace_patch_operations_workspace')",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert!(!index_exists);
+    let checksum: String = connection
+        .query_row(
+            "SELECT checksum FROM schema_migrations WHERE version=6",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        checksum,
+        RUNTIME_WORKSPACE_PATCH_RETIREMENT_MIGRATION_CHECKSUM
+    );
+}
+
+#[test]
 fn existing_v1_registry_upgrades_and_ensures_lookup_index() {
     let root = std::env::temp_dir().join(format!(
         "ordivon-v1-upgrade-{}-{}",
@@ -6275,7 +6141,7 @@ fn existing_v1_registry_upgrades_and_ensures_lookup_index() {
             row.get(0)
         })
         .unwrap();
-    assert_eq!(max_version, 5);
+    assert_eq!(max_version, 6);
     let checksum: String = connection
         .query_row(
             "SELECT checksum FROM schema_migrations WHERE version=2",
@@ -6311,6 +6177,17 @@ fn existing_v1_registry_upgrades_and_ensures_lookup_index() {
         condition_retirement_checksum,
         RUNTIME_CONDITION_RETIREMENT_MIGRATION_CHECKSUM
     );
+    let patch_retirement_checksum: String = connection
+        .query_row(
+            "SELECT checksum FROM schema_migrations WHERE version=6",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        patch_retirement_checksum,
+        RUNTIME_WORKSPACE_PATCH_RETIREMENT_MIGRATION_CHECKSUM
+    );
     let conditions_table_exists: bool = connection
         .query_row(
             "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='attempt_conditions')",
@@ -6327,22 +6204,22 @@ fn existing_v1_registry_upgrades_and_ensures_lookup_index() {
         )
         .unwrap();
     assert_eq!(artifact_job_index, "idx_artifacts_job");
-    let patch_table: String = connection
+    let patch_table_exists: bool = connection
         .query_row(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='workspace_patch_operations'",
+            "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='workspace_patch_operations')",
             [],
             |row| row.get(0),
         )
         .unwrap();
-    assert_eq!(patch_table, "workspace_patch_operations");
-    let patch_index: String = connection
+    assert!(!patch_table_exists);
+    let patch_index_exists: bool = connection
         .query_row(
-            "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_workspace_patch_operations_workspace'",
+            "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='index' AND name='idx_workspace_patch_operations_workspace')",
             [],
             |row| row.get(0),
         )
         .unwrap();
-    assert_eq!(patch_index, "idx_workspace_patch_operations_workspace");
+    assert!(!patch_index_exists);
     let lookup_index: String = connection
         .query_row(
             "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_jobs_client_request_id_created'",
@@ -6574,7 +6451,7 @@ fn host_dependency_storage_is_recreated_without_advancing_schema_version() {
             row.get(0)
         })
         .unwrap();
-    assert_eq!(max_version, 5);
+    assert_eq!(max_version, 6);
 }
 
 #[test]
@@ -6656,7 +6533,7 @@ fn execution_provider_storage_is_recreated_without_advancing_schema_version() {
             row.get(0)
         })
         .unwrap();
-    assert_eq!(max_version, 5);
+    assert_eq!(max_version, 6);
 }
 
 #[test]
@@ -7019,7 +6896,7 @@ fn attempt_supervisor_owner_storage_is_recreated_without_advancing_schema_versio
             row.get(0)
         })
         .unwrap();
-    assert_eq!(max_version, 5);
+    assert_eq!(max_version, 6);
 }
 
 #[test]
@@ -7181,7 +7058,7 @@ fn runtime_release_storage_is_recreated_without_advancing_schema_version() {
             row.get(0)
         })
         .unwrap();
-    assert_eq!(max_version, 5);
+    assert_eq!(max_version, 6);
 }
 
 #[test]

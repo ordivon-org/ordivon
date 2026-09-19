@@ -153,7 +153,7 @@ Connect an MCP client to the configured loopback or authenticated tunnel endpoin
 ```text
 workspace.open
 workspace.read
-workspace.patch
+workspace.mutate
 workspace.execPlan
 task.observe
 artifact.read
@@ -181,6 +181,6 @@ python3 scripts/demo_runtime_flow.py \
   --receipt /tmp/ordivon-runtime-demo.json
 ```
 
-The demonstration creates a temporary Git source repository from `examples/runtime-demo`, opens an exact-revision Workspace, applies one digest-guarded durable Patch, admits a three-step `workspace.execPlan`, recreates the MCP client, replays the exact request, recovers the same Job through `task.list`, reads terminal evidence, reviews the structured diff, and compare-and-closes the reviewed `sourceStateDigest`.
+The demonstration creates a temporary Git source repository from `examples/runtime-demo`, opens an exact-revision Workspace, applies one digest-guarded synchronous `workspace.mutate`, admits a three-step `workspace.execPlan`, recreates the MCP client, replays the exact execution request, recovers the same Job through `task.list`, reads terminal evidence, reviews the structured diff, and compare-and-closes the reviewed `sourceStateDigest`.
 
 Its terminal output is a compact projection of real Runtime responses. The receipt contains selected identities, statuses, timings and digests for media or documentation use; it excludes the bearer token, local source paths, Runtime state roots and unrelated Jobs.

@@ -50,13 +50,16 @@ const MIGRATION_V5_SQL: &str =
     include_str!("../../migrations/runtime/0005_condition_retirement.sql");
 pub const RUNTIME_CONDITION_RETIREMENT_MIGRATION_CHECKSUM: &str =
     "sha256:ae8e45dde797715492d383a01a1802c9a4d5a4c2f77042fe40379052eb06d097";
-pub(crate) const MAX_MIGRATION_VERSION: i64 = 5;
+pub(crate) const WORKSPACE_PATCH_RETIREMENT_MIGRATION_VERSION: i64 = 6;
+const MIGRATION_V6_NAME: &str = "0006_workspace_patch_retirement";
+const MIGRATION_V6_SQL: &str =
+    include_str!("../../migrations/runtime/0006_workspace_patch_retirement.sql");
+pub const RUNTIME_WORKSPACE_PATCH_RETIREMENT_MIGRATION_CHECKSUM: &str =
+    "sha256:90288d85d61bbd67646fd7c86f17280c0e0145aa8aa4c018025f2259c804b890";
+pub(crate) const MAX_MIGRATION_VERSION: i64 = 6;
 const REDUNDANT_EVENT_SEQUENCE_INDEX: &str = "idx_events_job_sequence";
 const DROP_REDUNDANT_EVENT_SEQUENCE_INDEX_SQL: &str =
     "DROP INDEX IF EXISTS idx_events_job_sequence";
-const WORKSPACE_PATCH_STORAGE_SQL: &str = include_str!("workspace_patch_storage.sql");
-const WORKSPACE_PATCH_TABLE: &str = "workspace_patch_operations";
-const WORKSPACE_PATCH_INDEX: &str = "idx_workspace_patch_operations_workspace";
 const EXECUTION_PROVIDER_STORAGE_SQL: &str = include_str!("execution_provider_storage.sql");
 const EXECUTION_PROVIDER_TABLE: &str = "job_execution_providers";
 const ATTEMPT_SUPERVISOR_OWNER_STORAGE_SQL: &str =

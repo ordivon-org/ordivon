@@ -49,8 +49,6 @@ EXPECTED_TOOLS = {
     "workspace.list",
     "workspace.mutate",
     "workspace.open",
-    "workspace.patch",
-    "workspace.patch.get",
     "workspace.read",
 }
 TERMINAL = {"succeeded", "failed", "timed_out", "cancelled", "lost", "orphaned"}
@@ -1070,81 +1068,6 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
             },
         )
         check("workspace-mutate", len(mutated.get("mutations", [])) == 3, mutated)
-
-        patch_before = client.tool(
-            "workspace.read",
-            {
-                "schemaVersion": SCHEMA_VERSION,
-                "workspaceId": workspace_id,
-                "relativePath": "README.md",
-                "mode": "FULL",
-                "offset": 0,
-                "maxBytes": 4096,
-            },
-        )
-        patch_request_id = f"patch:{uuid.uuid4()}"
-        patch_request = {
-            "schemaVersion": SCHEMA_VERSION,
-            "clientRequestId": patch_request_id,
-            "workspaceId": workspace_id,
-            "files": [
-                {
-                    "relativePath": "README.md",
-                    "expectedDigest": patch_before["digest"],
-                    "edits": [
-                        {
-                            "range": {
-                                "start": {"line": 1, "column": 0},
-                                "end": {"line": 1, "column": 14},
-                            },
-                            "expectedText": "hello accepted",
-                            "replacement": "hello durable",
-                        }
-                    ],
-                }
-            ],
-            "maxDiffBytes": 65_536,
-        }
-        patched = client.tool("workspace.patch", patch_request)
-        check(
-            "workspace-patch",
-            patched.get("clientRequestId") == patch_request_id
-            and patched.get("replayed") is False
-            and "hello durable" in patched.get("patch", {}).get("diff", ""),
-            patched,
-        )
-        patch_replay = client.tool("workspace.patch", patch_request)
-        check(
-            "workspace-patch-exact-replay",
-            patch_replay.get("operationId") == patched.get("operationId")
-            and patch_replay.get("requestDigest") == patched.get("requestDigest")
-            and patch_replay.get("replayed") is True,
-            patch_replay,
-        )
-        patch_status = client.tool(
-            "workspace.patch.get",
-            {
-                "schemaVersion": SCHEMA_VERSION,
-                "clientRequestId": patch_request_id,
-            },
-        )
-        check(
-            "workspace-patch-receipt",
-            patch_status.get("operationId") == patched.get("operationId")
-            and patch_status.get("state") == "committed"
-            and patch_status.get("patch") == patched.get("patch"),
-            patch_status,
-        )
-        conflicting_patch = json.loads(json.dumps(patch_request))
-        conflicting_patch["files"][0]["edits"][0]["replacement"] = "conflict"
-        conflict_result = client.tool_result("workspace.patch", conflicting_patch)
-        conflict_error = conflict_result.get("structuredContent", {}).get("error", {})
-        check(
-            "workspace-patch-idempotency-conflict",
-            conflict_result.get("isError") is True
-            and conflict_error.get("code") == "IDEMPOTENCY_CONFLICT",
-            conflict_result,
-        )
 
         changes_first = client.tool(
             "workspace.changes",
