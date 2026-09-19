@@ -1,0 +1,112 @@
+{
+  "acceptedClaims": [
+    "P5 can compare explicit de-risk, hedge, diversify, hold, and reconcile scenarios without selecting a winner.",
+    "A HEDGE label is insufficient: the named target factor absolute exposure must mechanically decline.",
+    "A hedge can reduce a named proxy-factor exposure while increasing gross exposure and leaving instrument-specific shock exposure unchanged.",
+    "An equal-notional reallocation can reduce single-name concentration without reducing gross exposure.",
+    "P6 separates evidence completeness from action approval and never grants effect authority.",
+    "Without an explicit user risk budget, scenario gates remain incomplete rather than inferring tolerance."
+  ],
+  "actionContracts": [
+    "DE_RISK",
+    "HEDGE",
+    "DIVERSIFY",
+    "HOLD",
+    "RECONCILE"
+  ],
+  "date": "2026-09-19",
+  "implementation": {
+    "docs": "docs/PORTFOLIO_COUNTERFACTUALS_P5_P6_R1.md",
+    "module": "src/market_capital/portfolio_counterfactuals.py",
+    "tests": "tests/test_portfolio_counterfactuals.py"
+  },
+  "implementedNodes": [
+    "P5_ACTION_COUNTERFACTUALS",
+    "P6_CONSTRAINT_GATE"
+  ],
+  "kind": "ordivon.acceptance-evidence",
+  "nonClaims": [
+    "No scenario is recommended or ranked.",
+    "Historical MU or XAU dependence is not a forecast.",
+    "Proxy factor exposure is not causal factor truth.",
+    "Current public spread/funding/basis observations do not determine future execution cost.",
+    "Exact cross-margin impact for adding a position was not measured.",
+    "No external financial write authority is granted."
+  ],
+  "privateRuntimeCanary": {
+    "deriskReducedGrossExposure": true,
+    "deriskReducedNamedSndkShockSensitivity": true,
+    "exactIncrementalCrossMarginMeasuredForNewPositions": false,
+    "executed": true,
+    "holdChangedPositions": false,
+    "muProxyHedgeDidNotReduceSndkSpecificShockSensitivity": true,
+    "muProxyHedgeIncreasedGrossExposure": true,
+    "muProxyHedgeReducedNamedMemoryProxyExposure": true,
+    "privateValuesPersisted": false,
+    "reconcileChangedPositions": false,
+    "riskBudgetAvailable": false,
+    "scenarioRankingPerformed": false,
+    "xauReallocationDidNotReduceTotalGrossExposureInEqualNotionalScenario": true,
+    "xauReallocationReducedSingleNameConcentration": true,
+    "xauReallocationReducedSndkSpecificShockSensitivity": true
+  },
+  "publicEvidence": {
+    "alternative_macro": {
+      "downsideCorrelation": "0.203813",
+      "fullBeta": "1.103119",
+      "fullCorrelation": "0.248385",
+      "instrumentId": "XAU-USDT-SWAP",
+      "mediumCorrelation": "0.133060",
+      "overlapReturnCount": 178,
+      "publicCostSnapshot": {
+        "ask": "4380.7",
+        "basisBps": "3.128403852",
+        "bid": "4380.6",
+        "fundingRate": "0.0000000000000000",
+        "observedAtMs": 1789800563461,
+        "spreadBps": "0.228276626"
+      },
+      "shortCorrelation": "-0.235614"
+    },
+    "memory": {
+      "downsideCorrelation": "0.750657",
+      "fullBeta": "1.075095",
+      "fullCorrelation": "0.843824",
+      "instrumentId": "MU-USDT-SWAP",
+      "mediumCorrelation": "0.879055",
+      "overlapReturnCount": 178,
+      "publicCostSnapshot": {
+        "ask": "1007.41",
+        "basisBps": "4.369587670",
+        "bid": "1007.4",
+        "fundingRate": "0.0000000000000000",
+        "observedAtMs": 1789800561069,
+        "spreadBps": "0.099264943"
+      },
+      "shortCorrelation": "0.838221"
+    }
+  },
+  "schemaVersion": 1,
+  "semanticGuards": {
+    "diversificationCannotClaimCausalHedgeFromLowCorrelation": true,
+    "effectAdmissionGranted": false,
+    "externalFinancialWriteAttempted": false,
+    "hedgeLabelCannotOverrideFactorMechanics": true,
+    "hedgeRequiresNamedTargetFactor": true,
+    "newPositionActionRequiresFundingBasisCarryEvidence": true,
+    "newPositionActionRequiresMarginEvidence": true,
+    "onlyExplicitCallerCounterfactualSizing": true,
+    "positionChangingActionRequiresLiquidityEvidence": true,
+    "rankingProduced": false,
+    "reconcileRequiresExplicitSignpost": true,
+    "tradeRecommendationProduced": false,
+    "winnerSelected": false
+  },
+  "subject": "portfolio-counterfactuals-p5-p6-r1",
+  "truthRole": "implementation-and-public-evidence-not-allocation-truth",
+  "verification": {
+    "canonicalSuite": "182 passed",
+    "focusedTests": "11 passed",
+    "gitDiffCheck": "PASS"
+  }
+}
