@@ -23,7 +23,12 @@ def test_quantitative_component_inventory_validates_against_json_schema_2020_12(
 def test_custom_regime_card_is_retired_and_dependence_model_requires_validation():
     by_id = {row["id"]: row for row in _inventory()["components"]}
     assert by_id["regime-card-r1"]["status"] == "RETIRED"
-    assert by_id["portfolio-dependence-analysis"]["status"] == "VALIDATION_REQUIRED"
+    dependence = by_id["portfolio-dependence-analysis"]
+    assert dependence["status"] == "VALIDATION_REQUIRED"
+    assert dependence["validation"]["standing"] == "DEVELOPMENT_TESTED"
+    tail = by_id["historical-expected-shortfall"]
+    assert tail["sr26ModelStanding"] == "NON_MODEL"
+    assert tail["classification"] == "NON_MODEL_CALCULATION"
 
 
 def test_active_source_and_current_docs_do_not_depend_on_lego_or_lens_router():

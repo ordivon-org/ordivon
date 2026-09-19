@@ -6,6 +6,8 @@ from statistics import median
 
 import numpy as np
 from scipy.stats import linregress
+from sklearn.linear_model import HuberRegressor, LinearRegression
+from sklearn.model_selection import TimeSeriesSplit
 from typing import Any, Mapping, Sequence
 
 
@@ -306,6 +308,191 @@ def analyze_dependence(
         "structuralWarnings": structural_warnings,
     }
 
+
+
+def validate_dependence_model(
+    *,
+    base_instrument_id: str,
+    base_returns: Mapping[int, float],
+    proxy_instrument_id: str,
+    proxy_returns: Mapping[int, float],
+    n_splits: int = 5,
+    gap: int = 0,
+) -> dict[str, Any]:
+    """Walk-forward validation for the historical dependence model.
+
+    Uses scikit-learn's TimeSeriesSplit, ordinary least squares as the primary
+    estimator, and HuberRegressor as a robust challenger. The result is
+    continuous validation evidence only; this function does not invent a
+    pass/fail threshold or approve a hedge.
+    """
+
+    if not isinstance(n_splits, int) or n_splits < 2:
+        raise PortfolioRiskError("n_splits must be an integer >= 2")
+    if not isinstance(gap, int) or gap < 0:
+        raise PortfolioRiskError("gap must be a non-negative integer")
+
+    timestamps = sorted(set(base_returns) & set(proxy_returns))
+    if len(timestamps) < max(30, n_splits + 8):
+        raise PortfolioRiskError("insufficient overlapping returns for walk-forward validation")
+
+    y = np.asarray(
+        [_float(base_returns[t], f"base_returns[{t}]") for t in timestamps],
+        dtype=float,
+    )
+    x = np.asarray(
+        [_float(proxy_returns[t], f"proxy_returns[{t}]") for t in timestamps],
+        dtype=float,
+    ).reshape(-1, 1)
+
+    splitter = TimeSeriesSplit(n_splits=n_splits, gap=gap)
+    folds: list[dict[str, Any]] = []
+    primary_variance_reductions: list[float] = []
+    challenger_variance_reductions: list[float] = []
+    primary_maes: list[float] = []
+    challenger_maes: list[float] = []
+    primary_betas: list[float] = []
+    challenger_betas: list[float] = []
+
+    for fold_id, (train_idx, test_idx) in enumerate(splitter.split(x), start=1):
+        if len(train_idx) < 8 or len(test_idx) < 2:
+            raise PortfolioRiskError("walk-forward split produced an undersized train/test fold")
+
+        primary = LinearRegression().fit(x[train_idx], y[train_idx])
+        challenger = HuberRegressor().fit(x[train_idx], y[train_idx])
+
+        primary_pred = primary.predict(x[test_idx])
+        challenger_pred = challenger.predict(x[test_idx])
+        y_test = y[test_idx]
+
+        base_variance = float(np.var(y_test, ddof=1))
+        primary_residual = y_test - primary_pred
+        challenger_residual = y_test - challenger_pred
+        primary_residual_variance = float(np.var(primary_residual, ddof=1))
+        challenger_residual_variance = float(np.var(challenger_residual, ddof=1))
+
+        primary_vr = None if base_variance <= 0 else 1 - primary_residual_variance / base_variance
+        challenger_vr = None if base_variance <= 0 else 1 - challenger_residual_variance / base_variance
+
+        primary_mae = float(np.mean(np.abs(primary_residual)))
+        challenger_mae = float(np.mean(np.abs(challenger_residual)))
+        primary_beta = float(primary.coef_[0])
+        challenger_beta = float(challenger.coef_[0])
+
+        if primary_vr is not None:
+            primary_variance_reductions.append(primary_vr)
+        if challenger_vr is not None:
+            challenger_variance_reductions.append(challenger_vr)
+        primary_maes.append(primary_mae)
+        challenger_maes.append(challenger_mae)
+        primary_betas.append(primary_beta)
+        challenger_betas.append(challenger_beta)
+
+        folds.append({
+            "fold": fold_id,
+            "trainCount": int(len(train_idx)),
+            "testCount": int(len(test_idx)),
+            "trainStartObservedAtMs": int(timestamps[int(train_idx[0])]),
+            "trainEndObservedAtMs": int(timestamps[int(train_idx[-1])]),
+            "testStartObservedAtMs": int(timestamps[int(test_idx[0])]),
+            "testEndObservedAtMs": int(timestamps[int(test_idx[-1])]),
+            "primary": {
+                "estimator": "sklearn.linear_model.LinearRegression",
+                "beta": format(primary_beta, ".6f"),
+                "intercept": format(float(primary.intercept_), ".6f"),
+                "oosMeanAbsoluteError": format(primary_mae, ".8f"),
+                "oosResidualVariance": format(primary_residual_variance, ".10f"),
+                "oosVarianceReductionVsUnhedged": (
+                    format(primary_vr, ".6f") if primary_vr is not None else None
+                ),
+            },
+            "challenger": {
+                "estimator": "sklearn.linear_model.HuberRegressor",
+                "beta": format(challenger_beta, ".6f"),
+                "intercept": format(float(challenger.intercept_), ".6f"),
+                "oosMeanAbsoluteError": format(challenger_mae, ".8f"),
+                "oosResidualVariance": format(challenger_residual_variance, ".10f"),
+                "oosVarianceReductionVsUnhedged": (
+                    format(challenger_vr, ".6f") if challenger_vr is not None else None
+                ),
+            },
+            "unhedgedTestVariance": format(base_variance, ".10f"),
+        })
+
+    def _summary(values: Sequence[float]) -> dict[str, str] | None:
+        if not values:
+            return None
+        return {
+            "min": format(min(values), ".6f"),
+            "median": format(median(values), ".6f"),
+            "max": format(max(values), ".6f"),
+        }
+
+    return {
+        "schemaVersion": 1,
+        "kind": "ordivon.market-capital.dependence-model-validation",
+        "componentId": "portfolio-dependence-analysis",
+        "validationMethod": "SCIKIT_LEARN_WALK_FORWARD_TIME_SERIES_SPLIT",
+        "baseInstrumentId": base_instrument_id,
+        "proxyInstrumentId": proxy_instrument_id,
+        "overlapReturnCount": len(timestamps),
+        "nSplits": n_splits,
+        "gap": gap,
+        "primaryEstimator": "sklearn.linear_model.LinearRegression",
+        "challengerEstimator": "sklearn.linear_model.HuberRegressor",
+        "folds": folds,
+        "summary": {
+            "primaryOosVarianceReduction": _summary(primary_variance_reductions),
+            "challengerOosVarianceReduction": _summary(challenger_variance_reductions),
+            "primaryOosMeanAbsoluteError": _summary(primary_maes),
+            "challengerOosMeanAbsoluteError": _summary(challenger_maes),
+            "primaryBeta": _summary(primary_betas),
+            "challengerBeta": _summary(challenger_betas),
+        },
+    }
+
+
+def historical_expected_shortfall(
+    returns: Sequence[Any],
+    *,
+    confidence: float = 0.975,
+) -> dict[str, Any]:
+    """Empirical one-period loss VaR and expected shortfall.
+
+    This is a descriptive historical tail statistic. It performs no regulatory
+    capital calculation, distribution fitting, forecasting, or liquidity-horizon
+    scaling.
+    """
+
+    if not (0 < confidence < 1):
+        raise PortfolioRiskError("confidence must be in (0, 1)")
+    if len(returns) < 20:
+        raise PortfolioRiskError("at least 20 returns are required for historical expected shortfall")
+
+    values = np.asarray(
+        [_float(value, f"returns[{i}]") for i, value in enumerate(returns)],
+        dtype=float,
+    )
+    losses = -values
+    value_at_risk = float(np.quantile(losses, confidence, method="linear"))
+    tail = losses[losses >= value_at_risk]
+    if tail.size == 0:
+        raise PortfolioRiskError("expected-shortfall tail set is empty")
+    expected_shortfall = float(np.mean(tail))
+
+    return {
+        "schemaVersion": 1,
+        "kind": "ordivon.market-capital.historical-expected-shortfall",
+        "componentId": "historical-expected-shortfall",
+        "method": "EMPIRICAL_HISTORICAL_TAIL_MEAN",
+        "confidence": format(confidence, ".6f"),
+        "observationCount": int(values.size),
+        "tailObservationCount": int(tail.size),
+        "valueAtRiskLossFraction": format(value_at_risk, ".8f"),
+        "expectedShortfallLossFraction": format(expected_shortfall, ".8f"),
+        "liquidityHorizonScalingApplied": False,
+        "regulatoryCapitalCalculation": False,
+    }
 
 def build_factor_observatory(
     *,

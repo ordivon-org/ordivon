@@ -9,7 +9,7 @@ import time
 from typing import Any, Mapping, Sequence
 from urllib.parse import urlencode
 
-from .portfolio_risk import PortfolioRiskError, build_factor_observatory, completed_log_returns
+from .portfolio_risk import PortfolioRiskError, build_factor_observatory, completed_log_returns, validate_dependence_model
 
 
 BASE_URL = "https://openapi.okx.com"
@@ -96,6 +96,8 @@ def capture_okx_factor_observatory(
     factor_proxies: Sequence[Mapping[str, str]],
     proxy: str,
     limit: int = 180,
+    include_validation: bool = False,
+    validation_splits: int = 5,
 ) -> dict[str, Any]:
     if not base_instrument_id.strip():
         raise OkxFactorObserverError("base_instrument_id is required")
@@ -138,7 +140,7 @@ def capture_okx_factor_observatory(
             for factor, inst in specs
         ],
     )
-    return {
+    result = {
         "schemaVersion": 1,
         "kind": "ordivon.market-capital.okx-public-factor-observatory",
         "sourceAuthority": "OKX_PUBLIC_COMPLETED_1D_CANDLES",
@@ -149,6 +151,25 @@ def capture_okx_factor_observatory(
         "privateAccountDataUsed": False,
         "externalFinancialWriteAttempted": False,
     }
+    if include_validation:
+        result["modelValidation"] = {
+            "validatedComponentId": "portfolio-dependence-analysis",
+            "rows": [
+                {
+                    "factor": factor,
+                    "proxyInstrumentId": inst,
+                    "validation": validate_dependence_model(
+                        base_instrument_id=base_instrument_id,
+                        base_returns=returns[base_instrument_id],
+                        proxy_instrument_id=inst,
+                        proxy_returns=returns[inst],
+                        n_splits=validation_splits,
+                    ),
+                }
+                for factor, inst in specs
+            ],
+        }
+    return result
 
 
 def main() -> int:
@@ -157,6 +178,8 @@ def main() -> int:
     ap.add_argument("--proxy", required=True)
     ap.add_argument("--factor", action="append", default=[], help="FACTOR=INSTRUMENT")
     ap.add_argument("--limit", type=int, default=180)
+    ap.add_argument("--include-validation", action="store_true")
+    ap.add_argument("--validation-splits", type=int, default=5)
     ap.add_argument("--output", type=Path)
     args = ap.parse_args()
 
@@ -172,6 +195,8 @@ def main() -> int:
         factor_proxies=specs,
         proxy=args.proxy,
         limit=args.limit,
+        include_validation=args.include_validation,
+        validation_splits=args.validation_splits,
     )
     rendered = json.dumps(result, indent=2, sort_keys=True) + "\n"
     if args.output:

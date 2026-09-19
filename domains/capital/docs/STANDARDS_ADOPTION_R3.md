@@ -1,7 +1,7 @@
 # Market Capital Standards Adoption R3
 
 Date: 2026-09-19
-Status: CURRENT ARCHITECTURE BASELINE
+Status: SUPERSEDED BY STANDARDS_ADOPTION_R4
 
 ## Rule
 
