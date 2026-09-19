@@ -229,7 +229,7 @@ impl RuntimeServer {
                 "--drain-seconds".to_string(),
                 "30".to_string(),
             ];
-            let proposal = TaskRunProposal {
+            let proposal = JobRunProposal {
                 schema_version: RUNTIME_SCHEMA_VERSION,
                 client_request_id: request.client_request_id.clone(),
                 principal: principal.clone(),
@@ -572,7 +572,7 @@ impl RuntimeServer {
     #[tool(
         name = "workspace.exec",
         description = "Run one effect-opaque command inside a workspace with the installed service user's trusted-local authority. execution.executable must be an absolute host path and execution.cwdRelative must be relative to the Workspace root. For trusted_local local_linux only, execution.hostDependencies may declare known absolute regular host prerequisite files with exact SHA-256 digests; Runtime binds them into operation identity, validates them at admission and before dispatch, then Runner establishes path/topology drift witnesses before its final digest checks and keeps those witnesses active through the Attempt. Runtime likewise witnesses the target executable path through each step while preserving normal pathname semantics. A witnessed Runtime-host-namespace write/replace/rename/delete fails closed instead of being reported as a successful committed realization. Host Dependency continuity evidence carries scope runtime_host_namespace_path_witness: trusted_local target code retains its authority and may intentionally establish another mount/root namespace view, so this witness is not target namespace isolation or proof that the target consumed the committed bytes. This is an explicit partial prerequisite/path-continuity contract, not automatic dependency discovery, immutability, or a complete environment snapshot. Duplicate clientRequestId admission is idempotent and exact replay resolves the existing Job before consulting current dependency bytes. Omitted waitMs performs only a brief 2-second observation after durable admission; long work returns the same Job for job.observe rather than holding the MCP request open. Results expose exact Attempt state, execution and delivery disposition, recovery requirement, and explicitly do not claim semantic completion or external-effect idempotency.",
-        output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<TaskObservation>>(),
+        output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<JobObservation>>(),
         annotations(
             title = "Execute transactional workspace job",
             read_only_hint = false,
@@ -585,7 +585,7 @@ impl RuntimeServer {
         &self,
         principal: EffectivePrincipal,
         Parameters(request): Parameters<WorkspaceExecRequest>,
-    ) -> ToolOutcome<TaskObservation> {
+    ) -> ToolOutcome<JobObservation> {
         let runtime = self.state.runtime.clone();
         let request = self
             .state
@@ -593,10 +593,10 @@ impl RuntimeServer {
             .with_principal(principal.0)
             .bind(request);
         self.run_core("workspace.exec", move || match request {
-            BoundTaskRun::Legacy(request) => runtime.run_task(&request).map_err(ToolError::from),
-            BoundTaskRun::Proposal(proposal) => runtime
-                .run_task_proposal(&proposal)
-                .map_err(ToolError::from),
+            BoundTaskRun::Legacy(request) => runtime.run_job(&request).map_err(ToolError::from),
+            BoundTaskRun::Proposal(proposal) => {
+                runtime.run_job_proposal(&proposal).map_err(ToolError::from)
+            }
         })
         .await
     }
@@ -604,7 +604,7 @@ impl RuntimeServer {
     #[tool(
         name = "workspace.execBound",
         description = "Admit one execution with exact immutable inputs from operator-configured named authorities. local_linux uses contained_local and a read-only /run/ordivon/inputs bind. windows_native uses trusted_local with the limited Windows token only and a provider-owned native read-only input presentation; elevated Windows input-bound execution is rejected. Each input names only an authority, relative object, expected SHA-256 digest, and presentation-relative path. Runtime resolves and copies bytes only on new admission, freezes effective input commitments into the Job, and exact replay returns the historical Job before consulting current authority state. Omitted waitMs performs only a brief 2-second observation after durable admission; long work returns the same Job for job.observe. This is physical execution evidence only and does not imply domain semantic completion or target-byte isolation from separate elevated host authority.",
-        output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<TaskObservation>>(),
+        output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<JobObservation>>(),
         annotations(
             title = "Execute with immutable inputs",
             read_only_hint = false,
@@ -617,7 +617,7 @@ impl RuntimeServer {
         &self,
         principal: EffectivePrincipal,
         Parameters(request): Parameters<WorkspaceExecBoundRequest>,
-    ) -> ToolOutcome<TaskObservation> {
+    ) -> ToolOutcome<JobObservation> {
         let runtime = self.state.runtime.clone();
         let (proposal, inputs) = self
             .state
@@ -626,7 +626,7 @@ impl RuntimeServer {
             .bind_bound(request);
         self.run_core("workspace.execBound", move || {
             runtime
-                .run_task_proposal_with_inputs(&proposal, &inputs)
+                .run_job_proposal_with_inputs(&proposal, &inputs)
                 .map_err(ToolError::from)
         })
         .await
@@ -635,7 +635,7 @@ impl RuntimeServer {
     #[tool(
         name = "workspace.execBoundTrusted",
         description = "Admit one trusted-local Linux execution with exact immutable inputs from operator-configured named authorities. This is an explicit higher-authority sibling of workspace.execBound: it preserves exact digest-bound Job-owned input materialization and read-only /run/ordivon/inputs presentation, but intentionally retains trusted_local ambient host and network authority. It supports local_linux only, does not infer provider/domain permission from input presence, and does not make external effects idempotent or reconcilable. Exact replay returns the historical Job before consulting current authority state.",
-        output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<TaskObservation>>(),
+        output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<JobObservation>>(),
         annotations(
             title = "Execute trusted-local with immutable inputs",
             read_only_hint = false,
@@ -648,7 +648,7 @@ impl RuntimeServer {
         &self,
         principal: EffectivePrincipal,
         Parameters(request): Parameters<WorkspaceExecBoundRequest>,
-    ) -> ToolOutcome<TaskObservation> {
+    ) -> ToolOutcome<JobObservation> {
         let runtime = self.state.runtime.clone();
         let execution = self.state.execution.with_principal(principal.0);
         let (proposal, inputs) = match execution.bind_bound_trusted(request) {
@@ -657,7 +657,7 @@ impl RuntimeServer {
         };
         self.run_core("workspace.execBoundTrusted", move || {
             runtime
-                .run_task_proposal_with_inputs(&proposal, &inputs)
+                .run_job_proposal_with_inputs(&proposal, &inputs)
                 .map_err(ToolError::from)
         })
         .await
@@ -666,7 +666,7 @@ impl RuntimeServer {
     #[tool(
         name = "workspace.execPlan",
         description = "Run an ordered structured execution plan inside one Workspace. Steps use absolute executables and explicit args, run sequentially, stop on the first failure by default, and continue only when that step explicitly sets continueOnError. For trusted_local local_linux only, execution.hostDependencies may bind known absolute regular host prerequisite files by exact SHA-256 across the whole Job. Runtime validates them at admission and before dispatch; Runner then establishes path/topology drift witnesses before final digest validation and keeps them active across the complete plan, while each target executable path is independently witnessed through its step. Runtime fails closed on witnessed runtime drift without pretending that the files are immutable or that it inferred a complete environment closure. Exact replay resolves the committed Job before current dependency checks. Omitted waitMs performs only a brief 2-second observation after durable admission; long work returns the same Job for job.observe. The Job exposes step progress plus exact Attempt state, execution and delivery disposition, and recovery requirement without asking the caller to infer them from output.",
-        output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<TaskObservation>>(),
+        output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<JobObservation>>(),
         annotations(
             title = "Execute fail-fast workspace plan",
             read_only_hint = false,
@@ -679,7 +679,7 @@ impl RuntimeServer {
         &self,
         principal: EffectivePrincipal,
         Parameters(request): Parameters<WorkspaceExecPlanRequest>,
-    ) -> ToolOutcome<TaskObservation> {
+    ) -> ToolOutcome<JobObservation> {
         let runtime = self.state.runtime.clone();
         let execution = self.state.execution.with_principal(principal.0);
         let request = match execution.bind_plan(request) {
@@ -687,10 +687,10 @@ impl RuntimeServer {
             Err(error) => return ToolOutcome::Error(error),
         };
         self.run_core("workspace.execPlan", move || match request {
-            BoundTaskRun::Legacy(request) => runtime.run_task(&request).map_err(ToolError::from),
-            BoundTaskRun::Proposal(proposal) => runtime
-                .run_task_proposal(&proposal)
-                .map_err(ToolError::from),
+            BoundTaskRun::Legacy(request) => runtime.run_job(&request).map_err(ToolError::from),
+            BoundTaskRun::Proposal(proposal) => {
+                runtime.run_job_proposal(&proposal).map_err(ToolError::from)
+            }
         })
         .await
     }
@@ -729,7 +729,7 @@ impl RuntimeServer {
     #[tool(
         name = "job.observe",
         description = "Observe or briefly await one exact Job and reconcile that Job before projection. If the durable Job is still accepted with desiredState=run, this call may dispatch that already-committed execution intent; it never creates a new Job. Exact Attempt state, terminal execution disposition, delivery certainty, recovery requirement, result availability, and semanticCompletionEvaluated=false are projected explicitly. Omit offsets for tail mode, or pass stdoutOffset/stderrOffset with at least 4 tail bytes to read only new retained UTF-8 text and continue from returned next offsets.",
-        output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<TaskObservation>>(),
+        output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<JobObservation>>(),
         annotations(
             title = "Observe transactional job",
             read_only_hint = false,
@@ -740,11 +740,11 @@ impl RuntimeServer {
     )]
     async fn job_observe(
         &self,
-        Parameters(request): Parameters<TaskObserveRequest>,
-    ) -> ToolOutcome<TaskObservation> {
+        Parameters(request): Parameters<JobObserveRequest>,
+    ) -> ToolOutcome<JobObservation> {
         let runtime = self.state.runtime.clone();
         self.run_core("job.observe", move || {
-            runtime.observe_task(&request).map_err(ToolError::from)
+            runtime.observe_job(&request).map_err(ToolError::from)
         })
         .await
     }
@@ -752,7 +752,7 @@ impl RuntimeServer {
     #[tool(
         name = "job.cancel",
         description = "Persist cancellation intent, stop the cgroup-owned process tree, and reconcile the Job.",
-        output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<TaskObservation>>(),
+        output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<JobObservation>>(),
         annotations(
             title = "Cancel transactional job",
             read_only_hint = false,
@@ -763,11 +763,11 @@ impl RuntimeServer {
     )]
     async fn job_cancel(
         &self,
-        Parameters(request): Parameters<TaskCancelRequest>,
-    ) -> ToolOutcome<TaskObservation> {
+        Parameters(request): Parameters<JobCancelRequest>,
+    ) -> ToolOutcome<JobObservation> {
         let runtime = self.state.runtime.clone();
         self.run_core("job.cancel", move || {
-            runtime.cancel_task(&request).map_err(ToolError::from)
+            runtime.cancel_job(&request).map_err(ToolError::from)
         })
         .await
     }

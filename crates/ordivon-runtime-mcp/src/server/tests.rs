@@ -1,7 +1,7 @@
 use super::*;
 use ordivon_runtime_core::{
-    ArtifactDescriptor, AttemptState, AttemptTerminationIntent, JobDesiredState, RegistryConfig,
-    RuntimeDeliveryDisposition, TaskObservation,
+    ArtifactDescriptor, AttemptState, AttemptTerminationIntent, JobDesiredState, JobObservation,
+    RegistryConfig, RuntimeDeliveryDisposition,
 };
 use std::fs;
 use std::path::PathBuf;
@@ -1326,14 +1326,14 @@ fn tool_effect_annotations_match_runtime_behavior() {
 #[test]
 fn tool_inputs_default_missing_schema_version_to_pinned_version() {
     use ordivon_runtime_core::{
-        RuntimeWorkspaceListRequest, TaskCancelRequest, WorkspaceCloseRequest,
+        JobCancelRequest, RuntimeWorkspaceListRequest, WorkspaceCloseRequest,
         WorkspaceContentRequest, WorkspaceMutateRequest,
     };
     // Core-crate request structs used by MCP tools: omitted schemaVersion
     // must deserialize to the pinned version instead of failing.
     let list: RuntimeWorkspaceListRequest = serde_json::from_str(r#"{"limit": 5}"#).unwrap();
     assert_eq!(list.schema_version, 1);
-    let cancel: TaskCancelRequest = serde_json::from_str(r#"{"jobId":"job-1"}"#).unwrap();
+    let cancel: JobCancelRequest = serde_json::from_str(r#"{"jobId":"job-1"}"#).unwrap();
     assert_eq!(cancel.schema_version, 1);
     let close: WorkspaceCloseRequest = serde_json::from_str(r#"{"workspaceId":"ws-1"}"#).unwrap();
     assert_eq!(close.schema_version, 1);
@@ -1643,7 +1643,7 @@ fn tool_catalog_uses_transactional_job_contract() {
 
 #[test]
 fn job_observation_serializes_discoverable_artifacts() {
-    let observation = TaskObservation {
+    let observation = JobObservation {
         job_id: "job-test".to_string(),
         operation_digest: "sha256:operation-test".to_string(),
         status: "succeeded".to_string(),
@@ -2112,13 +2112,13 @@ fn workspace_open_output_schema_exposes_success_and_error_contract() {
 fn job_get_schema_is_projection_only_and_detail_free() {
     let sandbox = Sandbox::new("job-get-schema");
     let server = sandbox.server();
-    let task_get = server
+    let job_get = server
         .tool_router
         .list_all()
         .into_iter()
         .find(|tool| tool.name.as_ref() == "job.get")
         .unwrap();
-    let input = serde_json::to_value(&task_get.input_schema).unwrap();
+    let input = serde_json::to_value(&job_get.input_schema).unwrap();
     assert_eq!(
         input.pointer("/properties/eventLimit/default"),
         Some(&serde_json::json!(DEFAULT_INSPECTION_EVENT_LIMIT))
@@ -2131,7 +2131,7 @@ fn job_get_schema_is_projection_only_and_detail_free() {
     assert!(input.pointer("/properties/waitMs").is_none());
     assert!(input.pointer("/properties/stdoutTailBytes").is_none());
 
-    let output = serde_json::to_value(task_get.output_schema.as_ref().unwrap()).unwrap();
+    let output = serde_json::to_value(job_get.output_schema.as_ref().unwrap()).unwrap();
     let encoded = serde_json::to_string(&output).unwrap();
     for expected in [
         "sourceRevision",
@@ -2155,13 +2155,13 @@ fn job_get_schema_is_projection_only_and_detail_free() {
 fn job_list_schema_exposes_workspace_reattachment_filter() {
     let sandbox = Sandbox::new("task-list-workspace-filter-schema");
     let server = sandbox.server();
-    let task_list = server
+    let job_list = server
         .tool_router
         .list_all()
         .into_iter()
         .find(|tool| tool.name.as_ref() == "job.list")
         .unwrap();
-    let schema = serde_json::to_value(&task_list.input_schema).unwrap();
+    let schema = serde_json::to_value(&job_list.input_schema).unwrap();
     assert!(schema.pointer("/properties/workspaceId").is_some());
     let required = schema
         .pointer("/required")

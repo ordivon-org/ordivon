@@ -1,5 +1,5 @@
 impl Runtime {
-    pub fn cancel_task(&self, request: &TaskCancelRequest) -> RuntimeResult<TaskObservation> {
+    pub fn cancel_job(&self, request: &JobCancelRequest) -> RuntimeResult<JobObservation> {
         if request.schema_version != RUNTIME_SCHEMA_VERSION {
             return Err(RuntimeError::invalid(
                 "unsupported runtime schema version",
@@ -120,7 +120,7 @@ impl Runtime {
         &self,
         job_id: &str,
         attempt: &AttemptRecord,
-    ) -> RuntimeResult<TaskObservation> {
+    ) -> RuntimeResult<JobObservation> {
         let deadline = Instant::now() + Duration::from_secs(3);
         let mut poll_index = 0;
         loop {
@@ -1376,7 +1376,7 @@ fn inspect_runtime_release_receipt(
     })
 }
 
-fn validate_run_request_structure(request: &TaskRunRequest) -> RuntimeResult<()> {
+fn validate_run_request_structure(request: &JobRunRequest) -> RuntimeResult<()> {
     if request.schema_version != RUNTIME_SCHEMA_VERSION {
         return Err(RuntimeError::invalid(
             "unsupported runtime schema version",
@@ -1561,8 +1561,8 @@ fn validate_exec_payload_for_target(
     }
 }
 
-fn validate_run_proposal_structure(proposal: &super::TaskRunProposal) -> RuntimeResult<()> {
-    let validation_request = TaskRunRequest {
+fn validate_run_proposal_structure(proposal: &super::JobRunProposal) -> RuntimeResult<()> {
+    let validation_request = JobRunRequest {
         schema_version: proposal.schema_version,
         client_request_id: proposal.client_request_id.clone(),
         principal: proposal.principal.clone(),
@@ -1605,7 +1605,7 @@ fn validate_run_proposal_structure(proposal: &super::TaskRunProposal) -> Runtime
 }
 
 fn validate_new_admission_policy(
-    request: &TaskRunRequest,
+    request: &JobRunRequest,
     max_runtime_ms: u64,
     max_output_bytes: u64,
 ) -> RuntimeResult<()> {
@@ -1699,7 +1699,7 @@ fn validate_contained_environment(
     Ok(())
 }
 
-fn validate_observe_request(request: &TaskObserveRequest) -> RuntimeResult<()> {
+fn validate_observe_request(request: &JobObserveRequest) -> RuntimeResult<()> {
     if request.schema_version != RUNTIME_SCHEMA_VERSION {
         return Err(RuntimeError::invalid(
             "unsupported runtime schema version",
@@ -1719,19 +1719,19 @@ fn validate_observe_request(request: &TaskObserveRequest) -> RuntimeResult<()> {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-struct TaskActivitySignature {
+struct JobActivitySignature {
     status: String,
     stdout_bytes: u64,
     stderr_bytes: u64,
     progress_revision: u64,
 }
 
-fn task_activity_signature(
+fn job_activity_signature(
     attempt: Option<&AttemptRecord>,
     projection: &super::JobProjection,
-) -> RuntimeResult<TaskActivitySignature> {
+) -> RuntimeResult<JobActivitySignature> {
     let Some(attempt) = attempt else {
-        return Ok(TaskActivitySignature {
+        return Ok(JobActivitySignature {
             status: projection.status.clone(),
             stdout_bytes: 0,
             stderr_bytes: 0,
@@ -1744,7 +1744,7 @@ fn task_activity_signature(
     let progress_revision = load_runner_progress_if_present(attempt)?
         .map(|progress| progress.revision)
         .unwrap_or(0);
-    Ok(TaskActivitySignature {
+    Ok(JobActivitySignature {
         status: projection.status.clone(),
         stdout_bytes,
         stderr_bytes,

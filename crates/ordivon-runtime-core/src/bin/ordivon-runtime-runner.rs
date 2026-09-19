@@ -1,4 +1,4 @@
-use ordivon_runtime_core::run_task_runner;
+use ordivon_runtime_core::run_job_runner;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
@@ -20,7 +20,7 @@ fn main() -> ExitCode {
         eprintln!("unexpected additional arguments");
         return ExitCode::from(64);
     }
-    match run_task_runner(&PathBuf::from(task_dir)) {
+    match run_job_runner(&PathBuf::from(task_dir)) {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => {
             eprintln!("runner error: {error}");

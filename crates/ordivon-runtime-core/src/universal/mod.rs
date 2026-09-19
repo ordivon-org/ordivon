@@ -20,7 +20,7 @@ pub use projection::{
     workspace_diff_compact,
 };
 #[cfg(unix)]
-pub use runner::run_task_runner;
+pub use runner::run_job_runner;
 pub use types::{
     CompactWorkspaceDiffResult, CompactWorkspaceOpenResult, CompactWorkspaceReadResult,
     CompactWorkspaceSliceResult, GitWorkspaceCreateRequest, WorkspaceChangeCursor,

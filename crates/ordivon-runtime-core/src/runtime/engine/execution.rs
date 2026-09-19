@@ -173,7 +173,7 @@ impl Runtime {
 
     fn validate_host_dependencies(
         &self,
-        request: &TaskRunRequest,
+        request: &JobRunRequest,
     ) -> RuntimeResult<Vec<HostDependencyBinding>> {
         if request.execution.host_dependencies.is_empty() {
             return Ok(Vec::new());
@@ -294,7 +294,7 @@ impl Runtime {
         Ok(())
     }
 
-    fn resolve_plan(&self, request: &TaskRunRequest) -> RuntimeResult<RuntimeExecutionPlan> {
+    fn resolve_plan(&self, request: &JobRunRequest) -> RuntimeResult<RuntimeExecutionPlan> {
         let record = load_workspace_record(&self.executor, &request.execution.workspace_id)
             .map_err(map_universal_error)?;
         let workspace_path =
@@ -422,7 +422,7 @@ impl Runtime {
 
     fn materialize_input_bindings(
         &self,
-        request: &TaskRunRequest,
+        request: &JobRunRequest,
         request_identity_digest: &str,
         job_id: &str,
         inputs: &[InputBindingRequest],
@@ -1921,7 +1921,7 @@ impl Runtime {
         }
     }
 
-    fn commit_runner_result(&self, attempt: &AttemptRecord) -> RuntimeResult<TaskObservation> {
+    fn commit_runner_result(&self, attempt: &AttemptRecord) -> RuntimeResult<JobObservation> {
         let mut current = self.registry.get_attempt(&attempt.attempt_id)?;
         for retry in 0..=1 {
             if current.state == AttemptState::Orphaned

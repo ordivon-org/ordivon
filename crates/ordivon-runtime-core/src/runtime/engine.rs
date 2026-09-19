@@ -28,15 +28,15 @@ use super::{
     ArtifactReadResult, ArtifactRegistration, AttemptRecord, AttemptState,
     AttemptTerminationIntent, EffectiveInputBinding, ExecutionProviderContract,
     ExecutionProviderSnapshot, HostDependencyBinding, InputAccessMode, InputAuthority,
-    InputBindingRequest, JobDesiredState, JobResolution, Registry, RegistryConfig, RunnerIdentity,
+    InputBindingRequest, JobCancelRequest, JobDesiredState, JobObservation, JobObserveRequest,
+    JobObserveWaitUntil, JobResolution, JobRunRequest, Registry, RegistryConfig, RunnerIdentity,
     RuntimeArtifactRecord, RuntimeCapabilities, RuntimeError, RuntimeErrorCode,
     RuntimeExecutionPlan, RuntimeExecutionStep, RuntimeExecutionTargetCapability,
     RuntimeJobListRequest, RuntimeJobListResult, RuntimeReleaseAdmission, RuntimeReleaseContract,
     RuntimeReleaseDisposition, RuntimeReleaseEffectBinding, RuntimeReleaseGetRequest,
     RuntimeReleaseProjection, RuntimeReleaseRequest, RuntimeResult, RuntimeWorkspaceGetRequest,
     RuntimeWorkspaceIssue, RuntimeWorkspaceIssueStage, RuntimeWorkspaceListRequest,
-    RuntimeWorkspaceListResult, RuntimeWorkspaceSummary, SubmitRequest, TaskCancelRequest,
-    TaskObservation, TaskObserveRequest, TaskObserveWaitUntil, TaskRunRequest, TerminalCommit,
+    RuntimeWorkspaceListResult, RuntimeWorkspaceSummary, SubmitRequest, TerminalCommit,
     MAX_ARTIFACT_READ_BYTES, MAX_TASK_TAIL_BYTES, MAX_TASK_WAIT_MS, RUNTIME_SCHEMA_VERSION,
 };
 use crate::universal::{
@@ -930,7 +930,7 @@ mod trusted_systemd_command_tests {
     use super::*;
     use crate::{
         ExecutionBudget, ExecutionProfile, ExecutionProposal, ExecutionStepProposal,
-        TaskRunProposal, UniversalExecutionRequest,
+        JobRunProposal, UniversalExecutionRequest,
     };
     use proptest::prelude::*;
 
@@ -991,7 +991,7 @@ mod trusted_systemd_command_tests {
         let bytes = vec![b'F'; 2 * 1024 * 1024];
         fs::write(authority_root.join("fragment.bin"), &bytes).unwrap();
         let expected_digest = sha256_bytes(&bytes);
-        let request = TaskRunRequest {
+        let request = JobRunRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             client_request_id: "request:input-publish-race".to_string(),
             principal: "principal:test".to_string(),
@@ -1272,8 +1272,8 @@ mod trusted_systemd_command_tests {
         .unwrap()
     }
 
-    fn proposal(step_timeouts: &[Option<u64>]) -> TaskRunProposal {
-        TaskRunProposal {
+    fn proposal(step_timeouts: &[Option<u64>]) -> JobRunProposal {
+        JobRunProposal {
             schema_version: RUNTIME_SCHEMA_VERSION,
             client_request_id: "request:proposal-resolution".to_string(),
             principal: "principal:test".to_string(),
@@ -1450,7 +1450,7 @@ mod trusted_systemd_command_tests {
 
     #[test]
     fn configured_output_limit_is_enforced_before_admission() {
-        let request = TaskRunRequest {
+        let request = JobRunRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             client_request_id: "request:output-limit".to_string(),
             principal: "principal:test".to_string(),
@@ -1484,7 +1484,7 @@ mod trusted_systemd_command_tests {
 
     #[test]
     fn contained_runtime_paths_cannot_be_overridden_by_request_or_step_environment() {
-        let mut request = TaskRunRequest {
+        let mut request = JobRunRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             client_request_id: "request:contained-env".to_string(),
             principal: "principal:test".to_string(),
