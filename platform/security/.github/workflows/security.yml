@@ -27,5 +27,14 @@ jobs:
       - name: Validate TM-BOM schema
         run: ./scripts/validate_tmbom.sh threat-models/security-v2-r1.json
       - name: OPA policy tests
+        shell: bash
         run: |
-          echo "OPA is an external runtime dependency; local Runtime acceptance pins and executes the installed binary."
+          set -euo pipefail
+          image=$(uv run --frozen --python 3.14.7 python - <<'PY'
+          import json
+          value = json.load(open("providers.lock.json", encoding="utf-8"))
+          opa = next(row for row in value["providers"] if row["name"] == "opa")
+          print(f'{opa["ciContainer"]["image"]}@{opa["ciContainer"]["digest"]}')
+          PY
+          )
+          docker run --rm --volume "$PWD/policies:/policies:ro" "$image" test -v /policies
