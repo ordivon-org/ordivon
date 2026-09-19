@@ -771,6 +771,7 @@ internal static class OrdivonWindowsJobLauncher
         {
             throw new InvalidOperationException("--executable is required");
         }
+        options.Executable = NormalizeLauncherPath(options.Executable);
         options.Executable = Path.GetFullPath(options.Executable);
         if (!File.Exists(options.Executable))
         {
@@ -780,6 +781,7 @@ internal static class OrdivonWindowsJobLauncher
         {
             options.WorkingDirectory = Path.GetDirectoryName(options.Executable);
         }
+        options.WorkingDirectory = NormalizeLauncherPath(options.WorkingDirectory);
         options.WorkingDirectory = Path.GetFullPath(options.WorkingDirectory);
         if (!Directory.Exists(options.WorkingDirectory))
         {
@@ -787,6 +789,7 @@ internal static class OrdivonWindowsJobLauncher
         }
         if (options.RuntimeMode)
         {
+            options.RuntimeBundle = NormalizeLauncherPath(options.RuntimeBundle);
             options.RuntimeBundle = Path.GetFullPath(options.RuntimeBundle);
             if (!Directory.Exists(options.RuntimeBundle))
             {
@@ -828,11 +831,13 @@ internal static class OrdivonWindowsJobLauncher
                 {
                     throw new InvalidOperationException("runtime immutable input identity is invalid");
                 }
+                options.InputSourceRoot = NormalizeLauncherPath(options.InputSourceRoot);
                 options.InputSourceRoot = Path.GetFullPath(options.InputSourceRoot);
                 if (!Directory.Exists(options.InputSourceRoot))
                 {
                     throw new InvalidOperationException("runtime immutable input source root does not exist");
                 }
+                options.InputPresentationRoot = NormalizeLauncherPath(options.InputPresentationRoot);
                 options.InputPresentationRoot = Path.GetFullPath(options.InputPresentationRoot);
                 string programData;
                 if (!options.Environment.TryGetValue("ProgramData", out programData)
@@ -869,6 +874,23 @@ internal static class OrdivonWindowsJobLauncher
             throw new InvalidOperationException("--authority requires runtime execution or context description");
         }
         return options;
+    }
+
+    private static string NormalizeLauncherPath(string value)
+    {
+        if (String.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+        if (value.StartsWith("\\\\?\\UNC\\", StringComparison.OrdinalIgnoreCase))
+        {
+            return "\\\\" + value.Substring(8);
+        }
+        if (value.StartsWith("\\\\?\\", StringComparison.OrdinalIgnoreCase))
+        {
+            return value.Substring(4);
+        }
+        return value;
     }
 
     private static string RequireValue(string[] args, ref int index, string option)
