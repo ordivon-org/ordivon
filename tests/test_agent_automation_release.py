@@ -32,6 +32,7 @@ class ReleaseTests(unittest.TestCase):
             patch.object(r, "require_operator_carrier_available", return_value=None),
             patch.object(r, "require_mcp_runtime_importable", return_value=None),
             patch.object(r, "require_worker_runtime_importable", return_value=None),
+            patch.object(r, "require_playwright_runtime_importable", return_value=None),
             patch.object(
                 r,
                 "require_browser_security_release_qualification",
@@ -1027,3 +1028,19 @@ class BrowserSecurityReadinessQualificationTests(unittest.TestCase):
                 with self.assertRaises(release.ReleaseError):
                     release.require_browser_security_release_qualification(root, "a" * 40)
             self.assertEqual(invoked.call_count, 3)
+
+class PlaywrightRuntimeContractTests(unittest.TestCase):
+    def test_playwright_runtime_manifest_tracks_latest_and_jcs(self):
+        manifest = ROOT / "config" / "browserless-playwright-requirements.txt"
+        self.assertTrue(manifest.is_file())
+        self.assertEqual(
+            manifest.read_text().splitlines(),
+            ["playwright==1.63.0", "rfc8785==0.1.4"],
+        )
+
+    def test_release_exposes_playwright_runtime_gate(self):
+        self.assertTrue(hasattr(r, "require_playwright_runtime_importable"))
+        self.assertEqual(
+            r.PLAYWRIGHT_RUNTIME_VERSIONS,
+            {"playwright": "1.63.0", "rfc8785": "0.1.4"},
+        )

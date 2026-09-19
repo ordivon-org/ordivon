@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import rfc8785
 import os
 import time
 from pathlib import Path
@@ -34,9 +35,7 @@ def sha256_bytes(raw: bytes) -> str:
 
 
 def digest_obj(value: object) -> str:
-    return sha256_bytes(
-        json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
-    )
+    return sha256_bytes(rfc8785.dumps(value))
 
 
 def endpoint_from_config(path: Path, endpoint_id: str) -> BrowserlessEndpoint:

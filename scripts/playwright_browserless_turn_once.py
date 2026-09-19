@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import rfc8785
 import os
 import sqlite3
 import time
@@ -87,9 +88,7 @@ def sha256_bytes(raw: bytes) -> str:
 
 
 def digest_obj(value: object) -> str:
-    return sha256_bytes(
-        json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
-    )
+    return sha256_bytes(rfc8785.dumps(value))
 
 
 def auth(url: str, token_file: Path) -> str:

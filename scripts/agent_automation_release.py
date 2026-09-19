@@ -78,6 +78,7 @@ RELEASE_PATHS = (
     "scripts/campaign_materialization.py",
     "scripts/chatgpt_provider_gate.py",
     "scripts/chatgpt_provider_resource.py",
+    "config/browserless-playwright-requirements.txt",
     "scripts/conversation_relay_carrier.py",
     "scripts/sqlite_conversation_materializer.py",
     "scripts/standard_identifiers.py",
@@ -94,6 +95,10 @@ RELEASE_PATHS = (
 GATE_SCHEMA_VERSION = 2
 WORKER_RUNTIME_VERSIONS = {
     "temporalio": "1.32.0",
+    "rfc8785": "0.1.4",
+}
+PLAYWRIGHT_RUNTIME_VERSIONS = {
+    "playwright": "1.63.0",
     "rfc8785": "0.1.4",
 }
 
@@ -596,10 +601,36 @@ def require_mcp_runtime_importable(release: Path) -> None:
         )
 
 
+def require_playwright_runtime_importable(release: Path) -> None:
+    scripts = release / "scripts"
+    code = (
+        "import sys,json,importlib.metadata as m;"
+        "sys.path.insert(0,sys.argv[1]);"
+        "import playwright_browserless_turn_once,playwright_browserless_conversation_output;"
+        "names=['playwright','rfc8785'];"
+        "print(json.dumps({n:m.version(n) for n in names},sort_keys=True))"
+    )
+    p = run([str(BROWSER_SECURITY_PY), "-c", code, str(scripts)], check=False, timeout=30)
+    if p.returncode != 0:
+        detail = (p.stderr or p.stdout or "").strip().replace("\n", " ")[-1200:]
+        raise ReleaseError(
+            f"candidate is not importable in the exact Playwright runtime: {detail or f'rc={p.returncode}'}"
+        )
+    try:
+        versions = json.loads(p.stdout.strip().splitlines()[-1])
+    except (json.JSONDecodeError, IndexError) as error:
+        raise ReleaseError("Playwright runtime dependency versions are not observable") from error
+    if versions != PLAYWRIGHT_RUNTIME_VERSIONS:
+        raise ReleaseError(
+            f"Playwright runtime dependency versions differ from release contract: {versions}"
+        )
+
+
 def candidate_runtime_import_status(release: Path) -> dict:
     try:
         require_mcp_runtime_importable(release)
         require_worker_runtime_importable(release)
+        require_playwright_runtime_importable(release)
     except ReleaseError as error:
         return {"ready": False, "detail": str(error)}
     return {"ready": True}
@@ -903,6 +934,7 @@ def activate(repo: Path, revision: str) -> dict:
     require_operator_carrier_available()
     require_mcp_runtime_importable(release)
     require_worker_runtime_importable(release)
+    require_playwright_runtime_importable(release)
     with release_admission_fence(commit) as admission_was_closed:
         # Snapshot every rollback-relevant pre-state before the first service/file mutation. Early
         # failures (including quiescence observation or worker stop) must restore the same state.
