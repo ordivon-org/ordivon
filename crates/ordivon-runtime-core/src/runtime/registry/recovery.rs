@@ -1,6 +1,6 @@
 impl Registry {
     #[cfg(test)]
-    pub fn list_nonterminal_attempts(&self) -> RuntimeResult<Vec<AttemptRecord>> {
+    pub(super) fn list_nonterminal_attempts(&self) -> RuntimeResult<Vec<AttemptRecord>> {
         self.list_nonterminal_attempts_with_limit(None)
     }
 
@@ -43,7 +43,7 @@ impl Registry {
         }
     }
 
-    pub fn list_maintenance_attempts_bounded(
+    pub(super) fn list_maintenance_attempts_bounded(
         &self,
         limit: u32,
     ) -> RuntimeResult<Vec<AttemptRecord>> {
@@ -68,7 +68,7 @@ impl Registry {
         .collect()
     }
 
-    pub fn list_held_orphaned_attempts(&self) -> RuntimeResult<Vec<AttemptRecord>> {
+    pub(super) fn list_held_orphaned_attempts(&self) -> RuntimeResult<Vec<AttemptRecord>> {
         let connection = self.open_connection()?;
         let mut statement = connection
             .prepare(
@@ -87,7 +87,7 @@ impl Registry {
         .collect()
     }
 
-    pub fn recover_orphaned_terminal(
+    pub(super) fn recover_orphaned_terminal(
         &self,
         request: &TerminalCommit,
     ) -> RuntimeResult<JobProjection> {
@@ -256,7 +256,7 @@ impl Registry {
         })
     }
 
-    pub fn converge_terminal_reservation(
+    pub(super) fn converge_terminal_reservation(
         &self,
         attempt_id: &str,
         observed_at_ms: u64,
@@ -318,7 +318,7 @@ impl Registry {
     }
 
     #[cfg(test)]
-    pub fn inspect_runtime_invariants(&self) -> RuntimeResult<Vec<RuntimeInvariantViolation>> {
+    pub(super) fn inspect_runtime_invariants(&self) -> RuntimeResult<Vec<RuntimeInvariantViolation>> {
         let connection = self.open_connection()?;
         inspect_runtime_invariants_connection(&connection)
     }

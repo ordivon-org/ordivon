@@ -156,7 +156,7 @@ pub struct RegistryConfig {
 }
 
 #[derive(Clone, Debug)]
-pub struct Registry {
+pub(crate) struct Registry {
     config: RegistryConfig,
 }
 

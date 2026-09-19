@@ -1,5 +1,5 @@
 impl Registry {
-    pub fn initialize(config: RegistryConfig) -> RuntimeResult<Self> {
+    pub(super) fn initialize(config: RegistryConfig) -> RuntimeResult<Self> {
         config.validate()?;
         create_private_directory(&config.store_root)?;
         create_private_directory(&config.attempts_root())?;
@@ -35,7 +35,7 @@ impl Registry {
         Ok(registry)
     }
 
-    pub fn config(&self) -> &RegistryConfig {
+    pub(super) fn config(&self) -> &RegistryConfig {
         &self.config
     }
 

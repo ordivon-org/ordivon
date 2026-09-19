@@ -1,5 +1,5 @@
 impl Registry {
-    pub fn find_idempotent_job(
+    pub(super) fn find_idempotent_job(
         &self,
         principal: &str,
         client_request_id: &str,
@@ -27,7 +27,7 @@ impl Registry {
         Ok(Some(job))
     }
 
-    pub fn submit(&self, request: &SubmitRequest) -> RuntimeResult<AdmissionOutcome> {
+    pub(super) fn submit(&self, request: &SubmitRequest) -> RuntimeResult<AdmissionOutcome> {
         let ids = self.preallocate_admission_ids();
         self.submit_preallocated(request, &ids)
     }

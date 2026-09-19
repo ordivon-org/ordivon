@@ -1,5 +1,5 @@
 impl Registry {
-    pub fn record_reconciliation_failure(
+    pub(super) fn record_reconciliation_failure(
         &self,
         attempt: &AttemptRecord,
         error: &RuntimeError,
@@ -57,7 +57,7 @@ impl Registry {
             .map_err(|error| RuntimeError::from_sql(error, "cannot commit reconciliation failure"))
     }
 
-    pub fn clear_reconciliation_failure(
+    pub(super) fn clear_reconciliation_failure(
         &self,
         attempt_id: &str,
         observed_at_ms: u64,
@@ -106,7 +106,7 @@ impl Registry {
     }
 
     #[cfg(test)]
-    pub fn active_reservation_count(&self) -> RuntimeResult<u32> {
+    pub(super) fn active_reservation_count(&self) -> RuntimeResult<u32> {
         let connection = self.open_connection()?;
         connection
             .query_row(

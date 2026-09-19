@@ -1,5 +1,5 @@
 impl Registry {
-    pub fn get_job(&self, job_id: &str) -> RuntimeResult<RuntimeJobRecord> {
+    pub(super) fn get_job(&self, job_id: &str) -> RuntimeResult<RuntimeJobRecord> {
         let connection = self.open_connection()?;
         load_job(&connection, job_id)
     }
@@ -367,18 +367,18 @@ impl Registry {
         Ok(bindings)
     }
 
-    pub fn get_attempt(&self, attempt_id: &str) -> RuntimeResult<AttemptRecord> {
+    pub(super) fn get_attempt(&self, attempt_id: &str) -> RuntimeResult<AttemptRecord> {
         let connection = self.open_connection()?;
         load_attempt(&connection, attempt_id)
     }
 
     #[cfg(any(test, feature = "operator-tools"))]
-    pub fn get_reservation(&self, attempt_id: &str) -> RuntimeResult<ReservationRecord> {
+    pub(super) fn get_reservation(&self, attempt_id: &str) -> RuntimeResult<ReservationRecord> {
         let connection = self.open_connection()?;
         load_reservation(&connection, attempt_id)
     }
 
-    pub fn get_latest_attempt(&self, job_id: &str) -> RuntimeResult<Option<AttemptRecord>> {
+    pub(super) fn get_latest_attempt(&self, job_id: &str) -> RuntimeResult<Option<AttemptRecord>> {
         let connection = self.open_connection()?;
         let attempt_id: Option<String> = connection
             .query_row(
@@ -393,7 +393,7 @@ impl Registry {
             .transpose()
     }
 
-    pub fn get_artifact(
+    pub(super) fn get_artifact(
         &self,
         job_id: &str,
         artifact_id: &str,
@@ -434,11 +434,11 @@ impl Registry {
     }
 
     #[cfg(test)]
-    pub fn project_job(&self, job_id: &str) -> RuntimeResult<JobProjection> {
+    pub(super) fn project_job(&self, job_id: &str) -> RuntimeResult<JobProjection> {
         Ok(self.job_snapshot(job_id)?.projection)
     }
 
-    pub fn active_job_ids_for_workspace(&self, workspace_id: &str) -> RuntimeResult<Vec<String>> {
+    pub(super) fn active_job_ids_for_workspace(&self, workspace_id: &str) -> RuntimeResult<Vec<String>> {
         let connection = self.open_connection()?;
         let mut statement = connection
             .prepare(
@@ -454,7 +454,7 @@ impl Registry {
         .collect()
     }
 
-    pub fn list_workspace_reconciliation_attempts(
+    pub(super) fn list_workspace_reconciliation_attempts(
         &self,
         workspace_id: &str,
         limit: u32,
@@ -478,7 +478,7 @@ impl Registry {
         .collect()
     }
 
-    pub fn list_jobs(
+    pub(super) fn list_jobs(
         &self,
         request: &RuntimeJobListRequest,
     ) -> RuntimeResult<RuntimeJobListResult> {
@@ -808,7 +808,7 @@ impl Registry {
         })
     }
 
-    pub fn list_artifacts(&self, job_id: &str) -> RuntimeResult<Vec<RuntimeArtifactRecord>> {
+    pub(super) fn list_artifacts(&self, job_id: &str) -> RuntimeResult<Vec<RuntimeArtifactRecord>> {
         let connection = self.open_connection()?;
         let mut statement = connection
             .prepare(
@@ -835,7 +835,7 @@ impl Registry {
             .collect()
     }
 
-    pub fn execution_plan(&self, job_id: &str) -> RuntimeResult<super::RuntimeExecutionPlan> {
+    pub(super) fn execution_plan(&self, job_id: &str) -> RuntimeResult<super::RuntimeExecutionPlan> {
         let job = self.get_job(job_id)?;
         serde_json::from_str(&job.execution_plan_json).map_err(|error| {
             RuntimeError::new(
@@ -847,7 +847,7 @@ impl Registry {
         })
     }
 
-    pub fn runtime_release_effect_for_job(
+    pub(super) fn runtime_release_effect_for_job(
         &self,
         job_id: &str,
     ) -> RuntimeResult<Option<RuntimeReleaseEffectBinding>> {
@@ -976,7 +976,7 @@ impl Registry {
         Ok(Some(binding))
     }
 
-    pub fn find_runtime_release_effect(
+    pub(super) fn find_runtime_release_effect(
         &self,
         principal: &str,
         client_request_id: &str,
