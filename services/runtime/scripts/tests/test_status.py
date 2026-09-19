@@ -252,6 +252,27 @@ class RuntimeStatusDefaultTests(unittest.TestCase):
 
 
 class RuntimeStatusTests(unittest.TestCase):
+    def test_workspace_status_derives_compact_record_identity_and_path(self) -> None:
+        namespace = runpy.run_path(str(SCRIPT))
+        with tempfile.TemporaryDirectory() as temporary:
+            paths = fixture(Path(temporary))
+            record_path = paths["store"] / "workspace-records" / "workspace-1.json"
+            record = json.loads(record_path.read_text(encoding="utf-8"))
+            record.pop("workspaceId")
+            record.pop("workspacePath")
+            record_path.write_text(json.dumps(record), encoding="utf-8")
+            reasons: list[str] = []
+            report = namespace["workspace_status"](
+                paths["store"],
+                set(),
+                16,
+                72,
+                reasons,
+            )
+            self.assertEqual(report["records"]["open"], 1)
+            self.assertEqual(report["missing"], 0)
+            self.assertEqual(report["unreadable"], 0)
+
     def test_storage_measurements_share_a_bounded_total_budget(self) -> None:
         namespace = runpy.run_path(str(SCRIPT))
         with tempfile.TemporaryDirectory() as temporary:

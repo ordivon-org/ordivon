@@ -704,12 +704,21 @@ def load_open_record(record_path: Path, workspace_id: str, workspace_path: Path)
         raise RuntimeError("workspace record is not an object")
     if value.get("state") == "closed":
         raise RuntimeError("workspace is already closed")
-    if (
-        value.get("schemaVersion") != SCHEMA_VERSION
-        or value.get("workspaceId") != workspace_id
-        or value.get("workspacePath") != str(workspace_path)
-    ):
+    if value.get("schemaVersion") != SCHEMA_VERSION:
         raise RuntimeError("workspace record identity mismatch")
+    legacy_workspace_id = value.get("workspaceId")
+    if legacy_workspace_id is not None and legacy_workspace_id != workspace_id:
+        raise RuntimeError("workspace record identity mismatch")
+    legacy_workspace_path = value.get("workspacePath")
+    if legacy_workspace_path is not None:
+        if not isinstance(legacy_workspace_path, str) or not Path(legacy_workspace_path).is_absolute():
+            raise RuntimeError("workspace record identity mismatch")
+        recorded_path = Path(legacy_workspace_path)
+        if recorded_path.exists() and workspace_path.exists():
+            if recorded_path.resolve() != workspace_path.resolve():
+                raise RuntimeError("workspace record identity mismatch")
+        elif recorded_path != workspace_path:
+            raise RuntimeError("workspace record identity mismatch")
     return value
 
 

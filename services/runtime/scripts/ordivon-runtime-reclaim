@@ -274,11 +274,21 @@ def classify_record(
             )
         return None
 
-    if (
-        value.get("schemaVersion") != 1
-        or value.get("workspaceId") != workspace_id
-        or value.get("workspacePath") != str(workspace_path)
-    ):
+    legacy_workspace_id = value.get("workspaceId")
+    legacy_workspace_path = value.get("workspacePath")
+    identity_mismatch = value.get("schemaVersion") != 1
+    if legacy_workspace_id is not None and legacy_workspace_id != workspace_id:
+        identity_mismatch = True
+    if legacy_workspace_path is not None:
+        if not isinstance(legacy_workspace_path, str) or not Path(legacy_workspace_path).is_absolute():
+            identity_mismatch = True
+        else:
+            recorded_path = Path(legacy_workspace_path)
+            if recorded_path.exists() and workspace_path.exists():
+                identity_mismatch = identity_mismatch or recorded_path.resolve() != workspace_path.resolve()
+            else:
+                identity_mismatch = identity_mismatch or recorded_path != workspace_path
+    if identity_mismatch:
         return candidate(
             workspace_id,
             "unknown",

@@ -240,7 +240,8 @@ def workspace_record_standing(store_root: Path, workspace_id: str) -> str:
         value = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError):
         return "unknown"
-    if value.get("workspaceId") != workspace_id:
+    legacy_workspace_id = value.get("workspaceId")
+    if legacy_workspace_id is not None and legacy_workspace_id != workspace_id:
         return "unknown"
     return "closed" if value.get("state", "open") == "closed" else "open"
 
@@ -264,7 +265,11 @@ def load_open_records(store_root: Path) -> tuple[list[dict[str, str]], list[dict
         if value.get("state", "open") == "closed":
             continue
         source_repo = value.get("sourceRepo")
-        if value.get("workspaceId") != workspace_id or not isinstance(source_repo, str):
+        legacy_workspace_id = value.get("workspaceId")
+        if (
+            (legacy_workspace_id is not None and legacy_workspace_id != workspace_id)
+            or not isinstance(source_repo, str)
+        ):
             issues.append({"workspaceId": workspace_id, "code": "RECORD_IDENTITY_INVALID"})
             continue
         if not Path(source_repo).is_absolute() or "\x00" in source_repo:
