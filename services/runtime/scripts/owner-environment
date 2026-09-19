@@ -54,12 +54,28 @@ if md.version('ruff') != '0.15.17':
 print('owner environment doctor: valid profile=test rust=1.95.0 python=3.12.13 ruff=0.15.17')
 PY
 }
+materialize_runtime_inspect() {
+  cd "$repo"
+  "$cargo_bin" build --locked -p ordivon-runtime-core --features operator-tools --bin ordivon-runtime-inspect
+  target_dir=$("$cargo_bin" metadata --locked --no-deps --format-version 1 | "$python_bin" -c 'import json,sys; print(json.load(sys.stdin)["target_directory"])')
+  source_inspect="$target_dir/debug/ordivon-runtime-inspect"
+  [[ -x "$source_inspect" ]] || { echo "Runtime inspector build is unavailable: $source_inspect" >&2; exit 1; }
+  inspect_dir="$env_dir/runtime-bin"
+  mkdir -p "$inspect_dir"
+  install -m 0755 "$source_inspect" "$inspect_dir/ordivon-runtime-inspect"
+  cmp -s "$source_inspect" "$inspect_dir/ordivon-runtime-inspect" || {
+    echo 'materialized Runtime inspector differs from Cargo build bytes' >&2
+    exit 1
+  }
+  export ORDIVON_RUNTIME_INSPECT="$inspect_dir/ordivon-runtime-inspect"
+}
 run_tests() {
   bootstrap
   doctor
   cd "$repo"
   "$python_bin" -m ruff check scripts/
-  "$cargo_bin" test --workspace --all-targets --all-features -- --skip request_identity_and_terminal_winner_match_reference_model
+  "$cargo_bin" test --locked --workspace --all-targets --all-features -- --skip request_identity_and_terminal_winner_match_reference_model
+  materialize_runtime_inspect
   "$python_bin" -m unittest discover -s scripts/tests -q
   PYTHON_BIN="$python_bin" scripts/local-acceptance check
 }
@@ -67,7 +83,7 @@ run_extended() {
   bootstrap
   doctor
   cd "$repo"
-  "$cargo_bin" test -p ordivon-runtime-core request_identity_and_terminal_winner_match_reference_model -- --nocapture
+  "$cargo_bin" test --locked -p ordivon-runtime-core request_identity_and_terminal_winner_match_reference_model -- --nocapture
 }
 case "$mode" in
   bootstrap) bootstrap ;;
