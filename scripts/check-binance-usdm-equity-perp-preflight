@@ -6,7 +6,7 @@ sdk=/root/external/binance-sdk-usdm/17.4.0/.venv/bin/python
 "$repo/scripts/run-capability-python" - "$repo/config/binance_usdm_equity_perp_provider.json" <<'PY'
 from pathlib import Path
 import json,sys
-from market_capital.binance_usdm_provider import qualify_provider_contract
+from ordivon_capital.market.binance_usdm_provider import qualify_provider_contract
 cfg=json.load(open(sys.argv[1]))
 print(json.dumps(qualify_provider_contract(cfg),sort_keys=True))
 PY

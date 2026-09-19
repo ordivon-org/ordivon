@@ -1,8 +1,8 @@
-# Market Capital — Composition First
+# Ordivon Capital — Composition First
 
 ## Rule
 
-Market Capital composes mature external mechanisms before implementing local mechanisms.
+Ordivon Capital composes authoritative standards, mature external mechanisms, and provider reality before implementing local mechanisms. Market is one domain inside this composition.
 
 A local implementation is admitted only when a concrete substitution failure has been demonstrated against the selected mature component. Preference order:
 
@@ -16,7 +16,7 @@ The goal is not a uniform framework. Asymmetric composition is preferred when di
 
 ## Current component ownership
 
-| Responsibility | Primary owner | Local Market Capital responsibility |
+| Responsibility | Primary owner | Local Ordivon Capital / Market-domain responsibility |
 |---|---|---|
 | Public OKX market data | OKX public API + Network v2 exact authority | evidence binding and common observation projection |
 | Public Binance market data | Binance official public REST/WebSocket + Network v2 exact authority | thin normalization into the common observation projection |
@@ -40,7 +40,7 @@ The goal is not a uniform framework. Asymmetric composition is preferred when di
 
 ## Thin seams retained locally
 
-Market Capital may retain only the semantics that external components cannot establish for the composition as a whole:
+Ordivon Capital may retain only the semantics that external components cannot establish for the composition as a whole:
 
 - decision evidence/currentness binding;
 - decision → standard execution-intent mapping;

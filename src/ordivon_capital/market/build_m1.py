@@ -8,7 +8,8 @@ from pathlib import Path
 import jsonschema
 import mlflow
 
-from market_capital.portfolio import build_research_gated_validation_portfolio
+from ordivon_capital.market.gleif_reference import collect_reference
+from ordivon_capital.market.portfolio import build_equal_weight_validation_portfolio
 
 
 def load_json(path: Path):
@@ -31,30 +32,32 @@ def main() -> int:
     root = Path(args.root).resolve()
 
     ips_path = root / "config/ips.json"
-    reference_path = root / "artifacts/wave-a-m1/reference_entities.json"
-    research_path = root / "artifacts/wave-a-m2/fundamental_features.json"
-    artifacts = root / "artifacts/wave-a-m4"
-
-    for required in [ips_path, reference_path, research_path]:
-        if not required.exists():
-            raise FileNotFoundError(f"Required upstream Wave A artifact is missing: {required}")
+    universe_path = root / "config/universe.json"
+    artifacts = root / "artifacts/wave-a-m1"
+    raw_dir = root / "data/raw/gleif"
 
     ips = load_json(ips_path)
-    reference = load_json(reference_path)
-    research = load_json(research_path)
+    universe = load_json(universe_path)
+    jsonschema.validate(ips, load_json(root / "schema/ips.schema.json"))
 
-    portfolio = build_research_gated_validation_portfolio(ips, reference, research)
-    portfolio["inputs"]["reference_artifact_sha256"] = digest(reference_path)
-    portfolio["inputs"]["research_artifact_sha256"] = digest(research_path)
+    raw, reference = collect_reference(universe)
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    for symbol, payload in raw.items():
+        dump_json(raw_dir / f"{symbol}.json", payload)
 
+    reference_path = artifacts / "reference_entities.json"
+    dump_json(reference_path, reference)
+    jsonschema.validate(reference, load_json(root / "schema/reference_entities.schema.json"))
+
+    portfolio = build_equal_weight_validation_portfolio(ips, reference)
     portfolio_path = artifacts / "target_portfolio.json"
     dump_json(portfolio_path, portfolio)
     jsonschema.validate(portfolio, load_json(root / "schema/target_portfolio.schema.json"))
 
     manifest = {
         "ips_sha256": digest(ips_path),
-        "reference_artifact_sha256": digest(reference_path),
-        "research_artifact_sha256": digest(research_path),
+        "universe_sha256": digest(universe_path),
+        "reference_entities_sha256": digest(reference_path),
         "target_portfolio_sha256": digest(portfolio_path),
     }
     manifest_path = artifacts / "manifest.json"
@@ -62,20 +65,22 @@ def main() -> int:
 
     tracking_db = artifacts / "mlflow.db"
     mlflow.set_tracking_uri(f"sqlite:///{tracking_db}")
-    mlflow.set_experiment("market-capital-wave-a-m4")
-    with mlflow.start_run(run_name="research-gated-target-portfolio") as run:
-        mlflow.log_param("method", portfolio["method"])
-        mlflow.log_param("research_source", research.get("source"))
-        mlflow.log_param("position_count", len(portfolio["positions"]))
+    mlflow.set_experiment("market-capital-wave-a-m1")
+    with mlflow.start_run(run_name="cfa-ips-to-target-portfolio") as run:
+        mlflow.log_param("construction_method", ips["construction_method"])
+        mlflow.log_param("instrument_count", len(ips["allowed_instruments"]))
         mlflow.log_metric("gross_exposure", portfolio["gross_exposure"])
+        mlflow.log_metric("cash_weight", portfolio["cash_weight"])
         mlflow.log_artifact(str(ips_path), artifact_path="inputs")
-        mlflow.log_artifact(str(reference_path), artifact_path="inputs")
-        mlflow.log_artifact(str(research_path), artifact_path="inputs")
+        mlflow.log_artifact(str(universe_path), artifact_path="inputs")
+        mlflow.log_artifact(str(reference_path), artifact_path="outputs")
         mlflow.log_artifact(str(portfolio_path), artifact_path="outputs")
         mlflow.log_artifact(str(manifest_path), artifact_path="outputs")
         print(f"MLFLOW_RUN_ID={run.info.run_id}")
 
-    print(json.dumps(portfolio, indent=2, sort_keys=True))
+    print(f"REFERENCE={reference_path}")
+    print(f"TARGET_PORTFOLIO={portfolio_path}")
+    print(f"MANIFEST={manifest_path}")
     return 0
 
 

@@ -74,7 +74,7 @@ def normalize_binance_observer(envelope: dict[str, Any]) -> dict[str, Any]:
 
     return {
         'schemaVersion': 1,
-        'kind': 'ordivon.market-capital.private-reality-snapshot',
+        'kind': 'ordivon.capital.market.private-reality-snapshot',
         'venue': 'BINANCE',
         'product': 'SPOT',
         'sourceAuthority': 'BINANCE_USER_DATA',
@@ -186,7 +186,7 @@ def normalize_okx_observer(envelope: dict[str, Any]) -> dict[str, Any]:
 
     return {
         'schemaVersion': 1,
-        'kind': 'ordivon.market-capital.private-reality-snapshot',
+        'kind': 'ordivon.capital.market.private-reality-snapshot',
         'venue': 'OKX',
         'product': 'ACCOUNT',
         'sourceAuthority': 'OKX_PRIVATE_GET',
@@ -362,7 +362,7 @@ def normalize_binance_usdm_observer(envelope: dict[str, Any]) -> dict[str, Any]:
 
     return {
         'schemaVersion': 1,
-        'kind': 'ordivon.market-capital.private-reality-snapshot',
+        'kind': 'ordivon.capital.market.private-reality-snapshot',
         'venue': 'BINANCE',
         'product': 'USDⓈ-M_FUTURES',
         'sourceAuthority': 'BINANCE_USDM_USER_DATA_GET_ONLY',

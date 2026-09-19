@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "kind": "ordivon.market-capital.prospective-validation",
+  "kind": "ordivon.capital.market.prospective-validation",
   "decisionArtifact": {
     "gitCommit": "4d2a779664f4216207e9b41c87bad01463b3a68f",
     "commitTimeUtc": "2026-09-12T14:59:29Z",

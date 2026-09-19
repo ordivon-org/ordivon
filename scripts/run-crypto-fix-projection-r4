@@ -44,7 +44,7 @@ for row in r['orders']:
     })
 payload={
   'schemaVersion':1,
-  'kind':'ordivon.market-capital.fix44-projection-input',
+  'kind':'ordivon.capital.market.fix44-projection-input',
   'purpose':'MECHANICS_ONLY_NON_ECONOMIC',
   'sourceEvidenceSha256':hashlib.sha256(src.read_bytes()).hexdigest(),
   'transactTimeUtc':datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z'),
@@ -77,7 +77,7 @@ for expected in i['intents']:
         raise SystemExit('source intent to FIX projection mismatch')
 summary={
   'schemaVersion':1,
-  'kind':'ordivon.market-capital.crypto-fix44-projection-r4-evidence',
+  'kind':'ordivon.capital.market.crypto-fix44-projection-r4-evidence',
   'standing':'PASS_CRYPTO_MECHANICS_TO_FIX44_PROJECTION',
   'purpose':'MECHANICS_ONLY_NON_ECONOMIC',
   'composition':{

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from market_capital.nonlive_effect_qualification import reconcile_nautilus_episode, reconcile_unknown_after_submission
+from ordivon_capital.market.nonlive_effect_qualification import reconcile_nautilus_episode, reconcile_unknown_after_submission
 
 
 def episode(status: str, *, filled: str = "0", fills=None):

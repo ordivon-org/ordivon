@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from market_capital.standards_inventory import validate_inventory
+from ordivon_capital.market.standards_inventory import validate_inventory
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -33,7 +33,7 @@ def test_custom_regime_card_is_retired_and_dependence_model_requires_validation(
 
 def test_active_source_and_current_docs_do_not_depend_on_lego_or_lens_router():
     active_paths = [
-        ROOT / "src/market_capital",
+        ROOT / "src/ordivon_capital/market",
         ROOT / "docs/ARCHITECTURE.md",
         ROOT / "docs/COMPOSITION_FIRST_2026-09-14.md",
         ROOT / "docs/PORTFOLIO_RISK_MONITORING_R1.md",
@@ -53,13 +53,13 @@ def test_active_analytical_component_ids_are_registered():
     inventory = _inventory()
     registered = {row["id"] for row in inventory["components"]}
     source_paths = [
-        ROOT / "src/market_capital/market_sensors.py",
-        ROOT / "src/market_capital/portfolio_risk.py",
-        ROOT / "src/market_capital/portfolio_counterfactuals.py",
-        ROOT / "src/market_capital/prospective_validation.py",
-        ROOT / "src/market_capital/crypto_public_shadow.py",
-        ROOT / "src/market_capital/model_monitoring.py",
-        ROOT / "src/market_capital/model_lineage.py",
+        ROOT / "src/ordivon_capital/market/market_sensors.py",
+        ROOT / "src/ordivon_capital/market/portfolio_risk.py",
+        ROOT / "src/ordivon_capital/market/portfolio_counterfactuals.py",
+        ROOT / "src/ordivon_capital/market/prospective_validation.py",
+        ROOT / "src/ordivon_capital/market/crypto_public_shadow.py",
+        ROOT / "src/ordivon_capital/market/model_monitoring.py",
+        ROOT / "src/ordivon_capital/market/model_lineage.py",
     ]
     import re
     declared = set()
@@ -81,7 +81,7 @@ def test_retired_custom_ontology_does_not_reenter_active_source():
         "EffectAuthority",
         "ExternalFinancialWriteAdmission",
     )
-    for path in (ROOT / "src/market_capital").glob("*.py"):
+    for path in (ROOT / "src/ordivon_capital/market").glob("*.py"):
         text = path.read_text()
         for token in forbidden:
             assert token not in text, f"retired token {token!r} re-entered {path}"

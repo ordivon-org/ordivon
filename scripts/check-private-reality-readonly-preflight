@@ -4,7 +4,7 @@ repo="$(cd "$(dirname "$0")/.." && pwd)"
 python3 - "$repo/config/private_reality_policy.json" <<'PY'
 import json,sys
 x=json.load(open(sys.argv[1]))
-assert x['kind']=='ordivon.market-capital.private-reality-policy'
+assert x['kind']=='ordivon.capital.market.private-reality-policy'
 assert x['standing']=='OWNER_MANDATE_PRESENT_PERMISSION_NOT_CURRENT'
 assert x['ownerCredentialUseMandate']=='AUTHORIZED_READ_ONLY_PRIVATE_REALITY_OBSERVATION'
 assert x['credentialPermissionStanding']=='PENDING_FRESH_PROVIDER_VERIFICATION'

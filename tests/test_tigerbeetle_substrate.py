@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from market_capital.tigerbeetle_substrate import (
+from ordivon_capital.accounting.tigerbeetle_substrate import (
     AccountingAccount,
     AccountingMappingError,
     AccountingTransfer,

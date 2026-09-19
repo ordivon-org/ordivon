@@ -6,7 +6,7 @@ python3 - "$config" <<'PY'
 import hashlib,json,subprocess,sys
 from pathlib import Path
 cfg=json.loads(Path(sys.argv[1]).read_text())
-if cfg.get('kind')!='ordivon.market-capital.execution-candidate': raise SystemExit('bad candidate config kind')
+if cfg.get('kind')!='ordivon.capital.market.execution-candidate': raise SystemExit('bad candidate config kind')
 for k in ('brokerConnectivityAllowed','brokerCredentialsAllowed','externalFinancialWritesAllowed','productionLiveAdmitted'):
     if cfg.get(k) is not False: raise SystemExit(f'{k} must remain false')
 root=Path(cfg['environmentRoot'])

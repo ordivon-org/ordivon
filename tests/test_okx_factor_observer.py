@@ -1,6 +1,6 @@
 import unittest
 
-from market_capital.okx_factor_observer import (
+from ordivon_capital.market.okx_factor_observer import (
     OkxFactorObserverError,
     parse_completed_daily_returns,
 )

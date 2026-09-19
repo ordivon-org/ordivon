@@ -1,6 +1,6 @@
 import unittest
 
-from market_capital.sec_companyfacts import build_fundamental_feature, select_latest_annual_fact
+from ordivon_capital.market.sec_companyfacts import build_fundamental_feature, select_latest_annual_fact
 
 
 def row(fy, end, val, accn, filed="2026-01-01", form="10-K", fp="FY"):

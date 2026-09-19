@@ -1,6 +1,6 @@
 import unittest
 
-from market_capital.gleif_reference import select_exact_issued
+from ordivon_capital.market.gleif_reference import select_exact_issued
 
 
 class GleifSelectionTests(unittest.TestCase):

@@ -345,7 +345,7 @@ def capture_window(
 
     return {
         "schemaVersion": 1,
-        "kind": "ordivon.market-capital.okx-public-sensor-window",
+        "kind": "ordivon.capital.market.okx-public-sensor-window",
         "standing": "PASS_OKX_REPEATED_SENSOR_WINDOW",
         "instrumentId": instrument_id,
         "sampleCount": len(captured),

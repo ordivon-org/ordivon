@@ -1,7 +1,7 @@
 from datetime import date, datetime, timezone
 import unittest
 
-from market_capital.prospective_validation import evaluate_prospective_validation
+from ordivon_capital.market.prospective_validation import evaluate_prospective_validation
 
 
 class ProspectiveValidationTests(unittest.TestCase):

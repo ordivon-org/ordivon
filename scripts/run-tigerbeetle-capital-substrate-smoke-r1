@@ -52,7 +52,7 @@ import json
 import os
 import tigerbeetle as tb
 
-from market_capital.tigerbeetle_substrate import AccountingAccount, AccountingTransfer
+from ordivon_capital.accounting.tigerbeetle_substrate import AccountingAccount, AccountingTransfer
 
 port=os.environ['TB_PORT']
 accounts=[

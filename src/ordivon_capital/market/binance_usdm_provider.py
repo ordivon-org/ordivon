@@ -51,7 +51,7 @@ def normalize_exchange_symbol(exchange_info: Mapping[str, Any], symbol_id: str) 
 
     return {
         "schemaVersion": 1,
-        "kind": "ordivon.market-capital.binance-usdm-symbol-contract",
+        "kind": "ordivon.capital.market.binance-usdm-symbol-contract",
         "provider": "BINANCE",
         "symbol": symbol_id,
         "status": symbol.get("status"),
@@ -76,7 +76,7 @@ def normalize_exchange_symbol(exchange_info: Mapping[str, Any], symbol_id: str) 
 
 
 def qualify_provider_contract(config: Mapping[str, Any]) -> dict[str, Any]:
-    if config.get("kind") != "ordivon.market-capital.binance-usdm-equity-perp-provider":
+    if config.get("kind") != "ordivon.capital.market.binance-usdm-equity-perp-provider":
         raise BinanceUsdmProviderError("unexpected provider contract kind")
     effect = config.get("effectPolicy") or {}
     if any(

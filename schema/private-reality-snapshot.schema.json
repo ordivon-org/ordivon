@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "ordivon.market-capital.private-reality-snapshot.v1",
+  "$id": "ordivon.capital.market.private-reality-snapshot.v1",
   "type": "object",
   "required": ["schemaVersion", "kind", "venue", "sourceAuthority", "permissionStanding", "balances", "positions", "openOrders", "orderHistory", "fills", "externalFinancialWriteAttempted"],
   "properties": {
     "schemaVersion": {"const": 1},
-    "kind": {"const": "ordivon.market-capital.private-reality-snapshot"},
+    "kind": {"const": "ordivon.capital.market.private-reality-snapshot"},
     "venue": {"enum": ["OKX", "BINANCE"]},
     "sourceAuthority": {"type": "string"},
     "permissionStanding": {"enum": ["READ_ONLY_VERIFIED", "NOT_VERIFIED"]},

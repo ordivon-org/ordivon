@@ -103,7 +103,7 @@ def capture(
 
     envelope: dict[str, Any] = {
         "schemaVersion": 1,
-        "kind": "ordivon.market-capital.binance-usdm-private-observer",
+        "kind": "ordivon.capital.market.binance-usdm-private-observer",
         "provider": "BINANCE",
         "product": "USDⓈ-M_FUTURES",
         "symbol": symbol,
@@ -225,7 +225,7 @@ def qualification_summary(result: dict[str, Any]) -> dict[str, Any]:
 
     return {
         "schemaVersion": 1,
-        "kind": "ordivon.market-capital.binance-usdm-private-qualification-summary",
+        "kind": "ordivon.capital.market.binance-usdm-private-qualification-summary",
         "provider": "BINANCE",
         "product": "USDⓈ-M_FUTURES",
         "symbol": result.get("symbol"),

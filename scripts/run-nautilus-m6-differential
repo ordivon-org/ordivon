@@ -10,6 +10,6 @@ if [ ! -f "$precommit" ]; then
 fi
 out="$repo/.artifacts/wave-b-m6-2-nautilus"
 mkdir -p "$out"
-PYTHONPATH="$repo/src" "$candidate" -m market_capital.nautilus_qualification \
+PYTHONPATH="$repo/src" "$candidate" -m ordivon_capital.market.nautilus_qualification \
   --precommit "$precommit" \
   --output "$out/qualification.json"

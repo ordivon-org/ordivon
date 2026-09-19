@@ -1,12 +1,12 @@
 {
   "capabilities": {
     "binanceUsdmFutures": {
-      "credentialPolicy": "credentials remain external; Market Capital preflight must not load them",
+      "credentialPolicy": "credentials remain external; Ordivon Capital Market-domain preflight must not load them",
       "interpreter": "/root/external/binance-sdk-usdm/17.4.0/.venv/bin/python",
       "nonResponsibility": "does not grant account/product eligibility, TradFi agreement acceptance, live execution authority, investment suitability or external-write admission",
       "package": "binance-sdk-derivatives-trading-usds-futures",
-      "provider": "Binance Official USD\u24c8-M Futures Python SDK",
-      "responsibility": "official /fapi REST, WebSocket API and WebSocket Streams client mechanics for Binance USD\u24c8-M Futures",
+      "provider": "Binance Official USDⓈ-M Futures Python SDK",
+      "responsibility": "official /fapi REST, WebSocket API and WebSocket Streams client mechanics for Binance USDⓈ-M Futures",
       "version": "17.4.0"
     },
     "binanceWallet": {
@@ -35,7 +35,7 @@
       "duckdbVersion": "1.5.5",
       "interpreter": "./.venv/bin/python",
       "nonResponsibility": "does not borrow or execute through ordivon-research-v2 virtualenv; cross-domain Research workflows require a separate explicit provider contract",
-      "provider": "Market Capital research dependency group composed from upstream libraries",
+      "provider": "Ordivon Capital Market-domain research dependency group composed from upstream libraries",
       "pythonVersion": "3.14.7",
       "requiredPythonModules": [
         "jsonschema",
@@ -44,7 +44,7 @@
         "pandera",
         "pyarrow"
       ],
-      "responsibility": "scientific dataframe validation, Parquet materialization, experiment lineage and research artifacts used directly by Market Capital source"
+      "responsibility": "scientific dataframe validation, Parquet materialization, experiment lineage and research artifacts currently consumed by the Market domain; generic research/data mechanics are migration candidates for the shared Ordivon Research/Data substrate"
     },
     "xbrlValidation": {
       "commandEnv": "MARKET_CAPITAL_ARELLE",
@@ -54,7 +54,7 @@
       "requiredFor": "raw SEC filing EFM validation"
     }
   },
-  "kind": "ordivon.market-capital.capability-dependencies",
-  "principle": "direct Python imports are owned and locked by Market Capital; cross-domain capabilities use explicit contracts, never another repository's virtualenv",
+  "kind": "ordivon.capital.capability-dependencies",
+  "principle": "direct dependencies are pinned by the consuming Ordivon Capital domain; cross-domain capabilities use explicit contracts; external standards/implementations/providers remain responsibility owners",
   "schemaVersion": 1
 }

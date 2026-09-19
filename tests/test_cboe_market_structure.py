@@ -2,7 +2,7 @@ import unittest
 
 import pandas as pd
 
-from market_capital.cboe_market_structure import build_daily_market_structure
+from ordivon_capital.market.cboe_market_structure import build_daily_market_structure
 
 
 class CboeMarketStructureTests(unittest.TestCase):

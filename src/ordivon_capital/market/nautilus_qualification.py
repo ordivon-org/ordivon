@@ -238,7 +238,7 @@ def qualify(precommit_path: Path) -> dict[str, Any]:
     negative = _run_risk_negative(specs)
     return {
         "schemaVersion": 1,
-        "kind": "ordivon.market-capital.nautilus-qualification",
+        "kind": "ordivon.capital.market.nautilus-qualification",
         "standing": "PARTIAL_PASS_OMS_RISK_BLOCKED_AT_OPEN_SIMULATION",
         "candidate": {
             "name": "NautilusTrader",

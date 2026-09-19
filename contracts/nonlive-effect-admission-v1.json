@@ -1,7 +1,7 @@
 {
   "allowedEffectClass": "SIMULATED_EXCHANGE_ORDER_EFFECT",
   "externalFinancialWriteAllowed": false,
-  "kind": "ordivon.market-capital.nonlive-effect-admission",
+  "kind": "ordivon.capital.market.nonlive-effect-admission",
   "liveEndpoint": false,
   "provider": "NautilusTrader 2.0.0rc4 BacktestEngine simulated exchange",
   "providerRealityCurrentness": "EPISODE_BOUND",

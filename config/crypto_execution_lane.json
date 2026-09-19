@@ -17,7 +17,7 @@
   "demoExecutionAllowed": false,
   "externalFinancialWritesAllowed": false,
   "externalWritePolicyRequired": true,
-  "kind": "ordivon.market-capital.crypto-execution-lane",
+  "kind": "ordivon.capital.market.crypto-execution-lane",
   "liveExecutionAllowed": false,
   "marketModel": "CONTINUOUS_24_7_CRYPTO_SPOT",
   "networkTransport": {

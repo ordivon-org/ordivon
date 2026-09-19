@@ -9,7 +9,7 @@ from typing import Any
 
 from websockets.asyncio.client import connect
 
-from crypto_public_streaming import BINANCE_URL, KEYS, OKX_URL, evaluate_snapshot, network_v2_ws_proxies
+from ordivon_capital.market.crypto_public_streaming import BINANCE_URL, KEYS, OKX_URL, evaluate_snapshot, network_v2_ws_proxies
 
 
 class InjectedDisconnect(RuntimeError):
@@ -231,7 +231,7 @@ async def qualify_reconnect(target_venue: str, measured_rounds: int = 3, deadlin
     passed = warmup is not None and recovery is not None and len(measured) == measured_rounds and reconnect_latency_ms is not None
     return {
         "schemaVersion": 1,
-        "kind": "ordivon.market-capital.crypto-stream-reconnect-qualification",
+        "kind": "ordivon.capital.market.crypto-stream-reconnect-qualification",
         "standing": "PASS_PUBLIC_STREAM_RECONNECT" if passed else "PARTIAL_PUBLIC_STREAM_RECONNECT",
         "targetVenue": target_venue,
         "injectedDisconnect": True,
@@ -266,7 +266,7 @@ def main() -> int:
     except Exception as exc:
         result = {
             "schemaVersion": 1,
-            "kind": "ordivon.market-capital.crypto-stream-reconnect-qualification",
+            "kind": "ordivon.capital.market.crypto-stream-reconnect-qualification",
             "standing": "STREAM_RECONNECT_SESSION_FAILED",
             "targetVenue": args.target_venue,
             "error": f"{type(exc).__name__}: {exc}",

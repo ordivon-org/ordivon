@@ -31,7 +31,7 @@
     "reconciliation_decision"
   ],
   "externalFinancialWrites": "NOT_ADMITTED",
-  "kind": "ordivon.market-capital.tigerbeetle-capital-substrate",
+  "kind": "ordivon.capital.market.tigerbeetle-capital-substrate",
   "provider": {
     "binary": "/usr/local/bin/tigerbeetle",
     "clientInterpreter": "/opt/ordivon/external/tigerbeetle/0.17.9/python-client/bin/python",

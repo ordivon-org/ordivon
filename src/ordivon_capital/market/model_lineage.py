@@ -132,7 +132,7 @@ def persist_monitoring_evidence(
 
     manifest = {
         "schemaVersion": 1,
-        "kind": "ordivon.market-capital.model-monitoring-lineage",
+        "kind": "ordivon.capital.market.model-monitoring-lineage",
         "componentId": "model-monitoring-lineage",
         "sourceEvidenceSha256": _sha256(evidence_path),
         "parquetSha256": _sha256(parquet_path),

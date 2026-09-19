@@ -3,7 +3,7 @@ import json
 import tempfile
 import unittest
 
-from market_capital.crypto_public_shadow import analyze
+from ordivon_capital.market.crypto_public_shadow import analyze
 
 
 class CryptoPublicShadowTests(unittest.TestCase):
@@ -20,7 +20,7 @@ class CryptoPublicShadowTests(unittest.TestCase):
             }
         capture = {
             "schemaVersion": 1,
-            "kind": "ordivon.market-capital.crypto-public-rest-capture",
+            "kind": "ordivon.capital.market.crypto-public-rest-capture",
             "credentialsUsed": False,
             "privateAccountDataUsed": False,
             "externalFinancialWritesAttempted": False,
@@ -37,7 +37,7 @@ class CryptoPublicShadowTests(unittest.TestCase):
         }
         discovery = {
             "schemaVersion":1,
-            "kind":"ordivon.market-capital.network-v2-public-data-binding",
+            "kind":"ordivon.capital.market.network-v2-public-data-binding",
             "bindingDigest":"sha256:test",
             "providerSelection":"sing-box-provider-auto",
             "directFallback":False,

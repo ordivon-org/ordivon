@@ -4,4 +4,4 @@ repo="$(cd "$(dirname "$0")/.." && pwd)"
 "$repo/scripts/check-execution-policy" --mode non-live >/dev/null
 "$repo/scripts/check-nautilus-candidate" >/dev/null
 candidate=/root/external/nautilus-trader/2.0.0rc4/.venv/bin/python
-PYTHONPATH="$repo/src" exec "$candidate" -m market_capital.crypto_lane --config "$repo/config/crypto_execution_lane.json"
+PYTHONPATH="$repo/src" exec "$candidate" -m ordivon_capital.market.crypto_lane --config "$repo/config/crypto_execution_lane.json"

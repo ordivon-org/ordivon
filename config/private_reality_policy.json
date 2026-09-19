@@ -24,11 +24,11 @@
   },
   "credentialPermissionStanding": "PENDING_FRESH_PROVIDER_VERIFICATION",
   "externalFinancialWritesAllowed": false,
-  "kind": "ordivon.market-capital.private-reality-policy",
+  "kind": "ordivon.capital.market.private-reality-policy",
   "normalization": {
     "authority": "thin venue-native normalization only",
     "credentialAccess": false,
-    "implementation": "src/market_capital/private_reality.py",
+    "implementation": "src/ordivon_capital/market/private_reality.py",
     "networkAccess": false,
     "schema": "schema/private-reality-snapshot.schema.json"
   },
@@ -70,12 +70,12 @@
       "credentialCarrier": "finance-binance-observer-materials Runtime InputAuthority",
       "credentialCarrierStanding": "ACTIVE_RUNTIME_INPUT_AUTHORITY",
       "expectedDigestStanding": "CALLER_COMMITMENT_MISSING",
-      "normalizer": "src/market_capital/private_reality.py::normalize_binance_usdm_observer",
+      "normalizer": "src/ordivon_capital/market/private_reality.py::normalize_binance_usdm_observer",
       "permissionClient": "binance-sdk-wallet 13.4.0",
       "permissionGate": "enableReading=true; all write-capable permission flags=false",
       "permissionStanding": "PENDING_FRESH_PROVIDER_VERIFICATION",
       "permissionTruthOwner": "Binance Wallet GET /sapi/v1/account/apiRestrictions",
-      "privateCaptureImplementation": "src/market_capital/binance_usdm_private_capture.py",
+      "privateCaptureImplementation": "src/ordivon_capital/market/binance_usdm_private_capture.py",
       "productEligibilityStanding": "PENDING_PROVIDER_VERIFICATION",
       "requiredQueries": [
         "account_information_v3",

@@ -17,7 +17,7 @@
     }
   },
   "economicIntent": "NON_PRODUCTION_QUALIFICATION_ONLY",
-  "kind": "ordivon.market-capital.live-test-account-policy",
+  "kind": "ordivon.capital.market.live-test-account-policy",
   "knownPublicConstraints": {
     "BINANCE": {
       "BTCUSDT": {

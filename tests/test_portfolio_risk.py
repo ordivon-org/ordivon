@@ -1,7 +1,7 @@
 import math
 import unittest
 
-from market_capital.portfolio_risk import (
+from ordivon_capital.market.portfolio_risk import (
     PortfolioRiskError,
     analyze_dependence,
     build_exposure_ledger,
@@ -195,7 +195,7 @@ class PortfolioRiskTests(unittest.TestCase):
         monitoring = {"componentId": "dependence-model-monitoring", "kind": "test-monitoring"}
         tail = {"componentId": "tail-risk-report", "kind": "test-tail"}
         out = build_portfolio_risk_report(exposure_ledger=ledger, model_monitoring=monitoring, tail_risk_report=tail)
-        self.assertEqual(out["kind"], "ordivon.market-capital.portfolio-risk-report")
+        self.assertEqual(out["kind"], "ordivon.capital.market.portfolio-risk-report")
         self.assertNotIn("allocationProduced", out)
         self.assertEqual(out["nodes"]["modelMonitoring"], monitoring)
         self.assertEqual(out["nodes"]["tailRisk"], tail)

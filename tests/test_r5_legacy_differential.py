@@ -4,7 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from market_capital.execution_reconciliation import reservation_resolution_for_standing
+from ordivon_capital.market.execution_reconciliation import reservation_resolution_for_standing
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE_ROOT = ROOT / "fixtures" / "r5_legacy_bounded"

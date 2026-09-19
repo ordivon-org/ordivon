@@ -9,7 +9,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from market_capital.market_sensors import reconcile_underlying_reopen
+from ordivon_capital.market.market_sensors import reconcile_underlying_reopen
 
 
 def main() -> int:

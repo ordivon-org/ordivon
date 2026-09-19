@@ -82,7 +82,7 @@
       "role": "accounting mechanics, durable orchestration, generic policy"
     }
   ],
-  "kind": "ordivon.market-capital.external-boundary",
+  "kind": "ordivon.capital.market.external-boundary",
   "schemaVersion": 1,
   "truthRole": "component-responsibility-map-not-domain-truth"
 }

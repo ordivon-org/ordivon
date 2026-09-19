@@ -1,8 +1,10 @@
-# Ordivon Market Capital — Clean Room
+# Ordivon Capital — Composition First
 
-Clean-room composition of mature external standards and implementations.
+Ordivon Capital is the capital composition and control plane of Ordivon. It does not define a new accounting, risk, trading, settlement, identity, observability, lineage, or cloud-cost framework. It composes authoritative standards, mature implementations, provider reality, and the minimum Ordivon glue required to bind evidence, authority, execution, and reconciliation.
 
-Business backbone: CFA investment-management process.
+**Market Capital is one implemented domain inside Ordivon Capital, not the parent system.** The current repository contains the Market domain plus a cross-domain TigerBeetle accounting integration. Treasury, Compute, Enterprise, Human, Distribution, and other capital domains are not instantiated until a real use case requires them and an external-owner census has been completed.
+
+Current Market-domain business backbone: CFA investment-management process.
 Trading semantics: FIX.
 Trading runtime: pinned QuantConnect LEAN (installed and admitted for bounded non-live Wave B execution).
 Post-trade reference semantics: PFMI + ISO 20022; broker/custodian infrastructure remains authoritative.
@@ -33,7 +35,7 @@ Crypto Public Shadow R2 now passes repeated persistent public streaming through 
 Crypto Stream Resilience R3 keeps fail-closed missing/stale/time-divergence semantics and the dual-venue reconnect harness on exact Network v2 WS authorities. Current injected-disconnect qualification passes for both OKX and Binance; observed reconnect latencies were ~16.0 s and ~26.3 s respectively and remain evidence rather than a hidden transport claim. The state is exported through the existing Prometheus/Grafana stack without enabling private/demo/live execution.
 Clock timing qualification now passes: Windows w32time is synchronized to qualified public NTP peers and WSL CLOCK_REALTIME follows the Windows host through `/dev/ptp_hyperv` using `phc2sys`; fresh external validation observed <=47.1 ms absolute error versus the frozen 1000 ms gate. Overall private/demo/live execution remains blocked by the separate NON_LIVE execution authority.
 
-Composition policy: prefer authoritative venue APIs and mature components over local mechanisms. LEAN/Nautilus/FIX/venue APIs/TigerBeetle/OPA/Prometheus own their respective mechanics; Market Capital retains only narrow mappings, policy inputs/enforcement, data-quality checks, and reconciliation seams. Custom mechanisms require a demonstrated substitution failure. See `docs/COMPOSITION_FIRST_2026-09-14.md`.
+Composition policy: prefer authoritative standards, mature implementations, and provider-native truth over local mechanisms. ISO/FIX/ISO 20022/GLEIF define external semantics where applicable; LEAN/Nautilus/venue APIs/TigerBeetle/OPA/MLflow/Pandera/OpenLineage/OTel/Prometheus own their respective mechanics. Ordivon Capital retains only narrow composition, policy-input/enforcement, evidence, data-quality, and reconciliation seams that no natural owner can establish alone. Custom mechanisms require a demonstrated substitution failure. Machine-readable ownership is tracked in `config/external_owner_census.json`; see `docs/COMPOSITION_FIRST_2026-09-14.md`.
 
 TigerBeetle Capital Substrate R1 passes the base mechanical integration and R3.1 composes Reservation -> PENDING, RETAIN -> no mutation, RELEASE -> VOID_PENDING_TRANSFER, and CONSUME -> POST_PENDING_TRANSFER. R3.2 now passes durable restart/reconciliation on one intact data file: a pending reservation survived the first process restart, a consumed reservation survived the second, exact replay returned `EXISTS` without reopening pending state, and exact terminal semantic history reconciled `MATCH`. If provider terminal history is missing or stale, the result is retain/recovery (`PROVIDER_INCOMPLETE_RETAIN` / `CONTRADICTION_RETAIN`) with provider repair forbidden; terminal Market Capital history is never resurrected from provider state. The bounded harness deletes its data file afterward, so no long-running canonical ledger or external financial write is admitted.
 

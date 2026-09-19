@@ -30,7 +30,7 @@ if [[ "$ready" != 1 ]]; then
   exit 4
 fi
 
-PYTHONPATH="$repo/src" /usr/bin/python3 -m market_capital.okx_sensor_capture \
+PYTHONPATH="$repo/src" /usr/bin/python3 -m ordivon_capital.market.okx_sensor_capture \
   --instrument "$instrument" \
   --proxy "$proxy" \
   --output "$out" \

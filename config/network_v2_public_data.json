@@ -58,7 +58,7 @@
     }
   },
   "directFallback": false,
-  "kind": "ordivon.market-capital.network-v2-public-data-authority-set",
+  "kind": "ordivon.capital.market.network-v2-public-data-authority-set",
   "providerSelection": "sing-box-provider-auto",
   "publicReadOnly": true,
   "schemaVersion": 1,

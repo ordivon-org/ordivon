@@ -9,7 +9,7 @@ tigerbeetle_python="${MARKET_CAPITAL_TIGERBEETLE_PYTHON:-/opt/ordivon/external/t
 
 cd "$root"
 if [[ -z "$mise_bin" || ! -x "$mise_bin" ]]; then
-  echo "mise unavailable; Market Capital toolchain authority requires mise" >&2
+  echo "mise unavailable; Ordivon Capital toolchain authority requires mise" >&2
   exit 2
 fi
 "$mise_bin" exec -- uv sync --frozen --group research --group nautilus --group test >/dev/null
