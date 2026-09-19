@@ -107,16 +107,21 @@ uv run --locked --group reasoning python scripts/check_reasoning_waist_r1.py
 
 The default `test` group composes the runtime and deployment dependencies required by the complete unit and repository test suite. Architecture, lint/format quality, Agent Service static typing, authority-catalog validation, security auditing and heavier reasoning dependencies are separate groups and are installed only when their validation surface is invoked.
 
-Security uses external tools directly rather than a repository-specific scanner. Bandit covers source heuristics while PyPA `pip-audit` checks known Python dependency vulnerabilities. Because `pip-audit` audits PEP 751 lockfiles rather than `uv.lock` directly, audit input is generated ephemerally from the exact uv lock and is never committed as a second dependency authority:
+Security uses external tools directly rather than a repository-specific scanner. Bandit covers source heuristics, PyPA `pip-audit` checks known Python dependency vulnerabilities, and Gitleaks scans both repository history and the current tree for credential material. Gitleaks is a system-level external tool rather than a Python project dependency, so it is not mirrored into `uv.lock`. Reviewed false positives live only as exact fingerprints in `.gitleaksignore`; do not replace them with path-wide or rule-wide exclusions.
 
 ```bash
 uv run --locked --group security bandit -r agent_service scripts -q -s B404,B603
+
+gitleaks git --no-banner --redact=100 --timeout 120 .
+gitleaks dir --no-banner --redact=100 .
 
 tmp="$(mktemp -d)"
 uv export --locked --all-groups --no-group security --format pylock.toml --output-file "$tmp/pylock.audit.toml"
 uv run --locked --group security pip-audit --locked "$tmp" --progress-spinner off
 rm -rf "$tmp"
 ```
+
+Because `pip-audit` audits PEP 751 lockfiles rather than `uv.lock` directly, audit input is generated ephemerally from the exact uv lock and is never committed as a second dependency authority.
 
 A dependency SBOM is likewise a rebuildable projection of `uv.lock`, not a hand-maintained repository artifact. Reuse the same ephemeral PEP 751 projection and let `pip-audit` emit its native CycloneDX document rather than binding repository policy to uv's preview SBOM exporter:
 
