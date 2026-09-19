@@ -1,5 +1,6 @@
-from pathlib import Path
 import unittest
+from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1]
 class ResilienceRunnerTests(unittest.TestCase):
     def test_both_venues_are_fault_injected_in_one_network_v2_session(self):

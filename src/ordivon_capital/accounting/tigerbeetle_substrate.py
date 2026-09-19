@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from enum import Enum
 import hashlib
+from collections.abc import Mapping
+from dataclasses import dataclass
+from enum import StrEnum
 from pathlib import Path
-from typing import Any, Mapping
-
+from typing import Any
 
 TIGERBEETLE_VERSION = "0.17.9"
 TIGERBEETLE_BINARY = Path("/usr/local/bin/tigerbeetle")
@@ -32,7 +32,7 @@ _NON_ACCOUNTING_FIELDS = frozenset(
 )
 
 
-class TigerBeetleOperation(str, Enum):
+class TigerBeetleOperation(StrEnum):
     PENDING = "PENDING"
     POST_PENDING_TRANSFER = "POST_PENDING_TRANSFER"
     VOID_PENDING_TRANSFER = "VOID_PENDING_TRANSFER"

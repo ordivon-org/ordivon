@@ -10,7 +10,11 @@ from ordivon_capital.accounting.tigerbeetle_durable import (
     binding_for_namespace,
     reconcile_durable_history,
 )
-from ordivon_capital.accounting.tigerbeetle_substrate import AccountingMappingError, TigerBeetleOperation, resolution_instruction
+from ordivon_capital.accounting.tigerbeetle_substrate import (
+    AccountingMappingError,
+    TigerBeetleOperation,
+    resolution_instruction,
+)
 
 
 def namespace() -> CapitalAccountNamespace:

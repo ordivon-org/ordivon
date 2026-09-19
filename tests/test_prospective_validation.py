@@ -1,12 +1,12 @@
-from datetime import date, datetime, timezone
 import unittest
+from datetime import UTC, date, datetime
 
 from ordivon_capital.market.prospective_validation import evaluate_prospective_validation
 
 
 class ProspectiveValidationTests(unittest.TestCase):
     def setUp(self):
-        self.boundary = datetime(2026, 9, 12, 14, 59, 29, tzinfo=timezone.utc)
+        self.boundary = datetime(2026, 9, 12, 14, 59, 29, tzinfo=UTC)
         self.tz = "America/New_York"
 
     def test_same_or_prior_dates_do_not_enter_post_decision_holdout(self):

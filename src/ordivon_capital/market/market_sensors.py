@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from decimal import Decimal, InvalidOperation
 from statistics import median
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any
 
 
 class MarketSensorError(ValueError):

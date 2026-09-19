@@ -5,7 +5,11 @@ import json
 import tomllib
 from pathlib import Path
 
-from nautilus_trader.adapters.okx import OKXEnvironment, OKXExecutionClientConfig, OKXExecutionClientFactory
+from nautilus_trader.adapters.okx import (
+    OKXEnvironment,
+    OKXExecutionClientConfig,
+    OKXExecutionClientFactory,
+)
 from nautilus_trader.model import AccountId
 
 

@@ -3,13 +3,19 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
-from pathlib import Path
 import time
+from pathlib import Path
 from typing import Any
 
 from websockets.asyncio.client import connect
 
-from ordivon_capital.market.crypto_public_streaming import BINANCE_URL, KEYS, OKX_URL, evaluate_snapshot, network_v2_ws_proxies
+from ordivon_capital.market.crypto_public_streaming import (
+    BINANCE_URL,
+    KEYS,
+    OKX_URL,
+    evaluate_snapshot,
+    network_v2_ws_proxies,
+)
 
 
 class InjectedDisconnect(RuntimeError):
@@ -175,7 +181,7 @@ async def qualify_reconnect(target_venue: str, measured_rounds: int = 3, deadlin
                 break
             try:
                 key, quote = await asyncio.wait_for(queue.get(), timeout=min(remaining, 3.0))
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 continue
             latest[key] = quote
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 
 from .tigerbeetle_substrate import (
     AccountingAccount,
@@ -13,7 +13,7 @@ from .tigerbeetle_substrate import (
 )
 
 
-class CapitalAccountRole(str, Enum):
+class CapitalAccountRole(StrEnum):
     AVAILABLE = "AVAILABLE"
     ENCUMBRANCE = "ENCUMBRANCE"
 
@@ -65,13 +65,13 @@ class CapitalAccountNamespace:
         return self.account_id(CapitalAccountRole.ENCUMBRANCE)
 
 
-class ReservationStanding(str, Enum):
+class ReservationStanding(StrEnum):
     RESERVED = "RESERVED"
     RELEASED = "RELEASED"
     CONSUMED = "CONSUMED"
 
 
-class DurableProviderStanding(str, Enum):
+class DurableProviderStanding(StrEnum):
     MATCH = "MATCH"
     PROVIDER_INCOMPLETE_NO_REPAIR = "PROVIDER_INCOMPLETE_NO_REPAIR"
     CONTRADICTION_NO_REPAIR = "CONTRADICTION_NO_REPAIR"

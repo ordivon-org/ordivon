@@ -1,6 +1,7 @@
-from pathlib import Path
 import json
 from decimal import Decimal
+from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1]
 
 def test_nonmatching_canary_is_separate_from_real_order():

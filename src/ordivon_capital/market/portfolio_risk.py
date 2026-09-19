@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-from decimal import Decimal, InvalidOperation
 import math
+from collections.abc import Mapping, Sequence
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from statistics import median
+from typing import Any
 
 import numpy as np
 from scipy.stats import linregress
 from sklearn.linear_model import HuberRegressor, LinearRegression
 from sklearn.model_selection import TimeSeriesSplit
-from typing import Any, Mapping, Sequence
 
 
 class PortfolioRiskError(ValueError):
@@ -253,8 +254,6 @@ def analyze_dependence(
     rolling_corrs = [row["correlation"] for row in rolling]
 
     beta_range = [min(rolling_betas), max(rolling_betas)] if rolling_betas else None
-    corr_range = [min(rolling_corrs), max(rolling_corrs)] if rolling_corrs else None
-
     structural_warnings: list[str] = []
     short_medium_gap: float | None = None
     if short is not None and medium is not None:

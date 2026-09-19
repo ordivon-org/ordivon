@@ -8,11 +8,25 @@ import nautilus_trader
 from nautilus_trader.backtest import BacktestEngine
 from nautilus_trader.common import LogLevel
 from nautilus_trader.config import BacktestEngineConfig, LoggerConfig, StrategyConfig
-from nautilus_trader.model import AccountType, Bar, BarType, Money, OmsType, OrderSide, Price, Quantity, StrategyId, Venue
+from nautilus_trader.model import (
+    AccountType,
+    Bar,
+    BarType,
+    Money,
+    OmsType,
+    OrderSide,
+    Price,
+    Quantity,
+    StrategyId,
+    Venue,
+)
 from nautilus_trader.testkit.providers import TestInstrumentProvider
 from nautilus_trader.trading import Strategy
 
-from ordivon_capital.market.nonlive_effect_qualification import reconcile_nautilus_episode, reconcile_unknown_after_submission
+from ordivon_capital.market.nonlive_effect_qualification import (
+    reconcile_nautilus_episode,
+    reconcile_unknown_after_submission,
+)
 
 
 class ScenarioStrategy(Strategy):

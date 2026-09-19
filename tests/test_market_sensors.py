@@ -45,6 +45,10 @@ class MarketSensorTests(unittest.TestCase):
             {"instrumentId": "X", "observedAtMs": 3000, "bookImbalance": "-0.1", "tradeBuyShare": "0.52", "spreadBps": "1"},
         ]
         result = repeated_microstructure(rows)
+        self.assertEqual(result["negativeBookImbalanceRatio"], "0.666667")
+        self.assertEqual(result["tradeBuyShareBelowHalfRatio"], "0.333333")
+        self.assertNotIn("standing", result)
+        self.assertNotIn("persistenceRatioRequired", result)
 
     def test_reopen_pending_without_cash_observation(self):
         result = reconcile_underlying_reopen(

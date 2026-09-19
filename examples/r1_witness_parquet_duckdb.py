@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from pathlib import Path
 import json
 import subprocess
+from pathlib import Path
+
 import pyarrow as pa
 import pyarrow.parquet as pq
-
 from market_capital.semantic import WitnessRecord, validate_same_cut
 
 D = "sha256:" + "c" * 64

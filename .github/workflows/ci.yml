@@ -24,4 +24,5 @@ jobs:
       - run: uv python install 3.14.7
       - run: uv lock --check
       - run: uv sync --locked --group test
+      - run: uv run --group test ruff check .
       - run: uv run --group test python -m pytest

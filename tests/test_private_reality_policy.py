@@ -1,5 +1,7 @@
+import json
+import subprocess
 from pathlib import Path
-import json, subprocess
+
 ROOT=Path(__file__).resolve().parents[1]
 
 def test_private_reality_credentials_may_be_located_but_private_data_stays_not_admitted():
