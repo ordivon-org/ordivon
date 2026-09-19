@@ -12,6 +12,7 @@ mod repair;
 mod supervisor;
 mod types;
 mod windows;
+mod windows_broker;
 
 #[cfg(feature = "operator-tools")]
 pub use doctor::{
@@ -93,6 +94,7 @@ pub use types::{
     MAX_RUNTIME_LIST_LIMIT, MAX_TASK_TAIL_BYTES, MAX_TASK_WAIT_MS, RUNTIME_SCHEMA_VERSION,
 };
 pub use windows::WindowsExecutionConfig;
+pub use windows_broker::WindowsPrivilegedBrokerConfig;
 
 #[cfg(test)]
 mod tests;

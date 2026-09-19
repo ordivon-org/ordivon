@@ -107,8 +107,12 @@ Observed Runtime projection:
 - Execution Fabric authority contexts = `windows/limited`
 - provider = `provider/windows-main-r6-candidate/windows-native-launcher-v1`.
 
-This is the desired least-privilege direction: the native control plane does not advertise Linux
-execution or ambient elevated Windows authority.
+This evidence proves the default least-privilege execution carrier only. It is not complete
+Windows authority acceptance. The native control plane should not expose ambient administrator
+authority, but explicit `windows/elevated` requests may be admitted through a distinct local
+privileged broker after that broker independently passes its authority/evidence gate. Direct
+limited dispatch and broker-backed elevated dispatch must both bind the same authoritative launcher
+PID + process-creation FILETIME before Runtime commits supervisor ownership.
 
 Graceful stop job:
 `job-01a0b824-ec4b-7bd0-936e-89bf572f9b20`

@@ -121,6 +121,11 @@ impl Runtime {
         job_id: &str,
         attempt: &AttemptRecord,
     ) -> RuntimeResult<TaskObservation> {
+        let plan = self.registry.execution_plan(job_id)?;
+        let expected_broker_digest = plan
+            .windows_execution_context
+            .as_ref()
+            .and_then(|context| context.privileged_broker_digest.as_deref());
         let deadline = Instant::now() + Duration::from_secs(3);
         let mut poll_index = 0;
         loop {
@@ -166,8 +171,12 @@ impl Runtime {
                             true,
                         )
                     })?;
-                    let observed =
-                        observe_windows_launcher_owner(windows, evidence.launcher_process_id)?;
+                    let observed = observe_windows_launcher_owner(
+                        windows,
+                        plan.windows_authority,
+                        expected_broker_digest,
+                        evidence.launcher_process_id,
+                    )?;
                     if target_start.is_file() {
                         continue;
                     }

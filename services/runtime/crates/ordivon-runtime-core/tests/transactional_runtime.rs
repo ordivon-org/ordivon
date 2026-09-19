@@ -414,6 +414,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
                 wsl_distribution: Some(
                     std::env::var("WSL_DISTRO_NAME").unwrap_or_else(|_| "archlinux".to_string()),
                 ),
+                privileged_broker: None,
             }),
         },
         vec![InputAuthority {
@@ -968,6 +969,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
             wsl_distribution: Some(
                 std::env::var("WSL_DISTRO_NAME").unwrap_or_else(|_| "archlinux".to_string()),
             ),
+            privileged_broker: None,
         }),
     })
     .unwrap();
@@ -1452,6 +1454,7 @@ fn runtime_windows_native_wsl_restart_prepare_or_recover() {
             wsl_distribution: Some(
                 std::env::var("WSL_DISTRO_NAME").unwrap_or_else(|_| "archlinux".to_string()),
             ),
+            privileged_broker: None,
         }),
     };
     let windows_drive_path = |path: &Path| -> String {
@@ -4685,6 +4688,7 @@ fn runtime_provider_bound_job_rejects_windows_launcher_drift_before_dispatch() {
         windows: Some(WindowsExecutionConfig {
             launcher_path: staged_launcher.clone(),
             wsl_distribution: Some(wsl_distribution.clone()),
+            privileged_broker: None,
         }),
     })
     .unwrap();

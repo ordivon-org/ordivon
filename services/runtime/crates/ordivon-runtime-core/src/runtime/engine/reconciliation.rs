@@ -654,7 +654,17 @@ impl Runtime {
                 launcher_process_creation_time_file_time,
                 ..
             } = owner;
-            let observed = observe_windows_launcher_owner(windows, launcher_process_id)?;
+            let plan = self.registry.execution_plan(&attempt.job_id)?;
+            let expected_broker_digest = plan
+                .windows_execution_context
+                .as_ref()
+                .and_then(|context| context.privileged_broker_digest.as_deref());
+            let observed = observe_windows_launcher_owner(
+                windows,
+                plan.windows_authority,
+                expected_broker_digest,
+                launcher_process_id,
+            )?;
             return Ok(observed.process_alive
                 && observed.process_creation_time_file_time
                     == Some(launcher_process_creation_time_file_time));
@@ -859,8 +869,14 @@ impl Runtime {
                 false,
             ));
         }
+        let expected_broker_digest = plan
+            .windows_execution_context
+            .as_ref()
+            .and_then(|context| context.privileged_broker_digest.as_deref());
         let disposition = terminate_windows_launcher_owner_for_deadline(
             windows,
+            plan.windows_authority,
+            expected_broker_digest,
             launcher_process_id,
             launcher_process_creation_time_file_time,
         )?;
@@ -912,8 +928,16 @@ impl Runtime {
                     true,
                 )
             })?;
-            let observation =
-                observe_windows_launcher_owner(windows, evidence.launcher_process_id)?;
+            let expected_broker_digest = plan
+                .windows_execution_context
+                .as_ref()
+                .and_then(|context| context.privileged_broker_digest.as_deref());
+            let observation = observe_windows_launcher_owner(
+                windows,
+                plan.windows_authority,
+                expected_broker_digest,
+                evidence.launcher_process_id,
+            )?;
             if Path::new(&attempt.bundle_path).join(RESULT_FILE).is_file() {
                 return self.reconcile_runner_result(attempt);
             }
@@ -1019,7 +1043,16 @@ impl Runtime {
         )? {
             return Ok(());
         }
-        let observation = observe_windows_launcher_owner(windows, *launcher_process_id)?;
+        let expected_broker_digest = plan
+            .windows_execution_context
+            .as_ref()
+            .and_then(|context| context.privileged_broker_digest.as_deref());
+        let observation = observe_windows_launcher_owner(
+            windows,
+            plan.windows_authority,
+            expected_broker_digest,
+            *launcher_process_id,
+        )?;
         if Path::new(&attempt.bundle_path).join(RESULT_FILE).exists() {
             return self.reconcile_runner_result(attempt);
         }
