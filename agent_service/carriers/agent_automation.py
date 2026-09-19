@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
+import rfc8785
+
 from agent_service.slice1 import AgentRevision, ProviderObservation
 
 
@@ -63,14 +65,11 @@ RevisionResolver = Callable[[str], AgentRevision]
 
 
 def _canonical_bytes(value: object) -> bytes:
-    return (json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n").encode(
-        "utf-8"
-    )
+    return rfc8785.dumps(value)
 
 
 def _digest(value: object) -> str:
-    raw = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
-    return "sha256:" + hashlib.sha256(raw).hexdigest()
+    return "sha256:" + hashlib.sha256(rfc8785.dumps(value)).hexdigest()
 
 
 def _subprocess_runner(argv: list[str]) -> dict:

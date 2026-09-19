@@ -5,6 +5,8 @@ import json
 import sqlite3
 import time
 import uuid
+
+import rfc8785
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -115,8 +117,11 @@ class AgentRevisionStore(_SqliteNode):
         ).fetchone()
         if definition_exists is None:
             raise KeyError(definition_id)
-        encoded = _canonical_json(spec)
-        digest = hashlib.sha256(f"{definition_id}\0{encoded}".encode("utf-8")).hexdigest()
+        encoded_bytes = rfc8785.dumps(spec)
+        encoded = encoded_bytes.decode("utf-8")
+        digest = hashlib.sha256(
+            definition_id.encode("utf-8") + b"\0" + encoded_bytes
+        ).hexdigest()
         revision_id = f"arev_{digest}"
         created_at_ns = _now_ns()
         with self._connection:

@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import rfc8785
+
 from .delivery import DeliveryAdapter, PolicyAdapter, TransportBinding
 from .evidence import RuntimeArtifactReader
 from .goals import BoardAdapter
@@ -32,9 +34,6 @@ from .trust import (
 def _now_ms() -> int:
     return int(time.time() * 1000)
 
-
-def _canonical_json(value: Any) -> str:
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
 def _effective_port(parsed: urllib.parse.ParseResult) -> int | None:
@@ -85,8 +84,9 @@ def _transport_credential_scheme_coordinate(
     binding_id: str,
     security_scheme: str,
 ) -> str:
-    material = _canonical_json([binding_id, security_scheme])
-    return hashlib.sha256(material.encode("utf-8")).hexdigest()
+    return hashlib.sha256(
+        rfc8785.dumps([binding_id, security_scheme])
+    ).hexdigest()
 
 
 def _transport_credential_binding_from_event(
