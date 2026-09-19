@@ -132,11 +132,6 @@ impl ExecutionFabricObservation {
             RuntimeNodePlatform::Windows => FabricPlatform::Windows,
             RuntimeNodePlatform::Other => FabricPlatform::Unknown,
         };
-        // R1 uses one local trust-domain label only as an observation namespace.
-        // It is not a credential, authorization decision, or SPIFFE deployment claim.
-        let trust_domain = FabricId::parse("ordivon.local")
-            .expect("static Execution Fabric trust domain must be valid");
-
         let mut resources = vec![FabricResourceDescriptor {
             schema_version: EXECUTION_FABRIC_SCHEMA_VERSION,
             resource_id: FabricId::parse(format!("runtime/{}", node_id.as_str()))
@@ -150,7 +145,7 @@ impl ExecutionFabricObservation {
         let mut providers = Vec::new();
         let mut node_capabilities = Vec::new();
         let mut node_providers = Vec::new();
-        let mut authority_contexts = Vec::new();
+        let mut execution_contexts = Vec::new();
         let mut controllers = Vec::new();
         let mut proposed_actions = Vec::new();
 
@@ -272,7 +267,7 @@ impl ExecutionFabricObservation {
                         WindowsAuthority::Limited => "windows/limited",
                         WindowsAuthority::Elevated => "windows/elevated",
                     };
-                    authority_contexts.push(
+                    execution_contexts.push(
                         FabricId::parse(value)
                             .expect("static Windows authority context must be valid"),
                     );
@@ -285,10 +280,9 @@ impl ExecutionFabricObservation {
             node_id,
             platform,
             native_control_plane: capabilities.node.native,
-            trust_domain,
             providers: node_providers,
             capabilities: node_capabilities,
-            authority_contexts,
+            execution_contexts,
         };
         node.validate()
             .expect("Runtime capability projection must produce a valid Fabric node");

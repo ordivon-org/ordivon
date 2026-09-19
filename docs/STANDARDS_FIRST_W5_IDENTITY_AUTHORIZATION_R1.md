@@ -52,12 +52,15 @@ AuthorityMode and ConflictMode remain temporarily only because the provider-heal
 proposal contract still references them. They are not accepted as a general authorization
 model; reassess in a later controller-contract slice.
 
-## Compatibility caveat
+## Descriptor cleanup
 
-NodeDescriptor.trustDomain currently remains as a descriptive local string for compatibility.
-It is explicitly not a SPIFFE trust domain, SVID, trust bundle, or cryptographic identity
-claim. A later slice should rename or remove it unless a real SPIFFE deployment gives the
-field standard semantics.
+NodeDescriptor.trustDomain was removed after cross-repository consumer audit showed no
+remaining production consumer once the Workstation EF6 static routing catalog was retired.
+A local string must not impersonate SPIFFE trust-domain semantics.
+
+NodeDescriptor.authorityContexts was renamed to executionContexts because its values describe
+concrete OS/provider execution contexts such as linux/root and windows/limited, not identity
+or authorization policy.
 
 ## Gate
 

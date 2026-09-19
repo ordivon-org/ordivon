@@ -68,9 +68,10 @@ Standards-first routing is now:
 - resource concurrency/conflict -> the resource/execution coordinator, not identity/authentication;
 - semantic ownership -> the domain bounded context, not an authorization token.
 
-NodeDescriptor.trustDomain is currently only a local descriptive label. It MUST NOT be
-interpreted as a SPIFFE trust domain or cryptographic identity claim. Rename/removal is a
-separate compatibility slice.
+NodeDescriptor no longer carries a local trustDomain field. SPIFFE trust-domain semantics
+must come from a real SPIFFE identity deployment, not an Execution Fabric label.
+The former authorityContexts field is now executionContexts because it describes concrete
+OS/provider execution contexts rather than authorization.
 
 ### EvidenceReference
 
