@@ -573,6 +573,30 @@ class RemoteTaskCompletionReconciler:
         return record
 
 
+def _initialize_schema(connection: sqlite3.Connection) -> None:
+    legacy_remote_task_verifications = connection.execute(
+        "SELECT 1 FROM sqlite_master "
+        "WHERE type = 'table' AND name = 'remote_task_verifications'"
+    ).fetchone()
+    if legacy_remote_task_verifications is not None:
+        raise RuntimeError(
+            "legacy remote_task_verifications schema is unsupported; "
+            "perform explicit destructive migration before opening this revision"
+        )
+    connection.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS task_execution_claims (
+            id TEXT PRIMARY KEY,
+            task_id TEXT NOT NULL UNIQUE REFERENCES service_tasks(id),
+            mode TEXT NOT NULL CHECK(mode IN ('LOCAL_ASSIGNMENT', 'REMOTE_BINDING')),
+            owner_id TEXT NOT NULL,
+            created_at_ns INTEGER NOT NULL
+        );
+        """
+    )
+    connection.commit()
+
+
 class AgentServiceR11:
     """R11: exactly-one execution ownership plus remote evidence -> local verifier bridge."""
 
@@ -667,27 +691,7 @@ class AgentServiceR11:
 
     @staticmethod
     def _initialize_schema(connection: sqlite3.Connection) -> None:
-        legacy_remote_task_verifications = connection.execute(
-            "SELECT 1 FROM sqlite_master "
-            "WHERE type = 'table' AND name = 'remote_task_verifications'"
-        ).fetchone()
-        if legacy_remote_task_verifications is not None:
-            raise RuntimeError(
-                "legacy remote_task_verifications schema is unsupported; "
-                "perform explicit destructive migration before opening this revision"
-            )
-        connection.executescript(
-            """
-            CREATE TABLE IF NOT EXISTS task_execution_claims (
-                id TEXT PRIMARY KEY,
-                task_id TEXT NOT NULL UNIQUE REFERENCES service_tasks(id),
-                mode TEXT NOT NULL CHECK(mode IN ('LOCAL_ASSIGNMENT', 'REMOTE_BINDING')),
-                owner_id TEXT NOT NULL,
-                created_at_ns INTEGER NOT NULL
-            );
-            """
-        )
-        connection.commit()
+        _initialize_schema(connection)
 
     def close(self) -> None:
         self._r10.close()

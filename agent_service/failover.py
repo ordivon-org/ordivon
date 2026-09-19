@@ -1121,6 +1121,51 @@ class FailoverCoordinator:
         )
 
 
+def _initialize_schema(connection: sqlite3.Connection) -> None:
+    legacy_execution_claim_transfers = connection.execute(
+        "SELECT 1 FROM sqlite_master "
+        "WHERE type = 'table' AND name = 'execution_claim_transfers'"
+    ).fetchone()
+    if legacy_execution_claim_transfers is not None:
+        raise RuntimeError(
+            "legacy execution_claim_transfers schema is unsupported; "
+            "perform explicit destructive migration before opening this revision"
+        )
+    legacy_replay_safety_decisions = connection.execute(
+        "SELECT 1 FROM sqlite_master "
+        "WHERE type = 'table' AND name = 'replay_safety_decisions'"
+    ).fetchone()
+    if legacy_replay_safety_decisions is not None:
+        raise RuntimeError(
+            "legacy replay_safety_decisions schema is unsupported; "
+            "perform explicit destructive migration before opening this revision"
+        )
+    legacy_execution_quiescence_proofs = connection.execute(
+        "SELECT 1 FROM sqlite_master "
+        "WHERE type = 'table' AND name = 'execution_quiescence_proofs'"
+    ).fetchone()
+    if legacy_execution_quiescence_proofs is not None:
+        raise RuntimeError(
+            "legacy execution_quiescence_proofs schema is unsupported; "
+            "perform explicit destructive migration before opening this revision"
+        )
+    connection.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS execution_quiescence_requests (
+            id TEXT PRIMARY KEY,
+            client_quiescence_request_id TEXT NOT NULL UNIQUE,
+            task_id TEXT NOT NULL REFERENCES service_tasks(id),
+            binding_id TEXT NOT NULL REFERENCES transport_bindings(id),
+            state TEXT NOT NULL CHECK(state IN ('REQUESTED', 'PROVED', 'NOT_PROVED')),
+            created_at_ns INTEGER NOT NULL,
+            updated_at_ns INTEGER NOT NULL
+        );
+
+        """
+    )
+    connection.commit()
+
+
 class AgentServiceR12:
     """R12: quiescence + replay safety + CAS execution-claim failover."""
 
@@ -1250,48 +1295,7 @@ class AgentServiceR12:
 
     @staticmethod
     def _initialize_schema(connection: sqlite3.Connection) -> None:
-        legacy_execution_claim_transfers = connection.execute(
-            "SELECT 1 FROM sqlite_master "
-            "WHERE type = 'table' AND name = 'execution_claim_transfers'"
-        ).fetchone()
-        if legacy_execution_claim_transfers is not None:
-            raise RuntimeError(
-                "legacy execution_claim_transfers schema is unsupported; "
-                "perform explicit destructive migration before opening this revision"
-            )
-        legacy_replay_safety_decisions = connection.execute(
-            "SELECT 1 FROM sqlite_master "
-            "WHERE type = 'table' AND name = 'replay_safety_decisions'"
-        ).fetchone()
-        if legacy_replay_safety_decisions is not None:
-            raise RuntimeError(
-                "legacy replay_safety_decisions schema is unsupported; "
-                "perform explicit destructive migration before opening this revision"
-            )
-        legacy_execution_quiescence_proofs = connection.execute(
-            "SELECT 1 FROM sqlite_master "
-            "WHERE type = 'table' AND name = 'execution_quiescence_proofs'"
-        ).fetchone()
-        if legacy_execution_quiescence_proofs is not None:
-            raise RuntimeError(
-                "legacy execution_quiescence_proofs schema is unsupported; "
-                "perform explicit destructive migration before opening this revision"
-            )
-        connection.executescript(
-            """
-            CREATE TABLE IF NOT EXISTS execution_quiescence_requests (
-                id TEXT PRIMARY KEY,
-                client_quiescence_request_id TEXT NOT NULL UNIQUE,
-                task_id TEXT NOT NULL REFERENCES service_tasks(id),
-                binding_id TEXT NOT NULL REFERENCES transport_bindings(id),
-                state TEXT NOT NULL CHECK(state IN ('REQUESTED', 'PROVED', 'NOT_PROVED')),
-                created_at_ns INTEGER NOT NULL,
-                updated_at_ns INTEGER NOT NULL
-            );
-
-            """
-        )
-        connection.commit()
+        _initialize_schema(connection)
 
     def close(self) -> None:
         self._r11.close()

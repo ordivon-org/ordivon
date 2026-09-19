@@ -38,7 +38,7 @@ class AgentServiceMcpCanaryR16Tests(unittest.TestCase):
     def test_contract_is_read_only_and_production_blocked(self):
         value = self.module._contract(Path.cwd().resolve())
         self.assertEqual(value["status"], "PASS")
-        self.assertEqual(value["compositionRoot"], "AgentServiceR15")
+        self.assertEqual(value["compositionRoot"], "open_agent_service")
         self.assertFalse(value["writeSurfaceEnabled"])
         self.assertFalse(value["providerEffectSurfaceEnabled"])
         self.assertFalse(value["runtimeMutationSurfaceEnabled"])

@@ -499,6 +499,18 @@ class BoundCredentialHeaderProvider:
         return merged
 
 
+def _initialize_schema(connection: sqlite3.Connection) -> None:
+    legacy_transport_credential_bindings = connection.execute(
+        "SELECT 1 FROM sqlite_master "
+        "WHERE type = 'table' AND name = 'transport_credential_bindings'"
+    ).fetchone()
+    if legacy_transport_credential_bindings is not None:
+        raise RuntimeError(
+            "legacy transport_credential_bindings schema is unsupported; "
+            "perform explicit destructive migration before opening this revision"
+        )
+
+
 class AgentServiceR14:
     """R14: immutable interface protocol versions plus reference-only transport credentials."""
 
@@ -570,15 +582,7 @@ class AgentServiceR14:
 
     @staticmethod
     def _initialize_schema(connection: sqlite3.Connection) -> None:
-        legacy_transport_credential_bindings = connection.execute(
-            "SELECT 1 FROM sqlite_master "
-            "WHERE type = 'table' AND name = 'transport_credential_bindings'"
-        ).fetchone()
-        if legacy_transport_credential_bindings is not None:
-            raise RuntimeError(
-                "legacy transport_credential_bindings schema is unsupported; "
-                "perform explicit destructive migration before opening this revision"
-            )
+        _initialize_schema(connection)
 
     def close(self) -> None:
         self._r13.close()

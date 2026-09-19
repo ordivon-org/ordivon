@@ -7,10 +7,8 @@ from dataclasses import replace
 from pathlib import Path
 
 from agent_service.provider_adapters import A2AJsonRpcHttpClient, MCPTasksHttpClient
-from agent_service.transport_credentials import (
-    AgentServiceR14,
-    CredentialHeaderMaterial,
-)
+from agent_service import open_agent_service
+from agent_service.transport_credentials import CredentialHeaderMaterial
 from agent_service.trust import IdentityProofObservation
 from tests.test_agent_service_provider_adapters_r13 import (
     AllowPolicy,
@@ -71,7 +69,7 @@ class MaterialProvider:
 
 class AgentServiceInterfaceCredentialsR14Tests(unittest.TestCase):
     def _open(self, db: Path, *, proof_adapter=None, material_provider=None):
-        service = AgentServiceR14.open(
+        service = open_agent_service(
             db,
             carrier_adapter=ReadyCarrier(),
             runtime_adapter=FakeRuntime(),

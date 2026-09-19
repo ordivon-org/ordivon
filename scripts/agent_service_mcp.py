@@ -106,13 +106,13 @@ def _contract(root: Path) -> dict[str, Any]:
     if not (source_ready and authority_resolved and production_blocked):
         raise RuntimeError("R15 acceptance standing is incompatible with read-only deployment canary")
     graph = _graph_identity(root)
-    from agent_service import AgentServiceR15  # local source import; no service instance is created
+    from agent_service import open_agent_service  # local source import; no service instance is created
 
     return {
         "schemaVersion": 1,
         "kind": "ordivon.agent-service-readonly-canary-contract",
         "status": "PASS",
-        "compositionRoot": AgentServiceR15.__name__,
+        "compositionRoot": open_agent_service.__name__,
         "sourceImplementation": standings["sourceImplementation"],
         "authorityLifetimeQuestion": standings["authorityLifetimeQuestion"],
         "productionDeployment": standings["productionDeployment"],
