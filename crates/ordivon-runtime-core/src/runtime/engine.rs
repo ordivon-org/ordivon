@@ -900,10 +900,6 @@ pub(crate) fn map_universal_error(error: crate::UniversalExecError) -> RuntimeEr
         | UniversalCode::HostDependencyRuntimeDrift
         | UniversalCode::ExecutableRuntimeDrift => RuntimeErrorCode::WorkspaceStateMismatch,
         UniversalCode::WorkspaceMutationIncomplete => RuntimeErrorCode::ReconciliationRequired,
-        UniversalCode::TaskExists => RuntimeErrorCode::IdempotencyConflict,
-        UniversalCode::TaskNotFound => RuntimeErrorCode::JobNotFound,
-        UniversalCode::TaskStartFailed => RuntimeErrorCode::ToolFailed,
-        UniversalCode::TaskStateUnavailable => RuntimeErrorCode::ReconciliationRequired,
         UniversalCode::ArtifactNotFound => RuntimeErrorCode::ArtifactNotFound,
         UniversalCode::ArtifactNotUtf8 => RuntimeErrorCode::ArtifactNotUtf8,
         UniversalCode::OutputLimitExceeded => RuntimeErrorCode::OutputLimitExceeded,
@@ -1969,10 +1965,6 @@ mod trusted_systemd_command_tests {
             ),
             (
                 crate::UniversalExecErrorCode::WorkspaceMutationIncomplete,
-                RuntimeErrorCode::ReconciliationRequired,
-            ),
-            (
-                crate::UniversalExecErrorCode::TaskStateUnavailable,
                 RuntimeErrorCode::ReconciliationRequired,
             ),
         ];
