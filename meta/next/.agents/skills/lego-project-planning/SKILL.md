@@ -5,7 +5,6 @@ compatibility: Cross-platform. Project plans use planning/lego-plan-r1.json.
 metadata:
   source-authority: ordivon-next
   planning-contract: docs/LEGO_PROJECT_PLANNING_R1.md
-  theory-layer: docs/LEGO_THEORY_LAYER_R1.md
   schema: schemas/project-lego-plan-r1.schema.json
 ---
 
@@ -29,19 +28,9 @@ If the real target, decision, state, mechanism, or evidence boundary is still un
 10. Validate structure when the R1 validator is available.
 11. After implementation, re-read reality before updating node state.
 
-## Optional analysis/theory routing
+## Method handoff
 
-- `lego-question-compiler`: use when the target, decision, mechanism, or evidence boundary is still vague. It frames questions; it does not select the full method set.
-- `lego-lens-router`: use when the question is sufficiently bound but several theory lenses/domain methods could plausibly apply. It selects the Minimum Sufficient Theory Set from the canonical registry and may return NO_LENS or DOMAIN_METHOD.
-
-Do not maintain a duplicate static lens catalog in this Skill. The canonical inventory, activation conditions, prerequisites, contraindications, overlap and composite-profile relations live in:
-
-- `knowledge/registries/lego-lens-registry-r1.json`
-- `docs/LEGO_LENS_ROUTER_R1.md`
-
-Lens outputs are derived analysis evidence. They alter the plan only through an explicit architecture decision supported by project-native evidence.
-
-Do not expand the project plan schema merely to mirror theory vocabulary.
+When analysis is still required, invoke the natural mature/domain method directly. Do not use a local Lens registry, router, compiler, portfolio, or static theory catalog. Method outputs remain derived analysis and may change the plan only through explicit evidence-backed project decisions.
 
 ## State law
 
@@ -72,7 +61,5 @@ Another Agent should be able to answer from the plan:
 Canonical references:
 - docs/LEGO_PROJECT_PLANNING_R1.md
 - docs/LEGO_QUESTION_COMPILER_R1.md
-- docs/LEGO_LENS_ROUTER_R1.md
-- docs/LEGO_THEORY_LAYER_R1.md
 - schemas/project-lego-plan-r1.schema.json
 - knowledge/lessons/agent-architecture-lego-catalog-r1.md for optional Agent-architecture coordinates

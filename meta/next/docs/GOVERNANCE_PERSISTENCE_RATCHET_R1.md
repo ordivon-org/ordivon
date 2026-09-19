@@ -19,8 +19,6 @@ The ratchet MUST be deleted when natural owners enforce the same boundaries and 
 | Workspace | Git worktree + Kubernetes finished-Job TTL, owner/dependent GC and finalizers | Workspaces are disposable carriers; retention needs a live claimant/finalizer-equivalent reason |
 | Evidence | W3C PROV + in-toto/SLSA + OpenLineage | persist references, digests, provenance and claims; do not copy owner-native raw truth by default |
 | Gate | OPA decision/enforcement split | gate should be a pure decision or external policy evaluation, not a stateful coordinator/store |
-| Lens | mature external discipline; no separate runtime standard needed | keep versioned method definition, not runtime Lens state |
-| Operator | procedure/composition; MCP stateless request style is an invocation analogue, not an authority standard | no operator-instance database; no meta-recursion |
 | Registry | MCP Registry / OCI distribution patterns | discovery/index points to natural packages/content; it is not global semantic truth |
 
 Canonical references:
@@ -76,15 +74,11 @@ A gate is behavior: decision = f(input, policy).
 
 It must not own a second persistence plane merely because the decision matters. Persist a decision receipt only when a real replay/audit consumer exists.
 
-### Lens and Operator
+### Analytical methods
 
-The active working set stays smaller than the library.
+Analytical methods are not a durable Ordivon object class. The natural owner is the mature external discipline or the domain itself. Invoke the method directly and retain only decision-relevant derived evidence when needed.
 
-R1 freezes additive growth at the current observed ceilings:
-- active lenses <= 14
-- operators <= 5
-
-Ceilings may shrink. Increasing either ceiling requires a same-change retirement/subsumption and prospective evidence; adding a sixth operator merely because a new meta-problem was named is rejected.
+The former local Lens Registry, Router, Compiler, Portfolio, reserve pool, and operator ceilings are retired. Reintroducing a local method-selection ontology requires an irreducibility argument showing why direct external/domain method selection is insufficient.
 
 ### Registry
 
@@ -110,11 +104,10 @@ These counts diagnose retention pressure. They do not independently authorize de
 ## Executable enforcement
 
 scripts/check_governance_persistence_r1.py checks repository-static rules:
-- the seven roles have explicit persistence classes;
+- the retained governance roles have explicit persistence classes;
 - Gate is stateless;
-- Lens/Operator are definition-only;
 - Registry is rebuildable by default;
-- active-lens and operator counts cannot exceed the frozen migration ceilings;
+- retired local method-routing infrastructure remains absent;
 - the shared project LEGO schema cannot acquire mandatory Gate/Lens/Operator/Registry concepts.
 
 Dynamic Task/Workspace cleanup remains owner-native and revision-fenced through Host/Runtime; this repository does not create a second lifecycle database.
