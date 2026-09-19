@@ -7,44 +7,6 @@ resolution-markers = [
     "sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 
-[manifest]
-
-[manifest.dependency-groups]
-architecture = [{ name = "import-linter" }]
-authority = [
-    { name = "check-jsonschema" },
-    { name = "jsonschema" },
-]
-deployment = [
-    { name = "mcp", specifier = ">=2.2.0" },
-    { name = "mcp-types", specifier = ">=2.2.0" },
-    { name = "rfc8785", specifier = ">=0.1.4" },
-    { name = "sqlite-utils", specifier = ">=4.2.1" },
-    { name = "uvicorn" },
-]
-quality = [{ name = "ruff" }]
-reasoning = [
-    { name = "ortools" },
-    { name = "pyshacl" },
-    { name = "rdflib" },
-    { name = "unified-planning" },
-    { name = "up-pyperplan" },
-    { name = "z3-solver" },
-]
-runtime = [
-    { name = "mcp-types", specifier = ">=2.2.0" },
-    { name = "rfc8785", specifier = ">=0.1.4" },
-    { name = "sqlite-utils", specifier = ">=4.2.1" },
-]
-test = [
-    { name = "mcp", specifier = ">=2.2.0" },
-    { name = "mcp-types", specifier = ">=2.2.0" },
-    { name = "rfc8785", specifier = ">=0.1.4" },
-    { name = "sqlite-utils", specifier = ">=4.2.1" },
-    { name = "uvicorn" },
-]
-test-analysis = [{ name = "coverage" }]
-
 [[package]]
 name = "absl-py"
 version = "2.5.0"
@@ -724,6 +686,91 @@ sdist = { url = "https://files.pythonhosted.org/packages/ee/8b/aa9e2d8b8dfa7c946
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ca/6f/a04e900f465ff3221ccc395522503e2d10e79fa21f2723c8e177aae1e0d1/opentelemetry_api-1.44.0-py3-none-any.whl", hash = "sha256:94b98c893a91b88657eaac1e3ba89618cdb85be6918196705354f34728b2cdef", size = 60018, upload-time = "2026-07-16T15:25:11.657Z" },
 ]
+
+[[package]]
+name = "ordivon-next"
+version = "0.0.0"
+source = { virtual = "." }
+
+[package.dev-dependencies]
+architecture = [
+    { name = "import-linter" },
+]
+authority = [
+    { name = "check-jsonschema" },
+    { name = "jsonschema" },
+]
+deployment = [
+    { name = "mcp" },
+    { name = "mcp-types" },
+    { name = "rfc8785" },
+    { name = "sqlite-utils" },
+    { name = "uvicorn" },
+]
+quality = [
+    { name = "ruff" },
+]
+reasoning = [
+    { name = "ortools" },
+    { name = "pyshacl" },
+    { name = "rdflib" },
+    { name = "unified-planning" },
+    { name = "up-pyperplan" },
+    { name = "z3-solver" },
+]
+runtime = [
+    { name = "mcp-types" },
+    { name = "rfc8785" },
+    { name = "sqlite-utils" },
+]
+test = [
+    { name = "mcp" },
+    { name = "mcp-types" },
+    { name = "rfc8785" },
+    { name = "sqlite-utils" },
+    { name = "uvicorn" },
+]
+test-analysis = [
+    { name = "coverage" },
+]
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+architecture = [{ name = "import-linter" }]
+authority = [
+    { name = "check-jsonschema" },
+    { name = "jsonschema" },
+]
+deployment = [
+    { name = "mcp", specifier = ">=2.2.0" },
+    { name = "mcp-types", specifier = ">=2.2.0" },
+    { name = "rfc8785", specifier = ">=0.1.4" },
+    { name = "sqlite-utils", specifier = ">=4.2.1" },
+    { name = "uvicorn" },
+]
+quality = [{ name = "ruff" }]
+reasoning = [
+    { name = "ortools" },
+    { name = "pyshacl" },
+    { name = "rdflib" },
+    { name = "unified-planning" },
+    { name = "up-pyperplan" },
+    { name = "z3-solver" },
+]
+runtime = [
+    { name = "mcp-types", specifier = ">=2.2.0" },
+    { name = "rfc8785", specifier = ">=0.1.4" },
+    { name = "sqlite-utils", specifier = ">=4.2.1" },
+]
+test = [
+    { name = "mcp", specifier = ">=2.2.0" },
+    { name = "mcp-types", specifier = ">=2.2.0" },
+    { name = "rfc8785", specifier = ">=0.1.4" },
+    { name = "sqlite-utils", specifier = ">=4.2.1" },
+    { name = "uvicorn" },
+]
+test-analysis = [{ name = "coverage" }]
 
 [[package]]
 name = "ortools"

@@ -1,3 +1,9 @@
+[project]
+name = "ordivon-next"
+version = "0.0.0"
+requires-python = ">=3.14"
+dependencies = []
+
 [dependency-groups]
 runtime = [
   "mcp-types>=2.2.0",
