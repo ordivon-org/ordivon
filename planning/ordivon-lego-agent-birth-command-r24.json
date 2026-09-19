@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "ordivon-lego-agent-birth-command-r24",
+  "date": "2026-09-19",
+  "target": "BirthCoordinator",
+  "decision": "ELIGIBLE_FOR_CLASS_ELIMINATION",
+  "retainedAuthorities": {
+    "replayIdentity": "agent_instances.birth_request_id UNIQUE",
+    "revision": "AgentRevisionStore",
+    "instance": "AgentInstanceStore",
+    "placement": "DesiredPlacementStore",
+    "events": "ServiceEventStore",
+    "atomicity": "SQLite transaction"
+  },
+  "replacement": {
+    "publicCommand": "AgentServiceSlice1.birth",
+    "pureApplicationFunction": "_birth_agent",
+    "oldApi": "service.birth.birth(...)",
+    "newApi": "service.birth(...)"
+  },
+  "replacementLocalTypes": []
+}
