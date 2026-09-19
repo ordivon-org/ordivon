@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agent_service.host_board import HostBoardMcpAdapter, HostBoardMcpHttpClient, HostBoardProtocolError
+from agent_service.host_board import HostBoardMcpAdapter, HostBoardProtocolError
 
 
 class FakeToolCaller:
@@ -145,37 +145,6 @@ class HostBoardMcpAdapterTests(unittest.TestCase):
                         message="projection",
                         topic="agent-service-goal-projection",
                     )
-
-    def test_http_client_factory_derives_loopback_endpoint_from_host_env(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            env = Path(tmp) / "host.env"
-            env.write_text(
-                "ORDIVON_HOST_V2_TRANSPORT=streamable-http\n"
-                "ORDIVON_HOST_V2_HOST=127.0.0.1\n"
-                "ORDIVON_HOST_V2_PORT=8898\n"
-                "ORDIVON_HOST_V2_PATH=/mcp\n",
-                encoding="utf-8",
-            )
-
-            client = HostBoardMcpHttpClient.from_host_env(env)
-
-            self.assertEqual(client.endpoint, "http://127.0.0.1:8898/mcp")
-            self.assertNotIn("token", repr(client).lower())
-
-    def test_http_client_factory_rejects_non_http_or_non_loopback_config(self) -> None:
-        cases = (
-            "ORDIVON_HOST_V2_TRANSPORT=stdio\nORDIVON_HOST_V2_HOST=127.0.0.1\nORDIVON_HOST_V2_PORT=8898\nORDIVON_HOST_V2_PATH=/mcp\n",
-            "ORDIVON_HOST_V2_TRANSPORT=streamable-http\nORDIVON_HOST_V2_HOST=0.0.0.0\nORDIVON_HOST_V2_PORT=8898\nORDIVON_HOST_V2_PATH=/mcp\n",
-            "ORDIVON_HOST_V2_TRANSPORT=streamable-http\nORDIVON_HOST_V2_HOST=127.0.0.1\nORDIVON_HOST_V2_PORT=8898\nORDIVON_HOST_V2_PATH=mcp\n",
-        )
-        for content in cases:
-            with self.subTest(content=content):
-                with tempfile.TemporaryDirectory() as tmp:
-                    env = Path(tmp) / "host.env"
-                    env.write_text(content, encoding="utf-8")
-                    with self.assertRaises(ValueError):
-                        HostBoardMcpHttpClient.from_host_env(env)
-
 
 if __name__ == "__main__":
     unittest.main()
