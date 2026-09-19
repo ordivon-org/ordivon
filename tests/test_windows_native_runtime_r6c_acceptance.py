@@ -6,7 +6,7 @@ SCRIPT = ROOT / "scripts" / "windows-native-runtime-r6c-acceptance.ps1"
 
 def test_r6c_acceptance_harness_is_candidate_only_and_faults_are_opt_in():
     text = SCRIPT.read_text(encoding="utf-8")
-    assert "[ValidateSet('Status', 'CrashRecovery', 'ActiveJobRecovery', 'CancelJob')]" in text
+    assert "[ValidateSet('Status', 'AuthorityProfile', 'CrashRecovery', 'ActiveJobRecovery', 'CancelJob')]" in text
     assert "[switch]$ApplyFault" in text
     assert "R6c acceptance harness refuses the production service name." in text
     assert "R6c acceptance harness refuses the production MCP endpoint." in text
@@ -81,3 +81,27 @@ def test_r6c_cancel_job_cleanup_uses_candidate_mcp_not_registry_mutation():
     assert "Invoke-McpTool -Name 'task.cancel'" in text
     assert "jobId = $JobId" in text
     assert "sqlite" not in text.lower()
+
+
+def test_r6c_authority_profile_runs_real_limited_and_elevated_windows_jobs():
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert "'AuthorityProfile'" in text
+    assert "Invoke-AuthorityProfile" in text
+    assert "[string]$RuntimeRoot" in text
+    assert "ordivon-windows-job-launcher.exe" in text
+    assert "windowsAuthority = $Authority" in text
+    assert "'--describe-runtime-context'" in text
+    assert "'limited'" in text
+    assert "'elevated'" in text
+    assert "tokenIsElevated -ne $false" in text
+    assert "tokenIntegrityLevelRid -gt 8192" in text
+    assert "tokenIsElevated -ne $true" in text
+    assert "tokenIntegrityLevelRid -lt 12288" in text
+    assert "sameDedicatedUserSid" in text
+
+
+def test_r6c_authority_profile_requires_runtime_to_advertise_both_authorities():
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert "$authorities = @($windowsNative.windowsAuthorities)" in text
+    assert "@('limited', 'elevated')" in text
+    assert "does not advertise required authority" in text

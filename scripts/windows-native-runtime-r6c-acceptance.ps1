@@ -1,7 +1,7 @@
 #requires -version 5.1
 [CmdletBinding()]
 param(
-    [ValidateSet('Status', 'CrashRecovery', 'ActiveJobRecovery', 'CancelJob')]
+    [ValidateSet('Status', 'AuthorityProfile', 'CrashRecovery', 'ActiveJobRecovery', 'CancelJob')]
     [string]$Mode = 'Status',
 
     [string]$ServiceName = 'OrdivonRuntimeR6Candidate',
@@ -9,6 +9,7 @@ param(
     [string]$ExpectedNodeId = 'windows-main-r6-candidate',
     [string]$TokenFile = 'C:\ProgramData\Ordivon\RuntimeCandidateR6\secrets\runtime-mcp.token',
     [string]$AcceptanceRoot = 'C:\ProgramData\Ordivon\RuntimeCandidateR6Acceptance',
+    [string]$RuntimeRoot = 'C:\ProgramData\Ordivon\RuntimeCandidateR6',
     [string]$JobId = '',
     [switch]$ApplyFault
 )
@@ -285,6 +286,125 @@ function Wait-JobWorking {
     throw 'acceptance Job did not reach starting/running before timeout.'
 }
 
+function Invoke-AuthorityProfile {
+    $runtime = Get-RuntimeDescribe -Id 121
+    $windowsNative = @($runtime.targets | Where-Object { $_.target -eq 'windows_native' })[0]
+    if ($null -eq $windowsNative) {
+        throw 'candidate omitted windows_native target.'
+    }
+    $authorities = @($windowsNative.windowsAuthorities)
+    foreach ($required in @('limited', 'elevated')) {
+        if ($authorities -notcontains $required) {
+            throw "candidate windows_native target does not advertise required authority: $required"
+        }
+    }
+
+    $launcher = Join-Path $RuntimeRoot 'bin\ordivon-windows-job-launcher.exe'
+    if (-not [IO.File]::Exists($launcher)) {
+        throw "Runtime launcher does not exist under RuntimeRoot: $launcher"
+    }
+
+    [IO.Directory]::CreateDirectory($AcceptanceRoot) | Out-Null
+    $repo = Ensure-TestRepository
+    $workspaceId = ('ws-r6c-authority-' + [Guid]::NewGuid().ToString('N').Substring(0, 16))
+    $opened = Invoke-McpTool -Name 'workspace.open' -Arguments @{
+        schemaVersion = 1
+        workspaceId = $workspaceId
+        sourceRepo = $repo.path
+        sourceRevision = $repo.revision
+    } -Id 120
+
+    function Invoke-AuthorityContextJob([string]$Authority, [int]$Id) {
+        $clientRequestId = ('r6c-authority-' + $Authority + '-' + [Guid]::NewGuid().ToString('N'))
+        $execution = @{
+            workspaceId = $workspaceId
+            executable = $launcher
+            args = @(
+                '--describe-runtime-context',
+                '--authority',
+                $Authority,
+                '--context-env',
+                'USERNAME'
+            )
+            cwdRelative = '.'
+            executionTarget = 'windows_native'
+            executionProfile = 'trusted_local'
+            windowsAuthority = $Authority
+            timeoutMs = 15000
+            stdoutLimitBytes = 65536
+            stderrLimitBytes = 65536
+        }
+        $result = Invoke-McpTool -Name 'workspace.exec' -Arguments @{
+            schemaVersion = 1
+            clientRequestId = $clientRequestId
+            execution = $execution
+            waitMs = 30000
+            stdoutTailBytes = 65536
+            stderrTailBytes = 65536
+        } -Id $Id
+        if ($result.executionTerminal -ne $true -or $result.executionDisposition -ne 'succeeded') {
+            throw "$Authority authority context Job did not succeed: $($result | ConvertTo-Json -Depth 12 -Compress)"
+        }
+        $text = ([string]$result.stdoutTail).Trim()
+        if ([string]::IsNullOrWhiteSpace($text)) {
+            throw "$Authority authority context Job omitted stdout."
+        }
+        $context = $text | ConvertFrom-Json
+        return [pscustomobject]@{
+            observation = $result
+            context = $context
+        }
+    }
+
+    $limited = Invoke-AuthorityContextJob -Authority 'limited' -Id 122
+    $elevated = Invoke-AuthorityContextJob -Authority 'elevated' -Id 123
+
+    if ($limited.context.tokenIsElevated -ne $false) {
+        throw 'limited authority context unexpectedly reports an elevated token.'
+    }
+    if ([int]$limited.context.tokenIntegrityLevelRid -gt 8192) {
+        throw 'limited authority context exceeds Medium integrity.'
+    }
+    if ($elevated.context.tokenIsElevated -ne $true) {
+        throw 'elevated authority context does not report an elevated token.'
+    }
+    if ([int]$elevated.context.tokenIntegrityLevelRid -lt 12288) {
+        throw 'elevated authority context is below High integrity.'
+    }
+    if ([string]$limited.context.tokenUserSid -ne [string]$elevated.context.tokenUserSid) {
+        throw 'limited and elevated authority contexts do not preserve one dedicated service identity.'
+    }
+
+    return [ordered]@{
+        schemaVersion = 1
+        mode = 'AuthorityProfile'
+        serviceName = $ServiceName
+        workspaceId = $workspaceId
+        node = $runtime.node
+        advertisedAuthorities = $authorities
+        limited = [ordered]@{
+            jobId = $limited.observation.jobId
+            attemptId = $limited.observation.attemptId
+            tokenSelection = $limited.context.tokenSelection
+            tokenUserSid = $limited.context.tokenUserSid
+            tokenIsElevated = $limited.context.tokenIsElevated
+            tokenIntegrityLevelRid = $limited.context.tokenIntegrityLevelRid
+            administratorsGroupAttributes = $limited.context.administratorsGroupAttributes
+        }
+        elevated = [ordered]@{
+            jobId = $elevated.observation.jobId
+            attemptId = $elevated.observation.attemptId
+            tokenSelection = $elevated.context.tokenSelection
+            tokenUserSid = $elevated.context.tokenUserSid
+            tokenIsElevated = $elevated.context.tokenIsElevated
+            tokenIntegrityLevelRid = $elevated.context.tokenIntegrityLevelRid
+            administratorsGroupAttributes = $elevated.context.administratorsGroupAttributes
+        }
+        sameDedicatedUserSid = ([string]$limited.context.tokenUserSid -eq [string]$elevated.context.tokenUserSid)
+        passed = $true
+    }
+}
+
 function Invoke-ActiveJobRecovery {
     if (-not $ApplyFault) {
         throw 'ActiveJobRecovery requires -ApplyFault.'
@@ -411,6 +531,9 @@ switch ($Mode) {
             localLinux = @($runtime.targets | Where-Object { $_.target -eq 'local_linux' })[0]
             mutationAttempted = $false
         } | ConvertTo-Json -Depth 16
+    }
+    'AuthorityProfile' {
+        (Invoke-AuthorityProfile) | ConvertTo-Json -Depth 16
     }
     'CrashRecovery' {
         (Invoke-CrashRecovery) | ConvertTo-Json -Depth 16
