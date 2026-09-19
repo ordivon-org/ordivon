@@ -2381,6 +2381,59 @@ fn clean_workspace_close_succeeds_without_force() {
 }
 
 #[test]
+fn closed_workspace_tombstone_omits_redundant_identity_and_rejects_legacy_conflict() {
+    let sandbox = Sandbox::new("closed-workspace-id-retirement");
+    let source = sandbox.root.join("source");
+    init_git_repo(&source);
+    let config = sandbox.config();
+    let workspace_id = "workspace-closed-id-retirement";
+    create_git_workspace(
+        &config,
+        &GitWorkspaceCreateRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            source_repo: source.to_string_lossy().into_owned(),
+            source_revision: "HEAD".to_string(),
+        },
+    )
+    .unwrap();
+    remove_git_workspace(
+        &config,
+        &WorkspaceCloseRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            force: false,
+            expected_source_state_digest: None,
+        },
+    )
+    .unwrap();
+
+    let record_path = config.workspace_record_path(workspace_id);
+    let mut tombstone: serde_json::Value =
+        serde_json::from_slice(&fs::read(&record_path).unwrap()).unwrap();
+    assert_eq!(tombstone["state"], "closed");
+    assert!(
+        tombstone.get("workspaceId").is_none(),
+        "new closed tombstones must bind identity from record location"
+    );
+
+    tombstone["workspaceId"] = serde_json::Value::String("different-workspace".to_string());
+    write_json_atomic(&record_path, &tombstone).unwrap();
+    let error = remove_git_workspace(
+        &config,
+        &WorkspaceCloseRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            force: false,
+            expected_source_state_digest: None,
+        },
+    )
+    .unwrap_err();
+    assert_eq!(error.code, UniversalExecErrorCode::MetadataCorrupt);
+    assert_eq!(error.field.as_deref(), Some("workspaceId"));
+}
+
+#[test]
 fn workspace_close_cache_failure_does_not_commit_closure() {
     let sandbox = Sandbox::new("close-cache-failure");
     let source = sandbox.root.join("source");

@@ -33,6 +33,7 @@ use sha2::{Digest, Sha256};
 struct ClosedWorkspaceRecord {
     schema_version: u32,
     state: String,
+    #[serde(default, skip_serializing)]
     workspace_id: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     source_repo: Option<String>,
