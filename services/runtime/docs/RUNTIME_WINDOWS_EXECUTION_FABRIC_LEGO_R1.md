@@ -310,7 +310,7 @@ irreducibility argument and acceptance evidence.
 3. commit R6b as one atomic service-materialization cut;
 4. build an isolated R6c candidate service on a non-live port/root/name;
 5. collect service identity, ACL, lifecycle and recovery evidence;
-6. implement E1–E7 one provider at a time;
-7. rerun the D-drive workflow resolver until unresolved capabilities = 0;
+6. **SUPERSEDED:** do not implement the former E1–E7 capability backlog as a local ontology;
+7. **SUPERSEDED:** the D-drive workflow resolver/catalog/bindings were retired; bind only concrete provider actions at their natural owner, using Temporal only when durable orchestration is actually required;
 8. only after full acceptance, perform one final Runtime deployment/cutover;
 9. delete superseded WSL/Task-Scheduler/watchdog compatibility carriers.
