@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "kind": "external-temporal-reference-profile",
+  "profileId": "sfi-grants-temporal-reference-r1",
+  "externalOwners": {
+    "identifierResolution": "iso-8000-115-2024",
+    "metadataItemMapping": [
+      "iso-iec-11179-3-2023",
+      "iso-iec-11179-3-amd1-2026"
+    ],
+    "schemaEvolution": "apache-iceberg-spec-v3",
+    "databaseCdc": "debezium-stable-cdc",
+    "eventTimeLateData": "apache-beam-programming-model",
+    "organizationReferenceRegistry": "ror-schema-2.1"
+  },
+  "source": {
+    "repository": "https://github.com/rfordatascience/tidytuesday",
+    "path": "data/2026/2026-02-24/sfi_grants.csv",
+    "revisions": [
+      {
+        "role": "old",
+        "commit": "51504577572c78cf4908371d6eff5d99f53b0698",
+        "commitTime": "2026-02-22T13:27:21Z",
+        "message": "Science Foundation Ireland Grant Commitments (#997)",
+        "encoding": "latin-1",
+        "expectedSha256": "1f961db4f51d081134f4cf9777786229e89e6292ba5b0f2fd405179dd8b2d0c0"
+      },
+      {
+        "role": "new",
+        "commit": "bb24566e57c7ac138650b23d8183ae31d351f817",
+        "commitTime": "2026-02-22T15:49:44Z",
+        "message": "Properly encode data. (#1004)",
+        "encoding": "utf-8",
+        "expectedSha256": "417b7ed1c49be76e767f3f3a413ccd9d9cb33eacda25494d16946e35399b9064"
+      }
+    ]
+  },
+  "identity": {
+    "rowCandidate": [
+      "proposal_id"
+    ],
+    "referenceIdentifiers": {
+      "research_body_ror_id": {
+        "scheme": "ROR",
+        "role": "authoritative-reference-identifier",
+        "labelColumn": "research_body"
+      },
+      "crossref_funder_registry_id": {
+        "scheme": "Crossref Funder Registry DOI",
+        "role": "authoritative-reference-identifier",
+        "labelColumn": "funder_name"
+      }
+    },
+    "rules": [
+      "Use an explicit source/reference identifier as identity when present.",
+      "Treat human-readable names as labels, not authoritative identity.",
+      "One stable identifier may legitimately have multiple labels or historical/source names.",
+      "One label mapping to multiple identifiers is ambiguous and requires explicit mapping/review.",
+      "Fuzzy matching may generate review candidates only and never creates an authoritative mapping."
+    ]
+  },
+  "temporal": {
+    "sourceRevisionOrder": "Git commit time and commit ancestry",
+    "processingOrderAuthoritative": false,
+    "runtimeObservationTime": "run-local evidence only",
+    "streamingWatermarkApplied": false,
+    "reason": "Git history is bounded historical revision input; Beam watermark semantics are reserved for unbounded sources."
+  },
+  "schemaEvolution": {
+    "externalOwner": "apache-iceberg-spec-v3",
+    "currentStorage": "CSV source + Parquet/JSON evidence",
+    "stableFieldIdsAvailable": false,
+    "rules": [
+      "Do not infer rename from drop+add when source format has no stable field IDs.",
+      "An explicit ISO/IEC 11179 item mapping may establish semantic correspondence across names.",
+      "Add/drop/reorder/type-change are recorded as schema transitions even when the current storage layer can physically read them.",
+      "Iceberg activation is gated on real table-level snapshot/evolution/concurrent-writer/time-travel or row-lineage requirements."
+    ]
+  }
+}

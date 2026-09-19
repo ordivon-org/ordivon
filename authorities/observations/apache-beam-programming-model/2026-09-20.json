@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-observation",
+  "authorityId": "apache-beam-programming-model",
+  "basis": "official-source",
+  "lifecycleStatus": "current",
+  "observedDate": "2026-09-20",
+  "officialSource": "https://beam.apache.org/documentation/programming-guide/",
+  "versionObserved": "current documentation; latest Beam release 2.76.0",
+  "note": "Beam distinguishes event time from processing time and uses watermarks, allowed lateness and triggers to reason about incomplete and late-arriving unbounded data."
+}

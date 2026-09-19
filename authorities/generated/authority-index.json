@@ -188,6 +188,90 @@
     },
     {
       "aliases": [
+        "Apache Beam programming guide",
+        "Beam event-time model"
+      ],
+      "authorityKind": "mature-open-source-pattern",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "analytics",
+        "data",
+        "streaming"
+      ],
+      "id": "apache-beam-programming-model",
+      "identityMode": "rolling-source",
+      "issuer": "Apache Beam",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:fa83bf59ee7d22fa8ef893b0136426e9bae1e70baa05da3b9f80cfcd5e88a942",
+      "recordDigest": "sha256:b284f20638797a491de837fb6c8398f76abfddb424bd28d559caec41a8d10319",
+      "title": "Apache Beam Programming Model — Event Time, Watermarks, Windowing and Late Data",
+      "topics": [
+        "event-time",
+        "late-data",
+        "processing-time",
+        "triggers",
+        "watermark",
+        "windowing"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "Iceberg 1.11.0"
+      ],
+      "authorityKind": "open-source-release",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "analytics",
+        "data",
+        "storage"
+      ],
+      "id": "apache-iceberg-1.11.0",
+      "identityMode": "versioned",
+      "issuer": "Apache Iceberg",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:ea65966068cce72238182c356e73386d5f742f2a54bf98e83716cace85aec5dd",
+      "recordDigest": "sha256:4c492343fbc265eb683e875092c75a80f0dd8b8c4b2d6c24d39e61cbce59c442",
+      "title": "Apache Iceberg 1.11.0",
+      "topics": [
+        "row-lineage",
+        "schema-evolution",
+        "snapshots",
+        "table-format"
+      ],
+      "versionLabel": "1.11.0"
+    },
+    {
+      "aliases": [
+        "Apache Iceberg specification v3",
+        "Iceberg v3 spec"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "analytics",
+        "data",
+        "storage"
+      ],
+      "id": "apache-iceberg-spec-v3",
+      "identityMode": "versioned",
+      "issuer": "Apache Iceberg",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:df6bec0b97a5a6a6bbb9ea3cb496c08064ee27da2378fe84996f1bee3d01af26",
+      "recordDigest": "sha256:899b3a81a537176c13de3c42717c5043cb3a99eb01d982a6ae8eddd492288d39",
+      "title": "Apache Iceberg Table Specification — Version 3",
+      "topics": [
+        "partition-evolution",
+        "row-lineage",
+        "schema-evolution",
+        "snapshots",
+        "table-format",
+        "time-travel"
+      ],
+      "versionLabel": "3"
+    },
+    {
+      "aliases": [
         "Apache Parquet",
         "Parquet 2.13.0",
         "Parquet Format"
@@ -565,6 +649,33 @@
         "research-output-metadata"
       ],
       "versionLabel": "4.7"
+    },
+    {
+      "aliases": [
+        "Debezium CDC",
+        "Debezium stable"
+      ],
+      "authorityKind": "mature-open-source-pattern",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "data",
+        "databases",
+        "streaming"
+      ],
+      "id": "debezium-stable-cdc",
+      "identityMode": "rolling-source",
+      "issuer": "Debezium",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:8684e3aebb1fbf1b8f7c7f82507cd0fe2993c38706654b02357f5a8d50bfa03e",
+      "recordDigest": "sha256:43c657d6200ef50f9e83a63a88ccc181e15953be45b3bc73ce3f143bc0e61895",
+      "title": "Debezium Stable Documentation — Change Data Capture and Delivery Semantics",
+      "topics": [
+        "change-data-capture",
+        "database-changes",
+        "delivery-semantics",
+        "transaction-log"
+      ],
+      "versionLabel": null
     },
     {
       "aliases": [
@@ -1799,6 +1910,34 @@
     },
     {
       "aliases": [
+        "ISO 8000-115:2024",
+        "Master Data Quality Identifiers"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "data",
+        "governance",
+        "metadata"
+      ],
+      "id": "iso-8000-115-2024",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:879bc850c8b4ae404ba2865a75ff1db5464486237c81ab8e23a9482d06e2f723",
+      "recordDigest": "sha256:ae44ace63bb13a1b5697cf741b377332c8e4c369754468a8c28869f2d156810f",
+      "title": "ISO 8000-115:2024 — Data quality — Part 115: Master data: Exchange of quality identifiers",
+      "topics": [
+        "data-quality",
+        "identifier-resolution",
+        "identifiers",
+        "master-data",
+        "reference-data"
+      ],
+      "versionLabel": "2024"
+    },
+    {
+      "aliases": [
         "ISO 9001:2015",
         "ISO 9001:2015/Amd 1:2024"
       ],
@@ -1925,6 +2064,61 @@
         "ux"
       ],
       "versionLabel": "2019"
+    },
+    {
+      "aliases": [
+        "ISO/IEC 11179-3:2023",
+        "Metadata Registry Part 3"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "data",
+        "governance",
+        "metadata"
+      ],
+      "id": "iso-iec-11179-3-2023",
+      "identityMode": "versioned",
+      "issuer": "ISO/IEC",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:b645169123bfc169fe5d948c64cd822774d7b82ceca690d0003024b1030fb45d",
+      "recordDigest": "sha256:e792001106319945bdd12346ccab01325bf8fd2fb3dd8cbc4c695cae95264fae",
+      "title": "ISO/IEC 11179-3:2023 — Information technology — Metadata registries (MDR) — Part 3: Metamodel for registry common facilities",
+      "topics": [
+        "classification",
+        "data-elements",
+        "identification",
+        "mapping",
+        "metadata-registry"
+      ],
+      "versionLabel": "2023"
+    },
+    {
+      "aliases": [
+        "11179 Item Mapping Amendment",
+        "ISO/IEC 11179-3 Amendment 1:2026"
+      ],
+      "authorityKind": "international-standard-amendment",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "data",
+        "governance",
+        "metadata"
+      ],
+      "id": "iso-iec-11179-3-amd1-2026",
+      "identityMode": "versioned",
+      "issuer": "ISO/IEC",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:f079d1b62f3b3320cf2dba38d5e6487b766e3c70e9cc23affd8a53fd1b6d683e",
+      "recordDigest": "sha256:0d5bb1cf733241439de36465756bd558c5ff311af410c98a567b8eae2bfdafa6",
+      "title": "ISO/IEC 11179-3:2023/Amd 1:2026 — Enhancements to Item Mapping",
+      "topics": [
+        "entity-mapping",
+        "item-mapping",
+        "metadata-mapping",
+        "metadata-registry"
+      ],
+      "versionLabel": "2026"
     },
     {
       "aliases": [
@@ -4170,7 +4364,7 @@
     }
   ],
   "kind": "ordivon.external-authority-discovery-index",
-  "recordCount": 150,
-  "recordsDigest": "sha256:806c9cf208215ede7d419ee48924a95cba2d3f7f7494c0af8a9854aca2d4851c",
+  "recordCount": 157,
+  "recordsDigest": "sha256:b72bbce8fe7e134a54ce9390db37cca58fea9a18ed385f841c0c7aed5dd04618",
   "schemaVersion": 1
 }

@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-record",
+  "id": "apache-iceberg-1.11.0",
+  "identity": {
+    "issuer": {
+      "id": "apache-iceberg",
+      "name": "Apache Iceberg"
+    },
+    "title": "Apache Iceberg 1.11.0",
+    "authorityKind": "open-source-release",
+    "identityMode": "versioned",
+    "versionLabel": "1.11.0",
+    "officialSource": "https://iceberg.apache.org/releases/",
+    "publicationDate": "2026-05-19"
+  },
+  "discovery": {
+    "aliases": [
+      "Iceberg 1.11.0"
+    ],
+    "topics": [
+      "table-format",
+      "schema-evolution",
+      "snapshots",
+      "row-lineage"
+    ],
+    "domains": [
+      "data",
+      "analytics",
+      "storage"
+    ]
+  },
+  "access": {
+    "metadata": "public",
+    "fullText": "public",
+    "note": "Apache release artifacts, signatures and release notes are public."
+  },
+  "relations": {
+    "supersedes": [],
+    "supersededBy": [],
+    "related": [
+      "apache-iceberg-spec-v3"
+    ]
+  },
+  "provenance": {
+    "registeredDate": "2026-09-20",
+    "registrationBasis": [
+      "data-temporal-evolution-r1",
+      "official Iceberg releases page checked 2026-09-20"
+    ]
+  }
+}

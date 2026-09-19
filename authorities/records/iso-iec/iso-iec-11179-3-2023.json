@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-record",
+  "id": "iso-iec-11179-3-2023",
+  "identity": {
+    "issuer": {
+      "id": "iso-iec",
+      "name": "ISO/IEC"
+    },
+    "title": "ISO/IEC 11179-3:2023 — Information technology — Metadata registries (MDR) — Part 3: Metamodel for registry common facilities",
+    "authorityKind": "international-standard",
+    "identityMode": "versioned",
+    "versionLabel": "2023",
+    "officialSource": "https://www.iso.org/standard/78915.html",
+    "publicationDate": "2023-01"
+  },
+  "discovery": {
+    "aliases": [
+      "ISO/IEC 11179-3:2023",
+      "Metadata Registry Part 3"
+    ],
+    "topics": [
+      "metadata-registry",
+      "identification",
+      "mapping",
+      "classification",
+      "data-elements"
+    ],
+    "domains": [
+      "data",
+      "metadata",
+      "governance"
+    ]
+  },
+  "access": {
+    "metadata": "public",
+    "fullText": "licensed",
+    "note": "ISO catalog metadata and preview are public; normative full text is licensed."
+  },
+  "relations": {
+    "supersedes": [],
+    "supersededBy": [],
+    "related": [
+      "iso-iec-11179-3-amd1-2026",
+      "iso-8000-115-2024"
+    ]
+  },
+  "provenance": {
+    "registeredDate": "2026-09-20",
+    "registrationBasis": [
+      "data-temporal-evolution-r1",
+      "official ISO catalog checked 2026-09-20"
+    ]
+  }
+}

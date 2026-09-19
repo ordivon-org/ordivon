@@ -1,0 +1,20 @@
+{
+  "beam": {
+    "activate": false,
+    "reason": "The source is bounded Git revision history; no watermark/late-data runtime is required."
+  },
+  "debezium": {
+    "activate": false,
+    "reason": "The source change log is Git history, not a database transaction log."
+  },
+  "iceberg": {
+    "activate": false,
+    "reason": "The observed real transition is representation-only; Git commits already provide immutable source snapshots, with no concurrent table writers or table-level schema evolution."
+  },
+  "kind": "data-platform-activation-decision",
+  "redpandaKafka": {
+    "activate": false,
+    "reason": "No unbounded fan-out/replay transport workload was demonstrated."
+  },
+  "schemaVersion": 1
+}

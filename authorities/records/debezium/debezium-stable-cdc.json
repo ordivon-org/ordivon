@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-record",
+  "id": "debezium-stable-cdc",
+  "identity": {
+    "issuer": {
+      "id": "debezium",
+      "name": "Debezium"
+    },
+    "title": "Debezium Stable Documentation — Change Data Capture and Delivery Semantics",
+    "authorityKind": "mature-open-source-pattern",
+    "identityMode": "rolling-source",
+    "versionLabel": null,
+    "officialSource": "https://debezium.io/documentation/reference/stable/",
+    "publicationDate": null
+  },
+  "discovery": {
+    "aliases": [
+      "Debezium CDC",
+      "Debezium stable"
+    ],
+    "topics": [
+      "change-data-capture",
+      "transaction-log",
+      "delivery-semantics",
+      "database-changes"
+    ],
+    "domains": [
+      "data",
+      "streaming",
+      "databases"
+    ]
+  },
+  "access": {
+    "metadata": "public",
+    "fullText": "public",
+    "note": "Debezium stable documentation is public."
+  },
+  "relations": {
+    "supersedes": [],
+    "supersededBy": [],
+    "related": [
+      "apache-beam-programming-model"
+    ]
+  },
+  "provenance": {
+    "registeredDate": "2026-09-20",
+    "registrationBasis": [
+      "data-temporal-evolution-r1",
+      "Debezium stable documentation checked 2026-09-20"
+    ]
+  }
+}

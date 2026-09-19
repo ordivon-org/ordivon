@@ -1,0 +1,98 @@
+{
+  "externalOwner": "apache-iceberg-spec-v3",
+  "fixtures": {
+    "actual_revision_pair": {
+      "additions": [],
+      "drops": [],
+      "externalOwner": "apache-iceberg-spec-v3",
+      "fieldIdentityBoundary": "CSV has no stable field IDs; rename compatibility requires an explicit mapping rather than name similarity.",
+      "incompatibleTypeChanges": [],
+      "mappingOwner": "iso-iec-11179-3-amd1-2026",
+      "promotions": [],
+      "renames": [],
+      "standing": "NO_SCHEMA_CHANGE"
+    },
+    "add_nullable_field": {
+      "additions": [
+        "curation_note"
+      ],
+      "drops": [],
+      "externalOwner": "apache-iceberg-spec-v3",
+      "fieldIdentityBoundary": "CSV has no stable field IDs; rename compatibility requires an explicit mapping rather than name similarity.",
+      "incompatibleTypeChanges": [],
+      "mappingOwner": "iso-iec-11179-3-amd1-2026",
+      "promotions": [],
+      "renames": [],
+      "standing": "ADDITIVE_COMPATIBLE"
+    },
+    "breaking_type_change": {
+      "additions": [],
+      "drops": [],
+      "externalOwner": "apache-iceberg-spec-v3",
+      "fieldIdentityBoundary": "CSV has no stable field IDs; rename compatibility requires an explicit mapping rather than name similarity.",
+      "incompatibleTypeChanges": [
+        {
+          "field": "amount",
+          "from": "DOUBLE",
+          "to": "VARCHAR"
+        }
+      ],
+      "mappingOwner": "iso-iec-11179-3-amd1-2026",
+      "promotions": [],
+      "renames": [],
+      "standing": "BREAKING_TYPE_CHANGE"
+    },
+    "compatible_type_promotion": {
+      "additions": [],
+      "drops": [],
+      "externalOwner": "apache-iceberg-spec-v3",
+      "fieldIdentityBoundary": "CSV has no stable field IDs; rename compatibility requires an explicit mapping rather than name similarity.",
+      "incompatibleTypeChanges": [],
+      "mappingOwner": "iso-iec-11179-3-amd1-2026",
+      "promotions": [
+        {
+          "field": "n",
+          "from": "INTEGER",
+          "to": "BIGINT"
+        }
+      ],
+      "renames": [],
+      "standing": "TYPE_PROMOTION_COMPATIBLE"
+    },
+    "rename_with_explicit_mapping": {
+      "additions": [],
+      "drops": [],
+      "externalOwner": "apache-iceberg-spec-v3",
+      "fieldIdentityBoundary": "CSV has no stable field IDs; rename compatibility requires an explicit mapping rather than name similarity.",
+      "incompatibleTypeChanges": [],
+      "mappingOwner": "iso-iec-11179-3-amd1-2026",
+      "promotions": [],
+      "renames": [
+        {
+          "from": "research_body",
+          "to": "organization_name"
+        }
+      ],
+      "standing": "EXPLICIT_RENAME_COMPATIBLE"
+    },
+    "rename_without_mapping": {
+      "additions": [
+        "organization_name"
+      ],
+      "drops": [
+        "research_body"
+      ],
+      "externalOwner": "apache-iceberg-spec-v3",
+      "fieldIdentityBoundary": "CSV has no stable field IDs; rename compatibility requires an explicit mapping rather than name similarity.",
+      "incompatibleTypeChanges": [],
+      "mappingOwner": "iso-iec-11179-3-amd1-2026",
+      "promotions": [],
+      "renames": [],
+      "standing": "AMBIGUOUS_DROP_ADD"
+    }
+  },
+  "kind": "schema-evolution-conformance",
+  "mappingOwner": "iso-iec-11179-3-amd1-2026",
+  "note": "Synthetic edge cases are conformance fixtures only; the real SFI revision pair has no schema change.",
+  "schemaVersion": 1
+}
