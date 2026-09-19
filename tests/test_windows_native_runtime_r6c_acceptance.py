@@ -6,7 +6,7 @@ SCRIPT = ROOT / "scripts" / "windows-native-runtime-r6c-acceptance.ps1"
 
 def test_r6c_acceptance_harness_is_candidate_only_and_faults_are_opt_in():
     text = SCRIPT.read_text(encoding="utf-8")
-    assert "[ValidateSet('Status', 'CrashRecovery', 'ActiveJobRecovery')]" in text
+    assert "[ValidateSet('Status', 'CrashRecovery', 'ActiveJobRecovery', 'CancelJob')]" in text
     assert "[switch]$ApplyFault" in text
     assert "R6c acceptance harness refuses the production service name." in text
     assert "R6c acceptance harness refuses the production MCP endpoint." in text
@@ -67,3 +67,12 @@ def test_r6c_active_job_fixture_preserves_git_safe_directory_by_using_service_ow
     assert ".SetOwner($owner)" in text
     assert "safe.directory=*" not in text
     assert "git config --global" not in text
+
+
+def test_r6c_cancel_job_cleanup_uses_candidate_mcp_not_registry_mutation():
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert "'CancelJob'" in text
+    assert "CancelJob requires -ApplyFault." in text
+    assert "Invoke-McpTool -Name 'task.cancel'" in text
+    assert "jobId = $JobId" in text
+    assert "sqlite" not in text.lower()

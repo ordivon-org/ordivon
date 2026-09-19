@@ -1,7 +1,7 @@
 #requires -version 5.1
 [CmdletBinding()]
 param(
-    [ValidateSet('Status', 'CrashRecovery', 'ActiveJobRecovery')]
+    [ValidateSet('Status', 'CrashRecovery', 'ActiveJobRecovery', 'CancelJob')]
     [string]$Mode = 'Status',
 
     [string]$ServiceName = 'OrdivonRuntimeR6Candidate',
@@ -9,6 +9,7 @@ param(
     [string]$ExpectedNodeId = 'windows-main-r6-candidate',
     [string]$TokenFile = 'C:\ProgramData\Ordivon\RuntimeCandidateR6\secrets\runtime-mcp.token',
     [string]$AcceptanceRoot = 'C:\ProgramData\Ordivon\RuntimeCandidateR6Acceptance',
+    [string]$JobId = '',
     [switch]$ApplyFault
 )
 
@@ -412,5 +413,24 @@ switch ($Mode) {
     }
     'ActiveJobRecovery' {
         (Invoke-ActiveJobRecovery) | ConvertTo-Json -Depth 16
+    }
+    'CancelJob' {
+        if (-not $ApplyFault) {
+            throw 'CancelJob requires -ApplyFault.'
+        }
+        if ([string]::IsNullOrWhiteSpace($JobId) -or $JobId -notmatch '^job-[A-Za-z0-9-]+$') {
+            throw 'CancelJob requires an explicit candidate JobId.'
+        }
+        $cancelled = Invoke-McpTool -Name 'task.cancel' -Arguments @{
+            schemaVersion = 1
+            jobId = $JobId
+        } -Id 300
+        [ordered]@{
+            schemaVersion = 1
+            mode = 'CancelJob'
+            jobId = $JobId
+            observation = $cancelled
+            passed = $true
+        } | ConvertTo-Json -Depth 16
     }
 }
