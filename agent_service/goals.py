@@ -30,7 +30,9 @@ class Goal:
 
 
 class GoalStore:
-    def __init__(self, connection: sqlite3.Connection, events: ServiceEventStore) -> None:
+    def __init__(
+        self, connection: sqlite3.Connection, events: ServiceEventStore
+    ) -> None:
         self._connection = connection
         self._events = events
 
@@ -86,7 +88,9 @@ class GoalStore:
 class GoalGraphMutationGuard:
     """Freeze Goal graph structure once semantic execution starts."""
 
-    def __init__(self, connection: sqlite3.Connection, goals: GoalStore, tasks: TaskStore) -> None:
+    def __init__(
+        self, connection: sqlite3.Connection, goals: GoalStore, tasks: TaskStore
+    ) -> None:
         self._connection = connection
         self._goals = goals
         self._tasks = tasks
@@ -100,7 +104,9 @@ class GoalGraphMutationGuard:
             (goal_id,),
         ).fetchall()
         if any(self._tasks.get(row["task_id"]).state != "PENDING" for row in rows):
-            raise RuntimeError("Goal graph is frozen once any linked Task leaves PENDING")
+            raise RuntimeError(
+                "Goal graph is frozen once any linked Task leaves PENDING"
+            )
 
 
 class GoalTaskLinkStore:
@@ -205,7 +211,10 @@ class TaskReadinessProjector:
     """Derived Task readiness: no persisted READY/BLOCKED state."""
 
     def __init__(
-        self, tasks: TaskStore, links: GoalTaskLinkStore, dependencies: TaskDependencyStore
+        self,
+        tasks: TaskStore,
+        links: GoalTaskLinkStore,
+        dependencies: TaskDependencyStore,
     ) -> None:
         self._tasks = tasks
         self._links = links
@@ -222,7 +231,11 @@ class TaskReadinessProjector:
         )
 
     def ready_tasks(self, goal_id: str) -> list[AgentTask]:
-        return [task for task in self._links.tasks_for_goal(goal_id) if self.is_ready(task.id)]
+        return [
+            task
+            for task in self._links.tasks_for_goal(goal_id)
+            if self.is_ready(task.id)
+        ]
 
 
 class GoalAssignmentPlanner:
@@ -254,10 +267,16 @@ class GoalReconciler:
         tasks = self._links.tasks_for_goal(goal_id)
         derived_state = "PENDING"
         reason: str | None = None
-        failed = next((task for task in tasks if task.state in {"FAILED", "CANCELLED"}), None)
+        failed = next(
+            (task for task in tasks if task.state in {"FAILED", "CANCELLED"}), None
+        )
         if failed is not None:
             derived_state = "FAILED"
-            reason = f"task:{failed.id}:{failed.state}:{failed.failure_reason or ''}".rstrip(":")
+            reason = (
+                f"task:{failed.id}:{failed.state}:{failed.failure_reason or ''}".rstrip(
+                    ":"
+                )
+            )
         elif tasks and all(task.state == "SUCCEEDED" for task in tasks):
             derived_state = "SUCCEEDED"
         elif any(task.state != "PENDING" for task in tasks):
@@ -293,8 +312,6 @@ class GoalReconciler:
 class BoardMessageRef:
     client_message_id: str
     provider_sequence: int | None = None
-
-
 
 
 @dataclass(frozen=True)
@@ -340,11 +357,15 @@ def _board_projection_receipt_get_by_event(
     service_event_id: str,
 ) -> BoardProjectionReceipt | None:
     history = events.list_for("BoardProjection", service_event_id)
-    receipts = [item for item in history if item.event_type == "BoardProjectionCommitted"]
+    receipts = [
+        item for item in history if item.event_type == "BoardProjectionCommitted"
+    ]
     if not receipts:
         return None
     if len(receipts) != 1:
-        raise RuntimeError("Board projection receipt stream contains multiple committed receipts")
+        raise RuntimeError(
+            "Board projection receipt stream contains multiple committed receipts"
+        )
     return _board_projection_receipt_from_event(receipts[0])
 
 
@@ -402,9 +423,13 @@ class GoalBoardProjector:
         try:
             return mapping[event.event_type]
         except KeyError as error:
-            raise RuntimeError(f"unsupported Goal projection event: {event.event_type}") from error
+            raise RuntimeError(
+                f"unsupported Goal projection event: {event.event_type}"
+            ) from error
 
-    def _project_event(self, goal_id: str, event: ServiceEvent) -> BoardProjectionReceipt:
+    def _project_event(
+        self, goal_id: str, event: ServiceEvent
+    ) -> BoardProjectionReceipt:
         if self._adapter is None:
             raise RuntimeError("no board provider configured")
         existing = _board_projection_receipt_get_by_event(self._events, event.id)
@@ -426,7 +451,9 @@ class GoalBoardProjector:
             topic=self.TOPIC,
         )
         if posted.client_message_id != client_message_id:
-            raise RuntimeError("Board provider returned mismatched client message identity")
+            raise RuntimeError(
+                "Board provider returned mismatched client message identity"
+            )
         return _board_projection_receipt_create(self._events, event, goal_id, posted)
 
     def project_latest(self, goal_id: str) -> BoardProjectionReceipt:

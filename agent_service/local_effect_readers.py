@@ -54,9 +54,13 @@ def _evidence_ref(
     )
 
 
-def _validate_coordinate(value: BrowserlessTurnEffectCoordinate) -> BrowserlessTurnEffectCoordinate:
+def _validate_coordinate(
+    value: BrowserlessTurnEffectCoordinate,
+) -> BrowserlessTurnEffectCoordinate:
     if not isinstance(value, BrowserlessTurnEffectCoordinate):
-        raise TypeError("Browserless coordinate resolver must return BrowserlessTurnEffectCoordinate")
+        raise TypeError(
+            "Browserless coordinate resolver must return BrowserlessTurnEffectCoordinate"
+        )
     if (
         not isinstance(value.turn_request_id, str)
         or not value.turn_request_id.strip()
@@ -82,7 +86,9 @@ def _validate_receipt(
     try:
         receipt = json.loads(receipt_json)
     except json.JSONDecodeError as error:
-        raise ProviderProtocolError("Browserless turn receipt_json is invalid") from error
+        raise ProviderProtocolError(
+            "Browserless turn receipt_json is invalid"
+        ) from error
     if not isinstance(receipt, dict):
         raise ProviderProtocolError("Browserless turn receipt must be an object")
     expected = (
@@ -104,9 +110,7 @@ def _validate_receipt(
         raise ProviderProtocolError("Browserless turn receipt omitted receiptDigest")
     material = dict(receipt)
     material.pop("receiptDigest", None)
-    computed = "sha256:" + hashlib.sha256(
-        rfc8785.dumps(material)
-    ).hexdigest()
+    computed = "sha256:" + hashlib.sha256(rfc8785.dumps(material)).hexdigest()
     if computed != digest:
         raise ProviderProtocolError("Browserless turn receiptDigest mismatch")
     return receipt
@@ -174,7 +178,9 @@ class BrowserlessTurnEffectLedgerReader:
                 ),
             )
 
-        uri = "file:" + urllib.parse.quote(str(self._ledger_path.resolve())) + "?mode=ro"
+        uri = (
+            "file:" + urllib.parse.quote(str(self._ledger_path.resolve())) + "?mode=ro"
+        )
         db = sqlite3.connect(uri, uri=True)
         db.row_factory = sqlite3.Row
         try:

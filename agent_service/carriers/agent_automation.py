@@ -7,6 +7,7 @@ import subprocess
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import rfc8785
 
@@ -41,10 +42,21 @@ class AgentAutomationProfile:
             raise CarrierProfileError("unsupported carrier kind")
         required = {"kind", "campaignId", "agentId", "sharedPrompt", "roleCard"}
         if set(raw) != required:
-            raise CarrierProfileError("agent-automation carrier profile has unexpected fields")
-        values = [raw["campaignId"], raw["agentId"], raw["sharedPrompt"], raw["roleCard"]]
-        if any(not isinstance(v, str) or not v.strip() or v != v.strip() for v in values):
-            raise CarrierProfileError("agent-automation carrier profile fields must be trimmed strings")
+            raise CarrierProfileError(
+                "agent-automation carrier profile has unexpected fields"
+            )
+        values = [
+            raw["campaignId"],
+            raw["agentId"],
+            raw["sharedPrompt"],
+            raw["roleCard"],
+        ]
+        if any(
+            not isinstance(v, str) or not v.strip() or v != v.strip() for v in values
+        ):
+            raise CarrierProfileError(
+                "agent-automation carrier profile fields must be trimmed strings"
+            )
         return cls(
             campaign_id=raw["campaignId"],
             agent_id=raw["agentId"],
@@ -64,11 +76,11 @@ CommandRunner = Callable[[list[str]], dict]
 RevisionResolver = Callable[[str], AgentRevision]
 
 
-def _canonical_bytes(value: object) -> bytes:
+def _canonical_bytes(value: Any) -> bytes:
     return rfc8785.dumps(value)
 
 
-def _digest(value: object) -> str:
+def _digest(value: Any) -> str:
     return "sha256:" + hashlib.sha256(rfc8785.dumps(value)).hexdigest()
 
 
@@ -76,7 +88,9 @@ def _subprocess_runner(argv: list[str]) -> dict:
     proc = subprocess.run(argv, capture_output=True, text=True, timeout=60, check=False)
     if proc.returncode != 0:
         detail = (proc.stderr or proc.stdout or "").strip().replace("\n", " ")[-1200:]
-        raise CarrierCommandError(f"carrier command failed rc={proc.returncode}: {detail}")
+        raise CarrierCommandError(
+            f"carrier command failed rc={proc.returncode}: {detail}"
+        )
     lines = [line for line in proc.stdout.splitlines() if line.strip()]
     if not lines:
         raise CarrierCommandError("carrier command returned no machine-readable result")
@@ -131,7 +145,11 @@ class AgentAutomationCarrierAdapter:
         return path
 
     def _binding_path(self, placement_id: str) -> Path:
-        if not isinstance(placement_id, str) or not placement_id.strip() or placement_id != placement_id.strip():
+        if (
+            not isinstance(placement_id, str)
+            or not placement_id.strip()
+            or placement_id != placement_id.strip()
+        ):
             raise CarrierProfileError("placement_id must be a trimmed non-empty string")
         suffix = hashlib.sha256(placement_id.encode("utf-8")).hexdigest()
         return self._binding_root / f"{suffix}.json"
@@ -145,7 +163,9 @@ class AgentAutomationCarrierAdapter:
         self._binding_root.mkdir(parents=True, exist_ok=True)
         if path.exists():
             if path.read_bytes() != raw:
-                raise CarrierProfileError("placement is already bound to a different revision")
+                raise CarrierProfileError(
+                    "placement is already bound to a different revision"
+                )
             return
         path.write_bytes(raw)
         os.chmod(path, 0o600)
@@ -155,25 +175,37 @@ class AgentAutomationCarrierAdapter:
         if not path.is_file():
             raise CarrierProfileError("placement has no durable carrier binding")
         value = json.loads(path.read_text(encoding="utf-8"))
-        if value.get("placementId") != placement_id or not isinstance(value.get("revisionId"), str):
+        if value.get("placementId") != placement_id or not isinstance(
+            value.get("revisionId"), str
+        ):
             raise CarrierProfileError("placement binding is malformed or mismatched")
         revision_id = value["revisionId"]
         profile = self._profile(revision_id)
         return revision_id, profile, self._spec_path(revision_id, profile)
 
-    def _census(self, profile: AgentAutomationProfile, spec_path: Path) -> tuple[dict, dict]:
+    def _census(
+        self, profile: AgentAutomationProfile, spec_path: Path
+    ) -> tuple[dict, dict]:
         value = self._run([str(self._executable), "census", "--spec", str(spec_path)])
         if value.get("campaignId") != profile.campaign_id:
             raise CarrierCommandError("carrier census campaign identity mismatch")
         rows = value.get("materializations")
         if not isinstance(rows, list):
             raise CarrierCommandError("carrier census has no materialization list")
-        matches = [row for row in rows if isinstance(row, dict) and row.get("agentId") == profile.agent_id]
+        matches = [
+            row
+            for row in rows
+            if isinstance(row, dict) and row.get("agentId") == profile.agent_id
+        ]
         if len(matches) != 1:
-            raise CarrierCommandError("carrier census does not identify exactly one agent materialization")
+            raise CarrierCommandError(
+                "carrier census does not identify exactly one agent materialization"
+            )
         return value, matches[0]
 
-    def ensure(self, placement_id: str, agent_instance_id: str, revision_id: str) -> None:
+    def ensure(
+        self, placement_id: str, agent_instance_id: str, revision_id: str
+    ) -> None:
         del agent_instance_id
         self.bind_placement(placement_id, revision_id)
         profile = self._profile(revision_id)

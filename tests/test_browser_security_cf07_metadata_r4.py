@@ -21,7 +21,9 @@ class Cf07MetadataSnapshotTests(unittest.TestCase):
             b = root / "b"
             a.write_text("secret-a")
             b.write_text("secret-b")
-            result = snapshot._file_age_summary([a, b], now=max(a.stat().st_mtime, b.stat().st_mtime) + 10)
+            result = snapshot._file_age_summary(
+                [a, b], now=max(a.stat().st_mtime, b.stat().st_mtime) + 10
+            )
         self.assertEqual(result["count"], 2)
         self.assertIn("newestAgeSeconds", result)
         self.assertIn("oldestAgeSeconds", result)

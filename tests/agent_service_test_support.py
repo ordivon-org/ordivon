@@ -16,7 +16,9 @@ from agent_service.task_runtime import (
 
 
 class ReadyCarrier:
-    def ensure(self, placement_id: str, agent_instance_id: str, revision_id: str) -> None:
+    def ensure(
+        self, placement_id: str, agent_instance_id: str, revision_id: str
+    ) -> None:
         return None
 
     def retire(self, placement_id: str, agent_instance_id: str) -> None:
@@ -31,7 +33,9 @@ class ReadyCarrier:
 
 
 class IdleRuntime:
-    def submit(self, client_request_id: str, execution: dict[str, Any]) -> RuntimeJobRef:
+    def submit(
+        self, client_request_id: str, execution: dict[str, Any]
+    ) -> RuntimeJobRef:
         return RuntimeJobRef(job_id=f"job:{client_request_id}")
 
     def observe(self, job_id: str) -> RuntimeJobObservation:

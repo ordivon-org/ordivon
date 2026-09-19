@@ -1,7 +1,9 @@
 # LEGO Question Compiler — Outcome Pressure R1
 
 Date: 2026-09-18
-Status: **DECISION-ALLOCATION EFFECT OBSERVED / DOWNSTREAM ACCEPTED OUTCOME PENDING**
+Status: **HISTORICAL PROVENANCE / METHOD RETIRED FROM CURRENT ORDIVON PLANNING**
+
+The local LEGO Question Compiler method has since been retired in favor of domain-native and mature external question/experimental-design methods. This lesson remains only because historical acceptance evidence cites it; it is not a current routing or planning authority.
 
 ## Purpose
 

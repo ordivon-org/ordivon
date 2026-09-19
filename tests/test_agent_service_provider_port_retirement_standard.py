@@ -20,7 +20,9 @@ RETIRED = {
 
 
 class ProviderPortRetirementStandardTests(unittest.TestCase):
-    def test_retired_nominal_port_brands_are_absent_from_modules_and_package(self) -> None:
+    def test_retired_nominal_port_brands_are_absent_from_modules_and_package(
+        self,
+    ) -> None:
         for name, module_name in RETIRED.items():
             with self.subTest(name=name):
                 module = importlib.import_module(module_name)
@@ -55,7 +57,10 @@ class StructuralBoundaryValidationTests(unittest.TestCase):
         from agent_service.provider_adapters import EffectLedgerReplaySafetyAdapter
         from agent_service.remote_evidence import RemoteArtifactEvidenceResolver
         from agent_service.transport_credentials import BoundCredentialHeaderProvider
-        from agent_service.trust import IdentityProofCoordinator, RemoteCorrelationReconciler
+        from agent_service.trust import (
+            IdentityProofCoordinator,
+            RemoteCorrelationReconciler,
+        )
 
         with self.assertRaises(TypeError):
             GoalBoardProjector(None, None, object())

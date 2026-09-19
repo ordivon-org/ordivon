@@ -25,7 +25,9 @@ class BrowserSecurityR7Tests(unittest.TestCase):
             "about:blank",
             "--beta",
         ]
-        self.assertEqual(r7.managed_flags_from_command_line(args), ["--alpha", "--beta"])
+        self.assertEqual(
+            r7.managed_flags_from_command_line(args), ["--alpha", "--beta"]
+        )
 
     def test_frozen_browserless_flags_are_neutral_launch_configuration(self) -> None:
         self.assertIn("--enable-automation", r7.BROWSERLESS_MANAGED_FLAGS)

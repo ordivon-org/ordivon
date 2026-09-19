@@ -38,9 +38,13 @@ class HostBoardMcpAdapter:
             },
         )
         if value.get("kind") != "ordivon.host-board-post-receipt":
-            raise HostBoardProtocolError("Host board.post returned unexpected receipt kind")
+            raise HostBoardProtocolError(
+                "Host board.post returned unexpected receipt kind"
+            )
         if value.get("admission") not in {"committed", "existing"}:
-            raise HostBoardProtocolError("Host board.post returned unexpected admission state")
+            raise HostBoardProtocolError(
+                "Host board.post returned unexpected admission state"
+            )
         board_message = value.get("message")
         if not isinstance(board_message, dict):
             raise HostBoardProtocolError("Host board.post omitted message receipt")

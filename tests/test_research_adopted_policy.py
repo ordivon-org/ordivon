@@ -11,7 +11,10 @@ PROFILE = ROOT / "policies" / "research-adopted-r1"
 
 class ResearchAdoptedPolicyTests(unittest.TestCase):
     def test_opa_reference_profile_is_machine_enforceable(self) -> None:
-        self.assertTrue(OPA.is_file(), "mature OPA evaluator is required by the current reference profile")
+        self.assertTrue(
+            OPA.is_file(),
+            "mature OPA evaluator is required by the current reference profile",
+        )
         completed = subprocess.run(
             [str(OPA), "test", str(PROFILE)],
             cwd=ROOT,
@@ -24,12 +27,15 @@ class ResearchAdoptedPolicyTests(unittest.TestCase):
         policy = (PROFILE / "policy.rego").read_text()
         self.assertNotIn("research_standing", policy)
         self.assertNotIn("human_approval", policy)
-        self.assertIn("decision.status == \"adopted\"", policy)
-        self.assertIn("input.delegation.decision == \"ALLOW\"", policy)
+        self.assertIn('decision.status == "adopted"', policy)
+        self.assertIn('input.delegation.decision == "ALLOW"', policy)
 
     def test_policy_engine_is_not_declared_global_authority_waist(self) -> None:
         boundary = (ROOT / "policies" / "CONSUMPTION_BOUNDARY_R1.md").read_text()
-        self.assertIn("OPA is not a new global waist", (ROOT / "policies" / "README.md").read_text())
+        self.assertIn(
+            "OPA is not a new global waist",
+            (ROOT / "policies" / "README.md").read_text(),
+        )
         self.assertIn("global `can_act()`", boundary)
         self.assertIn("Runtime", boundary)
         self.assertIn("none by default", boundary)

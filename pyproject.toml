@@ -6,6 +6,8 @@ requires-python = "==3.14.7"
 dependencies = [
   "mcp==2.2.0",
   "mcp-types==2.2.0",
+  "opentelemetry-distro[otlp]==0.65b0",
+  "opentelemetry-instrumentation-starlette==0.65b0",
   "pydantic==2.13.4",
   "rfc8785==0.1.4",
   "sqlite-utils==4.2.1",
@@ -13,35 +15,84 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = [
-  "ruff==0.16.8",
-]
 test = [
   "jsonschema>=4.26,<5",
   "playwright>=1,<2",
   "pytest==9.1.1",
   "z3-solver>=4,<5",
 ]
-analysis = [
+architecture = [
+  "import-linter",
+]
+quality = [
+  "ruff==0.16.8",
+]
+typing = [
+  "pyright>=1.1.414",
+]
+security = [
+  "bandit>=1.9.4",
+  "pip-audit>=2.10.1",
+]
+test-analysis = [
+  "coverage",
+]
+authority = [
+  "check-jsonschema",
+  "jsonschema>=4.26,<5",
+]
+reasoning = [
   "ortools",
   "pyshacl",
   "rdflib",
   "unified-planning",
+  "up-pyperplan",
+  "z3-solver>=4,<5",
 ]
 
 [tool.uv]
 package = false
-default-groups = ["dev", "test"]
+default-groups = ["test"]
+required-version = "==0.12.3"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
 addopts = "-q"
 
+[tool.pyright]
+include = ["agent_service"]
+pythonVersion = "3.14"
+typeCheckingMode = "basic"
+
 [tool.ruff]
 target-version = "py314"
-line-length = 100
 extend-exclude = ["experiments"]
 
 [tool.ruff.lint]
-select = ["E9", "F", "I", "UP"]
+select = ["E4", "E7", "E9", "F", "I", "UP"]
+
+[tool.importlinter]
+root_package = "agent_service"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Runtime MCP semantic adapter must not own HTTP transport"
+type = "forbidden"
+source_modules = ["agent_service.runtime_mcp"]
+forbidden_modules = ["urllib", "requests", "httpx", "aiohttp"]
+as_packages = false
+
+[[tool.importlinter.contracts]]
+name = "Host board semantic adapter must not own HTTP transport"
+type = "forbidden"
+source_modules = ["agent_service.host_board"]
+forbidden_modules = ["urllib", "requests", "httpx", "aiohttp"]
+as_packages = false
+
+[[tool.importlinter.contracts]]
+name = "Provider semantic adapters must not own HTTP transport"
+type = "forbidden"
+source_modules = ["agent_service.provider_adapters"]
+forbidden_modules = ["urllib", "requests", "httpx", "aiohttp"]
+as_packages = false

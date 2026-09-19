@@ -6,7 +6,9 @@ MODULE_PATH = (
     Path(__file__).resolve().parents[1]
     / "experiments/browser-security-r5/container_direct_differential.py"
 )
-SPEC = importlib.util.spec_from_file_location("container_direct_differential", MODULE_PATH)
+SPEC = importlib.util.spec_from_file_location(
+    "container_direct_differential", MODULE_PATH
+)
 assert SPEC is not None and SPEC.loader is not None
 r5 = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(r5)
@@ -19,13 +21,12 @@ class BrowserSecurityR5Tests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "one exact immutable image"):
             r5.current_image("[Container]\n")
         with self.assertRaisesRegex(RuntimeError, "one exact immutable image"):
-            r5.current_image(
-                f"[Container]\nImage={image}\nImage={image}\n"
-            )
+            r5.current_image(f"[Container]\nImage={image}\nImage={image}\n")
 
     def test_direct_launch_arguments_are_matched_except_profile_and_port(self) -> None:
         a = r5.direct_arguments(debug_port=1001, profile="/tmp/a")
         b = r5.direct_arguments(debug_port=1002, profile="/tmp/b")
+
         def normalized(rows):
             return [
                 "--remote-debugging-port=<port>"
@@ -97,7 +98,9 @@ class BrowserSecurityR5Tests(unittest.TestCase):
         self.assertIn("socket.SO_REUSEADDR", source)
 
     def test_reserved_resources_are_disjoint_from_production_instances(self) -> None:
-        self.assertEqual(r5.CONTAINER_NAME, "ordivon-browser-security-r5-container-direct")
+        self.assertEqual(
+            r5.CONTAINER_NAME, "ordivon-browser-security-r5-container-direct"
+        )
         self.assertNotIn(r5.HOST_DEBUG_PORT, {3011, 3012, 3013})
         self.assertNotIn(r5.CONTAINER_DEBUG_PORT, {3011, 3012, 3013})
         self.assertNotEqual(r5.HOST_DEBUG_PORT, r5.CONTAINER_DEBUG_PORT)

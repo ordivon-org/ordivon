@@ -23,7 +23,10 @@ def sha256_bytes(raw: bytes) -> str:
 
 
 def canonical_bytes(value: object) -> bytes:
-    return (json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
+    return (
+        json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        + "\n"
+    ).encode("utf-8")
 
 
 def read_json_object(path: Path) -> dict:
@@ -48,11 +51,15 @@ def assert_regular_tree(root: Path, *, require_skill_md: bool = False) -> list[P
         info = path.lstat()
         relative = path.relative_to(root)
         if stat.S_ISLNK(info.st_mode):
-            raise SystemExit(f"symlink is not allowed in portable release input: {root / relative}")
+            raise SystemExit(
+                f"symlink is not allowed in portable release input: {root / relative}"
+            )
         if stat.S_ISDIR(info.st_mode):
             continue
         if not stat.S_ISREG(info.st_mode):
-            raise SystemExit(f"non-regular file is not allowed in portable release input: {root / relative}")
+            raise SystemExit(
+                f"non-regular file is not allowed in portable release input: {root / relative}"
+            )
         files.append(path)
     return files
 
@@ -76,24 +83,31 @@ def tree_digest(root: Path) -> str:
 
 
 def git_head() -> str | None:
+    git = shutil.which("git")
+    if git is None:
+        return None
     try:
         return subprocess.check_output(
-            ["git", "-C", str(ROOT), "rev-parse", "HEAD"],
+            [git, "-C", str(ROOT), "rev-parse", "HEAD"],
             text=True,
             stderr=subprocess.DEVNULL,
         ).strip()
-    except (OSError, subprocess.CalledProcessError):
+    except OSError, subprocess.CalledProcessError:
         return None
 
 
 def validate_plugin_skeleton(plugin: Path) -> None:
     skills_path = plugin / "skills"
     if skills_path.exists() or skills_path.is_symlink():
-        raise SystemExit(f"plugin skeleton must not contain a source-owned skills/ tree: {plugin}")
+        raise SystemExit(
+            f"plugin skeleton must not contain a source-owned skills/ tree: {plugin}"
+        )
     assert_regular_tree(plugin)
     manifest = read_json_object(plugin / "plugin.json")
     if manifest.get("$schema") != PLUGIN_SCHEMA:
-        raise SystemExit(f"plugin.json must target Agent Plugins 1.0.0: {plugin / 'plugin.json'}")
+        raise SystemExit(
+            f"plugin.json must target Agent Plugins 1.0.0: {plugin / 'plugin.json'}"
+        )
     if not isinstance(manifest.get("name"), str) or not manifest["name"].strip():
         raise SystemExit("plugin.json requires non-empty name")
     if not isinstance(manifest.get("version"), str) or not manifest["version"].strip():
@@ -114,7 +128,9 @@ def discover_skills(skills_root: Path) -> list[Path]:
         if stat.S_ISLNK(info.st_mode):
             raise SystemExit(f"symlink Skill root is not allowed: {child}")
         if not stat.S_ISDIR(info.st_mode):
-            raise SystemExit(f"canonical skills root may contain Skill directories only: {child}")
+            raise SystemExit(
+                f"canonical skills root may contain Skill directories only: {child}"
+            )
         assert_regular_tree(child, require_skill_md=True)
         skills.append(child)
     if not skills:
@@ -132,12 +148,16 @@ def copy_regular_tree(source: Path, destination: Path) -> None:
         os.chmod(target, stat.S_IMODE(path.stat().st_mode) & 0o755)
 
 
-def materialize(plugin: Path, skills_root: Path | None, output: Path, receipt: Path) -> dict:
+def materialize(
+    plugin: Path, skills_root: Path | None, output: Path, receipt: Path
+) -> dict:
     plugin = plugin.resolve(strict=True)
     resolved_skills_root = None
     if skills_root is not None:
         if DEFAULT_SKILLS.is_symlink() or not DEFAULT_SKILLS.is_dir():
-            raise SystemExit(f"canonical Agent Skills root must be a real directory: {DEFAULT_SKILLS}")
+            raise SystemExit(
+                f"canonical Agent Skills root must be a real directory: {DEFAULT_SKILLS}"
+            )
         canonical_skills_root = DEFAULT_SKILLS.resolve(strict=True)
         if skills_root.is_symlink():
             raise SystemExit(f"skills source must not be a symlink: {skills_root}")
@@ -163,11 +183,17 @@ def materialize(plugin: Path, skills_root: Path | None, output: Path, receipt: P
         raise SystemExit("receipt must remain outside the portable plugin package")
 
     validate_plugin_skeleton(plugin)
-    skills = discover_skills(resolved_skills_root) if resolved_skills_root is not None else []
+    skills = (
+        discover_skills(resolved_skills_root)
+        if resolved_skills_root is not None
+        else []
+    )
 
     output.parent.mkdir(parents=True, exist_ok=True)
     receipt.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="agent-plugin-release-", dir=output.parent) as tmp_name:
+    with tempfile.TemporaryDirectory(
+        prefix="agent-plugin-release-", dir=output.parent
+    ) as tmp_name:
         staged = Path(tmp_name) / "package"
         copy_regular_tree(plugin, staged)
         if skills:
@@ -188,7 +214,9 @@ def materialize(plugin: Path, skills_root: Path | None, output: Path, receipt: P
         skill_rows.append(
             {
                 "name": skill.name,
-                "sourceRelativePath": skill.relative_to(ROOT).as_posix() if ROOT in skill.parents else str(skill),
+                "sourceRelativePath": skill.relative_to(ROOT).as_posix()
+                if ROOT in skill.parents
+                else str(skill),
                 "packageDigest": sha256_bytes(canonical_bytes(package_manifest)),
                 "fileCount": len(package_manifest),
             }
@@ -205,8 +233,12 @@ def materialize(plugin: Path, skills_root: Path | None, output: Path, receipt: P
         "kind": "ordivon.agent-plugin-release-materialization-receipt",
         "sourceOfTruth": ".agents/skills" if resolved_skills_root is not None else None,
         "sourceGitRevision": git_head(),
-        "pluginSource": plugin.relative_to(ROOT).as_posix() if ROOT in plugin.parents else str(plugin),
-        "skillComposition": "included" if resolved_skills_root is not None else "omitted",
+        "pluginSource": plugin.relative_to(ROOT).as_posix()
+        if ROOT in plugin.parents
+        else str(plugin),
+        "skillComposition": "included"
+        if resolved_skills_root is not None
+        else "omitted",
         "skillSource": skill_source,
         "skillCount": len(skill_rows),
         "skills": skill_rows,
@@ -218,7 +250,10 @@ def materialize(plugin: Path, skills_root: Path | None, output: Path, receipt: P
             "of the portable plugin package."
         ),
     }
-    receipt.write_bytes(json.dumps(value, indent=2, ensure_ascii=False, sort_keys=True).encode("utf-8") + b"\n")
+    receipt.write_bytes(
+        json.dumps(value, indent=2, ensure_ascii=False, sort_keys=True).encode("utf-8")
+        + b"\n"
+    )
     return value
 
 
@@ -254,7 +289,13 @@ def main() -> int:
     receipt = args.receipt or args.output.with_name(args.output.name + ".receipt.json")
     skills_root = DEFAULT_SKILLS if args.include_skills else None
     value = materialize(args.plugin, skills_root, args.output, receipt)
-    print(json.dumps({"output": str(args.output), "receipt": str(receipt), **value}, ensure_ascii=False, sort_keys=True))
+    print(
+        json.dumps(
+            {"output": str(args.output), "receipt": str(receipt), **value},
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
     return 0
 
 

@@ -57,14 +57,12 @@ CredentialReferenceStore becomes deletable only after one of these is proven:
 
 Do not create a new custom CredentialReferenceRegistry merely to reduce the class count.
 
-## CORE_ZERO interpretation
+## External Ownership Boundary interpretation
 
-R22 is a successful LEGO result even though the ceiling remains 151.
-
-The ratchet counts removable custom authority; it is not a target that overrides security boundaries.
+R22 remains a valid exception under the stable External Ownership Boundary. The architecture policy reduces removable custom authority; it is not a target that overrides security boundaries.
 
 CredentialReferenceStore is now classified as RETAIN_UNTIL_EXTERNAL_OWNER rather than an unexamined residual.
 
-## Next action
+## Current next action
 
-Move to a different candidate with no confidentiality regression. Audit EvidenceResolverRegistry and low-reference orchestration classes before touching mutable control/domain state.
+`EvidenceResolverRegistry` and the other low-reference elimination candidates named by the original R22 follow-up have already been retired. The remaining action for this decision is narrower: bind a mature credential/secret-manager metadata owner that can return a stable opaque handle without widening locator visibility, then rerun the replacement/parity audit. Until such an owner is actually bound, keep the dedicated metadata boundary.
