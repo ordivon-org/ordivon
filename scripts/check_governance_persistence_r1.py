@@ -5,7 +5,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PROFILE = ROOT / "planning" / "governance-persistence-ratchet-r1.json"
-LENS_REGISTRY = ROOT / "knowledge" / "registries" / "lego-lens-registry-r1.json"
 PROJECT_SCHEMA = ROOT / "schemas" / "project-lego-plan-r1.schema.json"
 
 EXPECTED_DURABILITY = {
@@ -13,8 +12,6 @@ EXPECTED_DURABILITY = {
     "Workspace": "EPHEMERAL",
     "Evidence": "REFERENCE_FIRST",
     "Gate": "STATELESS",
-    "Lens": "DEFINITION_ONLY",
-    "Operator": "DEFINITION_ONLY",
     "Registry": "REBUILDABLE_BY_DEFAULT",
 }
 
@@ -43,20 +40,9 @@ def audit() -> list[str]:
         problems.append("ratchet must carry an explicit self-deletion condition")
 
     growth = profile.get("growthRatchets", {})
-    lens_ceiling = growth.get("legoActiveLensCeiling")
-    operator_ceiling = growth.get("legoOperatorCeiling")
-
-    registry = load_json(LENS_REGISTRY)
-    active_lenses = registry.get("activeLenses", [])
-    operators = registry.get("operators", [])
-    if len(active_lenses) > lens_ceiling:
-        problems.append(
-            f"active lens count grew additively: {len(active_lenses)} > {lens_ceiling}"
-        )
-    if len(operators) > operator_ceiling:
-        problems.append(
-            f"operator count grew additively: {len(operators)} > {operator_ceiling}"
-        )
+    for relative in growth.get("forbiddenLocalMethodInfrastructure", []):
+        if (ROOT / relative).exists():
+            problems.append(f"retired local method infrastructure reappeared: {relative}")
 
     schema = load_json(PROJECT_SCHEMA)
     forbidden = {x.lower() for x in growth["projectPlanForbiddenNewRequiredConcepts"]}

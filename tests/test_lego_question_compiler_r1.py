@@ -15,7 +15,7 @@ class LegoQuestionCompilerR1Tests(unittest.TestCase):
 
     def test_skill_declares_analysis_not_truth(self):
         self.assertIn("Generated questions are derived analysis artifacts, not truth.", self.skill)
-        self.assertIn("A question never updates the LEGO plan by itself.", self.skill)
+        self.assertIn("A question never updates project truth by itself.", self.skill)
         self.assertIn("## Stop condition", self.skill)
 
     def test_skill_has_bounded_compile_and_prune_pipeline(self):
@@ -40,11 +40,12 @@ class LegoQuestionCompilerR1Tests(unittest.TestCase):
     def test_contract_preserves_thin_core(self):
         self.assertIn("no universal 12- or 17-question checklist", self.contract)
         self.assertIn("No machine-readable schema is introduced in R1.", self.contract)
-        self.assertIn("Question Compiler does not own or maintain the growing theory catalog.", self.contract)
-        self.assertIn("lego-lens-router", self.contract)
+        self.assertIn("Question Compiler does not own or maintain a theory catalog.", self.contract)
+        self.assertNotIn("lego-lens-router", self.contract)
+        self.assertNotIn("lego-lens-compiler", self.contract)
 
     def test_contract_ends_in_real_handoff(self):
-        for mode in ("INVESTIGATE", "EXPERIMENT", "LENS_ROUTE", "DOMAIN_METHOD", "PLAN"):
+        for mode in ("INVESTIGATE", "EXPERIMENT", "METHOD", "PLAN"):
             self.assertIn(mode, self.contract)
         self.assertIn("Question generation itself is not a permanent work mode.", self.contract)
 

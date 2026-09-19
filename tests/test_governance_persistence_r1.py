@@ -30,14 +30,13 @@ class GovernancePersistenceR1Tests(unittest.TestCase):
             "DELETE_RATCHET_WHEN_REDUNDANT",
         )
 
-    def test_no_additive_meta_operator_budget(self) -> None:
+    def test_retired_local_method_infrastructure_stays_absent(self) -> None:
         checker = _load_checker()
         profile = checker.load_json(checker.PROFILE)
-        registry = checker.load_json(checker.LENS_REGISTRY)
-        self.assertLessEqual(
-            len(registry["operators"]),
-            profile["growthRatchets"]["legoOperatorCeiling"],
-        )
+        retired = profile["growthRatchets"]["forbiddenLocalMethodInfrastructure"]
+        self.assertTrue(retired)
+        for relative in retired:
+            self.assertFalse((ROOT / relative).exists(), relative)
 
 
 if __name__ == "__main__":

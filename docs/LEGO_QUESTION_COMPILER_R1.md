@@ -173,44 +173,11 @@ Typical probe:
 
 ### Q3 — Method-selection handoff
 
-Question Compiler does not own or maintain the growing theory catalog.
+Question Compiler does not own or maintain a theory catalog.
 
-After compiling a bounded question set, emit the evidence-backed problem signature required by the Lens Router:
+After compiling a bounded question set, identify the natural method owner from the evidence. Prefer a domain-native method. If no domain-native method owns the question, use the applicable mature external discipline or standard directly. Examples include systems engineering and architecture viewpoints, feedback control, STPA, FMEA/FTA, causal inference, formal methods, operations research, or established security threat modeling.
 
-- exact target/decision;
-- domain-native method owner if one exists;
-- boundary/interface ambiguity;
-- dependency/coupling ambiguity;
-- dynamic feedback/delay;
-- consequence/safety/security;
-- replacement/composition;
-- causal/intervention claim;
-- failure/reliability question;
-- sensitive information/observer question;
-- regime/deep uncertainty;
-- open-ended concept generation;
-- repeated comparable feedback;
-- candidate representation/evaluator quality;
-- organization/coordination/recursion.
-
-Then hand off to `lego-lens-router`.
-
-The router selects the Minimum Sufficient Theory Set and may return:
-- a primitive discipline lens;
-- a validated composite profile;
-- DOMAIN_METHOD;
-- NO_LENS.
-
-If the router returns NO_LENS while a material, decision-relevant method gap remains, hand that uncovered residue to `lego-lens-compiler`. The compiler may search and type-check a mature external discipline as a temporary candidate; it does not bypass the router or self-admit the candidate into the active registry.
-
-This separation prevents Question Compiler from becoming a static catalog of every discipline Ordivon learns.
-
-Canonical references:
-- docs/LEGO_LENS_ROUTER_R1.md
-- knowledge/registries/lego-lens-registry-r1.json
-- .agents/skills/lego-lens-router/SKILL.md
-- docs/LEGO_LENS_COMPILER_R1.md
-- .agents/skills/lego-lens-compiler/SKILL.md
+There is no local Lens Registry, Router, Compiler, Portfolio, reserve pool, promotion pipeline, or local method-selection state. A missing method is a research/discovery task against external authorities, not a reason to create another Ordivon ontology.
 
 ### Q4 — Pruning
 
@@ -250,9 +217,8 @@ A successful compile ends in one of three modes:
 
 1. **INVESTIGATE** — evidence already exists and should be read.
 2. **EXPERIMENT** — uncertainty needs a bounded prospective test.
-3. **LENS_ROUTE** — the question is bound but method selection is still needed.
-4. **DOMAIN_METHOD** — a mature domain-native method already owns the question.
-5. **PLAN** — uncertainty is sufficiently reduced to enter LEGO Project Planning or a domain workflow.
+3. **METHOD** — a mature domain-native or external method should be applied directly.
+4. **PLAN** — uncertainty is sufficiently reduced to enter project planning or a domain workflow.
 
 Question generation itself is not a permanent work mode.
 
@@ -284,7 +250,7 @@ For each:
 Only when the pruning decision is useful evidence.
 
 ### Handoff
-INVESTIGATE / EXPERIMENT / LENS_ROUTE / DOMAIN_METHOD / PLAN.
+INVESTIGATE / EXPERIMENT / METHOD / PLAN.
 
 No machine-readable schema is introduced in R1. Cross-domain proof is required before any common schema promotion.
 
@@ -340,7 +306,7 @@ R1 is useful only if prospective cases show at least one of:
 
 ## Initial external/mature foundations
 
-R1 composes existing mature concepts already referenced by LEGO Theory Layer:
+R1 composes existing mature concepts directly from their external disciplines:
 
 - INCOSE systems engineering / systems thinking for system boundaries and interfaces;
 - standard feedback-control/state-space reasoning for state, observation, disturbance and intervention;
@@ -350,11 +316,3 @@ R1 composes existing mature concepts already referenced by LEGO Theory Layer:
 - game-theoretic and imperfect-information concepts only when strategic adaptation is actually present.
 
 Canonical local references:
-
-- docs/LEGO_THEORY_LAYER_R1.md
-- knowledge/lessons/lego-theory-foundations-r1.md
-- .agents/skills/lego-systems-engineering/SKILL.md
-- .agents/skills/lego-feedback-control/SKILL.md
-- .agents/skills/lego-dsm/SKILL.md
-- .agents/skills/lego-stpa/SKILL.md
-- .agents/skills/lego-regime-shift/SKILL.md

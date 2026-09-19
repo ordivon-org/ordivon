@@ -122,30 +122,6 @@
         "workflow stage with own lifecycle"
       ]
     },
-    "Lens": {
-      "type": "optional_analytical_method",
-      "durability": "DEFINITION_ONLY",
-      "authority": "Mature external discipline; lens output is derived analysis",
-      "admission": "Active only after prospective unique decision/test/boundary value; 0 lenses remains valid.",
-      "retirement": "MERGE/RESERVE/RETIRE when unique decision delta disappears.",
-      "mustNotBecome": [
-        "project truth",
-        "runtime object",
-        "mandatory ontology"
-      ]
-    },
-    "Operator": {
-      "type": "reasoning_transformation",
-      "durability": "DEFINITION_ONLY",
-      "authority": "Procedure, not system state",
-      "admission": "No new meta-operator unless it removes/subsumes an existing operator or proves a materially orthogonal transformation.",
-      "retirement": "Delete/merge when equivalent composition exists or governance cost exceeds decision delta.",
-      "mustNotBecome": [
-        "operator instance database",
-        "meta-operator recursion",
-        "automatic authority"
-      ]
-    },
     "Registry": {
       "type": "discovery_index_or_natural_authority_registry",
       "durability": "REBUILDABLE_BY_DEFAULT",
@@ -160,8 +136,6 @@
     }
   },
   "growthRatchets": {
-    "legoActiveLensCeiling": 14,
-    "legoOperatorCeiling": 5,
     "projectPlanForbiddenNewRequiredConcepts": [
       "gate",
       "gates",
@@ -172,7 +146,13 @@
       "registry",
       "registries"
     ],
-    "rule": "Ceilings may shrink. Raising a ceiling requires a replacement/retirement in the same change plus prospective evidence; simple additive growth is rejected."
+    "rule": "Do not introduce a local method-selection ontology when a mature external discipline, standard, or domain-native method owns the question. Any new durable governance concept must delete or externalize an equal-or-larger local carrier in the same change and prove irreducibility.",
+    "forbiddenLocalMethodInfrastructure": [
+      "knowledge/registries/lego-lens-registry-r1.json",
+      ".agents/skills/lego-lens-router",
+      ".agents/skills/lego-lens-compiler",
+      ".agents/skills/lego-lens-portfolio"
+    ]
   },
   "liveBaseline": {
     "observedAt": "2026-09-19",
