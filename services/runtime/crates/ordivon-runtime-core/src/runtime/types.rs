@@ -919,11 +919,11 @@ fn host_dependency_identities(
     dependencies
 }
 
-pub(crate) fn operation_request_identity_digest(request: &TaskRunRequest) -> RuntimeResult<String> {
+pub(crate) fn operation_request_identity_digest(request: &JobRunRequest) -> RuntimeResult<String> {
     operation_request_identity_digest_from_parts(operation_request_identity(request))
 }
 
-fn operation_request_identity(request: &TaskRunRequest) -> OperationRequestIdentity {
+fn operation_request_identity(request: &JobRunRequest) -> OperationRequestIdentity {
     OperationRequestIdentity {
         schema_version: request.schema_version,
         principal: request.principal.clone(),
@@ -976,7 +976,7 @@ fn input_binding_identities(inputs: &[InputBindingRequest]) -> Vec<InputBindingI
 }
 
 pub(crate) fn input_bound_request_identity_digest(
-    request: &TaskRunRequest,
+    request: &JobRunRequest,
     inputs: &[InputBindingRequest],
 ) -> RuntimeResult<String> {
     let identity = InputBoundRequestIdentity {
@@ -997,7 +997,7 @@ pub(crate) fn input_bound_request_identity_digest(
     ))
 }
 
-fn proposal_request_identity(proposal: &TaskRunProposal) -> ProposalRequestIdentity {
+fn proposal_request_identity(proposal: &JobRunProposal) -> ProposalRequestIdentity {
     ProposalRequestIdentity {
         schema_version: proposal.schema_version,
         principal: proposal.principal.clone(),
@@ -1035,9 +1035,7 @@ fn proposal_request_identity(proposal: &TaskRunProposal) -> ProposalRequestIdent
     }
 }
 
-pub(crate) fn proposal_request_identity_digest(
-    proposal: &TaskRunProposal,
-) -> RuntimeResult<String> {
+pub(crate) fn proposal_request_identity_digest(proposal: &JobRunProposal) -> RuntimeResult<String> {
     let bytes = serde_json::to_vec(&proposal_request_identity(proposal)).map_err(|error| {
         RuntimeError::new(
             RuntimeErrorCode::InvalidRequest,
@@ -1053,7 +1051,7 @@ pub(crate) fn proposal_request_identity_digest(
 }
 
 pub(crate) fn input_bound_proposal_request_identity_digest(
-    proposal: &TaskRunProposal,
+    proposal: &JobRunProposal,
     inputs: &[InputBindingRequest],
 ) -> RuntimeResult<String> {
     let identity = InputBoundProposalIdentity {
@@ -1634,7 +1632,7 @@ pub struct ExecutionProposal {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct TaskRunProposal {
+pub struct JobRunProposal {
     #[schemars(range(min = 1, max = 1), extend("const" = 1))]
     pub schema_version: u32,
     #[schemars(length(min = CLIENT_REQUEST_ID_MIN_LENGTH, max = CLIENT_REQUEST_ID_MAX_LENGTH), extend("pattern" = CLIENT_REQUEST_ID_PATTERN))]
@@ -1689,7 +1687,7 @@ pub struct UniversalExecutionRequest {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct TaskRunRequest {
+pub struct JobRunRequest {
     #[schemars(range(min = 1, max = 1), extend("const" = 1))]
     pub schema_version: u32,
     #[schemars(length(min = CLIENT_REQUEST_ID_MIN_LENGTH, max = CLIENT_REQUEST_ID_MAX_LENGTH), extend("pattern" = CLIENT_REQUEST_ID_PATTERN))]
@@ -1710,7 +1708,7 @@ pub struct TaskRunRequest {
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
 #[serde(rename_all = "snake_case")]
-pub enum TaskObserveWaitUntil {
+pub enum JobObserveWaitUntil {
     #[default]
     Terminal,
     ChangeOrTerminal,
@@ -1718,7 +1716,7 @@ pub enum TaskObserveWaitUntil {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct TaskObserveRequest {
+pub struct JobObserveRequest {
     #[schemars(range(min = 1, max = 1), extend("const" = 1))]
     #[serde(default = "default_schema_version")]
     pub schema_version: u32,
@@ -1727,7 +1725,7 @@ pub struct TaskObserveRequest {
     #[schemars(range(max = MAX_TASK_WAIT_MS))]
     pub wait_ms: u64,
     #[serde(default)]
-    pub wait_until: TaskObserveWaitUntil,
+    pub wait_until: JobObserveWaitUntil,
     #[serde(default = "default_task_tail_bytes")]
     #[schemars(range(max = MAX_TASK_TAIL_BYTES))]
     pub stdout_tail_bytes: u64,
@@ -1742,7 +1740,7 @@ pub struct TaskObserveRequest {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct TaskCancelRequest {
+pub struct JobCancelRequest {
     #[schemars(range(min = 1, max = 1), extend("const" = 1))]
     #[serde(default = "default_schema_version")]
     pub schema_version: u32,
@@ -1768,7 +1766,7 @@ pub struct EffectiveExecutionLimits {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct TaskObservation {
+pub struct JobObservation {
     pub job_id: String,
     /// Stable identity of the committed Runtime Operation represented by this Job.
     pub operation_digest: String,

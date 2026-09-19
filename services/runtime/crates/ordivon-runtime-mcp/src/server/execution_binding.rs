@@ -1,6 +1,6 @@
 enum BoundTaskRun {
-    Legacy(TaskRunRequest),
-    Proposal(TaskRunProposal),
+    Legacy(JobRunRequest),
+    Proposal(JobRunProposal),
 }
 
 #[derive(Clone)]
@@ -27,7 +27,7 @@ impl ExecutionContext {
                 .iter()
                 .all(|step| step.timeout_ms.is_some());
         if legacy_compatible {
-            BoundTaskRun::Legacy(TaskRunRequest {
+            BoundTaskRun::Legacy(JobRunRequest {
                 schema_version: request.schema_version,
                 client_request_id: request.client_request_id,
                 principal: self.principal.clone(),
@@ -73,7 +73,7 @@ impl ExecutionContext {
                 stderr_tail_bytes: request.stderr_tail_bytes,
             })
         } else {
-            BoundTaskRun::Proposal(TaskRunProposal {
+            BoundTaskRun::Proposal(JobRunProposal {
                 schema_version: request.schema_version,
                 client_request_id: request.client_request_id,
                 principal: self.principal.clone(),
@@ -89,10 +89,10 @@ impl ExecutionContext {
     fn bind_bound(
         &self,
         request: WorkspaceExecBoundRequest,
-    ) -> (TaskRunProposal, Vec<InputBindingRequest>) {
+    ) -> (JobRunProposal, Vec<InputBindingRequest>) {
         let execution = request.execution;
         (
-            TaskRunProposal {
+            JobRunProposal {
                 schema_version: request.schema_version,
                 client_request_id: request.client_request_id,
                 principal: self.principal.clone(),
@@ -128,7 +128,7 @@ impl ExecutionContext {
     fn bind_bound_trusted(
         &self,
         request: WorkspaceExecBoundRequest,
-    ) -> Result<(TaskRunProposal, Vec<InputBindingRequest>), ToolError> {
+    ) -> Result<(JobRunProposal, Vec<InputBindingRequest>), ToolError> {
         if request.execution.execution_target != ExecutionTarget::LocalLinux {
             return Err(ToolError::invalid(
                 "workspace.execBoundTrusted supports local_linux only",
@@ -143,7 +143,7 @@ impl ExecutionContext {
         }
         let execution = request.execution;
         Ok((
-            TaskRunProposal {
+            JobRunProposal {
                 schema_version: request.schema_version,
                 client_request_id: request.client_request_id,
                 principal: self.principal.clone(),
@@ -199,7 +199,7 @@ impl ExecutionContext {
                 .ok_or_else(|| {
                     ToolError::invalid("step timeout sum overflowed", "execution.steps")
                 })?;
-            return Ok(BoundTaskRun::Legacy(TaskRunRequest {
+            return Ok(BoundTaskRun::Legacy(JobRunRequest {
                 schema_version: request.schema_version,
                 client_request_id: request.client_request_id,
                 principal: self.principal.clone(),
@@ -246,7 +246,7 @@ impl ExecutionContext {
             }));
         }
 
-        Ok(BoundTaskRun::Proposal(TaskRunProposal {
+        Ok(BoundTaskRun::Proposal(JobRunProposal {
             schema_version: request.schema_version,
             client_request_id: request.client_request_id,
             principal: self.principal.clone(),

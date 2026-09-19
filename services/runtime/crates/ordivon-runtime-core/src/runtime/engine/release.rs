@@ -35,7 +35,7 @@ impl Runtime {
     pub fn admit_runtime_release_effect(
         &self,
         request: &RuntimeReleaseRequest,
-        proposal: &super::TaskRunProposal,
+        proposal: &super::JobRunProposal,
         receipt_path: &Path,
     ) -> RuntimeResult<RuntimeReleaseAdmission> {
         validate_runtime_release_request(request)?;

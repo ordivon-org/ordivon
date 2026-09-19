@@ -36,7 +36,7 @@ pub use universal::{
 };
 
 #[cfg(all(feature = "universal-executor", unix))]
-pub use universal::run_task_runner;
+pub use universal::run_job_runner;
 
 #[cfg(feature = "transactional-runtime")]
 pub use runtime::{
@@ -46,26 +46,27 @@ pub use runtime::{
     EffectiveExecutionLimits, EffectiveInputBinding, EffectiveStepTimeout, ExecutionBudget,
     ExecutionProfile, ExecutionProposal, ExecutionProviderContract, ExecutionProviderSnapshot,
     ExecutionStepProposal, ExecutionTarget, ForeignReference, HostDependencyBinding,
-    InputAccessMode, InputAuthority, InputBindingRequest, JobDesiredState, JobProjection,
-    JobResolution, ReconciliationFailure, ReconciliationReport, Registry, RegistryConfig,
-    ReservationRecord, ReservationState, RunnerIdentity, Runtime, RuntimeArtifactRecord,
-    RuntimeCapabilities, RuntimeCapacity, RuntimeConfig, RuntimeDeliveryDisposition, RuntimeError,
-    RuntimeErrorCode, RuntimeExecutionPlan, RuntimeExecutionStep, RuntimeExecutionTargetCapability,
-    RuntimeInspectionArtifactSummary, RuntimeInspectionAttempt, RuntimeInspectionCondition,
-    RuntimeInspectionConfig, RuntimeInspectionEpisodes, RuntimeInspectionEvent,
-    RuntimeInspectionJob, RuntimeInvariantViolation, RuntimeJobInspection, RuntimeJobListCursor,
-    RuntimeJobListRequest, RuntimeJobListResult, RuntimeJobRecord, RuntimeJobSummary,
-    RuntimeNodeIdentity, RuntimeNodePlatform, RuntimeReleaseAdmission, RuntimeReleaseContract,
+    InputAccessMode, InputAuthority, InputBindingRequest, JobCancelRequest, JobDesiredState,
+    JobObservation, JobObserveRequest, JobObserveWaitUntil, JobProjection, JobResolution,
+    JobRunProposal, JobRunRequest, ReconciliationFailure, ReconciliationReport, Registry,
+    RegistryConfig, ReservationRecord, ReservationState, RunnerIdentity, Runtime,
+    RuntimeArtifactRecord, RuntimeCapabilities, RuntimeCapacity, RuntimeConfig,
+    RuntimeDeliveryDisposition, RuntimeError, RuntimeErrorCode, RuntimeExecutionPlan,
+    RuntimeExecutionStep, RuntimeExecutionTargetCapability, RuntimeInspectionArtifactSummary,
+    RuntimeInspectionAttempt, RuntimeInspectionCondition, RuntimeInspectionConfig,
+    RuntimeInspectionEpisodes, RuntimeInspectionEvent, RuntimeInspectionJob,
+    RuntimeInvariantViolation, RuntimeJobInspection, RuntimeJobListCursor, RuntimeJobListRequest,
+    RuntimeJobListResult, RuntimeJobRecord, RuntimeJobSummary, RuntimeNodeIdentity,
+    RuntimeNodePlatform, RuntimeReleaseAdmission, RuntimeReleaseContract,
     RuntimeReleaseDisposition, RuntimeReleaseEffectBinding, RuntimeReleaseGetRequest,
     RuntimeReleaseProjection, RuntimeReleaseRequest, RuntimeResult, RuntimeWorkspaceGetRequest,
     RuntimeWorkspaceIssue, RuntimeWorkspaceIssueStage, RuntimeWorkspaceListCursor,
     RuntimeWorkspaceListRequest, RuntimeWorkspaceListResult, RuntimeWorkspaceSummary,
-    SubmitRequest, TaskCancelRequest, TaskObservation, TaskObserveRequest, TaskObserveWaitUntil,
-    TaskRunProposal, TaskRunRequest, TerminalCommit, UniversalExecutionRequest,
-    UniversalExecutionStep, WindowsAuthority, WindowsExecutionConfig, WindowsExecutionContext,
-    WindowsTokenClass, CLIENT_REQUEST_ID_MAX_LENGTH, CLIENT_REQUEST_ID_MIN_LENGTH,
-    CLIENT_REQUEST_ID_PATTERN, DEFAULT_INSPECTION_EVENT_LIMIT, LOGICAL_ID_MAX_LENGTH,
-    LOGICAL_ID_MIN_LENGTH, LOGICAL_ID_PATTERN, MAX_ARTIFACT_READ_BYTES, MAX_INSPECTION_EVENT_LIMIT,
+    SubmitRequest, TerminalCommit, UniversalExecutionRequest, UniversalExecutionStep,
+    WindowsAuthority, WindowsExecutionConfig, WindowsExecutionContext, WindowsTokenClass,
+    CLIENT_REQUEST_ID_MAX_LENGTH, CLIENT_REQUEST_ID_MIN_LENGTH, CLIENT_REQUEST_ID_PATTERN,
+    DEFAULT_INSPECTION_EVENT_LIMIT, LOGICAL_ID_MAX_LENGTH, LOGICAL_ID_MIN_LENGTH,
+    LOGICAL_ID_PATTERN, MAX_ARTIFACT_READ_BYTES, MAX_INSPECTION_EVENT_LIMIT,
     MAX_RUNTIME_LIST_LIMIT, MAX_TASK_TAIL_BYTES, MAX_TASK_WAIT_MS,
     RUNTIME_CONDITION_RETIREMENT_MIGRATION_CHECKSUM, RUNTIME_INSPECTION_SCHEMA_VERSION,
     RUNTIME_MIGRATION_CHECKSUM, RUNTIME_ORPHAN_RECLAIM_MIGRATION_CHECKSUM,

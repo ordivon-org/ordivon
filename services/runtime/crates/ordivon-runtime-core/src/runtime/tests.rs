@@ -529,11 +529,11 @@ fn committed_job_owned_input_drift_fails_before_dispatch() {
         .unwrap();
     assert_eq!(attempt.state, AttemptState::Failed);
     let observation = runtime
-        .observe_task(&TaskObserveRequest {
+        .observe_job(&JobObserveRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: created.job.job_id,
             wait_ms: 0,
-            wait_until: TaskObserveWaitUntil::Terminal,
+            wait_until: JobObserveWaitUntil::Terminal,
             stdout_tail_bytes: 0,
             stderr_tail_bytes: 0,
             stdout_offset: None,
@@ -573,11 +573,11 @@ fn committed_input_loss_fails_closed_without_reopening_authority() {
         .unwrap();
     assert_eq!(attempt.state, AttemptState::Failed);
     let observation = runtime
-        .observe_task(&TaskObserveRequest {
+        .observe_job(&JobObserveRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: created.job.job_id,
             wait_ms: 0,
-            wait_until: TaskObserveWaitUntil::Terminal,
+            wait_until: JobObserveWaitUntil::Terminal,
             stdout_tail_bytes: 0,
             stderr_tail_bytes: 0,
             stdout_offset: None,
@@ -659,7 +659,7 @@ fn workspace_fixture(
 }
 
 #[test]
-fn task_observe_reconciliation_is_scoped_to_the_requested_job() {
+fn job_observe_reconciliation_is_scoped_to_the_requested_job() {
     let sandbox = Sandbox::new("observe-scope", 5000);
     let runtime = Runtime::new(runtime_config(&sandbox)).unwrap();
 
@@ -679,11 +679,11 @@ fn task_observe_reconciliation_is_scoped_to_the_requested_job() {
     let unrelated = created(runtime.registry().submit(&unrelated_request).unwrap());
 
     let observed = runtime
-        .observe_task(&TaskObserveRequest {
+        .observe_job(&JobObserveRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: target.job.job_id.clone(),
             wait_ms: 0,
-            wait_until: TaskObserveWaitUntil::Terminal,
+            wait_until: JobObserveWaitUntil::Terminal,
             stdout_tail_bytes: 0,
             stderr_tail_bytes: 0,
             stdout_offset: None,
@@ -1165,7 +1165,7 @@ fn representation_cardinality_is_not_runtime_admission_policy() {
             digest: None,
         })
         .collect::<Vec<_>>();
-    let request = TaskRunRequest {
+    let request = JobRunRequest {
         schema_version: RUNTIME_SCHEMA_VERSION,
         client_request_id: "request:large-representation".to_string(),
         principal: "principal:test".to_string(),
@@ -1193,7 +1193,7 @@ fn representation_cardinality_is_not_runtime_admission_policy() {
         stdout_tail_bytes: 0,
         stderr_tail_bytes: 0,
     };
-    let error = runtime.run_task(&request).unwrap_err();
+    let error = runtime.run_job(&request).unwrap_err();
     assert_eq!(error.code, RuntimeErrorCode::WorkspaceNotFound);
 }
 
@@ -1201,7 +1201,7 @@ fn representation_cardinality_is_not_runtime_admission_policy() {
 fn operator_runtime_and_output_ceilings_are_enforced_before_admission() {
     let sandbox = Sandbox::new("operator-ceilings", 5000);
     let runtime = Runtime::new(runtime_config(&sandbox)).unwrap();
-    let base = TaskRunRequest {
+    let base = JobRunRequest {
         schema_version: RUNTIME_SCHEMA_VERSION,
         client_request_id: "request:operator-ceiling".to_string(),
         principal: "principal:test".to_string(),
@@ -1230,13 +1230,13 @@ fn operator_runtime_and_output_ceilings_are_enforced_before_admission() {
 
     let mut timeout = base.clone();
     timeout.execution.timeout_ms = 60_001;
-    let error = runtime.run_task(&timeout).unwrap_err();
+    let error = runtime.run_job(&timeout).unwrap_err();
     assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
     assert_eq!(error.field.as_deref(), Some("execution.timeoutMs"));
 
     let mut output = base;
     output.execution.stdout_limit_bytes = 1_048_577;
-    let error = runtime.run_task(&output).unwrap_err();
+    let error = runtime.run_job(&output).unwrap_err();
     assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
     assert_eq!(error.field.as_deref(), Some("execution.stdoutLimitBytes"));
 }
@@ -1245,7 +1245,7 @@ fn operator_runtime_and_output_ceilings_are_enforced_before_admission() {
 fn oversized_exec_string_is_rejected_before_admission() {
     let sandbox = Sandbox::new("exec-string-boundary", 5000);
     let runtime = Runtime::new(runtime_config(&sandbox)).unwrap();
-    let request = TaskRunRequest {
+    let request = JobRunRequest {
         schema_version: RUNTIME_SCHEMA_VERSION,
         client_request_id: "request:oversized-arg".to_string(),
         principal: "principal:test".to_string(),
@@ -1271,7 +1271,7 @@ fn oversized_exec_string_is_rejected_before_admission() {
         stdout_tail_bytes: 0,
         stderr_tail_bytes: 0,
     };
-    let error = runtime.run_task(&request).unwrap_err();
+    let error = runtime.run_job(&request).unwrap_err();
     assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
     assert_eq!(error.field.as_deref(), Some("args"));
 }
@@ -1296,7 +1296,7 @@ fn windows_execution_context_is_durable_plan_evidence_not_request_identity_input
 
 #[test]
 fn request_identity_excludes_observation_preferences_and_capacity_policy() {
-    let base = TaskRunRequest {
+    let base = JobRunRequest {
         schema_version: RUNTIME_SCHEMA_VERSION,
         client_request_id: "request:identity-boundary".to_string(),
         principal: "principal:test".to_string(),
@@ -1400,7 +1400,7 @@ fn request_identity_excludes_observation_preferences_and_capacity_policy() {
 fn elevated_windows_authority_is_rejected_for_local_linux_before_admission() {
     let sandbox = Sandbox::new("windows-authority-local-linux", 5000);
     let runtime = Runtime::new(runtime_config(&sandbox)).unwrap();
-    let request = TaskRunRequest {
+    let request = JobRunRequest {
         schema_version: RUNTIME_SCHEMA_VERSION,
         client_request_id: "request:windows-authority-local-linux".to_string(),
         principal: "principal:test".to_string(),
@@ -1426,14 +1426,14 @@ fn elevated_windows_authority_is_rejected_for_local_linux_before_admission() {
         stdout_tail_bytes: 0,
         stderr_tail_bytes: 0,
     };
-    let error = runtime.run_task(&request).unwrap_err();
+    let error = runtime.run_job(&request).unwrap_err();
     assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
     assert_eq!(error.field.as_deref(), Some("execution.windowsAuthority"));
     assert_eq!(runtime.registry().active_reservation_count().unwrap(), 0);
 }
 
-fn input_bound_task_request(workspace_id: &str, client_request_id: &str) -> TaskRunRequest {
-    TaskRunRequest {
+fn input_bound_task_request(workspace_id: &str, client_request_id: &str) -> JobRunRequest {
+    JobRunRequest {
         schema_version: RUNTIME_SCHEMA_VERSION,
         client_request_id: client_request_id.to_string(),
         principal: "principal:input-test".to_string(),
@@ -1507,7 +1507,7 @@ fn input_bound_identity_is_order_independent_but_binding_sensitive() {
 #[test]
 fn input_bound_proposal_identity_preserves_proposal_and_binding_semantics() {
     let request = input_bound_task_request("workspace:test", "request:input-proposal-identity");
-    let proposal = TaskRunProposal {
+    let proposal = JobRunProposal {
         schema_version: request.schema_version,
         client_request_id: request.client_request_id.clone(),
         principal: request.principal.clone(),
@@ -1590,7 +1590,7 @@ fn local_linux_immutable_inputs_accept_trusted_local_and_continue_to_workspace_r
     let mut request = input_bound_task_request("workspace-does-not-exist", "request:input-trusted");
     request.execution.execution_profile = ExecutionProfile::TrustedLocal;
     let error = runtime
-        .run_task_with_inputs(
+        .run_job_with_inputs(
             &request,
             &[InputBindingRequest {
                 authority: "finance".to_string(),
@@ -1615,7 +1615,7 @@ fn windows_immutable_inputs_reject_elevated_authority_before_workspace_resolutio
     request.execution.execution_target = ExecutionTarget::WindowsNative;
     request.execution.windows_authority = WindowsAuthority::Elevated;
     let error = runtime
-        .run_task_with_inputs(
+        .run_job_with_inputs(
             &request,
             &[InputBindingRequest {
                 authority: "finance".to_string(),
@@ -1713,7 +1713,7 @@ fn input_digest_mismatch_fails_before_job_admission() {
         expected_digest: digest(b"different-bytes"),
         presentation_relative_path: "data/fragment.parquet".to_string(),
     }];
-    let error = runtime.run_task_with_inputs(&request, &inputs).unwrap_err();
+    let error = runtime.run_job_with_inputs(&request, &inputs).unwrap_err();
     assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
     assert!(error.message.contains("materialized input digest mismatch"));
     assert_eq!(runtime.registry().active_reservation_count().unwrap(), 0);
@@ -1750,7 +1750,7 @@ fn input_authority_rejects_dotdot_and_symlink_escape_before_admission() {
     .unwrap();
 
     let dotdot = runtime
-        .run_task_with_inputs(
+        .run_job_with_inputs(
             &request,
             &[InputBindingRequest {
                 authority: "finance".to_string(),
@@ -1764,7 +1764,7 @@ fn input_authority_rejects_dotdot_and_symlink_escape_before_admission() {
     assert!(dotdot.field.as_deref().unwrap().contains("relativeObject"));
 
     let symlink = runtime
-        .run_task_with_inputs(
+        .run_job_with_inputs(
             &request,
             &[InputBindingRequest {
                 authority: "finance".to_string(),
@@ -1783,7 +1783,7 @@ fn input_authority_rejects_dotdot_and_symlink_escape_before_admission() {
 
 #[test]
 fn execution_profile_and_foreign_references_are_part_of_request_identity() {
-    let base = TaskRunRequest {
+    let base = JobRunRequest {
         schema_version: RUNTIME_SCHEMA_VERSION,
         client_request_id: "request:profile-reference-identity".to_string(),
         principal: "principal:test".to_string(),
@@ -1863,7 +1863,7 @@ fn duplicate_foreign_references_are_rejected_before_admission() {
         generation: None,
         digest: None,
     };
-    let request = TaskRunRequest {
+    let request = JobRunRequest {
         schema_version: RUNTIME_SCHEMA_VERSION,
         client_request_id: "request:duplicate-reference".to_string(),
         principal: "principal:test".to_string(),
@@ -1889,7 +1889,7 @@ fn duplicate_foreign_references_are_rejected_before_admission() {
         stdout_tail_bytes: 0,
         stderr_tail_bytes: 0,
     };
-    let error = runtime.run_task(&request).unwrap_err();
+    let error = runtime.run_job(&request).unwrap_err();
     assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
     assert!(error
         .field
@@ -2260,7 +2260,7 @@ fn registry_accepts_input_bound_proposal_identity_without_changing_legacy_prefix
 
 #[test]
 fn proposal_identity_preserves_omission_and_normalizes_equivalent_paths() {
-    let base = TaskRunProposal {
+    let base = JobRunProposal {
         schema_version: RUNTIME_SCHEMA_VERSION,
         client_request_id: "request:proposal-identity".to_string(),
         principal: "principal:test".to_string(),
@@ -5387,7 +5387,7 @@ fn runtime_startup_reclaims_absent_orphan_and_reopens_workspace_slot() {
 }
 
 #[test]
-fn task_cancel_reclaims_absent_orphan_as_cancelled() {
+fn job_cancel_reclaims_absent_orphan_as_cancelled() {
     let sandbox = Sandbox::new("runtime-orphan-cancel", 5000);
     let runtime = Runtime::new(runtime_config(&sandbox)).unwrap();
     let created = created(
@@ -5423,7 +5423,7 @@ fn task_cancel_reclaims_absent_orphan_as_cancelled() {
         .unwrap();
 
     let observation = runtime
-        .cancel_task(&TaskCancelRequest {
+        .cancel_job(&JobCancelRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: created.job.job_id.clone(),
         })
@@ -5456,7 +5456,7 @@ fn task_cancel_reclaims_absent_orphan_as_cancelled() {
     );
 
     let replay = runtime
-        .cancel_task(&TaskCancelRequest {
+        .cancel_job(&JobCancelRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: created.job.job_id.clone(),
         })
@@ -7137,7 +7137,7 @@ fn runtime_capabilities_project_current_affordances_without_input_authority_path
 }
 
 #[test]
-fn terminal_task_observation_elapsed_ms_freezes_at_finished_time() {
+fn terminal_job_observation_elapsed_ms_freezes_at_finished_time() {
     let sandbox = Sandbox::new("terminal-observation-elapsed", 5_000);
     let runtime = Runtime::new(runtime_config(&sandbox)).unwrap();
     let created = created(
@@ -7169,11 +7169,11 @@ fn terminal_task_observation_elapsed_ms_freezes_at_finished_time() {
     thread::sleep(std::time::Duration::from_millis(20));
     let observe = || {
         runtime
-            .observe_task(&TaskObserveRequest {
+            .observe_job(&JobObserveRequest {
                 schema_version: RUNTIME_SCHEMA_VERSION,
                 job_id: created.job.job_id.clone(),
                 wait_ms: 0,
-                wait_until: TaskObserveWaitUntil::Terminal,
+                wait_until: JobObserveWaitUntil::Terminal,
                 stdout_tail_bytes: 0,
                 stderr_tail_bytes: 0,
                 stdout_offset: None,

@@ -1421,7 +1421,7 @@ fn runner_rejects_workspace_source_drift_before_spawning_target() {
         host_dependencies: Vec::new(),
     };
     write_json_atomic(&task_dir.join("request.json"), &request).unwrap();
-    run_task_runner(&task_dir).unwrap();
+    run_job_runner(&task_dir).unwrap();
 
     let result: RunnerTaskResult =
         serde_json::from_slice(&fs::read(task_dir.join("result.json")).unwrap()).unwrap();
@@ -1483,7 +1483,7 @@ fn runner_projects_private_build_target_through_stable_inherited_fd() {
         stderr_limit_bytes: 1_024,
     };
     write_json_atomic(&task_dir.join("request.json"), &request).unwrap();
-    run_task_runner(&task_dir).unwrap();
+    run_job_runner(&task_dir).unwrap();
 
     let result: RunnerTaskResult =
         serde_json::from_slice(&fs::read(task_dir.join("result.json")).unwrap()).unwrap();
@@ -1543,7 +1543,7 @@ fn runner_rejects_host_dependency_drift_before_spawning_target() {
         stderr_limit_bytes: 1_024,
     };
     write_json_atomic(&task_dir.join("request.json"), &request).unwrap();
-    run_task_runner(&task_dir).unwrap();
+    run_job_runner(&task_dir).unwrap();
     let result: RunnerTaskResult =
         serde_json::from_slice(&fs::read(task_dir.join("result.json")).unwrap()).unwrap();
     assert_eq!(result.status, TaskTerminalStatus::Failed);
@@ -1611,7 +1611,7 @@ fn runner_fails_when_host_dependency_drifts_after_target_start() {
     };
     write_json_atomic(&task_dir.join("request.json"), &request).unwrap();
     let runner_task_dir = task_dir.clone();
-    let runner = thread::spawn(move || run_task_runner(&runner_task_dir));
+    let runner = thread::spawn(move || run_job_runner(&runner_task_dir));
     let stdout = task_dir.join("stdout.log");
     let mut ready = false;
     for _ in 0..500 {
@@ -1702,7 +1702,7 @@ fn runner_ignores_ancestor_metadata_event_when_host_dependency_identity_is_uncha
     };
     write_json_atomic(&task_dir.join("request.json"), &request).unwrap();
     let runner_task_dir = task_dir.clone();
-    let runner = thread::spawn(move || run_task_runner(&runner_task_dir));
+    let runner = thread::spawn(move || run_job_runner(&runner_task_dir));
     let stdout = task_dir.join("stdout.log");
     let mut ready = false;
     for _ in 0..500 {
@@ -1787,7 +1787,7 @@ fn runner_ignores_ancestor_metadata_event_when_executable_identity_is_unchanged(
     };
     write_json_atomic(&task_dir.join("request.json"), &request).unwrap();
     let runner_task_dir = task_dir.clone();
-    let runner = thread::spawn(move || run_task_runner(&runner_task_dir));
+    let runner = thread::spawn(move || run_job_runner(&runner_task_dir));
     let stdout = task_dir.join("stdout.log");
     let mut ready = false;
     for _ in 0..500 {
@@ -1876,7 +1876,7 @@ fn runner_fails_when_symlinked_executable_target_is_modified_in_place() {
     };
     write_json_atomic(&task_dir.join("request.json"), &request).unwrap();
     let runner_task_dir = task_dir.clone();
-    let runner = thread::spawn(move || run_task_runner(&runner_task_dir));
+    let runner = thread::spawn(move || run_job_runner(&runner_task_dir));
     let stdout = task_dir.join("stdout.log");
     let mut ready = false;
     for _ in 0..500 {
@@ -1953,7 +1953,7 @@ fn runner_preserves_shebang_path_semantics_but_fails_on_runtime_executable_drift
     };
     write_json_atomic(&task_dir.join("request.json"), &request).unwrap();
     let runner_task_dir = task_dir.clone();
-    let runner = thread::spawn(move || run_task_runner(&runner_task_dir));
+    let runner = thread::spawn(move || run_job_runner(&runner_task_dir));
     let stdout = task_dir.join("stdout.log");
     let expected_file_line = format!("FILE={}\n", executable.display());
     let mut ready = false;
@@ -2040,7 +2040,7 @@ fn runner_rejects_immutable_input_drift_before_spawning_target() {
         host_dependencies: Vec::new(),
     };
     write_json_atomic(&task_dir.join("request.json"), &request).unwrap();
-    run_task_runner(&task_dir).unwrap();
+    run_job_runner(&task_dir).unwrap();
 
     let result: RunnerTaskResult =
         serde_json::from_slice(&fs::read(task_dir.join("result.json")).unwrap()).unwrap();
@@ -2107,7 +2107,7 @@ fn runner_rejects_undeclared_input_directory_before_spawning_target() {
         host_dependencies: Vec::new(),
     };
     write_json_atomic(&task_dir.join("request.json"), &request).unwrap();
-    run_task_runner(&task_dir).unwrap();
+    run_job_runner(&task_dir).unwrap();
 
     let result: RunnerTaskResult =
         serde_json::from_slice(&fs::read(task_dir.join("result.json")).unwrap()).unwrap();
@@ -3056,7 +3056,7 @@ fn runner_executes_model_authored_script_and_bounds_output() {
         host_dependencies: Vec::new(),
     };
     write_json_atomic(&task_dir.join("request.json"), &request).unwrap();
-    run_task_runner(&task_dir).unwrap();
+    run_job_runner(&task_dir).unwrap();
     let result: RunnerTaskResult =
         serde_json::from_slice(&fs::read(task_dir.join("result.json")).unwrap()).unwrap();
     assert_eq!(result.status, TaskTerminalStatus::Completed);
@@ -3121,7 +3121,7 @@ fn runner_shared_overall_deadline_is_independent_of_step_timeout_sum() {
     };
     assert!(fast.steps.iter().map(|step| step.timeout_ms).sum::<u64>() > fast.timeout_ms);
     write_json_atomic(&fast_dir.join("request.json"), &fast).unwrap();
-    run_task_runner(&fast_dir).unwrap();
+    run_job_runner(&fast_dir).unwrap();
     let result: RunnerTaskResult =
         serde_json::from_slice(&fs::read(fast_dir.join("result.json")).unwrap()).unwrap();
     assert_eq!(result.status, TaskTerminalStatus::Completed);
@@ -3143,7 +3143,7 @@ fn runner_shared_overall_deadline_is_independent_of_step_timeout_sum() {
         continue_on_error: false,
     };
     write_json_atomic(&slow_dir.join("request.json"), &slow).unwrap();
-    run_task_runner(&slow_dir).unwrap();
+    run_job_runner(&slow_dir).unwrap();
     let result: RunnerTaskResult =
         serde_json::from_slice(&fs::read(slow_dir.join("result.json")).unwrap()).unwrap();
     assert_eq!(result.status, TaskTerminalStatus::Failed);
@@ -3187,7 +3187,7 @@ fn runner_timeout_is_a_durable_failed_result() {
         host_dependencies: Vec::new(),
     };
     write_json_atomic(&task_dir.join("request.json"), &request).unwrap();
-    run_task_runner(&task_dir).unwrap();
+    run_job_runner(&task_dir).unwrap();
     let result: RunnerTaskResult =
         serde_json::from_slice(&fs::read(task_dir.join("result.json")).unwrap()).unwrap();
     assert_eq!(result.status, TaskTerminalStatus::Failed);
@@ -3230,7 +3230,7 @@ fn runner_timeout_terminates_descendant_pipe_holders_before_result() {
     };
     write_json_atomic(&task_dir.join("request.json"), &request).unwrap();
     let started = std::time::Instant::now();
-    run_task_runner(&task_dir).unwrap();
+    run_job_runner(&task_dir).unwrap();
     assert!(started.elapsed() < std::time::Duration::from_secs(2));
     let result: RunnerTaskResult =
         serde_json::from_slice(&fs::read(task_dir.join("result.json")).unwrap()).unwrap();

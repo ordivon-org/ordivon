@@ -29,7 +29,7 @@ const PROGRESS_FILE: &str = "progress.json";
 const TRUSTED_BUILD_TARGET_PRESENTATION: &str = "/proc/self/fd/198";
 const TRUSTED_BUILD_TARGET_PRESENTATION_FD: libc::c_int = 198;
 
-pub fn run_task_runner(task_dir: &Path) -> Result<(), UniversalExecError> {
+pub fn run_job_runner(task_dir: &Path) -> Result<(), UniversalExecError> {
     if !task_dir.is_absolute() {
         return Err(runner_error("task directory must be absolute"));
     }

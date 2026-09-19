@@ -3,9 +3,9 @@
 use ordivon_runtime_core::{
     create_git_workspace, remove_git_workspace, write_workspace_text, ArtifactReadRequest,
     AttemptState, ExecutionBudget, ForeignReference, GitWorkspaceCreateRequest,
-    HostDependencyBinding, InputAuthority, InputBindingRequest, RegistryConfig, Runtime,
-    RuntimeConfig, RuntimeExecutionPlan, RuntimeJobListRequest, SubmitRequest, TaskCancelRequest,
-    TaskObserveRequest, TaskObserveWaitUntil, TaskRunRequest, UniversalExecutionRequest,
+    HostDependencyBinding, InputAuthority, InputBindingRequest, JobCancelRequest,
+    JobObserveRequest, JobObserveWaitUntil, JobRunRequest, RegistryConfig, Runtime, RuntimeConfig,
+    RuntimeExecutionPlan, RuntimeJobListRequest, SubmitRequest, UniversalExecutionRequest,
     UniversalExecutorConfig, WindowsExecutionConfig, WorkspaceCloseRequest, WorkspaceMutateRequest,
     WorkspaceMutation, WorkspaceMutationMode, WorkspaceWriteRequest, RUNTIME_SCHEMA_VERSION,
     UNIVERSAL_EXEC_SCHEMA_VERSION,
@@ -112,7 +112,7 @@ fn runtime_transactional_runtime_executes_replays_and_releases_capacity() {
         windows: None,
     })
     .unwrap();
-    let request = TaskRunRequest {
+    let request = JobRunRequest {
         schema_version: RUNTIME_SCHEMA_VERSION,
         client_request_id: format!("request:it:{}", Uuid::now_v7()),
         principal: "principal:integration".to_string(),
@@ -138,7 +138,7 @@ fn runtime_transactional_runtime_executes_replays_and_releases_capacity() {
         stdout_tail_bytes: 4096,
         stderr_tail_bytes: 4096,
     };
-    let first = runtime.run_task(&request).unwrap();
+    let first = runtime.run_job(&request).unwrap();
     assert_eq!(first.status, "succeeded");
     assert!(first.stdout_tail.contains("RUNTIME_OK"));
     assert!(first
@@ -167,7 +167,7 @@ fn runtime_transactional_runtime_executes_replays_and_releases_capacity() {
     assert_eq!(stdout_descriptor.dropped_bytes, Some(0));
     assert_eq!(runtime.registry().active_reservation_count().unwrap(), 0);
 
-    let replay = runtime.run_task(&request).unwrap();
+    let replay = runtime.run_job(&request).unwrap();
     assert_eq!(replay.job_id, first.job_id);
     assert_eq!(replay.status, "succeeded");
 
@@ -222,7 +222,7 @@ fn runtime_transactional_runtime_executes_replays_and_releases_capacity() {
         "CARGO_TARGET_DIR".to_string(),
         custom_target.to_string_lossy().into_owned(),
     );
-    let custom = runtime.run_task(&custom_request).unwrap();
+    let custom = runtime.run_job(&custom_request).unwrap();
     assert_eq!(custom.status, "succeeded", "{}", custom.stderr_tail);
     assert!(custom
         .stdout_tail
@@ -436,7 +436,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
         vec![ordivon_runtime_core::WindowsAuthority::Limited]
     );
 
-    let request = TaskRunRequest {
+    let request = JobRunRequest {
         schema_version: RUNTIME_SCHEMA_VERSION,
         client_request_id: format!("request:windows-rw1:{}", Uuid::now_v7()),
         principal: "principal:windows-integration".to_string(),
@@ -472,7 +472,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
         stdout_tail_bytes: 16_384,
         stderr_tail_bytes: 16_384,
     };
-    let first = runtime.run_task(&request).unwrap();
+    let first = runtime.run_job(&request).unwrap();
     assert_eq!(first.status, "succeeded", "{}", first.stderr_tail);
     assert!(first.execution_terminal);
     assert_eq!(first.exit_code, Some(0));
@@ -625,7 +625,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
         presentation_relative_path: "payload/bound-input.txt".to_string(),
     };
     let input_first = runtime
-        .run_task_with_inputs(&input_request, std::slice::from_ref(&input_binding_v1))
+        .run_job_with_inputs(&input_request, std::slice::from_ref(&input_binding_v1))
         .unwrap();
     assert_eq!(
         input_first.status, "succeeded",
@@ -705,7 +705,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
     let input_v2 = b"P5_WINDOWS_BOUND_V2\n";
     fs::write(&input_authority_file, input_v2).unwrap();
     let replay = runtime
-        .run_task_with_inputs(&input_request, std::slice::from_ref(&input_binding_v1))
+        .run_job_with_inputs(&input_request, std::slice::from_ref(&input_binding_v1))
         .unwrap();
     assert_eq!(replay.job_id, input_first.job_id);
     assert_eq!(replay.attempt_id, input_first.attempt_id);
@@ -715,7 +715,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
     let mut stale_request = input_request.clone();
     stale_request.client_request_id = format!("request:windows-input-stale:{}", Uuid::now_v7());
     let stale_error = runtime
-        .run_task_with_inputs(&stale_request, std::slice::from_ref(&input_binding_v1))
+        .run_job_with_inputs(&stale_request, std::slice::from_ref(&input_binding_v1))
         .unwrap_err();
     assert_eq!(
         stale_error.code,
@@ -732,7 +732,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
         ..input_binding_v1.clone()
     };
     let current = runtime
-        .run_task_with_inputs(&current_request, std::slice::from_ref(&input_binding_v2))
+        .run_job_with_inputs(&current_request, std::slice::from_ref(&input_binding_v2))
         .unwrap();
     assert_eq!(current.status, "succeeded", "{}", current.stderr_tail);
     for marker in [
@@ -766,7 +766,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
     elevated_input_request.execution.windows_authority =
         ordivon_runtime_core::WindowsAuthority::Elevated;
     let elevated_input_error = runtime
-        .run_task_with_inputs(
+        .run_job_with_inputs(
             &elevated_input_request,
             std::slice::from_ref(&input_binding_v2),
         )
@@ -797,7 +797,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
         format!("request:windows-limited-admin:{}", Uuid::now_v7());
     limited_admin_request.execution.args =
         vec!["authority-probe".to_string(), limited_admin_marker.clone()];
-    let limited_admin = runtime.run_task(&limited_admin_request).unwrap();
+    let limited_admin = runtime.run_job(&limited_admin_request).unwrap();
     assert_eq!(
         limited_admin.status, "succeeded",
         "{}",
@@ -813,7 +813,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
     elevated_request.client_request_id = format!("request:windows-elevated:{}", Uuid::now_v7());
     elevated_request.execution.windows_authority = ordivon_runtime_core::WindowsAuthority::Elevated;
     elevated_request.execution.args = vec!["authority-probe".to_string(), elevated_marker.clone()];
-    let elevated = runtime.run_task(&elevated_request).unwrap();
+    let elevated = runtime.run_job(&elevated_request).unwrap();
     assert_eq!(elevated.status, "succeeded", "{}", elevated.stderr_tail);
     assert!(elevated.stdout_tail.contains(&format!(
         "W1_AUTHORITY_HKLM=allowed marker={elevated_marker}"
@@ -918,7 +918,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
     reconnect_request.execution.timeout_ms = 20_000;
     reconnect_request.execution.budget.tasks_max = Some(8);
     reconnect_request.wait_ms = 0;
-    let reconnect_started = runtime.run_task(&reconnect_request).unwrap();
+    let reconnect_started = runtime.run_job(&reconnect_request).unwrap();
     assert!(matches!(
         reconnect_started.status.as_str(),
         "queued" | "working"
@@ -971,7 +971,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
         }),
     })
     .unwrap();
-    let reattached = runtime.run_task(&reconnect_request).unwrap();
+    let reattached = runtime.run_job(&reconnect_request).unwrap();
     assert_eq!(reattached.job_id, reconnect_job_id);
     assert_eq!(
         reattached.attempt_id.as_deref(),
@@ -989,7 +989,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
     );
     assert!(power_request_present(&reconnect_attempt_id));
     let reconnect_cancelled = runtime
-        .cancel_task(&TaskCancelRequest {
+        .cancel_job(&JobCancelRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: reconnect_job_id.clone(),
         })
@@ -1018,7 +1018,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
     crash_request.execution.timeout_ms = 20_000;
     crash_request.execution.budget.tasks_max = Some(8);
     crash_request.wait_ms = 0;
-    let crash_started = runtime.run_task(&crash_request).unwrap();
+    let crash_started = runtime.run_job(&crash_request).unwrap();
     assert!(matches!(
         crash_started.status.as_str(),
         "queued" | "working"
@@ -1062,11 +1062,11 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
         String::from_utf8_lossy(&killed.stderr)
     );
     let crash_observed = runtime
-        .observe_task(&TaskObserveRequest {
+        .observe_job(&JobObserveRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: crash_started.job_id.clone(),
             wait_ms: 10_000,
-            wait_until: TaskObserveWaitUntil::Terminal,
+            wait_until: JobObserveWaitUntil::Terminal,
             stdout_tail_bytes: 4096,
             stderr_tail_bytes: 4096,
             stdout_offset: None,
@@ -1085,7 +1085,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
     assert!(!power_request_present(&crash_attempt.attempt_id));
     thread::sleep(Duration::from_millis(300));
     assert_eq!(windows_marker_process_count(&crash_marker), 0);
-    let crash_replay = runtime.run_task(&crash_request).unwrap();
+    let crash_replay = runtime.run_job(&crash_request).unwrap();
     assert_eq!(crash_replay.job_id, crash_started.job_id);
     assert_eq!(crash_replay.attempt_id, crash_observed.attempt_id);
     assert_eq!(crash_replay.status, crash_observed.status);
@@ -1117,7 +1117,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
     timeout_request.execution.timeout_ms = 300;
     timeout_request.execution.budget.tasks_max = Some(8);
     let timeout_started = Instant::now();
-    let timed_out = runtime.run_task(&timeout_request).unwrap();
+    let timed_out = runtime.run_job(&timeout_request).unwrap();
     assert_eq!(timed_out.status, "timed_out", "{}", timed_out.stderr_tail);
     assert!(timeout_started.elapsed() < Duration::from_secs(3));
     assert!(timed_out.execution_terminal);
@@ -1174,7 +1174,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
     cancel_request.execution.timeout_ms = 20_000;
     cancel_request.execution.budget.tasks_max = Some(8);
     cancel_request.wait_ms = 0;
-    let started_cancel = runtime.run_task(&cancel_request).unwrap();
+    let started_cancel = runtime.run_job(&cancel_request).unwrap();
     assert!(matches!(
         started_cancel.status.as_str(),
         "queued" | "working"
@@ -1200,7 +1200,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
     };
     assert!(power_request_present(&cancel_attempt.attempt_id));
     let cancelled = runtime
-        .cancel_task(&TaskCancelRequest {
+        .cancel_job(&JobCancelRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: started_cancel.job_id.clone(),
         })
@@ -1250,7 +1250,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
     elevated_timeout_request.execution.timeout_ms = 300;
     elevated_timeout_request.execution.budget.tasks_max = Some(8);
     let elevated_timeout_started = Instant::now();
-    let elevated_timed_out = runtime.run_task(&elevated_timeout_request).unwrap();
+    let elevated_timed_out = runtime.run_job(&elevated_timeout_request).unwrap();
     assert_eq!(
         elevated_timed_out.status, "timed_out",
         "{}",
@@ -1307,7 +1307,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
     elevated_cancel_request.execution.timeout_ms = 20_000;
     elevated_cancel_request.execution.budget.tasks_max = Some(8);
     elevated_cancel_request.wait_ms = 0;
-    let started_elevated_cancel = runtime.run_task(&elevated_cancel_request).unwrap();
+    let started_elevated_cancel = runtime.run_job(&elevated_cancel_request).unwrap();
     assert!(matches!(
         started_elevated_cancel.status.as_str(),
         "queued" | "working"
@@ -1333,7 +1333,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
     };
     assert!(power_request_present(&elevated_cancel_attempt.attempt_id));
     let elevated_cancelled = runtime
-        .cancel_task(&TaskCancelRequest {
+        .cancel_job(&JobCancelRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: started_elevated_cancel.job_id.clone(),
         })
@@ -1375,11 +1375,11 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
 
     let launcher_unavailable = launcher.with_extension("exe.replay-proof-unavailable");
     fs::rename(&launcher, &launcher_unavailable).unwrap();
-    let replay = runtime.run_task(&request).unwrap();
+    let replay = runtime.run_job(&request).unwrap();
     assert_eq!(replay.job_id, first.job_id);
     assert_eq!(replay.attempt_id, first.attempt_id);
     assert_eq!(replay.status, "succeeded");
-    let elevated_replay = runtime.run_task(&elevated_request).unwrap();
+    let elevated_replay = runtime.run_job(&elevated_request).unwrap();
     assert_eq!(elevated_replay.job_id, elevated.job_id);
     assert_eq!(elevated_replay.attempt_id, elevated.attempt_id);
     assert_eq!(elevated_replay.status, "succeeded");
@@ -1557,7 +1557,7 @@ fn runtime_windows_native_wsl_restart_prepare_or_recover() {
         .unwrap();
         let runtime = Runtime::new(runtime_config()).unwrap();
         let marker = format!("ORDIVON_RW5_WSL_RESTART_{}", Uuid::now_v7());
-        let request = TaskRunRequest {
+        let request = JobRunRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             client_request_id: format!("request:windows-wsl-restart:{}", Uuid::now_v7()),
             principal: "principal:windows-wsl-restart".to_string(),
@@ -1587,7 +1587,7 @@ fn runtime_windows_native_wsl_restart_prepare_or_recover() {
             stdout_tail_bytes: 4096,
             stderr_tail_bytes: 4096,
         };
-        let started = runtime.run_task(&request).unwrap();
+        let started = runtime.run_job(&request).unwrap();
         assert!(matches!(started.status.as_str(), "queued" | "working"));
         let deadline = Instant::now() + Duration::from_secs(10);
         let attempt = loop {
@@ -1659,11 +1659,11 @@ fn runtime_windows_native_wsl_restart_prepare_or_recover() {
     assert_eq!(watchdog["afterRestartPowerPresent"], false);
     let runtime = Runtime::new(runtime_config()).unwrap();
     let observed = runtime
-        .observe_task(&TaskObserveRequest {
+        .observe_job(&JobObserveRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: job_id.clone(),
             wait_ms: 10_000,
-            wait_until: TaskObserveWaitUntil::Terminal,
+            wait_until: JobObserveWaitUntil::Terminal,
             stdout_tail_bytes: 4096,
             stderr_tail_bytes: 4096,
             stdout_offset: None,
@@ -1675,7 +1675,7 @@ fn runtime_windows_native_wsl_restart_prepare_or_recover() {
     assert_eq!(observed.status, "failed");
     assert_eq!(windows_marker_count(&marker), 0);
     assert!(!power_present(&attempt_id));
-    let replay_request = TaskRunRequest {
+    let replay_request = JobRunRequest {
         schema_version: RUNTIME_SCHEMA_VERSION,
         client_request_id,
         principal: "principal:windows-wsl-restart".to_string(),
@@ -1705,7 +1705,7 @@ fn runtime_windows_native_wsl_restart_prepare_or_recover() {
         stdout_tail_bytes: 4096,
         stderr_tail_bytes: 4096,
     };
-    let replay = runtime.run_task(&replay_request).unwrap();
+    let replay = runtime.run_job(&replay_request).unwrap();
     assert_eq!(replay.job_id, job_id);
     assert_eq!(replay.attempt_id.as_deref(), Some(attempt_id.as_str()));
     assert_eq!(replay.status, observed.status);
@@ -1774,15 +1774,15 @@ print(json.dumps({"input": path.read_text().strip(), "write": write_result}, sor
     let mut request = context.request("input_probe.py", 0);
     request.client_request_id = format!("request:immutable-input:{}", Uuid::now_v7());
     request.execution.execution_profile = ordivon_runtime_core::ExecutionProfile::ContainedLocal;
-    let submitted = runtime.run_task_with_inputs(&request, &inputs).unwrap();
+    let submitted = runtime.run_job_with_inputs(&request, &inputs).unwrap();
     fs::write(&source, b"S1\n").unwrap();
 
     let final_observation = runtime
-        .observe_task(&TaskObserveRequest {
+        .observe_job(&JobObserveRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: submitted.job_id.clone(),
             wait_ms: 30_000,
-            wait_until: TaskObserveWaitUntil::Terminal,
+            wait_until: JobObserveWaitUntil::Terminal,
             stdout_tail_bytes: 16_384,
             stderr_tail_bytes: 16_384,
             stdout_offset: None,
@@ -1839,14 +1839,14 @@ print(json.dumps({"input": path.read_text().strip(), "write": write_result}, sor
     fs::remove_dir_all(&authority_root).unwrap();
     // Durable replay must not consult current authority or require it to be configured.
     let restarted = context.runtime(2_000);
-    let replay = restarted.run_task_with_inputs(&request, &inputs).unwrap();
+    let replay = restarted.run_job_with_inputs(&request, &inputs).unwrap();
     assert_eq!(replay.job_id, final_observation.job_id);
     assert_eq!(replay.status, "succeeded");
 
     let mut changed_inputs = inputs.clone();
     changed_inputs[0].expected_digest = digest(b"different-input\n");
     let conflict = restarted
-        .run_task_with_inputs(&request, &changed_inputs)
+        .run_job_with_inputs(&request, &changed_inputs)
         .unwrap_err();
     assert_eq!(
         conflict.code,
@@ -1899,7 +1899,7 @@ print(json.dumps({
         presentation_relative_path: "finance/config.toml".to_string(),
     }];
     let host_netns = fs::read_link("/proc/self/ns/net").unwrap();
-    let terminal = runtime.run_task_with_inputs(&request, &inputs).unwrap();
+    let terminal = runtime.run_job_with_inputs(&request, &inputs).unwrap();
     assert_eq!(terminal.status, "succeeded", "{}", terminal.stderr_tail);
     let stdout: serde_json::Value = serde_json::from_str(terminal.stdout_tail.trim()).unwrap();
     assert_eq!(stdout["input"], "OPAQUE-CONFIG");
@@ -1941,7 +1941,7 @@ fn runtime_failed_capacity_admission_discards_prepared_state_and_rechecks_curren
     let mut holder = context.request("input-capacity-holder", 0);
     holder.execution.executable = "/usr/bin/sleep".to_string();
     holder.execution.args = vec!["5".to_string()];
-    let holder = runtime.run_task(&holder).unwrap();
+    let holder = runtime.run_job(&holder).unwrap();
     assert!(!holder.execution_terminal);
     let inputs = vec![InputBindingRequest {
         authority: "finance-state".to_string(),
@@ -1954,7 +1954,7 @@ fn runtime_failed_capacity_admission_discards_prepared_state_and_rechecks_curren
     blocked.execution.execution_profile = ordivon_runtime_core::ExecutionProfile::ContainedLocal;
     blocked.execution.executable = "/usr/bin/true".to_string();
     blocked.execution.args.clear();
-    let error = runtime.run_task_with_inputs(&blocked, &inputs).unwrap_err();
+    let error = runtime.run_job_with_inputs(&blocked, &inputs).unwrap_err();
     assert_eq!(
         error.code,
         ordivon_runtime_core::RuntimeErrorCode::ConcurrencyLimit
@@ -1965,24 +1965,24 @@ fn runtime_failed_capacity_admission_discards_prepared_state_and_rechecks_curren
         .all(|entry| entry.file_name().to_string_lossy().starts_with('.')));
     fs::write(&source, b"AUTHORIZED-S1").unwrap();
     runtime
-        .cancel_task(&TaskCancelRequest {
+        .cancel_job(&JobCancelRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: holder.job_id.clone(),
         })
         .unwrap();
     runtime
-        .observe_task(&TaskObserveRequest {
+        .observe_job(&JobObserveRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: holder.job_id,
             wait_ms: 10_000,
-            wait_until: TaskObserveWaitUntil::Terminal,
+            wait_until: JobObserveWaitUntil::Terminal,
             stdout_tail_bytes: 1024,
             stderr_tail_bytes: 1024,
             stdout_offset: None,
             stderr_offset: None,
         })
         .unwrap();
-    let drift = runtime.run_task_with_inputs(&blocked, &inputs).unwrap_err();
+    let drift = runtime.run_job_with_inputs(&blocked, &inputs).unwrap_err();
     assert_eq!(
         drift.code,
         ordivon_runtime_core::RuntimeErrorCode::InvalidRequest
@@ -2027,7 +2027,7 @@ fn runtime_opened_input_authority_survives_configured_path_replacement() {
         expected_digest: digest(b"ALLOWED"),
         presentation_relative_path: "data.bin".to_string(),
     }];
-    let terminal = runtime.run_task_with_inputs(&request, &inputs).unwrap();
+    let terminal = runtime.run_job_with_inputs(&request, &inputs).unwrap();
     assert_eq!(terminal.status, "succeeded", "{}", terminal.stderr_tail);
     assert_eq!(terminal.stdout_tail.trim(), "ALLOWED");
     assert_eq!(
@@ -2139,8 +2139,8 @@ impl IntegrationContext {
         .unwrap();
     }
 
-    fn request(&self, script: &str, wait_ms: u64) -> TaskRunRequest {
-        TaskRunRequest {
+    fn request(&self, script: &str, wait_ms: u64) -> JobRunRequest {
+        JobRunRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             client_request_id: format!("request:{script}:{}", Uuid::now_v7()),
             principal: "principal:integration".to_string(),
@@ -2219,11 +2219,11 @@ fn runtime_two_observers_do_not_race_dispatch_of_one_accepted_attempt() {
     let runtime_a = context.runtime(2_000);
     let runtime_b = context.runtime(2_000);
     let barrier = Arc::new(Barrier::new(3));
-    let request = TaskObserveRequest {
+    let request = JobObserveRequest {
         schema_version: RUNTIME_SCHEMA_VERSION,
         job_id: created.job.job_id.clone(),
         wait_ms: 0,
-        wait_until: TaskObserveWaitUntil::Terminal,
+        wait_until: JobObserveWaitUntil::Terminal,
         stdout_tail_bytes: 4096,
         stderr_tail_bytes: 4096,
         stdout_offset: None,
@@ -2234,7 +2234,7 @@ fn runtime_two_observers_do_not_race_dispatch_of_one_accepted_attempt() {
         let request = request.clone();
         thread::spawn(move || {
             barrier.wait();
-            runtime.observe_task(&request)
+            runtime.observe_job(&request)
         })
     };
     let observer_a = spawn(runtime_a);
@@ -2273,7 +2273,7 @@ fn runtime_timeout_preserves_result_when_descendants_hold_output_pipes() {
         format!("printf started > '{}'; sleep 30 & wait", marker.display()),
     ];
     request.execution.timeout_ms = 1_000;
-    let call = thread::spawn(move || runtime_for_call.run_task(&request));
+    let call = thread::spawn(move || runtime_for_call.run_job(&request));
     let marker_deadline = Instant::now() + Duration::from_secs(20);
     while !marker.is_file() && Instant::now() < marker_deadline {
         thread::sleep(Duration::from_millis(10));
@@ -2373,7 +2373,7 @@ print("WRITE_OK=" + pathlib.Path("contained-output.txt").read_text(), flush=True
         windows: None,
     })
     .unwrap();
-    let request = TaskRunRequest {
+    let request = JobRunRequest {
         schema_version: RUNTIME_SCHEMA_VERSION,
         client_request_id: format!("request:contained:{}", Uuid::now_v7()),
         principal: "principal:integration".to_string(),
@@ -2405,7 +2405,7 @@ print("WRITE_OK=" + pathlib.Path("contained-output.txt").read_text(), flush=True
         stdout_tail_bytes: 8192,
         stderr_tail_bytes: 8192,
     };
-    let result = runtime.run_task(&request).unwrap();
+    let result = runtime.run_job(&request).unwrap();
     assert_eq!(result.status, "succeeded", "{}", result.stderr_tail);
     assert!(result.stdout_tail.contains("SECRET_VISIBLE=False"));
     assert!(result.stdout_tail.contains("NETWORK=blocked"));
@@ -2465,7 +2465,7 @@ fn runtime_replays_same_request_after_effect_changes_or_workspace_closure() {
     );
     let runtime = context.runtime(2_000);
     let request = context.request("source_identity.py", 30_000);
-    let first = runtime.run_task(&request).unwrap();
+    let first = runtime.run_job(&request).unwrap();
     assert_eq!(first.status, "succeeded");
     assert!(first.stdout_tail.contains("FIRST_WORLD"));
     let job = runtime.registry().get_job(&first.job_id).unwrap();
@@ -2491,7 +2491,7 @@ fn runtime_replays_same_request_after_effect_changes_or_workspace_closure() {
         Some(committed_source.as_str())
     );
 
-    let replay_after_self_effect = runtime.run_task(&request).unwrap();
+    let replay_after_self_effect = runtime.run_job(&request).unwrap();
     assert_eq!(replay_after_self_effect.job_id, first.job_id);
     assert!(replay_after_self_effect.stdout_tail.contains("FIRST_WORLD"));
 
@@ -2515,7 +2515,7 @@ fn runtime_replays_same_request_after_effect_changes_or_workspace_closure() {
             }],
         })
         .unwrap();
-    let replay_after_later_mutation = runtime.run_task(&request).unwrap();
+    let replay_after_later_mutation = runtime.run_job(&request).unwrap();
     assert_eq!(replay_after_later_mutation.job_id, first.job_id);
     assert!(replay_after_later_mutation
         .stdout_tail
@@ -2526,7 +2526,7 @@ fn runtime_replays_same_request_after_effect_changes_or_workspace_closure() {
         .execution
         .args
         .push("different-request".to_string());
-    let error = runtime.run_task(&changed_request).unwrap_err();
+    let error = runtime.run_job(&changed_request).unwrap_err();
     assert_eq!(
         error.code,
         ordivon_runtime_core::RuntimeErrorCode::IdempotencyConflict
@@ -2540,7 +2540,7 @@ fn runtime_replays_same_request_after_effect_changes_or_workspace_closure() {
             expected_source_state_digest: None,
         })
         .unwrap();
-    let replay_after_close = runtime.run_task(&request).unwrap();
+    let replay_after_close = runtime.run_job(&request).unwrap();
     assert_eq!(replay_after_close.job_id, first.job_id);
     assert_eq!(runtime.registry().active_reservation_count().unwrap(), 0);
 }
@@ -2558,7 +2558,7 @@ fn runtime_blocks_workspace_mutation_while_source_state_is_committed_by_active_j
     );
     let runtime = context.runtime(2_000);
     let request = context.request("active_source.py", 0);
-    let started = runtime.run_task(&request).unwrap();
+    let started = runtime.run_job(&request).unwrap();
 
     let deadline = Instant::now() + Duration::from_secs(10);
     loop {
@@ -2600,7 +2600,7 @@ fn runtime_blocks_workspace_mutation_while_source_state_is_committed_by_active_j
         .exists());
 
     let cancelled = runtime
-        .cancel_task(&TaskCancelRequest {
+        .cancel_job(&JobCancelRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: started.job_id,
         })
@@ -2637,7 +2637,7 @@ fn runtime_systemd_path_rejects_source_drift_before_target_spawn() {
     // an execution-provider commitment: it was correctly rejected as provider drift
     // before the workspace-source boundary could be exercised.
     let baseline = runtime
-        .run_task(&context.request("source_drift.py", 10_000))
+        .run_job(&context.request("source_drift.py", 10_000))
         .unwrap();
     assert_eq!(baseline.status, "succeeded");
     let plan = runtime.registry().execution_plan(&baseline.job_id).unwrap();
@@ -2688,11 +2688,11 @@ fn runtime_systemd_path_rejects_source_drift_before_target_spawn() {
     .unwrap();
 
     let observed = runtime
-        .observe_task(&TaskObserveRequest {
+        .observe_job(&JobObserveRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: created.job.job_id.clone(),
             wait_ms: 10_000,
-            wait_until: TaskObserveWaitUntil::Terminal,
+            wait_until: JobObserveWaitUntil::Terminal,
             stdout_tail_bytes: 8_192,
             stderr_tail_bytes: 8_192,
             stdout_offset: None,
@@ -2759,7 +2759,7 @@ fn runtime_resource_budget_is_enforced_by_the_attempt_cgroup() {
         tasks_max: Some(32),
         cpu_quota_percent: Some(200),
     };
-    let started = runtime.run_task(&request).unwrap();
+    let started = runtime.run_job(&request).unwrap();
     assert!(matches!(started.status.as_str(), "queued" | "working"));
 
     let deadline = Instant::now() + Duration::from_secs(10);
@@ -2824,7 +2824,7 @@ fn runtime_resource_budget_is_enforced_by_the_attempt_cgroup() {
     );
 
     let cancelled = runtime
-        .cancel_task(&TaskCancelRequest {
+        .cancel_job(&JobCancelRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: started.job_id,
         })
@@ -2846,7 +2846,7 @@ fn runtime_incremental_observe_and_safe_close_preserve_active_work() {
     );
     let runtime = context.runtime(2000);
     let started = runtime
-        .run_task(&context.request("runtime_incremental.py", 0))
+        .run_job(&context.request("runtime_incremental.py", 0))
         .unwrap();
     assert!(matches!(started.status.as_str(), "queued" | "working"));
 
@@ -2867,11 +2867,11 @@ fn runtime_incremental_observe_and_safe_close_preserve_active_work() {
     let mut stdout = String::new();
     for _ in 0..20 {
         let observed = runtime
-            .observe_task(&TaskObserveRequest {
+            .observe_job(&JobObserveRequest {
                 schema_version: RUNTIME_SCHEMA_VERSION,
                 job_id: started.job_id.clone(),
                 wait_ms: 200,
-                wait_until: ordivon_runtime_core::TaskObserveWaitUntil::Terminal,
+                wait_until: ordivon_runtime_core::JobObserveWaitUntil::Terminal,
                 stdout_tail_bytes: 5,
                 stderr_tail_bytes: 5,
                 stdout_offset: Some(stdout_offset),
@@ -2889,7 +2889,7 @@ fn runtime_incremental_observe_and_safe_close_preserve_active_work() {
     assert_eq!(stdout, "alpha\nbeta\ngamma\n");
 
     let cancelled = runtime
-        .cancel_task(&TaskCancelRequest {
+        .cancel_job(&JobCancelRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: started.job_id,
         })
@@ -2923,7 +2923,7 @@ fn runtime_cancel_reconciles_a_completed_runner_result_before_stop_intent() {
     );
     let runtime = context.runtime(2000);
     let started = runtime
-        .run_task(&context.request("runtime_cancel_completed.py", 0))
+        .run_job(&context.request("runtime_cancel_completed.py", 0))
         .unwrap();
     assert!(matches!(started.status.as_str(), "queued" | "working"));
     fs::write(&gate, b"go").unwrap();
@@ -2951,7 +2951,7 @@ fn runtime_cancel_reconciles_a_completed_runner_result_before_stop_intent() {
     );
 
     let completed = runtime
-        .cancel_task(&TaskCancelRequest {
+        .cancel_job(&JobCancelRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: started.job_id,
         })
@@ -3006,12 +3006,12 @@ fn runtime_reconcile_all_isolates_one_broken_job_and_converges_another() {
 
     let runtime = context.runtime(2000);
     let bad = runtime
-        .run_task(&context.request("runtime_isolation_bad.py", 0))
+        .run_job(&context.request("runtime_isolation_bad.py", 0))
         .unwrap();
     let mut good_request = context.request("runtime_isolation_good.py", 0);
     good_request.execution.workspace_id = second_workspace;
     good_request.client_request_id = format!("request:isolation-good:{}", Uuid::now_v7());
-    let good = runtime.run_task(&good_request).unwrap();
+    let good = runtime.run_job(&good_request).unwrap();
     assert!(matches!(bad.status.as_str(), "queued" | "working"));
     assert!(matches!(good.status.as_str(), "queued" | "working"));
     fs::write(&bad_gate, b"go").unwrap();
@@ -3094,7 +3094,7 @@ fn runtime_interactive_close_blocks_until_exact_job_is_reconciled() {
     );
     let runtime = context.runtime(2000);
     let started = runtime
-        .run_task(&context.request("runtime_interactive_close.py", 0))
+        .run_job(&context.request("runtime_interactive_close.py", 0))
         .unwrap();
     assert!(matches!(started.status.as_str(), "queued" | "working"));
     fs::write(&gate, b"go").unwrap();
@@ -3127,11 +3127,11 @@ fn runtime_interactive_close_blocks_until_exact_job_is_reconciled() {
     );
 
     let observed = runtime
-        .observe_task(&TaskObserveRequest {
+        .observe_job(&JobObserveRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: started.job_id.clone(),
             wait_ms: 0,
-            wait_until: TaskObserveWaitUntil::Terminal,
+            wait_until: JobObserveWaitUntil::Terminal,
             stdout_tail_bytes: 4096,
             stderr_tail_bytes: 4096,
             stdout_offset: None,
@@ -3169,7 +3169,7 @@ fn runtime_interactive_admission_reconciles_previous_same_workspace_job() {
     );
     let runtime = context.runtime(2000);
     let first = runtime
-        .run_task(&context.request("runtime_interactive_first.py", 0))
+        .run_job(&context.request("runtime_interactive_first.py", 0))
         .unwrap();
     let first_attempt = runtime
         .registry()
@@ -3179,7 +3179,7 @@ fn runtime_interactive_admission_reconciles_previous_same_workspace_job() {
     wait_for_file(&Path::new(&first_attempt.bundle_path).join("result.json"));
 
     let second = runtime
-        .run_task(&context.request("runtime_interactive_second.py", 30_000))
+        .run_job(&context.request("runtime_interactive_second.py", 30_000))
         .unwrap();
 
     assert_eq!(second.status, "succeeded");
@@ -3212,7 +3212,7 @@ fn runtime_interactive_list_is_projection_only_and_observe_reconciles_exact_job(
     );
     let runtime = context.runtime(2000);
     let started = runtime
-        .run_task(&context.request("runtime_interactive_list.py", 0))
+        .run_job(&context.request("runtime_interactive_list.py", 0))
         .unwrap();
     assert!(matches!(started.status.as_str(), "queued" | "working"));
     fs::write(&gate, b"go").unwrap();
@@ -3242,11 +3242,11 @@ fn runtime_interactive_list_is_projection_only_and_observe_reconciles_exact_job(
     assert_eq!(runtime.registry().active_reservation_count().unwrap(), 1);
 
     let observed = runtime
-        .observe_task(&TaskObserveRequest {
+        .observe_job(&JobObserveRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: started.job_id.clone(),
             wait_ms: 0,
-            wait_until: TaskObserveWaitUntil::Terminal,
+            wait_until: JobObserveWaitUntil::Terminal,
             stdout_tail_bytes: 4096,
             stderr_tail_bytes: 4096,
             stdout_offset: None,
@@ -3271,7 +3271,7 @@ fn runtime_core_restart_recovers_running_attempt_and_terminal_result() {
     );
     let first_runtime = context.runtime(2000);
     let started = first_runtime
-        .run_task(&context.request("runtime_recover.py", 0))
+        .run_job(&context.request("runtime_recover.py", 0))
         .unwrap();
     assert!(matches!(started.status.as_str(), "queued" | "working"));
     let attempt = first_runtime
@@ -3284,11 +3284,11 @@ fn runtime_core_restart_recovers_running_attempt_and_terminal_result() {
 
     let recovered_runtime = context.runtime(2000);
     let completed = recovered_runtime
-        .observe_task(&TaskObserveRequest {
+        .observe_job(&JobObserveRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: started.job_id,
             wait_ms: 10_000,
-            wait_until: ordivon_runtime_core::TaskObserveWaitUntil::Terminal,
+            wait_until: ordivon_runtime_core::JobObserveWaitUntil::Terminal,
             stdout_tail_bytes: 8192,
             stderr_tail_bytes: 8192,
             stdout_offset: None,
@@ -3320,14 +3320,14 @@ fn runtime_cancel_intent_survives_runtime_reconstruction_and_cleans_cgroup() {
     );
     let first_runtime = context.runtime(2000);
     let started = first_runtime
-        .run_task(&context.request("runtime_cancel.py", 0))
+        .run_job(&context.request("runtime_cancel.py", 0))
         .unwrap();
     assert_eq!(started.status, "working");
     drop(first_runtime);
 
     let cancelling_runtime = context.runtime(2000);
     let cancelled = cancelling_runtime
-        .cancel_task(&TaskCancelRequest {
+        .cancel_job(&JobCancelRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: started.job_id.clone(),
         })
@@ -3645,11 +3645,11 @@ fn runtime_reconciler_rebuilds_bundle_after_admission_commit() {
 
     runtime.reconcile_all().unwrap();
     let completed = runtime
-        .observe_task(&TaskObserveRequest {
+        .observe_job(&JobObserveRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: created.job.job_id,
             wait_ms: 10_000,
-            wait_until: ordivon_runtime_core::TaskObserveWaitUntil::Terminal,
+            wait_until: ordivon_runtime_core::JobObserveWaitUntil::Terminal,
             stdout_tail_bytes: 1024,
             stderr_tail_bytes: 1024,
             stdout_offset: None,
@@ -3684,7 +3684,7 @@ fn runtime_corrupt_runner_result_is_orphaned_and_quarantined() {
     );
     let runtime = context.runtime(2000);
     let started = runtime
-        .run_task(&context.request("runtime_corrupt.py", 0))
+        .run_job(&context.request("runtime_corrupt.py", 0))
         .unwrap();
     assert_eq!(started.status, "working");
     let attempt = runtime
@@ -3699,11 +3699,11 @@ fn runtime_corrupt_runner_result_is_orphaned_and_quarantined() {
     .unwrap();
     runtime.reconcile_attempt(&attempt.attempt_id).unwrap();
     let observation = runtime
-        .observe_task(&TaskObserveRequest {
+        .observe_job(&JobObserveRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: started.job_id,
             wait_ms: 0,
-            wait_until: ordivon_runtime_core::TaskObserveWaitUntil::Terminal,
+            wait_until: ordivon_runtime_core::JobObserveWaitUntil::Terminal,
             stdout_tail_bytes: 1024,
             stderr_tail_bytes: 1024,
             stdout_offset: None,
@@ -3742,7 +3742,7 @@ sys.exit(7)
     );
     let runtime = context.runtime(2_000);
     let result = runtime
-        .run_task(&context.request("runtime_failed_unit.py", 30_000))
+        .run_job(&context.request("runtime_failed_unit.py", 30_000))
         .unwrap();
     assert_eq!(result.status, "failed");
     assert!(result
@@ -3788,7 +3788,7 @@ fn runtime_fast_failures_never_race_into_lost() {
     for index in 0..10 {
         let mut request = context.request("runtime_fast_fail.py", 10_000);
         request.client_request_id = format!("request:fast-failure:{index}:{}", Uuid::now_v7());
-        let observation = runtime.run_task(&request).unwrap();
+        let observation = runtime.run_job(&request).unwrap();
         assert_eq!(
             observation.status, "failed",
             "fast failure {index} was misclassified as {}",
@@ -3814,7 +3814,7 @@ fn runtime_fast_successes_never_race_into_orphaned_capacity() {
     for index in 0..20 {
         let mut request = context.request("runtime_fast_success.py", 10_000);
         request.client_request_id = format!("request:fast-success:{index}:{}", Uuid::now_v7());
-        let observation = runtime.run_task(&request).unwrap();
+        let observation = runtime.run_job(&request).unwrap();
         assert_eq!(
             observation.status, "succeeded",
             "fast success {index} was misclassified as {}",
@@ -3942,7 +3942,7 @@ fn runtime_finance_i8_graduation_matches_canonical_semantics_with_job_owned_inpu
         pythonpath.to_string_lossy().into_owned(),
     );
     env.insert("PYTHONDONTWRITEBYTECODE".to_string(), "1".to_string());
-    let request = TaskRunRequest {
+    let request = JobRunRequest {
         schema_version: RUNTIME_SCHEMA_VERSION,
         client_request_id: format!("request:finance-i8:{}", Uuid::now_v7()),
         principal: "principal:finance-graduation".to_string(),
@@ -3982,7 +3982,7 @@ fn runtime_finance_i8_graduation_matches_canonical_semantics_with_job_owned_inpu
         stderr_tail_bytes: 64 * 1024,
     };
 
-    let terminal = runtime.run_task_with_inputs(&request, &inputs).unwrap();
+    let terminal = runtime.run_job_with_inputs(&request, &inputs).unwrap();
     assert_eq!(terminal.status, "succeeded", "{}", terminal.stderr_tail);
     let result: serde_json::Value = serde_json::from_str(&terminal.stdout_tail).unwrap();
     assert_eq!(result["stateVersionBefore"], "234:bb27b51397f6add8");
@@ -4050,7 +4050,7 @@ fn runtime_finance_i8_graduation_matches_canonical_semantics_with_job_owned_inpu
         windows: None,
     })
     .unwrap();
-    let replay = restarted.run_task_with_inputs(&request, &inputs).unwrap();
+    let replay = restarted.run_job_with_inputs(&request, &inputs).unwrap();
     assert_eq!(replay.job_id, terminal.job_id);
     assert_eq!(replay.status, "succeeded");
     eprintln!(
@@ -4137,11 +4137,11 @@ fn runtime_legacy_plan_without_provider_snapshot_can_dispatch_through_changed_li
     fs::write(&staged_runner, replacement).unwrap();
     fs::set_permissions(&staged_runner, fs::Permissions::from_mode(0o755)).unwrap();
 
-    let _ = runtime.observe_task(&TaskObserveRequest {
+    let _ = runtime.observe_job(&JobObserveRequest {
         schema_version: RUNTIME_SCHEMA_VERSION,
         job_id: created.job.job_id.clone(),
         wait_ms: 5_000,
-        wait_until: TaskObserveWaitUntil::Terminal,
+        wait_until: JobObserveWaitUntil::Terminal,
         stdout_tail_bytes: 4_096,
         stderr_tail_bytes: 4_096,
         stdout_offset: None,
@@ -4204,11 +4204,11 @@ fn runtime_provider_bound_job_rejects_linux_runner_drift_before_dispatch() {
     assert_ne!(file_digest(&staged_runner), file_digest(&original_runner));
 
     let observed = runtime
-        .observe_task(&TaskObserveRequest {
+        .observe_job(&JobObserveRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: created.job.job_id.clone(),
             wait_ms: 5_000,
-            wait_until: TaskObserveWaitUntil::Terminal,
+            wait_until: JobObserveWaitUntil::Terminal,
             stdout_tail_bytes: 4_096,
             stderr_tail_bytes: 4_096,
             stdout_offset: None,
@@ -4306,11 +4306,11 @@ fn runtime_host_dependency_drift_fails_before_dispatch() {
     fs::write(&dependency, b"HOST_DEP_V2").unwrap();
     assert_ne!(file_digest(&dependency), expected_digest);
     let observed = runtime
-        .observe_task(&TaskObserveRequest {
+        .observe_job(&JobObserveRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: created.job.job_id.clone(),
             wait_ms: 5_000,
-            wait_until: TaskObserveWaitUntil::Terminal,
+            wait_until: JobObserveWaitUntil::Terminal,
             stdout_tail_bytes: 4_096,
             stderr_tail_bytes: 4_096,
             stdout_offset: None,
@@ -4367,7 +4367,7 @@ fn runtime_host_dependency_runtime_drift_is_witnessed_after_target_start() {
         path: dependency.to_string_lossy().into_owned(),
         expected_digest: file_digest(&dependency),
     }];
-    let started = runtime.run_task(&request).unwrap();
+    let started = runtime.run_job(&request).unwrap();
     assert!(matches!(started.status.as_str(), "queued" | "working"));
     let attempt = runtime
         .registry()
@@ -4393,11 +4393,11 @@ fn runtime_host_dependency_runtime_drift_is_witnessed_after_target_start() {
     fs::rename(&replacement, &dependency).unwrap();
     fs::write(&gate, b"go").unwrap();
     let observed = runtime
-        .observe_task(&TaskObserveRequest {
+        .observe_job(&JobObserveRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: started.job_id.clone(),
             wait_ms: 10_000,
-            wait_until: TaskObserveWaitUntil::Terminal,
+            wait_until: JobObserveWaitUntil::Terminal,
             stdout_tail_bytes: 8_192,
             stderr_tail_bytes: 8_192,
             stdout_offset: None,
@@ -4474,7 +4474,7 @@ fn runtime_host_dependency_scope_does_not_claim_target_private_mount_view() {
         path: dependency.to_string_lossy().into_owned(),
         expected_digest: expected_digest.clone(),
     }];
-    let observed = runtime.run_task(&request).unwrap();
+    let observed = runtime.run_job(&request).unwrap();
     assert_eq!(observed.status, "succeeded");
     assert_eq!(
         observed.execution_reason_code.as_deref(),
@@ -4541,11 +4541,11 @@ fn runtime_provider_bound_runner_start_binds_actual_runner_image() {
     submit.plan.timeout_ms = 5_000;
     let created = created_admission(runtime.registry().submit(&submit).unwrap());
     let observed = runtime
-        .observe_task(&TaskObserveRequest {
+        .observe_job(&JobObserveRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: created.job.job_id.clone(),
             wait_ms: 10_000,
-            wait_until: TaskObserveWaitUntil::Terminal,
+            wait_until: JobObserveWaitUntil::Terminal,
             stdout_tail_bytes: 4_096,
             stderr_tail_bytes: 4_096,
             stdout_offset: None,
@@ -4600,7 +4600,7 @@ fn runtime_executable_runtime_drift_is_witnessed_without_rewriting_script_identi
     let mut request = context.request("unused.py", 0);
     request.execution.executable = executable.to_string_lossy().into_owned();
     request.execution.args.clear();
-    let started = runtime.run_task(&request).unwrap();
+    let started = runtime.run_job(&request).unwrap();
     assert!(matches!(started.status.as_str(), "queued" | "working"));
     let attempt = runtime
         .registry()
@@ -4633,11 +4633,11 @@ fn runtime_executable_runtime_drift_is_witnessed_without_rewriting_script_identi
     fs::rename(&replacement, &executable).unwrap();
     fs::write(&gate, b"go").unwrap();
     let observed = runtime
-        .observe_task(&TaskObserveRequest {
+        .observe_job(&JobObserveRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: started.job_id.clone(),
             wait_ms: 10_000,
-            wait_until: TaskObserveWaitUntil::Terminal,
+            wait_until: JobObserveWaitUntil::Terminal,
             stdout_tail_bytes: 8_192,
             stderr_tail_bytes: 8_192,
             stdout_offset: None,
@@ -4713,11 +4713,11 @@ fn runtime_provider_bound_job_rejects_windows_launcher_drift_before_dispatch() {
     );
 
     let observed = runtime
-        .observe_task(&TaskObserveRequest {
+        .observe_job(&JobObserveRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: created.job.job_id.clone(),
             wait_ms: 5_000,
-            wait_until: TaskObserveWaitUntil::Terminal,
+            wait_until: JobObserveWaitUntil::Terminal,
             stdout_tail_bytes: 4_096,
             stderr_tail_bytes: 4_096,
             stdout_offset: None,

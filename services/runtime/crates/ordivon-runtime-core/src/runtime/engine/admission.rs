@@ -1,17 +1,17 @@
 impl Runtime {
-    pub fn run_task(&self, request: &TaskRunRequest) -> RuntimeResult<TaskObservation> {
+    pub fn run_job(&self, request: &JobRunRequest) -> RuntimeResult<JobObservation> {
         validate_run_request_structure(request)?;
         let request_identity_digest = super::operation_request_identity_digest(request)?;
-        self.run_concrete_task(request, request_identity_digest)
+        self.run_concrete_job(request, request_identity_digest)
     }
 
     /// Core execution path for exact immutable foreign inputs.
     /// Existing Jobs replay before current authority roots are consulted.
-    pub fn run_task_with_inputs(
+    pub fn run_job_with_inputs(
         &self,
-        request: &TaskRunRequest,
+        request: &JobRunRequest,
         inputs: &[InputBindingRequest],
-    ) -> RuntimeResult<TaskObservation> {
+    ) -> RuntimeResult<JobObservation> {
         validate_run_request_structure(request)?;
         let inputs = canonical_input_binding_requests(inputs)?;
         let request_identity_digest = super::input_bound_request_identity_digest(request, &inputs)?;
@@ -25,14 +25,14 @@ impl Runtime {
                 (existing.job_id, false)
             } else {
                 let job_id =
-                    self.admit_new_task_with_inputs(request, request_identity_digest, &inputs)?;
+                    self.admit_new_job_with_inputs(request, request_identity_digest, &inputs)?;
                 (job_id, true)
             }
         };
         if created {
             self.ensure_newly_admitted_job_dispatched(&job_id)?;
         }
-        self.observe_admitted_task(
+        self.observe_admitted_job(
             &job_id,
             request.wait_ms,
             request.stdout_tail_bytes,
@@ -43,11 +43,11 @@ impl Runtime {
     /// Admit an Agent-authored proposal with exact immutable inputs. Proposal identity plus the
     /// canonical input bindings is fixed before current operator policy or authority roots are
     /// consulted, so replay preserves the same semantics as ordinary proposal admission.
-    pub fn run_task_proposal_with_inputs(
+    pub fn run_job_proposal_with_inputs(
         &self,
-        proposal: &super::TaskRunProposal,
+        proposal: &super::JobRunProposal,
         inputs: &[InputBindingRequest],
-    ) -> RuntimeResult<TaskObservation> {
+    ) -> RuntimeResult<JobObservation> {
         validate_run_proposal_structure(proposal)?;
         let inputs = canonical_input_binding_requests(inputs)?;
         let request_identity_digest =
@@ -63,10 +63,10 @@ impl Runtime {
             } else {
                 let request = self.resolve_proposal(proposal);
                 validate_run_request_structure(&request)?;
-                self.admit_new_task_with_inputs(&request, request_identity_digest, &inputs)?
+                self.admit_new_job_with_inputs(&request, request_identity_digest, &inputs)?
             }
         };
-        self.observe_admitted_task(
+        self.observe_admitted_job(
             &job_id,
             proposal.wait_ms,
             proposal.stdout_tail_bytes,
@@ -74,9 +74,9 @@ impl Runtime {
         )
     }
 
-    fn admit_new_task_with_inputs(
+    fn admit_new_job_with_inputs(
         &self,
-        request: &TaskRunRequest,
+        request: &JobRunRequest,
         request_identity_digest: String,
         inputs: &[InputBindingRequest],
     ) -> RuntimeResult<String> {
@@ -176,10 +176,10 @@ impl Runtime {
     /// Admit an Agent-authored proposal whose proven mechanical execution limits may be omitted.
     /// Proposal identity is resolved before current operator policy so replay returns historical
     /// Runtime truth instead of re-adjudicating an already committed Job.
-    pub fn run_task_proposal(
+    pub fn run_job_proposal(
         &self,
-        proposal: &super::TaskRunProposal,
-    ) -> RuntimeResult<TaskObservation> {
+        proposal: &super::JobRunProposal,
+    ) -> RuntimeResult<JobObservation> {
         validate_run_proposal_structure(proposal)?;
         let request_identity_digest = super::proposal_request_identity_digest(proposal)?;
         let (job_id, created) = {
@@ -199,7 +199,7 @@ impl Runtime {
                     self.executor.max_output_bytes,
                 )?;
                 (
-                    self.admit_new_task(&request, request_identity_digest)?,
+                    self.admit_new_job(&request, request_identity_digest)?,
                     true,
                 )
             }
@@ -207,7 +207,7 @@ impl Runtime {
         if created {
             self.ensure_newly_admitted_job_dispatched(&job_id)?;
         }
-        self.observe_admitted_task(
+        self.observe_admitted_job(
             &job_id,
             proposal.wait_ms,
             proposal.stdout_tail_bytes,
@@ -215,11 +215,11 @@ impl Runtime {
         )
     }
 
-    fn run_concrete_task(
+    fn run_concrete_job(
         &self,
-        request: &TaskRunRequest,
+        request: &JobRunRequest,
         request_identity_digest: String,
-    ) -> RuntimeResult<TaskObservation> {
+    ) -> RuntimeResult<JobObservation> {
         let (job_id, created) = {
             let _guard = self.lock_lifecycle()?;
             if let Some(existing) = self.registry.find_idempotent_job(
@@ -234,13 +234,13 @@ impl Runtime {
                     self.executor.max_runtime_ms,
                     self.executor.max_output_bytes,
                 )?;
-                (self.admit_new_task(request, request_identity_digest)?, true)
+                (self.admit_new_job(request, request_identity_digest)?, true)
             }
         };
         if created {
             self.ensure_newly_admitted_job_dispatched(&job_id)?;
         }
-        self.observe_admitted_task(
+        self.observe_admitted_job(
             &job_id,
             request.wait_ms,
             request.stdout_tail_bytes,
@@ -248,9 +248,9 @@ impl Runtime {
         )
     }
 
-    fn admit_new_task(
+    fn admit_new_job(
         &self,
-        request: &TaskRunRequest,
+        request: &JobRunRequest,
         request_identity_digest: String,
     ) -> RuntimeResult<String> {
         self.reconcile_recoverable_orphans()?;
@@ -275,18 +275,18 @@ impl Runtime {
         }
     }
 
-    fn observe_admitted_task(
+    fn observe_admitted_job(
         &self,
         job_id: &str,
         wait_ms: u64,
         stdout_tail_bytes: u64,
         stderr_tail_bytes: u64,
-    ) -> RuntimeResult<TaskObservation> {
-        self.observe_task(&TaskObserveRequest {
+    ) -> RuntimeResult<JobObservation> {
+        self.observe_job(&JobObserveRequest {
             schema_version: RUNTIME_SCHEMA_VERSION,
             job_id: job_id.to_string(),
             wait_ms,
-            wait_until: TaskObserveWaitUntil::Terminal,
+            wait_until: JobObserveWaitUntil::Terminal,
             stdout_tail_bytes,
             stderr_tail_bytes,
             stdout_offset: None,
@@ -295,12 +295,12 @@ impl Runtime {
         .map_err(|error| error.with_operation_id(job_id.to_string()))
     }
 
-    fn resolve_proposal(&self, proposal: &super::TaskRunProposal) -> TaskRunRequest {
+    fn resolve_proposal(&self, proposal: &super::JobRunProposal) -> JobRunRequest {
         let timeout_ms = proposal
             .execution
             .timeout_ms
             .unwrap_or(self.default_runtime_ms);
-        TaskRunRequest {
+        JobRunRequest {
             schema_version: proposal.schema_version,
             client_request_id: proposal.client_request_id.clone(),
             principal: proposal.principal.clone(),

@@ -1,5 +1,5 @@
 impl Runtime {
-    pub fn observe_task(&self, request: &TaskObserveRequest) -> RuntimeResult<TaskObservation> {
+    pub fn observe_job(&self, request: &JobObserveRequest) -> RuntimeResult<JobObservation> {
         validate_observe_request(request)?;
         let deadline = Instant::now() + Duration::from_millis(request.wait_ms);
         let mut poll_index = 0;
@@ -8,7 +8,7 @@ impl Runtime {
             self.reconcile_job(&request.job_id)?;
             let snapshot = self.registry.job_snapshot(&request.job_id)?;
             let signature =
-                task_activity_signature(snapshot.attempt.as_ref(), &snapshot.projection)?;
+                job_activity_signature(snapshot.attempt.as_ref(), &snapshot.projection)?;
             let changed = initial_signature
                 .as_ref()
                 .is_some_and(|initial| initial != &signature);
@@ -18,7 +18,7 @@ impl Runtime {
             if snapshot.projection.result_available
                 || request.wait_ms == 0
                 || Instant::now() >= deadline
-                || (request.wait_until == TaskObserveWaitUntil::ChangeOrTerminal && changed)
+                || (request.wait_until == JobObserveWaitUntil::ChangeOrTerminal && changed)
             {
                 return self.observation_from_snapshot(snapshot, request);
             }
@@ -31,7 +31,7 @@ impl Runtime {
         job_id: &str,
         stdout_tail_bytes: u64,
         stderr_tail_bytes: u64,
-    ) -> RuntimeResult<TaskObservation> {
+    ) -> RuntimeResult<JobObservation> {
         let snapshot = self.registry.job_snapshot(job_id)?;
         let effective_limits = effective_limits_from_plan_json(&snapshot.job.execution_plan_json)?;
         self.observation_from_parts(
@@ -50,8 +50,8 @@ impl Runtime {
     fn observation_from_snapshot(
         &self,
         snapshot: JobSnapshot,
-        request: &TaskObserveRequest,
-    ) -> RuntimeResult<TaskObservation> {
+        request: &JobObserveRequest,
+    ) -> RuntimeResult<JobObservation> {
         let effective_limits = effective_limits_from_plan_json(&snapshot.job.execution_plan_json)?;
         self.observation_from_parts(
             snapshot.projection,
@@ -72,7 +72,7 @@ impl Runtime {
         attempt: Option<AttemptRecord>,
         effective_limits: super::EffectiveExecutionLimits,
         output_request: ObservationOutputRequest,
-    ) -> RuntimeResult<TaskObservation> {
+    ) -> RuntimeResult<JobObservation> {
         let job_id = projection.job_id.clone();
         let terminal = projection.result_available;
         let now = now_ms()?;
@@ -164,7 +164,7 @@ impl Runtime {
                 None,
             )
         };
-        Ok(TaskObservation {
+        Ok(JobObservation {
             job_id,
             operation_digest: projection.operation_digest,
             status: projection.status,
@@ -1164,7 +1164,7 @@ impl Runtime {
         state: AttemptState,
         reason_code: &str,
         detail: Option<String>,
-    ) -> RuntimeResult<TaskObservation> {
+    ) -> RuntimeResult<JobObservation> {
         self.commit_observed_control_terminal(attempt, state, reason_code, detail, None)
     }
 
@@ -1175,7 +1175,7 @@ impl Runtime {
         reason_code: &str,
         detail: Option<String>,
         observed_supervisor: Option<&SupervisorObservation>,
-    ) -> RuntimeResult<TaskObservation> {
+    ) -> RuntimeResult<JobObservation> {
         let control_terminal_guard = self.lock_control_terminal()?;
         let current = self.registry.get_attempt(&attempt.attempt_id)?;
         if current.state.is_terminal() {
