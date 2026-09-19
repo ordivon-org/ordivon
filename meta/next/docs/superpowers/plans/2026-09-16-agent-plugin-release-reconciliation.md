@@ -86,21 +86,23 @@ Require native Skill discovery, Plugin lifecycle, bundled/non-bundled behavior, 
 - Consumes: reconciled candidate workspace.
 - Produces: focused/full test receipts plus two native Hermes validation paths: MCP-only and explicit Skills composition.
 
-- [ ] **Step 1: Run Python syntax/lint/focused tests**
+- [x] **Step 1: Run Python syntax/lint/focused tests**
 
 Run the repository's existing Python lint/compile gates plus `python3 -m unittest tests.test_agent_plugin_materialization`.
 
-- [ ] **Step 2: Build two deterministic release forms**
+- [x] **Step 2: Build two deterministic release forms**
 
 Build one default MCP-only release and one `--include-skills` release. Repeat both builds and compare output manifests/digests.
 
-- [ ] **Step 3: Validate both releases with Hermes**
+- [x] **Step 3: Validate both releases with Hermes**
 
 Run `hermes plugins validate` and `hermes plugins doctor --ci` for both release forms.
 
-- [ ] **Step 4: Run the full Next test suite**
+- [x] **Step 4: Run the full Next test suite**
 
 Use the same complete test command that previously established the candidate baseline and require zero failures.
+
+**Task 3 completion evidence (2026-09-20):** repository materializer tests passed 12/12; MCP-only and explicit `--include-skills` releases were each built twice with stable tree digests; Hermes v0.21.3 `plugins validate` and `plugins doctor --ci` passed for both release forms; the complete Ordivon Next suite passed 354/354. This closes Plugin candidate validation only. It does not close the independent Skill MCP conformance or canonical-promotion tasks below.
 
 ### Task 4: Review Skill MCP upstream conformance separately
 
