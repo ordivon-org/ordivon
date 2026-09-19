@@ -750,7 +750,7 @@ impl RuntimeServer {
     }
 
     #[tool(
-        name = "task.cancel",
+        name = "job.cancel",
         description = "Persist cancellation intent, stop the cgroup-owned process tree, and reconcile the Job.",
         output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<TaskObservation>>(),
         annotations(
@@ -761,12 +761,12 @@ impl RuntimeServer {
             open_world_hint = false
         )
     )]
-    async fn task_cancel(
+    async fn job_cancel(
         &self,
         Parameters(request): Parameters<TaskCancelRequest>,
     ) -> ToolOutcome<TaskObservation> {
         let runtime = self.state.runtime.clone();
-        self.run_core("task.cancel", move || {
+        self.run_core("job.cancel", move || {
             runtime.cancel_task(&request).map_err(ToolError::from)
         })
         .await
