@@ -7,12 +7,12 @@ import argparse
 import hashlib
 import json
 import os
-from pathlib import Path
 import shlex
 import shutil
 import subprocess
 import tempfile
 import tomllib
+from pathlib import Path
 from typing import Any
 
 DEFAULT_INSTALL_ROOT = Path('/opt/ordivon-workstation-recovery')

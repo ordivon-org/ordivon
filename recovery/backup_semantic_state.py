@@ -9,13 +9,12 @@ import fcntl
 import hashlib
 import json
 import os
-from pathlib import Path
-import shutil
 import socket
 import sqlite3
 import subprocess
 import tempfile
 import tomllib
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CFG = tomllib.loads(Path(__file__).with_name("recovery.toml").read_text())
@@ -78,7 +77,7 @@ class OperationLock:
         holder = {
             "pid": os.getpid(),
             "operation": self.operation,
-            "startedUtc": dt.datetime.now(dt.timezone.utc).isoformat(),
+            "startedUtc": dt.datetime.now(dt.UTC).isoformat(),
         }
         self.handle.seek(0)
         self.handle.truncate()
@@ -354,7 +353,7 @@ def latest_authority() -> dict[str, object] | None:
     return {
         "path": str(bundle),
         "sha256": sha256_file(bundle),
-        "mtimeUtc": dt.datetime.fromtimestamp(bundle.stat().st_mtime, dt.timezone.utc).isoformat(),
+        "mtimeUtc": dt.datetime.fromtimestamp(bundle.stat().st_mtime, dt.UTC).isoformat(),
     }
 
 
@@ -427,7 +426,7 @@ def apply_locked() -> dict[str, object]:
         if not Path(raw).exists():
             raise FileNotFoundError(raw)
     env = restic_env()
-    stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    stamp = dt.datetime.now(dt.UTC).strftime("%Y%m%dT%H%M%SZ")
     with tempfile.TemporaryDirectory(prefix="ordivon-semantic-recovery-", dir=semantic_staging_parent()) as temp:
         stage = Path(temp) / "semantic-recovery"
         git_dir = stage / "git"

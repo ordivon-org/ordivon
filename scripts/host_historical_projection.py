@@ -2,15 +2,15 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
 import hashlib
 import json
-from pathlib import Path
 import shutil
 import sqlite3
 import subprocess
-import tempfile
-from typing import Any, Iterable, Sequence
+from collections.abc import Iterable, Sequence
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
 import psycopg
 from psycopg import sql

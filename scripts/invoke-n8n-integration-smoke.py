@@ -18,7 +18,7 @@ def make_event(event_id: str | None = None) -> dict:
         "id": event_id,
         "source": "urn:ordivon:acceptance:n8n-smoke",
         "type": REQUEST_TYPE,
-        "time": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "time": dt.datetime.now(dt.UTC).isoformat(),
         "datacontenttype": "application/json",
         "data": {"message": "ordivon-n8n-smoke", "sequence": 1},
     }

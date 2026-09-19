@@ -1,6 +1,6 @@
-from pathlib import Path
 import hashlib
 import tomllib
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 COMMIT = "452c1ad2dd628008f1d5608f28158d76e49e6cc0"

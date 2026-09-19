@@ -14,13 +14,12 @@ import gzip
 import hashlib
 import json
 import os
-from pathlib import Path
 import sqlite3
 import subprocess
 import sys
-import tempfile
 import time
-from typing import Iterable
+from collections.abc import Iterable
+from pathlib import Path
 
 STATE_ROOT = Path("/var/lib/ordivon/host")
 DB_PATH = STATE_ROOT / "host.sqlite3"
@@ -88,7 +87,7 @@ def db_snapshot() -> dict:
     ready_oldest_age = max(ages) if ages else None
     return {
         "capturedAtMs": now_ms,
-        "capturedAt": dt.datetime.fromtimestamp(now_ms / 1000, dt.timezone.utc).isoformat(),
+        "capturedAt": dt.datetime.fromtimestamp(now_ms / 1000, dt.UTC).isoformat(),
         "stateCounts": states,
         "leases": leases,
         "readyCount": len(ready),
@@ -236,7 +235,7 @@ def finalize() -> dict:
         "schemaVersion": 1,
         "kind": "ordivon.host-v1.retirement",
         "standing": "RETIRED_READ_ONLY_ARCHIVE",
-        "retiredAt": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "retiredAt": dt.datetime.now(dt.UTC).isoformat(),
         "service": SERVICE,
         "legacyAddress": "127.0.0.1:8898",
         "serviceActive": False,

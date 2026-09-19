@@ -12,12 +12,10 @@ credentials, bearer tokens, signed URLs, OAuth material, or provider stderr.
 from __future__ import annotations
 
 import argparse
-import errno
 import fcntl
 import hashlib
 import json
 import os
-import shutil
 import stat
 import subprocess
 import tempfile

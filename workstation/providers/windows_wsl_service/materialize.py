@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import argparse, hashlib, json, shutil
+
+import argparse
+import hashlib
+import json
+import shutil
 from pathlib import Path
 
 SOURCE=Path(__file__).with_name("WindowsWslServiceControlProvider.ps1")
