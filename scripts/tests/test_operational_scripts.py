@@ -192,6 +192,16 @@ class OperationalScriptTests(unittest.TestCase):
         self.assertIn('metadata["target_directory"]', mcp_e2e)
         self.assertNotIn('repo / "target/debug/ordivon-runtime"', mcp_e2e)
 
+    def test_owner_environment_materializes_stable_runtime_inspector(self) -> None:
+        owner = (REPO / "scripts/owner-environment").read_text(encoding="utf-8")
+        self.assertIn("materialize_runtime_inspect()", owner)
+        self.assertIn("cargo", owner)
+        self.assertIn("metadata --locked --no-deps --format-version 1", owner)
+        self.assertIn('inspect_dir="$env_dir/runtime-bin"', owner)
+        self.assertIn('install -m 0755 "$source_inspect"', owner)
+        self.assertIn('export ORDIVON_RUNTIME_INSPECT=', owner)
+        self.assertIn('cmp -s "$source_inspect"', owner)
+
     def test_local_acceptance_contract_is_executable(self) -> None:
         result = subprocess.run(
             ["scripts/local-acceptance", "check"],
