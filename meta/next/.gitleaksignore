@@ -1,0 +1,18 @@
+# Gitleaks fingerprints reviewed as non-secrets.
+#
+# These ignores are intentionally fingerprint-specific. Do not replace them with
+# path-wide or rule-wide allowlists: new findings in the same files must still fail.
+#
+# Synthetic credential material used only as an Agent Service test fixture.
+21f4463dd740ab9cdf95c4dcbe2701c7d845aca0:tests/test_agent_service_interface_credentials_r14.py:generic-api-key:454
+0721009237365ea61cd975bd187be5171f1dcd52:tests/test_agent_service_interface_credentials_r14.py:generic-api-key:462
+#
+# Ordinary prose in a retrieval-kernel lesson; no credential or token is present.
+6b620a17abb7f78d17fa02e5e662de185e3e56cb:knowledge/lessons/llamaindex-haystack-context-retrieval-kernel.md:generic-api-key:38
+5938348069e5713d6947e66475db6faef5e4e483:knowledge/lessons/llamaindex-haystack-context-retrieval-kernel.md:generic-api-key:38
+knowledge/lessons/llamaindex-haystack-context-retrieval-kernel.md:generic-api-key:38
+#
+# Git commit identity recorded as migration provenance; not a Cloudflare credential.
+fd50471332622dda90f1bea23962333b8f2cd6a1:migrations/records/workstation-network-observability-retirement.md:cloudflare-api-key:5
+2440e5789a245fddfb3a3e84c70b2c33c9c8bcce:migrations/records/workstation-network-observability-retirement.md:cloudflare-api-key:5
+migrations/records/workstation-network-observability-retirement.md:cloudflare-api-key:5
