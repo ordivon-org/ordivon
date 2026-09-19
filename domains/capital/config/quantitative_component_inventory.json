@@ -218,6 +218,40 @@
       ]
     },
     {
+      "id": "model-monitoring-lineage",
+      "implementation": "src/market_capital/model_lineage.py::persist_monitoring_evidence",
+      "classification": "ADAPTER",
+      "sr26ModelStanding": "NON_MODEL",
+      "status": "ACTIVE",
+      "purpose": "Persist model-monitoring evidence through Pandera validation, Parquet materialization, DuckDB independent readback, and MLflow run/artifact lineage.",
+      "materiality": "NOT_APPLICABLE",
+      "assumptions": [],
+      "limitations": [
+        "MLflow run identity and artifact hashes establish research lineage, not market or execution truth.",
+        "The current tracking backend is local SQLite and is not a distributed telemetry backend."
+      ],
+      "validation": {
+        "standing": "NOT_APPLICABLE",
+        "evidenceRefs": [
+          "evidence/acceptance/model-monitoring-lineage-r1.json"
+        ]
+      },
+      "monitoring": {
+        "standing": "NOT_APPLICABLE",
+        "requirements": []
+      },
+      "permittedUses": [
+        "Research lineage.",
+        "Monitoring-history materialization.",
+        "Independent Parquet readback."
+      ],
+      "prohibitedUses": [
+        "Trade approval.",
+        "External financial write authority.",
+        "Market-data source authority."
+      ]
+    },
+    {
       "id": "tail-risk-report",
       "implementation": "src/market_capital/model_monitoring.py::build_tail_risk_report",
       "classification": "ADAPTER",
