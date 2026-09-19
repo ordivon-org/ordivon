@@ -36,41 +36,26 @@ def build_attention_delta(dsn: str, *, after_sequence: int, limit: int = 100) ->
             int(visible[-1]["sequence"]) if has_more and visible else max(after_sequence, high)
         )
 
+        visible_messages = [row for row in visible if not is_legacy_task_route_anchor(row)]
         by_task: dict[str, list[dict[str, Any]]] = defaultdict(list)
         unrouted: list[dict[str, Any]] = []
-        infrastructure_message_count = 0
-        for row in visible:
-            if is_legacy_task_route_anchor(row):
-                infrastructure_message_count += 1
-                continue
+        for row in visible_messages:
             task_id = row.get("task_id")
             if isinstance(task_id, str):
-                by_task[task_id].append(
-                    _compact_message(row, route_depth=0, route_standing="EXPLICIT_TASK_FOREIGN_KEY")
-                )
+                by_task[task_id].append(_compact_message(row))
             else:
-                unrouted.append(
-                    _compact_message(row, route_depth=None, route_standing="NO_TASK_ROUTE")
-                )
+                unrouted.append(_compact_message(row))
 
         routed_tasks: list[dict[str, Any]] = []
-        missing_tasks: list[dict[str, Any]] = []
         for task_id, messages in by_task.items():
             task = conn.execute(
                 "SELECT task_id,goal_id,revision,state,current_checkpoint_digest,updated_at "
                 "FROM tasks WHERE task_id=%s",
                 (task_id,),
             ).fetchone()
-            if task is None:
-                missing_tasks.append(
-                    {
-                        "taskId": task_id,
-                        "messageCount": len(messages),
-                        "latestBoardSequence": max(int(m["sequence"]) for m in messages),
-                        "reason": "board-task-foreign-key-resolves-but-current-task-is-absent",
-                    }
-                )
-                continue
+            # board_messages.task_id is protected by a PostgreSQL foreign key with
+            # ON DELETE RESTRICT, so a routed message cannot outlive its Task.
+            assert task is not None
             checkpoint = conn.execute(
                 "SELECT checkpoint_digest,payload,writer_label FROM checkpoints "
                 "WHERE task_id=%s AND revision=%s",
@@ -105,7 +90,6 @@ def build_attention_delta(dsn: str, *, after_sequence: int, limit: int = 100) ->
             )
 
     routed_tasks.sort(key=lambda row: (-int(row["newestBoardSequence"]), str(row["taskId"])))
-    missing_tasks.sort(key=lambda row: (-int(row["latestBoardSequence"]), str(row["taskId"])))
     return {
         "schemaVersion": 3,
         "kind": "ordivon.host-current-attention-delta",
@@ -118,15 +102,12 @@ def build_attention_delta(dsn: str, *, after_sequence: int, limit: int = 100) ->
             "completeThroughNextAfterSequence": not has_more,
         },
         "summary": {
-            "newMessageCount": len(visible) - infrastructure_message_count,
-            "infrastructureMessageCount": infrastructure_message_count,
+            "newMessageCount": len(visible_messages),
             "routedTaskCount": len(routed_tasks),
             "routedMessageCount": sum(len(messages) for messages in by_task.values()),
             "unroutedMessageCount": len(unrouted),
-            "missingTaskRouteCount": len(missing_tasks),
         },
         "routedTasks": routed_tasks,
-        "missingTaskRoutes": missing_tasks,
         "unroutedMessages": unrouted,
         "truthBoundary": (
             "Board-derived navigation only; not priority, assignment, ownership, delivery, consumption, "
@@ -135,9 +116,7 @@ def build_attention_delta(dsn: str, *, after_sequence: int, limit: int = 100) ->
     }
 
 
-def _compact_message(
-    row: dict[str, Any], route_depth: int | None, route_standing: str
-) -> dict[str, Any]:
+def _compact_message(row: dict[str, Any]) -> dict[str, Any]:
     return {
         "sequence": int(row["sequence"]),
         "clientMessageId": row["client_message_id"],
@@ -147,6 +126,4 @@ def _compact_message(
         "taskId": row.get("task_id"),
         "recordedAtMs": int(row["recorded_at_ms"]),
         "messageDigest": row["message_digest"],
-        "routeDepth": route_depth,
-        "routeStanding": route_standing,
     }
