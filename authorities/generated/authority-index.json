@@ -858,6 +858,151 @@
     },
     {
       "aliases": [
+        "GA4 Traffic Source",
+        "Google Analytics Attribution",
+        "Google Analytics Traffic Source Dimensions"
+      ],
+      "authorityKind": "provider-guidance",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "analytics",
+        "marketing",
+        "measurement"
+      ],
+      "id": "google-analytics-traffic-source",
+      "identityMode": "rolling-source",
+      "issuer": "Google Analytics",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:e507626bc3bb3d97a85210e6307c73c234b8913294738ff8d5618cc8f2936379",
+      "recordDigest": "sha256:2b6d360e35ed9f4fc3545d6d21f0d2cba74451af95a3758f63507e9f5a1da3f5",
+      "title": "Google Analytics traffic-source dimensions and attribution guidance",
+      "topics": [
+        "attribution",
+        "campaign",
+        "channel",
+        "medium",
+        "source",
+        "traffic-source",
+        "utm"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "Google Search Essentials",
+        "Search Essentials"
+      ],
+      "authorityKind": "provider-guidance",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "distribution",
+        "marketing",
+        "web"
+      ],
+      "id": "google-search-essentials",
+      "identityMode": "rolling-source",
+      "issuer": "Google Search Central",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:137b28cc36889aa4536f3ba184320d9cd2458ea3200e3819304edc0e5a4a6b13",
+      "recordDigest": "sha256:75fd83238f1306bbd83c5525d1fc7fba69c1c68df0992e53799100ee4f8a7673",
+      "title": "Google Search Essentials",
+      "topics": [
+        "content-distribution",
+        "search",
+        "search-engine-optimization",
+        "seo",
+        "spam-policy"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "Global Privacy Protocol",
+        "GPP",
+        "IAB Tech Lab Privacy Standards"
+      ],
+      "authorityKind": "industry-specification",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "advertising",
+        "marketing",
+        "privacy"
+      ],
+      "id": "iab-privacy-standards",
+      "identityMode": "rolling-source",
+      "issuer": "IAB Tech Lab",
+      "lifecycleStatus": "current-portfolio",
+      "observationDigest": "sha256:cee608a3737034ce1924f54682c4702c1f37f40cea2b4a3b04dfa72dea918120",
+      "recordDigest": "sha256:65b1c7e673b106dd8e24b9c83ac5f67c92a3fc6915a4213c8f44d5668087ace1",
+      "title": "IAB Tech Lab Privacy Standards Portfolio",
+      "topics": [
+        "adtech",
+        "consent",
+        "privacy",
+        "privacy-signals",
+        "targeted-advertising"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "ICC ESOMAR Code",
+        "ICC/ESOMAR International Code 2025"
+      ],
+      "authorityKind": "professional-code",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "data-analytics",
+        "market-research",
+        "research"
+      ],
+      "id": "icc-esomar-code-2025",
+      "identityMode": "versioned",
+      "issuer": "International Chamber of Commerce / ESOMAR",
+      "lifecycleStatus": "current-fifth-edition",
+      "observationDigest": "sha256:b639ed07f8074b2efa00969ed53afdfd56d7ab882426bdcd6764aedc2ca42251",
+      "recordDigest": "sha256:e2cc94a4468f31a81ddc8f06cd0aff25f58ff64f0e1b87342055fe179059efa0",
+      "title": "ICC/ESOMAR International Code on Market, Opinion and Social Research and Data Analytics",
+      "topics": [
+        "data-protection",
+        "market-research",
+        "research-ethics",
+        "research-governance",
+        "transparency"
+      ],
+      "versionLabel": "Fifth Edition (2025)"
+    },
+    {
+      "aliases": [
+        "ICC Advertising and Marketing Communications Code",
+        "ICC Marketing Code 2024"
+      ],
+      "authorityKind": "professional-code",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "advertising",
+        "business",
+        "marketing"
+      ],
+      "id": "icc-marketing-code-2024",
+      "identityMode": "versioned",
+      "issuer": "International Chamber of Commerce",
+      "lifecycleStatus": "current-eleventh-edition",
+      "observationDigest": "sha256:cf699e6da670ed39fe843ab03e067f7a77e574925c07c4a3c28011325a7bd44a",
+      "recordDigest": "sha256:b4a13cc25e0a9bcc7a1a5dc94a34c6bde2c6cee4d0c6ff7a03c13676e609a11e",
+      "title": "ICC Advertising and Marketing Communications Code",
+      "topics": [
+        "advertising",
+        "ai-marketing",
+        "direct-marketing",
+        "marketing-communications",
+        "responsible-marketing",
+        "social-media"
+      ],
+      "versionLabel": "11th Edition (2024)"
+    },
+    {
+      "aliases": [
         "in-toto",
         "in-toto v1.0",
         "software supply chain attestation"
@@ -1217,6 +1362,34 @@
     },
     {
       "aliases": [
+        "ISO 20252:2026",
+        "Market opinion and social research"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "business",
+        "market-research",
+        "research"
+      ],
+      "id": "iso-20252-2026",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published-current",
+      "observationDigest": "sha256:4d91d437ae420edae79a1fc94b28e279b35b5e3c53ffb2fd15718839cdedff2c",
+      "recordDigest": "sha256:1714a80bd502ed0d6ade5034d4fbe8ac24c82fe755a56852d434d0670c44bc9c",
+      "title": "ISO 20252:2026 — Market, opinion and social research, including insights and data analytics — Vocabulary and service requirements",
+      "topics": [
+        "data-analytics",
+        "insights",
+        "market-research",
+        "opinion-research",
+        "research-service"
+      ],
+      "versionLabel": "2026"
+    },
+    {
+      "aliases": [
         "ISO 20400:2017",
         "Sustainable procurement"
       ],
@@ -1267,6 +1440,32 @@
         "validation"
       ],
       "versionLabel": "2006"
+    },
+    {
+      "aliases": [
+        "Brand evaluation",
+        "ISO 20671-1:2021"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "brand",
+        "business",
+        "marketing"
+      ],
+      "id": "iso-20671-1-2021",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published-current",
+      "observationDigest": "sha256:e84eaca3caa972ee32406f7d38e0ffa5b25f773c89676f872296132bdcd72a26",
+      "recordDigest": "sha256:dad360c37771e66e789f93795baa7b80ed837a1fd6dd18181aeb285ff7c1cab6",
+      "title": "ISO 20671-1:2021 — Brand evaluation — Part 1: Principles and fundamentals",
+      "topics": [
+        "brand",
+        "brand-evaluation",
+        "brand-indicators"
+      ],
+      "versionLabel": "2021"
     },
     {
       "aliases": [
@@ -2060,6 +2259,34 @@
         "structural-metadata"
       ],
       "versionLabel": "2"
+    },
+    {
+      "aliases": [
+        "Media Rating Council Outcomes Standards",
+        "MRC Outcomes and Data Quality Standards"
+      ],
+      "authorityKind": "industry-standard",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "advertising",
+        "marketing",
+        "measurement"
+      ],
+      "id": "mrc-outcomes-data-quality-2022",
+      "identityMode": "versioned",
+      "issuer": "Media Rating Council",
+      "lifecycleStatus": "listed-current",
+      "observationDigest": "sha256:c3e3a9c79b4d5696863dc3da9e5fa44084923e18d906d9b6120e30ec5c18a802",
+      "recordDigest": "sha256:3a157ddf1a5179e765cc6e4173dafc3b060a0a04caaa38d00d87fc037f1a4367",
+      "title": "MRC Outcomes and Data Quality Standards",
+      "topics": [
+        "ad-measurement",
+        "attribution",
+        "conversion",
+        "data-quality",
+        "outcomes"
+      ],
+      "versionLabel": "2022"
     },
     {
       "aliases": [
@@ -3705,7 +3932,7 @@
     }
   ],
   "kind": "ordivon.external-authority-discovery-index",
-  "recordCount": 134,
-  "recordsDigest": "sha256:7300e73b2d9d0815b34a0dc3e3128967bba8b24311819e5f75d9a9564a6ef750",
+  "recordCount": 142,
+  "recordsDigest": "sha256:593a03e1477342b1a6f45a1b4f94dd26d9b32feeb2f08608f9fb52ea7fc8bf15",
   "schemaVersion": 1
 }

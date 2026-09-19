@@ -110,6 +110,15 @@ class AuthorityCatalogTests(unittest.TestCase):
         self.assertEqual(top("payroll"), "frappe-hr-payroll-provider")
         self.assertEqual(top("financial planning"), "erpnext-budget-provider")
         self.assertEqual(top("budgeting"), "erpnext-budget-provider")
+        self.assertEqual(top("market research"), "iso-20252-2026")
+        self.assertEqual(top("research ethics"), "icc-esomar-code-2025")
+        self.assertEqual(top("marketing communications"), "icc-marketing-code-2024")
+        self.assertEqual(top("direct marketing"), "icc-marketing-code-2024")
+        self.assertEqual(top("search engine optimization"), "google-search-essentials")
+        self.assertEqual(top("traffic source"), "google-analytics-traffic-source")
+        self.assertEqual(top("brand evaluation"), "iso-20671-1-2021")
+        self.assertEqual(top("adtech privacy"), "iab-privacy-standards")
+        self.assertEqual(top("advertising measurement"), "mrc-outcomes-data-quality-2022")
 
         # Unknown named authorities must fail closed rather than borrow relevance
         # from one or two generic overlapping tokens.

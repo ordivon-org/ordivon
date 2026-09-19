@@ -75,6 +75,12 @@ Do not copy licensed standards into local instructions.
 | supplier/RFQ/PO/purchase-invoice facts | ERPNext Buying or another natural purchasing provider |
 | sustainable procurement | ISO 20400 when sustainability is material |
 | material outsourcing | ISO 37500 |
+| market/customer research | ISO 20252:2026 when research-service rigor is useful + ICC/ESOMAR Code 2025 for ethical/professional conduct; direct marketing is outside ISO 20252 scope |
+| marketing communications | ICC Advertising and Marketing Communications Code 2024 + jurisdiction/platform rules; AI assistance does not remove marketer responsibility |
+| organic search distribution | Google Search Essentials when Google Search is a target channel; publish useful evidence-first content rather than a private SEO scoring system |
+| acquisition/attribution measurement | provider-native source/medium/campaign taxonomy such as GA4 when actually deployed + self-reported/CRM source for early B2B deals |
+| brand evaluation | ISO 20671-1:2021 only when brand evaluation is a real decision need |
+| paid-ad/ad-tech measurement | IAB Tech Lab privacy/interoperability specifications and MRC measurement standards only when material paid-media/ad-tech scale makes them applicable |
 | customer contract lifecycle | WorldCC Contract Management Standard when structured contract management adds value + applicable law/legal counsel + actual signed/accepted customer terms |
 | operating budget / variance | ERPNext Budget and Budget Variance against real ledger/project facts; keep prospective forecasts task-local until recurrence justifies a dedicated FP&A provider |
 | payroll records/processing | applicable law + qualified/local payroll/accounting provider; Frappe HR only when real employees make provider-native payroll records useful |
@@ -95,7 +101,7 @@ Provider state is authoritative only for that provider's responsibility.
 
 ## 5. Commercial currentness rules
 
-Do not create Ordivon-native Strategy, Sales, GTM, Pricing, Customer-Success, Contracting, FP&A, Payroll, Support, Hiring or Procurement frameworks.
+Do not create Ordivon-native Strategy, Marketing, Channel, SEO, Attribution, Sales, GTM, Pricing, Customer-Success, Contracting, FP&A, Payroll, Support, Hiring or Procurement frameworks.
 
 Current provider boundary:
 
@@ -149,8 +155,9 @@ A new local abstraction is admissible only after repeated measured substitution 
 
 - External authority/currentness/evidence boundary: `../../../docs/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R2.md`
 - Company-specific strategy facts/open choices: `../../../docs/COMMERCIAL_STRATEGY_CURRENT_FACTS_R1.md`
+- Current task-local channel falsification: `../../../docs/COMMERCIAL_CHANNEL_EXPERIMENT_R1.md`
 - Detailed provider/currentness and historical dogfood map: `../../../docs/ENTERPRISE_OPERATING_MODEL_R1.md`
 - Current capability/provider coverage: `../../../docs/CAPABILITY_PACKAGES_R1.md`
-- Commercial migrations: `../../../migrations/records/commercial-practice-externalization-r1.md`, `commercial-practice-externalization-r2.md`, `commercial-practice-externalization-r3.md`, and `commercial-strategy-debt-externalization-r1.md`
+- Commercial migrations: `../../../migrations/records/commercial-practice-externalization-r1.md`, `commercial-practice-externalization-r2.md`, `commercial-practice-externalization-r3.md`, `commercial-strategy-debt-externalization-r1.md`, and `commercial-marketing-externalization-r1.md`
 
 For artifact production/verification, activate `artifact-work` instead of duplicating artifact-family procedure here.

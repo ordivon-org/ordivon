@@ -1,0 +1,11 @@
+{
+  "authorityId": "google-analytics-traffic-source",
+  "basis": "official-provider-documentation-check",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current",
+  "note": "Current GA4 documentation uses traffic-source dimensions such as source, medium, campaign, campaign ID, source platform and channel grouping; attribution behavior depends on scope and selected attribution model.",
+  "observedDate": "2026-09-19",
+  "officialSource": "https://support.google.com/analytics/answer/15567068",
+  "schemaVersion": 1,
+  "versionObserved": "GA4"
+}

@@ -1,0 +1,51 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": "Provider-native search guidance; applies to Google Search, not a universal web-ranking standard."
+  },
+  "discovery": {
+    "aliases": [
+      "Google Search Essentials",
+      "Search Essentials"
+    ],
+    "domains": [
+      "distribution",
+      "marketing",
+      "web"
+    ],
+    "topics": [
+      "content-distribution",
+      "search",
+      "search-engine-optimization",
+      "seo",
+      "spam-policy"
+    ]
+  },
+  "id": "google-search-essentials",
+  "identity": {
+    "authorityKind": "provider-guidance",
+    "identityMode": "rolling-source",
+    "issuer": {
+      "id": "google-search",
+      "name": "Google Search Central"
+    },
+    "officialSource": "https://developers.google.com/search/docs/essentials",
+    "publicationDate": null,
+    "title": "Google Search Essentials",
+    "versionLabel": null
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-19",
+    "registrationBasis": [
+      "commercial-marketing-externalization-r1"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}
