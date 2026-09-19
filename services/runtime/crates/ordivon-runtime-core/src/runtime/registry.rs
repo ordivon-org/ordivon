@@ -197,15 +197,15 @@ impl RegistryConfig {
         Ok(())
     }
 
-    pub fn attempts_root(&self) -> PathBuf {
+    pub(crate) fn attempts_root(&self) -> PathBuf {
         self.store_root.join("attempts")
     }
 
-    pub fn attempt_path(&self, attempt_id: &str) -> PathBuf {
+    pub(crate) fn attempt_path(&self, attempt_id: &str) -> PathBuf {
         self.attempts_root().join(attempt_id)
     }
 
-    pub fn admission_fence_path(&self) -> PathBuf {
+    pub(crate) fn admission_fence_path(&self) -> PathBuf {
         self.store_root.join("admission.lock")
     }
 }
