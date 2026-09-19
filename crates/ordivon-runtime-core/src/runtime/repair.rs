@@ -262,15 +262,18 @@ pub fn cancel_stale_recovery_required_attempt(
             false,
         ));
     }
+    let receipt_context = StaleCancelReceiptContext {
+        report_fingerprint: &before.fingerprint,
+        snapshot_digest: &snapshot_digest,
+        recovery: &recovery,
+        observed_at_ms: applied_at_ms,
+    };
     let receipt = write_stale_cancel_receipt(
         &config.doctor.store_root,
         &job.job_id,
         &current,
         request,
-        &before.fingerprint,
-        &snapshot_digest,
-        &recovery,
-        applied_at_ms,
+        &receipt_context,
     )?;
     let mut terminal = TerminalCommit {
         attempt_id: current.attempt_id.clone(),
@@ -642,15 +645,19 @@ fn verify_snapshot_stale_cancel_target(
     Ok(())
 }
 
+struct StaleCancelReceiptContext<'a> {
+    report_fingerprint: &'a str,
+    snapshot_digest: &'a str,
+    recovery: &'a RecoveryState,
+    observed_at_ms: u64,
+}
+
 fn write_stale_cancel_receipt(
     store_root: &Path,
     job_id: &str,
     attempt: &super::AttemptRecord,
     request: &RuntimeStaleCancelRequest,
-    report_fingerprint: &str,
-    snapshot_digest: &str,
-    recovery: &RecoveryState,
-    observed_at_ms: u64,
+    context: &StaleCancelReceiptContext<'_>,
 ) -> RuntimeResult<ArtifactRegistration> {
     let bundle = store_root.join("attempts").join(&attempt.attempt_id);
     fs::create_dir_all(&bundle).map_err(|error| io_error("create stale-cancel Bundle", error))?;
@@ -659,18 +666,18 @@ fn write_stale_cancel_receipt(
     let receipt = serde_json::json!({
         "schemaVersion": RUNTIME_REPAIR_SCHEMA_VERSION,
         "kind": "ordivon.runtime-admin-stale-cancel",
-        "reportFingerprint": report_fingerprint,
+        "reportFingerprint": context.report_fingerprint,
         "snapshotPath": request.snapshot_path,
-        "snapshotDigest": snapshot_digest,
+        "snapshotDigest": context.snapshot_digest,
         "principal": request.principal,
         "jobId": job_id,
         "attemptId": attempt.attempt_id,
         "previousState": attempt.state,
         "terminationIntent": attempt.termination_intent,
-        "recovery": recovery,
+        "recovery": context.recovery,
         "processTreeAbsenceProven": true,
         "reasonCode": "ADMIN_CANCELLED_RECOVERY_REQUIRED_PROCESS_TREE_GONE",
-        "observedAtMs": observed_at_ms,
+        "observedAtMs": context.observed_at_ms,
         "truthRole": "operator-cancellation-after-proven-execution-absence-not-original-outcome",
     });
     write_json_atomic(&path, &receipt).map_err(map_universal_error)?;

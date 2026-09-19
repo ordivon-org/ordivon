@@ -10,7 +10,7 @@ impl Runtime {
         if snapshot.job.resolution == Some(JobResolution::Orphaned) {
             if let Some(attempt) = snapshot.attempt.as_ref() {
                 if Path::new(&attempt.bundle_path).join(RESULT_FILE).is_file()
-                    && self.recover_orphaned_runner_result(&attempt)?
+                    && self.recover_orphaned_runner_result(attempt)?
                 {
                     return self.observation_from_registry(&request.job_id, 4096, 4096);
                 }
@@ -874,6 +874,57 @@ fn canonical_input_binding_requests(
     Ok(canonical)
 }
 
+pub(super) fn canonical_credential_binding_requests(
+    credentials: &[CredentialBindingRequest],
+) -> RuntimeResult<Vec<CredentialBindingRequest>> {
+    if credentials.is_empty() {
+        return Err(RuntimeError::invalid(
+            "at least one credential is required",
+            "credentials",
+        ));
+    }
+    let mut canonical = Vec::with_capacity(credentials.len());
+    let mut names = BTreeSet::new();
+    for (index, credential) in credentials.iter().enumerate() {
+        validate_input_authority_name(
+            &credential.authority,
+            &format!("credentials[{index}].authority"),
+        )?;
+        validate_credential_name(
+            &credential.credential,
+            &format!("credentials[{index}].credential"),
+        )?;
+        if !names.insert(credential.credential.clone()) {
+            return Err(RuntimeError::invalid(
+                "credential names must be unique within one execution",
+                &format!("credentials[{index}].credential"),
+            ));
+        }
+        canonical.push(credential.clone());
+    }
+    canonical.sort_by(|left, right| {
+        (&left.authority, &left.credential)
+            .cmp(&(&right.authority, &right.credential))
+    });
+    Ok(canonical)
+}
+
+fn validate_credential_name(value: &str, field: &str) -> RuntimeResult<()> {
+    if value.is_empty()
+        || value.len() > 128
+        || !value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-'))
+        || matches!(value, "." | "..")
+    {
+        return Err(RuntimeError::invalid(
+            "credential name must use 1-128 ASCII alphanumeric/._- characters and must not be . or ..",
+            field,
+        ));
+    }
+    Ok(())
+}
+
 fn validate_input_authority_name(value: &str, field: &str) -> RuntimeResult<()> {
     if value.is_empty()
         || value.len() > 128
@@ -935,6 +986,17 @@ fn open_authority_file(root_file: &File, relative: &str, index: usize) -> Runtim
         RuntimeError::invalid(
             format!("cannot resolve input object inside authority: {error}"),
             &format!("inputs[{index}].relativeObject"),
+        )
+    })
+}
+
+
+fn open_credential_file(root_file: &File, name: &str, index: usize) -> RuntimeResult<File> {
+    validate_credential_name(name, &format!("credentials[{index}].credential"))?;
+    open_regular_file_beneath(root_file, Path::new(name), true).map_err(|_| {
+        RuntimeError::invalid(
+            "credential is unavailable from the selected authority",
+            &format!("credentials[{index}].credential"),
         )
     })
 }
@@ -1036,10 +1098,7 @@ fn verify_effective_input_set(
             let field = format!("effectiveInputs[{index}].digest");
             return Err(RuntimeError::new(
                 RuntimeErrorCode::WorkspaceStateMismatch,
-                format!(
-                    "materialized input digest mismatch: expected {}, observed {digest}",
-                    input.expected_digest
-                ),
+                "materialized input digest does not match the committed binding",
                 Some(&field),
                 false,
             ));
@@ -1054,6 +1113,78 @@ fn verify_effective_input_set(
         });
     }
     Ok(effective)
+}
+
+fn inspect_credential_snapshot(root: &Path) -> RuntimeResult<(String, Vec<String>)> {
+    let root_metadata = fs::symlink_metadata(root)
+        .map_err(|error| io_error("inspect encrypted credential snapshot set", error))?;
+    if root_metadata.file_type().is_symlink() || !root_metadata.is_dir() {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::WorkspaceStateMismatch,
+            "encrypted credential snapshot root is not a non-symlink directory",
+            Some("credentialSetId"),
+            false,
+        ));
+    }
+    let mut entries = Vec::new();
+    for entry in fs::read_dir(root)
+        .map_err(|error| io_error("enumerate encrypted credential snapshot", error))?
+    {
+        let entry = entry
+            .map_err(|error| io_error("read encrypted credential snapshot entry", error))?;
+        let metadata = fs::symlink_metadata(entry.path())
+            .map_err(|error| io_error("inspect encrypted credential snapshot entry", error))?;
+        if metadata.file_type().is_symlink() || !metadata.is_file() {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::WorkspaceStateMismatch,
+                "encrypted credential snapshot contains a non-regular entry",
+                Some("credentialSetId"),
+                false,
+            ));
+        }
+        let name = entry.file_name().into_string().map_err(|_| {
+            RuntimeError::new(
+                RuntimeErrorCode::WorkspaceStateMismatch,
+                "encrypted credential snapshot contains a non-UTF-8 credential name",
+                Some("credentialSetId"),
+                false,
+            )
+        })?;
+        validate_credential_name(&name, "credentialSetId")?;
+        entries.push(CredentialSnapshotEntry {
+            name,
+            digest: sha256_file(&entry.path()).map_err(map_universal_error)?,
+            byte_length: metadata.len(),
+        });
+    }
+    entries.sort_by(|left, right| left.name.cmp(&right.name));
+    let manifest = serde_json::to_vec(&entries).map_err(|error| {
+        RuntimeError::new(
+            RuntimeErrorCode::RegistryCorrupt,
+            format!("cannot serialize encrypted credential snapshot manifest: {error}"),
+            Some("credentialSetId"),
+            false,
+        )
+    })?;
+    let set_id = sha256_bytes(&manifest);
+    let names = entries.into_iter().map(|entry| entry.name).collect();
+    Ok((set_id, names))
+}
+
+pub(super) fn verify_credential_snapshot(
+    root: &Path,
+    expected_set_id: &str,
+) -> RuntimeResult<Vec<String>> {
+    let (observed_set_id, names) = inspect_credential_snapshot(root)?;
+    if observed_set_id != expected_set_id {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::WorkspaceStateMismatch,
+            "encrypted credential snapshot does not match the committed credential set",
+            Some("credentialSetId"),
+            false,
+        ));
+    }
+    Ok(names)
 }
 
 fn effective_input_requests_from_plan(

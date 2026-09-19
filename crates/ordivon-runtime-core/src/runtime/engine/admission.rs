@@ -74,6 +74,137 @@ impl Runtime {
         )
     }
 
+    /// Admit an Agent-authored trusted-local Linux proposal with opaque named credentials.
+    ///
+    /// Proposal identity binds logical credential references, while Runtime snapshots the
+    /// operator-owned bytes only after principal authorization. Existing Jobs replay before
+    /// current credential authority state is consulted.
+    pub fn run_task_proposal_with_credentials(
+        &self,
+        proposal: &super::TaskRunProposal,
+        credentials: &[CredentialBindingRequest],
+    ) -> RuntimeResult<TaskObservation> {
+        validate_run_proposal_structure(proposal)?;
+        if proposal.execution.execution_target != super::ExecutionTarget::LocalLinux {
+            return Err(RuntimeError::invalid(
+                "credential-bound execution currently supports local_linux only",
+                "execution.executionTarget",
+            ));
+        }
+        if proposal.execution.execution_profile != super::ExecutionProfile::TrustedLocal {
+            return Err(RuntimeError::invalid(
+                "credential-bound execution requires trusted_local",
+                "execution.executionProfile",
+            ));
+        }
+        for name in proposal.execution.env.keys() {
+            if name.eq_ignore_ascii_case("CREDENTIALS_DIRECTORY") {
+                return Err(RuntimeError::invalid(
+                    "CREDENTIALS_DIRECTORY is owned by the credential delivery provider",
+                    "execution.env.CREDENTIALS_DIRECTORY",
+                ));
+            }
+        }
+        for (index, step) in proposal.execution.steps.iter().enumerate() {
+            for name in step.env.keys() {
+                if name.eq_ignore_ascii_case("CREDENTIALS_DIRECTORY") {
+                    return Err(RuntimeError::invalid(
+                        "CREDENTIALS_DIRECTORY is owned by the credential delivery provider",
+                        &format!("execution.steps[{index}].env.CREDENTIALS_DIRECTORY"),
+                    ));
+                }
+            }
+        }
+
+        let credentials = canonical_credential_binding_requests(credentials)?;
+        let request_identity_digest =
+            super::credential_bound_proposal_request_identity_digest(proposal, &credentials)?;
+        let job_id = {
+            let _guard = self.lock_lifecycle()?;
+            if let Some(existing) = self.registry.find_idempotent_job(
+                &proposal.principal,
+                &proposal.client_request_id,
+                &request_identity_digest,
+            )? {
+                existing.job_id
+            } else {
+                let request = self.resolve_proposal(proposal);
+                validate_run_request_structure(&request)?;
+                self.admit_new_task_with_credentials(
+                    &request,
+                    request_identity_digest,
+                    &credentials,
+                )?
+            }
+        };
+        self.observe_admitted_task(
+            &job_id,
+            proposal.wait_ms,
+            proposal.stdout_tail_bytes,
+            proposal.stderr_tail_bytes,
+        )
+    }
+
+    fn admit_new_task_with_credentials(
+        &self,
+        request: &TaskRunRequest,
+        request_identity_digest: String,
+        credentials: &[CredentialBindingRequest],
+    ) -> RuntimeResult<String> {
+        if request.execution.execution_target != super::ExecutionTarget::LocalLinux
+            || request.execution.execution_profile != super::ExecutionProfile::TrustedLocal
+        {
+            return Err(RuntimeError::invalid(
+                "credential-bound execution requires trusted_local local_linux",
+                "execution.executionProfile",
+            ));
+        }
+        validate_new_admission_policy(
+            request,
+            self.executor.max_runtime_ms,
+            self.executor.max_output_bytes,
+        )?;
+        self.reconcile_recoverable_orphans()?;
+        let _ = self.reconcile_workspace(&request.execution.workspace_id)?;
+        let mut plan = self.resolve_plan(request)?;
+        let admission_ids = self.registry.preallocate_admission_ids();
+        let prepared = self.materialize_credential_bindings(
+            request,
+            &admission_ids.job_id,
+            credentials,
+        )?;
+        plan.credential_set_id = Some(prepared.credential_set_id.clone());
+
+        let submit = SubmitRequest {
+            schema_version: RUNTIME_SCHEMA_VERSION,
+            client_request_id: request.client_request_id.clone(),
+            request_identity_digest: Some(request_identity_digest),
+            execution_provider: Some(
+                self.current_execution_provider_snapshot(request.execution.execution_target)?,
+            ),
+            runtime_release_effect: None,
+            host_dependencies: Vec::new(),
+            plan,
+            global_limit: request.global_limit,
+        };
+        match self.registry.submit_preallocated(&submit, &admission_ids) {
+            Ok(AdmissionOutcome::Created(created)) => {
+                let job_id = created.job.job_id.clone();
+                self.ensure_job_credential_ownership(&job_id)
+                    .map_err(|error| error.with_operation_id(job_id.clone()))?;
+                Ok(job_id)
+            }
+            Ok(AdmissionOutcome::Existing { job }) => {
+                self.discard_prepared_credential_set(&prepared.prepared_root)?;
+                Ok(job.job_id)
+            }
+            Err(error) => {
+                self.discard_prepared_credential_set(&prepared.prepared_root)?;
+                Err(error)
+            }
+        }
+    }
+
     fn admit_new_task_with_inputs(
         &self,
         request: &TaskRunRequest,

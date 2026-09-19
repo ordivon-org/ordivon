@@ -12,6 +12,7 @@ use std::os::unix::fs::OpenOptionsExt;
 use std::os::windows::ffi::OsStrExt as WindowsOsStrExt;
 use std::path::{Component, Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
+use uuid::Uuid;
 
 use super::{UniversalExecError, UniversalExecErrorCode};
 
@@ -401,12 +402,11 @@ pub(crate) fn write_bytes_atomic(path: &Path, bytes: &[u8]) -> Result<(), Univer
         .ok_or_else(|| invalid("path has no parent", "path"))?;
     fs::create_dir_all(parent).map_err(|error| io_error(parent, "create", error))?;
     let temp = parent.join(format!(
-        ".{}.tmp-{}-{}",
+        ".{}.tmp-{}",
         path.file_name()
             .and_then(|name| name.to_str())
             .unwrap_or("file"),
-        std::process::id(),
-        now_unix_ms()?
+        Uuid::now_v7()
     ));
     let mut file = OpenOptions::new()
         .create_new(true)

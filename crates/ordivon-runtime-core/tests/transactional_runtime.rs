@@ -3395,6 +3395,7 @@ impl IntegrationContext {
                 foreign_references: Vec::new(),
                 input_set_id: None,
                 effective_inputs: Vec::new(),
+                credential_set_id: None,
                 principal: "principal:integration".to_string(),
             },
             global_limit,
