@@ -20,10 +20,6 @@ def _id(prefix: str) -> str:
     return f"{prefix}_{uuid.uuid4().hex}"
 
 
-def _canonical_json(value: Any) -> str:
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-
-
 @dataclass(frozen=True)
 class AgentDefinition:
     id: str
@@ -338,7 +334,7 @@ class ServiceEventStore(_SqliteNode):
                 event.aggregate_id,
                 event.sequence,
                 event.event_type,
-                _canonical_json(event.payload),
+                json.dumps(event.payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False),
                 event.created_at_ns,
             ),
         )
@@ -414,7 +410,7 @@ class ServiceEventStore(_SqliteNode):
                     event.aggregate_id,
                     event.sequence,
                     event.event_type,
-                    _canonical_json(event.payload),
+                    json.dumps(event.payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False),
                     event.created_at_ns,
                 ),
             )

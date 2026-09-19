@@ -34,10 +34,6 @@ def _id(prefix: str) -> str:
     return f"{prefix}_{uuid.uuid4().hex}"
 
 
-def _canonical_json(value: Any) -> str:
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-
-
 def _normalize_strings(values: list[str], field: str) -> tuple[str, ...]:
     if not isinstance(values, list):
         raise ValueError(f"{field} must be a list")
@@ -127,7 +123,7 @@ class CredentialReferenceStore:
                     value.reference,
                     value.issuer,
                     value.resource,
-                    _canonical_json(list(value.requested_scopes)),
+                    json.dumps(list(value.requested_scopes), sort_keys=True, separators=(",", ":"), ensure_ascii=False),
                     value.created_at_ns,
                 ),
             )

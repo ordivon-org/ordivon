@@ -51,10 +51,6 @@ def _id(prefix: str) -> str:
     return f"{prefix}_{uuid.uuid4().hex}"
 
 
-def _canonical_json(value: Any) -> str:
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-
-
 def _sha256_text(value: str) -> str:
     return "sha256:" + hashlib.sha256(value.encode("utf-8")).hexdigest()
 
@@ -455,7 +451,7 @@ def _remote_task_verification_create_in_transaction(
     reason: str | None,
     evidence: dict[str, Any],
 ) -> RemoteTaskVerificationRecord:
-    normalized_evidence = json.loads(_canonical_json(evidence))
+    normalized_evidence = json.loads(json.dumps(evidence, sort_keys=True, separators=(",", ":"), ensure_ascii=False))
     event = events.append_once_in_transaction(
         "RemoteVerification",
         task_id,
