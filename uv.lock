@@ -1159,12 +1159,21 @@ nautilus = [
 research = [
     { name = "jsonschema" },
     { name = "mlflow" },
+    { name = "numpy" },
     { name = "pandas" },
     { name = "pandera" },
     { name = "pyarrow" },
+    { name = "scipy" },
 ]
 test = [
+    { name = "jsonschema" },
+    { name = "mlflow" },
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "pandera" },
+    { name = "pyarrow" },
     { name = "pytest" },
+    { name = "scipy" },
 ]
 
 [package.metadata]
@@ -1175,11 +1184,22 @@ nautilus = [{ name = "nautilus-trader", specifier = "==1.231.0" }]
 research = [
     { name = "jsonschema", specifier = "==4.26.0" },
     { name = "mlflow", specifier = "==3.16.1" },
+    { name = "numpy", specifier = "==2.5.3" },
     { name = "pandas", specifier = "==3.0.6" },
     { name = "pandera", specifier = "==0.33.1" },
     { name = "pyarrow", specifier = "==25.0.1" },
+    { name = "scipy", specifier = "==1.18.1" },
 ]
-test = [{ name = "pytest", specifier = "==9.1.1" }]
+test = [
+    { name = "jsonschema", specifier = "==4.26.0" },
+    { name = "mlflow", specifier = "==3.16.1" },
+    { name = "numpy", specifier = "==2.5.3" },
+    { name = "pandas", specifier = "==3.0.6" },
+    { name = "pandera", specifier = "==0.33.1" },
+    { name = "pyarrow", specifier = "==25.0.1" },
+    { name = "pytest", specifier = "==9.1.1" },
+    { name = "scipy", specifier = "==1.18.1" },
+]
 
 [[package]]
 name = "packaging"
