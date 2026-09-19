@@ -609,7 +609,7 @@ class AgentServiceR11:
             "task_graph", "goal_reconciler", "board_projector", "identities",
             "sessions", "session_items", "delegations", "a2a_cards",
             "transport_bindings", "routes",
-            "credential_references", "identity_proof_records", "identity_proofs",
+            "credential_references", "identity_proofs",
             "remote_reconciler", "audit",
         ):
             setattr(self, name, getattr(r10, name))

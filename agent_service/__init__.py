@@ -93,7 +93,6 @@ from .trust import (
     CredentialReferenceStore,
     IdentityProofAdapter,
     IdentityProofCoordinator,
-    IdentityProofRecordStore,
     RemoteCorrelationReconciler,
     RemoteDeliveryObserver,
 )
@@ -155,7 +154,6 @@ __all__ = [
     "HostBoardMcpAdapter",
     "IdentityProofAdapter",
     "IdentityProofCoordinator",
-    "IdentityProofRecordStore",
     "PolicyAdapter",
     "ProviderObservation",
     "RemoteArtifactEvidenceResolver",
