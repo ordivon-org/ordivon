@@ -1227,21 +1227,17 @@ fn validate_execution_provider_snapshot(
             }
         }
         ExecutionProviderContract::WindowsNativeLauncherV1 => {
-            let distribution = snapshot.wsl_distribution.as_deref().ok_or_else(|| {
-                RuntimeError::invalid(
-                    "Windows execution provider requires a WSL distribution",
-                    &format!("{field}.wslDistribution"),
-                )
-            })?;
-            if distribution.is_empty()
-                || !distribution
-                    .bytes()
-                    .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.'))
-            {
-                return Err(RuntimeError::invalid(
-                    "Windows execution provider has an invalid WSL distribution",
-                    &format!("{field}.wslDistribution"),
-                ));
+            if let Some(distribution) = snapshot.wsl_distribution.as_deref() {
+                if distribution.is_empty()
+                    || !distribution.bytes().all(|byte| {
+                        byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.')
+                    })
+                {
+                    return Err(RuntimeError::invalid(
+                        "Windows execution provider has an invalid WSL distribution",
+                        &format!("{field}.wslDistribution"),
+                    ));
+                }
             }
         }
     }

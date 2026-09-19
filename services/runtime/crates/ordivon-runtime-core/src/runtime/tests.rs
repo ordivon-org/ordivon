@@ -6578,6 +6578,46 @@ fn host_dependency_storage_is_recreated_without_advancing_schema_version() {
 }
 
 #[test]
+fn native_windows_execution_provider_does_not_require_wsl_distribution() {
+    let sandbox = Sandbox::new("native-windows-provider-no-wsl", 5_000);
+    let mut submission = request(&sandbox, "request:native-windows-provider-no-wsl", 4);
+    submission.plan.execution_target = ExecutionTarget::WindowsNative;
+    submission.execution_provider = Some(ExecutionProviderSnapshot {
+        contract: ExecutionProviderContract::WindowsNativeLauncherV1,
+        executable_digest: digest(b"native-launcher"),
+        wsl_distribution: None,
+    });
+
+    let created = created(sandbox.registry.submit(&submission).unwrap());
+    assert_eq!(
+        sandbox
+            .registry
+            .execution_provider(&created.job.job_id)
+            .unwrap(),
+        submission.execution_provider
+    );
+}
+
+#[test]
+fn windows_execution_provider_rejects_invalid_present_wsl_distribution() {
+    let sandbox = Sandbox::new("windows-provider-invalid-wsl", 5_000);
+    let mut submission = request(&sandbox, "request:windows-provider-invalid-wsl", 4);
+    submission.plan.execution_target = ExecutionTarget::WindowsNative;
+    submission.execution_provider = Some(ExecutionProviderSnapshot {
+        contract: ExecutionProviderContract::WindowsNativeLauncherV1,
+        executable_digest: digest(b"native-launcher"),
+        wsl_distribution: Some("bad distribution!".to_string()),
+    });
+
+    let error = sandbox.registry.submit(&submission).unwrap_err();
+    assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
+    assert_eq!(
+        error.field.as_deref(),
+        Some("executionProvider.wslDistribution")
+    );
+}
+
+#[test]
 fn execution_provider_contract_must_match_execution_target() {
     let sandbox = Sandbox::new("execution-provider-target", 5_000);
     let mut submission = request(&sandbox, "request:provider-target", 4);
