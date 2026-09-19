@@ -3,15 +3,6 @@ impl Registry {
         self.list_nonterminal_attempts_with_limit(None)
     }
 
-    pub fn list_nonterminal_attempts_bounded(
-        &self,
-        limit: u32,
-    ) -> RuntimeResult<Vec<AttemptRecord>> {
-        if limit == 0 {
-            return Err(RuntimeError::invalid("limit must be positive", "limit"));
-        }
-        self.list_nonterminal_attempts_with_limit(Some(limit))
-    }
 
     fn list_nonterminal_attempts_with_limit(
         &self,
@@ -325,6 +316,7 @@ impl Registry {
         Ok(true)
     }
 
+    #[cfg(test)]
     pub fn inspect_runtime_invariants(&self) -> RuntimeResult<Vec<RuntimeInvariantViolation>> {
         let connection = self.open_connection()?;
         inspect_runtime_invariants_connection(&connection)

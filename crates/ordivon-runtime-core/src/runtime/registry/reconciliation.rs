@@ -105,6 +105,7 @@ impl Registry {
             .map_err(|error| RuntimeError::from_sql(error, "cannot commit reconciliation success"))
     }
 
+    #[cfg(test)]
     pub fn active_reservation_count(&self) -> RuntimeResult<u32> {
         let connection = self.open_connection()?;
         connection

@@ -1,25 +1,4 @@
 impl Registry {
-    pub fn launch_token(&self, attempt_id: &str) -> RuntimeResult<String> {
-        let attempt = self.get_attempt(attempt_id)?;
-        let job = self.get_job(&attempt.job_id)?;
-        let token = sha256_bytes(
-            format!(
-                "runtime-launch-v1\0{}\0{}",
-                attempt.attempt_id, job.operation_digest
-            )
-            .as_bytes(),
-        );
-        if sha256_bytes(token.as_bytes()) != attempt.launch_token_digest {
-            return Err(RuntimeError::new(
-                RuntimeErrorCode::RegistryCorrupt,
-                "stored launch-token digest is inconsistent",
-                Some("launchTokenDigest"),
-                false,
-            ));
-        }
-        Ok(token)
-    }
-
     pub fn mark_bundle_ready(
         &self,
         attempt_id: &str,
