@@ -614,6 +614,32 @@
     },
     {
       "aliases": [
+        "ERPNext CRM"
+      ],
+      "authorityKind": "provider-authority",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "business",
+        "commercialization",
+        "enterprise"
+      ],
+      "id": "erpnext-crm-provider",
+      "identityMode": "rolling-source",
+      "issuer": "Frappe",
+      "lifecycleStatus": "scheduled-for-removal-v17",
+      "observationDigest": "sha256:9ddec85cfe683f0dd62a1fb43e7521fdf7c82de1fef5383083859b2d9c66badb",
+      "recordDigest": "sha256:cf6901d8d69d972785a1e20139043a4ac6d35338421cd731be2bf9f4c85bb25f",
+      "title": "ERPNext CRM provider documentation",
+      "topics": [
+        "crm",
+        "opportunity",
+        "sales",
+        "sales-pipeline"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
         "FAIR",
         "FAIR data principles"
       ],
@@ -667,6 +693,32 @@
         "orders"
       ],
       "versionLabel": "4.4+Errata20030618"
+    },
+    {
+      "aliases": [
+        "Frappe CRM"
+      ],
+      "authorityKind": "provider-authority",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "business",
+        "commercialization",
+        "enterprise"
+      ],
+      "id": "frappe-crm-provider",
+      "identityMode": "rolling-source",
+      "issuer": "Frappe",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:ae1a922710d70093fc65d514f985a9122d1aa5341a0d4eb0212004790d067e14",
+      "recordDigest": "sha256:c8ca0bc30d39425e9591c1345f7c6a8ec7c2fb01be4caa1959aeca1adcde984a",
+      "title": "Frappe CRM provider documentation",
+      "topics": [
+        "crm",
+        "deal-pipeline",
+        "lead-management",
+        "sales"
+      ],
+      "versionLabel": null
     },
     {
       "aliases": [
@@ -779,49 +831,57 @@
     },
     {
       "aliases": [
+        "Complaints handling",
         "ISO 10002"
       ],
       "authorityKind": "international-standard",
-      "currentnessChecked": "2026-09-14",
+      "currentnessChecked": "2026-09-19",
       "domains": [
         "customer",
+        "customer-success",
         "enterprise",
         "management"
       ],
       "id": "iso-10002-2018",
       "identityMode": "versioned",
       "issuer": "ISO",
-      "lifecycleStatus": "published",
-      "observationDigest": "sha256:496d58654979649fe5be3cfa41763958d458d5767e44185a42a84ed311ed9294",
-      "recordDigest": "sha256:6c14943cb6eac1c8d2b065eefc833972cb054d07fb722cb3ff2efb2a5f930a22",
+      "lifecycleStatus": "current-confirmed",
+      "observationDigest": "sha256:92d0a4f85028a5f3648e2a4d5df5eeeefc47a4ab9fb654e2afce751d8028c6dc",
+      "recordDigest": "sha256:3c194e8193020cb53ff1280f718d0533b724eedbd46b738b09524fd5e8a49f63",
       "title": "ISO 10002:2018 — Quality management — Customer satisfaction — Guidelines for complaints handling in organizations",
       "topics": [
         "complaints",
+        "customer-feedback",
         "customer-satisfaction",
+        "customer-success",
         "quality-management"
       ],
       "versionLabel": "2018"
     },
     {
       "aliases": [
+        "Customer satisfaction monitoring",
         "ISO 10004"
       ],
       "authorityKind": "international-standard",
-      "currentnessChecked": "2026-09-14",
+      "currentnessChecked": "2026-09-19",
       "domains": [
         "customer",
+        "customer-success",
         "enterprise",
         "management"
       ],
       "id": "iso-10004-2018",
       "identityMode": "versioned",
       "issuer": "ISO",
-      "lifecycleStatus": "published",
-      "observationDigest": "sha256:fc9376e0ff59267eea836b25a62abbd48586620adf0fb0329f4f01d5b468c398",
-      "recordDigest": "sha256:d90a4c607f31b66cd6a0a52506303ab4b522c357646a667691c37de17a689f5a",
+      "lifecycleStatus": "current-confirmed",
+      "observationDigest": "sha256:57145b426d7ef12ba0667e86b804f30463ef6d8a6f57e30232a2c0b50eeb2629",
+      "recordDigest": "sha256:0b80876a4173a1789a0cb378d6bb5418069ce59b2c41a0df1463e2096df6d1bf",
       "title": "ISO 10004:2018 — Quality management — Customer satisfaction — Guidelines for monitoring and measuring",
       "topics": [
+        "customer-feedback",
         "customer-satisfaction",
+        "customer-success",
         "measurement",
         "quality-management"
       ],
@@ -1072,6 +1132,32 @@
     },
     {
       "aliases": [
+        "ISO 20400:2017",
+        "Sustainable procurement"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "enterprise",
+        "management",
+        "procurement"
+      ],
+      "id": "iso-20400-2017",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "current-confirmed",
+      "observationDigest": "sha256:09c677d11434d1b180333fb9558c191beab62f84a268e18093028bc3fdb93f6a",
+      "recordDigest": "sha256:7977a41c97136d2d23caa51c411fa996aa9ca7c7c06a4a12790c8a3421916989",
+      "title": "ISO 20400:2017 — Sustainable procurement — Guidance",
+      "topics": [
+        "procurement",
+        "supplier-management",
+        "sustainable-procurement"
+      ],
+      "versionLabel": "2017"
+    },
+    {
+      "aliases": [
         "ISO 20652",
         "ISO 20652:2006",
         "PAIMAS"
@@ -1207,6 +1293,33 @@
         "organizational-knowledge"
       ],
       "versionLabel": "2018+Amd1:2022+Amd2:2024"
+    },
+    {
+      "aliases": [
+        "Guidelines on recruitment",
+        "ISO 30405:2023"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "enterprise",
+        "human-resources",
+        "management"
+      ],
+      "id": "iso-30405-2023",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published-current",
+      "observationDigest": "sha256:3e6ca071d805ace781a487846748e6bed8ca9eab6e64450df7f9af98f723bff6",
+      "recordDigest": "sha256:e15e1bc49f0ffd5829fdebf3dc0dbfc4fc5796d1da00f7da89c8ce93f9eb15e3",
+      "title": "ISO 30405:2023 — Human resource management — Guidelines on recruitment",
+      "topics": [
+        "candidate-experience",
+        "hiring",
+        "recruitment",
+        "selection"
+      ],
+      "versionLabel": "2023"
     },
     {
       "aliases": [
@@ -3172,6 +3285,33 @@
     },
     {
       "aliases": [
+        "SaaS Pricing and Packaging",
+        "Stripe SaaS Pricing Guide"
+      ],
+      "authorityKind": "provider-guidance",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "business",
+        "commercialization",
+        "software"
+      ],
+      "id": "stripe-saas-pricing-packaging",
+      "identityMode": "rolling-source",
+      "issuer": "Stripe",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:32dce6e5b8459d721a5373dbfc2def41002e96ebbb5dd18d6fbbc6398615bbac",
+      "recordDigest": "sha256:9acf728eccf3179ffe1943d93985717830b01e189cdf984a0480dfe90f7b4b87",
+      "title": "A Guide to SaaS Pricing and Packaging",
+      "topics": [
+        "packaging",
+        "pricing",
+        "saas-pricing",
+        "value-metric"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
         "Software Heritage persistent identifier",
         "swh:1",
         "SWHID"
@@ -3390,10 +3530,37 @@
         "product-market-fit"
       ],
       "versionLabel": "2017-09-25"
+    },
+    {
+      "aliases": [
+        "How to Sell by Tyler Bosmeny",
+        "YC How to Sell"
+      ],
+      "authorityKind": "professional-guidance",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "business",
+        "commercialization",
+        "startup"
+      ],
+      "id": "yc-how-to-sell-2018",
+      "identityMode": "versioned",
+      "issuer": "Y Combinator",
+      "lifecycleStatus": "current-reference",
+      "observationDigest": "sha256:61b618f992171d1041832ba008119f3ea087170c38b070d6b5635f6957a98555",
+      "recordDigest": "sha256:95580ca3156e14beb3bcb70a1151a3f0dcb4b4e7f23847d91b67472c09770a3e",
+      "title": "How to Sell by Tyler Bosmeny",
+      "topics": [
+        "b2b-sales",
+        "founder-led-sales",
+        "sales",
+        "sales-process"
+      ],
+      "versionLabel": "2018-09-26"
     }
   ],
   "kind": "ordivon.external-authority-discovery-index",
-  "recordCount": 123,
-  "recordsDigest": "sha256:5bf5be79fe9978365e9eabb5d0cf28bf205795ffba771764f3b6a2136a9d12c9",
+  "recordCount": 129,
+  "recordsDigest": "sha256:08426f4714cf0676efba53ac446c697d518cd2b68618748a8e1a5be6256711c9",
   "schemaVersion": 1
 }

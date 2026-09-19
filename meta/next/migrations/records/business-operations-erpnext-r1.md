@@ -6,13 +6,31 @@ Date: 2026-09-13
 
 Use mature ERP/business-system semantics directly rather than creating an Ordivon-native CRM, accounting, sales, project, quality, customer, invoice or general-ledger model.
 
-Current local owner for this capability is ERPNext `16.34.2` / Frappe, deployed as a rootless Podman/Quadlet service under the dedicated `ordivon-erpnext` account.
+Current local **transactional ERP/accounting owner** is ERPNext `16.34.2` / Frappe, deployed as a rootless Podman/Quadlet service under the dedicated `ordivon-erpnext` account.
 
-`BUSINESS_OPERATIONS_ERP_OWNER = ERPNEXT`
+`BUSINESS_OPERATIONS_TRANSACTIONAL_ERP_OWNER = ERPNEXT`
+
+`BUSINESS_OPERATIONS_CRM_PROVIDER = UNBOUND_FOR_NEXT_REAL_PIPELINE`
 
 `BUSINESS_OPERATIONS_CURRENT_WORKLOAD = ACCEPTED`
 
+The 2026-09-13 Opportunity acceptance remains valid historical evidence for the tested ERPNext v16 slice. It is not a decision to build new long-term CRM workflow around ERPNext's built-in CRM module.
+
 This acceptance is deliberately scoped. It proves that the current local substrate can own and preserve a representative business transaction chain. It does not claim that PRC tax filing, banking, payment providers, statutory invoicing, payroll, inventory, procurement or other future company-specific workflows are already configured.
+
+## CRM provider currentness / succession
+
+As of 2026-09-19, Frappe's current ERPNext CRM documentation states that the built-in CRM workspace is scheduled for removal in ERPNext version 17 and recommends evaluating Frappe CRM for a new CRM implementation.
+
+Therefore:
+
+- do not add new Ordivon-specific CRM semantics to preserve the ERPNext CRM module;
+- do not expand the local v16 Opportunity smoke into a long-term CRM dependency merely because it already passed;
+- when the first real sales pipeline appears, evaluate Frappe CRM against the actual founder-led workflow before activation;
+- keep ERPNext's native transactional records such as Quotation, Sales Order, Sales Invoice and accounting lifecycle where they remain the natural owner;
+- migrate provider state only when a real workload requires it; no synthetic CRM migration is justified now.
+
+This is provider succession, not a failure of the historical ERPNext acceptance.
 
 ## Authority boundary
 
@@ -20,7 +38,7 @@ ERPNext owns business facts that belong naturally to the ERP domain, including a
 
 - Company/master data;
 - Customer;
-- Opportunity / CRM records;
+- historical Opportunity/CRM records for the exact accepted ERPNext v16 slice; new CRM pipeline ownership is intentionally unbound until a real workload evaluates the current provider;
 - accounting documents and General Ledger effects;
 - sales/invoice lifecycle;
 - business Project records;

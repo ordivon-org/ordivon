@@ -6,24 +6,22 @@
   },
   "discovery": {
     "aliases": [
-      "ISO 10002",
-      "Complaints handling"
+      "ISO 30405:2023",
+      "Guidelines on recruitment"
     ],
     "domains": [
-      "customer",
-      "customer-success",
       "enterprise",
+      "human-resources",
       "management"
     ],
     "topics": [
-      "complaints",
-      "customer-feedback",
-      "customer-success",
-      "customer-satisfaction",
-      "quality-management"
+      "candidate-experience",
+      "hiring",
+      "recruitment",
+      "selection"
     ]
   },
-  "id": "iso-10002-2018",
+  "id": "iso-30405-2023",
   "identity": {
     "authorityKind": "international-standard",
     "identityMode": "versioned",
@@ -31,16 +29,16 @@
       "id": "iso",
       "name": "ISO"
     },
-    "officialSource": "https://www.iso.org/standard/71580.html",
+    "officialSource": "https://www.iso.org/standard/79488.html",
     "publicationDate": null,
-    "title": "ISO 10002:2018 — Quality management — Customer satisfaction — Guidelines for complaints handling in organizations",
-    "versionLabel": "2018"
+    "title": "ISO 30405:2023 — Human resource management — Guidelines on recruitment",
+    "versionLabel": "2023"
   },
   "kind": "ordivon.external-authority-record",
   "provenance": {
-    "registeredDate": "2026-09-14",
+    "registeredDate": "2026-09-19",
     "registrationBasis": [
-      "docs/ENTERPRISE_OPERATING_MODEL_R1.md"
+      "commercial-practice-externalization-r2"
     ]
   },
   "relations": {

@@ -76,6 +76,21 @@ Treat playbooks and canvases as advisory hypothesis structures, never as custome
 
 Keep early **learning accountability** with the founder/decision owner: direct buyer conversations, first sales/price objections, problem selection, acceptance interpretation and product trade-offs must remain visible to that owner. Agents may research, prepare, transcribe, analyse, draft and execute bounded follow-up; contractors/professionals may perform specialist work. Outsource execution or specialist expertise when economical, but do not outsource the evidence needed to learn whether the business should exist.
 
+### Commercial operating practices remain externally owned
+
+Do not add Ordivon-native Sales, Pricing, Customer-Success, Procurement or Hiring methodologies.
+
+Use the mature owner that matches the actual workload:
+
+- **early B2B / founder-led sales** -> Y Combinator's early-stage sales guidance as advisory practice; preserve direct buyer conversations and actual pipeline outcomes as evidence;
+- **CRM records** -> select the current provider at activation time. ERPNext's built-in CRM is not a safe new long-term dependency because Frappe documents it as scheduled for removal in ERPNext v17; evaluate Frappe CRM for new lead/deal pipeline work while keeping ERPNext transactional selling/accounting records where they remain native;
+- **pricing** -> market evidence first. For a service, use quote/negotiation/paid-pilot evidence and measured delivery economics. For a SaaS-like product, current Stripe pricing/packaging guidance may inform value metric, pricing model, tiers and measurement. No playbook or survey method proves willingness to pay without real buyer evidence;
+- **customer success / feedback** -> ISO 10004 for customer-satisfaction monitoring and measurement when useful, ISO 10002 for real complaint handling, plus actual acceptance, retention, renewal, expansion, churn and referral evidence in the natural CRM/support/business system;
+- **recruitment** -> ISO 30405:2023 for recruitment process guidance when hiring begins; employment-law, payroll and contractual facts stay with applicable law and qualified/local providers;
+- **procurement / suppliers** -> ERPNext Buying or another provider-native purchasing system for supplier/RFQ/PO/invoice facts; ISO 20400 when sustainable-procurement concerns are material; ISO 37500 when the purchase is a material outsourcing relationship.
+
+A method can structure work. It cannot substitute for a customer payment, signed order, employee contract, supplier delivery, or other real-world effect.
+
 ## 3. CONNECT — build the Standard-Native working set
 
 Read `../../../docs/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R2.md` when standards/applicability/currentness or cross-domain evidence matters.

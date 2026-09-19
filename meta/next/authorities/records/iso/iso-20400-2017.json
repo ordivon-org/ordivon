@@ -1,0 +1,51 @@
+{
+  "access": {
+    "fullText": "licensed",
+    "metadata": "public",
+    "note": "Sustainable procurement guidance; apply where sustainability and procurement governance are material."
+  },
+  "discovery": {
+    "aliases": [
+      "ISO 20400:2017",
+      "Sustainable procurement"
+    ],
+    "domains": [
+      "enterprise",
+      "management",
+      "procurement"
+    ],
+    "topics": [
+      "procurement",
+      "supplier-management",
+      "sustainable-procurement"
+    ]
+  },
+  "id": "iso-20400-2017",
+  "identity": {
+    "authorityKind": "international-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "iso",
+      "name": "ISO"
+    },
+    "officialSource": "https://www.iso.org/standard/63026.html",
+    "publicationDate": null,
+    "title": "ISO 20400:2017 — Sustainable procurement — Guidance",
+    "versionLabel": "2017"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-19",
+    "registrationBasis": [
+      "commercial-practice-externalization-r2"
+    ]
+  },
+  "relations": {
+    "related": [
+      "iso-37500-2014"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}
