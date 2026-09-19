@@ -1,5 +1,5 @@
 impl Registry {
-    pub fn mark_bundle_ready(
+    pub(super) fn mark_bundle_ready(
         &self,
         attempt_id: &str,
         expected_row_version: u64,
@@ -42,7 +42,7 @@ impl Registry {
         load_attempt(&connection, attempt_id)
     }
 
-    pub fn mark_dispatch_issued(
+    pub(super) fn mark_dispatch_issued(
         &self,
         attempt_id: &str,
         expected_row_version: u64,
@@ -87,7 +87,7 @@ impl Registry {
         load_attempt(&connection, attempt_id)
     }
 
-    pub fn bind_running(
+    pub(super) fn bind_running(
         &self,
         attempt_id: &str,
         expected_row_version: u64,
@@ -307,7 +307,7 @@ impl Registry {
         load_attempt(&connection, attempt_id)
     }
 
-    pub fn request_deadline_termination(
+    pub(super) fn request_deadline_termination(
         &self,
         attempt_id: &str,
         observed_at_ms: u64,
@@ -379,7 +379,7 @@ impl Registry {
         load_attempt(&connection, attempt_id)
     }
 
-    pub fn request_cancel(
+    pub(super) fn request_cancel(
         &self,
         job_id: &str,
         observed_at_ms: u64,
@@ -602,7 +602,7 @@ impl Registry {
         }
     }
 
-    pub fn commit_terminal(&self, request: &TerminalCommit) -> RuntimeResult<JobProjection> {
+    pub(super) fn commit_terminal(&self, request: &TerminalCommit) -> RuntimeResult<JobProjection> {
         if !request.state.is_terminal() {
             return Err(RuntimeError::invalid(
                 "terminal commit requires a terminal Attempt state",
