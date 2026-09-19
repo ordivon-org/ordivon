@@ -32,7 +32,7 @@ class ReplaySafetyDecisionStoreEliminationR17Tests(unittest.TestCase):
         self.addCleanup(connection.close)
         connection.execute("CREATE TABLE replay_safety_decisions(id TEXT PRIMARY KEY)")
         with self.assertRaisesRegex(RuntimeError, "legacy replay_safety_decisions"):
-            failover.AgentServiceR12._initialize_schema(connection)
+            failover._initialize_schema(connection)
 
 
 if __name__ == "__main__":

@@ -4,7 +4,6 @@ import unittest
 
 import agent_service
 from agent_service.trust import (
-    AgentServiceR10,
     AuditEnvelopeProjector,
     CredentialReferenceStore,
     IdentityProofCoordinator,
@@ -14,7 +13,7 @@ from agent_service.trust import (
 
 class AgentServiceTrustPublicApiR10Tests(unittest.TestCase):
     def test_package_exports_r10_trust_and_remote_bricks(self) -> None:
-        self.assertIs(agent_service.AgentServiceR10, AgentServiceR10)
+        self.assertFalse(hasattr(agent_service, "AgentServiceR10"))
         self.assertIs(agent_service.CredentialReferenceStore, CredentialReferenceStore)
         self.assertFalse(hasattr(agent_service, "IdentityProofAdapter"))
         self.assertFalse(hasattr(agent_service, "IdentityProofRecordStore"))

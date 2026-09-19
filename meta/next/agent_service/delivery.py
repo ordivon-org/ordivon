@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .semantics import AgentServiceR8, DelegationEnvelope
+from .semantics import DelegationEnvelope
 from .slice1 import ServiceEvent, ServiceEventStore
 
 
@@ -666,75 +666,3 @@ def _initialize_schema(connection: sqlite3.Connection) -> None:
             "ALTER TABLE transport_bindings ADD COLUMN protocol_version TEXT"
         )
     connection.commit()
-
-
-class AgentServiceR9:
-    """R9 composition: governed route binding and delivery receipts over R8 semantics."""
-
-    def __init__(
-        self,
-        r8: AgentServiceR8,
-        *,
-        policy_adapter: Any | None,
-        delivery_adapters: dict[str, Any],
-    ) -> None:
-        self._r8 = r8
-        self._connection = r8._connection
-        for name in (
-            "definitions", "revisions", "instances", "placements", "events",
-            "reconciler", "tasks", "assignments", "planner", "execution_activator", "completion",
-            "goals", "goal_graph_guard", "goal_task_links", "task_dependencies",
-            "task_readiness", "task_graph", "goal_planner", "goal_reconciler",
-            "board_projector", "identities", "sessions", "session_items",
-            "delegations", "a2a_cards",
-        ):
-            setattr(self, name, getattr(r8, name))
-        self.transport_bindings = TransportBindingStore(self._connection)
-        self.routes = DelegationRoutePlanner(
-            self._connection,
-            self.delegations,
-            self.events,
-            policy_adapter,
-            self.transport_bindings,
-        )
-        self.delivery = DeliveryCoordinator(
-            self.delegations,
-            self.transport_bindings,
-            self.events,
-            delivery_adapters,
-        )
-
-    @classmethod
-    def open(
-        cls,
-        db_path: str | Path,
-        *,
-        carrier_adapter: Any,
-        runtime_adapter: Any,
-        artifact_reader: Any,
-        policy_adapter: Any | None = None,
-        delivery_adapters: dict[str, Any] | None = None,
-        board_adapter: Any | None = None,
-    ) -> "AgentServiceR9":
-        policy_adapter = _require_policy_provider(policy_adapter)
-        delivery_adapters = _require_delivery_providers(delivery_adapters or {})
-        r8 = AgentServiceR8.open(
-            db_path,
-            carrier_adapter=carrier_adapter,
-            runtime_adapter=runtime_adapter,
-            artifact_reader=artifact_reader,
-            board_adapter=board_adapter,
-        )
-        cls._initialize_schema(r8._connection)
-        return cls(
-            r8,
-            policy_adapter=policy_adapter,
-            delivery_adapters=delivery_adapters,
-        )
-
-    @staticmethod
-    def _initialize_schema(connection: sqlite3.Connection) -> None:
-        _initialize_schema(connection)
-
-    def close(self) -> None:
-        self._r8.close()

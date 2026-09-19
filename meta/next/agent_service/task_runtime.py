@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .slice1 import AgentServiceSlice1, ServiceEventStore
+from .slice1 import ServiceEventStore
 
 
 def _now_ns() -> int:
@@ -473,60 +473,3 @@ def _initialize_schema(connection: sqlite3.Connection) -> None:
         """
     )
     connection.commit()
-
-
-class AgentServiceR5:
-    """R4 placement slice plus the R5 Task -> Assignment -> Runtime -> verification slice."""
-
-    def __init__(self, placement: AgentServiceSlice1, runtime_adapter: Any) -> None:
-        runtime_adapter = _require_runtime_provider(runtime_adapter)
-        self._placement = placement
-        self._connection = placement._connection
-        self._closed = False
-        self.definitions = placement.definitions
-        self.revisions = placement.revisions
-        self.instances = placement.instances
-        self.placements = placement.placements
-        self.events = placement.events
-        self.reconciler = placement.reconciler
-        self.tasks = TaskStore(self._connection, self.events)
-        self.assignments = AssignmentStore(self._connection)
-        self.planner = AssignmentPlanner(
-            self._connection,
-            self.tasks,
-            self.assignments,
-            self.instances,
-            self.events,
-        )
-        self.verifier = SemanticVerifier()
-        self.activator = AssignmentActivator(
-            self._connection,
-            self.tasks,
-            self.assignments,
-            self.events,
-            runtime_adapter,
-            self.verifier,
-        )
-
-    @classmethod
-    def open(
-        cls,
-        db_path: str | Path,
-        *,
-        carrier_adapter: Any,
-        runtime_adapter: Any,
-    ) -> "AgentServiceR5":
-        _require_runtime_provider(runtime_adapter)
-        placement = AgentServiceSlice1.open(db_path, carrier_adapter=carrier_adapter)
-        cls._initialize_schema(placement._connection)
-        return cls(placement, runtime_adapter)
-
-    @staticmethod
-    def _initialize_schema(connection: sqlite3.Connection) -> None:
-        _initialize_schema(connection)
-
-    def close(self) -> None:
-        if self._closed:
-            return
-        self._closed = True
-        self._placement.close()

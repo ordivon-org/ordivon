@@ -45,7 +45,7 @@ class TransportCredentialBindingStoreEliminationR20Tests(unittest.TestCase):
             "CREATE TABLE transport_credential_bindings(id TEXT PRIMARY KEY)"
         )
         with self.assertRaisesRegex(RuntimeError, "legacy transport_credential_bindings"):
-            credentials.AgentServiceR14._initialize_schema(connection)
+            credentials._initialize_schema(connection)
 
 
 if __name__ == "__main__":

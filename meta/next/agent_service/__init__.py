@@ -3,18 +3,15 @@
 from .service import open_agent_service
 
 from .delivery import (
-    AgentServiceR9,
     DelegationRoutePlanner,
     DeliveryCoordinator,
     TransportBindingStore,
 )
-from .evidence import AgentServiceR6, VerificationRecord
+from .evidence import VerificationRecord
 from .effect_authority import (
-    AgentServiceR15,
     EffectAuthorizedDeliveryCoordinator,
 )
 from .failover import (
-    AgentServiceR12,
     ExecutionClaimTransferCoordinator,
     ExecutionQuiescenceCoordinator,
     ExecutionQuiescenceRequestStore,
@@ -23,7 +20,6 @@ from .failover import (
     TransferAwareDeliveryCoordinator,
 )
 from .goals import (
-    AgentServiceR7,
     BoardProjectionReceipt,
     GoalGraphMutationGuard,
     GoalStore,
@@ -39,7 +35,6 @@ from .local_effect_readers import (
 from .provider_adapters import (
     A2AJsonRpcHttpClient,
     A2AQuiescenceAdapter,
-    AgentServiceR13,
     EffectLedgerEffect,
     EffectLedgerReplaySafetyAdapter,
     EffectLedgerSnapshot,
@@ -51,7 +46,6 @@ from .provider_adapters import (
     RemoteExecutionCompleted,
 )
 from .remote_evidence import (
-    AgentServiceR11,
     ClaimAwareAssignmentPlanner,
     ClaimAwareDeliveryCoordinator,
     RemoteArtifactEvidenceResolver,
@@ -62,26 +56,22 @@ from .runtime_mcp import RuntimeMcpAdapter, RuntimeMcpArtifactReader, RuntimeMcp
 from .semantics import (
     A2AAgentCardProjector,
     AgentIdentityStore,
-    AgentServiceR8,
     DelegationEnvelopeStore,
     SessionItemStore,
     SessionStore,
 )
-from .slice1 import AgentServiceSlice1, ProviderObservation
+from .slice1 import ProviderObservation
 from .task_runtime import (
-    AgentServiceR5,
     RuntimeArtifactDescriptor,
     RuntimeJobObservation,
     RuntimeJobRef,
 )
 from .transport_credentials import (
-    AgentServiceR14,
     BoundCredentialHeaderProvider,
     CredentialHeaderMaterial,
     TransportCredentialBindingCoordinator,
 )
 from .trust import (
-    AgentServiceR10,
     AuditEnvelopeProjector,
     CredentialReferenceStore,
     IdentityProofCoordinator,
@@ -90,14 +80,12 @@ from .trust import (
 
 __all__ = [
     "open_agent_service",
-    "AgentServiceR15",
     "EffectAuthorizedDeliveryCoordinator",
     "BrowserlessTurnEffectLedgerReader",
     "BrowserlessTurnEffectCoordinate",
     "TransportCredentialBindingCoordinator",
     "CredentialHeaderMaterial",
     "BoundCredentialHeaderProvider",
-    "AgentServiceR14",
     "RemoteExecutionCompleted",
     "QuiescencePending",
     "ProviderRemoteError",
@@ -107,20 +95,10 @@ __all__ = [
     "EffectLedgerSnapshot",
     "EffectLedgerReplaySafetyAdapter",
     "EffectLedgerEffect",
-    "AgentServiceR13",
     "A2AQuiescenceAdapter",
     "A2AJsonRpcHttpClient",
     "A2AAgentCardProjector",
     "AgentIdentityStore",
-    "AgentServiceSlice1",
-    "AgentServiceR5",
-    "AgentServiceR6",
-    "AgentServiceR7",
-    "AgentServiceR8",
-    "AgentServiceR9",
-    "AgentServiceR10",
-    "AgentServiceR11",
-    "AgentServiceR12",
     "AuditEnvelopeProjector",
     "BoardProjectionReceipt",
     "ClaimAwareAssignmentPlanner",

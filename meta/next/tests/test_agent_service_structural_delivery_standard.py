@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from tests.agent_service_test_support import open_current
+
 import tempfile
 import unittest
 from pathlib import Path
 
 import agent_service
-from agent_service.delivery import AgentServiceR9, DeliveryObservation, PolicyObservation
+from agent_service.delivery import DeliveryObservation, PolicyObservation
 from agent_service.evidence import RuntimeArtifactPayload
 from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
@@ -72,7 +74,7 @@ class StructuralDeliveryStandardTests(unittest.TestCase):
 
     def test_plain_policy_and_delivery_providers_are_accepted(self):
         with tempfile.TemporaryDirectory() as td:
-            service = AgentServiceR9.open(
+            service = open_current(
                 Path(td) / "service.db",
                 carrier_adapter=Carrier(),
                 runtime_adapter=Runtime(),
@@ -86,7 +88,7 @@ class StructuralDeliveryStandardTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             db = Path(td) / "service.db"
             with self.assertRaises(TypeError):
-                AgentServiceR9.open(
+                open_current(
                     db,
                     carrier_adapter=Carrier(),
                     runtime_adapter=Runtime(),
@@ -99,7 +101,7 @@ class StructuralDeliveryStandardTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             db = Path(td) / "service.db"
             with self.assertRaises(TypeError):
-                AgentServiceR9.open(
+                open_current(
                     db,
                     carrier_adapter=Carrier(),
                     runtime_adapter=Runtime(),

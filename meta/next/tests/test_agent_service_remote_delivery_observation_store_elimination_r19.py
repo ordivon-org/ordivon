@@ -32,7 +32,7 @@ class RemoteDeliveryObservationStoreEliminationR19Tests(unittest.TestCase):
         self.addCleanup(connection.close)
         connection.execute("CREATE TABLE remote_delivery_observations(id TEXT PRIMARY KEY)")
         with self.assertRaisesRegex(RuntimeError, "legacy remote_delivery_observations"):
-            trust.AgentServiceR10._initialize_schema(connection)
+            trust._initialize_schema(connection)
 
 
 if __name__ == "__main__":

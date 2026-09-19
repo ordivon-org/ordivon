@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from tests.agent_service_test_support import open_current
+
 import hashlib
 import tempfile
 import unittest
@@ -10,14 +12,10 @@ from agent_service.delivery import (
     PolicyObservation,
 )
 from agent_service.evidence import ArtifactDigestMismatch, RuntimeArtifactPayload
-from agent_service.remote_evidence import (
-    AgentServiceR11,
-    RemoteArtifactPayload,
-    _remote_task_verification_get_by_task,
-)
+from agent_service.remote_evidence import RemoteArtifactPayload, _remote_task_verification_get_by_task
 from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
-from agent_service.trust import AgentServiceR10, RemoteProviderObservation
+from agent_service.trust import RemoteProviderObservation
 
 
 def digest(text: str) -> str:
@@ -133,9 +131,9 @@ class AgentServiceRemoteEvidenceR11Tests(unittest.TestCase):
         delivery: RecordingDelivery | None = None,
         remote_observer: object | None = None,
         artifact_reader: object | None = None,
-    ) -> AgentServiceR11:
+    ) -> object:
         delivery = delivery or RecordingDelivery()
-        service = AgentServiceR11.open(
+        service = open_current(
             db,
             carrier_adapter=ReadyCarrier(),
             runtime_adapter=FakeRuntime(),
@@ -156,7 +154,7 @@ class AgentServiceRemoteEvidenceR11Tests(unittest.TestCase):
         self.addCleanup(service.close)
         return service
 
-    def _agent(self, service: AgentServiceR11, name: str, *, routes=None):
+    def _agent(self, service: object, name: str, *, routes=None):
         definition = service.definitions.create(name)
         revision = service.revisions.create(definition.id, {
             "name": name,
@@ -176,7 +174,7 @@ class AgentServiceRemoteEvidenceR11Tests(unittest.TestCase):
         service.reconciler.reconcile(instance.id)
         return revision, identity, instance
 
-    def _task(self, service: AgentServiceR11, revision_id: str, label: str = "review"):
+    def _task(self, service: object, revision_id: str, label: str = "review"):
         return service.tasks.create(
             description=label,
             required_revision_id=revision_id,
@@ -184,7 +182,7 @@ class AgentServiceRemoteEvidenceR11Tests(unittest.TestCase):
             acceptance={"kind":"runtime_artifact_text_contains","artifactKind":"review-markdown","value":"ACCEPTED"},
         )
 
-    def _remote_setup(self, service: AgentServiceR11, *, with_goal: bool = False):
+    def _remote_setup(self, service: object, *, with_goal: bool = False):
         source_revision, source_identity, source_instance = self._agent(service, "source")
         target_revision, target_identity, _ = self._agent(
             service,
@@ -444,7 +442,7 @@ class AgentServiceRemoteEvidenceR11Tests(unittest.TestCase):
             self.assertEqual(record.id, replay.id)
             first.close()
 
-            second = AgentServiceR11.open(
+            second = open_current(
                 db,
                 carrier_adapter=ReadyCarrier(),
                 runtime_adapter=FakeRuntime(),
@@ -460,11 +458,11 @@ class AgentServiceRemoteEvidenceR11Tests(unittest.TestCase):
             self.assertEqual(second.tasks.get(task.id).state, "SUCCEEDED")
 
 
-    def test_r10_existing_delivery_receipt_is_adopted_without_remote_resend(self) -> None:
+    def test_existing_delivery_receipt_survives_restart_without_remote_resend(self) -> None:
         delivery = RecordingDelivery()
         with tempfile.TemporaryDirectory() as tmp:
             db = Path(tmp) / "service.db"
-            first = AgentServiceR10.open(
+            first = open_current(
                 db,
                 carrier_adapter=ReadyCarrier(),
                 runtime_adapter=FakeRuntime(),
@@ -475,11 +473,11 @@ class AgentServiceRemoteEvidenceR11Tests(unittest.TestCase):
             )
             _, task, _, _, a2a, _ = self._remote_setup(first)
             old_receipt = first.delivery.deliver(a2a.id)
-            self.assertEqual(first.tasks.get(task.id).state, "PENDING")
+            self.assertEqual(first.tasks.get(task.id).state, "RUNNING")
             calls_before_upgrade = len(delivery.calls)
             first.close()
 
-            second = AgentServiceR11.open(
+            second = open_current(
                 db,
                 carrier_adapter=ReadyCarrier(),
                 runtime_adapter=FakeRuntime(),

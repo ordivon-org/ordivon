@@ -8,7 +8,6 @@ from agent_service.local_effect_readers import (
     BrowserlessTurnEffectLedgerReader,
 )
 from agent_service.transport_credentials import (
-    AgentServiceR14,
     BoundCredentialHeaderProvider,
     CredentialHeaderMaterial,
     TransportCredentialBindingCoordinator,
@@ -17,7 +16,7 @@ from agent_service.transport_credentials import (
 
 class AgentServiceR14PublicApiTests(unittest.TestCase):
     def test_package_exports_r14_bricks(self) -> None:
-        self.assertIs(agent_service.AgentServiceR14, AgentServiceR14)
+        self.assertFalse(hasattr(agent_service, "AgentServiceR14"))
         self.assertFalse(hasattr(agent_service, "TransportCredentialBindingStore"))
         self.assertIs(
             agent_service.TransportCredentialBindingCoordinator,

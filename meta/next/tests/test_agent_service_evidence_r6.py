@@ -1,17 +1,14 @@
 from __future__ import annotations
 
+from tests.agent_service_test_support import open_current
+
 import hashlib
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from agent_service.evidence import (
-    AgentServiceR6,
-    ArtifactDigestMismatch,
-    RuntimeArtifactPayload,
-    _verification_record_list_for_task,
-)
+from agent_service.evidence import ArtifactDigestMismatch, RuntimeArtifactPayload, _verification_record_list_for_task
 from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import RuntimeArtifactDescriptor, RuntimeJobObservation, RuntimeJobRef
 
@@ -68,8 +65,8 @@ def sha256_text(value: str) -> str:
 
 
 class AgentServiceEvidenceR6Tests(unittest.TestCase):
-    def _open(self, db: Path, runtime: FakeRuntime, artifacts: FakeArtifactReader) -> AgentServiceR6:
-        service = AgentServiceR6.open(
+    def _open(self, db: Path, runtime: FakeRuntime, artifacts: FakeArtifactReader) -> object:
+        service = open_current(
             db,
             carrier_adapter=ReadyCarrier(),
             runtime_adapter=runtime,
@@ -78,14 +75,14 @@ class AgentServiceEvidenceR6Tests(unittest.TestCase):
         self.addCleanup(service.close)
         return service
 
-    def _ready_agent(self, service: AgentServiceR6):
+    def _ready_agent(self, service: object):
         definition = service.definitions.create("worker")
         revision = service.revisions.create(definition.id, {"harness": "test"})
         instance = service.instances.create("request-r6-worker", revision.id)
         service.reconciler.reconcile(instance.id)
         return revision, instance
 
-    def _task(self, service: AgentServiceR6, revision_id: str, acceptance: dict):
+    def _task(self, service: object, revision_id: str, acceptance: dict):
         return service.tasks.create(
             description="verify evidence",
             required_revision_id=revision_id,

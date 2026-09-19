@@ -126,5 +126,6 @@ class AgentServiceR5PublicApiTests(unittest.TestCase):
         import agent_service
 
         self.assertIs(agent_service.RuntimeMcpAdapter, RuntimeMcpAdapter)
-        self.assertTrue(hasattr(agent_service, "AgentServiceR5"))
+        self.assertFalse(hasattr(agent_service, "AgentServiceR5"))
+        self.assertTrue(hasattr(agent_service, "open_agent_service"))
         self.assertFalse(hasattr(agent_service, "RuntimeAdapter"))

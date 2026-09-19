@@ -1,16 +1,12 @@
 from __future__ import annotations
 
+from tests.agent_service_test_support import open_current
+
 import tempfile
 import unittest
 from pathlib import Path
 
-from agent_service.delivery import (
-    AgentServiceR9,
-    DeliveryObservation,
-    PolicyObservation,
-    _delivery_receipt_get,
-    _delivery_receipt_list_for_binding,
-)
+from agent_service.delivery import DeliveryObservation, PolicyObservation, _delivery_receipt_get, _delivery_receipt_list_for_binding
 from agent_service.evidence import RuntimeArtifactPayload
 from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
@@ -105,8 +101,8 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
         *,
         policy: object | None = None,
         deliveries: dict[str] | None = None,
-    ) -> AgentServiceR9:
-        service = AgentServiceR9.open(
+    ) -> object:
+        service = open_current(
             db,
             carrier_adapter=ReadyCarrier(),
             runtime_adapter=FakeRuntime(),
@@ -117,7 +113,7 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
         self.addCleanup(service.close)
         return service
 
-    def _agent(self, service: AgentServiceR9, name: str, *, routes=None):
+    def _agent(self, service: object, name: str, *, routes=None):
         definition = service.definitions.create(name)
         revision = service.revisions.create(definition.id, {
             "name": name,
@@ -137,7 +133,7 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
         service.reconciler.reconcile(instance.id)
         return revision, identity, instance
 
-    def _setup_delegation(self, service: AgentServiceR9):
+    def _setup_delegation(self, service: object):
         source_revision, source_identity, source_instance = self._agent(service, "source")
         target_revision, target_identity, _ = self._agent(
             service,
@@ -381,7 +377,7 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
             receipt = first.delivery.deliver(binding.id)
             first.close()
 
-            second = AgentServiceR9.open(
+            second = open_current(
                 db,
                 carrier_adapter=ReadyCarrier(),
                 runtime_adapter=FakeRuntime(),

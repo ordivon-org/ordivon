@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from tests.agent_service_test_support import open_current
+
 import tempfile
 import unittest
 from pathlib import Path
 
-from agent_service.slice1 import AgentServiceSlice1, ProviderObservation
-from agent_service.task_runtime import AgentServiceR5, RuntimeJobObservation, RuntimeJobRef
+from agent_service.slice1 import ProviderObservation
+from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
 
 
 class Carrier:
@@ -45,7 +47,7 @@ class StorageJsonStandardTests(unittest.TestCase):
 
     def test_storage_roundtrip_preserves_json_number_type(self):
         with tempfile.TemporaryDirectory() as td:
-            service = AgentServiceR5.open(
+            service = open_current(
                 Path(td) / "service.db",
                 carrier_adapter=Carrier(),
                 runtime_adapter=Runtime(),
@@ -65,7 +67,7 @@ class StorageJsonStandardTests(unittest.TestCase):
 
     def test_non_json_values_remain_rejected(self):
         with tempfile.TemporaryDirectory() as td:
-            service = AgentServiceR5.open(
+            service = open_current(
                 Path(td) / "service.db",
                 carrier_adapter=Carrier(),
                 runtime_adapter=Runtime(),

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from tests.agent_service_test_support import open_current
+
 import hashlib
 import tempfile
 import unittest
@@ -10,7 +12,7 @@ import rfc8785
 from agent_service.carriers.agent_automation import _digest
 from agent_service.delivery import _route_profiles_from_revision_spec
 from agent_service.local_effect_readers import BrowserlessTurnEffectCoordinate, _evidence_ref
-from agent_service.slice1 import AgentServiceSlice1, ProviderObservation
+from agent_service.slice1 import ProviderObservation
 from agent_service.transport_credentials import _transport_credential_scheme_coordinate
 
 
@@ -36,7 +38,7 @@ class RFC8785IdentityTests(unittest.TestCase):
 
     def test_agent_revision_identity_uses_jcs_number_serialization(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            service = AgentServiceSlice1.open(Path(tmp) / "s.db", carrier_adapter=PlainCarrier())
+            service = open_current(Path(tmp) / "s.db", carrier_adapter=PlainCarrier())
             self.addCleanup(service.close)
             definition = service.definitions.create("jcs")
             spec = {"threshold": 1.0, "nested": {"b": 2, "a": 1}}

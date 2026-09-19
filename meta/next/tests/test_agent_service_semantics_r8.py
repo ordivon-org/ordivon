@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+from tests.agent_service_test_support import open_current
+
 import tempfile
 import unittest
 from pathlib import Path
 
 from agent_service.evidence import RuntimeArtifactPayload
-from agent_service.goals import AgentServiceR7
-from agent_service.semantics import AgentServiceR8
 from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
 
@@ -45,8 +45,8 @@ class NoopArtifactReader:
 
 
 class AgentServiceSemanticsR8Tests(unittest.TestCase):
-    def _open(self, db: Path) -> AgentServiceR8:
-        service = AgentServiceR8.open(
+    def _open(self, db: Path) -> object:
+        service = open_current(
             db,
             carrier_adapter=ReadyCarrier(),
             runtime_adapter=FakeRuntime(),
@@ -55,7 +55,7 @@ class AgentServiceSemanticsR8Tests(unittest.TestCase):
         self.addCleanup(service.close)
         return service
 
-    def _agent(self, service: AgentServiceR8, name: str):
+    def _agent(self, service: object, name: str):
         definition = service.definitions.create(name)
         revision = service.revisions.create(definition.id, {"harness": "r8-test", "name": name, "skills": [{
                 "id": "review",
@@ -74,7 +74,7 @@ class AgentServiceSemanticsR8Tests(unittest.TestCase):
         service.reconciler.reconcile(instance.id)
         return definition, revision, identity, instance
 
-    def _task(self, service: AgentServiceR8, revision_id: str, description: str = "task"):
+    def _task(self, service: object, revision_id: str, description: str = "task"):
         return service.tasks.create(
             description=description,
             required_revision_id=revision_id,
@@ -425,7 +425,7 @@ class AgentServiceSemanticsR8Tests(unittest.TestCase):
             )
             first.close()
 
-            second = AgentServiceR8.open(
+            second = open_current(
                 db,
                 carrier_adapter=ReadyCarrier(),
                 runtime_adapter=FakeRuntime(),
@@ -446,8 +446,8 @@ if __name__ == "__main__":
 
 
 class AgentServiceDelegationScopeR8Tests(unittest.TestCase):
-    def _open(self, db: Path) -> AgentServiceR8:
-        service = AgentServiceR8.open(
+    def _open(self, db: Path) -> object:
+        service = open_current(
             db,
             carrier_adapter=ReadyCarrier(),
             runtime_adapter=FakeRuntime(),
@@ -456,7 +456,7 @@ class AgentServiceDelegationScopeR8Tests(unittest.TestCase):
         self.addCleanup(service.close)
         return service
 
-    def _agent(self, service: AgentServiceR8, name: str):
+    def _agent(self, service: object, name: str):
         definition = service.definitions.create(name)
         revision = service.revisions.create(definition.id, {"harness":"r8", "name":name, "skills": [{
                 "id": "review",
@@ -471,7 +471,7 @@ class AgentServiceDelegationScopeR8Tests(unittest.TestCase):
         service.reconciler.reconcile(instance.id)
         return revision, identity, instance
 
-    def _task(self, service: AgentServiceR8, revision_id: str, label: str):
+    def _task(self, service: object, revision_id: str, label: str):
         return service.tasks.create(
             description=label,
             required_revision_id=revision_id,

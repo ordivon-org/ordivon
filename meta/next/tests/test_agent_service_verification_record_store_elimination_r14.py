@@ -29,7 +29,7 @@ class VerificationRecordStoreEliminationR14Tests(unittest.TestCase):
         self.addCleanup(connection.close)
         connection.execute("CREATE TABLE task_verifications(id TEXT PRIMARY KEY)")
         with self.assertRaisesRegex(RuntimeError, "legacy task_verifications"):
-            evidence.AgentServiceR6._initialize_schema(connection)
+            evidence._initialize_schema(connection)
 
 
 if __name__ == "__main__":

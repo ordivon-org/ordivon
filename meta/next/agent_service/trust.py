@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Any
 
 from .delivery import (
-    AgentServiceR9,
     TransportBinding,
     _delivery_receipt_get_by_binding,
 )
@@ -663,83 +662,3 @@ def _initialize_schema(connection: sqlite3.Connection) -> None:
         """
     )
     connection.commit()
-
-
-class AgentServiceR10:
-    """R10: credential-reference/identity-proof boundary plus remote lifecycle observations."""
-
-    def __init__(
-        self,
-        r9: AgentServiceR9,
-        *,
-        identity_proof_adapter: Any | None,
-        remote_delivery_observers: dict[str, Any],
-    ) -> None:
-        self._r9 = r9
-        self._connection = r9._connection
-        for name in (
-            "definitions", "revisions", "instances", "placements", "events",
-            "reconciler", "tasks", "assignments", "planner", "execution_activator", "completion",
-            "goals", "goal_graph_guard", "goal_task_links", "task_dependencies",
-            "task_readiness", "task_graph", "goal_planner", "goal_reconciler",
-            "board_projector", "identities", "sessions", "session_items",
-            "delegations", "a2a_cards",
-            "transport_bindings", "routes", "delivery",
-        ):
-            setattr(self, name, getattr(r9, name))
-        self.credential_references = CredentialReferenceStore(self._connection)
-        self.identity_proofs = IdentityProofCoordinator(
-            self.identities,
-            self.credential_references,
-            self.events,
-            identity_proof_adapter,
-        )
-        self.remote_reconciler = RemoteCorrelationReconciler(
-            self.delegations,
-            self.transport_bindings,
-            self.events,
-            remote_delivery_observers,
-        )
-        self.audit = AuditEnvelopeProjector(
-            self.events,
-            self.transport_bindings,
-            self.events,
-            self.delegations,
-        )
-
-    @classmethod
-    def open(
-        cls,
-        db_path: str | Path,
-        *,
-        carrier_adapter: Any,
-        runtime_adapter: Any,
-        artifact_reader: Any,
-        policy_adapter: Any | None = None,
-        delivery_adapters: dict[str] | None = None,
-        identity_proof_adapter: Any | None = None,
-        remote_delivery_observers: dict[str, Any] | None = None,
-        board_adapter: Any | None = None,
-    ) -> "AgentServiceR10":
-        r9 = AgentServiceR9.open(
-            db_path,
-            carrier_adapter=carrier_adapter,
-            runtime_adapter=runtime_adapter,
-            artifact_reader=artifact_reader,
-            policy_adapter=policy_adapter,
-            delivery_adapters=delivery_adapters or {},
-            board_adapter=board_adapter,
-        )
-        cls._initialize_schema(r9._connection)
-        return cls(
-            r9,
-            identity_proof_adapter=identity_proof_adapter,
-            remote_delivery_observers=remote_delivery_observers or {},
-        )
-
-    @staticmethod
-    def _initialize_schema(connection: sqlite3.Connection) -> None:
-        _initialize_schema(connection)
-
-    def close(self) -> None:
-        self._r9.close()

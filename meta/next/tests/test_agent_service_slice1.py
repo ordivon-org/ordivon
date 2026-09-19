@@ -1,14 +1,13 @@
 from __future__ import annotations
 
+from tests.agent_service_test_support import open_current
+
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from agent_service.slice1 import (
-    AgentServiceSlice1,
-        ProviderObservation,
-)
+from agent_service.slice1 import ProviderObservation
 
 
 class RecordingHostAdapter:
@@ -34,8 +33,8 @@ class RecordingHostAdapter:
 
 
 class AgentServiceSlice1Tests(unittest.TestCase):
-    def _open(self, db: Path, host: RecordingHostAdapter | None = None) -> AgentServiceSlice1:
-        service = AgentServiceSlice1.open(db, carrier_adapter=host or RecordingHostAdapter())
+    def _open(self, db: Path, host: RecordingHostAdapter | None = None) -> object:
+        service = open_current(db, carrier_adapter=host or RecordingHostAdapter())
         self.addCleanup(service.close)
         return service
 

@@ -31,7 +31,7 @@ class RemoteTaskVerificationStoreEliminationR15Tests(unittest.TestCase):
         self.addCleanup(connection.close)
         connection.execute("CREATE TABLE remote_task_verifications(id TEXT PRIMARY KEY)")
         with self.assertRaisesRegex(RuntimeError, "legacy remote_task_verifications"):
-            remote_evidence.AgentServiceR11._initialize_schema(connection)
+            remote_evidence._initialize_schema(connection)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from tests.agent_service_test_support import open_current
+
 import tempfile
 import unittest
 from pathlib import Path
@@ -7,8 +9,8 @@ from pathlib import Path
 import agent_service
 from agent_service.runtime_mcp import RuntimeMcpAdapter, RuntimeMcpArtifactReader
 from agent_service.slice1 import ProviderObservation
-from agent_service.task_runtime import AgentServiceR5, RuntimeJobObservation, RuntimeJobRef
-from agent_service.evidence import AgentServiceR6, RuntimeArtifactPayload
+from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
+from agent_service.evidence import RuntimeArtifactPayload
 
 
 class Carrier:
@@ -55,7 +57,7 @@ class StructuralRuntimeStandardTests(unittest.TestCase):
 
     def test_plain_runtime_is_accepted(self):
         with tempfile.TemporaryDirectory() as td:
-            service = AgentServiceR5.open(
+            service = open_current(
                 Path(td) / "service.db",
                 carrier_adapter=Carrier(),
                 runtime_adapter=PlainRuntime(),
@@ -70,7 +72,7 @@ class StructuralRuntimeStandardTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             db = Path(td) / "service.db"
             with self.assertRaises(TypeError):
-                AgentServiceR5.open(
+                open_current(
                     db,
                     carrier_adapter=Carrier(),
                     runtime_adapter=MissingObserve(),
@@ -79,7 +81,7 @@ class StructuralRuntimeStandardTests(unittest.TestCase):
 
     def test_plain_artifact_reader_is_accepted(self):
         with tempfile.TemporaryDirectory() as td:
-            service = AgentServiceR6.open(
+            service = open_current(
                 Path(td) / "service.db",
                 carrier_adapter=Carrier(),
                 runtime_adapter=PlainRuntime(),
@@ -94,7 +96,7 @@ class StructuralRuntimeStandardTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             db = Path(td) / "service.db"
             with self.assertRaises(TypeError):
-                AgentServiceR6.open(
+                open_current(
                     db,
                     carrier_adapter=Carrier(),
                     runtime_adapter=PlainRuntime(),

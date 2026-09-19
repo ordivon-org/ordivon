@@ -1,14 +1,12 @@
 from __future__ import annotations
 
+from tests.agent_service_test_support import open_current
+
 import tempfile
 import unittest
 from pathlib import Path
 
-from agent_service.goals import (
-    AgentServiceR7,
-    BoardMessageRef,
-    _board_projection_receipt_get_by_event,
-)
+from agent_service.goals import BoardMessageRef, _board_projection_receipt_get_by_event
 from agent_service.evidence import RuntimeArtifactPayload
 from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
@@ -75,9 +73,9 @@ class FakeBoard:
 
 
 class AgentServiceGoalR7Tests(unittest.TestCase):
-    def _open(self, db: Path, board: FakeBoard | None = None) -> tuple[AgentServiceR7, FakeRuntime]:
+    def _open(self, db: Path, board: FakeBoard | None = None) -> tuple[object, FakeRuntime]:
         runtime = FakeRuntime()
-        service = AgentServiceR7.open(
+        service = open_current(
             db,
             carrier_adapter=ReadyCarrier(),
             runtime_adapter=runtime,
@@ -87,14 +85,14 @@ class AgentServiceGoalR7Tests(unittest.TestCase):
         self.addCleanup(service.close)
         return service, runtime
 
-    def _ready_revision(self, service: AgentServiceR7) -> str:
+    def _ready_revision(self, service: object) -> str:
         definition = service.definitions.create("worker")
         revision = service.revisions.create(definition.id, {"harness": "test"})
         instance = service.instances.create("request-r7-worker", revision.id)
         service.reconciler.reconcile(instance.id)
         return revision.id
 
-    def _task(self, service: AgentServiceR7, revision_id: str, label: str):
+    def _task(self, service: object, revision_id: str, label: str):
         return service.tasks.create(
             description=label,
             required_revision_id=revision_id,
@@ -293,7 +291,7 @@ class AgentServiceGoalR7Tests(unittest.TestCase):
             first.task_graph.add_dependency(b.id, a.id)
             first.close()
 
-            second = AgentServiceR7.open(
+            second = open_current(
                 db,
                 carrier_adapter=ReadyCarrier(),
                 runtime_adapter=FakeRuntime(),
@@ -314,7 +312,7 @@ if __name__ == "__main__":
 class AgentServiceGoalGraphFreezeTests(unittest.TestCase):
     def _service(self, db: Path):
         runtime = FakeRuntime()
-        service = AgentServiceR7.open(
+        service = open_current(
             db,
             carrier_adapter=ReadyCarrier(),
             runtime_adapter=runtime,
@@ -327,7 +325,7 @@ class AgentServiceGoalGraphFreezeTests(unittest.TestCase):
         service.reconciler.reconcile(instance.id)
         return service, revision.id
 
-    def _task(self, service: AgentServiceR7, revision_id: str, label: str):
+    def _task(self, service: object, revision_id: str, label: str):
         return service.tasks.create(
             description=label,
             required_revision_id=revision_id,
@@ -372,7 +370,7 @@ class AgentServiceBoardCatchupTests(unittest.TestCase):
         board = FakeBoard()
         with tempfile.TemporaryDirectory() as tmp:
             runtime = FakeRuntime()
-            service = AgentServiceR7.open(
+            service = open_current(
                 Path(tmp) / "service.db",
                 carrier_adapter=ReadyCarrier(),
                 runtime_adapter=runtime,
@@ -415,7 +413,7 @@ class AgentServiceGoalLegoDecompositionTests(unittest.TestCase):
     def test_goal_graph_exposes_separate_membership_dependency_readiness_and_guard_bricks(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             runtime = FakeRuntime()
-            service = AgentServiceR7.open(
+            service = open_current(
                 Path(tmp) / "service.db",
                 carrier_adapter=ReadyCarrier(),
                 runtime_adapter=runtime,

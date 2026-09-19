@@ -1,18 +1,14 @@
 from __future__ import annotations
 
+from tests.agent_service_test_support import open_current
+
 import tempfile
 import unittest
 from pathlib import Path
 
 from agent_service.delivery import DeliveryObservation, PolicyObservation, _delivery_receipt_create, _delivery_receipt_get_by_binding
 from agent_service.evidence import RuntimeArtifactPayload
-from agent_service.failover import (
-    AgentServiceR12,
-    ExecutionQuiescenceObservation,
-    ReplaySafetyObservation,
-    _replay_safety_decision_get_by_client_request,
-    _execution_quiescence_proof_get_by_client_request,
-)
+from agent_service.failover import ExecutionQuiescenceObservation, ReplaySafetyObservation, _replay_safety_decision_get_by_client_request, _execution_quiescence_proof_get_by_client_request
 from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
 from agent_service.trust import RemoteProviderObservation, _remote_delivery_observation_record
@@ -179,7 +175,7 @@ class AgentServiceFailoverR12Tests(unittest.TestCase):
         delivery: RecordingDelivery | None = None,
         quiescence_adapter: object | None = None,
         replay_safety_adapter: object | None = None,
-    ) -> AgentServiceR12:
+    ) -> object:
         delivery = delivery or RecordingDelivery()
         quiescence_adapters = {}
         if quiescence_adapter is not None:
@@ -187,7 +183,7 @@ class AgentServiceFailoverR12Tests(unittest.TestCase):
                 "a2a-jsonrpc": quiescence_adapter,
                 "mcp": quiescence_adapter,
             }
-        service = AgentServiceR12.open(
+        service = open_current(
             db,
             carrier_adapter=ReadyCarrier(),
             runtime_adapter=FakeRuntime(),
@@ -202,7 +198,7 @@ class AgentServiceFailoverR12Tests(unittest.TestCase):
         self.addCleanup(service.close)
         return service
 
-    def _agent(self, service: AgentServiceR12, name: str, *, routes=None):
+    def _agent(self, service: object, name: str, *, routes=None):
         definition = service.definitions.create(name)
         revision = service.revisions.create(definition.id, {
             "name": name,
@@ -222,7 +218,7 @@ class AgentServiceFailoverR12Tests(unittest.TestCase):
         service.reconciler.reconcile(instance.id)
         return revision, identity, instance
 
-    def _setup(self, service: AgentServiceR12, suffix: str = "main"):
+    def _setup(self, service: object, suffix: str = "main"):
         source_revision, source_identity, source_instance = self._agent(service, f"source-{suffix}")
         target_revision, target_identity, _ = self._agent(
             service,
@@ -279,13 +275,13 @@ class AgentServiceFailoverR12Tests(unittest.TestCase):
         )
         return task, envelope, primary, fallback
 
-    def _deliver_primary(self, service: AgentServiceR12, primary):
+    def _deliver_primary(self, service: object, primary):
         receipt = service.delivery.deliver(primary.id)
         task_id = service.delegations.get(primary.delegation_id).task_id
         self.assertEqual(service.execution_claims.get(task_id).owner_id, primary.id)
         return receipt
 
-    def _failover(self, service: AgentServiceR12, primary, fallback, suffix: str = "ok"):
+    def _failover(self, service: object, primary, fallback, suffix: str = "ok"):
         return service.failover.failover(
             client_failover_request_id=f"r12:failover:{suffix}",
             client_quiescence_request_id=f"r12:quiescence:{suffix}",

@@ -4,7 +4,6 @@ import unittest
 
 import agent_service
 from agent_service.goals import (
-    AgentServiceR7,
     BoardProjectionReceipt,
     GoalGraphMutationGuard,
     GoalStore,
@@ -17,7 +16,7 @@ from agent_service.host_board import HostBoardMcpAdapter
 
 class AgentServiceGoalPublicApiR7Tests(unittest.TestCase):
     def test_package_exports_goal_dag_and_board_bricks(self) -> None:
-        self.assertIs(agent_service.AgentServiceR7, AgentServiceR7)
+        self.assertFalse(hasattr(agent_service, "AgentServiceR7"))
         self.assertIs(agent_service.GoalStore, GoalStore)
         self.assertIs(agent_service.GoalTaskLinkStore, GoalTaskLinkStore)
         self.assertIs(agent_service.TaskDependencyStore, TaskDependencyStore)

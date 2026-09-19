@@ -32,7 +32,7 @@ class ExecutionClaimTransferStoreEliminationR16Tests(unittest.TestCase):
         self.addCleanup(connection.close)
         connection.execute("CREATE TABLE execution_claim_transfers(id TEXT PRIMARY KEY)")
         with self.assertRaisesRegex(RuntimeError, "legacy execution_claim_transfers"):
-            failover.AgentServiceR12._initialize_schema(connection)
+            failover._initialize_schema(connection)
 
 
 if __name__ == "__main__":
