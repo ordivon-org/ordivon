@@ -1,7 +1,9 @@
 import unittest
+from unittest.mock import patch
 
 from ordivon_capital.market.okx_sensor_capture import (
     OkxSensorCaptureError,
+    capture_window,
     completed_open_interest_change,
     parse_open_interest_history,
     parse_round,
@@ -75,6 +77,41 @@ class OkxSensorCaptureTests(unittest.TestCase):
         self.assertEqual(result["endObservedAtMs"], 1200000)
         self.assertEqual(result["openInterestChangePct"], "10.000000")
         self.assertTrue(result["completedBucketsOnly"])
+
+    def test_capture_window_uses_descriptive_microstructure_without_retired_persistence_heuristic(self):
+        rows = [
+            {
+                "observedAtMs": 1000 + i,
+                "openInterest": {"instrumentId": "X", "observedAtMs": 1000 + i, "openInterestUsd": str(100 + i)},
+                "microstructure": {
+                    "instrumentId": "X",
+                    "observedAtMs": 1000 + i,
+                    "bookImbalance": "0",
+                    "tradeBuyShare": "0.5",
+                    "spreadBps": "1",
+                },
+                "marketReference": {"instrumentId": "X", "observedAtMs": 1000 + i},
+            }
+            for i in range(3)
+        ]
+        with (
+            patch("ordivon_capital.market.okx_sensor_capture.capture_round", side_effect=rows),
+            patch("ordivon_capital.market.okx_sensor_capture._request", return_value={}),
+            patch("ordivon_capital.market.okx_sensor_capture.completed_open_interest_change", return_value={}),
+            patch(
+                "ordivon_capital.market.okx_sensor_capture.repeated_microstructure",
+                return_value={"componentId": "repeated-microstructure-summary"},
+            ) as summarize,
+        ):
+            result = capture_window(
+                instrument_id="X",
+                proxy="http://127.0.0.1:19283",
+                rounds=3,
+                interval_seconds=0,
+            )
+        self.assertEqual(result["standing"], "PASS_OKX_REPEATED_SENSOR_WINDOW")
+        summarize.assert_called_once()
+        self.assertEqual(summarize.call_args.kwargs, {"minimum_samples": 3})
 
     def test_parse_round_rejects_provider_error(self):
         with self.assertRaises(OkxSensorCaptureError):

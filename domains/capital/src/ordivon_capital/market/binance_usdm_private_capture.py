@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import argparse
 import json
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
-
+from typing import Any
 
 WRITE_CAPABLE_PERMISSION_FIELDS = (
     "enable_withdrawals",

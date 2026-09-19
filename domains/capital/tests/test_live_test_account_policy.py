@@ -1,6 +1,8 @@
-from pathlib import Path
-import json,subprocess
+import json
+import subprocess
 from decimal import Decimal
+from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1]
 
 def test_live_accounts_may_be_test_accounts_without_becoming_demo():

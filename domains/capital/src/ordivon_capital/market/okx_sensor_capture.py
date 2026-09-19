@@ -2,16 +2,15 @@ from __future__ import annotations
 
 import argparse
 import concurrent.futures
-from decimal import Decimal
 import json
-from pathlib import Path
 import subprocess
 import time
+from decimal import Decimal
+from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
 
 from .market_sensors import open_interest_change, repeated_microstructure
-
 
 BASE_URL = "https://openapi.okx.com"
 ENDPOINTS = {
@@ -282,7 +281,6 @@ def capture_window(
     proxy: str,
     rounds: int = 5,
     interval_seconds: float = 1.0,
-    persistence_ratio: str = "0.75",
 ) -> dict[str, Any]:
     if not instrument_id.strip():
         raise OkxSensorCaptureError("instrument_id is required")
@@ -309,7 +307,6 @@ def capture_window(
     micro = repeated_microstructure(
         [x["microstructure"] for x in captured],
         minimum_samples=3,
-        persistence_ratio=persistence_ratio,
     )
 
     as_of_ms = captured[-1]["observedAtMs"]
@@ -372,7 +369,6 @@ def main() -> int:
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--rounds", type=int, default=5)
     parser.add_argument("--interval-seconds", type=float, default=1.0)
-    parser.add_argument("--persistence-ratio", default="0.75")
     args = parser.parse_args()
 
     result = capture_window(
@@ -380,7 +376,6 @@ def main() -> int:
         proxy=args.proxy,
         rounds=args.rounds,
         interval_seconds=args.interval_seconds,
-        persistence_ratio=args.persistence_ratio,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")

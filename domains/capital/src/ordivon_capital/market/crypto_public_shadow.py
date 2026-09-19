@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import argparse
-from decimal import Decimal
 import hashlib
 import json
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -131,7 +131,7 @@ def analyze(capture_path: Path, transport_binding_path: Path) -> dict[str, Any]:
         if binding.get(field) is not False:
             raise RuntimeError(f"transport binding {field} must remain false")
     expected_authorities={"okxRest","okxWs","binanceSpotRest","binanceSpotWs"}
-    if set((binding.get("authorities") or {})) != expected_authorities:
+    if set(binding.get("authorities") or {}) != expected_authorities:
         raise RuntimeError("Network v2 transport binding does not contain the exact four public-data authorities")
 
     standing = (

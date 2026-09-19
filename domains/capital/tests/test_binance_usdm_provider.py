@@ -1,17 +1,18 @@
 import json
-from pathlib import Path
 import subprocess
+from pathlib import Path
 
 import pytest
-
-from ordivon_capital.market.binance_usdm_public_capture import _book_summary, _current_and_next_session
 
 from ordivon_capital.market.binance_usdm_provider import (
     BinanceUsdmProviderError,
     normalize_exchange_symbol,
     qualify_provider_contract,
 )
-
+from ordivon_capital.market.binance_usdm_public_capture import (
+    _book_summary,
+    _current_and_next_session,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 

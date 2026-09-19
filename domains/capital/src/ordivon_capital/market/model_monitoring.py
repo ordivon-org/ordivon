@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence
 import math
-from statistics import median
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 import numpy as np
 from scipy.stats import ks_2samp, wasserstein_distance

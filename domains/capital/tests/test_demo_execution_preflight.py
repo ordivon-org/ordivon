@@ -1,5 +1,7 @@
+import json
+import subprocess
 from pathlib import Path
-import json, subprocess
+
 ROOT=Path(__file__).resolve().parents[1]
 
 def test_demo_execution_stays_not_admitted():

@@ -3,14 +3,14 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
-from decimal import Decimal
 
+import nautilus_trader
 from nautilus_trader import backtest, config, model, trading
 from nautilus_trader.common import LogLevel
 from nautilus_trader.config import LoggerConfig
-import nautilus_trader
 
 SIM = model.Venue("SIM")
 USD = model.Currency.from_str("USD")

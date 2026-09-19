@@ -1,5 +1,7 @@
+import json
+import subprocess
 from pathlib import Path
-import json, subprocess
+
 ROOT=Path(__file__).resolve().parents[1]
 
 def test_nonlive_provisioning_never_grants_live_write():

@@ -1,5 +1,6 @@
-from pathlib import Path
 import unittest
+from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1]
 class StreamingRunnerPolicyTests(unittest.TestCase):
     def test_public_only_endpoints_and_exact_network_v2_ws_proxies(self):

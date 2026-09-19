@@ -3,15 +3,25 @@ from __future__ import annotations
 import argparse
 import concurrent.futures
 import json
-from pathlib import Path
 import subprocess
 import time
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from pathlib import Path
+from typing import Any
 from urllib.parse import urlencode
 
-from .portfolio_risk import PortfolioRiskError, build_factor_observatory, completed_log_returns, validate_dependence_model
-from .model_monitoring import assess_paired_return_data_quality, build_tail_risk_report, measure_dependence_drift, monitor_dependence_outcomes
-
+from .model_monitoring import (
+    assess_paired_return_data_quality,
+    build_tail_risk_report,
+    measure_dependence_drift,
+    monitor_dependence_outcomes,
+)
+from .portfolio_risk import (
+    PortfolioRiskError,
+    build_factor_observatory,
+    completed_log_returns,
+    validate_dependence_model,
+)
 
 BASE_URL = "https://openapi.okx.com"
 HISTORY_CANDLES = "/api/v5/market/history-candles"

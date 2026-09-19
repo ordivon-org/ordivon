@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 
 class PortfolioCounterfactualError(ValueError):

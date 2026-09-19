@@ -1,8 +1,8 @@
 import fnmatch
 import importlib.util
 import json
-from pathlib import Path
 import subprocess
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CENSUS = json.loads((ROOT / "config/external_owner_census.json").read_text())

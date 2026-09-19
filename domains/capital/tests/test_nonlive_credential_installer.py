@@ -1,4 +1,5 @@
 from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1]
 
 def test_installer_never_accepts_live_mode_or_echoes_values():

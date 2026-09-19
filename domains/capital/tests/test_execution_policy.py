@@ -1,9 +1,14 @@
-from pathlib import Path
 import json
 import tempfile
 import unittest
+from pathlib import Path
 
-from ordivon_capital.market.opa_policy import ExecutionPolicyError, evaluate_execution_policy, enforce_external_write, enforce_non_live
+from ordivon_capital.market.opa_policy import (
+    ExecutionPolicyError,
+    enforce_external_write,
+    enforce_non_live,
+    evaluate_execution_policy,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / "config/execution_policy.json"

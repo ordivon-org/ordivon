@@ -50,7 +50,6 @@ class PortfolioCounterfactualTests(unittest.TestCase):
                 "action": "HEDGE",
                 "instrumentId": "MU",
                 "targetFactor": "memory",
-                "targetFactor": "memory",
                 "signedNotionalDeltaUsd": "-100",
                 "factorLoadings": {"memory": "1"},
                 "sizingBasis": "EXPLICIT_CALLER_COUNTERFACTUAL",

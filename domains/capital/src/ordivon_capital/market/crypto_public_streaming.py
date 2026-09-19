@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-from decimal import Decimal
 import json
 import os
-from pathlib import Path
 import time
+from decimal import Decimal
+from pathlib import Path
 from typing import Any
 
 from websockets.asyncio.client import connect

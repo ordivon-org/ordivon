@@ -2,7 +2,6 @@ from pathlib import Path
 
 from ordivon_capital.market.standards_inventory import validate_inventory
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 

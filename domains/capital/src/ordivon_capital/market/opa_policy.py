@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
-from decimal import Decimal, InvalidOperation
 import subprocess
+from decimal import Decimal, InvalidOperation
+from pathlib import Path
 from typing import Any
 
 

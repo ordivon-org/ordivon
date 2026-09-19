@@ -49,9 +49,7 @@ Input requires repeated observations containing:
 - spread in bps;
 - strictly increasing timestamps.
 
-The caller selects the persistence ratio. A directional standing is emitted only when both book and recent trade-flow observations persist in the same direction for at least that ratio. Otherwise the result is `MIXED_OR_NONPERSISTENT_FLOW`.
-
-A persistent sell/buy tilt is still not a reversal/continuation forecast.
+The component reports descriptive persistence statistics (negative/positive book-imbalance ratios and below/above-half trade-buy-share ratios) without selecting a universal persistence threshold or emitting a directional standing. Threshold selection and trading interpretation belong to an external policy/decision owner, not this sensor.
 
 ## Underlying reopen reconciliation
 

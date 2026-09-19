@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import argparse
-from decimal import Decimal, ROUND_DOWN
 import hashlib
 import json
+from decimal import ROUND_DOWN, Decimal
 from pathlib import Path
 from typing import Any
 

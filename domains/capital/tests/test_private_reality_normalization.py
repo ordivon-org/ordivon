@@ -1,4 +1,8 @@
-from ordivon_capital.market.private_reality import normalize_binance_observer, normalize_binance_usdm_observer, normalize_okx_observer
+from ordivon_capital.market.private_reality import (
+    normalize_binance_observer,
+    normalize_binance_usdm_observer,
+    normalize_okx_observer,
+)
 
 
 def call(data):
