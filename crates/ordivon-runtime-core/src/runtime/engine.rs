@@ -924,9 +924,9 @@ fn io_error(context: &str, error: std::io::Error) -> RuntimeError {
 #[cfg(test)]
 mod trusted_systemd_command_tests {
     use super::*;
+    use crate::runtime::{UniversalExecutionRequest, UniversalExecutionStep};
     use crate::{
-        ExecutionBudget, ExecutionProfile, ExecutionProposal, ExecutionStepProposal,
-        JobRunProposal, UniversalExecutionRequest,
+        ExecutionBudget, ExecutionProfile, ExecutionProposal, ExecutionStepProposal, JobRunProposal,
     };
     use proptest::prelude::*;
 
@@ -1539,7 +1539,7 @@ mod trusted_systemd_command_tests {
         );
 
         request.execution.env.clear();
-        request.execution.steps.push(crate::UniversalExecutionStep {
+        request.execution.steps.push(UniversalExecutionStep {
             id: "step".to_string(),
             executable: "/usr/bin/true".to_string(),
             args: Vec::new(),
