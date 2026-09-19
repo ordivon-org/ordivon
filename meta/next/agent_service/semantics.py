@@ -23,10 +23,6 @@ def _id(prefix: str) -> str:
     return f"{prefix}_{uuid.uuid4().hex}"
 
 
-def _canonical_json(value: Any) -> str:
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-
-
 def _normalized_strings(values: list[str], field: str) -> tuple[str, ...]:
     if not isinstance(values, list):
         raise ValueError(f"{field} must be a list")
@@ -129,7 +125,7 @@ def _agent_skills_from_revision_spec(spec: dict[str, Any]) -> list[dict[str, Any
     for item in raw:
         if not isinstance(item, dict):
             raise ValueError("AgentRevision skill must be an object")
-        normalized = json.loads(_canonical_json(item))
+        normalized = json.loads(json.dumps(item, sort_keys=True, separators=(",", ":"), ensure_ascii=False))
         for field in ("id", "name", "description"):
             value = normalized.get(field)
             if not isinstance(value, str) or not value.strip():
@@ -298,7 +294,7 @@ class SessionItemStore:
         if not client_item_id.strip() or not isinstance(content, dict):
             raise ValueError("session item requires client_item_id and object content")
         existing = self.get_by_client_id(session_id, client_item_id, required=False)
-        candidate_content = json.loads(_canonical_json(content))
+        candidate_content = json.loads(json.dumps(content, sort_keys=True, separators=(",", ":"), ensure_ascii=False))
         if existing is not None:
             if (
                 existing.role,
@@ -335,7 +331,7 @@ class SessionItemStore:
                     value.client_item_id,
                     value.sequence,
                     value.role,
-                    _canonical_json(value.content),
+                    json.dumps(value.content, sort_keys=True, separators=(",", ":"), ensure_ascii=False),
                     value.producer_identity_id,
                     value.created_at_ns,
                 ),
@@ -426,8 +422,8 @@ class DelegationEnvelopeStore:
             raise ValueError("delegation ids/capability must be non-empty")
         if not isinstance(payload, dict) or not isinstance(evidence_contract, dict):
             raise ValueError("delegation payload/evidence_contract must be objects")
-        normalized_payload = json.loads(_canonical_json(payload))
-        normalized_evidence = json.loads(_canonical_json(evidence_contract))
+        normalized_payload = json.loads(json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False))
+        normalized_evidence = json.loads(json.dumps(evidence_contract, sort_keys=True, separators=(",", ":"), ensure_ascii=False))
         existing = self.get_by_client_id(client_delegation_id, required=False)
         candidate = (
             session_id,
@@ -519,8 +515,8 @@ class DelegationEnvelopeStore:
                     value.target_revision_id,
                     value.task_id,
                     value.capability_key,
-                    _canonical_json(value.payload),
-                    _canonical_json(value.evidence_contract),
+                    json.dumps(value.payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False),
+                    json.dumps(value.evidence_contract, sort_keys=True, separators=(",", ":"), ensure_ascii=False),
                     value.created_at_ns,
                 ),
             )

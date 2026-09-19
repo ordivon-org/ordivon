@@ -27,10 +27,6 @@ def _id(prefix: str) -> str:
     return f"{prefix}_{uuid.uuid4().hex}"
 
 
-def _canonical_json(value: Any) -> str:
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-
-
 def _route_profiles_from_revision_spec(
     revision_id: str,
     spec: dict[str, Any],
@@ -337,13 +333,13 @@ class TransportBindingStore:
                         value.delegation_id,
                         value.policy_receipt_id,
                         value.policy_revision,
-                        _canonical_json(list(value.granted_permissions)),
+                        json.dumps(list(value.granted_permissions), sort_keys=True, separators=(",", ":"), ensure_ascii=False),
                         value.interface_id,
                         value.transport,
                         value.protocol_version,
                         value.endpoint,
                         value.delivery_request_id,
-                        _canonical_json(value.security_requirements),
+                        json.dumps(value.security_requirements, sort_keys=True, separators=(",", ":"), ensure_ascii=False),
                         value.created_at_ns,
                     ),
                 )

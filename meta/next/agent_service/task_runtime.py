@@ -20,10 +20,6 @@ def _id(prefix: str) -> str:
     return f"{prefix}_{uuid.uuid4().hex}"
 
 
-def _canonical_json(value: Any) -> str:
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-
-
 @dataclass(frozen=True)
 class AgentTask:
     id: str
@@ -112,8 +108,8 @@ class TaskStore:
             id=_id("task"),
             description=description.strip(),
             required_revision_id=required_revision_id,
-            execution=json.loads(_canonical_json(execution)),
-            acceptance=json.loads(_canonical_json(acceptance)),
+            execution=json.loads(json.dumps(execution, sort_keys=True, separators=(",", ":"), ensure_ascii=False)),
+            acceptance=json.loads(json.dumps(acceptance, sort_keys=True, separators=(",", ":"), ensure_ascii=False)),
             state="PENDING",
             failure_reason=None,
             created_at_ns=_now_ns(),
@@ -130,8 +126,8 @@ class TaskStore:
                     task.id,
                     task.description,
                     task.required_revision_id,
-                    _canonical_json(task.execution),
-                    _canonical_json(task.acceptance),
+                    json.dumps(task.execution, sort_keys=True, separators=(",", ":"), ensure_ascii=False),
+                    json.dumps(task.acceptance, sort_keys=True, separators=(",", ":"), ensure_ascii=False),
                     task.state,
                     task.created_at_ns,
                 ),
