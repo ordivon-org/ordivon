@@ -1,7 +1,7 @@
 # Enterprise Operating Model R1
 
 Date: 2026-09-14
-Status: **REAL-WORK DOGFOOD CANDIDATE**
+Status: **REFERENCE / HISTORICAL DOGFOOD + CURRENT PROVIDER MAP — not a mandatory Ordivon lifecycle**
 
 ## 0. Decision
 

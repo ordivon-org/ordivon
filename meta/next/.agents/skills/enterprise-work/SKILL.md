@@ -1,238 +1,150 @@
 ---
 name: enterprise-work
-description: Plan, execute, govern, verify, or deliver a consequential multi-step Work using current external standards and natural enterprise/domain providers. Use for customer or business requests, cross-domain projects, work with explicit acceptance criteria, quality/risk/compliance obligations, significant external effects, or tasks where ERP/work-management/BPMN/CMMN/DMN/Temporal/n8n/Runtime/provider ownership must be selected. Do not activate for trivial low-risk edits that need no explicit management composition.
-compatibility: Requires access to the relevant source/work files and, for execution, whichever domain/provider tools the task actually needs. External standards and provider currentness may require web or official-source access.
+description: Thin router for consequential multi-step/customer/business/cross-domain work. Bind the exact work and acceptance authority, discover current external authorities, route each responsibility to its natural mature owner, and verify the real outcome. Do not use this Skill as an Ordivon management methodology or universal workflow.
+compatibility: Requires access to the relevant work/source files and whichever external/domain providers the selected work actually needs. Currentness-sensitive authority claims require official-source checks.
 metadata:
-  source-authority: ordivon-next
-  operating-model: enterprise-operating-model-r1
+  source-authority: external-routing-adapter
   standards-environment: standard-native-enterprise-environment-r2
 ---
 
-# Enterprise work
+# Enterprise work — thin external router
 
-Turn a consequential real request into a bounded, externally grounded, verifiable delivery without inventing a universal Ordivon Work ontology or activating every enterprise system.
+This Skill owns **routing only**.
 
-## Core rule
+It does not define an Ordivon work lifecycle, business methodology, project method, sales method, pricing method, risk method, quality system, legal process, HR process, procurement process, or acceptance ontology.
 
-```text
-real request / opportunity / obligation
-  -> Prepare
-  -> Connect
-  -> Integrate
-  -> domain-native verification
-  -> bounded acceptance
-  -> owner-native records / learning
-```
+## 1. Activate only when consequence justifies it
 
-`Prepare -> Connect -> Integrate` is the adopted integrated-management pattern. It is not a mandatory sequential workflow engine and may iterate as evidence changes the work.
+Use this router when one or more of these are material:
 
-## 1. Decide whether this Skill is needed
+- a customer/counterparty commitment;
+- multiple domains/providers must coordinate;
+- explicit acceptance/quality evidence matters;
+- legal, contractual, standards or platform obligations constrain the work;
+- production/security/privacy/financial/external effects exist;
+- durable handoff, auditability, rollback or repeated operation matters.
 
-Use this Skill when at least one of these is material:
+For a small reversible local edit, use the narrow domain Skill/provider directly.
 
-- customer/counterparty commitment or delivery;
-- multiple domains/providers/teams must be coordinated;
-- explicit quality/acceptance criteria matter;
-- legal, contractual, standards, platform or professional obligations constrain the work;
-- significant security/privacy/financial/production/external effects exist;
-- failure, rollback, evidence, auditability or repeated operational handoff matters;
-- the work is project/case/process-shaped enough that management method selection affects the outcome.
+## 2. Bind only the task-local facts
 
-For a trivial reversible local edit, follow `AGENTS.md` and the relevant narrow Skill/provider instead of manufacturing a quality plan.
+Before consequential action, identify the minimum facts needed to route correctly:
 
-## 2. PREPARE — bind the real work
+- exact subject/input identity;
+- intended deliverable/outcome;
+- scope, exclusions and assumptions;
+- acceptance authority and acceptance criteria;
+- authorization/permitted effects;
+- material external obligations/currentness;
+- material risks only when consequence warrants explicit treatment.
 
-Before committing to execution, establish only what the current consequence requires:
+These are task facts, not fields in a universal Ordivon Work schema.
 
-1. **Intended outcome / deliverables** — what must exist or change?
-2. **Exact subject and inputs** — repository revision, artifact digest, dataset, system, customer request, environment or other domain-native identity.
-3. **Acceptance authority** — who/what can legitimately accept the result?
-4. **Scope / exclusions / assumptions** — prevent an unbounded natural-language problem from becoming an unlimited commitment.
-5. **Authorization / permitted effects** — especially for customer systems, credentials, production, security testing, money, publication or external writes.
-6. **Interested parties / constraints** — only those material to this Work.
-7. **Risks/opportunities** — explicit when consequence/uncertainty justifies them; otherwise keep lightweight.
+## 3. Resolve external authorities before inventing method
 
-For external commercialization, preserve the rule:
+When a mature authority/practice may apply:
 
-```text
-Universal front door != universal unlimited contract
-```
+1. query the Authority Catalog with `scripts/authority_catalog.py find`;
+2. inspect the exact record with `show`;
+3. check the official source when freshness/scope matters;
+4. bind/exclude/defer it in the current task only;
+5. keep currentness separate from compliance, verification and acceptance.
 
-Do not guarantee third-party outcomes outside Ordivon's control. Prefer controllable deliverables plus explicit acceptance criteria.
+The Catalog is discovery metadata, not an applicability engine.
 
-### Pre-PMF commercialization is externally method-owned
+Do not copy licensed standards into local instructions.
 
-Do **not** create Ordivon-specific customer-discovery, value-proposition, startup-lifecycle, founder-led-sales, pricing or outsourcing Lenses merely to rename mature practice.
+## 4. Route each responsibility to its natural owner
 
-For early commercial discovery, bind stage-appropriate external practice instead:
-
-- **Y Combinator startup guidance** for launch/talk-to-users/manual early customer work and avoiding premature scaling;
-- **Lean Startup** for Build-Measure-Learn, validated learning and experiment-driven uncertainty reduction;
-- **Strategyzer Business Model Canvas / Value Proposition Canvas** for explicit business-model and customer-value hypotheses;
-- **ISO 37500** when a material outsourcing relationship needs explicit outsourcing governance;
-- jurisdiction-specific law, regulators, licensed professionals and provider-native records for legal/tax/accounting/registration truth.
-
-Treat playbooks and canvases as advisory hypothesis structures, never as customer evidence.
-
-Keep early **learning accountability** with the founder/decision owner: direct buyer conversations, first sales/price objections, problem selection, acceptance interpretation and product trade-offs must remain visible to that owner. Agents may research, prepare, transcribe, analyse, draft and execute bounded follow-up; contractors/professionals may perform specialist work. Outsource execution or specialist expertise when economical, but do not outsource the evidence needed to learn whether the business should exist.
-
-### Commercial operating practices remain externally owned
-
-Do not add Ordivon-native Sales, Pricing, Customer-Success, Procurement or Hiring methodologies.
-
-Use the mature owner that matches the actual workload:
-
-- **early B2B / founder-led sales** -> Y Combinator's early-stage sales guidance as advisory practice; preserve direct buyer conversations and actual pipeline outcomes as evidence;
-- **CRM records** -> select the current provider at activation time. ERPNext's built-in CRM is not a safe new long-term dependency because Frappe documents it as scheduled for removal in ERPNext v17; evaluate Frappe CRM for new lead/deal pipeline work while keeping ERPNext transactional selling/accounting records where they remain native;
-- **pricing** -> market evidence first. For a service, use quote/negotiation/paid-pilot evidence and measured delivery economics. For a SaaS-like product, current Stripe pricing/packaging guidance may inform value metric, pricing model, tiers and measurement. No playbook or survey method proves willingness to pay without real buyer evidence;
-- **customer success / feedback** -> ISO 10004 for customer-satisfaction monitoring and measurement when useful, ISO 10002 for real complaint handling, plus actual acceptance, retention, renewal, expansion, churn and referral evidence in the natural CRM/support/business system;
-- **recruitment** -> ISO 30405:2023 for recruitment process guidance when hiring begins; employment-law, payroll and contractual facts stay with applicable law and qualified/local providers;
-- **procurement / suppliers** -> ERPNext Buying or another provider-native purchasing system for supplier/RFQ/PO/invoice facts; ISO 20400 when sustainable-procurement concerns are material; ISO 37500 when the purchase is a material outsourcing relationship.
-
-A method can structure work. It cannot substitute for a customer payment, signed order, employee contract, supplier delivery, or other real-world effect.
-
-## 3. CONNECT — build the Standard-Native working set
-
-Read `../../../docs/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R2.md` when standards/applicability/currentness or cross-domain evidence matters.
-
-For the exact Work:
-
-1. use the lightweight Authority Catalog (`python ../../../scripts/authority_catalog.py find ...`) as the cheap first discovery layer when a relevant record already exists;
-2. load the selected authority record with `show`, then inspect the official external source whenever freshness/scope matters;
-3. discover additional authorities from authoritative external sources when the catalog has no adequate candidate, and register metadata later only after the source is actually verified;
-4. record why each authority is bound, excluded, deferred, advisory or provider-specific in the task-local profile — never in the Catalog record;
-5. bind stable requirement/acceptance identities where traceability materially helps;
-6. select domain-native evidence and validators;
-7. record currentness separately from verification/compliance;
-8. state non-claims and external assertions that automation cannot establish.
-
-Do not copy licensed standards text into project files merely for convenience. Keep lawful references and permitted derived mappings.
-
-## 4. Use a bounded quality/delivery plan
-
-For consequential delivery, use the **ISO 10005 quality-plan concept** as the default management shape rather than inventing a universal workflow schema.
-
-A plan may live in an existing contract, project record, issue, repository document, domain profile or ERP record. It normally needs only the relevant subset of:
-
-- output/deliverables;
-- acceptance authority and criteria;
-- scope/exclusions/assumptions;
-- external obligations / Standard-Native profile;
-- responsibilities/natural owners;
-- resources/providers/environment;
-- execution approach;
-- V&V and evidence;
-- material risk treatments;
-- configuration/change identity;
-- records/retention;
-- nonconformity/corrective-action path;
-- delivery/release/acceptance path.
-
-For project-shaped work, use current project-management guidance (for example ISO 21502) as applicable; iterative/adaptive work is still project-manageable. For material risk, use ISO 31000 concepts. Do not assume the versions in memory are current—check official sources when the claim is consequential.
-
-Detailed local composition/currentness: `../../../docs/ENTERPRISE_OPERATING_MODEL_R1.md`.
-
-## 5. Select natural owners; do not centralize truth
-
-Choose providers by responsibility, not by architecture symmetry.
-
-| Need | Preferred owner / candidate |
+| Need | Natural owner / mature candidate |
 | --- | --- |
-| customer/opportunity/sales/accounting/business project/ERP-native quality fact | ERPNext/Frappe when a real business event exists |
-| minimal work continuity | Host v2 while sufficient |
-| heavyweight collaborative PM/work items | Plane; consider OpenProject when formal PMO/time/cost governance dominates |
-| stable prescriptive business process | BPMN / Flowable |
-| durable adaptive case with meaningful case state/milestones/discretion | CMMN / Flowable |
-| stable explicit repeatable business decision | DMN / Flowable |
-| machine-enforceable policy/admission | OPA/Rego |
-| durable crash-resumable technical orchestration, timers, waits, retries | Temporal |
-| recurring API/SaaS/event integration | n8n |
-| exact source/executable/input-bound local execution evidence | Ordivon Runtime when its boundary adds value |
-| open-ended uncertain reasoning/implementation | task-selected Agent + domain method |
-| semantic outcome acceptance | domain-native V&V / real acceptance authority |
-
-**Dormant is not deficient.** Do not start Plane, Flowable, Temporal, n8n or another service because the diagram contains it.
-
-## 6. Choose execution semantics from the work
-
-Do not force all work into BPMN or any other notation.
-
-- **Repeatable prescriptive business process** → BPMN when executable process semantics add value.
-- **Adaptive managed case** → CMMN when durable case semantics are genuinely useful.
-- **Explicit stable business decision/rule table** → DMN when separating decision logic improves control/reuse.
-- **Durable technical program** → Temporal when crash recovery, history, timers/waits/retries/messages justify the control plane.
-- **Connector automation** → n8n for events/APIs/SaaS glue.
-- **Scientific/data DAG** → domain workflow such as Snakemake when that fit is stronger.
-- **Open-ended investigation/engineering** → Agent/domain procedure; do not pre-model uncertainty as fake deterministic flow.
+| bounded quality/delivery planning | ISO 10005 when a quality plan adds value |
+| project-shaped management | ISO 21502; use only the practices needed by the real project |
+| material risk | ISO 31000 concepts in the natural project/domain record |
+| management-system audit | ISO 19011 when an actual audit objective exists |
+| early startup/customer discovery | YC / Lean Startup / Strategyzer as advisory practice + real customer evidence |
+| early B2B sales | YC early-stage sales guidance + founder-led buyer evidence |
+| lead/deal CRM | current CRM provider; evaluate Frappe CRM for new pipeline work |
+| quotation/order/invoice/accounting/project/ERP-quality facts | ERPNext/Frappe where native |
+| SaaS pricing/packaging | Stripe SaaS guidance when the product is actually SaaS-like + real market evidence |
+| service pricing | quotations, negotiation, paid pilots and measured delivery economics |
+| satisfaction monitoring | ISO 10004 when useful + customer behavior/feedback |
+| complaint handling | ISO 10002 when a real complaint exists |
+| recruitment | ISO 30405 + applicable employment law/professional providers |
+| supplier/RFQ/PO/purchase-invoice facts | ERPNext Buying or another natural purchasing provider |
+| sustainable procurement | ISO 20400 when sustainability is material |
+| material outsourcing | ISO 37500 |
+| heavyweight collaborative work management | Plane/OpenProject only after measured need |
+| stable prescriptive business process | BPMN/Flowable when executable process semantics add value |
+| adaptive managed case | CMMN/Flowable when real case semantics add value |
+| stable repeatable decision table | DMN/Flowable |
+| machine-enforceable admission/policy | OPA/Rego |
+| durable technical orchestration | Temporal |
+| recurring SaaS/API/event integration | n8n |
+| scientific/data DAG | domain workflow such as Snakemake |
+| exact local mechanical execution evidence | Ordivon Runtime when its contract materially helps |
+| open-ended reasoning/implementation | task-selected Agent + domain method |
+| semantic outcome acceptance | real customer/domain/external acceptance authority |
 
 Provider state is authoritative only for that provider's responsibility.
 
-## 7. ACT — execute with bounded authority
+## 5. Commercial currentness rules
+
+Do not create Ordivon-native Sales, GTM, Pricing, Customer-Success, Hiring or Procurement frameworks.
+
+Current provider boundary:
+
+- ERPNext v16 acceptance proves the tested transactional/accounting slice.
+- Frappe currently documents ERPNext's built-in CRM workspace as scheduled for removal in v17; do not accumulate new long-term CRM dependence there.
+- Frappe CRM is a candidate for the first real pipeline, not something to deploy merely because it exists.
+- ERPNext Buying/Frappe HR remain dormant until real procurement/hiring workloads justify them.
+
+For pre-PMF work, keep the founder/decision owner exposed to the evidence needed for learning: buyer conversations, price objections, problem selection, acceptance interpretation and product trade-offs. Agents and suppliers may execute bounded work; they must not hide the evidence needed to decide whether the business should exist.
+
+## 6. Execute through the selected owner
 
 Use the thinnest mature capability that can produce the required effect.
 
-Before consequential writes/effects, confirm the applicable authorization, target, scope, credentials/identity, reversibility and evidence path. Use least privilege where practical.
+Before consequential writes, confirm target, authorization, scope, identity/credentials, reversibility and evidence path. Apply least privilege where practical.
 
-Mechanical/provider success is not the overall acceptance verdict.
-
-## 8. VERIFY — evaluate the real outcome
-
-For every material acceptance criterion:
-
-1. identify the validator/evidence source;
-2. bind the exact source/provider/environment/participant condition required by the claim;
-3. run domain-native verification;
-4. preserve partial/open/external-assertion/currentness statuses instead of forcing a global PASS/FAIL;
-5. state the claim boundary.
-
-Never infer:
+Do not infer semantic success from mechanical success:
 
 ```text
-ERP record exists         -> deliverable accepted
-BPMN process ended        -> customer outcome achieved
-Temporal Workflow closed  -> external Activity effect is valid
-n8n execution green       -> target business state is correct
-Runtime exit 0            -> semantic completion
-Agent says done            -> acceptance
+ERP/CRM record exists       != customer demand or acceptance
+BPMN process ended          != real business outcome achieved
+Temporal workflow closed    != external Activity effect valid
+n8n execution green         != target system state correct
+Runtime exit 0              != semantic completion
+Agent says done              != acceptance
+playbook completed           != market truth
 ```
 
-## 9. Handle deviations/nonconformity by class
+## 7. Verify with the real authority
 
-Classify before repair:
+For each material acceptance criterion, use the domain/customer/provider/legal/venue authority that can actually establish the claim.
 
-- mechanical/provider/environment failure;
-- domain requirement nonconformity;
-- evidence insufficiency;
-- currentness/configuration drift;
-- external assertion pending;
-- customer complaint;
-- recurring/systemic management-process failure.
-
-Route to the natural owner. Use root-cause/corrective-action depth when recurrence, customer harm, regulatory consequence, material rework or systemic failure justifies it. Do not manufacture CAPA ceremony for every transient command failure.
+Preserve partial/open/external-assertion/currentness states instead of manufacturing a global PASS.
 
 Historical evidence is append/supersede, not rewrite.
 
-## 10. DELIVER / ACCEPT / LEARN
+## 8. Keep local residue thin
 
-Close only to the authority named in PREPARE:
+Retain only:
 
-- internal owner acceptance;
-- customer acceptance;
-- domain validator standing;
-- venue/platform/certification authority;
-- contract milestone;
-- or another explicit bounded authority.
+- task-local scope/acceptance/configuration;
+- provider/domain evidence references;
+- company/project-specific decisions;
+- measured lessons that affect future provider selection.
 
-Then retain only the records that natural owners need. Capture reusable compositions/lessons when repeated value is demonstrated; remove/demote one-off working-set infrastructure.
+Do not turn successful one-off work into a new Ordivon methodology by default.
 
-For a real business event, write business facts through ERPNext/Frappe native lifecycle where it is the natural owner. Do not manufacture ERP transactions for internal architecture acceptance.
+A new local abstraction is admissible only after repeated measured substitution failure in mature external methods/providers.
 
-## 11. References to load only when needed
+## References to load only when needed
 
-- Standards/applicability/currentness/evidence boundary: `../../../docs/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R2.md`
-- Enterprise owner routing, management guidance and provider activation: `../../../docs/ENTERPRISE_OPERATING_MODEL_R1.md`
-- Compact reusable composition: `../../../compositions/enterprise-work-to-outcome-r1.md`
-- Capability availability/standing: `../../../docs/CAPABILITY_PACKAGES_R1.md`
-- Policy/authority dimensions: `../../../policies/README.md`
+- External authority/currentness/evidence boundary: `../../../docs/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R2.md`
+- Detailed provider/currentness and historical dogfood map: `../../../docs/ENTERPRISE_OPERATING_MODEL_R1.md`
+- Current capability/provider coverage: `../../../docs/CAPABILITY_PACKAGES_R1.md`
+- Commercial migrations: `../../../migrations/records/commercial-practice-externalization-r1.md` and `commercial-practice-externalization-r2.md`
 
-If a task is primarily artifact creation/verification, also activate the `artifact-work` Skill rather than duplicating its family-specific procedures here.
+For artifact production/verification, activate `artifact-work` instead of duplicating artifact-family procedure here.

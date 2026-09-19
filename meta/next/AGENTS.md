@@ -11,10 +11,9 @@ These rules apply to work in this repository. Keep the common layer thinner than
 7. **Preserve evidence history.** Append/supersede changed standing; do not rewrite historical evidence merely to match the present.
 8. **Do not synthesize external authority.** Human experience, customer acceptance, legal authorization, certification, venue/platform decisions and other external assertions remain unresolved until the real authority supplies them.
 9. **Scale management and controls with consequence.** A reversible local edit and an external production effect do not need the same process, review or authorization burden.
-10. **For consequential multi-step, customer/business, multi-domain, quality/risk-sensitive or externally constrained work, activate the `enterprise-work` Skill.** For artifact production/verification, activate `artifact-work` as applicable.
+10. **For consequential multi-step, customer/business, multi-domain, quality/risk-sensitive or externally constrained work, activate the thin `enterprise-work` routing Skill.** It selects external authorities/natural owners; it is not an Ordivon management lifecycle. For artifact production/verification, activate `artifact-work` as applicable.
 
 Primary environment references:
 
 - `docs/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R2.md`
 - `docs/ENTERPRISE_OPERATING_MODEL_R1.md`
-- `compositions/enterprise-work-to-outcome-r1.md`

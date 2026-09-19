@@ -21,7 +21,7 @@ Treat Skills as code-like trust inputs: audit third-party or repository-provided
 Current project skills:
 
 - `.agents/skills/artifact-work/` — standards-first artifact creation and verification, with family-specific references loaded on demand.
-- `.agents/skills/enterprise-work/` — consequential multi-step/customer/business/cross-domain work composition: current external authority, bounded quality/delivery planning, natural owner/provider selection, risk/authorization, domain-native V&V and bounded acceptance. It deliberately stays dormant for trivial low-risk edits.
+- `.agents/skills/enterprise-work/` — thin router for consequential multi-step/customer/business/cross-domain work: bind task-local scope/acceptance, discover current external authorities, select natural mature owners, and preserve the execution-vs-semantic-acceptance boundary. It deliberately does not define an Ordivon management lifecycle.
 - `.agents/skills/mobile-app-security/` — evidence-first authorized mobile application analysis spanning APK/AAB classification, static/native reconstruction, runtime compatibility, instrumentation, hybrid bridges, and application-generated network behavior.
 - `.agents/skills/skill-supply-chain-audit/` — third-party Skill intake and supply-chain review that keeps package scanning, source approval, instruction authority, and effect authorization separate; optionally consumes SkillSpector evidence.
 
