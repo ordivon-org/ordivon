@@ -16,11 +16,11 @@ def load_module(name, relative):
 
 R = load_module(
     "runtime_control_provider",
-    "workstation/execution_fabric/providers/runtime_control_provider.py",
+    "workstation/providers/runtime_control_provider.py",
 )
 S = load_module(
     "linux_service_observer",
-    "workstation/execution_fabric/providers/linux_service_observer.py",
+    "workstation/providers/linux_service_observer.py",
 )
 
 

@@ -1,8 +1,8 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PS1 = ROOT / "workstation" / "execution_fabric" / "providers" / "windows_wsl" / "WindowsWslProvider.ps1"
-MAT = ROOT / "workstation" / "execution_fabric" / "providers" / "windows_wsl" / "materialize.py"
+PS1 = ROOT / "workstation" / "providers" / "windows_wsl" / "WindowsWslProvider.ps1"
+MAT = ROOT / "workstation" / "providers" / "windows_wsl" / "materialize.py"
 
 
 def test_windows_wsl_provider_is_observation_only_and_normalizes_nuls():
@@ -26,6 +26,6 @@ def test_windows_wsl_provider_uses_exact_system_wsl_path_and_bounded_distro_inpu
 def test_materializer_is_content_addressed_and_does_not_activate_service():
     text = MAT.read_text(encoding="utf-8").lower()
     assert "sha256" in text
-    assert "programdata/ordivon/executionfabric/windowswslprovider" in text
+    assert "programdata/ordivon/workstation/providers/windowswslprovider" in text
     for forbidden in ("sc.exe", "new-service", "register-scheduledtask", "restart-service", "start-service"):
         assert forbidden not in text

@@ -1,10 +1,11 @@
-# Workstation Execution Fabric Providers
+# Workstation Providers
 
 Status: PROVIDER-ONLY / STANDARDS-FIRST
 
-This directory retains concrete Workstation/Operations provider implementations and their
-acceptance evidence. It no longer owns a generic workflow language, workflow resolver,
-binding plan, static routing catalog, or workflow-derived provider backlog.
+This directory contains concrete Workstation/Operations provider implementations and their
+acceptance evidence. Providers are narrow adapters over OS/vendor-native mechanisms; this
+directory owns no workflow language, resolver, routing ontology, authorization model, or
+semantic task-completion model.
 
 The former EF6 WorkflowPlan experiments were retired on 2026-09-19 after the Runtime-side
 generic WorkflowPlan contract was removed. They duplicated mature orchestration semantics
@@ -41,3 +42,11 @@ durable orchestration, use the mature process owner and bind Workstation provide
 through narrow adapters. If a provider capability is not currently available, report that
 at the natural provider boundary rather than creating a planned provider in a local routing
 ontology.
+
+## Namespace migration
+
+The former source namespace workstation/execution_fabric was retired on 2026-09-19. Active
+materializers now target C:\ProgramData\Ordivon\Workstation\Providers. Acceptance JSON may
+still contain the former ExecutionFabric path/kind because it is immutable historical evidence
+of the environment in which that acceptance run occurred. Do not rewrite historical evidence.
+The old ProgramData carrier is removed only during the final unified deployment/migration window.

@@ -8,8 +8,8 @@ from pathlib import Path
 import shutil
 
 SOURCE = Path(__file__).with_name("WindowsWslProvider.ps1")
-ROOT = Path("/mnt/c/ProgramData/Ordivon/ExecutionFabric/WindowsWslProvider")
-RECEIPT = Path("/mnt/c/ProgramData/Ordivon/ExecutionFabric/receipts/windows-wsl-provider.json")
+ROOT = Path("/mnt/c/ProgramData/Ordivon/Workstation/Providers/WindowsWslProvider")
+RECEIPT = Path("/mnt/c/ProgramData/Ordivon/Workstation/Providers/receipts/windows-wsl-provider.json")
 
 
 def digest(path: Path) -> str:

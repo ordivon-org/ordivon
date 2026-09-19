@@ -1,8 +1,8 @@
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
-PS1=ROOT/"workstation/execution_fabric/providers/authority_validation/AuthorityValidationProvider.ps1"
-MAT=ROOT/"workstation/execution_fabric/providers/authority_validation/materialize.py"
+PS1=ROOT/"workstation/providers/authority_validation/AuthorityValidationProvider.ps1"
+MAT=ROOT/"workstation/providers/authority_validation/materialize.py"
 
 def test_authority_validator_is_pure_validation():
     text=PS1.read_text()
