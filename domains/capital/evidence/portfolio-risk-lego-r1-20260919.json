@@ -1,0 +1,152 @@
+{
+  "architectureNodes": [
+    "P0_REALITY",
+    "P1_EXPOSURE_LEDGER",
+    "P2_FACTOR_OBSERVATORY",
+    "P3_REGIME_DEPENDENCE",
+    "P4_RISK_BUDGET",
+    "P5_ACTION_COUNTERFACTUALS",
+    "P6_CONSTRAINT_GATE",
+    "P7_STRESS_ROBUSTNESS",
+    "P8_PORTFOLIO_REGIME_CARD"
+  ],
+  "date": "2026-09-19",
+  "externalMethodAlignment": [
+    "CFA portfolio risk/return and asset allocation",
+    "CFA multifactor models",
+    "MSCI factor risk / total portfolio approach",
+    "CME hedge ratio and imperfect-correlation hedging",
+    "OKX cross-margin and liquidation mechanics"
+  ],
+  "kind": "ordivon.market-capital.portfolio-risk-lego-research",
+  "methodRoles": {
+    "deferred": [
+      "mean-variance optimizer",
+      "covariance shrinkage",
+      "dynamic hedge optimizer"
+    ],
+    "domainMethods": [
+      "exposure arithmetic",
+      "margin/liquidation analysis",
+      "covariance/correlation",
+      "rolling/downside dependence",
+      "factor regression",
+      "minimum-variance hedge ratio",
+      "factor risk attribution",
+      "stress/scenario analysis",
+      "liquidity/funding/basis analysis"
+    ],
+    "lens": [
+      "regime-shift"
+    ],
+    "operators": [
+      "lego-lens-router",
+      "lego-lens-portfolio"
+    ],
+    "rejected": [
+      "ticker-count diversification",
+      "single full-sample correlation decision",
+      "equal-weight validation as live allocation"
+    ]
+  },
+  "nonClaims": [
+    "historical correlations are not forecasts",
+    "minimum-variance beta is not a recommended hedge size",
+    "low correlation does not by itself identify a causal hedge",
+    "the study does not grant external financial write authority"
+  ],
+  "privacyBoundary": {
+    "privateAccountValuesCommitted": false,
+    "privateRealityUse": "runtime-only",
+    "sourceControlPolicy": "do not persist balances, position amounts, credentials, or private account snapshots"
+  },
+  "publicStudy": {
+    "baseInstrument": "SNDK-USDT-SWAP",
+    "returnCount": 178,
+    "selected": [
+      {
+        "beta": 1.075,
+        "corr": 0.844,
+        "corr20": 0.838,
+        "corr60": 0.879,
+        "downsideCorr": 0.751,
+        "instrumentId": "MU-USDT-SWAP"
+      },
+      {
+        "beta": 2.14,
+        "corr": 0.75,
+        "corr20": 0.518,
+        "corr60": 0.686,
+        "downsideCorr": 0.691,
+        "instrumentId": "SMH-USDT-SWAP"
+      },
+      {
+        "beta": 0.889,
+        "corr": 0.738,
+        "corr20": 0.631,
+        "corr60": 0.778,
+        "downsideCorr": 0.576,
+        "instrumentId": "WDC-USDT-SWAP"
+      },
+      {
+        "beta": 0.914,
+        "corr": 0.643,
+        "corr20": 0.31,
+        "corr60": 0.692,
+        "downsideCorr": 0.572,
+        "instrumentId": "AMD-USDT-SWAP"
+      },
+      {
+        "beta": 3.177,
+        "corr": 0.611,
+        "corr20": 0.154,
+        "corr60": 0.547,
+        "downsideCorr": 0.481,
+        "instrumentId": "QQQ-USDT-SWAP"
+      },
+      {
+        "beta": 1.155,
+        "corr": 0.382,
+        "corr20": 0.327,
+        "corr60": 0.349,
+        "downsideCorr": 0.399,
+        "instrumentId": "NVDA-USDT-SWAP"
+      },
+      {
+        "beta": 3.041,
+        "corr": 0.377,
+        "corr20": -0.174,
+        "corr60": 0.197,
+        "downsideCorr": 0.206,
+        "instrumentId": "SPY-USDT-SWAP"
+      },
+      {
+        "beta": 1.103,
+        "corr": 0.248,
+        "corr20": -0.236,
+        "corr60": 0.133,
+        "downsideCorr": 0.204,
+        "instrumentId": "XAU-USDT-SWAP"
+      },
+      {
+        "beta": 0.428,
+        "corr": 0.16,
+        "corr20": 0.106,
+        "corr60": 0.048,
+        "downsideCorr": 0.037,
+        "instrumentId": "BTC-USDT-SWAP"
+      },
+      {
+        "beta": 0.301,
+        "corr": 0.148,
+        "corr20": 0.104,
+        "corr60": 0.041,
+        "downsideCorr": 0.036,
+        "instrumentId": "ETH-USDT-SWAP"
+      }
+    ],
+    "source": "OKX public completed 1D candles"
+  },
+  "schemaVersion": 1,
+  "truthRole": "public-market-derived-research-not-allocation-truth"
+}
