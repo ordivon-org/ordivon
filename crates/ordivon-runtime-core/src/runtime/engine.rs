@@ -757,11 +757,33 @@ fn protect_posix_path(path: &Path, mode: u32, operation: &str) -> RuntimeResult<
         .map_err(|error| io_error(operation, error))
 }
 
-#[cfg(not(unix))]
-fn protect_posix_path(_path: &Path, _mode: u32, operation: &str) -> RuntimeResult<()> {
+#[cfg(windows)]
+fn protect_posix_path(path: &Path, mode: u32, operation: &str) -> RuntimeResult<()> {
+    if mode == 0o700 && path.is_dir() {
+        return crate::windows_security::protect_private_directory(path).map_err(|error| {
+            RuntimeError::new(
+                RuntimeErrorCode::IoError,
+                format!("{operation}: cannot apply native Windows private-directory ACL: {error}"),
+                None,
+                false,
+            )
+        });
+    }
     Err(RuntimeError::new(
         RuntimeErrorCode::ToolUnavailable,
-        format!("{operation}: native Windows ACL realization is not implemented"),
+        format!(
+            "{operation}: no native Windows ACL realization is defined for Unix mode {mode:#o}"
+        ),
+        None,
+        false,
+    ))
+}
+
+#[cfg(not(any(unix, windows)))]
+fn protect_posix_path(_path: &Path, mode: u32, operation: &str) -> RuntimeResult<()> {
+    Err(RuntimeError::new(
+        RuntimeErrorCode::ToolUnavailable,
+        format!("{operation}: platform permission realization is unavailable for mode {mode:#o}"),
         None,
         false,
     ))
