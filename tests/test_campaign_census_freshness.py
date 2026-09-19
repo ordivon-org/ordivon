@@ -22,8 +22,7 @@ class CampaignCensusFreshnessTests(unittest.TestCase):
 
     def test_projects_effect_generation_and_updated_at_ms_from_ledger(self):
         spec = self._spec()
-        birth = compile_campaign(spec)[0]
-        request = birth.materialization_request()
+        request = compile_campaign(spec)["A01"]
         with tempfile.TemporaryDirectory() as d:
             ledger = Path(d) / "birth.sqlite"
             db = sqlite3.connect(ledger)
@@ -62,3 +61,23 @@ class CampaignCensusFreshnessTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class CampaignCompilationStandardBoundaryTests(unittest.TestCase):
+    def test_campaign_compiles_directly_to_carrier_requests_without_occurrence_wrapper(self):
+        spec = CampaignLaunchSpec(
+            campaign_id="campaign:standard-boundary",
+            shared_prompt="Do the work",
+            roster=(RoleCard(agent_id="A01", role_card="Researcher"),),
+        )
+        compiled = compile_campaign(spec)
+        self.assertIsInstance(compiled, dict)
+        self.assertEqual(set(compiled), {"A01"})
+        request = compiled["A01"]
+        self.assertEqual(request.request_id, request.request_id)
+        self.assertFalse(hasattr(request, "materialization_request"))
+
+    def test_current_carrier_request_has_no_successor_occurrence_compatibility_field(self):
+        from dataclasses import fields
+        from conversation_relay_carrier import CarrierMaterializationRequest
+
+        self.assertNotIn("successor_occurrence_id", {field.name for field in fields(CarrierMaterializationRequest)})

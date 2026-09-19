@@ -53,7 +53,7 @@ class BrowserlessEffectAdapter:
 
     def _write_binding(self, materialization, endpoint) -> dict:
         binding = {
-            "effectId": materialization.effect_id,
+            "effectId": materialization.request_id,
             "endpointId": endpoint.endpoint_id,
             "endpointIdentityDigest": endpoint.identity_digest,
         }
@@ -126,7 +126,7 @@ class BrowserlessEffectAdapter:
         endpoint = (
             self.context._endpoint_by_id(endpoint_id)
             if endpoint_id is not None
-            else self.config.browserless_pool.select(materialization.effect_id)
+            else self.config.browserless_pool.select(materialization.request_id)
         )
         provider_boundary_diagnosis = None
         if endpoint_id is not None:
@@ -164,7 +164,7 @@ class BrowserlessEffectAdapter:
                     "kind": "ordivon.browserless-materialization",
                     "action": "carrier-pre-effect-unavailable",
                     "agentId": agent_id,
-                    "effectId": materialization.effect_id,
+                    "effectId": materialization.request_id,
                     "endpointId": endpoint.endpoint_id,
                     "providerPreflight": observation,
                     "providerBoundaryDiagnosis": provider_boundary_diagnosis,
@@ -173,13 +173,13 @@ class BrowserlessEffectAdapter:
         binding = self._write_binding(materialization, endpoint)
         receipt = SQLiteConversationMaterializer(
             self.config.ledger, self._target(materialization, endpoint)
-        ).materialize(materialization.materialization_request())
+        ).materialize(materialization)
         result = {
             "schemaVersion": 1,
             "kind": "ordivon.browserless-materialization",
             "action": "materialize",
             "agentId": agent_id,
-            "effectId": materialization.effect_id,
+            "effectId": materialization.request_id,
             "receipt": {
                 "standing": receipt.standing.value,
                 "providerResource": canonical_chatgpt_resource(
@@ -222,13 +222,13 @@ class BrowserlessEffectAdapter:
         endpoint = self.context._endpoint_by_id(binding["endpointId"])
         receipt = SQLiteConversationMaterializer(
             self.config.ledger, self._target(materialization, endpoint)
-        ).resume_human(materialization.materialization_request())
+        ).resume_human(materialization)
         return {
             "schemaVersion": 1,
             "kind": "ordivon.browserless-human-resume",
             "action": "resume-after-human",
             "agentId": agent_id,
-            "effectId": materialization.effect_id,
+            "effectId": materialization.request_id,
             "receipt": {
                 "standing": receipt.standing.value,
                 "providerResource": canonical_chatgpt_resource(
@@ -263,7 +263,7 @@ class BrowserlessEffectAdapter:
         endpoint = self.context._endpoint_by_id(binding["endpointId"])
         receipt = SQLiteConversationMaterializer(
             self.config.ledger, self._target(materialization, endpoint)
-        ).reconcile(materialization.materialization_request())
+        ).reconcile(materialization)
         return {
             "schemaVersion": 1,
             "kind": "ordivon.browserless-reconcile",

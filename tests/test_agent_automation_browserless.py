@@ -186,20 +186,14 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 BrowserlessAutomationConfig.from_dict(config(root))
             )
             admitted = {
-                "kind": "temporal-materialization-admissions",
+                "kind": "temporal-campaign-materialization-admission",
                 "campaignId": "campaign:test-browserless",
+                "campaignRef": "sha256:" + "1" * 64,
                 "requested": 1,
-                "started": 1,
-                "existing": 0,
-                "workflows": [
-                    {
-                        "agentId": "A01",
-                        "effectId": "effect:1",
-                        "workflowId": "effect:1",
-                        "workflowType": "ordivon.occurrence.materialize",
-                        "disposition": "started",
-                    }
-                ],
+                "workflowId": "campaign:" + "1" * 64,
+                "workflowType": "ordivon.campaign.materialize",
+                "disposition": "started",
+                "effects": [{"agentId": "A01", "effectId": "effect:1"}],
             }
             with (
                 mock.patch.object(
@@ -213,9 +207,11 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 result = service.launch_campaign(sp)
             health.assert_called_once()
             preflight.assert_not_called()
-            temporal.assert_called_once_with(sp, "campaign-materialize")
+            temporal.assert_called_once_with(
+                sp, "campaign-materialize", campaign_agent_ids=("A01",)
+            )
             self.assertFalse(hasattr(service, "birth"))
-            self.assertEqual(result["temporal"]["workflows"][0]["workflowId"], "effect:1")
+            self.assertEqual(result["temporal"]["workflowType"], "ordivon.campaign.materialize")
 
     def test_campaign_relaunch_never_creates_fresh_pre_effect_retry_identity(self):
         with tempfile.TemporaryDirectory() as d:
@@ -237,31 +233,17 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                     }
                 ],
             }
-            campaign = {
-                "kind": "temporal-materialization-admissions",
-                "campaignId": "campaign:test-browserless",
-                "requested": 1,
-                "admitted": 1,
-                "workflows": [
-                    {
-                        "agentId": "A01",
-                        "effectId": "effect:1",
-                        "workflowId": "effect:1",
-                        "workflowType": "ordivon.occurrence.materialize",
-                        "disposition": "admitted",
-                    }
-                ],
-            }
             with (
                 mock.patch("agent_automation_browserless.campaign_census", return_value=census),
                 mock.patch.object(service, "_require_materialization_substrate_available") as substrate,
-                mock.patch.object(service, "_temporal_admit", return_value=campaign) as temporal,
+                mock.patch.object(service, "_temporal_admit") as temporal,
             ):
                 out = service.launch_campaign(sp)
             substrate.assert_not_called()
-            temporal.assert_called_once_with(sp, "campaign-materialize")
+            temporal.assert_not_called()
             self.assertEqual(out["preEffectRetries"], [])
-            self.assertEqual(out["temporal"]["admitted"], 1)
+            self.assertEqual(out["temporal"]["disposition"], "not-required")
+            self.assertEqual(out["temporal"]["requested"], 0)
 
     def test_external_occurrence_birth_admits_temporal_instead_of_effect_activity(self):
         with tempfile.TemporaryDirectory() as d:
@@ -292,7 +274,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             self.assertFalse(hasattr(service, "birth"))
             self.assertEqual(result["temporal"]["workflowId"], "wf-a")
             self.assertEqual(
-                result["effectId"], service._materialization(service.load_spec(sp), "A01").effect_id
+                result["effectId"], service._materialization(service.load_spec(sp), "A01").request_id
             )
             self.assertNotIn("birthRequestId", result)
 
@@ -394,7 +376,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             binding.write_text(
                 json.dumps(
                     {
-                        "effectId": birth.effect_id,
+                        "effectId": birth.request_id,
                         "endpointId": endpoint.endpoint_id,
                         "endpointIdentityDigest": endpoint.identity_digest,
                     }
@@ -462,7 +444,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             binding.write_text(
                 json.dumps(
                     {
-                        "effectId": birth.effect_id,
+                        "effectId": birth.request_id,
                         "endpointId": endpoint.endpoint_id,
                         "endpointIdentityDigest": endpoint.identity_digest,
                     }
@@ -547,7 +529,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             binding.write_text(
                 json.dumps(
                     {
-                        "effectId": birth.effect_id,
+                        "effectId": birth.request_id,
                         "endpointId": endpoint.endpoint_id,
                         "endpointIdentityDigest": endpoint.identity_digest,
                     }
@@ -606,7 +588,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             binding.write_text(
                 json.dumps(
                     {
-                        "effectId": birth.effect_id,
+                        "effectId": birth.request_id,
                         "endpointId": endpoint.endpoint_id,
                         "endpointIdentityDigest": endpoint.identity_digest,
                     }
@@ -751,7 +733,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             binding.write_text(
                 json.dumps(
                     {
-                        "effectId": birth.effect_id,
+                        "effectId": birth.request_id,
                         "endpointId": endpoint.endpoint_id,
                         "endpointIdentityDigest": endpoint.identity_digest,
                     }
@@ -804,7 +786,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             path = (
                 service._occurrence_dir(birth)
                 / "human-handoff"
-                / f"{__import__('hashlib').sha256(birth.effect_id.encode()).hexdigest()[:24]}.json"
+                / f"{__import__('hashlib').sha256(birth.request_id.encode()).hexdigest()[:24]}.json"
             )
             path.parent.mkdir(parents=True, exist_ok=True)
             from browserless_human_handoff import digest_obj
@@ -812,7 +794,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             value = {
                 "schemaVersion": 1,
                 "kind": "ordivon.browserless-human-verification-handoff",
-                "effectId": birth.effect_id,
+                "effectId": birth.request_id,
                 "promptDigest": "sha256:" + "1" * 64,
                 "browserlessEndpointId": "carrier-a",
                 "providerEffectAttempted": False,
@@ -862,7 +844,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             path = (
                 service._occurrence_dir(birth)
                 / "human-handoff"
-                / f"{__import__('hashlib').sha256(birth.effect_id.encode()).hexdigest()[:24]}.json"
+                / f"{__import__('hashlib').sha256(birth.request_id.encode()).hexdigest()[:24]}.json"
             )
             path.parent.mkdir(parents=True, exist_ok=True)
             from browserless_human_handoff import digest_obj
@@ -880,7 +862,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             base = {
                 "schemaVersion": 1,
                 "kind": "ordivon.browserless-human-verification-handoff",
-                "effectId": birth.effect_id,
+                "effectId": birth.request_id,
                 "promptDigest": "sha256:" + "1" * 64,
                 "browserlessEndpointId": "carrier-a",
                 "providerEffectAttempted": False,
@@ -937,7 +919,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             path = (
                 service._occurrence_dir(birth)
                 / "human-handoff"
-                / f"{__import__('hashlib').sha256(birth.effect_id.encode()).hexdigest()[:24]}.json"
+                / f"{__import__('hashlib').sha256(birth.request_id.encode()).hexdigest()[:24]}.json"
             )
             path.parent.mkdir(parents=True, exist_ok=True)
             from browserless_human_handoff import digest_obj
@@ -946,7 +928,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 "schemaVersion": 1,
                 "kind": "ordivon.browserless-human-verification-handoff",
                 "mode": "self-hosted-vnc",
-                "effectId": birth.effect_id,
+                "effectId": birth.request_id,
                 "promptDigest": "sha256:" + "1" * 64,
                 "browserlessEndpointId": "carrier-a",
                 "providerEffectAttempted": False,
@@ -994,7 +976,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             path = (
                 service._occurrence_dir(birth)
                 / "human-handoff"
-                / f"{__import__('hashlib').sha256(birth.effect_id.encode()).hexdigest()[:24]}.json"
+                / f"{__import__('hashlib').sha256(birth.request_id.encode()).hexdigest()[:24]}.json"
             )
             path.parent.mkdir(parents=True, exist_ok=True)
             from browserless_human_handoff import digest_obj
@@ -1003,7 +985,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 "schemaVersion": 1,
                 "kind": "ordivon.browserless-human-verification-handoff",
                 "mode": "self-hosted-vnc",
-                "effectId": birth.effect_id,
+                "effectId": birth.request_id,
                 "promptDigest": "sha256:" + "1" * 64,
                 "browserlessEndpointId": "carrier-a",
                 "providerEffectAttempted": False,
@@ -1054,7 +1036,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             path.write_text(
                 json.dumps(
                     {
-                        "effectId": birth.effect_id,
+                        "effectId": birth.request_id,
                         "endpointId": endpoint.endpoint_id,
                         "endpointIdentityDigest": endpoint.identity_digest,
                     }
@@ -1065,7 +1047,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             path.write_text(
                 json.dumps(
                     {
-                        "effectId": birth.effect_id,
+                        "effectId": birth.request_id,
                         "endpointId": endpoint.endpoint_id,
                         "endpointIdentityDigest": "sha256:" + "0" * 64,
                     }
@@ -1086,7 +1068,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             path = (
                 service._occurrence_dir(birth)
                 / "human-handoff"
-                / f"{__import__('hashlib').sha256(birth.effect_id.encode()).hexdigest()[:24]}.json"
+                / f"{__import__('hashlib').sha256(birth.request_id.encode()).hexdigest()[:24]}.json"
             )
             path.parent.mkdir(parents=True, exist_ok=True)
             from browserless_human_handoff import digest_obj
@@ -1095,7 +1077,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 "schemaVersion": 1,
                 "kind": "ordivon.browserless-human-verification-handoff",
                 "mode": "self-hosted-vnc",
-                "effectId": birth.effect_id,
+                "effectId": birth.request_id,
                 "promptDigest": "sha256:" + "1" * 64,
                 "browserlessEndpointId": "carrier-a",
                 "providerEffectAttempted": False,
@@ -1515,7 +1497,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             binding.write_text(
                 json.dumps(
                     {
-                        "effectId": birth.effect_id,
+                        "effectId": birth.request_id,
                         "endpointId": endpoint.endpoint_id,
                         "endpointIdentityDigest": endpoint.identity_digest,
                     }
@@ -1572,7 +1554,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             path.write_text(
                 json.dumps(
                     {
-                        "effectId": birth.effect_id,
+                        "effectId": birth.request_id,
                         "endpointId": endpoint.endpoint_id,
                         "endpointIdentityDigest": "sha256:" + "0" * 64,
                     }
@@ -1984,7 +1966,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             cfg["browserSubstrate"]["endpoints"] = [first, second]
             effects = BrowserlessEffectAdapter(BrowserlessAutomationConfig.from_dict(cfg))
             birth = effects.context._materialization(effects.context.load_spec(sp), "A01")
-            ordered = effects.config.browserless_pool.candidates(birth.effect_id)
+            ordered = effects.config.browserless_pool.candidates(birth.request_id)
             unavailable = {
                 "standing": "PROVIDER_UNAVAILABLE",
                 "endpointId": ordered[0].endpoint_id,

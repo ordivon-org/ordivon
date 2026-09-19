@@ -119,8 +119,6 @@ class SQLiteConversationMaterializer:
             "preparationDigest": request.preparation_digest,
             "bootstrapPrompt": request.bootstrap_prompt,
         }
-        if request.successor_occurrence_id is not None:
-            value["successorOccurrenceId"] = request.successor_occurrence_id
         return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
     def _load(self, request_id: str) -> sqlite3.Row | None:

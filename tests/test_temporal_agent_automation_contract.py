@@ -7,10 +7,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class TemporalAgentAutomationContractTests(unittest.TestCase):
-    def test_worker_registers_only_current_occurrence_workflows(self):
+    def test_worker_registers_current_temporal_workflows(self):
         text = (ROOT / "scripts/temporal_agent_automation.py").read_text()
         for name in (
-            "OCCURRENCE_MATERIALIZE_WORKFLOW",
+            "CAMPAIGN_MATERIALIZE_WORKFLOW",
+            "MATERIALIZE_WORKFLOW",
             "AGENT_RECONCILE_WORKFLOW",
             "AGENT_HUMAN_RESUME_WORKFLOW",
             "AGENT_CONTINUE_WORKFLOW",
@@ -39,37 +40,20 @@ class TemporalAgentAutomationContractTests(unittest.TestCase):
         self.assertIsInstance(workflows, ast.List)
         self.assertEqual(
             [elt.id for elt in workflows.elts if isinstance(elt, ast.Name)],
-            ["OccurrenceMaterializeWorkflow", "AgentReconcileWorkflow", "AgentHumanResumeWorkflow", "AgentContinueWorkflow"],
+            ["CampaignMaterializeWorkflow", "MaterializeWorkflow", "AgentReconcileWorkflow", "AgentHumanResumeWorkflow", "AgentContinueWorkflow"],
         )
 
-    def test_campaign_materialization_admits_independent_workflows_concurrently(self):
+    def test_campaign_materialization_admits_one_durable_parent(self):
         path = ROOT / "scripts/temporal_agent_automation_launch.py"
         text = path.read_text()
-        tree = ast.parse(text)
-        run_fn = next(
-            node for node in tree.body
-            if isinstance(node, ast.AsyncFunctionDef) and node.name == "run"
-        )
-        campaign_branch = next(
-            node for node in ast.walk(run_fn)
-            if isinstance(node, ast.If)
-            and isinstance(node.test, ast.Compare)
-            and any(isinstance(comp, ast.Constant) and comp.value == "campaign-materialize" for comp in node.test.comparators)
-        )
-        segment = ast.get_source_segment(text, campaign_branch) or ""
-        gather = next(
-            node for node in ast.walk(campaign_branch)
-            if isinstance(node, ast.Call)
-            and isinstance(node.func, ast.Attribute)
-            and isinstance(node.func.value, ast.Name)
-            and node.func.value.id == "asyncio"
-            and node.func.attr == "gather"
-        )
-        self.assertTrue(gather.args)
-        self.assertIn("workflow_id=materialization.effect_id", segment.replace(" ", ""))
-        self.assertIn("zip(materializations,results,strict=True)", segment.replace(" ", ""))
-        self.assertNotIn("CampaignBirthInput", text)
-        self.assertNotIn("CAMPAIGN_BIRTH_WORKFLOW", text)
+        campaign = text[
+            text.index('if a.operation == "campaign-materialize":'):
+            text.index('elif a.operation == "materialize":')
+        ]
+        self.assertNotIn("asyncio.gather(", campaign)
+        self.assertIn("CAMPAIGN_MATERIALIZE_WORKFLOW", campaign)
+        self.assertIn('"campaign:" + a.campaign_ref.removeprefix("sha256:")', campaign)
+        self.assertIn("MaterializationInput(", campaign)
         self.assertIn("WorkflowIDReusePolicy.REJECT_DUPLICATE", text)
         self.assertIn("WorkflowIDConflictPolicy.USE_EXISTING", text)
         self.assertIn("except WorkflowAlreadyStartedError as error:", text)
@@ -171,3 +155,22 @@ class TemporalAgentAutomationContractTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class TemporalCampaignParentStandardTests(unittest.TestCase):
+    def test_campaign_fanout_is_owned_by_temporal_parent_child_workflows(self):
+        worker = (ROOT / "scripts/temporal_agent_automation.py").read_text()
+        launcher = (ROOT / "scripts/temporal_agent_automation_launch.py").read_text()
+        self.assertIn("CAMPAIGN_MATERIALIZE_WORKFLOW", worker)
+        self.assertIn("class CampaignMaterializeWorkflow", worker)
+        self.assertIn("workflow.start_child_workflow(", worker)
+        self.assertIn("id=value.effect_id", worker.replace(" ", ""))
+        self.assertNotIn("OccurrenceInput", worker)
+        self.assertNotIn("OccurrenceMaterializeWorkflow", worker)
+
+        campaign = launcher[
+            launcher.index('if a.operation == "campaign-materialize":'):
+            launcher.index('elif a.operation == "materialize":')
+        ]
+        self.assertNotIn("asyncio.gather(", campaign)
+        self.assertIn("CAMPAIGN_MATERIALIZE_WORKFLOW", campaign)
+        self.assertIn("campaign_ref", campaign)

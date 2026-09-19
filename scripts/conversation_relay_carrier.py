@@ -65,33 +65,14 @@ class CarrierMaterializationRequest:
     request_id: str
     preparation_digest: str
     bootstrap_prompt: str
-    # Frozen v1 compatibility only. Current materialization already has one effect identity and
-    # does not invent a second successor-occurrence identity.
-    successor_occurrence_id: str | None = None
 
     def __post_init__(self) -> None:
         _text(self.request_id, "materialization request identity")
-        if self.successor_occurrence_id is not None:
-            _text(self.successor_occurrence_id, "successor occurrence identity")
-            if not self.successor_occurrence_id.startswith("conversation-occurrence:"):
-                raise ValueError("successor occurrence identity is invalid")
         _digest(self.preparation_digest, "preparation digest")
         _text(self.bootstrap_prompt, "bootstrap prompt", max_bytes=16384)
 
     @property
     def request_digest(self) -> str:
-        if self.successor_occurrence_id is not None:
-            # Frozen request identity for historical ledgers.
-            return _canonical_digest(
-                {
-                    "schemaVersion": 1,
-                    "kind": "ordivon.conversation-carrier-materialization-request",
-                    "requestId": self.request_id,
-                    "successorOccurrenceId": self.successor_occurrence_id,
-                    "preparationDigest": self.preparation_digest,
-                    "bootstrapPromptDigest": _canonical_digest(self.bootstrap_prompt),
-                }
-            )
         return _canonical_digest(
             {
                 "schemaVersion": 2,
@@ -101,6 +82,7 @@ class CarrierMaterializationRequest:
                 "bootstrapPromptDigest": _canonical_digest(self.bootstrap_prompt),
             }
         )
+
 
 
 @dataclass(frozen=True, slots=True)

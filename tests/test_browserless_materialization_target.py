@@ -37,8 +37,7 @@ class BrowserlessMaterializationTargetTests(unittest.TestCase):
 
     def request(self):
         return CarrierMaterializationRequest(
-            request_id="birth-1",
-            successor_occurrence_id="conversation-occurrence:test:00000000-0000-0000-0000-000000000001",
+            request_id="effect-test-1",
             preparation_digest="sha256:" + "1" * 64,
             bootstrap_prompt="hello",
         )
@@ -55,7 +54,7 @@ class BrowserlessMaterializationTargetTests(unittest.TestCase):
                 handle_path.write_text(
                     json.dumps(
                         {
-                            "effectId": "birth-1",
+                            "effectId": "effect-test-1",
                             "bindingDigest": "sha256:" + "2" * 64,
                             "providerResource": "https://chatgpt.com/c/abc",
                             "generationStarted": True,
@@ -82,7 +81,7 @@ class BrowserlessMaterializationTargetTests(unittest.TestCase):
                 p.write_text(
                     json.dumps(
                         {
-                            "effectId": "birth-1",
+                            "effectId": "effect-test-1",
                             "providerEffectAttempted": False,
                             "evidenceDigest": "sha256:" + "3" * 64,
                             "blocker": "browserless-connect:TimeoutError",

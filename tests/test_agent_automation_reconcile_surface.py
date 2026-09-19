@@ -99,9 +99,17 @@ class AgentAutomationReconcileSurfaceTests(unittest.TestCase):
             "temporal-birth-admissions",
         ):
             self.assertNotIn(retired, sources)
-        self.assertIn("OCCURRENCE_MATERIALIZE_WORKFLOW", sources)
+        self.assertIn("MATERIALIZE_WORKFLOW", sources)
+        self.assertIn("CAMPAIGN_MATERIALIZE_WORKFLOW", sources)
+        for retired in (
+            "OCCURRENCE_MATERIALIZE_WORKFLOW",
+            "OccurrenceMaterializeWorkflow",
+            "OccurrenceInput",
+            "ordivon.occurrence.materialize",
+        ):
+            self.assertNotIn(retired, sources)
         self.assertIn("MATERIALIZE_ACTIVITY", sources)
-        self.assertIn("OccurrenceInput", sources)
+        self.assertIn("MaterializationInput", sources)
 
 
     def test_reconcile_admits_unrecorded_occurrence_with_stable_temporal_identity(self) -> None:

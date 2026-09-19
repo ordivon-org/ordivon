@@ -8,6 +8,7 @@ narrow fence for ChatGPT Web's non-idempotent SEND boundary.
 
 from __future__ import annotations
 
+import asyncio
 import concurrent.futures
 import threading
 from dataclasses import dataclass
@@ -15,7 +16,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from temporalio import activity, workflow
-from temporalio.common import RetryPolicy
+from temporalio.common import RetryPolicy, WorkflowIDReusePolicy
 from temporalio.client import Client
 from temporalio.worker import Worker
 
@@ -36,16 +37,18 @@ MATERIALIZE_ACTIVITY = "ordivon.browserless.materialize"
 RECONCILE_ACTIVITY = "ordivon.browserless.reconcile"
 HUMAN_RESUME_ACTIVITY = "ordivon.browserless.human-resume"
 CONTINUE_ACTIVITY = "ordivon.browserless.continue"
-OCCURRENCE_MATERIALIZE_WORKFLOW = "ordivon.occurrence.materialize"
+MATERIALIZE_WORKFLOW = "ordivon.materialize"
+CAMPAIGN_MATERIALIZE_WORKFLOW = "ordivon.campaign.materialize"
 AGENT_RECONCILE_WORKFLOW = "ordivon.agent.reconcile"
 AGENT_HUMAN_RESUME_WORKFLOW = "ordivon.agent.human-resume"
 AGENT_CONTINUE_WORKFLOW = "ordivon.agent.continue"
 
 
 @dataclass(frozen=True)
-class OccurrenceInput:
+class MaterializationInput:
     spec_path: str
     agent_id: str
+    effect_id: str
 
 
 @dataclass(frozen=True)
@@ -84,10 +87,12 @@ class BrowserlessActivities:
             return lock
 
     @staticmethod
-    def _materialization_endpoint_id(config: BrowserlessAutomationConfig, value: OccurrenceInput) -> str:
+    def _materialization_endpoint_id(config: BrowserlessAutomationConfig, value: MaterializationInput) -> str:
         context = BrowserlessAutomationService(config)
         spec = context.load_spec(Path(value.spec_path))
         materialization = context._materialization(spec, value.agent_id)
+        if materialization.request_id != value.effect_id:
+            raise RuntimeError("Temporal materialization input effect identity differs from registered campaign bytes")
         census = campaign_census(spec, config.ledger)
         row = next(item for item in census["occurrences"] if item["agentId"] == value.agent_id)
         standing = row.get("materializationStanding")
@@ -103,7 +108,7 @@ class BrowserlessActivities:
             binding = context._current_binding(materialization)
             if binding is not None:
                 return str(binding["endpointId"])
-        return config.browserless_pool.select(materialization.effect_id).endpoint_id
+        return config.browserless_pool.select(materialization.request_id).endpoint_id
 
     @staticmethod
     def _continue_endpoint_id(
@@ -142,7 +147,7 @@ class BrowserlessActivities:
             "Browserless carrier routing changed repeatedly while waiting for endpoint serialization"
         )
 
-    def _run_materialization_failover(self, value: OccurrenceInput) -> dict:
+    def _run_materialization_failover(self, value: MaterializationInput) -> dict:
         # New/proven-pre-effect Materializations may move only across physically/provider-unavailable carriers.
         # Every provider preflight and the subsequent binding/SEND attempt happen under the same
         # cross-process carrier lease. Once an effect has a post-SEND/ambiguous standing, normal
@@ -152,6 +157,8 @@ class BrowserlessActivities:
             context = BrowserlessAutomationService(candidate)
             spec = context.load_spec(Path(value.spec_path))
             materialization = context._materialization(spec, value.agent_id)
+            if materialization.request_id != value.effect_id:
+                raise RuntimeError("Temporal materialization input effect identity differs from registered campaign bytes")
             census = campaign_census(spec, candidate.ledger)
             row = next(item for item in census["occurrences"] if item["agentId"] == value.agent_id)
             standing = row.get("materializationStanding")
@@ -171,17 +178,21 @@ class BrowserlessActivities:
                 )
             saw_current_candidate = False
             rejected: list[str] = []
-            for endpoint in candidate.browserless_pool.candidates(materialization.effect_id):
+            for endpoint in candidate.browserless_pool.candidates(materialization.request_id):
                 endpoint_id = endpoint.endpoint_id
                 with self._endpoint_lock(endpoint_id):
                     with _carrier_lease(candidate, endpoint_id, blocking=True):
                         current = self._current_config()
                         current_context = BrowserlessAutomationService(current)
                         current_spec = current_context.load_spec(Path(value.spec_path))
-                        current_birth = current_context._materialization(current_spec, value.agent_id)
+                        current_request = current_context._materialization(current_spec, value.agent_id)
+                        if current_request.request_id != value.effect_id:
+                            raise RuntimeError(
+                                "Temporal materialization input effect identity differs after config re-entry"
+                            )
                         current_ids = [
                             row.endpoint_id
-                            for row in current.browserless_pool.candidates(current_birth.effect_id)
+                            for row in current.browserless_pool.candidates(current_request.request_id)
                         ]
                         if endpoint_id not in current_ids:
                             continue
@@ -224,7 +235,7 @@ class BrowserlessActivities:
         )
 
     @activity.defn(name=MATERIALIZE_ACTIVITY)
-    def materialize(self, value: OccurrenceInput) -> dict:
+    def materialize(self, value: MaterializationInput) -> dict:
         result = self._run_materialization_failover(value)
         receipt = result.get("receipt") if isinstance(result, dict) else None
         if isinstance(receipt, dict) and receipt.get("standing") == "pre-effect-failed":
@@ -239,7 +250,7 @@ class BrowserlessActivities:
         return result
 
     @activity.defn(name=RECONCILE_ACTIVITY)
-    def reconcile(self, value: OccurrenceInput) -> dict:
+    def reconcile(self, value: MaterializationInput) -> dict:
         return self._run_serialized(
             value,
             self._materialization_endpoint_id,
@@ -247,7 +258,7 @@ class BrowserlessActivities:
         )
 
     @activity.defn(name=HUMAN_RESUME_ACTIVITY)
-    def human_resume(self, value: OccurrenceInput) -> dict:
+    def human_resume(self, value: MaterializationInput) -> dict:
         return self._run_serialized(
             value,
             self._materialization_endpoint_id,
@@ -276,10 +287,10 @@ EFFECT_FENCED_RETRY = RetryPolicy(
 )
 
 
-@workflow.defn(name=OCCURRENCE_MATERIALIZE_WORKFLOW)
-class OccurrenceMaterializeWorkflow:
+@workflow.defn(name=MATERIALIZE_WORKFLOW)
+class MaterializeWorkflow:
     @workflow.run
-    async def run(self, value: OccurrenceInput) -> dict:
+    async def run(self, value: MaterializationInput) -> dict:
         # Activity retry is safe only because the adapter durably claims the exact materialization request identity
         # before SEND. A retry re-enters/reconciles that same effect identity; it cannot blind-send.
         return await workflow.execute_activity(
@@ -291,10 +302,43 @@ class OccurrenceMaterializeWorkflow:
         )
 
 
+@workflow.defn(name=CAMPAIGN_MATERIALIZE_WORKFLOW)
+class CampaignMaterializeWorkflow:
+    @workflow.run
+    async def run(self, values: list[MaterializationInput]) -> dict:
+        if not values:
+            raise ValueError("campaign materialization requires at least one child effect")
+        seen: set[str] = set()
+        handles = []
+        for value in values:
+            if value.effect_id in seen:
+                raise ValueError("campaign materialization contains duplicate effect identity")
+            seen.add(value.effect_id)
+            handle = await workflow.start_child_workflow(
+                MaterializeWorkflow.run,
+                value,
+                id=value.effect_id,
+                id_reuse_policy=WorkflowIDReusePolicy.REJECT_DUPLICATE,
+            )
+            handles.append((value, handle))
+        results = await asyncio.gather(*(handle for _, handle in handles))
+        return {
+            "requested": len(values),
+            "effects": [
+                {
+                    "agentId": value.agent_id,
+                    "effectId": value.effect_id,
+                    "result": result,
+                }
+                for (value, _), result in zip(handles, results, strict=True)
+            ],
+        }
+
+
 @workflow.defn(name=AGENT_RECONCILE_WORKFLOW)
 class AgentReconcileWorkflow:
     @workflow.run
-    async def run(self, value: OccurrenceInput) -> dict:
+    async def run(self, value: MaterializationInput) -> dict:
         # Reconcile observes the same already-claimed materialization effect. It may update standing/evidence,
         # but it never authorizes a new provider SEND or increments effect generation.
         return await workflow.execute_activity(
@@ -309,7 +353,7 @@ class AgentReconcileWorkflow:
 @workflow.defn(name=AGENT_HUMAN_RESUME_WORKFLOW)
 class AgentHumanResumeWorkflow:
     @workflow.run
-    async def run(self, value: OccurrenceInput) -> dict:
+    async def run(self, value: MaterializationInput) -> dict:
         # HUMAN_REQUIRED proves no prompt SEND has occurred. The materializer atomically claims the
         # same effect identity before READY revalidation/SEND; activity retry reconciles UNKNOWN.
         return await workflow.execute_activity(
@@ -348,7 +392,8 @@ async def run_worker(
             client,
             task_queue=task_queue,
             workflows=[
-                OccurrenceMaterializeWorkflow,
+                CampaignMaterializeWorkflow,
+                MaterializeWorkflow,
                 AgentReconcileWorkflow,
                 AgentHumanResumeWorkflow,
                 AgentContinueWorkflow,

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Current CampaignSpec v2 compilation and materialization effect census.
+"""Campaign input validation, deterministic carrier-request compilation, and effect census.
 
-Temporal owns durable workflow execution and Browserless owns provider mechanics. This module only
-validates the current minimal campaign contract, compiles deterministic materialization inputs, and projects
-the active effect ledger. Historical CampaignSpec/materialization formats are intentionally unsupported.
+Campaign is input data only. Temporal owns durable execution; Browserless owns provider mechanics;
+CarrierMaterializationRequest is the provider-effect contract. No separate occurrence lifecycle is
+defined here.
 """
 
 from __future__ import annotations
@@ -14,7 +14,6 @@ import json
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 
 try:
     from chatgpt_provider_resource import normalize_provider_resource
@@ -36,6 +35,8 @@ def _text(value: str, label: str, *, max_bytes: int = 65536) -> str:
 
 
 def canonical_digest(value: object) -> str:
+    # Migration target: RFC 8785/JCS at the admission compiler boundary. Existing persisted
+    # identities are byte-equivalent for the current string-only digest inputs.
     raw = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
         "utf-8"
     )
@@ -114,43 +115,11 @@ class CampaignLaunchSpec:
         )
 
 
-@dataclass(frozen=True, slots=True)
-class OccurrenceMaterialization:
-    campaign_id: str
-    agent_id: str
-    role_digest: str
-    task_prompt_digest: str
-    effect_id: str
-    preparation_digest: str
-    bootstrap_prompt: str
-    bootstrap_prompt_digest: str
-
-    def materialization_request(self) -> CarrierMaterializationRequest:
-        return CarrierMaterializationRequest(
-            request_id=self.effect_id,
-            preparation_digest=self.preparation_digest,
-            bootstrap_prompt=self.bootstrap_prompt,
-        )
-
-    def to_dict(self) -> dict:
-        request = self.materialization_request()
-        return {
-            "agentId": self.agent_id,
-            "campaignId": self.campaign_id,
-            "roleDigest": self.role_digest,
-            "taskPromptDigest": self.task_prompt_digest,
-            "effectId": self.effect_id,
-            "bootstrapPromptDigest": self.bootstrap_prompt_digest,
-            "preparationDigest": self.preparation_digest,
-            "materializationRequestDigest": request.request_digest,
-        }
-
-
 def _task_prompt(shared_prompt: str, role: RoleCard) -> str:
     return shared_prompt.rstrip() + "\n\nROLE_CARD\n" + role.role_card.strip()
 
 
-def compile_occurrence(spec: CampaignLaunchSpec, role: RoleCard) -> OccurrenceMaterialization:
+def compile_request(spec: CampaignLaunchSpec, role: RoleCard) -> CarrierMaterializationRequest:
     task_prompt = _task_prompt(spec.shared_prompt, role)
     task_prompt_digest = bytes_digest(task_prompt)
     role_digest = bytes_digest(role.role_card)
@@ -182,27 +151,15 @@ def compile_occurrence(spec: CampaignLaunchSpec, role: RoleCard) -> OccurrenceMa
     )
     if len(bootstrap_prompt.encode("utf-8")) > 16384:
         raise ValueError(f"compiled bootstrap prompt for {role.agent_id} exceeds carrier limit")
-    return OccurrenceMaterialization(
-        campaign_id=spec.campaign_id,
-        agent_id=role.agent_id,
-        role_digest=role_digest,
-        task_prompt_digest=task_prompt_digest,
-        effect_id=effect_id,
+    return CarrierMaterializationRequest(
+        request_id=effect_id,
         preparation_digest=preparation_digest,
         bootstrap_prompt=bootstrap_prompt,
-        bootstrap_prompt_digest=bootstrap_prompt_digest,
     )
 
 
-def compile_campaign(spec: CampaignLaunchSpec) -> tuple[OccurrenceMaterialization, ...]:
-    return tuple(compile_occurrence(spec, role) for role in spec.roster)
-
-
-def manifest_dict(spec: CampaignLaunchSpec, materializations: Iterable[OccurrenceMaterialization]) -> dict:
-    del spec, materializations
-    raise ValueError(
-        "current CampaignSpec has no derived materialization manifest; use registry descriptor plus materialization census"
-    )
+def compile_campaign(spec: CampaignLaunchSpec) -> dict[str, CarrierMaterializationRequest]:
+    return {role.agent_id: compile_request(spec, role) for role in spec.roster}
 
 
 def _ledger_rows(path: Path) -> dict[str, sqlite3.Row]:
@@ -222,12 +179,11 @@ def _ledger_rows(path: Path) -> dict[str, sqlite3.Row]:
 
 
 def campaign_census(spec: CampaignLaunchSpec, ledger_path: Path) -> dict:
-    occurrences = compile_campaign(spec)
+    requests = compile_campaign(spec)
     rows = _ledger_rows(Path(ledger_path))
     projected = []
     counts = {"unrecorded": 0, **{standing.value: 0 for standing in MaterializationStanding}}
-    for occurrence in occurrences:
-        request = occurrence.materialization_request()
+    for agent_id, request in requests.items():
         row = rows.get(request.request_id)
         standing = None
         provider = None
@@ -238,7 +194,7 @@ def campaign_census(spec: CampaignLaunchSpec, ledger_path: Path) -> dict:
         else:
             if row["request_digest"] != request.request_digest:
                 raise RuntimeError(
-                    f"durable request digest conflict for materialization {occurrence.effect_id}"
+                    f"durable request digest conflict for materialization {request.request_id}"
                 )
             standing = MaterializationStanding(row["standing"])
             provider = (
@@ -254,8 +210,8 @@ def campaign_census(spec: CampaignLaunchSpec, ledger_path: Path) -> dict:
             counts[standing.value] += 1
         projected.append(
             {
-                "agentId": occurrence.agent_id,
-                "effectId": occurrence.effect_id,
+                "agentId": agent_id,
+                "effectId": request.request_id,
                 "materializationStanding": standing.value if standing else None,
                 "providerResource": provider,
                 "effectGeneration": effect_generation,
@@ -271,7 +227,7 @@ def campaign_census(spec: CampaignLaunchSpec, ledger_path: Path) -> dict:
         )
     return {
         "campaignId": spec.campaign_id,
-        "requested": len(occurrences),
+        "requested": len(requests),
         "counts": counts,
         "occurrences": projected,
     }
