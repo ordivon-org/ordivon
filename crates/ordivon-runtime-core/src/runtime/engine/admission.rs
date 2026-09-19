@@ -1,5 +1,6 @@
 impl Runtime {
-    pub fn run_job(&self, request: &JobRunRequest) -> RuntimeResult<JobObservation> {
+    #[cfg(test)]
+    pub(crate) fn run_job(&self, request: &JobRunRequest) -> RuntimeResult<JobObservation> {
         validate_run_request_structure(request)?;
         let request_identity_digest = super::operation_request_identity_digest(request)?;
         self.run_concrete_job(request, request_identity_digest)
@@ -24,6 +25,7 @@ impl Runtime {
                 &proposal.principal,
                 &proposal.client_request_id,
                 &request_identity_digest,
+                None,
             )? {
                 existing.job_id
             } else {
@@ -148,12 +150,15 @@ impl Runtime {
     ) -> RuntimeResult<JobObservation> {
         validate_run_proposal_structure(proposal)?;
         let request_identity_digest = super::proposal_request_identity_digest(proposal)?;
+        let legacy_request_identity_digest =
+            super::legacy_request_identity_digest_from_proposal(proposal)?;
         let (job_id, created) = {
             let _guard = self.lock_lifecycle()?;
             if let Some(existing) = self.registry.find_idempotent_job(
                 &proposal.principal,
                 &proposal.client_request_id,
                 &request_identity_digest,
+                legacy_request_identity_digest.as_deref(),
             )? {
                 (existing.job_id, false)
             } else {
@@ -181,6 +186,7 @@ impl Runtime {
         )
     }
 
+    #[cfg(test)]
     fn run_concrete_job(
         &self,
         request: &JobRunRequest,
@@ -192,6 +198,7 @@ impl Runtime {
                 &request.principal,
                 &request.client_request_id,
                 &request_identity_digest,
+                None,
             )? {
                 (existing.job_id, false)
             } else {

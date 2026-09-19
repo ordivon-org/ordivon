@@ -170,11 +170,8 @@ fn authenticated_http_parts_project_request_local_principal() {
     );
 }
 
-fn bound_execution_principal(bound: BoundTaskRun) -> String {
-    match bound {
-        BoundTaskRun::Legacy(request) => request.principal,
-        BoundTaskRun::Proposal(proposal) => proposal.principal,
-    }
+fn bound_execution_principal(bound: JobRunProposal) -> String {
+    bound.principal
 }
 
 #[test]
@@ -764,33 +761,24 @@ fn workspace_exec_bound_windows_binding_uses_trusted_local_limited_contract() {
 }
 
 #[test]
-fn workspace_exec_preserves_legacy_v1_only_for_fully_explicit_requests() {
+fn workspace_exec_always_binds_v2_proposal_even_when_limits_are_fully_explicit() {
     let server = Sandbox::new("proposal-bind").server();
-    match server
-        .state
-        .execution
-        .bind(exec_tool_request(Some(2_000), Some(4_096), Some(8_192)))
-    {
-        BoundTaskRun::Legacy(request) => {
-            assert_eq!(request.execution.timeout_ms, 2_000);
-            assert_eq!(request.execution.stdout_limit_bytes, 4_096);
-            assert_eq!(request.execution.stderr_limit_bytes, 8_192);
-        }
-        BoundTaskRun::Proposal(_) => panic!("fully explicit legacy request changed identity mode"),
-    }
+    let explicit =
+        server
+            .state
+            .execution
+            .bind(exec_tool_request(Some(2_000), Some(4_096), Some(8_192)));
+    assert_eq!(explicit.execution.timeout_ms, Some(2_000));
+    assert_eq!(explicit.execution.stdout_limit_bytes, Some(4_096));
+    assert_eq!(explicit.execution.stderr_limit_bytes, Some(8_192));
 
-    match server
+    let optional = server
         .state
         .execution
-        .bind(exec_tool_request(Some(2_000), None, None))
-    {
-        BoundTaskRun::Proposal(proposal) => {
-            assert_eq!(proposal.execution.timeout_ms, Some(2_000));
-            assert_eq!(proposal.execution.stdout_limit_bytes, None);
-            assert_eq!(proposal.execution.stderr_limit_bytes, None);
-        }
-        BoundTaskRun::Legacy(_) => panic!("optional request must be a Core proposal"),
-    }
+        .bind(exec_tool_request(Some(2_000), None, None));
+    assert_eq!(optional.execution.timeout_ms, Some(2_000));
+    assert_eq!(optional.execution.stdout_limit_bytes, None);
+    assert_eq!(optional.execution.stderr_limit_bytes, None);
 }
 
 #[test]
@@ -809,7 +797,7 @@ fn workspace_exec_plan_schema_exposes_job_wide_host_dependencies() {
 }
 
 #[test]
-fn workspace_exec_plan_keeps_legacy_sum_only_for_legacy_shape() {
+fn workspace_exec_plan_normalizes_legacy_sum_without_writing_legacy_identity() {
     let server = Sandbox::new("proposal-plan-bind").server();
     let legacy = WorkspaceExecPlanRequest {
         schema_version: 1,
@@ -831,21 +819,17 @@ fn workspace_exec_plan_keeps_legacy_sum_only_for_legacy_shape() {
         stdout_tail_bytes: 0,
         stderr_tail_bytes: 0,
     };
-    match server.state.execution.bind_plan(legacy).unwrap() {
-        BoundTaskRun::Legacy(request) => {
-            assert_eq!(request.execution.timeout_ms, 5_000);
-            assert_eq!(
-                request
-                    .execution
-                    .steps
-                    .iter()
-                    .map(|step| step.timeout_ms)
-                    .collect::<Vec<_>>(),
-                vec![2_000, 3_000]
-            );
-        }
-        BoundTaskRun::Proposal(_) => panic!("legacy plan changed identity mode"),
-    }
+    let proposal = server.state.execution.bind_plan(legacy).unwrap();
+    assert_eq!(proposal.execution.timeout_ms, Some(5_000));
+    assert_eq!(
+        proposal
+            .execution
+            .steps
+            .iter()
+            .map(|step| step.timeout_ms)
+            .collect::<Vec<_>>(),
+        vec![Some(2_000), Some(3_000)]
+    );
 
     let optional = WorkspaceExecPlanRequest {
         schema_version: 1,
@@ -867,15 +851,11 @@ fn workspace_exec_plan_keeps_legacy_sum_only_for_legacy_shape() {
         stdout_tail_bytes: 0,
         stderr_tail_bytes: 0,
     };
-    match server.state.execution.bind_plan(optional).unwrap() {
-        BoundTaskRun::Proposal(proposal) => {
-            assert_eq!(proposal.execution.timeout_ms, None);
-            assert_eq!(proposal.execution.steps[0].timeout_ms, Some(2_000));
-            assert_eq!(proposal.execution.steps[1].timeout_ms, None);
-            assert_eq!(proposal.execution.stdout_limit_bytes, None);
-        }
-        BoundTaskRun::Legacy(_) => panic!("optional plan must be a Core proposal"),
-    }
+    let proposal = server.state.execution.bind_plan(optional).unwrap();
+    assert_eq!(proposal.execution.timeout_ms, None);
+    assert_eq!(proposal.execution.steps[0].timeout_ms, Some(2_000));
+    assert_eq!(proposal.execution.steps[1].timeout_ms, None);
+    assert_eq!(proposal.execution.stdout_limit_bytes, None);
 }
 
 #[test]

@@ -4,10 +4,14 @@ impl Registry {
         principal: &str,
         client_request_id: &str,
         request_identity_digest: &str,
+        compatible_request_identity_digest: Option<&str>,
     ) -> RuntimeResult<Option<RuntimeJobRecord>> {
         validate_identifier(principal, "principal")?;
         validate_client_request_id(client_request_id, "clientRequestId")?;
         validate_request_identity_digest(request_identity_digest)?;
+        if let Some(digest) = compatible_request_identity_digest {
+            validate_request_identity_digest(digest)?;
+        }
         let connection = self.open_connection()?;
         let job_id: Option<String> = connection
             .query_row(
@@ -21,7 +25,10 @@ impl Registry {
             return Ok(None);
         };
         let job = load_job(&connection, &job_id)?;
-        if job_request_identity_digest(&job)? != request_identity_digest {
+        let stored_identity = job_request_identity_digest(&job)?;
+        if stored_identity != request_identity_digest
+            && compatible_request_identity_digest != Some(stored_identity.as_str())
+        {
             return Err(idempotency_conflict());
         }
         Ok(Some(job))

@@ -1743,7 +1743,12 @@ fn input_digest_mismatch_fails_before_job_admission() {
     .unwrap();
     assert!(runtime
         .registry()
-        .find_idempotent_job(&request.principal, &request.client_request_id, &identity)
+        .find_idempotent_job(
+            &request.principal,
+            &request.client_request_id,
+            &identity,
+            None
+        )
         .unwrap()
         .is_none());
 }
@@ -2282,6 +2287,122 @@ fn registry_accepts_input_bound_proposal_identity_without_changing_legacy_prefix
 }
 
 #[test]
+fn v2_proposal_identity_can_reattach_proven_equivalent_v1_job_without_alias_state() {
+    let sandbox = Sandbox::new("v2-reattach-v1", 5000);
+    let concrete = request(&sandbox, "request:v2-reattach-v1", 4);
+    let proposal = proposal_from_concrete_request(&JobRunRequest {
+        schema_version: concrete.schema_version,
+        client_request_id: concrete.client_request_id.clone(),
+        principal: concrete.plan.principal.clone(),
+        global_limit: concrete.global_limit,
+        execution: UniversalExecutionRequest {
+            workspace_id: concrete.plan.workspace_id.clone(),
+            executable: concrete.plan.executable.clone(),
+            args: concrete.plan.args.clone(),
+            cwd_relative: ".".to_string(),
+            env: concrete.plan.env.clone(),
+            timeout_ms: concrete.plan.timeout_ms,
+            stdout_limit_bytes: concrete.plan.stdout_limit_bytes,
+            stderr_limit_bytes: concrete.plan.stderr_limit_bytes,
+            steps: concrete
+                .plan
+                .steps
+                .iter()
+                .map(|step| UniversalExecutionStep {
+                    id: step.id.clone(),
+                    executable: step.executable.clone(),
+                    args: step.args.clone(),
+                    cwd_relative: ".".to_string(),
+                    env: step.env.clone(),
+                    timeout_ms: step.timeout_ms,
+                    continue_on_error: step.continue_on_error,
+                })
+                .collect(),
+            budget: concrete.plan.budget.clone(),
+            execution_profile: concrete.plan.execution_profile,
+            execution_target: concrete.plan.execution_target,
+            windows_authority: concrete.plan.windows_authority,
+            foreign_references: concrete.plan.foreign_references.clone(),
+            host_dependencies: Vec::new(),
+        },
+        wait_ms: 0,
+        stdout_tail_bytes: 0,
+        stderr_tail_bytes: 0,
+    });
+    let v1 = legacy_request_identity_digest_from_proposal(&proposal)
+        .unwrap()
+        .expect("fully explicit proposal has a v1 compatibility identity");
+    let v2 = proposal_request_identity_digest(&proposal).unwrap();
+    assert!(v1.starts_with(REQUEST_IDENTITY_PREFIX));
+    assert!(v2.starts_with(PROPOSAL_IDENTITY_PREFIX));
+    assert_ne!(v1, v2);
+
+    let mut historical = concrete;
+    historical.request_identity_digest = Some(v1.clone());
+    let created = created(sandbox.registry.submit(&historical).unwrap());
+
+    let strict = sandbox.registry.find_idempotent_job(
+        &proposal.principal,
+        &proposal.client_request_id,
+        &v2,
+        None,
+    );
+    assert_eq!(
+        strict.unwrap_err().code,
+        RuntimeErrorCode::IdempotencyConflict
+    );
+
+    let reattached = sandbox
+        .registry
+        .find_idempotent_job(
+            &proposal.principal,
+            &proposal.client_request_id,
+            &v2,
+            Some(&v1),
+        )
+        .unwrap()
+        .unwrap();
+    assert_eq!(reattached.job_id, created.job.job_id);
+}
+
+#[test]
+fn v1_compatibility_identity_is_never_guessed_from_incomplete_proposal() {
+    let sandbox = Sandbox::new("v1-compat-incomplete", 5000);
+    let concrete = request(&sandbox, "request:v1-compat-incomplete", 4);
+    let mut proposal = proposal_from_concrete_request(&JobRunRequest {
+        schema_version: concrete.schema_version,
+        client_request_id: concrete.client_request_id,
+        principal: concrete.plan.principal,
+        global_limit: concrete.global_limit,
+        execution: UniversalExecutionRequest {
+            workspace_id: concrete.plan.workspace_id,
+            executable: concrete.plan.executable,
+            args: concrete.plan.args,
+            cwd_relative: ".".to_string(),
+            env: concrete.plan.env,
+            timeout_ms: concrete.plan.timeout_ms,
+            stdout_limit_bytes: concrete.plan.stdout_limit_bytes,
+            stderr_limit_bytes: concrete.plan.stderr_limit_bytes,
+            steps: Vec::new(),
+            budget: concrete.plan.budget,
+            execution_profile: concrete.plan.execution_profile,
+            execution_target: concrete.plan.execution_target,
+            windows_authority: concrete.plan.windows_authority,
+            foreign_references: concrete.plan.foreign_references,
+            host_dependencies: Vec::new(),
+        },
+        wait_ms: 0,
+        stdout_tail_bytes: 0,
+        stderr_tail_bytes: 0,
+    });
+    proposal.execution.stdout_limit_bytes = None;
+    assert_eq!(
+        legacy_request_identity_digest_from_proposal(&proposal).unwrap(),
+        None
+    );
+}
+
+#[test]
 fn proposal_identity_preserves_omission_and_normalizes_equivalent_paths() {
     let base = JobRunProposal {
         schema_version: RUNTIME_SCHEMA_VERSION,
@@ -2380,7 +2501,12 @@ fn legacy_job_request_identity_is_derived_from_stored_plan() {
     let derived = operation_request_identity_digest_from_plan(&legacy.plan).unwrap();
     let found = sandbox
         .registry
-        .find_idempotent_job(&legacy.plan.principal, &legacy.client_request_id, &derived)
+        .find_idempotent_job(
+            &legacy.plan.principal,
+            &legacy.client_request_id,
+            &derived,
+            None,
+        )
         .unwrap()
         .unwrap();
     assert_eq!(found.job_id, created.job.job_id);
