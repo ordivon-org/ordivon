@@ -18,7 +18,7 @@ class ResilienceRunnerTests(unittest.TestCase):
         self.assertNotIn('.venv/bin/python', (ROOT/'scripts/run-crypto-stream-resilience-r3-session').read_text())
     def test_master_keeps_authority_and_clock_gates(self):
         s=(ROOT/'scripts/run-crypto-stream-resilience-r3').read_text()
-        self.assertIn('check-capital-authority',s)
+        self.assertIn('check-execution-policy',s)
         self.assertIn('check-clock-quality-gate',s)
         self.assertIn('PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT_WITH_NETWORK_V2_FAILOVER',s)
         self.assertNotIn('candidates=(',s)

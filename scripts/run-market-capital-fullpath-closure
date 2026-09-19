@@ -50,7 +50,7 @@ def main() -> int:
     credentials=run('NONLIVE_CREDENTIAL_PROVISIONING',[str(ROOT/'scripts/check-nonlive-credential-provisioning')])
     handoff=run('PROVIDER_REGISTRATION_HANDOFF',[str(ROOT/'scripts/check-provider-registration-handoff')])
     clock=run('CLOCK_QUALITY',[str(ROOT/'scripts/check-clock-quality-gate')])
-    real_boundary=run('REAL_FINANCIAL_EFFECT_BOUNDARY',[str(ROOT/'scripts/check-capital-authority')])
+    real_boundary=run('REAL_FINANCIAL_EFFECT_BOUNDARY',[str(ROOT/'scripts/check-execution-policy')])
 
     a=parse_json_tail(authority)
     c=parse_json_tail(capital)

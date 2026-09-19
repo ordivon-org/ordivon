@@ -59,6 +59,10 @@ class CryptoPublicShadowTests(unittest.TestCase):
         self.assertIn("BTC", out["comparisons"])
         self.assertEqual(out["transport"]["providerSelection"],"sing-box-provider-auto")
         self.assertFalse(out["transport"]["directFallback"])
+        self.assertEqual(out["riskDataQuality"]["frameworkReference"], "BCBS239_PROPORTIONAL_REFERENCE")
+        self.assertEqual(out["riskDataQuality"]["comparisonScope"], "BOUNDED_CONTEMPORANEOUS_BBO")
+        self.assertTrue(out["riskDataQuality"]["requiredInputsComplete"])
+        self.assertNotIn("sameCutScope", out)
 
 
 if __name__ == "__main__":

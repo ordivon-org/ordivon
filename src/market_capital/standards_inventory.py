@@ -50,13 +50,21 @@ def main() -> int:
         "standing": "PASS",
         "framework": inventory["framework"]["name"],
         "componentCount": len(inventory["components"]),
-        "modelCount": sum(
+        "activeModelCount": sum(
             1 for row in inventory["components"]
-            if row["sr26ModelStanding"] == "MODEL"
+            if row["sr26ModelStanding"] == "MODEL" and row["status"] != "RETIRED"
         ),
-        "retiredCount": sum(
+        "validationRequiredModelCount": sum(
             1 for row in inventory["components"]
-            if row["status"] == "RETIRED"
+            if row["sr26ModelStanding"] == "MODEL" and row["status"] == "VALIDATION_REQUIRED"
+        ),
+        "retiredModelCount": sum(
+            1 for row in inventory["components"]
+            if row["sr26ModelStanding"] == "MODEL" and row["status"] == "RETIRED"
+        ),
+        "nonModelComponentCount": sum(
+            1 for row in inventory["components"]
+            if row["sr26ModelStanding"] == "NON_MODEL"
         ),
     }, sort_keys=True))
     return 0

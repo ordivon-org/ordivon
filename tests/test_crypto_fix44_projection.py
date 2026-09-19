@@ -15,7 +15,7 @@ def test_projector_is_quickfix_sessionless_thin_projection():
 
 def test_r4_runner_keeps_non_live_authority_and_identity_continuity():
     s=(ROOT/'scripts/run-crypto-fix-projection-r4').read_text()
-    assert 'check-capital-authority" --mode non-live' in s
+    assert 'check-execution-policy" --mode non-live' in s
     assert "'clOrdId':row['clientOrderId']" in s
     assert "'externalFinancialWritesAttempted':False" in s
 

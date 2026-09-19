@@ -8,7 +8,7 @@ Trading runtime: pinned QuantConnect LEAN (installed and admitted for bounded no
 Post-trade reference semantics: PFMI + ISO 20022; broker/custodian infrastructure remains authoritative.
 Issuer reporting: XBRL/iXBRL + Arelle.
 Research: existing Ordivon Research E2E / MLflow.
-Capital accounting mechanics: TigerBeetle `0.17.9` (mechanical-only provider; no capital truth or write authority).
+Capital accounting mechanics: TigerBeetle `0.17.9`; venue/custody/settlement systems remain authoritative for their own external state.
 
 ## Current standing
 
@@ -16,7 +16,7 @@ Wave A is closed on the investment side:
 
 `Mandate / IPS -> authoritative data -> research artifact -> portfolio construction -> target portfolio`
 
-Wave B / M1 admits bounded historical execution through pinned QuantConnect LEAN. M2 adds LEAN-native pre-trade feasibility, M3 admits provenance-recorded Nasdaq historical OHLCV while remaining non-causal, M4 inserts QuickFIX/n FIX 4.4 `NewOrderSingle` semantics, M5 adds a fail-closed causal-shadow gate, M6 freezes a pre-market shadow order plan from the last pre-decision provider-origin close, and M6.1 migrates the proven semantic/authority core directly into this canonical repository so every current trading runner crosses the in-repository authority gate before LEAN starts. M5 is currently `WAITING_FOR_POST_DECISION_DATA`; M6 has emitted no LEAN orders or external effects. No FIX session, broker credential, venue write, or external financial write is admitted. External financial write admission remains `NOT_ADMITTED`; no provider/executor write capability is implemented and bound; there is no active runtime dependency on the retired `market-capital-v2` repository. NautilusTrader `2.0.0rc4` is installed only as a shadow qualification candidate: its OMS/Risk controls pass local controls, but its simulated venue rejects the frozen M6 `AT_THE_OPEN` orders, so it is not admitted as an M6/M7 replacement or live engine. See the Wave B documents under `docs/`.
+Wave B / M1 admits bounded historical execution through pinned QuantConnect LEAN. M2 adds LEAN-native pre-trade feasibility. M3 uses provenance-recorded Nasdaq historical OHLCV only for execution-mechanics/data-plumbing validation. M4 projects order intent through a legacy FIX 4.4 wire profile under the FIX Latest semantic reference. M5 is prospective validation: a frozen decision may be evaluated only against strictly post-decision aligned holdout sessions; this is not causal evidence. M6 freezes a pre-market shadow plan. Every current execution runner crosses the OPA-governed execution-policy enforcement point before LEAN starts. No live financial-write path is implemented. NautilusTrader `2.0.0rc4` remains qualification-only.
 
 This repository does not import legacy Ordivon finance/Market Capital code or schemas.
 
@@ -33,7 +33,7 @@ Crypto Public Shadow R2 now passes repeated persistent public streaming through 
 Crypto Stream Resilience R3 keeps fail-closed missing/stale/time-divergence semantics and the dual-venue reconnect harness on exact Network v2 WS authorities. Current injected-disconnect qualification passes for both OKX and Binance; observed reconnect latencies were ~16.0 s and ~26.3 s respectively and remain evidence rather than a hidden transport claim. The state is exported through the existing Prometheus/Grafana stack without enabling private/demo/live execution.
 Clock timing qualification now passes: Windows w32time is synchronized to qualified public NTP peers and WSL CLOCK_REALTIME follows the Windows host through `/dev/ptp_hyperv` using `phc2sys`; fresh external validation observed <=47.1 ms absolute error versus the frozen 1000 ms gate. Overall private/demo/live execution remains blocked by the separate NON_LIVE execution authority.
 
-Composition policy: prefer authoritative venue APIs and mature components over local mechanisms. LEAN/Nautilus/FIX/venue APIs/TigerBeetle/Prometheus own their respective mechanics; Market Capital retains only thin decision, proof, authority and reconciliation seams. Custom mechanisms require a demonstrated substitution failure. See `docs/COMPOSITION_FIRST_2026-09-14.md`.
+Composition policy: prefer authoritative venue APIs and mature components over local mechanisms. LEAN/Nautilus/FIX/venue APIs/TigerBeetle/OPA/Prometheus own their respective mechanics; Market Capital retains only narrow mappings, policy inputs/enforcement, data-quality checks, and reconciliation seams. Custom mechanisms require a demonstrated substitution failure. See `docs/COMPOSITION_FIRST_2026-09-14.md`.
 
 TigerBeetle Capital Substrate R1 passes the base mechanical integration and R3.1 composes Reservation -> PENDING, RETAIN -> no mutation, RELEASE -> VOID_PENDING_TRANSFER, and CONSUME -> POST_PENDING_TRANSFER. R3.2 now passes durable restart/reconciliation on one intact data file: a pending reservation survived the first process restart, a consumed reservation survived the second, exact replay returned `EXISTS` without reopening pending state, and exact terminal semantic history reconciled `MATCH`. If provider terminal history is missing or stale, the result is retain/recovery (`PROVIDER_INCOMPLETE_RETAIN` / `CONTRADICTION_RETAIN`) with provider repair forbidden; terminal Market Capital history is never resurrected from provider state. The bounded harness deletes its data file afterward, so no long-running canonical ledger or external financial write is admitted.
 
@@ -43,7 +43,7 @@ Private Reality read-only preflight now passes without credentials: OKX will use
 
 Private Reality R5 offline normalization now passes: authoritative OKX/Binance observer envelopes map through a pure no-network/no-credential normalizer into a minimal balances/positions/orders/fills read model. Existing observer credential locations are bound externally, Binance executor credentials are explicitly excluded, and private account data remains blocked pending fresh permission verification.
 
-Execution Reconciliation R6 now passes offline: authoritative normalized venue reality is mapped into FIX 4.4 execution lifecycle vocabulary, while Market Capital retains only EffectAuthority disposition. Broad snapshot absence is never treated as no-effect; release requires terminal zero-fill with complete fill coverage or an exact authoritative negative lookup.
+Execution Reconciliation R6 now passes offline: authoritative normalized venue reality is mapped into FIX 4.4 execution lifecycle vocabulary, and reconciled directly to TigerBeetle accounting-resolution instructions. Broad snapshot absence is never treated as no-effect; voiding a pending transfer requires terminal zero-fill with complete fill coverage or an exact authoritative negative lookup.
 
 Demo/Testnet Execution R7 preflight is prepared but not admitted: the installed NautilusTrader execution configs construct successfully for OKX DEMO and Binance Spot TESTNET without credentials or network access. Demo/live write authority remains false.
 

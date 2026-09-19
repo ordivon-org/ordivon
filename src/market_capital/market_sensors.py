@@ -76,7 +76,7 @@ def open_interest_change(
     return {
         "schemaVersion": 1,
         "kind": "ordivon.market-capital.open-interest-change",
-        "truthRole": "derived-observation-not-crowding-truth",
+        "componentId": "open-interest-change",
         "instrumentId": instrument_id,
         "sampleCount": len(rows),
         "startObservedAtMs": start_ts,
@@ -86,7 +86,6 @@ def open_interest_change(
         "endOpenInterestUsd": _fmt(end_oi),
         "openInterestChangeUsd": _fmt(end_oi - start_oi),
         "openInterestChangePct": _fmt(change_pct) if change_pct is not None else None,
-        "externalFinancialWriteAttempted": False,
     }
 
 
@@ -94,7 +93,6 @@ def repeated_microstructure(
     samples: Sequence[Mapping[str, Any]],
     *,
     minimum_samples: int = 3,
-    persistence_ratio: Decimal | str = Decimal("0.75"),
 ) -> dict[str, Any]:
     """Summarize persistence across repeated microstructure snapshots.
 
@@ -106,10 +104,6 @@ def repeated_microstructure(
         raise MarketSensorError("minimum_samples must be at least two")
     if len(samples) < minimum_samples:
         raise MarketSensorError("insufficient repeated microstructure samples")
-
-    persistence = _d(persistence_ratio, "persistence_ratio")
-    if persistence <= 0 or persistence > 1:
-        raise MarketSensorError("persistence_ratio must be in (0, 1]")
 
     instrument_id: str | None = None
     previous_ts = -1
@@ -150,25 +144,15 @@ def repeated_microstructure(
     spreads = [x for _, _, _, x in rows]
     median_spread = Decimal(str(median(spreads)))
 
-    sell_persistent = neg_book_ratio >= persistence and sell_trade_ratio >= persistence
-    buy_persistent = pos_book_ratio >= persistence and buy_trade_ratio >= persistence
-    if sell_persistent:
-        standing = "PERSISTENT_SELL_TILT_OBSERVED"
-    elif buy_persistent:
-        standing = "PERSISTENT_BUY_TILT_OBSERVED"
-    else:
-        standing = "MIXED_OR_NONPERSISTENT_FLOW"
-
     return {
         "schemaVersion": 1,
         "kind": "ordivon.market-capital.repeated-microstructure",
-        "truthRole": "repeated-observation-not-price-direction-truth",
+        "componentId": "repeated-microstructure-summary",
         "instrumentId": instrument_id,
         "sampleCount": len(rows),
         "startObservedAtMs": rows[0][0],
         "endObservedAtMs": rows[-1][0],
         "spanMs": rows[-1][0] - rows[0][0],
-        "standing": standing,
         "meanBookImbalance": _fmt(mean_book),
         "negativeBookImbalanceRatio": _fmt(neg_book_ratio),
         "positiveBookImbalanceRatio": _fmt(pos_book_ratio),
@@ -177,10 +161,6 @@ def repeated_microstructure(
         "tradeBuyShareAboveHalfRatio": _fmt(buy_trade_ratio),
         "medianSpreadBps": _fmt(median_spread),
         "maxSpreadBps": _fmt(max(spreads)),
-        "persistenceRatioRequired": _fmt(persistence),
-        "forecastProbabilityProduced": False,
-        "tradeRecommendationProduced": False,
-        "externalFinancialWriteAttempted": False,
     }
 
 
@@ -219,15 +199,11 @@ def reconcile_underlying_reopen(
     base = {
         "schemaVersion": 1,
         "kind": "ordivon.market-capital.underlying-reopen-reconciliation",
-        "truthRole": "price-reconciliation-evidence-not-causal-truth",
+        "componentId": "underlying-reopen-reconciliation",
         "instrumentId": instrument_id,
         "weekendPerpPrice": _fmt(weekend_price),
         "weekendObservedAtMs": weekend_ts,
         "validationToleranceBps": _fmt(tolerance) if tolerance is not None else None,
-        "causalStanding": "NOT_IDENTIFIED_FROM_PRICE_RECONCILIATION",
-        "forecastProbabilityProduced": False,
-        "tradeRecommendationProduced": False,
-        "externalFinancialWriteAttempted": False,
     }
 
     if underlying_reopen_price is None:
@@ -325,7 +301,12 @@ def merge_market_observations(
             raise MarketSensorError("microstructure sensor instrument does not match market")
         result["bookImbalance"] = microstructure.get("meanBookImbalance")
         result["tradeBuyShare"] = microstructure.get("meanTradeBuyShare")
-        result["microstructureStanding"] = microstructure.get("standing")
         result["microstructureSampleCount"] = microstructure.get("sampleCount")
+        result["negativeBookImbalanceRatio"] = microstructure.get("negativeBookImbalanceRatio")
+        result["positiveBookImbalanceRatio"] = microstructure.get("positiveBookImbalanceRatio")
+        result["tradeBuyShareBelowHalfRatio"] = microstructure.get("tradeBuyShareBelowHalfRatio")
+        result["tradeBuyShareAboveHalfRatio"] = microstructure.get("tradeBuyShareAboveHalfRatio")
+        result["medianSpreadBps"] = microstructure.get("medianSpreadBps")
+        result["maxSpreadBps"] = microstructure.get("maxSpreadBps")
 
     return result

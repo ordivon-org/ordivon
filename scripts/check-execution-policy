@@ -2,4 +2,4 @@
 set -euo pipefail
 repo="$(cd "$(dirname "$0")/.." && pwd)"
 export PYTHONPATH="$repo/src${PYTHONPATH:+:$PYTHONPATH}"
-exec python3 -m market_capital.authority --repo "$repo" --config "$repo/config/execution_authority.json" "$@"
+exec python3 -m market_capital.execution_policy --repo "$repo" --config "$repo/config/execution_policy.json" "$@"

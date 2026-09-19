@@ -5,14 +5,14 @@ lean="${MARKET_CAPITAL_LEAN_ROOT:-/root/external/quantconnect-lean/18074}"
 out="$repo/.artifacts/wave-b-m3/results"
 mkdir -p "$repo/.artifacts/wave-b-m3"
 "$repo/scripts/check-lean-runtime"
-"$repo/scripts/check-capital-authority" --mode non-live >/dev/null
+"$repo/scripts/check-execution-policy" --mode non-live >/dev/null
 "$repo/scripts/fetch-nasdaq-wave-b-m3" > "$repo/.artifacts/wave-b-m3/fetch-manifest-output.json"
 DOTNET_CLI_TELEMETRY_OPTOUT=1 dotnet build "$repo/wave_b/algorithm/MarketCapitalValidationAlgorithm.csproj" -c Release --nologo -p:LeanReleaseRoot="$lean/Launcher/bin/Release"
 rm -rf "$out" && mkdir -p "$out"
 export MARKET_CAPITAL_TARGET_PORTFOLIO="$repo/wave_b/fixtures/wave_a_target_portfolio.json"
 export MARKET_CAPITAL_EXECUTION_CASH_BUFFER_WEIGHT="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["executionCashBufferWeight"])' "$repo/config/execution_feasibility.json")"
-export MARKET_CAPITAL_BACKTEST_START="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["startDate"])' "$repo/config/market_data_admission.json")"
-export MARKET_CAPITAL_BACKTEST_END="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["endDate"])' "$repo/config/market_data_admission.json")"
+export MARKET_CAPITAL_BACKTEST_START="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["startDate"])' "$repo/config/historical_validation_data.json")"
+export MARKET_CAPITAL_BACKTEST_END="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["endDate"])' "$repo/config/historical_validation_data.json")"
 (
  cd "$lean/Launcher/bin/Release"
  ./QuantConnect.Lean.Launcher --config "$lean/Launcher/config.json" --environment backtesting \
@@ -37,7 +37,8 @@ if float(final.group(2)) < 0: raise SystemExit('negative final cash')
 summary={
  'standing':'PASS_BOUNDED_PROVIDER_ORIGIN_DATA_NON_CAUSAL',
  'provider':'Nasdaq',
- 'causalStanding':manifest['causalStanding'],
+ 'validationPurpose':manifest['validationPurpose'],
+ 'strategyPerformanceInferenceAllowed':manifest['strategyPerformanceInferenceAllowed'],
  'brokerCredentialsUsed':False,
  'externalFinancialWritesAttempted':False,
  'fills':len(fills),

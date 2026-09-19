@@ -314,13 +314,12 @@ def build_action_counterfactual(
             "beforeSignedExposureUsd": _fmt(before_factor) if before_factor is not None else None,
             "afterSignedExposureUsd": _fmt(after_factor) if after_factor is not None else None,
             "standing": hedge_standing,
-            "dependenceOrCausalityProven": False,
         }
 
     return {
         "schemaVersion": 1,
         "kind": "ordivon.market-capital.portfolio-action-counterfactual",
-        "truthRole": "mechanical-exposure-counterfactual-not-trade-recommendation",
+        "componentId": "portfolio-scenario-calculation",
         "scenarioId": scenario_id,
         "action": action,
         "sizingBasis": sizing_basis,
@@ -356,9 +355,6 @@ def build_action_counterfactual(
         "availableEquityUsdObservedBefore": _fmt(available),
         "projectedAvailableEquityUsd": None,
         "exactMarginDeltaMeasured": False,
-        "allocationProduced": False,
-        "tradeRecommendationProduced": False,
-        "externalFinancialWriteAttempted": False,
     }
 
 
@@ -378,13 +374,8 @@ def build_counterfactual_set(
     return {
         "schemaVersion": 1,
         "kind": "ordivon.market-capital.portfolio-counterfactual-set",
-        "truthRole": "scenario-comparison-evidence-not-allocation-truth",
         "scenarioCount": len(rows),
         "scenarios": rows,
-        "rankingProduced": False,
-        "winnerSelected": False,
-        "tradeRecommendationProduced": False,
-        "externalFinancialWriteAttempted": False,
     }
 
 
@@ -492,8 +483,8 @@ def evaluate_constraint_gate(
         if not isinstance(dep, Mapping):
             add("DEPENDENCE_EVIDENCE", "INCOMPLETE", "hedge dependence evidence not supplied")
         else:
-            if dep.get("minimumVarianceBetaIsRecommendation") is not False:
-                add("DEPENDENCE_EVIDENCE", "FAIL", "dependence evidence does not preserve non-recommendation boundary")
+            if dep.get("componentId") != "portfolio-dependence-analysis":
+                add("DEPENDENCE_EVIDENCE", "FAIL", "hedge dependence evidence is not bound to the registered dependence model")
             elif dep.get("overlapReturnCount") is None:
                 add("DEPENDENCE_EVIDENCE", "INCOMPLETE", "hedge dependence sample count missing")
             else:
@@ -506,10 +497,10 @@ def evaluate_constraint_gate(
         diversification = evidence.get("diversification")
         if not isinstance(diversification, Mapping):
             add("DIVERSIFICATION_EVIDENCE", "INCOMPLETE", "destination covariance/factor evidence not supplied")
-        elif diversification.get("causalHedgeClaimed") is True:
-            add("DIVERSIFICATION_EVIDENCE", "FAIL", "diversification evidence cannot upgrade low correlation into causal hedge truth")
+        elif diversification.get("componentId") != "portfolio-dependence-analysis":
+            add("DIVERSIFICATION_EVIDENCE", "FAIL", "diversification evidence is not bound to the registered dependence model")
         else:
-            add("DIVERSIFICATION_EVIDENCE", "PASS", "destination dependence/factor evidence supplied without causal hedge claim")
+            add("DIVERSIFICATION_EVIDENCE", "PASS", "registered dependence-model evidence supplied for diversification analysis")
     else:
         add("DIVERSIFICATION_EVIDENCE", "NOT_REQUIRED", "diversification claim is not made")
 
@@ -528,19 +519,14 @@ def evaluate_constraint_gate(
 
     return {
         "schemaVersion": 1,
-        "kind": "ordivon.market-capital.portfolio-constraint-gate",
-        "truthRole": "counterfactual-evidence-gate-not-action-approval",
+        "kind": "ordivon.market-capital.pre-trade-evidence-control",
+        "componentId": "pre-trade-evidence-control",
         "scenarioId": counterfactual.get("scenarioId"),
         "action": action,
         "standing": standing,
         "checks": checks,
         "failedChecks": failures,
         "incompleteChecks": incomplete,
-        "effectAdmissionGranted": False,
-        "actionApproved": False,
-        "rankingProduced": False,
-        "tradeRecommendationProduced": False,
-        "externalFinancialWriteAttempted": False,
     }
 
 
@@ -566,13 +552,7 @@ def build_counterfactual_gate_set(
     return {
         "schemaVersion": 1,
         "kind": "ordivon.market-capital.portfolio-counterfactual-gate-set",
-        "truthRole": "parallel-scenario-gating-not-ranking",
         "scenarioCount": len(gates),
         "gates": gates,
         "allPass": bool(gates) and all(row["standing"] == "PASS" for row in gates),
-        "rankingProduced": False,
-        "winnerSelected": False,
-        "effectAdmissionGranted": False,
-        "tradeRecommendationProduced": False,
-        "externalFinancialWriteAttempted": False,
     }

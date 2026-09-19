@@ -10,7 +10,7 @@ def decision_session_date(decision_boundary: datetime, session_timezone: str) ->
     return decision_boundary.astimezone(ZoneInfo(session_timezone)).date()
 
 
-def common_post_decision_dates(
+def common_post_decision_session_dates(
     *,
     decision_boundary: datetime,
     session_timezone: str,
@@ -23,28 +23,28 @@ def common_post_decision_dates(
     return sorted(d for d in common if d > boundary_date)
 
 
-def evaluate_causal_shadow(
+def evaluate_prospective_validation(
     *,
     decision_boundary: datetime,
     session_timezone: str,
     series_dates: dict[str, set[date]],
 ) -> dict:
-    eligible = common_post_decision_dates(
+    eligible = common_post_decision_session_dates(
         decision_boundary=decision_boundary,
         session_timezone=session_timezone,
         series_dates=series_dates,
     )
     if not eligible:
         return {
-            "gateImplemented": True,
-            "causalEvidenceAvailable": False,
+            "componentId": "prospective-validation",
             "standing": "WAITING_FOR_POST_DECISION_DATA",
+            "postDecisionHoldoutAvailable": False,
             "eligibleCommonSessionDates": [],
         }
     return {
-        "gateImplemented": True,
-        "causalEvidenceAvailable": True,
-        "standing": "POST_DECISION_DATA_ADMITTED",
+        "componentId": "prospective-validation",
+        "standing": "POST_DECISION_HOLDOUT_AVAILABLE",
+        "postDecisionHoldoutAvailable": True,
         "eligibleCommonSessionDates": [d.isoformat() for d in eligible],
         "firstEligibleCommonSessionDate": eligible[0].isoformat(),
         "latestEligibleCommonSessionDate": eligible[-1].isoformat(),

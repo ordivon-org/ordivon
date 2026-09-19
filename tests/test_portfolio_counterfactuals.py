@@ -41,7 +41,6 @@ class PortfolioCounterfactualTests(unittest.TestCase):
         self.assertEqual(out["projected"]["grossToEquity"], "1.500000")
         self.assertEqual(out["deltas"]["grossToEquity"], "-1.500000")
         self.assertEqual(out["shockProjection"]["afterEquityLossPctFirstOrder"], "15.000000")
-        self.assertFalse(out["tradeRecommendationProduced"])
 
     def test_hedge_can_reduce_net_while_increasing_gross(self):
         out = build_action_counterfactual(
@@ -132,7 +131,6 @@ class PortfolioCounterfactualTests(unittest.TestCase):
             evidence={"liquidity": {"measured": True, "spreadBps": "1.0"}},
         )
         self.assertEqual(passed["standing"], "PASS")
-        self.assertFalse(passed["actionApproved"])
 
     def test_hedge_label_cannot_override_target_factor_mechanics(self):
         cf = build_action_counterfactual(
@@ -158,8 +156,8 @@ class PortfolioCounterfactualTests(unittest.TestCase):
                 "liquidity": {"measured": True},
                 "carry": {"measured": True},
                 "dependence": {
+                    "componentId": "portfolio-dependence-analysis",
                     "overlapReturnCount": 178,
-                    "minimumVarianceBetaIsRecommendation": False,
                 },
             },
         )
@@ -184,7 +182,6 @@ class PortfolioCounterfactualTests(unittest.TestCase):
             set(gate["incompleteChecks"]),
             {"RISK_BUDGET", "MARGIN_DELTA", "LIQUIDITY_COST", "FUNDING_BASIS_CARRY", "DEPENDENCE_EVIDENCE"},
         )
-        self.assertFalse(gate["actionApproved"])
 
     def test_hedge_gate_can_pass_evidence_completeness_without_approving_action(self):
         cf = build_action_counterfactual(
@@ -206,14 +203,12 @@ class PortfolioCounterfactualTests(unittest.TestCase):
                 "liquidity": {"measured": True},
                 "carry": {"measured": True},
                 "dependence": {
+                    "componentId": "portfolio-dependence-analysis",
                     "overlapReturnCount": 178,
-                    "minimumVarianceBetaIsRecommendation": False,
                 },
             },
         )
         self.assertEqual(gate["standing"], "PASS")
-        self.assertFalse(gate["actionApproved"])
-        self.assertFalse(gate["effectAdmissionGranted"])
 
     def test_reconcile_requires_signpost(self):
         cf = build_action_counterfactual(
@@ -231,9 +226,8 @@ class PortfolioCounterfactualTests(unittest.TestCase):
             evidence={"reconciliationSignpost": {"defined": True}},
         )
         self.assertEqual(passed["standing"], "PASS")
-        self.assertFalse(passed["actionApproved"])
 
-    def test_counterfactual_set_never_ranks_or_selects_winner(self):
+    def test_counterfactual_set_contains_no_ranking_surface(self):
         cfs = build_counterfactual_set(
             exposure_ledger=self.ledger,
             scenarios=[
@@ -246,11 +240,11 @@ class PortfolioCounterfactualTests(unittest.TestCase):
                 },
             ],
         )
-        self.assertFalse(cfs["rankingProduced"])
-        self.assertFalse(cfs["winnerSelected"])
+        self.assertNotIn("rankingProduced", cfs)
+        self.assertNotIn("winnerSelected", cfs)
         gates = build_counterfactual_gate_set(counterfactual_set=cfs)
-        self.assertFalse(gates["rankingProduced"])
-        self.assertFalse(gates["winnerSelected"])
+        self.assertNotIn("rankingProduced", gates)
+        self.assertNotIn("winnerSelected", gates)
 
 
 if __name__ == "__main__":

@@ -125,7 +125,7 @@ def build_exposure_ledger(
     return {
         "schemaVersion": 1,
         "kind": "ordivon.market-capital.exposure-ledger",
-        "truthRole": "runtime-derived-private-risk-observation-not-allocation-truth",
+        "componentId": "exposure-ledger",
         "equityUsd": _fmt(equity),
         "availableEquityUsd": _fmt(available),
         "availableEquityRatio": _fmt(available_ratio),
@@ -141,9 +141,6 @@ def build_exposure_ledger(
         "positionCount": len(normalized),
         "positions": normalized,
         "factorExposure": factor_rows,
-        "privateRealityPersisted": False,
-        "tradeRecommendationProduced": False,
-        "externalFinancialWriteAttempted": False,
     }
 
 
@@ -208,7 +205,6 @@ def analyze_dependence(
     short_window: int = 20,
     medium_window: int = 60,
     rolling_window: int = 20,
-    stability_policy: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Estimate historical dependence across full, rolling, and downside samples."""
 
@@ -273,49 +269,6 @@ def analyze_dependence(
         if abs_med > 1e-12:
             beta_range_to_median_abs = beta_range_width / abs_med
 
-    policy_reasons: list[str] = []
-    standing = "UNCLASSIFIED_NO_STABILITY_POLICY"
-    rendered_policy: dict[str, str] | None = None
-    if stability_policy is not None:
-        required_policy = (
-            "highPositiveCorrelationFloor",
-            "lowAbsoluteCorrelationCeiling",
-            "maxShortMediumCorrelationGap",
-            "maxRollingBetaRangeToMedianAbs",
-        )
-        missing_policy = [key for key in required_policy if stability_policy.get(key) is None]
-        if missing_policy:
-            raise PortfolioRiskError(
-                "stability_policy missing inputs: " + ", ".join(missing_policy)
-            )
-        high_floor = _float(stability_policy["highPositiveCorrelationFloor"], "stability_policy.highPositiveCorrelationFloor")
-        low_ceiling = _float(stability_policy["lowAbsoluteCorrelationCeiling"], "stability_policy.lowAbsoluteCorrelationCeiling")
-        max_corr_gap = _float(stability_policy["maxShortMediumCorrelationGap"], "stability_policy.maxShortMediumCorrelationGap")
-        max_beta_range = _float(stability_policy["maxRollingBetaRangeToMedianAbs"], "stability_policy.maxRollingBetaRangeToMedianAbs")
-        if not (-1 <= high_floor <= 1 and 0 <= low_ceiling <= 1 and 0 <= max_corr_gap <= 2 and max_beta_range >= 0):
-            raise PortfolioRiskError("stability_policy values are outside valid domains")
-        if low_ceiling > high_floor:
-            raise PortfolioRiskError("lowAbsoluteCorrelationCeiling cannot exceed highPositiveCorrelationFloor")
-        rendered_policy = {
-            "highPositiveCorrelationFloor": format(high_floor, ".6f"),
-            "lowAbsoluteCorrelationCeiling": format(low_ceiling, ".6f"),
-            "maxShortMediumCorrelationGap": format(max_corr_gap, ".6f"),
-            "maxRollingBetaRangeToMedianAbs": format(max_beta_range, ".6f"),
-        }
-        if short_medium_gap is not None and short_medium_gap > max_corr_gap:
-            policy_reasons.append("SHORT_MEDIUM_CORRELATION_GAP_EXCEEDS_POLICY")
-        if beta_range_to_median_abs is not None and beta_range_to_median_abs > max_beta_range:
-            policy_reasons.append("ROLLING_BETA_RANGE_EXCEEDS_POLICY")
-        policy_reasons.extend(structural_warnings)
-        if full["correlation"] >= high_floor and not policy_reasons:
-            standing = "HIGH_POSITIVE_DEPENDENCE_WITHIN_POLICY"
-        elif full["correlation"] >= high_floor:
-            standing = "HIGH_POSITIVE_DEPENDENCE_OUTSIDE_STABILITY_POLICY"
-        elif abs(full["correlation"]) <= low_ceiling and not policy_reasons:
-            standing = "LOW_FULL_SAMPLE_DEPENDENCE_WITHIN_POLICY"
-        else:
-            standing = "INTERMEDIATE_OR_POLICY_UNSTABLE_DEPENDENCE"
-
     def render(stat: dict[str, float] | None) -> dict[str, str] | None:
         if stat is None:
             return None
@@ -323,8 +276,8 @@ def analyze_dependence(
 
     return {
         "schemaVersion": 1,
-        "kind": "ordivon.market-capital.regime-conditioned-dependence",
-        "truthRole": "historical-dependence-evidence-not-forecast-truth",
+        "kind": "ordivon.market-capital.historical-dependence-analysis",
+        "componentId": "portfolio-dependence-analysis",
         "baseInstrumentId": base_instrument_id,
         "proxyInstrumentId": proxy_instrument_id,
         "overlapReturnCount": len(timestamps),
@@ -350,14 +303,7 @@ def analyze_dependence(
             "rollingBetaRangeWidth": format(beta_range_width, ".6f") if beta_range_width is not None else None,
             "rollingBetaRangeToMedianAbs": format(beta_range_to_median_abs, ".6f") if beta_range_to_median_abs is not None else None,
         },
-        "stabilityPolicy": rendered_policy,
-        "standing": standing,
         "structuralWarnings": structural_warnings,
-        "policyReasons": policy_reasons,
-        "minimumVarianceBetaIsRecommendation": False,
-        "forecastProbabilityProduced": False,
-        "tradeRecommendationProduced": False,
-        "externalFinancialWriteAttempted": False,
     }
 
 
@@ -389,7 +335,6 @@ def build_factor_observatory(
             short_window=int(proxy.get("shortWindow", 20)),
             medium_window=int(proxy.get("mediumWindow", 60)),
             rolling_window=int(proxy.get("rollingWindow", 20)),
-            stability_policy=proxy.get("stabilityPolicy"),
         )
         grouped.setdefault(factor, []).append({
             "proxyInstrumentId": inst,
@@ -406,14 +351,12 @@ def build_factor_observatory(
     ]
     return {
         "schemaVersion": 1,
-        "kind": "ordivon.market-capital.factor-observatory",
-        "truthRole": "proxy-factor-evidence-not-causal-factor-truth",
+        "kind": "ordivon.market-capital.factor-proxy-analysis",
+        "componentId": "factor-proxy-aggregation",
         "baseInstrumentId": base_instrument_id,
         "factors": factors,
         "factorCount": len(factors),
         "factorProxyCount": len(seen_pairs),
-        "tradeRecommendationProduced": False,
-        "externalFinancialWriteAttempted": False,
     }
 
 
@@ -435,13 +378,10 @@ def evaluate_risk_budget(
     if missing:
         return {
             "schemaVersion": 1,
-            "kind": "ordivon.market-capital.risk-budget-evaluation",
-            "truthRole": "policy-comparison-not-risk-preference-inference",
+            "kind": "ordivon.market-capital.risk-limit-evaluation",
+            "componentId": "risk-limit-evaluator",
             "standing": "INCOMPLETE",
             "missingBudgetInputs": missing,
-            "riskToleranceInferred": False,
-            "tradeRecommendationProduced": False,
-            "externalFinancialWriteAttempted": False,
         }
 
     max_gross = _d(budget["maxGrossToEquity"], "budget.maxGrossToEquity")
@@ -515,51 +455,39 @@ def evaluate_risk_budget(
 
     return {
         "schemaVersion": 1,
-        "kind": "ordivon.market-capital.risk-budget-evaluation",
-        "truthRole": "policy-comparison-not-risk-preference-inference",
+        "kind": "ordivon.market-capital.risk-limit-evaluation",
+        "componentId": "risk-limit-evaluator",
         "standing": "SATISFIED" if not breached else "BREACHED",
         "checks": checks,
         "breachedChecks": breached,
-        "riskToleranceInferred": False,
-        "tradeRecommendationProduced": False,
-        "externalFinancialWriteAttempted": False,
     }
 
 
-def build_portfolio_risk_observatory(
+def build_portfolio_risk_report(
     *,
     exposure_ledger: Mapping[str, Any],
     factor_observatory: Mapping[str, Any] | None = None,
     risk_budget: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Compose P1-P4 without creating an allocator or effect authority."""
+    """Compose exposure, dependence, and risk-limit results into a read-only risk report."""
 
     budget_eval = (
         evaluate_risk_budget(exposure_ledger=exposure_ledger, budget=risk_budget)
         if risk_budget is not None
         else {
             "schemaVersion": 1,
-            "kind": "ordivon.market-capital.risk-budget-evaluation",
-            "truthRole": "policy-comparison-not-risk-preference-inference",
+            "kind": "ordivon.market-capital.risk-limit-evaluation",
+        "componentId": "risk-limit-evaluator",
             "standing": "INCOMPLETE",
             "missingBudgetInputs": ["riskBudget"],
-            "riskToleranceInferred": False,
-            "tradeRecommendationProduced": False,
-            "externalFinancialWriteAttempted": False,
         }
     )
     return {
         "schemaVersion": 1,
-        "kind": "ordivon.market-capital.portfolio-risk-observatory",
-        "truthRole": "read-only-portfolio-risk-evidence-not-allocation-truth",
+        "kind": "ordivon.market-capital.portfolio-risk-report",
         "nodes": {
             "exposureLedger": exposure_ledger,
             "factorDependenceAnalysis": factor_observatory,
             "riskLimitEvaluation": budget_eval,
         },
-        "allocationProduced": False,
-        "hedgeSizeRecommended": False,
-        "riskToleranceInferred": False,
-        "tradeRecommendationProduced": False,
-        "externalFinancialWriteAttempted": False,
     }

@@ -7,14 +7,14 @@ import subprocess
 from typing import Any
 
 
-class AuthorityError(RuntimeError):
-    """Fail-closed execution-policy error."""
+class ExecutionPolicyError(RuntimeError):
+    """Fail-closed execution-policy evaluation error."""
 
 
 def _load_json(path: Path) -> dict[str, Any]:
     value = json.loads(path.read_text())
     if not isinstance(value, dict):
-        raise AuthorityError(f"expected JSON object: {path}")
+        raise ExecutionPolicyError(f"expected JSON object: {path}")
     return value
 
 
@@ -23,15 +23,15 @@ def _resolve(repo: Path, relative: str) -> Path:
     try:
         path.relative_to(repo.resolve())
     except ValueError as exc:
-        raise AuthorityError(f"authority contract escapes repository: {relative}") from exc
+        raise ExecutionPolicyError(f"policy path escapes repository: {relative}") from exc
     if not path.is_file():
-        raise AuthorityError(f"authority contract unavailable: {relative}")
+        raise ExecutionPolicyError(f"policy input unavailable: {relative}")
     return path
 
 
 def _evaluate_opa(*, binary: Path, policy: Path, query: str, input_doc: dict[str, Any]) -> bool:
     if not binary.is_file():
-        raise AuthorityError(f"OPA binary unavailable: {binary}")
+        raise ExecutionPolicyError(f"OPA binary unavailable: {binary}")
     proc = subprocess.run(
         [str(binary), "eval", "--format=raw", "--data", str(policy), "--stdin-input", query],
         input=json.dumps(input_doc),
@@ -40,40 +40,52 @@ def _evaluate_opa(*, binary: Path, policy: Path, query: str, input_doc: dict[str
         timeout=10,
     )
     if proc.returncode != 0:
-        raise AuthorityError(f"OPA policy evaluation failed: {proc.stderr.strip()}")
+        raise ExecutionPolicyError(f"OPA policy evaluation failed: {proc.stderr.strip()}")
     value = proc.stdout.strip()
     if value not in {"true", "false"}:
-        raise AuthorityError(f"unexpected OPA policy result: {value!r}")
+        raise ExecutionPolicyError(f"unexpected OPA policy result: {value!r}")
     return value == "true"
 
 
-def verify_internal_authority(repo: Path, config_path: Path) -> dict[str, Any]:
+def evaluate_execution_policy(repo: Path, config_path: Path) -> dict[str, Any]:
     cfg = _load_json(config_path)
-    if cfg.get("kind") != "ordivon.market-capital.execution-authority":
-        raise AuthorityError("unexpected execution-authority kind")
+    if cfg.get("kind") != "ordivon.market-capital.execution-policy":
+        raise ExecutionPolicyError("unexpected execution-policy kind")
 
     write_doc = _load_json(_resolve(repo, cfg["externalWritePolicyInputContract"]))
-    boundary = _load_json(_resolve(repo, cfg["externalBoundaryContract"]))
     if write_doc.get("kind") != "ordivon.market-capital.external-write-policy-input":
-        raise AuthorityError("external-write policy input missing")
-    if boundary.get("kind") != "ordivon.market-capital.external-boundary":
-        raise AuthorityError("external-boundary contract missing")
+        raise ExecutionPolicyError("external-write policy input missing")
 
     engine = cfg.get("policyEngine")
     if not isinstance(engine, dict) or engine.get("name") != "OPA":
-        raise AuthorityError("OPA policy engine is required")
+        raise ExecutionPolicyError("OPA policy engine is required")
     policy = _resolve(repo, str(engine.get("policy") or ""))
-    allowed = _evaluate_opa(
-        binary=Path(str(engine.get("binary") or "")),
+    binary = Path(str(engine.get("binary") or ""))
+
+    policy_input = {
+        "currentLane": cfg.get("currentLane"),
+        "writePolicy": write_doc,
+    }
+    allow_non_live = _evaluate_opa(
+        binary=binary,
         policy=policy,
-        query=str(engine.get("query") or ""),
-        input_doc=write_doc,
+        query=str(engine.get("queryNonLive") or ""),
+        input_doc=policy_input,
     )
+    allow_external_write = _evaluate_opa(
+        binary=binary,
+        policy=policy,
+        query=str(engine.get("queryExternalWrite") or ""),
+        input_doc=policy_input,
+    )
+    if allow_non_live and allow_external_write:
+        raise ExecutionPolicyError("OPA returned mutually incompatible lane decisions")
 
     return {
-        "config": cfg,
         "policyEngine": "OPA",
-        "externalWritePolicyAllowed": allowed,
+        "currentLane": cfg.get("currentLane"),
+        "allowNonLive": allow_non_live,
+        "allowExternalWrite": allow_external_write,
         "externalWritePolicyStanding": write_doc.get("state"),
         "externalWriteVerifier": write_doc.get("effectVerifier", "NOT_IMPLEMENTED"),
         "providerWriteCapabilityBound": bool(write_doc.get("providerWriteCapabilityBound", False)),
@@ -81,27 +93,22 @@ def verify_internal_authority(repo: Path, config_path: Path) -> dict[str, Any]:
     }
 
 
-def evaluate_non_live(repo: Path, config_path: Path) -> dict[str, Any]:
-    verified = verify_internal_authority(repo, config_path)
-    cfg = verified.pop("config")
-    if cfg.get("currentLane") != "NON_LIVE":
-        raise AuthorityError("current execution lane must remain NON_LIVE")
-    if verified["externalWritePolicyAllowed"]:
-        raise AuthorityError("non-live lane cannot allow external financial writes")
-    if verified["externalFinancialWriteAllowedByContract"] or verified["providerWriteCapabilityBound"]:
-        raise AuthorityError("non-live lane cannot bind or allow an external financial write capability")
+def enforce_non_live(repo: Path, config_path: Path) -> dict[str, Any]:
+    decision = evaluate_execution_policy(repo, config_path)
+    if not decision["allowNonLive"]:
+        raise ExecutionPolicyError("OPA denied non-live execution lane")
     return {
-        "standing": "NON_LIVE_EFFECT_BOUNDARY",
-        **verified,
+        "standing": "NON_LIVE_POLICY_ALLOWED",
+        **decision,
         "externalFinancialWritesAllowed": False,
     }
 
 
-def evaluate_external_write(repo: Path, config_path: Path) -> dict[str, Any]:
-    verified = verify_internal_authority(repo, config_path)
-    if not verified["externalWritePolicyAllowed"]:
-        raise AuthorityError("external financial write policy denied")
-    raise AuthorityError("external-write execution path is not implemented")
+def enforce_external_write(repo: Path, config_path: Path) -> dict[str, Any]:
+    decision = evaluate_execution_policy(repo, config_path)
+    if not decision["allowExternalWrite"]:
+        raise ExecutionPolicyError("OPA denied external financial write")
+    raise ExecutionPolicyError("external-write execution path is not implemented")
 
 
 def main() -> int:
@@ -113,9 +120,9 @@ def main() -> int:
     args = parser.parse_args()
 
     result = (
-        evaluate_non_live(args.repo, args.config)
+        enforce_non_live(args.repo, args.config)
         if args.mode == "non-live"
-        else evaluate_external_write(args.repo, args.config)
+        else enforce_external_write(args.repo, args.config)
     )
     rendered = json.dumps(result, indent=2, sort_keys=True) + "\n"
     if args.output:

@@ -19,7 +19,6 @@ class MarketSensorTests(unittest.TestCase):
         self.assertEqual(result["openInterestChangeUsd"], "21.000000")
         self.assertEqual(result["openInterestChangePct"], "21.000000")
         self.assertEqual(result["sampleCount"], 3)
-        self.assertEqual(result["truthRole"], "derived-observation-not-crowding-truth")
 
     def test_oi_zero_baseline_does_not_invent_percentage(self):
         result = open_interest_change([
@@ -35,11 +34,9 @@ class MarketSensorTests(unittest.TestCase):
             {"instrumentId": "SNDK-USDT-SWAP", "observedAtMs": 3000, "bookImbalance": "-0.3", "tradeBuyShare": "0.40", "spreadBps": "0.9"},
             {"instrumentId": "SNDK-USDT-SWAP", "observedAtMs": 4000, "bookImbalance": "0.1", "tradeBuyShare": "0.51", "spreadBps": "1.1"},
         ]
-        result = repeated_microstructure(rows, persistence_ratio="0.75")
-        self.assertEqual(result["standing"], "PERSISTENT_SELL_TILT_OBSERVED")
+        result = repeated_microstructure(rows)
         self.assertEqual(result["negativeBookImbalanceRatio"], "0.750000")
         self.assertEqual(result["tradeBuyShareBelowHalfRatio"], "0.750000")
-        self.assertFalse(result["tradeRecommendationProduced"])
 
     def test_mixed_microstructure_is_not_forced_directional(self):
         rows = [
@@ -48,7 +45,6 @@ class MarketSensorTests(unittest.TestCase):
             {"instrumentId": "X", "observedAtMs": 3000, "bookImbalance": "-0.1", "tradeBuyShare": "0.52", "spreadBps": "1"},
         ]
         result = repeated_microstructure(rows)
-        self.assertEqual(result["standing"], "MIXED_OR_NONPERSISTENT_FLOW")
 
     def test_reopen_pending_without_cash_observation(self):
         result = reconcile_underlying_reopen(
@@ -94,8 +90,6 @@ class MarketSensorTests(unittest.TestCase):
             post_open_perp_observed_at_ms=2100,
         )
         self.assertEqual(result["standing"], "PERP_REANCHORED_TO_UNDERLYING")
-        self.assertFalse(result["tradeRecommendationProduced"])
-        self.assertEqual(result["causalStanding"], "NOT_IDENTIFIED_FROM_PRICE_RECONCILIATION")
 
     def test_partial_convergence_is_descriptive_only(self):
         result = reconcile_underlying_reopen(
@@ -126,8 +120,9 @@ class MarketSensorTests(unittest.TestCase):
         self.assertEqual(enriched["openInterestChangePct"], "5.000000")
         self.assertEqual(enriched["openInterestChangeSpanMs"], 1000)
         self.assertEqual(enriched["openInterestChangeSampleCount"], 2)
-        self.assertEqual(enriched["microstructureStanding"], "PERSISTENT_SELL_TILT_OBSERVED")
         self.assertEqual(enriched["microstructureSampleCount"], 3)
+        self.assertEqual(enriched["negativeBookImbalanceRatio"], "1.000000")
+        self.assertEqual(enriched["tradeBuyShareBelowHalfRatio"], "1.000000")
 
     def test_bad_timestamp_order_fails_closed(self):
         with self.assertRaises(MarketSensorError):

@@ -147,7 +147,6 @@ def capture_okx_factor_observatory(
         "factorObservatory": observatory,
         "brokerCredentialsUsed": False,
         "privateAccountDataUsed": False,
-        "tradeRecommendationProduced": False,
         "externalFinancialWriteAttempted": False,
     }
 
