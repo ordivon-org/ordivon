@@ -897,6 +897,56 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             ):
                 service.human_handoff_info(sp, "A01")
 
+    def test_worker_resume_after_human_preserves_materialization_effect_identity(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            sp = root / "spec.json"
+            sp.write_text(json.dumps(spec()))
+            effects = BrowserlessEffectAdapter(BrowserlessAutomationConfig.from_dict(config(root)))
+            request = effects.context._materialization(effects.context.load_spec(sp), "A01")
+            endpoint = effects.config.browserless_pool.endpoints[0]
+            census = {
+                "materializations": [
+                    {
+                        "agentId": "A01",
+                        "materializationStanding": "human-required",
+                        "providerResource": None,
+                        "blindResendForbidden": False,
+                    }
+                ]
+            }
+            receipt = mock.Mock(
+                standing=MaterializationStanding.BOUND,
+                provider_conversation_coordinate="https://chatgpt.com/c/abc",
+                evidence_digest="sha256:" + "2" * 64,
+                detail="resumed",
+                receipt_digest="sha256:" + "3" * 64,
+            )
+            materializer = mock.Mock()
+            materializer.resume_human.return_value = receipt
+            with (
+                mock.patch(
+                    "agent_automation_browserless_effects.campaign_census", return_value=census
+                ),
+                mock.patch.object(
+                    effects.context,
+                    "_current_binding",
+                    return_value={
+                        "effectId": request.request_id,
+                        "endpointId": endpoint.endpoint_id,
+                        "endpointIdentityDigest": endpoint.identity_digest,
+                    },
+                ),
+                mock.patch(
+                    "agent_automation_browserless_effects.SQLiteConversationMaterializer",
+                    return_value=materializer,
+                ),
+            ):
+                result = effects.resume_after_human(sp, "A01")
+            materializer.resume_human.assert_called_once_with(request)
+            self.assertEqual(result["effectId"], request.request_id)
+            self.assertEqual(result["receipt"]["standing"], "bound")
+
     def test_human_resume_admits_temporal_only_for_human_required(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)

@@ -30,7 +30,7 @@ def main() -> int:
     ]
     expected_groups = {
         "dev": ["ruff==0.15.17"],
-        "test": [*skills_runtime, "rfc8785==0.1.4", "pytest==9.1.1"],
+        "test": [*skills_runtime, "playwright==1.63.0", "rfc8785==0.1.4", "pytest==9.1.1"],
     }
     if raw.get("dependency-groups") != expected_groups:
         fail("Harness dependency groups must preserve exact dev/test separation")
@@ -114,7 +114,7 @@ def main() -> int:
 
     print(
         "dependency contract: valid canonical=owner-local-compat host=absent "
-        "runtime=httpx+jsonschema dev=ruff test=skills-mcp-runtime+pytest"
+        "runtime=httpx+jsonschema dev=ruff test=skills-mcp-runtime+playwright+pytest"
     )
     return 0
 

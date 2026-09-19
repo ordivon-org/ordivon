@@ -228,7 +228,7 @@ class BrowserlessEffectAdapter:
             "kind": "ordivon.browserless-human-resume",
             "action": "resume-after-human",
             "agentId": agent_id,
-            "effectId": materialization.request_id,
+            "effectId": request.request_id,
             "receipt": {
                 "standing": receipt.standing.value,
                 "providerResource": canonical_chatgpt_resource(
