@@ -6,7 +6,6 @@ import unittest
 from dataclasses import replace
 from pathlib import Path
 
-from agent_service.provider_adapters import A2AJsonRpcHttpClient, MCPTasksHttpClient
 from agent_service import open_agent_service
 from agent_service.transport_credentials import CredentialHeaderMaterial
 from agent_service.trust import IdentityProofObservation
@@ -191,38 +190,6 @@ class AgentServiceInterfaceCredentialsR14Tests(unittest.TestCase):
             service = self._open(Path(tmp)/"s.db")
             with self.assertRaises(ValueError):
                 self._setup(service, mcp_version="latest")
-
-    def test_a2a_http_client_uses_binding_protocol_version_without_resolver(self):
-        captured = []
-        class Response:
-            status=200
-            def __enter__(self): return self
-            def __exit__(self,*args): return False
-            def read(self):
-                return b'{"jsonrpc":"2.0","id":"req","result":{"id":"remote","status":{"state":"TASK_STATE_WORKING"}}}'
-        def opener(request, timeout):
-            captured.append({k.lower():v for k,v in request.header_items()})
-            return Response()
-        client = A2AJsonRpcHttpClient(opener=opener)
-        with tempfile.TemporaryDirectory() as tmp:
-            service = self._open(Path(tmp)/"s.db")
-            _, _, _, _, binding, _ = self._setup(service)
-            client(binding=binding, method="GetTask", params={"id":"remote"}, request_identity="req")
-        self.assertEqual(captured[0]["a2a-version"], "1.0")
-
-    def test_mcp_http_client_rejects_binding_protocol_version_mismatch(self):
-        client = MCPTasksHttpClient(opener=lambda *args, **kwargs: None)
-        with tempfile.TemporaryDirectory() as tmp:
-            service = self._open(Path(tmp)/"s.db")
-            _, _, _, _, _, binding = self._setup(service)
-            bad = replace(binding, protocol_version="2025-11-25")
-            with self.assertRaises(ValueError):
-                client(
-                    binding=bad,
-                    method="tasks/get",
-                    params={"taskId":"remote"},
-                    request_identity="req",
-                )
 
     def _credential(self, service, source_identity, binding, *, resource="https://agents.example.test", scopes=("review.invoke",)):
         credential = service.credential_references.register(
@@ -477,51 +444,6 @@ class AgentServiceInterfaceCredentialsR14Tests(unittest.TestCase):
             connection.close()
             with self.assertRaises(RuntimeError):
                 self._open(db)
-
-    def test_credential_reference_chain_injects_transient_authorization_into_bound_a2a_request(self):
-        proof_adapter = ProofAdapter()
-        provider = MaterialProvider(secret="BOUND-SECRET-R14")
-        captured = []
-
-        class Response:
-            status = 200
-            def __enter__(self): return self
-            def __exit__(self, *args): return False
-            def read(self):
-                return b'{"jsonrpc":"2.0","id":"bound-req","result":{"id":"remote","status":{"state":"TASK_STATE_WORKING"}}}'
-
-        def opener(request, timeout):
-            captured.append({k.lower():v for k,v in request.header_items()})
-            return Response()
-
-        with tempfile.TemporaryDirectory() as tmp:
-            service = self._open(
-                Path(tmp)/"s.db",
-                proof_adapter=proof_adapter,
-                material_provider=provider,
-            )
-            source_identity, _, _, _, binding, _ = self._setup(
-                service,
-                security={"oauth2":["review.invoke"]},
-            )
-            self._credential(service, source_identity, binding)
-            client = A2AJsonRpcHttpClient(
-                header_provider=service.credential_headers,
-                opener=opener,
-            )
-            client(
-                binding=binding,
-                method="GetTask",
-                params={"id":"remote"},
-                request_identity="bound-req",
-            )
-            self.assertEqual(captured[0]["a2a-version"], "1.0")
-            self.assertEqual(
-                captured[0]["authorization"],
-                "Bearer BOUND-SECRET-R14",
-            )
-            self.assertNotIn("BOUND-SECRET-R14", repr(client))
-            self.assertNotIn("BOUND-SECRET-R14", repr(service.credential_headers))
 
     def test_credential_requested_scope_must_cover_binding_requirement(self):
         proof_adapter = ProofAdapter()

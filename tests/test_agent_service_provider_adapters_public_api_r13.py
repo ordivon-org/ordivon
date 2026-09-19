@@ -4,13 +4,11 @@ import unittest
 
 import agent_service
 from agent_service.provider_adapters import (
-    A2AJsonRpcHttpClient,
     A2AQuiescenceAdapter,
     EffectLedgerEffect,
     EffectLedgerReplaySafetyAdapter,
     EffectLedgerSnapshot,
     MCPTaskQuiescenceAdapter,
-    MCPTasksHttpClient,
     ProviderProtocolError,
     ProviderRemoteError,
     QuiescencePending,
@@ -21,9 +19,9 @@ from agent_service.provider_adapters import (
 class AgentServiceProviderAdaptersPublicApiR13Tests(unittest.TestCase):
     def test_package_exports_r13_provider_bricks(self) -> None:
         self.assertFalse(hasattr(agent_service, "AgentServiceR13"))
-        self.assertIs(agent_service.A2AJsonRpcHttpClient, A2AJsonRpcHttpClient)
+        self.assertFalse(hasattr(agent_service, "A2AJsonRpcHttpClient"))
         self.assertIs(agent_service.A2AQuiescenceAdapter, A2AQuiescenceAdapter)
-        self.assertIs(agent_service.MCPTasksHttpClient, MCPTasksHttpClient)
+        self.assertFalse(hasattr(agent_service, "MCPTasksHttpClient"))
         self.assertIs(agent_service.MCPTaskQuiescenceAdapter, MCPTaskQuiescenceAdapter)
         self.assertFalse(hasattr(agent_service, "EffectLedgerReader"))
         self.assertIs(agent_service.EffectLedgerEffect, EffectLedgerEffect)

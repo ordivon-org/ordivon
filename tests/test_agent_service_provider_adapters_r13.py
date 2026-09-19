@@ -11,7 +11,7 @@ from pathlib import Path
 from agent_service.delivery import DeliveryObservation, PolicyObservation
 from agent_service.evidence import RuntimeArtifactPayload
 from agent_service.failover import _replay_safety_decision_get
-from agent_service.provider_adapters import A2AJsonRpcHttpClient, A2AQuiescenceAdapter, EffectLedgerEffect, EffectLedgerReplaySafetyAdapter, EffectLedgerSnapshot, MCPTaskQuiescenceAdapter, MCPTasksHttpClient, ProviderProtocolError, ProviderRemoteError, QuiescencePending, RemoteExecutionCompleted
+from agent_service.provider_adapters import A2AQuiescenceAdapter, EffectLedgerEffect, EffectLedgerReplaySafetyAdapter, EffectLedgerSnapshot, MCPTaskQuiescenceAdapter, ProviderProtocolError, ProviderRemoteError, QuiescencePending, RemoteExecutionCompleted
 from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
 
@@ -122,19 +122,6 @@ class FakeHttpResponse:
 
     def read(self):
         return self._body
-
-
-class RecordingOpener:
-    def __init__(self, result_factory):
-        self.result_factory = result_factory
-        self.requests = []
-
-    def __call__(self, request, timeout):
-        import json
-        body = json.loads(request.data.decode("utf-8"))
-        headers = {k.lower(): v for k, v in request.header_items()}
-        self.requests.append((request.full_url, body, headers, timeout))
-        return FakeHttpResponse(self.result_factory(body))
 
 
 class DynamicNoEffectsReader:
@@ -569,83 +556,6 @@ class AgentServiceProviderAdaptersR13Tests(unittest.TestCase):
                 expected_target_binding_id="target-x",
             )
 
-
-    def test_a2a_http_client_binds_version_exact_request_id_and_out_of_band_headers(self):
-        opener = RecordingOpener(
-            lambda body: {
-                "jsonrpc":"2.0",
-                "id":body["id"],
-                "result":{"id":"remote-task-1","status":{"state":"TASK_STATE_CANCELED"}},
-            }
-        )
-        client = A2AJsonRpcHttpClient(
-            lambda binding: "1.0",
-            header_provider=lambda binding: {"Authorization":"Bearer secret-not-in-semantic-state"},
-            opener=opener,
-        )
-        with tempfile.TemporaryDirectory() as tmp:
-            service = self._service(Path(tmp)/"s.db")
-            _, _, a2a, _ = self._bindings(service)
-            result = client(
-                binding=a2a,
-                method="CancelTask",
-                params={"id":"remote-task-1"},
-                request_identity="qid:a2a:1",
-            )
-        self.assertEqual(result["id"], "remote-task-1")
-        _, body, headers, _ = opener.requests[0]
-        self.assertEqual(body["id"], "qid:a2a:1")
-        self.assertEqual(body["method"], "CancelTask")
-        self.assertEqual(headers["a2a-version"], "1.0")
-        self.assertEqual(headers["authorization"], "Bearer secret-not-in-semantic-state")
-        self.assertNotIn("secret-not-in-semantic-state", repr(client))
-
-    def test_mcp_http_client_attaches_tasks_capability_and_routing_headers(self):
-        opener = RecordingOpener(
-            lambda body: {
-                "jsonrpc":"2.0",
-                "id":body["id"],
-                "result":{"resultType":"complete","taskId":"remote-task-1","status":"working","ttlMs":1000},
-            }
-        )
-        client = MCPTasksHttpClient(
-            header_provider=lambda binding: {"Authorization":"Bearer mcp-secret"},
-            opener=opener,
-        )
-        with tempfile.TemporaryDirectory() as tmp:
-            service = self._service(Path(tmp)/"s.db")
-            _, _, _, mcp = self._bindings(service)
-            result = client(
-                binding=mcp,
-                method="tasks/get",
-                params={"taskId":"remote-task-1"},
-                request_identity="qid:mcp:1",
-            )
-        self.assertEqual(result["status"], "working")
-        _, body, headers, _ = opener.requests[0]
-        meta = body["params"]["_meta"]
-        self.assertEqual(
-            meta["io.modelcontextprotocol/clientCapabilities"]["extensions"],
-            {"io.modelcontextprotocol/tasks":{}},
-        )
-        self.assertEqual(headers["mcp-protocol-version"], "2026-07-28")
-        self.assertEqual(headers["mcp-method"], "tasks/get")
-        self.assertEqual(headers["mcp-name"], "remote-task-1")
-        self.assertNotIn("mcp-secret", repr(client))
-
-    def test_http_clients_reject_plain_remote_http(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            service = self._service(Path(tmp)/"s.db")
-            _, _, a2a, mcp = self._bindings(service)
-            from dataclasses import replace
-            insecure_a2a = replace(a2a, endpoint="http://remote.example.test/rpc")
-            insecure_mcp = replace(mcp, endpoint="http://remote.example.test/mcp")
-            a2a_client = A2AJsonRpcHttpClient("1.0", opener=lambda *a, **k: None)
-            mcp_client = MCPTasksHttpClient(opener=lambda *a, **k: None)
-            with self.assertRaises(ValueError):
-                a2a_client(binding=insecure_a2a, method="GetTask", params={"id":"x"}, request_identity="x")
-            with self.assertRaises(ValueError):
-                mcp_client(binding=insecure_mcp, method="tasks/get", params={"taskId":"x"}, request_identity="x")
 
     def test_agent_service_r13_wires_a2a_quiescence_and_effect_ledger_into_r12_failover(self):
         a2a_caller = SequenceCaller([
