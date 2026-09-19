@@ -14,10 +14,9 @@ _REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from agent_service.failover import AgentServiceR12
-from agent_service.slice1 import AgentServiceSlice1, ProviderObservation
+from agent_service import open_agent_service
+from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
-from agent_service.transport_credentials import AgentServiceR14
 from agent_service.trust import RemoteProviderObservation, _remote_delivery_observation_list_for_binding, _remote_delivery_observation_record
 
 from tests.test_agent_service_failover_r12 import (
@@ -129,9 +128,9 @@ def _open_r14(
     delivery: RecordingDelivery | None = None,
     proof_adapter: ProofAdapter | None = None,
     material_provider: MaterialProvider | None = None,
-) -> AgentServiceR14:
+) -> Any:
     delivery = delivery or RecordingDelivery()
-    return AgentServiceR14.open(
+    return open_agent_service(
         db,
         carrier_adapter=carrier or ReadyCarrier(),
         runtime_adapter=runtime or WorkingRuntime(),
@@ -150,8 +149,8 @@ def _open_r12(
     delivery: RecordingDelivery,
     quiescence: RecordingQuiescenceAdapter,
     replay: RecordingReplaySafetyAdapter,
-) -> AgentServiceR12:
-    return AgentServiceR12.open(
+) -> Any:
+    return open_agent_service(
         db,
         carrier_adapter=ReadyCarrier(),
         runtime_adapter=WorkingRuntime(),
@@ -160,11 +159,11 @@ def _open_r12(
         delivery_adapters={"a2a-jsonrpc": delivery, "mcp": delivery},
         remote_delivery_observers={},
         remote_artifact_readers={},
-        execution_quiescence_adapters={
+        quiescence_providers={
             "a2a-jsonrpc": quiescence,
             "mcp": quiescence,
         },
-        replay_safety_adapter=replay,
+        replay_safety_provider=replay,
     )
 
 
@@ -312,7 +311,7 @@ def _remote_setup(
     }
 
 
-def _credential_bind(service: AgentServiceR14, source_identity: Any, binding: Any) -> tuple[Any, Any]:
+def _credential_bind(service: Any, source_identity: Any, binding: Any) -> tuple[Any, Any]:
     credential = service.credential_references.register(
         client_reference_id=f"stability:cred:{binding.id}",
         provider="vault",
@@ -347,9 +346,12 @@ def _scenario_placement_flap() -> dict[str, Any]:
         ]
     )
     with tempfile.TemporaryDirectory() as tmp:
-        service = AgentServiceSlice1.open(
+        service = open_agent_service(
             Path(tmp) / "service.db",
             carrier_adapter=carrier,
+            runtime_adapter=WorkingRuntime(),
+            artifact_reader=NoopRuntimeArtifactReader(),
+            delivery_adapters={},
         )
         try:
             definition = service.definitions.create("flap-agent")
@@ -386,9 +388,12 @@ def _scenario_stale_placement_observation() -> dict[str, Any]:
         ]
     )
     with tempfile.TemporaryDirectory() as tmp:
-        service = AgentServiceSlice1.open(
+        service = open_agent_service(
             Path(tmp) / "service.db",
             carrier_adapter=carrier,
+            runtime_adapter=WorkingRuntime(),
+            artifact_reader=NoopRuntimeArtifactReader(),
+            delivery_adapters={},
         )
         try:
             definition = service.definitions.create("stale-agent")

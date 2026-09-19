@@ -608,6 +608,66 @@ class DeliveryCoordinator:
         return _delivery_receipt_create(self._events, binding, observation)
 
 
+def _initialize_schema(connection: sqlite3.Connection) -> None:
+    legacy_interface_table = connection.execute(
+        "SELECT 1 FROM sqlite_master "
+        "WHERE type = 'table' AND name = 'agent_interface_advertisements'"
+    ).fetchone()
+    if legacy_interface_table is not None:
+        raise RuntimeError(
+            "legacy agent_interface_advertisements schema is unsupported; "
+            "perform explicit destructive migration before opening this revision"
+        )
+    legacy_policy_table = connection.execute(
+        "SELECT 1 FROM sqlite_master "
+        "WHERE type = 'table' AND name = 'policy_decisions'"
+    ).fetchone()
+    if legacy_policy_table is not None:
+        raise RuntimeError(
+            "legacy policy_decisions schema is unsupported; "
+            "perform explicit destructive migration before opening this revision"
+        )
+    legacy_delivery_receipts = connection.execute(
+        "SELECT 1 FROM sqlite_master "
+        "WHERE type = 'table' AND name = 'delivery_receipts'"
+    ).fetchone()
+    if legacy_delivery_receipts is not None:
+        raise RuntimeError(
+            "legacy delivery_receipts schema is unsupported; "
+            "perform explicit destructive migration before opening this revision"
+        )
+    connection.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS transport_bindings (
+            id TEXT PRIMARY KEY,
+            delegation_id TEXT NOT NULL REFERENCES delegation_envelopes(id),
+            policy_receipt_id TEXT NOT NULL,
+            policy_revision TEXT NOT NULL,
+            granted_permissions_json TEXT NOT NULL,
+            interface_id TEXT NOT NULL,
+            transport TEXT NOT NULL,
+            protocol_version TEXT,
+            endpoint TEXT NOT NULL,
+            delivery_request_id TEXT NOT NULL UNIQUE,
+            security_requirements_json TEXT NOT NULL,
+            created_at_ns INTEGER NOT NULL,
+            UNIQUE(delegation_id, policy_receipt_id, interface_id)
+        );
+        """
+    )
+    columns = {
+        row["name"]
+        for row in connection.execute(
+            "PRAGMA table_info(transport_bindings)"
+        ).fetchall()
+    }
+    if "protocol_version" not in columns:
+        connection.execute(
+            "ALTER TABLE transport_bindings ADD COLUMN protocol_version TEXT"
+        )
+    connection.commit()
+
+
 class AgentServiceR9:
     """R9 composition: governed route binding and delivery receipts over R8 semantics."""
 
@@ -674,63 +734,7 @@ class AgentServiceR9:
 
     @staticmethod
     def _initialize_schema(connection: sqlite3.Connection) -> None:
-        legacy_interface_table = connection.execute(
-            "SELECT 1 FROM sqlite_master "
-            "WHERE type = 'table' AND name = 'agent_interface_advertisements'"
-        ).fetchone()
-        if legacy_interface_table is not None:
-            raise RuntimeError(
-                "legacy agent_interface_advertisements schema is unsupported; "
-                "perform explicit destructive migration before opening this revision"
-            )
-        legacy_policy_table = connection.execute(
-            "SELECT 1 FROM sqlite_master "
-            "WHERE type = 'table' AND name = 'policy_decisions'"
-        ).fetchone()
-        if legacy_policy_table is not None:
-            raise RuntimeError(
-                "legacy policy_decisions schema is unsupported; "
-                "perform explicit destructive migration before opening this revision"
-            )
-        legacy_delivery_receipts = connection.execute(
-            "SELECT 1 FROM sqlite_master "
-            "WHERE type = 'table' AND name = 'delivery_receipts'"
-        ).fetchone()
-        if legacy_delivery_receipts is not None:
-            raise RuntimeError(
-                "legacy delivery_receipts schema is unsupported; "
-                "perform explicit destructive migration before opening this revision"
-            )
-        connection.executescript(
-            """
-            CREATE TABLE IF NOT EXISTS transport_bindings (
-                id TEXT PRIMARY KEY,
-                delegation_id TEXT NOT NULL REFERENCES delegation_envelopes(id),
-                policy_receipt_id TEXT NOT NULL,
-                policy_revision TEXT NOT NULL,
-                granted_permissions_json TEXT NOT NULL,
-                interface_id TEXT NOT NULL,
-                transport TEXT NOT NULL,
-                protocol_version TEXT,
-                endpoint TEXT NOT NULL,
-                delivery_request_id TEXT NOT NULL UNIQUE,
-                security_requirements_json TEXT NOT NULL,
-                created_at_ns INTEGER NOT NULL,
-                UNIQUE(delegation_id, policy_receipt_id, interface_id)
-            );
-            """
-        )
-        columns = {
-            row["name"]
-            for row in connection.execute(
-                "PRAGMA table_info(transport_bindings)"
-            ).fetchall()
-        }
-        if "protocol_version" not in columns:
-            connection.execute(
-                "ALTER TABLE transport_bindings ADD COLUMN protocol_version TEXT"
-            )
-        connection.commit()
+        _initialize_schema(connection)
 
     def close(self) -> None:
         self._r8.close()

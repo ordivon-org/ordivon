@@ -1,5 +1,7 @@
 """Ordivon Agent Service clean-room kernel."""
 
+from .service import open_agent_service
+
 from .delivery import (
     AgentServiceR9,
     DelegationRoutePlanner,
@@ -87,6 +89,7 @@ from .trust import (
 )
 
 __all__ = [
+    "open_agent_service",
     "AgentServiceR15",
     "EffectAuthorizedDeliveryCoordinator",
     "BrowserlessTurnEffectLedgerReader",

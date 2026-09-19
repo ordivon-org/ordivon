@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 from agent_service.delivery import DeliveryObservation, PolicyObservation
-from agent_service.effect_authority import AgentServiceR15
+from agent_service import open_agent_service
 from agent_service.evidence import RuntimeArtifactPayload
 from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
@@ -84,8 +84,8 @@ class CountingDelivery:
 
 
 class AgentServiceEffectAuthorityR15Tests(unittest.TestCase):
-    def _open(self, db: Path, policy: object | None, delivery: CountingDelivery) -> AgentServiceR15:
-        service = AgentServiceR15.open(
+    def _open(self, db: Path, policy: object | None, delivery: CountingDelivery) -> Any:
+        service = open_agent_service(
             db,
             carrier_adapter=ReadyCarrier(),
             runtime_adapter=FakeRuntime(),

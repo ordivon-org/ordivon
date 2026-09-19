@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+
+from agent_service import open_agent_service
 from pathlib import Path
 
 from agent_service.delivery import DeliveryObservation, PolicyObservation
@@ -663,7 +665,7 @@ class AgentServiceProviderAdaptersR13Tests(unittest.TestCase):
         mcp_caller = SequenceCaller([])
         ledger = DynamicNoEffectsReader()
         with tempfile.TemporaryDirectory() as tmp:
-            service = AgentServiceR13.open(
+            service = open_agent_service(
                 Path(tmp)/"s.db",
                 carrier_adapter=ReadyCarrier(),
                 runtime_adapter=FakeRuntime(),

@@ -97,6 +97,18 @@ class EffectAuthorizedDeliveryCoordinator:
         return self._delegate.deliver(binding_id)
 
 
+def _initialize_schema(connection: sqlite3.Connection) -> None:
+    legacy_table = connection.execute(
+        "SELECT 1 FROM sqlite_master "
+        "WHERE type = 'table' AND name = 'effect_authorization_decisions'"
+    ).fetchone()
+    if legacy_table is not None:
+        raise RuntimeError(
+            "legacy effect_authorization_decisions schema is unsupported; "
+            "perform explicit destructive migration before opening this revision"
+        )
+
+
 class AgentServiceR15:
     """R15: current effect authorization over the frozen R14 delivery identity."""
 
@@ -137,15 +149,7 @@ class AgentServiceR15:
 
     @staticmethod
     def _initialize_schema(connection: sqlite3.Connection) -> None:
-        legacy_table = connection.execute(
-            "SELECT 1 FROM sqlite_master "
-            "WHERE type = 'table' AND name = 'effect_authorization_decisions'"
-        ).fetchone()
-        if legacy_table is not None:
-            raise RuntimeError(
-                "legacy effect_authorization_decisions schema is unsupported; "
-                "perform explicit destructive migration before opening this revision"
-            )
+        _initialize_schema(connection)
 
     def close(self) -> None:
         self._r14.close()

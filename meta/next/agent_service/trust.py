@@ -628,6 +628,43 @@ class AuditEnvelopeProjector:
         }
 
 
+def _initialize_schema(connection: sqlite3.Connection) -> None:
+    legacy_remote_delivery_observations = connection.execute(
+        "SELECT 1 FROM sqlite_master "
+        "WHERE type = 'table' AND name = 'remote_delivery_observations'"
+    ).fetchone()
+    if legacy_remote_delivery_observations is not None:
+        raise RuntimeError(
+            "legacy remote_delivery_observations schema is unsupported; "
+            "perform explicit destructive migration before opening this revision"
+        )
+    legacy_identity_proof_records = connection.execute(
+        "SELECT 1 FROM sqlite_master "
+        "WHERE type = 'table' AND name = 'identity_proof_records'"
+    ).fetchone()
+    if legacy_identity_proof_records is not None:
+        raise RuntimeError(
+            "legacy identity_proof_records schema is unsupported; "
+            "perform explicit destructive migration before opening this revision"
+        )
+    connection.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS credential_references (
+            id TEXT PRIMARY KEY,
+            client_reference_id TEXT NOT NULL UNIQUE,
+            provider TEXT NOT NULL,
+            reference TEXT NOT NULL,
+            issuer TEXT NOT NULL,
+            resource TEXT NOT NULL,
+            requested_scopes_json TEXT NOT NULL,
+            created_at_ns INTEGER NOT NULL
+        );
+
+        """
+    )
+    connection.commit()
+
+
 class AgentServiceR10:
     """R10: credential-reference/identity-proof boundary plus remote lifecycle observations."""
 
@@ -702,40 +739,7 @@ class AgentServiceR10:
 
     @staticmethod
     def _initialize_schema(connection: sqlite3.Connection) -> None:
-        legacy_remote_delivery_observations = connection.execute(
-            "SELECT 1 FROM sqlite_master "
-            "WHERE type = 'table' AND name = 'remote_delivery_observations'"
-        ).fetchone()
-        if legacy_remote_delivery_observations is not None:
-            raise RuntimeError(
-                "legacy remote_delivery_observations schema is unsupported; "
-                "perform explicit destructive migration before opening this revision"
-            )
-        legacy_identity_proof_records = connection.execute(
-            "SELECT 1 FROM sqlite_master "
-            "WHERE type = 'table' AND name = 'identity_proof_records'"
-        ).fetchone()
-        if legacy_identity_proof_records is not None:
-            raise RuntimeError(
-                "legacy identity_proof_records schema is unsupported; "
-                "perform explicit destructive migration before opening this revision"
-            )
-        connection.executescript(
-            """
-            CREATE TABLE IF NOT EXISTS credential_references (
-                id TEXT PRIMARY KEY,
-                client_reference_id TEXT NOT NULL UNIQUE,
-                provider TEXT NOT NULL,
-                reference TEXT NOT NULL,
-                issuer TEXT NOT NULL,
-                resource TEXT NOT NULL,
-                requested_scopes_json TEXT NOT NULL,
-                created_at_ns INTEGER NOT NULL
-            );
-
-            """
-        )
-        connection.commit()
+        _initialize_schema(connection)
 
     def close(self) -> None:
         self._r9.close()

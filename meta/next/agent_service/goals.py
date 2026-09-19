@@ -494,6 +494,48 @@ class GoalBoardProjector:
         return receipts
 
 
+def _initialize_schema(connection: sqlite3.Connection) -> None:
+    legacy_board_projection_receipts = connection.execute(
+        "SELECT 1 FROM sqlite_master "
+        "WHERE type = 'table' AND name = 'board_projection_receipts'"
+    ).fetchone()
+    if legacy_board_projection_receipts is not None:
+        raise RuntimeError(
+            "legacy board_projection_receipts schema is unsupported; "
+            "perform explicit destructive migration before opening this revision"
+        )
+    connection.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS service_goals (
+            id TEXT PRIMARY KEY,
+            description TEXT NOT NULL,
+            state TEXT NOT NULL,
+            failure_reason TEXT,
+            created_at_ns INTEGER NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS goal_task_links (
+            goal_id TEXT NOT NULL REFERENCES service_goals(id),
+            task_id TEXT NOT NULL UNIQUE REFERENCES service_tasks(id),
+            ordinal INTEGER NOT NULL,
+            created_at_ns INTEGER NOT NULL,
+            PRIMARY KEY(goal_id, task_id),
+            UNIQUE(goal_id, ordinal)
+        );
+
+        CREATE TABLE IF NOT EXISTS task_dependencies (
+            task_id TEXT NOT NULL REFERENCES service_tasks(id),
+            depends_on_task_id TEXT NOT NULL REFERENCES service_tasks(id),
+            created_at_ns INTEGER NOT NULL,
+            PRIMARY KEY(task_id, depends_on_task_id),
+            CHECK(task_id <> depends_on_task_id)
+        );
+
+        """
+    )
+    connection.commit()
+
+
 class AgentServiceR7:
     """R7 composition: Goal/DAG/convergence/Board projection above R6 durable Task truth."""
 
@@ -559,45 +601,7 @@ class AgentServiceR7:
 
     @staticmethod
     def _initialize_schema(connection: sqlite3.Connection) -> None:
-        legacy_board_projection_receipts = connection.execute(
-            "SELECT 1 FROM sqlite_master "
-            "WHERE type = 'table' AND name = 'board_projection_receipts'"
-        ).fetchone()
-        if legacy_board_projection_receipts is not None:
-            raise RuntimeError(
-                "legacy board_projection_receipts schema is unsupported; "
-                "perform explicit destructive migration before opening this revision"
-            )
-        connection.executescript(
-            """
-            CREATE TABLE IF NOT EXISTS service_goals (
-                id TEXT PRIMARY KEY,
-                description TEXT NOT NULL,
-                state TEXT NOT NULL,
-                failure_reason TEXT,
-                created_at_ns INTEGER NOT NULL
-            );
-
-            CREATE TABLE IF NOT EXISTS goal_task_links (
-                goal_id TEXT NOT NULL REFERENCES service_goals(id),
-                task_id TEXT NOT NULL UNIQUE REFERENCES service_tasks(id),
-                ordinal INTEGER NOT NULL,
-                created_at_ns INTEGER NOT NULL,
-                PRIMARY KEY(goal_id, task_id),
-                UNIQUE(goal_id, ordinal)
-            );
-
-            CREATE TABLE IF NOT EXISTS task_dependencies (
-                task_id TEXT NOT NULL REFERENCES service_tasks(id),
-                depends_on_task_id TEXT NOT NULL REFERENCES service_tasks(id),
-                created_at_ns INTEGER NOT NULL,
-                PRIMARY KEY(task_id, depends_on_task_id),
-                CHECK(task_id <> depends_on_task_id)
-            );
-
-            """
-        )
-        connection.commit()
+        _initialize_schema(connection)
 
     def close(self) -> None:
         self._r6.close()

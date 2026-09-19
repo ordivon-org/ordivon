@@ -373,6 +373,18 @@ class TaskCompletionReconciler:
         return self._assignments.get(assignment.id)
 
 
+def _initialize_schema(connection: sqlite3.Connection) -> None:
+    legacy_task_verifications = connection.execute(
+        "SELECT 1 FROM sqlite_master "
+        "WHERE type = 'table' AND name = 'task_verifications'"
+    ).fetchone()
+    if legacy_task_verifications is not None:
+        raise RuntimeError(
+            "legacy task_verifications schema is unsupported; "
+            "perform explicit destructive migration before opening this revision"
+        )
+
+
 class AgentServiceR6:
     """R6 composition: R5 durable work plus explicit evidence/verification completion."""
 
@@ -431,15 +443,7 @@ class AgentServiceR6:
 
     @staticmethod
     def _initialize_schema(connection: sqlite3.Connection) -> None:
-        legacy_task_verifications = connection.execute(
-            "SELECT 1 FROM sqlite_master "
-            "WHERE type = 'table' AND name = 'task_verifications'"
-        ).fetchone()
-        if legacy_task_verifications is not None:
-            raise RuntimeError(
-                "legacy task_verifications schema is unsupported; "
-                "perform explicit destructive migration before opening this revision"
-            )
+        _initialize_schema(connection)
 
     def close(self) -> None:
         self._r5.close()

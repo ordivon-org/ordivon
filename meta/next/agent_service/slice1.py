@@ -523,6 +523,69 @@ class PlacementReconciler:
         return current
 
 
+def _initialize_schema(connection: sqlite3.Connection) -> None:
+    connection.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS agent_definitions (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            created_at_ns INTEGER NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS agent_revisions (
+            id TEXT PRIMARY KEY,
+            definition_id TEXT NOT NULL REFERENCES agent_definitions(id),
+            spec_json TEXT NOT NULL,
+            created_at_ns INTEGER NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS agent_instances (
+            id TEXT PRIMARY KEY,
+            client_request_id TEXT NOT NULL UNIQUE,
+            revision_id TEXT NOT NULL REFERENCES agent_revisions(id),
+            state TEXT NOT NULL,
+            created_at_ns INTEGER NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS desired_placements (
+            id TEXT PRIMARY KEY,
+            agent_instance_id TEXT NOT NULL UNIQUE REFERENCES agent_instances(id),
+            desired_state TEXT NOT NULL,
+            observed_state TEXT NOT NULL,
+            evidence_ref TEXT,
+            created_at_ns INTEGER NOT NULL,
+            updated_at_ns INTEGER NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS service_events (
+            id TEXT PRIMARY KEY,
+            aggregate_type TEXT NOT NULL,
+            aggregate_id TEXT NOT NULL,
+            sequence INTEGER NOT NULL,
+            event_type TEXT NOT NULL,
+            payload_json TEXT NOT NULL,
+            created_at_ns INTEGER NOT NULL,
+            UNIQUE(aggregate_type, aggregate_id, sequence)
+        );
+        """
+    )
+    columns = {
+        row["name"]
+        for row in connection.execute("PRAGMA table_info(agent_instances)")
+    }
+    if "birth_request_id" in columns and "client_request_id" in columns:
+        raise RuntimeError(
+            "agent_instances contains both legacy and current request identity columns"
+        )
+    if "birth_request_id" in columns:
+        connection.execute(
+            "ALTER TABLE agent_instances RENAME COLUMN birth_request_id TO client_request_id"
+        )
+    elif "client_request_id" not in columns:
+        raise RuntimeError("agent_instances has no request identity column")
+    connection.commit()
+
+
 class AgentServiceSlice1:
     """Thin composition root for the first clean-room Agent Service vertical slice."""
 
@@ -565,66 +628,7 @@ class AgentServiceSlice1:
 
     @staticmethod
     def _initialize_schema(connection: sqlite3.Connection) -> None:
-        connection.executescript(
-            """
-            CREATE TABLE IF NOT EXISTS agent_definitions (
-                id TEXT PRIMARY KEY,
-                name TEXT NOT NULL,
-                created_at_ns INTEGER NOT NULL
-            );
-
-            CREATE TABLE IF NOT EXISTS agent_revisions (
-                id TEXT PRIMARY KEY,
-                definition_id TEXT NOT NULL REFERENCES agent_definitions(id),
-                spec_json TEXT NOT NULL,
-                created_at_ns INTEGER NOT NULL
-            );
-
-            CREATE TABLE IF NOT EXISTS agent_instances (
-                id TEXT PRIMARY KEY,
-                client_request_id TEXT NOT NULL UNIQUE,
-                revision_id TEXT NOT NULL REFERENCES agent_revisions(id),
-                state TEXT NOT NULL,
-                created_at_ns INTEGER NOT NULL
-            );
-
-            CREATE TABLE IF NOT EXISTS desired_placements (
-                id TEXT PRIMARY KEY,
-                agent_instance_id TEXT NOT NULL UNIQUE REFERENCES agent_instances(id),
-                desired_state TEXT NOT NULL,
-                observed_state TEXT NOT NULL,
-                evidence_ref TEXT,
-                created_at_ns INTEGER NOT NULL,
-                updated_at_ns INTEGER NOT NULL
-            );
-
-            CREATE TABLE IF NOT EXISTS service_events (
-                id TEXT PRIMARY KEY,
-                aggregate_type TEXT NOT NULL,
-                aggregate_id TEXT NOT NULL,
-                sequence INTEGER NOT NULL,
-                event_type TEXT NOT NULL,
-                payload_json TEXT NOT NULL,
-                created_at_ns INTEGER NOT NULL,
-                UNIQUE(aggregate_type, aggregate_id, sequence)
-            );
-            """
-        )
-        columns = {
-            row["name"]
-            for row in connection.execute("PRAGMA table_info(agent_instances)")
-        }
-        if "birth_request_id" in columns and "client_request_id" in columns:
-            raise RuntimeError(
-                "agent_instances contains both legacy and current request identity columns"
-            )
-        if "birth_request_id" in columns:
-            connection.execute(
-                "ALTER TABLE agent_instances RENAME COLUMN birth_request_id TO client_request_id"
-            )
-        elif "client_request_id" not in columns:
-            raise RuntimeError("agent_instances has no request identity column")
-        connection.commit()
+        _initialize_schema(connection)
 
     def close(self) -> None:
         self._connection.close()
