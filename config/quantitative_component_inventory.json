@@ -22,12 +22,15 @@
       "limitations": [
         "Historical correlation and beta are not forecasts.",
         "Proxy instruments do not establish causal factor exposure.",
-        "Dependence may change across market regimes and sample windows."
+        "Dependence may change across market regimes and sample windows.",
+        "Walk-forward validation on a finite historical sample does not guarantee future hedge effectiveness.",
+        "Current walk-forward evidence is developer-run and does not constitute independent validation."
       ],
       "validation": {
-        "standing": "VALIDATION_REQUIRED",
+        "standing": "DEVELOPMENT_TESTED",
         "evidenceRefs": [
-          "evidence/acceptance/portfolio-risk-observatory-p1-p4-r1.json"
+          "evidence/acceptance/portfolio-risk-observatory-p1-p4-r1.json",
+          "evidence/acceptance/dependence-model-oot-validation-r1.json"
         ]
       },
       "monitoring": {
@@ -35,7 +38,8 @@
         "requirements": [
           "Track overlap sample count and data freshness.",
           "Track rolling coefficient and correlation drift.",
-          "Compare model outputs with subsequent realized dependence before broader use."
+          "Run walk-forward out-of-time validation against a robust challenger.",
+          "Compare subsequent realized residual risk and model error before broader use."
         ]
       },
       "permittedUses": [
@@ -172,6 +176,42 @@
       "prohibitedUses": [
         "Causal factor attribution.",
         "Automatic hedge selection."
+      ]
+    },
+    {
+      "id": "historical-expected-shortfall",
+      "implementation": "src/market_capital/portfolio_risk.py::historical_expected_shortfall",
+      "classification": "NON_MODEL_CALCULATION",
+      "sr26ModelStanding": "NON_MODEL",
+      "status": "ACTIVE",
+      "purpose": "Compute an empirical one-period historical tail-loss mean beyond an empirical VaR quantile for descriptive risk monitoring.",
+      "materiality": "LOW",
+      "assumptions": [
+        "The supplied completed returns define the historical sample being summarized."
+      ],
+      "limitations": [
+        "This is a historical descriptive statistic, not a forecast of future losses.",
+        "No distribution is fitted and no liquidity-horizon scaling is applied.",
+        "The output is not a Basel regulatory capital calculation."
+      ],
+      "validation": {
+        "standing": "NOT_APPLICABLE",
+        "evidenceRefs": [
+          "evidence/acceptance/dependence-model-oot-validation-r1.json"
+        ]
+      },
+      "monitoring": {
+        "standing": "NOT_APPLICABLE",
+        "requirements": []
+      },
+      "permittedUses": [
+        "Descriptive historical tail-risk monitoring.",
+        "Scenario and risk-report context with explicit sample definition."
+      ],
+      "prohibitedUses": [
+        "Regulatory capital calculation.",
+        "Automatic position sizing.",
+        "Future-loss probability forecast."
       ]
     },
     {

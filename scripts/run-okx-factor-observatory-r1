@@ -21,4 +21,4 @@ if [[ "$ready" != 1 ]]; then
   exit 4
 fi
 
-exec env PYTHONPATH="$repo/src" /usr/bin/python3 -m market_capital.okx_factor_observer   --proxy "$proxy" "$@"
+exec "$repo/scripts/run-capability-python" -m market_capital.okx_factor_observer --proxy "$proxy" "$@"

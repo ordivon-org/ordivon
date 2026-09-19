@@ -1,0 +1,560 @@
+{
+  "baseInstrumentId": "SNDK-USDT-SWAP",
+  "baselineHead": "2b6ec857ce8818ca48e983c74124eda41ac0165f",
+  "brokerCredentialsUsed": false,
+  "date": "2026-09-19",
+  "externalFinancialWriteAttempted": false,
+  "kind": "ordivon.acceptance-evidence",
+  "limitations": [
+    "This is development testing, not independent model validation.",
+    "Historical out-of-time performance does not guarantee future hedge effectiveness.",
+    "No pass/fail threshold, hedge ranking, hedge size, return forecast, or live-order approval is produced."
+  ],
+  "method": {
+    "challengerEstimator": "sklearn.linear_model.HuberRegressor",
+    "primaryEstimator": "sklearn.linear_model.LinearRegression",
+    "purpose": "walk-forward out-of-time development testing and alternative-method challenge",
+    "splitter": "sklearn.model_selection.TimeSeriesSplit"
+  },
+  "privateAccountDataUsed": false,
+  "rows": [
+    {
+      "factor": "MEMORY",
+      "fullSample": {
+        "beta": "1.075095",
+        "correlation": "0.843824"
+      },
+      "overlapReturnCount": 178,
+      "proxyInstrumentId": "MU-USDT-SWAP",
+      "walkForward": {
+        "challengerBeta": {
+          "max": "1.057506",
+          "median": "0.931566",
+          "min": "0.918610"
+        },
+        "challengerEstimator": "sklearn.linear_model.HuberRegressor",
+        "challengerNegativeVarianceReductionFoldCount": 0,
+        "challengerOosMeanAbsoluteError": {
+          "max": "0.029428",
+          "median": "0.023779",
+          "min": "0.013621"
+        },
+        "challengerOosVarianceReduction": {
+          "max": "0.789593",
+          "median": "0.704720",
+          "min": "0.588791"
+        },
+        "folds": [
+          {
+            "challenger": {
+              "beta": "0.931566",
+              "estimator": "sklearn.linear_model.HuberRegressor",
+              "intercept": "0.001581",
+              "oosMeanAbsoluteError": "0.02187602",
+              "oosResidualVariance": "0.0007966288",
+              "oosVarianceReductionVsUnhedged": "0.679362"
+            },
+            "fold": 1,
+            "primary": {
+              "beta": "0.871805",
+              "estimator": "sklearn.linear_model.LinearRegression",
+              "intercept": "0.004339",
+              "oosMeanAbsoluteError": "0.02231023",
+              "oosResidualVariance": "0.0007777898",
+              "oosVarianceReductionVsUnhedged": "0.686944"
+            },
+            "testCount": 29,
+            "testEndObservedAtMs": 1779638400000,
+            "testStartObservedAtMs": 1777219200000,
+            "trainCount": 33,
+            "trainEndObservedAtMs": 1777132800000,
+            "trainStartObservedAtMs": 1774368000000,
+            "unhedgedTestVariance": "0.0024845079"
+          },
+          {
+            "challenger": {
+              "beta": "0.927072",
+              "estimator": "sklearn.linear_model.HuberRegressor",
+              "intercept": "0.000761",
+              "oosMeanAbsoluteError": "0.02377907",
+              "oosResidualVariance": "0.0010367821",
+              "oosVarianceReductionVsUnhedged": "0.588791"
+            },
+            "fold": 2,
+            "primary": {
+              "beta": "0.849595",
+              "estimator": "sklearn.linear_model.LinearRegression",
+              "intercept": "0.003204",
+              "oosMeanAbsoluteError": "0.02408778",
+              "oosResidualVariance": "0.0010276604",
+              "oosVarianceReductionVsUnhedged": "0.592409"
+            },
+            "testCount": 29,
+            "testEndObservedAtMs": 1782144000000,
+            "testStartObservedAtMs": 1779724800000,
+            "trainCount": 62,
+            "trainEndObservedAtMs": 1779638400000,
+            "trainStartObservedAtMs": 1774368000000,
+            "unhedgedTestVariance": "0.0025213019"
+          },
+          {
+            "challenger": {
+              "beta": "0.918610",
+              "estimator": "sklearn.linear_model.HuberRegressor",
+              "intercept": "0.000016",
+              "oosMeanAbsoluteError": "0.02487426",
+              "oosResidualVariance": "0.0011951642",
+              "oosVarianceReductionVsUnhedged": "0.789593"
+            },
+            "fold": 3,
+            "primary": {
+              "beta": "0.852814",
+              "estimator": "sklearn.linear_model.LinearRegression",
+              "intercept": "0.002033",
+              "oosMeanAbsoluteError": "0.02652192",
+              "oosResidualVariance": "0.0013450883",
+              "oosVarianceReductionVsUnhedged": "0.763199"
+            },
+            "testCount": 29,
+            "testEndObservedAtMs": 1784649600000,
+            "testStartObservedAtMs": 1782230400000,
+            "trainCount": 91,
+            "trainEndObservedAtMs": 1782144000000,
+            "trainStartObservedAtMs": 1774368000000,
+            "unhedgedTestVariance": "0.0056802471"
+          },
+          {
+            "challenger": {
+              "beta": "1.005850",
+              "estimator": "sklearn.linear_model.HuberRegressor",
+              "intercept": "-0.000851",
+              "oosMeanAbsoluteError": "0.02942780",
+              "oosResidualVariance": "0.0016221349",
+              "oosVarianceReductionVsUnhedged": "0.705007"
+            },
+            "fold": 4,
+            "primary": {
+              "beta": "0.987653",
+              "estimator": "sklearn.linear_model.LinearRegression",
+              "intercept": "-0.000537",
+              "oosMeanAbsoluteError": "0.02964795",
+              "oosResidualVariance": "0.0016563828",
+              "oosVarianceReductionVsUnhedged": "0.698779"
+            },
+            "testCount": 29,
+            "testEndObservedAtMs": 1787155200000,
+            "testStartObservedAtMs": 1784736000000,
+            "trainCount": 120,
+            "trainEndObservedAtMs": 1784649600000,
+            "trainStartObservedAtMs": 1774368000000,
+            "unhedgedTestVariance": "0.0054989018"
+          },
+          {
+            "challenger": {
+              "beta": "1.057506",
+              "estimator": "sklearn.linear_model.HuberRegressor",
+              "intercept": "-0.001395",
+              "oosMeanAbsoluteError": "0.01362088",
+              "oosResidualVariance": "0.0003646378",
+              "oosVarianceReductionVsUnhedged": "0.704720"
+            },
+            "fold": 5,
+            "primary": {
+              "beta": "1.068324",
+              "estimator": "sklearn.linear_model.LinearRegression",
+              "intercept": "-0.000810",
+              "oosMeanAbsoluteError": "0.01370825",
+              "oosResidualVariance": "0.0003625481",
+              "oosVarianceReductionVsUnhedged": "0.706412"
+            },
+            "testCount": 29,
+            "testEndObservedAtMs": 1789660800000,
+            "testStartObservedAtMs": 1787241600000,
+            "trainCount": 149,
+            "trainEndObservedAtMs": 1787155200000,
+            "trainStartObservedAtMs": 1774368000000,
+            "unhedgedTestVariance": "0.0012348869"
+          }
+        ],
+        "nSplits": 5,
+        "primaryBeta": {
+          "max": "1.068324",
+          "median": "0.871805",
+          "min": "0.849595"
+        },
+        "primaryEstimator": "sklearn.linear_model.LinearRegression",
+        "primaryNegativeVarianceReductionFoldCount": 0,
+        "primaryOosMeanAbsoluteError": {
+          "max": "0.029648",
+          "median": "0.024088",
+          "min": "0.013708"
+        },
+        "primaryOosVarianceReduction": {
+          "max": "0.763199",
+          "median": "0.698779",
+          "min": "0.592409"
+        }
+      }
+    },
+    {
+      "factor": "SEMICONDUCTOR",
+      "fullSample": {
+        "beta": "2.140356",
+        "correlation": "0.750325"
+      },
+      "overlapReturnCount": 92,
+      "proxyInstrumentId": "SMH-USDT-SWAP",
+      "walkForward": {
+        "challengerBeta": {
+          "max": "2.373714",
+          "median": "2.282240",
+          "min": "1.760912"
+        },
+        "challengerEstimator": "sklearn.linear_model.HuberRegressor",
+        "challengerNegativeVarianceReductionFoldCount": 1,
+        "challengerOosMeanAbsoluteError": {
+          "max": "0.040295",
+          "median": "0.034841",
+          "min": "0.021771"
+        },
+        "challengerOosVarianceReduction": {
+          "max": "0.730656",
+          "median": "0.417918",
+          "min": "-0.735991"
+        },
+        "folds": [
+          {
+            "challenger": {
+              "beta": "1.760912",
+              "estimator": "sklearn.linear_model.HuberRegressor",
+              "intercept": "-0.005415",
+              "oosMeanAbsoluteError": "0.03538499",
+              "oosResidualVariance": "0.0018395150",
+              "oosVarianceReductionVsUnhedged": "0.730656"
+            },
+            "fold": 1,
+            "primary": {
+              "beta": "1.766099",
+              "estimator": "sklearn.linear_model.LinearRegression",
+              "intercept": "-0.002169",
+              "oosMeanAbsoluteError": "0.03465421",
+              "oosResidualVariance": "0.0018315439",
+              "oosVarianceReductionVsUnhedged": "0.731823"
+            },
+            "testCount": 15,
+            "testEndObservedAtMs": 1784476800000,
+            "testStartObservedAtMs": 1783267200000,
+            "trainCount": 17,
+            "trainEndObservedAtMs": 1783180800000,
+            "trainStartObservedAtMs": 1781798400000,
+            "unhedgedTestVariance": "0.0068296187"
+          },
+          {
+            "challenger": {
+              "beta": "2.373714",
+              "estimator": "sklearn.linear_model.HuberRegressor",
+              "intercept": "-0.003663",
+              "oosMeanAbsoluteError": "0.03484146",
+              "oosResidualVariance": "0.0024242253",
+              "oosVarianceReductionVsUnhedged": "0.706072"
+            },
+            "fold": 2,
+            "primary": {
+              "beta": "2.248473",
+              "estimator": "sklearn.linear_model.LinearRegression",
+              "intercept": "-0.002671",
+              "oosMeanAbsoluteError": "0.03493909",
+              "oosResidualVariance": "0.0024783077",
+              "oosVarianceReductionVsUnhedged": "0.699515"
+            },
+            "testCount": 15,
+            "testEndObservedAtMs": 1785772800000,
+            "testStartObservedAtMs": 1784563200000,
+            "trainCount": 32,
+            "trainEndObservedAtMs": 1784476800000,
+            "trainStartObservedAtMs": 1781798400000,
+            "unhedgedTestVariance": "0.0082476859"
+          },
+          {
+            "challenger": {
+              "beta": "2.360178",
+              "estimator": "sklearn.linear_model.HuberRegressor",
+              "intercept": "-0.003273",
+              "oosMeanAbsoluteError": "0.04029468",
+              "oosResidualVariance": "0.0026130027",
+              "oosVarianceReductionVsUnhedged": "0.172181"
+            },
+            "fold": 3,
+            "primary": {
+              "beta": "2.356671",
+              "estimator": "sklearn.linear_model.LinearRegression",
+              "intercept": "-0.002345",
+              "oosMeanAbsoluteError": "0.04009737",
+              "oosResidualVariance": "0.0026110635",
+              "oosVarianceReductionVsUnhedged": "0.172795"
+            },
+            "testCount": 15,
+            "testEndObservedAtMs": 1787068800000,
+            "testStartObservedAtMs": 1785859200000,
+            "trainCount": 47,
+            "trainEndObservedAtMs": 1785772800000,
+            "trainStartObservedAtMs": 1781798400000,
+            "unhedgedTestVariance": "0.0031564901"
+          },
+          {
+            "challenger": {
+              "beta": "2.282240",
+              "estimator": "sklearn.linear_model.HuberRegressor",
+              "intercept": "0.000586",
+              "oosMeanAbsoluteError": "0.02565313",
+              "oosResidualVariance": "0.0013899214",
+              "oosVarianceReductionVsUnhedged": "-0.735991"
+            },
+            "fold": 4,
+            "primary": {
+              "beta": "2.266265",
+              "estimator": "sklearn.linear_model.LinearRegression",
+              "intercept": "0.000640",
+              "oosMeanAbsoluteError": "0.02555635",
+              "oosResidualVariance": "0.0013799596",
+              "oosVarianceReductionVsUnhedged": "-0.723549"
+            },
+            "testCount": 15,
+            "testEndObservedAtMs": 1788364800000,
+            "testStartObservedAtMs": 1787155200000,
+            "trainCount": 62,
+            "trainEndObservedAtMs": 1787068800000,
+            "trainStartObservedAtMs": 1781798400000,
+            "unhedgedTestVariance": "0.0008006499"
+          },
+          {
+            "challenger": {
+              "beta": "2.204047",
+              "estimator": "sklearn.linear_model.HuberRegressor",
+              "intercept": "0.000652",
+              "oosMeanAbsoluteError": "0.02177062",
+              "oosResidualVariance": "0.0009428697",
+              "oosVarianceReductionVsUnhedged": "0.417918"
+            },
+            "fold": 5,
+            "primary": {
+              "beta": "2.163399",
+              "estimator": "sklearn.linear_model.LinearRegression",
+              "intercept": "0.000513",
+              "oosMeanAbsoluteError": "0.02176892",
+              "oosResidualVariance": "0.0009354822",
+              "oosVarianceReductionVsUnhedged": "0.422479"
+            },
+            "testCount": 15,
+            "testEndObservedAtMs": 1789660800000,
+            "testStartObservedAtMs": 1788451200000,
+            "trainCount": 77,
+            "trainEndObservedAtMs": 1788364800000,
+            "trainStartObservedAtMs": 1781798400000,
+            "unhedgedTestVariance": "0.0016198238"
+          }
+        ],
+        "nSplits": 5,
+        "primaryBeta": {
+          "max": "2.356671",
+          "median": "2.248473",
+          "min": "1.766099"
+        },
+        "primaryEstimator": "sklearn.linear_model.LinearRegression",
+        "primaryNegativeVarianceReductionFoldCount": 1,
+        "primaryOosMeanAbsoluteError": {
+          "max": "0.040097",
+          "median": "0.034654",
+          "min": "0.021769"
+        },
+        "primaryOosVarianceReduction": {
+          "max": "0.731823",
+          "median": "0.422479",
+          "min": "-0.723549"
+        }
+      }
+    },
+    {
+      "factor": "TECH_BETA",
+      "fullSample": {
+        "beta": "3.177404",
+        "correlation": "0.610721"
+      },
+      "overlapReturnCount": 178,
+      "proxyInstrumentId": "QQQ-USDT-SWAP",
+      "walkForward": {
+        "challengerBeta": {
+          "max": "3.191203",
+          "median": "2.260188",
+          "min": "2.026531"
+        },
+        "challengerEstimator": "sklearn.linear_model.HuberRegressor",
+        "challengerNegativeVarianceReductionFoldCount": 1,
+        "challengerOosMeanAbsoluteError": {
+          "max": "0.047020",
+          "median": "0.034068",
+          "min": "0.024656"
+        },
+        "challengerOosVarianceReduction": {
+          "max": "0.535517",
+          "median": "0.338024",
+          "min": "-0.058209"
+        },
+        "folds": [
+          {
+            "challenger": {
+              "beta": "2.217592",
+              "estimator": "sklearn.linear_model.HuberRegressor",
+              "intercept": "0.002195",
+              "oosMeanAbsoluteError": "0.03406812",
+              "oosResidualVariance": "0.0018610633",
+              "oosVarianceReductionVsUnhedged": "0.250933"
+            },
+            "fold": 1,
+            "primary": {
+              "beta": "2.448529",
+              "estimator": "sklearn.linear_model.LinearRegression",
+              "intercept": "0.001197",
+              "oosMeanAbsoluteError": "0.03435127",
+              "oosResidualVariance": "0.0018506869",
+              "oosVarianceReductionVsUnhedged": "0.255109"
+            },
+            "testCount": 29,
+            "testEndObservedAtMs": 1779638400000,
+            "testStartObservedAtMs": 1777219200000,
+            "trainCount": 33,
+            "trainEndObservedAtMs": 1777132800000,
+            "trainStartObservedAtMs": 1774368000000,
+            "unhedgedTestVariance": "0.0024845079"
+          },
+          {
+            "challenger": {
+              "beta": "2.026531",
+              "estimator": "sklearn.linear_model.HuberRegressor",
+              "intercept": "0.004124",
+              "oosMeanAbsoluteError": "0.02542349",
+              "oosResidualVariance": "0.0011711027",
+              "oosVarianceReductionVsUnhedged": "0.535517"
+            },
+            "fold": 2,
+            "primary": {
+              "beta": "2.482543",
+              "estimator": "sklearn.linear_model.LinearRegression",
+              "intercept": "0.004171",
+              "oosMeanAbsoluteError": "0.02460308",
+              "oosResidualVariance": "0.0010593897",
+              "oosVarianceReductionVsUnhedged": "0.579824"
+            },
+            "testCount": 29,
+            "testEndObservedAtMs": 1782144000000,
+            "testStartObservedAtMs": 1779724800000,
+            "trainCount": 62,
+            "trainEndObservedAtMs": 1779638400000,
+            "trainStartObservedAtMs": 1774368000000,
+            "unhedgedTestVariance": "0.0025213019"
+          },
+          {
+            "challenger": {
+              "beta": "2.260188",
+              "estimator": "sklearn.linear_model.HuberRegressor",
+              "intercept": "0.005210",
+              "oosMeanAbsoluteError": "0.04701986",
+              "oosResidualVariance": "0.0037601866",
+              "oosVarianceReductionVsUnhedged": "0.338024"
+            },
+            "fold": 3,
+            "primary": {
+              "beta": "2.633723",
+              "estimator": "sklearn.linear_model.LinearRegression",
+              "intercept": "0.005648",
+              "oosMeanAbsoluteError": "0.04561946",
+              "oosResidualVariance": "0.0035639954",
+              "oosVarianceReductionVsUnhedged": "0.372563"
+            },
+            "testCount": 29,
+            "testEndObservedAtMs": 1784649600000,
+            "testStartObservedAtMs": 1782230400000,
+            "trainCount": 91,
+            "trainEndObservedAtMs": 1782144000000,
+            "trainStartObservedAtMs": 1774368000000,
+            "unhedgedTestVariance": "0.0056802471"
+          },
+          {
+            "challenger": {
+              "beta": "2.899225",
+              "estimator": "sklearn.linear_model.HuberRegressor",
+              "intercept": "0.002671",
+              "oosMeanAbsoluteError": "0.04484562",
+              "oosResidualVariance": "0.0035545730",
+              "oosVarianceReductionVsUnhedged": "0.353585"
+            },
+            "fold": 4,
+            "primary": {
+              "beta": "3.091404",
+              "estimator": "sklearn.linear_model.LinearRegression",
+              "intercept": "0.001992",
+              "oosMeanAbsoluteError": "0.04431768",
+              "oosResidualVariance": "0.0035027960",
+              "oosVarianceReductionVsUnhedged": "0.363001"
+            },
+            "testCount": 29,
+            "testEndObservedAtMs": 1787155200000,
+            "testStartObservedAtMs": 1784736000000,
+            "trainCount": 120,
+            "trainEndObservedAtMs": 1784649600000,
+            "trainStartObservedAtMs": 1774368000000,
+            "unhedgedTestVariance": "0.0054989018"
+          },
+          {
+            "challenger": {
+              "beta": "3.191203",
+              "estimator": "sklearn.linear_model.HuberRegressor",
+              "intercept": "0.001324",
+              "oosMeanAbsoluteError": "0.02465572",
+              "oosResidualVariance": "0.0013067686",
+              "oosVarianceReductionVsUnhedged": "-0.058209"
+            },
+            "fold": 5,
+            "primary": {
+              "beta": "3.267578",
+              "estimator": "sklearn.linear_model.LinearRegression",
+              "intercept": "0.001306",
+              "oosMeanAbsoluteError": "0.02471764",
+              "oosResidualVariance": "0.0013167630",
+              "oosVarianceReductionVsUnhedged": "-0.066302"
+            },
+            "testCount": 29,
+            "testEndObservedAtMs": 1789660800000,
+            "testStartObservedAtMs": 1787241600000,
+            "trainCount": 149,
+            "trainEndObservedAtMs": 1787155200000,
+            "trainStartObservedAtMs": 1774368000000,
+            "unhedgedTestVariance": "0.0012348869"
+          }
+        ],
+        "nSplits": 5,
+        "primaryBeta": {
+          "max": "3.267578",
+          "median": "2.633723",
+          "min": "2.448529"
+        },
+        "primaryEstimator": "sklearn.linear_model.LinearRegression",
+        "primaryNegativeVarianceReductionFoldCount": 1,
+        "primaryOosMeanAbsoluteError": {
+          "max": "0.045619",
+          "median": "0.034351",
+          "min": "0.024603"
+        },
+        "primaryOosVarianceReduction": {
+          "max": "0.579824",
+          "median": "0.363001",
+          "min": "-0.066302"
+        }
+      }
+    }
+  ],
+  "schemaVersion": 1,
+  "sourceAuthority": "OKX_PUBLIC_COMPLETED_1D_CANDLES",
+  "standing": "DEVELOPMENT_TESTED_VALIDATION_STILL_REQUIRED",
+  "subject": "portfolio-dependence-analysis-development-testing-r1"
+}

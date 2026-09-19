@@ -9,6 +9,8 @@ from market_capital.portfolio_risk import (
     build_portfolio_risk_report,
     completed_log_returns,
     evaluate_risk_budget,
+    historical_expected_shortfall,
+    validate_dependence_model,
 )
 
 
@@ -82,6 +84,45 @@ class PortfolioRiskTests(unittest.TestCase):
         self.assertEqual(out["componentId"], "portfolio-dependence-analysis")
         self.assertNotIn("standing", out)
         self.assertNotIn("stabilityPolicy", out)
+
+
+    def test_dependence_walk_forward_validation_uses_oot_and_challenger(self):
+        base = {i: 0.002 + 1.5 * (0.001 * math.sin(i / 3)) for i in range(1, 121)}
+        proxy = {i: 0.001 * math.sin(i / 3) for i in range(1, 121)}
+        out = validate_dependence_model(
+            base_instrument_id="A",
+            base_returns=base,
+            proxy_instrument_id="B",
+            proxy_returns=proxy,
+            n_splits=5,
+        )
+        self.assertEqual(out["validationMethod"], "SCIKIT_LEARN_WALK_FORWARD_TIME_SERIES_SPLIT")
+        self.assertEqual(len(out["folds"]), 5)
+        self.assertEqual(out["primaryEstimator"], "sklearn.linear_model.LinearRegression")
+        self.assertEqual(out["challengerEstimator"], "sklearn.linear_model.HuberRegressor")
+        for fold in out["folds"]:
+            self.assertLess(fold["trainEndObservedAtMs"], fold["testStartObservedAtMs"])
+        self.assertAlmostEqual(float(out["summary"]["primaryBeta"]["median"]), 1.5, places=3)
+
+    def test_dependence_validation_rejects_too_little_history(self):
+        with self.assertRaises(PortfolioRiskError):
+            validate_dependence_model(
+                base_instrument_id="A",
+                base_returns={i: i / 1000 for i in range(20)},
+                proxy_instrument_id="B",
+                proxy_returns={i: i / 2000 for i in range(20)},
+            )
+
+    def test_empirical_expected_shortfall_is_tail_mean_without_regulatory_scaling(self):
+        returns = [0.01] * 19 + [-0.20]
+        out = historical_expected_shortfall(returns, confidence=0.95)
+        self.assertEqual(out["componentId"], "historical-expected-shortfall")
+        self.assertGreaterEqual(
+            float(out["expectedShortfallLossFraction"]),
+            float(out["valueAtRiskLossFraction"]),
+        )
+        self.assertFalse(out["liquidityHorizonScalingApplied"])
+        self.assertFalse(out["regulatoryCapitalCalculation"])
 
     def test_factor_observatory_allows_multiple_proxies_per_factor_but_rejects_duplicate_pair(self):
         base = {i: 0.001 * math.sin(i / 5) for i in range(1, 70)}

@@ -1,0 +1,31 @@
+{
+  "baselineHead": "2b6ec857ce8818ca48e983c74124eda41ac0165f",
+  "date": "2026-09-19",
+  "externalFinancialWriteAttempted": false,
+  "kind": "ordivon.acceptance-evidence",
+  "modelGovernance": {
+    "activeModelCount": 1,
+    "dependenceModelStatus": "VALIDATION_REQUIRED",
+    "dependenceValidationStanding": "DEVELOPMENT_TESTED",
+    "independentValidationClaimed": false
+  },
+  "privateAccountDataUsed": false,
+  "regulatoryComplianceClaimed": false,
+  "replacementsAndAdditions": [
+    "system-Python OKX factor runner -> canonical capability Python environment",
+    "in-sample-only dependence evidence -> scikit-learn walk-forward OOT development testing",
+    "single OLS view -> robust HuberRegressor challenger evidence",
+    "custom tail-risk score avoided -> empirical historical expected shortfall primitive"
+  ],
+  "schemaVersion": 1,
+  "subject": "market-capital-standards-adoption-r4",
+  "verification": {
+    "activeSourceRetiredOntologyScan": "PASS_ZERO_MATCHES",
+    "canonicalSuite": "169 passed",
+    "componentInventory": "PASS: 13 total, 1 active model, 1 validation-required model, 11 non-model, 1 retired model",
+    "executionPolicy": "PASS: OPA allowNonLive=true, allowExternalWrite=false",
+    "focusedTests": "18 passed",
+    "gitDiffCheck": "PASS",
+    "publicDevelopmentCanary": "PASS: SNDK vs MU/SMH/QQQ completed 1D walk-forward validation"
+  }
+}
