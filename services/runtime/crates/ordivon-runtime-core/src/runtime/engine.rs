@@ -48,15 +48,17 @@ use crate::universal::{
     canonical_directory, create_git_workspace_compact, inspect_workspace_patch_plan,
     list_open_workspace_record_inventory, load_workspace_record, mutate_workspace,
     open_directory_nofollow, open_regular_file_beneath, patch_workspace, plan_workspace_patch,
-    remove_git_workspace, resolve_workspace_cwd, result_from_workspace_patch_plan, sha256_bytes,
-    sha256_file, workspace_cleanup_dependents, workspace_git_common_dir_at,
-    workspace_head_and_dirty_at, workspace_head_revision, workspace_source_state_digest,
-    write_bytes_atomic, write_json_atomic, CompactWorkspaceOpenResult, GitWorkspaceCreateRequest,
-    RunnerExecutionStep, RunnerHostDependencyCommitment, RunnerInputCommitment,
-    RunnerPayloadConfig, RunnerStartEvidence, RunnerTaskProgress, RunnerTaskRequest,
-    RunnerTaskResult, UniversalExecutorConfig, WorkspaceCloseRequest, WorkspaceCloseResult,
-    WorkspaceDiffRequest, WorkspaceMutateRequest, WorkspaceMutateResult, WorkspacePatchPlanState,
-    WorkspacePatchRequest, WorkspacePatchResult, UNIVERSAL_EXEC_SCHEMA_VERSION,
+    remove_git_workspace, rename_path_durable, resolve_workspace_cwd,
+    result_from_workspace_patch_plan, sha256_bytes, sha256_file,
+    sync_directory as sync_universal_directory, workspace_cleanup_dependents,
+    workspace_git_common_dir_at, workspace_head_and_dirty_at, workspace_head_revision,
+    workspace_source_state_digest, write_bytes_atomic, write_json_atomic,
+    CompactWorkspaceOpenResult, GitWorkspaceCreateRequest, RunnerExecutionStep,
+    RunnerHostDependencyCommitment, RunnerInputCommitment, RunnerPayloadConfig,
+    RunnerStartEvidence, RunnerTaskProgress, RunnerTaskRequest, RunnerTaskResult,
+    UniversalExecutorConfig, WorkspaceCloseRequest, WorkspaceCloseResult, WorkspaceDiffRequest,
+    WorkspaceMutateRequest, WorkspaceMutateResult, WorkspacePatchPlanState, WorkspacePatchRequest,
+    WorkspacePatchResult, UNIVERSAL_EXEC_SCHEMA_VERSION,
 };
 
 const RUNNER_REQUEST_FILE: &str = "request.json";
@@ -794,9 +796,17 @@ fn write_bytes_synced(path: &Path, bytes: &[u8]) -> RuntimeResult<()> {
 }
 
 fn sync_directory(path: &Path) -> RuntimeResult<()> {
-    File::open(path)
-        .and_then(|file| file.sync_all())
-        .map_err(|error| io_error("sync directory", error))
+    sync_universal_directory(path).map_err(map_universal_error)
+}
+
+fn durable_runtime_rename(
+    source: &Path,
+    destination: &Path,
+    replace_existing: bool,
+    operation: &str,
+) -> RuntimeResult<()> {
+    rename_path_durable(source, destination, replace_existing, operation)
+        .map_err(map_universal_error)
 }
 
 fn now_ms() -> RuntimeResult<u64> {
