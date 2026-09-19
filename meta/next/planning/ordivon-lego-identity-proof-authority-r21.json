@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "ordivon-lego-identity-proof-authority-r21",
+  "date": "2026-09-19",
+  "baseCommit": "e934e14f0c84e347ce007844d1943c365927861d",
+  "target": "IdentityProofRecordStore",
+  "classification": {
+    "IdentityProofAdapter": "EXTERNAL_AUTHENTICATION_AUTHORITY",
+    "IdentityProofObservation": "EPHEMERAL_EXTERNAL_OBSERVATION",
+    "IdentityProofRecord": "IMMUTABLE_AUTHENTICATION_EVIDENCE_RECEIPT",
+    "IdentityProofRecordStore": "SPECIALIZED_PERSISTENCE_ONLY",
+    "currentness": "DERIVED_FROM_RECORD_AND_CLOCK",
+    "CredentialReferenceStore": "RETAIN_AND_REAUDIT_LATER"
+  },
+  "replacement": {
+    "aggregateType": "IdentityProof",
+    "aggregateId": "client_proof_request_id",
+    "eventType": "IdentityProofRecorded",
+    "sequence": 1,
+    "projectionId": "ServiceEvent.id"
+  },
+  "downstreamForeignKeys": [],
+  "fixtureCorrection": "replace direct SQL expiry mutation with clock progression",
+  "decision": "ELIGIBLE_FOR_R21_GREEN"
+}

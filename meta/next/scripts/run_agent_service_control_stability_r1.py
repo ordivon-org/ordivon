@@ -8,6 +8,7 @@ import tempfile
 import urllib.parse
 from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(_REPO_ROOT) not in sys.path:
@@ -480,16 +481,17 @@ def _scenario_credential_expiry() -> dict[str, Any]:
                 binding,
             )
             first = service.credential_headers(binding)
-            service._connection.execute(
-                "UPDATE identity_proof_records SET expires_at_ms = 0 WHERE id = ?",
-                (proof.id,),
-            )
-            service._connection.commit()
             blocked = False
-            try:
-                service.credential_headers(binding)
-            except PermissionError:
-                blocked = True
+            after_expiry_ms = (
+                proof.expires_at_ms + 1
+                if proof.expires_at_ms is not None
+                else 10_000_000_000_000
+            )
+            with patch("agent_service.trust._now_ms", return_value=after_expiry_ms):
+                try:
+                    service.credential_headers(binding)
+                except PermissionError:
+                    blocked = True
             return {
                 "classification": "FAIL_CLOSED",
                 "firstHeaderResolved": first.get("Authorization") == "Bearer stability-secret",

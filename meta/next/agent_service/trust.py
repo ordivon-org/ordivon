@@ -213,100 +213,96 @@ class IdentityProofRecord:
     created_at_ns: int
 
 
-class IdentityProofRecordStore:
-    def __init__(self, connection: sqlite3.Connection) -> None:
-        self._connection = connection
+def _identity_proof_record_from_event(
+    event: ServiceEvent,
+) -> IdentityProofRecord:
+    if (
+        event.aggregate_type != "IdentityProof"
+        or event.event_type != "IdentityProofRecorded"
+    ):
+        raise ValueError("event is not an identity proof receipt")
+    payload = event.payload
+    if payload.get("clientProofRequestId") != event.aggregate_id:
+        raise RuntimeError("identity proof request identity mismatch")
+    authenticated = payload.get("authenticated")
+    if not isinstance(authenticated, bool):
+        raise RuntimeError("identity proof authenticated must be boolean")
+    return IdentityProofRecord(
+        id=event.id,
+        client_proof_request_id=event.aggregate_id,
+        identity_id=payload["identityId"],
+        credential_reference_id=payload["credentialReferenceId"],
+        purpose=payload["purpose"],
+        authenticated=authenticated,
+        principal_id=payload.get("principalId"),
+        issuer=payload["issuer"],
+        auth_method=payload["authMethod"],
+        observed_at_ms=int(payload["observedAtMs"]),
+        expires_at_ms=(
+            None
+            if payload.get("expiresAtMs") is None
+            else int(payload["expiresAtMs"])
+        ),
+        evidence_ref=payload["evidenceRef"],
+        created_at_ns=event.created_at_ns,
+    )
 
-    def get(self, proof_id: str) -> IdentityProofRecord:
-        row = self._connection.execute(
-            "SELECT * FROM identity_proof_records WHERE id = ?", (proof_id,)
-        ).fetchone()
-        if row is None:
-            raise KeyError(proof_id)
-        return self._from_row(row)
 
-    def get_by_client_request(
-        self, client_proof_request_id: str, required: bool = True
-    ) -> IdentityProofRecord | None:
-        row = self._connection.execute(
-            "SELECT * FROM identity_proof_records WHERE client_proof_request_id = ?",
-            (client_proof_request_id,),
-        ).fetchone()
-        if row is None:
-            if required:
-                raise KeyError(client_proof_request_id)
-            return None
-        return self._from_row(row)
+def _identity_proof_record_get(
+    events: ServiceEventStore,
+    proof_id: str,
+) -> IdentityProofRecord:
+    return _identity_proof_record_from_event(events.get(proof_id))
 
-    def create(
-        self,
-        *,
-        client_proof_request_id: str,
-        identity_id: str,
-        credential_reference_id: str,
-        purpose: str,
-        observation: IdentityProofObservation,
-        observed_at_ms: int,
-    ) -> IdentityProofRecord:
-        value = IdentityProofRecord(
-            id=_id("iproof"),
-            client_proof_request_id=client_proof_request_id,
-            identity_id=identity_id,
-            credential_reference_id=credential_reference_id,
-            purpose=purpose,
-            authenticated=bool(observation.authenticated),
-            principal_id=observation.principal_id,
-            issuer=observation.issuer,
-            auth_method=observation.auth_method,
-            observed_at_ms=observed_at_ms,
-            expires_at_ms=observation.expires_at_ms,
-            evidence_ref=observation.evidence_ref,
-            created_at_ns=_now_ns(),
-        )
-        with self._connection:
-            self._connection.execute(
-                """
-                INSERT INTO identity_proof_records(
-                    id, client_proof_request_id, identity_id, credential_reference_id,
-                    purpose, authenticated, principal_id, issuer, auth_method,
-                    observed_at_ms, expires_at_ms, evidence_ref, created_at_ns
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    value.id,
-                    value.client_proof_request_id,
-                    value.identity_id,
-                    value.credential_reference_id,
-                    value.purpose,
-                    1 if value.authenticated else 0,
-                    value.principal_id,
-                    value.issuer,
-                    value.auth_method,
-                    value.observed_at_ms,
-                    value.expires_at_ms,
-                    value.evidence_ref,
-                    value.created_at_ns,
-                ),
-            )
-        return value
 
-    @staticmethod
-    def _from_row(row: sqlite3.Row) -> IdentityProofRecord:
-        return IdentityProofRecord(
-            id=row["id"],
-            client_proof_request_id=row["client_proof_request_id"],
-            identity_id=row["identity_id"],
-            credential_reference_id=row["credential_reference_id"],
-            purpose=row["purpose"],
-            authenticated=bool(row["authenticated"]),
-            principal_id=row["principal_id"],
-            issuer=row["issuer"],
-            auth_method=row["auth_method"],
-            observed_at_ms=row["observed_at_ms"],
-            expires_at_ms=row["expires_at_ms"],
-            evidence_ref=row["evidence_ref"],
-            created_at_ns=row["created_at_ns"],
-        )
+def _identity_proof_record_get_by_client_request(
+    events: ServiceEventStore,
+    client_proof_request_id: str,
+    required: bool = True,
+) -> IdentityProofRecord | None:
+    receipts = [
+        event
+        for event in events.list_for("IdentityProof", client_proof_request_id)
+        if event.event_type == "IdentityProofRecorded"
+    ]
+    if not receipts:
+        if required:
+            raise KeyError(client_proof_request_id)
+        return None
+    if len(receipts) != 1:
+        raise RuntimeError("identity proof stream contains multiple records")
+    return _identity_proof_record_from_event(receipts[0])
+
+
+def _identity_proof_record_create(
+    events: ServiceEventStore,
+    *,
+    client_proof_request_id: str,
+    identity_id: str,
+    credential_reference_id: str,
+    purpose: str,
+    observation: IdentityProofObservation,
+    observed_at_ms: int,
+) -> IdentityProofRecord:
+    event = events.append_once(
+        "IdentityProof",
+        client_proof_request_id,
+        "IdentityProofRecorded",
+        {
+            "clientProofRequestId": client_proof_request_id,
+            "identityId": identity_id,
+            "credentialReferenceId": credential_reference_id,
+            "purpose": purpose,
+            "authenticated": bool(observation.authenticated),
+            "principalId": observation.principal_id,
+            "issuer": observation.issuer,
+            "authMethod": observation.auth_method,
+            "observedAtMs": int(observed_at_ms),
+            "expiresAtMs": observation.expires_at_ms,
+            "evidenceRef": observation.evidence_ref,
+        },
+    )
+    return _identity_proof_record_from_event(event)
 
 
 class IdentityProofCoordinator:
@@ -316,12 +312,12 @@ class IdentityProofCoordinator:
         self,
         identities: Any,
         credentials: CredentialReferenceStore,
-        records: IdentityProofRecordStore,
+        events: ServiceEventStore,
         adapter: IdentityProofAdapter | None,
     ) -> None:
         self._identities = identities
         self._credentials = credentials
-        self._records = records
+        self._events = events
         self._adapter = adapter
 
     def set_adapter(self, adapter: IdentityProofAdapter | None) -> None:
@@ -340,8 +336,8 @@ class IdentityProofCoordinator:
             raise ValueError("client_proof_request_id must be non-empty")
         if not isinstance(purpose, str) or not purpose.strip():
             raise ValueError("identity proof purpose must be non-empty")
-        existing = self._records.get_by_client_request(
-            client_proof_request_id.strip(), required=False
+        existing = _identity_proof_record_get_by_client_request(
+            self._events, client_proof_request_id.strip(), required=False
         )
         if existing is not None:
             candidate = (identity_id, credential_reference_id, purpose.strip())
@@ -379,7 +375,8 @@ class IdentityProofCoordinator:
         ):
             raise ValueError("authenticated identity proof requires a principal_id")
         when_ms = _now_ms() if observed_at_ms is None else int(observed_at_ms)
-        return self._records.create(
+        return _identity_proof_record_create(
+            self._events,
             client_proof_request_id=client_proof_request_id.strip(),
             identity_id=identity_id,
             credential_reference_id=credential_reference_id,
@@ -389,10 +386,10 @@ class IdentityProofCoordinator:
         )
 
     def get(self, proof_id: str) -> IdentityProofRecord:
-        return self._records.get(proof_id)
+        return _identity_proof_record_get(self._events, proof_id)
 
     def is_current(self, proof_id: str, *, at_ms: int | None = None) -> bool:
-        proof = self._records.get(proof_id)
+        proof = _identity_proof_record_get(self._events, proof_id)
         when = _now_ms() if at_ms is None else int(at_ms)
         if not proof.authenticated:
             return False
@@ -591,7 +588,7 @@ class AuditEnvelopeProjector:
 
     def __init__(
         self,
-        proofs: IdentityProofRecordStore,
+        proofs: ServiceEventStore,
         bindings: Any,
         delivery_events: ServiceEventStore,
         delegations: Any,
@@ -602,7 +599,7 @@ class AuditEnvelopeProjector:
         self._delegations = delegations
 
     def project_identity_proof(self, proof_id: str) -> dict[str, Any]:
-        proof = self._proofs.get(proof_id)
+        proof = _identity_proof_record_get(self._proofs, proof_id)
         return {
             "kind": "ordivon.agent-service.identity-proof-audit-v1",
             "proofId": proof.id,
@@ -672,11 +669,10 @@ class AgentServiceR10:
         ):
             setattr(self, name, getattr(r9, name))
         self.credential_references = CredentialReferenceStore(self._connection)
-        self.identity_proof_records = IdentityProofRecordStore(self._connection)
         self.identity_proofs = IdentityProofCoordinator(
             self.identities,
             self.credential_references,
-            self.identity_proof_records,
+            self.events,
             identity_proof_adapter,
         )
         self.remote_reconciler = RemoteCorrelationReconciler(
@@ -686,7 +682,7 @@ class AgentServiceR10:
             remote_delivery_observers,
         )
         self.audit = AuditEnvelopeProjector(
-            self.identity_proof_records,
+            self.events,
             self.transport_bindings,
             self.events,
             self.delegations,
@@ -733,6 +729,15 @@ class AgentServiceR10:
                 "legacy remote_delivery_observations schema is unsupported; "
                 "perform explicit destructive migration before opening this revision"
             )
+        legacy_identity_proof_records = connection.execute(
+            "SELECT 1 FROM sqlite_master "
+            "WHERE type = 'table' AND name = 'identity_proof_records'"
+        ).fetchone()
+        if legacy_identity_proof_records is not None:
+            raise RuntimeError(
+                "legacy identity_proof_records schema is unsupported; "
+                "perform explicit destructive migration before opening this revision"
+            )
         connection.executescript(
             """
             CREATE TABLE IF NOT EXISTS credential_references (
@@ -743,22 +748,6 @@ class AgentServiceR10:
                 issuer TEXT NOT NULL,
                 resource TEXT NOT NULL,
                 requested_scopes_json TEXT NOT NULL,
-                created_at_ns INTEGER NOT NULL
-            );
-
-            CREATE TABLE IF NOT EXISTS identity_proof_records (
-                id TEXT PRIMARY KEY,
-                client_proof_request_id TEXT NOT NULL UNIQUE,
-                identity_id TEXT NOT NULL REFERENCES agent_identities(id),
-                credential_reference_id TEXT NOT NULL REFERENCES credential_references(id),
-                purpose TEXT NOT NULL,
-                authenticated INTEGER NOT NULL CHECK(authenticated IN (0, 1)),
-                principal_id TEXT,
-                issuer TEXT NOT NULL,
-                auth_method TEXT NOT NULL,
-                observed_at_ms INTEGER NOT NULL,
-                expires_at_ms INTEGER,
-                evidence_ref TEXT NOT NULL,
                 created_at_ns INTEGER NOT NULL
             );
 
