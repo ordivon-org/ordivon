@@ -3,6 +3,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any
 
 from agent_service.delivery import DeliveryObservation, PolicyObservation
 from agent_service import open_agent_service

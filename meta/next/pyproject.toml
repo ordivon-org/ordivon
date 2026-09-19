@@ -15,6 +15,9 @@ test = [
 architecture = [
   "import-linter",
 ]
+quality = [
+  "ruff",
+]
 reasoning = [
   "ortools",
   "pyshacl",
@@ -27,6 +30,12 @@ reasoning = [
 package = false
 default-groups = ["test"]
 required-version = "==0.12.3"
+
+[tool.ruff]
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E9", "F63", "F7", "F82"]
 
 [tool.importlinter]
 root_package = "agent_service"
