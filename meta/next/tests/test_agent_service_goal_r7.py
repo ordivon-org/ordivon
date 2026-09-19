@@ -91,7 +91,7 @@ class AgentServiceGoalR7Tests(unittest.TestCase):
     def _ready_revision(self, service: AgentServiceR7) -> str:
         definition = service.definitions.create("worker")
         revision = service.revisions.create(definition.id, {"harness": "test"})
-        instance = service.birth.birth("birth-r7-worker", revision.id)
+        instance = service.birth("birth-r7-worker", revision.id)
         service.reconciler.reconcile(instance.id)
         return revision.id
 
@@ -324,7 +324,7 @@ class AgentServiceGoalGraphFreezeTests(unittest.TestCase):
         self.addCleanup(service.close)
         definition = service.definitions.create("worker-freeze")
         revision = service.revisions.create(definition.id, {"harness": "test"})
-        instance = service.birth.birth("birth-r7-freeze", revision.id)
+        instance = service.birth("birth-r7-freeze", revision.id)
         service.reconciler.reconcile(instance.id)
         return service, revision.id
 
@@ -383,7 +383,7 @@ class AgentServiceBoardCatchupTests(unittest.TestCase):
             self.addCleanup(service.close)
             definition = service.definitions.create("worker-board-catchup")
             revision = service.revisions.create(definition.id, {"harness":"test"})
-            instance = service.birth.birth("birth-r7-board-catchup", revision.id)
+            instance = service.birth("birth-r7-board-catchup", revision.id)
             service.reconciler.reconcile(instance.id)
             goal = service.goals.create("catch up")
             task = service.tasks.create(
@@ -425,7 +425,7 @@ class AgentServiceGoalLegoDecompositionTests(unittest.TestCase):
             self.addCleanup(service.close)
             definition = service.definitions.create("worker-lego")
             revision = service.revisions.create(definition.id, {"harness":"test"})
-            instance = service.birth.birth("birth-r7-lego", revision.id)
+            instance = service.birth("birth-r7-lego", revision.id)
             service.reconciler.reconcile(instance.id)
             goal = service.goals.create("lego")
             a = service.tasks.create(

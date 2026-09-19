@@ -115,7 +115,6 @@
       "AssignmentPlanner",
       "AssignmentStore",
       "AuditEnvelopeProjector",
-      "BirthCoordinator",
       "BoardAdapter",
       "BoardMessageRef",
       "BoardProjectionReceipt",
@@ -276,6 +275,7 @@
   "retiredLegacyTypes": [
     "AgentInterfaceAdvertisement",
     "AgentInterfaceAdvertisementStore",
+    "BirthCoordinator",
     "BoardProjectionReceiptStore",
     "CapabilityAdvertisement",
     "CapabilityAdvertisementStore",

@@ -135,7 +135,7 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
             "routes": routes or [],
         })
         identity = service.identities.create(definition.id, stable_name=name, description=name)
-        instance = service.birth.birth(f"birth:{name}:r9", revision.id)
+        instance = service.birth(f"birth:{name}:r9", revision.id)
         service.reconciler.reconcile(instance.id)
         return revision, identity, instance
 

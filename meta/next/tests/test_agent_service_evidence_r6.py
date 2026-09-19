@@ -82,7 +82,7 @@ class AgentServiceEvidenceR6Tests(unittest.TestCase):
     def _ready_agent(self, service: AgentServiceR6):
         definition = service.definitions.create("worker")
         revision = service.revisions.create(definition.id, {"harness": "test"})
-        instance = service.birth.birth("birth-r6-worker", revision.id)
+        instance = service.birth("birth-r6-worker", revision.id)
         service.reconciler.reconcile(instance.id)
         return revision, instance
 
