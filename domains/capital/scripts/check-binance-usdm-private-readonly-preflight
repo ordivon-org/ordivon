@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+py=/root/external/binance-sdk-usdm/17.4.0/.venv/bin/python
+
+"$py" - <<'PY'
+import importlib.metadata as m
+from binance_common.configuration import ConfigurationRestAPI
+from binance_sdk_wallet.wallet import Wallet
+from binance_sdk_derivatives_trading_usds_futures.derivatives_trading_usds_futures import DerivativesTradingUsdsFutures
+
+assert m.version('binance-sdk-wallet') == '13.4.0'
+assert m.version('binance-sdk-derivatives-trading-usds-futures') == '17.4.0'
+
+wallet=Wallet(config_rest_api=ConfigurationRestAPI(api_key='',api_secret='')).rest_api
+usdm=DerivativesTradingUsdsFutures(config_rest_api=ConfigurationRestAPI(api_key='',api_secret='')).rest_api
+
+assert hasattr(wallet,'get_api_key_permission')
+required={
+'account_information_v3','futures_account_balance_v3','futures_account_configuration',
+'get_current_multi_assets_mode','get_current_position_mode','notional_and_leverage_brackets',
+'position_adl_quantile_estimation','position_information_v3','current_all_open_orders','account_trade_list'
+}
+missing=sorted(required-set(dir(usdm)))
+if missing:
+    raise SystemExit(f'missing USD-M read methods: {missing}')
+print('PASS official Binance Wallet permission + USD-M private GET surfaces; credentialsLoaded=false networkCalled=false')
+PY
+
+python3 - "$repo/src/market_capital/binance_usdm_private_capture.py" <<'PY'
+from pathlib import Path
+import sys
+s=Path(sys.argv[1]).read_text()
+required=(
+ 'wallet.get_api_key_permission',
+ 'usdm.account_information_v3',
+ 'usdm.futures_account_balance_v3',
+ 'usdm.futures_account_configuration',
+ 'usdm.get_current_multi_assets_mode',
+ 'usdm.get_current_position_mode',
+ 'usdm.notional_and_leverage_brackets',
+ 'usdm.position_adl_quantile_estimation',
+ 'usdm.position_information_v3',
+ 'usdm.current_all_open_orders',
+ 'usdm.account_trade_list',
+)
+for token in required:
+    assert token in s, token
+forbidden=(
+ '.new_order(',
+ '.cancel_',
+ '.modify_',
+ '.change_initial_leverage(',
+ '.change_margin_type(',
+ '.change_position_mode(',
+ '.change_multi_assets_mode(',
+ '/root/.config/ordivon/secrets/binance',
+ 'stock/contract',
+)
+for token in forbidden:
+    assert token not in s, token
+assert '/run/ordivon/inputs/binance-observer' in s
+print('PASS private observer source is GET-only and bound-input-only')
+PY

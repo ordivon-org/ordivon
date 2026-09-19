@@ -242,3 +242,161 @@ def _normalize_okx_fills(rows: Iterable[Any]) -> list[dict[str, Any]]:
             'venueTimestampMs': r.get('fillTime') or r.get('ts'),
         })
     return out
+
+
+def _sdk_data(call: Any) -> Any:
+    if not isinstance(call, dict) or call.get('ok') is not True:
+        return None
+    return call.get('data')
+
+
+def _as_rows(value: Any) -> list[dict[str, Any]]:
+    if isinstance(value, list):
+        return [r for r in value if isinstance(r, dict)]
+    if isinstance(value, dict):
+        if isinstance(value.get('actual_instance'), list):
+            return [r for r in value['actual_instance'] if isinstance(r, dict)]
+        return [value]
+    return []
+
+
+def normalize_binance_usdm_observer(envelope: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(envelope, dict):
+        raise PrivateRealityError('Binance USD-M observer envelope must be an object')
+    if envelope.get('externalFinancialWriteAttempted') is not False:
+        raise PrivateRealityError('Binance USD-M observer must prove externalFinancialWriteAttempted=false')
+
+    gate = envelope.get('permissionGate') or {}
+    permission_safe = gate.get('safe') is True
+    calls = envelope.get('calls') or {}
+
+    account = _sdk_data(calls.get('account_information_v3'))
+    balance_rows = _as_rows(_sdk_data(calls.get('futures_account_balance_v3')))
+    config = _sdk_data(calls.get('futures_account_configuration'))
+    multi_assets = _sdk_data(calls.get('get_current_multi_assets_mode'))
+    position_mode = _sdk_data(calls.get('get_current_position_mode'))
+    bracket_data = _sdk_data(calls.get('notional_and_leverage_brackets'))
+    adl_data = _sdk_data(calls.get('position_adl_quantile_estimation'))
+    position_rows = _as_rows(_sdk_data(calls.get('position_information_v3')))
+    order_rows = _as_rows(_sdk_data(calls.get('current_all_open_orders')))
+    trade_rows = _as_rows(_sdk_data(calls.get('account_trade_list')))
+
+    balances: list[dict[str, Any]] = []
+    for row in balance_rows:
+        asset = str(row.get('asset') or '').strip()
+        if not asset:
+            continue
+        total = _d(row.get('balance', '0'), f'{asset}.balance')
+        available = _d(row.get('available_balance', '0'), f'{asset}.available_balance')
+        locked = format(Decimal(total) - Decimal(available), 'f')
+        balances.append({
+            'asset': asset,
+            'available': available,
+            'locked': locked,
+            'total': total,
+            'crossWalletBalance': _d(row.get('cross_wallet_balance', '0'), f'{asset}.cross_wallet_balance'),
+            'crossUnPnl': _d(row.get('cross_un_pnl', '0'), f'{asset}.cross_un_pnl'),
+            'marginAvailable': row.get('margin_available'),
+            'venueTimestampMs': row.get('update_time'),
+        })
+
+    positions: list[dict[str, Any]] = []
+    for row in position_rows:
+        symbol = str(row.get('symbol') or '').strip()
+        if not symbol:
+            continue
+        qty = _d(row.get('position_amt', '0'), f'{symbol}.position_amt')
+        positions.append({
+            'instrumentId': symbol,
+            'positionSide': row.get('position_side'),
+            'quantity': qty,
+            'entryPx': _d(row.get('entry_price', '0'), f'{symbol}.entry_price'),
+            'breakEvenPx': _d(row.get('break_even_price', '0'), f'{symbol}.break_even_price'),
+            'markPx': _d(row.get('mark_price', '0'), f'{symbol}.mark_price'),
+            'unrealizedPnl': _d(row.get('un_realized_profit', '0'), f'{symbol}.un_realized_profit'),
+            'liquidationPx': _d(row.get('liquidation_price', '0'), f'{symbol}.liquidation_price'),
+            'notional': _d(row.get('notional', '0'), f'{symbol}.notional'),
+            'marginAsset': row.get('margin_asset'),
+            'initialMargin': _d(row.get('initial_margin', '0'), f'{symbol}.initial_margin'),
+            'maintenanceMargin': _d(row.get('maint_margin', '0'), f'{symbol}.maint_margin'),
+            'positionInitialMargin': _d(row.get('position_initial_margin', '0'), f'{symbol}.position_initial_margin'),
+            'openOrderInitialMargin': _d(row.get('open_order_initial_margin', '0'), f'{symbol}.open_order_initial_margin'),
+            'adl': row.get('adl'),
+            'venueTimestampMs': row.get('update_time'),
+        })
+
+    open_orders = []
+    for row in order_rows:
+        open_orders.append({
+            'venueOrderId': str(row.get('order_id')) if row.get('order_id') is not None else None,
+            'clientOrderId': row.get('client_order_id'),
+            'instrumentId': row.get('symbol'),
+            'side': row.get('side'),
+            'positionSide': row.get('position_side'),
+            'orderType': row.get('type'),
+            'timeInForce': row.get('time_in_force'),
+            'status': row.get('status'),
+            'reduceOnly': row.get('reduce_only'),
+            'closePosition': row.get('close_position'),
+            'originalQty': _d(row.get('orig_qty', '0'), 'binance_usdm.orig_qty'),
+            'executedQty': _d(row.get('executed_qty', '0'), 'binance_usdm.executed_qty'),
+            'price': _d(row.get('price', '0'), 'binance_usdm.price'),
+            'venueTimestampMs': row.get('update_time') or row.get('time'),
+        })
+
+    fills = []
+    for row in trade_rows:
+        fills.append({
+            'venueTradeId': str(row.get('id')) if row.get('id') is not None else None,
+            'venueOrderId': str(row.get('order_id')) if row.get('order_id') is not None else None,
+            'instrumentId': row.get('symbol'),
+            'side': row.get('side'),
+            'positionSide': row.get('position_side'),
+            'qty': _d(row.get('qty', '0'), 'binance_usdm.trade.qty'),
+            'price': _d(row.get('price', '0'), 'binance_usdm.trade.price'),
+            'commission': _d(row.get('commission', '0'), 'binance_usdm.trade.commission'),
+            'commissionAsset': row.get('commission_asset'),
+            'realizedPnl': _d(row.get('realized_pnl', '0'), 'binance_usdm.trade.realized_pnl'),
+            'venueTimestampMs': row.get('time'),
+        })
+
+    return {
+        'schemaVersion': 1,
+        'kind': 'ordivon.market-capital.private-reality-snapshot',
+        'venue': 'BINANCE',
+        'product': 'USDⓈ-M_FUTURES',
+        'sourceAuthority': 'BINANCE_USDM_USER_DATA_GET_ONLY',
+        'sourceStatus': envelope.get('standing'),
+        'permissionStanding': 'READ_ONLY_VERIFIED' if permission_safe else 'NOT_VERIFIED',
+        'balances': sorted(balances, key=lambda x: x['asset']),
+        'positions': positions,
+        'openOrders': open_orders,
+        'orderHistory': [],
+        'fills': fills,
+        'coverage': {
+            'accountComplete': isinstance(account, dict),
+            'balancesComplete': _sdk_data(calls.get('futures_account_balance_v3')) is not None,
+            'positionsComplete': _sdk_data(calls.get('position_information_v3')) is not None,
+            'openOrdersComplete': _sdk_data(calls.get('current_all_open_orders')) is not None,
+            'fillsComplete': _sdk_data(calls.get('account_trade_list')) is not None,
+            'leverageBracketComplete': bracket_data is not None,
+            'adlComplete': adl_data is not None,
+        },
+        'accountRisk': {
+            'totalInitialMargin': _d((account or {}).get('total_initial_margin', '0'), 'account.total_initial_margin') if isinstance(account, dict) else None,
+            'totalMaintenanceMargin': _d((account or {}).get('total_maint_margin', '0'), 'account.total_maint_margin') if isinstance(account, dict) else None,
+            'totalWalletBalance': _d((account or {}).get('total_wallet_balance', '0'), 'account.total_wallet_balance') if isinstance(account, dict) else None,
+            'totalUnrealizedPnl': _d((account or {}).get('total_unrealized_profit', '0'), 'account.total_unrealized_profit') if isinstance(account, dict) else None,
+            'totalMarginBalance': _d((account or {}).get('total_margin_balance', '0'), 'account.total_margin_balance') if isinstance(account, dict) else None,
+            'availableBalance': _d((account or {}).get('available_balance', '0'), 'account.available_balance') if isinstance(account, dict) else None,
+        },
+        'accountConfiguration': config,
+        'multiAssetsMode': multi_assets,
+        'positionMode': position_mode,
+        'leverageBracket': bracket_data,
+        'positionAdlQuantile': adl_data,
+        'tradFiAgreementStanding': 'UNKNOWN_NO_READ_ONLY_STATUS_API',
+        'tradeEligibilityStanding': 'NOT_INFERRED_FROM_READ_SURFACE',
+        'executionAdmitted': False,
+        'externalFinancialWriteAttempted': False,
+    }

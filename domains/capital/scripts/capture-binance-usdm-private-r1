@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+py=/root/external/binance-sdk-usdm/17.4.0/.venv/bin/python
+export PYTHONPATH="$repo/src"
+exec "$py" -m market_capital.binance_usdm_private_capture "$@"

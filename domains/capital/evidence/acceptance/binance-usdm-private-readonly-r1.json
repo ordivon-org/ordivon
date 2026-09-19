@@ -1,0 +1,40 @@
+{
+  "baselineHead": "17d8a7a963e3e227b86f2d3f622a50fc6f13be5d",
+  "date": "2026-09-19",
+  "executionAdmitted": false,
+  "externalFinancialWriteAttempted": false,
+  "kind": "ordivon.acceptance-evidence",
+  "matureOwners": {
+    "credentialCarrier": "Runtime digest-bound InputAuthority",
+    "futuresPrivateTruth": "Binance USD\u24c8-M USER_DATA GET via binance-sdk-derivatives-trading-usds-futures 17.4.0",
+    "permissionTruth": "Binance Wallet GET /sapi/v1/account/apiRestrictions via binance-sdk-wallet 13.4.0",
+    "usdmNetwork": "Network v2 finance-binance-usdm -> fapi.binance.com",
+    "walletNetwork": "Network v2 finance-binance-wallet -> api.binance.com"
+  },
+  "prepared": {
+    "permissionFirstGate": true,
+    "privateCaptureRunner": true,
+    "runtimeAuthorityConfigPrepared": true,
+    "summaryOnlyOutput": true,
+    "usdmNormalizer": true,
+    "walletNetworkAuthorityActive": true,
+    "walletPublicConsequencePassed": true
+  },
+  "privatePermissionQueried": false,
+  "privateUsdMRealityQueried": false,
+  "reason": "Shared Runtime has unrelated active Jobs; do not force a global restart solely to activate a new credential authority.",
+  "runtimeAuthorityActive": false,
+  "schemaVersion": 1,
+  "standing": "PREPARED_PENDING_RUNTIME_AUTHORITY_ACTIVATION",
+  "subject": "binance-usdm-private-readonly-r1",
+  "tradFiAgreementStanding": "UNKNOWN_NO_READ_ONLY_STATUS_API",
+  "verification": {
+    "canonicalSuite": "196 passed",
+    "focusedTests": "28 passed",
+    "gitDiffCheck": "PASS",
+    "officialUsdmSdk": "17.4.0",
+    "officialWalletSdk": "13.4.0",
+    "privateObserverWriteCallScan": "PASS_ZERO",
+    "walletPublicConsequence": "PASS through Network v2 localhost:19290"
+  }
+}

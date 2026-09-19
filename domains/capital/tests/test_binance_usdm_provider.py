@@ -186,3 +186,37 @@ def test_public_capture_runner_cannot_load_private_credentials_or_trade():
     assert "new_order" not in source
     assert "private.pem" not in source
     assert "binance/observer" not in source
+
+
+def test_wallet_sdk_and_wallet_network_authority_are_registered():
+    deps = json.loads((ROOT / "config/capability_dependencies.json").read_text())
+    wallet = deps["capabilities"]["binanceWallet"]
+    assert wallet["provider"] == "Binance Official Wallet Python SDK"
+    assert wallet["version"] == "13.4.0"
+
+    net = json.loads((ROOT / "config/network_v2_public_data.json").read_text())
+    authority = net["authorities"]["binanceWalletRest"]
+    assert authority["host"] == "api.binance.com"
+    assert authority["proxy"] == "http://127.0.0.1:19290"
+    assert authority["profile"] == "finance-binance-wallet"
+
+
+def test_private_provider_requires_permission_truth_before_usdm_reads():
+    cfg = _config()
+    private = cfg["privateReadOnlyTruth"]
+    assert "apiRestrictions" in private["permissionTruthOwner"]
+    assert "enableReading=true" in private["permissionGate"]
+    assert private["tradFiAgreementStanding"] == "UNKNOWN_NO_READ_ONLY_STATUS_API"
+    assert private["executionAdmitted"] is False
+
+
+def test_private_readonly_preflight_is_credential_free():
+    p = subprocess.run(
+        [str(ROOT / "scripts/check-binance-usdm-private-readonly-preflight")],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    assert "credentialsLoaded=false" in p.stdout
+    assert "GET-only" in p.stdout
