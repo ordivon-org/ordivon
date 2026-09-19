@@ -1,0 +1,11 @@
+{
+  "authorityId": "erpnext-budget-provider",
+  "basis": "official-provider-documentation-check",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current",
+  "note": "Current ERPNext documentation supports submitted budgets, warn/stop controls, revisions and variance reporting against submitted accounting transactions.",
+  "observedDate": "2026-09-19",
+  "officialSource": "https://docs.frappe.io/erpnext/budget",
+  "schemaVersion": 1,
+  "versionObserved": null
+}

@@ -1,0 +1,54 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "Frappe Helpdesk"
+    ],
+    "domains": [
+      "business",
+      "customer-support",
+      "enterprise",
+      "service"
+    ],
+    "topics": [
+      "customer-support",
+      "helpdesk",
+      "knowledge-base",
+      "sla",
+      "ticketing"
+    ]
+  },
+  "id": "frappe-helpdesk-provider",
+  "identity": {
+    "authorityKind": "provider-authority",
+    "identityMode": "rolling-source",
+    "issuer": {
+      "id": "frappe",
+      "name": "Frappe"
+    },
+    "officialSource": "https://docs.frappe.io/helpdesk/your-first-steps-with-frappe-helpdesk",
+    "publicationDate": null,
+    "title": "Frappe Helpdesk provider documentation",
+    "versionLabel": null
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-19",
+    "registrationBasis": [
+      "commercial-practice-externalization-r3"
+    ]
+  },
+  "relations": {
+    "related": [
+      "iso-10002-2018",
+      "iso-iec-20000-1-2018-amd1-2024"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

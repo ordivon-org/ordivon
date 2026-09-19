@@ -143,6 +143,10 @@ No arrow above implies that all providers are activated for every Work.
 | supplier/RFQ/purchase order/purchase invoice facts | ERPNext Buying or another natural purchasing provider | first real procurement event | custom procurement database |
 | recruitment process | ISO 30405:2023 + applicable law/professional provider; Frappe HR only if workflow scale justifies it | first real hire | Ordivon hiring methodology |
 | customer satisfaction / complaints | ISO 10004 / ISO 10002 + natural CRM/support/business records | real customer feedback/complaint makes the process useful | generic Customer Success status engine |
+| contract lifecycle | WorldCC Contract Management Standard + applicable law/legal counsel + actual bilateral contract/SOW | first real customer contract or material supplier contract | Ordivon Contract Lifecycle or legal-effect calculator |
+| operating budget / variance | ERPNext Budget / Budget Variance + real ledger/project facts | approved spending plan exists | Ordivon FP&A database |
+| payroll operations | applicable law + qualified/local payroll/accounting provider; Frappe HR when useful | first real employee/payroll obligation | custom payroll engine |
+| customer support tickets/SLA/KB | Frappe Helpdesk when support volume/coordination warrants it; ISO/IEC 20000-1 only when an actual service-management system is in scope | repeated support work needs durable shared state | Ordivon Ticket/SupportState/SLA engine |
 | minimal durable work/continuity state | Host v2 | current local need; remain bounded | universal semantic/execution owner |
 | heavyweight collaborative work items/boards/cycles/modules | Plane, or OpenProject if PMO/time/cost governance dominates | measured coordination complexity exceeds Host v2 | domain truth |
 | prescriptive business process | BPMN/Flowable | stable repeatable organizational process benefits from executable model | universal workflow graph |
@@ -301,7 +305,7 @@ Sell controllable deliverables/acceptance conditions rather than guaranteeing th
 
 ### Commercial practice ownership
 
-Commercial methods are selected by stage and claim; Ordivon does not own a generic GTM/Sales/Pricing/Customer-Success/Hiring framework.
+Commercial methods are selected by stage and claim; Ordivon does not own a generic GTM/Sales/Pricing/Customer-Success/Contracting/FP&A/Payroll/Support/Hiring framework.
 
 | Need | Mature owner / reference | Evidence that actually matters |
 | --- | --- | --- |
@@ -312,6 +316,10 @@ Commercial methods are selected by stage and claim; Ordivon does not own a gener
 | customer satisfaction | ISO 10004:2018 where measurement is useful | customer responses plus retention/renewal/referral/usage context |
 | complaints | ISO 10002:2018 when a complaint actually occurs | complaint, resolution, corrective action and customer outcome |
 | recruitment | ISO 30405:2023 + applicable employment law/providers | actual candidate/employment process and signed employment relationship |
+| customer contracting | WorldCC Contract Management Standard when lifecycle structure helps + applicable law/legal counsel + actual accepted terms | signed/accepted contract/SOW/order, amendments, performance and closeout evidence |
+| operating finance / budget | ERPNext Budget/Variance + ledger/bank/project facts; small task-local forecast until recurrence justifies FP&A tooling | approved budget, actual/committed spend, cash, receivables/payables, contribution/runway assumptions |
+| payroll | applicable law + qualified/local payroll/accounting provider; Frappe HR only as an operational record/process provider | employment/payroll obligation, salary/payment records, statutory filing/provider evidence and reconciliation |
+| support/helpdesk | direct communication while tiny; Frappe Helpdesk when durable ticket/SLA/portal/KB state helps; ISO/IEC 20000-1 only for an applicable SMS | ticket/customer interaction, SLA evidence where agreed, resolution and customer outcome |
 | procurement | provider-native buying records; ISO 20400 where sustainable procurement is material; ISO 37500 for material outsourcing | supplier quote/order/invoice/delivery/performance and contract evidence |
 
 Do not select a mature method merely because its name matches the topic. A SaaS pricing guide is not the default for a one-off technical service; sustainable-procurement guidance is not a mandatory ceremony for buying a low-risk SaaS subscription; recruitment guidance is dormant until a real hire exists.
@@ -327,6 +335,10 @@ A provider is activated only when the work demonstrates a responsibility that it
 - **Flowable** — image is materialized and engines boot-smoked, but no current BPMN/CMMN/DMN workload has demonstrated execution value.
 - **Temporal** — not locally active; no current Work requires durable timers/waits/crash-proof Workflow history strongly enough to justify operating it.
 - **customer complaint/satisfaction processes** — no real external customer event in this R1 dogfood.
+- **Frappe Helpdesk** — no support volume yet that requires durable shared ticket/SLA/portal state.
+- **Frappe HR payroll** — no real employee/payroll obligation yet.
+- **dedicated FP&A provider** — current stage does not justify a planning suite beyond provider-native accounting/budget facts plus a small explicit forecast when needed.
+- **contract-management software** — no contract volume/complexity yet that requires a CLM platform; use the professional standard, real documents and legal review first.
 - **formal audit programme** — no certification/customer/regulatory audit objective is asserted for this R1 dogfood.
 
 Dormant is not deficient.

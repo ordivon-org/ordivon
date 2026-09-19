@@ -614,6 +614,35 @@
     },
     {
       "aliases": [
+        "ERPNext Budget",
+        "ERPNext Budget Variance"
+      ],
+      "authorityKind": "provider-authority",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "business",
+        "enterprise",
+        "finance"
+      ],
+      "id": "erpnext-budget-provider",
+      "identityMode": "rolling-source",
+      "issuer": "Frappe",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:b3e2e4e090fbf16f4c5453456c43a3d05e5c736afdcaeb35188febbd7a7c70cc",
+      "recordDigest": "sha256:30463851d9e55673d444a9b3c01500982d94371f48428b91b9d153dbeb435840",
+      "title": "ERPNext Budget provider documentation",
+      "topics": [
+        "budget",
+        "budget-control",
+        "budget-variance",
+        "budgeting",
+        "financial-planning",
+        "project-budget"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
         "ERPNext CRM"
       ],
       "authorityKind": "provider-authority",
@@ -717,6 +746,62 @@
         "deal-pipeline",
         "lead-management",
         "sales"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "Frappe Helpdesk"
+      ],
+      "authorityKind": "provider-authority",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "business",
+        "customer-support",
+        "enterprise",
+        "service"
+      ],
+      "id": "frappe-helpdesk-provider",
+      "identityMode": "rolling-source",
+      "issuer": "Frappe",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:424a9407ab013f323b126e054dc6ab4755eaeb17cb7f8058cc64f4e8de4f20af",
+      "recordDigest": "sha256:7da5bc64e46f236eb1e094784ca0e178ed05664b0a1d0ac100f37174e738e6f4",
+      "title": "Frappe Helpdesk provider documentation",
+      "topics": [
+        "customer-support",
+        "helpdesk",
+        "knowledge-base",
+        "sla",
+        "ticketing"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "Frappe HR Payroll",
+        "Frappe Payroll"
+      ],
+      "authorityKind": "provider-authority",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "business",
+        "enterprise",
+        "human-resources"
+      ],
+      "id": "frappe-hr-payroll-provider",
+      "identityMode": "rolling-source",
+      "issuer": "Frappe",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:c721ad45a7c06ca32e4898d696ebb8dd5826956d2a87c42897ae5ce6c43b7eda",
+      "recordDigest": "sha256:4a61db4d7a71c7072dcd9d6e8d67dfbc204737b8924044de4495b0882537b3f3",
+      "title": "Frappe HR Payroll provider documentation",
+      "topics": [
+        "employee-records",
+        "payroll",
+        "payroll-entry",
+        "salary",
+        "salary-slip"
       ],
       "versionLabel": null
     },
@@ -1619,7 +1704,7 @@
         "service management system"
       ],
       "authorityKind": "international-standard",
-      "currentnessChecked": "2026-09-14",
+      "currentnessChecked": "2026-09-19",
       "domains": [
         "enterprise",
         "management",
@@ -1630,7 +1715,7 @@
       "identityMode": "versioned",
       "issuer": "ISO/IEC",
       "lifecycleStatus": "published-confirmed",
-      "observationDigest": "sha256:8afe623afa0a00bb7c8b339ea7f28830fa32185ffb378ca223886b12a6307a7c",
+      "observationDigest": "sha256:9e8059b7746d9992e370db968ba93478eb521feb5dae448bca9cd0ac05d07a11",
       "recordDigest": "sha256:91617ebaf927354e2abd09b9c12d22e9df0eb58a1731b06471f8becf6f5c6cb7",
       "title": "ISO/IEC 20000-1:2018 with Amendment 1:2024 — Service management system requirements",
       "topics": [
@@ -3452,6 +3537,36 @@
     },
     {
       "aliases": [
+        "CMS Fourth Edition",
+        "Contract Management Standard",
+        "WorldCC Contract Management Standard"
+      ],
+      "authorityKind": "professional-standard",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "business",
+        "commercialization",
+        "contract-management"
+      ],
+      "id": "worldcc-contract-management-standard-4e",
+      "identityMode": "versioned",
+      "issuer": "Commerce & Contract Management Institute / World Commerce & Contracting",
+      "lifecycleStatus": "current-fourth-edition",
+      "observationDigest": "sha256:4f8d46362f8538aa1c803b5246f543701c8d713c9420e56c82f106ac46ea083e",
+      "recordDigest": "sha256:59f6743a7088ba75c72202a4f7cfde4664e347645e82a05e98529a95aa1bfd9c",
+      "title": "Contract Management Standard — Fourth Edition",
+      "topics": [
+        "award",
+        "contract-lifecycle",
+        "contract-management",
+        "contracting",
+        "post-award",
+        "pre-award"
+      ],
+      "versionLabel": "Fourth Edition"
+    },
+    {
+      "aliases": [
         "XAG",
         "Xbox Accessibility Guidelines"
       ],
@@ -3560,7 +3675,7 @@
     }
   ],
   "kind": "ordivon.external-authority-discovery-index",
-  "recordCount": 129,
-  "recordsDigest": "sha256:08426f4714cf0676efba53ac446c697d518cd2b68618748a8e1a5be6256711c9",
+  "recordCount": 133,
+  "recordsDigest": "sha256:971154e34e1f89f3d5fc02866a3fab7e99492a13189ea55565758c0f59d5873c",
   "schemaVersion": 1
 }

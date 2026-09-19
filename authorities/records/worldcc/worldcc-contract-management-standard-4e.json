@@ -1,0 +1,53 @@
+{
+  "access": {
+    "fullText": "member-or-public-download",
+    "metadata": "public",
+    "note": "Voluntary professional standard; legal enforceability remains jurisdiction- and contract-specific."
+  },
+  "discovery": {
+    "aliases": [
+      "WorldCC Contract Management Standard",
+      "Contract Management Standard",
+      "CMS Fourth Edition"
+    ],
+    "domains": [
+      "business",
+      "commercialization",
+      "contract-management"
+    ],
+    "topics": [
+      "contract-management",
+      "contracting",
+      "contract-lifecycle",
+      "pre-award",
+      "award",
+      "post-award"
+    ]
+  },
+  "id": "worldcc-contract-management-standard-4e",
+  "identity": {
+    "authorityKind": "professional-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "ccm-institute-worldcc",
+      "name": "Commerce & Contract Management Institute / World Commerce & Contracting"
+    },
+    "officialSource": "https://www.worldcc.com/knowledge-insights/contract-management-standard.html",
+    "publicationDate": null,
+    "title": "Contract Management Standard — Fourth Edition",
+    "versionLabel": "Fourth Edition"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-19",
+    "registrationBasis": [
+      "commercial-practice-externalization-r3"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

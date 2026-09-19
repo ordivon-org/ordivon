@@ -1,0 +1,11 @@
+{
+  "authorityId": "frappe-hr-payroll-provider",
+  "basis": "official-provider-documentation-check",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current",
+  "note": "Current Frappe HR documentation provides payroll periods, salary structures/components, assignments, salary slips and payroll-entry workflows. Jurisdictional payroll rules remain external.",
+  "observedDate": "2026-09-19",
+  "officialSource": "https://docs.frappe.io/hr/payroll-setup",
+  "schemaVersion": 1,
+  "versionObserved": null
+}

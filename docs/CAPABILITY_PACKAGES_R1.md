@@ -441,9 +441,12 @@ The next real package/download/repository/network failure becomes the acceptance
 - customer and CRM records;
 - opportunity and sales pipeline;
 - sales/invoice lifecycle;
+- customer contract/SOW lifecycle and commercial commitments;
 - accounting documents and general-ledger effects;
+- operating budgets, variance and basic project economics;
 - business projects;
 - quality records;
+- customer support/helpdesk state only when real support load requires durable shared records;
 - inventory/procurement/payments/tax/payroll only when a real company workload actually requires them;
 - API/integration edges to other mature business providers.
 
@@ -456,8 +459,12 @@ Provider ownership is responsibility-specific rather than permanently assigned t
 - ERPNext/Frappe remains the accepted local owner for transactional selling/accounting/project/quality facts already proven;
 - current Frappe documentation schedules ERPNext's built-in CRM workspace for removal in version 17, so new CRM pipeline work should evaluate Frappe CRM rather than accumulating compatibility debt in the old workspace;
 - ERPNext Buying is the native candidate for supplier/RFQ/PO/purchase-invoice facts when procurement becomes real;
+- WorldCC / CCM Institute Contract Management Standard is the professional lifecycle reference when contract-management structure is useful; legal effect and drafting risk remain with the actual agreement, applicable law and qualified counsel;
+- ERPNext Budget/Budget Variance and accounting/project reports are the native first owner for approved budgets and plan-vs-actual evidence; they are not a complete FP&A or cash-forecast methodology;
+- Frappe Helpdesk is the candidate support system when real ticket/SLA/customer-portal/knowledge-base coordination appears; ISO/IEC 20000-1 applies only when a genuine service-management system is in scope;
 - ISO 10002/10004 provide customer complaint/satisfaction process guidance when actual customer evidence exists;
 - ISO 30405:2023 provides recruitment guidance when a real hire exists;
+- Frappe HR can own employee/payroll operational records when useful, while statutory payroll/tax/social-insurance correctness stays with applicable law and qualified/local providers;
 - ISO 20400:2017 applies when sustainable-procurement concerns are material, while ISO 37500 applies to material outsourcing;
 - statutory, tax, banking, payment, payroll and jurisdiction-specific behavior stays in the applicable regulatory/professional/provider system.
 
@@ -467,7 +474,7 @@ Provider ownership is responsibility-specific rather than permanently assigned t
 - MariaDB `11.8` and Redis `8.6` as ERPNext-owned storage/runtime dependencies;
 - rootless Podman/Quadlet + user systemd as service-lifecycle owner;
 - Frappe native document/API lifecycle for existing ERP business records;
-- no newly activated CRM, HR or procurement service merely to complete the architecture;
+- no newly activated CRM, HR/payroll, procurement, helpdesk, CLM or dedicated FP&A service merely to complete the architecture;
 - n8n as a bounded integration edge;
 - Runtime only for mechanical execution/evidence when operating the local service.
 
@@ -485,7 +492,7 @@ This remains valid historical evidence for that ERPNext v16 slice. It is not evi
 
 ### First real business workload
 
-Use the first genuine company/customer/accounting event. For a first real sales pipeline, compare the current Frappe CRM provider against the actual founder-led workflow before activation; keep accepted transactional selling/accounting records in ERPNext where native. Configure only the minimum provider-native records needed, use dedicated least-privilege integration identities for authenticated automation, and verify the resulting provider-native state/effect. Do not add custom Ordivon business semantics unless repeated mature-provider substitution failure is measured.
+Use the first genuine company/customer/accounting event. For a first real sales pipeline, compare the current Frappe CRM provider against the actual founder-led workflow before activation; keep accepted transactional selling/accounting records in ERPNext where native. Let the first real customer agreement exercise the WorldCC-informed contracting boundary plus jurisdiction-specific legal review instead of creating a CLM. Let the first approved spending plan exercise ERPNext Budget/Variance before considering FP&A software. Let the first real employee/payroll obligation decide whether Frappe HR and a payroll provider are needed. Let repeated support load decide whether Frappe Helpdesk is worth activating. Configure only the minimum provider-native records needed, use dedicated least-privilege integration identities for authenticated automation, and verify the resulting provider-native state/effect. Do not add custom Ordivon business semantics unless repeated mature-provider substitution failure is measured.
 
 ---
 
