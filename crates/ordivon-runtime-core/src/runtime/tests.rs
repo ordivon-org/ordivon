@@ -6696,6 +6696,93 @@ fn attempt_supervisor_owner_binding_is_atomic_idempotent_and_tamper_evident() {
 }
 
 #[test]
+fn native_windows_running_attempt_replay_after_registry_reopen_does_not_redrive() {
+    let sandbox = Sandbox::new("native-windows-reopen-no-redrive", 5_000);
+    let mut submission = request(&sandbox, "request:native-windows-reopen-no-redrive", 1);
+    submission.plan.execution_target = super::ExecutionTarget::WindowsNative;
+    submission.plan.windows_execution_context = Some(super::WindowsExecutionContext {
+        token_class: super::WindowsTokenClass::Limited,
+        token_user_sid: "S-1-5-21-test-1001".to_string(),
+        environment_source: "windows_user_machine_profile_allowlist_v1".to_string(),
+    });
+
+    let created = created(sandbox.registry.submit(&submission).unwrap());
+    let ready = sandbox
+        .registry
+        .mark_bundle_ready(
+            &created.attempt.attempt_id,
+            created.attempt.row_version,
+            &digest(b"native-windows-reopen-bundle"),
+            10,
+        )
+        .unwrap();
+    let starting = sandbox
+        .registry
+        .mark_dispatch_issued(&ready.attempt_id, ready.row_version, 11)
+        .unwrap();
+    let owner = AttemptSupervisorOwner::WindowsLauncherV1 {
+        launcher_process_id: 4242,
+        launcher_process_creation_time_file_time: 123_456_789,
+        launcher_image_digest: digest(b"native-windows-launcher"),
+        job_name: format!("Ordivon.{}", starting.attempt_id),
+        start_evidence_digest: digest(b"native-windows-start"),
+    };
+    let running = sandbox
+        .registry
+        .bind_supervisor_owner(&starting.attempt_id, starting.row_version, &owner, 12)
+        .unwrap();
+    assert_eq!(running.state, AttemptState::Running);
+
+    let restarted = Registry::initialize(sandbox.registry.config().clone()).unwrap();
+    let replay = restarted.submit(&submission).unwrap();
+    let replay_job = match replay {
+        AdmissionOutcome::Existing { job } => job,
+        AdmissionOutcome::Created(_) => panic!("replay after Registry reopen created a second Job"),
+    };
+    assert_eq!(replay_job.job_id, created.job.job_id);
+
+    let replay_attempt = restarted
+        .get_latest_attempt(&created.job.job_id)
+        .unwrap()
+        .unwrap();
+    assert_eq!(replay_attempt.attempt_id, running.attempt_id);
+    assert_eq!(replay_attempt.state, AttemptState::Running);
+    assert_eq!(
+        restarted
+            .attempt_supervisor_owner(&running.attempt_id)
+            .unwrap(),
+        Some(owner)
+    );
+    assert_eq!(restarted.active_reservation_count().unwrap(), 1);
+
+    let connection = Connection::open(&sandbox.registry.config().db_path).unwrap();
+    let job_count: i64 = connection
+        .query_row(
+            "SELECT COUNT(*) FROM jobs WHERE client_request_id=?1",
+            ["request:native-windows-reopen-no-redrive"],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let attempt_count: i64 = connection
+        .query_row(
+            "SELECT COUNT(*) FROM attempts WHERE job_id=?1",
+            [&created.job.job_id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let dispatch_count: i64 = connection
+        .query_row(
+            "SELECT COUNT(*) FROM job_events WHERE job_id=?1 AND event_type='DISPATCH_ISSUED'",
+            [&created.job.job_id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(job_count, 1);
+    assert_eq!(attempt_count, 1);
+    assert_eq!(dispatch_count, 1);
+}
+
+#[test]
 fn native_windows_pre_target_evidence_gap_preserves_unknown_no_redrive_semantics() {
     let error = native_windows_pre_target_evidence_gap();
     assert_eq!(error.code, RuntimeErrorCode::LaunchIdentityMismatch);
