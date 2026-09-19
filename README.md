@@ -96,6 +96,7 @@ uv run --locked --group architecture lint-imports
 uv run --locked --group quality ruff check agent_service scripts tests
 uv run --locked --group authority python scripts/check_authority_catalog_r1.py
 uv run --locked --group authority python scripts/check_standard_native_enterprise_r2.py
+uv run --locked --group reasoning python scripts/check_reasoning_waist_r1.py
 ```
 
 The default `test` group composes the runtime and deployment dependencies required by the complete unit and repository test suite. Architecture, quality, authority-catalog validation and heavier reasoning dependencies are separate groups and are installed only when their validation surface is invoked.

@@ -13,3 +13,6 @@ Migration records should answer:
 - what is retained, adapted, archived or retired?
 
 No bulk history import is planned.
+
+
+All durable migration/disposition records live under `migrations/records/`. The directory root contains only this lifecycle description. Inventories and censuses are records once captured; they are not current runtime configuration or active plans.

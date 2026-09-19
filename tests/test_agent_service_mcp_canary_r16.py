@@ -79,8 +79,6 @@ class AgentServiceMcpCanaryR16Tests(unittest.TestCase):
     def test_check_mode_needs_no_database_or_provider(self):
         with tempfile.TemporaryDirectory() as tmp:
             token = self._token(Path(tmp))
-            env = dict(os.environ)
-            env["ORDIVON_AGENT_SERVICE_SOURCE_ROOT"] = str(Path.cwd().resolve())
             proc = subprocess.run(
                 [
                     os.sys.executable,
@@ -96,7 +94,6 @@ class AgentServiceMcpCanaryR16Tests(unittest.TestCase):
                     "--check",
                 ],
                 cwd=Path.cwd(),
-                env=env,
                 text=True,
                 capture_output=True,
                 timeout=30,
