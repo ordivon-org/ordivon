@@ -1,6 +1,6 @@
 {
   "authorityId": "iso-10002-2018",
-  "basis": "official-source-currentness-check",
+  "basis": "official-source",
   "kind": "ordivon.external-authority-observation",
   "lifecycleStatus": "current-confirmed",
   "note": "ISO official metadata states ISO 10002:2018 was reviewed and confirmed in 2023 and remains current.",

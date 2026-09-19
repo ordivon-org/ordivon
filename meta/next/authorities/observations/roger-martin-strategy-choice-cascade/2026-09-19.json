@@ -1,6 +1,6 @@
 {
   "authorityId": "roger-martin-strategy-choice-cascade",
-  "basis": "official-source-currentness-check",
+  "basis": "official-source",
   "kind": "ordivon.external-authority-observation",
   "lifecycleStatus": "current",
   "note": "Roger L. Martin's official Strategy page currently describes strategy as a set of interrelated choices and lists the five Strategy Choice Cascade choices.",

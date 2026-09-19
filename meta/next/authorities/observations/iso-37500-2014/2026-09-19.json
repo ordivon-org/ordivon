@@ -1,6 +1,6 @@
 {
   "authorityId": "iso-37500-2014",
-  "basis": "official-source-currentness-check",
+  "basis": "official-source",
   "kind": "ordivon.external-authority-observation",
   "lifecycleStatus": "current",
   "note": "ISO official metadata identifies ISO 37500:2014 as current guidance on outsourcing.",

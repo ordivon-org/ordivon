@@ -1,6 +1,6 @@
 {
   "authorityId": "mrc-outcomes-data-quality-2022",
-  "basis": "official-industry-source-currentness-check",
+  "basis": "official-source",
   "kind": "ordivon.external-authority-observation",
   "lifecycleStatus": "listed-current",
   "note": "MRC continues to list the Outcomes and Data Quality Standards in its current standards catalogue. Keep dormant until advertising/outcome measurement scale makes this level of assurance useful.",

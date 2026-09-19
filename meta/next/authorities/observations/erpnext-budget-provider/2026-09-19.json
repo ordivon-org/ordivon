@@ -1,6 +1,6 @@
 {
   "authorityId": "erpnext-budget-provider",
-  "basis": "official-provider-documentation-check",
+  "basis": "official-source",
   "kind": "ordivon.external-authority-observation",
   "lifecycleStatus": "current",
   "note": "Current ERPNext documentation supports submitted budgets, warn/stop controls, revisions and variance reporting against submitted accounting transactions.",

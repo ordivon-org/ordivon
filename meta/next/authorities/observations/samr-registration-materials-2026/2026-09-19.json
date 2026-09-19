@@ -1,6 +1,6 @@
 {
   "authorityId": "samr-registration-materials-2026",
-  "basis": "official-source-currentness-check",
+  "basis": "official-source",
   "kind": "ordivon.external-authority-observation",
   "lifecycleStatus": "current",
   "note": "SAMR 2026 registration document/material specifications are the current official filing-material baseline observed for PRC market-entity registration.",

@@ -1,6 +1,6 @@
 {
   "authorityId": "iso-iec-20000-1-2018-amd1-2024",
-  "basis": "official-source-currentness-check",
+  "basis": "official-source",
   "kind": "ordivon.external-authority-observation",
   "lifecycleStatus": "published-confirmed",
   "note": "ISO continues to list ISO/IEC 20000-1:2018 as the current service-management-system requirements edition; Amendment 1:2024 remains part of the registered baseline.",

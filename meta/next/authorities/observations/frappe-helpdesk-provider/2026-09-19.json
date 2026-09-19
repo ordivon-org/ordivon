@@ -1,6 +1,6 @@
 {
   "authorityId": "frappe-helpdesk-provider",
-  "basis": "official-provider-documentation-check",
+  "basis": "official-source",
   "kind": "ordivon.external-authority-observation",
   "lifecycleStatus": "current",
   "note": "Current Frappe Helpdesk documentation covers customer/agent portals, tickets, SLAs, internal collaboration and knowledge-base use.",

@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-record",
+  "id": "w3c-dcat-3-2024",
+  "identity": {
+    "authorityKind": "web-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "w3c",
+      "name": "W3C"
+    },
+    "officialSource": "https://www.w3.org/TR/vocab-dcat-3/",
+    "publicationDate": "2024-08-22",
+    "title": "Data Catalog Vocabulary (DCAT) - Version 3",
+    "versionLabel": "3"
+  },
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "DCAT 3",
+      "W3C DCAT 3",
+      "Data Catalog Vocabulary v3"
+    ],
+    "domains": [
+      "data",
+      "analytics",
+      "research",
+      "governance"
+    ],
+    "topics": [
+      "data-catalog",
+      "dataset",
+      "data-service",
+      "metadata",
+      "dataset-series",
+      "versioning",
+      "interoperability"
+    ]
+  },
+  "provenance": {
+    "registeredDate": "2026-09-20",
+    "registrationBasis": [
+      "docs/DATA_LIFECYCLE_CENSUS_R1.md",
+      "W3C Recommendation checked 2026-09-20"
+    ]
+  },
+  "relations": {
+    "related": [
+      "fair-principles",
+      "openlineage-spec",
+      "w3c-prov-o-2013"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  }
+}

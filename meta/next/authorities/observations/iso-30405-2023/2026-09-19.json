@@ -1,6 +1,6 @@
 {
   "authorityId": "iso-30405-2023",
-  "basis": "official-source-currentness-check",
+  "basis": "official-source",
   "kind": "ordivon.external-authority-observation",
   "lifecycleStatus": "published-current",
   "note": "ISO official metadata lists ISO 30405:2023 as the current published recruitment guidance.",
