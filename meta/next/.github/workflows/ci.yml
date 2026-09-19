@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  validate:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -19,8 +19,47 @@ jobs:
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           enable-cache: false
-      - run: uv python install 3.14.7
-      - run: uv lock --check
-      - run: uv sync --locked
-      - run: uv run ruff check .
-      - run: uv run python -m pytest
+      - name: Install pinned Python
+        run: uv python install
+      - name: Verify lockfile
+        run: uv lock --check
+      - name: Materialize test environment
+        run: uv sync --locked
+      - name: Test
+        run: uv run --locked python -m pytest
+      - name: Lint
+        run: uv run --locked --group quality ruff check agent_service scripts tests
+      - name: Format contract
+        run: uv run --locked --group quality ruff format --check agent_service scripts tests
+      - name: Static typing
+        run: uv run --locked --group typing pyright
+      - name: Architecture contracts
+        run: uv run --locked --group architecture lint-imports
+      - name: Authority catalog
+        run: uv run --locked --group authority python scripts/check_authority_catalog_r1.py
+      - name: Standard-native integration
+        run: uv run --locked --group authority python scripts/check_standard_native_enterprise_r2.py
+      - name: Reasoning provider smoke
+        run: uv run --locked --group reasoning python scripts/check_reasoning_waist_r1.py
+      - name: Source security heuristics
+        run: uv run --locked --group security bandit -r agent_service scripts -q -s B404,B603
+      - name: Dependency vulnerability audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          uv export --locked --all-groups --no-group security --format pylock.toml --output-file "$tmp/pylock.audit.toml"
+          uv run --locked --group security pip-audit --locked "$tmp" --progress-spinner off
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}

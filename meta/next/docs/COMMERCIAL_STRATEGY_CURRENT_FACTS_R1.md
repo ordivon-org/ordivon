@@ -153,7 +153,7 @@ Current task-local census and experiment plans:
 - `STUDENT_MARKET_PRIMITIVE_CENSUS_R1.md` — initial global/high-agency decomposition;
 - `STUDENT_BEACHHEAD_DISCOVERY_EXPERIMENTS_R1.md`;
 - `CHINA_UNIVERSITY_STUDENT_WORKFLOW_CENSUS_R2.md` — mainland-China-specific campus/information/deadline/transition workflows;
-- `CHINA_STUDENT_MARKET_DISCOVERY_PLAN_R2.md`;
+- `planning/china-student-market-discovery-r2.md`;
 - `CHINA_STUDENT_SEED_PORTFOLIO_R3.md` — seed-level decomposition of opportunity/eligibility/deadline/evidence/action loops;
 - `CHINA_STUDENT_SEED_EXPERIMENTS_R3.md` — concierge experiments before product build;
 - `CHINA_STUDENT_SEED_DEEP_STRUCTURES_R3.md` — shared primitives/economic classes, graduation-risk/evidence-reuse/change-detection seeds, source-access difficulty and negative-space analysis.

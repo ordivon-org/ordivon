@@ -28,14 +28,18 @@ class FakeRunner:
 
 
 class NoopCarrier:
-    def ensure(self, placement_id: str, agent_instance_id: str, revision_id: str) -> None:
+    def ensure(
+        self, placement_id: str, agent_instance_id: str, revision_id: str
+    ) -> None:
         return None
 
     def retire(self, placement_id: str, agent_instance_id: str) -> None:
         return None
 
     def observe(self, placement_id: str) -> ProviderObservation:
-        return ProviderObservation(placement_id=placement_id, state="UNKNOWN", evidence_ref=None)
+        return ProviderObservation(
+            placement_id=placement_id, state="UNKNOWN", evidence_ref=None
+        )
 
 
 class CarrierProviderApiTests(unittest.TestCase):
@@ -129,10 +133,17 @@ class AgentAutomationCarrierAdapterTests(unittest.TestCase):
                 {
                     "campaignId": "campaign:agent-service-r4",
                     "materializations": [
-                        {"agentId": "A01", "materializationStanding": None, "providerResource": None}
+                        {
+                            "agentId": "A01",
+                            "materializationStanding": None,
+                            "providerResource": None,
+                        }
                     ],
                 },
-                {"kind": "ordivon.temporal-materialization-reconcile-admission", "agentId": "A01"},
+                {
+                    "kind": "ordivon.temporal-materialization-reconcile-admission",
+                    "agentId": "A01",
+                },
             ]
         )
         adapter = self._adapter(runner)
@@ -149,10 +160,17 @@ class AgentAutomationCarrierAdapterTests(unittest.TestCase):
                 {
                     "campaignId": "campaign:agent-service-r4",
                     "materializations": [
-                        {"agentId": "A01", "materializationStanding": "unknown", "providerResource": None}
+                        {
+                            "agentId": "A01",
+                            "materializationStanding": "unknown",
+                            "providerResource": None,
+                        }
                     ],
                 },
-                {"kind": "ordivon.temporal-materialization-reconcile-admission", "agentId": "A01"},
+                {
+                    "kind": "ordivon.temporal-materialization-reconcile-admission",
+                    "agentId": "A01",
+                },
             ]
         )
         adapter = self._adapter(runner)
@@ -161,7 +179,9 @@ class AgentAutomationCarrierAdapterTests(unittest.TestCase):
 
         self.assertEqual([call[1] for call in runner.calls], ["census", "reconcile"])
 
-    def test_ensure_submit_observed_materialization_reconciles_without_birth(self) -> None:
+    def test_ensure_submit_observed_materialization_reconciles_without_birth(
+        self,
+    ) -> None:
         runner = FakeRunner(
             [
                 {
@@ -174,7 +194,10 @@ class AgentAutomationCarrierAdapterTests(unittest.TestCase):
                         }
                     ],
                 },
-                {"kind": "ordivon.temporal-materialization-reconcile-admission", "agentId": "A01"},
+                {
+                    "kind": "ordivon.temporal-materialization-reconcile-admission",
+                    "agentId": "A01",
+                },
             ]
         )
         adapter = self._adapter(runner)
@@ -196,7 +219,10 @@ class AgentAutomationCarrierAdapterTests(unittest.TestCase):
                         }
                     ],
                 },
-                {"kind": "ordivon.temporal-materialization-reconcile-admission", "agentId": "A01"},
+                {
+                    "kind": "ordivon.temporal-materialization-reconcile-admission",
+                    "agentId": "A01",
+                },
             ]
         )
         adapter = self._adapter(runner)
@@ -307,7 +333,11 @@ class AgentAutomationCarrierAdapterTests(unittest.TestCase):
                 {
                     "campaignId": "campaign:agent-service-r4",
                     "materializations": [
-                        {"agentId": "A01", "materializationStanding": None, "providerResource": None}
+                        {
+                            "agentId": "A01",
+                            "materializationStanding": None,
+                            "providerResource": None,
+                        }
                     ],
                 }
             ]
@@ -332,7 +362,9 @@ class AgentAutomationCarrierAdapterTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             state_root = Path(tmp)
             revision = self._revision()
-            first = self._adapter(FakeRunner([]), revision, bind=False, state_root=state_root)
+            first = self._adapter(
+                FakeRunner([]), revision, bind=False, state_root=state_root
+            )
             first.bind_placement("place-1", revision.id)
 
             second_runner = FakeRunner(
@@ -349,7 +381,9 @@ class AgentAutomationCarrierAdapterTests(unittest.TestCase):
                     }
                 ]
             )
-            second = self._adapter(second_runner, revision, bind=False, state_root=state_root)
+            second = self._adapter(
+                second_runner, revision, bind=False, state_root=state_root
+            )
 
             self.assertEqual(second.observe("place-1").state, "READY")
 

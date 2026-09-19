@@ -10,7 +10,9 @@ from tests.agent_service_test_support import open_current
 
 
 class ReadyCarrier:
-    def ensure(self, placement_id: str, agent_instance_id: str, revision_id: str) -> None:
+    def ensure(
+        self, placement_id: str, agent_instance_id: str, revision_id: str
+    ) -> None:
         return None
 
     def retire(self, placement_id: str, agent_instance_id: str) -> None:
@@ -27,7 +29,9 @@ class ReadyCarrier:
 class AgentInstanceAdmissionStandardTests(unittest.TestCase):
     def test_instance_create_is_idempotent_and_birth_facade_is_absent(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            service = open_current(Path(tmp) / "service.db", carrier_adapter=ReadyCarrier())
+            service = open_current(
+                Path(tmp) / "service.db", carrier_adapter=ReadyCarrier()
+            )
             self.addCleanup(service.close)
             definition = service.definitions.create("researcher")
             revision = service.revisions.create(definition.id, {"harness": "test"})
@@ -42,13 +46,18 @@ class AgentInstanceAdmissionStandardTests(unittest.TestCase):
             self.assertEqual(placement.desired_state, "READY")
             self.assertFalse(hasattr(service, "birth"))
             self.assertEqual(
-                [event.event_type for event in service.events.list_for("AgentInstance", first.id)],
+                [
+                    event.event_type
+                    for event in service.events.list_for("AgentInstance", first.id)
+                ],
                 ["AGENT_INSTANCE_ADMITTED"],
             )
 
     def test_same_client_request_cannot_change_revision(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            service = open_current(Path(tmp) / "service.db", carrier_adapter=ReadyCarrier())
+            service = open_current(
+                Path(tmp) / "service.db", carrier_adapter=ReadyCarrier()
+            )
             self.addCleanup(service.close)
             definition = service.definitions.create("researcher")
             first_revision = service.revisions.create(definition.id, {"v": 1})
@@ -118,7 +127,9 @@ class AgentInstanceLegacySchemaMigrationTests(unittest.TestCase):
 
             columns = {
                 row["name"]
-                for row in service._connection.execute("PRAGMA table_info(agent_instances)")
+                for row in service._connection.execute(
+                    "PRAGMA table_info(agent_instances)"
+                )
             }
             self.assertIn("client_request_id", columns)
             self.assertNotIn("birth_request_id", columns)

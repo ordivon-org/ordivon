@@ -10,14 +10,19 @@ import rfc8785
 
 from agent_service.carriers.agent_automation import _digest
 from agent_service.delivery import _route_profiles_from_revision_spec
-from agent_service.local_effect_readers import BrowserlessTurnEffectCoordinate, _evidence_ref
+from agent_service.local_effect_readers import (
+    BrowserlessTurnEffectCoordinate,
+    _evidence_ref,
+)
 from agent_service.slice1 import ProviderObservation
 from agent_service.transport_credentials import _transport_credential_scheme_coordinate
 from tests.agent_service_test_support import open_current
 
 
 class PlainCarrier:
-    def ensure(self, placement_id: str, agent_instance_id: str, revision_id: str) -> None:
+    def ensure(
+        self, placement_id: str, agent_instance_id: str, revision_id: str
+    ) -> None:
         return None
 
     def retire(self, placement_id: str, agent_instance_id: str) -> None:
@@ -29,8 +34,17 @@ class PlainCarrier:
 
 class RFC8785IdentityTests(unittest.TestCase):
     def test_runtime_dependency_is_declared_in_project_metadata(self) -> None:
-        project = tomllib.loads(Path("pyproject.toml").read_text())
+        project = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
         self.assertIn("rfc8785==0.1.4", project["project"]["dependencies"])
+
+    def test_runtime_lock_resolves_expected_rfc8785_release(self) -> None:
+        lock = tomllib.loads(Path("uv.lock").read_text(encoding="utf-8"))
+        versions = {
+            package["name"]: package["version"]
+            for package in lock["package"]
+            if "version" in package
+        }
+        self.assertEqual(versions["rfc8785"], "0.1.4")
 
     def test_agent_revision_identity_uses_jcs_number_serialization(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -120,7 +134,6 @@ class RFC8785IdentityTests(unittest.TestCase):
             expected,
         )
 
-
     def test_browserless_turn_receipt_verifier_uses_jcs(self) -> None:
         import json
 
@@ -148,6 +161,7 @@ class RFC8785IdentityTests(unittest.TestCase):
             _validate_receipt(json.dumps(receipt, ensure_ascii=False), coordinate),
             receipt,
         )
+
 
 if __name__ == "__main__":
     unittest.main()

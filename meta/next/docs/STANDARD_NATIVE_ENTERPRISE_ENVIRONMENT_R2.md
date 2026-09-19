@@ -40,7 +40,7 @@ The Runtime profile binds a software product/service to ISO/IEC/IEEE 12207:2026,
 
 The Game profile binds the current Pre-G0 work to ISO 9241-210, ISO 9241-11, Xbox Accessibility Guidelines, WCAG 2.2 for the web carrier, Games User Research practice and the Godot provider. It preserves real-human evidence gaps as `OPEN`, accessibility as partial/open where appropriate, provider version drift as `PINNED_NOT_LATEST`, and future store/rating obligations as deferred rather than falsely applicable.
 
-The exact source revisions, file digests, authority bindings, stable requirement IDs and domain verdict vocabularies are captured by `scripts/capture_standard_native_dogfood_r2.py` into the acceptance receipt under `evidence/acceptance/`.
+The dated 2026-09-14 acceptance receipt under `evidence/acceptance/` preserves the exact source revisions, file digests, authority bindings, stable requirement IDs and domain verdict vocabularies captured during R2 dogfood. Its one-shot producer has been retired from the current command surface; Git history preserves that producer. Current repository integrity is checked by `scripts/check_standard_native_enterprise_r2.py` and the authority-catalog gates rather than regenerating a historical receipt from today's sources.
 
 ## 2. What is genuinely common
 

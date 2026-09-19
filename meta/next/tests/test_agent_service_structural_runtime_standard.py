@@ -15,8 +15,10 @@ from tests.agent_service_test_support import open_current
 class Carrier:
     def ensure(self, placement_id, agent_instance_id, revision_id):
         return None
+
     def retire(self, placement_id, agent_instance_id):
         return None
+
     def observe(self, placement_id):
         return ProviderObservation(placement_id, "UNKNOWN", None)
 
@@ -24,6 +26,7 @@ class Carrier:
 class PlainRuntime:
     def submit(self, client_request_id, execution):
         return RuntimeJobRef(job_id="job:plain")
+
     def observe(self, job_id):
         return RuntimeJobObservation(
             job_id=job_id,

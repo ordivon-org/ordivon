@@ -5,6 +5,7 @@ This module deliberately does not classify natural language. The Agent/caller ow
 interpretation; this resolver owns only deterministic route ordering plus current local capability
 census. Documentation is never treated as availability truth.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -16,9 +17,14 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-PROFILE_PATH = Path(__file__).resolve().parents[1] / "capabilities/profiles/web-interaction-r1.json"
+PROFILE_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "capabilities/profiles/web-interaction-r1.json"
+)
 BROWSER_USE_CONFIG = Path("/etc/ordivon/browser-use-browserless.json")
-BROWSER_USE_ACTION = Path("/opt/ordivon/agent-automation/current/scripts/browser_use_browserless.py")
+BROWSER_USE_ACTION = Path(
+    "/opt/ordivon/agent-automation/current/scripts/browser_use_browserless.py"
+)
 PLAYWRIGHT_BINDING = Path("/root/tools/bin/playwright-cli-binding")
 
 
@@ -41,32 +47,57 @@ class TaskNeeds:
         if self.deterministic_browser_flow and self.adaptive_browser_reasoning:
             raise ValueError("browser flow cannot be both deterministic and adaptive")
         if self.site_scale_web_acquisition and self.requires_interaction:
-            raise ValueError("site-scale acquisition and interactive operation are distinct primary intents")
+            raise ValueError(
+                "site-scale acquisition and interactive operation are distinct primary intents"
+            )
 
 
 def _browser_use_health() -> dict[str, Any]:
     if not BROWSER_USE_CONFIG.is_file() or not BROWSER_USE_ACTION.is_file():
-        return {"state": "unavailable", "reason": "isolated Browser Use config/action adapter absent"}
+        return {
+            "state": "unavailable",
+            "reason": "isolated Browser Use config/action adapter absent",
+        }
     try:
         value = json.loads(BROWSER_USE_CONFIG.read_text(encoding="utf-8"))
         endpoints = value.get("browserSubstrate", {}).get("endpoints", [])
         ids = [row.get("id") for row in endpoints if isinstance(row, dict)]
         if not ids or any(not str(item).startswith("browser-agent-") for item in ids):
-            return {"state": "unavailable", "reason": "Browser Use pool is not isolated browser-agent-*"}
+            return {
+                "state": "unavailable",
+                "reason": "Browser Use pool is not isolated browser-agent-*",
+            }
     except Exception as exc:  # malformed config is unavailable, not a reason to guess
-        return {"state": "unavailable", "reason": f"Browser Use config invalid: {type(exc).__name__}"}
+        return {
+            "state": "unavailable",
+            "reason": f"Browser Use config invalid: {type(exc).__name__}",
+        }
     try:
         proc = subprocess.run(
-            ["/usr/bin/python3", str(BROWSER_USE_ACTION), "--session-id", "route-census", "doctor"],
-            capture_output=True, text=True, timeout=15, check=False,
+            [
+                "/usr/bin/python3",
+                str(BROWSER_USE_ACTION),
+                "--session-id",
+                "route-census",
+                "doctor",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=15,
+            check=False,
         )
         if proc.returncode != 0:
             return {"state": "unavailable", "reason": "Browser Use doctor failed"}
-        lines = [line for line in proc.stdout.splitlines() if line.strip().startswith("{")]
+        lines = [
+            line for line in proc.stdout.splitlines() if line.strip().startswith("{")
+        ]
         doctor = json.loads(lines[-1]) if lines else {}
         healthy = bool(doctor.get("browserlessHealth", {}).get("healthy"))
         if not healthy:
-            return {"state": "unavailable", "reason": "isolated Browserless lane unhealthy"}
+            return {
+                "state": "unavailable",
+                "reason": "isolated Browserless lane unhealthy",
+            }
         return {
             "state": "available",
             "reason": "isolated Browser Use lane healthy",
@@ -76,19 +107,31 @@ def _browser_use_health() -> dict[str, Any]:
             "arbitraryPythonExposed": bool(doctor.get("arbitraryPythonExposed", True)),
         }
     except Exception as exc:
-        return {"state": "unavailable", "reason": f"Browser Use doctor unavailable: {type(exc).__name__}"}
+        return {
+            "state": "unavailable",
+            "reason": f"Browser Use doctor unavailable: {type(exc).__name__}",
+        }
 
 
 def _playwright_health() -> dict[str, Any]:
     if not PLAYWRIGHT_BINDING.is_file() or not os.access(PLAYWRIGHT_BINDING, os.X_OK):
-        return {"state": "unavailable", "reason": "Workstation Playwright CLI binding is absent"}
+        return {
+            "state": "unavailable",
+            "reason": "Workstation Playwright CLI binding is absent",
+        }
     try:
         proc = subprocess.run(
             [str(PLAYWRIGHT_BINDING), "profile"],
-            capture_output=True, text=True, timeout=15, check=False,
+            capture_output=True,
+            text=True,
+            timeout=15,
+            check=False,
         )
         if proc.returncode != 0:
-            return {"state": "unavailable", "reason": "Workstation Playwright CLI binding failed"}
+            return {
+                "state": "unavailable",
+                "reason": "Workstation Playwright CLI binding failed",
+            }
         value = json.loads(proc.stdout)
         prefix = value.get("commandPrefix")
         environment = value.get("environment")
@@ -104,7 +147,10 @@ def _playwright_health() -> dict[str, Any]:
             or not identity.get("browserExecutableDigest")
             or not identity.get("cliEntrypointDigest")
         ):
-            return {"state": "unavailable", "reason": "Workstation Playwright CLI binding is incomplete"}
+            return {
+                "state": "unavailable",
+                "reason": "Workstation Playwright CLI binding is incomplete",
+            }
         return {
             "state": "available",
             "reason": "Microsoft Playwright CLI + exact Workstation Chromium binding available",
@@ -115,7 +161,10 @@ def _playwright_health() -> dict[str, Any]:
             "cliEntrypointDigest": identity.get("cliEntrypointDigest"),
         }
     except Exception as exc:
-        return {"state": "unavailable", "reason": f"Playwright CLI binding unavailable: {type(exc).__name__}"}
+        return {
+            "state": "unavailable",
+            "reason": f"Playwright CLI binding unavailable: {type(exc).__name__}",
+        }
 
 
 def census() -> dict[str, dict[str, Any]]:
@@ -128,12 +177,16 @@ def census() -> dict[str, dict[str, Any]]:
         },
         "direct_http": {
             "state": "available" if curl else "unavailable",
-            "reason": "curl available" if curl else "no admitted generic HTTP client found",
+            "reason": "curl available"
+            if curl
+            else "no admitted generic HTTP client found",
             **({"executable": curl} if curl else {}),
         },
         "firecrawl": {
             "state": "available" if firecrawl else "unavailable",
-            "reason": "local Firecrawl executable found" if firecrawl else "studied provider only; no local executable/service admitted",
+            "reason": "local Firecrawl executable found"
+            if firecrawl
+            else "studied provider only; no local executable/service admitted",
             **({"executable": firecrawl} if firecrawl else {}),
         },
         "playwright": _playwright_health(),
@@ -145,46 +198,87 @@ def census() -> dict[str, dict[str, Any]]:
     }
 
 
-def _usable(route: str, availability: dict[str, dict[str, Any]], *, caller_bound: set[str]) -> bool:
+def _usable(
+    route: str, availability: dict[str, dict[str, Any]], *, caller_bound: set[str]
+) -> bool:
     state = availability[route]["state"]
     return state == "available" or route in caller_bound
 
 
-def resolve(needs: TaskNeeds, *, caller_available: tuple[str, ...] = ()) -> dict[str, Any]:
+def resolve(
+    needs: TaskNeeds, *, caller_available: tuple[str, ...] = ()
+) -> dict[str, Any]:
     availability = census()
     caller_bound = set(caller_available)
-    unknown = sorted(caller_bound - {"native_connector", "playwright", "computer_use", "firecrawl"})
+    unknown = sorted(
+        caller_bound - {"native_connector", "playwright", "computer_use", "firecrawl"}
+    )
     if unknown:
-        raise ValueError(f"caller availability contains unknown/non-caller provider classes: {unknown}")
+        raise ValueError(
+            f"caller availability contains unknown/non-caller provider classes: {unknown}"
+        )
 
     considered: list[dict[str, str]] = []
+
     def consider(route: str, adequate: bool, reason: str) -> str | None:
         if not adequate:
-            considered.append({"route": route, "standing": "not_adequate", "reason": reason})
+            considered.append(
+                {"route": route, "standing": "not_adequate", "reason": reason}
+            )
             return None
         if _usable(route, availability, caller_bound=caller_bound):
-            considered.append({"route": route, "standing": "selected", "reason": reason})
+            considered.append(
+                {"route": route, "standing": "selected", "reason": reason}
+            )
             return route
-        considered.append({"route": route, "standing": "not_available", "reason": availability[route]["reason"]})
+        considered.append(
+            {
+                "route": route,
+                "standing": "not_available",
+                "reason": availability[route]["reason"],
+            }
+        )
         return None
 
     selected: str | None = None
     if needs.native_provider_available:
-        selected = consider("native_connector", True, "caller reports a direct native capability that satisfies the task")
+        selected = consider(
+            "native_connector",
+            True,
+            "caller reports a direct native capability that satisfies the task",
+        )
     if selected is None and needs.requires_desktop_gui:
-        selected = consider("computer_use", True, "task requires desktop/native GUI beyond browser semantics")
+        selected = consider(
+            "computer_use",
+            True,
+            "task requires desktop/native GUI beyond browser semantics",
+        )
     elif selected is None and not needs.requires_interaction:
         if needs.site_scale_web_acquisition:
-            selected = consider("firecrawl", True, "site-scale web acquisition is the primary intent")
+            selected = consider(
+                "firecrawl", True, "site-scale web acquisition is the primary intent"
+            )
         else:
-            selected = consider("direct_http", True, "no interactive browser semantics are required")
+            selected = consider(
+                "direct_http", True, "no interactive browser semantics are required"
+            )
     elif selected is None:
         if needs.deterministic_browser_flow:
-            selected = consider("playwright", True, "browser flow is known/deterministic")
+            selected = consider(
+                "playwright", True, "browser flow is known/deterministic"
+            )
         elif needs.adaptive_browser_reasoning or not needs.deterministic_browser_flow:
-            selected = consider("browser_use", True, "browser action choice must adapt to current page state")
+            selected = consider(
+                "browser_use",
+                True,
+                "browser action choice must adapt to current page state",
+            )
         if selected is None and needs.deterministic_browser_flow:
-            selected = consider("browser_use", True, "generic deterministic browser adapter is unavailable; adaptive browser provider can still execute the flow")
+            selected = consider(
+                "browser_use",
+                True,
+                "generic deterministic browser adapter is unavailable; adaptive browser provider can still execute the flow",
+            )
 
     standing = "ROUTED" if selected is not None else "NO_ADMITTED_PROVIDER"
     return {
@@ -204,7 +298,11 @@ def resolve(needs: TaskNeeds, *, caller_available: tuple[str, ...] = ()) -> dict
 
 def _parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--census", action="store_true", help="print current provider-class availability only")
+    p.add_argument(
+        "--census",
+        action="store_true",
+        help="print current provider-class availability only",
+    )
     p.add_argument("--native-provider-available", action="store_true")
     p.add_argument("--requires-interaction", action="store_true")
     p.add_argument("--deterministic-browser-flow", action="store_true")
@@ -218,7 +316,16 @@ def _parser() -> argparse.ArgumentParser:
 def main() -> int:
     args = _parser().parse_args()
     if args.census:
-        print(json.dumps({"schemaVersion":1,"kind":"ordivon.web-provider-census","providers":census()}, sort_keys=True))
+        print(
+            json.dumps(
+                {
+                    "schemaVersion": 1,
+                    "kind": "ordivon.web-provider-census",
+                    "providers": census(),
+                },
+                sort_keys=True,
+            )
+        )
         return 0
     decision = resolve(
         TaskNeeds(

@@ -5,9 +5,7 @@ from __future__ import annotations
 
 import argparse
 import hmac
-import importlib.util
 import json
-import os
 import stat
 import sys
 from dataclasses import dataclass
@@ -18,8 +16,7 @@ from mcp.server import MCPServer
 from mcp.server.transport_security import TransportSecuritySettings
 from mcp.types import CallToolResult, TextContent, ToolAnnotations
 
-DEFAULT_SOURCE_ROOT = Path(__file__).resolve().parents[1]
-ROOT = Path(os.environ.get("ORDIVON_AGENT_SERVICE_SOURCE_ROOT", str(DEFAULT_SOURCE_ROOT))).resolve()
+ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -28,14 +25,9 @@ DEFAULT_PORT = 8894
 DEFAULT_TOKEN_FILE = Path("/etc/ordivon/agent-service-mcp.token")
 DEFAULT_BODY_LIMIT = 1_048_576
 
-R15_ACCEPTANCE = Path("evidence/acceptance/agent-service-effect-authority-r15.json")
-R15_GRAPH = Path("knowledge/graphs/ordivon-agent-service-r15-effect-authority-delta.json")
-GRAPH_CHECKER = Path("scripts/check_agent_service_graph_identity_r1.py")
-
 
 @dataclass(frozen=True, slots=True)
 class McpSettings:
-    source_root: Path = ROOT
     token_file: Path = DEFAULT_TOKEN_FILE
     bind_host: str = DEFAULT_BIND
     port: int = DEFAULT_PORT
@@ -43,8 +35,8 @@ class McpSettings:
     log_level: str = "INFO"
 
     def __post_init__(self) -> None:
-        if not self.source_root.is_absolute() or not self.token_file.is_absolute():
-            raise ValueError("Agent Service MCP source/token paths must be absolute")
+        if not self.token_file.is_absolute():
+            raise ValueError("Agent Service MCP token path must be absolute")
         if self.bind_host not in {"127.0.0.1", "::1"}:
             raise ValueError("Agent Service canary MCP must bind literal loopback only")
         if type(self.port) is not int or not (1 <= self.port <= 65535):
@@ -62,64 +54,34 @@ class McpSettings:
 
 def _read_token(path: Path) -> str:
     if path.is_symlink() or not path.is_file():
-        raise RuntimeError("Agent Service MCP token must be one regular non-symlink file")
+        raise RuntimeError(
+            "Agent Service MCP token must be one regular non-symlink file"
+        )
     mode = stat.S_IMODE(path.stat().st_mode)
     if mode & 0o077:
-        raise RuntimeError("Agent Service MCP token file must have no group/other permission bits")
+        raise RuntimeError(
+            "Agent Service MCP token file must have no group/other permission bits"
+        )
     value = path.read_text(encoding="utf-8").strip()
     if len(value) < 32 or any(ch.isspace() for ch in value):
-        raise RuntimeError("Agent Service MCP token must be at least 32 non-whitespace characters")
+        raise RuntimeError(
+            "Agent Service MCP token must be at least 32 non-whitespace characters"
+        )
     return value
 
 
-def _read_json(root: Path, relative: Path) -> dict[str, Any]:
-    path = root / relative
-    if not path.is_file():
-        raise RuntimeError(f"required Agent Service artifact missing: {relative}")
-    value = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(value, dict):
-        raise RuntimeError(f"required Agent Service artifact is not an object: {relative}")
-    return value
-
-
-def _graph_identity(root: Path) -> dict[str, Any]:
-    path = root / GRAPH_CHECKER
-    if not path.is_file():
-        raise RuntimeError("Agent Service graph checker is missing")
-    spec = importlib.util.spec_from_file_location("_ordivon_agent_service_graph_check", path)
-    if spec is None or spec.loader is None:
-        raise RuntimeError("Agent Service graph checker cannot be loaded")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    value = module.validate()
-    if value.get("status") != "PASS":
-        raise RuntimeError("Agent Service graph identity check did not pass")
-    return value
-
-
-def _contract(root: Path) -> dict[str, Any]:
-    acceptance = _read_json(root, R15_ACCEPTANCE)
-    standings = acceptance.get("standings") or {}
-    source_ready = standings.get("sourceImplementation") == "READY_TO_INTEGRATE_MAIN"
-    authority_resolved = standings.get("authorityLifetimeQuestion") == "RESOLVED_BY_EXPLICIT_SEPARATION"
-    production_blocked = standings.get("productionDeployment") == "NOT_ADMITTED"
-    if not (source_ready and authority_resolved and production_blocked):
-        raise RuntimeError("R15 acceptance standing is incompatible with read-only deployment canary")
-    graph = _graph_identity(root)
+def _contract() -> dict[str, Any]:
     from agent_service import (
-        open_agent_service,  # local source import; no service instance is created
-    )
+        open_agent_service,
+    )  # local source import; no service instance is created
 
     return {
         "schemaVersion": 1,
         "kind": "ordivon.agent-service-readonly-canary-contract",
         "status": "PASS",
         "compositionRoot": open_agent_service.__name__,
-        "sourceImplementation": standings["sourceImplementation"],
-        "authorityLifetimeQuestion": standings["authorityLifetimeQuestion"],
-        "productionDeployment": standings["productionDeployment"],
-        "graphFiles": graph["graphFiles"],
-        "graphNodeCount": graph["nodeCount"],
+        "deploymentMode": "READ_ONLY_CANARY",
+        "productionDeployment": "NOT_ADMITTED",
         "writeSurfaceEnabled": False,
         "providerEffectSurfaceEnabled": False,
         "runtimeMutationSurfaceEnabled": False,
@@ -145,13 +107,22 @@ async def _drain(receive, *, max_bytes: int) -> bool:
             return True
 
 
-async def _problem(send, status: int, detail: str, *, authenticate: bool = False) -> None:
+async def _problem(
+    send, status: int, detail: str, *, authenticate: bool = False
+) -> None:
     raw = json.dumps(
-        {"type": "about:blank", "title": "Unauthorized" if status == 401 else "Content Too Large",
-         "status": status, "detail": detail[:1000]},
+        {
+            "type": "about:blank",
+            "title": "Unauthorized" if status == 401 else "Content Too Large",
+            "status": status,
+            "detail": detail[:1000],
+        },
         separators=(",", ":"),
     ).encode()
-    headers = [(b"content-type", b"application/problem+json"), (b"content-length", str(len(raw)).encode())]
+    headers = [
+        (b"content-type", b"application/problem+json"),
+        (b"content-length", str(len(raw)).encode()),
+    ]
     if authenticate:
         headers.append((b"www-authenticate", b"Bearer"))
     await send({"type": "http.response.start", "status": status, "headers": headers})
@@ -174,58 +145,83 @@ class BearerAuthApp:
                 break
         if not hmac.compare_digest(authorization, self.expected):
             if not await _drain(receive, max_bytes=self.body_limit_bytes):
-                return await _problem(send, 413, "Request body exceeds the configured limit.")
-            return await _problem(send, 401, "A valid Bearer credential is required.", authenticate=True)
+                return await _problem(
+                    send, 413, "Request body exceeds the configured limit."
+                )
+            return await _problem(
+                send, 401, "A valid Bearer credential is required.", authenticate=True
+            )
         return await self.app(scope, receive, send)
 
 
 def _result(value: dict[str, Any]) -> CallToolResult:
     raw = json.dumps(value, sort_keys=True, ensure_ascii=False)
-    return CallToolResult(content=[TextContent(type="text", text=raw)], structuredContent=value)
+    return CallToolResult(
+        content=[TextContent(type="text", text=raw)], structuredContent=value
+    )
 
 
 def build_server(settings: McpSettings) -> MCPServer:
-    contract = _contract(settings.source_root)
+    contract = _contract()
     server = MCPServer(
         name="ordivon-agent-service-canary-mcp",
         title="Ordivon Agent Service Read-Only Canary",
-        description="Read-only deployment qualification surface for the Agent Service R15 source composition.",
+        description="Read-only deployment qualification surface for the current Agent Service source composition.",
         instructions=(
             "This is a read-only deployment canary. It exposes no Session, Delegation, routing, delivery, "
-            "credential, Runtime mutation, Host mutation, or provider-effect operation. Production deployment "
-            "remains NOT_ADMITTED by the R15 acceptance contract."
+            "credential, Runtime mutation, Host mutation, or provider-effect operation. Production write/effect "
+            "deployment remains NOT_ADMITTED by this surface."
         ),
         version="1",
         log_level=settings.log_level,
     )
-    ro = ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False)
+    ro = ToolAnnotations(
+        readOnlyHint=True,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=False,
+    )
 
-    @server.tool(name="service.doctor", title="Qualify Agent Service canary", annotations=ro)
+    @server.tool(
+        name="service.doctor", title="Qualify Agent Service canary", annotations=ro
+    )
     def service_doctor() -> CallToolResult:
-        value = _contract(settings.source_root)
-        value.update({"healthy": True, "endpoint": settings.endpoint, "deploymentMode": "READ_ONLY_CANARY"})
+        value = _contract()
+        value.update(
+            {
+                "healthy": True,
+                "endpoint": settings.endpoint,
+                "deploymentMode": "READ_ONLY_CANARY",
+            }
+        )
         return _result(value)
 
-    @server.tool(name="service.contract", title="Read Agent Service authority contract", annotations=ro)
+    @server.tool(
+        name="service.contract",
+        title="Read Agent Service authority contract",
+        annotations=ro,
+    )
     def service_contract() -> CallToolResult:
         return _result(dict(contract))
 
-    @server.tool(name="architecture.identity", title="Read Agent Service graph identity standing", annotations=ro)
-    def architecture_identity() -> CallToolResult:
-        return _result(_graph_identity(settings.source_root))
-
-    @server.tool(name="deployment.snapshot", title="Read deployment canary surface", annotations=ro)
+    @server.tool(
+        name="deployment.snapshot",
+        title="Read deployment canary surface",
+        annotations=ro,
+    )
     def deployment_snapshot() -> CallToolResult:
-        return _result({
-            "schemaVersion": 1,
-            "kind": "ordivon.agent-service-deployment-snapshot",
-            "mode": "READ_ONLY_CANARY",
-            "endpoint": settings.endpoint,
-            "toolCount": 4,
-            "writeSurfaceEnabled": False,
-            "providerEffectSurfaceEnabled": False,
-            "productionDeployment": "NOT_ADMITTED",
-        })
+        return _result(
+            {
+                "schemaVersion": 1,
+                "kind": "ordivon.agent-service-deployment-snapshot",
+                "mode": "READ_ONLY_CANARY",
+                "endpoint": settings.endpoint,
+                "toolCount": 3,
+                "writeSurfaceEnabled": False,
+                "providerEffectSurfaceEnabled": False,
+                "productionDeployment": "NOT_ADMITTED",
+            }
+        )
 
     return server
 
@@ -256,12 +252,17 @@ def run(settings: McpSettings) -> None:
     app = build_app(settings, token)
     import uvicorn
 
-    uvicorn.run(app, host=settings.bind_host, port=settings.port, log_level=settings.log_level.lower(), access_log=False)
+    uvicorn.run(
+        app,
+        host=settings.bind_host,
+        port=settings.port,
+        log_level=settings.log_level.lower(),
+        access_log=False,
+    )
 
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--source-root", type=Path, default=ROOT)
     parser.add_argument("--token-file", type=Path, default=DEFAULT_TOKEN_FILE)
     parser.add_argument("--bind", default=DEFAULT_BIND)
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
@@ -274,7 +275,6 @@ def _parser() -> argparse.ArgumentParser:
 def main() -> int:
     args = _parser().parse_args()
     settings = McpSettings(
-        source_root=args.source_root.resolve(),
         token_file=args.token_file.resolve(),
         bind_host=args.bind,
         port=args.port,

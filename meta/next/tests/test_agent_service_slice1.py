@@ -16,7 +16,9 @@ class RecordingHostAdapter:
         self.observations: dict[str, ProviderObservation] = {}
         self.before_ensure = None
 
-    def ensure(self, placement_id: str, agent_instance_id: str, revision_id: str) -> None:
+    def ensure(
+        self, placement_id: str, agent_instance_id: str, revision_id: str
+    ) -> None:
         if self.before_ensure is not None:
             self.before_ensure(placement_id)
         self.ensure_calls.append(placement_id)
@@ -27,7 +29,9 @@ class RecordingHostAdapter:
     def observe(self, placement_id: str) -> ProviderObservation:
         return self.observations.get(
             placement_id,
-            ProviderObservation(placement_id=placement_id, state="UNKNOWN", evidence_ref=None),
+            ProviderObservation(
+                placement_id=placement_id, state="UNKNOWN", evidence_ref=None
+            ),
         )
 
 
@@ -37,13 +41,19 @@ class AgentServiceSlice1Tests(unittest.TestCase):
         self.addCleanup(service.close)
         return service
 
-    def test_revision_is_immutable_and_historical_revision_remains_resolvable(self) -> None:
+    def test_revision_is_immutable_and_historical_revision_remains_resolvable(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db")
             definition = service.definitions.create("research-agent")
 
-            a1 = service.revisions.create(definition.id, {"harness": "h1", "plugins": ["research"]})
-            a2 = service.revisions.create(definition.id, {"harness": "h2", "plugins": ["research", "web"]})
+            a1 = service.revisions.create(
+                definition.id, {"harness": "h1", "plugins": ["research"]}
+            )
+            a2 = service.revisions.create(
+                definition.id, {"harness": "h2", "plugins": ["research", "web"]}
+            )
 
             self.assertNotEqual(a1.id, a2.id)
             self.assertEqual(service.revisions.get(a1.id), a1)
@@ -95,7 +105,9 @@ class AgentServiceSlice1Tests(unittest.TestCase):
 
             service.reconciler.reconcile(instance.id)
             self.assertEqual(service.instances.get(instance.id).state, "PROVISIONING")
-            self.assertEqual(service.placements.get(placement.id).observed_state, "UNKNOWN")
+            self.assertEqual(
+                service.placements.get(placement.id).observed_state, "UNKNOWN"
+            )
 
             host.observations[placement.id] = ProviderObservation(
                 placement_id=placement.id,
@@ -105,7 +117,9 @@ class AgentServiceSlice1Tests(unittest.TestCase):
             service.reconciler.reconcile(instance.id)
 
             self.assertEqual(service.instances.get(instance.id).state, "READY")
-            self.assertEqual(service.placements.get(placement.id).observed_state, "READY")
+            self.assertEqual(
+                service.placements.get(placement.id).observed_state, "READY"
+            )
 
     def test_restart_recovers_birth_without_duplicate_agent_instance(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -159,13 +173,20 @@ class AgentServiceSlice1Tests(unittest.TestCase):
                 evidence_ref="host://carrier/agent-1/ready",
             )
 
-            with patch.object(service.events, "append_in_transaction", side_effect=RuntimeError("event write failed")):
+            with patch.object(
+                service.events,
+                "append_in_transaction",
+                side_effect=RuntimeError("event write failed"),
+            ):
                 with self.assertRaises(RuntimeError):
                     service.reconciler.reconcile(instance.id)
 
             self.assertEqual(service.instances.get(instance.id).state, "PROVISIONING")
             self.assertEqual(
-                [event.event_type for event in service.events.list_for("AgentInstance", instance.id)],
+                [
+                    event.event_type
+                    for event in service.events.list_for("AgentInstance", instance.id)
+                ],
                 ["AGENT_INSTANCE_ADMITTED"],
             )
 
@@ -189,9 +210,14 @@ class AgentServiceSlice1Tests(unittest.TestCase):
             service.reconciler.reconcile(instance.id)
 
             self.assertEqual(service.instances.get(instance.id).state, "PROVISIONING")
-            self.assertEqual(service.placements.get(placement.id).observed_state, "UNKNOWN")
             self.assertEqual(
-                [event.event_type for event in service.events.list_for("AgentInstance", instance.id)],
+                service.placements.get(placement.id).observed_state, "UNKNOWN"
+            )
+            self.assertEqual(
+                [
+                    event.event_type
+                    for event in service.events.list_for("AgentInstance", instance.id)
+                ],
                 ["AGENT_INSTANCE_ADMITTED", "AGENT_READY", "AGENT_READINESS_LOST"],
             )
 
@@ -211,7 +237,10 @@ class AgentServiceSlice1Tests(unittest.TestCase):
             )
             service.reconciler.reconcile(instance.id)
 
-            event_types = [event.event_type for event in service.events.list_for("AgentInstance", instance.id)]
+            event_types = [
+                event.event_type
+                for event in service.events.list_for("AgentInstance", instance.id)
+            ]
             self.assertEqual(event_types, ["AGENT_INSTANCE_ADMITTED", "AGENT_READY"])
 
 
