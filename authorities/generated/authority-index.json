@@ -2775,7 +2775,7 @@
       "issuer": "OpenLineage",
       "lifecycleStatus": "current",
       "observationDigest": "sha256:3fa16b9c449140187641d0bd5f3c45857f28dd057ad9f210ba113ff89144b28c",
-      "recordDigest": "sha256:229700a8e6663ad38dcb7ef5ef7d49e231d52b5ebd3ffcd1b0506ea1a3a8d141",
+      "recordDigest": "sha256:9161e04be03a88412c9177dda89c69157117150fe448a0dd5dc946f7275c6c4a",
       "title": "OpenLineage specification",
       "topics": [
         "data-lineage",
@@ -3933,6 +3933,6 @@
   ],
   "kind": "ordivon.external-authority-discovery-index",
   "recordCount": 142,
-  "recordsDigest": "sha256:54a7d11d55204d3b247188a9dcc07ce81b17b307a5b945bd460b7587795b4afc",
+  "recordsDigest": "sha256:3e714cc68032fab354730b85513a9013fb3a0e694b1ec5c73bc1e4c3815b641f",
   "schemaVersion": 1
 }
