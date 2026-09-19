@@ -58,7 +58,7 @@ def test_official_mcp_v2_exposes_migrated_host_surface_and_runs_vertical_slice()
             checkpoint_schema = by_name["task.checkpoint"].input_schema
             status_schema = by_name["host.status"].input_schema
             assert len(adopt_schema["properties"]["initialCheckpoint"]["oneOf"]) == 2
-            assert len(checkpoint_schema["properties"]["checkpoint"]["oneOf"]) == 3
+            assert len(checkpoint_schema["properties"]["checkpoint"]["oneOf"]) == 2
             assert {"detail", "recentLimit"} <= set(status_schema["properties"])
             for tool in listed.tools:
                 assert tool.output_schema is not None
@@ -94,7 +94,7 @@ def test_official_mcp_v2_exposes_migrated_host_surface_and_runs_vertical_slice()
                 {
                     "taskId": task_id,
                     "expectedRevision": 1,
-                    "checkpoint": {"frontier": "resumable", "unresolved": []},
+                    "checkpoint": _checkpoint(task_id, "resumable"),
                 },
             )
             assert updated.is_error is False
@@ -122,7 +122,7 @@ def test_official_mcp_v2_exposes_migrated_host_surface_and_runs_vertical_slice()
 
 
 
-def test_mcp_checkpoint_patch_terminal_and_writer_replay_contract() -> None:
+def test_mcp_full_checkpoint_terminal_and_writer_replay_contract() -> None:
     assert DSN is not None
     HostV2(DSN).initialize()
     task_id = f"task:v2:mcp-contract:{uuid4().hex}"
@@ -141,40 +141,35 @@ def test_mcp_checkpoint_patch_terminal_and_writer_replay_contract() -> None:
             assert adopted.structured_content is not None
             assert adopted.structured_content["writerLabel"] == "writer:a"
 
-            patched = await client.call_tool(
+            next_checkpoint = _checkpoint(task_id, "full-proven")
+            next_checkpoint["unresolved"] = []
+            next_checkpoint["nextActions"] = ["terminalize"]
+            updated = await client.call_tool(
                 "task.checkpoint",
                 {
                     "taskId": task_id,
                     "expectedRevision": 1,
-                    "checkpoint": {
-                        "frontier": "patch-proven",
-                        "unresolved": [],
-                        "nextActions": ["terminalize"],
-                    },
+                    "checkpoint": next_checkpoint,
                     "writerLabel": "writer:b",
                 },
             )
-            assert patched.structured_content is not None
-            assert patched.structured_content["admission"] == "committed"
-            assert patched.structured_content["checkpoint"]["frontier"] == "patch-proven"
-            assert patched.structured_content["checkpoint"]["established"] == [
+            assert updated.structured_content is not None
+            assert updated.structured_content["admission"] == "committed"
+            assert updated.structured_content["checkpoint"]["frontier"] == "full-proven"
+            assert updated.structured_content["checkpoint"]["established"] == [
                 "baseline retained"
             ]
-            assert patched.structured_content["checkpoint"]["constraints"] == [
+            assert updated.structured_content["checkpoint"]["constraints"] == [
                 "exact revision only"
             ]
-            assert patched.structured_content["writerLabel"] == "writer:b"
+            assert updated.structured_content["writerLabel"] == "writer:b"
 
             replay = await client.call_tool(
                 "task.checkpoint",
                 {
                     "taskId": task_id,
                     "expectedRevision": 1,
-                    "checkpoint": {
-                        "frontier": "patch-proven",
-                        "unresolved": [],
-                        "nextActions": ["terminalize"],
-                    },
+                    "checkpoint": next_checkpoint,
                     "writerLabel": "writer:c",
                 },
             )
