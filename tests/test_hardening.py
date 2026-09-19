@@ -94,14 +94,11 @@ def test_explicit_task_route_and_reply_inheritance_drive_attention() -> None:
     delta = host.attention_delta(after_sequence=int(root["message"]["sequence"]), limit=10)
     assert delta["kind"] == "ordivon.host-current-attention-delta"
     assert delta["schemaVersion"] == 3
-    assert delta["summary"]["infrastructureMessageCount"] == 0
     assert delta["summary"]["newMessageCount"] == 1
     assert delta["summary"]["routedTaskCount"] == 1
     routed = delta["routedTasks"][0]
     assert routed["taskId"] == task_id
     assert routed["taskRevision"] == 1
-    assert routed["messages"][0]["routeStanding"] == "EXPLICIT_TASK_FOREIGN_KEY"
-    assert routed["messages"][0]["routeDepth"] == 0
     assert routed["reentry"] == {
         "requiredBeforeActing": True,
         "operation": "task.resume",

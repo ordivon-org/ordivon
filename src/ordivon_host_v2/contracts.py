@@ -131,11 +131,9 @@ class AttentionFenceWire(TypedDict):
 
 class AttentionSummaryWire(TypedDict):
     newMessageCount: int
-    infrastructureMessageCount: int
     routedTaskCount: int
     routedMessageCount: int
     unroutedMessageCount: int
-    missingTaskRouteCount: int
 
 
 class AttentionResponse(TypedDict):
@@ -145,7 +143,6 @@ class AttentionResponse(TypedDict):
     boardFence: AttentionFenceWire
     summary: AttentionSummaryWire
     routedTasks: list[dict[str, Any]]
-    missingTaskRoutes: list[dict[str, Any]]
     unroutedMessages: list[dict[str, Any]]
     truthBoundary: str
 
