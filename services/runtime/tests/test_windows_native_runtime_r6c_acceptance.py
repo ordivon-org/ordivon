@@ -50,6 +50,11 @@ def test_r6c_harness_uses_mcp_metadata_and_never_prints_bearer_value():
     assert "ConvertTo-Json $script:BearerToken" not in text
 
 
+def test_r6c_harness_suppresses_windows_powershell_progress_in_service_context():
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert "$ProgressPreference = 'SilentlyContinue'" in text
+
+
 def test_r6c_harness_handles_optional_json_properties_under_strict_mode():
     text = SCRIPT.read_text(encoding="utf-8")
     assert "$message.PSObject.Properties['error']" in text
