@@ -9,6 +9,8 @@ dependencies = [
 
 [dependency-groups]
 research = [
+    "numpy==2.5.3",
+    "scipy==1.18.1",
     "jsonschema==4.26.0",
     "mlflow==3.16.1",
     "pandas==3.0.6",

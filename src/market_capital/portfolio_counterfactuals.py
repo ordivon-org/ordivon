@@ -5,7 +5,7 @@ from typing import Any, Mapping, Sequence
 
 
 class PortfolioCounterfactualError(ValueError):
-    """Fail-closed validation for read-only P5/P6 portfolio counterfactuals."""
+    """Fail-closed validation for read-only portfolio scenario analysis."""
 
 
 _ACTIONS = {"DE_RISK", "HEDGE", "DIVERSIFY", "HOLD", "RECONCILE"}
@@ -144,7 +144,7 @@ def build_action_counterfactual(
     exposure_ledger: Mapping[str, Any],
     scenario: Mapping[str, Any],
 ) -> dict[str, Any]:
-    """P5: apply one explicit research scenario and derive mechanical exposure deltas."""
+    """Apply one explicit what-if scenario and derive mechanical exposure deltas."""
 
     scenario_id = str(scenario.get("scenarioId") or "").strip()
     action = str(scenario.get("action") or "").strip().upper()
@@ -166,7 +166,7 @@ def build_action_counterfactual(
     changed_instruments: set[str] = set()
     sizing_basis = str(scenario.get("sizingBasis") or "EXPLICIT_CALLER_COUNTERFACTUAL").strip()
     if sizing_basis != "EXPLICIT_CALLER_COUNTERFACTUAL":
-        raise PortfolioCounterfactualError("P5 accepts only EXPLICIT_CALLER_COUNTERFACTUAL sizing")
+        raise PortfolioCounterfactualError("scenario analysis accepts only EXPLICIT_CALLER_COUNTERFACTUAL sizing")
 
     if action == "DE_RISK":
         inst = str(scenario.get("instrumentId") or "").strip()
@@ -394,7 +394,7 @@ def evaluate_constraint_gate(
     risk_budget_evaluation: Mapping[str, Any] | None = None,
     evidence: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """P6: evaluate evidence completeness and policy compatibility without selecting an action."""
+    """Evaluate pre-trade evidence completeness and policy compatibility without selecting an action."""
 
     action = str(counterfactual.get("action") or "").upper()
     if action not in _ACTIONS:
@@ -409,7 +409,7 @@ def evaluate_constraint_gate(
         checks.append({"id": check_id, "status": status, "detail": detail})
 
     if risk_budget_evaluation is None:
-        add("RISK_BUDGET", "INCOMPLETE", "explicit P4 risk budget evaluation not supplied")
+        add("RISK_BUDGET", "INCOMPLETE", "explicit risk-limit evaluation not supplied")
     else:
         rb = str(risk_budget_evaluation.get("standing") or "")
         if rb == "SATISFIED":

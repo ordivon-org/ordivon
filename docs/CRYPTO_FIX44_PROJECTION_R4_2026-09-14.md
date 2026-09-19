@@ -1,5 +1,9 @@
 # Crypto FIX 4.4 Projection R4 — 2026-09-14
 
+## Current standards note
+
+FIX 4.4 is retained here only as a legacy wire-compatibility profile for the historical R4 qualification. The active semantic reference is FIX Latest / FIX Orchestra. New local semantics must not be invented merely because a legacy wire profile lacks a newer field or component.
+
 ## Standing
 
 `PASS_CRYPTO_MECHANICS_TO_FIX44_PROJECTION`

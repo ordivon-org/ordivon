@@ -1,0 +1,242 @@
+{
+  "schemaVersion": 1,
+  "framework": {
+    "name": "Federal Reserve SR 26-2 Revised Guidance on Model Risk Management",
+    "issued": "2026-04-17",
+    "standing": "REFERENCE_GOVERNANCE_FRAMEWORK"
+  },
+  "classificationBoundary": "Use the SR 26-2 model definition proportionately: complex quantitative methods grounded in statistical, economic, or financial theory are model-governance candidates; simple arithmetic calculations and deterministic rule-based processes without such theoretical underpinning are classified as non-model calculations or controls.",
+  "components": [
+    {
+      "id": "portfolio-dependence-analysis",
+      "implementation": "src/market_capital/portfolio_risk.py::analyze_dependence",
+      "classification": "QUANTITATIVE_MODEL",
+      "sr26ModelStanding": "MODEL",
+      "status": "VALIDATION_REQUIRED",
+      "purpose": "Describe historical linear dependence between a base instrument and explicit market proxies for research and risk monitoring.",
+      "materiality": "MEDIUM",
+      "assumptions": [
+        "Linear regression and correlation are informative summaries for the selected return window.",
+        "Timestamp-aligned completed returns are comparable across selected instruments."
+      ],
+      "limitations": [
+        "Historical correlation and beta are not forecasts.",
+        "Proxy instruments do not establish causal factor exposure.",
+        "Dependence may change across market regimes and sample windows."
+      ],
+      "validation": {
+        "standing": "VALIDATION_REQUIRED",
+        "evidenceRefs": ["evidence/acceptance/portfolio-risk-observatory-p1-p4-r1.json"]
+      },
+      "monitoring": {
+        "standing": "REQUIRED",
+        "requirements": [
+          "Track overlap sample count and data freshness.",
+          "Track rolling coefficient and correlation drift.",
+          "Compare model outputs with subsequent realized dependence before broader use."
+        ]
+      },
+      "permittedUses": [
+        "Historical descriptive research.",
+        "Scenario construction input.",
+        "Risk monitoring with explicit limitations."
+      ],
+      "prohibitedUses": [
+        "Automatic hedge sizing.",
+        "Return forecasting.",
+        "Live order approval.",
+        "Causal factor attribution."
+      ]
+    },
+    {
+      "id": "repeated-microstructure-summary",
+      "implementation": "src/market_capital/market_sensors.py::repeated_microstructure",
+      "classification": "ANALYTICAL_HEURISTIC",
+      "sr26ModelStanding": "CLASSIFICATION_REVIEW",
+      "status": "RESEARCH_ONLY",
+      "purpose": "Summarize repeated book and trade-flow observations without producing a price forecast.",
+      "materiality": "LOW",
+      "assumptions": [
+        "Repeated snapshots provide a more informative descriptive window than a single snapshot."
+      ],
+      "limitations": [
+        "Persistence thresholds are policy choices rather than universal market constants.",
+        "REST trade windows may overlap and are not independent samples.",
+        "Observed flow persistence does not imply future price direction."
+      ],
+      "validation": {
+        "standing": "DEVELOPMENT_TESTED",
+        "evidenceRefs": ["evidence/acceptance/market-sensors-sndk-canary-r1.json"]
+      },
+      "monitoring": {
+        "standing": "REQUIRED",
+        "requirements": [
+          "Monitor source-time overlap and trade-window duplication.",
+          "Do not promote the heuristic to predictive use without separate validation."
+        ]
+      },
+      "permittedUses": ["Descriptive market monitoring."],
+      "prohibitedUses": [
+        "Directional signal generation.",
+        "Trade recommendation.",
+        "Causal interpretation."
+      ]
+    },
+    {
+      "id": "open-interest-change",
+      "implementation": "src/market_capital/market_sensors.py::open_interest_change",
+      "classification": "NON_MODEL_CALCULATION",
+      "sr26ModelStanding": "NON_MODEL",
+      "status": "ACTIVE",
+      "purpose": "Calculate timestamp-bounded open-interest changes from authoritative observations.",
+      "materiality": "NOT_APPLICABLE",
+      "assumptions": [],
+      "limitations": [
+        "Open-interest change alone does not identify crowding, leverage ownership, or causality."
+      ],
+      "validation": {
+        "standing": "NOT_APPLICABLE",
+        "evidenceRefs": ["evidence/acceptance/market-sensors-sndk-canary-r1.json"]
+      },
+      "monitoring": {"standing": "NOT_APPLICABLE", "requirements": []},
+      "permittedUses": ["Derived observation."],
+      "prohibitedUses": [
+        "Standalone crowding conclusion.",
+        "Trade recommendation."
+      ]
+    },
+    {
+      "id": "exposure-ledger",
+      "implementation": "src/market_capital/portfolio_risk.py::build_exposure_ledger",
+      "classification": "NON_MODEL_CALCULATION",
+      "sr26ModelStanding": "NON_MODEL",
+      "status": "ACTIVE",
+      "purpose": "Calculate gross, net, concentration, margin ratios, and explicit factor-loading arithmetic from observed account state.",
+      "materiality": "NOT_APPLICABLE",
+      "assumptions": [],
+      "limitations": [
+        "Outputs are only as current and complete as authoritative account inputs.",
+        "Overlapping factor loadings are not additive risk contributions."
+      ],
+      "validation": {
+        "standing": "NOT_APPLICABLE",
+        "evidenceRefs": ["evidence/acceptance/portfolio-risk-observatory-p1-p4-r1.json"]
+      },
+      "monitoring": {"standing": "NOT_APPLICABLE", "requirements": []},
+      "permittedUses": ["Exposure monitoring.", "Risk-limit input."],
+      "prohibitedUses": ["Allocation recommendation."]
+    },
+    {
+      "id": "risk-limit-evaluator",
+      "implementation": "src/market_capital/portfolio_risk.py::evaluate_risk_budget",
+      "classification": "CONTROL",
+      "sr26ModelStanding": "NON_MODEL",
+      "status": "ACTIVE",
+      "purpose": "Compare observed exposure state with explicit user or policy risk limits without inferring risk tolerance.",
+      "materiality": "NOT_APPLICABLE",
+      "assumptions": [],
+      "limitations": [
+        "The control is incomplete when explicit risk limits are absent.",
+        "The named shock calculation is first-order arithmetic, not VaR, expected shortfall, or liquidation probability."
+      ],
+      "validation": {
+        "standing": "NOT_APPLICABLE",
+        "evidenceRefs": ["evidence/acceptance/portfolio-risk-observatory-p1-p4-r1.json"]
+      },
+      "monitoring": {"standing": "NOT_APPLICABLE", "requirements": []},
+      "permittedUses": ["Risk-limit compliance check."],
+      "prohibitedUses": [
+        "Inferring investor risk appetite.",
+        "Trade sizing."
+      ]
+    },
+    {
+      "id": "portfolio-scenario-calculation",
+      "implementation": "src/market_capital/portfolio_counterfactuals.py::build_action_counterfactual",
+      "classification": "NON_MODEL_CALCULATION",
+      "sr26ModelStanding": "NON_MODEL",
+      "status": "ACTIVE",
+      "purpose": "Calculate mechanical exposure changes for explicit what-if portfolio scenarios.",
+      "materiality": "NOT_APPLICABLE",
+      "assumptions": [],
+      "limitations": [
+        "Projected available equity and exact margin impact are unknown unless separately measured.",
+        "Scenario calculations do not rank or recommend actions."
+      ],
+      "validation": {
+        "standing": "NOT_APPLICABLE",
+        "evidenceRefs": ["evidence/acceptance/portfolio-counterfactuals-p5-p6-r1.json"]
+      },
+      "monitoring": {"standing": "NOT_APPLICABLE", "requirements": []},
+      "permittedUses": ["What-if analysis.", "Pre-trade research."],
+      "prohibitedUses": ["Order generation.", "Automatic scenario ranking."]
+    },
+    {
+      "id": "pre-trade-evidence-control",
+      "implementation": "src/market_capital/portfolio_counterfactuals.py::evaluate_constraint_gate",
+      "classification": "CONTROL",
+      "sr26ModelStanding": "NON_MODEL",
+      "status": "ACTIVE",
+      "purpose": "Require explicit risk-limit, liquidity, margin, carry, and dependence evidence before a scenario can be considered complete.",
+      "materiality": "NOT_APPLICABLE",
+      "assumptions": [],
+      "limitations": [
+        "A passing completeness control is not trade approval or effect authority."
+      ],
+      "validation": {
+        "standing": "NOT_APPLICABLE",
+        "evidenceRefs": ["evidence/acceptance/portfolio-counterfactuals-p5-p6-r1.json"]
+      },
+      "monitoring": {"standing": "NOT_APPLICABLE", "requirements": []},
+      "permittedUses": ["Pre-trade evidence completeness control."],
+      "prohibitedUses": ["Trade approval.", "External financial write admission."]
+    },
+    {
+      "id": "underlying-reopen-reconciliation",
+      "implementation": "src/market_capital/market_sensors.py::reconcile_underlying_reopen",
+      "classification": "RECONCILIATION",
+      "sr26ModelStanding": "NON_MODEL",
+      "status": "ACTIVE",
+      "purpose": "Compare out-of-hours derivative observations with authoritative underlying reopen observations using an explicit caller-owned tolerance.",
+      "materiality": "NOT_APPLICABLE",
+      "assumptions": [],
+      "limitations": [
+        "The tolerance is a policy input and is not defined by this function.",
+        "Price reconciliation does not establish causal price leadership."
+      ],
+      "validation": {
+        "standing": "NOT_APPLICABLE",
+        "evidenceRefs": ["evidence/acceptance/market-sensors-sndk-canary-r1.json"]
+      },
+      "monitoring": {"standing": "NOT_APPLICABLE", "requirements": []},
+      "permittedUses": ["Session-boundary reconciliation."],
+      "prohibitedUses": ["Causal attribution.", "Trade recommendation."]
+    },
+    {
+      "id": "regime-card-r1",
+      "implementation": "retired:src/market_capital/regime_card.py",
+      "classification": "QUANTITATIVE_MODEL",
+      "sr26ModelStanding": "MODEL",
+      "status": "RETIRED",
+      "purpose": "Former composite heuristic that mapped observations into custom regime identities, hypotheses, and signposts.",
+      "materiality": "LOW",
+      "assumptions": [
+        "Custom regime labels and hypothesis templates were useful cross-domain abstractions."
+      ],
+      "limitations": [
+        "The composite method had no independent validation.",
+        "Its regime taxonomy was locally invented rather than owned by a mature financial risk methodology.",
+        "Its lens routing duplicated model-governance and scenario-analysis concepts available in mature practice."
+      ],
+      "validation": {"standing": "RETIRED_UNVALIDATED", "evidenceRefs": []},
+      "monitoring": {"standing": "RETIRED", "requirements": []},
+      "permittedUses": ["Historical repository archaeology only."],
+      "prohibitedUses": [
+        "Current market analysis.",
+        "Risk decision support.",
+        "Trade recommendation."
+      ],
+      "retirementReason": "Replaced by explicit market observations, model inventory/governance, risk monitoring, and scenario analysis aligned to mature external practice."
+    }
+  ]
+}

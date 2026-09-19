@@ -296,13 +296,13 @@ def reconcile_underlying_reopen(
     }
 
 
-def enrich_market_with_sensors(
+def merge_market_observations(
     market: Mapping[str, Any],
     *,
     oi_change: Mapping[str, Any] | None = None,
     microstructure: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Copy derived sensor outputs into the Regime Card market input contract."""
+    """Merge derived observations into a downstream market-risk observation record."""
 
     result = dict(market)
     instrument_id = str(result.get("instrumentId") or "").strip()

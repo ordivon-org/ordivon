@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+root="$(cd "$(dirname "$0")/.." && pwd)"
+exec "$root/scripts/run-capability-python" -m market_capital.standards_inventory \
+  --inventory "$root/config/quantitative_component_inventory.json" \
+  --schema "$root/schema/quantitative_component_inventory.schema.json"

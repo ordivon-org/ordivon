@@ -22,7 +22,7 @@ The goal is not a uniform framework. Asymmetric composition is preferred when di
 | Public Binance market data | Binance official public REST/WebSocket + Network v2 exact authority | thin normalization into the common observation projection |
 | Market-data resilience | venue WebSocket protocols + `websockets` + Network v2/sing-box | qualification harness and fail-closed health evidence; no local VPN/path selector |
 | Historical execution mechanics | QuantConnect LEAN | decision-to-engine mapping and evidence |
-| Order intent semantics | FIX 4.4 through QuickFIX/n | decision-to-FIX projection and proof binding |
+| Order intent semantics | FIX Latest / FIX Orchestra; QuickFIX/n for explicit wire profiles | semantic mapping, compatibility-profile binding and proof identity |
 | Crypto OMS/Risk mechanics | NautilusTrader | admitted configuration and evidence |
 | OKX execution transport | Nautilus `OKXExecutionClientConfig` / factory | configuration, qualification and authority boundary |
 | Binance execution transport | Nautilus `BinanceExecutionClientConfig` / factory | configuration, qualification and authority boundary |
@@ -33,6 +33,8 @@ The goal is not a uniform framework. Asymmetric composition is preferred when di
 | Post-trade/finality boundary | venue/custodian reality, PFMI reference semantics | no private settlement implementation |
 | Securities/post-trade vocabulary | ISO 20022 reference semantics where applicable | mapping only, not protocol emulation |
 | Clock authority | Windows w32time → Hyper-V PTP → linuxptp phc2sys | qualification gate only |
+| Model-risk governance | Federal Reserve SR 26-2 reference framework | inventory, validation standing, limitations and monitoring bindings |
+| Risk-data aggregation/governance | BCBS 239 reference principles | source identity, lineage, quality, timeliness and reconciliation controls |
 | Metrics and alerting | node_exporter / Prometheus / Grafana | textfile projection and domain alerts |
 | Durable workflow outside hot path | existing n8n / Temporal when actually needed | orchestration only |
 
@@ -55,7 +57,7 @@ These are seams, not replacement trading/account/settlement systems.
 Do not build a local replacement for:
 
 - venue market-data protocols;
-- order state machines already expressible by FIX/venue semantics;
+- order state machines already expressible by FIX Latest / venue semantics;
 - broker/exchange account protocols;
 - OMS/Risk engines when LEAN/Nautilus provides the required mechanism;
 - Demo/Testnet venues;

@@ -3,6 +3,9 @@ from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 import math
 from statistics import median
+
+import numpy as np
+from scipy.stats import linregress
 from typing import Any, Mapping, Sequence
 
 
@@ -41,7 +44,7 @@ def build_exposure_ledger(
     initial_margin_usd: Any | None = None,
     maintenance_margin_usd: Any | None = None,
 ) -> dict[str, Any]:
-    """P1: normalize portfolio exposure without persisting or fetching private reality."""
+    """Normalize observed portfolio exposures without persisting or fetching private reality."""
 
     equity = _d(equity_usd, "equity_usd")
     available = _d(available_equity_usd, "available_equity_usd")
@@ -173,19 +176,18 @@ def completed_log_returns(
 def _paired_stats(base: Sequence[float], proxy: Sequence[float]) -> dict[str, float] | None:
     if len(base) != len(proxy) or len(base) < 3:
         return None
-    n = len(base)
-    mx = sum(base) / n
-    my = sum(proxy) / n
-    vx = sum((x - mx) ** 2 for x in base) / (n - 1)
-    vy = sum((y - my) ** 2 for y in proxy) / (n - 1)
+    base_arr = np.asarray(base, dtype=float)
+    proxy_arr = np.asarray(proxy, dtype=float)
+    vx = float(np.var(base_arr, ddof=1))
+    vy = float(np.var(proxy_arr, ddof=1))
     if vx <= 0 or vy <= 0:
         return None
-    cov = sum((x - mx) * (y - my) for x, y in zip(base, proxy)) / (n - 1)
-    corr = cov / math.sqrt(vx * vy)
-    beta = cov / vy
-    residual = [x - beta * y for x, y in zip(base, proxy)]
-    mr = sum(residual) / n
-    vr = sum((x - mr) ** 2 for x in residual) / (n - 1)
+
+    fit = linregress(proxy_arr, base_arr)
+    beta = float(fit.slope)
+    corr = float(fit.rvalue)
+    residual = base_arr - (float(fit.intercept) + beta * proxy_arr)
+    vr = float(np.var(residual, ddof=1))
     variance_reduction = 1 - vr / vx
     return {
         "correlation": corr,
@@ -208,7 +210,7 @@ def analyze_dependence(
     rolling_window: int = 20,
     stability_policy: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """P2/P3: describe dependence across full, rolling and downside regimes."""
+    """Estimate historical dependence across full, rolling, and downside samples."""
 
     for label, value in (
         ("short_window", short_window),
@@ -365,7 +367,7 @@ def build_factor_observatory(
     base_returns: Mapping[int, float],
     factor_proxies: Sequence[Mapping[str, Any]],
 ) -> dict[str, Any]:
-    """P2/P3 aggregate: bind named factors to explicit market proxies."""
+    """Bind named research factors to explicit market proxies and dependence estimates."""
 
     seen_pairs: set[tuple[str, str]] = set()
     grouped: dict[str, list[dict[str, Any]]] = {}
@@ -420,7 +422,7 @@ def evaluate_risk_budget(
     exposure_ledger: Mapping[str, Any],
     budget: Mapping[str, Any],
 ) -> dict[str, Any]:
-    """P4: compare observed portfolio state with explicit user/policy constraints."""
+    """Compare observed portfolio state with explicit user or policy risk limits."""
 
     required = (
         "maxGrossToEquity",
@@ -551,9 +553,9 @@ def build_portfolio_risk_observatory(
         "kind": "ordivon.market-capital.portfolio-risk-observatory",
         "truthRole": "read-only-portfolio-risk-evidence-not-allocation-truth",
         "nodes": {
-            "P1ExposureLedger": exposure_ledger,
-            "P2P3FactorDependence": factor_observatory,
-            "P4RiskBudget": budget_eval,
+            "exposureLedger": exposure_ledger,
+            "factorDependenceAnalysis": factor_observatory,
+            "riskLimitEvaluation": budget_eval,
         },
         "allocationProduced": False,
         "hedgeSizeRecommended": False,
