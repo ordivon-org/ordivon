@@ -1,0 +1,59 @@
+[
+  {
+    "eventTime": "2026-09-19T19:57:05.489245Z",
+    "eventType": "START",
+    "inputs": [
+      {
+        "name": "data/2026/2026-05-19/member_participation_stats_by_country.csv",
+        "namespace": "https://github.com/rfordatascience/tidytuesday/tree/f4d1b35ca09d8c0d875451635daef9179adfc9e0"
+      },
+      {
+        "name": "data/2026/2026-05-19/metadata_coverage_stats_by_country.csv",
+        "namespace": "https://github.com/rfordatascience/tidytuesday/tree/f4d1b35ca09d8c0d875451635daef9179adfc9e0"
+      }
+    ],
+    "job": {
+      "name": "crossref-transform",
+      "namespace": "urn:ordivon:data-lifecycle:github-pilot-r1"
+    },
+    "outputs": [],
+    "producer": "urn:ordivon:data-lifecycle:github-pilot-r1",
+    "run": {
+      "runId": "48cf5e29-4809-5a9b-b68c-c685f28f5182"
+    },
+    "schemaURL": "https://openlineage.io/spec/2-0-2/OpenLineage.json#/$defs/RunEvent"
+  },
+  {
+    "eventTime": "2026-09-19T19:57:05.489264Z",
+    "eventType": "COMPLETE",
+    "inputs": [
+      {
+        "name": "data/2026/2026-05-19/member_participation_stats_by_country.csv",
+        "namespace": "https://github.com/rfordatascience/tidytuesday/tree/f4d1b35ca09d8c0d875451635daef9179adfc9e0"
+      },
+      {
+        "name": "data/2026/2026-05-19/metadata_coverage_stats_by_country.csv",
+        "namespace": "https://github.com/rfordatascience/tidytuesday/tree/f4d1b35ca09d8c0d875451635daef9179adfc9e0"
+      }
+    ],
+    "job": {
+      "name": "crossref-transform",
+      "namespace": "urn:ordivon:data-lifecycle:github-pilot-r1"
+    },
+    "outputs": [
+      {
+        "name": "crossref-member-participation.parquet@sha256:e46ac005911a8d6b17214d1bd4cce82e28cf00ee1b9bd69cdcb25b54f63f4a8e",
+        "namespace": "urn:ordivon:data-lifecycle:github-pilot-r1"
+      },
+      {
+        "name": "crossref-metadata-coverage.parquet@sha256:5f05a22f1edb829b1cdeb7faaf6ea1fbffab596b7c70b6550d182576d4206e6b",
+        "namespace": "urn:ordivon:data-lifecycle:github-pilot-r1"
+      }
+    ],
+    "producer": "urn:ordivon:data-lifecycle:github-pilot-r1",
+    "run": {
+      "runId": "48cf5e29-4809-5a9b-b68c-c685f28f5182"
+    },
+    "schemaURL": "https://openlineage.io/spec/2-0-2/OpenLineage.json#/$defs/RunEvent"
+  }
+]

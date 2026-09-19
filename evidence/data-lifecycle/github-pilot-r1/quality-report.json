@@ -1,0 +1,40 @@
+{
+  "datasets": {
+    "crossref-member-participation": {
+      "columns": 23,
+      "depositCountExceedsTotalMembersRows": 0,
+      "duplicatePrimaryKeyRows": 0,
+      "nullPrimaryKeyRows": 0,
+      "parquetSha256": "e46ac005911a8d6b17214d1bd4cce82e28cf00ee1b9bd69cdcb25b54f63f4a8e",
+      "rows": 6001,
+      "sourceSha256": "0f220075cedec9443c1a7343771cff7cce1c3892d6e0717f7e6fecbcdb0ad2af"
+    },
+    "crossref-metadata-coverage": {
+      "columns": 50,
+      "duplicatePrimaryKeyRows": 0,
+      "nullPrimaryKeyRows": 0,
+      "parquetSha256": "5f05a22f1edb829b1cdeb7faaf6ea1fbffab596b7c70b6550d182576d4206e6b",
+      "rows": 53820,
+      "sourceSha256": "2e37a30acc28f47bf724ca1038fbe840ab1be84cd66790ae69aa62a6731f0ad4",
+      "withMetricExceedsNDoisRows": 0
+    },
+    "se4all-energy": {
+      "boundedPercentageOutsideToleranceRows": 0,
+      "columns": 52,
+      "duplicatePrimaryKeyRows": 0,
+      "nullPrimaryKeyRows": 0,
+      "observedRangeWarnings": {
+        "access_non_solid_fuel_urban_pop_pct_max": 100.0180988,
+        "note": "Transmission/distribution losses are not constrained by the generic 0-100 percentage rule; bounded proportion-like fields use a 0.1 percentage-point tolerance for source rounding.",
+        "transmission_and_distribution_losses_pct_max": 213.0434783
+      },
+      "parquetSha256": "141fdab942b23cac74c595f8d2618021a74c83f4feb532c9ef4348038d693f91",
+      "rows": 5271,
+      "sourceSha256": "87ad1ef2d9713693c17ab57f9e2d995cf427b6c32a088597877301a15f307f0b"
+    }
+  },
+  "kind": "ordivon.data-lifecycle-quality-report",
+  "schemaVersion": 1,
+  "sourceCommit": "f4d1b35ca09d8c0d875451635daef9179adfc9e0",
+  "standing": "PASS"
+}
