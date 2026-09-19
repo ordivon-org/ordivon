@@ -27,7 +27,9 @@ class McpVersionAuthorityTests(unittest.TestCase):
 
     def test_syntactically_valid_but_unsupported_date_version_is_rejected(self) -> None:
         self.assertNotIn("2099-12-31", MODERN_PROTOCOL_VERSIONS)
-        with self.assertRaisesRegex(ValueError, "supported modern MCP protocol version"):
+        with self.assertRaisesRegex(
+            ValueError, "supported modern MCP protocol version"
+        ):
             _route_profiles_from_revision_spec(
                 "arev:test",
                 {

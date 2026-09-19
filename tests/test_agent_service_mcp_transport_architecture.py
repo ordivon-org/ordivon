@@ -14,8 +14,12 @@ class McpTransportArchitectureTests(unittest.TestCase):
         self.assertFalse(hasattr(host_board, "HostBoardMcpHttpClient"))
 
     def test_semantic_adapters_do_not_offer_env_bound_transport_factories(self) -> None:
-        self.assertFalse(hasattr(runtime_mcp.RuntimeMcpAdapter, "from_local_runtime_env"))
-        self.assertFalse(hasattr(runtime_mcp.RuntimeMcpArtifactReader, "from_local_runtime_env"))
+        self.assertFalse(
+            hasattr(runtime_mcp.RuntimeMcpAdapter, "from_local_runtime_env")
+        )
+        self.assertFalse(
+            hasattr(runtime_mcp.RuntimeMcpArtifactReader, "from_local_runtime_env")
+        )
         self.assertFalse(hasattr(host_board.HostBoardMcpAdapter, "from_local_host_env"))
 
     def test_semantic_adapters_remain(self) -> None:

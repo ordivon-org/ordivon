@@ -26,7 +26,10 @@ class AgentServiceProviderAdaptersPublicApiTests(unittest.TestCase):
         self.assertFalse(hasattr(agent_service, "EffectLedgerReader"))
         self.assertIs(agent_service.EffectLedgerEffect, EffectLedgerEffect)
         self.assertIs(agent_service.EffectLedgerSnapshot, EffectLedgerSnapshot)
-        self.assertIs(agent_service.EffectLedgerReplaySafetyAdapter, EffectLedgerReplaySafetyAdapter)
+        self.assertIs(
+            agent_service.EffectLedgerReplaySafetyAdapter,
+            EffectLedgerReplaySafetyAdapter,
+        )
         self.assertIs(agent_service.ProviderProtocolError, ProviderProtocolError)
         self.assertIs(agent_service.ProviderRemoteError, ProviderRemoteError)
         self.assertIs(agent_service.QuiescencePending, QuiescencePending)

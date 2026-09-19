@@ -12,13 +12,18 @@ import rfc8785
 
 from agent_service.carriers.agent_automation import _digest
 from agent_service.delivery import _route_profiles_from_revision_spec
-from agent_service.local_effect_readers import BrowserlessTurnEffectCoordinate, _evidence_ref
+from agent_service.local_effect_readers import (
+    BrowserlessTurnEffectCoordinate,
+    _evidence_ref,
+)
 from agent_service.slice1 import ProviderObservation
 from agent_service.transport_credentials import _transport_credential_scheme_coordinate
 
 
 class PlainCarrier:
-    def ensure(self, placement_id: str, agent_instance_id: str, revision_id: str) -> None:
+    def ensure(
+        self, placement_id: str, agent_instance_id: str, revision_id: str
+    ) -> None:
         return None
 
     def retire(self, placement_id: str, agent_instance_id: str) -> None:
@@ -126,7 +131,6 @@ class RFC8785IdentityTests(unittest.TestCase):
             expected,
         )
 
-
     def test_browserless_turn_receipt_verifier_uses_jcs(self) -> None:
         import json
         from agent_service.local_effect_readers import _validate_receipt
@@ -153,6 +157,7 @@ class RFC8785IdentityTests(unittest.TestCase):
             _validate_receipt(json.dumps(receipt, ensure_ascii=False), coordinate),
             receipt,
         )
+
 
 if __name__ == "__main__":
     unittest.main()

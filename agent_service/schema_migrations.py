@@ -237,9 +237,7 @@ def request_identity(db: Database) -> None:
 def transport_protocol_version(db: Database) -> None:
     columns = _column_names(db, "transport_bindings")
     if "protocol_version" not in columns:
-        db.execute(
-            "ALTER TABLE transport_bindings ADD COLUMN protocol_version TEXT"
-        )
+        db.execute("ALTER TABLE transport_bindings ADD COLUMN protocol_version TEXT")
 
 
 def apply_schema_migrations(connection: sqlite3.Connection) -> None:

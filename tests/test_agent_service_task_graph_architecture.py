@@ -18,7 +18,9 @@ class TaskGraphArchitectureTests(unittest.TestCase):
             self.assertTrue(hasattr(service, "task_readiness"))
             self.assertTrue(hasattr(service, "goal_graph_guard"))
 
-    def test_dependency_store_uses_standard_graph_cycle_detection_boundary(self) -> None:
+    def test_dependency_store_uses_standard_graph_cycle_detection_boundary(
+        self,
+    ) -> None:
         self.assertFalse(hasattr(goals.TaskDependencyStore, "_reachable"))
 
         with tempfile.TemporaryDirectory() as td:

@@ -14,7 +14,9 @@ class AgentServiceEvidencePublicApiTests(unittest.TestCase):
         self.assertFalse(hasattr(agent_service, "RuntimeArtifactReader"))
         self.assertIs(agent_service.RuntimeMcpArtifactReader, RuntimeMcpArtifactReader)
         self.assertIs(agent_service.VerificationRecord, VerificationRecord)
-        self.assertIs(agent_service.RuntimeArtifactDescriptor, RuntimeArtifactDescriptor)
+        self.assertIs(
+            agent_service.RuntimeArtifactDescriptor, RuntimeArtifactDescriptor
+        )
 
 
 if __name__ == "__main__":

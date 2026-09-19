@@ -25,6 +25,7 @@ DEFAULT_PORT = 8894
 DEFAULT_TOKEN_FILE = Path("/etc/ordivon/agent-service-mcp.token")
 DEFAULT_BODY_LIMIT = 1_048_576
 
+
 @dataclass(frozen=True, slots=True)
 class McpSettings:
     token_file: Path = DEFAULT_TOKEN_FILE
@@ -53,18 +54,26 @@ class McpSettings:
 
 def _read_token(path: Path) -> str:
     if path.is_symlink() or not path.is_file():
-        raise RuntimeError("Agent Service MCP token must be one regular non-symlink file")
+        raise RuntimeError(
+            "Agent Service MCP token must be one regular non-symlink file"
+        )
     mode = stat.S_IMODE(path.stat().st_mode)
     if mode & 0o077:
-        raise RuntimeError("Agent Service MCP token file must have no group/other permission bits")
+        raise RuntimeError(
+            "Agent Service MCP token file must have no group/other permission bits"
+        )
     value = path.read_text(encoding="utf-8").strip()
     if len(value) < 32 or any(ch.isspace() for ch in value):
-        raise RuntimeError("Agent Service MCP token must be at least 32 non-whitespace characters")
+        raise RuntimeError(
+            "Agent Service MCP token must be at least 32 non-whitespace characters"
+        )
     return value
 
 
 def _contract() -> dict[str, Any]:
-    from agent_service import open_agent_service  # local source import; no service instance is created
+    from agent_service import (
+        open_agent_service,
+    )  # local source import; no service instance is created
 
     return {
         "schemaVersion": 1,
@@ -98,13 +107,22 @@ async def _drain(receive, *, max_bytes: int) -> bool:
             return True
 
 
-async def _problem(send, status: int, detail: str, *, authenticate: bool = False) -> None:
+async def _problem(
+    send, status: int, detail: str, *, authenticate: bool = False
+) -> None:
     raw = json.dumps(
-        {"type": "about:blank", "title": "Unauthorized" if status == 401 else "Content Too Large",
-         "status": status, "detail": detail[:1000]},
+        {
+            "type": "about:blank",
+            "title": "Unauthorized" if status == 401 else "Content Too Large",
+            "status": status,
+            "detail": detail[:1000],
+        },
         separators=(",", ":"),
     ).encode()
-    headers = [(b"content-type", b"application/problem+json"), (b"content-length", str(len(raw)).encode())]
+    headers = [
+        (b"content-type", b"application/problem+json"),
+        (b"content-length", str(len(raw)).encode()),
+    ]
     if authenticate:
         headers.append((b"www-authenticate", b"Bearer"))
     await send({"type": "http.response.start", "status": status, "headers": headers})
@@ -127,14 +145,20 @@ class BearerAuthApp:
                 break
         if not hmac.compare_digest(authorization, self.expected):
             if not await _drain(receive, max_bytes=self.body_limit_bytes):
-                return await _problem(send, 413, "Request body exceeds the configured limit.")
-            return await _problem(send, 401, "A valid Bearer credential is required.", authenticate=True)
+                return await _problem(
+                    send, 413, "Request body exceeds the configured limit."
+                )
+            return await _problem(
+                send, 401, "A valid Bearer credential is required.", authenticate=True
+            )
         return await self.app(scope, receive, send)
 
 
 def _result(value: dict[str, Any]) -> CallToolResult:
     raw = json.dumps(value, sort_keys=True, ensure_ascii=False)
-    return CallToolResult(content=[TextContent(type="text", text=raw)], structuredContent=value)
+    return CallToolResult(
+        content=[TextContent(type="text", text=raw)], structuredContent=value
+    )
 
 
 def build_server(settings: McpSettings) -> MCPServer:
@@ -151,30 +175,53 @@ def build_server(settings: McpSettings) -> MCPServer:
         version="1",
         log_level=settings.log_level,
     )
-    ro = ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False)
+    ro = ToolAnnotations(
+        readOnlyHint=True,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=False,
+    )
 
-    @server.tool(name="service.doctor", title="Qualify Agent Service canary", annotations=ro)
+    @server.tool(
+        name="service.doctor", title="Qualify Agent Service canary", annotations=ro
+    )
     def service_doctor() -> CallToolResult:
         value = _contract()
-        value.update({"healthy": True, "endpoint": settings.endpoint, "deploymentMode": "READ_ONLY_CANARY"})
+        value.update(
+            {
+                "healthy": True,
+                "endpoint": settings.endpoint,
+                "deploymentMode": "READ_ONLY_CANARY",
+            }
+        )
         return _result(value)
 
-    @server.tool(name="service.contract", title="Read Agent Service authority contract", annotations=ro)
+    @server.tool(
+        name="service.contract",
+        title="Read Agent Service authority contract",
+        annotations=ro,
+    )
     def service_contract() -> CallToolResult:
         return _result(dict(contract))
 
-    @server.tool(name="deployment.snapshot", title="Read deployment canary surface", annotations=ro)
+    @server.tool(
+        name="deployment.snapshot",
+        title="Read deployment canary surface",
+        annotations=ro,
+    )
     def deployment_snapshot() -> CallToolResult:
-        return _result({
-            "schemaVersion": 1,
-            "kind": "ordivon.agent-service-deployment-snapshot",
-            "mode": "READ_ONLY_CANARY",
-            "endpoint": settings.endpoint,
-            "toolCount": 3,
-            "writeSurfaceEnabled": False,
-            "providerEffectSurfaceEnabled": False,
-            "productionDeployment": "NOT_ADMITTED",
-        })
+        return _result(
+            {
+                "schemaVersion": 1,
+                "kind": "ordivon.agent-service-deployment-snapshot",
+                "mode": "READ_ONLY_CANARY",
+                "endpoint": settings.endpoint,
+                "toolCount": 3,
+                "writeSurfaceEnabled": False,
+                "providerEffectSurfaceEnabled": False,
+                "productionDeployment": "NOT_ADMITTED",
+            }
+        )
 
     return server
 
@@ -205,7 +252,13 @@ def run(settings: McpSettings) -> None:
     app = build_app(settings, token)
     import uvicorn
 
-    uvicorn.run(app, host=settings.bind_host, port=settings.port, log_level=settings.log_level.lower(), access_log=False)
+    uvicorn.run(
+        app,
+        host=settings.bind_host,
+        port=settings.port,
+        log_level=settings.log_level.lower(),
+        access_log=False,
+    )
 
 
 def _parser() -> argparse.ArgumentParser:

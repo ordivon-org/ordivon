@@ -41,7 +41,9 @@ def audit() -> list[str]:
     growth = profile.get("growthRatchets", {})
     for relative in growth.get("forbiddenLocalMethodInfrastructure", []):
         if (ROOT / relative).exists():
-            problems.append(f"retired local method infrastructure reappeared: {relative}")
+            problems.append(
+                f"retired local method infrastructure reappeared: {relative}"
+            )
 
     forbidden_method_refs = growth.get("forbiddenMethodAdapterReferences", [])
     skills_root = ROOT / ".agents" / "skills"
@@ -55,7 +57,9 @@ def audit() -> list[str]:
 
     for relative in growth.get("forbiddenLocalPlanningInfrastructure", []):
         if (ROOT / relative).exists():
-            problems.append(f"retired local planning infrastructure reappeared: {relative}")
+            problems.append(
+                f"retired local planning infrastructure reappeared: {relative}"
+            )
 
     return problems
 

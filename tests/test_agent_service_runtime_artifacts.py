@@ -49,7 +49,10 @@ class RuntimeArtifactTests(unittest.TestCase):
         observation = RuntimeMcpAdapter(caller).observe("job-1")
 
         self.assertEqual(
-            [(item.artifact_id, item.kind) for item in observation.artifact_descriptors],
+            [
+                (item.artifact_id, item.kind)
+                for item in observation.artifact_descriptors
+            ],
             [("attempt.stdout", "stdout"), ("attempt.result", "execution_result")],
         )
 
@@ -79,13 +82,15 @@ class RuntimeArtifactTests(unittest.TestCase):
             ]
         )
 
-        payload = RuntimeMcpArtifactReader(caller, chunk_bytes=8, max_total_bytes=1024).read(
-            "job-1", "a.stdout"
-        )
+        payload = RuntimeMcpArtifactReader(
+            caller, chunk_bytes=8, max_total_bytes=1024
+        ).read("job-1", "a.stdout")
 
         self.assertEqual(payload.content, content)
         self.assertEqual(payload.digest, expected)
-        self.assertEqual([call[0] for call in caller.calls], ["artifact.read", "artifact.read"])
+        self.assertEqual(
+            [call[0] for call in caller.calls], ["artifact.read", "artifact.read"]
+        )
         self.assertEqual(caller.calls[1][1]["offset"], len("alpha ".encode("utf-8")))
 
     def test_artifact_reader_rejects_digest_change_between_chunks(self) -> None:

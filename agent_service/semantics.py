@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from typing import Any
 
 
-
 def _now_ns() -> int:
     return time.time_ns()
 
@@ -44,18 +43,25 @@ class AgentIdentityStore:
     def __init__(self, connection: sqlite3.Connection) -> None:
         self._connection = connection
 
-    def create(self, definition_id: str, *, stable_name: str, description: str) -> AgentIdentity:
+    def create(
+        self, definition_id: str, *, stable_name: str, description: str
+    ) -> AgentIdentity:
         if not stable_name.strip() or not description.strip():
             raise ValueError("Agent identity name and description must be non-empty")
-        if self._connection.execute(
-            "SELECT 1 FROM agent_definitions WHERE id = ?", (definition_id,)
-        ).fetchone() is None:
+        if (
+            self._connection.execute(
+                "SELECT 1 FROM agent_definitions WHERE id = ?", (definition_id,)
+            ).fetchone()
+            is None
+        ):
             raise KeyError(definition_id)
         existing = self.get_for_definition(definition_id, required=False)
         candidate = (stable_name.strip(), description.strip())
         if existing is not None:
             if (existing.stable_name, existing.description) != candidate:
-                raise ValueError("AgentDefinition identity already exists with different semantics")
+                raise ValueError(
+                    "AgentDefinition identity already exists with different semantics"
+                )
             return existing
         value = AgentIdentity(
             id=_id("aid"),
@@ -68,11 +74,20 @@ class AgentIdentityStore:
             with self._connection:
                 self._connection.execute(
                     "INSERT INTO agent_identities(id, definition_id, stable_name, description, created_at_ns) VALUES (?, ?, ?, ?, ?)",
-                    (value.id, value.definition_id, value.stable_name, value.description, value.created_at_ns),
+                    (
+                        value.id,
+                        value.definition_id,
+                        value.stable_name,
+                        value.description,
+                        value.created_at_ns,
+                    ),
                 )
         except sqlite3.IntegrityError:
             existing = self.get_for_definition(definition_id, required=False)
-            if existing is None or (existing.stable_name, existing.description) != candidate:
+            if (
+                existing is None
+                or (existing.stable_name, existing.description) != candidate
+            ):
                 raise
             return existing
         return value
@@ -86,7 +101,9 @@ class AgentIdentityStore:
             raise KeyError(identity_id)
         return self._from_row(row)
 
-    def get_for_definition(self, definition_id: str, required: bool = True) -> AgentIdentity | None:
+    def get_for_definition(
+        self, definition_id: str, required: bool = True
+    ) -> AgentIdentity | None:
         row = self._connection.execute(
             "SELECT id, definition_id, stable_name, description, created_at_ns FROM agent_identities WHERE definition_id = ?",
             (definition_id,),
@@ -112,14 +129,18 @@ def _agent_skills_from_revision_spec(spec: dict[str, Any]) -> list[dict[str, Any
     """Validate and return A2A AgentSkill values embedded in an immutable revision spec."""
     raw = spec.get("skills", [])
     if not isinstance(raw, list):
-        raise ValueError("AgentRevision skills must be an array of A2A AgentSkill objects")
+        raise ValueError(
+            "AgentRevision skills must be an array of A2A AgentSkill objects"
+        )
 
     skills: list[dict[str, Any]] = []
     seen_ids: set[str] = set()
     for item in raw:
         if not isinstance(item, dict):
             raise ValueError("AgentRevision skill must be an object")
-        normalized = json.loads(json.dumps(item, sort_keys=True, separators=(",", ":"), ensure_ascii=False))
+        normalized = json.loads(
+            json.dumps(item, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+        )
         for field in ("id", "name", "description"):
             value = normalized.get(field)
             if not isinstance(value, str) or not value.strip():
@@ -170,7 +191,9 @@ class SemanticSession:
 class SessionStore:
     """N07: semantic continuity identity independent of transport connections."""
 
-    def __init__(self, connection: sqlite3.Connection, identities: AgentIdentityStore) -> None:
+    def __init__(
+        self, connection: sqlite3.Connection, identities: AgentIdentityStore
+    ) -> None:
         self._connection = connection
         self._identities = identities
 
@@ -184,14 +207,23 @@ class SessionStore:
         if not client_session_id.strip():
             raise ValueError("client_session_id must be non-empty")
         self._identities.get(initiator_identity_id)
-        if goal_id is not None and self._connection.execute(
-            "SELECT 1 FROM service_goals WHERE id = ?", (goal_id,)
-        ).fetchone() is None:
+        if (
+            goal_id is not None
+            and self._connection.execute(
+                "SELECT 1 FROM service_goals WHERE id = ?", (goal_id,)
+            ).fetchone()
+            is None
+        ):
             raise KeyError(goal_id)
         existing = self.get_by_client_id(client_session_id, required=False)
         if existing is not None:
-            if (existing.initiator_identity_id, existing.goal_id) != (initiator_identity_id, goal_id):
-                raise ValueError("client_session_id already bound to different semantics")
+            if (existing.initiator_identity_id, existing.goal_id) != (
+                initiator_identity_id,
+                goal_id,
+            ):
+                raise ValueError(
+                    "client_session_id already bound to different semantics"
+                )
             return existing
         value = SemanticSession(
             id=_id("sess"),
@@ -205,7 +237,13 @@ class SessionStore:
         with self._connection:
             self._connection.execute(
                 "INSERT INTO semantic_sessions(id, client_session_id, initiator_identity_id, goal_id, state, created_at_ns, closed_at_ns) VALUES (?, ?, ?, ?, 'OPEN', ?, NULL)",
-                (value.id, value.client_session_id, value.initiator_identity_id, value.goal_id, value.created_at_ns),
+                (
+                    value.id,
+                    value.client_session_id,
+                    value.initiator_identity_id,
+                    value.goal_id,
+                    value.created_at_ns,
+                ),
             )
         return value
 
@@ -217,9 +255,12 @@ class SessionStore:
             raise KeyError(session_id)
         return self._from_row(row)
 
-    def get_by_client_id(self, client_session_id: str, required: bool = True) -> SemanticSession | None:
+    def get_by_client_id(
+        self, client_session_id: str, required: bool = True
+    ) -> SemanticSession | None:
         row = self._connection.execute(
-            "SELECT * FROM semantic_sessions WHERE client_session_id = ?", (client_session_id,)
+            "SELECT * FROM semantic_sessions WHERE client_session_id = ?",
+            (client_session_id,),
         ).fetchone()
         if row is None:
             if required:
@@ -288,7 +329,11 @@ class SessionItemStore:
         if not client_item_id.strip() or not isinstance(content, dict):
             raise ValueError("session item requires client_item_id and object content")
         existing = self.get_by_client_id(session_id, client_item_id, required=False)
-        candidate_content = json.loads(json.dumps(content, sort_keys=True, separators=(",", ":"), ensure_ascii=False))
+        candidate_content = json.loads(
+            json.dumps(
+                content, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+            )
+        )
         if existing is not None:
             if (
                 existing.role,
@@ -325,7 +370,12 @@ class SessionItemStore:
                     value.client_item_id,
                     value.sequence,
                     value.role,
-                    json.dumps(value.content, sort_keys=True, separators=(",", ":"), ensure_ascii=False),
+                    json.dumps(
+                        value.content,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                        ensure_ascii=False,
+                    ),
                     value.producer_identity_id,
                     value.created_at_ns,
                 ),
@@ -416,8 +466,19 @@ class DelegationEnvelopeStore:
             raise ValueError("delegation ids/capability must be non-empty")
         if not isinstance(payload, dict) or not isinstance(evidence_contract, dict):
             raise ValueError("delegation payload/evidence_contract must be objects")
-        normalized_payload = json.loads(json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False))
-        normalized_evidence = json.loads(json.dumps(evidence_contract, sort_keys=True, separators=(",", ":"), ensure_ascii=False))
+        normalized_payload = json.loads(
+            json.dumps(
+                payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+            )
+        )
+        normalized_evidence = json.loads(
+            json.dumps(
+                evidence_contract,
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=False,
+            )
+        )
         existing = self.get_by_client_id(client_delegation_id, required=False)
         candidate = (
             session_id,
@@ -452,15 +513,22 @@ class DelegationEnvelopeStore:
         source_identity = self._identities.get(source_identity_id)
         target_identity = self._identities.get(target_identity_id)
         instance = self._connection.execute(
-            "SELECT revision_id FROM agent_instances WHERE id = ?", (source_instance_id,)
+            "SELECT revision_id FROM agent_instances WHERE id = ?",
+            (source_instance_id,),
         ).fetchone()
         if instance is None:
             raise KeyError(source_instance_id)
         source_revision = self._connection.execute(
-            "SELECT definition_id FROM agent_revisions WHERE id = ?", (instance["revision_id"],)
+            "SELECT definition_id FROM agent_revisions WHERE id = ?",
+            (instance["revision_id"],),
         ).fetchone()
-        if source_revision is None or source_revision["definition_id"] != source_identity.definition_id:
-            raise ValueError("source AgentInstance does not belong to source AgentIdentity")
+        if (
+            source_revision is None
+            or source_revision["definition_id"] != source_identity.definition_id
+        ):
+            raise ValueError(
+                "source AgentInstance does not belong to source AgentIdentity"
+            )
         target_revision = self._connection.execute(
             "SELECT definition_id, spec_json FROM agent_revisions WHERE id = ?",
             (target_revision_id,),
@@ -469,9 +537,12 @@ class DelegationEnvelopeStore:
             raise KeyError(target_revision_id)
         if target_revision["definition_id"] != target_identity.definition_id:
             raise ValueError("target revision does not belong to target AgentIdentity")
-        if self._connection.execute(
-            "SELECT 1 FROM service_tasks WHERE id = ?", (task_id,)
-        ).fetchone() is None:
+        if (
+            self._connection.execute(
+                "SELECT 1 FROM service_tasks WHERE id = ?", (task_id,)
+            ).fetchone()
+            is None
+        ):
             raise KeyError(task_id)
         _agent_skill_by_id(
             json.loads(target_revision["spec_json"]),
@@ -509,8 +580,18 @@ class DelegationEnvelopeStore:
                     value.target_revision_id,
                     value.task_id,
                     value.capability_key,
-                    json.dumps(value.payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False),
-                    json.dumps(value.evidence_contract, sort_keys=True, separators=(",", ":"), ensure_ascii=False),
+                    json.dumps(
+                        value.payload,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                        ensure_ascii=False,
+                    ),
+                    json.dumps(
+                        value.evidence_contract,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                        ensure_ascii=False,
+                    ),
                     value.created_at_ns,
                 ),
             )
@@ -598,7 +679,8 @@ class A2AAgentCardProjector:
     ) -> dict[str, Any]:
         identity = self._identities.get(identity_id)
         revision = self._connection.execute(
-            "SELECT definition_id, spec_json FROM agent_revisions WHERE id = ?", (revision_id,)
+            "SELECT definition_id, spec_json FROM agent_revisions WHERE id = ?",
+            (revision_id,),
         ).fetchone()
         if revision is None:
             raise KeyError(revision_id)
@@ -667,8 +749,7 @@ class A2AAgentCardProjector:
                     **(
                         {
                             "inputModes": [
-                                self._media_type(mode)
-                                for mode in skill["inputModes"]
+                                self._media_type(mode) for mode in skill["inputModes"]
                             ]
                         }
                         if "inputModes" in skill
@@ -677,8 +758,7 @@ class A2AAgentCardProjector:
                     **(
                         {
                             "outputModes": [
-                                self._media_type(mode)
-                                for mode in skill["outputModes"]
+                                self._media_type(mode) for mode in skill["outputModes"]
                             ]
                         }
                         if "outputModes" in skill

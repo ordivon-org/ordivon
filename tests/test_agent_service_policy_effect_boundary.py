@@ -17,7 +17,9 @@ class PolicyEffectBoundaryTests(unittest.TestCase):
         fields = set(delivery.TransportBinding.__dataclass_fields__)
         self.assertNotIn("policy_decision_id", fields)
         self.assertTrue(
-            {"policy_receipt_id", "policy_revision", "granted_permissions"}.issubset(fields)
+            {"policy_receipt_id", "policy_revision", "granted_permissions"}.issubset(
+                fields
+            )
         )
 
     def test_effect_delivery_guard_owns_current_policy_boundary(self) -> None:

@@ -20,7 +20,9 @@ class AgentServiceTrustPublicApiTests(unittest.TestCase):
         self.assertIs(agent_service.IdentityProofCoordinator, IdentityProofCoordinator)
         self.assertFalse(hasattr(agent_service, "RemoteDeliveryObserver"))
         self.assertFalse(hasattr(agent_service, "RemoteDeliveryObservationStore"))
-        self.assertIs(agent_service.RemoteCorrelationReconciler, RemoteCorrelationReconciler)
+        self.assertIs(
+            agent_service.RemoteCorrelationReconciler, RemoteCorrelationReconciler
+        )
         self.assertIs(agent_service.AuditEnvelopeProjector, AuditEnvelopeProjector)
 
 

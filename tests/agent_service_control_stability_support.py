@@ -10,7 +10,11 @@ from unittest.mock import patch
 from agent_service import open_agent_service
 from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
-from agent_service.trust import RemoteProviderObservation, _remote_delivery_observation_list_for_binding, _remote_delivery_observation_record
+from agent_service.trust import (
+    RemoteProviderObservation,
+    _remote_delivery_observation_list_for_binding,
+    _remote_delivery_observation_record,
+)
 
 from tests.test_agent_service_failover import (
     AllowPolicy,
@@ -19,12 +23,17 @@ from tests.test_agent_service_failover import (
     RecordingQuiescenceAdapter,
     RecordingReplaySafetyAdapter,
 )
-from tests.test_agent_service_interface_credentials import MaterialProvider, ProofAdapter
+from tests.test_agent_service_interface_credentials import (
+    MaterialProvider,
+    ProofAdapter,
+)
 from tests.test_agent_service_provider_adapters import DynamicNoEffectsReader
 
 
 class ReadyCarrier:
-    def ensure(self, placement_id: str, agent_instance_id: str, revision_id: str) -> None:
+    def ensure(
+        self, placement_id: str, agent_instance_id: str, revision_id: str
+    ) -> None:
         return None
 
     def retire(self, placement_id: str, agent_instance_id: str) -> None:
@@ -45,7 +54,9 @@ class SequenceCarrier:
         self.retire_calls = 0
         self.observe_calls = 0
 
-    def ensure(self, placement_id: str, agent_instance_id: str, revision_id: str) -> None:
+    def ensure(
+        self, placement_id: str, agent_instance_id: str, revision_id: str
+    ) -> None:
         self.ensure_calls += 1
 
     def retire(self, placement_id: str, agent_instance_id: str) -> None:
@@ -68,7 +79,9 @@ class WorkingRuntime:
         self.submit_calls: list[str] = []
         self.external_jobs: list[str] = []
 
-    def submit(self, client_request_id: str, execution: dict[str, Any]) -> RuntimeJobRef:
+    def submit(
+        self, client_request_id: str, execution: dict[str, Any]
+    ) -> RuntimeJobRef:
         self.submit_calls.append(client_request_id)
         job_id = f"job:{client_request_id}"
         if job_id not in self.external_jobs:
@@ -96,7 +109,9 @@ class ResponseLossRuntime(WorkingRuntime):
         self._committed_by_request: dict[str, str] = {}
         self._counter = 0
 
-    def submit(self, client_request_id: str, execution: dict[str, Any]) -> RuntimeJobRef:
+    def submit(
+        self, client_request_id: str, execution: dict[str, Any]
+    ) -> RuntimeJobRef:
         self.submit_calls.append(client_request_id)
         if self.idempotent and client_request_id in self._committed_by_request:
             return RuntimeJobRef(job_id=self._committed_by_request[client_request_id])
@@ -109,7 +124,9 @@ class ResponseLossRuntime(WorkingRuntime):
 
         if not self._failed_once:
             self._failed_once = True
-            raise TimeoutError("simulated response loss after external Runtime admission")
+            raise TimeoutError(
+                "simulated response loss after external Runtime admission"
+            )
         return RuntimeJobRef(job_id=job_id)
 
 
@@ -304,7 +321,9 @@ def _remote_setup(
     }
 
 
-def _credential_bind(service: Any, source_identity: Any, binding: Any) -> tuple[Any, Any]:
+def _credential_bind(
+    service: Any, source_identity: Any, binding: Any
+) -> tuple[Any, Any]:
     credential = service.credential_references.register(
         client_reference_id=f"stability:cred:{binding.id}",
         provider="vault",
@@ -491,7 +510,8 @@ def _scenario_credential_expiry() -> dict[str, Any]:
                     blocked = True
             return {
                 "classification": "FAIL_CLOSED",
-                "firstHeaderResolved": first.get("Authorization") == "Bearer stability-secret",
+                "firstHeaderResolved": first.get("Authorization")
+                == "Bearer stability-secret",
                 "secondCallBlocked": blocked,
                 "materialProviderCalls": material_provider.calls,
                 "interpretation": (
@@ -560,16 +580,28 @@ def _scenario_failover_exact_replay(*, same_hostname: bool = False) -> dict[str,
             fallback = setup["fallback"]
             service.delivery.deliver(primary.id)
             first = service.failover.failover(
-                client_failover_request_id="stability:failover:shared" if same_hostname else "stability:failover:replay",
-                client_quiescence_request_id="stability:q:shared" if same_hostname else "stability:q:replay",
-                client_replay_safety_request_id="stability:r:shared" if same_hostname else "stability:r:replay",
+                client_failover_request_id="stability:failover:shared"
+                if same_hostname
+                else "stability:failover:replay",
+                client_quiescence_request_id="stability:q:shared"
+                if same_hostname
+                else "stability:q:replay",
+                client_replay_safety_request_id="stability:r:shared"
+                if same_hostname
+                else "stability:r:replay",
                 from_binding_id=primary.id,
                 to_binding_id=fallback.id,
             )
             second = service.failover.failover(
-                client_failover_request_id="stability:failover:shared" if same_hostname else "stability:failover:replay",
-                client_quiescence_request_id="stability:q:shared" if same_hostname else "stability:q:replay",
-                client_replay_safety_request_id="stability:r:shared" if same_hostname else "stability:r:replay",
+                client_failover_request_id="stability:failover:shared"
+                if same_hostname
+                else "stability:failover:replay",
+                client_quiescence_request_id="stability:q:shared"
+                if same_hostname
+                else "stability:q:replay",
+                client_replay_safety_request_id="stability:r:shared"
+                if same_hostname
+                else "stability:r:replay",
                 from_binding_id=primary.id,
                 to_binding_id=fallback.id,
             )
@@ -585,7 +617,11 @@ def _scenario_failover_exact_replay(*, same_hostname: bool = False) -> dict[str,
                     "transferAdmitted": first.to_binding_id == fallback.id,
                     "failureDomainModeled": any(
                         name in fields
-                        for name in ("failure_domain_id", "failure_domain", "failure_domains")
+                        for name in (
+                            "failure_domain_id",
+                            "failure_domain",
+                            "failure_domains",
+                        )
                     ),
                     "claimTransferredToFallback": (
                         service.execution_claims.get(task.id).owner_id == fallback.id
@@ -664,10 +700,14 @@ def _scenario_remote_success_then_failure() -> dict[str, Any]:
                 )
             except RuntimeError:
                 blocked = True
-            history = _remote_delivery_observation_list_for_binding(service.events, primary.id)
+            history = _remote_delivery_observation_list_for_binding(
+                service.events, primary.id
+            )
             return {
                 "classification": "FAIL_CLOSED",
-                "historicalSuccessPresent": any(x.terminal and x.successful is True for x in history),
+                "historicalSuccessPresent": any(
+                    x.terminal and x.successful is True for x in history
+                ),
                 "failoverBlocked": blocked,
                 "quiescenceCalls": len(quiescence.calls),
                 "replaySafetyCalls": len(replay.calls),
@@ -684,12 +724,20 @@ def run_experiments() -> dict[str, Any]:
     scenarios = {
         "S1_PLACEMENT_FLAP": _scenario_placement_flap(),
         "S2_STALE_PLACEMENT_OBSERVATION": _scenario_stale_placement_observation(),
-        "S3_RUNTIME_RESPONSE_LOSS_IDEMPOTENT": _scenario_runtime_response_loss(idempotent=True),
-        "S4_RUNTIME_RESPONSE_LOSS_NONIDEMPOTENT": _scenario_runtime_response_loss(idempotent=False),
+        "S3_RUNTIME_RESPONSE_LOSS_IDEMPOTENT": _scenario_runtime_response_loss(
+            idempotent=True
+        ),
+        "S4_RUNTIME_RESPONSE_LOSS_NONIDEMPOTENT": _scenario_runtime_response_loss(
+            idempotent=False
+        ),
         "S5_CREDENTIAL_EXPIRES_BETWEEN_CALLS": _scenario_credential_expiry(),
         "S6_SINGLE_OWNER_BLOCKS_REMOTE_OVERLAP": _scenario_single_owner_blocks_remote_overlap(),
-        "S7_FAILOVER_EXACT_REPLAY": _scenario_failover_exact_replay(same_hostname=False),
-        "S8_SHARED_FAILURE_DOMAIN_FALLBACK": _scenario_failover_exact_replay(same_hostname=True),
+        "S7_FAILOVER_EXACT_REPLAY": _scenario_failover_exact_replay(
+            same_hostname=False
+        ),
+        "S8_SHARED_FAILURE_DOMAIN_FALLBACK": _scenario_failover_exact_replay(
+            same_hostname=True
+        ),
         "S9_REMOTE_SUCCESS_THEN_FAILURE": _scenario_remote_success_then_failure(),
     }
     counts: dict[str, int] = {}
@@ -703,5 +751,3 @@ def run_experiments() -> dict[str, Any]:
         "classificationCounts": dict(sorted(counts.items())),
         "scenarios": scenarios,
     }
-
-

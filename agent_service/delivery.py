@@ -100,8 +100,7 @@ def _route_profiles_from_revision_spec(
             "securityRequirements": normalized_security,
         }
         profile = {
-            "profileId": "iface_"
-            + hashlib.sha256(rfc8785.dumps(material)).hexdigest(),
+            "profileId": "iface_" + hashlib.sha256(rfc8785.dumps(material)).hexdigest(),
             "transport": normalized_transport,
             "protocolVersion": normalized_protocol_version,
             "url": normalized_url,
@@ -171,7 +170,9 @@ def _evaluate_policy_receipt(
             raise RuntimeError("policy evaluation receipt stream is malformed")
         event = historical[0]
         if event.payload.get("delegationId") != delegation_id:
-            raise ValueError("policy request identity already bound to different delegation")
+            raise ValueError(
+                "policy request identity already bound to different delegation"
+            )
         return event
 
     if adapter is None:
@@ -255,11 +256,16 @@ class TransportBindingStore:
         granted_permissions: tuple[str, ...],
         interface: dict[str, Any],
     ) -> TransportBinding:
-        if not isinstance(interface["protocolVersion"], str) or not interface["protocolVersion"]:
+        if (
+            not isinstance(interface["protocolVersion"], str)
+            or not interface["protocolVersion"]
+        ):
             raise RuntimeError(
                 "legacy interface advertisement lacks protocol_version; explicit re-advertisement is required"
             )
-        material = f"{delegation_id}\0{policy_receipt_id}\0{interface['profileId']}\0{interface['protocolVersion']}".encode("utf-8")
+        material = f"{delegation_id}\0{policy_receipt_id}\0{interface['profileId']}\0{interface['protocolVersion']}".encode(
+            "utf-8"
+        )
         binding_id = "bind_" + hashlib.sha256(material).hexdigest()
         try:
             existing = self.get(binding_id)
@@ -289,9 +295,13 @@ class TransportBindingStore:
                 existing.security_requirements,
             )
             if historical != candidate:
-                raise RuntimeError("content-addressed TransportBinding identity collision")
+                raise RuntimeError(
+                    "content-addressed TransportBinding identity collision"
+                )
             return existing
-        delivery_request_id = "delivery:" + hashlib.sha256(binding_id.encode("utf-8")).hexdigest()
+        delivery_request_id = (
+            "delivery:" + hashlib.sha256(binding_id.encode("utf-8")).hexdigest()
+        )
         value = TransportBinding(
             id=binding_id,
             delegation_id=delegation_id,
@@ -321,13 +331,23 @@ class TransportBindingStore:
                         value.delegation_id,
                         value.policy_receipt_id,
                         value.policy_revision,
-                        json.dumps(list(value.granted_permissions), sort_keys=True, separators=(",", ":"), ensure_ascii=False),
+                        json.dumps(
+                            list(value.granted_permissions),
+                            sort_keys=True,
+                            separators=(",", ":"),
+                            ensure_ascii=False,
+                        ),
                         value.interface_id,
                         value.transport,
                         value.protocol_version,
                         value.endpoint,
                         value.delivery_request_id,
-                        json.dumps(value.security_requirements, sort_keys=True, separators=(",", ":"), ensure_ascii=False),
+                        json.dumps(
+                            value.security_requirements,
+                            sort_keys=True,
+                            separators=(",", ":"),
+                            ensure_ascii=False,
+                        ),
                         value.created_at_ns,
                     ),
                 )
@@ -411,12 +431,17 @@ class DelegationRoutePlanner:
             client_policy_request_id=client_policy_request_id,
             delegation_id=envelope.id,
         )
-        if receipt.aggregate_type != "PolicyEvaluation" or receipt.event_type != "PolicyEvaluated":
+        if (
+            receipt.aggregate_type != "PolicyEvaluation"
+            or receipt.event_type != "PolicyEvaluated"
+        ):
             raise ValueError("policy receipt is not a policy evaluation event")
         if receipt.payload.get("delegationId") != envelope.id:
             raise ValueError("policy receipt belongs to different DelegationEnvelope")
         if not bool(receipt.payload.get("allowed")):
-            raise PermissionError(receipt.payload.get("reason") or "delegation denied by policy")
+            raise PermissionError(
+                receipt.payload.get("reason") or "delegation denied by policy"
+            )
         policy_revision = receipt.payload.get("policyRevision")
         if not isinstance(policy_revision, str) or not policy_revision.strip():
             raise RuntimeError("policy receipt lacks policy revision")
@@ -437,20 +462,32 @@ class DelegationRoutePlanner:
         )
         if not interfaces:
             raise LookupError("target revision declares no route profiles")
-        normalized_preferences = [item.strip() for item in preferred_transports if isinstance(item, str) and item.strip()]
+        normalized_preferences = [
+            item.strip()
+            for item in preferred_transports
+            if isinstance(item, str) and item.strip()
+        ]
         selected: dict[str, Any] | None = None
         for transport in normalized_preferences:
             candidates = [item for item in interfaces if item["transport"] == transport]
             if candidates:
-                selected = sorted(candidates, key=lambda item: (item["priority"], item["profileId"]))[0]
+                selected = sorted(
+                    candidates, key=lambda item: (item["priority"], item["profileId"])
+                )[0]
                 break
         if selected is None and not normalized_preferences:
             selected = sorted(
                 interfaces,
-                key=lambda item: (item["priority"], item["transport"], item["profileId"]),
+                key=lambda item: (
+                    item["priority"],
+                    item["transport"],
+                    item["profileId"],
+                ),
             )[0]
         if selected is None:
-            raise LookupError("none of the preferred transports are advertised by target revision")
+            raise LookupError(
+                "none of the preferred transports are advertised by target revision"
+            )
         return self._bindings.create(
             delegation_id=envelope.id,
             policy_receipt_id=receipt.id,
@@ -472,7 +509,9 @@ class DeliveryObservation:
 def _require_delivery_providers(adapters: dict[str, Any]) -> dict[str, Any]:
     for transport, provider in adapters.items():
         if not isinstance(transport, str) or not transport.strip():
-            raise TypeError("delivery provider transport key must be a non-empty string")
+            raise TypeError(
+                "delivery provider transport key must be a non-empty string"
+            )
         if not callable(getattr(provider, "send", None)):
             raise TypeError(
                 f"delivery provider for {transport!r} must expose callable send()"
@@ -512,7 +551,9 @@ def _delivery_receipt_from_event(event: ServiceEvent) -> DeliveryReceipt:
     )
 
 
-def _delivery_receipt_get(events: ServiceEventStore, receipt_id: str) -> DeliveryReceipt:
+def _delivery_receipt_get(
+    events: ServiceEventStore, receipt_id: str
+) -> DeliveryReceipt:
     return _delivery_receipt_from_event(events.get(receipt_id))
 
 
@@ -544,7 +585,9 @@ def _delivery_receipt_get_by_binding(
             raise KeyError(binding_id)
         return None
     if len(receipts) != 1:
-        raise RuntimeError("delivery receipt stream contains multiple committed receipts")
+        raise RuntimeError(
+            "delivery receipt stream contains multiple committed receipts"
+        )
     return _delivery_receipt_from_event(receipts[0])
 
 
