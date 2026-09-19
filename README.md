@@ -25,8 +25,8 @@ Ordivon does not attempt to re-own mature disciplines, algorithms, tools, workfl
 - profiles and mappings that expose mature human knowledge and capabilities in a common usable form;
 - domain life-cycle profiles;
 - mappings from problem classes to mature methods, standards, algorithms, tools and validators;
-- thin adapters to external execution systems;
-- reusable, evidence-backed compositions;
+- repository-specific semantic/integration code only where a mature external owner does not already own the responsibility;
+- task-local policy, evidence and provider bindings needed to prove real outcomes;
 - migration/disposition records for historical Ordivon components.
 
 ## What this repository does not own
@@ -43,19 +43,23 @@ Ordivon does not attempt to re-own mature disciplines, algorithms, tools, workfl
 
 ```text
 ordivon-next/
-├── docs/            # architecture, terminology, classification, migration rules
-├── schemas/         # minimal common contracts; added only after cross-domain proof
-├── knowledge/       # curated metadata/mappings to human knowledge, not copied world knowledge
-├── authorities/     # lightweight external-authority records, observations and generated discovery index
-├── domains/         # domain life-cycle profiles such as game/research/software
-├── capabilities/    # external capability/provider records and task-local Capability Package inventories
-├── compositions/    # reusable problem -> solution -> validation recipes
-├── adapters/        # thin integration edges to mature external systems
-├── verification/    # acceptance profiles and validator mappings
-├── policies/        # responsibility/authority/risk rules
-├── planning/        # active/prospective plans and temporary migration ratchets only
-├── evidence/        # append-only point-in-time evidence; never runtime configuration
-└── migrations/      # read-only mapping from historical Ordivon to the new model
+├── agent_service/   # irreducible Agent Service semantics and thin provider seams
+├── .agents/skills/  # standard Agent Skills procedures
+├── authorities/     # external-authority records, observations and rebuildable discovery index
+├── capabilities/    # capability/provider routing knowledge and task-local inventories
+├── domains/         # domain-native life-cycle profiles
+├── policies/        # native OPA/Rego policy artifacts where declarative policy is justified
+├── plugins/         # Agent Plugins standard packaging artifacts
+├── systemd/         # provider-native deployment recipe for the read-only canary
+├── tests/           # behavior, integration, architecture and historical-integrity regression tests
+├── scripts/         # current commands/validators only; historical reproducers do not live here
+├── schemas/         # minimal cross-domain contracts after demonstrated reuse
+├── experiments/     # bounded experiments and experiment-owned artifacts
+├── evidence/        # point-in-time observations/receipts; never runtime configuration
+├── planning/        # active/prospective work and explicitly disposable migration ratchets
+├── migrations/      # retirement, cutover and historical disposition records
+├── knowledge/       # reusable knowledge/provenance dependencies, not a construction diary
+└── docs/            # maintained explanatory/reference documentation
 ```
 
 ## Rebuild rule
