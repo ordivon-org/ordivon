@@ -5,7 +5,7 @@ Status: EXPERIMENTAL / READ-ONLY DERIVED OBSERVATION
 
 ## Purpose
 
-R1 adds three small finance-native observation sensors needed by Regime Card without turning LEGO into a forecasting or execution framework:
+R1 adds small finance-native observation and reconciliation calculations without turning descriptive observations into forecasts or execution authority:
 
 1. **Open-interest change** — derives ΔOI over an explicitly bounded ordered window.
 2. **Repeated microstructure** — summarizes persistence across multiple book/trade-flow snapshots instead of treating one frame as a directional signal.
@@ -38,7 +38,7 @@ Output includes:
 
 The OKX public adapter also reads provider 5m and 1H OI-history windows. It excludes the current incomplete bucket by requiring `bucket_timestamp + period <= as_of`, then derives ΔOI from the two latest completed buckets. The short live-capture-window ΔOI is retained separately and is never mislabeled as a 5m/1H change.
 
-OI level or ΔOI alone is not leverage-crowding truth. Regime Card may combine ΔOI with funding and basis only as bounded evidence.
+OI level or ΔOI alone is not leverage-crowding truth. downstream market-risk analysis may combine ΔOI with funding and basis only as bounded evidence.
 
 ## Repeated microstructure
 
@@ -68,13 +68,13 @@ Possible descriptive standings:
 
 These are price-reconciliation states, not causal explanations.
 
-## Regime Card integration
+## downstream market-risk analysis integration
 
-`enrich_market_with_sensors()` binds the derived OI and repeated-microstructure observations to the same instrument identity before projecting:
+`merge_market_observations()` binds derived OI and repeated-microstructure observations to the same instrument identity before downstream risk analysis:
 
 - `openInterestChangePct`
 - mean repeated book imbalance
 - mean repeated trade buy share
 - microstructure standing/sample count
 
-This closes the previous Regime Card evidence gaps without granting the sensors any provider or execution authority.
+This closes the previous downstream market-risk analysis evidence gaps without granting the sensors any provider or execution authority.

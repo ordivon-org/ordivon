@@ -1,20 +1,24 @@
 {
-  "schemaVersion": 1,
+  "brokerCredentialsAllowed": false,
+  "externalFinancialWritesAllowed": false,
   "kind": "ordivon.market-capital.fix-order-semantics",
-  "protocol": "FIX.4.4",
-  "messageType": "D",
-  "messageName": "NewOrderSingle",
+  "legacyProfile": true,
   "library": "QuickFIX/n",
+  "messageName": "NewOrderSingle",
+  "messageType": "D",
+  "orderType": "MARKET",
   "packages": {
     "QuickFIXn.Core": "1.14.1",
     "QuickFIXn.FIX44": "1.14.1"
   },
+  "protocol": "FIX.4.4",
+  "role": "legacy FIX 4.4 wire-compatibility projection under FIX Latest semantic reference",
+  "schemaVersion": 1,
+  "semanticReference": "FIX Trading Community FIX Latest / FIX Orchestra",
+  "semanticStandard": "FIX Latest",
   "senderCompId": "ORDIVON_SHADOW",
-  "targetCompId": "LEAN_VALIDATION",
-  "orderType": "MARKET",
-  "timeInForce": "DAY",
   "sessionNetworkEnabled": false,
-  "brokerCredentialsAllowed": false,
-  "externalFinancialWritesAllowed": false,
-  "role": "standard order-intent semantics between LEAN sizing and bounded LEAN execution"
+  "targetCompId": "LEAN_VALIDATION",
+  "timeInForce": "DAY",
+  "wireCompatibilityProfile": "FIX.4.4"
 }

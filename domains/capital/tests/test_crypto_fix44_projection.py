@@ -36,3 +36,10 @@ def test_committed_r4_evidence_is_standard_projection_only():
         assert row['ordType']=='1'
         assert row['timeInForce']=='3'
         assert row['exDestination'] in {'OKX','BINANCE'}
+
+
+def test_fix44_is_explicit_legacy_wire_profile_not_semantic_owner():
+    cfg=json.loads((ROOT/'config/fix_order_semantics.json').read_text())
+    assert cfg['semanticStandard']=='FIX Latest'
+    assert cfg['wireCompatibilityProfile']=='FIX.4.4'
+    assert cfg['legacyProfile'] is True

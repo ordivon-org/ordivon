@@ -22,10 +22,14 @@ External mature sources/capabilities provide most evidence mechanics:
 
 Market Capital owns the mappings from admitted evidence into its domain decisions, not duplicate research infrastructure.
 
+Model-risk governance follows Federal Reserve SR 26-2 proportionately as a reference framework: quantitative models require purpose, limitations, validation standing, use restrictions, inventory, and ongoing monitoring. Simple arithmetic calculations and deterministic controls are not promoted into models merely because they participate in a financial workflow.
+
+Risk-data architecture uses BCBS 239 principles as the reference for source identity, accuracy, completeness, timeliness, aggregation, lineage, and compensating controls. This is a sound-practice reference, not a claim of bank-regulatory applicability.
+
 
 ## Composition-first rule
 
-Market Capital does not own mechanisms already provided by authoritative venues or mature components. Venue APIs own market/account/order reality; QuantConnect LEAN and NautilusTrader own admitted trading-engine mechanics; FIX 4.4/QuickFIX-n owns standard order-intent/execution vocabulary where applicable; TigerBeetle owns admitted double-entry accounting conservation and atomic transfer mechanics; PFMI and ISO 20022 remain post-trade reference semantics; Prometheus/Grafana own monitoring mechanics. Market Capital retains only thin decision/proof/authority/reconciliation seams. Custom mechanisms require a documented substitution failure. See `docs/COMPOSITION_FIRST_2026-09-14.md`.
+Market Capital does not own mechanisms already provided by authoritative venues or mature components. Venue APIs own market/account/order reality; QuantConnect LEAN and NautilusTrader own admitted trading-engine mechanics; FIX Latest / FIX Orchestra is the order-semantic reference while QuickFIX/n and explicit legacy FIX profiles provide wire compatibility where required; TigerBeetle owns admitted double-entry accounting conservation and atomic transfer mechanics; PFMI and ISO 20022 remain post-trade reference semantics; Prometheus/Grafana own monitoring mechanics. Market Capital retains only thin decision/proof/authority/reconciliation seams. Custom mechanisms require a documented substitution failure. See `docs/COMPOSITION_FIRST_2026-09-14.md`.
 
 ### Capital accounting substrate
 
@@ -37,7 +41,7 @@ Portfolio construction produces an immutable decision artifact with a causal dec
 
 ## 3. Execution intent
 
-QuantConnect LEAN owns mature trading-engine mechanics such as buying-power modeling, sizing, calendars and bounded execution simulation. FIX 4.4 / QuickFIX/n supplies standard order-intent semantics where appropriate. Market Capital owns the mapping from an admitted decision into an `ExecutionIntent`.
+QuantConnect LEAN owns mature trading-engine mechanics such as buying-power modeling, sizing, calendars and bounded execution simulation. FIX Latest / FIX Orchestra supplies the semantic reference for order intent. QuickFIX/n may project an explicitly required legacy FIX 4.4 wire profile, but FIX 4.4 is not treated as the current semantic standard. Market Capital owns the mapping from an admitted decision into an `ExecutionIntent`.
 
 ## 4. Canonical semantic and authority core
 

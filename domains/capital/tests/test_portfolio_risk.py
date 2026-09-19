@@ -166,7 +166,7 @@ class PortfolioRiskTests(unittest.TestCase):
         out = build_portfolio_risk_observatory(exposure_ledger=ledger)
         self.assertFalse(out["allocationProduced"])
         self.assertFalse(out["hedgeSizeRecommended"])
-        self.assertEqual(out["nodes"]["P4RiskBudget"]["standing"], "INCOMPLETE")
+        self.assertEqual(out["nodes"]["riskLimitEvaluation"]["standing"], "INCOMPLETE")
 
 
 if __name__ == "__main__":

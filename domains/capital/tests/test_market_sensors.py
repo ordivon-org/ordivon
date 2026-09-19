@@ -2,7 +2,7 @@ import unittest
 
 from market_capital.market_sensors import (
     MarketSensorError,
-    enrich_market_with_sensors,
+    merge_market_observations,
     open_interest_change,
     reconcile_underlying_reopen,
     repeated_microstructure,
@@ -122,7 +122,7 @@ class MarketSensorTests(unittest.TestCase):
             {"instrumentId": "SNDK-USDT-SWAP", "observedAtMs": 2000, "bookImbalance": "-0.1", "tradeBuyShare": "0.46", "spreadBps": "1"},
             {"instrumentId": "SNDK-USDT-SWAP", "observedAtMs": 3000, "bookImbalance": "-0.3", "tradeBuyShare": "0.44", "spreadBps": "1"},
         ])
-        enriched = enrich_market_with_sensors(market, oi_change=oi, microstructure=micro)
+        enriched = merge_market_observations(market, oi_change=oi, microstructure=micro)
         self.assertEqual(enriched["openInterestChangePct"], "5.000000")
         self.assertEqual(enriched["openInterestChangeSpanMs"], 1000)
         self.assertEqual(enriched["openInterestChangeSampleCount"], 2)
