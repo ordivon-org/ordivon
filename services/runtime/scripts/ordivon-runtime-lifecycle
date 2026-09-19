@@ -334,6 +334,12 @@ def carrier_projection(item: dict[str, object]) -> dict[str, object]:
             dirty_handoff_required = True
             owner_disposition_required = True
         clean_close_candidate = False
+    elif classification == "blocked_unintegrated":
+        physical_state = "CLEAN_IDLE_UNINTEGRATED"
+        next_step = "INTEGRATE_OR_EXPLICITLY_DISPOSITION_SOURCE"
+        clean_close_candidate = False
+        dirty_handoff_required = False
+        owner_disposition_required = True
     elif classification == "blocked_active":
         physical_state = "ACTIVE_DIRTY_STATE_UNINSPECTED"
         next_step = "OBSERVE_OR_RECONCILE_ACTIVE_JOB"
