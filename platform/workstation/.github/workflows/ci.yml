@@ -42,3 +42,15 @@ jobs:
           cache-dependency-path: providers/cloudflare/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm run ci
+
+  shellcheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: ShellCheck
+        uses: ludeeus/action-shellcheck@00cae500b08a931fb5698e11e79bfbd38e612a38 # v2.0.0
+        with:
+          version: v0.11.0
