@@ -10,10 +10,8 @@ import uuid
 import rfc8785
 from mcp_types.version import MODERN_PROTOCOL_VERSIONS
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any, Literal, overload
 
-from .semantics import DelegationEnvelope
 from .slice1 import ServiceEvent, ServiceEventStore
 
 

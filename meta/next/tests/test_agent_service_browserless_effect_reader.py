@@ -19,7 +19,9 @@ from agent_service.provider_adapters import (
 
 
 def digest_obj(value: object) -> str:
-    raw = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+    raw = json.dumps(
+        value, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    ).encode()
     return "sha256:" + hashlib.sha256(raw).hexdigest()
 
 
@@ -62,7 +64,7 @@ class AgentServiceBrowserlessEffectReaderTests(unittest.TestCase):
 
     def test_existing_authoritative_table_without_row_proves_no_send_effect(self):
         with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp)/"turns.db"
+            path = Path(tmp) / "turns.db"
             self._ledger(path).close()
             snapshot = self._snapshot(self._reader(path))
             self.assertTrue(snapshot.complete)
@@ -78,7 +80,7 @@ class AgentServiceBrowserlessEffectReaderTests(unittest.TestCase):
 
     def test_missing_ledger_or_table_is_unknown_not_no_effects(self):
         with tempfile.TemporaryDirectory() as tmp:
-            missing = Path(tmp)/"missing.db"
+            missing = Path(tmp) / "missing.db"
             snapshot = self._snapshot(self._reader(missing))
             self.assertFalse(snapshot.complete)
             verdict = EffectLedgerReplaySafetyAdapter._evaluate_snapshot(
@@ -90,20 +92,28 @@ class AgentServiceBrowserlessEffectReaderTests(unittest.TestCase):
             self.assertFalse(verdict.safe)
             self.assertEqual(verdict.classification, "UNKNOWN")
 
-            present = Path(tmp)/"other.db"
+            present = Path(tmp) / "other.db"
             sqlite3.connect(present).close()
             snapshot2 = self._snapshot(self._reader(present))
             self.assertFalse(snapshot2.complete)
 
     def test_unknown_row_remains_replay_unsafe(self):
         with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp)/"turns.db"
+            path = Path(tmp) / "turns.db"
             db = self._ledger(path)
             db.execute(
                 "INSERT INTO turn_effects VALUES (?,?,?,?,?,?)",
-                ("turn-1","sha256:"+"1"*64,"https://chatgpt.com/c/abc","UNKNOWN",None,1),
+                (
+                    "turn-1",
+                    "sha256:" + "1" * 64,
+                    "https://chatgpt.com/c/abc",
+                    "UNKNOWN",
+                    None,
+                    1,
+                ),
             )
-            db.commit(); db.close()
+            db.commit()
+            db.close()
             snapshot = self._snapshot(self._reader(path))
             self.assertFalse(snapshot.complete)
             self.assertEqual(snapshot.effects[0].state, "UNKNOWN")
@@ -118,33 +128,34 @@ class AgentServiceBrowserlessEffectReaderTests(unittest.TestCase):
 
     def test_completed_row_is_committed_non_idempotent_effect_and_blocks_replay(self):
         with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp)/"turns.db"
+            path = Path(tmp) / "turns.db"
             db = self._ledger(path)
             receipt = {
-                "schemaVersion":1,
-                "kind":"ordivon.browserless-turn-receipt",
-                "turnRequestId":"turn-1",
-                "promptDigest":"sha256:"+"1"*64,
-                "targetResource":"https://chatgpt.com/c/abc",
-                "browserlessEndpointId":"browserless-a",
-                "composerCleared":True,
-                "generationStarted":True,
-                "targetStillBoundAfterSend":True,
-                "assistantOutputRead":False,
+                "schemaVersion": 1,
+                "kind": "ordivon.browserless-turn-receipt",
+                "turnRequestId": "turn-1",
+                "promptDigest": "sha256:" + "1" * 64,
+                "targetResource": "https://chatgpt.com/c/abc",
+                "browserlessEndpointId": "browserless-a",
+                "composerCleared": True,
+                "generationStarted": True,
+                "targetStillBoundAfterSend": True,
+                "assistantOutputRead": False,
             }
             receipt["receiptDigest"] = digest_obj(receipt)
             db.execute(
                 "INSERT INTO turn_effects VALUES (?,?,?,?,?,?)",
                 (
                     "turn-1",
-                    "sha256:"+"1"*64,
+                    "sha256:" + "1" * 64,
                     "https://chatgpt.com/c/abc",
                     "COMPLETED",
                     json.dumps(receipt, sort_keys=True),
                     2,
                 ),
             )
-            db.commit(); db.close()
+            db.commit()
+            db.close()
             snapshot = self._snapshot(self._reader(path))
             self.assertTrue(snapshot.complete)
             self.assertEqual(snapshot.effects[0].state, "COMMITTED")
@@ -160,38 +171,47 @@ class AgentServiceBrowserlessEffectReaderTests(unittest.TestCase):
 
     def test_row_coordinate_or_receipt_identity_mismatch_fails_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp)/"turns.db"
+            path = Path(tmp) / "turns.db"
             db = self._ledger(path)
             db.execute(
                 "INSERT INTO turn_effects VALUES (?,?,?,?,?,?)",
-                ("turn-1","sha256:"+"2"*64,"https://chatgpt.com/c/abc","UNKNOWN",None,1),
+                (
+                    "turn-1",
+                    "sha256:" + "2" * 64,
+                    "https://chatgpt.com/c/abc",
+                    "UNKNOWN",
+                    None,
+                    1,
+                ),
             )
-            db.commit(); db.close()
+            db.commit()
+            db.close()
             with self.assertRaises(ProviderProtocolError):
                 self._snapshot(self._reader(path))
 
-            path2 = Path(tmp)/"turns2.db"
+            path2 = Path(tmp) / "turns2.db"
             db = self._ledger(path2)
             receipt = {
-                "schemaVersion":1,
-                "kind":"ordivon.browserless-turn-receipt",
-                "turnRequestId":"wrong",
-                "promptDigest":"sha256:"+"1"*64,
-                "targetResource":"https://chatgpt.com/c/abc",
+                "schemaVersion": 1,
+                "kind": "ordivon.browserless-turn-receipt",
+                "turnRequestId": "wrong",
+                "promptDigest": "sha256:" + "1" * 64,
+                "targetResource": "https://chatgpt.com/c/abc",
             }
             receipt["receiptDigest"] = digest_obj(receipt)
             db.execute(
                 "INSERT INTO turn_effects VALUES (?,?,?,?,?,?)",
                 (
                     "turn-1",
-                    "sha256:"+"1"*64,
+                    "sha256:" + "1" * 64,
                     "https://chatgpt.com/c/abc",
                     "COMPLETED",
                     json.dumps(receipt),
                     2,
                 ),
             )
-            db.commit(); db.close()
+            db.commit()
+            db.close()
             with self.assertRaises(ProviderProtocolError):
                 self._snapshot(self._reader(path2))
 

@@ -8,7 +8,6 @@ import uuid
 
 import rfc8785
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
 

@@ -7,10 +7,9 @@ import sys
 import tempfile
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "scripts"))
-
 import authority_catalog as catalog
+
+ROOT = Path(__file__).resolve().parents[1]
 
 RECORD_SCHEMA = ROOT / "schemas/external-authority-record-v1.schema.json"
 OBS_SCHEMA = ROOT / "schemas/external-authority-observation-v1.schema.json"

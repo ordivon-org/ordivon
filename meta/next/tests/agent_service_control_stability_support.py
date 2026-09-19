@@ -1,16 +1,11 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import sys
 import tempfile
 import urllib.parse
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
-
-_REPO_ROOT = Path(__file__).resolve().parents[1]
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
 
 from agent_service import open_agent_service
 from agent_service.slice1 import ProviderObservation
