@@ -17,15 +17,15 @@ from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
 from agent_service.trust import RemoteProviderObservation, _remote_delivery_observation_list_for_binding, _remote_delivery_observation_record
 
-from tests.test_agent_service_failover_r12 import (
+from tests.test_agent_service_failover import (
     AllowPolicy,
     NoopRuntimeArtifactReader,
     RecordingDelivery,
     RecordingQuiescenceAdapter,
     RecordingReplaySafetyAdapter,
 )
-from tests.test_agent_service_interface_credentials_r14 import MaterialProvider, ProofAdapter
-from tests.test_agent_service_provider_adapters_r13 import DynamicNoEffectsReader
+from tests.test_agent_service_interface_credentials import MaterialProvider, ProofAdapter
+from tests.test_agent_service_provider_adapters import DynamicNoEffectsReader
 
 
 class ReadyCarrier:
