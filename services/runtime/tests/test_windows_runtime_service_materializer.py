@@ -78,3 +78,24 @@ def test_windows_executable_allowlist_scopes_ordivon_to_materialized_runtime_roo
         r"ORDIVON_ALLOWED_EXECUTABLE_ROOTS=C:\Windows;C:\Program Files;"
         r"C:\ProgramData\Ordivon"
     ) not in lines
+
+
+def test_windows_service_materializer_has_explicit_platform_native_authority_profiles():
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert "[ValidateSet('limited-only', 'limited-and-elevated')]" in text
+    assert "[string]$WindowsAuthorityProfile = 'limited-only'" in text
+    assert "$requiresLocalAdministrators = $WindowsAuthorityProfile -eq 'limited-and-elevated'" in text
+    assert "Get-LocalGroup -SID $administratorsSid" in text
+    assert "Add-LocalGroupMember" in text
+    assert "Remove-LocalGroupMember" in text
+    assert "S-1-5-32-544" in text
+    assert "LocalSystem" not in text
+    assert "launcher acceptance must prove both High/Admin-enabled elevated context" in text
+
+
+def test_windows_service_materializer_never_claims_elevated_profile_without_effective_acceptance():
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert "builtinAdministratorsMembershipRequired" in text
+    assert "builtinAdministratorsMembershipObserved" in text
+    assert "acceptance must prove" in text
+    assert "Start-Service" not in text
