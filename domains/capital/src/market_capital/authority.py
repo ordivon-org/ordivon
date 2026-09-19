@@ -3,13 +3,12 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import subprocess
 from typing import Any
-
-from market_capital.semantic import NOT_ADMITTED, ExternalFinancialWriteAdmission
 
 
 class AuthorityError(RuntimeError):
-    """Fail-closed Market Capital execution-authority error."""
+    """Fail-closed execution-policy error."""
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -30,45 +29,55 @@ def _resolve(repo: Path, relative: str) -> Path:
     return path
 
 
+def _evaluate_opa(*, binary: Path, policy: Path, query: str, input_doc: dict[str, Any]) -> bool:
+    if not binary.is_file():
+        raise AuthorityError(f"OPA binary unavailable: {binary}")
+    proc = subprocess.run(
+        [str(binary), "eval", "--format=raw", "--data", str(policy), "--stdin-input", query],
+        input=json.dumps(input_doc),
+        text=True,
+        capture_output=True,
+        timeout=10,
+    )
+    if proc.returncode != 0:
+        raise AuthorityError(f"OPA policy evaluation failed: {proc.stderr.strip()}")
+    value = proc.stdout.strip()
+    if value not in {"true", "false"}:
+        raise AuthorityError(f"unexpected OPA policy result: {value!r}")
+    return value == "true"
+
+
 def verify_internal_authority(repo: Path, config_path: Path) -> dict[str, Any]:
     cfg = _load_json(config_path)
     if cfg.get("kind") != "ordivon.market-capital.execution-authority":
         raise AuthorityError("unexpected execution-authority kind")
 
-    semantic = _load_json(_resolve(repo, cfg["semanticContract"]))
-    write_admission_doc = _load_json(_resolve(repo, cfg["externalFinancialWriteAdmissionContract"]))
+    write_doc = _load_json(_resolve(repo, cfg["externalWritePolicyInputContract"]))
     boundary = _load_json(_resolve(repo, cfg["externalBoundaryContract"]))
-
-    if semantic.get("kind") != "ordivon.market-capital.semantic-core":
-        raise AuthorityError("canonical semantic contract missing")
-    required = {
-        "observation_same_cut",
-        "proof_binding_currentness",
-        "scientific_truth_not_economic_truth_not_capital_truth",
-        "registry_parcel_scarcity_identity",
-        "reservation_not_effect_admission",
-        "effect_authority_retain_release_consume",
-        "revocation_recovery_one_shot_resurrection",
-        "external_financial_write_admission_boundary",
-    }
-    missing = sorted(required - set(semantic.get("ownedSemantics", [])))
-    if missing:
-        raise AuthorityError(f"canonical semantic contract is incomplete: {missing}")
-
-    if write_admission_doc.get("kind") != "ordivon.market-capital.external-financial-write-admission":
-        raise AuthorityError("canonical external-financial-write-admission contract missing")
+    if write_doc.get("kind") != "ordivon.market-capital.external-write-policy-input":
+        raise AuthorityError("external-write policy input missing")
     if boundary.get("kind") != "ordivon.market-capital.external-boundary":
-        raise AuthorityError("canonical external-boundary contract missing")
+        raise AuthorityError("external-boundary contract missing")
 
-    write_admission = ExternalFinancialWriteAdmission(state=write_admission_doc["state"])
+    engine = cfg.get("policyEngine")
+    if not isinstance(engine, dict) or engine.get("name") != "OPA":
+        raise AuthorityError("OPA policy engine is required")
+    policy = _resolve(repo, str(engine.get("policy") or ""))
+    allowed = _evaluate_opa(
+        binary=Path(str(engine.get("binary") or "")),
+        policy=policy,
+        query=str(engine.get("query") or ""),
+        input_doc=write_doc,
+    )
+
     return {
         "config": cfg,
-        "externalWriteAdmissionState": write_admission.state,
-        "externalWriteAdmitted": write_admission.admitted,
-        "externalWriteVerifier": write_admission_doc.get("effectVerifier", "NOT_IMPLEMENTED"),
-        "providerWriteCapabilityBound": bool(write_admission_doc.get("providerWriteCapabilityBound", False)),
-        "externalFinancialWriteAllowedByContract": bool(write_admission_doc.get("externalFinancialWriteAllowed", False)),
-        "ownedSemantics": sorted(required),
+        "policyEngine": "OPA",
+        "externalWritePolicyAllowed": allowed,
+        "externalWritePolicyStanding": write_doc.get("state"),
+        "externalWriteVerifier": write_doc.get("effectVerifier", "NOT_IMPLEMENTED"),
+        "providerWriteCapabilityBound": bool(write_doc.get("providerWriteCapabilityBound", False)),
+        "externalFinancialWriteAllowedByContract": bool(write_doc.get("externalFinancialWriteAllowed", False)),
     }
 
 
@@ -77,25 +86,21 @@ def evaluate_non_live(repo: Path, config_path: Path) -> dict[str, Any]:
     cfg = verified.pop("config")
     if cfg.get("currentLane") != "NON_LIVE":
         raise AuthorityError("current execution lane must remain NON_LIVE")
-    if verified["externalWriteAdmissionState"] != NOT_ADMITTED:
-        raise AuthorityError("non-live lane requires external financial write admission NOT_ADMITTED")
+    if verified["externalWritePolicyAllowed"]:
+        raise AuthorityError("non-live lane cannot allow external financial writes")
     if verified["externalFinancialWriteAllowedByContract"] or verified["providerWriteCapabilityBound"]:
         raise AuthorityError("non-live lane cannot bind or allow an external financial write capability")
     return {
         "standing": "NON_LIVE_EFFECT_BOUNDARY",
         **verified,
         "externalFinancialWritesAllowed": False,
-        "effectAuthorityAvailableForExternalWrites": False,
     }
 
 
 def evaluate_external_write(repo: Path, config_path: Path) -> dict[str, Any]:
     verified = verify_internal_authority(repo, config_path)
-    cfg = verified.pop("config")
-    if not verified["externalWriteAdmitted"]:
-        raise AuthorityError("external financial write admission is not admitted")
-    if verified["externalWriteVerifier"] != "IMPLEMENTED_BOUND_CURRENT" or not verified["providerWriteCapabilityBound"]:
-        raise AuthorityError("external financial write verifier/capability is not implemented, bound, and current")
+    if not verified["externalWritePolicyAllowed"]:
+        raise AuthorityError("external financial write policy denied")
     raise AuthorityError("external-write execution path is not implemented")
 
 

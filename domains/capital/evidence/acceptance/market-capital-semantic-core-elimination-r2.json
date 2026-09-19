@@ -1,0 +1,60 @@
+{
+  "baselineHead": "35e697e7aafab949a8984dc6433a3f10cb40ba79",
+  "customSemanticCoreRetained": false,
+  "date": "2026-09-19",
+  "deleted": [
+    "src/market_capital/semantic.py",
+    "contracts/semantic-core-v1.json",
+    "tests/test_semantic_core.py"
+  ],
+  "externalFinancialWriteAttempted": false,
+  "externalOwnership": {
+    "accountingMechanics": {
+      "owner": "TigerBeetle",
+      "version": "0.17.9"
+    },
+    "executionReality": "authoritative venue APIs with FIX lifecycle normalization",
+    "externalWritePolicy": {
+      "currentDecision": false,
+      "owner": "OPA",
+      "policy": "policy/external_financial_write.rego",
+      "version": "1.20.2"
+    }
+  },
+  "failClosedProperties": {
+    "exactPostedTransferReplayIdempotent": true,
+    "opaDefaultAllow": false,
+    "positiveExecutionPostsPendingTransfer": true,
+    "provenNoEffectVoidsPendingTransfer": true,
+    "staleOrContradictoryProviderStateAllowsAutomaticRepair": false,
+    "unknownOrAmbiguousMeansNoAccountingMutation": true
+  },
+  "kind": "ordivon.acceptance-evidence",
+  "realMoneyEffectAttempted": false,
+  "reconciliationToAccounting": {
+    "AMBIGUOUS": "NO_MUTATION",
+    "CONTRADICTORY": "NO_MUTATION",
+    "PARTIAL_OPEN": "NO_MUTATION",
+    "POSITIVE_EXECUTION": "POST_PENDING_TRANSFER",
+    "PROVEN_NO_EFFECT": "VOID_PENDING_TRANSFER",
+    "RECONCILED_ZERO_FILL_TERMINAL": "VOID_PENDING_TRANSFER",
+    "UNKNOWN": "NO_MUTATION"
+  },
+  "regulatoryComplianceClaimed": false,
+  "runtimeCanaries": {
+    "nautilusToReconciliationToTigerBeetle": "PASS_NONLIVE_EFFECT_TO_CAPITAL_RESTART_MATRIX",
+    "opaExternalWritePolicy": "PASS_DENY",
+    "tigerBeetleR1AccountingReplay": "PASS_EPHEMERAL_MECHANICAL_ONLY",
+    "tigerBeetleR31ReservationResolution": "PASS_RESERVATION_RESOLUTION_MECHANICAL_COMPOSITION",
+    "tigerBeetleR32DurableRestart": "PASS_DURABLE_RESTART_RECONCILIATION"
+  },
+  "schemaVersion": 1,
+  "subject": "market-capital-semantic-core-elimination-r2",
+  "truthRole": "implementation-and-runtime-evidence-not-regulatory-compliance",
+  "verification": {
+    "canonicalSuite": "163 passed",
+    "gitDiffCheck": "PASS",
+    "nonLiveCapitalMatrix": "PASS",
+    "retiredTermActiveScan": "PASS_ZERO_MATCHES"
+  }
+}

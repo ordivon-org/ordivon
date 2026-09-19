@@ -1,9 +1,14 @@
 {
   "currentLane": "NON_LIVE",
   "externalBoundaryContract": "contracts/external-boundary-v1.json",
-  "externalFinancialWriteAdmissionContract": "contracts/external-financial-write-admission-v1.json",
+  "externalWritePolicyInputContract": "contracts/external-write-policy-input-v1.json",
   "kind": "ordivon.market-capital.execution-authority",
+  "policyEngine": {
+    "binary": "/opt/ordivon/external/opa/1.20.2/bin/opa",
+    "name": "OPA",
+    "policy": "policy/external_financial_write.rego",
+    "query": "data.market_capital.external_write.allow"
+  },
   "rule": "all Market Capital execution runners must pass the in-repository effect-boundary check; external writes remain unavailable until a provider/executor admission surface is implemented, bound, and current",
-  "schemaVersion": 1,
-  "semanticContract": "contracts/semantic-core-v1.json"
+  "schemaVersion": 1
 }

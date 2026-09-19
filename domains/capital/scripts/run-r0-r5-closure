@@ -54,7 +54,6 @@ def main() -> int:
     steps.append(run_step("PRIVATE_REALITY_BINDINGS", [str(ROOT / "scripts/check-private-reality-credential-bindings")]))
     steps.append(run_step("EFFECT_BOUNDARY", [str(ROOT / "scripts/check-capital-authority")]))
 
-    semantic = load_json("contracts/semantic-core-v1.json")
     write_admission = load_json("contracts/external-financial-write-admission-v1.json")
     private_policy = load_json("config/private_reality_policy.json")
     manifest = load_json("fixtures/r5_legacy_bounded/manifest.json")
@@ -62,14 +61,11 @@ def main() -> int:
     receipt = {
         "schemaVersion": 1,
         "kind": "ordivon.market-capital.r0-r5-closure-receipt",
-        "standing": "PASS_BOUNDED_NONLIVE_R0_R5_SEMANTIC_CLOSURE",
+        "standing": "PASS_BOUNDED_NONLIVE_R0_R5_COMPOSITION_CLOSURE",
         "allStepsPassed": all(step["passed"] for step in steps),
         "steps": steps,
-        "semanticCore": {
-            "ownedSemantics": semantic["ownedSemantics"],
-            "externalFinancialWriteAdmission": semantic["externalFinancialWriteAdmission"],
-        },
         "externalWriteBoundary": {
+            "policyEngine": "OPA",
             "state": write_admission["state"],
             "effectVerifier": write_admission.get("effectVerifier"),
             "providerWriteCapabilityBound": write_admission.get("providerWriteCapabilityBound", False),
@@ -83,7 +79,7 @@ def main() -> int:
         "legacyDifferential": {
             "fixtureCount": len(manifest["fixtures"]),
             "legacyCodeImported": manifest["legacyCodeImported"],
-            "scope": "retained semantic outcomes only; superseded legacy mechanisms are not reproduced",
+            "scope": "frozen historical outcomes only; superseded legacy semantic mechanisms are not reproduced",
         },
         "externalFinancialWriteAttempted": False,
     }

@@ -1,13 +1,22 @@
 {
-  "schemaVersion": 1,
-  "kind": "ordivon.market-capital.capability-dependencies",
-  "principle": "direct Python imports are owned and locked by Market Capital; cross-domain capabilities use explicit contracts, never another repository's virtualenv",
   "capabilities": {
+    "capitalAccounting": {
+      "binary": "/usr/local/bin/tigerbeetle",
+      "clientInterpreter": "/opt/ordivon/external/tigerbeetle/0.17.9/python-client/bin/python",
+      "nonResponsibility": "does not establish settlement finality, legal ownership, deployability, venue execution truth, or OPA external-write policy",
+      "provider": "TigerBeetle",
+      "requiredPythonModules": [
+        "tigerbeetle"
+      ],
+      "responsibility": "double-entry accounting conservation, atomic transfer mechanics and provider transfer identity only",
+      "version": "0.17.9"
+    },
     "research": {
-      "provider": "Market Capital research dependency group composed from upstream libraries",
       "dependencyGroup": "research",
-      "pythonVersion": "3.14.7",
       "interpreter": "./.venv/bin/python",
+      "nonResponsibility": "does not borrow or execute through ordivon-research-v2 virtualenv; cross-domain Research workflows require a separate explicit provider contract",
+      "provider": "Market Capital research dependency group composed from upstream libraries",
+      "pythonVersion": "3.14.7",
       "requiredPythonModules": [
         "jsonschema",
         "mlflow",
@@ -15,26 +24,17 @@
         "pandera",
         "pyarrow"
       ],
-      "responsibility": "scientific dataframe validation, Parquet materialization, experiment lineage and research artifacts used directly by Market Capital source",
-      "nonResponsibility": "does not borrow or execute through ordivon-research-v2 virtualenv; cross-domain Research workflows require a separate explicit provider contract"
+      "responsibility": "scientific dataframe validation, Parquet materialization, experiment lineage and research artifacts used directly by Market Capital source"
     },
     "xbrlValidation": {
-      "provider": "Arelle + SEC EDGAR plugins",
       "commandEnv": "MARKET_CAPITAL_ARELLE",
+      "currentBoundary": "SEC-compatible isolated Arelle 2.39.8 + EDGAR 26.1.3 + XULE 30052 is admitted; full real-filing EFM validation remains pending runtime closure after a 300-second Apple 2025 10-K validation timeout",
       "defaultCommand": "/root/.local/bin/arelleCmdLine",
-      "requiredFor": "raw SEC filing EFM validation",
-      "currentBoundary": "SEC-compatible isolated Arelle 2.39.8 + EDGAR 26.1.3 + XULE 30052 is admitted; full real-filing EFM validation remains pending runtime closure after a 300-second Apple 2025 10-K validation timeout"
-    },
-    "capitalAccounting": {
-      "provider": "TigerBeetle",
-      "version": "0.17.9",
-      "binary": "/usr/local/bin/tigerbeetle",
-      "clientInterpreter": "/opt/ordivon/external/tigerbeetle/0.17.9/python-client/bin/python",
-      "requiredPythonModules": [
-        "tigerbeetle"
-      ],
-      "responsibility": "double-entry accounting conservation, atomic transfer mechanics and provider transfer identity only",
-      "nonResponsibility": "does not mint CapitalTruth, settlement, legal ownership, deployability, ExternalFinancialWriteAdmission or EffectAuthority"
+      "provider": "Arelle + SEC EDGAR plugins",
+      "requiredFor": "raw SEC filing EFM validation"
     }
-  }
+  },
+  "kind": "ordivon.market-capital.capability-dependencies",
+  "principle": "direct Python imports are owned and locked by Market Capital; cross-domain capabilities use explicit contracts, never another repository's virtualenv",
+  "schemaVersion": 1
 }

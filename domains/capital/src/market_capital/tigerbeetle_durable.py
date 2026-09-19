@@ -3,9 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
-from .semantic import EffectDisposition, SemanticViolation
 from .tigerbeetle_substrate import (
     AccountingAccount,
+    AccountingMappingError,
     CapitalReservationBinding,
     TigerBeetleOperation,
     resolution_instruction,
@@ -27,17 +27,17 @@ class CapitalAccountNamespace:
 
     def __post_init__(self) -> None:
         if not self.owner_root.strip():
-            raise SemanticViolation("owner_root required")
+            raise AccountingMappingError("owner_root required")
         if not self.resource_identity.strip():
-            raise SemanticViolation("resource_identity required")
+            raise AccountingMappingError("resource_identity required")
         if not isinstance(self.ledger, int) or isinstance(self.ledger, bool) or not (0 < self.ledger < 2**32):
-            raise SemanticViolation("ledger must fit non-zero unsigned 32-bit range")
+            raise AccountingMappingError("ledger must fit non-zero unsigned 32-bit range")
         if not isinstance(self.account_code, int) or isinstance(self.account_code, bool) or not (0 < self.account_code < 2**16):
-            raise SemanticViolation("account_code must fit non-zero unsigned 16-bit range")
+            raise AccountingMappingError("account_code must fit non-zero unsigned 16-bit range")
 
     def account_id(self, role: CapitalAccountRole) -> int:
         if not isinstance(role, CapitalAccountRole):
-            raise SemanticViolation("role must be a CapitalAccountRole")
+            raise AccountingMappingError("role must be a CapitalAccountRole")
         return stable_provider_id(
             "market-capital:tigerbeetle:account",
             self.owner_root,
@@ -65,7 +65,7 @@ class CapitalAccountNamespace:
         return self.account_id(CapitalAccountRole.ENCUMBRANCE)
 
 
-class SemanticReservationStanding(str, Enum):
+class ReservationStanding(str, Enum):
     RESERVED = "RESERVED"
     RELEASED = "RELEASED"
     CONSUMED = "CONSUMED"
@@ -73,8 +73,8 @@ class SemanticReservationStanding(str, Enum):
 
 class DurableProviderStanding(str, Enum):
     MATCH = "MATCH"
-    PROVIDER_INCOMPLETE_RETAIN = "PROVIDER_INCOMPLETE_RETAIN"
-    CONTRADICTION_RETAIN = "CONTRADICTION_RETAIN"
+    PROVIDER_INCOMPLETE_NO_REPAIR = "PROVIDER_INCOMPLETE_NO_REPAIR"
+    CONTRADICTION_NO_REPAIR = "CONTRADICTION_NO_REPAIR"
 
 
 @dataclass(frozen=True)
@@ -88,21 +88,21 @@ class ProviderTransferObservation:
 @dataclass(frozen=True)
 class DurableReservationHistory:
     binding: CapitalReservationBinding
-    standing: SemanticReservationStanding
+    standing: ReservationStanding
     resolution_ref: str | None = None
 
     def __post_init__(self) -> None:
-        if self.standing is SemanticReservationStanding.RESERVED:
+        if self.standing is ReservationStanding.RESERVED:
             if self.resolution_ref is not None:
-                raise SemanticViolation("RESERVED history cannot carry a resolution_ref")
+                raise AccountingMappingError("RESERVED history cannot carry a resolution_ref")
         elif not self.resolution_ref or not self.resolution_ref.strip():
-            raise SemanticViolation("terminal reservation history requires resolution_ref")
+            raise AccountingMappingError("terminal reservation history requires resolution_ref")
 
 
 @dataclass(frozen=True)
 class DurableReconciliationResult:
     standing: DurableProviderStanding
-    semantic_terminal_preserved: bool
+    terminal_history_preserved: bool
     provider_repair_allowed: bool
     reason: str
 
@@ -136,16 +136,16 @@ def reconcile_durable_history(
     """Compare durable domain history against provider history without repairing it.
 
     A mismatch never authorizes recreation, reopening, posting, or voiding. In
-    particular a terminal semantic standing remains terminal even when provider state
+    particular a terminal reservation standing remains terminal even when provider state
     is missing or appears stale after restart/recovery.
     """
 
     expected_pending_id = history.binding.pending_transfer_id
     if pending is None:
         return _result(
-            DurableProviderStanding.PROVIDER_INCOMPLETE_RETAIN,
+            DurableProviderStanding.PROVIDER_INCOMPLETE_NO_REPAIR,
             history,
-            "provider is missing the reservation transfer; do not recreate from semantic history",
+            "provider is missing the reservation transfer; do not recreate from reservation history",
         )
     if (
         pending.transfer_id != expected_pending_id
@@ -154,36 +154,36 @@ def reconcile_durable_history(
         or pending.pending_id != 0
     ):
         return _result(
-            DurableProviderStanding.CONTRADICTION_RETAIN,
+            DurableProviderStanding.CONTRADICTION_NO_REPAIR,
             history,
-            "provider reservation transfer does not match exact semantic binding",
+            "provider reservation transfer does not match exact reservation binding",
         )
 
-    if history.standing is SemanticReservationStanding.RESERVED:
+    if history.standing is ReservationStanding.RESERVED:
         if resolution is None:
             return _result(DurableProviderStanding.MATCH, history, "provider retains exact pending reservation")
         return _result(
-            DurableProviderStanding.CONTRADICTION_RETAIN,
+            DurableProviderStanding.CONTRADICTION_NO_REPAIR,
             history,
-            "provider has a terminal resolution absent from semantic history",
+            "provider has a terminal resolution absent from reservation history",
         )
 
-    disposition = (
-        EffectDisposition.RELEASE
-        if history.standing is SemanticReservationStanding.RELEASED
-        else EffectDisposition.CONSUME
+    operation = (
+        TigerBeetleOperation.VOID_PENDING_TRANSFER
+        if history.standing is ReservationStanding.RELEASED
+        else TigerBeetleOperation.POST_PENDING_TRANSFER
     )
     expected_resolution = resolution_instruction(
         binding=history.binding,
-        disposition=disposition,
+        operation=operation,
         resolution_ref=history.resolution_ref or "",
     )
     assert expected_resolution is not None
     if resolution is None:
         return _result(
-            DurableProviderStanding.PROVIDER_INCOMPLETE_RETAIN,
+            DurableProviderStanding.PROVIDER_INCOMPLETE_NO_REPAIR,
             history,
-            "terminal semantic history is missing its provider resolution; terminal history remains authoritative",
+            "terminal reservation history is missing its provider resolution; terminal history remains authoritative",
         )
     if (
         resolution.transfer_id != expected_resolution.transfer_id
@@ -191,17 +191,17 @@ def reconcile_durable_history(
         or resolution.pending_id != expected_pending_id
     ):
         return _result(
-            DurableProviderStanding.CONTRADICTION_RETAIN,
+            DurableProviderStanding.CONTRADICTION_NO_REPAIR,
             history,
-            "provider resolution contradicts exact terminal semantic history",
+            "provider resolution contradicts exact terminal reservation history",
         )
-    if disposition is EffectDisposition.CONSUME and resolution.amount != history.binding.amount:
+    if operation is TigerBeetleOperation.POST_PENDING_TRANSFER and resolution.amount != history.binding.amount:
         return _result(
-            DurableProviderStanding.CONTRADICTION_RETAIN,
+            DurableProviderStanding.CONTRADICTION_NO_REPAIR,
             history,
-            "provider consume amount differs from terminal semantic reservation amount",
+            "provider consume amount differs from terminal reservation amount",
         )
-    return _result(DurableProviderStanding.MATCH, history, "provider history matches terminal semantic history")
+    return _result(DurableProviderStanding.MATCH, history, "provider history matches terminal reservation history")
 
 
 def _result(
@@ -211,7 +211,7 @@ def _result(
 ) -> DurableReconciliationResult:
     return DurableReconciliationResult(
         standing=standing,
-        semantic_terminal_preserved=history.standing is not SemanticReservationStanding.RESERVED,
+        terminal_history_preserved=history.standing is not ReservationStanding.RESERVED,
         provider_repair_allowed=False,
         reason=reason,
     )

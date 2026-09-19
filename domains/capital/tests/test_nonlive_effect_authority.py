@@ -12,7 +12,7 @@ def load(path: str):
 
 def test_nonlive_effect_authority_is_distinct_from_real_financial_write_authority():
     nonlive=load('contracts/nonlive-effect-admission-v1.json')
-    real=load('contracts/external-financial-write-admission-v1.json')
+    real=load('contracts/external-write-policy-input-v1.json')
     assert nonlive['state']=='ADMITTED'
     assert nonlive['providerWriteCapabilityBound'] is True
     assert nonlive['realMoney'] is False

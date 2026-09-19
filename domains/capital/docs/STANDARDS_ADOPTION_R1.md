@@ -99,4 +99,17 @@ FIX Latest semantics -> explicit compatibility profile -> QuickFIX/n wire repres
 4. LEAN upgrade after regression qualification.
 5. Nautilus requalification against a production-suitable stable v2 line when available.
 6. OpenTelemetry context propagation while retaining Prometheus/Grafana backends.
-7. Review remaining custom semantic/authority vocabulary and replace anything already owned by venue/FIX/accounting/policy standards.
+7. Continue eliminating narrow local mappings only when an authoritative provider or mature standard can own them without losing fail-closed behavior.
+
+## Second replacement round — semantic-core elimination
+
+Completed after the R1 baseline:
+
+- retired src/market_capital/semantic.py and contracts/semantic-core-v1.json;
+- replaced the local external-write admission wrapper with OPA/Rego policy evaluation;
+- replaced RETAIN / RELEASE / CONSUME with provider-native NO_MUTATION / VOID_PENDING_TRANSFER / POST_PENDING_TRANSFER;
+- removed local truth-level, proof-object, witness-record, and same-cut abstractions from the active Market Capital tree;
+- preserved frozen historical fixtures without reimplementing their obsolete semantic machinery;
+- verified the replacement through TigerBeetle restart/reconciliation and the Nautilus non-live effect matrix.
+
+The current architecture therefore has no custom semantic core. Remaining local seams are mappings, policy inputs, reconciliation, and provider integration code.

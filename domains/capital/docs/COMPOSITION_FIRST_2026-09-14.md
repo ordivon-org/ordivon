@@ -46,8 +46,8 @@ Market Capital may retain only the semantics that external components cannot est
 - decision → standard execution-intent mapping;
 - proof identity/currentness across component boundaries;
 - Reservation != Grant;
-- EffectAuthority disposition when an external effect is ambiguous;
-- external financial write admission, capability attenuation, revocation, and reconciliation boundaries;
+- fail-closed reconciliation mapping from authoritative venue state to TigerBeetle pending-transfer resolution;
+- OPA external-write policy inputs, capability attenuation, revocation, and reconciliation boundaries;
 - reconciliation result over authoritative venue reality.
 
 These are seams, not replacement trading/account/settlement systems.
@@ -75,7 +75,7 @@ The remaining non-live path is composition work, not subsystem construction:
 1. **Decision → FIX-aligned intent**: reuse the existing QuickFIX/n FIX 4.4 projection and keep only a minimal crypto decision binding.
 2. **Read-only venue reality**: qualify official OKX/Binance private account/order/trade reads before any order-capable credential is admitted.
 3. **Demo/Testnet execution**: use Nautilus execution clients against OKX Demo and/or Binance Demo/Testnet; do not write a new exchange client.
-4. **Reconciliation**: map authoritative venue order/trade/account state to standard execution lifecycle semantics, retaining only the thin EffectAuthority ambiguity policy locally.
+4. **Reconciliation**: map authoritative venue order/trade/account state to standard execution lifecycle semantics, retaining only the thin fail-closed mapping from venue reconciliation to accounting resolution.
 5. **Repeated paper evidence**: exercise reconnect, reject, cancel, partial-fill, timeout/unknown-effect and restart recovery across repeated sessions.
 6. **Stop and review**: production/live authorization is a separate admission problem and is not obtained by changing configuration booleans.
 

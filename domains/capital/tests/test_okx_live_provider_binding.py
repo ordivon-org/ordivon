@@ -26,7 +26,7 @@ def test_okx_live_provider_uses_external_mature_clients_and_unified_secret_root(
 def test_provider_trade_capability_does_not_mint_effect_admission():
     x = load("config/okx_live_provider.json")
     assert x["providerTradeCapabilityMayBeBound"] is True
-    assert x["externalFinancialWriteAdmission"] == "NOT_ADMITTED"
+    assert x["externalWritePolicyStanding"] == "NOT_ADMITTED"
     assert x["orderSubmissionAllowed"] is False
     assert x["withdrawalAllowed"] is False
     assert x["transferAllowed"] is False

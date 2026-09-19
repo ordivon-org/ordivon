@@ -53,7 +53,7 @@
     "test order notional is capped at 1 quote unit unless the Owner Principal changes the test capital envelope",
     "if venue minimum notional exceeds the cap, the test must stop rather than raise the cap automatically",
     "withdrawal and transfer operations remain forbidden",
-    "any ambiguous dispatch is RETAIN and must reconcile before retry",
+    "any ambiguous dispatch maps to NO_MUTATION and must reconcile before retry",
     "non-matching validation canaries do not imply authorization for a real matching-engine order",
     "an executor credential may be bound for capability/currentness qualification while orderSubmissionAdmission is NOT_ADMITTED, but it must not be passed to an order-submitting runner until effect admission is separately granted"
   ],
@@ -62,23 +62,23 @@
   "venues": {
     "BINANCE": {
       "endpointClass": "LIVE",
+      "executorCredentialBinding": "UNBOUND_NOT_ADMITTED",
       "observerCredential": "/root/.config/ordivon/secrets/binance/observer",
-      "role": "TEST_ACCOUNT_BY_OWNER_POLICY",
-      "executorCredentialBinding": "UNBOUND_NOT_ADMITTED"
+      "role": "TEST_ACCOUNT_BY_OWNER_POLICY"
     },
     "OKX": {
-      "endpointClass": "LIVE",
-      "observerCredential": "/root/.config/ordivon/secrets/okx/observer/config.toml",
-      "role": "TEST_ACCOUNT_BY_OWNER_POLICY",
-      "executorCredentialBinding": "/root/.config/ordivon/secrets/okx/live-trade/config.toml",
-      "providerBinding": "config/okx_live_provider.json",
-      "qualificationStanding": "PASS_CURRENT_PROVIDER_BINDING_NO_ORDER_ADMISSION",
       "credentialPermissionEvidence": "evidence/okx-live-provider-binding-20260914.json",
+      "endpointClass": "LIVE",
+      "executionProvider": "NautilusTrader 2.0.0rc4 OKX LIVE",
+      "executorCredentialBinding": "/root/.config/ordivon/secrets/okx/live-trade/config.toml",
+      "observerCredential": "/root/.config/ordivon/secrets/okx/observer/config.toml",
+      "officialClient": "@okx_ai/okx-trade-cli 1.4.7",
+      "providerBinding": "config/okx_live_provider.json",
       "providerReadPermissionCurrent": true,
       "providerTradePermissionCurrent": true,
       "providerWithdrawPermissionCurrent": false,
-      "officialClient": "@okx_ai/okx-trade-cli 1.4.7",
-      "executionProvider": "NautilusTrader 2.0.0rc4 OKX LIVE"
+      "qualificationStanding": "PASS_CURRENT_PROVIDER_BINDING_NO_ORDER_ADMISSION",
+      "role": "TEST_ACCOUNT_BY_OWNER_POLICY"
     }
   },
   "withdrawalAuthorized": false
