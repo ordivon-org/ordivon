@@ -92,6 +92,13 @@ Core validation from a clean checkout:
 uv run --locked python -m unittest discover -s tests -p 'test_*.py' -v
 uv run --locked --group architecture lint-imports
 uv run --locked --group quality ruff check agent_service scripts tests
+uv run --locked --group authority python scripts/check_authority_catalog_r1.py
 ```
 
-The default `test` group composes the runtime and deployment dependencies required by the complete unit and repository test suite. Heavier reasoning dependencies are kept in a separate group and are not installed by default.
+The default `test` group composes the runtime and deployment dependencies required by the complete unit and repository test suite. Architecture, quality, authority-catalog validation and heavier reasoning dependencies are separate groups and are installed only when their validation surface is invoked.
+
+The read-only Agent Service canary uses the same lockfile. Its deployment environment is materialized without test/analysis groups:
+
+```bash
+uv sync --locked --no-default-groups --group deployment
+```

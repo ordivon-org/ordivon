@@ -1,8 +1,8 @@
 {
   "access": {
-    "fullText": "member-or-public-download",
+    "fullText": "mixed",
     "metadata": "public",
-    "note": "Voluntary professional standard; legal enforceability remains jurisdiction- and contract-specific."
+    "note": "Full-text access may be public or member-gated depending on the download path. Voluntary professional standard; legal enforceability remains jurisdiction- and contract-specific."
   },
   "discovery": {
     "aliases": [

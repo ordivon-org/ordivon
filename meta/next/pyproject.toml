@@ -18,6 +18,9 @@ architecture = [
 quality = [
   "ruff",
 ]
+authority = [
+  "check-jsonschema",
+]
 reasoning = [
   "ortools",
   "pyshacl",

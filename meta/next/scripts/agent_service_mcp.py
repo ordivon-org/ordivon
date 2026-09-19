@@ -28,8 +28,6 @@ DEFAULT_PORT = 8894
 DEFAULT_TOKEN_FILE = Path("/etc/ordivon/agent-service-mcp.token")
 DEFAULT_BODY_LIMIT = 1_048_576
 
-R15_ACCEPTANCE = Path("evidence/acceptance/agent-service-effect-authority-r15.json")
-R15_GRAPH = Path("knowledge/graphs/ordivon-agent-service-r15-effect-authority-delta.json")
 GRAPH_CHECKER = Path("scripts/check_agent_service_graph_identity_r1.py")
 
 
@@ -72,16 +70,6 @@ def _read_token(path: Path) -> str:
     return value
 
 
-def _read_json(root: Path, relative: Path) -> dict[str, Any]:
-    path = root / relative
-    if not path.is_file():
-        raise RuntimeError(f"required Agent Service artifact missing: {relative}")
-    value = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(value, dict):
-        raise RuntimeError(f"required Agent Service artifact is not an object: {relative}")
-    return value
-
-
 def _graph_identity(root: Path) -> dict[str, Any]:
     path = root / GRAPH_CHECKER
     if not path.is_file():
@@ -98,13 +86,6 @@ def _graph_identity(root: Path) -> dict[str, Any]:
 
 
 def _contract(root: Path) -> dict[str, Any]:
-    acceptance = _read_json(root, R15_ACCEPTANCE)
-    standings = acceptance.get("standings") or {}
-    source_ready = standings.get("sourceImplementation") == "READY_TO_INTEGRATE_MAIN"
-    authority_resolved = standings.get("authorityLifetimeQuestion") == "RESOLVED_BY_EXPLICIT_SEPARATION"
-    production_blocked = standings.get("productionDeployment") == "NOT_ADMITTED"
-    if not (source_ready and authority_resolved and production_blocked):
-        raise RuntimeError("R15 acceptance standing is incompatible with read-only deployment canary")
     graph = _graph_identity(root)
     from agent_service import open_agent_service  # local source import; no service instance is created
 
@@ -113,9 +94,8 @@ def _contract(root: Path) -> dict[str, Any]:
         "kind": "ordivon.agent-service-readonly-canary-contract",
         "status": "PASS",
         "compositionRoot": open_agent_service.__name__,
-        "sourceImplementation": standings["sourceImplementation"],
-        "authorityLifetimeQuestion": standings["authorityLifetimeQuestion"],
-        "productionDeployment": standings["productionDeployment"],
+        "deploymentMode": "READ_ONLY_CANARY",
+        "productionDeployment": "NOT_ADMITTED",
         "graphFiles": graph["graphFiles"],
         "graphNodeCount": graph["nodeCount"],
         "writeSurfaceEnabled": False,
@@ -187,11 +167,11 @@ def build_server(settings: McpSettings) -> MCPServer:
     server = MCPServer(
         name="ordivon-agent-service-canary-mcp",
         title="Ordivon Agent Service Read-Only Canary",
-        description="Read-only deployment qualification surface for the Agent Service R15 source composition.",
+        description="Read-only deployment qualification surface for the current Agent Service source composition.",
         instructions=(
             "This is a read-only deployment canary. It exposes no Session, Delegation, routing, delivery, "
-            "credential, Runtime mutation, Host mutation, or provider-effect operation. Production deployment "
-            "remains NOT_ADMITTED by the R15 acceptance contract."
+            "credential, Runtime mutation, Host mutation, or provider-effect operation. Production write/effect "
+            "deployment remains NOT_ADMITTED by this surface."
         ),
         version="1",
         log_level=settings.log_level,

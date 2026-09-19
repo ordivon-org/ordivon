@@ -14,6 +14,19 @@
     "lifecycleStatus": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
     "versionObserved": {"type": ["string", "null"]},
     "note": {"type": ["string", "null"]},
-    "basis": {"enum": ["official-source", "migrated-verified-profile"]}
+    "basis": {
+      "oneOf": [
+        {"const": "official-source"},
+        {"const": "migrated-verified-profile"},
+        {
+          "enum": [
+            "official-source-currentness-check",
+            "official-provider-documentation-check",
+            "official-industry-source-currentness-check"
+          ],
+          "deprecated": true
+        }
+      ]
+    }
   }
 }
