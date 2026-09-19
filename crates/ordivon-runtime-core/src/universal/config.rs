@@ -12,7 +12,7 @@ pub struct UniversalExecutorConfig {
     pub workspace_root: Option<PathBuf>,
     pub workspace_uid: Option<u32>,
     pub workspace_gid: Option<u32>,
-    pub runner_path: PathBuf,
+    pub runner_path: Option<PathBuf>,
     pub allowed_executable_roots: Vec<PathBuf>,
     pub max_runtime_ms: u64,
     pub max_output_bytes: u64,
@@ -36,7 +36,18 @@ impl UniversalExecutorConfig {
                 "workspaceUid",
             ));
         }
-        if !self.runner_path.is_absolute() {
+        #[cfg(not(unix))]
+        if self.workspace_uid.is_some() {
+            return Err(invalid(
+                "workspaceUid/workspaceGid are Unix-only; native platform ownership must use its own state authority",
+                "workspaceUid",
+            ));
+        }
+        if self
+            .runner_path
+            .as_ref()
+            .is_some_and(|runner| !runner.is_absolute())
+        {
             return Err(invalid("runner path must be absolute", "runnerPath"));
         }
         if self.allowed_executable_roots.is_empty() {
@@ -93,6 +104,9 @@ impl UniversalExecutorConfig {
             self.job_inputs_root(),
         ] {
             fs::create_dir_all(&path).map_err(|error| io_error(&path, "create", error))?;
+            #[cfg(windows)]
+            crate::windows_security::protect_private_directory(&path)
+                .map_err(|error| io_error(&path, "protect with native Windows ACL", error))?;
         }
         Ok(())
     }

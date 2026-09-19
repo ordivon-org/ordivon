@@ -31,6 +31,8 @@ use tower_http::limit::RequestBodyLimitLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod access_auth;
+#[cfg(windows)]
+mod windows_service;
 
 use access_auth::{CloudflareAccessConfig, CloudflareAccessVerifier};
 
@@ -81,8 +83,7 @@ struct AppConfig {
     principal_mode: PrincipalMode,
     remote_principal: Option<String>,
 }
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn initialize_tracing() {
     let _ = tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -90,7 +91,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .with(tracing_subscriber::fmt::layer())
         .try_init();
+}
 
+#[cfg(not(windows))]
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    initialize_tracing();
+    run_runtime_server(CancellationToken::new(), true, None).await
+}
+
+#[cfg(windows)]
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    initialize_tracing();
+    if windows_service::requested() {
+        windows_service::dispatch()?;
+        return Ok(());
+    }
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()?;
+    runtime.block_on(run_runtime_server(CancellationToken::new(), true, None))
+}
+
+pub(crate) async fn run_runtime_server(
+    cancellation: CancellationToken,
+    install_ctrl_c: bool,
+    ready_hook: Option<fn(SocketAddr)>,
+) -> Result<(), Box<dyn std::error::Error>> {
     let app = load_config()?;
     validate_loopback_bind(app.bind)?;
     let runtime_server =
@@ -104,7 +131,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let background_runtime = runtime_server.runtime_handle();
     let listener = tokio::net::TcpListener::bind(app.bind).await?;
     let address = listener.local_addr()?;
-    let cancellation = CancellationToken::new();
     let service_server = runtime_server.clone();
     let service: StreamableHttpService<RuntimeServer, LocalSessionManager> =
         StreamableHttpService::new(
@@ -151,6 +177,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         execution_mode = "trusted-local",
         "Ordivon Runtime listening"
     );
+    if let Some(report_ready) = ready_hook {
+        report_ready(address);
+    }
 
     let reconcile_shutdown = cancellation.child_token();
     let reconcile_interval_ms = app.reconcile_interval_ms;
@@ -200,11 +229,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-    let shutdown = cancellation.clone();
-    tokio::spawn(async move {
-        let _ = tokio::signal::ctrl_c().await;
-        shutdown.cancel();
-    });
+    if install_ctrl_c {
+        let shutdown = cancellation.clone();
+        tokio::spawn(async move {
+            let _ = tokio::signal::ctrl_c().await;
+            shutdown.cancel();
+        });
+    }
 
     axum::serve(listener, router)
         .with_graceful_shutdown(cancellation.cancelled_owned())
@@ -410,7 +441,11 @@ fn load_config() -> Result<AppConfig, Box<dyn std::error::Error>> {
     }
     let store_root = PathBuf::from(required_env("ORDIVON_STORE_ROOT")?);
     let registry_root = PathBuf::from(required_env("ORDIVON_REGISTRY_ROOT")?);
-    let runner_path = PathBuf::from(required_env("ORDIVON_RUNNER_PATH")?);
+    let runner_path = if cfg!(target_os = "linux") {
+        Some(PathBuf::from(required_env("ORDIVON_RUNNER_PATH")?))
+    } else {
+        optional_env("ORDIVON_RUNNER_PATH")?.map(PathBuf::from)
+    };
     let windows = match (
         optional_env("ORDIVON_WINDOWS_LAUNCHER_PATH")?,
         optional_env("ORDIVON_WINDOWS_WSL_DISTRIBUTION")?,
@@ -437,17 +472,25 @@ fn load_config() -> Result<AppConfig, Box<dyn std::error::Error>> {
             )
         }
     };
-    let allowed_executable_roots = std::env::var("ORDIVON_ALLOWED_EXECUTABLE_ROOTS")
-        .ok()
-        .map(|roots| {
+    let allowed_executable_roots = match optional_env("ORDIVON_ALLOWED_EXECUTABLE_ROOTS")? {
+        Some(raw) => {
+            let roots = std::env::split_paths(&raw)
+                .filter(|value| !value.as_os_str().is_empty())
+                .collect::<Vec<_>>();
+            if roots.is_empty() {
+                return Err(
+                    "ORDIVON_ALLOWED_EXECUTABLE_ROOTS must contain at least one path".into(),
+                );
+            }
             roots
-                .split(':')
-                .filter(|value| !value.is_empty())
-                .map(PathBuf::from)
-                .collect::<Vec<_>>()
-        })
-        .filter(|roots| !roots.is_empty())
-        .unwrap_or_else(|| vec![PathBuf::from("/")]);
+        }
+        None if cfg!(windows) => {
+            return Err(
+                "ORDIVON_ALLOWED_EXECUTABLE_ROOTS is required on native Windows Runtime".into(),
+            );
+        }
+        None => vec![PathBuf::from("/")],
+    };
     let input_authorities = optional_env("ORDIVON_INPUT_AUTHORITIES_JSON")?
         .map(|value| {
             serde_json::from_str::<Vec<InputAuthorityConfig>>(&value).map_err(|error| {
@@ -727,7 +770,7 @@ fn read_private_token_file_for(
     if !metadata.file_type().is_file() {
         return Err(format!("{label} path must be a regular file").into());
     }
-    validate_private_token_file_permissions(&metadata, label)?;
+    validate_private_token_file_permissions(path, &metadata, label)?;
     if metadata.len() > MAX_BEARER_TOKEN_FILE_BYTES {
         return Err(format!("{label} file exceeds the configured bound").into());
     }
@@ -741,6 +784,7 @@ fn read_private_token_file_for(
 
 #[cfg(unix)]
 fn validate_private_token_file_permissions(
+    _path: &Path,
     metadata: &fs::Metadata,
     label: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -750,15 +794,16 @@ fn validate_private_token_file_permissions(
     Ok(())
 }
 
-#[cfg(not(unix))]
+#[cfg(windows)]
 fn validate_private_token_file_permissions(
+    path: &Path,
     _metadata: &fs::Metadata,
     label: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    Err(format!(
-        "{label} native Windows ACL validation is not implemented; refusing bearer-token startup"
-    )
-    .into())
+    ordivon_runtime_core::validate_windows_private_file_acl(path).map_err(|error| {
+        format!("{label} file does not satisfy the native Windows private ACL contract: {error}")
+            .into()
+    })
 }
 
 fn optional_env(name: &str) -> Result<Option<String>, Box<dyn std::error::Error>> {

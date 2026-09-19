@@ -1816,14 +1816,19 @@ fn protect_private_directory(path: &Path) -> RuntimeResult<()> {
     })
 }
 
-#[cfg(not(unix))]
-fn protect_private_directory(_path: &Path) -> RuntimeResult<()> {
-    Err(RuntimeError::new(
-        RuntimeErrorCode::ToolUnavailable,
-        "native private Runtime state ACL realization is not implemented for this platform",
-        Some("storeRoot"),
-        false,
-    ))
+#[cfg(windows)]
+fn protect_private_directory(path: &Path) -> RuntimeResult<()> {
+    crate::windows_security::protect_private_directory(path).map_err(|error| {
+        RuntimeError::new(
+            RuntimeErrorCode::IoError,
+            format!(
+                "cannot protect {} with native Windows ACL: {error}",
+                path.display()
+            ),
+            Some("storeRoot"),
+            false,
+        )
+    })
 }
 
 #[cfg(unix)]
@@ -1838,12 +1843,17 @@ fn set_private_file(path: &Path) -> RuntimeResult<()> {
     })
 }
 
-#[cfg(not(unix))]
-fn set_private_file(_path: &Path) -> RuntimeResult<()> {
-    Err(RuntimeError::new(
-        RuntimeErrorCode::ToolUnavailable,
-        "native private Runtime file ACL realization is not implemented for this platform",
-        Some("dbPath"),
-        false,
-    ))
+#[cfg(windows)]
+fn set_private_file(path: &Path) -> RuntimeResult<()> {
+    crate::windows_security::protect_private_file(path).map_err(|error| {
+        RuntimeError::new(
+            RuntimeErrorCode::IoError,
+            format!(
+                "cannot protect {} with native Windows ACL: {error}",
+                path.display()
+            ),
+            Some("dbPath"),
+            false,
+        )
+    })
 }

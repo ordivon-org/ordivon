@@ -33,8 +33,10 @@ fn is_executable_file(metadata: &fs::Metadata) -> bool {
 }
 
 #[cfg(not(unix))]
-fn is_executable_file(_metadata: &fs::Metadata) -> bool {
-    false
+fn is_executable_file(metadata: &fs::Metadata) -> bool {
+    // Windows has no POSIX executable mode bit. CreateProcess admission still requires
+    // a regular file plus the exact configured-root and digest checks below.
+    metadata.is_file()
 }
 
 pub(crate) fn validate_executable(
@@ -789,7 +791,7 @@ mod tests {
             workspace_root: None,
             workspace_uid: None,
             workspace_gid: None,
-            runner_path: PathBuf::from("/usr/bin/true"),
+            runner_path: Some(PathBuf::from("/usr/bin/true")),
             allowed_executable_roots: vec![root.clone(), PathBuf::from("/usr/bin")],
             max_runtime_ms: 60_000,
             max_output_bytes: 1_048_576,
@@ -816,7 +818,7 @@ mod tests {
             workspace_root: None,
             workspace_uid: None,
             workspace_gid: None,
-            runner_path: PathBuf::from("/usr/bin/true"),
+            runner_path: Some(PathBuf::from("/usr/bin/true")),
             allowed_executable_roots: vec![PathBuf::from("/usr/bin")],
             max_runtime_ms: 60_000,
             max_output_bytes: 1_048_576,
@@ -835,7 +837,7 @@ mod tests {
             workspace_root: None,
             workspace_uid: None,
             workspace_gid: None,
-            runner_path: PathBuf::from("/usr/bin/true"),
+            runner_path: Some(PathBuf::from("/usr/bin/true")),
             allowed_executable_roots: vec![PathBuf::from("/usr/bin")],
             max_runtime_ms: 60_000,
             max_output_bytes: 1_048_576,
@@ -852,7 +854,7 @@ mod tests {
             workspace_root: None,
             workspace_uid: None,
             workspace_gid: None,
-            runner_path: PathBuf::from("/usr/bin/true"),
+            runner_path: Some(PathBuf::from("/usr/bin/true")),
             allowed_executable_roots: vec![PathBuf::from("/usr/bin")],
             max_runtime_ms: 60_000,
             max_output_bytes: 1_048_576,

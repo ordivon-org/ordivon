@@ -1316,7 +1316,7 @@ fn projection_executor(store_root: &Path) -> UniversalExecutorConfig {
         workspace_root: None,
         workspace_uid: None,
         workspace_gid: None,
-        runner_path: PathBuf::from("/usr/bin/true"),
+        runner_path: Some(PathBuf::from("/usr/bin/true")),
         allowed_executable_roots: vec![PathBuf::from("/")],
         max_runtime_ms: 1,
         max_output_bytes: 1,

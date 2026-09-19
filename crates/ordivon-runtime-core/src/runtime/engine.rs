@@ -75,7 +75,9 @@ const ORPHAN_REMEDIATION_FILE: &str = "orphan-remediation.json";
 const TERMINAL_EVIDENCE_FILE_PREFIX: &str = "terminal-evidence-";
 const INTERACTIVE_RECONCILIATION_LIMIT: u32 = 32;
 const ADAPTIVE_POLL_DELAYS_MS: [u64; 5] = [2, 5, 10, 20, 50];
+#[cfg(unix)]
 const DEFAULT_EXECUTION_PATH: &str = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
+#[cfg(unix)]
 const DEFAULT_EXECUTION_HOME: &str = "/root";
 const STALE_PREPARED_INPUT_AGE_MS: u64 = 60_000;
 const WINDOWS_NATIVE_OUTER_DEADLINE_GRACE_MS: u64 = 5_000;
@@ -1023,7 +1025,7 @@ mod trusted_systemd_command_tests {
                             workspace_root: None,
                             workspace_uid: None,
                             workspace_gid: None,
-                            runner_path: PathBuf::from("/usr/bin/true"),
+                            runner_path: Some(PathBuf::from("/usr/bin/true")),
                             allowed_executable_roots: vec![PathBuf::from("/usr/bin")],
                             max_runtime_ms: 60_000,
                             max_output_bytes: 1_048_576,
@@ -1232,7 +1234,7 @@ mod trusted_systemd_command_tests {
                     workspace_root: None,
                     workspace_uid: None,
                     workspace_gid: None,
-                    runner_path: PathBuf::from("/usr/bin/true"),
+                    runner_path: Some(PathBuf::from("/usr/bin/true")),
                     allowed_executable_roots: vec![PathBuf::from("/")],
                     max_runtime_ms,
                     max_output_bytes,
@@ -1534,7 +1536,7 @@ mod trusted_systemd_command_tests {
                 workspace_root: None,
                 workspace_uid: None,
                 workspace_gid: None,
-                runner_path: PathBuf::from("/usr/bin/true"),
+                runner_path: Some(PathBuf::from("/usr/bin/true")),
                 allowed_executable_roots: vec![PathBuf::from("/")],
                 max_runtime_ms: 60_000,
                 max_output_bytes: 1_048_576,
@@ -1569,7 +1571,7 @@ mod trusted_systemd_command_tests {
                 workspace_root: None,
                 workspace_uid: None,
                 workspace_gid: None,
-                runner_path: PathBuf::from("/usr/bin/true"),
+                runner_path: Some(PathBuf::from("/usr/bin/true")),
                 allowed_executable_roots: vec![PathBuf::from("/")],
                 max_runtime_ms: 60_000,
                 max_output_bytes: 1_048_576,

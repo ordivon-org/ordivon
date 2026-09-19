@@ -5,7 +5,23 @@ impl Runtime {
     ) -> RuntimeResult<ExecutionProviderSnapshot> {
         match target {
             super::ExecutionTarget::LocalLinux => {
-                let runner = validate_runner(&self.executor.runner_path)?;
+                if self.node_identity.platform != super::RuntimeNodePlatform::Linux {
+                    return Err(RuntimeError::new(
+                        RuntimeErrorCode::ToolUnavailable,
+                        "local_linux execution is available only on a Linux Runtime node",
+                        Some("execution.executionTarget"),
+                        false,
+                    ));
+                }
+                let runner_path = self.executor.runner_path.as_deref().ok_or_else(|| {
+                    RuntimeError::new(
+                        RuntimeErrorCode::ToolUnavailable,
+                        "local_linux runner is not configured on this Runtime node",
+                        Some("runnerPath"),
+                        false,
+                    )
+                })?;
+                let runner = validate_runner(runner_path)?;
                 Ok(ExecutionProviderSnapshot {
                     contract: ExecutionProviderContract::LocalLinuxRunnerV1,
                     executable_digest: sha256_file(&runner).map_err(map_universal_error)?,
@@ -43,25 +59,33 @@ impl Runtime {
         allowed_executable_roots.dedup();
         let input_authorities = self.input_authorities.keys().cloned().collect::<Vec<_>>();
 
-        let linux_provider = self
-            .current_execution_provider_snapshot(super::ExecutionTarget::LocalLinux)
-            .ok();
+        let linux_configured = self.node_identity.platform == super::RuntimeNodePlatform::Linux
+            && self.executor.runner_path.is_some();
+        let linux_provider = linux_configured
+            .then(|| self.current_execution_provider_snapshot(super::ExecutionTarget::LocalLinux))
+            .transpose()
+            .ok()
+            .flatten();
         let linux = RuntimeExecutionTargetCapability {
             target: super::ExecutionTarget::LocalLinux,
-            configured: true,
+            configured: linux_configured,
             available: linux_provider.is_some(),
-            execution_profiles: vec![
-                super::ExecutionProfile::TrustedLocal,
-                super::ExecutionProfile::ContainedLocal,
-            ],
+            execution_profiles: if linux_configured {
+                vec![
+                    super::ExecutionProfile::TrustedLocal,
+                    super::ExecutionProfile::ContainedLocal,
+                ]
+            } else {
+                Vec::new()
+            },
             windows_authorities: Vec::new(),
             windows_immutable_input_authorities: Vec::new(),
-            structured_plan: true,
-            immutable_inputs: true,
-            host_dependency_commitments: true,
-            host_dependency_continuity_scope: Some(HOST_DEPENDENCY_CONTINUITY_SCOPE.to_string()),
-            availability_issue: linux_provider
-                .is_none()
+            structured_plan: linux_configured,
+            immutable_inputs: linux_configured,
+            host_dependency_commitments: linux_configured,
+            host_dependency_continuity_scope: linux_configured
+                .then(|| HOST_DEPENDENCY_CONTINUITY_SCOPE.to_string()),
+            availability_issue: (linux_configured && linux_provider.is_none())
                 .then(|| "EXECUTION_PROVIDER_UNAVAILABLE".to_string()),
             execution_provider: linux_provider,
         };
@@ -300,9 +324,9 @@ impl Runtime {
                         "execution.executionTarget",
                     )
                 })?;
-                if mounted_windows_path(&executable).is_none() {
+                if windows.wsl_distribution.is_some() && mounted_windows_path(&executable).is_none() {
                     return Err(RuntimeError::invalid(
-                        "windows_native executable must reside on a WSL-mounted Windows drive",
+                        "Linux-hosted windows_native executable must reside on a WSL-mounted Windows drive",
                         "execution.executable",
                     ));
                 }
@@ -1166,7 +1190,15 @@ impl Runtime {
         let runtime_ceiling = plan.timeout_ms.saturating_add(5_000);
         let output = match plan.execution_target {
             super::ExecutionTarget::LocalLinux => {
-                let runner = validate_runner(&self.executor.runner_path)?;
+                let runner_path = self.executor.runner_path.as_deref().ok_or_else(|| {
+                    RuntimeError::new(
+                        RuntimeErrorCode::ToolUnavailable,
+                        "local_linux runner is not configured on this Runtime node",
+                        Some("runnerPath"),
+                        false,
+                    )
+                })?;
+                let runner = validate_runner(runner_path)?;
                 let input_set_path = if plan.input_set_id.is_some() {
                     self.ensure_job_input_ownership(&starting.job_id)?;
                     let path = self.executor.job_input_path(&starting.job_id);
