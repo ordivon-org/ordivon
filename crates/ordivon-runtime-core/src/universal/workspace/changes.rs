@@ -1,4 +1,4 @@
-pub fn workspace_diff(
+pub(crate) fn workspace_diff(
     config: &UniversalExecutorConfig,
     request: &WorkspaceDiffRequest,
 ) -> Result<WorkspaceDiffResult, UniversalExecError> {

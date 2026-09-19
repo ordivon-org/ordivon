@@ -67,7 +67,7 @@ fn read_workspace_file_bounded(
     Ok(bytes)
 }
 
-pub fn read_workspace_text(
+pub(crate) fn read_workspace_text(
     config: &UniversalExecutorConfig,
     request: &WorkspaceReadRequest,
 ) -> Result<WorkspaceReadResult, UniversalExecError> {

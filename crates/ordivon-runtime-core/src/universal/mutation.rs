@@ -186,7 +186,7 @@ fn rollback(
     Ok(())
 }
 
-pub fn read_workspace_slice(
+pub(crate) fn read_workspace_slice(
     config: &UniversalExecutorConfig,
     request: &super::WorkspaceReadSliceRequest,
 ) -> Result<super::WorkspaceReadSliceResult, UniversalExecError> {
