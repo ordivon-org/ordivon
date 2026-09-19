@@ -37,7 +37,7 @@ class HostV2:
         if row is None or int(row["schema_version"]) != 5:
             observed = None if row is None else int(row["schema_version"])
             raise RuntimeError(
-                f"Host v2 schema is not at required version 4 (observed={observed}); "
+                f"Host v2 schema is not at required version 5 (observed={observed}); "
                 "run alembic upgrade head"
             )
 
