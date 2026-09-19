@@ -4,10 +4,10 @@ from __future__ import annotations
 import argparse
 import json
 import os
-from pathlib import Path, PurePosixPath
 import sys
+from pathlib import Path, PurePosixPath
 
-from admission import AdmissionError, normalize, _instant
+from admission import AdmissionError, _instant, normalize
 
 
 def _input_file(root: Path, relative: str) -> Path:

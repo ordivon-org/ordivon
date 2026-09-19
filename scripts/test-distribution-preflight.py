@@ -2,9 +2,9 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 import shutil
 import tempfile
+from pathlib import Path
 
 from distribution_preflight import PreflightError, run_preflight
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
+
 p=Path(__file__).resolve().parent/'temporal_integration_dispatch_smoke.py'
 s=p.read_text()
 assert 'ORDIVON_DISTRIBUTION_INTEGRATION_URL' in s

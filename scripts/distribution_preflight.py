@@ -6,11 +6,11 @@ import fnmatch
 import hashlib
 import json
 import os
-from pathlib import Path
 import shutil
 import stat
 import subprocess
 import tempfile
+from pathlib import Path
 from typing import Any
 
 from jsonschema import Draft202012Validator
@@ -86,8 +86,7 @@ def run_tool(executable: Path, args: list[str], *, cwd: Path | None = None, time
         [str(executable), *args],
         cwd=cwd,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
         timeout=timeout,
         env={**os.environ, "LC_ALL": "C", "TZ": "UTC"},
@@ -199,8 +198,7 @@ def launch(installed: Path, profile: dict[str, Any]) -> dict[str, Any]:
         [str(entry), *profile["launch"]["args"]],
         cwd=installed,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
         timeout=120,
         env={**os.environ, "LC_ALL": "C", "TZ": "UTC"},

@@ -1,17 +1,17 @@
 #!/usr/bin/env python
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import json
-from pathlib import Path
 import subprocess
 import tempfile
+from datetime import UTC, datetime
+from pathlib import Path
 
 from admission import AdmissionError, normalize
 from bound_refs import effect_authority_ref, occurrence_ref, provider_observation_ref
 
 ROOT = Path(__file__).resolve().parent.parent
-NOW = datetime(2026, 9, 11, 12, 0, tzinfo=timezone.utc)
+NOW = datetime(2026, 9, 11, 12, 0, tzinfo=UTC)
 
 
 def envelope(*, mode="read", supported=True, execution="api", requirements=None, interactions=None, authority=False):

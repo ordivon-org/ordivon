@@ -1,7 +1,15 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import argparse, asyncio, datetime as dt, json, os, urllib.request, uuid
+
+import argparse
+import asyncio
+import datetime as dt
+import json
+import os
+import urllib.request
+import uuid
 from pathlib import Path
+
 from temporalio import activity, workflow
 from temporalio.client import Client
 from temporalio.common import RetryPolicy
@@ -35,10 +43,10 @@ class DistributionIntegrationDispatchWorkflow:
 
 def make_blocked_event(intent_path:Path,event_id:str)->dict:
     intent=json.loads(intent_path.read_text())
-    return {'specversion':'1.0','id':event_id,'source':'urn:ordivon:distribution:r8-temporal-acceptance','type':REQUEST_TYPE,'time':dt.datetime.now(dt.timezone.utc).isoformat(),'datacontenttype':'application/json','data':{'intent':{'intentId':intent['intentId'],'occurrenceRef':intent['occurrenceRef'],'provider':intent['carrier']['provider'],'effectName':intent['effect']['name'],'artifact':intent.get('artifact')},'decision':{'action':'artifact_release_not_ready','reason':'artifact-backed-effect-requires-release-ready-artifact','externalEffectPerformed':False}}}
+    return {'specversion':'1.0','id':event_id,'source':'urn:ordivon:distribution:r8-temporal-acceptance','type':REQUEST_TYPE,'time':dt.datetime.now(dt.UTC).isoformat(),'datacontenttype':'application/json','data':{'intent':{'intentId':intent['intentId'],'occurrenceRef':intent['occurrenceRef'],'provider':intent['carrier']['provider'],'effectName':intent['effect']['name'],'artifact':intent.get('artifact')},'decision':{'action':'artifact_release_not_ready','reason':'artifact-backed-effect-requires-release-ready-artifact','externalEffectPerformed':False}}}
 
 def make_read_event(event_id:str)->dict:
-    return {'specversion':'1.0','id':event_id,'source':'urn:ordivon:distribution:r8-temporal-acceptance','type':REQUEST_TYPE,'time':dt.datetime.now(dt.timezone.utc).isoformat(),'datacontenttype':'application/json','data':{'intent':{'intentId':'provider-readback-only','occurrenceRef':'synthetic-read-only','provider':'github','effectName':'provider_readback','artifact':None},'decision':{'action':'preflight_ready','reason':'read-only-provider-positive-control','externalEffectPerformed':False}}}
+    return {'specversion':'1.0','id':event_id,'source':'urn:ordivon:distribution:r8-temporal-acceptance','type':REQUEST_TYPE,'time':dt.datetime.now(dt.UTC).isoformat(),'datacontenttype':'application/json','data':{'intent':{'intentId':'provider-readback-only','occurrenceRef':'synthetic-read-only','provider':'github','effectName':'provider_readback','artifact':None},'decision':{'action':'preflight_ready','reason':'read-only-provider-positive-control','externalEffectPerformed':False}}}
 
 async def execute(address:str,event:dict)->dict:
     client=await Client.connect(address)

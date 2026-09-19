@@ -2,13 +2,13 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timezone
 import json
-from pathlib import Path
 import sys
+from datetime import UTC, datetime
+from pathlib import Path
 
-from jsonschema import Draft202012Validator, FormatChecker
 from bound_refs import effect_authority_ref, occurrence_ref, provider_observation_ref
+from jsonschema import Draft202012Validator, FormatChecker
 
 ROOT = Path(__file__).resolve().parent.parent
 CONTRACTS = ROOT / "contracts"
@@ -31,7 +31,7 @@ def _instant(text: str) -> datetime:
     value = datetime.fromisoformat(text.replace("Z", "+00:00"))
     if value.tzinfo is None:
         raise AdmissionError("timestamp must include timezone")
-    return value.astimezone(timezone.utc)
+    return value.astimezone(UTC)
 
 def _check_window(start: str, end: str, now: datetime, label: str) -> None:
     starts = _instant(start)
@@ -44,7 +44,7 @@ def _check_window(start: str, end: str, now: datetime, label: str) -> None:
         raise AdmissionError(f"{label} is expired")
 
 def normalize(envelope: dict, now: datetime | None = None) -> dict:
-    now = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    now = (now or datetime.now(UTC)).astimezone(UTC)
     if set(envelope) != {"schemaVersion", "intent", "providerObservation", "effectAuthority"}:
         raise AdmissionError("admission envelope has unexpected or missing top-level fields")
     if envelope.get("schemaVersion") != 2:

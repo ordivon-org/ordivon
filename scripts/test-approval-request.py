@@ -5,9 +5,8 @@ import json
 from copy import deepcopy
 from pathlib import Path
 
-from jsonschema import Draft202012Validator, FormatChecker
-
 from bound_refs import effect_payload_ref, occurrence_ref
+from jsonschema import Draft202012Validator, FormatChecker
 
 ROOT = Path(__file__).resolve().parent.parent
 REQUEST_SCHEMA = json.loads((ROOT / "contracts/effect-approval-request.schema.json").read_text())

@@ -1,17 +1,17 @@
 #!/usr/bin/env python
 from __future__ import annotations
 
-from copy import deepcopy
-from datetime import datetime, timezone
 import json
+from copy import deepcopy
+from datetime import UTC, datetime
 from pathlib import Path
 
-from produce_effect_authority import AuthorityProducerError, produce
 from bound_refs import occurrence_ref
+from produce_effect_authority import AuthorityProducerError, produce
 
 ROOT = Path(__file__).resolve().parent.parent
 INTENT = json.loads((ROOT / "evidence/r3-github-create-issue-intent.json").read_text())
-NOW = datetime(2026, 9, 12, 0, 20, tzinfo=timezone.utc)
+NOW = datetime(2026, 9, 12, 0, 20, tzinfo=UTC)
 
 
 def approval_for(intent: dict) -> dict:
@@ -59,7 +59,7 @@ def main() -> int:
     wrong["occurrenceRef"] = "sha256:" + "f" * 64
     expect_deny("wrong-occurrence-approval", INTENT, wrong, "not bound to this exact occurrence")
 
-    expired_now = datetime(2026, 9, 12, 0, 31, tzinfo=timezone.utc)
+    expired_now = datetime(2026, 9, 12, 0, 31, tzinfo=UTC)
     expect_deny("expired-approval", INTENT, approval, "outside its validity window", expired_now)
     print("PASS Distribution v2 exact effect authority producer tests")
     return 0

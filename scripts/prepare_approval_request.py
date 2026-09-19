@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timedelta, timezone
 import json
-from pathlib import Path
 import uuid
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 from bound_refs import effect_payload_ref, occurrence_ref
 
@@ -22,7 +22,7 @@ def main() -> int:
     actual = occurrence_ref(intent)
     if intent.get("occurrenceRef") != actual:
         raise SystemExit("intent occurrenceRef mismatch")
-    now = datetime.fromisoformat(args.requested_at.replace("Z", "+00:00")) if args.requested_at else datetime.now(timezone.utc)
+    now = datetime.fromisoformat(args.requested_at.replace("Z", "+00:00")) if args.requested_at else datetime.now(UTC)
     expires = now + timedelta(minutes=args.ttl_minutes)
     value = {
         "schemaVersion": 1,
@@ -32,8 +32,8 @@ def main() -> int:
         "accountRef": intent["carrier"]["accountRef"],
         "effectName": intent["effect"]["name"],
         "effectPayloadRef": effect_payload_ref(intent),
-        "requestedAt": now.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
-        "expiresAt": expires.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "requestedAt": now.astimezone(UTC).isoformat().replace("+00:00", "Z"),
+        "expiresAt": expires.astimezone(UTC).isoformat().replace("+00:00", "Z"),
         "standing": "approval_required_no_effect_authority",
     }
     print(json.dumps(value, sort_keys=True, separators=(",", ":")))

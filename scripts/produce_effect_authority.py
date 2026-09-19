@@ -2,15 +2,14 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timezone
 import json
 import os
-from pathlib import Path, PurePosixPath
 import sys
-
-from jsonschema import Draft202012Validator, FormatChecker
+from datetime import UTC, datetime
+from pathlib import Path, PurePosixPath
 
 from bound_refs import effect_authority_ref, occurrence_ref
+from jsonschema import Draft202012Validator, FormatChecker
 
 ROOT = Path(__file__).resolve().parent.parent
 APPROVAL_SCHEMA = json.loads((ROOT / "contracts/effect-approval.schema.json").read_text())
@@ -24,7 +23,7 @@ def _instant(text: str) -> datetime:
     value = datetime.fromisoformat(text.replace("Z", "+00:00"))
     if value.tzinfo is None:
         raise AuthorityProducerError("timestamp must include timezone")
-    return value.astimezone(timezone.utc)
+    return value.astimezone(UTC)
 
 
 def _bound_input(relative: str) -> Path:
@@ -84,7 +83,7 @@ def main() -> int:
         if "intent" in intent:
             intent = intent["intent"]
         approval = json.loads(_bound_input(args.approval_input).read_text())
-        now = _instant(args.now) if args.now else datetime.now(timezone.utc)
+        now = _instant(args.now) if args.now else datetime.now(UTC)
         authority = produce(intent, approval, now=now)
     except (AuthorityProducerError, KeyError, TypeError, json.JSONDecodeError, OSError) as exc:
         print(f"EFFECT_AUTHORITY_DENY: {exc}", file=sys.stderr)
