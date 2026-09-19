@@ -74,6 +74,10 @@ Do not copy licensed standards into local instructions.
 | supplier/RFQ/PO/purchase-invoice facts | ERPNext Buying or another natural purchasing provider |
 | sustainable procurement | ISO 20400 when sustainability is material |
 | material outsourcing | ISO 37500 |
+| customer contract lifecycle | WorldCC Contract Management Standard when structured contract management adds value + applicable law/legal counsel + actual signed/accepted customer terms |
+| operating budget / variance | ERPNext Budget and Budget Variance against real ledger/project facts; keep prospective forecasts task-local until recurrence justifies a dedicated FP&A provider |
+| payroll records/processing | applicable law + qualified/local payroll/accounting provider; Frappe HR only when real employees make provider-native payroll records useful |
+| customer support / helpdesk | direct founder communication while tiny; Frappe Helpdesk when durable ticket/SLA/portal/KB state has real value; ISO/IEC 20000-1 only for an applicable service-management system |
 | heavyweight collaborative work management | Plane/OpenProject only after measured need |
 | stable prescriptive business process | BPMN/Flowable when executable process semantics add value |
 | adaptive managed case | CMMN/Flowable when real case semantics add value |
@@ -90,7 +94,7 @@ Provider state is authoritative only for that provider's responsibility.
 
 ## 5. Commercial currentness rules
 
-Do not create Ordivon-native Sales, GTM, Pricing, Customer-Success, Hiring or Procurement frameworks.
+Do not create Ordivon-native Sales, GTM, Pricing, Customer-Success, Contracting, FP&A, Payroll, Support, Hiring or Procurement frameworks.
 
 Current provider boundary:
 

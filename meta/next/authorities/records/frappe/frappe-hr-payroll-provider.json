@@ -1,0 +1,53 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": "Provider workflow/record authority only; payroll tax, social-insurance and employment-law correctness remains jurisdiction-specific."
+  },
+  "discovery": {
+    "aliases": [
+      "Frappe HR Payroll",
+      "Frappe Payroll"
+    ],
+    "domains": [
+      "business",
+      "enterprise",
+      "human-resources"
+    ],
+    "topics": [
+      "payroll",
+      "salary",
+      "salary-slip",
+      "employee-records",
+      "payroll-entry"
+    ]
+  },
+  "id": "frappe-hr-payroll-provider",
+  "identity": {
+    "authorityKind": "provider-authority",
+    "identityMode": "rolling-source",
+    "issuer": {
+      "id": "frappe",
+      "name": "Frappe"
+    },
+    "officialSource": "https://docs.frappe.io/hr/payroll-setup",
+    "publicationDate": null,
+    "title": "Frappe HR Payroll provider documentation",
+    "versionLabel": null
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-19",
+    "registrationBasis": [
+      "commercial-practice-externalization-r3"
+    ]
+  },
+  "relations": {
+    "related": [
+      "iso-30405-2023"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

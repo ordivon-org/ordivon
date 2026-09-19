@@ -104,6 +104,12 @@ class AuthorityCatalogTests(unittest.TestCase):
         self.assertEqual(top("procurement"), "iso-20400-2017")
         self.assertEqual(top("frappe crm"), "frappe-crm-provider")
         self.assertEqual(top("erpnext crm"), "erpnext-crm-provider")
+        self.assertEqual(top("contract management"), "worldcc-contract-management-standard-4e")
+        self.assertEqual(top("customer support"), "frappe-helpdesk-provider")
+        self.assertEqual(top("helpdesk"), "frappe-helpdesk-provider")
+        self.assertEqual(top("payroll"), "frappe-hr-payroll-provider")
+        self.assertEqual(top("financial planning"), "erpnext-budget-provider")
+        self.assertEqual(top("budgeting"), "erpnext-budget-provider")
 
         # Unknown named authorities must fail closed rather than borrow relevance
         # from one or two generic overlapping tokens.
