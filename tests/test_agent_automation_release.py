@@ -939,3 +939,91 @@ class MaterializationLedgerMigrationTests(unittest.TestCase):
             r.rollback_materialization_ledger_migration(receipt)
             self.assertTrue(legacy.is_file())
             self.assertFalse(current.exists())
+
+class BrowserSecurityReadinessQualificationTests(unittest.TestCase):
+    def _pool(self, standing: str) -> dict:
+        return {
+            "kind": "ordivon.browser-security-pool-run",
+            "harnessRevision": "a" * 40,
+            "securityRevision": "b" * 40,
+            "poolIndexSha256": "sha256:" + "c" * 64,
+            "carrierEvidence": [],
+            "providerChallengeVisited": False,
+            "providerSendAttempted": False,
+            "classification": {
+                "standing": standing,
+                "rootCauseEstablished": False,
+            },
+        }
+
+    def test_observer_unavailable_is_resampled_before_release_verdict(self):
+        import json
+        from unittest.mock import patch
+        import scripts.agent_automation_release as release
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            scripts = root / "scripts"
+            scripts.mkdir()
+            (scripts / "browser_security_pool_runner.py").write_text("# runner\n")
+            (scripts / "browser_security_witness_source.py").write_text("# witness\n")
+            rows = [
+                self._pool("OBSERVATION_INVALID"),
+                self._pool("NO_OBSERVED_DRIFT"),
+            ]
+            completed = [
+                subprocess.CompletedProcess([], 0, stdout=json.dumps(row), stderr="")
+                for row in rows
+            ]
+            with (
+                patch.object(release, "run", side_effect=completed) as invoked,
+                patch.object(release, "_persist_browser_security_qualification"),
+            ):
+                out = release.require_browser_security_release_qualification(root, "a" * 40)
+            self.assertEqual(out["standing"], "PASS")
+            self.assertEqual(out["probeAttempts"], 2)
+            self.assertEqual(invoked.call_count, 2)
+
+    def test_real_drift_is_not_retried(self):
+        import json
+        from unittest.mock import patch
+        import scripts.agent_automation_release as release
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            scripts = root / "scripts"
+            scripts.mkdir()
+            (scripts / "browser_security_pool_runner.py").write_text("# runner\n")
+            (scripts / "browser_security_witness_source.py").write_text("# witness\n")
+            completed = subprocess.CompletedProcess(
+                [], 0, stdout=json.dumps(self._pool("GLOBAL_DRIFT")), stderr=""
+            )
+            with (
+                patch.object(release, "run", return_value=completed) as invoked,
+                patch.object(release, "_persist_browser_security_qualification"),
+            ):
+                with self.assertRaises(release.ReleaseError):
+                    release.require_browser_security_release_qualification(root, "a" * 40)
+            self.assertEqual(invoked.call_count, 1)
+
+    def test_repeated_observation_invalid_still_holds(self):
+        import json
+        from unittest.mock import patch
+        import scripts.agent_automation_release as release
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            scripts = root / "scripts"
+            scripts.mkdir()
+            (scripts / "browser_security_pool_runner.py").write_text("# runner\n")
+            (scripts / "browser_security_witness_source.py").write_text("# witness\n")
+            completed = subprocess.CompletedProcess(
+                [], 0, stdout=json.dumps(self._pool("OBSERVATION_INVALID")), stderr=""
+            )
+            with (
+                patch.object(release, "run", return_value=completed) as invoked,
+                patch.object(release, "_persist_browser_security_qualification"),
+            ):
+                with self.assertRaises(release.ReleaseError):
+                    release.require_browser_security_release_qualification(root, "a" * 40)
+            self.assertEqual(invoked.call_count, 3)

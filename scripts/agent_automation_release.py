@@ -654,88 +654,106 @@ def require_browser_security_release_qualification(release: Path, commit: str) -
         _persist_browser_security_qualification(commit, value)
         raise ReleaseError(value["detail"])
 
-    run_id = f"release-{commit[:12]}"
-    proc = run(
-        [
-            str(BROWSER_SECURITY_PY),
-            str(runner),
-            "--run-id",
-            run_id,
-            "--security-root",
-            str(SECURITY_ROOT),
-        ],
-        check=False,
-        timeout=240,
-    )
-    if proc.returncode != 0:
-        detail = (proc.stderr or proc.stdout or f"rc={proc.returncode}").strip().replace("\n", " ")[-1600:]
-        value = {
-            "schemaVersion": 1,
-            "kind": "ordivon.agent-automation-browser-security-qualification",
-            "standing": "HOLD",
-            "candidateCommit": commit,
-            "detail": f"Browser Security pool runner failed: {detail}",
-        }
-        _persist_browser_security_qualification(commit, value)
-        raise ReleaseError(value["detail"])
-    try:
-        pool = json.loads(proc.stdout)
-    except json.JSONDecodeError as error:
-        value = {
-            "schemaVersion": 1,
-            "kind": "ordivon.agent-automation-browser-security-qualification",
-            "standing": "HOLD",
-            "candidateCommit": commit,
-            "detail": "Browser Security pool runner returned non-JSON",
-        }
-        _persist_browser_security_qualification(commit, value)
-        raise ReleaseError(value["detail"]) from error
+    # Readiness-probe semantics: an explicit OBSERVATION_INVALID means the observer could not
+    # establish a valid sample. Re-sample that acquisition failure only. Real drift is evidence,
+    # not a transient probe failure, and therefore never gets retried away.
+    failure_threshold = 3
+    probe_standings: list[str] = []
+    for attempt in range(1, failure_threshold + 1):
+        run_id = f"release-{commit[:12]}-probe-{attempt}"
+        proc = run(
+            [
+                str(BROWSER_SECURITY_PY),
+                str(runner),
+                "--run-id",
+                run_id,
+                "--security-root",
+                str(SECURITY_ROOT),
+            ],
+            check=False,
+            timeout=240,
+        )
+        if proc.returncode != 0:
+            detail = (proc.stderr or proc.stdout or f"rc={proc.returncode}").strip().replace("\n", " ")[-1600:]
+            value = {
+                "schemaVersion": 1,
+                "kind": "ordivon.agent-automation-browser-security-qualification",
+                "standing": "HOLD",
+                "candidateCommit": commit,
+                "probeAttempts": attempt,
+                "probeStandings": probe_standings,
+                "detail": f"Browser Security pool runner failed: {detail}",
+            }
+            _persist_browser_security_qualification(commit, value)
+            raise ReleaseError(value["detail"])
+        try:
+            pool = json.loads(proc.stdout)
+        except json.JSONDecodeError as error:
+            value = {
+                "schemaVersion": 1,
+                "kind": "ordivon.agent-automation-browser-security-qualification",
+                "standing": "HOLD",
+                "candidateCommit": commit,
+                "probeAttempts": attempt,
+                "probeStandings": probe_standings,
+                "detail": "Browser Security pool runner returned non-JSON",
+            }
+            _persist_browser_security_qualification(commit, value)
+            raise ReleaseError(value["detail"]) from error
 
-    classification = pool.get("classification") if isinstance(pool, dict) else None
-    valid = (
-        isinstance(pool, dict)
-        and pool.get("kind") == "ordivon.browser-security-pool-run"
-        and pool.get("harnessRevision") == commit
-        and isinstance(pool.get("securityRevision"), str)
-        and re.fullmatch(r"[0-9a-f]{40}", pool["securityRevision"]) is not None
-        and isinstance(pool.get("poolIndexSha256"), str)
-        and re.fullmatch(r"sha256:[0-9a-f]{64}", pool["poolIndexSha256"]) is not None
-        and pool.get("providerChallengeVisited") is False
-        and pool.get("providerSendAttempted") is False
-        and isinstance(classification, dict)
-        and classification.get("rootCauseEstablished") is False
-        and isinstance(classification.get("standing"), str)
-    )
-    if not valid:
+        classification = pool.get("classification") if isinstance(pool, dict) else None
+        valid = (
+            isinstance(pool, dict)
+            and pool.get("kind") == "ordivon.browser-security-pool-run"
+            and pool.get("harnessRevision") == commit
+            and isinstance(pool.get("securityRevision"), str)
+            and re.fullmatch(r"[0-9a-f]{40}", pool["securityRevision"]) is not None
+            and isinstance(pool.get("poolIndexSha256"), str)
+            and re.fullmatch(r"sha256:[0-9a-f]{64}", pool["poolIndexSha256"]) is not None
+            and pool.get("providerChallengeVisited") is False
+            and pool.get("providerSendAttempted") is False
+            and isinstance(classification, dict)
+            and classification.get("rootCauseEstablished") is False
+            and isinstance(classification.get("standing"), str)
+        )
+        if not valid:
+            value = {
+                "schemaVersion": 1,
+                "kind": "ordivon.agent-automation-browser-security-qualification",
+                "standing": "HOLD",
+                "candidateCommit": commit,
+                "probeAttempts": attempt,
+                "probeStandings": probe_standings,
+                "detail": "Browser Security pool receipt failed release-binding validation",
+            }
+            _persist_browser_security_qualification(commit, value)
+            raise ReleaseError(value["detail"])
+
+        drift = classification["standing"]
+        probe_standings.append(drift)
         value = {
             "schemaVersion": 1,
             "kind": "ordivon.agent-automation-browser-security-qualification",
-            "standing": "HOLD",
+            "standing": "PASS" if drift == "NO_OBSERVED_DRIFT" else "HOLD",
             "candidateCommit": commit,
-            "detail": "Browser Security pool receipt failed release-binding validation",
+            "securityRevision": pool["securityRevision"],
+            "poolId": pool.get("poolId"),
+            "poolIndexSha256": pool["poolIndexSha256"],
+            "classificationStanding": drift,
+            "carrierCount": len(pool.get("carrierEvidence") or []),
+            "providerChallengeVisited": False,
+            "providerSendAttempted": False,
+            "rootCauseEstablished": False,
+            "probeAttempts": attempt,
+            "probeStandings": list(probe_standings),
         }
         _persist_browser_security_qualification(commit, value)
-        raise ReleaseError(value["detail"])
+        if drift == "NO_OBSERVED_DRIFT":
+            return value
+        if drift != "OBSERVATION_INVALID":
+            raise ReleaseError(f"Browser Security qualification HOLD: {drift}")
 
-    drift = classification["standing"]
-    value = {
-        "schemaVersion": 1,
-        "kind": "ordivon.agent-automation-browser-security-qualification",
-        "standing": "PASS" if drift == "NO_OBSERVED_DRIFT" else "HOLD",
-        "candidateCommit": commit,
-        "securityRevision": pool["securityRevision"],
-        "poolId": pool.get("poolId"),
-        "poolIndexSha256": pool["poolIndexSha256"],
-        "classificationStanding": drift,
-        "carrierCount": len(pool.get("carrierEvidence") or []),
-        "providerChallengeVisited": False,
-        "providerSendAttempted": False,
-        "rootCauseEstablished": False,
-    }
-    _persist_browser_security_qualification(commit, value)
-    if value["standing"] != "PASS":
-        raise ReleaseError(f"Browser Security qualification HOLD: {drift}")
-    return value
+    raise ReleaseError("Browser Security qualification HOLD: OBSERVATION_INVALID")
 
 
 def atomic_link(target: Path, link: Path) -> None:
