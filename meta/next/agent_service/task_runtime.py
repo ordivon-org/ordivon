@@ -306,31 +306,3 @@ class AssignmentStore:
 class SemanticVerdict:
     accepted: bool
     reason: str | None
-
-
-def _initialize_schema(connection: sqlite3.Connection) -> None:
-    connection.executescript(
-        """
-        CREATE TABLE IF NOT EXISTS service_tasks (
-            id TEXT PRIMARY KEY,
-            description TEXT NOT NULL,
-            required_revision_id TEXT NOT NULL REFERENCES agent_revisions(id),
-            execution_json TEXT NOT NULL,
-            acceptance_json TEXT NOT NULL,
-            state TEXT NOT NULL,
-            failure_reason TEXT,
-            created_at_ns INTEGER NOT NULL
-        );
-
-        CREATE TABLE IF NOT EXISTS service_assignments (
-            id TEXT PRIMARY KEY,
-            task_id TEXT NOT NULL UNIQUE REFERENCES service_tasks(id),
-            agent_instance_id TEXT NOT NULL REFERENCES agent_instances(id),
-            state TEXT NOT NULL,
-            runtime_job_id TEXT,
-            client_request_id TEXT NOT NULL UNIQUE,
-            created_at_ns INTEGER NOT NULL
-        );
-        """
-    )
-    connection.commit()

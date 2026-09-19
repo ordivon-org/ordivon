@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import sqlite3
 import unittest
+
+from agent_service.schema_migrations import apply_schema_migrations
 from pathlib import Path
 
 import agent_service
@@ -32,7 +34,7 @@ class IdentityProofRecordStoreEliminationR21Tests(unittest.TestCase):
         self.addCleanup(connection.close)
         connection.execute("CREATE TABLE identity_proof_records(id TEXT PRIMARY KEY)")
         with self.assertRaisesRegex(RuntimeError, "legacy identity_proof_records"):
-            trust._initialize_schema(connection)
+            apply_schema_migrations(connection)
 
 
 if __name__ == "__main__":

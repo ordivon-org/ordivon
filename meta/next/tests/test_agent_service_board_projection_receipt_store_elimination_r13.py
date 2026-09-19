@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import sqlite3
 import unittest
+
+from agent_service.schema_migrations import apply_schema_migrations
 from pathlib import Path
 
 import agent_service.goals as goals
@@ -29,7 +31,7 @@ class BoardProjectionReceiptStoreEliminationR13Tests(unittest.TestCase):
         self.addCleanup(connection.close)
         connection.execute("CREATE TABLE board_projection_receipts(id TEXT PRIMARY KEY)")
         with self.assertRaisesRegex(RuntimeError, "legacy board_projection_receipts"):
-            goals._initialize_schema(connection)
+            apply_schema_migrations(connection)
 
 
 if __name__ == "__main__":

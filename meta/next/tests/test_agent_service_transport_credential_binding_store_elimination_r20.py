@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import sqlite3
 import unittest
+
+from agent_service.schema_migrations import apply_schema_migrations
 from pathlib import Path
 
 import agent_service
@@ -45,7 +47,7 @@ class TransportCredentialBindingStoreEliminationR20Tests(unittest.TestCase):
             "CREATE TABLE transport_credential_bindings(id TEXT PRIMARY KEY)"
         )
         with self.assertRaisesRegex(RuntimeError, "legacy transport_credential_bindings"):
-            credentials._initialize_schema(connection)
+            apply_schema_migrations(connection)
 
 
 if __name__ == "__main__":

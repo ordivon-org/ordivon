@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import sqlite3
 import unittest
+
+from agent_service.schema_migrations import apply_schema_migrations
 from pathlib import Path
 
 import agent_service
@@ -32,7 +34,7 @@ class ExecutionClaimTransferStoreEliminationR16Tests(unittest.TestCase):
         self.addCleanup(connection.close)
         connection.execute("CREATE TABLE execution_claim_transfers(id TEXT PRIMARY KEY)")
         with self.assertRaisesRegex(RuntimeError, "legacy execution_claim_transfers"):
-            failover._initialize_schema(connection)
+            apply_schema_migrations(connection)
 
 
 if __name__ == "__main__":

@@ -94,15 +94,3 @@ class EffectAuthorizedDeliveryCoordinator:
                 decision.payload.get("reason") or "delivery effect denied by current policy"
             )
         return self._delegate.deliver(binding_id)
-
-
-def _initialize_schema(connection: sqlite3.Connection) -> None:
-    legacy_table = connection.execute(
-        "SELECT 1 FROM sqlite_master "
-        "WHERE type = 'table' AND name = 'effect_authorization_decisions'"
-    ).fetchone()
-    if legacy_table is not None:
-        raise RuntimeError(
-            "legacy effect_authorization_decisions schema is unsupported; "
-            "perform explicit destructive migration before opening this revision"
-        )

@@ -5,22 +5,21 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
+from .schema_migrations import apply_schema_migrations
+
 from .delivery import (
-    _initialize_schema as _initialize_delivery_schema,
     DelegationRoutePlanner,
     TransportBindingStore,
     _require_delivery_providers,
     _require_policy_provider,
 )
-from .effect_authority import _initialize_schema as _initialize_effect_authority_schema, EffectAuthorizedDeliveryCoordinator
+from .effect_authority import EffectAuthorizedDeliveryCoordinator
 from .evidence import (
-    _initialize_schema as _initialize_evidence_schema,
     AssignmentExecutionActivator,
     TaskCompletionReconciler,
     _require_artifact_reader,
 )
 from .failover import (
-    _initialize_schema as _initialize_failover_schema,
     ExecutionClaimTransferCoordinator,
     ExecutionQuiescenceCoordinator,
     ExecutionQuiescenceRequestStore,
@@ -29,7 +28,6 @@ from .failover import (
     TransferAwareDeliveryCoordinator,
 )
 from .goals import (
-    _initialize_schema as _initialize_goals_schema,
     GoalAssignmentPlanner,
     GoalBoardProjector,
     GoalGraphMutationGuard,
@@ -47,14 +45,12 @@ from .provider_adapters import (
     ProviderCaller,
 )
 from .remote_evidence import (
-    _initialize_schema as _initialize_remote_evidence_schema,
     ClaimAwareAssignmentPlanner,
     RemoteArtifactEvidenceResolver,
     RemoteTaskCompletionReconciler,
     TaskExecutionClaimStore,
 )
 from .semantics import (
-    _initialize_schema as _initialize_semantics_schema,
     A2AAgentCardProjector,
     AgentIdentityStore,
     DelegationEnvelopeStore,
@@ -62,7 +58,6 @@ from .semantics import (
     SessionStore,
 )
 from .slice1 import (
-    _initialize_schema as _initialize_slice1_schema,
     AgentDefinitionStore,
     AgentInstanceStore,
     AgentRevisionStore,
@@ -72,38 +67,21 @@ from .slice1 import (
     _require_carrier_provider,
 )
 from .task_runtime import (
-    _initialize_schema as _initialize_task_runtime_schema,
     AssignmentStore,
     TaskStore,
     _require_runtime_provider,
 )
 from .transport_credentials import (
-    _initialize_schema as _initialize_transport_credentials_schema,
     BoundCredentialHeaderProvider,
     TransportCredentialBindingCoordinator,
 )
 from .trust import (
-    _initialize_schema as _initialize_trust_schema,
     AuditEnvelopeProjector,
     CredentialReferenceStore,
     IdentityProofCoordinator,
     RemoteCorrelationReconciler,
 )
 
-
-_SCHEMA_INITIALIZERS = (
-    _initialize_slice1_schema,
-    _initialize_task_runtime_schema,
-    _initialize_evidence_schema,
-    _initialize_goals_schema,
-    _initialize_semantics_schema,
-    _initialize_delivery_schema,
-    _initialize_trust_schema,
-    _initialize_remote_evidence_schema,
-    _initialize_failover_schema,
-    _initialize_transport_credentials_schema,
-    _initialize_effect_authority_schema,
-)
 
 
 def _build_service(connection: sqlite3.Connection,
@@ -398,8 +376,7 @@ def open_agent_service(db_path: str | Path,
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA foreign_keys = ON")
     try:
-        for initialize in _SCHEMA_INITIALIZERS:
-            initialize(connection)
+        apply_schema_migrations(connection)
         return _build_service(
             connection,
             carrier_adapter=carrier_adapter,
