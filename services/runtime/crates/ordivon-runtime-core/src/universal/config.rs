@@ -102,6 +102,8 @@ impl UniversalExecutorConfig {
             self.shared_caches_root(),
             self.input_materializations_root(),
             self.job_inputs_root(),
+            self.credential_materializations_root(),
+            self.job_credentials_root(),
         ] {
             fs::create_dir_all(&path).map_err(|error| io_error(&path, "create", error))?;
             #[cfg(windows)]
@@ -159,6 +161,18 @@ impl UniversalExecutorConfig {
 
     pub fn job_input_path(&self, job_id: &str) -> PathBuf {
         self.job_inputs_root().join(job_id)
+    }
+
+    pub fn credential_materializations_root(&self) -> PathBuf {
+        self.store_root.join("credential-materializations")
+    }
+
+    pub fn job_credentials_root(&self) -> PathBuf {
+        self.store_root.join("job-credentials")
+    }
+
+    pub fn job_credential_path(&self, job_id: &str) -> PathBuf {
+        self.job_credentials_root().join(job_id)
     }
 
     pub(crate) fn workspace_cache_path(&self, workspace_id: &str) -> PathBuf {

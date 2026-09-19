@@ -64,6 +64,7 @@ Runtime does **not** automatically redact command arguments, environment values 
 | Workspace records and worktrees | `/var/lib/ordivon/runtime/` | isolated source state and lifecycle identity | policy classes: ephemeral, review, or pinned; dirty/active/unknown state is never removed automatically |
 | execution caches | `/var/lib/ordivon/runtime/cache/` | reusable package and build state | Workspace-scoped state is protected while referenced; legacy source-build state is reconstructible and capacity-reclaimable; shared package-cache semantics remain package-manager-owned |
 | immutable input staging and Job-owned bytes | `/var/lib/ordivon/runtime/input-materializations/` and `/var/lib/ordivon/runtime/job-inputs/` | exact digest-verified foreign bytes prepared during admission and then owned by the admitted input-bound Job | retained with current Runtime state; no automatic per-set reclamation contract yet |
+| encrypted credential staging and Job-owned ciphertext | `/var/lib/ordivon/runtime/credential-materializations/` and `/var/lib/ordivon/runtime/job-credentials/` | already-systemd-encrypted credential blobs admitted after principal authorization; plaintext is delivered by systemd, not persisted by Runtime | retained only while the owning Job is unresolved; startup/maintenance reconciliation removes prepared or Job-owned ciphertext after durable Job resolution |
 | Windows immutable-input presentations | `%ProgramData%\OrdivonImmutableInputs\<inputSetId>` | reconstructible native NTFS realization of one committed Job-owned input tree for a limited Windows child | retained as provider-owned realization state; it is not the authority copy and no automatic presentation GC contract is claimed yet |
 | protocol trace | configured `ORDIVON_TRACE_PATH` | bounded protocol-version and client observations | current segment plus one rotated segment |
 | deployment receipts | `/var/lib/ordivon/deployments/` | binary, protocol, rollback, and catalog proof | current rollback and audit evidence; explicit pruning only |
@@ -86,7 +87,9 @@ Runtime may persist:
 - client names, protocol versions, Task/Assignment correlation references;
 - deployment, repair, and recovery history.
 
-Do not place secrets in command arguments or source files when a narrower secret-delivery mechanism exists. Prevent target processes from printing credentials. Use `contained_local` only for the declared authority reduction; it is not a substitute for a dedicated secret broker or hostile-code boundary.
+Do not place secrets in command arguments, explicit target environment values, source files, stdout, stderr, or ordinary immutable-input authorities when `workspace.execCredentialBoundTrusted` is applicable. Provision its authority objects as systemd-encrypted blobs and prevent target processes from printing the decrypted value. Runtime persists a ciphertext-set identity for execution/replay integrity, not a plaintext digest, and removes Job-owned ciphertext after durable resolution. This does not make a `trusted_local` target hostile-code-safe: it still executes with the installed service user's ordinary trusted-local host/network authority.
+
+`systemd-creds` encryption is only as strong as the key protection used to create and decrypt the blob. A host-key-backed blob removes plaintext from Runtime state but does not by itself prove encrypted storage, TPM2 binding, or protection from root. Operators must treat the host credential key and any storage/backups containing it as sensitive and must not describe a host-key-only deployment as TPM-backed unless that binding has actually been provisioned and verified.
 
 ## Access control
 

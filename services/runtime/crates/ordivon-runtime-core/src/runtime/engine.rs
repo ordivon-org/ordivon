@@ -25,13 +25,13 @@ use super::{
     runtime_release_effect_id, runtime_release_request_identity_digest, validate_client_request_id,
     validate_logical_id, AdmissionOutcome, ArtifactDescriptor, ArtifactReadRequest,
     ArtifactReadResult, ArtifactRegistration, AttemptRecord, AttemptState,
-    AttemptTerminationIntent, DurableWorkspacePatchRequest, DurableWorkspacePatchResult,
-    EffectiveInputBinding, ExecutionProviderContract, ExecutionProviderSnapshot,
-    HostDependencyBinding, InputAccessMode, InputAuthority, InputBindingRequest, JobDesiredState,
-    JobResolution, Registry, RegistryConfig, RunnerIdentity, RuntimeArtifactRecord,
-    RuntimeCapabilities, RuntimeError, RuntimeErrorCode, RuntimeExecutionPlan,
-    RuntimeExecutionStep, RuntimeExecutionTargetCapability, RuntimeJobListRequest,
-    RuntimeJobListResult, RuntimeReleaseAdmission, RuntimeReleaseContract,
+    AttemptTerminationIntent, CredentialAuthority, CredentialBindingRequest,
+    DurableWorkspacePatchRequest, DurableWorkspacePatchResult, EffectiveInputBinding,
+    ExecutionProviderContract, ExecutionProviderSnapshot, HostDependencyBinding, InputAccessMode,
+    InputAuthority, InputBindingRequest, JobDesiredState, JobResolution, Registry, RegistryConfig,
+    RunnerIdentity, RuntimeArtifactRecord, RuntimeCapabilities, RuntimeError, RuntimeErrorCode,
+    RuntimeExecutionPlan, RuntimeExecutionStep, RuntimeExecutionTargetCapability,
+    RuntimeJobListRequest, RuntimeJobListResult, RuntimeReleaseAdmission, RuntimeReleaseContract,
     RuntimeReleaseDisposition, RuntimeReleaseEffectBinding, RuntimeReleaseGetRequest,
     RuntimeReleaseProjection, RuntimeReleaseRequest, RuntimeResult, RuntimeWorkspaceGetRequest,
     RuntimeWorkspaceIssue, RuntimeWorkspaceIssueStage, RuntimeWorkspaceListRequest,
@@ -222,11 +222,31 @@ struct OpenedInputAuthority {
     root: Arc<File>,
 }
 
+#[derive(Clone, Debug)]
+struct OpenedCredentialAuthority {
+    root: Arc<File>,
+    allowed_principals: BTreeSet<String>,
+}
+
 #[derive(Debug)]
 struct PreparedInputSet {
     input_set_id: String,
     prepared_root: PathBuf,
     effective_inputs: Vec<EffectiveInputBinding>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CredentialSnapshotEntry {
+    name: String,
+    digest: String,
+    byte_length: u64,
+}
+
+#[derive(Debug)]
+pub(super) struct PreparedCredentialSet {
+    pub(super) credential_set_id: String,
+    pub(super) prepared_root: PathBuf,
 }
 
 #[derive(Clone, Debug)]
@@ -240,6 +260,7 @@ pub struct Runtime {
     execution_home: String,
     windows: Option<WindowsExecutionConfig>,
     input_authorities: BTreeMap<String, OpenedInputAuthority>,
+    credential_authorities: BTreeMap<String, OpenedCredentialAuthority>,
     lifecycle_lock: Arc<Mutex<()>>,
     control_terminal_lock: Arc<Mutex<()>>,
 }
@@ -1133,7 +1154,10 @@ mod trusted_systemd_command_tests {
         fs::write(root.join("data/input.bin"), b"S1").unwrap();
         let error = verify_effective_input_set(&root, std::slice::from_ref(&request)).unwrap_err();
         assert_eq!(error.code, RuntimeErrorCode::WorkspaceStateMismatch);
-        assert!(error.message.contains("digest mismatch"));
+        assert!(error
+            .message
+            .contains("does not match the committed binding"));
+        assert!(!error.message.contains("observed"));
 
         fs::write(root.join("data/input.bin"), b"S0").unwrap();
         fs::write(root.join("unexpected.bin"), b"extra").unwrap();
@@ -1181,6 +1205,8 @@ mod trusted_systemd_command_tests {
             workspace_path: &workspace,
             workspace_git_common_dir: None,
             input_set_path: Some(&inputs),
+            credential_source_root: None,
+            credential_names: &[],
             runtime_ceiling_ms: 10_000,
             budget: &budget,
             execution_profile: ExecutionProfile::ContainedLocal,
@@ -1204,6 +1230,8 @@ mod trusted_systemd_command_tests {
             workspace_path: &workspace,
             workspace_git_common_dir: None,
             input_set_path: Some(&inputs),
+            credential_source_root: None,
+            credential_names: &[],
             runtime_ceiling_ms: 10_000,
             budget: &budget,
             execution_profile: ExecutionProfile::TrustedLocal,
@@ -1841,6 +1869,8 @@ mod trusted_systemd_command_tests {
             workspace_path: Path::new("/root/projects/ordivon-runtime"),
             workspace_git_common_dir: None,
             input_set_path: None,
+            credential_source_root: None,
+            credential_names: &[],
             runtime_ceiling_ms: 10_000,
             budget: &budget,
             execution_profile: crate::runtime::ExecutionProfile::TrustedLocal,
@@ -1895,6 +1925,8 @@ mod trusted_systemd_command_tests {
             workspace_path: Path::new("/root/projects/ordivon-runtime"),
             workspace_git_common_dir: None,
             input_set_path: None,
+            credential_source_root: None,
+            credential_names: &[],
             runtime_ceiling_ms: 10_000,
             budget: &budget,
             execution_profile: crate::runtime::ExecutionProfile::TrustedLocal,
@@ -1941,6 +1973,8 @@ mod trusted_systemd_command_tests {
             workspace_path: &workspace,
             workspace_git_common_dir: None,
             input_set_path: None,
+            credential_source_root: None,
+            credential_names: &[],
             runtime_ceiling_ms: 10_000,
             budget: &budget,
             execution_profile: crate::runtime::ExecutionProfile::ContainedLocal,

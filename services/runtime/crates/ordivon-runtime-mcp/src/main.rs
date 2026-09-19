@@ -16,8 +16,8 @@ use axum::middleware::{self, Next};
 use axum::response::{IntoResponse, Response};
 use axum::Router;
 use ordivon_runtime_core::{
-    InputAuthority, RegistryConfig, RuntimeConfig, UniversalExecutorConfig, WindowsExecutionConfig,
-    WindowsPrivilegedBrokerConfig,
+    CredentialAuthority, InputAuthority, RegistryConfig, RuntimeConfig, UniversalExecutorConfig,
+    WindowsExecutionConfig, WindowsPrivilegedBrokerConfig,
 };
 use ordivon_runtime_mcp::server::{
     AuthenticatedPrincipalBinding, ExecutionContext, InputIngressExecutionConfig,
@@ -59,6 +59,14 @@ static HTTP_TRACE_LOCK: Mutex<()> = Mutex::new(());
 struct InputAuthorityConfig {
     name: String,
     root: PathBuf,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct CredentialAuthorityConfig {
+    name: String,
+    root: PathBuf,
+    allowed_principals: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -684,6 +692,23 @@ fn load_config() -> Result<AppConfig, Box<dyn std::error::Error>> {
             root: authority.root,
         })
         .collect::<Vec<_>>();
+    let credential_authorities = optional_env("ORDIVON_CREDENTIAL_AUTHORITIES_JSON")?
+        .map(|value| {
+            serde_json::from_str::<Vec<CredentialAuthorityConfig>>(&value).map_err(|error| {
+                format!(
+                    "ORDIVON_CREDENTIAL_AUTHORITIES_JSON must be a JSON array of named roots with allowedPrincipals: {error}"
+                )
+            })
+        })
+        .transpose()?
+        .unwrap_or_default()
+        .into_iter()
+        .map(|authority| CredentialAuthority {
+            name: authority.name,
+            root: authority.root,
+            allowed_principals: authority.allowed_principals,
+        })
+        .collect::<Vec<_>>();
     let input_ingress = optional_env("ORDIVON_INPUT_INGRESS_JSON")?
         .map(|value| {
             serde_json::from_str::<InputIngressConfig>(&value)
@@ -888,6 +913,7 @@ fn load_config() -> Result<AppConfig, Box<dyn std::error::Error>> {
                 windows,
             },
             input_authorities,
+            credential_authorities,
             execution: ExecutionContext {
                 principal,
                 global_limit,

@@ -2,6 +2,7 @@ use super::engine::{
     cancel_after_launch_identity_mismatch_is_safe, native_windows_owner_matches_launcher_identity,
     native_windows_pre_target_evidence_gap, transient_main_pid_observation_loss,
 };
+use super::engine::{canonical_credential_binding_requests, verify_credential_snapshot};
 use super::registry::{set_test_commit_fault, TestCommitFault, TestCommitPoint};
 #[cfg(feature = "operator-tools")]
 use super::repair::{AdminRepairAudit, AdminRepairOperation};
@@ -272,6 +273,7 @@ fn request(sandbox: &Sandbox, client_request_id: &str, global_limit: u32) -> Sub
             foreign_references: Vec::new(),
             input_set_id: None,
             effective_inputs: Vec::new(),
+            credential_set_id: None,
             principal: "principal:test".to_string(),
         },
         global_limit,
@@ -1885,7 +1887,10 @@ fn input_digest_mismatch_fails_before_job_admission() {
     }];
     let error = runtime.run_task_with_inputs(&request, &inputs).unwrap_err();
     assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
-    assert!(error.message.contains("materialized input digest mismatch"));
+    assert!(error
+        .message
+        .contains("does not match the caller commitment"));
+    assert!(!error.message.contains("observed"));
     assert_eq!(runtime.registry().active_reservation_count().unwrap(), 0);
     let identity = input_bound_request_identity_digest(&request, &inputs).unwrap();
     assert!(runtime
@@ -2417,6 +2422,7 @@ fn registry_accepts_input_bound_proposal_identity_without_changing_legacy_prefix
         PROPOSAL_IDENTITY_PREFIX,
         INPUT_BOUND_IDENTITY_PREFIX,
         INPUT_BOUND_PROPOSAL_IDENTITY_PREFIX,
+        CREDENTIAL_BOUND_PROPOSAL_IDENTITY_PREFIX,
     ]
     .into_iter()
     .enumerate()
@@ -7518,5 +7524,217 @@ mod registry_reference_model_properties {
             prop_assert_eq!(job_count, 1);
             prop_assert_eq!(dispatch_count, 1);
         }
+    }
+}
+
+#[test]
+fn credential_bound_identity_is_logical_and_digest_free() {
+    let request = input_bound_task_request("workspace:test", "request:credential-identity");
+    let proposal = TaskRunProposal {
+        schema_version: request.schema_version,
+        client_request_id: request.client_request_id.clone(),
+        principal: "principal:credential-test".to_string(),
+        global_limit: request.global_limit,
+        execution: ExecutionProposal {
+            workspace_id: request.execution.workspace_id.clone(),
+            executable: request.execution.executable.clone(),
+            args: request.execution.args.clone(),
+            cwd_relative: request.execution.cwd_relative.clone(),
+            env: request.execution.env.clone(),
+            timeout_ms: None,
+            stdout_limit_bytes: None,
+            stderr_limit_bytes: None,
+            steps: Vec::new(),
+            budget: request.execution.budget.clone(),
+            execution_profile: ExecutionProfile::TrustedLocal,
+            execution_target: super::ExecutionTarget::LocalLinux,
+            windows_authority: super::WindowsAuthority::Limited,
+            foreign_references: Vec::new(),
+            host_dependencies: Vec::new(),
+        },
+        wait_ms: 0,
+        stdout_tail_bytes: 0,
+        stderr_tail_bytes: 0,
+    };
+    let credentials = vec![
+        CredentialBindingRequest {
+            authority: "finance-binance".to_string(),
+            credential: "api_key".to_string(),
+        },
+        CredentialBindingRequest {
+            authority: "finance-binance".to_string(),
+            credential: "private.pem".to_string(),
+        },
+    ];
+    let first = credential_bound_proposal_request_identity_digest(&proposal, &credentials).unwrap();
+    let reversed = vec![credentials[1].clone(), credentials[0].clone()];
+    assert_eq!(
+        credential_bound_proposal_request_identity_digest(&proposal, &reversed).unwrap(),
+        first
+    );
+    let mut changed = credentials;
+    changed[0].credential = "rotated_key".to_string();
+    assert_ne!(
+        credential_bound_proposal_request_identity_digest(&proposal, &changed).unwrap(),
+        first
+    );
+}
+
+#[test]
+fn credential_authority_checks_principal_before_object_resolution_and_snapshots_bytes() {
+    let sandbox = Sandbox::new("credential-authority", 5_000);
+    let authority_root = sandbox.root.join("credential-authority");
+    fs::create_dir_all(&authority_root).unwrap();
+    fs::write(authority_root.join("api_key"), b"VERSION_ONE").unwrap();
+
+    let runtime = Runtime::new_with_authorities_and_default_runtime(
+        runtime_config(&sandbox),
+        Vec::new(),
+        vec![CredentialAuthority {
+            name: "finance-binance".to_string(),
+            root: authority_root.clone(),
+            allowed_principals: vec!["principal:credential-test".to_string()],
+        }],
+        60_000,
+    )
+    .unwrap();
+
+    let mut unauthorized =
+        input_bound_task_request("workspace:test", "request:credential-unauthorized");
+    unauthorized.principal = "principal:not-allowed".to_string();
+    unauthorized.execution.execution_profile = ExecutionProfile::TrustedLocal;
+    let missing = vec![CredentialBindingRequest {
+        authority: "finance-binance".to_string(),
+        credential: "does-not-exist".to_string(),
+    }];
+    let error = runtime
+        .materialize_credential_bindings(&unauthorized, "job-credential-unauthorized", &missing)
+        .unwrap_err();
+    assert!(error.message.contains("not authorized"));
+    assert!(!error.message.contains("does-not-exist"));
+
+    let mut allowed = input_bound_task_request("workspace:test", "request:credential-allowed");
+    allowed.principal = "principal:credential-test".to_string();
+    allowed.execution.execution_profile = ExecutionProfile::TrustedLocal;
+    let bindings = vec![CredentialBindingRequest {
+        authority: "finance-binance".to_string(),
+        credential: "api_key".to_string(),
+    }];
+    let prepared = runtime
+        .materialize_credential_bindings(&allowed, "job-credential-one", &bindings)
+        .unwrap();
+    assert_eq!(
+        fs::read(prepared.prepared_root.join("api_key")).unwrap(),
+        b"VERSION_ONE"
+    );
+    let first_set_id = prepared.credential_set_id.clone();
+    assert_eq!(
+        verify_credential_snapshot(&prepared.prepared_root, &first_set_id).unwrap(),
+        vec!["api_key".to_string()]
+    );
+
+    fs::write(authority_root.join("api_key"), b"VERSION_TWO").unwrap();
+    verify_credential_snapshot(&prepared.prepared_root, &first_set_id).unwrap();
+    assert_eq!(
+        fs::read(prepared.prepared_root.join("api_key")).unwrap(),
+        b"VERSION_ONE"
+    );
+
+    let second = runtime
+        .materialize_credential_bindings(&allowed, "job-credential-two", &bindings)
+        .unwrap();
+    assert_eq!(
+        fs::read(second.prepared_root.join("api_key")).unwrap(),
+        b"VERSION_TWO"
+    );
+    assert_ne!(second.credential_set_id, first_set_id);
+}
+
+#[test]
+fn credential_request_rejects_paths_and_duplicate_names() {
+    let traversal = canonical_credential_binding_requests(&[CredentialBindingRequest {
+        authority: "finance".to_string(),
+        credential: "../private.pem".to_string(),
+    }])
+    .unwrap_err();
+    assert_eq!(traversal.code, RuntimeErrorCode::InvalidRequest);
+
+    let duplicate = canonical_credential_binding_requests(&[
+        CredentialBindingRequest {
+            authority: "finance".to_string(),
+            credential: "a".to_string(),
+        },
+        CredentialBindingRequest {
+            authority: "finance".to_string(),
+            credential: "a".to_string(),
+        },
+    ])
+    .unwrap_err();
+    assert_eq!(duplicate.code, RuntimeErrorCode::InvalidRequest);
+}
+
+#[test]
+fn resolved_job_reclaims_owned_encrypted_credentials_without_ttl() {
+    let sandbox = Sandbox::new("credential-terminal-retention", 5_000);
+    let config = runtime_config(&sandbox);
+    let executor = config.executor.clone();
+    let runtime = Runtime::new(config).unwrap();
+    let mut submit = request(&sandbox, "request:credential-terminal-retention", 1);
+    submit.plan.credential_set_id = Some(digest(b"encrypted-credential-set"));
+    let created = created(runtime.registry().submit(&submit).unwrap());
+
+    let owned = executor.job_credential_path(&created.job.job_id);
+    fs::create_dir_all(&owned).unwrap();
+    fs::write(owned.join("api_key"), b"OPAQUE_ENCRYPTED_BLOB").unwrap();
+    assert!(owned.exists());
+
+    let ready = runtime
+        .registry()
+        .mark_bundle_ready(&created.attempt.attempt_id, 0, &digest(b"bundle"), 10)
+        .unwrap();
+    let starting = runtime
+        .registry()
+        .mark_dispatch_issued(&ready.attempt_id, ready.row_version, 11)
+        .unwrap();
+    let running = runtime
+        .registry()
+        .bind_running(
+            &starting.attempt_id,
+            starting.row_version,
+            &RunnerIdentity {
+                boot_id: "boot:credential-retention".to_string(),
+                unit_name: starting.unit_name.clone(),
+                invocation_id: "invocation:credential-retention".to_string(),
+                control_group: "/system.slice/ordivon-credential-retention.service".to_string(),
+                main_pid: 42,
+                process_start_identity: "start:credential-retention".to_string(),
+                runner_start_digest: digest(b"runner-start"),
+                observed_at_ms: 12,
+            },
+        )
+        .unwrap();
+    runtime
+        .registry()
+        .commit_terminal(&TerminalCommit {
+            attempt_id: running.attempt_id,
+            expected_row_version: running.row_version,
+            state: AttemptState::Succeeded,
+            result_digest: digest(b"credential-retention-result"),
+            exit_code: Some(0),
+            infrastructure_error_digest: None,
+            finished_at_ms: 13,
+            artifacts: Vec::new(),
+            reason_code: "PROCESS_EXIT_ZERO".to_string(),
+        })
+        .unwrap();
+
+    assert!(owned.exists());
+    runtime.reconcile_all().unwrap();
+    assert!(!owned.exists());
+
+    let replay = runtime.registry().submit(&submit).unwrap();
+    match replay {
+        AdmissionOutcome::Existing { job } => assert_eq!(job.job_id, created.job.job_id),
+        AdmissionOutcome::Created(_) => panic!("resolved exact replay must not create a new Job"),
     }
 }

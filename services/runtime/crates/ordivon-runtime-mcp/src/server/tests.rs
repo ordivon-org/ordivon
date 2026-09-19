@@ -57,6 +57,7 @@ impl Sandbox {
                     windows: None,
                 },
                 input_authorities: Vec::new(),
+                credential_authorities: Vec::new(),
                 execution: ExecutionContext {
                     principal: "principal:mcp-test".to_string(),
                     global_limit: 4,
@@ -97,6 +98,7 @@ impl Sandbox {
                 windows: None,
             },
             input_authorities: Vec::new(),
+            credential_authorities: Vec::new(),
             execution: ExecutionContext {
                 principal: "principal:mcp-test-ingress".to_string(),
                 global_limit: 4,
@@ -970,6 +972,7 @@ print(json.dumps({{
                 windows: None,
             },
             input_authorities: Vec::new(),
+            credential_authorities: Vec::new(),
             execution: ExecutionContext {
                 principal: "principal:mcp-test-reconcile".to_string(),
                 global_limit: 4,
@@ -1182,6 +1185,7 @@ fn private_ip_download_host_is_rejected_at_configuration_boundary() {
             windows: None,
         },
         input_authorities: Vec::new(),
+        credential_authorities: Vec::new(),
         execution: ExecutionContext {
             principal: "principal:mcp-test-private-host".to_string(),
             global_limit: 4,
@@ -1286,6 +1290,13 @@ fn tool_effect_annotations_match_runtime_behavior() {
         ("workspace.exec", false, true, false, true),
         ("workspace.execBound", false, true, false, false),
         ("workspace.execBoundTrusted", false, true, false, true),
+        (
+            "workspace.execCredentialBoundTrusted",
+            false,
+            true,
+            false,
+            true,
+        ),
         ("workspace.execPlan", false, true, false, true),
         ("workspace.get", true, false, true, false),
         ("workspace.list", true, false, true, false),
@@ -1413,6 +1424,7 @@ fn tool_catalog_uses_transactional_job_contract() {
             "workspace.exec",
             "workspace.execBound",
             "workspace.execBoundTrusted",
+            "workspace.execCredentialBoundTrusted",
             "workspace.execPlan",
             "workspace.get",
             "workspace.list",
@@ -2104,7 +2116,7 @@ fn every_public_tool_publishes_structured_output_contract() {
     let sandbox = Sandbox::new("all-output-schemas");
     let server = sandbox.server();
     let tools = server.tool_router.list_all();
-    assert_eq!(tools.len(), 24);
+    assert_eq!(tools.len(), 25);
     for tool in tools {
         let schema = tool
             .output_schema
@@ -2574,4 +2586,38 @@ fn runtime_describe_projects_agent_affordances_without_selecting_a_target() {
             "runtime.describe omitted {expected}"
         );
     }
+}
+
+#[test]
+fn credential_bound_tool_schema_uses_opaque_names_not_digests_or_paths() {
+    let sandbox = Sandbox::new("credential-bound-schema");
+    let server = sandbox.server();
+    let tool = server
+        .tool_router
+        .list_all()
+        .into_iter()
+        .find(|tool| tool.name.as_ref() == "workspace.execCredentialBoundTrusted")
+        .expect("credential-bound Tool must be published");
+    let schema = serde_json::to_value(&tool.input_schema).unwrap();
+    let text = serde_json::to_string(&schema).unwrap();
+    assert!(text.contains("credential"));
+    assert!(text.contains("authority"));
+    let credential_properties = schema
+        .pointer("/$defs/CredentialBindingRequest/properties")
+        .or_else(|| schema.pointer("/definitions/CredentialBindingRequest/properties"))
+        .and_then(Value::as_object)
+        .expect("CredentialBindingRequest properties must be present");
+    assert_eq!(
+        credential_properties
+            .keys()
+            .cloned()
+            .collect::<std::collections::BTreeSet<_>>(),
+        ["authority".to_string(), "credential".to_string()]
+            .into_iter()
+            .collect()
+    );
+    assert!(!credential_properties.contains_key("root"));
+    assert!(!credential_properties.contains_key("expectedDigest"));
+    assert!(!credential_properties.contains_key("relativeObject"));
+    assert!(!credential_properties.contains_key("presentationName"));
 }

@@ -118,6 +118,7 @@ pub struct RuntimeDescribeResult {
     pub max_output_bytes: u64,
     pub allowed_executable_roots: Vec<String>,
     pub input_authorities: Vec<String>,
+    pub credential_authorities: Vec<String>,
     pub input_ingress_authorities: Vec<String>,
     pub targets: Vec<RuntimeExecutionTargetCapability>,
     pub structured_release_configured: bool,
@@ -139,6 +140,7 @@ impl RuntimeDescribeResult {
             max_output_bytes: capabilities.max_output_bytes,
             allowed_executable_roots: capabilities.allowed_executable_roots,
             input_authorities: capabilities.input_authorities,
+            credential_authorities: capabilities.credential_authorities,
             input_ingress_authorities,
             targets: capabilities.targets,
             structured_release_configured,
@@ -395,6 +397,28 @@ pub struct WorkspaceExecBoundRequest {
     pub stdout_tail_bytes: u64,
     /// Maximum retained stderr bytes included in this MCP response tail (0..=65536).
     /// This does not change Job output retention; use `execution.stderrLimitBytes` for that.
+    #[serde(default = "default_exec_tail_bytes")]
+    #[schemars(range(max = MAX_TASK_TAIL_BYTES))]
+    pub stderr_tail_bytes: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct WorkspaceExecCredentialBoundRequest {
+    #[schemars(range(min = 1, max = 1), extend("const" = 1))]
+    #[serde(default = "default_schema_version")]
+    pub schema_version: u32,
+    #[schemars(length(min = CLIENT_REQUEST_ID_MIN_LENGTH, max = CLIENT_REQUEST_ID_MAX_LENGTH), extend("pattern" = CLIENT_REQUEST_ID_PATTERN))]
+    pub client_request_id: String,
+    pub execution: WorkspaceExecBoundExecution,
+    #[schemars(length(min = 1))]
+    pub credentials: Vec<CredentialBindingRequest>,
+    #[serde(default = "default_exec_wait_ms")]
+    #[schemars(range(max = MAX_TASK_WAIT_MS))]
+    pub wait_ms: u64,
+    #[serde(default = "default_exec_tail_bytes")]
+    #[schemars(range(max = MAX_TASK_TAIL_BYTES))]
+    pub stdout_tail_bytes: u64,
     #[serde(default = "default_exec_tail_bytes")]
     #[schemars(range(max = MAX_TASK_TAIL_BYTES))]
     pub stderr_tail_bytes: u64,

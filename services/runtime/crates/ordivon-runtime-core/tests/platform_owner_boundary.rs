@@ -1,7 +1,7 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-fn runtime_source(manifest: &PathBuf) -> String {
+fn runtime_source(manifest: &Path) -> String {
     let root = manifest.join("src/runtime");
     let mut sources = Vec::new();
     for entry in fs::read_dir(&root).expect("read runtime module directory") {

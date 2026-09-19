@@ -12,6 +12,7 @@ import secrets
 import shutil
 import signal
 import socket
+import sqlite3
 import subprocess
 import sys
 import threading
@@ -44,6 +45,7 @@ EXPECTED_TOOLS = {
     "workspace.exec",
     "workspace.execBound",
     "workspace.execBoundTrusted",
+    "workspace.execCredentialBoundTrusted",
     "workspace.execPlan",
     "workspace.get",
     "workspace.list",
@@ -61,6 +63,33 @@ PNG_FIXTURE = base64.b64decode(
 
 def digest_bytes(value: bytes) -> str:
     return f"sha256:{hashlib.sha256(value).hexdigest()}"
+
+
+def write_systemd_encrypted_credential(path: Path, plaintext: bytes) -> str:
+    """Provision one non-sensitive E2E fixture through the systemd credential owner."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    encrypted = path.with_name(f".{path.name}.encrypted-{uuid.uuid4().hex}")
+    try:
+        subprocess.run(
+            [
+                "systemd-creds",
+                "encrypt",
+                "--with-key=host",
+                f"--name={path.name}",
+                "-",
+                str(encrypted),
+            ],
+            input=plaintext,
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            pass_fds=subprocess_capability_fds(),
+        )
+        encrypted.chmod(0o600)
+        encrypted.replace(path)
+    finally:
+        encrypted.unlink(missing_ok=True)
+    return digest_bytes(plaintext)
 
 
 def subprocess_capability_fds() -> tuple[int, ...]:
@@ -391,6 +420,7 @@ def start_server(
     max_runtime_ms: int | None = None,
     max_output_bytes: int | None = None,
     input_authorities: list[dict[str, str]] | None = None,
+    credential_authorities: list[dict[str, Any]] | None = None,
     release_source_repo: Path | None = None,
     release_receipt_root: Path | None = None,
 ) -> ServerProcess:
@@ -414,6 +444,10 @@ def start_server(
         env["ORDIVON_MAX_OUTPUT_BYTES"] = str(max_output_bytes)
     if input_authorities is not None:
         env["ORDIVON_INPUT_AUTHORITIES_JSON"] = json.dumps(input_authorities, separators=(",", ":"))
+    if credential_authorities is not None:
+        env["ORDIVON_CREDENTIAL_AUTHORITIES_JSON"] = json.dumps(
+            credential_authorities, separators=(",", ":")
+        )
     if release_source_repo is not None:
         receipt_root = release_receipt_root or (root / "release-receipts")
         release_env = root / "release-runtime.env"
@@ -585,6 +619,20 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
     input_authority_source = input_authority_root / "payload.txt"
     input_authority_source.write_text("S0\n", encoding="utf-8")
     input_authorities = [{"name": "finance-prepared", "root": str(input_authority_root)}]
+    credential_authority_root = root / "credential-authorities/finance-test"
+    credential_authority_source = credential_authority_root / "api_key"
+    credential_v1 = b"ORDIVON_E2E_CREDENTIAL_V1\n"
+    credential_v2 = b"ORDIVON_E2E_CREDENTIAL_V2\n"
+    credential_v1_digest = write_systemd_encrypted_credential(
+        credential_authority_source, credential_v1
+    )
+    credential_authorities = [
+        {
+            "name": "finance-test",
+            "root": str(credential_authority_root),
+            "allowedPrincipals": ["principal:local-owner"],
+        }
+    ]
     port = free_port()
     endpoint = f"http://127.0.0.1:{port}/mcp"
     server = start_server(
@@ -594,6 +642,7 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
         port,
         token,
         input_authorities=input_authorities,
+        credential_authorities=credential_authorities,
         release_source_repo=source,
         release_receipt_root=release_receipt_root,
     )
@@ -739,6 +788,20 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
             == {"authority", "relativeObject", "expectedDigest", "presentationRelativePath"},
             bound_schema,
         )
+        credential_schema = tool_entries["workspace.execCredentialBoundTrusted"].get("inputSchema", {})
+        credential_schema_text = json.dumps(credential_schema, sort_keys=True)
+        credential_binding = credential_schema.get("$defs", {}).get("CredentialBindingRequest", {})
+        check(
+            "exec-credential-bound-contract",
+            credential_schema.get("properties", {}).get("credentials", {}).get("minItems") == 1
+            and set(credential_binding.get("required", [])) == {"authority", "credential"}
+            and set(credential_binding.get("properties", {})) == {"authority", "credential"}
+            and "expectedDigest" not in credential_schema_text
+            and "relativeObject" not in credential_schema_text
+            and "presentationName" not in credential_schema_text
+            and "sourcePath" not in credential_schema_text,
+            credential_schema,
+        )
         changes_schema = tool_entries["workspace.changes"].get("inputSchema", {})
         changes_cursor = changes_schema.get("$defs", {}).get("WorkspaceChangeCursor", {})
         check(
@@ -761,6 +824,15 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
         runtime_description = client.tool(
             "runtime.describe",
             {"schemaVersion": SCHEMA_VERSION},
+        )
+        runtime_description_text = json.dumps(runtime_description, sort_keys=True)
+        check(
+            "describe-credential-authority-names-only",
+            runtime_description.get("credentialAuthorities") == ["finance-test"]
+            and str(credential_authority_root) not in runtime_description_text
+            and "allowedPrincipals" not in runtime_description_text
+            and "principal:local-owner" not in runtime_description_text,
+            runtime_description,
         )
         described_targets = {
             target.get("target"): target
@@ -1540,6 +1612,125 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
             bound_conflict,
         )
 
+        credential_request_id = f"request:credential:{uuid.uuid4()}"
+        credential_script = "\n".join(
+            [
+                "import hashlib, json, os, pathlib",
+                "root = pathlib.Path(os.environ['CREDENTIALS_DIRECTORY'])",
+                "path = root / 'api_key'",
+                "data = path.read_bytes()",
+                "print(json.dumps({'credentialSha256': 'sha256:' + hashlib.sha256(data).hexdigest(), 'regular': path.is_file()}, sort_keys=True))",
+            ]
+        )
+        credential_request = {
+            "schemaVersion": SCHEMA_VERSION,
+            "clientRequestId": credential_request_id,
+            "execution": {
+                "workspaceId": workspace_id,
+                "executable": "/usr/bin/python3",
+                "args": ["-c", credential_script],
+                "cwdRelative": ".",
+                "env": {},
+            },
+            "credentials": [
+                {"authority": "finance-test", "credential": "api_key"}
+            ],
+            "waitMs": 30_000,
+            "stdoutTailBytes": 8192,
+            "stderrTailBytes": 8192,
+        }
+        credential_first = client.tool(
+            "workspace.execCredentialBoundTrusted", credential_request
+        )
+        credential_job_id = str(credential_first["jobId"])
+        credential_attempt_id = str(credential_first["attemptId"])
+        attempt_ids.append(credential_attempt_id)
+        if credential_first.get("status") not in TERMINAL:
+            credential_first = wait_terminal(client, credential_job_id)
+        credential_first_text = credential_first.get("stdoutTail", "").strip()
+        credential_first_stdout = (
+            json.loads(credential_first_text) if credential_first_text else {}
+        )
+        check(
+            "exec-credential-bound-v1",
+            credential_first.get("status") == "succeeded"
+            and credential_first_stdout.get("credentialSha256") == credential_v1_digest
+            and credential_first_stdout.get("regular") is True
+            and credential_v1.decode().strip() not in credential_first.get("stdoutTail", ""),
+            {"observation": credential_first, "stdout": credential_first_stdout},
+        )
+
+        with sqlite3.connect(root / "registry/registry.sqlite3") as connection:
+            row = connection.execute(
+                "SELECT execution_plan_json FROM jobs WHERE job_id=?",
+                (credential_job_id,),
+            ).fetchone()
+        check("exec-credential-plan-present", row is not None, row)
+        credential_plan_text = str(row[0])
+        credential_plan = json.loads(credential_plan_text)
+        check(
+            "exec-credential-durable-plan-minimal",
+            isinstance(credential_plan.get("credentialSetId"), str)
+            and "effectiveCredentials" not in credential_plan
+            and "credentials" not in credential_plan
+            and "credentialAuthorities" not in credential_plan
+            and "finance-test" not in credential_plan_text
+            and str(credential_authority_root) not in credential_plan_text
+            and credential_v1_digest not in credential_plan_text,
+            credential_plan,
+        )
+
+        credential_owned_root = root / "store/job-credentials" / credential_job_id
+        cleanup_deadline = time.monotonic() + 5
+        while credential_owned_root.exists() and time.monotonic() < cleanup_deadline:
+            time.sleep(0.05)
+        check(
+            "exec-credential-terminal-ciphertext-reclaimed",
+            not credential_owned_root.exists(),
+            str(credential_owned_root),
+        )
+
+        credential_v2_digest = write_systemd_encrypted_credential(
+            credential_authority_source, credential_v2
+        )
+        credential_replay = client.tool(
+            "workspace.execCredentialBoundTrusted", credential_request
+        )
+        if credential_replay.get("status") not in TERMINAL:
+            credential_replay = wait_terminal(client, credential_job_id)
+        credential_replay_text = credential_replay.get("stdoutTail", "").strip()
+        credential_replay_stdout = (
+            json.loads(credential_replay_text) if credential_replay_text else {}
+        )
+        check(
+            "exec-credential-replay-ignores-rotated-authority",
+            credential_replay.get("jobId") == credential_job_id
+            and credential_replay.get("attemptId") == credential_attempt_id
+            and credential_replay_stdout.get("credentialSha256") == credential_v1_digest
+            and not credential_owned_root.exists(),
+            credential_replay,
+        )
+
+        credential_v2_request = json.loads(json.dumps(credential_request))
+        credential_v2_request["clientRequestId"] = f"request:credential-v2:{uuid.uuid4()}"
+        credential_second = client.tool(
+            "workspace.execCredentialBoundTrusted", credential_v2_request
+        )
+        credential_second_job_id = str(credential_second["jobId"])
+        if credential_second.get("status") not in TERMINAL:
+            credential_second = wait_terminal(client, credential_second_job_id)
+        credential_second_text = credential_second.get("stdoutTail", "").strip()
+        credential_second_stdout = (
+            json.loads(credential_second_text) if credential_second_text else {}
+        )
+        check(
+            "exec-credential-new-request-sees-rotated-version",
+            credential_second.get("status") == "succeeded"
+            and credential_second.get("jobId") != credential_job_id
+            and credential_second_stdout.get("credentialSha256") == credential_v2_digest,
+            {"observation": credential_second, "stdout": credential_second_stdout},
+        )
+
         exec_plan = client.tool(
             "workspace.execPlan",
             {
@@ -1861,6 +2052,7 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
             max_runtime_ms=5_000,
             max_output_bytes=4_096,
             input_authorities=input_authorities,
+            credential_authorities=credential_authorities,
         )
         restarted_executable = Path(f"/proc/{server.process.pid}/exe").resolve()
         restarted_digest = digest_bytes(restarted_executable.read_bytes())
@@ -1899,6 +2091,24 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
             and bound_restart_replay.get("attemptId") == bound_attempt_id
             and json.loads(bound_restart_replay.get("stdoutTail", "").strip()).get("input") == "S0\n",
             bound_restart_replay,
+        )
+
+        credential_restart_replay = client.tool(
+            "workspace.execCredentialBoundTrusted", credential_request
+        )
+        if credential_restart_replay.get("status") not in TERMINAL:
+            credential_restart_replay = wait_terminal(client, credential_job_id)
+        credential_restart_text = credential_restart_replay.get("stdoutTail", "").strip()
+        credential_restart_stdout = (
+            json.loads(credential_restart_text) if credential_restart_text else {}
+        )
+        check(
+            "exec-credential-restart-replay-without-snapshot",
+            credential_restart_replay.get("jobId") == credential_job_id
+            and credential_restart_replay.get("attemptId") == credential_attempt_id
+            and credential_restart_stdout.get("credentialSha256") == credential_v1_digest
+            and not credential_owned_root.exists(),
+            credential_restart_replay,
         )
 
         proposal_replay = client.tool(

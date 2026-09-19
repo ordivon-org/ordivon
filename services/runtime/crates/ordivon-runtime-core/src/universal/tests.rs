@@ -3652,3 +3652,57 @@ fn workspace_patch_is_multi_file_multi_hunk_and_preflights_atomically() {
         "created\n"
     );
 }
+
+#[test]
+fn runner_systemd_credential_directory_overrides_step_spoof_after_env_clear() {
+    let mut command = Command::new("/usr/bin/true");
+    command.env_clear();
+    command.env("CREDENTIALS_DIRECTORY", "/caller/spoof");
+    super::runner::apply_systemd_credential_environment(
+        &mut command,
+        Some(std::ffi::OsStr::new(
+            "/run/credentials/ordivon-test.service",
+        )),
+    );
+    let credentials_directory = command
+        .get_envs()
+        .find(|(name, _)| *name == "CREDENTIALS_DIRECTORY")
+        .and_then(|(_, value)| value)
+        .map(|value| value.to_string_lossy().into_owned());
+    assert_eq!(
+        credentials_directory.as_deref(),
+        Some("/run/credentials/ordivon-test.service")
+    );
+}
+
+#[test]
+fn concurrent_atomic_writers_use_collision_free_temporary_names() {
+    use std::sync::Barrier;
+
+    let sandbox = Sandbox::new("atomic-writer-unique-temp");
+    let path = sandbox.root.join("shared.json");
+    let barrier = Arc::new(Barrier::new(32));
+    let mut threads = Vec::new();
+    for _ in 0..32 {
+        let path = path.clone();
+        let barrier = Arc::clone(&barrier);
+        threads.push(thread::spawn(move || {
+            barrier.wait();
+            write_bytes_atomic(&path, b"same-bytes").unwrap();
+        }));
+    }
+    for thread in threads {
+        thread.join().unwrap();
+    }
+    assert_eq!(fs::read(&path).unwrap(), b"same-bytes");
+    let leftovers = fs::read_dir(&sandbox.root)
+        .unwrap()
+        .filter_map(Result::ok)
+        .map(|entry| entry.file_name().to_string_lossy().into_owned())
+        .filter(|name| name.starts_with(".shared.json.tmp-"))
+        .collect::<Vec<_>>();
+    assert!(
+        leftovers.is_empty(),
+        "temporary files leaked: {leftovers:?}"
+    );
+}

@@ -36,12 +36,9 @@ def installed_inspect_observation() -> dict:
 
 def main() -> int:
     ci = read(".github/workflows/ci.yml")
-    releases = read("docs/releases.md")
-    status = read("docs/status.md")
     security = read("SECURITY.md")
     operations = read("docs/operations.md")
     recovery = read("docs/recovery.md")
-    compatibility = read("docs/compatibility.md")
 
     checks = [
         item("RT-LC-001", "PASS" if contains_all("docs/status.md", ["supported environment", "verification route", "pre-1.0"]) else "OPEN", "docs/status.md"),

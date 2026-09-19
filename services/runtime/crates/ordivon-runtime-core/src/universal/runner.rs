@@ -618,6 +618,19 @@ struct StepOutcome {
     stderr_dropped: u64,
 }
 
+const SYSTEMD_CREDENTIALS_DIRECTORY_ENV: &str = "CREDENTIALS_DIRECTORY";
+
+pub(super) fn apply_systemd_credential_environment(
+    command: &mut Command,
+    credentials_directory: Option<&std::ffi::OsStr>,
+) {
+    if let Some(credentials_directory) = credentials_directory {
+        // systemd owns this capability pointer. Runner keeps the broader host environment
+        // cleared, then propagates only the standard credential directory into the target.
+        command.env(SYSTEMD_CREDENTIALS_DIRECTORY_ENV, credentials_directory);
+    }
+}
+
 fn execute_step(
     task_dir: &Path,
     request: &RunnerTaskRequest,
@@ -652,6 +665,8 @@ fn execute_step(
         command.env_clear();
     }
     command.envs(&step.env);
+    let credentials_directory = std::env::var_os(SYSTEMD_CREDENTIALS_DIRECTORY_ENV);
+    apply_systemd_credential_environment(&mut command, credentials_directory.as_deref());
     let _build_target_backing = if step.env.get("CARGO_TARGET_DIR").map(String::as_str)
         == Some(TRUSTED_BUILD_TARGET_PRESENTATION)
     {
@@ -1258,10 +1273,11 @@ impl PathDriftWatch {
                     }
                     let metadata_self_mask =
                         libc::IN_ATTRIB | libc::IN_CLOSE_WRITE | libc::IN_MODIFY;
-                    if event.len == 0 && event.mask & metadata_self_mask != 0 {
-                        if spec.direct || !self.path_identity_unchanged(&spec.path)? {
-                            return Err(path_runtime_drift(self.kind, &spec.path, event.mask));
-                        }
+                    if event.len == 0
+                        && event.mask & metadata_self_mask != 0
+                        && (spec.direct || !self.path_identity_unchanged(&spec.path)?)
+                    {
+                        return Err(path_runtime_drift(self.kind, &spec.path, event.mask));
                     }
                     if event.len > 0 {
                         let name_start = offset + std::mem::size_of::<libc::inotify_event>();
