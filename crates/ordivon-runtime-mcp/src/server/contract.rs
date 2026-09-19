@@ -280,33 +280,6 @@ fn default_change_page_bytes() -> u64 {
 
 #[derive(Clone, Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct WorkspacePatchToolRequest {
-    #[schemars(range(min = 1, max = 1), extend("const" = 1))]
-    #[serde(default = "default_schema_version")]
-    pub schema_version: u32,
-    #[schemars(length(min = CLIENT_REQUEST_ID_MIN_LENGTH, max = CLIENT_REQUEST_ID_MAX_LENGTH), extend("pattern" = CLIENT_REQUEST_ID_PATTERN))]
-    pub client_request_id: String,
-    #[schemars(length(min = WORKSPACE_ID_MIN_LENGTH, max = WORKSPACE_ID_MAX_LENGTH), regex(pattern = WORKSPACE_ID_PATTERN))]
-    pub workspace_id: String,
-    #[schemars(length(min = 1))]
-    pub files: Vec<WorkspaceFilePatch>,
-    #[serde(default = "default_patch_diff_bytes")]
-    #[schemars(range(min = 1, max = MAX_WORKSPACE_IO_BYTES))]
-    pub max_diff_bytes: u64,
-}
-
-#[derive(Clone, Debug, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct WorkspacePatchStatusToolRequest {
-    #[schemars(range(min = 1, max = 1), extend("const" = 1))]
-    #[serde(default = "default_schema_version")]
-    pub schema_version: u32,
-    #[schemars(length(min = CLIENT_REQUEST_ID_MIN_LENGTH, max = CLIENT_REQUEST_ID_MAX_LENGTH), extend("pattern" = CLIENT_REQUEST_ID_PATTERN))]
-    pub client_request_id: String,
-}
-
-#[derive(Clone, Debug, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct WorkspaceExecRequest {
     #[schemars(range(min = 1, max = 1), extend("const" = 1))]
     #[serde(default = "default_schema_version")]

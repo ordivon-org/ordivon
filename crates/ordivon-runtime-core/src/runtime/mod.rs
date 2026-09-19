@@ -4,7 +4,6 @@ mod engine;
 mod error;
 mod evidence;
 mod inspection;
-mod patch;
 mod physical_provider;
 mod platform;
 mod registry;
@@ -47,14 +46,11 @@ pub use inspection::{
     DEFAULT_ARCHIVE_SAMPLE_LIMIT, DEFAULT_WORKSPACE_INSPECTION_JOB_LIMIT, MAX_ARCHIVE_SAMPLE_LIMIT,
     MAX_WORKSPACE_INSPECTION_JOB_LIMIT,
 };
-pub use patch::{
-    DurableWorkspacePatchRequest, DurableWorkspacePatchResult, WorkspacePatchOperationState,
-    WorkspacePatchOperationStatus, WorkspacePatchStatusRequest,
-};
 pub use registry::{
     Registry, RegistryConfig, RUNTIME_CONDITION_RETIREMENT_MIGRATION_CHECKSUM,
     RUNTIME_MIGRATION_CHECKSUM, RUNTIME_ORPHAN_RECLAIM_MIGRATION_CHECKSUM,
     RUNTIME_ORPHAN_RECOVERY_MIGRATION_CHECKSUM, RUNTIME_TERMINAL_REPAIR_MIGRATION_CHECKSUM,
+    RUNTIME_WORKSPACE_PATCH_RETIREMENT_MIGRATION_CHECKSUM,
 };
 #[cfg(feature = "operator-tools")]
 pub use repair::{

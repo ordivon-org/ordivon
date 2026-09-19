@@ -27,7 +27,6 @@ impl Registry {
         registry.ensure_wal_mode(&connection)?;
         registry.apply_migrations(&mut connection)?;
         registry.ensure_query_indexes(&mut connection)?;
-        registry.ensure_workspace_patch_storage(&mut connection)?;
         registry.ensure_execution_provider_storage(&mut connection)?;
         registry.ensure_attempt_supervisor_owner_storage(&mut connection)?;
         registry.ensure_host_dependency_storage(&mut connection)?;
@@ -240,6 +239,45 @@ impl Registry {
             RUNTIME_CONDITION_RETIREMENT_MIGRATION_CHECKSUM,
             "condition-retirement migration",
         )?;
+        if max_version < WORKSPACE_PATCH_RETIREMENT_MIGRATION_VERSION {
+            let transaction = immediate(connection, "workspace-patch-retirement migration")?;
+            transaction
+                .execute_batch(MIGRATION_V6_SQL)
+                .map_err(|error| {
+                    RuntimeError::from_sql(
+                        error,
+                        "cannot apply workspace-patch-retirement migration",
+                    )
+                })?;
+            transaction
+                .execute(
+                    "INSERT INTO schema_migrations(version,name,checksum,applied_at_ms) VALUES(?1,?2,?3,?4)",
+                    params![
+                        WORKSPACE_PATCH_RETIREMENT_MIGRATION_VERSION,
+                        MIGRATION_V6_NAME,
+                        RUNTIME_WORKSPACE_PATCH_RETIREMENT_MIGRATION_CHECKSUM,
+                        now_ms()?
+                    ],
+                )
+                .map_err(|error| {
+                    RuntimeError::from_sql(
+                        error,
+                        "cannot record workspace-patch-retirement migration",
+                    )
+                })?;
+            transaction.commit().map_err(|error| {
+                RuntimeError::from_sql(
+                    error,
+                    "cannot commit workspace-patch-retirement migration",
+                )
+            })?;
+        }
+        validate_migration_checksum(
+            connection,
+            WORKSPACE_PATCH_RETIREMENT_MIGRATION_VERSION,
+            RUNTIME_WORKSPACE_PATCH_RETIREMENT_MIGRATION_CHECKSUM,
+            "workspace-patch-retirement migration",
+        )?;
         Ok(())
     }
 
@@ -319,41 +357,6 @@ impl Registry {
                 return Err(RuntimeError::new(
                     RuntimeErrorCode::RegistryCorrupt,
                     missing_message,
-                    None,
-                    false,
-                ));
-            }
-        }
-        Ok(())
-    }
-
-    fn ensure_workspace_patch_storage(&self, connection: &mut Connection) -> RuntimeResult<()> {
-        let transaction = immediate(connection, "Workspace Patch storage maintenance")?;
-        transaction
-            .execute_batch(WORKSPACE_PATCH_STORAGE_SQL)
-            .map_err(|error| {
-                RuntimeError::from_sql(error, "cannot ensure Workspace Patch storage")
-            })?;
-        transaction.commit().map_err(|error| {
-            RuntimeError::from_sql(error, "cannot commit Workspace Patch storage maintenance")
-        })?;
-        for (kind, name) in [
-            ("table", WORKSPACE_PATCH_TABLE),
-            ("index", WORKSPACE_PATCH_INDEX),
-        ] {
-            let exists: bool = connection
-                .query_row(
-                    "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type=?1 AND name=?2)",
-                    params![kind, name],
-                    |row| row.get(0),
-                )
-                .map_err(|error| {
-                    RuntimeError::from_sql(error, "cannot verify Workspace Patch storage")
-                })?;
-            if !exists {
-                return Err(RuntimeError::new(
-                    RuntimeErrorCode::RegistryCorrupt,
-                    format!("Workspace Patch {kind} {name} is missing after maintenance"),
                     None,
                     false,
                 ));

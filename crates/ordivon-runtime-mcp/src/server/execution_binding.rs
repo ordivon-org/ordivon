@@ -17,31 +17,6 @@ impl ExecutionContext {
         }
     }
 
-    fn bind_patch(&self, request: WorkspacePatchToolRequest) -> DurableWorkspacePatchRequest {
-        DurableWorkspacePatchRequest {
-            schema_version: request.schema_version,
-            principal: self.principal.clone(),
-            client_request_id: request.client_request_id,
-            patch: WorkspacePatchRequest {
-                schema_version: request.schema_version,
-                workspace_id: request.workspace_id,
-                files: request.files,
-                max_diff_bytes: request.max_diff_bytes,
-            },
-        }
-    }
-
-    fn bind_patch_status(
-        &self,
-        request: WorkspacePatchStatusToolRequest,
-    ) -> WorkspacePatchStatusRequest {
-        WorkspacePatchStatusRequest {
-            schema_version: request.schema_version,
-            principal: self.principal.clone(),
-            client_request_id: request.client_request_id,
-        }
-    }
-
     fn bind(&self, request: WorkspaceExecRequest) -> BoundTaskRun {
         let legacy_compatible = request.execution.timeout_ms.is_some()
             && request.execution.stdout_limit_bytes.is_some()
@@ -300,9 +275,6 @@ impl ExecutionContext {
     }
 }
 
-fn default_patch_diff_bytes() -> u64 {
-    MAX_WORKSPACE_IO_BYTES
-}
 
 fn default_exec_wait_ms() -> u64 {
     // Public MCP admission should return quickly once durable Job identity exists.

@@ -33,7 +33,6 @@ REQUIRED_TOOLS = {
     "workspace.execPlan",
     "workspace.get",
     "workspace.open",
-    "workspace.patch",
     "workspace.read",
 }
 SECRET_KEYS = {"ORDIVON_BEARER_TOKEN"}
@@ -111,22 +110,6 @@ def load_connection(env_file: Path, endpoint_override: str | None) -> tuple[str,
         raise DemoError("ORDIVON_BEARER_TOKEN is missing from the environment or EnvironmentFile")
     endpoint = endpoint_override or endpoint_from_bind(values.get("ORDIVON_BIND", "127.0.0.1:8811"))
     return endpoint, token
-
-
-def text_edit_range(content: str, expected: str) -> dict[str, dict[str, int]]:
-    start = content.find(expected)
-    if start < 0 or content.find(expected, start + 1) >= 0:
-        raise DemoError("expected patch text must occur exactly once")
-    prefix = content[:start]
-    start_line = prefix.count("\n") + 1
-    start_column = len(prefix.rsplit("\n", 1)[-1])
-    replaced = content[start : start + len(expected)]
-    end_line = start_line + replaced.count("\n")
-    end_column = start_column + len(replaced) if "\n" not in replaced else len(replaced.rsplit("\n", 1)[-1])
-    return {
-        "start": {"line": start_line, "column": start_column},
-        "end": {"line": end_line, "column": end_column},
-    }
 
 
 def short(value: object, length: int = 12) -> str:
@@ -288,7 +271,6 @@ def run_demo(
     endpoint, token = load_connection(env_file, endpoint_override)
     run_id = uuid.uuid4().hex
     workspace_id = f"runtime-demo-{run_id}"
-    patch_request_id = f"demo:runtime-flow:patch:{run_id}"
     execution_request_id = f"demo:runtime-flow:exec:{run_id}"
     client: McpClient | None = None
     events: list[dict[str, str]] = []
@@ -333,29 +315,33 @@ def run_demo(
             )
             before = 'POLICY = "blind-redispatch"'
             after = 'POLICY = "recover-recorded-job"'
-            patch_request = {
-                "schemaVersion": SCHEMA_VERSION,
-                "clientRequestId": patch_request_id,
-                "workspaceId": workspace_id,
-                "files": [
-                    {
-                        "relativePath": "policy.py",
-                        "expectedDigest": read["digest"],
-                        "edits": [
-                            {
-                                "range": text_edit_range(str(read["content"]), before),
-                                "expectedText": before,
-                                "replacement": after,
-                            }
-                        ],
-                    }
-                ],
-                "maxDiffBytes": 65_536,
-            }
-            patched = client.call_tool("workspace.patch", patch_request)
-            if patched.get("replayed") is not False:
-                raise DemoError("first guarded Patch was unexpectedly replayed")
-            events.append(event("PATCH", f"committed  {short(patched.get('requestDigest'))}"))
+            if str(read["content"]).count(before) != 1:
+                raise DemoError("expected mutation text must occur exactly once")
+            mutated = client.call_tool(
+                "workspace.mutate",
+                {
+                    "schemaVersion": SCHEMA_VERSION,
+                    "workspaceId": workspace_id,
+                    "mutations": [
+                        {
+                            "relativePath": "policy.py",
+                            "mode": "REPLACE_EXACT",
+                            "content": after,
+                            "expectedDigest": read["digest"],
+                            "expectedText": before,
+                        }
+                    ],
+                },
+            )
+            mutation_rows = mutated.get("mutations", [])
+            if len(mutation_rows) != 1:
+                raise DemoError("guarded workspace mutation did not report exactly one file")
+            events.append(
+                event(
+                    "MUTATE",
+                    f"guarded  {short(mutation_rows[0].get('afterDigest'))}",
+                )
+            )
 
             execution_request = {
                 "schemaVersion": SCHEMA_VERSION,
@@ -500,12 +486,10 @@ def run_demo(
                     "sourceStateDigest": source_state_digest,
                     "closed": True,
                 },
-                "patch": {
-                    "clientRequestId": patch_request_id,
-                    "operationId": patched.get("operationId"),
-                    "requestDigest": patched.get("requestDigest"),
-                    "replayed": patched.get("replayed"),
+                "mutation": {
+                    "mode": "REPLACE_EXACT",
                     "files": ["policy.py"],
+                    "afterDigest": mutation_rows[0].get("afterDigest"),
                 },
                 "execution": {
                     "clientRequestId": execution_request_id,

@@ -2,7 +2,6 @@ mod config;
 mod error;
 mod fsutil;
 mod mutation;
-mod patch;
 mod projection;
 #[cfg(unix)]
 mod runner;
@@ -16,11 +15,6 @@ pub use fsutil::{
     WORKSPACE_ID_PATTERN,
 };
 pub use mutation::{mutate_workspace, read_workspace_slice};
-pub use patch::{
-    inspect_workspace_patch_plan, patch_workspace, plan_workspace_patch,
-    result_from_workspace_patch_plan, WorkspacePatchPlan, WorkspacePatchPlanFile,
-    WorkspacePatchPlanState,
-};
 pub use projection::{
     create_git_workspace_compact, read_workspace_slice_compact, read_workspace_text_compact,
     workspace_diff_compact,
@@ -33,12 +27,10 @@ pub use types::{
     WorkspaceChangeEntry, WorkspaceChangeKind, WorkspaceChangePageRequest,
     WorkspaceChangePageResult, WorkspaceCloseRequest, WorkspaceCloseResult,
     WorkspaceClosureDisposition, WorkspaceContentMetadata, WorkspaceContentReadResult,
-    WorkspaceContentRequest, WorkspaceDiffRequest, WorkspaceDiffResult, WorkspaceFilePatch,
-    WorkspaceMutateRequest, WorkspaceMutateResult, WorkspaceMutation, WorkspaceMutationMode,
-    WorkspaceMutationResult, WorkspacePatchRequest, WorkspacePatchResult, WorkspacePatchedFile,
+    WorkspaceContentRequest, WorkspaceDiffRequest, WorkspaceDiffResult, WorkspaceMutateRequest,
+    WorkspaceMutateResult, WorkspaceMutation, WorkspaceMutationMode, WorkspaceMutationResult,
     WorkspaceReadRequest, WorkspaceReadResult, WorkspaceReadSliceRequest, WorkspaceReadSliceResult,
-    WorkspaceRecord, WorkspaceRenamedPath, WorkspaceTextEdit, WorkspaceTextPosition,
-    WorkspaceTextRange, WorkspaceWriteRequest, WorkspaceWriteResult,
+    WorkspaceRecord, WorkspaceRenamedPath, WorkspaceWriteRequest, WorkspaceWriteResult,
     MAX_WORKSPACE_CHANGE_PAGE_ENTRIES,
 };
 pub use workspace::{
@@ -72,8 +64,8 @@ pub(crate) use workspace::resolve_workspace_cwd;
 pub(crate) use workspace::workspace_source_state_digest_at;
 pub(crate) use workspace::{
     list_open_workspace_record_inventory, preflight_workspace_write_path, remove_workspace_file,
-    resolve_existing_workspace_path, workspace_cleanup_dependents, workspace_diff_paths,
-    workspace_git_common_dir_at, workspace_head_and_dirty_at,
+    resolve_existing_workspace_path, workspace_cleanup_dependents, workspace_git_common_dir_at,
+    workspace_head_and_dirty_at,
 };
 #[cfg(feature = "operator-tools")]
 pub(crate) use workspace::{workspace_change_projection_at, workspace_head_revision_at};
