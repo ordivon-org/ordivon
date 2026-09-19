@@ -91,9 +91,13 @@
   "privateReadOnlyTruth": {
     "credentialCarrierPreferred": "Runtime digest-bound InputAuthority finance-binance-observer-materials",
     "credentialCarrierQualificationBridge": "systemd LoadCredential may be used only when platform policy permits; no ambient secret discovery",
+    "credentialCarrierStanding": "ACTIVE_RUNTIME_INPUT_AUTHORITY",
     "executionAdmitted": false,
+    "expectedDigestStanding": "CALLER_COMMITMENT_MISSING",
     "permissionGate": "enableReading=true and all write-capable permission flags false before any USD\u24c8-M private GET",
     "permissionTruthOwner": "Binance Wallet GET /sapi/v1/account/apiRestrictions via binance-sdk-wallet 13.4.0",
+    "privatePermissionQueried": false,
+    "privateUsdMRealityQueried": false,
     "requiredMethods": [
       "account_information_v3",
       "futures_account_balance_v3",
@@ -107,7 +111,7 @@
       "account_trade_list"
     ],
     "securityType": "USER_DATA",
-    "standing": "PENDING_CREDENTIAL_CLIENT_BINDING",
+    "standing": "PENDING_EXPECTED_DIGEST_COMMITMENT",
     "timelinessRule": "combine Position Information V3 with USER_DATA ACCOUNT_UPDATE stream",
     "tradFiAgreementStanding": "UNKNOWN_NO_READ_ONLY_STATUS_API",
     "usdmNetworkAuthority": "binanceUsdmRest",

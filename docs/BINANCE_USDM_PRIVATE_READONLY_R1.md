@@ -1,7 +1,7 @@
 # Binance USDⓈ-M Private Read-Only Qualification R1
 
 Date: 2026-09-19
-Status: PREPARED_PENDING_RUNTIME_AUTHORITY_ACTIVATION
+Status: INPUT_AUTHORITY_ACTIVE_EXPECTED_DIGEST_COMMITMENT_MISSING
 
 ## Objective
 
@@ -82,15 +82,17 @@ Private-read success must never be upgraded into a claim that the account is eli
 
 ## Runtime authority state
 
-The operator Runtime environment has been prepared with a separate named authority:
+The operator Runtime has a separate active named authority:
 
 finance-binance-observer-materials
 
 rooted at the explicitly authorized Binance observer credential directory.
 
-The running shared Runtime has not yet reloaded that environment because unrelated active Jobs are present. The current runtime_describe projection therefore correctly omits the new authority.
+The authority was activated only after Runtime reported zero active Jobs. A delayed service restart loaded the authority without interrupting unrelated work, and runtime_describe now reports the authority.
 
-No forced restart is performed across unrelated work.
+The remaining input-bound admission requirement is the caller-held expected SHA-256 commitment for each object. No prior canonical commitment exists, and platform execution policy prevents the current agent from deriving hashes directly from the secret host paths.
+
+This is treated as a Runtime operator-interface gap. Market Capital does not recover the digest by deliberately causing a mismatch, does not use ambient secret discovery, and does not fall back to executor credentials.
 
 ## Network state
 
@@ -107,11 +109,12 @@ A public Binance server-time request through this path succeeded.
 
 The private provider may advance from PENDING_CREDENTIAL_CLIENT_BINDING only when all of the following are true:
 
-1. Runtime reports finance-binance-observer-materials as an active input authority.
-2. Credential bytes are presented through the authority rather than ambient discovery.
-3. Wallet API permission query passes the strict read-only gate.
-4. Required USDⓈ-M USER_DATA GET calls succeed.
-5. No external financial write is attempted.
-6. TradFi agreement and trade eligibility remain separately unknown unless independently proven.
+1. Runtime reports finance-binance-observer-materials as an active input authority. PASS.
+2. Exact caller-held SHA-256 commitments exist for api_key and private.pem.
+3. Credential bytes are presented through the authority rather than ambient discovery.
+4. Wallet API permission query passes the strict read-only gate.
+5. Required USDⓈ-M USER_DATA GET calls succeed.
+6. No external financial write is attempted.
+7. TradFi agreement and trade eligibility remain separately unknown unless independently proven.
 
 Until then live execution remains non-admitted and the existing OKX SNDK position is not migrated.
