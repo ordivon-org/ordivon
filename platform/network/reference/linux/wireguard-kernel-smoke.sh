@@ -2,6 +2,8 @@
 set -euo pipefail
 A=nv2kwga$$; B=nv2kwgb$$; VA=nv2kwva$$; VB=nv2kwvb$$; WA=nv2kwga0; WB=nv2kwgb0
 TMP=$(mktemp -d /tmp/network-e2e-kernel-wg.XXXXXX)
+# shellcheck disable=SC2329
+# Invoked indirectly by the EXIT trap below.
 cleanup(){ ip netns del "$A" >/dev/null 2>&1 || true; ip netns del "$B" >/dev/null 2>&1 || true; rm -rf "$TMP"; }
 trap cleanup EXIT
 umask 077

@@ -96,7 +96,6 @@ wait_all() {
 
 group() { sing-box api --url "http://127.0.0.1:$API_PORT" group show "$1"; }
 refresh_groups() {
-  local g
   sing-box api --url "http://127.0.0.1:$API_PORT" group urltest provider-auto >/dev/null
   sleep 4
   group provider-auto >/dev/null
@@ -125,8 +124,14 @@ for unit in "$TARGET" "$EGRESS"; do wait_state "$unit" active; done
 for legacy in network-v2-finance-netns@a.service network-v2-finance-netns@b.service network-v2-finance-wireguard@a.service network-v2-finance-wireguard@b.service network-v2-finance-carrier@a.service network-v2-finance-carrier@b.service; do
   test "$(systemctl is-active "$legacy" 2>/dev/null || true)" != active
 done
-! ip netns list | awk '{print $1}' | grep -Eq '^nv2-finance-[ab]$'
-! ss -lntH | awk '$4 ~ /:28221$/ {found=1} END{exit !found}'
+if ip netns list | awk '{print $1}' | grep -Eq '^nv2-finance-[ab]$'; then
+  echo 'legacy finance namespace is still active' >&2
+  exit 1
+fi
+if ss -lntH | awk '$4 ~ /:28221$/ {found=1} END{exit !found}'; then
+  echo 'legacy finance listener :28221 is still active' >&2
+  exit 1
+fi
 wait_all
 refresh_groups
 

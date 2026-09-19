@@ -12,6 +12,8 @@ TMP=$(mktemp -d /tmp/network-e2e-userspace-wg.XXXXXX)
 PIDA=''
 PIDB=''
 
+# shellcheck disable=SC2329
+# Invoked indirectly by the EXIT trap below.
 cleanup() {
   rm -f "/var/run/wireguard/$WA.sock" "/var/run/wireguard/$WB.sock" >/dev/null 2>&1 || true
   [ -z "$PIDA" ] || kill "$PIDA" >/dev/null 2>&1 || true

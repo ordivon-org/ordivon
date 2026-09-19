@@ -20,7 +20,10 @@ systemd-run --quiet --unit="$U4" --property=Type=simple --property=Restart=no \
   /usr/bin/python3 -m http.server 38080 --bind 127.0.0.1 --directory "$TMP/www"
 for _ in $(seq 1 40); do curl -fsS http://127.0.0.1:38080/ >/dev/null 2>&1 && break; sleep 0.1; done
 curl -fsS http://127.0.0.1:38080/ >/dev/null
-! ss -ltn6 | grep -q ':38080 '
+if ss -ltn6 | grep -q ':38080 '; then
+  echo 'unexpected IPv6 listener on :38080' >&2
+  exit 1
+fi
 cat >"$TMP/pref6.json" <<'JSON'
 {"log":{"level":"info","timestamp":true},"dns":{"servers":[{"type":"hosts","tag":"hosts","predefined":{"fallback.test":["127.0.0.1","::1"]}}],"final":"hosts","strategy":"prefer_ipv6"},"inbounds":[{"type":"mixed","tag":"mixed","listen":"127.0.0.1","listen_port":28084}],"outbounds":[{"type":"direct","tag":"direct"}],"route":{"rules":[{"action":"resolve","server":"hosts","strategy":"prefer_ipv6"}],"final":"direct"}}
 JSON
@@ -38,7 +41,10 @@ systemd-run --quiet --unit="$U6" --property=Type=simple --property=Restart=no \
   /usr/bin/python3 -m http.server 38081 --bind ::1 --directory "$TMP/www"
 for _ in $(seq 1 40); do curl -g -fsS 'http://[::1]:38081/' >/dev/null 2>&1 && break; sleep 0.1; done
 curl -g -fsS 'http://[::1]:38081/' >/dev/null
-! ss -ltn4 | grep -q ':38081 '
+if ss -ltn4 | grep -q ':38081 '; then
+  echo 'unexpected IPv4 listener on :38081' >&2
+  exit 1
+fi
 cat >"$TMP/pref4.json" <<'JSON'
 {"log":{"level":"info","timestamp":true},"dns":{"servers":[{"type":"hosts","tag":"hosts","predefined":{"fallback.test":["127.0.0.1","::1"]}}],"final":"hosts","strategy":"prefer_ipv4"},"inbounds":[{"type":"mixed","tag":"mixed","listen":"127.0.0.1","listen_port":28085}],"outbounds":[{"type":"direct","tag":"direct"}],"route":{"rules":[{"action":"resolve","server":"hosts","strategy":"prefer_ipv4"}],"final":"direct"}}
 JSON
