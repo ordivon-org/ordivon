@@ -152,6 +152,13 @@
       ".agents/skills/lego-lens-router",
       ".agents/skills/lego-lens-compiler",
       ".agents/skills/lego-lens-portfolio"
+    ],
+    "forbiddenMethodAdapterReferences": [
+      "LEGO_THEORY_LAYER_R1",
+      "lego-lens-router",
+      "lego-lens-compiler",
+      "lego-lens-portfolio",
+      "lego-lens-registry-r1.json"
     ]
   },
   "liveBaseline": {

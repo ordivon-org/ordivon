@@ -1,16 +1,14 @@
 ---
-name: lego-ck-design
+name: ck-design
 description: "Apply C-K design theory when the system needs genuinely new concepts rather than only selecting or optimizing known alternatives. Separate Concept space from Knowledge space, expand both, record C-to-C partitions and C-to-K/K-to-C/K-to-K moves, and design experiments that turn undecidable concepts into knowledge. Use for novel Game mechanics, product forms, research questions, architecture alternatives, and open-ended invention. Do not treat unverified concepts as facts or force C-K notation onto routine implementation work."
 compatibility: Cross-platform. Produces generative design-space evidence; it is not a product-selection authority or proof of novelty.
 metadata:
   source-authority: Hatchuel-Weil C-K design theory / Le Masson-Weil-Hatchuel Design Theory
-  lego-theory-layer: docs/LEGO_THEORY_LAYER_R1.md
-  wave: "3"
 ---
 
-# LEGO C-K Design Lens
+# C-K Design
 
-Use this lens when the desired object is not fully known and the task requires generating new design possibilities and new knowledge together.
+Use this method when the desired object is not fully known and the task requires generating new design possibilities and new knowledge together.
 
 ## Core distinction
 
@@ -85,5 +83,4 @@ Canonical external foundations:
 - Le Masson, Weil & Hatchuel, Design Theory.
 
 Canonical local reference:
-- docs/LEGO_THEORY_LAYER_R1.md
 - docs/LEGO_THEORY_WAVE3_R1.md

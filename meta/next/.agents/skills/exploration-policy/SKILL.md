@@ -1,16 +1,14 @@
 ---
-name: lego-exploration-policy
-description: "Apply exploration-exploitation and bandit-style sequential decision reasoning when Ordivon repeatedly chooses among uncertain candidate actions, experiments, mechanisms, providers, or designs and receives feedback over time. Define arms/options, reward or information objectives, feedback model, stationarity/context assumptions, budget, regret/information trade-off, stopping and reset rules. Use for experiment portfolios, adaptive routing, search budget allocation, and repeated trials. Do not use a bandit metaphor for one-shot irreversible choices or when feedback cannot be attributed to the chosen action."
+name: exploration-policy
+description: "Apply exploration-exploitation and bandit-style sequential decision reasoning when a system repeatedly chooses among uncertain candidate actions, experiments, mechanisms, providers, or designs and receives feedback over time. Define arms/options, reward or information objectives, feedback model, stationarity/context assumptions, budget, regret/information trade-off, stopping and reset rules. Use for experiment portfolios, adaptive routing, search budget allocation, and repeated trials. Do not use a bandit metaphor for one-shot irreversible choices or when feedback cannot be attributed to the chosen action."
 compatibility: Cross-platform. Produces exploration-policy evidence and experiment allocation plans; it does not grant production authority or define domain value.
 metadata:
   source-authority: Lattimore-Szepesvari Bandit Algorithms / sequential decision theory
-  lego-theory-layer: docs/LEGO_THEORY_LAYER_R1.md
-  wave: "3"
 ---
 
-# LEGO Exploration Policy Lens
+# Exploration Policy
 
-Use this lens when choices repeat and information gained from one choice can improve later choices.
+Use this method when choices repeat and information gained from one choice can improve later choices.
 
 ## Procedure
 
@@ -80,5 +78,4 @@ Canonical external foundation:
 - Tor Lattimore and Csaba Szepesvári, Bandit Algorithms.
 
 Canonical local reference:
-- docs/LEGO_THEORY_LAYER_R1.md
 - docs/LEGO_THEORY_WAVE3_R1.md

@@ -1,13 +1,12 @@
 ---
-name: lego-feedback-control
-description: Apply feedback-control and state-space thinking to a LEGO system whose behavior evolves over time. Identify state, observations, reference goals, controllers, actuators/effects, feedback paths, disturbances, delays, estimation gaps, and robustness questions. Use for runtimes, agents, autonomous loops, recovery, resource regulation, adaptive systems, and other dynamic processes. Do not force control terminology onto static architecture.
-compatibility: Cross-platform. This is a modeling/analysis lens, not a numeric controller-design package.
+name: feedback-control
+description: Apply feedback-control and state-space thinking to a system whose behavior evolves over time. Identify state, observations, reference goals, controllers, actuators/effects, feedback paths, disturbances, delays, estimation gaps, and robustness questions. Use for runtimes, agents, autonomous loops, recovery, resource regulation, adaptive systems, and other dynamic processes. Do not force control terminology onto static architecture.
+compatibility: Cross-platform. This is a modeling/analysis method, not a numeric controller-design package.
 metadata:
   source-authority: MIT feedback control / standard control theory
-  lego-theory-layer: docs/LEGO_THEORY_LAYER_R1.md
 ---
 
-# LEGO Feedback Control Lens
+# Feedback Control
 
 Static nodes and edges are not enough when behavior depends on time and feedback.
 
@@ -54,5 +53,4 @@ A conceptual feedback diagram does not establish mathematical stability.
 Stop when the dynamic variables and feedback paths that affect the current design decision are explicit and testable.
 
 Canonical local reference:
-- docs/LEGO_THEORY_LAYER_R1.md
 - knowledge/lessons/lego-theory-foundations-r1.md

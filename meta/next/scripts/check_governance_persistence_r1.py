@@ -44,6 +44,16 @@ def audit() -> list[str]:
         if (ROOT / relative).exists():
             problems.append(f"retired local method infrastructure reappeared: {relative}")
 
+    forbidden_method_refs = growth.get("forbiddenMethodAdapterReferences", [])
+    skills_root = ROOT / ".agents" / "skills"
+    for skill_file in skills_root.glob("*/SKILL.md"):
+        text = skill_file.read_text(encoding="utf-8")
+        for forbidden_ref in forbidden_method_refs:
+            if forbidden_ref in text:
+                problems.append(
+                    f"method adapter {skill_file.relative_to(ROOT)} retains retired local method reference: {forbidden_ref}"
+                )
+
     schema = load_json(PROJECT_SCHEMA)
     forbidden = {x.lower() for x in growth["projectPlanForbiddenNewRequiredConcepts"]}
     required = {x.lower() for x in schema.get("required", [])}

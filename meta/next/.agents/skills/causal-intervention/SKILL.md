@@ -1,16 +1,14 @@
 ---
-name: lego-causal-intervention
-description: "Apply structural causal and intervention reasoning to a LEGO problem that asks what causes an outcome, what would happen if one variable were changed, or whether an observed association justifies an intervention. Separate observation from intervention, state causal assumptions, identify confounding/selection/mediators, test identifiability, and design the smallest valid experiment or intervention. Use for ablations, mechanism claims, policy/design changes, regressions, and empirical architecture decisions. Do not convert correlation or temporal order into causation."
+name: causal-intervention
+description: "Apply structural causal and intervention reasoning to a problem that asks what causes an outcome, what would happen if one variable were changed, or whether an observed association justifies an intervention. Separate observation from intervention, state causal assumptions, identify confounding/selection/mediators, test identifiability, and design the smallest valid experiment or intervention. Use for ablations, mechanism claims, policy/design changes, regressions, and empirical architecture decisions. Do not convert correlation or temporal order into causation."
 compatibility: Cross-platform. Produces causal hypotheses and identification/experiment plans; it does not infer causal truth from observational data automatically.
 metadata:
   source-authority: Judea Pearl structural causal models / intervention and identifiability
-  lego-theory-layer: docs/LEGO_THEORY_LAYER_R1.md
-  wave: "2"
 ---
 
-# LEGO Causal Intervention Lens
+# Causal Intervention
 
-Use this lens when the decision depends on "what changes what" rather than merely "what co-occurs with what."
+Use this method when the decision depends on "what changes what" rather than merely "what co-occurs with what."
 
 ## Procedure
 
@@ -73,5 +71,4 @@ Canonical external foundation:
 - Judea Pearl, structural causal models, do-interventions, causal effect identifiability.
 
 Canonical local reference:
-- docs/LEGO_THEORY_LAYER_R1.md
 - docs/LEGO_THEORY_WAVE2_R1.md

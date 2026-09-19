@@ -1,16 +1,14 @@
 ---
-name: lego-compositional-contracts
-description: "Apply compositional reasoning and assume-guarantee contracts to a LEGO system whose parts must compose, interoperate, or remain replaceable. Identify environmental assumptions, component guarantees, compatibility obligations, refinement/substitutability conditions, and composition failures. Use when local correctness is being promoted into a whole-system claim, interfaces are meant to be replaceable, or independently developed modules/providers must compose. Category-theoretic language is optional and may be used only when it clarifies composition laws; do not force it onto ordinary interfaces."
+name: compositional-contracts
+description: "Apply compositional reasoning and assume-guarantee contracts to a system whose parts must compose, interoperate, or remain replaceable. Identify environmental assumptions, component guarantees, compatibility obligations, refinement/substitutability conditions, and composition failures. Use when local correctness is being promoted into a whole-system claim, interfaces are meant to be replaceable, or independently developed modules/providers must compose. Category-theoretic language is optional and may be used only when it clarifies composition laws; do not force it onto ordinary interfaces."
 compatibility: Cross-platform. Produces contract/composition analysis evidence; it is not a formal verifier by itself.
 metadata:
   source-authority: NASA/CMU assume-guarantee compositional verification; Fong-Spivak applied compositionality
-  lego-theory-layer: docs/LEGO_THEORY_LAYER_R1.md
-  wave: "2"
 ---
 
-# LEGO Compositional Contracts Lens
+# Compositional Contracts
 
-Use this lens when "each part works" is not enough to establish that the assembled system works.
+Use this method when "each part works" is not enough to establish that the assembled system works.
 
 ## Procedure
 
@@ -79,5 +77,4 @@ Canonical external foundations:
 - Fong & Spivak, Seven Sketches in Compositionality / MIT Applied Category Theory.
 
 Canonical local reference:
-- docs/LEGO_THEORY_LAYER_R1.md
 - docs/LEGO_THEORY_WAVE2_R1.md

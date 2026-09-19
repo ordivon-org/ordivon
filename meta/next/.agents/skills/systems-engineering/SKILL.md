@@ -1,15 +1,14 @@
 ---
-name: lego-systems-engineering
-description: "Apply systems-engineering and systems-thinking framing to an already evidenced complex project: define the system of interest, environment, boundaries, interfaces, lifecycle, stakeholder outcomes, and whole-system properties before or while decomposing it into LEGO nodes. Use when scope is ambiguous, the project is a system-of-systems, local optimizations may conflict, or interfaces dominate behavior. Do not use as a generic project-management checklist."
+name: systems-engineering
+description: "Apply systems-engineering and systems-thinking framing to an already evidenced complex project: define the system of interest, environment, boundaries, interfaces, lifecycle, stakeholder outcomes, and whole-system properties before or while decomposing it into project-native elements. Use when scope is ambiguous, the project is a system-of-systems, local optimizations may conflict, or interfaces dominate behavior. Do not use as a generic project-management checklist."
 compatibility: Cross-platform. Produces analysis evidence; it does not alter project truth by itself.
 metadata:
-  source-authority: INCOSE systems engineering / systems thinking
-  lego-theory-layer: docs/LEGO_THEORY_LAYER_R1.md
+  source-authority: ISO/IEC/IEEE 42010:2022 architecture descriptions / INCOSE systems engineering
 ---
 
-# LEGO Systems Engineering Lens
+# Systems Engineering
 
-Use this lens to frame the system before forcing a decomposition.
+Use this method to frame the system before forcing a decomposition.
 
 ## Procedure
 
@@ -21,7 +20,7 @@ Use this lens to frame the system before forcing a decomposition.
 6. Identify lifecycle phases that materially change ownership or interfaces.
 7. Separate project-owned responsibilities from external authorities and assumptions.
 8. Check for local optimization: ask whether improving one component can degrade the whole.
-9. Only then propose or review LEGO nodes.
+9. Only then propose or review project-native elements.
 10. Record unresolved boundary/interface questions as uncertainty, not invented facts.
 
 ## Output
@@ -36,7 +35,7 @@ Produce a compact:
 
 ## Promotion law
 
-Update the project LEGO plan only when the analysis establishes an architecture-relevant boundary, responsibility, interface, or do-not-own fact.
+Update the project project plan only when the analysis establishes an architecture-relevant boundary, responsibility, interface, or do-not-own fact.
 
 ## Non-claims
 
@@ -47,5 +46,4 @@ A clean boundary diagram does not prove correctness, completeness, feasibility, 
 Stop when the system boundary, external authorities, major interfaces and whole-system outcome are clear enough that further framing will not change the next architecture decision.
 
 Canonical local reference:
-- docs/LEGO_THEORY_LAYER_R1.md
 - knowledge/lessons/lego-theory-foundations-r1.md

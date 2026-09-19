@@ -1,16 +1,14 @@
 ---
-name: lego-fmea-fta
-description: "Apply FMEA/FMECA and Fault Tree Analysis to a LEGO system when the main question is how component/process failure modes propagate into local or system effects, or how a specified top failure can arise. Use FMEA bottom-up from functions/items and FTA top-down from an undesired event. Use for reliability, operations, recovery, deployment, data pipelines, and other failure-sensitive systems. Use STPA instead or alongside this lens when unsafe interactions can occur without component failure."
+name: fmea-fta
+description: "Apply FMEA/FMECA and Fault Tree Analysis to a system when the main question is how component/process failure modes propagate into local or system effects, or how a specified top failure can arise. Use FMEA bottom-up from functions/items and FTA top-down from an undesired event. Use for reliability, operations, recovery, deployment, data pipelines, and other failure-sensitive systems. Use STPA instead or alongside this method when unsafe interactions can occur without component failure."
 compatibility: Cross-platform. Produces reliability/failure analysis evidence; quantitative probabilities require justified data and independence/dependence assumptions.
 metadata:
-  source-authority: IEC 60812:2018 FMEA/FMECA; NASA fault-tree analysis
-  lego-theory-layer: docs/LEGO_THEORY_LAYER_R1.md
-  wave: "2"
+  source-authority: IEC 60812:2018 FMEA/FMECA; IEC 61025:2006 fault tree analysis
 ---
 
-# LEGO FMEA / FTA Lens
+# FMEA / FTA
 
-Use this lens to analyze explicit failure propagation from both directions.
+Use this method to analyze explicit failure propagation from both directions.
 
 ## FMEA procedure — bottom-up
 
@@ -72,5 +70,4 @@ Canonical external foundations:
 - NASA fault-tree-analysis definitions and aerospace FTA practice.
 
 Canonical local reference:
-- docs/LEGO_THEORY_LAYER_R1.md
 - docs/LEGO_THEORY_WAVE2_R1.md

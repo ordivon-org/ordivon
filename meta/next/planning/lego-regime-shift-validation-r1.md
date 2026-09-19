@@ -148,3 +148,5 @@ Cross-domain standing:
 - Canary B Research = PENDING;
 - Canary C Game = PENDING;
 - R2 promotion remains blocked until the original cross-domain pass condition is satisfied.
+
+Retirement: the custom composite lens was removed. Use system dynamics, critical-transition analysis, robust decision making, and real-options methods directly when their assumptions fit the decision.

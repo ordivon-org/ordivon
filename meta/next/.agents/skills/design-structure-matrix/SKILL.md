@@ -1,19 +1,18 @@
 ---
-name: lego-dsm
-description: Use Design Structure Matrix reasoning to test a LEGO decomposition by mapping pairwise dependencies/interactions, finding cycles, clusters, hubs, integrative elements, and likely misplaced module boundaries. Use when a system has many interacting nodes, repeated cross-module changes, unclear replacement seams, or suspected coupling. Do not treat clustering output as architecture authority.
+name: design-structure-matrix
+description: Use Design Structure Matrix reasoning to test a decomposition by mapping pairwise dependencies/interactions, finding cycles, clusters, hubs, integrative elements, and likely misplaced module boundaries. Use when a system has many interacting nodes, repeated cross-module changes, unclear replacement seams, or suspected coupling. Do not treat clustering output as architecture authority.
 compatibility: Cross-platform. Can be performed manually or with scripts when the graph is large.
 metadata:
   source-authority: MIT DSM / Eppinger and Browning
-  lego-theory-layer: docs/LEGO_THEORY_LAYER_R1.md
 ---
 
-# LEGO DSM Lens
+# DSM
 
 DSM is a diagnostic view of element interactions.
 
 ## Procedure
 
-1. Start from evidenced LEGO nodes or project-native elements.
+1. Start from evidenced project-native elements or project-native elements.
 2. Choose one interaction semantics per matrix, or explicitly use a typed/multi-layer matrix.
 3. Build M[i,j] only from observed or source-supported dependencies.
 4. Distinguish directed dependency from mere similarity.
@@ -62,5 +61,4 @@ Promote only a reviewed architecture decision. The DSM itself remains derived an
 Stop when the remaining coupling is either intentional and contractually bounded, or additional matrix refinement would not change a decomposition decision.
 
 Canonical local reference:
-- docs/LEGO_THEORY_LAYER_R1.md
 - knowledge/lessons/lego-theory-foundations-r1.md
