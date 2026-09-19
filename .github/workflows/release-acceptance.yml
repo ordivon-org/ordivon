@@ -9,6 +9,8 @@ on:
 
 permissions:
   contents: read
+  id-token: write
+  attestations: write
 
 jobs:
   portable-release-gate:
@@ -50,6 +52,35 @@ jobs:
       - run: uvx pip-audit -r requirements-audit.txt --strict --progress-spinner off
       - run: uv build --wheel --out-dir /tmp/ordivon-harness-wheel
       - run: uv run python scripts/check_wheel.py /tmp/ordivon-harness-wheel
+      - name: Locate tagged wheel
+        id: tagged-wheel
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          set -euo pipefail
+          wheel=$(find /tmp/ordivon-harness-wheel -maxdepth 1 -name '*.whl' -type f -print -quit)
+          test -n "$wheel"
+          echo "path=$wheel" >> "$GITHUB_OUTPUT"
+      - name: Generate SPDX SBOM
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
+        with:
+          file: ${{ steps.tagged-wheel.outputs.path }}
+          format: spdx-json
+          output-file: /tmp/ordivon-harness-wheel/sbom.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+      - name: Attest wheel build provenance
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: ${{ steps.tagged-wheel.outputs.path }}
+      - name: Attest wheel SPDX SBOM
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: ${{ steps.tagged-wheel.outputs.path }}
+          sbom-path: /tmp/ordivon-harness-wheel/sbom.spdx.json
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ordivon-harness-wheel-${{ github.sha }}

@@ -14,7 +14,7 @@ audience:
   - builder
   - operator
   - agent
-updated: 2026-09-18
+updated: 2026-09-20
 summary: Version identities, release gates, compatibility obligations and deprecation rules for Harness.
 evidence_status: verified
 readiness: READY
@@ -78,6 +78,7 @@ A releasable commit requires:
 11. for Agent Automation activation, a quiescent pre-switch Browser Security pool qualification bound to the exact candidate commit and Security-v2 LKG index. Only `NO_OBSERVED_DRIFT` passes automatically; detector, shared, carrier-local, mixed drift, or collection failure holds the release and retains a private qualification receipt.
 12. a Browserless image-pin change requires a paired canary receipt produced from the installed rendered production contract and the exact candidate image digest before any production substrate mutation. Active carriers are cross-checked while sleeping on-demand carriers remain valid lifecycle state. Same-image negative control must be reproducible; unexpected CF02-CF07, detector, challenge-metadata, or Network-v2 drift holds the image. Canary PASS is qualification evidence only and does not itself authorize deployment.
 13. Browserless image promotion is a separate digest-fenced transaction: `apply` keeps Agent Automation admission closed after deployment, Security-v2 must reseal the per-carrier LKG from retained post-change evidence under its own authority, and Harness `finalize` may reopen admission only after the Security revision and pool-index identity both advance and a fresh live pool returns exactly `NO_OBSERVED_DRIFT`.
+14. A tagged wheel release must emit native GitHub artifact attestations for build provenance and an SPDX SBOM bound to the exact wheel bytes. Manual and reusable release-acceptance runs remain verification-only and do not mint release attestations.
 
 ## Version source
 
@@ -93,6 +94,6 @@ The package root is a minimal package-identity surface and does not mirror `ordi
 
 ## Publication
 
-Tags matching `v*` trigger the portable release-acceptance workflow and retain the verified wheel as a GitHub Actions Artifact. This is repository provenance, not artifact signing or package-index publication.
+Tags matching `v*` trigger the portable release-acceptance workflow and retain the verified wheel as a GitHub Actions Artifact. Tagged wheels additionally receive GitHub-native signed build-provenance and SPDX SBOM attestations through `actions/attest`; the attested subject is the exact wheel produced by the release workflow.
 
-Current distribution is source and repository-built wheel. Public package-index publication, signed artifacts, hosted images or automatic deployment require a separate provenance and release-signing contract.
+Current distribution remains source plus repository-built wheel. These attestations do not publish to a package index, create a hosted image, or authorize deployment; those effects require their own external publication/deployment contract.
