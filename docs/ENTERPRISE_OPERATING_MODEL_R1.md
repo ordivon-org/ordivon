@@ -45,21 +45,16 @@ This is not an Ordivon lifecycle and does not imply ISO certification.
 
 ### Quality-management currentness cut
 
-As of **2026-09-14**, ISO lists ISO 9001 Edition 6 / 2026 as **under publication**, with publication/replacement of ISO 9001:2015 expected on **2026-09-16**. Therefore R1 does not falsely treat ISO 9001:2026 as already published.
+As of **2026-09-19**, ISO 9001:2026 has been published and is the current edition. ISO published Edition 6 on **2026-09-16**; the prior ISO 9001:2015 baseline and its Amendment 1:2024 are retained as historical/superseded authority records rather than rewritten.
 
-Current stable baseline at this cut:
-
-```text
-ISO 9001:2015 + Amendment 1:2024
-```
-
-Monitored successor:
+Current baseline for new QMS design/currentness work:
 
 ```text
-ISO 9001:2026 — UNDER PUBLICATION at the R1 cut
+ISO 9001:2026
 ```
 
-Refresh this currentness after publication before using the quality-management baseline for a consequential external claim, certification scope, customer contract or formal management-system assessment.
+This currentness change does not itself establish Ordivon certification or customer conformity. Existing certification transitions remain owned by the applicable certification/accreditation route.
+
 
 ### Work / project / quality planning
 
@@ -409,7 +404,7 @@ Examples:
 - first long-lived crash-resumable technical process -> Temporal candidate;
 - first workload where Host v2 materially impedes coordination -> compare Plane/OpenProject using measured requirements;
 - first formal internal/customer/certification audit -> ISO 19011:2026 audit route;
-- after ISO 9001:2026 is formally published -> refresh quality-management currentness before any consequential QMS claim.
+- before any consequential QMS claim -> bind the current ISO 9001:2026 edition and the exact customer/certification scope; do not reuse the superseded 2015 baseline by habit.
 
 Do not manufacture those events to complete an architecture checklist.
 

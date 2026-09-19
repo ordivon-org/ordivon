@@ -1,0 +1,50 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "Lean Startup Principles",
+      "Build Measure Learn"
+    ],
+    "domains": [
+      "business",
+      "commercialization",
+      "startup"
+    ],
+    "topics": [
+      "build-measure-learn",
+      "experimentation",
+      "innovation-accounting",
+      "validated-learning"
+    ]
+  },
+  "id": "lean-startup-principles",
+  "identity": {
+    "authorityKind": "professional-guidance",
+    "identityMode": "rolling-source",
+    "issuer": {
+      "id": "lean-startup",
+      "name": "Lean Startup Co."
+    },
+    "officialSource": "https://leanstartup.co/about/principles/",
+    "publicationDate": null,
+    "title": "The Lean Startup Principles",
+    "versionLabel": null
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-19",
+    "registrationBasis": [
+      "commercial-practice-externalization-r1"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

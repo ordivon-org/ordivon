@@ -1289,6 +1289,32 @@
     },
     {
       "aliases": [
+        "Guidance on outsourcing",
+        "ISO 37500:2014"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "business",
+        "enterprise",
+        "management"
+      ],
+      "id": "iso-37500-2014",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:4957bd1cf86a9c9ef143e3e9d5d1e020dd5f0915ae06f537e4792c731bb96cb8",
+      "recordDigest": "sha256:0c189afdf6306a987161bf4077620c56cb204a05f13a1b7f607174e6be5e029c",
+      "title": "ISO 37500:2014 — Guidance on outsourcing",
+      "topics": [
+        "outsourcing",
+        "outsourcing-governance",
+        "supplier-management"
+      ],
+      "versionLabel": "2014"
+    },
+    {
+      "aliases": [
         "innovation management system",
         "ISO 56001"
       ],
@@ -1320,7 +1346,7 @@
         "ISO 9001:2015/Amd 1:2024"
       ],
       "authorityKind": "international-standard",
-      "currentnessChecked": "2026-09-14",
+      "currentnessChecked": "2026-09-19",
       "domains": [
         "enterprise",
         "management",
@@ -1329,9 +1355,9 @@
       "id": "iso-9001-2015-amd1-2024",
       "identityMode": "versioned",
       "issuer": "ISO",
-      "lifecycleStatus": "published-current",
-      "observationDigest": "sha256:d58bd2470d03a44372e88217dafad32b6e7e605210d81580bf32a8c739aef0f4",
-      "recordDigest": "sha256:41d4a95adff40de7d9187d4e04fa3887ae6289746912f4954d6b8d74d74129fb",
+      "lifecycleStatus": "superseded",
+      "observationDigest": "sha256:b070fd0735d2da72a0632ad1bf7a439dd14c75b122b98f47065e1e3a70b39fa7",
+      "recordDigest": "sha256:1f5727005e8612271b9850a99947e703de5e32f070713e6eaf09240281f20d75",
       "title": "ISO 9001:2015 with Amendment 1:2024 — Quality management systems — Requirements",
       "topics": [
         "qms",
@@ -1345,7 +1371,7 @@
         "ISO 9001:2026"
       ],
       "authorityKind": "international-standard",
-      "currentnessChecked": "2026-09-14",
+      "currentnessChecked": "2026-09-19",
       "domains": [
         "enterprise",
         "management",
@@ -1354,9 +1380,9 @@
       "id": "iso-9001-2026",
       "identityMode": "versioned",
       "issuer": "ISO",
-      "lifecycleStatus": "under-publication",
-      "observationDigest": "sha256:92f4d2c0928a212c1298b83aedff050f5a915fcc37b542e1df808c6d80e6e47e",
-      "recordDigest": "sha256:99634584a78e3838ae6d8df34ba6640000808da3a0dc404c84adefb3b24a4a67",
+      "lifecycleStatus": "published-current",
+      "observationDigest": "sha256:5d4ffc3b6ad8f4cf1b449dc1899a5fee887be1e8b9913bc9656dda2953ef4606",
+      "recordDigest": "sha256:f377fb16c6c86d7b2270da16ff927dbfa725cd73006cb011c223fef25ce2b17b",
       "title": "ISO 9001:2026 — Quality management systems — Requirements",
       "topics": [
         "qms",
@@ -1749,6 +1775,33 @@
         "validation"
       ],
       "versionLabel": "2020-12"
+    },
+    {
+      "aliases": [
+        "Build Measure Learn",
+        "Lean Startup Principles"
+      ],
+      "authorityKind": "professional-guidance",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "business",
+        "commercialization",
+        "startup"
+      ],
+      "id": "lean-startup-principles",
+      "identityMode": "rolling-source",
+      "issuer": "Lean Startup Co.",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:695e33f27de37d3a323976811899bab424ba2db1ff3165f5eb6c8a31e1626301",
+      "recordDigest": "sha256:93189857f99576306ee52ce93dd139973052f49f253606281bfc5aeec21799de",
+      "title": "The Lean Startup Principles",
+      "topics": [
+        "build-measure-learn",
+        "experimentation",
+        "innovation-accounting",
+        "validated-learning"
+      ],
+      "versionLabel": null
     },
     {
       "aliases": [
@@ -2958,6 +3011,32 @@
     },
     {
       "aliases": [
+        "国市监注发〔2026〕5号",
+        "经营主体登记文书规范和提交材料规范（2026年版）"
+      ],
+      "authorityKind": "government-specification",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "business",
+        "company-formation",
+        "prc"
+      ],
+      "id": "samr-registration-materials-2026",
+      "identityMode": "versioned",
+      "issuer": "State Administration for Market Regulation",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:95fe6df25f2f7b4f88ae51fb50c60ce571828182c67efe21733fa92f78a4da3c",
+      "recordDigest": "sha256:636c22ad0d1700646e6c7cba795798debd87b3466469ca9a260895fbea60cddb",
+      "title": "经营主体登记文书规范和提交材料规范（2026年版）",
+      "topics": [
+        "company-registration",
+        "filing-materials",
+        "market-entity-registration"
+      ],
+      "versionLabel": "2026"
+    },
+    {
+      "aliases": [
         "SLSA",
         "SLSA 1.2"
       ],
@@ -3034,6 +3113,60 @@
         "data-availability",
         "publication-policy",
         "research-data"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "BMC",
+        "Business Model Canvas"
+      ],
+      "authorityKind": "professional-guidance",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "business",
+        "commercialization",
+        "startup"
+      ],
+      "id": "strategyzer-business-model-canvas",
+      "identityMode": "rolling-source",
+      "issuer": "Strategyzer",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:c829257297ed7acc6d949cf9e98733f3a636f17bef47b589f6077fdc62f50284",
+      "recordDigest": "sha256:be19a17d3f3d7ec1eb0fd102422a11a99c60dd7f974e0641f9e8beb839504e3c",
+      "title": "The Business Model Canvas",
+      "topics": [
+        "business-model",
+        "cost-structure",
+        "customer-segments",
+        "revenue-model"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "Value Proposition Canvas",
+        "VPC"
+      ],
+      "authorityKind": "professional-guidance",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "business",
+        "commercialization",
+        "startup"
+      ],
+      "id": "strategyzer-value-proposition-canvas",
+      "identityMode": "rolling-source",
+      "issuer": "Strategyzer",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:01c2bdb324bb9f5515709c620bd424acf5d076aed9b9aa03f500a83a81f37ab8",
+      "recordDigest": "sha256:9cd18423bb70cc822b248660916ff05fc00c7dbd74a8e0b0486c73cf20134615",
+      "title": "The Value Proposition Canvas",
+      "topics": [
+        "customer-profile",
+        "jobs-pains-gains",
+        "problem-solution-fit",
+        "value-proposition"
       ],
       "versionLabel": null
     },
@@ -3230,10 +3363,37 @@
         "taxonomy"
       ],
       "versionLabel": "2.1"
+    },
+    {
+      "aliases": [
+        "Y Combinator Essential Startup Advice",
+        "YC Essential Startup Advice"
+      ],
+      "authorityKind": "professional-guidance",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "business",
+        "commercialization",
+        "startup"
+      ],
+      "id": "yc-essential-startup-advice",
+      "identityMode": "versioned",
+      "issuer": "Y Combinator",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:10554b613217f941da7046fad527cb9332528248ba435e2dc99da51d50dda392",
+      "recordDigest": "sha256:d2ac924564cc0057e8549ca1011e333e2ba209220d134ad2c52c266aeb85b751",
+      "title": "YC's Essential Startup Advice",
+      "topics": [
+        "customer-discovery",
+        "early-stage",
+        "founder-led-learning",
+        "product-market-fit"
+      ],
+      "versionLabel": "2017-09-25"
     }
   ],
   "kind": "ordivon.external-authority-discovery-index",
-  "recordCount": 117,
-  "recordsDigest": "sha256:d5bb99d01528c9e232b206e6ef4018386b55a912f1124a40a2f135e1e32c5f2c",
+  "recordCount": 123,
+  "recordsDigest": "sha256:5bf5be79fe9978365e9eabb5d0cf28bf205795ffba771764f3b6a2136a9d12c9",
   "schemaVersion": 1
 }

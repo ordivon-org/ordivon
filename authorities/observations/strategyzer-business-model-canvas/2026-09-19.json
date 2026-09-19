@@ -1,0 +1,11 @@
+{
+  "authorityId": "strategyzer-business-model-canvas",
+  "basis": "official-source-currentness-check",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current",
+  "note": "Official Strategyzer Business Model Canvas guidance remains available; canvas entries are hypotheses until supported by market evidence.",
+  "observedDate": "2026-09-19",
+  "officialSource": "https://www.strategyzer.com/library/the-business-model-canvas",
+  "schemaVersion": 1,
+  "versionObserved": null
+}
