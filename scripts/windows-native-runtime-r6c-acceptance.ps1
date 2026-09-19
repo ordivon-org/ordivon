@@ -14,6 +14,10 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+# Windows PowerShell 5.1 may attempt to render Invoke-WebRequest progress through a
+# non-interactive service console and fail with Win32 ERROR_ACCESS_DENIED. The
+# acceptance harness has no interactive progress surface, so suppress it explicitly.
+$ProgressPreference = 'SilentlyContinue'
 Set-StrictMode -Version Latest
 
 $ProtocolVersion = '2026-07-28'
