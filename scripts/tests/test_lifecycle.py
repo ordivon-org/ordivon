@@ -145,6 +145,12 @@ class LifecycleTests(unittest.TestCase):
                 "ELIGIBLE",
             ),
             (
+                {"classification": "blocked_unintegrated", "policyEligible": False},
+                "CLEAN_IDLE_UNINTEGRATED",
+                "INTEGRATE_OR_EXPLICITLY_DISPOSITION_SOURCE",
+                "NOT_APPLICABLE",
+            ),
+            (
                 {"classification": "blocked_active", "policyEligible": False},
                 "ACTIVE_DIRTY_STATE_UNINSPECTED",
                 "OBSERVE_OR_RECONCILE_ACTIVE_JOB",

@@ -3,6 +3,7 @@ from __future__ import annotations
 import fcntl
 import hashlib
 import json
+import os
 import runpy
 import shutil
 import sqlite3
@@ -26,6 +27,7 @@ def mcp_server(
     close_callback=None,
     *,
     close_arguments_callback=None,
+    workspace_get_result=None,
     modern: bool = True,
 ):
     class Handler(BaseHTTPRequestHandler):
@@ -129,6 +131,20 @@ def mcp_server(
                     result={"tools": [{"name": name} for name in tool_names]},
                 )
                 return
+            if method == "tools/call" and params.get("name") == "workspace.get":
+                arguments = params.get("arguments")
+                arguments = arguments if isinstance(arguments, dict) else {}
+                workspace_id = str(arguments.get("workspaceId"))
+                structured = dict(workspace_get_result or {})
+                structured.setdefault("workspaceId", workspace_id)
+                self.send_json(
+                    request,
+                    result={
+                        "isError": False,
+                        "structuredContent": structured,
+                    },
+                )
+                return
             if method == "tools/call" and params.get("name") == "workspace.close":
                 arguments = params.get("arguments")
                 arguments = arguments if isinstance(arguments, dict) else {}
@@ -224,6 +240,28 @@ def write_executable(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8")
     path.chmod(0o755)
 
+
+
+
+def fake_runtime_inspect(root: Path) -> Path:
+    path = root / "ordivon-runtime-inspect"
+    write_executable(
+        path,
+        """#!/usr/bin/env python3
+import json
+import sys
+
+command = sys.argv[1]
+if command == "registry":
+    print(json.dumps({"migrationVersion": 1, "activeWorkspaces": []}))
+elif command == "registry-workspace":
+    workspace_id = sys.argv[sys.argv.index("--workspace-id") + 1]
+    print(json.dumps({"workspace": {"workspaceId": workspace_id, "activeJobIds": []}}))
+else:
+    raise SystemExit(2)
+""",
+    )
+    return path
 
 def add_release_operator_sources(path: Path, *, push: bool) -> str:
     scripts = path / "scripts"
@@ -1506,6 +1544,462 @@ class DeployReclaimTests(unittest.TestCase):
             self.assertEqual(report["candidates"][0]["classification"], "blocked_active")
             self.assertEqual(report["candidates"][0]["activeJobIds"], ["job-active"])
 
+    def test_reclaim_clean_unique_commit_is_blocked_until_canonical_integration(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "source"
+            baseline = initialize_git_repository(source, remote=False)
+            runtime = root / "runtime"
+            records = runtime / "workspace-records"
+            workspaces = runtime / "workspaces"
+            records.mkdir(parents=True)
+            workspaces.mkdir()
+            workspace = workspaces / "unique"
+            subprocess.run(
+                ["git", "-C", str(source), "worktree", "add", "--detach", "-q", str(workspace), baseline],
+                check=True,
+            )
+            subprocess.run(["git", "-C", str(workspace), "config", "user.name", "Test"], check=True)
+            subprocess.run(
+                ["git", "-C", str(workspace), "config", "user.email", "test@example.invalid"],
+                check=True,
+            )
+            (workspace / "UNIQUE.md").write_text("not integrated\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(workspace), "add", "UNIQUE.md"], check=True)
+            subprocess.run(["git", "-C", str(workspace), "commit", "-qm", "unique branch change"], check=True)
+            database = root / "registry.sqlite3"
+            initialize_registry(database)
+            environment = dict(os.environ)
+            environment["ORDIVON_RUNTIME_INSPECT"] = str(fake_runtime_inspect(root))
+            (records / "unique.json").write_text(
+                json.dumps(
+                    {
+                        "schemaVersion": 1,
+                        "workspaceId": "unique",
+                        "sourceRepo": str(source),
+                        "sourceRevision": baseline,
+                        "workspacePath": str(workspace),
+                        "createdUnixMs": 1,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "scripts/ordivon-runtime-reclaim",
+                    "inspect",
+                    "--database",
+                    str(database),
+                    "--runtime-store-root",
+                    str(runtime),
+                ],
+                cwd=REPO,
+                check=True,
+                text=True,
+                capture_output=True,
+                env=environment,
+            )
+            item = json.loads(result.stdout)["candidates"][0]
+            self.assertEqual(item["classification"], "blocked_unintegrated")
+            self.assertEqual(item["closureReason"], "UNINTEGRATED_GIT_COMMITS")
+            self.assertEqual(
+                item["workspaceHeadRevision"],
+                subprocess.run(
+                    ["git", "-C", str(workspace), "rev-parse", "HEAD"],
+                    check=True,
+                    text=True,
+                    capture_output=True,
+                ).stdout.strip(),
+            )
+            self.assertEqual(item["canonicalHeadRevision"], baseline)
+
+    def test_reclaim_patch_equivalent_branch_is_semantically_closable(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "source"
+            baseline = initialize_git_repository(source, remote=False)
+            runtime = root / "runtime"
+            records = runtime / "workspace-records"
+            workspaces = runtime / "workspaces"
+            records.mkdir(parents=True)
+            workspaces.mkdir()
+            workspace = workspaces / "equivalent"
+            subprocess.run(
+                ["git", "-C", str(source), "worktree", "add", "--detach", "-q", str(workspace), baseline],
+                check=True,
+            )
+            for repo in (source, workspace):
+                subprocess.run(["git", "-C", str(repo), "config", "user.name", "Test"], check=True)
+                subprocess.run(
+                    ["git", "-C", str(repo), "config", "user.email", "test@example.invalid"],
+                    check=True,
+                )
+            (workspace / "README.md").write_text("equivalent change\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(workspace), "add", "README.md"], check=True)
+            subprocess.run(["git", "-C", str(workspace), "commit", "-qm", "workspace form"], check=True)
+            (source / "README.md").write_text("equivalent change\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(source), "add", "README.md"], check=True)
+            subprocess.run(["git", "-C", str(source), "commit", "-qm", "canonical form"], check=True)
+            canonical = subprocess.run(
+                ["git", "-C", str(source), "rev-parse", "HEAD"],
+                check=True,
+                text=True,
+                capture_output=True,
+            ).stdout.strip()
+            database = root / "registry.sqlite3"
+            initialize_registry(database)
+            environment = dict(os.environ)
+            environment["ORDIVON_RUNTIME_INSPECT"] = str(fake_runtime_inspect(root))
+            (records / "equivalent.json").write_text(
+                json.dumps(
+                    {
+                        "schemaVersion": 1,
+                        "workspaceId": "equivalent",
+                        "sourceRepo": str(source),
+                        "sourceRevision": baseline,
+                        "workspacePath": str(workspace),
+                        "createdUnixMs": 1,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "scripts/ordivon-runtime-reclaim",
+                    "inspect",
+                    "--database",
+                    str(database),
+                    "--runtime-store-root",
+                    str(runtime),
+                ],
+                cwd=REPO,
+                check=True,
+                text=True,
+                capture_output=True,
+                env=environment,
+            )
+            item = json.loads(result.stdout)["candidates"][0]
+            self.assertEqual(item["classification"], "closable")
+            self.assertEqual(item["closureReason"], "PATCH_EQUIVALENT_IN_CANONICAL")
+            self.assertEqual(item["canonicalHeadRevision"], canonical)
+            self.assertGreaterEqual(item["equivalentCommitCount"], 1)
+
+    def test_reclaim_patch_equivalence_preserves_whitespace_semantics(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "source"
+            baseline = initialize_git_repository(source, remote=False)
+            runtime = root / "runtime"
+            records = runtime / "workspace-records"
+            workspaces = runtime / "workspaces"
+            records.mkdir(parents=True)
+            workspaces.mkdir()
+            workspace = workspaces / "whitespace"
+            subprocess.run(
+                ["git", "-C", str(source), "worktree", "add", "--detach", "-q", str(workspace), baseline],
+                check=True,
+            )
+            for repo in (source, workspace):
+                subprocess.run(["git", "-C", str(repo), "config", "user.name", "Test"], check=True)
+                subprocess.run(
+                    ["git", "-C", str(repo), "config", "user.email", "test@example.invalid"],
+                    check=True,
+                )
+            (workspace / "README.md").write_text("alpha beta\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(workspace), "add", "README.md"], check=True)
+            subprocess.run(["git", "-C", str(workspace), "commit", "-qm", "workspace whitespace"], check=True)
+            workspace_head = subprocess.run(
+                ["git", "-C", str(workspace), "rev-parse", "HEAD"],
+                check=True, text=True, capture_output=True,
+            ).stdout.strip()
+            (source / "README.md").write_text("alphabeta\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(source), "add", "README.md"], check=True)
+            subprocess.run(["git", "-C", str(source), "commit", "-qm", "canonical whitespace"], check=True)
+            canonical = subprocess.run(
+                ["git", "-C", str(source), "rev-parse", "HEAD"],
+                check=True, text=True, capture_output=True,
+            ).stdout.strip()
+
+            # Git's ordinary patch-id equivalence intentionally ignores whitespace.
+            cherry = subprocess.run(
+                ["git", "-C", str(workspace), "cherry", canonical, workspace_head],
+                check=True, text=True, capture_output=True,
+            ).stdout.strip()
+            self.assertTrue(cherry.startswith("- "), cherry)
+
+            database = root / "registry.sqlite3"
+            initialize_registry(database)
+            environment = dict(os.environ)
+            environment["ORDIVON_RUNTIME_INSPECT"] = str(fake_runtime_inspect(root))
+            (records / "whitespace.json").write_text(
+                json.dumps(
+                    {
+                        "schemaVersion": 1,
+                        "workspaceId": "whitespace",
+                        "sourceRepo": str(source),
+                        "sourceRevision": baseline,
+                        "workspacePath": str(workspace),
+                        "createdUnixMs": 1,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "scripts/ordivon-runtime-reclaim",
+                    "inspect",
+                    "--database",
+                    str(database),
+                    "--runtime-store-root",
+                    str(runtime),
+                ],
+                cwd=REPO,
+                check=True,
+                text=True,
+                capture_output=True,
+                env=environment,
+            )
+            item = json.loads(result.stdout)["candidates"][0]
+            self.assertEqual(item["classification"], "blocked_unintegrated")
+            self.assertEqual(item["closureReason"], "UNINTEGRATED_GIT_COMMITS")
+            self.assertEqual(item["uniqueCommitCount"], 1)
+
+    def test_reclaim_does_not_collapse_unique_merge_topology(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "source"
+            baseline = initialize_git_repository(source, remote=False)
+            runtime = root / "runtime"
+            records = runtime / "workspace-records"
+            workspaces = runtime / "workspaces"
+            records.mkdir(parents=True)
+            workspaces.mkdir()
+            workspace = workspaces / "merge-topology"
+            subprocess.run(
+                ["git", "-C", str(source), "worktree", "add", "--detach", "-q", str(workspace), baseline],
+                check=True,
+            )
+            for repo in (source, workspace):
+                subprocess.run(["git", "-C", str(repo), "config", "user.name", "Test"], check=True)
+                subprocess.run(
+                    ["git", "-C", str(repo), "config", "user.email", "test@example.invalid"],
+                    check=True,
+                )
+
+            subprocess.run(["git", "-C", str(workspace), "checkout", "-qb", "workspace-main", baseline], check=True)
+            (workspace / "A.md").write_text("A\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(workspace), "add", "A.md"], check=True)
+            subprocess.run(["git", "-C", str(workspace), "commit", "-qm", "workspace A"], check=True)
+            subprocess.run(["git", "-C", str(workspace), "checkout", "-qb", "workspace-side", baseline], check=True)
+            (workspace / "B.md").write_text("B\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(workspace), "add", "B.md"], check=True)
+            subprocess.run(["git", "-C", str(workspace), "commit", "-qm", "workspace B"], check=True)
+            subprocess.run(["git", "-C", str(workspace), "checkout", "-q", "workspace-main"], check=True)
+            subprocess.run(
+                ["git", "-C", str(workspace), "merge", "--no-ff", "-qm", "workspace merge", "workspace-side"],
+                check=True,
+            )
+            workspace_head = subprocess.run(
+                ["git", "-C", str(workspace), "rev-parse", "HEAD"],
+                check=True, text=True, capture_output=True,
+            ).stdout.strip()
+
+            (source / "A.md").write_text("A\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(source), "add", "A.md"], check=True)
+            subprocess.run(["git", "-C", str(source), "commit", "-qm", "canonical A"], check=True)
+            (source / "B.md").write_text("B\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(source), "add", "B.md"], check=True)
+            subprocess.run(["git", "-C", str(source), "commit", "-qm", "canonical B"], check=True)
+            canonical = subprocess.run(
+                ["git", "-C", str(source), "rev-parse", "HEAD"],
+                check=True, text=True, capture_output=True,
+            ).stdout.strip()
+
+            # Ordinary git cherry sees the non-merge patches as copied upstream.
+            cherry_lines = subprocess.run(
+                ["git", "-C", str(workspace), "cherry", canonical, workspace_head],
+                check=True, text=True, capture_output=True,
+            ).stdout.splitlines()
+            self.assertTrue(cherry_lines)
+            self.assertFalse([line for line in cherry_lines if line.startswith("+ ")], cherry_lines)
+
+            database = root / "registry.sqlite3"
+            initialize_registry(database)
+            environment = dict(os.environ)
+            environment["ORDIVON_RUNTIME_INSPECT"] = str(fake_runtime_inspect(root))
+            (records / "merge-topology.json").write_text(
+                json.dumps(
+                    {
+                        "schemaVersion": 1,
+                        "workspaceId": "merge-topology",
+                        "sourceRepo": str(source),
+                        "sourceRevision": baseline,
+                        "workspacePath": str(workspace),
+                        "createdUnixMs": 1,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "scripts/ordivon-runtime-reclaim",
+                    "inspect",
+                    "--database",
+                    str(database),
+                    "--runtime-store-root",
+                    str(runtime),
+                ],
+                cwd=REPO,
+                check=True,
+                text=True,
+                capture_output=True,
+                env=environment,
+            )
+            item = json.loads(result.stdout)["candidates"][0]
+            self.assertEqual(item["classification"], "blocked_unintegrated")
+            self.assertEqual(item["closureReason"], "UNINTEGRATED_MERGE_TOPOLOGY")
+            self.assertEqual(item["uniqueMergeCommitCount"], 1)
+
+    def test_reclaim_ancestor_head_is_semantically_closable(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "source"
+            baseline = initialize_git_repository(source, remote=False)
+            runtime = root / "runtime"
+            records = runtime / "workspace-records"
+            workspaces = runtime / "workspaces"
+            records.mkdir(parents=True)
+            workspaces.mkdir()
+            workspace = workspaces / "ancestor"
+            subprocess.run(
+                ["git", "-C", str(source), "worktree", "add", "--detach", "-q", str(workspace), baseline],
+                check=True,
+            )
+            (source / "CANONICAL.md").write_text("later\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(source), "add", "CANONICAL.md"], check=True)
+            subprocess.run(["git", "-C", str(source), "commit", "-qm", "advance canonical"], check=True)
+            database = root / "registry.sqlite3"
+            initialize_registry(database)
+            environment = dict(os.environ)
+            environment["ORDIVON_RUNTIME_INSPECT"] = str(fake_runtime_inspect(root))
+            (records / "ancestor.json").write_text(
+                json.dumps(
+                    {
+                        "schemaVersion": 1,
+                        "workspaceId": "ancestor",
+                        "sourceRepo": str(source),
+                        "sourceRevision": baseline,
+                        "workspacePath": str(workspace),
+                        "createdUnixMs": 1,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "scripts/ordivon-runtime-reclaim",
+                    "inspect",
+                    "--database",
+                    str(database),
+                    "--runtime-store-root",
+                    str(runtime),
+                ],
+                cwd=REPO,
+                check=True,
+                text=True,
+                capture_output=True,
+                env=environment,
+            )
+            item = json.loads(result.stdout)["candidates"][0]
+            self.assertEqual(item["classification"], "closable")
+            self.assertEqual(item["closureReason"], "HEAD_REACHABLE_FROM_CANONICAL")
+            self.assertEqual(item["workspaceHeadRevision"], baseline)
+
+    def test_reclaim_close_binds_current_source_digest_to_planned_head(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            env_file = root / "runtime.env"
+            observed: list[dict[str, object]] = []
+            planned_head = "a" * 40
+            digest = "sha256:" + "b" * 64
+            with mcp_server(
+                ["workspace.get", "workspace.close"],
+                close_arguments_callback=lambda arguments: observed.append(dict(arguments)),
+                workspace_get_result={
+                    "workspaceId": "closable",
+                    "currentHeadRevision": planned_head,
+                    "sourceStateDigest": digest,
+                    "dirty": False,
+                },
+                modern=False,
+            ) as port:
+                env_file.write_text(
+                    f"ORDIVON_BIND=127.0.0.1:{port}\nORDIVON_BEARER_TOKEN=test\n",
+                    encoding="utf-8",
+                )
+                scripts_path = str(REPO / "scripts")
+                sys.path.insert(0, scripts_path)
+                try:
+                    module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-reclaim"))
+                finally:
+                    sys.path.remove(scripts_path)
+                result = module["close_workspace"](
+                    env_file,
+                    "closable",
+                    expected_head_revision=planned_head,
+                )
+            self.assertTrue(result["removed"])
+            self.assertEqual(
+                observed,
+                [
+                    {
+                        "schemaVersion": 1,
+                        "workspaceId": "closable",
+                        "force": False,
+                        "expectedSourceStateDigest": digest,
+                    }
+                ],
+            )
+
+    def test_reclaim_close_rejects_head_change_before_cas_close(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            env_file = root / "runtime.env"
+            observed: list[dict[str, object]] = []
+            with mcp_server(
+                ["workspace.get", "workspace.close"],
+                close_arguments_callback=lambda arguments: observed.append(dict(arguments)),
+                workspace_get_result={
+                    "workspaceId": "closable",
+                    "currentHeadRevision": "c" * 40,
+                    "sourceStateDigest": "sha256:" + "d" * 64,
+                    "dirty": False,
+                },
+                modern=False,
+            ) as port:
+                env_file.write_text(
+                    f"ORDIVON_BIND=127.0.0.1:{port}\nORDIVON_BEARER_TOKEN=test\n",
+                    encoding="utf-8",
+                )
+                scripts_path = str(REPO / "scripts")
+                sys.path.insert(0, scripts_path)
+                try:
+                    module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-reclaim"))
+                finally:
+                    sys.path.remove(scripts_path)
+                with self.assertRaisesRegex(RuntimeError, "HEAD changed after reclaim planning"):
+                    module["close_workspace"](
+                        env_file,
+                        "closable",
+                        expected_head_revision="a" * 40,
+                    )
+            self.assertEqual(observed, [])
+
     def test_reclaim_symlink_record_is_unknown(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -1675,12 +2169,25 @@ class DeployReclaimTests(unittest.TestCase):
                     encoding="utf-8",
                 )
 
-            with mcp_server(["workspace.close"], close_callback, modern=False) as port:
+            source_digest = "sha256:" + "e" * 64
+            with mcp_server(
+                ["workspace.get", "workspace.close"],
+                close_callback,
+                workspace_get_result={
+                    "workspaceId": "closable",
+                    "currentHeadRevision": revision,
+                    "sourceStateDigest": source_digest,
+                    "dirty": False,
+                },
+                modern=False,
+            ) as port:
                 env_file = root / "runtime.env"
                 env_file.write_text(
                     f"ORDIVON_BIND=127.0.0.1:{port}\nORDIVON_BEARER_TOKEN=test\n",
                     encoding="utf-8",
                 )
+                environment = dict(os.environ)
+                environment["ORDIVON_RUNTIME_INSPECT"] = str(fake_runtime_inspect(root))
                 result = subprocess.run(
                     [
                         sys.executable,
@@ -1709,6 +2216,7 @@ class DeployReclaimTests(unittest.TestCase):
                     check=True,
                     text=True,
                     capture_output=True,
+                    env=environment,
                 )
             report = json.loads(result.stdout)
             self.assertEqual(report["actions"][0]["action"], "workspace_closed")
