@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
-exec "$root/scripts/run-capability-python" -m market_capital.model_lineage_cli "$@"
+exec "$root/scripts/run-capability-python" -m ordivon_capital.market.model_lineage_cli "$@"

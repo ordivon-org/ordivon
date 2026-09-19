@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from decimal import Decimal, InvalidOperation
+from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 
@@ -318,7 +319,7 @@ def build_action_counterfactual(
 
     return {
         "schemaVersion": 1,
-        "kind": "ordivon.market-capital.portfolio-action-counterfactual",
+        "kind": "ordivon.capital.market.portfolio-action-counterfactual",
         "componentId": "portfolio-scenario-calculation",
         "scenarioId": scenario_id,
         "action": action,
@@ -373,7 +374,7 @@ def build_counterfactual_set(
         rows.append(build_action_counterfactual(exposure_ledger=exposure_ledger, scenario=scenario))
     return {
         "schemaVersion": 1,
-        "kind": "ordivon.market-capital.portfolio-counterfactual-set",
+        "kind": "ordivon.capital.market.portfolio-counterfactual-set",
         "scenarioCount": len(rows),
         "scenarios": rows,
     }
@@ -385,149 +386,23 @@ def evaluate_constraint_gate(
     risk_budget_evaluation: Mapping[str, Any] | None = None,
     evidence: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Evaluate pre-trade evidence completeness and policy compatibility without selecting an action."""
-
-    action = str(counterfactual.get("action") or "").upper()
-    if action not in _ACTIONS:
-        raise PortfolioCounterfactualError("counterfactual action is invalid")
-
-    evidence = evidence or {}
-    checks: list[dict[str, Any]] = []
-
-    def add(check_id: str, status: str, detail: str) -> None:
-        if status not in {"PASS", "FAIL", "INCOMPLETE", "NOT_REQUIRED"}:
-            raise PortfolioCounterfactualError(f"invalid gate status: {status}")
-        checks.append({"id": check_id, "status": status, "detail": detail})
-
-    if risk_budget_evaluation is None:
-        add("RISK_BUDGET", "INCOMPLETE", "explicit risk-limit evaluation not supplied")
-    else:
-        rb = str(risk_budget_evaluation.get("standing") or "")
-        if rb == "SATISFIED":
-            add("RISK_BUDGET", "PASS", "projected policy standing supplied as SATISFIED")
-        elif rb == "BREACHED":
-            add("RISK_BUDGET", "FAIL", "projected policy standing supplied as BREACHED")
-        else:
-            add("RISK_BUDGET", "INCOMPLETE", f"projected risk budget standing is {rb or 'missing'}")
-
-    projected_gross = _d(
-        (counterfactual.get("projected") or {}).get("grossToEquity"),
-        "counterfactual.projected.grossToEquity",
-    )
-    baseline_gross = _d(
-        (counterfactual.get("baseline") or {}).get("grossToEquity"),
-        "counterfactual.baseline.grossToEquity",
+    """Bind counterfactual/evidence facts to the OPA-owned pre-trade control policy."""
+    from ordivon_capital.market.opa_policy import (
+        ExecutionPolicyError,
+        evaluate_counterfactual_gate_policy,
     )
 
-    if action == "DE_RISK":
-        add(
-            "GROSS_DIRECTION",
-            "PASS" if projected_gross < baseline_gross else "FAIL",
-            "DE_RISK must mechanically reduce gross exposure",
+    repo = Path(__file__).resolve().parents[3]
+    try:
+        return evaluate_counterfactual_gate_policy(
+            repo=repo,
+            config_path=repo / "config/execution_policy.json",
+            counterfactual=dict(counterfactual),
+            risk_budget_evaluation=(dict(risk_budget_evaluation) if risk_budget_evaluation is not None else None),
+            evidence=(dict(evidence) if evidence is not None else None),
         )
-    elif action in {"HOLD", "RECONCILE"}:
-        add(
-            "GROSS_DIRECTION",
-            "PASS" if projected_gross == baseline_gross else "FAIL",
-            f"{action} must not change gross exposure",
-        )
-    else:
-        add(
-            "GROSS_DIRECTION",
-            "PASS",
-            "gross direction is descriptive for HEDGE/DIVERSIFY and constrained separately",
-        )
-
-    changes_position = action in {"DE_RISK", "HEDGE", "DIVERSIFY"}
-    needs_new_position_evidence = action in {"HEDGE", "DIVERSIFY"}
-
-    if needs_new_position_evidence:
-        margin = evidence.get("margin")
-        if isinstance(margin, Mapping) and margin.get("measured") is True:
-            add("MARGIN_DELTA", "PASS", "incremental margin evidence supplied")
-        else:
-            add("MARGIN_DELTA", "INCOMPLETE", "incremental margin evidence not measured")
-
-        carry = evidence.get("carry")
-        if isinstance(carry, Mapping) and carry.get("measured") is True:
-            add("FUNDING_BASIS_CARRY", "PASS", "funding/basis carry evidence supplied")
-        else:
-            add("FUNDING_BASIS_CARRY", "INCOMPLETE", "funding/basis carry evidence not measured")
-    else:
-        add("MARGIN_DELTA", "NOT_REQUIRED", "no new position added by this action")
-        add("FUNDING_BASIS_CARRY", "NOT_REQUIRED", "no new instrument exposure introduced")
-
-    if changes_position:
-        liquidity = evidence.get("liquidity")
-        if isinstance(liquidity, Mapping) and liquidity.get("measured") is True:
-            add("LIQUIDITY_COST", "PASS", "spread/impact evidence supplied for the position-changing scenario")
-        else:
-            add("LIQUIDITY_COST", "INCOMPLETE", "position-changing scenario lacks spread/impact evidence")
-    else:
-        add("LIQUIDITY_COST", "NOT_REQUIRED", "no position change requested")
-
-    if action == "HEDGE":
-        mechanics = counterfactual.get("hedgeMechanics")
-        mechanics_standing = mechanics.get("standing") if isinstance(mechanics, Mapping) else None
-        if mechanics_standing == "TARGET_FACTOR_ABSOLUTE_EXPOSURE_REDUCED":
-            add("TARGET_FACTOR_MECHANICS", "PASS", "named factor absolute exposure is mechanically reduced")
-        elif mechanics_standing in {
-            "TARGET_FACTOR_ABSOLUTE_EXPOSURE_INCREASED",
-            "TARGET_FACTOR_ABSOLUTE_EXPOSURE_UNCHANGED",
-        }:
-            add("TARGET_FACTOR_MECHANICS", "FAIL", f"named hedge factor standing is {mechanics_standing}")
-        else:
-            add("TARGET_FACTOR_MECHANICS", "INCOMPLETE", "named target-factor exposure cannot be identified")
-
-        dep = evidence.get("dependence")
-        if not isinstance(dep, Mapping):
-            add("DEPENDENCE_EVIDENCE", "INCOMPLETE", "hedge dependence evidence not supplied")
-        else:
-            if dep.get("componentId") != "portfolio-dependence-analysis":
-                add("DEPENDENCE_EVIDENCE", "FAIL", "hedge dependence evidence is not bound to the registered dependence model")
-            elif dep.get("overlapReturnCount") is None:
-                add("DEPENDENCE_EVIDENCE", "INCOMPLETE", "hedge dependence sample count missing")
-            else:
-                add("DEPENDENCE_EVIDENCE", "PASS", "historical dependence evidence supplied with sample count")
-    else:
-        add("TARGET_FACTOR_MECHANICS", "NOT_REQUIRED", "specific hedge relationship is not claimed")
-        add("DEPENDENCE_EVIDENCE", "NOT_REQUIRED", "specific hedge relationship is not claimed")
-
-    if action == "DIVERSIFY":
-        diversification = evidence.get("diversification")
-        if not isinstance(diversification, Mapping):
-            add("DIVERSIFICATION_EVIDENCE", "INCOMPLETE", "destination covariance/factor evidence not supplied")
-        elif diversification.get("componentId") != "portfolio-dependence-analysis":
-            add("DIVERSIFICATION_EVIDENCE", "FAIL", "diversification evidence is not bound to the registered dependence model")
-        else:
-            add("DIVERSIFICATION_EVIDENCE", "PASS", "registered dependence-model evidence supplied for diversification analysis")
-    else:
-        add("DIVERSIFICATION_EVIDENCE", "NOT_REQUIRED", "diversification claim is not made")
-
-    if action == "RECONCILE":
-        signpost = evidence.get("reconciliationSignpost")
-        if isinstance(signpost, Mapping) and signpost.get("defined") is True:
-            add("RECONCILIATION_SIGNPOST", "PASS", "next evidence boundary is explicit")
-        else:
-            add("RECONCILIATION_SIGNPOST", "INCOMPLETE", "RECONCILE requires an explicit next evidence boundary")
-    else:
-        add("RECONCILIATION_SIGNPOST", "NOT_REQUIRED", "action is not RECONCILE")
-
-    failures = [row["id"] for row in checks if row["status"] == "FAIL"]
-    incomplete = [row["id"] for row in checks if row["status"] == "INCOMPLETE"]
-    standing = "FAIL" if failures else "INCOMPLETE" if incomplete else "PASS"
-
-    return {
-        "schemaVersion": 1,
-        "kind": "ordivon.market-capital.pre-trade-evidence-control",
-        "componentId": "pre-trade-evidence-control",
-        "scenarioId": counterfactual.get("scenarioId"),
-        "action": action,
-        "standing": standing,
-        "checks": checks,
-        "failedChecks": failures,
-        "incompleteChecks": incomplete,
-    }
+    except ExecutionPolicyError as exc:
+        raise PortfolioCounterfactualError(str(exc)) from exc
 
 
 def build_counterfactual_gate_set(
@@ -551,7 +426,7 @@ def build_counterfactual_gate_set(
     ]
     return {
         "schemaVersion": 1,
-        "kind": "ordivon.market-capital.portfolio-counterfactual-gate-set",
+        "kind": "ordivon.capital.market.portfolio-counterfactual-gate-set",
         "scenarioCount": len(gates),
         "gates": gates,
         "allPass": bool(gates) and all(row["standing"] == "PASS" for row in gates),

@@ -1,7 +1,7 @@
 {
   "brokerCredentialsAllowed": false,
   "externalFinancialWritesAllowed": false,
-  "kind": "ordivon.market-capital.fix-order-semantics",
+  "kind": "ordivon.capital.market.fix-order-semantics",
   "legacyProfile": true,
   "library": "QuickFIX/n",
   "messageName": "NewOrderSingle",

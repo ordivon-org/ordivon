@@ -2,13 +2,13 @@ import math
 
 import pytest
 
-from market_capital.model_monitoring import (
+from ordivon_capital.market.model_monitoring import (
     assess_paired_return_data_quality,
     build_tail_risk_report,
     measure_dependence_drift,
     monitor_dependence_outcomes,
 )
-from market_capital.portfolio_risk import PortfolioRiskError
+from ordivon_capital.market.portfolio_risk import PortfolioRiskError
 
 
 def _series(beta: float, start: int, count: int, *, phase: float = 0.0):

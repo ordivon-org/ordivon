@@ -1,6 +1,6 @@
 import unittest
 
-from market_capital.okx_sensor_capture import (
+from ordivon_capital.market.okx_sensor_capture import (
     OkxSensorCaptureError,
     completed_open_interest_change,
     parse_open_interest_history,

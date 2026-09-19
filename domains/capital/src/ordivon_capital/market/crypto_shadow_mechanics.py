@@ -223,7 +223,7 @@ def simulate(config_path: Path, observation_path: Path, metadata_path: Path) -> 
 
     return {
         "schemaVersion": 1,
-        "kind": "ordivon.market-capital.crypto-shadow-mechanics-result",
+        "kind": "ordivon.capital.market.crypto-shadow-mechanics-result",
         "standing": "PASS_LOCAL_CRYPTO_SPOT_OMS_MECHANICS",
         "purpose": cfg["purpose"],
         "sourceObservationSha256": hashlib.sha256(observation_path.read_bytes()).hexdigest(),

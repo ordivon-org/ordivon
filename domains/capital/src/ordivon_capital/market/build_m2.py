@@ -10,7 +10,7 @@ import mlflow
 import pandas as pd
 import pandera.pandas as pa
 
-from market_capital.sec_companyfacts import build_fundamental_feature, fetch_companyfacts
+from ordivon_capital.market.sec_companyfacts import build_fundamental_feature, fetch_companyfacts
 
 
 def load_json(path: Path):

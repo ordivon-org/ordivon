@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "kind": "ordivon.market-capital.execution-candidate",
+  "kind": "ordivon.capital.market.execution-candidate",
   "name": "NautilusTrader",
   "version": "2.0.0rc4",
   "python": "3.12.13",

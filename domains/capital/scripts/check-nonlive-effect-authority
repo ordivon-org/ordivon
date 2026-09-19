@@ -9,7 +9,7 @@ contract=json.loads((ROOT/'contracts/nonlive-effect-admission-v1.json').read_tex
 authority=json.loads((ROOT/'config/nonlive_effect_authority.json').read_text())
 real=json.loads((ROOT/'contracts/external-write-policy-input-v1.json').read_text())
 
-assert contract['kind']=='ordivon.market-capital.nonlive-effect-admission'
+assert contract['kind']=='ordivon.capital.market.nonlive-effect-admission'
 assert contract['state']=='ADMITTED'
 assert contract['providerWriteCapabilityBound'] is True
 assert contract['allowedEffectClass']=='SIMULATED_EXCHANGE_ORDER_EFFECT'

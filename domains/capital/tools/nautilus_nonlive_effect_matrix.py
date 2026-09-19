@@ -12,7 +12,7 @@ from nautilus_trader.model import AccountType, Bar, BarType, Money, OmsType, Ord
 from nautilus_trader.testkit.providers import TestInstrumentProvider
 from nautilus_trader.trading import Strategy
 
-from market_capital.nonlive_effect_qualification import reconcile_nautilus_episode, reconcile_unknown_after_submission
+from ordivon_capital.market.nonlive_effect_qualification import reconcile_nautilus_episode, reconcile_unknown_after_submission
 
 
 class ScenarioStrategy(Strategy):
@@ -145,7 +145,7 @@ def main() -> None:
 
     print(json.dumps({
         "schemaVersion": 1,
-        "kind": "ordivon.market-capital.nonlive-effect-matrix",
+        "kind": "ordivon.capital.market.nonlive-effect-matrix",
         "standing": "PASS_NAUTILUS_NONLIVE_EFFECT_RECONCILIATION_MATRIX",
         "provider": "NautilusTrader BacktestEngine simulated exchange",
         "providerVersion": nautilus_trader.__version__,

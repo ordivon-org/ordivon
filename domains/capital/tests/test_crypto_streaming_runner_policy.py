@@ -3,7 +3,7 @@ import unittest
 ROOT=Path(__file__).resolve().parents[1]
 class StreamingRunnerPolicyTests(unittest.TestCase):
     def test_public_only_endpoints_and_exact_network_v2_ws_proxies(self):
-        s=(ROOT/'src/market_capital/crypto_public_streaming.py').read_text()
+        s=(ROOT/'src/ordivon_capital/market/crypto_public_streaming.py').read_text()
         self.assertIn('wss://ws.okx.com:8443/ws/v5/public',s)
         self.assertIn('wss://data-stream.binance.vision/stream?streams=btcusdt@ticker/ethusdt@ticker',s)
         self.assertIn('ORDIVON_MC_OKX_WS_PROXY',s)

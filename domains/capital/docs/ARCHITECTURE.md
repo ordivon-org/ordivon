@@ -1,8 +1,15 @@
-# Architecture
+# Ordivon Capital Architecture
 
 ## Core rule
 
-Market Capital is one canonical composition, not a federation of Ordivon finance subsystems. Use mature external financial/research infrastructure wherever it already exists; keep only narrow Market Capital mappings, decisions, policy inputs, and reconciliation logic that no external component can own alone.
+Ordivon Capital is a composition/control plane, not a new financial framework. External standards define semantics, mature implementations own mechanics, and providers own external reality. Ordivon keeps only the evidence/authority/reconciliation seams that cannot be established by one external owner alone.
+
+The currently instantiated domains are:
+
+- `ordivon_capital.market`: Market-domain provider, research-binding, risk, execution, and reconciliation glue;
+- `ordivon_capital.accounting`: TigerBeetle integration only; TigerBeetle remains the accounting-mechanics owner.
+
+Market is a child domain of Ordivon Capital. No empty Treasury/Compute/Human/etc. packages are created merely to mirror a conceptual taxonomy. `config/external_owner_census.json` is the machine-readable ownership audit.
 
 Canonical flow:
 
@@ -56,7 +63,7 @@ Retained local seams are:
 - authoritative reconciliation to TigerBeetle pending-transfer resolution;
 - provider restart/recovery identity bindings required by the composition.
 
-The execution-policy enforcement point is `src/market_capital/execution_policy.py` plus `config/execution_policy.json`. OPA is the policy decision point; Python only supplies facts, requests decisions, and fails closed.
+The Market-domain execution-policy enforcement point is `src/ordivon_capital/market/opa_policy.py` plus `config/execution_policy.json`. OPA is the policy decision point; Python only supplies facts, requests decisions, and fails closed.
 
 All current runners must pass the OPA-governed execution-policy enforcement point before LEAN starts. The current policy input yields `allowExternalWrite=false`; no live external-write execution path is implemented.
 

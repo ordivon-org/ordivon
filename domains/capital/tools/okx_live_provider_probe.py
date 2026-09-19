@@ -104,7 +104,7 @@ def main() -> int:
 
     result = {
         "schemaVersion": 1,
-        "kind": "ordivon.market-capital.okx-live-provider-binding-evidence",
+        "kind": "ordivon.capital.market.okx-live-provider-binding-evidence",
         "standing": "PASS_OKX_LIVE_PROVIDER_BOUND_CURRENT_NO_EFFECT_ADMISSION",
         "venue": "OKX",
         "environment": "LIVE",

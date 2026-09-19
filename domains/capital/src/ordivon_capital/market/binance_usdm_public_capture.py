@@ -103,7 +103,7 @@ def capture(symbol: str) -> dict[str, Any]:
 
     return {
         "schemaVersion": 1,
-        "kind": "ordivon.market-capital.binance-usdm-public-capture",
+        "kind": "ordivon.capital.market.binance-usdm-public-capture",
         "provider": "BINANCE",
         "sourceAuthority": "BINANCE_OFFICIAL_USDM_API",
         "officialSdk": "binance-sdk-derivatives-trading-usds-futures==17.4.0",

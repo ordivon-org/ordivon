@@ -3,7 +3,7 @@ import json
 import tempfile
 import unittest
 
-from market_capital.execution_policy import ExecutionPolicyError, evaluate_execution_policy, enforce_external_write, enforce_non_live
+from ordivon_capital.market.opa_policy import ExecutionPolicyError, evaluate_execution_policy, enforce_external_write, enforce_non_live
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / "config/execution_policy.json"
@@ -32,7 +32,7 @@ class ExecutionPolicyTests(unittest.TestCase):
         result = evaluate_execution_policy(ROOT, CONFIG)
         self.assertTrue(result["allowNonLive"])
         self.assertFalse(result["allowExternalWrite"])
-        source = (ROOT / "src/market_capital/execution_policy.py").read_text()
+        source = (ROOT / "src/ordivon_capital/market/opa_policy.py").read_text()
         self.assertNotIn("currentLane must remain NON_LIVE", source)
         self.assertNotIn("non-live lane cannot bind", source)
 

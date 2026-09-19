@@ -9,7 +9,7 @@ import mlflow
 import pandas as pd
 import pandera.pandas as pa
 
-from market_capital.cboe_market_structure import build_daily_market_structure, fetch_cboe_csv
+from ordivon_capital.market.cboe_market_structure import build_daily_market_structure, fetch_cboe_csv
 
 
 def load_json(path: Path):

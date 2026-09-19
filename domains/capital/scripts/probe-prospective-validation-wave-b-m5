@@ -10,7 +10,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from market_capital.prospective_validation import evaluate_prospective_validation, decision_session_date
+from ordivon_capital.market.prospective_validation import evaluate_prospective_validation, decision_session_date
 
 repo = Path(__file__).resolve().parents[1]
 cfg = json.loads((repo / "config/prospective_validation.json").read_text())
@@ -82,7 +82,7 @@ result = evaluate_prospective_validation(
 )
 result.update({
     "schemaVersion": 1,
-    "kind": "ordivon.market-capital.prospective-validation-status",
+    "kind": "ordivon.capital.market.prospective-validation-status",
     "observedAt": now.isoformat(),
     "decisionBoundaryUtc": decision.isoformat(),
     "decisionSessionDate": boundary_date.isoformat(),

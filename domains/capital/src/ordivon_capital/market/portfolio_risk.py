@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from decimal import Decimal, InvalidOperation
 import math
+from pathlib import Path
 from statistics import median
 
 import numpy as np
@@ -126,7 +127,7 @@ def build_exposure_ledger(
 
     return {
         "schemaVersion": 1,
-        "kind": "ordivon.market-capital.exposure-ledger",
+        "kind": "ordivon.capital.market.exposure-ledger",
         "componentId": "exposure-ledger",
         "equityUsd": _fmt(equity),
         "availableEquityUsd": _fmt(available),
@@ -278,7 +279,7 @@ def analyze_dependence(
 
     return {
         "schemaVersion": 1,
-        "kind": "ordivon.market-capital.historical-dependence-analysis",
+        "kind": "ordivon.capital.market.historical-dependence-analysis",
         "componentId": "portfolio-dependence-analysis",
         "baseInstrumentId": base_instrument_id,
         "proxyInstrumentId": proxy_instrument_id,
@@ -430,7 +431,7 @@ def validate_dependence_model(
 
     return {
         "schemaVersion": 1,
-        "kind": "ordivon.market-capital.dependence-model-validation",
+        "kind": "ordivon.capital.market.dependence-model-validation",
         "componentId": "portfolio-dependence-analysis",
         "validationMethod": "SCIKIT_LEARN_WALK_FORWARD_TIME_SERIES_SPLIT",
         "baseInstrumentId": base_instrument_id,
@@ -482,7 +483,7 @@ def historical_expected_shortfall(
 
     return {
         "schemaVersion": 1,
-        "kind": "ordivon.market-capital.historical-expected-shortfall",
+        "kind": "ordivon.capital.market.historical-expected-shortfall",
         "componentId": "historical-expected-shortfall",
         "method": "EMPIRICAL_HISTORICAL_TAIL_MEAN",
         "confidence": format(confidence, ".6f"),
@@ -538,7 +539,7 @@ def build_factor_observatory(
     ]
     return {
         "schemaVersion": 1,
-        "kind": "ordivon.market-capital.factor-proxy-analysis",
+        "kind": "ordivon.capital.market.factor-proxy-analysis",
         "componentId": "factor-proxy-aggregation",
         "baseInstrumentId": base_instrument_id,
         "factors": factors,
@@ -552,102 +553,22 @@ def evaluate_risk_budget(
     exposure_ledger: Mapping[str, Any],
     budget: Mapping[str, Any],
 ) -> dict[str, Any]:
-    """Compare observed portfolio state with explicit user or policy risk limits."""
-
-    required = (
-        "maxGrossToEquity",
-        "maxLargestPositionGrossShare",
-        "minAvailableEquityRatio",
-        "shockMagnitudePct",
-        "maxEquityLossPctAtShock",
-    )
-    missing = [key for key in required if budget.get(key) is None]
-    if missing:
-        return {
-            "schemaVersion": 1,
-            "kind": "ordivon.market-capital.risk-limit-evaluation",
-            "componentId": "risk-limit-evaluator",
-            "standing": "INCOMPLETE",
-            "missingBudgetInputs": missing,
-        }
-
-    max_gross = _d(budget["maxGrossToEquity"], "budget.maxGrossToEquity")
-    max_concentration = _d(
-        budget["maxLargestPositionGrossShare"],
-        "budget.maxLargestPositionGrossShare",
-    )
-    min_available = _d(budget["minAvailableEquityRatio"], "budget.minAvailableEquityRatio")
-    shock_pct = _d(budget["shockMagnitudePct"], "budget.shockMagnitudePct")
-    max_loss_pct = _d(budget["maxEquityLossPctAtShock"], "budget.maxEquityLossPctAtShock")
-
-    if max_gross <= 0:
-        raise PortfolioRiskError("budget.maxGrossToEquity must be positive")
-    if max_concentration <= 0 or max_concentration > 1:
-        raise PortfolioRiskError("budget.maxLargestPositionGrossShare must be in (0, 1]")
-    if min_available < 0 or min_available > 1:
-        raise PortfolioRiskError("budget.minAvailableEquityRatio must be in [0, 1]")
-    if shock_pct <= 0 or shock_pct > 100:
-        raise PortfolioRiskError("budget.shockMagnitudePct must be in (0, 100]")
-    if max_loss_pct <= 0 or max_loss_pct > 100:
-        raise PortfolioRiskError("budget.maxEquityLossPctAtShock must be in (0, 100]")
-
-    gross_to_equity = _d(exposure_ledger.get("grossToEquity"), "ledger.grossToEquity")
-    concentration = _d(
-        exposure_ledger.get("largestPositionGrossShare"),
-        "ledger.largestPositionGrossShare",
-    )
-    available_ratio = _d(
-        exposure_ledger.get("availableEquityRatio"),
-        "ledger.availableEquityRatio",
+    """Bind normalized portfolio facts to the OPA-owned risk-limit policy."""
+    from ordivon_capital.market.opa_policy import (
+        ExecutionPolicyError,
+        evaluate_risk_budget_policy,
     )
 
-    positions = exposure_ledger.get("positions")
-    if not isinstance(positions, Sequence):
-        raise PortfolioRiskError("ledger.positions must be a sequence")
-
-    largest_equity_multiple = max(
-        (_d(row.get("equityMultiple"), "position.equityMultiple") for row in positions),
-        default=Decimal("0"),
-    )
-    shock_loss_pct = largest_equity_multiple * shock_pct
-
-    checks = [
-        {
-            "id": "MAX_GROSS_TO_EQUITY",
-            "observed": _fmt(gross_to_equity),
-            "limit": _fmt(max_gross),
-            "passed": gross_to_equity <= max_gross,
-        },
-        {
-            "id": "MAX_LARGEST_POSITION_GROSS_SHARE",
-            "observed": _fmt(concentration),
-            "limit": _fmt(max_concentration),
-            "passed": concentration <= max_concentration,
-        },
-        {
-            "id": "MIN_AVAILABLE_EQUITY_RATIO",
-            "observed": _fmt(available_ratio),
-            "limit": _fmt(min_available),
-            "passed": available_ratio >= min_available,
-        },
-        {
-            "id": "MAX_EQUITY_LOSS_AT_NAMED_SHOCK",
-            "observed": _fmt(shock_loss_pct),
-            "limit": _fmt(max_loss_pct),
-            "shockMagnitudePct": _fmt(shock_pct),
-            "passed": shock_loss_pct <= max_loss_pct,
-        },
-    ]
-    breached = [row["id"] for row in checks if not row["passed"]]
-
-    return {
-        "schemaVersion": 1,
-        "kind": "ordivon.market-capital.risk-limit-evaluation",
-        "componentId": "risk-limit-evaluator",
-        "standing": "SATISFIED" if not breached else "BREACHED",
-        "checks": checks,
-        "breachedChecks": breached,
-    }
+    repo = Path(__file__).resolve().parents[3]
+    try:
+        return evaluate_risk_budget_policy(
+            repo=repo,
+            config_path=repo / "config/execution_policy.json",
+            exposure_ledger=dict(exposure_ledger),
+            budget=dict(budget),
+        )
+    except ExecutionPolicyError as exc:
+        raise PortfolioRiskError(str(exc)) from exc
 
 
 def build_portfolio_risk_report(
@@ -665,7 +586,7 @@ def build_portfolio_risk_report(
         if risk_budget is not None
         else {
             "schemaVersion": 1,
-            "kind": "ordivon.market-capital.risk-limit-evaluation",
+            "kind": "ordivon.capital.market.risk-limit-evaluation",
         "componentId": "risk-limit-evaluator",
             "standing": "INCOMPLETE",
             "missingBudgetInputs": ["riskBudget"],
@@ -673,7 +594,7 @@ def build_portfolio_risk_report(
     )
     return {
         "schemaVersion": 1,
-        "kind": "ordivon.market-capital.portfolio-risk-report",
+        "kind": "ordivon.capital.market.portfolio-risk-report",
         "nodes": {
             "exposureLedger": exposure_ledger,
             "factorDependenceAnalysis": factor_observatory,

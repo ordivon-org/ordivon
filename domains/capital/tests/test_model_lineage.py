@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from market_capital.model_lineage import monitoring_dataframe, persist_monitoring_evidence
+from ordivon_capital.market.model_lineage import monitoring_dataframe, persist_monitoring_evidence
 
 
 DUCKDB = Path("/opt/ordivon/external/duckdb/1.5.5-1/duckdb")

@@ -3,7 +3,7 @@
   "capitalSubstrate": "config/tigerbeetle_capital_substrate.json",
   "executionMode": "BOUNDED_SIMULATED_EXCHANGE",
   "externalWritePolicyStanding": "NOT_ADMITTED",
-  "kind": "ordivon.market-capital.nonlive-effect-authority",
+  "kind": "ordivon.capital.market.nonlive-effect-authority",
   "providerCandidate": "config/nautilus_candidate.json",
   "scenarios": [
     "FILL",

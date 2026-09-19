@@ -17,7 +17,7 @@
     "purpose": "independent continuous public-observation V&V; not production execution transport ownership",
     "standing": "PASS_PUBLIC_STREAMING_R2"
   },
-  "kind": "ordivon.market-capital.crypto-data-adapter-policy",
+  "kind": "ordivon.capital.market.crypto-data-adapter-policy",
   "normalizationBoundary": "Market Capital common public observation schema",
   "okx": {
     "credentialsAllowed": false,

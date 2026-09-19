@@ -75,7 +75,7 @@ def open_interest_change(
 
     return {
         "schemaVersion": 1,
-        "kind": "ordivon.market-capital.open-interest-change",
+        "kind": "ordivon.capital.market.open-interest-change",
         "componentId": "open-interest-change",
         "instrumentId": instrument_id,
         "sampleCount": len(rows),
@@ -146,7 +146,7 @@ def repeated_microstructure(
 
     return {
         "schemaVersion": 1,
-        "kind": "ordivon.market-capital.repeated-microstructure",
+        "kind": "ordivon.capital.market.repeated-microstructure",
         "componentId": "repeated-microstructure-summary",
         "instrumentId": instrument_id,
         "sampleCount": len(rows),
@@ -198,7 +198,7 @@ def reconcile_underlying_reopen(
 
     base = {
         "schemaVersion": 1,
-        "kind": "ordivon.market-capital.underlying-reopen-reconciliation",
+        "kind": "ordivon.capital.market.underlying-reopen-reconciliation",
         "componentId": "underlying-reopen-reconciliation",
         "instrumentId": instrument_id,
         "weekendPerpPrice": _fmt(weekend_price),
@@ -286,7 +286,7 @@ def merge_market_observations(
         raise MarketSensorError("market.instrumentId is required")
 
     if oi_change is not None:
-        if oi_change.get("kind") != "ordivon.market-capital.open-interest-change":
+        if oi_change.get("kind") != "ordivon.capital.market.open-interest-change":
             raise MarketSensorError("unexpected OI sensor kind")
         if oi_change.get("instrumentId") != instrument_id:
             raise MarketSensorError("OI sensor instrument does not match market")
@@ -295,7 +295,7 @@ def merge_market_observations(
         result["openInterestChangeSampleCount"] = oi_change.get("sampleCount")
 
     if microstructure is not None:
-        if microstructure.get("kind") != "ordivon.market-capital.repeated-microstructure":
+        if microstructure.get("kind") != "ordivon.capital.market.repeated-microstructure":
             raise MarketSensorError("unexpected microstructure sensor kind")
         if microstructure.get("instrumentId") != instrument_id:
             raise MarketSensorError("microstructure sensor instrument does not match market")

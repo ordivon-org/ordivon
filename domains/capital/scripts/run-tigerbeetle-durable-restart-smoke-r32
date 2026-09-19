@@ -35,8 +35,8 @@ stop_tb(){ kill "$pid"; wait "$pid" 2>/dev/null || true; pid=""; }
 start_tb
 PYTHONPATH="$repo/src" TB_PORT="$port" "$py" - <<'PY'
 import os, tigerbeetle as tb
-from market_capital.tigerbeetle_durable import CapitalAccountNamespace, CapitalAccountRole, binding_for_namespace
-from market_capital.tigerbeetle_substrate import reservation_instruction, stable_provider_id
+from ordivon_capital.accounting.tigerbeetle_durable import CapitalAccountNamespace, CapitalAccountRole, binding_for_namespace
+from ordivon_capital.accounting.tigerbeetle_substrate import reservation_instruction, stable_provider_id
 
 p=os.environ['TB_PORT']
 ns=CapitalAccountNamespace('owner:primary','parcel:r32:usd',31,718)
@@ -66,8 +66,8 @@ stop_tb
 start_tb
 PYTHONPATH="$repo/src" TB_PORT="$port" "$py" - <<'PY'
 import os, tigerbeetle as tb
-from market_capital.tigerbeetle_durable import CapitalAccountNamespace, binding_for_namespace
-from market_capital.tigerbeetle_substrate import TigerBeetleOperation, reservation_instruction, resolution_instruction
+from ordivon_capital.accounting.tigerbeetle_durable import CapitalAccountNamespace, binding_for_namespace
+from ordivon_capital.accounting.tigerbeetle_substrate import TigerBeetleOperation, reservation_instruction, resolution_instruction
 p=os.environ['TB_PORT']
 ns=CapitalAccountNamespace('owner:primary','parcel:r32:usd',31,718)
 b=binding_for_namespace(namespace=ns,reservation_ref='reservation:r32:durable',amount=700,transfer_code=720)
@@ -87,12 +87,12 @@ stop_tb
 start_tb
 PYTHONPATH="$repo/src" TB_PORT="$port" "$py" - <<'PY'
 import json, os, tigerbeetle as tb
-from market_capital.tigerbeetle_durable import (
+from ordivon_capital.accounting.tigerbeetle_durable import (
     CapitalAccountNamespace, DurableProviderStanding, DurableReservationHistory,
     ProviderTransferObservation, ReservationStanding, binding_for_namespace,
     reconcile_durable_history,
 )
-from market_capital.tigerbeetle_substrate import TigerBeetleOperation, reservation_instruction, resolution_instruction
+from ordivon_capital.accounting.tigerbeetle_substrate import TigerBeetleOperation, reservation_instruction, resolution_instruction
 p=os.environ['TB_PORT']
 ns=CapitalAccountNamespace('owner:primary','parcel:r32:usd',31,718)
 b=binding_for_namespace(namespace=ns,reservation_ref='reservation:r32:durable',amount=700,transfer_code=720)

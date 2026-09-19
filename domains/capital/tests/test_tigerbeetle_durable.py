@@ -1,6 +1,6 @@
 import pytest
 
-from market_capital.tigerbeetle_durable import (
+from ordivon_capital.accounting.tigerbeetle_durable import (
     CapitalAccountNamespace,
     CapitalAccountRole,
     DurableProviderStanding,
@@ -10,7 +10,7 @@ from market_capital.tigerbeetle_durable import (
     binding_for_namespace,
     reconcile_durable_history,
 )
-from market_capital.tigerbeetle_substrate import AccountingMappingError, TigerBeetleOperation, resolution_instruction
+from ordivon_capital.accounting.tigerbeetle_substrate import AccountingMappingError, TigerBeetleOperation, resolution_instruction
 
 
 def namespace() -> CapitalAccountNamespace:

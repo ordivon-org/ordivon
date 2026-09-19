@@ -48,7 +48,7 @@ import json
 import os
 import tigerbeetle as tb
 
-from market_capital.tigerbeetle_substrate import CapitalReservationBinding, TigerBeetleOperation, reservation_instruction, resolution_instruction
+from ordivon_capital.accounting.tigerbeetle_substrate import CapitalReservationBinding, TigerBeetleOperation, reservation_instruction, resolution_instruction
 
 port=os.environ['TB_PORT']
 

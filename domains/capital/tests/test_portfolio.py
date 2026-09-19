@@ -1,6 +1,6 @@
 import unittest
 
-from market_capital.portfolio import build_equal_weight_validation_portfolio
+from ordivon_capital.market.portfolio import build_equal_weight_validation_portfolio
 
 
 class PortfolioTests(unittest.TestCase):

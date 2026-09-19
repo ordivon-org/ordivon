@@ -10,7 +10,7 @@ rm -rf "$out"; mkdir -p "$out"
 readarray -t proxy < <(jq -r '.authorities.okxRest.proxy,.authorities.binanceSpotRest.proxy' "$out/network-v2-binding.json")
 env ORDIVON_MC_OKX_REST_PROXY="${proxy[0]}" ORDIVON_MC_BINANCE_SPOT_REST_PROXY="${proxy[1]}" \
   "$repo/scripts/capture-crypto-public-rest" "$out/raw-capture.json" >/dev/null
-PYTHONPATH="$repo/src" python3 -m market_capital.crypto_public_shadow \
+PYTHONPATH="$repo/src" python3 -m ordivon_capital.market.crypto_public_shadow \
   --capture "$out/raw-capture.json" \
   --transport-binding "$out/network-v2-binding.json" \
   --output "$out/observation.json"

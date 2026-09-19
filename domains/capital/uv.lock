@@ -1145,7 +1145,7 @@ wheels = [
 ]
 
 [[package]]
-name = "ordivon-market-capital-cleanroom"
+name = "ordivon-capital"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

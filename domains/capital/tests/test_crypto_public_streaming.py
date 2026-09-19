@@ -1,5 +1,5 @@
 import unittest
-from market_capital.crypto_public_streaming import evaluate_snapshot, KEYS
+from ordivon_capital.market.crypto_public_streaming import evaluate_snapshot, KEYS
 
 def row(t,mono,bid='100',ask='101'):
     return {'sourceTimeMs':t,'recvMonoNs':mono,'bid':bid,'ask':ask,'recvWallNs':0,'venue':'X','asset':'X'}

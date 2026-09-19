@@ -42,8 +42,8 @@ PYTHONPATH="$repo/src" TB_PORT="$port" MATRIX="$matrix" "$tb_py" - <<'PY'
 import json, os
 import tigerbeetle as tb
 
-from market_capital.tigerbeetle_durable import CapitalAccountNamespace, CapitalAccountRole, binding_for_namespace
-from market_capital.tigerbeetle_substrate import TigerBeetleOperation, reservation_instruction, resolution_instruction, stable_provider_id
+from ordivon_capital.accounting.tigerbeetle_durable import CapitalAccountNamespace, CapitalAccountRole, binding_for_namespace
+from ordivon_capital.accounting.tigerbeetle_substrate import TigerBeetleOperation, reservation_instruction, resolution_instruction, stable_provider_id
 
 port=os.environ['TB_PORT']
 matrix=json.load(open(os.environ['MATRIX']))
@@ -126,7 +126,7 @@ PYTHONPATH="$repo/src" TB_PORT="$port" MATRIX="$matrix" "$tb_py" - <<'PY'
 import json, os
 import tigerbeetle as tb
 
-from market_capital.tigerbeetle_durable import (
+from ordivon_capital.accounting.tigerbeetle_durable import (
     CapitalAccountNamespace,
     DurableProviderStanding,
     DurableReservationHistory,
@@ -135,7 +135,7 @@ from market_capital.tigerbeetle_durable import (
     binding_for_namespace,
     reconcile_durable_history,
 )
-from market_capital.tigerbeetle_substrate import TigerBeetleOperation, reservation_instruction, resolution_instruction
+from ordivon_capital.accounting.tigerbeetle_substrate import TigerBeetleOperation, reservation_instruction, resolution_instruction
 
 port=os.environ['TB_PORT']
 matrix=json.load(open(os.environ['MATRIX']))
@@ -212,7 +212,7 @@ with tb.ClientSync(cluster_id=0,replica_addresses=f'127.0.0.1:{port}') as c:
 
 print(json.dumps({
     'schemaVersion':1,
-    'kind':'ordivon.market-capital.nonlive-capital-effect-matrix',
+    'kind':'ordivon.capital.market.nonlive-capital-effect-matrix',
     'standing':'PASS_NONLIVE_EFFECT_TO_CAPITAL_RESTART_MATRIX',
     'sourceEffectMatrixStanding':matrix['standing'],
     'providerVersion':'0.17.9',

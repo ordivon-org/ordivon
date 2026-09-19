@@ -4,9 +4,9 @@ import subprocess
 
 import pytest
 
-from market_capital.binance_usdm_public_capture import _book_summary, _current_and_next_session
+from ordivon_capital.market.binance_usdm_public_capture import _book_summary, _current_and_next_session
 
-from market_capital.binance_usdm_provider import (
+from ordivon_capital.market.binance_usdm_provider import (
     BinanceUsdmProviderError,
     normalize_exchange_symbol,
     qualify_provider_contract,
@@ -180,7 +180,7 @@ def test_public_capture_helpers_preserve_provider_session_and_book_measurements(
 
 
 def test_public_capture_runner_cannot_load_private_credentials_or_trade():
-    source = (ROOT / "src/market_capital/binance_usdm_public_capture.py").read_text()
+    source = (ROOT / "src/ordivon_capital/market/binance_usdm_public_capture.py").read_text()
     assert 'api_key=""' in source
     assert 'api_secret=""' in source
     assert "new_order" not in source

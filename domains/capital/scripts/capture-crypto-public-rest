@@ -80,7 +80,7 @@ if captured is None:
 
 result = {
     "schemaVersion": 1,
-    "kind": "ordivon.market-capital.crypto-public-rest-capture",
+    "kind": "ordivon.capital.market.crypto-public-rest-capture",
     "captureWallTimeNs": time.time_ns(),
     "captureRound": next(iter(captured.values()))["captureRound"],
     "requests": {name: captured[name] for name in sorted(captured)},

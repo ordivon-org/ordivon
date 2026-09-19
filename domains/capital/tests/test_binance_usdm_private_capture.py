@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from market_capital.binance_usdm_private_capture import (
+from ordivon_capital.market.binance_usdm_private_capture import (
     WRITE_CAPABLE_PERMISSION_FIELDS,
     permission_gate,
     qualification_summary,
@@ -30,7 +30,7 @@ def test_permission_gate_fails_when_reading_is_missing():
 
 
 def test_private_capture_source_has_no_trade_or_mutation_calls():
-    source = (ROOT / "src/market_capital/binance_usdm_private_capture.py").read_text()
+    source = (ROOT / "src/ordivon_capital/market/binance_usdm_private_capture.py").read_text()
     forbidden = (
         ".new_order(",
         ".change_initial_leverage(",
@@ -45,7 +45,7 @@ def test_private_capture_source_has_no_trade_or_mutation_calls():
 
 
 def test_private_runner_defaults_to_runtime_bound_credential_path():
-    source = (ROOT / "src/market_capital/binance_usdm_private_capture.py").read_text()
+    source = (ROOT / "src/ordivon_capital/market/binance_usdm_private_capture.py").read_text()
     assert "/run/ordivon/inputs/binance-observer" in source
     assert "/root/.config/ordivon/secrets/binance" not in source
 

@@ -155,7 +155,7 @@ def _result(intent: dict[str,Any], venue: str, standing: str, lifecycle: dict[st
     resolution = reservation_resolution_for_standing(standing)
     return {
         'schemaVersion':1,
-        'kind':'ordivon.market-capital.execution-reconciliation',
+        'kind':'ordivon.capital.market.execution-reconciliation',
         'protocol':'FIX.4.4',
         'clOrdId':intent.get('clOrdId'),
         'venue':venue,

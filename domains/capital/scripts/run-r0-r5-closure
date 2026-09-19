@@ -60,7 +60,7 @@ def main() -> int:
 
     receipt = {
         "schemaVersion": 1,
-        "kind": "ordivon.market-capital.r0-r5-closure-receipt",
+        "kind": "ordivon.capital.market.r0-r5-closure-receipt",
         "standing": "PASS_BOUNDED_NONLIVE_R0_R5_COMPOSITION_CLOSURE",
         "allStepsPassed": all(step["passed"] for step in steps),
         "steps": steps,

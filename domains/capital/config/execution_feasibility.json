@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "kind": "ordivon.market-capital.execution-feasibility",
+  "kind": "ordivon.capital.market.execution-feasibility",
   "mode": "historical-validation-only",
   "orderSizingOwner": "QuantConnect LEAN CalculateOrderQuantity / buying-power model",
   "executionCashBufferWeight": 0.01,

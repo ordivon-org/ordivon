@@ -182,7 +182,7 @@ async def capture_streaming(rounds: int = 3, warmup_rounds: int = 1, deadline_se
     standing = "PASS_STREAMING_REPEATED_PUBLIC_SHADOW" if len(measured) == rounds else "PARTIAL_STREAMING_PUBLIC_SHADOW"
     return {
         "schemaVersion": 1,
-        "kind": "ordivon.market-capital.crypto-public-streaming-r2",
+        "kind": "ordivon.capital.market.crypto-public-streaming-r2",
         "standing": standing,
         "endpoints": {"okx": OKX_URL, "binance": BINANCE_URL},
         "networkV2Proxies": {"okx": okx_proxy, "binance": binance_proxy},
@@ -225,7 +225,7 @@ def main() -> int:
     except Exception as exc:
         result = {
             "schemaVersion": 1,
-            "kind": "ordivon.market-capital.crypto-public-streaming-r2",
+            "kind": "ordivon.capital.market.crypto-public-streaming-r2",
             "standing": "STREAMING_SESSION_FAILED",
             "error": f"{type(exc).__name__}: {exc}",
             "brokerCredentialsUsed": False,

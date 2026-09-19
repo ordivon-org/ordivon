@@ -12,7 +12,7 @@ def load(path: str):
 
 def test_okx_live_provider_uses_external_mature_clients_and_unified_secret_root():
     x = load("config/okx_live_provider.json")
-    assert x["kind"] == "ordivon.market-capital.okx-live-provider"
+    assert x["kind"] == "ordivon.capital.market.okx-live-provider"
     assert x["endpointClass"] == "LIVE"
     assert x["credentialBinding"] == "/root/.config/ordivon/secrets/okx/live-trade/config.toml"
     assert x["credentialCopyIntoRepository"] is False

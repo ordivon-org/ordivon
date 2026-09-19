@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "kind": "ordivon.market-capital.demo-execution-policy",
+  "kind": "ordivon.capital.market.demo-execution-policy",
   "standing": "PREPARED_NOT_ADMITTED",
   "purpose": "QUALIFY_MATURE_NON_LIVE_EXECUTION_CLIENTS_BEFORE_ANY_DEMO_OR_TESTNET_WRITE",
   "demoWriteAdmission": "NOT_ADMITTED",

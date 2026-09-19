@@ -5,7 +5,7 @@
     "A fresh multi-source measurement must show absolute host offset <= 1000 ms.",
     "The offset gate must pass again immediately before any future private/demo execution session."
   ],
-  "kind": "ordivon.market-capital.clock-quality-gate",
+  "kind": "ordivon.capital.market.clock-quality-gate",
   "latestEvidence": "evidence/clock-quality-audit-20260914-postrepair.json",
   "privateExecutionMaxAbsOffsetMs": 1000,
   "publicShadowUsesMonotonicIntervals": true,

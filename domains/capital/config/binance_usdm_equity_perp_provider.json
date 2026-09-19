@@ -34,7 +34,7 @@
       "instrument": "SNDKUSDT"
     }
   ],
-  "kind": "ordivon.market-capital.binance-usdm-equity-perp-provider",
+  "kind": "ordivon.capital.market.binance-usdm-equity-perp-provider",
   "networkV2": {
     "directFallback": false,
     "restAuthority": "binanceUsdmRest",

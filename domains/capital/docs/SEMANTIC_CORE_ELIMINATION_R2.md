@@ -29,7 +29,7 @@ The removed abstractions included local truth-level classes, proof/witness wrapp
 
 ## Policy boundary
 
-policy/external_financial_write.rego is the current allow/deny policy. Default is deny. Allow requires all of: policy state ADMITTED, externalFinancialWriteAllowed true, a bound provider write capability, and effect verifier standing IMPLEMENTED_BOUND_CURRENT.
+policy/market_controls.rego is the current allow/deny policy. Default is deny. Allow requires all of: policy state ADMITTED, externalFinancialWriteAllowed true, a bound provider write capability, and effect verifier standing IMPLEMENTED_BOUND_CURRENT.
 
 The current policy input fails these conditions. External financial writes remain denied.
 
