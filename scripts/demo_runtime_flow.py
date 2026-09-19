@@ -25,7 +25,7 @@ SCHEMA_VERSION = 1
 TERMINAL = {"succeeded", "failed", "timed_out", "cancelled", "lost", "orphaned"}
 REQUIRED_TOOLS = {
     "artifact.read",
-    "task.cancel",
+    "job.cancel",
     "job.list",
     "job.observe",
     "workspace.close",
@@ -247,7 +247,7 @@ def cleanup(client: McpClient | None, workspace_id: str | None, client_request_i
             listed = client.call_tool("job.list", {"limit": 20, "clientRequestId": client_request_id})
             for job in listed.get("jobs", []):
                 if isinstance(job, dict) and job.get("status") not in TERMINAL and isinstance(job.get("jobId"), str):
-                    client.call_tool("task.cancel", {"schemaVersion": SCHEMA_VERSION, "jobId": job["jobId"]})
+                    client.call_tool("job.cancel", {"schemaVersion": SCHEMA_VERSION, "jobId": job["jobId"]})
         except Exception:
             pass
     if workspace_id:

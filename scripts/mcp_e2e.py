@@ -33,7 +33,7 @@ EXPECTED_TOOLS = {
     "release.apply",
     "release.get",
     "runtime.describe",
-    "task.cancel",
+    "job.cancel",
     "job.get",
     "job.list",
     "job.observe",
@@ -1769,7 +1769,7 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
         active_structured = active_close.get("structuredContent", {})
         active_code = active_structured.get("code") or active_structured.get("error", {}).get("code")
         check("workspace-close-active-code", active_code == "WORKSPACE_BUSY", active_close)
-        cancelled = client.tool("task.cancel", {"schemaVersion": SCHEMA_VERSION, "jobId": cancel_job_id})
+        cancelled = client.tool("job.cancel", {"schemaVersion": SCHEMA_VERSION, "jobId": cancel_job_id})
         if cancelled.get("status") not in TERMINAL:
             cancelled = wait_terminal(client, cancel_job_id)
         check("task-cancel", cancelled.get("status") == "cancelled", cancelled)

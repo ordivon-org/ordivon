@@ -175,7 +175,7 @@ The current MCP Tool names remain:
 ```text
 job.observe
 job.list
-task.cancel
+job.cancel
 ```
 
 They are compatibility names for Job control. Their descriptions and documentation already identify Job semantics. A rename or alias is admitted only after a live Host consumer demonstrates measurable ambiguity that qualified descriptions and foreign references fail to solve.
