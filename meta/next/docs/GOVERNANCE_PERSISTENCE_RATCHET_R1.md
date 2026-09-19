@@ -86,6 +86,22 @@ A local registry is acceptable only when it is the natural standard-defined auth
 
 A fixed dispatch map wrapped in a Registry class is not a registry and should collapse to direct dispatch or a pure function.
 
+## Retired planning and question meta-layer
+
+The local project LEGO plan schema, validator, rollout carrier, and Question Compiler are retired. They are not replaced by a second Ordivon planning ontology.
+
+Use the natural owner directly:
+
+- software implementation plans: obra-superpowers/writing-plans;
+- implementation execution: obra-superpowers/subagent-driven-development and test-driven-development when applicable;
+- codebase architecture discovery: codex-user/acquire-codebase-knowledge plus the project source/tests;
+- scientific question formation: codex-user/hypothesis-generation;
+- experiment design: codex-user/experimental-design;
+- security analysis: codex-user/security-threat-model;
+- other domains: the domain-native method or mature external standard.
+
+Derived plans/questions remain working artifacts. Project truth stays in project-native source, tests, specifications, domain records, and owner-native evidence.
+
 ## Baseline
 
 Live 2026-09-19 audit:
@@ -108,7 +124,7 @@ scripts/check_governance_persistence_r1.py checks repository-static rules:
 - Gate is stateless;
 - Registry is rebuildable by default;
 - retired local method-routing infrastructure remains absent;
-- the shared project LEGO schema cannot acquire mandatory Gate/Lens/Operator/Registry concepts.
+- retired local planning/question schemas, validators, and skills remain absent.
 
 Dynamic Task/Workspace cleanup remains owner-native and revision-fenced through Host/Runtime; this repository does not create a second lifecycle database.
 

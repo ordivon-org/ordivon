@@ -136,16 +136,6 @@
     }
   },
   "growthRatchets": {
-    "projectPlanForbiddenNewRequiredConcepts": [
-      "gate",
-      "gates",
-      "lens",
-      "lenses",
-      "operator",
-      "operators",
-      "registry",
-      "registries"
-    ],
     "rule": "Do not introduce a local method-selection ontology when a mature external discipline, standard, or domain-native method owns the question. Any new durable governance concept must delete or externalize an equal-or-larger local carrier in the same change and prove irreducibility.",
     "forbiddenLocalMethodInfrastructure": [
       "knowledge/registries/lego-lens-registry-r1.json",
@@ -159,7 +149,26 @@
       "lego-lens-compiler",
       "lego-lens-portfolio",
       "lego-lens-registry-r1.json"
-    ]
+    ],
+    "forbiddenLocalPlanningInfrastructure": [
+      "planning/lego-plan-r1.json",
+      "schemas/project-lego-plan-r1.schema.json",
+      "scripts/check_project_lego_plan_r1.py",
+      ".agents/skills/lego-project-planning",
+      ".agents/skills/lego-question-compiler",
+      "docs/LEGO_PROJECT_PLANNING_R1.md",
+      "docs/LEGO_QUESTION_COMPILER_R1.md"
+    ],
+    "externalPlanningOwners": {
+      "softwareImplementationPlan": "obra-superpowers/writing-plans",
+      "softwareExecution": "obra-superpowers/subagent-driven-development",
+      "implementationDiscipline": "obra-superpowers/test-driven-development",
+      "codebaseArchitectureDiscovery": "codex-user/acquire-codebase-knowledge",
+      "scientificQuestionFormation": "codex-user/hypothesis-generation",
+      "experimentalDesign": "codex-user/experimental-design",
+      "securityThreatModel": "codex-user/security-threat-model",
+      "other": "domain-native method or mature external standard"
+    }
   },
   "liveBaseline": {
     "observedAt": "2026-09-19",

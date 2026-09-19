@@ -5,7 +5,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PROFILE = ROOT / "planning" / "governance-persistence-ratchet-r1.json"
-PROJECT_SCHEMA = ROOT / "schemas" / "project-lego-plan-r1.schema.json"
 
 EXPECTED_DURABILITY = {
     "Task": "CONDITIONAL",
@@ -54,27 +53,9 @@ def audit() -> list[str]:
                     f"method adapter {skill_file.relative_to(ROOT)} retains retired local method reference: {forbidden_ref}"
                 )
 
-    schema = load_json(PROJECT_SCHEMA)
-    forbidden = {x.lower() for x in growth["projectPlanForbiddenNewRequiredConcepts"]}
-    required = {x.lower() for x in schema.get("required", [])}
-    leaked = sorted(required & forbidden)
-    if leaked:
-        problems.append(
-            "governance vocabulary became mandatory project truth: " + ", ".join(leaked)
-        )
-
-    node_required = {
-        x.lower()
-        for x in schema.get("properties", {})
-        .get("nodes", {})
-        .get("items", {})
-        .get("required", [])
-    }
-    leaked_nodes = sorted(node_required & forbidden)
-    if leaked_nodes:
-        problems.append(
-            "governance vocabulary became mandatory node truth: " + ", ".join(leaked_nodes)
-        )
+    for relative in growth.get("forbiddenLocalPlanningInfrastructure", []):
+        if (ROOT / relative).exists():
+            problems.append(f"retired local planning infrastructure reappeared: {relative}")
 
     return problems
 
