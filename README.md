@@ -73,9 +73,9 @@ See `docs/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R2.md` for the current cross-do
 
 See `knowledge/lessons/authority-mature-substrate-decomposition-r1.md` for the current cross-disciplinary authority map. Ordivon does not claim a novel authority theory: institutional governance, evidence-to-decision, decision science, delegation, IAM/policy engines and adaptive/institutional learning remain externally owned mature substrates. `policies/` keeps only the thin task-local composition boundary and must not become a custom policy language, IAM system, generic Human gate or universal risk gate.
 
-## Enterprise operating model
+## Enterprise work routing
 
-See `docs/ENTERPRISE_OPERATING_MODEL_R1.md` and `compositions/enterprise-work-to-outcome-r1.md` for the demand-gated composition of mature quality/project/risk/audit guidance with ERPNext, Host v2, Flowable, Temporal, n8n, Runtime and domain-native V&V. Providers remain dormant unless a real responsibility justifies activation.
+The optional `.agents/skills/enterprise-work/` Skill is a thin router from consequential work to current external authorities and natural providers. `docs/ENTERPRISE_OPERATING_MODEL_R1.md` remains the detailed provider/currentness and historical dogfood reference. There is no universal Ordivon enterprise-work lifecycle or mandatory provider composition.
 
 ## Current common capability coverage
 
