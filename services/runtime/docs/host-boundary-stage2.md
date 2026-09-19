@@ -173,7 +173,7 @@ Harness Run
 The current MCP Tool names remain:
 
 ```text
-task.observe
+job.observe
 job.list
 task.cancel
 ```

@@ -340,7 +340,7 @@ function Invoke-ActiveJobRecovery {
     $serviceAfter = Wait-RecoveredService -PreviousPid $serviceBefore.processId
     $runtimeAfter = Get-RuntimeDescribe -Id 202
 
-    $terminal = Invoke-McpTool -Name 'task.observe' -Arguments @{
+    $terminal = Invoke-McpTool -Name 'job.observe' -Arguments @{
         schemaVersion = 1
         jobId = $jobId
         waitMs = 30000

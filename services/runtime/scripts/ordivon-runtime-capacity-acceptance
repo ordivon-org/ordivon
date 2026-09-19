@@ -121,7 +121,7 @@ def observe_terminal(client: McpClient, job_id: str, deadline: float) -> dict[st
             raise AcceptanceError(f"Job did not reach terminal state: {job_id}")
         ok, observation = tool_outcome(
             client,
-            "task.observe",
+            "job.observe",
             {
                 "schemaVersion": 1,
                 "jobId": job_id,

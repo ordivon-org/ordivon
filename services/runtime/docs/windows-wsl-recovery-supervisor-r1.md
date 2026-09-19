@@ -31,7 +31,7 @@ The supervisor does **not**:
 - stop or restart a healthy Runtime/Host service;
 - read or write the Runtime Registry;
 - inspect Job, Attempt, reservation, or recovery semantics;
-- call `task.observe`, redispatch work, or infer semantic completion;
+- call `job.observe`, redispatch work, or infer semantic completion;
 - run release, repair, migration, or destructive acceptance workflows.
 
 Runtime remains authoritative for physical Job/Attempt truth. Host remains authoritative for semantic continuity.
