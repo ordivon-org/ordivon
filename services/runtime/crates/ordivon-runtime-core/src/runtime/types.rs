@@ -643,10 +643,9 @@ impl ExecutionBudget {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct UniversalExecutionStep {
-    #[schemars(length(min = LOGICAL_ID_MIN_LENGTH, max = LOGICAL_ID_MAX_LENGTH), extend("pattern" = LOGICAL_ID_PATTERN))]
+pub(crate) struct UniversalExecutionStep {
     pub id: String,
     /// Absolute host path to the executable; PATH lookup is intentionally not performed.
     pub executable: String,
@@ -655,9 +654,7 @@ pub struct UniversalExecutionStep {
     /// Working directory relative to the Workspace root.
     pub cwd_relative: String,
     #[serde(default)]
-    #[schemars(with = "BTreeMap<EnvironmentVariableNameSchema, String>")]
     pub env: BTreeMap<String, String>,
-    #[schemars(range(min = 1))]
     pub timeout_ms: u64,
     #[serde(default)]
     pub continue_on_error: bool,
@@ -1673,10 +1670,9 @@ pub struct JobRunProposal {
     pub stderr_tail_bytes: u64,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct UniversalExecutionRequest {
-    #[schemars(length(min = WORKSPACE_ID_MIN_LENGTH, max = WORKSPACE_ID_MAX_LENGTH), regex(pattern = WORKSPACE_ID_PATTERN))]
+pub(crate) struct UniversalExecutionRequest {
     pub workspace_id: String,
     /// Absolute host path to the executable; PATH lookup is intentionally not performed.
     pub executable: String,
@@ -1685,7 +1681,6 @@ pub struct UniversalExecutionRequest {
     /// Working directory relative to the Workspace root.
     pub cwd_relative: String,
     #[serde(default)]
-    #[schemars(with = "BTreeMap<EnvironmentVariableNameSchema, String>")]
     pub env: BTreeMap<String, String>,
     pub timeout_ms: u64,
     pub stdout_limit_bytes: u64,
@@ -1707,24 +1702,19 @@ pub struct UniversalExecutionRequest {
     pub host_dependencies: Vec<HostDependencyBinding>,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct JobRunRequest {
-    #[schemars(range(min = 1, max = 1), extend("const" = 1))]
+pub(crate) struct JobRunRequest {
     pub schema_version: u32,
-    #[schemars(length(min = CLIENT_REQUEST_ID_MIN_LENGTH, max = CLIENT_REQUEST_ID_MAX_LENGTH), extend("pattern" = CLIENT_REQUEST_ID_PATTERN))]
     pub client_request_id: String,
     pub principal: String,
     pub global_limit: u32,
     pub execution: UniversalExecutionRequest,
     #[serde(default = "default_task_wait_ms")]
-    #[schemars(range(max = MAX_TASK_WAIT_MS))]
     pub wait_ms: u64,
     #[serde(default = "default_task_tail_bytes")]
-    #[schemars(range(max = MAX_TASK_TAIL_BYTES))]
     pub stdout_tail_bytes: u64,
     #[serde(default = "default_task_tail_bytes")]
-    #[schemars(range(max = MAX_TASK_TAIL_BYTES))]
     pub stderr_tail_bytes: u64,
 }
 
