@@ -1,15 +1,15 @@
 use super::{
-    create_git_workspace, read_workspace_slice, read_workspace_text, workspace_diff,
+    create_git_workspace_record, read_workspace_slice, read_workspace_text, workspace_diff,
     CompactWorkspaceDiffResult, CompactWorkspaceOpenResult, CompactWorkspaceReadResult,
     CompactWorkspaceSliceResult, GitWorkspaceCreateRequest, UniversalExecError,
     UniversalExecutorConfig, WorkspaceDiffRequest, WorkspaceReadRequest, WorkspaceReadSliceRequest,
 };
 
-pub fn create_git_workspace_compact(
+pub fn create_git_workspace(
     config: &UniversalExecutorConfig,
     request: &GitWorkspaceCreateRequest,
 ) -> Result<CompactWorkspaceOpenResult, UniversalExecError> {
-    let record = create_git_workspace(config, request)?;
+    let record = create_git_workspace_record(config, request)?;
     Ok(CompactWorkspaceOpenResult {
         workspace_id: record.workspace_id,
         source_revision: record.source_revision,

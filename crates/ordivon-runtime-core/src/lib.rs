@@ -29,7 +29,7 @@ pub use universal::{
     WorkspaceContentRequest, WorkspaceDiffRequest, WorkspaceDiffResult, WorkspaceMutateRequest,
     WorkspaceMutateResult, WorkspaceMutation, WorkspaceMutationMode, WorkspaceMutationResult,
     WorkspaceReadRequest, WorkspaceReadResult, WorkspaceReadSliceRequest, WorkspaceReadSliceResult,
-    WorkspaceRecord, WorkspaceRenamedPath, WorkspaceWriteRequest, WorkspaceWriteResult,
+    WorkspaceRenamedPath, WorkspaceWriteRequest, WorkspaceWriteResult,
     ENVIRONMENT_VARIABLE_NAME_PATTERN, MAX_WORKSPACE_CHANGE_PAGE_ENTRIES, MAX_WORKSPACE_IO_BYTES,
     UNIVERSAL_EXEC_SCHEMA_VERSION, WORKSPACE_ID_MAX_LENGTH, WORKSPACE_ID_MIN_LENGTH,
     WORKSPACE_ID_PATTERN,

@@ -1,4 +1,4 @@
-pub fn create_git_workspace(
+pub(crate) fn create_git_workspace_record(
     config: &UniversalExecutorConfig,
     request: &GitWorkspaceCreateRequest,
 ) -> Result<WorkspaceRecord, UniversalExecError> {
@@ -67,7 +67,7 @@ pub fn create_git_workspace(
     Ok(record)
 }
 
-pub fn load_workspace_record(
+pub(crate) fn load_workspace_record(
     config: &UniversalExecutorConfig,
     workspace_id: &str,
 ) -> Result<WorkspaceRecord, UniversalExecError> {
