@@ -48,11 +48,15 @@ def _load(name: str) -> dict:
         return json.load(handle)
 
 
-def _expect_current(current: dict[str, str], row: dict, *, source: str, key: str) -> None:
+def _expect_current(
+    current: dict[str, str], row: dict, *, source: str, key: str
+) -> None:
     node_id = row["nodeId"]
     label = row["label"]
     if node_id not in current:
-        raise GraphIdentityError(f"{source}:{key}: unknown prior node {node_id} -> {label}")
+        raise GraphIdentityError(
+            f"{source}:{key}: unknown prior node {node_id} -> {label}"
+        )
     if current[node_id] != label:
         alias = (node_id, current[node_id], label)
         if alias in COMPATIBILITY_ALIASES:
@@ -112,5 +116,3 @@ def validate() -> dict:
         "nodeCount": len(current),
         "nodes": dict(sorted(current.items(), key=lambda item: int(item[0][1:]))),
     }
-
-

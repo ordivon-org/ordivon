@@ -30,7 +30,9 @@ class AgentServiceControlStabilityTests(unittest.TestCase):
         self.assertEqual(s["stateAfterLateStaleReady"], "READY")
         self.assertFalse(s["observationCarriesFreshness"])
 
-    def test_runtime_response_loss_converges_when_provider_honors_exact_replay(self) -> None:
+    def test_runtime_response_loss_converges_when_provider_honors_exact_replay(
+        self,
+    ) -> None:
         s = self.scenario("S3_RUNTIME_RESPONSE_LOSS_IDEMPOTENT")
         self.assertEqual(s["classification"], "CONVERGES")
         self.assertEqual(s["submitCalls"], 2)
@@ -38,7 +40,9 @@ class AgentServiceControlStabilityTests(unittest.TestCase):
         self.assertTrue(s["sameClientRequestIdentity"])
         self.assertEqual(s["taskState"], "RUNNING")
 
-    def test_runtime_response_loss_exposes_lower_contract_dependency_if_provider_is_not_idempotent(self) -> None:
+    def test_runtime_response_loss_exposes_lower_contract_dependency_if_provider_is_not_idempotent(
+        self,
+    ) -> None:
         s = self.scenario("S4_RUNTIME_RESPONSE_LOSS_NONIDEMPOTENT")
         self.assertEqual(s["classification"], "CONTRACT_DEPENDENCY_EXPOSED")
         self.assertEqual(s["submitCalls"], 2)
@@ -46,7 +50,9 @@ class AgentServiceControlStabilityTests(unittest.TestCase):
         self.assertTrue(s["orphanExternalJobPresent"])
         self.assertFalse(s["boundMatchesFirstExternalJob"])
 
-    def test_expired_identity_proof_fails_closed_before_secret_re_resolution(self) -> None:
+    def test_expired_identity_proof_fails_closed_before_secret_re_resolution(
+        self,
+    ) -> None:
         s = self.scenario("S5_CREDENTIAL_EXPIRES_BETWEEN_CALLS")
         self.assertEqual(s["classification"], "FAIL_CLOSED")
         self.assertTrue(s["firstHeaderResolved"])
@@ -61,7 +67,9 @@ class AgentServiceControlStabilityTests(unittest.TestCase):
         self.assertTrue(s["remoteDeliveryBlocked"])
         self.assertEqual(s["deliveryCalls"], 0)
 
-    def test_exact_failover_replay_converges_without_duplicate_quiescence_or_replay_effect(self) -> None:
+    def test_exact_failover_replay_converges_without_duplicate_quiescence_or_replay_effect(
+        self,
+    ) -> None:
         s = self.scenario("S7_FAILOVER_EXACT_REPLAY")
         self.assertEqual(s["classification"], "CONVERGES")
         self.assertTrue(s["sameTransferId"])
@@ -76,7 +84,9 @@ class AgentServiceControlStabilityTests(unittest.TestCase):
         self.assertTrue(s["transferAdmitted"])
         self.assertFalse(s["failureDomainModeled"])
 
-    def test_historical_remote_success_blocks_later_failover_after_status_regression(self) -> None:
+    def test_historical_remote_success_blocks_later_failover_after_status_regression(
+        self,
+    ) -> None:
         s = self.scenario("S9_REMOTE_SUCCESS_THEN_FAILURE")
         self.assertEqual(s["classification"], "FAIL_CLOSED")
         self.assertTrue(s["historicalSuccessPresent"])

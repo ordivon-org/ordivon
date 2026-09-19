@@ -6,21 +6,30 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agent_service.delivery import DeliveryObservation, PolicyObservation, _delivery_receipt_get, _delivery_receipt_list_for_binding
+from agent_service.delivery import (
+    DeliveryObservation,
+    PolicyObservation,
+    _delivery_receipt_get,
+    _delivery_receipt_list_for_binding,
+)
 from agent_service.evidence import RuntimeArtifactPayload
 from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
 
 
 class ReadyCarrier:
-    def ensure(self, placement_id: str, agent_instance_id: str, revision_id: str) -> None:
+    def ensure(
+        self, placement_id: str, agent_instance_id: str, revision_id: str
+    ) -> None:
         return None
 
     def retire(self, placement_id: str, agent_instance_id: str) -> None:
         return None
 
     def observe(self, placement_id: str) -> ProviderObservation:
-        return ProviderObservation(placement_id=placement_id, state="READY", evidence_ref="test://ready")
+        return ProviderObservation(
+            placement_id=placement_id, state="READY", evidence_ref="test://ready"
+        )
 
 
 class FakeRuntime:
@@ -46,7 +55,13 @@ class NoopArtifactReader:
 
 
 class FakePolicy:
-    def __init__(self, *, allowed: bool, revision: str = "policy-r1", permissions: tuple[str, ...] = ()) -> None:
+    def __init__(
+        self,
+        *,
+        allowed: bool,
+        revision: str = "policy-r1",
+        permissions: tuple[str, ...] = (),
+    ) -> None:
         self.allowed = allowed
         self.revision = revision
         self.permissions = permissions
@@ -69,7 +84,9 @@ class FakeDelivery:
         self.calls: list[str] = []
         self.fail_after_commit_once = False
 
-    def send(self, *, delivery_request_id: str, binding, envelope) -> DeliveryObservation:
+    def send(
+        self, *, delivery_request_id: str, binding, envelope
+    ) -> DeliveryObservation:
         self.calls.append(delivery_request_id)
         existing = self.committed.get(delivery_request_id)
         if existing is not None:
@@ -84,8 +101,12 @@ class FakeDelivery:
             admission="committed",
             status="submitted",
             provider_request_id=f"provider:{delivery_request_id}",
-            remote_task_id=f"remote-task:{len(self.committed)+1}" if self.transport.startswith("a2a") else None,
-            remote_context_id=f"remote-context:{len(self.committed)+1}" if self.transport.startswith("a2a") else None,
+            remote_task_id=f"remote-task:{len(self.committed) + 1}"
+            if self.transport.startswith("a2a")
+            else None,
+            remote_context_id=f"remote-context:{len(self.committed) + 1}"
+            if self.transport.startswith("a2a")
+            else None,
         )
         self.committed[delivery_request_id] = value
         if self.fail_after_commit_once:
@@ -115,26 +136,35 @@ class AgentServiceDeliveryTests(unittest.TestCase):
 
     def _agent(self, service: object, name: str, *, routes=None):
         definition = service.definitions.create(name)
-        revision = service.revisions.create(definition.id, {
-            "name": name,
-            "harness": "r9",
-            "skills": [{
-                "id": "review",
-                "name": "Review",
-                "description": "review",
-                "tags": ["review"],
-                "inputModes": ["text/plain"],
-                "outputModes": ["text/markdown"],
-            }],
-            "routes": routes or [],
-        })
-        identity = service.identities.create(definition.id, stable_name=name, description=name)
+        revision = service.revisions.create(
+            definition.id,
+            {
+                "name": name,
+                "harness": "r9",
+                "skills": [
+                    {
+                        "id": "review",
+                        "name": "Review",
+                        "description": "review",
+                        "tags": ["review"],
+                        "inputModes": ["text/plain"],
+                        "outputModes": ["text/markdown"],
+                    }
+                ],
+                "routes": routes or [],
+            },
+        )
+        identity = service.identities.create(
+            definition.id, stable_name=name, description=name
+        )
         instance = service.instances.create(f"request:{name}:r9", revision.id)
         service.reconciler.reconcile(instance.id)
         return revision, identity, instance
 
     def _setup_delegation(self, service: object):
-        source_revision, source_identity, source_instance = self._agent(service, "source")
+        source_revision, source_identity, source_instance = self._agent(
+            service, "source"
+        )
         target_revision, target_identity, _ = self._agent(
             service,
             "target",
@@ -159,8 +189,14 @@ class AgentServiceDeliveryTests(unittest.TestCase):
         task = service.tasks.create(
             description="review task",
             required_revision_id=source_revision.id,
-            execution={"workspaceId":"ws-test","executable":"/usr/bin/true","args":[],"cwdRelative":".","env":{}},
-            acceptance={"kind":"stdout_equals","value":"OK"},
+            execution={
+                "workspaceId": "ws-test",
+                "executable": "/usr/bin/true",
+                "args": [],
+                "cwdRelative": ".",
+                "env": {},
+            },
+            acceptance={"kind": "stdout_equals", "value": "OK"},
         )
         service.goal_task_links.attach(goal.id, task.id)
         session = service.sessions.open(
@@ -177,12 +213,14 @@ class AgentServiceDeliveryTests(unittest.TestCase):
             target_revision_id=target_revision.id,
             task_id=task.id,
             capability_key="review",
-            payload={"text":"review"},
-            evidence_contract={"kind":"text/markdown"},
+            payload={"text": "review"},
+            evidence_contract={"kind": "text/markdown"},
         )
         return envelope, session, task, target_revision
 
-    def test_route_profiles_are_revision_native_without_second_interface_store(self) -> None:
+    def test_route_profiles_are_revision_native_without_second_interface_store(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db")
             _, _, _, target_revision = self._setup_delegation(service)
@@ -198,7 +236,9 @@ class AgentServiceDeliveryTests(unittest.TestCase):
             ).fetchone()
             self.assertIsNone(table)
 
-    def test_denied_policy_decision_blocks_route_even_when_capability_is_advertised(self) -> None:
+    def test_denied_policy_decision_blocks_route_even_when_capability_is_advertised(
+        self,
+    ) -> None:
         policy = FakePolicy(allowed=False)
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db", policy=policy)
@@ -214,8 +254,12 @@ class AgentServiceDeliveryTests(unittest.TestCase):
             self.assertEqual(len(receipts), 1)
             self.assertFalse(receipts[0].payload["allowed"])
 
-    def test_policy_exact_replay_uses_historical_decision_without_re_evaluation(self) -> None:
-        policy = FakePolicy(allowed=True, revision="policy-r1", permissions=("review.invoke",))
+    def test_policy_exact_replay_uses_historical_decision_without_re_evaluation(
+        self,
+    ) -> None:
+        policy = FakePolicy(
+            allowed=True, revision="policy-r1", permissions=("review.invoke",)
+        )
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db", policy=policy)
             envelope, _, _, _ = self._setup_delegation(service)
@@ -238,7 +282,9 @@ class AgentServiceDeliveryTests(unittest.TestCase):
             self.assertEqual(replay.granted_permissions, ("review.invoke",))
             self.assertEqual(policy.calls, 1)
 
-    def test_route_planner_selects_only_advertised_interface_after_allowed_policy(self) -> None:
+    def test_route_planner_selects_only_advertised_interface_after_allowed_policy(
+        self,
+    ) -> None:
         policy = FakePolicy(allowed=True)
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db", policy=policy)
@@ -254,7 +300,9 @@ class AgentServiceDeliveryTests(unittest.TestCase):
             self.assertFalse(hasattr(binding, "remote_task_id"))
             self.assertFalse(hasattr(binding, "remote_context_id"))
 
-    def test_same_delegation_can_have_distinct_immutable_route_bindings_for_fallback(self) -> None:
+    def test_same_delegation_can_have_distinct_immutable_route_bindings_for_fallback(
+        self,
+    ) -> None:
         policy = FakePolicy(allowed=True)
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db", policy=policy)
@@ -276,7 +324,9 @@ class AgentServiceDeliveryTests(unittest.TestCase):
             self.assertEqual(primary.delegation_id, fallback.delegation_id)
             self.assertEqual(primary.transport, "a2a-jsonrpc")
             self.assertEqual(fallback.transport, "mcp")
-            self.assertEqual(len(service.transport_bindings.list_for_delegation(envelope.id)), 2)
+            self.assertEqual(
+                len(service.transport_bindings.list_for_delegation(envelope.id)), 2
+            )
 
     def test_route_rejects_policy_decision_for_different_delegation(self) -> None:
         policy = FakePolicy(allowed=True)
@@ -298,7 +348,7 @@ class AgentServiceDeliveryTests(unittest.TestCase):
                 target_revision_id=other.target_revision_id,
                 task_id=other.task_id,
                 capability_key=other.capability_key,
-                payload={"text":"different intent"},
+                payload={"text": "different intent"},
                 evidence_contract=other.evidence_contract,
             )
 
@@ -309,7 +359,9 @@ class AgentServiceDeliveryTests(unittest.TestCase):
                     preferred_transports=["a2a-jsonrpc"],
                 )
 
-    def test_delivery_response_loss_replays_same_request_and_remote_correlation(self) -> None:
+    def test_delivery_response_loss_replays_same_request_and_remote_correlation(
+        self,
+    ) -> None:
         policy = FakePolicy(allowed=True)
         delivery = FakeDelivery("a2a-jsonrpc")
         delivery.fail_after_commit_once = True
@@ -328,7 +380,9 @@ class AgentServiceDeliveryTests(unittest.TestCase):
 
             with self.assertRaises(RuntimeError):
                 service.delivery.deliver(binding.id)
-            self.assertEqual(_delivery_receipt_list_for_binding(service.events, binding.id), [])
+            self.assertEqual(
+                _delivery_receipt_list_for_binding(service.events, binding.id), []
+            )
 
             receipt = service.delivery.deliver(binding.id)
 
@@ -339,7 +393,9 @@ class AgentServiceDeliveryTests(unittest.TestCase):
             self.assertTrue(receipt.remote_context_id.startswith("remote-context:"))
             self.assertNotEqual(receipt.remote_task_id, task.id)
             self.assertNotEqual(receipt.remote_context_id, session.id)
-            self.assertFalse(hasattr(service.sessions.get(session.id), "remote_context_id"))
+            self.assertFalse(
+                hasattr(service.sessions.get(session.id), "remote_context_id")
+            )
             self.assertFalse(hasattr(service.tasks.get(task.id), "remote_task_id"))
 
     def test_mcp_delivery_receipt_may_have_no_remote_task_or_context(self) -> None:
@@ -387,10 +443,17 @@ class AgentServiceDeliveryTests(unittest.TestCase):
             )
             self.addCleanup(second.close)
 
-            self.assertTrue(second.events.get(binding.policy_receipt_id).payload["allowed"])
+            self.assertTrue(
+                second.events.get(binding.policy_receipt_id).payload["allowed"]
+            )
             self.assertFalse(hasattr(second, "policy_decisions"))
-            self.assertEqual(second.transport_bindings.get(binding.id).endpoint, binding.endpoint)
-            self.assertEqual(_delivery_receipt_get(second.events, receipt.id).remote_task_id, receipt.remote_task_id)
+            self.assertEqual(
+                second.transport_bindings.get(binding.id).endpoint, binding.endpoint
+            )
+            self.assertEqual(
+                _delivery_receipt_get(second.events, receipt.id).remote_task_id,
+                receipt.remote_task_id,
+            )
             replay = second.delivery.deliver(binding.id)
             self.assertEqual(replay.id, receipt.id)
 

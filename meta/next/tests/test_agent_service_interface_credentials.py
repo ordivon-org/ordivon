@@ -83,19 +83,26 @@ class AgentServiceInterfaceCredentialsTests(unittest.TestCase):
 
     def _agent(self, service, name, *, routes=None):
         definition = service.definitions.create(name)
-        revision = service.revisions.create(definition.id, {
-            "name": name,
-            "skills": [{
-                "id": "review",
-                "name": "Review",
-                "description": "review",
-                "tags": ["review"],
-                "inputModes": ["text/plain"],
-                "outputModes": ["text/markdown"],
-            }],
-            "routes": routes or [],
-        })
-        identity = service.identities.create(definition.id, stable_name=name, description=name)
+        revision = service.revisions.create(
+            definition.id,
+            {
+                "name": name,
+                "skills": [
+                    {
+                        "id": "review",
+                        "name": "Review",
+                        "description": "review",
+                        "tags": ["review"],
+                        "inputModes": ["text/plain"],
+                        "outputModes": ["text/markdown"],
+                    }
+                ],
+                "routes": routes or [],
+            },
+        )
+        identity = service.identities.create(
+            definition.id, stable_name=name, description=name
+        )
         instance = service.instances.create(f"request:{name}:r14", revision.id)
         service.reconciler.reconcile(instance.id)
         return revision, identity, instance
@@ -133,8 +140,18 @@ class AgentServiceInterfaceCredentialsTests(unittest.TestCase):
         task = service.tasks.create(
             description="r14",
             required_revision_id=sr.id,
-            execution={"workspaceId":"x","executable":"/usr/bin/true","args":[],"cwdRelative":".","env":{}},
-            acceptance={"kind":"runtime_artifact_text_contains","artifactKind":"review-markdown","value":"ACCEPTED"},
+            execution={
+                "workspaceId": "x",
+                "executable": "/usr/bin/true",
+                "args": [],
+                "cwdRelative": ".",
+                "env": {},
+            },
+            acceptance={
+                "kind": "runtime_artifact_text_contains",
+                "artifactKind": "review-markdown",
+                "value": "ACCEPTED",
+            },
         )
         session = service.sessions.open(
             client_session_id="r14:session",
@@ -149,8 +166,8 @@ class AgentServiceInterfaceCredentialsTests(unittest.TestCase):
             target_revision_id=tr.id,
             task_id=task.id,
             capability_key="review",
-            payload={"text":"review"},
-            evidence_contract={"kind":"review-markdown"},
+            payload={"text": "review"},
+            evidence_contract={"kind": "review-markdown"},
         )
         a2a_binding = service.routes.plan(
             envelope.id,
@@ -166,13 +183,13 @@ class AgentServiceInterfaceCredentialsTests(unittest.TestCase):
 
     def test_interface_requires_explicit_protocol_version(self):
         with tempfile.TemporaryDirectory() as tmp:
-            service = self._open(Path(tmp)/"s.db")
+            service = self._open(Path(tmp) / "s.db")
             with self.assertRaises(ValueError):
                 self._setup(service, a2a_version=None)
 
     def test_protocol_version_is_immutable_interface_and_binding_identity(self):
         with tempfile.TemporaryDirectory() as tmp:
-            service = self._open(Path(tmp)/"s.db")
+            service = self._open(Path(tmp) / "s.db")
             _, _, iface, _, binding, _ = self._setup(service)
             self.assertEqual(iface["protocolVersion"], "1.0")
             self.assertEqual(binding.protocol_version, "1.0")
@@ -180,17 +197,25 @@ class AgentServiceInterfaceCredentialsTests(unittest.TestCase):
 
     def test_a2a_protocol_version_must_be_major_minor_without_patch(self):
         with tempfile.TemporaryDirectory() as tmp:
-            service = self._open(Path(tmp)/"s.db")
+            service = self._open(Path(tmp) / "s.db")
             with self.assertRaises(ValueError):
                 self._setup(service, a2a_version="1.0.0")
 
     def test_mcp_protocol_version_must_be_date_version(self):
         with tempfile.TemporaryDirectory() as tmp:
-            service = self._open(Path(tmp)/"s.db")
+            service = self._open(Path(tmp) / "s.db")
             with self.assertRaises(ValueError):
                 self._setup(service, mcp_version="latest")
 
-    def _credential(self, service, source_identity, binding, *, resource="https://agents.example.test", scopes=("review.invoke",)):
+    def _credential(
+        self,
+        service,
+        source_identity,
+        binding,
+        *,
+        resource="https://agents.example.test",
+        scopes=("review.invoke",),
+    ):
         credential = service.credential_references.register(
             client_reference_id="r14:cred",
             provider="vault",
@@ -218,14 +243,16 @@ class AgentServiceInterfaceCredentialsTests(unittest.TestCase):
         provider = MaterialProvider(secret="TOP-SECRET-R14")
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(
-                Path(tmp)/"s.db",
+                Path(tmp) / "s.db",
                 proof_adapter=proof_adapter,
                 material_provider=provider,
             )
             source_identity, _, _, _, binding, _ = self._setup(
-                service, security={"oauth2":["review.invoke"]}
+                service, security={"oauth2": ["review.invoke"]}
             )
-            credential, proof, record = self._credential(service, source_identity, binding)
+            credential, proof, record = self._credential(
+                service, source_identity, binding
+            )
             self.assertEqual(record.binding_id, binding.id)
             self.assertEqual(record.credential_reference_id, credential.id)
             self.assertEqual(record.identity_proof_id, proof.id)
@@ -244,12 +271,12 @@ class AgentServiceInterfaceCredentialsTests(unittest.TestCase):
         provider = MaterialProvider()
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(
-                Path(tmp)/"s.db",
+                Path(tmp) / "s.db",
                 proof_adapter=proof_adapter,
                 material_provider=provider,
             )
             source_identity, _, _, _, binding, _ = self._setup(
-                service, security={"oauth2":["review.invoke"]}
+                service, security={"oauth2": ["review.invoke"]}
             )
             credential = service.credential_references.register(
                 client_reference_id="r14:bad-resource",
@@ -279,12 +306,12 @@ class AgentServiceInterfaceCredentialsTests(unittest.TestCase):
         provider = MaterialProvider()
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(
-                Path(tmp)/"s.db",
+                Path(tmp) / "s.db",
                 proof_adapter=proof_adapter,
                 material_provider=provider,
             )
             source_identity, _, _, _, binding, _ = self._setup(
-                service, security={"oauth2":["review.invoke"]}
+                service, security={"oauth2": ["review.invoke"]}
             )
             _, other_identity, _ = self._agent(service, "other-caller")
             credential = service.credential_references.register(
@@ -308,19 +335,21 @@ class AgentServiceInterfaceCredentialsTests(unittest.TestCase):
                     security_scheme="oauth2",
                     identity_proof_id=proof.id,
                 )
-            self.assertEqual(service.identities.get(source_identity.id).id, source_identity.id)
+            self.assertEqual(
+                service.identities.get(source_identity.id).id, source_identity.id
+            )
 
     def test_header_resolver_validates_material_and_keeps_secret_transient(self):
         proof_adapter = ProofAdapter()
         provider = MaterialProvider(secret="TRANSIENT-R14")
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(
-                Path(tmp)/"s.db",
+                Path(tmp) / "s.db",
                 proof_adapter=proof_adapter,
                 material_provider=provider,
             )
             source_identity, _, _, _, binding, _ = self._setup(
-                service, security={"oauth2":["review.invoke"]}
+                service, security={"oauth2": ["review.invoke"]}
             )
             self._credential(service, source_identity, binding)
             headers = service.credential_headers(binding)
@@ -333,7 +362,14 @@ class AgentServiceInterfaceCredentialsTests(unittest.TestCase):
                 ).fetchall()
             }
             rendered = " ".join(
-                repr([dict(row) for row in service._connection.execute(f"SELECT * FROM {table}").fetchall()])
+                repr(
+                    [
+                        dict(row)
+                        for row in service._connection.execute(
+                            f"SELECT * FROM {table}"
+                        ).fetchall()
+                    ]
+                )
                 for table in tables
                 if table.startswith(("transport_", "credential_", "identity_"))
             )
@@ -344,12 +380,12 @@ class AgentServiceInterfaceCredentialsTests(unittest.TestCase):
         provider = MaterialProvider()
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(
-                Path(tmp)/"s.db",
+                Path(tmp) / "s.db",
                 proof_adapter=proof_adapter,
                 material_provider=provider,
             )
             source_identity, _, _, _, binding, _ = self._setup(
-                service, security={"oauth2":["review.invoke"]}
+                service, security={"oauth2": ["review.invoke"]}
             )
             self._credential(service, source_identity, binding)
             provider.override_issuer = "https://evil.example.test"
@@ -365,12 +401,12 @@ class AgentServiceInterfaceCredentialsTests(unittest.TestCase):
         provider = MaterialProvider()
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(
-                Path(tmp)/"s.db",
+                Path(tmp) / "s.db",
                 proof_adapter=proof_adapter,
                 material_provider=provider,
             )
             source_identity, _, _, _, binding, _ = self._setup(
-                service, security={"oauth2":["review.invoke"]}
+                service, security={"oauth2": ["review.invoke"]}
             )
             _, proof, first = self._credential(service, source_identity, binding)
             second = service.transport_credentials.bind(
@@ -381,18 +417,17 @@ class AgentServiceInterfaceCredentialsTests(unittest.TestCase):
             )
             self.assertEqual(first.id, second.id)
 
-
     def test_transport_security_scheme_cannot_rebind_to_different_evidence(self):
         proof_adapter = ProofAdapter()
         provider = MaterialProvider()
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(
-                Path(tmp)/"s.db",
+                Path(tmp) / "s.db",
                 proof_adapter=proof_adapter,
                 material_provider=provider,
             )
             source_identity, _, _, _, binding, _ = self._setup(
-                service, security={"oauth2":["review.invoke"]}
+                service, security={"oauth2": ["review.invoke"]}
             )
             self._credential(service, source_identity, binding)
             second_credential = service.credential_references.register(
@@ -420,10 +455,9 @@ class AgentServiceInterfaceCredentialsTests(unittest.TestCase):
                     identity_proof_id=second_proof.id,
                 )
 
-
     def test_legacy_interface_table_fails_closed_until_destructive_migration(self):
         with tempfile.TemporaryDirectory() as tmp:
-            db = Path(tmp)/"s.db"
+            db = Path(tmp) / "s.db"
             connection = sqlite3.connect(db)
             connection.execute(
                 """
@@ -449,13 +483,13 @@ class AgentServiceInterfaceCredentialsTests(unittest.TestCase):
         provider = MaterialProvider()
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(
-                Path(tmp)/"s.db",
+                Path(tmp) / "s.db",
                 proof_adapter=proof_adapter,
                 material_provider=provider,
             )
             source_identity, _, _, _, binding, _ = self._setup(
                 service,
-                security={"oauth2":["review.invoke"]},
+                security={"oauth2": ["review.invoke"]},
             )
             credential = service.credential_references.register(
                 client_reference_id="r14:no-scope",

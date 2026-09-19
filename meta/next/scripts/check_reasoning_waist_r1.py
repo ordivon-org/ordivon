@@ -5,6 +5,7 @@ This validates only mechanical composition of mature reasoning providers on a
 small synthetic case. The command prints current observations; it does not
 rewrite historical acceptance receipts under evidence/.
 """
+
 from __future__ import annotations
 
 import importlib.metadata as md
@@ -72,12 +73,21 @@ def validate_problem_shape() -> dict:
     bad_conforms, _, _ = validate(bad, shacl_graph=shapes)
     require(not bool(bad_conforms), "invalid SHACL sibling unexpectedly conformed")
 
-    rows = list(data.query(
-        "SELECT ?goal WHERE { <urn:ordivon:reasoning-waist:r1:case> "
-        "<urn:ordivon:reasoning-waist:r1:hasGoal> ?goal }"
-    ))
-    require(bool(rows) and rows[0].goal == EX.verifiedOutcome, "SPARQL goal projection mismatch")
-    return {"validCaseConforms": True, "invalidCaseRejected": True, "triples": len(data)}
+    rows = list(
+        data.query(
+            "SELECT ?goal WHERE { <urn:ordivon:reasoning-waist:r1:case> "
+            "<urn:ordivon:reasoning-waist:r1:hasGoal> ?goal }"
+        )
+    )
+    require(
+        bool(rows) and rows[0].goal == EX.verifiedOutcome,
+        "SPARQL goal projection mismatch",
+    )
+    return {
+        "validCaseConforms": True,
+        "invalidCaseRejected": True,
+        "triples": len(data),
+    }
 
 
 def solve_configuration() -> dict:
@@ -96,10 +106,16 @@ def solve_configuration() -> dict:
 
     solver = cp_model.CpSolver()
     status = solver.solve(model)
-    require(status in (cp_model.OPTIMAL, cp_model.FEASIBLE), f"OR-Tools solve failed: {status}")
+    require(
+        status in (cp_model.OPTIMAL, cp_model.FEASIBLE),
+        f"OR-Tools solve failed: {status}",
+    )
     vars_ = [retrieve, verify, plan, diagnose, visualize]
     selected = {v.name: solver.value(v) for v in vars_}
-    require(selected["retrieve"] == 1 and selected["verify"] == 1, "required capabilities not selected")
+    require(
+        selected["retrieve"] == 1 and selected["verify"] == 1,
+        "required capabilities not selected",
+    )
     return {"selected": selected, "objective": solver.objective_value}
 
 
@@ -115,7 +131,10 @@ def crosscheck_logic(config: dict) -> dict:
     contradiction = Solver()
     contradiction.add(Implies(plan, retrieve), plan, Not(retrieve))
     require(contradiction.check() == unsat, "known contradiction was not rejected")
-    return {"selectedConfigurationSatisfiable": True, "knownContradictionRejected": True}
+    return {
+        "selectedConfigurationSatisfiable": True,
+        "knownContradictionRejected": True,
+    }
 
 
 def generate_plan() -> dict:

@@ -98,6 +98,7 @@ Core validation from a clean checkout:
 uv run --locked python -m unittest discover -s tests -p 'test_*.py' -v
 uv run --locked --group architecture lint-imports
 uv run --locked --group quality ruff check agent_service scripts tests
+uv run --locked --group quality ruff format --check agent_service scripts tests
 uv run --locked --group typing pyright
 uv run --locked --group authority python scripts/check_authority_catalog_r1.py
 uv run --locked --group authority python scripts/check_standard_native_enterprise_r2.py

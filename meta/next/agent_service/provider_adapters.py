@@ -24,8 +24,6 @@ class RemoteExecutionCompleted(RuntimeError):
     """Provider reports completed execution; route to R11 evidence verification instead of failover."""
 
 
-
-
 class ProviderRemoteError(RuntimeError):
     def __init__(self, method: str, error: object) -> None:
         super().__init__(f"provider RPC {method} failed")
@@ -33,22 +31,28 @@ class ProviderRemoteError(RuntimeError):
         self.error = error
 
 
-
-
 ProviderCaller = Callable[..., dict[str, Any]]
 
 
-def _require_remote_task_id(receipt: Any | None, latest: RemoteDeliverySnapshot | None) -> str:
+def _require_remote_task_id(
+    receipt: Any | None, latest: RemoteDeliverySnapshot | None
+) -> str:
     task_id = None if receipt is None else getattr(receipt, "remote_task_id", None)
     if task_id is None and latest is not None:
         task_id = latest.remote_task_id
     if not isinstance(task_id, str) or not task_id.strip():
-        raise ProviderProtocolError("remote task identity is required for provider quiescence")
+        raise ProviderProtocolError(
+            "remote task identity is required for provider quiescence"
+        )
     return task_id.strip()
 
 
-def _expected_remote_context(receipt: Any | None, latest: RemoteDeliverySnapshot | None) -> str | None:
-    context_id = None if receipt is None else getattr(receipt, "remote_context_id", None)
+def _expected_remote_context(
+    receipt: Any | None, latest: RemoteDeliverySnapshot | None
+) -> str | None:
+    context_id = (
+        None if receipt is None else getattr(receipt, "remote_context_id", None)
+    )
     if context_id is None and latest is not None:
         context_id = latest.remote_context_id
     return context_id
@@ -176,7 +180,9 @@ class A2AQuiescenceAdapter:
             raise ProviderProtocolError("A2A task identity changed during quiescence")
         observed_context = task.get("contextId")
         if expected_context_id is not None and observed_context != expected_context_id:
-            raise ProviderProtocolError("A2A context identity changed during quiescence")
+            raise ProviderProtocolError(
+                "A2A context identity changed during quiescence"
+            )
         status = task["status"]
         state = status["state"]
         if not isinstance(state, str) or not state:
@@ -222,7 +228,9 @@ class MCPTaskQuiescenceAdapter:
             raise ProviderProtocolError("MCP tasks/cancel result must be an object")
         result_type = ack.get("resultType")
         if result_type is not None and result_type != "complete":
-            raise ProviderProtocolError("MCP tasks/cancel acknowledgement has invalid resultType")
+            raise ProviderProtocolError(
+                "MCP tasks/cancel acknowledgement has invalid resultType"
+            )
 
         task = self._call(
             binding=binding,
@@ -282,8 +290,6 @@ class EffectLedgerSnapshot:
     complete: bool
     effects: tuple[EffectLedgerEffect, ...]
     evidence_ref: str
-
-
 
 
 class EffectLedgerReplaySafetyAdapter:
@@ -350,32 +356,56 @@ class EffectLedgerReplaySafetyAdapter:
         if snapshot.task_id != expected_task_id:
             raise ProviderProtocolError("effect ledger snapshot Task identity mismatch")
         if snapshot.source_binding_id != expected_source_binding_id:
-            raise ProviderProtocolError("effect ledger snapshot source Binding mismatch")
+            raise ProviderProtocolError(
+                "effect ledger snapshot source Binding mismatch"
+            )
         if snapshot.target_binding_id != expected_target_binding_id:
-            raise ProviderProtocolError("effect ledger snapshot target Binding mismatch")
-        if not isinstance(snapshot.evidence_ref, str) or not snapshot.evidence_ref.strip():
-            raise ProviderProtocolError("effect ledger snapshot evidence_ref must be non-empty")
+            raise ProviderProtocolError(
+                "effect ledger snapshot target Binding mismatch"
+            )
+        if (
+            not isinstance(snapshot.evidence_ref, str)
+            or not snapshot.evidence_ref.strip()
+        ):
+            raise ProviderProtocolError(
+                "effect ledger snapshot evidence_ref must be non-empty"
+            )
 
         seen_ids: set[str] = set()
         normalized: list[EffectLedgerEffect] = []
         for effect in snapshot.effects:
             if not isinstance(effect, EffectLedgerEffect):
-                raise ProviderProtocolError("effect ledger entries must be EffectLedgerEffect")
+                raise ProviderProtocolError(
+                    "effect ledger entries must be EffectLedgerEffect"
+                )
             if not isinstance(effect.effect_id, str) or not effect.effect_id.strip():
                 raise ProviderProtocolError("effect ledger effect_id must be non-empty")
             if effect.effect_id in seen_ids:
-                raise ProviderProtocolError("effect ledger contains duplicate effect identity")
+                raise ProviderProtocolError(
+                    "effect ledger contains duplicate effect identity"
+                )
             seen_ids.add(effect.effect_id)
-            state = effect.state.strip().upper() if isinstance(effect.state, str) else ""
+            state = (
+                effect.state.strip().upper() if isinstance(effect.state, str) else ""
+            )
             if state not in EffectLedgerReplaySafetyAdapter.EFFECT_STATES:
-                raise ProviderProtocolError(f"unsupported effect ledger state: {effect.state!r}")
-            if not isinstance(effect.evidence_ref, str) or not effect.evidence_ref.strip():
-                raise ProviderProtocolError("effect ledger effect evidence_ref must be non-empty")
+                raise ProviderProtocolError(
+                    f"unsupported effect ledger state: {effect.state!r}"
+                )
+            if (
+                not isinstance(effect.evidence_ref, str)
+                or not effect.evidence_ref.strip()
+            ):
+                raise ProviderProtocolError(
+                    "effect ledger effect evidence_ref must be non-empty"
+                )
             normalized.append(
                 EffectLedgerEffect(
                     effect_id=effect.effect_id.strip(),
                     state=state,
-                    idempotency_key=None if effect.idempotency_key is None else effect.idempotency_key.strip(),
+                    idempotency_key=None
+                    if effect.idempotency_key is None
+                    else effect.idempotency_key.strip(),
                     replay_target_binding_id=effect.replay_target_binding_id,
                     evidence_ref=effect.evidence_ref.strip(),
                 )

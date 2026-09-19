@@ -13,7 +13,9 @@ from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
 
 
 class ReadyCarrier:
-    def ensure(self, placement_id: str, agent_instance_id: str, revision_id: str) -> None:
+    def ensure(
+        self, placement_id: str, agent_instance_id: str, revision_id: str
+    ) -> None:
         return None
 
     def retire(self, placement_id: str, agent_instance_id: str) -> None:
@@ -70,7 +72,9 @@ class CountingDelivery:
         self.calls = 0
         self.fail_once = False
 
-    def send(self, *, delivery_request_id: str, binding, envelope) -> DeliveryObservation:
+    def send(
+        self, *, delivery_request_id: str, binding, envelope
+    ) -> DeliveryObservation:
         self.calls += 1
         if self.fail_once:
             self.fail_once = False
@@ -99,18 +103,23 @@ class AgentServiceEffectAuthorityTests(unittest.TestCase):
 
     def _agent(self, service, name: str, *, routes=None):
         definition = service.definitions.create(name)
-        revision = service.revisions.create(definition.id, {
-            "name": name,
-            "skills": [{
-                "id": "review",
-                "name": "Review",
-                "description": "review",
-                "tags": ["review"],
-                "inputModes": ["text/plain"],
-                "outputModes": ["text/markdown"],
-            }],
-            "routes": routes or [],
-        })
+        revision = service.revisions.create(
+            definition.id,
+            {
+                "name": name,
+                "skills": [
+                    {
+                        "id": "review",
+                        "name": "Review",
+                        "description": "review",
+                        "tags": ["review"],
+                        "inputModes": ["text/plain"],
+                        "outputModes": ["text/markdown"],
+                    }
+                ],
+                "routes": routes or [],
+            },
+        )
         identity = service.identities.create(
             definition.id,
             stable_name=name,
@@ -121,17 +130,21 @@ class AgentServiceEffectAuthorityTests(unittest.TestCase):
         return revision, identity, instance
 
     def _setup(self, service):
-        source_revision, source_identity, source_instance = self._agent(service, "source-r15")
+        source_revision, source_identity, source_instance = self._agent(
+            service, "source-r15"
+        )
         target_revision, target_identity, _ = self._agent(
             service,
             "target-r15",
-            routes=[{
-                "transport": "a2a-jsonrpc",
-                "protocolVersion": "1.0",
-                "url": "https://agents.example.test/rpc",
-                "priority": 10,
-                "securityRequirements": {},
-            }],
+            routes=[
+                {
+                    "transport": "a2a-jsonrpc",
+                    "protocolVersion": "1.0",
+                    "url": "https://agents.example.test/rpc",
+                    "priority": 10,
+                    "securityRequirements": {},
+                }
+            ],
         )
         task = service.tasks.create(
             description="r15",
@@ -207,7 +220,9 @@ class AgentServiceEffectAuthorityTests(unittest.TestCase):
             self.assertFalse(effect.payload["allowed"])
             self.assertEqual(effect.payload["policyRevision"], "policy-r2")
 
-    def test_denied_effect_identity_stays_denied_when_policy_later_changes(self) -> None:
+    def test_denied_effect_identity_stays_denied_when_policy_later_changes(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             policy = MutablePolicy(allowed=True)
             delivery = CountingDelivery()
@@ -252,7 +267,9 @@ class AgentServiceEffectAuthorityTests(unittest.TestCase):
             effect = service.events.list_for("EffectAuthorization", binding.id)[0]
             self.assertTrue(effect.payload["allowed"])
 
-    def test_effect_authorization_is_frozen_to_exact_binding_effect_identity(self) -> None:
+    def test_effect_authorization_is_frozen_to_exact_binding_effect_identity(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             policy = MutablePolicy(allowed=True)
             delivery = CountingDelivery()

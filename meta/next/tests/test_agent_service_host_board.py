@@ -126,7 +126,12 @@ class HostBoardMcpAdapterTests(unittest.TestCase):
 
     def test_adapter_rejects_unexpected_receipt_kind_or_admission(self) -> None:
         for response in (
-            {"schemaVersion": 2, "kind": "wrong", "admission": "committed", "message": {}},
+            {
+                "schemaVersion": 2,
+                "kind": "wrong",
+                "admission": "committed",
+                "message": {},
+            },
             {
                 "schemaVersion": 2,
                 "kind": "ordivon.host-board-post-receipt",
@@ -143,6 +148,7 @@ class HostBoardMcpAdapterTests(unittest.TestCase):
                         message="projection",
                         topic="agent-service-goal-projection",
                     )
+
 
 if __name__ == "__main__":
     unittest.main()

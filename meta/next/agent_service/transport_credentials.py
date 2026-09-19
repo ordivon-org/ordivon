@@ -17,7 +17,6 @@ def _now_ms() -> int:
     return int(time.time() * 1000)
 
 
-
 def _effective_port(parsed: urllib.parse.ParseResult) -> int | None:
     if parsed.port is not None:
         return parsed.port
@@ -66,9 +65,7 @@ def _transport_credential_scheme_coordinate(
     binding_id: str,
     security_scheme: str,
 ) -> str:
-    return hashlib.sha256(
-        rfc8785.dumps([binding_id, security_scheme])
-    ).hexdigest()
+    return hashlib.sha256(rfc8785.dumps([binding_id, security_scheme])).hexdigest()
 
 
 def _transport_credential_binding_from_event(
@@ -150,9 +147,7 @@ def _transport_credential_binding_get_by_client_request(
             raise KeyError(client_binding_request_id)
         return None
     if len(aliases) != 1:
-        raise RuntimeError(
-            "transport credential request contains multiple receipts"
-        )
+        raise RuntimeError("transport credential request contains multiple receipts")
     record_id = aliases[0].payload.get("transportCredentialBindingId")
     if not isinstance(record_id, str) or not record_id:
         raise RuntimeError(
@@ -300,7 +295,10 @@ class TransportCredentialBindingCoordinator:
         security_scheme: str,
         identity_proof_id: str,
     ) -> TransportCredentialBinding:
-        if not isinstance(client_binding_request_id, str) or not client_binding_request_id.strip():
+        if (
+            not isinstance(client_binding_request_id, str)
+            or not client_binding_request_id.strip()
+        ):
             raise ValueError("client_binding_request_id must be non-empty")
         if not isinstance(security_scheme, str) or not security_scheme.strip():
             raise ValueError("security_scheme must be non-empty")
@@ -324,7 +322,9 @@ class TransportCredentialBindingCoordinator:
 
         binding = self._bindings.get(binding_id)
         if scheme not in binding.security_requirements:
-            raise ValueError("security_scheme is not declared by immutable TransportBinding")
+            raise ValueError(
+                "security_scheme is not declared by immutable TransportBinding"
+            )
         envelope = self._delegations.get(binding.delegation_id)
         if binding.delegation_id != envelope.id:
             raise PermissionError("binding delegation identity mismatch")
@@ -333,19 +333,25 @@ class TransportCredentialBindingCoordinator:
         if not proof.authenticated or not self._identity_proofs.is_current(proof.id):
             raise PermissionError("identity proof is not currently authenticated")
         if proof.identity_id != envelope.source_identity_id:
-            raise PermissionError("identity proof does not belong to Delegation source identity")
+            raise PermissionError(
+                "identity proof does not belong to Delegation source identity"
+            )
 
         credential = self._credential_references.get(proof.credential_reference_id)
         required_scopes = tuple(binding.security_requirements[scheme])
         missing_credential = [
-            scope for scope in required_scopes if scope not in credential.requested_scopes
+            scope
+            for scope in required_scopes
+            if scope not in credential.requested_scopes
         ]
         if missing_credential:
             raise PermissionError(
                 f"credential reference lacks required scopes: {missing_credential}"
             )
         missing_policy = [
-            scope for scope in required_scopes if scope not in binding.granted_permissions
+            scope
+            for scope in required_scopes
+            if scope not in binding.granted_permissions
         ]
         if missing_policy:
             raise PermissionError(
@@ -376,8 +382,6 @@ class CredentialHeaderMaterial:
     granted_scopes: tuple[str, ...]
     expires_at_ms: int | None
     evidence_ref: str
-
-
 
 
 class BoundCredentialHeaderProvider:
@@ -436,11 +440,15 @@ class BoundCredentialHeaderProvider:
                 raise RuntimeError(
                     "identity proof credential reference drifted from transport credential binding"
                 )
-            if not proof.authenticated or not self._identity_proofs.is_current(proof.id):
+            if not proof.authenticated or not self._identity_proofs.is_current(
+                proof.id
+            ):
                 raise PermissionError("bound identity proof is no longer current")
             credential = self._credential_references.get(record.credential_reference_id)
             if not _resource_covers_endpoint(credential.resource, binding.endpoint):
-                raise ValueError("bound credential resource no longer covers Binding endpoint")
+                raise ValueError(
+                    "bound credential resource no longer covers Binding endpoint"
+                )
             material = self._material_provider.resolve_headers(
                 credential_reference=credential,
                 binding=binding,
@@ -452,22 +460,30 @@ class BoundCredentialHeaderProvider:
                     "credential material provider must return CredentialHeaderMaterial"
                 )
             if material.issuer != credential.issuer:
-                raise ValueError("resolved credential issuer drifted from CredentialReference")
+                raise ValueError(
+                    "resolved credential issuer drifted from CredentialReference"
+                )
             if material.resource != credential.resource:
-                raise ValueError("resolved credential resource drifted from CredentialReference")
-            if (
-                material.expires_at_ms is not None
-                and _now_ms() >= int(material.expires_at_ms)
+                raise ValueError(
+                    "resolved credential resource drifted from CredentialReference"
+                )
+            if material.expires_at_ms is not None and _now_ms() >= int(
+                material.expires_at_ms
             ):
                 raise PermissionError("resolved credential material is expired")
             missing_scopes = [
-                scope for scope in required_scopes if scope not in material.granted_scopes
+                scope
+                for scope in required_scopes
+                if scope not in material.granted_scopes
             ]
             if missing_scopes:
                 raise PermissionError(
                     f"resolved credential material lacks required scopes: {missing_scopes}"
                 )
-            if not isinstance(material.evidence_ref, str) or not material.evidence_ref.strip():
+            if (
+                not isinstance(material.evidence_ref, str)
+                or not material.evidence_ref.strip()
+            ):
                 raise ValueError("resolved credential evidence_ref must be non-empty")
             if not isinstance(material.headers, dict):
                 raise ValueError("resolved credential headers must be an object")
@@ -479,7 +495,9 @@ class BoundCredentialHeaderProvider:
                 ):
                     raise ValueError("resolved credential headers must contain strings")
                 if "\r" in name or "\n" in name or "\r" in value or "\n" in value:
-                    raise ValueError("resolved credential headers must not contain CR/LF")
+                    raise ValueError(
+                        "resolved credential headers must not contain CR/LF"
+                    )
                 lowered = name.lower()
                 if any(existing.lower() == lowered for existing in merged):
                     raise ValueError(

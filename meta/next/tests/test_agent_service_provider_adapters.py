@@ -11,20 +11,34 @@ from pathlib import Path
 from agent_service.delivery import DeliveryObservation, PolicyObservation
 from agent_service.evidence import RuntimeArtifactPayload
 from agent_service.failover import _replay_safety_decision_get
-from agent_service.provider_adapters import A2AQuiescenceAdapter, EffectLedgerEffect, EffectLedgerReplaySafetyAdapter, EffectLedgerSnapshot, MCPTaskQuiescenceAdapter, ProviderProtocolError, ProviderRemoteError, QuiescencePending, RemoteExecutionCompleted
+from agent_service.provider_adapters import (
+    A2AQuiescenceAdapter,
+    EffectLedgerEffect,
+    EffectLedgerReplaySafetyAdapter,
+    EffectLedgerSnapshot,
+    MCPTaskQuiescenceAdapter,
+    ProviderProtocolError,
+    ProviderRemoteError,
+    QuiescencePending,
+    RemoteExecutionCompleted,
+)
 from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
 
 
 class ReadyCarrier:
-    def ensure(self, placement_id: str, agent_instance_id: str, revision_id: str) -> None:
+    def ensure(
+        self, placement_id: str, agent_instance_id: str, revision_id: str
+    ) -> None:
         return None
 
     def retire(self, placement_id: str, agent_instance_id: str) -> None:
         return None
 
     def observe(self, placement_id: str) -> ProviderObservation:
-        return ProviderObservation(placement_id=placement_id, state="READY", evidence_ref="test://ready")
+        return ProviderObservation(
+            placement_id=placement_id, state="READY", evidence_ref="test://ready"
+        )
 
 
 class FakeRuntime:
@@ -76,7 +90,9 @@ class SequenceCaller:
         self.calls = []
 
     def __call__(self, *, binding, method, params, request_identity):
-        self.calls.append((binding.transport, binding.endpoint, method, params, request_identity))
+        self.calls.append(
+            (binding.transport, binding.endpoint, method, params, request_identity)
+        )
         if not self.responses:
             raise AssertionError("unexpected provider call")
         value = self.responses.pop(0)
@@ -101,15 +117,16 @@ class LedgerReader:
         source_receipt,
         source_observations,
     ):
-        self.calls.append((task.id, source_binding.id, target_binding.id, quiescence_proof.id))
+        self.calls.append(
+            (task.id, source_binding.id, target_binding.id, quiescence_proof.id)
+        )
         return self.snapshot
-
-
 
 
 class FakeHttpResponse:
     def __init__(self, payload, status=200):
         import json
+
         self.status = status
         self._body = json.dumps(payload).encode("utf-8")
         self.headers = {"Content-Type": "application/json"}
@@ -169,19 +186,26 @@ class AgentServiceProviderAdaptersTests(unittest.TestCase):
 
     def _agent(self, service, name, *, routes=None):
         definition = service.definitions.create(name)
-        revision = service.revisions.create(definition.id, {
-            "name": name,
-            "skills": [{
-                "id": "review",
-                "name": "Review",
-                "description": "review",
-                "tags": ["review"],
-                "inputModes": ["text/plain"],
-                "outputModes": ["text/markdown"],
-            }],
-            "routes": routes or [],
-        })
-        identity = service.identities.create(definition.id, stable_name=name, description=name)
+        revision = service.revisions.create(
+            definition.id,
+            {
+                "name": name,
+                "skills": [
+                    {
+                        "id": "review",
+                        "name": "Review",
+                        "description": "review",
+                        "tags": ["review"],
+                        "inputModes": ["text/plain"],
+                        "outputModes": ["text/markdown"],
+                    }
+                ],
+                "routes": routes or [],
+            },
+        )
+        identity = service.identities.create(
+            definition.id, stable_name=name, description=name
+        )
         instance = service.instances.create(f"request:{name}:r13", revision.id)
         service.reconciler.reconcile(instance.id)
         return revision, identity, instance
@@ -211,10 +235,22 @@ class AgentServiceProviderAdaptersTests(unittest.TestCase):
         task = service.tasks.create(
             description="r13",
             required_revision_id=sr.id,
-            execution={"workspaceId":"x","executable":"/usr/bin/true","args":[],"cwdRelative":".","env":{}},
-            acceptance={"kind":"runtime_artifact_text_contains","artifactKind":"review-markdown","value":"ACCEPTED"},
+            execution={
+                "workspaceId": "x",
+                "executable": "/usr/bin/true",
+                "args": [],
+                "cwdRelative": ".",
+                "env": {},
+            },
+            acceptance={
+                "kind": "runtime_artifact_text_contains",
+                "artifactKind": "review-markdown",
+                "value": "ACCEPTED",
+            },
         )
-        session = service.sessions.open(client_session_id="r13:session", initiator_identity_id=si.id)
+        session = service.sessions.open(
+            client_session_id="r13:session", initiator_identity_id=si.id
+        )
         envelope = service.delegations.create(
             client_delegation_id="r13:delegation",
             session_id=session.id,
@@ -224,8 +260,8 @@ class AgentServiceProviderAdaptersTests(unittest.TestCase):
             target_revision_id=tr.id,
             task_id=task.id,
             capability_key="review",
-            payload={"text":"review"},
-            evidence_contract={"kind":"review-markdown"},
+            payload={"text": "review"},
+            evidence_contract={"kind": "review-markdown"},
         )
         a2a = service.routes.plan(
             envelope.id,
@@ -245,12 +281,18 @@ class AgentServiceProviderAdaptersTests(unittest.TestCase):
         return receipt, envelope
 
     def test_a2a_cancelled_is_quiescent_and_uses_pascalcase_methods(self):
-        caller = SequenceCaller([
-            {"id":"remote-task-1","contextId":"remote-context-1","status":{"state":"TASK_STATE_CANCELED"}}
-        ])
+        caller = SequenceCaller(
+            [
+                {
+                    "id": "remote-task-1",
+                    "contextId": "remote-context-1",
+                    "status": {"state": "TASK_STATE_CANCELED"},
+                }
+            ]
+        )
         adapter = A2AQuiescenceAdapter(caller)
         with tempfile.TemporaryDirectory() as tmp:
-            service = self._service(Path(tmp)/"s.db")
+            service = self._service(Path(tmp) / "s.db")
             _, _, a2a, _ = self._bindings(service)
             receipt, envelope = self._receipt_and_context(service, a2a)
             obs = adapter.prove_quiescence(
@@ -263,16 +305,26 @@ class AgentServiceProviderAdaptersTests(unittest.TestCase):
         self.assertTrue(obs.quiescent)
         self.assertEqual(obs.provider_status, "TASK_STATE_CANCELED")
         self.assertEqual(caller.calls[0][2], "CancelTask")
-        self.assertEqual(caller.calls[0][3], {"id":"remote-task-1"})
+        self.assertEqual(caller.calls[0][3], {"id": "remote-task-1"})
 
     def test_a2a_nonterminal_cancel_result_polls_gettask_then_pending(self):
-        caller = SequenceCaller([
-            {"id":"remote-task-1","contextId":"remote-context-1","status":{"state":"TASK_STATE_WORKING"}},
-            {"id":"remote-task-1","contextId":"remote-context-1","status":{"state":"TASK_STATE_WORKING"}},
-        ])
+        caller = SequenceCaller(
+            [
+                {
+                    "id": "remote-task-1",
+                    "contextId": "remote-context-1",
+                    "status": {"state": "TASK_STATE_WORKING"},
+                },
+                {
+                    "id": "remote-task-1",
+                    "contextId": "remote-context-1",
+                    "status": {"state": "TASK_STATE_WORKING"},
+                },
+            ]
+        )
         adapter = A2AQuiescenceAdapter(caller)
         with tempfile.TemporaryDirectory() as tmp:
-            service = self._service(Path(tmp)/"s.db")
+            service = self._service(Path(tmp) / "s.db")
             _, _, a2a, _ = self._bindings(service)
             receipt, envelope = self._receipt_and_context(service, a2a)
             with self.assertRaises(QuiescencePending):
@@ -286,13 +338,21 @@ class AgentServiceProviderAdaptersTests(unittest.TestCase):
         self.assertEqual([x[2] for x in caller.calls], ["CancelTask", "GetTask"])
 
     def test_a2a_task_not_cancelable_reconciles_with_gettask(self):
-        caller = SequenceCaller([
-            ProviderRemoteError("CancelTask", {"code":-32002,"message":"not cancelable"}),
-            {"id":"remote-task-1","contextId":"remote-context-1","status":{"state":"TASK_STATE_FAILED"}},
-        ])
+        caller = SequenceCaller(
+            [
+                ProviderRemoteError(
+                    "CancelTask", {"code": -32002, "message": "not cancelable"}
+                ),
+                {
+                    "id": "remote-task-1",
+                    "contextId": "remote-context-1",
+                    "status": {"state": "TASK_STATE_FAILED"},
+                },
+            ]
+        )
         adapter = A2AQuiescenceAdapter(caller)
         with tempfile.TemporaryDirectory() as tmp:
-            service = self._service(Path(tmp)/"s.db")
+            service = self._service(Path(tmp) / "s.db")
             _, _, a2a, _ = self._bindings(service)
             receipt, envelope = self._receipt_and_context(service, a2a)
             obs = adapter.prove_quiescence(
@@ -307,12 +367,18 @@ class AgentServiceProviderAdaptersTests(unittest.TestCase):
         self.assertEqual([x[2] for x in caller.calls], ["CancelTask", "GetTask"])
 
     def test_a2a_completed_routes_to_verification_not_failover(self):
-        caller = SequenceCaller([
-            {"id":"remote-task-1","contextId":"remote-context-1","status":{"state":"TASK_STATE_COMPLETED"}}
-        ])
+        caller = SequenceCaller(
+            [
+                {
+                    "id": "remote-task-1",
+                    "contextId": "remote-context-1",
+                    "status": {"state": "TASK_STATE_COMPLETED"},
+                }
+            ]
+        )
         adapter = A2AQuiescenceAdapter(caller)
         with tempfile.TemporaryDirectory() as tmp:
-            service = self._service(Path(tmp)/"s.db")
+            service = self._service(Path(tmp) / "s.db")
             _, _, a2a, _ = self._bindings(service)
             receipt, envelope = self._receipt_and_context(service, a2a)
             with self.assertRaises(RemoteExecutionCompleted):
@@ -325,12 +391,18 @@ class AgentServiceProviderAdaptersTests(unittest.TestCase):
                 )
 
     def test_a2a_task_or_context_mismatch_fails_closed(self):
-        caller = SequenceCaller([
-            {"id":"wrong","contextId":"remote-context-1","status":{"state":"TASK_STATE_CANCELED"}}
-        ])
+        caller = SequenceCaller(
+            [
+                {
+                    "id": "wrong",
+                    "contextId": "remote-context-1",
+                    "status": {"state": "TASK_STATE_CANCELED"},
+                }
+            ]
+        )
         adapter = A2AQuiescenceAdapter(caller)
         with tempfile.TemporaryDirectory() as tmp:
-            service = self._service(Path(tmp)/"s.db")
+            service = self._service(Path(tmp) / "s.db")
             _, _, a2a, _ = self._bindings(service)
             receipt, envelope = self._receipt_and_context(service, a2a)
             with self.assertRaises(ProviderProtocolError):
@@ -343,13 +415,20 @@ class AgentServiceProviderAdaptersTests(unittest.TestCase):
                 )
 
     def test_mcp_cancel_ack_is_not_proof_and_cancelled_get_is_quiescent(self):
-        caller = SequenceCaller([
-            {"resultType":"complete"},
-            {"resultType":"complete","taskId":"remote-task-1","status":"cancelled","ttlMs":1000},
-        ])
+        caller = SequenceCaller(
+            [
+                {"resultType": "complete"},
+                {
+                    "resultType": "complete",
+                    "taskId": "remote-task-1",
+                    "status": "cancelled",
+                    "ttlMs": 1000,
+                },
+            ]
+        )
         adapter = MCPTaskQuiescenceAdapter(caller)
         with tempfile.TemporaryDirectory() as tmp:
-            service = self._service(Path(tmp)/"s.db")
+            service = self._service(Path(tmp) / "s.db")
             _, _, _, mcp = self._bindings(service)
             receipt, envelope = self._receipt_and_context(service, mcp)
             obs = adapter.prove_quiescence(
@@ -364,13 +443,20 @@ class AgentServiceProviderAdaptersTests(unittest.TestCase):
         self.assertEqual([x[2] for x in caller.calls], ["tasks/cancel", "tasks/get"])
 
     def test_mcp_working_after_cancel_ack_is_pending(self):
-        caller = SequenceCaller([
-            {"resultType":"complete"},
-            {"resultType":"complete","taskId":"remote-task-1","status":"working","ttlMs":1000},
-        ])
+        caller = SequenceCaller(
+            [
+                {"resultType": "complete"},
+                {
+                    "resultType": "complete",
+                    "taskId": "remote-task-1",
+                    "status": "working",
+                    "ttlMs": 1000,
+                },
+            ]
+        )
         adapter = MCPTaskQuiescenceAdapter(caller)
         with tempfile.TemporaryDirectory() as tmp:
-            service = self._service(Path(tmp)/"s.db")
+            service = self._service(Path(tmp) / "s.db")
             _, _, _, mcp = self._bindings(service)
             receipt, envelope = self._receipt_and_context(service, mcp)
             with self.assertRaises(QuiescencePending):
@@ -383,13 +469,21 @@ class AgentServiceProviderAdaptersTests(unittest.TestCase):
                 )
 
     def test_mcp_completed_routes_to_verification(self):
-        caller = SequenceCaller([
-            {"resultType":"complete"},
-            {"resultType":"complete","taskId":"remote-task-1","status":"completed","ttlMs":1000,"result":{}},
-        ])
+        caller = SequenceCaller(
+            [
+                {"resultType": "complete"},
+                {
+                    "resultType": "complete",
+                    "taskId": "remote-task-1",
+                    "status": "completed",
+                    "ttlMs": 1000,
+                    "result": {},
+                },
+            ]
+        )
         adapter = MCPTaskQuiescenceAdapter(caller)
         with tempfile.TemporaryDirectory() as tmp:
-            service = self._service(Path(tmp)/"s.db")
+            service = self._service(Path(tmp) / "s.db")
             _, _, _, mcp = self._bindings(service)
             receipt, envelope = self._receipt_and_context(service, mcp)
             with self.assertRaises(RemoteExecutionCompleted):
@@ -402,13 +496,21 @@ class AgentServiceProviderAdaptersTests(unittest.TestCase):
                 )
 
     def test_mcp_failed_is_quiescent_but_not_semantic_success(self):
-        caller = SequenceCaller([
-            {"resultType":"complete"},
-            {"resultType":"complete","taskId":"remote-task-1","status":"failed","ttlMs":1000,"error":{"code":-32603}},
-        ])
+        caller = SequenceCaller(
+            [
+                {"resultType": "complete"},
+                {
+                    "resultType": "complete",
+                    "taskId": "remote-task-1",
+                    "status": "failed",
+                    "ttlMs": 1000,
+                    "error": {"code": -32603},
+                },
+            ]
+        )
         adapter = MCPTaskQuiescenceAdapter(caller)
         with tempfile.TemporaryDirectory() as tmp:
-            service = self._service(Path(tmp)/"s.db")
+            service = self._service(Path(tmp) / "s.db")
             _, _, _, mcp = self._bindings(service)
             receipt, envelope = self._receipt_and_context(service, mcp)
             obs = adapter.prove_quiescence(
@@ -422,13 +524,20 @@ class AgentServiceProviderAdaptersTests(unittest.TestCase):
         self.assertEqual(obs.provider_status, "failed")
 
     def test_mcp_task_identity_mismatch_fails_closed(self):
-        caller = SequenceCaller([
-            {"resultType":"complete"},
-            {"resultType":"complete","taskId":"wrong","status":"cancelled","ttlMs":1000},
-        ])
+        caller = SequenceCaller(
+            [
+                {"resultType": "complete"},
+                {
+                    "resultType": "complete",
+                    "taskId": "wrong",
+                    "status": "cancelled",
+                    "ttlMs": 1000,
+                },
+            ]
+        )
         adapter = MCPTaskQuiescenceAdapter(caller)
         with tempfile.TemporaryDirectory() as tmp:
-            service = self._service(Path(tmp)/"s.db")
+            service = self._service(Path(tmp) / "s.db")
             _, _, _, mcp = self._bindings(service)
             receipt, envelope = self._receipt_and_context(service, mcp)
             with self.assertRaises(ProviderProtocolError):
@@ -450,7 +559,12 @@ class AgentServiceProviderAdaptersTests(unittest.TestCase):
             evidence_ref="ledger://empty",
         )
         adapter = EffectLedgerReplaySafetyAdapter(LedgerReader(snapshot))
-        obs = adapter._evaluate_snapshot(snapshot, expected_task_id="task-x", expected_source_binding_id="source-x", expected_target_binding_id="target-x")
+        obs = adapter._evaluate_snapshot(
+            snapshot,
+            expected_task_id="task-x",
+            expected_source_binding_id="source-x",
+            expected_target_binding_id="target-x",
+        )
         self.assertTrue(obs.safe)
         self.assertEqual(obs.classification, "NO_EFFECTS")
 
@@ -463,7 +577,9 @@ class AgentServiceProviderAdaptersTests(unittest.TestCase):
             effects=(),
             evidence_ref="ledger://incomplete",
         )
-        obs = EffectLedgerReplaySafetyAdapter(LedgerReader(snapshot))._evaluate_snapshot(
+        obs = EffectLedgerReplaySafetyAdapter(
+            LedgerReader(snapshot)
+        )._evaluate_snapshot(
             snapshot,
             expected_task_id="task-x",
             expected_source_binding_id="source-x",
@@ -479,12 +595,14 @@ class AgentServiceProviderAdaptersTests(unittest.TestCase):
             target_binding_id="target-x",
             complete=True,
             effects=(
-                EffectLedgerEffect("e1","ROLLED_BACK",None,None,"effect://e1"),
-                EffectLedgerEffect("e2","ROLLED_BACK",None,None,"effect://e2"),
+                EffectLedgerEffect("e1", "ROLLED_BACK", None, None, "effect://e1"),
+                EffectLedgerEffect("e2", "ROLLED_BACK", None, None, "effect://e2"),
             ),
             evidence_ref="ledger://rolled-back",
         )
-        obs = EffectLedgerReplaySafetyAdapter(LedgerReader(snapshot))._evaluate_snapshot(
+        obs = EffectLedgerReplaySafetyAdapter(
+            LedgerReader(snapshot)
+        )._evaluate_snapshot(
             snapshot,
             expected_task_id="task-x",
             expected_source_binding_id="source-x",
@@ -500,12 +618,14 @@ class AgentServiceProviderAdaptersTests(unittest.TestCase):
             target_binding_id="target-x",
             complete=True,
             effects=(
-                EffectLedgerEffect("e1","COMPENSATED",None,None,"effect://e1"),
-                EffectLedgerEffect("e2","ROLLED_BACK",None,None,"effect://e2"),
+                EffectLedgerEffect("e1", "COMPENSATED", None, None, "effect://e1"),
+                EffectLedgerEffect("e2", "ROLLED_BACK", None, None, "effect://e2"),
             ),
             evidence_ref="ledger://compensated",
         )
-        obs = EffectLedgerReplaySafetyAdapter(LedgerReader(snapshot))._evaluate_snapshot(
+        obs = EffectLedgerReplaySafetyAdapter(
+            LedgerReader(snapshot)
+        )._evaluate_snapshot(
             snapshot,
             expected_task_id="task-x",
             expected_source_binding_id="source-x",
@@ -520,7 +640,11 @@ class AgentServiceProviderAdaptersTests(unittest.TestCase):
             source_binding_id="source-x",
             target_binding_id="target-x",
             complete=True,
-            effects=(EffectLedgerEffect("e1","COMMITTED","idem-1","target-x","effect://e1"),),
+            effects=(
+                EffectLedgerEffect(
+                    "e1", "COMMITTED", "idem-1", "target-x", "effect://e1"
+                ),
+            ),
             evidence_ref="ledger://idem",
         )
         unsafe = EffectLedgerSnapshot(
@@ -528,12 +652,26 @@ class AgentServiceProviderAdaptersTests(unittest.TestCase):
             source_binding_id="source-x",
             target_binding_id="target-x",
             complete=True,
-            effects=(EffectLedgerEffect("e1","COMMITTED","idem-1","other-target","effect://e1"),),
+            effects=(
+                EffectLedgerEffect(
+                    "e1", "COMMITTED", "idem-1", "other-target", "effect://e1"
+                ),
+            ),
             evidence_ref="ledger://wrong-target",
         )
         adapter = EffectLedgerReplaySafetyAdapter(LedgerReader(safe))
-        yes = adapter._evaluate_snapshot(safe, expected_task_id="task-x", expected_source_binding_id="source-x", expected_target_binding_id="target-x")
-        no = adapter._evaluate_snapshot(unsafe, expected_task_id="task-x", expected_source_binding_id="source-x", expected_target_binding_id="target-x")
+        yes = adapter._evaluate_snapshot(
+            safe,
+            expected_task_id="task-x",
+            expected_source_binding_id="source-x",
+            expected_target_binding_id="target-x",
+        )
+        no = adapter._evaluate_snapshot(
+            unsafe,
+            expected_task_id="task-x",
+            expected_source_binding_id="source-x",
+            expected_target_binding_id="target-x",
+        )
         self.assertTrue(yes.safe)
         self.assertEqual(yes.classification, "IDEMPOTENT_REPLAY")
         self.assertFalse(no.safe)
@@ -556,21 +694,28 @@ class AgentServiceProviderAdaptersTests(unittest.TestCase):
                 expected_target_binding_id="target-x",
             )
 
-
-    def test_agent_service_r13_wires_a2a_quiescence_and_effect_ledger_into_r12_failover(self):
-        a2a_caller = SequenceCaller([
-            {"id":"remote-task-1","contextId":"remote-context-1","status":{"state":"TASK_STATE_CANCELED"}},
-        ])
+    def test_agent_service_r13_wires_a2a_quiescence_and_effect_ledger_into_r12_failover(
+        self,
+    ):
+        a2a_caller = SequenceCaller(
+            [
+                {
+                    "id": "remote-task-1",
+                    "contextId": "remote-context-1",
+                    "status": {"state": "TASK_STATE_CANCELED"},
+                },
+            ]
+        )
         mcp_caller = SequenceCaller([])
         ledger = DynamicNoEffectsReader()
         with tempfile.TemporaryDirectory() as tmp:
             service = open_agent_service(
-                Path(tmp)/"s.db",
+                Path(tmp) / "s.db",
                 carrier_adapter=ReadyCarrier(),
                 runtime_adapter=FakeRuntime(),
                 artifact_reader=NoopArtifactReader(),
                 policy_adapter=AllowPolicy(),
-                delivery_adapters={"a2a-jsonrpc":Delivery(),"mcp":Delivery()},
+                delivery_adapters={"a2a-jsonrpc": Delivery(), "mcp": Delivery()},
                 a2a_caller=a2a_caller,
                 mcp_tasks_caller=mcp_caller,
                 effect_ledger_reader=ledger,
@@ -586,7 +731,12 @@ class AgentServiceProviderAdaptersTests(unittest.TestCase):
                 to_binding_id=mcp.id,
             )
             self.assertEqual(service.execution_claims.get(task.id).owner_id, mcp.id)
-            self.assertEqual(_replay_safety_decision_get(service.events, transfer.replay_safety_decision_id).classification, "NO_EFFECTS")
+            self.assertEqual(
+                _replay_safety_decision_get(
+                    service.events, transfer.replay_safety_decision_id
+                ).classification,
+                "NO_EFFECTS",
+            )
             receipt = service.delivery.deliver(mcp.id)
             self.assertEqual(receipt.binding_id, mcp.id)
             self.assertEqual(service.tasks.get(task.id).state, "RUNNING")

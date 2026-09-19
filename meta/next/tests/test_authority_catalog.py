@@ -44,14 +44,26 @@ class AuthorityCatalogTests(unittest.TestCase):
         rows = catalog.build_index()["entries"]
 
         def top(query: str) -> str:
-            ranked = sorted(((catalog.score_entry(row, query), row["id"]) for row in rows), key=lambda x: (-x[0], x[1]))
+            ranked = sorted(
+                ((catalog.score_entry(row, query), row["id"]) for row in rows),
+                key=lambda x: (-x[0], x[1]),
+            )
             return ranked[0][1]
 
         def positive(query: str) -> list[str]:
             return [row["id"] for row in rows if catalog.score_entry(row, query) > 0]
 
         self.assertEqual(top("risk management"), "iso-31000-2018")
-        self.assertIn(top("software supply chain"), {"slsa-1.2", "nist-sp-800-218-ssdf-1.1", "cyclonedx-1.7", "spdx-3.0", "in-toto-1.0"})
+        self.assertIn(
+            top("software supply chain"),
+            {
+                "slsa-1.2",
+                "nist-sp-800-218-ssdf-1.1",
+                "cyclonedx-1.7",
+                "spdx-3.0",
+                "in-toto-1.0",
+            },
+        )
         self.assertIn(top("software bill of materials"), {"cyclonedx-1.7", "spdx-3.0"})
         self.assertEqual(top("application security verification"), "owasp-asvs-5.0.0")
         self.assertEqual(top("data lineage"), "openlineage-spec")
@@ -73,10 +85,16 @@ class AuthorityCatalogTests(unittest.TestCase):
         self.assertEqual(top("xbrl reporting"), "xbrl-2.1")
         self.assertEqual(top("fix 4.4"), "fix-4.4-errata-20030618")
         self.assertEqual(top("legal entity identifier"), "iso-17442-1-2020")
-        self.assertEqual(top("information security management"), "iso-iec-27001-2022-amd1-2024")
+        self.assertEqual(
+            top("information security management"), "iso-iec-27001-2022-amd1-2024"
+        )
         self.assertEqual(top("ai management system"), "iso-iec-42001-2023")
-        self.assertEqual(top("service management system"), "iso-iec-20000-1-2018-amd1-2024")
-        self.assertEqual(top("knowledge management system"), "iso-30401-2018-amd1-2022-amd2-2024")
+        self.assertEqual(
+            top("service management system"), "iso-iec-20000-1-2018-amd1-2024"
+        )
+        self.assertEqual(
+            top("knowledge management system"), "iso-30401-2018-amd1-2022-amd2-2024"
+        )
         self.assertEqual(top("business continuity"), "iso-22301-2019-amd1-2024")
         self.assertEqual(top("innovation management"), "iso-56001-2024")
         self.assertEqual(top("ai risk management"), "nist-ai-rmf-1.0")
@@ -87,24 +105,38 @@ class AuthorityCatalogTests(unittest.TestCase):
         self.assertEqual(top("agent skills"), "agent-skills-spec")
         self.assertEqual(top("software supply chain attestation"), "in-toto-1.0")
         self.assertEqual(top("datacite metadata"), "datacite-metadata-schema-4.7")
-        self.assertEqual(top("crossref metadata deposit"), "crossref-metadata-deposit-schema-5.5.0")
+        self.assertEqual(
+            top("crossref metadata deposit"), "crossref-metadata-deposit-schema-5.5.0"
+        )
         self.assertEqual(top("research organization registry"), "ror-schema-2.1")
-        self.assertEqual(top("contributor roles taxonomy"), "ansi-niso-z39.104-2022-credit")
+        self.assertEqual(
+            top("contributor roles taxonomy"), "ansi-niso-z39.104-2022-credit"
+        )
         self.assertEqual(top("citation style language"), "csl-1.0.2")
-        self.assertEqual(top("software heritage persistent identifier"), "swhid-scheme-v1")
+        self.assertEqual(
+            top("software heritage persistent identifier"), "swhid-scheme-v1"
+        )
         self.assertEqual(top("orcid identifier"), "orcid-id-structure")
         self.assertEqual(top("preservation metadata premis"), "premis-3.0")
         self.assertEqual(top("metadata encoding transmission"), "mets-2")
         self.assertEqual(top("file format registry"), "pronom-registry")
         self.assertEqual(top("requirements engineering"), "iso-iec-ieee-29148-2018")
-        self.assertEqual(top("genai semantic conventions"), "opentelemetry-genai-semconv")
+        self.assertEqual(
+            top("genai semantic conventions"), "opentelemetry-genai-semconv"
+        )
         self.assertEqual(top("enterprise architecture modeling"), "archimate-3.2")
-        self.assertEqual(top("enterprise architecture method"), "togaf-standard-10th-edition")
+        self.assertEqual(
+            top("enterprise architecture method"), "togaf-standard-10th-edition"
+        )
         self.assertEqual(top("latest official tls 1.3 standard"), "rfc-9846")
         self.assertEqual(top("customer discovery"), "yc-essential-startup-advice")
         self.assertEqual(top("outsourcing"), "iso-37500-2014")
-        self.assertEqual(top("company registration"), "samr-registration-materials-2026")
-        self.assertEqual(top("value proposition"), "strategyzer-value-proposition-canvas")
+        self.assertEqual(
+            top("company registration"), "samr-registration-materials-2026"
+        )
+        self.assertEqual(
+            top("value proposition"), "strategyzer-value-proposition-canvas"
+        )
         self.assertEqual(top("founder led sales"), "yc-how-to-sell-2018")
         self.assertEqual(top("pricing"), "stripe-saas-pricing-packaging")
         self.assertEqual(top("customer success"), "iso-10004-2018")
@@ -113,7 +145,9 @@ class AuthorityCatalogTests(unittest.TestCase):
         self.assertEqual(top("procurement"), "iso-20400-2017")
         self.assertEqual(top("frappe crm"), "frappe-crm-provider")
         self.assertEqual(top("erpnext crm"), "erpnext-crm-provider")
-        self.assertEqual(top("contract management"), "worldcc-contract-management-standard-4e")
+        self.assertEqual(
+            top("contract management"), "worldcc-contract-management-standard-4e"
+        )
         self.assertEqual(top("customer support"), "frappe-helpdesk-provider")
         self.assertEqual(top("helpdesk"), "frappe-helpdesk-provider")
         self.assertEqual(top("payroll"), "frappe-hr-payroll-provider")
@@ -127,7 +161,9 @@ class AuthorityCatalogTests(unittest.TestCase):
         self.assertEqual(top("traffic source"), "google-analytics-traffic-source")
         self.assertEqual(top("brand evaluation"), "iso-20671-1-2021")
         self.assertEqual(top("adtech privacy"), "iab-privacy-standards")
-        self.assertEqual(top("advertising measurement"), "mrc-outcomes-data-quality-2022")
+        self.assertEqual(
+            top("advertising measurement"), "mrc-outcomes-data-quality-2022"
+        )
 
         # Unknown named authorities must fail closed rather than borrow relevance
         # from one or two generic overlapping tokens.

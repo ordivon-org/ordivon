@@ -51,9 +51,7 @@ class ExternalOwnershipBoundaryTests(unittest.TestCase):
         legacy_ceiling = set(
             profile["legacyTypeCeilings"]["agentServiceTopLevelClasses"]
         )
-        approved = {
-            entry["name"] for entry in profile["approvedPostBaselineTypes"]
-        }
+        approved = {entry["name"] for entry in profile["approvedPostBaselineTypes"]}
 
         unexpected = sorted(observed - legacy_ceiling - approved)
         self.assertEqual(

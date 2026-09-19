@@ -12,7 +12,10 @@ from agent_service.delivery import (
     PolicyObservation,
 )
 from agent_service.evidence import ArtifactDigestMismatch, RuntimeArtifactPayload
-from agent_service.remote_evidence import RemoteArtifactPayload, _remote_task_verification_get_by_task
+from agent_service.remote_evidence import (
+    RemoteArtifactPayload,
+    _remote_task_verification_get_by_task,
+)
 from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
 from agent_service.trust import RemoteProviderObservation
@@ -23,14 +26,18 @@ def digest(text: str) -> str:
 
 
 class ReadyCarrier:
-    def ensure(self, placement_id: str, agent_instance_id: str, revision_id: str) -> None:
+    def ensure(
+        self, placement_id: str, agent_instance_id: str, revision_id: str
+    ) -> None:
         return None
 
     def retire(self, placement_id: str, agent_instance_id: str) -> None:
         return None
 
     def observe(self, placement_id: str) -> ProviderObservation:
-        return ProviderObservation(placement_id=placement_id, state="READY", evidence_ref="test://ready")
+        return ProviderObservation(
+            placement_id=placement_id, state="READY", evidence_ref="test://ready"
+        )
 
 
 class FakeRuntime:
@@ -71,7 +78,9 @@ class RecordingDelivery:
         self.committed: dict[str, DeliveryObservation] = {}
         self.fail_after_commit_once = False
 
-    def send(self, *, delivery_request_id: str, binding, envelope) -> DeliveryObservation:
+    def send(
+        self, *, delivery_request_id: str, binding, envelope
+    ) -> DeliveryObservation:
         self.calls.append(delivery_request_id)
         existing = self.committed.get(delivery_request_id)
         if existing is not None:
@@ -97,13 +106,17 @@ class RecordingDelivery:
 
 
 class TerminalRemoteObserver:
-    def __init__(self, *, successful: bool, artifact_refs: tuple[str, ...] = ("artifact:review",)) -> None:
+    def __init__(
+        self, *, successful: bool, artifact_refs: tuple[str, ...] = ("artifact:review",)
+    ) -> None:
         self.successful = successful
         self.artifact_refs = artifact_refs
 
     def observe(self, *, binding, receipt, envelope) -> RemoteProviderObservation:
         return RemoteProviderObservation(
-            provider_status="TASK_STATE_COMPLETED" if self.successful else "TASK_STATE_FAILED",
+            provider_status="TASK_STATE_COMPLETED"
+            if self.successful
+            else "TASK_STATE_FAILED",
             terminal=True,
             successful=self.successful,
             remote_task_id=receipt.remote_task_id,
@@ -118,7 +131,9 @@ class MappingRemoteArtifactReader:
         self.payloads = payloads
         self.calls: list[str] = []
 
-    def read(self, *, binding, receipt, observation, artifact_ref: str) -> RemoteArtifactPayload:
+    def read(
+        self, *, binding, receipt, observation, artifact_ref: str
+    ) -> RemoteArtifactPayload:
         self.calls.append(artifact_ref)
         return self.payloads[artifact_ref]
 
@@ -156,20 +171,27 @@ class AgentServiceRemoteEvidenceTests(unittest.TestCase):
 
     def _agent(self, service: object, name: str, *, routes=None):
         definition = service.definitions.create(name)
-        revision = service.revisions.create(definition.id, {
-            "name": name,
-            "harness": "r11",
-            "skills": [{
-                "id": "review",
-                "name": "Review",
-                "description": "review",
-                "tags": ["review"],
-                "inputModes": ["text/plain"],
-                "outputModes": ["text/markdown"],
-            }],
-            "routes": routes or [],
-        })
-        identity = service.identities.create(definition.id, stable_name=name, description=name)
+        revision = service.revisions.create(
+            definition.id,
+            {
+                "name": name,
+                "harness": "r11",
+                "skills": [
+                    {
+                        "id": "review",
+                        "name": "Review",
+                        "description": "review",
+                        "tags": ["review"],
+                        "inputModes": ["text/plain"],
+                        "outputModes": ["text/markdown"],
+                    }
+                ],
+                "routes": routes or [],
+            },
+        )
+        identity = service.identities.create(
+            definition.id, stable_name=name, description=name
+        )
         instance = service.instances.create(f"request:{name}:r11", revision.id)
         service.reconciler.reconcile(instance.id)
         return revision, identity, instance
@@ -178,12 +200,24 @@ class AgentServiceRemoteEvidenceTests(unittest.TestCase):
         return service.tasks.create(
             description=label,
             required_revision_id=revision_id,
-            execution={"workspaceId":"ws-test","executable":"/usr/bin/true","args":[],"cwdRelative":".","env":{}},
-            acceptance={"kind":"runtime_artifact_text_contains","artifactKind":"review-markdown","value":"ACCEPTED"},
+            execution={
+                "workspaceId": "ws-test",
+                "executable": "/usr/bin/true",
+                "args": [],
+                "cwdRelative": ".",
+                "env": {},
+            },
+            acceptance={
+                "kind": "runtime_artifact_text_contains",
+                "artifactKind": "review-markdown",
+                "value": "ACCEPTED",
+            },
         )
 
     def _remote_setup(self, service: object, *, with_goal: bool = False):
-        source_revision, source_identity, source_instance = self._agent(service, "source")
+        source_revision, source_identity, source_instance = self._agent(
+            service, "source"
+        )
         target_revision, target_identity, _ = self._agent(
             service,
             "target",
@@ -223,8 +257,8 @@ class AgentServiceRemoteEvidenceTests(unittest.TestCase):
             target_revision_id=target_revision.id,
             task_id=task.id,
             capability_key="review",
-            payload={"text":"review"},
-            evidence_contract={"kind":"review-markdown"},
+            payload={"text": "review"},
+            evidence_contract={"kind": "review-markdown"},
         )
         policy_request_id = f"r11:policy:{task.id}"
         a2a = service.routes.plan(
@@ -251,7 +285,9 @@ class AgentServiceRemoteEvidenceTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 service.delivery.deliver(a2a.id)
 
-    def test_remote_delivery_claims_task_sets_running_and_blocks_local_assignment(self) -> None:
+    def test_remote_delivery_claims_task_sets_running_and_blocks_local_assignment(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db")
             _, task, _, _, a2a, _ = self._remote_setup(service)
@@ -265,7 +301,9 @@ class AgentServiceRemoteEvidenceTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 service.planner.plan(task.id)
 
-    def test_second_fallback_binding_cannot_execute_after_primary_binding_claims_task(self) -> None:
+    def test_second_fallback_binding_cannot_execute_after_primary_binding_claims_task(
+        self,
+    ) -> None:
         delivery = RecordingDelivery()
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db", delivery=delivery)
@@ -280,7 +318,9 @@ class AgentServiceRemoteEvidenceTests(unittest.TestCase):
     def test_remote_delivery_cannot_bypass_goal_dependency_readiness(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db")
-            revision, task, goal, _, a2a, _ = self._remote_setup(service, with_goal=True)
+            revision, task, goal, _, a2a, _ = self._remote_setup(
+                service, with_goal=True
+            )
             dependency = self._task(service, revision.id, "dependency")
             service.goal_task_links.attach(goal.id, dependency.id)
             service.task_dependencies.add(task.id, dependency.id)
@@ -290,7 +330,9 @@ class AgentServiceRemoteEvidenceTests(unittest.TestCase):
             self.assertIsNone(service.execution_claims.get(task.id, required=False))
             self.assertEqual(service.tasks.get(task.id).state, "PENDING")
 
-    def test_delivery_response_loss_keeps_remote_claim_and_retry_reuses_same_remote_effect(self) -> None:
+    def test_delivery_response_loss_keeps_remote_claim_and_retry_reuses_same_remote_effect(
+        self,
+    ) -> None:
         delivery = RecordingDelivery()
         delivery.fail_after_commit_once = True
         with tempfile.TemporaryDirectory() as tmp:
@@ -307,7 +349,9 @@ class AgentServiceRemoteEvidenceTests(unittest.TestCase):
             self.assertEqual(len(delivery.committed), 1)
             self.assertEqual(receipt.admission, "existing")
 
-    def test_remote_success_only_completes_task_after_artifact_acceptance_passes(self) -> None:
+    def test_remote_success_only_completes_task_after_artifact_acceptance_passes(
+        self,
+    ) -> None:
         text = "review result: ACCEPTED"
         reader = MappingRemoteArtifactReader(
             {
@@ -339,7 +383,9 @@ class AgentServiceRemoteEvidenceTests(unittest.TestCase):
             self.assertEqual(record.evidence["resolver"], "remote_artifact_text")
             self.assertEqual(record.evidence["artifactRef"], "artifact:review")
 
-    def test_remote_success_with_rejected_artifact_fails_semantic_acceptance(self) -> None:
+    def test_remote_success_with_rejected_artifact_fails_semantic_acceptance(
+        self,
+    ) -> None:
         text = "review result: REJECTED"
         reader = MappingRemoteArtifactReader(
             {
@@ -368,12 +414,16 @@ class AgentServiceRemoteEvidenceTests(unittest.TestCase):
             self.assertEqual(service.tasks.get(task.id).state, "FAILED")
             self.assertIn("not_satisfied", record.reason)
 
-    def test_remote_mechanical_failure_fails_task_without_reading_artifact(self) -> None:
+    def test_remote_mechanical_failure_fails_task_without_reading_artifact(
+        self,
+    ) -> None:
         reader = MappingRemoteArtifactReader({})
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(
                 Path(tmp) / "service.db",
-                remote_observer=TerminalRemoteObserver(successful=False, artifact_refs=()),
+                remote_observer=TerminalRemoteObserver(
+                    successful=False, artifact_refs=()
+                ),
                 artifact_reader=reader,
             )
             _, task, _, _, a2a, _ = self._remote_setup(service)
@@ -387,7 +437,9 @@ class AgentServiceRemoteEvidenceTests(unittest.TestCase):
             self.assertEqual(service.tasks.get(task.id).state, "FAILED")
             self.assertEqual(reader.calls, [])
 
-    def test_remote_artifact_digest_mismatch_fails_closed_without_task_verdict(self) -> None:
+    def test_remote_artifact_digest_mismatch_fails_closed_without_task_verdict(
+        self,
+    ) -> None:
         text = "review result: ACCEPTED"
         reader = MappingRemoteArtifactReader(
             {
@@ -413,7 +465,11 @@ class AgentServiceRemoteEvidenceTests(unittest.TestCase):
                 service.remote_completion.reconcile(a2a.id)
 
             self.assertEqual(service.tasks.get(task.id).state, "RUNNING")
-            self.assertIsNone(_remote_task_verification_get_by_task(service.events, task.id, required=False))
+            self.assertIsNone(
+                _remote_task_verification_get_by_task(
+                    service.events, task.id, required=False
+                )
+            )
 
     def test_remote_verification_is_durable_and_exact_replay_safe(self) -> None:
         text = "ACCEPTED"
@@ -457,8 +513,9 @@ class AgentServiceRemoteEvidenceTests(unittest.TestCase):
             self.assertEqual(restored.id, record.id)
             self.assertEqual(second.tasks.get(task.id).state, "SUCCEEDED")
 
-
-    def test_existing_delivery_receipt_survives_restart_without_remote_resend(self) -> None:
+    def test_existing_delivery_receipt_survives_restart_without_remote_resend(
+        self,
+    ) -> None:
         delivery = RecordingDelivery()
         with tempfile.TemporaryDirectory() as tmp:
             db = Path(tmp) / "service.db"

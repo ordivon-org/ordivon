@@ -8,20 +8,32 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from agent_service.evidence import ArtifactDigestMismatch, RuntimeArtifactPayload, _verification_record_list_for_task
+from agent_service.evidence import (
+    ArtifactDigestMismatch,
+    RuntimeArtifactPayload,
+    _verification_record_list_for_task,
+)
 from agent_service.slice1 import ProviderObservation
-from agent_service.task_runtime import RuntimeArtifactDescriptor, RuntimeJobObservation, RuntimeJobRef
+from agent_service.task_runtime import (
+    RuntimeArtifactDescriptor,
+    RuntimeJobObservation,
+    RuntimeJobRef,
+)
 
 
 class ReadyCarrier:
-    def ensure(self, placement_id: str, agent_instance_id: str, revision_id: str) -> None:
+    def ensure(
+        self, placement_id: str, agent_instance_id: str, revision_id: str
+    ) -> None:
         return None
 
     def retire(self, placement_id: str, agent_instance_id: str) -> None:
         return None
 
     def observe(self, placement_id: str) -> ProviderObservation:
-        return ProviderObservation(placement_id=placement_id, state="READY", evidence_ref="test://ready")
+        return ProviderObservation(
+            placement_id=placement_id, state="READY", evidence_ref="test://ready"
+        )
 
 
 class FakeRuntime:
@@ -30,7 +42,9 @@ class FakeRuntime:
         self.by_request: dict[str, str] = {}
 
     def submit(self, client_request_id: str, execution: dict) -> RuntimeJobRef:
-        job_id = self.by_request.setdefault(client_request_id, f"job-{len(self.by_request) + 1}")
+        job_id = self.by_request.setdefault(
+            client_request_id, f"job-{len(self.by_request) + 1}"
+        )
         self.jobs.setdefault(
             job_id,
             RuntimeJobObservation(
@@ -65,7 +79,9 @@ def sha256_text(value: str) -> str:
 
 
 class AgentServiceEvidenceTests(unittest.TestCase):
-    def _open(self, db: Path, runtime: FakeRuntime, artifacts: FakeArtifactReader) -> object:
+    def _open(
+        self, db: Path, runtime: FakeRuntime, artifacts: FakeArtifactReader
+    ) -> object:
         service = open_current(
             db,
             carrier_adapter=ReadyCarrier(),
@@ -102,7 +118,9 @@ class AgentServiceEvidenceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db", runtime, artifacts)
             revision, _ = self._ready_agent(service)
-            task = self._task(service, revision.id, {"kind": "stdout_contains", "value": "OK"})
+            task = self._task(
+                service, revision.id, {"kind": "stdout_contains", "value": "OK"}
+            )
             assignment = service.planner.plan(task.id)
 
             active = service.execution_activator.activate(assignment.id)
@@ -121,7 +139,9 @@ class AgentServiceEvidenceTests(unittest.TestCase):
             service.execution_activator.activate(assignment.id)
 
             self.assertEqual(service.tasks.get(task.id).state, "RUNNING")
-            self.assertEqual(_verification_record_list_for_task(service.events, task.id), [])
+            self.assertEqual(
+                _verification_record_list_for_task(service.events, task.id), []
+            )
 
             service.completion.reconcile(assignment.id)
             self.assertEqual(service.tasks.get(task.id).state, "SUCCEEDED")
@@ -132,7 +152,9 @@ class AgentServiceEvidenceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db", runtime, artifacts)
             revision, _ = self._ready_agent(service)
-            task = self._task(service, revision.id, {"kind": "stdout_contains", "value": "EXPECTED"})
+            task = self._task(
+                service, revision.id, {"kind": "stdout_contains", "value": "EXPECTED"}
+            )
             assignment = service.planner.plan(task.id)
             active = service.execution_activator.activate(assignment.id)
             assert active.runtime_job_id is not None
@@ -183,14 +205,18 @@ class AgentServiceEvidenceTests(unittest.TestCase):
                 stdout_tail="truncated tail without marker",
                 stderr_tail="",
                 artifacts=(artifact_id,),
-                artifact_descriptors=(RuntimeArtifactDescriptor(artifact_id=artifact_id, kind="stdout"),),
+                artifact_descriptors=(
+                    RuntimeArtifactDescriptor(artifact_id=artifact_id, kind="stdout"),
+                ),
             )
             content = "large durable output ... ARTIFACT_OK ...\n"
-            artifacts.payloads[(active.runtime_job_id, artifact_id)] = RuntimeArtifactPayload(
-                job_id=active.runtime_job_id,
-                artifact_id=artifact_id,
-                digest=sha256_text(content),
-                content=content,
+            artifacts.payloads[(active.runtime_job_id, artifact_id)] = (
+                RuntimeArtifactPayload(
+                    job_id=active.runtime_job_id,
+                    artifact_id=artifact_id,
+                    digest=sha256_text(content),
+                    content=content,
+                )
             )
 
             service.completion.reconcile(assignment.id)
@@ -201,7 +227,9 @@ class AgentServiceEvidenceTests(unittest.TestCase):
             self.assertEqual(record.evidence["digest"], sha256_text(content))
             self.assertEqual(artifacts.reads, [(active.runtime_job_id, artifact_id)])
 
-    def test_artifact_digest_mismatch_fails_closed_without_task_terminal_transition(self) -> None:
+    def test_artifact_digest_mismatch_fails_closed_without_task_terminal_transition(
+        self,
+    ) -> None:
         runtime = FakeRuntime()
         artifacts = FakeArtifactReader()
         with tempfile.TemporaryDirectory() as tmp:
@@ -210,7 +238,11 @@ class AgentServiceEvidenceTests(unittest.TestCase):
             task = self._task(
                 service,
                 revision.id,
-                {"kind": "runtime_artifact_text_contains", "artifactKind": "stdout", "value": "OK"},
+                {
+                    "kind": "runtime_artifact_text_contains",
+                    "artifactKind": "stdout",
+                    "value": "OK",
+                },
             )
             assignment = service.planner.plan(task.id)
             active = service.execution_activator.activate(assignment.id)
@@ -225,28 +257,38 @@ class AgentServiceEvidenceTests(unittest.TestCase):
                 stdout_tail="",
                 stderr_tail="",
                 artifacts=(artifact_id,),
-                artifact_descriptors=(RuntimeArtifactDescriptor(artifact_id=artifact_id, kind="stdout"),),
+                artifact_descriptors=(
+                    RuntimeArtifactDescriptor(artifact_id=artifact_id, kind="stdout"),
+                ),
             )
-            artifacts.payloads[(active.runtime_job_id, artifact_id)] = RuntimeArtifactPayload(
-                job_id=active.runtime_job_id,
-                artifact_id=artifact_id,
-                digest="sha256:" + "0" * 64,
-                content="OK\n",
+            artifacts.payloads[(active.runtime_job_id, artifact_id)] = (
+                RuntimeArtifactPayload(
+                    job_id=active.runtime_job_id,
+                    artifact_id=artifact_id,
+                    digest="sha256:" + "0" * 64,
+                    content="OK\n",
+                )
             )
 
             with self.assertRaises(ArtifactDigestMismatch):
                 service.completion.reconcile(assignment.id)
 
             self.assertEqual(service.tasks.get(task.id).state, "RUNNING")
-            self.assertEqual(_verification_record_list_for_task(service.events, task.id), [])
+            self.assertEqual(
+                _verification_record_list_for_task(service.events, task.id), []
+            )
 
-    def test_completion_replay_does_not_duplicate_verdict_or_terminal_event(self) -> None:
+    def test_completion_replay_does_not_duplicate_verdict_or_terminal_event(
+        self,
+    ) -> None:
         runtime = FakeRuntime()
         artifacts = FakeArtifactReader()
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db", runtime, artifacts)
             revision, _ = self._ready_agent(service)
-            task = self._task(service, revision.id, {"kind": "stdout_equals", "value": "OK\n"})
+            task = self._task(
+                service, revision.id, {"kind": "stdout_equals", "value": "OK\n"}
+            )
             assignment = service.planner.plan(task.id)
             active = service.execution_activator.activate(assignment.id)
             assert active.runtime_job_id is not None
@@ -264,8 +306,12 @@ class AgentServiceEvidenceTests(unittest.TestCase):
             service.completion.reconcile(assignment.id)
             service.completion.reconcile(assignment.id)
 
-            self.assertEqual(len(_verification_record_list_for_task(service.events, task.id)), 1)
-            event_types = [event.event_type for event in service.events.list_for("Task", task.id)]
+            self.assertEqual(
+                len(_verification_record_list_for_task(service.events, task.id)), 1
+            )
+            event_types = [
+                event.event_type for event in service.events.list_for("Task", task.id)
+            ]
             self.assertEqual(event_types.count("TASK_SUCCEEDED"), 1)
             self.assertEqual(event_types.count("TASK_VERIFIED"), 1)
 
@@ -275,7 +321,9 @@ class AgentServiceEvidenceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db", runtime, artifacts)
             revision, _ = self._ready_agent(service)
-            task = self._task(service, revision.id, {"kind": "stdout_contains", "value": "OK"})
+            task = self._task(
+                service, revision.id, {"kind": "stdout_contains", "value": "OK"}
+            )
             assignment = service.planner.plan(task.id)
             active = service.execution_activator.activate(assignment.id)
             assert active.runtime_job_id is not None
@@ -304,7 +352,9 @@ class AgentServiceEvidenceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db", runtime, artifacts)
             revision, _ = self._ready_agent(service)
-            task = self._task(service, revision.id, {"kind": "stdout_contains", "value": "OK"})
+            task = self._task(
+                service, revision.id, {"kind": "stdout_contains", "value": "OK"}
+            )
             assignment = service.planner.plan(task.id)
             active = service.execution_activator.activate(assignment.id)
             assert active.runtime_job_id is not None
@@ -329,10 +379,15 @@ class AgentServiceEvidenceTests(unittest.TestCase):
 
             self.assertEqual(service.tasks.get(task.id).state, "RUNNING")
             self.assertEqual(service.assignments.get(assignment.id).state, "ACTIVE")
-            self.assertEqual(_verification_record_list_for_task(service.events, task.id), [])
+            self.assertEqual(
+                _verification_record_list_for_task(service.events, task.id), []
+            )
             self.assertNotIn(
                 "TASK_SUCCEEDED",
-                [event.event_type for event in service.events.list_for("Task", task.id)],
+                [
+                    event.event_type
+                    for event in service.events.list_for("Task", task.id)
+                ],
             )
 
     def test_runtime_semantic_authority_violation_fails_closed(self) -> None:
@@ -341,7 +396,9 @@ class AgentServiceEvidenceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db", runtime, artifacts)
             revision, _ = self._ready_agent(service)
-            task = self._task(service, revision.id, {"kind": "stdout_contains", "value": "OK"})
+            task = self._task(
+                service, revision.id, {"kind": "stdout_contains", "value": "OK"}
+            )
             assignment = service.planner.plan(task.id)
             active = service.execution_activator.activate(assignment.id)
             assert active.runtime_job_id is not None
@@ -360,7 +417,9 @@ class AgentServiceEvidenceTests(unittest.TestCase):
                 service.completion.reconcile(assignment.id)
 
             self.assertEqual(service.tasks.get(task.id).state, "RUNNING")
-            self.assertEqual(_verification_record_list_for_task(service.events, task.id), [])
+            self.assertEqual(
+                _verification_record_list_for_task(service.events, task.id), []
+            )
 
 
 if __name__ == "__main__":
@@ -386,5 +445,7 @@ class VerificationReceiptAuthorityBoundaryTests(unittest.TestCase):
         receipt = bundle.receipt()
 
         self.assertNotIn("SECRET_OR_LARGE_RUNTIME_ARTIFACT", str(receipt))
-        self.assertEqual(receipt["digest"], sha256_text("SECRET_OR_LARGE_RUNTIME_ARTIFACT"))
+        self.assertEqual(
+            receipt["digest"], sha256_text("SECRET_OR_LARGE_RUNTIME_ARTIFACT")
+        )
         self.assertEqual(receipt["artifactId"], "attempt.stdout")

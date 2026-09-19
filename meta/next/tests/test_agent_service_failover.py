@@ -6,23 +6,40 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agent_service.delivery import DeliveryObservation, PolicyObservation, _delivery_receipt_create, _delivery_receipt_get_by_binding
+from agent_service.delivery import (
+    DeliveryObservation,
+    PolicyObservation,
+    _delivery_receipt_create,
+    _delivery_receipt_get_by_binding,
+)
 from agent_service.evidence import RuntimeArtifactPayload
-from agent_service.failover import ExecutionQuiescenceObservation, ReplaySafetyObservation, _replay_safety_decision_get_by_client_request, _execution_quiescence_proof_get_by_client_request
+from agent_service.failover import (
+    ExecutionQuiescenceObservation,
+    ReplaySafetyObservation,
+    _replay_safety_decision_get_by_client_request,
+    _execution_quiescence_proof_get_by_client_request,
+)
 from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
-from agent_service.trust import RemoteProviderObservation, _remote_delivery_observation_record
+from agent_service.trust import (
+    RemoteProviderObservation,
+    _remote_delivery_observation_record,
+)
 
 
 class ReadyCarrier:
-    def ensure(self, placement_id: str, agent_instance_id: str, revision_id: str) -> None:
+    def ensure(
+        self, placement_id: str, agent_instance_id: str, revision_id: str
+    ) -> None:
         return None
 
     def retire(self, placement_id: str, agent_instance_id: str) -> None:
         return None
 
     def observe(self, placement_id: str) -> ProviderObservation:
-        return ProviderObservation(placement_id=placement_id, state="READY", evidence_ref="test://ready")
+        return ProviderObservation(
+            placement_id=placement_id, state="READY", evidence_ref="test://ready"
+        )
 
 
 class FakeRuntime:
@@ -62,7 +79,9 @@ class RecordingDelivery:
         self.calls: list[tuple[str, str]] = []
         self.committed: dict[str, DeliveryObservation] = {}
 
-    def send(self, *, delivery_request_id: str, binding, envelope) -> DeliveryObservation:
+    def send(
+        self, *, delivery_request_id: str, binding, envelope
+    ) -> DeliveryObservation:
         self.calls.append((binding.id, delivery_request_id))
         existing = self.committed.get(delivery_request_id)
         if existing is not None:
@@ -92,7 +111,15 @@ class RecordingQuiescenceAdapter:
         self.fail_after_commit_once = False
         self.override_remote_task_id: str | None = None
 
-    def prove_quiescence(self, *, quiescence_request_id: str, binding, receipt, envelope, latest_observation):
+    def prove_quiescence(
+        self,
+        *,
+        quiescence_request_id: str,
+        binding,
+        receipt,
+        envelope,
+        latest_observation,
+    ):
         self.calls.append(quiescence_request_id)
         existing = self.observations.get(quiescence_request_id)
         if existing is not None:
@@ -102,16 +129,22 @@ class RecordingQuiescenceAdapter:
             remote_task_id = (
                 receipt.remote_task_id
                 if receipt is not None
-                else None if latest_observation is None else latest_observation.remote_task_id
+                else None
+                if latest_observation is None
+                else latest_observation.remote_task_id
             )
         remote_context_id = (
             receipt.remote_context_id
             if receipt is not None
-            else None if latest_observation is None else latest_observation.remote_context_id
+            else None
+            if latest_observation is None
+            else latest_observation.remote_context_id
         )
         value = ExecutionQuiescenceObservation(
             quiescent=self.quiescent,
-            provider_status="TASK_STATE_CANCELED" if self.quiescent else "TASK_STATE_WORKING",
+            provider_status="TASK_STATE_CANCELED"
+            if self.quiescent
+            else "TASK_STATE_WORKING",
             remote_task_id=remote_task_id,
             remote_context_id=remote_context_id,
             evidence_ref=f"quiescence://{quiescence_request_id}",
@@ -200,26 +233,35 @@ class AgentServiceFailoverTests(unittest.TestCase):
 
     def _agent(self, service: object, name: str, *, routes=None):
         definition = service.definitions.create(name)
-        revision = service.revisions.create(definition.id, {
-            "name": name,
-            "harness": "r12",
-            "skills": [{
-                "id": "review",
-                "name": "Review",
-                "description": "review",
-                "tags": ["review"],
-                "inputModes": ["text/plain"],
-                "outputModes": ["text/markdown"],
-            }],
-            "routes": routes or [],
-        })
-        identity = service.identities.create(definition.id, stable_name=name, description=name)
+        revision = service.revisions.create(
+            definition.id,
+            {
+                "name": name,
+                "harness": "r12",
+                "skills": [
+                    {
+                        "id": "review",
+                        "name": "Review",
+                        "description": "review",
+                        "tags": ["review"],
+                        "inputModes": ["text/plain"],
+                        "outputModes": ["text/markdown"],
+                    }
+                ],
+                "routes": routes or [],
+            },
+        )
+        identity = service.identities.create(
+            definition.id, stable_name=name, description=name
+        )
         instance = service.instances.create(f"request:{name}:r12", revision.id)
         service.reconciler.reconcile(instance.id)
         return revision, identity, instance
 
     def _setup(self, service: object, suffix: str = "main"):
-        source_revision, source_identity, source_instance = self._agent(service, f"source-{suffix}")
+        source_revision, source_identity, source_instance = self._agent(
+            service, f"source-{suffix}"
+        )
         target_revision, target_identity, _ = self._agent(
             service,
             f"target-{suffix}",
@@ -243,8 +285,18 @@ class AgentServiceFailoverTests(unittest.TestCase):
         task = service.tasks.create(
             description=f"review-{suffix}",
             required_revision_id=source_revision.id,
-            execution={"workspaceId":"ws-test","executable":"/usr/bin/true","args":[],"cwdRelative":".","env":{}},
-            acceptance={"kind":"runtime_artifact_text_contains","artifactKind":"review-markdown","value":"ACCEPTED"},
+            execution={
+                "workspaceId": "ws-test",
+                "executable": "/usr/bin/true",
+                "args": [],
+                "cwdRelative": ".",
+                "env": {},
+            },
+            acceptance={
+                "kind": "runtime_artifact_text_contains",
+                "artifactKind": "review-markdown",
+                "value": "ACCEPTED",
+            },
         )
         session = service.sessions.open(
             client_session_id=f"r12:session:{suffix}",
@@ -259,8 +311,8 @@ class AgentServiceFailoverTests(unittest.TestCase):
             target_revision_id=target_revision.id,
             task_id=task.id,
             capability_key="review",
-            payload={"text":"review"},
-            evidence_contract={"kind":"review-markdown"},
+            payload={"text": "review"},
+            evidence_contract={"kind": "review-markdown"},
         )
         policy_request_id = f"r12:policy:{suffix}"
         primary = service.routes.plan(
@@ -294,7 +346,11 @@ class AgentServiceFailoverTests(unittest.TestCase):
         quiescence = RecordingQuiescenceAdapter(quiescent=False)
         replay = RecordingReplaySafetyAdapter()
         with tempfile.TemporaryDirectory() as tmp:
-            service = self._open(Path(tmp) / "service.db", quiescence_adapter=quiescence, replay_safety_adapter=replay)
+            service = self._open(
+                Path(tmp) / "service.db",
+                quiescence_adapter=quiescence,
+                replay_safety_adapter=replay,
+            )
             task, _, primary, fallback = self._setup(service)
             self._deliver_primary(service, primary)
 
@@ -303,7 +359,9 @@ class AgentServiceFailoverTests(unittest.TestCase):
             )
             self.assertFalse(proof.quiescent)
             self.assertEqual(
-                service.quiescence_requests.get_by_client_request("r12:q:not-stopped").state,
+                service.quiescence_requests.get_by_client_request(
+                    "r12:q:not-stopped"
+                ).state,
                 "NOT_PROVED",
             )
             with self.assertRaises(RuntimeError):
@@ -335,27 +393,39 @@ class AgentServiceFailoverTests(unittest.TestCase):
             self.assertTrue(replay.quiescent)
             self.assertEqual(len(adapter.calls), 1)
 
-    def test_quiescence_response_loss_keeps_source_claim_until_exact_retry(self) -> None:
+    def test_quiescence_response_loss_keeps_source_claim_until_exact_retry(
+        self,
+    ) -> None:
         adapter = RecordingQuiescenceAdapter(quiescent=True)
         adapter.fail_after_commit_once = True
         replay = RecordingReplaySafetyAdapter()
         with tempfile.TemporaryDirectory() as tmp:
-            service = self._open(Path(tmp) / "service.db", quiescence_adapter=adapter, replay_safety_adapter=replay)
+            service = self._open(
+                Path(tmp) / "service.db",
+                quiescence_adapter=adapter,
+                replay_safety_adapter=replay,
+            )
             task, _, primary, fallback = self._setup(service)
             self._deliver_primary(service, primary)
             with self.assertRaises(RuntimeError):
                 self._failover(service, primary, fallback, "lost-q")
             self.assertEqual(service.execution_claims.get(task.id).owner_id, primary.id)
-            pending = service.quiescence_requests.get_by_client_request("r12:quiescence:lost-q")
+            pending = service.quiescence_requests.get_by_client_request(
+                "r12:quiescence:lost-q"
+            )
             self.assertEqual(pending.state, "REQUESTED")
             with self.assertRaises(RuntimeError):
                 service.delivery.deliver(primary.id)
             transfer = self._failover(service, primary, fallback, "lost-q")
-            self.assertEqual(service.execution_claims.get(task.id).owner_id, fallback.id)
+            self.assertEqual(
+                service.execution_claims.get(task.id).owner_id, fallback.id
+            )
             self.assertEqual(transfer.to_binding_id, fallback.id)
             self.assertEqual(adapter.calls[0], adapter.calls[1])
             self.assertEqual(
-                service.quiescence_requests.get_by_client_request("r12:quiescence:lost-q").state,
+                service.quiescence_requests.get_by_client_request(
+                    "r12:quiescence:lost-q"
+                ).state,
                 "PROVED",
             )
 
@@ -363,7 +433,9 @@ class AgentServiceFailoverTests(unittest.TestCase):
         adapter = RecordingQuiescenceAdapter(quiescent=True)
         delivery = RecordingDelivery()
         with tempfile.TemporaryDirectory() as tmp:
-            service = self._open(Path(tmp) / "service.db", delivery=delivery, quiescence_adapter=adapter)
+            service = self._open(
+                Path(tmp) / "service.db", delivery=delivery, quiescence_adapter=adapter
+            )
             _, _, primary, _ = self._setup(service)
             original = self._deliver_primary(service, primary)
             proof = service.quiescence.prove(
@@ -372,10 +444,15 @@ class AgentServiceFailoverTests(unittest.TestCase):
             self.assertTrue(proof.quiescent)
             with self.assertRaises(RuntimeError):
                 service.delivery.deliver(primary.id)
-            self.assertEqual(_delivery_receipt_get_by_binding(service.events, primary.id).id, original.id)
+            self.assertEqual(
+                _delivery_receipt_get_by_binding(service.events, primary.id).id,
+                original.id,
+            )
             self.assertEqual(len([x for x in delivery.calls if x[0] == primary.id]), 1)
 
-    def test_terminal_unsuccessful_observation_proves_quiescence_without_adapter(self) -> None:
+    def test_terminal_unsuccessful_observation_proves_quiescence_without_adapter(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db")
             _, _, primary, _ = self._setup(service)
@@ -394,7 +471,8 @@ class AgentServiceFailoverTests(unittest.TestCase):
                 ),
             )
             proof = service.quiescence.prove(
-                client_quiescence_request_id="r12:q:terminal-failed", binding_id=primary.id
+                client_quiescence_request_id="r12:q:terminal-failed",
+                binding_id=primary.id,
             )
             self.assertTrue(proof.quiescent)
             self.assertEqual(proof.method, "terminal_unsuccessful_observation")
@@ -422,11 +500,17 @@ class AgentServiceFailoverTests(unittest.TestCase):
                     client_quiescence_request_id="r12:q:unknown", binding_id=primary.id
                 )
 
-    def test_any_historical_terminal_success_blocks_failover_even_after_later_failure(self) -> None:
+    def test_any_historical_terminal_success_blocks_failover_even_after_later_failure(
+        self,
+    ) -> None:
         adapter = RecordingQuiescenceAdapter(quiescent=True)
         replay = RecordingReplaySafetyAdapter()
         with tempfile.TemporaryDirectory() as tmp:
-            service = self._open(Path(tmp) / "service.db", quiescence_adapter=adapter, replay_safety_adapter=replay)
+            service = self._open(
+                Path(tmp) / "service.db",
+                quiescence_adapter=adapter,
+                replay_safety_adapter=replay,
+            )
             task, _, primary, fallback = self._setup(service)
             receipt = self._deliver_primary(service, primary)
             _remote_delivery_observation_record(
@@ -473,21 +557,31 @@ class AgentServiceFailoverTests(unittest.TestCase):
                     client_quiescence_request_id="r12:q:mismatch", binding_id=primary.id
                 )
             self.assertIsNone(
-                _execution_quiescence_proof_get_by_client_request(service.events, "r12:q:mismatch", required=False)
+                _execution_quiescence_proof_get_by_client_request(
+                    service.events, "r12:q:mismatch", required=False
+                )
             )
 
     def test_quiescent_but_partial_effects_blocks_transfer(self) -> None:
         quiescence = RecordingQuiescenceAdapter(quiescent=True)
         replay = RecordingReplaySafetyAdapter(
-            safe=False, classification="PARTIAL_EFFECTS", reason="irreversible write observed"
+            safe=False,
+            classification="PARTIAL_EFFECTS",
+            reason="irreversible write observed",
         )
         with tempfile.TemporaryDirectory() as tmp:
-            service = self._open(Path(tmp) / "service.db", quiescence_adapter=quiescence, replay_safety_adapter=replay)
+            service = self._open(
+                Path(tmp) / "service.db",
+                quiescence_adapter=quiescence,
+                replay_safety_adapter=replay,
+            )
             task, _, primary, fallback = self._setup(service)
             self._deliver_primary(service, primary)
             with self.assertRaises(RuntimeError):
                 self._failover(service, primary, fallback, "partial-effects")
-            decision = _replay_safety_decision_get_by_client_request(service.events, "r12:replay:partial-effects")
+            decision = _replay_safety_decision_get_by_client_request(
+                service.events, "r12:replay:partial-effects"
+            )
             self.assertFalse(decision.safe)
             self.assertEqual(decision.classification, "PARTIAL_EFFECTS")
             self.assertEqual(service.execution_claims.get(task.id).owner_id, primary.id)
@@ -498,7 +592,11 @@ class AgentServiceFailoverTests(unittest.TestCase):
         quiescence = RecordingQuiescenceAdapter(quiescent=True)
         replay = RecordingReplaySafetyAdapter(safe=True, classification="COMPENSATED")
         with tempfile.TemporaryDirectory() as tmp:
-            service = self._open(Path(tmp) / "service.db", quiescence_adapter=quiescence, replay_safety_adapter=replay)
+            service = self._open(
+                Path(tmp) / "service.db",
+                quiescence_adapter=quiescence,
+                replay_safety_adapter=replay,
+            )
             _, _, primary, fallback = self._setup(service)
             self._deliver_primary(service, primary)
             proof = service.quiescence.prove(
@@ -523,12 +621,18 @@ class AgentServiceFailoverTests(unittest.TestCase):
             self.assertEqual(second.classification, "COMPENSATED")
             self.assertEqual(len(replay.calls), 1)
 
-    def test_replay_safety_response_loss_does_not_transfer_until_exact_retry(self) -> None:
+    def test_replay_safety_response_loss_does_not_transfer_until_exact_retry(
+        self,
+    ) -> None:
         quiescence = RecordingQuiescenceAdapter(quiescent=True)
         replay = RecordingReplaySafetyAdapter(safe=True, classification="ROLLED_BACK")
         replay.fail_after_commit_once = True
         with tempfile.TemporaryDirectory() as tmp:
-            service = self._open(Path(tmp) / "service.db", quiescence_adapter=quiescence, replay_safety_adapter=replay)
+            service = self._open(
+                Path(tmp) / "service.db",
+                quiescence_adapter=quiescence,
+                replay_safety_adapter=replay,
+            )
             task, _, primary, fallback = self._setup(service)
             self._deliver_primary(service, primary)
             with self.assertRaises(RuntimeError):
@@ -538,9 +642,13 @@ class AgentServiceFailoverTests(unittest.TestCase):
             self.assertEqual(transfer.to_binding_id, fallback.id)
             self.assertEqual(replay.calls[0], replay.calls[1])
 
-    def test_quiescence_and_replay_safety_allow_atomic_transfer_then_fallback_delivery(self) -> None:
+    def test_quiescence_and_replay_safety_allow_atomic_transfer_then_fallback_delivery(
+        self,
+    ) -> None:
         quiescence = RecordingQuiescenceAdapter(quiescent=True)
-        replay = RecordingReplaySafetyAdapter(safe=True, classification="IDEMPOTENT_REPLAY")
+        replay = RecordingReplaySafetyAdapter(
+            safe=True, classification="IDEMPOTENT_REPLAY"
+        )
         delivery = RecordingDelivery()
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(
@@ -552,7 +660,9 @@ class AgentServiceFailoverTests(unittest.TestCase):
             task, _, primary, fallback = self._setup(service)
             self._deliver_primary(service, primary)
             transfer = self._failover(service, primary, fallback, "ok")
-            self.assertEqual(service.execution_claims.get(task.id).owner_id, fallback.id)
+            self.assertEqual(
+                service.execution_claims.get(task.id).owner_id, fallback.id
+            )
             self.assertEqual(service.tasks.get(task.id).state, "RUNNING")
             self.assertEqual(transfer.from_binding_id, primary.id)
             self.assertEqual(transfer.to_binding_id, fallback.id)
@@ -562,11 +672,17 @@ class AgentServiceFailoverTests(unittest.TestCase):
             self.assertEqual(receipt.binding_id, fallback.id)
             self.assertEqual(service.tasks.get(task.id).state, "RUNNING")
 
-    def test_target_with_historical_delivery_or_observation_is_not_pristine(self) -> None:
+    def test_target_with_historical_delivery_or_observation_is_not_pristine(
+        self,
+    ) -> None:
         quiescence = RecordingQuiescenceAdapter(quiescent=True)
         replay = RecordingReplaySafetyAdapter()
         with tempfile.TemporaryDirectory() as tmp:
-            service = self._open(Path(tmp) / "service.db", quiescence_adapter=quiescence, replay_safety_adapter=replay)
+            service = self._open(
+                Path(tmp) / "service.db",
+                quiescence_adapter=quiescence,
+                replay_safety_adapter=replay,
+            )
             task, envelope, primary, fallback = self._setup(service)
             self._deliver_primary(service, primary)
             _delivery_receipt_create(
@@ -586,11 +702,17 @@ class AgentServiceFailoverTests(unittest.TestCase):
             self.assertEqual(quiescence.calls, [])
             self.assertEqual(replay.calls, [])
 
-    def test_cross_delegation_target_is_rejected_before_replay_safety_effect(self) -> None:
+    def test_cross_delegation_target_is_rejected_before_replay_safety_effect(
+        self,
+    ) -> None:
         quiescence = RecordingQuiescenceAdapter(quiescent=True)
         replay = RecordingReplaySafetyAdapter()
         with tempfile.TemporaryDirectory() as tmp:
-            service = self._open(Path(tmp) / "service.db", quiescence_adapter=quiescence, replay_safety_adapter=replay)
+            service = self._open(
+                Path(tmp) / "service.db",
+                quiescence_adapter=quiescence,
+                replay_safety_adapter=replay,
+            )
             task, _, primary, _ = self._setup(service, "one")
             _, _, _, other_fallback = self._setup(service, "two")
             self._deliver_primary(service, primary)
@@ -610,7 +732,11 @@ class AgentServiceFailoverTests(unittest.TestCase):
         quiescence = RecordingQuiescenceAdapter(quiescent=True)
         replay = RecordingReplaySafetyAdapter()
         with tempfile.TemporaryDirectory() as tmp:
-            service = self._open(Path(tmp) / "service.db", quiescence_adapter=quiescence, replay_safety_adapter=replay)
+            service = self._open(
+                Path(tmp) / "service.db",
+                quiescence_adapter=quiescence,
+                replay_safety_adapter=replay,
+            )
             _, _, primary, fallback = self._setup(service)
             self._deliver_primary(service, primary)
             with self.assertRaises(ValueError):
@@ -624,7 +750,9 @@ class AgentServiceFailoverTests(unittest.TestCase):
             self.assertEqual(quiescence.calls, [])
             self.assertEqual(replay.calls, [])
 
-    def test_committed_failover_identity_cannot_be_reused_for_different_target(self) -> None:
+    def test_committed_failover_identity_cannot_be_reused_for_different_target(
+        self,
+    ) -> None:
         quiescence = RecordingQuiescenceAdapter(quiescent=True)
         replay = RecordingReplaySafetyAdapter(safe=True, classification="NO_EFFECTS")
         with tempfile.TemporaryDirectory() as tmp:
@@ -637,7 +765,9 @@ class AgentServiceFailoverTests(unittest.TestCase):
             _, _, _, other_fallback = self._setup(service, "conflict-b")
             self._deliver_primary(service, primary)
             first = self._failover(service, primary, fallback, "identity-conflict")
-            self.assertEqual(service.execution_claims.get(task.id).owner_id, fallback.id)
+            self.assertEqual(
+                service.execution_claims.get(task.id).owner_id, fallback.id
+            )
             quiescence_calls = len(quiescence.calls)
             replay_calls = len(replay.calls)
 
@@ -654,11 +784,15 @@ class AgentServiceFailoverTests(unittest.TestCase):
                 )
 
             self.assertEqual(first.to_binding_id, fallback.id)
-            self.assertEqual(service.execution_claims.get(task.id).owner_id, fallback.id)
+            self.assertEqual(
+                service.execution_claims.get(task.id).owner_id, fallback.id
+            )
             self.assertEqual(len(quiescence.calls), quiescence_calls)
             self.assertEqual(len(replay.calls), replay_calls)
 
-    def test_committed_failover_identity_cannot_change_subrequest_identities(self) -> None:
+    def test_committed_failover_identity_cannot_change_subrequest_identities(
+        self,
+    ) -> None:
         quiescence = RecordingQuiescenceAdapter(quiescent=True)
         replay = RecordingReplaySafetyAdapter(safe=True, classification="NO_EFFECTS")
         with tempfile.TemporaryDirectory() as tmp:
@@ -685,15 +819,23 @@ class AgentServiceFailoverTests(unittest.TestCase):
                     to_binding_id=fallback.id,
                 )
 
-            self.assertEqual(service.execution_claims.get(task.id).owner_id, fallback.id)
+            self.assertEqual(
+                service.execution_claims.get(task.id).owner_id, fallback.id
+            )
             self.assertEqual(len(quiescence.calls), quiescence_calls)
             self.assertEqual(len(replay.calls), replay_calls)
 
-    def test_late_old_owner_success_cannot_steal_task_after_transfer_and_failover_replay_is_exact(self) -> None:
+    def test_late_old_owner_success_cannot_steal_task_after_transfer_and_failover_replay_is_exact(
+        self,
+    ) -> None:
         quiescence = RecordingQuiescenceAdapter(quiescent=True)
         replay = RecordingReplaySafetyAdapter(safe=True, classification="NO_EFFECTS")
         with tempfile.TemporaryDirectory() as tmp:
-            service = self._open(Path(tmp) / "service.db", quiescence_adapter=quiescence, replay_safety_adapter=replay)
+            service = self._open(
+                Path(tmp) / "service.db",
+                quiescence_adapter=quiescence,
+                replay_safety_adapter=replay,
+            )
             task, _, primary, fallback = self._setup(service)
             receipt = self._deliver_primary(service, primary)
             transfer = self._failover(service, primary, fallback, "replay-final")
@@ -718,7 +860,9 @@ class AgentServiceFailoverTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 service.remote_completion.reconcile(primary.id)
             self.assertEqual(service.tasks.get(task.id).state, "RUNNING")
-            self.assertEqual(service.execution_claims.get(task.id).owner_id, fallback.id)
+            self.assertEqual(
+                service.execution_claims.get(task.id).owner_id, fallback.id
+            )
 
 
 if __name__ == "__main__":

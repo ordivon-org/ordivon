@@ -164,8 +164,13 @@ class SqliteMigrationsStandardTests(unittest.TestCase):
             self.assertIn("protocol_version", columns)
             connection.close()
 
-    def test_all_declared_legacy_tables_fail_before_migration_ledger_is_created(self) -> None:
-        from agent_service.schema_migrations import LEGACY_TABLES, apply_schema_migrations
+    def test_all_declared_legacy_tables_fail_before_migration_ledger_is_created(
+        self,
+    ) -> None:
+        from agent_service.schema_migrations import (
+            LEGACY_TABLES,
+            apply_schema_migrations,
+        )
 
         self.assertGreater(len(LEGACY_TABLES), 1)
         for table in LEGACY_TABLES:
@@ -184,7 +189,6 @@ class SqliteMigrationsStandardTests(unittest.TestCase):
                     self.assertNotIn("_sqlite_migrations", names)
                 finally:
                     connection.close()
-
 
 
 if __name__ == "__main__":
@@ -221,7 +225,10 @@ class SqliteMigrationBehaviorTests(unittest.TestCase):
             connection.close()
 
     def test_fresh_business_schema_matches_frozen_pre_migration_contract(self) -> None:
-        from agent_service.schema_migrations import CURRENT_TABLE_DDL, apply_schema_migrations
+        from agent_service.schema_migrations import (
+            CURRENT_TABLE_DDL,
+            apply_schema_migrations,
+        )
 
         with tempfile.TemporaryDirectory() as td:
             path = Path(td) / "service.db"

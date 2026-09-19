@@ -12,11 +12,14 @@ from pathlib import Path
 MCP_AVAILABLE = importlib.util.find_spec("mcp") is not None
 
 
-@unittest.skipUnless(MCP_AVAILABLE, "mcp deployment dependency is tested in the deployment venv")
+@unittest.skipUnless(
+    MCP_AVAILABLE, "mcp deployment dependency is tested in the deployment venv"
+)
 class AgentServiceMcpCanaryTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         import scripts.agent_service_mcp as module
+
         cls.module = module
 
     def _token(self, root: Path) -> Path:

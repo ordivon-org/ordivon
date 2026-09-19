@@ -12,14 +12,18 @@ from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
 
 
 class ReadyCarrier:
-    def ensure(self, placement_id: str, agent_instance_id: str, revision_id: str) -> None:
+    def ensure(
+        self, placement_id: str, agent_instance_id: str, revision_id: str
+    ) -> None:
         return None
 
     def retire(self, placement_id: str, agent_instance_id: str) -> None:
         return None
 
     def observe(self, placement_id: str) -> ProviderObservation:
-        return ProviderObservation(placement_id=placement_id, state="READY", evidence_ref="test://ready")
+        return ProviderObservation(
+            placement_id=placement_id, state="READY", evidence_ref="test://ready"
+        )
 
 
 class FakeRuntime:
@@ -57,14 +61,23 @@ class AgentServiceSemanticsTests(unittest.TestCase):
 
     def _agent(self, service: object, name: str):
         definition = service.definitions.create(name)
-        revision = service.revisions.create(definition.id, {"harness": "r8-test", "name": name, "skills": [{
-                "id": "review",
-                "name": "Review",
-                "description": "review",
-                "tags": ["review"],
-                "inputModes": ["text/plain"],
-                "outputModes": ["text/markdown"],
-            }]})
+        revision = service.revisions.create(
+            definition.id,
+            {
+                "harness": "r8-test",
+                "name": name,
+                "skills": [
+                    {
+                        "id": "review",
+                        "name": "Review",
+                        "description": "review",
+                        "tags": ["review"],
+                        "inputModes": ["text/plain"],
+                        "outputModes": ["text/markdown"],
+                    }
+                ],
+            },
+        )
         identity = service.identities.create(
             definition.id,
             stable_name=name,
@@ -88,7 +101,9 @@ class AgentServiceSemanticsTests(unittest.TestCase):
             acceptance={"kind": "stdout_equals", "value": "OK"},
         )
 
-    def test_agent_identity_is_stable_per_definition_and_not_instance_identity(self) -> None:
+    def test_agent_identity_is_stable_per_definition_and_not_instance_identity(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db")
             definition = service.definitions.create("researcher")
@@ -107,7 +122,9 @@ class AgentServiceSemanticsTests(unittest.TestCase):
 
             self.assertEqual(first.id, replay.id)
             self.assertNotEqual(first.id, instance.id)
-            self.assertEqual(service.identities.get_for_definition(definition.id).id, first.id)
+            self.assertEqual(
+                service.identities.get_for_definition(definition.id).id, first.id
+            )
             with self.assertRaises(ValueError):
                 service.identities.create(
                     definition.id,
@@ -115,7 +132,9 @@ class AgentServiceSemanticsTests(unittest.TestCase):
                     description="different identity replay",
                 )
 
-    def test_agent_skills_are_revision_native_without_second_capability_store(self) -> None:
+    def test_agent_skills_are_revision_native_without_second_capability_store(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db")
             definition = service.definitions.create("researcher")
@@ -192,7 +211,9 @@ class AgentServiceSemanticsTests(unittest.TestCase):
             )
 
             self.assertEqual(first.id, replay.id)
-            self.assertEqual([x.sequence for x in service.session_items.list_for(session.id)], [1, 2])
+            self.assertEqual(
+                [x.sequence for x in service.session_items.list_for(session.id)], [1, 2]
+            )
             self.assertEqual(second.sequence, 2)
             with self.assertRaises(ValueError):
                 service.session_items.append(
@@ -205,7 +226,9 @@ class AgentServiceSemanticsTests(unittest.TestCase):
     def test_closed_session_rejects_new_items_and_delegations(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db")
-            _, source_revision, source_identity, source_instance = self._agent(service, "source")
+            _, source_revision, source_identity, source_instance = self._agent(
+                service, "source"
+            )
             _, target_revision, target_identity, _ = self._agent(service, "target")
             task = self._task(service, source_revision.id)
             session = service.sessions.open(
@@ -235,10 +258,14 @@ class AgentServiceSemanticsTests(unittest.TestCase):
                     evidence_contract={"kind": "text"},
                 )
 
-    def test_delegation_is_transport_neutral_immutable_intent_not_assignment(self) -> None:
+    def test_delegation_is_transport_neutral_immutable_intent_not_assignment(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db")
-            _, source_revision, source_identity, source_instance = self._agent(service, "source")
+            _, source_revision, source_identity, source_instance = self._agent(
+                service, "source"
+            )
             _, target_revision, target_identity, _ = self._agent(service, "target")
             task = self._task(service, source_revision.id)
             session = service.sessions.open(
@@ -288,10 +315,14 @@ class AgentServiceSemanticsTests(unittest.TestCase):
                     evidence_contract={"kind": "text/markdown"},
                 )
 
-    def test_delegation_requires_source_instance_identity_and_target_capability_consistency(self) -> None:
+    def test_delegation_requires_source_instance_identity_and_target_capability_consistency(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db")
-            source_def, source_revision, source_identity, source_instance = self._agent(service, "source")
+            source_def, source_revision, source_identity, source_instance = self._agent(
+                service, "source"
+            )
             _, target_revision, target_identity, _ = self._agent(service, "target")
             _, other_revision, other_identity, _ = self._agent(service, "other")
             task = self._task(service, source_revision.id)
@@ -340,7 +371,9 @@ class AgentServiceSemanticsTests(unittest.TestCase):
                     evidence_contract={},
                 )
 
-    def test_a2a_agent_card_is_public_projection_not_internal_instance_or_session_dump(self) -> None:
+    def test_a2a_agent_card_is_public_projection_not_internal_instance_or_session_dump(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db")
             definition = service.definitions.create("researcher")
@@ -432,13 +465,17 @@ class AgentServiceSemanticsTests(unittest.TestCase):
                 artifact_reader=NoopArtifactReader(),
             )
             self.addCleanup(second.close)
-            self.assertEqual(second.identities.get(identity.id).stable_name, "researcher")
+            self.assertEqual(
+                second.identities.get(identity.id).stable_name, "researcher"
+            )
             self.assertEqual(
                 second.revisions.get(revision.id).spec["skills"][0]["id"],
                 "review",
             )
             self.assertEqual(second.sessions.get(session.id).state, "OPEN")
-            self.assertEqual(second.session_items.list_for(session.id)[0].content["text"], "persist")
+            self.assertEqual(
+                second.session_items.list_for(session.id)[0].content["text"], "persist"
+            )
 
 
 if __name__ == "__main__":
@@ -458,15 +495,26 @@ class AgentServiceDelegationScopeTests(unittest.TestCase):
 
     def _agent(self, service: object, name: str):
         definition = service.definitions.create(name)
-        revision = service.revisions.create(definition.id, {"harness":"r8", "name":name, "skills": [{
-                "id": "review",
-                "name": "Review",
-                "description": "review",
-                "tags": ["review"],
-                "inputModes": ["text/plain"],
-                "outputModes": ["text/markdown"],
-            }]})
-        identity = service.identities.create(definition.id, stable_name=name, description=name)
+        revision = service.revisions.create(
+            definition.id,
+            {
+                "harness": "r8",
+                "name": name,
+                "skills": [
+                    {
+                        "id": "review",
+                        "name": "Review",
+                        "description": "review",
+                        "tags": ["review"],
+                        "inputModes": ["text/plain"],
+                        "outputModes": ["text/markdown"],
+                    }
+                ],
+            },
+        )
+        identity = service.identities.create(
+            definition.id, stable_name=name, description=name
+        )
         instance = service.instances.create(f"request:{name}:scope", revision.id)
         service.reconciler.reconcile(instance.id)
         return revision, identity, instance
@@ -475,15 +523,25 @@ class AgentServiceDelegationScopeTests(unittest.TestCase):
         return service.tasks.create(
             description=label,
             required_revision_id=revision_id,
-            execution={"workspaceId":"ws-test","executable":"/usr/bin/true","args":[],"cwdRelative":".","env":{}},
-            acceptance={"kind":"stdout_equals","value":"OK"},
+            execution={
+                "workspaceId": "ws-test",
+                "executable": "/usr/bin/true",
+                "args": [],
+                "cwdRelative": ".",
+                "env": {},
+            },
+            acceptance={"kind": "stdout_equals", "value": "OK"},
         )
 
-    def test_session_initiator_is_continuity_metadata_not_delegation_authority(self) -> None:
+    def test_session_initiator_is_continuity_metadata_not_delegation_authority(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db")
             source_revision, initiator_identity, _ = self._agent(service, "initiator")
-            _, delegate_identity, delegate_instance = self._agent(service, "delegate-source")
+            _, delegate_identity, delegate_instance = self._agent(
+                service, "delegate-source"
+            )
             target_revision, target_identity, _ = self._agent(service, "target-owner")
             task = self._task(service, source_revision.id, "task")
             session = service.sessions.open(
@@ -510,7 +568,9 @@ class AgentServiceDelegationScopeTests(unittest.TestCase):
     def test_goal_bound_session_rejects_task_from_another_goal(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db")
-            source_revision, source_identity, source_instance = self._agent(service, "source-goal")
+            source_revision, source_identity, source_instance = self._agent(
+                service, "source-goal"
+            )
             target_revision, target_identity, _ = self._agent(service, "target-goal")
             goal_a = service.goals.create("goal-a")
             goal_b = service.goals.create("goal-b")
