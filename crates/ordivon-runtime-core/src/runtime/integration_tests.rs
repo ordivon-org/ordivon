@@ -1,9 +1,10 @@
+use super::{AdmissionOutcome, CreatedAdmission, SubmitRequest};
 use crate::{
     create_git_workspace, remove_git_workspace, write_workspace_text, ArtifactReadRequest,
     AttemptState, ExecutionBudget, ForeignReference, GitWorkspaceCreateRequest,
     HostDependencyBinding, InputAuthority, InputBindingRequest, JobCancelRequest,
     JobObserveRequest, JobObserveWaitUntil, JobRunRequest, RegistryConfig, Runtime, RuntimeConfig,
-    RuntimeExecutionPlan, RuntimeJobListRequest, SubmitRequest, UniversalExecutionRequest,
+    RuntimeExecutionPlan, RuntimeJobListRequest, UniversalExecutionRequest,
     UniversalExecutorConfig, WindowsExecutionConfig, WorkspaceCloseRequest, WorkspaceMutateRequest,
     WorkspaceMutation, WorkspaceMutationMode, WorkspaceWriteRequest, RUNTIME_SCHEMA_VERSION,
     UNIVERSAL_EXEC_SCHEMA_VERSION,
@@ -3373,10 +3374,10 @@ impl IntegrationContext {
     }
 }
 
-fn created_admission(outcome: crate::AdmissionOutcome) -> crate::CreatedAdmission {
+fn created_admission(outcome: AdmissionOutcome) -> CreatedAdmission {
     match outcome {
-        crate::AdmissionOutcome::Created(created) => *created,
-        crate::AdmissionOutcome::Existing { .. } => {
+        AdmissionOutcome::Created(created) => *created,
+        AdmissionOutcome::Existing { .. } => {
             panic!("expected a new admission")
         }
     }
