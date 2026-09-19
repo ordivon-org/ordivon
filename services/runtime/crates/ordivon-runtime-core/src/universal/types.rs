@@ -153,9 +153,9 @@ impl WorkspaceReadRequest {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct WorkspaceReadResult {
+pub(crate) struct WorkspaceReadResult {
     pub workspace_id: String,
     pub relative_path: String,
     pub content: String,
@@ -296,9 +296,9 @@ pub struct WorkspaceRenamedPath {
     pub to_path: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct WorkspaceDiffResult {
+pub(crate) struct WorkspaceDiffResult {
     pub workspace_id: String,
     pub diff: String,
     pub digest: String,
@@ -571,9 +571,9 @@ impl WorkspaceReadSliceRequest {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct WorkspaceReadSliceResult {
+pub(crate) struct WorkspaceReadSliceResult {
     pub workspace_id: String,
     pub relative_path: String,
     pub content: String,

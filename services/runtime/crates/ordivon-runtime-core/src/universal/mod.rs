@@ -14,30 +14,33 @@ pub use fsutil::{
     ENVIRONMENT_VARIABLE_NAME_PATTERN, WORKSPACE_ID_MAX_LENGTH, WORKSPACE_ID_MIN_LENGTH,
     WORKSPACE_ID_PATTERN,
 };
-pub use mutation::{mutate_workspace, read_workspace_slice};
+pub use mutation::mutate_workspace;
+pub(crate) use mutation::read_workspace_slice;
 pub use projection::{
     create_git_workspace, read_workspace_slice_compact, read_workspace_text_compact,
     workspace_diff_compact,
 };
 #[cfg(unix)]
 pub use runner::run_job_runner;
-pub(crate) use types::WorkspaceRecord;
 pub use types::{
     CompactWorkspaceDiffResult, CompactWorkspaceOpenResult, CompactWorkspaceReadResult,
     CompactWorkspaceSliceResult, GitWorkspaceCreateRequest, WorkspaceChangeCursor,
     WorkspaceChangeEntry, WorkspaceChangeKind, WorkspaceChangePageRequest,
     WorkspaceChangePageResult, WorkspaceCloseRequest, WorkspaceCloseResult,
     WorkspaceClosureDisposition, WorkspaceContentMetadata, WorkspaceContentReadResult,
-    WorkspaceContentRequest, WorkspaceDiffRequest, WorkspaceDiffResult, WorkspaceMutateRequest,
-    WorkspaceMutateResult, WorkspaceMutation, WorkspaceMutationMode, WorkspaceMutationResult,
-    WorkspaceReadRequest, WorkspaceReadResult, WorkspaceReadSliceRequest, WorkspaceReadSliceResult,
-    WorkspaceRenamedPath, WorkspaceWriteRequest, WorkspaceWriteResult,
+    WorkspaceContentRequest, WorkspaceDiffRequest, WorkspaceMutateRequest, WorkspaceMutateResult,
+    WorkspaceMutation, WorkspaceMutationMode, WorkspaceMutationResult, WorkspaceReadRequest,
+    WorkspaceReadSliceRequest, WorkspaceRenamedPath, WorkspaceWriteRequest, WorkspaceWriteResult,
     MAX_WORKSPACE_CHANGE_PAGE_ENTRIES,
 };
-pub(crate) use workspace::{create_git_workspace_record, load_workspace_record};
+pub(crate) use types::{
+    WorkspaceDiffResult, WorkspaceReadResult, WorkspaceReadSliceResult, WorkspaceRecord,
+};
+pub(crate) use workspace::{
+    create_git_workspace_record, load_workspace_record, read_workspace_text, workspace_diff,
+};
 pub use workspace::{
-    read_workspace_content, read_workspace_text, remove_git_workspace, workspace_changes_page,
-    workspace_diff, write_workspace_text,
+    read_workspace_content, remove_git_workspace, workspace_changes_page, write_workspace_text,
 };
 #[cfg(any(feature = "transactional-runtime", test))]
 pub use workspace::{workspace_head_revision, workspace_source_state_digest};
