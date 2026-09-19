@@ -233,7 +233,7 @@ def build_server(settings: McpSettings) -> MCPServer:
         description="Temporal-controlled, Browserless-backed campaign materialization and continuation facade.",
         instructions=(
             "Use campaign.register only for controller-classified L0 Direct work. L1/L2 campaign registration is intentionally unavailable until authoritative current Host Inquiry standing can be verified; L1/L2 work MUST NOT fall back to campaign.register. "
-            "campaign.launch and occurrence.birth admit deterministic Temporal workflows; Browserless owns browser lifecycle. "
+            "campaign.launch and occurrence.reconcile admit deterministic Temporal workflows; Browserless owns browser lifecycle. "
             "A challenge/auth gate may become HUMAN_REQUIRED without crossing ChatGPT SEND. Use occurrence.humanHandoff to obtain the bounded interactive operator URL, then occurrence.humanResume only after a bounded self-hosted handoff expires or current-session absence is proven. "
             "The SQLite effect fence remains authoritative at ChatGPT SEND, so UNKNOWN/ambiguous never authorizes blind resend. "
             "Use provider.preflight for one explicit read-only endpoint admission observation."
@@ -292,7 +292,7 @@ def build_server(settings: McpSettings) -> MCPServer:
 
     @server.tool(
         name="campaign.census",
-        title="Read campaign birth census",
+        title="Read campaign materialization census",
         description="Read exact provider-effect materialization standing for one registered campaignRef. No provider effect.",
         annotations=ToolAnnotations(
             readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False
@@ -306,24 +306,9 @@ def build_server(settings: McpSettings) -> MCPServer:
         return await _invoke(current_service().census, path)
 
     @server.tool(
-        name="occurrence.birth",
-        title="Materialize one occurrence",
-        description="Materialize one exact Agent occurrence. READY proceeds normally; challenge/auth admission may open a bounded human-verification session while providerEffectAttempted remains false. Existing effects remain idempotent.",
-        annotations=ToolAnnotations(
-            readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=True
-        ),
-    )
-    async def occurrence_birth(campaignRef: str, agentId: str) -> CallToolResult:
-        try:
-            path = current_registry().resolve(campaignRef)
-        except Exception as error:
-            return _tool_error(str(error))
-        return await _invoke(current_service().launch_occurrence, path, agentId)
-
-    @server.tool(
         name="occurrence.reconcile",
-        title="Reconcile ambiguous occurrence",
-        description="Reconcile the same durable birth identity only. This never authorizes a blind provider resend.",
+        title="Reconcile occurrence",
+        description="Converge one exact occurrence toward its materialization target. Unrecorded occurrences start the stable Temporal workflow; ambiguous occurrences reconcile the same durable effect identity; blind provider resend is never authorized.",
         annotations=ToolAnnotations(
             readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=True
         ),
@@ -353,7 +338,7 @@ def build_server(settings: McpSettings) -> MCPServer:
     @server.tool(
         name="occurrence.humanResume",
         title="Resume after human provider verification",
-        description="Re-enter provider admission for the same frozen birth effect after a prior HUMAN_REQUIRED handoff window expired. The materializer atomically claims the same effect identity and never blind-resends an UNKNOWN outcome.",
+        description="Re-enter provider admission for the same frozen materialization effect after a prior HUMAN_REQUIRED handoff window expired. The materializer atomically claims the same effect identity and never blind-resends an UNKNOWN outcome.",
         annotations=ToolAnnotations(
             readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True
         ),

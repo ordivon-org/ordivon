@@ -15,9 +15,9 @@ from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 
 try:
-    from campaign_birth import CampaignLaunchSpec
+    from campaign_materialization import CampaignLaunchSpec
 except ModuleNotFoundError:
-    from scripts.campaign_birth import CampaignLaunchSpec
+    from scripts.campaign_materialization import CampaignLaunchSpec
 
 
 class AgentAutomationRegistryError(RuntimeError):

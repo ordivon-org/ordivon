@@ -29,21 +29,21 @@ with workflow.unsafe.imports_passed_through():
         _read_json,
     )
     from agent_automation_browserless_effects import BrowserlessEffectAdapter
-    from campaign_birth import campaign_census
+    from campaign_materialization import campaign_census
 
 
-BIRTH_ACTIVITY = "ordivon.browserless.birth"
+MATERIALIZE_ACTIVITY = "ordivon.browserless.materialize"
 RECONCILE_ACTIVITY = "ordivon.browserless.reconcile"
 HUMAN_RESUME_ACTIVITY = "ordivon.browserless.human-resume"
 CONTINUE_ACTIVITY = "ordivon.browserless.continue"
-AGENT_BIRTH_WORKFLOW = "ordivon.agent.birth"
+OCCURRENCE_MATERIALIZE_WORKFLOW = "ordivon.occurrence.materialize"
 AGENT_RECONCILE_WORKFLOW = "ordivon.agent.reconcile"
 AGENT_HUMAN_RESUME_WORKFLOW = "ordivon.agent.human-resume"
 AGENT_CONTINUE_WORKFLOW = "ordivon.agent.continue"
 
 
 @dataclass(frozen=True)
-class AgentBirthInput:
+class OccurrenceInput:
     spec_path: str
     agent_id: str
 
@@ -84,10 +84,10 @@ class BrowserlessActivities:
             return lock
 
     @staticmethod
-    def _birth_endpoint_id(config: BrowserlessAutomationConfig, value: AgentBirthInput) -> str:
+    def _materialization_endpoint_id(config: BrowserlessAutomationConfig, value: OccurrenceInput) -> str:
         context = BrowserlessAutomationService(config)
         spec = context.load_spec(Path(value.spec_path))
-        birth = context._birth(spec, value.agent_id)
+        materialization = context._materialization(spec, value.agent_id)
         census = campaign_census(spec, config.ledger)
         row = next(item for item in census["occurrences"] if item["agentId"] == value.agent_id)
         standing = row.get("materializationStanding")
@@ -95,15 +95,15 @@ class BrowserlessActivities:
         # proven PRE_EFFECT_FAILED attempt is different: no SEND occurred, so stale binding bytes
         # must not be validated before current deterministic routing is selected again.
         if standing in {"unknown", "submit-observed"}:
-            binding, _ = context._reconciliation_binding(birth)
+            binding, _ = context._reconciliation_binding(materialization)
             if binding is not None:
                 return str(binding["endpointId"])
             return None
         if standing == "human-required":
-            binding = context._current_binding(birth)
+            binding = context._current_binding(materialization)
             if binding is not None:
                 return str(binding["endpointId"])
-        return config.browserless_pool.select(birth.effect_id).endpoint_id
+        return config.browserless_pool.select(materialization.effect_id).endpoint_id
 
     @staticmethod
     def _continue_endpoint_id(
@@ -115,8 +115,8 @@ class BrowserlessActivities:
         row = next(item for item in census["occurrences"] if item["agentId"] == value.agent_id)
         if row.get("materializationStanding") != "bound" or not row.get("providerResource"):
             return None
-        birth = context._birth(spec, value.agent_id)
-        binding = context._current_binding(birth)
+        materialization = context._materialization(spec, value.agent_id)
+        binding = context._current_binding(materialization)
         return str(binding["endpointId"]) if binding is not None else None
 
     def _run_serialized(self, value, endpoint_resolver, effect_call):
@@ -142,8 +142,8 @@ class BrowserlessActivities:
             "Browserless carrier routing changed repeatedly while waiting for endpoint serialization"
         )
 
-    def _run_birth_failover(self, value: AgentBirthInput) -> dict:
-        # New/proven-pre-effect Births may move only across physically/provider-unavailable carriers.
+    def _run_materialization_failover(self, value: OccurrenceInput) -> dict:
+        # New/proven-pre-effect Materializations may move only across physically/provider-unavailable carriers.
         # Every provider preflight and the subsequent binding/SEND attempt happen under the same
         # cross-process carrier lease. Once an effect has a post-SEND/ambiguous standing, normal
         # bound-carrier reconciliation is used instead and failover is forbidden.
@@ -151,7 +151,7 @@ class BrowserlessActivities:
             candidate = self._current_config()
             context = BrowserlessAutomationService(candidate)
             spec = context.load_spec(Path(value.spec_path))
-            birth = context._birth(spec, value.agent_id)
+            materialization = context._materialization(spec, value.agent_id)
             census = campaign_census(spec, candidate.ledger)
             row = next(item for item in census["occurrences"] if item["agentId"] == value.agent_id)
             standing = row.get("materializationStanding")
@@ -164,21 +164,21 @@ class BrowserlessActivities:
             }:
                 return self._run_serialized(
                     value,
-                    self._birth_endpoint_id,
-                    lambda effects: effects.materialize_birth(
+                    self._materialization_endpoint_id,
+                    lambda effects: effects.materialize(
                         Path(value.spec_path), value.agent_id
                     ),
                 )
             saw_current_candidate = False
             rejected: list[str] = []
-            for endpoint in candidate.browserless_pool.candidates(birth.effect_id):
+            for endpoint in candidate.browserless_pool.candidates(materialization.effect_id):
                 endpoint_id = endpoint.endpoint_id
                 with self._endpoint_lock(endpoint_id):
                     with _carrier_lease(candidate, endpoint_id, blocking=True):
                         current = self._current_config()
                         current_context = BrowserlessAutomationService(current)
                         current_spec = current_context.load_spec(Path(value.spec_path))
-                        current_birth = current_context._birth(current_spec, value.agent_id)
+                        current_birth = current_context._materialization(current_spec, value.agent_id)
                         current_ids = [
                             row.endpoint_id
                             for row in current.browserless_pool.candidates(current_birth.effect_id)
@@ -193,7 +193,7 @@ class BrowserlessActivities:
                         if diagnosis["carrierRouting"] == "FAILOVER_ALLOWED":
                             rejected.append(f"{endpoint_id}:{observation.get('standing')}")
                             continue
-                        return self._effects(current).materialize_birth(
+                        return self._effects(current).materialize(
                             Path(value.spec_path),
                             value.agent_id,
                             endpoint_id=endpoint_id,
@@ -201,11 +201,11 @@ class BrowserlessActivities:
                         )
             if saw_current_candidate:
                 raise BrowserlessAutomationHold(
-                    "provider birth HOLD: every candidate carrier was unavailable/busy before SEND: "
+                    "provider materialization HOLD: every candidate carrier was unavailable/busy before SEND: "
                     + ", ".join(rejected)
                 )
         raise RuntimeError(
-            "Browserless birth carrier set changed repeatedly while waiting for serialization"
+            "Browserless materialization carrier set changed repeatedly while waiting for serialization"
         )
 
     @staticmethod
@@ -223,9 +223,9 @@ class BrowserlessActivities:
             )
         )
 
-    @activity.defn(name=BIRTH_ACTIVITY)
-    def birth(self, value: AgentBirthInput) -> dict:
-        result = self._run_birth_failover(value)
+    @activity.defn(name=MATERIALIZE_ACTIVITY)
+    def materialize(self, value: OccurrenceInput) -> dict:
+        result = self._run_materialization_failover(value)
         receipt = result.get("receipt") if isinstance(result, dict) else None
         if isinstance(receipt, dict) and receipt.get("standing") == "pre-effect-failed":
             # The durable receipt proves SEND was not crossed. Transport/navigation failures may
@@ -239,18 +239,18 @@ class BrowserlessActivities:
         return result
 
     @activity.defn(name=RECONCILE_ACTIVITY)
-    def reconcile(self, value: AgentBirthInput) -> dict:
+    def reconcile(self, value: OccurrenceInput) -> dict:
         return self._run_serialized(
             value,
-            self._birth_endpoint_id,
-            lambda effects: effects.reconcile_birth(Path(value.spec_path), value.agent_id),
+            self._materialization_endpoint_id,
+            lambda effects: effects.reconcile(Path(value.spec_path), value.agent_id),
         )
 
     @activity.defn(name=HUMAN_RESUME_ACTIVITY)
-    def human_resume(self, value: AgentBirthInput) -> dict:
+    def human_resume(self, value: OccurrenceInput) -> dict:
         return self._run_serialized(
             value,
-            self._birth_endpoint_id,
+            self._materialization_endpoint_id,
             lambda effects: effects.resume_after_human(Path(value.spec_path), value.agent_id),
         )
 
@@ -276,14 +276,14 @@ EFFECT_FENCED_RETRY = RetryPolicy(
 )
 
 
-@workflow.defn(name=AGENT_BIRTH_WORKFLOW)
-class AgentBirthWorkflow:
+@workflow.defn(name=OCCURRENCE_MATERIALIZE_WORKFLOW)
+class OccurrenceMaterializeWorkflow:
     @workflow.run
-    async def run(self, value: AgentBirthInput) -> dict:
-        # Activity retry is safe only because the adapter durably claims the exact BirthRequestId
+    async def run(self, value: OccurrenceInput) -> dict:
+        # Activity retry is safe only because the adapter durably claims the exact materialization request identity
         # before SEND. A retry re-enters/reconciles that same effect identity; it cannot blind-send.
         return await workflow.execute_activity(
-            BIRTH_ACTIVITY,
+            MATERIALIZE_ACTIVITY,
             value,
             result_type=dict,
             start_to_close_timeout=timedelta(minutes=10),
@@ -294,8 +294,8 @@ class AgentBirthWorkflow:
 @workflow.defn(name=AGENT_RECONCILE_WORKFLOW)
 class AgentReconcileWorkflow:
     @workflow.run
-    async def run(self, value: AgentBirthInput) -> dict:
-        # Reconcile observes the same already-claimed Birth effect. It may update standing/evidence,
+    async def run(self, value: OccurrenceInput) -> dict:
+        # Reconcile observes the same already-claimed materialization effect. It may update standing/evidence,
         # but it never authorizes a new provider SEND or increments effect generation.
         return await workflow.execute_activity(
             RECONCILE_ACTIVITY,
@@ -309,7 +309,7 @@ class AgentReconcileWorkflow:
 @workflow.defn(name=AGENT_HUMAN_RESUME_WORKFLOW)
 class AgentHumanResumeWorkflow:
     @workflow.run
-    async def run(self, value: AgentBirthInput) -> dict:
+    async def run(self, value: OccurrenceInput) -> dict:
         # HUMAN_REQUIRED proves no prompt SEND has occurred. The materializer atomically claims the
         # same effect identity before READY revalidation/SEND; activity retry reconciles UNKNOWN.
         return await workflow.execute_activity(
@@ -348,13 +348,13 @@ async def run_worker(
             client,
             task_queue=task_queue,
             workflows=[
-                AgentBirthWorkflow,
+                OccurrenceMaterializeWorkflow,
                 AgentReconcileWorkflow,
                 AgentHumanResumeWorkflow,
                 AgentContinueWorkflow,
             ],
             activities=[
-                activities.birth,
+                activities.materialize,
                 activities.reconcile,
                 activities.human_resume,
                 activities.continue_turn,

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Revalidate one parked Browserless human-verification session and resume the same birth effect.
+"""Revalidate one parked Browserless human-verification session and resume the same materialization effect.
 
 This script never solves a provider challenge. If human verification/authentication is still
 required it mints a fresh same-session handoff and returns without filling the composer. Only after

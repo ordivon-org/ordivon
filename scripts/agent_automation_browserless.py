@@ -25,7 +25,7 @@ SOURCE_ROOT = Path(__file__).resolve().parents[1]
 
 try:
     from browserless_substrate import BrowserlessPool
-    from campaign_birth import (
+    from campaign_materialization import (
         CampaignLaunchSpec,
         campaign_census,
         compile_campaign,
@@ -40,7 +40,7 @@ try:
     )
 except ModuleNotFoundError:
     from scripts.browserless_substrate import BrowserlessPool
-    from scripts.campaign_birth import (
+    from scripts.campaign_materialization import (
         CampaignLaunchSpec,
         campaign_census,
         compile_campaign,
@@ -414,17 +414,17 @@ class BrowserlessAutomationService:
     def load_spec(path: Path) -> CampaignLaunchSpec:
         return CampaignLaunchSpec.from_dict(_read_json(path))
 
-    def _birth(self, spec: CampaignLaunchSpec, agent_id: str):
+    def _materialization(self, spec: CampaignLaunchSpec, agent_id: str):
         rows = [b for b in compile_campaign(spec) if b.agent_id == agent_id]
         if len(rows) != 1:
             raise BrowserlessAutomationConflict("agentId does not identify exactly one occurrence")
         return rows[0]
 
-    def _occurrence_dir(self, birth) -> Path:
-        return self.config.state_root / "occurrences" / _suffix(birth.effect_id)
+    def _occurrence_dir(self, materialization) -> Path:
+        return self.config.state_root / "occurrences" / _suffix(materialization.effect_id)
 
-    def _binding_path(self, birth) -> Path:
-        return self._occurrence_dir(birth) / "carrier-binding.json"
+    def _binding_path(self, materialization) -> Path:
+        return self._occurrence_dir(materialization) / "carrier-binding.json"
 
     def _endpoint_by_id(self, endpoint_id: str):
         rows = [e for e in self.config.browserless_pool.endpoints if e.endpoint_id == endpoint_id]
@@ -432,10 +432,10 @@ class BrowserlessAutomationService:
             raise BrowserlessAutomationConflict("Browserless endpoint binding changed")
         return rows[0]
 
-    def _validate_binding(self, birth, row: dict) -> dict:
+    def _validate_binding(self, materialization, row: dict) -> dict:
         if set(row) != {"effectId", "endpointId", "endpointIdentityDigest"}:
             raise BrowserlessAutomationConflict("carrier binding record has unexpected fields")
-        if row.get("effectId") != birth.effect_id:
+        if row.get("effectId") != materialization.effect_id:
             raise BrowserlessAutomationConflict(
                 "carrier binding belongs to another provider effect"
             )
@@ -447,13 +447,13 @@ class BrowserlessAutomationService:
             raise BrowserlessCarrierIdentityStale("Browserless endpoint identity changed")
         return row
 
-    def _current_binding(self, birth) -> dict | None:
-        current = self._binding_path(birth)
+    def _current_binding(self, materialization) -> dict | None:
+        current = self._binding_path(materialization)
         if not current.is_file():
             return None
-        return self._validate_binding(birth, _read_json(current))
+        return self._validate_binding(materialization, _read_json(current))
 
-    def _reconciliation_binding(self, birth) -> tuple[dict | None, str | None]:
+    def _reconciliation_binding(self, materialization) -> tuple[dict | None, str | None]:
         """Return only a carrier that is still the same physical Browserless identity.
 
         Reconciliation is observational: a restarted/removed carrier cannot prove anything about
@@ -461,7 +461,7 @@ class BrowserlessAutomationService:
         and never authorizes rerouting or resend. Corrupt/cross-effect binding bytes still fail hard.
         """
         try:
-            return self._current_binding(birth), None
+            return self._current_binding(materialization), None
         except BrowserlessCarrierIdentityStale:
             return None, "carrier-no-longer-current"
 
@@ -500,14 +500,14 @@ class BrowserlessAutomationService:
     def census(self, spec_path: Path) -> dict:
         spec = self.load_spec(spec_path)
         result = campaign_census(spec, self.config.ledger)
-        by_agent = {birth.agent_id: birth for birth in compile_campaign(spec)}
+        by_agent = {materialization.agent_id: materialization for materialization in compile_campaign(spec)}
         active = 0
         for row in result.get("occurrences", []):
-            birth = by_agent.get(row.get("agentId"))
-            if birth is None:
+            materialization = by_agent.get(row.get("agentId"))
+            if materialization is None:
                 continue
             path = (
-                self._occurrence_dir(birth) / "human-handoff" / f"{_suffix(birth.effect_id)}.json"
+                self._occurrence_dir(materialization) / "human-handoff" / f"{_suffix(materialization.effect_id)}.json"
             )
             if not path.is_file():
                 continue
@@ -516,7 +516,7 @@ class BrowserlessAutomationService:
             except Exception:
                 continue
             available = (
-                handoff.get("effectId") == birth.effect_id
+                handoff.get("effectId") == materialization.effect_id
                 and handoff.get("providerEffectAttempted") is False
                 and self._human_handoff_liveness(handoff) == "CURRENT"
                 and row.get("materializationStanding") in {"unknown", "human-required"}
@@ -586,14 +586,14 @@ class BrowserlessAutomationService:
             )
         return observation
 
-    def _require_birth_substrate_available(
-        self, birth, *, observations: dict[str, dict] | None = None
+    def _require_materialization_substrate_available(
+        self, materialization, *, observations: dict[str, dict] | None = None
     ):
         # Public admission observes only physical Browserless reachability. Provider/UI admission
         # belongs to the Temporal worker while it owns the exact persistent-profile carrier lease.
         observed = observations if observations is not None else {}
         rejected: list[str] = []
-        for endpoint in self.config.browserless_pool.candidates(birth.effect_id):
+        for endpoint in self.config.browserless_pool.candidates(materialization.effect_id):
             health = observed.get(endpoint.endpoint_id)
             if health is None:
                 health = self.ensure_endpoint_active(endpoint)
@@ -604,22 +604,22 @@ class BrowserlessAutomationService:
                 f"{endpoint.endpoint_id}={health.get('detail') or health.get('status') or 'UNHEALTHY'}"
             )
         raise BrowserlessAutomationHold(
-            "provider birth substrate HOLD: no healthy carrier before Temporal admission; "
+            "provider materialization substrate HOLD: no healthy carrier before Temporal admission; "
             + ", ".join(rejected)
         )
 
-    def _gate_unrecorded_births(self, spec: CampaignLaunchSpec) -> dict:
+    def _gate_unrecorded_materializations(self, spec: CampaignLaunchSpec) -> dict:
         census = campaign_census(spec, self.config.ledger)
         by_agent = {row["agentId"]: row for row in census["occurrences"]}
         observations: dict[str, dict] = {}
-        for birth in compile_campaign(spec):
-            row = by_agent[birth.agent_id]
+        for materialization in compile_campaign(spec):
+            row = by_agent[materialization.agent_id]
             # Campaign launch is roster admission, not recovery. A PRE_EFFECT_FAILED occurrence
-            # already has one durable Birth workflow/effect identity and must require an explicit
+            # already has one durable materialization workflow/effect identity and must require an explicit
             # occurrence-level re-entry; otherwise exact campaign replay would create fresh retries.
             if row.get("materializationStanding") is not None:
                 continue
-            self._require_birth_substrate_available(birth, observations=observations)
+            self._require_materialization_substrate_available(materialization, observations=observations)
         return census
 
     def _temporal_admit(
@@ -699,15 +699,15 @@ class BrowserlessAutomationService:
             raise BrowserlessAutomationAmbiguous(
                 "Temporal admission outcome is unknown because no machine-readable receipt was returned; observe the same identity before any retry"
             ) from error
-        if operation == "campaign-birth":
+        if operation == "campaign-materialize":
             workflows = row.get("workflows")
             if (
-                row.get("kind") != "temporal-birth-admissions"
+                row.get("kind") != "temporal-materialization-admissions"
                 or not isinstance(workflows, list)
                 or not workflows
             ):
                 raise BrowserlessAutomationAmbiguous(
-                    "Temporal campaign admission outcome is unknown because the receipt is malformed; observe the same birth identities before any retry"
+                    "Temporal campaign admission outcome is unknown because the receipt is malformed; observe the same materialization identities before any retry"
                 )
             for admitted in workflows:
                 if (
@@ -717,7 +717,7 @@ class BrowserlessAutomationService:
                     or not admitted.get("effectId")
                 ):
                     raise BrowserlessAutomationAmbiguous(
-                        "Temporal campaign admission outcome is unknown because one workflow receipt is malformed; observe the same birth identities before any retry"
+                        "Temporal campaign admission outcome is unknown because one workflow receipt is malformed; observe the same materialization identities before any retry"
                     )
         elif row.get("disposition") not in {"admitted", "started", "existing"} or not row.get(
             "workflowId"
@@ -729,62 +729,70 @@ class BrowserlessAutomationService:
 
     def launch_campaign(self, spec_path: Path) -> dict:
         spec = self.load_spec(spec_path)
-        self._gate_unrecorded_births(spec)
-        temporal = self._temporal_admit(spec_path, "campaign-birth")
+        self._gate_unrecorded_materializations(spec)
+        temporal = self._temporal_admit(spec_path, "campaign-materialize")
         return {
             "schemaVersion": 1,
             "kind": "ordivon.temporal-campaign-admission",
             "campaignId": spec.campaign_id,
-            # Exact campaign replay never creates a fresh PRE_EFFECT retry identity. Explicit
-            # occurrence.birth is the recovery surface for one proven PRE_EFFECT_FAILED effect.
+            # Exact campaign replay never creates a fresh PRE_EFFECT retry identity.
+            # occurrence.reconcile is the single controller surface for any later convergence.
             "temporal": temporal,
             "preEffectRetries": [],
             "census": campaign_census(spec, self.config.ledger),
         }
 
-    def launch_occurrence(self, spec_path: Path, agent_id: str) -> dict:
+    def launch_reconcile(self, spec_path: Path, agent_id: str) -> dict:
         spec = self.load_spec(spec_path)
-        birth = self._birth(spec, agent_id)
+        materialization = self._materialization(spec, agent_id)
         census = campaign_census(spec, self.config.ledger)
         row = next(r for r in census["occurrences"] if r["agentId"] == agent_id)
         standing = row.get("materializationStanding")
-        if standing in {None, "pre-effect-failed"}:
-            self._require_birth_substrate_available(birth)
-        operation = "pre-effect-retry" if standing == "pre-effect-failed" else "agent-birth"
-        temporal = self._temporal_admit(spec_path, operation, agent_id=agent_id)
-        return {
-            "schemaVersion": 1,
-            "kind": "ordivon.temporal-occurrence-birth-admission",
-            "agentId": agent_id,
-            "effectId": birth.effect_id,
-            "temporal": temporal,
-            "census": campaign_census(spec, self.config.ledger),
-        }
 
-    def launch_reconcile(self, spec_path: Path, agent_id: str) -> dict:
-        spec = self.load_spec(spec_path)
-        birth = self._birth(spec, agent_id)
-        census = campaign_census(spec, self.config.ledger)
-        row = next(r for r in census["occurrences"] if r["agentId"] == agent_id)
-        if row.get("materializationStanding") not in {"unknown", "submit-observed"}:
+        if standing in {None, "pre-effect-failed"}:
+            self._require_materialization_substrate_available(materialization)
+            operation = "pre-effect-retry" if standing == "pre-effect-failed" else "materialize"
+            temporal = self._temporal_admit(spec_path, operation, agent_id=agent_id)
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.temporal-occurrence-reconcile-admission",
+                "agentId": agent_id,
+                "effectId": materialization.effect_id,
+                "temporal": temporal,
+                "safeToResend": False,
+                "census": campaign_census(spec, self.config.ledger),
+            }
+
+        if standing == "bound":
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.temporal-occurrence-reconcile-admission",
+                "agentId": agent_id,
+                "effectId": materialization.effect_id,
+                "safeToResend": False,
+                "census": census,
+            }
+
+        if standing not in {"unknown", "submit-observed"}:
             raise BrowserlessAutomationHold(
-                "only an occurrence with unknown provider-effect outcome may be reconciled"
+                "occurrence cannot be safely converged from its current materialization standing"
             )
+
         temporal = self._temporal_admit(spec_path, "reconcile", agent_id=agent_id)
-        result = {
+        return {
             "schemaVersion": 1,
             "kind": "ordivon.temporal-occurrence-reconcile-admission",
             "agentId": agent_id,
+            "effectId": materialization.effect_id,
             "temporal": temporal,
             "safeToResend": False,
             "census": census,
         }
-        result["effectId"] = birth.effect_id
-        return result
+
 
     def human_handoff_info(self, spec_path: Path, agent_id: str) -> dict:
         spec = self.load_spec(spec_path)
-        birth = self._birth(spec, agent_id)
+        materialization = self._materialization(spec, agent_id)
         census = campaign_census(spec, self.config.ledger)
         row = next(r for r in census["occurrences"] if r["agentId"] == agent_id)
         # While a self-hosted VNC handoff is actively attached, the effect ledger may remain UNKNOWN
@@ -794,12 +802,12 @@ class BrowserlessAutomationService:
             raise BrowserlessAutomationHold(
                 "occurrence is not waiting for human provider verification"
             )
-        path = self._occurrence_dir(birth) / "human-handoff" / f"{_suffix(birth.effect_id)}.json"
+        path = self._occurrence_dir(materialization) / "human-handoff" / f"{_suffix(materialization.effect_id)}.json"
         if not path.is_file():
             raise BrowserlessAutomationHold("human verification handoff receipt is unavailable")
         value = load_verified_handoff(path)
         if (
-            value.get("effectId") != birth.effect_id
+            value.get("effectId") != materialization.effect_id
             or value.get("providerEffectAttempted") is not False
         ):
             raise BrowserlessAutomationConflict("human handoff identity/effect proof mismatch")
@@ -819,7 +827,7 @@ class BrowserlessAutomationService:
             "schemaVersion": 1,
             "kind": "ordivon.provider-human-verification-handoff",
             "agentId": agent_id,
-            "effectId": birth.effect_id,
+            "effectId": materialization.effect_id,
             "standing": "HUMAN_REQUIRED",
             "ledgerStanding": row.get("materializationStanding"),
             "mode": mode,
@@ -833,7 +841,7 @@ class BrowserlessAutomationService:
 
     def launch_human_resume(self, spec_path: Path, agent_id: str) -> dict:
         spec = self.load_spec(spec_path)
-        birth = self._birth(spec, agent_id)
+        materialization = self._materialization(spec, agent_id)
         census = campaign_census(spec, self.config.ledger)
         row = next(r for r in census["occurrences"] if r["agentId"] == agent_id)
         if row.get("materializationStanding") != "human-required":
@@ -841,7 +849,7 @@ class BrowserlessAutomationService:
                 "only a HUMAN_REQUIRED occurrence may resume after human verification"
             )
         handoff_path = (
-            self._occurrence_dir(birth) / "human-handoff" / f"{_suffix(birth.effect_id)}.json"
+            self._occurrence_dir(materialization) / "human-handoff" / f"{_suffix(materialization.effect_id)}.json"
         )
         if not handoff_path.is_file():
             raise BrowserlessAutomationHold(
@@ -863,7 +871,7 @@ class BrowserlessAutomationService:
             "schemaVersion": 1,
             "kind": "ordivon.temporal-human-verification-resume-admission",
             "agentId": agent_id,
-            "effectId": birth.effect_id,
+            "effectId": materialization.effect_id,
             "temporal": temporal,
             "census": census,
         }
@@ -896,7 +904,7 @@ class BrowserlessAutomationService:
         self, spec_path: Path, agent_id: str, *, prompt: str, turn_request_id: str
     ) -> dict:
         spec = self.load_spec(spec_path)
-        birth = self._birth(spec, agent_id)
+        materialization = self._materialization(spec, agent_id)
         try:
             turn_request_id = require_uuid7(turn_request_id, "turnRequestId")
         except ValueError as error:
@@ -906,7 +914,7 @@ class BrowserlessAutomationService:
         row = next(r for r in census["occurrences"] if r["agentId"] == agent_id)
         if row.get("materializationStanding") != "bound" or not row.get("providerResource"):
             raise BrowserlessAutomationHold("occurrence is not provider-bound")
-        binding = self._current_binding(birth)
+        binding = self._current_binding(materialization)
         if binding is None:
             raise BrowserlessAutomationHold(
                 "provider-bound occurrence has no current carrier binding"
@@ -1170,7 +1178,7 @@ def parser() -> argparse.ArgumentParser:
     for n in ("census", "launch"):
         s = sub.add_parser(n)
         s.add_argument("--spec", type=Path, required=True)
-    for n in ("birth", "reconcile", "human-handoff", "human-resume"):
+    for n in ("reconcile", "human-handoff", "human-resume"):
         s = sub.add_parser(n)
         s.add_argument("--spec", type=Path, required=True)
         s.add_argument("--agent-id", required=True)
@@ -1192,8 +1200,6 @@ def main() -> int:
         r = svc.census(a.spec)
     elif a.action == "launch":
         r = svc.launch_campaign(a.spec)
-    elif a.action == "birth":
-        r = svc.launch_occurrence(a.spec, a.agent_id)
     elif a.action == "reconcile":
         r = svc.launch_reconcile(a.spec, a.agent_id)
     elif a.action == "human-handoff":

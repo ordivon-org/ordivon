@@ -2,7 +2,7 @@
 """Read-only ChatGPT provider-admission observation through one explicit Browserless endpoint.
 
 This command never fills a composer, clicks UI, submits a prompt, or reads assistant output. It is
-an operational admission signal only; Birth still performs its own pre-effect checks immediately
+an operational admission signal only; Materialization still performs its own pre-effect checks immediately
 before the SEND boundary.
 """
 

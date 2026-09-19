@@ -385,7 +385,7 @@ def render_browser_use_config(
     """Render the isolated Browser Use Browserless pool.
 
     This pool is deliberately separate from Agent Automation's ChatGPT carriers: generic web
-    tasks must not consume authenticated ChatGPT profiles or Birth capacity.
+    tasks must not consume authenticated ChatGPT profiles or Materialization capacity.
     """
     binding = binding or resolve_network_binding()
     executable = browser_use_executable or resolve_browser_use_executable()

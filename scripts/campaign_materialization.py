@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Current CampaignSpec v2 compilation and Birth effect census.
+"""Current CampaignSpec v2 compilation and materialization effect census.
 
 Temporal owns durable workflow execution and Browserless owns provider mechanics. This module only
-validates the current minimal campaign contract, compiles deterministic Birth inputs, and projects
-the active effect ledger. Historical CampaignSpec/Birth formats are intentionally unsupported.
+validates the current minimal campaign contract, compiles deterministic materialization inputs, and projects
+the active effect ledger. Historical CampaignSpec/materialization formats are intentionally unsupported.
 """
 
 from __future__ import annotations
@@ -115,7 +115,7 @@ class CampaignLaunchSpec:
 
 
 @dataclass(frozen=True, slots=True)
-class CompiledBirth:
+class OccurrenceMaterialization:
     campaign_id: str
     agent_id: str
     role_digest: str
@@ -150,7 +150,7 @@ def _task_prompt(shared_prompt: str, role: RoleCard) -> str:
     return shared_prompt.rstrip() + "\n\nROLE_CARD\n" + role.role_card.strip()
 
 
-def compile_birth(spec: CampaignLaunchSpec, role: RoleCard) -> CompiledBirth:
+def compile_occurrence(spec: CampaignLaunchSpec, role: RoleCard) -> OccurrenceMaterialization:
     task_prompt = _task_prompt(spec.shared_prompt, role)
     task_prompt_digest = bytes_digest(task_prompt)
     role_digest = bytes_digest(role.role_card)
@@ -182,7 +182,7 @@ def compile_birth(spec: CampaignLaunchSpec, role: RoleCard) -> CompiledBirth:
     )
     if len(bootstrap_prompt.encode("utf-8")) > 16384:
         raise ValueError(f"compiled bootstrap prompt for {role.agent_id} exceeds carrier limit")
-    return CompiledBirth(
+    return OccurrenceMaterialization(
         campaign_id=spec.campaign_id,
         agent_id=role.agent_id,
         role_digest=role_digest,
@@ -194,14 +194,14 @@ def compile_birth(spec: CampaignLaunchSpec, role: RoleCard) -> CompiledBirth:
     )
 
 
-def compile_campaign(spec: CampaignLaunchSpec) -> tuple[CompiledBirth, ...]:
-    return tuple(compile_birth(spec, role) for role in spec.roster)
+def compile_campaign(spec: CampaignLaunchSpec) -> tuple[OccurrenceMaterialization, ...]:
+    return tuple(compile_occurrence(spec, role) for role in spec.roster)
 
 
-def manifest_dict(spec: CampaignLaunchSpec, births: Iterable[CompiledBirth]) -> dict:
-    del spec, births
+def manifest_dict(spec: CampaignLaunchSpec, materializations: Iterable[OccurrenceMaterialization]) -> dict:
+    del spec, materializations
     raise ValueError(
-        "current CampaignSpec has no derived birth manifest; use registry descriptor plus materialization census"
+        "current CampaignSpec has no derived materialization manifest; use registry descriptor plus materialization census"
     )
 
 
@@ -222,14 +222,14 @@ def _ledger_rows(path: Path) -> dict[str, sqlite3.Row]:
 
 
 def campaign_census(spec: CampaignLaunchSpec, ledger_path: Path) -> dict:
-    births = compile_campaign(spec)
+    occurrences = compile_campaign(spec)
     rows = _ledger_rows(Path(ledger_path))
     projected = []
     counts = {"unrecorded": 0, **{standing.value: 0 for standing in MaterializationStanding}}
-    for birth in births:
-        request = birth.materialization_request()
+    for occurrence in occurrences:
+        request = occurrence.materialization_request()
         row = rows.get(request.request_id)
-        materialization = None
+        standing = None
         provider = None
         effect_generation = None
         updated_at_ms = None
@@ -237,8 +237,10 @@ def campaign_census(spec: CampaignLaunchSpec, ledger_path: Path) -> dict:
             counts["unrecorded"] += 1
         else:
             if row["request_digest"] != request.request_digest:
-                raise RuntimeError(f"durable request digest conflict for birth {birth.effect_id}")
-            materialization = MaterializationStanding(row["standing"])
+                raise RuntimeError(
+                    f"durable request digest conflict for materialization {occurrence.effect_id}"
+                )
+            standing = MaterializationStanding(row["standing"])
             provider = (
                 normalize_provider_resource(row["provider_coordinate"])
                 if row["provider_coordinate"]
@@ -249,16 +251,16 @@ def campaign_census(spec: CampaignLaunchSpec, ledger_path: Path) -> dict:
                 effect_generation = int(row["effect_generation"])
             if "updated_at_ms" in keys and row["updated_at_ms"] is not None:
                 updated_at_ms = int(row["updated_at_ms"])
-            counts[materialization.value] += 1
+            counts[standing.value] += 1
         projected.append(
             {
-                "agentId": birth.agent_id,
-                "effectId": birth.effect_id,
-                "materializationStanding": materialization.value if materialization else None,
+                "agentId": occurrence.agent_id,
+                "effectId": occurrence.effect_id,
+                "materializationStanding": standing.value if standing else None,
                 "providerResource": provider,
                 "effectGeneration": effect_generation,
                 "updatedAtMs": updated_at_ms,
-                "blindResendForbidden": materialization
+                "blindResendForbidden": standing
                 in {
                     MaterializationStanding.UNKNOWN,
                     MaterializationStanding.SUBMIT_OBSERVED,
@@ -269,7 +271,7 @@ def campaign_census(spec: CampaignLaunchSpec, ledger_path: Path) -> dict:
         )
     return {
         "campaignId": spec.campaign_id,
-        "requested": len(births),
+        "requested": len(occurrences),
         "counts": counts,
         "occurrences": projected,
     }

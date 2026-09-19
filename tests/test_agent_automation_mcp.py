@@ -70,7 +70,6 @@ class McpCatalogTests(unittest.TestCase):
                 "campaign.inspect",
                 "campaign.launch",
                 "campaign.census",
-                "occurrence.birth",
                 "occurrence.reconcile",
                 "occurrence.humanHandoff",
                 "occurrence.humanResume",

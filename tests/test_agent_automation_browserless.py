@@ -125,7 +125,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 mock.patch.object(effects.context, "provider_preflight", return_value=ready),
                 mock.patch.object(effects, "_target", return_value=Target()),
             ):
-                result = effects.materialize_birth(sp, "A01")
+                result = effects.materialize(sp, "A01")
             self.assertEqual(result["receipt"]["standing"], "bound")
             self.assertEqual(result["receipt"]["providerResource"], "https://chatgpt.com/c/abc")
             binding = json.loads(
@@ -171,9 +171,9 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 mock.patch.object(effects.context, "provider_preflight", return_value=ready),
                 mock.patch.object(effects, "_target", return_value=Target()),
             ):
-                effects.materialize_birth(sp, "A01")
+                effects.materialize(sp, "A01")
             with mock.patch.object(effects, "_target") as target:
-                replay = effects.materialize_birth(sp, "A01")
+                replay = effects.materialize(sp, "A01")
             target.assert_not_called()
             self.assertEqual(replay["action"], "existing-terminal")
 
@@ -186,7 +186,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 BrowserlessAutomationConfig.from_dict(config(root))
             )
             admitted = {
-                "kind": "temporal-birth-admissions",
+                "kind": "temporal-materialization-admissions",
                 "campaignId": "campaign:test-browserless",
                 "requested": 1,
                 "started": 1,
@@ -196,7 +196,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                         "agentId": "A01",
                         "effectId": "effect:1",
                         "workflowId": "effect:1",
-                        "workflowType": "ordivon.agent.birth",
+                        "workflowType": "ordivon.occurrence.materialize",
                         "disposition": "started",
                     }
                 ],
@@ -204,7 +204,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             with (
                 mock.patch.object(
                     service,
-                    "_require_birth_substrate_available",
+                    "_require_materialization_substrate_available",
                     return_value={"healthy": True, "id": "carrier-a"},
                 ) as health,
                 mock.patch.object(service, "provider_preflight") as preflight,
@@ -213,7 +213,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 result = service.launch_campaign(sp)
             health.assert_called_once()
             preflight.assert_not_called()
-            temporal.assert_called_once_with(sp, "campaign-birth")
+            temporal.assert_called_once_with(sp, "campaign-materialize")
             self.assertFalse(hasattr(service, "birth"))
             self.assertEqual(result["temporal"]["workflows"][0]["workflowId"], "effect:1")
 
@@ -238,7 +238,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 ],
             }
             campaign = {
-                "kind": "temporal-birth-admissions",
+                "kind": "temporal-materialization-admissions",
                 "campaignId": "campaign:test-browserless",
                 "requested": 1,
                 "admitted": 1,
@@ -247,19 +247,19 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                         "agentId": "A01",
                         "effectId": "effect:1",
                         "workflowId": "effect:1",
-                        "workflowType": "ordivon.agent.birth",
+                        "workflowType": "ordivon.occurrence.materialize",
                         "disposition": "admitted",
                     }
                 ],
             }
             with (
                 mock.patch("agent_automation_browserless.campaign_census", return_value=census),
-                mock.patch.object(service, "_require_birth_substrate_available") as substrate,
+                mock.patch.object(service, "_require_materialization_substrate_available") as substrate,
                 mock.patch.object(service, "_temporal_admit", return_value=campaign) as temporal,
             ):
                 out = service.launch_campaign(sp)
             substrate.assert_not_called()
-            temporal.assert_called_once_with(sp, "campaign-birth")
+            temporal.assert_called_once_with(sp, "campaign-materialize")
             self.assertEqual(out["preEffectRetries"], [])
             self.assertEqual(out["temporal"]["admitted"], 1)
 
@@ -273,26 +273,26 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             )
             admitted = {
                 "workflowId": "wf-a",
-                "workflowType": "ordivon.agent.birth",
+                "workflowType": "ordivon.occurrence.materialize",
                 "disposition": "started",
             }
             with (
                 mock.patch.object(
                     service,
-                    "_require_birth_substrate_available",
+                    "_require_materialization_substrate_available",
                     return_value={"healthy": True, "id": "carrier-a"},
                 ) as health,
                 mock.patch.object(service, "provider_preflight") as preflight,
                 mock.patch.object(service, "_temporal_admit", return_value=admitted) as temporal,
             ):
-                result = service.launch_occurrence(sp, "A01")
+                result = service.launch_reconcile(sp, "A01")
             health.assert_called_once()
             preflight.assert_not_called()
-            temporal.assert_called_once_with(sp, "agent-birth", agent_id="A01")
+            temporal.assert_called_once_with(sp, "materialize", agent_id="A01")
             self.assertFalse(hasattr(service, "birth"))
             self.assertEqual(result["temporal"]["workflowId"], "wf-a")
             self.assertEqual(
-                result["effectId"], service._birth(service.load_spec(sp), "A01").effect_id
+                result["effectId"], service._materialization(service.load_spec(sp), "A01").effect_id
             )
             self.assertNotIn("birthRequestId", result)
 
@@ -387,7 +387,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             service = BrowserlessAutomationService(
                 BrowserlessAutomationConfig.from_dict(config(root))
             )
-            birth = service._birth(service.load_spec(sp), "A01")
+            birth = service._materialization(service.load_spec(sp), "A01")
             endpoint = service.config.browserless_pool.endpoints[0]
             binding = service._binding_path(birth)
             binding.parent.mkdir(parents=True, exist_ok=True)
@@ -456,7 +456,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 BrowserlessAutomationConfig.from_dict(config(root))
             )
             endpoint = service.config.browserless_pool.endpoints[0]
-            birth = service._birth(service.load_spec(sp), "A01")
+            birth = service._materialization(service.load_spec(sp), "A01")
             binding = service._binding_path(birth)
             binding.parent.mkdir(parents=True, exist_ok=True)
             binding.write_text(
@@ -541,7 +541,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 BrowserlessAutomationConfig.from_dict(config(root))
             )
             endpoint = service.config.browserless_pool.endpoints[0]
-            birth = service._birth(service.load_spec(sp), "A01")
+            birth = service._materialization(service.load_spec(sp), "A01")
             binding = service._binding_path(birth)
             binding.parent.mkdir(parents=True, exist_ok=True)
             binding.write_text(
@@ -599,7 +599,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             sp = root / "spec.json"
             sp.write_text(json.dumps(spec()))
             effects = BrowserlessEffectAdapter(BrowserlessAutomationConfig.from_dict(config(root)))
-            birth = effects.context._birth(effects.context.load_spec(sp), "A01")
+            birth = effects.context._materialization(effects.context.load_spec(sp), "A01")
             endpoint = effects.config.browserless_pool.endpoints[0]
             binding = effects.context._binding_path(birth)
             binding.parent.mkdir(parents=True, exist_ok=True)
@@ -649,22 +649,22 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             )
             admitted = {
                 "workflowId": "wf-human",
-                "workflowType": "ordivon.agent.birth",
+                "workflowType": "ordivon.occurrence.materialize",
                 "disposition": "started",
             }
             with (
                 mock.patch.object(
                     service,
-                    "_require_birth_substrate_available",
+                    "_require_materialization_substrate_available",
                     return_value={"healthy": True, "id": "carrier-a"},
                 ) as health,
                 mock.patch.object(service, "provider_preflight") as preflight,
                 mock.patch.object(service, "_temporal_admit", return_value=admitted) as temporal,
             ):
-                out = service.launch_occurrence(sp, "A01")
+                out = service.launch_reconcile(sp, "A01")
             health.assert_called_once()
             preflight.assert_not_called()
-            temporal.assert_called_once_with(sp, "agent-birth", agent_id="A01")
+            temporal.assert_called_once_with(sp, "materialize", agent_id="A01")
             self.assertEqual(out["temporal"]["workflowId"], "wf-human")
             self.assertFalse(service.config.ledger.exists())
 
@@ -686,20 +686,15 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                     }
                 ]
             }
-            admitted = {
-                "workflowId": "existing",
-                "workflowType": "ordivon.agent.birth",
-                "disposition": "existing",
-            }
             with (
                 mock.patch("agent_automation_browserless.campaign_census", return_value=census),
                 mock.patch.object(service, "provider_preflight") as preflight,
-                mock.patch.object(service, "_temporal_admit", return_value=admitted) as temporal,
+                mock.patch.object(service, "_temporal_admit") as temporal,
             ):
-                out = service.launch_occurrence(sp, "A01")
+                out = service.launch_reconcile(sp, "A01")
             preflight.assert_not_called()
-            temporal.assert_called_once_with(sp, "agent-birth", agent_id="A01")
-            self.assertEqual(out["temporal"]["disposition"], "existing")
+            temporal.assert_not_called()
+            self.assertEqual(out["census"]["occurrences"][0]["materializationStanding"], "bound")
 
     def test_pre_effect_failed_birth_reenters_same_effect_with_fresh_temporal_execution(self):
         with tempfile.TemporaryDirectory() as d:
@@ -721,7 +716,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             }
             admitted = {
                 "workflowId": "0199-retry",
-                "workflowType": "ordivon.agent.birth",
+                "workflowType": "ordivon.occurrence.materialize",
                 "disposition": "started",
                 "retryId": "0199-retry",
             }
@@ -729,13 +724,13 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 mock.patch("agent_automation_browserless.campaign_census", return_value=census),
                 mock.patch.object(
                     service,
-                    "_require_birth_substrate_available",
+                    "_require_materialization_substrate_available",
                     return_value={"healthy": True, "id": "carrier-a"},
                 ) as health,
                 mock.patch.object(service, "provider_preflight") as preflight,
                 mock.patch.object(service, "_temporal_admit", return_value=admitted) as temporal,
             ):
-                out = service.launch_occurrence(sp, "A01")
+                out = service.launch_reconcile(sp, "A01")
             health.assert_called_once()
             preflight.assert_not_called()
             temporal.assert_called_once_with(sp, "pre-effect-retry", agent_id="A01")
@@ -749,7 +744,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             service = BrowserlessAutomationService(
                 BrowserlessAutomationConfig.from_dict(config(root))
             )
-            birth = service._birth(service.load_spec(sp), "A01")
+            birth = service._materialization(service.load_spec(sp), "A01")
             endpoint = service.config.browserless_pool.endpoints[0]
             binding = service._binding_path(birth)
             binding.parent.mkdir(parents=True, exist_ok=True)
@@ -805,7 +800,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             service = BrowserlessAutomationService(
                 BrowserlessAutomationConfig.from_dict(config(root))
             )
-            birth = service._birth(service.load_spec(sp), "A01")
+            birth = service._materialization(service.load_spec(sp), "A01")
             path = (
                 service._occurrence_dir(birth)
                 / "human-handoff"
@@ -863,7 +858,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             service = BrowserlessAutomationService(
                 BrowserlessAutomationConfig.from_dict(config(root))
             )
-            birth = service._birth(service.load_spec(sp), "A01")
+            birth = service._materialization(service.load_spec(sp), "A01")
             path = (
                 service._occurrence_dir(birth)
                 / "human-handoff"
@@ -938,7 +933,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                     }
                 ]
             }
-            birth = service._birth(service.load_spec(sp), "A01")
+            birth = service._materialization(service.load_spec(sp), "A01")
             path = (
                 service._occurrence_dir(birth)
                 / "human-handoff"
@@ -995,7 +990,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                     }
                 ]
             }
-            birth = service._birth(service.load_spec(sp), "A01")
+            birth = service._materialization(service.load_spec(sp), "A01")
             path = (
                 service._occurrence_dir(birth)
                 / "human-handoff"
@@ -1052,7 +1047,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             service = BrowserlessAutomationService(
                 BrowserlessAutomationConfig.from_dict(config(root))
             )
-            birth = service._birth(service.load_spec(sp), "A01")
+            birth = service._materialization(service.load_spec(sp), "A01")
             endpoint = service.config.browserless_pool.endpoints[0]
             path = service._binding_path(birth)
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -1087,7 +1082,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             service = BrowserlessAutomationService(
                 BrowserlessAutomationConfig.from_dict(config(root))
             )
-            birth = service._birth(service.load_spec(sp), "A01")
+            birth = service._materialization(service.load_spec(sp), "A01")
             path = (
                 service._occurrence_dir(birth)
                 / "human-handoff"
@@ -1513,7 +1508,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             sp = root / "spec.json"
             sp.write_text(json.dumps(spec()))
             effects = BrowserlessEffectAdapter(BrowserlessAutomationConfig.from_dict(config(root)))
-            birth = effects.context._birth(effects.context.load_spec(sp), "A01")
+            birth = effects.context._materialization(effects.context.load_spec(sp), "A01")
             endpoint = effects.config.browserless_pool.endpoints[0]
             binding = effects.context._binding_path(birth)
             binding.parent.mkdir(parents=True, exist_ok=True)
@@ -1570,7 +1565,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             sp = root / "spec.json"
             sp.write_text(json.dumps(spec()))
             effects = BrowserlessEffectAdapter(BrowserlessAutomationConfig.from_dict(config(root)))
-            birth = effects.context._birth(effects.context.load_spec(sp), "A01")
+            birth = effects.context._materialization(effects.context.load_spec(sp), "A01")
             endpoint = effects.config.browserless_pool.endpoints[0]
             path = effects.context._binding_path(birth)
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -1596,7 +1591,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             with mock.patch(
                 "agent_automation_browserless_effects.campaign_census", return_value=census
             ):
-                result = effects.reconcile_birth(sp, "A01")
+                result = effects.reconcile(sp, "A01")
             self.assertEqual(result["action"], "preserved-standing-no-current-carrier-evidence")
             self.assertEqual(result["reconciliationUnavailableReason"], "carrier-no-longer-current")
             self.assertFalse(result["safeToResend"])
@@ -1624,9 +1619,9 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                     "agent_automation_browserless_effects.campaign_census", return_value=census
                 ),
                 mock.patch.object(effects.context, "_current_binding", return_value=None),
-                mock.patch.object(effects, "reconcile_birth") as reconcile,
+                mock.patch.object(effects, "reconcile") as reconcile,
             ):
-                result = effects.materialize_birth(sp, "A01")
+                result = effects.materialize(sp, "A01")
             reconcile.assert_not_called()
             self.assertEqual(result["action"], "existing-effect-unknown-no-resend")
             self.assertFalse(result["safeToResend"])
@@ -1671,7 +1666,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
         self.assertIn('r = svc.launch_reconcile(a.spec, a.agent_id)', text)
         self.assertNotIn('r = svc.reconcile(a.spec, a.agent_id)', text)
 
-    def test_reconcile_admission_rejects_bound_and_pre_effect_terminal_occurrences(self):
+    def test_reconcile_admission_treats_bound_occurrence_as_converged_noop(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             sp = root / "spec.json"
@@ -1679,28 +1674,61 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             service = BrowserlessAutomationService(
                 BrowserlessAutomationConfig.from_dict(config(root))
             )
-            for standing, blind in (("bound", True), ("pre-effect-failed", False)):
-                census = {
-                    "occurrences": [
-                        {
-                            "agentId": "A01",
-                            "materializationStanding": standing,
-                            "blindResendForbidden": blind,
-                            "providerResource": "https://chatgpt.com/c/x"
-                            if standing == "bound"
-                            else None,
-                        }
-                    ]
-                }
-                with (
-                    mock.patch("agent_automation_browserless.campaign_census", return_value=census),
-                    mock.patch.object(service, "_temporal_admit") as temporal,
-                ):
-                    with self.assertRaisesRegex(
-                        BrowserlessAutomationHold, "unknown provider-effect outcome"
-                    ):
-                        service.launch_reconcile(sp, "A01")
-                    temporal.assert_not_called()
+            census = {
+                "occurrences": [
+                    {
+                        "agentId": "A01",
+                        "materializationStanding": "bound",
+                        "blindResendForbidden": True,
+                        "providerResource": "https://chatgpt.com/c/x",
+                    }
+                ]
+            }
+            with (
+                mock.patch("agent_automation_browserless.campaign_census", return_value=census),
+                mock.patch.object(service, "_temporal_admit") as temporal,
+            ):
+                result = service.launch_reconcile(sp, "A01")
+                temporal.assert_not_called()
+                self.assertEqual(
+                    result["census"]["occurrences"][0]["materializationStanding"],
+                    "bound",
+                )
+
+    def test_reconcile_admission_reenters_pre_effect_failed_with_same_effect_identity(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            sp = root / "spec.json"
+            sp.write_text(json.dumps(spec()))
+            service = BrowserlessAutomationService(
+                BrowserlessAutomationConfig.from_dict(config(root))
+            )
+            census = {
+                "occurrences": [
+                    {
+                        "agentId": "A01",
+                        "materializationStanding": "pre-effect-failed",
+                        "blindResendForbidden": False,
+                        "providerResource": None,
+                    }
+                ]
+            }
+            admitted = {
+                "workflowId": "wf-retry",
+                "workflowType": "ordivon.occurrence.materialize",
+                "disposition": "started",
+            }
+            with (
+                mock.patch("agent_automation_browserless.campaign_census", return_value=census),
+                mock.patch.object(service, "_require_materialization_substrate_available") as substrate,
+                mock.patch.object(service, "_temporal_admit", return_value=admitted) as temporal,
+            ):
+                result = service.launch_reconcile(sp, "A01")
+            substrate.assert_called_once()
+            temporal.assert_called_once_with(sp, "pre-effect-retry", agent_id="A01")
+            self.assertEqual(result["temporal"]["workflowId"], "wf-retry")
+            self.assertFalse(result["safeToResend"])
+
 
     def test_new_continuation_admission_requires_rfc9562_uuid7_before_temporal(self):
         with tempfile.TemporaryDirectory() as d:
@@ -1744,7 +1772,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             completed = mock.Mock(returncode=0, stdout="not-json\n", stderr="")
             with mock.patch("agent_automation_browserless.subprocess.run", return_value=completed):
                 with self.assertRaisesRegex(BrowserlessAutomationAmbiguous, "outcome is unknown"):
-                    service._temporal_admit(sp, "campaign-birth")
+                    service._temporal_admit(sp, "campaign-materialize")
 
     @unittest.skipUnless(
         importlib.util.find_spec("rfc8785") is not None,
@@ -1760,7 +1788,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             )
             completed = mock.Mock(
                 returncode=0,
-                stdout=json.dumps({"kind": "temporal-birth-admissions", "workflows": []}) + "\n",
+                stdout=json.dumps({"kind": "temporal-materialization-admissions", "workflows": []}) + "\n",
                 stderr="",
             )
             with mock.patch("agent_automation_browserless.subprocess.run", return_value=completed):
@@ -1768,7 +1796,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                     __import__("agent_automation_browserless").BrowserlessAutomationAmbiguous,
                     "campaign admission outcome is unknown",
                 ):
-                    service._temporal_admit(sp, "campaign-birth")
+                    service._temporal_admit(sp, "campaign-materialize")
 
     def test_public_birth_admission_uses_substrate_only_not_provider_failover(self):
         with tempfile.TemporaryDirectory() as d:
@@ -1786,22 +1814,22 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             service = BrowserlessAutomationService(BrowserlessAutomationConfig.from_dict(cfg))
             admitted = {
                 "workflowId": "wf-a",
-                "workflowType": "ordivon.agent.birth",
+                "workflowType": "ordivon.occurrence.materialize",
                 "disposition": "started",
             }
             with (
                 mock.patch.object(
                     service,
-                    "_require_birth_substrate_available",
+                    "_require_materialization_substrate_available",
                     return_value=service.config.browserless_pool.endpoints[1],
                 ) as substrate,
                 mock.patch.object(service, "provider_preflight") as preflight,
                 mock.patch.object(service, "_temporal_admit", return_value=admitted) as temporal,
             ):
-                out = service.launch_occurrence(sp, "A01")
+                out = service.launch_reconcile(sp, "A01")
             substrate.assert_called_once()
             preflight.assert_not_called()
-            temporal.assert_called_once_with(sp, "agent-birth", agent_id="A01")
+            temporal.assert_called_once_with(sp, "materialize", agent_id="A01")
             self.assertEqual(out["temporal"]["workflowId"], "wf-a")
 
     def test_leased_provider_preflight_does_not_reacquire_and_self_conflict(self):
@@ -1864,7 +1892,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                     "assistantOutputRead": False,
                 }
                 with mock.patch.object(effects, "_target") as target:
-                    result = effects.materialize_birth(
+                    result = effects.materialize(
                         sp, "A01", endpoint_id=endpoint.endpoint_id, provider_preflight=observation
                     )
                 self.assertEqual(result["action"], "carrier-pre-effect-unavailable")
@@ -1912,7 +1940,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                         raise AssertionError
 
                 with mock.patch.object(effects, "_target", return_value=Target()) as target:
-                    result = effects.materialize_birth(
+                    result = effects.materialize(
                         sp, "A01", endpoint_id=endpoint.endpoint_id, provider_preflight=observation
                     )
                 self.assertEqual(result["action"], "materialize")
@@ -1955,7 +1983,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             second["operatorHttpEndpoint"] = "http://127.0.0.1:13112"
             cfg["browserSubstrate"]["endpoints"] = [first, second]
             effects = BrowserlessEffectAdapter(BrowserlessAutomationConfig.from_dict(cfg))
-            birth = effects.context._birth(effects.context.load_spec(sp), "A01")
+            birth = effects.context._materialization(effects.context.load_spec(sp), "A01")
             ordered = effects.config.browserless_pool.candidates(birth.effect_id)
             unavailable = {
                 "standing": "PROVIDER_UNAVAILABLE",
@@ -1970,7 +1998,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 mock.patch.object(effects.context, "provider_preflight", return_value=unavailable),
                 mock.patch.object(effects, "_target") as target,
             ):
-                first_result = effects.materialize_birth(
+                first_result = effects.materialize(
                     sp, "A01", endpoint_id=ordered[0].endpoint_id, provider_preflight=unavailable
                 )
             self.assertEqual(first_result["action"], "carrier-pre-effect-unavailable")
@@ -2001,7 +2029,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 mock.patch.object(effects.context, "provider_preflight", return_value=ready),
                 mock.patch.object(effects, "_target", return_value=Target()),
             ):
-                result = effects.materialize_birth(
+                result = effects.materialize(
                     sp, "A01", endpoint_id=ordered[1].endpoint_id, provider_preflight=ready
                 )
             binding = json.loads(

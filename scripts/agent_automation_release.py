@@ -74,7 +74,7 @@ RELEASE_PATHS = (
     "scripts/temporal_agent_automation_deploy.py",
     "scripts/temporal_agent_automation_launch.py",
     "scripts/temporal_agent_automation_worker.py",
-    "scripts/campaign_birth.py",
+    "scripts/campaign_materialization.py",
     "scripts/chatgpt_provider_gate.py",
     "scripts/chatgpt_provider_resource.py",
     "scripts/conversation_relay_carrier.py",

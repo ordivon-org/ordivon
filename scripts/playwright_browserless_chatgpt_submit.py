@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Submit one ChatGPT birth through Browserless without persisting Browserless credentials.
+"""Submit one ChatGPT materialization through Browserless without persisting Browserless credentials.
 
 Provider challenges/authentication expiry are never solved automatically. On self-hosted Browserless,
 the exact headful running session is exposed through a bounded local noVNC transport while this
@@ -104,9 +104,9 @@ def stabilize_empty_composer(
     """Clear persisted draft state and require a stable empty window before SEND.
 
     ChatGPT can asynchronously rehydrate the root-page ProseMirror draft from a persistent profile.
-    One successful ``fill("")`` is therefore not proof that the fresh-birth surface is clean. This
+    One successful ``fill("")`` is therefore not proof that the fresh-materialization surface is clean. This
     helper performs only local pre-SEND edits and waits until the composer remains text-empty for a
-    bounded quiet interval. It never fills the birth prompt or activates SEND.
+    bounded quiet interval. It never fills the materialization prompt or activates SEND.
     """
     deadline = time.monotonic() + max(timeout_ms, quiet_ms) / 1000.0
     quiet_since: float | None = None
@@ -132,7 +132,7 @@ def wait_for_canonical_after_send(
 ) -> str | None:
     """Observe the provider route until it becomes canonical or the SEND result is boundedly ambiguous.
 
-    A ChatGPT birth may stay on a client-generated ``/c/WEB:...`` route while generation is
+    A ChatGPT materialization may stay on a client-generated ``/c/WEB:...`` route while generation is
     active. Do not turn that delay into a resend. Keep the original Browserless session attached,
     return immediately on a canonical route, and after generation stops allow only a short settle
     window. The hard ceiling is a carrier-capacity bound, not evidence that SEND failed.
@@ -304,7 +304,7 @@ def main() -> int:
             )
             browser.close()
             return PRE_EFFECT_BLOCKED_EXIT
-        # Birth differs from continuation/reconciliation: always establish a fresh provider
+        # Materialization differs from continuation/reconciliation: always establish a fresh provider
         # surface instead of inheriting whichever page the persistent profile last displayed.
         # Navigation is pre-SEND and remains safely retryable under the same effect identity.
         try:

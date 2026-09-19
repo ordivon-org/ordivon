@@ -10,7 +10,7 @@ class TemporalAgentAutomationContractTests(unittest.TestCase):
     def test_worker_registers_only_current_occurrence_workflows(self):
         text = (ROOT / "scripts/temporal_agent_automation.py").read_text()
         for name in (
-            "AGENT_BIRTH_WORKFLOW",
+            "OCCURRENCE_MATERIALIZE_WORKFLOW",
             "AGENT_RECONCILE_WORKFLOW",
             "AGENT_HUMAN_RESUME_WORKFLOW",
             "AGENT_CONTINUE_WORKFLOW",
@@ -39,10 +39,10 @@ class TemporalAgentAutomationContractTests(unittest.TestCase):
         self.assertIsInstance(workflows, ast.List)
         self.assertEqual(
             [elt.id for elt in workflows.elts if isinstance(elt, ast.Name)],
-            ["AgentBirthWorkflow", "AgentReconcileWorkflow", "AgentHumanResumeWorkflow", "AgentContinueWorkflow"],
+            ["OccurrenceMaterializeWorkflow", "AgentReconcileWorkflow", "AgentHumanResumeWorkflow", "AgentContinueWorkflow"],
         )
 
-    def test_campaign_birth_admits_independent_workflows_concurrently(self):
+    def test_campaign_materialization_admits_independent_workflows_concurrently(self):
         path = ROOT / "scripts/temporal_agent_automation_launch.py"
         text = path.read_text()
         tree = ast.parse(text)
@@ -54,7 +54,7 @@ class TemporalAgentAutomationContractTests(unittest.TestCase):
             node for node in ast.walk(run_fn)
             if isinstance(node, ast.If)
             and isinstance(node.test, ast.Compare)
-            and any(isinstance(comp, ast.Constant) and comp.value == "campaign-birth" for comp in node.test.comparators)
+            and any(isinstance(comp, ast.Constant) and comp.value == "campaign-materialize" for comp in node.test.comparators)
         )
         segment = ast.get_source_segment(text, campaign_branch) or ""
         gather = next(
@@ -66,8 +66,8 @@ class TemporalAgentAutomationContractTests(unittest.TestCase):
             and node.func.attr == "gather"
         )
         self.assertTrue(gather.args)
-        self.assertIn("workflow_id=birth.effect_id", segment.replace(" ", ""))
-        self.assertIn("zip(births,results,strict=True)", segment.replace(" ", ""))
+        self.assertIn("workflow_id=materialization.effect_id", segment.replace(" ", ""))
+        self.assertIn("zip(materializations,results,strict=True)", segment.replace(" ", ""))
         self.assertNotIn("CampaignBirthInput", text)
         self.assertNotIn("CAMPAIGN_BIRTH_WORKFLOW", text)
         self.assertIn("WorkflowIDReusePolicy.REJECT_DUPLICATE", text)
@@ -107,7 +107,7 @@ class TemporalAgentAutomationContractTests(unittest.TestCase):
         tree = ast.parse(text)
         for node in ast.walk(tree):
             if isinstance(node, ast.ClassDef) and node.name in {
-                "AgentBirthWorkflow",
+                "OccurrenceMaterializeWorkflow",
                 "AgentReconcileWorkflow",
                 "AgentHumanResumeWorkflow",
                 "AgentContinueWorkflow",

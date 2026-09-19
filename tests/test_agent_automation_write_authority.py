@@ -12,7 +12,7 @@ SCRIPTS = ROOT / "scripts"
 class AgentAutomationWriteAuthorityTests(unittest.TestCase):
     def test_raw_provider_effect_adapter_calls_are_temporal_activity_only(self):
         pattern = re.compile(
-            r"\b(?:effects|_effects\(\))\.(materialize_birth|reconcile_birth|send_turn)\("
+            r"\b(?:effects|_effects\(\))\.(materialize|reconcile|send_turn)\("
         )
         hits = []
         for path in sorted(SCRIPTS.glob("*.py")):
@@ -22,7 +22,7 @@ class AgentAutomationWriteAuthorityTests(unittest.TestCase):
         self.assertEqual([x[0] for x in hits], ["temporal_agent_automation.py"] * 3, hits)
         self.assertEqual(
             [re.search(pattern, x[2]).group(1) for x in hits],
-            ["materialize_birth", "reconcile_birth", "send_turn"],
+            ["materialize", "reconcile", "send_turn"],
         )
 
     def test_public_browserless_facade_has_no_raw_provider_writer_methods(self):
@@ -40,15 +40,15 @@ class AgentAutomationWriteAuthorityTests(unittest.TestCase):
             "birth",
             "reconcile",
             "continue_occurrence",
-            "materialize_birth",
-            "reconcile_birth",
+            "materialize",
+            "reconcile",
             "send_turn",
         }
         self.assertFalse(public & raw, public & raw)
         effects = methods(
             SCRIPTS / "agent_automation_browserless_effects.py", "BrowserlessEffectAdapter"
         )
-        self.assertTrue({"materialize_birth", "reconcile_birth", "send_turn"} <= effects)
+        self.assertTrue({"materialize", "reconcile", "send_turn"} <= effects)
 
     def test_mcp_and_cli_provider_effect_actions_are_temporal_admissions(self):
         mcp = (SCRIPTS / "agent_automation_mcp.py").read_text()
@@ -63,13 +63,12 @@ class AgentAutomationWriteAuthorityTests(unittest.TestCase):
         ):
             self.assertNotIn(direct, mcp)
         for admitted in (
-            "current_service().launch_occurrence",
             "current_service().launch_reconcile",
             "current_service().launch_continue",
         ):
             self.assertIn(admitted, mcp)
-        self.assertIn('a.action == "birth":', facade)
-        self.assertIn('r = svc.launch_occurrence(a.spec, a.agent_id)', facade)
+        self.assertNotIn('a.action == "birth":', facade)
+        self.assertNotIn('r = svc.launch_occurrence(a.spec, a.agent_id)', facade)
         self.assertIn('a.action == "reconcile":', facade)
         self.assertIn('r = svc.launch_reconcile(a.spec, a.agent_id)', facade)
         self.assertIn('a.action == "continue":', facade)

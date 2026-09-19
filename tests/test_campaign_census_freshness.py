@@ -9,7 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from campaign_birth import CampaignLaunchSpec, RoleCard, campaign_census, compile_campaign  # noqa: E402
+from campaign_materialization import CampaignLaunchSpec, RoleCard, campaign_census, compile_campaign  # noqa: E402
 
 
 class CampaignCensusFreshnessTests(unittest.TestCase):

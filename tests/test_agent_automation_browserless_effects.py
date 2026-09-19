@@ -35,8 +35,8 @@ class WorkerOnlyEffectAdapterContractTests(unittest.TestCase):
                 "birth",
                 "reconcile",
                 "continue_occurrence",
-                "materialize_birth",
-                "reconcile_birth",
+                "materialize",
+                "reconcile",
                 "send_turn",
             }
         )

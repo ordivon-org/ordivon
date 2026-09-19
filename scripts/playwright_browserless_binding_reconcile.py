@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reconcile one ambiguous Browserless ChatGPT birth using its bounded reconnect endpoint."""
+"""Reconcile one ambiguous Browserless ChatGPT materialization using its bounded reconnect endpoint."""
 
 from __future__ import annotations
 
