@@ -96,6 +96,14 @@ class AuthorityCatalogTests(unittest.TestCase):
         self.assertEqual(top("outsourcing"), "iso-37500-2014")
         self.assertEqual(top("company registration"), "samr-registration-materials-2026")
         self.assertEqual(top("value proposition"), "strategyzer-value-proposition-canvas")
+        self.assertEqual(top("founder led sales"), "yc-how-to-sell-2018")
+        self.assertEqual(top("pricing"), "stripe-saas-pricing-packaging")
+        self.assertEqual(top("customer success"), "iso-10004-2018")
+        self.assertEqual(top("recruitment"), "iso-30405-2023")
+        self.assertEqual(top("hiring"), "iso-30405-2023")
+        self.assertEqual(top("procurement"), "iso-20400-2017")
+        self.assertEqual(top("frappe crm"), "frappe-crm-provider")
+        self.assertEqual(top("erpnext crm"), "erpnext-crm-provider")
 
         # Unknown named authorities must fail closed rather than borrow relevance
         # from one or two generic overlapping tokens.

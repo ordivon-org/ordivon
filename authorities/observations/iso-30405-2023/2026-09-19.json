@@ -1,0 +1,11 @@
+{
+  "authorityId": "iso-30405-2023",
+  "basis": "official-source-currentness-check",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published-current",
+  "note": "ISO official metadata lists ISO 30405:2023 as the current published recruitment guidance.",
+  "observedDate": "2026-09-19",
+  "officialSource": "https://www.iso.org/standard/79488.html",
+  "schemaVersion": 1,
+  "versionObserved": "2023"
+}

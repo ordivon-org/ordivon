@@ -1,0 +1,50 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": "Provider guidance for SaaS pricing and packaging; not a universal pricing standard."
+  },
+  "discovery": {
+    "aliases": [
+      "Stripe SaaS Pricing Guide",
+      "SaaS Pricing and Packaging"
+    ],
+    "domains": [
+      "business",
+      "commercialization",
+      "software"
+    ],
+    "topics": [
+      "packaging",
+      "pricing",
+      "saas-pricing",
+      "value-metric"
+    ]
+  },
+  "id": "stripe-saas-pricing-packaging",
+  "identity": {
+    "authorityKind": "provider-guidance",
+    "identityMode": "rolling-source",
+    "issuer": {
+      "id": "stripe",
+      "name": "Stripe"
+    },
+    "officialSource": "https://stripe.com/resources/more/saas-pricing-and-packaging-strategy",
+    "publicationDate": null,
+    "title": "A Guide to SaaS Pricing and Packaging",
+    "versionLabel": null
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-19",
+    "registrationBasis": [
+      "commercial-practice-externalization-r2"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

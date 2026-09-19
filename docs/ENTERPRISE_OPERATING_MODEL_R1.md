@@ -138,7 +138,11 @@ No arrow above implies that all providers are activated for every Work.
 
 | Fact / responsibility | Natural owner | Activation rule | Must not become |
 | --- | --- | --- | --- |
-| customer, opportunity, sales, accounting, business project, ERP-native quality record | ERPNext/Frappe | real business event needs that record | universal Task DB |
+| lead/deal CRM pipeline | current CRM provider; evaluate Frappe CRM for a new pipeline | first real pipeline needs durable shared records | Ordivon sales ontology or new long-term dependency on ERPNext's v17-retiring CRM workspace |
+| quotation, sales order, invoice, accounting, business project, ERP-native quality record | ERPNext/Frappe | real transactional/business event needs that record | universal Task DB |
+| supplier/RFQ/purchase order/purchase invoice facts | ERPNext Buying or another natural purchasing provider | first real procurement event | custom procurement database |
+| recruitment process | ISO 30405:2023 + applicable law/professional provider; Frappe HR only if workflow scale justifies it | first real hire | Ordivon hiring methodology |
+| customer satisfaction / complaints | ISO 10004 / ISO 10002 + natural CRM/support/business records | real customer feedback/complaint makes the process useful | generic Customer Success status engine |
 | minimal durable work/continuity state | Host v2 | current local need; remain bounded | universal semantic/execution owner |
 | heavyweight collaborative work items/boards/cycles/modules | Plane, or OpenProject if PMO/time/cost governance dominates | measured coordination complexity exceeds Host v2 | domain truth |
 | prescriptive business process | BPMN/Flowable | stable repeatable organizational process benefits from executable model | universal workflow graph |
@@ -295,6 +299,23 @@ Universal unlimited contract
 
 Sell controllable deliverables/acceptance conditions rather than guaranteeing third-party outcomes that Ordivon does not control.
 
+### Commercial practice ownership
+
+Commercial methods are selected by stage and claim; Ordivon does not own a generic GTM/Sales/Pricing/Customer-Success/Hiring framework.
+
+| Need | Mature owner / reference | Evidence that actually matters |
+| --- | --- | --- |
+| early B2B sales | YC early-stage sales guidance; founder-led buyer work | conversations, qualified deals, objections, accepted/rejected quotations, paid work |
+| CRM pipeline | current CRM provider; evaluate Frappe CRM for new pipeline work | provider-native lead/deal state and real buyer interactions |
+| service pricing | direct quoting, negotiation, paid pilots, measured delivery economics | accepted price, gross contribution, scope/change/refund/rework behavior |
+| SaaS pricing/packaging | Stripe SaaS pricing/packaging guidance when the business is actually SaaS-like | conversion, expansion, retention/churn and buyer behavior |
+| customer satisfaction | ISO 10004:2018 where measurement is useful | customer responses plus retention/renewal/referral/usage context |
+| complaints | ISO 10002:2018 when a complaint actually occurs | complaint, resolution, corrective action and customer outcome |
+| recruitment | ISO 30405:2023 + applicable employment law/providers | actual candidate/employment process and signed employment relationship |
+| procurement | provider-native buying records; ISO 20400 where sustainable procurement is material; ISO 37500 for material outsourcing | supplier quote/order/invoice/delivery/performance and contract evidence |
+
+Do not select a mature method merely because its name matches the topic. A SaaS pricing guide is not the default for a one-off technical service; sustainable-procurement guidance is not a mandatory ceremony for buying a low-risk SaaS subscription; recruitment guidance is dormant until a real hire exists.
+
 ## 10. Provider activation economics
 
 A provider is activated only when the work demonstrates a responsibility that it solves better than the current thinner composition.
@@ -422,3 +443,9 @@ Do not manufacture those events to complete an architecture checklist.
 - ISO 10002:2018: https://www.iso.org/standard/71580.html
 - ISO 10004:2018: https://www.iso.org/standard/71582.html
 - ISO 9004:2018: https://www.iso.org/standard/70397.html
+- ISO 30405:2023 recruitment guidance: https://www.iso.org/standard/79488.html
+- ISO 20400:2017 sustainable procurement guidance: https://www.iso.org/standard/63026.html
+- Y Combinator, *How to Sell*: https://www.ycombinator.com/blog/how-to-sell-by-tyler-bosmeny/
+- Stripe SaaS pricing and packaging guidance: https://stripe.com/resources/more/saas-pricing-and-packaging-strategy
+- Frappe CRM provider documentation: https://docs.frappe.io/crm/introduction
+- ERPNext CRM provider/currentness documentation: https://docs.frappe.io/erpnext/CRM

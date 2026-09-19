@@ -449,32 +449,43 @@ The next real package/download/repository/network failure becomes the acceptance
 
 ### Mature anchors
 
-Use mature ERP/provider-native business semantics instead of creating an Ordivon business ontology. The current local owner is ERPNext/Frappe. Keep statutory, tax, banking, payment, payroll and jurisdiction-specific behavior in the applicable mature provider/regulatory system rather than pretending one local schema already covers them.
+Use mature provider-native business semantics instead of creating an Ordivon business ontology.
+
+Provider ownership is responsibility-specific rather than permanently assigned to one suite:
+
+- ERPNext/Frappe remains the accepted local owner for transactional selling/accounting/project/quality facts already proven;
+- current Frappe documentation schedules ERPNext's built-in CRM workspace for removal in version 17, so new CRM pipeline work should evaluate Frappe CRM rather than accumulating compatibility debt in the old workspace;
+- ERPNext Buying is the native candidate for supplier/RFQ/PO/purchase-invoice facts when procurement becomes real;
+- ISO 10002/10004 provide customer complaint/satisfaction process guidance when actual customer evidence exists;
+- ISO 30405:2023 provides recruitment guidance when a real hire exists;
+- ISO 20400:2017 applies when sustainable-procurement concerns are material, while ISO 37500 applies to material outsourcing;
+- statutory, tax, banking, payment, payroll and jurisdiction-specific behavior stays in the applicable regulatory/professional/provider system.
 
 ### Current local working set
 
-- ERPNext `16.34.2` / Frappe as business semantic owner;
+- ERPNext `16.34.2` / Frappe as the currently proven transactional ERP/accounting owner;
 - MariaDB `11.8` and Redis `8.6` as ERPNext-owned storage/runtime dependencies;
 - rootless Podman/Quadlet + user systemd as service-lifecycle owner;
-- Frappe native document/API lifecycle for business records;
+- Frappe native document/API lifecycle for existing ERP business records;
+- no newly activated CRM, HR or procurement service merely to complete the architecture;
 - n8n as a bounded integration edge;
 - Runtime only for mechanical execution/evidence when operating the local service.
 
-Detailed acceptance evidence is in `migrations/records/business-operations-erpnext-r1.md`.
+Detailed acceptance evidence and the CRM provider-succession note are in `migrations/records/business-operations-erpnext-r1.md`.
 
 ### Authority boundary
 
-Do not use ERPNext as the universal work/task database. Host v2 remains the current minimal work/continuity utility; Plane is an optional heavier work-management provider only if a real workload justifies activation. Temporal/MAF/Runtime/domain owners retain their own process/orchestration/execution/semantic truth. Likewise, Market Capital remains a separate read-only market/capital domain rather than being collapsed into ERP accounting.
+Do not use ERPNext as the universal work/task database, and do not preserve a retiring ERPNext CRM workspace by wrapping it in Ordivon abstractions. Host v2 remains the current minimal work/continuity utility; Plane is an optional heavier work-management provider only if a real workload justifies activation. Temporal/MAF/Runtime/domain owners retain their own process/orchestration/execution/semantic truth. Likewise, Market Capital remains a separate read-only market/capital domain rather than being collapsed into ERP accounting.
 
 ### Current standing
 
 The current local acceptance workload passed a native chain from Customer/Opportunity/Project/Quality through a submitted CNY 100 Sales Invoice and balanced General Ledger entries, then survived complete Pod stop/start and the later manual-Pod -> Quadlet ownership cutover. A published n8n workflow also reached ERPNext through the existing loopback gateway path and received `pong` from the live Frappe endpoint.
 
-This is acceptance of the local mature owner composition, not evidence that real tax, bank, payment, payroll, inventory or statutory invoicing workflows have already been configured.
+This remains valid historical evidence for that ERPNext v16 slice. It is not evidence of a real customer, and it is not a commitment to use ERPNext's built-in CRM for future pipeline work. Real tax, bank, payment, payroll, inventory, procurement and statutory invoicing workflows also remain unconfigured until triggered.
 
 ### First real business workload
 
-Use the first genuine company/customer/accounting event. Configure only the minimum ERPNext-native module/fields needed, use a dedicated least-privilege integration identity for authenticated automation, and verify the resulting ERP-native state/effect. Do not add custom Ordivon business semantics unless repeated mature-provider substitution failure is measured.
+Use the first genuine company/customer/accounting event. For a first real sales pipeline, compare the current Frappe CRM provider against the actual founder-led workflow before activation; keep accepted transactional selling/accounting records in ERPNext where native. Configure only the minimum provider-native records needed, use dedicated least-privilege integration identities for authenticated automation, and verify the resulting provider-native state/effect. Do not add custom Ordivon business semantics unless repeated mature-provider substitution failure is measured.
 
 ---
 

@@ -6,14 +6,18 @@
   },
   "discovery": {
     "aliases": [
-      "ISO 10004"
+      "ISO 10004",
+      "Customer satisfaction monitoring"
     ],
     "domains": [
+      "customer",
+      "customer-success",
       "enterprise",
-      "management",
-      "customer"
+      "management"
     ],
     "topics": [
+      "customer-feedback",
+      "customer-success",
       "customer-satisfaction",
       "measurement",
       "quality-management"

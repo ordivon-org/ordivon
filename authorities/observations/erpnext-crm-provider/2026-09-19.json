@@ -1,0 +1,11 @@
+{
+  "authorityId": "erpnext-crm-provider",
+  "basis": "official-provider-documentation-check",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "scheduled-for-removal-v17",
+  "note": "ERPNext documentation says the CRM workspace is scheduled for removal in version 17 and recommends evaluating Frappe CRM for new CRM implementations; transactional selling records remain relevant.",
+  "observedDate": "2026-09-19",
+  "officialSource": "https://docs.frappe.io/erpnext/CRM",
+  "schemaVersion": 1,
+  "versionObserved": null
+}
