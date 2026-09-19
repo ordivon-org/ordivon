@@ -1,16 +1,14 @@
 ---
-name: lego-information-flow
-description: "Apply information-flow and noninterference reasoning to a LEGO system when sensitive, trusted, untrusted, private, or authority-relevant information crosses components. Trace sources, transformations, stores, observers, sinks, declassification/release points, and prohibited influence. Use for credentials, prompts/context, logs, artifacts, telemetry, model/tool boundaries, multi-tenant systems, and security/privacy review. Do not confuse data visibility with execution authority or claim side-channel freedom without a formal model."
+name: information-flow-analysis
+description: "Apply information-flow and noninterference reasoning to a system when sensitive, trusted, untrusted, private, or authority-relevant information crosses components. Trace sources, transformations, stores, observers, sinks, declassification/release points, and prohibited influence. Use for credentials, prompts/context, logs, artifacts, telemetry, model/tool boundaries, multi-tenant systems, and security/privacy review. Do not confuse data visibility with execution authority or claim side-channel freedom without a formal model."
 compatibility: Cross-platform. Produces information-flow/security analysis evidence; it is not a complete formal noninterference proof.
 metadata:
   source-authority: information-flow security / noninterference
-  lego-theory-layer: docs/LEGO_THEORY_LAYER_R1.md
-  wave: "2"
 ---
 
-# LEGO Information Flow Lens
+# Information Flow
 
-Use this lens when the architecture question is "what information can influence or be observed where?"
+Use this method when the architecture question is "what information can influence or be observed where?"
 
 ## Procedure
 
@@ -78,5 +76,4 @@ Canonical external foundation:
 - Information-flow security and Goguen-Meseguer-style noninterference; Cornell systems-security treatment.
 
 Canonical local reference:
-- docs/LEGO_THEORY_LAYER_R1.md
 - docs/LEGO_THEORY_WAVE2_R1.md

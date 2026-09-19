@@ -1,16 +1,14 @@
 ---
-name: lego-organizational-cybernetics
-description: "Apply organizational-cybernetics and Viable System Model ideas as a diagnostic lens for multi-agent or multi-team systems that must remain autonomous, coordinated, adaptive, and coherent under environmental change. Examine operational units, coordination, internal control/resource allocation, environment/future intelligence, policy/identity, recursion, and requisite variety. Use for Agent organizations, capability packages, distributed operating models, and control-plane design. Do not force every organization into five literal services or treat VSM's organizational mapping as empirically universal."
+name: organizational-cybernetics
+description: "Apply organizational-cybernetics and Viable System Model ideas as a diagnostic method for multi-agent or multi-team systems that must remain autonomous, coordinated, adaptive, and coherent under environmental change. Examine operational units, coordination, internal control/resource allocation, environment/future intelligence, policy/identity, recursion, and requisite variety. Use for Agent organizations, capability packages, distributed operating models, and control-plane design. Do not force every organization into five literal services or treat VSM's organizational mapping as empirically universal."
 compatibility: Cross-platform. Produces organizational-viability diagnostics; it is not an organizational authority model or mandatory topology.
 metadata:
   source-authority: Stafford Beer organizational cybernetics / Viable System Model; empirical tests treated as external evidence, not axioms
-  lego-theory-layer: docs/LEGO_THEORY_LAYER_R1.md
-  wave: "3"
 ---
 
-# LEGO Organizational Cybernetics Lens
+# Organizational Cybernetics
 
-Use this lens when many semi-autonomous units must act locally while remaining viable as a larger whole.
+Use this method when many semi-autonomous units must act locally while remaining viable as a larger whole.
 
 ## Diagnostic coordinates
 
@@ -79,5 +77,4 @@ Canonical external foundations:
 - Later empirical/application literature should be used to test rather than canonize the mapping.
 
 Canonical local reference:
-- docs/LEGO_THEORY_LAYER_R1.md
 - docs/LEGO_THEORY_WAVE3_R1.md

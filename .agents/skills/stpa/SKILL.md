@@ -1,15 +1,14 @@
 ---
-name: lego-stpa
-description: Apply STAMP/STPA-style system-theoretic safety or security analysis to a LEGO system when unacceptable losses can emerge from interactions, control actions, automation, software, humans, organizations, or authority relationships even if individual components work as designed. Use for safety-critical, security-sensitive, autonomous, multi-agent, or high-blast-radius systems. Do not reduce the analysis to a component failure checklist.
+name: stpa
+description: Apply STAMP/STPA-style system-theoretic safety or security analysis to a system when unacceptable losses can emerge from interactions, control actions, automation, software, humans, organizations, or authority relationships even if individual components work as designed. Use for safety-critical, security-sensitive, autonomous, multi-agent, or high-blast-radius systems. Do not reduce the analysis to a component failure checklist.
 compatibility: Cross-platform. Produces system-level hazard/security analysis evidence.
 metadata:
   source-authority: MIT STAMP/STPA / Leveson and Thomas
-  lego-theory-layer: docs/LEGO_THEORY_LAYER_R1.md
 ---
 
-# LEGO STPA Lens
+# STPA
 
-Use this lens when the critical question is not merely "which component fails?" but "which system interaction or control action can create loss?"
+Use this method when the critical question is not merely "which component fails?" but "which system interaction or control action can create loss?"
 
 ## Procedure
 
@@ -28,7 +27,7 @@ Use this lens when the critical question is not merely "which component fails?" 
    - action applied too long or stopped too soon.
 5. Construct causal scenarios for the important unsafe control actions.
 6. Derive candidate system constraints.
-7. Map constraints back to LEGO authority/interface boundaries.
+7. Map constraints back to project-native authority/interface boundaries.
 8. Preserve uncertainty where evidence is missing.
 
 ## Security adaptation
@@ -61,5 +60,4 @@ A candidate constraint enters the architecture only after it is tied to a projec
 Stop when the high-consequence losses relevant to the current design have constraints and testable scenarios, or when further analysis requires missing domain evidence.
 
 Canonical local reference:
-- docs/LEGO_THEORY_LAYER_R1.md
 - knowledge/lessons/lego-theory-foundations-r1.md

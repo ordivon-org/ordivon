@@ -1,16 +1,14 @@
 ---
-name: lego-evolutionary-search
-description: "Apply evolutionary-computation reasoning when Ordivon has a large, discrete, non-differentiable, combinatorial, or open-ended candidate space that can be evaluated repeatedly. Define representation/genotype, phenotype/evaluation, population, variation, selection, diversity, archive, constraints, evaluation noise, and termination. Use for architecture/design search, mechanic combinations, prompt/workflow variants, or parameter/configuration populations. Do not equate fitness with real value or deploy evolved candidates without independent verification."
+name: evolutionary-search
+description: "Apply evolutionary-computation reasoning when the system has a large, discrete, non-differentiable, combinatorial, or open-ended candidate space that can be evaluated repeatedly. Define representation/genotype, phenotype/evaluation, population, variation, selection, diversity, archive, constraints, evaluation noise, and termination. Use for architecture/design search, mechanic combinations, prompt/workflow variants, or parameter/configuration populations. Do not equate fitness with real value or deploy evolved candidates without independent verification."
 compatibility: Cross-platform. Produces search-protocol evidence; it does not authorize autonomous production mutation.
 metadata:
   source-authority: Eiben-Smith Introduction to Evolutionary Computing
-  lego-theory-layer: docs/LEGO_THEORY_LAYER_R1.md
-  wave: "3"
 ---
 
-# LEGO Evolutionary Search Lens
+# Evolutionary Search
 
-Use this lens when maintaining and transforming a population of candidates is more appropriate than optimizing one current design.
+Use this method when maintaining and transforming a population of candidates is more appropriate than optimizing one current design.
 
 ## Procedure
 
@@ -82,5 +80,4 @@ Canonical external foundation:
 - A. E. Eiben and J. E. Smith, Introduction to Evolutionary Computing.
 
 Canonical local reference:
-- docs/LEGO_THEORY_LAYER_R1.md
 - docs/LEGO_THEORY_WAVE3_R1.md
