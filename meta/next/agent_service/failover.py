@@ -363,8 +363,12 @@ class ExecutionQuiescenceCoordinator:
         if any(item.terminal and item.successful is True for item in history):
             raise RuntimeError("successful terminal remote execution must be verified, not failed over")
 
-        use_terminal_observation = latest is not None and latest.terminal and latest.successful is False
-        if not use_terminal_observation and self._adapters.get(binding.transport) is None:
+        terminal_observation = (
+            latest
+            if latest is not None and latest.terminal and latest.successful is False
+            else None
+        )
+        if terminal_observation is None and self._adapters.get(binding.transport) is None:
             raise LookupError(f"no quiescence provider registered for {binding.transport}")
         if request is None:
             with self._connection:
@@ -385,13 +389,13 @@ class ExecutionQuiescenceCoordinator:
                 raise RuntimeError("terminal quiescence request has no proof receipt")
             return proof
 
-        if use_terminal_observation:
+        if terminal_observation is not None:
             observation = ExecutionQuiescenceObservation(
                 quiescent=True,
-                provider_status=latest.provider_status,
-                remote_task_id=latest.remote_task_id,
-                remote_context_id=latest.remote_context_id,
-                evidence_ref=latest.evidence_ref,
+                provider_status=terminal_observation.provider_status,
+                remote_task_id=terminal_observation.remote_task_id,
+                remote_context_id=terminal_observation.remote_context_id,
+                evidence_ref=terminal_observation.evidence_ref,
             )
             method = "terminal_unsuccessful_observation"
         else:

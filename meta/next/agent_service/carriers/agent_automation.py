@@ -6,7 +6,7 @@ import os
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
+from typing import Any, Callable
 
 import rfc8785
 
@@ -64,11 +64,11 @@ CommandRunner = Callable[[list[str]], dict]
 RevisionResolver = Callable[[str], AgentRevision]
 
 
-def _canonical_bytes(value: object) -> bytes:
+def _canonical_bytes(value: Any) -> bytes:
     return rfc8785.dumps(value)
 
 
-def _digest(value: object) -> str:
+def _digest(value: Any) -> str:
     return "sha256:" + hashlib.sha256(rfc8785.dumps(value)).hexdigest()
 
 

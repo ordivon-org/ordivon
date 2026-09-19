@@ -11,7 +11,7 @@ import rfc8785
 from mcp_types.version import MODERN_PROTOCOL_VERSIONS
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, overload
 
 from .semantics import DelegationEnvelope
 from .slice1 import ServiceEvent, ServiceEventStore
@@ -516,6 +516,22 @@ def _delivery_receipt_from_event(event: ServiceEvent) -> DeliveryReceipt:
 
 def _delivery_receipt_get(events: ServiceEventStore, receipt_id: str) -> DeliveryReceipt:
     return _delivery_receipt_from_event(events.get(receipt_id))
+
+
+@overload
+def _delivery_receipt_get_by_binding(
+    events: ServiceEventStore,
+    binding_id: str,
+    required: Literal[True] = True,
+) -> DeliveryReceipt: ...
+
+
+@overload
+def _delivery_receipt_get_by_binding(
+    events: ServiceEventStore,
+    binding_id: str,
+    required: Literal[False],
+) -> DeliveryReceipt | None: ...
 
 
 def _delivery_receipt_get_by_binding(

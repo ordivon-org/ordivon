@@ -98,12 +98,13 @@ Core validation from a clean checkout:
 uv run --locked python -m unittest discover -s tests -p 'test_*.py' -v
 uv run --locked --group architecture lint-imports
 uv run --locked --group quality ruff check agent_service scripts tests
+uv run --locked --group typing pyright
 uv run --locked --group authority python scripts/check_authority_catalog_r1.py
 uv run --locked --group authority python scripts/check_standard_native_enterprise_r2.py
 uv run --locked --group reasoning python scripts/check_reasoning_waist_r1.py
 ```
 
-The default `test` group composes the runtime and deployment dependencies required by the complete unit and repository test suite. Architecture, quality, authority-catalog validation, security auditing and heavier reasoning dependencies are separate groups and are installed only when their validation surface is invoked.
+The default `test` group composes the runtime and deployment dependencies required by the complete unit and repository test suite. Architecture, lint/format quality, Agent Service static typing, authority-catalog validation, security auditing and heavier reasoning dependencies are separate groups and are installed only when their validation surface is invoked.
 
 Security uses external tools directly rather than a repository-specific scanner. Bandit covers source heuristics while PyPA `pip-audit` checks known Python dependency vulnerabilities. Because `pip-audit` audits PEP 751 lockfiles rather than `uv.lock` directly, audit input is generated ephemerally from the exact uv lock and is never committed as a second dependency authority:
 

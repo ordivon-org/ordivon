@@ -7,7 +7,7 @@ import time
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, overload
 
 from .delivery import (
     DeliveryObservation,
@@ -63,6 +63,12 @@ class TaskExecutionClaimStore:
 
     def __init__(self, connection: sqlite3.Connection) -> None:
         self._connection = connection
+
+    @overload
+    def get(self, task_id: str, required: Literal[True] = True) -> TaskExecutionClaim: ...
+
+    @overload
+    def get(self, task_id: str, required: Literal[False]) -> TaskExecutionClaim | None: ...
 
     def get(self, task_id: str, required: bool = True) -> TaskExecutionClaim | None:
         row = self._connection.execute(
@@ -191,7 +197,7 @@ class ClaimAwareDeliveryCoordinator:
         delegations: Any,
         bindings: TransportBindingStore,
         receipts: ServiceEventStore,
-        adapters: dict[str],
+        adapters: dict[str, Any],
     ) -> None:
         self._connection = connection
         self._tasks = tasks
