@@ -4,6 +4,7 @@ from typing import Any
 
 import hashlib
 import sqlite3
+from graphlib import CycleError, TopologicalSorter
 import time
 import uuid
 from dataclasses import dataclass
@@ -186,30 +187,20 @@ class TaskDependencyStore:
         dependency_goal = self._links.goal_for_task(depends_on_task_id)
         if goal.id != dependency_goal.id:
             raise ValueError("Task dependencies must remain inside one Goal")
-        if self._reachable(depends_on_task_id, task_id):
-            raise ValueError("Task dependency would create a cycle")
+        graph = {
+            task.id: set(self.dependencies_of(task.id))
+            for task in self._links.tasks_for_goal(goal.id)
+        }
+        graph.setdefault(task_id, set()).add(depends_on_task_id)
+        try:
+            TopologicalSorter(graph).prepare()
+        except CycleError:
+            raise ValueError("Task dependency would create a cycle") from None
         with self._connection:
             self._connection.execute(
                 "INSERT OR IGNORE INTO task_dependencies(task_id, depends_on_task_id, created_at_ns) VALUES (?, ?, ?)",
                 (task_id, depends_on_task_id, _now_ns()),
             )
-
-    def _reachable(self, start_task_id: str, target_task_id: str) -> bool:
-        stack = [start_task_id]
-        seen: set[str] = set()
-        while stack:
-            current = stack.pop()
-            if current == target_task_id:
-                return True
-            if current in seen:
-                continue
-            seen.add(current)
-            rows = self._connection.execute(
-                "SELECT depends_on_task_id FROM task_dependencies WHERE task_id = ?",
-                (current,),
-            ).fetchall()
-            stack.extend(row["depends_on_task_id"] for row in rows)
-        return False
 
 
 class TaskReadinessProjector:
@@ -234,43 +225,6 @@ class TaskReadinessProjector:
 
     def ready_tasks(self, goal_id: str) -> list[AgentTask]:
         return [task for task in self._links.tasks_for_goal(goal_id) if self.is_ready(task.id)]
-
-
-class GoalTaskGraph:
-    """Compatibility facade over the four R7 graph bricks."""
-
-    def __init__(
-        self,
-        links: GoalTaskLinkStore,
-        dependencies: TaskDependencyStore,
-        readiness: TaskReadinessProjector,
-        mutation_guard: GoalGraphMutationGuard,
-    ) -> None:
-        self.links = links
-        self.dependencies = dependencies
-        self.readiness = readiness
-        self.mutation_guard = mutation_guard
-
-    def attach(self, goal_id: str, task_id: str) -> None:
-        self.links.attach(goal_id, task_id)
-
-    def goal_for_task(self, task_id: str) -> Goal:
-        return self.links.goal_for_task(task_id)
-
-    def tasks_for_goal(self, goal_id: str) -> list[AgentTask]:
-        return self.links.tasks_for_goal(goal_id)
-
-    def dependencies_of(self, task_id: str) -> list[str]:
-        return self.dependencies.dependencies_of(task_id)
-
-    def add_dependency(self, task_id: str, depends_on_task_id: str) -> None:
-        self.dependencies.add(task_id, depends_on_task_id)
-
-    def is_ready(self, task_id: str) -> bool:
-        return self.readiness.is_ready(task_id)
-
-    def ready_tasks(self, goal_id: str) -> list[AgentTask]:
-        return self.readiness.ready_tasks(goal_id)
 
 
 class GoalAssignmentPlanner:

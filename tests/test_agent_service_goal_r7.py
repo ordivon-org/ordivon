@@ -114,12 +114,12 @@ class AgentServiceGoalR7Tests(unittest.TestCase):
             first = self._task(service, revision_id, "first")
             second = self._task(service, revision_id, "second")
 
-            service.task_graph.attach(goal.id, first.id)
-            service.task_graph.attach(goal.id, second.id)
+            service.goal_task_links.attach(goal.id, first.id)
+            service.goal_task_links.attach(goal.id, second.id)
 
             self.assertEqual(service.goals.get(goal.id).state, "PENDING")
-            self.assertEqual([task.id for task in service.task_graph.tasks_for_goal(goal.id)], [first.id, second.id])
-            self.assertIsNone(service.task_graph.goal_for_task(first.id).failure_reason)
+            self.assertEqual([task.id for task in service.goal_task_links.tasks_for_goal(goal.id)], [first.id, second.id])
+            self.assertIsNone(service.goal_task_links.goal_for_task(first.id).failure_reason)
 
     def test_dependency_graph_rejects_cycle_and_cross_goal_edges(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -130,15 +130,15 @@ class AgentServiceGoalR7Tests(unittest.TestCase):
             a = self._task(service, revision_id, "a")
             b = self._task(service, revision_id, "b")
             c = self._task(service, revision_id, "c")
-            service.task_graph.attach(g1.id, a.id)
-            service.task_graph.attach(g1.id, b.id)
-            service.task_graph.attach(g2.id, c.id)
-            service.task_graph.add_dependency(b.id, a.id)
+            service.goal_task_links.attach(g1.id, a.id)
+            service.goal_task_links.attach(g1.id, b.id)
+            service.goal_task_links.attach(g2.id, c.id)
+            service.task_dependencies.add(b.id, a.id)
 
             with self.assertRaises(ValueError):
-                service.task_graph.add_dependency(a.id, b.id)
+                service.task_dependencies.add(a.id, b.id)
             with self.assertRaises(ValueError):
-                service.task_graph.add_dependency(a.id, c.id)
+                service.task_dependencies.add(a.id, c.id)
 
     def test_readiness_is_derived_from_dependencies_not_persisted_as_task_state(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -147,18 +147,18 @@ class AgentServiceGoalR7Tests(unittest.TestCase):
             goal = service.goals.create("goal")
             a = self._task(service, revision_id, "a")
             b = self._task(service, revision_id, "b")
-            service.task_graph.attach(goal.id, a.id)
-            service.task_graph.attach(goal.id, b.id)
-            service.task_graph.add_dependency(b.id, a.id)
+            service.goal_task_links.attach(goal.id, a.id)
+            service.goal_task_links.attach(goal.id, b.id)
+            service.task_dependencies.add(b.id, a.id)
 
-            self.assertTrue(service.task_graph.is_ready(a.id))
-            self.assertFalse(service.task_graph.is_ready(b.id))
+            self.assertTrue(service.task_readiness.is_ready(a.id))
+            self.assertFalse(service.task_readiness.is_ready(b.id))
             self.assertEqual(service.tasks.get(b.id).state, "PENDING")
 
             with service._connection:
                 service.tasks.set_state_in_transaction(a.id, "SUCCEEDED")
 
-            self.assertTrue(service.task_graph.is_ready(b.id))
+            self.assertTrue(service.task_readiness.is_ready(b.id))
             self.assertEqual(service.tasks.get(b.id).state, "PENDING")
 
     def test_goal_planner_refuses_blocked_task_and_delegates_ready_task(self) -> None:
@@ -168,9 +168,9 @@ class AgentServiceGoalR7Tests(unittest.TestCase):
             goal = service.goals.create("goal")
             a = self._task(service, revision_id, "a")
             b = self._task(service, revision_id, "b")
-            service.task_graph.attach(goal.id, a.id)
-            service.task_graph.attach(goal.id, b.id)
-            service.task_graph.add_dependency(b.id, a.id)
+            service.goal_task_links.attach(goal.id, a.id)
+            service.goal_task_links.attach(goal.id, b.id)
+            service.task_dependencies.add(b.id, a.id)
 
             with self.assertRaises(LookupError):
                 service.goal_planner.plan(b.id)
@@ -185,8 +185,8 @@ class AgentServiceGoalR7Tests(unittest.TestCase):
             goal = service.goals.create("goal")
             a = self._task(service, revision_id, "a")
             b = self._task(service, revision_id, "b")
-            service.task_graph.attach(goal.id, a.id)
-            service.task_graph.attach(goal.id, b.id)
+            service.goal_task_links.attach(goal.id, a.id)
+            service.goal_task_links.attach(goal.id, b.id)
 
             self.assertEqual(service.goal_reconciler.reconcile(goal.id).state, "PENDING")
             with service._connection:
@@ -199,7 +199,7 @@ class AgentServiceGoalR7Tests(unittest.TestCase):
 
             goal2 = service.goals.create("goal2")
             c = self._task(service, revision_id, "c")
-            service.task_graph.attach(goal2.id, c.id)
+            service.goal_task_links.attach(goal2.id, c.id)
             with service._connection:
                 service.tasks.set_state_in_transaction(c.id, "FAILED", failure_reason="semantic failure")
             failed = service.goal_reconciler.reconcile(goal2.id)
@@ -212,7 +212,7 @@ class AgentServiceGoalR7Tests(unittest.TestCase):
             revision_id = self._ready_revision(service)
             goal = service.goals.create("goal")
             task = self._task(service, revision_id, "task")
-            service.task_graph.attach(goal.id, task.id)
+            service.goal_task_links.attach(goal.id, task.id)
             with service._connection:
                 service.tasks.set_state_in_transaction(task.id, "SUCCEEDED")
 
@@ -230,7 +230,7 @@ class AgentServiceGoalR7Tests(unittest.TestCase):
             revision_id = self._ready_revision(service)
             goal = service.goals.create("goal")
             task = self._task(service, revision_id, "task")
-            service.task_graph.attach(goal.id, task.id)
+            service.goal_task_links.attach(goal.id, task.id)
             with service._connection:
                 service.tasks.set_state_in_transaction(task.id, "SUCCEEDED")
             service.goal_reconciler.reconcile(goal.id)
@@ -263,7 +263,7 @@ class AgentServiceGoalR7Tests(unittest.TestCase):
             revision_id = self._ready_revision(service)
             goal = service.goals.create("goal")
             task = self._task(service, revision_id, "task")
-            service.task_graph.attach(goal.id, task.id)
+            service.goal_task_links.attach(goal.id, task.id)
             with service._connection:
                 service.tasks.set_state_in_transaction(task.id, "SUCCEEDED")
             service.goal_reconciler.reconcile(goal.id)
@@ -286,9 +286,9 @@ class AgentServiceGoalR7Tests(unittest.TestCase):
             goal = first.goals.create("goal")
             a = self._task(first, revision_id, "a")
             b = self._task(first, revision_id, "b")
-            first.task_graph.attach(goal.id, a.id)
-            first.task_graph.attach(goal.id, b.id)
-            first.task_graph.add_dependency(b.id, a.id)
+            first.goal_task_links.attach(goal.id, a.id)
+            first.goal_task_links.attach(goal.id, b.id)
+            first.task_dependencies.add(b.id, a.id)
             first.close()
 
             second = open_current(
@@ -301,8 +301,8 @@ class AgentServiceGoalR7Tests(unittest.TestCase):
             self.addCleanup(second.close)
 
             self.assertEqual(second.goals.get(goal.id).description, "goal")
-            self.assertEqual(second.task_graph.dependencies_of(b.id), [a.id])
-            self.assertFalse(second.task_graph.is_ready(b.id))
+            self.assertEqual(second.task_dependencies.dependencies_of(b.id), [a.id])
+            self.assertFalse(second.task_readiness.is_ready(b.id))
 
 
 if __name__ == "__main__":
@@ -340,29 +340,29 @@ class AgentServiceGoalGraphFreezeTests(unittest.TestCase):
             a = self._task(service, revision_id, "a")
             b = self._task(service, revision_id, "b")
             c = self._task(service, revision_id, "c")
-            service.task_graph.attach(goal.id, a.id)
-            service.task_graph.attach(goal.id, b.id)
+            service.goal_task_links.attach(goal.id, a.id)
+            service.goal_task_links.attach(goal.id, b.id)
             with service._connection:
                 service.tasks.set_state_in_transaction(a.id, "RUNNING")
 
             with self.assertRaises(RuntimeError):
-                service.task_graph.attach(goal.id, c.id)
+                service.goal_task_links.attach(goal.id, c.id)
             with self.assertRaises(RuntimeError):
-                service.task_graph.add_dependency(b.id, a.id)
+                service.task_dependencies.add(b.id, a.id)
 
     def test_terminal_goal_rejects_new_task_membership(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             service, revision_id = self._service(Path(tmp) / "service.db")
             goal = service.goals.create("terminal goal")
             a = self._task(service, revision_id, "a")
-            service.task_graph.attach(goal.id, a.id)
+            service.goal_task_links.attach(goal.id, a.id)
             with service._connection:
                 service.tasks.set_state_in_transaction(a.id, "SUCCEEDED")
             service.goal_reconciler.reconcile(goal.id)
             extra = self._task(service, revision_id, "extra")
 
             with self.assertRaises(RuntimeError):
-                service.task_graph.attach(goal.id, extra.id)
+                service.goal_task_links.attach(goal.id, extra.id)
 
 
 class AgentServiceBoardCatchupTests(unittest.TestCase):
@@ -389,7 +389,7 @@ class AgentServiceBoardCatchupTests(unittest.TestCase):
                 execution={"workspaceId":"ws-test","executable":"/usr/bin/true","args":[],"cwdRelative":".","env":{}},
                 acceptance={"kind":"stdout_equals","value":"OK"},
             )
-            service.task_graph.attach(goal.id, task.id)
+            service.goal_task_links.attach(goal.id, task.id)
             with service._connection:
                 service.tasks.set_state_in_transaction(task.id, "RUNNING")
             service.goal_reconciler.reconcile(goal.id)
@@ -446,7 +446,8 @@ class AgentServiceGoalLegoDecompositionTests(unittest.TestCase):
             self.assertEqual(service.task_dependencies.dependencies_of(b.id), [a.id])
             self.assertTrue(service.task_readiness.is_ready(a.id))
             self.assertFalse(service.task_readiness.is_ready(b.id))
-            self.assertIs(service.task_graph.links, service.goal_task_links)
-            self.assertIs(service.task_graph.dependencies, service.task_dependencies)
-            self.assertIs(service.task_graph.readiness, service.task_readiness)
-            self.assertIs(service.task_graph.mutation_guard, service.goal_graph_guard)
+            self.assertFalse(hasattr(service, "task_graph"))
+            self.assertIsNotNone(service.goal_task_links)
+            self.assertIsNotNone(service.task_dependencies)
+            self.assertIsNotNone(service.task_readiness)
+            self.assertIsNotNone(service.goal_graph_guard)

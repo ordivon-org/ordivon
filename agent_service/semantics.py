@@ -393,12 +393,12 @@ class DelegationEnvelopeStore:
         connection: sqlite3.Connection,
         sessions: SessionStore,
         identities: AgentIdentityStore,
-        task_graph: Any,
+        goal_task_links: Any,
     ) -> None:
         self._connection = connection
         self._sessions = sessions
         self._identities = identities
-        self._task_graph = task_graph
+        self._goal_task_links = goal_task_links
 
     def create(
         self,
@@ -480,7 +480,7 @@ class DelegationEnvelopeStore:
             capability_key.strip(),
         )
         if session.goal_id is not None:
-            linked_goal = self._task_graph.goal_for_task(task_id)
+            linked_goal = self._goal_task_links.goal_for_task(task_id)
             if linked_goal.id != session.goal_id:
                 raise ValueError("delegated Task does not belong to Session Goal")
 
