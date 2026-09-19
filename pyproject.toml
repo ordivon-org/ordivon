@@ -24,6 +24,9 @@ architecture = [
 quality = [
   "ruff",
 ]
+typing = [
+  "pyright>=1.1.414",
+]
 security = [
   "bandit>=1.9.4",
   "pip-audit>=2.10.1",
@@ -48,6 +51,11 @@ reasoning = [
 package = false
 default-groups = ["test"]
 required-version = "==0.12.3"
+
+[tool.pyright]
+include = ["agent_service"]
+pythonVersion = "3.14"
+typeCheckingMode = "basic"
 
 [tool.ruff]
 target-version = "py314"
