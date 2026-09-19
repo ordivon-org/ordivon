@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import json
 import pathlib
 import subprocess
+import tomllib
 
 
 def test_pnpm_first_path_uses_mise_and_project_package_manager() -> None:
@@ -10,18 +12,37 @@ def test_pnpm_first_path_uses_mise_and_project_package_manager() -> None:
     assert pnpm.resolve() == pathlib.Path("/usr/bin/mise"), pnpm.resolve()
     config = pathlib.Path("/root/.config/mise/config.toml").read_text()
     assert 'idiomatic_version_file_enable_tools = ["node", "pnpm"]' in config
-    expected = {
-        "/root/projects/ordivon-game": "10.33.2",
-        "/root/projects/ordivon-media": "10.33.2",
-        "/root/projects/ordivon-web": "11.17.0",
-    }
-    for root, version in expected.items():
+
+    for root_text in (
+        "/root/projects/ordivon-game",
+        "/root/projects/ordivon-media",
+        "/root/projects/ordivon-web",
+    ):
+        root = pathlib.Path(root_text)
+        package = json.loads((root / "package.json").read_text())
+        package_manager = package.get("packageManager")
+        assert isinstance(package_manager, str) and package_manager.startswith("pnpm@"), (
+            root_text,
+            package_manager,
+        )
+        declared_version = package_manager.removeprefix("pnpm@")
+
+        mise_path = root / "mise.toml"
+        if not mise_path.is_file():
+            mise_path = root / ".mise.toml"
+        mise = tomllib.loads(mise_path.read_text())
+        assert mise["tools"]["pnpm"] == declared_version, (
+            root_text,
+            mise["tools"]["pnpm"],
+            declared_version,
+        )
+
         cp = subprocess.run(
             [str(pnpm), "--version"], cwd=root, check=False, text=True,
             capture_output=True, timeout=15,
         )
         assert cp.returncode == 0, cp.stderr or cp.stdout
-        assert cp.stdout.strip() == version, (root, cp.stdout, cp.stderr)
+        assert cp.stdout.strip() == declared_version, (root_text, cp.stdout, cp.stderr)
 
 
 def test_bash_login_and_nonlogin_match_home_manager_policy() -> None:
