@@ -260,25 +260,26 @@ def _resolve_evidence(
         )
     raise ValueError(f"unsupported acceptance kind: {kind}")
 
-class EvidenceSemanticVerifier:
+def _verify_evidence_semantics(
+    acceptance: dict[str, Any],
+    evidence: EvidenceBundle,
+) -> SemanticVerdict:
     """Pure semantic verifier over normalized evidence, not Runtime process state."""
-
-    def verify(self, acceptance: dict[str, Any], evidence: EvidenceBundle) -> SemanticVerdict:
-        kind = acceptance["kind"]
-        text = evidence.facts.get("text")
-        if not isinstance(text, str):
-            raise RuntimeError("text acceptance requires normalized text evidence")
-        expected = acceptance["value"]
-        if kind in {"stdout_contains", "runtime_artifact_text_contains"}:
-            accepted = expected in text
-        elif kind == "stdout_equals":
-            accepted = expected == text
-        else:
-            raise ValueError(f"unsupported acceptance kind: {kind}")
-        return SemanticVerdict(
-            accepted,
-            None if accepted else f"acceptance:{kind}:not_satisfied",
-        )
+    kind = acceptance["kind"]
+    text = evidence.facts.get("text")
+    if not isinstance(text, str):
+        raise RuntimeError("text acceptance requires normalized text evidence")
+    expected = acceptance["value"]
+    if kind in {"stdout_contains", "runtime_artifact_text_contains"}:
+        accepted = expected in text
+    elif kind == "stdout_equals":
+        accepted = expected == text
+    else:
+        raise ValueError(f"unsupported acceptance kind: {kind}")
+    return SemanticVerdict(
+        accepted,
+        None if accepted else f"acceptance:{kind}:not_satisfied",
+    )
 
 
 class TaskCompletionReconciler:
@@ -292,7 +293,6 @@ class TaskCompletionReconciler:
         events: ServiceEventStore,
         runtime: RuntimeAdapter,
         artifact_reader: RuntimeArtifactReader,
-        verifier: EvidenceSemanticVerifier,
     ) -> None:
         self._connection = connection
         self._tasks = tasks
@@ -300,7 +300,6 @@ class TaskCompletionReconciler:
         self._events = events
         self._runtime = runtime
         self._artifact_reader = artifact_reader
-        self._verifier = verifier
 
     def reconcile(self, assignment_id: str) -> Assignment:
         assignment = self._assignments.get(assignment_id)
@@ -322,7 +321,7 @@ class TaskCompletionReconciler:
 
         if mechanical.accepted:
             evidence = _resolve_evidence(self._artifact_reader, task.acceptance, observation)
-            verdict = self._verifier.verify(task.acceptance, evidence)
+            verdict = _verify_evidence_semantics(task.acceptance, evidence)
             stage = "semantic"
             receipt = evidence.receipt()
         else:
@@ -408,7 +407,6 @@ class AgentServiceR6:
             self.events,
             runtime_adapter,
         )
-        self.semantic_verifier = EvidenceSemanticVerifier()
         self.completion = TaskCompletionReconciler(
             self._connection,
             self.tasks,
@@ -416,7 +414,6 @@ class AgentServiceR6:
             self.events,
             runtime_adapter,
             artifact_reader,
-            self.semantic_verifier,
         )
 
     @classmethod

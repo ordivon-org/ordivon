@@ -97,6 +97,7 @@ class OrdivonCoreZeroEnforcementR3Tests(unittest.TestCase):
                 "BirthCoordinator",
                 "ProviderObserver",
                 "RuntimeEvidenceGate",
+                "EvidenceSemanticVerifier",
             }.issubset(retired)
         )
         self.assertTrue(retired.isdisjoint(observed))

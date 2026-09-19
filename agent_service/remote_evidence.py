@@ -22,8 +22,8 @@ from .delivery import (
 from .evidence import (
     ArtifactDigestMismatch,
     EvidenceBundle,
-    EvidenceSemanticVerifier,
     RuntimeArtifactReader,
+    _verify_evidence_semantics,
 )
 from .goals import BoardAdapter, GoalAssignmentPlanner, TaskReadinessProjector
 from .slice1 import CarrierProviderAdapter, ServiceEvent, ServiceEventStore
@@ -487,7 +487,6 @@ class RemoteTaskCompletionReconciler:
         receipts: ServiceEventStore,
         observations: ServiceEventStore,
         resolver: RemoteArtifactEvidenceResolver,
-        verifier: EvidenceSemanticVerifier,
     ) -> None:
         self._connection = connection
         self._tasks = tasks
@@ -498,7 +497,6 @@ class RemoteTaskCompletionReconciler:
         self._receipts = receipts
         self._observations = observations
         self._resolver = resolver
-        self._verifier = verifier
 
     def reconcile(self, binding_id: str) -> RemoteTaskVerificationRecord | None:
         binding = self._bindings.get(binding_id)
@@ -527,7 +525,7 @@ class RemoteTaskCompletionReconciler:
                 receipt=receipt,
                 observation=observation,
             )
-            verdict = self._verifier.verify(task.acceptance, evidence)
+            verdict = _verify_evidence_semantics(task.acceptance, evidence)
             stage = "semantic"
             evidence_receipt = evidence.receipt()
         else:
@@ -636,7 +634,6 @@ class AgentServiceR11:
             delivery_adapters,
         )
         self.remote_artifacts = RemoteArtifactEvidenceResolver(remote_artifact_readers)
-        self.remote_semantic_verifier = EvidenceSemanticVerifier()
         self.remote_completion = RemoteTaskCompletionReconciler(
             self._connection,
             self.tasks,
@@ -647,7 +644,6 @@ class AgentServiceR11:
             self.events,
             self.events,
             self.remote_artifacts,
-            self.remote_semantic_verifier,
         )
 
     @classmethod
