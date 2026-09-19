@@ -7,7 +7,7 @@ import agent_service.host_board as host_board
 import agent_service.runtime_mcp as runtime_mcp
 
 
-class HandRolledMcpTransportRetiredTests(unittest.TestCase):
+class McpTransportArchitectureTests(unittest.TestCase):
     def test_http_transport_clients_are_absent(self) -> None:
         self.assertFalse(hasattr(runtime_mcp, "RuntimeMcpHttpClient"))
         self.assertFalse(hasattr(agent_service, "RuntimeMcpHttpClient"))

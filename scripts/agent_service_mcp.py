@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import hmac
-import importlib.util
 import json
 import stat
 import sys
@@ -26,12 +25,8 @@ DEFAULT_PORT = 8894
 DEFAULT_TOKEN_FILE = Path("/etc/ordivon/agent-service-mcp.token")
 DEFAULT_BODY_LIMIT = 1_048_576
 
-GRAPH_CHECKER = Path("scripts/check_agent_service_graph_identity_r1.py")
-
-
 @dataclass(frozen=True, slots=True)
 class McpSettings:
-    source_root: Path = ROOT
     token_file: Path = DEFAULT_TOKEN_FILE
     bind_host: str = DEFAULT_BIND
     port: int = DEFAULT_PORT
@@ -39,8 +34,8 @@ class McpSettings:
     log_level: str = "INFO"
 
     def __post_init__(self) -> None:
-        if not self.source_root.is_absolute() or not self.token_file.is_absolute():
-            raise ValueError("Agent Service MCP source/token paths must be absolute")
+        if not self.token_file.is_absolute():
+            raise ValueError("Agent Service MCP token path must be absolute")
         if self.bind_host not in {"127.0.0.1", "::1"}:
             raise ValueError("Agent Service canary MCP must bind literal loopback only")
         if type(self.port) is not int or not (1 <= self.port <= 65535):
@@ -68,23 +63,7 @@ def _read_token(path: Path) -> str:
     return value
 
 
-def _graph_identity(root: Path) -> dict[str, Any]:
-    path = root / GRAPH_CHECKER
-    if not path.is_file():
-        raise RuntimeError("Agent Service graph checker is missing")
-    spec = importlib.util.spec_from_file_location("_ordivon_agent_service_graph_check", path)
-    if spec is None or spec.loader is None:
-        raise RuntimeError("Agent Service graph checker cannot be loaded")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    value = module.validate()
-    if value.get("status") != "PASS":
-        raise RuntimeError("Agent Service graph identity check did not pass")
-    return value
-
-
-def _contract(root: Path) -> dict[str, Any]:
-    graph = _graph_identity(root)
+def _contract() -> dict[str, Any]:
     from agent_service import open_agent_service  # local source import; no service instance is created
 
     return {
@@ -94,8 +73,6 @@ def _contract(root: Path) -> dict[str, Any]:
         "compositionRoot": open_agent_service.__name__,
         "deploymentMode": "READ_ONLY_CANARY",
         "productionDeployment": "NOT_ADMITTED",
-        "graphFiles": graph["graphFiles"],
-        "graphNodeCount": graph["nodeCount"],
         "writeSurfaceEnabled": False,
         "providerEffectSurfaceEnabled": False,
         "runtimeMutationSurfaceEnabled": False,
@@ -161,7 +138,7 @@ def _result(value: dict[str, Any]) -> CallToolResult:
 
 
 def build_server(settings: McpSettings) -> MCPServer:
-    contract = _contract(settings.source_root)
+    contract = _contract()
     server = MCPServer(
         name="ordivon-agent-service-canary-mcp",
         title="Ordivon Agent Service Read-Only Canary",
@@ -178,17 +155,13 @@ def build_server(settings: McpSettings) -> MCPServer:
 
     @server.tool(name="service.doctor", title="Qualify Agent Service canary", annotations=ro)
     def service_doctor() -> CallToolResult:
-        value = _contract(settings.source_root)
+        value = _contract()
         value.update({"healthy": True, "endpoint": settings.endpoint, "deploymentMode": "READ_ONLY_CANARY"})
         return _result(value)
 
     @server.tool(name="service.contract", title="Read Agent Service authority contract", annotations=ro)
     def service_contract() -> CallToolResult:
         return _result(dict(contract))
-
-    @server.tool(name="architecture.identity", title="Read Agent Service graph identity standing", annotations=ro)
-    def architecture_identity() -> CallToolResult:
-        return _result(_graph_identity(settings.source_root))
 
     @server.tool(name="deployment.snapshot", title="Read deployment canary surface", annotations=ro)
     def deployment_snapshot() -> CallToolResult:
@@ -197,7 +170,7 @@ def build_server(settings: McpSettings) -> MCPServer:
             "kind": "ordivon.agent-service-deployment-snapshot",
             "mode": "READ_ONLY_CANARY",
             "endpoint": settings.endpoint,
-            "toolCount": 4,
+            "toolCount": 3,
             "writeSurfaceEnabled": False,
             "providerEffectSurfaceEnabled": False,
             "productionDeployment": "NOT_ADMITTED",
@@ -237,7 +210,6 @@ def run(settings: McpSettings) -> None:
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--source-root", type=Path, default=ROOT)
     parser.add_argument("--token-file", type=Path, default=DEFAULT_TOKEN_FILE)
     parser.add_argument("--bind", default=DEFAULT_BIND)
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
@@ -250,7 +222,6 @@ def _parser() -> argparse.ArgumentParser:
 def main() -> int:
     args = _parser().parse_args()
     settings = McpSettings(
-        source_root=args.source_root.resolve(),
         token_file=args.token_file.resolve(),
         bind_host=args.bind,
         port=args.port,

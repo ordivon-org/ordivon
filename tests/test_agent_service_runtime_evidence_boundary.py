@@ -7,7 +7,7 @@ import agent_service.evidence as evidence
 from agent_service.task_runtime import RuntimeJobObservation
 
 
-class RuntimeEvidenceGateEliminationR26Tests(unittest.TestCase):
+class RuntimeEvidenceBoundaryTests(unittest.TestCase):
     def _observation(self, **overrides):
         values = dict(
             job_id="job-r26",

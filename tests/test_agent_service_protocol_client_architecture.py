@@ -6,7 +6,7 @@ import agent_service
 import agent_service.provider_adapters as providers
 
 
-class HandRolledProtocolClientsRetiredTests(unittest.TestCase):
+class ProtocolClientArchitectureTests(unittest.TestCase):
     def test_agent_service_does_not_export_transport_clients(self) -> None:
         for name in ("A2AJsonRpcHttpClient", "MCPTasksHttpClient"):
             with self.subTest(name=name):
