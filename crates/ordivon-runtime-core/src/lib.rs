@@ -11,10 +11,7 @@ mod universal;
 #[cfg(windows)]
 mod windows_security;
 #[cfg(windows)]
-pub use windows_security::{
-    validate_private_file_acl as validate_windows_private_file_acl,
-    validate_private_readonly_file_acl as validate_windows_private_readonly_file_acl,
-};
+pub use windows_security::validate_private_readonly_file_acl as validate_windows_private_readonly_file_acl;
 
 #[cfg(feature = "universal-executor")]
 pub use universal::{
