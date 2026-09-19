@@ -1,5 +1,8 @@
+import pytest
 import hashlib,importlib.util,json,struct,tempfile,unittest
 from pathlib import Path
+pytestmark = pytest.mark.integration
+
 ROOT=Path(__file__).resolve().parents[1]
 SPEC=importlib.util.spec_from_file_location('artifact_design3d',ROOT/'scripts/artifact_design3d.py'); MODULE=importlib.util.module_from_spec(SPEC); assert SPEC.loader; SPEC.loader.exec_module(MODULE)
 BASE=ROOT/'artifact-delivery/shadow-contracts/design-3d-glb-static-mesh-smoke-r1.json'

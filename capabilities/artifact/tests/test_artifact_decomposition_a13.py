@@ -1,3 +1,4 @@
+import pytest
 import ast
 import hashlib
 import importlib.util
@@ -68,6 +69,7 @@ class ArtifactDirectPythonProviderA13Tests(unittest.TestCase):
             (ROOT / "artifact_operations/providers/delivery_cli.py").is_file()
         )
 
+    @pytest.mark.integration
     def test_direct_provider_build_and_verify_smoke(self):
         from artifact_operations import ArtifactOperationExecutor, operation_envelope
         from artifact_operations.providers import DirectPythonOperationProvider

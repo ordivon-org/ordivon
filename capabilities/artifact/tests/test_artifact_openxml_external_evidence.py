@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 import importlib.util
 import json
 import tempfile
@@ -50,6 +52,7 @@ class ArtifactOpenXmlExternalEvidenceTests(unittest.TestCase):
                 "63292b04f5c15531e22c3400660a6a0390516569ab82d57cb33a1122a416dbed",
             )
 
+    @pytest.mark.integration
     def test_external_evidence_runner_on_production_current(self) -> None:
         if not MODULE.DEFAULT_VALIDATOR.is_file():
             self.skipTest("production OpenXML validator absent")

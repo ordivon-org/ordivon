@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 import binascii
 import hashlib
 import importlib.util
@@ -102,6 +104,7 @@ class ArtifactEvidenceObservationLosslessR1Tests(unittest.TestCase):
         self.assertEqual(result["status"], "PASS", result)
         return result
 
+    @pytest.mark.integration
     def test_legacy_stage_round_trip_is_canonical_json_lossless(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
@@ -121,6 +124,7 @@ class ArtifactEvidenceObservationLosslessR1Tests(unittest.TestCase):
             self.assertEqual(A.canonical_sha256(reconstructed), A.canonical_sha256(source))
             self.assertEqual(reconstructed, source)
 
+    @pytest.mark.integration
     def test_legacy_stage_keeps_pass_separate_from_completeness(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
@@ -145,6 +149,7 @@ class ArtifactEvidenceObservationLosslessR1Tests(unittest.TestCase):
                 envelope["standingProjection"]["trustStatus"], "UNSIGNED_LOCAL"
             )
 
+    @pytest.mark.integration
     def test_legacy_stage_preserves_each_native_gate_receipt(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
@@ -190,6 +195,7 @@ class ArtifactEvidenceObservationLosslessR1Tests(unittest.TestCase):
                 envelope["standingProjection"]["trustStatus"], "NOT_EVALUATED"
             )
 
+    @pytest.mark.integration
     def test_common_projection_tampering_fails_closed(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
@@ -223,6 +229,7 @@ class ArtifactEvidenceObservationLosslessR1Tests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "subject projection drifted"):
                 A.validate_common_envelope(envelope)
 
+    @pytest.mark.integration
     def test_legacy_complete_stage_projects_complete_without_changing_source(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
@@ -310,6 +317,7 @@ class ArtifactEvidenceObservationLosslessR1Tests(unittest.TestCase):
             )
             self.assertEqual(A.reconstruct_family_service_result(envelope), source)
 
+    @pytest.mark.integration
     def test_common_envelope_shape_is_shared_without_shared_native_schema(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)

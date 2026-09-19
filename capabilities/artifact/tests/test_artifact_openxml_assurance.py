@@ -1,6 +1,10 @@
 from __future__ import annotations
+
+import pytest
 import json,os,subprocess,tempfile,unittest,zipfile
 from pathlib import Path
+pytestmark = pytest.mark.integration
+
 ROOT=Path(__file__).resolve().parents[1]
 DEFAULT=Path('/root/.local/share/ordivon-workstation/artifact-openxml-v1/current/bin/validate-openxml')
 PYTHON=Path('/root/.local/share/ordivon-workstation/artifact-delivery-python-v1/current/bin/python')

@@ -1,5 +1,7 @@
 from __future__ import annotations
-import ast,hashlib,importlib.util,json,subprocess,tempfile,unittest
+
+import pytest
+import ast,hashlib,importlib.util,json,subprocess,tempfile,tomllib,unittest
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]; SUPPORT=ROOT/'scripts/artifact_delivery_temporal_support.py'
 def load_support():
@@ -11,7 +13,9 @@ class TemporalArtifactDeliveryContractTests(unittest.TestCase):
             if isinstance(node,ast.ClassDef) and node.name=='ArtifactDeliveryWorkflow':
                 seg=ast.get_source_segment(text,node) or ''
                 for forbidden in ('subprocess.','Path(','open(','read_text(','write_text('):self.assertNotIn(forbidden,seg)
-    def test_temporal_sdk_pin(self):self.assertEqual((ROOT/'config/artifact-delivery-temporal-requirements.txt').read_text().strip(),'temporalio==1.32.0')
+    def test_temporal_sdk_pin(self):
+        project=tomllib.loads((ROOT/'pyproject.toml').read_text())
+        self.assertIn('temporalio==1.32.0',project['project']['dependencies'])
     def test_launcher_duplicate_policy(self):
         text=(ROOT/'scripts/temporal_artifact_delivery_launch.py').read_text();self.assertIn('WorkflowIDReusePolicy.REJECT_DUPLICATE',text);self.assertIn('WorkflowIDConflictPolicy.FAIL',text);self.assertIn('signal-trust',text)
     def test_receipt_fence_replays_same_build(self):
@@ -49,6 +53,7 @@ class TemporalArtifactDeliveryContractTests(unittest.TestCase):
             ex=m.ReceiptFencedArtifactExecutor(Path(d)/'state');req=ROOT/'artifact-delivery/examples/presentation-native-smoke-request-r1.json';value={'operationId':'test/build/drift','request':{'path':str(req),'sha256':hashlib.sha256(req.read_bytes()).hexdigest()}};result=ex.build(value);artifact=Path(result['roles']['artifact']['path']);artifact.write_bytes(artifact.read_bytes()+b'drift')
             with self.assertRaisesRegex(RuntimeError,'committed operation output drift'):ex.build(value)
 
+    @pytest.mark.integration
     def test_package_activity_uses_oci_layout_and_receipt_fences_every_blob(self):
         m=load_support()
         spec=importlib.util.spec_from_file_location('artifact_delivery',ROOT/'scripts/artifact_delivery.py'); ad=importlib.util.module_from_spec(spec); spec.loader.exec_module(ad)

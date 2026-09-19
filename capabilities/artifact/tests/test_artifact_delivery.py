@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 import importlib.util
 import json
 import os
@@ -7,6 +9,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import tempfile
+import tomllib
 import unittest
 from unittest import mock
 import zipfile
@@ -1076,6 +1079,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             self.assertTrue(any("authenticity" in item for item in result["failures"]))
             self.assertTrue(any("required gate VSA missing" in item for item in result["failures"]))
 
+    @pytest.mark.integration
     def test_verify_stage_presentation_emits_standard_bound_vsa_receipts(self) -> None:
         if importlib.util.find_spec("pptx") is None or importlib.util.find_spec("jsonschema") is None:
             self.skipTest("python-pptx/jsonschema are not available in this Python environment")
@@ -1540,13 +1544,14 @@ class ArtifactDeliveryTests(unittest.TestCase):
     def test_cross_format_toolchain_keeps_failed_writers_out_of_production_dependencies(self) -> None:
         plan = json.loads((ROOT / "artifact-delivery/toolchain-v1.plan.json").read_text())
         node = json.loads((ROOT / "artifact-delivery/node/package.json").read_text())
-        requirements = (ROOT / "config/artifact-delivery-requirements.txt").read_text()
+        project = tomllib.loads((ROOT / "pyproject.toml").read_text())
+        dependencies = set(project["project"]["dependencies"])
         self.assertEqual(plan["presentation"]["writer"]["tool"], "python-pptx")
         self.assertEqual(plan["spreadsheet"]["writer"]["tool"], "XlsxWriter")
         self.assertNotIn("pptxgenjs", node["dependencies"])
-        self.assertIn("python-pptx==1.0.2", requirements)
-        self.assertIn("XlsxWriter==3.2.9", requirements)
-        self.assertNotIn("openpyxl==", requirements)
+        self.assertIn("python-pptx==1.0.2", dependencies)
+        self.assertIn("XlsxWriter==3.2.9", dependencies)
+        self.assertFalse(any(item.startswith("openpyxl==") for item in dependencies))
 
     def test_undeclared_artifact_typeface_fails_dependency_gate(self) -> None:
         with tempfile.TemporaryDirectory() as d:

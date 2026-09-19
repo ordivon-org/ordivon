@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 import binascii
 import hashlib
 import importlib.util
@@ -90,6 +92,7 @@ def make_png(path: Path) -> None:
 
 
 class ArtifactClaimResultsAdapterR1Tests(unittest.TestCase):
+    @pytest.mark.integration
     def test_legacy_stage_can_emit_exact_profile_claim_key_set(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)

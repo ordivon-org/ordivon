@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 import hashlib
 import importlib.util
 import json
@@ -124,6 +126,7 @@ class ArtifactStandingDecisionPressureR1Tests(unittest.TestCase):
         self.assertEqual(result["status"], "PASS", result)
         return result
 
+    @pytest.mark.integration
     def test_legacy_stage_pass_does_not_launder_missing_required_claims(self):
         with tempfile.TemporaryDirectory() as d:
             native = self._legacy_stage(Path(d))
