@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "id": "ordivon-evidence-semantic-verifier-elimination-r27",
+  "date": "2026-09-19",
+  "status": "TWENTY_THIRD_PRODUCTION_DELETION",
+  "parent": "ordivon-runtime-evidence-gate-elimination-r26",
+  "architecturalCore": "EMPTY",
+  "deletedLocalTypes": [
+    "EvidenceSemanticVerifier"
+  ],
+  "deletedApiSurfaces": [
+    "service.semantic_verifier",
+    "service.remote_semantic_verifier"
+  ],
+  "replacement": "_verify_evidence_semantics",
+  "replacementLocalTypes": [],
+  "sharedConsumers": [
+    "TaskCompletionReconciler",
+    "RemoteTaskCompletionReconciler"
+  ],
+  "historicalGraphIdentityPreserved": true,
+  "topLevelTypeDebt": {
+    "r3Baseline": 171,
+    "r20": 152,
+    "r21": 151,
+    "r22": 151,
+    "r23": 150,
+    "r24": 149,
+    "r25": 148,
+    "r26": 147,
+    "r27": 146,
+    "cumulativeDelta": -25
+  },
+  "validation": {
+    "targetedTests": 24,
+    "structuralTests": 30,
+    "agentServiceTests": 251,
+    "agentServiceSkipped": 5,
+    "fullRepositoryTests": 350,
+    "fullRepositorySkipped": 5,
+    "observedTopLevelClasses": 146,
+    "legacyCeilingCount": 146
+  }
+}

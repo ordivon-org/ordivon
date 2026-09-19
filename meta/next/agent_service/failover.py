@@ -1166,7 +1166,7 @@ class AgentServiceR12:
             "transport_bindings", "routes",
             "credential_references", "identity_proofs",
             "remote_reconciler", "audit", "execution_claims",
-            "remote_artifacts", "remote_semantic_verifier", "remote_completion",
+            "remote_artifacts", "remote_completion",
         ):
             setattr(self, name, getattr(r11, name))
         self.planner = ClaimAwareAssignmentPlanner(
