@@ -61,8 +61,6 @@ pub use repair::{
     RuntimeRepairActionKind, RuntimeRepairConfig, RuntimeRepairReport, RuntimeRepairRequest,
     RuntimeStaleCancelReport, RuntimeStaleCancelRequest, RUNTIME_REPAIR_SCHEMA_VERSION,
 };
-#[cfg(any(test, feature = "operator-tools"))]
-pub use types::RuntimeInvariantViolation;
 pub(crate) use types::{
     input_bound_proposal_request_identity_digest, operation_request_identity_digest,
     operation_request_identity_digest_from_plan, proposal_request_identity_digest,
@@ -76,24 +74,29 @@ pub(crate) use types::{
 };
 pub use types::{
     runtime_release_effect_id, runtime_release_request_identity_digest, ArtifactDescriptor,
-    ArtifactReadRequest, ArtifactReadResult, ArtifactRegistration, AttemptState,
-    AttemptTerminationIntent, EffectiveExecutionLimits, EffectiveStepTimeout, ExecutionBudget,
-    ExecutionProfile, ExecutionProposal, ExecutionProviderContract, ExecutionProviderSnapshot,
-    ExecutionStepProposal, ExecutionTarget, ForeignReference, HostDependencyBinding,
-    InputAuthority, InputBindingRequest, JobCancelRequest, JobDesiredState, JobObservation,
-    JobObserveRequest, JobObserveWaitUntil, JobResolution, JobRunProposal, JobRunRequest,
-    ReservationState, RuntimeCapabilities, RuntimeDeliveryDisposition,
-    RuntimeExecutionTargetCapability, RuntimeJobListCursor, RuntimeJobListRequest,
-    RuntimeJobListResult, RuntimeJobSummary, RuntimeNodeIdentity, RuntimeNodePlatform,
-    RuntimeReleaseAdmission, RuntimeReleaseContract, RuntimeReleaseDisposition,
-    RuntimeReleaseGetRequest, RuntimeReleaseProjection, RuntimeReleaseRequest,
-    RuntimeWorkspaceGetRequest, RuntimeWorkspaceIssue, RuntimeWorkspaceIssueStage,
-    RuntimeWorkspaceListCursor, RuntimeWorkspaceListRequest, RuntimeWorkspaceListResult,
-    RuntimeWorkspaceSummary, TerminalCommit, UniversalExecutionRequest, UniversalExecutionStep,
-    WindowsAuthority, CLIENT_REQUEST_ID_MAX_LENGTH, CLIENT_REQUEST_ID_MIN_LENGTH,
-    CLIENT_REQUEST_ID_PATTERN, LOGICAL_ID_MAX_LENGTH, LOGICAL_ID_MIN_LENGTH, LOGICAL_ID_PATTERN,
-    MAX_TASK_TAIL_BYTES, MAX_TASK_WAIT_MS, RUNTIME_SCHEMA_VERSION,
+    ArtifactReadRequest, ArtifactReadResult, AttemptState, AttemptTerminationIntent,
+    EffectiveExecutionLimits, EffectiveStepTimeout, ExecutionBudget, ExecutionProfile,
+    ExecutionProposal, ExecutionProviderContract, ExecutionProviderSnapshot, ExecutionStepProposal,
+    ExecutionTarget, ForeignReference, HostDependencyBinding, InputAuthority, InputBindingRequest,
+    JobCancelRequest, JobDesiredState, JobObservation, JobObserveRequest, JobObserveWaitUntil,
+    JobResolution, JobRunProposal, JobRunRequest, ReservationState, RuntimeCapabilities,
+    RuntimeDeliveryDisposition, RuntimeExecutionTargetCapability, RuntimeJobListCursor,
+    RuntimeJobListRequest, RuntimeJobListResult, RuntimeJobSummary, RuntimeNodeIdentity,
+    RuntimeNodePlatform, RuntimeReleaseAdmission, RuntimeReleaseContract,
+    RuntimeReleaseDisposition, RuntimeReleaseGetRequest, RuntimeReleaseProjection,
+    RuntimeReleaseRequest, RuntimeWorkspaceGetRequest, RuntimeWorkspaceIssue,
+    RuntimeWorkspaceIssueStage, RuntimeWorkspaceListCursor, RuntimeWorkspaceListRequest,
+    RuntimeWorkspaceListResult, RuntimeWorkspaceSummary, UniversalExecutionRequest,
+    UniversalExecutionStep, WindowsAuthority, CLIENT_REQUEST_ID_MAX_LENGTH,
+    CLIENT_REQUEST_ID_MIN_LENGTH, CLIENT_REQUEST_ID_PATTERN, LOGICAL_ID_MAX_LENGTH,
+    LOGICAL_ID_MIN_LENGTH, LOGICAL_ID_PATTERN, MAX_TASK_TAIL_BYTES, MAX_TASK_WAIT_MS,
+    RUNTIME_SCHEMA_VERSION,
 };
+#[cfg(not(any(test, feature = "operator-tools")))]
+pub(crate) use types::{ArtifactRegistration, TerminalCommit};
+
+#[cfg(any(test, feature = "operator-tools"))]
+pub use types::{ArtifactRegistration, RuntimeInvariantViolation, TerminalCommit};
 pub use windows::WindowsExecutionConfig;
 
 #[cfg(test)]

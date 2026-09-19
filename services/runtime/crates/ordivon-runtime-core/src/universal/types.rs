@@ -218,12 +218,10 @@ pub struct CompactWorkspaceReadResult {
     pub digest: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct WorkspaceWriteRequest {
-    #[schemars(range(min = 1, max = 1), extend("const" = 1))]
+pub(crate) struct WorkspaceWriteRequest {
     pub schema_version: u32,
-    #[schemars(length(min = WORKSPACE_ID_MIN_LENGTH, max = WORKSPACE_ID_MAX_LENGTH), regex(pattern = WORKSPACE_ID_PATTERN))]
     pub workspace_id: String,
     pub relative_path: String,
     pub content: String,
@@ -232,7 +230,7 @@ pub struct WorkspaceWriteRequest {
 }
 
 impl WorkspaceWriteRequest {
-    pub fn validate_shape(&self) -> Result<(), UniversalExecError> {
+    pub(crate) fn validate_shape(&self) -> Result<(), UniversalExecError> {
         require_schema(self.schema_version)?;
         validate_id(&self.workspace_id, "workspaceId")?;
         validate_relative_path(&self.relative_path, "relativePath")?;
@@ -253,9 +251,9 @@ impl WorkspaceWriteRequest {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct WorkspaceWriteResult {
+pub(crate) struct WorkspaceWriteResult {
     pub workspace_id: String,
     pub relative_path: String,
     #[serde(skip_serializing_if = "Option::is_none")]

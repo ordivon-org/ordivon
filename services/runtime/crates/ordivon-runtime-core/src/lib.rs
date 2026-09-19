@@ -28,10 +28,9 @@ pub use universal::{
     WorkspaceContentMetadata, WorkspaceContentReadResult, WorkspaceContentRequest,
     WorkspaceDiffRequest, WorkspaceMutateRequest, WorkspaceMutateResult, WorkspaceMutation,
     WorkspaceMutationMode, WorkspaceMutationResult, WorkspaceReadRequest,
-    WorkspaceReadSliceRequest, WorkspaceRenamedPath, WorkspaceWriteRequest, WorkspaceWriteResult,
-    ENVIRONMENT_VARIABLE_NAME_PATTERN, MAX_WORKSPACE_CHANGE_PAGE_ENTRIES, MAX_WORKSPACE_IO_BYTES,
-    UNIVERSAL_EXEC_SCHEMA_VERSION, WORKSPACE_ID_MAX_LENGTH, WORKSPACE_ID_MIN_LENGTH,
-    WORKSPACE_ID_PATTERN,
+    WorkspaceReadSliceRequest, WorkspaceRenamedPath, ENVIRONMENT_VARIABLE_NAME_PATTERN,
+    MAX_WORKSPACE_CHANGE_PAGE_ENTRIES, MAX_WORKSPACE_IO_BYTES, UNIVERSAL_EXEC_SCHEMA_VERSION,
+    WORKSPACE_ID_MAX_LENGTH, WORKSPACE_ID_MIN_LENGTH, WORKSPACE_ID_PATTERN,
 };
 
 #[cfg(all(feature = "universal-executor", unix))]
@@ -84,8 +83,8 @@ pub use runtime::{
     RuntimeOperatorWorkspaceLastActivity, RuntimeOperatorWorkspaceMarker, RuntimeRepairAction,
     RuntimeRepairActionKind, RuntimeRepairConfig, RuntimeRepairReport, RuntimeRepairRequest,
     RuntimeStaleCancelReport, RuntimeStaleCancelRequest, RuntimeWorkspaceInspection,
-    RuntimeWorkspaceInspectionConfig, RuntimeWorkspaceInspectionJob, TerminalCommit,
-    DEFAULT_ARCHIVE_SAMPLE_LIMIT, DEFAULT_WORKSPACE_INSPECTION_JOB_LIMIT, MAX_ARCHIVE_SAMPLE_LIMIT,
+    RuntimeWorkspaceInspectionConfig, RuntimeWorkspaceInspectionJob, DEFAULT_ARCHIVE_SAMPLE_LIMIT,
+    DEFAULT_WORKSPACE_INSPECTION_JOB_LIMIT, MAX_ARCHIVE_SAMPLE_LIMIT,
     MAX_WORKSPACE_INSPECTION_JOB_LIMIT, RUNTIME_DOCTOR_SCHEMA_VERSION,
     RUNTIME_REPAIR_SCHEMA_VERSION,
 };
