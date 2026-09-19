@@ -3810,7 +3810,7 @@
       "issuer": "Commerce & Contract Management Institute / World Commerce & Contracting",
       "lifecycleStatus": "current-fourth-edition",
       "observationDigest": "sha256:4f8d46362f8538aa1c803b5246f543701c8d713c9420e56c82f106ac46ea083e",
-      "recordDigest": "sha256:59f6743a7088ba75c72202a4f7cfde4664e347645e82a05e98529a95aa1bfd9c",
+      "recordDigest": "sha256:8673424c48622d359b52f6ea6b7afa75f15bc1673151e1edecac28906c51759f",
       "title": "Contract Management Standard — Fourth Edition",
       "topics": [
         "award",
@@ -3933,6 +3933,6 @@
   ],
   "kind": "ordivon.external-authority-discovery-index",
   "recordCount": 142,
-  "recordsDigest": "sha256:593a03e1477342b1a6f45a1b4f94dd26d9b32feeb2f08608f9fb52ea7fc8bf15",
+  "recordsDigest": "sha256:54a7d11d55204d3b247188a9dcc07ce81b17b307a5b945bd460b7587795b4afc",
   "schemaVersion": 1
 }

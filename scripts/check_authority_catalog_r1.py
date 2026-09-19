@@ -24,7 +24,11 @@ def fail(message: str) -> None:
 
 
 def run(*args: str) -> str:
-    return subprocess.check_output(args, cwd=ROOT, text=True, stderr=subprocess.STDOUT)
+    try:
+        return subprocess.check_output(args, cwd=ROOT, text=True, stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError as exc:
+        detail = exc.output.strip() or f"command failed with exit code {exc.returncode}: {args}"
+        raise SystemExit(detail) from exc
 
 
 def main() -> int:

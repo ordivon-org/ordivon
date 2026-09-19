@@ -1,7 +1,0 @@
-mcp==2.0.0
-uvicorn==0.52.1
-pydantic==2.13.4
-starlette==1.6.0
-anyio==4.15.0
-rfc8785==0.1.4
-sqlite-utils==4.2.1

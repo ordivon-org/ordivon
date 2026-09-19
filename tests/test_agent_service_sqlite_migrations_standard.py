@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import sqlite3
 import tempfile
+import tomllib
 import unittest
 from pathlib import Path
 
@@ -23,13 +24,14 @@ DOMAIN_SCHEMA_MODULES = (
 
 
 class SqliteMigrationsStandardTests(unittest.TestCase):
-    def test_runtime_manifest_uses_current_sqlite_utils(self) -> None:
-        lines = {
-            line.strip()
-            for line in Path("config/agent-service-mcp-requirements.txt").read_text().splitlines()
-            if line.strip() and not line.startswith("#")
+    def test_runtime_lock_resolves_expected_sqlite_utils_release(self) -> None:
+        lock = tomllib.loads(Path("uv.lock").read_text(encoding="utf-8"))
+        versions = {
+            package["name"]: package["version"]
+            for package in lock["package"]
+            if "version" in package
         }
-        self.assertIn("sqlite-utils==4.2.1", lines)
+        self.assertEqual(versions["sqlite-utils"], "4.2.1")
 
     def test_domain_modules_no_longer_own_schema_initializers(self) -> None:
         offenders = []

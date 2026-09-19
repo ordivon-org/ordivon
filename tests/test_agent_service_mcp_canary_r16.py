@@ -7,6 +7,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 MCP_AVAILABLE = importlib.util.find_spec("mcp") is not None
@@ -43,6 +44,17 @@ class AgentServiceMcpCanaryR16Tests(unittest.TestCase):
         self.assertFalse(value["providerEffectSurfaceEnabled"])
         self.assertFalse(value["runtimeMutationSurfaceEnabled"])
         self.assertFalse(value["hostMutationSurfaceEnabled"])
+        self.assertEqual(value["productionDeployment"], "NOT_ADMITTED")
+
+    def test_contract_does_not_depend_on_historical_acceptance_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with mock.patch.object(
+                self.module,
+                "_graph_identity",
+                return_value={"status": "PASS", "graphFiles": 1, "nodeCount": 1},
+            ):
+                value = self.module._contract(Path(tmp))
+        self.assertEqual(value["deploymentMode"], "READ_ONLY_CANARY")
         self.assertEqual(value["productionDeployment"], "NOT_ADMITTED")
 
     def test_server_exposes_exactly_four_read_only_tools(self):
