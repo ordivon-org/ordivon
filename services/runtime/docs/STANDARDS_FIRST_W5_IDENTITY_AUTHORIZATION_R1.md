@@ -48,19 +48,16 @@ ExecutionProfile and WindowsAuthority remain because they select concrete provid
 execution mechanics and are verified at Runtime's physical boundary. They are not a
 replacement for OAuth, SPIFFE, OPA or domain authorization.
 
-AuthorityMode and ConflictMode remain temporarily only because the provider-health
-proposal contract still references them. They are not accepted as a general authorization
-model; reassess in a later controller-contract slice.
+The temporary AuthorityMode / ConflictMode provider-health proposal vocabulary was removed
+when the entire no-consumer Execution Fabric SPI/projection was retired. Runtime now exposes
+its native physical capability and availability facts without inventing an authorization or
+controller proposal ontology.
 
-## Descriptor cleanup
+## Execution Fabric SPI retirement
 
-NodeDescriptor.trustDomain was removed after cross-repository consumer audit showed no
-remaining production consumer once the Workstation EF6 static routing catalog was retired.
-A local string must not impersonate SPIFFE trust-domain semantics.
+The earlier NodeDescriptor cleanup removed the synthetic trustDomain field and stopped calling OS execution contexts authorization. The follow-up consumer audit found that the entire Execution Fabric SPI had no external repository consumer: Runtime MCP was its only production consumer and merely re-projected RuntimeCapabilities into the custom schema.
 
-NodeDescriptor.authorityContexts was renamed to executionContexts because its values describe
-concrete OS/provider execution contexts such as linux/root and windows/limited, not identity
-or authorization policy.
+The whole ordivon-runtime-spi crate and runtime.describe.executionFabric projection are therefore retired. Runtime exposes native node/target/provider/availability facts directly; no replacement Ordivon fabric ontology is planned.
 
 ## Gate
 

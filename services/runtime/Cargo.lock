@@ -1171,7 +1171,6 @@ dependencies = [
  "base64 0.23.0",
  "jsonwebtoken",
  "ordivon-runtime-core",
- "ordivon-runtime-spi",
  "reqwest",
  "rmcp",
  "schemars",
@@ -1185,15 +1184,6 @@ dependencies = [
  "tracing-subscriber",
  "uuid",
  "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "ordivon-runtime-spi"
-version = "0.1.0"
-dependencies = [
- "schemars",
- "serde",
- "serde_json",
 ]
 
 [[package]]

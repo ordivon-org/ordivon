@@ -2480,60 +2480,6 @@ fn tool_catalog_digest_is_deterministic_and_discovery_visible() {
 }
 
 #[test]
-fn execution_fabric_provider_health_preview_reports_action_required_without_acting() {
-    let sandbox = Sandbox::new("provider-health-preview-unavailable");
-    let server = sandbox.server_with_runtime_default(4_000);
-    let mut capabilities = server.state.runtime.capabilities();
-    let windows = capabilities
-        .targets
-        .iter_mut()
-        .find(|target| target.target == ExecutionTarget::WindowsNative)
-        .expect("windows target projection");
-    windows.configured = true;
-    windows.available = false;
-    windows.execution_provider = None;
-    windows.availability_issue = Some("EXECUTION_PROVIDER_UNAVAILABLE".to_string());
-
-    let observation = ExecutionFabricObservation::from_runtime_capabilities(&capabilities);
-    let controller = observation
-        .controllers
-        .iter()
-        .find(|controller| {
-            controller.controller_id.as_str()
-                == "controller/provider-health/test-node/windows-native"
-        })
-        .expect("windows provider health controller preview");
-    assert_eq!(
-        controller.disposition,
-        ordivon_runtime_spi::ControllerReconcileDisposition::ActionRequired
-    );
-    assert_eq!(
-        controller.desired_state.as_str(),
-        "state/provider-available"
-    );
-    assert_eq!(
-        controller.observed_state.as_str(),
-        "state/provider-unavailable"
-    );
-    assert_eq!(
-        controller.reason_code.as_str(),
-        "reason/execution-provider-unavailable"
-    );
-    let action = observation
-        .proposed_actions
-        .iter()
-        .find(|action| action.controller_id == controller.controller_id)
-        .expect("action-required controller should expose a proposal");
-    assert_eq!(
-        action.requested_capability_id.as_str(),
-        "capability/provider/recover"
-    );
-    assert_eq!(action.authority_mode, AuthorityMode::Recovery);
-    assert_eq!(action.conflict_mode, ConflictMode::ExclusiveWrite);
-    assert!(!action.effect_dispatched);
-}
-
-#[test]
 fn runtime_describe_projects_agent_affordances_without_selecting_a_target() {
     let sandbox = Sandbox::new("runtime-describe");
     let server = sandbox.server_with_runtime_default(4_000);
@@ -2559,39 +2505,6 @@ fn runtime_describe_projects_agent_affordances_without_selecting_a_target() {
     assert!(result.input_authorities.is_empty());
     assert_eq!(result.targets.len(), 2);
     assert!(!result.structured_release_configured);
-    assert!(result.execution_fabric.descriptive_only);
-    assert!(!result.execution_fabric.grants_authority);
-    assert!(!result.execution_fabric.selects_provider);
-    assert_eq!(result.execution_fabric.node.node_id.as_str(), "test-node");
-    assert_eq!(
-        result.execution_fabric.node.platform,
-        ordivon_runtime_spi::FabricPlatform::Linux
-    );
-    assert!(result.execution_fabric.node.native_control_plane);
-    assert_eq!(result.execution_fabric.resources.len(), 2);
-    assert_eq!(result.execution_fabric.capabilities.len(), 2);
-    assert_eq!(result.execution_fabric.providers.len(), 1);
-    assert_eq!(
-        result.execution_fabric.providers[0].provider_id.as_str(),
-        "provider/test-node/local-linux-runner-v1"
-    );
-    assert_eq!(result.execution_fabric.controllers.len(), 1);
-    assert!(result.execution_fabric.proposed_actions.is_empty());
-    assert_eq!(
-        result.execution_fabric.controllers[0]
-            .controller_id
-            .as_str(),
-        "controller/provider-health/test-node/local-linux"
-    );
-    assert_eq!(
-        result.execution_fabric.controllers[0].disposition,
-        ordivon_runtime_spi::ControllerReconcileDisposition::Converged
-    );
-    assert_eq!(
-        result.execution_fabric.node.capabilities[0].as_str(),
-        "capability/execution/local-linux"
-    );
-    assert!(result.execution_fabric.node.execution_contexts.is_empty());
     let linux = result
         .targets
         .iter()
@@ -2654,24 +2567,6 @@ fn runtime_describe_projects_agent_affordances_without_selecting_a_target() {
         "windowsImmutableInputAuthorities",
         "hostDependencyCommitments",
         "hostDependencyContinuityScope",
-        "executionFabric",
-        "descriptiveOnly",
-        "grantsAuthority",
-        "selectsProvider",
-        "resources",
-        "providers",
-        "capabilities",
-        "nativeControlPlane",
-        "controllers",
-        "controllerId",
-        "desiredState",
-        "observedState",
-        "disposition",
-        "proposedActions",
-        "requestedCapabilityId",
-        "authorityMode",
-        "conflictMode",
-        "effectDispatched",
     ] {
         assert!(
             output.contains(expected),
