@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-record",
+  "id": "iso-8000-115-2024",
+  "identity": {
+    "issuer": {
+      "id": "iso",
+      "name": "ISO"
+    },
+    "title": "ISO 8000-115:2024 — Data quality — Part 115: Master data: Exchange of quality identifiers",
+    "authorityKind": "international-standard",
+    "identityMode": "versioned",
+    "versionLabel": "2024",
+    "officialSource": "https://www.iso.org/standard/88847.html",
+    "publicationDate": "2024-06"
+  },
+  "discovery": {
+    "aliases": [
+      "ISO 8000-115:2024",
+      "Master Data Quality Identifiers"
+    ],
+    "topics": [
+      "master-data",
+      "identifiers",
+      "identifier-resolution",
+      "data-quality",
+      "reference-data"
+    ],
+    "domains": [
+      "data",
+      "metadata",
+      "governance"
+    ]
+  },
+  "access": {
+    "metadata": "public",
+    "fullText": "licensed",
+    "note": "ISO catalog metadata and preview are public; normative full text is licensed."
+  },
+  "relations": {
+    "supersedes": [],
+    "supersededBy": [],
+    "related": [
+      "iso-iec-11179-3-2023",
+      "iso-iec-11179-3-amd1-2026"
+    ]
+  },
+  "provenance": {
+    "registeredDate": "2026-09-20",
+    "registrationBasis": [
+      "data-temporal-evolution-r1",
+      "official ISO catalog checked 2026-09-20"
+    ]
+  }
+}

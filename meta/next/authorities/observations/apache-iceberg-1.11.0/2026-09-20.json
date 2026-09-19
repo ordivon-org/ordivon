@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-observation",
+  "authorityId": "apache-iceberg-1.11.0",
+  "basis": "official-source",
+  "lifecycleStatus": "current",
+  "observedDate": "2026-09-20",
+  "officialSource": "https://iceberg.apache.org/releases/",
+  "versionObserved": "1.11.0",
+  "note": "Apache lists 1.11.0, released 2026-05-19, as the latest main Iceberg release."
+}

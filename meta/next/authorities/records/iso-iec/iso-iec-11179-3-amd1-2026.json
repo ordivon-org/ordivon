@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-record",
+  "id": "iso-iec-11179-3-amd1-2026",
+  "identity": {
+    "issuer": {
+      "id": "iso-iec",
+      "name": "ISO/IEC"
+    },
+    "title": "ISO/IEC 11179-3:2023/Amd 1:2026 — Enhancements to Item Mapping",
+    "authorityKind": "international-standard-amendment",
+    "identityMode": "versioned",
+    "versionLabel": "2026",
+    "officialSource": "https://www.iso.org/standard/89914.html",
+    "publicationDate": "2026-05-22"
+  },
+  "discovery": {
+    "aliases": [
+      "ISO/IEC 11179-3 Amendment 1:2026",
+      "11179 Item Mapping Amendment"
+    ],
+    "topics": [
+      "metadata-mapping",
+      "item-mapping",
+      "entity-mapping",
+      "metadata-registry"
+    ],
+    "domains": [
+      "data",
+      "metadata",
+      "governance"
+    ]
+  },
+  "access": {
+    "metadata": "public",
+    "fullText": "licensed",
+    "note": "ISO catalog metadata and preview are public; normative amendment text is licensed."
+  },
+  "relations": {
+    "supersedes": [],
+    "supersededBy": [],
+    "related": [
+      "iso-iec-11179-3-2023",
+      "iso-8000-115-2024"
+    ]
+  },
+  "provenance": {
+    "registeredDate": "2026-09-20",
+    "registrationBasis": [
+      "data-temporal-evolution-r1",
+      "official ISO catalog checked 2026-09-20"
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-observation",
+  "authorityId": "debezium-stable-cdc",
+  "basis": "official-source",
+  "lifecycleStatus": "current",
+  "observedDate": "2026-09-20",
+  "officialSource": "https://debezium.io/documentation/reference/stable/",
+  "versionObserved": "stable",
+  "note": "Debezium stable documentation describes at-least-once delivery by default; exactly-once can be obtained in supported Kafka Connect deployments rather than by an internal Debezium deduplication layer. EOS detail page: https://debezium.io/documentation/reference/stable/configuration/eos.html"
+}

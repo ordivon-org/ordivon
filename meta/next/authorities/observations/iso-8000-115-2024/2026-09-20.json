@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-observation",
+  "authorityId": "iso-8000-115-2024",
+  "basis": "official-source",
+  "lifecycleStatus": "current",
+  "observedDate": "2026-09-20",
+  "officialSource": "https://www.iso.org/standard/88847.html",
+  "versionObserved": "2024",
+  "note": "ISO lists ISO 8000-115:2024 as published; it specifies syntax, semantics, ownership and resolution principles for quality identifiers in master-data exchange."
+}

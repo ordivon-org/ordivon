@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-observation",
+  "authorityId": "iso-iec-11179-3-2023",
+  "basis": "official-source",
+  "lifecycleStatus": "current",
+  "observedDate": "2026-09-20",
+  "officialSource": "https://www.iso.org/standard/78915.html",
+  "versionObserved": "2023",
+  "note": "ISO lists ISO/IEC 11179-3:2023 as published; Clause 11 covers mapping among registry items. Amendment 1:2026 enhances item mapping."
+}
