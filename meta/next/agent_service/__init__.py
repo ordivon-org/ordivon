@@ -86,7 +86,6 @@ from .transport_credentials import (
     CredentialHeaderMaterial,
     CredentialMaterialProvider,
     TransportCredentialBindingCoordinator,
-    TransportCredentialBindingStore,
 )
 from .trust import (
     AgentServiceR10,
@@ -104,7 +103,6 @@ __all__ = [
     "EffectAuthorizedDeliveryCoordinator",
     "BrowserlessTurnEffectLedgerReader",
     "BrowserlessTurnEffectCoordinate",
-    "TransportCredentialBindingStore",
     "TransportCredentialBindingCoordinator",
     "CredentialMaterialProvider",
     "CredentialHeaderMaterial",
