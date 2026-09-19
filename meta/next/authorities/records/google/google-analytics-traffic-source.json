@@ -1,0 +1,54 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": "Provider-native acquisition/attribution taxonomy; use only when Google Analytics is the selected measurement provider."
+  },
+  "discovery": {
+    "aliases": [
+      "GA4 Traffic Source",
+      "Google Analytics Attribution",
+      "Google Analytics Traffic Source Dimensions"
+    ],
+    "domains": [
+      "analytics",
+      "marketing",
+      "measurement"
+    ],
+    "topics": [
+      "attribution",
+      "campaign",
+      "channel",
+      "medium",
+      "source",
+      "traffic-source",
+      "utm"
+    ]
+  },
+  "id": "google-analytics-traffic-source",
+  "identity": {
+    "authorityKind": "provider-guidance",
+    "identityMode": "rolling-source",
+    "issuer": {
+      "id": "google-analytics",
+      "name": "Google Analytics"
+    },
+    "officialSource": "https://support.google.com/analytics/answer/15567068",
+    "publicationDate": null,
+    "title": "Google Analytics traffic-source dimensions and attribution guidance",
+    "versionLabel": null
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-19",
+    "registrationBasis": [
+      "commercial-marketing-externalization-r1"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

@@ -1,0 +1,53 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": "Advertising/outcomes measurement guidance; dormant until material paid-media measurement warrants it."
+  },
+  "discovery": {
+    "aliases": [
+      "MRC Outcomes and Data Quality Standards",
+      "Media Rating Council Outcomes Standards"
+    ],
+    "domains": [
+      "advertising",
+      "marketing",
+      "measurement"
+    ],
+    "topics": [
+      "ad-measurement",
+      "attribution",
+      "conversion",
+      "data-quality",
+      "outcomes"
+    ]
+  },
+  "id": "mrc-outcomes-data-quality-2022",
+  "identity": {
+    "authorityKind": "industry-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "mrc",
+      "name": "Media Rating Council"
+    },
+    "officialSource": "https://www.mediaratingcouncil.org/standards-and-guidelines",
+    "publicationDate": "2022-09",
+    "title": "MRC Outcomes and Data Quality Standards",
+    "versionLabel": "2022"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-19",
+    "registrationBasis": [
+      "commercial-marketing-externalization-r1"
+    ]
+  },
+  "relations": {
+    "related": [
+      "google-analytics-traffic-source"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

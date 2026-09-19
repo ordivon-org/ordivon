@@ -341,7 +341,30 @@ Use a real research/project dataset: bind source identity, validate schema/quali
 - provider-native APIs and platform rules;
 - OAuth/OIDC and provider identity/authorization mechanisms where applicable;
 - OCI Distribution for OCI/content distribution use cases;
-- mature workflow/transport providers rather than custom transfer engines.
+- mature workflow/transport providers rather than custom transfer engines;
+- ISO 20252:2026 + ICC/ESOMAR 2025 for market/customer research where research rigor is useful;
+- ICC Advertising and Marketing Communications Code 2024 for responsible marketing communications;
+- Google Search Essentials for Google organic-search eligibility/best practices when that channel is active;
+- provider-native acquisition/attribution semantics such as GA4 traffic-source dimensions when analytics is deployed;
+- ISO 20671-1:2021 only when brand evaluation has a real decision purpose;
+- IAB Tech Lab / MRC standards only when paid-media/ad-tech scale makes those controls materially useful.
+
+### Marketing/channel boundary
+
+Distribution may carry commercial content, but it does not own a generic marketing ontology or channel-ranking algorithm.
+
+For the current pre-customer stage, channel choice is a task-local experiment:
+
+```text
+hypothesized buyer + offer
+  -> bounded channel test
+  -> qualified conversation
+  -> proposal
+  -> paid delivery
+  -> acceptance / repeat / referral
+```
+
+Use research standards for research, marketing-communications codes for outbound/content, provider rules for provider behavior, and real customer outcomes for channel selection. ISO 20252 explicitly excludes direct marketing, so research and outreach must not be conflated.
 
 ### Current local working set
 

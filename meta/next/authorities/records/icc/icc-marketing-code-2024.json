@@ -1,0 +1,54 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": "Global self-regulatory marketing-communications code; does not replace jurisdiction-specific advertising, consumer-protection or privacy law."
+  },
+  "discovery": {
+    "aliases": [
+      "ICC Advertising and Marketing Communications Code",
+      "ICC Marketing Code 2024"
+    ],
+    "domains": [
+      "advertising",
+      "business",
+      "marketing"
+    ],
+    "topics": [
+      "advertising",
+      "ai-marketing",
+      "direct-marketing",
+      "marketing-communications",
+      "responsible-marketing",
+      "social-media"
+    ]
+  },
+  "id": "icc-marketing-code-2024",
+  "identity": {
+    "authorityKind": "professional-code",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "icc",
+      "name": "International Chamber of Commerce"
+    },
+    "officialSource": "https://iccwbo.org/business-solutions/the-icc-advertising-and-marketing-communications-code/",
+    "publicationDate": "2024",
+    "title": "ICC Advertising and Marketing Communications Code",
+    "versionLabel": "11th Edition (2024)"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-19",
+    "registrationBasis": [
+      "commercial-marketing-externalization-r1"
+    ]
+  },
+  "relations": {
+    "related": [
+      "icc-esomar-code-2025"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

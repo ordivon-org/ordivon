@@ -313,10 +313,17 @@ Sell controllable deliverables/acceptance conditions rather than guaranteeing th
 
 ### Commercial practice ownership
 
-Commercial methods are selected by stage and claim; Ordivon does not own a generic GTM/Sales/Pricing/Customer-Success/Contracting/FP&A/Payroll/Support/Hiring framework.
+Commercial methods are selected by stage and claim; Ordivon does not own a generic Marketing/Channel/SEO/Attribution/GTM/Sales/Pricing/Customer-Success/Contracting/FP&A/Payroll/Support/Hiring framework.
 
 | Need | Mature owner / reference | Evidence that actually matters |
 | --- | --- | --- |
+| market/customer research | ISO 20252:2026 when research-service rigor is useful + ICC/ESOMAR Code 2025 | explicit research question, sampling/recruitment/data-collection provenance, interview/survey evidence and analysis; direct marketing is a separate activity |
+| marketing communications | ICC Advertising and Marketing Communications Code 2024 + jurisdiction/platform rules | exact claim/content, substantiation, disclosure where required, delivery record and audience response |
+| channel selection | task-local experiments across actual channels; no universal channel ranking | qualified conversations, proposals, paid deliveries, acceptance, repeat/referral and acquisition cost/time |
+| organic search | Google Search Essentials when Google Search is a target | indexed useful content, search/source evidence and downstream qualified outcomes; ranking is provider-controlled |
+| acquisition/attribution | provider-native traffic taxonomy such as GA4 when deployed + CRM/self-reported source | source/medium/campaign or equivalent touch evidence reconciled to real pipeline/customer outcomes |
+| brand evaluation | ISO 20671-1:2021 only when a real brand-evaluation decision exists | decision-relevant brand indicators; not a pre-customer vanity score |
+| paid-media measurement | IAB Tech Lab/MRC only when material ad-tech/paid-media scale exists | spend/exposure/event/outcome data with applicable privacy/measurement controls |
 | early B2B sales | YC early-stage sales guidance; founder-led buyer work | conversations, qualified deals, objections, accepted/rejected quotations, paid work |
 | CRM pipeline | current CRM provider; evaluate Frappe CRM for new pipeline work | provider-native lead/deal state and real buyer interactions |
 | service pricing | direct quoting, negotiation, paid pilots, measured delivery economics | accepted price, gross contribution, scope/change/refund/rework behavior |
