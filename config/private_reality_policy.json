@@ -67,7 +67,13 @@
     "BINANCE_USDM": {
       "authoritativeReality": "Binance USD\u24c8-M Futures USER_DATA API + User Data Stream",
       "client": "binance-sdk-derivatives-trading-usds-futures 17.4.0",
+      "credentialCarrier": "finance-binance-observer-materials Runtime InputAuthority after safe Runtime reload",
+      "normalizer": "src/market_capital/private_reality.py::normalize_binance_usdm_observer",
+      "permissionClient": "binance-sdk-wallet 13.4.0",
+      "permissionGate": "enableReading=true; all write-capable permission flags=false",
       "permissionStanding": "PENDING_FRESH_PROVIDER_VERIFICATION",
+      "permissionTruthOwner": "Binance Wallet GET /sapi/v1/account/apiRestrictions",
+      "privateCaptureImplementation": "src/market_capital/binance_usdm_private_capture.py",
       "productEligibilityStanding": "PENDING_PROVIDER_VERIFICATION",
       "requiredQueries": [
         "account_information_v3",
@@ -84,6 +90,7 @@
       "requiredSecurityType": "USER_DATA",
       "timelinessOwner": "USER_DATA ACCOUNT_UPDATE / ORDER_TRADE_UPDATE streams",
       "tradFiAgreementAutomationAllowed": false,
+      "tradFiAgreementStanding": "UNKNOWN_NO_READ_ONLY_STATUS_API",
       "tradePermissionRequired": false
     },
     "OKX": {

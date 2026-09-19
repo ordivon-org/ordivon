@@ -9,6 +9,15 @@
       "responsibility": "official /fapi REST, WebSocket API and WebSocket Streams client mechanics for Binance USD\u24c8-M Futures",
       "version": "17.4.0"
     },
+    "binanceWallet": {
+      "credentialPolicy": "private qualification must use a bounded credential carrier; repository code must not discover ambient secrets",
+      "interpreter": "/root/external/binance-sdk-wallet/13.4.0/.venv/bin/python",
+      "nonResponsibility": "does not grant Futures product eligibility, TradFi agreement acceptance, live execution authority or external-write admission",
+      "package": "binance-sdk-wallet",
+      "provider": "Binance Official Wallet Python SDK",
+      "responsibility": "official SAPI wallet/account client mechanics, including GET /sapi/v1/account/apiRestrictions permission truth",
+      "version": "13.4.0"
+    },
     "capitalAccounting": {
       "binary": "/usr/local/bin/tigerbeetle",
       "clientInterpreter": "/opt/ordivon/external/tigerbeetle/0.17.9/python-client/bin/python",
