@@ -67,7 +67,9 @@
     "BINANCE_USDM": {
       "authoritativeReality": "Binance USD\u24c8-M Futures USER_DATA API + User Data Stream",
       "client": "binance-sdk-derivatives-trading-usds-futures 17.4.0",
-      "credentialCarrier": "finance-binance-observer-materials Runtime InputAuthority after safe Runtime reload",
+      "credentialCarrier": "finance-binance-observer-materials Runtime InputAuthority",
+      "credentialCarrierStanding": "ACTIVE_RUNTIME_INPUT_AUTHORITY",
+      "expectedDigestStanding": "CALLER_COMMITMENT_MISSING",
       "normalizer": "src/market_capital/private_reality.py::normalize_binance_usdm_observer",
       "permissionClient": "binance-sdk-wallet 13.4.0",
       "permissionGate": "enableReading=true; all write-capable permission flags=false",
