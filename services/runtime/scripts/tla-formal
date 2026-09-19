@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+LOCK="$ROOT/formal/toolchain.lock.json"
+
+read_lock() {
+  python - "$LOCK" "$1" <<'PY'
+import json, sys
+value = json.load(open(sys.argv[1], encoding="utf-8"))
+print(value[sys.argv[2]])
+PY
+}
+
+VERSION="$(read_lock version)"
+URL="$(read_lock url)"
+SHA1="$(read_lock upstreamSha1)"
+SHA256="$(read_lock sha256)"
+REL="$(read_lock cacheRelativePath)"
+JAR="$ROOT/$REL"
+
+verify_jar() {
+  test -f "$JAR" || {
+    echo "TLA+ tools missing: $JAR" >&2
+    echo "Run: scripts/tla-formal bootstrap" >&2
+    exit 2
+  }
+  test "$(sha1sum "$JAR" | awk '{print $1}')" = "$SHA1"
+  test "$(sha256sum "$JAR" | awk '{print $1}')" = "$SHA256"
+}
+
+bootstrap() {
+  mkdir -p "$(dirname "$JAR")"
+  tmp="$JAR.tmp.$$"
+  trap 'rm -f "$tmp"' EXIT
+  curl --fail --location --silent --show-error "$URL" -o "$tmp"
+  test "$(sha1sum "$tmp" | awk '{print $1}')" = "$SHA1"
+  test "$(sha256sum "$tmp" | awk '{print $1}')" = "$SHA256"
+  mv "$tmp" "$JAR"
+  trap - EXIT
+  echo "TLA+ tools $VERSION materialized and verified at $JAR"
+}
+
+check_runtime_dispatch() {
+  verify_jar
+  java -XX:+UseParallelGC -cp "$JAR" tla2sany.SANY "$ROOT/formal/RuntimeDispatchR1.tla"
+  (
+    cd "$ROOT/formal"
+    java -XX:+UseParallelGC -cp "$JAR" tlc2.TLC -workers 1       -config RuntimeDispatchR1.cfg RuntimeDispatchR1.tla
+  )
+}
+
+case "${1:-check}" in
+  bootstrap) bootstrap ;;
+  verify) verify_jar; echo "TLA+ toolchain digest verification PASS" ;;
+  check) check_runtime_dispatch ;;
+  *)
+    echo "usage: scripts/tla-formal [bootstrap|verify|check]" >&2
+    exit 2
+    ;;
+esac
