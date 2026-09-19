@@ -254,7 +254,7 @@ fn every_workspace_id_tool_schema_projects_the_core_workspace_id_law() {
         "workspace.execBound",
         "workspace.execBoundTrusted",
         "workspace.execPlan",
-        "task.list",
+        "job.list",
     ];
     for name in expected_tools {
         let tool = tools
@@ -381,7 +381,7 @@ fn every_client_request_id_tool_schema_projects_one_runtime_identity_law() {
         "workspace.execBound",
         "workspace.execBoundTrusted",
         "workspace.execPlan",
-        "task.list",
+        "job.list",
     ] {
         let tool = tools
             .iter()
@@ -1274,7 +1274,7 @@ fn tool_effect_annotations_match_runtime_behavior() {
         ("runtime.describe", true, false, true, false),
         ("task.cancel", false, true, true, false),
         ("job.get", true, false, true, false),
-        ("task.list", true, false, true, false),
+        ("job.list", true, false, true, false),
         ("task.observe", false, true, true, true),
         ("workspace.close", false, true, true, false),
         ("workspace.changes", true, false, true, false),
@@ -1395,11 +1395,11 @@ fn tool_catalog_uses_transactional_job_contract() {
             "artifact.read",
             "input.ingest",
             "job.get",
+            "job.list",
             "release.apply",
             "release.get",
             "runtime.describe",
             "task.cancel",
-            "task.list",
             "task.observe",
             "workspace.changes",
             "workspace.close",
@@ -1416,10 +1416,7 @@ fn tool_catalog_uses_transactional_job_contract() {
             "workspace.read",
         ]
     );
-    for tool in tools
-        .iter()
-        .filter(|tool| tool.name.as_ref() != "task.list")
-    {
+    for tool in tools.iter().filter(|tool| tool.name.as_ref() != "job.list") {
         let schema = serde_json::to_value(&tool.input_schema).unwrap();
         assert_eq!(
             schema.pointer("/properties/schemaVersion/const"),
@@ -1620,7 +1617,7 @@ fn tool_catalog_uses_transactional_job_contract() {
 
     let list = tools
         .iter()
-        .find(|tool| tool.name.as_ref() == "task.list")
+        .find(|tool| tool.name.as_ref() == "job.list")
         .unwrap();
     let list_schema = serde_json::to_value(&list.input_schema).unwrap();
     assert_eq!(
@@ -2155,14 +2152,14 @@ fn job_get_schema_is_projection_only_and_detail_free() {
 }
 
 #[test]
-fn task_list_schema_exposes_workspace_reattachment_filter() {
+fn job_list_schema_exposes_workspace_reattachment_filter() {
     let sandbox = Sandbox::new("task-list-workspace-filter-schema");
     let server = sandbox.server();
     let task_list = server
         .tool_router
         .list_all()
         .into_iter()
-        .find(|tool| tool.name.as_ref() == "task.list")
+        .find(|tool| tool.name.as_ref() == "job.list")
         .unwrap();
     let schema = serde_json::to_value(&task_list.input_schema).unwrap();
     assert!(schema.pointer("/properties/workspaceId").is_some());

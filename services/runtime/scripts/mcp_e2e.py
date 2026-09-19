@@ -35,7 +35,7 @@ EXPECTED_TOOLS = {
     "runtime.describe",
     "task.cancel",
     "job.get",
-    "task.list",
+    "job.list",
     "task.observe",
     "workspace.changes",
     "workspace.close",
@@ -704,7 +704,7 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
             and "io.modelcontextprotocol/" in str(missing_meta_error.get("message")),
             missing_meta_error,
         )
-        for tool_name in sorted(EXPECTED_TOOLS - {"task.list"}):
+        for tool_name in sorted(EXPECTED_TOOLS - {"job.list"}):
             version_schema = (
                 tool_entries.get(tool_name, {}).get("inputSchema", {}).get("properties", {}).get("schemaVersion", {})
             )
@@ -1672,7 +1672,7 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
                 break
         check("observe-incremental", "".join(incremental_parts) == expected_stdout, incremental_parts)
 
-        task_list = client.tool("task.list", {"limit": 100})
+        task_list = client.tool("job.list", {"limit": 100})
         jobs = task_list.get("jobs", [])
         listed_job = next((job for job in jobs if job.get("jobId") == job_id), None)
         check("task-list", listed_job is not None, task_list)
