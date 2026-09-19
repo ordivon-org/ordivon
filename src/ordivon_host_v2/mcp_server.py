@@ -8,12 +8,7 @@ from mcp.server.transport_security import TransportSecuritySettings
 
 from .board import BoardStore
 from .canonical import canonical_digest
-from .checkpoint_contract import (
-    WorkingCheckpointInput,
-    WorkingCheckpointUpdate,
-    merge_checkpoint_update,
-    validate_full_checkpoint,
-)
+from .checkpoint_contract import WorkingCheckpointInput, validate_full_checkpoint
 from .contracts import (
     AttentionResponse,
     BoardListResponse,
@@ -193,7 +188,7 @@ def build_server(dsn: str | None = None) -> MCPServer:
     def task_checkpoint(
         taskId: str,
         expectedRevision: int,
-        checkpoint: WorkingCheckpointUpdate,
+        checkpoint: WorkingCheckpointInput,
         continuityDisposition: Literal["continue", "complete", "abandon"] = "continue",
         writerLabel: str | None = None,
     ) -> TaskMutationResponse:
@@ -203,18 +198,7 @@ def build_server(dsn: str | None = None) -> MCPServer:
             "complete": TaskState.COMPLETED,
             "abandon": TaskState.ABANDONED,
         }[continuityDisposition]
-        if checkpoint and not any(
-            marker in checkpoint for marker in ("schemaVersion", "kind", "truthRole", "taskId")
-        ):
-            base = service.resume(taskId, expectedRevision).checkpoint
-        else:
-            base = {}
-        normalized = merge_checkpoint_update(
-            task_id=taskId,
-            base=base,
-            update=checkpoint,
-            terminal=continuityDisposition != "continue",
-        )
+        normalized = validate_full_checkpoint(taskId, checkpoint)
         request = {
             "taskId": taskId,
             "expectedRevision": expectedRevision,

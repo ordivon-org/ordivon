@@ -64,24 +64,21 @@ def test_work_standing_has_no_runtime_consumer_outside_checkpoint_contract() -> 
 
 
 def test_work_standing_round_trips_as_claim_only_checkpoint_data() -> None:
-    from ordivon_host_v2.checkpoint_contract import (
-        merge_checkpoint_update,
-        validate_full_checkpoint,
-    )
+    from ordivon_host_v2.checkpoint_contract import validate_full_checkpoint
 
     task_id = "task:contract-policy:claim-only"
     original = _v2_checkpoint(task_id)
     validated = validate_full_checkpoint(task_id, original)
     assert validated["workStanding"] == original["workStanding"]
 
-    patched = merge_checkpoint_update(
-        task_id=task_id,
-        base=validated,
-        update={"frontier": "after"},
-        terminal=False,
-    )
-    assert patched["frontier"] == "after"
-    assert patched["workStanding"] == validated["workStanding"]
+
+def test_checkpoint_contract_has_no_custom_partial_patch_language() -> None:
+    text = (
+        Path(__file__).parents[1] / "src" / "ordivon_host_v2" / "checkpoint_contract.py"
+    ).read_text()
+    assert "merge_checkpoint_update" not in text
+    assert "checkpoint_patch_schema" not in text
+    assert "WorkingCheckpointUpdate" not in text
 
 
 def test_work_standing_truth_role_stays_caller_authored() -> None:

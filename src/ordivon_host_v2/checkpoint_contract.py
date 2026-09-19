@@ -74,20 +74,6 @@ class WorkingCheckpointV2(WorkingCheckpointV1):
     workStanding: WorkingCheckpointStanding
 
 
-_PATCH_FIELDS = {
-    "objective",
-    "frontier",
-    "established",
-    "unresolved",
-    "rejected",
-    "constraints",
-    "nextActions",
-    "runtime",
-    "workStanding",
-}
-_FULL_MARKERS = {"schemaVersion", "kind", "truthRole", "taskId"}
-
-
 def _inline_schema(model: type[BaseModel]) -> dict[str, Any]:
     schema = model.model_json_schema()
     definitions = schema.pop("$defs", {})
@@ -123,42 +109,9 @@ def full_checkpoint_schema() -> dict[str, Any]:
     }
 
 
-def checkpoint_patch_schema() -> dict[str, Any]:
-    properties = _inline_schema(WorkingCheckpointV2)["properties"]
-    return {
-        "type": "object",
-        "title": "WorkingCheckpointPatch",
-        "additionalProperties": False,
-        "minProperties": 1,
-        "properties": {name: properties[name] for name in sorted(_PATCH_FIELDS)},
-        "description": (
-            "Patch the exact expected Task revision while continuity remains open. Omitted fields "
-            "inherit from that revision and present list fields replace the entire field."
-        ),
-    }
-
-
-def checkpoint_update_schema() -> dict[str, Any]:
-    return {
-        "oneOf": [
-            _inline_schema(WorkingCheckpointV1),
-            _inline_schema(WorkingCheckpointV2),
-            checkpoint_patch_schema(),
-        ],
-        "description": (
-            "Either a complete WorkingCheckpoint or an exact-revision patch. A new terminal "
-            "transition requires a complete checkpoint."
-        ),
-    }
-
-
 WorkingCheckpointInput = Annotated[
     dict[str, Any],
     WithJsonSchema(full_checkpoint_schema()),
-]
-WorkingCheckpointUpdate = Annotated[
-    dict[str, Any],
-    WithJsonSchema(checkpoint_update_schema()),
 ]
 
 
@@ -176,32 +129,3 @@ def validate_full_checkpoint(task_id: str, value: dict[str, Any]) -> dict[str, A
     if encoded["taskId"] != task_id:
         raise ValueError("checkpoint taskId must equal taskId")
     return encoded
-
-
-def is_full_checkpoint(value: dict[str, Any]) -> bool:
-    return bool(_FULL_MARKERS & set(value))
-
-
-def merge_checkpoint_update(
-    *,
-    task_id: str,
-    base: dict[str, Any],
-    update: dict[str, Any],
-    terminal: bool,
-) -> dict[str, Any]:
-    if not isinstance(update, dict) or not update:
-        raise ValueError("checkpoint must be a non-empty full checkpoint or patch")
-    if is_full_checkpoint(update):
-        return validate_full_checkpoint(task_id, update)
-    if terminal:
-        raise ValueError("new terminal continuity transition requires a complete WorkingCheckpoint")
-    unknown = set(update) - _PATCH_FIELDS
-    if unknown:
-        raise ValueError(f"checkpoint patch contains unsupported fields: {sorted(unknown)}")
-    if "workStanding" in update and base.get("schemaVersion") != 2:
-        raise ValueError(
-            "introducing workStanding into a v1 checkpoint requires a complete v2 checkpoint"
-        )
-    candidate = dict(base)
-    candidate.update(update)
-    return validate_full_checkpoint(task_id, candidate)
