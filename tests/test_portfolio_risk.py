@@ -1,0 +1,173 @@
+import math
+import unittest
+
+from market_capital.portfolio_risk import (
+    PortfolioRiskError,
+    analyze_dependence,
+    build_exposure_ledger,
+    build_factor_observatory,
+    build_portfolio_risk_observatory,
+    completed_log_returns,
+    evaluate_risk_budget,
+)
+
+
+class PortfolioRiskTests(unittest.TestCase):
+    def test_exposure_ledger_separates_gross_net_and_overlapping_factor_exposure(self):
+        ledger = build_exposure_ledger(
+            equity_usd="100",
+            available_equity_usd="40",
+            initial_margin_usd="25",
+            maintenance_margin_usd="5",
+            positions=[
+                {
+                    "instrumentId": "A",
+                    "signedNotionalUsd": "150",
+                    "factorLoadings": {"tech": "1", "semiconductor": "0.8"},
+                },
+                {
+                    "instrumentId": "B",
+                    "signedNotionalUsd": "-50",
+                    "factorLoadings": {"tech": "0.5"},
+                },
+            ],
+        )
+        self.assertEqual(ledger["grossNotionalUsd"], "200.000000")
+        self.assertEqual(ledger["netNotionalUsd"], "100.000000")
+        self.assertEqual(ledger["grossToEquity"], "2.000000")
+        self.assertEqual(ledger["largestPositionGrossShare"], "0.750000")
+        factors = {x["factor"]: x["signedExposureUsd"] for x in ledger["factorExposure"]}
+        self.assertEqual(factors["tech"], "125.000000")
+        self.assertEqual(factors["semiconductor"], "120.000000")
+        self.assertFalse(ledger["privateRealityPersisted"])
+
+    def test_completed_log_returns_rejects_unsorted_prices(self):
+        with self.assertRaises(PortfolioRiskError):
+            completed_log_returns(
+                instrument_id="X",
+                observations=[
+                    {"observedAtMs": 2, "close": "100"},
+                    {"observedAtMs": 1, "close": "101"},
+                ],
+            )
+
+    def test_dependence_reports_beta_instability_instead_of_one_static_ratio(self):
+        base = {}
+        proxy = {}
+        # First half positively linked; second half flips proxy sign.
+        for i in range(1, 81):
+            x = 0.01 * math.sin(i / 3)
+            y = x / 2 if i <= 40 else -x / 2
+            base[i] = x
+            proxy[i] = y
+        out = analyze_dependence(
+            base_instrument_id="A",
+            base_returns=base,
+            proxy_instrument_id="B",
+            proxy_returns=proxy,
+            short_window=20,
+            medium_window=60,
+            rolling_window=20,
+        )
+        self.assertEqual(out["standing"], "UNCLASSIFIED_NO_STABILITY_POLICY")
+        self.assertIn("ROLLING_BETA_SIGN_CHANGE", out["structuralWarnings"])
+        self.assertIsNone(out["stabilityPolicy"])
+        self.assertFalse(out["minimumVarianceBetaIsRecommendation"])
+        self.assertFalse(out["tradeRecommendationProduced"])
+
+    def test_dependence_classification_requires_explicit_stability_policy(self):
+        base = {i: 0.01 * math.sin(i / 4) for i in range(1, 90)}
+        proxy = {i: 0.008 * math.sin(i / 4 + 0.02) for i in range(1, 90)}
+        out = analyze_dependence(
+            base_instrument_id="A",
+            base_returns=base,
+            proxy_instrument_id="B",
+            proxy_returns=proxy,
+            stability_policy={
+                "highPositiveCorrelationFloor": "0.7",
+                "lowAbsoluteCorrelationCeiling": "0.3",
+                "maxShortMediumCorrelationGap": "0.25",
+                "maxRollingBetaRangeToMedianAbs": "1.0",
+            },
+        )
+        self.assertIsNotNone(out["stabilityPolicy"])
+        self.assertNotEqual(out["standing"], "UNCLASSIFIED_NO_STABILITY_POLICY")
+
+    def test_factor_observatory_allows_multiple_proxies_per_factor_but_rejects_duplicate_pair(self):
+        base = {i: 0.001 * math.sin(i / 5) for i in range(1, 70)}
+        proxy_b = {i: 0.0008 * math.sin(i / 5) for i in range(1, 70)}
+        proxy_c = {i: 0.0006 * math.sin(i / 5 + 0.1) for i in range(1, 70)}
+        out = build_factor_observatory(
+            base_instrument_id="A",
+            base_returns=base,
+            factor_proxies=[
+                {"factor": "tech", "instrumentId": "B", "returns": proxy_b},
+                {"factor": "tech", "instrumentId": "C", "returns": proxy_c},
+            ],
+        )
+        self.assertEqual(out["factorCount"], 1)
+        self.assertEqual(out["factorProxyCount"], 2)
+        self.assertEqual(out["factors"][0]["proxyCount"], 2)
+
+        with self.assertRaises(PortfolioRiskError):
+            build_factor_observatory(
+                base_instrument_id="A",
+                base_returns=base,
+                factor_proxies=[
+                    {"factor": "tech", "instrumentId": "B", "returns": proxy_b},
+                    {"factor": "tech", "instrumentId": "B", "returns": proxy_b},
+                ],
+            )
+
+    def test_risk_budget_is_incomplete_not_inferred_when_inputs_missing(self):
+        ledger = build_exposure_ledger(
+            equity_usd="100",
+            available_equity_usd="50",
+            positions=[{"instrumentId": "A", "signedNotionalUsd": "100"}],
+        )
+        out = evaluate_risk_budget(exposure_ledger=ledger, budget={"maxGrossToEquity": "2"})
+        self.assertEqual(out["standing"], "INCOMPLETE")
+        self.assertFalse(out["riskToleranceInferred"])
+
+    def test_risk_budget_reports_named_breaches_without_recommending_trade(self):
+        ledger = build_exposure_ledger(
+            equity_usd="100",
+            available_equity_usd="20",
+            positions=[{"instrumentId": "A", "signedNotionalUsd": "300"}],
+        )
+        out = evaluate_risk_budget(
+            exposure_ledger=ledger,
+            budget={
+                "maxGrossToEquity": "2",
+                "maxLargestPositionGrossShare": "0.8",
+                "minAvailableEquityRatio": "0.3",
+                "shockMagnitudePct": "10",
+                "maxEquityLossPctAtShock": "20",
+            },
+        )
+        self.assertEqual(out["standing"], "BREACHED")
+        self.assertEqual(
+            set(out["breachedChecks"]),
+            {
+                "MAX_GROSS_TO_EQUITY",
+                "MAX_LARGEST_POSITION_GROSS_SHARE",
+                "MIN_AVAILABLE_EQUITY_RATIO",
+                "MAX_EQUITY_LOSS_AT_NAMED_SHOCK",
+            },
+        )
+        self.assertFalse(out["tradeRecommendationProduced"])
+
+    def test_observatory_does_not_become_allocator(self):
+        ledger = build_exposure_ledger(
+            equity_usd="100",
+            available_equity_usd="100",
+            positions=[],
+        )
+        out = build_portfolio_risk_observatory(exposure_ledger=ledger)
+        self.assertFalse(out["allocationProduced"])
+        self.assertFalse(out["hedgeSizeRecommended"])
+        self.assertEqual(out["nodes"]["P4RiskBudget"]["standing"], "INCOMPLETE")
+
+
+if __name__ == "__main__":
+    unittest.main()
