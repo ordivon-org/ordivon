@@ -148,19 +148,25 @@ The following remain intentionally open rather than being papered over by archit
 
 As of 2026-09-20, university students are admitted only as a **high-priority discovery population**, not a validated ICP.
 
-Current task-local census and experiment plan:
+Current task-local census and experiment plans:
 
-- `STUDENT_MARKET_PRIMITIVE_CENSUS_R1.md`
-- `STUDENT_BEACHHEAD_DISCOVERY_EXPERIMENTS_R1.md`
+- `STUDENT_MARKET_PRIMITIVE_CENSUS_R1.md` — initial global/high-agency decomposition;
+- `STUDENT_BEACHHEAD_DISCOVERY_EXPERIMENTS_R1.md`;
+- `CHINA_UNIVERSITY_STUDENT_WORKFLOW_CENSUS_R2.md` — mainland-China-specific campus/information/deadline/transition workflows;
+- `CHINA_STUDENT_MARKET_DISCOVERY_PLAN_R2.md`.
 
-The current shortlist for external evidence collection is:
+R2 broadens the discovery surface beyond high-agency students. Current hypotheses now have two market layers:
 
-1. student research execution/reproducibility;
-2. technical project/capstone execution evidence;
-3. evidence-backed technical career transition;
-4. student founder/indie-builder execution.
+1. **mass student utility** — opportunity intelligence, campus obligations, second-classroom/competition/internship information, postgraduate/recommendation/public-recruitment/study-abroad navigation;
+2. **high-agency premium workflows** — research execution/reproducibility, technical projects/GitHub/competition execution, evidence-backed career transition, student-founder execution.
 
-Generic tutoring, generic coding assistance, literature search, résumé generation and generic job search are intentionally not treated as beachheads because strong mature providers already occupy those layers. The shortlist remains hypotheses until interviews, commitment-quality evidence and paid pilots exist.
+Generic tutoring, generic coding assistance, literature search, résumé generation and generic job search remain intentionally outside the beachhead because mature providers already occupy those layers.
+
+A new China-specific strategic hypothesis is that the broad residual value may be:
+`verified information + personal eligibility + deadline/prerequisite graph + next action + evidence/outcome`,
+with AI hidden as an implementation primitive rather than sold as a chatbot.
+
+No student ICP, payer or beachhead is validated until interviews, commitment-quality evidence and paid pilots exist.
 
 ## 9. Immediate order of work
 
