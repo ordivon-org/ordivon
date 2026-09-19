@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import time
 from typing import Any
 
@@ -12,16 +11,7 @@ from .errors import ConflictError
 
 _MESSAGE_KINDS = {"note", "question", "proposal", "warning", "reply"}
 
-_TASK_ROUTE_ANCHOR_ID_PREFIX = "task-route-anchor-v1:"
-_TASK_ROUTE_ANCHOR_AUTHOR_LABEL = "task-routing-anchor-v1"
-_TASK_ROUTE_ANCHOR_TOPIC = "agent-native-collaboration-routing"
-_TASK_ROUTE_ANCHOR_MESSAGE_PREFIX = "TASK COORDINATION ANCHOR v1 / exact Task identity `"
-_TASK_ROUTE_ANCHOR_MESSAGE_SUFFIX = (
-    "`. This Board root is a deterministic navigation coordinate only. It is not Task standing, "
-    "priority, ownership, delegation, delivery, unread state, execution authority, or proof that "
-    "any reply was consumed. Callers targeting this Task may post direct replies while preserving "
-    "their own domain topic."
-)
+_LEGACY_TASK_ROUTE_ANCHOR_ID_PREFIX = "task-route-anchor-v1:"
 
 
 def _validate_optional_filter(value: str | None, label: str, max_length: int = 256) -> None:
@@ -31,73 +21,26 @@ def _validate_optional_filter(value: str | None, label: str, max_length: int = 2
         raise ValueError(f"{label} must be null or 1-{max_length} trimmed characters")
 
 
-def validate_task_route_anchor(
-    *,
-    client_message_id: str,
-    author_label: str,
-    message_kind: str,
-    message: str,
-    topic: str | None,
-    reply_to_client_message_id: str | None,
-) -> None:
-    """Protect the deterministic Board→Task routing namespace from first-writer squatting."""
-    if not client_message_id.startswith(_TASK_ROUTE_ANCHOR_ID_PREFIX):
-        return
-    suffix = client_message_id[len(_TASK_ROUTE_ANCHOR_ID_PREFIX) :]
-    if len(suffix) != 64 or any(ch not in "0123456789abcdef" for ch in suffix):
-        raise ValueError(
-            "reserved task-route-anchor-v1 clientMessageId must end in 64 lowercase hex digits"
-        )
-    if (
-        author_label != _TASK_ROUTE_ANCHOR_AUTHOR_LABEL
-        or message_kind != "note"
-        or topic != _TASK_ROUTE_ANCHOR_TOPIC
-        or reply_to_client_message_id is not None
-    ):
-        raise ValueError("reserved task-route-anchor-v1 fields differ from canonical v1")
-    if not message.startswith(_TASK_ROUTE_ANCHOR_MESSAGE_PREFIX) or not message.endswith(
-        _TASK_ROUTE_ANCHOR_MESSAGE_SUFFIX
-    ):
-        raise ValueError("reserved task-route-anchor-v1 message differs from canonical v1")
-    task_id = message[
-        len(_TASK_ROUTE_ANCHOR_MESSAGE_PREFIX) : -len(_TASK_ROUTE_ANCHOR_MESSAGE_SUFFIX)
-    ]
-    if not task_id.startswith("task:"):
-        raise ValueError("reserved task-route-anchor-v1 message must embed one exact Task identity")
-    if suffix != hashlib.sha256(task_id.encode("utf-8")).hexdigest():
-        raise ValueError(
-            "reserved task-route-anchor-v1 digest does not match embedded Task identity"
-        )
+def is_legacy_task_route_anchor(row: dict[str, Any]) -> bool:
+    """Recognize historical infrastructure rows without using them for active routing."""
+    return (
+        isinstance(row.get("client_message_id"), str)
+        and row["client_message_id"].startswith(_LEGACY_TASK_ROUTE_ANCHOR_ID_PREFIX)
+        and row.get("author_label") == "task-routing-anchor-v1"
+        and row.get("message_kind") == "note"
+        and row.get("topic") == "agent-native-collaboration-routing"
+        and row.get("reply_to_client_message_id") is None
+    )
 
 
-def task_route_anchor_task_id(row: dict[str, Any]) -> str | None:
-    client_message_id = row.get("client_message_id")
-    message = row.get("message")
-    if not isinstance(client_message_id, str) or not client_message_id.startswith(
-        _TASK_ROUTE_ANCHOR_ID_PREFIX
+def _validate_task_id(value: str | None) -> None:
+    if value is not None and (
+        not isinstance(value, str)
+        or not value.startswith("task:")
+        or value != value.strip()
+        or len(value) > 4096
     ):
-        return None
-    if (
-        not isinstance(message, str)
-        or not message.startswith(_TASK_ROUTE_ANCHOR_MESSAGE_PREFIX)
-        or not message.endswith(_TASK_ROUTE_ANCHOR_MESSAGE_SUFFIX)
-    ):
-        return None
-    task_id = message[
-        len(_TASK_ROUTE_ANCHOR_MESSAGE_PREFIX) : -len(_TASK_ROUTE_ANCHOR_MESSAGE_SUFFIX)
-    ]
-    expected = _TASK_ROUTE_ANCHOR_ID_PREFIX + hashlib.sha256(task_id.encode("utf-8")).hexdigest()
-    if (
-        not task_id.startswith("task:")
-        or client_message_id != expected
-        or row.get("author_label") != _TASK_ROUTE_ANCHOR_AUTHOR_LABEL
-        or row.get("message_kind") != "note"
-        or row.get("topic") != _TASK_ROUTE_ANCHOR_TOPIC
-        or row.get("reply_to_client_message_id") is not None
-    ):
-        return None
-    return task_id
-
+        raise ValueError("taskId must be null or one trimmed task: identity")
 
 def _now_ms() -> int:
     return time.time_ns() // 1_000_000
@@ -107,65 +50,16 @@ def board_message_digest(value: dict[str, Any]) -> str:
     payload = {
         "schemaVersion": 1,
         "kind": "ordivon.host-board-message",
-        **value,
+        "clientMessageId": value["clientMessageId"],
+        "authorLabel": value["authorLabel"],
+        "messageKind": value["messageKind"],
+        "topic": value["topic"],
+        "message": value["message"],
+        "replyToClientMessageId": value["replyToClientMessageId"],
         "truthRole": "coordination-message-not-domain-truth",
     }
     return canonical_digest({"schemaVersion": 1, "kind": "host-board-message", "payload": payload})
 
-
-def canonical_task_route_anchor(task_id: str) -> dict[str, Any]:
-    if not isinstance(task_id, str) or not task_id.startswith("task:"):
-        raise ValueError("task route anchor requires one exact task: identity")
-    suffix = hashlib.sha256(task_id.encode("utf-8")).hexdigest()
-    return {
-        "clientMessageId": _TASK_ROUTE_ANCHOR_ID_PREFIX + suffix,
-        "authorLabel": _TASK_ROUTE_ANCHOR_AUTHOR_LABEL,
-        "messageKind": "note",
-        "topic": _TASK_ROUTE_ANCHOR_TOPIC,
-        "message": _TASK_ROUTE_ANCHOR_MESSAGE_PREFIX + task_id + _TASK_ROUTE_ANCHOR_MESSAGE_SUFFIX,
-        "replyToClientMessageId": None,
-    }
-
-
-def ensure_task_route_anchor_in_tx(
-    conn: psycopg.Connection[dict[str, Any]], task_id: str
-) -> dict[str, Any]:
-    value = canonical_task_route_anchor(task_id)
-    digest = board_message_digest(value)
-    row = conn.execute(
-        "INSERT INTO board_messages(client_message_id,author_label,message_kind,topic,message,reply_to_client_message_id,message_digest,recorded_at_ms) "
-        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (client_message_id) DO NOTHING "
-        "RETURNING sequence,recorded_at_ms",
-        (
-            value["clientMessageId"],
-            value["authorLabel"],
-            value["messageKind"],
-            value["topic"],
-            value["message"],
-            value["replyToClientMessageId"],
-            digest,
-            _now_ms(),
-        ),
-    ).fetchone()
-    if row is not None:
-        return {
-            "admission": "committed",
-            "clientMessageId": value["clientMessageId"],
-            "sequence": int(row["sequence"]),
-        }
-    existing = conn.execute(
-        "SELECT * FROM board_messages WHERE client_message_id=%s",
-        (value["clientMessageId"],),
-    ).fetchone()
-    if existing is None:
-        raise RuntimeError("task route anchor disappeared after conflict arbitration")
-    if task_route_anchor_task_id(existing) != task_id or existing["message_digest"] != digest:
-        raise ConflictError("deterministic task route anchor is bound to non-canonical content")
-    return {
-        "admission": "existing",
-        "clientMessageId": value["clientMessageId"],
-        "sequence": int(existing["sequence"]),
-    }
 
 
 class BoardStore:
@@ -181,6 +75,7 @@ class BoardStore:
         message_kind: str = "note",
         topic: str | None = None,
         reply_to_client_message_id: str | None = None,
+        task_id: str | None = None,
     ) -> dict[str, Any]:
         if (
             not client_message_id
@@ -197,14 +92,9 @@ class BoardStore:
         if topic is not None and (not topic or topic != topic.strip() or len(topic) > 256):
             raise ValueError("topic is invalid")
         _validate_optional_filter(reply_to_client_message_id, "replyToClientMessageId")
-        validate_task_route_anchor(
-            client_message_id=client_message_id,
-            author_label=author_label,
-            message_kind=message_kind,
-            message=message,
-            topic=topic,
-            reply_to_client_message_id=reply_to_client_message_id,
-        )
+        _validate_task_id(task_id)
+        if client_message_id.startswith(_LEGACY_TASK_ROUTE_ANCHOR_ID_PREFIX):
+            raise ValueError("legacy task-route-anchor-v1 namespace is retired")
         value = {
             "clientMessageId": client_message_id,
             "authorLabel": author_label,
@@ -212,19 +102,36 @@ class BoardStore:
             "topic": topic,
             "message": message,
             "replyToClientMessageId": reply_to_client_message_id,
+            "taskId": task_id,
         }
         digest = board_message_digest(value)
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+            resolved_task_id = task_id
             if reply_to_client_message_id is not None:
                 parent = conn.execute(
-                    "SELECT 1 FROM board_messages WHERE client_message_id=%s",
+                    "SELECT task_id FROM board_messages WHERE client_message_id=%s",
                     (reply_to_client_message_id,),
                 ).fetchone()
                 if parent is None:
                     raise ConflictError("board reply target does not exist")
+                parent_task_id = parent["task_id"]
+                if (
+                    resolved_task_id is not None
+                    and parent_task_id is not None
+                    and resolved_task_id != parent_task_id
+                ):
+                    raise ConflictError("board reply taskId conflicts with parent taskId")
+                if resolved_task_id is None:
+                    resolved_task_id = parent_task_id
+            if resolved_task_id is not None:
+                exists = conn.execute(
+                    "SELECT 1 FROM tasks WHERE task_id=%s", (resolved_task_id,)
+                ).fetchone()
+                if exists is None:
+                    raise ConflictError("board taskId does not reference an existing Task")
             row = conn.execute(
-                "INSERT INTO board_messages(client_message_id,author_label,message_kind,topic,message,reply_to_client_message_id,message_digest,recorded_at_ms) "
-                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (client_message_id) DO NOTHING "
+                "INSERT INTO board_messages(client_message_id,author_label,message_kind,topic,message,reply_to_client_message_id,task_id,message_digest,recorded_at_ms) "
+                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (client_message_id) DO NOTHING "
                 "RETURNING sequence,recorded_at_ms",
                 (
                     client_message_id,
@@ -233,6 +140,7 @@ class BoardStore:
                     topic,
                     message,
                     reply_to_client_message_id,
+                    resolved_task_id,
                     digest,
                     _now_ms(),
                 ),
@@ -240,13 +148,17 @@ class BoardStore:
             admission = "committed"
             if row is None:
                 row = conn.execute(
-                    "SELECT sequence,recorded_at_ms,message_digest FROM board_messages WHERE client_message_id=%s",
+                    "SELECT sequence,recorded_at_ms,message_digest,task_id FROM board_messages WHERE client_message_id=%s",
                     (client_message_id,),
                 ).fetchone()
                 assert row is not None
                 if row["message_digest"] != digest:
                     raise ConflictError(
                         "board clientMessageId is already bound to different content"
+                    )
+                if row["task_id"] != resolved_task_id:
+                    raise ConflictError(
+                        "board clientMessageId is already bound to a different Task route"
                     )
                 admission = "existing"
             message_row = self._by_id(conn, client_message_id)
@@ -266,7 +178,7 @@ class BoardStore:
                     "truthRole": "mechanical-direct-reply-admission-density-not-active-standing",
                 }
             return {
-                "schemaVersion": 2,
+                "schemaVersion": 3,
                 "kind": "ordivon.host-board-post-receipt",
                 "admission": admission,
                 "message": self._wire(message_row),
@@ -354,7 +266,7 @@ class BoardStore:
                 next_after = high
 
             result = {
-                "schemaVersion": 2,
+                "schemaVersion": 3,
                 "kind": "ordivon.host-board-list",
                 "scope": "host-global-coordination-messages",
                 "selectionMode": "latest-window" if after_sequence is None else "incremental-page",
@@ -438,6 +350,7 @@ class BoardStore:
             "topic": row["topic"],
             "message": row["message"],
             "replyToClientMessageId": row["reply_to_client_message_id"],
+            "taskId": row.get("task_id"),
             "recordedAtMs": int(row["recorded_at_ms"]),
             "messageDigest": row["message_digest"],
             "truthRole": "coordination-message-not-domain-truth",

@@ -81,6 +81,7 @@ class BoardMessageWire(TypedDict):
     topic: str | None
     message: str
     replyToClientMessageId: str | None
+    taskId: str | None
     recordedAtMs: int
     messageDigest: str
     truthRole: Literal["coordination-message-not-domain-truth"]
