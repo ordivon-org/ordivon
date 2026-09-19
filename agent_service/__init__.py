@@ -49,7 +49,7 @@ from .remote_evidence import (
     RemoteTaskCompletionReconciler,
     TaskExecutionClaimStore,
 )
-from .runtime_mcp import RuntimeMcpAdapter, RuntimeMcpArtifactReader, RuntimeMcpHttpClient
+from .runtime_mcp import RuntimeMcpAdapter, RuntimeMcpArtifactReader
 from .semantics import (
     A2AAgentCardProjector,
     AgentIdentityStore,
@@ -120,7 +120,6 @@ __all__ = [
     "RuntimeJobRef",
     "RuntimeMcpAdapter",
     "RuntimeMcpArtifactReader",
-    "RuntimeMcpHttpClient",
     "SessionItemStore",
     "SessionStore",
     "TaskDependencyStore",

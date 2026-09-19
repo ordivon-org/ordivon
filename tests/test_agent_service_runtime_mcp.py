@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agent_service.runtime_mcp import RuntimeMcpAdapter, RuntimeMcpHttpClient, RuntimeMcpProtocolError
+from agent_service.runtime_mcp import RuntimeMcpAdapter, RuntimeMcpProtocolError
 
 
 class FakeToolCaller:
@@ -89,33 +89,6 @@ class RuntimeMcpAdapterTests(unittest.TestCase):
 
         with self.assertRaises(RuntimeMcpProtocolError):
             adapter.observe("job-1")
-
-    def test_http_client_factory_reads_endpoint_and_token_file_without_embedding_token(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            token_file = root / "runtime.token"
-            token_file.write_text("secret-token\n", encoding="utf-8")
-            env_file = root / "runtime.env"
-            env_file.write_text(
-                "ORDIVON_BIND=127.0.0.1:8897\n"
-                f"ORDIVON_BEARER_TOKEN_FILE={token_file}\n",
-                encoding="utf-8",
-            )
-
-            client = RuntimeMcpHttpClient.from_runtime_env(env_file)
-
-            self.assertEqual(client.endpoint, "http://127.0.0.1:8897/mcp")
-            self.assertEqual(client._token, "secret-token")
-            self.assertNotIn("secret-token", repr(client))
-
-    def test_http_client_rejects_missing_required_runtime_configuration(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            env_file = Path(tmp) / "runtime.env"
-            env_file.write_text("ORDIVON_BIND=127.0.0.1:8897\n", encoding="utf-8")
-
-            with self.assertRaises(ValueError):
-                RuntimeMcpHttpClient.from_runtime_env(env_file)
-
 
 if __name__ == "__main__":
     unittest.main()
