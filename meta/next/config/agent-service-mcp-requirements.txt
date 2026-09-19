@@ -5,3 +5,5 @@ starlette==1.6.0
 anyio==4.15.0
 rfc8785==0.1.4
 sqlite-utils==4.2.1
+opentelemetry-distro[otlp]==0.65b0
+opentelemetry-instrumentation-starlette==0.65b0

@@ -95,6 +95,19 @@ class AgentServiceMcpCanaryR16Tests(unittest.TestCase):
             self.assertIn('"readOnlyCanary": true', proc.stdout)
             self.assertIn('"productionDeployment": "NOT_ADMITTED"', proc.stdout)
 
+    def test_deployment_uses_standard_opentelemetry_zero_code_boundary(self):
+        requirements = Path("config/agent-service-mcp-requirements.txt").read_text(encoding="utf-8")
+        unit = Path("systemd/ordivon-agent-service-canary-mcp.service").read_text(encoding="utf-8")
+        self.assertIn("opentelemetry-distro[otlp]==0.65b0", requirements)
+        self.assertIn("opentelemetry-instrumentation-starlette==0.65b0", requirements)
+        self.assertIn(".venv/bin/opentelemetry-instrument", unit)
+        self.assertIn("Environment=OTEL_SERVICE_NAME=ordivon-agent-service-canary", unit)
+        self.assertIn("Environment=OTEL_TRACES_EXPORTER=none", unit)
+        self.assertIn("Environment=OTEL_METRICS_EXPORTER=none", unit)
+        self.assertIn("Environment=OTEL_LOGS_EXPORTER=none", unit)
+        self.assertIn("EnvironmentFile=-/etc/ordivon/agent-service-otel.env", unit)
+        self.assertNotIn("opentelemetry", Path("agent_service/evidence.py").read_text(encoding="utf-8"))
+
     def test_token_permissions_fail_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "token"

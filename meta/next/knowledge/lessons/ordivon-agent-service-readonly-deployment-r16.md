@@ -44,3 +44,7 @@ Ephemeral real-network smoke on loopback port 18894:
 No production database, systemd installation, Runtime/Host mutation or provider effect was used by this smoke.
 
 Final source verification: graph history 14 files / 92 nodes / zero hard collisions; graph regression 1/1 PASS; MCP deployment-v2 tests 5/5 PASS; repository suite 274 tests PASS with 5 expected MCP-environment skips under system Python. A later live 8894 systemd canary is a separate deployment action and does not imply production write/effect admission.
+
+## Observability boundary
+
+Transport/runtime observability for this canary belongs to OpenTelemetry rather than the Agent Service semantic evidence model. The systemd carrier starts the Python process through OpenTelemetry zero-code instrumentation. Export is fail-closed to **disabled by default** (`OTEL_TRACES_EXPORTER=none`, `OTEL_METRICS_EXPORTER=none`, `OTEL_LOGS_EXPORTER=none`); an operator may enable standard OTLP export through `/etc/ordivon/agent-service-otel.env` without changing application evidence semantics. Semantic verification receipts continue to bind Runtime/provider evidence references and digests only.
