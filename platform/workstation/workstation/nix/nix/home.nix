@@ -98,7 +98,6 @@
     trusted_config_paths = [
       "/root/projects/ordivon-game",
       "/root/projects/ordivon-media",
-      "/root/projects/ordivon-web",
     ]
 
     [settings.task]
