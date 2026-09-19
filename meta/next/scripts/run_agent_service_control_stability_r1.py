@@ -199,7 +199,7 @@ def _agent(
         stable_name=name,
         description=name,
     )
-    instance = service.birth(f"birth:{name}:stability-r1", revision.id)
+    instance = service.instances.create(f"request:{name}:stability-r1", revision.id)
     service.reconciler.reconcile(instance.id)
     return revision, identity, instance
 
@@ -355,7 +355,7 @@ def _scenario_placement_flap() -> dict[str, Any]:
         try:
             definition = service.definitions.create("flap-agent")
             revision = service.revisions.create(definition.id, {"name": "flap-agent"})
-            instance = service.birth("birth:flap:r1", revision.id)
+            instance = service.instances.create("request:flap:r1", revision.id)
             states: list[str] = []
             for _ in range(5):
                 states.append(service.reconciler.reconcile(instance.id).state)
@@ -394,7 +394,7 @@ def _scenario_stale_placement_observation() -> dict[str, Any]:
         try:
             definition = service.definitions.create("stale-agent")
             revision = service.revisions.create(definition.id, {"name": "stale-agent"})
-            instance = service.birth("birth:stale:r1", revision.id)
+            instance = service.instances.create("request:stale:r1", revision.id)
             service.reconciler.reconcile(instance.id)
             after_unknown = service.reconciler.reconcile(instance.id).state
             after_stale = service.reconciler.reconcile(instance.id).state

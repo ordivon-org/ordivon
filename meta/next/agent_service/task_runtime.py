@@ -469,7 +469,6 @@ class AgentServiceR5:
         self.instances = placement.instances
         self.placements = placement.placements
         self.events = placement.events
-        self.birth = placement.birth
         self.reconciler = placement.reconciler
         self.tasks = TaskStore(self._connection, self.events)
         self.assignments = AssignmentStore(self._connection)

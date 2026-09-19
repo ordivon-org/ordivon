@@ -115,7 +115,7 @@ class AgentServiceEffectAuthorityR15Tests(unittest.TestCase):
             stable_name=name,
             description=name,
         )
-        instance = service.birth(f"birth:{name}:r15", revision.id)
+        instance = service.instances.create(f"request:{name}:r15", revision.id)
         service.reconciler.reconcile(instance.id)
         return revision, identity, instance
 

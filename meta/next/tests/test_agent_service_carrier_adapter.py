@@ -109,7 +109,7 @@ class AgentAutomationCarrierAdapterTests(unittest.TestCase):
             [
                 {
                     "campaignId": "campaign:agent-service-r4",
-                    "occurrences": [
+                    "materializations": [
                         {
                             "agentId": "A01",
                             "materializationStanding": "bound",
@@ -127,36 +127,36 @@ class AgentAutomationCarrierAdapterTests(unittest.TestCase):
         self.assertIn("sha256:", observation.evidence_ref or "")
         self.assertEqual(runner.calls[0][1], "census")
 
-    def test_ensure_unrecorded_occurrence_admits_birth(self) -> None:
+    def test_ensure_unrecorded_materialization_reconciles(self) -> None:
         runner = FakeRunner(
             [
                 {
                     "campaignId": "campaign:agent-service-r4",
-                    "occurrences": [
+                    "materializations": [
                         {"agentId": "A01", "materializationStanding": None, "providerResource": None}
                     ],
                 },
-                {"kind": "ordivon.temporal-occurrence-birth-admission", "agentId": "A01"},
+                {"kind": "ordivon.temporal-materialization-reconcile-admission", "agentId": "A01"},
             ]
         )
         adapter = self._adapter(runner)
 
         adapter.ensure("place-1", "ainst-1", "arev_test")
 
-        self.assertEqual([call[1] for call in runner.calls], ["census", "birth"])
+        self.assertEqual([call[1] for call in runner.calls], ["census", "reconcile"])
         self.assertIn("--agent-id", runner.calls[1])
         self.assertIn("A01", runner.calls[1])
 
-    def test_ensure_unknown_occurrence_reconciles_without_birth(self) -> None:
+    def test_ensure_unknown_materialization_reconciles_without_birth(self) -> None:
         runner = FakeRunner(
             [
                 {
                     "campaignId": "campaign:agent-service-r4",
-                    "occurrences": [
+                    "materializations": [
                         {"agentId": "A01", "materializationStanding": "unknown", "providerResource": None}
                     ],
                 },
-                {"kind": "ordivon.temporal-occurrence-reconcile-admission", "agentId": "A01"},
+                {"kind": "ordivon.temporal-materialization-reconcile-admission", "agentId": "A01"},
             ]
         )
         adapter = self._adapter(runner)
@@ -165,12 +165,12 @@ class AgentAutomationCarrierAdapterTests(unittest.TestCase):
 
         self.assertEqual([call[1] for call in runner.calls], ["census", "reconcile"])
 
-    def test_ensure_submit_observed_occurrence_reconciles_without_birth(self) -> None:
+    def test_ensure_submit_observed_materialization_reconciles_without_birth(self) -> None:
         runner = FakeRunner(
             [
                 {
                     "campaignId": "campaign:agent-service-r4",
-                    "occurrences": [
+                    "materializations": [
                         {
                             "agentId": "A01",
                             "materializationStanding": "submit-observed",
@@ -178,7 +178,7 @@ class AgentAutomationCarrierAdapterTests(unittest.TestCase):
                         }
                     ],
                 },
-                {"kind": "ordivon.temporal-occurrence-reconcile-admission", "agentId": "A01"},
+                {"kind": "ordivon.temporal-materialization-reconcile-admission", "agentId": "A01"},
             ]
         )
         adapter = self._adapter(runner)
@@ -187,12 +187,12 @@ class AgentAutomationCarrierAdapterTests(unittest.TestCase):
 
         self.assertEqual([call[1] for call in runner.calls], ["census", "reconcile"])
 
-    def test_ensure_pre_effect_failed_uses_same_birth_identity_for_safe_retry(self) -> None:
+    def test_ensure_pre_effect_failed_reconciles_same_effect_identity(self) -> None:
         runner = FakeRunner(
             [
                 {
                     "campaignId": "campaign:agent-service-r4",
-                    "occurrences": [
+                    "materializations": [
                         {
                             "agentId": "A01",
                             "materializationStanding": "pre-effect-failed",
@@ -200,21 +200,21 @@ class AgentAutomationCarrierAdapterTests(unittest.TestCase):
                         }
                     ],
                 },
-                {"kind": "ordivon.temporal-occurrence-birth-admission", "agentId": "A01"},
+                {"kind": "ordivon.temporal-materialization-reconcile-admission", "agentId": "A01"},
             ]
         )
         adapter = self._adapter(runner)
 
         adapter.ensure("place-1", "ainst-1", "arev_test")
 
-        self.assertEqual([call[1] for call in runner.calls], ["census", "birth"])
+        self.assertEqual([call[1] for call in runner.calls], ["census", "reconcile"])
 
     def test_ensure_prepared_fails_closed_instead_of_guessing_next_effect(self) -> None:
         runner = FakeRunner(
             [
                 {
                     "campaignId": "campaign:agent-service-r4",
-                    "occurrences": [
+                    "materializations": [
                         {
                             "agentId": "A01",
                             "materializationStanding": "prepared",
@@ -242,7 +242,7 @@ class AgentAutomationCarrierAdapterTests(unittest.TestCase):
             [
                 {
                     "campaignId": "campaign:agent-service-r4",
-                    "occurrences": [
+                    "materializations": [
                         {
                             "agentId": "A01",
                             "materializationStanding": "bound",
@@ -263,7 +263,7 @@ class AgentAutomationCarrierAdapterTests(unittest.TestCase):
             [
                 {
                     "campaignId": "campaign:agent-service-r4",
-                    "occurrences": [
+                    "materializations": [
                         {
                             "agentId": "A01",
                             "materializationStanding": "human-required",
@@ -292,7 +292,7 @@ class AgentAutomationCarrierAdapterTests(unittest.TestCase):
                     [
                         {
                             "campaignId": "campaign:agent-service-r4",
-                            "occurrences": [
+                            "materializations": [
                                 {
                                     "agentId": "A01",
                                     "materializationStanding": standing,
@@ -310,7 +310,7 @@ class AgentAutomationCarrierAdapterTests(unittest.TestCase):
             [
                 {
                     "campaignId": "campaign:agent-service-r4",
-                    "occurrences": [
+                    "materializations": [
                         {"agentId": "A01", "materializationStanding": None, "providerResource": None}
                     ],
                 }
@@ -343,7 +343,7 @@ class AgentAutomationCarrierAdapterTests(unittest.TestCase):
                 [
                     {
                         "campaignId": "campaign:agent-service-r4",
-                        "occurrences": [
+                        "materializations": [
                             {
                                 "agentId": "A01",
                                 "materializationStanding": "bound",

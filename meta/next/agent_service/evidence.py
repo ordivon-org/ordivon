@@ -394,7 +394,6 @@ class AgentServiceR6:
         self.instances = r5.instances
         self.placements = r5.placements
         self.events = r5.events
-        self.birth = r5.birth
         self.reconciler = r5.reconciler
         self.tasks = r5.tasks
         self.assignments = r5.assignments

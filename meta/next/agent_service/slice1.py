@@ -41,7 +41,7 @@ class AgentRevision:
 @dataclass(frozen=True)
 class AgentInstance:
     id: str
-    birth_request_id: str
+    client_request_id: str
     revision_id: str
     state: str
     created_at_ns: int
@@ -162,25 +162,82 @@ class AgentRevisionStore(_SqliteNode):
 
 
 class AgentInstanceStore(_SqliteNode):
+    def create(self, client_request_id: str, revision_id: str) -> AgentInstance:
+        if not client_request_id.strip():
+            raise ValueError("client_request_id must not be empty")
+        revision_exists = self._connection.execute(
+            "SELECT 1 FROM agent_revisions WHERE id = ?", (revision_id,)
+        ).fetchone()
+        if revision_exists is None:
+            raise KeyError(revision_id)
+
+        existing = self.get_by_client_request(client_request_id)
+        if existing is not None:
+            if existing.revision_id != revision_id:
+                raise ValueError("client request already bound to a different revision")
+            return existing
+
+        instance = AgentInstance(
+            id=_id("ainst"),
+            client_request_id=client_request_id,
+            revision_id=revision_id,
+            state="PROVISIONING",
+            created_at_ns=_now_ns(),
+        )
+        placement_id = _id("place")
+        placement_now = _now_ns()
+        try:
+            with self._connection:
+                self._connection.execute(
+                    "INSERT INTO agent_instances(id, client_request_id, revision_id, state, created_at_ns) VALUES (?, ?, ?, ?, ?)",
+                    (
+                        instance.id,
+                        instance.client_request_id,
+                        instance.revision_id,
+                        instance.state,
+                        instance.created_at_ns,
+                    ),
+                )
+                self._connection.execute(
+                    "INSERT INTO desired_placements(id, agent_instance_id, desired_state, observed_state, evidence_ref, created_at_ns, updated_at_ns) VALUES (?, ?, 'READY', 'UNKNOWN', NULL, ?, ?)",
+                    (placement_id, instance.id, placement_now, placement_now),
+                )
+                ServiceEventStore(self._connection).append_in_transaction(
+                    "AgentInstance",
+                    instance.id,
+                    "AGENT_INSTANCE_ADMITTED",
+                    {
+                        "clientRequestId": client_request_id,
+                        "revisionId": revision_id,
+                        "placementId": placement_id,
+                    },
+                )
+        except sqlite3.IntegrityError:
+            existing = self.get_by_client_request(client_request_id)
+            if existing is None or existing.revision_id != revision_id:
+                raise
+            return existing
+        return instance
+
     def get(self, instance_id: str) -> AgentInstance:
         row = self._connection.execute(
-            "SELECT id, birth_request_id, revision_id, state, created_at_ns FROM agent_instances WHERE id = ?",
+            "SELECT id, client_request_id, revision_id, state, created_at_ns FROM agent_instances WHERE id = ?",
             (instance_id,),
         ).fetchone()
         if row is None:
             raise KeyError(instance_id)
         return self._from_row(row)
 
-    def get_by_birth_request(self, birth_request_id: str) -> AgentInstance | None:
+    def get_by_client_request(self, client_request_id: str) -> AgentInstance | None:
         row = self._connection.execute(
-            "SELECT id, birth_request_id, revision_id, state, created_at_ns FROM agent_instances WHERE birth_request_id = ?",
-            (birth_request_id,),
+            "SELECT id, client_request_id, revision_id, state, created_at_ns FROM agent_instances WHERE client_request_id = ?",
+            (client_request_id,),
         ).fetchone()
         return None if row is None else self._from_row(row)
 
     def list_all(self) -> list[AgentInstance]:
         rows = self._connection.execute(
-            "SELECT id, birth_request_id, revision_id, state, created_at_ns FROM agent_instances ORDER BY created_at_ns, id"
+            "SELECT id, client_request_id, revision_id, state, created_at_ns FROM agent_instances ORDER BY created_at_ns, id"
         ).fetchall()
         return [self._from_row(row) for row in rows]
 
@@ -200,7 +257,7 @@ class AgentInstanceStore(_SqliteNode):
     def _from_row(row: sqlite3.Row) -> AgentInstance:
         return AgentInstance(
             id=row["id"],
-            birth_request_id=row["birth_request_id"],
+            client_request_id=row["client_request_id"],
             revision_id=row["revision_id"],
             state=row["state"],
             created_at_ns=row["created_at_ns"],
@@ -423,67 +480,6 @@ class ServiceEventStore(_SqliteNode):
         ]
 
 
-def _birth_agent(
-    connection: sqlite3.Connection,
-    revisions: AgentRevisionStore,
-    instances: AgentInstanceStore,
-    placements: DesiredPlacementStore,
-    events: ServiceEventStore,
-    birth_request_id: str,
-    revision_id: str,
-) -> AgentInstance:
-    if not birth_request_id.strip():
-        raise ValueError("birth_request_id must not be empty")
-    revisions.get(revision_id)
-    existing = instances.get_by_birth_request(birth_request_id)
-    if existing is not None:
-        if existing.revision_id != revision_id:
-            raise ValueError("birth request already bound to a different revision")
-        return existing
-
-    instance = AgentInstance(
-        id=_id("ainst"),
-        birth_request_id=birth_request_id,
-        revision_id=revision_id,
-        state="PROVISIONING",
-        created_at_ns=_now_ns(),
-    )
-    placement_id = _id("place")
-    placement_now = _now_ns()
-
-    try:
-        with connection:
-            connection.execute(
-                "INSERT INTO agent_instances(id, birth_request_id, revision_id, state, created_at_ns) VALUES (?, ?, ?, ?, ?)",
-                (
-                    instance.id,
-                    instance.birth_request_id,
-                    instance.revision_id,
-                    instance.state,
-                    instance.created_at_ns,
-                ),
-            )
-            connection.execute(
-                "INSERT INTO desired_placements(id, agent_instance_id, desired_state, observed_state, evidence_ref, created_at_ns, updated_at_ns) VALUES (?, ?, 'READY', 'UNKNOWN', NULL, ?, ?)",
-                (placement_id, instance.id, placement_now, placement_now),
-            )
-            events.append_in_transaction(
-                "AgentInstance",
-                instance.id,
-                "AGENT_BIRTH_REQUESTED",
-                {
-                    "birthRequestId": birth_request_id,
-                    "revisionId": revision_id,
-                    "placementId": placement_id,
-                },
-            )
-    except sqlite3.IntegrityError:
-        existing = instances.get_by_birth_request(birth_request_id)
-        if existing is None or existing.revision_id != revision_id:
-            raise
-        return existing
-    return instance
-
 
 class PlacementReconciler:
     def __init__(
@@ -567,16 +563,6 @@ class AgentServiceSlice1:
             carrier_adapter,
         )
 
-    def birth(self, birth_request_id: str, revision_id: str) -> AgentInstance:
-        return _birth_agent(
-            self._connection,
-            self.revisions,
-            self.instances,
-            self.placements,
-            self.events,
-            birth_request_id,
-            revision_id,
-        )
 
     @classmethod
     def open(
@@ -618,7 +604,7 @@ class AgentServiceSlice1:
 
             CREATE TABLE IF NOT EXISTS agent_instances (
                 id TEXT PRIMARY KEY,
-                birth_request_id TEXT NOT NULL UNIQUE,
+                client_request_id TEXT NOT NULL UNIQUE,
                 revision_id TEXT NOT NULL REFERENCES agent_revisions(id),
                 state TEXT NOT NULL,
                 created_at_ns INTEGER NOT NULL
@@ -646,6 +632,20 @@ class AgentServiceSlice1:
             );
             """
         )
+        columns = {
+            row["name"]
+            for row in connection.execute("PRAGMA table_info(agent_instances)")
+        }
+        if "birth_request_id" in columns and "client_request_id" in columns:
+            raise RuntimeError(
+                "agent_instances contains both legacy and current request identity columns"
+            )
+        if "birth_request_id" in columns:
+            connection.execute(
+                "ALTER TABLE agent_instances RENAME COLUMN birth_request_id TO client_request_id"
+            )
+        elif "client_request_id" not in columns:
+            raise RuntimeError("agent_instances has no request identity column")
         connection.commit()
 
     def close(self) -> None:
