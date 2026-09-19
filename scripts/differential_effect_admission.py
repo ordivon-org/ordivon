@@ -11,7 +11,6 @@ from typing import Any
 
 from ordivon_security_v2.admission import ReplayBinding, canonical_digest
 
-
 CASES = [
     {
         "name": "admitted",

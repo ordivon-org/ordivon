@@ -28,6 +28,10 @@ cat > "$XML" <<EOF
 </domain>
 EOF
 
+libvirt_swtpm_present() {
+  pgrep -af '/usr/bin/swtpm socket' | grep -F -- "$NAME" >/dev/null
+}
+
 virsh -c "$URI" create "$XML" >/dev/null
 [[ "$(virsh -c "$URI" domstate "$NAME" | tr -d '\r')" == "running" ]]
 
@@ -41,7 +45,7 @@ assert entries[0]["options"]["type"] == "emulator"
 print("libvirtTpm=QMP_OBSERVED_TPM2_EMULATOR")
 PY
 
-if ! ps -eo args | grep -F '/usr/bin/swtpm socket' | grep -F "$NAME" >/dev/null; then
+if ! libvirt_swtpm_present; then
   echo "libvirt-managed swtpm process not observed" >&2
   exit 2
 fi
@@ -54,7 +58,7 @@ for _ in $(seq 1 50); do
   domain_present=false
   swtpm_present=false
   virsh -c "$URI" dominfo "$NAME" >/dev/null 2>&1 && domain_present=true
-  ps -eo args | grep -F '/usr/bin/swtpm socket' | grep -F "$NAME" >/dev/null && swtpm_present=true
+  libvirt_swtpm_present && swtpm_present=true
   if [[ "$domain_present" == false && "$swtpm_present" == false ]]; then
     closed=true
     break

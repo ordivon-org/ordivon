@@ -28,7 +28,6 @@ from ordivon_security_v2 import (
     compare_browser_security_pool,
 )
 
-
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE_ROOT = ROOT / "fixtures/browser-security"
 POOL_INDEX = FIXTURE_ROOT / "harness-r2-live-lkg-pool-index.json"

@@ -11,7 +11,6 @@ from ordivon_security_v2 import (
     compare_browser_security_bundles,
 )
 
-
 D_BROWSER = "sha256:" + "a" * 64
 
 

@@ -4,7 +4,6 @@ import hashlib
 import json
 from dataclasses import dataclass
 
-
 DETECTOR_FAMILIES = frozenset({"CF02", "CF03", "CF04", "CF05", "CF06", "CF07", "CF08"})
 REPAIR_ROUTES = {
     "CF02": "network/provider-path",
@@ -43,7 +42,7 @@ class DetectorObservation:
     coverage: str
 
     @classmethod
-    def from_dict(cls, value: dict[str, object]) -> "DetectorObservation":
+    def from_dict(cls, value: dict[str, object]) -> DetectorObservation:
         expected = {"detectorId", "family", "detectorVersion", "observationDigest", "coverage"}
         if not isinstance(value, dict) or set(value) != expected:
             raise ValueError("detector observation must contain exactly the canonical fields")
@@ -79,7 +78,7 @@ class BrowserSecurityWitness:
     protected_challenge_used_as_detector_oracle: bool = False
 
     @classmethod
-    def from_dict(cls, value: dict[str, object]) -> "BrowserSecurityWitness":
+    def from_dict(cls, value: dict[str, object]) -> BrowserSecurityWitness:
         expected = {
             "schemaVersion",
             "witnessId",
@@ -254,7 +253,7 @@ class BrowserSecurityWitnessBundle:
     public_observations: tuple[tuple[str, object], ...]
 
     @classmethod
-    def from_dict(cls, value: dict[str, object]) -> "BrowserSecurityWitnessBundle":
+    def from_dict(cls, value: dict[str, object]) -> BrowserSecurityWitnessBundle:
         expected = {"schemaVersion", "witness", "publicObservations"}
         if not isinstance(value, dict) or set(value) != expected:
             raise ValueError("browser-security witness bundle must contain exactly the canonical fields")

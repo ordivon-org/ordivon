@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 from hashlib import sha256
 from pathlib import Path
-from typing import Iterable
 
 
 @dataclass(frozen=True, slots=True)
@@ -15,7 +15,7 @@ class EvidenceRef:
     byte_length: int
 
     @classmethod
-    def from_path(cls, *, provider: str, format: str, path: Path) -> "EvidenceRef":
+    def from_path(cls, *, provider: str, format: str, path: Path) -> EvidenceRef:
         data = path.read_bytes()
         return cls(
             provider=provider,

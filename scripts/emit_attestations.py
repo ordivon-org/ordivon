@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import argparse
 import json
-from hashlib import sha256
 from pathlib import Path
 
 from ordivon_security_v2.attestations import (
