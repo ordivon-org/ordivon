@@ -201,143 +201,121 @@ class ExecutionQuiescenceProofRecord:
     created_at_ns: int
 
 
-class ExecutionQuiescenceProofStore:
-    """Historical quiescence assessments. Positive proof freezes the source Binding."""
+def _execution_quiescence_proof_from_event(
+    event: ServiceEvent,
+) -> ExecutionQuiescenceProofRecord:
+    if (
+        event.aggregate_type != "ExecutionQuiescenceProof"
+        or event.event_type != "ExecutionQuiescenceProofRecorded"
+    ):
+        raise ValueError("event is not an execution-quiescence proof receipt")
+    payload = event.payload
+    if payload.get("clientQuiescenceRequestId") != event.aggregate_id:
+        raise RuntimeError("quiescence proof request identity mismatch")
+    return ExecutionQuiescenceProofRecord(
+        id=event.id,
+        client_quiescence_request_id=event.aggregate_id,
+        task_id=payload["taskId"],
+        binding_id=payload["bindingId"],
+        quiescent=bool(payload["quiescent"]),
+        method=payload["method"],
+        provider_status=payload["providerStatus"],
+        remote_task_id=payload.get("remoteTaskId"),
+        remote_context_id=payload.get("remoteContextId"),
+        basis_remote_observation_id=payload.get("basisRemoteObservationId"),
+        evidence_ref=payload["evidenceRef"],
+        created_at_ns=event.created_at_ns,
+    )
 
-    def __init__(self, connection: sqlite3.Connection) -> None:
-        self._connection = connection
 
-    def get(self, proof_id: str) -> ExecutionQuiescenceProofRecord:
-        row = self._connection.execute(
-            "SELECT * FROM execution_quiescence_proofs WHERE id = ?", (proof_id,)
-        ).fetchone()
-        if row is None:
-            raise KeyError(proof_id)
-        return self._from_row(row)
+def _execution_quiescence_proof_get(
+    events: ServiceEventStore,
+    proof_id: str,
+) -> ExecutionQuiescenceProofRecord:
+    return _execution_quiescence_proof_from_event(events.get(proof_id))
 
-    def get_by_client_request(
-        self, client_quiescence_request_id: str, required: bool = True
-    ) -> ExecutionQuiescenceProofRecord | None:
-        row = self._connection.execute(
-            "SELECT * FROM execution_quiescence_proofs WHERE client_quiescence_request_id = ?",
-            (client_quiescence_request_id,),
-        ).fetchone()
-        if row is None:
-            if required:
-                raise KeyError(client_quiescence_request_id)
-            return None
-        return self._from_row(row)
 
-    def latest_for_binding(
-        self, binding_id: str, *, quiescent_only: bool = False
-    ) -> ExecutionQuiescenceProofRecord | None:
-        predicate = "AND quiescent = 1" if quiescent_only else ""
-        row = self._connection.execute(
-            f"""
-            SELECT * FROM execution_quiescence_proofs
-            WHERE binding_id = ? {predicate}
-            ORDER BY created_at_ns DESC, id DESC LIMIT 1
-            """,
-            (binding_id,),
-        ).fetchone()
-        return None if row is None else self._from_row(row)
+def _execution_quiescence_proof_get_by_client_request(
+    events: ServiceEventStore,
+    client_quiescence_request_id: str,
+    required: bool = True,
+) -> ExecutionQuiescenceProofRecord | None:
+    history = events.list_for(
+        "ExecutionQuiescenceProof", client_quiescence_request_id
+    )
+    proofs = [
+        item for item in history
+        if item.event_type == "ExecutionQuiescenceProofRecorded"
+    ]
+    if not proofs:
+        if required:
+            raise KeyError(client_quiescence_request_id)
+        return None
+    if len(proofs) != 1:
+        raise RuntimeError("quiescence proof stream contains multiple records")
+    return _execution_quiescence_proof_from_event(proofs[0])
 
-    def create_in_transaction(
-        self,
-        *,
-        client_quiescence_request_id: str,
-        task_id: str,
-        binding_id: str,
-        quiescent: bool,
-        method: str,
-        provider_status: str,
-        remote_task_id: str | None,
-        remote_context_id: str | None,
-        basis_remote_observation_id: str | None,
-        evidence_ref: str,
-    ) -> ExecutionQuiescenceProofRecord:
-        existing = self.get_by_client_request(client_quiescence_request_id, required=False)
-        candidate = (
-            task_id,
-            binding_id,
-            bool(quiescent),
-            method,
-            provider_status,
-            remote_task_id,
-            remote_context_id,
-            basis_remote_observation_id,
-            evidence_ref,
-        )
-        if existing is not None:
-            historical = (
-                existing.task_id,
-                existing.binding_id,
-                existing.quiescent,
-                existing.method,
-                existing.provider_status,
-                existing.remote_task_id,
-                existing.remote_context_id,
-                existing.basis_remote_observation_id,
-                existing.evidence_ref,
-            )
-            if candidate != historical:
-                raise RuntimeError("quiescence request already exists with different evidence")
-            return existing
-        value = ExecutionQuiescenceProofRecord(
-            id=_id("quiescence"),
-            client_quiescence_request_id=client_quiescence_request_id,
-            task_id=task_id,
-            binding_id=binding_id,
-            quiescent=bool(quiescent),
-            method=method,
-            provider_status=provider_status,
-            remote_task_id=remote_task_id,
-            remote_context_id=remote_context_id,
-            basis_remote_observation_id=basis_remote_observation_id,
-            evidence_ref=evidence_ref,
-            created_at_ns=_now_ns(),
-        )
-        self._connection.execute(
-            """
-            INSERT INTO execution_quiescence_proofs(
-                id, client_quiescence_request_id, task_id, binding_id, quiescent,
-                method, provider_status, remote_task_id, remote_context_id,
-                basis_remote_observation_id, evidence_ref, created_at_ns
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                value.id,
-                value.client_quiescence_request_id,
-                value.task_id,
-                value.binding_id,
-                1 if value.quiescent else 0,
-                value.method,
-                value.provider_status,
-                value.remote_task_id,
-                value.remote_context_id,
-                value.basis_remote_observation_id,
-                value.evidence_ref,
-                value.created_at_ns,
-            ),
-        )
-        return value
 
-    @staticmethod
-    def _from_row(row: sqlite3.Row) -> ExecutionQuiescenceProofRecord:
-        return ExecutionQuiescenceProofRecord(
-            id=row["id"],
-            client_quiescence_request_id=row["client_quiescence_request_id"],
-            task_id=row["task_id"],
-            binding_id=row["binding_id"],
-            quiescent=bool(row["quiescent"]),
-            method=row["method"],
-            provider_status=row["provider_status"],
-            remote_task_id=row["remote_task_id"],
-            remote_context_id=row["remote_context_id"],
-            basis_remote_observation_id=row["basis_remote_observation_id"],
-            evidence_ref=row["evidence_ref"],
-            created_at_ns=row["created_at_ns"],
-        )
+def _execution_quiescence_proof_latest_for_binding(
+    events: ServiceEventStore,
+    task_id: str,
+    binding_id: str,
+    *,
+    quiescent_only: bool = False,
+) -> ExecutionQuiescenceProofRecord | None:
+    latest: ExecutionQuiescenceProofRecord | None = None
+    for task_event in events.list_for("Task", task_id):
+        if task_event.event_type not in {
+            "REMOTE_EXECUTION_QUIESCENCE_PROVED",
+            "REMOTE_EXECUTION_QUIESCENCE_NOT_PROVED",
+        }:
+            continue
+        proof_id = task_event.payload.get("quiescenceProofId")
+        if not isinstance(proof_id, str) or not proof_id:
+            raise RuntimeError("quiescence Task event lacks proof identity")
+        proof = _execution_quiescence_proof_get(events, proof_id)
+        if proof.task_id != task_id:
+            raise RuntimeError("quiescence proof Task identity mismatch")
+        if proof.binding_id != binding_id:
+            continue
+        if quiescent_only and not proof.quiescent:
+            continue
+        latest = proof
+    return latest
+
+
+def _execution_quiescence_proof_create_in_transaction(
+    events: ServiceEventStore,
+    *,
+    client_quiescence_request_id: str,
+    task_id: str,
+    binding_id: str,
+    quiescent: bool,
+    method: str,
+    provider_status: str,
+    remote_task_id: str | None,
+    remote_context_id: str | None,
+    basis_remote_observation_id: str | None,
+    evidence_ref: str,
+) -> ExecutionQuiescenceProofRecord:
+    event = events.append_once_in_transaction(
+        "ExecutionQuiescenceProof",
+        client_quiescence_request_id,
+        "ExecutionQuiescenceProofRecorded",
+        {
+            "clientQuiescenceRequestId": client_quiescence_request_id,
+            "taskId": task_id,
+            "bindingId": binding_id,
+            "quiescent": bool(quiescent),
+            "method": method,
+            "providerStatus": provider_status,
+            "remoteTaskId": remote_task_id,
+            "remoteContextId": remote_context_id,
+            "basisRemoteObservationId": basis_remote_observation_id,
+            "evidenceRef": evidence_ref,
+        },
+    )
+    return _execution_quiescence_proof_from_event(event)
 
 
 class ExecutionQuiescenceCoordinator:
@@ -354,7 +332,6 @@ class ExecutionQuiescenceCoordinator:
         receipts: ServiceEventStore,
         observations: RemoteDeliveryObservationStore,
         requests: ExecutionQuiescenceRequestStore,
-        proofs: ExecutionQuiescenceProofStore,
         adapters: dict[str, ExecutionQuiescenceAdapter],
     ) -> None:
         self._connection = connection
@@ -366,7 +343,6 @@ class ExecutionQuiescenceCoordinator:
         self._receipts = receipts
         self._observations = observations
         self._requests = requests
-        self._proofs = proofs
         self._adapters = dict(adapters)
 
     def prove(
@@ -375,7 +351,7 @@ class ExecutionQuiescenceCoordinator:
         if not isinstance(client_quiescence_request_id, str) or not client_quiescence_request_id.strip():
             raise ValueError("client_quiescence_request_id must be non-empty")
         request_id = client_quiescence_request_id.strip()
-        existing = self._proofs.get_by_client_request(request_id, required=False)
+        existing = _execution_quiescence_proof_get_by_client_request(self._events, request_id, required=False)
         if existing is not None:
             if existing.binding_id != binding_id:
                 raise ValueError("quiescence request replay targets a different Binding")
@@ -416,7 +392,7 @@ class ExecutionQuiescenceCoordinator:
                     {"quiescenceRequestId": request.id, "bindingId": binding.id},
                 )
         elif request.state != "REQUESTED":
-            proof = self._proofs.get_by_client_request(request_id, required=False)
+            proof = _execution_quiescence_proof_get_by_client_request(self._events, request_id, required=False)
             if proof is None:
                 raise RuntimeError("terminal quiescence request has no proof receipt")
             return proof
@@ -445,7 +421,8 @@ class ExecutionQuiescenceCoordinator:
 
         self._validate_observation(observation, receipt=receipt, latest=latest)
         with self._connection:
-            proof = self._proofs.create_in_transaction(
+            proof = _execution_quiescence_proof_create_in_transaction(
+                self._events,
                 client_quiescence_request_id=request_id,
                 task_id=task.id,
                 binding_id=binding.id,
@@ -656,7 +633,6 @@ class ReplaySafetyCoordinator:
         bindings: TransportBindingStore,
         receipts: ServiceEventStore,
         observations: RemoteDeliveryObservationStore,
-        quiescence_proofs: ExecutionQuiescenceProofStore,
         adapter: ReplaySafetyAdapter | None,
     ) -> None:
         self._connection = connection
@@ -667,7 +643,6 @@ class ReplaySafetyCoordinator:
         self._bindings = bindings
         self._receipts = receipts
         self._observations = observations
-        self._quiescence_proofs = quiescence_proofs
         self._adapter = adapter
 
     def evaluate(
@@ -707,7 +682,7 @@ class ReplaySafetyCoordinator:
         claim = self._claims.get(task.id)
         if (claim.mode, claim.owner_id) != ("REMOTE_BINDING", source.id):
             raise RuntimeError("replay safety source is not the current remote execution owner")
-        proof = self._quiescence_proofs.get(quiescence_proof_id)
+        proof = _execution_quiescence_proof_get(self._events, quiescence_proof_id)
         if proof.task_id != task.id or proof.binding_id != source.id:
             raise ValueError("quiescence proof does not belong to source Binding")
         if not proof.quiescent:
@@ -932,7 +907,6 @@ class ExecutionClaimTransferCoordinator:
         receipts: ServiceEventStore,
         observations: RemoteDeliveryObservationStore,
         quiescence_requests: ExecutionQuiescenceRequestStore,
-        quiescence_proofs: ExecutionQuiescenceProofStore,
     ) -> None:
         self._connection = connection
         self._tasks = tasks
@@ -943,7 +917,6 @@ class ExecutionClaimTransferCoordinator:
         self._receipts = receipts
         self._observations = observations
         self._quiescence_requests = quiescence_requests
-        self._quiescence_proofs = quiescence_proofs
 
     def preflight(self, *, from_binding_id: str, to_binding_id: str) -> tuple[Any, TransportBinding, TransportBinding]:
         if from_binding_id == to_binding_id:
@@ -965,7 +938,7 @@ class ExecutionClaimTransferCoordinator:
             raise RuntimeError("claim transfer target already has remote observation history")
         if self._quiescence_requests.latest_for_binding(target.id) is not None:
             raise RuntimeError("claim transfer target has quiescence-attempt history")
-        if self._quiescence_proofs.latest_for_binding(target.id, quiescent_only=True) is not None:
+        if _execution_quiescence_proof_latest_for_binding(self._events, task.id, target.id, quiescent_only=True) is not None:
             raise RuntimeError("claim transfer target was previously quiesced/frozen")
         if _execution_claim_transfer_has_binding_history(self._events, task.id, target.id):
             raise RuntimeError("claim transfer target is not pristine")
@@ -1015,7 +988,7 @@ class ExecutionClaimTransferCoordinator:
         claim = self._claims.get(task.id)
         if (claim.mode, claim.owner_id) != ("REMOTE_BINDING", source.id):
             raise RuntimeError("claim transfer source is not the current remote execution owner")
-        proof = self._quiescence_proofs.get(quiescence_proof_id)
+        proof = _execution_quiescence_proof_get(self._events, quiescence_proof_id)
         if proof.task_id != task.id or proof.binding_id != source.id:
             raise ValueError("quiescence proof does not belong to the current source Binding")
         if not proof.quiescent:
@@ -1036,7 +1009,7 @@ class ExecutionClaimTransferCoordinator:
             raise RuntimeError("claim transfer target already has a delivery receipt")
         if self._observations.list_for_binding(target.id):
             raise RuntimeError("claim transfer target already has remote observation history")
-        if self._quiescence_proofs.latest_for_binding(target.id, quiescent_only=True) is not None:
+        if _execution_quiescence_proof_latest_for_binding(self._events, task.id, target.id, quiescent_only=True) is not None:
             raise RuntimeError("claim transfer target was previously quiesced/frozen")
         if _execution_claim_transfer_has_binding_history(self._events, task.id, target.id):
             raise RuntimeError("claim transfer target is not pristine")
@@ -1108,13 +1081,11 @@ class FailoverCoordinator:
     def __init__(
         self,
         quiescence: ExecutionQuiescenceCoordinator,
-        quiescence_records: ExecutionQuiescenceProofStore,
         replay_safety: ReplaySafetyCoordinator,
         claim_transfers: ExecutionClaimTransferCoordinator,
         events: ServiceEventStore,
     ) -> None:
         self._quiescence = quiescence
-        self._quiescence_records = quiescence_records
         self._replay_safety = replay_safety
         self._claim_transfers = claim_transfers
         self._events = events
@@ -1139,7 +1110,7 @@ class FailoverCoordinator:
         replay_id = client_replay_safety_request_id.strip()
         existing = _execution_claim_transfer_get_by_client_request(self._events, failover_id, required=False)
         if existing is not None:
-            proof = self._quiescence_records.get(existing.quiescence_proof_id)
+            proof = _execution_quiescence_proof_get(self._events, existing.quiescence_proof_id)
             decision = _replay_safety_decision_get(self._events, existing.replay_safety_decision_id)
             if (
                 existing.from_binding_id != from_binding_id
@@ -1207,7 +1178,6 @@ class AgentServiceR12:
         )
         self.goal_planner = GoalAssignmentPlanner(self.task_readiness, self.planner)
         self.quiescence_requests = ExecutionQuiescenceRequestStore(self._connection)
-        self.quiescence_proof_records = ExecutionQuiescenceProofStore(self._connection)
         self.quiescence = ExecutionQuiescenceCoordinator(
             self._connection,
             self.tasks,
@@ -1218,7 +1188,6 @@ class AgentServiceR12:
             self.events,
             self.remote_observations,
             self.quiescence_requests,
-            self.quiescence_proof_records,
             execution_quiescence_adapters,
         )
         self.replay_safety = ReplaySafetyCoordinator(
@@ -1230,7 +1199,6 @@ class AgentServiceR12:
             self.transport_bindings,
             self.events,
             self.remote_observations,
-            self.quiescence_proof_records,
             replay_safety_adapter,
         )
         self.claim_transfers = ExecutionClaimTransferCoordinator(
@@ -1243,7 +1211,6 @@ class AgentServiceR12:
             self.events,
             self.remote_observations,
             self.quiescence_requests,
-            self.quiescence_proof_records,
         )
         self.delivery = TransferAwareDeliveryCoordinator(
             self._connection,
@@ -1260,7 +1227,6 @@ class AgentServiceR12:
         )
         self.failover = FailoverCoordinator(
             self.quiescence,
-            self.quiescence_proof_records,
             self.replay_safety,
             self.claim_transfers,
             self.events,
@@ -1324,6 +1290,15 @@ class AgentServiceR12:
                 "legacy replay_safety_decisions schema is unsupported; "
                 "perform explicit destructive migration before opening this revision"
             )
+        legacy_execution_quiescence_proofs = connection.execute(
+            "SELECT 1 FROM sqlite_master "
+            "WHERE type = 'table' AND name = 'execution_quiescence_proofs'"
+        ).fetchone()
+        if legacy_execution_quiescence_proofs is not None:
+            raise RuntimeError(
+                "legacy execution_quiescence_proofs schema is unsupported; "
+                "perform explicit destructive migration before opening this revision"
+            )
         connection.executescript(
             """
             CREATE TABLE IF NOT EXISTS execution_quiescence_requests (
@@ -1334,21 +1309,6 @@ class AgentServiceR12:
                 state TEXT NOT NULL CHECK(state IN ('REQUESTED', 'PROVED', 'NOT_PROVED')),
                 created_at_ns INTEGER NOT NULL,
                 updated_at_ns INTEGER NOT NULL
-            );
-
-            CREATE TABLE IF NOT EXISTS execution_quiescence_proofs (
-                id TEXT PRIMARY KEY,
-                client_quiescence_request_id TEXT NOT NULL UNIQUE,
-                task_id TEXT NOT NULL REFERENCES service_tasks(id),
-                binding_id TEXT NOT NULL REFERENCES transport_bindings(id),
-                quiescent INTEGER NOT NULL CHECK(quiescent IN (0, 1)),
-                method TEXT NOT NULL,
-                provider_status TEXT NOT NULL,
-                remote_task_id TEXT,
-                remote_context_id TEXT,
-                basis_remote_observation_id TEXT REFERENCES remote_delivery_observations(id),
-                evidence_ref TEXT NOT NULL,
-                created_at_ns INTEGER NOT NULL
             );
 
             """

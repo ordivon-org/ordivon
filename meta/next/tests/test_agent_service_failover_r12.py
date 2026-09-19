@@ -13,6 +13,7 @@ from agent_service.failover import (
     ReplaySafetyAdapter,
     ReplaySafetyObservation,
     _replay_safety_decision_get_by_client_request,
+    _execution_quiescence_proof_get_by_client_request,
 )
 from agent_service.slice1 import CarrierProviderAdapter, ProviderObservation
 from agent_service.task_runtime import RuntimeAdapter, RuntimeJobObservation, RuntimeJobRef
@@ -474,7 +475,7 @@ class AgentServiceFailoverR12Tests(unittest.TestCase):
                     client_quiescence_request_id="r12:q:mismatch", binding_id=primary.id
                 )
             self.assertIsNone(
-                service.quiescence_proof_records.get_by_client_request("r12:q:mismatch", required=False)
+                _execution_quiescence_proof_get_by_client_request(service.events, "r12:q:mismatch", required=False)
             )
 
     def test_quiescent_but_partial_effects_blocks_transfer(self) -> None:
