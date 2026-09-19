@@ -7,11 +7,11 @@
         "portable dataset materialization"
       ],
       "mustNotEstablish": [
+        "deployable-capital status",
+        "economic inference",
+        "external-write policy",
         "observation cut",
-        "scientific truth",
-        "economic truth",
-        "capital truth",
-        "effect authority"
+        "source validity"
       ],
       "role": "columnar representation and durable portable evidence files"
     },
@@ -21,9 +21,9 @@
         "query/replay result over supplied bytes"
       ],
       "mustNotEstablish": [
-        "source authenticity",
+        "external financial write admission",
         "proof currentness",
-        "external financial write admission"
+        "source authenticity"
       ],
       "role": "local deterministic verifier and replay query engine"
     },
@@ -35,9 +35,9 @@
       ],
       "mustNotEstablish": [
         "cross-venue packet arrival order",
+        "external-write policy",
         "observer reception order",
-        "same-cut proof",
-        "effect authority"
+        "same-cut proof"
       ],
       "role": "durable event transport after witness capture"
     },
@@ -48,8 +48,8 @@
       ],
       "mustNotEstablish": [
         "authentic observation",
+        "deployable-capital status",
         "economic edge",
-        "capital truth",
         "settlement"
       ],
       "role": "hot time-series storage and query"
@@ -60,10 +60,10 @@
         "engine-local order/fill/position state"
       ],
       "mustNotEstablish": [
-        "real settlement",
-        "legal ownership",
         "deployable capital",
-        "external financial write admission"
+        "external financial write admission",
+        "legal ownership",
+        "real settlement"
       ],
       "role": "event loop, OMS, simulation, execution adapter"
     },
@@ -75,10 +75,9 @@
         "generic policy allow/deny"
       ],
       "mustNotEstablish": [
-        "capital truth",
+        "deployable-capital status",
         "effect success",
-        "EffectAuthority",
-        "ExternalFinancialWriteAdmission"
+        "external-write policy"
       ],
       "role": "accounting mechanics, durable orchestration, generic policy"
     }

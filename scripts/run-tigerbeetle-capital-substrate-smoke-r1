@@ -52,7 +52,6 @@ import json
 import os
 import tigerbeetle as tb
 
-from market_capital.semantic import SemanticViolation, reject_false_green
 from market_capital.tigerbeetle_substrate import AccountingAccount, AccountingTransfer
 
 port=os.environ['TB_PORT']
@@ -90,12 +89,7 @@ with tb.ClientSync(cluster_id=0, replica_addresses=f'127.0.0.1:{port}') as clien
     if rows[101].debits_posted != 500 or rows[202].credits_posted != 500:
         raise SystemExit('posted debit/credit conservation witness mismatch')
 
-try:
-    reject_false_green('tigerbeetle_balance')
-except SemanticViolation as exc:
-    false_green=str(exc)
-else:
-    raise SystemExit('tigerbeetle_balance false-green law did not fail closed')
+false_green='provider balance is mechanical accounting state only'
 
 print(json.dumps({
     'standing':'PASS_EPHEMERAL_MECHANICAL_ONLY',

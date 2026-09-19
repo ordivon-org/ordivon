@@ -7,7 +7,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 contract=json.loads((ROOT/'contracts/nonlive-effect-admission-v1.json').read_text())
 authority=json.loads((ROOT/'config/nonlive_effect_authority.json').read_text())
-real=json.loads((ROOT/'contracts/external-financial-write-admission-v1.json').read_text())
+real=json.loads((ROOT/'contracts/external-write-policy-input-v1.json').read_text())
 
 assert contract['kind']=='ordivon.market-capital.nonlive-effect-admission'
 assert contract['state']=='ADMITTED'
@@ -19,7 +19,7 @@ assert contract['externalFinancialWriteAllowed'] is False
 assert contract['requiresReconciliation'] is True
 assert contract['requiresCapitalResolution'] is True
 assert authority['executionMode']=='BOUNDED_SIMULATED_EXCHANGE'
-assert authority['externalFinancialWriteAdmission']=='NOT_ADMITTED'
+assert authority['externalWritePolicyStanding']=='NOT_ADMITTED'
 assert real['state']=='NOT_ADMITTED'
 assert real.get('providerWriteCapabilityBound',False) is False
 assert real.get('externalFinancialWriteAllowed',False) is False
@@ -29,7 +29,7 @@ print(json.dumps({
     'nonLiveEffectAdmission':contract['state'],
     'nonLiveProviderWriteCapabilityBound':contract['providerWriteCapabilityBound'],
     'allowedEffectClass':contract['allowedEffectClass'],
-    'externalFinancialWriteAdmission':real['state'],
+    'externalWritePolicyStanding':real['state'],
     'externalFinancialWriteAllowed':False,
     'realMoney':False,
     'liveEndpoint':False,

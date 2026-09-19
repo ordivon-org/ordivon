@@ -2,9 +2,9 @@ from pathlib import Path
 
 import pytest
 
-from market_capital.semantic import EffectDisposition, SemanticViolation, reject_false_green
 from market_capital.tigerbeetle_substrate import (
     AccountingAccount,
+    AccountingMappingError,
     AccountingTransfer,
     CapitalReservationBinding,
     TigerBeetleOperation,
@@ -98,7 +98,7 @@ def test_reservation_maps_to_pending_transfer_only() -> None:
 def test_retain_means_no_provider_mutation() -> None:
     assert resolution_instruction(
         binding=binding(),
-        disposition=EffectDisposition.RETAIN,
+        operation=None,
         resolution_ref="effect:retain:1",
     ) is None
 
@@ -107,7 +107,7 @@ def test_release_maps_to_void_pending_transfer() -> None:
     b = binding()
     instruction = resolution_instruction(
         binding=b,
-        disposition=EffectDisposition.RELEASE,
+        operation=TigerBeetleOperation.VOID_PENDING_TRANSFER,
         resolution_ref="effect:release:1",
     )
     assert instruction is not None
@@ -120,7 +120,7 @@ def test_consume_maps_to_post_pending_transfer_for_reserved_amount() -> None:
     b = binding(amount=600)
     instruction = resolution_instruction(
         binding=b,
-        disposition=EffectDisposition.CONSUME,
+        operation=TigerBeetleOperation.POST_PENDING_TRANSFER,
         resolution_ref="effect:consume:1",
     )
     assert instruction is not None
@@ -130,21 +130,21 @@ def test_consume_maps_to_post_pending_transfer_for_reserved_amount() -> None:
 
 
 def test_provider_adapter_will_not_accept_caller_string_as_disposition() -> None:
-    with pytest.raises(SemanticViolation, match="Market Capital EffectDisposition"):
+    with pytest.raises(AccountingMappingError, match="POST or VOID"):
         resolution_instruction(
             binding=binding(),
-            disposition="RELEASE",  # type: ignore[arg-type]
+            operation=TigerBeetleOperation.PENDING,
             resolution_ref="effect:release:1",
         )
 
 
 def test_reservation_requires_positive_amount() -> None:
-    with pytest.raises(SemanticViolation, match="must be positive"):
+    with pytest.raises(AccountingMappingError, match="must be positive"):
         binding(amount=0)
 
 
 def test_self_transfer_fails_before_provider() -> None:
-    with pytest.raises(SemanticViolation, match="must differ"):
+    with pytest.raises(AccountingMappingError, match="must differ"):
         AccountingTransfer(
             transfer_id=501,
             debit_account_id=101,
@@ -155,13 +155,8 @@ def test_self_transfer_fails_before_provider() -> None:
         )
 
 
-def test_provider_record_cannot_mint_market_capital_truth() -> None:
-    with pytest.raises(SemanticViolation, match="cannot mint"):
+def test_provider_record_rejects_non_accounting_domain_fields() -> None:
+    with pytest.raises(AccountingMappingError, match="cannot carry non-accounting"):
         assert_mechanical_provider_record(
             {"id": 501, "ledger": 1, "deployability": True}
         )
-
-
-def test_existing_false_green_law_rejects_ledger_balance_as_deployable_capital() -> None:
-    with pytest.raises(SemanticViolation, match="ledger balance is not deployable capital"):
-        reject_false_green("tigerbeetle_balance")

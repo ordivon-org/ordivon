@@ -67,7 +67,7 @@ def main() -> int:
         raise RuntimeError('OKX live provider binding did not pass')
     if not lp['providerTradeCapabilityCurrent'] or lp['providerWithdrawPermissionCurrent']:
         raise RuntimeError('OKX live provider permission contract did not pass')
-    if r['externalWriteAdmissionState']!='NOT_ADMITTED':
+    if r['externalWritePolicyStanding']!='NOT_ADMITTED':
         raise RuntimeError('real financial write boundary unexpectedly admitted')
 
     standing='PASS_FULL_EFFECT_PATH_OKX_LIVE_PROVIDER_BOUND_NO_EXTERNAL_EFFECT_ADMISSION'
@@ -88,7 +88,7 @@ def main() -> int:
             'standing':c['standing'],
             'restartCount':c['restartCount'],
             'exactConsumeReplayStatus':c['exactConsumeReplayStatus'],
-            'scenarioDispositions':{k:v['effectDisposition'] for k,v in c['scenarios'].items()},
+            'scenarioResolutions':{k:v['reservationResolution'] for k,v in c['scenarios'].items()},
             'scenarioProviderReconciliation':{k:v['providerReconciliation'] for k,v in c['scenarios'].items()},
         },
         'okxLiveProvider':{
@@ -111,7 +111,7 @@ def main() -> int:
             'role':'OPTIONAL_NONLIVE_VENUE_QUALIFICATION_NOT_REQUIRED_FOR_CURRENT_OKX_LIVE_PROVIDER_BINDING',
         },
         'realFinancialEffectBoundary':{
-            'externalFinancialWriteAdmission':r['externalWriteAdmissionState'],
+            'externalWritePolicyStanding':r['externalWritePolicyStanding'],
             'providerWriteCapabilityBoundToExternalEffect':r['providerWriteCapabilityBound'],
             'effectVerifier':r['externalWriteVerifier'],
             'externalFinancialWritesAllowed':r['externalFinancialWritesAllowed'],

@@ -3,14 +3,12 @@ from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
-from .semantic import classify_effect_disposition
-
 
 class ReconciliationError(ValueError):
     pass
 
 
-# FIX 4.4 vocabulary only. Venue facts remain authoritative.
+# FIX lifecycle vocabulary only. Venue facts remain authoritative; FIX 4.4 remains a legacy wire profile.
 _BINANCE_FIX = {
     'NEW': ('0', '0'),               # ExecType=New, OrdStatus=New
     'PARTIALLY_FILLED': ('F', '1'),  # ExecType=Trade, OrdStatus=PartiallyFilled
@@ -29,6 +27,24 @@ _OKX_FIX = {
 }
 
 _TERMINAL_ZERO = {('4', '4'), ('8', '8'), ('C', 'C')}
+
+
+_RESOLUTION_BY_STANDING = {
+    "UNKNOWN": "NO_MUTATION",
+    "AMBIGUOUS": "NO_MUTATION",
+    "PARTIAL_OPEN": "NO_MUTATION",
+    "CONTRADICTORY": "NO_MUTATION",
+    "PROVEN_NO_EFFECT": "VOID_PENDING_TRANSFER",
+    "RECONCILED_ZERO_FILL_TERMINAL": "VOID_PENDING_TRANSFER",
+    "POSITIVE_EXECUTION": "POST_PENDING_TRANSFER",
+}
+
+
+def reservation_resolution_for_standing(standing: str) -> str:
+    try:
+        return _RESOLUTION_BY_STANDING[standing]
+    except KeyError as exc:
+        raise ReconciliationError(f"unsupported reconciliation standing: {standing}") from exc
 
 
 def _dec(value: Any) -> Decimal:
@@ -79,8 +95,7 @@ def reconcile_fix_intent(
         raise ReconciliationError('reality snapshot is not read-only evidence')
     if reality.get('permissionStanding') != 'READ_ONLY_VERIFIED':
         standing='UNKNOWN'
-        disposition=classify_effect_disposition(standing).value
-        return _result(intent, venue, standing, disposition, None, [], 'private read permission not verified')
+        return _result(intent, venue, standing, None, [], 'private read permission not verified')
 
     clid=str(intent.get('clOrdId') or '')
     if not clid:
@@ -92,7 +107,7 @@ def reconcile_fix_intent(
         order=orders[-1] if orders else None
         exec_type,ord_status=_status_to_fix(venue,(order or {}).get('status'))
         lifecycle=_lifecycle(order,exec_type or 'F',ord_status or '2') if order else {'execType':'F','ordStatus':'2'}
-        return _result(intent,venue,'POSITIVE_EXECUTION','CONSUME',lifecycle,fills,'authoritative venue fill observed')
+        return _result(intent,venue,'POSITIVE_EXECUTION',lifecycle,fills,'authoritative venue fill observed')
 
     if orders:
         order=orders[-1]
@@ -100,24 +115,24 @@ def reconcile_fix_intent(
         exec_type,ord_status=_status_to_fix(venue,order.get('status'))
         lifecycle=_lifecycle(order,exec_type,ord_status)
         if executed > 0 or ord_status in {'1','2'}:
-            return _result(intent,venue,'POSITIVE_EXECUTION','CONSUME',lifecycle,[], 'authoritative order reports positive executed quantity')
+            return _result(intent,venue,'POSITIVE_EXECUTION',lifecycle,[], 'authoritative order reports positive executed quantity')
         coverage=reality.get('coverage') or {}
         fills_complete=coverage.get('fillsComplete') is True
         if (exec_type,ord_status) in _TERMINAL_ZERO and fills_complete:
             standing='RECONCILED_ZERO_FILL_TERMINAL'
-            return _result(intent,venue,standing,'RELEASE',lifecycle,[], 'terminal zero-fill order with complete fill query')
-        return _result(intent,venue,'PARTIAL_OPEN','RETAIN',lifecycle,[], 'order exists but effect is not terminal zero-fill or positive execution')
+            return _result(intent,venue,standing,lifecycle,[], 'terminal zero-fill order with complete fill query')
+        return _result(intent,venue,'PARTIAL_OPEN',lifecycle,[], 'order exists but effect is not terminal zero-fill or positive execution')
 
     if exact_lookup is not None:
         if exact_lookup.get('venue') != venue or exact_lookup.get('clientOrderId') != clid:
             raise ReconciliationError('exact lookup identity mismatch')
         if exact_lookup.get('authoritative') is not True or exact_lookup.get('querySucceeded') is not True:
-            return _result(intent,venue,'UNKNOWN','RETAIN',None,[], 'exact lookup not authoritative/current')
+            return _result(intent,venue,'UNKNOWN',None,[], 'exact lookup not authoritative/current')
         if exact_lookup.get('orderFound') is False and exact_lookup.get('fillFound') is False:
-            return _result(intent,venue,'PROVEN_NO_EFFECT','RELEASE',None,[], 'exact authoritative order/fill lookup proved no effect')
-        return _result(intent,venue,'AMBIGUOUS','RETAIN',None,[], 'exact lookup did not prove no effect')
+            return _result(intent,venue,'PROVEN_NO_EFFECT',None,[], 'exact authoritative order/fill lookup proved no effect')
+        return _result(intent,venue,'AMBIGUOUS',None,[], 'exact lookup did not prove no effect')
 
-    return _result(intent,venue,'UNKNOWN','RETAIN',None,[], 'absence from broad snapshot is not proof of no effect')
+    return _result(intent,venue,'UNKNOWN',None,[], 'absence from broad snapshot is not proof of no effect')
 
 
 def _lifecycle(order: dict[str,Any] | None, exec_type: str | None, ord_status: str | None) -> dict[str,Any]:
@@ -136,11 +151,8 @@ def _lifecycle(order: dict[str,Any] | None, exec_type: str | None, ord_status: s
     }
 
 
-def _result(intent: dict[str,Any], venue: str, standing: str, disposition: str, lifecycle: dict[str,Any] | None, fills: list[dict[str,Any]], reason: str) -> dict[str,Any]:
-    # Ensure local semantic classifier agrees with the explicit disposition.
-    expected=classify_effect_disposition(standing).value
-    if expected != disposition:
-        raise ReconciliationError(f'effect disposition mismatch: {standing} -> {expected}, got {disposition}')
+def _result(intent: dict[str,Any], venue: str, standing: str, lifecycle: dict[str,Any] | None, fills: list[dict[str,Any]], reason: str) -> dict[str,Any]:
+    resolution = reservation_resolution_for_standing(standing)
     return {
         'schemaVersion':1,
         'kind':'ordivon.market-capital.execution-reconciliation',
@@ -148,7 +160,7 @@ def _result(intent: dict[str,Any], venue: str, standing: str, disposition: str, 
         'clOrdId':intent.get('clOrdId'),
         'venue':venue,
         'standing':standing,
-        'effectDisposition':disposition,
+        'reservationResolution':resolution,
         'fixLifecycle':lifecycle,
         'matchedFillCount':len(fills),
         'reason':reason,

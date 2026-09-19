@@ -62,7 +62,7 @@ authority=json.loads((out/'authority.json').read_text())
 summary={
  'standing':'SHADOW_ORDER_PRECOMMIT_FROZEN',
  'authorityStanding':authority['standing'],
- 'externalWriteAdmissionState':authority['externalWriteAdmissionState'],
+ 'externalWritePolicyStanding':authority['externalWritePolicyStanding'],
  'authorityEvidenceSha256':hashlib.sha256((out/'authority.json').read_bytes()).hexdigest(),
  'precommitTimeUtc':cfg['precommitTimeUtc'],
  'decisionBoundaryUtc':cfg['decisionBoundaryUtc'],

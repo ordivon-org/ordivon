@@ -1,10 +1,16 @@
 {
-  "schemaVersion": 1,
-  "kind": "ordivon.market-capital.nonlive-effect-authority",
   "admissionContract": "contracts/nonlive-effect-admission-v1.json",
-  "providerCandidate": "config/nautilus_candidate.json",
   "capitalSubstrate": "config/tigerbeetle_capital_substrate.json",
   "executionMode": "BOUNDED_SIMULATED_EXCHANGE",
-  "scenarios": ["FILL", "PARTIAL_FILL_SLICES", "CANCEL", "DENY", "UNKNOWN_AFTER_SUBMISSION"],
-  "externalFinancialWriteAdmission": "NOT_ADMITTED"
+  "externalWritePolicyStanding": "NOT_ADMITTED",
+  "kind": "ordivon.market-capital.nonlive-effect-authority",
+  "providerCandidate": "config/nautilus_candidate.json",
+  "scenarios": [
+    "FILL",
+    "PARTIAL_FILL_SLICES",
+    "CANCEL",
+    "DENY",
+    "UNKNOWN_AFTER_SUBMISSION"
+  ],
+  "schemaVersion": 1
 }

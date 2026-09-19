@@ -133,13 +133,13 @@ def main() -> None:
     qualified["UNKNOWN_AFTER_SUBMISSION"] = unknown
 
     expected = {
-        "FILL": "CONSUME",
-        "PARTIAL_FILL_SLICES": "CONSUME",
-        "CANCEL": "RELEASE",
-        "DENY": "RELEASE",
-        "UNKNOWN_AFTER_SUBMISSION": "RETAIN",
+        "FILL": "POST_PENDING_TRANSFER",
+        "PARTIAL_FILL_SLICES": "POST_PENDING_TRANSFER",
+        "CANCEL": "VOID_PENDING_TRANSFER",
+        "DENY": "VOID_PENDING_TRANSFER",
+        "UNKNOWN_AFTER_SUBMISSION": "NO_MUTATION",
     }
-    observed = {k: v["reconciliation"]["effectDisposition"] for k, v in qualified.items()}
+    observed = {k: v["reconciliation"]["reservationResolution"] for k, v in qualified.items()}
     if observed != expected:
         raise SystemExit(f"effect disposition mismatch: expected={expected} observed={observed}")
 
@@ -151,7 +151,7 @@ def main() -> None:
         "providerVersion": nautilus_trader.__version__,
         "scenarios": qualified,
         "expectedDispositions": expected,
-        "observedDispositions": observed,
+        "observedResolutions": observed,
         "partialFillSliceCount": len(partial_fills),
         "nonLiveProviderWriteAttempted": True,
         "externalFinancialWriteAttempted": False,

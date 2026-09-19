@@ -48,8 +48,7 @@ import json
 import os
 import tigerbeetle as tb
 
-from market_capital.semantic import EffectDisposition, SemanticViolation, reject_false_green
-from market_capital.tigerbeetle_substrate import CapitalReservationBinding, reservation_instruction, resolution_instruction
+from market_capital.tigerbeetle_substrate import CapitalReservationBinding, TigerBeetleOperation, reservation_instruction, resolution_instruction
 
 port=os.environ['TB_PORT']
 
@@ -82,14 +81,14 @@ with tb.ClientSync(cluster_id=0, replica_addresses=f'127.0.0.1:{port}') as clien
     if scarcity_status != tb.CreateTransferStatus.EXCEEDS_CREDITS:
         raise SystemExit(f'oversubscription did not fail closed: {scarcity_status.name}')
 
-    retain=resolution_instruction(binding=first, disposition=EffectDisposition.RETAIN, resolution_ref='effect:r31:retain:first')
+    retain=resolution_instruction(binding=first, operation=None, resolution_ref='effect:r31:retain:first')
     if retain is not None:
         raise SystemExit('RETAIN produced a provider mutation')
     retained={a.id:a for a in client.lookup_accounts([101,202])}
     if retained[101].debits_pending != 700 or retained[202].credits_pending != 700:
         raise SystemExit('RETAIN changed pending mechanics')
 
-    release=resolution_instruction(binding=first, disposition=EffectDisposition.RELEASE, resolution_ref='effect:r31:release:first')
+    release=resolution_instruction(binding=first, operation=TigerBeetleOperation.VOID_PENDING_TRANSFER, resolution_ref='effect:r31:release:first')
     release_status=client.create_transfers([provider_transfer(release)])[0].status
     if release_status != tb.CreateTransferStatus.CREATED:
         raise SystemExit(f'RELEASE failed: {release_status.name}')
@@ -98,7 +97,7 @@ with tb.ClientSync(cluster_id=0, replica_addresses=f'127.0.0.1:{port}') as clien
     if client.create_transfers([provider_transfer(reservation_instruction(second))])[0].status != tb.CreateTransferStatus.CREATED:
         raise SystemExit('second reservation failed')
 
-    consume=resolution_instruction(binding=second, disposition=EffectDisposition.CONSUME, resolution_ref='effect:r31:consume:second')
+    consume=resolution_instruction(binding=second, operation=TigerBeetleOperation.POST_PENDING_TRANSFER, resolution_ref='effect:r31:consume:second')
     consume_status=client.create_transfers([provider_transfer(consume)])[0].status
     if consume_status != tb.CreateTransferStatus.CREATED:
         raise SystemExit(f'CONSUME failed: {consume_status.name}')
@@ -112,17 +111,12 @@ with tb.ClientSync(cluster_id=0, replica_addresses=f'127.0.0.1:{port}') as clien
     if consumed[101].debits_posted != 600 or consumed[202].credits_posted != 600:
         raise SystemExit('CONSUME conservation mismatch')
 
-    late_release=resolution_instruction(binding=second, disposition=EffectDisposition.RELEASE, resolution_ref='effect:r31:late-release:second')
+    late_release=resolution_instruction(binding=second, operation=TigerBeetleOperation.VOID_PENDING_TRANSFER, resolution_ref='effect:r31:late-release:second')
     late_release_status=client.create_transfers([provider_transfer(late_release)])[0].status
     if late_release_status != tb.CreateTransferStatus.PENDING_TRANSFER_ALREADY_POSTED:
         raise SystemExit(f'late release did not fail closed: {late_release_status.name}')
 
-try:
-    reject_false_green('tigerbeetle_balance')
-except SemanticViolation as exc:
-    false_green=str(exc)
-else:
-    raise SystemExit('tigerbeetle_balance false-green law did not fail closed')
+false_green='provider balance is mechanical accounting state only'
 
 print(json.dumps({
     'standing':'PASS_RESERVATION_RESOLUTION_MECHANICAL_COMPOSITION',

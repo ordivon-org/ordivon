@@ -2,7 +2,7 @@
 
 ## Core rule
 
-Market Capital is one canonical composition, not a federation of Ordivon finance subsystems. Use mature external financial/research infrastructure wherever it already exists; keep only the irreducible Market Capital domain semantics, mappings, decisions, authority rules and reconciliation logic in this repository.
+Market Capital is one canonical composition, not a federation of Ordivon finance subsystems. Use mature external financial/research infrastructure wherever it already exists; keep only narrow Market Capital mappings, decisions, policy inputs, and reconciliation logic that no external component can own alone.
 
 Canonical flow:
 
@@ -33,7 +33,7 @@ Market Capital does not own mechanisms already provided by authoritative venues 
 
 ### Capital accounting substrate
 
-TigerBeetle is the mature accounting-mechanics provider. Its account and transfer state is mechanical evidence only: a TigerBeetle balance is not settlement, legal ownership, withdrawability, deployable capital, external-effect admission, or `EffectAuthority`. Market Capital keeps those domain semantics outside the provider. The server binary and official Python client are pinned to the same `0.17.9` release in an isolated external capability environment; Market Capital does not duplicate that dependency stack. R3.1 maps an exact Market Capital Reservation to a provider PENDING transfer; domain-owned RETAIN emits no provider mutation, RELEASE maps to VOID_PENDING_TRANSFER, and CONSUME maps to POST_PENDING_TRANSFER. TigerBeetle balance constraints may enforce mechanical scarcity but never mint `ScarcityAuthority`, and provider state never derives the disposition. R3.2 adds deterministic owner/resource/role account namespaces plus restart reconciliation: intact-data restarts preserve exact provider history, while missing or contradictory provider state can only produce retain/recovery standing and can never reopen terminal Market Capital history. Permanent replica-data loss is a separate TigerBeetle recovery concern and must not be represented by re-formatting an empty provider state.
+TigerBeetle owns accounting conservation, pending-transfer encumbrance, and POST/VOID mechanics. A TigerBeetle balance is not settlement finality, legal ownership, withdrawability, deployability, venue execution truth, or external-write policy. Authoritative reconciliation maps unresolved effects to NO_MUTATION, proven no-effect to VOID_PENDING_TRANSFER, and positive execution to POST_PENDING_TRANSFER. Intact-data restarts preserve exact provider history; missing or contradictory provider state requires no automatic repair and cannot reopen terminal reservation history.
 
 ## 2. Decision
 
@@ -43,20 +43,19 @@ Portfolio construction produces an immutable decision artifact with a causal dec
 
 QuantConnect LEAN owns mature trading-engine mechanics such as buying-power modeling, sizing, calendars and bounded execution simulation. FIX Latest / FIX Orchestra supplies the semantic reference for order intent. QuickFIX/n may project an explicitly required legacy FIX 4.4 wire profile, but FIX 4.4 is not treated as the current semantic standard. Market Capital owns the mapping from an admitted decision into an `ExecutionIntent`.
 
-## 4. Canonical semantic and authority core
+## 4. External ownership and policy boundaries
 
-The semantic core is now implemented directly in this repository under `src/market_capital/semantic.py`; there is no active `market-capital-v2` dependency.
+The former custom semantic core is retired. Current boundaries are owned by provider reality, FIX lifecycle vocabulary, TigerBeetle accounting mechanics, OPA policy, and narrow reconciliation mappings.
 
-Canonical retained semantics are:
+Retained local seams are:
 
 - observation/same-cut;
 - proof binding/currentness;
-- Scientific Truth != Economic Truth != Capital Truth;
 - registry/parcel/scarcity identity;
 - Reservation != Grant;
-- EffectAuthority RETAIN/RELEASE/CONSUME;
+- authoritative reconciliation to TigerBeetle reservation-resolution mapping;
 - revocation/recovery boundaries;
-- ExternalFinancialWriteAdmission (effect-surface admission, not generic product approval).
+- OPA-governed external-write policy over explicit provider/verifier inputs.
 
 The execution boundary is `src/market_capital/authority.py` plus `config/execution_authority.json` and the contracts under `contracts/`. It expresses whether a concrete provider/executor external-effect surface is implemented, bound and current; it is not a Human/product approval gate.
 
@@ -74,7 +73,7 @@ Completion is not `send()` or an HTTP/FIX acknowledgement. The operational bound
 
 `intent -> authorized effect -> broker receipt/execution -> authoritative account reality -> reconciliation`.
 
-Expected and authoritative state must reconcile; otherwise the effect remains pending/retained and recovery is required.
+Expected and authoritative state must reconcile; otherwise the pending accounting state remains unchanged and recovery/reconciliation is required.
 
 PFMI and ISO 20022 remain reference semantics for external post-trade infrastructure. Market Capital does not implement a private clearing or settlement system absent a demonstrated substitution failure.
 
@@ -107,7 +106,7 @@ Clock timing qualification now passes: Windows w32time is synchronized to qualif
 
 - Private Reality R5 offline normalization: venue-native observer envelopes are normalized by a pure no-network/no-credential function into balances, positions, open orders, order history and fills. Observer credential bindings are external; Binance executor credentials are excluded; fresh permission verification is still required before private account data is admitted.
 
-- Execution Reconciliation R6: venue reality remains authoritative, FIX 4.4 supplies execution lifecycle vocabulary, and the only local semantic is EffectAuthority RETAIN/RELEASE/CONSUME. Absence from a broad snapshot is UNKNOWN/RETAIN; no-effect release requires explicit authoritative proof.
+- Execution Reconciliation R6: venue reality remains authoritative and FIX lifecycle vocabulary normalizes order state. Absence from a broad snapshot yields UNKNOWN with NO_MUTATION; explicit authoritative no-effect proof maps to VOID_PENDING_TRANSFER; positive execution maps to POST_PENDING_TRANSFER.
 
 - Demo/Testnet execution R7 preflight: installed Nautilus execution components support OKX DEMO and Binance Spot TESTNET configuration without local client reimplementation. This is component readiness only; demo/live external writes remain NOT_ADMITTED.
 

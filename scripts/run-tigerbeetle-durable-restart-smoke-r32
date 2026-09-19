@@ -66,9 +66,8 @@ stop_tb
 start_tb
 PYTHONPATH="$repo/src" TB_PORT="$port" "$py" - <<'PY'
 import os, tigerbeetle as tb
-from market_capital.semantic import EffectDisposition
 from market_capital.tigerbeetle_durable import CapitalAccountNamespace, binding_for_namespace
-from market_capital.tigerbeetle_substrate import reservation_instruction, resolution_instruction
+from market_capital.tigerbeetle_substrate import TigerBeetleOperation, reservation_instruction, resolution_instruction
 p=os.environ['TB_PORT']
 ns=CapitalAccountNamespace('owner:primary','parcel:r32:usd',31,718)
 b=binding_for_namespace(namespace=ns,reservation_ref='reservation:r32:durable',amount=700,transfer_code=720)
@@ -78,27 +77,26 @@ with tb.ClientSync(cluster_id=0,replica_addresses=f'127.0.0.1:{p}') as c:
     assert accounts[ns.encumbrance_account_id].credits_pending == 700
     original=c.lookup_transfers([b.pending_transfer_id])
     assert len(original)==1 and int(original[0].flags) & int(tb.TransferFlags.PENDING)
-    consume=resolution_instruction(binding=b,disposition=EffectDisposition.CONSUME,resolution_ref='effect:r32:consume')
+    consume=resolution_instruction(binding=b,operation=TigerBeetleOperation.POST_PENDING_TRANSFER,resolution_ref='effect:r32:consume')
     w=dict(consume.as_wire_record()); w['flags']=getattr(tb.TransferFlags,w.pop('flag_name'))
     assert c.create_transfers([tb.Transfer(**w)])[0].status == tb.CreateTransferStatus.CREATED
 PY
 stop_tb
 
-# Restart again and reconcile exact provider history with terminal semantic history.
+# Restart again and reconcile exact provider history with terminal reservation history.
 start_tb
 PYTHONPATH="$repo/src" TB_PORT="$port" "$py" - <<'PY'
 import json, os, tigerbeetle as tb
-from market_capital.semantic import EffectDisposition
 from market_capital.tigerbeetle_durable import (
     CapitalAccountNamespace, DurableProviderStanding, DurableReservationHistory,
-    ProviderTransferObservation, SemanticReservationStanding, binding_for_namespace,
+    ProviderTransferObservation, ReservationStanding, binding_for_namespace,
     reconcile_durable_history,
 )
 from market_capital.tigerbeetle_substrate import TigerBeetleOperation, reservation_instruction, resolution_instruction
 p=os.environ['TB_PORT']
 ns=CapitalAccountNamespace('owner:primary','parcel:r32:usd',31,718)
 b=binding_for_namespace(namespace=ns,reservation_ref='reservation:r32:durable',amount=700,transfer_code=720)
-consume=resolution_instruction(binding=b,disposition=EffectDisposition.CONSUME,resolution_ref='effect:r32:consume')
+consume=resolution_instruction(binding=b,operation=TigerBeetleOperation.POST_PENDING_TRANSFER,resolution_ref='effect:r32:consume')
 assert consume is not None
 with tb.ClientSync(cluster_id=0,replica_addresses=f'127.0.0.1:{p}') as c:
     rows={a.id:a for a in c.lookup_accounts([ns.available_account_id,ns.encumbrance_account_id])}
@@ -111,12 +109,12 @@ with tb.ClientSync(cluster_id=0,replica_addresses=f'127.0.0.1:{p}') as c:
     obs_pending=ProviderTransferObservation(pending.id,TigerBeetleOperation.PENDING,pending.amount,pending.pending_id)
     obs_resolution=ProviderTransferObservation(resolved.id,TigerBeetleOperation.POST_PENDING_TRANSFER,resolved.amount,resolved.pending_id)
     rec=reconcile_durable_history(
-        history=DurableReservationHistory(b,SemanticReservationStanding.CONSUMED,'effect:r32:consume'),
+        history=DurableReservationHistory(b,ReservationStanding.CONSUMED,'effect:r32:consume'),
         pending=obs_pending,
         resolution=obs_resolution,
     )
     assert rec.standing is DurableProviderStanding.MATCH
-    assert rec.semantic_terminal_preserved and not rec.provider_repair_allowed
+    assert rec.terminal_history_preserved and not rec.provider_repair_allowed
 
     # Exact replay of the old reservation does not reopen pending state.
     w=dict(reservation_instruction(b).as_wire_record()); w['flags']=getattr(tb.TransferFlags,w.pop('flag_name'))
@@ -125,14 +123,14 @@ with tb.ClientSync(cluster_id=0,replica_addresses=f'127.0.0.1:{p}') as c:
     rows2={a.id:a for a in c.lookup_accounts([ns.available_account_id,ns.encumbrance_account_id])}
     assert rows2[ns.available_account_id].debits_pending == 0 and rows2[ns.available_account_id].debits_posted == 700
 
-    # A semantic terminal history confronted with stale-looking provider state fails closed.
+    # A terminal reservation history confronted with stale-looking provider state fails closed.
     stale=reconcile_durable_history(
-        history=DurableReservationHistory(b,SemanticReservationStanding.CONSUMED,'effect:r32:consume'),
+        history=DurableReservationHistory(b,ReservationStanding.CONSUMED,'effect:r32:consume'),
         pending=obs_pending,
         resolution=None,
     )
-    assert stale.standing is DurableProviderStanding.PROVIDER_INCOMPLETE_RETAIN
-    assert stale.semantic_terminal_preserved and not stale.provider_repair_allowed
+    assert stale.standing is DurableProviderStanding.PROVIDER_INCOMPLETE_NO_REPAIR
+    assert stale.terminal_history_preserved and not stale.provider_repair_allowed
 
 print(json.dumps({
     'standing':'PASS_DURABLE_RESTART_RECONCILIATION',
@@ -143,7 +141,7 @@ print(json.dumps({
     'exactReservationReplayStatus':replay.name,
     'terminalReconciliation':rec.standing.value,
     'staleProviderReconciliation':stale.standing.value,
-    'semanticTerminalPreserved':stale.semantic_terminal_preserved,
+    'terminalHistoryPreserved':stale.terminal_history_preserved,
     'providerRepairAllowed':stale.provider_repair_allowed,
     'availableAccountId':ns.available_account_id,
     'encumbranceAccountId':ns.encumbrance_account_id,

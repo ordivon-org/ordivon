@@ -42,21 +42,20 @@ PYTHONPATH="$repo/src" TB_PORT="$port" MATRIX="$matrix" "$tb_py" - <<'PY'
 import json, os
 import tigerbeetle as tb
 
-from market_capital.semantic import EffectDisposition
 from market_capital.tigerbeetle_durable import CapitalAccountNamespace, CapitalAccountRole, binding_for_namespace
-from market_capital.tigerbeetle_substrate import reservation_instruction, resolution_instruction, stable_provider_id
+from market_capital.tigerbeetle_substrate import TigerBeetleOperation, reservation_instruction, resolution_instruction, stable_provider_id
 
 port=os.environ['TB_PORT']
 matrix=json.load(open(os.environ['MATRIX']))
 expected={
-    'FILL':'CONSUME',
-    'PARTIAL_FILL_SLICES':'CONSUME',
-    'CANCEL':'RELEASE',
-    'DENY':'RELEASE',
-    'UNKNOWN_AFTER_SUBMISSION':'RETAIN',
+    'FILL':'POST_PENDING_TRANSFER',
+    'PARTIAL_FILL_SLICES':'POST_PENDING_TRANSFER',
+    'CANCEL':'VOID_PENDING_TRANSFER',
+    'DENY':'VOID_PENDING_TRANSFER',
+    'UNKNOWN_AFTER_SUBMISSION':'NO_MUTATION',
 }
 assert matrix['standing']=='PASS_NAUTILUS_NONLIVE_EFFECT_RECONCILIATION_MATRIX'
-assert matrix['observedDispositions']==expected
+assert matrix['observedResolutions']==expected
 
 ledger=41; account_code=718; transfer_code=720; reservation_amount=100
 funding_id=stable_provider_id('market-capital:nonlive-effect:funding','qualification-v1')
@@ -103,14 +102,17 @@ with tb.ClientSync(cluster_id=0,replica_addresses=f'127.0.0.1:{port}') as c:
     pr=c.create_transfers(pending)
     assert all(r.status == tb.CreateTransferStatus.CREATED for r in pr), [r.status.name for r in pr]
 
-    for scenario, disposition_name in expected.items():
-        disposition=EffectDisposition(disposition_name)
+    for scenario, resolution_name in expected.items():
+        operation = (
+            None if resolution_name == 'NO_MUTATION'
+            else TigerBeetleOperation(resolution_name)
+        )
         instruction=resolution_instruction(
             binding=bindings[scenario],
-            disposition=disposition,
+            operation=operation,
             resolution_ref=f'effect:nonlive:{scenario.lower()}',
         )
-        if disposition is EffectDisposition.RETAIN:
+        if operation is None:
             assert instruction is None
             continue
         status=c.create_transfers([transfer_wire(instruction)])[0].status
@@ -124,13 +126,12 @@ PYTHONPATH="$repo/src" TB_PORT="$port" MATRIX="$matrix" "$tb_py" - <<'PY'
 import json, os
 import tigerbeetle as tb
 
-from market_capital.semantic import EffectDisposition
 from market_capital.tigerbeetle_durable import (
     CapitalAccountNamespace,
     DurableProviderStanding,
     DurableReservationHistory,
     ProviderTransferObservation,
-    SemanticReservationStanding,
+    ReservationStanding,
     binding_for_namespace,
     reconcile_durable_history,
 )
@@ -138,12 +139,12 @@ from market_capital.tigerbeetle_substrate import TigerBeetleOperation, reservati
 
 port=os.environ['TB_PORT']
 matrix=json.load(open(os.environ['MATRIX']))
-dispositions=matrix['observedDispositions']
+dispositions=matrix['observedResolutions']
 ledger=41; account_code=718; transfer_code=720; reservation_amount=100
 results={}
 
 with tb.ClientSync(cluster_id=0,replica_addresses=f'127.0.0.1:{port}') as c:
-    for scenario, disposition_name in dispositions.items():
+    for scenario, resolution_name in dispositions.items():
         ns=CapitalAccountNamespace('owner:qualification',f'parcel:nonlive:{scenario.lower()}',ledger,account_code)
         binding=binding_for_namespace(
             namespace=ns,
@@ -157,22 +158,21 @@ with tb.ClientSync(cluster_id=0,replica_addresses=f'127.0.0.1:{port}') as c:
         assert int(p.flags) & int(tb.TransferFlags.PENDING), scenario
         pending=ProviderTransferObservation(p.id,TigerBeetleOperation.PENDING,p.amount,p.pending_id)
 
-        disposition=EffectDisposition(disposition_name)
-        if disposition is EffectDisposition.RETAIN:
-            history=DurableReservationHistory(binding,SemanticReservationStanding.RESERVED)
+        operation = None if resolution_name == 'NO_MUTATION' else TigerBeetleOperation(resolution_name)
+        if operation is None:
+            history=DurableReservationHistory(binding,ReservationStanding.RESERVED)
             resolution=None
         else:
             resolution_ref=f'effect:nonlive:{scenario.lower()}'
-            expected_resolution=resolution_instruction(binding=binding,disposition=disposition,resolution_ref=resolution_ref)
+            expected_resolution=resolution_instruction(binding=binding,operation=operation,resolution_ref=resolution_ref)
             assert expected_resolution is not None
             rows=c.lookup_transfers([expected_resolution.transfer_id])
             assert len(rows)==1, scenario
             r=rows[0]
-            operation=(TigerBeetleOperation.POST_PENDING_TRANSFER if disposition is EffectDisposition.CONSUME else TigerBeetleOperation.VOID_PENDING_TRANSFER)
-            required_flag=(tb.TransferFlags.POST_PENDING_TRANSFER if disposition is EffectDisposition.CONSUME else tb.TransferFlags.VOID_PENDING_TRANSFER)
+            required_flag=(tb.TransferFlags.POST_PENDING_TRANSFER if operation is TigerBeetleOperation.POST_PENDING_TRANSFER else tb.TransferFlags.VOID_PENDING_TRANSFER)
             assert int(r.flags) & int(required_flag), (scenario,int(r.flags),int(required_flag))
             resolution=ProviderTransferObservation(r.id,operation,r.amount,r.pending_id)
-            standing=(SemanticReservationStanding.CONSUMED if disposition is EffectDisposition.CONSUME else SemanticReservationStanding.RELEASED)
+            standing=(ReservationStanding.CONSUMED if operation is TigerBeetleOperation.POST_PENDING_TRANSFER else ReservationStanding.RELEASED)
             history=DurableReservationHistory(binding,standing,resolution_ref)
 
         rec=reconcile_durable_history(history=history,pending=pending,resolution=resolution)
@@ -180,10 +180,10 @@ with tb.ClientSync(cluster_id=0,replica_addresses=f'127.0.0.1:{port}') as c:
         accounts={a.id:a for a in c.lookup_accounts([ns.available_account_id,ns.encumbrance_account_id])}
         available=accounts[ns.available_account_id]
         enc=accounts[ns.encumbrance_account_id]
-        if disposition is EffectDisposition.CONSUME:
+        if operation is TigerBeetleOperation.POST_PENDING_TRANSFER:
             assert available.debits_posted == reservation_amount and available.debits_pending == 0
             assert enc.credits_posted == reservation_amount and enc.credits_pending == 0
-        elif disposition is EffectDisposition.RELEASE:
+        elif operation is TigerBeetleOperation.VOID_PENDING_TRANSFER:
             assert available.debits_posted == 0 and available.debits_pending == 0
             assert enc.credits_posted == 0 and enc.credits_pending == 0
         else:
@@ -191,8 +191,8 @@ with tb.ClientSync(cluster_id=0,replica_addresses=f'127.0.0.1:{port}') as c:
             assert enc.credits_posted == 0 and enc.credits_pending == reservation_amount
 
         results[scenario]={
-            'effectDisposition':disposition.value,
-            'semanticStanding':history.standing.value,
+            'reservationResolution':resolution_name,
+            'reservationStanding':history.standing.value,
             'providerReconciliation':rec.standing.value,
             'providerRepairAllowed':rec.provider_repair_allowed,
             'debitsPosted':available.debits_posted,
@@ -205,7 +205,7 @@ with tb.ClientSync(cluster_id=0,replica_addresses=f'127.0.0.1:{port}') as c:
     scenario='FILL'
     ns=CapitalAccountNamespace('owner:qualification',f'parcel:nonlive:{scenario.lower()}',ledger,account_code)
     binding=binding_for_namespace(namespace=ns,reservation_ref='reservation:nonlive:fill',amount=reservation_amount,transfer_code=transfer_code)
-    instruction=resolution_instruction(binding=binding,disposition=EffectDisposition.CONSUME,resolution_ref='effect:nonlive:fill')
+    instruction=resolution_instruction(binding=binding,operation=TigerBeetleOperation.POST_PENDING_TRANSFER,resolution_ref='effect:nonlive:fill')
     w=dict(instruction.as_wire_record()); w['flags']=getattr(tb.TransferFlags,w.pop('flag_name'))
     replay=c.create_transfers([tb.Transfer(**w)])[0].status
     assert replay == tb.CreateTransferStatus.EXISTS

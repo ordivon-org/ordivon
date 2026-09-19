@@ -15,8 +15,8 @@
     "venueClockAgreementMaxMsForCrossVenueComparison": 250
   },
   "demoExecutionAllowed": false,
-  "externalFinancialWriteAdmissionRequired": true,
   "externalFinancialWritesAllowed": false,
+  "externalWritePolicyRequired": true,
   "kind": "ordivon.market-capital.crypto-execution-lane",
   "liveExecutionAllowed": false,
   "marketModel": "CONTINUOUS_24_7_CRYPTO_SPOT",

@@ -131,7 +131,7 @@ def main() -> int:
         "providerTradeCapabilityCurrent": "trade" in perms,
         "nautilusLiveExecutionConfigBound": True,
         "nautilus": nautilus,
-        "externalFinancialWriteAdmission": cfg["externalFinancialWriteAdmission"],
+        "externalWritePolicyStanding": cfg["externalWritePolicyStanding"],
         "providerTradeCapabilityBoundToExternalEffect": False,
         "orderSubmissionAllowed": False,
         "externalFinancialWriteAttempted": False,

@@ -1,18 +1,16 @@
 import pytest
 
-from market_capital.semantic import SemanticViolation
 from market_capital.tigerbeetle_durable import (
     CapitalAccountNamespace,
     CapitalAccountRole,
     DurableProviderStanding,
     DurableReservationHistory,
     ProviderTransferObservation,
-    SemanticReservationStanding,
+    ReservationStanding,
     binding_for_namespace,
     reconcile_durable_history,
 )
-from market_capital.tigerbeetle_substrate import TigerBeetleOperation, resolution_instruction
-from market_capital.semantic import EffectDisposition
+from market_capital.tigerbeetle_substrate import AccountingMappingError, TigerBeetleOperation, resolution_instruction
 
 
 def namespace() -> CapitalAccountNamespace:
@@ -42,9 +40,9 @@ def pending_obs():
     )
 
 
-def terminal_obs(disposition: EffectDisposition, resolution_ref: str):
+def terminal_obs(operation: TigerBeetleOperation, resolution_ref: str):
     b=binding()
-    i=resolution_instruction(binding=b, disposition=disposition, resolution_ref=resolution_ref)
+    i=resolution_instruction(binding=b, operation=operation, resolution_ref=resolution_ref)
     assert i is not None
     return ProviderTransferObservation(
         transfer_id=i.transfer_id,
@@ -72,58 +70,58 @@ def test_namespace_changes_when_owner_or_resource_changes() -> None:
 
 
 def test_raw_string_role_is_rejected() -> None:
-    with pytest.raises(SemanticViolation, match="CapitalAccountRole"):
+    with pytest.raises(AccountingMappingError, match="CapitalAccountRole"):
         namespace().account_id("AVAILABLE")  # type: ignore[arg-type]
 
 
 def test_reserved_history_matches_exact_pending_provider_history() -> None:
     r=reconcile_durable_history(
-        history=DurableReservationHistory(binding(),SemanticReservationStanding.RESERVED),
+        history=DurableReservationHistory(binding(),ReservationStanding.RESERVED),
         pending=pending_obs(),
         resolution=None,
     )
     assert r.standing is DurableProviderStanding.MATCH
     assert r.provider_repair_allowed is False
-    assert r.semantic_terminal_preserved is False
+    assert r.terminal_history_preserved is False
 
 
 def test_consumed_history_survives_missing_provider_resolution_without_reopening() -> None:
     r=reconcile_durable_history(
-        history=DurableReservationHistory(binding(),SemanticReservationStanding.CONSUMED,"effect:r32:consume"),
+        history=DurableReservationHistory(binding(),ReservationStanding.CONSUMED,"effect:r32:consume"),
         pending=pending_obs(),
         resolution=None,
     )
-    assert r.standing is DurableProviderStanding.PROVIDER_INCOMPLETE_RETAIN
-    assert r.semantic_terminal_preserved is True
+    assert r.standing is DurableProviderStanding.PROVIDER_INCOMPLETE_NO_REPAIR
+    assert r.terminal_history_preserved is True
     assert r.provider_repair_allowed is False
 
 
 def test_consumed_history_matches_exact_provider_post() -> None:
     r=reconcile_durable_history(
-        history=DurableReservationHistory(binding(),SemanticReservationStanding.CONSUMED,"effect:r32:consume"),
+        history=DurableReservationHistory(binding(),ReservationStanding.CONSUMED,"effect:r32:consume"),
         pending=pending_obs(),
-        resolution=terminal_obs(EffectDisposition.CONSUME,"effect:r32:consume"),
+        resolution=terminal_obs(TigerBeetleOperation.POST_PENDING_TRANSFER,"effect:r32:consume"),
     )
     assert r.standing is DurableProviderStanding.MATCH
-    assert r.semantic_terminal_preserved is True
+    assert r.terminal_history_preserved is True
 
 
 def test_released_history_rejects_provider_post_contradiction() -> None:
     r=reconcile_durable_history(
-        history=DurableReservationHistory(binding(),SemanticReservationStanding.RELEASED,"effect:r32:release"),
+        history=DurableReservationHistory(binding(),ReservationStanding.RELEASED,"effect:r32:release"),
         pending=pending_obs(),
-        resolution=terminal_obs(EffectDisposition.CONSUME,"effect:r32:consume"),
+        resolution=terminal_obs(TigerBeetleOperation.POST_PENDING_TRANSFER,"effect:r32:consume"),
     )
-    assert r.standing is DurableProviderStanding.CONTRADICTION_RETAIN
-    assert r.semantic_terminal_preserved is True
+    assert r.standing is DurableProviderStanding.CONTRADICTION_NO_REPAIR
+    assert r.terminal_history_preserved is True
     assert r.provider_repair_allowed is False
 
 
 def test_reserved_history_rejects_provider_terminal_ahead_of_semantics() -> None:
     r=reconcile_durable_history(
-        history=DurableReservationHistory(binding(),SemanticReservationStanding.RESERVED),
+        history=DurableReservationHistory(binding(),ReservationStanding.RESERVED),
         pending=pending_obs(),
-        resolution=terminal_obs(EffectDisposition.RELEASE,"effect:r32:release"),
+        resolution=terminal_obs(TigerBeetleOperation.VOID_PENDING_TRANSFER,"effect:r32:release"),
     )
-    assert r.standing is DurableProviderStanding.CONTRADICTION_RETAIN
+    assert r.standing is DurableProviderStanding.CONTRADICTION_NO_REPAIR
     assert r.provider_repair_allowed is False
