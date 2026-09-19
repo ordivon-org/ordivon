@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import unittest
 
-from scripts.check_agent_service_graph_identity_r1 import validate
+from tests.agent_service_graph_history_support import validate
 
 
-class AgentServiceGraphIdentityR1Tests(unittest.TestCase):
+class AgentServiceGraphHistoryIntegrityTests(unittest.TestCase):
     def test_frozen_graph_history_has_no_hard_node_identity_collision(self) -> None:
         result = validate()
         self.assertEqual(result["status"], "PASS")
