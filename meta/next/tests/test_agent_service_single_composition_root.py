@@ -57,7 +57,8 @@ class SingleCompositionRootTests(unittest.TestCase):
             for name in (
                 "definitions", "revisions", "instances", "placements", "events",
                 "reconciler", "tasks", "assignments", "execution_activator", "completion",
-                "goals", "task_graph", "goal_planner", "identities", "sessions",
+                "goals", "goal_task_links", "task_dependencies", "task_readiness",
+                "goal_planner", "identities", "sessions",
                 "delegations", "a2a_cards", "transport_bindings", "routes",
                 "credential_references", "identity_proofs", "remote_reconciler",
                 "execution_claims", "quiescence", "replay_safety", "claim_transfers",
@@ -66,7 +67,7 @@ class SingleCompositionRootTests(unittest.TestCase):
                 self.assertTrue(hasattr(service, name), name)
 
             for name in (
-                "_placement", "_r5", "_r6", "_r7", "_r8", "_r9", "_r10",
+                "task_graph", "_placement", "_r5", "_r6", "_r7", "_r8", "_r9", "_r10",
                 "_r11", "_r12", "_r13", "_r14", "_r15",
             ):
                 self.assertFalse(hasattr(service, name), name)

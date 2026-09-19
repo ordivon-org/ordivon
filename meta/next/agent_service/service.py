@@ -33,7 +33,6 @@ from .goals import (
     GoalGraphMutationGuard,
     GoalReconciler,
     GoalStore,
-    GoalTaskGraph,
     GoalTaskLinkStore,
     TaskDependencyStore,
     TaskReadinessProjector,
@@ -159,12 +158,6 @@ def _build_service(connection: sqlite3.Connection,
     service.task_readiness = TaskReadinessProjector(
         service.tasks, service.goal_task_links, service.task_dependencies
     )
-    service.task_graph = GoalTaskGraph(
-        service.goal_task_links,
-        service.task_dependencies,
-        service.task_readiness,
-        service.goal_graph_guard,
-    )
     service.goal_reconciler = GoalReconciler(
         connection, service.goals, service.goal_task_links, service.events
     )
@@ -182,7 +175,7 @@ def _build_service(connection: sqlite3.Connection,
         connection,
         service.sessions,
         service.identities,
-        service.task_graph,
+        service.goal_task_links,
     )
     service.a2a_cards = A2AAgentCardProjector(connection, service.identities)
 
