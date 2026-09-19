@@ -197,7 +197,7 @@ fn decode_open_workspace_record(
     bytes: &[u8],
     workspace_id: &str,
 ) -> Result<WorkspaceRecord, UniversalExecError> {
-    let record: WorkspaceRecord = serde_json::from_slice(bytes).map_err(|error| {
+    let mut record: WorkspaceRecord = serde_json::from_slice(bytes).map_err(|error| {
         UniversalExecError::new(
             UniversalExecErrorCode::MetadataCorrupt,
             format!("invalid workspace record: {error}"),
@@ -206,6 +206,7 @@ fn decode_open_workspace_record(
         )
     })?;
     validate_open_identity(&record, workspace_id)?;
+    record.workspace_id = workspace_id.to_string();
     Ok(record)
 }
 
@@ -213,7 +214,8 @@ fn validate_open_identity(
     record: &WorkspaceRecord,
     workspace_id: &str,
 ) -> Result<(), UniversalExecError> {
-    if record.schema_version != UNIVERSAL_EXEC_SCHEMA_VERSION || record.workspace_id != workspace_id
+    if record.schema_version != UNIVERSAL_EXEC_SCHEMA_VERSION
+        || (!record.workspace_id.is_empty() && record.workspace_id != workspace_id)
     {
         return Err(UniversalExecError::new(
             UniversalExecErrorCode::MetadataCorrupt,

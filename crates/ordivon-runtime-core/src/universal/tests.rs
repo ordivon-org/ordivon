@@ -155,6 +155,10 @@ fn workspace_round_trip_is_isolated_and_digest_guarded() {
         persisted_record.get("workspacePath").is_none(),
         "new Workspace records must derive path from workspacesRoot/workspaceId"
     );
+    assert!(
+        persisted_record.get("workspaceId").is_none(),
+        "new open Workspace records must bind identity from record filename/request"
+    );
     let reloaded = load_workspace_record(&config, "workspace-1").unwrap();
     assert_eq!(
         Path::new(&reloaded.workspace_path),
@@ -242,6 +246,35 @@ fn workspace_round_trip_is_isolated_and_digest_guarded() {
         },
     )
     .unwrap();
+}
+
+#[test]
+fn legacy_open_workspace_record_rejects_conflicting_persisted_identity() {
+    let sandbox = Sandbox::new("workspace-legacy-id-conflict");
+    let source = sandbox.root.join("source");
+    init_git_repo(&source);
+    let config = sandbox.config();
+    let workspace_id = "workspace-legacy-id-conflict";
+    create_git_workspace(
+        &config,
+        &GitWorkspaceCreateRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            source_repo: source.to_string_lossy().into_owned(),
+            source_revision: "HEAD".to_string(),
+        },
+    )
+    .unwrap();
+
+    let record_path = config.workspace_record_path(workspace_id);
+    let mut record: serde_json::Value =
+        serde_json::from_slice(&fs::read(&record_path).unwrap()).unwrap();
+    record["workspaceId"] = serde_json::Value::String("different-workspace".to_string());
+    write_json_atomic(&record_path, &record).unwrap();
+
+    let error = load_workspace_record(&config, workspace_id).unwrap_err();
+    assert_eq!(error.code, UniversalExecErrorCode::MetadataCorrupt);
+    assert_eq!(error.field.as_deref(), Some("workspaceId"));
 }
 
 #[test]

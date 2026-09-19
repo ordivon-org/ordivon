@@ -49,6 +49,10 @@ impl GitWorkspaceCreateRequest {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct WorkspaceRecord {
     pub schema_version: u32,
+    /// Legacy read-compatibility only. New open records omit workspaceId;
+    /// Runtime binds it from the record filename/request identity.
+    #[serde(default, skip_serializing)]
+    #[schemars(skip)]
     pub workspace_id: String,
     pub source_repo: String,
     pub source_revision: String,
