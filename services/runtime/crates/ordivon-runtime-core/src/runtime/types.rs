@@ -1551,6 +1551,7 @@ pub struct RuntimeJobListResult {
     pub next_cursor: Option<RuntimeJobListCursor>,
 }
 
+#[cfg(any(test, feature = "operator-tools"))]
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct RuntimeInvariantViolation {
