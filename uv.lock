@@ -11,7 +11,10 @@ resolution-markers = [
 
 [manifest.dependency-groups]
 architecture = [{ name = "import-linter" }]
-authority = [{ name = "check-jsonschema" }]
+authority = [
+    { name = "check-jsonschema" },
+    { name = "jsonschema" },
+]
 deployment = [
     { name = "mcp", specifier = ">=2.2.0" },
     { name = "mcp-types", specifier = ">=2.2.0" },

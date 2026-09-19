@@ -20,6 +20,7 @@ quality = [
 ]
 authority = [
   "check-jsonschema",
+  "jsonschema",
 ]
 reasoning = [
   "ortools",
