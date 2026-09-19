@@ -94,7 +94,6 @@ impl UniversalExecutorConfig {
             self.store_root.clone(),
             self.workspaces_root(),
             self.workspace_records_root(),
-            self.tasks_root(),
             self.workspace_caches_root(),
             self.build_caches_root(),
             self.source_build_caches_root(),
@@ -119,10 +118,6 @@ impl UniversalExecutorConfig {
 
     pub fn workspace_records_root(&self) -> PathBuf {
         self.store_root.join("workspace-records")
-    }
-
-    pub fn tasks_root(&self) -> PathBuf {
-        self.store_root.join("tasks")
     }
 
     pub fn cache_root(&self) -> PathBuf {
