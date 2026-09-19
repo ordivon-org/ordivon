@@ -72,7 +72,7 @@ from .semantics import (
     SessionItemStore,
     SessionStore,
 )
-from .slice1 import AgentServiceSlice1, CarrierProviderAdapter, HostAdapter, ProviderObservation
+from .slice1 import AgentServiceSlice1, ProviderObservation
 from .task_runtime import (
     AgentServiceR5,
     RuntimeAdapter,
@@ -134,7 +134,6 @@ __all__ = [
     "AuditEnvelopeProjector",
     "BoardAdapter",
     "BoardProjectionReceipt",
-    "CarrierProviderAdapter",
     "ClaimAwareAssignmentPlanner",
     "ClaimAwareDeliveryCoordinator",
     "CredentialReferenceStore",
@@ -150,7 +149,6 @@ __all__ = [
     "GoalGraphMutationGuard",
     "GoalStore",
     "GoalTaskLinkStore",
-    "HostAdapter",
     "HostBoardMcpAdapter",
     "IdentityProofAdapter",
     "IdentityProofCoordinator",

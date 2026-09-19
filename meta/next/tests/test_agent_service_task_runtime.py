@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agent_service.slice1 import CarrierProviderAdapter, ProviderObservation
+from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import (
     AgentServiceR5,
     RuntimeAdapter,
@@ -13,7 +13,7 @@ from agent_service.task_runtime import (
 )
 
 
-class ReadyCarrier(CarrierProviderAdapter):
+class ReadyCarrier:
     def ensure(self, placement_id: str, agent_instance_id: str, revision_id: str) -> None:
         return None
 

@@ -19,7 +19,7 @@ from .failover import (
 from .trust import IdentityProofAdapter, RemoteDeliveryObserver, RemoteDeliverySnapshot
 from .evidence import RuntimeArtifactReader
 from .goals import BoardAdapter
-from .slice1 import CarrierProviderAdapter
+from .slice1 import Any
 from .task_runtime import RuntimeAdapter
 
 
@@ -707,7 +707,7 @@ class AgentServiceR13:
         cls,
         db_path: str | Any,
         *,
-        carrier_adapter: CarrierProviderAdapter,
+        carrier_adapter: Any,
         runtime_adapter: RuntimeAdapter,
         artifact_reader: RuntimeArtifactReader,
         delivery_adapters: dict[str, DeliveryAdapter],

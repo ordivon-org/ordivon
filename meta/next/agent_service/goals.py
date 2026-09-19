@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 import hashlib
 import sqlite3
 import time
@@ -9,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .evidence import AgentServiceR6, RuntimeArtifactReader
-from .slice1 import CarrierProviderAdapter, ServiceEvent, ServiceEventStore
+from .slice1 import ServiceEvent, ServiceEventStore
 from .task_runtime import Assignment, AssignmentPlanner, AgentTask, RuntimeAdapter, TaskStore
 
 
@@ -551,7 +553,7 @@ class AgentServiceR7:
         cls,
         db_path: str | Path,
         *,
-        carrier_adapter: CarrierProviderAdapter,
+        carrier_adapter: Any,
         runtime_adapter: RuntimeAdapter,
         artifact_reader: RuntimeArtifactReader,
         board_adapter: BoardAdapter | None = None,

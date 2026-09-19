@@ -18,7 +18,7 @@ from agent_service.remote_evidence import (
     RemoteArtifactReader,
     _remote_task_verification_get_by_task,
 )
-from agent_service.slice1 import CarrierProviderAdapter, ProviderObservation
+from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import RuntimeAdapter, RuntimeJobObservation, RuntimeJobRef
 from agent_service.trust import AgentServiceR10, RemoteDeliveryObserver, RemoteProviderObservation
 
@@ -27,7 +27,7 @@ def digest(text: str) -> str:
     return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-class ReadyCarrier(CarrierProviderAdapter):
+class ReadyCarrier:
     def ensure(self, placement_id: str, agent_instance_id: str, revision_id: str) -> None:
         return None
 

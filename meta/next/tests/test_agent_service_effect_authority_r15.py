@@ -7,11 +7,11 @@ from pathlib import Path
 from agent_service.delivery import DeliveryAdapter, DeliveryObservation, PolicyAdapter, PolicyObservation
 from agent_service.effect_authority import AgentServiceR15
 from agent_service.evidence import RuntimeArtifactPayload, RuntimeArtifactReader
-from agent_service.slice1 import CarrierProviderAdapter, ProviderObservation
+from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import RuntimeAdapter, RuntimeJobObservation, RuntimeJobRef
 
 
-class ReadyCarrier(CarrierProviderAdapter):
+class ReadyCarrier:
     def ensure(self, placement_id: str, agent_instance_id: str, revision_id: str) -> None:
         return None
 

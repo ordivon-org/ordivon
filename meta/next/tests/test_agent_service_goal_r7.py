@@ -11,11 +11,11 @@ from agent_service.goals import (
     _board_projection_receipt_get_by_event,
 )
 from agent_service.evidence import RuntimeArtifactPayload, RuntimeArtifactReader
-from agent_service.slice1 import CarrierProviderAdapter, ProviderObservation
+from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import RuntimeAdapter, RuntimeJobObservation, RuntimeJobRef
 
 
-class ReadyCarrier(CarrierProviderAdapter):
+class ReadyCarrier:
     def ensure(self, placement_id: str, agent_instance_id: str, revision_id: str) -> None:
         return None
 

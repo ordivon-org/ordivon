@@ -7,12 +7,11 @@ from unittest.mock import patch
 
 from agent_service.slice1 import (
     AgentServiceSlice1,
-    HostAdapter,
-    ProviderObservation,
+        ProviderObservation,
 )
 
 
-class RecordingHostAdapter(HostAdapter):
+class RecordingHostAdapter:
     def __init__(self) -> None:
         self.ensure_calls: list[str] = []
         self.retire_calls: list[str] = []
@@ -36,7 +35,7 @@ class RecordingHostAdapter(HostAdapter):
 
 class AgentServiceSlice1Tests(unittest.TestCase):
     def _open(self, db: Path, host: RecordingHostAdapter | None = None) -> AgentServiceSlice1:
-        service = AgentServiceSlice1.open(db, host_adapter=host or RecordingHostAdapter())
+        service = AgentServiceSlice1.open(db, carrier_adapter=host or RecordingHostAdapter())
         self.addCleanup(service.close)
         return service
 

@@ -11,7 +11,7 @@ from typing import Any
 
 from .evidence import RuntimeArtifactReader
 from .goals import AgentServiceR7
-from .slice1 import CarrierProviderAdapter
+from .slice1 import Any
 from .task_runtime import RuntimeAdapter
 
 
@@ -732,7 +732,7 @@ class AgentServiceR8:
         cls,
         db_path: str | Path,
         *,
-        carrier_adapter: CarrierProviderAdapter,
+        carrier_adapter: Any,
         runtime_adapter: RuntimeAdapter,
         artifact_reader: RuntimeArtifactReader,
         board_adapter: Any | None = None,

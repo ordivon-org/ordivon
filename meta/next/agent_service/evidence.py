@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .slice1 import CarrierProviderAdapter, ServiceEvent, ServiceEventStore
+from .slice1 import ServiceEvent, ServiceEventStore
 from .task_runtime import (
     AgentServiceR5,
     Assignment,
@@ -420,7 +420,7 @@ class AgentServiceR6:
         cls,
         db_path: str | Path,
         *,
-        carrier_adapter: CarrierProviderAdapter,
+        carrier_adapter: Any,
         runtime_adapter: RuntimeAdapter,
         artifact_reader: RuntimeArtifactReader,
     ) -> "AgentServiceR6":
