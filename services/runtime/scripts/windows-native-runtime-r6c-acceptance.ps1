@@ -264,7 +264,7 @@ function Wait-JobWorking {
     $id = 100
     do {
         $id++
-        $job = Invoke-McpTool -Name 'task.get' -Arguments @{
+        $job = Invoke-McpTool -Name 'job.get' -Arguments @{
             schemaVersion = 1
             jobId = $JobId
             eventLimit = 100

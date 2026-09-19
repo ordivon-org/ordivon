@@ -1273,7 +1273,7 @@ fn tool_effect_annotations_match_runtime_behavior() {
         ("release.get", true, false, true, false),
         ("runtime.describe", true, false, true, false),
         ("task.cancel", false, true, true, false),
-        ("task.get", true, false, true, false),
+        ("job.get", true, false, true, false),
         ("task.list", true, false, true, false),
         ("task.observe", false, true, true, true),
         ("workspace.close", false, true, true, false),
@@ -1346,7 +1346,7 @@ fn tool_inputs_default_missing_schema_version_to_pinned_version() {
         serde_json::from_str(r#"{"workspaceId":"ws-1","mutations":[]}"#).unwrap();
     assert_eq!(mutate.schema_version, 1);
     // MCP-crate request structs.
-    let get: TaskGetRequest = serde_json::from_str(r#"{"jobId":"job-1"}"#).unwrap();
+    let get: JobGetRequest = serde_json::from_str(r#"{"jobId":"job-1"}"#).unwrap();
     assert_eq!(get.schema_version, 1);
     let diff: WorkspaceDiffRequest =
         serde_json::from_str(r#"{"workspaceId":"ws-1","maxBytes":10}"#).unwrap();
@@ -1363,7 +1363,7 @@ fn tool_inputs_default_missing_schema_version_to_pinned_version() {
     assert_eq!(release_get.schema_version, 1);
     // Explicit non-pinned versions survive deserialization and are rejected
     // by the handler gate ("schemaVersion must be 1") — the pin keeps teeth.
-    let wrong: TaskGetRequest =
+    let wrong: JobGetRequest =
         serde_json::from_str(r#"{"jobId":"job-1","schemaVersion":2}"#).unwrap();
     assert_eq!(wrong.schema_version, 2);
 }
@@ -1394,11 +1394,11 @@ fn tool_catalog_uses_transactional_job_contract() {
         [
             "artifact.read",
             "input.ingest",
+            "job.get",
             "release.apply",
             "release.get",
             "runtime.describe",
             "task.cancel",
-            "task.get",
             "task.list",
             "task.observe",
             "workspace.changes",
@@ -2112,14 +2112,14 @@ fn workspace_open_output_schema_exposes_success_and_error_contract() {
 }
 
 #[test]
-fn task_get_schema_is_projection_only_and_detail_free() {
-    let sandbox = Sandbox::new("task-get-schema");
+fn job_get_schema_is_projection_only_and_detail_free() {
+    let sandbox = Sandbox::new("job-get-schema");
     let server = sandbox.server();
     let task_get = server
         .tool_router
         .list_all()
         .into_iter()
-        .find(|tool| tool.name.as_ref() == "task.get")
+        .find(|tool| tool.name.as_ref() == "job.get")
         .unwrap();
     let input = serde_json::to_value(&task_get.input_schema).unwrap();
     assert_eq!(
@@ -2149,7 +2149,7 @@ fn task_get_schema_is_projection_only_and_detail_free() {
     ] {
         assert!(
             encoded.contains(expected),
-            "task.get output omitted {expected}"
+            "job.get output omitted {expected}"
         );
     }
 }

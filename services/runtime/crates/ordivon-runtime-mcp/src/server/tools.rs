@@ -696,7 +696,7 @@ impl RuntimeServer {
     }
 
     #[tool(
-        name = "task.get",
+        name = "job.get",
         description = "Read one exact durable Job as a projection-only Runtime inspection. This never reconciles, dispatches, cancels, or otherwise advances the Job. The Job projection includes the exact sourceRevision and admission-frozen workspaceSourceDigest from its committed execution plan, so later Workspace movement cannot be mistaken for the source state this Job actually bound. It also returns bounded Attempt history, mechanical convergence, Artifact/episode summaries, and a bounded event timeline with event detail omitted; use artifact.read for retained stdout/stderr/results and task.observe only when targeted reconciliation or waiting is intended.",
         output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<RuntimeJobInspection>>(),
         annotations(
@@ -707,9 +707,9 @@ impl RuntimeServer {
             open_world_hint = false
         )
     )]
-    async fn task_get(
+    async fn job_get(
         &self,
-        Parameters(request): Parameters<TaskGetRequest>,
+        Parameters(request): Parameters<JobGetRequest>,
     ) -> ToolOutcome<RuntimeJobInspection> {
         if request.schema_version != 1 {
             return ToolOutcome::Error(ToolError::invalid(
@@ -718,7 +718,7 @@ impl RuntimeServer {
             ));
         }
         let runtime = self.state.runtime.clone();
-        self.run_core("task.get", move || {
+        self.run_core("job.get", move || {
             runtime
                 .inspect_job(&request.job_id, request.event_limit)
                 .map_err(ToolError::from)
