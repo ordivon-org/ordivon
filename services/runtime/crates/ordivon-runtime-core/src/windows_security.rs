@@ -27,11 +27,6 @@ pub(crate) fn protect_private_file(path: &Path) -> io::Result<()> {
     protect_private_path(path, false)
 }
 
-/// Validate the exact writable private-state ACL used by Runtime-owned Windows files.
-pub fn validate_private_file_acl(path: &Path) -> io::Result<()> {
-    validate_private_file_acl_with_principal_access(path, PrincipalAccess::FullControl)
-}
-
 /// Validate a private configuration/secret file that the Runtime identity may read but not write.
 pub fn validate_private_readonly_file_acl(path: &Path) -> io::Result<()> {
     validate_private_file_acl_with_principal_access(path, PrincipalAccess::ReadOnly)
