@@ -147,7 +147,6 @@ def build_server(dsn: str | None = None) -> MCPServer:
             "schemaVersion": 4,
             "kind": "ordivon.host-external-continuity-resume",
             "task": _task_summary(task),
-            "handoff": service._handoff(task),
             "checkpoint": task.checkpoint,
             "writerLabel": task.writer_label,
             "truthBoundary": "semantic working claim only; foreign Runtime/Git/domain references must be revalidated",
@@ -179,7 +178,6 @@ def build_server(dsn: str | None = None) -> MCPServer:
             "kind": "ordivon.host-external-continuity-adopt",
             "admission": result.admission.value,
             "task": _task_summary(result.task),
-            "handoff": service._handoff(result.task),
             "checkpoint": result.task.checkpoint,
             "writerLabel": result.task.writer_label,
         }
@@ -218,7 +216,6 @@ def build_server(dsn: str | None = None) -> MCPServer:
             "kind": "ordivon.host-external-continuity-checkpoint",
             "admission": result.admission.value,
             "task": _task_summary(result.task),
-            "handoff": service._handoff(result.task),
             "checkpoint": result.task.checkpoint,
             "writerLabel": result.task.writer_label,
         }

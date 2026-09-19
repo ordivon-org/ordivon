@@ -162,27 +162,11 @@ class BoardStore:
                     )
                 admission = "existing"
             message_row = self._by_id(conn, client_message_id)
-            occupancy = None
-            if reply_to_client_message_id is not None:
-                count_row = conn.execute(
-                    "SELECT count(*) AS value FROM board_messages WHERE reply_to_client_message_id=%s AND sequence<=%s",
-                    (reply_to_client_message_id, message_row["sequence"]),
-                ).fetchone()
-                assert count_row is not None
-                count = count_row["value"]
-                occupancy = {
-                    "parentClientMessageId": reply_to_client_message_id,
-                    "throughSequence": message_row["sequence"],
-                    "priorDirectReplyCount": int(count) - 1,
-                    "currentDirectReplyCount": int(count),
-                    "truthRole": "mechanical-direct-reply-admission-density-not-active-standing",
-                }
             return {
                 "schemaVersion": 3,
                 "kind": "ordivon.host-board-post-receipt",
                 "admission": admission,
                 "message": self._wire(message_row),
-                "replyOccupancy": occupancy,
                 "truthBoundary": "message persistence only; not Task priority, execution authority, owner standing, or domain truth",
             }
 
