@@ -464,7 +464,7 @@ fn merge_environment(
 
 fn artifact_descriptor(
     artifact: RuntimeArtifactRecord,
-    result: Option<&RunnerTaskResult>,
+    result: Option<&RunnerResult>,
 ) -> ArtifactDescriptor {
     let dropped_bytes = match artifact.kind.as_str() {
         "stdout" => result.map(|result| result.stdout.dropped_bytes),
@@ -1762,7 +1762,7 @@ fn file_length_if_present(path: &Path) -> RuntimeResult<u64> {
 
 pub(crate) fn load_runner_progress_if_present(
     attempt: &AttemptRecord,
-) -> RuntimeResult<Option<RunnerTaskProgress>> {
+) -> RuntimeResult<Option<RunnerProgress>> {
     let path = Path::new(&attempt.bundle_path).join(PROGRESS_FILE);
     if !path.exists() {
         return Ok(None);
@@ -1830,7 +1830,7 @@ fn load_control_error_summary_if_present(attempt: &AttemptRecord) -> RuntimeResu
 
 fn load_runner_result_if_present(
     attempt: &AttemptRecord,
-) -> RuntimeResult<Option<RunnerTaskResult>> {
+) -> RuntimeResult<Option<RunnerResult>> {
     let path = Path::new(&attempt.bundle_path).join(RESULT_FILE);
     if !path.exists() {
         return Ok(None);

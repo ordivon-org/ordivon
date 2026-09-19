@@ -1394,7 +1394,7 @@ fn runner_rejects_workspace_source_drift_before_spawning_target() {
     let task_dir = sandbox.root.join("task-source-drift");
     fs::create_dir_all(&task_dir).unwrap();
     let executable = real_executable("/usr/bin/python3");
-    let request = RunnerTaskRequest {
+    let request = RunnerRequest {
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
         attempt_id: None,
@@ -1423,9 +1423,9 @@ fn runner_rejects_workspace_source_drift_before_spawning_target() {
     write_json_atomic(&task_dir.join("request.json"), &request).unwrap();
     run_job_runner(&task_dir).unwrap();
 
-    let result: RunnerTaskResult =
+    let result: RunnerResult =
         serde_json::from_slice(&fs::read(task_dir.join("result.json")).unwrap()).unwrap();
-    assert_eq!(result.status, TaskTerminalStatus::Failed);
+    assert_eq!(result.status, RunnerTerminalStatus::Failed);
     assert!(result.exit_code.is_none());
     assert_eq!(
         result.infrastructure_error_code.as_deref(),
@@ -1453,7 +1453,7 @@ fn runner_projects_private_build_target_through_stable_inherited_fd() {
     )
     .unwrap();
     let executable = real_executable("/usr/bin/python3");
-    let request = RunnerTaskRequest {
+    let request = RunnerRequest {
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
         attempt_id: None,
@@ -1485,9 +1485,9 @@ fn runner_projects_private_build_target_through_stable_inherited_fd() {
     write_json_atomic(&task_dir.join("request.json"), &request).unwrap();
     run_job_runner(&task_dir).unwrap();
 
-    let result: RunnerTaskResult =
+    let result: RunnerResult =
         serde_json::from_slice(&fs::read(task_dir.join("result.json")).unwrap()).unwrap();
-    assert_eq!(result.status, TaskTerminalStatus::Completed);
+    assert_eq!(result.status, RunnerTerminalStatus::Completed);
     assert_eq!(
         fs::read_to_string(backing.join("probe.txt")).unwrap(),
         "PRIVATE"
@@ -1513,7 +1513,7 @@ fn runner_rejects_host_dependency_drift_before_spawning_target() {
     let task_dir = sandbox.root.join("task-host-dependency-drift");
     fs::create_dir_all(&task_dir).unwrap();
     let executable = real_executable("/usr/bin/python3");
-    let request = RunnerTaskRequest {
+    let request = RunnerRequest {
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
         attempt_id: None,
@@ -1544,9 +1544,9 @@ fn runner_rejects_host_dependency_drift_before_spawning_target() {
     };
     write_json_atomic(&task_dir.join("request.json"), &request).unwrap();
     run_job_runner(&task_dir).unwrap();
-    let result: RunnerTaskResult =
+    let result: RunnerResult =
         serde_json::from_slice(&fs::read(task_dir.join("result.json")).unwrap()).unwrap();
-    assert_eq!(result.status, TaskTerminalStatus::Failed);
+    assert_eq!(result.status, RunnerTerminalStatus::Failed);
     assert!(result.exit_code.is_none());
     assert_eq!(
         result.infrastructure_error_code.as_deref(),
@@ -1580,7 +1580,7 @@ fn runner_fails_when_host_dependency_drifts_after_target_start() {
     let task_dir = sandbox.root.join("task-host-dependency-runtime-drift");
     fs::create_dir_all(&task_dir).unwrap();
     let executable = real_executable("/usr/bin/python3");
-    let request = RunnerTaskRequest {
+    let request = RunnerRequest {
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
         attempt_id: None,
@@ -1633,9 +1633,9 @@ fn runner_fails_when_host_dependency_drifts_after_target_start() {
     fs::rename(&replacement, &dependency).unwrap();
     fs::write(&gate, b"go").unwrap();
     runner.join().unwrap().unwrap();
-    let result: RunnerTaskResult =
+    let result: RunnerResult =
         serde_json::from_slice(&fs::read(task_dir.join("result.json")).unwrap()).unwrap();
-    assert_eq!(result.status, TaskTerminalStatus::Failed);
+    assert_eq!(result.status, RunnerTerminalStatus::Failed);
     assert_eq!(
         result.infrastructure_error_code.as_deref(),
         Some("HOST_DEPENDENCY_RUNTIME_DRIFT")
@@ -1671,7 +1671,7 @@ fn runner_ignores_ancestor_metadata_event_when_host_dependency_identity_is_uncha
     let executable = real_executable("/usr/bin/python3");
     let task_dir = sandbox.root.join("task-host-dependency-ancestor-metadata");
     fs::create_dir_all(&task_dir).unwrap();
-    let request = RunnerTaskRequest {
+    let request = RunnerRequest {
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
         attempt_id: None,
@@ -1726,11 +1726,11 @@ fn runner_ignores_ancestor_metadata_event_when_host_dependency_identity_is_uncha
     thread::sleep(Duration::from_millis(100));
     fs::write(&gate, b"go").unwrap();
     runner.join().unwrap().unwrap();
-    let result: RunnerTaskResult =
+    let result: RunnerResult =
         serde_json::from_slice(&fs::read(task_dir.join("result.json")).unwrap()).unwrap();
     assert_eq!(
         result.status,
-        TaskTerminalStatus::Completed,
+        RunnerTerminalStatus::Completed,
         "ancestor metadata event must not prove Host Dependency drift: code={:?}, error={:?}",
         result.infrastructure_error_code,
         result.infrastructure_error
@@ -1759,7 +1759,7 @@ fn runner_ignores_ancestor_metadata_event_when_executable_identity_is_unchanged(
     let expected_digest = sha256_file(&executable).unwrap();
     let task_dir = sandbox.root.join("task-script-ancestor-metadata");
     fs::create_dir_all(&task_dir).unwrap();
-    let request = RunnerTaskRequest {
+    let request = RunnerRequest {
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
         attempt_id: None,
@@ -1811,11 +1811,11 @@ fn runner_ignores_ancestor_metadata_event_when_executable_identity_is_unchanged(
     thread::sleep(Duration::from_millis(100));
     fs::write(&gate, b"go").unwrap();
     runner.join().unwrap().unwrap();
-    let result: RunnerTaskResult =
+    let result: RunnerResult =
         serde_json::from_slice(&fs::read(task_dir.join("result.json")).unwrap()).unwrap();
     assert_eq!(
         result.status,
-        TaskTerminalStatus::Completed,
+        RunnerTerminalStatus::Completed,
         "ancestor metadata event must not prove executable drift: code={:?}, error={:?}",
         result.infrastructure_error_code,
         result.infrastructure_error
@@ -1848,7 +1848,7 @@ fn runner_fails_when_symlinked_executable_target_is_modified_in_place() {
     std::os::unix::fs::symlink(&target, &executable).unwrap();
     let task_dir = sandbox.root.join("task-symlink-target-runtime-modify");
     fs::create_dir_all(&task_dir).unwrap();
-    let request = RunnerTaskRequest {
+    let request = RunnerRequest {
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
         attempt_id: None,
@@ -1895,9 +1895,9 @@ fn runner_fails_when_symlinked_executable_target_is_modified_in_place() {
     );
     fs::write(&target, "#!/bin/sh\nprintf 'MODIFIED\\n'\n").unwrap();
     runner.join().unwrap().unwrap();
-    let result: RunnerTaskResult =
+    let result: RunnerResult =
         serde_json::from_slice(&fs::read(task_dir.join("result.json")).unwrap()).unwrap();
-    assert_eq!(result.status, TaskTerminalStatus::Failed);
+    assert_eq!(result.status, RunnerTerminalStatus::Failed);
     assert_eq!(
         result.infrastructure_error_code.as_deref(),
         Some("EXECUTABLE_RUNTIME_DRIFT")
@@ -1925,7 +1925,7 @@ fn runner_preserves_shebang_path_semantics_but_fails_on_runtime_executable_drift
     let expected_digest = sha256_file(&executable).unwrap();
     let task_dir = sandbox.root.join("task-script-runtime-drift");
     fs::create_dir_all(&task_dir).unwrap();
-    let request = RunnerTaskRequest {
+    let request = RunnerRequest {
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
         attempt_id: None,
@@ -1979,9 +1979,9 @@ fn runner_preserves_shebang_path_semantics_but_fails_on_runtime_executable_drift
     fs::rename(&replacement, &executable).unwrap();
     fs::write(&gate, b"go").unwrap();
     runner.join().unwrap().unwrap();
-    let result: RunnerTaskResult =
+    let result: RunnerResult =
         serde_json::from_slice(&fs::read(task_dir.join("result.json")).unwrap()).unwrap();
-    assert_eq!(result.status, TaskTerminalStatus::Failed);
+    assert_eq!(result.status, RunnerTerminalStatus::Failed);
     assert_eq!(
         result.infrastructure_error_code.as_deref(),
         Some("EXECUTABLE_RUNTIME_DRIFT")
@@ -2009,7 +2009,7 @@ fn runner_rejects_immutable_input_drift_before_spawning_target() {
     let task_dir = sandbox.root.join("task-input-drift");
     fs::create_dir_all(&task_dir).unwrap();
     let executable = real_executable("/usr/bin/python3");
-    let request = RunnerTaskRequest {
+    let request = RunnerRequest {
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
         attempt_id: None,
@@ -2042,9 +2042,9 @@ fn runner_rejects_immutable_input_drift_before_spawning_target() {
     write_json_atomic(&task_dir.join("request.json"), &request).unwrap();
     run_job_runner(&task_dir).unwrap();
 
-    let result: RunnerTaskResult =
+    let result: RunnerResult =
         serde_json::from_slice(&fs::read(task_dir.join("result.json")).unwrap()).unwrap();
-    assert_eq!(result.status, TaskTerminalStatus::Failed);
+    assert_eq!(result.status, RunnerTerminalStatus::Failed);
     assert!(result.exit_code.is_none());
     assert_eq!(
         result.infrastructure_error_code.as_deref(),
@@ -2076,7 +2076,7 @@ fn runner_rejects_undeclared_input_directory_before_spawning_target() {
     let task_dir = sandbox.root.join("task-input-extra-directory");
     fs::create_dir_all(&task_dir).unwrap();
     let executable = real_executable("/usr/bin/python3");
-    let request = RunnerTaskRequest {
+    let request = RunnerRequest {
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
         attempt_id: None,
@@ -2109,9 +2109,9 @@ fn runner_rejects_undeclared_input_directory_before_spawning_target() {
     write_json_atomic(&task_dir.join("request.json"), &request).unwrap();
     run_job_runner(&task_dir).unwrap();
 
-    let result: RunnerTaskResult =
+    let result: RunnerResult =
         serde_json::from_slice(&fs::read(task_dir.join("result.json")).unwrap()).unwrap();
-    assert_eq!(result.status, TaskTerminalStatus::Failed);
+    assert_eq!(result.status, RunnerTerminalStatus::Failed);
     assert_eq!(
         result.infrastructure_error_code.as_deref(),
         Some("INPUT_STATE_MISMATCH")
@@ -3029,7 +3029,7 @@ fn runner_executes_model_authored_script_and_bounds_output() {
     )
     .unwrap();
     let executable = real_executable("/usr/bin/python3");
-    let request = RunnerTaskRequest {
+    let request = RunnerRequest {
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
         attempt_id: None,
@@ -3057,9 +3057,9 @@ fn runner_executes_model_authored_script_and_bounds_output() {
     };
     write_json_atomic(&task_dir.join("request.json"), &request).unwrap();
     run_job_runner(&task_dir).unwrap();
-    let result: RunnerTaskResult =
+    let result: RunnerResult =
         serde_json::from_slice(&fs::read(task_dir.join("result.json")).unwrap()).unwrap();
-    assert_eq!(result.status, TaskTerminalStatus::Completed);
+    assert_eq!(result.status, RunnerTerminalStatus::Completed);
     assert!(result.stdout.truncated);
     assert!(result.stderr.truncated);
     assert_eq!(result.stdout.retained_bytes, 8);
@@ -3093,7 +3093,7 @@ fn runner_shared_overall_deadline_is_independent_of_step_timeout_sum() {
         timeout_ms: 500,
         continue_on_error: false,
     };
-    let fast = RunnerTaskRequest {
+    let fast = RunnerRequest {
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
         attempt_id: None,
@@ -3122,9 +3122,9 @@ fn runner_shared_overall_deadline_is_independent_of_step_timeout_sum() {
     assert!(fast.steps.iter().map(|step| step.timeout_ms).sum::<u64>() > fast.timeout_ms);
     write_json_atomic(&fast_dir.join("request.json"), &fast).unwrap();
     run_job_runner(&fast_dir).unwrap();
-    let result: RunnerTaskResult =
+    let result: RunnerResult =
         serde_json::from_slice(&fs::read(fast_dir.join("result.json")).unwrap()).unwrap();
-    assert_eq!(result.status, TaskTerminalStatus::Completed);
+    assert_eq!(result.status, RunnerTerminalStatus::Completed);
 
     let slow_dir = sandbox.root.join("slow");
     fs::create_dir_all(&slow_dir).unwrap();
@@ -3144,9 +3144,9 @@ fn runner_shared_overall_deadline_is_independent_of_step_timeout_sum() {
     };
     write_json_atomic(&slow_dir.join("request.json"), &slow).unwrap();
     run_job_runner(&slow_dir).unwrap();
-    let result: RunnerTaskResult =
+    let result: RunnerResult =
         serde_json::from_slice(&fs::read(slow_dir.join("result.json")).unwrap()).unwrap();
-    assert_eq!(result.status, TaskTerminalStatus::Failed);
+    assert_eq!(result.status, RunnerTerminalStatus::Failed);
     assert!(result.timed_out);
     assert_eq!(result.failed_step_id.as_deref(), Some("two"));
 }
@@ -3160,7 +3160,7 @@ fn runner_timeout_is_a_durable_failed_result() {
     fs::create_dir_all(&task_dir).unwrap();
     fs::write(workspace.join("tool.py"), "import time\ntime.sleep(5)\n").unwrap();
     let executable = real_executable("/usr/bin/python3");
-    let request = RunnerTaskRequest {
+    let request = RunnerRequest {
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
         attempt_id: None,
@@ -3188,9 +3188,9 @@ fn runner_timeout_is_a_durable_failed_result() {
     };
     write_json_atomic(&task_dir.join("request.json"), &request).unwrap();
     run_job_runner(&task_dir).unwrap();
-    let result: RunnerTaskResult =
+    let result: RunnerResult =
         serde_json::from_slice(&fs::read(task_dir.join("result.json")).unwrap()).unwrap();
-    assert_eq!(result.status, TaskTerminalStatus::Failed);
+    assert_eq!(result.status, RunnerTerminalStatus::Failed);
     assert!(result.timed_out);
 }
 
@@ -3202,7 +3202,7 @@ fn runner_timeout_terminates_descendant_pipe_holders_before_result() {
     fs::create_dir_all(&workspace).unwrap();
     fs::create_dir_all(&task_dir).unwrap();
     let executable = real_executable("/usr/bin/bash");
-    let request = RunnerTaskRequest {
+    let request = RunnerRequest {
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         job_id: None,
         attempt_id: None,
@@ -3232,9 +3232,9 @@ fn runner_timeout_terminates_descendant_pipe_holders_before_result() {
     let started = std::time::Instant::now();
     run_job_runner(&task_dir).unwrap();
     assert!(started.elapsed() < std::time::Duration::from_secs(2));
-    let result: RunnerTaskResult =
+    let result: RunnerResult =
         serde_json::from_slice(&fs::read(task_dir.join("result.json")).unwrap()).unwrap();
-    assert_eq!(result.status, TaskTerminalStatus::Failed);
+    assert_eq!(result.status, RunnerTerminalStatus::Failed);
     assert!(result.timed_out);
 }
 

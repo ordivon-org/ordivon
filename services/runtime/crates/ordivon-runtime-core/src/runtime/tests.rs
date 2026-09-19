@@ -8,7 +8,7 @@ use super::repair::{AdminRepairAudit, AdminRepairOperation};
 use super::supervisor::AttemptSupervisorOwner;
 use super::*;
 use crate::universal::{
-    CapturedOutput, RunnerTaskResult, TaskTerminalStatus, UniversalExecutorConfig,
+    CapturedOutput, RunnerResult, RunnerTerminalStatus, UniversalExecutorConfig,
     WorkspaceCloseRequest, WorkspaceMutateRequest, WorkspaceMutation, WorkspaceMutationMode,
     UNIVERSAL_EXEC_SCHEMA_VERSION,
 };
@@ -169,7 +169,7 @@ fn write_completed_runner_result(attempt: &AttemptRecord, finished_at_ms: u128) 
     let stderr = b"";
     fs::write(bundle.join("stdout.log"), stdout).unwrap();
     fs::write(bundle.join("stderr.log"), stderr).unwrap();
-    let result = RunnerTaskResult {
+    let result = RunnerResult {
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         task_id: attempt.attempt_id.clone(),
         job_id: Some(attempt.job_id.clone()),
@@ -177,7 +177,7 @@ fn write_completed_runner_result(attempt: &AttemptRecord, finished_at_ms: u128) 
         launch_token_digest: Some(attempt.launch_token_digest.clone()),
         payload_uid: None,
         payload_gid: None,
-        status: TaskTerminalStatus::Completed,
+        status: RunnerTerminalStatus::Completed,
         exit_code: Some(0),
         timed_out: false,
         infrastructure_error_code: None,
@@ -827,7 +827,7 @@ fn workspace_source_drift_is_persisted_as_precondition_failure() {
     let stderr = b"";
     fs::write(bundle.join("stdout.log"), stdout).unwrap();
     fs::write(bundle.join("stderr.log"), stderr).unwrap();
-    let result = RunnerTaskResult {
+    let result = RunnerResult {
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         task_id: created.attempt.attempt_id.clone(),
         job_id: Some(created.job.job_id.clone()),
@@ -835,7 +835,7 @@ fn workspace_source_drift_is_persisted_as_precondition_failure() {
         launch_token_digest: Some(created.attempt.launch_token_digest.clone()),
         payload_uid: None,
         payload_gid: None,
-        status: TaskTerminalStatus::Failed,
+        status: RunnerTerminalStatus::Failed,
         exit_code: None,
         timed_out: false,
         infrastructure_error_code: Some("WORKSPACE_STATE_MISMATCH".to_string()),

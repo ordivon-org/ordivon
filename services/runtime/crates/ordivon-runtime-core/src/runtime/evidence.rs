@@ -6,7 +6,7 @@ use super::{
     RuntimeErrorCode, RuntimeResult, TerminalCommit,
 };
 use crate::universal::{
-    sha256_bytes, sha256_file, CapturedOutput, RunnerTaskResult, TaskTerminalStatus,
+    sha256_bytes, sha256_file, CapturedOutput, RunnerResult, RunnerTerminalStatus,
 };
 
 pub(crate) const RESULT_FILE: &str = "result.json";
@@ -18,7 +18,7 @@ pub(crate) fn prepare_runner_terminal_from_bundle(
 ) -> RuntimeResult<TerminalCommit> {
     let result_path = Path::new(&current.bundle_path).join(RESULT_FILE);
     let bytes = fs::read(&result_path).map_err(|error| io_error("read Runner result", error))?;
-    let result: RunnerTaskResult = serde_json::from_slice(&bytes).map_err(|error| {
+    let result: RunnerResult = serde_json::from_slice(&bytes).map_err(|error| {
         RuntimeError::new(
             RuntimeErrorCode::RegistryCorrupt,
             format!("invalid Runner result: {error}"),
@@ -44,7 +44,7 @@ pub(crate) fn prepare_runner_terminal_from_bundle(
     let stdout = validate_captured_output(current, &result.stdout, true)?;
     let stderr = validate_captured_output(current, &result.stderr, false)?;
     let (state, reason_code) = match result.status {
-        TaskTerminalStatus::Completed
+        RunnerTerminalStatus::Completed
             if current.state == AttemptState::Stopping
                 || current.termination_intent == AttemptTerminationIntent::StopRequested =>
         {
@@ -53,36 +53,36 @@ pub(crate) fn prepare_runner_terminal_from_bundle(
                 "PROCESS_COMPLETED_BEFORE_STOP_EFFECTIVE",
             )
         }
-        TaskTerminalStatus::Completed => (AttemptState::Succeeded, "PROCESS_EXIT_ZERO"),
-        TaskTerminalStatus::Failed if result.timed_out => {
+        RunnerTerminalStatus::Completed => (AttemptState::Succeeded, "PROCESS_EXIT_ZERO"),
+        RunnerTerminalStatus::Failed if result.timed_out => {
             (AttemptState::TimedOut, "DEADLINE_EXCEEDED")
         }
-        TaskTerminalStatus::Failed
+        RunnerTerminalStatus::Failed
             if result.infrastructure_error_code.as_deref() == Some("WORKSPACE_STATE_MISMATCH") =>
         {
             (AttemptState::Failed, "WORKSPACE_SOURCE_PRECONDITION_DRIFT")
         }
-        TaskTerminalStatus::Failed
+        RunnerTerminalStatus::Failed
             if result.infrastructure_error_code.as_deref() == Some("INPUT_STATE_MISMATCH") =>
         {
             (AttemptState::Failed, "INPUT_PRECONDITION_DRIFT")
         }
-        TaskTerminalStatus::Failed
+        RunnerTerminalStatus::Failed
             if result.infrastructure_error_code.as_deref()
                 == Some("HOST_DEPENDENCY_RUNTIME_DRIFT") =>
         {
             (AttemptState::Failed, "HOST_DEPENDENCY_RUNTIME_DRIFT")
         }
-        TaskTerminalStatus::Failed
+        RunnerTerminalStatus::Failed
             if result.infrastructure_error_code.as_deref() == Some("EXECUTABLE_RUNTIME_DRIFT") =>
         {
             (AttemptState::Failed, "EXECUTABLE_RUNTIME_DRIFT")
         }
-        TaskTerminalStatus::Failed if result.infrastructure_error_code.is_some() => {
+        RunnerTerminalStatus::Failed if result.infrastructure_error_code.is_some() => {
             (AttemptState::Failed, "RUNNER_INFRASTRUCTURE_FAILURE")
         }
-        TaskTerminalStatus::Failed => (AttemptState::Failed, "PROCESS_EXIT_NONZERO"),
-        TaskTerminalStatus::Cancelled => (AttemptState::Cancelled, "STOP_REQUESTED"),
+        RunnerTerminalStatus::Failed => (AttemptState::Failed, "PROCESS_EXIT_NONZERO"),
+        RunnerTerminalStatus::Cancelled => (AttemptState::Cancelled, "STOP_REQUESTED"),
     };
     let infrastructure_error_digest = result
         .infrastructure_error

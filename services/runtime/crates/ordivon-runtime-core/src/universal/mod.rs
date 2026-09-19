@@ -55,8 +55,8 @@ pub(crate) use fsutil::{
 pub(crate) use types::RunnerStepResult;
 pub(crate) use types::{
     CapturedOutput, RunnerExecutionStep, RunnerHostDependencyCommitment, RunnerInputCommitment,
-    RunnerPayloadConfig, RunnerStartEvidence, RunnerTaskProgress, RunnerTaskRequest,
-    RunnerTaskResult, TaskTerminalStatus,
+    RunnerPayloadConfig, RunnerProgress, RunnerRequest, RunnerResult, RunnerStartEvidence,
+    RunnerTerminalStatus,
 };
 #[cfg(feature = "transactional-runtime")]
 pub(crate) use workspace::resolve_workspace_cwd;
