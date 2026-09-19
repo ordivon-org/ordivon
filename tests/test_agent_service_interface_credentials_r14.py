@@ -269,7 +269,10 @@ class AgentServiceInterfaceCredentialsR14Tests(unittest.TestCase):
             self.assertFalse(hasattr(record, "access_token"))
             self.assertNotIn("TOP-SECRET-R14", repr(record))
             rows = service._connection.execute(
-                "SELECT * FROM transport_credential_bindings"
+                """
+                SELECT * FROM service_events
+                WHERE aggregate_type LIKE 'TransportCredential%'
+                """
             ).fetchall()
             self.assertNotIn("TOP-SECRET-R14", repr([dict(row) for row in rows]))
 
@@ -414,6 +417,45 @@ class AgentServiceInterfaceCredentialsR14Tests(unittest.TestCase):
                 identity_proof_id=proof.id,
             )
             self.assertEqual(first.id, second.id)
+
+
+    def test_transport_security_scheme_cannot_rebind_to_different_evidence(self):
+        proof_adapter = ProofAdapter()
+        provider = MaterialProvider()
+        with tempfile.TemporaryDirectory() as tmp:
+            service = self._open(
+                Path(tmp)/"s.db",
+                proof_adapter=proof_adapter,
+                material_provider=provider,
+            )
+            source_identity, _, _, _, binding, _ = self._setup(
+                service, security={"oauth2":["review.invoke"]}
+            )
+            self._credential(service, source_identity, binding)
+            second_credential = service.credential_references.register(
+                client_reference_id="r14:cred:conflict",
+                provider="vault",
+                reference="vault://ordivon/a2a/client-conflict",
+                issuer="https://auth.example.test",
+                resource="https://agents.example.test",
+                requested_scopes=["review.invoke"],
+            )
+            second_proof = service.identity_proofs.verify(
+                client_proof_request_id="r14:proof:conflict",
+                identity_id=source_identity.id,
+                credential_reference_id=second_credential.id,
+                purpose="outbound-transport-auth",
+            )
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "already bound to different credential evidence",
+            ):
+                service.transport_credentials.bind(
+                    client_binding_request_id="r14:transport-credential:conflict",
+                    binding_id=binding.id,
+                    security_scheme="oauth2",
+                    identity_proof_id=second_proof.id,
+                )
 
 
     def test_legacy_interface_table_fails_closed_until_destructive_migration(self):

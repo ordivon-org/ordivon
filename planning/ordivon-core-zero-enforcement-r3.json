@@ -232,7 +232,6 @@
       "TransportBindingStore",
       "TransportCredentialBinding",
       "TransportCredentialBindingCoordinator",
-      "TransportCredentialBindingStore",
       "VerificationRecord",
       "_SqliteNode"
     ],
@@ -294,6 +293,7 @@
     "RemoteDeliveryObservationStore",
     "RemoteTaskVerificationStore",
     "ReplaySafetyDecisionStore",
+    "TransportCredentialBindingStore",
     "VerificationRecordStore"
   ],
   "retiredPersistenceSurfaces": [
@@ -308,7 +308,8 @@
     "remote_delivery_observations",
     "remote_task_verifications",
     "replay_safety_decisions",
-    "task_verifications"
+    "task_verifications",
+    "transport_credential_bindings"
   ],
   "retiredForeignKeyAuthorities": [
     "board_projection_receipts.goal_id -> service_goals.id",
@@ -335,6 +336,9 @@
     "task_verifications.assignment_id -> service_assignments.id",
     "task_verifications.task_id -> service_tasks.id",
     "transport_bindings.interface_id -> agent_interface_advertisements.id",
-    "transport_bindings.policy_decision_id -> policy_decisions.id"
+    "transport_bindings.policy_decision_id -> policy_decisions.id",
+    "transport_credential_bindings.binding_id -> transport_bindings.id",
+    "transport_credential_bindings.credential_reference_id -> credential_references.id",
+    "transport_credential_bindings.identity_proof_id -> identity_proof_records.id"
   ]
 }
