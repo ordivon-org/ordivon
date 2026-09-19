@@ -123,7 +123,8 @@ function Invoke-McpTool {
     $result = Invoke-McpRequest -Method 'tools/call' -Params @{ name = $Name; arguments = $Arguments } -Id $Id -ToolName $Name
     $isErrorProperty = $result.PSObject.Properties['isError']
     if ($null -ne $isErrorProperty -and $isErrorProperty.Value -eq $true) {
-        throw "MCP tool $Name returned isError."
+        $diagnostic = $result | ConvertTo-Json -Depth 16 -Compress
+        throw "MCP tool $Name returned isError: $diagnostic"
     }
     $structuredProperty = $result.PSObject.Properties['structuredContent']
     if ($null -eq $structuredProperty -or $null -eq $structuredProperty.Value) {
@@ -209,6 +210,22 @@ function Invoke-CrashRecovery {
     }
 }
 
+function Set-AcceptanceRepositoryOwnerToService {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $serviceAccount = "NT SERVICE\$ServiceName"
+    $owner = [Security.Principal.NTAccount]::new($serviceAccount).Translate(
+        [Security.Principal.SecurityIdentifier])
+
+    $items = @([IO.DirectoryInfo]::new($Path))
+    $items += @(Get-ChildItem -LiteralPath $Path -Force -Recurse)
+    foreach ($item in $items) {
+        $acl = Get-Acl -LiteralPath $item.FullName
+        $acl.SetOwner($owner)
+        Set-Acl -LiteralPath $item.FullName -AclObject $acl
+    }
+}
+
 function Ensure-TestRepository {
     $git = 'C:\Program Files\Git\cmd\git.exe'
     if (-not [IO.File]::Exists($git)) {
@@ -231,6 +248,10 @@ function Ensure-TestRepository {
     if ($LASTEXITCODE -ne 0 -or $revision -notmatch '^[0-9a-f]{40}$') {
         throw 'git rev-parse failed'
     }
+
+    # Git safe.directory is owner-based. Keep its protection enabled and make the
+    # candidate-only fixture genuinely owned by the virtual service identity.
+    Set-AcceptanceRepositoryOwnerToService -Path $repo
     return [pscustomobject]@{ path = $repo; revision = $revision }
 }
 

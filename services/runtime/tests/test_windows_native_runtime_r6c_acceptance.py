@@ -56,4 +56,14 @@ def test_r6c_harness_handles_optional_json_properties_under_strict_mode():
     assert "$message.PSObject.Properties['result']" in text
     assert "$result.PSObject.Properties['isError']" in text
     assert "$result.PSObject.Properties['structuredContent']" in text
+    assert 'MCP tool $Name returned isError: $diagnostic' in text
     assert "$message.error" not in text
+
+
+def test_r6c_active_job_fixture_preserves_git_safe_directory_by_using_service_owner():
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert "Set-AcceptanceRepositoryOwnerToService" in text
+    assert 'NT SERVICE\\$ServiceName' in text
+    assert ".SetOwner($owner)" in text
+    assert "safe.directory=*" not in text
+    assert "git config --global" not in text
