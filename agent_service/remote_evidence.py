@@ -11,9 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from .delivery import (
-    DeliveryAdapter,
     DeliveryObservation,
-    PolicyAdapter,
     TransportBinding,
     TransportBindingStore,
     _delivery_receipt_create,
@@ -197,7 +195,7 @@ class ClaimAwareDeliveryCoordinator:
         delegations: Any,
         bindings: TransportBindingStore,
         receipts: ServiceEventStore,
-        adapters: dict[str, DeliveryAdapter],
+        adapters: dict[str],
     ) -> None:
         self._connection = connection
         self._tasks = tasks
@@ -284,7 +282,7 @@ class ClaimAwareDeliveryCoordinator:
             return existing
         adapter = self._adapters.get(binding.transport)
         if adapter is None:
-            raise LookupError(f"no DeliveryAdapter registered for {binding.transport}")
+            raise LookupError(f"no delivery provider registered for {binding.transport}")
         self._claim_remote(binding, envelope, allow_terminal=False)
         observation = adapter.send(
             delivery_request_id=binding.delivery_request_id,
@@ -292,7 +290,7 @@ class ClaimAwareDeliveryCoordinator:
             envelope=envelope,
         )
         if not isinstance(observation, DeliveryObservation):
-            raise TypeError("DeliveryAdapter must return DeliveryObservation")
+            raise TypeError("delivery provider must return DeliveryObservation")
         if observation.admission not in {"committed", "existing"}:
             raise ValueError("DeliveryObservation admission must be committed or existing")
         return _delivery_receipt_create(self._receipts, binding, observation)
@@ -589,7 +587,7 @@ class AgentServiceR11:
         self,
         r10: AgentServiceR10,
         *,
-        delivery_adapters: dict[str, DeliveryAdapter],
+        delivery_adapters: dict[str],
         remote_artifact_readers: dict[str, RemoteArtifactReader],
     ) -> None:
         self._r10 = r10
@@ -648,8 +646,8 @@ class AgentServiceR11:
         carrier_adapter: Any,
         runtime_adapter: Any,
         artifact_reader: Any,
-        policy_adapter: PolicyAdapter | None = None,
-        delivery_adapters: dict[str, DeliveryAdapter] | None = None,
+        policy_adapter: Any | None = None,
+        delivery_adapters: dict[str] | None = None,
         identity_proof_adapter: IdentityProofAdapter | None = None,
         remote_delivery_observers: dict[str, RemoteDeliveryObserver] | None = None,
         remote_artifact_readers: dict[str, RemoteArtifactReader] | None = None,

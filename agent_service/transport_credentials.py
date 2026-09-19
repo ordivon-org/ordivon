@@ -12,7 +12,7 @@ from typing import Any
 
 import rfc8785
 
-from .delivery import DeliveryAdapter, PolicyAdapter, TransportBinding
+from .delivery import TransportBinding
 from .evidence import Any
 from .goals import BoardAdapter
 from .provider_adapters import (
@@ -551,12 +551,12 @@ class AgentServiceR14:
         carrier_adapter: Any,
         runtime_adapter: Any,
         artifact_reader: Any,
-        delivery_adapters: dict[str, DeliveryAdapter],
+        delivery_adapters: dict[str],
         credential_material_provider: CredentialMaterialProvider | None = None,
         a2a_caller: ProviderCaller | None = None,
         mcp_tasks_caller: ProviderCaller | None = None,
         effect_ledger_reader: EffectLedgerReader | None = None,
-        policy_adapter: PolicyAdapter | None = None,
+        policy_adapter: Any | None = None,
         identity_proof_adapter: IdentityProofAdapter | None = None,
         remote_delivery_observers: dict[str, RemoteDeliveryObserver] | None = None,
         remote_artifact_readers: dict[str, RemoteArtifactReader] | None = None,

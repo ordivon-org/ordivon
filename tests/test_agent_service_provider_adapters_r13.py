@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agent_service.delivery import DeliveryObservation, PolicyAdapter, PolicyObservation
+from agent_service.delivery import DeliveryObservation, PolicyObservation
 from agent_service.evidence import RuntimeArtifactPayload
 from agent_service.failover import AgentServiceR12, _replay_safety_decision_get
 from agent_service.provider_adapters import (
@@ -58,7 +58,7 @@ class NoopArtifactReader:
         raise AssertionError("not used")
 
 
-class AllowPolicy(PolicyAdapter):
+class AllowPolicy:
     def evaluate(self, request):
         return PolicyObservation(
             allowed=True,

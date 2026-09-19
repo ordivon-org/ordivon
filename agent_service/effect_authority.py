@@ -6,7 +6,6 @@ from typing import Any
 
 from .delivery import (
     DeliveryReceipt,
-    PolicyAdapter,
     PolicyObservation,
     PolicyRequest,
     TransportBindingStore,
@@ -32,7 +31,7 @@ class EffectAuthorizedDeliveryCoordinator:
         bindings: TransportBindingStore,
         delegations: Any,
         events: ServiceEventStore,
-        policy_adapter: PolicyAdapter | None,
+        policy_adapter: Any | None,
     ) -> None:
         self._delegate = delegate
         self._bindings = bindings
@@ -51,7 +50,7 @@ class EffectAuthorizedDeliveryCoordinator:
             return event
 
         if self._policy_adapter is None:
-            raise RuntimeError("no PolicyAdapter configured for effect authorization")
+            raise RuntimeError("no policy provider configured for effect authorization")
 
         binding = self._bindings.get(binding_id)
         envelope = self._delegations.get(binding.delegation_id)
@@ -67,7 +66,7 @@ class EffectAuthorizedDeliveryCoordinator:
         )
         observation = self._policy_adapter.evaluate(request)
         if not isinstance(observation, PolicyObservation):
-            raise TypeError("PolicyAdapter must return PolicyObservation")
+            raise TypeError("policy provider must return PolicyObservation")
         if not observation.policy_revision.strip():
             raise ValueError("PolicyObservation.policy_revision must be non-empty")
         permissions = tuple(dict.fromkeys(observation.granted_permissions))
@@ -105,7 +104,7 @@ class AgentServiceR15:
         self,
         r14: AgentServiceR14,
         *,
-        effect_policy_adapter: PolicyAdapter | None,
+        effect_policy_adapter: Any | None,
     ) -> None:
         self._r14 = r14
         self._connection = r14._connection
@@ -125,7 +124,7 @@ class AgentServiceR15:
         cls,
         db_path: str | Path,
         *,
-        policy_adapter: PolicyAdapter | None = None,
+        policy_adapter: Any | None = None,
         **kwargs: Any,
     ) -> "AgentServiceR15":
         r14 = AgentServiceR14.open(

@@ -6,9 +6,7 @@ from pathlib import Path
 
 from agent_service.delivery import (
     AgentServiceR9,
-    DeliveryAdapter,
     DeliveryObservation,
-    PolicyAdapter,
     PolicyObservation,
     _delivery_receipt_get,
     _delivery_receipt_list_for_binding,
@@ -51,7 +49,7 @@ class NoopArtifactReader:
         raise AssertionError("artifact read not expected")
 
 
-class FakePolicy(PolicyAdapter):
+class FakePolicy:
     def __init__(self, *, allowed: bool, revision: str = "policy-r1", permissions: tuple[str, ...] = ()) -> None:
         self.allowed = allowed
         self.revision = revision
@@ -68,7 +66,7 @@ class FakePolicy(PolicyAdapter):
         )
 
 
-class FakeDelivery(DeliveryAdapter):
+class FakeDelivery:
     def __init__(self, transport: str = "a2a-jsonrpc") -> None:
         self.transport = transport
         self.committed: dict[str, DeliveryObservation] = {}
@@ -105,8 +103,8 @@ class AgentServiceDeliveryR9Tests(unittest.TestCase):
         self,
         db: Path,
         *,
-        policy: PolicyAdapter | None = None,
-        deliveries: dict[str, DeliveryAdapter] | None = None,
+        policy: object | None = None,
+        deliveries: dict[str] | None = None,
     ) -> AgentServiceR9:
         service = AgentServiceR9.open(
             db,

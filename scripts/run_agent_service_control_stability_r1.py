@@ -531,7 +531,7 @@ def _scenario_single_owner_blocks_remote_overlap() -> dict[str, Any]:
                 "deliveryCalls": len(delivery.calls),
                 "interpretation": (
                     "A local Assignment and remote Binding cannot concurrently own the same Task; "
-                    "the remote provider effect is blocked before DeliveryAdapter.send."
+                    "the remote provider effect is blocked before delivery provider send."
                 ),
             }
         finally:

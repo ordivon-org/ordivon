@@ -3,9 +3,7 @@
 from .delivery import (
     AgentServiceR9,
     DelegationRoutePlanner,
-    DeliveryAdapter,
     DeliveryCoordinator,
-    PolicyAdapter,
     TransportBindingStore,
 )
 from .evidence import AgentServiceR6, VerificationRecord
@@ -138,7 +136,6 @@ __all__ = [
     "CredentialReferenceStore",
     "DelegationEnvelopeStore",
     "DelegationRoutePlanner",
-    "DeliveryAdapter",
     "DeliveryCoordinator",
     "ExecutionClaimTransferCoordinator",
     "ExecutionQuiescenceAdapter",
@@ -151,7 +148,6 @@ __all__ = [
     "HostBoardMcpAdapter",
     "IdentityProofAdapter",
     "IdentityProofCoordinator",
-    "PolicyAdapter",
     "ProviderObservation",
     "RemoteArtifactEvidenceResolver",
     "RemoteArtifactReader",

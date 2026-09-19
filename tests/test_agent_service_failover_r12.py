@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agent_service.delivery import DeliveryAdapter, DeliveryObservation, PolicyAdapter, PolicyObservation, _delivery_receipt_create, _delivery_receipt_get_by_binding
+from agent_service.delivery import DeliveryObservation, PolicyObservation, _delivery_receipt_create, _delivery_receipt_get_by_binding
 from agent_service.evidence import RuntimeArtifactPayload
 from agent_service.failover import (
     AgentServiceR12,
@@ -53,7 +53,7 @@ class NoopRuntimeArtifactReader:
         raise AssertionError("runtime artifact read not expected")
 
 
-class AllowPolicy(PolicyAdapter):
+class AllowPolicy:
     def evaluate(self, request):
         return PolicyObservation(
             allowed=True,
@@ -63,7 +63,7 @@ class AllowPolicy(PolicyAdapter):
         )
 
 
-class RecordingDelivery(DeliveryAdapter):
+class RecordingDelivery:
     def __init__(self) -> None:
         self.calls: list[tuple[str, str]] = []
         self.committed: dict[str, DeliveryObservation] = {}

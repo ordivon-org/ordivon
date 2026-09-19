@@ -5,9 +5,7 @@ import unittest
 from pathlib import Path
 
 from agent_service.delivery import (
-    DeliveryAdapter,
     DeliveryObservation,
-    PolicyAdapter,
     PolicyObservation,
 )
 from agent_service.evidence import RuntimeArtifactPayload
@@ -57,7 +55,7 @@ class NoopArtifactReader:
         raise AssertionError("artifact read not expected")
 
 
-class AllowPolicy(PolicyAdapter):
+class AllowPolicy:
     def evaluate(self, request):
         return PolicyObservation(
             allowed=True,
@@ -67,7 +65,7 @@ class AllowPolicy(PolicyAdapter):
         )
 
 
-class FakeDelivery(DeliveryAdapter):
+class FakeDelivery:
     def send(self, *, delivery_request_id: str, binding, envelope) -> DeliveryObservation:
         return DeliveryObservation(
             admission="committed",
@@ -107,7 +105,7 @@ class AgentServiceTrustRemoteR10Tests(unittest.TestCase):
         *,
         proof_adapter: IdentityProofAdapter | None = None,
         remote_observers: dict[str, RemoteDeliveryObserver] | None = None,
-        delivery_adapters: dict[str, DeliveryAdapter] | None = None,
+        delivery_adapters: dict[str] | None = None,
     ) -> AgentServiceR10:
         service = AgentServiceR10.open(
             db,
@@ -537,7 +535,7 @@ class AgentServiceTrustRemoteR10Tests(unittest.TestCase):
 
 
     def test_remote_correlation_can_be_established_after_delivery_but_cannot_drift(self) -> None:
-        class DeliveryWithoutCorrelation(DeliveryAdapter):
+        class DeliveryWithoutCorrelation:
             def send(self, *, delivery_request_id: str, binding, envelope) -> DeliveryObservation:
                 return DeliveryObservation(
                     admission="committed",
