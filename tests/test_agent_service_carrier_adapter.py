@@ -1,19 +1,18 @@
 from __future__ import annotations
 
-from tests.agent_service_test_support import open_current
-
 import json
 import tempfile
 import unittest
 from pathlib import Path
 
-from agent_service.slice1 import AgentRevision, ProviderObservation
 from agent_service.carriers.agent_automation import (
     AgentAutomationCarrierAdapter,
     CarrierCommandError,
     CarrierProfileError,
     CarrierRetireUnsupported,
 )
+from agent_service.slice1 import AgentRevision, ProviderObservation
+from tests.agent_service_test_support import open_current
 
 
 class FakeRunner:
@@ -55,12 +54,11 @@ class CarrierProviderApiTests(unittest.TestCase):
             service.close()
 
     def test_open_rejects_retired_host_adapter_keyword(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            with self.assertRaises(TypeError):
-                open_current(
-                    Path(tmp) / "service.db",
-                    host_adapter=NoopCarrier(),
-                )
+        with tempfile.TemporaryDirectory() as tmp, self.assertRaises(TypeError):
+            open_current(
+                Path(tmp) / "service.db",
+                host_adapter=NoopCarrier(),
+            )
 
 
 class AgentAutomationCarrierAdapterTests(unittest.TestCase):

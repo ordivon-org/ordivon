@@ -7,7 +7,6 @@ import tomllib
 import unittest
 from pathlib import Path
 
-
 DOMAIN_SCHEMA_MODULES = (
     "slice1",
     "task_runtime",

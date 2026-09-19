@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import csv
 import hashlib
 import json
 import subprocess
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -153,7 +152,7 @@ def ensure_raw():
             "sha256": receipts[name]["sha256"],
         }
     write_json(SOURCE / "acquisition-policy.json", policy)
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S.%fZ")
     write_json(RUNTIME_ACQUISITION / f"{stamp}.json", {
         "schemaVersion": 1,
         "kind": "digest-verified-acquisition-receipt",
@@ -496,7 +495,7 @@ def lineage_event(job_name: str, event_type: str, inputs: list[dict], outputs: l
     run_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"{TIDY_SHA}:{job_name}"))
     return {
         "eventType": event_type,
-        "eventTime": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "eventTime": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         "run": {"runId": run_id},
         "job": {"namespace": "urn:ordivon:data-lifecycle:github-pilot-r1", "name": job_name},
         "inputs": inputs,
@@ -519,7 +518,7 @@ def make_lineage():
         "crossref-transform": ["crossref-member-participation", "crossref-metadata-coverage"],
         "se4all-transform": ["se4all-energy"],
     }
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S.%fZ")
     run_dir = RUNTIME_LINEAGE / stamp
     run_dir.mkdir(parents=True, exist_ok=True)
     for job, names in groups.items():

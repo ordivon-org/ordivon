@@ -1,16 +1,15 @@
 from __future__ import annotations
 
-from tests.agent_service_test_support import open_current
-
 import tempfile
 import unittest
 from pathlib import Path
 
 import agent_service
+from agent_service.evidence import RuntimeArtifactPayload
 from agent_service.runtime_mcp import RuntimeMcpAdapter, RuntimeMcpArtifactReader
 from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
-from agent_service.evidence import RuntimeArtifactPayload
+from tests.agent_service_test_support import open_current
 
 
 class Carrier:

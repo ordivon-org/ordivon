@@ -4,8 +4,7 @@ import unittest
 from pathlib import Path
 
 import agent_service
-import agent_service.host_board as host_board
-import agent_service.runtime_mcp as runtime_mcp
+from agent_service import host_board, runtime_mcp
 
 
 class HandRolledMcpTransportRetiredTests(unittest.TestCase):

@@ -4,13 +4,10 @@ import sqlite3
 import time
 import uuid
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
 from .delivery import TransportBinding, TransportBindingStore, _delivery_receipt_get_by_binding
-from .goals import GoalAssignmentPlanner
 from .remote_evidence import (
-    ClaimAwareAssignmentPlanner,
     ClaimAwareDeliveryCoordinator,
     TaskExecutionClaimStore,
     _remote_task_verification_get_by_task,
@@ -20,7 +17,6 @@ from .task_runtime import TaskStore
 from .trust import (
     RemoteDeliverySnapshot,
     _remote_delivery_observation_list_for_binding,
-    _remote_delivery_observation_latest_for_binding,
 )
 
 

@@ -1,15 +1,19 @@
 from __future__ import annotations
 
-from tests.agent_service_test_support import open_current
-
 import tempfile
 import unittest
 from pathlib import Path
 
-from agent_service.delivery import DeliveryObservation, PolicyObservation, _delivery_receipt_get, _delivery_receipt_list_for_binding
+from agent_service.delivery import (
+    DeliveryObservation,
+    PolicyObservation,
+    _delivery_receipt_get,
+    _delivery_receipt_list_for_binding,
+)
 from agent_service.evidence import RuntimeArtifactPayload
 from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
+from tests.agent_service_test_support import open_current
 
 
 class ReadyCarrier:

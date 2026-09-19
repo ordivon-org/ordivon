@@ -11,10 +11,9 @@ import json
 from pathlib import Path
 
 from ortools.sat.python import cp_model
-from z3 import Bool, Implies, Not, Solver, sat, unsat
-from rdflib import Graph, Literal, Namespace, RDF
-from rdflib.namespace import SH
 from pyshacl import validate
+from rdflib import RDF, Graph, Literal, Namespace
+from rdflib.namespace import SH
 from unified_planning.shortcuts import (
     BoolType,
     Fluent,
@@ -23,6 +22,7 @@ from unified_planning.shortcuts import (
     Problem,
     get_environment,
 )
+from z3 import Bool, Implies, Not, Solver, sat, unsat
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "evidence" / "acceptance" / "reasoning-waist-r1-acceptance-20260914.json"

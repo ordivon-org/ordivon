@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from tests.agent_service_test_support import open_current
-
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 from agent_service.slice1 import ProviderObservation
+from tests.agent_service_test_support import open_current
 
 
 class RecordingHostAdapter:

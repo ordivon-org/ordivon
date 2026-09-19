@@ -3,9 +3,10 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any
 
-from agent_service.delivery import DeliveryObservation, PolicyObservation
 from agent_service import open_agent_service
+from agent_service.delivery import DeliveryObservation, PolicyObservation
 from agent_service.evidence import RuntimeArtifactPayload
 from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef

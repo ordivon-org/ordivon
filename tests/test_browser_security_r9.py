@@ -5,7 +5,6 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-
 MODULE_PATH = (
     Path(__file__).resolve().parents[1]
     / "experiments/browser-security-r9/window_placement_attribution.py"

@@ -8,7 +8,6 @@ import tempfile
 import unittest
 from pathlib import Path
 
-
 MCP_AVAILABLE = importlib.util.find_spec("mcp") is not None
 
 

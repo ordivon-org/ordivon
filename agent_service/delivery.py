@@ -6,14 +6,12 @@ import re
 import sqlite3
 import time
 import uuid
+from dataclasses import dataclass
+from typing import Any
 
 import rfc8785
 from mcp_types.version import MODERN_PROTOCOL_VERSIONS
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Any
 
-from .semantics import DelegationEnvelope
 from .slice1 import ServiceEvent, ServiceEventStore
 
 
@@ -261,7 +259,7 @@ class TransportBindingStore:
             raise RuntimeError(
                 "legacy interface advertisement lacks protocol_version; explicit re-advertisement is required"
             )
-        material = f"{delegation_id}\0{policy_receipt_id}\0{interface['profileId']}\0{interface['protocolVersion']}".encode("utf-8")
+        material = f"{delegation_id}\0{policy_receipt_id}\0{interface['profileId']}\0{interface['protocolVersion']}".encode()
         binding_id = "bind_" + hashlib.sha256(material).hexdigest()
         try:
             existing = self.get(binding_id)

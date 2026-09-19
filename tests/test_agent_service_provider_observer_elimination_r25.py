@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from tests.agent_service_test_support import open_current
-
 import tempfile
 import unittest
 from pathlib import Path
 
-import agent_service.slice1 as slice1
+from agent_service import slice1
+from tests.agent_service_test_support import open_current
 
 
 class WrongPlacementCarrier:

@@ -3,8 +3,7 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-import agent_service.evidence as evidence
-
+from agent_service import evidence
 
 ROOT = Path(__file__).resolve().parents[1]
 
