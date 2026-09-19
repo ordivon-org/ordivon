@@ -26,6 +26,7 @@ reasoning = [
 [tool.uv]
 package = false
 default-groups = ["test"]
+required-version = "==0.12.3"
 
 [tool.importlinter]
 root_package = "agent_service"
