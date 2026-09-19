@@ -65,3 +65,16 @@ def test_materializer_can_reuse_existing_launcher_and_token_without_secret_stagi
     assert "[StringComparison]::OrdinalIgnoreCase" in text
     assert "Copy-UnlessSameFile $launcherSource $launcherTarget" in text
     assert "Copy-UnlessSameFile $tokenSourceResolved $tokenTarget" in text
+
+
+def test_windows_executable_allowlist_scopes_ordivon_to_materialized_runtime_root():
+    template = ENV.read_text(encoding="utf-8")
+    lines = template.splitlines()
+    assert (
+        r"ORDIVON_ALLOWED_EXECUTABLE_ROOTS=C:\Windows;C:\Program Files;"
+        r"C:\ProgramData\Ordivon\Runtime"
+    ) in lines
+    assert (
+        r"ORDIVON_ALLOWED_EXECUTABLE_ROOTS=C:\Windows;C:\Program Files;"
+        r"C:\ProgramData\Ordivon"
+    ) not in lines
