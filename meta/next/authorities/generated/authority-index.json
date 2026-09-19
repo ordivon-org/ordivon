@@ -2101,6 +2101,35 @@
     },
     {
       "aliases": [
+        "ISO 5259-2",
+        "ISO/IEC 5259-2:2024"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "ai",
+        "analytics",
+        "data",
+        "research"
+      ],
+      "id": "iso-iec-5259-2-2024",
+      "identityMode": "versioned",
+      "issuer": "ISO/IEC",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:894dbd632962ccf6a8e855a80172658f53904f4761b57c83e2fe6855cfe06139",
+      "recordDigest": "sha256:e30804694f2dab4d6dd98b32d51c5f4fbf7658d58ef657653fa389cc48b09cd4",
+      "title": "ISO/IEC 5259-2:2024 — Artificial intelligence — Data quality for analytics and machine learning (ML) — Part 2: Data quality measures",
+      "topics": [
+        "analytics",
+        "data-quality",
+        "fitness-for-purpose",
+        "machine-learning",
+        "quality-measures"
+      ],
+      "versionLabel": "2024"
+    },
+    {
+      "aliases": [
         "ISO 12207",
         "ISO/IEC/IEEE 12207:2026"
       ],
@@ -3075,6 +3104,35 @@
     },
     {
       "aliases": [
+        "QUDT unit vocabulary",
+        "QUDT Units 3.5.1"
+      ],
+      "authorityKind": "open-vocabulary",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "analytics",
+        "data",
+        "engineering",
+        "research"
+      ],
+      "id": "qudt-units-3.5.1",
+      "identityMode": "versioned",
+      "issuer": "QUDT.org",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:8906621f782f1e7186096fdf952b9405d97c0d02e6617d9fcc0a71f27e65af10",
+      "recordDigest": "sha256:fa14321a68657a150276e71d8d55e6a2af37da485db43fa17cd9a3851d15309e",
+      "title": "QUDT Units Vocabulary 3.5.1",
+      "topics": [
+        "dimensions",
+        "measurement",
+        "quantities",
+        "semantic-units",
+        "units"
+      ],
+      "versionLabel": "3.5.1"
+    },
+    {
+      "aliases": [
         "DNS concepts",
         "RFC 1034",
         "STD 13 DNS"
@@ -3552,6 +3610,66 @@
     },
     {
       "aliases": [
+        "SDMX 3.1",
+        "Statistical Data and Metadata eXchange 3.1"
+      ],
+      "authorityKind": "statistical-standard",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "analytics",
+        "data",
+        "research",
+        "statistics"
+      ],
+      "id": "sdmx-3.1",
+      "identityMode": "versioned",
+      "issuer": "Statistical Data and Metadata eXchange (SDMX)",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:da86e4f6db715dc0ff6e230b07fd83239014378d6f1c47634f231d3be0da90dd",
+      "recordDigest": "sha256:e357e1f6cb64cc5f007af2c9c49c23691c275393314689b1073c0334a0766734",
+      "title": "SDMX 3.1 Technical Specifications",
+      "topics": [
+        "attribute",
+        "data-structure-definition",
+        "dimension",
+        "measure",
+        "metadata",
+        "statistical-data",
+        "unit-of-measure"
+      ],
+      "versionLabel": "3.1"
+    },
+    {
+      "aliases": [
+        "CL_OBS_STATUS 2.3",
+        "SDMX Observation Status"
+      ],
+      "authorityKind": "statistical-codelist",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "analytics",
+        "data",
+        "research",
+        "statistics"
+      ],
+      "id": "sdmx-cl-obs-status-2.3",
+      "identityMode": "versioned",
+      "issuer": "Statistical Data and Metadata eXchange (SDMX)",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:2c0bbfc486bb97be931560ae051368d35fb09b405bc00eb53705bdbd35f34e0a",
+      "recordDigest": "sha256:e39b1d3544b955d632ff72966416631f04e93320c8ec54fe85178d8fefe513f8",
+      "title": "SDMX Cross-Domain Code List — Observation Status (CL_OBS_STATUS) v2.3",
+      "topics": [
+        "estimated-values",
+        "missing-values",
+        "observation-status",
+        "provisional-values",
+        "statistical-metadata"
+      ],
+      "versionLabel": "2.3"
+    },
+    {
+      "aliases": [
         "SLSA",
         "SLSA 1.2"
       ],
@@ -3769,6 +3887,34 @@
         "enterprise-transformation"
       ],
       "versionLabel": "10th Edition"
+    },
+    {
+      "aliases": [
+        "UCUM",
+        "Unified Code for Units of Measure"
+      ],
+      "authorityKind": "open-standard",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "analytics",
+        "data",
+        "engineering",
+        "research"
+      ],
+      "id": "ucum-spec",
+      "identityMode": "rolling-source",
+      "issuer": "Unified Code for Units of Measure (UCUM)",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:59b552251bf1a7d0078aa7e1d63597a192f4d58ced7b14377ec78e917166af7a",
+      "recordDigest": "sha256:8391eee5bbbad9b8d3364781905cbcf978b5f927bebc77b6e93f1033b05a392c",
+      "title": "Unified Code for Units of Measure Specification",
+      "topics": [
+        "interoperability",
+        "measurement",
+        "unit-codes",
+        "units"
+      ],
+      "versionLabel": null
     },
     {
       "aliases": [
@@ -4024,7 +4170,7 @@
     }
   ],
   "kind": "ordivon.external-authority-discovery-index",
-  "recordCount": 145,
-  "recordsDigest": "sha256:4e3669b60787bd5453d3efb9303f6a2cbe657a804fbe90c86b9cb6be3c3771ab",
+  "recordCount": 150,
+  "recordsDigest": "sha256:806c9cf208215ede7d419ee48924a95cba2d3f7f7494c0af8a9854aca2d4851c",
   "schemaVersion": 1
 }

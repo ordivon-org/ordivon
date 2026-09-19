@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-observation",
+  "authorityId": "sdmx-3.1",
+  "basis": "official-source",
+  "lifecycleStatus": "current",
+  "observedDate": "2026-09-20",
+  "officialSource": "https://sdmx.org/standards-2/",
+  "versionObserved": "3.1",
+  "note": "SDMX states version 3.1 technical specifications were released in May 2025 and provide the current information model and exchange specifications."
+}

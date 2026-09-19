@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-observation",
+  "authorityId": "ucum-spec",
+  "basis": "official-source",
+  "lifecycleStatus": "current",
+  "observedDate": "2026-09-20",
+  "officialSource": "https://unitsofmeasure.org/ucum",
+  "versionObserved": null,
+  "note": "UCUM defines percent (%) as a dimensionless unit scaled by 10^-2; this defines unit semantics, not a universal 0..100 validity bound."
+}

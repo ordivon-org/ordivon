@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-record",
+  "id": "ucum-spec",
+  "identity": {
+    "issuer": {
+      "id": "ucum",
+      "name": "Unified Code for Units of Measure (UCUM)"
+    },
+    "title": "Unified Code for Units of Measure Specification",
+    "authorityKind": "open-standard",
+    "identityMode": "rolling-source",
+    "versionLabel": null,
+    "officialSource": "https://unitsofmeasure.org/ucum",
+    "publicationDate": null
+  },
+  "discovery": {
+    "aliases": [
+      "UCUM",
+      "Unified Code for Units of Measure"
+    ],
+    "topics": [
+      "units",
+      "measurement",
+      "unit-codes",
+      "interoperability"
+    ],
+    "domains": [
+      "data",
+      "analytics",
+      "research",
+      "engineering"
+    ]
+  },
+  "access": {
+    "metadata": "public",
+    "fullText": "public",
+    "note": "The UCUM specification and unit tables are publicly accessible."
+  },
+  "relations": {
+    "supersedes": [],
+    "supersededBy": [],
+    "related": [
+      "qudt-units-3.5.1",
+      "sdmx-3.1"
+    ]
+  },
+  "provenance": {
+    "registeredDate": "2026-09-20",
+    "registrationBasis": [
+      "data-semantics-externalization-r1",
+      "official UCUM specification checked 2026-09-20"
+    ]
+  }
+}

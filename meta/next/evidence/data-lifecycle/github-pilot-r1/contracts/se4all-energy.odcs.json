@@ -19,6 +19,22 @@
     {
       "property": "sourceGitCommit",
       "value": "f4d1b35ca09d8c0d875451635daef9179adfc9e0"
+    },
+    {
+      "property": "semanticProfile",
+      "value": "evidence/data-lifecycle/github-pilot-r1/semantics/external-semantic-profile.json"
+    },
+    {
+      "property": "statisticalStructureOwner",
+      "value": "sdmx-3.1"
+    },
+    {
+      "property": "unitCodeOwner",
+      "value": "ucum-spec"
+    },
+    {
+      "property": "qualityMeasureOwner",
+      "value": "iso-iec-5259-2-2024"
     }
   ],
   "dataProduct": "se4all-energy-country-year",
@@ -46,7 +62,8 @@
           "physicalType": "varchar",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": true
+          "required": true,
+          "semanticType": "dimension"
         },
         {
           "classification": "public",
@@ -56,7 +73,8 @@
           "physicalType": "varchar",
           "primaryKey": true,
           "primaryKeyPosition": 1,
-          "required": true
+          "required": true,
+          "semanticType": "dimension"
         },
         {
           "classification": "public",
@@ -66,7 +84,8 @@
           "physicalType": "bigint",
           "primaryKey": true,
           "primaryKeyPosition": 2,
-          "required": true
+          "required": true,
+          "semanticType": "dimension"
         },
         {
           "classification": "public",
@@ -76,7 +95,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -86,17 +106,33 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
+          "customProperties": [
+            {
+              "property": "unitUcum",
+              "value": "%"
+            },
+            {
+              "property": "unitQudt",
+              "value": "http://qudt.org/vocab/unit/PERCENT"
+            },
+            {
+              "property": "quantitySemantics",
+              "value": "population-share"
+            }
+          ],
           "logicalType": "number",
           "name": "access_non_solid_fuel_urban_pop_pct",
           "physicalName": "access_non_solid_fuel_urban_pop_pct",
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -106,17 +142,33 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
+          "customProperties": [
+            {
+              "property": "unitUcum",
+              "value": "%"
+            },
+            {
+              "property": "unitQudt",
+              "value": "http://qudt.org/vocab/unit/PERCENT"
+            },
+            {
+              "property": "quantitySemantics",
+              "value": "population-share"
+            }
+          ],
           "logicalType": "number",
           "name": "access_electricity_total_pop_pct",
           "physicalName": "access_electricity_total_pop_pct",
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -126,7 +178,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -136,7 +189,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -146,7 +200,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -156,7 +211,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -166,7 +222,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -176,7 +233,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -186,7 +244,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -196,7 +255,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -206,7 +266,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -216,7 +277,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -226,7 +288,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -236,17 +299,33 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
+          "customProperties": [
+            {
+              "property": "unitUcum",
+              "value": "%"
+            },
+            {
+              "property": "unitQudt",
+              "value": "http://qudt.org/vocab/unit/PERCENT"
+            },
+            {
+              "property": "quantitySemantics",
+              "value": "energy-ratio"
+            }
+          ],
           "logicalType": "number",
           "name": "final_to_primary_energy_ratio_pct",
           "physicalName": "final_to_primary_energy_ratio_pct",
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -256,7 +335,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -266,7 +346,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -276,7 +357,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -286,7 +368,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -296,7 +379,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -306,7 +390,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -316,7 +401,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -326,7 +412,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -336,7 +423,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -346,7 +434,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -356,7 +445,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -366,17 +456,33 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
+          "customProperties": [
+            {
+              "property": "unitUcum",
+              "value": "%"
+            },
+            {
+              "property": "unitQudt",
+              "value": "http://qudt.org/vocab/unit/PERCENT"
+            },
+            {
+              "property": "quantitySemantics",
+              "value": "share-of-total-final-energy-consumption"
+            }
+          ],
           "logicalType": "number",
           "name": "renewable_energy_consumption_tfec_pct",
           "physicalName": "renewable_energy_consumption_tfec_pct",
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -386,7 +492,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -396,17 +503,33 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
+          "customProperties": [
+            {
+              "property": "unitUcum",
+              "value": "%"
+            },
+            {
+              "property": "unitQudt",
+              "value": "http://qudt.org/vocab/unit/PERCENT"
+            },
+            {
+              "property": "quantitySemantics",
+              "value": "share-of-total-capacity"
+            }
+          ],
           "logicalType": "number",
           "name": "share_of_renewable_capacity_in_total_capacity_pct",
           "physicalName": "share_of_renewable_capacity_in_total_capacity_pct",
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -416,7 +539,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -426,7 +550,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -436,7 +561,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -446,7 +572,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -456,7 +583,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -466,7 +594,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -476,7 +605,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -486,7 +616,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -496,7 +627,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -506,17 +638,33 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
+          "customProperties": [
+            {
+              "property": "unitUcum",
+              "value": "%"
+            },
+            {
+              "property": "unitQudt",
+              "value": "http://qudt.org/vocab/unit/PERCENT"
+            },
+            {
+              "property": "quantitySemantics",
+              "value": "derived-loss-ratio"
+            }
+          ],
           "logicalType": "number",
           "name": "transmission_and_distribution_losses_pct",
           "physicalName": "transmission_and_distribution_losses_pct",
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -526,7 +674,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -536,7 +685,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -546,7 +696,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         },
         {
           "classification": "public",
@@ -556,7 +707,8 @@
           "physicalType": "double",
           "primaryKey": false,
           "primaryKeyPosition": -1,
-          "required": false
+          "required": false,
+          "semanticType": "measure"
         }
       ]
     }

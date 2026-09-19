@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-record",
+  "id": "sdmx-3.1",
+  "identity": {
+    "issuer": {
+      "id": "sdmx",
+      "name": "Statistical Data and Metadata eXchange (SDMX)"
+    },
+    "title": "SDMX 3.1 Technical Specifications",
+    "authorityKind": "statistical-standard",
+    "identityMode": "versioned",
+    "versionLabel": "3.1",
+    "officialSource": "https://sdmx.org/standards-2/",
+    "publicationDate": "2025-05"
+  },
+  "discovery": {
+    "aliases": [
+      "SDMX 3.1",
+      "Statistical Data and Metadata eXchange 3.1"
+    ],
+    "topics": [
+      "statistical-data",
+      "metadata",
+      "data-structure-definition",
+      "dimension",
+      "measure",
+      "attribute",
+      "unit-of-measure"
+    ],
+    "domains": [
+      "data",
+      "analytics",
+      "research",
+      "statistics"
+    ]
+  },
+  "access": {
+    "metadata": "public",
+    "fullText": "public",
+    "note": "Technical specifications and implementation formats are publicly available from SDMX."
+  },
+  "relations": {
+    "supersedes": [],
+    "supersededBy": [],
+    "related": [
+      "bitol-odcs-3.2.0",
+      "w3c-dcat-3-2024"
+    ]
+  },
+  "provenance": {
+    "registeredDate": "2026-09-20",
+    "registrationBasis": [
+      "data-semantics-externalization-r1",
+      "official SDMX standards page checked 2026-09-20"
+    ]
+  }
+}

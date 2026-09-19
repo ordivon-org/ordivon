@@ -6,7 +6,6 @@ import hashlib
 import json
 import subprocess
 import uuid
-import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -17,15 +16,19 @@ OUT = BASE / "derived"
 CONTRACTS = BASE / "contracts"
 CATALOG = BASE / "catalog"
 LINEAGE = BASE / "lineage"
+RUNTIME_LINEAGE = BASE / "runtime-lineage"
+RUNTIME_ACQUISITION = BASE / "runtime-acquisition"
 ANALYSIS = BASE / "analysis"
 SOURCE = BASE / "source"
-for d in (OUT, CONTRACTS, CATALOG, LINEAGE, ANALYSIS):
+for d in (OUT, CONTRACTS, CATALOG, LINEAGE, RUNTIME_LINEAGE, RUNTIME_ACQUISITION, ANALYSIS):
     d.mkdir(parents=True, exist_ok=True)
 
 TIDY_SHA = (SOURCE / "tidytuesday-main.sha").read_text().strip()
 DUCKDB = "/usr/bin/duckdb"
 OL_SCHEMA_URL = "https://openlineage.io/spec/2-0-2/OpenLineage.json#/$defs/RunEvent"
 PRODUCER = "urn:ordivon:data-lifecycle:github-pilot-r1"
+SEMANTICS_PATH = BASE / "semantics/external-semantic-profile.json"
+SEMANTICS = json.loads(SEMANTICS_PATH.read_text(encoding="utf-8"))
 
 DATASETS = {
     "crossref-member-participation": {
@@ -33,7 +36,6 @@ DATASETS = {
         "parquet": OUT / "crossref-member-participation.parquet",
         "source_path": "data/2026/2026-05-19/member_participation_stats_by_country.csv",
         "title": "Crossref member participation statistics by country",
-        "keys": ["current_up_to", "iso3_code"],
         "data_product": "crossref-metadata-country",
         "source_sha256": "0f220075cedec9443c1a7343771cff7cce1c3892d6e0717f7e6fecbcdb0ad2af",
     },
@@ -42,7 +44,6 @@ DATASETS = {
         "parquet": OUT / "crossref-metadata-coverage.parquet",
         "source_path": "data/2026/2026-05-19/metadata_coverage_stats_by_country.csv",
         "title": "Crossref metadata coverage statistics by country and document type",
-        "keys": ["current_up_to", "iso3_code", "document_type", "document_subtype_key"],
         "data_product": "crossref-metadata-country",
         "source_sha256": "2e37a30acc28f47bf724ca1038fbe840ab1be84cd66790ae69aa62a6731f0ad4",
     },
@@ -51,7 +52,6 @@ DATASETS = {
         "parquet": OUT / "se4all-energy.parquet",
         "source_path": "data/2026/2026-05-26/energy_cleaned.csv",
         "title": "Sustainable Energy for All country historical indicators",
-        "keys": ["country_code", "yr"],
         "data_product": "se4all-energy-country-year",
         "source_sha256": "87ad1ef2d9713693c17ab57f9e2d995cf427b6c32a088597877301a15f307f0b",
     },
@@ -99,15 +99,67 @@ def null_key_count(path: Path, keys: list[str]) -> int:
 
 def ensure_raw():
     RAW.mkdir(parents=True, exist_ok=True)
+    receipts = {}
     for name, d in DATASETS.items():
-        pinned = f"https://raw.githubusercontent.com/rfordatascience/tidytuesday/{TIDY_SHA}/{d['source_path']}"
-        if not d["raw"].exists():
-            tmp = d["raw"].with_suffix(d["raw"].suffix + ".part")
-            urllib.request.urlretrieve(pinned, tmp)
-            tmp.replace(d["raw"])
+        canonical = f"https://raw.githubusercontent.com/rfordatascience/tidytuesday/{TIDY_SHA}/{d['source_path']}"
+        mirror = f"https://cdn.jsdelivr.net/gh/rfordatascience/tidytuesday@{TIDY_SHA}/{d['source_path']}"
+        transports = [mirror, canonical]
+        used = "existing-local"
+        if not d["raw"].exists() or sha256(d["raw"]) != d["source_sha256"]:
+            last_error = None
+            for url in transports:
+                tmp = d["raw"].with_suffix(d["raw"].suffix + ".part")
+                tmp.unlink(missing_ok=True)
+                try:
+                    subprocess.check_call([
+                        "/usr/bin/curl", "-fL", "--retry", "2",
+                        "--connect-timeout", "10", "--max-time", "60",
+                        url, "-o", str(tmp),
+                    ])
+                    actual = sha256(tmp)
+                    if actual != d["source_sha256"]:
+                        raise RuntimeError(f"digest mismatch from {url}: {actual}")
+                    tmp.replace(d["raw"])
+                    used = url
+                    break
+                except Exception as exc:
+                    last_error = str(exc)
+                    tmp.unlink(missing_ok=True)
+            else:
+                raise RuntimeError(f"{name}: all acquisition transports failed: {last_error}")
         actual = sha256(d["raw"])
         if actual != d["source_sha256"]:
             raise RuntimeError(f"{name}: source digest mismatch: {actual} != {d['source_sha256']}")
+        receipts[name] = {
+            "sourceIdentity": f"github:rfordatascience/tidytuesday@{TIDY_SHA}:{d['source_path']}",
+            "canonicalUrl": canonical,
+            "transportUsed": used,
+            "sha256": actual,
+        }
+    policy = {
+        "schemaVersion": 1,
+        "kind": "digest-verified-acquisition-policy",
+        "identityRule": "Git commit + repository path + expected SHA-256 define source identity; transport URL is operational only.",
+        "datasets": {},
+    }
+    for name, d in DATASETS.items():
+        policy["datasets"][name] = {
+            "sourceIdentity": receipts[name]["sourceIdentity"],
+            "canonicalUrl": receipts[name]["canonicalUrl"],
+            "allowedTransports": [
+                f"https://cdn.jsdelivr.net/gh/rfordatascience/tidytuesday@{TIDY_SHA}/{d['source_path']}",
+                receipts[name]["canonicalUrl"],
+            ],
+            "sha256": receipts[name]["sha256"],
+        }
+    write_json(SOURCE / "acquisition-policy.json", policy)
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")
+    write_json(RUNTIME_ACQUISITION / f"{stamp}.json", {
+        "schemaVersion": 1,
+        "kind": "digest-verified-acquisition-receipt",
+        "policy": str((SOURCE / "acquisition-policy.json").relative_to(ROOT)),
+        "datasets": receipts,
+    })
 
 def convert_all():
     for name, d in DATASETS.items():
@@ -115,9 +167,17 @@ def convert_all():
         out = sql_quote(d["parquet"])
         if d["parquet"].exists():
             d["parquet"].unlink()
-        select_expr = "*"
-        if name == "crossref-metadata-coverage":
-            select_expr = "*, coalesce(document_subtype, '') AS document_subtype_key"
+        select_parts = ["*"]
+        sem = dataset_semantics(name)
+        for source_col, null_meta in sem.get("sourceNullSemantics", {}).items():
+            norm = null_meta.get("physicalKeyNormalization")
+            if not norm:
+                continue
+            replacement = str(norm["nullReplacement"]).replace("'", "''")
+            derived = norm["derivedColumn"].replace('"', '""')
+            source = source_col.replace('"', '""')
+            select_parts.append(f"coalesce(\"{source}\", '{replacement}') AS \"{derived}\"")
+        select_expr = ", ".join(select_parts)
         sql = f"""
         COPY (
           SELECT {select_expr} FROM read_csv_auto('{raw}', header=true, nullstr='NA', sample_size=-1)
@@ -137,13 +197,21 @@ def logical_type(duck_type: str) -> str:
         return "boolean"
     return "string"
 
+def dataset_semantics(name: str) -> dict:
+    return SEMANTICS["datasets"][name]
+
+def measure_semantics(name: str, column: str) -> dict | None:
+    return dataset_semantics(name).get("measures", {}).get(column)
+
 def make_odcs(name: str, d: dict):
     schema_rows = describe(d["parquet"])
-    keys = d["keys"]
+    sem = dataset_semantics(name)
+    keys = sem["physicalPrimaryKey"]
+    semantic_dimensions = set(sem.get("semanticDimensions", [])) | set(sem.get("descriptiveDimensions", [])) | set(keys)
     props = []
     for row in schema_rows:
         col = row["column_name"]
-        props.append({
+        prop = {
             "name": col,
             "physicalName": col,
             "logicalType": logical_type(row["column_type"]),
@@ -152,7 +220,32 @@ def make_odcs(name: str, d: dict):
             "primaryKeyPosition": keys.index(col) + 1 if col in keys else -1,
             "required": null_key_count(d["parquet"], [col]) == 0,
             "classification": "public",
-        })
+            "semanticType": "dimension" if col in semantic_dimensions else ("measure" if logical_type(row["column_type"]) in {"number", "integer"} else "column"),
+        }
+        ms = measure_semantics(name, col)
+        custom_properties = []
+        if ms:
+            custom_properties.extend([
+                {"property": "unitUcum", "value": ms["unitUcum"]},
+                {"property": "unitQudt", "value": ms["unitQudt"]},
+                {"property": "quantitySemantics", "value": ms["quantitySemantics"]},
+            ])
+        null_sem = sem.get("sourceNullSemantics", {}).get(col)
+        if null_sem:
+            custom_properties.extend([
+                {"property": "sourceNullMeaning", "value": null_sem["sourceMeaning"]},
+                {"property": "observationStatusPolicy", "value": null_sem["observationStatusPolicy"]},
+            ])
+        for source_col, null_meta in sem.get("sourceNullSemantics", {}).items():
+            norm = null_meta.get("physicalKeyNormalization", {})
+            if norm.get("derivedColumn") == col:
+                custom_properties.extend([
+                    {"property": "derivedFromNullableDimension", "value": source_col},
+                    {"property": "nullReplacementForPhysicalKey", "value": norm["nullReplacement"]},
+                ])
+        if custom_properties:
+            prop["customProperties"] = custom_properties
+        props.append(prop)
     contract = {
         "version": "1.0.0",
         "apiVersion": "v3.2.0",
@@ -183,22 +276,30 @@ def make_odcs(name: str, d: dict):
             {"property": "sourceSha256", "value": sha256(d["raw"])},
             {"property": "derivedParquetSha256", "value": sha256(d["parquet"])},
             {"property": "sourceGitCommit", "value": TIDY_SHA},
+            {"property": "semanticProfile", "value": str(SEMANTICS_PATH.relative_to(ROOT))},
+            {"property": "statisticalStructureOwner", "value": SEMANTICS["externalOwners"]["statisticalStructure"]},
+            {"property": "unitCodeOwner", "value": SEMANTICS["externalOwners"]["unitCodes"]},
+            {"property": "qualityMeasureOwner", "value": SEMANTICS["externalOwners"]["qualityMeasures"]},
         ],
     }
     write_json(CONTRACTS / f"{name}.odcs.json", contract)
 
 def make_quality():
-    q = {"schemaVersion": 1, "kind": "ordivon.data-lifecycle-quality-report", "sourceCommit": TIDY_SHA, "datasets": {}}
+    q = {"schemaVersion": 1, "kind": "ordivon.data-lifecycle-quality-report", "sourceCommit": TIDY_SHA, "qualityModelOwner": SEMANTICS["externalOwners"]["qualityMeasures"], "fitnessForUse": "descriptive-analytics-pilot", "datasets": {}}
     for name, d in DATASETS.items():
         p = d["parquet"]
+        sem = dataset_semantics(name)
         q["datasets"][name] = {
             "rows": row_count(p),
             "columns": len(describe(p)),
             "sourceSha256": sha256(d["raw"]),
             "parquetSha256": sha256(p),
-            "duplicatePrimaryKeyRows": duplicate_count(p, d["keys"]),
-            "nullPrimaryKeyRows": null_key_count(p, d["keys"]),
+            "duplicatePrimaryKeyRows": duplicate_count(p, sem["physicalPrimaryKey"]),
+            "nullPrimaryKeyRows": null_key_count(p, sem["physicalPrimaryKey"]),
+            "sourceProvidesObservationStatus": sem.get("missingStatusAvailable", False),
         }
+        if sem.get("sourceNullSemantics"):
+            q["datasets"][name]["sourceNullSemantics"] = sem["sourceNullSemantics"]
 
     member = DATASETS["crossref-member-participation"]["parquet"]
     metadata = DATASETS["crossref-metadata-coverage"]["parquet"]
@@ -216,36 +317,49 @@ def make_quality():
         run_json(f"SELECT count(*) n FROM read_parquet('{sql_quote(metadata)}') WHERE {with_pred}")[0]["n"]
     )
 
-    bounded_pct_cols = [
-        r["column_name"] for r in describe(energy)
-        if (
-            r["column_name"].startswith("access_")
-            or r["column_name"].endswith("_consumption_tfec_pct")
-            or r["column_name"] in {
-                "perc_renewable_of_total_electricity_output",
-                "share_of_renewable_capacity_in_total_capacity_pct",
-                "final_to_primary_energy_ratio_pct",
-            }
-        )
-    ]
-    pct_pred = " OR ".join(
-        f'("{c}" IS NOT NULL AND ("{c}" < 0 OR "{c}" > 100.1))' for c in bounded_pct_cols
-    )
-    q["datasets"]["se4all-energy"]["boundedPercentageOutsideToleranceRows"] = int(
-        run_json(f"SELECT count(*) n FROM read_parquet('{sql_quote(energy)}') WHERE {pct_pred}")[0]["n"]
-    )
-    q["datasets"]["se4all-energy"]["observedRangeWarnings"] = {
-        "access_non_solid_fuel_urban_pop_pct_max": run_json(
-            f"SELECT max(access_non_solid_fuel_urban_pop_pct) v FROM read_parquet('{sql_quote(energy)}')"
-        )[0]["v"],
-        "transmission_and_distribution_losses_pct_max": run_json(
-            f"SELECT max(transmission_and_distribution_losses_pct) v FROM read_parquet('{sql_quote(energy)}')"
-        )[0]["v"],
-        "note": "Transmission/distribution losses are not constrained by the generic 0-100 percentage rule; bounded proportion-like fields use a 0.1 percentage-point tolerance for source rounding."
+    semantic_checks = {}
+    for col, meta in dataset_semantics("se4all-energy").get("measures", {}).items():
+        validity = meta.get("validity", {})
+        minimum = validity.get("minimum")
+        maximum = validity.get("maximum")
+        tolerance = validity.get("tolerance", 0)
+        clauses = []
+        if minimum is not None:
+            clauses.append(f'"{col}" < {minimum - tolerance}')
+        if maximum is not None:
+            clauses.append(f'"{col}" > {maximum + tolerance}')
+        violations = 0
+        if clauses:
+            predicate = " OR ".join(clauses)
+            violations = int(run_json(
+                f'SELECT count(*) n FROM read_parquet(\'{sql_quote(energy)}\') WHERE "{col}" IS NOT NULL AND ({predicate})'
+            )[0]["n"])
+        bounds = run_json(
+            f'SELECT min("{col}") minv, max("{col}") maxv FROM read_parquet(\'{sql_quote(energy)}\')'
+        )[0]
+        semantic_checks[col] = {
+            "unitUcum": meta["unitUcum"],
+            "unitQudt": meta["unitQudt"],
+            "quantitySemantics": meta["quantitySemantics"],
+            "minimum": minimum,
+            "maximum": maximum,
+            "tolerance": tolerance,
+            "observedMin": bounds["minv"],
+            "observedMax": bounds["maxv"],
+            "violationRows": violations,
+            "basis": validity.get("basis"),
+        }
+    q["datasets"]["se4all-energy"]["semanticMeasureChecks"] = semantic_checks
+    q["datasets"]["se4all-energy"]["semanticMeasureViolationRows"] = sum(x["violationRows"] for x in semantic_checks.values())
+    q["datasets"]["se4all-energy"]["missingObservationStatus"] = {
+        "sourceProvidesStatus": dataset_semantics("se4all-energy")["missingStatusAvailable"],
+        "policy": dataset_semantics("se4all-energy")["observationStatusPolicy"],
+        "externalOwner": SEMANTICS["externalOwners"]["observationStatus"],
     }
 
-    q["standing"] = "PASS" if all(
-        d["duplicatePrimaryKeyRows"] == 0 and d["nullPrimaryKeyRows"] == 0 for d in q["datasets"].values()
+    q["standing"] = "PASS" if (
+        all(d["duplicatePrimaryKeyRows"] == 0 and d["nullPrimaryKeyRows"] == 0 for d in q["datasets"].values())
+        and q["datasets"]["se4all-energy"]["semanticMeasureViolationRows"] == 0
     ) else "FAIL"
     write_json(BASE / "quality-report.json", q)
     return q
@@ -326,8 +440,15 @@ def make_analysis():
     """)[0]
 
     write_json(ANALYSIS / "analysis-summary.json", {
-        "crossref": {"eligibleCountryCount": corr["countries"], "memberVsWorkRorSharePearsonR": corr["pearson_r"]},
-        "se4all": energy_latest,
+        "crossref": {
+            "eligibleCountryCount": corr["countries"],
+            "memberVsWorkRorSharePearsonR": round(float(corr["pearson_r"]), 12),
+        },
+        "se4all": {
+            **energy_latest,
+            "country_mean_renewable_tfec_pct": round(float(energy_latest["country_mean_renewable_tfec_pct"]), 12),
+            "country_mean_electricity_access_pct": round(float(energy_latest["country_mean_electricity_access_pct"]), 12),
+        },
         "interpretationBoundary": "Descriptive outputs only; no causal inference is claimed."
     })
 
@@ -398,6 +519,9 @@ def make_lineage():
         "crossref-transform": ["crossref-member-participation", "crossref-metadata-coverage"],
         "se4all-transform": ["se4all-energy"],
     }
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")
+    run_dir = RUNTIME_LINEAGE / stamp
+    run_dir.mkdir(parents=True, exist_ok=True)
     for job, names in groups.items():
         ins = [ds_ref(n, DATASETS[n], False) for n in names]
         outs = [ds_ref(n, DATASETS[n], True) for n in names]
@@ -405,13 +529,17 @@ def make_lineage():
             lineage_event(job, "START", ins, []),
             lineage_event(job, "COMPLETE", ins, outs),
         ]
-        write_json(LINEAGE / f"{job}.openlineage.json", events)
+        write_json(run_dir / f"{job}.openlineage.json", events)
 
 def make_manifest(q):
     files = {}
     for p in sorted(BASE.rglob("*")):
-        if p.is_file() and p.name != "manifest.json":
-            files[str(p.relative_to(BASE))] = {"bytes": p.stat().st_size, "sha256": sha256(p)}
+        if not p.is_file() or p.name == "manifest.json":
+            continue
+        rel = p.relative_to(BASE)
+        if rel.parts and rel.parts[0] in {"runtime-lineage", "runtime-acquisition"}:
+            continue
+        files[str(rel)] = {"bytes": p.stat().st_size, "sha256": sha256(p)}
     write_json(BASE / "manifest.json", {
         "schemaVersion": 1,
         "kind": "ordivon.data-lifecycle-github-pilot",

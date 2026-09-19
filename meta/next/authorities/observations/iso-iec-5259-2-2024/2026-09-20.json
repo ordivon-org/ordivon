@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-observation",
+  "authorityId": "iso-iec-5259-2-2024",
+  "basis": "official-source",
+  "lifecycleStatus": "current",
+  "observedDate": "2026-09-20",
+  "officialSource": "https://www.iso.org/standard/81860.html",
+  "versionObserved": "2024",
+  "note": "ISO lists ISO/IEC 5259-2:2024 as published, defining a data quality model and measurable characteristics for analytics and ML."
+}
