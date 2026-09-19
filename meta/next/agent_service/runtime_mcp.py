@@ -27,7 +27,9 @@ class RuntimeMcpAdapter:
     def __init__(self, tool_caller: ToolCaller) -> None:
         self._call = tool_caller
 
-    def submit(self, client_request_id: str, execution: dict[str, Any]) -> RuntimeJobRef:
+    def submit(
+        self, client_request_id: str, execution: dict[str, Any]
+    ) -> RuntimeJobRef:
         result = self._call(
             "workspace.exec",
             {
@@ -57,12 +59,20 @@ class RuntimeMcpAdapter:
         )
         observed_job_id = result.get("jobId")
         if observed_job_id != job_id:
-            raise RuntimeMcpProtocolError("task.observe returned a different Runtime job identity")
+            raise RuntimeMcpProtocolError(
+                "task.observe returned a different Runtime job identity"
+            )
         status = result.get("status")
         delivery = result.get("deliveryDisposition")
         semantic = result.get("semanticCompletionEvaluated")
-        if not isinstance(status, str) or not isinstance(delivery, str) or not isinstance(semantic, bool):
-            raise RuntimeMcpProtocolError("task.observe omitted required Runtime evidence fields")
+        if (
+            not isinstance(status, str)
+            or not isinstance(delivery, str)
+            or not isinstance(semantic, bool)
+        ):
+            raise RuntimeMcpProtocolError(
+                "task.observe omitted required Runtime evidence fields"
+            )
         execution_terminal = result.get("executionTerminal")
         if not isinstance(execution_terminal, bool):
             raise RuntimeMcpProtocolError("task.observe omitted executionTerminal")
@@ -134,18 +144,30 @@ class RuntimeMcpArtifactReader:
                 },
             )
             if result.get("jobId") != job_id or result.get("artifactId") != artifact_id:
-                raise RuntimeMcpProtocolError("artifact.read returned mismatched identity")
+                raise RuntimeMcpProtocolError(
+                    "artifact.read returned mismatched identity"
+                )
             reported_offset = result.get("offset")
             next_offset = result.get("nextOffset")
             eof = result.get("eof")
             chunk_digest = result.get("digest")
             content = result.get("content")
             if reported_offset != offset:
-                raise RuntimeMcpProtocolError("artifact.read returned unexpected offset")
+                raise RuntimeMcpProtocolError(
+                    "artifact.read returned unexpected offset"
+                )
             if not isinstance(next_offset, int) or next_offset < offset:
-                raise RuntimeMcpProtocolError("artifact.read returned invalid nextOffset")
-            if not isinstance(eof, bool) or not isinstance(chunk_digest, str) or not isinstance(content, str):
-                raise RuntimeMcpProtocolError("artifact.read omitted required artifact fields")
+                raise RuntimeMcpProtocolError(
+                    "artifact.read returned invalid nextOffset"
+                )
+            if (
+                not isinstance(eof, bool)
+                or not isinstance(chunk_digest, str)
+                or not isinstance(content, str)
+            ):
+                raise RuntimeMcpProtocolError(
+                    "artifact.read omitted required artifact fields"
+                )
             if expected_digest is None:
                 expected_digest = chunk_digest
             elif chunk_digest != expected_digest:
@@ -153,7 +175,9 @@ class RuntimeMcpArtifactReader:
             parts.append(content)
             total_bytes += len(content.encode("utf-8"))
             if total_bytes > self._max_total_bytes:
-                raise RuntimeMcpProtocolError("artifact exceeds Agent Service evidence byte ceiling")
+                raise RuntimeMcpProtocolError(
+                    "artifact exceeds Agent Service evidence byte ceiling"
+                )
             if eof:
                 break
             if next_offset <= offset:
@@ -163,7 +187,9 @@ class RuntimeMcpArtifactReader:
         combined = "".join(parts)
         computed = "sha256:" + hashlib.sha256(combined.encode("utf-8")).hexdigest()
         if expected_digest is None or computed != expected_digest:
-            raise RuntimeMcpProtocolError("reassembled artifact digest does not match Runtime digest")
+            raise RuntimeMcpProtocolError(
+                "reassembled artifact digest does not match Runtime digest"
+            )
         return RuntimeArtifactPayload(
             job_id=job_id,
             artifact_id=artifact_id,

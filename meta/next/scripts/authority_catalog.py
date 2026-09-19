@@ -5,7 +5,6 @@ import argparse
 import hashlib
 import json
 import re
-import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -15,12 +14,22 @@ OBS = AUTH / "observations"
 INDEX = AUTH / "generated" / "authority-index.json"
 
 FORBIDDEN_TASK_FIELDS = {
-    "applicability", "appliesto", "disposition", "required", "role", "rationale", "verdict", "workflow"
+    "applicability",
+    "appliesto",
+    "disposition",
+    "required",
+    "role",
+    "rationale",
+    "verdict",
+    "workflow",
 }
 
 
 def canonical_bytes(value: object) -> bytes:
-    return (json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
+    return (
+        json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        + "\n"
+    ).encode("utf-8")
 
 
 def sha256_bytes(raw: bytes) -> str:
@@ -53,7 +62,9 @@ def records() -> dict[str, tuple[Path, dict]]:
         if not isinstance(authority_id, str) or not authority_id:
             raise SystemExit(f"record has no id: {path}")
         if authority_id in out:
-            raise SystemExit(f"duplicate authority id {authority_id}: {path} and {out[authority_id][0]}")
+            raise SystemExit(
+                f"duplicate authority id {authority_id}: {path} and {out[authority_id][0]}"
+            )
         out[authority_id] = (path, value)
     return out
 
@@ -92,24 +103,35 @@ def forbidden_fields(value: object, prefix: str = "") -> list[str]:
 def validate_catalog_semantics(catalog: dict[str, tuple[Path, dict]]) -> None:
     ids = set(catalog)
     for authority_id, (path, value) in catalog.items():
-        if value.get("kind") != "ordivon.external-authority-record" or value.get("schemaVersion") != 1:
+        if (
+            value.get("kind") != "ordivon.external-authority-record"
+            or value.get("schemaVersion") != 1
+        ):
             raise SystemExit(f"wrong record kind/schema: {path}")
         identity = value.get("identity", {})
         mode = identity.get("identityMode")
         version = identity.get("versionLabel")
         if mode == "versioned" and not version:
-            raise SystemExit(f"versioned authority must have versionLabel: {authority_id}")
+            raise SystemExit(
+                f"versioned authority must have versionLabel: {authority_id}"
+            )
         if mode == "rolling-source" and version is not None:
-            raise SystemExit(f"rolling-source authority must use null versionLabel: {authority_id}")
+            raise SystemExit(
+                f"rolling-source authority must use null versionLabel: {authority_id}"
+            )
         hits = forbidden_fields(value)
         if hits:
-            raise SystemExit(f"task-local semantics leaked into authority record {authority_id}: {hits}")
+            raise SystemExit(
+                f"task-local semantics leaked into authority record {authority_id}: {hits}"
+            )
         for relation in ("supersedes", "supersededBy", "related"):
             for target in value.get("relations", {}).get(relation, []):
                 if target == authority_id:
                     raise SystemExit(f"self relation {relation}: {authority_id}")
                 if target not in ids:
-                    raise SystemExit(f"unresolved relation {authority_id} {relation} {target}")
+                    raise SystemExit(
+                        f"unresolved relation {authority_id} {relation} {target}"
+                    )
         previous_date = None
         for obs_path in observation_paths(authority_id):
             obs = read_json(obs_path)
@@ -120,7 +142,9 @@ def validate_catalog_semantics(catalog: dict[str, tuple[Path, dict]]) -> None:
                 raise SystemExit(f"observation order regression: {obs_path}")
             previous_date = date
             if obs.get("officialSource") != identity.get("officialSource"):
-                raise SystemExit(f"observation source differs from record officialSource: {obs_path}")
+                raise SystemExit(
+                    f"observation source differs from record officialSource: {obs_path}"
+                )
 
 
 def build_index() -> dict:
@@ -158,25 +182,36 @@ def build_index() -> dict:
             "observationDigest": obs_digest,
         }
         entries.append(entry)
-        digest_material.append({"id": authority_id, "recordDigest": record_digest, "observationDigest": obs_digest})
+        digest_material.append(
+            {
+                "id": authority_id,
+                "recordDigest": record_digest,
+                "observationDigest": obs_digest,
+            }
+        )
     return {
         "schemaVersion": 1,
         "kind": "ordivon.external-authority-discovery-index",
         "recordCount": len(entries),
         "recordsDigest": sha256_bytes(canonical_bytes(digest_material)),
         "entries": entries,
-        "boundary": "Generated Level-0 discovery projection only. It does not establish task applicability, compliance, certification, authorization or domain acceptance."
+        "boundary": "Generated Level-0 discovery projection only. It does not establish task applicability, compliance, certification, authorization or domain acceptance.",
     }
 
 
 def write_index(index: dict, path: Path = INDEX) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(json.dumps(index, indent=2, ensure_ascii=False, sort_keys=True).encode("utf-8") + b"\n")
+    path.write_bytes(
+        json.dumps(index, indent=2, ensure_ascii=False, sort_keys=True).encode("utf-8")
+        + b"\n"
+    )
 
 
 def load_index() -> dict:
     if not INDEX.is_file():
-        raise SystemExit(f"generated index missing: {INDEX}; run authority_catalog.py build")
+        raise SystemExit(
+            f"generated index missing: {INDEX}; run authority_catalog.py build"
+        )
     return read_json(INDEX)
 
 
@@ -192,9 +227,20 @@ def normalized_text(text: str) -> str:
 
 
 QUERY_MODIFIERS = {
-    "current", "latest", "official", "standard", "standards", "specification",
-    "specifications", "spec", "framework", "version", "edition", "guideline",
-    "guidelines", "guidance",
+    "current",
+    "latest",
+    "official",
+    "standard",
+    "standards",
+    "specification",
+    "specifications",
+    "spec",
+    "framework",
+    "version",
+    "edition",
+    "guideline",
+    "guidelines",
+    "guidance",
 }
 
 
@@ -277,7 +323,14 @@ def emit(value: object) -> None:
 def cmd_build(_: argparse.Namespace) -> int:
     index = build_index()
     write_index(index)
-    emit({"standing": "BUILT", "path": str(INDEX.relative_to(ROOT)), "recordCount": index["recordCount"], "recordsDigest": index["recordsDigest"]})
+    emit(
+        {
+            "standing": "BUILT",
+            "path": str(INDEX.relative_to(ROOT)),
+            "recordCount": index["recordCount"],
+            "recordsDigest": index["recordsDigest"],
+        }
+    )
     return 0
 
 
@@ -286,7 +339,11 @@ def cmd_list(args: argparse.Namespace) -> int:
     if args.issuer:
         rows = [r for r in rows if args.issuer.casefold() in r["issuer"].casefold()]
     if args.topic:
-        rows = [r for r in rows if args.topic.casefold() in [x.casefold() for x in r["topics"]]]
+        rows = [
+            r
+            for r in rows
+            if args.topic.casefold() in [x.casefold() for x in r["topics"]]
+        ]
     if args.kind:
         rows = [r for r in rows if r["authorityKind"] == args.kind]
     emit(rows)
@@ -295,7 +352,11 @@ def cmd_list(args: argparse.Namespace) -> int:
 
 def cmd_find(args: argparse.Namespace) -> int:
     scored = [(score_entry(row, args.query), row) for row in load_index()["entries"]]
-    rows = [{"score": score, **row} for score, row in sorted(scored, key=lambda x: (-x[0], x[1]["id"])) if score > 0][: args.limit]
+    rows = [
+        {"score": score, **row}
+        for score, row in sorted(scored, key=lambda x: (-x[0], x[1]["id"]))
+        if score > 0
+    ][: args.limit]
     emit(rows)
     return 0
 
@@ -310,45 +371,70 @@ def get_record(authority_id: str) -> tuple[Path, dict]:
 def cmd_show(args: argparse.Namespace) -> int:
     path, record = get_record(args.id)
     latest = latest_observation(args.id)
-    emit({
-        "recordPath": str(path.relative_to(ROOT)),
-        "record": record,
-        "latestObservationPath": str(latest[0].relative_to(ROOT)) if latest else None,
-        "latestObservation": latest[1] if latest else None,
-        "boundary": "Loaded catalog identity/currentness only. Task-local applicability and claim semantics are intentionally absent."
-    })
+    emit(
+        {
+            "recordPath": str(path.relative_to(ROOT)),
+            "record": record,
+            "latestObservationPath": str(latest[0].relative_to(ROOT))
+            if latest
+            else None,
+            "latestObservation": latest[1] if latest else None,
+            "boundary": "Loaded catalog identity/currentness only. Task-local applicability and claim semantics are intentionally absent.",
+        }
+    )
     return 0
 
 
 def cmd_refresh(args: argparse.Namespace) -> int:
     path, record = get_record(args.id)
     latest = latest_observation(args.id)
-    emit({
-        "kind": "ordivon.external-authority-refresh-plan",
-        "authorityId": args.id,
-        "recordPath": str(path.relative_to(ROOT)),
-        "officialSource": record["identity"]["officialSource"],
-        "latestObservation": latest[1] if latest else None,
-        "requiredAction": [
-            "Check the official source semantically; HTTP reachability alone is insufficient.",
-            "If lifecycle/version/currentness changed, append a new dated observation under authorities/observations/<id>/.",
-            "Do not rewrite historical observations.",
-            "Do not update task-local profiles automatically; reassess applicability/currentness in the affected Work."
-        ],
-        "mutated": False
-    })
+    emit(
+        {
+            "kind": "ordivon.external-authority-refresh-plan",
+            "authorityId": args.id,
+            "recordPath": str(path.relative_to(ROOT)),
+            "officialSource": record["identity"]["officialSource"],
+            "latestObservation": latest[1] if latest else None,
+            "requiredAction": [
+                "Check the official source semantically; HTTP reachability alone is insufficient.",
+                "If lifecycle/version/currentness changed, append a new dated observation under authorities/observations/<id>/.",
+                "Do not rewrite historical observations.",
+                "Do not update task-local profiles automatically; reassess applicability/currentness in the affected Work.",
+            ],
+            "mutated": False,
+        }
+    )
     return 0
 
 
 def parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(description="Lightweight external authority catalog")
-    sub = p.add_subparsers(dest="command", required=True)
-    b = sub.add_parser("build"); b.set_defaults(fn=cmd_build)
-    l = sub.add_parser("list"); l.add_argument("--issuer"); l.add_argument("--topic"); l.add_argument("--kind"); l.set_defaults(fn=cmd_list)
-    f = sub.add_parser("find"); f.add_argument("query"); f.add_argument("--limit", type=int, default=10); f.set_defaults(fn=cmd_find)
-    s = sub.add_parser("show"); s.add_argument("id"); s.set_defaults(fn=cmd_show)
-    r = sub.add_parser("refresh"); r.add_argument("id"); r.set_defaults(fn=cmd_refresh)
-    return p
+    parser = argparse.ArgumentParser(
+        description="Lightweight external authority catalog"
+    )
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    build_parser = sub.add_parser("build")
+    build_parser.set_defaults(fn=cmd_build)
+
+    list_parser = sub.add_parser("list")
+    list_parser.add_argument("--issuer")
+    list_parser.add_argument("--topic")
+    list_parser.add_argument("--kind")
+    list_parser.set_defaults(fn=cmd_list)
+
+    find_parser = sub.add_parser("find")
+    find_parser.add_argument("query")
+    find_parser.add_argument("--limit", type=int, default=10)
+    find_parser.set_defaults(fn=cmd_find)
+
+    show_parser = sub.add_parser("show")
+    show_parser.add_argument("id")
+    show_parser.set_defaults(fn=cmd_show)
+
+    refresh_parser = sub.add_parser("refresh")
+    refresh_parser.add_argument("id")
+    refresh_parser.set_defaults(fn=cmd_refresh)
+    return parser
 
 
 def main() -> int:

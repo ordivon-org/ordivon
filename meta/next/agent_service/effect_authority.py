@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import sqlite3
-from pathlib import Path
 from typing import Any
 
 from .delivery import (
@@ -41,7 +39,10 @@ class EffectAuthorizedDeliveryCoordinator:
     def _authorization_receipt(self, binding_id: str) -> ServiceEvent:
         historical = self._events.list_for("EffectAuthorization", binding_id)
         if historical:
-            if len(historical) != 1 or historical[0].event_type != "EffectAuthorizationEvaluated":
+            if (
+                len(historical) != 1
+                or historical[0].event_type != "EffectAuthorizationEvaluated"
+            ):
                 raise RuntimeError("effect authorization receipt stream is malformed")
             event = historical[0]
             if event.payload.get("bindingId") != binding_id:
@@ -84,13 +85,16 @@ class EffectAuthorizedDeliveryCoordinator:
         )
 
     def deliver(self, binding_id: str) -> DeliveryReceipt:
-        existing = _delivery_receipt_get_by_binding(self._events, binding_id, required=False)
+        existing = _delivery_receipt_get_by_binding(
+            self._events, binding_id, required=False
+        )
         if existing is not None:
             return self._delegate.deliver(binding_id)
 
         decision = self._authorization_receipt(binding_id)
         if not bool(decision.payload.get("allowed")):
             raise PermissionError(
-                decision.payload.get("reason") or "delivery effect denied by current policy"
+                decision.payload.get("reason")
+                or "delivery effect denied by current policy"
             )
         return self._delegate.deliver(binding_id)

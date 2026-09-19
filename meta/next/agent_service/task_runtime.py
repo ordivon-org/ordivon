@@ -5,7 +5,6 @@ import sqlite3
 import time
 import uuid
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
 from .slice1 import ServiceEventStore
@@ -74,7 +73,9 @@ def _require_runtime_provider(provider: Any) -> Any:
 
 
 class TaskStore:
-    def __init__(self, connection: sqlite3.Connection, events: ServiceEventStore) -> None:
+    def __init__(
+        self, connection: sqlite3.Connection, events: ServiceEventStore
+    ) -> None:
         self._connection = connection
         self._events = events
 
@@ -88,7 +89,10 @@ class TaskStore:
     ) -> AgentTask:
         if not isinstance(description, str) or not description.strip():
             raise ValueError("task description must not be empty")
-        if not isinstance(required_revision_id, str) or not required_revision_id.strip():
+        if (
+            not isinstance(required_revision_id, str)
+            or not required_revision_id.strip()
+        ):
             raise ValueError("required_revision_id must not be empty")
         if not isinstance(execution, dict) or not execution:
             raise ValueError("task execution must be a non-empty object")
@@ -102,8 +106,19 @@ class TaskStore:
             id=_id("task"),
             description=description.strip(),
             required_revision_id=required_revision_id,
-            execution=json.loads(json.dumps(execution, sort_keys=True, separators=(",", ":"), ensure_ascii=False)),
-            acceptance=json.loads(json.dumps(acceptance, sort_keys=True, separators=(",", ":"), ensure_ascii=False)),
+            execution=json.loads(
+                json.dumps(
+                    execution, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+                )
+            ),
+            acceptance=json.loads(
+                json.dumps(
+                    acceptance,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                    ensure_ascii=False,
+                )
+            ),
             state="PENDING",
             failure_reason=None,
             created_at_ns=_now_ns(),
@@ -120,8 +135,18 @@ class TaskStore:
                     task.id,
                     task.description,
                     task.required_revision_id,
-                    json.dumps(task.execution, sort_keys=True, separators=(",", ":"), ensure_ascii=False),
-                    json.dumps(task.acceptance, sort_keys=True, separators=(",", ":"), ensure_ascii=False),
+                    json.dumps(
+                        task.execution,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                        ensure_ascii=False,
+                    ),
+                    json.dumps(
+                        task.acceptance,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                        ensure_ascii=False,
+                    ),
                     task.state,
                     task.created_at_ns,
                 ),
@@ -144,7 +169,9 @@ class TaskStore:
                 raise ValueError("stdout acceptance requires exactly kind/value")
         elif kind == "runtime_artifact_text_contains":
             if set(acceptance) != {"kind", "artifactKind", "value"}:
-                raise ValueError("runtime artifact acceptance requires kind/artifactKind/value")
+                raise ValueError(
+                    "runtime artifact acceptance requires kind/artifactKind/value"
+                )
             artifact_kind = acceptance.get("artifactKind")
             if not isinstance(artifact_kind, str) or not artifact_kind.strip():
                 raise ValueError("artifactKind must be a non-empty string")
@@ -270,7 +297,8 @@ class AssignmentStore:
 
     def bind_runtime_job_in_transaction(self, assignment_id: str, job_id: str) -> None:
         row = self._connection.execute(
-            "SELECT runtime_job_id FROM service_assignments WHERE id = ?", (assignment_id,)
+            "SELECT runtime_job_id FROM service_assignments WHERE id = ?",
+            (assignment_id,),
         ).fetchone()
         if row is None:
             raise KeyError(assignment_id)
@@ -284,7 +312,8 @@ class AssignmentStore:
 
     def set_state_in_transaction(self, assignment_id: str, state: str) -> None:
         cursor = self._connection.execute(
-            "UPDATE service_assignments SET state = ? WHERE id = ?", (state, assignment_id)
+            "UPDATE service_assignments SET state = ? WHERE id = ?",
+            (state, assignment_id),
         )
         if cursor.rowcount != 1:
             raise KeyError(assignment_id)

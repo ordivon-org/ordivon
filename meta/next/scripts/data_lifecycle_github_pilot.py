@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import csv
 import hashlib
 import json
+import math
 import subprocess
 import uuid
 from datetime import datetime, timezone
@@ -20,7 +20,15 @@ RUNTIME_LINEAGE = BASE / "runtime-lineage"
 RUNTIME_ACQUISITION = BASE / "runtime-acquisition"
 ANALYSIS = BASE / "analysis"
 SOURCE = BASE / "source"
-for d in (OUT, CONTRACTS, CATALOG, LINEAGE, RUNTIME_LINEAGE, RUNTIME_ACQUISITION, ANALYSIS):
+for d in (
+    OUT,
+    CONTRACTS,
+    CATALOG,
+    LINEAGE,
+    RUNTIME_LINEAGE,
+    RUNTIME_ACQUISITION,
+    ANALYSIS,
+):
     d.mkdir(parents=True, exist_ok=True)
 
 TIDY_SHA = (SOURCE / "tidytuesday-main.sha").read_text().strip()
@@ -57,12 +65,41 @@ DATASETS = {
     },
 }
 
+
 def run_json(sql: str):
     out = subprocess.check_output([DUCKDB, "-json", "-c", sql], text=True)
     return json.loads(out)
 
+
 def sql_quote(path: Path) -> str:
     return path.resolve().as_posix().replace("'", "''")
+
+
+def sql_identifier(value: str) -> str:
+    # DuckDB quoted identifiers escape embedded quotes by doubling them.
+    return '"' + value.replace('"', '""') + '"'
+
+
+def finite_number(value: object) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise TypeError(
+            f"SQL numeric bound must be int/float, got {type(value).__name__}"
+        )
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError("SQL numeric bound must be finite")
+    return number
+
+
+def sql_number(value: object) -> str:
+    return repr(finite_number(value))
+
+
+# Security boundary for B608 suppressions below: DuckDB is invoked as a local CLI,
+# not a multi-tenant query service. Interpolated paths pass through sql_quote(),
+# identifiers through sql_identifier(), and semantic numeric bounds through
+# finite_number()/sql_number(). Never interpolate raw network/user-controlled SQL.
+
 
 def sha256(path: Path) -> str:
     h = hashlib.sha256()
@@ -71,17 +108,26 @@ def sha256(path: Path) -> str:
             h.update(chunk)
     return h.hexdigest()
 
+
 def write_json(path: Path, obj):
-    path.write_text(json.dumps(obj, indent=2, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(obj, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
 
 def describe(path: Path):
-    return run_json(f"DESCRIBE SELECT * FROM read_parquet('{sql_quote(path)}')")
+    return run_json(f"DESCRIBE SELECT * FROM read_parquet('{sql_quote(path)}')")  # nosec B608
+
 
 def row_count(path: Path) -> int:
-    return int(run_json(f"SELECT count(*) AS n FROM read_parquet('{sql_quote(path)}')")[0]["n"])
+    return int(
+        run_json(f"SELECT count(*) AS n FROM read_parquet('{sql_quote(path)}')")[0]["n"]  # nosec B608
+    )
+
 
 def duplicate_count(path: Path, keys: list[str]) -> int:
-    group = ", ".join(f'"{k}"' for k in keys)
+    group = ", ".join(sql_identifier(k) for k in keys)
     q = f"""
     SELECT coalesce(sum(n - 1), 0) AS duplicates
     FROM (
@@ -90,12 +136,18 @@ def duplicate_count(path: Path, keys: list[str]) -> int:
       GROUP BY {group}
       HAVING count(*) > 1
     )
-    """
+    """  # nosec B608
     return int(run_json(q)[0]["duplicates"])
 
+
 def null_key_count(path: Path, keys: list[str]) -> int:
-    pred = " OR ".join(f'"{k}" IS NULL' for k in keys)
-    return int(run_json(f"SELECT count(*) AS n FROM read_parquet('{sql_quote(path)}') WHERE {pred}")[0]["n"])
+    pred = " OR ".join(f"{sql_identifier(k)} IS NULL" for k in keys)
+    return int(
+        run_json(
+            f"SELECT count(*) AS n FROM read_parquet('{sql_quote(path)}') WHERE {pred}"  # nosec B608
+        )[0]["n"]
+    )
+
 
 def ensure_raw():
     RAW.mkdir(parents=True, exist_ok=True)
@@ -111,11 +163,21 @@ def ensure_raw():
                 tmp = d["raw"].with_suffix(d["raw"].suffix + ".part")
                 tmp.unlink(missing_ok=True)
                 try:
-                    subprocess.check_call([
-                        "/usr/bin/curl", "-fL", "--retry", "2",
-                        "--connect-timeout", "10", "--max-time", "60",
-                        url, "-o", str(tmp),
-                    ])
+                    subprocess.check_call(
+                        [
+                            "/usr/bin/curl",
+                            "-fL",
+                            "--retry",
+                            "2",
+                            "--connect-timeout",
+                            "10",
+                            "--max-time",
+                            "60",
+                            url,
+                            "-o",
+                            str(tmp),
+                        ]
+                    )
                     actual = sha256(tmp)
                     if actual != d["source_sha256"]:
                         raise RuntimeError(f"digest mismatch from {url}: {actual}")
@@ -126,10 +188,14 @@ def ensure_raw():
                     last_error = str(exc)
                     tmp.unlink(missing_ok=True)
             else:
-                raise RuntimeError(f"{name}: all acquisition transports failed: {last_error}")
+                raise RuntimeError(
+                    f"{name}: all acquisition transports failed: {last_error}"
+                )
         actual = sha256(d["raw"])
         if actual != d["source_sha256"]:
-            raise RuntimeError(f"{name}: source digest mismatch: {actual} != {d['source_sha256']}")
+            raise RuntimeError(
+                f"{name}: source digest mismatch: {actual} != {d['source_sha256']}"
+            )
         receipts[name] = {
             "sourceIdentity": f"github:rfordatascience/tidytuesday@{TIDY_SHA}:{d['source_path']}",
             "canonicalUrl": canonical,
@@ -154,12 +220,16 @@ def ensure_raw():
         }
     write_json(SOURCE / "acquisition-policy.json", policy)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")
-    write_json(RUNTIME_ACQUISITION / f"{stamp}.json", {
-        "schemaVersion": 1,
-        "kind": "digest-verified-acquisition-receipt",
-        "policy": str((SOURCE / "acquisition-policy.json").relative_to(ROOT)),
-        "datasets": receipts,
-    })
+    write_json(
+        RUNTIME_ACQUISITION / f"{stamp}.json",
+        {
+            "schemaVersion": 1,
+            "kind": "digest-verified-acquisition-receipt",
+            "policy": str((SOURCE / "acquisition-policy.json").relative_to(ROOT)),
+            "datasets": receipts,
+        },
+    )
+
 
 def convert_all():
     for name, d in DATASETS.items():
@@ -174,16 +244,17 @@ def convert_all():
             if not norm:
                 continue
             replacement = str(norm["nullReplacement"]).replace("'", "''")
-            derived = norm["derivedColumn"].replace('"', '""')
-            source = source_col.replace('"', '""')
-            select_parts.append(f"coalesce(\"{source}\", '{replacement}') AS \"{derived}\"")
+            derived = sql_identifier(norm["derivedColumn"])
+            source = sql_identifier(source_col)
+            select_parts.append(f"coalesce({source}, '{replacement}') AS {derived}")
         select_expr = ", ".join(select_parts)
         sql = f"""
         COPY (
           SELECT {select_expr} FROM read_csv_auto('{raw}', header=true, nullstr='NA', sample_size=-1)
         ) TO '{out}' (FORMAT PARQUET, COMPRESSION ZSTD);
-        """
+        """  # nosec B608
         subprocess.check_call([DUCKDB, "-c", sql])
+
 
 def logical_type(duck_type: str) -> str:
     t = duck_type.upper()
@@ -197,17 +268,24 @@ def logical_type(duck_type: str) -> str:
         return "boolean"
     return "string"
 
+
 def dataset_semantics(name: str) -> dict:
     return SEMANTICS["datasets"][name]
 
+
 def measure_semantics(name: str, column: str) -> dict | None:
     return dataset_semantics(name).get("measures", {}).get(column)
+
 
 def make_odcs(name: str, d: dict):
     schema_rows = describe(d["parquet"])
     sem = dataset_semantics(name)
     keys = sem["physicalPrimaryKey"]
-    semantic_dimensions = set(sem.get("semanticDimensions", [])) | set(sem.get("descriptiveDimensions", [])) | set(keys)
+    semantic_dimensions = (
+        set(sem.get("semanticDimensions", []))
+        | set(sem.get("descriptiveDimensions", []))
+        | set(keys)
+    )
     props = []
     for row in schema_rows:
         col = row["column_name"]
@@ -220,29 +298,53 @@ def make_odcs(name: str, d: dict):
             "primaryKeyPosition": keys.index(col) + 1 if col in keys else -1,
             "required": null_key_count(d["parquet"], [col]) == 0,
             "classification": "public",
-            "semanticType": "dimension" if col in semantic_dimensions else ("measure" if logical_type(row["column_type"]) in {"number", "integer"} else "column"),
+            "semanticType": "dimension"
+            if col in semantic_dimensions
+            else (
+                "measure"
+                if logical_type(row["column_type"]) in {"number", "integer"}
+                else "column"
+            ),
         }
         ms = measure_semantics(name, col)
         custom_properties = []
         if ms:
-            custom_properties.extend([
-                {"property": "unitUcum", "value": ms["unitUcum"]},
-                {"property": "unitQudt", "value": ms["unitQudt"]},
-                {"property": "quantitySemantics", "value": ms["quantitySemantics"]},
-            ])
+            custom_properties.extend(
+                [
+                    {"property": "unitUcum", "value": ms["unitUcum"]},
+                    {"property": "unitQudt", "value": ms["unitQudt"]},
+                    {"property": "quantitySemantics", "value": ms["quantitySemantics"]},
+                ]
+            )
         null_sem = sem.get("sourceNullSemantics", {}).get(col)
         if null_sem:
-            custom_properties.extend([
-                {"property": "sourceNullMeaning", "value": null_sem["sourceMeaning"]},
-                {"property": "observationStatusPolicy", "value": null_sem["observationStatusPolicy"]},
-            ])
+            custom_properties.extend(
+                [
+                    {
+                        "property": "sourceNullMeaning",
+                        "value": null_sem["sourceMeaning"],
+                    },
+                    {
+                        "property": "observationStatusPolicy",
+                        "value": null_sem["observationStatusPolicy"],
+                    },
+                ]
+            )
         for source_col, null_meta in sem.get("sourceNullSemantics", {}).items():
             norm = null_meta.get("physicalKeyNormalization", {})
             if norm.get("derivedColumn") == col:
-                custom_properties.extend([
-                    {"property": "derivedFromNullableDimension", "value": source_col},
-                    {"property": "nullReplacementForPhysicalKey", "value": norm["nullReplacement"]},
-                ])
+                custom_properties.extend(
+                    [
+                        {
+                            "property": "derivedFromNullableDimension",
+                            "value": source_col,
+                        },
+                        {
+                            "property": "nullReplacementForPhysicalKey",
+                            "value": norm["nullReplacement"],
+                        },
+                    ]
+                )
         if custom_properties:
             prop["customProperties"] = custom_properties
         props.append(prop)
@@ -250,7 +352,9 @@ def make_odcs(name: str, d: dict):
         "version": "1.0.0",
         "apiVersion": "v3.2.0",
         "kind": "DataContract",
-        "id": str(uuid.uuid5(uuid.NAMESPACE_URL, f"github:{TIDY_SHA}:{d['source_path']}")),
+        "id": str(
+            uuid.uuid5(uuid.NAMESPACE_URL, f"github:{TIDY_SHA}:{d['source_path']}")
+        ),
         "name": name,
         "domain": "external-public-data",
         "dataProduct": d["data_product"],
@@ -258,34 +362,58 @@ def make_odcs(name: str, d: dict):
         "description": {
             "purpose": "External GitHub dataset used to exercise the Ordivon data lifecycle pilot.",
             "limitations": "Descriptive pilot contract; upstream source semantics and causal interpretation remain outside this contract.",
-            "usage": "Reproducible data-lifecycle validation and descriptive analysis."
+            "usage": "Reproducible data-lifecycle validation and descriptive analysis.",
         },
-        "authoritativeDefinitions": [{
-            "type": "canonical",
-            "url": f"https://github.com/rfordatascience/tidytuesday/blob/{TIDY_SHA}/{d['source_path']}",
-            "description": "Exact Git source revision used for acquisition."
-        }],
-        "schema": [{
-            "name": name,
-            "physicalName": d["parquet"].name,
-            "physicalType": "parquet",
-            "description": d["title"],
-            "properties": props,
-        }],
+        "authoritativeDefinitions": [
+            {
+                "type": "canonical",
+                "url": f"https://github.com/rfordatascience/tidytuesday/blob/{TIDY_SHA}/{d['source_path']}",
+                "description": "Exact Git source revision used for acquisition.",
+            }
+        ],
+        "schema": [
+            {
+                "name": name,
+                "physicalName": d["parquet"].name,
+                "physicalType": "parquet",
+                "description": d["title"],
+                "properties": props,
+            }
+        ],
         "customProperties": [
             {"property": "sourceSha256", "value": sha256(d["raw"])},
             {"property": "derivedParquetSha256", "value": sha256(d["parquet"])},
             {"property": "sourceGitCommit", "value": TIDY_SHA},
-            {"property": "semanticProfile", "value": str(SEMANTICS_PATH.relative_to(ROOT))},
-            {"property": "statisticalStructureOwner", "value": SEMANTICS["externalOwners"]["statisticalStructure"]},
-            {"property": "unitCodeOwner", "value": SEMANTICS["externalOwners"]["unitCodes"]},
-            {"property": "qualityMeasureOwner", "value": SEMANTICS["externalOwners"]["qualityMeasures"]},
+            {
+                "property": "semanticProfile",
+                "value": str(SEMANTICS_PATH.relative_to(ROOT)),
+            },
+            {
+                "property": "statisticalStructureOwner",
+                "value": SEMANTICS["externalOwners"]["statisticalStructure"],
+            },
+            {
+                "property": "unitCodeOwner",
+                "value": SEMANTICS["externalOwners"]["unitCodes"],
+            },
+            {
+                "property": "qualityMeasureOwner",
+                "value": SEMANTICS["externalOwners"]["qualityMeasures"],
+            },
         ],
     }
     write_json(CONTRACTS / f"{name}.odcs.json", contract)
 
+
 def make_quality():
-    q = {"schemaVersion": 1, "kind": "ordivon.data-lifecycle-quality-report", "sourceCommit": TIDY_SHA, "qualityModelOwner": SEMANTICS["externalOwners"]["qualityMeasures"], "fitnessForUse": "descriptive-analytics-pilot", "datasets": {}}
+    q = {
+        "schemaVersion": 1,
+        "kind": "ordivon.data-lifecycle-quality-report",
+        "sourceCommit": TIDY_SHA,
+        "qualityModelOwner": SEMANTICS["externalOwners"]["qualityMeasures"],
+        "fitnessForUse": "descriptive-analytics-pilot",
+        "datasets": {},
+    }
     for name, d in DATASETS.items():
         p = d["parquet"]
         sem = dataset_semantics(name)
@@ -305,16 +433,36 @@ def make_quality():
     metadata = DATASETS["crossref-metadata-coverage"]["parquet"]
     energy = DATASETS["se4all-energy"]["parquet"]
 
-    member_cols = [r["column_name"] for r in describe(member) if r["column_name"].startswith("deposits_") or r["column_name"] == "acknowledges_funding"]
-    member_pred = " OR ".join(f'coalesce("{c}",0) > coalesce(total_members,0)' for c in member_cols)
-    q["datasets"]["crossref-member-participation"]["depositCountExceedsTotalMembersRows"] = int(
-        run_json(f"SELECT count(*) n FROM read_parquet('{sql_quote(member)}') WHERE {member_pred}")[0]["n"]
+    member_cols = [
+        r["column_name"]
+        for r in describe(member)
+        if r["column_name"].startswith("deposits_")
+        or r["column_name"] == "acknowledges_funding"
+    ]
+    member_pred = " OR ".join(
+        f"coalesce({sql_identifier(c)},0) > coalesce(total_members,0)"
+        for c in member_cols
+    )
+    q["datasets"]["crossref-member-participation"][
+        "depositCountExceedsTotalMembersRows"
+    ] = int(
+        run_json(
+            f"SELECT count(*) n FROM read_parquet('{sql_quote(member)}') WHERE {member_pred}"  # nosec B608
+        )[0]["n"]
     )
 
-    with_cols = [r["column_name"] for r in describe(metadata) if r["column_name"].startswith("with_")]
-    with_pred = " OR ".join(f'coalesce("{c}",0) > coalesce(n_dois,0)' for c in with_cols)
+    with_cols = [
+        r["column_name"]
+        for r in describe(metadata)
+        if r["column_name"].startswith("with_")
+    ]
+    with_pred = " OR ".join(
+        f"coalesce({sql_identifier(c)},0) > coalesce(n_dois,0)" for c in with_cols
+    )
     q["datasets"]["crossref-metadata-coverage"]["withMetricExceedsNDoisRows"] = int(
-        run_json(f"SELECT count(*) n FROM read_parquet('{sql_quote(metadata)}') WHERE {with_pred}")[0]["n"]
+        run_json(
+            f"SELECT count(*) n FROM read_parquet('{sql_quote(metadata)}') WHERE {with_pred}"  # nosec B608
+        )[0]["n"]
     )
 
     semantic_checks = {}
@@ -324,18 +472,26 @@ def make_quality():
         maximum = validity.get("maximum")
         tolerance = validity.get("tolerance", 0)
         clauses = []
+        column_sql = sql_identifier(col)
+        tolerance_value = finite_number(tolerance)
         if minimum is not None:
-            clauses.append(f'"{col}" < {minimum - tolerance}')
+            clauses.append(
+                f"{column_sql} < {sql_number(finite_number(minimum) - tolerance_value)}"
+            )
         if maximum is not None:
-            clauses.append(f'"{col}" > {maximum + tolerance}')
+            clauses.append(
+                f"{column_sql} > {sql_number(finite_number(maximum) + tolerance_value)}"
+            )
         violations = 0
         if clauses:
             predicate = " OR ".join(clauses)
-            violations = int(run_json(
-                f'SELECT count(*) n FROM read_parquet(\'{sql_quote(energy)}\') WHERE "{col}" IS NOT NULL AND ({predicate})'
-            )[0]["n"])
+            violations = int(
+                run_json(
+                    f"SELECT count(*) n FROM read_parquet('{sql_quote(energy)}') WHERE {column_sql} IS NOT NULL AND ({predicate})"  # nosec B608
+                )[0]["n"]
+            )
         bounds = run_json(
-            f'SELECT min("{col}") minv, max("{col}") maxv FROM read_parquet(\'{sql_quote(energy)}\')'
+            f"SELECT min({column_sql}) minv, max({column_sql}) maxv FROM read_parquet('{sql_quote(energy)}')"  # nosec B608
         )[0]
         semantic_checks[col] = {
             "unitUcum": meta["unitUcum"],
@@ -350,19 +506,31 @@ def make_quality():
             "basis": validity.get("basis"),
         }
     q["datasets"]["se4all-energy"]["semanticMeasureChecks"] = semantic_checks
-    q["datasets"]["se4all-energy"]["semanticMeasureViolationRows"] = sum(x["violationRows"] for x in semantic_checks.values())
+    q["datasets"]["se4all-energy"]["semanticMeasureViolationRows"] = sum(
+        x["violationRows"] for x in semantic_checks.values()
+    )
     q["datasets"]["se4all-energy"]["missingObservationStatus"] = {
-        "sourceProvidesStatus": dataset_semantics("se4all-energy")["missingStatusAvailable"],
+        "sourceProvidesStatus": dataset_semantics("se4all-energy")[
+            "missingStatusAvailable"
+        ],
         "policy": dataset_semantics("se4all-energy")["observationStatusPolicy"],
         "externalOwner": SEMANTICS["externalOwners"]["observationStatus"],
     }
 
-    q["standing"] = "PASS" if (
-        all(d["duplicatePrimaryKeyRows"] == 0 and d["nullPrimaryKeyRows"] == 0 for d in q["datasets"].values())
-        and q["datasets"]["se4all-energy"]["semanticMeasureViolationRows"] == 0
-    ) else "FAIL"
+    q["standing"] = (
+        "PASS"
+        if (
+            all(
+                d["duplicatePrimaryKeyRows"] == 0 and d["nullPrimaryKeyRows"] == 0
+                for d in q["datasets"].values()
+            )
+            and q["datasets"]["se4all-energy"]["semanticMeasureViolationRows"] == 0
+        )
+        else "FAIL"
+    )
     write_json(BASE / "quality-report.json", q)
     return q
+
 
 def make_analysis():
     member = sql_quote(DATASETS["crossref-member-participation"]["parquet"])
@@ -396,10 +564,11 @@ def make_analysis():
       WHERE c.n_dois >= 1000
       ORDER BY c.work_ror_share DESC, c.n_dois DESC
     ) TO '{sql_quote(ANALYSIS / "crossref-country-metadata-rates.csv")}' (HEADER, DELIMITER ',');
-    """
+    """  # nosec B608
     subprocess.check_call([DUCKDB, "-c", crossref_sql])
 
-    corr = run_json(f"""
+    corr = run_json(
+        f"""
       WITH latest AS (SELECT max(current_up_to) d FROM read_parquet('{metadata}')),
       m AS (
         SELECT iso3_code, deposits_ror_id / nullif(total_members,0) member_ror_share
@@ -414,7 +583,8 @@ def make_analysis():
       SELECT count(*) AS countries, corr(member_ror_share, work_ror_share) AS pearson_r
       FROM c JOIN m USING(iso3_code)
       WHERE n_dois >= 1000 AND member_ror_share IS NOT NULL AND work_ror_share IS NOT NULL
-    """)[0]
+    """  # nosec B608
+    )[0]
 
     energy_sql = f"""
     COPY (
@@ -427,30 +597,40 @@ def make_analysis():
       GROUP BY yr
       ORDER BY yr
     ) TO '{sql_quote(ANALYSIS / "se4all-yearly-country-means.csv")}' (HEADER, DELIMITER ',');
-    """
+    """  # nosec B608
     subprocess.check_call([DUCKDB, "-c", energy_sql])
 
-    energy_latest = run_json(f"""
+    energy_latest = run_json(
+        f"""
       WITH x AS (SELECT max(yr) y FROM read_parquet('{energy}'))
       SELECT (SELECT y FROM x) AS latest_year,
              count(*) AS countries,
              avg(renewable_energy_consumption_tfec_pct) AS country_mean_renewable_tfec_pct,
              avg(access_electricity_total_pop_pct) AS country_mean_electricity_access_pct
       FROM read_parquet('{energy}') WHERE yr=(SELECT y FROM x)
-    """)[0]
+    """  # nosec B608
+    )[0]
 
-    write_json(ANALYSIS / "analysis-summary.json", {
-        "crossref": {
-            "eligibleCountryCount": corr["countries"],
-            "memberVsWorkRorSharePearsonR": round(float(corr["pearson_r"]), 12),
+    write_json(
+        ANALYSIS / "analysis-summary.json",
+        {
+            "crossref": {
+                "eligibleCountryCount": corr["countries"],
+                "memberVsWorkRorSharePearsonR": round(float(corr["pearson_r"]), 12),
+            },
+            "se4all": {
+                **energy_latest,
+                "country_mean_renewable_tfec_pct": round(
+                    float(energy_latest["country_mean_renewable_tfec_pct"]), 12
+                ),
+                "country_mean_electricity_access_pct": round(
+                    float(energy_latest["country_mean_electricity_access_pct"]), 12
+                ),
+            },
+            "interpretationBoundary": "Descriptive outputs only; no causal inference is claimed.",
         },
-        "se4all": {
-            **energy_latest,
-            "country_mean_renewable_tfec_pct": round(float(energy_latest["country_mean_renewable_tfec_pct"]), 12),
-            "country_mean_electricity_access_pct": round(float(energy_latest["country_mean_electricity_access_pct"]), 12),
-        },
-        "interpretationBoundary": "Descriptive outputs only; no causal inference is claimed."
-    })
+    )
+
 
 def make_catalog():
     datasets = []
@@ -458,31 +638,33 @@ def make_catalog():
         raw_sha = sha256(d["raw"])
         pq_sha = sha256(d["parquet"])
         pinned = f"https://raw.githubusercontent.com/rfordatascience/tidytuesday/{TIDY_SHA}/{d['source_path']}"
-        datasets.append({
-            "@id": f"urn:ordivon:dataset:{name}:{raw_sha}",
-            "@type": "dcat:Dataset",
-            "dct:title": d["title"],
-            "dct:identifier": f"sha256:{raw_sha}",
-            "dct:source": {"@id": pinned},
-            "dct:rights": "TidyTuesday curation requires source data to be publicly available and free for reuse; upstream license terms remain source-specific and are not inferred here.",
-            "dcat:distribution": [
-                {
-                    "@type": "dcat:Distribution",
-                    "dct:format": "text/csv",
-                    "dcat:downloadURL": {"@id": pinned},
-                    "dct:identifier": f"sha256:{raw_sha}",
-                },
-                {
-                    "@type": "dcat:Distribution",
-                    "dct:format": "application/vnd.apache.parquet",
-                    "dct:identifier": f"sha256:{pq_sha}",
-                }
-            ]
-        })
+        datasets.append(
+            {
+                "@id": f"urn:ordivon:dataset:{name}:{raw_sha}",
+                "@type": "dcat:Dataset",
+                "dct:title": d["title"],
+                "dct:identifier": f"sha256:{raw_sha}",
+                "dct:source": {"@id": pinned},
+                "dct:rights": "TidyTuesday curation requires source data to be publicly available and free for reuse; upstream license terms remain source-specific and are not inferred here.",
+                "dcat:distribution": [
+                    {
+                        "@type": "dcat:Distribution",
+                        "dct:format": "text/csv",
+                        "dcat:downloadURL": {"@id": pinned},
+                        "dct:identifier": f"sha256:{raw_sha}",
+                    },
+                    {
+                        "@type": "dcat:Distribution",
+                        "dct:format": "application/vnd.apache.parquet",
+                        "dct:identifier": f"sha256:{pq_sha}",
+                    },
+                ],
+            }
+        )
     catalog = {
         "@context": {
             "dcat": "http://www.w3.org/ns/dcat#",
-            "dct": "http://purl.org/dc/terms/"
+            "dct": "http://purl.org/dc/terms/",
         },
         "@id": "urn:ordivon:catalog:github-pilot-r1",
         "@type": "dcat:Catalog",
@@ -492,31 +674,45 @@ def make_catalog():
     }
     write_json(CATALOG / "catalog.dcat.jsonld", catalog)
 
-def lineage_event(job_name: str, event_type: str, inputs: list[dict], outputs: list[dict]):
+
+def lineage_event(
+    job_name: str, event_type: str, inputs: list[dict], outputs: list[dict]
+):
     run_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"{TIDY_SHA}:{job_name}"))
     return {
         "eventType": event_type,
         "eventTime": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "run": {"runId": run_id},
-        "job": {"namespace": "urn:ordivon:data-lifecycle:github-pilot-r1", "name": job_name},
+        "job": {
+            "namespace": "urn:ordivon:data-lifecycle:github-pilot-r1",
+            "name": job_name,
+        },
         "inputs": inputs,
         "outputs": outputs,
         "producer": PRODUCER,
         "schemaURL": OL_SCHEMA_URL,
     }
 
+
 def ds_ref(name: str, d: dict, derived=False):
     if derived:
         digest = sha256(d["parquet"])
-        return {"namespace": "urn:ordivon:data-lifecycle:github-pilot-r1", "name": f"{d['parquet'].name}@sha256:{digest}"}
+        return {
+            "namespace": "urn:ordivon:data-lifecycle:github-pilot-r1",
+            "name": f"{d['parquet'].name}@sha256:{digest}",
+        }
     return {
         "namespace": f"https://github.com/rfordatascience/tidytuesday/tree/{TIDY_SHA}",
         "name": d["source_path"],
     }
 
+
 def make_lineage():
     groups = {
-        "crossref-transform": ["crossref-member-participation", "crossref-metadata-coverage"],
+        "crossref-transform": [
+            "crossref-member-participation",
+            "crossref-metadata-coverage",
+        ],
         "se4all-transform": ["se4all-energy"],
     }
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")
@@ -531,6 +727,7 @@ def make_lineage():
         ]
         write_json(run_dir / f"{job}.openlineage.json", events)
 
+
 def make_manifest(q):
     files = {}
     for p in sorted(BASE.rglob("*")):
@@ -540,14 +737,18 @@ def make_manifest(q):
         if rel.parts and rel.parts[0] in {"runtime-lineage", "runtime-acquisition"}:
             continue
         files[str(rel)] = {"bytes": p.stat().st_size, "sha256": sha256(p)}
-    write_json(BASE / "manifest.json", {
-        "schemaVersion": 1,
-        "kind": "ordivon.data-lifecycle-github-pilot",
-        "sourceRepository": "https://github.com/rfordatascience/tidytuesday",
-        "sourceCommit": TIDY_SHA,
-        "qualityStanding": q["standing"],
-        "files": files,
-    })
+    write_json(
+        BASE / "manifest.json",
+        {
+            "schemaVersion": 1,
+            "kind": "ordivon.data-lifecycle-github-pilot",
+            "sourceRepository": "https://github.com/rfordatascience/tidytuesday",
+            "sourceCommit": TIDY_SHA,
+            "qualityStanding": q["standing"],
+            "files": files,
+        },
+    )
+
 
 def main():
     ensure_raw()
@@ -559,11 +760,18 @@ def main():
     make_catalog()
     make_lineage()
     make_manifest(q)
-    print(json.dumps({
-        "standing": q["standing"],
-        "sourceCommit": TIDY_SHA,
-        "datasets": {k: q["datasets"][k] for k in sorted(q["datasets"])},
-    }, indent=2, sort_keys=True))
+    print(
+        json.dumps(
+            {
+                "standing": q["standing"],
+                "sourceCommit": TIDY_SHA,
+                "datasets": {k: q["datasets"][k] for k in sorted(q["datasets"])},
+            },
+            indent=2,
+            sort_keys=True,
+        )
+    )
+
 
 if __name__ == "__main__":
     main()

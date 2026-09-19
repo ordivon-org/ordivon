@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-import json
-import tempfile
 import unittest
-from pathlib import Path
 
 from agent_service.runtime_mcp import RuntimeMcpAdapter, RuntimeMcpProtocolError
 
@@ -22,7 +19,9 @@ class FakeToolCaller:
 
 class RuntimeMcpAdapterTests(unittest.TestCase):
     def test_submit_uses_workspace_exec_with_stable_client_request_id(self) -> None:
-        caller = FakeToolCaller([{"jobId": "job-1", "semanticCompletionEvaluated": False}])
+        caller = FakeToolCaller(
+            [{"jobId": "job-1", "semanticCompletionEvaluated": False}]
+        )
         adapter = RuntimeMcpAdapter(caller)
         execution = {
             "workspaceId": "ws-test",
@@ -89,6 +88,7 @@ class RuntimeMcpAdapterTests(unittest.TestCase):
 
         with self.assertRaises(RuntimeMcpProtocolError):
             adapter.observe("job-1")
+
 
 if __name__ == "__main__":
     unittest.main()

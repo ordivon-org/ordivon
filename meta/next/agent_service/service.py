@@ -82,8 +82,8 @@ from .trust import (
 )
 
 
-
-def _build_service(connection: sqlite3.Connection,
+def _build_service(
+    connection: sqlite3.Connection,
     *,
     carrier_adapter: Any,
     runtime_adapter: Any,
@@ -99,7 +99,8 @@ def _build_service(connection: sqlite3.Connection,
     identity_proof_adapter: Any | None,
     remote_delivery_observers: dict[str, Any],
     remote_artifact_readers: dict[str, Any],
-    board_adapter: Any | None) -> SimpleNamespace:
+    board_adapter: Any | None,
+) -> SimpleNamespace:
     service = SimpleNamespace()
     carrier_adapter = _require_carrier_provider(carrier_adapter)
     runtime_adapter = _require_runtime_provider(runtime_adapter)
@@ -218,12 +219,12 @@ def _build_service(connection: sqlite3.Connection,
         service.events,
         service.execution_claims,
     )
-    service.goal_planner = GoalAssignmentPlanner(service.task_readiness, service.planner)
+    service.goal_planner = GoalAssignmentPlanner(
+        service.task_readiness, service.planner
+    )
 
     # Remote evidence.
-    service.remote_artifacts = RemoteArtifactEvidenceResolver(
-        remote_artifact_readers
-    )
+    service.remote_artifacts = RemoteArtifactEvidenceResolver(remote_artifact_readers)
     service.remote_completion = RemoteTaskCompletionReconciler(
         connection,
         service.tasks,
@@ -240,9 +241,7 @@ def _build_service(connection: sqlite3.Connection,
     # transport-neutral failover coordinators here, at the composition boundary.
     explicit_quiescence = dict(quiescence_providers or {})
     if explicit_quiescence and (a2a_caller is not None or mcp_tasks_caller is not None):
-        raise ValueError(
-            "pass quiescence_providers or protocol callers, not both"
-        )
+        raise ValueError("pass quiescence_providers or protocol callers, not both")
     if not explicit_quiescence:
         if a2a_caller is not None:
             explicit_quiescence["a2a-jsonrpc"] = A2AQuiescenceAdapter(a2a_caller)
@@ -340,7 +339,9 @@ def _build_service(connection: sqlite3.Connection,
     service.close = connection.close
     return service
 
-def open_agent_service(db_path: str | Path,
+
+def open_agent_service(
+    db_path: str | Path,
     *,
     carrier_adapter: Any,
     runtime_adapter: Any,
@@ -356,7 +357,8 @@ def open_agent_service(db_path: str | Path,
     identity_proof_adapter: Any | None = None,
     remote_delivery_observers: dict[str, Any] | None = None,
     remote_artifact_readers: dict[str, Any] | None = None,
-    board_adapter: Any | None = None) -> SimpleNamespace:
+    board_adapter: Any | None = None,
+) -> SimpleNamespace:
     _require_carrier_provider(carrier_adapter)
     _require_runtime_provider(runtime_adapter)
     _require_artifact_reader(artifact_reader)

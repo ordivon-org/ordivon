@@ -13,8 +13,10 @@ from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
 class Carrier:
     def ensure(self, placement_id, agent_instance_id, revision_id):
         return None
+
     def retire(self, placement_id, agent_instance_id):
         return None
+
     def observe(self, placement_id):
         return ProviderObservation(placement_id, "UNKNOWN", None)
 
@@ -22,6 +24,7 @@ class Carrier:
 class Runtime:
     def submit(self, client_request_id, execution):
         return RuntimeJobRef(job_id="job:test")
+
     def observe(self, job_id):
         return RuntimeJobObservation(
             job_id=job_id,

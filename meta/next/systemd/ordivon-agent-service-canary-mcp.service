@@ -7,10 +7,10 @@ Wants=network-online.target
 Type=simple
 User=ordivon-agent-service
 Group=ordivon-agent-service
+LoadCredential=agent-service-mcp.token:/etc/ordivon/agent-service-mcp.token
 WorkingDirectory=/opt/ordivon/agent-service-canary/current
-Environment=ORDIVON_AGENT_SERVICE_SOURCE_ROOT=/opt/ordivon/agent-service-canary/current
-ExecStartPre=/opt/ordivon/agent-service-canary/current/.venv/bin/python /opt/ordivon/agent-service-canary/current/scripts/agent_service_mcp.py --source-root /opt/ordivon/agent-service-canary/current --token-file /etc/ordivon/agent-service-mcp.token --bind 127.0.0.1 --port 8894 --check
-ExecStart=/opt/ordivon/agent-service-canary/current/.venv/bin/python /opt/ordivon/agent-service-canary/current/scripts/agent_service_mcp.py --source-root /opt/ordivon/agent-service-canary/current --token-file /etc/ordivon/agent-service-mcp.token --bind 127.0.0.1 --port 8894 --log-level INFO
+ExecStartPre=/opt/ordivon/agent-service-canary/current/.venv/bin/python /opt/ordivon/agent-service-canary/current/scripts/agent_service_mcp.py --token-file %d/agent-service-mcp.token --bind 127.0.0.1 --port 8894 --check
+ExecStart=/opt/ordivon/agent-service-canary/current/.venv/bin/python /opt/ordivon/agent-service-canary/current/scripts/agent_service_mcp.py --token-file %d/agent-service-mcp.token --bind 127.0.0.1 --port 8894 --log-level INFO
 Restart=on-failure
 RestartSec=3
 TimeoutStopSec=20

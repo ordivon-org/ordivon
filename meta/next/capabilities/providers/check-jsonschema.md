@@ -3,7 +3,7 @@
 - Upstream: `python-jsonschema/check-jsonschema`
 - Installed version: `0.38.0`
 - Role: standards-native JSON Schema instance validation
-- Installation carrier: `uv tool`
+- Reproducible repository carrier: `pyproject.toml` dependency group `authority` + `uv.lock`
 - Local standing: **AVAILABLE / R2 PROJECTION VALIDATION PASS**
 
 ## Boundary
@@ -14,7 +14,7 @@ R2 uses it only for the thin `standard-native-profile-projection-v1` bridge. Res
 
 ## Local acceptance
 
-The validator successfully checked the three R2 projections against:
+Version `0.38.0` is currently available both as a host executable and through the repository-native locked command `uv run --locked --group authority check-jsonschema`. The locked validator successfully checked the three R2 projections against:
 
 ```text
 schemas/standard-native-profile-projection-v1.schema.json

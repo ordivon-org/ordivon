@@ -6,7 +6,6 @@ import sqlite3
 import time
 import uuid
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
 from .slice1 import ServiceEvent, ServiceEventStore
@@ -76,7 +75,10 @@ class VerificationRecord:
 
 
 def _verification_record_from_event(event: ServiceEvent) -> VerificationRecord:
-    if event.aggregate_type != "Verification" or event.event_type != "VerificationRecorded":
+    if (
+        event.aggregate_type != "Verification"
+        or event.event_type != "VerificationRecorded"
+    ):
         raise ValueError("event is not a VerificationRecord receipt")
     payload = event.payload
     if payload.get("assignmentId") != event.aggregate_id:
@@ -133,7 +135,9 @@ def _verification_record_create_in_transaction(
     reason: str | None,
     evidence: dict[str, Any],
 ) -> VerificationRecord:
-    canonical_evidence = json.loads(json.dumps(evidence, sort_keys=True, separators=(",", ":"), ensure_ascii=False))
+    canonical_evidence = json.loads(
+        json.dumps(evidence, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    )
     event = events.append_once_in_transaction(
         "Verification",
         assignment_id,
@@ -177,7 +181,9 @@ class AssignmentExecutionActivator:
             raise RuntimeError(f"assignment cannot activate while Task is {task.state}")
         runtime_ref = self._runtime.submit(assignment.client_request_id, task.execution)
         with self._connection:
-            self._assignments.bind_runtime_job_in_transaction(assignment.id, runtime_ref.job_id)
+            self._assignments.bind_runtime_job_in_transaction(
+                assignment.id, runtime_ref.job_id
+            )
             self._tasks.set_state_in_transaction(task.id, "RUNNING")
             self._events.append_in_transaction(
                 "Task",
@@ -199,7 +205,9 @@ def _evaluate_runtime_evidence_gate(
     if observation.status != "succeeded":
         return SemanticVerdict(False, f"runtime:{observation.status}")
     if observation.delivery_disposition != "committed":
-        return SemanticVerdict(False, f"runtime:delivery:{observation.delivery_disposition}")
+        return SemanticVerdict(
+            False, f"runtime:delivery:{observation.delivery_disposition}"
+        )
     return SemanticVerdict(True, None)
 
 
@@ -233,7 +241,10 @@ def _resolve_evidence(
             )
         descriptor = matches[0]
         payload = artifact_reader.read(observation.job_id, descriptor.artifact_id)
-        if payload.job_id != observation.job_id or payload.artifact_id != descriptor.artifact_id:
+        if (
+            payload.job_id != observation.job_id
+            or payload.artifact_id != descriptor.artifact_id
+        ):
             raise RuntimeError("Runtime artifact reader returned mismatched identity")
         computed = _sha256_text(payload.content)
         if computed != payload.digest:
@@ -252,6 +263,7 @@ def _resolve_evidence(
             },
         )
     raise ValueError(f"unsupported acceptance kind: {kind}")
+
 
 def _verify_evidence_semantics(
     acceptance: dict[str, Any],
@@ -302,7 +314,9 @@ class TaskCompletionReconciler:
         if existing is not None:
             return assignment
         if assignment.runtime_job_id is None:
-            raise RuntimeError("completion reconciliation requires a Runtime Job binding")
+            raise RuntimeError(
+                "completion reconciliation requires a Runtime Job binding"
+            )
         if task.state != "RUNNING":
             if task.state in {"SUCCEEDED", "FAILED", "CANCELLED"}:
                 return assignment
@@ -314,7 +328,9 @@ class TaskCompletionReconciler:
             return assignment
 
         if mechanical.accepted:
-            evidence = _resolve_evidence(self._artifact_reader, task.acceptance, observation)
+            evidence = _resolve_evidence(
+                self._artifact_reader, task.acceptance, observation
+            )
             verdict = _verify_evidence_semantics(task.acceptance, evidence)
             stage = "semantic"
             receipt = evidence.receipt()
@@ -356,7 +372,9 @@ class TaskCompletionReconciler:
                     "reason": verdict.reason,
                 },
             )
-            self._tasks.set_state_in_transaction(task.id, task_state, failure_reason=verdict.reason)
+            self._tasks.set_state_in_transaction(
+                task.id, task_state, failure_reason=verdict.reason
+            )
             self._assignments.set_state_in_transaction(assignment.id, assignment_state)
             self._events.append_in_transaction(
                 "Task",

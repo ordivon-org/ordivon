@@ -1,6 +1,6 @@
 # Project repository cleanup — Wave 1 — 2026-09-14
 
-Status: **COMPLETED** for non-Research retired repositories selected by `migrations/PROJECT_REPO_CENSUS_20260914.md`.
+Status: **COMPLETED** for non-Research retired repositories selected by `migrations/records/project-repo-census-20260914.md`.
 
 ## Result
 
