@@ -87,7 +87,10 @@ Runtime does not own:
 - hostile multi-tenant isolation;
 - approval policy for arbitrary commands;
 - domain-specific proof that an external-world effect occurred;
-- a scheduler or hidden work queue.
+- a scheduler or hidden work queue;
+- a generic durable workflow engine, business-process timer/signal system, or cross-domain compensation engine.
+
+`Job`/`Attempt` are Runtime physical-execution identities, not aliases for Temporal Workflow/Activity. Runtime reconciliation is scoped to Runtime-owned durable intent/evidence versus physical executor reality. Long-lived application process state belongs in Temporal or another mature workflow owner; provider/domain compensation belongs with the effect owner.
 
 `trusted_local` intentionally grants the installed service user's local authority. `contained_local` removes common ambient credentials, network access, capabilities, and host-state visibility, but it is not a hostile-code sandbox. Use an external disposable VM or container boundary for untrusted workloads.
 
