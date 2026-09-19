@@ -17,7 +17,7 @@ from agent_service.failover import (
 )
 from agent_service.slice1 import CarrierProviderAdapter, ProviderObservation
 from agent_service.task_runtime import RuntimeAdapter, RuntimeJobObservation, RuntimeJobRef
-from agent_service.trust import RemoteProviderObservation
+from agent_service.trust import RemoteProviderObservation, _remote_delivery_observation_record
 
 
 class ReadyCarrier(CarrierProviderAdapter):
@@ -386,7 +386,8 @@ class AgentServiceFailoverR12Tests(unittest.TestCase):
             service = self._open(Path(tmp) / "service.db")
             _, _, primary, _ = self._setup(service)
             receipt = self._deliver_primary(service, primary)
-            service.remote_observations.record(
+            _remote_delivery_observation_record(
+                service.events,
                 binding_id=primary.id,
                 observation=RemoteProviderObservation(
                     provider_status="TASK_STATE_FAILED",
@@ -409,7 +410,8 @@ class AgentServiceFailoverR12Tests(unittest.TestCase):
             service = self._open(Path(tmp) / "service.db")
             _, _, primary, _ = self._setup(service)
             receipt = self._deliver_primary(service, primary)
-            service.remote_observations.record(
+            _remote_delivery_observation_record(
+                service.events,
                 binding_id=primary.id,
                 observation=RemoteProviderObservation(
                     provider_status="TASK_STATE_CANCELED",
@@ -433,7 +435,8 @@ class AgentServiceFailoverR12Tests(unittest.TestCase):
             service = self._open(Path(tmp) / "service.db", quiescence_adapter=adapter, replay_safety_adapter=replay)
             task, _, primary, fallback = self._setup(service)
             receipt = self._deliver_primary(service, primary)
-            service.remote_observations.record(
+            _remote_delivery_observation_record(
+                service.events,
                 binding_id=primary.id,
                 observation=RemoteProviderObservation(
                     provider_status="TASK_STATE_COMPLETED",
@@ -445,7 +448,8 @@ class AgentServiceFailoverR12Tests(unittest.TestCase):
                     evidence_ref="remote://r12/completed",
                 ),
             )
-            service.remote_observations.record(
+            _remote_delivery_observation_record(
+                service.events,
                 binding_id=primary.id,
                 observation=RemoteProviderObservation(
                     provider_status="TASK_STATE_FAILED",
@@ -639,7 +643,8 @@ class AgentServiceFailoverR12Tests(unittest.TestCase):
             self.assertEqual(len(quiescence.calls), 1)
             self.assertEqual(len(replay.calls), 1)
 
-            service.remote_observations.record(
+            _remote_delivery_observation_record(
+                service.events,
                 binding_id=primary.id,
                 observation=RemoteProviderObservation(
                     provider_status="TASK_STATE_COMPLETED",

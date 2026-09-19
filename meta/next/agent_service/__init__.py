@@ -96,7 +96,6 @@ from .trust import (
     IdentityProofCoordinator,
     IdentityProofRecordStore,
     RemoteCorrelationReconciler,
-    RemoteDeliveryObservationStore,
     RemoteDeliveryObserver,
 )
 
@@ -164,7 +163,6 @@ __all__ = [
     "RemoteArtifactEvidenceResolver",
     "RemoteArtifactReader",
     "RemoteCorrelationReconciler",
-    "RemoteDeliveryObservationStore",
     "RemoteDeliveryObserver",
     "RemoteTaskCompletionReconciler",
     "ReplaySafetyAdapter",

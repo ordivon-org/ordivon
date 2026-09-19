@@ -11,7 +11,6 @@ from agent_service.trust import (
     IdentityProofCoordinator,
     IdentityProofRecordStore,
     RemoteCorrelationReconciler,
-    RemoteDeliveryObservationStore,
     RemoteDeliveryObserver,
 )
 
@@ -24,7 +23,7 @@ class AgentServiceTrustPublicApiR10Tests(unittest.TestCase):
         self.assertIs(agent_service.IdentityProofRecordStore, IdentityProofRecordStore)
         self.assertIs(agent_service.IdentityProofCoordinator, IdentityProofCoordinator)
         self.assertIs(agent_service.RemoteDeliveryObserver, RemoteDeliveryObserver)
-        self.assertIs(agent_service.RemoteDeliveryObservationStore, RemoteDeliveryObservationStore)
+        self.assertFalse(hasattr(agent_service, "RemoteDeliveryObservationStore"))
         self.assertIs(agent_service.RemoteCorrelationReconciler, RemoteCorrelationReconciler)
         self.assertIs(agent_service.AuditEnvelopeProjector, AuditEnvelopeProjector)
 

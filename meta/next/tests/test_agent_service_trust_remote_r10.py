@@ -19,6 +19,8 @@ from agent_service.trust import (
     IdentityProofObservation,
     RemoteDeliveryObserver,
     RemoteProviderObservation,
+    _remote_delivery_observation_list_for_binding,
+    _remote_delivery_observation_latest_for_binding,
 )
 
 
@@ -408,7 +410,7 @@ class AgentServiceTrustRemoteR10Tests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 service.remote_reconciler.reconcile(binding.id)
 
-            self.assertEqual(service.remote_observations.list_for_binding(binding.id), [])
+            self.assertEqual(_remote_delivery_observation_list_for_binding(service.events, binding.id), [])
 
     def test_repeated_identical_remote_observation_does_not_duplicate_snapshot(self) -> None:
         value = RemoteProviderObservation(
@@ -432,7 +434,7 @@ class AgentServiceTrustRemoteR10Tests(unittest.TestCase):
             second = service.remote_reconciler.reconcile(binding.id)
 
             self.assertEqual(first.id, second.id)
-            self.assertEqual(len(service.remote_observations.list_for_binding(binding.id)), 1)
+            self.assertEqual(len(_remote_delivery_observation_list_for_binding(service.events, binding.id)), 1)
 
     def test_remote_observation_history_survives_reconstruction(self) -> None:
         observer = FakeRemoteObserver(
@@ -465,7 +467,7 @@ class AgentServiceTrustRemoteR10Tests(unittest.TestCase):
                 remote_delivery_observers={},
             )
             self.addCleanup(second.close)
-            restored = second.remote_observations.latest_for_binding(binding.id)
+            restored = _remote_delivery_observation_latest_for_binding(second.events, binding.id)
             self.assertEqual(restored.id, recorded.id)
             self.assertEqual(restored.provider_status, "TASK_STATE_WORKING")
 
@@ -587,7 +589,7 @@ class AgentServiceTrustRemoteR10Tests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 service.remote_reconciler.reconcile(binding.id)
 
-            history = service.remote_observations.list_for_binding(binding.id)
+            history = _remote_delivery_observation_list_for_binding(service.events, binding.id)
             self.assertEqual(len(history), 1)
             self.assertEqual(history[0].remote_task_id, "remote-task-established")
 

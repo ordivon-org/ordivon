@@ -18,7 +18,7 @@ from agent_service.provider_adapters import EffectLedgerReader
 from agent_service.slice1 import AgentServiceSlice1, CarrierProviderAdapter, ProviderObservation
 from agent_service.task_runtime import RuntimeAdapter, RuntimeJobObservation, RuntimeJobRef
 from agent_service.transport_credentials import AgentServiceR14
-from agent_service.trust import RemoteProviderObservation
+from agent_service.trust import RemoteProviderObservation, _remote_delivery_observation_list_for_binding, _remote_delivery_observation_record
 
 from tests.test_agent_service_failover_r12 import (
     AllowPolicy,
@@ -628,7 +628,8 @@ def _scenario_remote_success_then_failure() -> dict[str, Any]:
             primary = setup["primary"]
             fallback = setup["fallback"]
             receipt = service.delivery.deliver(primary.id)
-            service.remote_observations.record(
+            _remote_delivery_observation_record(
+                service.events,
                 binding_id=primary.id,
                 observation=RemoteProviderObservation(
                     provider_status="TASK_STATE_COMPLETED",
@@ -640,7 +641,8 @@ def _scenario_remote_success_then_failure() -> dict[str, Any]:
                     evidence_ref="stability://completed",
                 ),
             )
-            service.remote_observations.record(
+            _remote_delivery_observation_record(
+                service.events,
                 binding_id=primary.id,
                 observation=RemoteProviderObservation(
                     provider_status="TASK_STATE_FAILED",
@@ -663,7 +665,7 @@ def _scenario_remote_success_then_failure() -> dict[str, Any]:
                 )
             except RuntimeError:
                 blocked = True
-            history = service.remote_observations.list_for_binding(primary.id)
+            history = _remote_delivery_observation_list_for_binding(service.events, primary.id)
             return {
                 "classification": "FAIL_CLOSED",
                 "historicalSuccessPresent": any(x.terminal and x.successful is True for x in history),
