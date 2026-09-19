@@ -201,7 +201,6 @@
       "RuntimeArtifactDescriptor",
       "RuntimeArtifactPayload",
       "RuntimeArtifactReader",
-      "RuntimeEvidenceGate",
       "RuntimeJobObservation",
       "RuntimeJobRef",
       "RuntimeMcpAdapter",
@@ -293,6 +292,7 @@
     "RemoteDeliveryObservationStore",
     "RemoteTaskVerificationStore",
     "ReplaySafetyDecisionStore",
+    "RuntimeEvidenceGate",
     "TransportCredentialBindingStore",
     "VerificationRecordStore"
   ],

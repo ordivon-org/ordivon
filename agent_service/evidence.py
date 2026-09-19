@@ -195,19 +195,19 @@ class AssignmentExecutionActivator:
         return self._assignments.get(assignment.id)
 
 
-class RuntimeEvidenceGate:
+def _evaluate_runtime_evidence_gate(
+    observation: RuntimeJobObservation,
+) -> SemanticVerdict | None:
     """Mechanical truth gate before any semantic evidence is interpreted."""
-
-    def evaluate(self, observation: RuntimeJobObservation) -> SemanticVerdict | None:
-        if observation.semantic_completion_evaluated is not False:
-            raise RuntimeError("Runtime crossed semantic-completion authority boundary")
-        if not observation.execution_terminal:
-            return None
-        if observation.status != "succeeded":
-            return SemanticVerdict(False, f"runtime:{observation.status}")
-        if observation.delivery_disposition != "committed":
-            return SemanticVerdict(False, f"runtime:delivery:{observation.delivery_disposition}")
-        return SemanticVerdict(True, None)
+    if observation.semantic_completion_evaluated is not False:
+        raise RuntimeError("Runtime crossed semantic-completion authority boundary")
+    if not observation.execution_terminal:
+        return None
+    if observation.status != "succeeded":
+        return SemanticVerdict(False, f"runtime:{observation.status}")
+    if observation.delivery_disposition != "committed":
+        return SemanticVerdict(False, f"runtime:delivery:{observation.delivery_disposition}")
+    return SemanticVerdict(True, None)
 
 
 def _resolve_evidence(
@@ -291,7 +291,6 @@ class TaskCompletionReconciler:
         assignments: AssignmentStore,
         events: ServiceEventStore,
         runtime: RuntimeAdapter,
-        mechanical_gate: RuntimeEvidenceGate,
         artifact_reader: RuntimeArtifactReader,
         verifier: EvidenceSemanticVerifier,
     ) -> None:
@@ -300,7 +299,6 @@ class TaskCompletionReconciler:
         self._assignments = assignments
         self._events = events
         self._runtime = runtime
-        self._mechanical_gate = mechanical_gate
         self._artifact_reader = artifact_reader
         self._verifier = verifier
 
@@ -318,7 +316,7 @@ class TaskCompletionReconciler:
             raise RuntimeError(f"completion cannot reconcile Task state {task.state}")
 
         observation = self._runtime.observe(assignment.runtime_job_id)
-        mechanical = self._mechanical_gate.evaluate(observation)
+        mechanical = _evaluate_runtime_evidence_gate(observation)
         if mechanical is None:
             return assignment
 
@@ -410,7 +408,6 @@ class AgentServiceR6:
             self.events,
             runtime_adapter,
         )
-        self.mechanical_gate = RuntimeEvidenceGate()
         self.semantic_verifier = EvidenceSemanticVerifier()
         self.completion = TaskCompletionReconciler(
             self._connection,
@@ -418,7 +415,6 @@ class AgentServiceR6:
             self.assignments,
             self.events,
             runtime_adapter,
-            self.mechanical_gate,
             artifact_reader,
             self.semantic_verifier,
         )
