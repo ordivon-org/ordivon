@@ -1221,7 +1221,7 @@ impl Runtime {
                 } else {
                     None
                 };
-                dispatch_linux(&SystemdRunSpec {
+                systemd_run(&SystemdRunSpec {
                     unit_name: &starting.unit_name,
                     runner: &runner,
                     bundle_path: &bundle_path,
@@ -1270,7 +1270,7 @@ impl Runtime {
                     )?)
                 };
                 if windows.wsl_distribution.is_none() {
-                    let dispatch = match dispatch_windows_native(&WindowsNativeRunSpec {
+                    let dispatch = match spawn_windows_native(&WindowsNativeRunSpec {
                         config: windows,
                         bundle_path: &bundle_path,
                         job_id: &starting.job_id,
@@ -1308,7 +1308,7 @@ impl Runtime {
                         self.bind_native_windows_dispatch_owner(&starting, &dispatch)?;
                     return self.await_launch_evidence(&bound);
                 }
-                dispatch_windows_via_wsl(&WindowsSystemdRunSpec {
+                windows_systemd_run(&WindowsSystemdRunSpec {
                     config: windows,
                     unit_name: &starting.unit_name,
                     bundle_path: &bundle_path,

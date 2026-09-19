@@ -5,7 +5,6 @@ mod error;
 mod evidence;
 mod inspection;
 mod patch;
-mod physical_provider;
 mod platform;
 mod registry;
 #[cfg(feature = "operator-tools")]
