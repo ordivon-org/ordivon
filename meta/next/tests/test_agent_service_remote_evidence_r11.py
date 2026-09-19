@@ -13,12 +13,11 @@ from agent_service.evidence import ArtifactDigestMismatch, RuntimeArtifactPayloa
 from agent_service.remote_evidence import (
     AgentServiceR11,
     RemoteArtifactPayload,
-    RemoteArtifactReader,
     _remote_task_verification_get_by_task,
 )
 from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
-from agent_service.trust import AgentServiceR10, RemoteDeliveryObserver, RemoteProviderObservation
+from agent_service.trust import AgentServiceR10, RemoteProviderObservation
 
 
 def digest(text: str) -> str:
@@ -99,7 +98,7 @@ class RecordingDelivery:
         return value
 
 
-class TerminalRemoteObserver(RemoteDeliveryObserver):
+class TerminalRemoteObserver:
     def __init__(self, *, successful: bool, artifact_refs: tuple[str, ...] = ("artifact:review",)) -> None:
         self.successful = successful
         self.artifact_refs = artifact_refs
@@ -116,7 +115,7 @@ class TerminalRemoteObserver(RemoteDeliveryObserver):
         )
 
 
-class MappingRemoteArtifactReader(RemoteArtifactReader):
+class MappingRemoteArtifactReader:
     def __init__(self, payloads: dict[str, RemoteArtifactPayload]) -> None:
         self.payloads = payloads
         self.calls: list[str] = []
@@ -132,8 +131,8 @@ class AgentServiceRemoteEvidenceR11Tests(unittest.TestCase):
         db: Path,
         *,
         delivery: RecordingDelivery | None = None,
-        remote_observer: RemoteDeliveryObserver | None = None,
-        artifact_reader: RemoteArtifactReader | None = None,
+        remote_observer: object | None = None,
+        artifact_reader: object | None = None,
     ) -> AgentServiceR11:
         delivery = delivery or RecordingDelivery()
         service = AgentServiceR11.open(

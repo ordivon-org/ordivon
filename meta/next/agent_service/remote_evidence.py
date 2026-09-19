@@ -5,7 +5,6 @@ import json
 import sqlite3
 import time
 import uuid
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -22,7 +21,7 @@ from .evidence import (
     EvidenceBundle,
     _verify_evidence_semantics,
 )
-from .goals import BoardAdapter, GoalAssignmentPlanner, TaskReadinessProjector
+from .goals import GoalAssignmentPlanner, TaskReadinessProjector
 from .slice1 import ServiceEvent, ServiceEventStore
 from .task_runtime import (
     Assignment,
@@ -32,8 +31,6 @@ from .task_runtime import (
 )
 from .trust import (
     AgentServiceR10,
-    IdentityProofAdapter,
-    RemoteDeliveryObserver,
     RemoteDeliverySnapshot,
     _remote_delivery_observation_latest_for_binding,
 )
@@ -304,23 +301,19 @@ class RemoteArtifactPayload:
     content: str
 
 
-class RemoteArtifactReader(ABC):
-    @abstractmethod
-    def read(
-        self,
-        *,
-        binding: TransportBinding,
-        receipt: Any,
-        observation: RemoteDeliverySnapshot,
-        artifact_ref: str,
-    ) -> RemoteArtifactPayload:
-        raise NotImplementedError
 
 
 class RemoteArtifactEvidenceResolver:
     """Normalize digest-verified remote artifacts into the existing EvidenceBundle contract."""
 
-    def __init__(self, readers: dict[str, RemoteArtifactReader]) -> None:
+    def __init__(self, readers: dict[str, Any]) -> None:
+        for transport, reader in readers.items():
+            if not isinstance(transport, str) or not transport.strip():
+                raise TypeError("remote artifact reader transport key must be a non-empty string")
+            if not callable(getattr(reader, "read", None)):
+                raise TypeError(
+                    f"remote artifact reader for {transport!r} must expose callable read()"
+                )
         self._readers = dict(readers)
 
     def resolve(
@@ -337,7 +330,7 @@ class RemoteArtifactEvidenceResolver:
             )
         reader = self._readers.get(binding.transport)
         if reader is None:
-            raise LookupError(f"no RemoteArtifactReader registered for {binding.transport}")
+            raise LookupError(f"no remote artifact reader registered for {binding.transport}")
         artifact_kind = acceptance["artifactKind"]
         matches: list[RemoteArtifactPayload] = []
         for artifact_ref in observation.artifact_refs:
@@ -348,7 +341,7 @@ class RemoteArtifactEvidenceResolver:
                 artifact_ref=artifact_ref,
             )
             if not isinstance(payload, RemoteArtifactPayload):
-                raise TypeError("RemoteArtifactReader must return RemoteArtifactPayload")
+                raise TypeError("remote artifact reader must return RemoteArtifactPayload")
             if payload.artifact_ref != artifact_ref:
                 raise RuntimeError("Remote artifact reader returned mismatched identity")
             if not isinstance(payload.kind, str) or not payload.kind.strip():
@@ -588,7 +581,7 @@ class AgentServiceR11:
         r10: AgentServiceR10,
         *,
         delivery_adapters: dict[str],
-        remote_artifact_readers: dict[str, RemoteArtifactReader],
+        remote_artifact_readers: dict[str, Any],
     ) -> None:
         self._r10 = r10
         self._connection = r10._connection
@@ -648,10 +641,10 @@ class AgentServiceR11:
         artifact_reader: Any,
         policy_adapter: Any | None = None,
         delivery_adapters: dict[str] | None = None,
-        identity_proof_adapter: IdentityProofAdapter | None = None,
-        remote_delivery_observers: dict[str, RemoteDeliveryObserver] | None = None,
-        remote_artifact_readers: dict[str, RemoteArtifactReader] | None = None,
-        board_adapter: BoardAdapter | None = None,
+        identity_proof_adapter: Any | None = None,
+        remote_delivery_observers: dict[str, Any] | None = None,
+        remote_artifact_readers: dict[str, Any] | None = None,
+        board_adapter: Any | None = None,
     ) -> "AgentServiceR11":
         adapters = delivery_adapters or {}
         r10 = AgentServiceR10.open(

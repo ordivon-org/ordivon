@@ -11,7 +11,6 @@ from agent_service.transport_credentials import (
     AgentServiceR14,
     BoundCredentialHeaderProvider,
     CredentialHeaderMaterial,
-    CredentialMaterialProvider,
     TransportCredentialBindingCoordinator,
 )
 
@@ -24,14 +23,8 @@ class AgentServiceR14PublicApiTests(unittest.TestCase):
             agent_service.TransportCredentialBindingCoordinator,
             TransportCredentialBindingCoordinator,
         )
-        self.assertIs(
-            agent_service.CredentialHeaderMaterial,
-            CredentialHeaderMaterial,
-        )
-        self.assertIs(
-            agent_service.CredentialMaterialProvider,
-            CredentialMaterialProvider,
-        )
+        self.assertIs(agent_service.CredentialHeaderMaterial, CredentialHeaderMaterial)
+        self.assertFalse(hasattr(agent_service, "CredentialMaterialProvider"))
         self.assertIs(
             agent_service.BoundCredentialHeaderProvider,
             BoundCredentialHeaderProvider,

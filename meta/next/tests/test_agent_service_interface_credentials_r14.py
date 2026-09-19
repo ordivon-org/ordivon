@@ -10,7 +10,6 @@ from agent_service.provider_adapters import A2AJsonRpcHttpClient, MCPTasksHttpCl
 from agent_service.transport_credentials import (
     AgentServiceR14,
     CredentialHeaderMaterial,
-    CredentialMaterialProvider,
 )
 from agent_service.trust import IdentityProofObservation
 from tests.test_agent_service_provider_adapters_r13 import (
@@ -39,7 +38,7 @@ class ProofAdapter:
         )
 
 
-class MaterialProvider(CredentialMaterialProvider):
+class MaterialProvider:
     def __init__(self, *, secret: str = "secret-token") -> None:
         self.secret = secret
         self.calls = 0

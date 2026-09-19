@@ -8,7 +8,6 @@ from agent_service.provider_adapters import (
     A2AQuiescenceAdapter,
     AgentServiceR13,
     EffectLedgerEffect,
-    EffectLedgerReader,
     EffectLedgerReplaySafetyAdapter,
     EffectLedgerSnapshot,
     MCPTaskQuiescenceAdapter,
@@ -27,7 +26,7 @@ class AgentServiceProviderAdaptersPublicApiR13Tests(unittest.TestCase):
         self.assertIs(agent_service.A2AQuiescenceAdapter, A2AQuiescenceAdapter)
         self.assertIs(agent_service.MCPTasksHttpClient, MCPTasksHttpClient)
         self.assertIs(agent_service.MCPTaskQuiescenceAdapter, MCPTaskQuiescenceAdapter)
-        self.assertIs(agent_service.EffectLedgerReader, EffectLedgerReader)
+        self.assertFalse(hasattr(agent_service, "EffectLedgerReader"))
         self.assertIs(agent_service.EffectLedgerEffect, EffectLedgerEffect)
         self.assertIs(agent_service.EffectLedgerSnapshot, EffectLedgerSnapshot)
         self.assertIs(agent_service.EffectLedgerReplaySafetyAdapter, EffectLedgerReplaySafetyAdapter)

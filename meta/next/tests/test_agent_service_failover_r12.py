@@ -8,9 +8,7 @@ from agent_service.delivery import DeliveryObservation, PolicyObservation, _deli
 from agent_service.evidence import RuntimeArtifactPayload
 from agent_service.failover import (
     AgentServiceR12,
-    ExecutionQuiescenceAdapter,
     ExecutionQuiescenceObservation,
-    ReplaySafetyAdapter,
     ReplaySafetyObservation,
     _replay_safety_decision_get_by_client_request,
     _execution_quiescence_proof_get_by_client_request,
@@ -90,7 +88,7 @@ class RecordingDelivery:
         return value
 
 
-class RecordingQuiescenceAdapter(ExecutionQuiescenceAdapter):
+class RecordingQuiescenceAdapter:
     def __init__(self, *, quiescent: bool = True) -> None:
         self.quiescent = quiescent
         self.calls: list[str] = []
@@ -129,7 +127,7 @@ class RecordingQuiescenceAdapter(ExecutionQuiescenceAdapter):
         return value
 
 
-class RecordingReplaySafetyAdapter(ReplaySafetyAdapter):
+class RecordingReplaySafetyAdapter:
     def __init__(
         self,
         *,
@@ -179,8 +177,8 @@ class AgentServiceFailoverR12Tests(unittest.TestCase):
         db: Path,
         *,
         delivery: RecordingDelivery | None = None,
-        quiescence_adapter: ExecutionQuiescenceAdapter | None = None,
-        replay_safety_adapter: ReplaySafetyAdapter | None = None,
+        quiescence_adapter: object | None = None,
+        replay_safety_adapter: object | None = None,
     ) -> AgentServiceR12:
         delivery = delivery or RecordingDelivery()
         quiescence_adapters = {}

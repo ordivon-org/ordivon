@@ -15,7 +15,6 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from agent_service.failover import AgentServiceR12
-from agent_service.provider_adapters import EffectLedgerReader
 from agent_service.slice1 import AgentServiceSlice1, ProviderObservation
 from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
 from agent_service.transport_credentials import AgentServiceR14
