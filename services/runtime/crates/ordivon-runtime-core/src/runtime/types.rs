@@ -16,10 +16,10 @@ fn default_schema_version() -> u32 {
     RUNTIME_SCHEMA_VERSION
 }
 
-pub const MAX_RUNTIME_LIST_LIMIT: u32 = 100;
+pub(crate) const MAX_RUNTIME_LIST_LIMIT: u32 = 100;
 pub const MAX_TASK_WAIT_MS: u64 = 30_000;
 pub const MAX_TASK_TAIL_BYTES: u64 = 64 * 1024;
-pub const MAX_ARTIFACT_READ_BYTES: u64 = 1024 * 1024;
+pub(crate) const MAX_ARTIFACT_READ_BYTES: u64 = 1024 * 1024;
 
 pub const LOGICAL_ID_MIN_LENGTH: usize = 1;
 pub const LOGICAL_ID_MAX_LENGTH: usize = 256;

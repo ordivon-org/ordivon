@@ -25,7 +25,7 @@ pub use inspection::{
     inspect_job, RuntimeInspectionArtifactSummary, RuntimeInspectionAttempt,
     RuntimeInspectionCondition, RuntimeInspectionConfig, RuntimeInspectionEpisodes,
     RuntimeInspectionEvent, RuntimeInspectionJob, RuntimeJobInspection,
-    DEFAULT_INSPECTION_EVENT_LIMIT, MAX_INSPECTION_EVENT_LIMIT, RUNTIME_INSPECTION_SCHEMA_VERSION,
+    DEFAULT_INSPECTION_EVENT_LIMIT, MAX_INSPECTION_EVENT_LIMIT,
 };
 #[cfg(feature = "operator-tools")]
 pub use inspection::{
@@ -46,10 +46,12 @@ pub use inspection::{
     DEFAULT_ARCHIVE_SAMPLE_LIMIT, DEFAULT_WORKSPACE_INSPECTION_JOB_LIMIT, MAX_ARCHIVE_SAMPLE_LIMIT,
     MAX_WORKSPACE_INSPECTION_JOB_LIMIT,
 };
-pub use registry::{
-    Registry, RegistryConfig, RUNTIME_CONDITION_RETIREMENT_MIGRATION_CHECKSUM,
-    RUNTIME_MIGRATION_CHECKSUM, RUNTIME_ORPHAN_RECLAIM_MIGRATION_CHECKSUM,
-    RUNTIME_ORPHAN_RECOVERY_MIGRATION_CHECKSUM, RUNTIME_TERMINAL_REPAIR_MIGRATION_CHECKSUM,
+pub use registry::{Registry, RegistryConfig};
+#[cfg(test)]
+pub(crate) use registry::{
+    RUNTIME_CONDITION_RETIREMENT_MIGRATION_CHECKSUM, RUNTIME_MIGRATION_CHECKSUM,
+    RUNTIME_ORPHAN_RECLAIM_MIGRATION_CHECKSUM, RUNTIME_ORPHAN_RECOVERY_MIGRATION_CHECKSUM,
+    RUNTIME_TERMINAL_REPAIR_MIGRATION_CHECKSUM,
     RUNTIME_WORKSPACE_PATCH_RETIREMENT_MIGRATION_CHECKSUM,
 };
 #[cfg(feature = "operator-tools")]
@@ -62,8 +64,9 @@ pub(crate) use types::{
     input_bound_proposal_request_identity_digest, input_bound_request_identity_digest,
     operation_request_identity_digest, operation_request_identity_digest_from_plan,
     proposal_request_identity_digest, validate_client_request_id, validate_logical_id,
-    INPUT_BOUND_IDENTITY_PREFIX, INPUT_BOUND_PROPOSAL_IDENTITY_PREFIX, PROPOSAL_IDENTITY_PREFIX,
-    REQUEST_IDENTITY_PREFIX, RUNTIME_RELEASE_IDENTITY_PREFIX,
+    INPUT_BOUND_IDENTITY_PREFIX, INPUT_BOUND_PROPOSAL_IDENTITY_PREFIX, MAX_ARTIFACT_READ_BYTES,
+    MAX_RUNTIME_LIST_LIMIT, PROPOSAL_IDENTITY_PREFIX, REQUEST_IDENTITY_PREFIX,
+    RUNTIME_RELEASE_IDENTITY_PREFIX,
 };
 pub use types::{
     runtime_release_effect_id, runtime_release_request_identity_digest, AdmissionOutcome,
@@ -86,8 +89,8 @@ pub use types::{
     RuntimeWorkspaceSummary, SubmitRequest, TerminalCommit, UniversalExecutionRequest,
     UniversalExecutionStep, WindowsAuthority, WindowsExecutionContext, WindowsTokenClass,
     CLIENT_REQUEST_ID_MAX_LENGTH, CLIENT_REQUEST_ID_MIN_LENGTH, CLIENT_REQUEST_ID_PATTERN,
-    LOGICAL_ID_MAX_LENGTH, LOGICAL_ID_MIN_LENGTH, LOGICAL_ID_PATTERN, MAX_ARTIFACT_READ_BYTES,
-    MAX_RUNTIME_LIST_LIMIT, MAX_TASK_TAIL_BYTES, MAX_TASK_WAIT_MS, RUNTIME_SCHEMA_VERSION,
+    LOGICAL_ID_MAX_LENGTH, LOGICAL_ID_MIN_LENGTH, LOGICAL_ID_PATTERN, MAX_TASK_TAIL_BYTES,
+    MAX_TASK_WAIT_MS, RUNTIME_SCHEMA_VERSION,
 };
 pub use windows::WindowsExecutionConfig;
 

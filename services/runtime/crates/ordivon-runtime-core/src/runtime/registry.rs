@@ -27,34 +27,34 @@ use super::{
 const MIGRATION_V1: i64 = 1;
 const MIGRATION_V1_NAME: &str = "0001_runtime";
 const MIGRATION_V1_SQL: &str = include_str!("../../migrations/runtime/0001_runtime.sql");
-pub const RUNTIME_MIGRATION_CHECKSUM: &str =
+pub(crate) const RUNTIME_MIGRATION_CHECKSUM: &str =
     "sha256:9c5e0ccf94b0c3efa9b671a9300cfe00e4539d0c880e6a8df8982df9fa8826ac";
 const MIGRATION_V2: i64 = 2;
 const MIGRATION_V2_NAME: &str = "0002_orphan_recovery";
 const MIGRATION_V2_SQL: &str = include_str!("../../migrations/runtime/0002_orphan_recovery.sql");
-pub const RUNTIME_ORPHAN_RECOVERY_MIGRATION_CHECKSUM: &str =
+pub(crate) const RUNTIME_ORPHAN_RECOVERY_MIGRATION_CHECKSUM: &str =
     "sha256:08361881c9f589254e5e9fad089fcbf756bd8613352e995437fb7a616e9ce500";
 const MIGRATION_V3: i64 = 3;
 const MIGRATION_V3_NAME: &str = "0003_terminal_repair";
 const MIGRATION_V3_SQL: &str = include_str!("../../migrations/runtime/0003_terminal_repair.sql");
-pub const RUNTIME_TERMINAL_REPAIR_MIGRATION_CHECKSUM: &str =
+pub(crate) const RUNTIME_TERMINAL_REPAIR_MIGRATION_CHECKSUM: &str =
     "sha256:464c9b769dacd10f7302d7a371f5b36a7553eda0b0b112bae35b901d00a67f0d";
 const MIGRATION_V4: i64 = 4;
 const MIGRATION_V4_NAME: &str = "0004_orphan_reclaim";
 const MIGRATION_V4_SQL: &str = include_str!("../../migrations/runtime/0004_orphan_reclaim.sql");
-pub const RUNTIME_ORPHAN_RECLAIM_MIGRATION_CHECKSUM: &str =
+pub(crate) const RUNTIME_ORPHAN_RECLAIM_MIGRATION_CHECKSUM: &str =
     "sha256:b76afbfaf70645b60456b08ad257e5ac2be1f63499f24a555cbf0157791e19ad";
 pub(crate) const CONDITION_RETIREMENT_MIGRATION_VERSION: i64 = 5;
 const MIGRATION_V5_NAME: &str = "0005_condition_retirement";
 const MIGRATION_V5_SQL: &str =
     include_str!("../../migrations/runtime/0005_condition_retirement.sql");
-pub const RUNTIME_CONDITION_RETIREMENT_MIGRATION_CHECKSUM: &str =
+pub(crate) const RUNTIME_CONDITION_RETIREMENT_MIGRATION_CHECKSUM: &str =
     "sha256:ae8e45dde797715492d383a01a1802c9a4d5a4c2f77042fe40379052eb06d097";
 pub(crate) const WORKSPACE_PATCH_RETIREMENT_MIGRATION_VERSION: i64 = 6;
 const MIGRATION_V6_NAME: &str = "0006_workspace_patch_retirement";
 const MIGRATION_V6_SQL: &str =
     include_str!("../../migrations/runtime/0006_workspace_patch_retirement.sql");
-pub const RUNTIME_WORKSPACE_PATCH_RETIREMENT_MIGRATION_CHECKSUM: &str =
+pub(crate) const RUNTIME_WORKSPACE_PATCH_RETIREMENT_MIGRATION_CHECKSUM: &str =
     "sha256:90288d85d61bbd67646fd7c86f17280c0e0145aa8aa4c018025f2259c804b890";
 pub(crate) const MAX_MIGRATION_VERSION: i64 = 6;
 const REDUNDANT_EVENT_SEQUENCE_INDEX: &str = "idx_events_job_sequence";

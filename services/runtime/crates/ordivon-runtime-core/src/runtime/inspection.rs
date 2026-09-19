@@ -14,7 +14,7 @@ use super::{
     RuntimeError, RuntimeErrorCode, RuntimeExecutionPlan, RuntimeResult,
 };
 
-pub const RUNTIME_INSPECTION_SCHEMA_VERSION: u32 = 2;
+pub(crate) const RUNTIME_INSPECTION_SCHEMA_VERSION: u32 = 2;
 pub const DEFAULT_INSPECTION_EVENT_LIMIT: u32 = 200;
 pub const MAX_INSPECTION_EVENT_LIMIT: u32 = 1_000;
 const MAX_INSPECTION_ATTEMPTS: u32 = 32;
