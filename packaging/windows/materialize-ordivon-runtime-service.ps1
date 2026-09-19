@@ -10,6 +10,8 @@ param(
     [string]$ServiceName = 'OrdivonRuntime',
     [string]$DisplayName = 'Ordivon Runtime',
     [string]$ProgramDataRoot = '',
+    [string]$Bind = '127.0.0.1:8897',
+    [string]$NodeId = 'windows-main',
     [switch]$Apply
 )
 
@@ -18,6 +20,16 @@ Set-StrictMode -Version Latest
 
 if ($ServiceName -notmatch '^[A-Za-z0-9_.-]+$') {
     throw 'ServiceName contains unsupported characters.'
+}
+if ($Bind -notmatch '^(127\.0\.0\.1|\[::1\]):[0-9]{1,5}$') {
+    throw 'Bind must be an explicit loopback address and port.'
+}
+$bindPort = [int]($Bind -replace '^.*:', '')
+if ($bindPort -lt 1 -or $bindPort -gt 65535) {
+    throw 'Bind port must be in the range 1..65535.'
+}
+if ($NodeId -notmatch '^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$') {
+    throw 'NodeId contains unsupported characters.'
 }
 if ([string]::IsNullOrWhiteSpace($ProgramDataRoot)) {
     $commonData = [Environment]::GetFolderPath(
@@ -140,6 +152,8 @@ $plan = [ordered]@{
     schemaVersion = 1
     applyRequested = [bool]$Apply
     programDataRoot = $ProgramDataRoot
+    bind = $Bind
+    nodeId = $NodeId
     service = [ordered]@{
         name = $ServiceName
         displayName = $DisplayName
@@ -195,6 +209,12 @@ $templatePath = Join-Path $PSScriptRoot 'ordivon-runtime.env.example'
 $template = [IO.File]::ReadAllText($templatePath)
 $templateRoot = 'C:\ProgramData\Ordivon\Runtime'
 $materialized = $template.Replace($templateRoot, $ProgramDataRoot)
+$materialized = $materialized.Replace(
+    'ORDIVON_BIND=127.0.0.1:8897',
+    ('ORDIVON_BIND=' + $Bind))
+$materialized = $materialized.Replace(
+    'ORDIVON_NODE_ID=windows-main',
+    ('ORDIVON_NODE_ID=' + $NodeId))
 [IO.File]::WriteAllText(
     $configTarget,
     $materialized,
