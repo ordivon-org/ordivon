@@ -1,9 +1,8 @@
 {
   "schemaVersion": 1,
-  "id": "ordivon-core-zero-enforcement-r3",
+  "id": "external-ownership-boundary",
   "date": "2026-09-19",
-  "status": "ACTIVE_RATCHET",
-  "parent": "ordivon-residual-elimination-r2",
+  "status": "CURRENT_ARCHITECTURE_POLICY",
   "architecturalCore": "EMPTY",
   "acceptedIrreduciblePrimitives": [],
   "residualCandidates": [],
@@ -343,5 +342,9 @@
     "transport_credential_bindings.binding_id -> transport_bindings.id",
     "transport_credential_bindings.credential_reference_id -> credential_references.id",
     "transport_credential_bindings.identity_proof_id -> identity_proof_records.id"
+  ],
+  "stabilizedDate": "2026-09-20",
+  "lineage": [
+    "ordivon-core-zero-enforcement-r3"
   ]
 }
