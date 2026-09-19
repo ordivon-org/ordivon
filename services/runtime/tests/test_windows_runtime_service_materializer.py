@@ -57,3 +57,11 @@ def test_windows_service_materializer_supports_isolated_candidate_identity_and_p
     assert "NodeId contains unsupported characters." in text
     assert "('ORDIVON_BIND=' + $Bind)" in text
     assert "('ORDIVON_NODE_ID=' + $NodeId)" in text
+
+
+def test_materializer_can_reuse_existing_launcher_and_token_without_secret_staging():
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert "function Copy-UnlessSameFile" in text
+    assert "[StringComparison]::OrdinalIgnoreCase" in text
+    assert "Copy-UnlessSameFile $launcherSource $launcherTarget" in text
+    assert "Copy-UnlessSameFile $tokenSourceResolved $tokenTarget" in text
