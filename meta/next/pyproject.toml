@@ -24,6 +24,10 @@ architecture = [
 quality = [
   "ruff",
 ]
+security = [
+  "bandit>=1.9.4",
+  "pip-audit>=2.10.1",
+]
 test-analysis = [
   "coverage",
 ]

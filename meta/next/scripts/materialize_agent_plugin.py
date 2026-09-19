@@ -76,9 +76,12 @@ def tree_digest(root: Path) -> str:
 
 
 def git_head() -> str | None:
+    git = shutil.which("git")
+    if git is None:
+        return None
     try:
         return subprocess.check_output(
-            ["git", "-C", str(ROOT), "rev-parse", "HEAD"],
+            [git, "-C", str(ROOT), "rev-parse", "HEAD"],
             text=True,
             stderr=subprocess.DEVNULL,
         ).strip()

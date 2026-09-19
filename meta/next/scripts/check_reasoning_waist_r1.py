@@ -29,6 +29,11 @@ from z3 import Bool, Implies, Not, Solver, sat, unsat
 EX = Namespace("urn:ordivon:reasoning-waist:r1:")
 
 
+def require(condition: bool, message: object) -> None:
+    if not condition:
+        raise RuntimeError(str(message))
+
+
 def package_versions() -> dict[str, str]:
     return {
         "ortools": md.version("ortools"),
@@ -60,18 +65,18 @@ def validate_problem_shape() -> dict:
     shapes.add((p_cost, SH.minCount, Literal(1)))
 
     conforms, _, report = validate(data, shacl_graph=shapes)
-    assert conforms, report
+    require(bool(conforms), report)
 
     bad = Graph()
     bad.add((EX.badCase, RDF.type, EX.ProblemCase))
     bad_conforms, _, _ = validate(bad, shacl_graph=shapes)
-    assert not bad_conforms
+    require(not bool(bad_conforms), "invalid SHACL sibling unexpectedly conformed")
 
     rows = list(data.query(
         "SELECT ?goal WHERE { <urn:ordivon:reasoning-waist:r1:case> "
         "<urn:ordivon:reasoning-waist:r1:hasGoal> ?goal }"
     ))
-    assert rows and rows[0].goal == EX.verifiedOutcome
+    require(bool(rows) and rows[0].goal == EX.verifiedOutcome, "SPARQL goal projection mismatch")
     return {"validCaseConforms": True, "invalidCaseRejected": True, "triples": len(data)}
 
 
@@ -91,10 +96,10 @@ def solve_configuration() -> dict:
 
     solver = cp_model.CpSolver()
     status = solver.solve(model)
-    assert status in (cp_model.OPTIMAL, cp_model.FEASIBLE)
+    require(status in (cp_model.OPTIMAL, cp_model.FEASIBLE), f"OR-Tools solve failed: {status}")
     vars_ = [retrieve, verify, plan, diagnose, visualize]
     selected = {v.name: solver.value(v) for v in vars_}
-    assert selected["retrieve"] == 1 and selected["verify"] == 1
+    require(selected["retrieve"] == 1 and selected["verify"] == 1, "required capabilities not selected")
     return {"selected": selected, "objective": solver.objective_value}
 
 
@@ -105,11 +110,11 @@ def crosscheck_logic(config: dict) -> dict:
     solver.add(retrieve == bool(config["selected"]["retrieve"]))
     solver.add(verify == bool(config["selected"]["verify"]))
     solver.add(plan == bool(config["selected"]["plan"]))
-    assert solver.check() == sat
+    require(solver.check() == sat, "selected configuration is not satisfiable")
 
     contradiction = Solver()
     contradiction.add(Implies(plan, retrieve), plan, Not(retrieve))
-    assert contradiction.check() == unsat
+    require(contradiction.check() == unsat, "known contradiction was not rejected")
     return {"selectedConfigurationSatisfiable": True, "knownContradictionRejected": True}
 
 
@@ -140,14 +145,18 @@ def generate_plan() -> dict:
 
     with OneshotPlanner(name="pyperplan") as planner:
         result = planner.solve(problem)
-    assert result.plan is not None
+    require(result.plan is not None, "planner returned no plan")
     actions = [instance.action.name for instance in result.plan.actions]
-    assert actions == [
-        "retrieve_case_and_methods",
-        "configure_solution",
-        "verify_solution",
-        "deliver_verified_outcome",
-    ]
+    require(
+        actions
+        == [
+            "retrieve_case_and_methods",
+            "configure_solution",
+            "verify_solution",
+            "deliver_verified_outcome",
+        ],
+        f"unexpected plan: {actions}",
+    )
     return {"engine": "pyperplan", "actions": actions}
 
 

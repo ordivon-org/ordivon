@@ -103,7 +103,29 @@ uv run --locked --group authority python scripts/check_standard_native_enterpris
 uv run --locked --group reasoning python scripts/check_reasoning_waist_r1.py
 ```
 
-The default `test` group composes the runtime and deployment dependencies required by the complete unit and repository test suite. Architecture, quality, authority-catalog validation and heavier reasoning dependencies are separate groups and are installed only when their validation surface is invoked.
+The default `test` group composes the runtime and deployment dependencies required by the complete unit and repository test suite. Architecture, quality, authority-catalog validation, security auditing and heavier reasoning dependencies are separate groups and are installed only when their validation surface is invoked.
+
+Security uses external tools directly rather than a repository-specific scanner. Bandit covers source heuristics while PyPA `pip-audit` checks known Python dependency vulnerabilities. Because `pip-audit` audits PEP 751 lockfiles rather than `uv.lock` directly, audit input is generated ephemerally from the exact uv lock and is never committed as a second dependency authority:
+
+```bash
+uv run --locked --group security bandit -r agent_service scripts -q -s B404,B603
+
+tmp="$(mktemp -d)"
+uv export --locked --all-groups --no-group security --format pylock.toml --output-file "$tmp/pylock.audit.toml"
+uv run --locked --group security pip-audit --locked "$tmp" --progress-spinner off
+rm -rf "$tmp"
+```
+
+A dependency SBOM is likewise a rebuildable projection of `uv.lock`, not a hand-maintained repository artifact. Reuse the same ephemeral PEP 751 projection and let `pip-audit` emit its native CycloneDX document rather than binding repository policy to uv's preview SBOM exporter:
+
+```bash
+tmp="$(mktemp -d)"
+uv export --locked --all-groups --no-group security --format pylock.toml --output-file "$tmp/pylock.audit.toml"
+uv run --locked --group security pip-audit --locked "$tmp" --progress-spinner off --format cyclonedx-json --output sbom.cdx.json
+rm -rf "$tmp"
+```
+
+Generate that SBOM for a release/evidence bundle when needed; do not commit it merely to duplicate lockfile state.
 
 The read-only Agent Service canary uses the same lockfile. Its deployment environment is materialized without test/analysis groups:
 
