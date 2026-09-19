@@ -71,7 +71,7 @@ fn runtime_transactional_runtime_executes_replays_and_releases_capacity() {
         workspace_root: None,
         workspace_uid: None,
         workspace_gid: None,
-        runner_path,
+        runner_path: Some(runner_path),
         allowed_executable_roots: vec![PathBuf::from("/usr/bin")],
         max_runtime_ms: 24 * 60 * 60 * 1000,
         max_output_bytes: 64 * 1024 * 1024,
@@ -2065,7 +2065,7 @@ impl IntegrationContext {
             workspace_root: None,
             workspace_uid: None,
             workspace_gid: None,
-            runner_path,
+            runner_path: Some(runner_path),
             allowed_executable_roots: vec![PathBuf::from("/usr/bin")],
             max_runtime_ms: 24 * 60 * 60 * 1000,
             max_output_bytes: 64 * 1024 * 1024,
@@ -2310,7 +2310,7 @@ fn contained_local_hides_unmounted_state_blocks_egress_and_preserves_evidence() 
         workspace_root: None,
         workspace_uid: None,
         workspace_gid: None,
-        runner_path,
+        runner_path: Some(runner_path),
         allowed_executable_roots: vec![PathBuf::from("/usr/bin")],
         max_runtime_ms: 24 * 60 * 60 * 1000,
         max_output_bytes: 64 * 1024 * 1024,
@@ -2645,7 +2645,13 @@ fn runtime_systemd_path_rejects_source_drift_before_target_spawn() {
         .workspace_source_digest
         .clone()
         .expect("normal Runtime admission must bind Workspace source state");
-    let runner_digest = file_digest(&context.executor.runner_path);
+    let runner_digest = file_digest(
+        context
+            .executor
+            .runner_path
+            .as_deref()
+            .expect("Linux integration context must configure runner_path"),
+    );
     let created = created_admission(
         runtime
             .registry()
@@ -3857,7 +3863,7 @@ fn runtime_finance_i8_graduation_matches_canonical_semantics_with_job_owned_inpu
         workspace_root: None,
         workspace_uid: None,
         workspace_gid: None,
-        runner_path,
+        runner_path: Some(runner_path),
         allowed_executable_roots: vec![PathBuf::from("/usr/bin"), environment_root.clone()],
         max_runtime_ms: 24 * 60 * 60 * 1000,
         max_output_bytes: 64 * 1024 * 1024,
@@ -4098,11 +4104,15 @@ fn runtime_legacy_plan_without_provider_snapshot_can_dispatch_through_changed_li
     }
 
     let mut context = IntegrationContext::new("provider-drift-linux");
-    let original_runner = context.executor.runner_path.clone();
+    let original_runner = context
+        .executor
+        .runner_path
+        .clone()
+        .expect("Linux integration context must configure runner_path");
     let staged_runner = context.root.join("provider-runner");
     fs::copy(&original_runner, &staged_runner).unwrap();
     fs::set_permissions(&staged_runner, fs::Permissions::from_mode(0o755)).unwrap();
-    context.executor.runner_path = staged_runner.clone();
+    context.executor.runner_path = Some(staged_runner.clone());
 
     let runtime = context.runtime(1_000);
     let created = created_admission(
@@ -4164,11 +4174,15 @@ fn runtime_provider_bound_job_rejects_linux_runner_drift_before_dispatch() {
     }
 
     let mut context = IntegrationContext::new("provider-bound-linux");
-    let original_runner = context.executor.runner_path.clone();
+    let original_runner = context
+        .executor
+        .runner_path
+        .clone()
+        .expect("Linux integration context must configure runner_path");
     let staged_runner = context.root.join("provider-runner");
     fs::copy(&original_runner, &staged_runner).unwrap();
     fs::set_permissions(&staged_runner, fs::Permissions::from_mode(0o755)).unwrap();
-    context.executor.runner_path = staged_runner.clone();
+    context.executor.runner_path = Some(staged_runner.clone());
 
     let runtime = context.runtime(1_000);
     let mut submit = context.direct_submit("request:provider-bound-linux", 1);
@@ -4274,7 +4288,13 @@ fn runtime_host_dependency_drift_fails_before_dispatch() {
     let mut submit = context.direct_submit("request:host-dependency-drift", 1);
     submit.execution_provider = Some(ordivon_runtime_core::ExecutionProviderSnapshot {
         contract: ordivon_runtime_core::ExecutionProviderContract::LocalLinuxRunnerV1,
-        executable_digest: file_digest(&context.executor.runner_path),
+        executable_digest: file_digest(
+            context
+                .executor
+                .runner_path
+                .as_deref()
+                .expect("Linux integration context must configure runner_path"),
+        ),
         wsl_distribution: None,
     });
     submit.host_dependencies = vec![HostDependencyBinding {
@@ -4502,7 +4522,13 @@ fn runtime_provider_bound_runner_start_binds_actual_runner_image() {
     let context = IntegrationContext::new("provider-actual-image");
     let runtime = context.runtime(5_000);
     let mut submit = context.direct_submit("request:provider-actual-image", 1);
-    let provider_digest = file_digest(&context.executor.runner_path);
+    let provider_digest = file_digest(
+        context
+            .executor
+            .runner_path
+            .as_deref()
+            .expect("Linux integration context must configure runner_path"),
+    );
     submit.execution_provider = Some(ordivon_runtime_core::ExecutionProviderSnapshot {
         contract: ordivon_runtime_core::ExecutionProviderContract::LocalLinuxRunnerV1,
         executable_digest: provider_digest.clone(),
