@@ -104,13 +104,9 @@ def _validate_receipt(
         raise ProviderProtocolError("Browserless turn receipt omitted receiptDigest")
     material = dict(receipt)
     material.pop("receiptDigest", None)
-    raw = json.dumps(
-        material,
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=False,
-    ).encode("utf-8")
-    computed = "sha256:" + hashlib.sha256(raw).hexdigest()
+    computed = "sha256:" + hashlib.sha256(
+        rfc8785.dumps(material)
+    ).hexdigest()
     if computed != digest:
         raise ProviderProtocolError("Browserless turn receiptDigest mismatch")
     return receipt
