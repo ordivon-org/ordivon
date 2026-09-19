@@ -452,9 +452,9 @@ Passing this acceptance proves the Windows launcher equipment on that node; it d
 For the Runtime-level R-W1 proof, run the ignored integration fixture on the same trusted WSL/Windows node:
 
 ```bash
-ORDIVON_RUN_WINDOWS_INTEGRATION=1 cargo test -p ordivon-runtime-core \
-  --test transactional_runtime runtime_windows_native_executes_as_real_job_attempt_and_replays \
-  --all-features -- --ignored --nocapture --test-threads=1
+ORDIVON_RUN_WINDOWS_INTEGRATION=1 cargo test -p ordivon-runtime-core --all-features \
+  runtime::integration_tests::runtime_windows_native_executes_as_real_job_attempt_and_replays \
+  -- --ignored --nocapture --test-threads=1
 ```
 
 That fixture builds the current launcher and Windows fixture, admits `executionTarget=windows_native` through `Runtime::run_task`, verifies the admission-frozen Windows baseline plus explicit overlay without WSL ambient variables, and validates both requested and effective Windows authority. Default limited execution must be Primary/non-elevated/Medium-or-lower with Administrators disabled; explicit `windowsAuthority=elevated` must prove the same SID with Primary/elevated/High/Admin-enabled authority. A bounded temporary HKLM effect must be denied to limited execution and succeed with cleanup under elevated execution. Each Windows start must also prove an acquired `system_required` Power Request; while long-running limited and elevated Attempts are `RUNNING`, `powercfg /requests` must expose the exact `Ordivon Runtime Attempt <attemptId>` reason, and success/timeout/cancel/replay terminal states must expose no matching request. The fixture also requires exact replay without an available launcher, real timeout and explicit cancellation under both authority classes, and zero surviving marker descendants. Long Paths admission evidence remains outside this fixture.
@@ -462,9 +462,9 @@ That fixture builds the current launcher and Windows fixture, admits `executionT
 For the destructive R-W5 distro-restart acceptance, use the two-phase fixture rather than terminating the WSL distro from inside an ordinary Runtime call:
 
 ```bash
-ORDIVON_RUN_WINDOWS_WSL_RESTART_PHASE=prepare cargo test -p ordivon-runtime-core \
-  --test transactional_runtime runtime_windows_native_wsl_restart_prepare_or_recover \
-  --all-features -- --ignored --nocapture --test-threads=1
+ORDIVON_RUN_WINDOWS_WSL_RESTART_PHASE=prepare cargo test -p ordivon-runtime-core --all-features \
+  runtime::integration_tests::runtime_windows_native_wsl_restart_prepare_or_recover \
+  -- --ignored --nocapture --test-threads=1
 ```
 
 Phase A writes a manifest under `C:\Users\Public\ordivon-rw5-wsl-restart` and leaves the inner Windows Attempt running. From a **detached Windows process**, run `scripts/windows-wsl-restart-watchdog.ps1` with the target distro and that root. The watchdog refuses to proceed unless the marker and Attempt Power Request are active, terminates the distro, records Windows-side post-termination truth, restarts the requested Runtime/Host v2 units, and writes `watchdog-result.json`. After the control plane reconnects, run the same test with `ORDIVON_RUN_WINDOWS_WSL_RESTART_PHASE=recover`. Recovery validates the watchdog evidence, observes the original Registry Job/Attempt, requires no surviving marker or Power Request, and exact-replays the same terminal identity without redispatch. On the verified WSL2 substrate, distro termination did **not** change `/proc/sys/kernel/random/boot_id`; recovery therefore relies on the committed supervisor/launcher contract rather than treating kernel boot ID as a distro generation counter.
@@ -478,8 +478,8 @@ The contained profile has a root/systemd integration fixture that uses the real 
 cargo build -p ordivon-runtime-core --bin ordivon-runtime-runner
 ORDIVON_RUN_INTEGRATION=1 \
 ORDIVON_RUNNER_PATH="$CARGO_TARGET_DIR/debug/ordivon-runtime-runner" \
-  cargo test -p ordivon-runtime-core --test transactional_runtime \
-  contained_local_hides_unmounted_state_blocks_egress_and_preserves_evidence \
+  cargo test -p ordivon-runtime-core \
+  runtime::integration_tests::contained_local_hides_unmounted_state_blocks_egress_and_preserves_evidence \
   -- --ignored --nocapture
 ```
 

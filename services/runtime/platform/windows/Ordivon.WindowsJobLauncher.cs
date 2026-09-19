@@ -470,9 +470,10 @@ internal static class OrdivonWindowsJobLauncher
 
     public static int Main(string[] args)
     {
+        Options options = null;
         try
         {
-            Options options = ParseOptions(args);
+            options = ParseOptions(args);
             if (options.DescribeRuntimeContext) return DescribeRuntimeContext(options);
             if (options.DescribeProcessOwner) return DescribeProcessOwner(options);
             if (options.TerminateProcessOwnerForDeadline) return TerminateProcessOwnerForDeadline(options);
@@ -480,8 +481,44 @@ internal static class OrdivonWindowsJobLauncher
         }
         catch (Exception error)
         {
+            if (options != null && options.RuntimeMode)
+            {
+                TryWriteLauncherErrorEvidence(options, error);
+            }
             Console.Error.WriteLine("ordivon-windows-job-launcher: " + error.Message);
             return InternalFailureExit;
+        }
+    }
+
+    private static void TryWriteLauncherErrorEvidence(Options options, Exception error)
+    {
+        try
+        {
+            const int maxMessageChars = 2048;
+            string message = error.Message ?? String.Empty;
+            if (message.Length > maxMessageChars)
+            {
+                message = message.Substring(0, maxMessageChars);
+            }
+            string typeName = error.GetType().FullName ?? error.GetType().Name;
+            if (typeName.Length > 256)
+            {
+                typeName = typeName.Substring(0, 256);
+            }
+            string json = "{" +
+                "\"schemaVersion\":1," +
+                "\"jobId\":" + JsonString(options.RuntimeJobId) + "," +
+                "\"attemptId\":" + JsonString(options.RuntimeAttemptId) + "," +
+                "\"launchTokenDigest\":" + JsonString(options.RuntimeLaunchTokenDigest) + "," +
+                "\"exceptionType\":" + JsonString(typeName) + "," +
+                "\"message\":" + JsonString(message) + "," +
+                "\"observedUnixMs\":" + UnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture) +
+                "}";
+            WriteTextAtomic(Path.Combine(options.RuntimeBundle, "launcher-error.json"), json);
+        }
+        catch
+        {
+            // Diagnostic publication must never replace the original launcher failure.
         }
     }
 

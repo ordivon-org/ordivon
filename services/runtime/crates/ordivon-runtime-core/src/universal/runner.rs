@@ -1254,10 +1254,11 @@ impl PathDriftWatch {
                     }
                     let metadata_self_mask =
                         libc::IN_ATTRIB | libc::IN_CLOSE_WRITE | libc::IN_MODIFY;
-                    if event.len == 0 && event.mask & metadata_self_mask != 0 {
-                        if spec.direct || !self.path_identity_unchanged(&spec.path)? {
-                            return Err(path_runtime_drift(self.kind, &spec.path, event.mask));
-                        }
+                    if event.len == 0
+                        && event.mask & metadata_self_mask != 0
+                        && (spec.direct || !self.path_identity_unchanged(&spec.path)?)
+                    {
+                        return Err(path_runtime_drift(self.kind, &spec.path, event.mask));
                     }
                     if event.len > 0 {
                         let name_start = offset + std::mem::size_of::<libc::inotify_event>();

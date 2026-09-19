@@ -264,7 +264,6 @@ pub fn cancel_stale_recovery_required_attempt(
     }
     let receipt = write_stale_cancel_receipt(
         &config.doctor.store_root,
-        &job.job_id,
         &current,
         request,
         &before.fingerprint,
@@ -644,7 +643,6 @@ fn verify_snapshot_stale_cancel_target(
 
 fn write_stale_cancel_receipt(
     store_root: &Path,
-    job_id: &str,
     attempt: &super::AttemptRecord,
     request: &RuntimeStaleCancelRequest,
     report_fingerprint: &str,
@@ -663,7 +661,7 @@ fn write_stale_cancel_receipt(
         "snapshotPath": request.snapshot_path,
         "snapshotDigest": snapshot_digest,
         "principal": request.principal,
-        "jobId": job_id,
+        "jobId": attempt.job_id,
         "attemptId": attempt.attempt_id,
         "previousState": attempt.state,
         "terminationIntent": attempt.termination_intent,

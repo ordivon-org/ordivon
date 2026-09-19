@@ -12,6 +12,8 @@ param(
     [string]$ProgramDataRoot = '',
     [string]$Bind = '127.0.0.1:8897',
     [string]$NodeId = 'windows-main',
+    [ValidateSet('limited-only', 'limited-and-elevated')]
+    [string]$WindowsAuthorityProfile = 'limited-only',
     [switch]$Apply
 )
 
@@ -61,6 +63,38 @@ function Invoke-ScChecked([string[]]$Arguments) {
     if ($LASTEXITCODE -ne 0) {
         throw "sc.exe failed ($LASTEXITCODE): $($Arguments -join ' ')"
     }
+}
+
+function Get-BuiltinAdministratorsGroup {
+    $administratorsSid = [Security.Principal.SecurityIdentifier]::new('S-1-5-32-544')
+    $group = Get-LocalGroup -SID $administratorsSid -ErrorAction Stop
+    if ($null -eq $group) {
+        throw 'Builtin Administrators local group could not be resolved by SID.'
+    }
+    return $group
+}
+
+function Test-LocalAdministratorsMembership([string]$Account) {
+    $group = Get-BuiltinAdministratorsGroup
+    return @(
+        Get-LocalGroupMember -Group $group.Name -ErrorAction Stop |
+            Where-Object { $_.Name -ieq $Account }
+    ).Count -gt 0
+}
+
+function Set-LocalAdministratorsMembership([string]$Account, [bool]$Required) {
+    $group = Get-BuiltinAdministratorsGroup
+    $present = Test-LocalAdministratorsMembership $Account
+    if ($Required -and -not $present) {
+        Add-LocalGroupMember -Group $group.Name -Member $Account -ErrorAction Stop
+    } elseif (-not $Required -and $present) {
+        Remove-LocalGroupMember -Group $group.Name -Member $Account -ErrorAction Stop
+    }
+    $observed = Test-LocalAdministratorsMembership $Account
+    if ($observed -ne $Required) {
+        throw "Builtin Administrators membership did not converge for $Account."
+    }
+    return $observed
 }
 
 function New-PrivateFileSecurity(
@@ -146,6 +180,7 @@ $launcherTarget = Join-Path $binRoot 'ordivon-windows-job-launcher.exe'
 $configTarget = Join-Path $configRoot 'ordivon-runtime.env'
 $tokenTarget = Join-Path $secretRoot 'runtime-mcp.token'
 $serviceAccount = "NT SERVICE\$ServiceName"
+$requiresLocalAdministrators = $WindowsAuthorityProfile -eq 'limited-and-elevated'
 $imagePath = ('"{0}" --windows-service --env-file "{1}"' -f $runtimeTarget, $configTarget)
 
 $plan = [ordered]@{
@@ -160,6 +195,8 @@ $plan = [ordered]@{
         type = 'own'
         start = 'auto'
         account = $serviceAccount
+        windowsAuthorityProfile = $WindowsAuthorityProfile
+        builtinAdministratorsMembershipRequired = $requiresLocalAdministrators
         imagePath = $imagePath
         sidType = 'unrestricted'
         failureResetSeconds = 86400
@@ -185,7 +222,9 @@ $plan = [ordered]@{
         'No bearer secret appears in SCM ImagePath or the env file.',
         'ProgramData state/config/token are ACL-bound to SYSTEM, Builtin Administrators and the service SID.',
         'The service is not started by this materializer; start/cold-restart acceptance is a separate gate.',
-        'Required service privileges are not broadened before native acceptance proves the minimum set.'
+        'Required service privileges are not broadened before native acceptance proves the minimum set.',
+        'limited-and-elevated uses the dedicated virtual service account as a Builtin Administrators member; launcher acceptance must prove both High/Admin-enabled elevated context and LUA-filtered Medium/Admin-disabled limited context.',
+        'The dedicated virtual service identity is preserved so limited-token semantics do not inherit a shared machine identity.'
     )
 }
 
@@ -267,6 +306,11 @@ Invoke-ScChecked @(
 )
 Invoke-ScChecked @('failureflag', $ServiceName, '1')
 
+# Membership changes use Windows local-group authority, not a custom elevation broker.
+# They take effect in the service token on the next SCM start; acceptance must prove
+# the effective token before Runtime may advertise elevated Windows authority.
+$administratorMembership = Set-LocalAdministratorsMembership $serviceAccount $requiresLocalAdministrators
+
 $serviceSid = [Security.Principal.NTAccount]::new($serviceAccount).Translate(
     [Security.Principal.SecurityIdentifier])
 
@@ -286,6 +330,8 @@ foreach ($file in @($runtimeTarget, $launcherTarget)) {
 foreach ($file in @($configTarget, $tokenTarget)) {
     Set-ExactPrivateAcl $file $serviceSid $readOnly
 }
+
+$plan.service.builtinAdministratorsMembershipObserved = $administratorMembership
 
 # Re-query through native SCM tooling. These are evidence surfaces; this script never starts the service.
 Invoke-ScChecked @('qc', $ServiceName)

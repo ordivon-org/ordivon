@@ -655,7 +655,7 @@ impl Runtime {
                 launcher_process_creation_time_file_time,
                 ..
             } = owner;
-            let observed = observe_windows_process_owner(windows, launcher_process_id)?;
+            let observed = observe_windows_launcher_owner(windows, launcher_process_id)?;
             return Ok(observed.process_alive
                 && observed.process_creation_time_file_time
                     == Some(launcher_process_creation_time_file_time));
@@ -914,7 +914,7 @@ impl Runtime {
                 )
             })?;
             let observation =
-                observe_windows_process_owner(windows, evidence.launcher_process_id)?;
+                observe_windows_launcher_owner(windows, evidence.launcher_process_id)?;
             if Path::new(&attempt.bundle_path).join(RESULT_FILE).is_file() {
                 return self.reconcile_runner_result(attempt);
             }
@@ -1020,7 +1020,7 @@ impl Runtime {
         )? {
             return Ok(());
         }
-        let observation = observe_windows_process_owner(windows, *launcher_process_id)?;
+        let observation = observe_windows_launcher_owner(windows, *launcher_process_id)?;
         if Path::new(&attempt.bundle_path).join(RESULT_FILE).exists() {
             return self.reconcile_runner_result(attempt);
         }

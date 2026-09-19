@@ -10,7 +10,7 @@ impl Runtime {
         if snapshot.job.resolution == Some(JobResolution::Orphaned) {
             if let Some(attempt) = snapshot.attempt.as_ref() {
                 if Path::new(&attempt.bundle_path).join(RESULT_FILE).is_file()
-                    && self.recover_orphaned_runner_result(&attempt)?
+                    && self.recover_orphaned_runner_result(attempt)?
                 {
                     return self.observation_from_registry(&request.job_id, 4096, 4096);
                 }
@@ -167,7 +167,7 @@ impl Runtime {
                         )
                     })?;
                     let observed =
-                        observe_windows_process_owner(windows, evidence.launcher_process_id)?;
+                        observe_windows_launcher_owner(windows, evidence.launcher_process_id)?;
                     if target_start.is_file() {
                         continue;
                     }
@@ -297,7 +297,7 @@ impl Runtime {
             .attempt_supervisor_owner(&attempt.attempt_id)?
             .is_none()
         {
-            release_linux_process_owner(&attempt.unit_name);
+            release_terminal_unit(&attempt.unit_name);
         }
         Ok(())
     }
