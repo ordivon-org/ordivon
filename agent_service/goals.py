@@ -513,7 +513,6 @@ class AgentServiceR7:
         self.instances = r6.instances
         self.placements = r6.placements
         self.events = r6.events
-        self.birth = r6.birth
         self.reconciler = r6.reconciler
         self.tasks = r6.tasks
         self.assignments = r6.assignments

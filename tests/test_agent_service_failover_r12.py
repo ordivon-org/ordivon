@@ -220,7 +220,7 @@ class AgentServiceFailoverR12Tests(unittest.TestCase):
             "routes": routes or [],
         })
         identity = service.identities.create(definition.id, stable_name=name, description=name)
-        instance = service.birth(f"birth:{name}:r12", revision.id)
+        instance = service.instances.create(f"request:{name}:r12", revision.id)
         service.reconciler.reconcile(instance.id)
         return revision, identity, instance
 

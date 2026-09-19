@@ -70,7 +70,7 @@ class AgentServiceSemanticsR8Tests(unittest.TestCase):
             stable_name=name,
             description=f"{name} semantic agent",
         )
-        instance = service.birth(f"birth:{name}", revision.id)
+        instance = service.instances.create(f"request:{name}", revision.id)
         service.reconciler.reconcile(instance.id)
         return definition, revision, identity, instance
 
@@ -103,7 +103,7 @@ class AgentServiceSemanticsR8Tests(unittest.TestCase):
                 description="Research agent",
             )
             revision = service.revisions.create(definition.id, {"v": 1})
-            instance = service.birth("birth:researcher", revision.id)
+            instance = service.instances.create("request:researcher", revision.id)
 
             self.assertEqual(first.id, replay.id)
             self.assertNotEqual(first.id, instance.id)
@@ -366,7 +366,7 @@ class AgentServiceSemanticsR8Tests(unittest.TestCase):
                 stable_name="researcher",
                 description="researcher semantic agent",
             )
-            instance = service.birth("birth:researcher:card", revision.id)
+            instance = service.instances.create("request:researcher:card", revision.id)
             service.reconciler.reconcile(instance.id)
             session = service.sessions.open(
                 client_session_id="session:card",
@@ -405,7 +405,7 @@ class AgentServiceSemanticsR8Tests(unittest.TestCase):
             self.assertEqual(card["skills"][0]["inputModes"], ["text/plain"])
             self.assertNotIn(instance.id, rendered)
             self.assertNotIn(session.id, rendered)
-            self.assertNotIn("birth:", rendered)
+            self.assertNotIn("request:", rendered)
             self.assertNotIn("credential", rendered.lower())
 
     def test_semantic_state_survives_service_reconstruction(self) -> None:
@@ -467,7 +467,7 @@ class AgentServiceDelegationScopeR8Tests(unittest.TestCase):
                 "outputModes": ["text/markdown"],
             }]})
         identity = service.identities.create(definition.id, stable_name=name, description=name)
-        instance = service.birth(f"birth:{name}:scope", revision.id)
+        instance = service.instances.create(f"request:{name}:scope", revision.id)
         service.reconciler.reconcile(instance.id)
         return revision, identity, instance
 

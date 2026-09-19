@@ -37,7 +37,7 @@ class ProviderObserverEliminationR25Tests(unittest.TestCase):
             self.addCleanup(service.close)
             definition = service.definitions.create("wrong-placement-worker")
             revision = service.revisions.create(definition.id, {"harness": "test"})
-            instance = service.birth("birth:wrong-placement", revision.id)
+            instance = service.instances.create("request:wrong-placement", revision.id)
             placement = service.placements.get_by_instance(instance.id)
             assert placement is not None
 

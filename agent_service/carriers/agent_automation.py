@@ -94,7 +94,7 @@ class AgentAutomationCarrierAdapter(CarrierProviderAdapter):
     """Bind Agent Service placement to the Workstation-stable Agent Automation carrier.
 
     This adapter understands only the existing public operator surface:
-    `census`, `birth`, and `reconcile`. Browserless and Temporal remain behind that surface.
+    `census` and `reconcile`. Browserless and Temporal remain behind that surface.
     """
 
     def __init__(
@@ -166,12 +166,12 @@ class AgentAutomationCarrierAdapter(CarrierProviderAdapter):
         value = self._run([str(self._executable), "census", "--spec", str(spec_path)])
         if value.get("campaignId") != profile.campaign_id:
             raise CarrierCommandError("carrier census campaign identity mismatch")
-        rows = value.get("occurrences")
+        rows = value.get("materializations")
         if not isinstance(rows, list):
-            raise CarrierCommandError("carrier census has no occurrence list")
+            raise CarrierCommandError("carrier census has no materialization list")
         matches = [row for row in rows if isinstance(row, dict) and row.get("agentId") == profile.agent_id]
         if len(matches) != 1:
-            raise CarrierCommandError("carrier census does not identify exactly one agent occurrence")
+            raise CarrierCommandError("carrier census does not identify exactly one agent materialization")
         return value, matches[0]
 
     def ensure(self, placement_id: str, agent_instance_id: str, revision_id: str) -> None:
@@ -183,23 +183,11 @@ class AgentAutomationCarrierAdapter(CarrierProviderAdapter):
         standing = row.get("materializationStanding")
         if standing in {"bound", "human-required", "ready-confirmed"}:
             return
-        if standing in {"unknown", "submit-observed"}:
+        if standing in {None, "pre-effect-failed", "unknown", "submit-observed"}:
             self._run(
                 [
                     str(self._executable),
                     "reconcile",
-                    "--spec",
-                    str(spec_path),
-                    "--agent-id",
-                    profile.agent_id,
-                ]
-            )
-            return
-        if standing in {None, "pre-effect-failed"}:
-            self._run(
-                [
-                    str(self._executable),
-                    "birth",
                     "--spec",
                     str(spec_path),
                     "--agent-id",

@@ -1158,7 +1158,7 @@ class AgentServiceR12:
         self._r11 = r11
         self._connection = r11._connection
         for name in (
-            "definitions", "revisions", "instances", "placements", "events", "birth",
+            "definitions", "revisions", "instances", "placements", "events",
             "reconciler", "tasks", "assignments", "execution_activator", "completion",
             "goals", "goal_graph_guard", "goal_task_links", "task_dependencies", "task_readiness",
             "task_graph", "goal_reconciler", "board_projector", "identities",
