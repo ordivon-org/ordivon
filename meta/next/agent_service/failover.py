@@ -539,129 +539,110 @@ class ReplaySafetyDecision:
     created_at_ns: int
 
 
-class ReplaySafetyDecisionStore:
-    SAFE_CLASSIFICATIONS = {"NO_EFFECTS", "ROLLED_BACK", "COMPENSATED", "IDEMPOTENT_REPLAY"}
+_REPLAY_SAFE_CLASSIFICATIONS = {
+    "NO_EFFECTS",
+    "ROLLED_BACK",
+    "COMPENSATED",
+    "IDEMPOTENT_REPLAY",
+}
 
-    def __init__(self, connection: sqlite3.Connection) -> None:
-        self._connection = connection
 
-    def get(self, decision_id: str) -> ReplaySafetyDecision:
-        row = self._connection.execute(
-            "SELECT * FROM replay_safety_decisions WHERE id = ?", (decision_id,)
-        ).fetchone()
-        if row is None:
-            raise KeyError(decision_id)
-        return self._from_row(row)
+def _replay_safety_decision_from_event(event: ServiceEvent) -> ReplaySafetyDecision:
+    if (
+        event.aggregate_type != "ReplaySafetyDecision"
+        or event.event_type != "ReplaySafetyDecisionRecorded"
+    ):
+        raise ValueError("event is not a replay-safety decision receipt")
+    payload = event.payload
+    if payload.get("clientReplaySafetyRequestId") != event.aggregate_id:
+        raise RuntimeError("replay-safety request identity mismatch")
+    return ReplaySafetyDecision(
+        id=event.id,
+        client_replay_safety_request_id=event.aggregate_id,
+        task_id=payload["taskId"],
+        source_binding_id=payload["sourceBindingId"],
+        target_binding_id=payload["targetBindingId"],
+        quiescence_proof_id=payload["quiescenceProofId"],
+        safe=bool(payload["safe"]),
+        classification=payload["classification"],
+        reason=payload.get("reason"),
+        evidence_ref=payload["evidenceRef"],
+        created_at_ns=event.created_at_ns,
+    )
 
-    def get_by_client_request(
-        self, client_replay_safety_request_id: str, required: bool = True
-    ) -> ReplaySafetyDecision | None:
-        row = self._connection.execute(
-            "SELECT * FROM replay_safety_decisions WHERE client_replay_safety_request_id = ?",
-            (client_replay_safety_request_id,),
-        ).fetchone()
-        if row is None:
-            if required:
-                raise KeyError(client_replay_safety_request_id)
-            return None
-        return self._from_row(row)
 
-    def create_in_transaction(
-        self,
-        *,
-        client_replay_safety_request_id: str,
-        task_id: str,
-        source_binding_id: str,
-        target_binding_id: str,
-        quiescence_proof_id: str,
-        observation: ReplaySafetyObservation,
-    ) -> ReplaySafetyDecision:
-        classification = observation.classification.strip().upper()
-        if observation.safe and classification not in self.SAFE_CLASSIFICATIONS:
-            raise ValueError("safe replay decision requires a recognized safe classification")
-        if not observation.safe and classification in self.SAFE_CLASSIFICATIONS:
-            raise ValueError("unsafe replay decision cannot use a safe classification")
-        if not classification:
-            raise ValueError("replay safety classification must be non-empty")
-        if not isinstance(observation.evidence_ref, str) or not observation.evidence_ref.strip():
-            raise ValueError("replay safety evidence_ref must be non-empty")
-        existing = self.get_by_client_request(client_replay_safety_request_id, required=False)
-        candidate = (
-            task_id,
-            source_binding_id,
-            target_binding_id,
-            quiescence_proof_id,
-            bool(observation.safe),
-            classification,
-            observation.reason,
-            observation.evidence_ref,
+def _replay_safety_decision_get(
+    events: ServiceEventStore,
+    decision_id: str,
+) -> ReplaySafetyDecision:
+    return _replay_safety_decision_from_event(events.get(decision_id))
+
+
+def _replay_safety_decision_get_by_client_request(
+    events: ServiceEventStore,
+    client_replay_safety_request_id: str,
+    required: bool = True,
+) -> ReplaySafetyDecision | None:
+    history = events.list_for(
+        "ReplaySafetyDecision", client_replay_safety_request_id
+    )
+    receipts = [
+        item for item in history
+        if item.event_type == "ReplaySafetyDecisionRecorded"
+    ]
+    if not receipts:
+        if required:
+            raise KeyError(client_replay_safety_request_id)
+        return None
+    if len(receipts) != 1:
+        raise RuntimeError("replay-safety decision stream contains multiple records")
+    return _replay_safety_decision_from_event(receipts[0])
+
+
+def _replay_safety_decision_create_in_transaction(
+    events: ServiceEventStore,
+    *,
+    client_replay_safety_request_id: str,
+    task_id: str,
+    source_binding_id: str,
+    target_binding_id: str,
+    quiescence_proof_id: str,
+    observation: ReplaySafetyObservation,
+) -> ReplaySafetyDecision:
+    classification = observation.classification.strip().upper()
+    if observation.safe and classification not in _REPLAY_SAFE_CLASSIFICATIONS:
+        raise ValueError(
+            "safe replay decision requires a recognized safe classification"
         )
-        if existing is not None:
-            historical = (
-                existing.task_id,
-                existing.source_binding_id,
-                existing.target_binding_id,
-                existing.quiescence_proof_id,
-                existing.safe,
-                existing.classification,
-                existing.reason,
-                existing.evidence_ref,
-            )
-            if candidate != historical:
-                raise RuntimeError("replay safety request already exists with different evidence")
-            return existing
-        value = ReplaySafetyDecision(
-            id=_id("replaysafety"),
-            client_replay_safety_request_id=client_replay_safety_request_id,
-            task_id=task_id,
-            source_binding_id=source_binding_id,
-            target_binding_id=target_binding_id,
-            quiescence_proof_id=quiescence_proof_id,
-            safe=bool(observation.safe),
-            classification=classification,
-            reason=observation.reason,
-            evidence_ref=observation.evidence_ref,
-            created_at_ns=_now_ns(),
+    if not observation.safe and classification in _REPLAY_SAFE_CLASSIFICATIONS:
+        raise ValueError(
+            "unsafe replay decision cannot use a safe classification"
         )
-        self._connection.execute(
-            """
-            INSERT INTO replay_safety_decisions(
-                id, client_replay_safety_request_id, task_id, source_binding_id,
-                target_binding_id, quiescence_proof_id, safe, classification,
-                reason, evidence_ref, created_at_ns
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                value.id,
-                value.client_replay_safety_request_id,
-                value.task_id,
-                value.source_binding_id,
-                value.target_binding_id,
-                value.quiescence_proof_id,
-                1 if value.safe else 0,
-                value.classification,
-                value.reason,
-                value.evidence_ref,
-                value.created_at_ns,
-            ),
-        )
-        return value
+    if not classification:
+        raise ValueError("replay safety classification must be non-empty")
+    if (
+        not isinstance(observation.evidence_ref, str)
+        or not observation.evidence_ref.strip()
+    ):
+        raise ValueError("replay safety evidence_ref must be non-empty")
 
-    @staticmethod
-    def _from_row(row: sqlite3.Row) -> ReplaySafetyDecision:
-        return ReplaySafetyDecision(
-            id=row["id"],
-            client_replay_safety_request_id=row["client_replay_safety_request_id"],
-            task_id=row["task_id"],
-            source_binding_id=row["source_binding_id"],
-            target_binding_id=row["target_binding_id"],
-            quiescence_proof_id=row["quiescence_proof_id"],
-            safe=bool(row["safe"]),
-            classification=row["classification"],
-            reason=row["reason"],
-            evidence_ref=row["evidence_ref"],
-            created_at_ns=row["created_at_ns"],
-        )
+    event = events.append_once_in_transaction(
+        "ReplaySafetyDecision",
+        client_replay_safety_request_id,
+        "ReplaySafetyDecisionRecorded",
+        {
+            "clientReplaySafetyRequestId": client_replay_safety_request_id,
+            "taskId": task_id,
+            "sourceBindingId": source_binding_id,
+            "targetBindingId": target_binding_id,
+            "quiescenceProofId": quiescence_proof_id,
+            "safe": bool(observation.safe),
+            "classification": classification,
+            "reason": observation.reason,
+            "evidenceRef": observation.evidence_ref.strip(),
+        },
+    )
+    return _replay_safety_decision_from_event(event)
 
 
 class ReplaySafetyCoordinator:
@@ -676,7 +657,6 @@ class ReplaySafetyCoordinator:
         receipts: ServiceEventStore,
         observations: RemoteDeliveryObservationStore,
         quiescence_proofs: ExecutionQuiescenceProofStore,
-        decisions: ReplaySafetyDecisionStore,
         adapter: ReplaySafetyAdapter | None,
     ) -> None:
         self._connection = connection
@@ -688,7 +668,6 @@ class ReplaySafetyCoordinator:
         self._receipts = receipts
         self._observations = observations
         self._quiescence_proofs = quiescence_proofs
-        self._decisions = decisions
         self._adapter = adapter
 
     def evaluate(
@@ -702,7 +681,7 @@ class ReplaySafetyCoordinator:
         if not isinstance(client_replay_safety_request_id, str) or not client_replay_safety_request_id.strip():
             raise ValueError("client_replay_safety_request_id must be non-empty")
         request_id = client_replay_safety_request_id.strip()
-        existing = self._decisions.get_by_client_request(request_id, required=False)
+        existing = _replay_safety_decision_get_by_client_request(self._events, request_id, required=False)
         if existing is not None:
             candidate = (from_binding_id, to_binding_id, quiescence_proof_id)
             historical = (
@@ -749,7 +728,8 @@ class ReplaySafetyCoordinator:
         if not isinstance(observation, ReplaySafetyObservation):
             raise TypeError("ReplaySafetyAdapter must return ReplaySafetyObservation")
         with self._connection:
-            decision = self._decisions.create_in_transaction(
+            decision = _replay_safety_decision_create_in_transaction(
+                self._events,
                 client_replay_safety_request_id=request_id,
                 task_id=task.id,
                 source_binding_id=source.id,
@@ -953,7 +933,6 @@ class ExecutionClaimTransferCoordinator:
         observations: RemoteDeliveryObservationStore,
         quiescence_requests: ExecutionQuiescenceRequestStore,
         quiescence_proofs: ExecutionQuiescenceProofStore,
-        replay_safety_decisions: ReplaySafetyDecisionStore,
     ) -> None:
         self._connection = connection
         self._tasks = tasks
@@ -965,7 +944,6 @@ class ExecutionClaimTransferCoordinator:
         self._observations = observations
         self._quiescence_requests = quiescence_requests
         self._quiescence_proofs = quiescence_proofs
-        self._replay_safety_decisions = replay_safety_decisions
 
     def preflight(self, *, from_binding_id: str, to_binding_id: str) -> tuple[Any, TransportBinding, TransportBinding]:
         if from_binding_id == to_binding_id:
@@ -1042,7 +1020,7 @@ class ExecutionClaimTransferCoordinator:
             raise ValueError("quiescence proof does not belong to the current source Binding")
         if not proof.quiescent:
             raise RuntimeError("claim transfer requires positive quiescence proof")
-        decision = self._replay_safety_decisions.get(replay_safety_decision_id)
+        decision = _replay_safety_decision_get(self._events, replay_safety_decision_id)
         if (
             decision.task_id != task.id
             or decision.source_binding_id != source.id
@@ -1132,14 +1110,12 @@ class FailoverCoordinator:
         quiescence: ExecutionQuiescenceCoordinator,
         quiescence_records: ExecutionQuiescenceProofStore,
         replay_safety: ReplaySafetyCoordinator,
-        replay_safety_records: ReplaySafetyDecisionStore,
         claim_transfers: ExecutionClaimTransferCoordinator,
         events: ServiceEventStore,
     ) -> None:
         self._quiescence = quiescence
         self._quiescence_records = quiescence_records
         self._replay_safety = replay_safety
-        self._replay_safety_records = replay_safety_records
         self._claim_transfers = claim_transfers
         self._events = events
 
@@ -1164,7 +1140,7 @@ class FailoverCoordinator:
         existing = _execution_claim_transfer_get_by_client_request(self._events, failover_id, required=False)
         if existing is not None:
             proof = self._quiescence_records.get(existing.quiescence_proof_id)
-            decision = self._replay_safety_records.get(existing.replay_safety_decision_id)
+            decision = _replay_safety_decision_get(self._events, existing.replay_safety_decision_id)
             if (
                 existing.from_binding_id != from_binding_id
                 or existing.to_binding_id != to_binding_id
@@ -1245,7 +1221,6 @@ class AgentServiceR12:
             self.quiescence_proof_records,
             execution_quiescence_adapters,
         )
-        self.replay_safety_decisions = ReplaySafetyDecisionStore(self._connection)
         self.replay_safety = ReplaySafetyCoordinator(
             self._connection,
             self.tasks,
@@ -1256,7 +1231,6 @@ class AgentServiceR12:
             self.events,
             self.remote_observations,
             self.quiescence_proof_records,
-            self.replay_safety_decisions,
             replay_safety_adapter,
         )
         self.claim_transfers = ExecutionClaimTransferCoordinator(
@@ -1270,7 +1244,6 @@ class AgentServiceR12:
             self.remote_observations,
             self.quiescence_requests,
             self.quiescence_proof_records,
-            self.replay_safety_decisions,
         )
         self.delivery = TransferAwareDeliveryCoordinator(
             self._connection,
@@ -1289,7 +1262,6 @@ class AgentServiceR12:
             self.quiescence,
             self.quiescence_proof_records,
             self.replay_safety,
-            self.replay_safety_decisions,
             self.claim_transfers,
             self.events,
         )
@@ -1343,6 +1315,15 @@ class AgentServiceR12:
                 "legacy execution_claim_transfers schema is unsupported; "
                 "perform explicit destructive migration before opening this revision"
             )
+        legacy_replay_safety_decisions = connection.execute(
+            "SELECT 1 FROM sqlite_master "
+            "WHERE type = 'table' AND name = 'replay_safety_decisions'"
+        ).fetchone()
+        if legacy_replay_safety_decisions is not None:
+            raise RuntimeError(
+                "legacy replay_safety_decisions schema is unsupported; "
+                "perform explicit destructive migration before opening this revision"
+            )
         connection.executescript(
             """
             CREATE TABLE IF NOT EXISTS execution_quiescence_requests (
@@ -1366,20 +1347,6 @@ class AgentServiceR12:
                 remote_task_id TEXT,
                 remote_context_id TEXT,
                 basis_remote_observation_id TEXT REFERENCES remote_delivery_observations(id),
-                evidence_ref TEXT NOT NULL,
-                created_at_ns INTEGER NOT NULL
-            );
-
-            CREATE TABLE IF NOT EXISTS replay_safety_decisions (
-                id TEXT PRIMARY KEY,
-                client_replay_safety_request_id TEXT NOT NULL UNIQUE,
-                task_id TEXT NOT NULL REFERENCES service_tasks(id),
-                source_binding_id TEXT NOT NULL REFERENCES transport_bindings(id),
-                target_binding_id TEXT NOT NULL REFERENCES transport_bindings(id),
-                quiescence_proof_id TEXT NOT NULL REFERENCES execution_quiescence_proofs(id),
-                safe INTEGER NOT NULL CHECK(safe IN (0, 1)),
-                classification TEXT NOT NULL,
-                reason TEXT,
                 evidence_ref TEXT NOT NULL,
                 created_at_ns INTEGER NOT NULL
             );

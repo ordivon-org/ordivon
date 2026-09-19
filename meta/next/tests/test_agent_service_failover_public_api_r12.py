@@ -13,7 +13,6 @@ from agent_service.failover import (
     FailoverCoordinator,
     ReplaySafetyAdapter,
     ReplaySafetyCoordinator,
-    ReplaySafetyDecisionStore,
     TransferAwareDeliveryCoordinator,
 )
 
@@ -26,7 +25,7 @@ class AgentServiceFailoverPublicApiR12Tests(unittest.TestCase):
         self.assertIs(agent_service.ExecutionQuiescenceProofStore, ExecutionQuiescenceProofStore)
         self.assertIs(agent_service.ExecutionQuiescenceCoordinator, ExecutionQuiescenceCoordinator)
         self.assertIs(agent_service.ReplaySafetyAdapter, ReplaySafetyAdapter)
-        self.assertIs(agent_service.ReplaySafetyDecisionStore, ReplaySafetyDecisionStore)
+        self.assertFalse(hasattr(agent_service, "ReplaySafetyDecisionStore"))
         self.assertIs(agent_service.ReplaySafetyCoordinator, ReplaySafetyCoordinator)
         self.assertFalse(hasattr(agent_service, "ExecutionClaimTransferStore"))
         self.assertIs(agent_service.ExecutionClaimTransferCoordinator, ExecutionClaimTransferCoordinator)

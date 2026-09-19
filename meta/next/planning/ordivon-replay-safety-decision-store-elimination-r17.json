@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "id": "ordivon-replay-safety-decision-store-elimination-r17",
+  "date": "2026-09-19",
+  "status": "FOURTEENTH_PRODUCTION_DELETION",
+  "parent": "ordivon-execution-claim-transfer-store-elimination-r16",
+  "architecturalCore": "EMPTY",
+  "deletedLocalTypes": [
+    "ReplaySafetyDecisionStore"
+  ],
+  "deletedPersistenceSurfaces": [
+    "replay_safety_decisions"
+  ],
+  "deletedApiSurfaces": [
+    "service.replay_safety_decisions",
+    "agent_service.ReplaySafetyDecisionStore"
+  ],
+  "retiredForeignKeyAuthorities": [
+    "replay_safety_decisions.task_id -> service_tasks.id",
+    "replay_safety_decisions.source_binding_id -> transport_bindings.id",
+    "replay_safety_decisions.target_binding_id -> transport_bindings.id",
+    "replay_safety_decisions.quiescence_proof_id -> execution_quiescence_proofs.id"
+  ],
+  "retainedProjectionTypes": [
+    "ReplaySafetyDecision"
+  ],
+  "durableReceiptOwner": {
+    "type": "existing ServiceEventStore",
+    "aggregateType": "ReplaySafetyDecision",
+    "eventType": "ReplaySafetyDecisionRecorded",
+    "singleReceiptSequence": 1
+  },
+  "retainedSafetyRules": {
+    "positiveClassifications": [
+      "NO_EFFECTS",
+      "ROLLED_BACK",
+      "COMPENSATED",
+      "IDEMPOTENT_REPLAY"
+    ],
+    "evidenceRefRequired": true
+  },
+  "replacementLocalPrimitives": [],
+  "destructiveMigration": {
+    "legacyTable": "replay_safety_decisions",
+    "behavior": "FAIL_CLOSED_ON_OPEN",
+    "compatibilityShim": false
+  },
+  "topLevelTypeDebt": {
+    "r3Baseline": 171,
+    "r4": 170,
+    "r5": 169,
+    "r6": 168,
+    "r7": 167,
+    "r8": 165,
+    "r9": 164,
+    "r10": 162,
+    "r11": 161,
+    "r12": 160,
+    "r13": 159,
+    "r14": 158,
+    "r15": 157,
+    "r16": 156,
+    "r17": 155,
+    "cumulativeDelta": -16
+  },
+  "validation": {
+    "targetedTests": 40,
+    "structuralDeletionTests": 46,
+    "agentServiceTests": 228,
+    "agentServiceSkipped": 5,
+    "agentServiceStatus": "PASS",
+    "fullRepositoryTests": 327,
+    "fullRepositorySkipped": 5,
+    "fullRepositoryStatus": "PASS",
+    "observedTopLevelClasses": 155,
+    "legacyCeilingCount": 155
+  },
+  "nextAudit": "ExecutionQuiescenceProofStore"
+}

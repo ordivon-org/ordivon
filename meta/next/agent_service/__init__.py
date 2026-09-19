@@ -23,7 +23,6 @@ from .failover import (
     FailoverCoordinator,
     ReplaySafetyAdapter,
     ReplaySafetyCoordinator,
-    ReplaySafetyDecisionStore,
     TransferAwareDeliveryCoordinator,
 )
 from .goals import (
@@ -172,7 +171,6 @@ __all__ = [
     "RemoteTaskCompletionReconciler",
     "ReplaySafetyAdapter",
     "ReplaySafetyCoordinator",
-    "ReplaySafetyDecisionStore",
     "RuntimeAdapter",
     "RuntimeArtifactDescriptor",
     "RuntimeArtifactReader",
