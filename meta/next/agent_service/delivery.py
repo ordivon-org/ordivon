@@ -8,6 +8,7 @@ import time
 import uuid
 
 import rfc8785
+from mcp_types.version import MODERN_PROTOCOL_VERSIONS
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -57,21 +58,13 @@ def _route_profiles_from_revision_spec(
             and re.fullmatch(r"[0-9]+\.[0-9]+", normalized_protocol_version) is None
         ):
             raise ValueError("A2A protocolVersion must use Major.Minor without patch")
-        if normalized_transport == "mcp":
-            if (
-                re.fullmatch(
-                    r"[0-9]{4}-[0-9]{2}-[0-9]{2}",
-                    normalized_protocol_version,
-                )
-                is None
-            ):
-                raise ValueError("MCP protocolVersion must use YYYY-MM-DD")
-            try:
-                import datetime as _datetime
-
-                _datetime.date.fromisoformat(normalized_protocol_version)
-            except ValueError as error:
-                raise ValueError("MCP protocolVersion must be a valid date version") from error
+        if (
+            normalized_transport == "mcp"
+            and normalized_protocol_version not in MODERN_PROTOCOL_VERSIONS
+        ):
+            raise ValueError(
+                "MCP protocolVersion must be a supported modern MCP protocol version"
+            )
 
         if not isinstance(url, str) or not url.strip():
             raise ValueError("route url must be non-empty")
