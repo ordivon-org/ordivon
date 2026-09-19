@@ -21,21 +21,30 @@ class AgentPluginMaterializationTests(unittest.TestCase):
         plugin = root / "plugin"
         plugin.mkdir()
         (plugin / "plugin.json").write_text(
-            json.dumps({"$schema": MODULE.PLUGIN_SCHEMA, "name": "test", "version": "1.0.0"}),
+            json.dumps(
+                {"$schema": MODULE.PLUGIN_SCHEMA, "name": "test", "version": "1.0.0"}
+            ),
             encoding="utf-8",
         )
         (plugin / "mcp.json").write_text(
-            json.dumps({"$schema": MODULE.MCP_SCHEMA, "mcpServers": {}}), encoding="utf-8"
+            json.dumps({"$schema": MODULE.MCP_SCHEMA, "mcpServers": {}}),
+            encoding="utf-8",
         )
         return plugin
 
     def _skills(self, root: Path) -> Path:
         skills = root / "skills-source"
         (skills / "alpha" / "references").mkdir(parents=True)
-        (skills / "alpha" / "SKILL.md").write_text("---\nname: alpha\ndescription: alpha skill\n---\n", encoding="utf-8")
-        (skills / "alpha" / "references" / "one.md").write_text("one\n", encoding="utf-8")
+        (skills / "alpha" / "SKILL.md").write_text(
+            "---\nname: alpha\ndescription: alpha skill\n---\n", encoding="utf-8"
+        )
+        (skills / "alpha" / "references" / "one.md").write_text(
+            "one\n", encoding="utf-8"
+        )
         (skills / "beta").mkdir()
-        (skills / "beta" / "SKILL.md").write_text("---\nname: beta\ndescription: beta skill\n---\n", encoding="utf-8")
+        (skills / "beta" / "SKILL.md").write_text(
+            "---\nname: beta\ndescription: beta skill\n---\n", encoding="utf-8"
+        )
         MODULE.DEFAULT_SKILLS = skills
         return skills
 
@@ -51,15 +60,25 @@ class AgentPluginMaterializationTests(unittest.TestCase):
             self.assertIsNone(value["sourceOfTruth"])
             self.assertIsNone(value["skillSource"])
             self.assertFalse((output / "skills").exists())
-            self.assertEqual(json.loads(receipt.read_text(encoding="utf-8"))["outputTreeDigest"], MODULE.tree_digest(output))
+            self.assertEqual(
+                json.loads(receipt.read_text(encoding="utf-8"))["outputTreeDigest"],
+                MODULE.tree_digest(output),
+            )
 
     def test_cli_defaults_to_omitting_skills_and_requires_explicit_opt_in(self) -> None:
-        with patch("sys.argv", ["materialize_agent_plugin.py", "--output", "/tmp/plugin"]):
+        with patch(
+            "sys.argv", ["materialize_agent_plugin.py", "--output", "/tmp/plugin"]
+        ):
             args = MODULE.parse_args()
             self.assertFalse(args.include_skills)
         with patch(
             "sys.argv",
-            ["materialize_agent_plugin.py", "--output", "/tmp/plugin", "--include-skills"],
+            [
+                "materialize_agent_plugin.py",
+                "--output",
+                "/tmp/plugin",
+                "--include-skills",
+            ],
         ):
             args = MODULE.parse_args()
             self.assertTrue(args.include_skills)
@@ -75,20 +94,32 @@ class AgentPluginMaterializationTests(unittest.TestCase):
             self.assertEqual(value["skillComposition"], "included")
             self.assertEqual(value["skillCount"], 2)
             self.assertTrue((output / "skills" / "alpha" / "SKILL.md").is_file())
-            self.assertTrue((output / "skills" / "alpha" / "references" / "one.md").is_file())
+            self.assertTrue(
+                (output / "skills" / "alpha" / "references" / "one.md").is_file()
+            )
             self.assertTrue((output / "skills" / "beta" / "SKILL.md").is_file())
             self.assertFalse((output / "receipt.json").exists())
-            self.assertEqual(json.loads(receipt.read_text(encoding="utf-8"))["outputTreeDigest"], MODULE.tree_digest(output))
+            self.assertEqual(
+                json.loads(receipt.read_text(encoding="utf-8"))["outputTreeDigest"],
+                MODULE.tree_digest(output),
+            )
 
     def test_repeated_materialization_is_byte_stable(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             plugin = self._plugin(root)
             skills = self._skills(root)
-            first = MODULE.materialize(plugin, skills, root / "release-a", root / "receipt-a.json")
-            second = MODULE.materialize(plugin, skills, root / "release-b", root / "receipt-b.json")
+            first = MODULE.materialize(
+                plugin, skills, root / "release-a", root / "receipt-a.json"
+            )
+            second = MODULE.materialize(
+                plugin, skills, root / "release-b", root / "receipt-b.json"
+            )
             self.assertEqual(first["outputTreeDigest"], second["outputTreeDigest"])
-            self.assertEqual(MODULE.tree_manifest(root / "release-a"), MODULE.tree_manifest(root / "release-b"))
+            self.assertEqual(
+                MODULE.tree_manifest(root / "release-a"),
+                MODULE.tree_manifest(root / "release-b"),
+            )
 
     def test_refuses_receipt_inside_output(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -116,7 +147,9 @@ class AgentPluginMaterializationTests(unittest.TestCase):
             skills = self._skills(root)
             (skills / "broken").mkdir()
             with self.assertRaises(SystemExit):
-                MODULE.materialize(plugin, skills, root / "release", root / "receipt.json")
+                MODULE.materialize(
+                    plugin, skills, root / "release", root / "receipt.json"
+                )
 
     def test_refuses_symlink_in_skill_package(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -125,7 +158,9 @@ class AgentPluginMaterializationTests(unittest.TestCase):
             skills = self._skills(root)
             (skills / "alpha" / "escape").symlink_to(root / "outside")
             with self.assertRaises(SystemExit):
-                MODULE.materialize(plugin, skills, root / "release", root / "receipt.json")
+                MODULE.materialize(
+                    plugin, skills, root / "release", root / "receipt.json"
+                )
 
     def test_refuses_source_plugin_with_skills_tree(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -133,9 +168,13 @@ class AgentPluginMaterializationTests(unittest.TestCase):
             plugin = self._plugin(root)
             skills = self._skills(root)
             (plugin / "skills").mkdir()
-            (plugin / "skills" / "unexpected.txt").write_text("duplicate source\n", encoding="utf-8")
+            (plugin / "skills" / "unexpected.txt").write_text(
+                "duplicate source\n", encoding="utf-8"
+            )
             with self.assertRaises(SystemExit):
-                MODULE.materialize(plugin, skills, root / "release", root / "receipt.json")
+                MODULE.materialize(
+                    plugin, skills, root / "release", root / "receipt.json"
+                )
 
     def test_refuses_empty_source_plugin_skills_tree(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -143,7 +182,9 @@ class AgentPluginMaterializationTests(unittest.TestCase):
             plugin = self._plugin(root)
             (plugin / "skills").mkdir()
             with self.assertRaises(SystemExit):
-                MODULE.materialize(plugin, None, root / "release", root / "receipt.json")
+                MODULE.materialize(
+                    plugin, None, root / "release", root / "receipt.json"
+                )
 
     def test_refuses_noncanonical_included_skills_source(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -154,7 +195,9 @@ class AgentPluginMaterializationTests(unittest.TestCase):
             shutil.copytree(canonical_skills, external_skills)
             self.assertNotEqual(canonical_skills.resolve(), external_skills.resolve())
             with self.assertRaises(SystemExit):
-                MODULE.materialize(plugin, external_skills, root / "release", root / "receipt.json")
+                MODULE.materialize(
+                    plugin, external_skills, root / "release", root / "receipt.json"
+                )
 
     def test_refuses_symlink_canonical_skills_root(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -165,7 +208,9 @@ class AgentPluginMaterializationTests(unittest.TestCase):
             canonical_link.symlink_to(real_skills, target_is_directory=True)
             MODULE.DEFAULT_SKILLS = canonical_link
             with self.assertRaises(SystemExit):
-                MODULE.materialize(plugin, canonical_link, root / "release", root / "receipt.json")
+                MODULE.materialize(
+                    plugin, canonical_link, root / "release", root / "receipt.json"
+                )
 
 
 if __name__ == "__main__":

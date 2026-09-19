@@ -4,8 +4,9 @@ Date: 2026-09-18
 Status: **DYNAMIC PERTURBATION COMPLETE / NO PRODUCTION CONTROL-LAW PROMOTION YET**
 
 Analyzed implementation: `0721009237365ea61cd975bd187be5171f1dcd52` (Agent Service R14)
-Experiment runner: `scripts/run_agent_service_control_stability_r1.py`
-Tests: `tests/test_agent_service_control_stability_r1.py`
+Historical experiment runner at acceptance time: `scripts/run_agent_service_control_stability_r1.py` (preserved in Git history)
+Current regression support: `tests/agent_service_control_stability_support.py`
+Current regression tests: `tests/test_agent_service_control_stability.py`
 Evidence: `evidence/analysis/agent-service-control-stability-r1.json`
 
 ## One-sentence result

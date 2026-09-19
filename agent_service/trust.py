@@ -5,14 +5,11 @@ import sqlite3
 import time
 import uuid
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
 from .delivery import (
-    TransportBinding,
     _delivery_receipt_get_by_binding,
 )
-from .semantics import DelegationEnvelope
 from .slice1 import ServiceEvent, ServiceEventStore
 
 
@@ -71,7 +68,9 @@ class CredentialReferenceStore:
     ) -> CredentialReference:
         values = (client_reference_id, provider, reference, issuer, resource)
         if any(not isinstance(value, str) or not value.strip() for value in values):
-            raise ValueError("credential reference identity/provider/reference/issuer/resource must be non-empty")
+            raise ValueError(
+                "credential reference identity/provider/reference/issuer/resource must be non-empty"
+            )
         scopes = _normalize_strings(requested_scopes, "requested_scopes")
         candidate = (
             provider.strip(),
@@ -80,7 +79,9 @@ class CredentialReferenceStore:
             resource.strip(),
             scopes,
         )
-        existing = self.get_by_client_reference(client_reference_id.strip(), required=False)
+        existing = self.get_by_client_reference(
+            client_reference_id.strip(), required=False
+        )
         if existing is not None:
             historical = (
                 existing.provider,
@@ -90,7 +91,9 @@ class CredentialReferenceStore:
                 existing.requested_scopes,
             )
             if historical != candidate:
-                raise ValueError("credential reference replay conflicts with committed locator")
+                raise ValueError(
+                    "credential reference replay conflicts with committed locator"
+                )
             return existing
         value = CredentialReference(
             id=_id("credref"),
@@ -117,7 +120,12 @@ class CredentialReferenceStore:
                     value.reference,
                     value.issuer,
                     value.resource,
-                    json.dumps(list(value.requested_scopes), sort_keys=True, separators=(",", ":"), ensure_ascii=False),
+                    json.dumps(
+                        list(value.requested_scopes),
+                        sort_keys=True,
+                        separators=(",", ":"),
+                        ensure_ascii=False,
+                    ),
                     value.created_at_ns,
                 ),
             )
@@ -176,8 +184,6 @@ class IdentityProofObservation:
     evidence_ref: str
 
 
-
-
 @dataclass(frozen=True)
 class IdentityProofRecord:
     id: str
@@ -221,9 +227,7 @@ def _identity_proof_record_from_event(
         auth_method=payload["authMethod"],
         observed_at_ms=int(payload["observedAtMs"]),
         expires_at_ms=(
-            None
-            if payload.get("expiresAtMs") is None
-            else int(payload["expiresAtMs"])
+            None if payload.get("expiresAtMs") is None else int(payload["expiresAtMs"])
         ),
         evidence_ref=payload["evidenceRef"],
         created_at_ns=event.created_at_ns,
@@ -316,7 +320,10 @@ class IdentityProofCoordinator:
         purpose: str,
         observed_at_ms: int | None = None,
     ) -> IdentityProofRecord:
-        if not isinstance(client_proof_request_id, str) or not client_proof_request_id.strip():
+        if (
+            not isinstance(client_proof_request_id, str)
+            or not client_proof_request_id.strip()
+        ):
             raise ValueError("client_proof_request_id must be non-empty")
         if not isinstance(purpose, str) or not purpose.strip():
             raise ValueError("identity proof purpose must be non-empty")
@@ -331,7 +338,9 @@ class IdentityProofCoordinator:
                 existing.purpose,
             )
             if candidate != historical:
-                raise ValueError("identity proof request replay conflicts with committed proof")
+                raise ValueError(
+                    "identity proof request replay conflicts with committed proof"
+                )
             return existing
         self._identities.get(identity_id)
         credential = self._credentials.get(credential_reference_id)
@@ -345,17 +354,28 @@ class IdentityProofCoordinator:
         )
         observation = self._adapter.verify(request, credential)
         if not isinstance(observation, IdentityProofObservation):
-            raise TypeError("identity proof provider must return IdentityProofObservation")
+            raise TypeError(
+                "identity proof provider must return IdentityProofObservation"
+            )
         if not isinstance(observation.issuer, str) or not observation.issuer.strip():
             raise ValueError("identity proof issuer must be non-empty")
         if observation.issuer != credential.issuer:
-            raise ValueError("identity proof issuer does not match credential reference issuer")
-        if not isinstance(observation.auth_method, str) or not observation.auth_method.strip():
+            raise ValueError(
+                "identity proof issuer does not match credential reference issuer"
+            )
+        if (
+            not isinstance(observation.auth_method, str)
+            or not observation.auth_method.strip()
+        ):
             raise ValueError("identity proof auth_method must be non-empty")
-        if not isinstance(observation.evidence_ref, str) or not observation.evidence_ref.strip():
+        if (
+            not isinstance(observation.evidence_ref, str)
+            or not observation.evidence_ref.strip()
+        ):
             raise ValueError("identity proof evidence_ref must be non-empty")
         if observation.authenticated and (
-            not isinstance(observation.principal_id, str) or not observation.principal_id.strip()
+            not isinstance(observation.principal_id, str)
+            or not observation.principal_id.strip()
         ):
             raise ValueError("authenticated identity proof requires a principal_id")
         when_ms = _now_ms() if observed_at_ms is None else int(observed_at_ms)
@@ -391,8 +411,6 @@ class RemoteProviderObservation:
     evidence_ref: str
 
 
-
-
 @dataclass(frozen=True)
 class RemoteDeliverySnapshot:
     id: str
@@ -422,10 +440,16 @@ def _remote_delivery_observation_from_event(
         raise RuntimeError("remote delivery observation Binding identity mismatch")
     raw_success = payload.get("successful")
     if raw_success is not None and not isinstance(raw_success, bool):
-        raise RuntimeError("remote delivery observation successful must be boolean or null")
+        raise RuntimeError(
+            "remote delivery observation successful must be boolean or null"
+        )
     artifact_refs = payload.get("artifactRefs", [])
-    if not isinstance(artifact_refs, list) or not all(isinstance(x, str) for x in artifact_refs):
-        raise RuntimeError("remote delivery observation artifactRefs must be a string array")
+    if not isinstance(artifact_refs, list) or not all(
+        isinstance(x, str) for x in artifact_refs
+    ):
+        raise RuntimeError(
+            "remote delivery observation artifactRefs must be a string array"
+        )
     return RemoteDeliverySnapshot(
         id=event.id,
         binding_id=event.aggregate_id,
@@ -511,7 +535,9 @@ def _remote_delivery_observation_record(
             "remoteContextId": observation.remote_context_id,
             "artifactRefs": list(observation.artifact_refs),
             "evidenceRef": observation.evidence_ref,
-            "observedAtMs": _now_ms() if observed_at_ms is None else int(observed_at_ms),
+            "observedAtMs": _now_ms()
+            if observed_at_ms is None
+            else int(observed_at_ms),
         },
     )
     return _remote_delivery_observation_from_event(event)
@@ -530,7 +556,9 @@ class RemoteCorrelationReconciler:
         self._delivery_events = delivery_events
         for transport, observer in observers.items():
             if not isinstance(transport, str) or not transport.strip():
-                raise TypeError("remote observer transport key must be a non-empty string")
+                raise TypeError(
+                    "remote observer transport key must be a non-empty string"
+                )
             if not callable(getattr(observer, "observe", None)):
                 raise TypeError(
                     f"remote observer for {transport!r} must expose callable observe()"
@@ -543,25 +571,57 @@ class RemoteCorrelationReconciler:
         envelope = self._delegations.get(binding.delegation_id)
         observer = self._observers.get(binding.transport)
         if observer is None:
-            raise LookupError(f"no remote delivery observer registered for {binding.transport}")
-        observation = observer.observe(binding=binding, receipt=receipt, envelope=envelope)
+            raise LookupError(
+                f"no remote delivery observer registered for {binding.transport}"
+            )
+        observation = observer.observe(
+            binding=binding, receipt=receipt, envelope=envelope
+        )
         if not isinstance(observation, RemoteProviderObservation):
-            raise TypeError("remote delivery observer must return RemoteProviderObservation")
-        if not isinstance(observation.provider_status, str) or not observation.provider_status.strip():
+            raise TypeError(
+                "remote delivery observer must return RemoteProviderObservation"
+            )
+        if (
+            not isinstance(observation.provider_status, str)
+            or not observation.provider_status.strip()
+        ):
             raise ValueError("remote provider status must be non-empty")
-        if not isinstance(observation.evidence_ref, str) or not observation.evidence_ref.strip():
+        if (
+            not isinstance(observation.evidence_ref, str)
+            or not observation.evidence_ref.strip()
+        ):
             raise ValueError("remote observation evidence_ref must be non-empty")
-        if receipt.remote_task_id is not None and observation.remote_task_id != receipt.remote_task_id:
+        if (
+            receipt.remote_task_id is not None
+            and observation.remote_task_id != receipt.remote_task_id
+        ):
             raise ValueError("remote task correlation changed from delivery receipt")
-        if receipt.remote_context_id is not None and observation.remote_context_id != receipt.remote_context_id:
+        if (
+            receipt.remote_context_id is not None
+            and observation.remote_context_id != receipt.remote_context_id
+        ):
             raise ValueError("remote context correlation changed from delivery receipt")
-        latest = _remote_delivery_observation_latest_for_binding(self._delivery_events, binding.id, required=False)
+        latest = _remote_delivery_observation_latest_for_binding(
+            self._delivery_events, binding.id, required=False
+        )
         if latest is not None:
-            if latest.remote_task_id is not None and observation.remote_task_id != latest.remote_task_id:
-                raise ValueError("remote task correlation changed from established observation")
-            if latest.remote_context_id is not None and observation.remote_context_id != latest.remote_context_id:
-                raise ValueError("remote context correlation changed from established observation")
-        return _remote_delivery_observation_record(self._delivery_events, binding_id=binding.id, observation=observation)
+            if (
+                latest.remote_task_id is not None
+                and observation.remote_task_id != latest.remote_task_id
+            ):
+                raise ValueError(
+                    "remote task correlation changed from established observation"
+                )
+            if (
+                latest.remote_context_id is not None
+                and observation.remote_context_id != latest.remote_context_id
+            ):
+                raise ValueError(
+                    "remote context correlation changed from established observation"
+                )
+        return _remote_delivery_observation_record(
+            self._delivery_events, binding_id=binding.id, observation=observation
+        )
 
 
 class AuditEnvelopeProjector:
@@ -600,7 +660,9 @@ class AuditEnvelopeProjector:
         binding = self._bindings.get(binding_id)
         receipt = _delivery_receipt_get_by_binding(self._delivery_events, binding_id)
         envelope = self._delegations.get(binding.delegation_id)
-        latest = _remote_delivery_observation_latest_for_binding(self._delivery_events, binding_id, required=False)
+        latest = _remote_delivery_observation_latest_for_binding(
+            self._delivery_events, binding_id, required=False
+        )
         remote_task_id = receipt.remote_task_id
         remote_context_id = receipt.remote_context_id
         if latest is not None:

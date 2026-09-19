@@ -1,9 +1,11 @@
 # Poker AI — LEGO Question Compiler Pilot R1
 
 Date: 2026-09-18
-Status: PROSPECTIVE METHOD PILOT
+Status: **HISTORICAL PROVENANCE / METHOD RETIRED FROM CURRENT ORDIVON PLANNING**
 Target: popular narrative about Libratus / Pluribus and "mathematics defeating human read"
-Method: LEGO Question Compiler R1
+Historical method: LEGO Question Compiler R1
+
+The local Question Compiler has since been retired. This pilot remains only because historical acceptance evidence cites it; current analysis should use the applicable domain-native or mature external methods directly.
 
 ## 1. Target
 

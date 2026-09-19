@@ -12,8 +12,10 @@ from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
 class Carrier:
     def ensure(self, placement_id, agent_instance_id, revision_id):
         return None
+
     def retire(self, placement_id, agent_instance_id):
         return None
+
     def observe(self, placement_id):
         return ProviderObservation(placement_id, "READY", "test://ready")
 
@@ -21,6 +23,7 @@ class Carrier:
 class Runtime:
     def submit(self, client_request_id, execution):
         return RuntimeJobRef(job_id=f"job:{client_request_id}")
+
     def observe(self, job_id):
         return RuntimeJobObservation(
             job_id=job_id,
@@ -43,7 +46,9 @@ class SingleCompositionRootTests(unittest.TestCase):
     def test_package_exposes_one_current_agent_service_root(self) -> None:
         self.assertTrue(hasattr(agent_service, "open_agent_service"))
 
-    def test_current_root_constructs_final_graph_without_version_wrapper_chain(self) -> None:
+    def test_current_root_constructs_final_graph_without_version_wrapper_chain(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as td:
             service = agent_service.open_agent_service(
                 Path(td) / "service.db",
@@ -55,20 +60,55 @@ class SingleCompositionRootTests(unittest.TestCase):
             self.addCleanup(service.close)
 
             for name in (
-                "definitions", "revisions", "instances", "placements", "events",
-                "reconciler", "tasks", "assignments", "execution_activator", "completion",
-                "goals", "goal_task_links", "task_dependencies", "task_readiness",
-                "goal_planner", "identities", "sessions",
-                "delegations", "a2a_cards", "transport_bindings", "routes",
-                "credential_references", "identity_proofs", "remote_reconciler",
-                "execution_claims", "quiescence", "replay_safety", "claim_transfers",
-                "failover", "transport_credentials", "credential_headers", "delivery",
+                "definitions",
+                "revisions",
+                "instances",
+                "placements",
+                "events",
+                "reconciler",
+                "tasks",
+                "assignments",
+                "execution_activator",
+                "completion",
+                "goals",
+                "goal_task_links",
+                "task_dependencies",
+                "task_readiness",
+                "goal_planner",
+                "identities",
+                "sessions",
+                "delegations",
+                "a2a_cards",
+                "transport_bindings",
+                "routes",
+                "credential_references",
+                "identity_proofs",
+                "remote_reconciler",
+                "execution_claims",
+                "quiescence",
+                "replay_safety",
+                "claim_transfers",
+                "failover",
+                "transport_credentials",
+                "credential_headers",
+                "delivery",
             ):
                 self.assertTrue(hasattr(service, name), name)
 
             for name in (
-                "task_graph", "_placement", "_r5", "_r6", "_r7", "_r8", "_r9", "_r10",
-                "_r11", "_r12", "_r13", "_r14", "_r15",
+                "task_graph",
+                "_placement",
+                "_r5",
+                "_r6",
+                "_r7",
+                "_r8",
+                "_r9",
+                "_r10",
+                "_r11",
+                "_r12",
+                "_r13",
+                "_r14",
+                "_r15",
             ):
                 self.assertFalse(hasattr(service, name), name)
 

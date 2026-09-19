@@ -1,6 +1,9 @@
 # Standard-Native Enterprise Environment R1
 
 Date: 2026-09-14
+Status: **HISTORICAL BASELINE / SUPERSEDED FOR CURRENT OPERATION BY R2**
+
+This file is retained at its original path because authority and acceptance records cite it as historical provenance. Current cross-domain operating guidance is `docs/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R2.md`; do not inherit dated local-provider availability from R1 without revalidation.
 
 ## Decision
 

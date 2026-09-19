@@ -56,7 +56,7 @@ The current-workload acceptance used real paper material rather than a toy citat
 - Research-v2 verification reached **44 passing tests**;
 - a frozen publication-path replay produced identical rendered HTML SHA-256 values (`d4397b2a8c12ae521515c29934df79ffc38210d47a80fcaf004a891958a30845`).
 
-Detailed dated evidence is in `docs/RESEARCH_CAPABILITY_PACKAGE_R1.md` and `docs/CAPABILITY_PACKAGES_R1_ACCEPTANCE_20260913.md`.
+Detailed dated evidence is in `docs/RESEARCH_CAPABILITY_PACKAGE_R1.md` and `evidence/acceptance/capability-packages-r1-20260913.md`.
 
 ## Concrete current gaps
 

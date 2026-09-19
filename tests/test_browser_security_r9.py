@@ -10,7 +10,9 @@ MODULE_PATH = (
     Path(__file__).resolve().parents[1]
     / "experiments/browser-security-r9/window_placement_attribution.py"
 )
-SPEC = importlib.util.spec_from_file_location("window_placement_attribution", MODULE_PATH)
+SPEC = importlib.util.spec_from_file_location(
+    "window_placement_attribution", MODULE_PATH
+)
 assert SPEC is not None and SPEC.loader is not None
 r9 = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(r9)
@@ -81,7 +83,9 @@ class BrowserSecurityR9Tests(unittest.TestCase):
         evidence, digest = r9.load_r8_reference()
         receipt = json.loads(r9.R8_REPEATABILITY.read_text())
         self.assertEqual(digest, receipt["run1"]["sha256"])
-        self.assertEqual(receipt["standing"], "BYTE_IDENTICAL_FRESH_SERVICE_REPEATABILITY")
+        self.assertEqual(
+            receipt["standing"], "BYTE_IDENTICAL_FRESH_SERVICE_REPEATABILITY"
+        )
         self.assertFalse(evidence["safetyBoundary"]["protectedProviderVisited"])
 
     def test_network_namespace_guard_compares_exact_namespace_identity(self) -> None:

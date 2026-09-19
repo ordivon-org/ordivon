@@ -8,7 +8,6 @@ import uuid
 
 import rfc8785
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
 
@@ -99,11 +98,14 @@ class AgentDefinitionStore(_SqliteNode):
 
     def get(self, definition_id: str) -> AgentDefinition:
         row = self._connection.execute(
-            "SELECT id, name, created_at_ns FROM agent_definitions WHERE id = ?", (definition_id,)
+            "SELECT id, name, created_at_ns FROM agent_definitions WHERE id = ?",
+            (definition_id,),
         ).fetchone()
         if row is None:
             raise KeyError(definition_id)
-        return AgentDefinition(id=row["id"], name=row["name"], created_at_ns=row["created_at_ns"])
+        return AgentDefinition(
+            id=row["id"], name=row["name"], created_at_ns=row["created_at_ns"]
+        )
 
 
 class AgentRevisionStore(_SqliteNode):
@@ -268,7 +270,9 @@ class DesiredPlacementStore(_SqliteNode):
         ).fetchall()
         return [self._from_row(row) for row in rows]
 
-    def record_observation(self, placement_id: str, observation: ProviderObservation) -> DesiredPlacement:
+    def record_observation(
+        self, placement_id: str, observation: ProviderObservation
+    ) -> DesiredPlacement:
         if observation.placement_id != placement_id:
             raise ValueError("observation placement identity mismatch")
         with self._connection:
@@ -302,7 +306,9 @@ class ServiceEventStore(_SqliteNode):
         payload: dict[str, Any] | None = None,
     ) -> ServiceEvent:
         with self._connection:
-            return self.append_in_transaction(aggregate_type, aggregate_id, event_type, payload)
+            return self.append_in_transaction(
+                aggregate_type, aggregate_id, event_type, payload
+            )
 
     def append_in_transaction(
         self,
@@ -334,7 +340,12 @@ class ServiceEventStore(_SqliteNode):
                 event.aggregate_id,
                 event.sequence,
                 event.event_type,
-                json.dumps(event.payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False),
+                json.dumps(
+                    event.payload,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                    ensure_ascii=False,
+                ),
                 event.created_at_ns,
             ),
         )
@@ -410,7 +421,12 @@ class ServiceEventStore(_SqliteNode):
                     event.aggregate_id,
                     event.sequence,
                     event.event_type,
-                    json.dumps(event.payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False),
+                    json.dumps(
+                        event.payload,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                        ensure_ascii=False,
+                    ),
                     event.created_at_ns,
                 ),
             )
@@ -461,7 +477,6 @@ class ServiceEventStore(_SqliteNode):
         ]
 
 
-
 class PlacementReconciler:
     def __init__(
         self,
@@ -505,7 +520,10 @@ class PlacementReconciler:
                         "AgentInstance",
                         instance.id,
                         "AGENT_READY",
-                        {"placementId": placement.id, "evidenceRef": observation.evidence_ref},
+                        {
+                            "placementId": placement.id,
+                            "evidenceRef": observation.evidence_ref,
+                        },
                     )
                 current = self._instances.get(instance.id)
             return current

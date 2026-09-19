@@ -6,8 +6,7 @@ import sqlite3
 import time
 import uuid
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Any
+from typing import Any, Literal, overload
 
 from .delivery import (
     DeliveryObservation,
@@ -21,7 +20,7 @@ from .evidence import (
     EvidenceBundle,
     _verify_evidence_semantics,
 )
-from .goals import GoalAssignmentPlanner, TaskReadinessProjector
+from .goals import TaskReadinessProjector
 from .slice1 import ServiceEvent, ServiceEventStore
 from .task_runtime import (
     Assignment,
@@ -63,6 +62,16 @@ class TaskExecutionClaimStore:
 
     def __init__(self, connection: sqlite3.Connection) -> None:
         self._connection = connection
+
+    @overload
+    def get(
+        self, task_id: str, required: Literal[True] = True
+    ) -> TaskExecutionClaim: ...
+
+    @overload
+    def get(
+        self, task_id: str, required: Literal[False]
+    ) -> TaskExecutionClaim | None: ...
 
     def get(self, task_id: str, required: bool = True) -> TaskExecutionClaim | None:
         row = self._connection.execute(
@@ -154,7 +163,8 @@ class ClaimAwareAssignmentPlanner:
         candidates = [
             instance
             for instance in self._instances.list_all()
-            if instance.state == "READY" and instance.revision_id == task.required_revision_id
+            if instance.state == "READY"
+            and instance.revision_id == task.required_revision_id
         ]
         if not candidates:
             raise LookupError("no READY AgentInstance matches required revision")
@@ -191,7 +201,7 @@ class ClaimAwareDeliveryCoordinator:
         delegations: Any,
         bindings: TransportBindingStore,
         receipts: ServiceEventStore,
-        adapters: dict[str],
+        adapters: dict[str, Any],
     ) -> None:
         self._connection = connection
         self._tasks = tasks
@@ -249,11 +259,15 @@ class ClaimAwareDeliveryCoordinator:
                 return
             if allow_terminal and task.state in {"SUCCEEDED", "FAILED", "CANCELLED"}:
                 return
-            raise RuntimeError(f"remote delivery cannot execute Task state {task.state}")
+            raise RuntimeError(
+                f"remote delivery cannot execute Task state {task.state}"
+            )
 
         if task.state != "PENDING":
             raise RuntimeError(f"remote delivery cannot claim Task state {task.state}")
-        if self._task_is_goal_managed(task.id) and not self._readiness.is_ready(task.id):
+        if self._task_is_goal_managed(task.id) and not self._readiness.is_ready(
+            task.id
+        ):
             raise LookupError("Task is blocked by dependencies or is not PENDING")
         with self._connection:
             self._claims.claim_in_transaction(
@@ -272,13 +286,17 @@ class ClaimAwareDeliveryCoordinator:
     def deliver(self, binding_id: str):
         binding = self._bindings.get(binding_id)
         envelope = self._delegations.get(binding.delegation_id)
-        existing = _delivery_receipt_get_by_binding(self._receipts, binding_id, required=False)
+        existing = _delivery_receipt_get_by_binding(
+            self._receipts, binding_id, required=False
+        )
         if existing is not None:
             self._claim_remote(binding, envelope, allow_terminal=True)
             return existing
         adapter = self._adapters.get(binding.transport)
         if adapter is None:
-            raise LookupError(f"no delivery provider registered for {binding.transport}")
+            raise LookupError(
+                f"no delivery provider registered for {binding.transport}"
+            )
         self._claim_remote(binding, envelope, allow_terminal=False)
         observation = adapter.send(
             delivery_request_id=binding.delivery_request_id,
@@ -288,7 +306,9 @@ class ClaimAwareDeliveryCoordinator:
         if not isinstance(observation, DeliveryObservation):
             raise TypeError("delivery provider must return DeliveryObservation")
         if observation.admission not in {"committed", "existing"}:
-            raise ValueError("DeliveryObservation admission must be committed or existing")
+            raise ValueError(
+                "DeliveryObservation admission must be committed or existing"
+            )
         return _delivery_receipt_create(self._receipts, binding, observation)
 
 
@@ -300,15 +320,15 @@ class RemoteArtifactPayload:
     content: str
 
 
-
-
 class RemoteArtifactEvidenceResolver:
     """Normalize digest-verified remote artifacts into the existing EvidenceBundle contract."""
 
     def __init__(self, readers: dict[str, Any]) -> None:
         for transport, reader in readers.items():
             if not isinstance(transport, str) or not transport.strip():
-                raise TypeError("remote artifact reader transport key must be a non-empty string")
+                raise TypeError(
+                    "remote artifact reader transport key must be a non-empty string"
+                )
             if not callable(getattr(reader, "read", None)):
                 raise TypeError(
                     f"remote artifact reader for {transport!r} must expose callable read()"
@@ -329,7 +349,9 @@ class RemoteArtifactEvidenceResolver:
             )
         reader = self._readers.get(binding.transport)
         if reader is None:
-            raise LookupError(f"no remote artifact reader registered for {binding.transport}")
+            raise LookupError(
+                f"no remote artifact reader registered for {binding.transport}"
+            )
         artifact_kind = acceptance["artifactKind"]
         matches: list[RemoteArtifactPayload] = []
         for artifact_ref in observation.artifact_refs:
@@ -340,9 +362,13 @@ class RemoteArtifactEvidenceResolver:
                 artifact_ref=artifact_ref,
             )
             if not isinstance(payload, RemoteArtifactPayload):
-                raise TypeError("remote artifact reader must return RemoteArtifactPayload")
+                raise TypeError(
+                    "remote artifact reader must return RemoteArtifactPayload"
+                )
             if payload.artifact_ref != artifact_ref:
-                raise RuntimeError("Remote artifact reader returned mismatched identity")
+                raise RuntimeError(
+                    "Remote artifact reader returned mismatched identity"
+                )
             if not isinstance(payload.kind, str) or not payload.kind.strip():
                 raise ValueError("remote artifact kind must be non-empty")
             if not isinstance(payload.content, str):
@@ -390,7 +416,9 @@ class RemoteTaskVerificationRecord:
     created_at_ns: int
 
 
-def _remote_task_verification_from_event(event: ServiceEvent) -> RemoteTaskVerificationRecord:
+def _remote_task_verification_from_event(
+    event: ServiceEvent,
+) -> RemoteTaskVerificationRecord:
     if (
         event.aggregate_type != "RemoteVerification"
         or event.event_type != "RemoteVerificationRecorded"
@@ -418,13 +446,17 @@ def _remote_task_verification_get_by_task(
     required: bool = True,
 ) -> RemoteTaskVerificationRecord | None:
     history = events.list_for("RemoteVerification", task_id)
-    receipts = [item for item in history if item.event_type == "RemoteVerificationRecorded"]
+    receipts = [
+        item for item in history if item.event_type == "RemoteVerificationRecorded"
+    ]
     if not receipts:
         if required:
             raise KeyError(task_id)
         return None
     if len(receipts) != 1:
-        raise RuntimeError("remote verification receipt stream contains multiple records")
+        raise RuntimeError(
+            "remote verification receipt stream contains multiple records"
+        )
     return _remote_task_verification_from_event(receipts[0])
 
 
@@ -439,7 +471,9 @@ def _remote_task_verification_create_in_transaction(
     reason: str | None,
     evidence: dict[str, Any],
 ) -> RemoteTaskVerificationRecord:
-    normalized_evidence = json.loads(json.dumps(evidence, sort_keys=True, separators=(",", ":"), ensure_ascii=False))
+    normalized_evidence = json.loads(
+        json.dumps(evidence, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    )
     event = events.append_once_in_transaction(
         "RemoteVerification",
         task_id,
@@ -486,20 +520,28 @@ class RemoteTaskCompletionReconciler:
         binding = self._bindings.get(binding_id)
         envelope = self._delegations.get(binding.delegation_id)
         task = self._tasks.get(envelope.task_id)
-        existing = _remote_task_verification_get_by_task(self._events, task.id, required=False)
+        existing = _remote_task_verification_get_by_task(
+            self._events, task.id, required=False
+        )
         if existing is not None:
             if existing.binding_id != binding.id:
-                raise RuntimeError("Task verification belongs to a different remote Binding")
+                raise RuntimeError(
+                    "Task verification belongs to a different remote Binding"
+                )
             return existing
         claim = self._claims.get(task.id)
         if (claim.mode, claim.owner_id) != ("REMOTE_BINDING", binding.id):
             raise RuntimeError("remote completion does not own Task execution claim")
         _delivery_receipt_get_by_binding(self._receipts, binding.id)
-        observation = _remote_delivery_observation_latest_for_binding(self._observations, binding.id, required=False)
+        observation = _remote_delivery_observation_latest_for_binding(
+            self._observations, binding.id, required=False
+        )
         if observation is None or not observation.terminal:
             return None
         if task.state != "RUNNING":
-            raise RuntimeError(f"remote completion cannot verify Task state {task.state}")
+            raise RuntimeError(
+                f"remote completion cannot verify Task state {task.state}"
+            )
 
         if observation.successful is True:
             receipt = _delivery_receipt_get_by_binding(self._receipts, binding.id)

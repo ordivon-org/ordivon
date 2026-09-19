@@ -31,3 +31,14 @@ Each package card should remain small and record only:
 - current standing and last census date.
 
 Do not record hypothetical missing tools as installation debt. A capability is a gap only when a real workload needs it and the existing environment cannot satisfy the requirement adequately.
+
+## Inventory standing labels
+
+Package cards may use small local inventory labels such as `READY_FOR_REAL_WORK`, `TASK_GAP`, `BLOCKED`, or `NEXT_CENSUS`. These labels describe only the state of this capability census:
+
+- `READY_FOR_REAL_WORK`: enough currently known capability exists to start ordinary real workloads;
+- `TASK_GAP`: a current workload has exposed a concrete missing capability;
+- `BLOCKED`: that workload cannot proceed safely or correctly with currently available mature options;
+- `NEXT_CENSUS`: the package has not yet received the current census treatment.
+
+They are not domain verdicts, conformance levels, certification, completion states, or a cross-domain Ordivon acceptance ontology. Real task success remains owned by the applicable domain/native validators and evidence.

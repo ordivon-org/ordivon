@@ -3,6 +3,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
+from scripts import data_lifecycle_github_pilot as pilot
+
 ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / "evidence/data-lifecycle/github-pilot-r1"
 
@@ -28,7 +32,9 @@ def test_external_semantic_owners_are_explicit() -> None:
 
 
 def test_pilot_has_no_old_semantic_heuristics() -> None:
-    source = (ROOT / "scripts/data_lifecycle_github_pilot.py").read_text(encoding="utf-8")
+    source = (ROOT / "scripts/data_lifecycle_github_pilot.py").read_text(
+        encoding="utf-8"
+    )
     forbidden = [
         'endswith("_pct")',
         'startswith("access_")',
@@ -37,6 +43,16 @@ def test_pilot_has_no_old_semantic_heuristics() -> None:
     ]
     for token in forbidden:
         assert token not in source
+
+
+def test_duckdb_sql_boundary_quotes_identifiers_and_rejects_invalid_numbers() -> None:
+    assert pilot.sql_identifier('external"column') == '"external""column"'
+    assert pilot.sql_number(1.5) == "1.5"
+    assert "''" in pilot.sql_quote(Path("/tmp/external'data.parquet"))
+    with pytest.raises(TypeError):
+        pilot.sql_number("1")
+    with pytest.raises(ValueError):
+        pilot.sql_number(float("inf"))
 
 
 def test_quality_report_is_profile_driven() -> None:
