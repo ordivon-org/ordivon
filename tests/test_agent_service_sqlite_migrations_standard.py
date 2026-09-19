@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import sqlite3
 import tempfile
+import tomllib
 import unittest
 from pathlib import Path
 
@@ -23,13 +24,9 @@ DOMAIN_SCHEMA_MODULES = (
 
 
 class SqliteMigrationsStandardTests(unittest.TestCase):
-    def test_runtime_manifest_uses_current_sqlite_utils(self) -> None:
-        lines = {
-            line.strip()
-            for line in Path("config/agent-service-mcp-requirements.txt").read_text().splitlines()
-            if line.strip() and not line.startswith("#")
-        }
-        self.assertIn("sqlite-utils==4.2.1", lines)
+    def test_runtime_dependency_is_declared_in_project_metadata(self) -> None:
+        project = tomllib.loads(Path("pyproject.toml").read_text())
+        self.assertIn("sqlite-utils==4.2.1", project["project"]["dependencies"])
 
     def test_domain_modules_no_longer_own_schema_initializers(self) -> None:
         offenders = []
