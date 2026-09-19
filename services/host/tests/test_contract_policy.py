@@ -21,57 +21,6 @@ def test_running_service_does_not_own_schema_ddl() -> None:
     assert "alembic upgrade head" in service
 
 
-def _v2_checkpoint(task_id: str) -> dict[str, object]:
-    return {
-        "schemaVersion": 2,
-        "kind": "ordivon.host-working-checkpoint",
-        "truthRole": "semantic-working-claim",
-        "taskId": task_id,
-        "objective": "preserve exact continuity claim",
-        "frontier": "before",
-        "established": ["fact"],
-        "unresolved": ["next"],
-        "rejected": [],
-        "constraints": ["claim-only"],
-        "nextActions": ["continue"],
-        "runtime": None,
-        "workStanding": {
-            "schemaVersion": 1,
-            "truthRole": "checkpoint-authored-work-standing",
-            "attention": "WAIT",
-            "executionAdmission": "REENTRY_REQUIRED",
-            "valueNow": "POSITIVE_VALUE_NOW",
-            "progress": "OPEN_FRONTIER",
-            "lineage": "SELF_STANDING",
-            "relatedTaskIds": ["task:related"],
-            "blockerKinds": ["OWNER"],
-            "wake": {"mode": "ANY", "conditions": ["owner changes"]},
-            "carrier": "RETAIN",
-        },
-    }
-
-
-def test_work_standing_has_no_runtime_consumer_outside_checkpoint_contract() -> None:
-    root = Path(__file__).parents[1] / "src" / "ordivon_host_v2"
-    consumers = []
-    for source in root.glob("*.py"):
-        if source.name == "checkpoint_contract.py":
-            continue
-        text = source.read_text()
-        if "workStanding" in text:
-            consumers.append(source.name)
-    assert consumers == []
-
-
-def test_work_standing_round_trips_as_claim_only_checkpoint_data() -> None:
-    from ordivon_host_v2.checkpoint_contract import validate_full_checkpoint
-
-    task_id = "task:contract-policy:claim-only"
-    original = _v2_checkpoint(task_id)
-    validated = validate_full_checkpoint(task_id, original)
-    assert validated["workStanding"] == original["workStanding"]
-
-
 def test_checkpoint_contract_has_no_custom_partial_patch_language() -> None:
     text = (
         Path(__file__).parents[1] / "src" / "ordivon_host_v2" / "checkpoint_contract.py"
@@ -81,12 +30,29 @@ def test_checkpoint_contract_has_no_custom_partial_patch_language() -> None:
     assert "WorkingCheckpointUpdate" not in text
 
 
-def test_work_standing_truth_role_stays_caller_authored() -> None:
+def test_unclaimed_work_standing_ontology_is_retired_from_active_source() -> None:
+    root = Path(__file__).parents[1] / "src" / "ordivon_host_v2"
+    text = "\n".join(source.read_text() for source in root.glob("*.py"))
+    for retired in (
+        "workStanding",
+        "WorkingCheckpointStanding",
+        "WorkingCheckpointWake",
+        "executionAdmission",
+        "valueNow",
+        "blockerKinds",
+        "DIRTY_HANDOFF",
+    ):
+        assert retired not in text
+
+
+def test_checkpoint_schema_is_one_complete_v1_contract() -> None:
     from ordivon_host_v2.checkpoint_contract import full_checkpoint_schema
 
-    schema_text = str(full_checkpoint_schema())
-    assert "checkpoint-authored-work-standing" in schema_text
-    assert "caller-authored workStanding" in schema_text
+    schema = full_checkpoint_schema()
+    assert "oneOf" not in schema
+    assert schema["properties"]["schemaVersion"]["const"] == 1
+    assert "workStanding" not in schema["properties"]
+    assert schema["additionalProperties"] is False
 
 
 def test_board_search_binds_results_to_reported_snapshot_high_water() -> None:
