@@ -1,6 +1,6 @@
 use super::engine::{
-    cancel_after_launch_identity_mismatch_is_safe, native_windows_pre_target_evidence_gap,
-    transient_main_pid_observation_loss,
+    cancel_after_launch_identity_mismatch_is_safe, native_windows_owner_matches_launcher_identity,
+    native_windows_pre_target_evidence_gap, transient_main_pid_observation_loss,
 };
 use super::registry::{set_test_commit_fault, TestCommitFault, TestCommitPoint};
 #[cfg(feature = "operator-tools")]
@@ -6733,6 +6733,46 @@ fn attempt_supervisor_owner_binding_is_atomic_idempotent_and_tamper_evident() {
         .attempt_supervisor_owner(&starting.attempt_id)
         .unwrap_err();
     assert_eq!(error.code, RuntimeErrorCode::RegistryCorrupt);
+}
+
+#[test]
+fn native_windows_parent_observed_owner_must_match_child_target_start_identity() {
+    let owner = AttemptSupervisorOwner::WindowsLauncherV1 {
+        launcher_process_id: 4242,
+        launcher_process_creation_time_file_time: 123_456_789,
+        launcher_image_digest: digest(b"native-windows-launcher"),
+        job_name: "Ordivon.attempt-parent-observed".to_string(),
+        start_evidence_digest: digest(b"parent-observed-launcher-start"),
+    };
+    let image_digest = digest(b"native-windows-launcher");
+    assert!(native_windows_owner_matches_launcher_identity(
+        &owner,
+        4242,
+        Some(123_456_789),
+        Some(&image_digest),
+        "Ordivon.attempt-parent-observed",
+    ));
+    assert!(!native_windows_owner_matches_launcher_identity(
+        &owner,
+        4243,
+        Some(123_456_789),
+        Some(&image_digest),
+        "Ordivon.attempt-parent-observed",
+    ));
+    assert!(!native_windows_owner_matches_launcher_identity(
+        &owner,
+        4242,
+        Some(987_654_321),
+        Some(&image_digest),
+        "Ordivon.attempt-parent-observed",
+    ));
+    assert!(!native_windows_owner_matches_launcher_identity(
+        &owner,
+        4242,
+        Some(123_456_789),
+        Some(&digest(b"different-launcher")),
+        "Ordivon.attempt-parent-observed",
+    ));
 }
 
 #[test]

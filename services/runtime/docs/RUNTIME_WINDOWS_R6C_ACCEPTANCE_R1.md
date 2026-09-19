@@ -192,3 +192,40 @@ It must not be repaired into another permanent custom control plane. Its accepta
    depends on WSL;
 4. test cold boot automatic start;
 5. only then promote the exact accepted build to production and delete the compatibility carrier.
+
+## C2 parent-owned launcher identity correction
+
+Source correction completed on 2026-09-19; native acceptance remains pending.
+
+The C2 failure was localized to the boundary after durable DISPATCH_ISSUED and before
+windows-launcher-start.json. Registry truth showed a starting Attempt with an active
+reservation, no attempt_supervisor_owners row, and no launcher/target/result evidence. The
+installed launcher digest matched the committed execution-provider digest exactly.
+
+The native Runtime now uses the Windows process handle returned by the parent CreateProcess
+boundary to read the launcher PID and process creation FILETIME immediately after spawn. Runtime
+publishes the first-stage launcher evidence and binds the existing windows_launcher_v1
+Supervisor Owner before waiting for target-start evidence. The launcher no longer races the parent
+to self-publish that first-stage evidence in native-control-plane mode.
+
+windows-start.json remains a second, launcher-owned witness that the launcher/Job Object/target
+path progressed far enough to establish target-start identity. If an owner was already bound from
+the parent observation, target-start identity must match PID, process creation time, launcher image
+digest, and Job name; it does not create a second owner.
+
+This does not introduce a new lifecycle state, Registry, routing layer, workflow, Lens, or retry
+mechanism. It narrows the unknown window by using the OS-native process identity already held by
+the parent Runtime. Existing no-redrive semantics remain in force for ambiguous committed
+dispatches.
+
+Validation completed for the source correction:
+
+- Runtime Core: 236/236 tests PASS;
+- Runtime MCP library: 57/57 PASS;
+- Runtime MCP binary/auth: 10/10 PASS;
+- Windows MCP cross-compile with RUSTFLAGS=-D warnings: PASS;
+- R6c acceptance harness static tests: 6/6 PASS.
+
+The correction has not been installed into OrdivonRuntimeR6Candidate and is not production
+acceptance evidence. C2 must be rerun in the final native acceptance window before the native
+Windows Runtime can be promoted.
