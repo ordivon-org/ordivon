@@ -1025,12 +1025,21 @@ pub(crate) fn spawn_windows_native(
         // launcher must not race the parent by self-publishing the same first-stage evidence.
         emit_launcher_start: false,
     };
+    let launcher_stderr_path = spec.bundle_path.join("launcher-stderr.log");
+    let launcher_stderr = fs::File::create(&launcher_stderr_path).map_err(|error| {
+        RuntimeError::new(
+            RuntimeErrorCode::IoError,
+            format!("create native Windows launcher stderr carrier: {error}"),
+            Some("windows.launcherStderr"),
+            false,
+        )
+    })?;
     let mut command = Command::new(launcher);
     append_windows_launcher_arguments(&mut command, &invocation)?;
     command
         .stdin(Stdio::null())
         .stdout(Stdio::null())
-        .stderr(Stdio::null());
+        .stderr(Stdio::from(launcher_stderr));
     let child = command
         .spawn()
         .map_err(|error| tool_error("spawn native Windows launcher", error))?;
