@@ -4,6 +4,7 @@ from tests.agent_service_test_support import open_current
 
 import hashlib
 import tempfile
+import tomllib
 import unittest
 from pathlib import Path
 
@@ -28,13 +29,9 @@ class PlainCarrier:
 
 
 class RFC8785IdentityTests(unittest.TestCase):
-    def test_runtime_dependency_is_pinned_to_current_rfc8785_release(self) -> None:
-        lines = {
-            line.strip()
-            for line in Path("config/agent-service-mcp-requirements.txt").read_text().splitlines()
-            if line.strip() and not line.startswith("#")
-        }
-        self.assertIn("rfc8785==0.1.4", lines)
+    def test_runtime_dependency_is_declared_in_project_metadata(self) -> None:
+        project = tomllib.loads(Path("pyproject.toml").read_text())
+        self.assertIn("rfc8785==0.1.4", project["project"]["dependencies"])
 
     def test_agent_revision_identity_uses_jcs_number_serialization(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

@@ -1,0 +1,43 @@
+[project]
+name = "ordivon-next"
+version = "0.0.0"
+description = "Repository environment for Ordivon Next."
+requires-python = "==3.14.7"
+dependencies = [
+  "mcp==2.2.0",
+  "mcp-types==2.2.0",
+  "pydantic==2.13.4",
+  "rfc8785==0.1.4",
+  "sqlite-utils==4.2.1",
+  "uvicorn==0.52.1",
+]
+
+[dependency-groups]
+dev = [
+  "ruff==0.16.8",
+]
+test = [
+  "jsonschema>=4.26,<5",
+  "playwright>=1,<2",
+  "pytest==9.1.1",
+  "z3-solver>=4,<5",
+]
+analysis = [
+  "ortools",
+  "pyshacl",
+  "rdflib",
+  "unified-planning",
+]
+
+[tool.uv]
+package = false
+default-groups = ["dev", "test"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
