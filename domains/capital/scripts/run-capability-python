@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-mise_bin="${MARKET_CAPITAL_MISE:-$(command -v mise || true)}"
+mise_bin="${ORDIVON_CAPITAL_MISE:-$(command -v mise || true)}"
 python_bin="$root/.venv/bin/python"
 
 if [[ -z "$mise_bin" || ! -x "$mise_bin" ]]; then

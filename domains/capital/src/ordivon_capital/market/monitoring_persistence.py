@@ -11,7 +11,7 @@ import pandas as pd
 import pandera.pandas as pa
 
 
-class ModelLineageError(RuntimeError):
+class MonitoringPersistenceError(RuntimeError):
     pass
 
 
@@ -46,10 +46,10 @@ def monitoring_schema() -> pa.DataFrameSchema:
 def monitoring_dataframe(evidence: dict[str, Any]) -> pd.DataFrame:
     monitoring = evidence.get("modelMonitoring")
     if not isinstance(monitoring, dict):
-        raise ModelLineageError("modelMonitoring evidence is required")
+        raise MonitoringPersistenceError("modelMonitoring evidence is required")
     rows_raw = monitoring.get("rows")
     if not isinstance(rows_raw, list) or not rows_raw:
-        raise ModelLineageError("modelMonitoring.rows must be a non-empty list")
+        raise MonitoringPersistenceError("modelMonitoring.rows must be a non-empty list")
 
     rows: list[dict[str, Any]] = []
     for i, row in enumerate(rows_raw):
@@ -73,14 +73,14 @@ def monitoring_dataframe(evidence: dict[str, Any]) -> pd.DataFrame:
                 "proxy_wasserstein_distance": distribution["proxyReturnWassersteinDistance"],
             })
         except KeyError as exc:
-            raise ModelLineageError(f"monitoring row {i} missing field: {exc}") from exc
+            raise MonitoringPersistenceError(f"monitoring row {i} missing field: {exc}") from exc
 
     return monitoring_schema().validate(pd.DataFrame(rows))
 
 
 def _duckdb_readback(*, duckdb_binary: Path, parquet_path: Path) -> dict[str, Any]:
     if not duckdb_binary.is_file():
-        raise ModelLineageError(f"DuckDB binary unavailable: {duckdb_binary}")
+        raise MonitoringPersistenceError(f"DuckDB binary unavailable: {duckdb_binary}")
     sql = (
         "SELECT count(*) AS row_count, "
         "min(overlap_observation_count) AS min_overlap, "
@@ -95,13 +95,13 @@ def _duckdb_readback(*, duckdb_binary: Path, parquet_path: Path) -> dict[str, An
         timeout=15,
     )
     if proc.returncode != 0:
-        raise ModelLineageError(f"DuckDB readback failed: {proc.stderr.strip()}")
+        raise MonitoringPersistenceError(f"DuckDB readback failed: {proc.stderr.strip()}")
     try:
         payload = json.loads(proc.stdout)
     except json.JSONDecodeError as exc:
-        raise ModelLineageError("DuckDB readback returned invalid JSON") from exc
+        raise MonitoringPersistenceError("DuckDB readback returned invalid JSON") from exc
     if not isinstance(payload, list) or len(payload) != 1:
-        raise ModelLineageError("DuckDB readback returned unexpected shape")
+        raise MonitoringPersistenceError("DuckDB readback returned unexpected shape")
     return payload[0]
 
 
@@ -110,12 +110,17 @@ def persist_monitoring_evidence(
     evidence_path: Path,
     output_dir: Path,
     duckdb_binary: Path,
+    tracking_uri: str | None = None,
 ) -> dict[str, Any]:
-    """Materialize monitoring evidence through Pandera/Parquet/DuckDB/MLflow."""
+    """Persist Market monitoring evidence using externally owned data/tracking systems.
+
+    MLflow tracking configuration is caller/environment-owned. Pass ``tracking_uri``
+    explicitly or use MLflow's ``MLFLOW_TRACKING_URI`` environment contract.
+    """
 
     evidence = json.loads(evidence_path.read_text())
     if evidence.get("subject") != "dependence-model-monitoring-r1":
-        raise ModelLineageError("unexpected monitoring evidence subject")
+        raise MonitoringPersistenceError("unexpected monitoring evidence subject")
 
     df = monitoring_dataframe(evidence)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -128,12 +133,12 @@ def persist_monitoring_evidence(
         parquet_path=parquet_path,
     )
     if int(readback["row_count"]) != len(df):
-        raise ModelLineageError("DuckDB row-count readback mismatch")
+        raise MonitoringPersistenceError("DuckDB row-count readback mismatch")
 
     manifest = {
         "schemaVersion": 1,
-        "kind": "ordivon.capital.market.model-monitoring-lineage",
-        "componentId": "model-monitoring-lineage",
+        "kind": "ordivon.capital.market.model-monitoring-persistence",
+        "componentId": "model-monitoring-persistence",
         "sourceEvidenceSha256": _sha256(evidence_path),
         "parquetSha256": _sha256(parquet_path),
         "rowCount": len(df),
@@ -142,9 +147,9 @@ def persist_monitoring_evidence(
     manifest_path = output_dir / "manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
 
-    tracking_db = output_dir / "mlflow.db"
-    mlflow.set_tracking_uri(f"sqlite:///{tracking_db}")
-    mlflow.set_experiment("market-capital-model-monitoring")
+    if tracking_uri is not None:
+        mlflow.set_tracking_uri(tracking_uri)
+    mlflow.set_experiment("ordivon-capital-market-monitoring")
     with mlflow.start_run(run_name="dependence-model-monitoring-r1") as run:
         mlflow.log_param("source_authority", evidence.get("sourceAuthority"))
         mlflow.log_param("base_instrument_id", evidence.get("baseInstrumentId"))
@@ -163,10 +168,10 @@ def persist_monitoring_evidence(
     result = {
         **manifest,
         "mlflowRunId": run_id,
-        "trackingBackend": "MLFLOW_SQLITE",
+        "mlflowTrackingUri": mlflow.get_tracking_uri(),
         "parquetPath": str(parquet_path),
         "manifestPath": str(manifest_path),
     }
-    result_path = output_dir / "lineage_result.json"
+    result_path = output_dir / "persistence_result.json"
     result_path.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
     return result

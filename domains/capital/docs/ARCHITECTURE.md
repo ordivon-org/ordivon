@@ -19,15 +19,13 @@ Engine-local fills, protocol acknowledgements, workflow success and passing test
 
 ## 1. Evidence and research
 
-External mature sources/capabilities provide most evidence mechanics:
+External mature systems provide the active evidence mechanics:
 
-- CFA-informed IPS/mandate structure;
-- GLEIF legal-entity identity;
-- SEC/XBRL issuer disclosure;
-- Research Capability for dataframe validation, Parquet, DuckDB and MLflow lineage;
-- market-data providers for historical and future market reality.
+- market/account providers own current external reality;
+- NumPy/SciPy/scikit-learn own admitted numerical/model mechanics;
+- Pandera owns dataframe contracts, Parquet/PyArrow owns columnar materialization, DuckDB supplies independent readback, and MLflow owns run/artifact tracking configuration and storage semantics.
 
-Market Capital owns the mappings from admitted evidence into its domain decisions, not duplicate research infrastructure.
+The historical Wave-A GLEIF/SEC/Cboe/equal-weight generation pipeline is retired. Its frozen target-portfolio fixture remains only as a bound Wave-B regression/execution-mechanics input. Capital does not retain a duplicate research platform or lineage graph.
 
 Model-risk governance follows Federal Reserve SR 26-2 proportionately as a reference framework: quantitative models require purpose, limitations, validation standing, use restrictions, inventory, and ongoing monitoring. Simple arithmetic calculations and deterministic controls are not promoted into models merely because they participate in a financial workflow.
 
@@ -36,7 +34,7 @@ Risk-data architecture uses BCBS 239 principles as the reference for source iden
 
 ## Composition-first rule
 
-Market Capital does not own mechanisms already provided by authoritative venues or mature components. Venue APIs own market/account/order reality; QuantConnect LEAN and NautilusTrader own admitted trading-engine mechanics; FIX Latest / FIX Orchestra is the order-semantic reference while QuickFIX/n and explicit legacy FIX profiles provide wire compatibility where required; TigerBeetle owns admitted double-entry accounting conservation and atomic transfer mechanics; PFMI and ISO 20022 remain post-trade reference semantics; Prometheus/Grafana own monitoring mechanics. Market Capital retains only narrow mappings, policy enforcement, data-quality checks, and reconciliation seams. Custom mechanisms require a documented substitution failure. See `docs/COMPOSITION_FIRST_2026-09-14.md`.
+The Ordivon Capital Market domain does not own mechanisms already provided by authoritative venues or mature components. Venue APIs own market/account/order reality; QuantConnect LEAN and NautilusTrader own admitted trading-engine mechanics; FIX Latest / FIX Orchestra is the order-semantic reference while QuickFIX/n and explicit legacy FIX profiles provide wire compatibility where required; TigerBeetle owns admitted double-entry accounting conservation and atomic transfer mechanics; PFMI and ISO 20022 remain post-trade reference semantics; Prometheus/Grafana own monitoring mechanics. The Market domain retains only narrow mappings, policy enforcement, data-quality checks, and reconciliation seams. Custom mechanisms require a documented substitution failure. See `docs/COMPOSITION_FIRST_2026-09-14.md`.
 
 ### Capital accounting substrate
 
@@ -48,7 +46,7 @@ Portfolio construction produces an immutable decision artifact with a frozen dec
 
 ## 3. Execution intent
 
-QuantConnect LEAN owns mature trading-engine mechanics such as buying-power modeling, sizing, calendars and bounded execution simulation. FIX Latest / FIX Orchestra supplies the semantic reference for order intent. QuickFIX/n may project an explicitly required legacy FIX 4.4 wire profile, but FIX 4.4 is not treated as the current semantic standard. Market Capital owns the mapping from an admitted decision into an `ExecutionIntent`.
+QuantConnect LEAN owns mature trading-engine mechanics such as buying-power modeling, sizing, calendars and bounded execution simulation. FIX Latest / FIX Orchestra supplies the semantic reference for order intent. QuickFIX/n may project an explicitly required legacy FIX 4.4 wire profile, but FIX 4.4 is not treated as the current semantic standard. The Market domain owns only the mapping from an admitted decision into an `ExecutionIntent`.
 
 ## 4. External ownership and policy boundaries
 
@@ -81,7 +79,7 @@ Completion is not `send()` or an HTTP/FIX acknowledgement. The operational bound
 
 Expected and authoritative state must reconcile; otherwise the pending accounting state remains unchanged and recovery/reconciliation is required.
 
-PFMI and ISO 20022 remain reference semantics for external post-trade infrastructure. Market Capital does not implement a private clearing or settlement system absent a demonstrated substitution failure.
+PFMI and ISO 20022 remain reference semantics for external post-trade infrastructure. The Market domain does not implement a private clearing or settlement system absent a demonstrated substitution failure.
 
 
 ## 7. Crypto venue lane
@@ -92,7 +90,7 @@ Initial common universe: BTC/USDT and ETH/USDT. OKX Demo and Binance Demo/Testne
 
 ## Current progression
 
-- Wave A: investment/research loop closed.
+- Historical Wave A: generator retired; frozen target-portfolio fixture retained for Wave-B regression/execution-mechanics compatibility.
 - Wave B M1-M4: LEAN mechanics, feasibility, provider-origin historical data and FIX semantics admitted in bounded non-live lanes.
 - Wave B M5: prospective post-decision holdout validation implemented; no causal inference is claimed.
 - Wave B M6: pre-decision shadow order precommit frozen.

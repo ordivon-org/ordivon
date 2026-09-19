@@ -49,8 +49,20 @@ Treasury, Compute, Enterprise, Human, Distribution, and other conceptual domains
 ## Remaining extraction / naming work
 
 1. **Research/data extraction** — current mechanics are already externally owned by MLflow, Pandera, Parquet/Arrow, DuckDB, NumPy/SciPy/scikit-learn and provider data. The remaining work is cross-domain extraction of generic bindings into the shared Ordivon Research/Data substrate, with OpenLineage as the lineage standard target; Capital must not grow a duplicate data platform.
-2. **Physical repository name** — the source repository path may retain the historical `ordivon-market-capital-next` name while active external references exist; semantic package/project identity is now Ordivon Capital. Rename only after an explicit caller/workspace reference census, not by introducing a compatibility symlink as permanent debt.
+2. **Physical repository source coordinate** — the semantic package/project identity is Ordivon Capital, but `/root/projects/ordivon-market-capital-next` is retained because frozen Research/Paper1 provenance records use that exact absolute source coordinate for source re-entry and retention anchors. This is now a reproducibility compatibility contract, not an unresolved cosmetic rename. A future move requires an explicit Research provenance migration/alias authority; no permanent filesystem symlink is introduced.
 
 ## Non-goals
 
 Ordivon Capital does not claim ISO, Basel, IFRS, PFMI, or other regulatory certification/compliance merely because those standards are referenced. It does not own venue mechanics, legal settlement truth, external-account ownership, investment suitability, or production-trading authorization.
+
+## R2 subtraction note — 2026-09-20
+
+The historical Wave-A prototype (`build_m1..m4`) and its test-only GLEIF/SEC/Cboe/equal-weight portfolio slice were removed after a caller census found no active runtime/script/CI consumer. Their dedicated configs and schemas were removed with them; historical evidence and Git history remain the record.
+
+The surviving monitoring persistence adapter was renamed from `model_lineage` to `monitoring_persistence`. It no longer hardcodes a per-output SQLite MLflow backend: MLflow tracking configuration is supplied by the caller or `MLFLOW_TRACKING_URI`, consistent with MLflow's own configuration contract. The adapter does not claim OpenLineage/W3C-PROV-style lineage authority.
+
+## R2 retained compatibility identities
+
+Three historical-looking names remain intentionally: the deployed `ordivon_market_capital_*` Prometheus metric family, TigerBeetle/provider stable-ID seeds beginning with `market-capital:`, and the exact frozen `wave_a_target_portfolio.json` fixture. These are external observability, provider-idempotency, or evidence identities; they are not current Capital parent-system ownership claims and must not be cosmetically renamed without coordinated migration.
+
+The absolute repository path `/root/projects/ordivon-market-capital-next` is also retained as a frozen Research provenance source coordinate. A 2026-09-20 host census found it in Paper1/Research Git-universe, source-linkage, episode-screening and retention-anchor records, including source-recovery-required entries. Physical rename is therefore blocked by reproducibility semantics rather than by Capital package naming.

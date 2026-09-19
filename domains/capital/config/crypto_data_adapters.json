@@ -18,7 +18,7 @@
     "standing": "PASS_PUBLIC_STREAMING_R2"
   },
   "kind": "ordivon.capital.market.crypto-data-adapter-policy",
-  "normalizationBoundary": "Market Capital common public observation schema",
+  "normalizationBoundary": "Ordivon Capital Market-domain common public observation schema",
   "okx": {
     "credentialsAllowed": false,
     "executionClientAllowed": false,

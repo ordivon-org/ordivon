@@ -49,7 +49,7 @@
     "Permanent replica data loss is not repaired by format; TigerBeetle recover is required under a healthy cluster.",
     "Provider state never rewrites terminal local reservation history.",
     "A missing or stale provider terminal resolution yields no-repair/recovery standing, never automatic recreation or reopening.",
-    "Exact replay may prove provider idempotency but cannot mint Market Capital authority."
+    "Exact replay may prove provider idempotency but cannot mint Ordivon Capital Market-domain authority."
   ],
   "responsibility": [
     "double_entry_account_mechanics",

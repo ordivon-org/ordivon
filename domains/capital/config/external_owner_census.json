@@ -196,26 +196,10 @@
       "localResponsibility": "fail-closed mapping across authoritative venue state, lifecycle vocabulary and accounting resolution"
     },
     {
-      "id": "legal-entity-reference",
-      "sourcePatterns": [
-        "src/ordivon_capital/market/gleif_reference.py"
-      ],
-      "ownerClasses": [
-        "PROVIDER_OWNER",
-        "ORDIVON_GLUE"
-      ],
-      "externalOwners": [
-        "GLEIF / LEI"
-      ],
-      "localStanding": "THIN_GLUE",
-      "localResponsibility": "query and selection adapter only"
-    },
-    {
       "id": "market-provider-observation",
       "sourcePatterns": [
         "src/ordivon_capital/market/okx_*.py",
         "src/ordivon_capital/market/market_sensors.py",
-        "src/ordivon_capital/market/cboe_market_structure.py",
         "src/ordivon_capital/market/private_reality.py"
       ],
       "ownerClasses": [
@@ -225,7 +209,6 @@
       "externalOwners": [
         "OKX",
         "Binance",
-        "Cboe",
         "authoritative venue/account APIs"
       ],
       "localStanding": "DOMAIN_GLUE",
@@ -234,7 +217,6 @@
     {
       "id": "market-portfolio-observation-and-statistics",
       "sourcePatterns": [
-        "src/ordivon_capital/market/portfolio.py",
         "src/ordivon_capital/market/portfolio_risk.py"
       ],
       "ownerClasses": [
@@ -273,10 +255,10 @@
     {
       "id": "research-data-and-model-governance",
       "sourcePatterns": [
-        "src/ordivon_capital/market/build_m*.py",
-        "src/ordivon_capital/market/model_*.py",
+        "src/ordivon_capital/market/model_monitoring.py",
+        "src/ordivon_capital/market/monitoring_persistence.py",
+        "src/ordivon_capital/market/monitoring_persistence_cli.py",
         "src/ordivon_capital/market/prospective_validation.py",
-        "src/ordivon_capital/market/sec_companyfacts.py",
         "src/ordivon_capital/market/standards_inventory.py"
       ],
       "ownerClasses": [
@@ -290,11 +272,10 @@
         "Parquet/Arrow",
         "DuckDB",
         "NumPy/SciPy/scikit-learn",
-        "SEC/XBRL provider data",
-        "OpenLineage target in shared Research/Data substrate"
+        "OpenLineage for any future actual lineage-event surface"
       ],
-      "localStanding": "THIN_GLUE_CROSS_DOMAIN_EXTRACTION_PENDING",
-      "localResponsibility": "Market-specific evidence-to-MLflow/Pandera/Parquet/DuckDB bindings and model-monitoring calculations; no custom provenance database or storage engine is owned here. Generic binding helpers should move to the shared Ordivon Research/Data substrate when that substrate is ready; Capital must not duplicate it."
+      "localStanding": "THIN_MARKET_BINDING_EXTERNAL_CONFIG_OWNER",
+      "localResponsibility": "Market-specific monitoring calculations plus evidence persistence bindings. MLflow owns tracking/backend configuration; Pandera, Parquet/Arrow and DuckDB own validation/materialization/readback mechanics. No local lineage graph, provenance database, generic Research/Data platform, or Wave-A research pipeline remains."
     }
   ],
   "notInstantiatedDomains": [
@@ -334,6 +315,36 @@
         "CRM/CDP/marketing and sales systems where needed"
       ],
       "standing": "NO_LOCAL_DOMAIN_CODE"
+    }
+  ],
+  "retainedCompatibilityContracts": [
+    {
+      "id": "prometheus-market-capital-metric-prefix",
+      "surface": "ordivon_market_capital_* plus market-capital-crypto.prom/rules filename",
+      "standing": "RETAINED_EXTERNAL_OBSERVABILITY_COMPATIBILITY",
+      "owner": "Prometheus/node_exporter deployed consumer contract",
+      "reason": "host /etc/prometheus rules and node_exporter textfile currently consume the deployed metric names; rename requires one coordinated observability migration rather than an in-repo cosmetic change"
+    },
+    {
+      "id": "tigerbeetle-market-capital-stable-provider-ids",
+      "surface": "market-capital:tigerbeetle:* and market-capital:nonlive-effect:* stable ID seeds",
+      "standing": "RETAINED_PROVIDER_IDEMPOTENCY_IDENTITY",
+      "owner": "TigerBeetle/provider identity continuity",
+      "reason": "changing stable provider-ID seeds changes durable idempotency/account/transfer identities and is not a namespace cleanup"
+    },
+    {
+      "id": "wave-a-frozen-target-fixture",
+      "surface": "wave_b/fixtures/wave_a_target_portfolio.json and its historical method payload",
+      "standing": "RETAINED_FROZEN_FIXTURE_IDENTITY",
+      "owner": "Wave-B regression/execution-mechanics evidence boundary",
+      "reason": "the generator is retired but the exact frozen fixture remains an admitted historical input; rewriting it would change evidence identity"
+    },
+    {
+      "id": "historical-physical-repo-source-coordinate",
+      "surface": "/root/projects/ordivon-market-capital-next",
+      "standing": "RETAINED_RESEARCH_PROVENANCE_SOURCE_COORDINATE",
+      "owner": "Frozen Ordivon Research/Paper1 source-coordinate and retention-anchor evidence",
+      "reason": "the absolute path is embedded in frozen Git-universe/source-linkage/retention-anchor records used for reproducibility and source re-entry; physical rename requires an explicit Research provenance migration or alias authority, not a filesystem cosmetic move"
     }
   ]
 }

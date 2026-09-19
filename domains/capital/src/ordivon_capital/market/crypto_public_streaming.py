@@ -19,7 +19,7 @@ def network_v2_ws_proxies() -> tuple[str, str]:
     okx = os.environ.get("ORDIVON_MC_OKX_WS_PROXY")
     binance = os.environ.get("ORDIVON_MC_BINANCE_SPOT_WS_PROXY")
     if not okx or not binance:
-        raise RuntimeError("Market Capital public streaming requires exact Network v2 OKX/Binance Spot WS proxy bindings")
+        raise RuntimeError("Ordivon Capital Market-domain public streaming requires exact Network v2 OKX/Binance Spot WS proxy bindings")
     return okx, binance
 KEYS = ("OKX:BTC", "OKX:ETH", "BINANCE:BTC", "BINANCE:ETH")
 SOURCE_SPAN_MAX_MS = 1200
