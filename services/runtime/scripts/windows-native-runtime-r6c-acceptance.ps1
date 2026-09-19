@@ -9,7 +9,6 @@ param(
     [string]$ExpectedNodeId = 'windows-main-r6-candidate',
     [string]$TokenFile = 'C:\ProgramData\Ordivon\RuntimeCandidateR6\secrets\runtime-mcp.token',
     [string]$AcceptanceRoot = 'C:\ProgramData\Ordivon\RuntimeCandidateR6Acceptance',
-    [string]$RuntimeRoot = 'C:\ProgramData\Ordivon\RuntimeCandidateR6',
     [string]$JobId = '',
     [switch]$ApplyFault
 )
@@ -299,9 +298,9 @@ function Invoke-AuthorityProfile {
         }
     }
 
-    $launcher = Join-Path $RuntimeRoot 'bin\ordivon-windows-job-launcher.exe'
-    if (-not [IO.File]::Exists($launcher)) {
-        throw "Runtime launcher does not exist under RuntimeRoot: $launcher"
+    $powershell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    if (-not [IO.File]::Exists($powershell)) {
+        throw "Windows PowerShell target does not exist: $powershell"
     }
 
     [IO.Directory]::CreateDirectory($AcceptanceRoot) | Out-Null
@@ -314,17 +313,41 @@ function Invoke-AuthorityProfile {
         sourceRevision = $repo.revision
     } -Id 120
 
+    $probeScript = @'
+$id = [Security.Principal.WindowsIdentity]::GetCurrent()
+if ($null -eq $id.User) {
+    throw 'authority probe token has no user SID'
+}
+$principal = [Security.Principal.WindowsPrincipal]::new($id)
+$admin = $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+$rows = @(
+    & "$env:SystemRoot\System32\whoami.exe" /groups /fo csv /nh |
+        ConvertFrom-Csv -Header Name,Type,Sid,Attributes
+)
+$integrity = @($rows | Where-Object { $_.Sid -match '^S-1-16-[0-9]+$' })[0]
+if ($null -eq $integrity) {
+    throw 'authority probe could not resolve mandatory integrity SID'
+}
+$rid = [int](($integrity.Sid -split '-')[-1])
+[ordered]@{
+    tokenUserSid = $id.User.Value
+    administratorsEnabled = $admin
+    tokenIntegrityLevelRid = $rid
+    username = $env:USERNAME
+} | ConvertTo-Json -Compress
+'@
+
     function Invoke-AuthorityContextJob([string]$Authority, [int]$Id) {
         $clientRequestId = ('r6c-authority-' + $Authority + '-' + [Guid]::NewGuid().ToString('N'))
         $execution = @{
             workspaceId = $workspaceId
-            executable = $launcher
+            executable = $powershell
             args = @(
-                '--describe-runtime-context',
-                '--authority',
-                $Authority,
-                '--context-env',
-                'USERNAME'
+                '-NoLogo',
+                '-NoProfile',
+                '-NonInteractive',
+                '-Command',
+                $probeScript
             )
             cwdRelative = '.'
             executionTarget = 'windows_native'
@@ -343,11 +366,11 @@ function Invoke-AuthorityProfile {
             stderrTailBytes = 65536
         } -Id $Id
         if ($result.executionTerminal -ne $true -or $result.executionDisposition -ne 'succeeded') {
-            throw "$Authority authority context Job did not succeed: $($result | ConvertTo-Json -Depth 12 -Compress)"
+            throw "$Authority authority target Job did not succeed: $($result | ConvertTo-Json -Depth 12 -Compress)"
         }
         $text = ([string]$result.stdoutTail).Trim()
         if ([string]::IsNullOrWhiteSpace($text)) {
-            throw "$Authority authority context Job omitted stdout."
+            throw "$Authority authority target Job omitted stdout."
         }
         $context = $text | ConvertFrom-Json
         return [pscustomobject]@{
@@ -359,20 +382,20 @@ function Invoke-AuthorityProfile {
     $limited = Invoke-AuthorityContextJob -Authority 'limited' -Id 122
     $elevated = Invoke-AuthorityContextJob -Authority 'elevated' -Id 123
 
-    if ($limited.context.tokenIsElevated -ne $false) {
-        throw 'limited authority context unexpectedly reports an elevated token.'
+    if ($limited.context.administratorsEnabled -ne $false) {
+        throw 'limited authority target unexpectedly has Administrators enabled.'
     }
     if ([int]$limited.context.tokenIntegrityLevelRid -gt 8192) {
-        throw 'limited authority context exceeds Medium integrity.'
+        throw 'limited authority target exceeds Medium integrity.'
     }
-    if ($elevated.context.tokenIsElevated -ne $true) {
-        throw 'elevated authority context does not report an elevated token.'
+    if ($elevated.context.administratorsEnabled -ne $true) {
+        throw 'elevated authority target does not have Administrators enabled.'
     }
     if ([int]$elevated.context.tokenIntegrityLevelRid -lt 12288) {
-        throw 'elevated authority context is below High integrity.'
+        throw 'elevated authority target is below High integrity.'
     }
     if ([string]$limited.context.tokenUserSid -ne [string]$elevated.context.tokenUserSid) {
-        throw 'limited and elevated authority contexts do not preserve one dedicated service identity.'
+        throw 'limited and elevated authority targets do not preserve one dedicated service identity.'
     }
 
     return [ordered]@{
@@ -381,24 +404,23 @@ function Invoke-AuthorityProfile {
         serviceName = $ServiceName
         workspaceId = $workspaceId
         node = $runtime.node
+        executionProvider = $windowsNative.executionProvider
         advertisedAuthorities = $authorities
         limited = [ordered]@{
             jobId = $limited.observation.jobId
             attemptId = $limited.observation.attemptId
-            tokenSelection = $limited.context.tokenSelection
             tokenUserSid = $limited.context.tokenUserSid
-            tokenIsElevated = $limited.context.tokenIsElevated
+            administratorsEnabled = $limited.context.administratorsEnabled
             tokenIntegrityLevelRid = $limited.context.tokenIntegrityLevelRid
-            administratorsGroupAttributes = $limited.context.administratorsGroupAttributes
+            username = $limited.context.username
         }
         elevated = [ordered]@{
             jobId = $elevated.observation.jobId
             attemptId = $elevated.observation.attemptId
-            tokenSelection = $elevated.context.tokenSelection
             tokenUserSid = $elevated.context.tokenUserSid
-            tokenIsElevated = $elevated.context.tokenIsElevated
+            administratorsEnabled = $elevated.context.administratorsEnabled
             tokenIntegrityLevelRid = $elevated.context.tokenIntegrityLevelRid
-            administratorsGroupAttributes = $elevated.context.administratorsGroupAttributes
+            username = $elevated.context.username
         }
         sameDedicatedUserSid = ([string]$limited.context.tokenUserSid -eq [string]$elevated.context.tokenUserSid)
         passed = $true
