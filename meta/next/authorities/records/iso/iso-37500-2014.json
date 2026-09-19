@@ -1,0 +1,49 @@
+{
+  "access": {
+    "fullText": "licensed",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "ISO 37500:2014",
+      "Guidance on outsourcing"
+    ],
+    "domains": [
+      "business",
+      "enterprise",
+      "management"
+    ],
+    "topics": [
+      "outsourcing",
+      "outsourcing-governance",
+      "supplier-management"
+    ]
+  },
+  "id": "iso-37500-2014",
+  "identity": {
+    "authorityKind": "international-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "iso",
+      "name": "ISO"
+    },
+    "officialSource": "https://www.iso.org/standard/56269.html",
+    "publicationDate": null,
+    "title": "ISO 37500:2014 — Guidance on outsourcing",
+    "versionLabel": "2014"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-19",
+    "registrationBasis": [
+      "commercial-practice-externalization-r1"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

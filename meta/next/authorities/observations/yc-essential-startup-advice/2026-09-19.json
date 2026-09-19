@@ -1,0 +1,11 @@
+{
+  "authorityId": "yc-essential-startup-advice",
+  "basis": "official-source-currentness-check",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current",
+  "note": "Official YC guidance remains available; use as stage-specific professional guidance, not as a formal standard or customer evidence.",
+  "observedDate": "2026-09-19",
+  "officialSource": "https://www.ycombinator.com/blog/ycs-essential-startup-advice",
+  "schemaVersion": 1,
+  "versionObserved": "2017-09-25"
+}

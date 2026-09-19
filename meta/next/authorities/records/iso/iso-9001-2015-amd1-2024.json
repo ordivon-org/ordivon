@@ -42,10 +42,10 @@
     ]
   },
   "relations": {
-    "related": [
+    "related": [],
+    "supersededBy": [
       "iso-9001-2026"
     ],
-    "supersededBy": [],
     "supersedes": []
   },
   "schemaVersion": 1

@@ -1,0 +1,50 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "YC Essential Startup Advice",
+      "Y Combinator Essential Startup Advice"
+    ],
+    "domains": [
+      "business",
+      "commercialization",
+      "startup"
+    ],
+    "topics": [
+      "customer-discovery",
+      "early-stage",
+      "founder-led-learning",
+      "product-market-fit"
+    ]
+  },
+  "id": "yc-essential-startup-advice",
+  "identity": {
+    "authorityKind": "professional-guidance",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "y-combinator",
+      "name": "Y Combinator"
+    },
+    "officialSource": "https://www.ycombinator.com/blog/ycs-essential-startup-advice",
+    "publicationDate": "2017-09-25",
+    "title": "YC's Essential Startup Advice",
+    "versionLabel": "2017-09-25"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-19",
+    "registrationBasis": [
+      "commercial-practice-externalization-r1"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

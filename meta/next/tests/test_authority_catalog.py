@@ -92,6 +92,10 @@ class AuthorityCatalogTests(unittest.TestCase):
         self.assertEqual(top("enterprise architecture modeling"), "archimate-3.2")
         self.assertEqual(top("enterprise architecture method"), "togaf-standard-10th-edition")
         self.assertEqual(top("latest official tls 1.3 standard"), "rfc-9846")
+        self.assertEqual(top("customer discovery"), "yc-essential-startup-advice")
+        self.assertEqual(top("outsourcing"), "iso-37500-2014")
+        self.assertEqual(top("company registration"), "samr-registration-materials-2026")
+        self.assertEqual(top("value proposition"), "strategyzer-value-proposition-canvas")
 
         # Unknown named authorities must fail closed rather than borrow relevance
         # from one or two generic overlapping tokens.
@@ -102,8 +106,8 @@ class AuthorityCatalogTests(unittest.TestCase):
     def test_latest_observation_is_append_only_date_selection(self):
         latest = catalog.latest_observation("iso-9001-2026")
         self.assertIsNotNone(latest)
-        self.assertEqual(latest[1]["observedDate"], "2026-09-14")
-        self.assertEqual(latest[1]["lifecycleStatus"], "under-publication")
+        self.assertEqual(latest[1]["observedDate"], "2026-09-19")
+        self.assertEqual(latest[1]["lifecycleStatus"], "published-current")
 
     def test_refresh_is_a_plan_not_mutation(self):
         _, record = catalog.get_record("iso-31000-2018")

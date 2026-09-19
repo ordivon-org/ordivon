@@ -60,6 +60,22 @@ Universal front door != universal unlimited contract
 
 Do not guarantee third-party outcomes outside Ordivon's control. Prefer controllable deliverables plus explicit acceptance criteria.
 
+### Pre-PMF commercialization is externally method-owned
+
+Do **not** create Ordivon-specific customer-discovery, value-proposition, startup-lifecycle, founder-led-sales, pricing or outsourcing Lenses merely to rename mature practice.
+
+For early commercial discovery, bind stage-appropriate external practice instead:
+
+- **Y Combinator startup guidance** for launch/talk-to-users/manual early customer work and avoiding premature scaling;
+- **Lean Startup** for Build-Measure-Learn, validated learning and experiment-driven uncertainty reduction;
+- **Strategyzer Business Model Canvas / Value Proposition Canvas** for explicit business-model and customer-value hypotheses;
+- **ISO 37500** when a material outsourcing relationship needs explicit outsourcing governance;
+- jurisdiction-specific law, regulators, licensed professionals and provider-native records for legal/tax/accounting/registration truth.
+
+Treat playbooks and canvases as advisory hypothesis structures, never as customer evidence.
+
+Keep early **learning accountability** with the founder/decision owner: direct buyer conversations, first sales/price objections, problem selection, acceptance interpretation and product trade-offs must remain visible to that owner. Agents may research, prepare, transcribe, analyse, draft and execute bounded follow-up; contractors/professionals may perform specialist work. Outsource execution or specialist expertise when economical, but do not outsource the evidence needed to learn whether the business should exist.
+
 ## 3. CONNECT — build the Standard-Native working set
 
 Read `../../../docs/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R2.md` when standards/applicability/currentness or cross-domain evidence matters.

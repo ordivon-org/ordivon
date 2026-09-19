@@ -28,7 +28,7 @@
       "name": "ISO"
     },
     "officialSource": "https://www.iso.org/standard/9001",
-    "publicationDate": null,
+    "publicationDate": "2026-09-16",
     "title": "ISO 9001:2026 — Quality management systems — Requirements",
     "versionLabel": "2026"
   },
@@ -41,11 +41,11 @@
     ]
   },
   "relations": {
-    "related": [
-      "iso-9001-2015-amd1-2024"
-    ],
+    "related": [],
     "supersededBy": [],
-    "supersedes": []
+    "supersedes": [
+      "iso-9001-2015-amd1-2024"
+    ]
   },
   "schemaVersion": 1
 }

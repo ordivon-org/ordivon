@@ -1,0 +1,52 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": "Use subject to Strategyzer attribution and licensing terms."
+  },
+  "discovery": {
+    "aliases": [
+      "Business Model Canvas",
+      "BMC"
+    ],
+    "domains": [
+      "business",
+      "commercialization",
+      "startup"
+    ],
+    "topics": [
+      "business-model",
+      "cost-structure",
+      "customer-segments",
+      "revenue-model"
+    ]
+  },
+  "id": "strategyzer-business-model-canvas",
+  "identity": {
+    "authorityKind": "professional-guidance",
+    "identityMode": "rolling-source",
+    "issuer": {
+      "id": "strategyzer",
+      "name": "Strategyzer"
+    },
+    "officialSource": "https://www.strategyzer.com/library/the-business-model-canvas",
+    "publicationDate": null,
+    "title": "The Business Model Canvas",
+    "versionLabel": null
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-19",
+    "registrationBasis": [
+      "commercial-practice-externalization-r1"
+    ]
+  },
+  "relations": {
+    "related": [
+      "strategyzer-value-proposition-canvas"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}
