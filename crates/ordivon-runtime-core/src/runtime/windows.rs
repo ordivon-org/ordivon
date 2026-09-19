@@ -11,12 +11,19 @@ use std::collections::BTreeSet;
 use std::fs;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
+#[cfg(windows)]
+use std::os::windows::io::AsRawHandle;
 use std::path::{Path, PathBuf};
 #[cfg(windows)]
 use std::process::Stdio;
 use std::process::{Command, Output};
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+
+#[cfg(windows)]
+use windows_sys::Win32::Foundation::FILETIME;
+#[cfg(windows)]
+use windows_sys::Win32::System::Threading::GetProcessTimes;
 
 use super::supervisor::WindowsLauncherOwnerObservation;
 use super::{ExecutionBudget, RuntimeError, RuntimeErrorCode, RuntimeResult, WindowsAuthority};
@@ -382,7 +389,7 @@ pub(crate) struct WindowsStartEvidence {
     pub observed_unix_ms: u64,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct WindowsLauncherStartEvidence {
     pub schema_version: u32,
@@ -616,6 +623,12 @@ fn parse_windows_deadline_owner_termination(
         ));
     }
     Ok(disposition)
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct WindowsNativeLaunchObservation {
+    pub launcher_process_id: u32,
+    pub launcher_process_creation_time_file_time: u64,
 }
 
 pub(crate) struct WindowsNativeRunSpec<'a> {
@@ -960,7 +973,9 @@ pub(crate) fn merge_windows_environment(
 }
 
 #[cfg(windows)]
-pub(crate) fn spawn_windows_native(spec: &WindowsNativeRunSpec<'_>) -> RuntimeResult<u32> {
+pub(crate) fn spawn_windows_native(
+    spec: &WindowsNativeRunSpec<'_>,
+) -> RuntimeResult<WindowsNativeLaunchObservation> {
     spec.config.validate()?;
     if spec.config.wsl_distribution.is_some() {
         return Err(RuntimeError::invalid(
@@ -1005,22 +1020,76 @@ pub(crate) fn spawn_windows_native(spec: &WindowsNativeRunSpec<'_>) -> RuntimeRe
         timeout_ms: spec.timeout_ms,
         stdout_limit_bytes: spec.stdout_limit_bytes,
         stderr_limit_bytes: spec.stderr_limit_bytes,
-        emit_launcher_start: true,
+        // The native Runtime parent already owns the authoritative CreateProcess handle.
+        // It records launcher identity from that OS handle immediately after spawn, so the
+        // launcher must not race the parent by self-publishing the same first-stage evidence.
+        emit_launcher_start: false,
     };
+    let launcher_stderr_path = spec.bundle_path.join("launcher-stderr.log");
+    let launcher_stderr = fs::File::create(&launcher_stderr_path).map_err(|error| {
+        RuntimeError::new(
+            RuntimeErrorCode::IoError,
+            format!("create native Windows launcher stderr carrier: {error}"),
+            Some("windows.launcherStderr"),
+            false,
+        )
+    })?;
     let mut command = Command::new(launcher);
     append_windows_launcher_arguments(&mut command, &invocation)?;
     command
         .stdin(Stdio::null())
         .stdout(Stdio::null())
-        .stderr(Stdio::null());
+        .stderr(Stdio::from(launcher_stderr));
     let child = command
         .spawn()
         .map_err(|error| tool_error("spawn native Windows launcher", error))?;
-    Ok(child.id())
+    let launcher_process_creation_time_file_time = child_process_creation_time_file_time(&child)?;
+    Ok(WindowsNativeLaunchObservation {
+        launcher_process_id: child.id(),
+        launcher_process_creation_time_file_time,
+    })
+}
+
+#[cfg(windows)]
+fn child_process_creation_time_file_time(child: &std::process::Child) -> RuntimeResult<u64> {
+    let mut creation = FILETIME {
+        dwLowDateTime: 0,
+        dwHighDateTime: 0,
+    };
+    let mut exit = creation;
+    let mut kernel = creation;
+    let mut user = creation;
+    let ok = unsafe {
+        GetProcessTimes(
+            child.as_raw_handle() as windows_sys::Win32::Foundation::HANDLE,
+            &mut creation,
+            &mut exit,
+            &mut kernel,
+            &mut user,
+        )
+    };
+    if ok == 0 {
+        return Err(tool_error(
+            "observe native Windows launcher creation identity",
+            std::io::Error::last_os_error(),
+        ));
+    }
+    let value = ((creation.dwHighDateTime as u64) << 32) | creation.dwLowDateTime as u64;
+    if value == 0 {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::LaunchIdentityMismatch,
+            "native Windows launcher creation identity is zero",
+            Some("windowsLauncherStart.launcherProcessCreationTimeFileTime"),
+            false,
+        ));
+    }
+    Ok(value)
 }
 
 #[cfg(not(windows))]
-pub(crate) fn spawn_windows_native(spec: &WindowsNativeRunSpec<'_>) -> RuntimeResult<u32> {
+pub(crate) fn spawn_windows_native(
+    spec: &WindowsNativeRunSpec<'_>,
+) -> RuntimeResult<WindowsNativeLaunchObservation> {
     let _ = (
         spec.config,
         spec.bundle_path,

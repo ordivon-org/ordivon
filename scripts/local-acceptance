@@ -18,7 +18,7 @@ mode=${1:-}
 case "$mode" in
   check)
     test -f "$repo/crates/ordivon-runtime-core/tests/systemd_supervisor.rs"
-    test -f "$repo/crates/ordivon-runtime-core/tests/transactional_runtime.rs"
+    test -f "$repo/crates/ordivon-runtime-core/src/runtime/integration_tests.rs"
     test -f "$repo/scripts/mcp_e2e.py"
     test -f "$repo/scripts/mcp_probe.py"
     test -f "$repo/scripts/check_docs.py"
@@ -30,7 +30,7 @@ case "$mode" in
     test -f "$repo/packaging/systemd/ordivon-runtime-lifecycle.timer"
     test -f "$repo/packaging/systemd/ordivon-workspace-retention.json"
     grep -q 'requires root, systemd, cgroup v2' "$repo/crates/ordivon-runtime-core/tests/systemd_supervisor.rs"
-    grep -q 'requires root, systemd, cgroup v2' "$repo/crates/ordivon-runtime-core/tests/transactional_runtime.rs"
+    grep -q 'requires root, systemd, cgroup v2' "$repo/crates/ordivon-runtime-core/src/runtime/integration_tests.rs"
     "$python_bin" "$repo/scripts/check_docs.py"
     printf '%s\n' \
       'local acceptance contract: present' \
@@ -57,7 +57,7 @@ case "$mode" in
     test -x "$ORDIVON_RUNNER_PATH"
     cargo test -p ordivon-runtime-core --features systemd-supervisor \
       --test systemd_supervisor -- --ignored --test-threads=1 --nocapture
-    cargo test -p ordivon-runtime-core --test transactional_runtime -- \
+    cargo test -p ordivon-runtime-core runtime::integration_tests:: -- \
       --ignored --test-threads=1 --nocapture
     output_args=()
     if [[ -n ${ORDIVON_ACCEPTANCE_OUTPUT:-} ]]; then

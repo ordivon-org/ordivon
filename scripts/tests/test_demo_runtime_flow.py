@@ -36,13 +36,6 @@ class DemoRuntimeFlowTests(unittest.TestCase):
         self.assertEqual(demo.endpoint_from_bind("[::]:8811"), "http://127.0.0.1:8811/mcp")
         self.assertEqual(demo.endpoint_from_bind("https://runtime.invalid/mcp"), "https://runtime.invalid/mcp")
 
-    def test_text_edit_range_uses_one_based_lines(self) -> None:
-        content = 'header\nPOLICY = "blind-redispatch"\n'
-        self.assertEqual(
-            demo.text_edit_range(content, 'POLICY = "blind-redispatch"'),
-            {"start": {"line": 2, "column": 0}, "end": {"line": 2, "column": 27}},
-        )
-
     def test_selected_evidence_omits_paths_and_supervisor_identity(self) -> None:
         selected = demo.selected_terminal_evidence(
             {

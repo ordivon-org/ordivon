@@ -55,6 +55,7 @@ cargo fmt --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace --all-targets --all-features
 cargo test -p ordivon-runtime-core --no-default-features --features transactional-runtime
+cargo build -p ordivon-runtime-core --bin ordivon-runtime-inspect --features operator-tools
 python3 -m unittest discover -s scripts/tests -v
 python3 scripts/check_docs.py
 scripts/local-acceptance check
