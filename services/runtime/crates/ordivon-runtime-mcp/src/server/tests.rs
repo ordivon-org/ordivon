@@ -2575,3 +2575,16 @@ fn runtime_describe_projects_agent_affordances_without_selecting_a_target() {
         );
     }
 }
+
+#[test]
+fn tools_list_projection_carries_required_private_zero_ttl_cache_hints() {
+    let server = Sandbox::new("tools-list-cache-hints").server();
+    let value = serde_json::to_value(server.list_tools_projection()).unwrap();
+    assert_eq!(value.get("ttlMs"), Some(&serde_json::json!(0)));
+    assert_eq!(value.get("cacheScope"), Some(&serde_json::json!("private")));
+    assert_eq!(
+        value.get("resultType"),
+        Some(&serde_json::json!("complete"))
+    );
+    assert!(value.get("tools").and_then(Value::as_array).is_some());
+}

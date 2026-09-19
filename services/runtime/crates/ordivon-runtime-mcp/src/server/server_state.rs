@@ -502,6 +502,12 @@ impl RuntimeServer {
         Ok(result)
     }
 
+    pub(crate) fn list_tools_projection(&self) -> ListToolsResult {
+        ListToolsResult::with_all_items(self.catalog_tools())
+            .with_ttl_ms(0)
+            .with_cache_scope(CacheScope::Private)
+    }
+
     pub fn tool_catalog_digest(&self) -> String {
         let mut tools = self.catalog_tools();
         tools.sort_by(|left, right| left.name.cmp(&right.name));
