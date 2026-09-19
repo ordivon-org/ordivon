@@ -1237,7 +1237,7 @@ pub(crate) enum AdmissionOutcome {
     Existing { job: Box<RuntimeJobRecord> },
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ArtifactRegistration {
     pub artifact_id: String,
@@ -1276,7 +1276,7 @@ pub(crate) struct RuntimeArtifactRecord {
     pub created_at_ms: u64,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct TerminalCommit {
     pub attempt_id: String,

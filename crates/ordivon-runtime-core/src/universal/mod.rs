@@ -30,11 +30,11 @@ pub use types::{
     WorkspaceClosureDisposition, WorkspaceContentMetadata, WorkspaceContentReadResult,
     WorkspaceContentRequest, WorkspaceDiffRequest, WorkspaceMutateRequest, WorkspaceMutateResult,
     WorkspaceMutation, WorkspaceMutationMode, WorkspaceMutationResult, WorkspaceReadRequest,
-    WorkspaceReadSliceRequest, WorkspaceRenamedPath, WorkspaceWriteRequest, WorkspaceWriteResult,
-    MAX_WORKSPACE_CHANGE_PAGE_ENTRIES,
+    WorkspaceReadSliceRequest, WorkspaceRenamedPath, MAX_WORKSPACE_CHANGE_PAGE_ENTRIES,
 };
 pub(crate) use types::{
     WorkspaceDiffResult, WorkspaceReadResult, WorkspaceReadSliceResult, WorkspaceRecord,
+    WorkspaceWriteRequest, WorkspaceWriteResult,
 };
 pub(crate) use workspace::{
     create_git_workspace_record, load_workspace_record, read_workspace_text, workspace_diff,

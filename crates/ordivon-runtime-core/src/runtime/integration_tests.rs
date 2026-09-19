@@ -1,7 +1,9 @@
 use super::{
     AdmissionOutcome, CreatedAdmission, RuntimeExecutionPlan, SubmitRequest, WindowsTokenClass,
 };
-use crate::universal::{create_git_workspace, remove_git_workspace, write_workspace_text};
+use crate::universal::{
+    create_git_workspace, remove_git_workspace, write_workspace_text, WorkspaceWriteRequest,
+};
 use crate::{
     ArtifactReadRequest, AttemptState, ExecutionBudget, ExecutionProposal, ExecutionStepProposal,
     ForeignReference, GitWorkspaceCreateRequest, HostDependencyBinding, InputAuthority,
@@ -9,7 +11,7 @@ use crate::{
     JobRunProposal, JobRunRequest, RegistryConfig, Runtime, RuntimeConfig, RuntimeJobListRequest,
     RuntimeResult, UniversalExecutionRequest, UniversalExecutorConfig, WindowsExecutionConfig,
     WorkspaceCloseRequest, WorkspaceMutateRequest, WorkspaceMutation, WorkspaceMutationMode,
-    WorkspaceWriteRequest, RUNTIME_SCHEMA_VERSION, UNIVERSAL_EXEC_SCHEMA_VERSION,
+    RUNTIME_SCHEMA_VERSION, UNIVERSAL_EXEC_SCHEMA_VERSION,
 };
 use rusqlite::Connection;
 use sha2::{Digest, Sha256};
