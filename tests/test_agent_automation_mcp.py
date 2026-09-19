@@ -70,10 +70,10 @@ class McpCatalogTests(unittest.TestCase):
                 "campaign.inspect",
                 "campaign.launch",
                 "campaign.census",
-                "occurrence.reconcile",
-                "occurrence.humanHandoff",
-                "occurrence.humanResume",
-                "occurrence.continue",
+                "materialization.reconcile",
+                "materialization.humanHandoff",
+                "materialization.humanResume",
+                "conversation.continue",
                 "provider.preflight",
             }
             self.assertEqual(set(tools), expected)
@@ -93,7 +93,7 @@ class McpCatalogTests(unittest.TestCase):
             self.assertIn(
                 "L1/L2 registration is unavailable", tools["campaign.register"].description
             )
-            cont = json.dumps(tools["occurrence.continue"].parameters, sort_keys=True)
+            cont = json.dumps(tools["conversation.continue"].parameters, sort_keys=True)
             self.assertIn("turnRequestId", cont)
             self.assertIn("prompt", cont)
             self.assertNotIn("promptFile", cont)
@@ -103,8 +103,8 @@ class McpCatalogTests(unittest.TestCase):
             self.assertTrue(tools["campaign.launch"].annotations.open_world_hint)
             self.assertTrue(tools["provider.preflight"].annotations.read_only_hint)
             self.assertTrue(tools["provider.preflight"].annotations.open_world_hint)
-            self.assertTrue(tools["occurrence.humanHandoff"].annotations.read_only_hint)
-            self.assertFalse(tools["occurrence.humanResume"].annotations.read_only_hint)
+            self.assertTrue(tools["materialization.humanHandoff"].annotations.read_only_hint)
+            self.assertFalse(tools["materialization.humanResume"].annotations.read_only_hint)
 
     def test_register_then_census_through_registered_tool_functions(self):
         with tempfile.TemporaryDirectory() as d:

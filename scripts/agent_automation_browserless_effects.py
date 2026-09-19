@@ -69,7 +69,7 @@ class BrowserlessEffectAdapter:
                 )
         return BrowserlessMaterializationTarget(
             endpoint=endpoint,
-            state_dir=self.context._occurrence_dir(materialization),
+            state_dir=self.context._materialization_dir(materialization),
             submit_script=self.config.submit_script,
             reconcile_script=self.config.reconcile_script,
             playwright_python=self.config.playwright_python,
@@ -92,14 +92,14 @@ class BrowserlessEffectAdapter:
         spec = self.context.load_spec(spec_path)
         materialization = self.context._materialization(spec, agent_id)
         census = campaign_census(spec, self.config.ledger)
-        row = next(r for r in census["occurrences"] if r["agentId"] == agent_id)
+        row = next(r for r in census["materializations"] if r["agentId"] == agent_id)
         standing = row.get("materializationStanding")
         if standing in {"bound", "ready-confirmed"}:
             return {
                 "schemaVersion": 1,
                 "kind": "ordivon.browserless-materialization",
                 "action": "existing-terminal",
-                "occurrence": row,
+                "materialization": row,
                 "census": census,
             }
         if standing == "human-required":
@@ -107,7 +107,7 @@ class BrowserlessEffectAdapter:
                 "schemaVersion": 1,
                 "kind": "ordivon.browserless-materialization",
                 "action": "existing-human-required",
-                "occurrence": row,
+                "materialization": row,
                 "census": census,
             }
         if standing in {"unknown", "submit-observed"}:
@@ -119,7 +119,7 @@ class BrowserlessEffectAdapter:
                     "action": "existing-effect-unknown-no-resend",
                     "safeToResend": False,
                     "reconciliationUnavailableReason": unavailable_reason,
-                    "occurrence": row,
+                    "materialization": row,
                     "census": census,
                 }
             return self.reconcile(spec_path, agent_id)
@@ -199,10 +199,10 @@ class BrowserlessEffectAdapter:
 
     def resume_after_human(self, spec_path: Path, agent_id: str) -> dict:
         spec = self.context.load_spec(spec_path)
-        materialization = self.context._materialization(spec, agent_id)
+        request = self.context._materialization(spec, agent_id)
         census = campaign_census(spec, self.config.ledger)
-        occurrence = next(r for r in census["occurrences"] if r["agentId"] == agent_id)
-        standing = occurrence.get("materializationStanding")
+        row = next(r for r in census["materializations"] if r["agentId"] == agent_id)
+        standing = row.get("materializationStanding")
         if standing in {"unknown", "submit-observed"}:
             return self.reconcile(spec_path, agent_id)
         if standing != "human-required":
@@ -211,18 +211,18 @@ class BrowserlessEffectAdapter:
                 "kind": "ordivon.browserless-human-resume",
                 "action": "existing-non-human-standing",
                 "agentId": agent_id,
-                "occurrence": occurrence,
+                "materialization": row,
                 "census": census,
             }
-        binding = self.context._current_binding(materialization)
+        binding = self.context._current_binding(request)
         if binding is None:
             raise BrowserlessAutomationHold(
-                "human-required occurrence has no current Browserless carrier binding"
+                "human-required materialization has no current Browserless carrier binding"
             )
         endpoint = self.context._endpoint_by_id(binding["endpointId"])
         receipt = SQLiteConversationMaterializer(
-            self.config.ledger, self._target(materialization, endpoint)
-        ).resume_human(materialization)
+            self.config.ledger, self._target(request, endpoint)
+        ).resume_human(request)
         return {
             "schemaVersion": 1,
             "kind": "ordivon.browserless-human-resume",
@@ -245,10 +245,10 @@ class BrowserlessEffectAdapter:
 
     def reconcile(self, spec_path: Path, agent_id: str) -> dict:
         spec = self.context.load_spec(spec_path)
-        materialization = self.context._materialization(spec, agent_id)
+        request = self.context._materialization(spec, agent_id)
         census = campaign_census(spec, self.config.ledger)
-        occurrence = next(r for r in census["occurrences"] if r["agentId"] == agent_id)
-        binding, unavailable_reason = self.context._reconciliation_binding(materialization)
+        row = next(r for r in census["materializations"] if r["agentId"] == agent_id)
+        binding, unavailable_reason = self.context._reconciliation_binding(request)
         if binding is None:
             return {
                 "schemaVersion": 1,
@@ -257,13 +257,13 @@ class BrowserlessEffectAdapter:
                 "agentId": agent_id,
                 "safeToResend": False,
                 "reconciliationUnavailableReason": unavailable_reason,
-                "occurrence": occurrence,
+                "materialization": row,
                 "census": census,
             }
         endpoint = self.context._endpoint_by_id(binding["endpointId"])
         receipt = SQLiteConversationMaterializer(
-            self.config.ledger, self._target(materialization, endpoint)
-        ).reconcile(materialization)
+            self.config.ledger, self._target(request, endpoint)
+        ).reconcile(request)
         return {
             "schemaVersion": 1,
             "kind": "ordivon.browserless-reconcile",
@@ -301,14 +301,14 @@ class BrowserlessEffectAdapter:
             spec = self.context.load_spec(spec_path)
             materialization = self.context._materialization(spec, agent_id)
             census = campaign_census(spec, self.config.ledger)
-            row = next(r for r in census["occurrences"] if r["agentId"] == agent_id)
+            row = next(r for r in census["materializations"] if r["agentId"] == agent_id)
             resource = row.get("providerResource")
             if row.get("materializationStanding") != "bound" or not resource:
-                raise BrowserlessAutomationHold("occurrence is not provider-bound")
+                raise BrowserlessAutomationHold("materialization is not provider-bound")
             binding = self.context._current_binding(materialization)
             if binding is None:
                 raise BrowserlessAutomationHold(
-                    "provider-bound occurrence has no current carrier binding"
+                    "provider-bound materialization has no current carrier binding"
                 )
             endpoint = self.context._endpoint_by_id(binding["endpointId"])
             if isinstance(getattr(endpoint, "service_unit", None), str):
@@ -318,7 +318,7 @@ class BrowserlessEffectAdapter:
                         f"Browserless carrier unavailable: {endpoint.endpoint_id}; {health.get('detail') or 'UNHEALTHY'}"
                     )
             receipt_out = (
-                self.context._occurrence_dir(materialization) / "turns" / f"{_suffix(turn_request_id)}.json"
+                self.context._materialization_dir(materialization) / "turns" / f"{_suffix(turn_request_id)}.json"
             )
             cmd = [
                 *endpoint.exec_prefix,

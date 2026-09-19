@@ -94,7 +94,7 @@ class BrowserlessActivities:
         if materialization.request_id != value.effect_id:
             raise RuntimeError("Temporal materialization input effect identity differs from registered campaign bytes")
         census = campaign_census(spec, config.ledger)
-        row = next(item for item in census["occurrences"] if item["agentId"] == value.agent_id)
+        row = next(item for item in census["materializations"] if item["agentId"] == value.agent_id)
         standing = row.get("materializationStanding")
         # Once SEND may have happened, reconciliation must stay on the exact bound carrier. A
         # proven PRE_EFFECT_FAILED attempt is different: no SEND occurred, so stale binding bytes
@@ -117,7 +117,7 @@ class BrowserlessActivities:
         context = BrowserlessAutomationService(config)
         spec = context.load_spec(Path(value.spec_path))
         census = campaign_census(spec, config.ledger)
-        row = next(item for item in census["occurrences"] if item["agentId"] == value.agent_id)
+        row = next(item for item in census["materializations"] if item["agentId"] == value.agent_id)
         if row.get("materializationStanding") != "bound" or not row.get("providerResource"):
             return None
         materialization = context._materialization(spec, value.agent_id)
@@ -160,7 +160,7 @@ class BrowserlessActivities:
             if materialization.request_id != value.effect_id:
                 raise RuntimeError("Temporal materialization input effect identity differs from registered campaign bytes")
             census = campaign_census(spec, candidate.ledger)
-            row = next(item for item in census["occurrences"] if item["agentId"] == value.agent_id)
+            row = next(item for item in census["materializations"] if item["agentId"] == value.agent_id)
             standing = row.get("materializationStanding")
             if standing in {
                 "unknown",

@@ -287,6 +287,127 @@ def finalize_materialization_ledger_migration(receipt: dict) -> dict:
     return {**receipt, "standing": "FINALIZED"}
 
 
+def _materialization_state_paths(state_root: Path = ADMISSION_ROOT) -> tuple[Path, Path]:
+    root = Path(state_root)
+    if not root.is_absolute():
+        raise ReleaseError("Agent Automation state root must be absolute for state migration")
+    return root / "occurrences", root / "materializations"
+
+
+def _state_tree_snapshot(path: Path) -> dict:
+    root = Path(path)
+    if not root.is_dir() or root.is_symlink():
+        raise ReleaseError(f"state tree must be one real directory: {root}")
+    rows: list[list[object]] = []
+    file_count = 0
+    byte_count = 0
+    for entry in sorted(root.rglob("*"), key=lambda value: value.as_posix()):
+        relative = entry.relative_to(root).as_posix()
+        if entry.is_symlink():
+            raise ReleaseError(f"state tree contains symlink: {entry}")
+        if entry.is_dir():
+            rows.append(["dir", relative])
+            continue
+        if not entry.is_file():
+            raise ReleaseError(f"state tree contains unsupported entry: {entry}")
+        raw = entry.read_bytes()
+        file_count += 1
+        byte_count += len(raw)
+        rows.append(["file", relative, len(raw), "sha256:" + hashlib.sha256(raw).hexdigest()])
+    payload = json.dumps(rows, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    return {
+        "fileCount": file_count,
+        "byteCount": byte_count,
+        "treeDigest": "sha256:" + hashlib.sha256(payload).hexdigest(),
+    }
+
+
+def prepare_materialization_state_migration(state_root: Path = ADMISSION_ROOT) -> dict:
+    legacy, current = _materialization_state_paths(state_root)
+    legacy_exists = legacy.is_dir() and not legacy.is_symlink()
+    current_exists = current.is_dir() and not current.is_symlink()
+    if legacy.exists() and not legacy_exists:
+        raise ReleaseError("legacy occurrence state path is not one real directory")
+    if current.exists() and not current_exists:
+        raise ReleaseError("materialization state path is not one real directory")
+    if legacy_exists and current_exists:
+        raise ReleaseError("legacy/current materialization state roots both exist")
+    if not legacy_exists and not current_exists:
+        return {
+            "schemaVersion": 1,
+            "standing": "NOT_REQUIRED",
+            "legacyPath": str(legacy),
+            "currentPath": str(current),
+            "moved": False,
+            "fileCount": 0,
+            "byteCount": 0,
+            "treeDigest": None,
+        }
+    if current_exists:
+        snapshot = _state_tree_snapshot(current)
+        return {
+            "schemaVersion": 1,
+            "standing": "ALREADY_CURRENT",
+            "legacyPath": str(legacy),
+            "currentPath": str(current),
+            "moved": False,
+            **snapshot,
+        }
+
+    snapshot = _state_tree_snapshot(legacy)
+    os.replace(legacy, current)
+    _fsync_directory(current.parent)
+    if _state_tree_snapshot(current) != snapshot:
+        os.replace(current, legacy)
+        _fsync_directory(legacy.parent)
+        raise ReleaseError("materialization state directory verification failed after rename")
+    return {
+        "schemaVersion": 1,
+        "standing": "PREPARED",
+        "legacyPath": str(legacy),
+        "currentPath": str(current),
+        "moved": True,
+        **snapshot,
+    }
+
+
+def rollback_materialization_state_migration(receipt: dict) -> None:
+    if receipt.get("moved") is not True:
+        return
+    legacy = Path(receipt["legacyPath"])
+    current = Path(receipt["currentPath"])
+    if legacy.exists() or not current.is_dir() or current.is_symlink():
+        raise ReleaseError("cannot roll back materialization state migration safely")
+    expected = {
+        "fileCount": receipt["fileCount"],
+        "byteCount": receipt["byteCount"],
+        "treeDigest": receipt["treeDigest"],
+    }
+    if _state_tree_snapshot(current) != expected:
+        raise ReleaseError("materialization state changed before rollback")
+    os.replace(current, legacy)
+    _fsync_directory(legacy.parent)
+    if _state_tree_snapshot(legacy) != expected:
+        raise ReleaseError("legacy state verification failed after rollback")
+
+
+def finalize_materialization_state_migration(receipt: dict) -> dict:
+    if receipt["standing"] == "NOT_REQUIRED":
+        return {**receipt, "standing": "FINALIZED"}
+    legacy = Path(receipt["legacyPath"])
+    current = Path(receipt["currentPath"])
+    if legacy.exists() or not current.is_dir() or current.is_symlink():
+        raise ReleaseError("materialization state authority is not uniquely current")
+    expected = {
+        "fileCount": receipt["fileCount"],
+        "byteCount": receipt["byteCount"],
+        "treeDigest": receipt["treeDigest"],
+    }
+    if _state_tree_snapshot(current) != expected:
+        raise ReleaseError("materialization state changed during closed-admission cutover")
+    return {**receipt, "standing": "FINALIZED"}
+
+
 def exact_commit(repo: Path, revision: str) -> str:
     p = run(["/usr/bin/git", "-C", str(repo), "rev-parse", "--verify", f"{revision}^{{commit}}"])
     v = p.stdout.strip()
@@ -801,6 +922,7 @@ def activate(repo: Path, revision: str) -> dict:
             )
             run(["/usr/bin/systemctl", "stop", WORKER_UNIT], timeout=30)
             ledger_migration = prepare_materialization_ledger_migration()
+            state_migration = prepare_materialization_state_migration()
             atomic_link(release, CURRENT)
             switched = True
             worker_source = release / "systemd" / WORKER_UNIT
@@ -829,6 +951,7 @@ def activate(repo: Path, revision: str) -> dict:
             # Browserless network lifecycle is owned independently by Network v2; release activation
             # only opens CLI admission after source, worker, MCP, and the materialization ledger
             # authority passed currentness/health.
+            state_migration = finalize_materialization_state_migration(state_migration)
             ledger_migration = finalize_materialization_ledger_migration(ledger_migration)
             ADMISSION_CLOSED.unlink(missing_ok=True)
             return {
@@ -842,11 +965,14 @@ def activate(repo: Path, revision: str) -> dict:
                 "mcp": receipt,
                 "browserSecurityQualification": browser_security_qualification,
                 "materializationLedgerMigration": ledger_migration,
+                "materializationStateMigration": state_migration,
                 "cliAdmissionClosed": False,
             }
         except Exception:
             run(["/usr/bin/systemctl", "stop", MCP_UNIT], check=False, timeout=20)
             run(["/usr/bin/systemctl", "stop", WORKER_UNIT], check=False, timeout=20)
+            if "state_migration" in locals():
+                rollback_materialization_state_migration(state_migration)
             if "ledger_migration" in locals():
                 rollback_materialization_ledger_migration(ledger_migration)
             if switched:

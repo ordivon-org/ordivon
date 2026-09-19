@@ -233,8 +233,8 @@ def build_server(settings: McpSettings) -> MCPServer:
         description="Temporal-controlled, Browserless-backed campaign materialization and continuation facade.",
         instructions=(
             "Use campaign.register only for controller-classified L0 Direct work. L1/L2 campaign registration is intentionally unavailable until authoritative current Host Inquiry standing can be verified; L1/L2 work MUST NOT fall back to campaign.register. "
-            "campaign.launch and occurrence.reconcile admit deterministic Temporal workflows; Browserless owns browser lifecycle. "
-            "A challenge/auth gate may become HUMAN_REQUIRED without crossing ChatGPT SEND. Use occurrence.humanHandoff to obtain the bounded interactive operator URL, then occurrence.humanResume only after a bounded self-hosted handoff expires or current-session absence is proven. "
+            "campaign.launch and materialization.reconcile admit deterministic Temporal workflows; Browserless owns browser lifecycle. "
+            "A challenge/auth gate may become HUMAN_REQUIRED without crossing ChatGPT SEND. Use materialization.humanHandoff to obtain the bounded interactive operator URL, then materialization.humanResume only after a bounded self-hosted handoff expires or current-session absence is proven. "
             "The SQLite effect fence remains authoritative at ChatGPT SEND, so UNKNOWN/ambiguous never authorizes blind resend. "
             "Use provider.preflight for one explicit read-only endpoint admission observation."
         ),
@@ -278,7 +278,7 @@ def build_server(settings: McpSettings) -> MCPServer:
     @server.tool(
         name="campaign.launch",
         title="Launch registered campaign",
-        description="Materialize all missing occurrences of one registered campaignRef. READY proceeds normally; challenge/auth admission may enter a bounded HUMAN_REQUIRED handoff without filling the composer or crossing SEND. Existing effects remain idempotent and ambiguous states never blind-resend.",
+        description="Materialize all missing materializations of one registered campaignRef. READY proceeds normally; challenge/auth admission may enter a bounded HUMAN_REQUIRED handoff without filling the composer or crossing SEND. Existing effects remain idempotent and ambiguous states never blind-resend.",
         annotations=ToolAnnotations(
             readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=True
         ),
@@ -306,14 +306,14 @@ def build_server(settings: McpSettings) -> MCPServer:
         return await _invoke(current_service().census, path)
 
     @server.tool(
-        name="occurrence.reconcile",
-        title="Reconcile occurrence",
-        description="Converge one exact occurrence toward its materialization target. Unrecorded occurrences start the stable Temporal workflow; ambiguous occurrences reconcile the same durable effect identity; blind provider resend is never authorized.",
+        name="materialization.reconcile",
+        title="Reconcile materialization",
+        description="Converge one exact materialization toward its materialization target. Unrecorded materializations start the stable Temporal workflow; ambiguous materializations reconcile the same durable effect identity; blind provider resend is never authorized.",
         annotations=ToolAnnotations(
             readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=True
         ),
     )
-    async def occurrence_reconcile(campaignRef: str, agentId: str) -> CallToolResult:
+    async def materialization_reconcile(campaignRef: str, agentId: str) -> CallToolResult:
         try:
             path = current_registry().resolve(campaignRef)
         except Exception as error:
@@ -321,14 +321,14 @@ def build_server(settings: McpSettings) -> MCPServer:
         return await _invoke(current_service().launch_reconcile, path, agentId)
 
     @server.tool(
-        name="occurrence.humanHandoff",
+        name="materialization.humanHandoff",
         title="Open human provider verification",
         description="Read the private interactive URL for one currently active HUMAN_REQUIRED provider-admission session. This is an operator handoff only: it never fills the composer, clicks the provider challenge, or crosses SEND.",
         annotations=ToolAnnotations(
             readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False
         ),
     )
-    async def occurrence_human_handoff(campaignRef: str, agentId: str) -> CallToolResult:
+    async def materialization_human_handoff(campaignRef: str, agentId: str) -> CallToolResult:
         try:
             path = current_registry().resolve(campaignRef)
         except Exception as error:
@@ -336,14 +336,14 @@ def build_server(settings: McpSettings) -> MCPServer:
         return await _invoke(current_service().human_handoff_info, path, agentId)
 
     @server.tool(
-        name="occurrence.humanResume",
+        name="materialization.humanResume",
         title="Resume after human provider verification",
         description="Re-enter provider admission for the same frozen materialization effect after a prior HUMAN_REQUIRED handoff window expired. The materializer atomically claims the same effect identity and never blind-resends an UNKNOWN outcome.",
         annotations=ToolAnnotations(
             readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True
         ),
     )
-    async def occurrence_human_resume(campaignRef: str, agentId: str) -> CallToolResult:
+    async def materialization_human_resume(campaignRef: str, agentId: str) -> CallToolResult:
         try:
             path = current_registry().resolve(campaignRef)
         except Exception as error:
@@ -351,14 +351,14 @@ def build_server(settings: McpSettings) -> MCPServer:
         return await _invoke(current_service().launch_human_resume, path, agentId)
 
     @server.tool(
-        name="occurrence.continue",
-        title="Continue same occurrence",
-        description="Send exactly one continuation turn to the same provider-bound occurrence. The routed Browserless endpoint must pass read-only READY preflight before Temporal admission; turnRequestId is an RFC 9562 UUIDv7 and provider SEND remains fenced by the turn ledger.",
+        name="conversation.continue",
+        title="Continue provider conversation",
+        description="Send exactly one continuation turn to the same provider-bound conversation. The routed Browserless endpoint must pass read-only READY preflight before Temporal admission; turnRequestId is an RFC 9562 UUIDv7 and provider SEND remains fenced by the turn ledger.",
         annotations=ToolAnnotations(
             readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=True
         ),
     )
-    async def occurrence_continue(
+    async def conversation_continue(
         campaignRef: str,
         agentId: str,
         turnRequestId: Annotated[str, Field(pattern=UUID7_PATTERN)],

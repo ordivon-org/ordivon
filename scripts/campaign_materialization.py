@@ -2,7 +2,7 @@
 """Campaign input validation, deterministic carrier-request compilation, and effect census.
 
 Campaign is input data only. Temporal owns durable execution; Browserless owns provider mechanics;
-CarrierMaterializationRequest is the provider-effect contract. No separate occurrence lifecycle is
+CarrierMaterializationRequest is the provider-effect contract. No second execution lifecycle is
 defined here.
 """
 
@@ -227,7 +227,7 @@ def campaign_census(spec: CampaignLaunchSpec, ledger_path: Path) -> dict:
         "campaignId": spec.campaign_id,
         "requested": len(requests),
         "counts": counts,
-        "occurrences": projected,
+        "materializations": projected,
     }
 
 

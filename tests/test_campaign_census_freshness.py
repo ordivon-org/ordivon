@@ -46,7 +46,7 @@ class CampaignCensusFreshnessTests(unittest.TestCase):
             db.close()
 
             census = campaign_census(spec, ledger)
-            row = census["occurrences"][0]
+            row = census["materializations"][0]
             self.assertEqual(row["effectGeneration"], 7)
             self.assertEqual(row["updatedAtMs"], 123456789)
 
@@ -54,7 +54,7 @@ class CampaignCensusFreshnessTests(unittest.TestCase):
         spec = self._spec()
         with tempfile.TemporaryDirectory() as d:
             census = campaign_census(spec, Path(d) / "missing.sqlite")
-            row = census["occurrences"][0]
+            row = census["materializations"][0]
             self.assertIsNone(row["effectGeneration"])
             self.assertIsNone(row["updatedAtMs"])
 

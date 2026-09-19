@@ -75,7 +75,7 @@ class AgentAutomationReconcileSurfaceTests(unittest.TestCase):
         self.assertFalse(hasattr(automation.BrowserlessAutomationService, "launch_occurrence"))
         mcp = (ROOT / "scripts/agent_automation_mcp.py").read_text()
         self.assertNotIn('name="occurrence.birth"', mcp)
-        self.assertIn('name="occurrence.reconcile"', mcp)
+        self.assertIn('name="materialization.reconcile"', mcp)
 
     def test_internal_execution_uses_materialization_not_birth_ontology(self) -> None:
         self.assertFalse((ROOT / "scripts/campaign_birth.py").exists())
@@ -122,7 +122,7 @@ class AgentAutomationReconcileSurfaceTests(unittest.TestCase):
             )
             census = {
                 "campaignId": "campaign:reconcile-surface",
-                "occurrences": [
+                "materializations": [
                     {
                         "agentId": "A01",
                         "materializationStanding": None,
@@ -131,7 +131,7 @@ class AgentAutomationReconcileSurfaceTests(unittest.TestCase):
             }
             admitted = {
                 "workflowId": "wf-a",
-                "workflowType": "ordivon.occurrence.materialize",
+                "workflowType": "ordivon.materialize",
                 "disposition": "started",
             }
             with (

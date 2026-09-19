@@ -129,12 +129,12 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             self.assertEqual(result["receipt"]["standing"], "bound")
             self.assertEqual(result["receipt"]["providerResource"], "https://chatgpt.com/c/abc")
             binding = json.loads(
-                next((root / "state" / "occurrences").glob("*/carrier-binding.json")).read_text()
+                next((root / "state" / "materializations").glob("*/carrier-binding.json")).read_text()
             )
             self.assertEqual(set(binding), {"effectId", "endpointId", "endpointIdentityDigest"})
             self.assertEqual(binding["effectId"], result["effectId"])
             self.assertEqual(binding["endpointId"], "carrier-a")
-            self.assertFalse(list((root / "state" / "occurrences").glob("*/resources.json")))
+            self.assertFalse(list((root / "state" / "materializations").glob("*/resources.json")))
             self.assertNotIn("capsuleDigest", binding)
             self.assertNotIn("schemaVersion", binding)
             self.assertNotIn("kind", binding)
@@ -224,7 +224,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             census = {
                 "campaignId": "campaign:test-browserless",
                 "counts": {"pre-effect-failed": 1},
-                "occurrences": [
+                "materializations": [
                     {
                         "agentId": "A01",
                         "materializationStanding": "pre-effect-failed",
@@ -255,7 +255,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             )
             admitted = {
                 "workflowId": "wf-a",
-                "workflowType": "ordivon.occurrence.materialize",
+                "workflowType": "ordivon.materialize",
                 "disposition": "started",
             }
             with (
@@ -383,7 +383,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 )
             )
             census = {
-                "occurrences": [
+                "materializations": [
                     {
                         "agentId": "A01",
                         "materializationStanding": "bound",
@@ -451,7 +451,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 )
             )
             census = {
-                "occurrences": [
+                "materializations": [
                     {
                         "agentId": "A01",
                         "materializationStanding": "bound",
@@ -536,7 +536,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 )
             )
             census = {
-                "occurrences": [
+                "materializations": [
                     {
                         "agentId": "A01",
                         "materializationStanding": "bound",
@@ -595,7 +595,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 )
             )
             census = {
-                "occurrences": [
+                "materializations": [
                     {
                         "agentId": "A01",
                         "materializationStanding": "bound",
@@ -631,7 +631,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             )
             admitted = {
                 "workflowId": "wf-human",
-                "workflowType": "ordivon.occurrence.materialize",
+                "workflowType": "ordivon.materialize",
                 "disposition": "started",
             }
             with (
@@ -659,7 +659,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 BrowserlessAutomationConfig.from_dict(config(root))
             )
             census = {
-                "occurrences": [
+                "materializations": [
                     {
                         "agentId": "A01",
                         "materializationStanding": "bound",
@@ -676,7 +676,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 out = service.launch_reconcile(sp, "A01")
             preflight.assert_not_called()
             temporal.assert_not_called()
-            self.assertEqual(out["census"]["occurrences"][0]["materializationStanding"], "bound")
+            self.assertEqual(out["census"]["materializations"][0]["materializationStanding"], "bound")
 
     def test_pre_effect_failed_birth_reenters_same_effect_with_fresh_temporal_execution(self):
         with tempfile.TemporaryDirectory() as d:
@@ -687,7 +687,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 BrowserlessAutomationConfig.from_dict(config(root))
             )
             census = {
-                "occurrences": [
+                "materializations": [
                     {
                         "agentId": "A01",
                         "materializationStanding": "pre-effect-failed",
@@ -698,7 +698,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             }
             admitted = {
                 "workflowId": "0199-retry",
-                "workflowType": "ordivon.occurrence.materialize",
+                "workflowType": "ordivon.materialize",
                 "disposition": "started",
                 "retryId": "0199-retry",
             }
@@ -740,7 +740,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 )
             )
             census = {
-                "occurrences": [
+                "materializations": [
                     {
                         "agentId": "A01",
                         "materializationStanding": "bound",
@@ -784,7 +784,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             )
             birth = service._materialization(service.load_spec(sp), "A01")
             path = (
-                service._occurrence_dir(birth)
+                service._materialization_dir(birth)
                 / "human-handoff"
                 / f"{__import__('hashlib').sha256(birth.request_id.encode()).hexdigest()[:24]}.json"
             )
@@ -810,7 +810,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             value["handoffDigest"] = digest_obj(value)
             path.write_text(json.dumps(value))
             census = {
-                "occurrences": [
+                "materializations": [
                     {
                         "agentId": "A01",
                         "materializationStanding": "human-required",
@@ -842,7 +842,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             )
             birth = service._materialization(service.load_spec(sp), "A01")
             path = (
-                service._occurrence_dir(birth)
+                service._materialization_dir(birth)
                 / "human-handoff"
                 / f"{__import__('hashlib').sha256(birth.request_id.encode()).hexdigest()[:24]}.json"
             )
@@ -850,7 +850,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             from browserless_human_handoff import digest_obj
 
             census = {
-                "occurrences": [
+                "materializations": [
                     {
                         "agentId": "A01",
                         "materializationStanding": "human-required",
@@ -906,7 +906,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 BrowserlessAutomationConfig.from_dict(config(root))
             )
             census = {
-                "occurrences": [
+                "materializations": [
                     {
                         "agentId": "A01",
                         "materializationStanding": "human-required",
@@ -917,7 +917,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             }
             birth = service._materialization(service.load_spec(sp), "A01")
             path = (
-                service._occurrence_dir(birth)
+                service._materialization_dir(birth)
                 / "human-handoff"
                 / f"{__import__('hashlib').sha256(birth.request_id.encode()).hexdigest()[:24]}.json"
             )
@@ -963,7 +963,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 BrowserlessAutomationConfig.from_dict(config(root))
             )
             census = {
-                "occurrences": [
+                "materializations": [
                     {
                         "agentId": "A01",
                         "materializationStanding": "human-required",
@@ -974,7 +974,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             }
             birth = service._materialization(service.load_spec(sp), "A01")
             path = (
-                service._occurrence_dir(birth)
+                service._materialization_dir(birth)
                 / "human-handoff"
                 / f"{__import__('hashlib').sha256(birth.request_id.encode()).hexdigest()[:24]}.json"
             )
@@ -1066,7 +1066,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             )
             birth = service._materialization(service.load_spec(sp), "A01")
             path = (
-                service._occurrence_dir(birth)
+                service._materialization_dir(birth)
                 / "human-handoff"
                 / f"{__import__('hashlib').sha256(birth.request_id.encode()).hexdigest()[:24]}.json"
             )
@@ -1095,7 +1095,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 "campaignId": "campaign:test-browserless",
                 "requested": 1,
                 "counts": {"unknown": 1},
-                "occurrences": [
+                "materializations": [
                     {
                         "agentId": "A01",
                         "materializationStanding": "unknown",
@@ -1112,7 +1112,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             ):
                 out = service.census(sp)
             self.assertEqual(out["activeHumanHandoffs"], 1)
-            self.assertTrue(out["occurrences"][0]["humanHandoffAvailable"])
+            self.assertTrue(out["materializations"][0]["humanHandoffAvailable"])
             self.assertNotIn("operatorURL", json.dumps(out))
             handoff.pop("handoffDigest")
             handoff["sessionActiveUntilMs"] = 1
@@ -1122,7 +1122,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 "campaignId": "campaign:test-browserless",
                 "requested": 1,
                 "counts": {"unknown": 1},
-                "occurrences": [
+                "materializations": [
                     {
                         "agentId": "A01",
                         "materializationStanding": "unknown",
@@ -1134,7 +1134,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             with mock.patch("agent_automation_browserless.campaign_census", return_value=raw2):
                 stale = service.census(sp)
             self.assertEqual(stale["activeHumanHandoffs"], 0)
-            self.assertNotIn("humanHandoffAvailable", stale["occurrences"][0])
+            self.assertNotIn("humanHandoffAvailable", stale["materializations"][0])
 
     def test_carrier_lease_excludes_a_second_process_and_releases_cleanly(self):
         import subprocess as sp
@@ -1504,7 +1504,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 )
             )
             census = {
-                "occurrences": [
+                "materializations": [
                     {
                         "agentId": "A01",
                         "materializationStanding": "bound",
@@ -1561,7 +1561,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 )
             )
             census = {
-                "occurrences": [
+                "materializations": [
                     {
                         "agentId": "A01",
                         "materializationStanding": "unknown",
@@ -1587,7 +1587,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             sp.write_text(json.dumps(spec()))
             effects = BrowserlessEffectAdapter(BrowserlessAutomationConfig.from_dict(config(root)))
             census = {
-                "occurrences": [
+                "materializations": [
                     {
                         "agentId": "A01",
                         "materializationStanding": "unknown",
@@ -1617,7 +1617,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 BrowserlessAutomationConfig.from_dict(config(root))
             )
             census = {
-                "occurrences": [
+                "materializations": [
                     {
                         "agentId": "A01",
                         "materializationStanding": "unknown",
@@ -1657,7 +1657,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 BrowserlessAutomationConfig.from_dict(config(root))
             )
             census = {
-                "occurrences": [
+                "materializations": [
                     {
                         "agentId": "A01",
                         "materializationStanding": "bound",
@@ -1673,7 +1673,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 result = service.launch_reconcile(sp, "A01")
                 temporal.assert_not_called()
                 self.assertEqual(
-                    result["census"]["occurrences"][0]["materializationStanding"],
+                    result["census"]["materializations"][0]["materializationStanding"],
                     "bound",
                 )
 
@@ -1686,7 +1686,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 BrowserlessAutomationConfig.from_dict(config(root))
             )
             census = {
-                "occurrences": [
+                "materializations": [
                     {
                         "agentId": "A01",
                         "materializationStanding": "pre-effect-failed",
@@ -1697,7 +1697,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             }
             admitted = {
                 "workflowId": "wf-retry",
-                "workflowType": "ordivon.occurrence.materialize",
+                "workflowType": "ordivon.materialize",
                 "disposition": "started",
             }
             with (
@@ -1721,7 +1721,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 BrowserlessAutomationConfig.from_dict(config(root))
             )
             census = {
-                "occurrences": [
+                "materializations": [
                     {
                         "agentId": "A01",
                         "materializationStanding": "bound",
@@ -1796,7 +1796,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             service = BrowserlessAutomationService(BrowserlessAutomationConfig.from_dict(cfg))
             admitted = {
                 "workflowId": "wf-a",
-                "workflowType": "ordivon.occurrence.materialize",
+                "workflowType": "ordivon.materialize",
                 "disposition": "started",
             }
             with (
@@ -1880,7 +1880,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 self.assertEqual(result["action"], "carrier-pre-effect-unavailable")
                 target.assert_not_called()
                 self.assertFalse(
-                    any((root / "state" / "occurrences").glob("*/carrier-binding.json"))
+                    any((root / "state" / "materializations").glob("*/carrier-binding.json"))
                 )
 
     def test_provider_policy_and_ui_standings_do_not_rotate_carriers(self):
@@ -1944,7 +1944,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 target.assert_called_once()
                 binding = json.loads(
                     next(
-                        (root / "state" / "occurrences").glob("*/carrier-binding.json")
+                        (root / "state" / "materializations").glob("*/carrier-binding.json")
                     ).read_text()
                 )
                 self.assertEqual(binding["endpointId"], endpoint.endpoint_id)
@@ -1985,7 +1985,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 )
             self.assertEqual(first_result["action"], "carrier-pre-effect-unavailable")
             target.assert_not_called()
-            self.assertFalse(any((root / "state" / "occurrences").glob("*/carrier-binding.json")))
+            self.assertFalse(any((root / "state" / "materializations").glob("*/carrier-binding.json")))
             ready = {
                 "standing": "READY",
                 "endpointId": ordered[1].endpoint_id,
@@ -2015,7 +2015,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                     sp, "A01", endpoint_id=ordered[1].endpoint_id, provider_preflight=ready
                 )
             binding = json.loads(
-                next((root / "state" / "occurrences").glob("*/carrier-binding.json")).read_text()
+                next((root / "state" / "materializations").glob("*/carrier-binding.json")).read_text()
             )
             self.assertEqual(binding["endpointId"], ordered[1].endpoint_id)
             self.assertEqual(result["receipt"]["standing"], "bound")
@@ -2029,7 +2029,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 BrowserlessAutomationConfig.from_dict(config(root))
             )
             census = {
-                "occurrences": [
+                "materializations": [
                     {
                         "agentId": "A01",
                         "materializationStanding": "submit-observed",

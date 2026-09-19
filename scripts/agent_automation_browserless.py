@@ -421,11 +421,11 @@ class BrowserlessAutomationService:
         except KeyError as error:
             raise BrowserlessAutomationConflict("agentId does not identify exactly one campaign request") from error
 
-    def _occurrence_dir(self, materialization) -> Path:
-        return self.config.state_root / "occurrences" / _suffix(materialization.request_id)
+    def _materialization_dir(self, materialization) -> Path:
+        return self.config.state_root / "materializations" / _suffix(materialization.request_id)
 
     def _binding_path(self, materialization) -> Path:
-        return self._occurrence_dir(materialization) / "carrier-binding.json"
+        return self._materialization_dir(materialization) / "carrier-binding.json"
 
     def _endpoint_by_id(self, endpoint_id: str):
         rows = [e for e in self.config.browserless_pool.endpoints if e.endpoint_id == endpoint_id]
@@ -503,12 +503,12 @@ class BrowserlessAutomationService:
         result = campaign_census(spec, self.config.ledger)
         by_agent = compile_campaign(spec)
         active = 0
-        for row in result.get("occurrences", []):
+        for row in result.get("materializations", []):
             materialization = by_agent.get(row.get("agentId"))
             if materialization is None:
                 continue
             path = (
-                self._occurrence_dir(materialization) / "human-handoff" / f"{_suffix(materialization.request_id)}.json"
+                self._materialization_dir(materialization) / "human-handoff" / f"{_suffix(materialization.request_id)}.json"
             )
             if not path.is_file():
                 continue
@@ -611,13 +611,13 @@ class BrowserlessAutomationService:
 
     def _gate_unrecorded_materializations(self, spec: CampaignLaunchSpec) -> dict:
         census = campaign_census(spec, self.config.ledger)
-        by_agent = {row["agentId"]: row for row in census["occurrences"]}
+        by_agent = {row["agentId"]: row for row in census["materializations"]}
         observations: dict[str, dict] = {}
         for agent_id, materialization in compile_campaign(spec).items():
             row = by_agent[agent_id]
-            # Campaign launch is roster admission, not recovery. A PRE_EFFECT_FAILED occurrence
+            # Campaign launch is roster admission, not recovery. A PRE_EFFECT_FAILED materialization
             # already has one durable materialization workflow/effect identity and must require an explicit
-            # occurrence-level re-entry; otherwise exact campaign replay would create fresh retries.
+            # materialization-level re-entry; otherwise exact campaign replay would create fresh retries.
             if row.get("materializationStanding") is not None:
                 continue
             self._require_materialization_substrate_available(materialization, observations=observations)
@@ -740,7 +740,7 @@ class BrowserlessAutomationService:
         census = self._gate_unrecorded_materializations(spec)
         unrecorded = tuple(
             row["agentId"]
-            for row in census["occurrences"]
+            for row in census["materializations"]
             if row.get("materializationStanding") is None
         )
         if unrecorded:
@@ -769,7 +769,7 @@ class BrowserlessAutomationService:
         spec = self.load_spec(spec_path)
         materialization = self._materialization(spec, agent_id)
         census = campaign_census(spec, self.config.ledger)
-        row = next(r for r in census["occurrences"] if r["agentId"] == agent_id)
+        row = next(r for r in census["materializations"] if r["agentId"] == agent_id)
         standing = row.get("materializationStanding")
 
         if standing in {None, "pre-effect-failed"}:
@@ -778,7 +778,7 @@ class BrowserlessAutomationService:
             temporal = self._temporal_admit(spec_path, operation, agent_id=agent_id)
             return {
                 "schemaVersion": 1,
-                "kind": "ordivon.temporal-occurrence-reconcile-admission",
+                "kind": "ordivon.temporal-materialization-reconcile-admission",
                 "agentId": agent_id,
                 "effectId": materialization.request_id,
                 "temporal": temporal,
@@ -789,7 +789,7 @@ class BrowserlessAutomationService:
         if standing == "bound":
             return {
                 "schemaVersion": 1,
-                "kind": "ordivon.temporal-occurrence-reconcile-admission",
+                "kind": "ordivon.temporal-materialization-reconcile-admission",
                 "agentId": agent_id,
                 "effectId": materialization.request_id,
                 "safeToResend": False,
@@ -798,13 +798,13 @@ class BrowserlessAutomationService:
 
         if standing not in {"unknown", "submit-observed"}:
             raise BrowserlessAutomationHold(
-                "occurrence cannot be safely converged from its current materialization standing"
+                "materialization cannot be safely converged from its current materialization standing"
             )
 
         temporal = self._temporal_admit(spec_path, "reconcile", agent_id=agent_id)
         return {
             "schemaVersion": 1,
-            "kind": "ordivon.temporal-occurrence-reconcile-admission",
+            "kind": "ordivon.temporal-materialization-reconcile-admission",
             "agentId": agent_id,
             "effectId": materialization.request_id,
             "temporal": temporal,
@@ -817,15 +817,15 @@ class BrowserlessAutomationService:
         spec = self.load_spec(spec_path)
         materialization = self._materialization(spec, agent_id)
         census = campaign_census(spec, self.config.ledger)
-        row = next(r for r in census["occurrences"] if r["agentId"] == agent_id)
+        row = next(r for r in census["materializations"] if r["agentId"] == agent_id)
         # While a self-hosted VNC handoff is actively attached, the effect ledger may remain UNKNOWN
         # because the effect attempt was durably claimed before target execution. The private handoff
         # receipt independently proves providerEffectAttempted=false during that bounded window.
         if row.get("materializationStanding") not in {"human-required", "unknown"}:
             raise BrowserlessAutomationHold(
-                "occurrence is not waiting for human provider verification"
+                "materialization is not waiting for human provider verification"
             )
-        path = self._occurrence_dir(materialization) / "human-handoff" / f"{_suffix(materialization.request_id)}.json"
+        path = self._materialization_dir(materialization) / "human-handoff" / f"{_suffix(materialization.request_id)}.json"
         if not path.is_file():
             raise BrowserlessAutomationHold("human verification handoff receipt is unavailable")
         value = load_verified_handoff(path)
@@ -866,17 +866,17 @@ class BrowserlessAutomationService:
         spec = self.load_spec(spec_path)
         materialization = self._materialization(spec, agent_id)
         census = campaign_census(spec, self.config.ledger)
-        row = next(r for r in census["occurrences"] if r["agentId"] == agent_id)
+        row = next(r for r in census["materializations"] if r["agentId"] == agent_id)
         if row.get("materializationStanding") != "human-required":
             raise BrowserlessAutomationHold(
-                "only a HUMAN_REQUIRED occurrence may resume after human verification"
+                "only a HUMAN_REQUIRED materialization may resume after human verification"
             )
         handoff_path = (
-            self._occurrence_dir(materialization) / "human-handoff" / f"{_suffix(materialization.request_id)}.json"
+            self._materialization_dir(materialization) / "human-handoff" / f"{_suffix(materialization.request_id)}.json"
         )
         if not handoff_path.is_file():
             raise BrowserlessAutomationHold(
-                "HUMAN_REQUIRED occurrence has no private handoff receipt"
+                "HUMAN_REQUIRED materialization has no private handoff receipt"
             )
         handoff = load_verified_handoff(handoff_path)
         liveness = self._human_handoff_liveness(handoff)
@@ -934,13 +934,13 @@ class BrowserlessAutomationService:
             raise BrowserlessAutomationConflict(str(error)) from error
         prompt = _continuation_prompt(prompt)
         census = campaign_census(spec, self.config.ledger)
-        row = next(r for r in census["occurrences"] if r["agentId"] == agent_id)
+        row = next(r for r in census["materializations"] if r["agentId"] == agent_id)
         if row.get("materializationStanding") != "bound" or not row.get("providerResource"):
-            raise BrowserlessAutomationHold("occurrence is not provider-bound")
+            raise BrowserlessAutomationHold("materialization is not provider-bound")
         binding = self._current_binding(materialization)
         if binding is None:
             raise BrowserlessAutomationHold(
-                "provider-bound occurrence has no current carrier binding"
+                "provider-bound materialization has no current carrier binding"
             )
         endpoint = self._endpoint_by_id(binding["endpointId"])
         ledger_before = self._turn_effect_row(turn_request_id)
@@ -957,7 +957,7 @@ class BrowserlessAutomationService:
             )
             return {
                 "schemaVersion": 1,
-                "kind": "ordivon.temporal-occurrence-continue-admission",
+                "kind": "ordivon.temporal-conversation-continue-admission",
                 "agentId": agent_id,
                 "turnRequestId": turn_request_id,
                 "temporal": temporal,
@@ -990,7 +990,7 @@ class BrowserlessAutomationService:
             retry_admitted = True
         return {
             "schemaVersion": 1,
-            "kind": "ordivon.temporal-occurrence-continue-admission",
+            "kind": "ordivon.temporal-conversation-continue-admission",
             "agentId": agent_id,
             "turnRequestId": turn_request_id,
             "temporal": temporal,
