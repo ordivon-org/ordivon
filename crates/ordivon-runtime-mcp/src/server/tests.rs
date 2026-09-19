@@ -181,10 +181,11 @@ fn bound_execution_principal(bound: BoundTaskRun) -> String {
 fn effective_principal_changes_bound_execution_principal() {
     let sandbox = Sandbox::new("effective-principal-binding");
     let server = sandbox.server();
-    let base = server
-        .state
-        .execution
-        .bind(exec_tool_request(Some(1_000), Some(1_024), Some(1_024)));
+    let base =
+        server
+            .state
+            .execution
+            .bind(exec_tool_request(Some(1_000), Some(1_024), Some(1_024)));
     let remote = server
         .state
         .execution
