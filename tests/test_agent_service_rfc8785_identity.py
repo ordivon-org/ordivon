@@ -123,5 +123,32 @@ class RFC8785IdentityTests(unittest.TestCase):
         )
 
 
+    def test_browserless_turn_receipt_verifier_uses_jcs(self) -> None:
+        import json
+        from agent_service.local_effect_readers import _validate_receipt
+
+        coordinate = BrowserlessTurnEffectCoordinate(
+            turn_request_id="turn:jcs-receipt",
+            prompt_digest="sha256:" + "b" * 64,
+            target_coordinate="chatgpt://conversation/jcs-receipt",
+        )
+        material = {
+            "turnRequestId": coordinate.turn_request_id,
+            "promptDigest": coordinate.prompt_digest,
+            "targetResource": coordinate.target_coordinate,
+            "standing": "COMPLETED",
+            "timing": 1.0,
+            "\ue000": "bmp",
+            "😀": "astral",
+        }
+        receipt = dict(material)
+        receipt["receiptDigest"] = (
+            "sha256:" + hashlib.sha256(rfc8785.dumps(material)).hexdigest()
+        )
+        self.assertEqual(
+            _validate_receipt(json.dumps(receipt, ensure_ascii=False), coordinate),
+            receipt,
+        )
+
 if __name__ == "__main__":
     unittest.main()
