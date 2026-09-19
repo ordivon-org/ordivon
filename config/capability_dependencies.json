@@ -1,5 +1,14 @@
 {
   "capabilities": {
+    "binanceUsdmFutures": {
+      "credentialPolicy": "credentials remain external; Market Capital preflight must not load them",
+      "interpreter": "/root/external/binance-sdk-usdm/17.4.0/.venv/bin/python",
+      "nonResponsibility": "does not grant account/product eligibility, TradFi agreement acceptance, live execution authority, investment suitability or external-write admission",
+      "package": "binance-sdk-derivatives-trading-usds-futures",
+      "provider": "Binance Official USD\u24c8-M Futures Python SDK",
+      "responsibility": "official /fapi REST, WebSocket API and WebSocket Streams client mechanics for Binance USD\u24c8-M Futures",
+      "version": "17.4.0"
+    },
     "capitalAccounting": {
       "binary": "/usr/local/bin/tigerbeetle",
       "clientInterpreter": "/opt/ordivon/external/tigerbeetle/0.17.9/python-client/bin/python",

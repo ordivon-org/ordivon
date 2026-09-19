@@ -15,6 +15,10 @@ assert x['venues']['OKX']['requiredPermission']=='Read'
 assert set(x['venues']['OKX']['forbiddenPermissions'])=={'Trade','Withdraw'}
 assert x['venues']['BINANCE']['requiredSecurityType']=='USER_DATA'
 assert x['venues']['BINANCE']['tradePermissionRequired'] is False
+assert x['venues']['BINANCE_USDM']['requiredSecurityType']=='USER_DATA'
+assert x['venues']['BINANCE_USDM']['tradePermissionRequired'] is False
+assert x['venues']['BINANCE_USDM']['permissionStanding']=='PENDING_FRESH_PROVIDER_VERIFICATION'
+assert x['venues']['BINANCE_USDM']['tradFiAgreementAutomationAllowed'] is False
 print(json.dumps({'policyStanding':x['standing'],'ownerCredentialUseMandate':x['ownerCredentialUseMandate'],'credentialPermissionStanding':x['credentialPermissionStanding'],'privateAccountDataAdmission':x['privateAccountDataAdmission'],'secretDiscoveryAllowed':False},sort_keys=True))
 PY
 
@@ -38,3 +42,5 @@ missing=sorted(required-set(dir(api)))
 if missing: raise SystemExit(f'Binance official read surface missing: {missing}')
 print(json.dumps({'venue':'BINANCE','client':'binance-sdk-spot','version':v,'requiredMethods':sorted(required),'credentialsLoaded':False,'networkCalled':False},sort_keys=True))
 PY
+
+"$repo/scripts/check-binance-usdm-equity-perp-preflight"

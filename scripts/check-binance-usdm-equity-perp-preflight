@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+sdk=/root/external/binance-sdk-usdm/17.4.0/.venv/bin/python
+
+"$repo/scripts/run-capability-python" - "$repo/config/binance_usdm_equity_perp_provider.json" <<'PY'
+from pathlib import Path
+import json,sys
+from market_capital.binance_usdm_provider import qualify_provider_contract
+cfg=json.load(open(sys.argv[1]))
+print(json.dumps(qualify_provider_contract(cfg),sort_keys=True))
+PY
+
+"$sdk" - <<'PY'
+import importlib.metadata as m,json
+from binance_sdk_derivatives_trading_usds_futures.derivatives_trading_usds_futures import DerivativesTradingUsdsFutures
+from binance_common.configuration import ConfigurationRestAPI
+v=m.version('binance-sdk-derivatives-trading-usds-futures')
+if v!='17.4.0':
+    raise SystemExit(f'unexpected SDK version: {v}')
+api=DerivativesTradingUsdsFutures(
+    config_rest_api=ConfigurationRestAPI(api_key='',api_secret='')
+).rest_api
+required={
+'exchange_information','get_funding_rate_info','trading_schedule','adl_risk',
+'account_information_v3','futures_account_balance_v3','futures_account_configuration',
+'get_current_multi_assets_mode','get_current_position_mode','notional_and_leverage_brackets',
+'position_adl_quantile_estimation','position_information_v3','current_all_open_orders',
+'account_trade_list','new_order'
+}
+missing=sorted(required-set(dir(api)))
+if missing:
+    raise SystemExit(f'official SDK missing required methods: {missing}')
+print(json.dumps({
+ 'provider':'BINANCE',
+ 'product':'USDⓈ-M Futures',
+ 'sdk':'binance-sdk-derivatives-trading-usds-futures',
+ 'version':v,
+ 'requiredMethods':sorted(required),
+ 'credentialsLoaded':False,
+ 'networkCalled':False,
+ 'tradeMethodPresentButNotAdmitted':'new_order',
+},sort_keys=True))
+PY

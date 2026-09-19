@@ -1,0 +1,156 @@
+{
+  "accountModes": {
+    "hedgeModeSupported": true,
+    "marginModeOwner": "symbol configuration / position state",
+    "multiAssetsModeOwner": "GET /fapi/v1/multiAssetsMargin",
+    "multiAssetsRequiresCrossMargin": true,
+    "portfolioMarginOwner": "Binance Portfolio Margin APIs",
+    "positionModeOwner": "GET /fapi/v1/positionSide/dual"
+  },
+  "effectPolicy": {
+    "accountModeMutationAllowed": false,
+    "externalFinancialWriteAllowed": false,
+    "leverageMutationAllowed": false,
+    "tradFiAgreementMutationAllowed": false,
+    "tradeEndpointsAllowed": false
+  },
+  "exchangeInfoRules": {
+    "minNotionalOwner": "MIN_NOTIONAL.notional",
+    "pricePrecisionIsTickSize": false,
+    "quantityPrecisionIsStepSize": false,
+    "stepSizeOwner": "LOT_SIZE.stepSize / MARKET_LOT_SIZE.stepSize as applicable",
+    "tickSizeOwner": "PRICE_FILTER.tickSize"
+  },
+  "executionRecovery": {
+    "blindRetryAllowed": false,
+    "owner": "Binance USD\u24c8-M General Info + authoritative order/user-data state",
+    "unknownExecutionStatusRule": "HTTP 503 unknown-error responses may represent successful execution; reconcile through authoritative order status or user-data updates before any retry."
+  },
+  "historicalParameterChanges": [
+    {
+      "authorityRule": "Do not infer the current user maximum leverage from this announcement; query USER_DATA leverageBracket.",
+      "change": "Binance announced revised leverage and margin tiers, including a 51-75x smallest-notional tier.",
+      "effectiveDate": "2026-08-11",
+      "instrument": "SNDKUSDT"
+    }
+  ],
+  "kind": "ordivon.market-capital.binance-usdm-equity-perp-provider",
+  "networkV2": {
+    "directFallback": false,
+    "restAuthority": "binanceUsdmRest",
+    "wsAuthority": "binanceUsdmWs"
+  },
+  "officialClient": {
+    "credentialLoadedByPreflight": false,
+    "interpreter": "/root/external/binance-sdk-usdm/17.4.0/.venv/bin/python",
+    "package": "binance-sdk-derivatives-trading-usds-futures",
+    "restBase": "https://fapi.binance.com",
+    "version": "17.4.0"
+  },
+  "orderSemantics": {
+    "clientOrderIdMaxLength": 36,
+    "executionAdmitted": false,
+    "newOrderMethod": "new_order",
+    "owner": "Binance USD\u24c8-M New Order API / future qualified Nautilus execution adapter",
+    "positionSideModes": [
+      "BOTH",
+      "LONG",
+      "SHORT"
+    ],
+    "reduceOnlyUnavailableInHedgeMode": true,
+    "selfTradePreventionModes": [
+      "EXPIRE_TAKER",
+      "EXPIRE_MAKER",
+      "EXPIRE_BOTH"
+    ],
+    "timeInForce": [
+      "GTC",
+      "IOC",
+      "FOK",
+      "GTX",
+      "GTD",
+      "RPI"
+    ]
+  },
+  "pricingSemantics": {
+    "dividendAdjustmentMechanism": "special funding settlement around ex-dividend event; do not locally duplicate vendor/index adjustment logic",
+    "dividendAdjustmentOwner": "Binance Equity Perpetual Futures Dividend Adjustment Methodology",
+    "equityPerpOrderbookEwmaModeEffectiveUtc": "2026-05-16T00:00:00Z",
+    "markPricePrice2BasisEffectiveUtc": "2026-08-31T08:15:00Z",
+    "markPricePrice2BasisSeconds": 60,
+    "tradFiIndexConstituentPricesMayBeHidden": true,
+    "underlyingSessionOwner": "GET /fapi/v1/tradingSchedule",
+    "usEquitySessionTypes": [
+      "PRE_MARKET",
+      "REGULAR",
+      "AFTER_MARKET",
+      "OVERNIGHT",
+      "NO_TRADING"
+    ]
+  },
+  "privateReadOnlyTruth": {
+    "requiredMethods": [
+      "account_information_v3",
+      "futures_account_balance_v3",
+      "futures_account_configuration",
+      "get_current_multi_assets_mode",
+      "get_current_position_mode",
+      "notional_and_leverage_brackets",
+      "position_adl_quantile_estimation",
+      "position_information_v3",
+      "current_all_open_orders",
+      "account_trade_list"
+    ],
+    "securityType": "USER_DATA",
+    "standing": "PENDING_CREDENTIAL_CLIENT_BINDING",
+    "timelinessRule": "combine Position Information V3 with USER_DATA ACCOUNT_UPDATE stream"
+  },
+  "productFamily": "USD\u24c8-M_TRADFI_EQUITY_PERPETUAL",
+  "provider": "BINANCE",
+  "publicTruth": {
+    "adlRisk": "GET /fapi/v1/symbolAdlRisk",
+    "exchangeRules": "GET /fapi/v1/exchangeInfo",
+    "fundingHistory": "GET /fapi/v1/fundingRate",
+    "fundingInfo": "GET /fapi/v1/fundingInfo",
+    "insuranceFund": "GET /fapi/v1/insuranceBalance",
+    "markFunding": "GET /fapi/v1/premiumIndex",
+    "openInterest": "GET /fapi/v1/openInterest",
+    "orderBook": "GET /fapi/v1/depth",
+    "serverTime": "GET /fapi/v1/time",
+    "tradingSchedule": "GET /fapi/v1/tradingSchedule"
+  },
+  "referenceInstrument": {
+    "dynamicRule": "exchangeInfo, fundingInfo and USER_DATA leverageBracket override historical launch specifications when current values differ",
+    "launchSpecification": {
+      "fundingInterestRate": "0",
+      "fundingIntervalHours": 8,
+      "fundingRateCapAbs": "0.02",
+      "maximumLeverageAtLaunch": 10,
+      "minNotionalValue": "5",
+      "minTradeAmount": "0.01",
+      "multiAssetsModeSupported": true,
+      "tickSize": "0.01",
+      "tradingHours": "24/7"
+    },
+    "settlementAsset": "USDT",
+    "symbol": "SNDKUSDT",
+    "underlying": "Sandisk Corporation Common Stock (Nasdaq: SNDK)"
+  },
+  "riskTruth": {
+    "adlOwner": "public symbol ADL risk plus USER_DATA position ADL quantile",
+    "insuranceFundOwner": "GET /fapi/v1/insuranceBalance",
+    "leverageBracketOwner": "GET /fapi/v1/leverageBracket",
+    "liquidationPriceOwner": "Position Information V3 / authoritative Binance risk engine",
+    "localLiquidationFormulaIsAuthority": false,
+    "maintenanceMarginOwner": "Position Information V3 plus USER_DATA leverage bracket"
+  },
+  "schemaVersion": 1,
+  "standing": "PUBLIC_AND_CLIENT_SURFACES_QUALIFIED_PRIVATE_USER_DATA_PENDING",
+  "tradFiAgreement": {
+    "automationMayInvoke": false,
+    "eligibilityMustBeVerifiedAtProvider": true,
+    "endpoint": "POST /fapi/v1/stock/contract",
+    "purpose": "sign TradFi-Perps agreement contract",
+    "userExplicitActionRequired": true
+  }
+}
