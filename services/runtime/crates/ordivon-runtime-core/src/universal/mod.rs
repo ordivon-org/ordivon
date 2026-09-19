@@ -16,9 +16,9 @@ pub use fsutil::{
 };
 pub use mutation::mutate_workspace;
 pub(crate) use mutation::read_workspace_slice;
+pub(crate) use projection::create_git_workspace;
 pub use projection::{
-    create_git_workspace, read_workspace_slice_compact, read_workspace_text_compact,
-    workspace_diff_compact,
+    read_workspace_slice_compact, read_workspace_text_compact, workspace_diff_compact,
 };
 #[cfg(unix)]
 pub use runner::run_job_runner;
@@ -39,9 +39,8 @@ pub(crate) use types::{
 pub(crate) use workspace::{
     create_git_workspace_record, load_workspace_record, read_workspace_text, workspace_diff,
 };
-pub use workspace::{
-    read_workspace_content, remove_git_workspace, workspace_changes_page, write_workspace_text,
-};
+pub use workspace::{read_workspace_content, workspace_changes_page};
+pub(crate) use workspace::{remove_git_workspace, write_workspace_text};
 #[cfg(any(feature = "transactional-runtime", test))]
 pub use workspace::{workspace_head_revision, workspace_source_state_digest};
 

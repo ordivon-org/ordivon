@@ -153,7 +153,7 @@ pub fn read_workspace_content(
     })
 }
 
-pub fn write_workspace_text(
+pub(crate) fn write_workspace_text(
     config: &UniversalExecutorConfig,
     request: &WorkspaceWriteRequest,
 ) -> Result<WorkspaceWriteResult, UniversalExecError> {
