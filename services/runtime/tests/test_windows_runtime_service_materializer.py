@@ -46,3 +46,14 @@ def test_windows_service_materializer_does_not_predeclare_broad_service_privileg
     assert "requiredPrivileges = 'deferred-to-native-acceptance'" in text
     assert "'privs', $ServiceName" not in text
     assert "LocalSystem" not in text
+
+
+def test_windows_service_materializer_supports_isolated_candidate_identity_and_port():
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert "[string]$Bind = '127.0.0.1:8897'" in text
+    assert "[string]$NodeId = 'windows-main'" in text
+    assert "Bind must be an explicit loopback address and port." in text
+    assert "Bind port must be in the range 1..65535." in text
+    assert "NodeId contains unsupported characters." in text
+    assert "('ORDIVON_BIND=' + $Bind)" in text
+    assert "('ORDIVON_NODE_ID=' + $NodeId)" in text
