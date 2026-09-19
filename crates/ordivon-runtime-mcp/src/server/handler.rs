@@ -87,7 +87,7 @@ impl ServerHandler for RuntimeServer {
                     .with_title("Ordivon Runtime"),
             )
             .with_instructions(
-                "Local transactional Ordivon Runtime. MCP adapts protocol lifecycle only; durable Workspace, Job, Attempt, cancellation, recovery, and Artifact truth live in Runtime Core. workspace.exec uses trusted_local by default and supports explicit contained_local authority reduction. task.get/task.observe/task.list/task.cancel are ordinary Ordivon Tools, not MCP Tasks extension methods.",
+                "Local transactional Ordivon Runtime. MCP adapts protocol lifecycle only; durable Workspace, Job, Attempt, cancellation, recovery, and Artifact truth live in Runtime Core. workspace.exec uses trusted_local by default and supports explicit contained_local authority reduction. job.get and task.observe/task.list/task.cancel are ordinary Runtime Tools; the official MCP Tasks extension is a separate protocol surface.",
             )
     }
 }

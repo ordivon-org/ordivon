@@ -34,7 +34,7 @@ EXPECTED_TOOLS = {
     "release.get",
     "runtime.describe",
     "task.cancel",
-    "task.get",
+    "job.get",
     "task.list",
     "task.observe",
     "workspace.changes",
@@ -1249,7 +1249,7 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
             host_dependency_first,
         )
         host_dependency_first_inspection = client.tool(
-            "task.get",
+            "job.get",
             {"schemaVersion": SCHEMA_VERSION, "jobId": host_dependency_first_job, "eventLimit": 10},
         )
         host_dependency_v1_operation = host_dependency_first_inspection.get("job", {}).get("operationDigest")
@@ -1336,7 +1336,7 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
         )
         host_dependency_v2_job = str(host_dependency_v2["jobId"])
         host_dependency_v2_inspection = client.tool(
-            "task.get",
+            "job.get",
             {"schemaVersion": SCHEMA_VERSION, "jobId": host_dependency_v2_job, "eventLimit": 10},
         )
         host_dependency_v2_operation = host_dependency_v2_inspection.get("job", {}).get("operationDigest")
@@ -1599,7 +1599,7 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
         check("trusted-host-workspace-write", created.get("content") == "created-by-trusted-job\n", created)
 
         inspected = client.tool(
-            "task.get",
+            "job.get",
             {
                 "schemaVersion": SCHEMA_VERSION,
                 "jobId": job_id,

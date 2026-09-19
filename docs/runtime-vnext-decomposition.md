@@ -42,7 +42,7 @@ Those eight operations account for 92.87% of counted calls. Advanced surfaces ar
 | MCP transport | authentication, schema, request adaptation | KEEP | thin adapter; no domain truth |
 | Structured effects | durable intent + effect-specific receipt + reconciliation | KEEP/EXTEND | generalize carefully from release/patch |
 | Doctor/repair | exceptional operator diagnosis and repair | MOVE | operator-tools feature, not production MCP dependency |
-| Inspect/experience summaries | operator projections | MOVE/SPLIT | retain task.get core projection; externalize broad analytics |
+| Inspect/experience summaries | operator projections | MOVE/SPLIT | retain job.get core projection; externalize broad analytics |
 | lifecycle/status/cache/deploy/reclaim scripts | operator automation | MOVE/REDUCE | stop duplicating Registry semantics/SQL |
 | direct Registry SQL in shell/Python helpers | duplicate truth interpretation | REMOVE-CANDIDATE | replace with stable Runtime query/admin API |
 | workspace_is_dirty wrapper | duplicate weaker dirty probe | REMOVE | deleted; coverage merged into stronger probe |
