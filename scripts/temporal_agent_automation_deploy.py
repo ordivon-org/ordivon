@@ -18,6 +18,10 @@ VENV_PY = Path("/root/.local/share/ordivon-workstation/temporal-agent-automation
 TEMPORAL = Path("/opt/ordivon/external/temporal-cli/1.8.3/temporal")
 TEMPORAL_SHA = "76aea8d71fafe2d39c1104bef3ce86c1600d9adbff79953d102f60e535ae1413"
 PRODUCTION_ADDRESS = "127.0.0.1:17233"
+EXPECTED_RUNTIME_VERSIONS = {
+    "temporalio": "1.32.0",
+    "rfc8785": "0.1.4",
+}
 
 
 def sha(path: Path) -> str:
@@ -44,6 +48,30 @@ def cluster_health(address: str) -> bool:
     )
 
 
+def runtime_versions() -> dict[str, str] | None:
+    if not VENV_PY.is_file():
+        return None
+    code = (
+        "import importlib.metadata as m,json;"
+        "names=['temporalio','rfc8785'];"
+        "print(json.dumps({n:m.version(n) for n in names},sort_keys=True))"
+    )
+    proc = subprocess.run(
+        [str(VENV_PY), "-c", code],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=15,
+    )
+    if proc.returncode != 0:
+        return None
+    try:
+        value = json.loads(proc.stdout.strip())
+    except json.JSONDecodeError:
+        return None
+    return value if isinstance(value, dict) else None
+
+
 def config_address() -> str | None:
     try:
         value = json.loads(CONFIG.read_text())
@@ -61,6 +89,8 @@ def plan() -> dict:
         "kind": "ordivon.temporal-agent-production-deployment-plan",
         "temporalBinaryValid": TEMPORAL.is_file() and sha(TEMPORAL) == TEMPORAL_SHA,
         "temporalSdkPresent": VENV_PY.is_file(),
+        "runtimeVersions": runtime_versions(),
+        "runtimeVersionsExact": runtime_versions() == EXPECTED_RUNTIME_VERSIONS,
         "browserlessConfigPresent": CONFIG.is_file(),
         "admissionAddress": config_address(),
         "productionCluster": {
@@ -84,6 +114,10 @@ def apply() -> dict:
         raise RuntimeError("Temporal CLI exact binary is unavailable")
     if not current["temporalSdkPresent"]:
         raise RuntimeError("Temporal SDK venv is unavailable")
+    if not current["runtimeVersionsExact"]:
+        raise RuntimeError(
+            f"Temporal worker runtime versions differ from contract: {current['runtimeVersions']}"
+        )
     if not current["browserlessConfigPresent"]:
         raise RuntimeError("Browserless config must be prepared first")
     if current["admissionAddress"] != PRODUCTION_ADDRESS:

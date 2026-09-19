@@ -112,7 +112,12 @@ class ReleaseTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             release = Path(td)
             (release / "scripts").mkdir()
-            completed = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+            completed = subprocess.CompletedProcess(
+                [],
+                0,
+                stdout=json.dumps({"rfc8785": "0.1.4", "temporalio": "1.32.0"}) + "\n",
+                stderr="",
+            )
             with patch.object(r, "run", return_value=completed) as invoked:
                 REAL_REQUIRE_WORKER_RUNTIME_IMPORTABLE(release)
             argv = invoked.call_args.args[0]

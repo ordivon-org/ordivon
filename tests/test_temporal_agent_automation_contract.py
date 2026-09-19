@@ -148,8 +148,8 @@ class TemporalAgentAutomationContractTests(unittest.TestCase):
 
     def test_temporal_sdk_is_pinned(self):
         self.assertEqual(
-            (ROOT / "config/agent-automation-temporal-requirements.txt").read_text().strip(),
-            "temporalio==1.32.0",
+            (ROOT / "config/agent-automation-temporal-requirements.txt").read_text().splitlines(),
+            ["temporalio==1.32.0", "rfc8785==0.1.4"],
         )
 
 

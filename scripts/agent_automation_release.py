@@ -92,6 +92,10 @@ RELEASE_PATHS = (
     "systemd/ordivon-browserless-operator-proxy@.service",
 )
 GATE_SCHEMA_VERSION = 2
+WORKER_RUNTIME_VERSIONS = {
+    "temporalio": "1.32.0",
+    "rfc8785": "0.1.4",
+}
 
 
 class ReleaseError(RuntimeError):
@@ -437,12 +441,26 @@ def require_operator_carrier_available() -> None:
 
 def require_worker_runtime_importable(release: Path) -> None:
     scripts = release / "scripts"
-    code = "import sys; sys.path.insert(0, sys.argv[1]); import temporal_agent_automation"
+    code = (
+        "import sys,json,importlib.metadata as m;"
+        "sys.path.insert(0,sys.argv[1]);"
+        "import temporal_agent_automation;"
+        "names=['temporalio','rfc8785'];"
+        "print(json.dumps({n:m.version(n) for n in names},sort_keys=True))"
+    )
     p = run([str(WORKER_PY), "-c", code, str(scripts)], check=False, timeout=30)
     if p.returncode != 0:
         detail = (p.stderr or p.stdout or "").strip().replace("\n", " ")[-1200:]
         raise ReleaseError(
             f"candidate is not importable in the exact Temporal worker runtime: {detail or f'rc={p.returncode}'}"
+        )
+    try:
+        versions = json.loads(p.stdout.strip().splitlines()[-1])
+    except (json.JSONDecodeError, IndexError) as error:
+        raise ReleaseError("Temporal worker runtime dependency versions are not observable") from error
+    if versions != WORKER_RUNTIME_VERSIONS:
+        raise ReleaseError(
+            f"worker runtime dependency versions differ from release contract: {versions}"
         )
 
 

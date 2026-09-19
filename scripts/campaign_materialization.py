@@ -12,6 +12,8 @@ import argparse
 import hashlib
 import json
 import sqlite3
+
+import rfc8785
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -35,12 +37,7 @@ def _text(value: str, label: str, *, max_bytes: int = 65536) -> str:
 
 
 def canonical_digest(value: object) -> str:
-    # Migration target: RFC 8785/JCS at the admission compiler boundary. Existing persisted
-    # identities are byte-equivalent for the current string-only digest inputs.
-    raw = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
-        "utf-8"
-    )
-    return "sha256:" + hashlib.sha256(raw).hexdigest()
+    return "sha256:" + hashlib.sha256(rfc8785.dumps(value)).hexdigest()
 
 
 def bytes_digest(value: str) -> str:
