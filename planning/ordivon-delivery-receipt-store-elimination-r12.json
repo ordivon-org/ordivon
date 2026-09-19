@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "id": "ordivon-delivery-receipt-store-elimination-r12",
+  "date": "2026-09-19",
+  "status": "NINTH_PRODUCTION_DELETION",
+  "parent": "ordivon-effect-authorization-coordinator-elimination-r11",
+  "architecturalCore": "EMPTY",
+  "deletedLocalTypes": [
+    "DeliveryReceiptStore"
+  ],
+  "deletedPersistenceSurfaces": [
+    "delivery_receipts"
+  ],
+  "deletedApiSurfaces": [
+    "service.delivery_receipts",
+    "agent_service.DeliveryReceiptStore"
+  ],
+  "retiredForeignKeyAuthorities": [
+    "delivery_receipts.binding_id -> transport_bindings.id"
+  ],
+  "retainedProjectionTypes": [
+    "DeliveryReceipt"
+  ],
+  "durableReceiptOwner": {
+    "type": "existing ServiceEventStore",
+    "aggregateType": "Delivery",
+    "eventType": "DeliveryCommitted",
+    "singleReceiptSequence": 1,
+    "authoritativeDeliverySpecificStore": false
+  },
+  "genericEventPrimitiveAdded": {
+    "name": "ServiceEventStore.append_once",
+    "deliverySpecific": false,
+    "purpose": "exactly-once immutable single-event aggregate receipt"
+  },
+  "replacementLocalPrimitives": [],
+  "destructiveMigration": {
+    "legacyTable": "delivery_receipts",
+    "behavior": "FAIL_CLOSED_ON_OPEN",
+    "compatibilityShim": false
+  },
+  "topLevelTypeDebt": {
+    "r3Baseline": 171,
+    "r4": 170,
+    "r5": 169,
+    "r6": 168,
+    "r7": 167,
+    "r8": 165,
+    "r9": 164,
+    "r10": 162,
+    "r11": 161,
+    "r12": 160,
+    "cumulativeDelta": -11
+  },
+  "validation": {
+    "crossLayerTargetedTests": 56,
+    "structuralDeletionTests": 10,
+    "agentServiceTests": 213,
+    "agentServiceSkipped": 5,
+    "agentServiceStatus": "PASS",
+    "fullRepositoryTests": 312,
+    "fullRepositorySkipped": 5,
+    "fullRepositoryStatus": "PASS",
+    "observedTopLevelClasses": 160,
+    "legacyCeilingCount": 160
+  },
+  "nextAudit": "specialized receipt/evidence stores"
+}

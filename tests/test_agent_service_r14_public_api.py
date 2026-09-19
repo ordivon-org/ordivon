@@ -13,17 +13,13 @@ from agent_service.transport_credentials import (
     CredentialHeaderMaterial,
     CredentialMaterialProvider,
     TransportCredentialBindingCoordinator,
-    TransportCredentialBindingStore,
 )
 
 
 class AgentServiceR14PublicApiTests(unittest.TestCase):
     def test_package_exports_r14_bricks(self) -> None:
         self.assertIs(agent_service.AgentServiceR14, AgentServiceR14)
-        self.assertIs(
-            agent_service.TransportCredentialBindingStore,
-            TransportCredentialBindingStore,
-        )
+        self.assertFalse(hasattr(agent_service, "TransportCredentialBindingStore"))
         self.assertIs(
             agent_service.TransportCredentialBindingCoordinator,
             TransportCredentialBindingCoordinator,

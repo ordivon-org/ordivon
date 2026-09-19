@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agent_service.delivery import DeliveryAdapter, DeliveryObservation, PolicyAdapter, PolicyObservation
+from agent_service.delivery import DeliveryAdapter, DeliveryObservation, PolicyAdapter, PolicyObservation, _delivery_receipt_create, _delivery_receipt_get_by_binding
 from agent_service.evidence import RuntimeArtifactPayload, RuntimeArtifactReader
 from agent_service.failover import (
     AgentServiceR12,
@@ -12,10 +12,12 @@ from agent_service.failover import (
     ExecutionQuiescenceObservation,
     ReplaySafetyAdapter,
     ReplaySafetyObservation,
+    _replay_safety_decision_get_by_client_request,
+    _execution_quiescence_proof_get_by_client_request,
 )
 from agent_service.slice1 import CarrierProviderAdapter, ProviderObservation
 from agent_service.task_runtime import RuntimeAdapter, RuntimeJobObservation, RuntimeJobRef
-from agent_service.trust import RemoteProviderObservation
+from agent_service.trust import RemoteProviderObservation, _remote_delivery_observation_record
 
 
 class ReadyCarrier(CarrierProviderAdapter):
@@ -202,40 +204,47 @@ class AgentServiceFailoverR12Tests(unittest.TestCase):
         self.addCleanup(service.close)
         return service
 
-    def _agent(self, service: AgentServiceR12, name: str):
+    def _agent(self, service: AgentServiceR12, name: str, *, routes=None):
         definition = service.definitions.create(name)
-        revision = service.revisions.create(definition.id, {"name": name, "harness": "r12"})
+        revision = service.revisions.create(definition.id, {
+            "name": name,
+            "harness": "r12",
+            "skills": [{
+                "id": "review",
+                "name": "Review",
+                "description": "review",
+                "tags": ["review"],
+                "inputModes": ["text/plain"],
+                "outputModes": ["text/markdown"],
+            }],
+            "routes": routes or [],
+        })
         identity = service.identities.create(definition.id, stable_name=name, description=name)
-        instance = service.birth.birth(f"birth:{name}:r12", revision.id)
+        instance = service.birth(f"birth:{name}:r12", revision.id)
         service.reconciler.reconcile(instance.id)
         return revision, identity, instance
 
     def _setup(self, service: AgentServiceR12, suffix: str = "main"):
         source_revision, source_identity, source_instance = self._agent(service, f"source-{suffix}")
-        target_revision, target_identity, _ = self._agent(service, f"target-{suffix}")
-        service.capabilities.advertise(
-            target_revision.id,
-            key="review",
-            description="review",
-            input_modes=["text"],
-            output_modes=["text/markdown"],
-            tags=["review"],
-        )
-        service.interfaces.advertise(
-            target_revision.id,
-            transport="a2a-jsonrpc",
-            protocol_version="1.0",
-            url=f"https://agents.example.test/{suffix}",
-            priority=10,
-            security_requirements={},
-        )
-        service.interfaces.advertise(
-            target_revision.id,
-            transport="mcp",
-            protocol_version="2026-07-28",
-            url=f"https://mcp.example.test/{suffix}",
-            priority=20,
-            security_requirements={},
+        target_revision, target_identity, _ = self._agent(
+            service,
+            f"target-{suffix}",
+            routes=[
+                {
+                    "transport": "a2a-jsonrpc",
+                    "protocolVersion": "1.0",
+                    "url": f"https://agents.example.test/{suffix}",
+                    "priority": 10,
+                    "securityRequirements": {},
+                },
+                {
+                    "transport": "mcp",
+                    "protocolVersion": "2026-07-28",
+                    "url": f"https://mcp.example.test/{suffix}",
+                    "priority": 20,
+                    "securityRequirements": {},
+                },
+            ],
         )
         task = service.tasks.create(
             description=f"review-{suffix}",
@@ -259,15 +268,16 @@ class AgentServiceFailoverR12Tests(unittest.TestCase):
             payload={"text":"review"},
             evidence_contract={"kind":"review-markdown"},
         )
-        decision = service.policy.evaluate(
-            client_policy_request_id=f"r12:policy:{suffix}",
-            delegation_id=envelope.id,
-        )
+        policy_request_id = f"r12:policy:{suffix}"
         primary = service.routes.plan(
-            envelope.id, decision.id, preferred_transports=["a2a-jsonrpc"]
+            envelope.id,
+            client_policy_request_id=policy_request_id,
+            preferred_transports=["a2a-jsonrpc"],
         )
         fallback = service.routes.plan(
-            envelope.id, decision.id, preferred_transports=["mcp"]
+            envelope.id,
+            client_policy_request_id=policy_request_id,
+            preferred_transports=["mcp"],
         )
         return task, envelope, primary, fallback
 
@@ -368,7 +378,7 @@ class AgentServiceFailoverR12Tests(unittest.TestCase):
             self.assertTrue(proof.quiescent)
             with self.assertRaises(RuntimeError):
                 service.delivery.deliver(primary.id)
-            self.assertEqual(service.delivery_receipts.get_by_binding(primary.id).id, original.id)
+            self.assertEqual(_delivery_receipt_get_by_binding(service.events, primary.id).id, original.id)
             self.assertEqual(len([x for x in delivery.calls if x[0] == primary.id]), 1)
 
     def test_terminal_unsuccessful_observation_proves_quiescence_without_adapter(self) -> None:
@@ -376,7 +386,8 @@ class AgentServiceFailoverR12Tests(unittest.TestCase):
             service = self._open(Path(tmp) / "service.db")
             _, _, primary, _ = self._setup(service)
             receipt = self._deliver_primary(service, primary)
-            service.remote_observations.record(
+            _remote_delivery_observation_record(
+                service.events,
                 binding_id=primary.id,
                 observation=RemoteProviderObservation(
                     provider_status="TASK_STATE_FAILED",
@@ -399,7 +410,8 @@ class AgentServiceFailoverR12Tests(unittest.TestCase):
             service = self._open(Path(tmp) / "service.db")
             _, _, primary, _ = self._setup(service)
             receipt = self._deliver_primary(service, primary)
-            service.remote_observations.record(
+            _remote_delivery_observation_record(
+                service.events,
                 binding_id=primary.id,
                 observation=RemoteProviderObservation(
                     provider_status="TASK_STATE_CANCELED",
@@ -423,7 +435,8 @@ class AgentServiceFailoverR12Tests(unittest.TestCase):
             service = self._open(Path(tmp) / "service.db", quiescence_adapter=adapter, replay_safety_adapter=replay)
             task, _, primary, fallback = self._setup(service)
             receipt = self._deliver_primary(service, primary)
-            service.remote_observations.record(
+            _remote_delivery_observation_record(
+                service.events,
                 binding_id=primary.id,
                 observation=RemoteProviderObservation(
                     provider_status="TASK_STATE_COMPLETED",
@@ -435,7 +448,8 @@ class AgentServiceFailoverR12Tests(unittest.TestCase):
                     evidence_ref="remote://r12/completed",
                 ),
             )
-            service.remote_observations.record(
+            _remote_delivery_observation_record(
+                service.events,
                 binding_id=primary.id,
                 observation=RemoteProviderObservation(
                     provider_status="TASK_STATE_FAILED",
@@ -465,7 +479,7 @@ class AgentServiceFailoverR12Tests(unittest.TestCase):
                     client_quiescence_request_id="r12:q:mismatch", binding_id=primary.id
                 )
             self.assertIsNone(
-                service.quiescence_proof_records.get_by_client_request("r12:q:mismatch", required=False)
+                _execution_quiescence_proof_get_by_client_request(service.events, "r12:q:mismatch", required=False)
             )
 
     def test_quiescent_but_partial_effects_blocks_transfer(self) -> None:
@@ -479,7 +493,7 @@ class AgentServiceFailoverR12Tests(unittest.TestCase):
             self._deliver_primary(service, primary)
             with self.assertRaises(RuntimeError):
                 self._failover(service, primary, fallback, "partial-effects")
-            decision = service.replay_safety_decisions.get_by_client_request("r12:replay:partial-effects")
+            decision = _replay_safety_decision_get_by_client_request(service.events, "r12:replay:partial-effects")
             self.assertFalse(decision.safe)
             self.assertEqual(decision.classification, "PARTIAL_EFFECTS")
             self.assertEqual(service.execution_claims.get(task.id).owner_id, primary.id)
@@ -561,7 +575,8 @@ class AgentServiceFailoverR12Tests(unittest.TestCase):
             service = self._open(Path(tmp) / "service.db", quiescence_adapter=quiescence, replay_safety_adapter=replay)
             task, envelope, primary, fallback = self._setup(service)
             self._deliver_primary(service, primary)
-            service.delivery_receipts.create(
+            _delivery_receipt_create(
+                service.events,
                 fallback,
                 DeliveryObservation(
                     admission="committed",
@@ -628,7 +643,8 @@ class AgentServiceFailoverR12Tests(unittest.TestCase):
             self.assertEqual(len(quiescence.calls), 1)
             self.assertEqual(len(replay.calls), 1)
 
-            service.remote_observations.record(
+            _remote_delivery_observation_record(
+                service.events,
                 binding_id=primary.id,
                 observation=RemoteProviderObservation(
                     provider_status="TASK_STATE_COMPLETED",

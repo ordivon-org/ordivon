@@ -8,6 +8,7 @@ import tempfile
 import urllib.parse
 from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(_REPO_ROOT) not in sys.path:
@@ -18,7 +19,7 @@ from agent_service.provider_adapters import EffectLedgerReader
 from agent_service.slice1 import AgentServiceSlice1, CarrierProviderAdapter, ProviderObservation
 from agent_service.task_runtime import RuntimeAdapter, RuntimeJobObservation, RuntimeJobRef
 from agent_service.transport_credentials import AgentServiceR14
-from agent_service.trust import RemoteProviderObservation
+from agent_service.trust import RemoteProviderObservation, _remote_delivery_observation_list_for_binding, _remote_delivery_observation_record
 
 from tests.test_agent_service_failover_r12 import (
     AllowPolicy,
@@ -168,18 +169,37 @@ def _open_r12(
     )
 
 
-def _agent(service: Any, name: str) -> tuple[Any, Any, Any]:
+def _agent(
+    service: Any,
+    name: str,
+    *,
+    routes: list[dict[str, Any]] | None = None,
+) -> tuple[Any, Any, Any]:
     definition = service.definitions.create(name)
     revision = service.revisions.create(
         definition.id,
-        {"name": name, "stability": "r1"},
+        {
+            "name": name,
+            "stability": "r1",
+            "skills": [
+                {
+                    "id": "review",
+                    "name": "Review",
+                    "description": "review",
+                    "tags": ["review"],
+                    "inputModes": ["text/plain"],
+                    "outputModes": ["text/markdown"],
+                }
+            ],
+            "routes": routes or [],
+        },
     )
     identity = service.identities.create(
         definition.id,
         stable_name=name,
         description=name,
     )
-    instance = service.birth.birth(f"birth:{name}:stability-r1", revision.id)
+    instance = service.birth(f"birth:{name}:stability-r1", revision.id)
     service.reconciler.reconcile(instance.id)
     return revision, identity, instance
 
@@ -209,36 +229,31 @@ def _remote_setup(
     source_revision, source_identity, source_instance = _agent(
         service, f"source-{suffix}"
     )
-    target_revision, target_identity, _ = _agent(service, f"target-{suffix}")
-    service.capabilities.advertise(
-        target_revision.id,
-        key="review",
-        description="review",
-        input_modes=["text"],
-        output_modes=["text/markdown"],
-        tags=["review"],
-    )
     if same_hostname:
         a2a_url = f"https://shared-provider.example.test/{suffix}/a2a"
         mcp_url = f"https://shared-provider.example.test/{suffix}/mcp"
     else:
         a2a_url = f"https://a2a.example.test/{suffix}"
         mcp_url = f"https://mcp.example.test/{suffix}"
-    service.interfaces.advertise(
-        target_revision.id,
-        transport="a2a-jsonrpc",
-        protocol_version="1.0",
-        url=a2a_url,
-        priority=10,
-        security_requirements=security or {},
-    )
-    service.interfaces.advertise(
-        target_revision.id,
-        transport="mcp",
-        protocol_version="2026-07-28",
-        url=mcp_url,
-        priority=20,
-        security_requirements=security or {},
+    target_revision, target_identity, _ = _agent(
+        service,
+        f"target-{suffix}",
+        routes=[
+            {
+                "transport": "a2a-jsonrpc",
+                "protocolVersion": "1.0",
+                "url": a2a_url,
+                "priority": 10,
+                "securityRequirements": security or {},
+            },
+            {
+                "transport": "mcp",
+                "protocolVersion": "2026-07-28",
+                "url": mcp_url,
+                "priority": 20,
+                "securityRequirements": security or {},
+            },
+        ],
     )
     task = service.tasks.create(
         description=f"remote-stability-{suffix}",
@@ -272,20 +287,18 @@ def _remote_setup(
         payload={"text": "review"},
         evidence_contract={"kind": "review-markdown"},
     )
-    decision = service.policy.evaluate(
-        client_policy_request_id=f"stability:policy:{suffix}",
-        delegation_id=envelope.id,
-    )
+    policy_request_id = f"stability:policy:{suffix}"
     primary = service.routes.plan(
         envelope.id,
-        decision.id,
+        client_policy_request_id=policy_request_id,
         preferred_transports=["a2a-jsonrpc"],
     )
     fallback = service.routes.plan(
         envelope.id,
-        decision.id,
+        client_policy_request_id=policy_request_id,
         preferred_transports=["mcp"],
     )
+    policy_receipt = service.events.get(primary.policy_receipt_id)
     return {
         "sourceRevision": source_revision,
         "sourceIdentity": source_identity,
@@ -294,7 +307,7 @@ def _remote_setup(
         "targetIdentity": target_identity,
         "task": task,
         "envelope": envelope,
-        "decision": decision,
+        "decision": policy_receipt,
         "primary": primary,
         "fallback": fallback,
     }
@@ -342,7 +355,7 @@ def _scenario_placement_flap() -> dict[str, Any]:
         try:
             definition = service.definitions.create("flap-agent")
             revision = service.revisions.create(definition.id, {"name": "flap-agent"})
-            instance = service.birth.birth("birth:flap:r1", revision.id)
+            instance = service.birth("birth:flap:r1", revision.id)
             states: list[str] = []
             for _ in range(5):
                 states.append(service.reconciler.reconcile(instance.id).state)
@@ -381,7 +394,7 @@ def _scenario_stale_placement_observation() -> dict[str, Any]:
         try:
             definition = service.definitions.create("stale-agent")
             revision = service.revisions.create(definition.id, {"name": "stale-agent"})
-            instance = service.birth.birth("birth:stale:r1", revision.id)
+            instance = service.birth("birth:stale:r1", revision.id)
             service.reconciler.reconcile(instance.id)
             after_unknown = service.reconciler.reconcile(instance.id).state
             after_stale = service.reconciler.reconcile(instance.id).state
@@ -468,16 +481,17 @@ def _scenario_credential_expiry() -> dict[str, Any]:
                 binding,
             )
             first = service.credential_headers(binding)
-            service._connection.execute(
-                "UPDATE identity_proof_records SET expires_at_ms = 0 WHERE id = ?",
-                (proof.id,),
-            )
-            service._connection.commit()
             blocked = False
-            try:
-                service.credential_headers(binding)
-            except PermissionError:
-                blocked = True
+            after_expiry_ms = (
+                proof.expires_at_ms + 1
+                if proof.expires_at_ms is not None
+                else 10_000_000_000_000
+            )
+            with patch("agent_service.trust._now_ms", return_value=after_expiry_ms):
+                try:
+                    service.credential_headers(binding)
+                except PermissionError:
+                    blocked = True
             return {
                 "classification": "FAIL_CLOSED",
                 "firstHeaderResolved": first.get("Authorization") == "Bearer stability-secret",
@@ -616,7 +630,8 @@ def _scenario_remote_success_then_failure() -> dict[str, Any]:
             primary = setup["primary"]
             fallback = setup["fallback"]
             receipt = service.delivery.deliver(primary.id)
-            service.remote_observations.record(
+            _remote_delivery_observation_record(
+                service.events,
                 binding_id=primary.id,
                 observation=RemoteProviderObservation(
                     provider_status="TASK_STATE_COMPLETED",
@@ -628,7 +643,8 @@ def _scenario_remote_success_then_failure() -> dict[str, Any]:
                     evidence_ref="stability://completed",
                 ),
             )
-            service.remote_observations.record(
+            _remote_delivery_observation_record(
+                service.events,
                 binding_id=primary.id,
                 observation=RemoteProviderObservation(
                     provider_status="TASK_STATE_FAILED",
@@ -651,7 +667,7 @@ def _scenario_remote_success_then_failure() -> dict[str, Any]:
                 )
             except RuntimeError:
                 blocked = True
-            history = service.remote_observations.list_for_binding(primary.id)
+            history = _remote_delivery_observation_list_for_binding(service.events, primary.id)
             return {
                 "classification": "FAIL_CLOSED",
                 "historicalSuccessPresent": any(x.terminal and x.successful is True for x in history),

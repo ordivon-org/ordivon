@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "id": "ordivon-execution-claim-transfer-store-elimination-r16",
+  "date": "2026-09-19",
+  "status": "THIRTEENTH_PRODUCTION_DELETION",
+  "parent": "ordivon-remote-task-verification-store-elimination-r15",
+  "architecturalCore": "EMPTY",
+  "deletedLocalTypes": [
+    "ExecutionClaimTransferStore"
+  ],
+  "deletedPersistenceSurfaces": [
+    "execution_claim_transfers"
+  ],
+  "deletedApiSurfaces": [
+    "service.claim_transfer_records",
+    "agent_service.ExecutionClaimTransferStore"
+  ],
+  "retiredForeignKeyAuthorities": [
+    "execution_claim_transfers.task_id -> service_tasks.id",
+    "execution_claim_transfers.from_binding_id -> transport_bindings.id",
+    "execution_claim_transfers.to_binding_id -> transport_bindings.id",
+    "execution_claim_transfers.quiescence_proof_id -> execution_quiescence_proofs.id",
+    "execution_claim_transfers.replay_safety_decision_id -> replay_safety_decisions.id"
+  ],
+  "retainedProjectionTypes": [
+    "ExecutionClaimTransferRecord"
+  ],
+  "durableReceiptOwner": {
+    "type": "existing ServiceEventStore",
+    "aggregateType": "ExecutionClaimTransfer",
+    "eventType": "ExecutionClaimTransferred",
+    "singleReceiptSequence": 1
+  },
+  "singleUseSafetyReceipts": [
+    {
+      "aggregateType": "ExecutionClaimTransferProof",
+      "eventType": "ExecutionClaimTransferProofConsumed",
+      "identity": "quiescence_proof_id"
+    },
+    {
+      "aggregateType": "ExecutionClaimTransferDecision",
+      "eventType": "ExecutionClaimTransferDecisionConsumed",
+      "identity": "replay_safety_decision_id"
+    }
+  ],
+  "transactionalSafety": {
+    "claimCasAtomicWithTransferReceipt": true,
+    "proofConsumptionAtomic": true,
+    "replaySafetyDecisionConsumptionAtomic": true
+  },
+  "replacementLocalPrimitives": [],
+  "destructiveMigration": {
+    "legacyTable": "execution_claim_transfers",
+    "behavior": "FAIL_CLOSED_ON_OPEN",
+    "compatibilityShim": false
+  },
+  "topLevelTypeDebt": {
+    "r3Baseline": 171,
+    "r4": 170,
+    "r5": 169,
+    "r6": 168,
+    "r7": 167,
+    "r8": 165,
+    "r9": 164,
+    "r10": 162,
+    "r11": 161,
+    "r12": 160,
+    "r13": 159,
+    "r14": 158,
+    "r15": 157,
+    "r16": 156,
+    "cumulativeDelta": -15
+  },
+  "validation": {
+    "targetedTests": 20,
+    "structuralDeletionTests": 26,
+    "agentServiceTests": 225,
+    "agentServiceSkipped": 5,
+    "agentServiceStatus": "PASS",
+    "fullRepositoryTests": 324,
+    "fullRepositorySkipped": 5,
+    "fullRepositoryStatus": "PASS",
+    "observedTopLevelClasses": 156,
+    "legacyCeilingCount": 156
+  },
+  "nextAudit": [
+    "ReplaySafetyDecisionStore",
+    "ExecutionQuiescenceProofStore"
+  ]
+}

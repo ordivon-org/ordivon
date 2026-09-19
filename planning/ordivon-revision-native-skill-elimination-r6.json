@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "id": "ordivon-revision-native-skill-elimination-r6",
+  "date": "2026-09-19",
+  "status": "THIRD_PRODUCTION_DELETION",
+  "parent": "ordivon-interface-profile-elimination-r5",
+  "architecturalCore": "EMPTY",
+  "deletedLocalTypes": [
+    "CapabilityAdvertisementStore"
+  ],
+  "deletedPersistenceSurfaces": [
+    "capability_advertisements"
+  ],
+  "deletedApiSurfaces": [
+    "service.capabilities",
+    "agent_service.CapabilityAdvertisementStore"
+  ],
+  "cumulativeDeletedLocalTypes": [
+    "CapabilityAdvertisement",
+    "AgentInterfaceAdvertisement",
+    "CapabilityAdvertisementStore"
+  ],
+  "topLevelTypeDebt": {
+    "r3Baseline": 171,
+    "r4": 170,
+    "r5": 169,
+    "r6": 168,
+    "cumulativeDelta": -3
+  },
+  "replacementOwner": {
+    "standard": "A2A 1.0 AgentSkill",
+    "location": "AgentRevision.spec[\"skills\"]",
+    "canonicalReference": "https://a2a-protocol.org/dev/specification/#445-agentskill"
+  },
+  "replacementLocalPrimitives": [],
+  "preservedBehaviors": [
+    "agent-card-skill-projection",
+    "delegation-skill-existence-fail-closed",
+    "revision-reconstruction",
+    "media-type-boundary-normalization",
+    "malformed-skill-fail-closed",
+    "skill-presence-does-not-authorize"
+  ],
+  "validation": {
+    "agentServiceTests": 202,
+    "agentServiceSkipped": 5,
+    "agentServiceStatus": "PASS",
+    "fullRepositoryTests": 301,
+    "fullRepositorySkipped": 5,
+    "fullRepositoryStatus": "PASS"
+  },
+  "nextCandidates": [
+    "AgentInterfaceAdvertisementStore",
+    "agent_interface_advertisements",
+    "PolicyDecision",
+    "PolicyDecisionStore"
+  ]
+}

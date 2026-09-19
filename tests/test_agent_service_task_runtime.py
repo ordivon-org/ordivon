@@ -69,7 +69,7 @@ class AgentServiceTaskRuntimeTests(unittest.TestCase):
     def _ready_agent(self, service: AgentServiceR5):
         definition = service.definitions.create("worker")
         revision = service.revisions.create(definition.id, {"harness": "test"})
-        instance = service.birth.birth("birth-worker-1", revision.id)
+        instance = service.birth("birth-worker-1", revision.id)
         service.reconciler.reconcile(instance.id)
         self.assertEqual(service.instances.get(instance.id).state, "READY")
         return revision, instance
@@ -107,7 +107,7 @@ class AgentServiceTaskRuntimeTests(unittest.TestCase):
             service = self._open(Path(tmp) / "service.db", runtime)
             definition = service.definitions.create("worker")
             revision = service.revisions.create(definition.id, {"harness": "test"})
-            service.birth.birth("birth-worker-1", revision.id)  # still PROVISIONING
+            service.birth("birth-worker-1", revision.id)  # still PROVISIONING
             task = self._task(service, revision.id)
 
             with self.assertRaises(LookupError):

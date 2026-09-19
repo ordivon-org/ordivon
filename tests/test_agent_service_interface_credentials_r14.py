@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sqlite3
 import tempfile
 import unittest
 from dataclasses import replace
@@ -85,41 +86,55 @@ class AgentServiceInterfaceCredentialsR14Tests(unittest.TestCase):
         self.addCleanup(service.close)
         return service
 
-    def _agent(self, service, name):
+    def _agent(self, service, name, *, routes=None):
         definition = service.definitions.create(name)
-        revision = service.revisions.create(definition.id, {"name": name})
+        revision = service.revisions.create(definition.id, {
+            "name": name,
+            "skills": [{
+                "id": "review",
+                "name": "Review",
+                "description": "review",
+                "tags": ["review"],
+                "inputModes": ["text/plain"],
+                "outputModes": ["text/markdown"],
+            }],
+            "routes": routes or [],
+        })
         identity = service.identities.create(definition.id, stable_name=name, description=name)
-        instance = service.birth.birth(f"birth:{name}:r14", revision.id)
+        instance = service.birth(f"birth:{name}:r14", revision.id)
         service.reconciler.reconcile(instance.id)
         return revision, identity, instance
 
-    def _setup(self, service, *, a2a_version="1.0", security=None):
+    def _setup(
+        self,
+        service,
+        *,
+        a2a_version="1.0",
+        mcp_version="2026-07-28",
+        security=None,
+    ):
         sr, si, inst = self._agent(service, "source-r14")
-        tr, ti, _ = self._agent(service, "target-r14")
-        service.capabilities.advertise(
-            tr.id,
-            key="review",
-            description="review",
-            input_modes=["text"],
-            output_modes=["text"],
-            tags=["review"],
+        tr, ti, _ = self._agent(
+            service,
+            "target-r14",
+            routes=[
+                {
+                    "transport": "a2a-jsonrpc",
+                    "protocolVersion": a2a_version,
+                    "url": "https://agents.example.test/rpc",
+                    "priority": 10,
+                    "securityRequirements": security or {},
+                },
+                {
+                    "transport": "mcp",
+                    "protocolVersion": mcp_version,
+                    "url": "https://agents.example.test/mcp",
+                    "priority": 20,
+                    "securityRequirements": security or {},
+                },
+            ],
         )
-        a2a = service.interfaces.advertise(
-            tr.id,
-            transport="a2a-jsonrpc",
-            protocol_version=a2a_version,
-            url="https://agents.example.test/rpc",
-            priority=10,
-            security_requirements=security or {},
-        )
-        mcp = service.interfaces.advertise(
-            tr.id,
-            transport="mcp",
-            protocol_version="2026-07-28",
-            url="https://agents.example.test/mcp",
-            priority=20,
-            security_requirements=security or {},
-        )
+        a2a, mcp = tr.spec["routes"]
         task = service.tasks.create(
             description="r14",
             required_revision_id=sr.id,
@@ -142,66 +157,43 @@ class AgentServiceInterfaceCredentialsR14Tests(unittest.TestCase):
             payload={"text":"review"},
             evidence_contract={"kind":"review-markdown"},
         )
-        decision = service.policy.evaluate(
-            client_policy_request_id="r14:policy",
-            delegation_id=envelope.id,
-        )
         a2a_binding = service.routes.plan(
-            envelope.id, decision.id, preferred_transports=["a2a-jsonrpc"]
+            envelope.id,
+            client_policy_request_id="r14:policy",
+            preferred_transports=["a2a-jsonrpc"],
         )
         mcp_binding = service.routes.plan(
-            envelope.id, decision.id, preferred_transports=["mcp"]
+            envelope.id,
+            client_policy_request_id="r14:policy",
+            preferred_transports=["mcp"],
         )
         return si, envelope, a2a, mcp, a2a_binding, mcp_binding
 
     def test_interface_requires_explicit_protocol_version(self):
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp)/"s.db")
-            revision, _, _ = self._agent(service, "version-required")
-            with self.assertRaises(TypeError):
-                service.interfaces.advertise(
-                    revision.id,
-                    transport="a2a-jsonrpc",
-                    url="https://agents.example.test/rpc",
-                    priority=10,
-                    security_requirements={},
-                )
+            with self.assertRaises(ValueError):
+                self._setup(service, a2a_version=None)
 
     def test_protocol_version_is_immutable_interface_and_binding_identity(self):
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp)/"s.db")
             _, _, iface, _, binding, _ = self._setup(service)
-            self.assertEqual(iface.protocol_version, "1.0")
+            self.assertEqual(iface["protocolVersion"], "1.0")
             self.assertEqual(binding.protocol_version, "1.0")
             self.assertIn("protocol_version", binding.__dataclass_fields__)
 
     def test_a2a_protocol_version_must_be_major_minor_without_patch(self):
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp)/"s.db")
-            revision, _, _ = self._agent(service, "bad-a2a-version")
             with self.assertRaises(ValueError):
-                service.interfaces.advertise(
-                    revision.id,
-                    transport="a2a-jsonrpc",
-                    protocol_version="1.0.0",
-                    url="https://agents.example.test/rpc",
-                    priority=10,
-                    security_requirements={},
-                )
+                self._setup(service, a2a_version="1.0.0")
 
     def test_mcp_protocol_version_must_be_date_version(self):
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp)/"s.db")
-            revision, _, _ = self._agent(service, "bad-mcp-version")
             with self.assertRaises(ValueError):
-                service.interfaces.advertise(
-                    revision.id,
-                    transport="mcp",
-                    protocol_version="latest",
-                    url="https://agents.example.test/mcp",
-                    priority=10,
-                    security_requirements={},
-                )
+                self._setup(service, mcp_version="latest")
 
     def test_a2a_http_client_uses_binding_protocol_version_without_resolver(self):
         captured = []
@@ -277,7 +269,10 @@ class AgentServiceInterfaceCredentialsR14Tests(unittest.TestCase):
             self.assertFalse(hasattr(record, "access_token"))
             self.assertNotIn("TOP-SECRET-R14", repr(record))
             rows = service._connection.execute(
-                "SELECT * FROM transport_credential_bindings"
+                """
+                SELECT * FROM service_events
+                WHERE aggregate_type LIKE 'TransportCredential%'
+                """
             ).fetchall()
             self.assertNotIn("TOP-SECRET-R14", repr([dict(row) for row in rows]))
 
@@ -424,38 +419,67 @@ class AgentServiceInterfaceCredentialsR14Tests(unittest.TestCase):
             self.assertEqual(first.id, second.id)
 
 
-    def test_legacy_interface_without_protocol_version_fails_closed_until_operator_migration(self):
+    def test_transport_security_scheme_cannot_rebind_to_different_evidence(self):
+        proof_adapter = ProofAdapter()
+        provider = MaterialProvider()
         with tempfile.TemporaryDirectory() as tmp:
-            service = self._open(Path(tmp)/"s.db")
-            revision, _, _ = self._agent(service, "legacy-version")
-            service._connection.execute(
-                """
-                INSERT INTO agent_interface_advertisements(
-                    id,revision_id,transport,protocol_version,url,priority,
-                    security_requirements_json,created_at_ns
-                ) VALUES (?,?,?,?,?,?,?,?)
-                """,
-                (
-                    "iface_legacy",
-                    revision.id,
-                    "a2a-jsonrpc",
-                    None,
-                    "https://agents.example.test/legacy",
-                    10,
-                    "{}",
-                    1,
-                ),
+            service = self._open(
+                Path(tmp)/"s.db",
+                proof_adapter=proof_adapter,
+                material_provider=provider,
             )
-            service._connection.commit()
-            with self.assertRaises(RuntimeError):
-                service.interfaces.advertise(
-                    revision.id,
-                    transport="a2a-jsonrpc",
-                    protocol_version="1.0",
-                    url="https://agents.example.test/legacy",
-                    priority=10,
-                    security_requirements={},
+            source_identity, _, _, _, binding, _ = self._setup(
+                service, security={"oauth2":["review.invoke"]}
+            )
+            self._credential(service, source_identity, binding)
+            second_credential = service.credential_references.register(
+                client_reference_id="r14:cred:conflict",
+                provider="vault",
+                reference="vault://ordivon/a2a/client-conflict",
+                issuer="https://auth.example.test",
+                resource="https://agents.example.test",
+                requested_scopes=["review.invoke"],
+            )
+            second_proof = service.identity_proofs.verify(
+                client_proof_request_id="r14:proof:conflict",
+                identity_id=source_identity.id,
+                credential_reference_id=second_credential.id,
+                purpose="outbound-transport-auth",
+            )
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "already bound to different credential evidence",
+            ):
+                service.transport_credentials.bind(
+                    client_binding_request_id="r14:transport-credential:conflict",
+                    binding_id=binding.id,
+                    security_scheme="oauth2",
+                    identity_proof_id=second_proof.id,
                 )
+
+
+    def test_legacy_interface_table_fails_closed_until_destructive_migration(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            db = Path(tmp)/"s.db"
+            connection = sqlite3.connect(db)
+            connection.execute(
+                """
+                CREATE TABLE agent_interface_advertisements (
+                    id TEXT PRIMARY KEY,
+                    revision_id TEXT,
+                    transport TEXT,
+                    protocol_version TEXT,
+                    url TEXT,
+                    priority INTEGER,
+                    security_requirements_json TEXT,
+                    created_at_ns INTEGER
+                )
+                """
+            )
+            connection.commit()
+            connection.close()
+            with self.assertRaises(RuntimeError):
+                self._open(db)
 
     def test_credential_reference_chain_injects_transient_authorization_into_bound_a2a_request(self):
         proof_adapter = ProofAdapter()

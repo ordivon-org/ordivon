@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "id": "ordivon-effect-authorization-coordinator-elimination-r11",
+  "date": "2026-09-19",
+  "status": "EIGHTH_PRODUCTION_DELETION",
+  "parent": "ordivon-effect-authorization-receipt-elimination-r10",
+  "architecturalCore": "EMPTY",
+  "deletedLocalTypes": [
+    "EffectAuthorizationCoordinator"
+  ],
+  "deletedApiSurfaces": [
+    "agent_service.EffectAuthorizationCoordinator",
+    "service.effect_authorizations"
+  ],
+  "replacementLocalPrimitives": [],
+  "compositionOwnerAfterDeletion": "EffectAuthorizedDeliveryCoordinator",
+  "effectSafetySemantics": {
+    "currentPolicyBeforeFirstExternalEffect": true,
+    "sameBindingRetryReusesFrozenReceipt": true,
+    "deniedBindingStaysDenied": true,
+    "existingDeliveryReceiptDoesNotReauthorize": true
+  },
+  "topLevelTypeDebt": {
+    "r3Baseline": 171,
+    "r4": 170,
+    "r5": 169,
+    "r6": 168,
+    "r7": 167,
+    "r8": 165,
+    "r9": 164,
+    "r10": 162,
+    "r11": 161,
+    "cumulativeDelta": -10
+  },
+  "validation": {
+    "targetedTests": 8,
+    "structuralSafetyTests": 14,
+    "agentServiceTests": 210,
+    "agentServiceSkipped": 5,
+    "agentServiceStatus": "PASS",
+    "fullRepositoryTests": 309,
+    "fullRepositorySkipped": 5,
+    "fullRepositoryStatus": "PASS",
+    "observedTopLevelClasses": 161,
+    "legacyCeilingCount": 161
+  },
+  "nextAudit": [
+    "DeliveryReceipt",
+    "DeliveryReceiptStore"
+  ]
+}

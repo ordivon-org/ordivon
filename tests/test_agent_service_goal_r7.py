@@ -4,7 +4,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agent_service.goals import AgentServiceR7, BoardAdapter, BoardMessageRef
+from agent_service.goals import (
+    AgentServiceR7,
+    BoardAdapter,
+    BoardMessageRef,
+    _board_projection_receipt_get_by_event,
+)
 from agent_service.evidence import RuntimeArtifactPayload, RuntimeArtifactReader
 from agent_service.slice1 import CarrierProviderAdapter, ProviderObservation
 from agent_service.task_runtime import RuntimeAdapter, RuntimeJobObservation, RuntimeJobRef
@@ -86,7 +91,7 @@ class AgentServiceGoalR7Tests(unittest.TestCase):
     def _ready_revision(self, service: AgentServiceR7) -> str:
         definition = service.definitions.create("worker")
         revision = service.revisions.create(definition.id, {"harness": "test"})
-        instance = service.birth.birth("birth-r7-worker", revision.id)
+        instance = service.birth("birth-r7-worker", revision.id)
         service.reconciler.reconcile(instance.id)
         return revision.id
 
@@ -236,14 +241,22 @@ class AgentServiceGoalR7Tests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 service.board_projector.project_latest(goal.id)
 
-            self.assertEqual(service.board_receipts.list_for_goal(goal.id), [])
+            source_event = service.events.list_for("Goal", goal.id)[-1]
+            self.assertIsNone(
+                _board_projection_receipt_get_by_event(service.events, source_event.id)
+            )
             first_client_id = board.calls[0][0]
             receipt = service.board_projector.project_latest(goal.id)
 
             self.assertEqual(board.calls[1][0], first_client_id)
             self.assertEqual(receipt.client_message_id, first_client_id)
             self.assertEqual(len(board.messages), 1)
-            self.assertEqual(len(service.board_receipts.list_for_goal(goal.id)), 1)
+            self.assertEqual(
+                _board_projection_receipt_get_by_event(
+                    service.events, source_event.id
+                ).id,
+                receipt.id,
+            )
 
     def test_board_failure_never_rolls_back_or_redefines_goal_truth(self) -> None:
         board = FakeBoard()
@@ -311,7 +324,7 @@ class AgentServiceGoalGraphFreezeTests(unittest.TestCase):
         self.addCleanup(service.close)
         definition = service.definitions.create("worker-freeze")
         revision = service.revisions.create(definition.id, {"harness": "test"})
-        instance = service.birth.birth("birth-r7-freeze", revision.id)
+        instance = service.birth("birth-r7-freeze", revision.id)
         service.reconciler.reconcile(instance.id)
         return service, revision.id
 
@@ -370,7 +383,7 @@ class AgentServiceBoardCatchupTests(unittest.TestCase):
             self.addCleanup(service.close)
             definition = service.definitions.create("worker-board-catchup")
             revision = service.revisions.create(definition.id, {"harness":"test"})
-            instance = service.birth.birth("birth-r7-board-catchup", revision.id)
+            instance = service.birth("birth-r7-board-catchup", revision.id)
             service.reconciler.reconcile(instance.id)
             goal = service.goals.create("catch up")
             task = service.tasks.create(
@@ -412,7 +425,7 @@ class AgentServiceGoalLegoDecompositionTests(unittest.TestCase):
             self.addCleanup(service.close)
             definition = service.definitions.create("worker-lego")
             revision = service.revisions.create(definition.id, {"harness":"test"})
-            instance = service.birth.birth("birth-r7-lego", revision.id)
+            instance = service.birth("birth-r7-lego", revision.id)
             service.reconciler.reconcile(instance.id)
             goal = service.goals.create("lego")
             a = service.tasks.create(

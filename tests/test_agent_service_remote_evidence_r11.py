@@ -16,6 +16,7 @@ from agent_service.remote_evidence import (
     AgentServiceR11,
     RemoteArtifactPayload,
     RemoteArtifactReader,
+    _remote_task_verification_get_by_task,
 )
 from agent_service.slice1 import CarrierProviderAdapter, ProviderObservation
 from agent_service.task_runtime import RuntimeAdapter, RuntimeJobObservation, RuntimeJobRef
@@ -158,11 +159,23 @@ class AgentServiceRemoteEvidenceR11Tests(unittest.TestCase):
         self.addCleanup(service.close)
         return service
 
-    def _agent(self, service: AgentServiceR11, name: str):
+    def _agent(self, service: AgentServiceR11, name: str, *, routes=None):
         definition = service.definitions.create(name)
-        revision = service.revisions.create(definition.id, {"name": name, "harness": "r11"})
+        revision = service.revisions.create(definition.id, {
+            "name": name,
+            "harness": "r11",
+            "skills": [{
+                "id": "review",
+                "name": "Review",
+                "description": "review",
+                "tags": ["review"],
+                "inputModes": ["text/plain"],
+                "outputModes": ["text/markdown"],
+            }],
+            "routes": routes or [],
+        })
         identity = service.identities.create(definition.id, stable_name=name, description=name)
-        instance = service.birth.birth(f"birth:{name}:r11", revision.id)
+        instance = service.birth(f"birth:{name}:r11", revision.id)
         service.reconciler.reconcile(instance.id)
         return revision, identity, instance
 
@@ -176,30 +189,25 @@ class AgentServiceRemoteEvidenceR11Tests(unittest.TestCase):
 
     def _remote_setup(self, service: AgentServiceR11, *, with_goal: bool = False):
         source_revision, source_identity, source_instance = self._agent(service, "source")
-        target_revision, target_identity, _ = self._agent(service, "target")
-        service.capabilities.advertise(
-            target_revision.id,
-            key="review",
-            description="review",
-            input_modes=["text"],
-            output_modes=["text/markdown"],
-            tags=["review"],
-        )
-        service.interfaces.advertise(
-            target_revision.id,
-            transport="a2a-jsonrpc",
-            protocol_version="1.0",
-            url="https://agents.example.test/target",
-            priority=10,
-            security_requirements={},
-        )
-        service.interfaces.advertise(
-            target_revision.id,
-            transport="mcp",
-            protocol_version="2026-07-28",
-            url="https://mcp.example.test/target",
-            priority=20,
-            security_requirements={},
+        target_revision, target_identity, _ = self._agent(
+            service,
+            "target",
+            routes=[
+                {
+                    "transport": "a2a-jsonrpc",
+                    "protocolVersion": "1.0",
+                    "url": "https://agents.example.test/target",
+                    "priority": 10,
+                    "securityRequirements": {},
+                },
+                {
+                    "transport": "mcp",
+                    "protocolVersion": "2026-07-28",
+                    "url": "https://mcp.example.test/target",
+                    "priority": 20,
+                    "securityRequirements": {},
+                },
+            ],
         )
         task = self._task(service, source_revision.id)
         goal = None
@@ -223,12 +231,17 @@ class AgentServiceRemoteEvidenceR11Tests(unittest.TestCase):
             payload={"text":"review"},
             evidence_contract={"kind":"review-markdown"},
         )
-        decision = service.policy.evaluate(
-            client_policy_request_id=f"r11:policy:{task.id}",
-            delegation_id=envelope.id,
+        policy_request_id = f"r11:policy:{task.id}"
+        a2a = service.routes.plan(
+            envelope.id,
+            client_policy_request_id=policy_request_id,
+            preferred_transports=["a2a-jsonrpc"],
         )
-        a2a = service.routes.plan(envelope.id, decision.id, preferred_transports=["a2a-jsonrpc"])
-        mcp = service.routes.plan(envelope.id, decision.id, preferred_transports=["mcp"])
+        mcp = service.routes.plan(
+            envelope.id,
+            client_policy_request_id=policy_request_id,
+            preferred_transports=["mcp"],
+        )
         return source_revision, task, goal, envelope, a2a, mcp
 
     def test_local_assignment_claim_blocks_remote_delivery_for_same_task(self) -> None:
@@ -405,7 +418,7 @@ class AgentServiceRemoteEvidenceR11Tests(unittest.TestCase):
                 service.remote_completion.reconcile(a2a.id)
 
             self.assertEqual(service.tasks.get(task.id).state, "RUNNING")
-            self.assertIsNone(service.remote_verifications.get_by_task(task.id, required=False))
+            self.assertIsNone(_remote_task_verification_get_by_task(service.events, task.id, required=False))
 
     def test_remote_verification_is_durable_and_exact_replay_safe(self) -> None:
         text = "ACCEPTED"
@@ -445,7 +458,7 @@ class AgentServiceRemoteEvidenceR11Tests(unittest.TestCase):
                 remote_artifact_readers={},
             )
             self.addCleanup(second.close)
-            restored = second.remote_verifications.get_by_task(task.id)
+            restored = _remote_task_verification_get_by_task(second.events, task.id)
             self.assertEqual(restored.id, record.id)
             self.assertEqual(second.tasks.get(task.id).state, "SUCCEEDED")
 

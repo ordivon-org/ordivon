@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .slice1 import CarrierProviderAdapter, ServiceEventStore
+from .slice1 import CarrierProviderAdapter, ServiceEvent, ServiceEventStore
 from .task_runtime import (
     AgentServiceR5,
     Assignment,
@@ -82,111 +82,80 @@ class VerificationRecord:
     created_at_ns: int
 
 
-class VerificationRecordStore:
-    def __init__(self, connection: sqlite3.Connection) -> None:
-        self._connection = connection
+def _verification_record_from_event(event: ServiceEvent) -> VerificationRecord:
+    if event.aggregate_type != "Verification" or event.event_type != "VerificationRecorded":
+        raise ValueError("event is not a VerificationRecord receipt")
+    payload = event.payload
+    if payload.get("assignmentId") != event.aggregate_id:
+        raise RuntimeError("verification assignment identity mismatch")
+    return VerificationRecord(
+        id=event.id,
+        task_id=payload["taskId"],
+        assignment_id=event.aggregate_id,
+        runtime_job_id=payload["runtimeJobId"],
+        stage=payload["stage"],
+        accepted=bool(payload["accepted"]),
+        reason=payload.get("reason"),
+        evidence=payload["evidence"],
+        created_at_ns=event.created_at_ns,
+    )
 
-    def create_in_transaction(
-        self,
-        *,
-        task_id: str,
-        assignment_id: str,
-        runtime_job_id: str,
-        stage: str,
-        accepted: bool,
-        reason: str | None,
-        evidence: dict[str, Any],
-    ) -> VerificationRecord:
-        existing = self.get_by_assignment(assignment_id)
-        candidate = {
+
+def _verification_record_get_by_assignment(
+    events: ServiceEventStore,
+    assignment_id: str,
+) -> VerificationRecord | None:
+    history = events.list_for("Verification", assignment_id)
+    receipts = [item for item in history if item.event_type == "VerificationRecorded"]
+    if not receipts:
+        return None
+    if len(receipts) != 1:
+        raise RuntimeError("verification receipt stream contains multiple records")
+    return _verification_record_from_event(receipts[0])
+
+
+def _verification_record_list_for_task(
+    events: ServiceEventStore,
+    task_id: str,
+) -> list[VerificationRecord]:
+    records: list[VerificationRecord] = []
+    for event in events.list_for("Task", task_id):
+        if event.event_type != "TASK_VERIFIED":
+            continue
+        verification_id = event.payload.get("verificationId")
+        if not isinstance(verification_id, str) or not verification_id:
+            raise RuntimeError("TASK_VERIFIED event lacks verification identity")
+        records.append(_verification_record_from_event(events.get(verification_id)))
+    return records
+
+
+def _verification_record_create_in_transaction(
+    events: ServiceEventStore,
+    *,
+    task_id: str,
+    assignment_id: str,
+    runtime_job_id: str,
+    stage: str,
+    accepted: bool,
+    reason: str | None,
+    evidence: dict[str, Any],
+) -> VerificationRecord:
+    canonical_evidence = json.loads(_canonical_json(evidence))
+    event = events.append_once_in_transaction(
+        "Verification",
+        assignment_id,
+        "VerificationRecorded",
+        {
             "taskId": task_id,
             "assignmentId": assignment_id,
             "runtimeJobId": runtime_job_id,
             "stage": stage,
             "accepted": bool(accepted),
             "reason": reason,
-            "evidence": evidence,
-        }
-        if existing is not None:
-            historical = {
-                "taskId": existing.task_id,
-                "assignmentId": existing.assignment_id,
-                "runtimeJobId": existing.runtime_job_id,
-                "stage": existing.stage,
-                "accepted": existing.accepted,
-                "reason": existing.reason,
-                "evidence": existing.evidence,
-            }
-            if historical != candidate:
-                raise RuntimeError("verification record already exists with different evidence")
-            return existing
-        value = VerificationRecord(
-            id=_id("verify"),
-            task_id=task_id,
-            assignment_id=assignment_id,
-            runtime_job_id=runtime_job_id,
-            stage=stage,
-            accepted=bool(accepted),
-            reason=reason,
-            evidence=json.loads(_canonical_json(evidence)),
-            created_at_ns=_now_ns(),
-        )
-        self._connection.execute(
-            """
-            INSERT INTO task_verifications(
-                id, task_id, assignment_id, runtime_job_id, stage, accepted,
-                reason, evidence_json, created_at_ns
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                value.id,
-                value.task_id,
-                value.assignment_id,
-                value.runtime_job_id,
-                value.stage,
-                1 if value.accepted else 0,
-                value.reason,
-                _canonical_json(value.evidence),
-                value.created_at_ns,
-            ),
-        )
-        return value
-
-    def get_by_assignment(self, assignment_id: str) -> VerificationRecord | None:
-        row = self._connection.execute(
-            """
-            SELECT id, task_id, assignment_id, runtime_job_id, stage, accepted,
-                   reason, evidence_json, created_at_ns
-            FROM task_verifications WHERE assignment_id = ?
-            """,
-            (assignment_id,),
-        ).fetchone()
-        return None if row is None else self._from_row(row)
-
-    def list_for_task(self, task_id: str) -> list[VerificationRecord]:
-        rows = self._connection.execute(
-            """
-            SELECT id, task_id, assignment_id, runtime_job_id, stage, accepted,
-                   reason, evidence_json, created_at_ns
-            FROM task_verifications WHERE task_id = ? ORDER BY created_at_ns, id
-            """,
-            (task_id,),
-        ).fetchall()
-        return [self._from_row(row) for row in rows]
-
-    @staticmethod
-    def _from_row(row: sqlite3.Row) -> VerificationRecord:
-        return VerificationRecord(
-            id=row["id"],
-            task_id=row["task_id"],
-            assignment_id=row["assignment_id"],
-            runtime_job_id=row["runtime_job_id"],
-            stage=row["stage"],
-            accepted=bool(row["accepted"]),
-            reason=row["reason"],
-            evidence=json.loads(row["evidence_json"]),
-            created_at_ns=row["created_at_ns"],
-        )
+            "evidence": canonical_evidence,
+        },
+    )
+    return _verification_record_from_event(event)
 
 
 class AssignmentExecutionActivator:
@@ -226,91 +195,91 @@ class AssignmentExecutionActivator:
         return self._assignments.get(assignment.id)
 
 
-class RuntimeEvidenceGate:
+def _evaluate_runtime_evidence_gate(
+    observation: RuntimeJobObservation,
+) -> SemanticVerdict | None:
     """Mechanical truth gate before any semantic evidence is interpreted."""
-
-    def evaluate(self, observation: RuntimeJobObservation) -> SemanticVerdict | None:
-        if observation.semantic_completion_evaluated is not False:
-            raise RuntimeError("Runtime crossed semantic-completion authority boundary")
-        if not observation.execution_terminal:
-            return None
-        if observation.status != "succeeded":
-            return SemanticVerdict(False, f"runtime:{observation.status}")
-        if observation.delivery_disposition != "committed":
-            return SemanticVerdict(False, f"runtime:delivery:{observation.delivery_disposition}")
-        return SemanticVerdict(True, None)
+    if observation.semantic_completion_evaluated is not False:
+        raise RuntimeError("Runtime crossed semantic-completion authority boundary")
+    if not observation.execution_terminal:
+        return None
+    if observation.status != "succeeded":
+        return SemanticVerdict(False, f"runtime:{observation.status}")
+    if observation.delivery_disposition != "committed":
+        return SemanticVerdict(False, f"runtime:delivery:{observation.delivery_disposition}")
+    return SemanticVerdict(True, None)
 
 
-class EvidenceResolverRegistry:
-    def __init__(self, artifact_reader: RuntimeArtifactReader) -> None:
-        self._artifact_reader = artifact_reader
-
-    def resolve(self, acceptance: dict[str, Any], observation: RuntimeJobObservation) -> EvidenceBundle:
-        kind = acceptance["kind"]
-        if kind in {"stdout_contains", "stdout_equals"}:
-            content = observation.stdout_tail
-            return EvidenceBundle(
-                resolver="stdout_tail",
-                facts={"text": content},
-                provenance={
-                    "runtimeJobId": observation.job_id,
-                    "digest": _sha256_text(content),
-                    "byteLength": len(content.encode("utf-8")),
-                },
-            )
-        if kind == "runtime_artifact_text_contains":
-            artifact_kind = acceptance["artifactKind"]
-            matches = [
-                descriptor
-                for descriptor in observation.artifact_descriptors
-                if descriptor.kind == artifact_kind
-            ]
-            if len(matches) != 1:
-                raise RuntimeError(
-                    f"expected exactly one Runtime artifact of kind {artifact_kind!r}, found {len(matches)}"
-                )
-            descriptor = matches[0]
-            payload = self._artifact_reader.read(observation.job_id, descriptor.artifact_id)
-            if payload.job_id != observation.job_id or payload.artifact_id != descriptor.artifact_id:
-                raise RuntimeError("Runtime artifact reader returned mismatched identity")
-            computed = _sha256_text(payload.content)
-            if computed != payload.digest:
-                raise ArtifactDigestMismatch(
-                    f"Runtime artifact digest mismatch: {computed} != {payload.digest}"
-                )
-            return EvidenceBundle(
-                resolver="runtime_artifact_text",
-                facts={"text": payload.content},
-                provenance={
-                    "runtimeJobId": observation.job_id,
-                    "artifactId": payload.artifact_id,
-                    "artifactKind": artifact_kind,
-                    "digest": payload.digest,
-                    "byteLength": len(payload.content.encode("utf-8")),
-                },
-            )
-        raise ValueError(f"unsupported acceptance kind: {kind}")
-
-
-class EvidenceSemanticVerifier:
-    """Pure semantic verifier over normalized evidence, not Runtime process state."""
-
-    def verify(self, acceptance: dict[str, Any], evidence: EvidenceBundle) -> SemanticVerdict:
-        kind = acceptance["kind"]
-        text = evidence.facts.get("text")
-        if not isinstance(text, str):
-            raise RuntimeError("text acceptance requires normalized text evidence")
-        expected = acceptance["value"]
-        if kind in {"stdout_contains", "runtime_artifact_text_contains"}:
-            accepted = expected in text
-        elif kind == "stdout_equals":
-            accepted = expected == text
-        else:
-            raise ValueError(f"unsupported acceptance kind: {kind}")
-        return SemanticVerdict(
-            accepted,
-            None if accepted else f"acceptance:{kind}:not_satisfied",
+def _resolve_evidence(
+    artifact_reader: RuntimeArtifactReader,
+    acceptance: dict[str, Any],
+    observation: RuntimeJobObservation,
+) -> EvidenceBundle:
+    kind = acceptance["kind"]
+    if kind in {"stdout_contains", "stdout_equals"}:
+        content = observation.stdout_tail
+        return EvidenceBundle(
+            resolver="stdout_tail",
+            facts={"text": content},
+            provenance={
+                "runtimeJobId": observation.job_id,
+                "digest": _sha256_text(content),
+                "byteLength": len(content.encode("utf-8")),
+            },
         )
+    if kind == "runtime_artifact_text_contains":
+        artifact_kind = acceptance["artifactKind"]
+        matches = [
+            descriptor
+            for descriptor in observation.artifact_descriptors
+            if descriptor.kind == artifact_kind
+        ]
+        if len(matches) != 1:
+            raise RuntimeError(
+                f"expected exactly one Runtime artifact of kind {artifact_kind!r}, found {len(matches)}"
+            )
+        descriptor = matches[0]
+        payload = artifact_reader.read(observation.job_id, descriptor.artifact_id)
+        if payload.job_id != observation.job_id or payload.artifact_id != descriptor.artifact_id:
+            raise RuntimeError("Runtime artifact reader returned mismatched identity")
+        computed = _sha256_text(payload.content)
+        if computed != payload.digest:
+            raise ArtifactDigestMismatch(
+                f"Runtime artifact digest mismatch: {computed} != {payload.digest}"
+            )
+        return EvidenceBundle(
+            resolver="runtime_artifact_text",
+            facts={"text": payload.content},
+            provenance={
+                "runtimeJobId": observation.job_id,
+                "artifactId": payload.artifact_id,
+                "artifactKind": artifact_kind,
+                "digest": payload.digest,
+                "byteLength": len(payload.content.encode("utf-8")),
+            },
+        )
+    raise ValueError(f"unsupported acceptance kind: {kind}")
+
+def _verify_evidence_semantics(
+    acceptance: dict[str, Any],
+    evidence: EvidenceBundle,
+) -> SemanticVerdict:
+    """Pure semantic verifier over normalized evidence, not Runtime process state."""
+    kind = acceptance["kind"]
+    text = evidence.facts.get("text")
+    if not isinstance(text, str):
+        raise RuntimeError("text acceptance requires normalized text evidence")
+    expected = acceptance["value"]
+    if kind in {"stdout_contains", "runtime_artifact_text_contains"}:
+        accepted = expected in text
+    elif kind == "stdout_equals":
+        accepted = expected == text
+    else:
+        raise ValueError(f"unsupported acceptance kind: {kind}")
+    return SemanticVerdict(
+        accepted,
+        None if accepted else f"acceptance:{kind}:not_satisfied",
+    )
 
 
 class TaskCompletionReconciler:
@@ -322,26 +291,20 @@ class TaskCompletionReconciler:
         tasks: TaskStore,
         assignments: AssignmentStore,
         events: ServiceEventStore,
-        verifications: VerificationRecordStore,
         runtime: RuntimeAdapter,
-        mechanical_gate: RuntimeEvidenceGate,
-        resolvers: EvidenceResolverRegistry,
-        verifier: EvidenceSemanticVerifier,
+        artifact_reader: RuntimeArtifactReader,
     ) -> None:
         self._connection = connection
         self._tasks = tasks
         self._assignments = assignments
         self._events = events
-        self._verifications = verifications
         self._runtime = runtime
-        self._mechanical_gate = mechanical_gate
-        self._resolvers = resolvers
-        self._verifier = verifier
+        self._artifact_reader = artifact_reader
 
     def reconcile(self, assignment_id: str) -> Assignment:
         assignment = self._assignments.get(assignment_id)
         task = self._tasks.get(assignment.task_id)
-        existing = self._verifications.get_by_assignment(assignment.id)
+        existing = _verification_record_get_by_assignment(self._events, assignment.id)
         if existing is not None:
             return assignment
         if assignment.runtime_job_id is None:
@@ -352,13 +315,13 @@ class TaskCompletionReconciler:
             raise RuntimeError(f"completion cannot reconcile Task state {task.state}")
 
         observation = self._runtime.observe(assignment.runtime_job_id)
-        mechanical = self._mechanical_gate.evaluate(observation)
+        mechanical = _evaluate_runtime_evidence_gate(observation)
         if mechanical is None:
             return assignment
 
         if mechanical.accepted:
-            evidence = self._resolvers.resolve(task.acceptance, observation)
-            verdict = self._verifier.verify(task.acceptance, evidence)
+            evidence = _resolve_evidence(self._artifact_reader, task.acceptance, observation)
+            verdict = _verify_evidence_semantics(task.acceptance, evidence)
             stage = "semantic"
             receipt = evidence.receipt()
         else:
@@ -376,7 +339,8 @@ class TaskCompletionReconciler:
         assignment_state = "COMPLETED" if verdict.accepted else "FAILED"
         terminal_event = "TASK_SUCCEEDED" if verdict.accepted else "TASK_FAILED"
         with self._connection:
-            record = self._verifications.create_in_transaction(
+            record = _verification_record_create_in_transaction(
+                self._events,
                 task_id=task.id,
                 assignment_id=assignment.id,
                 runtime_job_id=assignment.runtime_job_id,
@@ -431,13 +395,11 @@ class AgentServiceR6:
         self.placements = r5.placements
         self.events = r5.events
         self.birth = r5.birth
-        self.observer = r5.observer
         self.reconciler = r5.reconciler
         self.tasks = r5.tasks
         self.assignments = r5.assignments
         self.planner = r5.planner
         self.legacy_activator = r5.activator
-        self.verifications = VerificationRecordStore(self._connection)
         self.execution_activator = AssignmentExecutionActivator(
             self._connection,
             self.tasks,
@@ -445,19 +407,13 @@ class AgentServiceR6:
             self.events,
             runtime_adapter,
         )
-        self.mechanical_gate = RuntimeEvidenceGate()
-        self.evidence_resolvers = EvidenceResolverRegistry(artifact_reader)
-        self.semantic_verifier = EvidenceSemanticVerifier()
         self.completion = TaskCompletionReconciler(
             self._connection,
             self.tasks,
             self.assignments,
             self.events,
-            self.verifications,
             runtime_adapter,
-            self.mechanical_gate,
-            self.evidence_resolvers,
-            self.semantic_verifier,
+            artifact_reader,
         )
 
     @classmethod
@@ -479,22 +435,15 @@ class AgentServiceR6:
 
     @staticmethod
     def _initialize_schema(connection: sqlite3.Connection) -> None:
-        connection.executescript(
-            """
-            CREATE TABLE IF NOT EXISTS task_verifications (
-                id TEXT PRIMARY KEY,
-                task_id TEXT NOT NULL REFERENCES service_tasks(id),
-                assignment_id TEXT NOT NULL UNIQUE REFERENCES service_assignments(id),
-                runtime_job_id TEXT NOT NULL,
-                stage TEXT NOT NULL,
-                accepted INTEGER NOT NULL CHECK(accepted IN (0, 1)),
-                reason TEXT,
-                evidence_json TEXT NOT NULL,
-                created_at_ns INTEGER NOT NULL
-            );
-            """
-        )
-        connection.commit()
+        legacy_task_verifications = connection.execute(
+            "SELECT 1 FROM sqlite_master "
+            "WHERE type = 'table' AND name = 'task_verifications'"
+        ).fetchone()
+        if legacy_task_verifications is not None:
+            raise RuntimeError(
+                "legacy task_verifications schema is unsupported; "
+                "perform explicit destructive migration before opening this revision"
+            )
 
     def close(self) -> None:
         self._r5.close()

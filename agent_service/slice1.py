@@ -302,6 +302,108 @@ class ServiceEventStore(_SqliteNode):
         )
         return event
 
+    def append_once(
+        self,
+        aggregate_type: str,
+        aggregate_id: str,
+        event_type: str,
+        payload: dict[str, Any] | None = None,
+    ) -> ServiceEvent:
+        """Append exactly one immutable event for an aggregate identity."""
+        with self._connection:
+            return self.append_once_in_transaction(
+                aggregate_type,
+                aggregate_id,
+                event_type,
+                payload,
+            )
+
+    def append_once_in_transaction(
+        self,
+        aggregate_type: str,
+        aggregate_id: str,
+        event_type: str,
+        payload: dict[str, Any] | None = None,
+    ) -> ServiceEvent:
+        """Transaction-scoped exactly-once append; caller owns commit/rollback."""
+        payload = payload or {}
+
+        def read_existing() -> ServiceEvent | None:
+            row = self._connection.execute(
+                "SELECT id, aggregate_type, aggregate_id, sequence, event_type, payload_json, created_at_ns "
+                "FROM service_events WHERE aggregate_type = ? AND aggregate_id = ? AND sequence = 1",
+                (aggregate_type, aggregate_id),
+            ).fetchone()
+            if row is None:
+                return None
+            return ServiceEvent(
+                id=row["id"],
+                aggregate_type=row["aggregate_type"],
+                aggregate_id=row["aggregate_id"],
+                sequence=row["sequence"],
+                event_type=row["event_type"],
+                payload=json.loads(row["payload_json"]),
+                created_at_ns=row["created_at_ns"],
+            )
+
+        existing = read_existing()
+        if existing is not None:
+            if existing.event_type != event_type or existing.payload != payload:
+                raise RuntimeError(
+                    "append_once identity is already bound to different event content"
+                )
+            return existing
+        event = ServiceEvent(
+            id=_id("evt"),
+            aggregate_type=aggregate_type,
+            aggregate_id=aggregate_id,
+            sequence=1,
+            event_type=event_type,
+            payload=payload,
+            created_at_ns=_now_ns(),
+        )
+        try:
+            self._connection.execute(
+                "INSERT INTO service_events(id, aggregate_type, aggregate_id, sequence, event_type, payload_json, created_at_ns) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (
+                    event.id,
+                    event.aggregate_type,
+                    event.aggregate_id,
+                    event.sequence,
+                    event.event_type,
+                    _canonical_json(event.payload),
+                    event.created_at_ns,
+                ),
+            )
+        except sqlite3.IntegrityError:
+            existing = read_existing()
+            if existing is None:
+                raise
+            if existing.event_type != event_type or existing.payload != payload:
+                raise RuntimeError(
+                    "append_once identity raced with different event content"
+                ) from None
+            return existing
+        return event
+
+    def get(self, event_id: str) -> ServiceEvent:
+        row = self._connection.execute(
+            "SELECT id, aggregate_type, aggregate_id, sequence, event_type, payload_json, created_at_ns FROM service_events WHERE id = ?",
+            (event_id,),
+        ).fetchone()
+        if row is None:
+            raise KeyError(event_id)
+        return ServiceEvent(
+            id=row["id"],
+            aggregate_type=row["aggregate_type"],
+            aggregate_id=row["aggregate_id"],
+            sequence=row["sequence"],
+            event_type=row["event_type"],
+            payload=json.loads(row["payload_json"]),
+            created_at_ns=row["created_at_ns"],
+        )
+
     def list_for(self, aggregate_type: str, aggregate_id: str) -> list[ServiceEvent]:
         rows = self._connection.execute(
             "SELECT id, aggregate_type, aggregate_id, sequence, event_type, payload_json, created_at_ns FROM service_events WHERE aggregate_type = ? AND aggregate_id = ? ORDER BY sequence",
@@ -321,84 +423,66 @@ class ServiceEventStore(_SqliteNode):
         ]
 
 
-class BirthCoordinator:
-    def __init__(
-        self,
-        connection: sqlite3.Connection,
-        revisions: AgentRevisionStore,
-        instances: AgentInstanceStore,
-        placements: DesiredPlacementStore,
-        events: ServiceEventStore,
-    ) -> None:
-        self._connection = connection
-        self._revisions = revisions
-        self._instances = instances
-        self._placements = placements
-        self._events = events
+def _birth_agent(
+    connection: sqlite3.Connection,
+    revisions: AgentRevisionStore,
+    instances: AgentInstanceStore,
+    placements: DesiredPlacementStore,
+    events: ServiceEventStore,
+    birth_request_id: str,
+    revision_id: str,
+) -> AgentInstance:
+    if not birth_request_id.strip():
+        raise ValueError("birth_request_id must not be empty")
+    revisions.get(revision_id)
+    existing = instances.get_by_birth_request(birth_request_id)
+    if existing is not None:
+        if existing.revision_id != revision_id:
+            raise ValueError("birth request already bound to a different revision")
+        return existing
 
-    def birth(self, birth_request_id: str, revision_id: str) -> AgentInstance:
-        if not birth_request_id.strip():
-            raise ValueError("birth_request_id must not be empty")
-        self._revisions.get(revision_id)
-        existing = self._instances.get_by_birth_request(birth_request_id)
-        if existing is not None:
-            if existing.revision_id != revision_id:
-                raise ValueError("birth request already bound to a different revision")
-            return existing
+    instance = AgentInstance(
+        id=_id("ainst"),
+        birth_request_id=birth_request_id,
+        revision_id=revision_id,
+        state="PROVISIONING",
+        created_at_ns=_now_ns(),
+    )
+    placement_id = _id("place")
+    placement_now = _now_ns()
 
-        instance = AgentInstance(
-            id=_id("ainst"),
-            birth_request_id=birth_request_id,
-            revision_id=revision_id,
-            state="PROVISIONING",
-            created_at_ns=_now_ns(),
-        )
-        placement_id = _id("place")
-        placement_now = _now_ns()
-
-        try:
-            with self._connection:
-                self._connection.execute(
-                    "INSERT INTO agent_instances(id, birth_request_id, revision_id, state, created_at_ns) VALUES (?, ?, ?, ?, ?)",
-                    (instance.id, instance.birth_request_id, instance.revision_id, instance.state, instance.created_at_ns),
-                )
-                self._connection.execute(
-                    "INSERT INTO desired_placements(id, agent_instance_id, desired_state, observed_state, evidence_ref, created_at_ns, updated_at_ns) VALUES (?, ?, 'READY', 'UNKNOWN', NULL, ?, ?)",
-                    (placement_id, instance.id, placement_now, placement_now),
-                )
-                self._append_event_in_transaction(
+    try:
+        with connection:
+            connection.execute(
+                "INSERT INTO agent_instances(id, birth_request_id, revision_id, state, created_at_ns) VALUES (?, ?, ?, ?, ?)",
+                (
                     instance.id,
-                    "AGENT_BIRTH_REQUESTED",
-                    {"birthRequestId": birth_request_id, "revisionId": revision_id, "placementId": placement_id},
-                )
-        except sqlite3.IntegrityError:
-            existing = self._instances.get_by_birth_request(birth_request_id)
-            if existing is None or existing.revision_id != revision_id:
-                raise
-            return existing
-        return instance
-
-    def _append_event_in_transaction(self, instance_id: str, event_type: str, payload: dict[str, Any]) -> None:
-        row = self._connection.execute(
-            "SELECT COALESCE(MAX(sequence), 0) AS max_sequence FROM service_events WHERE aggregate_type = 'AgentInstance' AND aggregate_id = ?",
-            (instance_id,),
-        ).fetchone()
-        sequence = int(row["max_sequence"]) + 1
-        self._connection.execute(
-            "INSERT INTO service_events(id, aggregate_type, aggregate_id, sequence, event_type, payload_json, created_at_ns) VALUES (?, 'AgentInstance', ?, ?, ?, ?, ?)",
-            (_id("evt"), instance_id, sequence, event_type, _canonical_json(payload), _now_ns()),
-        )
-
-
-class ProviderObserver:
-    def __init__(self, carrier_adapter: CarrierProviderAdapter) -> None:
-        self._carrier_adapter = carrier_adapter
-
-    def observe(self, placement_id: str) -> ProviderObservation:
-        observation = self._carrier_adapter.observe(placement_id)
-        if observation.placement_id != placement_id:
-            raise ValueError("provider returned observation for different placement")
-        return observation
+                    instance.birth_request_id,
+                    instance.revision_id,
+                    instance.state,
+                    instance.created_at_ns,
+                ),
+            )
+            connection.execute(
+                "INSERT INTO desired_placements(id, agent_instance_id, desired_state, observed_state, evidence_ref, created_at_ns, updated_at_ns) VALUES (?, ?, 'READY', 'UNKNOWN', NULL, ?, ?)",
+                (placement_id, instance.id, placement_now, placement_now),
+            )
+            events.append_in_transaction(
+                "AgentInstance",
+                instance.id,
+                "AGENT_BIRTH_REQUESTED",
+                {
+                    "birthRequestId": birth_request_id,
+                    "revisionId": revision_id,
+                    "placementId": placement_id,
+                },
+            )
+    except sqlite3.IntegrityError:
+        existing = instances.get_by_birth_request(birth_request_id)
+        if existing is None or existing.revision_id != revision_id:
+            raise
+        return existing
+    return instance
 
 
 class PlacementReconciler:
@@ -410,7 +494,6 @@ class PlacementReconciler:
         placements: DesiredPlacementStore,
         events: ServiceEventStore,
         carrier_adapter: CarrierProviderAdapter,
-        observer: ProviderObserver,
     ) -> None:
         self._connection = connection
         self._revisions = revisions
@@ -418,7 +501,6 @@ class PlacementReconciler:
         self._placements = placements
         self._events = events
         self._carrier_adapter = carrier_adapter
-        self._observer = observer
 
     def reconcile(self, instance_id: str) -> AgentInstance:
         instance = self._instances.get(instance_id)
@@ -434,7 +516,7 @@ class PlacementReconciler:
         else:
             raise ValueError(f"unsupported desired state: {placement.desired_state}")
 
-        observation = self._observer.observe(placement.id)
+        observation = self._carrier_adapter.observe(placement.id)
         self._placements.record_observation(placement.id, observation)
 
         current = self._instances.get(instance.id)
@@ -476,8 +558,6 @@ class AgentServiceSlice1:
         self.instances = AgentInstanceStore(connection)
         self.placements = DesiredPlacementStore(connection)
         self.events = ServiceEventStore(connection)
-        self.birth = BirthCoordinator(connection, self.revisions, self.instances, self.placements, self.events)
-        self.observer = ProviderObserver(carrier_adapter)
         self.reconciler = PlacementReconciler(
             connection,
             self.revisions,
@@ -485,7 +565,17 @@ class AgentServiceSlice1:
             self.placements,
             self.events,
             carrier_adapter,
-            self.observer,
+        )
+
+    def birth(self, birth_request_id: str, revision_id: str) -> AgentInstance:
+        return _birth_agent(
+            self._connection,
+            self.revisions,
+            self.instances,
+            self.placements,
+            self.events,
+            birth_request_id,
+            revision_id,
         )
 
     @classmethod

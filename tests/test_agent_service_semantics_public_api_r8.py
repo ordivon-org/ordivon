@@ -7,7 +7,6 @@ from agent_service.semantics import (
     A2AAgentCardProjector,
     AgentIdentityStore,
     AgentServiceR8,
-    CapabilityAdvertisementStore,
     DelegationEnvelopeStore,
     SessionItemStore,
     SessionStore,
@@ -18,7 +17,7 @@ class AgentServiceSemanticsPublicApiR8Tests(unittest.TestCase):
     def test_package_exports_r8_semantic_bricks(self) -> None:
         self.assertIs(agent_service.AgentServiceR8, AgentServiceR8)
         self.assertIs(agent_service.AgentIdentityStore, AgentIdentityStore)
-        self.assertIs(agent_service.CapabilityAdvertisementStore, CapabilityAdvertisementStore)
+        self.assertFalse(hasattr(agent_service, "CapabilityAdvertisementStore"))
         self.assertIs(agent_service.SessionStore, SessionStore)
         self.assertIs(agent_service.SessionItemStore, SessionItemStore)
         self.assertIs(agent_service.DelegationEnvelopeStore, DelegationEnvelopeStore)

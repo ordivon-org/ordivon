@@ -6,7 +6,7 @@ from pathlib import Path
 
 from agent_service.delivery import DeliveryObservation, PolicyAdapter, PolicyObservation
 from agent_service.evidence import RuntimeArtifactPayload, RuntimeArtifactReader
-from agent_service.failover import AgentServiceR12
+from agent_service.failover import AgentServiceR12, _replay_safety_decision_get
 from agent_service.provider_adapters import (
     A2AJsonRpcHttpClient,
     A2AQuiescenceAdapter,
@@ -189,40 +189,46 @@ class AgentServiceProviderAdaptersR13Tests(unittest.TestCase):
         self.addCleanup(service.close)
         return service
 
-    def _agent(self, service, name):
+    def _agent(self, service, name, *, routes=None):
         definition = service.definitions.create(name)
-        revision = service.revisions.create(definition.id, {"name": name})
+        revision = service.revisions.create(definition.id, {
+            "name": name,
+            "skills": [{
+                "id": "review",
+                "name": "Review",
+                "description": "review",
+                "tags": ["review"],
+                "inputModes": ["text/plain"],
+                "outputModes": ["text/markdown"],
+            }],
+            "routes": routes or [],
+        })
         identity = service.identities.create(definition.id, stable_name=name, description=name)
-        instance = service.birth.birth(f"birth:{name}:r13", revision.id)
+        instance = service.birth(f"birth:{name}:r13", revision.id)
         service.reconciler.reconcile(instance.id)
         return revision, identity, instance
 
     def _bindings(self, service):
         sr, si, inst = self._agent(service, "source")
-        tr, ti, _ = self._agent(service, "target")
-        service.capabilities.advertise(
-            tr.id,
-            key="review",
-            description="review",
-            input_modes=["text"],
-            output_modes=["text"],
-            tags=["review"],
-        )
-        service.interfaces.advertise(
-            tr.id,
-            transport="a2a-jsonrpc",
-            protocol_version="1.0",
-            url="https://a2a.example.test/rpc",
-            priority=10,
-            security_requirements={},
-        )
-        service.interfaces.advertise(
-            tr.id,
-            transport="mcp",
-            protocol_version="2026-07-28",
-            url="https://mcp.example.test/mcp",
-            priority=20,
-            security_requirements={},
+        tr, ti, _ = self._agent(
+            service,
+            "target",
+            routes=[
+                {
+                    "transport": "a2a-jsonrpc",
+                    "protocolVersion": "1.0",
+                    "url": "https://a2a.example.test/rpc",
+                    "priority": 10,
+                    "securityRequirements": {},
+                },
+                {
+                    "transport": "mcp",
+                    "protocolVersion": "2026-07-28",
+                    "url": "https://mcp.example.test/mcp",
+                    "priority": 20,
+                    "securityRequirements": {},
+                },
+            ],
         )
         task = service.tasks.create(
             description="r13",
@@ -243,12 +249,16 @@ class AgentServiceProviderAdaptersR13Tests(unittest.TestCase):
             payload={"text":"review"},
             evidence_contract={"kind":"review-markdown"},
         )
-        decision = service.policy.evaluate(
+        a2a = service.routes.plan(
+            envelope.id,
             client_policy_request_id="r13:policy",
-            delegation_id=envelope.id,
+            preferred_transports=["a2a-jsonrpc"],
         )
-        a2a = service.routes.plan(envelope.id, decision.id, preferred_transports=["a2a-jsonrpc"])
-        mcp = service.routes.plan(envelope.id, decision.id, preferred_transports=["mcp"])
+        mcp = service.routes.plan(
+            envelope.id,
+            client_policy_request_id="r13:policy",
+            preferred_transports=["mcp"],
+        )
         return task, envelope, a2a, mcp
 
     def _receipt_and_context(self, service, binding):
@@ -675,7 +685,7 @@ class AgentServiceProviderAdaptersR13Tests(unittest.TestCase):
                 to_binding_id=mcp.id,
             )
             self.assertEqual(service.execution_claims.get(task.id).owner_id, mcp.id)
-            self.assertEqual(service.replay_safety_decisions.get(transfer.replay_safety_decision_id).classification, "NO_EFFECTS")
+            self.assertEqual(_replay_safety_decision_get(service.events, transfer.replay_safety_decision_id).classification, "NO_EFFECTS")
             receipt = service.delivery.deliver(mcp.id)
             self.assertEqual(receipt.binding_id, mcp.id)
             self.assertEqual(service.tasks.get(task.id).state, "RUNNING")

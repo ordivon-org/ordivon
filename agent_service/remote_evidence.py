@@ -13,19 +13,20 @@ from typing import Any
 from .delivery import (
     DeliveryAdapter,
     DeliveryObservation,
-    DeliveryReceiptStore,
     PolicyAdapter,
     TransportBinding,
     TransportBindingStore,
+    _delivery_receipt_create,
+    _delivery_receipt_get_by_binding,
 )
 from .evidence import (
     ArtifactDigestMismatch,
     EvidenceBundle,
-    EvidenceSemanticVerifier,
     RuntimeArtifactReader,
+    _verify_evidence_semantics,
 )
 from .goals import BoardAdapter, GoalAssignmentPlanner, TaskReadinessProjector
-from .slice1 import CarrierProviderAdapter, ServiceEventStore
+from .slice1 import CarrierProviderAdapter, ServiceEvent, ServiceEventStore
 from .task_runtime import (
     Assignment,
     AssignmentStore,
@@ -36,9 +37,9 @@ from .task_runtime import (
 from .trust import (
     AgentServiceR10,
     IdentityProofAdapter,
-    RemoteDeliveryObservationStore,
     RemoteDeliveryObserver,
     RemoteDeliverySnapshot,
+    _remote_delivery_observation_latest_for_binding,
 )
 
 
@@ -201,7 +202,7 @@ class ClaimAwareDeliveryCoordinator:
         readiness: TaskReadinessProjector,
         delegations: Any,
         bindings: TransportBindingStore,
-        receipts: DeliveryReceiptStore,
+        receipts: ServiceEventStore,
         adapters: dict[str, DeliveryAdapter],
     ) -> None:
         self._connection = connection
@@ -283,7 +284,7 @@ class ClaimAwareDeliveryCoordinator:
     def deliver(self, binding_id: str):
         binding = self._bindings.get(binding_id)
         envelope = self._delegations.get(binding.delegation_id)
-        existing = self._receipts.get_by_binding(binding_id, required=False)
+        existing = _delivery_receipt_get_by_binding(self._receipts, binding_id, required=False)
         if existing is not None:
             self._claim_remote(binding, envelope, allow_terminal=True)
             return existing
@@ -300,7 +301,7 @@ class ClaimAwareDeliveryCoordinator:
             raise TypeError("DeliveryAdapter must return DeliveryObservation")
         if observation.admission not in {"committed", "existing"}:
             raise ValueError("DeliveryObservation admission must be committed or existing")
-        return self._receipts.create(binding, observation)
+        return _delivery_receipt_create(self._receipts, binding, observation)
 
 
 @dataclass(frozen=True)
@@ -405,100 +406,71 @@ class RemoteTaskVerificationRecord:
     created_at_ns: int
 
 
-class RemoteTaskVerificationStore:
-    def __init__(self, connection: sqlite3.Connection) -> None:
-        self._connection = connection
+def _remote_task_verification_from_event(event: ServiceEvent) -> RemoteTaskVerificationRecord:
+    if (
+        event.aggregate_type != "RemoteVerification"
+        or event.event_type != "RemoteVerificationRecorded"
+    ):
+        raise ValueError("event is not a remote Task verification receipt")
+    payload = event.payload
+    if payload.get("taskId") != event.aggregate_id:
+        raise RuntimeError("remote verification Task identity mismatch")
+    return RemoteTaskVerificationRecord(
+        id=event.id,
+        task_id=event.aggregate_id,
+        binding_id=payload["bindingId"],
+        remote_observation_id=payload["remoteObservationId"],
+        stage=payload["stage"],
+        accepted=bool(payload["accepted"]),
+        reason=payload.get("reason"),
+        evidence=payload["evidence"],
+        created_at_ns=event.created_at_ns,
+    )
 
-    def get_by_task(
-        self, task_id: str, required: bool = True
-    ) -> RemoteTaskVerificationRecord | None:
-        row = self._connection.execute(
-            "SELECT * FROM remote_task_verifications WHERE task_id = ?", (task_id,)
-        ).fetchone()
-        if row is None:
-            if required:
-                raise KeyError(task_id)
-            return None
-        return self._from_row(row)
 
-    def create_in_transaction(
-        self,
-        *,
-        task_id: str,
-        binding_id: str,
-        remote_observation_id: str,
-        stage: str,
-        accepted: bool,
-        reason: str | None,
-        evidence: dict[str, Any],
-    ) -> RemoteTaskVerificationRecord:
-        normalized_evidence = json.loads(_canonical_json(evidence))
-        existing = self.get_by_task(task_id, required=False)
-        candidate = (
-            binding_id,
-            remote_observation_id,
-            stage,
-            bool(accepted),
-            reason,
-            normalized_evidence,
-        )
-        if existing is not None:
-            historical = (
-                existing.binding_id,
-                existing.remote_observation_id,
-                existing.stage,
-                existing.accepted,
-                existing.reason,
-                existing.evidence,
-            )
-            if candidate != historical:
-                raise RuntimeError("remote Task verification already exists with different evidence")
-            return existing
-        value = RemoteTaskVerificationRecord(
-            id=_id("rverify"),
-            task_id=task_id,
-            binding_id=binding_id,
-            remote_observation_id=remote_observation_id,
-            stage=stage,
-            accepted=bool(accepted),
-            reason=reason,
-            evidence=normalized_evidence,
-            created_at_ns=_now_ns(),
-        )
-        self._connection.execute(
-            """
-            INSERT INTO remote_task_verifications(
-                id, task_id, binding_id, remote_observation_id, stage,
-                accepted, reason, evidence_json, created_at_ns
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                value.id,
-                value.task_id,
-                value.binding_id,
-                value.remote_observation_id,
-                value.stage,
-                1 if value.accepted else 0,
-                value.reason,
-                _canonical_json(value.evidence),
-                value.created_at_ns,
-            ),
-        )
-        return value
+def _remote_task_verification_get_by_task(
+    events: ServiceEventStore,
+    task_id: str,
+    required: bool = True,
+) -> RemoteTaskVerificationRecord | None:
+    history = events.list_for("RemoteVerification", task_id)
+    receipts = [item for item in history if item.event_type == "RemoteVerificationRecorded"]
+    if not receipts:
+        if required:
+            raise KeyError(task_id)
+        return None
+    if len(receipts) != 1:
+        raise RuntimeError("remote verification receipt stream contains multiple records")
+    return _remote_task_verification_from_event(receipts[0])
 
-    @staticmethod
-    def _from_row(row: sqlite3.Row) -> RemoteTaskVerificationRecord:
-        return RemoteTaskVerificationRecord(
-            id=row["id"],
-            task_id=row["task_id"],
-            binding_id=row["binding_id"],
-            remote_observation_id=row["remote_observation_id"],
-            stage=row["stage"],
-            accepted=bool(row["accepted"]),
-            reason=row["reason"],
-            evidence=json.loads(row["evidence_json"]),
-            created_at_ns=row["created_at_ns"],
-        )
+
+def _remote_task_verification_create_in_transaction(
+    events: ServiceEventStore,
+    *,
+    task_id: str,
+    binding_id: str,
+    remote_observation_id: str,
+    stage: str,
+    accepted: bool,
+    reason: str | None,
+    evidence: dict[str, Any],
+) -> RemoteTaskVerificationRecord:
+    normalized_evidence = json.loads(_canonical_json(evidence))
+    event = events.append_once_in_transaction(
+        "RemoteVerification",
+        task_id,
+        "RemoteVerificationRecorded",
+        {
+            "taskId": task_id,
+            "bindingId": binding_id,
+            "remoteObservationId": remote_observation_id,
+            "stage": stage,
+            "accepted": bool(accepted),
+            "reason": reason,
+            "evidence": normalized_evidence,
+        },
+    )
+    return _remote_task_verification_from_event(event)
 
 
 class RemoteTaskCompletionReconciler:
@@ -512,11 +484,9 @@ class RemoteTaskCompletionReconciler:
         claims: TaskExecutionClaimStore,
         delegations: Any,
         bindings: TransportBindingStore,
-        receipts: DeliveryReceiptStore,
-        observations: RemoteDeliveryObservationStore,
-        verifications: RemoteTaskVerificationStore,
+        receipts: ServiceEventStore,
+        observations: ServiceEventStore,
         resolver: RemoteArtifactEvidenceResolver,
-        verifier: EvidenceSemanticVerifier,
     ) -> None:
         self._connection = connection
         self._tasks = tasks
@@ -526,15 +496,13 @@ class RemoteTaskCompletionReconciler:
         self._bindings = bindings
         self._receipts = receipts
         self._observations = observations
-        self._verifications = verifications
         self._resolver = resolver
-        self._verifier = verifier
 
     def reconcile(self, binding_id: str) -> RemoteTaskVerificationRecord | None:
         binding = self._bindings.get(binding_id)
         envelope = self._delegations.get(binding.delegation_id)
         task = self._tasks.get(envelope.task_id)
-        existing = self._verifications.get_by_task(task.id, required=False)
+        existing = _remote_task_verification_get_by_task(self._events, task.id, required=False)
         if existing is not None:
             if existing.binding_id != binding.id:
                 raise RuntimeError("Task verification belongs to a different remote Binding")
@@ -542,22 +510,22 @@ class RemoteTaskCompletionReconciler:
         claim = self._claims.get(task.id)
         if (claim.mode, claim.owner_id) != ("REMOTE_BINDING", binding.id):
             raise RuntimeError("remote completion does not own Task execution claim")
-        self._receipts.get_by_binding(binding.id)
-        observation = self._observations.latest_for_binding(binding.id, required=False)
+        _delivery_receipt_get_by_binding(self._receipts, binding.id)
+        observation = _remote_delivery_observation_latest_for_binding(self._observations, binding.id, required=False)
         if observation is None or not observation.terminal:
             return None
         if task.state != "RUNNING":
             raise RuntimeError(f"remote completion cannot verify Task state {task.state}")
 
         if observation.successful is True:
-            receipt = self._receipts.get_by_binding(binding.id)
+            receipt = _delivery_receipt_get_by_binding(self._receipts, binding.id)
             evidence = self._resolver.resolve(
                 task.acceptance,
                 binding=binding,
                 receipt=receipt,
                 observation=observation,
             )
-            verdict = self._verifier.verify(task.acceptance, evidence)
+            verdict = _verify_evidence_semantics(task.acceptance, evidence)
             stage = "semantic"
             evidence_receipt = evidence.receipt()
         else:
@@ -580,7 +548,8 @@ class RemoteTaskCompletionReconciler:
         task_state = "SUCCEEDED" if verdict.accepted else "FAILED"
         terminal_event = "TASK_SUCCEEDED" if verdict.accepted else "TASK_FAILED"
         with self._connection:
-            record = self._verifications.create_in_transaction(
+            record = _remote_task_verification_create_in_transaction(
+                self._events,
                 task_id=task.id,
                 binding_id=binding.id,
                 remote_observation_id=observation.id,
@@ -632,13 +601,13 @@ class AgentServiceR11:
         self._r10 = r10
         self._connection = r10._connection
         for name in (
-            "definitions", "revisions", "instances", "placements", "events", "birth", "observer",
-            "reconciler", "tasks", "assignments", "execution_activator", "completion", "verifications",
+            "definitions", "revisions", "instances", "placements", "events", "birth",
+            "reconciler", "tasks", "assignments", "execution_activator", "completion",
             "goals", "goal_graph_guard", "goal_task_links", "task_dependencies", "task_readiness",
-            "task_graph", "goal_reconciler", "board_receipts", "board_projector", "identities",
-            "capabilities", "sessions", "session_items", "delegations", "a2a_cards", "interfaces",
-            "policy_decisions", "policy", "transport_bindings", "routes", "delivery_receipts",
-            "credential_references", "identity_proof_records", "identity_proofs", "remote_observations",
+            "task_graph", "goal_reconciler", "board_projector", "identities",
+            "sessions", "session_items", "delegations", "a2a_cards",
+            "transport_bindings", "routes",
+            "credential_references", "identity_proofs",
             "remote_reconciler", "audit",
         ):
             setattr(self, name, getattr(r10, name))
@@ -661,12 +630,10 @@ class AgentServiceR11:
             self.task_readiness,
             self.delegations,
             self.transport_bindings,
-            self.delivery_receipts,
+            self.events,
             delivery_adapters,
         )
-        self.remote_verifications = RemoteTaskVerificationStore(self._connection)
         self.remote_artifacts = RemoteArtifactEvidenceResolver(remote_artifact_readers)
-        self.remote_semantic_verifier = EvidenceSemanticVerifier()
         self.remote_completion = RemoteTaskCompletionReconciler(
             self._connection,
             self.tasks,
@@ -674,11 +641,9 @@ class AgentServiceR11:
             self.execution_claims,
             self.delegations,
             self.transport_bindings,
-            self.delivery_receipts,
-            self.remote_observations,
-            self.remote_verifications,
+            self.events,
+            self.events,
             self.remote_artifacts,
-            self.remote_semantic_verifier,
         )
 
     @classmethod
@@ -717,6 +682,15 @@ class AgentServiceR11:
 
     @staticmethod
     def _initialize_schema(connection: sqlite3.Connection) -> None:
+        legacy_remote_task_verifications = connection.execute(
+            "SELECT 1 FROM sqlite_master "
+            "WHERE type = 'table' AND name = 'remote_task_verifications'"
+        ).fetchone()
+        if legacy_remote_task_verifications is not None:
+            raise RuntimeError(
+                "legacy remote_task_verifications schema is unsupported; "
+                "perform explicit destructive migration before opening this revision"
+            )
         connection.executescript(
             """
             CREATE TABLE IF NOT EXISTS task_execution_claims (
@@ -724,18 +698,6 @@ class AgentServiceR11:
                 task_id TEXT NOT NULL UNIQUE REFERENCES service_tasks(id),
                 mode TEXT NOT NULL CHECK(mode IN ('LOCAL_ASSIGNMENT', 'REMOTE_BINDING')),
                 owner_id TEXT NOT NULL,
-                created_at_ns INTEGER NOT NULL
-            );
-
-            CREATE TABLE IF NOT EXISTS remote_task_verifications (
-                id TEXT PRIMARY KEY,
-                task_id TEXT NOT NULL UNIQUE REFERENCES service_tasks(id),
-                binding_id TEXT NOT NULL UNIQUE REFERENCES transport_bindings(id),
-                remote_observation_id TEXT NOT NULL REFERENCES remote_delivery_observations(id),
-                stage TEXT NOT NULL,
-                accepted INTEGER NOT NULL CHECK(accepted IN (0, 1)),
-                reason TEXT,
-                evidence_json TEXT NOT NULL,
                 created_at_ns INTEGER NOT NULL
             );
             """
