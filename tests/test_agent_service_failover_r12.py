@@ -12,6 +12,7 @@ from agent_service.failover import (
     ExecutionQuiescenceObservation,
     ReplaySafetyAdapter,
     ReplaySafetyObservation,
+    _replay_safety_decision_get_by_client_request,
 )
 from agent_service.slice1 import CarrierProviderAdapter, ProviderObservation
 from agent_service.task_runtime import RuntimeAdapter, RuntimeJobObservation, RuntimeJobRef
@@ -487,7 +488,7 @@ class AgentServiceFailoverR12Tests(unittest.TestCase):
             self._deliver_primary(service, primary)
             with self.assertRaises(RuntimeError):
                 self._failover(service, primary, fallback, "partial-effects")
-            decision = service.replay_safety_decisions.get_by_client_request("r12:replay:partial-effects")
+            decision = _replay_safety_decision_get_by_client_request(service.events, "r12:replay:partial-effects")
             self.assertFalse(decision.safe)
             self.assertEqual(decision.classification, "PARTIAL_EFFECTS")
             self.assertEqual(service.execution_claims.get(task.id).owner_id, primary.id)

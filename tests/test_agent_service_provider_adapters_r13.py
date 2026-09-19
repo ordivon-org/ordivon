@@ -6,7 +6,7 @@ from pathlib import Path
 
 from agent_service.delivery import DeliveryObservation, PolicyAdapter, PolicyObservation
 from agent_service.evidence import RuntimeArtifactPayload, RuntimeArtifactReader
-from agent_service.failover import AgentServiceR12
+from agent_service.failover import AgentServiceR12, _replay_safety_decision_get
 from agent_service.provider_adapters import (
     A2AJsonRpcHttpClient,
     A2AQuiescenceAdapter,
@@ -685,7 +685,7 @@ class AgentServiceProviderAdaptersR13Tests(unittest.TestCase):
                 to_binding_id=mcp.id,
             )
             self.assertEqual(service.execution_claims.get(task.id).owner_id, mcp.id)
-            self.assertEqual(service.replay_safety_decisions.get(transfer.replay_safety_decision_id).classification, "NO_EFFECTS")
+            self.assertEqual(_replay_safety_decision_get(service.events, transfer.replay_safety_decision_id).classification, "NO_EFFECTS")
             receipt = service.delivery.deliver(mcp.id)
             self.assertEqual(receipt.binding_id, mcp.id)
             self.assertEqual(service.tasks.get(task.id).state, "RUNNING")

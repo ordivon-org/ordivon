@@ -88,6 +88,7 @@ class OrdivonCoreZeroEnforcementR3Tests(unittest.TestCase):
                 "VerificationRecordStore",
                 "RemoteTaskVerificationStore",
                 "ExecutionClaimTransferStore",
+                "ReplaySafetyDecisionStore",
             }.issubset(retired)
         )
         self.assertTrue(retired.isdisjoint(observed))
