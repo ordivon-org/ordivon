@@ -6,10 +6,9 @@ from typing import Any
 import psycopg
 from psycopg.rows import dict_row
 
-from .board import task_route_anchor_task_id
+from .board import is_legacy_task_route_anchor
 
 _MAX_MESSAGES = 100
-_MAX_ROUTE_DEPTH = 16
 
 
 def build_attention_delta(dsn: str, *, after_sequence: int, limit: int = 100) -> dict[str, Any]:
@@ -37,20 +36,22 @@ def build_attention_delta(dsn: str, *, after_sequence: int, limit: int = 100) ->
             int(visible[-1]["sequence"]) if has_more and visible else max(after_sequence, high)
         )
 
-        route_cache: dict[str, tuple[str | None, int | None, str]] = {}
         by_task: dict[str, list[dict[str, Any]]] = defaultdict(list)
         unrouted: list[dict[str, Any]] = []
         infrastructure_message_count = 0
         for row in visible:
-            if task_route_anchor_task_id(row) is not None:
+            if is_legacy_task_route_anchor(row):
                 infrastructure_message_count += 1
                 continue
-            task_id, depth, standing = _route_task(conn, row, route_cache)
-            compact = _compact_message(row, depth, standing)
-            if task_id is None:
-                unrouted.append(compact)
+            task_id = row.get("task_id")
+            if isinstance(task_id, str):
+                by_task[task_id].append(
+                    _compact_message(row, route_depth=0, route_standing="EXPLICIT_TASK_FOREIGN_KEY")
+                )
             else:
-                by_task[task_id].append(compact)
+                unrouted.append(
+                    _compact_message(row, route_depth=None, route_standing="NO_TASK_ROUTE")
+                )
 
         routed_tasks: list[dict[str, Any]] = []
         missing_tasks: list[dict[str, Any]] = []
@@ -66,7 +67,7 @@ def build_attention_delta(dsn: str, *, after_sequence: int, limit: int = 100) ->
                         "taskId": task_id,
                         "messageCount": len(messages),
                         "latestBoardSequence": max(int(m["sequence"]) for m in messages),
-                        "reason": "task-route-anchor-resolves-but-current-task-is-absent",
+                        "reason": "board-task-foreign-key-resolves-but-current-task-is-absent",
                     }
                 )
                 continue
@@ -106,7 +107,7 @@ def build_attention_delta(dsn: str, *, after_sequence: int, limit: int = 100) ->
     routed_tasks.sort(key=lambda row: (-int(row["newestBoardSequence"]), str(row["taskId"])))
     missing_tasks.sort(key=lambda row: (-int(row["latestBoardSequence"]), str(row["taskId"])))
     return {
-        "schemaVersion": 2,
+        "schemaVersion": 3,
         "kind": "ordivon.host-current-attention-delta",
         "truthRole": "derived-non-authoritative-coordination-navigation",
         "boardFence": {
@@ -134,44 +135,6 @@ def build_attention_delta(dsn: str, *, after_sequence: int, limit: int = 100) ->
     }
 
 
-def _route_task(
-    conn: psycopg.Connection[dict[str, Any]],
-    message: dict[str, Any],
-    cache: dict[str, tuple[str | None, int | None, str]],
-) -> tuple[str | None, int | None, str]:
-    parent = message.get("reply_to_client_message_id")
-    if not isinstance(parent, str):
-        return None, None, "NO_REPLY_PARENT"
-    current = parent
-    visited: set[str] = set()
-    for depth in range(1, _MAX_ROUTE_DEPTH + 1):
-        if current in visited:
-            return None, None, "INVALID_CYCLE_GUARD"
-        visited.add(current)
-        cached = cache.get(current)
-        if cached is not None:
-            task_id, cached_depth, standing = cached
-            if task_id is None or cached_depth is None:
-                return None, None, standing
-            return task_id, depth - 1 + cached_depth, standing
-        row = conn.execute(
-            "SELECT * FROM board_messages WHERE client_message_id=%s", (current,)
-        ).fetchone()
-        if row is None:
-            cache[current] = (None, None, "PARENT_NOT_RESOLVABLE")
-            return cache[current]
-        task_id = task_route_anchor_task_id(row)
-        if task_id is not None:
-            cache[current] = (task_id, 1, "CANONICAL_TASK_ANCHOR_RESOLVED")
-            return task_id, depth, "CANONICAL_TASK_ANCHOR_RESOLVED"
-        next_parent = row.get("reply_to_client_message_id")
-        if not isinstance(next_parent, str):
-            cache[current] = (None, None, "NO_CANONICAL_TASK_ANCHOR_IN_BOUNDED_ANCESTRY")
-            return cache[current]
-        current = next_parent
-    return None, None, "ROUTE_DEPTH_LIMIT_REACHED"
-
-
 def _compact_message(
     row: dict[str, Any], route_depth: int | None, route_standing: str
 ) -> dict[str, Any]:
@@ -181,6 +144,7 @@ def _compact_message(
         "messageKind": row["message_kind"],
         "topic": row["topic"],
         "replyToClientMessageId": row["reply_to_client_message_id"],
+        "taskId": row.get("task_id"),
         "recordedAtMs": int(row["recorded_at_ms"]),
         "messageDigest": row["message_digest"],
         "routeDepth": route_depth,

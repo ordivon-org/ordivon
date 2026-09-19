@@ -279,7 +279,7 @@ def test_postgres_native_status_summary_integrity_and_history() -> None:
     summary = h.status(detail="summary", recent_limit=1)
     assert summary["kind"] == "ordivon.host-status"
     assert summary["authority"]["journalBackend"] == "postgresql"
-    assert summary["authority"]["journalSchema"] == 4
+    assert summary["authority"]["journalSchema"] == 5
     assert summary["interface"]["surfaceVersion"] == 9
     assert summary["interface"]["toolCount"] == 10
     assert "news" not in summary

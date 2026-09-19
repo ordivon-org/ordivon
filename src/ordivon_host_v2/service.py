@@ -9,7 +9,6 @@ import psycopg
 from psycopg.rows import dict_row
 
 from .attention import build_attention_delta
-from .board import ensure_task_route_anchor_in_tx
 from .canonical import canonical_digest
 from .cursor import decode_cursor, encode_cursor
 from .errors import ConflictError, TaskNotFound
@@ -35,7 +34,7 @@ class HostV2:
             raise RuntimeError(
                 "Host v2 schema is not initialized; run alembic upgrade head"
             ) from exc
-        if row is None or int(row["schema_version"]) != 4:
+        if row is None or int(row["schema_version"]) != 5:
             observed = None if row is None else int(row["schema_version"])
             raise RuntimeError(
                 f"Host v2 schema is not at required version 4 (observed={observed}); "
@@ -85,7 +84,7 @@ class HostV2:
                         {"name": name, "status": "ok" if ok else "error", "detail": detail_value}
                     )
 
-                add_check("postgres.schema", schema_version == 4, str(schema_version))
+                add_check("postgres.schema", schema_version == 5, str(schema_version))
                 current_checkpoint_bad = int(
                     conn.execute(
                         "SELECT count(*) AS value FROM tasks t LEFT JOIN checkpoints c "
@@ -258,7 +257,6 @@ class HostV2:
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
             replay = self._claim_receipt(conn, client_request_id, "adopt", request_digest)
             if replay is not None:
-                ensure_task_route_anchor_in_tx(conn, task_id)
                 return MutationResult.model_validate(replay)
 
             current = conn.execute(
@@ -276,7 +274,6 @@ class HostV2:
                     )
                 if goal_id is not None and current["goal_id"] not in {None, goal_id}:
                     raise ConflictError("task_id already exists with a different goal_id")
-                ensure_task_route_anchor_in_tx(conn, task_id)
                 result = MutationResult(
                     admission=Admission.EXISTING,
                     task=self._resume_in_tx(conn, task_id, None),
@@ -288,7 +285,6 @@ class HostV2:
                 "INSERT INTO tasks(task_id,goal_id,revision,state,current_checkpoint_digest) VALUES (%s,%s,1,'open',%s)",
                 (task_id, goal_id, checkpoint_digest),
             )
-            ensure_task_route_anchor_in_tx(conn, task_id)
             conn.execute(
                 "INSERT INTO checkpoints(task_id,revision,checkpoint_digest,payload,writer_label) VALUES (%s,1,%s,%s::jsonb,%s)",
                 (

@@ -95,6 +95,7 @@ def build_server(dsn: str | None = None) -> MCPServer:
         messageKind: Literal["note", "question", "proposal", "warning", "reply"] = "note",
         topic: str | None = None,
         replyToClientMessageId: str | None = None,
+        taskId: str | None = None,
     ) -> BoardPostResponse:
         """Persist one replay-safe collaboration message with self-asserted author label."""
         return board.post(
@@ -104,6 +105,7 @@ def build_server(dsn: str | None = None) -> MCPServer:
             message_kind=messageKind,
             topic=topic,
             reply_to_client_message_id=replyToClientMessageId,
+            task_id=taskId,
         )
 
 
