@@ -45,23 +45,21 @@ impl GitWorkspaceCreateRequest {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct WorkspaceRecord {
-    pub schema_version: u32,
+pub(crate) struct WorkspaceRecord {
+    pub(crate) schema_version: u32,
     /// Legacy read-compatibility only. New open records omit workspaceId;
     /// Runtime binds it from the record filename/request identity.
     #[serde(default, skip_serializing)]
-    #[schemars(skip)]
-    pub workspace_id: String,
-    pub source_repo: String,
-    pub source_revision: String,
+    pub(crate) workspace_id: String,
+    pub(crate) source_repo: String,
+    pub(crate) source_revision: String,
     /// Legacy read-compatibility only. New records omit workspacePath; Runtime
     /// reconstructs the physical path from workspaces_root/workspaceId.
     #[serde(default, skip_serializing)]
-    #[schemars(skip)]
-    pub workspace_path: String,
-    pub created_unix_ms: u128,
+    pub(crate) workspace_path: String,
+    pub(crate) created_unix_ms: u128,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]

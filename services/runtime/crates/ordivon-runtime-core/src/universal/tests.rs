@@ -137,7 +137,7 @@ fn workspace_round_trip_is_isolated_and_digest_guarded() {
     let source = sandbox.root.join("source");
     init_git_repo(&source);
     let config = sandbox.config();
-    let record = create_git_workspace(
+    create_git_workspace(
         &config,
         &GitWorkspaceCreateRequest {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
@@ -147,7 +147,8 @@ fn workspace_round_trip_is_isolated_and_digest_guarded() {
         },
     )
     .unwrap();
-    assert_ne!(Path::new(&record.workspace_path), source);
+    let workspace = config.workspace_path("workspace-1");
+    assert_ne!(workspace, source);
     let persisted_record: serde_json::Value =
         serde_json::from_slice(&fs::read(config.workspace_record_path("workspace-1")).unwrap())
             .unwrap();
@@ -222,7 +223,7 @@ fn workspace_round_trip_is_isolated_and_digest_guarded() {
 
     let outside = sandbox.root.join("outside");
     fs::create_dir_all(&outside).unwrap();
-    symlink(&outside, Path::new(&record.workspace_path).join("escape")).unwrap();
+    symlink(&outside, workspace.join("escape")).unwrap();
     let escape = WorkspaceWriteRequest {
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
         workspace_id: "workspace-1".to_string(),
@@ -1417,7 +1418,7 @@ fn runner_rejects_workspace_source_drift_before_spawning_target() {
     init_git_repo(&source);
     let config = sandbox.config();
     let workspace_id = "workspace-runner-source-drift";
-    let record = create_git_workspace(
+    create_git_workspace(
         &config,
         &GitWorkspaceCreateRequest {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
@@ -1427,7 +1428,7 @@ fn runner_rejects_workspace_source_drift_before_spawning_target() {
         },
     )
     .unwrap();
-    let workspace = PathBuf::from(&record.workspace_path);
+    let workspace = config.workspace_path(workspace_id);
     fs::write(
         workspace.join("effect.py"),
         "from pathlib import Path\nPath('effect-marker').write_text('spawned')\n",

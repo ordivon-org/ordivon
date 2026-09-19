@@ -40,7 +40,7 @@ use super::{
     MAX_ARTIFACT_READ_BYTES, MAX_TASK_TAIL_BYTES, MAX_TASK_WAIT_MS, RUNTIME_SCHEMA_VERSION,
 };
 use crate::universal::{
-    canonical_directory, create_git_workspace_compact, list_open_workspace_record_inventory,
+    canonical_directory, create_git_workspace, list_open_workspace_record_inventory,
     load_workspace_record, mutate_workspace, open_directory_nofollow, open_regular_file_beneath,
     remove_git_workspace, rename_path_durable, resolve_workspace_cwd, sha256_bytes, sha256_file,
     sync_directory as sync_universal_directory, workspace_cleanup_dependents,

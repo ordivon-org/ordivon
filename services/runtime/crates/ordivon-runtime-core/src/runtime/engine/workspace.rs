@@ -4,7 +4,7 @@ impl Runtime {
         request: &GitWorkspaceCreateRequest,
     ) -> RuntimeResult<CompactWorkspaceOpenResult> {
         let _guard = self.lock_lifecycle()?;
-        create_git_workspace_compact(&self.executor, request).map_err(map_universal_error)
+        create_git_workspace(&self.executor, request).map_err(map_universal_error)
     }
 
     pub fn get_workspace(
