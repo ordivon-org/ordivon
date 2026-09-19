@@ -6,7 +6,6 @@ import sqlite3
 import time
 import uuid
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
 from .slice1 import ServiceEvent, ServiceEventStore

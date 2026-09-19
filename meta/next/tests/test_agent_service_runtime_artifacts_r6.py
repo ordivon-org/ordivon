@@ -62,7 +62,7 @@ class RuntimeArtifactR6Tests(unittest.TestCase):
                     "jobId": "job-1",
                     "artifactId": "a.stdout",
                     "offset": 0,
-                    "nextOffset": len("alpha ".encode("utf-8")),
+                    "nextOffset": len(b"alpha "),
                     "eof": False,
                     "digest": expected,
                     "content": "alpha ",
@@ -70,7 +70,7 @@ class RuntimeArtifactR6Tests(unittest.TestCase):
                 {
                     "jobId": "job-1",
                     "artifactId": "a.stdout",
-                    "offset": len("alpha ".encode("utf-8")),
+                    "offset": len(b"alpha "),
                     "nextOffset": len(content.encode("utf-8")),
                     "eof": True,
                     "digest": expected,
@@ -86,7 +86,7 @@ class RuntimeArtifactR6Tests(unittest.TestCase):
         self.assertEqual(payload.content, content)
         self.assertEqual(payload.digest, expected)
         self.assertEqual([call[0] for call in caller.calls], ["artifact.read", "artifact.read"])
-        self.assertEqual(caller.calls[1][1]["offset"], len("alpha ".encode("utf-8")))
+        self.assertEqual(caller.calls[1][1]["offset"], len(b"alpha "))
 
     def test_artifact_reader_rejects_digest_change_between_chunks(self) -> None:
         caller = FakeToolCaller(

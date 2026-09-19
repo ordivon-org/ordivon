@@ -4,7 +4,6 @@ import sqlite3
 
 from sqlite_utils import Database, Migrations
 
-
 MIGRATIONS = Migrations("agent-service")
 
 LEGACY_TABLES = (

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from tests.agent_service_test_support import open_current
-
 import hashlib
 import tempfile
 import unittest
@@ -12,10 +10,14 @@ from agent_service.delivery import (
     PolicyObservation,
 )
 from agent_service.evidence import ArtifactDigestMismatch, RuntimeArtifactPayload
-from agent_service.remote_evidence import RemoteArtifactPayload, _remote_task_verification_get_by_task
+from agent_service.remote_evidence import (
+    RemoteArtifactPayload,
+    _remote_task_verification_get_by_task,
+)
 from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
 from agent_service.trust import RemoteProviderObservation
+from tests.agent_service_test_support import open_current
 
 
 def digest(text: str) -> str:

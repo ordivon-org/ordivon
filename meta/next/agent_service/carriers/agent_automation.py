@@ -4,9 +4,9 @@ import hashlib
 import json
 import os
 import subprocess
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
 
 import rfc8785
 
@@ -33,7 +33,7 @@ class AgentAutomationProfile:
     role_card: str
 
     @classmethod
-    def from_revision(cls, revision: AgentRevision) -> "AgentAutomationProfile":
+    def from_revision(cls, revision: AgentRevision) -> AgentAutomationProfile:
         raw = revision.spec.get("carrier")
         if not isinstance(raw, dict):
             raise CarrierProfileError("AgentRevision requires carrier profile")

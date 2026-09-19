@@ -7,7 +7,6 @@ from pathlib import Path
 
 import agent_service
 
-
 RETIRED = {
     "ExecutionQuiescenceAdapter": "agent_service.failover",
     "ReplaySafetyAdapter": "agent_service.failover",

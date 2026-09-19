@@ -5,8 +5,6 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
-from .schema_migrations import apply_schema_migrations
-
 from .delivery import (
     DelegationRoutePlanner,
     TransportBindingStore,
@@ -49,6 +47,7 @@ from .remote_evidence import (
     RemoteTaskCompletionReconciler,
     TaskExecutionClaimStore,
 )
+from .schema_migrations import apply_schema_migrations
 from .semantics import (
     A2AAgentCardProjector,
     AgentIdentityStore,
@@ -80,7 +79,6 @@ from .trust import (
     IdentityProofCoordinator,
     RemoteCorrelationReconciler,
 )
-
 
 
 def _build_service(connection: sqlite3.Connection,

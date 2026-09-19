@@ -4,9 +4,10 @@ import hashlib
 import json
 import sqlite3
 import urllib.parse
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import rfc8785
 

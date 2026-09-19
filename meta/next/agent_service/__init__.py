@@ -1,15 +1,13 @@
 """Ordivon Agent Service clean-room kernel."""
 
-from .service import open_agent_service
-
 from .delivery import (
     DelegationRoutePlanner,
     TransportBindingStore,
 )
-from .evidence import VerificationRecord
 from .effect_authority import (
     EffectAuthorizedDeliveryCoordinator,
 )
+from .evidence import VerificationRecord
 from .failover import (
     ExecutionClaimTransferCoordinator,
     ExecutionQuiescenceCoordinator,
@@ -57,6 +55,7 @@ from .semantics import (
     SessionItemStore,
     SessionStore,
 )
+from .service import open_agent_service
 from .slice1 import ProviderObservation
 from .task_runtime import (
     RuntimeArtifactDescriptor,
@@ -76,31 +75,24 @@ from .trust import (
 )
 
 __all__ = [
-    "open_agent_service",
-    "EffectAuthorizedDeliveryCoordinator",
-    "BrowserlessTurnEffectLedgerReader",
-    "BrowserlessTurnEffectCoordinate",
-    "TransportCredentialBindingCoordinator",
-    "CredentialHeaderMaterial",
-    "BoundCredentialHeaderProvider",
-    "RemoteExecutionCompleted",
-    "QuiescencePending",
-    "ProviderRemoteError",
-    "ProviderProtocolError",
-    "MCPTaskQuiescenceAdapter",
-    "EffectLedgerSnapshot",
-    "EffectLedgerReplaySafetyAdapter",
-    "EffectLedgerEffect",
-    "A2AQuiescenceAdapter",
     "A2AAgentCardProjector",
+    "A2AQuiescenceAdapter",
     "AgentIdentityStore",
     "AuditEnvelopeProjector",
     "BoardProjectionReceipt",
+    "BoundCredentialHeaderProvider",
+    "BrowserlessTurnEffectCoordinate",
+    "BrowserlessTurnEffectLedgerReader",
     "ClaimAwareAssignmentPlanner",
     "ClaimAwareDeliveryCoordinator",
+    "CredentialHeaderMaterial",
     "CredentialReferenceStore",
     "DelegationEnvelopeStore",
     "DelegationRoutePlanner",
+    "EffectAuthorizedDeliveryCoordinator",
+    "EffectLedgerEffect",
+    "EffectLedgerReplaySafetyAdapter",
+    "EffectLedgerSnapshot",
     "ExecutionClaimTransferCoordinator",
     "ExecutionQuiescenceCoordinator",
     "ExecutionQuiescenceRequestStore",
@@ -110,9 +102,14 @@ __all__ = [
     "GoalTaskLinkStore",
     "HostBoardMcpAdapter",
     "IdentityProofCoordinator",
+    "MCPTaskQuiescenceAdapter",
     "ProviderObservation",
+    "ProviderProtocolError",
+    "ProviderRemoteError",
+    "QuiescencePending",
     "RemoteArtifactEvidenceResolver",
     "RemoteCorrelationReconciler",
+    "RemoteExecutionCompleted",
     "RemoteTaskCompletionReconciler",
     "ReplaySafetyCoordinator",
     "RuntimeArtifactDescriptor",
@@ -127,5 +124,7 @@ __all__ = [
     "TaskReadinessProjector",
     "TransferAwareDeliveryCoordinator",
     "TransportBindingStore",
+    "TransportCredentialBindingCoordinator",
     "VerificationRecord",
+    "open_agent_service",
 ]

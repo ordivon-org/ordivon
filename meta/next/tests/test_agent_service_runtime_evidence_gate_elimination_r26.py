@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-import agent_service.evidence as evidence
+from agent_service import evidence
 from agent_service.task_runtime import RuntimeJobObservation
 
 

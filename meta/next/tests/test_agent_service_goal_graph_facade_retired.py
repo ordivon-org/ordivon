@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 import agent_service
-import agent_service.goals as goals
+from agent_service import goals
 from tests.agent_service_test_support import open_current
 
 

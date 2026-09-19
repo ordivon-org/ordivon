@@ -4,7 +4,7 @@ import inspect
 import unittest
 
 import agent_service
-import agent_service.delivery as delivery
+from agent_service import delivery
 
 
 class PolicyCoordinatorEliminationR9Tests(unittest.TestCase):

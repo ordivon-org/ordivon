@@ -5,11 +5,10 @@ import json
 import sqlite3
 import time
 import uuid
+from dataclasses import dataclass
+from typing import Any
 
 import rfc8785
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Any
 
 
 def _now_ns() -> int:

@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 
 import agent_service
-import agent_service.effect_authority as effect_authority
+from agent_service import effect_authority
 
 
 class EffectAuthorizationCoordinatorEliminationR11Tests(unittest.TestCase):

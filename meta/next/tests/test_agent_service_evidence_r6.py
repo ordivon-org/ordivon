@@ -1,16 +1,23 @@
 from __future__ import annotations
 
-from tests.agent_service_test_support import open_current
-
 import hashlib
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from agent_service.evidence import ArtifactDigestMismatch, RuntimeArtifactPayload, _verification_record_list_for_task
+from agent_service.evidence import (
+    ArtifactDigestMismatch,
+    RuntimeArtifactPayload,
+    _verification_record_list_for_task,
+)
 from agent_service.slice1 import ProviderObservation
-from agent_service.task_runtime import RuntimeArtifactDescriptor, RuntimeJobObservation, RuntimeJobRef
+from agent_service.task_runtime import (
+    RuntimeArtifactDescriptor,
+    RuntimeJobObservation,
+    RuntimeJobRef,
+)
+from tests.agent_service_test_support import open_current
 
 
 class ReadyCarrier:
@@ -323,9 +330,8 @@ class AgentServiceEvidenceR6Tests(unittest.TestCase):
                 service.events,
                 "append_once_in_transaction",
                 side_effect=RuntimeError("receipt failed"),
-            ):
-                with self.assertRaises(RuntimeError):
-                    service.completion.reconcile(assignment.id)
+            ), self.assertRaises(RuntimeError):
+                service.completion.reconcile(assignment.id)
 
             self.assertEqual(service.tasks.get(task.id).state, "RUNNING")
             self.assertEqual(service.assignments.get(assignment.id).state, "ACTIVE")

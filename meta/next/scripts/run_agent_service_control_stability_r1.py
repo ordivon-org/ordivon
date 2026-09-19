@@ -17,8 +17,11 @@ if str(_REPO_ROOT) not in sys.path:
 from agent_service import open_agent_service
 from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
-from agent_service.trust import RemoteProviderObservation, _remote_delivery_observation_list_for_binding, _remote_delivery_observation_record
-
+from agent_service.trust import (
+    RemoteProviderObservation,
+    _remote_delivery_observation_list_for_binding,
+    _remote_delivery_observation_record,
+)
 from tests.test_agent_service_failover_r12 import (
     AllowPolicy,
     NoopRuntimeArtifactReader,

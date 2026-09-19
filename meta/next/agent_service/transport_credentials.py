@@ -1,25 +1,16 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import sqlite3
 import time
 import urllib.parse
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
 import rfc8785
 
 from .delivery import TransportBinding
-from .provider_adapters import (
-    ProviderCaller,
-)
 from .slice1 import ServiceEvent, ServiceEventStore
-from .trust import (
-    CredentialReference,
-    IdentityProofRecord,
-)
 
 
 def _now_ms() -> int:

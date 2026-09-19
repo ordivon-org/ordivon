@@ -3,8 +3,7 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-import agent_service.delivery as delivery
-
+from agent_service import delivery
 
 ROOT = Path(__file__).resolve().parents[1]
 

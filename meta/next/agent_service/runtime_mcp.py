@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import hashlib
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from .evidence import RuntimeArtifactPayload
 from .task_runtime import (
@@ -9,7 +10,6 @@ from .task_runtime import (
     RuntimeJobObservation,
     RuntimeJobRef,
 )
-
 
 SCHEMA_VERSION = 1
 

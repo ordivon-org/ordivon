@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from tests.agent_service_test_support import open_current
-
 import hashlib
 import tempfile
 import tomllib
@@ -15,6 +13,7 @@ from agent_service.delivery import _route_profiles_from_revision_spec
 from agent_service.local_effect_readers import BrowserlessTurnEffectCoordinate, _evidence_ref
 from agent_service.slice1 import ProviderObservation
 from agent_service.transport_credentials import _transport_credential_scheme_coordinate
+from tests.agent_service_test_support import open_current
 
 
 class PlainCarrier:
@@ -124,6 +123,7 @@ class RFC8785IdentityTests(unittest.TestCase):
 
     def test_browserless_turn_receipt_verifier_uses_jcs(self) -> None:
         import json
+
         from agent_service.local_effect_readers import _validate_receipt
 
         coordinate = BrowserlessTurnEffectCoordinate(

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from tests.agent_service_test_support import open_current
-
 import tempfile
 import unittest
 from pathlib import Path
@@ -9,6 +7,7 @@ from pathlib import Path
 import agent_service
 from agent_service.carriers.agent_automation import AgentAutomationCarrierAdapter
 from agent_service.slice1 import ProviderObservation
+from tests.agent_service_test_support import open_current
 
 
 class PlainCarrier:
@@ -50,12 +49,11 @@ class StructuralCarrierStandardTests(unittest.TestCase):
             self.assertFalse(db.exists())
 
     def test_retired_host_adapter_keyword_is_not_accepted(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            with self.assertRaises(TypeError):
-                open_current(
-                    Path(tmp) / "service.db",
-                    host_adapter=PlainCarrier(),
-                )
+        with tempfile.TemporaryDirectory() as tmp, self.assertRaises(TypeError):
+            open_current(
+                Path(tmp) / "service.db",
+                host_adapter=PlainCarrier(),
+            )
 
 
 if __name__ == "__main__":

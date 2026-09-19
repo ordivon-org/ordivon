@@ -2,12 +2,10 @@ from __future__ import annotations
 
 import sqlite3
 import unittest
-
-from agent_service.schema_migrations import apply_schema_migrations
 from pathlib import Path
 
-import agent_service.evidence as evidence
-
+from agent_service import evidence
+from agent_service.schema_migrations import apply_schema_migrations
 
 ROOT = Path(__file__).resolve().parents[1]
 

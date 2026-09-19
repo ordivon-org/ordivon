@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from tests.agent_service_test_support import open_current
-
 import tempfile
 import unittest
 from pathlib import Path
@@ -13,7 +11,13 @@ from agent_service.delivery import (
 from agent_service.evidence import RuntimeArtifactPayload
 from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
-from agent_service.trust import IdentityProofObservation, RemoteProviderObservation, _remote_delivery_observation_list_for_binding, _remote_delivery_observation_latest_for_binding
+from agent_service.trust import (
+    IdentityProofObservation,
+    RemoteProviderObservation,
+    _remote_delivery_observation_latest_for_binding,
+    _remote_delivery_observation_list_for_binding,
+)
+from tests.agent_service_test_support import open_current
 
 
 class ReadyCarrier:

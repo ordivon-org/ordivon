@@ -2,7 +2,6 @@ import importlib.util
 import unittest
 from pathlib import Path
 
-
 MODULE_PATH = (
     Path(__file__).resolve().parents[1]
     / "experiments/browser-security-r7/launcher_default_ablation.py"
