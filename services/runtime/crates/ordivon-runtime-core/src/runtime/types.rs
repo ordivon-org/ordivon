@@ -747,11 +747,10 @@ pub struct RuntimeExecutionPlan {
     pub principal: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct SubmitRequest {
+pub(crate) struct SubmitRequest {
     pub schema_version: u32,
-    #[schemars(length(min = CLIENT_REQUEST_ID_MIN_LENGTH, max = CLIENT_REQUEST_ID_MAX_LENGTH), extend("pattern" = CLIENT_REQUEST_ID_PATTERN))]
     pub client_request_id: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub request_identity_digest: Option<String>,
@@ -1180,9 +1179,9 @@ fn normalize_relative_path_text(value: &str) -> String {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct RuntimeJobRecord {
+pub(crate) struct RuntimeJobRecord {
     pub job_id: String,
     pub principal: String,
     pub client_request_id: String,
@@ -1201,9 +1200,9 @@ pub struct RuntimeJobRecord {
     pub row_version: u64,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct AttemptRecord {
+pub(crate) struct AttemptRecord {
     pub attempt_id: String,
     pub job_id: String,
     pub attempt_number: u32,
@@ -1240,9 +1239,9 @@ pub struct AttemptRecord {
     pub row_version: u64,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct ReservationRecord {
+pub(crate) struct ReservationRecord {
     pub reservation_id: String,
     pub attempt_id: String,
     pub global_limit: u32,
@@ -1254,18 +1253,18 @@ pub struct ReservationRecord {
     pub release_reason: Option<String>,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct CreatedAdmission {
+pub(crate) struct CreatedAdmission {
     pub job: RuntimeJobRecord,
     pub attempt: AttemptRecord,
     pub reservation: ReservationRecord,
     pub launch_token: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", tag = "outcome")]
-pub enum AdmissionOutcome {
+pub(crate) enum AdmissionOutcome {
     Created(Box<CreatedAdmission>),
     Existing { job: Box<RuntimeJobRecord> },
 }
@@ -1294,9 +1293,9 @@ pub struct ArtifactDescriptor {
     pub truncated: bool,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct RuntimeArtifactRecord {
+pub(crate) struct RuntimeArtifactRecord {
     pub artifact_id: String,
     pub job_id: String,
     pub attempt_id: String,
@@ -1340,9 +1339,9 @@ pub enum RuntimeDeliveryDisposition {
     Unknown,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct JobProjection {
+pub(crate) struct JobProjection {
     pub job_id: String,
     /// Stable identity of the committed Runtime Operation represented by this Job.
     pub operation_digest: String,
@@ -1566,9 +1565,9 @@ pub struct RuntimeInvariantViolation {
     pub detail: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct RunnerIdentity {
+pub(crate) struct RunnerIdentity {
     pub boot_id: String,
     pub unit_name: String,
     pub invocation_id: String,
