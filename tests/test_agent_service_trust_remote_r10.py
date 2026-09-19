@@ -13,9 +13,7 @@ from agent_service.slice1 import ProviderObservation
 from agent_service.task_runtime import RuntimeJobObservation, RuntimeJobRef
 from agent_service.trust import (
     AgentServiceR10,
-    IdentityProofAdapter,
     IdentityProofObservation,
-    RemoteDeliveryObserver,
     RemoteProviderObservation,
     _remote_delivery_observation_list_for_binding,
     _remote_delivery_observation_latest_for_binding,
@@ -76,7 +74,7 @@ class FakeDelivery:
         )
 
 
-class FakeProofAdapter(IdentityProofAdapter):
+class FakeProofAdapter:
     def __init__(self, observation: IdentityProofObservation) -> None:
         self.observation = observation
         self.calls = 0
@@ -86,7 +84,7 @@ class FakeProofAdapter(IdentityProofAdapter):
         return self.observation
 
 
-class FakeRemoteObserver(RemoteDeliveryObserver):
+class FakeRemoteObserver:
     def __init__(self, observations: list[RemoteProviderObservation]) -> None:
         self.observations = list(observations)
         self.calls = 0
@@ -103,8 +101,8 @@ class AgentServiceTrustRemoteR10Tests(unittest.TestCase):
         self,
         db: Path,
         *,
-        proof_adapter: IdentityProofAdapter | None = None,
-        remote_observers: dict[str, RemoteDeliveryObserver] | None = None,
+        proof_adapter: object | None = None,
+        remote_observers: dict[str, object] | None = None,
         delivery_adapters: dict[str] | None = None,
     ) -> AgentServiceR10:
         service = AgentServiceR10.open(

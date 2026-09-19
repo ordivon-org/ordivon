@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 import json
 import urllib.error
 import urllib.parse
@@ -10,17 +9,11 @@ from typing import Any, Callable
 
 from .delivery import TransportBinding
 from .failover import (
-    ExecutionQuiescenceAdapter,
     ExecutionQuiescenceObservation,
     ExecutionQuiescenceProofRecord,
-    ReplaySafetyAdapter,
     ReplaySafetyObservation,
 )
-from .trust import IdentityProofAdapter, RemoteDeliveryObserver, RemoteDeliverySnapshot
-from .evidence import Any
-from .goals import BoardAdapter
-from .slice1 import Any
-from .task_runtime import Any
+from .trust import RemoteDeliverySnapshot
 
 
 class ProviderProtocolError(RuntimeError):
@@ -294,7 +287,7 @@ def _unwrap_a2a_task(value: dict[str, Any]) -> dict[str, Any]:
     return value
 
 
-class A2AQuiescenceAdapter(ExecutionQuiescenceAdapter):
+class A2AQuiescenceAdapter:
     """A2A CancelTask/GetTask adapter for the R12 quiescence contract.
 
     CancelTask is idempotent at the A2A operation layer, but a successful call is not
@@ -407,7 +400,7 @@ class A2AQuiescenceAdapter(ExecutionQuiescenceAdapter):
         return state
 
 
-class MCPTaskQuiescenceAdapter(ExecutionQuiescenceAdapter):
+class MCPTaskQuiescenceAdapter:
     """MCP 2026-07-28 Tasks adapter.
 
     tasks/cancel is only an acknowledgement of cancellation intent. Quiescence is
@@ -507,25 +500,9 @@ class EffectLedgerSnapshot:
     evidence_ref: str
 
 
-class EffectLedgerReader(ABC):
-    """Read an effect-complete snapshot for one exact source->target replay decision."""
-
-    @abstractmethod
-    def read_replay_snapshot(
-        self,
-        *,
-        task: Any,
-        envelope: Any,
-        source_binding: TransportBinding,
-        target_binding: TransportBinding,
-        quiescence_proof: ExecutionQuiescenceProofRecord,
-        source_receipt: Any | None,
-        source_observations: tuple[RemoteDeliverySnapshot, ...],
-    ) -> EffectLedgerSnapshot:
-        raise NotImplementedError
 
 
-class EffectLedgerReplaySafetyAdapter(ReplaySafetyAdapter):
+class EffectLedgerReplaySafetyAdapter:
     """Derive R12 replay classifications from explicit effect/idempotency evidence.
 
     Absence of effect rows is only NO_EFFECTS when the snapshot is explicitly marked
@@ -541,7 +518,11 @@ class EffectLedgerReplaySafetyAdapter(ReplaySafetyAdapter):
         "UNKNOWN",
     }
 
-    def __init__(self, reader: EffectLedgerReader | Any) -> None:
+    def __init__(self, reader: Any) -> None:
+        if not callable(getattr(reader, "read_replay_snapshot", None)):
+            raise TypeError(
+                "effect-ledger reader must expose callable read_replay_snapshot()"
+            )
         self._reader = reader
 
     def evaluate_replay_safety(
@@ -566,7 +547,7 @@ class EffectLedgerReplaySafetyAdapter(ReplaySafetyAdapter):
             source_observations=source_observations,
         )
         if not isinstance(snapshot, EffectLedgerSnapshot):
-            raise TypeError("EffectLedgerReader must return EffectLedgerSnapshot")
+            raise TypeError("effect-ledger reader must return EffectLedgerSnapshot")
         return self._evaluate_snapshot(
             snapshot,
             expected_task_id=task.id,
@@ -574,8 +555,8 @@ class EffectLedgerReplaySafetyAdapter(ReplaySafetyAdapter):
             expected_target_binding_id=target_binding.id,
         )
 
+    @staticmethod
     def _evaluate_snapshot(
-        self,
         snapshot: EffectLedgerSnapshot,
         *,
         expected_task_id: str,
@@ -602,7 +583,7 @@ class EffectLedgerReplaySafetyAdapter(ReplaySafetyAdapter):
                 raise ProviderProtocolError("effect ledger contains duplicate effect identity")
             seen_ids.add(effect.effect_id)
             state = effect.state.strip().upper() if isinstance(effect.state, str) else ""
-            if state not in self.EFFECT_STATES:
+            if state not in EffectLedgerReplaySafetyAdapter.EFFECT_STATES:
                 raise ProviderProtocolError(f"unsupported effect ledger state: {effect.state!r}")
             if not isinstance(effect.evidence_ref, str) or not effect.evidence_ref.strip():
                 raise ProviderProtocolError("effect ledger effect evidence_ref must be non-empty")
@@ -713,16 +694,16 @@ class AgentServiceR13:
         delivery_adapters: dict[str],
         a2a_caller: ProviderCaller | None = None,
         mcp_tasks_caller: ProviderCaller | None = None,
-        effect_ledger_reader: EffectLedgerReader | None = None,
+        effect_ledger_reader: Any | None = None,
         policy_adapter: Any | None = None,
-        identity_proof_adapter: IdentityProofAdapter | None = None,
-        remote_delivery_observers: dict[str, RemoteDeliveryObserver] | None = None,
+        identity_proof_adapter: Any | None = None,
+        remote_delivery_observers: dict[str, Any] | None = None,
         remote_artifact_readers: dict[str, Any] | None = None,
-        board_adapter: BoardAdapter | None = None,
+        board_adapter: Any | None = None,
     ) -> "AgentServiceR13":
         from .failover import AgentServiceR12
 
-        quiescence_adapters: dict[str, ExecutionQuiescenceAdapter] = {}
+        quiescence_adapters: dict[str, Any] = {}
         if a2a_caller is not None:
             quiescence_adapters["a2a-jsonrpc"] = A2AQuiescenceAdapter(a2a_caller)
         if mcp_tasks_caller is not None:

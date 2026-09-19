@@ -7,7 +7,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Callable
 
-from .goals import BoardAdapter, BoardMessageRef
+from .goals import BoardMessageRef
 
 
 HOST_MCP_PROTOCOL_VERSION = "2025-11-25"
@@ -145,7 +145,7 @@ class HostBoardMcpHttpClient:
 ToolCaller = Callable[[str, dict[str, Any]], dict[str, Any]]
 
 
-class HostBoardMcpAdapter(BoardAdapter):
+class HostBoardMcpAdapter:
     """Projection-only provider: Agent Service Goal events -> Host Board messages."""
 
     def __init__(self, caller: ToolCaller | HostBoardMcpHttpClient) -> None:

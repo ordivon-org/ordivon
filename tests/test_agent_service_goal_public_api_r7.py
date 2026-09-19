@@ -5,7 +5,6 @@ import unittest
 import agent_service
 from agent_service.goals import (
     AgentServiceR7,
-    BoardAdapter,
     BoardProjectionReceipt,
     GoalGraphMutationGuard,
     GoalStore,
@@ -24,7 +23,7 @@ class AgentServiceGoalPublicApiR7Tests(unittest.TestCase):
         self.assertIs(agent_service.TaskDependencyStore, TaskDependencyStore)
         self.assertIs(agent_service.TaskReadinessProjector, TaskReadinessProjector)
         self.assertIs(agent_service.GoalGraphMutationGuard, GoalGraphMutationGuard)
-        self.assertIs(agent_service.BoardAdapter, BoardAdapter)
+        self.assertFalse(hasattr(agent_service, "BoardAdapter"))
         self.assertIs(agent_service.BoardProjectionReceipt, BoardProjectionReceipt)
         self.assertIs(agent_service.HostBoardMcpAdapter, HostBoardMcpAdapter)
 

@@ -3,27 +3,22 @@ from __future__ import annotations
 import sqlite3
 import time
 import uuid
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from .delivery import TransportBinding, TransportBindingStore, _delivery_receipt_get_by_binding
-from .evidence import Any
-from .goals import BoardAdapter, GoalAssignmentPlanner
+from .goals import GoalAssignmentPlanner
 from .remote_evidence import (
     AgentServiceR11,
     ClaimAwareAssignmentPlanner,
     ClaimAwareDeliveryCoordinator,
-    RemoteArtifactReader,
     TaskExecutionClaimStore,
     _remote_task_verification_get_by_task,
 )
 from .slice1 import ServiceEvent, ServiceEventStore
 from .task_runtime import TaskStore
 from .trust import (
-    IdentityProofAdapter,
-    RemoteDeliveryObserver,
     RemoteDeliverySnapshot,
     _remote_delivery_observation_list_for_binding,
     _remote_delivery_observation_latest_for_binding,
@@ -47,20 +42,6 @@ class ExecutionQuiescenceObservation:
     evidence_ref: str
 
 
-class ExecutionQuiescenceAdapter(ABC):
-    """Provider seam that proves whether a remote owner can no longer execute."""
-
-    @abstractmethod
-    def prove_quiescence(
-        self,
-        *,
-        quiescence_request_id: str,
-        binding: TransportBinding,
-        receipt: Any | None,
-        envelope: Any,
-        latest_observation: RemoteDeliverySnapshot | None,
-    ) -> ExecutionQuiescenceObservation:
-        raise NotImplementedError
 
 
 @dataclass(frozen=True)
@@ -333,7 +314,7 @@ class ExecutionQuiescenceCoordinator:
         receipts: ServiceEventStore,
         observations: ServiceEventStore,
         requests: ExecutionQuiescenceRequestStore,
-        adapters: dict[str, ExecutionQuiescenceAdapter],
+        adapters: dict[str, Any],
     ) -> None:
         self._connection = connection
         self._tasks = tasks
@@ -344,6 +325,13 @@ class ExecutionQuiescenceCoordinator:
         self._receipts = receipts
         self._observations = observations
         self._requests = requests
+        for transport, provider in adapters.items():
+            if not isinstance(transport, str) or not transport.strip():
+                raise TypeError("quiescence provider transport key must be a non-empty string")
+            if not callable(getattr(provider, "prove_quiescence", None)):
+                raise TypeError(
+                    f"quiescence provider for {transport!r} must expose callable prove_quiescence()"
+                )
         self._adapters = dict(adapters)
 
     def prove(
@@ -378,7 +366,7 @@ class ExecutionQuiescenceCoordinator:
 
         use_terminal_observation = latest is not None and latest.terminal and latest.successful is False
         if not use_terminal_observation and self._adapters.get(binding.transport) is None:
-            raise LookupError(f"no ExecutionQuiescenceAdapter registered for {binding.transport}")
+            raise LookupError(f"no quiescence provider registered for {binding.transport}")
         if request is None:
             with self._connection:
                 request = self._requests.create_requested_in_transaction(
@@ -417,7 +405,7 @@ class ExecutionQuiescenceCoordinator:
                 latest_observation=latest,
             )
             if not isinstance(observation, ExecutionQuiescenceObservation):
-                raise TypeError("ExecutionQuiescenceAdapter must return ExecutionQuiescenceObservation")
+                raise TypeError("quiescence provider must return ExecutionQuiescenceObservation")
             method = "adapter"
 
         self._validate_observation(observation, receipt=receipt, latest=latest)
@@ -483,23 +471,6 @@ class ReplaySafetyObservation:
     evidence_ref: str
 
 
-class ReplaySafetyAdapter(ABC):
-    """Domain/effect seam that decides whether executing the Task again is safe."""
-
-    @abstractmethod
-    def evaluate_replay_safety(
-        self,
-        *,
-        replay_safety_request_id: str,
-        task: Any,
-        envelope: Any,
-        source_binding: TransportBinding,
-        target_binding: TransportBinding,
-        quiescence_proof: ExecutionQuiescenceProofRecord,
-        source_receipt: Any | None,
-        source_observations: tuple[RemoteDeliverySnapshot, ...],
-    ) -> ReplaySafetyObservation:
-        raise NotImplementedError
 
 
 @dataclass(frozen=True)
@@ -634,7 +605,7 @@ class ReplaySafetyCoordinator:
         bindings: TransportBindingStore,
         receipts: ServiceEventStore,
         observations: ServiceEventStore,
-        adapter: ReplaySafetyAdapter | None,
+        adapter: Any | None,
     ) -> None:
         self._connection = connection
         self._tasks = tasks
@@ -644,6 +615,12 @@ class ReplaySafetyCoordinator:
         self._bindings = bindings
         self._receipts = receipts
         self._observations = observations
+        if adapter is not None and not callable(
+            getattr(adapter, "evaluate_replay_safety", None)
+        ):
+            raise TypeError(
+                "replay-safety provider must expose callable evaluate_replay_safety()"
+            )
         self._adapter = adapter
 
     def evaluate(
@@ -669,7 +646,7 @@ class ReplaySafetyCoordinator:
                 raise ValueError("replay safety request replay conflicts with committed decision")
             return existing
         if self._adapter is None:
-            raise RuntimeError("no ReplaySafetyAdapter configured")
+            raise RuntimeError("no replay-safety provider configured")
         if from_binding_id == to_binding_id:
             raise ValueError("replay safety requires distinct source and target Bindings")
         source = self._bindings.get(from_binding_id)
@@ -702,7 +679,7 @@ class ReplaySafetyCoordinator:
             source_observations=history,
         )
         if not isinstance(observation, ReplaySafetyObservation):
-            raise TypeError("ReplaySafetyAdapter must return ReplaySafetyObservation")
+            raise TypeError("replay-safety provider must return ReplaySafetyObservation")
         with self._connection:
             decision = _replay_safety_decision_create_in_transaction(
                 self._events,
@@ -1152,8 +1129,8 @@ class AgentServiceR12:
         r11: AgentServiceR11,
         *,
         delivery_adapters: dict[str],
-        execution_quiescence_adapters: dict[str, ExecutionQuiescenceAdapter],
-        replay_safety_adapter: ReplaySafetyAdapter | None,
+        execution_quiescence_adapters: dict[str, Any],
+        replay_safety_adapter: Any | None,
     ) -> None:
         self._r11 = r11
         self._connection = r11._connection
@@ -1243,12 +1220,12 @@ class AgentServiceR12:
         artifact_reader: Any,
         policy_adapter: Any | None = None,
         delivery_adapters: dict[str] | None = None,
-        identity_proof_adapter: IdentityProofAdapter | None = None,
-        remote_delivery_observers: dict[str, RemoteDeliveryObserver] | None = None,
-        remote_artifact_readers: dict[str, RemoteArtifactReader] | None = None,
-        execution_quiescence_adapters: dict[str, ExecutionQuiescenceAdapter] | None = None,
-        replay_safety_adapter: ReplaySafetyAdapter | None = None,
-        board_adapter: BoardAdapter | None = None,
+        identity_proof_adapter: Any | None = None,
+        remote_delivery_observers: dict[str, Any] | None = None,
+        remote_artifact_readers: dict[str, Any] | None = None,
+        execution_quiescence_adapters: dict[str, Any] | None = None,
+        replay_safety_adapter: Any | None = None,
+        board_adapter: Any | None = None,
     ) -> "AgentServiceR12":
         adapters = delivery_adapters or {}
         r11 = AgentServiceR11.open(

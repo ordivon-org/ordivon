@@ -4,7 +4,6 @@ import json
 import sqlite3
 import time
 import uuid
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -14,10 +13,8 @@ from .delivery import (
     TransportBinding,
     _delivery_receipt_get_by_binding,
 )
-from .evidence import Any
 from .semantics import DelegationEnvelope
 from .slice1 import ServiceEvent, ServiceEventStore
-from .task_runtime import Any
 
 
 def _now_ns() -> int:
@@ -180,14 +177,6 @@ class IdentityProofObservation:
     evidence_ref: str
 
 
-class IdentityProofAdapter(ABC):
-    @abstractmethod
-    def verify(
-        self,
-        request: IdentityProofRequest,
-        credential_reference: CredentialReference,
-    ) -> IdentityProofObservation:
-        raise NotImplementedError
 
 
 @dataclass(frozen=True)
@@ -307,14 +296,16 @@ class IdentityProofCoordinator:
         identities: Any,
         credentials: CredentialReferenceStore,
         events: ServiceEventStore,
-        adapter: IdentityProofAdapter | None,
+        adapter: Any | None,
     ) -> None:
         self._identities = identities
         self._credentials = credentials
         self._events = events
-        self._adapter = adapter
+        self.set_adapter(adapter)
 
-    def set_adapter(self, adapter: IdentityProofAdapter | None) -> None:
+    def set_adapter(self, adapter: Any | None) -> None:
+        if adapter is not None and not callable(getattr(adapter, "verify", None)):
+            raise TypeError("identity proof provider must expose callable verify()")
         self._adapter = adapter
 
     def verify(
@@ -346,7 +337,7 @@ class IdentityProofCoordinator:
         self._identities.get(identity_id)
         credential = self._credentials.get(credential_reference_id)
         if self._adapter is None:
-            raise RuntimeError("no IdentityProofAdapter configured")
+            raise RuntimeError("no identity proof provider configured")
         request = IdentityProofRequest(
             identity_id=identity_id,
             credential_reference_id=credential_reference_id,
@@ -355,7 +346,7 @@ class IdentityProofCoordinator:
         )
         observation = self._adapter.verify(request, credential)
         if not isinstance(observation, IdentityProofObservation):
-            raise TypeError("IdentityProofAdapter must return IdentityProofObservation")
+            raise TypeError("identity proof provider must return IdentityProofObservation")
         if not isinstance(observation.issuer, str) or not observation.issuer.strip():
             raise ValueError("identity proof issuer must be non-empty")
         if observation.issuer != credential.issuer:
@@ -401,16 +392,6 @@ class RemoteProviderObservation:
     evidence_ref: str
 
 
-class RemoteDeliveryObserver(ABC):
-    @abstractmethod
-    def observe(
-        self,
-        *,
-        binding: TransportBinding,
-        receipt: Any,
-        envelope: DelegationEnvelope,
-    ) -> RemoteProviderObservation:
-        raise NotImplementedError
 
 
 @dataclass(frozen=True)
@@ -543,11 +524,18 @@ class RemoteCorrelationReconciler:
         delegations: Any,
         bindings: Any,
         delivery_events: ServiceEventStore,
-        observers: dict[str, RemoteDeliveryObserver],
+        observers: dict[str, Any],
     ) -> None:
         self._delegations = delegations
         self._bindings = bindings
         self._delivery_events = delivery_events
+        for transport, observer in observers.items():
+            if not isinstance(transport, str) or not transport.strip():
+                raise TypeError("remote observer transport key must be a non-empty string")
+            if not callable(getattr(observer, "observe", None)):
+                raise TypeError(
+                    f"remote observer for {transport!r} must expose callable observe()"
+                )
         self._observers = dict(observers)
 
     def reconcile(self, binding_id: str) -> RemoteDeliverySnapshot:
@@ -556,10 +544,10 @@ class RemoteCorrelationReconciler:
         envelope = self._delegations.get(binding.delegation_id)
         observer = self._observers.get(binding.transport)
         if observer is None:
-            raise LookupError(f"no RemoteDeliveryObserver registered for {binding.transport}")
+            raise LookupError(f"no remote delivery observer registered for {binding.transport}")
         observation = observer.observe(binding=binding, receipt=receipt, envelope=envelope)
         if not isinstance(observation, RemoteProviderObservation):
-            raise TypeError("RemoteDeliveryObserver must return RemoteProviderObservation")
+            raise TypeError("remote delivery observer must return RemoteProviderObservation")
         if not isinstance(observation.provider_status, str) or not observation.provider_status.strip():
             raise ValueError("remote provider status must be non-empty")
         if not isinstance(observation.evidence_ref, str) or not observation.evidence_ref.strip():
@@ -647,8 +635,8 @@ class AgentServiceR10:
         self,
         r9: AgentServiceR9,
         *,
-        identity_proof_adapter: IdentityProofAdapter | None,
-        remote_delivery_observers: dict[str, RemoteDeliveryObserver],
+        identity_proof_adapter: Any | None,
+        remote_delivery_observers: dict[str, Any],
     ) -> None:
         self._r9 = r9
         self._connection = r9._connection
@@ -692,8 +680,8 @@ class AgentServiceR10:
         artifact_reader: Any,
         policy_adapter: Any | None = None,
         delivery_adapters: dict[str] | None = None,
-        identity_proof_adapter: IdentityProofAdapter | None = None,
-        remote_delivery_observers: dict[str, RemoteDeliveryObserver] | None = None,
+        identity_proof_adapter: Any | None = None,
+        remote_delivery_observers: dict[str, Any] | None = None,
         board_adapter: Any | None = None,
     ) -> "AgentServiceR10":
         r9 = AgentServiceR9.open(

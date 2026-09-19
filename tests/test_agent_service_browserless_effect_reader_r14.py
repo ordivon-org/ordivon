@@ -67,7 +67,7 @@ class AgentServiceBrowserlessEffectReaderR14Tests(unittest.TestCase):
             snapshot = self._snapshot(self._reader(path))
             self.assertTrue(snapshot.complete)
             self.assertEqual(snapshot.effects, ())
-            verdict = EffectLedgerReplaySafetyAdapter(None)._evaluate_snapshot(
+            verdict = EffectLedgerReplaySafetyAdapter._evaluate_snapshot(
                 snapshot,
                 expected_task_id="task-x",
                 expected_source_binding_id="source-x",
@@ -81,7 +81,7 @@ class AgentServiceBrowserlessEffectReaderR14Tests(unittest.TestCase):
             missing = Path(tmp)/"missing.db"
             snapshot = self._snapshot(self._reader(missing))
             self.assertFalse(snapshot.complete)
-            verdict = EffectLedgerReplaySafetyAdapter(None)._evaluate_snapshot(
+            verdict = EffectLedgerReplaySafetyAdapter._evaluate_snapshot(
                 snapshot,
                 expected_task_id="task-x",
                 expected_source_binding_id="source-x",
@@ -107,7 +107,7 @@ class AgentServiceBrowserlessEffectReaderR14Tests(unittest.TestCase):
             snapshot = self._snapshot(self._reader(path))
             self.assertFalse(snapshot.complete)
             self.assertEqual(snapshot.effects[0].state, "UNKNOWN")
-            verdict = EffectLedgerReplaySafetyAdapter(None)._evaluate_snapshot(
+            verdict = EffectLedgerReplaySafetyAdapter._evaluate_snapshot(
                 snapshot,
                 expected_task_id="task-x",
                 expected_source_binding_id="source-x",
@@ -149,7 +149,7 @@ class AgentServiceBrowserlessEffectReaderR14Tests(unittest.TestCase):
             self.assertTrue(snapshot.complete)
             self.assertEqual(snapshot.effects[0].state, "COMMITTED")
             self.assertIsNone(snapshot.effects[0].idempotency_key)
-            verdict = EffectLedgerReplaySafetyAdapter(None)._evaluate_snapshot(
+            verdict = EffectLedgerReplaySafetyAdapter._evaluate_snapshot(
                 snapshot,
                 expected_task_id="task-x",
                 expected_source_binding_id="source-x",

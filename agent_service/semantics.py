@@ -9,10 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .evidence import Any
 from .goals import AgentServiceR7
-from .slice1 import Any
-from .task_runtime import Any
 
 
 def _now_ns() -> int:

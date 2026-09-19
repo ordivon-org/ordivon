@@ -12,7 +12,6 @@ import rfc8785
 
 from .provider_adapters import (
     EffectLedgerEffect,
-    EffectLedgerReader,
     EffectLedgerSnapshot,
     ProviderProtocolError,
 )
@@ -112,7 +111,7 @@ def _validate_receipt(
     return receipt
 
 
-class BrowserlessTurnEffectLedgerReader(EffectLedgerReader):
+class BrowserlessTurnEffectLedgerReader:
     """Read the Harness Browserless turn_effects fence as domain-specific replay evidence.
 
     This reader is deliberately narrow. It knows only the ChatGPT Web SEND fence established by

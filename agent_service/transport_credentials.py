@@ -5,7 +5,6 @@ import json
 import sqlite3
 import time
 import urllib.parse
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -13,21 +12,14 @@ from typing import Any
 import rfc8785
 
 from .delivery import TransportBinding
-from .evidence import Any
-from .goals import BoardAdapter
 from .provider_adapters import (
     AgentServiceR13,
-    EffectLedgerReader,
     ProviderCaller,
 )
-from .remote_evidence import RemoteArtifactReader
 from .slice1 import ServiceEvent, ServiceEventStore
-from .task_runtime import Any
 from .trust import (
     CredentialReference,
-    IdentityProofAdapter,
     IdentityProofRecord,
-    RemoteDeliveryObserver,
 )
 
 
@@ -396,19 +388,6 @@ class CredentialHeaderMaterial:
     evidence_ref: str
 
 
-class CredentialMaterialProvider(ABC):
-    """External secret authority. Returned header material is intentionally ephemeral."""
-
-    @abstractmethod
-    def resolve_headers(
-        self,
-        *,
-        credential_reference: CredentialReference,
-        binding: TransportBinding,
-        security_scheme: str,
-        identity_proof: IdentityProofRecord,
-    ) -> CredentialHeaderMaterial:
-        raise NotImplementedError
 
 
 class BoundCredentialHeaderProvider:
@@ -420,11 +399,17 @@ class BoundCredentialHeaderProvider:
         events: ServiceEventStore,
         credential_references: Any,
         identity_proofs: Any,
-        material_provider: CredentialMaterialProvider | None,
+        material_provider: Any | None,
     ) -> None:
         self._events = events
         self._credential_references = credential_references
         self._identity_proofs = identity_proofs
+        if material_provider is not None and not callable(
+            getattr(material_provider, "resolve_headers", None)
+        ):
+            raise TypeError(
+                "credential material provider must expose callable resolve_headers()"
+            )
         self._material_provider = material_provider
 
     def __repr__(self) -> str:
@@ -435,7 +420,7 @@ class BoundCredentialHeaderProvider:
         if not requirements:
             return {}
         if self._material_provider is None:
-            raise RuntimeError("no CredentialMaterialProvider configured")
+            raise RuntimeError("no credential material provider configured")
 
         by_scheme = {
             record.security_scheme: record
@@ -474,7 +459,7 @@ class BoundCredentialHeaderProvider:
             )
             if not isinstance(material, CredentialHeaderMaterial):
                 raise TypeError(
-                    "CredentialMaterialProvider must return CredentialHeaderMaterial"
+                    "credential material provider must return CredentialHeaderMaterial"
                 )
             if material.issuer != credential.issuer:
                 raise ValueError("resolved credential issuer drifted from CredentialReference")
@@ -521,7 +506,7 @@ class AgentServiceR14:
         self,
         r13: AgentServiceR13,
         *,
-        credential_material_provider: CredentialMaterialProvider | None,
+        credential_material_provider: Any | None,
     ) -> None:
         self._r13 = r13
         self._connection = r13._r12._connection
@@ -552,15 +537,15 @@ class AgentServiceR14:
         runtime_adapter: Any,
         artifact_reader: Any,
         delivery_adapters: dict[str],
-        credential_material_provider: CredentialMaterialProvider | None = None,
+        credential_material_provider: Any | None = None,
         a2a_caller: ProviderCaller | None = None,
         mcp_tasks_caller: ProviderCaller | None = None,
-        effect_ledger_reader: EffectLedgerReader | None = None,
+        effect_ledger_reader: Any | None = None,
         policy_adapter: Any | None = None,
-        identity_proof_adapter: IdentityProofAdapter | None = None,
-        remote_delivery_observers: dict[str, RemoteDeliveryObserver] | None = None,
-        remote_artifact_readers: dict[str, RemoteArtifactReader] | None = None,
-        board_adapter: BoardAdapter | None = None,
+        identity_proof_adapter: Any | None = None,
+        remote_delivery_observers: dict[str, Any] | None = None,
+        remote_artifact_readers: dict[str, Any] | None = None,
+        board_adapter: Any | None = None,
     ) -> "AgentServiceR14":
         r13 = AgentServiceR13.open(
             db_path,

@@ -6,7 +6,6 @@ from pathlib import Path
 
 from agent_service.goals import (
     AgentServiceR7,
-    BoardAdapter,
     BoardMessageRef,
     _board_projection_receipt_get_by_event,
 )
@@ -57,7 +56,7 @@ class NoopArtifactReader:
         raise AssertionError("artifact read not expected")
 
 
-class FakeBoard(BoardAdapter):
+class FakeBoard:
     def __init__(self) -> None:
         self.messages: dict[str, BoardMessageRef] = {}
         self.calls: list[tuple[str, str, str, str]] = []

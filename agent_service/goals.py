@@ -6,7 +6,6 @@ import hashlib
 import sqlite3
 import time
 import uuid
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -345,17 +344,6 @@ class BoardMessageRef:
     provider_sequence: int | None = None
 
 
-class BoardAdapter(ABC):
-    @abstractmethod
-    def post(
-        self,
-        *,
-        client_message_id: str,
-        author_label: str,
-        message: str,
-        topic: str,
-    ) -> BoardMessageRef:
-        raise NotImplementedError
 
 
 @dataclass(frozen=True)
@@ -439,10 +427,12 @@ class GoalBoardProjector:
         self,
         goals: GoalStore,
         events: ServiceEventStore,
-        adapter: BoardAdapter | None,
+        adapter: Any | None,
     ) -> None:
         self._goals = goals
         self._events = events
+        if adapter is not None and not callable(getattr(adapter, "post", None)):
+            raise TypeError("board provider must expose callable post()")
         self._adapter = adapter
 
     @staticmethod
@@ -465,7 +455,7 @@ class GoalBoardProjector:
 
     def _project_event(self, goal_id: str, event: ServiceEvent) -> BoardProjectionReceipt:
         if self._adapter is None:
-            raise RuntimeError("no Board adapter configured")
+            raise RuntimeError("no board provider configured")
         existing = _board_projection_receipt_get_by_event(self._events, event.id)
         if existing is not None:
             return existing
@@ -507,7 +497,7 @@ class GoalBoardProjector:
 class AgentServiceR7:
     """R7 composition: Goal/DAG/convergence/Board projection above R6 durable Task truth."""
 
-    def __init__(self, r6: AgentServiceR6, board_adapter: BoardAdapter | None) -> None:
+    def __init__(self, r6: AgentServiceR6, board_adapter: Any | None) -> None:
         self._r6 = r6
         self._connection = r6._connection
         self.definitions = r6.definitions
@@ -556,7 +546,7 @@ class AgentServiceR7:
         carrier_adapter: Any,
         runtime_adapter: Any,
         artifact_reader: Any,
-        board_adapter: BoardAdapter | None = None,
+        board_adapter: Any | None = None,
     ) -> "AgentServiceR7":
         r6 = AgentServiceR6.open(
             db_path,
