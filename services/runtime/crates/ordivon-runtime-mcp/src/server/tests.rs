@@ -1383,6 +1383,17 @@ fn server_identity_names_the_runtime_component() {
 }
 
 #[test]
+fn server_does_not_advertise_mcp_tasks_without_a_conformant_task_creation_lifecycle() {
+    let sandbox = Sandbox::new("no-mcp-tasks");
+    let info = serde_json::to_value(sandbox.server().get_info()).unwrap();
+    let encoded = serde_json::to_string(&info).unwrap();
+    assert!(
+        !encoded.contains(rmcp::model::TASKS_EXTENSION_ID),
+        "Runtime Job Tools must not be advertised as the MCP Tasks extension"
+    );
+}
+
+#[test]
 fn tool_catalog_uses_transactional_job_contract() {
     let sandbox = Sandbox::new("catalog");
     let server = sandbox.server();
