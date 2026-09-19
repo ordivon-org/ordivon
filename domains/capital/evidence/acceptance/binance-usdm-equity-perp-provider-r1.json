@@ -1,0 +1,61 @@
+{
+  "credentialsLoadedDuringPreflight": false,
+  "currentPublicSndk": {
+    "adlRisk": "LOW",
+    "contractType": "TRADIFI_PERPETUAL",
+    "currentUnderlyingSession": "NO_TRADING",
+    "fundingIntervalHours": 8,
+    "fundingRate": "0.00000000",
+    "minNotional": "5",
+    "status": "TRADING",
+    "stepSize": "0.01",
+    "tickSize": "0.01000"
+  },
+  "date": "2026-09-19",
+  "externalFinancialWriteAttempted": false,
+  "kind": "ordivon.acceptance-evidence",
+  "networkCalledBySdkPreflight": false,
+  "networkV2": {
+    "directFallback": false,
+    "restProxy": "http://127.0.0.1:19287",
+    "wsProxy": "http://127.0.0.1:19289"
+  },
+  "officialProvider": {
+    "restBase": "https://fapi.binance.com",
+    "sdk": "binance-sdk-derivatives-trading-usds-futures",
+    "version": "17.4.0",
+    "wsMarketHost": "fstream.binance.com"
+  },
+  "pending": [
+    "fresh USD-S-M USER_DATA credential binding",
+    "current account product eligibility",
+    "TradFi agreement user action if not already accepted",
+    "non-live execution qualification",
+    "live execution admission"
+  ],
+  "publicConsequenceEvidence": "evidence/acceptance/binance-sndk-usdm-public-canary-r1.json",
+  "qualifiedSurfaces": [
+    "exchange information",
+    "funding information",
+    "trading schedule",
+    "public ADL risk",
+    "official SDK account/position/order method surface"
+  ],
+  "schemaVersion": 1,
+  "standing": "PUBLIC_AND_CLIENT_SURFACES_QUALIFIED_PRIVATE_USER_DATA_PENDING",
+  "subject": "binance-usdm-equity-perp-provider-r1",
+  "tradFiAgreementAutomated": false,
+  "verification": {
+    "canonicalSuite": "186 passed",
+    "externalFinancialWriteAttempted": false,
+    "focusedTests": "15 passed",
+    "gitDiffCheck": "PASS",
+    "officialSdkSurface": "PASS",
+    "officialSdkVersion": "17.4.0",
+    "privateCredentialBytesRead": false,
+    "privateUsdMUserDataQueried": false,
+    "publicProviderConsequence": "PASS",
+    "tradFiAgreementInvoked": false,
+    "tradeEndpointInvoked": false
+  }
+}

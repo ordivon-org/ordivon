@@ -17,6 +17,11 @@ def test_private_reality_credentials_may_be_located_but_private_data_stays_not_a
     assert set(x['venues']['OKX']['forbiddenPermissions'])=={'Trade','Withdraw'}
     assert x['venues']['BINANCE']['requiredSecurityType']=='USER_DATA'
     assert not x['venues']['BINANCE']['tradePermissionRequired']
+    assert x['venues']['BINANCE_USDM']['requiredSecurityType']=='USER_DATA'
+    assert not x['venues']['BINANCE_USDM']['tradePermissionRequired']
+    assert x['venues']['BINANCE_USDM']['permissionStanding']=='PENDING_FRESH_PROVIDER_VERIFICATION'
+    assert x['venues']['BINANCE_USDM']['productEligibilityStanding']=='PENDING_PROVIDER_VERIFICATION'
+    assert x['venues']['BINANCE_USDM']['tradFiAgreementAutomationAllowed'] is False
 
 def test_preflight_uses_blank_credentials_and_no_secret_discovery():
     s=(ROOT/'scripts/check-private-reality-readonly-preflight').read_text()

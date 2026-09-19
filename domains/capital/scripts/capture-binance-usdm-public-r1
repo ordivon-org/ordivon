@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+sdk=/root/external/binance-sdk-usdm/17.4.0/.venv/bin/python
+export PYTHONPATH="$repo/src"
+export HTTPS_PROXY=http://127.0.0.1:19287
+export HTTP_PROXY=http://127.0.0.1:19287
+export NO_PROXY=127.0.0.1,localhost
+exec "$sdk" -m market_capital.binance_usdm_public_capture "$@"
