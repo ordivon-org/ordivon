@@ -8,7 +8,6 @@ import time
 import uuid
 
 import rfc8785
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -158,17 +157,17 @@ class PolicyObservation:
     granted_permissions: tuple[str, ...] = ()
 
 
-class PolicyAdapter(ABC):
-    @abstractmethod
-    def evaluate(self, request: PolicyRequest) -> PolicyObservation:
-        raise NotImplementedError
+def _require_policy_provider(provider: Any | None) -> Any | None:
+    if provider is not None and not callable(getattr(provider, "evaluate", None)):
+        raise TypeError("policy provider must expose callable evaluate()")
+    return provider
 
 
 def _evaluate_policy_receipt(
     *,
     delegations: Any,
     events: ServiceEventStore,
-    adapter: PolicyAdapter | None,
+    adapter: Any | None,
     client_policy_request_id: str,
     delegation_id: str,
 ) -> ServiceEvent:
@@ -187,7 +186,7 @@ def _evaluate_policy_receipt(
         return event
 
     if adapter is None:
-        raise RuntimeError("no PolicyAdapter configured")
+        raise RuntimeError("no policy provider configured")
     envelope = delegations.get(delegation_id)
     request = PolicyRequest(
         delegation_id=envelope.id,
@@ -201,7 +200,7 @@ def _evaluate_policy_receipt(
     )
     observation = adapter.evaluate(request)
     if not isinstance(observation, PolicyObservation):
-        raise TypeError("PolicyAdapter must return PolicyObservation")
+        raise TypeError("policy provider must return PolicyObservation")
     if not observation.policy_revision.strip():
         raise ValueError("PolicyObservation.policy_revision must be non-empty")
     scopes = tuple(dict.fromkeys(observation.granted_permissions))
@@ -398,9 +397,10 @@ class DelegationRoutePlanner:
         connection: sqlite3.Connection,
         delegations: Any,
         events: ServiceEventStore,
-        policy_adapter: PolicyAdapter | None,
+        policy_adapter: Any | None,
         bindings: TransportBindingStore,
     ) -> None:
+        policy_adapter = _require_policy_provider(policy_adapter)
         self._connection = connection
         self._delegations = delegations
         self._events = events
@@ -480,16 +480,15 @@ class DeliveryObservation:
     remote_context_id: str | None = None
 
 
-class DeliveryAdapter(ABC):
-    @abstractmethod
-    def send(
-        self,
-        *,
-        delivery_request_id: str,
-        binding: TransportBinding,
-        envelope: DelegationEnvelope,
-    ) -> DeliveryObservation:
-        raise NotImplementedError
+def _require_delivery_providers(adapters: dict[str, Any]) -> dict[str, Any]:
+    for transport, provider in adapters.items():
+        if not isinstance(transport, str) or not transport.strip():
+            raise TypeError("delivery provider transport key must be a non-empty string")
+        if not callable(getattr(provider, "send", None)):
+            raise TypeError(
+                f"delivery provider for {transport!r} must expose callable send()"
+            )
+    return dict(adapters)
 
 
 @dataclass(frozen=True)
@@ -582,12 +581,13 @@ class DeliveryCoordinator:
         delegations: Any,
         bindings: TransportBindingStore,
         events: ServiceEventStore,
-        adapters: dict[str, DeliveryAdapter],
+        adapters: dict[str, Any],
     ) -> None:
+        adapters = _require_delivery_providers(adapters)
         self._delegations = delegations
         self._bindings = bindings
         self._events = events
-        self._adapters = dict(adapters)
+        self._adapters = adapters
 
     def deliver(self, binding_id: str) -> DeliveryReceipt:
         existing = _delivery_receipt_get_by_binding(
@@ -599,14 +599,14 @@ class DeliveryCoordinator:
         envelope = self._delegations.get(binding.delegation_id)
         adapter = self._adapters.get(binding.transport)
         if adapter is None:
-            raise LookupError(f"no DeliveryAdapter registered for {binding.transport}")
+            raise LookupError(f"no delivery provider registered for {binding.transport}")
         observation = adapter.send(
             delivery_request_id=binding.delivery_request_id,
             binding=binding,
             envelope=envelope,
         )
         if not isinstance(observation, DeliveryObservation):
-            raise TypeError("DeliveryAdapter must return DeliveryObservation")
+            raise TypeError("delivery provider must return DeliveryObservation")
         return _delivery_receipt_create(self._events, binding, observation)
 
 
@@ -617,8 +617,8 @@ class AgentServiceR9:
         self,
         r8: AgentServiceR8,
         *,
-        policy_adapter: PolicyAdapter | None,
-        delivery_adapters: dict[str, DeliveryAdapter],
+        policy_adapter: Any | None,
+        delivery_adapters: dict[str, Any],
     ) -> None:
         self._r8 = r8
         self._connection = r8._connection
@@ -654,10 +654,12 @@ class AgentServiceR9:
         carrier_adapter: Any,
         runtime_adapter: Any,
         artifact_reader: Any,
-        policy_adapter: PolicyAdapter | None = None,
-        delivery_adapters: dict[str, DeliveryAdapter] | None = None,
+        policy_adapter: Any | None = None,
+        delivery_adapters: dict[str, Any] | None = None,
         board_adapter: Any | None = None,
     ) -> "AgentServiceR9":
+        policy_adapter = _require_policy_provider(policy_adapter)
+        delivery_adapters = _require_delivery_providers(delivery_adapters or {})
         r8 = AgentServiceR8.open(
             db_path,
             carrier_adapter=carrier_adapter,
@@ -669,7 +671,7 @@ class AgentServiceR9:
         return cls(
             r8,
             policy_adapter=policy_adapter,
-            delivery_adapters=delivery_adapters or {},
+            delivery_adapters=delivery_adapters,
         )
 
     @staticmethod

@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .delivery import DeliveryAdapter, PolicyAdapter, TransportBinding, TransportBindingStore, _delivery_receipt_get_by_binding
+from .delivery import TransportBinding, TransportBindingStore, _delivery_receipt_get_by_binding
 from .evidence import Any
 from .goals import BoardAdapter, GoalAssignmentPlanner
 from .remote_evidence import (
@@ -1151,7 +1151,7 @@ class AgentServiceR12:
         self,
         r11: AgentServiceR11,
         *,
-        delivery_adapters: dict[str, DeliveryAdapter],
+        delivery_adapters: dict[str],
         execution_quiescence_adapters: dict[str, ExecutionQuiescenceAdapter],
         replay_safety_adapter: ReplaySafetyAdapter | None,
     ) -> None:
@@ -1241,8 +1241,8 @@ class AgentServiceR12:
         carrier_adapter: Any,
         runtime_adapter: Any,
         artifact_reader: Any,
-        policy_adapter: PolicyAdapter | None = None,
-        delivery_adapters: dict[str, DeliveryAdapter] | None = None,
+        policy_adapter: Any | None = None,
+        delivery_adapters: dict[str] | None = None,
         identity_proof_adapter: IdentityProofAdapter | None = None,
         remote_delivery_observers: dict[str, RemoteDeliveryObserver] | None = None,
         remote_artifact_readers: dict[str, RemoteArtifactReader] | None = None,

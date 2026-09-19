@@ -11,8 +11,6 @@ from typing import Any
 
 from .delivery import (
     AgentServiceR9,
-    DeliveryAdapter,
-    PolicyAdapter,
     TransportBinding,
     _delivery_receipt_get_by_binding,
 )
@@ -692,8 +690,8 @@ class AgentServiceR10:
         carrier_adapter: Any,
         runtime_adapter: Any,
         artifact_reader: Any,
-        policy_adapter: PolicyAdapter | None = None,
-        delivery_adapters: dict[str, DeliveryAdapter] | None = None,
+        policy_adapter: Any | None = None,
+        delivery_adapters: dict[str] | None = None,
         identity_proof_adapter: IdentityProofAdapter | None = None,
         remote_delivery_observers: dict[str, RemoteDeliveryObserver] | None = None,
         board_adapter: Any | None = None,

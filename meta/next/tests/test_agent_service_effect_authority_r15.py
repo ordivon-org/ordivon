@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agent_service.delivery import DeliveryAdapter, DeliveryObservation, PolicyAdapter, PolicyObservation
+from agent_service.delivery import DeliveryObservation, PolicyObservation
 from agent_service.effect_authority import AgentServiceR15
 from agent_service.evidence import RuntimeArtifactPayload
 from agent_service.slice1 import ProviderObservation
@@ -48,7 +48,7 @@ class NoopArtifactReader:
         raise AssertionError("artifact read not expected")
 
 
-class MutablePolicy(PolicyAdapter):
+class MutablePolicy:
     def __init__(self, allowed: bool = True) -> None:
         self.allowed = allowed
         self.revision = 1
@@ -64,7 +64,7 @@ class MutablePolicy(PolicyAdapter):
         )
 
 
-class CountingDelivery(DeliveryAdapter):
+class CountingDelivery:
     def __init__(self) -> None:
         self.calls = 0
         self.fail_once = False
@@ -84,7 +84,7 @@ class CountingDelivery(DeliveryAdapter):
 
 
 class AgentServiceEffectAuthorityR15Tests(unittest.TestCase):
-    def _open(self, db: Path, policy: PolicyAdapter | None, delivery: CountingDelivery) -> AgentServiceR15:
+    def _open(self, db: Path, policy: object | None, delivery: CountingDelivery) -> AgentServiceR15:
         service = AgentServiceR15.open(
             db,
             carrier_adapter=ReadyCarrier(),
@@ -180,7 +180,7 @@ class AgentServiceEffectAuthorityR15Tests(unittest.TestCase):
             _, _, _, binding = self._setup(service)
 
             service.delivery._policy_adapter = None
-            with self.assertRaisesRegex(RuntimeError, "no PolicyAdapter configured"):
+            with self.assertRaisesRegex(RuntimeError, "no policy provider configured"):
                 service.delivery.deliver(binding.id)
 
             self.assertEqual(delivery.calls, 0)
