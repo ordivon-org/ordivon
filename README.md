@@ -91,6 +91,7 @@ Core validation from a clean checkout:
 ```bash
 uv run --locked python -m unittest discover -s tests -p 'test_*.py' -v
 uv run --locked --group architecture lint-imports
+uv run --locked --group quality ruff check agent_service scripts tests
 ```
 
 The default `test` group composes the runtime and deployment dependencies required by the complete unit and repository test suite. Heavier reasoning dependencies are kept in a separate group and are not installed by default.
