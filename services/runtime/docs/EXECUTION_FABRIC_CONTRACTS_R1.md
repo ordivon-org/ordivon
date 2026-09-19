@@ -50,24 +50,27 @@ Binds a provider identity to a node/platform and the capabilities it can physica
 
 Projects native control-plane identity, trust domain, providers, capabilities and available OS authority contexts.
 
-### AuthorityVector
+### Identity / authorization boundary — superseded
 
-Keeps these dimensions independent:
+The former AuthorityVector, AuthorityLease, AuthorityEffectCandidate and
+AuthorityShadowDecision contracts were retired on 2026-09-19.
 
-- principal;
-- trust domain;
-- resource scope;
-- capability set;
-- operating-system authority;
-- Ordivon orchestration mode;
-- conflict mode;
-- enforcement stage;
-- optional budget;
-- optional evidence policy.
+They mixed workload/principal identity, authorization, OS privilege, resource conflict,
+orchestration mode, budget and evidence policy into one Ordivon-native structure while
+production configured no leases and the evaluator only emitted non-enforcing shadow telemetry.
 
-### AuthorityLease
+Standards-first routing is now:
 
-Adds activation time, expiry and revocation to an AuthorityVector. R1 is a data contract only; no policy engine or lease store is implied.
+- workload identity / trust-domain semantics -> SPIFFE/SPIRE when deployed;
+- delegated HTTP authorization -> OAuth and its current security BCPs;
+- policy decision -> OPA (or another explicit PDP), with enforcement at the natural PEP;
+- OS execution privilege -> Runtime provider contracts (ExecutionProfile, WindowsAuthority);
+- resource concurrency/conflict -> the resource/execution coordinator, not identity/authentication;
+- semantic ownership -> the domain bounded context, not an authorization token.
+
+NodeDescriptor.trustDomain is currently only a local descriptive label. It MUST NOT be
+interpreted as a SPIFFE trust domain or cryptographic identity claim. Rename/removal is a
+separate compatibility slice.
 
 ### EvidenceReference
 

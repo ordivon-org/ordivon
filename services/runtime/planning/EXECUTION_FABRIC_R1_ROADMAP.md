@@ -63,51 +63,27 @@ Current EF2 slice (2026-09-18):
 - execution-fabric boundary test: 1/1 PASS;
 - `cargo fmt --all -- --check` and `git diff --check`: PASS.
 
-## EF3 — Authority shadow
+## EF3 — Authority shadow — SUPERSEDED
 
-Introduce AuthorityVector and AuthorityLease evaluation in shadow mode.
+Status: RETIRED 2026-09-19.
 
-Required output per candidate effect:
+The local AuthorityVector / AuthorityLease / shadow authorization evaluator was removed.
+Production never configured a non-empty lease set and the evaluator never enforced admission;
+it only emitted custom shadow telemetry.
 
-- wouldAllow;
-- conflict classification;
-- authority mode;
-- OS authority context;
-- matching resource/capability scope;
-- evidence policy identity.
+The concern was also incorrectly composite. Future implementations must keep these owners
+separate:
 
-Gate: shadow decisions never block or alter existing effects.
+- workload identity -> SPIFFE/SPIRE when required;
+- delegated HTTP authorization -> OAuth;
+- policy decisions -> OPA / explicit PDP;
+- enforcement -> natural PEP;
+- Runtime OS privilege -> provider-native execution contract;
+- resource conflict/concurrency -> resource/execution coordinator;
+- budget/evidence policy -> their own domain owners.
 
-Current EF3 contract slice (2026-09-18):
-
-- SPI defines AuthorityEffectCandidate and AuthorityShadowDecision;
-- pure shadow evaluation compares active leases against exact trust-domain/resource scope,
-  principal, capability, OS authority, mode, and conflict mode;
-- overlap is classified as none, shared observation, cooperative, exclusive, or adversarial;
-- R1 deliberately uses exact resource-scope overlap only; conflict-domain expansion remains a
-  later Resource/Controller concern;
-- evaluator performs no I/O, mutation, admission, dispatch, renewal, revocation, or policy-provider call;
-- the evaluator is not wired into Runtime admission, so a false wouldAllow result cannot block an effect;
-- SPI tests: 8/8 PASS.
-
-EF3b live-shadow telemetry slice (2026-09-18):
-
-- each execution MCP surface (workspace.exec, workspace.execBound,
-  workspace.execBoundTrusted, workspace.execPlan) derives an AuthorityEffectCandidate from
-  the actual bound Runtime execution request before admission;
-- candidate projection binds principal, workspace resource scope, execution capability,
-  requested Linux execution profile or Windows authority, open_control mode, and
-  observation-only exclusive_write conflict semantics;
-- the candidate is evaluated against an operator-supplied in-memory shadow lease set and
-  appended to the existing Runtime trace JSONL with the decision and overlap classification;
-- production configuration currently supplies an empty lease set, so this is telemetry only;
-- a false wouldAllow, evaluator failure, malformed candidate, poisoned trace lock, or trace
-  write failure cannot veto, alter, or replace the Runtime execution call;
-- MCP regression: 57/57 PASS;
-- SPI contracts: 8/8 PASS;
-- execution-fabric boundary: 1/1 PASS;
-- Runtime Core fast regression: 231/231 PASS with the known long-running property test filtered;
-- cargo check, cargo fmt --check, and git diff --check: PASS.
+No new Ordivon authorization language is admitted without a demonstrated gap in those
+mature standards/patterns.
 
 ## EF4 — Provider normalization
 
