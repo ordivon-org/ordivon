@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "id": "ordivon-remote-delivery-observation-store-elimination-r19",
+  "date": "2026-09-19",
+  "status": "SIXTEENTH_PRODUCTION_DELETION",
+  "parent": "ordivon-execution-quiescence-proof-store-elimination-r18",
+  "architecturalCore": "EMPTY",
+  "deletedLocalTypes": [
+    "RemoteDeliveryObservationStore"
+  ],
+  "deletedPersistenceSurfaces": [
+    "remote_delivery_observations"
+  ],
+  "deletedApiSurfaces": [
+    "service.remote_observations",
+    "agent_service.RemoteDeliveryObservationStore"
+  ],
+  "retiredForeignKeyAuthorities": [
+    "remote_delivery_observations.binding_id -> transport_bindings.id"
+  ],
+  "retainedProjectionTypes": [
+    "RemoteDeliverySnapshot"
+  ],
+  "durableStreamOwner": {
+    "type": "existing ServiceEventStore",
+    "aggregateType": "RemoteDeliveryObservation",
+    "eventType": "RemoteDeliveryObserved",
+    "sequenceOwner": "ServiceEvent.sequence"
+  },
+  "retainedSemantics": {
+    "completeBindingHistory": true,
+    "latestBindingObservation": true,
+    "consecutiveExactDuplicateDeduplication": true,
+    "remoteTaskCorrelation": true,
+    "remoteContextCorrelation": true
+  },
+  "replacementLocalPrimitives": [],
+  "destructiveMigration": {
+    "legacyTable": "remote_delivery_observations",
+    "behavior": "FAIL_CLOSED_ON_OPEN",
+    "compatibilityShim": false
+  },
+  "topLevelTypeDebt": {
+    "r3Baseline": 171,
+    "r4": 170,
+    "r5": 169,
+    "r6": 168,
+    "r7": 167,
+    "r8": 165,
+    "r9": 164,
+    "r10": 162,
+    "r11": 161,
+    "r12": 160,
+    "r13": 159,
+    "r14": 158,
+    "r15": 157,
+    "r16": 156,
+    "r17": 155,
+    "r18": 154,
+    "r19": 153,
+    "cumulativeDelta": -18
+  },
+  "validation": {
+    "targetedTests": 41,
+    "structuralDeletionTests": 47,
+    "agentServiceTests": 234,
+    "agentServiceSkipped": 5,
+    "agentServiceStatus": "PASS",
+    "fullRepositoryTests": 333,
+    "fullRepositorySkipped": 5,
+    "fullRepositoryStatus": "PASS",
+    "observedTopLevelClasses": 153,
+    "legacyCeilingCount": 153
+  },
+  "nextAudit": "immutable evidence/receipt stores with no downstream foreign-key authority"
+}

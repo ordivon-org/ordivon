@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "id": "ordivon-effect-authorization-receipt-elimination-r10",
+  "date": "2026-09-19",
+  "status": "SEVENTH_PRODUCTION_DELETION",
+  "parent": "ordivon-policy-coordinator-elimination-r9",
+  "architecturalCore": "EMPTY",
+  "deletedLocalTypes": [
+    "EffectAuthorizationDecision",
+    "EffectAuthorizationDecisionStore"
+  ],
+  "deletedPersistenceSurfaces": [
+    "effect_authorization_decisions"
+  ],
+  "deletedApiSurfaces": [
+    "service.effect_authorization_records",
+    "agent_service.EffectAuthorizationDecision",
+    "agent_service.EffectAuthorizationDecisionStore"
+  ],
+  "retiredForeignKeyAuthorities": [
+    "effect_authorization_decisions.binding_id -> transport_bindings.id",
+    "effect_authorization_decisions.delegation_id -> delegation_envelopes.id"
+  ],
+  "historicalReceipt": {
+    "representation": "existing service_events journal",
+    "aggregateType": "EffectAuthorization",
+    "eventType": "EffectAuthorizationEvaluated",
+    "authoritativePolicyStore": false
+  },
+  "effectSafetySemantics": {
+    "currentPolicyBeforeFirstExternalEffect": true,
+    "sameBindingRetryReusesFrozenReceipt": true,
+    "deniedBindingStaysDenied": true,
+    "existingDeliveryReceiptDoesNotReauthorize": true
+  },
+  "replacementLocalPrimitives": [],
+  "destructiveMigration": {
+    "legacyTable": "effect_authorization_decisions",
+    "behavior": "FAIL_CLOSED_ON_OPEN",
+    "compatibilityShim": false
+  },
+  "topLevelTypeDebt": {
+    "r3Baseline": 171,
+    "r4": 170,
+    "r5": 169,
+    "r6": 168,
+    "r7": 167,
+    "r8": 165,
+    "r9": 164,
+    "r10": 162,
+    "cumulativeDelta": -9
+  },
+  "validation": {
+    "targetedTests": 14,
+    "targetedStatus": "PASS",
+    "agentServiceTests": 208,
+    "agentServiceSkipped": 5,
+    "agentServiceStatus": "PASS",
+    "fullRepositoryTests": 307,
+    "fullRepositorySkipped": 5,
+    "fullRepositoryStatus": "PASS",
+    "observedTopLevelClasses": 162,
+    "legacyCeilingCount": 162
+  },
+  "nextCandidates": [
+    "EffectAuthorizationCoordinator"
+  ]
+}

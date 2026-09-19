@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "ordivon-lego-evidence-semantic-verification-r27",
+  "date": "2026-09-19",
+  "target": "EvidenceSemanticVerifier",
+  "decision": "ELIGIBLE_FOR_CLASS_ELIMINATION",
+  "classification": "STATELESS_SHARED_SEMANTIC_PREDICATE",
+  "replacement": "_verify_evidence_semantics(acceptance, evidence)",
+  "sharedBy": [
+    "TaskCompletionReconciler",
+    "RemoteTaskCompletionReconciler"
+  ],
+  "historicalGraphIdentity": "retain historical N13 EvidenceSemanticVerifier records",
+  "replacementLocalTypes": []
+}

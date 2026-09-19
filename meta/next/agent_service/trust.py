@@ -14,10 +14,11 @@ from .delivery import (
     DeliveryAdapter,
     PolicyAdapter,
     TransportBinding,
+    _delivery_receipt_get_by_binding,
 )
 from .evidence import RuntimeArtifactReader
 from .semantics import DelegationEnvelope
-from .slice1 import CarrierProviderAdapter
+from .slice1 import CarrierProviderAdapter, ServiceEvent, ServiceEventStore
 from .task_runtime import RuntimeAdapter
 
 
@@ -212,100 +213,96 @@ class IdentityProofRecord:
     created_at_ns: int
 
 
-class IdentityProofRecordStore:
-    def __init__(self, connection: sqlite3.Connection) -> None:
-        self._connection = connection
+def _identity_proof_record_from_event(
+    event: ServiceEvent,
+) -> IdentityProofRecord:
+    if (
+        event.aggregate_type != "IdentityProof"
+        or event.event_type != "IdentityProofRecorded"
+    ):
+        raise ValueError("event is not an identity proof receipt")
+    payload = event.payload
+    if payload.get("clientProofRequestId") != event.aggregate_id:
+        raise RuntimeError("identity proof request identity mismatch")
+    authenticated = payload.get("authenticated")
+    if not isinstance(authenticated, bool):
+        raise RuntimeError("identity proof authenticated must be boolean")
+    return IdentityProofRecord(
+        id=event.id,
+        client_proof_request_id=event.aggregate_id,
+        identity_id=payload["identityId"],
+        credential_reference_id=payload["credentialReferenceId"],
+        purpose=payload["purpose"],
+        authenticated=authenticated,
+        principal_id=payload.get("principalId"),
+        issuer=payload["issuer"],
+        auth_method=payload["authMethod"],
+        observed_at_ms=int(payload["observedAtMs"]),
+        expires_at_ms=(
+            None
+            if payload.get("expiresAtMs") is None
+            else int(payload["expiresAtMs"])
+        ),
+        evidence_ref=payload["evidenceRef"],
+        created_at_ns=event.created_at_ns,
+    )
 
-    def get(self, proof_id: str) -> IdentityProofRecord:
-        row = self._connection.execute(
-            "SELECT * FROM identity_proof_records WHERE id = ?", (proof_id,)
-        ).fetchone()
-        if row is None:
-            raise KeyError(proof_id)
-        return self._from_row(row)
 
-    def get_by_client_request(
-        self, client_proof_request_id: str, required: bool = True
-    ) -> IdentityProofRecord | None:
-        row = self._connection.execute(
-            "SELECT * FROM identity_proof_records WHERE client_proof_request_id = ?",
-            (client_proof_request_id,),
-        ).fetchone()
-        if row is None:
-            if required:
-                raise KeyError(client_proof_request_id)
-            return None
-        return self._from_row(row)
+def _identity_proof_record_get(
+    events: ServiceEventStore,
+    proof_id: str,
+) -> IdentityProofRecord:
+    return _identity_proof_record_from_event(events.get(proof_id))
 
-    def create(
-        self,
-        *,
-        client_proof_request_id: str,
-        identity_id: str,
-        credential_reference_id: str,
-        purpose: str,
-        observation: IdentityProofObservation,
-        observed_at_ms: int,
-    ) -> IdentityProofRecord:
-        value = IdentityProofRecord(
-            id=_id("iproof"),
-            client_proof_request_id=client_proof_request_id,
-            identity_id=identity_id,
-            credential_reference_id=credential_reference_id,
-            purpose=purpose,
-            authenticated=bool(observation.authenticated),
-            principal_id=observation.principal_id,
-            issuer=observation.issuer,
-            auth_method=observation.auth_method,
-            observed_at_ms=observed_at_ms,
-            expires_at_ms=observation.expires_at_ms,
-            evidence_ref=observation.evidence_ref,
-            created_at_ns=_now_ns(),
-        )
-        with self._connection:
-            self._connection.execute(
-                """
-                INSERT INTO identity_proof_records(
-                    id, client_proof_request_id, identity_id, credential_reference_id,
-                    purpose, authenticated, principal_id, issuer, auth_method,
-                    observed_at_ms, expires_at_ms, evidence_ref, created_at_ns
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    value.id,
-                    value.client_proof_request_id,
-                    value.identity_id,
-                    value.credential_reference_id,
-                    value.purpose,
-                    1 if value.authenticated else 0,
-                    value.principal_id,
-                    value.issuer,
-                    value.auth_method,
-                    value.observed_at_ms,
-                    value.expires_at_ms,
-                    value.evidence_ref,
-                    value.created_at_ns,
-                ),
-            )
-        return value
 
-    @staticmethod
-    def _from_row(row: sqlite3.Row) -> IdentityProofRecord:
-        return IdentityProofRecord(
-            id=row["id"],
-            client_proof_request_id=row["client_proof_request_id"],
-            identity_id=row["identity_id"],
-            credential_reference_id=row["credential_reference_id"],
-            purpose=row["purpose"],
-            authenticated=bool(row["authenticated"]),
-            principal_id=row["principal_id"],
-            issuer=row["issuer"],
-            auth_method=row["auth_method"],
-            observed_at_ms=row["observed_at_ms"],
-            expires_at_ms=row["expires_at_ms"],
-            evidence_ref=row["evidence_ref"],
-            created_at_ns=row["created_at_ns"],
-        )
+def _identity_proof_record_get_by_client_request(
+    events: ServiceEventStore,
+    client_proof_request_id: str,
+    required: bool = True,
+) -> IdentityProofRecord | None:
+    receipts = [
+        event
+        for event in events.list_for("IdentityProof", client_proof_request_id)
+        if event.event_type == "IdentityProofRecorded"
+    ]
+    if not receipts:
+        if required:
+            raise KeyError(client_proof_request_id)
+        return None
+    if len(receipts) != 1:
+        raise RuntimeError("identity proof stream contains multiple records")
+    return _identity_proof_record_from_event(receipts[0])
+
+
+def _identity_proof_record_create(
+    events: ServiceEventStore,
+    *,
+    client_proof_request_id: str,
+    identity_id: str,
+    credential_reference_id: str,
+    purpose: str,
+    observation: IdentityProofObservation,
+    observed_at_ms: int,
+) -> IdentityProofRecord:
+    event = events.append_once(
+        "IdentityProof",
+        client_proof_request_id,
+        "IdentityProofRecorded",
+        {
+            "clientProofRequestId": client_proof_request_id,
+            "identityId": identity_id,
+            "credentialReferenceId": credential_reference_id,
+            "purpose": purpose,
+            "authenticated": bool(observation.authenticated),
+            "principalId": observation.principal_id,
+            "issuer": observation.issuer,
+            "authMethod": observation.auth_method,
+            "observedAtMs": int(observed_at_ms),
+            "expiresAtMs": observation.expires_at_ms,
+            "evidenceRef": observation.evidence_ref,
+        },
+    )
+    return _identity_proof_record_from_event(event)
 
 
 class IdentityProofCoordinator:
@@ -315,12 +312,12 @@ class IdentityProofCoordinator:
         self,
         identities: Any,
         credentials: CredentialReferenceStore,
-        records: IdentityProofRecordStore,
+        events: ServiceEventStore,
         adapter: IdentityProofAdapter | None,
     ) -> None:
         self._identities = identities
         self._credentials = credentials
-        self._records = records
+        self._events = events
         self._adapter = adapter
 
     def set_adapter(self, adapter: IdentityProofAdapter | None) -> None:
@@ -339,8 +336,8 @@ class IdentityProofCoordinator:
             raise ValueError("client_proof_request_id must be non-empty")
         if not isinstance(purpose, str) or not purpose.strip():
             raise ValueError("identity proof purpose must be non-empty")
-        existing = self._records.get_by_client_request(
-            client_proof_request_id.strip(), required=False
+        existing = _identity_proof_record_get_by_client_request(
+            self._events, client_proof_request_id.strip(), required=False
         )
         if existing is not None:
             candidate = (identity_id, credential_reference_id, purpose.strip())
@@ -378,7 +375,8 @@ class IdentityProofCoordinator:
         ):
             raise ValueError("authenticated identity proof requires a principal_id")
         when_ms = _now_ms() if observed_at_ms is None else int(observed_at_ms)
-        return self._records.create(
+        return _identity_proof_record_create(
+            self._events,
             client_proof_request_id=client_proof_request_id.strip(),
             identity_id=identity_id,
             credential_reference_id=credential_reference_id,
@@ -388,10 +386,10 @@ class IdentityProofCoordinator:
         )
 
     def get(self, proof_id: str) -> IdentityProofRecord:
-        return self._records.get(proof_id)
+        return _identity_proof_record_get(self._events, proof_id)
 
     def is_current(self, proof_id: str, *, at_ms: int | None = None) -> bool:
-        proof = self._records.get(proof_id)
+        proof = _identity_proof_record_get(self._events, proof_id)
         when = _now_ms() if at_ms is None else int(at_ms)
         if not proof.authenticated:
             return False
@@ -437,125 +435,112 @@ class RemoteDeliverySnapshot:
     created_at_ns: int
 
 
-class RemoteDeliveryObservationStore:
-    """Append-only provider snapshots; remote lifecycle is not local Task semantic truth."""
+def _remote_delivery_observation_from_event(
+    event: ServiceEvent,
+) -> RemoteDeliverySnapshot:
+    if (
+        event.aggregate_type != "RemoteDeliveryObservation"
+        or event.event_type != "RemoteDeliveryObserved"
+    ):
+        raise ValueError("event is not a remote delivery observation")
+    payload = event.payload
+    if payload.get("bindingId") != event.aggregate_id:
+        raise RuntimeError("remote delivery observation Binding identity mismatch")
+    raw_success = payload.get("successful")
+    if raw_success is not None and not isinstance(raw_success, bool):
+        raise RuntimeError("remote delivery observation successful must be boolean or null")
+    artifact_refs = payload.get("artifactRefs", [])
+    if not isinstance(artifact_refs, list) or not all(isinstance(x, str) for x in artifact_refs):
+        raise RuntimeError("remote delivery observation artifactRefs must be a string array")
+    return RemoteDeliverySnapshot(
+        id=event.id,
+        binding_id=event.aggregate_id,
+        sequence=event.sequence,
+        provider_status=payload["providerStatus"],
+        terminal=bool(payload["terminal"]),
+        successful=raw_success,
+        remote_task_id=payload.get("remoteTaskId"),
+        remote_context_id=payload.get("remoteContextId"),
+        artifact_refs=tuple(artifact_refs),
+        evidence_ref=payload["evidenceRef"],
+        observed_at_ms=int(payload["observedAtMs"]),
+        created_at_ns=event.created_at_ns,
+    )
 
-    def __init__(self, connection: sqlite3.Connection) -> None:
-        self._connection = connection
 
-    def list_for_binding(self, binding_id: str) -> list[RemoteDeliverySnapshot]:
-        rows = self._connection.execute(
-            """
-            SELECT * FROM remote_delivery_observations
-            WHERE binding_id = ? ORDER BY sequence
-            """,
-            (binding_id,),
-        ).fetchall()
-        return [self._from_row(row) for row in rows]
+def _remote_delivery_observation_list_for_binding(
+    events: ServiceEventStore,
+    binding_id: str,
+) -> list[RemoteDeliverySnapshot]:
+    return [
+        _remote_delivery_observation_from_event(event)
+        for event in events.list_for("RemoteDeliveryObservation", binding_id)
+        if event.event_type == "RemoteDeliveryObserved"
+    ]
 
-    def latest_for_binding(
-        self, binding_id: str, required: bool = True
-    ) -> RemoteDeliverySnapshot | None:
-        row = self._connection.execute(
-            """
-            SELECT * FROM remote_delivery_observations
-            WHERE binding_id = ? ORDER BY sequence DESC LIMIT 1
-            """,
-            (binding_id,),
-        ).fetchone()
-        if row is None:
-            if required:
-                raise KeyError(binding_id)
-            return None
-        return self._from_row(row)
 
-    def record(
-        self,
-        *,
-        binding_id: str,
-        observation: RemoteProviderObservation,
-        observed_at_ms: int | None = None,
-    ) -> RemoteDeliverySnapshot:
-        latest = self.latest_for_binding(binding_id, required=False)
-        candidate = (
-            observation.provider_status,
-            bool(observation.terminal),
-            observation.successful,
-            observation.remote_task_id,
-            observation.remote_context_id,
-            tuple(observation.artifact_refs),
-            observation.evidence_ref,
+def _remote_delivery_observation_latest_for_binding(
+    events: ServiceEventStore,
+    binding_id: str,
+    required: bool = True,
+) -> RemoteDeliverySnapshot | None:
+    history = _remote_delivery_observation_list_for_binding(events, binding_id)
+    if not history:
+        if required:
+            raise KeyError(binding_id)
+        return None
+    return history[-1]
+
+
+def _remote_delivery_observation_record(
+    events: ServiceEventStore,
+    *,
+    binding_id: str,
+    observation: RemoteProviderObservation,
+    observed_at_ms: int | None = None,
+) -> RemoteDeliverySnapshot:
+    latest = _remote_delivery_observation_latest_for_binding(
+        events, binding_id, required=False
+    )
+    candidate = (
+        observation.provider_status,
+        bool(observation.terminal),
+        observation.successful,
+        observation.remote_task_id,
+        observation.remote_context_id,
+        tuple(observation.artifact_refs),
+        observation.evidence_ref,
+    )
+    if latest is not None:
+        historical = (
+            latest.provider_status,
+            latest.terminal,
+            latest.successful,
+            latest.remote_task_id,
+            latest.remote_context_id,
+            latest.artifact_refs,
+            latest.evidence_ref,
         )
-        if latest is not None:
-            historical = (
-                latest.provider_status,
-                latest.terminal,
-                latest.successful,
-                latest.remote_task_id,
-                latest.remote_context_id,
-                latest.artifact_refs,
-                latest.evidence_ref,
-            )
-            if candidate == historical:
-                return latest
-        sequence = 1 if latest is None else latest.sequence + 1
-        value = RemoteDeliverySnapshot(
-            id=_id("robs"),
-            binding_id=binding_id,
-            sequence=sequence,
-            provider_status=observation.provider_status,
-            terminal=bool(observation.terminal),
-            successful=observation.successful,
-            remote_task_id=observation.remote_task_id,
-            remote_context_id=observation.remote_context_id,
-            artifact_refs=tuple(observation.artifact_refs),
-            evidence_ref=observation.evidence_ref,
-            observed_at_ms=_now_ms() if observed_at_ms is None else int(observed_at_ms),
-            created_at_ns=_now_ns(),
-        )
-        with self._connection:
-            self._connection.execute(
-                """
-                INSERT INTO remote_delivery_observations(
-                    id, binding_id, sequence, provider_status, terminal, successful,
-                    remote_task_id, remote_context_id, artifact_refs_json, evidence_ref,
-                    observed_at_ms, created_at_ns
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    value.id,
-                    value.binding_id,
-                    value.sequence,
-                    value.provider_status,
-                    1 if value.terminal else 0,
-                    None if value.successful is None else (1 if value.successful else 0),
-                    value.remote_task_id,
-                    value.remote_context_id,
-                    _canonical_json(list(value.artifact_refs)),
-                    value.evidence_ref,
-                    value.observed_at_ms,
-                    value.created_at_ns,
-                ),
-            )
-        return value
+        if candidate == historical:
+            return latest
 
-    @staticmethod
-    def _from_row(row: sqlite3.Row) -> RemoteDeliverySnapshot:
-        raw_success = row["successful"]
-        return RemoteDeliverySnapshot(
-            id=row["id"],
-            binding_id=row["binding_id"],
-            sequence=row["sequence"],
-            provider_status=row["provider_status"],
-            terminal=bool(row["terminal"]),
-            successful=None if raw_success is None else bool(raw_success),
-            remote_task_id=row["remote_task_id"],
-            remote_context_id=row["remote_context_id"],
-            artifact_refs=tuple(json.loads(row["artifact_refs_json"])),
-            evidence_ref=row["evidence_ref"],
-            observed_at_ms=row["observed_at_ms"],
-            created_at_ns=row["created_at_ns"],
-        )
+    event = events.append(
+        "RemoteDeliveryObservation",
+        binding_id,
+        "RemoteDeliveryObserved",
+        {
+            "bindingId": binding_id,
+            "providerStatus": observation.provider_status,
+            "terminal": bool(observation.terminal),
+            "successful": observation.successful,
+            "remoteTaskId": observation.remote_task_id,
+            "remoteContextId": observation.remote_context_id,
+            "artifactRefs": list(observation.artifact_refs),
+            "evidenceRef": observation.evidence_ref,
+            "observedAtMs": _now_ms() if observed_at_ms is None else int(observed_at_ms),
+        },
+    )
+    return _remote_delivery_observation_from_event(event)
 
 
 class RemoteCorrelationReconciler:
@@ -563,19 +548,17 @@ class RemoteCorrelationReconciler:
         self,
         delegations: Any,
         bindings: Any,
-        delivery_receipts: Any,
-        observations: RemoteDeliveryObservationStore,
+        delivery_events: ServiceEventStore,
         observers: dict[str, RemoteDeliveryObserver],
     ) -> None:
         self._delegations = delegations
         self._bindings = bindings
-        self._delivery_receipts = delivery_receipts
-        self._observations = observations
+        self._delivery_events = delivery_events
         self._observers = dict(observers)
 
     def reconcile(self, binding_id: str) -> RemoteDeliverySnapshot:
         binding = self._bindings.get(binding_id)
-        receipt = self._delivery_receipts.get_by_binding(binding_id)
+        receipt = _delivery_receipt_get_by_binding(self._delivery_events, binding_id)
         envelope = self._delegations.get(binding.delegation_id)
         observer = self._observers.get(binding.transport)
         if observer is None:
@@ -591,13 +574,13 @@ class RemoteCorrelationReconciler:
             raise ValueError("remote task correlation changed from delivery receipt")
         if receipt.remote_context_id is not None and observation.remote_context_id != receipt.remote_context_id:
             raise ValueError("remote context correlation changed from delivery receipt")
-        latest = self._observations.latest_for_binding(binding.id, required=False)
+        latest = _remote_delivery_observation_latest_for_binding(self._delivery_events, binding.id, required=False)
         if latest is not None:
             if latest.remote_task_id is not None and observation.remote_task_id != latest.remote_task_id:
                 raise ValueError("remote task correlation changed from established observation")
             if latest.remote_context_id is not None and observation.remote_context_id != latest.remote_context_id:
                 raise ValueError("remote context correlation changed from established observation")
-        return self._observations.record(binding_id=binding.id, observation=observation)
+        return _remote_delivery_observation_record(self._delivery_events, binding_id=binding.id, observation=observation)
 
 
 class AuditEnvelopeProjector:
@@ -605,20 +588,18 @@ class AuditEnvelopeProjector:
 
     def __init__(
         self,
-        proofs: IdentityProofRecordStore,
+        proofs: ServiceEventStore,
         bindings: Any,
-        delivery_receipts: Any,
-        observations: RemoteDeliveryObservationStore,
+        delivery_events: ServiceEventStore,
         delegations: Any,
     ) -> None:
         self._proofs = proofs
         self._bindings = bindings
-        self._delivery_receipts = delivery_receipts
-        self._observations = observations
+        self._delivery_events = delivery_events
         self._delegations = delegations
 
     def project_identity_proof(self, proof_id: str) -> dict[str, Any]:
-        proof = self._proofs.get(proof_id)
+        proof = _identity_proof_record_get(self._proofs, proof_id)
         return {
             "kind": "ordivon.agent-service.identity-proof-audit-v1",
             "proofId": proof.id,
@@ -636,9 +617,9 @@ class AuditEnvelopeProjector:
 
     def project_remote_delivery(self, binding_id: str) -> dict[str, Any]:
         binding = self._bindings.get(binding_id)
-        receipt = self._delivery_receipts.get_by_binding(binding_id)
+        receipt = _delivery_receipt_get_by_binding(self._delivery_events, binding_id)
         envelope = self._delegations.get(binding.delegation_id)
-        latest = self._observations.latest_for_binding(binding_id, required=False)
+        latest = _remote_delivery_observation_latest_for_binding(self._delivery_events, binding_id, required=False)
         remote_task_id = receipt.remote_task_id
         remote_context_id = receipt.remote_context_id
         if latest is not None:
@@ -678,36 +659,32 @@ class AgentServiceR10:
         self._r9 = r9
         self._connection = r9._connection
         for name in (
-            "definitions", "revisions", "instances", "placements", "events", "birth", "observer",
+            "definitions", "revisions", "instances", "placements", "events", "birth",
             "reconciler", "tasks", "assignments", "planner", "execution_activator", "completion",
-            "verifications", "goals", "goal_graph_guard", "goal_task_links", "task_dependencies",
-            "task_readiness", "task_graph", "goal_planner", "goal_reconciler", "board_receipts",
-            "board_projector", "identities", "capabilities", "sessions", "session_items",
-            "delegations", "a2a_cards", "interfaces", "policy_decisions", "policy",
-            "transport_bindings", "routes", "delivery_receipts", "delivery",
+            "goals", "goal_graph_guard", "goal_task_links", "task_dependencies",
+            "task_readiness", "task_graph", "goal_planner", "goal_reconciler",
+            "board_projector", "identities", "sessions", "session_items",
+            "delegations", "a2a_cards",
+            "transport_bindings", "routes", "delivery",
         ):
             setattr(self, name, getattr(r9, name))
         self.credential_references = CredentialReferenceStore(self._connection)
-        self.identity_proof_records = IdentityProofRecordStore(self._connection)
         self.identity_proofs = IdentityProofCoordinator(
             self.identities,
             self.credential_references,
-            self.identity_proof_records,
+            self.events,
             identity_proof_adapter,
         )
-        self.remote_observations = RemoteDeliveryObservationStore(self._connection)
         self.remote_reconciler = RemoteCorrelationReconciler(
             self.delegations,
             self.transport_bindings,
-            self.delivery_receipts,
-            self.remote_observations,
+            self.events,
             remote_delivery_observers,
         )
         self.audit = AuditEnvelopeProjector(
-            self.identity_proof_records,
+            self.events,
             self.transport_bindings,
-            self.delivery_receipts,
-            self.remote_observations,
+            self.events,
             self.delegations,
         )
 
@@ -743,6 +720,24 @@ class AgentServiceR10:
 
     @staticmethod
     def _initialize_schema(connection: sqlite3.Connection) -> None:
+        legacy_remote_delivery_observations = connection.execute(
+            "SELECT 1 FROM sqlite_master "
+            "WHERE type = 'table' AND name = 'remote_delivery_observations'"
+        ).fetchone()
+        if legacy_remote_delivery_observations is not None:
+            raise RuntimeError(
+                "legacy remote_delivery_observations schema is unsupported; "
+                "perform explicit destructive migration before opening this revision"
+            )
+        legacy_identity_proof_records = connection.execute(
+            "SELECT 1 FROM sqlite_master "
+            "WHERE type = 'table' AND name = 'identity_proof_records'"
+        ).fetchone()
+        if legacy_identity_proof_records is not None:
+            raise RuntimeError(
+                "legacy identity_proof_records schema is unsupported; "
+                "perform explicit destructive migration before opening this revision"
+            )
         connection.executescript(
             """
             CREATE TABLE IF NOT EXISTS credential_references (
@@ -756,37 +751,6 @@ class AgentServiceR10:
                 created_at_ns INTEGER NOT NULL
             );
 
-            CREATE TABLE IF NOT EXISTS identity_proof_records (
-                id TEXT PRIMARY KEY,
-                client_proof_request_id TEXT NOT NULL UNIQUE,
-                identity_id TEXT NOT NULL REFERENCES agent_identities(id),
-                credential_reference_id TEXT NOT NULL REFERENCES credential_references(id),
-                purpose TEXT NOT NULL,
-                authenticated INTEGER NOT NULL CHECK(authenticated IN (0, 1)),
-                principal_id TEXT,
-                issuer TEXT NOT NULL,
-                auth_method TEXT NOT NULL,
-                observed_at_ms INTEGER NOT NULL,
-                expires_at_ms INTEGER,
-                evidence_ref TEXT NOT NULL,
-                created_at_ns INTEGER NOT NULL
-            );
-
-            CREATE TABLE IF NOT EXISTS remote_delivery_observations (
-                id TEXT PRIMARY KEY,
-                binding_id TEXT NOT NULL REFERENCES transport_bindings(id),
-                sequence INTEGER NOT NULL,
-                provider_status TEXT NOT NULL,
-                terminal INTEGER NOT NULL CHECK(terminal IN (0, 1)),
-                successful INTEGER CHECK(successful IS NULL OR successful IN (0, 1)),
-                remote_task_id TEXT,
-                remote_context_id TEXT,
-                artifact_refs_json TEXT NOT NULL,
-                evidence_ref TEXT NOT NULL,
-                observed_at_ms INTEGER NOT NULL,
-                created_at_ns INTEGER NOT NULL,
-                UNIQUE(binding_id, sequence)
-            );
             """
         )
         connection.commit()

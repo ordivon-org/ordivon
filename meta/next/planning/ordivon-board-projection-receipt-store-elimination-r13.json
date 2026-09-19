@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "id": "ordivon-board-projection-receipt-store-elimination-r13",
+  "date": "2026-09-19",
+  "status": "TENTH_PRODUCTION_DELETION",
+  "parent": "ordivon-delivery-receipt-store-elimination-r12",
+  "architecturalCore": "EMPTY",
+  "deletedLocalTypes": [
+    "BoardProjectionReceiptStore"
+  ],
+  "deletedPersistenceSurfaces": [
+    "board_projection_receipts"
+  ],
+  "deletedApiSurfaces": [
+    "service.board_receipts"
+  ],
+  "retiredForeignKeyAuthorities": [
+    "board_projection_receipts.service_event_id -> service_events.id",
+    "board_projection_receipts.goal_id -> service_goals.id"
+  ],
+  "retainedProjectionTypes": [
+    "BoardProjectionReceipt"
+  ],
+  "durableReceiptOwner": {
+    "type": "existing ServiceEventStore",
+    "aggregateType": "BoardProjection",
+    "eventType": "BoardProjectionCommitted",
+    "singleReceiptSequence": 1,
+    "authoritativeBoardState": false
+  },
+  "replacementLocalPrimitives": [],
+  "destructiveMigration": {
+    "legacyTable": "board_projection_receipts",
+    "behavior": "FAIL_CLOSED_ON_OPEN",
+    "compatibilityShim": false
+  },
+  "topLevelTypeDebt": {
+    "r3Baseline": 171,
+    "r4": 170,
+    "r5": 169,
+    "r6": 168,
+    "r7": 167,
+    "r8": 165,
+    "r9": 164,
+    "r10": 162,
+    "r11": 161,
+    "r12": 160,
+    "r13": 159,
+    "cumulativeDelta": -12
+  },
+  "validation": {
+    "targetedTests": 17,
+    "structuralDeletionTests": 23,
+    "agentServiceTests": 216,
+    "agentServiceSkipped": 5,
+    "agentServiceStatus": "PASS",
+    "fullRepositoryTests": 315,
+    "fullRepositorySkipped": 5,
+    "fullRepositoryStatus": "PASS",
+    "observedTopLevelClasses": 159,
+    "legacyCeilingCount": 159
+  },
+  "nextAudit": "VerificationRecordStore"
+}

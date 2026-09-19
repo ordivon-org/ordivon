@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "id": "ordivon-a2a-native-elimination-r4",
+  "date": "2026-09-19",
+  "status": "FIRST_PRODUCTION_DELETION",
+  "parent": "ordivon-core-zero-enforcement-r3",
+  "architecturalCore": "EMPTY",
+  "deletedLocalTypes": [
+    "CapabilityAdvertisement"
+  ],
+  "topLevelTypeDebt": {
+    "before": 171,
+    "after": 170,
+    "delta": -1
+  },
+  "externalOwner": {
+    "name": "A2A",
+    "releasedVersion": "1.0.0",
+    "canonicalReference": "https://a2a-protocol.org/latest/specification/"
+  },
+  "externalBoundary": {
+    "output": "A2A AgentCard 1.0",
+    "removedLegacyTopLevelFields": [
+      "protocolVersion",
+      "url",
+      "preferredTransport"
+    ],
+    "interfaceFields": [
+      "url",
+      "protocolBinding",
+      "protocolVersion"
+    ],
+    "requiredFieldsAdded": [
+      "version"
+    ],
+    "mediaTypeBoundaryAliases": {
+      "text": "text/plain",
+      "json": "application/json"
+    }
+  },
+  "standardNativeValues": [
+    "AgentSkill"
+  ],
+  "remainingMigrationDebt": [
+    "CapabilityAdvertisementStore",
+    "capability_advertisements",
+    "AgentInterfaceAdvertisement",
+    "AgentInterfaceAdvertisementStore",
+    "agent_interface_advertisements"
+  ],
+  "replacementLocalPrimitives": [],
+  "ratchet": {
+    "retiredLegacyTypes": [
+      "CapabilityAdvertisement"
+    ],
+    "reintroductionAllowed": false
+  }
+}

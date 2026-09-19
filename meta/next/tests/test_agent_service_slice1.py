@@ -59,8 +59,8 @@ class AgentServiceSlice1Tests(unittest.TestCase):
             definition = service.definitions.create("research-agent")
             revision = service.revisions.create(definition.id, {"harness": "h1"})
 
-            first = service.birth.birth("birth-001", revision.id)
-            second = service.birth.birth("birth-001", revision.id)
+            first = service.birth("birth-001", revision.id)
+            second = service.birth("birth-001", revision.id)
 
             self.assertEqual(first.id, second.id)
             self.assertEqual(len(service.instances.list_all()), 1)
@@ -73,7 +73,7 @@ class AgentServiceSlice1Tests(unittest.TestCase):
             service = self._open(Path(tmp) / "service.db", host)
             definition = service.definitions.create("research-agent")
             revision = service.revisions.create(definition.id, {"harness": "h1"})
-            instance = service.birth.birth("birth-001", revision.id)
+            instance = service.birth("birth-001", revision.id)
             placement = service.placements.get_by_instance(instance.id)
             self.assertIsNotNone(placement)
 
@@ -92,7 +92,7 @@ class AgentServiceSlice1Tests(unittest.TestCase):
             service = self._open(Path(tmp) / "service.db", host)
             definition = service.definitions.create("research-agent")
             revision = service.revisions.create(definition.id, {"harness": "h1"})
-            instance = service.birth.birth("birth-001", revision.id)
+            instance = service.birth("birth-001", revision.id)
             placement = service.placements.get_by_instance(instance.id)
             assert placement is not None
 
@@ -117,7 +117,7 @@ class AgentServiceSlice1Tests(unittest.TestCase):
             first = self._open(db, first_host)
             definition = first.definitions.create("research-agent")
             revision = first.revisions.create(definition.id, {"harness": "h1"})
-            instance = first.birth.birth("birth-001", revision.id)
+            instance = first.birth("birth-001", revision.id)
             placement = first.placements.get_by_instance(instance.id)
             assert placement is not None
             first.close()
@@ -129,7 +129,7 @@ class AgentServiceSlice1Tests(unittest.TestCase):
                 evidence_ref="host://carrier/agent-1/ready",
             )
             second = self._open(db, second_host)
-            recovered = second.birth.birth("birth-001", revision.id)
+            recovered = second.birth("birth-001", revision.id)
             second.reconciler.reconcile(recovered.id)
 
             self.assertEqual(recovered.id, instance.id)
@@ -142,10 +142,10 @@ class AgentServiceSlice1Tests(unittest.TestCase):
             definition = service.definitions.create("research-agent")
             a1 = service.revisions.create(definition.id, {"harness": "h1"})
             a2 = service.revisions.create(definition.id, {"harness": "h2"})
-            service.birth.birth("birth-001", a1.id)
+            service.birth("birth-001", a1.id)
 
             with self.assertRaises(ValueError):
-                service.birth.birth("birth-001", a2.id)
+                service.birth("birth-001", a2.id)
 
     def test_ready_state_and_ready_event_commit_atomically(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -153,7 +153,7 @@ class AgentServiceSlice1Tests(unittest.TestCase):
             service = self._open(Path(tmp) / "service.db", host)
             definition = service.definitions.create("research-agent")
             revision = service.revisions.create(definition.id, {"harness": "h1"})
-            instance = service.birth.birth("birth-001", revision.id)
+            instance = service.birth("birth-001", revision.id)
             placement = service.placements.get_by_instance(instance.id)
             assert placement is not None
             host.observations[placement.id] = ProviderObservation(
@@ -178,7 +178,7 @@ class AgentServiceSlice1Tests(unittest.TestCase):
             service = self._open(Path(tmp) / "service.db", host)
             definition = service.definitions.create("research-agent")
             revision = service.revisions.create(definition.id, {"harness": "h1"})
-            instance = service.birth.birth("birth-001", revision.id)
+            instance = service.birth("birth-001", revision.id)
             placement = service.placements.get_by_instance(instance.id)
             assert placement is not None
             host.observations[placement.id] = ProviderObservation(
@@ -204,7 +204,7 @@ class AgentServiceSlice1Tests(unittest.TestCase):
             service = self._open(Path(tmp) / "service.db", host)
             definition = service.definitions.create("research-agent")
             revision = service.revisions.create(definition.id, {"harness": "h1"})
-            instance = service.birth.birth("birth-001", revision.id)
+            instance = service.birth("birth-001", revision.id)
             placement = service.placements.get_by_instance(instance.id)
             assert placement is not None
             host.observations[placement.id] = ProviderObservation(

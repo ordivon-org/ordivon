@@ -19,6 +19,8 @@ from agent_service.trust import (
     IdentityProofObservation,
     RemoteDeliveryObserver,
     RemoteProviderObservation,
+    _remote_delivery_observation_list_for_binding,
+    _remote_delivery_observation_latest_for_binding,
 )
 
 
@@ -120,32 +122,38 @@ class AgentServiceTrustRemoteR10Tests(unittest.TestCase):
         self.addCleanup(service.close)
         return service
 
-    def _agent(self, service: AgentServiceR10, name: str):
+    def _agent(self, service: AgentServiceR10, name: str, *, routes=None):
         definition = service.definitions.create(name)
-        revision = service.revisions.create(definition.id, {"name": name, "harness": "r10"})
+        revision = service.revisions.create(definition.id, {
+            "name": name,
+            "harness": "r10",
+            "skills": [{
+                "id": "review",
+                "name": "Review",
+                "description": "review",
+                "tags": ["review"],
+                "inputModes": ["text/plain"],
+                "outputModes": ["text/markdown"],
+            }],
+            "routes": routes or [],
+        })
         identity = service.identities.create(definition.id, stable_name=name, description=name)
-        instance = service.birth.birth(f"birth:{name}:r10", revision.id)
+        instance = service.birth(f"birth:{name}:r10", revision.id)
         service.reconciler.reconcile(instance.id)
         return revision, identity, instance
 
     def _delivery(self, service: AgentServiceR10):
         source_revision, source_identity, source_instance = self._agent(service, "source")
-        target_revision, target_identity, _ = self._agent(service, "target")
-        service.capabilities.advertise(
-            target_revision.id,
-            key="review",
-            description="review",
-            input_modes=["text"],
-            output_modes=["text/markdown"],
-            tags=["review"],
-        )
-        service.interfaces.advertise(
-            target_revision.id,
-            transport="a2a-jsonrpc",
-            protocol_version="1.0",
-            url="https://agents.example.test/target",
-            priority=10,
-            security_requirements={"oauth2": ["review.invoke"]},
+        target_revision, target_identity, _ = self._agent(
+            service,
+            "target",
+            routes=[{
+                "transport": "a2a-jsonrpc",
+                "protocolVersion": "1.0",
+                "url": "https://agents.example.test/target",
+                "priority": 10,
+                "securityRequirements": {"oauth2": ["review.invoke"]},
+            }],
         )
         goal = service.goals.create("r10 goal")
         task = service.tasks.create(
@@ -172,13 +180,9 @@ class AgentServiceTrustRemoteR10Tests(unittest.TestCase):
             payload={"text": "review"},
             evidence_contract={"kind": "text/markdown"},
         )
-        decision = service.policy.evaluate(
-            client_policy_request_id="r10:policy",
-            delegation_id=envelope.id,
-        )
         binding = service.routes.plan(
             envelope.id,
-            decision.id,
+            client_policy_request_id="r10:policy",
             preferred_transports=["a2a-jsonrpc"],
         )
         receipt = service.delivery.deliver(binding.id)
@@ -406,7 +410,7 @@ class AgentServiceTrustRemoteR10Tests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 service.remote_reconciler.reconcile(binding.id)
 
-            self.assertEqual(service.remote_observations.list_for_binding(binding.id), [])
+            self.assertEqual(_remote_delivery_observation_list_for_binding(service.events, binding.id), [])
 
     def test_repeated_identical_remote_observation_does_not_duplicate_snapshot(self) -> None:
         value = RemoteProviderObservation(
@@ -430,7 +434,7 @@ class AgentServiceTrustRemoteR10Tests(unittest.TestCase):
             second = service.remote_reconciler.reconcile(binding.id)
 
             self.assertEqual(first.id, second.id)
-            self.assertEqual(len(service.remote_observations.list_for_binding(binding.id)), 1)
+            self.assertEqual(len(_remote_delivery_observation_list_for_binding(service.events, binding.id)), 1)
 
     def test_remote_observation_history_survives_reconstruction(self) -> None:
         observer = FakeRemoteObserver(
@@ -463,7 +467,7 @@ class AgentServiceTrustRemoteR10Tests(unittest.TestCase):
                 remote_delivery_observers={},
             )
             self.addCleanup(second.close)
-            restored = second.remote_observations.latest_for_binding(binding.id)
+            restored = _remote_delivery_observation_latest_for_binding(second.events, binding.id)
             self.assertEqual(restored.id, recorded.id)
             self.assertEqual(restored.provider_status, "TASK_STATE_WORKING")
 
@@ -585,7 +589,7 @@ class AgentServiceTrustRemoteR10Tests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 service.remote_reconciler.reconcile(binding.id)
 
-            history = service.remote_observations.list_for_binding(binding.id)
+            history = _remote_delivery_observation_list_for_binding(service.events, binding.id)
             self.assertEqual(len(history), 1)
             self.assertEqual(history[0].remote_task_id, "remote-task-established")
 

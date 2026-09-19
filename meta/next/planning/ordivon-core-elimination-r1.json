@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "id": "ordivon-core-elimination-r1",
+  "date": "2026-09-19",
+  "objective": "Eliminate every Ordivon-specific primitive unless mature external semantics cannot replace it losslessly.",
+  "defaultDisposition": "DELETE_OR_REPLACE",
+  "acceptedIrreduciblePrimitives": [],
+  "residualCandidates": [
+    "cross-standard canonical identity mapping",
+    "effect reconciliation for non-idempotent externally observed effects",
+    "semantic-completion binding across execution and domain verification",
+    "cross-standard conformance profile"
+  ],
+  "standards": [
+    "Temporal",
+    "OMG CMMN",
+    "BPMN",
+    "DMN",
+    "Kubernetes controller pattern",
+    "MCP",
+    "A2A",
+    "OPA",
+    "OpenFGA",
+    "SPIFFE/SPIRE",
+    "OAuth/OIDC",
+    "CloudEvents",
+    "OpenTelemetry",
+    "W3C PROV",
+    "OpenLineage",
+    "SLSA",
+    "in-toto",
+    "OCI",
+    "Git"
+  ],
+  "rule": "No local concept survives because of code volume, historical compatibility, documentation, or branding. Migration cost is not architectural value.",
+  "stopCondition": "Zero Ordivon-specific residue, or executable proof that each remaining primitive cannot be losslessly replaced by mature alternatives."
+}

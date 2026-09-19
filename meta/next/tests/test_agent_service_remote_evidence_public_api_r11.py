@@ -10,7 +10,6 @@ from agent_service.remote_evidence import (
     RemoteArtifactEvidenceResolver,
     RemoteArtifactReader,
     RemoteTaskCompletionReconciler,
-    RemoteTaskVerificationStore,
     TaskExecutionClaimStore,
 )
 
@@ -23,7 +22,7 @@ class AgentServiceRemoteEvidencePublicApiR11Tests(unittest.TestCase):
         self.assertIs(agent_service.ClaimAwareDeliveryCoordinator, ClaimAwareDeliveryCoordinator)
         self.assertIs(agent_service.RemoteArtifactReader, RemoteArtifactReader)
         self.assertIs(agent_service.RemoteArtifactEvidenceResolver, RemoteArtifactEvidenceResolver)
-        self.assertIs(agent_service.RemoteTaskVerificationStore, RemoteTaskVerificationStore)
+        self.assertFalse(hasattr(agent_service, "RemoteTaskVerificationStore"))
         self.assertIs(agent_service.RemoteTaskCompletionReconciler, RemoteTaskCompletionReconciler)
 
 

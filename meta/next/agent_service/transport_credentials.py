@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
 import time
 import urllib.parse
-import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
@@ -19,7 +19,7 @@ from .provider_adapters import (
     ProviderCaller,
 )
 from .remote_evidence import RemoteArtifactReader
-from .slice1 import CarrierProviderAdapter
+from .slice1 import CarrierProviderAdapter, ServiceEvent, ServiceEventStore
 from .task_runtime import RuntimeAdapter
 from .trust import (
     CredentialReference,
@@ -29,16 +29,8 @@ from .trust import (
 )
 
 
-def _now_ns() -> int:
-    return time.time_ns()
-
-
 def _now_ms() -> int:
     return int(time.time() * 1000)
-
-
-def _id(prefix: str) -> str:
-    return f"{prefix}_{uuid.uuid4().hex}"
 
 
 def _canonical_json(value: Any) -> str:
@@ -89,141 +81,215 @@ class TransportCredentialBinding:
     created_at_ns: int
 
 
-class TransportCredentialBindingStore:
-    """Durable reference-only association. It never stores resolved secret/header material."""
+def _transport_credential_scheme_coordinate(
+    binding_id: str,
+    security_scheme: str,
+) -> str:
+    material = _canonical_json([binding_id, security_scheme])
+    return hashlib.sha256(material.encode("utf-8")).hexdigest()
 
-    def __init__(self, connection: sqlite3.Connection) -> None:
-        self._connection = connection
 
-    def get(self, record_id: str) -> TransportCredentialBinding:
-        row = self._connection.execute(
-            "SELECT * FROM transport_credential_bindings WHERE id = ?", (record_id,)
-        ).fetchone()
-        if row is None:
-            raise KeyError(record_id)
-        return self._from_row(row)
+def _transport_credential_binding_from_event(
+    event: ServiceEvent,
+) -> TransportCredentialBinding:
+    if (
+        event.aggregate_type != "TransportCredentialSchemeBinding"
+        or event.event_type != "TransportCredentialBindingRecorded"
+    ):
+        raise ValueError("event is not a transport credential binding receipt")
+    payload = event.payload
+    required_scopes = payload.get("requiredScopes", [])
+    if not isinstance(required_scopes, list) or not all(
+        isinstance(scope, str) for scope in required_scopes
+    ):
+        raise RuntimeError(
+            "transport credential binding requiredScopes must be a string array"
+        )
+    return TransportCredentialBinding(
+        id=event.id,
+        client_binding_request_id=payload["clientBindingRequestId"],
+        binding_id=payload["bindingId"],
+        security_scheme=payload["securityScheme"],
+        credential_reference_id=payload["credentialReferenceId"],
+        identity_proof_id=payload["identityProofId"],
+        required_scopes=tuple(required_scopes),
+        created_at_ns=event.created_at_ns,
+    )
 
-    def get_by_client_request(
-        self, client_binding_request_id: str, required: bool = True
-    ) -> TransportCredentialBinding | None:
-        row = self._connection.execute(
-            "SELECT * FROM transport_credential_bindings WHERE client_binding_request_id = ?",
-            (client_binding_request_id,),
-        ).fetchone()
-        if row is None:
-            if required:
-                raise KeyError(client_binding_request_id)
-            return None
-        return self._from_row(row)
 
-    def list_for_binding(self, binding_id: str) -> list[TransportCredentialBinding]:
-        rows = self._connection.execute(
-            """
-            SELECT * FROM transport_credential_bindings
-            WHERE binding_id = ? ORDER BY security_scheme, id
-            """,
-            (binding_id,),
-        ).fetchall()
-        return [self._from_row(row) for row in rows]
+def _transport_credential_binding_get(
+    events: ServiceEventStore,
+    record_id: str,
+) -> TransportCredentialBinding:
+    return _transport_credential_binding_from_event(events.get(record_id))
 
-    def create_in_transaction(
-        self,
-        *,
-        client_binding_request_id: str,
-        binding_id: str,
-        security_scheme: str,
-        credential_reference_id: str,
-        identity_proof_id: str,
-        required_scopes: tuple[str, ...],
-    ) -> TransportCredentialBinding:
-        existing = self.get_by_client_request(client_binding_request_id, required=False)
-        candidate = (
+
+def _transport_credential_binding_get_for_scheme(
+    events: ServiceEventStore,
+    binding_id: str,
+    security_scheme: str,
+    *,
+    required: bool = True,
+) -> TransportCredentialBinding | None:
+    coordinate = _transport_credential_scheme_coordinate(binding_id, security_scheme)
+    receipts = [
+        event
+        for event in events.list_for("TransportCredentialSchemeBinding", coordinate)
+        if event.event_type == "TransportCredentialBindingRecorded"
+    ]
+    if not receipts:
+        if required:
+            raise KeyError((binding_id, security_scheme))
+        return None
+    if len(receipts) != 1:
+        raise RuntimeError(
+            "transport credential scheme binding contains multiple receipts"
+        )
+    record = _transport_credential_binding_from_event(receipts[0])
+    if (record.binding_id, record.security_scheme) != (binding_id, security_scheme):
+        raise RuntimeError("transport credential scheme coordinate mismatch")
+    return record
+
+
+def _transport_credential_binding_get_by_client_request(
+    events: ServiceEventStore,
+    client_binding_request_id: str,
+    required: bool = True,
+) -> TransportCredentialBinding | None:
+    aliases = [
+        event
+        for event in events.list_for(
+            "TransportCredentialBindingRequest", client_binding_request_id
+        )
+        if event.event_type == "TransportCredentialBindingRequestCommitted"
+    ]
+    if not aliases:
+        if required:
+            raise KeyError(client_binding_request_id)
+        return None
+    if len(aliases) != 1:
+        raise RuntimeError(
+            "transport credential request contains multiple receipts"
+        )
+    record_id = aliases[0].payload.get("transportCredentialBindingId")
+    if not isinstance(record_id, str) or not record_id:
+        raise RuntimeError(
+            "transport credential request receipt lacks binding record id"
+        )
+    return _transport_credential_binding_get(events, record_id)
+
+
+def _transport_credential_binding_list_for_binding(
+    events: ServiceEventStore,
+    binding_id: str,
+) -> list[TransportCredentialBinding]:
+    records: list[TransportCredentialBinding] = []
+    seen: set[str] = set()
+    for event in events.list_for("TransportCredentialBindingIndex", binding_id):
+        if event.event_type != "TransportCredentialBindingIndexed":
+            continue
+        record_id = event.payload.get("transportCredentialBindingId")
+        if not isinstance(record_id, str) or not record_id:
+            raise RuntimeError("transport credential binding index lacks record id")
+        if record_id in seen:
+            continue
+        record = _transport_credential_binding_get(events, record_id)
+        if record.binding_id != binding_id:
+            raise RuntimeError("transport credential binding index identity mismatch")
+        seen.add(record_id)
+        records.append(record)
+    return sorted(records, key=lambda item: (item.security_scheme, item.id))
+
+
+def _transport_credential_binding_create_in_transaction(
+    events: ServiceEventStore,
+    *,
+    client_binding_request_id: str,
+    binding_id: str,
+    security_scheme: str,
+    credential_reference_id: str,
+    identity_proof_id: str,
+    required_scopes: tuple[str, ...],
+) -> TransportCredentialBinding:
+    candidate = (
+        binding_id,
+        security_scheme,
+        credential_reference_id,
+        identity_proof_id,
+        required_scopes,
+    )
+    existing_request = _transport_credential_binding_get_by_client_request(
+        events, client_binding_request_id, required=False
+    )
+    if existing_request is not None:
+        historical = (
+            existing_request.binding_id,
+            existing_request.security_scheme,
+            existing_request.credential_reference_id,
+            existing_request.identity_proof_id,
+            existing_request.required_scopes,
+        )
+        if candidate != historical:
+            raise ValueError(
+                "transport credential binding replay conflicts with committed references"
+            )
+        return existing_request
+
+    existing_scheme = _transport_credential_binding_get_for_scheme(
+        events, binding_id, security_scheme, required=False
+    )
+    if existing_scheme is not None:
+        historical = (
+            existing_scheme.binding_id,
+            existing_scheme.security_scheme,
+            existing_scheme.credential_reference_id,
+            existing_scheme.identity_proof_id,
+            existing_scheme.required_scopes,
+        )
+        if candidate != historical:
+            raise RuntimeError(
+                "transport security scheme is already bound to different credential evidence"
+            )
+        record = existing_scheme
+    else:
+        coordinate = _transport_credential_scheme_coordinate(
+            binding_id, security_scheme
+        )
+        event = events.append_once_in_transaction(
+            "TransportCredentialSchemeBinding",
+            coordinate,
+            "TransportCredentialBindingRecorded",
+            {
+                "clientBindingRequestId": client_binding_request_id,
+                "bindingId": binding_id,
+                "securityScheme": security_scheme,
+                "credentialReferenceId": credential_reference_id,
+                "identityProofId": identity_proof_id,
+                "requiredScopes": list(required_scopes),
+            },
+        )
+        record = _transport_credential_binding_from_event(event)
+        events.append_in_transaction(
+            "TransportCredentialBindingIndex",
             binding_id,
-            security_scheme,
-            credential_reference_id,
-            identity_proof_id,
-            required_scopes,
+            "TransportCredentialBindingIndexed",
+            {
+                "transportCredentialBindingId": record.id,
+                "securityScheme": security_scheme,
+            },
         )
-        if existing is not None:
-            historical = (
-                existing.binding_id,
-                existing.security_scheme,
-                existing.credential_reference_id,
-                existing.identity_proof_id,
-                existing.required_scopes,
-            )
-            if candidate != historical:
-                raise ValueError(
-                    "transport credential binding replay conflicts with committed references"
-                )
-            return existing
-        value = TransportCredentialBinding(
-            id=_id("tcred"),
-            client_binding_request_id=client_binding_request_id,
-            binding_id=binding_id,
-            security_scheme=security_scheme,
-            credential_reference_id=credential_reference_id,
-            identity_proof_id=identity_proof_id,
-            required_scopes=required_scopes,
-            created_at_ns=_now_ns(),
-        )
-        try:
-            self._connection.execute(
-                """
-                INSERT INTO transport_credential_bindings(
-                    id, client_binding_request_id, binding_id, security_scheme,
-                    credential_reference_id, identity_proof_id, required_scopes_json,
-                    created_at_ns
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    value.id,
-                    value.client_binding_request_id,
-                    value.binding_id,
-                    value.security_scheme,
-                    value.credential_reference_id,
-                    value.identity_proof_id,
-                    _canonical_json(list(value.required_scopes)),
-                    value.created_at_ns,
-                ),
-            )
-        except sqlite3.IntegrityError:
-            row = self._connection.execute(
-                """
-                SELECT * FROM transport_credential_bindings
-                WHERE binding_id = ? AND security_scheme = ?
-                """,
-                (binding_id, security_scheme),
-            ).fetchone()
-            if row is None:
-                raise
-            existing = self._from_row(row)
-            historical = (
-                existing.binding_id,
-                existing.security_scheme,
-                existing.credential_reference_id,
-                existing.identity_proof_id,
-                existing.required_scopes,
-            )
-            if historical != candidate:
-                raise RuntimeError(
-                    "transport security scheme is already bound to different credential evidence"
-                )
-            return existing
-        return value
 
-    @staticmethod
-    def _from_row(row: sqlite3.Row) -> TransportCredentialBinding:
-        return TransportCredentialBinding(
-            id=row["id"],
-            client_binding_request_id=row["client_binding_request_id"],
-            binding_id=row["binding_id"],
-            security_scheme=row["security_scheme"],
-            credential_reference_id=row["credential_reference_id"],
-            identity_proof_id=row["identity_proof_id"],
-            required_scopes=tuple(json.loads(row["required_scopes_json"])),
-            created_at_ns=row["created_at_ns"],
-        )
+    events.append_once_in_transaction(
+        "TransportCredentialBindingRequest",
+        client_binding_request_id,
+        "TransportCredentialBindingRequestCommitted",
+        {
+            "transportCredentialBindingId": record.id,
+            "bindingId": binding_id,
+            "securityScheme": security_scheme,
+        },
+    )
+    return record
 
 
 class TransportCredentialBindingCoordinator:
@@ -233,18 +299,16 @@ class TransportCredentialBindingCoordinator:
         *,
         bindings: Any,
         delegations: Any,
-        policy_decisions: Any,
         credential_references: Any,
         identity_proofs: Any,
-        records: TransportCredentialBindingStore,
+        events: ServiceEventStore,
     ) -> None:
         self._connection = connection
         self._bindings = bindings
         self._delegations = delegations
-        self._policy_decisions = policy_decisions
         self._credential_references = credential_references
         self._identity_proofs = identity_proofs
-        self._records = records
+        self._events = events
 
     def bind(
         self,
@@ -260,7 +324,9 @@ class TransportCredentialBindingCoordinator:
             raise ValueError("security_scheme must be non-empty")
         request_id = client_binding_request_id.strip()
         scheme = security_scheme.strip()
-        existing = self._records.get_by_client_request(request_id, required=False)
+        existing = _transport_credential_binding_get_by_client_request(
+            self._events, request_id, required=False
+        )
         if existing is not None:
             candidate = (binding_id, scheme, identity_proof_id)
             historical = (
@@ -278,9 +344,8 @@ class TransportCredentialBindingCoordinator:
         if scheme not in binding.security_requirements:
             raise ValueError("security_scheme is not declared by immutable TransportBinding")
         envelope = self._delegations.get(binding.delegation_id)
-        decision = self._policy_decisions.get(binding.policy_decision_id)
-        if not decision.allowed or decision.delegation_id != envelope.id:
-            raise PermissionError("binding is not backed by an allowed PolicyDecision")
+        if binding.delegation_id != envelope.id:
+            raise PermissionError("binding delegation identity mismatch")
 
         proof = self._identity_proofs.get(identity_proof_id)
         if not proof.authenticated or not self._identity_proofs.is_current(proof.id):
@@ -298,11 +363,11 @@ class TransportCredentialBindingCoordinator:
                 f"credential reference lacks required scopes: {missing_credential}"
             )
         missing_policy = [
-            scope for scope in required_scopes if scope not in decision.granted_permissions
+            scope for scope in required_scopes if scope not in binding.granted_permissions
         ]
         if missing_policy:
             raise PermissionError(
-                f"PolicyDecision does not grant required scopes: {missing_policy}"
+                f"immutable policy receipt snapshot does not grant required scopes: {missing_policy}"
             )
         if not _resource_covers_endpoint(credential.resource, binding.endpoint):
             raise ValueError(
@@ -310,7 +375,8 @@ class TransportCredentialBindingCoordinator:
             )
 
         with self._connection:
-            return self._records.create_in_transaction(
+            return _transport_credential_binding_create_in_transaction(
+                self._events,
                 client_binding_request_id=request_id,
                 binding_id=binding.id,
                 security_scheme=scheme,
@@ -351,12 +417,12 @@ class BoundCredentialHeaderProvider:
     def __init__(
         self,
         *,
-        records: TransportCredentialBindingStore,
+        events: ServiceEventStore,
         credential_references: Any,
         identity_proofs: Any,
         material_provider: CredentialMaterialProvider | None,
     ) -> None:
-        self._records = records
+        self._events = events
         self._credential_references = credential_references
         self._identity_proofs = identity_proofs
         self._material_provider = material_provider
@@ -373,7 +439,9 @@ class BoundCredentialHeaderProvider:
 
         by_scheme = {
             record.security_scheme: record
-            for record in self._records.list_for_binding(binding.id)
+            for record in _transport_credential_binding_list_for_binding(
+                self._events, binding.id
+            )
         }
         missing = [scheme for scheme in requirements if scheme not in by_scheme]
         if missing:
@@ -457,18 +525,16 @@ class AgentServiceR14:
     ) -> None:
         self._r13 = r13
         self._connection = r13._r12._connection
-        self.transport_credential_records = TransportCredentialBindingStore(self._connection)
         self.transport_credentials = TransportCredentialBindingCoordinator(
             self._connection,
             bindings=r13.transport_bindings,
             delegations=r13.delegations,
-            policy_decisions=r13.policy_decisions,
             credential_references=r13.credential_references,
             identity_proofs=r13.identity_proofs,
-            records=self.transport_credential_records,
+            events=r13.events,
         )
         self.credential_headers = BoundCredentialHeaderProvider(
-            records=self.transport_credential_records,
+            events=r13.events,
             credential_references=r13.credential_references,
             identity_proofs=r13.identity_proofs,
             material_provider=credential_material_provider,
@@ -519,22 +585,15 @@ class AgentServiceR14:
 
     @staticmethod
     def _initialize_schema(connection: sqlite3.Connection) -> None:
-        connection.executescript(
-            """
-            CREATE TABLE IF NOT EXISTS transport_credential_bindings (
-                id TEXT PRIMARY KEY,
-                client_binding_request_id TEXT NOT NULL UNIQUE,
-                binding_id TEXT NOT NULL REFERENCES transport_bindings(id),
-                security_scheme TEXT NOT NULL,
-                credential_reference_id TEXT NOT NULL REFERENCES credential_references(id),
-                identity_proof_id TEXT NOT NULL REFERENCES identity_proof_records(id),
-                required_scopes_json TEXT NOT NULL,
-                created_at_ns INTEGER NOT NULL,
-                UNIQUE(binding_id, security_scheme)
-            );
-            """
-        )
-        connection.commit()
+        legacy_transport_credential_bindings = connection.execute(
+            "SELECT 1 FROM sqlite_master "
+            "WHERE type = 'table' AND name = 'transport_credential_bindings'"
+        ).fetchone()
+        if legacy_transport_credential_bindings is not None:
+            raise RuntimeError(
+                "legacy transport_credential_bindings schema is unsupported; "
+                "perform explicit destructive migration before opening this revision"
+            )
 
     def close(self) -> None:
         self._r13.close()

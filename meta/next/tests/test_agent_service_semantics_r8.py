@@ -57,13 +57,20 @@ class AgentServiceSemanticsR8Tests(unittest.TestCase):
 
     def _agent(self, service: AgentServiceR8, name: str):
         definition = service.definitions.create(name)
-        revision = service.revisions.create(definition.id, {"harness": "r8-test", "name": name})
+        revision = service.revisions.create(definition.id, {"harness": "r8-test", "name": name, "skills": [{
+                "id": "review",
+                "name": "Review",
+                "description": "review",
+                "tags": ["review"],
+                "inputModes": ["text/plain"],
+                "outputModes": ["text/markdown"],
+            }]})
         identity = service.identities.create(
             definition.id,
             stable_name=name,
             description=f"{name} semantic agent",
         )
-        instance = service.birth.birth(f"birth:{name}", revision.id)
+        instance = service.birth(f"birth:{name}", revision.id)
         service.reconciler.reconcile(instance.id)
         return definition, revision, identity, instance
 
@@ -96,7 +103,7 @@ class AgentServiceSemanticsR8Tests(unittest.TestCase):
                 description="Research agent",
             )
             revision = service.revisions.create(definition.id, {"v": 1})
-            instance = service.birth.birth("birth:researcher", revision.id)
+            instance = service.birth("birth:researcher", revision.id)
 
             self.assertEqual(first.id, replay.id)
             self.assertNotEqual(first.id, instance.id)
@@ -108,38 +115,29 @@ class AgentServiceSemanticsR8Tests(unittest.TestCase):
                     description="different identity replay",
                 )
 
-    def test_capability_advertisement_is_immutable_revision_scoped_description_not_permission(self) -> None:
+    def test_agent_skills_are_revision_native_without_second_capability_store(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db")
-            _, revision, _, _ = self._agent(service, "researcher")
-            first = service.capabilities.advertise(
-                revision.id,
-                key="literature-review",
-                description="Review a bounded literature corpus",
-                input_modes=["text", "application/json"],
-                output_modes=["text/markdown"],
-                tags=["research", "review"],
-            )
-            replay = service.capabilities.advertise(
-                revision.id,
-                key="literature-review",
-                description="Review a bounded literature corpus",
-                input_modes=["text", "application/json"],
-                output_modes=["text/markdown"],
-                tags=["research", "review"],
+            definition = service.definitions.create("researcher")
+            skill = {
+                "id": "literature-review",
+                "name": "Literature Review",
+                "description": "Review a bounded literature corpus",
+                "tags": ["research", "review"],
+                "inputModes": ["text/plain", "application/json"],
+                "outputModes": ["text/markdown"],
+            }
+            revision = service.revisions.create(
+                definition.id,
+                {"harness": "r8-test", "name": "researcher", "skills": [skill]},
             )
 
-            self.assertEqual(first.id, replay.id)
-            self.assertFalse(hasattr(first, "authorized"))
-            with self.assertRaises(ValueError):
-                service.capabilities.advertise(
-                    revision.id,
-                    key="literature-review",
-                    description="mutated capability",
-                    input_modes=["text"],
-                    output_modes=["text"],
-                    tags=[],
-                )
+            self.assertEqual(revision.spec["skills"], [skill])
+            self.assertFalse(hasattr(service, "capabilities"))
+            table = service._connection.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='capability_advertisements'"
+            ).fetchone()
+            self.assertIsNone(table)
 
     def test_session_is_transport_agnostic_goal_bound_continuity_anchor(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -209,14 +207,6 @@ class AgentServiceSemanticsR8Tests(unittest.TestCase):
             service = self._open(Path(tmp) / "service.db")
             _, source_revision, source_identity, source_instance = self._agent(service, "source")
             _, target_revision, target_identity, _ = self._agent(service, "target")
-            service.capabilities.advertise(
-                target_revision.id,
-                key="review",
-                description="review",
-                input_modes=["text"],
-                output_modes=["text"],
-                tags=[],
-            )
             task = self._task(service, source_revision.id)
             session = service.sessions.open(
                 client_session_id="session:closed",
@@ -250,14 +240,6 @@ class AgentServiceSemanticsR8Tests(unittest.TestCase):
             service = self._open(Path(tmp) / "service.db")
             _, source_revision, source_identity, source_instance = self._agent(service, "source")
             _, target_revision, target_identity, _ = self._agent(service, "target")
-            service.capabilities.advertise(
-                target_revision.id,
-                key="review",
-                description="review",
-                input_modes=["text"],
-                output_modes=["text/markdown"],
-                tags=["review"],
-            )
             task = self._task(service, source_revision.id)
             session = service.sessions.open(
                 client_session_id="session:delegation",
@@ -312,14 +294,6 @@ class AgentServiceSemanticsR8Tests(unittest.TestCase):
             source_def, source_revision, source_identity, source_instance = self._agent(service, "source")
             _, target_revision, target_identity, _ = self._agent(service, "target")
             _, other_revision, other_identity, _ = self._agent(service, "other")
-            service.capabilities.advertise(
-                target_revision.id,
-                key="review",
-                description="review",
-                input_modes=["text"],
-                output_modes=["text"],
-                tags=[],
-            )
             task = self._task(service, source_revision.id)
             session = service.sessions.open(
                 client_session_id="session:consistency",
@@ -369,15 +343,31 @@ class AgentServiceSemanticsR8Tests(unittest.TestCase):
     def test_a2a_agent_card_is_public_projection_not_internal_instance_or_session_dump(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             service = self._open(Path(tmp) / "service.db")
-            _, revision, identity, instance = self._agent(service, "researcher")
-            service.capabilities.advertise(
-                revision.id,
-                key="literature-review",
-                description="Review literature",
-                input_modes=["text"],
-                output_modes=["text/markdown"],
-                tags=["research"],
+            definition = service.definitions.create("researcher")
+            revision = service.revisions.create(
+                definition.id,
+                {
+                    "harness": "r8-test",
+                    "name": "researcher",
+                    "skills": [
+                        {
+                            "id": "literature-review",
+                            "name": "Literature Review",
+                            "description": "Review literature",
+                            "tags": ["research"],
+                            "inputModes": ["text"],
+                            "outputModes": ["text/markdown"],
+                        }
+                    ],
+                },
             )
+            identity = service.identities.create(
+                definition.id,
+                stable_name="researcher",
+                description="researcher semantic agent",
+            )
+            instance = service.birth("birth:researcher:card", revision.id)
+            service.reconciler.reconcile(instance.id)
             session = service.sessions.open(
                 client_session_id="session:card",
                 initiator_identity_id=identity.id,
@@ -395,9 +385,24 @@ class AgentServiceSemanticsR8Tests(unittest.TestCase):
             )
 
             rendered = repr(card)
-            self.assertEqual(card["protocolVersion"], "1.0.0")
             self.assertEqual(card["name"], "researcher")
+            self.assertEqual(card["version"], revision.id)
+            self.assertNotIn("protocolVersion", card)
+            self.assertNotIn("url", card)
+            self.assertNotIn("preferredTransport", card)
+            self.assertEqual(
+                card["supportedInterfaces"],
+                [
+                    {
+                        "url": "https://agents.example.test/researcher",
+                        "protocolBinding": "JSONRPC",
+                        "protocolVersion": "1.0",
+                    }
+                ],
+            )
+            self.assertEqual(card["defaultInputModes"], ["text/plain"])
             self.assertEqual(card["skills"][0]["id"], "literature-review")
+            self.assertEqual(card["skills"][0]["inputModes"], ["text/plain"])
             self.assertNotIn(instance.id, rendered)
             self.assertNotIn(session.id, rendered)
             self.assertNotIn("birth:", rendered)
@@ -408,14 +413,6 @@ class AgentServiceSemanticsR8Tests(unittest.TestCase):
             db = Path(tmp) / "service.db"
             first = self._open(db)
             _, revision, identity, _ = self._agent(first, "researcher")
-            first.capabilities.advertise(
-                revision.id,
-                key="review",
-                description="review",
-                input_modes=["text"],
-                output_modes=["text"],
-                tags=[],
-            )
             session = first.sessions.open(
                 client_session_id="session:restart",
                 initiator_identity_id=identity.id,
@@ -436,7 +433,10 @@ class AgentServiceSemanticsR8Tests(unittest.TestCase):
             )
             self.addCleanup(second.close)
             self.assertEqual(second.identities.get(identity.id).stable_name, "researcher")
-            self.assertEqual(second.capabilities.list_for_revision(revision.id)[0].key, "review")
+            self.assertEqual(
+                second.revisions.get(revision.id).spec["skills"][0]["id"],
+                "review",
+            )
             self.assertEqual(second.sessions.get(session.id).state, "OPEN")
             self.assertEqual(second.session_items.list_for(session.id)[0].content["text"], "persist")
 
@@ -458,9 +458,16 @@ class AgentServiceDelegationScopeR8Tests(unittest.TestCase):
 
     def _agent(self, service: AgentServiceR8, name: str):
         definition = service.definitions.create(name)
-        revision = service.revisions.create(definition.id, {"harness":"r8", "name":name})
+        revision = service.revisions.create(definition.id, {"harness":"r8", "name":name, "skills": [{
+                "id": "review",
+                "name": "Review",
+                "description": "review",
+                "tags": ["review"],
+                "inputModes": ["text/plain"],
+                "outputModes": ["text/markdown"],
+            }]})
         identity = service.identities.create(definition.id, stable_name=name, description=name)
-        instance = service.birth.birth(f"birth:{name}:scope", revision.id)
+        instance = service.birth(f"birth:{name}:scope", revision.id)
         service.reconciler.reconcile(instance.id)
         return revision, identity, instance
 
@@ -478,14 +485,6 @@ class AgentServiceDelegationScopeR8Tests(unittest.TestCase):
             source_revision, initiator_identity, _ = self._agent(service, "initiator")
             _, delegate_identity, delegate_instance = self._agent(service, "delegate-source")
             target_revision, target_identity, _ = self._agent(service, "target-owner")
-            service.capabilities.advertise(
-                target_revision.id,
-                key="review",
-                description="review",
-                input_modes=["text"],
-                output_modes=["text"],
-                tags=[],
-            )
             task = self._task(service, source_revision.id, "task")
             session = service.sessions.open(
                 client_session_id="session:initiator-metadata",
@@ -513,14 +512,6 @@ class AgentServiceDelegationScopeR8Tests(unittest.TestCase):
             service = self._open(Path(tmp) / "service.db")
             source_revision, source_identity, source_instance = self._agent(service, "source-goal")
             target_revision, target_identity, _ = self._agent(service, "target-goal")
-            service.capabilities.advertise(
-                target_revision.id,
-                key="review",
-                description="review",
-                input_modes=["text"],
-                output_modes=["text"],
-                tags=[],
-            )
             goal_a = service.goals.create("goal-a")
             goal_b = service.goals.create("goal-b")
             task = self._task(service, source_revision.id, "task-b")

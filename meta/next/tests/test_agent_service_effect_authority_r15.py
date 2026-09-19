@@ -96,36 +96,41 @@ class AgentServiceEffectAuthorityR15Tests(unittest.TestCase):
         self.addCleanup(service.close)
         return service
 
-    def _agent(self, service, name: str):
+    def _agent(self, service, name: str, *, routes=None):
         definition = service.definitions.create(name)
-        revision = service.revisions.create(definition.id, {"name": name})
+        revision = service.revisions.create(definition.id, {
+            "name": name,
+            "skills": [{
+                "id": "review",
+                "name": "Review",
+                "description": "review",
+                "tags": ["review"],
+                "inputModes": ["text/plain"],
+                "outputModes": ["text/markdown"],
+            }],
+            "routes": routes or [],
+        })
         identity = service.identities.create(
             definition.id,
             stable_name=name,
             description=name,
         )
-        instance = service.birth.birth(f"birth:{name}:r15", revision.id)
+        instance = service.birth(f"birth:{name}:r15", revision.id)
         service.reconciler.reconcile(instance.id)
         return revision, identity, instance
 
     def _setup(self, service):
         source_revision, source_identity, source_instance = self._agent(service, "source-r15")
-        target_revision, target_identity, _ = self._agent(service, "target-r15")
-        service.capabilities.advertise(
-            target_revision.id,
-            key="review",
-            description="review",
-            input_modes=["text"],
-            output_modes=["text"],
-            tags=["review"],
-        )
-        service.interfaces.advertise(
-            target_revision.id,
-            transport="a2a-jsonrpc",
-            protocol_version="1.0",
-            url="https://agents.example.test/rpc",
-            priority=10,
-            security_requirements={},
+        target_revision, target_identity, _ = self._agent(
+            service,
+            "target-r15",
+            routes=[{
+                "transport": "a2a-jsonrpc",
+                "protocolVersion": "1.0",
+                "url": "https://agents.example.test/rpc",
+                "priority": 10,
+                "securityRequirements": {},
+            }],
         )
         task = service.tasks.create(
             description="r15",
@@ -159,16 +164,13 @@ class AgentServiceEffectAuthorityR15Tests(unittest.TestCase):
             payload={"text": "review"},
             evidence_contract={"kind": "review-markdown"},
         )
-        route_decision = service.policy.evaluate(
-            client_policy_request_id="r15:route-policy",
-            delegation_id=envelope.id,
-        )
         binding = service.routes.plan(
             envelope.id,
-            route_decision.id,
+            client_policy_request_id="r15:route-policy",
             preferred_transports=["a2a-jsonrpc"],
         )
-        return session, envelope, route_decision, binding
+        route_receipt = service.events.get(binding.policy_receipt_id)
+        return session, envelope, route_receipt, binding
 
     def test_missing_effect_policy_fails_closed_before_external_send(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -177,7 +179,7 @@ class AgentServiceEffectAuthorityR15Tests(unittest.TestCase):
             service = self._open(Path(tmp) / "s.db", route_policy, delivery)
             _, _, _, binding = self._setup(service)
 
-            service.effect_authorizations._policy_adapter = None
+            service.delivery._policy_adapter = None
             with self.assertRaisesRegex(RuntimeError, "no PolicyAdapter configured"):
                 service.delivery.deliver(binding.id)
 
@@ -188,8 +190,8 @@ class AgentServiceEffectAuthorityR15Tests(unittest.TestCase):
             policy = MutablePolicy(allowed=True)
             delivery = CountingDelivery()
             service = self._open(Path(tmp) / "s.db", policy, delivery)
-            _, _, route_decision, binding = self._setup(service)
-            self.assertTrue(route_decision.allowed)
+            _, _, route_receipt, binding = self._setup(service)
+            self.assertTrue(route_receipt.payload["allowed"])
             self.assertEqual(policy.calls, 1)
 
             policy.allowed = False
@@ -200,9 +202,9 @@ class AgentServiceEffectAuthorityR15Tests(unittest.TestCase):
 
             self.assertEqual(delivery.calls, 0)
             self.assertEqual(policy.calls, 2)
-            effect = service.effect_authorization_records.get_by_binding(binding.id)
-            self.assertFalse(effect.allowed)
-            self.assertEqual(effect.policy_revision, "policy-r2")
+            effect = service.events.list_for("EffectAuthorization", binding.id)[0]
+            self.assertFalse(effect.payload["allowed"])
+            self.assertEqual(effect.payload["policyRevision"], "policy-r2")
 
     def test_denied_effect_identity_stays_denied_when_policy_later_changes(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -229,9 +231,9 @@ class AgentServiceEffectAuthorityR15Tests(unittest.TestCase):
                 "same denied effect identity must not be silently re-authorized",
             )
             self.assertEqual(delivery.calls, 0)
-            frozen = service.effect_authorization_records.get_by_binding(binding.id)
-            self.assertFalse(frozen.allowed)
-            self.assertEqual(frozen.policy_revision, "policy-r2")
+            frozen = service.events.list_for("EffectAuthorization", binding.id)[0]
+            self.assertFalse(frozen.payload["allowed"])
+            self.assertEqual(frozen.payload["policyRevision"], "policy-r2")
 
     def test_session_close_is_continuity_close_not_implicit_revocation(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -246,8 +248,8 @@ class AgentServiceEffectAuthorityR15Tests(unittest.TestCase):
             self.assertEqual(receipt.binding_id, binding.id)
             self.assertEqual(delivery.calls, 1)
             self.assertEqual(policy.calls, 2)
-            effect = service.effect_authorization_records.get_by_binding(binding.id)
-            self.assertTrue(effect.allowed)
+            effect = service.events.list_for("EffectAuthorization", binding.id)[0]
+            self.assertTrue(effect.payload["allowed"])
 
     def test_effect_authorization_is_frozen_to_exact_binding_effect_identity(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -260,8 +262,8 @@ class AgentServiceEffectAuthorityR15Tests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "simulated response loss"):
                 service.delivery.deliver(binding.id)
 
-            effect = service.effect_authorization_records.get_by_binding(binding.id)
-            self.assertTrue(effect.allowed)
+            effect = service.events.list_for("EffectAuthorization", binding.id)[0]
+            self.assertTrue(effect.payload["allowed"])
             self.assertEqual(policy.calls, 2)
 
             policy.allowed = False
