@@ -7,7 +7,6 @@ import argparse
 import hmac
 import importlib.util
 import json
-import os
 import stat
 import sys
 from dataclasses import dataclass
@@ -18,8 +17,7 @@ from mcp.server import MCPServer
 from mcp.server.transport_security import TransportSecuritySettings
 from mcp.types import CallToolResult, TextContent, ToolAnnotations
 
-DEFAULT_SOURCE_ROOT = Path(__file__).resolve().parents[1]
-ROOT = Path(os.environ.get("ORDIVON_AGENT_SERVICE_SOURCE_ROOT", str(DEFAULT_SOURCE_ROOT))).resolve()
+ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 

@@ -18,6 +18,9 @@ architecture = [
 quality = [
   "ruff",
 ]
+test-analysis = [
+  "coverage",
+]
 authority = [
   "check-jsonschema",
   "jsonschema",
@@ -27,6 +30,7 @@ reasoning = [
   "pyshacl",
   "rdflib",
   "unified-planning",
+  "up-pyperplan",
   "z3-solver",
 ]
 
