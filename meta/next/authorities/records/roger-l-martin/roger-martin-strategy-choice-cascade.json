@@ -1,0 +1,58 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "Strategy Choice Cascade",
+      "Playing to Win strategy cascade",
+      "Roger Martin strategy choices"
+    ],
+    "domains": [
+      "business",
+      "commercialization",
+      "strategy"
+    ],
+    "topics": [
+      "capabilities",
+      "how-to-win",
+      "management-systems",
+      "strategic-choice",
+      "where-to-play",
+      "winning-aspiration"
+    ]
+  },
+  "id": "roger-martin-strategy-choice-cascade",
+  "identity": {
+    "authorityKind": "professional-guidance",
+    "identityMode": "rolling-source",
+    "issuer": {
+      "id": "roger-l-martin",
+      "name": "Roger L. Martin"
+    },
+    "officialSource": "https://rogerlmartin.com/thought-pillars/strategy",
+    "publicationDate": null,
+    "title": "Strategy",
+    "versionLabel": null
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-19",
+    "registrationBasis": [
+      "commercial-strategy-debt-externalization-r1"
+    ]
+  },
+  "relations": {
+    "related": [
+      "strategyzer-business-model-canvas",
+      "strategyzer-value-proposition-canvas",
+      "lean-startup-principles",
+      "yc-how-to-sell-2018"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

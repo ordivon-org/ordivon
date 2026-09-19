@@ -3180,6 +3180,36 @@
     },
     {
       "aliases": [
+        "Playing to Win strategy cascade",
+        "Roger Martin strategy choices",
+        "Strategy Choice Cascade"
+      ],
+      "authorityKind": "professional-guidance",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "business",
+        "commercialization",
+        "strategy"
+      ],
+      "id": "roger-martin-strategy-choice-cascade",
+      "identityMode": "rolling-source",
+      "issuer": "Roger L. Martin",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:e82a17368c64572c98ba28d6fdc4e522c10223a7853b72689986d9f1ea354c2d",
+      "recordDigest": "sha256:143ad00fa83901b73a8a41910f81e7bcb32b7aa161b66af3a6869ac8ae78fa51",
+      "title": "Strategy",
+      "topics": [
+        "capabilities",
+        "how-to-win",
+        "management-systems",
+        "strategic-choice",
+        "where-to-play",
+        "winning-aspiration"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
         "Research Organization Registry",
         "ROR",
         "ROR 2.1"
@@ -3675,7 +3705,7 @@
     }
   ],
   "kind": "ordivon.external-authority-discovery-index",
-  "recordCount": 133,
-  "recordsDigest": "sha256:971154e34e1f89f3d5fc02866a3fab7e99492a13189ea55565758c0f59d5873c",
+  "recordCount": 134,
+  "recordsDigest": "sha256:7300e73b2d9d0815b34a0dc3e3128967bba8b24311819e5f75d9a9564a6ef750",
   "schemaVersion": 1
 }
