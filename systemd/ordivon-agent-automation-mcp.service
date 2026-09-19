@@ -9,6 +9,8 @@ Type=simple
 User=root
 Group=root
 WorkingDirectory=/opt/ordivon/agent-automation/current
+Environment=OTEL_SERVICE_NAME=ordivon-agent-automation-mcp
+Environment=OTEL_RESOURCE_ATTRIBUTES=service.namespace=ordivon,service.instance.id=b320630c-451b-5546-bad7-2639bfbfcca4,deployment.environment.name=production
 Environment=ORDIVON_AGENT_AUTOMATION_SOURCE_ROOT=/opt/ordivon/agent-automation/current
 ExecStartPre=/root/.local/share/ordivon-workstation/agent-automation-mcp-v1/.venv/bin/python /opt/ordivon/agent-automation/current/scripts/agent_automation_mcp.py --config /etc/ordivon/agent-automation-browserless.json --token-file /etc/ordivon/agent-automation-mcp.token --bind 127.0.0.1 --port 8896 --check
 ExecStart=/root/.local/share/ordivon-workstation/agent-automation-mcp-v1/.venv/bin/python /opt/ordivon/agent-automation/current/scripts/agent_automation_mcp.py --config /etc/ordivon/agent-automation-browserless.json --token-file /etc/ordivon/agent-automation-mcp.token --bind 127.0.0.1 --port 8896 --log-level INFO

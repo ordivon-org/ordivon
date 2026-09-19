@@ -200,7 +200,7 @@ class BrowserlessAutomationConfig:
 
     @property
     def ledger(self) -> Path:
-        return self.state_root / "birth-ledger.sqlite"
+        return self.state_root / "materialization-ledger.sqlite"
 
     @property
     def turn_ledger(self) -> Path:

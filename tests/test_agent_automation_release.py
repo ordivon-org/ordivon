@@ -867,3 +867,70 @@ class ReleaseTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class MaterializationLedgerMigrationTests(unittest.TestCase):
+    def _config_and_legacy_ledger(self, root: Path) -> tuple[Path, Path]:
+        config = root / "config.json"
+        state = root / "state"
+        state.mkdir()
+        config.write_text(json.dumps({"stateRoot": str(state)}))
+        legacy = state / "birth-ledger.sqlite"
+        import sqlite3
+
+        db = sqlite3.connect(legacy)
+        db.execute(
+            """
+            CREATE TABLE requests (
+                request_id TEXT PRIMARY KEY,
+                request_digest TEXT NOT NULL,
+                request_json TEXT NOT NULL,
+                standing TEXT NOT NULL,
+                provider_coordinate TEXT,
+                evidence_digest TEXT,
+                detail TEXT,
+                effect_generation INTEGER NOT NULL DEFAULT 0,
+                created_at_ms INTEGER NOT NULL,
+                updated_at_ms INTEGER NOT NULL
+            )
+            """
+        )
+        db.execute(
+            "INSERT INTO requests VALUES (?,?,?,?,?,?,?,?,?,?)",
+            (
+                "effect:1",
+                "sha256:" + "1" * 64,
+                "{}",
+                "unknown",
+                None,
+                None,
+                "receipt lost",
+                1,
+                10,
+                11,
+            ),
+        )
+        db.commit()
+        db.close()
+        return config, legacy
+
+    def test_prepare_and_finalize_migrates_one_authoritative_ledger(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            config, legacy = self._config_and_legacy_ledger(Path(td))
+            receipt = r.prepare_materialization_ledger_migration(legacy.parent)
+            current = legacy.with_name("materialization-ledger.sqlite")
+            self.assertTrue(legacy.is_file())
+            self.assertTrue(current.is_file())
+            self.assertEqual(receipt["standing"], "PREPARED")
+            self.assertEqual(receipt["requestCount"], 1)
+            r.finalize_materialization_ledger_migration(receipt)
+            self.assertFalse(legacy.exists())
+            self.assertTrue(current.is_file())
+
+    def test_rollback_removes_only_new_copy_and_restores_legacy_authority(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            config, legacy = self._config_and_legacy_ledger(Path(td))
+            receipt = r.prepare_materialization_ledger_migration(legacy.parent)
+            current = legacy.with_name("materialization-ledger.sqlite")
+            r.rollback_materialization_ledger_migration(receipt)
+            self.assertTrue(legacy.is_file())
+            self.assertFalse(current.exists())

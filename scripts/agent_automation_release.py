@@ -9,6 +9,7 @@ import io
 import json
 import os
 import shutil
+import sqlite3
 import stat
 import subprocess
 import tarfile
@@ -103,6 +104,183 @@ def run(
     return subprocess.run(
         argv, capture_output=True, text=True, check=check, timeout=timeout, env=env
     )
+
+
+def _materialization_ledger_paths(state_root: Path = ADMISSION_ROOT) -> tuple[Path, Path]:
+    root = Path(state_root)
+    if not root.is_absolute():
+        raise ReleaseError("Agent Automation state root must be absolute for ledger migration")
+    return root / "birth-ledger.sqlite", root / "materialization-ledger.sqlite"
+
+
+def _materialization_ledger_snapshot(path: Path) -> dict:
+    if not path.is_file():
+        raise ReleaseError(f"materialization ledger is missing: {path}")
+    db = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    try:
+        integrity = db.execute("PRAGMA integrity_check").fetchone()
+        if integrity is None or integrity[0] != "ok":
+            raise ReleaseError(f"materialization ledger integrity check failed: {path}")
+        columns = [
+            row[1]
+            for row in db.execute("PRAGMA table_info(requests)")
+        ]
+        expected = [
+            "request_id",
+            "request_digest",
+            "request_json",
+            "standing",
+            "provider_coordinate",
+            "evidence_digest",
+            "detail",
+            "effect_generation",
+            "created_at_ms",
+            "updated_at_ms",
+        ]
+        if columns != expected:
+            raise ReleaseError(
+                f"materialization ledger requests schema mismatch: {path}; observed={columns}"
+            )
+        rows = [
+            list(row)
+            for row in db.execute(
+                """
+                SELECT request_id,request_digest,request_json,standing,provider_coordinate,
+                       evidence_digest,detail,effect_generation,created_at_ms,updated_at_ms
+                FROM requests ORDER BY request_id
+                """
+            )
+        ]
+    finally:
+        db.close()
+    payload = json.dumps(rows, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    return {
+        "requestCount": len(rows),
+        "semanticDigest": "sha256:" + hashlib.sha256(payload).hexdigest(),
+    }
+
+
+def _fsync_directory(path: Path) -> None:
+    fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def prepare_materialization_ledger_migration(state_root: Path = ADMISSION_ROOT) -> dict:
+    legacy, current = _materialization_ledger_paths(state_root)
+    legacy_exists = legacy.is_file()
+    current_exists = current.is_file()
+
+    if not legacy_exists and not current_exists:
+        return {
+            "schemaVersion": 1,
+            "standing": "NOT_REQUIRED",
+            "legacyPath": str(legacy),
+            "currentPath": str(current),
+            "createdCurrent": False,
+            "requestCount": 0,
+            "semanticDigest": None,
+        }
+
+    if current_exists and not legacy_exists:
+        snapshot = _materialization_ledger_snapshot(current)
+        return {
+            "schemaVersion": 1,
+            "standing": "ALREADY_CURRENT",
+            "legacyPath": str(legacy),
+            "currentPath": str(current),
+            "createdCurrent": False,
+            **snapshot,
+        }
+
+    assert legacy_exists
+    legacy_snapshot = _materialization_ledger_snapshot(legacy)
+
+    if current_exists:
+        current_snapshot = _materialization_ledger_snapshot(current)
+        if current_snapshot != legacy_snapshot:
+            raise ReleaseError(
+                "legacy/current materialization ledgers diverge; refusing to choose an authority"
+            )
+        return {
+            "schemaVersion": 1,
+            "standing": "PREPARED_EXISTING",
+            "legacyPath": str(legacy),
+            "currentPath": str(current),
+            "createdCurrent": False,
+            **legacy_snapshot,
+        }
+
+    current.parent.mkdir(parents=True, exist_ok=True)
+    staging = current.with_name(current.name + ".next")
+    staging.unlink(missing_ok=True)
+    source = sqlite3.connect(f"file:{legacy}?mode=ro", uri=True)
+    destination = sqlite3.connect(staging)
+    try:
+        source.backup(destination)
+        destination.execute("PRAGMA journal_mode=DELETE")
+        destination.commit()
+    finally:
+        destination.close()
+        source.close()
+    os.chmod(staging, 0o600)
+    if _materialization_ledger_snapshot(staging) != legacy_snapshot:
+        staging.unlink(missing_ok=True)
+        raise ReleaseError("materialization ledger copy verification failed")
+    os.replace(staging, current)
+    _fsync_directory(current.parent)
+    return {
+        "schemaVersion": 1,
+        "standing": "PREPARED",
+        "legacyPath": str(legacy),
+        "currentPath": str(current),
+        "createdCurrent": True,
+        **legacy_snapshot,
+    }
+
+
+def rollback_materialization_ledger_migration(receipt: dict) -> None:
+    if receipt.get("createdCurrent") is not True:
+        return
+    legacy = Path(receipt["legacyPath"])
+    current = Path(receipt["currentPath"])
+    if not legacy.is_file():
+        raise ReleaseError("cannot roll back materialization ledger migration: legacy authority missing")
+    for path in (
+        current,
+        current.with_name(current.name + "-wal"),
+        current.with_name(current.name + "-shm"),
+    ):
+        path.unlink(missing_ok=True)
+    _fsync_directory(current.parent)
+
+
+def finalize_materialization_ledger_migration(receipt: dict) -> dict:
+    legacy = Path(receipt["legacyPath"])
+    current = Path(receipt["currentPath"])
+    if receipt["standing"] == "NOT_REQUIRED":
+        return {**receipt, "standing": "FINALIZED"}
+    current_snapshot = _materialization_ledger_snapshot(current)
+    expected = {
+        "requestCount": receipt["requestCount"],
+        "semanticDigest": receipt["semanticDigest"],
+    }
+    if current_snapshot != expected:
+        raise ReleaseError("current materialization ledger changed before release cutover finalized")
+    if legacy.is_file():
+        legacy_snapshot = _materialization_ledger_snapshot(legacy)
+        if legacy_snapshot != expected:
+            raise ReleaseError("legacy materialization ledger changed during closed-admission cutover")
+        for path in (
+            legacy,
+            legacy.with_name(legacy.name + "-wal"),
+            legacy.with_name(legacy.name + "-shm"),
+        ):
+            path.unlink(missing_ok=True)
+        _fsync_directory(legacy.parent)
+    return {**receipt, "standing": "FINALIZED"}
 
 
 def exact_commit(repo: Path, revision: str) -> str:
@@ -604,6 +782,7 @@ def activate(repo: Path, revision: str) -> dict:
                 release, commit
             )
             run(["/usr/bin/systemctl", "stop", WORKER_UNIT], timeout=30)
+            ledger_migration = prepare_materialization_ledger_migration()
             atomic_link(release, CURRENT)
             switched = True
             worker_source = release / "systemd" / WORKER_UNIT
@@ -630,7 +809,9 @@ def activate(repo: Path, revision: str) -> dict:
             if not active(WORKER_UNIT) or not active(MCP_UNIT):
                 raise ReleaseError("production worker/MCP not active after activation")
             # Browserless network lifecycle is owned independently by Network v2; release activation
-            # only opens CLI admission after source, worker, and MCP passed currentness/health.
+            # only opens CLI admission after source, worker, MCP, and the materialization ledger
+            # authority passed currentness/health.
+            ledger_migration = finalize_materialization_ledger_migration(ledger_migration)
             ADMISSION_CLOSED.unlink(missing_ok=True)
             return {
                 "schemaVersion": 1,
@@ -642,11 +823,14 @@ def activate(repo: Path, revision: str) -> dict:
                 "runningWorkflowCount": 0,
                 "mcp": receipt,
                 "browserSecurityQualification": browser_security_qualification,
+                "materializationLedgerMigration": ledger_migration,
                 "cliAdmissionClosed": False,
             }
         except Exception:
             run(["/usr/bin/systemctl", "stop", MCP_UNIT], check=False, timeout=20)
             run(["/usr/bin/systemctl", "stop", WORKER_UNIT], check=False, timeout=20)
+            if "ledger_migration" in locals():
+                rollback_materialization_ledger_migration(ledger_migration)
             if switched:
                 if old_current is None:
                     CURRENT.unlink(missing_ok=True)
