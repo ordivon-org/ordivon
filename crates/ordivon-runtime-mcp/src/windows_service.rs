@@ -15,12 +15,6 @@ use windows_sys::Win32::System::Services::{
 };
 
 pub(crate) const SERVICE_NAME: &str = "OrdivonRuntime";
-
-pub(crate) fn requested() -> bool {
-    std::env::args_os()
-        .skip(1)
-        .any(|argument| argument == "--windows-service")
-}
 const START_WAIT_HINT_MS: u32 = 15_000;
 const STOP_WAIT_HINT_MS: u32 = 30_000;
 
