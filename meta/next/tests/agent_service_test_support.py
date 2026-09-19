@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sqlite3
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -8,24 +7,11 @@ from typing import Any
 from agent_service import open_agent_service
 from agent_service.evidence import RuntimeArtifactPayload
 from agent_service.slice1 import (
-    AgentDefinitionStore,
-    AgentInstanceStore,
-    AgentRevisionStore,
-    DesiredPlacementStore,
-    PlacementReconciler,
     ProviderObservation,
-    ServiceEventStore,
-    _initialize_schema as _initialize_placement_schema,
 )
 from agent_service.task_runtime import (
-    AssignmentActivator,
-    AssignmentPlanner,
-    AssignmentStore,
     RuntimeJobObservation,
     RuntimeJobRef,
-    SemanticVerifier,
-    TaskStore,
-    _initialize_schema as _initialize_task_schema,
 )
 
 
@@ -93,54 +79,3 @@ def open_current(
         delivery_adapters=delivery_adapters or {},
         **kwargs,
     )
-
-
-def open_task_runtime_fixture(
-    db_path: str | Path,
-    *,
-    carrier_adapter: Any,
-    runtime_adapter: Any,
-) -> SimpleNamespace:
-    path = Path(db_path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    connection = sqlite3.connect(path)
-    connection.row_factory = sqlite3.Row
-    connection.execute("PRAGMA foreign_keys = ON")
-    _initialize_placement_schema(connection)
-    _initialize_task_schema(connection)
-
-    service = SimpleNamespace()
-    service._connection = connection
-    service.close = connection.close
-    service.definitions = AgentDefinitionStore(connection)
-    service.revisions = AgentRevisionStore(connection)
-    service.instances = AgentInstanceStore(connection)
-    service.placements = DesiredPlacementStore(connection)
-    service.events = ServiceEventStore(connection)
-    service.reconciler = PlacementReconciler(
-        connection,
-        service.revisions,
-        service.instances,
-        service.placements,
-        service.events,
-        carrier_adapter,
-    )
-    service.tasks = TaskStore(connection, service.events)
-    service.assignments = AssignmentStore(connection)
-    service.planner = AssignmentPlanner(
-        connection,
-        service.tasks,
-        service.assignments,
-        service.instances,
-        service.events,
-    )
-    service.verifier = SemanticVerifier()
-    service.activator = AssignmentActivator(
-        connection,
-        service.tasks,
-        service.assignments,
-        service.events,
-        runtime_adapter,
-        service.verifier,
-    )
-    return service

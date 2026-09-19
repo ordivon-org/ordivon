@@ -5,7 +5,6 @@ import unittest
 import agent_service
 from agent_service.delivery import (
     DelegationRoutePlanner,
-    DeliveryCoordinator,
     TransportBindingStore,
 )
 
@@ -20,7 +19,7 @@ class AgentServiceDeliveryPublicApiR9Tests(unittest.TestCase):
         self.assertIs(agent_service.DelegationRoutePlanner, DelegationRoutePlanner)
         self.assertIs(agent_service.TransportBindingStore, TransportBindingStore)
         self.assertFalse(hasattr(agent_service, "DeliveryAdapter"))
-        self.assertIs(agent_service.DeliveryCoordinator, DeliveryCoordinator)
+        self.assertFalse(hasattr(agent_service, "DeliveryCoordinator"))
         self.assertFalse(hasattr(agent_service, "DeliveryReceiptStore"))
 
 

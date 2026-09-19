@@ -4,7 +4,6 @@ from .service import open_agent_service
 
 from .delivery import (
     DelegationRoutePlanner,
-    DeliveryCoordinator,
     TransportBindingStore,
 )
 from .evidence import VerificationRecord
@@ -106,7 +105,6 @@ __all__ = [
     "CredentialReferenceStore",
     "DelegationEnvelopeStore",
     "DelegationRoutePlanner",
-    "DeliveryCoordinator",
     "ExecutionClaimTransferCoordinator",
     "ExecutionQuiescenceCoordinator",
     "ExecutionQuiescenceRequestStore",

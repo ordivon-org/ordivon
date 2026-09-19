@@ -573,41 +573,6 @@ def _delivery_receipt_create(
     return _delivery_receipt_from_event(event)
 
 
-class DeliveryCoordinator:
-    def __init__(
-        self,
-        delegations: Any,
-        bindings: TransportBindingStore,
-        events: ServiceEventStore,
-        adapters: dict[str, Any],
-    ) -> None:
-        adapters = _require_delivery_providers(adapters)
-        self._delegations = delegations
-        self._bindings = bindings
-        self._events = events
-        self._adapters = adapters
-
-    def deliver(self, binding_id: str) -> DeliveryReceipt:
-        existing = _delivery_receipt_get_by_binding(
-            self._events, binding_id, required=False
-        )
-        if existing is not None:
-            return existing
-        binding = self._bindings.get(binding_id)
-        envelope = self._delegations.get(binding.delegation_id)
-        adapter = self._adapters.get(binding.transport)
-        if adapter is None:
-            raise LookupError(f"no delivery provider registered for {binding.transport}")
-        observation = adapter.send(
-            delivery_request_id=binding.delivery_request_id,
-            binding=binding,
-            envelope=envelope,
-        )
-        if not isinstance(observation, DeliveryObservation):
-            raise TypeError("delivery provider must return DeliveryObservation")
-        return _delivery_receipt_create(self._events, binding, observation)
-
-
 def _initialize_schema(connection: sqlite3.Connection) -> None:
     legacy_interface_table = connection.execute(
         "SELECT 1 FROM sqlite_master "

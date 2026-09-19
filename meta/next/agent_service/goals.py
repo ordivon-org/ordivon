@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .slice1 import ServiceEvent, ServiceEventStore
-from .task_runtime import Assignment, AssignmentPlanner, AgentTask, TaskStore
+from .task_runtime import Assignment, AgentTask, TaskStore
 
 
 def _now_ns() -> int:
@@ -274,7 +274,7 @@ class GoalTaskGraph:
 
 
 class GoalAssignmentPlanner:
-    def __init__(self, readiness: TaskReadinessProjector, planner: AssignmentPlanner) -> None:
+    def __init__(self, readiness: TaskReadinessProjector, planner: Any) -> None:
         self._readiness = readiness
         self._planner = planner
 
