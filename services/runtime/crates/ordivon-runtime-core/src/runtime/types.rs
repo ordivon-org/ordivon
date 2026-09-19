@@ -356,16 +356,16 @@ impl WindowsAuthority {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
-pub enum WindowsTokenClass {
+pub(crate) enum WindowsTokenClass {
     Limited,
     Elevated,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct WindowsExecutionContext {
+pub(crate) struct WindowsExecutionContext {
     pub token_class: WindowsTokenClass,
     pub token_user_sid: String,
     pub environment_source: String,
@@ -467,9 +467,9 @@ pub struct RuntimeReleaseGetRequest {
     pub client_request_id: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct RuntimeReleaseEffectBinding {
+pub(crate) struct RuntimeReleaseEffectBinding {
     pub contract: RuntimeReleaseContract,
     pub effect_id: String,
     pub request_digest: String,
@@ -603,16 +603,16 @@ pub struct RuntimeCapabilities {
     pub targets: Vec<RuntimeExecutionTargetCapability>,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
-pub enum InputAccessMode {
+pub(crate) enum InputAccessMode {
     ReadOnly,
 }
 
 /// Concrete immutable input truth frozen into one Runtime execution plan.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct EffectiveInputBinding {
+pub(crate) struct EffectiveInputBinding {
     pub authority: String,
     pub relative_object: String,
     pub digest: String,
@@ -686,9 +686,9 @@ pub struct ExecutionStepProposal {
     pub continue_on_error: bool,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct RuntimeExecutionStep {
+pub(crate) struct RuntimeExecutionStep {
     pub id: String,
     pub executable: String,
     pub executable_digest: String,
@@ -702,9 +702,9 @@ pub struct RuntimeExecutionStep {
     pub continue_on_error: bool,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct RuntimeExecutionPlan {
+pub(crate) struct RuntimeExecutionPlan {
     pub schema_version: u32,
     pub workspace_id: String,
     pub workspace_path: String,
@@ -720,11 +720,8 @@ pub struct RuntimeExecutionPlan {
     pub cwd: String,
     #[serde(default)]
     pub env: BTreeMap<String, String>,
-    #[schemars(range(min = 1))]
     pub timeout_ms: u64,
-    #[schemars(range(min = 1))]
     pub stdout_limit_bytes: u64,
-    #[schemars(range(min = 1))]
     pub stderr_limit_bytes: u64,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub steps: Vec<RuntimeExecutionStep>,

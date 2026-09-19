@@ -1,12 +1,14 @@
-use super::{AdmissionOutcome, CreatedAdmission, SubmitRequest};
+use super::{
+    AdmissionOutcome, CreatedAdmission, RuntimeExecutionPlan, SubmitRequest, WindowsTokenClass,
+};
 use crate::{
     create_git_workspace, remove_git_workspace, write_workspace_text, ArtifactReadRequest,
     AttemptState, ExecutionBudget, ForeignReference, GitWorkspaceCreateRequest,
     HostDependencyBinding, InputAuthority, InputBindingRequest, JobCancelRequest,
     JobObserveRequest, JobObserveWaitUntil, JobRunRequest, RegistryConfig, Runtime, RuntimeConfig,
-    RuntimeExecutionPlan, RuntimeJobListRequest, UniversalExecutionRequest,
-    UniversalExecutorConfig, WindowsExecutionConfig, WorkspaceCloseRequest, WorkspaceMutateRequest,
-    WorkspaceMutation, WorkspaceMutationMode, WorkspaceWriteRequest, RUNTIME_SCHEMA_VERSION,
+    RuntimeJobListRequest, UniversalExecutionRequest, UniversalExecutorConfig,
+    WindowsExecutionConfig, WorkspaceCloseRequest, WorkspaceMutateRequest, WorkspaceMutation,
+    WorkspaceMutationMode, WorkspaceWriteRequest, RUNTIME_SCHEMA_VERSION,
     UNIVERSAL_EXEC_SCHEMA_VERSION,
 };
 use rusqlite::Connection;
@@ -500,10 +502,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
         crate::ExecutionTarget::WindowsNative
     );
     let committed_windows = committed_plan.windows_execution_context.as_ref().unwrap();
-    assert_eq!(
-        committed_windows.token_class,
-        crate::WindowsTokenClass::Limited
-    );
+    assert_eq!(committed_windows.token_class, WindowsTokenClass::Limited);
     assert_eq!(
         committed_windows.environment_source,
         "windows_user_machine_profile_allowlist_v1"
@@ -823,10 +822,7 @@ fn runtime_windows_native_executes_as_real_job_attempt_and_replays() {
         crate::WindowsAuthority::Elevated
     );
     let elevated_context = elevated_plan.windows_execution_context.as_ref().unwrap();
-    assert_eq!(
-        elevated_context.token_class,
-        crate::WindowsTokenClass::Elevated
-    );
+    assert_eq!(elevated_context.token_class, WindowsTokenClass::Elevated);
     assert_eq!(
         elevated_context.token_user_sid,
         committed_windows.token_user_sid
