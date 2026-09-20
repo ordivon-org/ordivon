@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import json
 import time
 from typing import Any
 
 import psycopg
 from psycopg.rows import dict_row
+from psycopg.types.json import Jsonb
 
 from .attention import build_attention_delta
 from .canonical import canonical_digest
@@ -133,8 +133,9 @@ class HostV2:
                         "SELECT checkpoint_digest,payload FROM checkpoints ORDER BY task_id,revision"
                     ).fetchall():
                         payload = row["payload"]
-                        if isinstance(payload, str):
-                            payload = json.loads(payload)
+                        if not isinstance(payload, dict):
+                            digest_bad += 1
+                            continue
                         if canonical_digest(payload) != row["checkpoint_digest"]:
                             digest_bad += 1
                     add_check(
@@ -222,11 +223,11 @@ class HostV2:
                 (task_id, goal_id, checkpoint_digest),
             )
             conn.execute(
-                "INSERT INTO checkpoints(task_id,revision,checkpoint_digest,payload,writer_label) VALUES (%s,1,%s,%s::jsonb,%s)",
+                "INSERT INTO checkpoints(task_id,revision,checkpoint_digest,payload,writer_label) VALUES (%s,1,%s,%s,%s)",
                 (
                     task_id,
                     checkpoint_digest,
-                    json.dumps(checkpoint.payload),
+                    Jsonb(checkpoint.payload),
                     checkpoint.writer_label,
                 ),
             )
@@ -309,12 +310,12 @@ class HostV2:
                 raise ConflictError("same-revision transition lost concurrency race")
 
             conn.execute(
-                "INSERT INTO checkpoints(task_id,revision,checkpoint_digest,payload,writer_label) VALUES (%s,%s,%s,%s::jsonb,%s)",
+                "INSERT INTO checkpoints(task_id,revision,checkpoint_digest,payload,writer_label) VALUES (%s,%s,%s,%s,%s)",
                 (
                     task_id,
                     next_revision,
                     checkpoint_digest,
-                    json.dumps(checkpoint.payload),
+                    Jsonb(checkpoint.payload),
                     checkpoint.writer_label,
                 ),
             )
@@ -466,8 +467,8 @@ class HostV2:
         if cp is None:
             raise RuntimeError("checkpoint history is not revision coherent")
         payload = cp["payload"]
-        if isinstance(payload, str):
-            payload = json.loads(payload)
+        if not isinstance(payload, dict):
+            raise RuntimeError("checkpoint payload is not a PostgreSQL jsonb object")
         return TaskView(
             task_id=task_id,
             goal_id=goal_id,
@@ -503,7 +504,9 @@ class HostV2:
         response = row["response"]
         if response is None:
             raise RuntimeError("committed idempotency claim is missing its response")
-        replay = json.loads(response) if isinstance(response, str) else dict(response)
+        if not isinstance(response, dict):
+            raise RuntimeError("idempotency response is not a PostgreSQL jsonb object")
+        replay = dict(response)
         replay["admission"] = Admission.EXISTING.value
         return replay
 
@@ -516,10 +519,10 @@ class HostV2:
         result: MutationResult,
     ) -> None:
         updated = conn.execute(
-            "UPDATE command_receipts SET response=%s::jsonb "
+            "UPDATE command_receipts SET response=%s "
             "WHERE client_request_id=%s AND operation=%s AND request_digest=%s AND response IS NULL RETURNING client_request_id",
             (
-                json.dumps(result.model_dump(mode="json"), separators=(",", ":")),
+                Jsonb(result.model_dump(mode="json")),
                 client_request_id,
                 operation,
                 request_digest,

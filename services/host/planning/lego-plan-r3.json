@@ -93,6 +93,10 @@
     {
       "capability": "quality verification",
       "owner": "pytest + Hypothesis + Ruff + GitHub Actions"
+    },
+    {
+      "capability": "PostgreSQL JSONB adaptation",
+      "owner": "Psycopg Jsonb adapter"
     }
   ],
   "retired": [
@@ -110,7 +114,9 @@
     "StatusDeploymentPlaceholder",
     "StatusContinuityDuplicate",
     "StatusRecentActivityProjection",
-    "StatusLeasePlaceholder"
+    "StatusLeasePlaceholder",
+    "ManualJsonbSerialization",
+    "DeadHostStatusModel"
   ],
   "nonSubstitutions": [
     {
