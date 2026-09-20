@@ -243,14 +243,17 @@ It must not be repaired into another permanent custom control plane. Its accepta
 ## C3/C4 preflight authority correction — 2026-09-20
 
 Frozen evidence:
-- file: 00ae7525ff0d444f91f6250d5f055c635c0e092e-c3-c4-preflight-v2.json;
-- digest: sha256:d7abdf588bb0efd418c8b311626e6446511bd25169ecb8ae2e7328fb53e8d481.
+- file: 00ae7525ff0d444f91f6250d5f055c635c0e092e-c3-c4-preflight-v3.json;
+- digest: sha256:dfa42acb7aa34ad98cfd0addbd796ccd5ef29ccb0488e87818d29f582156e41a.
 
 The WSL ownership boundary was clarified without terminating WSL:
 - archlinux is a WSL2 distribution registered in an interactive-user hive;
 - limited candidate service authority sees no user-owned running distributions;
 - elevated Runtime authority is LocalSystem;
-- direct elevated wsl.exe probe failed with WSL_E_LOCAL_SYSTEM_NOT_SUPPORTED.
+- direct elevated wsl.exe probe failed with WSL_E_LOCAL_SYSTEM_NOT_SUPPORTED;
+- read-only probe Job job-01a0bd7d-7e9d-7003-b3a9-1be52ee7a433 proved the existing
+  linux-local/windows-native carrier runs under the interactive Windows user identity and sees
+  archlinux as running.
 
 Therefore C3 must not be implemented by broadening Runtime service authority. The native Runtime
 service is the independent observation carrier; the destructive wsl.exe fault belongs to the
