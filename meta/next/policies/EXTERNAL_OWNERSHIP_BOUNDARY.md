@@ -42,9 +42,20 @@ Therefore:
 - current architecture policy belongs here;
 - specific unresolved replacement decisions remain in `planning/` only while they still affect future work.
 
-## Security exception
+## Security exception: credential-reference binding
 
-Externalization must not weaken confidentiality, integrity, availability or authority scoping. A local component may remain temporarily when no mature replacement owner preserves the existing security boundary. `CredentialReferenceStore` is currently such a documented exception: its locator metadata must not be moved into a broader shared journal merely to reduce the local class count.
+Externalization must not weaken confidentiality, integrity, availability or authority scoping.
+
+`CredentialReferenceStore` remains only as a thin cross-owner binding and replay guard. It does **not** own credential material, OAuth issuer semantics, protected-resource semantics or scope-grant authority:
+
+- `provider/reference` is an opaque handle whose natural owner is the selected external credential/secret provider;
+- for OAuth-based integrations, issuer/server metadata belongs to RFC 8414 and current OAuth security guidance;
+- OAuth resource targeting belongs to RFC 8707 and protected-resource metadata to RFC 9728;
+- scopes remain OAuth/provider/domain authorization semantics; the locally retained `requested_scopes` value is only a least-privilege ceiling and never proves a grant.
+
+The row therefore caches an expected contract so Agent Service can fail closed before and after transient material resolution. Moving this sensitive locator metadata into the broad `ServiceEventStore` merely to reduce class count remains forbidden.
+
+Delete the local binding only when a selected external provider can preserve stable replay identity, locator confidentiality, target/scope restriction and exact conflict detection without widening visibility. Do not create a replacement Ordivon credential registry.
 
 ## External ownership baseline
 

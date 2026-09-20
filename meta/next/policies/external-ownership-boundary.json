@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "external-ownership-boundary",
-  "date": "2026-09-19",
+  "date": "2026-09-20",
   "status": "CURRENT_ARCHITECTURE_POLICY",
   "architecturalCore": "EMPTY",
   "acceptedIrreduciblePrimitives": [],
@@ -77,6 +77,21 @@
       "name": "RFC 9562",
       "role": "UUID/URN identifiers where global uniqueness is needed",
       "canonicalReference": "https://www.rfc-editor.org/rfc/rfc9562.html"
+    },
+    {
+      "name": "OAuth 2.0 / RFC 6749 + RFC 9700",
+      "role": "delegated authorization scopes and OAuth security best current practice",
+      "canonicalReference": "https://www.rfc-editor.org/rfc/rfc9700.html"
+    },
+    {
+      "name": "RFC 8414",
+      "role": "OAuth authorization-server issuer and metadata",
+      "canonicalReference": "https://www.rfc-editor.org/rfc/rfc8414.html"
+    },
+    {
+      "name": "RFC 8707 + RFC 9728",
+      "role": "OAuth protected-resource targeting and protected-resource metadata",
+      "canonicalReference": "https://www.rfc-editor.org/rfc/rfc9728.html"
     }
   ],
   "legacyTypeCeilings": {
@@ -346,5 +361,56 @@
   "stabilizedDate": "2026-09-20",
   "lineage": [
     "ordivon-core-zero-enforcement-r3"
-  ]
+  ],
+  "credentialReferenceBoundary": {
+    "status": "RETAIN_THIN_CROSS_OWNER_BINDING",
+    "authoritative": false,
+    "localResponsibilities": [
+      "stable local reference identity used by replay and cross-record joins",
+      "immutable binding of one client reference to one external provider handle",
+      "cached least-privilege expected contract used to fail closed before transient material resolution"
+    ],
+    "fieldOwnership": {
+      "providerReference": {
+        "naturalOwner": "external credential/secret provider selected by the CredentialMaterialProvider",
+        "localMeaning": "opaque provider handle only; secret material is forbidden",
+        "authority": "EXTERNAL"
+      },
+      "issuer": {
+        "naturalOwner": "OAuth authorization-server metadata or provider-native identity metadata when OAuth is not applicable",
+        "authorityIds": [
+          "rfc-8414",
+          "rfc-9700"
+        ],
+        "localMeaning": "cached expected issuer used for fail-closed comparison",
+        "authority": "EXTERNAL_OR_PROVIDER_NATIVE"
+      },
+      "resource": {
+        "naturalOwner": "OAuth resource indicators/protected-resource metadata or provider-native resource identity when OAuth is not applicable",
+        "authorityIds": [
+          "rfc-8707",
+          "rfc-9728"
+        ],
+        "localMeaning": "cached expected resource/audience ceiling used for fail-closed endpoint coverage",
+        "authority": "EXTERNAL_OR_PROVIDER_NATIVE"
+      },
+      "requestedScopes": {
+        "naturalOwner": "OAuth authorization semantics and provider/domain policy",
+        "authorityIds": [
+          "rfc-6749",
+          "rfc-9700"
+        ],
+        "localMeaning": "cached least-privilege scope ceiling; not proof that scopes were granted",
+        "authority": "EXTERNAL_OR_PROVIDER_NATIVE"
+      }
+    },
+    "mustNotBecome": [
+      "secret material store",
+      "authorization server",
+      "protected-resource metadata authority",
+      "scope grant authority",
+      "generic credential registry"
+    ],
+    "deletionCondition": "Delete the local binding only when the selected external provider can preserve stable replay identity, locator confidentiality, least-privilege target/scope binding and exact conflict detection without widening visibility."
+  }
 }

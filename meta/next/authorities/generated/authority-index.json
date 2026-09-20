@@ -3465,6 +3465,36 @@
     },
     {
       "aliases": [
+        "authorization server metadata",
+        "OAuth Authorization Server Metadata",
+        "RFC 8414"
+      ],
+      "authorityKind": "internet-standard",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "distribution",
+        "identity",
+        "security",
+        "web"
+      ],
+      "id": "rfc-8414",
+      "identityMode": "versioned",
+      "issuer": "IETF",
+      "lifecycleStatus": "proposed-standard",
+      "observationDigest": "sha256:f9fe078c2577dca41bf768c97acb84668b0e5446eedd0428bd7c495739c925d8",
+      "recordDigest": "sha256:e31a09564c1387c734e0d4d52ad72005057ad52714005a18cd3977fd2a7c8aa4",
+      "title": "RFC 8414 — OAuth 2.0 Authorization Server Metadata",
+      "topics": [
+        "authorization-server",
+        "discovery",
+        "issuer",
+        "metadata",
+        "oauth"
+      ],
+      "versionLabel": "RFC 8414"
+    },
+    {
+      "aliases": [
         "DNS over HTTPS",
         "DoH",
         "RFC 8484"
@@ -3661,6 +3691,36 @@
         "security"
       ],
       "versionLabel": "RFC 9700"
+    },
+    {
+      "aliases": [
+        "OAuth Protected Resource Metadata",
+        "protected resource metadata",
+        "RFC 9728"
+      ],
+      "authorityKind": "internet-standard",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "distribution",
+        "identity",
+        "security",
+        "web"
+      ],
+      "id": "rfc-9728",
+      "identityMode": "versioned",
+      "issuer": "IETF",
+      "lifecycleStatus": "proposed-standard",
+      "observationDigest": "sha256:963a34239ccd062ddbe17f3967a2570d3d5b52d906335c7690e6d9d5b2873e5f",
+      "recordDigest": "sha256:c518c7539c0359377a688b1f5f328e49ae1ce3d58cf891f0de10f331942ba9a5",
+      "title": "RFC 9728 — OAuth 2.0 Protected Resource Metadata",
+      "topics": [
+        "authorization",
+        "metadata",
+        "oauth",
+        "protected-resource",
+        "resource"
+      ],
+      "versionLabel": "RFC 9728"
     },
     {
       "aliases": [
@@ -4364,7 +4424,7 @@
     }
   ],
   "kind": "ordivon.external-authority-discovery-index",
-  "recordCount": 157,
-  "recordsDigest": "sha256:9fba4e6d2f126234be52f6a54b4c845a2366aefb04d8119c030fc3b9e691990f",
+  "recordCount": 159,
+  "recordsDigest": "sha256:d86066c93afd09c587e91b68f0b55bb527db546df60c34534052ba8e9fc64aaf",
   "schemaVersion": 1
 }

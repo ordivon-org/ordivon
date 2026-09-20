@@ -1,0 +1,59 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "RFC 9728",
+      "OAuth Protected Resource Metadata",
+      "protected resource metadata"
+    ],
+    "domains": [
+      "security",
+      "identity",
+      "distribution",
+      "web"
+    ],
+    "topics": [
+      "oauth",
+      "protected-resource",
+      "resource",
+      "metadata",
+      "authorization"
+    ]
+  },
+  "id": "rfc-9728",
+  "identity": {
+    "authorityKind": "internet-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "ietf",
+      "name": "IETF"
+    },
+    "officialSource": "https://www.rfc-editor.org/info/rfc9728/",
+    "publicationDate": "2025-04",
+    "title": "RFC 9728 — OAuth 2.0 Protected Resource Metadata",
+    "versionLabel": "RFC 9728"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-20",
+    "registrationBasis": [
+      "policies/external-ownership-boundary.json",
+      "RFC Editor checked 2026-09-20"
+    ]
+  },
+  "relations": {
+    "related": [
+      "rfc-6749",
+      "rfc-8414",
+      "rfc-8707",
+      "rfc-9700"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}
