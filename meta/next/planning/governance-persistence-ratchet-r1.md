@@ -322,3 +322,89 @@ R3 proves that the historical clean-idle-unclaimed backlog can be reduced to zer
 R3 still does **not** count as one of the three clean audits required for ratchet deletion. The ratchet materially changed decisions during this audit: it prevented eight Paper2 carriers from being deleted on a raw secret-scan failure, required evidence-based false-positive adjudication, required 30 unique histories to be preserved before carrier removal, and retained claimant-backed Workspaces.
 
 The next informative sunset evidence is a later owner-native lifecycle audit in which stale historical carriers do not accumulate and no manual ratchet intervention is required. Only such naturally clean observations should advance the three-audit deletion criterion.
+
+
+## Lifecycle audit — 2026-09-20, historical dirty-carrier closure R4
+
+Standing: **SUNSET_NOT_MET / HISTORICAL_IDLE_UNCLAIMED_BACKLOG_ZERO**.
+
+R4 started from the 24 historical Workspaces that were dirty, idle, and had no current non-terminal Host claimant after R3 had already reduced the historical clean-idle-unclaimed backlog to zero.
+
+The cleanup used the same finalizer-like owner-native rule: preserve unique work first, discard only proven rebuildable/external residue, then close through Runtime with a fresh sourceStateDigest and force=false.
+
+### Directly discardable or already-preserved residue
+
+Five Workspaces required no new snapshot archive:
+
+- `ws-standards-wave5-workstation-control-20260919`: one Python `__pycache__` directory only; HEAD already preserved by main.
+- `ws-xby-server-exposure-r1-20260918`: its only untracked JavaScript file was byte-identical to the same path on current main; HEAD was already an ancestor of main.
+- `ws-jev-fastpath-workstation-r1-20260918`: dirty state was only Python bytecode; `git cherry main HEAD` marked the sole divergent commit with `-`, proving patch-equivalent preservation in main.
+- `ws-market-capital-r2-w0-a01-nautilus-s02-20260915`: `.arbiter_upstream` was an unborn external Git container with NautilusTrader origin, no refs, and no worktree changes.
+- `ws-paper2-a35-acr-review-20260915`: `acr-official` pointed at the recorded AutoCodeRover `origin/main` commit and contained only local deletions, with no added or modified local content.
+
+These residues were removed explicitly, the Workspaces became clean, and all five were closed with fresh exact digests and force=false.
+
+### Dirty snapshot preservation
+
+Fifteen Workspaces containing real source, tests, paper assets, security/runtime changes, or audit material were preserved through:
+
+```text
+dirty Workspace
+    -> temporary Git index
+    -> full non-ignored snapshot tree
+    -> commit-tree(parent = exact Workspace HEAD)
+    -> Gitleaks over the snapshot commit
+    -> annotated archive/workspaces/<workspace-id> tag
+    -> Host claimant / active Job recheck
+    -> reset + clean original mutable carrier
+    -> fresh Runtime sourceStateDigest
+    -> workspace.close(force=false)
+```
+
+All fifteen snapshot commits passed Gitleaks, all fifteen archive tags peeled to the expected snapshot commits, and all fifteen mutable Workspaces were removed.
+
+### Paper2 dirty scientific carriers
+
+Three remaining Paper2 Workspaces were handled separately:
+
+- `ws-paper2-coder-a-prime-r74-20260919`: dirty snapshot passed default Gitleaks.
+- `ws-paper2-r4-final-closure-20260915`: dirty snapshot passed default Gitleaks.
+- `ws-paper2-coder-a-r57-clean-20260917`: default Gitleaks reported exactly 100 `sourcegraph-access-token` findings. All 100 came from the single file `ta-input-min/shard-015.jsonl`; that shard contained 100 records and exactly 100 40-hex substrings, all in the `record_id` field. A temporary scan disabling only that adjudicated rule passed every other default Gitleaks rule.
+
+All three received annotated Git archive tags, were restored to clean original HEAD state, and were then closed with exact digests and force=false. No repository-wide secret rule was weakened.
+
+### Media DVC forensic carrier
+
+`ws-media-v2-assets-r6-20260911` contained a local DVC forensic sandbox under `.tmp/r6-dvc-forensic`, including a nested unborn Git repository and local DVC/cache/remote proof files. Because normal `git add -A` would treat the nested repository as a Git boundary rather than preserve its local forensic bytes, R4 used an archive-only payload:
+
+- Gitleaks over the forensic directory: PASS;
+- 12 non-`.git` files were packaged into a tar payload;
+- tar size: 20,480 bytes;
+- payload SHA256: `8e8450b7d005b47ae22482b3a880dc23ba8dcd10884849562011fb5378c84bef`;
+- the tar blob was stored only in an archive commit/tag, not merged into main;
+- snapshot commit: `e010edbe14a3`.
+
+After the tag was verified, the temporary forensic directory was removed and the Workspace closed with force=false.
+
+### Resulting inventory
+
+The owner-native post-R4 census observed:
+
+| Measure | R3 observation | R4 observation |
+| --- | ---: | ---: |
+| Host open Tasks | 269 | 269 |
+| Runtime open Workspaces | 99 | 77 |
+| Runtime dirty Workspaces | 42 | 20 |
+| Runtime clean Workspaces | 57 | 57 |
+| historical clean + idle + Host-unclaimed Workspaces | 0 | **0** |
+| historical dirty + idle + Host-unclaimed Workspaces | 24 | **0** |
+
+The arithmetic of total Runtime inventory remains point-in-time because same-day agents can create or close Workspaces concurrently. R4 itself explicitly resolved all 24 historical dirty-idle-unclaimed carriers that were frozen at its start.
+
+A same-day clean main-equal Workspace, `ws-ordivon-lego-census-r1-20260920`, appeared during the final census. It is intentionally retained because same-day concurrent carriers are not classified as stale solely from being clean and Host-unclaimed.
+
+### Sunset consequence
+
+R4 still does **not** count toward the three naturally clean audits required to delete this ratchet. The ratchet again changed real decisions: it distinguished disposable cache/external residue from unique dirty work, forced secret scanning before preservation, required special handling for Paper2 false positives, and prevented a nested DVC forensic state from being lost.
+
+The next useful sunset evidence must be a later audit in which both historical clean and historical dirty idle-unclaimed backlogs remain zero without another cleanup campaign.
