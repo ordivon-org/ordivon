@@ -3,7 +3,7 @@
 #[cfg(windows)]
 use ordivon_runtime_core::windows_current_token_is_local_system;
 use ordivon_runtime_core::{
-    inspect_registry, inspect_runtime, inspect_runtime_release_effect_owner, RuntimeDoctorConfig,
+    inspect_registry, inspect_runtime, inspect_runtime_release_effect, RuntimeDoctorConfig,
     RuntimeInspectionConfig,
 };
 use serde::{Deserialize, Serialize};
@@ -43,6 +43,7 @@ struct Args {
     receipt_root: PathBuf,
     service: String,
     broker_service: String,
+    workspace_id: String,
     expected_tool_count: u32,
     require_ref: String,
     effect_id: String,
@@ -134,6 +135,7 @@ struct EffectRequestReceipt<'a> {
     commit: &'a str,
     candidate_manifest_digest: &'a str,
     expected_tool_count: u32,
+    workspace_id: &'a str,
     platform: &'static str,
 }
 
@@ -429,7 +431,7 @@ mod scm {
 }
 
 fn usage() -> String {
-    "usage: ordivon-runtime-windows-deploy <plan|apply> --source-repo PATH --commit SHA40 --confirm-commit SHA40 --candidate-dir PATH --candidate-manifest PATH --install-dir PATH --database PATH --env-file PATH --receipt-root PATH --service NAME --broker-service NAME --expected-tool-count N --require-ref REF --effect-id HEX64 --effect-request-digest sha256:HEX64 --candidate-manifest-digest sha256:HEX64 --drain-seconds N".to_string()
+    "usage: ordivon-runtime-windows-deploy <plan|apply> --source-repo PATH --commit SHA40 --confirm-commit SHA40 --candidate-dir PATH --candidate-manifest PATH --install-dir PATH --database PATH --env-file PATH --receipt-root PATH --service NAME --broker-service NAME --workspace-id ID --expected-tool-count N --require-ref REF --effect-id HEX64 --effect-request-digest sha256:HEX64 --candidate-manifest-digest sha256:HEX64 --drain-seconds N".to_string()
 }
 
 fn require_value<I: Iterator<Item = String>>(args: &mut I, flag: &str) -> Result<String, String> {
@@ -472,6 +474,7 @@ fn parse_args() -> Result<Args, String> {
         receipt_root: PathBuf::from(take("--receipt-root", &values)?),
         service: take("--service", &values)?,
         broker_service: take("--broker-service", &values)?,
+        workspace_id: take("--workspace-id", &values)?,
         expected_tool_count: take("--expected-tool-count", &values)?
             .parse()
             .map_err(|_| "--expected-tool-count must be an integer".to_string())?,
@@ -495,6 +498,7 @@ fn parse_args() -> Result<Args, String> {
         "--receipt-root",
         "--service",
         "--broker-service",
+        "--workspace-id",
         "--expected-tool-count",
         "--require-ref",
         "--effect-id",
@@ -557,14 +561,31 @@ fn validate_args(args: &Args) -> Result<(), String> {
     if !is_lower_hex(&args.effect_id, 64) {
         return Err("effect-id must be 64 lowercase hexadecimal characters".to_string());
     }
-    if !is_sha256(&args.effect_request_digest) || !is_sha256(&args.candidate_manifest_digest) {
-        return Err("effect/candidate digests must be lowercase sha256: digests".to_string());
+    if !args
+        .effect_request_digest
+        .strip_prefix("runtime-release-v1:")
+        .is_some_and(is_sha256)
+        || !is_sha256(&args.candidate_manifest_digest)
+    {
+        return Err(
+            "effect request digest must be runtime-release-v1:sha256:... and candidate digest must be sha256:..."
+                .to_string(),
+        );
     }
     if args.expected_tool_count == 0 || args.drain_seconds == 0 {
         return Err("expected-tool-count and drain-seconds must be positive".to_string());
     }
     if !is_safe_service_name(&args.service) || !is_safe_service_name(&args.broker_service) {
         return Err("service names are invalid".to_string());
+    }
+    if args.workspace_id.is_empty()
+        || args.workspace_id.len() > 128
+        || !args
+            .workspace_id
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-' | b':'))
+    {
+        return Err("workspace-id is invalid".to_string());
     }
     if args.require_ref.trim().is_empty() || args.require_ref.len() > 256 {
         return Err("require-ref is invalid".to_string());
@@ -757,16 +778,30 @@ fn inspect(args: &Args) -> Result<ordivon_runtime_core::RuntimeOperatorRegistryI
     .map_err(|error| format!("Registry inspection failed: {error}"))
 }
 
-fn release_owner(args: &Args) -> Result<String, String> {
-    inspect_runtime_release_effect_owner(
+fn release_effect(
+    args: &Args,
+) -> Result<ordivon_runtime_core::RuntimeOperatorReleaseEffectInspection, String> {
+    let effect = inspect_runtime_release_effect(
         &RuntimeInspectionConfig {
             db_path: args.database.clone(),
             busy_timeout_ms: 5_000,
         },
         &args.effect_id,
     )
-    .map_err(|error| format!("release effect owner inspection failed: {error}"))?
-    .ok_or_else(|| "release effect has no durable owning Job".to_string())
+    .map_err(|error| format!("release effect inspection failed: {error}"))?
+    .ok_or_else(|| "release effect has no durable side truth".to_string())?;
+    let expected_receipt = args.receipt_root.join(format!("effect-{}", args.effect_id));
+    if effect.effect_id != args.effect_id
+        || effect.request_digest != args.effect_request_digest
+        || effect.workspace_id != args.workspace_id
+        || effect.commit != args.commit
+        || effect.candidate_manifest_digest != args.candidate_manifest_digest
+        || effect.expected_tool_count != args.expected_tool_count
+        || Path::new(&effect.receipt_path) != expected_receipt
+    {
+        return Err("durable Runtime Release side truth does not match deployer argv".to_string());
+    }
+    Ok(effect)
 }
 
 fn blockers(active: &[String], owner: &str) -> Vec<String> {
@@ -1072,9 +1107,9 @@ fn preflight(args: &Args) -> Result<(CandidateProof, PlanReceipt), String> {
             report.migration_version, proof.self_check.max_migration_version
         ));
     }
-    let owner = release_owner(args)?;
+    let effect = release_effect(args)?;
     let registry = inspect(args)?;
-    let blocked = blockers(&registry.active_job_ids, &owner);
+    let blocked = blockers(&registry.active_job_ids, &effect.job_id);
     let release_dir = args.install_dir.join(&args.commit);
     let plan = PlanReceipt {
         schema_version: RECEIPT_SCHEMA_VERSION,
@@ -1090,7 +1125,7 @@ fn preflight(args: &Args) -> Result<(CandidateProof, PlanReceipt), String> {
             .compiled_base_tool_catalog_digest
             .clone(),
         release_dir: release_dir.to_string_lossy().into_owned(),
-        owner_job_id: owner,
+        owner_job_id: effect.job_id,
         active_job_ids: registry.active_job_ids,
         blockers: blocked,
     };
@@ -1111,6 +1146,7 @@ fn apply(
         commit: &args.commit,
         candidate_manifest_digest: &args.candidate_manifest_digest,
         expected_tool_count: args.expected_tool_count,
+        workspace_id: &args.workspace_id,
         platform: "windows_native",
     };
     write_json_sync(&receipt_dir.join("effect-request.json"), &effect_request)?;
@@ -1328,6 +1364,9 @@ mod tests {
         assert!(!is_lower_hex(&"A".repeat(40), 40));
         assert!(is_sha256(&format!("sha256:{}", "f".repeat(64))));
         assert!(!is_sha256(&format!("sha256:{}", "F".repeat(64))));
+        assert!(format!("runtime-release-v1:sha256:{}", "f".repeat(64))
+            .strip_prefix("runtime-release-v1:")
+            .is_some_and(is_sha256));
     }
 
     #[test]

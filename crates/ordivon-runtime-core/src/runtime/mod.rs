@@ -32,8 +32,8 @@ pub use inspection::{
 pub use inspection::{
     inspect_registry, inspect_registry_activity, inspect_registry_archive,
     inspect_registry_markers, inspect_registry_status, inspect_registry_workspace_activity,
-    inspect_runtime_release_effect_owner, inspect_workspace, summarize_experience,
-    RuntimeExperienceArtifactSummary, RuntimeExperienceCancellationSummary,
+    inspect_runtime_release_effect, inspect_runtime_release_effect_owner, inspect_workspace,
+    summarize_experience, RuntimeExperienceArtifactSummary, RuntimeExperienceCancellationSummary,
     RuntimeExperienceDispatchSummary, RuntimeExperienceDurationSummary,
     RuntimeExperienceJobSummary, RuntimeExperienceMechanicalLatencySummary,
     RuntimeExperienceRecoverySummary, RuntimeExperienceSummary, RuntimeOperatorActiveWorkspace,
@@ -41,11 +41,11 @@ pub use inspection::{
     RuntimeOperatorArchiveInspection, RuntimeOperatorArchiveSample, RuntimeOperatorDashboardJob,
     RuntimeOperatorDashboardJobs, RuntimeOperatorRegistryActivityInspection,
     RuntimeOperatorRegistryInspection, RuntimeOperatorRegistryMarkersInspection,
-    RuntimeOperatorRegistryStatusInspection, RuntimeOperatorWorkspaceActivity,
-    RuntimeOperatorWorkspaceActivityInspection, RuntimeOperatorWorkspaceLastActivity,
-    RuntimeOperatorWorkspaceMarker, RuntimeWorkspaceInspection, RuntimeWorkspaceInspectionConfig,
-    RuntimeWorkspaceInspectionJob, DEFAULT_ARCHIVE_SAMPLE_LIMIT,
-    DEFAULT_WORKSPACE_INSPECTION_JOB_LIMIT, MAX_ARCHIVE_SAMPLE_LIMIT,
+    RuntimeOperatorRegistryStatusInspection, RuntimeOperatorReleaseEffectInspection,
+    RuntimeOperatorWorkspaceActivity, RuntimeOperatorWorkspaceActivityInspection,
+    RuntimeOperatorWorkspaceLastActivity, RuntimeOperatorWorkspaceMarker,
+    RuntimeWorkspaceInspection, RuntimeWorkspaceInspectionConfig, RuntimeWorkspaceInspectionJob,
+    DEFAULT_ARCHIVE_SAMPLE_LIMIT, DEFAULT_WORKSPACE_INSPECTION_JOB_LIMIT, MAX_ARCHIVE_SAMPLE_LIMIT,
     MAX_WORKSPACE_INSPECTION_JOB_LIMIT,
 };
 pub(crate) use registry::Registry;

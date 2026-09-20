@@ -9,6 +9,7 @@ use crate::universal::{
     load_workspace_record, workspace_change_projection_at, workspace_head_revision_at,
     UniversalExecutorConfig,
 };
+use super::types::{RuntimeReleaseContract, RuntimeReleaseEffectBinding};
 
 pub const DEFAULT_WORKSPACE_INSPECTION_JOB_LIMIT: u32 = 20;
 pub const MAX_WORKSPACE_INSPECTION_JOB_LIMIT: u32 = 100;
@@ -386,10 +387,24 @@ fn validate_registry_marker_capabilities(connection: &Connection) -> RuntimeResu
     Ok(())
 }
 
-pub fn inspect_runtime_release_effect_owner(
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeOperatorReleaseEffectInspection {
+    pub job_id: String,
+    pub effect_id: String,
+    pub request_digest: String,
+    pub workspace_id: String,
+    pub commit: String,
+    pub candidate_manifest_digest: String,
+    pub expected_tool_count: u32,
+    pub receipt_path: String,
+    pub binding_digest: String,
+}
+
+pub fn inspect_runtime_release_effect(
     config: &RuntimeInspectionConfig,
     effect_id: &str,
-) -> RuntimeResult<Option<String>> {
+) -> RuntimeResult<Option<RuntimeOperatorReleaseEffectInspection>> {
     if effect_id.len() != 64
         || !effect_id
             .bytes()
@@ -401,14 +416,116 @@ pub fn inspect_runtime_release_effect_owner(
         ));
     }
     let (connection, _) = open_operator_read_only(config)?;
-    connection
+    let row = connection
         .query_row(
-            "SELECT job_id FROM job_runtime_release_effects WHERE effect_id=?1",
+            "SELECT r.job_id,r.contract,r.request_digest,r.workspace_id,r.commit_revision,r.candidate_manifest_digest,r.expected_tool_count,r.receipt_path,r.binding_digest,j.workspace_snapshot_json FROM job_runtime_release_effects r JOIN jobs j ON j.job_id=r.job_id WHERE r.effect_id=?1",
             [effect_id],
-            |row| row.get::<_, String>(0),
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, String>(3)?,
+                    row.get::<_, String>(4)?,
+                    row.get::<_, String>(5)?,
+                    row.get::<_, u32>(6)?,
+                    row.get::<_, String>(7)?,
+                    row.get::<_, String>(8)?,
+                    row.get::<_, String>(9)?,
+                ))
+            },
         )
         .optional()
-        .map_err(|error| RuntimeError::from_sql(error, "resolve Runtime Release effect owner"))
+        .map_err(|error| RuntimeError::from_sql(error, "inspect Runtime Release effect"))?;
+    let Some((
+        job_id,
+        contract,
+        request_digest,
+        workspace_id,
+        commit,
+        candidate_manifest_digest,
+        expected_tool_count,
+        receipt_path,
+        binding_digest,
+        workspace_snapshot_json,
+    )) = row
+    else {
+        return Ok(None);
+    };
+    if contract != "runtime_release_v1" {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::RegistryCorrupt,
+            "stored Runtime Release contract is unsupported",
+            Some("runtimeReleaseEffect.contract"),
+            false,
+        ));
+    }
+    let binding = RuntimeReleaseEffectBinding {
+        contract: RuntimeReleaseContract::RuntimeReleaseV1,
+        effect_id: effect_id.to_string(),
+        request_digest: request_digest.clone(),
+        workspace_id: workspace_id.clone(),
+        commit: commit.clone(),
+        candidate_manifest_digest: candidate_manifest_digest.clone(),
+        expected_tool_count,
+        receipt_path: receipt_path.clone(),
+    };
+    let encoded = serde_json::to_string(&binding).map_err(|error| {
+        RuntimeError::new(
+            RuntimeErrorCode::RegistryCorrupt,
+            format!("cannot serialize stored Runtime Release effect: {error}"),
+            Some("runtimeReleaseEffect"),
+            false,
+        )
+    })?;
+    let observed_digest = format!("sha256:{:x}", Sha256::digest(encoded.as_bytes()));
+    if observed_digest != binding_digest {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::RegistryCorrupt,
+            "stored Runtime Release effect digest does not match side truth",
+            Some("runtimeReleaseEffect"),
+            false,
+        ));
+    }
+    let snapshot: serde_json::Value =
+        serde_json::from_str(&workspace_snapshot_json).map_err(|error| {
+            RuntimeError::new(
+                RuntimeErrorCode::RegistryCorrupt,
+                format!("stored Workspace snapshot is invalid: {error}"),
+                Some("workspaceSnapshot"),
+                false,
+            )
+        })?;
+    if snapshot
+        .get("runtimeReleaseEffectDigest")
+        .and_then(serde_json::Value::as_str)
+        != Some(binding_digest.as_str())
+    {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::RegistryCorrupt,
+            "Runtime Release Job commitment does not match side truth",
+            Some("workspaceSnapshot.runtimeReleaseEffectDigest"),
+            false,
+        ));
+    }
+    Ok(Some(RuntimeOperatorReleaseEffectInspection {
+        job_id,
+        effect_id: effect_id.to_string(),
+        request_digest,
+        workspace_id,
+        commit,
+        candidate_manifest_digest,
+        expected_tool_count,
+        receipt_path,
+        binding_digest,
+    }))
+}
+
+pub fn inspect_runtime_release_effect_owner(
+    config: &RuntimeInspectionConfig,
+    effect_id: &str,
+) -> RuntimeResult<Option<String>> {
+    Ok(inspect_runtime_release_effect(config, effect_id)?.map(|effect| effect.job_id))
 }
 
 pub fn inspect_registry(
