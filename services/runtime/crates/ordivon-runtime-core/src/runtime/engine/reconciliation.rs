@@ -685,6 +685,39 @@ impl Runtime {
         if current.state != AttemptState::Orphaned {
             return Ok(false);
         }
+        if let Some(binding) = self.registry.runtime_release_effect_for_job(&current.job_id)? {
+            let snapshot = self.registry.job_snapshot(&current.job_id)?;
+            let receipt = inspect_runtime_release_receipt(&binding, &snapshot)?;
+            if receipt.disposition == RuntimeReleaseDisposition::Deployed && receipt.terminal {
+                let result_digest = receipt.digest.ok_or_else(|| {
+                    RuntimeError::new(
+                        RuntimeErrorCode::RegistryCorrupt,
+                        "terminal deployed Runtime Release receipt has no digest",
+                        Some("runtimeReleaseEffect.receipt"),
+                        false,
+                    )
+                })?;
+                let observed_at_ms = current
+                    .finished_at_ms
+                    .unwrap_or(current.created_at_ms)
+                    .saturating_add(1);
+                let mut terminal = TerminalCommit {
+                    attempt_id: current.attempt_id.clone(),
+                    expected_row_version: current.row_version,
+                    state: AttemptState::Succeeded,
+                    result_digest,
+                    exit_code: Some(0),
+                    infrastructure_error_digest: None,
+                    finished_at_ms: observed_at_ms,
+                    artifacts: Vec::new(),
+                    reason_code: "RUNTIME_RELEASE_RECEIPT_DEPLOYED".to_string(),
+                };
+                self.append_terminal_evidence(&current, &mut terminal)?;
+                self.registry.recover_orphaned_terminal(&terminal)?;
+                self.cleanup_payload_view(&current.attempt_id)?;
+                return Ok(true);
+            }
+        }
         if Path::new(&current.bundle_path).join(RESULT_FILE).is_file() {
             return self.recover_orphaned_runner_result(&current);
         }
