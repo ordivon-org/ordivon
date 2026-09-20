@@ -1,5 +1,6 @@
 # Distribution v2 R8 — durable integration port
 
+Status: **HISTORICAL / FORWARD EXECUTABLE RETIRED 2026-09-20**
 R8 adds a thin Temporal Activity boundary for integration dispatch without making the current n8n implementation a Distribution dependency.
 
 The Activity reads one environment-provided integration URL (`ORDIVON_DISTRIBUTION_INTEGRATION_URL`) and sends the already-decided CloudEvent. Distribution source does not contain an n8n workflow ID, webhook path, provider write command, or provider credentials.

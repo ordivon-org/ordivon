@@ -4,11 +4,10 @@
   "truthRole": "planning-projection-not-project-truth",
   "project": {
     "id": "ordivon-distribution-v2",
-    "purpose": "Govern external distribution effects by binding exact intent, payload, authority, provider capability, effect execution, readback, and reconciliation without becoming a provider catalog or credential owner.",
+    "purpose": "Provide optional cross-provider effect-safety/reference profiles only where direct provider/client semantics leave a demonstrated gap.",
     "sourceEvidence": [
       "README.md",
-      "docs/R6-APPROVAL-INGRESS.md",
-      "docs/R10-DISTRIBUTION-PREFLIGHT.md"
+      "docs/META-SYSTEM-DOWNGRADE-R1.md"
     ]
   },
   "nodes": [
@@ -172,12 +171,13 @@
   ],
   "review": {
     "sourceRevision": "9ab83f0440007b3dd303ae37aef79311f638897b",
-    "updatedAt": "2026-09-18",
-    "standing": "INITIAL",
-    "notes": "Initial project-native LEGO planning projection. It does not replace owner-native architecture or evidence."
+    "updatedAt": "2026-09-20",
+    "standing": "DESTRUCTIVE_REVIEW_R1",
+    "notes": "R8 Temporal and R10 Steam preflight forward executable surfaces retired after zero external executable-consumer census. D01-D05 remain under natural-owner substitution review."
   },
   "sharedCatalog": {
     "catalogId": "agent-architecture-lego-catalog-r1",
     "note": "Optional shared coordinates only; project-native semantics remain authoritative."
-  }
+  },
+  "metaSystemStanding": "OPTIONAL_REFERENCE_NOT_MANDATORY_CONTROL_PLANE"
 }

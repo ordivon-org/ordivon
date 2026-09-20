@@ -1,5 +1,6 @@
 # Distribution v2 R10 — free local distribution preflight
 
+Status: **HISTORICAL / FORWARD EXECUTABLE RETIRED 2026-09-20**
 ## Purpose
 
 R10 closes the platform-independent part of software-store distribution without buying a Steam App credit and without inventing a local Steam replacement.

@@ -1,106 +1,119 @@
 # Ordivon Distribution v2
 
-Greenfield, external-first Distribution control plane. This repository intentionally does **not** copy provider capability catalogs, OAuth scope matrices, schedulers, file-transfer engines, package registries, rollout controllers, or attestation formats into Ordivon.
+Distribution is an **optional effect-safety and delivery profile**, not a mandatory Ordivon control plane.
 
-## R6 architecture
+Its purpose is to preserve a small set of cross-provider safety lessons when a task actually needs them:
+
+1. model/caller intent is not execution authority;
+2. one consequential external effect should be bound to the exact payload/account/effect occurrence that was authorized;
+3. local transport/workflow success is not provider acceptance;
+4. ambiguous external outcomes must be reconciled by the provider/effect owner before unsafe retry.
+
+These are composition laws. They do not imply one mandatory Distribution runtime stack.
+
+## Current architecture
+
+The default route is the thinnest adequate natural owner:
 
 ```text
-prepared artifact / payload
-        ↓
-exact intent + payload digest
-        ↓
-provider capability observation
-        ↓
-EffectApprovalRequest (non-authoritative)
-        ↓
-Runtime input.ingest -> distribution-effect-approvals
-        ↓
-workspace.execBound immutable approval bytes
-        ↓
-narrow EffectAuthority translator
-        ↓
-OPA admission
-        ↓
-provider execution substrate
-        ↓
-provider object identity
-        ↓
-provider-native readback
-        ↓
-reconciliation / safe retry
+task/domain
+  -> provider-native API / client / CLI / connector
+  -> provider IAM / OAuth / policy
+  -> provider-native effect identity/read-back
+  -> claim-specific verification
 ```
 
-## Residual Ordivon semantics
+Use a Distribution-owned reference contract or reconciliation helper only when a concrete cross-provider workload demonstrates that direct provider semantics leave a real gap.
 
-Only four cross-provider rules are candidates for long-lived ownership here:
+In particular, there is **no canonical path** requiring:
 
-1. one exact effect must be bound to one exact intent/artifact/account/payload occurrence;
-2. write/destructive external effects require exact user effect authority, independent of reusable provider credentials;
-3. local Runtime/HTTP/upload/scheduler success is never provider acceptance;
-4. ambiguous external outcomes cannot be blindly retried without provider idempotency or authoritative absence evidence.
+```text
+Runtime input.ingest
+-> Distribution EffectAuthority
+-> OPA
+-> Temporal
+-> n8n
+-> provider
+```
 
-`occurrenceRef` is only a reconciliation coordinate. It is **not** provider idempotency, provider acceptance, safe-retry authority, desired-state generation, or proof that any external effect happened.
+Runtime, OPA, Temporal, n8n and provider adapters are independently selectable capabilities. A caller may use none, one, or several of them.
 
-## R2 authority-bound admission
+## Residual forward surface
 
-R2 removed caller-supplied effect classification and boolean authorization from the intent. Before OPA sees an input, the control plane requires JSON Schema conformance, recomputes the RFC 8785 occurrence reference, verifies digest-bound provider observation and exact-effect authority objects, checks exact binding to the same provider/account/effect/occurrence, and rejects stale validity windows.
+The repository currently retains bounded reference implementations for:
 
-## R3 Runtime-bound evidence inputs
+- exact occurrence/content binding;
+- provider-observation binding;
+- explicit effect-authority translation where a caller cannot use its native IAM/approval surface directly;
+- admission examples over those bindings;
+- reconciliation examples that preserve UNKNOWN and require provider idempotency or authoritative absence before retry.
 
-R3 removed ambient provider/effect-authority file paths. `scripts/admission_bound.py` requires Runtime `ORDIVON_INPUT_ROOT`; `workspace.execBound` freezes exact expected digests into Job-owned read-only `effectiveInputs` under `contained_local`.
+These implementations are **reference/profile mechanisms**, not universal domain truth or a required service.
 
-R3 also added reconciliation semantics: ambiguous outcomes remain non-retryable until provider idempotency or authoritative absence is proven.
+Natural owners remain:
 
-## R4 producer separation and payload binding
+| Concern | Natural owner |
+| --- | --- |
+| caller/user identity | identity provider / client |
+| credentials | provider / secret store |
+| authorization | IAM / OAuth / caller policy |
+| provider capability | provider |
+| physical execution | provider / Runtime only when exact local evidence is required |
+| durable process | Temporal-class workflow only when needed |
+| integration automation | n8n / provider-native integration |
+| provider acceptance/read-back | provider |
+| semantic acceptance | consuming domain |
 
-R4 added the canonical digest of `effect.payload` to occurrence identity and separated provider observation from exact-effect approval. GitHub provider capability is observed through the mature GitHub CLI/API rather than a local provider catalog. `EffectApprovalRequest` is explicitly non-authoritative.
+## Retired forward surfaces
 
-## R5 real carrier coverage
+### R8 Temporal integration smoke — retired
 
-R5 changed the success criterion: an external project's feature matrix is not counted as Ordivon-local carrier coverage. GitHub provider-native read/readback is real; rclone remote, Postiz social, and YouTube upload remain blocked on actual identities/configuration.
+The former Distribution-owned Temporal Activity smoke had no cross-repository executable consumer. Durable invocation is generic workflow infrastructure and remains with Temporal/integration owners. Historical R8 documentation/evidence remains provenance only.
 
-## R6 exact approval ingress is live
+### R10 Steam local preflight — retired
 
-Production Runtime and Workstation now contain a dedicated operator-owned `distribution-effect-approvals` InputAuthority. Runtime ingress is explicitly enabled for that authority in addition to the pre-existing artifact ingress. The authority root is `/var/lib/ordivon/distribution-effect-approvals`, mode `0750`, and was empty immediately after rollout.
+The former Steam-oriented local directory lifecycle preflight had no cross-repository executable consumer. It was a provider/product-specific validation experiment, not a cross-provider Distribution primitive. A future real Steam release should use SteamPipe/SteamCMD and the product/release owner directly. Historical R10 documentation/evidence remains provenance only.
 
-The repository now contains a narrow `produce_effect_authority.py` translator. It accepts approval bytes only through Runtime `ORDIVON_INPUT_ROOT`, validates the explicit approval schema, requires the exact current occurrence, enforces approval validity windows, and emits an EffectAuthority bound to provider/account/effect/occurrence. Ambient approval paths are rejected. Synthetic tests prove that payload mutation, wrong occurrence, and expired approval all fail closed.
+## Provider/tool observations
 
-This rollout prepares the authority path; it does **not** create an approval. The current `create_issue` candidate therefore remains `NOT_ADMITTED`, and no GitHub write has been performed.
+Postiz, rclone, OpenAPI Generator, provider-native APIs and similar systems are candidate providers, not components of a Distribution platform. Their presence in historical observations or compatibility tests does not make them mandatory dependencies.
 
-### Current carrier standing
+Prefer:
 
-- GitHub: authenticated read/provider observation/readback proven; actual write still requires a real ingested exact approval.
-- rclone: local transfer/check proven; no configured remote or compatible R2/S3 credential observed.
-- Postiz: public API surface reachable; no authenticated integration observed.
-- YouTube: no OAuth upload identity observed.
+```text
+native provider interface
+  -> deterministic connector/workflow
+  -> provider-specific adapter
+  -> cross-provider abstraction only after demonstrated duplication
+```
 
-See `docs/R6-APPROVAL-INGRESS.md` and `evidence/r6-validation-20260912.json`.
+## Historical R2-R7 material
 
-## Activated external substrate
+R2-R7 document the path by which the repository learned to separate caller intent, provider observation, exact effect authority, Runtime-bound input experiments, Artifact release standing and provider read-back.
 
-- Open Policy Agent: policy decision point; no Python clone of the admission state machine.
-- GitHub CLI/API or provider-native APIs: provider observation/readback; no internal provider catalog.
-- Postiz: social/content dispatch aggregator; not counted as local coverage until authenticated integrations exist.
-- OpenAPI Generator: generated clients for provider-native APIs where a useful OpenAPI document exists.
-- rclone: file/object/cloud transfer substrate; local mechanics proven, remote coverage pending real configuration.
-- Existing Ordivon Temporal/Runtime + Workstation ingress: durable orchestration, immutable-input authority, and exact external-file ingress remain shared infrastructure owners.
+Those documents remain useful provenance. Their historical composition is not a required current topology.
 
-See `external-lock.json`, `composition-v1.json`, `contracts/`, `policy/`, `docs/`, and `scripts/test-all.sh`.
+## Verification rule
 
-## R7 Artifact release-standing handoff
+```text
+local command success
+!= workflow success
+!= provider acknowledgement
+!= provider effect
+!= domain success
+```
 
-Artifact-backed distribution intents bind Artifact SHA-256, `releaseReady`, `trustStanding`, and source lineage into occurrence identity. Effectful publication is rejected with `artifact_release_not_ready` unless `releaseReady=true`; release readiness never replaces exact user EffectAuthority. The original R7 helper consumed the then-current custom `package-index.json`; Artifact has since retired that relationship format in favor of standards-based OCI/referrer mechanics. The executable helper is now retired; historical R7 evidence is retained only as migration evidence and is not a forward interface. See `docs/R7-ARTIFACT-HANDOFF.md` and `docs/R10-DISTRIBUTION-PREFLIGHT.md`.
+Evidence must come from the owner appropriate to the claim.
 
-## R8 durable integration port
+## Repository direction
 
-Distribution durable orchestration now has a thin Temporal Activity boundary over the CloudEvents/AsyncAPI integration contract. The integration endpoint is environment-provided, so Distribution does not embed the current n8n workflow ID or webhook URL. Production-green Temporal acceptance completed both the real unreleased-Artifact blocked path and a read-only GitHub provider readback path; both returned `externalEffectPerformed=false`. Nexus is intentionally not used because the integration edge is not a Temporal application. See `docs/R8-DURABLE-INTEGRATION-PORT.md`.
+This repository should shrink as provider/client standards improve.
 
-## R9 provider-write admission standing
+A retained custom mechanism must answer:
 
-Provider connectivity and durable integration are operational, but provider write remains `BLOCKED_AUTHORITY_NOT_CONNECTIVITY`: current Artifact packages are development-only (`releaseReady=false`) and the exact effect-approval ingress is empty. No write adapter is activated and no GitHub write was performed. See `docs/R9-PROVIDER-WRITE-ADMISSION.md`.
+1. Which real cross-provider workload uses it?
+2. Which natural owner cannot express the needed semantic?
+3. Why is a direct provider/client solution insufficient?
+4. Can the mechanism be a profile/Skill/reference instead of executable infrastructure?
 
-## R10 free local distribution preflight
-
-R10 adds the free, provider-independent release lifecycle gate without emulating a store. It freezes exact candidate directory trees, rejects forbidden or Steam-excluded paths, verifies the Linux ELF64/x86-64 entrypoint and dynamic dependency closure, renders provider-compatible SteamPipe VDF templates with placeholder AppID/DepotID values, then uses mature `rclone sync --metadata` for clean install, A→B update, B→A rollback, stale-file elimination, uninstall/reinstall, and launch from installed bytes.
-
-This is intentionally `LOCAL_DISTRIBUTION_PREFLIGHT_PASS_REAL_PLATFORM_DEFERRED`, not Steam acceptance. Real SteamPipe Preview/build, Depot Manifest, BuildID, beta branch, CDN/client install and platform update/rollback remain deferred until a real product has a Steam AppID and account authority. Artifact remains the owner of SBOM, SLSA/in-toto provenance, Sigstore trust, vulnerability/secret evidence and `releaseReady`. See `docs/R10-DISTRIBUTION-PREFLIGHT.md`.
+No demonstrated residual means retire or externalize.
