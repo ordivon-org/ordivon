@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-observation",
+  "authorityId": "iso-15489-1-2016",
+  "basis": "official-source",
+  "lifecycleStatus": "current",
+  "observedDate": "2026-09-20",
+  "officialSource": "https://www.iso.org/standard/62542.html",
+  "versionObserved": "2016 Edition 2, confirmed 2021",
+  "note": "ISO lists ISO 15489-1:2016 as current. R3 uses it as the owner for identifying record/retention requirements; no arbitrary retention duration is invented where no applicable requirement has been established."
+}

@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-record",
+  "id": "w3c-odrl-2.2-2018",
+  "identity": {
+    "authorityKind": "web-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "w3c",
+      "name": "W3C"
+    },
+    "officialSource": "https://www.w3.org/TR/odrl-model/",
+    "publicationDate": "2018-02-15",
+    "title": "ODRL Information Model 2.2 and Vocabulary & Expression 2.2",
+    "versionLabel": "2.2"
+  },
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": "W3C Recommendation; used here to express local permissions/prohibitions without inventing a rights-policy language."
+  },
+  "discovery": {
+    "aliases": [
+      "ODRL 2.2",
+      "Open Digital Rights Language 2.2"
+    ],
+    "domains": [
+      "data",
+      "governance",
+      "rights"
+    ],
+    "topics": [
+      "rights-policy",
+      "permission",
+      "prohibition",
+      "duty",
+      "asset-use",
+      "distribution",
+      "deletion"
+    ]
+  },
+  "provenance": {
+    "registeredDate": "2026-09-20",
+    "registrationBasis": [
+      "Data Lifecycle R3 rights/privacy/retention P0",
+      "W3C Recommendation checked 2026-09-20"
+    ]
+  },
+  "relations": {
+    "related": [
+      "w3c-dcat-3-2024",
+      "bitol-odps-1.1.0"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  }
+}

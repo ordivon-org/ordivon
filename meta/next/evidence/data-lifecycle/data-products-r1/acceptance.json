@@ -10,16 +10,24 @@
     "semanticProvenance": "w3c-prov-o-2013"
   },
   "research": {
-    "repositoryRevision": "dbe832f0483f49eaceeb58e4fb935265f280cb8e",
+    "repositoryRevision": "6cfa97c3a2c4f71dc161744301b3dbcdd334f058",
     "productId": "94d0bf2c-036b-53b1-b733-14d3a5536a74",
     "productVersion": "1.0.0",
     "contractId": "4596a0eb-a009-53a6-af75-02189195225b",
     "sourceSha256": "6c2066eb1bf1824887a72c6f6df3cb5106894efde206686eb564287fe6547e50",
     "robustnessResultSha256": "37a092e36c0d31bad0e66f7992812537b3e99abc7037d685182743df62b1e10c",
-    "consumerBinding": "EXPLICIT_DATASET_DIGEST_IN_RESULT_ROWS"
+    "consumerBinding": "EXPLICIT_DATASET_DIGEST_IN_RESULT_ROWS",
+    "domainOwner": "Ordivon Research domain",
+    "ownershipScope": "PRODUCT_METADATA_AND_LIFECYCLE_NOT_SOURCE_IP",
+    "governancePolicyUid": "urn:uuid:2bbc6d0e-8d2c-5dfc-93b4-c1e6db873694",
+    "governancePolicySha256": "11d51bcb4528e2fc01a1e1f6695a22ac15db7e8ab4313582fc251bf263a6ddd5",
+    "sourceLicenseStatus": "UNRESOLVED",
+    "redistributionStatus": "NOT_AUTHORIZED_BY_PRODUCT_METADATA",
+    "retentionScheduleStatus": "UNASSIGNED",
+    "privacyAssessmentStatus": "NOT_FORMALLY_ASSESSED"
   },
   "finance": {
-    "repositoryRevision": "74055044fcb72e917f33404bbe08fd902f368c44",
+    "repositoryRevision": "1746897f45d6326e1732c804007b57c550987bd0",
     "productId": "d14d7457-c9aa-59e0-8bf5-7783cea39c1c",
     "productVersion": "2026.09.14",
     "contractId": "5de34add-dca7-54eb-ada3-5e657a7c3ff3",
@@ -27,19 +35,37 @@
     "consumerBinding": "NOT_YET_PROVEN_AFTER_PRODUCT_REGISTRATION",
     "externalFinancialWritesAttempted": false,
     "privateAccountDataUsed": false,
-    "brokerCredentialsUsed": false
+    "brokerCredentialsUsed": false,
+    "domainOwner": "Ordivon Capital market-observation domain",
+    "ownershipScope": "PRODUCT_METADATA_AND_LIFECYCLE_NOT_PROVIDER_IP",
+    "governancePolicyUid": "urn:uuid:33b9c6e5-23e4-576a-8fb1-59977a40e200",
+    "governancePolicySha256": "99248894b157e214ab505ea0301f29b5ccdc99ce8209f92fe667802d800562d0",
+    "sourceLicenseStatus": "UNRESOLVED",
+    "redistributionStatus": "NOT_AUTHORIZED_BY_PRODUCT_METADATA",
+    "retentionScheduleStatus": "UNASSIGNED",
+    "privacyAssessmentStatus": "BOUNDED_NO_PRIVATE_ACCOUNT_DATA_PROVEN_FORMAL_ASSESSMENT_NOT_COMPLETE"
   },
   "catalog": {
     "datasetCount": 2,
     "distributionCount": 2,
-    "dcatJsonldSha256": "d7f8f250d8e1140d2e99e99c1d60c7c2e552924aae29a785dcaac04817bdea5f",
+    "dcatJsonldSha256": "9acbc862c62e7c7a87634ffcb130349042d582c596edb40fcede18d3830c731a",
     "provJsonldSha256": "17bd51dad7c38f845a164147cc4c6d0bc2d04c4bab563bf25afb625d02a2195d"
   },
   "claimBoundary": "DCAT federation and PROV source/product derivation are proven. Research also has an existing digest-bound derived result. Finance decision/action consumption after product registration remains unproven.",
   "rdfValidation": {
     "parser": "rdflib",
-    "catalogTriples": 35,
+    "catalogTriples": 41,
     "provenanceTriples": 26,
     "standing": "PASS"
+  },
+  "governance": {
+    "standing": "PASS_FAIL_CLOSED_TWO_DOMAIN_RIGHTS_RETENTION_PRIVACY_BOUND",
+    "rightsPolicyModel": "w3c-odrl-2.2-2018",
+    "privacyRiskBaseline": "nist-privacy-framework-1.0",
+    "recordsManagementAuthority": "iso-15489-1-2016",
+    "rule": "Unknown source rights do not imply redistribution permission; unassigned retention does not imply indefinite retention or automatic deletion; bounded privacy observations do not imply formal privacy assessment.",
+    "sourceRightsResolved": false,
+    "formalPrivacyAssessmentComplete": false,
+    "retentionSchedulesAssigned": false
   }
 }

@@ -54,12 +54,12 @@ Preservation evidence is bounded: the current master and replica occupy distinct
 
 Authoritative current projection:
 
-- `planning/data-lifecycle-census-r3.json`
+- `planning/data-lifecycle-census-r4.json`
 - `docs/DATA_PRODUCTS_FEDERATION_R1.md`
 - `docs/DATA_DURABLE_PRESERVATION_R1.md`
 - `evidence/data-lifecycle/preservation-r1/acceptance.json`
 
-R1 and R2 census files remain historical evidence; R3 is current.
+R1–R3 census files remain historical evidence; R4 is current.
 
 Current shape:
 
@@ -80,9 +80,9 @@ The major remaining cross-domain gaps are **not** generic compute/storage gaps. 
 ```text
 runtime product-version lineage
   -> exact claim/decision consumption
-  -> rights/privacy/retention
-  -> exact data-product-version -> decision/claim binding
   -> outcome -> collection/quality/model feedback
+
+Rights/privacy/retention now fail closed for the selected Research and Finance products; actual source-right resolution, formal privacy assessment and authorized retention schedules remain explicit P1 obligations.
 ```
 
 ## Data orchestration routing

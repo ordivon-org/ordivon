@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-observation",
+  "authorityId": "w3c-odrl-2.2-2018",
+  "basis": "official-source",
+  "lifecycleStatus": "current",
+  "observedDate": "2026-09-20",
+  "officialSource": "https://www.w3.org/TR/odrl-model/",
+  "versionObserved": "2.2 Recommendation",
+  "note": "ODRL 2.2 remains a stable W3C Recommendation. R3 uses Set policies with explicit prohibitions for unresolved redistribution and automatic disposal."
+}
