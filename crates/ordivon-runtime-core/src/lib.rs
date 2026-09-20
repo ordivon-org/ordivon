@@ -11,7 +11,10 @@ mod universal;
 #[cfg(windows)]
 mod windows_security;
 #[cfg(windows)]
-pub use windows_security::validate_private_readonly_file_acl as validate_windows_private_readonly_file_acl;
+pub use windows_security::{
+    current_token_is_local_system as windows_current_token_is_local_system,
+    validate_private_readonly_file_acl as validate_windows_private_readonly_file_acl,
+};
 
 #[cfg(feature = "universal-executor")]
 pub use universal::{
@@ -57,7 +60,7 @@ pub use runtime::{
     WindowsPrivilegedBrokerConfig, CLIENT_REQUEST_ID_MAX_LENGTH, CLIENT_REQUEST_ID_MIN_LENGTH,
     CLIENT_REQUEST_ID_PATTERN, DEFAULT_INSPECTION_EVENT_LIMIT, LOGICAL_ID_MAX_LENGTH,
     LOGICAL_ID_MIN_LENGTH, LOGICAL_ID_PATTERN, MAX_INSPECTION_EVENT_LIMIT, MAX_TASK_TAIL_BYTES,
-    MAX_TASK_WAIT_MS, RUNTIME_SCHEMA_VERSION,
+    MAX_TASK_WAIT_MS, RUNTIME_MAX_MIGRATION_VERSION, RUNTIME_SCHEMA_VERSION,
 };
 
 #[cfg(feature = "operator-tools")]
@@ -65,10 +68,11 @@ pub use runtime::{
     apply_runtime_repair, cancel_stale_recovery_required_attempt, inspect_registry,
     inspect_registry_activity, inspect_registry_archive, inspect_registry_markers,
     inspect_registry_status, inspect_registry_workspace_activity, inspect_runtime,
-    inspect_workspace, summarize_experience, ArtifactRegistration, RuntimeDoctorAttemptState,
-    RuntimeDoctorCapacityHolder, RuntimeDoctorCase, RuntimeDoctorConfig, RuntimeDoctorJobState,
-    RuntimeDoctorProposal, RuntimeDoctorReport, RuntimeDoctorReservationState,
-    RuntimeDoctorSummary, RuntimeExperienceArtifactSummary, RuntimeExperienceCancellationSummary,
+    inspect_runtime_release_effect_owner, inspect_workspace, summarize_experience,
+    ArtifactRegistration, RuntimeDoctorAttemptState, RuntimeDoctorCapacityHolder,
+    RuntimeDoctorCase, RuntimeDoctorConfig, RuntimeDoctorJobState, RuntimeDoctorProposal,
+    RuntimeDoctorReport, RuntimeDoctorReservationState, RuntimeDoctorSummary,
+    RuntimeExperienceArtifactSummary, RuntimeExperienceCancellationSummary,
     RuntimeExperienceDispatchSummary, RuntimeExperienceDurationSummary,
     RuntimeExperienceJobSummary, RuntimeExperienceMechanicalLatencySummary,
     RuntimeExperienceRecoverySummary, RuntimeExperienceSummary, RuntimeInvariantViolation,

@@ -233,13 +233,53 @@ pub struct InputIngressExecutionConfig {
     pub max_bytes: u64,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RuntimeReleaseExecutionPlatform {
+    LocalLinux,
+    WindowsNative,
+}
+
+impl RuntimeReleaseExecutionPlatform {
+    pub fn current_host() -> Self {
+        if cfg!(windows) {
+            Self::WindowsNative
+        } else {
+            Self::LocalLinux
+        }
+    }
+
+    fn candidate_deployer_name(self) -> &'static str {
+        match self {
+            Self::LocalLinux => "ordivon-runtime-deploy",
+            Self::WindowsNative => "ordivon-runtime-windows-deploy.exe",
+        }
+    }
+
+    fn execution_target(self) -> ExecutionTarget {
+        match self {
+            Self::LocalLinux => ExecutionTarget::LocalLinux,
+            Self::WindowsNative => ExecutionTarget::WindowsNative,
+        }
+    }
+
+    fn windows_authority(self) -> WindowsAuthority {
+        match self {
+            Self::LocalLinux => WindowsAuthority::Limited,
+            Self::WindowsNative => WindowsAuthority::Elevated,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct RuntimeReleaseExecutionConfig {
+    pub platform: RuntimeReleaseExecutionPlatform,
     pub source_repo: PathBuf,
     pub install_dir: PathBuf,
     pub database: PathBuf,
     pub env_file: PathBuf,
     pub receipt_root: PathBuf,
+    pub service_name: String,
+    pub broker_service_name: Option<String>,
     pub required_ref: String,
     pub timeout_ms: u64,
 }
@@ -251,6 +291,19 @@ impl RuntimeReleaseExecutionConfig {
             .join("ordivon-release-candidates")
             .join(commit)
             .join("release")
+    }
+
+    fn candidate_deployer(&self, commit: &str) -> PathBuf {
+        self.candidate_dir(commit)
+            .join(self.platform.candidate_deployer_name())
+    }
+
+    fn execution_target(&self) -> ExecutionTarget {
+        self.platform.execution_target()
+    }
+
+    fn windows_authority(&self) -> WindowsAuthority {
+        self.platform.windows_authority()
     }
 }
 

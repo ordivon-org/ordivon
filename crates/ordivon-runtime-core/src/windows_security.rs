@@ -32,9 +32,14 @@ pub fn validate_private_readonly_file_acl(path: &Path) -> io::Result<()> {
     validate_private_file_acl_with_principal_access(path, PrincipalAccess::ReadOnly)
 }
 
+pub fn current_token_is_local_system() -> io::Result<bool> {
+    let mut current = CurrentTokenUserSid::load()?;
+    let mut system = WellKnownSid::new(WinLocalSystemSid)?;
+    Ok(unsafe { EqualSid(current.as_mut_ptr(), system.as_mut_ptr()) } != 0)
+}
+
 #[derive(Clone, Copy)]
 enum PrincipalAccess {
-    FullControl,
     ReadOnly,
 }
 
@@ -137,7 +142,6 @@ fn validate_private_file_acl_with_principal_access(
             FILE_ALL_ACCESS
         } else {
             match principal_access {
-                PrincipalAccess::FullControl => FILE_ALL_ACCESS,
                 PrincipalAccess::ReadOnly => FILE_GENERIC_READ,
             }
         };
