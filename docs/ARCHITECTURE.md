@@ -174,3 +174,27 @@ current real problem
 ```
 
 A future task may start in Research, Engineering, Game, Finance, Security, Media or an unforeseen domain. Ordivon should be able to change that active set without an architectural migration.
+
+## 11. Composition Science research framing
+
+docs/COMPOSITION_SCIENCE_R1.md formalizes a research program above the existing LEGO lenses:
+
+    Primitive Space
+      -> Composition Space
+      -> Dynamic / Control Space
+      -> Verification Space
+      -> Reachability
+      -> Falsification
+      -> reusable composition knowledge
+
+This does not create a universal Ordivon ontology. It is a research framing for asking whether the scarce work in a given problem is primitive creation, relation/composition search, dynamic/control design, or verification.
+
+Architecture-level consequences are narrower:
+
+- search mature primitive/provider space before building;
+- treat relations and dynamics as first-class rather than incidental glue;
+- preserve natural authority during composition;
+- build only the evidence-backed residual;
+- retain problem -> composition -> evidence relationships as reusable knowledge.
+
+The hypothesis that composition becomes a dominant innovation bottleneck in mature or agent-rich ecosystems remains open to prospective falsification.

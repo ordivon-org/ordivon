@@ -18,3 +18,7 @@
 
 15. **Natural authority over global state** — semantic cases, workflows, executions, artifacts and telemetry remain authoritative in their natural owners; cross-owner dashboards and read models are disposable projections, never a replacement global Task/Board authority.
 16. **Mature product surfaces before custom product surfaces** — do not rebuild established application builders, observability/evaluation workbenches, asset catalogs, marketplaces or other product-layer workflows merely because their primitives are understood; compose or license mature products until a real delivery requirement proves them insufficient.
+
+17. **Search composition space before adding primitives** — when mature primitives are abundant, test whether a better relation, binding, control policy or validator closes the gap before creating another owned component.
+18. **Build only the residual** — local implementation should stop at the material gap that remains after bounded discovery, substitution and thin adaptation.
+19. **Novelty is not value** — primitive novelty, compositional novelty, dynamic/control novelty and verification novelty are distinct; none is automatically desirable.

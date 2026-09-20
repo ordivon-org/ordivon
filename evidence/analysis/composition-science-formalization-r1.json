@@ -1,0 +1,85 @@
+{
+  "canonicalDocuments": [
+    {
+      "digest": "sha256:db4bdbd228ed395ae004b6215774b0c11f778a767983e1a207378f8e3a4b2d96",
+      "path": "docs/COMPOSITION_SCIENCE_R1.md"
+    },
+    {
+      "digest": "sha256:da3a01d5dab41e664058ec50cb8a11e1b292af1673dcdd383a1b729f62a68758",
+      "path": "knowledge/lessons/composition-science-foundations-r1.md"
+    }
+  ],
+  "claimsBoundary": [
+    "Does not claim that all innovation is recombination.",
+    "Does not claim composition novelty dominates primitive novelty universally.",
+    "Does not promote proposed metrics into a universal scalar score.",
+    "Does not replace mature external disciplines used as analytical substrates."
+  ],
+  "date": "2026-09-21",
+  "externalFoundationFamilies": [
+    "recombinant_growth_and_innovation",
+    "technological_search",
+    "assume_guarantee_compositional_verification",
+    "ck_design",
+    "systems_control_and_safety"
+  ],
+  "formalSpaces": [
+    "primitive",
+    "composition",
+    "dynamic_control",
+    "verification"
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "name": "mature_ecosystem_composition"
+    },
+    {
+      "id": "H2",
+      "name": "discovery_before_build"
+    },
+    {
+      "id": "H3",
+      "name": "authority_decomposition"
+    },
+    {
+      "id": "H4",
+      "name": "dynamic_novelty"
+    },
+    {
+      "id": "H5",
+      "name": "verification_enablement"
+    },
+    {
+      "id": "H6",
+      "name": "processing_bottleneck"
+    },
+    {
+      "id": "H7",
+      "name": "composition_memory"
+    },
+    {
+      "id": "H8",
+      "name": "agent_era_shift"
+    }
+  ],
+  "id": "COMPOSITION_SCIENCE_R1",
+  "integrationDocuments": [
+    {
+      "digest": "sha256:7ae193b1eacd8573dfde7e58d713b44c1ecd2fd56e1f1d27d527a675a2430607",
+      "path": "docs/ARCHITECTURE.md"
+    },
+    {
+      "digest": "sha256:a005da352fa19e8ef4d21650bf96d2d8fcc66db92facc98fb9d694380f372bb2",
+      "path": "docs/PRINCIPLES.md"
+    },
+    {
+      "digest": "sha256:c9e200b9bf5a12a8b0423676dbfe4a11801ba2887002164f6119971dae56b30c",
+      "path": "docs/TERMINOLOGY.md"
+    }
+  ],
+  "kind": "composition_science_formalization",
+  "nextEvidenceRequirement": "Prospective cross-domain studies with frozen baselines, explicit falsifiers, comparison against build-first or provider-specific alternatives, and scoped evidence for transferability.",
+  "schemaVersion": 1,
+  "standing": "FORMALIZED_RESEARCH_PROGRAM_NOT_YET_PROSPECTIVELY_VALIDATED"
+}
