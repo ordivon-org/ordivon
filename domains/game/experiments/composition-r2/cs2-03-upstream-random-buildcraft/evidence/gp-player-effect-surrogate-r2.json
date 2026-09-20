@@ -1,0 +1,196 @@
+{
+  "schemaVersion": 1,
+  "kind": "cs2-03-gp-player-effect-surrogate-r2",
+  "standing": "PASS_LOCAL_GP_SURROGATE",
+  "target": "paired total-score ATE of UPSTREAM vs DOWNSTREAM",
+  "method": "Gaussian process with ARD RBF kernel; hyperparameters selected by bounded coordinate descent on exact marginal likelihood",
+  "frozenIndependentTestProfiles": 28,
+  "baseTrainingProfiles": 100,
+  "activeFollowupProfilesAdded": 8,
+  "testR2": 0.8188482704641138,
+  "testMAE": 0.294594948726167,
+  "approx95PredictiveCoverage": 0.8928571428571429,
+  "fittedNoiseFractionStandardized": 0.03,
+  "ardLengthScales": {
+    "infoUse": 0.32,
+    "foresight": 1.2,
+    "riskAversion": 1.2,
+    "synergyBias": 1.8,
+    "balanceBias": 1.8,
+    "habitBias": 1.8,
+    "temperature": 0.5
+  },
+  "ardSensitivityProxy": {
+    "infoUse": 0.3694581280788178,
+    "foresight": 0.09852216748768475,
+    "riskAversion": 0.09852216748768475,
+    "synergyBias": 0.06568144499178984,
+    "balanceBias": 0.06568144499178984,
+    "habitBias": 0.06568144499178984,
+    "temperature": 0.2364532019704434
+  },
+  "negativeLogMarginalLikelihood": 42.74631678290524,
+  "nextExperimentSelection": {
+    "criterion": "Gaussian-process one-observation expected information gain using posterior epistemic variance and fitted observation-noise scale",
+    "candidatePool": 2048,
+    "topCandidates": [
+      {
+        "rank": 1,
+        "expectedInformationGainNats": 1.0529296679382034,
+        "epistemicPredictiveVariance": 0.3218042394474527,
+        "surrogatePredictedScoreATE": 0.7337562186140703,
+        "params": {
+          "infoUse": 0.09274575930086629,
+          "foresight": 0.004500957734861724,
+          "riskAversion": 0.42449887188609237,
+          "synergyBias": 0.9489461129421245,
+          "balanceBias": 0.031579267602452325,
+          "habitBias": 0.4462708663315102,
+          "temperature": 0.06548978461364181
+        }
+      },
+      {
+        "rank": 2,
+        "expectedInformationGainNats": 1.0367352111895358,
+        "epistemicPredictiveVariance": 0.31012669959968664,
+        "surrogatePredictedScoreATE": 0.7473058937221186,
+        "params": {
+          "infoUse": 0.029714930133994354,
+          "foresight": 0.285612809714846,
+          "riskAversion": 0.29928103000440376,
+          "synergyBias": 0.9863751558267473,
+          "balanceBias": 0.37368541859712556,
+          "habitBias": 0.2948604122879064,
+          "temperature": 0.05913584564944355
+        }
+      },
+      {
+        "rank": 3,
+        "expectedInformationGainNats": 0.9998316221089165,
+        "epistemicPredictiveVariance": 0.284887651001159,
+        "surrogatePredictedScoreATE": 0.06467614613965744,
+        "params": {
+          "infoUse": 0.04861663014762477,
+          "foresight": 0.06952105253748925,
+          "riskAversion": 0.051029193322822235,
+          "synergyBias": 0.6742497596042651,
+          "balanceBias": 0.8055976043820392,
+          "habitBias": 0.8918906703829108,
+          "temperature": 0.05113727173503049
+        }
+      },
+      {
+        "rank": 4,
+        "expectedInformationGainNats": 0.9893428536471224,
+        "epistemicPredictiveVariance": 0.27804765220932,
+        "surrogatePredictedScoreATE": 2.6163568717701553,
+        "params": {
+          "infoUse": 0.9738966070832182,
+          "foresight": 0.9809969683680293,
+          "riskAversion": 0.8959595684636408,
+          "synergyBias": 0.6113673205462792,
+          "balanceBias": 0.9520993220231951,
+          "habitBias": 0.9969401107499639,
+          "temperature": 1.2176669322350049
+        }
+      },
+      {
+        "rank": 5,
+        "expectedInformationGainNats": 0.9244189823368152,
+        "epistemicPredictiveVariance": 0.23875767876763027,
+        "surrogatePredictedScoreATE": 0.4105066936673687,
+        "params": {
+          "infoUse": 0.013911079188488523,
+          "foresight": 0.45743567338698865,
+          "riskAversion": 0.13503978747730816,
+          "synergyBias": 0.9406757017806228,
+          "balanceBias": 0.7073228017250568,
+          "habitBias": 0.4101786661349138,
+          "temperature": 0.157824727915189
+        }
+      },
+      {
+        "rank": 6,
+        "expectedInformationGainNats": 0.9209509012979816,
+        "epistemicPredictiveVariance": 0.23679901391452512,
+        "surrogatePredictedScoreATE": 0.6551729041036478,
+        "params": {
+          "infoUse": 0.052329794069366234,
+          "foresight": 0.0681176737221086,
+          "riskAversion": 0.8590973276150455,
+          "synergyBias": 0.4228926566728148,
+          "balanceBias": 0.9082155673068247,
+          "habitBias": 0.9192132383679598,
+          "temperature": 0.11411264323445104
+        }
+      },
+      {
+        "rank": 7,
+        "expectedInformationGainNats": 0.8952066284395456,
+        "epistemicPredictiveVariance": 0.22267650492269117,
+        "surrogatePredictedScoreATE": -0.22125872587516193,
+        "params": {
+          "infoUse": 0.02392934599136611,
+          "foresight": 0.06206653669368975,
+          "riskAversion": 0.46490320459095363,
+          "synergyBias": 0.08927796489418009,
+          "balanceBias": 0.3072709833490128,
+          "habitBias": 0.8086077997311337,
+          "temperature": 0.07229345701142256
+        }
+      },
+      {
+        "rank": 8,
+        "expectedInformationGainNats": 0.8897008484691316,
+        "epistemicPredictiveVariance": 0.2197494384941094,
+        "surrogatePredictedScoreATE": 0.48315422067713454,
+        "params": {
+          "infoUse": 0.06486966717830205,
+          "foresight": 0.13725177074732536,
+          "riskAversion": 0.1332524728640941,
+          "synergyBias": 0.3966131511726123,
+          "balanceBias": 0.7796906202261159,
+          "habitBias": 0.10960191533210246,
+          "temperature": 0.11042200393114866
+        }
+      },
+      {
+        "rank": 9,
+        "expectedInformationGainNats": 0.8839685705162104,
+        "epistemicPredictiveVariance": 0.21673601253182462,
+        "surrogatePredictedScoreATE": 0.8294852935579451,
+        "params": {
+          "infoUse": 0.13587145710567167,
+          "foresight": 0.9978090666019684,
+          "riskAversion": 0.8171636366891533,
+          "synergyBias": 0.6121221441684039,
+          "balanceBias": 0.11922286710605322,
+          "habitBias": 0.7991204469590208,
+          "temperature": 1.3920594038539613
+        }
+      },
+      {
+        "rank": 10,
+        "expectedInformationGainNats": 0.8808260986727953,
+        "epistemicPredictiveVariance": 0.21509863524593464,
+        "surrogatePredictedScoreATE": -0.13301946033501366,
+        "params": {
+          "infoUse": 0.028304512138110822,
+          "foresight": 0.021427161018029692,
+          "riskAversion": 0.031070224027652346,
+          "synergyBias": 0.7864122554127755,
+          "balanceBias": 0.2579506671718935,
+          "habitBias": 0.7716049111724733,
+          "temperature": 0.31326941501170263
+        }
+      }
+    ]
+  },
+  "comparisonToR1Polynomial": {
+    "r1TestR2": 0.6248356991634916,
+    "r1TestMAE": 0.45706376952804434,
+    "deltaR2": 0.19401257130062222,
+    "deltaMAE": -0.16246882080187736
+  },
+  "boundary": "This GP emulates direct synthetic-player simulation inside the declared parameter envelope. Its uncertainty is surrogate epistemic uncertainty, not calibrated uncertainty about a Human population or subjective Player Value."
+}

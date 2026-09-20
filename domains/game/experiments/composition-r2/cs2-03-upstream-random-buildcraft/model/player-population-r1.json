@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "cs2-03-procedural-player-population-r1",
+  "standing": "MODEL_POPULATION_NOT_HUMAN_POPULATION",
+  "parameters": {
+    "infoUse": {"min": 0.0, "max": 1.0},
+    "foresight": {"min": 0.0, "max": 1.0},
+    "riskAversion": {"min": 0.0, "max": 1.0},
+    "synergyBias": {"min": 0.0, "max": 1.0},
+    "balanceBias": {"min": 0.0, "max": 1.0},
+    "habitBias": {"min": 0.0, "max": 1.0},
+    "temperature": {"min": 0.05, "max": 1.5}
+  },
+  "personas": [
+    {"id":"adaptive-planner","infoUse":1.0,"foresight":0.9,"riskAversion":0.15,"synergyBias":0.35,"balanceBias":0.15,"habitBias":0.05,"temperature":0.08},
+    {"id":"myopic-adapter","infoUse":1.0,"foresight":0.1,"riskAversion":0.05,"synergyBias":0.1,"balanceBias":0.05,"habitBias":0.0,"temperature":0.12},
+    {"id":"cautious-generalist","infoUse":0.8,"foresight":0.55,"riskAversion":0.9,"synergyBias":0.2,"balanceBias":0.9,"habitBias":0.05,"temperature":0.18},
+    {"id":"combo-builder","infoUse":0.6,"foresight":0.65,"riskAversion":0.15,"synergyBias":1.0,"balanceBias":0.1,"habitBias":0.1,"temperature":0.16},
+    {"id":"habitual-specialist","infoUse":0.3,"foresight":0.35,"riskAversion":0.1,"synergyBias":0.25,"balanceBias":0.0,"habitBias":1.0,"temperature":0.2},
+    {"id":"noisy-novice","infoUse":0.35,"foresight":0.1,"riskAversion":0.2,"synergyBias":0.1,"balanceBias":0.15,"habitBias":0.15,"temperature":1.25},
+    {"id":"low-attention","infoUse":0.15,"foresight":0.25,"riskAversion":0.15,"synergyBias":0.15,"balanceBias":0.2,"habitBias":0.45,"temperature":0.7},
+    {"id":"expected-value-planner","infoUse":0.7,"foresight":1.0,"riskAversion":0.05,"synergyBias":0.3,"balanceBias":0.1,"habitBias":0.0,"temperature":0.1},
+    {"id":"opportunist","infoUse":0.9,"foresight":0.3,"riskAversion":0.0,"synergyBias":0.15,"balanceBias":0.0,"habitBias":0.0,"temperature":0.25},
+    {"id":"random-baseline","special":"random","infoUse":0.0,"foresight":0.0,"riskAversion":0.0,"synergyBias":0.0,"balanceBias":0.0,"habitBias":0.0,"temperature":1.5}
+  ],
+  "boundary": "These personas are procedural decision models spanning a declared behavior envelope. They are not asserted to be calibrated estimates of any human population."
+}

@@ -1,0 +1,18 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://modules/f14/environment_navigation_mount.gd" id="1_mount"]
+[ext_resource type="Script" path="res://modules/f14/navigation_runtime.gd" id="2_runtime"]
+[ext_resource type="Script" path="res://modules/f14/world_qualification_runtime.gd" id="3_world"]
+
+[node name="F14NavigationRuntime" type="Node3D" unique_id=141400001]
+script = ExtResource("1_mount")
+
+[node name="WorldCollision" type="Node3D" parent="." unique_id=141400002]
+
+[node name="Affordances" type="Node3D" parent="." unique_id=141400003]
+
+[node name="VeilwildNavigationRuntime" type="Node3D" parent="." unique_id=141400004]
+script = ExtResource("2_runtime")
+
+[node name="WorldQualificationRuntime" type="Node" parent="." unique_id=141400005]
+script = ExtResource("3_world")

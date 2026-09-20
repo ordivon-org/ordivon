@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf3-e-minimality-probes",
+  "cases": {
+    "ordinaryDoor": {
+      "candidate": "OPEN",
+      "canonicalState": {
+        "locked": true,
+        "hasKey": false
+      },
+      "result": "REJECT",
+      "independentCaseStatus": false
+    },
+    "sameHistoryDifferentStatus": {
+      "history": "RUN-H",
+      "categoryA": "VALID",
+      "categoryB": "INVALID",
+      "historyChanged": false
+    },
+    "sameBasisDifferentNorm": {
+      "caseBasis": "E1",
+      "normA": "N1",
+      "normB": "N2",
+      "resultA": "VALID",
+      "resultB": "INVALID"
+    },
+    "sameClassificationDifferentAuthority": {
+      "classification": "FOUL",
+      "analyst": {
+        "binding": false
+      },
+      "referee": {
+        "binding": true
+      }
+    },
+    "rulingVsEnforcement": {
+      "determination": "DISQUALIFIED",
+      "binding": true,
+      "recordUpdateSucceeded": false
+    },
+    "reviewLineage": {
+      "d0": {
+        "status": "PENALTY",
+        "current": false
+      },
+      "d1": {
+        "status": "NO_PENALTY",
+        "current": true,
+        "supersedes": "d0"
+      },
+      "historyErased": false
+    },
+    "roleFusedAgent": {
+      "entity": "Agent-X",
+      "outputs": [
+        {
+          "kind": "interpretation",
+          "binding": false
+        },
+        {
+          "kind": "ruleProposal",
+          "binding": false
+        },
+        {
+          "kind": "caseDetermination",
+          "binding": true,
+          "authoritySource": "case-delegation"
+        }
+      ],
+      "sameEntityDifferentAuthority": true
+    },
+    "syntheticSwap": {
+      "human": {
+        "authorityContract": "A",
+        "result": "R"
+      },
+      "synthetic": {
+        "authorityContract": "A",
+        "result": "R"
+      },
+      "semanticDifferenceRequired": false
+    },
+    "targetNecessity": {
+      "statusToken": "VALID",
+      "targets": [
+        "run-category",
+        "action-legality",
+        "record-certification"
+      ],
+      "unscopedTokenAmbiguous": true
+    },
+    "typedBasisNecessity": {
+      "sameGenericBasisBag": [
+        "E1",
+        "N1"
+      ],
+      "caseBasis": "E1",
+      "normBasis": "N1",
+      "typesCounterfactuallyRelevant": true
+    },
+    "authorityNecessity": {
+      "sameContent": "OUT",
+      "bindingSourceA": null,
+      "bindingSourceB": "referee-authority",
+      "bindingDiffers": true
+    },
+    "lineageDerived": {
+      "events": [
+        {
+          "id": "d0",
+          "kind": "determination"
+        },
+        {
+          "id": "d1",
+          "kind": "determination",
+          "supersedes": "d0"
+        }
+      ],
+      "dedicatedLineageObjectNeeded": false,
+      "reconstructable": true
+    },
+    "consequenceExternal": {
+      "determination": "FOUL",
+      "enforcement": "restart",
+      "separable": true,
+      "determinationIdentitySurvivesWithoutEmbeddingEnforcement": true
+    }
+  },
+  "falsifiers": {
+    "ordinaryExecutionNeedNotAdjudicate": true,
+    "caseStatusCanVaryWithoutHistoryChange": true,
+    "caseBasisAndNormBasisTypesMatter": true,
+    "classificationNotDetermination": true,
+    "authorityRequiredForBinding": true,
+    "targetRequiredSemantically": true,
+    "determinationNotEnforcement": true,
+    "lineageCanRemainDerived": true,
+    "reversalNotHistoryErase": true,
+    "consequenceNeedNotBeCore": true,
+    "sameAgentDoesNotCollapseAuthority": true,
+    "substrateNeutral": true
+  },
+  "minimalContract": {
+    "name": "AuthoritativeCaseDeterminationContract",
+    "obligations": [
+      "DeterminationTargetAndStatus",
+      "BindingAuthorityAndCurrentness",
+      "TypedDeterminationBasisWhenMaterial"
+    ],
+    "derived": [
+      "DecisionLineageReviewTopology",
+      "NormApplicationDetail",
+      "DiscretionEnvelope"
+    ],
+    "external": [
+      "EnforcementConsequenceExecution",
+      "WorldTruth",
+      "PerceptionMechanism",
+      "HumanLegitimacyMechanism"
+    ]
+  }
+}

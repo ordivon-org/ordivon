@@ -1,0 +1,20 @@
+{
+  "schema": "veilwild.a17-friction.r3",
+  "frictionId": "A17-R3-GODOT-REPACK-LIFECYCLE-001",
+  "classification": "TOOL_LIMITATION",
+  "tool": "Godot",
+  "version": "4.7.1.stable.arch_linux.a13da4feb",
+  "provider": "Workstation / physical /usr/bin/godot",
+  "inputIdentity": "A17 main.tscn at opening project line 40be2155..., exact pre-repair bytes",
+  "expectedConsequence": "Godot-generated stable node unique_id attributes with clean bounded process exit",
+  "actualConsequenceInitial": "First repack succeeded/save bytes but stderr reported leaked Canvas/ObjectDB/resource at exit.",
+  "failureText": [
+    "WARNING: 1 RID of type Canvas was leaked.",
+    "WARNING: 13 ObjectDB instances were leaked at exit.",
+    "ERROR: 1 resources still in use at exit."
+  ],
+  "ownerClassification": "A17 one-off carrier-script lifecycle, not Godot product semantics",
+  "structuralRepair": "Run repack deferred inside SceneTree, explicitly free instantiated Node, drop PackedScene/resource references, await one process frame before quit.",
+  "postRepairReplay": "job-01a07b59-867f-71d3-80d8-cbf6cc6bd955 PASS with empty stderr and same intended source transformation.",
+  "reusableLesson": "Exit code and saved artifact are insufficient carrier evidence; bounded professional-tool transforms must inspect stderr/lifecycle cleanup before accepting the receipt."
+}

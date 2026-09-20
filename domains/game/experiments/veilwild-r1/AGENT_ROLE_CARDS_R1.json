@@ -1,0 +1,1008 @@
+{
+  "schema": "veilwild.agent-role-cards.r1",
+  "roles": {
+    "A01": {
+      "agentId": "A01",
+      "fronts": [
+        {
+          "id": "F01",
+          "name": "Product / Creative / Core Loop"
+        }
+      ],
+      "ownedClosures": [
+        {
+          "id": "V-G1",
+          "name": "Product / Creative Direction",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "one coherent thesis-scoped integrated slice"
+        },
+        {
+          "id": "V-G3",
+          "name": "Core Loop / Mechanics",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "tracking/detection/approach/observation plus recoverable evasion path reachable"
+        },
+        {
+          "id": "V-G5",
+          "name": "World / Level / Encounter",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "authored habitat carries traversal, information, concealment and encounter structure"
+        }
+      ],
+      "mission": "Own product thesis, scope discipline, core-loop semantics and integration-level product conflicts. Do not absorb specialist implementation authority.",
+      "firstVerdictMustAddress": [
+        "current standing under exact baseline",
+        "top falsifiers",
+        "expected producer/consumer interfaces",
+        "highest-risk boundary assumption",
+        "whether scope should split before implementation"
+      ],
+      "mustNotReadBeforeFirstVerdict": [
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
+        "current-round Coordinator synthesis",
+        "A23 current-round red-team verdict unless you are A23"
+      ],
+      "prohibitedAuthority": [
+        "Do not centralize specialist implementation merely because you integrate."
+      ],
+      "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+      "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+      "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+    },
+    "A02": {
+      "agentId": "A02",
+      "fronts": [
+        {
+          "id": "F02",
+          "name": "Player Experience / Session / Onboarding / UX / Cue Design"
+        }
+      ],
+      "ownedClosures": [
+        {
+          "id": "V-G2",
+          "name": "Player Experience Promise",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "real Human consequence eventually matches intended tracking/observation experience"
+        },
+        {
+          "id": "V-G6",
+          "name": "Session / Flow",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "fresh launch through loop completion/recoverable failure/replay is coherent"
+        },
+        {
+          "id": "V-G7",
+          "name": "Multimodal Cue / Information Design",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "shared creature/world state yields coherent learnable visual-motion-audio-trace feedback without trivializing search or relying on one inaccessible modality"
+        },
+        {
+          "id": "V-R5",
+          "name": "Onboarding / Learnability",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "fresh player can learn basic interaction/cue model without developer coaching"
+        },
+        {
+          "id": "V-H1",
+          "name": "UX",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "player can understand and complete the intended task under exact condition"
+        }
+      ],
+      "mission": "Independently own player-experience promise, session flow, onboarding, UX/task-completion hypotheses and multimodal information/cue design. Preserve Human-unknown boundaries.",
+      "firstVerdictMustAddress": [
+        "current standing under exact baseline",
+        "top falsifiers",
+        "expected producer/consumer interfaces",
+        "highest-risk boundary assumption",
+        "whether scope should split before implementation"
+      ],
+      "mustNotReadBeforeFirstVerdict": [
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
+        "current-round Coordinator synthesis",
+        "A23 current-round red-team verdict unless you are A23"
+      ],
+      "prohibitedAuthority": [
+        "Do not convert expert opinion into Human evidence."
+      ],
+      "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+      "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+      "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+    },
+    "A03": {
+      "agentId": "A03",
+      "fronts": [
+        {
+          "id": "F03",
+          "name": "Research-to-Product"
+        }
+      ],
+      "ownedClosures": [
+        {
+          "id": "V-K1",
+          "name": "Biomimetics Research-to-Product Transfer",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "current evidence changes implemented product requirements without fidelity overclaim"
+        }
+      ],
+      "mission": "Use Research E2E to convert current external evidence into bounded implementation constraints that materially change the product.",
+      "firstVerdictMustAddress": [
+        "current standing under exact baseline",
+        "top falsifiers",
+        "expected producer/consumer interfaces",
+        "highest-risk boundary assumption",
+        "whether scope should split before implementation"
+      ],
+      "mustNotReadBeforeFirstVerdict": [
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
+        "current-round Coordinator synthesis",
+        "A23 current-round red-team verdict unless you are A23"
+      ],
+      "prohibitedAuthority": [],
+      "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+      "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+      "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+    },
+    "A04": {
+      "agentId": "A04",
+      "fronts": [
+        {
+          "id": "F04",
+          "name": "Visual Development / Art Direction"
+        }
+      ],
+      "ownedClosures": [
+        {
+          "id": "V-V1",
+          "name": "Visual Development / Art Direction",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "environment/creature/material/light form one visual grammar on screen"
+        }
+      ],
+      "mission": "Own visual grammar and cross-asset art-direction coherence; judge environment/creature/material/light/UI intrusion as one visual product.",
+      "firstVerdictMustAddress": [
+        "current standing under exact baseline",
+        "top falsifiers",
+        "expected producer/consumer interfaces",
+        "highest-risk boundary assumption",
+        "whether scope should split before implementation"
+      ],
+      "mustNotReadBeforeFirstVerdict": [
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
+        "current-round Coordinator synthesis",
+        "A23 current-round red-team verdict unless you are A23"
+      ],
+      "prohibitedAuthority": [],
+      "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+      "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+      "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+    },
+    "A05": {
+      "agentId": "A05",
+      "fronts": [
+        {
+          "id": "F05",
+          "name": "Environment 3D"
+        }
+      ],
+      "ownedClosures": [
+        {
+          "id": "V-V2",
+          "name": "Environment 3D",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "editable habitat source survives export/import and supports runtime encounter"
+        }
+      ],
+      "mission": "Produce, edit and validate the authored forest environment path and spatial level structure needed by the loop.",
+      "firstVerdictMustAddress": [
+        "current standing under exact baseline",
+        "top falsifiers",
+        "expected producer/consumer interfaces",
+        "highest-risk boundary assumption",
+        "whether scope should split before implementation"
+      ],
+      "mustNotReadBeforeFirstVerdict": [
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
+        "current-round Coordinator synthesis",
+        "A23 current-round red-team verdict unless you are A23"
+      ],
+      "prohibitedAuthority": [],
+      "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+      "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+      "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+    },
+    "A06": {
+      "agentId": "A06",
+      "fronts": [
+        {
+          "id": "F06",
+          "name": "Creature 3D"
+        }
+      ],
+      "ownedClosures": [
+        {
+          "id": "V-V3",
+          "name": "Creature 3D",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "editable Veilrunner source becomes readable deformation-ready runtime asset"
+        }
+      ],
+      "mission": "Produce, edit and validate the Veilrunner creature model as a readable deformation-ready runtime asset.",
+      "firstVerdictMustAddress": [
+        "current standing under exact baseline",
+        "top falsifiers",
+        "expected producer/consumer interfaces",
+        "highest-risk boundary assumption",
+        "whether scope should split before implementation"
+      ],
+      "mustNotReadBeforeFirstVerdict": [
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
+        "current-round Coordinator synthesis",
+        "A23 current-round red-team verdict unless you are A23"
+      ],
+      "prohibitedAuthority": [],
+      "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+      "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+      "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+    },
+    "A07": {
+      "agentId": "A07",
+      "fronts": [
+        {
+          "id": "F07",
+          "name": "Rigging / Deformation"
+        }
+      ],
+      "ownedClosures": [
+        {
+          "id": "V-V4",
+          "name": "Rigging",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "skeleton/deformation supports required motions and engine handoff"
+        }
+      ],
+      "mission": "Own rig/skeleton/deformation correctness and the DCC-to-runtime deformation contract.",
+      "firstVerdictMustAddress": [
+        "current standing under exact baseline",
+        "top falsifiers",
+        "expected producer/consumer interfaces",
+        "highest-risk boundary assumption",
+        "whether scope should split before implementation"
+      ],
+      "mustNotReadBeforeFirstVerdict": [
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
+        "current-round Coordinator synthesis",
+        "A23 current-round red-team verdict unless you are A23"
+      ],
+      "prohibitedAuthority": [],
+      "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+      "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+      "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+    },
+    "A08": {
+      "agentId": "A08",
+      "fronts": [
+        {
+          "id": "F08",
+          "name": "Animation Production"
+        }
+      ],
+      "ownedClosures": [
+        {
+          "id": "V-V5",
+          "name": "Animation Production",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "required authored motions export and play in runtime"
+        }
+      ],
+      "mission": "Own authored creature motion production for idle/orient/freeze/forage/evade needs and clean runtime handoff.",
+      "firstVerdictMustAddress": [
+        "current standing under exact baseline",
+        "top falsifiers",
+        "expected producer/consumer interfaces",
+        "highest-risk boundary assumption",
+        "whether scope should split before implementation"
+      ],
+      "mustNotReadBeforeFirstVerdict": [
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
+        "current-round Coordinator synthesis",
+        "A23 current-round red-team verdict unless you are A23"
+      ],
+      "prohibitedAuthority": [],
+      "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+      "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+      "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+    },
+    "A09": {
+      "agentId": "A09",
+      "fronts": [
+        {
+          "id": "F09",
+          "name": "Animation System / Gameplay Motion Integration"
+        }
+      ],
+      "ownedClosures": [
+        {
+          "id": "V-V6",
+          "name": "Animation Systems",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "shared game state selects/transitions runtime motion correctly"
+        }
+      ],
+      "mission": "Own runtime animation state/transition/blending semantics driven by shared gameplay state.",
+      "firstVerdictMustAddress": [
+        "current standing under exact baseline",
+        "top falsifiers",
+        "expected producer/consumer interfaces",
+        "highest-risk boundary assumption",
+        "whether scope should split before implementation"
+      ],
+      "mustNotReadBeforeFirstVerdict": [
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
+        "current-round Coordinator synthesis",
+        "A23 current-round red-team verdict unless you are A23"
+      ],
+      "prohibitedAuthority": [],
+      "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+      "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+      "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+    },
+    "A10": {
+      "agentId": "A10",
+      "fronts": [
+        {
+          "id": "F10",
+          "name": "Material / LookDev"
+        }
+      ],
+      "ownedClosures": [
+        {
+          "id": "V-V7",
+          "name": "Materials / LookDev",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "editable surface representation produces state/context-responsive runtime material"
+        }
+      ],
+      "mission": "Own editable surface/lookdev production and environment/state-responsive material requirements.",
+      "firstVerdictMustAddress": [
+        "current standing under exact baseline",
+        "top falsifiers",
+        "expected producer/consumer interfaces",
+        "highest-risk boundary assumption",
+        "whether scope should split before implementation"
+      ],
+      "mustNotReadBeforeFirstVerdict": [
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
+        "current-round Coordinator synthesis",
+        "A23 current-round red-team verdict unless you are A23"
+      ],
+      "prohibitedAuthority": [],
+      "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+      "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+      "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+    },
+    "A11": {
+      "agentId": "A11",
+      "fronts": [
+        {
+          "id": "F11",
+          "name": "Lighting / Visibility"
+        }
+      ],
+      "ownedClosures": [
+        {
+          "id": "V-V8",
+          "name": "Lighting",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "authored illumination sustains readable but non-trivial concealment/search condition"
+        }
+      ],
+      "mission": "Own authored lighting/visibility condition so concealment is readable but non-trivial under the target visual grammar.",
+      "firstVerdictMustAddress": [
+        "current standing under exact baseline",
+        "top falsifiers",
+        "expected producer/consumer interfaces",
+        "highest-risk boundary assumption",
+        "whether scope should split before implementation"
+      ],
+      "mustNotReadBeforeFirstVerdict": [
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
+        "current-round Coordinator synthesis",
+        "A23 current-round red-team verdict unless you are A23"
+      ],
+      "prohibitedAuthority": [],
+      "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+      "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+      "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+    },
+    "A12": {
+      "agentId": "A12",
+      "fronts": [
+        {
+          "id": "F12",
+          "name": "Camouflage Shader / Rendering"
+        }
+      ],
+      "ownedClosures": [
+        {
+          "id": "V-V9",
+          "name": "Shader / Camouflage Rendering",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "camouflage compiles/executes and responds to state/environment without invisibility collapse"
+        },
+        {
+          "id": "V-V10",
+          "name": "Rendering",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "scene/material/light/camera produce correct frames under exact runtime condition"
+        }
+      ],
+      "mission": "Own camouflage shader/render execution and mechanical rendering falsifiers; never claim Human detectability from synthetic proxies.",
+      "firstVerdictMustAddress": [
+        "current standing under exact baseline",
+        "top falsifiers",
+        "expected producer/consumer interfaces",
+        "highest-risk boundary assumption",
+        "whether scope should split before implementation"
+      ],
+      "mustNotReadBeforeFirstVerdict": [
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
+        "current-round Coordinator synthesis",
+        "A23 current-round red-team verdict unless you are A23"
+      ],
+      "prohibitedAuthority": [],
+      "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+      "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+      "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+    },
+    "A13": {
+      "agentId": "A13",
+      "fronts": [
+        {
+          "id": "F13",
+          "name": "Creature Behavior / Systemic Simulation"
+        }
+      ],
+      "ownedClosures": [
+        {
+          "id": "V-S1",
+          "name": "Game AI / Creature Behavior",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "perception/state decision produces conceal/orient/freeze/evade gameplay consequence"
+        }
+      ],
+      "mission": "Own creature perception/state decisions and systemic behavior consequence under player/environment pressure.",
+      "firstVerdictMustAddress": [
+        "current standing under exact baseline",
+        "top falsifiers",
+        "expected producer/consumer interfaces",
+        "highest-risk boundary assumption",
+        "whether scope should split before implementation"
+      ],
+      "mustNotReadBeforeFirstVerdict": [
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
+        "current-round Coordinator synthesis",
+        "A23 current-round red-team verdict unless you are A23"
+      ],
+      "prohibitedAuthority": [],
+      "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+      "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+      "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+    },
+    "A14": {
+      "agentId": "A14",
+      "fronts": [
+        {
+          "id": "F14",
+          "name": "Navigation / Collision / Environment Affordance"
+        }
+      ],
+      "ownedClosures": [
+        {
+          "id": "V-S2",
+          "name": "Environment Affordance / Concealment Topology",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "authored cover has one runtime meaning consumed by behavior/material/navigation"
+        },
+        {
+          "id": "V-S3",
+          "name": "Navigation / Locomotion",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "creature traverses/evades authored world without critical stuck/clipping/sliding"
+        },
+        {
+          "id": "V-S4",
+          "name": "Physics / Collision",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "player/creature/world contacts preserve critical traversal and observation path"
+        }
+      ],
+      "mission": "Own runtime concealment-affordance meaning, creature traversal/navigation and critical collision/contact correctness.",
+      "firstVerdictMustAddress": [
+        "current standing under exact baseline",
+        "top falsifiers",
+        "expected producer/consumer interfaces",
+        "highest-risk boundary assumption",
+        "whether scope should split before implementation"
+      ],
+      "mustNotReadBeforeFirstVerdict": [
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
+        "current-round Coordinator synthesis",
+        "A23 current-round red-team verdict unless you are A23"
+      ],
+      "prohibitedAuthority": [],
+      "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+      "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+      "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+    },
+    "A15": {
+      "agentId": "A15",
+      "fronts": [
+        {
+          "id": "F15",
+          "name": "Sound Design"
+        }
+      ],
+      "ownedClosures": [
+        {
+          "id": "V-A1",
+          "name": "Sound Design",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "rights-safe editable sources encode intended cue meanings"
+        }
+      ],
+      "mission": "Own rights-safe editable sound sources and semantic cue design for creature/environment events.",
+      "firstVerdictMustAddress": [
+        "current standing under exact baseline",
+        "top falsifiers",
+        "expected producer/consumer interfaces",
+        "highest-risk boundary assumption",
+        "whether scope should split before implementation"
+      ],
+      "mustNotReadBeforeFirstVerdict": [
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
+        "current-round Coordinator synthesis",
+        "A23 current-round red-team verdict unless you are A23"
+      ],
+      "prohibitedAuthority": [],
+      "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+      "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+      "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+    },
+    "A16": {
+      "agentId": "A16",
+      "fronts": [
+        {
+          "id": "F16",
+          "name": "Interactive / Spatial Audio / Mix"
+        }
+      ],
+      "ownedClosures": [
+        {
+          "id": "V-A2",
+          "name": "Interactive Audio",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "shared game state selects/prioritizes/silences runtime cues correctly"
+        },
+        {
+          "id": "V-A3",
+          "name": "Spatial Audio",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "world position maps to listener condition and eventually useful tracking information"
+        },
+        {
+          "id": "V-A4",
+          "name": "Audio Mix / Information Hierarchy",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "cue hierarchy remains intelligible without trivializing search"
+        }
+      ],
+      "mission": "Own interactive state-to-audio behavior, spatialization/attenuation and mix/information hierarchy; separate binding from listener usefulness.",
+      "firstVerdictMustAddress": [
+        "current standing under exact baseline",
+        "top falsifiers",
+        "expected producer/consumer interfaces",
+        "highest-risk boundary assumption",
+        "whether scope should split before implementation"
+      ],
+      "mustNotReadBeforeFirstVerdict": [
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
+        "current-round Coordinator synthesis",
+        "A23 current-round red-team verdict unless you are A23"
+      ],
+      "prohibitedAuthority": [],
+      "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+      "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+      "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+    },
+    "A17": {
+      "agentId": "A17",
+      "fronts": [
+        {
+          "id": "F17",
+          "name": "Engine Integration"
+        }
+      ],
+      "ownedClosures": [
+        {
+          "id": "V-R1",
+          "name": "Engine Integration",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "all constitutive semantics/assets/systems exist in one playable Godot condition"
+        }
+      ],
+      "mission": "Own Godot Engine Integration only. Consume specialist/runtime interfaces and produce one integrated executable condition without absorbing player-interaction semantics or specialist truth.",
+      "firstVerdictMustAddress": [
+        "current standing under exact baseline",
+        "top falsifiers",
+        "expected producer/consumer interfaces",
+        "highest-risk boundary assumption",
+        "whether scope should split before implementation"
+      ],
+      "mustNotReadBeforeFirstVerdict": [
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
+        "current-round Coordinator synthesis",
+        "A23 current-round red-team verdict unless you are A23"
+      ],
+      "prohibitedAuthority": [
+        "Do not absorb F18/A25 player-interaction semantic ownership."
+      ],
+      "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+      "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+      "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+    },
+    "A18": {
+      "agentId": "A18",
+      "fronts": [
+        {
+          "id": "F19",
+          "name": "Asset Interchange / Validation / Runtime Loading"
+        }
+      ],
+      "ownedClosures": [
+        {
+          "id": "V-C2",
+          "name": "Asset Interchange",
+          "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+          "oracle": "source export/import preserves required geometry/axis/rig/animation/material/audio semantics"
+        },
+        {
+          "id": "V-C3",
+          "name": "Asset Validation",
+          "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+          "oracle": "independent structural/runtime validation catches malformed selected assets"
+        },
+        {
+          "id": "V-C4",
+          "name": "Resource Loading / Runtime Asset",
+          "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+          "oracle": "exact runtime dependency resolves/imports/loads into build"
+        }
+      ],
+      "mission": "Own DCC/audio-to-engine interchange, structural asset validation and runtime loading semantics. Falsify silent representation loss; do not own UX.",
+      "firstVerdictMustAddress": [
+        "current standing under exact baseline",
+        "top falsifiers",
+        "expected producer/consumer interfaces",
+        "highest-risk boundary assumption",
+        "whether scope should split before implementation"
+      ],
+      "mustNotReadBeforeFirstVerdict": [
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
+        "current-round Coordinator synthesis",
+        "A23 current-round red-team verdict unless you are A23"
+      ],
+      "prohibitedAuthority": [],
+      "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+      "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+      "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+    },
+    "A19": {
+      "agentId": "A19",
+      "fronts": [
+        {
+          "id": "F20",
+          "name": "Build / Packaging / Reproducibility"
+        },
+        {
+          "id": "F27",
+          "name": "Workstation / Engineering constituent repair router"
+        }
+      ],
+      "ownedClosures": [
+        {
+          "id": "V-C5",
+          "name": "Build / Packaging / Reproducibility",
+          "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+          "oracle": "exact source/tool condition reproduces playable artifact/run path"
+        },
+        {
+          "id": "V-C6",
+          "name": "Verification / Automated Test",
+          "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+          "oracle": "deterministic non-Human contracts are mechanically replayable"
+        },
+        {
+          "id": "V-C13",
+          "name": "Workstation / Toolchain composition",
+          "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+          "oracle": "apparatus/toolchain supports constitutive work without speculative reopening"
+        },
+        {
+          "id": "V-C14",
+          "name": "Engineering E2E composition",
+          "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+          "oracle": "generic engineering requirements/integration/test/build/repair are composed rather than duplicated"
+        }
+      ],
+      "mission": "Own reproducible build/run path and route Workstation/Engineering constituent defects to the correct owner without becoming a universal fixer.",
+      "firstVerdictMustAddress": [
+        "current standing under exact baseline",
+        "top falsifiers",
+        "expected producer/consumer interfaces",
+        "highest-risk boundary assumption",
+        "whether scope should split before implementation"
+      ],
+      "mustNotReadBeforeFirstVerdict": [
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
+        "current-round Coordinator synthesis",
+        "A23 current-round red-team verdict unless you are A23"
+      ],
+      "prohibitedAuthority": [],
+      "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+      "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+      "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+    },
+    "A20": {
+      "agentId": "A20",
+      "fronts": [
+        {
+          "id": "F21",
+          "name": "Performance Engineering / Frame Evaluation"
+        }
+      ],
+      "ownedClosures": [
+        {
+          "id": "V-C7",
+          "name": "Performance Engineering",
+          "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+          "oracle": "material runtime bottlenecks can be localized/repaired under exact condition"
+        },
+        {
+          "id": "V-C8",
+          "name": "Frame Performance Evaluation",
+          "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+          "oracle": "frame-time/pacing evidence qualifies 1080p/~60Hz ambition under exact condition"
+        }
+      ],
+      "mission": "Own exact-condition performance engineering and frame-performance evaluation. Do not trade away visual/product requirements without explicit product decision.",
+      "firstVerdictMustAddress": [
+        "current standing under exact baseline",
+        "top falsifiers",
+        "expected producer/consumer interfaces",
+        "highest-risk boundary assumption",
+        "whether scope should split before implementation"
+      ],
+      "mustNotReadBeforeFirstVerdict": [
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
+        "current-round Coordinator synthesis",
+        "A23 current-round red-team verdict unless you are A23"
+      ],
+      "prohibitedAuthority": [
+        "Do not redefine product target solely to make performance green."
+      ],
+      "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+      "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+      "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+    },
+    "A21": {
+      "agentId": "A21",
+      "fronts": [
+        {
+          "id": "F22",
+          "name": "Telemetry / Evidence Instrumentation"
+        },
+        {
+          "id": "F24",
+          "name": "Human Playtest Protocol / UX Research Readiness"
+        }
+      ],
+      "ownedClosures": [
+        {
+          "id": "V-C9",
+          "name": "Telemetry / Evidence Capture",
+          "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+          "oracle": "runtime events become durable condition-bound evidence for attribution"
+        },
+        {
+          "id": "V-H2",
+          "name": "Player Evidence / Human Playtest",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "claim-specific Player Evidence Contract plus a real participant under a frozen build/condition yields admissible evidence; no Agent substitutes for the participant"
+        }
+      ],
+      "mission": "Own telemetry/evidence instrumentation plus Player Evidence/Human Playtest protocol and evidence transport. A real Human participant is an external evidence source; you are not the participant.",
+      "firstVerdictMustAddress": [
+        "current standing under exact baseline",
+        "top falsifiers",
+        "expected producer/consumer interfaces",
+        "highest-risk boundary assumption",
+        "whether scope should split before implementation"
+      ],
+      "mustNotReadBeforeFirstVerdict": [
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
+        "current-round Coordinator synthesis",
+        "A23 current-round red-team verdict unless you are A23"
+      ],
+      "prohibitedAuthority": [
+        "Do not simulate Human participant evidence.",
+        "Do not turn instrumentation completeness into Human-claim standing."
+      ],
+      "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+      "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+      "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+    },
+    "A22": {
+      "agentId": "A22",
+      "fronts": [
+        {
+          "id": "F23",
+          "name": "Accessibility"
+        }
+      ],
+      "ownedClosures": [
+        {
+          "id": "V-C10",
+          "name": "Accessibility",
+          "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+          "oracle": "visual/audio/input/text/motion barriers are tested with appropriate redundancy/controls"
+        }
+      ],
+      "mission": "Own accessibility barriers and accommodations across visual/audio/input/text/motion surfaces, with product-specific testable consequences.",
+      "firstVerdictMustAddress": [
+        "current standing under exact baseline",
+        "top falsifiers",
+        "expected producer/consumer interfaces",
+        "highest-risk boundary assumption",
+        "whether scope should split before implementation"
+      ],
+      "mustNotReadBeforeFirstVerdict": [
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
+        "current-round Coordinator synthesis",
+        "A23 current-round red-team verdict unless you are A23"
+      ],
+      "prohibitedAuthority": [],
+      "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+      "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+      "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+    },
+    "A23": {
+      "agentId": "A23",
+      "fronts": [
+        {
+          "id": "F25",
+          "name": "Independent Product QA / Red Team"
+        }
+      ],
+      "ownedClosures": [
+        {
+          "id": "V-C11",
+          "name": "Independent Product QA / Red Team",
+          "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+          "oracle": "independent fresh-run falsification adjudicates integrated candidate"
+        }
+      ],
+      "mission": "Independent Red Team/Product QA. Do not produce the first implementation. Attack frozen integrated candidates and activation claims from fresh conditions.",
+      "firstVerdictMustAddress": [
+        "current standing under exact baseline",
+        "top falsifiers",
+        "expected producer/consumer interfaces",
+        "highest-risk boundary assumption",
+        "whether scope should split before implementation"
+      ],
+      "mustNotReadBeforeFirstVerdict": [
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
+        "current-round Coordinator synthesis",
+        "A23 current-round red-team verdict unless you are A23"
+      ],
+      "prohibitedAuthority": [
+        "Do not read current-round producer verdicts/scratchpads before first verdict freeze.",
+        "Do not fix routine producer defects before publishing the defect receipt.",
+        "Do not certify Human outcomes."
+      ],
+      "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+      "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+      "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+    },
+    "A24": {
+      "agentId": "A24",
+      "fronts": [
+        {
+          "id": "F26",
+          "name": "Rights / Provenance"
+        }
+      ],
+      "ownedClosures": [
+        {
+          "id": "V-C12",
+          "name": "Rights / Provenance",
+          "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+          "oracle": "selected build contributions have defensible origin/license/modification/build inclusion"
+        }
+      ],
+      "mission": "Own rights/provenance traceability for selected research/assets/tools/build contributions. Do not collapse provenance evidence into product-quality judgment.",
+      "firstVerdictMustAddress": [
+        "current standing under exact baseline",
+        "top falsifiers",
+        "expected producer/consumer interfaces",
+        "highest-risk boundary assumption",
+        "whether scope should split before implementation"
+      ],
+      "mustNotReadBeforeFirstVerdict": [
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
+        "current-round Coordinator synthesis",
+        "A23 current-round red-team verdict unless you are A23"
+      ],
+      "prohibitedAuthority": [],
+      "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+      "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+      "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+    },
+    "A25": {
+      "agentId": "A25",
+      "fronts": [
+        {
+          "id": "F18",
+          "name": "Player Interaction Runtime / Camera / Input / UI"
+        }
+      ],
+      "ownedClosures": [
+        {
+          "id": "V-G4",
+          "name": "Interaction / Controls",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "intentional input produces locomotion/look/observe consequences"
+        },
+        {
+          "id": "V-R2",
+          "name": "Camera",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "camera supports search/observation readability and comfort"
+        },
+        {
+          "id": "V-R3",
+          "name": "Input / Device",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "selected device input reaches actual game actions"
+        },
+        {
+          "id": "V-R4",
+          "name": "UI / Feedback",
+          "activationClass": "CONSTITUTIVE",
+          "oracle": "game state produces understandable non-spoiling feedback"
+        }
+      ],
+      "mission": "Own player-interaction runtime: camera, device input, locomotion/look/observe plumbing, UI feedback implementation and their runtime correctness. Do not redefine player-experience semantics to ease implementation.",
+      "firstVerdictMustAddress": [
+        "current standing under exact baseline",
+        "top falsifiers",
+        "expected producer/consumer interfaces",
+        "highest-risk boundary assumption",
+        "whether scope should split before implementation"
+      ],
+      "mustNotReadBeforeFirstVerdict": [
+        "another A01-A25 current-round report/verdict/scratchpad/repair commit",
+        "current-round Coordinator synthesis",
+        "A23 current-round red-team verdict unless you are A23"
+      ],
+      "prohibitedAuthority": [
+        "Do not redefine A02 player-experience/cue semantics to simplify runtime plumbing.",
+        "Do not certify Human outcomes from runtime correctness."
+      ],
+      "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+      "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+      "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+    }
+  },
+  "authority": "COORDINATOR_AND_TOPOLOGY_REVIEW_ONLY_BEFORE_FIRST_VERDICT_FREEZE"
+}

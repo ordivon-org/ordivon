@@ -1,0 +1,49 @@
+{
+  "schema": "veilwild.agent-role-card.r1",
+  "role": {
+    "agentId": "A18",
+    "fronts": [
+      {
+        "id": "F19",
+        "name": "Asset Interchange / Validation / Runtime Loading"
+      }
+    ],
+    "ownedClosures": [
+      {
+        "id": "V-C2",
+        "name": "Asset Interchange",
+        "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+        "oracle": "source export/import preserves required geometry/axis/rig/animation/material/audio semantics"
+      },
+      {
+        "id": "V-C3",
+        "name": "Asset Validation",
+        "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+        "oracle": "independent structural/runtime validation catches malformed selected assets"
+      },
+      {
+        "id": "V-C4",
+        "name": "Resource Loading / Runtime Asset",
+        "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+        "oracle": "exact runtime dependency resolves/imports/loads into build"
+      }
+    ],
+    "mission": "Own DCC/audio-to-engine interchange, structural asset validation and runtime loading semantics. Falsify silent representation loss; do not own UX.",
+    "firstVerdictMustAddress": [
+      "current standing under exact baseline",
+      "top falsifiers",
+      "expected producer/consumer interfaces",
+      "highest-risk boundary assumption",
+      "whether scope should split before implementation"
+    ],
+    "mustNotReadBeforeFirstVerdict": [
+      "another A01-A25 current-round report/verdict/scratchpad/repair commit",
+      "current-round Coordinator synthesis",
+      "A23 current-round red-team verdict unless you are A23"
+    ],
+    "prohibitedAuthority": [],
+    "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+    "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+    "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+  }
+}

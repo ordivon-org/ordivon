@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.t05-visible-mastery-falsifier",
+  "observedDate": "2026-09-14",
+  "thesis": "T05 Visible Mastery / Precision Movement",
+  "standing": "FAILS_COMPUTATIONAL_MASTERY_FALSIFIER",
+  "mechanismModifiedAfterObservation": false,
+  "carrierReuse": "PGP-A Precision Traversal",
+  "metrics": {
+    "knownAutomationCompletion": [true, true, true],
+    "room1MaxSuccessBandWidthPixels": 60,
+    "room2MaxSuccessBandWidthPixels": 10,
+    "room3DistinctSuccessBands": 2,
+    "room3FastSafeCompletionTimeDifferenceFraction": 0.0,
+    "room1SyntheticLearningImprovement": 0.12916666666666665,
+    "room2SyntheticLearningImprovement": 0.002083333333333333,
+    "room3SyntheticLearningImprovement": 0.1333333333333333,
+    "room2LateSyntheticSuccess": 0.027083333333333334
+  },
+  "decisionConsequence": "The reused carrier is mechanically valid but does not support the current T05 product thesis: room 2 is excessively narrow under the declared motor-noise model, room 3 does not realize a meaningful fast/safe completion-time tradeoff, and bounded synthetic learning does not improve enough. T05 is demoted for this G0 decision without retuning the carrier.",
+  "boundary": "This does not reject precision-movement games generally and does not estimate Human flow or enjoyment."
+}

@@ -1,0 +1,287 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.pre-g0-ds1-structural-battery",
+  "methodology": {
+    "claimBoundary": "This battery can falsify missing decision structure, causal sensitivity, information value, path dependence or baseline delta. It cannot establish human fun, attachment, creativity, game feel or willingness to return.",
+    "sharedMeasures": [
+      "dominant-choice pressure",
+      "state/counterfactual sensitivity",
+      "adaptive information gain",
+      "path-dependent policy advantage",
+      "strategy/build diversity",
+      "cheaper-baseline parity"
+    ]
+  },
+  "results": [
+    {
+      "candidateId": "D02",
+      "treatmentId": "d02-grid-telegraph-v1",
+      "lane": "wave-a",
+      "hypothesis": "Readable telegraphed threats can create state-sensitive tactical decisions without opponent cognition.",
+      "baseline": "One-step deterministic 6x6 board with three units, three telegraphed enemies and no Agent calls.",
+      "falsifier": "Fail if one action family dominates most states or changing visible enemy intent rarely changes the best response.",
+      "metrics": {
+        "generatedStates": 320,
+        "bestActionFamilies": {
+          "move": 157,
+          "strike": 159,
+          "wait": 4
+        },
+        "bestFamilyEntropyBits": 1.084,
+        "dominantFamilyRate": 0.497,
+        "telegraphCounterfactualChangesBestActionRate": 0.25,
+        "meanNearOptimalActionsWithinTwoPoints": 3.119
+      },
+      "verdict": "realization-eliminated",
+      "nextEvidence": "Delete or redesign this tactical realization before any presentation investment; do not infer that the whole tactical GameForm is falsified by one micro-ruleset."
+    },
+    {
+      "candidateId": "D03",
+      "treatmentId": "d03-evidence-scarcity-ablation-v2",
+      "lane": "wave-a",
+      "hypothesis": "Knowledge acquisition becomes gameplay when evidence selection is scarce enough that choosing what to inspect changes the reachable hypothesis state.",
+      "baseline": "Eighteen hidden histories and eight deterministic clues tested under both a scarce two-inspection budget and an over-generous four-inspection ablation.",
+      "falsifier": "Fail if adaptive evidence choice does not outperform fixed/random inspection under scarcity. Treat parity under a generous budget as evidence that excess information destroys the decision problem.",
+      "metrics": {
+        "hypotheses": 18,
+        "clues": 8,
+        "scarceBudget": {
+          "clueBudget": 2,
+          "greedySolvedRate": 1,
+          "meanRemainingHypotheses": {
+            "greedy": 1,
+            "fixedOrder": 5,
+            "randomOrder": 2.209
+          },
+          "meanGreedyInformationBits": 4.17,
+          "adaptiveGreedySequenceCount": 2,
+          "greedyFirstClueDistribution": {
+            "7": 18
+          },
+          "greedySecondClueDistribution": {
+            "0": 6,
+            "2": 12
+          }
+        },
+        "generousBudgetAblation": {
+          "clueBudget": 4,
+          "greedySolvedRate": 1,
+          "meanRemainingHypotheses": {
+            "greedy": 1,
+            "fixedOrder": 1,
+            "randomOrder": 1.04
+          },
+          "meanGreedyInformationBits": 4.17,
+          "adaptiveGreedySequenceCount": 2,
+          "greedyFirstClueDistribution": {
+            "7": 18
+          },
+          "greedySecondClueDistribution": {
+            "0": 6,
+            "2": 12
+          }
+        },
+        "scarcityCreatesAdaptiveAdvantage": true,
+        "generousBudgetCollapsesAdaptiveAdvantage": true
+      },
+      "verdict": "structural-survivor",
+      "nextEvidence": "Retain D03 with a hard design constraint: information access must stay scarce/branching enough to preserve hypothesis choice. Build one human-readable case and test model revision versus clue-checklist behavior."
+    },
+    {
+      "candidateId": "D04",
+      "treatmentId": "d04-six-pick-synergy-v1",
+      "lane": "wave-a",
+      "hypothesis": "Combinatorial synergies and changing encounter demands can create path-dependent build decisions rather than raw-power selection.",
+      "baseline": "Six draft choices from three-card offers across five encounter archetypes, solved exhaustively against a greedy immediate-score policy.",
+      "falsifier": "Fail if greedy selection is nearly optimal, one card dominates optimal picks, or best builds collapse to one signature across seeds.",
+      "metrics": {
+        "simulatedRuns": 180,
+        "optimalVsGreedyMeanScoreUplift": 0.052,
+        "optimalVsGreedyPositiveUpliftRate": 0.467,
+        "distinctTopTwoBuildSignatures": 11,
+        "optimalCardChoiceDistribution": {
+          "block": 228,
+          "dexterity": 181,
+          "draw": 22,
+          "poison": 37,
+          "strength": 291,
+          "strike": 321
+        },
+        "maximumSingleCardChoiceRate": 0.297
+      },
+      "verdict": "structural-survivor",
+      "nextEvidence": "A tiny playable run should test whether players can perceive the synergies and whether risk/uncertainty improves rather than obscures build planning."
+    },
+    {
+      "candidateId": "D05",
+      "treatmentId": "d05-machine-budget-v1",
+      "lane": "wave-a",
+      "hypothesis": "Automation becomes a decision game when different output goals force materially different bottleneck allocations and no universal layout wins.",
+      "baseline": "Twelve-machine allocation across mining, smelting and production chains; exhaustive steady-state search with no spatial art or Agents.",
+      "falsifier": "Fail if one allocation is optimal across objectives or objective-specific winner sets substantially coincide.",
+      "metrics": {
+        "machineBudget": 12,
+        "allocationsEnumerated": 125970,
+        "bestByObjective": {
+          "science": {
+            "value": 2,
+            "count": 45,
+            "example": "ironMiner:2|copperMiner:1|ironSmelter:2|copperSmelter:1|gear:1|wire:1|lab:2|press:0|assembler:2"
+          },
+          "ammo": {
+            "value": 4,
+            "count": 1,
+            "example": "ironMiner:4|copperMiner:0|ironSmelter:4|copperSmelter:0|gear:2|wire:0|lab:0|press:2|assembler:0"
+          },
+          "circuit": {
+            "value": 4,
+            "count": 1,
+            "example": "ironMiner:2|copperMiner:2|ironSmelter:2|copperSmelter:2|gear:0|wire:2|lab:0|press:0|assembler:2"
+          }
+        },
+        "bestSetJaccardOverlap": {
+          "science:ammo": 0,
+          "science:circuit": 0,
+          "ammo:circuit": 0
+        },
+        "universalBestAllocationCount": 0,
+        "bestBalancedGeometricMean": 0.63,
+        "distinctTop20BalancedAllocations": 20
+      },
+      "verdict": "structural-survivor",
+      "nextEvidence": "Add transport/topology constraints in a tiny interactive grid and test whether debugging bottlenecks is legible and satisfying rather than spreadsheet-only optimization."
+    },
+    {
+      "candidateId": "D15",
+      "treatmentId": "d15-upgrade-order-v1",
+      "lane": "wave-a",
+      "hypothesis": "Sparse incremental decisions remain meaningful when horizon and environmental change alter investment ordering enough to require re-planning.",
+      "baseline": "Five one-time compounding upgrades evaluated across six horizons/shock regimes with all 120 orderings enumerated.",
+      "falsifier": "Fail if one upgrade order is near-optimal everywhere or scenario changes rarely alter early investment decisions.",
+      "metrics": {
+        "scenarios": [
+          "short-stable",
+          "medium-stable",
+          "long-stable",
+          "early-shock",
+          "late-boom",
+          "short-boom"
+        ],
+        "ordersEnumerated": 120,
+        "bestOrders": {
+          "short-stable": {
+            "order": "storage>automation>research>generator>efficiency",
+            "value": 11.2
+          },
+          "medium-stable": {
+            "order": "generator>efficiency>automation>research>storage",
+            "value": 50.354
+          },
+          "long-stable": {
+            "order": "generator>efficiency>automation>research>storage",
+            "value": 146.315
+          },
+          "early-shock": {
+            "order": "generator>efficiency>storage>research>automation",
+            "value": 25.312
+          },
+          "late-boom": {
+            "order": "generator>efficiency>automation>research>storage",
+            "value": 154.845
+          },
+          "short-boom": {
+            "order": "generator>efficiency>automation>research>storage",
+            "value": 42.085
+          }
+        },
+        "bestFirstChoiceDistribution": {
+          "generator": 5,
+          "storage": 1
+        },
+        "distinctScenarioOptimalOrders": 3,
+        "bestSingleUniversalOrder": "generator>efficiency>automation>storage>research",
+        "bestUniversalMeanRegret": 0.074,
+        "bestUniversalMaximumRegret": 0.193
+      },
+      "verdict": "realization-eliminated",
+      "nextEvidence": "Reject this incremental realization as rote ordering/passive waiting; retain the broader D15 form only as a demoted hypothesis until a cheaper second realization shows stronger state-sensitive re-planning."
+    },
+    {
+      "candidateId": "D14",
+      "treatmentId": "d14-responsive-constraint-v1",
+      "lane": "wave-b",
+      "hypothesis": "Co-creation becomes a game when the other participant has learnable, responsive constraints that make creative sequencing strategically consequential.",
+      "baseline": "Visible static rubric, then hidden fixed persona, then a cheaper deterministic responsive-policy persona; no model generation is used yet.",
+      "falsifier": "Fail if responsiveness does not change optimal creative sequences relative to a fixed hidden preference, or if one generic sequence satisfies every persona.",
+      "metrics": {
+        "sequenceLength": 4,
+        "sequencesEnumerated": 1296,
+        "staticVisibleRubricUniqueScores": 1,
+        "hiddenFixedPersonaDistinctOptimalSequences": 4,
+        "adaptivePersonaDistinctOptimalSequences": 5,
+        "adaptiveRuleChangesOptimalSequenceRate": 1,
+        "personaBestStaticHidden": {
+          "scholar": {
+            "sequence": "logic>logic>logic>logic",
+            "score": 6.4
+          },
+          "romantic": {
+            "sequence": "empathy>empathy>empathy>empathy",
+            "score": 6.8
+          },
+          "trickster": {
+            "sequence": "humor>humor>humor>humor",
+            "score": 7.2
+          },
+          "warrior": {
+            "sequence": "violence>violence>violence>violence",
+            "score": 6
+          },
+          "healer": {
+            "sequence": "empathy>empathy>empathy>empathy",
+            "score": 7.2
+          }
+        },
+        "personaBestAdaptive": {
+          "scholar": {
+            "sequence": "wonder>logic>wonder>logic",
+            "score": 8.5
+          },
+          "romantic": {
+            "sequence": "wonder>empathy>risk>empathy",
+            "score": 8.1
+          },
+          "trickster": {
+            "sequence": "wonder>humor>risk>humor",
+            "score": 8.9
+          },
+          "warrior": {
+            "sequence": "risk>violence>risk>violence",
+            "score": 8.7
+          },
+          "healer": {
+            "sequence": "logic>empathy>logic>empathy",
+            "score": 7.9
+          }
+        }
+      },
+      "verdict": "structural-survivor",
+      "nextEvidence": "The responsive-other distinction survives, but expensive model cognition is not yet necessary: a deterministic responsive policy already creates the tested causal difference. Human play must first show that richer interpretation or creativity requires cognition this cheaper baseline cannot provide."
+    }
+  ],
+  "summary": {
+    "structuralSurvivors": [
+      "D03",
+      "D04",
+      "D05",
+      "D14"
+    ],
+    "weakened": [],
+    "realizationEliminated": [
+      "D02",
+      "D15"
+    ],
+    "structuralFailures": [],
+    "foundationReopenConditionTriggered": false
+  }
+}

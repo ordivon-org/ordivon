@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game-e2e-r5-m7-currentness-evidence",
+  "truthRole": "bounded-currentness-observation-not-owner-global-truth",
+  "recordedAt": "2026-09-10",
+  "game": {
+    "openingCandidate": "a3cae0c403a4d758c3975f0508c7c267b4299efe",
+    "protocolCommit": "6b96251",
+    "policyReconciliationCommit": "fcfe465",
+    "openingLocalMain": "fc31c1e1e4536fc7a672970c7e5afd6bc4d8627f",
+    "openingOriginMain": "ca8f207b8d08ccd3c0e263810c35ac70b1511aee",
+    "openingOriginMainVsCandidateLeftRight": [1, 49],
+    "branchNameMintsCurrentness": false,
+    "finalCarrierStanding": "PENDING_M7_FINAL_FREEZE"
+  },
+  "ownerEdges": [
+    {
+      "owner": "Research E2E",
+      "edge": "research-vnext-scientific-argument-four-role-contract",
+      "requiredForM7": true,
+      "standing": "CURRENT_PASS",
+      "sourceRevision": "bab965e19dd5ad06bb2427c3b599d775af4b6f6f",
+      "evidence": "Research current main exactly matches the Game M5 sourceRevision and still defines researchIntent, targetOfInquiry, claimBoundary, evaluationLogic with external execution unable to mint scientific meaning."
+    },
+    {
+      "owner": "Workstation",
+      "edge": "professional Godot physical binding consumed by Game engine.project.execute",
+      "requiredForM7": true,
+      "standing": "CURRENT_PASS",
+      "discoveryFailure": {
+        "sourceRevision": "49691e7cd358e4955d0c85d4223f40bf137612eb",
+        "witness": "source and deployed equipment-binding both rejected the professional subcommand"
+      },
+      "concurrentCurrentnessRace": {
+        "observedInterveningMain": "219ef9626f1014cd815fa2417cb2400f354b16a8",
+        "firstFastForwardAttempt": "REJECTED_AS_DIVERGED",
+        "repairAction": "replay exact two-file compatibility repair on the new current cut; do not force-merge"
+      },
+      "sourceCurrentRevision": "9b4283a9384a213f30c9c8d1631a3dccd5e53dad",
+      "promotion": {
+        "mode": "race-safe exact-head check plus git merge --ff-only",
+        "jobId": "job-01a08bb9-f2e6-74c0-988b-aa10a79ff712",
+        "standing": "PASS"
+      },
+      "focusedAndAdjacentVerification": {
+        "pass": 119,
+        "total": 119,
+        "jobId": "job-01a08bb9-ad1e-79b3-83df-51bbef931ba6"
+      },
+      "fullOwnerSuiteObservation": {
+        "jobId": "job-01a08bbb-12b9-7f41-a7b7-67e337559a42",
+        "testsRun": 1264,
+        "errors": 5,
+        "skipped": 36,
+        "standing": "NON_GREEN_WITH_PREEXISTING_OUT_OF_SCOPE_FAILURE_SET",
+        "sameFailureClassesObservedOnPreRepairBaseline": [
+          "browserless submit test cannot import system-Python playwright",
+          "four temporal Artifact Delivery build-contract tests fail before producing build report"
+        ],
+        "preRepairBaselineJobId": "job-01a08bb7-fbf2-79e0-8243-a981f1732dfd",
+        "repairRegressionConclusion": "NO_NEW_FAILURE_CLASS_OBSERVED"
+      },
+      "materializedTool": {
+        "path": "/root/tools/bin/equipment-binding",
+        "sourceAndInstalledSha256": "sha256:47a6fa7983eaa88ba6d2e274f3ee3ed9ebe97dd157446cd44b0f33df81788f41",
+        "sourceCurrentReceiptJobId": "job-01a08bba-45e9-7db1-b473-7a1eba5e95b5",
+        "disposition": "already-current"
+      },
+      "liveGodotBinding": {
+        "jobId": "job-01a08bba-77e4-7212-a2de-32dc5a0cfe85",
+        "state": "AVAILABLE",
+        "equipmentId": "professional:godot:godot",
+        "executable": "/usr/bin/godot",
+        "executableDigest": "sha256:a72fa47eb84dab812102e622f3fa9e99754505459a0ded8f69ceddd5b4ded8dd",
+        "gameplayAuthorityGranted": false
+      },
+      "currentnessBoundary": "Workstation CURRENT_PASS establishes exact physical binding/source materialization for the Game-consumed edge only; it does not establish Game semantic acceptance, Human standing, Artifact success, or release rights."
+    },
+    {
+      "owner": "Runtime",
+      "edge": "exact workspace/job execution used by M7",
+      "requiredForM7": true,
+      "standing": "CURRENT_PASS",
+      "evidence": "Fresh M7 Runtime jobs executed dependency materialization, full regression, source inspection and bounded Workstation probes with terminal receipts. This establishes execution substrate currentness only, not Game semantic standing."
+    },
+    {
+      "owner": "Host",
+      "edge": "Task continuity and Board coordination",
+      "requiredForM7": true,
+      "standing": "CURRENT_PASS",
+      "evidence": "M7 exact Host Task and Board opening are durable. Host is not treated as the Game evidence data plane; full external evidence substitution remains NOT_ADMITTED."
+    },
+    {
+      "owner": "Artifact E2E",
+      "edge": "authoritative build/artifact identity",
+      "requiredForM7": false,
+      "standing": "NOT_REQUIRED_FOR_M7",
+      "evidence": "M7 graduates the Game evaluator/composition boundary, not a releasable Veilwild product; candidate/build/artifact IDs remain null where product nomination is not admitted."
+    },
+    {
+      "owner": "Distribution E2E",
+      "edge": "external release/distribution",
+      "requiredForM7": false,
+      "standing": "NOT_REQUIRED_FOR_M7",
+      "evidence": "No release claim is made. Rights remain separately fail-closed."
+    },
+    {
+      "owner": "Operations E2E",
+      "edge": "live-player production observation",
+      "requiredForM7": false,
+      "standing": "NOT_REQUIRED_FOR_M7",
+      "evidence": "No live-player production operation is part of R5 M7 graduation."
+    }
+  ]
+}

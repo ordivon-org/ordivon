@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.post-gpr-domain-coverage.c8-probes",
+  "date": "2026-08-18",
+  "candidate": "Integrity / Cheating / Exploit / Outcome Authenticity",
+  "routeAdmission": {
+    "gpr8": false,
+    "newNumberedFoundation": false,
+    "nextGpr": "UNKNOWN",
+    "nextPracticalRoute": "UNKNOWN",
+    "nextFoundation": "UNKNOWN"
+  },
+  "candidateDeletion": [
+    {"candidate":"IntegrityBoolean","verdict":"REJECT_UNIVERSAL_SCALAR","reason":"Rule compliance, identity authenticity, control provenance, information legitimacy, result verification, software integrity and institutional integrity are distinct."},
+    {"candidate":"Cheating","verdict":"REJECT_GAME_PRIMITIVE","reason":"Practice/norm-relative classification of conduct."},
+    {"candidate":"Exploit","verdict":"REJECT_UNIVERSAL_GAME_PRIMITIVE","reason":"Can be permitted technique, prohibited bug exploit, security exploitation or emergent strategy."},
+    {"candidate":"Assistance","verdict":"REJECT_CHEATING_PRIMITIVE","reason":"May be prohibited, required for accessibility, authorized coaching, teammate contribution or realization support."},
+    {"candidate":"FairPlay","verdict":"REJECT_FOUNDATION_PRIMITIVE","reason":"Broad institutional/normative family rather than one semantic coordinate."},
+    {"candidate":"AntiCheat","verdict":"REJECT_GAME_ONTOLOGY","reason":"Security/detection/enforcement implementation family."},
+    {"candidate":"Suspicion","verdict":"REJECT_CONDUCT_PRIMITIVE","reason":"Epistemic/process status rather than conduct itself."},
+    {"candidate":"Detection","verdict":"REJECT_DETERMINATION_PRIMITIVE","reason":"Heuristic/software output is evidence/verification, not binding violation by identity."},
+    {"candidate":"Ban","verdict":"REJECT_CHEATING_PRIMITIVE","reason":"One consequence/enforcement state."},
+    {"candidate":"OutcomeAuthenticity","verdict":"REJECT_UNIVERSAL_SCALAR","reason":"Depends on participant/control provenance, applicable norms and determination question."},
+    {"candidate":"SecureSession","verdict":"REJECT_GAME_PRIMITIVE","reason":"Implementation/practice-specific security/admission mode."}
+  ],
+  "probes": [
+    {"id":"C8-F1","regime":"FIDE accessibility assistance","pressure":"ordinary outside advice prohibited while approved assistant realizes moves for specified disabled player","result":"ExternalAssistance != CheatingByIdentity","reduction":["GPR1 authority","GPR6 control principal/realization substrate","GDF0 current rules"]},
+    {"id":"C8-F2","regime":"Riot match communications","pressure":"same communication technology authorized for approved people/equipment vs prohibited outside communication","result":"CommunicationChannelPresence != CheatingByIdentity","reduction":["GDF0 event/game-specific rules","GPR1/GPR6 role scope"]},
+    {"id":"C8-F3","regime":"unauthorized information","pressure":"opponent screen/live feed vs legitimately revealed Game information","result":"InformationPossession != IllicitInformationAcquisitionByIdentity","reduction":["F7 information source","GDF0 authorization/currentness"]},
+    {"id":"C8-F4","regime":"bug exploit","pressure":"bug exists independently from whether participant intentionally uses it for prohibited advantage","result":"BugExistence != CheatOccurrenceByIdentity","reduction":["Runtime/Game bug fact","GDF0 norm classification","GDF3 if disputed"]},
+    {"id":"C8-F5","regime":"cross-practice exploit status","pressure":"same mechanically possible glitch allowed in one category and prohibited in another","result":"SameMechanicallyPossibleTechnique != SameViolationStatusAcrossPractices","reduction":["GDF0 EffectiveRuleTopology/currentness"]},
+    {"id":"C8-F6","regime":"poor performance","pressure":"bad play vs intentional underperformance/manipulation","result":"BadOutcomeOrPoorPerformance != IntentionalViolationByIdentity","reduction":["performance evidence","intent evidence","GDF3 norm application"]},
+    {"id":"C8-F7","regime":"unsuccessful manipulation attempt","pressure":"attempted match manipulation without actual changed result","result":"ViolationOccurrence != RealizedOutcomeChangeByIdentity","reduction":["conduct/event","GDF3 violation determination","GPR4 consequence"]},
+    {"id":"C8-F8","regime":"FIDE fair-play screening","pressure":"suspicion/screening, competition-level provisional action, proof and appeal are distinct","result":"Suspicion != Detection != ProvenCheating != FinalDetermination","reduction":["GPR3 evidence/verification","GDF3/GPR2 determination/review"]},
+    {"id":"C8-F9","regime":"Steam community cheat report","pressure":"semi-trusted/hearsay report reviewed before confirmed ban workflow","result":"CheatReport != CheatingDeterminationByIdentity","reduction":["GPR3 EvidenceBundle/VerificationView","GDF3 determination"]},
+    {"id":"C8-F10","regime":"VAC session verification","pressure":"technical anti-cheat cooperation/verification failure before specific cheat finding","result":"SecurityVerificationFailure != SpecificCheatingDeterminationByIdentity","reduction":["Security/Runtime technical trust","C4/C1 admission consequence","GDF3 if violation finding"]},
+    {"id":"C8-F11","regime":"persistent/delayed ban","pressure":"ban state persists beyond incident and controls future secure-server access","result":"CheatingIncident != BanStateByIdentity","reduction":["GDF3 determination","GPR4 enforcement/consequence"]},
+    {"id":"C8-F12","regime":"Riot sanctions","pressure":"single violation can yield warning/fine/forfeit/replay/points/suspension/ban","result":"ViolationType != SanctionTypeByIdentity","reduction":["GPR4 consequence/enforcement/remedy"]},
+    {"id":"C8-F13","regime":"false reporting","pressure":"honest mistaken report vs fabricated/misleading abuse of report process","result":"ReportIncorrect != ReporterViolationByIdentity","reduction":["GPR3 evidence/provenance","separate GDF3 case"]},
+    {"id":"C8-F14","regime":"identity theft/account sharing","pressure":"mechanically valid moves/history performed by wrong/unauthorized control principal","result":"MechanicallyValidActionHistory != AuthenticParticipantContributionByIdentity","reduction":["R24 identity/provenance","GPR6 ControlPrincipal/RealizationSubstrate","GDF0 participation rules","GDF3"]},
+    {"id":"C8-F15","regime":"Agent assistance","pressure":"same Agent capability authorized as teammate vs hidden prohibited adviser","result":"AgentContribution != CheatingByIdentity","reduction":["GPR6 Human/Agent separation","GPR1 role/authority","GDF0 scope"]},
+    {"id":"C8-F16","regime":"technical state mutation","pressure":"same mutation capability used by authorized operator/admin vs prohibited player exploit","result":"TechnicalStateMutationCapability != CheatingByIdentity","reduction":["Security capability","GPR1 authority","GDF0 permission"]},
+    {"id":"C8-F17","regime":"external security compromise","pressure":"account/server credential compromise can occur without live Game cheating case","result":"SecurityCompromise != GameIntegrityViolationByIdentity","reduction":["Security/identity owner","Game only if participation/result affected"]},
+    {"id":"C8-F18","regime":"collusion/match fixing","pressure":"authenticated legitimate players manipulate result without software compromise","result":"GameIntegrityViolation != SecurityCompromiseNecessity","reduction":["GDF0 conduct rule","GDF3 determination","Institutional governance"]},
+    {"id":"C8-F19","regime":"accidental rule violation","pressure":"unintentional game-rule/hidden-information error treated differently from suspicious/intentional cheating","result":"RuleViolation != CheatingByIdentity","reduction":["GDF3 norm application","intent/evidence scope"]},
+    {"id":"C8-F20","regime":"bribery/confidential information/match manipulation","pressure":"integrity-relevant conduct can happen before/outside local in-game action loop","result":"IntegrityRelevantConduct != InGameActionNecessity","reduction":["Institutional/Law/Social owner","Game outcome/status consequence"]},
+    {"id":"C8-F21","regime":"single-player/self-authorized modification","pressure":"cheat codes/console/save editing/mods/assists allowed by current practice","result":"CapabilityToBypassOrdinaryChallenge != CheatingViolationByIdentity","reduction":["GDF0 owner-local rules","GDF2 challenge semantics"]},
+    {"id":"C8-F22","regime":"fairness counterexamples","pressure":"authorized asymmetric play vs prohibited act that happens not to change statistical fairness","result":"UnfairOutcome != CheatingByIdentity AND FairOutcome != NoCheatingByIdentity","reduction":["R22 fairness","GDF0/GDF3 violation status"]},
+    {"id":"C8-F23","regime":"appeal/review","pressure":"current violation determination can change on appeal while earlier ruling remains history","result":"PriorViolationDetermination != EternalViolationTruthToken","reduction":["GDF3/GPR2 decision lineage/currentness"]},
+    {"id":"C8-F24","regime":"future ban/admission","pressure":"violation changes future participation while historical incident GameInstance remains same instance","result":"FutureParticipationRestriction != PastGameInstanceIdentityChangeByIdentity","reduction":["GPR4 enforcement","C4 opportunity formation","C1 future constitution"]}
+  ],
+  "residualPattern": {
+    "names": ["IntegrityIncidentView", "AuthorizedContributionDiagnostic"],
+    "status": "USEFUL_COMPOSED_PRACTICAL_RESEARCH_ABSTRACTION_NOT_GAME_FOUNDATION",
+    "stages": [
+      "ConductOrEventRefs",
+      "ClaimedParticipantRoleControlRefs",
+      "AssistanceCommunicationInformationAccessRefs",
+      "ApplicableNormRuleCurrentnessRefs",
+      "AllegationSuspicionDetectionRefs",
+      "EvidenceVerificationRefs",
+      "AuthoritativeDeterminationAndCurrentStatus",
+      "AffectedOutcomeRecordInstanceRefs",
+      "ConsequenceEnforcementRemedyRefs",
+      "ReviewAppealDecisionLineageRefs",
+      "ProvenanceAndScope"
+    ]
+  },
+  "authorizedContributionSubtraction": {
+    "CausalContribution":"GDF2 OutcomeAttributionView",
+    "ParticipantControlProvenance":"GPR6 + R24",
+    "Authorization":"GDF0 + GPR1",
+    "Evidence":"GPR3",
+    "BindingViolationStatus":"GDF3/GPR2",
+    "Consequences":"GPR4"
+  },
+  "ownership": {
+    "Game":["Game-relative prohibited/permitted conduct and assistance semantics","Game-relative role/control/information-access constraints","which findings affect outcomes/records/instance eligibility"],
+    "SocialInstitutionalLaw":["sporting conduct codes","competition governance","external disciplinary legitimacy","bribery/legal obligations","institutional recognition"],
+    "SecurityRuntime":["client/server tamper resistance","anti-cheat scanning/detection","account/session authentication","technical trust signals","security vulnerabilities/compromise"],
+    "WorldHistory":["physical/digital events that occurred"],
+    "Human":["intent as mental fact subject to evidence limits"]
+  },
+  "foundationVerdict":"NO_INDEPENDENT_GAME_FOUNDATION_RESPONSIBILITY_SURVIVES",
+  "practicalVerdict":"MODERATE_INTEGRATION_DIAGNOSTIC_GAP__MOSTLY_ALREADY_RECONSTRUCTED_BY_GPR2_GPR4_GPR6__NO_GPR_ADMISSION__NO_GENERIC_ENGINEERING_SOURCE_LAYER_PROVEN",
+  "agentEraVerdict":"AGENT_IDENTITY_DOES_NOT_DETERMINE_VIOLATION_STATUS__ROLE_AUTHORITY_SCOPE_CONTROL_AND_INFORMATION_CHANNELS_REMAIN_DECISIVE__NO_AGENT_INTEGRITY_PRIMITIVE",
+  "reopenAudit": {
+    "R1-R29/F1-F9":"NOT_TRIGGERED",
+    "GDF0_PRC3":"NOT_TRIGGERED",
+    "GDF0_PRC6":"NOT_TRIGGERED",
+    "GDF1":"NOT_TRIGGERED",
+    "GDF2":"NOT_TRIGGERED",
+    "GDF3":"NOT_TRIGGERED"
+  },
+  "relativeUpdate": {
+    "C1":"SURVIVES_STRONG_GAME_OWNED_DOWNSTREAM_FOUNDATION_CANDIDATE",
+    "C2":"REDUCED",
+    "C3":"REDUCED",
+    "C4":"REDUCED",
+    "C5":"REDUCED",
+    "C6":"REDUCED",
+    "C7":"REDUCED",
+    "C8":"REDUCED_EXISTING_GPR2_GPR4_GPR6_PLUS_SECURITY_INSTITUTIONAL_OWNERS"
+  },
+  "finalClassification":"MOSTLY_ALREADY_PRACTICALLY_RECONSTRUCTED_BY_GPR2_GPR4_GPR6__MODERATE_INTEGRATION_DIAGNOSTIC_GAP__SECURITY_INSTITUTIONAL_CROSS_OWNER_DEPENDENCY__NOT_GENUINELY_NEW_GAME_FOUNDATION__NOT_ROUTE_SELECTED"
+}

@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://modules/f09/creature_animation_system.gd" id="1_a09"]
+
+[node name="VeilwildAnimationSystem" type="Node" unique_id=1920226939]
+script = ExtResource("1_a09")

@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf3-f-final-freeze-probes",
+  "cases": {
+    "statusIdentity": {
+      "token": "VALID",
+      "targets": [
+        "action",
+        "run-category",
+        "record",
+        "appeal"
+      ],
+      "ambiguousWithoutTarget": true
+    },
+    "authorityPair": {
+      "content": "FOUL",
+      "analyst": {
+        "binding": false
+      },
+      "referee": {
+        "binding": true
+      },
+      "sameContent": true
+    },
+    "roleFusion": {
+      "entity": "X",
+      "operations": {
+        "proposal": false,
+        "interpretation": false,
+        "ruleChange": true,
+        "caseDetermination": true,
+        "enforcement": true
+      },
+      "authorityOperationSpecific": true
+    },
+    "basisPairs": {
+      "sameEvidence": {
+        "evidence": "E",
+        "normA": "N1",
+        "normB": "N2",
+        "resultA": "VALID",
+        "resultB": "INVALID"
+      },
+      "sameNorm": {
+        "norm": "N",
+        "evidenceA": "E1",
+        "evidenceB": "E2",
+        "resultA": "VALID",
+        "resultB": "INVALID"
+      }
+    },
+    "deterministicPair": {
+      "algorithm": "A",
+      "transientExecution": {
+        "officialStatus": false,
+        "adjudicative": false
+      },
+      "officialResult": {
+        "officialStatus": true,
+        "appealable": true,
+        "adjudicative": true
+      }
+    },
+    "solitaryPair": {
+      "entity": "Solo",
+      "tentativeBelief": {
+        "binding": false,
+        "adjudicative": false
+      },
+      "selfMaintainedCertification": {
+        "binding": true,
+        "scope": "self-authored challenge",
+        "adjudicative": true
+      },
+      "externalInstitutionRequired": false
+    },
+    "review": {
+      "d0": {
+        "status": "PENALTY",
+        "current": false
+      },
+      "d1": {
+        "status": "NO_PENALTY",
+        "current": true,
+        "supersedes": "d0"
+      },
+      "historyPreserved": true,
+      "dedicatedLineagePrimitive": false
+    },
+    "enforcement": {
+      "determination": "DISQUALIFIED",
+      "binding": true,
+      "enforcementSucceeded": false,
+      "determinationStillExists": true
+    },
+    "fusedExecution": {
+      "determinationAndEnforcementSameStep": true,
+      "conceptuallySeparableUnderCounterfactualReplacement": true
+    },
+    "substrate": {
+      "human": {
+        "authority": "A"
+      },
+      "synthetic": {
+        "authority": "A"
+      },
+      "semanticContractChanged": false
+    },
+    "owner": {
+      "worldTruth": "H",
+      "officialStatus": "INVALID",
+      "canCoexist": true
+    }
+  },
+  "falsifiers": {
+    "targetStatusCannotDisappear": true,
+    "bindingCannotComeFromContent": true,
+    "authorityMustBeOperationSpecific": true,
+    "basisTypingCounterfactual": true,
+    "deterministicAlgorithmDoesNotDecideBoundary": true,
+    "externalInstitutionNotRequired": true,
+    "lineageRemainsDerived": true,
+    "enforcementNotCore": true,
+    "fusedImplementationDoesNotEraseSeparation": true,
+    "substrateNeutral": true,
+    "officialStatusNotWorldTruth": true
+  },
+  "frozenContract": {
+    "name": "AuthoritativeCaseDeterminationContract",
+    "obligations": [
+      "DeterminationTargetAndStatus",
+      "BindingAuthorityAndCurrentness",
+      "TypedDeterminationBasisWhenMaterial"
+    ],
+    "ontologyPrimitive": false
+  }
+}

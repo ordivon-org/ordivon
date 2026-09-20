@@ -1,0 +1,233 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf0-d-cross-context-matrix",
+  "epistemicBoundary": {
+    "purpose": "qualitative falsification matrix for GDF0-C mechanisms",
+    "doesNotProve": [
+      "ordinary-language category membership by itself",
+      "human PlayExperience where no human experiential evidence is cited",
+      "scientific novelty of Ordivon syntheses",
+      "that any single listed mechanism is necessary or sufficient for all play/game phenomena"
+    ]
+  },
+  "cases": [
+    {
+      "id": "animal-social-play",
+      "category": "play-non-game",
+      "agencyScaffold": "emergent",
+      "policyDifferentiation": "present",
+      "fixedGlobalGoal": "absent",
+      "localEvaluation": "behaviorally-inferred-not-phenomenologically-proven",
+      "frame": "social-signals-and-action-modification",
+      "externalInstrumentality": "low-immediate-unknown-long-term",
+      "perturbationRecovery": "strong-subset-fit",
+      "ruleAuthority": ["material", "interactional"],
+      "pressure": ["A-not-game-specific", "R-not-game-specific", "F-can-exist-without-formal-rules"]
+    },
+    {
+      "id": "free-pretend-play",
+      "category": "play-non-game-or-borderline",
+      "agencyScaffold": "participant-generated",
+      "policyDifferentiation": "variable",
+      "fixedGlobalGoal": "absent",
+      "localEvaluation": "dynamic-participant-generated",
+      "frame": "strong-imaginative",
+      "externalInstrumentality": "usually-low-but-not-definitional",
+      "perturbationRecovery": "not-central",
+      "ruleAuthority": ["participant", "social"],
+      "pressure": ["C9-fixed-goal-unnecessary", "C0-structure-emerges-from-practice"]
+    },
+    {
+      "id": "minecraft-free-sandbox",
+      "category": "game-artifact-open-play",
+      "agencyScaffold": "strong-artifact-affordance",
+      "policyDifferentiation": "project-dependent",
+      "fixedGlobalGoal": "absent",
+      "localEvaluation": "player-authored-or-activity-local",
+      "frame": "game-plus-player-project",
+      "externalInstrumentality": "variable",
+      "perturbationRecovery": "optional",
+      "ruleAuthority": ["artifact", "participant"],
+      "pressure": ["C9-survives-no-fixed-goal", "artifact-does-not-fix-one-evaluation-topology"]
+    },
+    {
+      "id": "casual-chess",
+      "category": "game",
+      "agencyScaffold": "strong",
+      "policyDifferentiation": "strong",
+      "fixedGlobalGoal": "present",
+      "localEvaluation": "explicit",
+      "frame": "formal-game",
+      "externalInstrumentality": "low",
+      "perturbationRecovery": "not-central",
+      "ruleAuthority": ["formal", "social"],
+      "pressure": ["S-A-fit-game", "low-external-coupling-not-required-globally"]
+    },
+    {
+      "id": "professional-esport",
+      "category": "game-and-work",
+      "agencyScaffold": "strong",
+      "policyDifferentiation": "strong",
+      "fixedGlobalGoal": "present",
+      "localEvaluation": "explicit",
+      "frame": "formal-game-professional-practice",
+      "externalInstrumentality": "high-career-status-money",
+      "perturbationRecovery": "game-dependent",
+      "ruleAuthority": ["formal", "tournament", "platform"],
+      "pressure": ["C4-strong", "play-vs-work-binary-fails", "consequence-coupling-high-with-game-structure-stable"]
+    },
+    {
+      "id": "gambling-game",
+      "category": "game-high-stake",
+      "agencyScaffold": "variable",
+      "policyDifferentiation": "variable",
+      "fixedGlobalGoal": "usually-present",
+      "localEvaluation": "explicit",
+      "frame": "formal-game",
+      "externalInstrumentality": "very-high-economic",
+      "perturbationRecovery": "not-central",
+      "ruleAuthority": ["formal", "institutional", "legal"],
+      "pressure": ["consequence-isolation-fails", "intrinsic-only-play-criterion-fails"]
+    },
+    {
+      "id": "speedrunning",
+      "category": "game-practice-overlay",
+      "agencyScaffold": "base-plus-community-overlay",
+      "policyDifferentiation": "strong",
+      "fixedGlobalGoal": "category-local",
+      "localEvaluation": "community-defined-time-and-validity",
+      "frame": "community-practice",
+      "externalInstrumentality": "variable",
+      "perturbationRecovery": "execution-dependent",
+      "ruleAuthority": ["artifact", "community-moderator", "participant"],
+      "pressure": ["C0-strong", "formal-artifact-not-complete-structure", "effective-rule-topology-distributed"]
+    },
+    {
+      "id": "training-drill",
+      "category": "non-game-or-game-like-training",
+      "agencyScaffold": "strong",
+      "policyDifferentiation": "strong",
+      "fixedGlobalGoal": "present",
+      "localEvaluation": "explicit",
+      "frame": "training",
+      "externalInstrumentality": "high-transfer-purpose",
+      "perturbationRecovery": "often-strong",
+      "ruleAuthority": ["instructor", "procedure", "material"],
+      "pressure": ["A-not-game-specific", "S-not-game-specific", "R-not-play-specific"]
+    },
+    {
+      "id": "scientific-experiment",
+      "category": "non-game-work-or-inquiry",
+      "agencyScaffold": "strong",
+      "policyDifferentiation": "strong",
+      "fixedGlobalGoal": "research-question-local",
+      "localEvaluation": "epistemic-methodological",
+      "frame": "scientific-practice",
+      "externalInstrumentality": "high-epistemic-work",
+      "perturbationRecovery": "optional",
+      "ruleAuthority": ["method", "institution", "material"],
+      "pressure": ["E-not-play-specific", "A-not-game-specific", "F-not-game-specific"]
+    },
+    {
+      "id": "artistic-improvisation",
+      "category": "non-game-or-playful-performance",
+      "agencyScaffold": "soft-or-emergent",
+      "policyDifferentiation": "strong-expressive",
+      "fixedGlobalGoal": "absent",
+      "localEvaluation": "aesthetic-expressive-dynamic",
+      "frame": "performance-creative-practice",
+      "externalInstrumentality": "variable",
+      "perturbationRecovery": "optional",
+      "ruleAuthority": ["participant", "genre", "social"],
+      "pressure": ["P-not-game-specific", "C9-not-game-specific", "A-not-game-specific"]
+    },
+    {
+      "id": "ritual",
+      "category": "non-game",
+      "agencyScaffold": "often-strong",
+      "policyDifferentiation": "variable",
+      "fixedGlobalGoal": "not-game-goal",
+      "localEvaluation": "symbolic-normative",
+      "frame": "strong-ritual",
+      "externalInstrumentality": "social-sacred-institutional",
+      "perturbationRecovery": "not-central",
+      "ruleAuthority": ["tradition", "institution", "social"],
+      "pressure": ["F-not-game-specific", "S-not-game-specific", "constitutive-rules-not-game-specific"]
+    },
+    {
+      "id": "gamified-work-task",
+      "category": "work-with-game-elements",
+      "agencyScaffold": "underlying-task-plus-overlay",
+      "policyDifferentiation": "task-dependent",
+      "fixedGlobalGoal": "task-plus-overlay",
+      "localEvaluation": "work-and-game-element-layered",
+      "frame": "mixed",
+      "externalInstrumentality": "high-work",
+      "perturbationRecovery": "not-central",
+      "ruleAuthority": ["work-system", "game-overlay", "participant-customization"],
+      "pressure": ["configuration-can-change-experience-without-changing-underlying-task", "category-boundary-remains-nontrivial"]
+    },
+    {
+      "id": "ai-dynamic-rule-player",
+      "category": "game-execution-agent-era",
+      "agencyScaffold": "strong-dynamic-rule",
+      "policyDifferentiation": "strong",
+      "fixedGlobalGoal": "present-or-local",
+      "localEvaluation": "explicit-structural",
+      "frame": "game",
+      "externalInstrumentality": "benchmark-research",
+      "perturbationRecovery": "not-central",
+      "ruleAuthority": ["game-state", "rule-manipulation-semantics"],
+      "pressure": ["C11-strong", "rule-currentness-and-authority-matter", "play-experience-not-inferred"]
+    },
+    {
+      "id": "agent-rule-balancing",
+      "category": "production-design-not-runtime-play",
+      "agencyScaffold": "meta-design-space",
+      "policyDifferentiation": "strong-search",
+      "fixedGlobalGoal": "balance-objective",
+      "localEvaluation": "design-metric",
+      "frame": "production-research",
+      "externalInstrumentality": "high-design-purpose",
+      "perturbationRecovery": "not-central",
+      "ruleAuthority": ["designer", "optimizer", "engine"],
+      "pressure": ["agent-locus-must-remain-separated", "A-not-runtime-specific", "production-agent-need-not-agent-game"]
+    }
+  ],
+  "candidateAudit": {
+    "AgencyScaffold": {
+      "gameCases": ["casual-chess", "professional-esport", "minecraft-free-sandbox"],
+      "nonGameCounterexamples": ["training-drill", "scientific-experiment", "ritual"],
+      "disposition": "retain-domain-general-structural-substrate-not-game-discriminator"
+    },
+    "AgencySculpting_PolicyDifferentiation": {
+      "gameCases": ["casual-chess", "professional-esport", "speedrunning"],
+      "nonGameCounterexamples": ["training-drill", "scientific-experiment", "artistic-improvisation"],
+      "disposition": "demote-game-specificity-retain-design-falsifier"
+    },
+    "DynamicEvaluationTopology": {
+      "gameCases": ["minecraft-free-sandbox", "speedrunning"],
+      "nonGameCounterexamples": ["scientific-experiment", "artistic-improvisation"],
+      "disposition": "retain-no-fixed-goal-distinction-demote-game-specificity"
+    },
+    "Frame_EvaluationLayering": {
+      "gameCases": ["professional-esport", "gambling-game", "speedrunning"],
+      "nonGameCounterexamples": ["ritual", "scientific-experiment", "gamified-work-task"],
+      "disposition": "retain-coupling-model-not-category-test"
+    },
+    "Exploration_LearningProgress": {
+      "gameCases": ["minecraft-free-sandbox"],
+      "nonGameCounterexamples": ["scientific-experiment"],
+      "disposition": "retain-subset-mechanism-not-play-identity"
+    },
+    "Perturbation_Recovery": {
+      "gameOrPlayCases": ["animal-social-play"],
+      "nonPlayCounterexamples": ["training-drill"],
+      "disposition": "retain-narrow-mechanism-not-play-discriminator"
+    },
+    "CoupledLudicConfiguration": {
+      "supportingCases": ["free-pretend-play", "minecraft-free-sandbox", "professional-esport", "speedrunning", "gamified-work-task", "ai-dynamic-rule-player"],
+      "disposition": "retain-working-factorization-needs-predictive-configuration-tests"
+    }
+  }
+}

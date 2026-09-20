@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "veilwild.f13-research-binding.r1",
+  "producer": "A13/F13",
+  "baseline": "8ebc23144ed5b49d685cc32ac11428bbddf64d2f",
+  "researchContract": {
+    "producer": "A03/F03",
+    "commit": "55dd57c45ce2f0b44eabaaabfa6c94d2080e9b99",
+    "path": "experiments/veilwild-r1/contracts/F03_BIOMIMETICS_TRANSFER_CONTRACT_R1.json",
+    "sha256": "b2aabebf538655dbaba5fdf839725d5bf90d8af12a3afc016773dd0778d6ce21",
+    "independentlyRevalidated": true
+  },
+  "implementationReceipts": [
+    {
+      "requirementId": "F03-R3-MOTION-EXPOSURE",
+      "consumerFrontAgent": "F13/A13",
+      "consumerArtifact": "experiments/veilwild-r1/godot/modules/f13/creature_behavior_policy.gd",
+      "whatChangedBecauseOfRequirement": "After exact F03 binding, outputs explicitly distinguish settled CONCEAL from EVADE using materially different camouflage_drive and cue opportunities while preserving a nonzero motion/cue path.",
+      "mechanicalOracle": "test_product_intent_and_cue_contract plus deterministic state tests",
+      "knownDivergenceOrFictionalization": "Drive magnitudes and timing are game-authored; F12/F09 own rendered/motion consequence."
+    },
+    {
+      "requirementId": "F03-R4-THREAT-CONCEAL-EVADE-COUPLING",
+      "consumerFrontAgent": "F13/A13",
+      "consumerArtifact": "experiments/veilwild-r1/godot/modules/f13/creature_behavior_policy.gd",
+      "whatChangedBecauseOfRequirement": "Exact source binding made the product/research boundary executable: stable ALERT_ORIENT/CONCEAL/EVADE mapping, explicit game-authored threat units, edge transition IDs, EVADE gated on accepted escape availability, observation_abort at EVADE, and RECOVER reacquisition phase.",
+      "mechanicalOracle": "warning/freeze, evade-with-path, no-evade-without-path, and recovery tests",
+      "knownDivergenceOrFictionalization": "Thresholds, dwell times, threat formula and recovery timing are fictional gameplay parameters, not biological measurements."
+    },
+    {
+      "requirementId": "F03-R6-NO-PERFECT-CONCEALMENT-OPTIMIZER",
+      "consumerFrontAgent": "F13/A13",
+      "consumerArtifact": "experiments/veilwild-r1/f13-behavior/CREATURE_BEHAVIOR_INTERFACE_R1.json",
+      "whatChangedBecauseOfRequirement": "F13 explicitly prohibits a global optimum/Human-detectability oracle and consumes only bounded F14 availability/suitability/affordance identities; it emits semantic nav requests instead of selecting global path geometry.",
+      "mechanicalOracle": "input surface contains no Human score/global-world query; caller-supplied affordance IDs round-trip through nav intent",
+      "knownDivergenceOrFictionalization": "Exact concealment candidate selection/path feasibility remain F14-owned and are not yet source-bound."
+    }
+  ],
+  "closureQualification": "Exact F03-to-F13 transfer is demonstrated for R3/R4 and a partial R6 boundary. This does not independently close V-K1, Human claims, F14 affordance selection, shader/animation consequence, or integrated runtime behavior."
+}

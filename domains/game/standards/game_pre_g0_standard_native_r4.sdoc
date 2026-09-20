@@ -1,0 +1,110 @@
+[DOCUMENT]
+TITLE: Game Pre-G0 Standard-Native R4 Requirement Trace
+
+[REQUIREMENT]
+UID: GAME-HCD-001
+TITLE: Player-facing hypotheses and intended context are explicit
+STATEMENT: Pre-G0 work shall identify the player-facing hypothesis, the interaction or experience under investigation, and the decision that the evidence is intended to inform.
+RATIONALE: Task-local trace informed by ISO 9241-210 human-centred design and current Games User Research practice.
+
+[REQUIREMENT]
+UID: GAME-HCD-002
+TITLE: Human evaluation is part of the iterative design loop
+STATEMENT: The Pre-G0 process shall provide an explicit route from player-facing hypotheses and prototypes to real human evaluation and then to repair, revision, continuation or termination.
+RATIONALE: Task-local human-centred design criterion informed by ISO 9241-210.
+
+[REQUIREMENT]
+UID: GAME-HCD-003
+TITLE: C0 human canary evidence exists before usability is claimed
+STATEMENT: A claim that the current apparatus is usable enough for its declared mechanism shall require at least one recorded real-human C0 observation under the bounded C0 protocol.
+RATIONALE: Automated apparatus completion is not human usability evidence.
+
+[REQUIREMENT]
+UID: GAME-HCD-004
+TITLE: Player Value claims require real participant evidence
+STATEMENT: Claims about learning, agency, mastery, attachment, creativity, fairness, understanding, voluntary retry or other player value shall remain unproven until the declared human-evidence threshold is met.
+RATIONALE: The current Game protocol correctly separates mechanical evidence from C1 Player Value evidence.
+
+[REQUIREMENT]
+UID: GAME-HCD-005
+TITLE: Human evidence can overturn a thesis
+STATEMENT: Product theses and prototype directions shall remain revisable or killable when human evidence contradicts the proposed player mechanism.
+RATIONALE: Task-local iterative-design requirement informed by ISO 9241-210 and mature game user-research practice.
+
+[REQUIREMENT]
+UID: GAME-USAB-001
+TITLE: Mechanical apparatus integrity is verified separately
+STATEMENT: Input, rules, feedback, reset, commit, revision and other apparatus mechanics shall have automated verification where automation can validly test them.
+RATIONALE: ISO 9241-11 usability concepts do not justify treating mechanical execution as human effectiveness, efficiency or satisfaction.
+
+[REQUIREMENT]
+UID: GAME-USAB-002
+TITLE: Usability in context requires human observation
+STATEMENT: Effectiveness, efficiency, satisfaction and mechanism legibility in the intended play context shall be evaluated with human participants before those outcomes are claimed.
+RATIONALE: Task-local trace informed by ISO 9241-11.
+
+[REQUIREMENT]
+UID: GAME-A11Y-001
+TITLE: Critical player actions have more than one hard-coded input route where practical
+STATEMENT: The current playtest carrier should avoid making a critical action depend on one uniquely hard-coded input when equivalent accessible input routes are practical, and future product controls shall revisit remapping and device needs once the target product is selected.
+RATIONALE: Advisory requirement informed by current Xbox Accessibility Guidelines; partial coverage is not a certification claim.
+
+[REQUIREMENT]
+UID: GAME-A11Y-002
+TITLE: Text and visual information are intentionally legible
+STATEMENT: The playtest carrier shall use explicit readable text, state labels and visual contrast choices, while measured accessibility claims require dedicated evaluation rather than visual inspection alone.
+RATIONALE: Advisory requirement informed by Xbox Accessibility Guidelines and selected WCAG 2.2 criteria.
+
+[REQUIREMENT]
+UID: GAME-A11Y-003
+TITLE: Interactive web controls expose accessible control semantics
+STATEMENT: Standard interactive controls in the web playtest carrier shall use semantic controls or explicit accessible names so that the carrier does not rely solely on pointer-visible text.
+RATIONALE: Web-carrier requirement informed by WCAG 2.2; it does not establish full WCAG conformance.
+
+[REQUIREMENT]
+UID: GAME-A11Y-004
+TITLE: Essential canvas gameplay does not overclaim equivalent access
+STATEMENT: If essential gameplay is expressed only through a visual canvas, the accessibility standing shall remain open until an equivalent interaction or justified product-specific alternative is provided and evaluated.
+RATIONALE: Selected WCAG non-text/input concerns apply to the current web carrier; surrounding prose alone is not equivalent gameplay access.
+
+[REQUIREMENT]
+UID: GAME-PRIV-001
+TITLE: Early local playtest collection is data-minimized
+STATEMENT: The bounded local C0/C1 apparatus shall avoid collecting demographics or sensitive participant data when those data are unnecessary for the learning question.
+RATIONALE: Current protocol intentionally uses a non-sensitive local participant label and local evidence only.
+
+[REQUIREMENT]
+UID: GAME-PRIV-002
+TITLE: Broader participant governance activates when the study expands
+STATEMENT: Recruitment, consent, remote collection, account linkage, sensitive data or wider participant research shall activate appropriate privacy, research and platform obligations before collection begins.
+RATIONALE: This requirement is future-triggered; current local canary scope does not justify inventing a full research-governance regime prematurely.
+
+[REQUIREMENT]
+UID: GAME-ENG-001
+TITLE: The accepted engine and build condition are explicit
+STATEMENT: Mechanical Game evidence shall identify the engine/provider version and accepted build/export condition rather than treating any locally available engine as equivalent.
+RATIONALE: Godot provider semantics and the existing Game development-stack graduation evidence own this implementation boundary.
+
+[REQUIREMENT]
+UID: GAME-ENG-002
+TITLE: Provider currentness is tracked without forced upgrades
+STATEMENT: A newer stable provider release shall be recorded as currentness information, but a pinned validated engine shall not be replaced until a real requirement, defect, support boundary or migration benefit justifies the change.
+RATIONALE: Current local Game stack is accepted on Godot 4.7.1 while 4.7.2 is the observed upstream stable release.
+
+[REQUIREMENT]
+UID: GAME-AGENT-001
+TITLE: Agent participation is not inferred from production tooling
+STATEMENT: Production use of agents shall not imply that a shipped Runtime Agent is necessary, and synthetic completion shall not be substituted for human player evidence.
+RATIONALE: Current Pre-G0 hypotheses all retain a no-Runtime-Agent baseline.
+
+[REQUIREMENT]
+UID: GAME-DIST-001
+TITLE: Distribution obligations activate only when a target exists
+STATEMENT: Rating, store-review, platform certification and release-policy requirements shall be bound when a concrete target product and distribution carrier are selected, rather than being imposed as a false Pre-G0 gate.
+RATIONALE: Current phase has no committed product or distribution target.
+
+[REQUIREMENT]
+UID: GAME-G0-001
+TITLE: Standards evidence does not create product commitment
+STATEMENT: Passing mechanical, usability or accessibility checks shall not by itself select a product or admit canonical G0; product commitment requires the Game-owned decision supported by the declared evidence.
+RATIONALE: External standards constrain evidence quality but do not select the game product.

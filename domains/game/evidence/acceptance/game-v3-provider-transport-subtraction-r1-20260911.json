@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game-v3-provider-transport-subtraction-r1",
+  "truthRole": "engineering-subtraction-evidence-not-provider-currentness-or-external-provider-compliance-claim",
+  "recordedAt": "2026-09-11",
+  "taskId": "task:ordivon-game-external-mature-composition-r1-20260911",
+  "baseCandidate": "3aa753ed695f9219362130a2519fb5843a3b1044",
+  "standing": "PASS_BOUNDED",
+  "retired": [
+    {
+      "path": "src/station-zero-v3/deepseek-provider.ts",
+      "previousLoc": 553,
+      "responsibility": "DeepSeek HTTP request/response parsing, retry loop, model usage/evidence and provider pool"
+    },
+    {
+      "path": "src/station-zero-v3/deepseek-credentials.ts",
+      "previousLoc": 580,
+      "responsibility": "credential discovery, secret loading, deduplication, concurrency, weighted scheduling, cooldown and quarantine"
+    }
+  ],
+  "retiredLoc": 1133,
+  "replacementBoundary": {
+    "gameKeeps": [
+      "StationZeroV3AgentContext",
+      "StationZeroV3AgentProviderFactory",
+      "StationZeroV3AgentDecision",
+      "decision admission",
+      "World consequence",
+      "replay and evaluation meaning"
+    ],
+    "externalOwnerKeeps": [
+      "credentials",
+      "endpoint/model configuration",
+      "HTTP/SDK transport",
+      "retry/fallback",
+      "concurrency",
+      "cooldown/rate-limit handling",
+      "provider currentness and cost accounting"
+    ],
+    "moduleEntry": "ORDIVON_GAME_V3_PROVIDER_MODULE"
+  },
+  "researchRunnerBoundary": {
+    "genericJsonModelModule": "ORDIVON_GAME_EXTERNAL_JSON_MODEL_MODULE",
+    "stationZeroEvaluator": "scripts/eval-station-zero-v3-external-provider.ts"
+  },
+  "focusedVerification": {
+    "pass": 12,
+    "total": 12,
+    "fail": 0
+  },
+  "fullVerification": {
+    "pass": 414,
+    "total": 414,
+    "fail": 0
+  },
+  "nextFrontier": [
+    "storage implementation mechanics versus irreducible World/event/recovery semantics"
+  ],
+  "explicitNonScope": [
+    "Human evidence",
+    "rights standing",
+    "release standing",
+    "external provider compliance/currentness"
+  ]
+}

@@ -1,0 +1,576 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.causal-lag-pressure-r5-mechanical-acceptance",
+  "designId": "pc01-causal-works-f0",
+  "designDigest": "sha256:19a258b457f4bbdeaf1e97a24c01bd9b800f0e50a4e3ffebe857e75290e0ac7c",
+  "legoMethod": {
+    "methodSnapshot": {
+      "project": "ordivon-next",
+      "observedRevision": "0032108f2fa9ce019e3735623e5b37fed23fc3a8",
+      "authority": "ANALYSIS_METHOD_PROVENANCE_ONLY"
+    },
+    "questionCompiler": {
+      "target": "Create macro pressure that changes decisions rather than merely raising numbers.",
+      "survivingQuestions": [
+        "Which existing pressure variables actually change optimal local policy?",
+        "Which candidate is the smallest visible intervention that preserves current player verbs?",
+        "Does its value depend on the hidden stability regime?",
+        "Can content reference pressure without owning numeric rule semantics?",
+        "Does a longer run preserve terminal stakes and R4 compatibility?"
+      ]
+    },
+    "ckDesign": {
+      "c0": "A longer Causal Lag run with non-fake pacing produced from existing mechanics.",
+      "selectedBranch": "visible diagnostic-cost pressure schedule over unchanged hidden run stability",
+      "deferredBranches": [
+        "persistence scheduling",
+        "switch-inertia scheduling",
+        "horizon-aware contract-margin policy",
+        "new player mechanics"
+      ],
+      "rejectedBranch": "targetTotal-only pacing under the current myopic local objective"
+    },
+    "feedbackControl": {
+      "regulatedOutcome": "contract standing over a ten-beat run",
+      "existingHiddenDisturbance": "run-level cause persistence regime",
+      "newVisiblePressure": "current information acquisition cost",
+      "controller": "player policy",
+      "effectSetChanged": false,
+      "observationBoundary": "current cost is public; regime, persistence and unresolved execution cause remain private"
+    }
+  },
+  "axisScreening": {
+    "localStateCount": 27,
+    "persistence": {
+      "levels": [
+        0,
+        0.2,
+        0.55,
+        0.9,
+        1
+      ],
+      "statesChanged": 19
+    },
+    "diagnosticCost": {
+      "levels": [
+        0,
+        3,
+        6,
+        9,
+        12,
+        18,
+        30
+      ],
+      "statesChanged": 27
+    },
+    "switchCost": {
+      "levels": [
+        0,
+        4,
+        8,
+        12,
+        20,
+        32
+      ],
+      "statesChanged": 18
+    },
+    "contractTarget": {
+      "levels": [
+        200,
+        320,
+        560,
+        690
+      ],
+      "statesChanged": 0,
+      "solverDependency": false,
+      "note": "Current local policy objective does not consume targetTotal; target changes terminal feasibility only."
+    }
+  },
+  "regimeConditioning": {
+    "0.2": {
+      "statesChanged": 0,
+      "cheapScanStates": 0,
+      "baselineScanStates": 0,
+      "expensiveScanStates": 0
+    },
+    "0.55": {
+      "statesChanged": 16,
+      "cheapScanStates": 16,
+      "baselineScanStates": 1,
+      "expensiveScanStates": 0
+    },
+    "0.9": {
+      "statesChanged": 27,
+      "cheapScanStates": 27,
+      "baselineScanStates": 17,
+      "expensiveScanStates": 0
+    }
+  },
+  "selectedAxis": {
+    "id": "diagnosticCost",
+    "reason": "Broadest bounded local policy sensitivity while preserving the action set and hidden regime semantics."
+  },
+  "explorationPolicy": {
+    "used": false,
+    "reason": "Candidate screening is deterministic, exhaustive, low-cost and attribution is exact; adaptive allocation adds no decision value."
+  },
+  "compiledRun": {
+    "schemaVersion": 1,
+    "kind": "ordivon.game.causal-lag-pressure-r5-compiled-run",
+    "recipeId": "causal-lag-pressure-run-r5",
+    "unitCount": 10,
+    "units": [
+      {
+        "id": "r5-01-open-baseline",
+        "role": "INTRODUCE",
+        "sourceCycleIndex": 0,
+        "executionCycleIndex": 0,
+        "pressureProfileId": "SCAN_CHEAP"
+      },
+      {
+        "id": "r5-02-open-shift",
+        "role": "PRACTICE",
+        "sourceCycleIndex": 0,
+        "executionCycleIndex": 1,
+        "pressureProfileId": "SCAN_CHEAP"
+      },
+      {
+        "id": "r5-03-build-hold",
+        "role": "VARY",
+        "sourceCycleIndex": 1,
+        "executionCycleIndex": 1,
+        "pressureProfileId": "BASELINE"
+      },
+      {
+        "id": "r5-04-build-revalue",
+        "role": "COMBINE",
+        "sourceCycleIndex": 1,
+        "executionCycleIndex": 2,
+        "pressureProfileId": "BASELINE"
+      },
+      {
+        "id": "r5-05-tight-revalue",
+        "role": "STRESS",
+        "sourceCycleIndex": 2,
+        "executionCycleIndex": 2,
+        "pressureProfileId": "SCAN_EXPENSIVE"
+      },
+      {
+        "id": "r5-06-tight-return",
+        "role": "STRESS",
+        "sourceCycleIndex": 2,
+        "executionCycleIndex": 0,
+        "pressureProfileId": "SCAN_EXPENSIVE"
+      },
+      {
+        "id": "r5-07-tight-baseline",
+        "role": "RECONTEXTUALIZE",
+        "sourceCycleIndex": 0,
+        "executionCycleIndex": 0,
+        "pressureProfileId": "SCAN_EXPENSIVE"
+      },
+      {
+        "id": "r5-08-release-shift",
+        "role": "PRACTICE",
+        "sourceCycleIndex": 0,
+        "executionCycleIndex": 1,
+        "pressureProfileId": "BASELINE"
+      },
+      {
+        "id": "r5-09-release-revalue",
+        "role": "COMBINE",
+        "sourceCycleIndex": 1,
+        "executionCycleIndex": 2,
+        "pressureProfileId": "SCAN_CHEAP"
+      },
+      {
+        "id": "r5-10-close-return",
+        "role": "CONCLUDE",
+        "sourceCycleIndex": 2,
+        "executionCycleIndex": 0,
+        "pressureProfileId": "SCAN_CHEAP"
+      }
+    ],
+    "maxTheoreticalBase": 1000,
+    "sessionRules": {
+      "roundCount": 10,
+      "targetTotal": 780,
+      "initialArchitecture": "route",
+      "contextChain": [
+        {
+          "sourceCycleIndex": 0,
+          "executionCycleIndex": 0
+        },
+        {
+          "sourceCycleIndex": 0,
+          "executionCycleIndex": 1
+        },
+        {
+          "sourceCycleIndex": 1,
+          "executionCycleIndex": 1
+        },
+        {
+          "sourceCycleIndex": 1,
+          "executionCycleIndex": 2
+        },
+        {
+          "sourceCycleIndex": 2,
+          "executionCycleIndex": 2
+        },
+        {
+          "sourceCycleIndex": 2,
+          "executionCycleIndex": 0
+        },
+        {
+          "sourceCycleIndex": 0,
+          "executionCycleIndex": 0
+        },
+        {
+          "sourceCycleIndex": 0,
+          "executionCycleIndex": 1
+        },
+        {
+          "sourceCycleIndex": 1,
+          "executionCycleIndex": 2
+        },
+        {
+          "sourceCycleIndex": 2,
+          "executionCycleIndex": 0
+        }
+      ],
+      "pressureChain": [
+        {
+          "profileId": "SCAN_CHEAP",
+          "diagnosticCost": 3,
+          "switchCost": 8
+        },
+        {
+          "profileId": "SCAN_CHEAP",
+          "diagnosticCost": 3,
+          "switchCost": 8
+        },
+        {
+          "profileId": "BASELINE",
+          "diagnosticCost": 6,
+          "switchCost": 8
+        },
+        {
+          "profileId": "BASELINE",
+          "diagnosticCost": 6,
+          "switchCost": 8
+        },
+        {
+          "profileId": "SCAN_EXPENSIVE",
+          "diagnosticCost": 12,
+          "switchCost": 8
+        },
+        {
+          "profileId": "SCAN_EXPENSIVE",
+          "diagnosticCost": 12,
+          "switchCost": 8
+        },
+        {
+          "profileId": "SCAN_EXPENSIVE",
+          "diagnosticCost": 12,
+          "switchCost": 8
+        },
+        {
+          "profileId": "BASELINE",
+          "diagnosticCost": 6,
+          "switchCost": 8
+        },
+        {
+          "profileId": "SCAN_CHEAP",
+          "diagnosticCost": 3,
+          "switchCost": 8
+        },
+        {
+          "profileId": "SCAN_CHEAP",
+          "diagnosticCost": 3,
+          "switchCost": 8
+        }
+      ]
+    },
+    "newPlayerVerbsAdded": 0,
+    "productSelected": false,
+    "g0Entered": false,
+    "humanOutcomeEstablished": false,
+    "gameCoreChanged": false
+  },
+  "terminalWitnesses": {
+    "success": {
+      "schemaVersion": 1,
+      "kind": "ordivon.game.causal-lag-session-r3-state",
+      "sessionStatus": "SUCCESS",
+      "totalNet": 1000,
+      "contract": {
+        "targetTotal": 780,
+        "remainingTarget": 0,
+        "maxRecoverableTotal": 1000,
+        "status": "ACHIEVED"
+      },
+      "history": [
+        {
+          "round": 1,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "route",
+          "architecture": "route",
+          "diagnostic": "none",
+          "net": 100
+        },
+        {
+          "round": 2,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "route",
+          "architecture": "route",
+          "diagnostic": "none",
+          "net": 100
+        },
+        {
+          "round": 3,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "route",
+          "architecture": "route",
+          "diagnostic": "none",
+          "net": 100
+        },
+        {
+          "round": 4,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "route",
+          "architecture": "route",
+          "diagnostic": "none",
+          "net": 100
+        },
+        {
+          "round": 5,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "route",
+          "architecture": "route",
+          "diagnostic": "none",
+          "net": 100
+        },
+        {
+          "round": 6,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "route",
+          "architecture": "route",
+          "diagnostic": "none",
+          "net": 100
+        },
+        {
+          "round": 7,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "route",
+          "architecture": "route",
+          "diagnostic": "none",
+          "net": 100
+        },
+        {
+          "round": 8,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "route",
+          "architecture": "route",
+          "diagnostic": "none",
+          "net": 100
+        },
+        {
+          "round": 9,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "route",
+          "architecture": "route",
+          "diagnostic": "none",
+          "net": 100
+        },
+        {
+          "round": 10,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "route",
+          "architecture": "route",
+          "diagnostic": "none",
+          "net": 100
+        }
+      ],
+      "current": {
+        "round": 10,
+        "phase": "resolved",
+        "previousArchitecture": "route",
+        "costPressure": {
+          "profileId": "SCAN_CHEAP",
+          "diagnosticCost": 3,
+          "switchCost": 8
+        },
+        "currentContext": {
+          "id": "cycle-3-rule-revaluation",
+          "operatingContext": "rule change raises the value of source resilience; scanning may no longer be worth its opportunity cost",
+          "visibleSymptom": "new operating rule makes input sufficiency the dominant uncertainty while the built system persists"
+        },
+        "executionForecast": {
+          "id": "cycle-1-baseline-output",
+          "operatingContext": "balanced contract; first architecture is still cheap to revise",
+          "visibleSymptom": "primary output misses target while aggregate capacity still appears viable"
+        },
+        "inspection": null,
+        "selectedArchitecture": "route",
+        "resolution": {
+          "sourceCause": "route",
+          "executionCause": "route",
+          "architecture": "route",
+          "baseReward": 100,
+          "diagnosticCost": 0,
+          "switchCost": 0,
+          "net": 100
+        }
+      },
+      "productSelected": false,
+      "g0Entered": false,
+      "humanOutcomeEstablished": false,
+      "gameCoreChanged": false
+    },
+    "failure": {
+      "schemaVersion": 1,
+      "kind": "ordivon.game.causal-lag-session-r3-state",
+      "sessionStatus": "FAILURE",
+      "totalNet": 374,
+      "contract": {
+        "targetTotal": 780,
+        "remainingTarget": 406,
+        "maxRecoverableTotal": 774,
+        "status": "FAILED_UNRECOVERABLE"
+      },
+      "history": [
+        {
+          "round": 1,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "route",
+          "architecture": "source",
+          "diagnostic": "none",
+          "net": 60
+        },
+        {
+          "round": 2,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "source",
+          "architecture": "source",
+          "diagnostic": "none",
+          "net": 55
+        },
+        {
+          "round": 3,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "source",
+          "architecture": "source",
+          "diagnostic": "none",
+          "net": 55
+        },
+        {
+          "round": 4,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "source",
+          "architecture": "source",
+          "diagnostic": "none",
+          "net": 68
+        },
+        {
+          "round": 5,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "source",
+          "architecture": "source",
+          "diagnostic": "none",
+          "net": 68
+        },
+        {
+          "round": 6,
+          "sourceCause": "route",
+          "executionCause": "route",
+          "persisted": true,
+          "previousArchitecture": "source",
+          "architecture": "source",
+          "diagnostic": "none",
+          "net": 68
+        }
+      ],
+      "current": {
+        "round": 6,
+        "phase": "resolved",
+        "previousArchitecture": "source",
+        "costPressure": {
+          "profileId": "SCAN_EXPENSIVE",
+          "diagnosticCost": 12,
+          "switchCost": 8
+        },
+        "currentContext": {
+          "id": "cycle-3-rule-revaluation",
+          "operatingContext": "rule change raises the value of source resilience; scanning may no longer be worth its opportunity cost",
+          "visibleSymptom": "new operating rule makes input sufficiency the dominant uncertainty while the built system persists"
+        },
+        "executionForecast": {
+          "id": "cycle-1-baseline-output",
+          "operatingContext": "balanced contract; first architecture is still cheap to revise",
+          "visibleSymptom": "primary output misses target while aggregate capacity still appears viable"
+        },
+        "inspection": null,
+        "selectedArchitecture": "source",
+        "resolution": {
+          "sourceCause": "route",
+          "executionCause": "route",
+          "architecture": "source",
+          "baseReward": 68,
+          "diagnosticCost": 0,
+          "switchCost": 0,
+          "net": 68
+        }
+      },
+      "productSelected": false,
+      "g0Entered": false,
+      "humanOutcomeEstablished": false,
+      "gameCoreChanged": false
+    }
+  },
+  "r4Compatibility": {
+    "roundCount": 7,
+    "targetTotal": 560,
+    "currentCostPressure": {
+      "profileId": "DESIGN_DEFAULT",
+      "diagnosticCost": 6,
+      "switchCost": 8
+    }
+  },
+  "newPlayerVerbsAdded": 0,
+  "pass": true,
+  "productSelected": false,
+  "g0Entered": false,
+  "humanOutcomeEstablished": false,
+  "gameCoreChanged": false,
+  "claimBoundary": "PRESSURE_TOPOLOGY_AND_POLICY_SENSITIVITY_MECHANICS_ONLY_NO_HUMAN_PACING_OR_PRODUCT_VALUE_CLAIM"
+}

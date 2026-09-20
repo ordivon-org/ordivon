@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "id": "pc01-causal-works-f0",
+  "status": "STRUCTURAL_COMPOSITION_FALSIFIER",
+  "productComposition": "PC01 Causal Works",
+  "boundary": "This carrier tests whether scarce diagnosis, architecture persistence, and changing operating context form a non-trivial decision system. It does not establish Human enjoyment, comprehension, market demand, or G0 admission.",
+  "architectureModes": ["source", "process", "route"],
+  "hiddenCauseStates": ["source", "process", "route"],
+  "diagnostics": ["none", "process", "route"],
+  "diagnosticCost": 6,
+  "switchCost": 8,
+  "cycles": [
+    {
+      "id": "cycle-1-baseline-output",
+      "visibleSymptom": "primary output misses target while aggregate capacity still appears viable",
+      "operatingContext": "balanced contract; first architecture is still cheap to revise",
+      "causePrior": {"source": 0.15, "process": 0.55, "route": 0.30},
+      "rewardByCauseAndArchitecture": {
+        "source": {"source": 100, "process": 70, "route": 68},
+        "process": {"source": 62, "process": 100, "route": 70},
+        "route": {"source": 68, "process": 74, "route": 100}
+      }
+    },
+    {
+      "id": "cycle-2-objective-shift",
+      "visibleSymptom": "priority output misses the new contract while the previous architecture remains operational",
+      "operatingContext": "objective shifts toward route-sensitive delivery; yesterday's architecture is not deleted",
+      "causePrior": {"source": 0.20, "process": 0.20, "route": 0.60},
+      "rewardByCauseAndArchitecture": {
+        "source": {"source": 100, "process": 72, "route": 60},
+        "process": {"source": 58, "process": 100, "route": 66},
+        "route": {"source": 55, "process": 70, "route": 100}
+      }
+    },
+    {
+      "id": "cycle-3-rule-revaluation",
+      "visibleSymptom": "new operating rule makes input sufficiency the dominant uncertainty while the built system persists",
+      "operatingContext": "rule change raises the value of source resilience; scanning may no longer be worth its opportunity cost",
+      "causePrior": {"source": 0.65, "process": 0.20, "route": 0.15},
+      "rewardByCauseAndArchitecture": {
+        "source": {"source": 100, "process": 64, "route": 60},
+        "process": {"source": 70, "process": 100, "route": 72},
+        "route": {"source": 68, "process": 76, "route": 100}
+      }
+    }
+  ],
+  "predeclaredChecks": {
+    "diagnosisAddsExpectedValueMin": 5.0,
+    "distinctPreferredDiagnosticsMin": 2,
+    "distinctNoScanArchitectureChoicesAcrossCyclesMin": 3,
+    "persistenceChangesAtLeastOneDecision": true,
+    "negativeDiagnosticObservationMustRemainAmbiguous": true,
+    "uniqueBestArchitecturePerCause": true
+  }
+}

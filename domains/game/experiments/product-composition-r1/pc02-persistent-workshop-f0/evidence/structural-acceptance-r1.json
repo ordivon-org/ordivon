@@ -1,0 +1,503 @@
+{
+  "schemaVersion": 2,
+  "kind": "pc02-persistent-workshop-f0-structural-acceptance",
+  "standing": "SURVIVES_PC02_F0_STRUCTURAL_COMPOSITION",
+  "mechanismLibraryModified": false,
+  "runtimeAgentProfile": "none",
+  "reusedPGPI": {
+    "primitiveGrammar": [
+      "circle",
+      "square",
+      "diamond",
+      "bar",
+      "ring"
+    ],
+    "pieceBudget": 6,
+    "transformGrammar": [
+      "left",
+      "up",
+      "right",
+      "down",
+      "rotate",
+      "grow",
+      "shrink"
+    ],
+    "revisionSemantics": "explicit immutable snapshots with JSON save/load re-entry"
+  },
+  "checks": {
+    "threeRoundsCommitted": true,
+    "revisionsPersistAndRemainDistinct": true,
+    "twoRevisionsRecoverAcrossRoundReload": true,
+    "explicitIntentAxisPersists": true,
+    "intentAxisChangesNonAudienceCommitConstraint": true,
+    "contextFeedbackDoesNotConsumeIntentMetadata": true,
+    "audienceCannotWriteArtifactOrIntent": true,
+    "audienceReadsCommittedRevisionNotWorkingCopy": true,
+    "sameArtifactContextIsDeterministic": true,
+    "twoProfilesHaveConflictingFootprintPreference": true,
+    "feedbackIsMultidimensionalAndNonScalar": true,
+    "differentCommittedArtifactsChangeLaterAffordances": true,
+    "committedArtifactCreatesLaterAffordance": true,
+    "rejectedAudiencePreferenceStillProgresses": true,
+    "reusedPGPIPrimitiveBudget": true,
+    "revisionUsesPGPITransform": true,
+    "separateIKCRAPTraceExists": true
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "revision": {
+        "id": 1,
+        "round": 1,
+        "label": "wide scaffold",
+        "parentRevisionId": null,
+        "pieces": [
+          {
+            "id": "p1",
+            "shape": "ring",
+            "x": 40,
+            "y": 72,
+            "size": 64,
+            "rot": 0,
+            "sourceAffordance": null
+          },
+          {
+            "id": "p2",
+            "shape": "bar",
+            "x": 240,
+            "y": 88,
+            "size": 80,
+            "rot": 0,
+            "sourceAffordance": null
+          },
+          {
+            "id": "p3",
+            "shape": "diamond",
+            "x": 448,
+            "y": 76,
+            "size": 60,
+            "rot": 0,
+            "sourceAffordance": null
+          }
+        ],
+        "artifactDigest": "sha256:0267f457e065765322295ed8d56f92628bc45e15caad22589b893b727487cf84",
+        "intentAxis": {
+          "axis": "spread",
+          "target": "wide"
+        },
+        "intentSatisfied": true,
+        "derivedAffordances": [
+          {
+            "token": "attach:0267f457e065:p1:east",
+            "kind": "attach-existing-primitive",
+            "sourcePieceId": "p1",
+            "x": 124,
+            "y": 88
+          },
+          {
+            "token": "attach:0267f457e065:p2:east",
+            "kind": "attach-existing-primitive",
+            "sourcePieceId": "p2",
+            "x": 340,
+            "y": 108
+          }
+        ]
+      },
+      "context": {
+        "round": 1,
+        "revisionId": 1,
+        "artifactDigest": "sha256:0267f457e065765322295ed8d56f92628bc45e15caad22589b893b727487cf84",
+        "feedback": {
+          "profile": "service_bay",
+          "authority": "advisory-context-observation",
+          "dimensions": {
+            "footprint": {
+              "status": "tension",
+              "observation": "footprint crosses the service aisle",
+              "preference": "compact"
+            },
+            "access": {
+              "status": "supports",
+              "observation": "ring primitive exposes a handling point",
+              "preference": "ring-present"
+            },
+            "alignment": {
+              "status": "supports",
+              "observation": "all pieces remain axis-aligned for fixtures",
+              "preference": "axis-aligned"
+            }
+          },
+          "suggestions": [
+            {
+              "id": "compress-span",
+              "dimension": "footprint",
+              "action": "move edge pieces inward"
+            }
+          ]
+        }
+      },
+      "preferenceDecision": {
+        "decision": "reject",
+        "profile": "service_bay",
+        "rationale": "preserve the declared wide spread intent while continuing through artifact-derived structure",
+        "round": 1,
+        "suggestionId": "compress-span"
+      }
+    },
+    {
+      "round": 2,
+      "revision": {
+        "id": 2,
+        "round": 2,
+        "label": "derived attachment without compacting",
+        "parentRevisionId": 1,
+        "pieces": [
+          {
+            "id": "p1",
+            "rot": 0,
+            "shape": "ring",
+            "size": 64,
+            "sourceAffordance": null,
+            "x": 40,
+            "y": 72
+          },
+          {
+            "id": "p2",
+            "rot": 15,
+            "shape": "bar",
+            "size": 80,
+            "sourceAffordance": null,
+            "x": 240,
+            "y": 88
+          },
+          {
+            "id": "p3",
+            "rot": 0,
+            "shape": "diamond",
+            "size": 60,
+            "sourceAffordance": null,
+            "x": 448,
+            "y": 76
+          },
+          {
+            "id": "p4",
+            "shape": "circle",
+            "x": 340,
+            "y": 108,
+            "size": 48,
+            "rot": 0,
+            "sourceAffordance": "attach:0267f457e065:p2:east"
+          }
+        ],
+        "artifactDigest": "sha256:30b0baf203d950a6a734ad42c999369ca426317107d53edf9106d33ec7e3b2c5",
+        "intentAxis": {
+          "axis": "spread",
+          "target": "wide"
+        },
+        "intentSatisfied": true,
+        "derivedAffordances": [
+          {
+            "token": "attach:30b0baf203d9:p1:east",
+            "kind": "attach-existing-primitive",
+            "sourcePieceId": "p1",
+            "x": 124,
+            "y": 88
+          },
+          {
+            "token": "attach:30b0baf203d9:p2:east",
+            "kind": "attach-existing-primitive",
+            "sourcePieceId": "p2",
+            "x": 340,
+            "y": 108
+          },
+          {
+            "token": "attach:30b0baf203d9:p4:east",
+            "kind": "attach-existing-primitive",
+            "sourcePieceId": "p4",
+            "x": 408,
+            "y": 120
+          }
+        ]
+      },
+      "context": {
+        "round": 2,
+        "revisionId": 2,
+        "artifactDigest": "sha256:30b0baf203d950a6a734ad42c999369ca426317107d53edf9106d33ec7e3b2c5",
+        "feedback": {
+          "profile": "open_gallery",
+          "authority": "advisory-context-observation",
+          "dimensions": {
+            "footprint": {
+              "status": "supports",
+              "observation": "artifact occupies a broad presentation field",
+              "preference": "wide"
+            },
+            "variety": {
+              "status": "supports",
+              "observation": "three or more primitive types remain visible",
+              "preference": "varied-primitives"
+            },
+            "gesture": {
+              "status": "supports",
+              "observation": "non-axis rotation creates a visible directional gesture",
+              "preference": "non-axis-gesture"
+            }
+          },
+          "suggestions": []
+        }
+      },
+      "usedAffordance": {
+        "kind": "attach-existing-primitive",
+        "sourcePieceId": "p2",
+        "token": "attach:0267f457e065:p2:east",
+        "x": 340,
+        "y": 108
+      }
+    },
+    {
+      "round": 3,
+      "revision": {
+        "id": 3,
+        "round": 3,
+        "label": "revision preserves declared spread",
+        "parentRevisionId": 2,
+        "pieces": [
+          {
+            "id": "p1",
+            "rot": 0,
+            "shape": "ring",
+            "size": 64,
+            "sourceAffordance": null,
+            "x": 40,
+            "y": 72
+          },
+          {
+            "id": "p2",
+            "rot": 30,
+            "shape": "bar",
+            "size": 80,
+            "sourceAffordance": null,
+            "x": 240,
+            "y": 88
+          },
+          {
+            "id": "p3",
+            "rot": 0,
+            "shape": "diamond",
+            "size": 60,
+            "sourceAffordance": null,
+            "x": 448,
+            "y": 76
+          },
+          {
+            "id": "p4",
+            "rot": 0,
+            "shape": "circle",
+            "size": 58,
+            "sourceAffordance": "attach:0267f457e065:p2:east",
+            "x": 340,
+            "y": 108
+          }
+        ],
+        "artifactDigest": "sha256:69a1678d304f03ce5030f242d9ff445e6063b2e3e5d0fe98cadc30cd41067f05",
+        "intentAxis": {
+          "axis": "spread",
+          "target": "wide"
+        },
+        "intentSatisfied": true,
+        "derivedAffordances": [
+          {
+            "token": "attach:69a1678d304f:p1:east",
+            "kind": "attach-existing-primitive",
+            "sourcePieceId": "p1",
+            "x": 124,
+            "y": 88
+          },
+          {
+            "token": "attach:69a1678d304f:p2:east",
+            "kind": "attach-existing-primitive",
+            "sourcePieceId": "p2",
+            "x": 340,
+            "y": 108
+          },
+          {
+            "token": "attach:69a1678d304f:p4:east",
+            "kind": "attach-existing-primitive",
+            "sourcePieceId": "p4",
+            "x": 418,
+            "y": 122
+          }
+        ]
+      },
+      "context": {
+        "round": 3,
+        "revisionId": 3,
+        "artifactDigest": "sha256:69a1678d304f03ce5030f242d9ff445e6063b2e3e5d0fe98cadc30cd41067f05",
+        "feedback": {
+          "profile": "service_bay",
+          "authority": "advisory-context-observation",
+          "dimensions": {
+            "footprint": {
+              "status": "tension",
+              "observation": "footprint crosses the service aisle",
+              "preference": "compact"
+            },
+            "access": {
+              "status": "supports",
+              "observation": "ring primitive exposes a handling point",
+              "preference": "ring-present"
+            },
+            "alignment": {
+              "status": "tension",
+              "observation": "rotated pieces complicate fixture access",
+              "preference": "axis-aligned"
+            }
+          },
+          "suggestions": [
+            {
+              "id": "compress-span",
+              "dimension": "footprint",
+              "action": "move edge pieces inward"
+            },
+            {
+              "id": "square-rotation",
+              "dimension": "alignment",
+              "action": "return rotated pieces to axis alignment"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "counterfactuals": {
+    "affordancesBeforeAnyCommit": [],
+    "attachUsingRevisionTokenWithoutCommitRejected": true,
+    "sameWideArtifactCommitsUnderWideIntent": "sha256:0267f457e065765322295ed8d56f92628bc45e15caad22589b893b727487cf84",
+    "sameWideArtifactRejectedUnderCompactIntent": true,
+    "alternateCommittedArtifactDigest": "sha256:60840ab7545d92a7dd81d2761fb2cf7a040c9cdc231345b7d77cc04a55532ba9",
+    "alternateArtifactChangesAffordances": true,
+    "postCommitLiveEditIgnoredByAudienceUntilNewCommit": true
+  },
+  "reloadEvidence": {
+    "afterRound1": "evidence/reload-state-after-r1.json",
+    "afterRound2": "evidence/reload-state-after-r2.json",
+    "round1ReloadPassed": true,
+    "round2ReloadRecoveredTwoRevisions": true
+  },
+  "causalTrace": {
+    "I_intent": [
+      {
+        "axis": "spread",
+        "round": 1,
+        "target": "wide"
+      }
+    ],
+    "K_commits": [
+      {
+        "revisionId": 1,
+        "artifactDigest": "sha256:0267f457e065765322295ed8d56f92628bc45e15caad22589b893b727487cf84",
+        "intentAxis": {
+          "axis": "spread",
+          "target": "wide"
+        }
+      },
+      {
+        "revisionId": 2,
+        "artifactDigest": "sha256:30b0baf203d950a6a734ad42c999369ca426317107d53edf9106d33ec7e3b2c5",
+        "intentAxis": {
+          "axis": "spread",
+          "target": "wide"
+        }
+      },
+      {
+        "revisionId": 3,
+        "artifactDigest": "sha256:69a1678d304f03ce5030f242d9ff445e6063b2e3e5d0fe98cadc30cd41067f05",
+        "intentAxis": {
+          "axis": "spread",
+          "target": "wide"
+        }
+      }
+    ],
+    "C_context": [
+      "service_bay",
+      "open_gallery",
+      "service_bay"
+    ],
+    "R_response": [
+      {
+        "access": {
+          "observation": "ring primitive exposes a handling point",
+          "preference": "ring-present",
+          "status": "supports"
+        },
+        "alignment": {
+          "observation": "all pieces remain axis-aligned for fixtures",
+          "preference": "axis-aligned",
+          "status": "supports"
+        },
+        "footprint": {
+          "observation": "footprint crosses the service aisle",
+          "preference": "compact",
+          "status": "tension"
+        }
+      },
+      {
+        "footprint": {
+          "observation": "artifact occupies a broad presentation field",
+          "preference": "wide",
+          "status": "supports"
+        },
+        "gesture": {
+          "observation": "non-axis rotation creates a visible directional gesture",
+          "preference": "non-axis-gesture",
+          "status": "supports"
+        },
+        "variety": {
+          "observation": "three or more primitive types remain visible",
+          "preference": "varied-primitives",
+          "status": "supports"
+        }
+      },
+      {
+        "footprint": {
+          "status": "tension",
+          "observation": "footprint crosses the service aisle",
+          "preference": "compact"
+        },
+        "access": {
+          "status": "supports",
+          "observation": "ring primitive exposes a handling point",
+          "preference": "ring-present"
+        },
+        "alignment": {
+          "status": "tension",
+          "observation": "rotated pieces complicate fixture access",
+          "preference": "axis-aligned"
+        }
+      }
+    ],
+    "A_affordance": [
+      {
+        "affordanceToken": "attach:0267f457e065:p2:east",
+        "newPieceId": "p4",
+        "round": 2,
+        "sourceArtifactDigest": "sha256:0267f457e065765322295ed8d56f92628bc45e15caad22589b893b727487cf84",
+        "sourceRevisionId": 1
+      }
+    ],
+    "P_progress": [
+      {
+        "fromRound": 1,
+        "gate": "commit+context-observed; audience preference is non-authoritative",
+        "revisionId": 1
+      },
+      {
+        "fromRound": 2,
+        "gate": "commit+context-observed; audience preference is non-authoritative",
+        "revisionId": 2
+      }
+    ]
+  },
+  "artifactLineageDigest": "sha256:f20b5547c44844e2ee5244a6ab7864a6b11a6a1b015567f5267fc76fa49813b7",
+  "boundary": "Structural carrier only. It demonstrates deterministic composition/revision, an explicit mechanically causal intent axis, recoverable committed revisions, committed-artifact-derived later affordance, conflicting qualitative context profiles, and progression after rejecting one context preference. It does not establish Human authorship, expressive ownership, aesthetic value, desire to create, enjoyment, retention, market demand, product selection, or G0 admission."
+}

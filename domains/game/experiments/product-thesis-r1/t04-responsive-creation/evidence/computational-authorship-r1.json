@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "kind": "t04-responsive-creation-computational-authorship-r1",
+  "standing": "FAILS_AUTHORSHIP_ADAPTATION_FALSIFIER",
+  "mechanismModifiedAfterObservation": false,
+  "creatorModels": 6,
+  "audiencePersonas": 5,
+  "sequenceSpace": 1296,
+  "weightSweep": [
+    {
+      "authorshipWeight": 0.25,
+      "creatorAudienceAdaptationRate": 1.0,
+      "meanCreatorDiversityWithinAudience": 0.5666666666666667,
+      "meanIntentRetention": 0.549177614718282,
+      "meanMaxMotifShare": 0.5083333333333333,
+      "maxSingleSequenceShare": 0.2,
+      "distinctChosenSequences": 17
+    },
+    {
+      "authorshipWeight": 0.5,
+      "creatorAudienceAdaptationRate": 1.0,
+      "meanCreatorDiversityWithinAudience": 0.9666666666666668,
+      "meanIntentRetention": 0.6726311990906256,
+      "meanMaxMotifShare": 0.5166666666666667,
+      "maxSingleSequenceShare": 0.06666666666666667,
+      "distinctChosenSequences": 29
+    },
+    {
+      "authorshipWeight": 0.75,
+      "creatorAudienceAdaptationRate": 0.5,
+      "meanCreatorDiversityWithinAudience": 1.0,
+      "meanIntentRetention": 0.980693554131054,
+      "meanMaxMotifShare": 0.9083333333333333,
+      "maxSingleSequenceShare": 0.16666666666666666,
+      "distinctChosenSequences": 9
+    }
+  ],
+  "checks": {
+    "audienceChangesArtifacts": true,
+    "creatorIntentPreserved": false,
+    "creatorDiversitySurvives": true,
+    "noUniversalRubricSequence": true,
+    "noMotifSpamCollapse": true,
+    "tradeoffStableAcrossWeights": true
+  },
+  "boundary": "This estimates whether creator-intent diversity and audience adaptation can coexist in the declared deterministic responsive-persona model. It does not identify Human authorship, enjoyment or social meaning."
+}

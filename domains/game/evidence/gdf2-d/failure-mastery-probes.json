@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf2-d-failure-mastery-probes",
+  "epistemicBoundary": {
+    "proves": [
+      "failure assessment can differ over the same history when evaluation criterion changes",
+      "death can be local/run failure without broader progress failure",
+      "failure signal and pursuit terminality are logically independent",
+      "equal failure count can coexist with materially different structural learning-opportunity profiles",
+      "learning opportunity can exist while actual SkillProfile change is held absent",
+      "nominal mastery performance can coexist with very different retention/perturbation robustness",
+      "zero errors on a saturated task do not identify mastery breadth",
+      "joint assisted criterion satisfaction does not imply Human-independent mastery",
+      "bounded mastery claims can exist for continuous/open-ended evaluation without terminal completion",
+      "local retained mastery does not imply transformed-task mastery",
+      "recovery cost dimensions can trade off without a universal severity ordering"
+    ],
+    "doesNotProve": [
+      "Human learning from any particular feedback condition",
+      "a universal numeric learning-opportunity score",
+      "a universal mastery threshold",
+      "PlayerValue of failure/recovery/mastery",
+      "that retention/transfer are required for every locally scoped mastery claim"
+    ]
+  },
+  "evaluationRelativeFailure": {
+    "sameRun": {
+      "completed": true,
+      "timeSec": 2500
+    },
+    "completionCriterion": {
+      "satisfied": true
+    },
+    "sub40Criterion": {
+      "satisfied": false
+    },
+    "sameHistoryDifferentFailureAssessment": true
+  },
+  "roguelikeDeath": {
+    "death": true,
+    "runCriterionSatisfied": false,
+    "metaKnowledgeGain": true,
+    "metaResourceGain": true,
+    "broaderProgressCriterionSatisfied": true,
+    "deathNotUniversalFailure": true
+  },
+  "terminality": {
+    "localFailureSignal": true,
+    "noRecovery": {
+      "samePursuitContinuation": false
+    },
+    "checkpointRecovery": {
+      "samePursuitContinuation": true
+    },
+    "alternateRouteRecovery": {
+      "samePursuitContinuation": true
+    },
+    "failureSignalDoesNotDetermineTerminality": true
+  },
+  "learningOpportunity": {
+    "diagnosticFailure": {
+      "diagnostic": true,
+      "attributable": true,
+      "actionable": true,
+      "controllable": true,
+      "reExposure": true,
+      "comparable": true,
+      "srvsRelevant": true
+    },
+    "opaqueRandomFailure": {
+      "diagnostic": false,
+      "attributable": false,
+      "actionable": false,
+      "controllable": false,
+      "reExposure": true,
+      "comparable": false,
+      "srvsRelevant": false
+    },
+    "trivialSuccess": {
+      "diagnostic": false,
+      "attributable": true,
+      "actionable": false,
+      "controllable": true,
+      "reExposure": true,
+      "comparable": true,
+      "srvsRelevant": false
+    },
+    "scores": {
+      "diagnostic": 7,
+      "opaque": 1,
+      "trivial": 4
+    },
+    "sameFailureCountDifferentOpportunity": true,
+    "opportunityWithoutActualLearning": {
+      "beforeSkill": 0.5,
+      "afterSkill": 0.5,
+      "opportunityPresent": true
+    },
+    "opportunityNotLearning": true
+  },
+  "mastery": {
+    "nominalCriterion": {
+      "threshold": 0.8
+    },
+    "specialist": {
+      "nominal": 0.95,
+      "retention": 0.55,
+      "perturbation": 0.5,
+      "transfer": 0.45
+    },
+    "robust": {
+      "nominal": 0.9,
+      "retention": 0.88,
+      "perturbation": 0.84,
+      "transfer": 0.8
+    },
+    "bothNominalPass": true,
+    "robustnessDiffers": true
+  },
+  "saturationZeroError": {
+    "challenge": "trivial-saturated",
+    "noviceErrors": 0,
+    "expertErrors": 0,
+    "noviceUnprobedCapability": 0.35,
+    "expertUnprobedCapability": 0.9,
+    "zeroErrorDoesNotIdentifyMastery": true
+  },
+  "assistAttribution": {
+    "humanIndependent": {
+      "criterion": 0.8,
+      "postAssistPerformance": 0.55
+    },
+    "jointController": {
+      "criterion": 0.8,
+      "assistedPerformance": 0.95
+    },
+    "jointPassesHumanDoesNot": true
+  },
+  "openEndedMastery": {
+    "terminalCompletionDefined": false,
+    "claim": {
+      "scope": "declared expressive technique family",
+      "qualityCriterion": 0.85,
+      "probeQualities": [
+        0.88,
+        0.9,
+        0.87
+      ]
+    },
+    "localClaimPasses": true,
+    "doesNotClaimGlobalMaximum": true
+  },
+  "transferScope": {
+    "nominalRetention": 0.92,
+    "transformedTask": 0.48,
+    "localMasteryCriterion": 0.85,
+    "transferMasteryCriterion": 0.75,
+    "localMasteryWithoutTransfer": true
+  },
+  "recovery": {
+    "A": {
+      "nextState": "checkpoint",
+      "timeLoss": 120,
+      "resourceLoss": 5,
+      "historyLoss": 0.05
+    },
+    "B": {
+      "nextState": "run-start",
+      "timeLoss": 20,
+      "resourceLoss": 60,
+      "historyLoss": 0.6
+    },
+    "tradeoffNoDominance": true,
+    "noUniversalSeverityWithoutWeights": true
+  }
+}

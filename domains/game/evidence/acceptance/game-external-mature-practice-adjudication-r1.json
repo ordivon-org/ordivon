@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game-external-mature-practice-adjudication-r1",
+  "truthRole": "bounded-adoption-and-composition-adjudication-not-standards-compliance-certificate",
+  "recordedAt": "2026-09-10",
+  "taskId": "task:game-external-mature-pattern-adoption-r1-20260910",
+  "verdict": "ADOPT_EXTERNAL_FIRST",
+  "evaluatedCandidate": "40a41cf2c4c4b431030cdecf6d98b0b7fcd7dd69",
+  "researchConclusion": "Mature external standards, professional practices, and platform-native mechanisms cover most generic process needs; Game should profile/route them rather than reimplement them.",
+  "engineeringConclusion": "No generic production-source clone was found; the material local ownership defect was G0-G8 claiming generic outer-lifecycle authority. It was contracted to a Game-specific commitment/stage projection over ISO/IEC/IEEE 12207:2026 and the external-first routing matrix.",
+  "independentVerification": {
+    "candidateRevision": "40a41cf2c4c4b431030cdecf6d98b0b7fcd7dd69",
+    "workspaceId": "ws-game-external-pattern-adoption-r1-independent-20260910-v1",
+    "offlineInstall": {
+      "jobId": "job-01a08be9-1747-7073-8ed9-d3c992ba7442",
+      "downloads": 0,
+      "standing": "PASS"
+    },
+    "focused": {
+      "jobId": "job-01a08be9-45ef-7101-812d-8742db5d72f6",
+      "pass": 28,
+      "total": 28,
+      "standing": "PASS"
+    },
+    "fullRepository": {
+      "jobId": "job-01a08be9-609d-7cd3-9ea1-b139323ca0f4",
+      "pass": 402,
+      "total": 402,
+      "standing": "PASS"
+    }
+  },
+  "activationContract": {
+    "targetRef": "refs/heads/main",
+    "requiredBase": "0ba8099f5433427a5aff526e1582b4198fca82db",
+    "promotion": "exact-head check plus git merge --ff-only",
+    "noForceUpdate": true
+  },
+  "doNotInfer": [
+    "Repository alignment is not ISO/XAG/WCAG/SLSA/OpenChain compliance or certification.",
+    "A platform mechanism listed as PLATFORM_NATIVE is not configured until a real product/study/release path activates it.",
+    "Telemetry, experiment uplift, technical quality, provenance, or platform approval do not mint Human experience, Product Value, rights, or product-direction truth."
+  ],
+  "reopenConditions": [
+    "An adopted external mechanism materially changes version or semantics.",
+    "A real Game consumer demonstrates a necessary invariant that cannot be represented through a profile/adapter.",
+    "A local Game mechanism is discovered to duplicate a mature external generic mechanism.",
+    "A formal compliance/conformance target becomes necessary."
+  ]
+}

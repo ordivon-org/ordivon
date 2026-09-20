@@ -1,0 +1,102 @@
+{
+  "schemaVersion": "veilwild.f13-creature-behavior-interface.r1",
+  "status": "SOURCE_BOUND_PROVISIONAL_PENDING_F14_EXACT_AFFORDANCE_ARTIFACT",
+  "producerFront": "F13",
+  "ownerAgent": "A13",
+  "baseline": "8ebc23144ed5b49d685cc32ac11428bbddf64d2f",
+  "upstreamBindings": [
+    {"producer":"A01/F01","commit":"66040f75d505e40e0069412b419e380daa5c73fc","path":"experiments/veilwild-r1/contracts/F01_PRODUCT_CORE_LOOP_CONTRACT_R1.json","sha256":"0ded284f7f5b03f782d30fd3d5fce38216f727560efa7b9e1270ec1e13c1fbfb","revalidated":true},
+    {"producer":"A02/F02","commit":"63ea64cd4e9e61ba71edfcaaa14e47880a51b153","path":"experiments/veilwild-r1/contracts/F02_PLAYER_EXPERIENCE_CONTRACT_R1.json","sha256":"0e03641d9be500a1d74284a6559ea4584b7297fed0dea86c4b2162b15cf82b33","revalidated":true},
+    {"producer":"A03/F03","commit":"55dd57c45ce2f0b44eabaaabfa6c94d2080e9b99","path":"experiments/veilwild-r1/contracts/F03_BIOMIMETICS_TRANSFER_CONTRACT_R1.json","sha256":"b2aabebf538655dbaba5fdf839725d5bf90d8af12a3afc016773dd0778d6ce21","revalidated":true},
+    {"producer":"A17/F17","commit":"2cdc6ca3da332dc7c49ea0d26d0e1fcf88478eab","path":"experiments/veilwild-r1/contracts/F17_ENGINE_INTEGRATION_CONTRACT_R1.json","sha256":"4fc8ff7b20ee9e48e1fbab1c472cd6ad21930902087ab1125ed19589af5553d2","revalidated":true}
+  ],
+  "semanticMeaning": "Deterministic creature perception/state policy converting bounded player/environment observations into behavior state and source-owned gameplay intents. It does not own pathfinding, cover geometry, animation blending, shader implementation, audio playback, engine composition, success adjudication, or telemetry transport.",
+  "representation": {
+    "authoritativePolicy": "experiments/veilwild-r1/godot/modules/f13/creature_behavior_policy.gd",
+    "mountableRuntimeScript": "experiments/veilwild-r1/godot/modules/f13/behavior_runtime.gd",
+    "mountablePackedScene": "experiments/veilwild-r1/godot/modules/f13/behavior_runtime.tscn",
+    "a17ModuleSetting": "veilwild/integration/behavior_scene=res://modules/f13/behavior_runtime.tscn",
+    "a17Mount": "SystemsMount"
+  },
+  "states": [
+    {"id":"veilwild.behavior.unaware.r1","name":"UNAWARE","productIntent":"UNTHREATENED","meaning":"No sustained perceived threat; baseline idle/forage/reposition semantics may be mapped downstream."},
+    {"id":"veilwild.behavior.orient.r1","name":"ORIENT","productIntent":"ALERT_ORIENT","meaning":"Meaningful stimulus acquired; orient/track while threat is below defensive consequence."},
+    {"id":"veilwild.behavior.freeze.r1","name":"FREEZE","productIntent":"ALERT_ORIENT","meaning":"Threat is material but no accepted concealment/escape traversal is currently available; suppress locomotion while evaluating."},
+    {"id":"veilwild.behavior.conceal.r1","name":"CONCEAL","productIntent":"CONCEAL","meaning":"Use or maintain a declared concealment opportunity and raise concealment/camouflage intent without claiming invisibility."},
+    {"id":"veilwild.behavior.evade.r1","name":"EVADE","productIntent":"EVADE","meaning":"Threat is high and a downstream-valid escape traversal is available; request escape movement. This is F13 observation-abort boundary, not product success/failure."},
+    {"id":"veilwild.behavior.recover.r1","name":"RECOVER","productIntent":"ALERT_ORIENT","meaning":"Threat has decayed after a defensive state; expose a reacquisition phase before returning to UNAWARE."}
+  ],
+  "productMappingBoundary": {
+    "source":"A01 F01_PRODUCT_LOOP_V1",
+    "observationSuccess":"NOT_EMITTED_BY_F13",
+    "reason":"OBSERVATION_SUCCESS requires explicit observe action plus valid close-observation and commitment conditions. F13 only exposes observation_abort when it crosses EVADE."
+  },
+  "inputs": {
+    "player_distance_m":"non-negative meters from caller-declared threat source; runtime basis 1 unit=1m",
+    "line_of_sight":"bounded visibility observation; F13 does not infer through occluders",
+    "visual_exposure":"0..1 current visual observation strength",
+    "player_motion":"0..1 visible motion strength",
+    "observation_pressure":"0..1 explicit approach/observation pressure; not hidden Human intent",
+    "nonvisual_stimulus":"optional 0..1 nonvisual perception with producer-declared meaning",
+    "concealment_available":"temporary adapter boolean that F14 can supply a legal concealment affordance; not authoritative F14 representation",
+    "concealment_quality":"temporary game-normalized 0..1 F14 suitability adapter; not Human detectability or biological effect size",
+    "concealment_affordance_id":"optional F14 stable affordance identity echoed in concealment nav intent",
+    "escape_available":"temporary adapter boolean that F14 can satisfy an escape traversal request; not pathfinding ownership",
+    "escape_affordance_id":"optional F14 stable escape affordance identity echoed in EVADE nav intent"
+  },
+  "outputs": {
+    "behavior_state_id":"stable semantic state ID for F09/F12/F16/F17/F22",
+    "product_intent":"A01 product-intent mapping; never OBSERVATION_SUCCESS",
+    "state_entered":"edge-trigger boolean true exactly on a transition step",
+    "transition_sequence":"policy-local monotonic ordering; absolute timestamp belongs runtime/evidence owner",
+    "transition_semantic_id":"stable semantic transition/reason ID independent of animation/audio names",
+    "awareness":"0..1 deterministic game-authored accumulator",
+    "threat":"0..1 deterministic game-authored pressure; no biological units",
+    "observation_abort":"true while F13 is in EVADE",
+    "reacquisition_phase":"true in RECOVER",
+    "cue_opportunities":"internal F02 cue-class opportunities; never raw hidden-state UI",
+    "nav_intent":"intent_id + action + optional F14 target_affordance_id + urgency + speed_mode + failure fallback; semantic request only",
+    "orientation_intent":"semantic orientation request",
+    "camouflage_drive":"0..1 concealment intent for F12; shader mapping remains F12 ownership",
+    "concealment_suitability":"echoed bounded F14/game suitability adapter; not Human detectability"
+  },
+  "cueOpportunityMapping": {
+    "UNAWARE":["BEHAVIOR_AUDIO"],
+    "ORIENT":["THREAT_RESPONSE","MOTION_COUNTERCUE","BEHAVIOR_AUDIO"],
+    "FREEZE":["THREAT_RESPONSE","MOTION_COUNTERCUE"],
+    "CONCEAL":["CAMOUFLAGE_MISMATCH","MOTION_COUNTERCUE"],
+    "EVADE":["THREAT_RESPONSE","MOTION_COUNTERCUE","BEHAVIOR_AUDIO"],
+    "RECOVER":["THREAT_RESPONSE","MOTION_COUNTERCUE"]
+  },
+  "eventTransport": {
+    "a17Transport":"VeilwildEventBus envelope_published(topic,payload,source)",
+    "topics":["creature.behavior.decision","creature.behavior.transition"],
+    "source":"F13",
+    "timestampBoundary":"F13 supplies transitionSequence/stateAge only; A17/A21 exact runtime clock/evidence envelope owns monotonic timestamps and condition identity."
+  },
+  "researchBindings": [
+    {"requirementId":"F03-R2-POSE-ORIENTATION","status":"PARTIAL_F13","consequence":"ORIENT/CONCEAL expose orientation intents; pose/deformation remains F08/F09 and exact F14 context remains pending."},
+    {"requirementId":"F03-R3-MOTION-EXPOSURE","status":"F13_BOUND","consequence":"CONCEAL and EVADE expose materially different camouflage_drive plus MOTION_COUNTERCUE opportunities; downstream frame/audio consequence remains owner-specific."},
+    {"requirementId":"F03-R4-THREAT-CONCEAL-EVADE-COUPLING","status":"F13_BOUND","consequence":"Game-authored threat causes warning/defensive phases and emits EVADE only when accepted escape traversal exists; thresholds carry no biological units; post-EVADE RECOVER preserves same-session reacquisition semantics."},
+    {"requirementId":"F03-R6-NO-PERFECT-CONCEALMENT-OPTIMIZER","status":"PARTIAL_F13","consequence":"F13 never queries global optimum/Human detectability and consumes bounded F14 availability/affordance IDs; exact candidate selection remains F14 pending."}
+  ],
+  "consumerFronts":["F02","F09","F12","F14","F16","F17","F22"],
+  "preconditions": [
+    "Caller perception values are exact-condition inputs, not hidden omniscient state.",
+    "F14 must replace/confirm temporary concealment/escape adapter fields with an exact source-bound representation.",
+    "Thresholds/timings are game-authored and tunable, not Human-balanced or biological measurements.",
+    "Player-facing carriers may consume cue opportunities but must not expose raw hidden behavior state labels."
+  ],
+  "consumerVisibleFailureModes": [
+    "state thrashing near thresholds",
+    "EVADE without legal escape traversal",
+    "private F13 cover semantics diverge from F14",
+    "state changes without downstream gameplay consequence",
+    "behavior state IDs leak into player-facing UI",
+    "consumer mapping drift",
+    "non-replayable decision traces",
+    "F13 awards observation success without integrated observe/commitment condition"
+  ],
+  "validationOracle":"Deterministic bounded perception produces reproducible ORIENT/FREEZE/CONCEAL/EVADE/RECOVER consequences; EVADE is escape-gated; A01 product intents and A02 cue opportunities are source-bound; A03 R4 constraints alter implementation/test assertions; same input sequence replays identically; F13 PackedScene mounts under A17 SystemsMount without redefining peer semantics.",
+  "compatibility":"READY_FOR_A09_A12_A16_A17_A21_CONSUMPTION; F14 exact affordance/navigation artifact still required before integrated V-S1 standing can exceed PROTOTYPED_LOCAL."
+}

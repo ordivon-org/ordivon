@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "kind": "t01-scarce-evidence-computational-robustness-r1",
+  "standing": "FAILS_BOUNDED_RATIONALITY_ROBUSTNESS",
+  "mechanismModifiedAfterObservation": false,
+  "playerModels": [
+    {
+      "model": "optimal",
+      "temperature": 0.0,
+      "solvedRate": 1.0,
+      "meanRemaining": 1.0,
+      "distinctSequences": 2,
+      "firstClueEntropyBits": -0.0
+    },
+    {
+      "model": "low-noise",
+      "temperature": 0.15,
+      "solvedRate": 0.955,
+      "meanRemaining": 1.045,
+      "distinctSequences": 20,
+      "firstClueEntropyBits": 0.3012018773815339
+    },
+    {
+      "model": "bounded",
+      "temperature": 0.5,
+      "solvedRate": 0.5977777777777777,
+      "meanRemaining": 1.4355555555555555,
+      "distinctSequences": 56,
+      "firstClueEntropyBits": 2.0173545373365207
+    },
+    {
+      "model": "high-noise",
+      "temperature": 1.0,
+      "solvedRate": 0.4261111111111111,
+      "meanRemaining": 1.7147222222222223,
+      "distinctSequences": 56,
+      "firstClueEntropyBits": 2.7300089779955083
+    },
+    {
+      "model": "random",
+      "temperature": null,
+      "solvedRate": 0.24583333333333332,
+      "meanRemaining": 2.1580555555555554,
+      "distinctSequences": 56,
+      "firstClueEntropyBits": 2.9992464589016476
+    }
+  ],
+  "generousControl": {
+    "optimalMeanRemaining": 1.0,
+    "fixedMeanRemaining": 1.0
+  },
+  "checks": {
+    "optimalScarceSolved": true,
+    "boundedRobustness": false,
+    "highNoiseStillInformative": true,
+    "randomClearlyWorse": true,
+    "adaptiveBranchingExists": true,
+    "generousBudgetCollapsesSelectionValue": true
+  },
+  "boundary": "This estimates robustness of evidence-selection value under declared bounded clue-choice models. It does not identify Human satisfaction, fairness or aha experience."
+}

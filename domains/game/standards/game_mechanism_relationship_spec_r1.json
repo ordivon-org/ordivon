@@ -1,0 +1,277 @@
+{
+  "schemaVersion": 1,
+  "specId": "ordivon-game-mechanism-relationship-spec-r1",
+  "sourceLibrary": "standards/game_mechanism_experience_library_r1.json",
+  "policy": {
+    "purpose": "Authored semantic retrieval groupings and cross-game conditional hypotheses over exact Experience records.",
+    "retrievalFacetsAreOntology": false,
+    "conditionalitiesAreUniversalRules": false,
+    "canBlockNovelCombination": false
+  },
+  "retrievalFacets": [
+    {
+      "id": "facet.failure-reset-persistence",
+      "label": "Failure / Reset / Persistence",
+      "mechanismTags": ["fast-retry", "run-failure", "hub-return", "persistent-character-memory", "time-loop-reset", "persistent-player-knowledge", "run-reset", "persistent-knowledge", "repeated-settlement-reset", "persistent-consequences", "no-fail-narrative-progression"],
+      "experienceRefs": ["exp.celeste.room-sequence-teaching", "exp.hades.failure-return-reactivity", "exp.outerwilds.knowledge-as-progression", "exp.mooncrash.immersive-sim-roguelike-reset", "exp.againststorm.genre-recombination", "exp.xcom.two-layer-reinforcement", "exp.heavensvault.no-fail-investigation"],
+      "summary": "Retrieve cases where failure, reset and persistence are partitioned differently across skill, story, knowledge, social state, campaign state or run structure."
+    },
+    {
+      "id": "facet.learning-guidance-opacity",
+      "label": "Learning / Guidance / Opacity",
+      "mechanismTags": ["concept-ordering", "reduced-toolset", "organic-learning", "delayed-help", "progressive-task-complexity", "planning-skill", "copy-modify-create", "guided-completion", "open-ended-creation", "intentional-opacity", "learning-through-discovery"],
+      "experienceRefs": ["exp.factorio.concept-order-not-operation-order", "exp.pikmin4.train-planning-before-breadth", "exp.gbg.copy-modify-create", "exp.gbg.completion-before-open-endedness", "exp.cultist.divisive-friction-identity"],
+      "summary": "Retrieve different ways to teach, withhold, stage or expose understanding without assuming maximum explanation is always best."
+    },
+    {
+      "id": "facet.information-uncertainty-deduction",
+      "label": "Information / Uncertainty / Deduction",
+      "mechanismTags": ["telegraphed-enemy-intent", "bounded-randomness", "deterministic-resolution", "forecastability", "diegetic-information", "clue-links", "identity-clues", "deduction-state", "hidden-opponent-plan", "hidden-secrets"],
+      "experienceRefs": ["exp.itb.telegraphed-threat-planning", "exp.itb.rng-boundary", "exp.outerwilds.curiosity-instead-of-missions", "exp.outerwilds.narrative-as-navigation", "exp.obradinn.book-as-information-index", "exp.snap.short-match-stakes", "exp.animalwell.community-search-harm"],
+      "summary": "Retrieve cases where what is known, hidden, forecastable or indexed changes planning and deduction."
+    },
+    {
+      "id": "facet.genre-recombination-inversion",
+      "label": "Genre Recombination / Convention Inversion",
+      "mechanismTags": ["genre-flexibility", "genre-break", "form-recomposition", "city-building", "roguelite-runs", "survival-experience-taxonomy", "selective-genre-conventions", "forward-aggression", "low-cover-dependence", "story-generator-framing"],
+      "experienceRefs": ["exp.ftl.feeling-before-genre", "exp.mooncrash.franchise-form-not-sacred", "exp.mooncrash.immersive-sim-roguelike-reset", "exp.againststorm.genre-recombination", "exp.pacificdrive.taxonomy-not-genre-checklist", "exp.doom.push-forward-resource-loop", "exp.rimworld.story-generator-framing"],
+      "summary": "Retrieve projects that treat genre as reusable historical material rather than a required feature checklist."
+    },
+    {
+      "id": "facet.scope-selection-omission",
+      "label": "Scope / Selection / Omission",
+      "mechanismTags": ["content-cutting", "constraint-pruning", "feature-omission", "assumed-necessary-features", "feature-selection", "content-saturation", "scope-restraint", "large-idea-pool", "rapid-prototyping", "prototype-abandonment", "throwaway-prototypes"],
+      "experienceRefs": ["exp.itb.constraint-pruning", "exp.rimworld.strategic-omission", "exp.rimworld.necessary-feature-assumption", "exp.factorio.full-run-scope-saturation", "exp.mariowonder.idea-pool-to-prototypes", "exp.ftl.feeling-before-genre", "exp.ftl.throwaway-change-as-normal"],
+      "summary": "Retrieve evidence about broad search, deletion, omission, saturation and resisting assumed mandatory features."
+    },
+    {
+      "id": "facet.representation-affordance-interface",
+      "label": "Representation / Affordance / Interface",
+      "mechanismTags": ["visual-affordance", "system-consistency", "rule-as-world-object", "live-rule-mutation", "input-remapping", "platform-specific-ui", "diegetic-book-interface", "controller-input", "mouse-keyboard-input", "control-response", "input-buffering", "vehicle-as-home"],
+      "experienceRefs": ["exp.totk.player-expectation-affordance", "exp.baba.rule-as-world-object", "exp.papersplease.port-meal-not-plate", "exp.obradinn.book-as-information-index", "exp.halowars2.cross-input-same-intent", "exp.dmc5.experience-backward-detail", "exp.deadcells.micro-control-details", "exp.pacificdrive.car-as-survival-locus"],
+      "summary": "Retrieve cases where representation or interface changes the effective interaction rather than merely presenting it."
+    },
+    {
+      "id": "facet.persistence-progression-state",
+      "label": "Persistence / Progression / State Partition",
+      "mechanismTags": ["knowledge-progression", "persistent-player-knowledge", "persistent-character-memory", "meta-progression", "persistent-consequences", "survival-progression", "serial-content", "repeated-settlement-reset"],
+      "experienceRefs": ["exp.outerwilds.knowledge-as-progression", "exp.hades.failure-return-reactivity", "exp.hades.modular-structure-open-development", "exp.againststorm.genre-recombination", "exp.xcom.two-layer-reinforcement", "exp.subnautica.nonlinear-story-exploration"],
+      "summary": "Retrieve different choices about what state persists across attempts, sessions, layers or content updates."
+    },
+    {
+      "id": "facet.narrative-system-coupling",
+      "label": "Narrative / System Coupling",
+      "mechanismTags": ["reactive-dialogue", "persistent-character-memory", "nonlinear-story", "nonlinear-narrative", "procedural-glue", "state-reactivity", "systemic-authorial-meaning", "policy-choice", "player-action-meaning", "story-context"],
+      "experienceRefs": ["exp.hades.failure-return-reactivity", "exp.subnautica.nonlinear-story-exploration", "exp.outerwilds.narrative-as-navigation", "exp.heavensvault.authored-procedural-glue", "exp.frostpunk.systems-carry-authorial-meaning", "exp.frostpunk.gameplay-language-integration"],
+      "summary": "Retrieve cases where story, system state, navigation, failure or policy consequences are structurally coupled."
+    },
+    {
+      "id": "facet.procedural-variation-authorship",
+      "label": "Procedural Variation / Authored Constraint",
+      "mechanismTags": ["bounded-randomness", "replay-variation", "procedural-variation", "procedural-generation", "generated-history", "procedural-level-layout", "authored-tactical-requirements", "procedural-glue", "authored-scenes"],
+      "experienceRefs": ["exp.itb.rng-boundary", "exp.mooncrash.immersive-sim-roguelike-reset", "exp.dwarffortress.procgen-changes-system-design", "exp.xcom2.procgen-enough-not-infinite", "exp.heavensvault.authored-procedural-glue"],
+      "summary": "Retrieve how variation can be generated while preserving tactical, narrative or systemic constraints."
+    },
+    {
+      "id": "facet.feedback-measurement-evidence",
+      "label": "Feedback / Measurement / Evidence",
+      "mechanismTags": ["telemetry", "balance-metrics", "qualitative-feedback", "designer-judgement", "player-feedback", "real-save-profiling", "full-run-playtest", "prototype-meetings", "iterative-playtest"],
+      "experienceRefs": ["exp.sts.telemetry-plus-judgement", "exp.subnautica.double-down-core-spikes", "exp.factorio.performance-from-real-scale", "exp.factorio.full-run-scope-saturation", "exp.mariowonder.idea-pool-to-prototypes", "exp.portal2.preserve-identity-change-space"],
+      "summary": "Retrieve different evidence surfaces used for design and production decisions without treating one metric as universal truth."
+    },
+    {
+      "id": "facet.production-capacity-design-space",
+      "label": "Production Capacity / Design Space",
+      "mechanismTags": ["toolchain-evolution", "organizational-fit", "content-scale", "design-feasibility", "small-team-capacity", "sustainable-production", "scope-change", "performance-bottleneck", "modular-run-structure", "early-access"],
+      "experienceRefs": ["exp.bg3.reactivity-tooling-pressure", "exp.bg3.organization-bounds-design-space", "exp.againststorm.team-health-design-space", "exp.saturnalia.identity-through-radical-change", "exp.factorio.performance-from-real-scale", "exp.hades.modular-structure-open-development"],
+      "summary": "Retrieve cases where team, tooling, scale or delivery structure changes what can be sustained in production."
+    },
+    {
+      "id": "facet.control-feel-forgiveness",
+      "label": "Control / Feel / Forgiveness",
+      "mechanismTags": ["high-mobility", "readable-telegraphs", "immediate-hit-feedback", "forgiving-hit-rules", "precise-controls", "input-buffering", "animation-timing", "collision-forgiveness", "feedback-timing", "control-response"],
+      "experienceRefs": ["exp.doom.speed-threat-readability", "exp.deadcells.hidden-forgiveness-precision", "exp.deadcells.micro-control-details", "exp.dmc5.experience-backward-detail"],
+      "summary": "Retrieve low-level timing, feedback and forgiveness choices that shape action execution without equating nominal mechanics with feel."
+    },
+    {
+      "id": "facet.open-direction-self-navigation",
+      "label": "Open Direction / Self-Navigation",
+      "mechanismTags": ["curiosity-hook", "open-exploration", "reduced-explicit-missions", "nonlinear-story", "spatial-navigation", "optional-dialogue-engagement", "session-flexibility", "open-ended-creation", "organic-learning"],
+      "experienceRefs": ["exp.outerwilds.curiosity-instead-of-missions", "exp.outerwilds.narrative-as-navigation", "exp.subnautica.nonlinear-story-exploration", "exp.hades.optional-narrative-depth", "exp.gbg.completion-before-open-endedness", "exp.factorio.concept-order-not-operation-order"],
+      "summary": "Retrieve ways players can orient themselves through curiosity, optionality, environment or self-directed creation rather than only explicit task assignment."
+    },
+    {
+      "id": "facet.authoring-creation-tools",
+      "label": "Authoring / Creation / Tool Representation",
+      "mechanismTags": ["explicit-rule-data", "composable-grammar", "puzzle-authoring", "visual-programming-nodes", "connectable-primitives", "creation-grammar", "copy-modify-create", "authored-scenes", "automated-writing-checks", "large-idea-pool"],
+      "experienceRefs": ["exp.baba.data-structure-enables-design-space", "exp.gbg.nodon-composable-creation-grammar", "exp.gbg.copy-modify-create", "exp.heavensvault.authored-procedural-glue", "exp.mariowonder.idea-pool-to-prototypes"],
+      "summary": "Retrieve how tools, representations and examples change the feasible authoring/search space."
+    },
+    {
+      "id": "facet.sequel-identity-transformation",
+      "label": "Sequel / Identity / Transformation",
+      "mechanismTags": ["reused-world-substrate", "new-ability-grammar", "sequel-familiarity", "complete-predecessor", "mechanic-preservation", "new-possibility-search", "core-verb-preservation", "existing-system-reuse", "form-recomposition", "identity-retention", "franchise-expectations", "studio-vision"],
+      "experienceRefs": ["exp.totk.familiar-world-new-grammar", "exp.portal2.sequel-complete-game-problem", "exp.portal2.preserve-identity-change-space", "exp.mooncrash.franchise-form-not-sacred", "exp.saturnalia.identity-through-radical-change", "exp.bg3.vision-vs-inherited-expectations"],
+      "summary": "Retrieve cases where a successor preserves some identity-bearing substrate while changing other forms, verbs or expectations."
+    },
+    {
+      "id": "facet.consistency-imagination-mystery",
+      "label": "Consistency / Imagination / Mystery",
+      "mechanismTags": ["visual-affordance", "player-expectation", "system-consistency", "feature-omission", "implied-possibility", "player-imagination", "intentional-opacity", "learning-through-discovery", "hidden-secrets", "unbounded-search-space"],
+      "experienceRefs": ["exp.totk.player-expectation-affordance", "exp.rimworld.strategic-omission", "exp.cultist.divisive-friction-identity", "exp.animalwell.community-search-harm"],
+      "summary": "Retrieve the boundary between causal consistency, productive ambiguity, implied systems and harmful unbounded mystery."
+    }
+  ],
+  "conditionalities": [
+    {
+      "id": "conditional.guidance-vs-productive-opacity",
+      "facetIds": ["facet.learning-guidance-opacity", "facet.consistency-imagination-mystery"],
+      "triggerMechanisms": ["concept-ordering", "copy-modify-create", "guided-completion", "intentional-opacity", "learning-through-discovery"],
+      "experienceRefs": ["exp.factorio.concept-order-not-operation-order", "exp.gbg.copy-modify-create", "exp.gbg.completion-before-open-endedness", "exp.cultist.divisive-friction-identity"],
+      "apparentConflict": "Some projects reduce ambiguity and stage understanding, while another deliberately preserves opacity as part of discovery and identity.",
+      "distinguishingConditions": ["If the player must predict an action's causal result to act competently now, unexplained ambiguity is more likely to be accidental friction.", "If discovering the hidden relation is itself the content and wrong hypotheses are recoverable, withholding explanation may create meaningful search.", "The cost and reversibility of misunderstanding matter: high irreversible cost raises the burden for clarity."],
+      "falseUniversalizations": ["Always explain a system before asking the player to use it.", "Mystery becomes better as explanations are removed."],
+      "cheapDiscriminator": "Build one microproblem in two forms: expose one causal relation explicitly versus leave it discoverable through reversible probing; compare whether the intended reasoning remains possible without claiming preference."
+    },
+    {
+      "id": "conditional.fast-retry-vs-consequence-carrying-failure",
+      "facetIds": ["facet.failure-reset-persistence", "facet.persistence-progression-state"],
+      "triggerMechanisms": ["fast-retry", "run-failure", "persistent-character-memory", "no-fail-narrative-progression"],
+      "experienceRefs": ["exp.celeste.room-sequence-teaching", "exp.hades.failure-return-reactivity", "exp.heavensvault.no-fail-investigation"],
+      "apparentConflict": "Precision learning benefits from cheap repeated failure, while other games use failure consequences as narrative material or avoid hard fail gates entirely.",
+      "distinguishingConditions": ["For repeated motor/logic practice, recovery latency and repeated setup can dominate learning cost.", "If failure is a delivery surface for persistent story or relationship state, erasing all consequence may remove useful progression.", "If a narrative depends on interpretation under uncertainty, continuing through imperfect decisions may be more valuable than enforcing a correct-answer gate."],
+      "falseUniversalizations": ["Failure should always be nearly free and instantly reset.", "Failure needs persistent punishment to feel meaningful."],
+      "cheapDiscriminator": "Prototype the same challenge with instant local retry, consequence-carrying return, and continuation-with-consequence; inspect which state needs to survive for the target mechanism to function."
+    },
+    {
+      "id": "conditional.affordance-consistency-vs-strategic-omission",
+      "facetIds": ["facet.representation-affordance-interface", "facet.consistency-imagination-mystery"],
+      "triggerMechanisms": ["visual-affordance", "system-consistency", "feature-omission", "player-imagination", "intentional-opacity"],
+      "experienceRefs": ["exp.totk.player-expectation-affordance", "exp.rimworld.strategic-omission", "exp.cultist.divisive-friction-identity"],
+      "apparentConflict": "One design tradition tries to honor interaction expectations consistently, while another can gain value by leaving parts of the simulated or semantic world unstated.",
+      "distinguishingConditions": ["Action affordances that look equivalent but behave differently can break causal prediction and usually carry a higher consistency burden.", "Semantic or simulated detail that is not required for immediate action may leave room for player inference without breaking control expectations.", "Opacity is safer when the player can test hypotheses and recover, rather than when the interface silently violates an apparent rule."],
+      "falseUniversalizations": ["Everything implied by the world must be fully implemented.", "Leaving systems unexplained or absent automatically creates imagination."],
+      "cheapDiscriminator": "Separate one candidate omission into action-affordance information versus semantic/world detail; remove each independently and test whether legal action prediction still closes."
+    },
+    {
+      "id": "conditional.predictable-resolution-vs-replay-variation",
+      "facetIds": ["facet.information-uncertainty-deduction", "facet.procedural-variation-authorship"],
+      "triggerMechanisms": ["deterministic-resolution", "bounded-randomness", "replay-variation", "procedural-level-layout", "procedural-variation"],
+      "experienceRefs": ["exp.itb.rng-boundary", "exp.xcom2.procgen-enough-not-infinite", "exp.mooncrash.immersive-sim-roguelike-reset"],
+      "apparentConflict": "Tactical accountability can favor predictable local resolution, while replayability can benefit from generated or randomized situations.",
+      "distinguishingConditions": ["Randomness in setup or content can vary the problem while leaving the player's immediate consequence model predictable.", "Randomness inside action resolution changes attribution and planning differently from randomness in encounter generation.", "Generated variation still needs validity constraints or it can destroy the tactical structure it is meant to refresh."],
+      "falseUniversalizations": ["Randomness makes tactical decisions less skillful.", "More procedural variation always improves replayability."],
+      "cheapDiscriminator": "Hold the action rules fixed and move variance between setup generation and action resolution; compare forecastability and reachable plan diversity mechanically."
+    },
+    {
+      "id": "conditional.broad-idea-search-vs-shipped-scope-restraint",
+      "facetIds": ["facet.scope-selection-omission"],
+      "triggerMechanisms": ["large-idea-pool", "rapid-prototyping", "content-cutting", "feature-omission", "content-saturation", "scope-restraint"],
+      "experienceRefs": ["exp.mariowonder.idea-pool-to-prototypes", "exp.itb.constraint-pruning", "exp.rimworld.strategic-omission", "exp.rimworld.necessary-feature-assumption", "exp.factorio.full-run-scope-saturation", "exp.ftl.throwaway-change-as-normal"],
+      "apparentConflict": "Creative search can benefit from generating many alternatives, while the finished product may improve through aggressive cutting and resisting assumed mandatory features.",
+      "distinguishingConditions": ["Idea-space breadth is cheap before production commitment and should not be confused with shipped feature breadth.", "As integration cost and interaction surface grow, low-value additions can reduce legibility or saturate progression.", "Throwaway prototypes preserve search breadth without granting survival rights to every idea."],
+      "falseUniversalizations": ["More ideas imply a larger final game.", "Aggressive scope restraint means searching fewer possibilities."],
+      "cheapDiscriminator": "Generate a deliberately broad candidate set, then run deletion/necessity probes before any candidate gains production-quality assets."
+    },
+    {
+      "id": "conditional.preserve-core-vs-break-form",
+      "facetIds": ["facet.sequel-identity-transformation", "facet.genre-recombination-inversion"],
+      "triggerMechanisms": ["core-verb-preservation", "mechanic-preservation", "form-recomposition", "new-ability-grammar", "identity-retention"],
+      "experienceRefs": ["exp.portal2.preserve-identity-change-space", "exp.portal2.sequel-complete-game-problem", "exp.mooncrash.franchise-form-not-sacred", "exp.totk.familiar-world-new-grammar", "exp.saturnalia.identity-through-radical-change"],
+      "apparentConflict": "Some successors protect an identity-bearing core while others gain value by breaking the enclosing form or changing nearly every presentation layer.",
+      "distinguishingConditions": ["The key question is which substrate actually carries recognition or value: verb grammar, world, pacing, fiction, progression form, or something else.", "Preserving a core can focus novelty if new elements multiply with it; preserving accidental constraints can make a sequel feel redundant.", "Radical form change is safer when an explicit experiential invariant survives the transformation."],
+      "falseUniversalizations": ["A sequel must preserve its predecessor's core mechanics.", "A sequel is only innovative if it replaces the old form."],
+      "cheapDiscriminator": "Name one identity-bearing invariant and one contingent convention, then prototype changing each separately to see which possibilities and recognizability are actually affected."
+    },
+    {
+      "id": "conditional.explicit-direction-vs-curiosity-direction",
+      "facetIds": ["facet.open-direction-self-navigation", "facet.learning-guidance-opacity"],
+      "triggerMechanisms": ["reduced-explicit-missions", "curiosity-hook", "guided-completion", "delayed-help", "open-ended-creation"],
+      "experienceRefs": ["exp.outerwilds.curiosity-instead-of-missions", "exp.factorio.concept-order-not-operation-order", "exp.gbg.completion-before-open-endedness", "exp.subnautica.nonlinear-story-exploration"],
+      "apparentConflict": "Some experiences remove explicit task direction to let curiosity route play, while novice learning or creation can benefit from bounded guidance and completion scaffolds.",
+      "distinguishingConditions": ["If discovering where to go is itself part of the play, explicit objectives can collapse the intended information problem.", "If the player lacks the vocabulary needed to form useful self-directed goals, bounded guidance can create the prerequisites for later freedom.", "Guidance can be delayed or optional rather than globally present or absent."],
+      "falseUniversalizations": ["Quest markers and explicit goals always reduce exploration quality.", "New players should always receive explicit step-by-step direction."],
+      "cheapDiscriminator": "Use one small space/task with clue-only direction, optional delayed help, and explicit task steps; inspect which version preserves the target reasoning while remaining mechanically completable."
+    },
+    {
+      "id": "conditional.reset-vs-persistence-partition",
+      "facetIds": ["facet.failure-reset-persistence", "facet.persistence-progression-state"],
+      "triggerMechanisms": ["time-loop-reset", "persistent-player-knowledge", "persistent-character-memory", "repeated-settlement-reset", "persistent-consequences", "run-reset"],
+      "experienceRefs": ["exp.outerwilds.knowledge-as-progression", "exp.hades.failure-return-reactivity", "exp.againststorm.genre-recombination", "exp.xcom.two-layer-reinforcement", "exp.mooncrash.immersive-sim-roguelike-reset"],
+      "apparentConflict": "Run/session structures often reset large amounts of state, while their long-term meaning depends on carefully chosen knowledge, social, meta or campaign state persisting.",
+      "distinguishingConditions": ["Resetting solved local state can create fresh planning, but resetting all learning/social/meta state can erase progression.", "Persistent state should usually preserve a different planning horizon from the state that resets.", "Campaign consequences can intentionally make local failure non-resettable when long-horizon stewardship is the target."],
+      "falseUniversalizations": ["Roguelike structure means everything important should reset.", "Persistent progression is always needed to make repeated runs meaningful."],
+      "cheapDiscriminator": "Create a state table and independently toggle persistence of world, inventory, knowledge, relationships and meta unlocks; identify the smallest persistence partition that preserves the intended cross-run decision change."
+    },
+    {
+      "id": "conditional.hidden-forgiveness-vs-literal-precision",
+      "facetIds": ["facet.control-feel-forgiveness"],
+      "triggerMechanisms": ["forgiving-hit-rules", "precise-controls", "collision-forgiveness", "animation-timing", "control-response"],
+      "experienceRefs": ["exp.deadcells.hidden-forgiveness-precision", "exp.deadcells.micro-control-details", "exp.dmc5.experience-backward-detail", "exp.doom.speed-threat-readability"],
+      "apparentConflict": "A demanding action game may advertise precision while quietly bending edge cases in the player's favor.",
+      "distinguishingConditions": ["Forgiveness at ambiguous execution boundaries can reduce perceived unfairness without removing high-level commitment decisions.", "Assistance that changes strategic consequences or invalidates learned timing can undermine mastery instead of supporting it.", "The useful tolerance window depends on feedback latency, animation readability and input device."],
+      "falseUniversalizations": ["Hardcore play requires literal unforgiving simulation at every boundary.", "More hidden assistance always makes controls feel better."],
+      "cheapDiscriminator": "Sweep one buffer/coyote/collision tolerance while keeping the decision structure fixed; verify where edge-case failures change before making any Human feel claim."
+    },
+    {
+      "id": "conditional.metrics-vs-judgement",
+      "facetIds": ["facet.feedback-measurement-evidence"],
+      "triggerMechanisms": ["telemetry", "balance-metrics", "qualitative-feedback", "designer-judgement", "real-save-profiling", "full-run-playtest"],
+      "experienceRefs": ["exp.sts.telemetry-plus-judgement", "exp.factorio.performance-from-real-scale", "exp.factorio.full-run-scope-saturation", "exp.subnautica.double-down-core-spikes"],
+      "apparentConflict": "Quantitative traces can expose distributions and bottlenecks, while qualitative observation and design judgement are needed when the target is not reducible to one metric.",
+      "distinguishingConditions": ["Use instrumentation when the target variable is mechanically measurable, such as frequency, performance or balance distribution.", "Use qualitative/player/context evidence when interpreting why behavior occurs or whether a distinctive experience is being served.", "A metric becomes dangerous when it silently replaces the target construct rather than measuring one bounded aspect of it."],
+      "falseUniversalizations": ["Data-driven design means the metric should make the decision.", "Designer judgement is enough when instrumentation is available."],
+      "cheapDiscriminator": "For one decision, write the target construct, metric evidence and non-metric evidence separately, then test whether each would recommend a different change before combining them."
+    },
+    {
+      "id": "conditional.feedback-vs-vision",
+      "facetIds": ["facet.feedback-measurement-evidence", "facet.production-capacity-design-space"],
+      "triggerMechanisms": ["player-feedback", "core-spikes", "franchise-expectations", "studio-vision", "community-feedback"],
+      "experienceRefs": ["exp.subnautica.double-down-core-spikes", "exp.bg3.vision-vs-inherited-expectations", "exp.hades.modular-structure-open-development"],
+      "apparentConflict": "Open development can make feedback highly influential, while strong product identity may require resisting literal requests or inherited audience expectations.",
+      "distinguishingConditions": ["Feedback is strongest as evidence of a problem, reaction or context; it does not automatically own the solution.", "A clear product hypothesis can use feedback to strengthen or falsify a core spike without implementing requests verbatim.", "Audience feedback is especially confounded when early adopters differ from the intended later population."],
+      "falseUniversalizations": ["Build what players ask for because they know what they want.", "A strong creative vision should ignore community feedback."],
+      "cheapDiscriminator": "Translate one request into the underlying problem statement, generate at least two structurally different fixes, and test them against the product hypothesis rather than request frequency."
+    },
+    {
+      "id": "conditional.authored-structure-vs-procedural-variation",
+      "facetIds": ["facet.procedural-variation-authorship", "facet.narrative-system-coupling"],
+      "triggerMechanisms": ["procedural-generation", "procedural-level-layout", "authored-tactical-requirements", "authored-scenes", "procedural-glue", "generated-history"],
+      "experienceRefs": ["exp.dwarffortress.procgen-changes-system-design", "exp.xcom2.procgen-enough-not-infinite", "exp.heavensvault.authored-procedural-glue", "exp.mooncrash.immersive-sim-roguelike-reset"],
+      "apparentConflict": "Authored structure protects specific tactical or narrative properties, while procedural generation creates variation and combinations that cannot all be hand-authored.",
+      "distinguishingConditions": ["Procedural generation is most useful where variation itself has value and validity constraints can be checked.", "Authored structure carries higher value where pacing, semantic sequence or tactical geometry needs exact guarantees.", "Hybrid systems can generate connective or setup variation while preserving authored high-value units."],
+      "falseUniversalizations": ["Procedural generation is mainly a way to get infinite content cheaply.", "Hand-authored content is always higher quality than generated structure."],
+      "cheapDiscriminator": "Identify one property that must be guaranteed and one dimension allowed to vary; generate only the latter and reject outputs that violate the former."
+    },
+    {
+      "id": "conditional.platform-specific-representation-vs-interface-preservation",
+      "facetIds": ["facet.representation-affordance-interface"],
+      "triggerMechanisms": ["input-remapping", "platform-specific-ui", "controller-input", "mouse-keyboard-input", "shared-strategic-intent", "diegetic-book-interface"],
+      "experienceRefs": ["exp.papersplease.port-meal-not-plate", "exp.halowars2.cross-input-same-intent", "exp.obradinn.book-as-information-index"],
+      "apparentConflict": "Preserving a game's semantic task can require changing its interface substantially across devices, yet some representations are themselves part of the reasoning structure.",
+      "distinguishingConditions": ["If a UI element is only an input carrier, platform-native remapping may preserve the underlying task better than visual sameness.", "If the representation externalizes information relationships needed for deduction or planning, replacing it can change the game rather than only the controls.", "Operation count, precision demands and occlusion are platform-specific constraints that can justify redesign."],
+      "falseUniversalizations": ["A faithful port should preserve the original interface as closely as possible.", "Interface can always change freely as long as rules stay identical."],
+      "cheapDiscriminator": "List which interface structures are semantic working memory versus transport controls; redesign one transport-only element first and compare task reachability."
+    },
+    {
+      "id": "conditional.genre-convention-vs-recombination",
+      "facetIds": ["facet.genre-recombination-inversion"],
+      "triggerMechanisms": ["genre-flexibility", "genre-break", "selective-genre-conventions", "roguelite-runs", "forward-aggression", "story-generator-framing"],
+      "experienceRefs": ["exp.ftl.feeling-before-genre", "exp.mooncrash.franchise-form-not-sacred", "exp.againststorm.genre-recombination", "exp.pacificdrive.taxonomy-not-genre-checklist", "exp.doom.push-forward-resource-loop", "exp.rimworld.story-generator-framing"],
+      "apparentConflict": "Genre conventions carry useful player expectations and proven structures, but several projects gained identity by discarding, inverting or recombining them.",
+      "distinguishingConditions": ["A convention is useful when it cheaply communicates or realizes a target relationship; it is suspect when retained only because the category usually contains it.", "Borrowed mechanics need to change decisions in the new composition rather than merely signal genre membership.", "Player expectation can be intentionally inverted only if the replacement supplies a coherent alternative causal structure."],
+      "falseUniversalizations": ["Genre conventions are constraints a game must satisfy to belong to the genre.", "Breaking genre conventions is inherently innovative."],
+      "cheapDiscriminator": "For one genre feature, name the exact relationship it serves, remove or replace it, and test whether the target relationship survives under a structurally different mechanism."
+    },
+    {
+      "id": "conditional.freedom-vs-completion-scaffold",
+      "facetIds": ["facet.learning-guidance-opacity", "facet.authoring-creation-tools", "facet.open-direction-self-navigation"],
+      "triggerMechanisms": ["open-ended-creation", "guided-completion", "copy-modify-create", "organic-learning", "reduced-toolset"],
+      "experienceRefs": ["exp.gbg.completion-before-open-endedness", "exp.gbg.copy-modify-create", "exp.factorio.concept-order-not-operation-order", "exp.pikmin4.train-planning-before-breadth"],
+      "apparentConflict": "Creative and strategic play values freedom, yet novices can fail to form useful goals when exposed to the full possibility space immediately.",
+      "distinguishingConditions": ["Scaffolding is most defensible when it teaches prerequisites that later expand freedom rather than permanently narrowing solutions.", "Copy/modify and reduced-toolset approaches can preserve causal experimentation while lowering initial search complexity.", "Expert users or returning players may need a bypass so onboarding does not become a permanent gate."],
+      "falseUniversalizations": ["Open-ended systems should expose all freedom immediately.", "Structured onboarding should control the player's solution path until mastery."],
+      "cheapDiscriminator": "Prototype one task with full blank-slate freedom, reduced tools, and copy-modify scaffolding; inspect which prerequisites are actually required before later open composition."
+    }
+  ]
+}

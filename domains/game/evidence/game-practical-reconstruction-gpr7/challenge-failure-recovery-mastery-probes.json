@@ -1,0 +1,258 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gpr7-cfrm-probes",
+  "fixtures": {
+    "challenge": {
+      "sameRulesDifferentConditions": [
+        {
+          "id": "rescue-14",
+          "turnLimit": 14,
+          "objective": "rescue",
+          "posture": "cautious",
+          "formation": "cohesive",
+          "outcome": "failure"
+        },
+        {
+          "id": "rescue-20",
+          "turnLimit": 20,
+          "objective": "rescue",
+          "posture": "cautious",
+          "formation": "cohesive",
+          "outcome": "victory"
+        },
+        {
+          "id": "core-20",
+          "turnLimit": 20,
+          "objective": "core",
+          "posture": "cautious",
+          "formation": "split",
+          "outcome": "partial"
+        }
+      ],
+      "projections": {
+        "outcomeProbability": 0.5,
+        "thresholdRegion": "bounded",
+        "risk": "high",
+        "recoveryCost": "low"
+      },
+      "labels": {
+        "display": "Hard",
+        "sourceProjection": "outcome_distribution",
+        "scope": "rescue/cautious/cohesive@20"
+      }
+    },
+    "failure": {
+      "run": {
+        "objectives": [
+          {
+            "id": "a",
+            "status": "completed"
+          },
+          {
+            "id": "b",
+            "status": "failed"
+          }
+        ],
+        "factionOutcome": "partial",
+        "terminalReason": "turn_limit"
+      },
+      "technical": [
+        {
+          "kind": "team-task",
+          "status": "failed"
+        },
+        {
+          "kind": "provider",
+          "status": "provider-failure"
+        },
+        {
+          "kind": "process",
+          "status": "process_failed"
+        }
+      ],
+      "action": {
+        "status": "contested",
+        "reason": "target_zone_capacity_lost"
+      },
+      "assessment": {
+        "criterion": "mandatory rescue",
+        "scope": "rescue faction",
+        "horizon": "turn 20",
+        "disposition": "not_satisfied"
+      }
+    },
+    "recovery": {
+      "technical": {
+        "label": "recover(runId)",
+        "kind": "technical_durable_state_recovery"
+      },
+      "lexical": [
+        {
+          "label": "recover-research-core",
+          "kind": "retrieve_objective"
+        },
+        {
+          "label": "recover-civilian",
+          "kind": "rescue_responsibility"
+        }
+      ],
+      "continuation": [
+        {
+          "kind": "continue_current_state",
+          "preserve": {
+            "state": true,
+            "progress": true,
+            "history": true,
+            "time": false
+          }
+        },
+        {
+          "kind": "checkpoint_restore",
+          "preserve": {
+            "state": false,
+            "progress": false,
+            "history": true,
+            "time": false
+          }
+        },
+        {
+          "kind": "new_attempt_same_category",
+          "preserve": {
+            "state": false,
+            "progress": false,
+            "history": true,
+            "time": false
+          }
+        }
+      ],
+      "costs": [
+        {
+          "id": "fast-reset",
+          "time": 1,
+          "progress": 10,
+          "resources": 2
+        },
+        {
+          "id": "slow-preserve",
+          "time": 8,
+          "progress": 1,
+          "resources": 0
+        }
+      ]
+    },
+    "mastery": {
+      "oneRun": {
+        "success": true,
+        "transfer": false,
+        "retention": false
+      },
+      "assisted": {
+        "target": "human+agent",
+        "success": true,
+        "humanIndependent": false
+      },
+      "synthetic": {
+        "target": "policy:fixture",
+        "probeCount": 18,
+        "robust": true,
+        "humanEvidence": false
+      },
+      "stale": {
+        "version": "v3",
+        "currentVersion": "v4",
+        "transferEstablished": false
+      },
+      "saturated": {
+        "zeroError": true,
+        "discrimination": "low"
+      },
+      "circular": {
+        "criterionSource": "same-performance",
+        "heldOutProbe": false
+      }
+    },
+    "attribution": {
+      "terminalReason": "turn_limit",
+      "contributors": [
+        {
+          "id": "zone-capacity",
+          "class": "strongly_supported_contributor"
+        }
+      ],
+      "unresolved": [
+        "provider-choice"
+      ],
+      "blame": null
+    },
+    "debrief": {
+      "assessmentRef": "failure:mandatory-rescue",
+      "terminalSummary": "turn_limit",
+      "attributionRef": "attr:run",
+      "continuationRef": "continue:new-attempt",
+      "sourceRefs": [
+        "objective:a",
+        "objective:b",
+        "run:history"
+      ]
+    }
+  },
+  "probes": {
+    "challengeChangesWithTurnLimit": true,
+    "challengeChangesWithEvaluationTarget": true,
+    "challengeHasMultipleProjectionKinds": true,
+    "outcomeProbabilityNotRisk": true,
+    "riskNotRecoveryCost": true,
+    "difficultyLabelHasSourceProjection": true,
+    "noIntrinsicDifficultyScalar": true,
+    "aggregatePassRateNotUniqueChallenge": true,
+    "assistNotInverseDifficulty": true,
+    "syntheticChallengeNotHumanExperience": true,
+    "comparisonRequiresChangedHeldFixed": true,
+    "difficultyOrderingNeedNotBeTotal": true,
+    "mixedObjectiveStates": true,
+    "partialOutcomeNotBinaryFailure": true,
+    "failureAssessmentHasScope": true,
+    "terminalReasonNotFailureCause": true,
+    "providerFailureDistinct": true,
+    "processFailureDistinct": true,
+    "taskFailureDistinct": true,
+    "actionContestNotMissionFailure": true,
+    "failureNotDeathByIdentity": true,
+    "failureNotTerminalityByIdentity": true,
+    "teamLossNotIndividualSkillDeficit": true,
+    "objectiveFailureNotFactionFailure": true,
+    "technicalRecoverDistinctFromContinuation": true,
+    "lexicalRecoverDistinctFromContinuation": true,
+    "continuationOptionsPlural": true,
+    "continuationCanPreserveHistory": true,
+    "checkpointRestoreNotHistoryErasure": true,
+    "retryNotHistoryErasure": true,
+    "costsParetoIncomparable": true,
+    "noUniversalFailureSeverity": true,
+    "cheapRetryNotEasyChallenge": true,
+    "severeResetNotHighSkillChallenge": true,
+    "technicalRecoveryNotGameRecovery": true,
+    "gpr4RemedyNotPursuitContinuation": true,
+    "oneRunNotMastery": true,
+    "assistedTargetExplicit": true,
+    "assistedNotHumanIndependent": true,
+    "syntheticMasteryCanBeLegitForSyntheticTarget": true,
+    "syntheticMasteryNotHumanEvidence": true,
+    "staleVersionNeedsTransfer": true,
+    "zeroErrorCanBeSaturated": true,
+    "circularCriterionRejected": true,
+    "completionNotMastery": true,
+    "highScoreNotMastery": true,
+    "taskSpecificNotTransferMastery": true,
+    "subjectiveCompetenceNotCapabilityMastery": true,
+    "socialRankNotCapabilityMastery": true,
+    "attributionPreservesUnresolved": true,
+    "attributionDoesNotInferBlame": true,
+    "debriefComposesSeparateRefs": true,
+    "debriefRetainsSourceDrilldown": true,
+    "currentOperationDebriefIsLocalSubstrate": true,
+    "noNewCanonicalSource": true,
+    "noFoundationReopen": true,
+    "nextGprUnknownAfterGpr7": true
+  }
+}

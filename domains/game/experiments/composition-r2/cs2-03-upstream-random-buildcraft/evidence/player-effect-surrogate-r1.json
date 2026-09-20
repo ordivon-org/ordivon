@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 1,
+  "kind": "cs2-03-player-model-effect-surrogate-r1",
+  "standing": "WEAK_LOCAL_SURROGATE",
+  "target": "paired total-score ATE of UPSTREAM vs DOWNSTREAM",
+  "parameterNames": [
+    "infoUse",
+    "foresight",
+    "riskAversion",
+    "synergyBias",
+    "balanceBias",
+    "habitBias",
+    "temperature"
+  ],
+  "trainingProfiles": 100,
+  "testProfiles": 28,
+  "testR2": 0.6248356991634916,
+  "testMAE": 0.45706376952804434,
+  "residualNoiseVariance": 0.11750876029061413,
+  "globalPermutationSensitivity": {
+    "infoUse": 0.445773654836112,
+    "foresight": 0.08451805387356953,
+    "riskAversion": 0.018102716208075492,
+    "synergyBias": 0.010698971938310148,
+    "balanceBias": 0.027365727911004646,
+    "habitBias": 0.05271646676870052,
+    "temperature": 0.3608244084642276
+  },
+  "activeExperimentSelection": {
+    "criterion": "Gaussian linear-model one-observation expected information gain = 0.5*log(1 + epistemicVariance/residualNoiseVariance)",
+    "candidatePool": 2048,
+    "topCandidates": [
+      {
+        "rank": 1,
+        "expectedInformationGainNats": 0.757076122328517,
+        "epistemicPredictiveVariance": 0.41663506109053,
+        "params": {
+          "infoUse": 0.17398601583019635,
+          "foresight": 0.9526779688137043,
+          "riskAversion": 0.998200922866962,
+          "synergyBias": 0.9433157454277636,
+          "balanceBias": 0.9199602529340716,
+          "habitBias": 0.17092126171796052,
+          "temperature": 0.09296895105819378
+        },
+        "surrogatePredictedScoreATE": 1.907850777352264
+      },
+      {
+        "rank": 2,
+        "expectedInformationGainNats": 0.7135730870169337,
+        "epistemicPredictiveVariance": 0.37212567414828335,
+        "params": {
+          "infoUse": 0.9413724208652533,
+          "foresight": 0.7265212876508803,
+          "riskAversion": 0.015758182419443628,
+          "synergyBias": 0.19562071811474424,
+          "balanceBias": 0.05934682459173619,
+          "habitBias": 0.917847044640323,
+          "temperature": 1.4087504382230096
+        },
+        "surrogatePredictedScoreATE": 1.6919814440097751
+      },
+      {
+        "rank": 3,
+        "expectedInformationGainNats": 0.7128418718815644,
+        "epistemicPredictiveVariance": 0.37141014126576355,
+        "params": {
+          "infoUse": 0.9481687054613577,
+          "foresight": 0.8606753871977564,
+          "riskAversion": 0.9038483905739018,
+          "synergyBias": 0.9209129800691527,
+          "balanceBias": 0.8201081610789792,
+          "habitBias": 0.11473008517671152,
+          "temperature": 0.4345780325329065
+        },
+        "surrogatePredictedScoreATE": 0.06706932477315833
+      },
+      {
+        "rank": 4,
+        "expectedInformationGainNats": 0.701764965904556,
+        "epistemicPredictiveVariance": 0.36069782134310757,
+        "params": {
+          "infoUse": 0.18171909788445725,
+          "foresight": 0.012195668741925634,
+          "riskAversion": 0.017337695062880333,
+          "synergyBias": 0.18316549183212022,
+          "balanceBias": 0.919410400712801,
+          "habitBias": 0.9722699928388769,
+          "temperature": 0.36649858895817283
+        },
+        "surrogatePredictedScoreATE": 0.5498342309317192
+      },
+      {
+        "rank": 5,
+        "expectedInformationGainNats": 0.6935799454671167,
+        "epistemicPredictiveVariance": 0.35293328632602317,
+        "params": {
+          "infoUse": 0.02098109613783124,
+          "foresight": 0.8616806156360336,
+          "riskAversion": 0.10679198354624272,
+          "synergyBias": 0.1878408958836638,
+          "balanceBias": 0.38909332517114276,
+          "habitBias": 0.9793832668816441,
+          "temperature": 1.4237362935453879
+        },
+        "surrogatePredictedScoreATE": -2.1575765017943938
+      },
+      {
+        "rank": 6,
+        "expectedInformationGainNats": 0.6602779969925754,
+        "epistemicPredictiveVariance": 0.3226206863058382,
+        "params": {
+          "infoUse": 0.9234180300666759,
+          "foresight": 0.9277565944889431,
+          "riskAversion": 0.9509009209874668,
+          "synergyBias": 0.09679596843173897,
+          "balanceBias": 0.77023062203225,
+          "habitBias": 0.03532390755869446,
+          "temperature": 0.10231199220713502
+        },
+        "surrogatePredictedScoreATE": 0.6056182503027615
+      },
+      {
+        "rank": 7,
+        "expectedInformationGainNats": 0.6351703146081656,
+        "epistemicPredictiveVariance": 0.3010651641168417,
+        "params": {
+          "infoUse": 0.09740812228681114,
+          "foresight": 0.024198149337319046,
+          "riskAversion": 0.007428041367195251,
+          "synergyBias": 0.15474928506866437,
+          "balanceBias": 0.0017150789685496672,
+          "habitBias": 0.18588298228131772,
+          "temperature": 0.8999994932246731
+        },
+        "surrogatePredictedScoreATE": 0.34786281437900696
+      },
+      {
+        "rank": 8,
+        "expectedInformationGainNats": 0.6240979232994246,
+        "epistemicPredictiveVariance": 0.29189781466130826,
+        "params": {
+          "infoUse": 0.09645837292322414,
+          "foresight": 0.5911545411943393,
+          "riskAversion": 0.07023083581842222,
+          "synergyBias": 0.2815890034069666,
+          "balanceBias": 0.21599149992909422,
+          "habitBias": 0.9719635098903564,
+          "temperature": 1.4404441626022262
+        },
+        "surrogatePredictedScoreATE": -0.868758959896569
+      },
+      {
+        "rank": 9,
+        "expectedInformationGainNats": 0.6201983239665417,
+        "epistemicPredictiveVariance": 0.28871719072958363,
+        "params": {
+          "infoUse": 0.8497286263734096,
+          "foresight": 0.969946030656272,
+          "riskAversion": 0.1427815755364856,
+          "synergyBias": 0.6792185452944661,
+          "balanceBias": 0.4552951220253825,
+          "habitBias": 0.03064422935226879,
+          "temperature": 0.1452421717741958
+        },
+        "surrogatePredictedScoreATE": 0.620632100839897
+      },
+      {
+        "rank": 10,
+        "expectedInformationGainNats": 0.6033519840011629,
+        "epistemicPredictiveVariance": 0.27525835508120466,
+        "params": {
+          "infoUse": 0.9197376259635511,
+          "foresight": 0.8922680488994714,
+          "riskAversion": 0.8597161020863039,
+          "synergyBias": 0.005109727597400757,
+          "balanceBias": 0.9939086519009513,
+          "habitBias": 0.26964536915787723,
+          "temperature": 0.7141584570679388
+        },
+        "surrogatePredictedScoreATE": 1.8717721737911595
+      }
+    ],
+    "scope": "next synthetic player-model evaluation inside declared parameter envelope; not a Human study and not yet a cross-candidate mechanism selector"
+  },
+  "boundary": "The surrogate emulates this computational experiment only. Predictive fit does not calibrate the model to Human Player Value or authorize extrapolation outside the declared parameter bounds."
+}

@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Causal Lag Lab · Memory Run</title>
+  <link rel="stylesheet" href="../../pc01-e03-playable-r1/web/styles.css">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="masthead">
+      <div>
+        <p class="eyebrow">PC01 + E03 · R2 multi-round learning falsifier</p>
+        <h1>Causal Lag Lab · Memory Run</h1>
+        <p class="lede">The system keeps one hidden operating character for the whole run. You only get the transitions it leaves behind.</p>
+      </div>
+      <div class="run-controls">
+        <div class="round-chip" data-round>ROUND 1 / 4</div>
+        <button type="button" class="secondary" data-new-run>NEW RUN</button>
+      </div>
+    </header>
+
+    <section class="memory-layout">
+      <aside class="memory-panel">
+        <div class="panel-head">
+          <div>
+            <span class="card-kicker">SYSTEM MEMORY</span>
+            <h2>Observed transitions</h2>
+          </div>
+        </div>
+        <p class="memory-help">After each delayed resolution, record what the cause was when you committed and what it was when the command landed.</p>
+        <div class="history-list" data-history>
+          <div class="history-empty">NO RESOLVED ROUNDS YET</div>
+        </div>
+        <div class="score-line">
+          <span>RUN NET</span>
+          <strong data-total>0</strong>
+        </div>
+      </aside>
+
+      <div class="play-column">
+        <section class="timeline" aria-label="command delay timeline">
+          <article class="context-card current">
+            <span class="card-kicker">CURRENT SIGNAL</span>
+            <h2 data-current-id>Loading…</h2>
+            <p data-current-context></p>
+            <p class="signal" data-current-symptom></p>
+          </article>
+
+          <div class="lag-card">
+            <span>COMMAND ETA</span>
+            <strong>1 CONTEXT SHIFT</strong>
+            <div class="arrow">→</div>
+            <p>The cause may or may not survive until execution. Use the run history if you think it helps.</p>
+          </div>
+
+          <article class="context-card forecast">
+            <span class="card-kicker">EXECUTION FORECAST</span>
+            <h2 data-forecast-id>Loading…</h2>
+            <p data-forecast-context></p>
+            <p class="signal" data-forecast-symptom></p>
+          </article>
+        </section>
+
+        <section class="decision-grid">
+          <article class="panel architecture-panel">
+            <div class="panel-head">
+              <div>
+                <span class="card-kicker">COMMITMENT</span>
+                <h2>Architecture</h2>
+              </div>
+              <p data-previous>Built architecture · —</p>
+            </div>
+            <div class="architecture-flow">
+              <button type="button" data-arch="source"><span>01</span><strong>SOURCE</strong><small>input resilience</small></button>
+              <div class="connector">→</div>
+              <button type="button" data-arch="process"><span>02</span><strong>PROCESS</strong><small>conversion stability</small></button>
+              <div class="connector">→</div>
+              <button type="button" data-arch="route"><span>03</span><strong>ROUTE</strong><small>delivery resilience</small></button>
+              <div class="connector">→</div>
+              <div class="output-node"><span>04</span><strong>OUTPUT</strong><small>resolves after shift</small></div>
+            </div>
+          </article>
+
+          <article class="panel diagnostic-panel">
+            <div class="panel-head">
+              <div>
+                <span class="card-kicker">OPTIONAL INFORMATION</span>
+                <h2>Diagnostic</h2>
+              </div>
+              <p>One scan maximum · cost 6</p>
+            </div>
+            <div class="diagnostic-actions">
+              <button type="button" data-inspect="process">PROCESS SCAN</button>
+              <button type="button" data-inspect="route">ROUTE SCAN</button>
+            </div>
+            <div class="inspection-readout" data-inspection>NO SCAN USED</div>
+            <p class="microcopy">The scan describes the current cause only. Whether that information still matters when your command lands is part of the run.</p>
+          </article>
+        </section>
+
+        <section class="commit-strip">
+          <div>
+            <span class="card-kicker">DELAYED CONSEQUENCE</span>
+            <p data-status>Select an architecture. You may inspect once before committing.</p>
+          </div>
+          <div class="commit-actions">
+            <button type="button" class="secondary" data-next-round hidden>NEXT ROUND</button>
+            <button type="button" class="commit" data-commit disabled>COMMIT FOR EXECUTION</button>
+          </div>
+        </section>
+
+        <section class="aftermath" data-aftermath aria-live="polite">
+          AFTERMATH · unresolved
+        </section>
+      </div>
+    </section>
+
+    <footer>
+      History is evidence, not an answer key · hidden run model is never shown · Human learning remains unobserved.
+    </footer>
+  </main>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

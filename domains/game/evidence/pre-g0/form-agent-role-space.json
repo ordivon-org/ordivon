@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.pre-g0-form-agent-role-space",
+  "date": "2026-08-17",
+  "productSelected": false,
+  "g0Entered": false,
+  "foundationReopenConditionTriggered": false,
+  "factorization": [
+    "GameFormProfile",
+    "ProductionAgentProfile",
+    "RuntimeAgentProfile"
+  ],
+  "laws": [
+    "AgentBuiltGame != AgentGame",
+    "ProductionAgentNeed != RuntimeAgentNeed",
+    "RuntimeGenerationNeed != WorldAgentNeed",
+    "WorldAgentNeed != ModelNeed",
+    "AgentUsefulness != AgentNecessity"
+  ],
+  "gameFormFamilies": [
+    {"id":"F01","name":"Precision movement / platforming"},
+    {"id":"F02","name":"Combat action / aiming / brawling"},
+    {"id":"F03","name":"Fighting / duel mind-game"},
+    {"id":"F04","name":"Racing / vehicle handling"},
+    {"id":"F05","name":"Sports / physical competition"},
+    {"id":"F06","name":"Rhythm / musical timing / performance"},
+    {"id":"F07","name":"Puzzle / spatial / logic"},
+    {"id":"F08","name":"Investigation / epistemic mystery"},
+    {"id":"F09","name":"Exploration / traversal / adventure"},
+    {"id":"F10","name":"Tactical conflict"},
+    {"id":"F11","name":"Strategic / macro conflict"},
+    {"id":"F12","name":"Card / deck / tabletop combinatorics"},
+    {"id":"F13","name":"Build / automation / logistics / management"},
+    {"id":"F14","name":"Simulation / stewardship / life"},
+    {"id":"F15","name":"RPG / character progression / party"},
+    {"id":"F16","name":"Survival / crafting / scarcity"},
+    {"id":"F17","name":"Narrative / interactive fiction"},
+    {"id":"F18","name":"Creative construction / sandbox / UGC"},
+    {"id":"F19","name":"Social / multiplayer coordination / deception"},
+    {"id":"F20","name":"Incremental / idle / delegation optimization"},
+    {"id":"F21","name":"Systemic immersive problem-solving"},
+    {"id":"F22","name":"Experimental / novel interaction"}
+  ],
+  "productionAgentRoles": [
+    {"id":"P01","name":"Research / evidence scout"},
+    {"id":"P02","name":"Design-space expander"},
+    {"id":"P03","name":"Prototype builder"},
+    {"id":"P04","name":"Gameplay / software engineer"},
+    {"id":"P05","name":"Content / asset authoring assistant"},
+    {"id":"P06","name":"Editor / tool operator"},
+    {"id":"P07","name":"Synthetic player / simulation population"},
+    {"id":"P08","name":"Falsifier / QA / exploit hunter"},
+    {"id":"P09","name":"Balance / analytics analyst"},
+    {"id":"P10","name":"Producer / production orchestrator"},
+    {"id":"P11","name":"Localization / accessibility assistant"},
+    {"id":"P12","name":"Release triage / support analyst"}
+  ],
+  "runtimeSystemRoles": [
+    {"id":"S01","name":"Content / encounter generator"},
+    {"id":"S02","name":"Director / pacing controller"},
+    {"id":"S03","name":"Semantic interpreter / adjudicator"},
+    {"id":"S04","name":"Player model / personalization"},
+    {"id":"S05","name":"Matchmaking / meta controller"},
+    {"id":"S06","name":"World-process controller"},
+    {"id":"S07","name":"Tutor / hint / accessibility assistant"}
+  ],
+  "worldAgentRoles": [
+    {"id":"W01","name":"Opponent / adversary"},
+    {"id":"W02","name":"Teammate / subordinate"},
+    {"id":"W03","name":"Persistent companion"},
+    {"id":"W04","name":"NPC / inhabitant"},
+    {"id":"W05","name":"Faction / institution"},
+    {"id":"W06","name":"Economic actor"},
+    {"id":"W07","name":"Narrator / game master"},
+    {"id":"W08","name":"Co-creator / critic"},
+    {"id":"W09","name":"Player proxy / delegate"},
+    {"id":"W10","name":"Persistent society / population"}
+  ],
+  "retiredSearchImplication": "DS1 structural survivors automatically receive playable budget before untested forms",
+  "nextFrontier": "Pre-G0 Form Search — broad traditional GameForm portfolio"
+}

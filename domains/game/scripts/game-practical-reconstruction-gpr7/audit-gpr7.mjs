@@ -1,0 +1,56 @@
+#!/usr/bin/env node
+import fs from 'node:fs';
+const matrix=JSON.parse(fs.readFileSync(process.argv[2]??'evidence/game-practical-reconstruction-gpr7/challenge-failure-recovery-mastery-contracts.json','utf8'));
+const probes=JSON.parse(fs.readFileSync(process.argv[3]??'evidence/game-practical-reconstruction-gpr7/challenge-failure-recovery-mastery-probes.json','utf8'));
+const c=matrix.contracts;
+const checks={
+  foundationsFrozen:Object.values(matrix.foundationStatus).slice(0,4).every(x=>x==='FROZEN')&&matrix.foundationStatus.reopenTriggered===false,
+  fourNulls:Object.keys(matrix.nullModelResults).length===4,
+  n1Falsified:matrix.nullModelResults.N1_scalar_difficulty_is_enough.startsWith('FALSIFIED'),
+  n2Falsified:matrix.nullModelResults.N2_one_failure_status_is_enough.startsWith('FALSIFIED'),
+  n3Falsified:matrix.nullModelResults.N3_one_recovery_concept_is_enough.startsWith('FALSIFIED'),
+  n4Partial:matrix.nullModelResults.N4_system_mastery_can_remain_only_product_prose.startsWith('PARTIALLY_SURVIVES'),
+  noNewSources:matrix.sourceDerivedBoundary.newCanonicalSources.length===0,
+  tenContracts:Object.keys(c).length===10,
+  challengeDerived:c.ChallengeAssessmentView.status==='STABILIZE_DERIVED_QUERY_SPECIFIC_VIEW',
+  challengeComparison:c.ChallengeComparisonView.status==='STABILIZE_DERIVED_MATCHED_COMPARISON_VIEW',
+  failureDerived:c.FailureAssessmentView.status==='STABILIZE_DERIVED_SCOPE_HORIZON_VIEW',
+  attributionDerived:c.OutcomeAttributionView.status==='STABILIZE_DERIVED_EVIDENCE_BOUNDED_ATTRIBUTION_VIEW',
+  continuationDerived:c.PursuitContinuationView.status==='STABILIZE_DERIVED_POST_OUTCOME_CONTINUATION_VIEW',
+  recoveryCostDerived:c.RecoveryCostView.status==='STABILIZE_DERIVED_QUERY_SPECIFIC_COST_VIEW',
+  masteryConditional:c.MasteryClaimView.status==='STABILIZE_CONDITIONAL_DERIVED_CLAIM_ASSESSMENT',
+  masteryEvidenceConditional:c.MasteryEvidenceView.status==='STABILIZE_CONDITIONAL_DERIVED_EVIDENCE_VIEW',
+  debriefComposite:c.FailureDebriefView.status==='STABILIZE_COMPOSITE_DERIVED_HUMAN_AGENT_VIEW',
+  diagnosticDerived:c.ChallengeFailureMasteryDiagnostic.status==='STABILIZE_DERIVED_TERMINOLOGY_AND_ATTRIBUTION_AUDIT',
+  seventyTwoStressCases:matrix.stressCases.length===72,
+  challenge18:matrix.stressCases.filter(x=>x.id.startsWith('C')).length===18,
+  failure18:matrix.stressCases.filter(x=>x.id.startsWith('F')).length===18,
+  recovery18:matrix.stressCases.filter(x=>x.id.startsWith('R')).length===18,
+  mastery18:matrix.stressCases.filter(x=>x.id.startsWith('M')).length===18,
+  twelveEngineeringFindings:Object.keys(matrix.currentEngineeringAudit).length===12,
+  operationDebriefConsumer:matrix.currentEngineeringAudit.OperationDebrief.classification==='PROVEN_LOCAL_FAILURE_DEBRIEF_CONSUMER_AND_SUBSTRATE',
+  terminalReasonGuard:matrix.currentEngineeringAudit.FactionOutcomeReason.classification==='TERMINAL_HORIZON_REASON_NOT_GENERAL_FAILURE_CAUSE',
+  technicalRecoveryGuard:matrix.currentEngineeringAudit.TechnicalRecoverRunId.classification==='TECHNICAL_DURABLE_STATE_RECOVERY',
+  fixtureChallengeSubstrate:matrix.currentEngineeringAudit.FixtureStrategyEvaluator.classification==='STRONG_CHALLENGE_COMPARISON_EVIDENCE_SUBSTRATE',
+  productCounterfactualSubstrate:matrix.currentEngineeringAudit.ProductValueCounterfactuals.classification==='STRONG_INTERVENTIONAL_CHALLENGE_EVIDENCE_SUBSTRATE',
+  masteryNoRuntimeConsumer:matrix.currentEngineeringAudit.ProductSystemMastery.classification==='USEFUL_PRODUCT_VOCABULARY_WITHOUT_CURRENT_RUNTIME_MASTERY_CONSUMER',
+  understandableFailureConsumer:matrix.currentEngineeringAudit.UnderstandableFailurePrinciple.classification==='DIRECT_PRODUCT_CONSUMER_FOR_DEBRIEF_AND_ATTRIBUTION',
+  broadImplementationFalse:matrix.implementationDecision.broadImplementationNow===false,
+  currentConsumerSplit:matrix.implementationDecision.currentDirectConsumerNeed.includes('PROVEN_LOCAL_FOR_FAILURE_DEBRIEF_AND_CHALLENGE_RESEARCH'),
+  noDifficultyTable:matrix.implementationDecision.notAdmitted.includes('generic difficulty table'),
+  noMasteredBoolean:matrix.implementationDecision.notAdmitted.includes('mastered boolean/state'),
+  nextUnknown:matrix.nextRoute.nextGpr==='UNKNOWN',
+  probesPass:Object.values(probes.probes).every(v=>v===true),
+  lawDifficulty:matrix.crossCuttingLaws.includes('Difficulty/Challenge != intrinsic content scalar'),
+  lawFailureScope:matrix.crossCuttingLaws.includes('FailureRequiresCriterionScopeHorizon'),
+  lawTerminalCause:matrix.crossCuttingLaws.includes('TerminalReason != FailureCauseByIdentity'),
+  lawTechnicalRecovery:matrix.crossCuttingLaws.includes('TechnicalReceiptRecovery != GamePursuitContinuationByIdentity'),
+  lawCheapRetry:matrix.crossCuttingLaws.includes('CheapRetry != EasyChallenge'),
+  lawMasteryBoolean:matrix.crossCuttingLaws.includes('Mastery != GameStateBoolean'),
+  lawPerformanceMastery:matrix.crossCuttingLaws.includes('DemonstratedPerformance != CapabilityMasteryClaim'),
+  lawJointMastery:matrix.crossCuttingLaws.includes('JointControllerMastery != HumanIndependentMastery'),
+  lawHumanExperience:matrix.crossCuttingLaws.includes('HumanExperiencedDifficultyRequiresHumanEvidence'),
+  lawDebrief:matrix.crossCuttingLaws.includes('DerivedDebrief != SourceOfGameTruth')
+};
+if(Object.values(checks).some(v=>!v)) throw new Error(`GPR7 audit failed\n${JSON.stringify(checks,null,2)}`);
+console.log(JSON.stringify({schemaVersion:1,kind:'ordivon.game.gpr7-audit',contractCount:Object.keys(c).length,stressCaseCount:matrix.stressCases.length,lawCount:matrix.crossCuttingLaws.length,probeCount:Object.keys(probes.probes).length,checkCount:Object.keys(checks).length,checks,decision:'GPR7 stabilizes a fully derived Challenge/Failure/Recovery/Mastery practical toolkit with current local consumers for challenge research and failure debrief, conditional mastery views, zero new canonical sources, and no broad implementation admission. NextGPR remains UNKNOWN pending another residual/coverage decision.'},null,2));

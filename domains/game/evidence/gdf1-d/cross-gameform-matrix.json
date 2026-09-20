@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf1-d-cross-gameform-matrix",
+  "status": "research-candidate",
+  "cases": [
+    {"id":"platformer","form":"precision platforming","skillTargets":["timing","trajectory control","state prediction","recovery"],"motorLoad":"high","formalEvaluation":"strong","participantAuthoredEvaluation":"low","techniqueFamily":"sometimes","embodimentStructural":"moderate","cPressure":["TRVS survives","SkillProfile survives","ExpressionEnvelope survives"]},
+    {"id":"fighting","form":"fighting game","skillTargets":["spacing","timing","action selection","execution","adaptation"],"motorLoad":"high","formalEvaluation":"strong","participantAuthoredEvaluation":"low","techniqueFamily":"strong-but-plural","embodimentStructural":"low-to-moderate","cPressure":["TechniqueFamily cannot be one combo/trajectory","SkillProfile must preserve opponent-conditioned policy dimensions"]},
+    {"id":"fps","form":"FPS aiming/combat","skillTargets":["motor acuity","target selection","timing","movement","prediction"],"motorLoad":"high","formalEvaluation":"strong","participantAuthoredEvaluation":"low","techniqueFamily":"optional","embodimentStructural":"low","cPressure":["task demand changes kinematics","one Fitts/accuracy metric insufficient"]},
+    {"id":"racing","form":"racing","skillTargets":["line choice","braking","steering","prediction","vehicle-state control"],"motorLoad":"high","formalEvaluation":"strong","participantAuthoredEvaluation":"low","techniqueFamily":"strong","embodimentStructural":"tool/vehicle-coupled","cPressure":["assist and vehicle dynamics change skill expression","TechniqueFamily reparameterizes"]},
+    {"id":"rhythm","form":"rhythm game","skillTargets":["phase/timing","sequence execution","anticipation"],"motorLoad":"high","formalEvaluation":"strong","participantAuthoredEvaluation":"low","techniqueFamily":"optional","embodimentStructural":"moderate","cPressure":["ReactionTime != TimingSkill","TRVS can be temporally narrow"]},
+    {"id":"rts","form":"real-time strategy","skillTargets":["relevance detection","task switching","resource allocation","spatial attention","command timing","strategy"],"motorLoad":"medium","formalEvaluation":"strong","participantAuthoredEvaluation":"low","techniqueFamily":"weak/derived","embodimentStructural":"low","cPressure":["SkillProfile survives beyond motor telemetry","ContributionTopology must separate player command from unit/system execution"]},
+    {"id":"chess","form":"turn-based symbolic strategy","skillTargets":["pattern recognition","relevance detection","evaluation","search","move selection"],"motorLoad":"minimal","formalEvaluation":"strong","participantAuthoredEvaluation":"low","techniqueFamily":"not-required","embodimentStructural":"none-for-core-skill","cPressure":["SkillProfile survives with perceptual/policy variables and near-zero motor demand","TechniqueFamily is not core"]},
+    {"id":"sandbox-build","form":"open sandbox / creative construction","skillTargets":["planning","tool fluency","spatial construction","expression","revision"],"motorLoad":"medium","formalEvaluation":"weak-or-none","participantAuthoredEvaluation":"high","techniqueFamily":"optional","embodimentStructural":"low","cPressure":["fixed EvaluationTargetSet fails","requires time/provenance-bound participant-authored EvaluationCommitmentSet"]},
+    {"id":"speedrun","form":"speedrun/community overlay","skillTargets":["route knowledge","execution","timing","risk","reset/recovery"],"motorLoad":"high","formalEvaluation":"community-constitutive","participantAuthoredEvaluation":"medium","techniqueFamily":"strong","embodimentStructural":"low","cPressure":["TRVS must consume constitutive community overlay not base artifact only","SkillScope needs category/ruleset provenance"]},
+    {"id":"access-remap","form":"accessibility remapping","skillTargets":["same GameAction semantics under altered expression channel"],"motorLoad":"mapping-dependent","formalEvaluation":"held-fixed","participantAuthoredEvaluation":"low","techniqueFamily":"mapping-dependent","embodimentStructural":"actor-dependent","cPressure":["ControlAccessProfile survives","same GameAction can preserve higher-order skill while changing low-level execution demand"]},
+    {"id":"shared-assist","form":"shared/assistive control","skillTargets":["intent selection","supervision","manual execution","assist use"],"motorLoad":"distributed","formalEvaluation":"held-fixed","participantAuthoredEvaluation":"low","techniqueFamily":"joint-controller-dependent","embodimentStructural":"variable","cPressure":["Human/System/Joint attribution survives","immediate joint performance cannot identify independent Human learning"]},
+    {"id":"synthetic","form":"synthetic controller","skillTargets":["policy quality","adaptation","task-variable stabilization","transfer"],"motorLoad":"non-human","formalEvaluation":"strong","participantAuthoredEvaluation":"none","techniqueFamily":"optional","embodimentStructural":"not-human","cPressure":["SkillProfile has structural meaning without human body","no Human phenomenology/motor-mechanism inference"]}
+  ],
+  "constructVerdicts": [
+    {"construct":"SkillScopeSpec","verdict":"retain-compress","reason":"needed across all cases as research/evidence scope, but should be treated as metadata contract rather than domain entity"},
+    {"construct":"TaskRelevantVariableSet","verdict":"reconstruct","reason":"survives formal-goal cases but fixed EvaluationTargetSet fails in open sandbox; relevance source must support time/provenance-bound participant/social commitments"},
+    {"construct":"EvaluationTargetSet","verdict":"replace","replacement":"EvaluationCommitmentSet","reason":"targets can be formal, community-constitutive, participant-authored, negotiated, temporary or research hypotheses; currentness/provenance must be explicit"},
+    {"construct":"ProbeTransformation","verdict":"retain-core-candidate","reason":"all transfer/remap/assist comparisons require explicit changed/held-fixed dimensions"},
+    {"construct":"SkillProfile","verdict":"retain-core-candidate","reason":"works for motor, perceptual, strategic and synthetic skill if task-relevant variables are not restricted to movement metrics"},
+    {"construct":"TechniqueFamily","verdict":"demote-derived","reason":"useful in some motor/practice domains but unnecessary or arbitrary in chess, RTS and some emergent/sandbox skill"},
+    {"construct":"ControlContributionTopology","verdict":"retain-compress","reason":"survives shared assist and RTS delegation if bounded to value/task-relevant variables/layers rather than every causal microstep"},
+    {"construct":"EntryRequirementSet","verdict":"retain-derived","reason":"survives but threshold can be vector/viability region and is configuration/evaluation-relative"},
+    {"construct":"SkillExpressionEnvelope","verdict":"retain-derived","reason":"survives motor and strategic cases; capability can be hidden by automation, low challenge, coarse action/evaluation or inaccessible mapping"},
+    {"construct":"SaturationBoundary","verdict":"reconstruct-with-attribution","reason":"observed plateau can arise from Game structure, measurement, challenge/opponent distribution or population sampling; cause must be attributed before calling a ceiling"},
+    {"construct":"ControlAccessProfile","verdict":"retain-derived","reason":"essential for remapping/accessibility and actor-relative embodiment cases"},
+    {"construct":"Embodiment","verdict":"dedicated-next-round-required","reason":"not universal to Skill, but in physical/VR/body-scaled control it can alter reachability, sensing and dynamics structurally rather than merely experience"}
+  ],
+  "externalAnchors": [
+    {"id":"BilalicEtAl2010","doi":"10.1037/a0020756","pressure":"chess expertise advantage is domain-specific and includes rapid relevant object/pattern processing; supports symbolic SkillProfile with minimal motor demand"},
+    {"id":"SheridanReingold2014","doi":"10.3389/fpsyg.2014.00941","pressure":"chess experts detect task-relevant board regions earlier than novices under controlled relevance manipulation"},
+    {"id":"GlassMaddoxLove2013","pmcid":"PMC3737212","pressure":"StarCraft training under high multi-source switching demands changed cognitive flexibility, showing RTS skill/control targets extend beyond low-level motor execution"},
+    {"id":"MatsuiEtAl2022","pmcid":"PMC8933040","pressure":"StarCraft experts and lower-skill players differ in gaze control under game difficulty, supporting attention/relevance variables in RTS SkillProfile"},
+    {"id":"DonovanEtAl2022","doi":"10.3389/fnhum.2022.979293","pressure":"FPS kinematics and motor acuity change with task demands and combined performance is not fully characterized by one Fitts-law summary"},
+    {"id":"MinecraftEducation2023","pmcid":"PMC10170428","pressure":"open-ended sandbox use affords participant creation without predetermined global goal; supports participant-authored/evolving evaluation rather than fixed target assumption"},
+    {"id":"Rhythmicity2023","pmcid":"PMC10162458","pressure":"adaptive rhythm-game training operationalizes temporal synchronization as a narrow task-relevant variable and changes challenge with performance"}
+  ],
+  "foundationReopen": {
+    "R29": false,
+    "GDF0_PRC7": false,
+    "reason":"cross-GameForm failures require reconstruction of derived measurement contracts, not a new semantic primitive or contradiction with frozen Play/Game laws"
+  }
+}

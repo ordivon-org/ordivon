@@ -1,0 +1,177 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf0-g-agent-era-evidence",
+  "epistemicBoundary": {
+    "purpose": "Agent-era boundary falsification over competence, experience, proposal, authority, identity, norms and language action",
+    "doesNotProve": [
+      "Agent phenomenology or PlayExperience",
+      "that emergent conventions are legitimate community rules by default",
+      "that LLM fluency grants authority",
+      "that open language creates a new semantic primitive",
+      "that Agent-generated games become culturally recognized games without human/community uptake"
+    ]
+  },
+  "evidence": [
+    {
+      "id": "G1-baba-is-llm",
+      "source": "van Wetten, Plaat & van Duijn 2025 arXiv:2506.19095",
+      "target": "dynamic-rule game execution",
+      "observations": [
+        "Baba Is You makes rule statements manipulable parts of game state",
+        "evaluated LLMs struggle with dynamic rule changes and use/mention distinctions even when language competence is strong"
+      ],
+      "supports": [
+        "RuleRepresentation != CurrentRuleTruth",
+        "RuleContent and meta-level rule manipulation must remain separate",
+        "language competence does not collapse rule-currentness reasoning"
+      ],
+      "limits": [
+        "benchmark competence only; no PlayExperience claim",
+        "game-specific task does not establish universal Agent behavior"
+      ]
+    },
+    {
+      "id": "G2-rulesmith",
+      "source": "Zeng et al. 2026 arXiv:2602.06232",
+      "target": "production/design Agent locus",
+      "observations": [
+        "multi-Agent LLM self-play is coupled to Bayesian optimization over game-rule parameters",
+        "agents evaluate candidate rule configurations as a surrogate in automated balancing"
+      ],
+      "supports": [
+        "ProductionAgentNeed != RuntimeAgentNeed",
+        "Agent can operate over rule-search/evaluation without being a shipped world subject",
+        "RuleCandidate != authoritative deployed rule until another authority admits it"
+      ],
+      "limits": [
+        "automated balancing objective is not human PlayerValue proof",
+        "candidate generation/search does not establish social legitimacy"
+      ]
+    },
+    {
+      "id": "G3-orak",
+      "source": "Park et al. 2025 arXiv:2506.03610",
+      "target": "cross-game synthetic execution competence",
+      "observations": [
+        "benchmark connects LLM agents to 12 real video games across genres",
+        "evaluates game score, agentic strategies, visual input and fine-tuning effects"
+      ],
+      "supports": [
+        "synthetic GameExecution/competence is measurable across materially different GameForms",
+        "structural gameplay competence can be studied without PlayExperience evidence"
+      ],
+      "limits": [
+        "benchmark performance is not subjective play",
+        "MCP/interface design is implementation, not ontology"
+      ]
+    },
+    {
+      "id": "G4-llm-social-conventions",
+      "source": "Ashery, Aiello & Baronchelli 2024 arXiv:2410.08948",
+      "target": "emergent convention formation",
+      "observations": [
+        "populations of communicating LLM agents can converge on shared conventions from local interactions",
+        "committed minorities can trigger convention changes above observed tipping conditions"
+      ],
+      "supports": [
+        "Convention can emerge from repeated practice rather than central designer decree",
+        "one utterance/proposal is not identical to population-level convention currentness",
+        "Agent participation can enter social-practice dynamics without introducing a new relation primitive"
+      ],
+      "limits": [
+        "simulated convention convergence is not automatically legitimate human community authority",
+        "no phenomenology inference"
+      ]
+    },
+    {
+      "id": "G5-natural-language-norms",
+      "source": "Horiguchi, Yoshida & Ikegami 2024 arXiv:2409.00993",
+      "target": "natural-language norm formation",
+      "observations": [
+        "LLM agents in metanorm-game variants can generate and follow normative strategies through natural-language interaction"
+      ],
+      "supports": [
+        "NaturalLanguage can be a representation/coordination medium for normative policy",
+        "norm content and norm authority/currentness should remain distinct"
+      ],
+      "limits": [
+        "simulation reward/game structure shapes emergence",
+        "natural-language norm expression is not proof of real-world legitimacy"
+      ]
+    },
+    {
+      "id": "G6-werewolf-language-policy",
+      "source": "Xu et al. 2025 arXiv:2502.04686",
+      "target": "free-form language action",
+      "observations": [
+        "Werewolf requires strategic decision-making through free-form language interaction",
+        "the proposed method maps free-form text into a discrete latent strategic space for learning and then back to language"
+      ],
+      "supports": [
+        "open text action does not abolish underlying policy structure",
+        "NaturalLanguageAction can be modeled as expressive/representational realization of structured strategic distinctions",
+        "LanguageSurface != EffectAuthority"
+      ],
+      "limits": [
+        "latent discretization is one engineering method, not a universal law",
+        "social-deduction domain only"
+      ]
+    },
+    {
+      "id": "G7-optimus2-open-instructions",
+      "source": "Li et al. 2025 arXiv:2502.19902",
+      "target": "open-ended goal-language to embodied action",
+      "observations": [
+        "Minecraft agent aligns open-ended language instructions with observation-action histories and low-level control",
+        "high-level language goal and low-level action policy remain distinct components"
+      ],
+      "supports": [
+        "OpenIntentLanguage != primitive physical action",
+        "goal representation can expand while authoritative environment effects still occur through a bounded action/control interface"
+      ],
+      "limits": [
+        "implementation-specific architecture",
+        "does not show unrestricted natural language directly mutates the world"
+      ]
+    },
+    {
+      "id": "G8-open-universe-assistance",
+      "source": "Ma et al. 2025 arXiv:2508.15119",
+      "target": "unbounded/evolving natural-language goal space",
+      "observations": [
+        "framework models an unbounded and evolving space of possible human goals represented in natural language",
+        "agent performs inference over candidate goals rather than assuming one predefined goal list"
+      ],
+      "supports": [
+        "GoalVocabulary can be open-ended without requiring Goal as a new semantic primitive",
+        "open-intent systems need uncertainty/provenance over interpretation, not language-authoritative world mutation"
+      ],
+      "limits": [
+        "assistance games are not evidence that all games require open goals",
+        "synthetic user evaluation does not establish PlayExperience"
+      ]
+    }
+  ],
+  "protocolOnly": [
+    {
+      "id": "G9-agent-moderator",
+      "question": "Can an Agent adjudicator become authoritative only by explicit delegated grant, and what happens when community/institution authority conflicts?",
+      "requiredSeparation": ["ModeratorProposal", "DelegatedAuthority", "AdjudicationReceipt", "Appeal/Override", "CommunityLegitimacy"]
+    },
+    {
+      "id": "G10-agent-created-game-adoption",
+      "question": "If an Agent creates rules/artifact and humans later adopt the practice, which event constitutes authorship, GameStructure admission and GameCategory legitimacy?",
+      "requiredSeparation": ["Generation", "AuthorshipClaim", "RuleAdmission", "HumanPractice", "CategoryRecognition"]
+    },
+    {
+      "id": "G11-persistent-agent-community",
+      "question": "Can one persistent Agent remain the same social/game subject through provider/model replacement?",
+      "requiredSeparation": ["PrincipalIdentity", "ProviderModel", "MemoryHistory", "Recognition", "Authority"]
+    },
+    {
+      "id": "G12-human-ai-cocreation-no-game",
+      "question": "Can high responsiveness, co-creation and open language remain creative practice without a GameStructure?",
+      "requiredSeparation": ["Generation", "Creation", "Authorship", "ResponsiveOther", "GameStructure"]
+    }
+  ]
+}

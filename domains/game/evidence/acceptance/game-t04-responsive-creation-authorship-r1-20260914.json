@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.t04-responsive-creation-authorship",
+  "observedDate": "2026-09-14",
+  "thesis": "T04 Responsive Creation / Learnable Audience",
+  "standing": "FAILS_PREDECLARED_AUTHORSHIP_ADAPTATION_BALANCE",
+  "mechanismModifiedAfterObservation": false,
+  "balancedWeightResult": {
+    "authorshipWeight": 0.5,
+    "creatorAudienceAdaptationRate": 1.0,
+    "meanCreatorDiversityWithinAudience": 0.9666666666666668,
+    "meanIntentRetention": 0.6726311990906256,
+    "meanMaxMotifShare": 0.5166666666666667,
+    "maxSingleSequenceShare": 0.06666666666666667,
+    "distinctChosenSequences": 29
+  },
+  "decisionConsequence": "The responsive audience strongly changes artifacts and preserves creator diversity, but at the balanced objective weight the declared synthetic creators surrender more intent than the predeclared authorship-retention criterion allows. The current product thesis therefore does not earn G0; do not retune the same mechanism after observation in this wave.",
+  "boundary": "This is a computational tradeoff result inside the declared deterministic audience and synthetic creator models. It does not identify Human authorship, social meaning or enjoyment."
+}

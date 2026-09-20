@@ -1,0 +1,137 @@
+{
+  "schema": "veilwild.f16-product-audio-policy.r2",
+  "roundId": "VEILWILD_R1_ROUND_2",
+  "producer": "A16/F16",
+  "status": "SOURCE_BOUND_PRODUCT_POLICY_READY_FOR_A17_MOUNT_A18_RUNTIME_PATH_AND_F23_CANDIDATE_REPLAY",
+  "sourceBindings": {
+    "f13": {
+      "commit": "60cb5faf0d386ae9815647c1ffddc9bc0c123af3",
+      "path": "experiments/veilwild-r1/f13-behavior/PLAYER_CUE_AUTHORIZATION_R2.json",
+      "sha256": "bd32688e9895dee587949979eb5120f3ff4c734e79178ff876aeb630880a6115"
+    },
+    "f15": {
+      "commit": "45d31e4e910351634b183fa7f4ed1b32176afc52",
+      "path": "experiments/veilwild-r1/contracts/F15_SOUND_CUE_CONTRACT_R1.json",
+      "sha256": "b5f41e95fcbfa448f639e9a4d12230c1cb3ab3c5cff2732c4941f5021748e723"
+    },
+    "f18Listener": {
+      "commit": "ec19645c895d60d1386b6cd4725311edb068496c",
+      "path": "experiments/veilwild-r1/contracts/F18_PLAYER_INTERACTION_RUNTIME_CONTRACT_R1.json",
+      "sha256": "2c35fcc14d281d0c8287083ca6624c0fe649324e18ce63e2d307d99c5b5bb134",
+      "condition": "AudioListener3D current=true under PitchPivot; eye height 1.62m; Camera3D FOV 70 default, 60..100 range"
+    },
+    "f22": {
+      "commit": "784d5c98748e9e7a4cad0049d2e610c539d7baa1",
+      "path": "experiments/veilwild-r1/contracts/F22_TELEMETRY_EVIDENCE_CONTRACT_R1.json",
+      "sha256": "8989bb70640cd7e25e1e46113e512d7edc8868d1b52be94bb57b147fc37c2a3f"
+    },
+    "f23": {
+      "commit": "d6324c94cdb6de5c9d28d59e2f6ffdbec1881821",
+      "path": "experiments/veilwild-r1/contracts/F23_ACCESSIBILITY_CONTRACT_R2.json",
+      "sha256": "5830c78621ec424c19c59be7640f92b1a2acd8616341ad5f90229a0887d9492e"
+    }
+  },
+  "eventAdapterContract": {
+    "behavior_state_id": "F13 stable state semantic ID for the post-transition/current decision state",
+    "transition_kind": "ENTER for one F13 behavior_transition edge entering the post-transition state; this is representation only, not a new F13 semantic",
+    "transition_reason_id": "F13 stable transitionSemanticId",
+    "player_cue_authorization": "F13 playerCueAuthorization/player_cue_authorization object preserved without reinterpretation",
+    "source_position_m": "Creature world position in A17 1m,+Y,-Z basis, supplied by integrated runtime owner",
+    "event_id": "Stable source transition/event identity supplied by integrated runtime"
+  },
+  "mixProfiles": [
+    {
+      "bus": "VEILWILD_BEHAVIOR_CUE",
+      "volume_db": 0.0,
+      "mute": false,
+      "meaning": "Behavioral creature cue bus; zero-dB structural starting point preserves A15 headroom and is not a Human-balanced mix claim."
+    },
+    {
+      "bus": "VEILWILD_THREAT_CUE",
+      "volume_db": 0.0,
+      "mute": false,
+      "meaning": "Threat/reaction cue bus; zero-dB structural starting point. Relative priority is metadata, not automatic gain."
+    }
+  ],
+  "policies": [
+    {
+      "policy_id": "F16.R2.STIMULUS_ORIENT_TICK",
+      "cue_semantic_id": "VR_ORIENT_TICK_A",
+      "cue_class_id": "BEHAVIOR_AUDIO",
+      "trigger_state_ids": ["veilwild.behavior.orient.r1"],
+      "trigger_transition_kinds": ["ENTER"],
+      "trigger_transition_reason_ids": ["veilwild.behavior.transition.stimulus_acquired.r1"],
+      "required_authorization_mode": "EDGE",
+      "playback_kind": "PLAY_ONE_SHOT",
+      "concurrency_group": "creature_behavior_transient",
+      "restart": false,
+      "priority_rank": 50,
+      "bus": "VEILWILD_BEHAVIOR_CUE",
+      "spatial": true,
+      "spatial_profile": {"unit_size_m": 2.0, "max_distance_m": 18.0, "max_db": 0.0},
+      "criticality": "SUPPLEMENTAL_UNTIL_EXACT_F23_CANDIDATE_RECEIPT",
+      "redundant_carrier_or_route": "F13 also authorizes MOTION_COUNTERCUE on STIMULUS_ACQUIRED; actual integrated A09 carrier must be verified by A22",
+      "caption_or_visual_alternative": "PENDING_EXACT_F23_CANDIDATE_RECEIPT",
+      "spatial_information_class": "BOUNDED_DIRECTIONAL_NO_EXACT_DISTANCE_CLAIM",
+      "antiSpoiler": "edge-only; no periodic repetition or exact-position UI serialization"
+    },
+    {
+      "policy_id": "F16.R2.THREAT_ALERT_CHIRR",
+      "cue_semantic_id": "VR_ALERT_CHIRR_A",
+      "cue_class_id": "THREAT_RESPONSE",
+      "trigger_state_ids": ["veilwild.behavior.freeze.r1", "veilwild.behavior.conceal.r1", "veilwild.behavior.evade.r1"],
+      "trigger_transition_kinds": ["ENTER"],
+      "trigger_transition_reason_ids": ["veilwild.behavior.transition.threat_escalated.r1"],
+      "required_authorization_mode": "EDGE",
+      "playback_kind": "PLAY_ONE_SHOT",
+      "concurrency_group": "creature_threat_transient",
+      "restart": false,
+      "priority_rank": 70,
+      "bus": "VEILWILD_THREAT_CUE",
+      "spatial": true,
+      "spatial_profile": {"unit_size_m": 2.0, "max_distance_m": 24.0, "max_db": 0.0},
+      "criticality": "POTENTIALLY_PROGRESSION_CRITICAL_REQUIRES_F23_REDUNDANCY",
+      "redundant_carrier_or_route": "F13 authorizes MOTION_COUNTERCUE on THREAT_ESCALATED; exact integrated carrier remains A09/A22 evidence-bound",
+      "caption_or_visual_alternative": "PENDING_EXACT_F23_CANDIDATE_RECEIPT",
+      "spatial_information_class": "BOUNDED_DIRECTIONAL_NO_RAW_THREAT_OR_EXACT_COORDINATE",
+      "antiSpoiler": "may communicate reaction/risk only; no threat scalar, state label, or persistent beacon"
+    },
+    {
+      "policy_id": "F16.R2.ESCAPE_RUSH",
+      "cue_semantic_id": "VR_EVADE_RUSH_A",
+      "cue_class_id": "BEHAVIOR_AUDIO",
+      "trigger_state_ids": ["veilwild.behavior.evade.r1"],
+      "trigger_transition_kinds": ["ENTER"],
+      "trigger_transition_reason_ids": ["veilwild.behavior.transition.escape_selected.r1"],
+      "required_authorization_mode": "EDGE",
+      "playback_kind": "PLAY_ONE_SHOT",
+      "concurrency_group": "creature_behavior_transient",
+      "restart": false,
+      "priority_rank": 80,
+      "bus": "VEILWILD_BEHAVIOR_CUE",
+      "spatial": true,
+      "spatial_profile": {"unit_size_m": 2.0, "max_distance_m": 30.0, "max_db": 0.0},
+      "criticality": "RECOVERY_RELEVANT_BUT_NOT_REACQUISITION_PROOF",
+      "redundant_carrier_or_route": "F13 authorizes MOTION_COUNTERCUE and THREAT_RESPONSE on ESCAPE_SELECTED; exact integrated alternatives remain owner/candidate-bound",
+      "caption_or_visual_alternative": "PENDING_EXACT_F23_CANDIDATE_RECEIPT",
+      "spatial_information_class": "DEPARTURE_DIRECTION_ONLY_NO_POST_EVADE_TRACKER",
+      "antiSpoiler": "one-shot departure consequence only; no sustained BEHAVIOR_AUDIO during EVADE and no post-evade target tracking"
+    }
+  ],
+  "intentionallyUnboundA15Cues": [
+    {
+      "cue_semantic_id": "VR_FORAGE_RUSTLE_A",
+      "reason": "F13 authorizes sustained BEHAVIOR_AUDIO only in UNAWARE, but no owner event currently provides a sparse forage/activity trigger. A16 refuses to turn state persistence into a continuous locator loop."
+    },
+    {
+      "cue_semantic_id": "ENV_BRANCH_SNAP_A",
+      "reason": "Environmental corroboration is not F13 behavior authority; F13 TRACE is explicit NONE. Bind only when the environment/runtime owner publishes an exact disturbance event contract."
+    }
+  ],
+  "humanClaims": {
+    "cueUsefulness": "UNKNOWN",
+    "spatialUsefulness": "UNKNOWN",
+    "mixIntelligibility": "UNKNOWN",
+    "detectability": "UNKNOWN"
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.post-gpr-domain-coverage.c7-probes",
+  "date": "2026-08-18",
+  "candidate": "GameStructure Lineage / Versioning / Semantic Migration",
+  "routeAdmission": {
+    "gpr8": false,
+    "newNumberedFoundation": false,
+    "nextGpr": "UNKNOWN",
+    "nextPracticalRoute": "UNKNOWN",
+    "nextFoundation": "UNKNOWN"
+  },
+  "candidateDeletion": [
+    {"candidate":"Version","verdict":"REJECT_UNIVERSAL_PRIMITIVE","reason":"May mean client/server build, rules revision, content release, save format, protocol, season or edition label."},
+    {"candidate":"SemanticVersion","verdict":"REJECT_FOUNDATION","reason":"Effective semantics may be assembled from multiple current sources and scoped overlays."},
+    {"candidate":"Patch","verdict":"REJECT_GAME_PRIMITIVE","reason":"Implementation/publication carrier of change, not semantic effect itself."},
+    {"candidate":"Hotfix","verdict":"REJECT_GAME_PRIMITIVE","reason":"Operational delivery distinction; semantic significance lies in applied change/currentness."},
+    {"candidate":"Fork","verdict":"REJECT_GAME_SPECIFIC_PRIMITIVE","reason":"Generic branch-aware lineage already covered by identity/provenance semantics."},
+    {"candidate":"Compatibility","verdict":"REJECT_UNIVERSAL_BOOLEAN","reason":"Compatibility is operation/scope-relative: saves, rules, content, protocol, comparison and legality differ."},
+    {"candidate":"Migration","verdict":"REJECT_GAME_PRIMITIVE","reason":"Scoped transformation preserving selected continuity claims under mapping; cross-domain concept."},
+    {"candidate":"Season","verdict":"REJECT_UNIVERSAL_TARGET","reason":"May denote competition interval, content cycle, rules-currentness scope or reset boundary."},
+    {"candidate":"Legacy","verdict":"REJECT_ONTOLOGY","reason":"Owner/practice classification rather than primitive identity kind."}
+  ],
+  "probes": [
+    {"id":"C7-F1","regime":"D&D rules labeling","pressure":"2026 relabeling 2024 rules as 5.5e and 2014 as 5e without gameplay/rules change","result":"VersionLabelChange != SemanticGameChangeByIdentity","reduction":["representation label","GDF0 semantic currentness"]},
+    {"id":"C7-F2","regime":"WoW hotfix activation","pressure":"same client build with immediate/restart-gated server-side changes","result":"ClientBuildVersion != EffectiveSemanticCurrentnessByIdentity","reduction":["GDF0 EffectiveRuleTopology/currentness","GPR3 applied/adopted state","C5 change trace"]},
+    {"id":"C7-F3","regime":"cumulative hotfix stream","pressure":"dated hotfixes accumulate under broader patch family","result":"PatchLabel != CompleteEffectiveGameStructureSnapshot","reduction":["asOf/currentness","applied-change provenance"]},
+    {"id":"C7-F4","regime":"Riot esports rules","pressure":"competition rulebooks and event rules have independent revisions/effective dates from client patch","result":"CompetitionRulebookVersion != ClientGamePatchVersionByIdentity","reduction":["GDF0 multi-source EffectiveRuleTopology","practice currentness"]},
+    {"id":"C7-F5","regime":"Adventurers League mixed-rule migration","pressure":"updated rules used where released while older not-yet-updated options remain current","result":"EffectiveRuleTopology != OnePublicationVersionByIdentity","reduction":["GDF0 source composition","GPR3 current adoption"]},
+    {"id":"C7-F6","regime":"persistent character migration","pressure":"existing characters migrate/rebuild under new rules while preserving character continuity","result":"PersistentCharacterContinuity != RuleVersionIdentity","reduction":["R24 identity continuity","GDF0 current rules"]},
+    {"id":"C7-F7","regime":"selective character migration","pressure":"some character state rebuildable while historically acquired treasure has separate preservation constraints","result":"Migration != FullStateRewrite != FullStatePreservation","reduction":["owner-local transformation mapping","history/provenance"]},
+    {"id":"C7-F8","regime":"Minecraft existing-world upgrade","pressure":"persistent old world gains new height/depth/generated regions under new generation regime","result":"SamePersistentWorld != HomogeneousSingleGenerationVersionEverywhere","reduction":["World/history persistent state","Game future-generation semantics","migration mapping"]},
+    {"id":"C7-F9","regime":"save/world format upgrade","pressure":"technical data migration to load under newer runtime","result":"SaveFormatVersion != GameStructureIdentityByIdentity","reduction":["Runtime serialization","R24/R13 continuity","Game semantic effect only"]},
+    {"id":"C7-F10","regime":"WoW Classic branch reconstruction","pressure":"shared historical source/data/art provenance with modern WoW but separately maintained practices","result":"SharedHistoricalSource != SameCurrentGameStructureByIdentity","reduction":["R24 branch-aware lineage","R28/GDF0 practice identity"]},
+    {"id":"C7-F11","regime":"Classic gameplay on modern infrastructure","pressure":"different implementation code can reproduce recognized classic gameplay","result":"ImplementationCodeIdentity != GameStructureOrPracticeIdentityByIdentity","reduction":["GameArtifact != CompleteGameStructure","semantic/practice recognition"]},
+    {"id":"C7-F12","regime":"D&D 5e/5.5e compatibility","pressure":"officially distinguished rule generations remain supported/compatible","result":"Compatibility != Identity","reduction":["scope-relative compatibility relation","no identity inference"]},
+    {"id":"C7-F13","regime":"required character conversion","pressure":"old representation becomes non-current but migrated successor remains same recognized character","result":"RepresentationIncompatibility != EntityIdentityBreakByIdentity","reduction":["R24 identity authority","migration mapping"]},
+    {"id":"C7-F14","regime":"general D&D support vs Adventurers League currentness","pressure":"multiple versions available while organized play mandates specific current rule policy","result":"GloballyAvailableVersion != CurrentEffectiveVersionForPractice","reduction":["GDF0 scoped currentness","institutional adoption"]},
+    {"id":"C7-F15","regime":"organized-play source adoption","pressure":"new publication becomes legal only when practice update says so","result":"ArtifactPublicationTime != PracticeEffectiveTimeByIdentity","reduction":["GPR3 adoption/currentness","GDF0 EffectiveRuleTopology"]},
+    {"id":"C7-F16","regime":"running instance under structure change","pressure":"owner may apply immediately/next phase/new instances/restart/cohort split","result":"StructureVersionChange != GameInstanceContinuityDispositionByIdentity","reduction":["C1 ConstitutionBasisAndCurrentness","C1 InstanceContinuityBoundary"]},
+    {"id":"C7-F17","regime":"mutable current rules","pressure":"rule content changes while practice/instance may remain continuous under owner policy","result":"RuleContentChange != InstanceOrPracticeReplacementByIdentity","reduction":["GDF0 rule mutability","C1 owner-local continuity"]},
+    {"id":"C7-F18","regime":"small category overlay","pressure":"small semantic overlay can split recognized category","result":"SemanticDeltaMagnitude != IdentitySplitThresholdByIdentity","reduction":["GDF0 GameCategory","R28 recognition"]},
+    {"id":"C7-F19","regime":"large recognized transformation","pressure":"substantial changes can remain within recognized lineage","result":"LargeMechanicalDelta != IdentityBreakByIdentity","reduction":["GDF0/R28 recognized continuity"]},
+    {"id":"C7-F20","regime":"divergent branch/fork","pressure":"common ancestor with different future changes","result":"CommonAncestor != MutualPatchApplicability != MergeabilityByIdentity","reduction":["R24 generic lineage","GPR3 explicit adoption"]},
+    {"id":"C7-F21","regime":"partial semantic adoption","pressure":"practice adopts some updated rules while retaining older semantics elsewhere","result":"Adoption != WholeVersionReplacementNecessity","reduction":["GDF0 EffectiveRuleTopology composition","GPR3 adoption"]},
+    {"id":"C7-F22","regime":"season boundary","pressure":"new season changes rules/content/rank but preserves many persistent identities/histories","result":"SeasonBoundary != UniversalIdentityReset","reduction":["R23 temporal scope","GDF0 practice currentness","R24 persistent identity"]}
+  ],
+  "residualPattern": {
+    "names": ["GameStructureLineageView", "SemanticMigrationDiagnostic"],
+    "status": "STRONG_USEFUL_PRACTICAL_RESEARCH_ABSTRACTION_NOT_GAME_FOUNDATION",
+    "fields": [
+      "StructureOrPracticeRef",
+      "SourceRepresentationRefs",
+      "PredecessorSuccessorForkProvenance",
+      "AdoptionCurrentnessIntervals",
+      "ChangeOrPatchRefs",
+      "EffectiveSemanticChangeScope",
+      "CompatibilityClaimsByOperationScope",
+      "MigrationMappings",
+      "PreservedTransformedDroppedStateClasses",
+      "InstanceApplicabilityPolicy",
+      "CategoryPracticeContinuityClaims",
+      "IdentityAuthorityRecognitionRefs",
+      "ProvenanceEvidence"
+    ]
+  },
+  "subtraction": {
+    "GenericLineageIdentity":"R24 predecessor/successor/fork/provenance",
+    "HistoryPersistence":"R13/R24",
+    "PracticeCategoryRecognition":"R28 + GDF0 PlayPractice/GameCategory",
+    "EffectiveSemanticComposition":"GDF0 EffectiveRuleTopology",
+    "ChangeAdoptionAuthorityCurrentness":"GPR1/GPR3",
+    "AppliedChangeTrace":"C5",
+    "PersistentEntityWorldMigration":"R24 + World/Runtime owner-local mapping",
+    "GameInstanceEffect":"C1 ConstitutionBasisAndCurrentness + InstanceContinuityBoundary"
+  },
+  "c1Relation": {
+    "status":"UPSTREAM_INPUT_FAMILY_TO_C1_NOT_INDEPENDENT_FOUNDATION",
+    "law":"C1 ConstitutionBasisAndCurrentness cannot reduce to a single version string/hash"
+  },
+  "ownership": {
+    "Game":["current effective semantic/rule composition","Game-meaning migration transformations","which version differences affect legal action/evaluation/instance constitution","Game-relative practice/category continuity claims"],
+    "RuntimeSoftwareDelivery":["client/server builds","serialization formats","binary patching","protocol compatibility","deployment/restart mechanics"],
+    "World":["persistent world state and physical causal state"],
+    "SocialCulturalInstitutional":["practice/category lineage recognition","institutional adoption/currentness policies"],
+    "GenericIdentityHistory":["predecessor/successor/fork/provenance relations"],
+    "C1":["concrete GameInstance basis/currentness and continuity consequence"]
+  },
+  "foundationVerdict":"NO_INDEPENDENT_GAME_FOUNDATION_RESPONSIBILITY_SURVIVES",
+  "practicalVerdict":"STRONG_PRACTICAL_RESEARCH_GAP__NO_GPR_ADMISSION__NO_GENERIC_ENGINEERING_SOURCE_LAYER_PROVEN",
+  "agentEraVerdict":"AGENT_GENERATED_MICROPATCHES_BRANCHING_AND_PER_INSTANCE_OVERLAYS_INCREASE_PROVENANCE_SCOPE_CURRENTNESS_MIGRATION_NEEDS_BUT_REQUIRE_NO_AGENT_LINEAGE_PRIMITIVE",
+  "reopenAudit": {
+    "R1-R29/F1-F9":"NOT_TRIGGERED",
+    "GDF0_PRC3":"NOT_TRIGGERED",
+    "GDF0_PRC5":"NOT_TRIGGERED",
+    "GDF0_PRC6":"NOT_TRIGGERED",
+    "GDF1":"NOT_TRIGGERED",
+    "GDF2":"NOT_TRIGGERED",
+    "GDF3":"NOT_TRIGGERED"
+  },
+  "relativeUpdate": {
+    "C1":"SURVIVES_STRONG_GAME_OWNED_DOWNSTREAM_FOUNDATION_CANDIDATE",
+    "C2":"REDUCED",
+    "C3":"REDUCED",
+    "C4":"REDUCED",
+    "C5":"REDUCED",
+    "C6":"REDUCED",
+    "C7":"REDUCED_GENERIC_LINEAGE_CURRENTNESS_PLUS_C1_UPSTREAM_INPUT"
+  },
+  "finalClassification":"STRONG_PRACTICAL_DIAGNOSTIC_GAP__GENERIC_IDENTITY_HISTORY_PLUS_GDF0_CURRENTNESS_ADOPTION__UPSTREAM_INPUT_TO_C1__NOT_GENUINELY_NEW_GAME_FOUNDATION__NOT_ROUTE_SELECTED"
+}

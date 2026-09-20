@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.deep-foundations.domain-coverage-search",
+  "date": "2026-08-18",
+  "sourceHead": "22ff1397939fdb9244ccd4a972c07d0e79dd6013",
+  "frozenInputs": {
+    "r1ToR29": true,
+    "gdf0": "Play/Game FROZEN_V1",
+    "gdf1": "Action/Control/Skill FROZEN_V1",
+    "gdf2": "Challenge/Failure/Mastery FROZEN_V1"
+  },
+  "navigationAssumptions": {
+    "gameFeelPriority": false,
+    "timeRhythmPriority": false,
+    "spacePriority": false,
+    "strategyPriority": false,
+    "knownHandoffListExhaustive": false
+  },
+  "coverageStatusLegend": {
+    "D": "deep/frozen",
+    "S": "strong semantic/domain coverage",
+    "P": "partial/mechanistically shallow",
+    "H": "structurally homeless",
+    "X": "owned elsewhere",
+    "A": "Agent-era amplified/new configuration"
+  },
+  "structurallyHomelessClasses": [
+    {
+      "id": "H1",
+      "name": "Participation-role topology",
+      "status": ["H", "A"],
+      "owner": "Game candidate",
+      "examples": ["spectator", "audience", "coach", "referee", "judge", "GM", "facilitator", "moderator", "experience director", "operator", "creator/modder", "synthetic role"]
+    },
+    {
+      "id": "H2",
+      "name": "Mediation/adjudication/contestability",
+      "status": ["H", "A"],
+      "owner": "Game candidate"
+    },
+    {
+      "id": "H3",
+      "name": "Meta-game/paratext/cross-instance practice",
+      "status": ["H", "P"],
+      "owner": "Game + Practice/Culture"
+    },
+    {
+      "id": "H4",
+      "name": "Population ecology/matching/availability",
+      "status": ["H", "A"],
+      "owner": "Game + Social/Network"
+    },
+    {
+      "id": "H5",
+      "name": "Game stewardship/adaptive experience management",
+      "status": ["H", "A"],
+      "owner": "Game"
+    },
+    {
+      "id": "H6",
+      "name": "Endogenous dynamics/emergence/systemic regimes",
+      "status": ["P", "H"],
+      "owner": "World substrate + Game consumption"
+    },
+    {
+      "id": "H7",
+      "name": "Performance/spectatorship/observational participation",
+      "status": ["H"],
+      "owner": "Game; overlaps H1"
+    },
+    {
+      "id": "H8",
+      "name": "Productive play/property/labor/platform power",
+      "status": ["P", "H"],
+      "owner": "cross-project: Game + Finance/Law/Social"
+    },
+    {
+      "id": "H9",
+      "name": "Authoring-runtime boundary collapse",
+      "status": ["P", "A"],
+      "owner": "Game + Studio/production"
+    },
+    {
+      "id": "H10",
+      "name": "Epistemic inquiry as extended practice",
+      "status": ["P", "H"],
+      "owner": "Game + Practice; overlaps H3"
+    }
+  ],
+  "residualContinents": [
+    {
+      "id": "A",
+      "name": "Participation / Mediation Ecology",
+      "members": ["H1", "H2", "H5", "H7", "parts:H3", "parts:H4", "parts:H9"],
+      "coverageDeficit": "very_high",
+      "crossRegimeRecurrence": "very_high",
+      "counterfactualLeverage": "very_high",
+      "gameOwnership": "high",
+      "agentEraLeverage": "very_high",
+      "falsifierQuality": "excellent",
+      "selection": "SELECT"
+    },
+    {
+      "id": "B",
+      "name": "System Dynamics / Emergence",
+      "members": ["H6"],
+      "coverageDeficit": "high",
+      "crossRegimeRecurrence": "very_high",
+      "counterfactualLeverage": "very_high",
+      "gameOwnership": "split_with_World",
+      "selection": "PRESERVE_NOT_FIRST"
+    },
+    {
+      "id": "C",
+      "name": "Meta-Practice / Extended Game Apparatus",
+      "members": ["H3", "H10"],
+      "coverageDeficit": "high",
+      "gameOwnership": "split_but_game_relevant",
+      "selection": "PRESERVE_PARTLY_DOWNSTREAM_OF_A"
+    },
+    {
+      "id": "D",
+      "name": "Population / Platform Political Economy",
+      "members": ["H4", "H8"],
+      "coverageDeficit": "high",
+      "gameOwnership": "cross_project",
+      "selection": "PRESERVE_CROSS_CUTTING"
+    }
+  ],
+  "falsifiers": [
+    {"id": "F-A1", "case": "passive spectator vs authoritative judge", "result": "role+authority distinction survives"},
+    {"id": "F-A2", "case": "viewer becomes aggregate audience participant", "result": "EntityIdentity != ParticipationRole; direct avatar control not necessary"},
+    {"id": "F-A3", "case": "referee ruling changes valid score/history with event fixed", "result": "adjudication causally relevant; F1-F9 sufficient"},
+    {"id": "F-A4", "case": "TTRPG GM interprets open intent and resolves world consequence", "result": "facilitation+adjudication+world production can compose"},
+    {"id": "F-A5", "case": "adaptive director changes next encounter with local player state/action fixed", "result": "SubjectLearning != GameAdaptation"},
+    {"id": "F-A6", "case": "one Agent acts as player and legality judge", "result": "Entity identity cannot substitute for role/authority topology"},
+    {"id": "F-B1", "case": "same mechanic family yields stable/oscillatory/runaway macro regimes", "result": "dynamics gap is explanatory not semantic"},
+    {"id": "F-B2", "case": "remove Game semantics and dynamics theory still applies", "result": "general dynamics substantially World-owned"},
+    {"id": "F-C1", "case": "theorycraft outside executable changes play norms and later design", "result": "cross-instance practice is causally real"},
+    {"id": "F-C2", "case": "reconstruct participation/mediation first", "result": "much meta-practice becomes downstream of participation roles"},
+    {"id": "F-D1", "case": "identical local rules, different compatible player population", "result": "population availability changes reachable play"},
+    {"id": "F-D2", "case": "queue/matching/population phenomenon ownership", "result": "requires Game+Network+Social+economic boundaries"}
+  ],
+  "reopenAudit": {
+    "r29F1ToF9": "NOT_TRIGGERED",
+    "gdf0": "NOT_TRIGGERED",
+    "gdf1": "NOT_TRIGGERED",
+    "gdf2": "NOT_TRIGGERED"
+  },
+  "selection": {
+    "nextBranch": "GDF3",
+    "object": "Participation / Role / Mediation / Adjudication",
+    "firstRound": "GDF3-A — Participation Ontology / Role Separation / Mediation–Adjudication Counterfactual Inventory",
+    "reason": "largest Game-owned structurally homeless residual after whole-referent coverage, ownership and cheapest-falsifier tests; selected only after withdrawing old handoff priority",
+    "newSemanticPrimitiveClaim": false
+  },
+  "preservedResiduals": [
+    "Dynamics / Emergence / Systemic Regimes",
+    "Meta-game / Paratext / Extended Apparatus",
+    "Population Ecology / Matching / Availability",
+    "Platform Governance / Labor / Property / Monetization",
+    "Adaptive Experience Management if not cleanly absorbed by GDF3",
+    "Epistemic Inquiry / Theorycraft",
+    "Authoring–Runtime Boundary Collapse",
+    "Game Feel / Feedback / Sensorimotor Coupling",
+    "Time / Rhythm / Pacing",
+    "Space / Navigation / Level",
+    "Strategy / Counterplay / Balance"
+  ]
+}

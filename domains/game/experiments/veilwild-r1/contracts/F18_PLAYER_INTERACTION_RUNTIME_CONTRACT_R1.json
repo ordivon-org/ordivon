@@ -1,0 +1,509 @@
+{
+  "schema": "veilwild.f18-player-interaction-runtime-contract.r1",
+  "campaignId": "veilwild-r1",
+  "producer": {
+    "agentId": "A25",
+    "frontId": "F18",
+    "closures": [
+      "V-G4",
+      "V-R2",
+      "V-R3",
+      "V-R4"
+    ]
+  },
+  "sourceBaseline": "8ebc23144ed5b49d685cc32ac11428bbddf64d2f",
+  "authority": "player locomotion/look/camera/input/explicit-observe-request/UI-feedback runtime implementation only",
+  "doesNotOwn": [
+    "A01 product success/loop semantics",
+    "A02 player-experience/cue meaning",
+    "A14 environment traversal or close-observation world qualification",
+    "A17 engine lifecycle/candidate identity/observation commitment adjudication",
+    "A21 telemetry envelope sequencing/durability",
+    "A22 accessibility closure adjudication",
+    "Human outcome truth"
+  ],
+  "consumedContracts": [
+    {
+      "producer": "A01/F01",
+      "commit": "4e45ca5f958672e7b00d6b849dc2e68b46d5c8cf",
+      "path": "experiments/veilwild-r1/contracts/F01_PRODUCT_CORE_LOOP_CONTRACT_R1.json",
+      "sha256": "0ded284f7f5b03f782d30fd3d5fce38216f727560efa7b9e1270ec1e13c1fbfb",
+      "compatibility": "Round-2 source-current F01 core-loop bytes unchanged; current product-trace oracle 747644bd permits observe-cancel/evasion/reacquisition/later-observe and still requires the observe instance active through commitment."
+    },
+    {
+      "producer": "A02/F02",
+      "commit": "b0ad6d244f4321ec008744434623723f0095bdfa",
+      "path": "experiments/veilwild-r1/contracts/F02_PLAYER_EXPERIENCE_CONTRACT_R1.json",
+      "sha256": "6e947124669cb0e6f131a9fcb51397080bad651394bc612f30fe1ecff42337ee",
+      "compatibility": "current additive v2; cue/session IDs preserved; onboarding and feedback stay non-spoiling"
+    },
+    {
+      "producer": "A17/F17",
+      "commit": "2cdc6ca3da332dc7c49ea0d26d0e1fcf88478eab",
+      "path": "experiments/veilwild-r1/contracts/F17_ENGINE_INTEGRATION_CONTRACT_R1.json",
+      "sha256": "4fc8ff7b20ee9e48e1fbab1c472cd6ad21930902087ab1125ed19589af5553d2",
+      "compatibility": "player/UI scenes bind to stable PlayerRuntimeMount/UIOverlay in 1m,+Y,-Z world basis"
+    },
+    {
+      "producer": "A21/F22+F24",
+      "commit": "784d5c98748e9e7a4cad0049d2e610c539d7baa1",
+      "path": "experiments/veilwild-r1/contracts/F22_TELEMETRY_EVIDENCE_CONTRACT_R1.json",
+      "sha256": "8989bb70640cd7e25e1e46113e512d7edc8868d1b52be94bb57b147fc37c2a3f",
+      "compatibility": "Round-2 source-current collision-safe manifest-last F22; event semantic IDs relevant to F18 unchanged; A21 remains output identity/envelope/durability owner."
+    },
+    {
+      "producer": "A22/F23",
+      "commit": "87bb921cfc1392245a15873edf4cb003f06e9f8c",
+      "path": "experiments/veilwild-r1/contracts/F23_ACCESSIBILITY_CONTRACT_R3.json",
+      "sha256": "3d6d79f59b0fd4e1ed25d4b1159a98b91b914593355f6749ffd8cd9d92c2e1ce",
+      "compatibility": "Round-3 source-current F23; independently replayed contract validator PASS. F18 owner repairs target F23-R3-O2 and retain the already-repaired 200% scroll/focus surface. Rendered focus-indicator visibility/obscuring and final candidate standing remain A22 exact-candidate authority."
+    },
+    {
+      "producer": "A01/F01_SCOPE_DECISION",
+      "commit": "e392fa35ab2a24c67688a6091f84965843aff2ac",
+      "path": "experiments/veilwild-r1/round3/A01_F01_PRODUCT_SCOPE_DECISION_R3.json",
+      "sha256": "cadc541f7dca92f29d0068c602b1d7978b610a31ec6420a6d5ddef58a6bb7cce",
+      "compatibility": "Alternate camera perspective is not constitutive to Veilwild R1 absent an exact progression blocker; all-live remap, digital look and independent H/V sensitivity repairs are explicitly admissible and preserve observe_request != success."
+    }
+  ],
+  "runtimeCarrier": {
+    "engine": "Godot",
+    "requiredVersionFamily": "4.7.x",
+    "verifiedLocalVersion": "4.7.1.stable.arch_linux.a13da4feb",
+    "project": "experiments/veilwild-r1/godot",
+    "playerScene": "res://player/player_runtime.tscn",
+    "uiScene": "res://player/player_ui.tscn",
+    "playerMount": "PlayerRuntimeMount",
+    "uiMount": "UIOverlay",
+    "eventTransport": "autoload VeilwildEventBus",
+    "standaloneOwnerOracle": "res://player/f18_mechanical_test.gd installs a fixture-only VeilwildEventBus transport-shape mock when no consumer autoload exists; mock PASS proves A25 mechanics/payload shape only, not A17 transport.",
+    "compositeEventTransportPrecondition": "Exact A17 consumer project must provide autoload /root/VeilwildEventBus with publish(topic,payload,source); A17 consumer replay/candidate composition owns this transport consequence.",
+    "sceneNodeUniqueIdStanding": {
+      "playerScene": {
+        "nodeHeaders": 5,
+        "missingUniqueIdCount": 0,
+        "ownerSourceFixed": true
+      },
+      "uiScene": {
+        "nodeHeaders": 43,
+        "missingUniqueIdCount": 0,
+        "ownerSourceFixed": true
+      },
+      "method": "Physical Godot 4.7.1 PackedScene repack generated IDs; only generated unique_id header attributes were merged into the pre-existing owner serialization.",
+      "semanticBoundary": "Build/resource identity only; node names/types/parents/scripts/runtime semantics are unchanged."
+    }
+  },
+  "coordinateConvention": {
+    "unit": "meter",
+    "right": "+X",
+    "up": "+Y",
+    "forward": "-Z",
+    "playerRoot": "feet/traversal origin"
+  },
+  "playerBody": {
+    "carrier": "CharacterBody3D + CapsuleShape3D",
+    "capsuleRadiusMeters": 0.35,
+    "capsuleTotalHeightMeters": 1.8,
+    "eyeHeightMeters": 1.62,
+    "consumer": "A14/F14",
+    "boundary": "these are F18 runtime footprint inputs, not A14 environment traversal truth",
+    "physicsCollisionLayerBits": [
+      2
+    ],
+    "physicsCollisionLayerMaskValue": 2,
+    "physicsCollisionMaskBits": [
+      1
+    ],
+    "physicsCollisionMaskValue": 1,
+    "motionMode": "GROUNDED",
+    "upDirection": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "floorMaxAngleDegrees": 45.0,
+    "floorSnapLengthMeters": 0.1,
+    "floorStopOnSlope": true,
+    "floorBlockOnWall": true,
+    "floorConstantSpeed": true,
+    "safeMarginMeters": 0.001,
+    "maxSlides": 6,
+    "wallMinSlideAngleDegrees": 15.0,
+    "environmentCollisionExpectation": "A14/F14 environment traversal collision is expected on Godot physics layer 1; A14 may reject/version this interface if exact environment integration falsifies it.",
+    "godotAuthorityNote": "Godot CharacterBody3D stable documentation defines floor_max_angle as floor-vs-wall threshold for move_and_slide and floor_snap_length as slope attachment distance; these values are explicit F18 integration assumptions, not Human comfort claims."
+  },
+  "inputContract": {
+    "selectedDevice": "KEYBOARD_MOUSE",
+    "semanticActions": [
+      {
+        "id": "vw_move_forward",
+        "defaultBinding": "physical W",
+        "remappable": true,
+        "requiresChord": false,
+        "promptReflectsRemap": true
+      },
+      {
+        "id": "vw_move_back",
+        "defaultBinding": "physical S",
+        "remappable": true,
+        "requiresChord": false,
+        "promptReflectsRemap": true
+      },
+      {
+        "id": "vw_move_left",
+        "defaultBinding": "physical A",
+        "remappable": true,
+        "requiresChord": false,
+        "promptReflectsRemap": true
+      },
+      {
+        "id": "vw_move_right",
+        "defaultBinding": "physical D",
+        "remappable": true,
+        "requiresChord": false,
+        "promptReflectsRemap": true
+      },
+      {
+        "id": "vw_look_left",
+        "defaultBinding": "physical Left Arrow",
+        "remappable": true,
+        "requiresChord": false,
+        "promptReflectsRemap": true
+      },
+      {
+        "id": "vw_look_right",
+        "defaultBinding": "physical Right Arrow",
+        "remappable": true,
+        "requiresChord": false,
+        "promptReflectsRemap": true
+      },
+      {
+        "id": "vw_look_up",
+        "defaultBinding": "physical Up Arrow",
+        "remappable": true,
+        "requiresChord": false,
+        "promptReflectsRemap": true
+      },
+      {
+        "id": "vw_look_down",
+        "defaultBinding": "physical Down Arrow",
+        "remappable": true,
+        "requiresChord": false,
+        "promptReflectsRemap": true
+      },
+      {
+        "id": "vw_observe",
+        "defaultBinding": "physical E",
+        "remappable": true,
+        "requiresChord": false,
+        "promptReflectsRemap": true
+      },
+      {
+        "id": "vw_settings",
+        "defaultBinding": "physical F1",
+        "remappable": true,
+        "requiresChord": false,
+        "promptReflectsRemap": true
+      },
+      {
+        "id": "vw_pointer_capture",
+        "defaultBinding": "mouse button 1",
+        "remappable": true,
+        "requiresChord": false,
+        "promptReflectsRemap": true
+      },
+      {
+        "id": "vw_cancel",
+        "defaultBinding": "physical Escape",
+        "remappable": true,
+        "requiresChord": false,
+        "promptReflectsRemap": true
+      }
+    ],
+    "allLiveControlsRemappable": true,
+    "settingsKeyboardAction": {
+      "id": "vw_settings",
+      "defaultBinding": "physical F1",
+      "remappable": true
+    },
+    "cancelAction": {
+      "id": "vw_cancel",
+      "defaultBinding": "physical Escape",
+      "remappable": true,
+      "semanticUse": [
+        "close settings",
+        "release pointer during gameplay"
+      ]
+    },
+    "pointerCaptureAction": {
+      "id": "vw_pointer_capture",
+      "defaultBinding": "mouse button 1",
+      "remappable": true,
+      "keyboardAlternativeAllowed": true
+    },
+    "look": {
+      "primary": "relative mouse motion while pointer capture is requested",
+      "digitalAlternative": {
+        "mode": "SEMANTIC_DIGITAL_ACTIONS",
+        "actions": [
+          "vw_look_left",
+          "vw_look_right",
+          "vw_look_up",
+          "vw_look_down"
+        ],
+        "defaultBindings": [
+          "Left Arrow",
+          "Right Arrow",
+          "Up Arrow",
+          "Down Arrow"
+        ],
+        "baseDegreesPerSecond": 120.0
+      },
+      "horizontalSensitivityMultiplierRange": [
+        0.5,
+        2.0
+      ],
+      "verticalSensitivityMultiplierRange": [
+        0.5,
+        2.0
+      ],
+      "independentAxes": true,
+      "independentInvertX": true,
+      "independentInvertY": true
+    },
+    "remappingRule": "Every live discrete keyboard/mouse action is represented by a semantic Godot InputMap action. In-game remap replaces the selected action binding and emits action_binding_changed; raw Escape handling was removed in favor of vw_cancel.",
+    "promptReflectsRemap": true,
+    "observeActivationChoices": [
+      "SINGLE_PRESS",
+      "HOLD",
+      "TOGGLE"
+    ],
+    "observeDefaultActivation": "SINGLE_PRESS",
+    "mandatoryProlongedHold": false
+  },
+  "observeBoundary": {
+    "requestSignal": "observe_requested(request_id, origin, forward)",
+    "cancelSignal": "observe_cancelled(request_id, reason_id)",
+    "neutralResolutionSignal": "observe_request_closed(request_id, disposition)",
+    "eventStart": {
+      "eventType": "observe_action_started",
+      "sourceFront": "A25/F18",
+      "producerSemanticId": "F18.OBSERVE_ACTION_STARTED"
+    },
+    "eventCancel": {
+      "eventType": "observe_action_cancelled",
+      "sourceFront": "A25/F18",
+      "producerSemanticId": "F18.OBSERVE_ACTION_CANCELLED"
+    },
+    "successOwnedHere": false,
+    "observationCommittedOwnedHere": false,
+    "mustNotBeSufficient": [
+      "proximity",
+      "detection",
+      "camera/crosshair overlap",
+      "elapsed time"
+    ],
+    "consumerRule": "A17/gameplay binding combines this explicit request with owner-defined valid close-observation and commitment conditions; PlayerController never awards success."
+  },
+  "cameraCondition": {
+    "carrier": "Camera3D",
+    "defaultFovDegrees": 70.0,
+    "fovRangeDegrees": [
+      60.0,
+      100.0
+    ],
+    "nearMeters": 0.08,
+    "farMeters": 300.0,
+    "pitchLimitDegrees": 82.0,
+    "baseMouseSensitivityRadiansPerPixel": 0.0024,
+    "independentInvertX": true,
+    "independentInvertY": true,
+    "nonEssentialCameraBob": false,
+    "nonEssentialCameraShake": false,
+    "motionBlurOwnedOrEnabledByF18": false,
+    "audioListener": "AudioListener3D co-located under pitch pivot",
+    "consumerOwners": [
+      "A12/F12",
+      "A16/F16",
+      "A20/F21"
+    ],
+    "humanComfortClaim": "UNKNOWN",
+    "horizontalLookSensitivityMultiplierRange": [
+      0.5,
+      2.0
+    ],
+    "verticalLookSensitivityMultiplierRange": [
+      0.5,
+      2.0
+    ],
+    "independentHorizontalVerticalSensitivity": true,
+    "digitalLookAlternativeMode": "SEMANTIC_DIGITAL_ACTIONS",
+    "digitalLookBaseDegreesPerSecond": 120.0,
+    "alternatePerspective": "UNSUPPORTED_PER_A01_SCOPE_DECISION_R3"
+  },
+  "uiFeedbackBoundary": {
+    "allowedCueClasses": [
+      "TRACE",
+      "THREAT_RESPONSE",
+      "OBSERVATION_PROGRESS",
+      "SUCCESS_CONSEQUENCE"
+    ],
+    "exactTargetWorldPositionInput": false,
+    "rawHiddenCreatureStateInput": false,
+    "baseTextPixels": 20,
+    "textScalePercentRange": [
+      100,
+      200
+    ],
+    "opaqueContrastBackingAvailable": true,
+    "colorOnlyCriticalMeaning": false,
+    "settingsKeyboardPath": "Remappable Settings action opens; Tab/Shift+Tab focus path; remappable Cancel action or Close exits; no raw Escape-only dependency.",
+    "semanticRemapControls": "all live discrete keyboard/mouse actions, including digital look, settings, pointer capture and cancel",
+    "remappedPromptPropagation": true,
+    "onboardingMustTeach": [
+      "movement",
+      "look",
+      "explicit observe action",
+      "cue-reading rather than waypoint following"
+    ],
+    "currentSolutionReveal": false,
+    "feedbackEventBindings": [
+      {
+        "cueClass": "OBSERVATION_PROGRESS",
+        "eventType": "observation_progress",
+        "producerSemanticId": "F18.OBSERVATION_PROGRESS_PRESENTED"
+      },
+      {
+        "cueClass": "SUCCESS_CONSEQUENCE",
+        "eventType": "success_consequence",
+        "producerSemanticId": "F18.SUCCESS_CONSEQUENCE_PRESENTED"
+      }
+    ],
+    "successAuthorityRule": "UI only presents externally authorized progress/success consequence; it does not qualify target or commit observation success.",
+    "copyStatus": "PROVISIONAL_MECHANICAL_COPY; A02 retains UX/cue semantic and wording authority",
+    "textScaleLayoutStrategy": "Settings use a bounded viewport-contained vertical ScrollContainer when 200% text exceeds available vertical space; horizontal scrolling is disabled. New all-live remap controls remain inside the same scroll/focus surface.",
+    "standalone200PercentLayoutOracle": "1920x1080 exact F18 scene: panel remains inside viewport while vertically scrollable content preserves every focusable setting/control."
+  },
+  "interfaces": [
+    {
+      "name": "F18_PLAYER_RUNTIME_V1",
+      "producer": "A25/F18",
+      "consumers": [
+        "A17/F17",
+        "A14/F14",
+        "A16/F16",
+        "A21/F22+F24",
+        "A22/F23",
+        "A12/F12",
+        "A19/F20+F27"
+      ],
+      "semanticMeaning": "Selected-device input becomes locomotion/look/explicit observe-request runtime consequences while preserving upstream success and cue authority.",
+      "representation": "res://player/player_runtime.tscn + res://player/player_controller.gd",
+      "revisionIdentity": "exact producer commit supplied by A25 Board/handoff; no derived copy may silently supersede it",
+      "unitsAndCoordinates": "meters; +X right, +Y up, -Z forward; player root at feet; physics layer=2, mask=1; GROUNDED floor threshold 45deg, snap 0.1m",
+      "preconditions": [
+        "Godot 4.7.x",
+        "F17 1m/+Y/-Z runtime basis",
+        "consumed contracts above"
+      ],
+      "consumerVisibleFailureModes": [
+        "input_action_unmapped",
+        "observe_request_missing_or_auto_success",
+        "camera_pitch_or_fov_unbounded",
+        "player_footprint_mismatch",
+        "event_transport_missing_or_semantic_id_drift",
+        "physics_layer_mask_or_floor_assumption_mismatch"
+      ],
+      "validationOracle": "Godot mechanical fixture proves physical W maps to -Z locomotion, physical E emits exactly one explicit observe request using non-hold default, F22 start/cancel semantics are transported without success ownership, semantic remap updates the prompt, and camera controls remain bounded/configurable.",
+      "compatibility": "SOURCE_BOUND_LOCAL_RUNTIME_READY_FOR_A17_CONSUMPTION"
+    },
+    {
+      "name": "F18_UI_FEEDBACK_V1",
+      "producer": "A25/F18",
+      "consumers": [
+        "A17/F17",
+        "A21/F22+F24",
+        "A22/F23",
+        "A23/F25"
+      ],
+      "semanticMeaning": "Bounded player-facing onboarding/settings/consequence feedback without a live target locator or raw hidden-state channel.",
+      "representation": "res://player/player_ui.tscn + res://player/player_ui.gd",
+      "revisionIdentity": "exact producer commit supplied by A25 Board/handoff",
+      "preconditions": [
+        "producer/gameplay layer supplies only admitted cue classes",
+        "Human outcome claims remain UNKNOWN"
+      ],
+      "consumerVisibleFailureModes": [
+        "forbidden_locator_feedback",
+        "hidden_state_serialized",
+        "observe_taught_as_passive_proximity",
+        "stale_prompt_after_remap",
+        "critical_text_below_declared_mechanical size",
+        "keyboard_settings_path_missing",
+        "UI scaling unavailable"
+      ],
+      "validationOracle": "Godot fixture rejects exact-target feedback, exposes no target-position/hidden-state API, verifies >=18 px base text, 200% text scale control, keyboard settings path, semantic remap prompt update and bounded F22 presentation events.",
+      "compatibility": "SOURCE_BOUND_LOCAL_RUNTIME_READY_FOR_A17_CONSUMPTION"
+    },
+    {
+      "name": "F18_CAMERA_LISTENER_CONDITION_V1",
+      "producer": "A25/F18",
+      "consumers": [
+        "A12/F12",
+        "A16/F16",
+        "A20/F21",
+        "A17/F17"
+      ],
+      "semanticMeaning": "Exact F18 camera/listener transform and presentation-control condition for integrated rendering/audio/performance replay.",
+      "representation": "player_runtime.tscn + get_camera_validation_condition() + get_listener_transform()",
+      "unitsAndCoordinates": "meters/radians/degrees as explicitly named; +X,+Y,-Z basis",
+      "preconditions": [
+        "consume exact A25 producer revision"
+      ],
+      "consumerVisibleFailureModes": [
+        "stale_camera_condition",
+        "implicit_camera_motion",
+        "listener_not_coincident_with_camera_pivot"
+      ],
+      "validationOracle": "Godot fixture validates declared FOV/pitch/sensitivity/inversion bounds; integrated visual/audio consequences remain consumer-owned.",
+      "compatibility": "PROVISIONAL_UNTIL_INTEGRATED_PRODUCT_FRAME_AUDIO_REPLAY"
+    }
+  ],
+  "validationOracles": [
+    "Physical selected-device input reaches declared semantic InputMap actions and player consequences in Godot 4.7.x.",
+    "PlayerRuntime scene explicitly declares collision layer=2, mask=1, GROUNDED motion, +Y up, 45-degree floor max angle, 0.1m floor snap and slope-stop/block assumptions; fixture reports the same values at runtime.",
+    "Observe request remains explicit, default single-press/non-hold, and distinct from success/commit authority.",
+    "F22-compatible A25 event payloads retain sourceFront and producerSemanticId while A21 remains envelope owner.",
+    "Nonessential F18 camera bob/shake are absent and F18 does not enable motion blur.",
+    "UI has no exact-target-position/raw-hidden-state input, refuses unadmitted feedback class, and presents progress/success only on external call.",
+    "Base critical text is >=18 px with opaque backing and text scaling can reach 200% in the mechanical runtime.",
+    "Exact F18 producer commit standalone mechanical replay passes without hidden A17 project state; fixture EventBus is explicitly non-product transport-shape apparatus.",
+    "Separate exact A17 consumer composite replay must prove A25 observe/progress/success-consequence payloads traverse the real VeilwildEventBus and mount under PlayerRuntimeMount/UIOverlay.",
+    "Every live discrete keyboard/mouse action is a remappable semantic InputMap action, including settings, pointer capture, cancel/Escape semantics, observe, movement and four-way digital look; remap labels propagate to player-facing prompts/settings help.",
+    "Digital look actions rotate the same Camera3D through actual selected-device keyboard input without mouse motion and remain disabled while settings suspend gameplay input.",
+    "Horizontal and vertical look sensitivity are independently configurable across 0.5..2.0 and applied independently to mouse and digital look; X/Y inversion remains independently configurable.",
+    "At 1920x1080 and 200% text scale, expanded settings/remap surface remains inside viewport with vertical-scroll-only overflow and every critical control keyboard-focusable.",
+    "Settings opens through a remappable semantic action and exits through a remappable cancel semantic action or focusable Close control; no raw Escape-only exit dependency remains.",
+    "F18 owner scenes contain source-fixed Godot-generated unique_id on every node header: PlayerRuntime 5/5 and PlayerUI 43/43; F20/A19 consumer preflight must independently replay after A17 consumption."
+  ],
+  "knownLimitations": [
+    "Environment collision/traversal fit remains pending exact A14/F14 world contract and integrated world replay.",
+    "Camera search readability, clipping against authored habitat, detectability and motion comfort require the exact integrated world/render condition and Human evidence where applicable.",
+    "Observation progress/commit qualification and success remain outside F18; an A17/gameplay binding must supply exact owner-defined close-observation/commit conditions.",
+    "Audio cue redundancy/usefulness is not established by the F18 AudioListener3D and remains A15/A16/A22/Human-bound.",
+    "The A17 shell used for local mount replay is not a frozen full candidate.",
+    "Standalone f18_mechanical_test fixture event bus is NOT A17 transport evidence; candidate/event evidence requires an exact source-bound A17 composite project revision.",
+    "200% 1080p expanded settings layout containment and keyboard focusability are mechanically tested; rendered focus indicator contrast/obscuring and Human accessibility fit remain exact-candidate/A22/Human-bound.",
+    "Alternate first/third-person perspective remains UNSUPPORTED under exact A01 Round-3 scope decision e392fa35...; this is an explicit residual barrier, not an accessibility PASS."
+  ],
+  "humanClaims": {
+    "fun": "UNKNOWN",
+    "immersion": "UNKNOWN",
+    "believability": "UNKNOWN",
+    "detectability": "UNKNOWN",
+    "cueUsefulness": "UNKNOWN",
+    "fairness": "UNKNOWN",
+    "comprehension": "UNKNOWN",
+    "accessibilityFit": "UNKNOWN"
+  }
+}

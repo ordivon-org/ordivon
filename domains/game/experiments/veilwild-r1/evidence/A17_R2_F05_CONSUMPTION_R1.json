@@ -1,0 +1,27 @@
+{
+  "schema": "veilwild.r2-consumption-receipt.r1",
+  "roundId": "VEILWILD_R1_ROUND_2",
+  "consumer": "A17/F17",
+  "producer": "A05/F05 via A18/F19 admission",
+  "producerSourceCommit": "ffbee6188e17e39cd174ec3e9a7d63cedefc2743",
+  "f19AdmissionCommit": "dc60346334cf91f1ce23cc059a2fce21a33444f6",
+  "f19AdmissionRegistry": {
+    "path": "experiments/veilwild-r1/evidence/a18-r2/A18_F19_RUNTIME_ASSET_ADMISSION_R2.json",
+    "sha256": "e899d3e9b05a2682e4205319554aa92c59660438f86929038cc70ac454629ac6"
+  },
+  "authoritativeSource": {
+    "path": "assets/environment/source/veilwild_forest_environment.blend",
+    "sha256": "97eb0b3c00cd027eb6d97eb8dc24ae09803a634dab2052bfb5e72fd60e020dd5"
+  },
+  "derivedInterchange": {
+    "path": "assets/environment/exports/veilwild_forest_environment.glb",
+    "sha256": "f980ea94b074de9001a72b10d19fd6a495dae73878ab157472a6a416a4e33143"
+  },
+  "derivedRuntimeCopy": {
+    "path": "experiments/veilwild-r1/godot/modules/f05/veilwild_forest_environment.glb",
+    "sha256": "f980ea94b074de9001a72b10d19fd6a495dae73878ab157472a6a416a4e33143"
+  },
+  "independentRevalidation": "A18 admission registry exact Git/digest verified; A05 authoritative source and GLB exact bytes rehashed from source commit. Runtime copy is byte-identical to A18-admitted GLB. A17 performs fresh Godot import/load/mount replay before durable commit.",
+  "semanticBoundary": "A17 mounts geometry only. Seven A05 marker nodes are preserved for downstream F14 consumption but are not navigation, concealment, or reacquisition truth.",
+  "candidateStatus": "CONSTITUENT_CONSUMED_NOT_CANDIDATE"
+}

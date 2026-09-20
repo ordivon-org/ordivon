@@ -1,0 +1,248 @@
+{
+  "authorityRef": "authority:ordivon:research-owner:game",
+  "closeouts": [
+    {
+      "closure": [
+        {
+          "scope": "GDF0-GDF3",
+          "status": "ESTABLISHED"
+        },
+        {
+          "scope": "STRONG_FRESH_COVERAGE_CURRENT_EVIDENCE_HORIZON",
+          "status": "ESTABLISHED"
+        },
+        {
+          "scope": "ABSOLUTE_WHOLE_GAME",
+          "status": "NOT_CLAIMED"
+        }
+      ],
+      "epistemicVerdict": "ESTABLISHED_IN_SCOPE",
+      "evidenceScope": "Current Game research navigation/materialization at source revision f27f1f6f1b736b93ce443fc9b46fcc043ad6ba1e; detailed evidence remains in docs/, Git history, and durable historical refs.",
+      "materialLineage": [
+        "Current semantic Foundation registry is exactly GDF0-GDF3; GDF4 is not admitted.",
+        "GPR8 is not admitted; GPR1-GPR7 remain a derived practical layer rather than Foundation authority.",
+        "C1 GameInstance Constitution / Participation Lifecycle is the sole strong fresh Game-owned survivor in the current evidence horizon and remains unadmitted.",
+        "Historical Game Feel / Feedback / Sensorimotor Coupling GDF3 at commit 042e34d is cancelled/noncanonical and is a distinct research identity from current GDF3 Authoritative Case Determination.",
+        "Old Game Feel / Time / Space / Strategy route ordering was superseded by unbiased whole-Game coverage and is not a roadmap."
+      ],
+      "profile": "LEGACY_EXTRACTION",
+      "provenance": [
+        "research/README.md",
+        "research/core/GAME-RESEARCH-CORE.md",
+        "research/core/CURRENT-FOUNDATIONS.md",
+        "research/core/COVERAGE-AND-FRONTIER.md",
+        "research/core/NEGATIVE-AND-SUPERSEDED-HISTORY.md"
+      ],
+      "reopenPolicy": "Current frozen GDF identities are not reopened by numbering, materialization, product/direction work, or residual ordering. Any future admission is a separate owner-authoritative step; Absolute WholeGameClosure remains not claimed.",
+      "researchRef": "research:game:core-materialization-20260818",
+      "residualState": "C1_STRONG_SURVIVOR_UNADMITTED; GDF4_NOT_ADMITTED; GPR8_NOT_ADMITTED",
+      "resultRefs": [
+        "result:game:gdf0-gdf3-current-frozen",
+        "result:game:gdf4-not-admitted",
+        "result:game:gpr8-not-admitted",
+        "result:game:c1-strong-survivor-unadmitted",
+        "result:game:gdf3-authoritative-case-determination-current",
+        "result:game:gdf3-game-feel-historical-cancelled",
+        "result:game:absolute-whole-game-closure-not-claimed"
+      ],
+      "scopeRefs": [
+        "research-owner:game"
+      ],
+      "standing": [
+        "CURRENT",
+        "FROZEN"
+      ]
+    }
+  ],
+  "currentRecovery": {
+    "locator": "research/README.md",
+    "targetRole": "OWNER_RESEARCH_CORPUS"
+  },
+  "kind": "ordivon.research-owner-publication",
+  "ownerResearchRef": "research-owner:game",
+  "profile": "LEGACY_EXTRACTION",
+  "schemaVersion": 1,
+  "source": {
+    "authorityBranch": "refs/heads/main",
+    "corpusRoot": "research",
+    "kind": "git",
+    "repository": "git@github.com:zycxfyh/ordivon-game.git",
+    "sourceRevision": "f27f1f6f1b736b93ce443fc9b46fcc043ad6ba1e"
+  },
+  "statements": [
+    {
+      "predicate": "OWNER_BINDING",
+      "scope": "OWNER",
+      "subjectRef": "research-owner:game",
+      "value": "game"
+    },
+    {
+      "predicate": "STANDING:CURRENT",
+      "scope": "OWNER",
+      "subjectRef": "research-owner:game",
+      "value": true
+    },
+    {
+      "predicate": "STANDING:CURRENT",
+      "scope": "RESULT",
+      "subjectRef": "result:game:gdf0-gdf3-current-frozen",
+      "value": true
+    },
+    {
+      "predicate": "STANDING:FROZEN",
+      "scope": "RESULT",
+      "subjectRef": "result:game:gdf0-gdf3-current-frozen",
+      "value": true
+    },
+    {
+      "predicate": "EPISTEMIC_VERDICT",
+      "scope": "RESULT",
+      "subjectRef": "result:game:gdf0-gdf3-current-frozen",
+      "value": "ESTABLISHED_IN_SCOPE"
+    },
+    {
+      "predicate": "EVIDENCE_SCOPE",
+      "scope": "RESULT",
+      "subjectRef": "result:game:gdf0-gdf3-current-frozen",
+      "value": "Current numbered Game Foundation registry exactly GDF0-GDF3 at f27f1f6."
+    },
+    {
+      "predicate": "STANDING:CURRENT",
+      "scope": "RESULT",
+      "subjectRef": "result:game:gdf4-not-admitted",
+      "value": true
+    },
+    {
+      "predicate": "STANDING:NOT_ADMITTED",
+      "scope": "RESULT",
+      "subjectRef": "result:game:gdf4-not-admitted",
+      "value": true
+    },
+    {
+      "predicate": "EPISTEMIC_VERDICT",
+      "scope": "RESULT",
+      "subjectRef": "result:game:gdf4-not-admitted",
+      "value": "ESTABLISHED_IN_SCOPE"
+    },
+    {
+      "predicate": "EVIDENCE_SCOPE",
+      "scope": "RESULT",
+      "subjectRef": "result:game:gdf4-not-admitted",
+      "value": "Current registry guard: GDF4 is not admitted."
+    },
+    {
+      "predicate": "STANDING:CURRENT",
+      "scope": "RESULT",
+      "subjectRef": "result:game:gpr8-not-admitted",
+      "value": true
+    },
+    {
+      "predicate": "STANDING:NOT_ADMITTED",
+      "scope": "RESULT",
+      "subjectRef": "result:game:gpr8-not-admitted",
+      "value": true
+    },
+    {
+      "predicate": "EPISTEMIC_VERDICT",
+      "scope": "RESULT",
+      "subjectRef": "result:game:gpr8-not-admitted",
+      "value": "ESTABLISHED_IN_SCOPE"
+    },
+    {
+      "predicate": "EVIDENCE_SCOPE",
+      "scope": "RESULT",
+      "subjectRef": "result:game:gpr8-not-admitted",
+      "value": "Current practical-layer guard: GPR8 is not admitted."
+    },
+    {
+      "predicate": "STANDING:CURRENT",
+      "scope": "RESULT",
+      "subjectRef": "result:game:c1-strong-survivor-unadmitted",
+      "value": true
+    },
+    {
+      "predicate": "STANDING:NOT_ADMITTED",
+      "scope": "RESULT",
+      "subjectRef": "result:game:c1-strong-survivor-unadmitted",
+      "value": true
+    },
+    {
+      "predicate": "EPISTEMIC_VERDICT",
+      "scope": "RESULT",
+      "subjectRef": "result:game:c1-strong-survivor-unadmitted",
+      "value": "SUPPORTED_IN_SCOPE"
+    },
+    {
+      "predicate": "EVIDENCE_SCOPE",
+      "scope": "RESULT",
+      "subjectRef": "result:game:c1-strong-survivor-unadmitted",
+      "value": "C1 is a strong survivor in post-GPR C1-C9 coverage at the current evidence horizon but remains unadmitted; C1 != GDF4 and C1 != GPR8."
+    },
+    {
+      "predicate": "STANDING:CURRENT",
+      "scope": "RESULT",
+      "subjectRef": "result:game:gdf3-authoritative-case-determination-current",
+      "value": true
+    },
+    {
+      "predicate": "STANDING:FROZEN",
+      "scope": "RESULT",
+      "subjectRef": "result:game:gdf3-authoritative-case-determination-current",
+      "value": true
+    },
+    {
+      "predicate": "EPISTEMIC_VERDICT",
+      "scope": "RESULT",
+      "subjectRef": "result:game:gdf3-authoritative-case-determination-current",
+      "value": "ESTABLISHED_IN_SCOPE"
+    },
+    {
+      "predicate": "EVIDENCE_SCOPE",
+      "scope": "RESULT",
+      "subjectRef": "result:game:gdf3-authoritative-case-determination-current",
+      "value": "Canonical current GDF3 is Authoritative Case Determination with its frozen artifact and closeout."
+    },
+    {
+      "predicate": "STANDING:HISTORICAL_PRESERVED",
+      "scope": "RESULT",
+      "subjectRef": "result:game:gdf3-game-feel-historical-cancelled",
+      "value": true
+    },
+    {
+      "predicate": "STANDING:ABANDONED",
+      "scope": "RESULT",
+      "subjectRef": "result:game:gdf3-game-feel-historical-cancelled",
+      "value": true
+    },
+    {
+      "predicate": "EPISTEMIC_VERDICT",
+      "scope": "RESULT",
+      "subjectRef": "result:game:gdf3-game-feel-historical-cancelled",
+      "value": "UNDERDETERMINED"
+    },
+    {
+      "predicate": "EVIDENCE_SCOPE",
+      "scope": "RESULT",
+      "subjectRef": "result:game:gdf3-game-feel-historical-cancelled",
+      "value": "Historical Game Feel GDF3 branch at commit 042e34d was opened prematurely and cancelled/noncanonical; retained as distinct negative history, not current authority."
+    },
+    {
+      "predicate": "STANDING:CURRENT",
+      "scope": "RESULT",
+      "subjectRef": "result:game:absolute-whole-game-closure-not-claimed",
+      "value": true
+    },
+    {
+      "predicate": "EPISTEMIC_VERDICT",
+      "scope": "RESULT",
+      "subjectRef": "result:game:absolute-whole-game-closure-not-claimed",
+      "value": "ESTABLISHED_IN_SCOPE"
+    },
+    {
+      "predicate": "EVIDENCE_SCOPE",
+      "scope": "RESULT",
+      "subjectRef": "result:game:absolute-whole-game-closure-not-claimed",
+      "value": "Current coverage frontier explicitly states Absolute WholeGameClosure = NOT CLAIMED."
+    }
+  ]
+}

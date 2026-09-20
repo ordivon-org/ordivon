@@ -1,0 +1,39 @@
+import { randomUUID } from "node:crypto";
+
+import type { MissionStatus, WorldState } from "./model.ts";
+import { CURRENT_BUILD } from "./build.ts";
+
+export const DEFAULT_RUN_ID = "run:default";
+
+export interface RunMetadata {
+  runId: string;
+  scenarioId: string;
+  scenarioVersion: number;
+  scenarioCaseId: string;
+  rulesetId: string;
+  rulesetVersion: number;
+  stateSchemaVersion: number;
+  seed: string;
+  genesisDigest: string;
+  evaluatedInputsDigest: string;
+  status: MissionStatus;
+  createdAt: string;
+  createdWithBuild: string;
+}
+
+export interface CreateRunInput {
+  runId?: string;
+  scenarioId?: string;
+  scenarioVersion?: number;
+  scenarioCaseId?: string;
+  rulesetId?: string;
+  rulesetVersion?: number;
+  seed?: string;
+  evaluatedInputsDigest?: string;
+  createdWithBuild?: string;
+  genesis?: WorldState;
+}
+
+export function newRunId(): string {
+  return `run:${randomUUID()}`;
+}

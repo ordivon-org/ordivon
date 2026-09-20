@@ -1,0 +1,36 @@
+{
+  "schema": "veilwild.first-verdict.r1",
+  "agentId": "A11",
+  "ownedFronts": ["F11"],
+  "exactBaseline": "8ebc23144ed5b49d685cc32ac11428bbddf64d2f",
+  "campaignSourceStateDigest": "sha256:639a042f92ba4be8cbd91891f238d652973ccd65211f73087c0d39aae4f40b89",
+  "runtimeWorkspaceSourceStateDigestAtAdmission": "sha256:5027397f80e3514531f1f4e1a7671653eb3b30d41804f308d9285edb3d58e6b4",
+  "roleInterpretation": "Own V-V8 Lighting: authored illumination and visibility conditions that preserve the Veilwild visual grammar while making concealment/search readable but non-trivial. Lighting is producer-owned here; camouflage semantics remain A12, environment source remains A05, visual thesis remains A04, and final rendering/integration/performance/judgment remain with their respective owners.",
+  "currentStanding": "NOT_OBSERVED",
+  "topFalsifiers": [
+    "The exact baseline contains campaign topology/protocol material but no Veilwild Godot runtime scene or authored lighting artifact to demonstrate V-V8 in-product consequence.",
+    "An editor-preview sun/environment could appear acceptable yet disappear at runtime unless an explicit DirectionalLight3D and WorldEnvironment are part of the real project.",
+    "Lighting can accidentally collapse concealment into either near-invisibility or trivial silhouette/readability, violating the V-V8 oracle while still looking aesthetically coherent.",
+    "Camera-level Environment overrides, exposure/tonemapping, material response, or A12 camouflage shader behavior can invalidate a fixture-tuned lighting condition after integration.",
+    "Directional shadow range/splits, soft-shadow settings or GI/post-processing can create shadow instability or material frame cost that only appears in the real encounter camera/performance condition.",
+    "Runtime Workspace admission reports the exact requested commit and clean detached state but a sourceStateDigest different from the campaign-supplied digest; digest semantics must be revalidated before using the runtime digest as campaign identity proof."
+  ],
+  "expectedInputs": [
+    "A04/F04 visual-development contract: palette, mood, readability hierarchy, target time/weather grammar and acceptable contrast range.",
+    "A05/F05 environment authoritative scene/interchange plus intended search paths, canopy/occluder structure and concealment contexts.",
+    "A10/F10 material/lookdev contract: environment and creature material response assumptions relevant to illumination.",
+    "A12/F12 camouflage/rendering interface requirements once available, especially state/environment parameters whose visual consequence lighting must preserve.",
+    "A17/F17 real Godot project/runtime integration point and renderer/camera environment conventions.",
+    "A20/F21 exact performance condition/budget when the integrated candidate is available."
+  ],
+  "expectedOutputs": [
+    "F11 lighting/visibility interface contract with Godot carrier, explicit light/environment parameters, preconditions and consumer-visible failure modes.",
+    "An authored reusable Godot lighting resource/scene or integration-ready fixture that can be replayed against the real environment rather than editor preview lighting.",
+    "Mechanical validation that explicit runtime lighting exists and is stable under a declared camera/renderer condition; visual captures may be evidence but not Human detectability proof.",
+    "Owner-correct repair receipts for lighting-specific defects and a bounded statement of what remains dependent on A04/A05/A10/A12/A17/A20 inputs."
+  ],
+  "highestRiskBoundaryAssumption": "A lighting rig can be authored independently enough to create useful product pressure without silently choosing A04 visual semantics or A12 camouflage semantics; therefore any pre-integration lighting artifact must remain explicitly provisional until replayed on the real environment/material/camera/camouflage condition.",
+  "firstRecommendation": "PROCEED_WITH_CONSTRAINTS",
+  "frozen": true,
+  "peerCurrentRoundReadBeforeFreeze": false
+}

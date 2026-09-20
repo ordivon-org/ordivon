@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf2-a-challenge-falsifiers",
+  "epistemicBoundary": {
+    "proves": [
+      "success/failure probability and local skill sensitivity can vary independently in the toy model",
+      "structural infeasibility can have zero skill sensitivity",
+      "same demand can produce different outcome relations for different SkillProfiles",
+      "same SkillProfile can express different functional difficulty under changed access/mapping",
+      "failure, punishment, loss, death and completion can be logically dissociated by evaluation scope",
+      "immediate practice performance can rank opposite later retention in a constructed desirable-difficulty pattern"
+    ],
+    "doesNotProve": [
+      "that local derivative is a complete scientific definition of challenge",
+      "human perceived difficulty or flow",
+      "player value of failure or challenge",
+      "real effect sizes for desirable difficulties",
+      "one universal mastery threshold"
+    ]
+  },
+  "cases": {
+    "lottery": {
+      "successProbability": 0.1,
+      "localSkillSensitivity": 0,
+      "label": "high adverse-outcome probability, skill-insensitive"
+    },
+    "impossible": {
+      "successProbability": 0,
+      "localSkillSensitivity": 0,
+      "label": "structurally infeasible under declared action space"
+    },
+    "trivial": {
+      "successProbability": 0.99,
+      "localSkillSensitivity": 0,
+      "label": "easy outcome, skill-insensitive"
+    },
+    "frontier": {
+      "successProbability": 0.5,
+      "localSkillSensitivity": 0.7485969068749915,
+      "label": "skill-matched local frontier"
+    },
+    "overmatchedButPossible": {
+      "successProbability": 0.14185106490048777,
+      "localSkillSensitivity": 0.6159620000676103,
+      "label": "low current success but capability-sensitive"
+    }
+  },
+  "sameDemandDifferentSkill": {
+    "demand": 0.6,
+    "noviceSuccess": 0.25922510081784605,
+    "expertSuccess": 0.710949502625004,
+    "materiallyDifferent": true
+  },
+  "sameSkillDifferentAccess": {
+    "underlyingSkill": 0.65,
+    "inaccessibleEffectiveSkill": 0.35,
+    "accessibleEffectiveSkill": 0.65,
+    "demand": 0.55,
+    "before": 0.35434369377420455,
+    "after": 0.5744425168116589,
+    "functionalDifficultyChanged": true
+  },
+  "failureDissociation": {
+    "damageTakenButWin": {
+      "punishment": true,
+      "loss": true,
+      "failure": false
+    },
+    "missedOptionalTargetButFinish": {
+      "errorOrLocalFailure": true,
+      "terminalFailure": false
+    },
+    "roguelikeDeathWithMetaProgress": {
+      "death": true,
+      "runFailure": true,
+      "broaderProgressFailure": false
+    },
+    "speedrunSlowFinish": {
+      "completionSuccess": true,
+      "targetFailure": true
+    }
+  },
+  "learningDissociation": {
+    "easyBlockedPractice": {
+      "immediatePerformance": 0.92,
+      "laterRetention": 0.55
+    },
+    "harderInterleavedPractice": {
+      "immediatePerformance": 0.72,
+      "laterRetention": 0.78
+    },
+    "immediatePerformanceRanksReverseAtRetention": true
+  },
+  "strongestFalsifiers": {
+    "lowSuccessDoesNotImplySkillChallenge": true,
+    "impossibleDoesNotImplyMaximumSkillChallenge": true,
+    "frontierCanBeMoreSkillSensitiveThanLowerSuccessCase": true,
+    "sameDemandDifferentFunctionalDifficulty": true,
+    "accessChangesFunctionalDifficultyWithoutChangingUnderlyingSkill": true,
+    "deathNotUniversalFailure": true,
+    "immediateDifficultyNotLearningValue": true
+  }
+}

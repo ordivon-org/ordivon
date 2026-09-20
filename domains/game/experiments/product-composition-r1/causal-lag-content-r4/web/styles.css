@@ -1,0 +1,9 @@
+.role-chip{height:40px;display:flex;align-items:center;border:1px solid #564c3a;border-radius:7px;padding:0 12px;font:800 11px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em;color:#e6c989;background:#17150f}
+.arc-strip{margin:14px 0 20px;display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.arc-beat{border:1px solid #293647;background:#0d141e;border-radius:8px;padding:9px;display:grid;gap:3px;min-width:0}
+.arc-beat span,.arc-beat small{font:700 9px ui-monospace,SFMono-Regular,Menlo,monospace;color:#71849a}
+.arc-beat strong{font-size:10px;letter-spacing:.08em;overflow:hidden;text-overflow:ellipsis}
+.arc-beat.current{border-color:#d0b47b;background:#19170f}
+.arc-beat.current strong{color:#e6c989}
+.arc-beat.done{opacity:.62}
+@media(max-width:900px){.arc-strip{grid-template-columns:repeat(2,1fr)}}

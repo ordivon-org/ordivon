@@ -1,0 +1,94 @@
+{
+  "schema": "veilwild.round3-opening-verdict.r1",
+  "roundId": "VEILWILD_R1_ROUND_3",
+  "agentId": "A17",
+  "ownedFront": "F17",
+  "role": "Global Candidate Integration",
+  "sourceRepo": "/root/projects/ordivon-game",
+  "workspaceId": "ws-veilwild-r1-r3-a17-20260907",
+  "protocolAncestry": "7175430cfe8267e9ea8aa8b85d93bc468f0a1d52",
+  "openingSourceRevision": "40be2155ec05283324af2337b3367c9f17db1d37",
+  "currentExactHead": "40be2155ec05283324af2337b3367c9f17db1d37",
+  "gitStatusPorcelain": "",
+  "runtimeSourceStateDigestObserved": "sha256:2cd016252c11ac0902b823ae258a798300763b771e32ef8a03084912e70a4a95",
+  "sourceStateDigestInterpretation": "Physical source-projection identity only; not reopened. Cross-workspace Game identity remains exact Git revision + exact artifact/config/tool identities unless physical projection equality is explicitly required.",
+  "round2Standing": {
+    "standing": "PROTOTYPED_LOCAL",
+    "durableHead": "40be2155ec05283324af2337b3367c9f17db1d37",
+    "mountedModuleCount": 6,
+    "mounted": [
+      "F05 environment",
+      "F11 lighting",
+      "F13 behavior",
+      "F18 player runtime",
+      "F22 evidence",
+      "F18 UI"
+    ],
+    "missing": [
+      "final product CreatureMount",
+      "F14 NavigationMount",
+      "F09 runtime animation",
+      "F16 audio runtime"
+    ],
+    "candidateNominated": false
+  },
+  "currentMaterialBlockers": [
+    "Final A07/A08 product creature+animation payload is absent from CreatureMount and F09 runtime animation is absent.",
+    "F14 environment-bound collision/navigation/concealment/EVADE/reacquisition module is absent; RECOVER cannot be treated as reacquisition.",
+    "F16 real interactive/spatial audio runtime is absent.",
+    "Current F18 player/UI is provisional and must be superseded by A25 accessibility-repaired source-current bytes before freeze where required by F23.",
+    "F10/F12 multi-region semantic contradiction must be owner-repaired and admitted before final creature/material candidate condition.",
+    "F05 exact A17 consumer path was mounted in Round 2 but still requires current A18/F19 consumer-path revalidation/supersession against final material-bound environment if applicable.",
+    "Godot source-side .import/.uid metadata generated after Round-2 fresh import was not durable at 40be; Round 3 must deterministically regenerate, source-control the applicable metadata, and prove a clean reproducible project state.",
+    "Candidate-specific export preset/stable scene unique-ID preflight has not yet been passed by A19 because no candidate exists.",
+    "No same-identity A19 build, A21 candidate telemetry, A22 candidate accessibility receipt, A24 selected-contribution rights result, or A23 product-loop verdict exists."
+  ],
+  "candidateConsequenceNeeded": {
+    "primary": "Freeze one exact source revision with all candidate-critical producer identities/runtime copies fixed, coherent main-scene launch, relevant owner consumer replays, zero relevant SCRIPT ERROR/runtime ERROR, strict health PASS, preserved F01 success semantics, and explicit unsupported-feature inventory.",
+    "postFreeze": "Hand the immutable candidate tuple immediately to A19/A21/A22/A24/A23/A04/A01; any repair after nomination must create a new candidate identity."
+  },
+  "expectedFalsifier": [
+    "One P1 owner chain remains stale/missing/non-mountable, keeping strict health red.",
+    "An owner artifact passes producer tests but fails in the exact A17 composite due to resource identity, SceneTree lifecycle, collision/navigation, material-region, signal, or import semantics.",
+    "A17 would have to infer product/player/navigation/audio/material truth not present in owner contracts; nomination must fail closed instead.",
+    "Stable scene/import identity or export preset requirements cannot be reproduced from clean source, blocking A19 candidate build intake.",
+    "Candidate launches but cannot support the F01/A23 same-session pre-success EVADE -> reacquisition -> later explicit observe/commit/success consequence."
+  ],
+  "externalAuthorityFamilies": [
+    {
+      "authority": "Godot 4.7 official documentation",
+      "applicability": "Project/resource import, PackedScene/scene UID, Input/physics/navigation runtime composition, export and project source-control semantics."
+    },
+    {
+      "authority": "Khronos glTF 2.0",
+      "applicability": "Final A07/A08/F10/A05 runtime interchange via A18; A17 consumes only admitted bytes and does not silently bake coordinate conversion."
+    },
+    {
+      "authority": "ISO/IEC 25010:2023",
+      "applicability": "Selected compatibility/reliability/functional-suitability quality framing; not Human game quality."
+    },
+    {
+      "authority": "ISO/IEC/IEEE 12207:2026",
+      "applicability": "Configuration/integration/verification/source-build traceability framing; no whole-standard conformance claim."
+    },
+    {
+      "authority": "Xbox Accessibility Guidelines / applicable platform accessibility guidance",
+      "applicability": "F18/F23 repair pressure only; A17 preserves exact repaired implementation and does not adjudicate accessibility."
+    }
+  ],
+  "humanClaims": {
+    "fun": "UNKNOWN",
+    "immersion": "UNKNOWN",
+    "believability": "UNKNOWN",
+    "detectability": "UNKNOWN",
+    "cueUsefulness": "UNKNOWN",
+    "fairness": "UNKNOWN",
+    "comprehension": "UNKNOWN",
+    "comfort": "UNKNOWN",
+    "accessibilityFit": "UNKNOWN"
+  },
+  "newE2EJustified": false,
+  "newE2ERationale": "All known candidate blockers remain attributable to existing owner fronts; no new independent reality/owner/oracle has been demonstrated.",
+  "openingRecommendation": "CONVERGE_OWNER_TRUTH_THEN_FREEZE_OR_FAIL_CLOSED",
+  "frozenBeforeCurrentRoundPeerConclusionConsumption": true
+}

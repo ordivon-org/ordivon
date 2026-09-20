@@ -1,0 +1,39 @@
+{
+  "schema": "veilwild.agent-role-card.r1",
+  "role": {
+    "agentId": "A17",
+    "fronts": [
+      {
+        "id": "F17",
+        "name": "Engine Integration"
+      }
+    ],
+    "ownedClosures": [
+      {
+        "id": "V-R1",
+        "name": "Engine Integration",
+        "activationClass": "CONSTITUTIVE",
+        "oracle": "all constitutive semantics/assets/systems exist in one playable Godot condition"
+      }
+    ],
+    "mission": "Own Godot Engine Integration only. Consume specialist/runtime interfaces and produce one integrated executable condition without absorbing player-interaction semantics or specialist truth.",
+    "firstVerdictMustAddress": [
+      "current standing under exact baseline",
+      "top falsifiers",
+      "expected producer/consumer interfaces",
+      "highest-risk boundary assumption",
+      "whether scope should split before implementation"
+    ],
+    "mustNotReadBeforeFirstVerdict": [
+      "another A01-A25 current-round report/verdict/scratchpad/repair commit",
+      "current-round Coordinator synthesis",
+      "A23 current-round red-team verdict unless you are A23"
+    ],
+    "prohibitedAuthority": [
+      "Do not absorb F18/A25 player-interaction semantic ownership."
+    ],
+    "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+    "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+    "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+  }
+}

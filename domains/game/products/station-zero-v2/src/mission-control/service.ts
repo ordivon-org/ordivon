@@ -1,0 +1,389 @@
+import type { GameStore } from "../storage.ts";
+import type { DeploymentProviderOptions } from "../deployment/model.ts";
+import { resolveCoordinationProfile } from "../deployment/profiles.ts";
+import { DeploymentStore } from "../deployment/store.ts";
+import { TeamExecutionStore } from "../team/execution-store.ts";
+import { authorityTargetId, requiresMissionControl } from "../team/authority.ts";
+import { StationZeroTeamCoordinator } from "../team/coordinator.ts";
+import type { AuthorityPolicyMode, MessageChannel, MessageKind } from "../team/model.ts";
+import { objectivesForRole, TEAM_OBJECTIVE_GRAPH } from "../team/objectives.ts";
+import type { TeamDecisionProvider } from "../team/providers.ts";
+import { TeamStore, TeamStoreError, teamRunInitialized } from "../team/store.ts";
+import type { MissionProviderName } from "./catalog.ts";
+import { policyForDoctrine } from "./experience.ts";
+import type { DoctrineId, MissionAdvanceMode, MissionControlAdvanceResult, MissionControlView, MissionTimelineItem } from "./model.ts";
+import { createMissionControlView, deriveInterventions, missionTimelineItems } from "./projection.ts";
+
+export type { MissionProviderName } from "./catalog.ts";
+export type MissionProviderFactory = (name: MissionProviderName, options?: DeploymentProviderOptions) => TeamDecisionProvider;
+
+export interface MissionControlInitializeInput {
+  runId: string;
+  scenarioCaseId?: string;
+  authorityPolicyMode?: AuthorityPolicyMode;
+  doctrineId?: DoctrineId;
+  providers?: Record<string, MissionProviderName>;
+  coordinationProfileId?: string;
+}
+
+export type MissionControlCommand =
+  | { action: "approve"; proposalId: string; expiresAtTick?: number }
+  | { action: "deny"; proposalId: string }
+  | { action: "redirect-objective"; actorId: string; objectiveId: string }
+  | { action: "pause" | "resume" | "cancel"; actorId: string }
+  | { action: "set-provider"; actorId: string; provider: MissionProviderName }
+  | { action: "set-authority-policy"; policyMode: AuthorityPolicyMode }
+  | { action: "send-message"; senderActorId: string; recipientActorIds: string[]; kind: MessageKind; boundedSummary: string; channel: MessageChannel; ttlTicks?: number };
+
+function providerName(value: string | undefined): MissionProviderName {
+  return value && value === value.trim() ? value : "fixture";
+}
+
+function providerForOrder(order: string[], factory: MissionProviderFactory, options: DeploymentProviderOptions): TeamDecisionProvider {
+  return factory(providerName(order[0]), options);
+}
+
+interface ActiveMissionAdvance {
+  key: string;
+  promise: Promise<MissionControlAdvanceResult>;
+}
+
+const activeMissionAdvances = new WeakMap<GameStore, Map<string, ActiveMissionAdvance>>();
+
+function activeAdvancesFor(store: GameStore): Map<string, ActiveMissionAdvance> {
+  let active = activeMissionAdvances.get(store);
+  if (!active) {
+    active = new Map();
+    activeMissionAdvances.set(store, active);
+  }
+  return active;
+}
+
+export class MissionControlService {
+  readonly store: GameStore;
+  readonly providerFactory: MissionProviderFactory;
+
+  constructor(store: GameStore, providerFactory: MissionProviderFactory) {
+    this.store = store;
+    this.providerFactory = providerFactory;
+  }
+
+  private teamStore(): TeamStore {
+    return new TeamStore(this.store);
+  }
+
+  private coordinator(runId: string): StationZeroTeamCoordinator {
+    const team = this.teamStore();
+    team.initialize(runId);
+    const configuration = team.getConfiguration(runId);
+    const deployment = new DeploymentStore(this.store).get(runId);
+    const providerOptions = { coordinationProfileId: deployment?.coordinationProfileId ?? "specialist-containment" } as const;
+    const providers: Record<string, TeamDecisionProvider> = {};
+    for (const task of team.listTasks(runId).filter((candidate) => candidate.actorId)) {
+      providers[task.actorId!] = providerForOrder(task.providerOrder, this.providerFactory, providerOptions);
+    }
+    return new StationZeroTeamCoordinator(this.store, providers, { policyMode: configuration.authorityPolicyMode });
+  }
+
+  private withRunAdvance(
+    runId: string,
+    key: string,
+    operation: () => Promise<MissionControlAdvanceResult>,
+  ): Promise<MissionControlAdvanceResult> {
+    const active = activeAdvancesFor(this.store);
+    const retained = active.get(runId);
+    if (retained) {
+      if (retained.key === key) return retained.promise;
+      return Promise.reject(new TeamStoreError("team_conflict", "A different Mission advance is already active for this Run"));
+    }
+    let promise: Promise<MissionControlAdvanceResult>;
+    try { promise = operation(); }
+    catch (error) { return Promise.reject(error); }
+    active.set(runId, { key, promise });
+    const clear = (): void => {
+      if (active.get(runId)?.promise === promise) active.delete(runId);
+      if (active.size === 0) activeMissionAdvances.delete(this.store);
+    };
+    promise.then(clear, clear);
+    return promise;
+  }
+
+  private assertRunNotAdvancing(runId: string): void {
+    if (activeMissionAdvances.get(this.store)?.has(runId)) {
+      throw new TeamStoreError("team_conflict", "Mission commands cannot mutate a Run while its advance is active");
+    }
+  }
+
+  state(runId: string): MissionControlView {
+    return createMissionControlView(this.store, runId);
+  }
+
+  private actionableIntervention(runId: string, roundId: string | null): string | null {
+    const state = this.store.loadState(runId);
+    if (state.mission.status !== "running") return null;
+    const team = this.teamStore();
+    const projection = team.projection(runId, false);
+    const execution = new TeamExecutionStore(team);
+    const round = roundId ? execution.getRound(roundId) : execution.findRound(runId, state.revision);
+    const proposals = round ? execution.listProposals(round.roundId) : [];
+    return deriveInterventions(state, projection, proposals)
+      .find((card) => card.commands.length > 0 || card.kind === "provider-failure")?.kind ?? null;
+  }
+
+  initialize(input: MissionControlInitializeInput): MissionControlView {
+    if (!input.runId?.trim()) throw new TypeError("runId must be non-empty");
+    this.assertRunNotAdvancing(input.runId);
+    if (!this.store.listRuns().some((run) => run.runId === input.runId)) {
+      this.store.createRun({ runId: input.runId, scenarioVersion: 2, scenarioCaseId: input.scenarioCaseId ?? "baseline", rulesetVersion: 3 });
+    }
+    const metadata = this.store.getRun(input.runId);
+    if (input.scenarioCaseId && metadata.scenarioCaseId !== input.scenarioCaseId) {
+      throw new TeamStoreError("team_conflict", "Scenario Case differs from the retained Run");
+    }
+    if (metadata.scenarioVersion < 2 || metadata.rulesetVersion < 3) throw new TeamStoreError("team_conflict", "Mission Control requires Scenario v2 and Ruleset v3");
+    const team = this.teamStore();
+    team.initialize(input.runId);
+    const deployments = new DeploymentStore(this.store);
+    const retained = deployments.get(input.runId);
+    const tasks = team.listTasks(input.runId).filter((candidate) => candidate.actorId);
+    const authorityPolicyMode = input.authorityPolicyMode ?? (input.doctrineId ? policyForDoctrine(input.doctrineId) : retained?.authorityPolicyMode ?? "autonomous");
+    const coordinationProfileId = resolveCoordinationProfile(
+      input.coordinationProfileId ?? retained?.coordinationProfileId,
+    );
+    const actors = tasks.map((task) => {
+      const retainedActor = retained?.actors.find((actor) => actor.actorId === task.actorId);
+      const selected = input.providers?.[task.actorId!] ?? retainedActor?.providerOrder[0] ?? providerName(task.providerOrder[0]);
+      return { actorId: task.actorId!, providerOrder: [selected] };
+    });
+    const manifest = deployments.bind({
+      runId: input.runId,
+      coordinationProfileId,
+      authorityPolicyMode,
+      actors,
+    });
+    team.saveConfiguration(manifest.authorityPolicyMode, input.runId);
+    for (const task of tasks) {
+      const desired = manifest.actors.find((actor) => actor.actorId === task.actorId)!.providerOrder;
+      if (JSON.stringify(task.providerOrder) !== JSON.stringify(desired)) {
+        team.transitionTask(task.taskId, { providerOrder: [...desired] }, "team.task-provider-updated", { actorId: task.actorId, providerOrder: desired });
+      }
+    }
+    return this.state(input.runId);
+  }
+
+  advance(runId: string, until: "proposal-review" | "tick-verified", maximumInternalSteps = 16): Promise<MissionControlAdvanceResult> {
+    return this.withRunAdvance(runId, `advance:${until}:${maximumInternalSteps}`, () =>
+      this.advanceInternal(runId, until, maximumInternalSteps));
+  }
+
+  private async advanceInternal(runId: string, until: "proposal-review" | "tick-verified", maximumInternalSteps: number): Promise<MissionControlAdvanceResult> {
+    if (!Number.isSafeInteger(maximumInternalSteps) || maximumInternalSteps < 1 || maximumInternalSteps > 64) throw new TypeError("maximumInternalSteps must be an integer from 1 to 64");
+    const initial = this.state(runId);
+    if (!initial.initialized) throw new TeamStoreError("team_conflict", "Mission Control is not initialized");
+    if (initial.run.status !== "running") return { boundary: "terminal", steps: [], committedRevisions: [], stopReason: "terminal", view: initial };
+    if (until === "proposal-review" && initial.currentRound?.phase === "proposal-review") {
+      return { boundary: "proposal-review", steps: [], committedRevisions: [], stopReason: "proposal-review", view: initial };
+    }
+    const startRevision = initial.generatedFrom.worldRevision;
+    const coordinator = this.coordinator(runId);
+    const steps: string[] = [];
+    for (let index = 0; index < maximumInternalSteps; index += 1) {
+      const receipt = await coordinator.step(runId);
+      steps.push(receipt.status);
+      const committedRevisions = receipt.worldRevision > startRevision ? [receipt.worldRevision] : [];
+      if (receipt.missionStatus !== "running") {
+        const view = this.state(runId);
+        return { boundary: "terminal", steps, committedRevisions, stopReason: receipt.missionReason ?? "terminal", view };
+      }
+      if (receipt.status === "authority_required") {
+        return { boundary: "authority", steps, committedRevisions, stopReason: "authority-required", view: this.state(runId) };
+      }
+      if (receipt.status === "blocked") {
+        return { boundary: "blocked", steps, committedRevisions, stopReason: receipt.roundBlocker ?? "blocked", view: this.state(runId) };
+      }
+      if (until === "proposal-review" && receipt.status === "proposals_recorded") {
+        return { boundary: "proposal-review", steps, committedRevisions, stopReason: "proposal-review", view: this.state(runId) };
+      }
+      if (until === "tick-verified" && receipt.status === "round_verified" && receipt.worldRevision > startRevision) {
+        return { boundary: "tick-verified", steps, committedRevisions, stopReason: "one-tick", view: this.state(runId) };
+      }
+    }
+    return { boundary: "step-limit", steps, committedRevisions: [], stopReason: "internal-step-limit", view: this.state(runId) };
+  }
+
+  advancePlay(
+    runId: string,
+    mode: MissionAdvanceMode,
+    maximumWorldTicks = mode === "three-ticks" ? 3 : mode === "one-tick" ? 1 : 12,
+    maximumInternalSteps = 256,
+  ): Promise<MissionControlAdvanceResult> {
+    return this.withRunAdvance(runId, `play:${mode}:${maximumWorldTicks}:${maximumInternalSteps}`, () =>
+      this.advancePlayInternal(runId, mode, maximumWorldTicks, maximumInternalSteps));
+  }
+
+  private async advancePlayInternal(
+    runId: string,
+    mode: MissionAdvanceMode,
+    maximumWorldTicks: number,
+    maximumInternalSteps: number,
+  ): Promise<MissionControlAdvanceResult> {
+    if (!Number.isSafeInteger(maximumWorldTicks) || maximumWorldTicks < 1 || maximumWorldTicks > 24) throw new TypeError("maximumWorldTicks must be an integer from 1 to 24");
+    if (!Number.isSafeInteger(maximumInternalSteps) || maximumInternalSteps < 1 || maximumInternalSteps > 512) throw new TypeError("maximumInternalSteps must be an integer from 1 to 512");
+    const initial = this.state(runId);
+    if (!initial.initialized) throw new TeamStoreError("team_conflict", "Mission Control is not initialized");
+    if (initial.run.status !== "running") return { boundary: "terminal", steps: [], committedRevisions: [], stopReason: "terminal", view: initial };
+
+    const isActionable = (view: MissionControlView): boolean => view.inbox.some((card) =>
+      card.commands.length > 0 || card.kind === "provider-failure");
+    if (mode === "until-intervention" && isActionable(initial)) {
+      return { boundary: "intervention", steps: [], committedRevisions: [], stopReason: "pending-intervention", view: initial };
+    }
+
+    const coordinator = this.coordinator(runId);
+    const steps: string[] = [];
+    const committedRevisions: number[] = [];
+    let previousRevision = initial.generatedFrom.worldRevision;
+    for (let index = 0; index < maximumInternalSteps; index += 1) {
+      const receipt = await coordinator.step(runId);
+      steps.push(receipt.status);
+      if (receipt.worldRevision > previousRevision) {
+        committedRevisions.push(receipt.worldRevision);
+        previousRevision = receipt.worldRevision;
+      }
+      if (receipt.missionStatus !== "running") {
+        return { boundary: "terminal", steps, committedRevisions, stopReason: receipt.missionReason ?? "terminal", view: this.state(runId) };
+      }
+      if (receipt.status === "authority_required") {
+        return { boundary: "intervention", steps, committedRevisions, stopReason: "authority-request", view: this.state(runId) };
+      }
+      if (receipt.status === "proposals_recorded") {
+        const intervention = this.actionableIntervention(runId, receipt.roundId);
+        if (intervention) return { boundary: "intervention", steps, committedRevisions, stopReason: intervention, view: this.state(runId) };
+      }
+      if (receipt.status === "blocked") {
+        return { boundary: "blocked", steps, committedRevisions, stopReason: receipt.roundBlocker ?? "blocked", view: this.state(runId) };
+      }
+      if (committedRevisions.length >= maximumWorldTicks && receipt.status === "round_verified") {
+        return {
+          boundary: mode === "one-tick" ? "tick-verified" : "maximum-ticks",
+          steps, committedRevisions, stopReason: mode, view: this.state(runId),
+        };
+      }
+    }
+    return { boundary: "step-limit", steps, committedRevisions, stopReason: "internal-step-limit", view: this.state(runId) };
+  }
+
+  timeline(
+    runId: string,
+    beforeRevision: number | null = null,
+    limit = 12,
+  ): { runId: string; items: MissionTimelineItem[]; nextBeforeRevision: number | null } {
+    if (!teamRunInitialized(this.store, runId)) {
+      return { runId, items: [], nextBeforeRevision: null };
+    }
+    const team = this.teamStore();
+    const execution = new TeamExecutionStore(team);
+    const page = execution.listRoundsPage(runId, beforeRevision, limit);
+    return {
+      runId,
+      items: missionTimelineItems(execution, page.rounds),
+      nextBeforeRevision: page.nextBeforeRevision,
+    };
+  }
+
+  command(runId: string, command: MissionControlCommand): unknown {
+    this.assertRunNotAdvancing(runId);
+    const coordinator = this.coordinator(runId);
+    const team = coordinator.team;
+    const state = this.store.loadState(runId);
+    switch (command.action) {
+      case "approve": {
+        const proposal = coordinator.execution.getProposal(command.proposalId);
+        if (proposal.runId !== runId || proposal.status !== "proposed" || !requiresMissionControl(proposal.authorityOutcome)) throw new TeamStoreError("team_conflict", "Proposal is not awaiting Mission Control authority");
+        const expiresAtTick = command.expiresAtTick ?? state.turn + 2;
+        if (!Number.isSafeInteger(expiresAtTick) || expiresAtTick < state.turn) throw new TypeError("expiresAtTick must be a current or future integer Tick");
+        return team.issueGrant({
+          actorId: proposal.actorId,
+          proposalId: proposal.proposalId,
+          actionCandidateId: proposal.actionCandidateId,
+          contextDigest: proposal.contextId,
+          worldDigest: proposal.worldDigest,
+          policyRevision: team.getConfiguration(runId).revision,
+          operationKind: proposal.command.kind,
+          targetId: authorityTargetId(proposal.command),
+          expiresAtTick,
+          // Mission Control is a loopback-local player control surface. Provenance for
+          // this product boundary is derived from the trusted ingress rather than from
+          // caller-authored request data. This is not a generic Human identity claim.
+          issuedBy: "player:mission-control",
+        }, runId);
+      }
+      case "deny": {
+        const proposal = coordinator.execution.getProposal(command.proposalId);
+        if (proposal.runId !== runId || proposal.status !== "proposed") throw new TeamStoreError("team_conflict", "Proposal is not pending player review");
+        const updated = coordinator.execution.saveProposal(proposal, { ...proposal, status: "rejected", rejectionReason: "player_denied", updatedAt: new Date().toISOString() }, "team.proposal-player-denied");
+        const task = team.getTask(proposal.actorTaskId);
+        team.transitionTask(task.taskId, {
+          state: task.control.mode === "paused" ? "waiting" : task.control.mode === "cancelled" ? "cancelled" : "blocked",
+          admittedProposalId: proposal.proposalId,
+          wait: task.control.mode === "active" ? { kind: "authority", subjectId: proposal.proposalId, reason: "Player denied Proposal", sinceTick: state.turn } : task.wait,
+        }, "team.task-player-denied", { proposalId: proposal.proposalId });
+        return updated;
+      }
+      case "redirect-objective": {
+        if (!TEAM_OBJECTIVE_GRAPH.nodes.some((node) => node.objectiveId === command.objectiveId)) throw new TypeError("unknown Objective");
+        const profile = team.getProfile(command.actorId, runId);
+        if (!objectivesForRole(profile.role).includes(command.objectiveId)) throw new TeamStoreError("team_conflict", "Objective is outside the Actor role mandate");
+        const task = team.listTasks(runId).find((candidate) => candidate.actorId === command.actorId);
+        if (!task) throw new TypeError("no matching Actor Task");
+        return team.transitionTask(task.taskId, {
+          state: task.control.mode === "active" ? "ready" : task.state,
+          activeObjectiveId: command.objectiveId,
+          preparedContextDigest: null,
+          admittedProposalId: null,
+          wait: task.control.mode === "active" ? null : task.wait,
+          lastWorldRevision: state.revision,
+        }, "team.task-player-redirected", { actorId: command.actorId, objectiveId: command.objectiveId });
+      }
+      case "pause":
+      case "resume":
+      case "cancel": {
+        const task = team.listTasks(runId).find((candidate) => candidate.actorId === command.actorId);
+        if (!task) throw new TypeError("no matching Actor Task");
+        if (task.control.mode === "cancelled" && command.action !== "cancel") throw new TeamStoreError("team_conflict", "Cancelled Actor Task cannot resume");
+        const mode = command.action === "pause" ? "paused" : command.action === "cancel" ? "cancelled" : "active";
+        return team.transitionTask(task.taskId, {
+          state: mode === "cancelled" ? "cancelled" : mode === "paused" ? "waiting" : "ready",
+          control: { mode, reason: mode === "active" ? null : `Player ${command.action}d Actor`, issuedBy: "player:mission-control", issuedAtTick: state.turn },
+          preparedContextDigest: null,
+          admittedProposalId: null,
+          wait: mode === "paused" ? { kind: "replan", subjectId: "player:mission-control", reason: "Player paused Actor", sinceTick: state.turn } : null,
+        }, `team.task-player-${command.action}d`, { actorId: command.actorId });
+      }
+      case "set-provider": {
+        if (!command.provider || command.provider !== command.provider.trim()) throw new TypeError("invalid Team Provider identity");
+        const task = team.listTasks(runId).find((candidate) => candidate.actorId === command.actorId);
+        if (!task) throw new TypeError("no matching Actor Task");
+        const recoveringProviderWait = task.control.mode === "active" && task.wait?.kind === "provider";
+        return team.transitionTask(task.taskId, {
+          providerOrder: [command.provider],
+          preparedContextDigest: null,
+          ...(recoveringProviderWait ? { state: "ready" as const, admittedProposalId: null, wait: null } : {}),
+        }, "team.task-provider-updated", {
+          actorId: command.actorId,
+          provider: command.provider,
+          recoveredProviderWait: recoveringProviderWait,
+        });
+      }
+      case "set-authority-policy": return team.saveConfiguration(command.policyMode, runId);
+      case "send-message": return team.sendMessage({
+        senderActorId: command.senderActorId,
+        recipientActorIds: command.recipientActorIds,
+        kind: command.kind,
+        boundedSummary: command.boundedSummary,
+        channel: command.channel,
+        ...(command.ttlTicks === undefined ? {} : { ttlTicks: command.ttlTicks }),
+      }, runId);
+    }
+  }
+}

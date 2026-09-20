@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf1-b-model-falsifier-probes",
+  "epistemicBoundary": {
+    "proves": [
+      "one practice score cannot logically encode all retention/transfer orderings when rankings reverse",
+      "variability-based rankings depend on which task variables count",
+      "raw command-execution share need not be monotonic with separate performance/agency targets in a declared multi-target model",
+      "physical possibility and formal Game legality can be assigned independently",
+      "goal-equivalent outcomes do not logically require one exact technique/trajectory"
+    ],
+    "doesNotProve": [
+      "that toy numbers reproduce any empirical effect size",
+      "that assistance always raises agency",
+      "that random practice always improves learning",
+      "that one variability metric universally measures skill",
+      "that ecological and internal-model theories are fully adjudicated"
+    ]
+  },
+  "acquisitionRetention": {
+    "blockedLike": {
+      "acquisition": 95,
+      "delayedRetention": 70
+    },
+    "randomLike": {
+      "acquisition": 82,
+      "delayedRetention": 88
+    }
+  },
+  "singleScoreSkillFailure": {
+    "acquisitionWinner": "blockedLike",
+    "retentionWinner": "randomLike",
+    "rankingReversal": true
+  },
+  "variabilityProfiles": {
+    "controllerA": {
+      "endpointErrorSd": 1,
+      "redundantPathSd": 5
+    },
+    "controllerB": {
+      "endpointErrorSd": 2.2,
+      "redundantPathSd": 1.1
+    }
+  },
+  "taskRelevantVariability": {
+    "lowerGlobalVariabilityWinner": "B",
+    "lowerTaskRelevantErrorWinner": "A",
+    "rankingDiffersByVariableChoice": true
+  },
+  "assistance": {
+    "manual": {
+      "exactCommandExecution": 1,
+      "taskPerformance": 0.62,
+      "agencyProxy": 0.55
+    },
+    "assisted": {
+      "exactCommandExecution": 0.58,
+      "taskPerformance": 0.86,
+      "agencyProxy": 0.7
+    }
+  },
+  "manualControlMonotonicity": {
+    "lessExactCommandExecution": true,
+    "higherPerformance": true,
+    "higherAgencyProxy": true
+  },
+  "affordanceLegality": {
+    "physicalPieceMovementPossible": true,
+    "ruleLegalMove": false,
+    "conclusion": "Physical/action possibility and Game legality can diverge under a declared rule system."
+  },
+  "techniqueSolutions": [
+    {
+      "technique": "A",
+      "trajectorySignature": "smooth-direct",
+      "outcomeError": 0
+    },
+    {
+      "technique": "B",
+      "trajectorySignature": "late-correction",
+      "outcomeError": 0
+    }
+  ],
+  "exactTechniqueUniversal": {
+    "distinctTechniques": true,
+    "sameTaskOutcome": true
+  }
+}

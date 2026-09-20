@@ -1,0 +1,12 @@
+{
+  "frictionId": "A17-R2-F13-STANDALONE-RUNTIME-ORACLE-TREE-001",
+  "carrier": "Godot 4.7.1",
+  "exactCondition": "Exact F13 R2 commit 60cb5fa test_behavior.gd instantiates BehaviorRuntime and calls submit_perception before that runtime is attached to the active SceneTree; _publish uses absolute /root/VeilwildEventBus lookup.",
+  "failure": "Test reports F13_BEHAVIOR_TESTS_PASS cases=12/exit0 while stderr emits repeated Godot ERROR: Cannot use get_node() with absolute paths from outside the active scene tree. Exact producer commit also lacks main.tscn, so test_a17_mount is consumer-context dependent.",
+  "severity": "MEDIUM",
+  "owner": "A13/F13",
+  "workaround": "Do not accept standalone PASS text. Overlay exact F13 bytes into explicit A17 project harness, mount under SystemsMount, and require godot_checked_run no SCRIPT ERROR/stderr.",
+  "structuralRepair": "Producer should make standalone fixture attach runtime to SceneTree or separate policy-only test from mounted-runtime test; declare consumer-project precondition for mount test. No A17 semantic repair applied.",
+  "replayResult": "Explicit A17 consumer mount + cue-authorization replay PASS with empty stderr.",
+  "reusableLesson": "Godot unit tests that call Node methods needing absolute SceneTree paths can exit 0 and print PASS while still emitting runtime ERROR; integration gates must treat stderr/declared fatal patterns as evidence, not PASS text alone."
+}

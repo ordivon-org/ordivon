@@ -1,0 +1,58 @@
+#!/usr/bin/env node
+import fs from 'node:fs';
+const matrix=JSON.parse(fs.readFileSync(process.argv[2]??'evidence/game-practical-reconstruction-gpr6/participation-vocabulary-contracts.json','utf8'));
+const probes=JSON.parse(fs.readFileSync(process.argv[3]??'evidence/game-practical-reconstruction-gpr6/participation-vocabulary-probes.json','utf8'));
+const c=matrix.contracts;
+const checks={
+  foundationsFrozen:Object.values(matrix.foundationStatus).slice(0,4).every(x=>x==='FROZEN') && matrix.foundationStatus.reopenTriggered===false,
+  sixContracts:Object.keys(c).length===6,
+  noNewSources:matrix.sourceDerivedBoundary.newCanonicalSources.length===0,
+  participantDerived:c.ParticipantView.status==='STABILIZE_DERIVED_SCOPE_QUALIFIED_VIEW',
+  participantScope:c.ParticipantView.laws.includes('Participant is scope-qualified'),
+  noScalar:c.ParticipantView.laws.some(x=>x.includes('no universal participation scalar')),
+  spectatorDerived:c.SpectatorView.status==='STABILIZE_DERIVED_OBSERVATIONAL_ROLE_VIEW',
+  spectatorCausalGuard:c.SpectatorView.laws.includes('Spectator != CausalNonparticipantByIdentity'),
+  audienceDerived:c.AudienceView.status==='STABILIZE_DERIVED_COLLECTION_AND_AGGREGATION_VIEW',
+  audienceNoSubject:c.AudienceView.laws.includes('Audience != CollectiveSubjectByIdentity'),
+  audiencePolysemy:c.AudienceView.outOfScopePolysemy.length===2,
+  controlDerived:c.ControlRealizationView.status==='STABILIZE_DERIVED_PRINCIPAL_SUBSTRATE_VIEW',
+  principalSubstrateGuard:c.ControlRealizationView.laws.includes('ControlPrincipal != RealizationSubstrate'),
+  agentNotPlayer:c.ControlRealizationView.laws.includes('Agent != PlayerByIdentity'),
+  normDerived:c.NormVocabularyView.status==='STABILIZE_DERIVED_AUTHORING_UI_VOCABULARY',
+  normBinaryRejected:c.NormVocabularyView.laws.includes('RuleVsStandard != UniversalSemanticBinary'),
+  policyNotNonconstitutive:c.NormVocabularyView.laws.includes('PolicyLabel != NonConstitutiveByIdentity'),
+  diagnosticDerived:c.VocabularyCompatibilityDiagnostic.status==='STABILIZE_DERIVED_TERMINOLOGY_AUDIT',
+  seventyTwoCases:matrix.stressCases.length>=72,
+  elevenEngineeringFindings:Object.keys(matrix.currentEngineeringAudit).length>=11,
+  controllerLocalMixed:matrix.currentEngineeringAudit.StationZeroControllerKind.classification==='LOCAL_MIXED_CONTROL_PRINCIPAL_AND_REALIZATION_SHORTHAND',
+  singlePlayerBoundary:matrix.currentEngineeringAudit.StationZeroSinglePlayerProduct.classification==='CONVENTIONAL_PLAYER_BOUNDARY_FORM_LABEL',
+  agentLocusStrong:matrix.currentEngineeringAudit.PreG0AgentRoleAtlas.classification==='STRONG_AGENT_LOCUS_DISAMBIGUATION',
+  docAudienceSeparated:matrix.currentEngineeringAudit.DocumentationAudienceFrontmatter.classification==='DOCUMENT_READERSHIP_METADATA_NOT_GAME_AUDIENCE',
+  targetAudienceSeparated:matrix.currentEngineeringAudit.ProductTargetAudienceUsage.classification==='PRODUCT_USER_COHORT_NOT_LIVE_GAME_AUDIENCE',
+  rulesetRepresentation:matrix.currentEngineeringAudit.RulesetIdVersion.classification==='EXACT_RULE_REPRESENTATION_AND_VERSION_SOURCE',
+  policyHeterogeneous:matrix.currentEngineeringAudit.TeamPolicies.classification==='HETEROGENEOUS_LOCAL_POLICY_VOCABULARY',
+  playerVisibleNotParticipation:matrix.currentEngineeringAudit.PlayerVisibleReplayFlag.classification==='PRESENTATION_VISIBILITY_NOT_PARTICIPATION_ROLE',
+  currentViewValue:matrix.implementationDecision.currentViewValue==='PROVEN_FOR_CONTROL_REALIZATION_AND_TERMINOLOGY_DISAMBIGUATION',
+  genericParticipationNotProven:matrix.implementationDecision.currentGenericParticipationConsumerNeed==='NOT_PROVEN',
+  noBroadImplementation:matrix.implementationDecision.broadImplementationNow===false,
+  sixClustersComplete:matrix.completion.plannedPriorityClustersCompleted.length===6,
+  finalityNotRedone:matrix.completion.finalityStatusViewDisposition==='ALREADY_COMPLETED_IN_GPR2_NOT_REDONE',
+  nextGprUnknown:matrix.completion.nextGpr==='UNKNOWN',
+  closeoutNext:matrix.completion.nextRoute==='Practical Reconstruction Closeout / Residual Coverage Search',
+  probesPass:Object.values(probes.probes).every(x=>x===true),
+  lawParticipant:matrix.crossCuttingLaws.includes('Participant != EntityKind'),
+  lawSpectator:matrix.crossCuttingLaws.includes('Spectator != CausalNonparticipantByIdentity'),
+  lawAudience:matrix.crossCuttingLaws.includes('Audience != CollectiveSubjectByIdentity'),
+  lawPlayerHuman:matrix.crossCuttingLaws.includes('Player != HumanByIdentity'),
+  lawAgentPlayer:matrix.crossCuttingLaws.includes('Agent != PlayerByIdentity'),
+  lawPlayerCount:matrix.crossCuttingLaws.includes('PlayerCount != CausallyActiveEntityCount'),
+  lawControlSubstrate:matrix.crossCuttingLaws.includes('ControlPrincipal != RealizationSubstrate'),
+  lawHumanEscalation:matrix.crossCuttingLaws.includes('HumanEscalationLabel != UniversalHumanAuthority'),
+  lawRuleStandard:matrix.crossCuttingLaws.includes('RuleVsStandard != UniversalSemanticBinary'),
+  lawPolicy:matrix.crossCuttingLaws.includes('PolicyLabel != NonConstitutiveByIdentity'),
+  lawRepresentation:matrix.crossCuttingLaws.includes('StableRuleRepresentation != StableEffectiveRuleTopology'),
+  lawDocumentAudience:matrix.crossCuttingLaws.includes('DocumentAudience != GameAudienceByIdentity'),
+  lawFinality:matrix.crossCuttingLaws.includes('FinalityStatusViewOwnedByGPR2DoNotDuplicate')
+};
+if(Object.values(checks).some(x=>!x)) throw new Error(`GPR6 audit failed\n${JSON.stringify(checks,null,2)}`);
+console.log(JSON.stringify({schemaVersion:1,kind:'ordivon.game.gpr6-audit',contractCount:Object.keys(c).length,stressCaseCount:matrix.stressCases.length,lawCount:matrix.crossCuttingLaws.length,probeCount:Object.keys(probes.probes).length,checkCount:Object.keys(checks).length,checks,decision:'GPR6 reconstructs participation, spectator/audience, Human-Agent control and Rule/Standard vocabulary entirely as derived scope-qualified views/labels. It also completes the six R0 priority reconstruction clusters; no GPR7 is pre-admitted. The next route is a closeout/residual coverage search.'},null,2));

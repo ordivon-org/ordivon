@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game-e2e-current-carrier",
+  "standing": "GRADUATED",
+  "recordedAt": "2026-09-10",
+  "currentCarrier": {
+    "ref": "refs/heads/main",
+    "identityRule": "resolve refs/heads/main mechanically; the resolved commit must contain this manifest and the R5 M7 adjudication artifact",
+    "evaluatedCandidate": "18f40e456ff22afe350fcf5ac45bc2582903d305"
+  },
+  "competingRefs": [
+    {
+      "ref": "refs/heads/game-e2e-r5-candidate",
+      "lastObservedRevision": "a3cae0c403a4d758c3975f0508c7c267b4299efe",
+      "classification": "SUPERSEDED_M6_CANDIDATE"
+    },
+    {
+      "ref": "refs/remotes/origin/main",
+      "lastObservedRevision": "ca8f207b8d08ccd3c0e263810c35ac70b1511aee",
+      "classification": "REMOTE_TRACKING_OBSERVATION_NOT_LOCAL_CURRENTNESS_AUTHORITY",
+      "note": "No network fetch/push is implied by M7 local graduation. The rights/publication policy content from this observed remote-tracking commit was reconciled into the graduated line before adjudication."
+    }
+  ],
+  "authorityBoundary": "This file selects the local Game E2E infrastructure carrier only. It does not nominate or release Veilwild, establish Human evidence, clear distribution rights, or make Artifact/Distribution/Operations globally mature.",
+  "doNotInherit": {
+    "veilwildCandidateNomination": "NOT_YET_NOMINATED",
+    "veilwildDistributionRights": "INCONCLUSIVE",
+    "veilwildHuman": "UNKNOWN",
+    "stationZeroFreshPlayerHuman": "UNKNOWN",
+    "fullExternalEvidenceSubstitution": "NOT_ADMITTED"
+  }
+}

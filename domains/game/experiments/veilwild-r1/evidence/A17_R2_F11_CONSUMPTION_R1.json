@@ -1,0 +1,16 @@
+{
+  "schema": "veilwild.r2-consumption-receipt.r1",
+  "roundId": "VEILWILD_R1_ROUND_2",
+  "consumer": "A17/F17",
+  "producer": "A11/F11",
+  "producerCommit": "f0a51cec1d6b78de154bab5df93b99c22b5673ce",
+  "producerInterfacePath": "experiments/veilwild-r1/handoffs/A11-F11-interface.json",
+  "producerInterfaceSha256": "6c0c06858ba467acc5e0f7708e92ef64b223be9fb031403cc66a85bedf1b8a3e",
+  "authoritativeSourcePath": "experiments/veilwild-r1/production/f11-lighting/lighting_rig.tscn",
+  "authoritativeSourceSha256": "827829e18b268229880dfc0eda3e2ac0db174b159784ba2a0651b908d15dc766",
+  "runtimePath": "experiments/veilwild-r1/godot/modules/f11/lighting_rig.tscn",
+  "runtimeSha256": "827829e18b268229880dfc0eda3e2ac0db174b159784ba2a0651b908d15dc766",
+  "independentRevalidation": "Git object/path/digest checked from f0a51cec; owner validate_lighting.gd replay PASS on Godot 4.7.1 before consumption.",
+  "semanticBoundary": "A17 only mounts the byte-identical F11 runtime scene under LightingMount and does not retune light/environment values.",
+  "candidateStatus": "CONSTITUENT_CONSUMED_NOT_CANDIDATE"
+}

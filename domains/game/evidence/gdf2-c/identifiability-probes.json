@@ -1,0 +1,190 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf2-c-identifiability-probes",
+  "epistemicBoundary": {
+    "proves": [
+      "aggregate pass rate can be observationally equivalent across distinct latent response surfaces",
+      "population selection can reverse naive pass-rate ordering and standardization can change the comparison",
+      "location/scale gauge transformations can preserve logistic response probability",
+      "repeated same-controller trials can separate deterministic between-controller heterogeneity from within-controller outcome randomness in the toy design",
+      "multidimensional SkillProfiles can compensate to the same outcome while having directional gradients",
+      "observed selected-policy performance may worsen even when the best-attainable capability envelope expands",
+      "one average assistance gain can hide distinct response-shape transformations",
+      "equal aggregate opponent win rate can hide distinct matchup matrices",
+      "recovery transition structure is distinct from any scalar cost aggregation"
+    ],
+    "doesNotProve": [
+      "universal logistic Game challenge laws",
+      "that the listed probe family is sufficient for every GameForm",
+      "Human perceived difficulty, learning, fairness or PlayerValue",
+      "unique latent SkillProfile coordinates without modeling assumptions",
+      "that synthetic-controller capability coordinates equal Human capability coordinates"
+    ]
+  },
+  "aggregateEquivalence": {
+    "skills": [
+      0.1,
+      0.3,
+      0.5,
+      0.7,
+      0.9
+    ],
+    "steep": [
+      0.01798620996209156,
+      0.11920292202211755,
+      0.5,
+      0.8807970779778823,
+      0.9820137900379085
+    ],
+    "flat": [
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      0.5
+    ],
+    "steepMean": 0.5,
+    "flatMean": 0.5,
+    "sameAggregate": true,
+    "differentSurface": true
+  },
+  "selection": {
+    "easyBroadRate": 0.5000000000000001,
+    "hardSelectedRate": 0.6930825062060813,
+    "standardizedEasyRate": 0.6348528998302905,
+    "standardizedHardRate": 0.3651471001697095,
+    "naiveReversal": true,
+    "standardizedRestoresOrdering": true
+  },
+  "gauge": {
+    "theta": 0.6,
+    "a": 4,
+    "b": 0.5,
+    "original": 0.598687660112452,
+    "transformed": {
+      "theta": 2.2,
+      "a": 2,
+      "b": 2
+    },
+    "transformedP": 0.5986876601124521,
+    "sameProbability": true
+  },
+  "repeatedTrials": {
+    "oneShotAggregateBoth": 0.5,
+    "heterogeneityMeanWithinVariance": 0,
+    "randomMeanWithinVariance": 0.25,
+    "repetitionSeparates": true
+  },
+  "compensation": {
+    "profileA": {
+      "timing": 0.8,
+      "strategy": 0.2
+    },
+    "profileB": {
+      "timing": 0.4,
+      "strategy": 0.8
+    },
+    "pA": 0.574442516811659,
+    "pB": 0.574442516811659,
+    "sameOutcome": true,
+    "timingGradient": 0.7499999943749724,
+    "strategyGradient": 0.4999999983335002,
+    "directional": true
+  },
+  "monotonicity": {
+    "selectedPolicyPerformance": {
+      "low": 0.55,
+      "high": 0.45
+    },
+    "attainable": {
+      "low": 0.55,
+      "high": 0.9
+    },
+    "observedCanWorsen": true,
+    "bestAttainableDoesNotWorsen": true
+  },
+  "assist": {
+    "population": [
+      0.2,
+      0.5,
+      0.8
+    ],
+    "baseline": [
+      0.14804719803168945,
+      0.4378234991142018,
+      0.7772998611746911
+    ],
+    "thresholdShift": [
+      0.22270013882530884,
+      0.5621765008857981,
+      0.8519528019683106
+    ],
+    "flatten": [
+      0.4008507962064789,
+      0.5497358298297969,
+      0.6862428156431418
+    ],
+    "meanGainThreshold": 0.0912196277862784,
+    "meanGainFlatten": 0.0912196277862784,
+    "sameMeanGain": true,
+    "differentProfileShape": true
+  },
+  "opponent": {
+    "transitiveMean": 0.5,
+    "cyclicMean": 0.5,
+    "matrices": {
+      "transitive": [
+        [
+          0.5,
+          0.7,
+          0.9
+        ],
+        [
+          0.3,
+          0.5,
+          0.7
+        ],
+        [
+          0.1,
+          0.3,
+          0.5
+        ]
+      ],
+      "cyclic": [
+        [
+          0.5,
+          0.8,
+          0.2
+        ],
+        [
+          0.2,
+          0.5,
+          0.8
+        ],
+        [
+          0.8,
+          0.2,
+          0.5
+        ]
+      ]
+    },
+    "sameAggregate": true,
+    "differentMatchupStructure": true
+  },
+  "recovery": {
+    "checkpoint": {
+      "nextState": "checkpoint",
+      "timeCost": 2,
+      "resourceLoss": 0,
+      "historyPreserved": 0.95
+    },
+    "reset": {
+      "nextState": "run-start",
+      "timeCost": 900,
+      "resourceLoss": 100,
+      "historyPreserved": 0.1
+    },
+    "transitionsStructurallyDistinct": true,
+    "noUniversalScalarWithoutWeights": true
+  }
+}

@@ -1,0 +1,226 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gpr1-role-authority-probes",
+  "fixtures": {
+    "roleAlice": {
+      "assignmentId": "ra:judge:alice",
+      "occupantRef": "alice",
+      "roleRef": "judge",
+      "scopeRefs": [
+        "match:1"
+      ],
+      "validFrom": 0,
+      "validUntilOrOpen": 10
+    },
+    "roleBob": {
+      "assignmentId": "ra:judge:bob",
+      "occupantRef": "bob",
+      "roleRef": "judge",
+      "scopeRefs": [
+        "match:1"
+      ],
+      "validFrom": 10,
+      "validUntilOrOpen": null,
+      "supersedesAssignmentId": "ra:judge:alice"
+    },
+    "roleEdgeAlice": {
+      "holderRef": "alice",
+      "operationKey": "game.case.decide",
+      "scopeRefs": [
+        "match:1"
+      ],
+      "validFrom": 0,
+      "validUntilOrOpen": 10,
+      "viaRoleAssignmentIds": [
+        "ra:judge:alice"
+      ],
+      "authoritySourceRefs": [
+        "role-template:judge"
+      ]
+    },
+    "personalAlice": {
+      "holderRef": "alice",
+      "operationKey": "game.rule.change",
+      "scopeRefs": [
+        "tournament:1"
+      ],
+      "validFrom": 0,
+      "validUntilOrOpen": null,
+      "viaRoleAssignmentIds": [],
+      "authoritySourceRefs": [
+        "direct-grant:alice"
+      ]
+    },
+    "roleEdgeBob": {
+      "holderRef": "bob",
+      "operationKey": "game.case.decide",
+      "scopeRefs": [
+        "match:1"
+      ],
+      "validFrom": 10,
+      "validUntilOrOpen": null,
+      "viaRoleAssignmentIds": [
+        "ra:judge:bob"
+      ],
+      "authoritySourceRefs": [
+        "role-template:judge"
+      ]
+    },
+    "delegation": {
+      "delegationId": "dg:1",
+      "grantorRef": "alice",
+      "delegateRef": "carol",
+      "delegatedOperationKey": "game.case.review",
+      "scopeRefs": [
+        "match:1"
+      ],
+      "validFrom": 3,
+      "validUntilOrOpen": 7,
+      "delegationAuthorityBasisRefs": [
+        "edge:alice:delegate-review"
+      ]
+    },
+    "childNoBasis": {
+      "delegationId": "dg:2",
+      "grantorRef": "carol",
+      "delegateRef": "dave",
+      "parentDelegationId": "dg:1",
+      "delegatedOperationKey": "game.case.review",
+      "scopeRefs": [
+        "match:1"
+      ],
+      "validFrom": 4,
+      "validUntilOrOpen": 6,
+      "delegationAuthorityBasisRefs": []
+    },
+    "childWithBasis": {
+      "delegationId": "dg:3",
+      "grantorRef": "carol",
+      "delegateRef": "dave",
+      "parentDelegationId": "dg:1",
+      "delegatedOperationKey": "game.case.review",
+      "scopeRefs": [
+        "match:1"
+      ],
+      "validFrom": 4,
+      "validUntilOrOpen": 6,
+      "delegationAuthorityBasisRefs": [
+        "edge:carol:delegate-review"
+      ]
+    },
+    "actionApproval": {
+      "grantId": "authority-grant:station-zero",
+      "proposalId": "p1",
+      "actionCandidateId": "a1",
+      "contextDigest": "ctx1",
+      "worldDigest": "world1",
+      "expiresAtTick": 5,
+      "consumedAtTick": null
+    },
+    "authorityProfile": {
+      "holderRef": "alice",
+      "contextRef": "match:1",
+      "asOf": 5,
+      "effectiveEdges": [
+        {
+          "holderRef": "alice",
+          "operationKey": "game.case.decide",
+          "scopeRefs": [
+            "match:1"
+          ],
+          "validFrom": 0,
+          "validUntilOrOpen": 10,
+          "viaRoleAssignmentIds": [
+            "ra:judge:alice"
+          ],
+          "authoritySourceRefs": [
+            "role-template:judge"
+          ]
+        },
+        {
+          "holderRef": "alice",
+          "operationKey": "game.rule.change",
+          "scopeRefs": [
+            "tournament:1"
+          ],
+          "validFrom": 0,
+          "validUntilOrOpen": null,
+          "viaRoleAssignmentIds": [],
+          "authoritySourceRefs": [
+            "direct-grant:alice"
+          ]
+        }
+      ],
+      "rank": null,
+      "authorityStateDigest": "auth:v1"
+    },
+    "agentManifestV1": {
+      "principalRef": "agent-x",
+      "contextRef": "match:1",
+      "authorityStateDigest": "auth:v1",
+      "effectiveOperations": [
+        "game.case.decide"
+      ],
+      "manifestDigest": "m1"
+    },
+    "agentManifestV2": {
+      "principalRef": "agent-x",
+      "contextRef": "match:1",
+      "authorityStateDigest": "auth:v2",
+      "effectiveOperations": [],
+      "manifestDigest": "m2"
+    },
+    "causalProfile": {
+      "observationAccess": [
+        "replay"
+      ],
+      "adviceOrProposalChannels": [
+        "recommend"
+      ],
+      "controlOrExecutionAccess": [],
+      "bindingAuthorityEdges": []
+    },
+    "separation": {
+      "reviewOwnDecision": {
+        "policy": "self_review_prohibited",
+        "sameHolder": true,
+        "result": "blocked_by_authority_policy"
+      },
+      "otherDecision": {
+        "policy": "self_review_prohibited",
+        "sameHolder": false,
+        "result": "effective"
+      }
+    },
+    "scopePair": {
+      "globalRuleChange": {
+        "scope": "tournament:1",
+        "operation": "game.rule.change"
+      },
+      "localCaseDecision": {
+        "scope": "match:1",
+        "operation": "game.case.decide"
+      },
+      "comparableByStrength": false
+    }
+  },
+  "probes": {
+    "roleAssignmentDoesNotGrantAuthority": true,
+    "roleReplacementEndsViaRoleAuthority": true,
+    "personalAuthorityDoesNotTransferOnReplacement": true,
+    "delegationTimeBound": true,
+    "subdelegationNotImplicit": true,
+    "subdelegationCanBeExplicit": true,
+    "oneShotApprovalNotDelegation": true,
+    "profileHasNoGlobalRank": true,
+    "staleManifestDetectable": true,
+    "causalInfluenceWithoutAuthority": true,
+    "separationPolicyContextual": true,
+    "broaderScopeNotStronger": true,
+    "authorityNotCapability": true,
+    "authorityNotLegality": true,
+    "modelIdentityNotAuthority": true,
+    "topologyNotTree": true,
+    "externalInstitutionNotRequired": true
+  }
+}

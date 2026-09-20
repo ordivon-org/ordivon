@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon-game-r0-playstation-2025-annual",
+  "period": "2025",
+  "published": "2026-01-14",
+  "metric": "PlayStation Store downloads",
+  "source": "https://blog.playstation.com/2026/01/14/playstation-stores-top-downloads-of-2025/",
+  "ps5USCanada": ["NBA 2K26","Battlefield 6","Grand Theft Auto V","EA SPORTS College Football 26","EA SPORTS Madden NFL 26","Minecraft","Call of Duty: Black Ops 7","ARC Raiders","Ghost of Yōtei","MLB The Show 25","Call of Duty: Black Ops 6","Ready or Not","EA SPORTS FC 26","Forza Horizon 5","NBA 2K25","The Elder Scrolls IV: Oblivion Remastered","Assassin’s Creed Shadows","Clair Obscur: Expedition 33","Monster Hunter Wilds","EA SPORTS FC 25"],
+  "ps5EU": ["EA SPORTS FC 26","Grand Theft Auto V","EA SPORTS FC 25","Forza Horizon 5","Battlefield 6","Minecraft","Call of Duty: Black Ops 7","Assassin’s Creed Shadows","ARC Raiders","Clair Obscur: Expedition 33","Ghost of Yōtei","Split Fiction","Hogwarts Legacy","UFC 5","Call of Duty: Black Ops 6","It Takes Two","Ready or Not","The Elder Scrolls IV: Oblivion Remastered","REMATCH","F1 25"],
+  "ps4USCanada": ["Red Dead Redemption 2","STAR WARS Battlefront II","Batman: Arkham Knight","Minecraft","Grand Theft Auto V","A Way Out","Need for Speed Heat","Mortal Kombat X","theHunter: Call of the Wild","The Forest","Gang Beasts","Call of Duty: Black Ops III","Kingdom Come: Deliverance","Middle-earth: Shadow of War","Stardew Valley","Call of Duty: Black Ops 6","Unravel Two","God of War","Overcooked! 2","Injustice 2"],
+  "ps4EU": ["Red Dead Redemption 2","A Way Out","EA SPORTS FC 26","The Forest","EA SPORTS FC 25","Grand Theft Auto V","Minecraft","Need for Speed Heat","STAR WARS Battlefront II","Batman: Arkham Knight","Unravel Two","Kingdom Come: Deliverance","Battlefield V","Mortal Kombat X","Gang Beasts","Assassin’s Creed Odyssey","Hogwarts Legacy","Battlefield 4","Assassin’s Creed Origins","Middle-earth: Shadow of War"],
+  "psvr2USCanada": ["Beat Saber","Alien: Rogue Incursion VR","Among Us 3D: VR","Creed: Rise to Glory – Championship Edition","Job Simulator","Pavlov","Metro Awakening","Arizona Sunshine 2","The Walking Dead: Saints & Sinners","Swordsman VR"],
+  "psvr2EU": ["Beat Saber","Alien: Rogue Incursion VR","Creed: Rise to Glory – Championship Edition","Metro Awakening","Job Simulator","Among Us 3D: VR","Horizon Call of the Mountain","Pavlov","Swordsman VR","Arizona Sunshine 2"],
+  "freeToPlayUSCanada": ["Fortnite","Roblox","Marvel Rivals","Call of Duty: Warzone","Battlefield REDSEC","Rocket League","Where Winds Meet (F2P)","Tom Clancy’s Rainbow Six Siege X – Free Access","Delta Force (F2P)","Fall Guys"],
+  "freeToPlayEU": ["Fortnite","Roblox","Call of Duty: Warzone","Rocket League","Battlefield REDSEC","Marvel Rivals","eFootball","Asphalt Legends","Where Winds Meet (F2P)","Delta Force (F2P)"]
+}

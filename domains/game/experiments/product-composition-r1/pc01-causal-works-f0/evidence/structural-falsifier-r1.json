@@ -1,0 +1,241 @@
+{
+  "schemaVersion": 1,
+  "kind": "pc01-causal-works-f0-structural-falsifier",
+  "standing": "SURVIVES_PC01_F0_STRUCTURAL_COMPOSITION",
+  "mechanismLibraryModified": false,
+  "metrics": {
+    "expectedValueWithDiagnostics": 255.41999999999996,
+    "expectedValueWithoutDiagnostics": 246.10000000000002,
+    "diagnosisExpectedValueUplift": 9.319999999999936,
+    "expectedValueWithZeroSwitchCost": 267.1,
+    "preferredDiagnosticsAcrossState": [
+      "none",
+      "process",
+      "route"
+    ],
+    "noScanArchitectureChoicesAcrossCycles": [
+      "process",
+      "route",
+      "source"
+    ],
+    "persistenceDecisionChangeCount": 4
+  },
+  "firstPolicy": {
+    "diagnostic": "route",
+    "architectureByObservation": {
+      "ok": "process",
+      "fault": "route"
+    }
+  },
+  "checks": {
+    "diagnosisAddsExpectedValue": true,
+    "distinctPreferredDiagnostics": true,
+    "distinctNoScanArchitectureChoicesAcrossCycles": true,
+    "persistenceChangesAtLeastOneDecision": true,
+    "negativeDiagnosticObservationRemainsAmbiguous": true,
+    "uniqueBestArchitecturePerCause": true
+  },
+  "persistenceExamples": [
+    {
+      "cycle": "cycle-1-baseline-output",
+      "previous": "process",
+      "withSwitchCost": {
+        "diagnostic": "none",
+        "architectureByObservation": {
+          "none": "process"
+        }
+      },
+      "zeroSwitchCost": {
+        "diagnostic": "route",
+        "architectureByObservation": {
+          "ok": "process",
+          "fault": "route"
+        }
+      }
+    },
+    {
+      "cycle": "cycle-1-baseline-output",
+      "previous": "route",
+      "withSwitchCost": {
+        "diagnostic": "process",
+        "architectureByObservation": {
+          "ok": "route",
+          "fault": "process"
+        }
+      },
+      "zeroSwitchCost": {
+        "diagnostic": "route",
+        "architectureByObservation": {
+          "ok": "process",
+          "fault": "route"
+        }
+      }
+    },
+    {
+      "cycle": "cycle-2-objective-shift",
+      "previous": "source",
+      "withSwitchCost": {
+        "diagnostic": "route",
+        "architectureByObservation": {
+          "ok": "source",
+          "fault": "route"
+        }
+      },
+      "zeroSwitchCost": {
+        "diagnostic": "route",
+        "architectureByObservation": {
+          "ok": "process",
+          "fault": "route"
+        }
+      }
+    },
+    {
+      "cycle": "cycle-3-rule-revaluation",
+      "previous": "process",
+      "withSwitchCost": {
+        "diagnostic": "process",
+        "architectureByObservation": {
+          "ok": "source",
+          "fault": "process"
+        }
+      },
+      "zeroSwitchCost": {
+        "diagnostic": "none",
+        "architectureByObservation": {
+          "none": "source"
+        }
+      }
+    }
+  ],
+  "policies": [
+    {
+      "cycle": "cycle-1-baseline-output",
+      "previousArchitecture": null,
+      "policy": {
+        "diagnostic": "route",
+        "architectureByObservation": {
+          "ok": "process",
+          "fault": "route"
+        }
+      }
+    },
+    {
+      "cycle": "cycle-1-baseline-output",
+      "previousArchitecture": "source",
+      "policy": {
+        "diagnostic": "route",
+        "architectureByObservation": {
+          "ok": "process",
+          "fault": "route"
+        }
+      }
+    },
+    {
+      "cycle": "cycle-1-baseline-output",
+      "previousArchitecture": "process",
+      "policy": {
+        "diagnostic": "none",
+        "architectureByObservation": {
+          "none": "process"
+        }
+      }
+    },
+    {
+      "cycle": "cycle-1-baseline-output",
+      "previousArchitecture": "route",
+      "policy": {
+        "diagnostic": "process",
+        "architectureByObservation": {
+          "ok": "route",
+          "fault": "process"
+        }
+      }
+    },
+    {
+      "cycle": "cycle-2-objective-shift",
+      "previousArchitecture": null,
+      "policy": {
+        "diagnostic": "route",
+        "architectureByObservation": {
+          "ok": "process",
+          "fault": "route"
+        }
+      }
+    },
+    {
+      "cycle": "cycle-2-objective-shift",
+      "previousArchitecture": "source",
+      "policy": {
+        "diagnostic": "route",
+        "architectureByObservation": {
+          "ok": "source",
+          "fault": "route"
+        }
+      }
+    },
+    {
+      "cycle": "cycle-2-objective-shift",
+      "previousArchitecture": "process",
+      "policy": {
+        "diagnostic": "route",
+        "architectureByObservation": {
+          "ok": "process",
+          "fault": "route"
+        }
+      }
+    },
+    {
+      "cycle": "cycle-2-objective-shift",
+      "previousArchitecture": "route",
+      "policy": {
+        "diagnostic": "route",
+        "architectureByObservation": {
+          "ok": "process",
+          "fault": "route"
+        }
+      }
+    },
+    {
+      "cycle": "cycle-3-rule-revaluation",
+      "previousArchitecture": null,
+      "policy": {
+        "diagnostic": "none",
+        "architectureByObservation": {
+          "none": "source"
+        }
+      }
+    },
+    {
+      "cycle": "cycle-3-rule-revaluation",
+      "previousArchitecture": "source",
+      "policy": {
+        "diagnostic": "none",
+        "architectureByObservation": {
+          "none": "source"
+        }
+      }
+    },
+    {
+      "cycle": "cycle-3-rule-revaluation",
+      "previousArchitecture": "process",
+      "policy": {
+        "diagnostic": "process",
+        "architectureByObservation": {
+          "ok": "source",
+          "fault": "process"
+        }
+      }
+    },
+    {
+      "cycle": "cycle-3-rule-revaluation",
+      "previousArchitecture": "route",
+      "policy": {
+        "diagnostic": "none",
+        "architectureByObservation": {
+          "none": "source"
+        }
+      }
+    }
+  ],
+  "boundary": "This carrier tests whether scarce diagnosis, architecture persistence, and changing operating context form a non-trivial decision system. It does not establish Human enjoyment, comprehension, market demand, or G0 admission."
+}

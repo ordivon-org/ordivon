@@ -1,0 +1,185 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon-game-r0-external-reference-class",
+  "observedDate": "2026-09-11",
+  "productSelected": false,
+  "g0Entered": false,
+  "runtimeAgentRequired": false,
+  "standing": "SUPERSEDED_AS_R1_ADMISSION",
+  "supersededBy": "game-r0-success-universe-20260911",
+  "firstR1SetStanding": "HISTORICAL_PROPOSAL_ONLY",
+  "r1Admitted": false,
+  "cheapBaselineSet": [
+    "Balatro",
+    "Vampire Survivors",
+    "Mini Metro"
+  ],
+  "selectionAxes": [
+    "SuccessEvidence",
+    "MaturityLongevity",
+    "CoreLoopCausalLegibility",
+    "SmallScopeReproducibility",
+    "ExpressionDependence",
+    "ContentBurden",
+    "OnlineLiveOpsBurden",
+    "ProductionScaleComparability",
+    "DeveloperEvidenceAvailability",
+    "ControlledBaselineValue"
+  ],
+  "firstR1Set": [
+    "Balatro",
+    "Vampire Survivors",
+    "Mini Metro"
+  ],
+  "reserveSet": [
+    "FTL: Faster Than Light",
+    "Papers, Please",
+    "Slay the Spire",
+    "Into the Breach"
+  ],
+  "ceilingSet": [
+    "Stardew Valley",
+    "Hades",
+    "Return of the Obra Dinn"
+  ],
+  "marketPulseRole": "context-only-not-product-authority",
+  "laws": [
+    "SuccessfulGame != ValidProductionBaseline",
+    "PopularNow != MatureReference",
+    "DesignReference != CloneTarget",
+    "ReferenceAdmission != G0Admission",
+    "ObservedReferenceFact != InferredDesignCause != TransferableDesignLaw"
+  ],
+  "references": [
+    {
+      "name": "Balatro",
+      "tier": "A",
+      "form": "symbolic-turn-based-combinatorial",
+      "smallScopeReproducibility": "very_high",
+      "expressionDependence": "low",
+      "contentBurden": "low_to_medium",
+      "onlineBurden": "none_for_core",
+      "sourceUrls": [
+        "https://store.steampowered.com/app/2379780/Balatro/",
+        "https://www.playstack.com/news/balatro-5-million-copies-sold/",
+        "https://www.gamedeveloper.com/business/balatro-dev-gives-look-at-first-prototype-joker-poker"
+      ]
+    },
+    {
+      "name": "Vampire Survivors",
+      "tier": "A",
+      "form": "real-time-action-density-growth",
+      "smallScopeReproducibility": "very_high",
+      "expressionDependence": "low_to_medium",
+      "contentBurden": "medium",
+      "onlineBurden": "none_for_core",
+      "sourceUrls": [
+        "https://store.steampowered.com/app/1794680/Vampire_Survivors/",
+        "https://www.gamedeveloper.com/design/vampire-survivors-development-sounds-like-an-open-source-fueled-fever-dream"
+      ]
+    },
+    {
+      "name": "Mini Metro",
+      "tier": "A",
+      "form": "continuous-systemic-optimization",
+      "smallScopeReproducibility": "very_high",
+      "expressionDependence": "low_to_medium",
+      "contentBurden": "low",
+      "onlineBurden": "none",
+      "sourceUrls": [
+        "https://store.steampowered.com/app/287980/Mini_Metro/",
+        "https://www.gamedeveloper.com/audio/postmortem-dinosaur-polo-club-s-i-mini-metro-i-"
+      ]
+    },
+    {
+      "name": "FTL: Faster Than Light",
+      "tier": "B",
+      "form": "real-time-with-pause-systemic-run",
+      "smallScopeReproducibility": "high",
+      "expressionDependence": "medium",
+      "contentBurden": "medium_to_high",
+      "onlineBurden": "none",
+      "sourceUrls": [
+        "https://store.steampowered.com/app/212680/FTL_Faster_Than_Light/"
+      ]
+    },
+    {
+      "name": "Papers, Please",
+      "tier": "B",
+      "form": "procedural-inspection-narrative",
+      "smallScopeReproducibility": "high",
+      "expressionDependence": "medium",
+      "contentBurden": "medium_to_high",
+      "onlineBurden": "none",
+      "sourceUrls": [
+        "https://store.steampowered.com/app/239030/Papers_Please/",
+        "https://www.gamedeveloper.com/design/road-to-the-igf-lucas-pope-s-i-papers-please-i-"
+      ]
+    },
+    {
+      "name": "Slay the Spire",
+      "tier": "B",
+      "form": "turn-based-deckbuilding-combat",
+      "smallScopeReproducibility": "high",
+      "expressionDependence": "low_to_medium",
+      "contentBurden": "high_for_deep_baseline",
+      "onlineBurden": "none_for_core",
+      "sourceUrls": [
+        "https://store.steampowered.com/app/646570/Slay_the_Spire/"
+      ]
+    },
+    {
+      "name": "Into the Breach",
+      "tier": "B",
+      "form": "turn-based-tactical-puzzle",
+      "smallScopeReproducibility": "medium_to_high",
+      "expressionDependence": "medium",
+      "contentBurden": "medium_to_high",
+      "onlineBurden": "none",
+      "sourceUrls": [
+        "https://store.steampowered.com/app/590380/Into_the_Breach/",
+        "https://www.gamedeveloper.com/design/-i-into-the-breach-s-i-designers-explain-how-to-follow-up-from-a-hit-game"
+      ]
+    },
+    {
+      "name": "Stardew Valley",
+      "tier": "C",
+      "form": "life-farming-progression-sandbox",
+      "smallScopeReproducibility": "low_for_product",
+      "expressionDependence": "high",
+      "contentBurden": "very_high",
+      "onlineBurden": "optional",
+      "sourceUrls": [
+        "https://store.steampowered.com/app/413150/Stardew_Valley/",
+        "https://www.gamedeveloper.com/design/road-to-the-igf-concernedape-s-i-stardew-valley-i-"
+      ]
+    },
+    {
+      "name": "Hades",
+      "tier": "C",
+      "form": "action-roguelite-narrative",
+      "smallScopeReproducibility": "low_for_representative_experience",
+      "expressionDependence": "very_high",
+      "contentBurden": "very_high",
+      "onlineBurden": "none",
+      "sourceUrls": [
+        "https://store.steampowered.com/app/1145360/Hades/",
+        "https://www.supergiantgames.com/blog/hades-faq/"
+      ]
+    },
+    {
+      "name": "Return of the Obra Dinn",
+      "tier": "C",
+      "form": "deduction-information-reconstruction",
+      "smallScopeReproducibility": "medium_for_mechanic_low_for_product",
+      "expressionDependence": "high",
+      "contentBurden": "very_high",
+      "onlineBurden": "none",
+      "sourceUrls": [
+        "https://store.steampowered.com/app/653530/Return_of_the_Obra_Dinn/",
+        "https://www.gamedeveloper.com/business/road-to-the-igf-lucas-pope-s-i-return-of-the-obra-dinn-i-",
+        "https://www.gamedeveloper.com/design/on-that-incredible-demo-from-the-maker-of-i-papers-please-i-"
+      ]
+    }
+  ]
+}

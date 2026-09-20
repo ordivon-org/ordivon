@@ -1,0 +1,16 @@
+{
+  "schema": "veilwild.a17-friction.r3",
+  "frictionId": "A17-R3-OBSERVATION-SIGNAL-ORDERING-001",
+  "classification": "GAME_OWNER",
+  "tool": "Godot",
+  "version": "4.7.1",
+  "provider": "A17/F17 integration",
+  "exactCondition": "First A17 observation binding implementation evaluated owner qualification synchronously from F18 observe_requested signal.",
+  "expectedConsequence": "observe_action_started -> observation_committed -> success_consequence",
+  "failure": "Signal callback can run before F18 begin_observe_action publishes observe_action_started; initial fixture exited 12 and exposed the unsafe timing.",
+  "severity": "HIGH",
+  "owner": "A17/F17",
+  "structuralRepair": "defer automatic qualification evaluation until the F18 signal emitter returns; retain fail-closed active-request identity and add exact order/abort oracle",
+  "postRepairReplay": "job-01a07b67-f812-7902-a90e-f2e99baf2957 PASS empty stderr",
+  "reusableLesson": "Cross-owner synchronous signal callbacks can invert producer event ordering even when each local API is correct. Integration ordering must be tested on the actual signal lifecycle, not inferred from source line intent."
+}

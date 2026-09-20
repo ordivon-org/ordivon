@@ -1,0 +1,31 @@
+{
+  "command": [
+    "/usr/bin/godot",
+    "--headless",
+    "--path",
+    ".",
+    "--script",
+    "res://tests/test_behavior.gd"
+  ],
+  "cwd": "/var/lib/ordivon/runtime/workspaces/ws-veilwild-r1-a17-20260907/experiments/veilwild-r1/f13-behavior",
+  "exitCode": 0,
+  "fatalMatches": [],
+  "fatalPatterns": [
+    "(?m)^SCRIPT ERROR:"
+  ],
+  "kind": "ordivon.workstation-godot-checked-run",
+  "pass": true,
+  "reason": "process and declared health gates passed",
+  "requiredOutputs": [],
+  "schemaVersion": 1,
+  "stderr": {
+    "bytes": 0,
+    "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "stdout": {
+    "bytes": 133,
+    "sha256": "sha256:e0f1946b0eccce3e4ba5fcaf65f0c3b0f5ed9846379b4cd4fc6cb33c536dc7b9"
+  },
+  "timedOut": false,
+  "timeoutSeconds": 20.0
+}

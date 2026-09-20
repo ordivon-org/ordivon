@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.t03-sealed-intent-clean-falsifier",
+  "observedDate": "2026-09-14",
+  "thesis": "T03 Sealed Intent / Simultaneous Tactical Commitment",
+  "standing": "FAILS_CLEAN_STRUCTURAL_FALSIFIER",
+  "mechanismModifiedAfterObservation": false,
+  "carrier": {
+    "board": "6x6",
+    "playerUnits": 3,
+    "enemyUnits": 3,
+    "playerActions": 4,
+    "playerPlanSpace": 64,
+    "enemyFamilies": 2,
+    "sealedVariantsPerFamily": 2,
+    "handBuiltStates": 6
+  },
+  "metrics": {
+    "expectedFamilyCueCausalLeverage": 0.0,
+    "minimaxFamilyCueCausalLeverage": 0.0,
+    "dominantExpectedPlanShare": 1.0,
+    "distinctExpectedRepresentativePlans": 1,
+    "exactCommitmentRevisionRate": 0.0,
+    "meanOracleRegretFraction": 0.0
+  },
+  "decisionConsequence": "T03 is demoted from the current product-commitment set. The clean carrier does not support the thesis that bounded enemy-family evidence plus simultaneous commitment creates state-sensitive plan revision without the historical Station Zero machinery. Do not repair this carrier in the same decision wave.",
+  "boundary": "This negative result applies to the declared T03 R1 carrier/thesis scope. It does not claim all simultaneous-tactics games are invalid."
+}

@@ -1,0 +1,33 @@
+; Project Veilwild R1 — A17 Engine Integration shell
+; Runtime carrier only. Specialist/player semantics stay with their owning fronts.
+config_version=5
+
+[application]
+config/name="Project Veilwild R1"
+run/main_scene="res://main.tscn"
+
+[autoload]
+VeilwildEventBus="*res://integration/event_bus.gd"
+
+[display]
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/size/window_width_override=1280
+window/size/window_height_override=720
+
+[rendering]
+renderer/rendering_method="forward_plus"
+renderer/rendering_method.mobile="mobile"
+
+[veilwild]
+integration/strict_candidate=false
+integration/environment_scene="res://modules/f05/veilwild_forest_environment.glb"
+integration/creature_scene="res://modules/f10/veilrunner_f10_material_bound_r4a.glb"
+integration/lighting_scene="res://modules/f11/lighting_rig.tscn"
+integration/navigation_scene="res://modules/f14/navigation_mount.tscn"
+integration/animation_system_scene="res://modules/f09/animation_system_module.tscn"
+integration/behavior_scene="res://modules/f13/behavior_runtime.tscn"
+integration/audio_scene="res://modules/f16/F16AudioSystem.tscn"
+integration/player_runtime_scene="res://player/player_runtime.tscn"
+integration/evidence_scene="res://modules/f22/evidence_runtime.tscn"
+integration/ui_scene="res://player/player_ui.tscn"

@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.cs2-03-computational-player-science-acceptance",
+  "observedDate": "2026-09-14",
+  "candidate": "cs2-03-upstream-random-buildcraft",
+  "standing": "PASS_COMPUTATIONAL_EVALUATION_LOOP_R1",
+  "mandatoryHumanInLoop": false,
+  "population": {
+    "proceduralPersonaFamilies": 10,
+    "encounterSequences": 625,
+    "pairedTreatmentControl": true,
+    "commonRandomNumbers": true,
+    "standing": "MODEL_POPULATION_NOT_HUMAN_POPULATION"
+  },
+  "causalEstimand": {
+    "outcome": "total modeled run score",
+    "treatment": "UPSTREAM information timing",
+    "control": "DOWNSTREAM information timing",
+    "personaBalancedATE": 0.28167999999999993,
+    "bootstrap95CI": [-0.6004872500000001, 1.179498750000001],
+    "effectSignAgreement": 0.5,
+    "standing": "MIXED_OR_INCONCLUSIVE_IN_DECLARED_SYNTHETIC_PLAYER_ENVELOPE"
+  },
+  "falsifier": {
+    "randomBaselineATE": 0.0,
+    "standing": "PASS_TREATMENT_INVARIANT_BASELINE"
+  },
+  "surrogateR1": {
+    "kind": "Bayesian polynomial",
+    "testR2": 0.6248356991634916,
+    "testMAE": 0.45706376952804434,
+    "standing": "WEAK_LOCAL_SURROGATE"
+  },
+  "activeFollowup": {
+    "selectedProfiles": 8,
+    "directReplicatesPerSequence": 12,
+    "meanAbsolutePredictionError": 1.2164233852257147,
+    "maxAbsolutePredictionError": 2.243709835127727,
+    "signMismatchCount": 3,
+    "standing": "ACTIVE_FOLLOWUP_EXECUTED_SURROGATE_WEAKNESS_CONFIRMED"
+  },
+  "surrogateR2": {
+    "kind": "Gaussian process ARD RBF",
+    "frozenIndependentTestProfiles": 28,
+    "testR2": 0.8188482704641138,
+    "testMAE": 0.294594948726167,
+    "approx95PredictiveCoverage": 0.8928571428571429,
+    "standing": "PASS_LOCAL_GP_SURROGATE"
+  },
+  "sensitivity": {
+    "dominant": ["infoUse", "temperature"],
+    "secondary": ["foresight", "riskAversion"],
+    "interpretation": "The treatment effect depends more strongly on whether/with what noise the player model consumes information than on several build-style preference weights in this bounded experiment."
+  },
+  "runtimeJobs": {
+    "initialTimedOutUnoptimizedRun": "job-01a09ef9-cbef-7143-a6bd-1667b84d26d4",
+    "successfulPopulationAndPolynomialRun": "job-01a09efd-45ba-72c0-966d-14402fedad25",
+    "activeFollowup": "job-01a09efe-a7c4-7190-9bc4-d7d215de8fac",
+    "gpSurrogateR2": "job-01a09eff-8c59-7f12-9d43-c4cd97b8cc1e"
+  },
+  "humanSpecificClaims": {
+    "humanFeltAgency": "NOT_DIRECTLY_IDENTIFIED",
+    "humanEnjoyment": "NOT_DIRECTLY_IDENTIFIED",
+    "humanReplayDesire": "NOT_DIRECTLY_IDENTIFIED",
+    "workflowBlocked": false
+  },
+  "boundary": "Acceptance proves one complete computational evaluation loop for CS2-03: synthetic population, paired causal estimand, statistical uncertainty, surrogate falsification, active follow-up, GP replacement, and next-experiment selection. It does not calibrate the model to a Human population or establish Human-specific subjective value."
+}

@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.development-stack-graduation-r1",
+  "observedOn": "2026-09-13",
+  "status": "READY_WITH_BOUNDED_NONBLOCKING_CONTAINER_FONTCONFIG_LIMITATION",
+  "sourceRevision": "d0f8f17b43b33a995eafd71efeed4800c9a2ce81",
+  "engine": {
+    "host": "4.7.1.stable.arch_linux.a13da4feb",
+    "container": "4.7.1.stable.official.a13da4feb",
+    "authority": "Godot official CLI + native project.godot/export_presets.cfg"
+  },
+  "gut": {
+    "version": "9.7.1",
+    "tag": "v9.7.1",
+    "commit": "aeb5d4f3f7f0a6c9b5e178876d6c99b791fda605",
+    "standing": "PASS",
+    "acceptanceJobId": "job-01a09aaf-b3ab-7d33-8b11-bede97705dbc",
+    "tests": 1,
+    "passingTests": 1,
+    "assertions": 3,
+    "junitXml": "GENERATED_AND_NONEMPTY",
+    "redundantRecheck": {
+      "jobId": "job-01a09b08-9715-7f81-a8c4-e2337d6e0cb7",
+      "status": "TIMED_OUT_DURING_GITHUB_CLONE",
+      "semanticRegressionEvidence": false
+    }
+  },
+  "networkAcquisition": {
+    "transport": "Surfshark WireGuard via surfpath isolated path",
+    "egress": "KR/ICN",
+    "qualifiedPathDigest": "sha256:1945fe0636c63e2cf00d4487c695a7c1d5ca3e24c5964ee4f0bad32526254f25",
+    "qualificationObservationDigest": "sha256:f82ec35355795817d0c081de44f333f7de3756163cc8593449022aa73bc9c098",
+    "registryProbe": "HTTP 401 expected unauthenticated registry response",
+    "imageDownloadJobId": "job-01a09aee-a2d7-7381-ba73-0985ebf389a1",
+    "ociLayoutPath": "/var/cache/ordivon/game/godot-ci-4.7.1-oci",
+    "ociLayoutApproxBytes": 2500000000
+  },
+  "godotCi": {
+    "image": "docker.io/barichello/godot-ci:4.7.1",
+    "imageId": "c22f67612c9eb0e7c52e18d391471ce5c6dba8e43c6d9ff43b77d6d85d9a3723",
+    "imageDigest": "sha256:15bab564bdd99ae61a12564fc25237130483d1e22da003dc7d039db6f6eded91",
+    "unpackedSizeBytes": 5143213007,
+    "importStanding": "PASS",
+    "runtimeStanding": "PASS_WITH_NETWORK_NONE",
+    "defaultBridgeBoundary": "WSL kernel/netavark bridge creation unsupported; CI carrier uses --network=none because build/export path requires no network"
+  },
+  "productionSmoke": {
+    "project": "experiments/production-smoke-r1/godot",
+    "containerExportJobId": "job-01a09b08-24eb-75d1-935d-5eefab7947eb",
+    "containerImport": "PASS",
+    "containerExport": "PASS",
+    "preset": "Linux/X11",
+    "exportedExecutable": "cold-start.x86_64",
+    "exportedSizeBytes": 73473208,
+    "exportedMode": "755",
+    "exportedSha256": "ed7906d6641f30afcecd142e8fe8716720bab5b317c24dfeebc19ddcb09af30c",
+    "matchesPriorHostReproducibilityBaseline": true,
+    "hostExecution": {
+      "status": "PASS",
+      "exitCode": 0,
+      "bootMarker": "ORDIVON_GAME_COLD_START_BOOT",
+      "successMarker": "ORDIVON_GAME_COLD_START_OK"
+    }
+  },
+  "knownBoundedLimitations": [
+    {
+      "id": "godot-ci-fontconfig-absent",
+      "severity": "nonblocking-for-current-build-export-profile",
+      "evidence": "container logs libfontconfig.so.1 absent and system font support disabled",
+      "currentImpact": "Godot headless version/import/export all exit successfully; exported executable runs successfully on host",
+      "policy": "bundle product fonts for deterministic builds; revisit container package/image only if a real product requires system-font discovery"
+    },
+    {
+      "id": "podman-default-netavark-bridge-unavailable-in-current-wsl",
+      "severity": "nonblocking-for-current-ci-profile",
+      "policy": "run build/export container with --network=none; do not mutate WSL networking solely for CI"
+    }
+  ],
+  "graduation": {
+    "developmentFoundation": "READY",
+    "hostGodotCli": "READY",
+    "gut": "READY",
+    "containerizedGodotCi": "READY_FOR_OFFLINE_BUILD_EXPORT",
+    "nativeExportPresets": "READY",
+    "exportedExecutableRun": "READY",
+    "realStoreRelease": "DEFERRED_UNTIL_REAL_PRODUCT",
+    "playerValue": "NOT_CLAIMED"
+  }
+}

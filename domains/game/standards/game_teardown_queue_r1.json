@@ -1,0 +1,1428 @@
+{
+  "schemaVersion": 1,
+  "queueId": "ordivon-game-teardown-queue-r1",
+  "createdOn": "2026-09-18",
+  "policy": {
+    "preferPrimaryDeveloperEvidence": true,
+    "extractBeforeRanking": false,
+    "requireConfounds": true,
+    "requireFalsifier": true,
+    "canUseSecondaryForDiscoveryOnly": true
+  },
+  "targets": [
+    {
+      "id": "doom-2016",
+      "title": "DOOM (2016)",
+      "axes": [
+        "combat-feel",
+        "failure-counterexample"
+      ],
+      "priority": "P0",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:gdc-doom"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?",
+        "How do aggression, health recovery and encounter geometry reinforce each other?"
+      ],
+      "transferRisks": [
+        "FPS control/aim skill",
+        "id production polish",
+        "franchise power fantasy"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "celeste",
+      "title": "Celeste",
+      "axes": [
+        "combat-feel",
+        "accessibility-ux"
+      ],
+      "priority": "P0",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:gdc-celeste"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?",
+        "How are mechanics taught through room sequencing and optional challenge?"
+      ],
+      "transferRisks": [
+        "precision-platformer audience",
+        "assist-mode context",
+        "music/art/story coupling"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "into-the-breach",
+      "title": "Into the Breach",
+      "axes": [
+        "systems-emergence",
+        "puzzle-rules",
+        "failure-counterexample"
+      ],
+      "priority": "P0",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:gdc-into-breach"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?",
+        "How do perfect/partial information, small boards, telegraphing and turn economy interact?"
+      ],
+      "transferRisks": [
+        "turn-based niche",
+        "content tuning",
+        "RNG distribution"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "slay-the-spire",
+      "title": "Slay the Spire",
+      "axes": [
+        "economy-progression",
+        "systems-emergence"
+      ],
+      "priority": "P0",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:gdc-slay-spire"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?",
+        "Which balance decisions were data-driven versus protected by feel/identity?"
+      ],
+      "transferRisks": [
+        "Early Access community",
+        "deckbuilding literacy",
+        "content volume"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "factorio",
+      "title": "Factorio",
+      "axes": [
+        "systems-emergence",
+        "economy-progression",
+        "creation-ugc"
+      ],
+      "priority": "P0",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:factorio-fff-382",
+        "kb:factorio-fff-421",
+        "kb:factorio-fff-441"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?",
+        "How do automation, bottlenecks, logistics visibility and player-created goals reinforce redesign?"
+      ],
+      "transferRisks": [
+        "long-session expert audience",
+        "mod ecosystem",
+        "massive tuning history"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "baba-is-you",
+      "title": "Baba Is You",
+      "axes": [
+        "puzzle-rules",
+        "failure-counterexample"
+      ],
+      "priority": "P0",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:gdc-baba-is-you"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?",
+        "When does rule mutation create understandable possibility instead of combinatorial opacity?"
+      ],
+      "transferRisks": [
+        "puzzle authoring expertise",
+        "bespoke level curation"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "hades",
+      "title": "Hades",
+      "axes": [
+        "narrative-reactivity",
+        "economy-progression"
+      ],
+      "priority": "P0",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:hades-faq",
+        "kb:gdc-hades-dialogue"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?",
+        "How do repeated failure, dialogue reactivity, meta-progression and run variation avoid narrative/mechanical conflict?"
+      ],
+      "transferRisks": [
+        "writing volume",
+        "voice production",
+        "Supergiant audience/art quality"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "zelda-totk",
+      "title": "The Legend of Zelda: Tears of the Kingdom",
+      "axes": [
+        "systems-emergence",
+        "creation-ugc"
+      ],
+      "priority": "P0",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:nintendo-zelda-totk-1",
+        "kb:nintendo-zelda-totk-5"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?",
+        "How do combinable object verbs preserve comprehensibility while enabling divergent solutions?"
+      ],
+      "transferRisks": [
+        "Nintendo scale",
+        "BOTW inherited world/audience",
+        "content polish"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "pikmin-4",
+      "title": "Pikmin 4",
+      "axes": [
+        "systems-emergence",
+        "accessibility-ux"
+      ],
+      "priority": "P0",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:nintendo-pikmin4-1",
+        "kb:nintendo-pikmin4-2"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?",
+        "How does Dandori emerge from action grammar, time, parallel tasks and spatial planning?"
+      ],
+      "transferRisks": [
+        "series heritage",
+        "Nintendo onboarding craft"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "ftl",
+      "title": "FTL: Faster Than Light",
+      "axes": [
+        "systems-emergence",
+        "failure-counterexample"
+      ],
+      "priority": "P0",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:gdc-ftl"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?",
+        "What changed when player-experience intent outranked genre/mechanics precommitment?"
+      ],
+      "transferRisks": [
+        "Kickstarter/community context",
+        "roguelike audience"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "dead-cells",
+      "title": "Dead Cells",
+      "axes": [
+        "combat-feel",
+        "economy-progression"
+      ],
+      "priority": "P0",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:gdc-dead-cells"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?",
+        "Which hidden/explicit player-favoring rules support perceived precision rather than cheapen challenge?"
+      ],
+      "transferRisks": [
+        "Early Access",
+        "action roguelite audience"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "subnautica",
+      "title": "Subnautica",
+      "axes": [
+        "systems-emergence",
+        "narrative-reactivity",
+        "economy-progression"
+      ],
+      "priority": "P0",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:gdc-subnautica"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?",
+        "Which core spikes survived open development and what signals justified doubling down?"
+      ],
+      "transferRisks": [
+        "market/community growth",
+        "survival genre timing"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "mooncrash",
+      "title": "Prey: Mooncrash",
+      "axes": [
+        "systems-emergence",
+        "failure-counterexample"
+      ],
+      "priority": "P0",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:gdc-mooncrash"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?",
+        "What happens when immersive-sim mechanics are recomposed with roguelike reset and multi-character constraints?"
+      ],
+      "transferRisks": [
+        "existing Prey substrate",
+        "DLC audience"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "heavens-vault",
+      "title": "Heaven’s Vault",
+      "axes": [
+        "narrative-reactivity",
+        "puzzle-rules"
+      ],
+      "priority": "P0",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:gdc-heavens-vault"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?",
+        "How can adaptive authored content preserve progress without bottlenecks/fail states?"
+      ],
+      "transferRisks": [
+        "authoring technology",
+        "narrative audience"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "mario-wonder",
+      "title": "Super Mario Bros. Wonder",
+      "axes": [
+        "combat-feel",
+        "failure-counterexample"
+      ],
+      "priority": "P0",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:nintendo-mario-wonder-1"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?",
+        "How did a huge idea pool get reduced through prototypes into transformation-driven surprises?"
+      ],
+      "transferRisks": [
+        "Nintendo resources",
+        "Mario familiarity"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "game-builder-garage",
+      "title": "Game Builder Garage",
+      "axes": [
+        "creation-ugc",
+        "puzzle-rules",
+        "accessibility-ux"
+      ],
+      "priority": "P0",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:nintendo-gbg-1",
+        "kb:nintendo-gbg-3",
+        "kb:nintendo-gbg-4"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?",
+        "How does copy-modify-free-create progression teach a combinatorial creation grammar?"
+      ],
+      "transferRisks": [
+        "educational target audience",
+        "Nintendo tutorial craft"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "cultist-simulator",
+      "title": "Cultist Simulator",
+      "axes": [
+        "failure-counterexample",
+        "economy-progression"
+      ],
+      "priority": "P1",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:gdc-cultist"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?",
+        "Which deliberate usability/convention violations produce identity versus avoidable friction?"
+      ],
+      "transferRisks": [
+        "marketing/luck explicitly acknowledged",
+        "niche audience"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "halo-wars-2",
+      "title": "Halo Wars 2",
+      "axes": [
+        "accessibility-ux",
+        "social-live"
+      ],
+      "priority": "P1",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:gdc-halo-wars2"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?",
+        "How are RTS actions remapped across controller and mouse/keyboard without one audience defining the model?"
+      ],
+      "transferRisks": [
+        "franchise audience",
+        "multi-studio production"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "dmc5",
+      "title": "Devil May Cry 5",
+      "axes": [
+        "combat-feel"
+      ],
+      "priority": "P1",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:gdc-dmc5"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?",
+        "Which low-level timing/feedback/animation choices instantiate the high-level action vision?"
+      ],
+      "transferRisks": [
+        "expert franchise players",
+        "production polish"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "minecraft",
+      "title": "Minecraft",
+      "axes": [
+        "systems-emergence",
+        "creation-ugc",
+        "social-live"
+      ],
+      "priority": "P1",
+      "status": "QUEUED",
+      "primarySourceTargets": [
+        "Acquire Mojang/Microsoft developer talks; prioritize primary developer interviews/GDC"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?"
+      ],
+      "transferRisks": [
+        "network effects",
+        "mod ecosystem",
+        "cultural ubiquity"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "rimworld",
+      "title": "RimWorld",
+      "axes": [
+        "systems-emergence",
+        "narrative-reactivity"
+      ],
+      "priority": "P1",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:gdc-rimworld"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?"
+      ],
+      "transferRisks": [
+        "mod ecosystem",
+        "genre audience",
+        "content breadth"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "dwarf-fortress",
+      "title": "Dwarf Fortress",
+      "axes": [
+        "systems-emergence",
+        "narrative-reactivity",
+        "failure-counterexample"
+      ],
+      "priority": "P1",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:gdc-dwarf-procgen"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?"
+      ],
+      "transferRisks": [
+        "decades of development",
+        "community literacy",
+        "simulation breadth"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "outer-wilds",
+      "title": "Outer Wilds",
+      "axes": [
+        "narrative-reactivity",
+        "puzzle-rules",
+        "failure-counterexample"
+      ],
+      "priority": "P1",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:gdc-outer-wilds"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?"
+      ],
+      "transferRisks": [
+        "bespoke authored world",
+        "music/story coupling"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "portal",
+      "title": "Portal / Portal 2",
+      "axes": [
+        "puzzle-rules",
+        "accessibility-ux"
+      ],
+      "priority": "P1",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:gdc-portal2"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?"
+      ],
+      "transferRisks": [
+        "Valve playtest resources",
+        "authored puzzle sequencing"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "elden-ring",
+      "title": "ELDEN RING",
+      "axes": [
+        "combat-feel",
+        "systems-emergence"
+      ],
+      "priority": "P1",
+      "status": "QUEUED",
+      "primarySourceTargets": [
+        "Acquire FromSoftware primary interviews/talks; separate developer intent from community theory"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?"
+      ],
+      "transferRisks": [
+        "franchise/Souls literacy",
+        "content scale",
+        "online community"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "monster-hunter",
+      "title": "Monster Hunter",
+      "axes": [
+        "combat-feel",
+        "economy-progression",
+        "social-live"
+      ],
+      "priority": "P1",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:gdc-monster-hunter-world"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?"
+      ],
+      "transferRisks": [
+        "long franchise tuning",
+        "co-op network",
+        "content volume"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "xcom-enemy-unknown",
+      "title": "XCOM: Enemy Unknown",
+      "axes": [
+        "systems-emergence",
+        "economy-progression"
+      ],
+      "priority": "P1",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:gdc-xcom-classic",
+        "kb:gdc-xcom-art",
+        "kb:gdc-xcom2-proc"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?"
+      ],
+      "transferRisks": [
+        "legacy X-COM expectations",
+        "campaign tuning"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "disco-elysium",
+      "title": "Disco Elysium",
+      "axes": [
+        "narrative-reactivity",
+        "puzzle-rules"
+      ],
+      "priority": "P1",
+      "status": "QUEUED",
+      "primarySourceTargets": [
+        "Acquire ZA/UM primary design/writing talks where available"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?"
+      ],
+      "transferRisks": [
+        "writing quality",
+        "setting/IP",
+        "critical audience"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "bg3",
+      "title": "Baldur’s Gate 3",
+      "axes": [
+        "narrative-reactivity",
+        "systems-emergence",
+        "social-live"
+      ],
+      "priority": "P1",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:gdc-bg3-challenges",
+        "kb:gdc-bg3-secrets",
+        "kb:gdc-bg3-cinematics"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?"
+      ],
+      "transferRisks": [
+        "D&D rules/IP",
+        "massive content/QA",
+        "Early Access"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "stardew-valley",
+      "title": "Stardew Valley",
+      "axes": [
+        "economy-progression",
+        "narrative-reactivity",
+        "social-live"
+      ],
+      "priority": "P1",
+      "status": "QUEUED",
+      "primarySourceTargets": [
+        "Acquire Eric Barone primary interviews/postmortems"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?"
+      ],
+      "transferRisks": [
+        "solo-dev narrative",
+        "Harvest Moon lineage",
+        "long-tail community"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "animal-crossing-nh",
+      "title": "Animal Crossing: New Horizons",
+      "axes": [
+        "social-live",
+        "creation-ugc",
+        "economy-progression"
+      ],
+      "priority": "P1",
+      "status": "QUEUED",
+      "primarySourceTargets": [
+        "Acquire Nintendo developer interviews / Iwata/Ask Developer equivalents"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?"
+      ],
+      "transferRisks": [
+        "pandemic timing",
+        "brand/community",
+        "social sharing"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "vampire-survivors",
+      "title": "Vampire Survivors",
+      "axes": [
+        "combat-feel",
+        "economy-progression",
+        "failure-counterexample"
+      ],
+      "priority": "P1",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:gdc-vampire-community"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?"
+      ],
+      "transferRisks": [
+        "price/value",
+        "viral discovery",
+        "genre timing"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "balatro",
+      "title": "Balatro",
+      "axes": [
+        "economy-progression",
+        "puzzle-rules",
+        "failure-counterexample"
+      ],
+      "priority": "P1",
+      "status": "QUEUED",
+      "primarySourceTargets": [
+        "Acquire LocalThunk primary developer interviews/postmortems"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?"
+      ],
+      "transferRisks": [
+        "viral/streaming discovery",
+        "poker familiarity",
+        "publisher/marketing"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "fortnite",
+      "title": "Fortnite",
+      "axes": [
+        "social-live",
+        "systems-emergence",
+        "creation-ugc"
+      ],
+      "priority": "P1",
+      "status": "QUEUED",
+      "primarySourceTargets": [
+        "Acquire Epic primary GDC talks covering launch/live/creative"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?"
+      ],
+      "transferRisks": [
+        "network effects",
+        "F2P economy",
+        "IP collaborations",
+        "creator ecosystem"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "dota2",
+      "title": "Dota 2",
+      "axes": [
+        "social-live",
+        "systems-emergence",
+        "economy-progression"
+      ],
+      "priority": "P1",
+      "status": "QUEUED",
+      "primarySourceTargets": [
+        "Acquire Valve primary design/GDC/Steamworks sources"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?"
+      ],
+      "transferRisks": [
+        "esports/network effects",
+        "years of patches",
+        "community skill floor"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "league-of-legends",
+      "title": "League of Legends",
+      "axes": [
+        "social-live",
+        "systems-emergence",
+        "economy-progression"
+      ],
+      "priority": "P1",
+      "status": "QUEUED",
+      "primarySourceTargets": [
+        "Acquire Riot developer blogs/GDC talks"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?"
+      ],
+      "transferRisks": [
+        "esports/network effects",
+        "live-service history"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "roblox",
+      "title": "Roblox",
+      "axes": [
+        "creation-ugc",
+        "social-live",
+        "economy-progression"
+      ],
+      "priority": "P1",
+      "status": "QUEUED",
+      "primarySourceTargets": [
+        "Acquire Roblox engineering/design/creator primary docs"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?"
+      ],
+      "transferRisks": [
+        "platform economy",
+        "network effects",
+        "child/teen demographics"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "mario-maker",
+      "title": "Super Mario Maker",
+      "axes": [
+        "creation-ugc",
+        "puzzle-rules",
+        "social-live"
+      ],
+      "priority": "P1",
+      "status": "QUEUED",
+      "primarySourceTargets": [
+        "Acquire Nintendo primary developer interviews"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?"
+      ],
+      "transferRisks": [
+        "Mario grammar familiarity",
+        "curation/community"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "the-witness",
+      "title": "The Witness",
+      "axes": [
+        "puzzle-rules",
+        "failure-counterexample"
+      ],
+      "priority": "P2",
+      "status": "QUEUED",
+      "primarySourceTargets": [
+        "Acquire Jonathan Blow primary talks/postmortems"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?"
+      ],
+      "transferRisks": [
+        "authorial philosophy",
+        "environment art/audio"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "gorogoa",
+      "title": "Gorogoa",
+      "axes": [
+        "puzzle-rules",
+        "narrative-reactivity"
+      ],
+      "priority": "P2",
+      "status": "QUEUED",
+      "primarySourceTargets": [
+        "GDC 2018 primary design talk"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?"
+      ],
+      "transferRisks": [
+        "solo-author craft",
+        "handmade art"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "papers-please",
+      "title": "Papers, Please",
+      "axes": [
+        "puzzle-rules",
+        "narrative-reactivity",
+        "failure-counterexample"
+      ],
+      "priority": "P2",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:dukope-devlogs",
+        "kb:dukope-papers-mobile"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?"
+      ],
+      "transferRisks": [
+        "historical/political fiction context",
+        "solo-dev craft"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "return-of-obra-dinn",
+      "title": "Return of the Obra Dinn",
+      "axes": [
+        "puzzle-rules",
+        "narrative-reactivity"
+      ],
+      "priority": "P2",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:dukope-devlogs",
+        "kb:dukope-obra-dinn"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?"
+      ],
+      "transferRisks": [
+        "bespoke mystery authorship",
+        "visual style"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "rocket-league",
+      "title": "Rocket League",
+      "axes": [
+        "combat-feel",
+        "social-live",
+        "failure-counterexample"
+      ],
+      "priority": "P2",
+      "status": "QUEUED",
+      "primarySourceTargets": [
+        "Acquire Psyonix primary postmortems/GDC"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?"
+      ],
+      "transferRisks": [
+        "physics skill ceiling",
+        "online network",
+        "sports familiarity"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "overcooked",
+      "title": "Overcooked",
+      "axes": [
+        "social-live",
+        "systems-emergence",
+        "accessibility-ux"
+      ],
+      "priority": "P2",
+      "status": "QUEUED",
+      "primarySourceTargets": [
+        "Acquire Ghost Town/GDC primary talks"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?"
+      ],
+      "transferRisks": [
+        "local co-op context",
+        "spectator/social dynamics"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "keep-talking",
+      "title": "Keep Talking and Nobody Explodes",
+      "axes": [
+        "social-live",
+        "puzzle-rules",
+        "failure-counterexample"
+      ],
+      "priority": "P2",
+      "status": "QUEUED",
+      "primarySourceTargets": [
+        "Acquire Steel Crate primary talks/postmortems"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?"
+      ],
+      "transferRisks": [
+        "physical manual",
+        "co-located communication"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "tetris",
+      "title": "Tetris",
+      "axes": [
+        "puzzle-rules",
+        "combat-feel",
+        "failure-counterexample"
+      ],
+      "priority": "P2",
+      "status": "QUEUED",
+      "primarySourceTargets": [
+        "Acquire primary guideline/design history sources; distinguish modern implementations"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?"
+      ],
+      "transferRisks": [
+        "cultural familiarity",
+        "decades of variants"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "katamari",
+      "title": "Katamari Damacy",
+      "axes": [
+        "combat-feel",
+        "failure-counterexample"
+      ],
+      "priority": "P2",
+      "status": "QUEUED",
+      "primarySourceTargets": [
+        "Acquire Keita Takahashi primary talks/interviews"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?"
+      ],
+      "transferRisks": [
+        "novelty/historical context",
+        "music/art identity"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "untitled-goose-game",
+      "title": "Untitled Goose Game",
+      "axes": [
+        "systems-emergence",
+        "narrative-reactivity",
+        "failure-counterexample"
+      ],
+      "priority": "P2",
+      "status": "QUEUED",
+      "primarySourceTargets": [
+        "Acquire House House primary talks/postmortems"
+      ],
+      "extractionQuestions": [
+        "Which mechanics actually create the observed decisions rather than merely co-occur?",
+        "What was removed/rejected/changed during development and why?",
+        "What smallest ablation or cheap clone could falsify the claimed mechanism?"
+      ],
+      "transferRisks": [
+        "comedy presentation",
+        "streaming/social context"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "half-life-2",
+      "title": "Half-Life 2",
+      "axes": [
+        "combat-feel",
+        "narrative-reactivity",
+        "accessibility-ux"
+      ],
+      "priority": "P2",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:gdc-half-life2-process"
+      ],
+      "extractionQuestions": [
+        "How did decentralized design teams manage cross-team constraints without flattening local creativity?",
+        "Which consistency problems were solved by process versus authored game constraints?",
+        "What would fail when shrinking this method to a tiny team?"
+      ],
+      "transferRisks": [
+        "Valve organization/playtest resources",
+        "AAA production scale",
+        "historical engine context"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "saturnalia",
+      "title": "Saturnalia",
+      "axes": [
+        "failure-counterexample",
+        "narrative-reactivity",
+        "systems-emergence"
+      ],
+      "priority": "P1",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:gdc-saturnalia"
+      ],
+      "extractionQuestions": [
+        "Which radical changes were survival responses versus design discoveries?",
+        "What scope/style/perspective changes preserved identity and what was lost?",
+        "Which failure signals arrived too late and how could a cheaper test expose them?"
+      ],
+      "transferRisks": [
+        "funding/publisher pressure",
+        "six-year indie context",
+        "distinct visual identity"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "against-the-storm",
+      "title": "Against the Storm",
+      "axes": [
+        "systems-emergence",
+        "economy-progression",
+        "failure-counterexample"
+      ],
+      "priority": "P1",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:gdc-against-storm"
+      ],
+      "extractionQuestions": [
+        "Which interaction between mechanisms appears central rather than merely co-located?",
+        "Which conventions were intentionally removed, borrowed, or inverted?",
+        "What cheap ablation would test the claimed interaction?",
+        "How does city-builder persistence combine with roguelite run structure?"
+      ],
+      "transferRisks": [
+        "Early Access",
+        "market niche",
+        "small-team constraints"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "pacific-drive",
+      "title": "Pacific Drive",
+      "axes": [
+        "systems-emergence",
+        "economy-progression",
+        "failure-counterexample"
+      ],
+      "priority": "P0",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:gdc-pacific-drive"
+      ],
+      "extractionQuestions": [
+        "Which interaction between mechanisms appears central rather than merely co-located?",
+        "Which conventions were intentionally removed, borrowed, or inverted?",
+        "What cheap ablation would test the claimed interaction?",
+        "How do car attachment, survival pressure and run structure replace genre checklist features?"
+      ],
+      "transferRisks": [
+        "2026 retrospective",
+        "theme/setting strength",
+        "survival audience"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "honkai-star-rail",
+      "title": "Honkai: Star Rail",
+      "axes": [
+        "accessibility-ux",
+        "economy-progression",
+        "social-live"
+      ],
+      "priority": "P1",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:gdc-honkai-star-rail"
+      ],
+      "extractionQuestions": [
+        "Which interaction between mechanisms appears central rather than merely co-located?",
+        "Which conventions were intentionally removed, borrowed, or inverted?",
+        "What cheap ablation would test the claimed interaction?",
+        "Which simplifications broaden access without deleting tactical identity?"
+      ],
+      "transferRisks": [
+        "large live-service team",
+        "monetization/ecosystem",
+        "IP/community"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "marvel-snap",
+      "title": "MARVEL SNAP",
+      "axes": [
+        "puzzle-rules",
+        "social-live",
+        "economy-progression"
+      ],
+      "priority": "P1",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:gdc-marvel-snap"
+      ],
+      "extractionQuestions": [
+        "Which interaction between mechanisms appears central rather than merely co-located?",
+        "Which conventions were intentionally removed, borrowed, or inverted?",
+        "What cheap ablation would test the claimed interaction?",
+        "How do three-minute matches, locations and doubling stakes alter deckbuilding decisions?"
+      ],
+      "transferRisks": [
+        "Marvel IP",
+        "mobile market",
+        "CCG veteran team"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "animal-well",
+      "title": "Animal Well",
+      "axes": [
+        "puzzle-rules",
+        "narrative-reactivity",
+        "social-live"
+      ],
+      "priority": "P2",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:gdc-animal-well-arg"
+      ],
+      "extractionQuestions": [
+        "Which interaction between mechanisms appears central rather than merely co-located?",
+        "Which conventions were intentionally removed, borrowed, or inverted?",
+        "What cheap ablation would test the claimed interaction?",
+        "Can an external ARG communicate the experience of secrets without disclosing the secrets themselves?"
+      ],
+      "transferRisks": [
+        "marketing focus",
+        "community selection",
+        "solo-dev mystery craft"
+      ],
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "frostpunk",
+      "title": "Frostpunk",
+      "axes": [
+        "systems-emergence",
+        "narrative-reactivity",
+        "economy-progression"
+      ],
+      "priority": "P1",
+      "status": "SOURCE_FOUND",
+      "primarySourceTargets": [
+        "kb:gdc-frostpunk-systems-voice",
+        "kb:gdc-gameplay-language"
+      ],
+      "extractionQuestions": [
+        "Which interaction between mechanisms appears central rather than merely co-located?",
+        "Which conventions were intentionally removed, borrowed, or inverted?",
+        "What cheap ablation would test the claimed interaction?",
+        "Which resource/system relationships carry moral or political meaning without dialogue?"
+      ],
+      "transferRisks": [
+        "strong authorial intent",
+        "interpretation variance",
+        "survival-citybuilder audience"
+      ],
+      "canBlockNovelCombination": false
+    }
+  ],
+  "gaps": {
+    "nextPrimarySourceWave": [
+      "Stardew Valley / Eric Barone primary postmortem",
+      "Overcooked / Ghost Town primary design talk",
+      "Elden Ring / FromSoftware primary design sources",
+      "Minecraft / Mojang primary mechanic/system talks",
+      "Fortnite/Dota/League live-system primary talks",
+      "Balatro / LocalThunk primary design process",
+      "Clair Obscur: Expedition 33 2026 scope/4-programmer talk exact session page",
+      "Frostpunk 2 2025 Speaking in Systems exact session page",
+      "Helldivers 2 2025 design postmortem exact session page",
+      "UFO 50 developer design/process sources",
+      "non-English/non-Western primary developer archives"
+    ],
+    "underrepresentedDomains": [
+      "sports/racing feel",
+      "horror/fear design",
+      "MMO institutions/economies",
+      "mobile live-ops with ethical analysis",
+      "music/rhythm beyond Beat Saber",
+      "non-Western developer primary sources",
+      "failed/cancelled projects",
+      "tabletop-to-digital transfer"
+    ]
+  }
+}

@@ -1,0 +1,36 @@
+# JavaScript / TypeScript
+node_modules/
+dist/
+build/
+.next/
+coverage/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+
+# Environment and local state
+.env
+.env.*
+!.env.example
+*.sqlite3
+*.db
+data/
+artifacts/
+replays/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Veilwild R1 generated runtime/import/build state
+experiments/veilwild-r1/godot/.godot/
+experiments/veilwild-r1/build/*
+!experiments/veilwild-r1/build/.gitkeep

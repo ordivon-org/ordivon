@@ -1,0 +1,347 @@
+{
+  "artifact": null,
+  "buildId": "sha256:8afa899409f484d9e6316d546950427c365a11046d3b562fb15639ca50d3a134",
+  "buildIdentityMaterial": {
+    "artifactKind": null,
+    "artifactSha256": null,
+    "exportPresetsSha256": null,
+    "exportTemplateIdentities": [],
+    "godotExecutableSha256": "sha256:a72fa47eb84dab812102e622f3fa9e99754505459a0ded8f69ceddd5b4ded8dd",
+    "godotVersion": "4.7.1.stable.arch_linux.a13da4feb",
+    "mode": "smoke",
+    "preset": null,
+    "projectGodotSha256": "sha256:c56f82bc3bae7cfc5b75477818d4a76f07edc27323c1649017c8ff75f06ee562",
+    "runIterations": 2,
+    "sceneNodeUniqueIdMissingCount": 40,
+    "sourceRevision": "314a804a42a03303451a4952138f37383fc51665",
+    "workstationCheckedRunSha256": "sha256:4b9d98b3b062938c2849effc14be03ca62c0f4b006fcc7b401b79b7d3f329581"
+  },
+  "childReceipts": {
+    "import": {
+      "command": [
+        "/usr/bin/godot",
+        "--headless",
+        "--path",
+        "/var/lib/ordivon/runtime/workspaces/ws-veilwild-r1-r3-a17-20260907/experiments/veilwild-r1/godot",
+        "--import"
+      ],
+      "cwd": "/var/lib/ordivon/runtime/workspaces/ws-veilwild-r1-r3-a17-20260907/experiments/veilwild-r1/godot",
+      "exitCode": 0,
+      "fatalMatches": [],
+      "fatalPatterns": [
+        "(?m)^SCRIPT ERROR:"
+      ],
+      "kind": "ordivon.workstation-godot-checked-run",
+      "pass": true,
+      "reason": "process and declared health gates passed",
+      "requiredOutputs": [],
+      "schemaVersion": 1,
+      "stderr": {
+        "bytes": 0,
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 1045,
+        "sha256": "sha256:dac6b2f5b0312804dba7499642f2407f7676aa27742774248f26f295a4e98668"
+      },
+      "timedOut": false,
+      "timeoutSeconds": 60.0
+    },
+    "run": {
+      "command": [
+        "/usr/bin/godot",
+        "--headless",
+        "--path",
+        "/var/lib/ordivon/runtime/workspaces/ws-veilwild-r1-r3-a17-20260907/experiments/veilwild-r1/godot",
+        "--quit-after",
+        "2"
+      ],
+      "cwd": "/var/lib/ordivon/runtime/workspaces/ws-veilwild-r1-r3-a17-20260907/experiments/veilwild-r1/godot",
+      "exitCode": 0,
+      "fatalMatches": [],
+      "fatalPatterns": [
+        "(?m)^SCRIPT ERROR:"
+      ],
+      "kind": "ordivon.workstation-godot-checked-run",
+      "pass": true,
+      "reason": "process and declared health gates passed",
+      "requiredOutputs": [],
+      "schemaVersion": 1,
+      "stderr": {
+        "bytes": 0,
+        "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 163,
+        "sha256": "sha256:f7e1c42f0d836bab244d328582a210a19d49e13f5b5021c64207fbe2f5dfca0a"
+      },
+      "timedOut": false,
+      "timeoutSeconds": 60.0
+    }
+  },
+  "dirtyAllowedForDevelopmentFixture": true,
+  "dirtyEntries": [
+    " M experiments/veilwild-r1/godot/main.tscn",
+    "?? experiments/veilwild-r1/godot/integration/event_bus.gd.uid",
+    "?? experiments/veilwild-r1/godot/integration/f05_binding_test.gd.uid",
+    "?? experiments/veilwild-r1/godot/integration/f11_binding_test.gd.uid",
+    "?? experiments/veilwild-r1/godot/integration/f13_binding_test.gd.uid",
+    "?? experiments/veilwild-r1/godot/integration/f18_binding_test.gd.uid",
+    "?? experiments/veilwild-r1/godot/integration/f22_binding_test.gd.uid",
+    "?? experiments/veilwild-r1/godot/integration/integration_root.gd.uid",
+    "?? experiments/veilwild-r1/godot/integration/strict_health_test.gd.uid",
+    "?? experiments/veilwild-r1/godot/modules/f05/veilwild_forest_environment.glb.import",
+    "?? experiments/veilwild-r1/godot/modules/f13/behavior_runtime.gd.uid",
+    "?? experiments/veilwild-r1/godot/modules/f13/creature_behavior_policy.gd.uid",
+    "?? experiments/veilwild-r1/godot/modules/f13/tests/test_a17_mount.gd.uid",
+    "?? experiments/veilwild-r1/godot/modules/f13/tests/test_behavior.gd.uid",
+    "?? experiments/veilwild-r1/godot/modules/f22/evidence_runtime.gd.uid",
+    "?? experiments/veilwild-r1/godot/modules/f22/test_a17_evidence_mount.gd.uid",
+    "?? experiments/veilwild-r1/godot/modules/f22/veilwild_telemetry_recorder.gd.uid",
+    "?? experiments/veilwild-r1/godot/player/f18_mechanical_test.gd.uid",
+    "?? experiments/veilwild-r1/godot/player/player_controller.gd.uid",
+    "?? experiments/veilwild-r1/godot/player/player_ui.gd.uid",
+    "?? experiments/veilwild-r1/round3/a17/A17_R3_FRESH_IMPORT_METADATA_REGEN.json"
+  ],
+  "exportPresets": null,
+  "exportTemplates": [],
+  "godot": {
+    "path": "/usr/bin/godot",
+    "sha256": "sha256:a72fa47eb84dab812102e622f3fa9e99754505459a0ded8f69ceddd5b4ded8dd",
+    "version": "4.7.1.stable.arch_linux.a13da4feb"
+  },
+  "humanClaims": {
+    "believability": "UNKNOWN",
+    "comfort": "UNKNOWN",
+    "comprehension": "UNKNOWN",
+    "cueUsefulness": "UNKNOWN",
+    "detectability": "UNKNOWN",
+    "fairness": "UNKNOWN",
+    "fun": "UNKNOWN",
+    "immersion": "UNKNOWN"
+  },
+  "mode": "smoke",
+  "oracle": "exact source/tool/build-environment condition mechanically imports and performs the requested bounded run/export path without Godot script-error false-green",
+  "pass": true,
+  "producer": "A19/F20",
+  "projectGodot": {
+    "path": "/var/lib/ordivon/runtime/workspaces/ws-veilwild-r1-r3-a17-20260907/experiments/veilwild-r1/godot/project.godot",
+    "sha256": "sha256:c56f82bc3bae7cfc5b75477818d4a76f07edc27323c1649017c8ff75f06ee562"
+  },
+  "projectRoot": "/var/lib/ordivon/runtime/workspaces/ws-veilwild-r1-r3-a17-20260907/experiments/veilwild-r1/godot",
+  "runIterations": 2,
+  "sceneNodeUniqueIdPreflight": {
+    "missingUniqueIdCount": 40,
+    "missingUniqueIds": [
+      {
+        "line": 13,
+        "nodeHeader": "[node name=\"VeilwildLightingRig\" type=\"Node3D\"]",
+        "path": "modules/f11/lighting_rig.tscn"
+      },
+      {
+        "line": 15,
+        "nodeHeader": "[node name=\"WorldEnvironment\" type=\"WorldEnvironment\" parent=\".\"]",
+        "path": "modules/f11/lighting_rig.tscn"
+      },
+      {
+        "line": 18,
+        "nodeHeader": "[node name=\"KeySun\" type=\"DirectionalLight3D\" parent=\".\"]",
+        "path": "modules/f11/lighting_rig.tscn"
+      },
+      {
+        "line": 5,
+        "nodeHeader": "[node name=\"CreatureBehaviorRuntime\" type=\"Node\"]",
+        "path": "modules/f13/behavior_runtime.tscn"
+      },
+      {
+        "line": 5,
+        "nodeHeader": "[node name=\"VeilwildEvidenceRuntime\" type=\"Node\"]",
+        "path": "modules/f22/evidence_runtime.tscn"
+      },
+      {
+        "line": 9,
+        "nodeHeader": "[node name=\"PlayerRuntime\" type=\"CharacterBody3D\"]",
+        "path": "player/player_runtime.tscn"
+      },
+      {
+        "line": 24,
+        "nodeHeader": "[node name=\"CollisionShape3D\" type=\"CollisionShape3D\" parent=\".\"]",
+        "path": "player/player_runtime.tscn"
+      },
+      {
+        "line": 28,
+        "nodeHeader": "[node name=\"PitchPivot\" type=\"Node3D\" parent=\".\"]",
+        "path": "player/player_runtime.tscn"
+      },
+      {
+        "line": 32,
+        "nodeHeader": "[node name=\"Camera3D\" type=\"Camera3D\" parent=\"PitchPivot\"]",
+        "path": "player/player_runtime.tscn"
+      },
+      {
+        "line": 39,
+        "nodeHeader": "[node name=\"AudioListener3D\" type=\"AudioListener3D\" parent=\"PitchPivot\"]",
+        "path": "player/player_runtime.tscn"
+      },
+      {
+        "line": 21,
+        "nodeHeader": "[node name=\"PlayerUI\" type=\"Control\"]",
+        "path": "player/player_ui.tscn"
+      },
+      {
+        "line": 31,
+        "nodeHeader": "[node name=\"OnboardingPanel\" type=\"PanelContainer\" parent=\".\"]",
+        "path": "player/player_ui.tscn"
+      },
+      {
+        "line": 41,
+        "nodeHeader": "[node name=\"OnboardingText\" type=\"Label\" parent=\"OnboardingPanel\"]",
+        "path": "player/player_ui.tscn"
+      },
+      {
+        "line": 49,
+        "nodeHeader": "[node name=\"FeedbackPanel\" type=\"PanelContainer\" parent=\".\"]",
+        "path": "player/player_ui.tscn"
+      },
+      {
+        "line": 67,
+        "nodeHeader": "[node name=\"FeedbackBox\" type=\"VBoxContainer\" parent=\"FeedbackPanel\"]",
+        "path": "player/player_ui.tscn"
+      },
+      {
+        "line": 70,
+        "nodeHeader": "[node name=\"FeedbackText\" type=\"Label\" parent=\"FeedbackPanel/FeedbackBox\"]",
+        "path": "player/player_ui.tscn"
+      },
+      {
+        "line": 77,
+        "nodeHeader": "[node name=\"ObservationProgress\" type=\"ProgressBar\" parent=\"FeedbackPanel/FeedbackBox\"]",
+        "path": "player/player_ui.tscn"
+      },
+      {
+        "line": 86,
+        "nodeHeader": "[node name=\"SettingsPanel\" type=\"PanelContainer\" parent=\".\"]",
+        "path": "player/player_ui.tscn"
+      },
+      {
+        "line": 104,
+        "nodeHeader": "[node name=\"SettingsBox\" type=\"VBoxContainer\" parent=\"SettingsPanel\"]",
+        "path": "player/player_ui.tscn"
+      },
+      {
+        "line": 108,
+        "nodeHeader": "[node name=\"SettingsTitle\" type=\"Label\" parent=\"SettingsPanel/SettingsBox\"]",
+        "path": "player/player_ui.tscn"
+      },
+      {
+        "line": 114,
+        "nodeHeader": "[node name=\"SettingsHelp\" type=\"Label\" parent=\"SettingsPanel/SettingsBox\"]",
+        "path": "player/player_ui.tscn"
+      },
+      {
+        "line": 121,
+        "nodeHeader": "[node name=\"SensitivityLabel\" type=\"Label\" parent=\"SettingsPanel/SettingsBox\"]",
+        "path": "player/player_ui.tscn"
+      },
+      {
+        "line": 127,
+        "nodeHeader": "[node name=\"SensitivitySlider\" type=\"HSlider\" parent=\"SettingsPanel/SettingsBox\"]",
+        "path": "player/player_ui.tscn"
+      },
+      {
+        "line": 136,
+        "nodeHeader": "[node name=\"FovLabel\" type=\"Label\" parent=\"SettingsPanel/SettingsBox\"]",
+        "path": "player/player_ui.tscn"
+      },
+      {
+        "line": 142,
+        "nodeHeader": "[node name=\"FovSlider\" type=\"HSlider\" parent=\"SettingsPanel/SettingsBox\"]",
+        "path": "player/player_ui.tscn"
+      },
+      {
+        "line": 151,
+        "nodeHeader": "[node name=\"InvertXCheck\" type=\"CheckBox\" parent=\"SettingsPanel/SettingsBox\"]",
+        "path": "player/player_ui.tscn"
+      },
+      {
+        "line": 158,
+        "nodeHeader": "[node name=\"InvertYCheck\" type=\"CheckBox\" parent=\"SettingsPanel/SettingsBox\"]",
+        "path": "player/player_ui.tscn"
+      },
+      {
+        "line": 165,
+        "nodeHeader": "[node name=\"ObserveModeLabel\" type=\"Label\" parent=\"SettingsPanel/SettingsBox\"]",
+        "path": "player/player_ui.tscn"
+      },
+      {
+        "line": 171,
+        "nodeHeader": "[node name=\"ObserveMode\" type=\"OptionButton\" parent=\"SettingsPanel/SettingsBox\"]",
+        "path": "player/player_ui.tscn"
+      },
+      {
+        "line": 177,
+        "nodeHeader": "[node name=\"UiScaleLabel\" type=\"Label\" parent=\"SettingsPanel/SettingsBox\"]",
+        "path": "player/player_ui.tscn"
+      },
+      {
+        "line": 183,
+        "nodeHeader": "[node name=\"UiScaleSlider\" type=\"HSlider\" parent=\"SettingsPanel/SettingsBox\"]",
+        "path": "player/player_ui.tscn"
+      },
+      {
+        "line": 192,
+        "nodeHeader": "[node name=\"RemapLabel\" type=\"Label\" parent=\"SettingsPanel/SettingsBox\"]",
+        "path": "player/player_ui.tscn"
+      },
+      {
+        "line": 198,
+        "nodeHeader": "[node name=\"RemapRow1\" type=\"HBoxContainer\" parent=\"SettingsPanel/SettingsBox\"]",
+        "path": "player/player_ui.tscn"
+      },
+      {
+        "line": 201,
+        "nodeHeader": "[node name=\"RemapForward\" type=\"Button\" parent=\"SettingsPanel/SettingsBox/RemapRow1\"]",
+        "path": "player/player_ui.tscn"
+      },
+      {
+        "line": 209,
+        "nodeHeader": "[node name=\"RemapBack\" type=\"Button\" parent=\"SettingsPanel/SettingsBox/RemapRow1\"]",
+        "path": "player/player_ui.tscn"
+      },
+      {
+        "line": 217,
+        "nodeHeader": "[node name=\"RemapRow2\" type=\"HBoxContainer\" parent=\"SettingsPanel/SettingsBox\"]",
+        "path": "player/player_ui.tscn"
+      },
+      {
+        "line": 220,
+        "nodeHeader": "[node name=\"RemapLeft\" type=\"Button\" parent=\"SettingsPanel/SettingsBox/RemapRow2\"]",
+        "path": "player/player_ui.tscn"
+      },
+      {
+        "line": 228,
+        "nodeHeader": "[node name=\"RemapRight\" type=\"Button\" parent=\"SettingsPanel/SettingsBox/RemapRow2\"]",
+        "path": "player/player_ui.tscn"
+      },
+      {
+        "line": 236,
+        "nodeHeader": "[node name=\"RemapObserve\" type=\"Button\" parent=\"SettingsPanel/SettingsBox/RemapRow2\"]",
+        "path": "player/player_ui.tscn"
+      },
+      {
+        "line": 244,
+        "nodeHeader": "[node name=\"CloseSettingsButton\" type=\"Button\" parent=\"SettingsPanel/SettingsBox\"]",
+        "path": "player/player_ui.tscn"
+      }
+    ],
+    "nodeHeaders": 50,
+    "passForPackOrExport": false,
+    "sceneFiles": 6
+  },
+  "schemaVersion": "veilwild.f20-build-repro-receipt.r2",
+  "sourceRevision": "314a804a42a03303451a4952138f37383fc51665",
+  "workstationCheckedRun": {
+    "path": "/root/workstation-lab/scripts/godot_checked_run.py",
+    "sha256": "sha256:4b9d98b3b062938c2849effc14be03ca62c0f4b006fcc7b401b79b7d3f329581"
+  }
+}

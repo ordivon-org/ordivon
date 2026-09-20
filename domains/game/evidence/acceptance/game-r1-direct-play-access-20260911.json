@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon-game-r1-direct-play-access-census",
+  "observedDate": "2026-09-11",
+  "sourceRevision": "690813c5d4e3f628b17bd0377500e6bf4ea70ff1",
+  "standing": "ACCESS_CENSUS_COMPLETE_HUMAN_PLAY_NOT_STARTED",
+  "ownershipStanding": "UNKNOWN_UNLESS_EXPLICITLY_PROVEN",
+  "localScan": {
+    "scope": "target-only standard install manifests/paths; no account content queried",
+    "steamRootsChecked": [
+      "/mnt/c/Program Files (x86)/Steam/steamapps",
+      "/mnt/c/Program Files/Steam/steamapps",
+      "/mnt/d/SteamLibrary/steamapps"
+    ],
+    "epicManifestCountObserved": 0,
+    "vrRuntimeMarkersPresent": false,
+    "targetInstalledEvidenceCount": 0,
+    "doNotInfer": [
+      "not detected != not owned",
+      "no local manifest != cannot lawfully access elsewhere",
+      "no VR runtime marker != user owns no VR hardware"
+    ]
+  },
+  "diskSnapshotGiBApprox": {
+    "wslRootAvailable": 553,
+    "windowsC_Available": 112,
+    "windowsD_Available": 57,
+    "windowsD_UsePercent": 92,
+    "policy": "do not default large reference installs to D:"
+  },
+  "accessClasses": [
+    {
+      "class": "PUBLIC_DEMO_NO_PURCHASE",
+      "priority": 1,
+      "titles": ["Factorio"],
+      "reason": "official public demo directly targets basic mechanics and requires no purchase",
+      "externalSource": "https://factorio.com/download",
+      "permissionNeeded": "DOWNLOAD_INSTALL_AND_LAUNCH_LOCAL_SOFTWARE"
+    },
+    {
+      "class": "FREE_TRIAL_ACCOUNT_REQUIRED",
+      "priority": 2,
+      "titles": ["Minecraft"],
+      "reason": "official Java/Bedrock trial exposes core Survival play but requires Microsoft sign-in",
+      "externalSource": "https://www.minecraft.net/en-us/free-trial",
+      "permissionNeeded": "DOWNLOAD_INSTALL_PLUS_USER_ACCOUNT_SIGNIN"
+    },
+    {
+      "class": "FREE_TO_PLAY_SERVICE_ACCOUNT",
+      "priority": 3,
+      "titles": ["Counter-Strike 2", "Dota 2", "Fortnite"],
+      "reason": "free-to-play access exists, but launcher/account/network onboarding is part of access",
+      "externalSources": [
+        "https://help.steampowered.com/en/faqs/view/4D81-BB44-4F5C-9B6B",
+        "https://store.steampowered.com/app/570/Dota_2/",
+        "https://store.epicgames.com/all-experiences/fortnite"
+      ],
+      "permissionNeeded": "DOWNLOAD_INSTALL_PLUS_USER_ACCOUNT_SIGNIN"
+    },
+    {
+      "class": "FREE_TO_PLAY_APP_STORE",
+      "priority": 4,
+      "titles": ["Candy Crush Saga"],
+      "reason": "free-to-play product; current official access is through supported app stores rather than King.com web play",
+      "externalSource": "https://www.king.com/game/?language=en",
+      "permissionNeeded": "DEVICE_APP_INSTALL"
+    },
+    {
+      "class": "PAID_OR_OWNERSHIP_UNKNOWN_PC",
+      "priority": 5,
+      "titles": ["Grand Theft Auto V", "ELDEN RING", "Baldur's Gate 3"],
+      "reason": "no local install evidence was detected and ownership was not queried",
+      "permissionNeeded": "USER_PROVIDES_EXISTING_ACCESS_OR_SEPARATE_PURCHASE_DECISION"
+    },
+    {
+      "class": "CONSOLE_ACCESS_REQUIRED",
+      "priority": 6,
+      "titles": ["Mario Kart 8 Deluxe", "Animal Crossing: New Horizons"],
+      "reason": "reference condition is Nintendo Switch play; workstation census cannot establish console ownership/access",
+      "permissionNeeded": "USER_PROVIDES_CONSOLE_AND_GAME_ACCESS"
+    },
+    {
+      "class": "VR_HARDWARE_RUNTIME_REQUIRED",
+      "priority": 7,
+      "titles": ["Beat Saber"],
+      "reason": "embodied rhythm claim requires intended VR interaction; no standard SteamVR/Oculus/Meta runtime marker was detected locally",
+      "permissionNeeded": "USER_PROVIDES_VR_HARDWARE_RUNTIME_AND_GAME_ACCESS"
+    }
+  ],
+  "directPlaySelection": {
+    "standing": "REOPENED_AFTER_WAVE_TOO_LARGE",
+    "allTwelveRequired": false,
+    "previousFactorioFirstRecommendationSuperseded": true,
+    "targetPortfolioSize": "3-5 learning games",
+    "selectionCriteria": [
+      "successful and mature enough to represent a proven game grammar",
+      "core structure becomes legible within roughly 1-3 hours rather than dozens of hours",
+      "bounded onboarding and setup burden",
+      "materially different player-value/archetype coverage",
+      "lawful accessible condition without turning convenience into product importance",
+      "direct play adds information not already recoverable from flagship desk teardown"
+    ],
+    "roleSeparation": {
+      "flagshipReference": "may be huge; establishes success ceiling and mature system interactions; desk teardown is sufficient initially",
+      "canonicalLearningGame": "actual direct-play sweet spot; mature, successful, information-dense, bounded enough to learn efficiently",
+      "microBaseline": "our later smallest causal reproduction; never used to define the external success universe"
+    },
+    "largeFlagshipsNotRequiredForFirstDirectPlay": [
+      "Counter-Strike 2",
+      "Dota 2",
+      "Fortnite",
+      "Grand Theft Auto V",
+      "ELDEN RING",
+      "Baldur's Gate 3",
+      "Mario Kart 8 Deluxe",
+      "Animal Crossing: New Horizons",
+      "Beat Saber"
+    ],
+    "nextAction": "select a compact canonical-learning portfolio before asking for any download/install permission"
+  },
+  "safetyAndAuthority": {
+    "automaticPurchase": false,
+    "automaticAccountSignin": false,
+    "automaticCredentialUse": false,
+    "automaticDownloadInstall": false,
+    "humanExperienceCanBeSynthesized": false,
+    "r2ImplementationAdmitted": false
+  },
+  "nextGate": "first select 3-5 canonical learning games in the direct-play sweet spot; only then request explicit user permission for an actual carrier"
+}

@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf1-a-target-separation-probes",
+  "epistemicBoundary": {
+    "proves": [
+      "under declared mappings, one input token can denote different GameActions by context",
+      "different physical expressions can map to one GameAction",
+      "different trajectories can be goal-equivalent under a declared task variable",
+      "one nominal performance score can rank controllers differently from cross-condition robustness",
+      "an admitted action attempt can diverge from execution under capability/resource constraints"
+    ],
+    "doesNotProve": [
+      "human motor-control mechanisms",
+      "a universal Skill metric",
+      "that robustness is always more valuable than peak performance",
+      "subjective agency or embodiment",
+      "scientific novelty"
+    ]
+  },
+  "sameInputDifferentAction": {
+    "input": "A",
+    "gameplayAction": "JUMP",
+    "menuAction": "CONFIRM",
+    "separated": true
+  },
+  "sameActionDifferentMovement": {
+    "uniquePhysicalExpressions": 3,
+    "uniqueActions": 1,
+    "separated": true
+  },
+  "goalEquivalentTrajectories": [
+    {
+      "name": "smooth",
+      "endpointError": 0,
+      "pathLength": 10,
+      "peakDeviation": 0.5
+    },
+    {
+      "name": "curved",
+      "endpointError": 0,
+      "pathLength": 13,
+      "peakDeviation": 2.2
+    },
+    {
+      "name": "corrected",
+      "endpointError": 0,
+      "pathLength": 15,
+      "peakDeviation": 3.4
+    }
+  ],
+  "goalEquivalent": {
+    "exactTrajectoriesEqual": false,
+    "identicalTaskOutcome": true,
+    "conclusion": "ExactMovementRepetition is not required for equal task-level outcome under this toy task definition."
+  },
+  "robustness": {
+    "nominalSpecialist": {
+      "nominalMean": 10,
+      "perturbationMean": 2,
+      "crossConditionMean": 6
+    },
+    "robustController": {
+      "nominalMean": 9,
+      "perturbationMean": 8,
+      "crossConditionMean": 8.5
+    }
+  },
+  "attemptVsExecution": {
+    "attemptExists": true,
+    "executed": false,
+    "reason": "INSUFFICIENT_CAPABILITY_RESOURCE"
+  },
+  "laws": [
+    "InputSignal != GameAction",
+    "PlayerMotorMovement != GameAction",
+    "MovementTrajectory != TaskOutcome",
+    "PerformanceSample != SkillState",
+    "ActionAttempt != ExecutedAction"
+  ]
+}

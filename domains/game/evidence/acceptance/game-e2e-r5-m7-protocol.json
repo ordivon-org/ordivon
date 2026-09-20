@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game-e2e-r5-m7-graduation-protocol",
+  "recordedAt": "2026-09-10",
+  "truthRole": "frozen-protocol-not-graduation-verdict",
+  "taskId": "task:game-e2e-r5-m7-graduation-closure-20260910",
+  "openingCandidate": {
+    "revision": "a3cae0c403a4d758c3975f0508c7c267b4299efe",
+    "sourceStateDigestFromIndependentM6": "sha256:c3b0676b9f38ebef0feccf4667577fdd15f749c5a2b6a5671ff6780942087a71",
+    "m6Verdict": "PASS_BOUNDED",
+    "workspaceId": "ws-game-e2e-r5-m7-graduation-20260910-v1"
+  },
+  "m7Baseline": {
+    "dependencyMaterialization": {
+      "jobId": "job-01a08b9d-347b-7903-a680-592fe0355c20",
+      "mode": "pnpm --offline --frozen-lockfile",
+      "downloads": 0
+    },
+    "fullRepository": {
+      "jobId": "job-01a08b9d-5df0-78e0-b9d2-f414fe0c7bc9",
+      "pass": 386,
+      "total": 386
+    },
+    "retainedEnvironmentObservation": "fresh workspace initially lacked node_modules; pre-materialization tsc-not-found is environment readiness, not code failure"
+  },
+  "estimands": [
+    "E1_SUBTRACTION_SUFFICIENCY",
+    "E2_BOUNDARY_SUFFICIENCY",
+    "E3_COMPOSITIONAL_SUFFICIENCY",
+    "E4_GRADUATION_SEMANTICS_SUFFICIENCY"
+  ],
+  "hypothesesUnderDestruction": [
+    "H1_SUBTRACTION_PRESERVATION",
+    "H2_AUTHORITY_ISOLATION",
+    "H3_NO_STANDING_LAUNDERING",
+    "H4_HISTORICAL_OBSERVABILITY",
+    "H5_CURRENT_CARRIER_UNIQUENESS"
+  ],
+  "externalAnchors": [
+    "ISO/IEC 25010:2023",
+    "ISO/IEC 25019:2023",
+    "ISO 9241-11:2018",
+    "ISO 9241-210:2019",
+    "SLSA v1.2"
+  ],
+  "openingCarrierObservation": {
+    "candidate": "a3cae0c403a4d758c3975f0508c7c267b4299efe",
+    "localMain": "fc31c1e1e4536fc7a672970c7e5afd6bc4d8627f",
+    "localOriginMain": "ca8f207b8d08ccd3c0e263810c35ac70b1511aee",
+    "originMainVsCandidateLeftRightCount": [1, 49],
+    "originMainOnlyCommit": "ca8f207b8d08ccd3c0e263810c35ac70b1511aee",
+    "originMainOnlyScope": [
+      ".ordivon/publication.yaml",
+      ".ordivon/rights.yaml"
+    ]
+  },
+  "mandatoryDestroyerAttacks": [
+    "TECHNICAL_PASS_HUMAN_UNKNOWN",
+    "APPARATUS_READY_ZERO_HUMAN_SESSIONS",
+    "PROVENANCE_PASS_RIGHTS_INCONCLUSIVE",
+    "EXECUTABLE_EXISTS_WITHOUT_WORKSTATION_AUTHORITY",
+    "HOST_SUCCESS_WITHOUT_AUTHORITATIVE_GAME_RECEIPT",
+    "LATER_GREEN_DOES_NOT_ERASE_COLD_FAILURE",
+    "BRANCH_NAME_DOES_NOT_MINT_CURRENTNESS",
+    "CROSS_CANDIDATE_EVIDENCE_DOES_NOT_SILENTLY_COMPOSE"
+  ],
+  "finalVerdictVocabulary": [
+    "GRADUATED",
+    "HOLD",
+    "REJECTED"
+  ],
+  "doNotInherit": {
+    "veilwildCandidateNomination": "NOT_YET_NOMINATED",
+    "veilwildDistributionRights": "INCONCLUSIVE",
+    "veilwildHuman": "UNKNOWN",
+    "stationZeroFreshPlayerHuman": "UNKNOWN",
+    "fullExternalEvidenceSubstitution": "NOT_ADMITTED"
+  }
+}

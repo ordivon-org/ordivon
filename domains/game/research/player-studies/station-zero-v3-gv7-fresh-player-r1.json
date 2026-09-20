@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game-player-study-packet",
+  "studyId": "station-zero-v3-gv7-fresh-player-r1",
+  "truthRole": "prepared-research-plan-not-human-evidence",
+  "status": "PREPARED_NOT_RUN",
+  "researchVNext": {
+    "sourceRevision": "bab965e19dd5ad06bb2427c3b599d775af4b6f6f",
+    "universalRoles": {
+      "researchIntent": {
+        "decisionToInform": "Decide whether Station Zero v3's current Command -> Preview -> Commit -> Aftermath expression is understandable enough for fresh players to exercise the delegation/causal-reconstruction loop, or whether the smallest L2 expression/usability repair is required before broader content/value work.",
+        "researchQuestion": "Can fresh players, without implementation documentation, form a minimally correct model of indirect specialist control and reconstruct the important causes of one Turn well enough to make a reasoned second Order?"
+      },
+      "targetOfInquiry": {
+        "game": "station-zero-v3",
+        "gameSourceRevision": "fc74ad32a7c03f7c745c1e5ce27985f983ccb6b2",
+        "surface": "/v3",
+        "scenarioCaseId": "fixed-genesis",
+        "providerCondition": "fixture/deterministic cognition for the primary C1/C2 canary",
+        "horizon": "first two committed Turns",
+        "playerContext": "fresh adult participant, comfortable reading the current English UI, no prior Station Zero/Ordivon implementation exposure, desktop/laptop browser"
+      },
+      "claimBoundary": {
+        "claimFamilies": [
+          "C1_USABILITY_ACTIONABILITY",
+          "C2_UNDERSTANDING_MENTAL_MODEL"
+        ],
+        "maySupport": [
+          "bounded usability of the tested current UI flow",
+          "bounded evidence that the participant understood indirect specialist control",
+          "bounded evidence that the participant could distinguish major causal contributors after one Turn",
+          "an owner-local L2 repair decision when a clear repeated or severe comprehension defect is observed"
+        ],
+        "mustNotSupport": [
+          "fun or enjoyment",
+          "market appeal or purchase intent",
+          "population prevalence",
+          "retention or replay value",
+          "accessibility fit for populations not represented by the session context",
+          "Veilwild Human standing",
+          "Game E2E default-ready standing"
+        ],
+        "transportLimits": "Findings are current only for the exact Game source/evaluation condition and the observed participant/session context. A source, scenario, presentation, provider, language, device-class or interaction change requires impact review before reuse."
+      },
+      "evaluationLogic": {
+        "method": "moderated formative qualitative playtest using direct observation, pre-Commit prediction, post-Aftermath causal reconstruction, and neutral contextual probing",
+        "primaryTasks": [
+          "Without implementation documentation, identify the player's role and make one meaningful first Commander Order.",
+          "Before Commit, predict what the three specialists are trying to do and name one plausible failure/contest source.",
+          "After Aftermath, explain which important outcomes were caused by Commander intent, specialist action, enemy contest, or environmental pressure.",
+          "Make a second Commander Order and explain what changed because of the previous Turn."
+        ],
+        "observations": [
+          "time/corrections before first meaningful Order",
+          "direct-control versus delegation misunderstanding",
+          "specialist-action prediction and surprise reasons",
+          "causal reconstruction errors",
+          "whether environmental pressure is noticed before punishment",
+          "whether normal UI forces implementation/provider/internal-token language",
+          "whether the second Order responds to observed consequences"
+        ],
+        "preStudyFalsifiers": [
+          "The participant cannot exercise the declared loop because of a control, rendering, browser, or reset defect.",
+          "The moderator must explain the delegation model before the participant can make a meaningful first Order.",
+          "The participant repeatedly attributes specialist decisions to direct player control despite the current presentation.",
+          "Aftermath presentation does not permit the participant to distinguish at least the major observed causal contributors without being told the answer.",
+          "A source/evaluation-condition change occurs between sessions and the evidence is silently pooled."
+        ],
+        "canarySamplePlan": {
+          "initialIndependentFreshParticipants": 3,
+          "rationale": "Small formative canary for mechanism/usability discovery, not prevalence estimation. Review information power and heterogeneity after each session; repair clear severe defects before spending additional participants on stale reality.",
+          "noPopulationInference": true
+        },
+        "decisionRule": {
+          "repairAndRetest": "Admit the smallest owner-local expression/usability repair when a clear severe defect blocks the mechanism in one session or a materially similar comprehension failure recurs across independent fresh sessions. Changed reality starts a new evidence cut; do not pool pre/post-repair sessions as one condition.",
+          "boundedSupport": "Only after at least three independent completed fresh-player sessions on the exact same condition, with no unresolved mechanism-blocking defect and with participants able by the second Turn to act on an adequately correct delegation/causal model without moderator instruction, may the C1/C2 claim be marked SUPPORTED_WITHIN_SCOPE.",
+          "contradiction": "Repeated material inability to form or use the required delegation/causal model on the same exact condition supports CONTRADICTED_WITHIN_SCOPE for the corresponding C1/C2 claim.",
+          "inconclusive": "Apparatus failure, leading intervention, incomplete session, inconsistent condition, or heterogeneous evidence that does not discriminate the decision yields INCONCLUSIVE rather than PASS."
+        }
+      }
+    }
+  },
+  "methodProfile": {
+    "family": "formative-human-centred-usability-and-mental-model-evaluation",
+    "externalAnchors": [
+      "ISO 9241-210:2019",
+      "ISO 9241-11:2018",
+      "Games User Research — Choose the right playtest method",
+      "Games User Research — Five essential playtests throughout development"
+    ],
+    "methodBoundary": "External profiles constrain the study design; this file does not create a Game or Research method registry."
+  },
+  "participantSafetyAndPrivacy": {
+    "eligibility": "Adults only for this canary. Participation is voluntary; the participant may stop at any time without explanation.",
+    "dataMinimization": "Use a non-identifying participant/session label. Do not collect demographics, health data, account credentials, or other sensitive personal information for this canary.",
+    "recording": "No audio/video recording by default. If recording is later required, obtain separate explicit consent and freeze retention/access rules before the session.",
+    "publicationBoundary": "This packet is internal product research. Reuse as publishable human-subject research requires a separate ethics/institutional review decision where applicable."
+  },
+  "evidenceState": {
+    "humanSessionsObserved": 0,
+    "rawHumanEvidenceRefs": [],
+    "humanEvidenceStanding": "UNKNOWN",
+    "productDecisionStanding": "HOLD_FOR_HUMAN_EVIDENCE",
+    "reason": "No real participant session has been observed under this packet."
+  },
+  "reopenConditions": [
+    "Game source/evaluation condition changes before or during the canary",
+    "a participant is not actually fresh to Station Zero/Ordivon implementation",
+    "a severe apparatus defect prevents the intended loop",
+    "new Human evidence contradicts the current bounded standing",
+    "the product decision changes from C1/C2 comprehension to experience, preference, accessibility, population or causal-effect claims"
+  ],
+  "apparatusPreflight": {
+    "standing": "READY_FOR_HUMAN_CANARY",
+    "runtimeJobId": "job-01a08a6a-6b75-7c42-915d-732011e0571c",
+    "gameSourceRevision": "fc74ad32a7c03f7c745c1e5ce27985f983ccb6b2",
+    "e2eCommand": "pnpm e2e:v3",
+    "observed": {
+      "committedTurns": 20,
+      "worldRevision": 20,
+      "browserErrors": [],
+      "delayedPreview": true,
+      "productionAssetsStatus": "all-observed-200"
+    },
+    "authorityBoundary": "This proves the exact apparatus is mechanically executable enough to expose to a participant. It is not Human evidence and does not upgrade any C1/C2/C3 standing."
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "schema": "veilwild.topology-reviewers.r1",
+  "reviewers": {
+    "TA": {
+      "name": "Ontology Boundary / Split-Merge Reviewer",
+      "mission": "Attack whether the 46 active closures are wrongly split, wrongly merged, duplicated, missing an independent oracle, or are merely cross-cutting planes masquerading as E2Es.",
+      "focus": [
+        "CONSTITUTIVE vs CLOSURE_CRITICAL_SUPPORT classification",
+        "duplicate semantic ownership",
+        "candidate E2Es that should remain sub-capabilities",
+        "missing first-class closures revealed by stable distinct failure modes",
+        "whether 27 fronts preserve meaningful owner boundaries"
+      ]
+    },
+    "TB": {
+      "name": "Player / Product / Human Closure Reviewer",
+      "mission": "Attack whether the graph really closes the Veilwild player promise instead of stopping at a technical demo.",
+      "focus": [
+        "core loop and recoverable failure",
+        "session/onboarding/UX closure",
+        "Human evidence boundary",
+        "accessibility interaction with cue design",
+        "whether Human Playtest is correctly constitutive for T7/player claims"
+      ]
+    },
+    "TC": {
+      "name": "Creative Production / Experience Carrier Reviewer",
+      "mission": "Attack completeness and ownership across visual development, environment, creature, rig, animation, material, lighting, rendering, sound and spatial audio.",
+      "focus": [
+        "art-direction vs asset-production ownership",
+        "rigging vs animation production vs animation systems",
+        "material vs shader vs rendering separation",
+        "sound design vs interactive/spatial audio/mix",
+        "carrier/interchange seams that can silently erase product semantics"
+      ]
+    },
+    "TD": {
+      "name": "Runtime / Engineering / Performance Reviewer",
+      "mission": "Attack runtime, interchange, build, loading, performance and Workstation/Engineering composition boundaries.",
+      "focus": [
+        "Engine Integration centrality and risk of becoming a monolith",
+        "Asset Interchange/Validation/Loading separation",
+        "Build/Reproducibility ownership",
+        "performance producer/evaluator separation",
+        "whether pressure-triggered infrastructure is activated too early or too late"
+      ]
+    },
+    "TE": {
+      "name": "Independence / Authority / Evidence Reviewer",
+      "mission": "Attack the multi-Agent protocol itself for contamination, producer-judge collapse, authority confusion or evidence laundering.",
+      "focus": [
+        "first-verdict isolation",
+        "interface-only sharing after freeze",
+        "A23 independence",
+        "A24 provenance independence",
+        "A21 Human-protocol vs Human-participant boundary",
+        "semantic edge vs scheduling edge distinction",
+        "repair/replay authority"
+      ]
+    },
+    "TF": {
+      "name": "Scope / Dormancy / Emergence Red Reviewer",
+      "mission": "Attack whether R1 has hidden scope creep, omitted constitutive capabilities, or incorrectly dormant/pressure-triggered domains.",
+      "focus": [
+        "combat/multiplayer/accounts/live ops/etc dormant guards",
+        "VFX/procedural/nav/IK/audio propagation pressure triggers",
+        "scope change criteria",
+        "new E2E emergence criteria",
+        "whether completeness is relative to declared Veilwild scope rather than total Game universe"
+      ]
+    }
+  }
+}

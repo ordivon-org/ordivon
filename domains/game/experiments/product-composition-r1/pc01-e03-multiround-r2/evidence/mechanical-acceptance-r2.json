@@ -1,0 +1,189 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.pc01-e03-multiround-r2-mechanical-acceptance",
+  "designId": "pc01-causal-works-f0",
+  "designDigest": "sha256:19a258b457f4bbdeaf1e97a24c01bd9b800f0e50a4e3ffebe857e75290e0ac7c",
+  "hiddenModel": {
+    "regimes": {
+      "STABLE": {
+        "persistence": 0.9
+      },
+      "VOLATILE": {
+        "persistence": 0.2
+      }
+    },
+    "prior": {
+      "STABLE": 0.5,
+      "VOLATILE": 0.5
+    },
+    "exposedToPlayer": false
+  },
+  "histories": {
+    "persistent": [
+      {
+        "sourceCycleIndex": 0,
+        "sourceCause": "process",
+        "executionCause": "process"
+      }
+    ],
+    "changed": [
+      {
+        "sourceCycleIndex": 0,
+        "sourceCause": "process",
+        "executionCause": "route"
+      }
+    ]
+  },
+  "oracleEvidence": {
+    "persistentBelief": {
+      "STABLE": 0.5987460815047022,
+      "VOLATILE": 0.40125391849529785
+    },
+    "changedBelief": {
+      "STABLE": 0.11111111111111109,
+      "VOLATILE": 0.888888888888889
+    },
+    "persistentPrediction": 0.6191222570532916,
+    "changedPrediction": 0.2777777777777778,
+    "learnedPersistent": {
+      "scenarioId": "route-shift",
+      "currentContextId": "cycle-1-baseline-output",
+      "executionContextId": "cycle-2-objective-shift",
+      "previousArchitecture": "route",
+      "persistenceEstimate": 0.6191222570532916,
+      "policy": {
+        "diagnostic": "route",
+        "architectureByObservation": {
+          "OK": "process",
+          "FAULT": "route"
+        }
+      },
+      "expectedValue": 79.45807210031349
+    },
+    "learnedChanged": {
+      "scenarioId": "route-shift",
+      "currentContextId": "cycle-1-baseline-output",
+      "executionContextId": "cycle-2-objective-shift",
+      "previousArchitecture": "route",
+      "persistenceEstimate": 0.2777777777777778,
+      "policy": {
+        "diagnostic": "none",
+        "architectureByObservation": {
+          "NONE": "process"
+        }
+      },
+      "expectedValue": 78.80000000000001
+    },
+    "blindPersistent": {
+      "scenarioId": "route-shift",
+      "currentContextId": "cycle-1-baseline-output",
+      "executionContextId": "cycle-2-objective-shift",
+      "previousArchitecture": "route",
+      "persistenceEstimate": 0.55,
+      "policy": {
+        "diagnostic": "none",
+        "architectureByObservation": {
+          "NONE": "process"
+        }
+      },
+      "expectedValue": 78.8
+    },
+    "blindChanged": {
+      "scenarioId": "route-shift",
+      "currentContextId": "cycle-1-baseline-output",
+      "executionContextId": "cycle-2-objective-shift",
+      "previousArchitecture": "route",
+      "persistenceEstimate": 0.55,
+      "policy": {
+        "diagnostic": "none",
+        "architectureByObservation": {
+          "NONE": "process"
+        }
+      },
+      "expectedValue": 78.8
+    },
+    "historySensitivePolicyFlip": true,
+    "historyBlindSame": true
+  },
+  "publicCarrierEvidence": {
+    "sameCurrentDecision": true,
+    "publicModelLeak": false,
+    "stablePath": {
+      "schemaVersion": 1,
+      "kind": "ordivon.game.pc01-e03-multiround-r2-state",
+      "history": [
+        {
+          "round": 1,
+          "scenarioId": "route-shift",
+          "sourceCause": "process",
+          "executionCause": "process",
+          "persisted": true,
+          "net": 92
+        }
+      ],
+      "totalNet": 92,
+      "current": {
+        "round": 2,
+        "scenarioId": "route-shift",
+        "phase": "decision",
+        "lagSteps": 1,
+        "previousArchitecture": "route",
+        "currentContext": {
+          "id": "cycle-1-baseline-output",
+          "operatingContext": "balanced contract; first architecture is still cheap to revise",
+          "visibleSymptom": "primary output misses target while aggregate capacity still appears viable"
+        },
+        "executionForecast": {
+          "id": "cycle-2-objective-shift",
+          "operatingContext": "objective shifts toward route-sensitive delivery; yesterday's architecture is not deleted",
+          "visibleSymptom": "priority output misses the new contract while the previous architecture remains operational"
+        },
+        "inspection": null,
+        "selectedArchitecture": "",
+        "resolution": null
+      }
+    },
+    "changedPath": {
+      "schemaVersion": 1,
+      "kind": "ordivon.game.pc01-e03-multiround-r2-state",
+      "history": [
+        {
+          "round": 1,
+          "scenarioId": "route-shift",
+          "sourceCause": "process",
+          "executionCause": "route",
+          "persisted": false,
+          "net": 62
+        }
+      ],
+      "totalNet": 62,
+      "current": {
+        "round": 2,
+        "scenarioId": "route-shift",
+        "phase": "decision",
+        "lagSteps": 1,
+        "previousArchitecture": "route",
+        "currentContext": {
+          "id": "cycle-1-baseline-output",
+          "operatingContext": "balanced contract; first architecture is still cheap to revise",
+          "visibleSymptom": "primary output misses target while aggregate capacity still appears viable"
+        },
+        "executionForecast": {
+          "id": "cycle-2-objective-shift",
+          "operatingContext": "objective shifts toward route-sensitive delivery; yesterday's architecture is not deleted",
+          "visibleSymptom": "priority output misses the new contract while the previous architecture remains operational"
+        },
+        "inspection": null,
+        "selectedArchitecture": "",
+        "resolution": null
+      }
+    }
+  },
+  "pass": true,
+  "productSelected": false,
+  "g0Entered": false,
+  "humanOutcomeEstablished": false,
+  "humanLearningEstablished": false,
+  "gameCoreChanged": false,
+  "claimBoundary": "MULTIROUND_HISTORY_SENSITIVE_MECHANICS_ONLY_NO_HUMAN_LEARNING_OR_PRODUCT_SELECTION_CLAIM"
+}

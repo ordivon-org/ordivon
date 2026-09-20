@@ -1,0 +1,189 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.post-gpr-domain-coverage.c1-probes",
+  "date": "2026-08-18",
+  "candidate": "GameInstance Constitution / Encounter Assembly / Participation Lifecycle",
+  "routeAdmission": {
+    "gpr8": false,
+    "newNumberedFoundation": false,
+    "nextGpr": "UNKNOWN",
+    "nextPracticalRoute": "UNKNOWN",
+    "nextFoundation": "UNKNOWN"
+  },
+  "frozenStatus": {
+    "R1-R29/F1-F9": "FROZEN_NOT_REOPENED",
+    "GDF0": "FROZEN_NOT_REOPENED",
+    "GDF1": "FROZEN_NOT_REOPENED",
+    "GDF2": "FROZEN_NOT_REOPENED",
+    "GDF3": "FROZEN_NOT_REOPENED",
+    "R0/GPR1-GPR7": "COMPLETED_RESEARCH_HISTORY"
+  },
+  "candidateDeletion": [
+    {"candidate": "Session", "verdict": "REJECT_UNIVERSAL", "reason": "One session may contain multiple GameInstances and one GameInstance may span multiple sessions."},
+    {"candidate": "Lobby", "verdict": "REJECT_UNIVERSAL", "reason": "Implementation/UI mechanism absent from many valid GameForms."},
+    {"candidate": "Roster", "verdict": "REJECT_UNIVERSAL", "reason": "Useful local source/view in team and institutional games but absent or dynamic in other GameForms."},
+    {"candidate": "Matchmaking", "verdict": "REJECT_UNIVERSAL", "reason": "One composition mechanism among manual selection, pairing, seating, persistent entry and self-assembly."},
+    {"candidate": "Presence", "verdict": "REJECT_AS_INSTANCE_IDENTITY", "reason": "A constituted game can start or remain current while an assigned participant is absent."},
+    {"candidate": "ParticipantSet", "verdict": "REJECT_AS_INSTANCE_IDENTITY", "reason": "Substitution/departure can change membership while the same GameInstance continues."},
+    {"candidate": "RuntimeSession", "verdict": "REJECT_AS_INSTANCE_IDENTITY", "reason": "GameInstance can survive interruption/process boundaries and server session can survive membership changes."},
+    {"candidate": "MaterialContinuity", "verdict": "REJECT_AS_INSTANCE_IDENTITY", "reason": "Restart/new-game rules can preserve participants/material while explicitly ending the old GameInstance."}
+  ],
+  "probes": [
+    {
+      "id": "C1-F1",
+      "regime": "competitive chess",
+      "pressure": "scheduled start with absent player",
+      "heldFixed": ["assigned players", "event", "rules", "scheduled start"],
+      "varied": ["physical presence"],
+      "result": "PhysicalPresenceAtStart != GameInstanceExistenceByIdentity",
+      "reduction": ["F3 relation", "F5 time", "F6 authority/provenance", "GDF0 GameInstance"],
+      "foundationResidual": "Instance constitution cannot be reconstructed from present actors only."
+    },
+    {
+      "id": "C1-F2",
+      "regime": "association football",
+      "pressure": "named player/substitute vs unlisted outsider",
+      "heldFixed": ["match", "rules", "physical availability"],
+      "varied": ["pre-match admitted participation basis"],
+      "result": "EligibilityForPossibleParticipation != CurrentMembership != Presence",
+      "reduction": ["GDF3 eligibility status when case-determined", "GPR1 role/authority", "GDF0 effective rules"],
+      "foundationResidual": "Instance constitution must consume the admitted participation basis without turning eligibility into membership by identity."
+    },
+    {
+      "id": "C1-F3",
+      "regime": "association football",
+      "pressure": "mid-match substitution",
+      "heldFixed": ["match identity", "rules", "history"],
+      "varied": ["current player occupant"],
+      "result": "ParticipantSetContinuity != GameInstanceIdentity",
+      "reduction": ["GPR1 RoleAssignment currentness/replacement", "F4 transition", "F5 time"],
+      "foundationResidual": "Need owner-local same-instance consequence of composition transition."
+    },
+    {
+      "id": "C1-F4",
+      "regime": "association football",
+      "pressure": "minimum players to start/continue",
+      "heldFixed": ["ruleset", "field", "competition"],
+      "varied": ["current effective team composition"],
+      "result": "Composition can condition InstanceContinuationDisposition",
+      "reduction": ["F2 state", "F3 relation", "F4 constraint", "F6 authority"],
+      "foundationResidual": "No universal threshold survives, but constitution-to-continuation relation does."
+    },
+    {
+      "id": "C1-F5",
+      "regime": "Magic multiplayer",
+      "pressure": "one player leaves while game continues",
+      "heldFixed": ["game identity before departure", "rules"],
+      "varied": ["membership", "owned/control-linked state"],
+      "result": "ParticipantDeparture != GameInstanceTerminationByIdentity",
+      "reduction": ["ordinary state/control transitions", "F3 membership relation", "F5 time"],
+      "foundationResidual": "Membership transition may restructure current Game state while preserving instance identity."
+    },
+    {
+      "id": "C1-F6",
+      "regime": "Magic multiplayer/team variants",
+      "pressure": "individual concession vs team/game continuation",
+      "heldFixed": ["same GameInstance"],
+      "varied": ["participant-local terminality"],
+      "result": "IndividualParticipationEnd != TeamOutcome != InstanceOutcome",
+      "reduction": ["GDF2 outcome attribution", "F8 evaluation", "F4 transition"],
+      "foundationResidual": "Instance lifecycle can contain participant-local terminal transitions before instance-global terminality."
+    },
+    {
+      "id": "C1-F7",
+      "regime": "adjourned competitive chess",
+      "pressure": "interruption then resumption from preserved position/time",
+      "heldFixed": ["player identity", "rules", "recoverable constitutive state"],
+      "varied": ["continuous enactment/runtime presence"],
+      "result": "ContinuousRuntimeOrPresence != necessary GameInstance continuity",
+      "reduction": ["R23 interruption/resumption", "R24 continuity", "GDF0 GameInstance"],
+      "foundationResidual": "Game-local continuity depends on preserved constitutive state and authority, not continuous execution."
+    },
+    {
+      "id": "C1-F8",
+      "regime": "adjourned competitive chess",
+      "pressure": "position cannot be re-established",
+      "heldFixed": ["players", "event", "rules", "intention to resume"],
+      "varied": ["recoverability of constitutive position"],
+      "result": "IntendedContinuation != SameGameInstance when constitutive state cannot be restored",
+      "reduction": ["R24 domain-relative identity", "F6 authority", "F2/F4 state-transition"],
+      "foundationResidual": "Explicit instance-continuity boundary survives."
+    },
+    {
+      "id": "C1-F9",
+      "regime": "Magic restart",
+      "pressure": "old game ends; same remaining players begin new game while some material can carry over",
+      "heldFixed": ["many participants", "some material/provenance"],
+      "varied": ["authoritative restart transition"],
+      "result": "MaterialContinuity + ParticipantContinuity != GameInstanceIdentity",
+      "reduction": ["R24 identity", "F4 transition", "F6 authority"],
+      "foundationResidual": "Game owner must distinguish same-instance continuation from new-instance creation."
+    },
+    {
+      "id": "C1-F10",
+      "regime": "online session-based multiplayer",
+      "pressure": "backfill joins after start and replacements after players leave",
+      "heldFixed": ["server/session can remain active"],
+      "varied": ["membership through join/leave/backfill"],
+      "result": "ServerSessionContinuity != ParticipantContinuity != GameInstanceIdentity",
+      "reduction": ["Runtime/Network implementation", "Game-local admission and continuation semantics"],
+      "foundationResidual": "Game must define semantic meaning of late admission and inherited state/history."
+    },
+    {
+      "id": "C1-F11",
+      "regime": "Human/synthetic matchmaking",
+      "pressure": "bot/Human composition varies under same broad mode",
+      "heldFixed": ["mode/rules"],
+      "varied": ["realization substrate and population composition"],
+      "result": "HumanAgentComposition != new Game primitive",
+      "reduction": ["GPR6 Player/Human/Agent separation", "GDF1 control realization", "Population/Matching cross-owner"],
+      "foundationResidual": "C1 tracks admitted composition only when it matters to the concrete instance."
+    },
+    {
+      "id": "C1-F12",
+      "regime": "Human-Agent / GM / controller replacement",
+      "pressure": "same semantic role realized by different occupant/substrate",
+      "heldFixed": ["role", "GameStructure"],
+      "varied": ["occupant/provider/realization substrate"],
+      "result": "OccupantOrProviderChange != GameInstanceChangeByIdentity",
+      "reduction": ["GPR1 role replacement", "GPR6 control realization", "F6 provenance"],
+      "foundationResidual": "Instance continuity must consume explicit practice semantics rather than infer from substrate identity."
+    }
+  ],
+  "survivingResponsibility": {
+    "provisionalName": "GameInstanceConstitutionResponsibility",
+    "status": "STRONG_FOUNDATION_UNCLOSED_CANDIDATE_NOT_ADMITTED",
+    "obligations": [
+      {
+        "name": "ConstitutionBasisAndCurrentness",
+        "question": "Which GameStructure/practice/configuration, constitutive state and participation/admission bases currently bind this concrete GameInstance, under what authority/currentness?"
+      },
+      {
+        "name": "ParticipationCompositionAndTransition",
+        "question": "Who/what is currently admitted/bound and in which current role/team/seat/control relations, and which transition changed that composition?"
+      },
+      {
+        "name": "InstanceContinuityBoundary",
+        "question": "Does a relevant change preserve this GameInstance, terminate/abandon/annul it, or create/restart a new GameInstance, and on what authority/provenance?"
+      }
+    ]
+  },
+  "ownership": {
+    "Game": ["instance constitution significance", "Game-relative participation composition", "same-instance vs new-instance boundary", "Game-local join/leave/substitution consequence semantics"],
+    "RuntimeNetwork": ["process/session/socket/server identity", "transport disconnect/reconnect", "backfill mechanics", "technical recovery"],
+    "SocialInstitutional": ["external registration", "league membership", "credential/standing legitimacy"],
+    "World": ["physical presence", "material reality", "underlying event facts"],
+    "Human": ["participation intent", "experienced/social/affective consequences"],
+    "GDF3": ["binding eligibility/case status when CaseDeterminationBoundary applies"]
+  },
+  "reopenAudit": {
+    "GDF0_PRC2": "NOT_TRIGGERED",
+    "GDF0_PRC3": "NOT_TRIGGERED",
+    "GDF0_PRC6": "NOT_TRIGGERED",
+    "GDF0_PRC7": "NOT_TRIGGERED",
+    "GDF1": "NOT_TRIGGERED",
+    "GDF2": "NOT_TRIGGERED",
+    "GDF3": "NOT_TRIGGERED"
+  },
+  "finalClassification": "GENUINELY_NEW_FOUNDATION_OR_DOMAIN_CONTINENT_CANDIDATE__DOWNSTREAM_RESPONSIBILITY_LEVEL__NOT_ROUTE_SELECTED"
+}

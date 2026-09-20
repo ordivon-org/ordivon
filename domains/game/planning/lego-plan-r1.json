@@ -1,0 +1,378 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-game",
+    "purpose": "Own authoritative interactive game products and game-specific research while keeping mechanics, lenses, teardowns, and experiments composable rather than turning one product's rules into universal Game law.",
+    "sourceEvidence": [
+      "README.md",
+      "docs/ARCHITECTURE.md",
+      "docs/GAME_DOMAIN_PACKAGE_GRAPH_R1.md",
+      "standards/game_domain_package_graph_r1.json"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "G01",
+      "label": "ProductAuthority",
+      "kind": "domain_state",
+      "responsibility": "Own the current executable product/ruleset identity and player-visible game semantics.",
+      "authority": "Game product owner",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "README.md",
+        "docs/ARCHITECTURE.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "generic Agent Runtime truth"
+      ],
+      "acceptance": [
+        "Current executable and ruleset are explicit."
+      ]
+    },
+    {
+      "id": "G02",
+      "label": "MechanismLibrary",
+      "kind": "knowledge_projection",
+      "responsibility": "Retain source-grounded mechanics, relationships, tensions, and counterexamples as advisory reusable material.",
+      "authority": "Game knowledge owner",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "README.md",
+        "docs/GAME_MECHANISM_RELATIONSHIP_GRAPH_R1.md",
+        "standards/game_mechanism_relationship_graph_r1.json"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "compatibility verdicts",
+        "creative rejection authority"
+      ],
+      "acceptance": [
+        "Retrieval returns evidence and conditions without blocking novel combinations."
+      ]
+    },
+    {
+      "id": "G03",
+      "label": "ExperimentLane",
+      "kind": "experimental",
+      "responsibility": "Run bounded playable or mechanical probes without silently promoting them to product direction.",
+      "authority": "Game research/experiment owner",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "README.md",
+        "experiments/README.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "product selection"
+      ],
+      "acceptance": [
+        "Experiment outcomes remain scoped to their hypothesis and evidence."
+      ]
+    },
+    {
+      "id": "G04",
+      "label": "CompositionPlanner",
+      "kind": "creative_planning",
+      "responsibility": "Compose product-native mechanics from optional lenses, mechanism evidence, and current product intent.",
+      "authority": "Game design owner",
+      "state": "DESIGNED",
+      "sharedRefs": [],
+      "evidence": [
+        "README.md",
+        "docs/GAME_WHOLE_PRODUCT_RECOMPOSITION_R1_20260918.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "universal game ontology"
+      ],
+      "acceptance": [
+        "A proposed composition names assumptions/falsifiers instead of claiming guaranteed fun."
+      ]
+    },
+    {
+      "id": "G05",
+      "label": "PlayerEvidence",
+      "kind": "verifier",
+      "responsibility": "Separate mechanical/agent checks from claims about human play experience.",
+      "authority": "Game evidence owner",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "README.md",
+        "docs/GAME_PLAYER_EVIDENCE_PROGRAMME.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "invented human preference"
+      ],
+      "acceptance": [
+        "Human-response claims remain unobserved unless actual scoped evidence exists."
+      ]
+    },
+    {
+      "id": "G06",
+      "label": "StatefulSessionKernel",
+      "kind": "domain_state",
+      "responsibility": "Own the bounded Causal Lag run state machine: persistent architecture/cause, delayed execution, cumulative contract standing, current resolved cost pressure, and session termination while accepting validated session-rule inputs.",
+      "authority": "Causal Lag experiment/session owner",
+      "state": "VERIFIED",
+      "sharedRefs": [],
+      "evidence": [
+        "experiments/product-composition-r1/causal-lag-session-r3/README.md",
+        "experiments/product-composition-r1/causal-lag-session-r3/evidence/mechanical-acceptance-r3.json",
+        "test/game-causal-lag-content-r4.test.ts",
+        "experiments/product-composition-r1/causal-lag-pressure-r5/evidence/mechanical-acceptance-r5.json",
+        "test/game-causal-lag-pressure-r5.test.ts"
+      ],
+      "dependencies": [
+        "G03"
+      ],
+      "replacementContract": "A replacement must preserve the public state/transition semantics, default R3 four-round behavior, and fail-closed validation of supplied session rules.",
+      "mustNotOwn": [
+        "PC01 reward-table authorship",
+        "content-role meaning",
+        "Human learning or enjoyment truth"
+      ],
+      "acceptance": [
+        "Default R3 session remains four rounds with target 320.",
+        "A validated external sessionRules contract can substitute the context path without forking the session engine.",
+        "An optional resolved pressureChain may substitute current diagnostic/switch costs per round; absence preserves design-default costs."
+      ]
+    },
+    {
+      "id": "G07",
+      "label": "ContentGrammarCompiler",
+      "kind": "creative_planning",
+      "responsibility": "Own thin Causal Lag content-unit and run-recipe composition over existing contexts plus named pressure-profile references, validating exact seams and compiling recipes into session rules without moving numeric rule authority into content.",
+      "authority": "Causal Lag content-design owner",
+      "state": "VERIFIED",
+      "sharedRefs": [],
+      "evidence": [
+        "experiments/product-composition-r1/causal-lag-content-r4/README.md",
+        "experiments/product-composition-r1/causal-lag-content-r4/content-grammar.js",
+        "test/game-causal-lag-content-r4.test.ts",
+        "experiments/product-composition-r1/causal-lag-pressure-r5/README.md",
+        "experiments/product-composition-r1/causal-lag-pressure-r5/pressure-topology.js",
+        "test/game-causal-lag-pressure-r5.test.ts"
+      ],
+      "dependencies": [
+        "G04",
+        "G06"
+      ],
+      "replacementContract": "A replacement may change authoring representation but must preserve context-seam validation, target reachability checks, profile-identity resolution, no direct numeric rule ownership in content, and R3-compatible compiled output.",
+      "mustNotOwn": [
+        "universal Game content ontology",
+        "PC01 rewards",
+        "diagnostic semantics",
+        "architecture semantics",
+        "Human difficulty labels"
+      ],
+      "acceptance": [
+        "Base content units contain only authored role plus existing source/execution context identities.",
+        "Pressure-refined units may add only a stable pressureProfileId, never numeric cost semantics.",
+        "Adjacent units fail closed unless the execution/source context seam discharges.",
+        "Seven-beat R4 and ten-beat R5 recipes both compile into the verified StatefulSessionKernel."
+      ]
+    },
+    {
+      "id": "G08",
+      "label": "BreadthVerifier",
+      "kind": "verifier",
+      "responsibility": "Mechanically distinguish meaningful existing-mechanic content variation from nominal reskins by enumerating policy effects, composition equivalence, finite-horizon target sensitivity, and bounded terminal witnesses.",
+      "authority": "Game experiment/evidence owner",
+      "state": "VERIFIED",
+      "sharedRefs": [],
+      "evidence": [
+        "experiments/product-composition-r1/causal-lag-content-r4/evidence/mechanical-acceptance-r4.json",
+        "test/game-causal-lag-content-r4.test.ts",
+        "experiments/product-composition-r1/causal-lag-pressure-r5/evidence/mechanical-acceptance-r5.json",
+        "test/game-causal-lag-pressure-r5.test.ts",
+        "experiments/product-composition-r1/causal-lag-horizon-r6/evidence/mechanical-acceptance-r6.json",
+        "test/game-causal-lag-horizon-r6.test.ts"
+      ],
+      "dependencies": [
+        "G06",
+        "G07"
+      ],
+      "replacementContract": "A replacement must keep mechanical policy-diversity, composition-equivalence and finite-horizon target-sensitivity evidence separate from Human-value claims, preserve explicit tested state-space bounds, and never require oracle-only hidden state to become player-visible.",
+      "mustNotOwn": [
+        "Human fun",
+        "Human learning",
+        "product ranking",
+        "content-selection authority"
+      ],
+      "acceptance": [
+        "The tested 3x3 transition space reports exact evaluated-state and policy-signature counts.",
+        "Bounded pressure-axis screening distinguishes variables that change local policy from target-only terminal pressure.",
+        "Bounded composition-equivalence screening reports exact local/sequence compression without declaring saturation from local redundancy alone.",
+        "A bounded finite-horizon oracle can test whether remaining contract target changes current policy while preserving the player/oracle information boundary.",
+        "Representative breadth/pressure runs retain both reachable success and mathematically unrecoverable failure.",
+        "No Human or product authority is minted."
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "G02",
+      "to": "G04",
+      "type": "DATA",
+      "label": "advisory mechanism evidence"
+    },
+    {
+      "from": "G03",
+      "to": "G04",
+      "type": "EVIDENCE",
+      "label": "bounded experiment results"
+    },
+    {
+      "from": "G04",
+      "to": "G01",
+      "type": "CONTROL",
+      "label": "only admitted product composition changes product"
+    },
+    {
+      "from": "G01",
+      "to": "G05",
+      "type": "EVIDENCE",
+      "label": "player-facing claims require separate evidence"
+    },
+    {
+      "from": "G04",
+      "to": "G07",
+      "type": "CONTROL",
+      "label": "authored composition intent"
+    },
+    {
+      "from": "G07",
+      "to": "G06",
+      "type": "CONTROL",
+      "label": "validated compiled session rules"
+    },
+    {
+      "from": "G06",
+      "to": "G08",
+      "type": "EVIDENCE",
+      "label": "stateful session trajectories and terminal outcomes"
+    },
+    {
+      "from": "G08",
+      "to": "G04",
+      "type": "EVIDENCE",
+      "label": "bounded mechanical breadth findings"
+    }
+  ],
+  "slices": [
+    {
+      "id": "GS1",
+      "objective": "Use the mechanism/counterexample library to propose one bounded next product/mechanic experiment without promoting advisory patterns into design law.",
+      "status": "COMPLETE",
+      "nodeIds": [
+        "G02",
+        "G03",
+        "G04"
+      ],
+      "acceptance": [
+        "Proposal cites source-grounded mechanisms, states falsifiers, and remains separate from product selection until evidence exists."
+      ],
+      "evidence": [
+        "docs/GAME_WHOLE_PRODUCT_RECOMPOSITION_R1_20260918.md",
+        "experiments/product-composition-r1/causal-lag-content-r4/evidence/mechanical-acceptance-r4.json"
+      ],
+      "blockers": []
+    },
+    {
+      "id": "GS2",
+      "objective": "Prove that Causal Lag can gain content breadth by composing existing context transitions into one stateful seven-beat arc without adding player verbs or duplicating the session kernel.",
+      "status": "COMPLETE",
+      "nodeIds": [
+        "G06",
+        "G07",
+        "G08"
+      ],
+      "acceptance": [
+        "Content-unit seams compose exactly and compile into R3-compatible session rules.",
+        "The existing 3x3 transition space yields multiple mechanically distinct policy signatures.",
+        "The seven-beat browser arc reaches both SUCCESS and unrecoverable FAILURE in deterministic witnesses.",
+        "Human/product/Game Core claims remain closed."
+      ],
+      "evidence": [
+        "experiments/product-composition-r1/causal-lag-content-r4/README.md",
+        "experiments/product-composition-r1/causal-lag-content-r4/evidence/mechanical-acceptance-r4.json",
+        "test/game-causal-lag-content-r4.test.ts"
+      ],
+      "blockers": []
+    },
+    {
+      "id": "GS3",
+      "objective": "Screen existing Causal Lag pressure variables and prove one longer ten-beat information-pressure topology without adding player verbs, changing hidden regime semantics, or creating a new project node.",
+      "status": "COMPLETE",
+      "nodeIds": [
+        "G06",
+        "G07",
+        "G08"
+      ],
+      "acceptance": [
+        "Deterministic local-policy screening compares persistence, diagnostic cost, switch cost and contract target under explicit bounded level sets.",
+        "Information cost is selected because it changes policy broadly and its effect is conditioned by the existing stability regime.",
+        "Content references pressure by profile identity while resolved numeric costs remain session inputs.",
+        "R4 no-pressure behavior remains compatible.",
+        "The ten-beat browser run reaches both SUCCESS and unrecoverable FAILURE with hidden regime still private.",
+        "Human pacing/product/Game Core claims remain closed."
+      ],
+      "evidence": [
+        "experiments/product-composition-r1/causal-lag-pressure-r5/README.md",
+        "experiments/product-composition-r1/causal-lag-pressure-r5/evidence/mechanical-acceptance-r5.json",
+        "test/game-causal-lag-pressure-r5.test.ts"
+      ],
+      "blockers": []
+    },
+    {
+      "id": "GS4",
+      "objective": "Compare R5 composition saturation against horizon-aware contract planning using only existing contexts, pressures, carryover semantics and reward tables; establish whether remaining contract margin can change current mechanical policy without adding verbs or a runtime planner.",
+      "status": "COMPLETE",
+      "nodeIds": [
+        "G06",
+        "G07",
+        "G08"
+      ],
+      "acceptance": [
+        "The 27 context×pressure units yield 20 bounded policy-equivalence classes, and sequence-equivalence unique fraction does not worsen through length 5; saturation is not established.",
+        "Exact two- and three-beat R5-window screening reports target-sensitive current policies under explicit persistence, previous-architecture and remaining-target grids.",
+        "A volatile witness shows a lower-immediate-EV diagnostic policy can be contract-success-optimal, and changing only remaining target changes the current policy.",
+        "A stable witness independently shows target-sensitive current policy.",
+        "The exact solver remains an oracle/evaluator, does not modify R3 runtime semantics, and is not exposed as a player browser surface.",
+        "Human strategy, pacing, fun, product selection, G0 and Game Core claims remain closed."
+      ],
+      "evidence": [
+        "experiments/product-composition-r1/causal-lag-horizon-r6/README.md",
+        "experiments/product-composition-r1/causal-lag-horizon-r6/evidence/mechanical-acceptance-r6.json",
+        "test/game-causal-lag-horizon-r6.test.ts"
+      ],
+      "blockers": []
+    }
+  ],
+  "gaps": [
+    "R6 establishes finite-horizon mechanical target sensitivity but not Human strategic reasoning, comprehension, pacing quality, enjoyment, retention or market value.",
+    "The R6 oracle consumes exact persistence/model knowledge that the player does not observe; whether player-visible transition history supports a sufficiently useful estimator/policy remains unresolved.",
+    "The exact horizon oracle is intentionally bounded to at most three beats and does not establish a globally optimal ten-beat player policy.",
+    "Composition saturation is not established through length five, so a second pressure axis or new mechanic remains deferred rather than admitted.",
+    "Large-scale content authoring economics and final audiovisual expression remain unmeasured."
+  ],
+  "doNotOwn": [
+    "generic game-engine ownership",
+    "universal creativity rules",
+    "human enjoyment authority without evidence"
+  ],
+  "review": {
+    "sourceRevision": "bb742432e1ac9b73a259492e0020757fe7e04793",
+    "updatedAt": "2026-09-18",
+    "standing": "STABLE",
+    "notes": "R6 used Ordivon Next method revision 2231438e8f293742c1f5f1a2622b3e567003f5e0. Lens Router selected C-K for branch generation and domain-native exact enumeration/finite-horizon DP for the actual decision tests. Existing G06-G08 responsibilities were sufficient; GS4 was added with no G09 and no runtime-planner promotion."
+  }
+}

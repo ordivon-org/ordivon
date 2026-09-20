@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "kind": "game-pre-g0-standard-native-r4-conformance-observation",
+  "date": "2026-09-14",
+  "subject": {
+    "baselineRevision": "3ac0d1a44a0209a569941d745e7766b1c32a22d1",
+    "phase": "PRE_G0_PRODUCT_DISCOVERY_AND_HUMAN_VALUE_FALSIFICATION",
+    "productSelected": false,
+    "g0Entered": false
+  },
+  "authorities": [
+    "ISO 9241-210:2019",
+    "ISO 9241-11:2018",
+    "Xbox Accessibility Guidelines v3.2 advisory guidance",
+    "WCAG 2.2 for the web carrier only",
+    "Games User Research professional practice",
+    "Godot official provider documentation/release currentness"
+  ],
+  "summary": {
+    "PASS": 8,
+    "OPEN": 4,
+    "PARTIAL": 3,
+    "DEFERRED_TRIGGERED_BY_SCOPE_CHANGE": 1,
+    "PINNED_NOT_LATEST": 1,
+    "DEFERRED_NOT_APPLICABLE_CURRENT_PHASE": 1
+  },
+  "checks": [
+    {
+      "uid": "GAME-HCD-001",
+      "status": "PASS",
+      "evidence": "game-product-thesis-sprint-r1-20260914.json",
+      "note": ""
+    },
+    {
+      "uid": "GAME-HCD-002",
+      "status": "PASS",
+      "evidence": "GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md + C0 worksheet",
+      "note": ""
+    },
+    {
+      "uid": "GAME-HCD-003",
+      "status": "OPEN",
+      "evidence": "direct-play portfolio standing + C0 worksheet",
+      "note": "No real-human C0 canary is recorded in the current portfolio standing."
+    },
+    {
+      "uid": "GAME-HCD-004",
+      "status": "OPEN",
+      "evidence": "C0/C1 boundary",
+      "note": "Automation and apparatus completion do not establish Player Value."
+    },
+    {
+      "uid": "GAME-HCD-005",
+      "status": "PASS",
+      "evidence": "front-half iterative evidence loop",
+      "note": ""
+    },
+    {
+      "uid": "GAME-USAB-001",
+      "status": "PASS",
+      "evidence": "Runtime Job job-01a09dd6-1b54-7392-8b5c-dd4ff8386003: pnpm check 435/435 PASS + pre-G0 Playwright E2E PASS",
+      "note": "This is mechanical apparatus evidence only."
+    },
+    {
+      "uid": "GAME-USAB-002",
+      "status": "OPEN",
+      "evidence": "human-play standing",
+      "note": "Human effectiveness/efficiency/satisfaction in context has not yet been observed."
+    },
+    {
+      "uid": "GAME-A11Y-001",
+      "status": "PARTIAL",
+      "evidence": "PGP-A supports A/D or arrows and Space/Up",
+      "note": "Equivalent keyboard routes exist for some actions, but remapping, alternate devices and full control accessibility are not established."
+    },
+    {
+      "uid": "GAME-A11Y-002",
+      "status": "PARTIAL",
+      "evidence": "web carrier defines explicit text/background/muted/accent tokens",
+      "note": "No contrast measurement or human accessibility evaluation is recorded."
+    },
+    {
+      "uid": "GAME-A11Y-003",
+      "status": "PARTIAL",
+      "evidence": "semantic buttons/input and participant aria-label",
+      "note": "Basic accessible control semantics exist; a complete keyboard/focus/screen-reader audit is not established."
+    },
+    {
+      "uid": "GAME-A11Y-004",
+      "status": "OPEN",
+      "evidence": "PGP-A essential movement is rendered in a visual canvas",
+      "note": "No equivalent non-visual gameplay interaction has been established."
+    },
+    {
+      "uid": "GAME-PRIV-001",
+      "status": "PASS",
+      "evidence": "C0 worksheet + localStorage apparatus",
+      "note": ""
+    },
+    {
+      "uid": "GAME-PRIV-002",
+      "status": "DEFERRED_TRIGGERED_BY_SCOPE_CHANGE",
+      "evidence": "Current protocol is local and non-sensitive",
+      "note": "Activate broader participant/privacy/research obligations before remote recruitment, account linkage, or sensitive collection."
+    },
+    {
+      "uid": "GAME-ENG-001",
+      "status": "PASS",
+      "evidence": "game-development-stack-graduation-r1-20260913.json",
+      "note": ""
+    },
+    {
+      "uid": "GAME-ENG-002",
+      "status": "PINNED_NOT_LATEST",
+      "evidence": "accepted local pin=Godot 4.7.1; upstream stable observed on 2026-09-14=4.7.2",
+      "note": "This is provider-currentness information, not automatic upgrade failure."
+    },
+    {
+      "uid": "GAME-AGENT-001",
+      "status": "PASS",
+      "evidence": "product-thesis sprint + pre-G0 apparatus",
+      "note": ""
+    },
+    {
+      "uid": "GAME-DIST-001",
+      "status": "DEFERRED_NOT_APPLICABLE_CURRENT_PHASE",
+      "evidence": "productSelected=false, g0Entered=false",
+      "note": "Store/rating/platform-release authorities activate after target selection."
+    },
+    {
+      "uid": "GAME-G0-001",
+      "status": "PASS",
+      "evidence": "current direct-play portfolio standing",
+      "note": ""
+    }
+  ],
+  "mechanicalAcceptance": {
+    "runtimeJobId": "job-01a09dd6-1b54-7392-8b5c-dd4ff8386003",
+    "pnpmCheck": {
+      "tests": 435,
+      "pass": 435,
+      "fail": 0
+    },
+    "preG0E2E": "PASS",
+    "standing": "APPARATUS_ONLY_C0_UNOBSERVED_C1_UNOBSERVED"
+  },
+  "providerCurrentness": {
+    "acceptedGodotPin": "4.7.1",
+    "upstreamStableObserved": "4.7.2",
+    "disposition": "PINNED_NOT_LATEST_NO_FORCE_UPDATE"
+  },
+  "boundary": "This report is a task-local applicability/evidence observation. It is not ISO certification, WCAG conformance, XAG certification, Player Value proof, product selection, G0 admission, ratings approval, store certification, or commercial-release readiness."
+}

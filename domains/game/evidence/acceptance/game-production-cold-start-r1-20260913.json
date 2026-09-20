@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.production-cold-start-acceptance",
+  "acceptedAtDate": "2026-09-13",
+  "truthRole": "bounded-mechanical-game-production-acceptance-not-product-release-human-value-rights-or-reproducible-build",
+  "verdict": "PASS",
+  "standing": "MECHANICAL_PRODUCTION_SLICE_PASS",
+  "canonicalSources": {
+    "gameCommit": "f2e907857f52fcd3a6e3df6c01056df60d850b0e",
+    "operationsCommit": "33320b6a117f79dc259f55e9ea2af905ba4495eb",
+    "workstationCompatibilityCommit": "bd4c5314fb5f453c22ddf007edb42c736a74a44b"
+  },
+  "runtimeAcceptance": {
+    "jobId": "job-01a09a1b-1916-7643-a661-a187f9a5c034",
+    "executionDisposition": "succeeded",
+    "deliveryDisposition": "committed",
+    "recoveryRequired": false,
+    "tests": 429,
+    "passed": 429,
+    "failed": 0,
+    "dependencyMaterialization": "pnpm install --frozen-lockfile --offline",
+    "defaultContractOverrideUsed": false
+  },
+  "productionEquipment": {
+    "tiled": {
+      "package": "tiled 1.12.2-1",
+      "equipmentId": "professional:tiled:tiled",
+      "executable": "/usr/bin/tiled",
+      "executableDigest": "sha256:91b94175ff20b73636fbf6650a4d1c43f7507bcdb9ac306ec28750f9135bd063",
+      "provider": "workstation.professional-software"
+    },
+    "renderdoc": {
+      "package": "renderdoc 1.45-1",
+      "equipmentId": "professional:renderdoc:renderdoccmd",
+      "executable": "/usr/bin/renderdoccmd",
+      "executableDigest": "sha256:855b1735a023b44364d2f92ba701609c1bae573da588d5168cf5b8b3737a35b6",
+      "provider": "workstation.professional-software"
+    },
+    "godot": {
+      "version": "4.7.1.stable.arch_linux.a13da4feb",
+      "equipmentId": "professional:godot:godot",
+      "executable": "/usr/bin/godot",
+      "executableDigest": "sha256:a72fa47eb84dab812102e622f3fa9e99754505459a0ded8f69ceddd5b4ded8dd",
+      "bindingDigest": "sha256:7184cb9d4671c38b34ba29360b10130e4de03061a8fd69a0696de71d97614789",
+      "provider": "workstation.professional-software"
+    }
+  },
+  "sourceIdentity": {
+    "project": "experiments/production-smoke-r1/godot",
+    "projectGodotDigest": "sha256:cf7c819c1c0978089d73747e1f27b1e4dd70ee209bfd75501c9daa8e5a71cf88",
+    "sceneDigest": "sha256:63c3c414d7a8e1371831efaf99ab785da4be8baff7c569492ff7e8365fdb7cca",
+    "scriptDigest": "sha256:69dadca13cf402310441b543a1cf2712b606a61157337ea9472ffc3aa3e2dbde",
+    "exportPresetDigest": "sha256:258b296d4438dd58d3656ce688f5c6f8bceff7ef2508e5dd90820000fa008d05"
+  },
+  "canonicalAcceptanceBuild": {
+    "relativePath": "experiments/production-smoke-r1/build/ordivon-game-cold-start-r1.x86_64",
+    "byteLength": 73473208,
+    "sha256": "sha256:be7b24a816b3d2404d4c239d37939e26fe3bd85a93367ae10549fc38d7d5ef1c",
+    "sourceExecutionMarker": "ORDIVON_GAME_COLD_START_OK",
+    "exportedExecutionMarker": "ORDIVON_GAME_COLD_START_OK"
+  },
+  "reproducibilityBoundary": {
+    "bitReproducibleBuildEvaluated": false,
+    "reason": "A prior accepted candidate export from the same source-sized artifact produced a different SHA-256 digest; this acceptance therefore proves buildability and executable behavior only, not byte-for-byte reproducibility.",
+    "priorCandidateBuildDigest": "sha256:ccbf23be4a8c8d21e61e82e81ef6f69faef0678f211a01117cac1661fea15831",
+    "canonicalAcceptanceBuildDigest": "sha256:be7b24a816b3d2404d4c239d37939e26fe3bd85a93367ae10549fc38d7d5ef1c"
+  },
+  "ownership": {
+    "operations": "node-local package desired state",
+    "workstationCompatibility": "exact physical equipment projection",
+    "runtime": "physical command execution evidence",
+    "game": "game semantics and acceptance interpretation",
+    "godot": "engine import execution and export mechanics"
+  },
+  "claimsNotMinted": [
+    "PLAYER_VALUE",
+    "HUMAN_EVIDENCE",
+    "RIGHTS_CLEARANCE",
+    "STORE_RELEASE",
+    "COMMERCIAL_READINESS",
+    "BIT_REPRODUCIBLE_BUILD"
+  ],
+  "nextUnclosedBoundary": "Distribution/store release dry-run plus separate Engineering/Artifact reproducibility and packaging acceptance when required by a real product target."
+}

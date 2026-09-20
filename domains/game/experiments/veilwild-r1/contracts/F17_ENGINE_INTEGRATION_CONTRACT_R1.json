@@ -1,0 +1,220 @@
+{
+  "schema": "veilwild.f17-engine-integration-contract.r1",
+  "producer": {
+    "agentId": "A17",
+    "frontId": "F17",
+    "closureId": "V-R1"
+  },
+  "semanticMeaning": "Godot runtime composition boundary only; mounted scene semantics remain with producer owners.",
+  "carrier": {
+    "engine": "Godot",
+    "requiredVersionFamily": "4.7.x",
+    "projectPath": "experiments/veilwild-r1/godot",
+    "mainScene": "res://main.tscn",
+    "eventTransport": "autoload VeilwildEventBus using Godot signal envelope_published(topic,payload,source)"
+  },
+  "runtimeCoordinates": {
+    "space": "Godot world space after import",
+    "unit": "1 Godot unit treated as 1 meter for Veilwild runtime composition",
+    "axes": {
+      "right": "+X",
+      "up": "+Y",
+      "forward": "-Z"
+    },
+    "interchangeConversionOwner": "A18/F19 validates producer interchange into this runtime basis"
+  },
+  "mounts": [
+    {
+      "name": "EnvironmentMount",
+      "nodeType": "Node3D",
+      "intendedProducer": "A05/F05 via A18 validation"
+    },
+    {
+      "name": "CreatureMount",
+      "nodeType": "Node3D",
+      "intendedProducer": "A06-A12 composite via validated runtime scene"
+    },
+    {
+      "name": "LightingMount",
+      "nodeType": "Node3D",
+      "intendedProducer": "A11/F11"
+    },
+    {
+      "name": "NavigationMount",
+      "nodeType": "Node3D",
+      "intendedProducer": "A14/F14"
+    },
+    {
+      "name": "PlayerRuntimeMount",
+      "nodeType": "Node3D",
+      "intendedProducer": "A25/F18"
+    },
+    {
+      "name": "SystemsMount",
+      "nodeType": "Node",
+      "intendedProducer": "A09/F09+A13/F13 and engine adapters"
+    },
+    {
+      "name": "AudioMount",
+      "nodeType": "Node3D",
+      "intendedProducer": "A16/F16"
+    },
+    {
+      "name": "EvidenceMount",
+      "nodeType": "Node",
+      "intendedProducer": "A21/F22"
+    },
+    {
+      "name": "UIOverlay",
+      "nodeType": "CanvasLayer",
+      "intendedProducer": "A25/F18"
+    }
+  ],
+  "moduleSettings": [
+    "environment_scene",
+    "creature_scene",
+    "lighting_scene",
+    "navigation_scene",
+    "animation_system_scene",
+    "behavior_scene",
+    "audio_scene",
+    "player_runtime_scene",
+    "evidence_scene",
+    "ui_scene"
+  ],
+  "preconditions": [
+    "Mounted artifacts must be validated runtime PackedScenes or A17-owned narrow adapters over owner-validated runtime artifacts.",
+    "Producer semantic contracts must remain source-bound and exact-revision identified.",
+    "A17 must not reinterpret player interaction, behavior state, cue meaning, animation meaning, camouflage truth, or evidence semantics."
+  ],
+  "consumerVisibleFailureModes": [
+    "configured scene path missing",
+    "configured resource is not a PackedScene",
+    "required mount missing",
+    "strict candidate missing one or more admitted modules",
+    "cross-module contract mismatch detected by owner or composite replay"
+  ],
+  "oracle": "Godot 4.7.x loads res://main.tscn with no SCRIPT ERROR; every configured scene mounts under its declared stable mount; strict frozen candidate health rejects missing configured constitutive modules; composite behavior remains subject to owner and independent oracles.",
+  "compatibility": "PARTIAL_RUNTIME_INTEGRATION; six current modules mounted plus A17 fail-closed observation commit state machine. Strict candidate also requires owner-bound close-observation world qualifier. Final creature/navigation/animation/audio and F18/F10/F12 repairs remain unresolved; not a frozen playable candidate.",
+  "humanBoundary": "No Human outcome claim follows from engine integration.",
+  "sourceBindings": [
+    {
+      "bindingId": "F11_LIGHTING_MODULE_R1",
+      "producer": "A11/F11",
+      "producerCommit": "f0a51cec1d6b78de154bab5df93b99c22b5673ce",
+      "producerInterfacePath": "experiments/veilwild-r1/handoffs/A11-F11-interface.json",
+      "authoritativeSourcePath": "experiments/veilwild-r1/production/f11-lighting/lighting_rig.tscn",
+      "authoritativeSourceSha256": "827829e18b268229880dfc0eda3e2ac0db174b159784ba2a0651b908d15dc766",
+      "runtimeCopyPath": "experiments/veilwild-r1/godot/modules/f11/lighting_rig.tscn",
+      "runtimeCopySha256": "827829e18b268229880dfc0eda3e2ac0db174b159784ba2a0651b908d15dc766",
+      "adapterScene": null,
+      "semanticBoundary": "A17 only configures res://modules/f11/lighting_rig.tscn into LightingMount; A11 owns lighting values and semantics.",
+      "producerInterfaceSha256": "6c0c06858ba467acc5e0f7708e92ef64b223be9fb031403cc66a85bedf1b8a3e",
+      "round2ConsumptionStatus": "REVALIDATED_SOURCE_CURRENT_R1_INPUT"
+    },
+    {
+      "bindingId": "F22_EVIDENCE_RUNTIME_MODULE_R1",
+      "producer": "A21/F22",
+      "producerCommit": "784d5c98748e9e7a4cad0049d2e610c539d7baa1",
+      "producerInterfacePath": "experiments/veilwild-r1/contracts/F22_TELEMETRY_EVIDENCE_CONTRACT_R1.json",
+      "producerInterfaceSha256": "8989bb70640cd7e25e1e46113e512d7edc8868d1b52be94bb57b147fc37c2a3f",
+      "runtimeScenePath": "experiments/veilwild-r1/godot/modules/f22/evidence_runtime.tscn",
+      "runtimeSceneSha256": "556bbd65105208219c4b7fb2ef48581d8e0190bf09298e67fd68775d4a4443d9",
+      "runtimeRecorderSha256": "d42a940732ebf87c6f1e625929afdd93cc93e9dbc9e4d337fe51fcfc4068f98f",
+      "semanticBoundary": "A17 mounts producer-owned A21 module and supplies run/source/build/condition/accessibility identity only; A21 owns output claim/staging/final manifest publication and event envelope; producer semantic IDs remain source-front owned.",
+      "publicationProtocol": "veilwild.manifest-last-publication.r1",
+      "round2Compatibility": "SOURCE_CURRENT_COLLISION_SAFE_EVIDENCE_IDENTITY_REBIND"
+    },
+    {
+      "bindingId": "F18_PLAYER_RUNTIME_UI_R2",
+      "producer": "A25/F18",
+      "producerCommit": "935221a1a8c9710eb83380bddef0a006c09b838e",
+      "producerContractPath": "experiments/veilwild-r1/contracts/F18_PLAYER_INTERACTION_RUNTIME_CONTRACT_R1.json",
+      "producerContractSha256": "98987a81f73d0f70caa2f6e87b64437a4538cb61de26b6b99e7b47e74bc0502b",
+      "playerScenePath": "experiments/veilwild-r1/godot/player/player_runtime.tscn",
+      "playerSceneSha256": "390d1bfee021d3f87fddd09c769389a7790dbe2b1efd79e08b7eb7377674cb0d",
+      "uiScenePath": "experiments/veilwild-r1/godot/player/player_ui.tscn",
+      "uiSceneSha256": "b53e6467fa0d399951c3d373009ed6819d913323d5e3a9933057b615aaa27b0f",
+      "mounts": {
+        "player": "PlayerRuntimeMount",
+        "ui": "UIOverlay"
+      },
+      "semanticBoundary": "A25 owns locomotion/look/camera/input/observe-request/UI presentation; A17 only mounts/lifecycles. observe_request remains necessary but insufficient and A17 does not infer success from proximity/detection/crosshair/time.",
+      "round3Compatibility": "FUNCTIONAL_REPAIR_CONSUMED_SCENE_IDS_GREEN; source-binds F23 R3@87bb921, while A22 later advanced to 1e3cd66 so exact candidate freeze still requires A25/A22 identity alignment or explicit compatible supersession."
+    },
+    {
+      "bindingId": "F13_BEHAVIOR_RUNTIME_R2",
+      "producer": "A13/F13",
+      "producerCommit": "60cb5faf0d386ae9815647c1ffddc9bc0c123af3",
+      "producerInterfacePath": "experiments/veilwild-r1/f13-behavior/CREATURE_BEHAVIOR_INTERFACE_R2.json",
+      "producerInterfaceSha256": "bb4d5e27d457bae528454fdc917cbff62a30a445d0c9a4c8e554c6b894fa4824",
+      "cueAuthorizationPath": "experiments/veilwild-r1/f13-behavior/PLAYER_CUE_AUTHORIZATION_R2.json",
+      "cueAuthorizationSha256": "bd32688e9895dee587949979eb5120f3ff4c734e79178ff876aeb630880a6115",
+      "policyPath": "experiments/veilwild-r1/godot/modules/f13/creature_behavior_policy.gd",
+      "policySha256": "47868a920dee2df25ad573ab30f9cd60a79eea070a701d6173ce6f57729283b5",
+      "runtimeScriptPath": "experiments/veilwild-r1/godot/modules/f13/behavior_runtime.gd",
+      "runtimeScriptSha256": "2da9f35433f8f660825c8f8b24aa332b75cfd39e76bfb786a7b8a2520b5f50c2",
+      "runtimeScenePath": "experiments/veilwild-r1/godot/modules/f13/behavior_runtime.tscn",
+      "runtimeSceneSha256": "bd43388059a7c5b4dcabc8655c5c9888b1feb7b8ede84093a9408a4dd09a447f",
+      "mount": "SystemsMount",
+      "projectSetting": "veilwild/integration/behavior_scene",
+      "semanticBoundary": "A17 mounts exact producer module and preserves playerCueAuthorization payload verbatim. Authorization metadata is not cue exposure/perception; F13 does not prove reacquisition or observation success.",
+      "round2Qualification": "CONSUMED_ON_ERROR_CLEAN_A17_MOUNT; standalone F13 test_behavior fixture still emits SceneTree get_node errors because it exercises runtime outside active tree, so that fixture is not accepted as clean composite evidence."
+    },
+    {
+      "bindingId": "F05_ENVIRONMENT_INTERCHANGE_R2",
+      "producer": "A05/F05",
+      "producerSourceCommit": "ffbee6188e17e39cd174ec3e9a7d63cedefc2743",
+      "round2OwnerWorkspaceHeadObservedByA18": "18a9e0106ba60becb99888369af1c0b750984ab6",
+      "f19AdmissionProducer": "A18/F19",
+      "f19AdmissionCommit": "dc60346334cf91f1ce23cc059a2fce21a33444f6",
+      "f19AdmissionRegistryPath": "experiments/veilwild-r1/evidence/a18-r2/A18_F19_RUNTIME_ASSET_ADMISSION_R2.json",
+      "f19AdmissionRegistrySha256": "e899d3e9b05a2682e4205319554aa92c59660438f86929038cc70ac454629ac6",
+      "authoritativeSourcePath": "assets/environment/source/veilwild_forest_environment.blend",
+      "authoritativeSourceSha256": "97eb0b3c00cd027eb6d97eb8dc24ae09803a634dab2052bfb5e72fd60e020dd5",
+      "derivedInterchangePath": "assets/environment/exports/veilwild_forest_environment.glb",
+      "derivedInterchangeSha256": "f980ea94b074de9001a72b10d19fd6a495dae73878ab157472a6a416a4e33143",
+      "derivedRuntimeCopyPath": "experiments/veilwild-r1/godot/modules/f05/veilwild_forest_environment.glb",
+      "derivedRuntimeCopySha256": "f980ea94b074de9001a72b10d19fd6a495dae73878ab157472a6a416a4e33143",
+      "projectResourcePath": "res://modules/f05/veilwild_forest_environment.glb",
+      "mount": "EnvironmentMount",
+      "projectSetting": "veilwild/integration/environment_scene",
+      "coordinateBoundary": "A17 performs no facing conversion; environment has no declared semantic front. Godot imported coordinates are preserved exactly. Marker reachability remains F14 authority.",
+      "round2Compatibility": "F19_ADMITTED_INTERCHANGE_CONSUMER_PATH_PENDING_A18_REPLAY"
+    }
+  ],
+  "round3ObservationCommitBinding": {
+    "owner": "A17/F17",
+    "implementationPath": "experiments/veilwild-r1/godot/integration/observation_commit_binding.gd",
+    "implementationSha256": "51816ef9ff1d29d5e7264543c27c253452cfaa35aa14e76cb106abfbec919381",
+    "integrationRootPath": "experiments/veilwild-r1/godot/integration/integration_root.gd",
+    "integrationRootSha256": "dfb94b91d0e665fa6d5dd1a37562a08110256fa85ddc729583905090f562199c",
+    "consumedF01Falsifier": {
+      "commit": "3687dda16dd9925f758a79611ef42b8be5032575",
+      "path": "experiments/veilwild-r1/evidence/A01_R3_OBSERVATION_BINDING_FALSIFIER.json",
+      "sha256": "5a7a70951c9a9b09559d5bfe8b97ccc03483ba184ab01b001edb77b99224b10e"
+    },
+    "consumedF01Trace": {
+      "commit": "729b98b8448119907698395bc21b0cd34fdf6b03",
+      "path": "experiments/veilwild-r1/contracts/F01_PRODUCT_TRACE_ORACLE_R1.json",
+      "sha256": "6779be6a45d9a78729b0b308bf74229769afd22086c0a43a37250111e68b6204"
+    },
+    "consumedF18Boundary": {
+      "producer": "A25/F18",
+      "currentConsumedCommit": "ec19645c895d60d1386b6cd4725311edb068496c",
+      "requestSignal": "observe_requested(request_id, origin, forward)",
+      "cancelSignal": "observe_cancelled(request_id, reason_id)",
+      "resolutionMethod": "close_observe_request(request_id, disposition)",
+      "successOwnedByF18": false
+    },
+    "worldQualificationBoundary": {
+      "status": "OWNER_PREDICATE_REQUIRED_BEFORE_CANDIDATE",
+      "ownerRoute": "A14/F14 per exact F18 doesNotOwn/observeBoundary plus final creature/world condition",
+      "carrier": "A17 accepts an owner-bound Callable and validates returned sourceFront + producerSemanticId; A17 does not compute qualified=true.",
+      "candidateHealthRule": "strict health requires ownerWorldQualifierBound=true in addition to all ten configured modules."
+    },
+    "orderingLaw": "F18 observe_action_started must publish before A17 observation_committed; commit must publish before A17-authorized call to F18 UI SUCCESS_CONSEQUENCE presentation.",
+    "abortLaw": "F13 behavior_transition observationAbort=true cancels active F18 request before commit and emits no commit/success.",
+    "humanBoundary": "Mechanical request/qualification/commit ordering only; no Human comprehension/fairness/fun/detectability claim."
+  }
+}

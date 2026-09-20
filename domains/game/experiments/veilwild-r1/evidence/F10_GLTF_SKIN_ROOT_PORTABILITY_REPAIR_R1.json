@@ -1,0 +1,292 @@
+{
+  "assimpAfter": {
+    "animationChannels": 161,
+    "animations": 7,
+    "bones": 88,
+    "boundsMax": [
+      0.590505,
+      0.96,
+      1.44
+    ],
+    "boundsMin": [
+      -0.590505,
+      -0.505622,
+      -1.70776
+    ],
+    "faces": 7408,
+    "materials": 3,
+    "meshes": 20,
+    "nodes": 37,
+    "vertices": 5131
+  },
+  "assimpBefore": {
+    "animationChannels": 161,
+    "animations": 7,
+    "bones": 88,
+    "boundsMax": [
+      0.590505,
+      0.96,
+      1.44
+    ],
+    "boundsMin": [
+      -0.590505,
+      -0.505622,
+      -1.70776
+    ],
+    "faces": 7408,
+    "materials": 3,
+    "meshes": 20,
+    "nodes": 36,
+    "vertices": 5131
+  },
+  "authority": {
+    "format": "Khronos glTF 2.0 / ISO/IEC 12113:2022",
+    "targetConsumer": "Godot 4.7.1 GLTFDocument",
+    "validatorVersion": "2.0.0-dev.3.10"
+  },
+  "exactPreservation": {
+    "accessorsJsonSha256": "d30247e4c364e3ec6eee5030355047756b7419a2874cb3bf7fff785f1c49ce08",
+    "animationsJsonSha256": "73a3e0cc3c61143dcb5992ec368246c418f43f21bb490b0048f99a1934ccac30",
+    "binChunkSha256": "f686e9333d9e547231627d094212ee9807c5d75c3a6a5775aa5046c0c708d150",
+    "bufferViewsJsonSha256": "081751d91a021200143b898cba6e60220f53220bf926fcde34424d94d4ecd354",
+    "materialsJsonSha256": "c1a93cb97d3b7c4613e252cb4c6401337452f1521cb5f7388c2e21d2ca04b249",
+    "meshesJsonSha256": "755672dd3198b01ed73aa7c0682b9ebae211ceb3bfcf7b11045c116179b58a1c",
+    "preservedExact": [
+      "BIN chunk",
+      "animations JSON",
+      "materials JSON",
+      "skins JSON",
+      "meshes JSON",
+      "accessors JSON",
+      "bufferViews JSON"
+    ],
+    "skinsJsonSha256": "fa11a788adb63bf4ce99a0114fdd205dbbe4647b87c744b019ac262d7191f623"
+  },
+  "godotAfter": {
+    "animationNames": [
+      "VW_MOTION_CONCEAL",
+      "VW_MOTION_EVADE-loop",
+      "VW_MOTION_FORAGE-loop",
+      "VW_MOTION_FREEZE",
+      "VW_MOTION_IDLE-loop",
+      "VW_MOTION_ORIENT",
+      "VW_MOTION_RECOVER"
+    ],
+    "animations": 7,
+    "appendError": 0,
+    "classes": {
+      "AnimationPlayer": 1,
+      "BoneAttachment3D": 1,
+      "ImporterMeshInstance3D": 11,
+      "Node3D": 3,
+      "Skeleton3D": 1
+    },
+    "skeletonBoneNames": [
+      "VW_FORE_LOWER_L",
+      "VW_FORE_LOWER_R",
+      "VW_FORE_PAW_L",
+      "VW_FORE_PAW_R",
+      "VW_FORE_UPPER_L",
+      "VW_FORE_UPPER_R",
+      "VW_HEAD",
+      "VW_HIND_LOWER_L",
+      "VW_HIND_LOWER_R",
+      "VW_HIND_PAW_L",
+      "VW_HIND_PAW_R",
+      "VW_HIND_UPPER_L",
+      "VW_HIND_UPPER_R",
+      "VW_MUZZLE",
+      "VW_NECK_BASE",
+      "VW_NECK_TIP",
+      "VW_ROOT",
+      "VW_SPINE_FRONT",
+      "VW_SPINE_MID",
+      "VW_SPINE_REAR",
+      "VW_TAIL_01",
+      "VW_TAIL_02",
+      "VW_TAIL_03"
+    ],
+    "skeletonBones": [
+      23
+    ]
+  },
+  "godotBefore": {
+    "animationNames": [
+      "VW_MOTION_CONCEAL",
+      "VW_MOTION_EVADE-loop",
+      "VW_MOTION_FORAGE-loop",
+      "VW_MOTION_FREEZE",
+      "VW_MOTION_IDLE-loop",
+      "VW_MOTION_ORIENT",
+      "VW_MOTION_RECOVER"
+    ],
+    "animations": 7,
+    "appendError": 0,
+    "classes": {
+      "AnimationPlayer": 1,
+      "BoneAttachment3D": 1,
+      "ImporterMeshInstance3D": 11,
+      "Node3D": 3,
+      "Skeleton3D": 1
+    },
+    "skeletonBoneNames": [
+      "VW_FORE_LOWER_L",
+      "VW_FORE_LOWER_R",
+      "VW_FORE_PAW_L",
+      "VW_FORE_PAW_R",
+      "VW_FORE_UPPER_L",
+      "VW_FORE_UPPER_R",
+      "VW_HEAD",
+      "VW_HIND_LOWER_L",
+      "VW_HIND_LOWER_R",
+      "VW_HIND_PAW_L",
+      "VW_HIND_PAW_R",
+      "VW_HIND_UPPER_L",
+      "VW_HIND_UPPER_R",
+      "VW_MUZZLE",
+      "VW_NECK_BASE",
+      "VW_NECK_TIP",
+      "VW_ROOT",
+      "VW_SPINE_FRONT",
+      "VW_SPINE_MID",
+      "VW_SPINE_REAR",
+      "VW_TAIL_01",
+      "VW_TAIL_02",
+      "VW_TAIL_03"
+    ],
+    "skeletonBones": [
+      23
+    ]
+  },
+  "historicalBoundary": {
+    "baseMaterialProducerRevision": "3f9f443256212e3286c4bf90c84fd1d5c224b1fc",
+    "currentRuntimeAuthorityUpdated": true,
+    "oldR4AArtifactSha256": "73b36673858464190acfddc32030544ec66efc29f0f0a78d04e331a06b13345e",
+    "round4SelectedRuntimeInventory": "UNCHANGED_FROZEN_HISTORICAL_EVIDENCE"
+  },
+  "id": "veilwild-f10-gltf-skin-root-portability-repair-r1",
+  "kind": "veilwild-f10-gltf-skin-root-portability-repair",
+  "nonClaims": [
+    "No gameplay, artistic, Human, accessibility, rights or player-value claim is upgraded.",
+    "The repair does not reinterpret animation names, material semantic slots, skin meaning or Game behavior.",
+    "Historical R4A producer/runtime identity evidence remains frozen and is not rewritten."
+  ],
+  "observedOn": "2026-09-13",
+  "repair": {
+    "changedNodes": [
+      {
+        "localTransform": "IDENTITY",
+        "name": "VR_Foreleg_L",
+        "nodeIndex": 25,
+        "oldParentIndex": 34,
+        "oldParentName": "VW_Veilrunner_Rig"
+      },
+      {
+        "localTransform": "IDENTITY",
+        "name": "VR_Foreleg_R",
+        "nodeIndex": 26,
+        "oldParentIndex": 34,
+        "oldParentName": "VW_Veilrunner_Rig"
+      },
+      {
+        "localTransform": "IDENTITY",
+        "name": "VR_Head",
+        "nodeIndex": 27,
+        "oldParentIndex": 34,
+        "oldParentName": "VW_Veilrunner_Rig"
+      },
+      {
+        "localTransform": "IDENTITY",
+        "name": "VR_Hindleg_L",
+        "nodeIndex": 28,
+        "oldParentIndex": 34,
+        "oldParentName": "VW_Veilrunner_Rig"
+      },
+      {
+        "localTransform": "IDENTITY",
+        "name": "VR_Hindleg_R",
+        "nodeIndex": 29,
+        "oldParentIndex": 34,
+        "oldParentName": "VW_Veilrunner_Rig"
+      },
+      {
+        "localTransform": "IDENTITY",
+        "name": "VR_Muzzle",
+        "nodeIndex": 30,
+        "oldParentIndex": 34,
+        "oldParentName": "VW_Veilrunner_Rig"
+      },
+      {
+        "localTransform": "IDENTITY",
+        "name": "VR_Neck",
+        "nodeIndex": 31,
+        "oldParentIndex": 34,
+        "oldParentName": "VW_Veilrunner_Rig"
+      },
+      {
+        "localTransform": "IDENTITY",
+        "name": "VR_Tail",
+        "nodeIndex": 32,
+        "oldParentIndex": 34,
+        "oldParentName": "VW_Veilrunner_Rig"
+      },
+      {
+        "localTransform": "IDENTITY",
+        "name": "VR_Torso",
+        "nodeIndex": 33,
+        "oldParentIndex": 34,
+        "oldParentName": "VW_Veilrunner_Rig"
+      }
+    ],
+    "newValidator": {
+      "errors": 0,
+      "hints": 0,
+      "infos": 20,
+      "warnings": 0
+    },
+    "oldValidator": {
+      "errors": 0,
+      "warningCode": "NODE_SKINNED_MESH_NON_ROOT",
+      "warningCount": 9,
+      "warnings": 9
+    },
+    "operation": "Promote the nine identity-transform skinned mesh nodes from VW_Veilrunner_Rig children to default-scene roots without changing mesh, accessor, buffer, skin, animation or material carriers.",
+    "reason": "Khronos Validator NODE_SKINNED_MESH_NON_ROOT portability warnings"
+  },
+  "runtimeConsumerUpdate": {
+    "currentSha256": "db10437b5a8da072a57bae3090b1cbce317e65c0a17ec451e4a26f7eaaa77d72",
+    "gameplayLogicChanged": false,
+    "historicalR4Sha256": "e46c5d493da5f957e151dd992050c6f56058ef00c6b24df901f2861869dda48c",
+    "path": "experiments/veilwild-r1/godot/modules/f14/world_qualification_runtime.gd",
+    "reason": "Bind the current F10 successor SHA and split current provenance into base material producer revision plus portability repair identity.",
+    "semanticScope": [
+      "selected final creature exact SHA",
+      "base material producer revision label",
+      "portability repair receipt identity"
+    ]
+  },
+  "runtimeExperiment": {
+    "jobId": "job-01a09a93-03fa-73d3-9a14-bf2cba76c5ca",
+    "operationDigest": "sha256:cd179c99ab0de548589e7d12d52282a316e240503d43b17c1ac72b05b7390a64"
+  },
+  "schemaVersion": 1,
+  "standing": "PASS",
+  "subject": {
+    "baseRevision": "14dfc8cf479468025ba786f5451df36ce91bfd58",
+    "newSha256": "9a50900f2a7fcb17af6be1be8b7788fbc743fd7a8e1bd075515a62cf6fd24daa",
+    "oldSha256": "73b36673858464190acfddc32030544ec66efc29f0f0a78d04e331a06b13345e",
+    "path": "experiments/veilwild-r1/godot/modules/f10/veilrunner_f10_material_bound_r4a.glb"
+  },
+  "validatorFacts": {
+    "animationCount": 7,
+    "drawCallCount": 20,
+    "hasDefaultScene": true,
+    "hasMorphTargets": false,
+    "hasSkins": true,
+    "hasTextures": false,
+    "materialCount": 3,
+    "maxInfluences": 4,
+    "totalTriangleCount": 7408,
+    "totalVertexCount": 5131
+  }
+}

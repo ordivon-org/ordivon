@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf2-f-final-survival-table",
+  "freezeVerdict": "freeze-v1",
+  "coreResponsibilities": [
+    {
+      "name": "ChallengeAssessmentContract",
+      "status": "freeze-core-responsibility",
+      "reason": "Prospective/conditional challenge claims require a declared evaluation criterion/authority, attribution target, condition/horizon/currentness and only the specific capability/outcome property actually identified or bounded. This cannot merge with realized failure or longitudinal mastery without losing claim direction and evidence responsibilities."
+    },
+    {
+      "name": "FailureRecoveryContract",
+      "status": "freeze-core-responsibility",
+      "reason": "Realized history must be evaluated relative to criterion/scope/horizon; when post-outcome continuation matters, authoritative recovery transitions must remain separate from terminality and query-specific cost/severity. This cannot merge with prospective challenge without collapsing realized nonattainment into conditional difficulty."
+    },
+    {
+      "name": "MasteryClaimContract",
+      "status": "freeze-core-responsibility",
+      "reason": "Mastery is a stronger longitudinal/scoped inference over frozen SkillProfile under independently anchored criteria and declared probes/currentness/attribution. It cannot merge with challenge without losing the reverse inference direction or with failure without collapsing evidence samples into capability claims."
+    }
+  ],
+  "whyNotTwo": [
+    "ChallengeAssessment asks how a declared condition relates to capability/outcome under a target scope; MasteryClaim asks what capability claim is supported across declared condition/probe regions. These are dual but not identical inference directions.",
+    "FailureRecovery evaluates an observed history and authoritative post-outcome transitions; it remains meaningful even when no SkillProfile/challenge inference is being made.",
+    "A single generic EvaluationClaimContract would reduce GDF2 to R29/F8 vocabulary and erase Game-specific anti-collapse responsibilities discovered by A-E."
+  ],
+  "freezeGuards": [
+    "Difficulty/Challenge != intrinsic scalar property of content",
+    "Challenge claim requires evaluation criterion/authority + attribution target + condition/horizon/currentness scope",
+    "OutcomeProbability != CapabilityThreshold != CapabilityDiscrimination != OutcomeRisk != RecoveryCost",
+    "Infeasibility != MaximumSkillChallenge",
+    "AggregatePassRate != unique ChallengeAssessment",
+    "Unidentified challenge explanations remain unresolved rather than silently selected",
+    "Failure requires evaluation scope/horizon",
+    "Failure != Error != Punishment != Loss != Setback != Death/GameOver/Reset",
+    "Failure != Terminality",
+    "RecoveryTransitionSet != universal failure severity scalar",
+    "TeamLoss != IndividualFailure != IndividualSkillDeficit",
+    "Failure/Feedback != LearningOpportunity != ActualLearning",
+    "DemonstratedPerformance != CapabilityMasteryClaim",
+    "Completion/HighScore/ZeroError/Plateau != Mastery",
+    "TaskSpecificMastery != TransferMastery != SocialMastery != SubjectiveCompetence",
+    "Mastery criteria/regions require independent provenance or held-out ProbeTransformation validation",
+    "JointControllerMastery != HumanIndependentMastery",
+    "Synthetic-controller mastery/structural evidence != Human mastery/experience evidence",
+    "Mastery does not require terminal completion or globally maximal capability",
+    "Challenge/failure/mastery claims are version/currentness/provenance bound"
+  ],
+  "derivedViews": [
+    "NominalDifficultySetting",
+    "OutcomeRisk",
+    "PunishmentConsequence",
+    "Loss",
+    "Setback",
+    "Retry",
+    "CapabilityOutcomeSurface / ChallengeResponseModelFamily",
+    "CapabilityThresholdRegion / CriterionRelativeThresholdClaim",
+    "CapabilityDiscriminationProfile / ProbeRelativeDiscriminationClaim",
+    "AttributionResidualClass",
+    "FunctionalDifficultyProjection",
+    "PursuitTerminalityQuery",
+    "RecoveryTransitionSet",
+    "QuerySpecificRecoveryCostProjection",
+    "DemonstratedMasteryEvidence",
+    "ChallengeObservationDesign / ChallengeInterventionSet / IdentificationStatus"
+  ],
+  "handoffs": [
+    {"construct":"ExperiencedDifficulty","owner":"Human"},
+    {"construct":"Frustration","owner":"Human"},
+    {"construct":"FlowExperience","owner":"Human"},
+    {"construct":"SubjectiveCompetence","owner":"Human"},
+    {"construct":"Actual learning mechanism / retention mechanism","owner":"Human/System as applicable"},
+    {"construct":"SocialMastery / rank legitimacy / community recognition","owner":"Practice/Social/Institution foundations"},
+    {"construct":"OpponentInteractionSurface / strategic adaptation / nontransitivity","owner":"GDF6 Strategy/Counterplay/Balance"}
+  ],
+  "retired": [
+    "StructuralDemandProfile",
+    "FunctionalDifficultyRelation as a latent named object",
+    "SkillChallengeRelation = local sensitivity",
+    "FailureEvent as context-free object state",
+    "RecoveryTopology umbrella",
+    "LearningOpportunityProfile universal checklist",
+    "PursuitTerminalityClaim as independent core object",
+    "MasteredBoolean",
+    "universal Difficulty scalar",
+    "universal FailureSeverity scalar"
+  ],
+  "reopenConditions": [
+    {"id":"CFM-PRC-1","name":"Challenge scope failure","condition":"A repeated meaningful Game challenge/difficulty claim cannot be represented as an evaluation/attribution/condition/horizon-bound identified or bounded projection without losing a causal distinction."},
+    {"id":"CFM-PRC-2","name":"Scalar necessity failure","condition":"At least two materially different GameForms require the same privileged intrinsic challenge/difficulty scalar and that scalar predicts counterfactuals not expressible through existing scoped relations/projections."},
+    {"id":"CFM-PRC-3","name":"Failure evaluation failure","condition":"A repeated failure phenomenon cannot be represented as criterion/scope/horizon-relative assessment over authoritative state/history/evaluation without inventing a new semantic coordinate."},
+    {"id":"CFM-PRC-4","name":"Recovery failure","condition":"A repeated continuation/reset/revival/retry phenomenon materially affects failure semantics but cannot be represented through existing Transition/State/History/Authority relations plus an optional recovery-transition view."},
+    {"id":"CFM-PRC-5","name":"Mastery claim failure","condition":"A legitimate Game mastery/capability claim cannot be represented as a scoped inference over frozen SkillProfile with declared attribution/currentness/probes/criterion provenance."},
+    {"id":"CFM-PRC-6","name":"Attribution failure","condition":"Shared/team/synthetic/assistive cases repeatedly require challenge/failure/mastery attribution that cannot be expressed through current target identity/control contribution relations."},
+    {"id":"CFM-PRC-7","name":"Learning boundary failure","condition":"Repeated Game-side learning-opportunity phenomena require a domain responsibility beyond information/distinction exposure + future probe claims and cannot be handed to Human/System learning owners without explanatory loss."},
+    {"id":"CFM-PRC-8","name":"Repeated downstream contradiction","condition":"At least two materially different downstream GameForms repeatedly falsify the same frozen CFM law rather than a derived measurement model, local criterion or owner-specific mechanism."}
+  ],
+  "foundationAudit": {
+    "R29Reopen": false,
+    "GDF0Reopen": false,
+    "GDF1ACSReopen": false,
+    "reason": "All surviving responsibilities unfold into existing Evaluation, Authority/Provenance, Observation, State/Transition/History and GDF1 SkillProfile/SRVS/ProbeTransformation structures."
+  },
+  "novelty": {"N2":[],"N3":[]}
+}

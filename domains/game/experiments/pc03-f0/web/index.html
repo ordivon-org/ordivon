@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PC03-F0 Loop Cartographer</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <p class="eyebrow">PC03-F0 · interactive falsifier · Runtime Agent none</p>
+      <h1>Loop Cartographer</h1>
+      <p>Traverse out from the Hub and return to it with <strong>A/D or ←/→</strong> and <strong>Space/↑</strong>. Nothing is collected or unlocked; both visible lines exist from the first frame.</p>
+    </header>
+    <section class="layout">
+      <div class="panel">
+        <div class="metrics">
+          <div><span>region</span><strong data-region>Hub</strong></div>
+          <div><span>route</span><strong data-route>undecided</strong></div>
+          <div><span>phase</span><strong data-phase>outbound</strong></div>
+          <div><span>attempt</span><strong data-attempt>1</strong></div>
+        </div>
+        <canvas id="world" width="980" height="500" aria-label="Loop Cartographer traversal world"></canvas>
+        <div class="controls"><button data-reset>Reset traversal</button></div>
+        <p class="boundary">Mechanical evidence only. Automation may establish route, reset and timing causality; it does not establish human mastery, flow, understood discovery, voluntary retry, enjoyment, market value, product selection or G0 admission.</p>
+      </div>
+      <aside class="panel">
+        <h2>Observe the loop</h2>
+        <p>The same amber edge cue appears more than once. Its geometry and the movement law never change, before or after you notice it.</p>
+        <p>The lower line remains available as a physical alternative. The upper line is not unlocked by discovery.</p>
+        <h2>Trace</h2>
+        <div class="trace" data-trace></div>
+      </aside>
+    </section>
+  </main>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

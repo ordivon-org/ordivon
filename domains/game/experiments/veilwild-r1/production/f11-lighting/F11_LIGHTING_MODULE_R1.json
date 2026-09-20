@@ -1,0 +1,31 @@
+{
+  "schema": "veilwild.f11-lighting-module.r1",
+  "producer": {"agentId": "A11", "frontId": "F11", "closureId": "V-V8"},
+  "authoritativeEditableSource": "experiments/veilwild-r1/production/f11-lighting/lighting_rig.tscn",
+  "derivedRuntimeCopy": "experiments/veilwild-r1/godot/modules/f11/lighting_rig.tscn",
+  "sourceDigest": "sha256:4201bbcee1ed556b77894261c9d9440e0ae2f239e89cc6ab5f6e6cf46ac2e821",
+  "runtimeCopyDigest": "sha256:4201bbcee1ed556b77894261c9d9440e0ae2f239e89cc6ab5f6e6cf46ac2e821",
+  "a17Compatibility": {
+    "revalidatedContractCommit": "2cdc6ca3da332dc7c49ea0d26d0e1fcf88478eab",
+    "contractDigest": "sha256:4fc8ff7b20ee9e48e1fbab1c472cd6ad21930902087ab1125ed19589af5553d2",
+    "mount": "LightingMount",
+    "projectSetting": "veilwild/integration/lighting_scene",
+    "resourcePath": "res://modules/f11/lighting_rig.tscn",
+    "rootNodeType": "Node3D",
+    "runtimeBasis": "1 Godot unit=1m, +Y up, -Z forward"
+  },
+  "a04VisualGrammarBinding": {
+    "producerCommit": "d523d712fb096d2bae1ea58b85fa799089ca3de9",
+    "contract": "experiments/veilwild-r1/art-direction/VEILWILD_VISUAL_GRAMMAR_R1.json",
+    "digest": "sha256:b2ef66fd6ace236cbbc68269c07c5181377bfb4ee22921afc0757fc237764b95",
+    "consequences": [
+      "late-day overcast-canopy mood with restrained directional structure",
+      "high lateral/back-diagonal key family independent of creature tracking",
+      "stable exposure with no auto-exposure pumping",
+      "raised ambient/background floor so concealment does not depend on crushed blacks",
+      "no hero-rim/spotlight beacon"
+    ]
+  },
+  "authorityBoundary": "A11 owns lighting scene semantics. A17 owns project setting/mount composition and frozen candidate identity. The runtime copy is derived from the A11 editable source and must not be edited independently.",
+  "compatibility": "A04_VISUAL_GRAMMAR_BOUND_AND_READY_FOR_A17_MODULE_MOUNT; product lighting standing remains provisional until real environment/material/camouflage/camera replay"
+}

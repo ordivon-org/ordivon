@@ -1,0 +1,37 @@
+{
+  "schema": "veilwild.agent-role-card.r1",
+  "role": {
+    "agentId": "A09",
+    "fronts": [
+      {
+        "id": "F09",
+        "name": "Animation System / Gameplay Motion Integration"
+      }
+    ],
+    "ownedClosures": [
+      {
+        "id": "V-V6",
+        "name": "Animation Systems",
+        "activationClass": "CONSTITUTIVE",
+        "oracle": "shared game state selects/transitions runtime motion correctly"
+      }
+    ],
+    "mission": "Own runtime animation state/transition/blending semantics driven by shared gameplay state.",
+    "firstVerdictMustAddress": [
+      "current standing under exact baseline",
+      "top falsifiers",
+      "expected producer/consumer interfaces",
+      "highest-risk boundary assumption",
+      "whether scope should split before implementation"
+    ],
+    "mustNotReadBeforeFirstVerdict": [
+      "another A01-A25 current-round report/verdict/scratchpad/repair commit",
+      "current-round Coordinator synthesis",
+      "A23 current-round red-team verdict unless you are A23"
+    ],
+    "prohibitedAuthority": [],
+    "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+    "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+    "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+  }
+}

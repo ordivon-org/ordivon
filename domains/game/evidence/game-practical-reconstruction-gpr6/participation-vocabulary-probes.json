@@ -1,0 +1,258 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gpr6-participation-vocabulary-probes",
+  "fixtures": {
+    "playerParticipant": {
+      "entityRef": "human:p1",
+      "scopeRef": "match:1",
+      "applicableDescriptorLabels": [
+        "player",
+        "participant-in-gameplay"
+      ],
+      "directGameActionControlSummary": [
+        "team:rescue"
+      ],
+      "bindingAuthorityOperations": []
+    },
+    "refereeParticipant": {
+      "entityRef": "human:r1",
+      "scopeRef": "match:1",
+      "applicableDescriptorLabels": [
+        "participant-in-match",
+        "referee"
+      ],
+      "directGameActionControlSummary": [],
+      "bindingAuthorityOperations": [
+        "game.case.decide"
+      ]
+    },
+    "passiveSpectator": {
+      "entityRef": "human:s1",
+      "observationChannelRefs": [
+        "stream:video"
+      ],
+      "expressionOrCommunicationChannels": [],
+      "aggregateContributionChannels": [],
+      "directControlChannels": [],
+      "bindingAuthorityOperations": [],
+      "presentationLabels": [
+        "passive_spectator"
+      ]
+    },
+    "activeSpectator": {
+      "entityRef": "human:s1",
+      "observationChannelRefs": [
+        "stream:video"
+      ],
+      "expressionOrCommunicationChannels": [
+        "stream:chat"
+      ],
+      "aggregateContributionChannels": [
+        "audience:vote"
+      ],
+      "directControlChannels": [],
+      "bindingAuthorityOperations": [],
+      "presentationLabels": [
+        "causal_audience_contributor"
+      ]
+    },
+    "audience": {
+      "audienceScopeKind": "broadcast_or_stream",
+      "memberRefsOrCohortDescriptor": "chat:cohort",
+      "aggregationMechanismRefs": [
+        "vote:majority"
+      ],
+      "aggregateOutputRefs": [
+        "parameter:ai-strength"
+      ],
+      "collectiveAuthorityRefsOnlyIfSeparatelyEstablished": [],
+      "heterogeneityOrConflictSummary": "mixed preferences"
+    },
+    "controlHuman": {
+      "semanticControlPrincipalRefs": [
+        "player:mission-control"
+      ],
+      "playerBoundaryOrRoleRefs": [
+        "player:mission-control"
+      ],
+      "realizationSubstrateLabels": [
+        "human_realized"
+      ],
+      "providerOrModelRefsWhenMaterial": []
+    },
+    "controlAgent": {
+      "semanticControlPrincipalRefs": [
+        "actor:pirate-captain"
+      ],
+      "playerBoundaryOrRoleRefs": [],
+      "realizationSubstrateLabels": [
+        "model_agent_realized"
+      ],
+      "providerOrModelRefsWhenMaterial": [
+        "provider:a"
+      ]
+    },
+    "controlAgentSwap": {
+      "semanticControlPrincipalRefs": [
+        "actor:pirate-captain"
+      ],
+      "playerBoundaryOrRoleRefs": [],
+      "realizationSubstrateLabels": [
+        "model_agent_realized"
+      ],
+      "providerOrModelRefsWhenMaterial": [
+        "provider:b"
+      ]
+    },
+    "controlPolicy": {
+      "semanticControlPrincipalRefs": [
+        "actor:brood"
+      ],
+      "playerBoundaryOrRoleRefs": [],
+      "realizationSubstrateLabels": [
+        "deterministic_policy_realized"
+      ],
+      "providerOrModelRefsWhenMaterial": []
+    },
+    "hybrid": {
+      "semanticControlPrincipalRefs": [
+        "player:p1"
+      ],
+      "playerBoundaryOrRoleRefs": [
+        "player:p1"
+      ],
+      "realizationSubstrateLabels": [
+        "human_realized",
+        "model_agent_realized"
+      ],
+      "delegationRefs": [
+        "delegation:local-specialists"
+      ]
+    },
+    "ruleView": {
+      "displayLabels": [
+        "rule"
+      ],
+      "predicateClosureSummary": "closed_for_case",
+      "residualDiscretionSummary": "none",
+      "representationRefs": [
+        "ruleset:v4"
+      ],
+      "effectiveRuleTopologyRefsOrEffects": [
+        "ert:match:v4"
+      ]
+    },
+    "openRuleView": {
+      "displayLabels": [
+        "rule"
+      ],
+      "predicateClosureSummary": "contains_open_predicate",
+      "residualDiscretionSummary": "bounded",
+      "representationRefs": [
+        "law:delay"
+      ],
+      "effectiveRuleTopologyRefsOrEffects": [
+        "ert:sport"
+      ]
+    },
+    "standardView": {
+      "displayLabels": [
+        "standard"
+      ],
+      "predicateClosureSummary": "precise_threshold",
+      "residualDiscretionSummary": "none",
+      "representationRefs": [
+        "standard:threshold"
+      ],
+      "effectiveRuleTopologyRefsOrEffects": [
+        "ert:practice"
+      ]
+    },
+    "policyConstitutive": {
+      "displayLabels": [
+        "policy"
+      ],
+      "effectiveRuleTopologyRefsOrEffects": [
+        "ert:authority-policy"
+      ],
+      "authorityAndCurrentnessSummary": "current"
+    },
+    "policyAdvisory": {
+      "displayLabels": [
+        "policy"
+      ],
+      "effectiveRuleTopologyRefsOrEffects": [],
+      "authorityAndCurrentnessSummary": "controller-guidance-only"
+    },
+    "docAudience": {
+      "kind": "document-frontmatter-audience",
+      "values": [
+        "player",
+        "agent",
+        "developer"
+      ]
+    },
+    "targetAudience": {
+      "kind": "product-target-audience",
+      "cohort": "strategy players"
+    },
+    "diagnostic": {
+      "checks": [
+        "participant_boolean_without_scope",
+        "spectator_assumed_causally_passive",
+        "audience_treated_as_collective_subject",
+        "player_assumed_human",
+        "controller_principal_confused_with_realization_substrate",
+        "rule_standard_label_used_as_universal_schema_kind"
+      ]
+    }
+  },
+  "probes": {
+    "playerAndParticipantSeparate": true,
+    "refereeParticipatesWithoutPlayerControl": true,
+    "spectatorCanBePassive": true,
+    "spectatorCanGainCausalContribution": true,
+    "expressionNotControl": true,
+    "audienceNotCollectiveAuthority": true,
+    "audiencePreservesHeterogeneity": true,
+    "aggregationExplicit": true,
+    "participantNeedsScope": true,
+    "causalSubsystemNotParticipant": true,
+    "sameEntityCanChangeParticipationCurrentness": true,
+    "playerNotUniversalParticipant": true,
+    "observationNotControl": true,
+    "contributionNotAuthority": true,
+    "audienceNotCollectiveSubject": true,
+    "productTargetAudienceNotLiveAudience": true,
+    "documentAudienceNotGameAudience": true,
+    "controlPrincipalSeparateFromHumanSubstrate": true,
+    "playerCanBeAgentRealized": true,
+    "agentControllerNotPlayer": true,
+    "policyControllerNotPlayer": true,
+    "providerSwapDoesNotChangePrincipal": true,
+    "hybridControlRepresentable": true,
+    "agentCountNotPlayerCount": true,
+    "productionAgentNotRuntimeParticipant": true,
+    "runtimeSystemAgentNotWorldSubject": true,
+    "humanEscalationNotUniversalAuthority": true,
+    "sameModelCanServeMultiplePrincipals": true,
+    "ruleCanBeClosed": true,
+    "ruleCanBeOpen": true,
+    "standardCanBePrecise": true,
+    "policyCanBeConstitutive": true,
+    "policyCanBeAdvisory": true,
+    "ruleStandardNotBinary": true,
+    "ruleRepresentationNotAuthority": true,
+    "stableRepresentationNotStableTopology": true,
+    "generatedRuleTextNotAuthority": true,
+    "localRuleStandardEnumCanExist": true,
+    "finalityOwnedByGpr2": true,
+    "diagnosticFindsParticipantScopeCollapse": true,
+    "diagnosticFindsSpectatorCollapse": true,
+    "diagnosticFindsAudienceCollapse": true,
+    "diagnosticFindsPlayerHumanCollapse": true,
+    "diagnosticFindsControllerMix": true,
+    "diagnosticFindsRuleStandardCollapse": true,
+    "noFoundationReopen": true
+  }
+}

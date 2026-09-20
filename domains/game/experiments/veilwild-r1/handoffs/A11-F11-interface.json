@@ -1,0 +1,51 @@
+{
+  "schema": "veilwild.interface.r1",
+  "interfaceName": "veilwild.lighting-visibility.r1",
+  "producerFront": "F11",
+  "producerAgent": "A11",
+  "consumerFronts": ["F12", "F17", "F21", "F25"],
+  "semanticMeaning": "Explicit runtime illumination/visibility condition for Veilwild that supports search readability without making camouflage either arbitrary darkness or trivial exposure.",
+  "representationCarrier": "Godot 4.7.1 scene resource plus machine-readable JSON contract",
+  "revisionArtifactIdentity": "A04-bound lighting revision; exact rig digest and A11 commit published after validation",
+  "unitsCoordinateConventions": {
+    "worldUnits": "Godot 3D units treated as meters for fixture only; real environment owner must confirm",
+    "upAxis": "+Y",
+    "forwardConvention": "Godot Camera3D/DirectionalLight3D forward is -Z",
+    "energyUnits": "Godot renderer-relative light_energy / ambient_light_energy; not photometric lux claims"
+  },
+  "fixtureDefaultsNotProductAuthority": {
+    "keySunRotationDegreesXYZ": [-48.0, -32.0, 0.0],
+    "keySunColorLinearDisplayInput": [1.0, 0.91, 0.78, 1.0],
+    "keySunEnergy": 0.92,
+    "shadowsEnabled": true,
+    "directionalShadowMode": "PARALLEL_4_SPLITS",
+    "directionalShadowBlendSplits": true,
+    "directionalShadowMaxDistance": 48.0,
+    "ambientColor": [0.40, 0.46, 0.33, 1.0],
+    "ambientEnergy": 0.48,
+    "ambientLightSource": "COLOR",
+    "ambientLightSkyContribution": 0.0,
+    "backgroundColor": [0.106, 0.165, 0.137, 1.0],
+    "backgroundEnergyMultiplier": 0.82,
+    "tonemapMode": "FILMIC"
+  },
+  "preconditions": [
+    "A04 visual grammar must either accept or replace fixture-default aesthetic parameters before product standing relies on them.",
+    "A05 real environment geometry/concealment contexts and A10 material response must be replayed under this rig or an accepted revision.",
+    "A12 camouflage shader must remain state/environment-responsive under the lighting condition; lighting must not compensate by hiding or spotlighting the creature.",
+    "A17 must ensure an explicit WorldEnvironment/DirectionalLight3D reach runtime; editor preview sun/sky is inadmissible.",
+    "Any Camera3D Environment override must be declared because it can supersede WorldEnvironment semantics.",
+    "A20/F21 evaluates shadow/GI/render cost on the integrated exact condition; fixture cost is not transportable."
+  ],
+  "consumerVisibleFailureModes": [
+    "runtime scene has no explicit light/environment despite editor appearing lit",
+    "camera Environment override changes exposure/ambient semantics",
+    "deep shadow crush makes search arbitrary or inaccessible",
+    "excess ambient/key energy trivializes silhouette and camouflage",
+    "shadow split/fade/pancake behavior produces popping, acne or unstable concealment cues",
+    "real environment/material/camouflage integration invalidates fixture tuning",
+    "lighting settings cause material frame-time or pacing cost on exact integrated condition"
+  ],
+  "validationOracle": "On the exact integrated scene/build/camera/render condition, explicit authored lighting is present and mechanically stable; real environment/material/camouflage remains readable enough to preserve declared cues without collapsing concealment. Human detectability/usefulness/fairness remain UNKNOWN until real participant evidence.",
+  "compatibilityStatus": "A04_VISUAL_GRAMMAR_BOUND_PENDING_A05_A10_A12_A17_A25_REAL_INPUTS"
+}

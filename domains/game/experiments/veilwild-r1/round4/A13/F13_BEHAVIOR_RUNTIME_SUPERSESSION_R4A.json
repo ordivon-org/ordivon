@@ -1,0 +1,142 @@
+{
+  "schemaVersion": "veilwild.f13-behavior-runtime-supersession.r4a",
+  "phase": "R4A",
+  "owner": "A13/F13",
+  "runtimeRepairCommit": "ed3b8a127640c67bc29fd9cb562cc6c9638e871d",
+  "integrationBase": "c3581417ad82fcb23b8856186dc3d63b2659cdac",
+  "supersedesForCurrentRuntimeConsumption": {
+    "historicalOwnerRuntimeCommit": "d745a942861cca57e4c7b7e860ebc98fafc096d1",
+    "qualification": "Round-2 interface artifacts remain historical evidence. This R4A artifact supersedes their current runtime scene identity and EventBus topic surface without renaming stable behavior-state, transition, or cue-authorization semantics."
+  },
+  "producedRuntime": {
+    "script": {
+      "path": "experiments/veilwild-r1/godot/modules/f13/behavior_runtime.gd",
+      "sha256": "367db3f1c65fb1a0add69f406ed15487fccac283be58449b74ee96c6a1eb2e41"
+    },
+    "scene": {
+      "path": "experiments/veilwild-r1/godot/modules/f13/behavior_runtime.tscn",
+      "resPath": "res://modules/f13/behavior_runtime.tscn",
+      "sha256": "8826e06190bb7a55cbad82c7f0359c3bde4c0794a7ed590c4ddc37f13177d5c0",
+      "rootUniqueId": 757654410,
+      "oldSha256": "bd43388059a7c5b4dcabc8655c5c9888b1feb7b8ede84093a9408a4dd09a447f",
+      "semanticChangeFromUniqueId": "NONE"
+    },
+    "policy": {
+      "path": "experiments/veilwild-r1/godot/modules/f13/creature_behavior_policy.gd",
+      "sha256": "47868a920dee2df25ad573ab30f9cd60a79eea070a701d6173ce6f57729283b5",
+      "changedInR4A": false
+    },
+    "ownerOracle": {
+      "path": "experiments/veilwild-r1/godot/modules/f13/tests/test_f22_owner_events.gd",
+      "sha256": "0d108eb48d9f5de34676e920ae4e9ac7742d75f8c41aa2cc0691f6e803087efc"
+    }
+  },
+  "eventSurface": {
+    "preservedGenericTopics": [
+      "creature.behavior.decision",
+      "creature.behavior.transition"
+    ],
+    "currentDirectOwnerF22Topics": [
+      {
+        "eventType": "creature_state_changed",
+        "producerSemanticId": "F13.CREATURE_STATE_CHANGED",
+        "sourceFront": "A13/F13",
+        "condition": "one actual F13 state-entry edge"
+      },
+      {
+        "eventType": "evade_started",
+        "producerSemanticId": "F13.EVADE_STARTED",
+        "sourceFront": "A13/F13",
+        "condition": "actual entry into veilwild.behavior.evade.r1 only"
+      }
+    ],
+    "producerDataFields": [
+      "behaviorStateId",
+      "previousBehaviorStateId",
+      "productIntent",
+      "transitionSemanticId",
+      "transitionSequence",
+      "reasonId",
+      "playerCueAuthorization",
+      "observationAbort",
+      "reacquisitionPhase",
+      "reacquisitionProven"
+    ],
+    "explicitNonEmission": {
+      "eventType": "reacquisition_opportunity",
+      "reason": "RECOVER is F13 behavior truth only; A14/world integration owns establishment of a same-session reacquisition opportunity."
+    }
+  },
+  "consumedCurrentAuthorities": [
+    {
+      "producer": "A21/F22",
+      "commit": "180c5a78056bd81a133143bec197eb20b5f80185",
+      "path": "experiments/veilwild-r1/godot/modules/f22/evidence_runtime.gd",
+      "sha256": "67ad5f8e02f292d52f9f307a77e1c085a3e6f35df0b06517b61d99601d0c63d7",
+      "scenePath": "experiments/veilwild-r1/godot/modules/f22/evidence_runtime.tscn",
+      "sceneSha256": "956f3efe326dc4ecfbcc7a5003e3f8bcd4958996ba4d37faee9d575cf411f995",
+      "replay": "A13_A21_CURRENT_CONSUMER_REPLAY_PASS rows=5 state_changed=4 evade_started=1 reacquisition=0"
+    },
+    {
+      "producer": "A19/F20",
+      "commit": "a64bf04931fac712a36d0c9189c4fb367a36af3e",
+      "path": "experiments/veilwild-r1/scripts/f20_build_repro.py",
+      "sha256": "39323138ac16609c98fe19bde9ffcef478bc288fa15fd4d72b45f445eb149dec",
+      "oracle": "scene_node_unique_id_preflight",
+      "replay": "A13 isolated F13 subtree: sceneFiles=1 nodeHeaders=1 missingUniqueIdCount=0 passForPackOrExport=true"
+    }
+  ],
+  "oracles": [
+    {
+      "carrier": "Godot 4.7.1.stable.arch_linux.a13da4feb",
+      "criterion": "existing F13 behavior/cue contract",
+      "result": "F13_BEHAVIOR_TESTS_PASS cases=12",
+      "qualification": "legacy test invokes runtime publishing before active-tree attachment in one subtest and emits pre-existing absolute-path transport errors; semantic assertions pass, while the separately mounted owner-event and A21 consumer replays are stderr-clean."
+    },
+    {
+      "carrier": "Godot 4.7.1.stable.arch_linux.a13da4feb",
+      "criterion": "direct producer-owned F22 event mapping",
+      "result": "F13_F22_OWNER_EVENTS_PASS state_changed=4 evade_started=1 reacquisition=0",
+      "stderr": "empty"
+    },
+    {
+      "carrier": "Godot 4.7.1.stable.arch_linux.a13da4feb + A21/F22 180c5a7 direct EventBus bridge",
+      "criterion": "exact consumer transport without semantic reinterpretation",
+      "result": "A13_A21_CURRENT_CONSUMER_REPLAY_PASS rows=5 state_changed=4 evade_started=1 reacquisition=0",
+      "eventSha256": "69902b2ff200e0b33410bdd839a90a09ed957ceadd075b23cb0aca256d505dc0",
+      "manifestSha256": "73b0d8f943d5adbb332f1a618b287c3558901e1d4d81bdf9943ad1c293e960ee",
+      "stderr": "empty",
+      "qualification": "NON_PRODUCT_CONSUMER_REPLAY; not candidate telemetry"
+    }
+  ],
+  "sceneIdentityRepair": {
+    "physicalProbeMethod": "Instantiate the exact original PackedScene, pack the instantiated hierarchy into a fresh PackedScene, save a probe with ResourceSaver under Godot 4.7.1, extract the engine-generated root unique_id, then apply only that root node-header identity to the authoritative original serialization.",
+    "generatedUniqueId": 757654410,
+    "repairScope": "one node-header attribute only",
+    "reasonForNarrowMerge": "direct ResourceSaver.save on the loaded original scene did not generate a node unique_id and also rewrote unrelated serialization metadata; those incidental rewrites were reverted."
+  },
+  "downstreamIdentityWarnings": [
+    {
+      "owner": "A17/F17",
+      "path": "experiments/veilwild-r1/contracts/F17_ENGINE_INTEGRATION_CONTRACT_R1.json",
+      "standing": "STALE_AFTER_A13_R4A_UNTIL_A17_CONSUMPTION",
+      "oldRuntimeScriptSha256": "2da9f35433f8f660825c8f8b24aa332b75cfd39e76bfb786a7b8a2520b5f50c2",
+      "oldRuntimeSceneSha256": "bd43388059a7c5b4dcabc8655c5c9888b1feb7b8ede84093a9408a4dd09a447f",
+      "authorityBoundary": "A13 does not edit A17-owned integration identity. A17 must refresh its selected-runtime inventory/contract if that contract remains candidate-authoritative."
+    }
+  ],
+  "authorityBoundary": "A13 owns behavior state/transition semantics and cue authorization. A21 owns telemetry transport, A14 owns reacquisition world truth, A17 owns integration/candidate adjudication, and A19 owns full-project F20 preflight/build reproducibility.",
+  "candidateImpact": "READY_OWNER_CONTRIBUTION_PENDING_A17_EXACT_CONSUMPTION_AND_A19_FULL_PROJECT_REPLAY",
+  "provenanceStanding": "Owner-authored source-code/runtime metadata repair; no external asset bytes introduced. No distribution-clearance claim. Historical rights/provenance records are not rewritten by this R4A runtime supersession.",
+  "humanClaims": {
+    "fun": "UNKNOWN",
+    "immersion": "UNKNOWN",
+    "believability": "UNKNOWN",
+    "detectability": "UNKNOWN",
+    "cueUsefulness": "UNKNOWN",
+    "fairness": "UNKNOWN",
+    "comprehension": "UNKNOWN",
+    "comfort": "UNKNOWN",
+    "accessibilityFit": "UNKNOWN"
+  }
+}

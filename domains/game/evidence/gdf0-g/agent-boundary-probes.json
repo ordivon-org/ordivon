@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf0-g-agent-boundary-probes",
+  "epistemicBoundary": {
+    "proves": [
+      "under declared authority rules, fluent proposal does not imply authoritative rule change",
+      "authorized but stale proposal can fail while current truth remains unchanged",
+      "natural-language text can propose/express intent without directly owning world effect",
+      "persistent Agent identity can be modeled independently from provider-model identity"
+    ],
+    "doesNotProve": [
+      "that these toy admission rules are universal game design laws",
+      "Agent consciousness, PlayExperience, enjoyment, or motivation",
+      "community legitimacy merely from technical authorization",
+      "that language action requires an LLM"
+    ]
+  },
+  "ruleProposalCases": [
+    {
+      "name": "fluent-unauthorized-proposal",
+      "result": {
+        "admitted": false,
+        "reason": "NO_RULE_AUTHORITY",
+        "current": {
+          "rules": {
+            "revision": 3,
+            "goal": "reach-exit",
+            "canMoveRock": false
+          },
+          "digest": "2968a4a47531e60cbcb4add6bf909ab04264cc7c07e508eac4186c8de2c30bca"
+        }
+      }
+    },
+    {
+      "name": "authorized-current-proposal",
+      "result": {
+        "admitted": true,
+        "reason": "AUTHORIZED_CURRENT_PROPOSAL",
+        "current": {
+          "rules": {
+            "revision": 4,
+            "goal": "reach-exit",
+            "canMoveRock": true
+          },
+          "digest": "b5b31612c7c77312f051426d005e561efbac53d256b24ab7c8b0a70183ef1d3a"
+        }
+      }
+    },
+    {
+      "name": "authorized-but-stale-proposal",
+      "result": {
+        "admitted": false,
+        "reason": "STALE_RULE_HEAD",
+        "current": {
+          "rules": {
+            "revision": 3,
+            "goal": "reach-exit",
+            "canMoveRock": false
+          },
+          "digest": "2968a4a47531e60cbcb4add6bf909ab04264cc7c07e508eac4186c8de2c30bca"
+        }
+      }
+    }
+  ],
+  "languageCases": [
+    {
+      "proposed": "OPEN_DOOR",
+      "admitted": true,
+      "effect": {
+        "type": "OPEN_DOOR"
+      },
+      "reason": "ADMITTED"
+    },
+    {
+      "proposed": "MOVE_NORTH",
+      "admitted": false,
+      "effect": null,
+      "reason": "ILLEGAL_ACTION"
+    },
+    {
+      "proposed": "UNRESOLVED_INTENT",
+      "admitted": false,
+      "effect": null,
+      "reason": "NO_STRUCTURED_INTENT"
+    }
+  ],
+  "identityContinuity": {
+    "samePrincipalAcrossModelChange": true,
+    "sameModelDoesNotImplySamePrincipal": true,
+    "conclusion": "Agent identity continuity is governed by principal/history authority, not provider-model equality."
+  },
+  "laws": [
+    "RuleProposal != RuleAuthority",
+    "RuleBelief != CurrentRuleTruth",
+    "ModelFluency != Legitimacy",
+    "NaturalLanguageIntent != AuthoritativeEffect",
+    "ProviderModelIdentity != AgentIdentity",
+    "GameExecution != PlayExperience"
+  ]
+}

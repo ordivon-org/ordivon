@@ -1,0 +1,717 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Veilwild R1 Agent Handoff",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "campaignId",
+    "agentId",
+    "frontIds",
+    "exactBaseline",
+    "firstVerdict",
+    "interfaces",
+    "artifacts",
+    "validation",
+    "blockers",
+    "standing",
+    "knownLimitations",
+    "boardCollaboration",
+    "workstationUse",
+    "frictionReceipts",
+    "roundContext",
+    "externalEvaluation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "veilwild.agent-handoff.r1"
+    },
+    "campaignId": {
+      "const": "veilwild-r1"
+    },
+    "agentId": {
+      "type": "string",
+      "pattern": "^A(0[1-9]|1[0-9]|2[0-5])$"
+    },
+    "frontIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^F(0[1-9]|1[0-9]|2[0-7])$"
+      }
+    },
+    "exactBaseline": {
+      "type": "string",
+      "minLength": 7
+    },
+    "workspaceId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "commit": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "firstVerdict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "frozen",
+        "recommendation",
+        "currentStanding",
+        "topFalsifiers",
+        "expectedInputs",
+        "expectedOutputs",
+        "highestRiskBoundaryAssumption"
+      ],
+      "properties": {
+        "frozen": {
+          "const": true
+        },
+        "recommendation": {
+          "enum": [
+            "PROCEED",
+            "PROCEED_WITH_CONSTRAINTS",
+            "REQUIRES_REPAIR",
+            "SCOPE_SPLIT_REQUIRED",
+            "BLOCKED_BY_AUTHORITY_OR_APPARATUS"
+          ]
+        },
+        "currentStanding": {
+          "type": "string",
+          "minLength": 1
+        },
+        "topFalsifiers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "expectedInputs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "expectedOutputs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "highestRiskBoundaryAssumption": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "interfaces": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "semanticMeaning",
+          "representation",
+          "consumers",
+          "oracle"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "semanticMeaning": {
+            "type": "string"
+          },
+          "representation": {
+            "type": "string"
+          },
+          "consumers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "oracle": {
+            "type": "string"
+          },
+          "revision": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "failureModes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "pathOrIdentity",
+          "artifactClass",
+          "authority"
+        ],
+        "properties": {
+          "pathOrIdentity": {
+            "type": "string"
+          },
+          "artifactClass": {
+            "enum": [
+              "AUTHORITATIVE_EDITABLE_SOURCE",
+              "DERIVED_INTERCHANGE",
+              "DERIVED_RUNTIME_COPY",
+              "BUILD_ARTIFACT",
+              "EVIDENCE_ARTIFACT",
+              "DOCUMENTATION_ONLY"
+            ]
+          },
+          "authority": {
+            "type": "string"
+          },
+          "digest": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "validation": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "oracle",
+          "result"
+        ],
+        "properties": {
+          "oracle": {
+            "type": "string"
+          },
+          "result": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "INCONCLUSIVE",
+              "NOT_RUN"
+            ]
+          },
+          "condition": {
+            "type": "string"
+          },
+          "receipt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "consequence",
+          "ownerHypothesis",
+          "severity"
+        ],
+        "properties": {
+          "consequence": {
+            "type": "string"
+          },
+          "ownerHypothesis": {
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "P0",
+              "P1",
+              "P2",
+              "P3"
+            ]
+          },
+          "reproduction": {
+            "type": "string"
+          },
+          "failingOracle": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "standing": {
+      "enum": [
+        "NOT_OBSERVED",
+        "APPARATUS_ONLY",
+        "PROTOTYPED_LOCAL",
+        "SUPPORTED_WITHIN_SCOPE",
+        "INDEPENDENTLY_VERIFIED_WITHIN_SCOPE",
+        "CONTRADICTED",
+        "INCONCLUSIVE"
+      ]
+    },
+    "knownLimitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "humanClaims": {
+      "type": "object",
+      "properties": {
+        "fun": {
+          "const": "UNKNOWN"
+        },
+        "immersion": {
+          "const": "UNKNOWN"
+        },
+        "believability": {
+          "const": "UNKNOWN"
+        },
+        "detectability": {
+          "const": "UNKNOWN"
+        },
+        "cueUsefulness": {
+          "const": "UNKNOWN"
+        },
+        "fairness": {
+          "const": "UNKNOWN"
+        },
+        "comprehension": {
+          "const": "UNKNOWN"
+        }
+      },
+      "additionalProperties": false
+    },
+    "scopePressureProposals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "blockedActiveClosure",
+          "exactCandidateOrCondition",
+          "failingOracle",
+          "attemptedExistingCarrier",
+          "whyExistingCarrierIsInsufficient",
+          "proposedCapability",
+          "stableInput",
+          "stableOutput",
+          "distinctFailureModes",
+          "distinctOracle",
+          "proposedOwnerOrFront",
+          "scopeDelta",
+          "revertOrStopCondition"
+        ],
+        "properties": {
+          "blockedActiveClosure": {
+            "type": "string",
+            "minLength": 1
+          },
+          "exactCandidateOrCondition": {
+            "type": "string",
+            "minLength": 1
+          },
+          "failingOracle": {
+            "type": "string",
+            "minLength": 1
+          },
+          "attemptedExistingCarrier": {
+            "type": "string",
+            "minLength": 1
+          },
+          "whyExistingCarrierIsInsufficient": {
+            "type": "string",
+            "minLength": 1
+          },
+          "proposedCapability": {
+            "type": "string",
+            "minLength": 1
+          },
+          "stableInput": {
+            "type": "string",
+            "minLength": 1
+          },
+          "stableOutput": {
+            "type": "string",
+            "minLength": 1
+          },
+          "distinctOracle": {
+            "type": "string",
+            "minLength": 1
+          },
+          "proposedOwnerOrFront": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scopeDelta": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revertOrStopCondition": {
+            "type": "string",
+            "minLength": 1
+          },
+          "distinctFailureModes": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "boardCollaboration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "topic",
+        "rootClientMessageId",
+        "firstVerdictFrozenBeforePeerRead",
+        "posts",
+        "consumedMessages"
+      ],
+      "properties": {
+        "topic": {
+          "const": "game-e2e:veilwild-r1:production-r1"
+        },
+        "rootClientMessageId": {
+          "const": "veilwild-r1-production-r1-board-root-859e3ac"
+        },
+        "firstVerdictFrozenBeforePeerRead": {
+          "const": true
+        },
+        "posts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "clientMessageId",
+              "kind",
+              "purpose"
+            ],
+            "properties": {
+              "clientMessageId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "kind": {
+                "enum": [
+                  "interface",
+                  "question",
+                  "proposal",
+                  "warning",
+                  "blocker",
+                  "repair",
+                  "artifact",
+                  "friction",
+                  "handoff",
+                  "consumption-ack"
+                ]
+              },
+              "purpose": {
+                "type": "string",
+                "minLength": 1
+              },
+              "replyToClientMessageId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "consumedMessages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "clientMessageId",
+              "howRevalidated"
+            ],
+            "properties": {
+              "clientMessageId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "howRevalidated": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "workstationUse": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "capability",
+          "carrier",
+          "availabilityVerified",
+          "versionOrIdentity",
+          "purpose",
+          "result"
+        ],
+        "properties": {
+          "capability": {
+            "type": "string",
+            "minLength": 1
+          },
+          "carrier": {
+            "type": "string",
+            "minLength": 1
+          },
+          "availabilityVerified": {
+            "type": "boolean"
+          },
+          "versionOrIdentity": {
+            "type": "string",
+            "minLength": 1
+          },
+          "purpose": {
+            "type": "string",
+            "minLength": 1
+          },
+          "result": {
+            "enum": [
+              "USED_SUCCESSFULLY",
+              "USED_WITH_FRICTION",
+              "UNAVAILABLE",
+              "BLOCKED_BY_AUTHORITY",
+              "NOT_NEEDED"
+            ]
+          },
+          "receipt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "frictionReceipts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "frictionId",
+          "category",
+          "surface",
+          "observedConsequence",
+          "exactCondition",
+          "workaroundOrResolution",
+          "ownerRoute",
+          "severity",
+          "reusableLesson"
+        ],
+        "properties": {
+          "frictionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "enum": [
+              "TOOL_DISCOVERY",
+              "INSTALL_OR_ACQUISITION",
+              "AUTH_OR_LICENSE",
+              "ADMIN_OR_PERMISSION",
+              "NETWORK_OR_DISTRIBUTION",
+              "FORMAT_OR_INTERCHANGE",
+              "DCC_AUTOMATION",
+              "GUI_ONLY_OR_AGENT_OPERABILITY",
+              "VERSION_OR_DRIVER",
+              "PERFORMANCE_OR_RESOURCE",
+              "WORKSTATION_ROUTING",
+              "BUILD_OR_REPRODUCIBILITY",
+              "BOARD_COLLABORATION",
+              "OTHER"
+            ]
+          },
+          "surface": {
+            "type": "string",
+            "minLength": 1
+          },
+          "observedConsequence": {
+            "type": "string",
+            "minLength": 1
+          },
+          "exactCondition": {
+            "type": "string",
+            "minLength": 1
+          },
+          "workaroundOrResolution": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ownerRoute": {
+            "type": "string",
+            "minLength": 1
+          },
+          "severity": {
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              "BLOCKING"
+            ]
+          },
+          "reusableLesson": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidenceRef": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "roundContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "roundId",
+        "roundInputRevision",
+        "pressureSources",
+        "materialDelta",
+        "nextRoundRecommendation"
+      ],
+      "properties": {
+        "roundId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "roundInputRevision": {
+          "type": "string",
+          "minLength": 7
+        },
+        "pressureSources": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "materialDelta": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "nextRoundRecommendation": {
+          "enum": [
+            "CONTINUE_SAME_FRONT",
+            "CONTINUE_WITH_SPLIT",
+            "CONTINUE_WITH_DIFFERENT_OWNERS",
+            "READY_TO_HOLD_THIS_FRONT",
+            "BLOCKED_PENDING_EXTERNAL_EVIDENCE",
+            "BLOCKED_PENDING_AUTHORITY_OR_APPARATUS"
+          ]
+        },
+        "recommendedNextPressure": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "externalEvaluation": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "reference",
+          "authorityClass",
+          "applicability",
+          "criterionUsed",
+          "standing",
+          "exactCondition",
+          "evidenceOrRationale"
+        ],
+        "properties": {
+          "reference": {
+            "type": "string",
+            "minLength": 1
+          },
+          "authorityClass": {
+            "enum": [
+              "INTERNATIONAL_OR_INDUSTRY_STANDARD",
+              "OFFICIAL_PLATFORM_OR_API_SPEC",
+              "OFFICIAL_ENGINE_OR_TOOL_DOC",
+              "ACCESSIBILITY_GUIDELINE",
+              "PEER_REVIEWED_EVIDENCE",
+              "PROFESSIONAL_PRACTICE",
+              "OTHER_AUTHORITATIVE_SOURCE"
+            ]
+          },
+          "applicability": {
+            "type": "string",
+            "minLength": 1
+          },
+          "criterionUsed": {
+            "type": "string",
+            "minLength": 1
+          },
+          "standing": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "PARTIAL",
+              "NOT_APPLICABLE",
+              "INCONCLUSIVE"
+            ]
+          },
+          "exactCondition": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidenceOrRationale": {
+            "type": "string",
+            "minLength": 1
+          },
+          "deviationRationale": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

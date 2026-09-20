@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.station-zero-v3-specialist-token-atlas",
+  "source": "assets/station-zero-v3/rescue-specialists.aseprite",
+  "runtime": "/v3/assets/rescue-specialists.png",
+  "sheet": { "width": 72, "height": 24 },
+  "frames": {
+    "engineer-imani": { "x": 0, "y": 0, "width": 24, "height": 24, "role": "engineer" },
+    "medic-reyes": { "x": 24, "y": 0, "width": 24, "height": 24, "role": "medic" },
+    "security-chen": { "x": 48, "y": 0, "width": 24, "height": 24, "role": "security" }
+  }
+}

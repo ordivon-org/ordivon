@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.r1-direct-play-portfolio-selection",
+  "observedDate": "2026-09-14",
+  "status": "PORTFOLIO_SELECTED_HUMAN_PLAY_NOT_STARTED_PARALLEL_EXPLORATION_ADMITTED",
+  "productSelected": false,
+  "g0Entered": false,
+  "r2Admitted": false,
+  "selectionRule": "information gain + mature grammar + approximately 1-3 hour legibility + realistic lawful access; access convenience only breaks ties after reference value",
+  "localAccess": {
+    "steamRoots": [
+      "C:/Program Files (x86)/Steam",
+      "D:/SteamLibrary"
+    ],
+    "installedLearningReferences": [],
+    "epicInstalledManifestRootPresent": false,
+    "availableGiBApprox": {
+      "wslRoot": 665,
+      "C": 113,
+      "D": 149
+    },
+    "staleSteamManifests": [
+      {
+        "title": "Slay the Spire",
+        "appid": "646570",
+        "manifestPresent": true,
+        "executableBytesObserved": false,
+        "libraryMetadataBytes": 0
+      },
+      {
+        "title": "Mortal Kombat 11",
+        "appid": "976310",
+        "manifestPresent": true,
+        "executableBytesObserved": false,
+        "libraryMetadataBytes": 117602034319
+      }
+    ],
+    "steamCommonDirectoryObservedEmpty": true
+  },
+  "portfolio": [
+    {
+      "order": "P0-A",
+      "title": "Factorio Demo",
+      "versionObserved": "2.0.77",
+      "archetype": "automation_factory",
+      "access": "official_free_public_demo_not_installed",
+      "downloadRequired": true,
+      "purchaseRequired": false,
+      "sessionMinutes": [
+        60,
+        90
+      ],
+      "question": "As automation appears, does player attention shift from manual execution toward bottleneck diagnosis, layout and system redesign?"
+    },
+    {
+      "order": "P0-B",
+      "title": "Slay the Spire",
+      "archetype": "card_deck_strategy + roguelike_run_based",
+      "access": "stale_steam_manifest_executable_bytes_absent_reinstall_and_ownership_check_required",
+      "downloadRequired": true,
+      "purchaseRequired": false,
+      "sessionMinutes": [
+        60,
+        90
+      ],
+      "question": "Does draw/resource/deck composition make card value materially context-dependent, and does failure change later route/deck decisions?"
+    },
+    {
+      "order": "P1-A",
+      "title": "Mortal Kombat 11",
+      "archetype": "fighting_brawler",
+      "access": "stale_steam_manifest_executable_bytes_absent_large_reinstall_and_ownership_check_required",
+      "downloadRequired": true,
+      "purchaseRequired": false,
+      "sessionMinutes": [
+        45,
+        60
+      ],
+      "question": "Do startup/recovery, spacing and defense create legible commitment/punish learning within a short session rather than opaque execution noise?"
+    },
+    {
+      "order": "P1-B",
+      "title": "Candy Crush Saga",
+      "archetype": "mobile_merge_match_casual",
+      "access": "free_client_not_observed_installed_on_pc",
+      "downloadRequired": true,
+      "purchaseRequired": false,
+      "sessionMinutes": [
+        30,
+        45
+      ],
+      "question": "Do goals, blockers and move scarcity materially change evaluation of the same swap grammar and the reason for retry?"
+    }
+  ],
+  "externalSources": [
+    {
+      "url": "https://store.steampowered.com/app/646570/Slay_the_Spire/",
+      "role": "current product/review/feature surface"
+    },
+    {
+      "url": "https://store.steampowered.com/app/976310/Mortal_Kombat_11/",
+      "role": "current product/review/feature surface"
+    },
+    {
+      "url": "https://www.factorio.com/download",
+      "role": "official demo availability and stable version"
+    },
+    {
+      "url": "https://apps.apple.com/us/app/candy-crush-saga/id553834731",
+      "role": "official iOS carrier"
+    }
+  ],
+  "next": "REFERENCE_LANE_FACTORIO_CANARY_REQUIRES_EXPLICIT_DOWNLOAD_AUTHORITY; IN_PARALLEL_GENERATE_COMPETING_PRODUCT_THESES_AND_THROWAWAY_PROTOTYPES",
+  "correction": "Steam app manifests were initially mistaken for installed products; byte-level reconciliation found D:/SteamLibrary/steamapps/common empty. Access standing corrected before commit.",
+  "processCorrection": {
+    "date": "2026-09-14",
+    "directPlayIsGlobalGate": false,
+    "referenceR2IsGlobalPrototypeGate": false,
+    "parallelLanes": [
+      "reference_learning",
+      "product_thesis_generation",
+      "throwaway_product_prototypes",
+      "human_evidence"
+    ],
+    "broadR0Standing": "SATURATED_FOR_CURRENT_DECISION"
+  }
+}

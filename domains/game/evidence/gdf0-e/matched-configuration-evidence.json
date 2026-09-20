@@ -1,0 +1,252 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf0-e-matched-configuration-evidence",
+  "epistemicBoundary": {
+    "purpose": "track matched or quasi-matched interventions that hold substantial parts of a task/scaffold/artifact fixed while changing configuration variables",
+    "evidenceClasses": {
+      "M1": "strong task match: underlying task/scaffold held substantially fixed while a bounded configuration variable is manipulated",
+      "M2": "near match: core task held fixed but several presentation/motivation variables change together",
+      "M3": "same artifact/affordance family with changed objective/practice/rule overlay; useful for enactment/structure, weaker for subjective causal attribution",
+      "M4": "protocol-only/future falsifier: no adequate matched empirical evidence yet"
+    },
+    "doesNotProve": [
+      "one universal Game essence",
+      "that any decorative game element causes PlayMode",
+      "that cultural GameCategory can be reduced to experimental task variables",
+      "subjective PlayExperience for synthetic Agents or nonhuman animals",
+      "scientific novelty of Ordivon configuration syntheses"
+    ]
+  },
+  "interventions": [
+    {
+      "id": "E1-task-switching-game-setting",
+      "evidenceClass": "M2",
+      "source": "Dörrenbächer et al. 2014 Frontiers in Psychology DOI 10.3389/fpsyg.2014.01275",
+      "heldFixed": [
+        "core categorization/task-switching task within training-type comparison",
+        "adaptive feedback availability across low/high motivational settings",
+        "training exposure schedule by design"
+      ],
+      "changed": [
+        "story/frame",
+        "task labels",
+        "reward/progression presentation",
+        "layout/contextualized stimuli",
+        "choice/collection affordances"
+      ],
+      "outcomes": [
+        "high-motivational setting increased willingness/intrinsic interest in additional practice",
+        "task-switching high-motivational setting showed some training/near-transfer performance benefits",
+        "far-transfer gains were limited/non-general"
+      ],
+      "supports": [
+        "same-or-near-same cognitive scaffold can yield different motivational outcomes under changed configuration",
+        "experience/motivation is not determined by bare task demand alone",
+        "configuration effects can be local rather than broad transfer"
+      ],
+      "limits": [
+        "multiple configuration variables changed together, so no one element owns the effect",
+        "children/cognitive-training scope",
+        "game-setting manipulation does not establish GameCategory conversion"
+      ],
+      "predictionStatus": "supports-configuration-causality-not-generic-gamification"
+    },
+    {
+      "id": "E1b-image-annotation-elements",
+      "evidenceClass": "M1",
+      "source": "Mekler et al. 2017 Computers in Human Behavior DOI 10.1016/j.chb.2015.08.048",
+      "heldFixed": [
+        "image annotation task",
+        "basic task goal and content"
+      ],
+      "changed": [
+        "points",
+        "levels",
+        "leaderboard"
+      ],
+      "outcomes": [
+        "game elements increased tag quantity/performance in the tested context",
+        "no significant increase in intrinsic motivation",
+        "no significant increase in competence need satisfaction"
+      ],
+      "supports": [
+        "behavior/performance can change without corresponding intrinsic-motivation change",
+        "game elements are not sufficient for PlayMode/intrinsic motivation",
+        "configuration effects are mediator/outcome specific"
+      ],
+      "limits": [
+        "non-game work-like annotation task",
+        "tested elements were mainly points/levels/leaderboards",
+        "absence of intrinsic-motivation effect in this implementation is not universal null effect"
+      ],
+      "predictionStatus": "falsifies-monotonic-more-game-elements-more-play"
+    },
+    {
+      "id": "E1c-specific-element-configurations",
+      "evidenceClass": "M1",
+      "source": "Sailer et al. 2017 Computers in Human Behavior DOI 10.1016/j.chb.2016.12.033",
+      "heldFixed": [
+        "online simulation/work task family"
+      ],
+      "changed": [
+        "badges/leaderboards/performance graphs",
+        "avatars/meaningful story/teammates"
+      ],
+      "outcomes": [
+        "performance-related elements affected competence satisfaction and perceived task meaningfulness",
+        "avatars/story/teammates affected social relatedness",
+        "decision freedom was not affected as intended"
+      ],
+      "supports": [
+        "different configuration elements route through different psychological mediators",
+        "gamification is not a unitary causal treatment"
+      ],
+      "limits": [
+        "does not establish category transition to Game",
+        "bundled element configurations constrain attribution"
+      ],
+      "predictionStatus": "supports-mediator-specific-configuration-effects"
+    },
+    {
+      "id": "E3-external-reward-same-activity",
+      "evidenceClass": "M1",
+      "source": "Deci 1971 JPSP DOI 10.1037/h0030644; Lepper, Greene & Nisbett 1973 JPSP DOI 10.1037/h0035519",
+      "heldFixed": [
+        "target puzzle/activity across reward conditions within each experiment"
+      ],
+      "changed": [
+        "expected external reward / monetary reward",
+        "reward expectation and participation purpose framing"
+      ],
+      "outcomes": [
+        "classic experiments reported reduced subsequent free-choice/intrinsic-interest measures after expected/contingent external reward under tested conditions",
+        "verbal/positive feedback could show a different direction in Deci's experiments"
+      ],
+      "supports": [
+        "participation purpose/external stake can alter later participant relation to an activity without changing its basic task mechanics",
+        "ExternalStake and ProcessValue cannot be collapsed"
+      ],
+      "limits": [
+        "classic reward literature contains boundary conditions and contrary studies",
+        "reward effect direction depends on reward type/context and cannot be universalized",
+        "intrinsic-interest manipulation is Human motivation evidence, not Game-category evidence"
+      ],
+      "predictionStatus": "supports-participant-relation-causality-with-context-sensitive-direction"
+    },
+    {
+      "id": "E5-minecraft-free-vs-directed",
+      "evidenceClass": "M3",
+      "source": "Clemenson et al. 2019 Frontiers in Behavioral Neuroscience DOI 10.3389/fnbeh.2019.00057",
+      "heldFixed": [
+        "Minecraft engine/core controls",
+        "within comparison families, substantially similar building/exploration affordances and training duration"
+      ],
+      "changed": [
+        "free versus directed activity",
+        "assigned complex construction objectives versus self-directed building",
+        "building versus exploration emphasis"
+      ],
+      "outcomes": [
+        "groups interacted with the same game technology in materially different movement/building patterns",
+        "directed building and exploration conditions differed in downstream hippocampal-associated memory outcomes from free building"
+      ],
+      "supports": [
+        "same artifact does not determine one enactment or evaluation topology",
+        "objective/directiveness can reshape behavior without changing the base game artifact",
+        "free/open play should not be modeled as absence of all structure"
+      ],
+      "limits": [
+        "conditions also changed maps/resources/activity type in parts of the factorial design",
+        "study targeted memory enrichment, not PlayExperience",
+        "no claim that directed or free condition is more game-like"
+      ],
+      "predictionStatus": "supports-objective-practice-effects-over-same-artifact-family"
+    },
+    {
+      "id": "E2-speedrun-rule-overlay",
+      "evidenceClass": "M3",
+      "source": "Speedrun.com current official moderation/category rule practice; structural evidence, not controlled human experiment",
+      "heldFixed": [
+        "base executable game artifact"
+      ],
+      "changed": [
+        "category goal",
+        "timing start/end semantics",
+        "allowed/disallowed techniques",
+        "version/verification requirements"
+      ],
+      "outcomes": [
+        "one artifact supports multiple distinct effective rule/practice configurations",
+        "valid run identity and optimal strategy depend on overlay rules"
+      ],
+      "supports": [
+        "GameArtifact != CompleteGameStructure",
+        "PlayPractice/community rule authority can be constitutive rather than metadata"
+      ],
+      "limits": [
+        "not a randomized experiment",
+        "does not isolate subjective experience"
+      ],
+      "predictionStatus": "supports-same-artifact-different-effective-structure"
+    },
+    {
+      "id": "E4-playful-vs-training-perturbation",
+      "evidenceClass": "M4",
+      "source": "future protocol informed by comparative play and training-for-unexpected literature",
+      "heldFixed": [
+        "same physical perturbation distribution",
+        "same recovery difficulty",
+        "same participant capability"
+      ],
+      "changed": [
+        "playful reciprocal/social framing versus explicit training optimization",
+        "partner signals/role reversal versus performance instruction"
+      ],
+      "outcomes": [],
+      "supports": [],
+      "limits": [
+        "no sufficiently clean matched empirical study admitted yet"
+      ],
+      "predictionStatus": "unresolved-protocol-only"
+    },
+    {
+      "id": "E6-human-vs-synthetic-execution",
+      "evidenceClass": "M4",
+      "source": "future paired protocol; current Agent evidence is structural only",
+      "heldFixed": [
+        "same GameStructure",
+        "same observation/action interface where feasible",
+        "comparable policy-performance criteria"
+      ],
+      "changed": [
+        "human participant versus synthetic policy/Agent"
+      ],
+      "outcomes": [],
+      "supports": [
+        "current theory predicts comparable structural competence can coexist with asymmetric access to PlayExperience evidence"
+      ],
+      "limits": [
+        "subjective comparison is not symmetric because synthetic phenomenology is not established",
+        "protocol tests epistemic separation, not consciousness"
+      ],
+      "predictionStatus": "unresolved-epistemic-protocol"
+    }
+  ],
+  "c12Audit": {
+    "originalHypothesis": "Game-specificity, if mechanistically real, may arise at configuration level rather than from one hidden component",
+    "supportedNarrowClaims": [
+      "holding substantial task structure fixed, configuration changes can alter motivation, behavior, performance, or participant relation",
+      "the direction and target of configuration effects depend on which elements/mediators change",
+      "adding game elements is not sufficient to produce intrinsic motivation/PlayMode",
+      "holding the artifact fixed, rule/practice overlays can alter effective GameStructure",
+      "holding the artifact family fixed, objective/directiveness can alter enactment"
+    ],
+    "notSupported": [
+      "one monotonic ludic-configuration score",
+      "more game elements implies more play",
+      "configuration alone determines GameCategory",
+      "a complete causal model from configuration to PlayExperience"
+    ],
+    "disposition": "retain-as-N1-empirically-pressured-configuration-causality-framework; do-not-promote-to-N2-novel-hypothesis"
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game-cs2-03-prehuman-browser-gate",
+  "observedDate": "2026-09-14",
+  "candidate": "cs2-03-upstream-random-buildcraft",
+  "standing": "PASS_PREHUMAN_BROWSER_GATE",
+  "playwright": {
+    "version": "1.62.0",
+    "chromiumExecutable": "/root/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome",
+    "runtimeJobId": "job-01a09eae-6a66-7781-890e-5b37d4309020",
+    "initialRuntimeJobId": "job-01a09ea2-ddfe-7610-a18f-3264485b2e0f",
+    "standing": "PASS_DETERMINISTIC_BROWSER_REGRESSION",
+    "runs": 4,
+    "choices": 16,
+    "schedulesObserved": ["A", "B"],
+    "initialExportBytes": 20671,
+    "initialSessionDigest": "sha256:103efb12f07d36579cd5f865cd10446380fa3c6f408e81f944cdbbb21c8bcb29"
+  },
+  "browserUse": {
+    "packageVersion": "0.13.10",
+    "harnessCliVersion": "0.1.13",
+    "discoveryJobId": "job-01a09ea6-afec-74b2-8490-990be683e161",
+    "transitionJobId": "job-01a09ea7-ba97-7283-858d-7d3477a8af4a",
+    "repeatabilityJobId": "job-01a09eae-270f-7093-9305-4888f6f74046",
+    "standing": "PASS_BOUNDED_AGENTIC_PERCEPTION_ACTION",
+    "conditionsObservedAcrossProbes": ["DOWNSTREAM", "UPSTREAM"],
+    "observed": [
+      "study page located among multiple tabs",
+      "Begin button discovered through accessibility tree",
+      "button box derived from backendDOMNodeId",
+      "Begin clicked through browser-use coordinate action",
+      "changed page re-observed",
+      "both visible and concealed timing conditions observed across bounded probes",
+      "three module controls with stats discovered"
+    ],
+    "fullRunStressAttempt": {
+      "runtimeJobId": "job-01a09ea8-3106-7d91-a196-72eb2cec11c0",
+      "standing": "TIMED_OUT_NOT_AN_ADMISSION_GATE",
+      "reason": "DEADLINE_EXCEEDED",
+      "boundary": "Full deterministic 4x4 repetition belongs to Playwright; Browser Use is retained for perception/exploration."
+    }
+  },
+  "validator": {
+    "runtimeJobId": "job-01a09eaa-aeb0-76c0-86ee-d730e650343b",
+    "structureComplete": true,
+    "structuralDefects": [],
+    "humanMechanismStanding": "UNASSESSED_C0_ONLY",
+    "conditionEffectStanding": "NOT_ASSESSED_AT_C0"
+  },
+  "humanEvidence": "UNOBSERVED",
+  "productStanding": "NOT_AUTHORIZED",
+  "g0": false,
+  "boundary": "This acceptance covers only pre-Human browser mechanics and agentic page perception. It is not Human Player Value evidence."
+}

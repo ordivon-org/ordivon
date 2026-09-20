@@ -1,0 +1,45 @@
+import fs from 'node:fs';
+
+const data = JSON.parse(fs.readFileSync('evidence/game-post-gpr-domain-coverage-c3/dynamics-emergence-probes.json', 'utf8'));
+const checks = [];
+const check = (name, condition) => checks.push({ name, pass: Boolean(condition) });
+
+check('candidate-c3', data.candidate.includes('Dynamics / Emergence'));
+check('gpr8-not-admitted', data.routeAdmission.gpr8 === false);
+check('numbered-foundation-not-admitted', data.routeAdmission.newNumberedFoundation === false);
+check('next-gpr-unknown', data.routeAdmission.nextGpr === 'UNKNOWN');
+check('next-practical-unknown', data.routeAdmission.nextPracticalRoute === 'UNKNOWN');
+check('next-foundation-unknown', data.routeAdmission.nextFoundation === 'UNKNOWN');
+check('candidate-deletions-eight', data.candidateDeletion.length >= 8);
+check('dynamics-primitive-rejected', data.candidateDeletion.some(x => x.candidate === 'Dynamics' && x.verdict.includes('REJECT')));
+check('emergence-game-primitive-rejected', data.candidateDeletion.some(x => x.candidate === 'Emergence' && x.verdict.includes('REJECT')));
+check('feedback-loop-rejected', data.candidateDeletion.some(x => x.candidate === 'FeedbackLoop' && x.verdict.includes('REJECT')));
+check('resilience-rejected-as-game-primitive', data.candidateDeletion.some(x => x.candidate === 'ResilienceFragility' && x.verdict.includes('REJECT')));
+check('fourteen-probes', data.probes.length >= 14);
+check('mechanics-dynamics-separated', data.probes.some(x => x.id === 'C3-F1' && x.result.includes('Mechanics != Dynamics')));
+check('macro-regime-gap-established', data.probes.some(x => x.id === 'C3-F2' && x.result.includes('MacroRegimeDescription')));
+check('reachability-separated', data.probes.some(x => x.id === 'C3-F3' && x.result.includes('ReachableRegion')));
+check('ownership-subtraction', data.probes.some(x => x.id === 'C3-F8' && x.result.includes('without Game semantics')));
+check('playable-dynamics-reduced-to-player-access', data.probes.some(x => x.id === 'C3-F9' && x.reduction.some(v => v.includes('Playable(X)=PlayerCausalAccess(X)'))));
+check('complexity-not-depth', data.probes.some(x => x.id === 'C3-F10' && x.result.includes('GameplayDepth')));
+check('adaptive-dynamics-kept-separate', data.probes.some(x => x.id === 'C3-F13' && x.result.includes('AuthorityToModifyDynamics')));
+check('emergence-not-outcome-similarity', data.probes.some(x => x.id === 'C3-F14' && x.result.includes('EmergenceByIdentity')));
+check('systemic-view-survives-practically', data.residualPattern.status.includes('RESEARCH_PRACTICAL_ABSTRACTION'));
+check('systemic-view-has-player-access', data.residualPattern.outputs.includes('PlayerCausalAccessToRelevantRegimeDistinctions'));
+check('world-ownership-explicit', Array.isArray(data.ownership.WorldGeneralDynamics) && data.ownership.WorldGeneralDynamics.length >= 5);
+check('game-ownership-explicit', Array.isArray(data.ownership.Game) && data.ownership.Game.some(v => v.includes('Playable(Dynamics)')));
+check('no-game-foundation-survives', data.foundationVerdict === 'NO_INDEPENDENT_GAME_FOUNDATION_RESPONSIBILITY_SURVIVES');
+check('strong-practical-gap-no-gpr', data.practicalVerdict.includes('NO_GPR_ADMISSION'));
+check('agent-era-no-new-primitive', data.agentEraVerdict.includes('NO_AGENT_SPECIFIC_EMERGENCE_PRIMITIVE'));
+check('all-reopen-negative', Object.values(data.reopenAudit).every(v => v === 'NOT_TRIGGERED'));
+check('c1-still-survives', data.relativeUpdate.C1.startsWith('SURVIVES'));
+check('c2-reduced', data.relativeUpdate.C2.startsWith('REDUCED'));
+check('c3-reduced', data.relativeUpdate.C3.startsWith('REDUCED'));
+check('classification-cross-cutting', data.finalClassification.startsWith('CROSS_CUTTING'));
+check('classification-not-foundation', data.finalClassification.includes('NOT_GENUINELY_NEW_GAME_FOUNDATION'));
+check('classification-not-route-selected', data.finalClassification.includes('NOT_ROUTE_SELECTED'));
+
+for (const c of checks) console.log(`${c.pass ? 'PASS' : 'FAIL'} ${c.name}`);
+const failed = checks.filter(c => !c.pass);
+console.log(`SUMMARY ${checks.length - failed.length}/${checks.length} passed`);
+if (failed.length) process.exit(1);

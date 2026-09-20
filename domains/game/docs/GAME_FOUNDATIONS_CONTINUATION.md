@@ -1,0 +1,220 @@
+---
+schema_version: 1
+id: game.foundations-research.continuation
+title: Ordivon Game Foundations Research Continuation Handoff
+type: handoff
+profile: research
+lifecycle: active
+source_role: canonical
+visibility: public
+owners:
+  - ordivon-game
+audience:
+  - designer
+  - researcher
+  - builder
+  - agent
+updated: 2026-08-17
+summary: Exact continuity handoff after R1–R29 and provisional Game Foundations v1 freeze; the next product frontier is the external-reference front-half profile, while prior Pre-G0 direction search remains supporting research/apparatus rather than product-selection authority.
+evidence_status: derived
+readiness: READY
+applies_to:
+  - ordivon-game
+related:
+  - game.foundations-research.r29
+  - game.foundations-research.map
+  - game.development-model
+  - game.core-research.reset
+---
+# Ordivon Game Foundations Research Continuation Handoff
+
+## Read first
+
+1. [`GAME_FOUNDATIONS_RESEARCH_R29.md`](GAME_FOUNDATIONS_RESEARCH_R29.md) — canonical whole-corpus synthesis and Game Foundations v1 freeze.
+2. [`GAME_FOUNDATIONS_RESEARCH_MAP.md`](GAME_FOUNDATIONS_RESEARCH_MAP.md) — compact R1–R29 map.
+3. [`DEVELOPMENT_MODEL.md`](DEVELOPMENT_MODEL.md) — sole G0–G8 authority.
+4. Deep rounds R17–R28 only as needed for domain-specific semantics/falsifiers.
+
+## Stable global boundary
+
+```text
+AI Game != Agent World
+Agent != LLM
+Generation != gameplay by itself
+Research rounds != G0–G8
+Foundation closure != metaphysical completeness
+```
+
+## Current status
+
+```text
+R1–R29: complete
+Game Foundations v1: provisionally frozen
+Known forced independent foundation gap: none in current test set
+Product selected: no
+```
+
+Exact next product frontier:
+
+```text
+External-reference front half
+Reference class → teardown → reproduce → Human playtest → controlled differentiation → G0
+```
+
+See [`GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md`](GAME_FRONT_HALF_EXTERNAL_REFERENCE_PROFILE.md). The earlier Pre-G0 Game Direction Search remains a supporting coverage/falsifier programme only.
+
+## Game Foundations v1
+
+```text
+F1 Entity / Reference
+F2 State
+F3 Relation
+F4 Transition / Constraint
+F5 Time
+F6 Authority / Provenance
+F7 Observation / Representation
+F8 Evaluation / Motivation
+F9 Action / Capability / Policy / Control
+```
+
+These are semantic coordinate families, not mandatory schemas/services.
+
+## Derived domain views
+
+Retain as typed views/compositions where useful:
+
+```text
+World / Subject
+History / Memory / Learning
+Resource / Economy
+Space / Topology
+Information / Uncertainty / Risk
+Agency / Power / Strategy
+Creation / Authorship / Narrative / Generation
+Identity / Self-model / Personality
+Relationship / Institution / SocialNorm
+Emotion / Affect
+Culture / SharedMeaning / Legitimacy / CollectiveMemory
+```
+
+```text
+Primitive != Important
+Derived != Disposable
+```
+
+## Player/design level
+
+```text
+PlayerValue
+Fantasy / target experience
+Fun / engagement / satisfaction / compulsion boundary
+Tension / pacing
+Depth / breadth / difficulty
+Causal legibility
+Playable(X)
+```
+
+R29 generalizes:
+
+```text
+Playable(X) = PlayerCausalAccess(X)
+```
+
+Relevant distinctions in X must be sufficiently observable/inferable, stable/modelable and consequential for participant action/planning/interpretation/expression.
+
+## Cross-family compression
+
+```text
+all domain Topology views → TypedTopology
+all XCausality views → DomainCausality counterfactual test
+all XAuthority views → scoped DomainAuthority
+R22/R23/R25/R27 XContract views → typed DomainContract
+all Playable-X views → PlayerCausalAccess(X)
+all generated domain debts → PromotionDebt pattern + domain-specific invariants
+```
+
+## Canonical ownership corrections
+
+```text
+R12 → Feedback / Causal Legibility; R27 owns Learning ontology.
+R13 → History / Persistence; R23 owns full Time semantics; R27 refines Memory/Learning.
+R15 historical “Norm = SharedExpectation + DistributedEnforcement” → SocialNorm, not all normative evaluation.
+R11 → high-level Agency view; R21 owns fine Control semantics.
+R14 Resource/optionality → contextual analytical role, not universal ontology.
+Meaning must be qualified when ambiguous: PlayerMeaning / NarrativeMeaning / IdentityMeaning / SymbolicMeaning / SharedMeaning.
+```
+
+## Foundation Admission Test
+
+A new independent foundation is justified only when it survives:
+
+```text
+counterfactual separability
+semantic irreducibility at the chosen level
+cross-form portability
+authority clarity
+implementation independence
+deletion cost
+level test (not merely implementation/view/metric)
+```
+
+## Foundation Reopen Conditions
+
+Reopen only when a concrete case shows one of:
+
+```text
+1. A player-relevant counterfactual cannot be represented without an ad-hoc new primitive.
+2. Current coordinates become systematically contradictory under real evidence.
+3. A derived view repeatedly needs authority/state semantics absent from F1–F9.
+4. A new medium/input/social form exposes a missing participant-coupling distinction.
+5. Generative/persistent-Agent evidence exposes a provenance/identity/state distinction not captured by current authority + views.
+```
+
+Do not reopen because a domain noun sounds important.
+
+## Residual-domain result
+
+Current falsification found no forced new independent coordinate for:
+
+```text
+morality / ethics
+language
+politics
+law
+religion
+education
+technology
+ideology
+```
+
+They can currently be reconstructed as typed combinations/views of F1–F9 and canonical derived structures. This remains falsifiable.
+
+## Product-discovery objective after the front-half correction
+
+Do not begin by selecting among internally generated directions. Begin with a small, stratified set of successful mature **comparable games** and learn their proven player-facing patterns through direct play, teardown and bounded reproduction.
+
+```text
+reference-class evidence
+→ observed product facts
+→ causal teardown hypotheses
+→ lawful baseline reproduction with original expression
+→ appropriate Human baseline validation
+→ controlled subtraction / variation / recombination
+→ differentiated thesis
+→ canonical G0
+```
+
+The old GameForm atlas, Agent-role decoupling, D-series cheap falsifiers and A/D/I playable apparatus remain available to detect omissions, construct controls and attack false transfers. They do not rank genres or choose the product. Runtime Agent participation remains `none` unless a later product-specific causal comparison proves a cheaper baseline insufficient.
+
+## Product-selection guardrail
+
+```text
+Game Foundations v1 frozen
+!=
+Station Zero selected
+!= Casefile selected
+!= Agent society selected
+!= SillyTavern-like selected
+```
+
+Technical maturity is evidence about implementation feasibility, not product value.

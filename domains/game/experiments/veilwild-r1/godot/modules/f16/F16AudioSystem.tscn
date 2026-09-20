@@ -1,0 +1,10 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://modules/f16/audio_system.gd" id="1_audio_system"]
+[ext_resource type="Script" path="res://modules/f16/interactive_audio_router.gd" id="2_router"]
+
+[node name="F16AudioSystem" type="Node3D" unique_id=937233062]
+script = ExtResource("1_audio_system")
+
+[node name="InteractiveAudioRouter" type="Node" parent="." unique_id=565339277]
+script = ExtResource("2_router")

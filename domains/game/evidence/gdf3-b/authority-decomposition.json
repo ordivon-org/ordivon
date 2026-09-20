@@ -1,0 +1,207 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf3-b-authority-decomposition",
+  "round": "GDF3-B",
+  "status": "research-evidence",
+  "compressionBaseline": {
+    "roleAssignment": "occupant ↔ role relation bound to scope/currentness/provenance",
+    "scopedAuthorityEdge": "typed relation saying which holder may perform which operation over which object/consequence, under which scope/condition/time/source, and whether the result is binding",
+    "contributionEdge": "non-identity relation carrying evidence/advice/proposal/control contribution into another decision/action process",
+    "adjudicationView": "case-level evidence/interpretation/ruling/review projection over existing state/relation/rule/authority semantics"
+  },
+  "candidateAuthorityEdgeFields": [
+    "holderOrRoleAssignment",
+    "operation",
+    "objectOrConsequenceDomain",
+    "scope",
+    "activationCondition",
+    "validTimeOrCurrentness",
+    "bindingStatus",
+    "authoritySource",
+    "provenance"
+  ],
+  "operationsUnderTest": [
+    "observe_or_receive_evidence",
+    "advise_or_recommend",
+    "propose_candidate",
+    "decide_case_or_rule_on_event",
+    "execute_or_enforce_decision",
+    "verify_or_certify_history_claim",
+    "review_or_override_prior_decision",
+    "change_general_rule_or_policy",
+    "change_content_or_game_dynamics",
+    "appoint_replace_or_delegate_authority",
+    "allocate_access_or_eligibility"
+  ],
+  "strongSeparations": [
+    "RoleAssignment != AuthorityGrant",
+    "EvidenceContribution != DecisionAuthority",
+    "Advice != Delegation",
+    "Recommendation != FinalRuling",
+    "Delegation != Replacement",
+    "CaseRulingAuthority != RuleChangeAuthority",
+    "Ruling != Enforcement",
+    "Verification != OriginalWorldHistory",
+    "ReviewAuthority != FirstInstanceAuthority",
+    "FinalAuthority is scope/time/operation-relative, not a universal rank",
+    "MultipleFinalAuthorities can coexist on disjoint or explicitly shared scopes",
+    "AuthorityTopology need not be a tree or total order",
+    "AggregateContribution != member-level binding authority",
+    "RoleConflict != semantic impossibility; it is a practice/integrity constraint over composed grants",
+    "Human vs synthetic substrate does not determine authority validity"
+  ],
+  "boundaryCases": [
+    {
+      "id": "B1",
+      "case": "IFAB referee + VAR",
+      "heldFixed": ["incident", "replay evidence"],
+      "varies": ["recommendation/input holder vs final decision holder"],
+      "result": "evidence/review contribution is separable from binding case-ruling authority"
+    },
+    {
+      "id": "B2",
+      "case": "IFAB referee replacement after incapacity",
+      "heldFixed": ["match identity", "laws"],
+      "varies": ["current role occupant"],
+      "result": "RoleAssignment/current authority can change without changing Role identity or Game identity; replacement is sourced by competition rule"
+    },
+    {
+      "id": "B3",
+      "case": "IFAB review window/currentness",
+      "heldFixed": ["earlier incident"],
+      "varies": ["whether restart/end conditions have passed"],
+      "result": "ability to revise a decision is temporally/conditionally scoped; authority possession alone is insufficient"
+    },
+    {
+      "id": "B4",
+      "case": "Magic floor judge → Head Judge appeal",
+      "heldFixed": ["game/tournament case"],
+      "varies": ["decision stage/authority holder"],
+      "result": "review/override authority is a typed relation over a prior ruling, not merely higher generic influence"
+    },
+    {
+      "id": "B5",
+      "case": "Magic Head Judge temporary duty transfer",
+      "heldFixed": ["tournament", "Head Judge role responsibilities"],
+      "varies": ["temporary current holder for duties"],
+      "result": "delegation/temporary transfer changes current grant or assignment without changing underlying role ontology"
+    },
+    {
+      "id": "B6",
+      "case": "Magic Tournament Organizer may replace Head Judge in exceptional circumstances",
+      "heldFixed": ["tournament case authority type"],
+      "varies": ["appointment/replacement authority"],
+      "result": "authority to appoint/replace an adjudicator is distinct from authority to adjudicate the case"
+    },
+    {
+      "id": "B7",
+      "case": "Multiple Magic Head Judges / flights",
+      "heldFixed": ["role type"],
+      "varies": ["scope partition or simultaneous holders"],
+      "result": "there need not be one globally maximal authority node; multiple equally final authorities can exist under declared scopes"
+    },
+    {
+      "id": "B8",
+      "case": "Magic spectator reports suspected violation",
+      "heldFixed": ["spectator has no player action/judge ruling authority"],
+      "varies": ["allowed evidence-escalation channel by REL"],
+      "result": "a role may contribute evidence or trigger process without receiving adjudication authority"
+    },
+    {
+      "id": "B9",
+      "case": "Coach advice under allowed vs prohibited coaching rules",
+      "heldFixed": ["advice content", "coach competence"],
+      "varies": ["practice rule admitting the advice channel"],
+      "result": "causal influence and legitimate contribution depend on current rule/scope; advice does not transfer player action authority"
+    },
+    {
+      "id": "B10",
+      "case": "Audience aggregation",
+      "heldFixed": ["individual votes/contributions"],
+      "varies": ["aggregation rule"],
+      "result": "binding Game effect can belong to aggregation/admission rule while individual members possess only contribution rights"
+    },
+    {
+      "id": "B11",
+      "case": "TTRPG multiple DMs / divided responsibilities",
+      "heldFixed": ["DM role family"],
+      "varies": ["occupant and domain assignment"],
+      "result": "same role label does not determine unique authority scope; authority can be partitioned among several occupants"
+    },
+    {
+      "id": "B12",
+      "case": "Speedrun post-hoc verification",
+      "heldFixed": ["recorded historical run trajectory"],
+      "varies": ["practice verification/certification result"],
+      "result": "practice-record validity may change without rewriting original World/GameInstance history"
+    },
+    {
+      "id": "B13",
+      "case": "Rule author vs case adjudicator",
+      "heldFixed": ["current case evidence"],
+      "varies": ["who can change general rule vs who can bind current case under current rule"],
+      "result": "RuleChangeAuthority != CaseRulingAuthority"
+    },
+    {
+      "id": "B14",
+      "case": "Ruling vs enforcement split",
+      "heldFixed": ["binding decision"],
+      "varies": ["who records/applies score, sanction, restart, access change"],
+      "result": "decision authority and consequence execution can be separately allocated"
+    },
+    {
+      "id": "B15",
+      "case": "Adaptive experience manager",
+      "heldFixed": ["player identity"],
+      "varies": ["management policy/authorized game-change domain"],
+      "result": "authority to adapt content/dynamics is distinct from Player GameAction and case adjudication"
+    },
+    {
+      "id": "B16",
+      "case": "Role-fused Agent player + adjudicator",
+      "heldFixed": ["single Entity/model instance"],
+      "varies": ["whether both authority grants are co-located or separated"],
+      "result": "conflict-of-interest is a constraint over grant composition, not evidence for a new Entity/Role primitive"
+    },
+    {
+      "id": "B17",
+      "case": "Synthetic adjudicator replaces human adjudicator under same contract",
+      "heldFixed": ["role scope", "rule source", "decision/evidence contract"],
+      "varies": ["human vs synthetic implementation"],
+      "result": "authority semantics need not depend on biological substrate; legitimacy/currentness still require practice authority"
+    },
+    {
+      "id": "B18",
+      "case": "Rule version/patch changes current authority/evaluation",
+      "heldFixed": ["same named role", "same action/evidence"],
+      "varies": ["current ruleset/version"],
+      "result": "authority and ruling validity are version/currentness-bound"
+    }
+  ],
+  "compressionResults": {
+    "RoleAssignment": "RETAIN_DERIVED_RELATION",
+    "RoleCausalAccessProfile": "COMPRESS_TO_QUERY_OVER_TYPED_EDGES",
+    "ParticipationAuthorityTopology": "COMPRESS_TO_DERIVED_PROJECTION",
+    "AuthorityHierarchy": "REJECT_TREE_OR_SCALAR_MODEL",
+    "DelegationPrimitive": "REJECT_AS_AUTHORITY_EDGE_MUTATION_OR_DERIVATION",
+    "AggregationPrimitive": "REJECT_AS_ORDINARY_CONTRIBUTION_PLUS_TRANSITION",
+    "RoleConflictPrimitive": "REJECT_AS_CONSTRAINT_OVER_COMPOSED_GRANTS",
+    "FinalAuthorityScalar": "REJECT",
+    "ScopedAuthorityEdge": "RETAIN_AS_RESEARCH_FORM_OF_EXISTING_DOMAIN_AUTHORITY",
+    "AdjudicationProcessFamily": "RETAIN_FOR_GDF3_C",
+    "ReviewContestabilityView": "RETAIN_FOR_GDF3_C",
+    "AuthoritySeparationIntegrityConstraint": "RETAIN_AS_DERIVED_PRACTICE_CONSTRAINT"
+  },
+  "foundationReopen": {
+    "r29F1ToF9": false,
+    "gdf0": false,
+    "gdf1": false,
+    "gdf2": false
+  },
+  "selection": {
+    "participationAuthorityTopologyIndependentResponsibility": false,
+    "reason": "all tested participation/authority counterfactuals reconstruct through existing Role/Relation/Time/Authority/Provenance plus GDF1 contribution/action semantics and case-level decision transitions",
+    "survivingDeepResidual": "Adjudication / Interpretation / Review / Contestability",
+    "nextRound": "GDF3-C — Adjudication / Interpretation / Review / Contestability"
+  }
+}

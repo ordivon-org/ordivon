@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf1-f-handoff-map",
+  "nextBranch": "GDF2 Challenge / Difficulty / Failure / Mastery",
+  "handoffs": [
+    {
+      "owner": "GDF2 Challenge / Difficulty / Failure / Mastery",
+      "consume": ["SkillProfile", "SkillRelevantVariableSet", "Capability != Expression", "EntryRequirementRegion", "SkillExpressionEnvelope", "SaturationAttribution"],
+      "questions": [
+        "How should functional challenge be represented as Game/task condition × SkillProfile × current information/control configuration?",
+        "How do failure probability, recoverability, learning opportunity and PlayerValue relate without collapsing into one difficulty scalar?",
+        "How do entry requirements and expression/saturation create skill floor/ceiling phenomena?",
+        "How does assistance alter challenge now versus mastery later?"
+      ]
+    },
+    {
+      "owner": "GDF3 Game Feel / Feedback / Sensorimotor Coupling",
+      "consume": ["GameActionContract", "ControlMapping", "ControlLocus", "ActionCouplingProfile", "SensorEnvelope != EffectorEnvelope", "ObjectiveControl != SenseOfAgency"],
+      "questions": ["Which latency/feedback/control-response relations produce perceptible action coupling and which are Media/Human effects?"]
+    },
+    {
+      "owner": "GDF4 Time / Rhythm / Pacing",
+      "consume": ["ProbeTransformation", "SkillRelevantVariableSet", "ReactionTime != TimingSkill", "TechniqueFamily optional view"],
+      "questions": ["Which temporal variables become action/skill relevant and how do windows, phase, cadence and anticipation interact?"]
+    },
+    {
+      "owner": "GDF5 Space / Level / Navigation",
+      "consume": ["ControlLocus", "ControlAccessProfile", "ActionCouplingProfile", "morphology/reach/collision roles"],
+      "questions": ["How do spatial topology, body/tool scale, traversal affordance and information access shape playable possibility?"]
+    },
+    {
+      "owner": "Human",
+      "consume": ["motor adaptation/learning mechanism", "internal predictive models", "optimal feedback", "motor schema/program", "body schema", "peripersonal space", "body ownership", "sense of agency", "self-location"],
+      "questions": ["Human mechanism research remains authoritative below Game's semantic/control/skill measurement contract."]
+    },
+    {
+      "owner": "Media",
+      "consume": ["avatar/body representation", "multisensory body cues", "feedback signal encoding", "perceptual presentation of action availability"],
+      "questions": ["Media owns how control/action/body information is represented; Game owns which distinctions are authoritative/relevant."]
+    }
+  ]
+}

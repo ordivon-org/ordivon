@@ -1,0 +1,230 @@
+{
+  "schemaVersion": 1,
+  "synthesisId": "ordivon-game-counterexample-synthesis-r1",
+  "sourceMemory": "standards/game_design_counterexample_memory_r1.json",
+  "policy": {
+    "purpose": "Overlapping retrieval themes across source-grounded Counterexamples for finding recurring failure structures and cheap discriminators.",
+    "themesAreOntology": false,
+    "exhaustiveClassification": false,
+    "canRankDesigns": false,
+    "canBlockNovelCombination": false,
+    "canMintRecommendation": false,
+    "membershipMayOverlap": true,
+    "unmatchedCounterexampleDisposition": "REMAIN_VALID_UNTHEMED_COUNTEREXAMPLE"
+  },
+  "themes": [
+    {
+      "id": "theme.premature-commitment-and-premise-drift",
+      "label": "Premature Commitment / Premise Drift",
+      "summary": "Retrieve cases where an idea, roadmap, architecture or capability gained commitment before its premises were stable, or kept commitment after those premises changed.",
+      "counterexampleRefs": [
+        "counterexample.deusex.preproduction-can-create-cutting-debt",
+        "counterexample.ftl.prototype-attachment",
+        "counterexample.overwatch.old-vision-can-outlive-its-premise",
+        "counterexample.belowzero.roadmap-can-become-commitment-pressure",
+        "counterexample.deusex.ai-capability-before-requirement-can-create-waste",
+        "counterexample.odyssey.one-ai-pipeline-can-be-premature-convergence"
+      ],
+      "retrievalQuestions": [
+        "Which premise originally justified the commitment, and is it still true now?",
+        "What can still be deleted, delayed or replaced without requiring special permission?",
+        "Is the current artifact evidence of value, or only evidence that investment already happened?"
+      ],
+      "falseUniversalizations": [
+        "Commit early to preserve momentum.",
+        "Avoid commitment until every requirement is stable."
+      ],
+      "authority": "ADVISORY_RETRIEVAL_THEME",
+      "exhaustive": false,
+      "canRankDesigns": false,
+      "canBlockNovelCombination": false,
+      "canMintRecommendation": false
+    },
+    {
+      "id": "theme.authority-and-coordination-collision",
+      "label": "Authority / Coordination Collision",
+      "summary": "Retrieve cases where multiple actors, subsystems or policies are locally reasonable but their control, negotiation or population constraints collide at a shared boundary.",
+      "counterexampleRefs": [
+        "counterexample.overwatch.social-freedom-can-externalize-negotiation-cost",
+        "counterexample.overwatch.structural-fix-can-create-population-bottleneck",
+        "counterexample.overwatch.weak-penalty-can-miss-intent-and-hit-incidental-users",
+        "counterexample.odyssey.multiple-ai-authorities-can-fight-over-one-agent"
+      ],
+      "retrievalQuestions": [
+        "Who is allowed to commit the shared consequence when multiple systems or players disagree?",
+        "Where is coordination cost actually paid: before matching, during play, at a subsystem handoff, or by an incidental population?",
+        "Does a structural fix move the bottleneck rather than remove it?"
+      ],
+      "falseUniversalizations": [
+        "Centralize all authority to eliminate coordination problems.",
+        "More local freedom always increases agency without external cost."
+      ],
+      "authority": "ADVISORY_RETRIEVAL_THEME",
+      "exhaustive": false,
+      "canRankDesigns": false,
+      "canBlockNovelCombination": false,
+      "canMintRecommendation": false
+    },
+    {
+      "id": "theme.local-success-global-harm",
+      "label": "Local Success / Global Harm",
+      "summary": "Retrieve cases where a locally successful feature, metric, optimization or incremental addition degraded a larger product, loop, horizon or plan.",
+      "counterexampleRefs": [
+        "counterexample.factorio.local-success-product-mismatch",
+        "counterexample.diablo3.secondary-system-displaced-core-loop",
+        "counterexample.factorio.full-run-can-reverse-local-feature-pressure",
+        "counterexample.artifact.game-side-fix-does-not-prove-viability",
+        "counterexample.overwatch.structural-fix-can-create-population-bottleneck",
+        "counterexample.immortals.early-pruning-can-remove-context-the-planner-needs"
+      ],
+      "retrievalQuestions": [
+        "What larger horizon can reverse the apparent local win?",
+        "Which variable is optimized locally, and what global objective or dependency is omitted?",
+        "Can the local intervention change what efficient players, systems or planners optimize for?"
+      ],
+      "falseUniversalizations": [
+        "Local success implies global product value.",
+        "Local optimization is suspect unless every global effect is known first."
+      ],
+      "authority": "ADVISORY_RETRIEVAL_THEME",
+      "exhaustive": false,
+      "canRankDesigns": false,
+      "canBlockNovelCombination": false,
+      "canMintRecommendation": false
+    },
+    {
+      "id": "theme.legacy-coupling-and-sunk-investment",
+      "label": "Legacy Coupling / Sunk Investment",
+      "summary": "Retrieve cases where old concepts, prototypes, currencies, visions or behaviors retain survival rights because investment and compatibility have become confused with current value.",
+      "counterexampleRefs": [
+        "counterexample.deusex.preproduction-can-create-cutting-debt",
+        "counterexample.ftl.prototype-attachment",
+        "counterexample.overwatch.old-vision-can-outlive-its-premise",
+        "counterexample.destiny2.universal-currency-can-become-economy-baggage",
+        "counterexample.odyssey.migration-shortcuts-can-preserve-legacy-coupling"
+      ],
+      "retrievalQuestions": [
+        "What present decision does the legacy element still uniquely serve?",
+        "Which dependencies exist because the element is valuable versus because it has existed for a long time?",
+        "Can a compatibility adapter preserve useful history without granting permanent survival rights?"
+      ],
+      "falseUniversalizations": [
+        "Existing systems should be preserved because replacement discards investment.",
+        "Legacy systems should be removed once a cleaner architecture exists."
+      ],
+      "authority": "ADVISORY_RETRIEVAL_THEME",
+      "exhaustive": false,
+      "canRankDesigns": false,
+      "canBlockNovelCombination": false,
+      "canMintRecommendation": false
+    },
+    {
+      "id": "theme.foundation-context-mismatch",
+      "label": "Foundation / Context Mismatch",
+      "summary": "Retrieve cases where a component, representation or architecture can be individually competent yet carry assumptions that do not fit the actual product context or core interaction.",
+      "counterexampleRefs": [
+        "counterexample.factorio.campaign-freeplay-mimicry",
+        "counterexample.factorio.asset-quality-vs-context-salience",
+        "counterexample.subnautica.multiplayer-is-not-necessarily-a-bolt-on-feature",
+        "counterexample.factorio.fragmented-procgen-representations-can-block-control",
+        "counterexample.deusex.borrowed-ai-foundation-can-produce-patch-debt",
+        "counterexample.thief.ai-built-for-wrong-gameplay-can-block-core"
+      ],
+      "retrievalQuestions": [
+        "Which assumptions from the source component fail in the target context?",
+        "Does the mismatch live at the boundary, or does it penetrate the core interaction model?",
+        "Can a thin adapter preserve the target relation without recurring semantic exceptions?"
+      ],
+      "falseUniversalizations": [
+        "Mature foundations transfer safely when they already solve a harder problem.",
+        "Context-specific systems should always be rebuilt from scratch."
+      ],
+      "authority": "ADVISORY_RETRIEVAL_THEME",
+      "exhaustive": false,
+      "canRankDesigns": false,
+      "canBlockNovelCombination": false,
+      "canMintRecommendation": false
+    },
+    {
+      "id": "theme.hidden-operating-cost",
+      "label": "Hidden Operating / Integration Cost",
+      "summary": "Retrieve cases where a feature or product looks viable in isolation but creates recurring integration, staffing, deployment, architecture or population costs elsewhere.",
+      "counterexampleRefs": [
+        "counterexample.factorio.strict-prevention-complexity",
+        "counterexample.bg3.organization-is-design-constraint",
+        "counterexample.tlouonline.good-game-can-have-wrong-operating-model",
+        "counterexample.r6.content-cadence-can-yield-to-system-health",
+        "counterexample.subnautica.multiplayer-is-not-necessarily-a-bolt-on-feature",
+        "counterexample.overwatch.structural-fix-can-create-population-bottleneck"
+      ],
+      "retrievalQuestions": [
+        "What recurring cost appears only after the feature is integrated, operated or scaled?",
+        "Who pays that cost over months rather than in the prototype moment?",
+        "Does the proposed fix reduce the cost or merely move it to another subsystem or team?"
+      ],
+      "falseUniversalizations": [
+        "A locally good feature is viable if implementation is technically possible.",
+        "High operating cost means the feature itself is bad design."
+      ],
+      "authority": "ADVISORY_RETRIEVAL_THEME",
+      "exhaustive": false,
+      "canRankDesigns": false,
+      "canBlockNovelCombination": false,
+      "canMintRecommendation": false
+    },
+    {
+      "id": "theme.proxy-target-substitution",
+      "label": "Proxy / Target Substitution",
+      "summary": "Retrieve cases where a convenient metric, presentation property, friction mechanism or policy stands in for the real product target and then drives the wrong conclusion.",
+      "counterexampleRefs": [
+        "counterexample.factorio.local-success-product-mismatch",
+        "counterexample.factorio.gui-structure-can-add-friction",
+        "counterexample.factorio.asset-quality-vs-context-salience",
+        "counterexample.artifact.game-side-fix-does-not-prove-viability",
+        "counterexample.overwatch.weak-penalty-can-miss-intent-and-hit-incidental-users",
+        "counterexample.destiny2.currency-friction-does-not-imply-interesting-choice"
+      ],
+      "retrievalQuestions": [
+        "What construct is the proxy supposed to represent, and what evidence shows the proxy still tracks it?",
+        "Can the proxy improve while the target worsens or remains unchanged?",
+        "Which nearby population, context or behavior is affected even though it is absent from the proxy?"
+      ],
+      "falseUniversalizations": [
+        "A measurable improvement proves the underlying design target improved.",
+        "Metrics and proxies should be ignored in favor of judgement."
+      ],
+      "authority": "ADVISORY_RETRIEVAL_THEME",
+      "exhaustive": false,
+      "canRankDesigns": false,
+      "canBlockNovelCombination": false,
+      "canMintRecommendation": false
+    },
+    {
+      "id": "theme.reopen-reversibility-and-rewrite",
+      "label": "Reopen / Reversibility / Rewrite",
+      "summary": "Retrieve cases where prior rejection, shipped state, near-completion or rewrite aversion was treated as more permanent than later evidence justified.",
+      "counterexampleRefs": [
+        "counterexample.factorio.rejected-solution-can-expire",
+        "counterexample.ffxiv.shipped-product-can-require-relaunch",
+        "counterexample.belowzero.near-complete-content-can-still-need-rewrite",
+        "counterexample.r6.content-cadence-can-yield-to-system-health",
+        "counterexample.destiny2.live-foundation-can-be-reversed",
+        "counterexample.thief.delayed-rewrite-can-be-as-risky-as-premature-rewrite"
+      ],
+      "retrievalQuestions": [
+        "Which premise made the earlier reject/keep/rewrite decision rational, and has that premise changed?",
+        "What is the dependency closure of repair versus replacement now, not when the old verdict was made?",
+        "Which parts can be salvaged independently if the enclosing structure is reopened?"
+      ],
+      "falseUniversalizations": [
+        "Shipped or near-complete foundations should be treated as immutable.",
+        "Reopening old decisions is evidence that the earlier decision was wrong."
+      ],
+      "authority": "ADVISORY_RETRIEVAL_THEME",
+      "exhaustive": false,
+      "canRankDesigns": false,
+      "canBlockNovelCombination": false,
+      "canMintRecommendation": false
+    }
+  ]
+}

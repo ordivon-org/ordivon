@@ -1,0 +1,439 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.practical-reconstruction-gpr3-evidence-norm-explanation-contracts",
+  "round": "GPR3",
+  "status": "research-evidence",
+  "foundationStatus": {
+    "gdf0": "FROZEN",
+    "gdf1": "FROZEN",
+    "gdf2": "FROZEN",
+    "gdf3": "FROZEN",
+    "reopenTriggered": false
+  },
+  "primaryDecision": "Reconstruct explanation tooling by reusing authoritative facts/history/observations/artifacts/verification and GPR2 determination basis references rather than creating a second Evidence store. EvidenceBundleForCase, NormApplicationView, ConventionStatusView, DiscretionEnvelope, VerificationView and DeterminationExplanationView are derived. InterpretiveCommitment may be persisted only as a conditional adoption/source adapter whose constitutive semantic effect is admitted through GDF0 EffectiveRuleTopology. PrecedentLink may be retained as a conditional typed relation when explicit current-use/citation identity matters, but relevance or binding force is never created by the link alone.",
+  "sourceDerivedBoundary": {
+    "existingAuthoritativeSources": [
+      "World/history/event records and current state",
+      "observations and representation artifacts",
+      "RunEvidenceGraph/replay provenance references",
+      "VerificationReceipt or owner-local verification records",
+      "GPR2 AuthoritativeDeterminationRecord caseBasisRefs and normOrEvaluationBasisRefs",
+      "GDF0 current EffectiveRuleTopology and owner-local rule/evaluation sources",
+      "GPR1 current authority/currentness/provenance",
+      "observed-practice data where a GamePractice chooses to collect it"
+    ],
+    "conditionalPracticalSourcesOrRelations": [
+      "InterpretiveCommitmentRecord when an authoritative adopted interpretation has identity/history value and is admitted as a GDF0 EffectiveRuleTopology change",
+      "PrecedentLink when explicit prior-case use/citation/relevance relation needs durable audit identity",
+      "owner-local evidence-use/admission/exclusion relations if a concrete case workflow requires them"
+    ],
+    "derivedViews": [
+      "EvidenceBundleForCase",
+      "NormApplicationView",
+      "ConventionStatusView",
+      "DiscretionEnvelope",
+      "VerificationView",
+      "DeterminationExplanationView"
+    ],
+    "reason": "Evidence, norms, precedent, convention and discretion were rejected as independent primitives. Their practical value lies in query/explanation compression over existing truth/provenance/authority sources, not in creating competing truth stores."
+  },
+  "contracts": {
+    "EvidenceBundleForCase": {
+      "status": "STABILIZE_DERIVED_CASE_RELATIVE_VIEW",
+      "purpose": "Collect the references materially used, offered, contested, excluded or otherwise relevant to one determination/question/contest workflow without reclassifying referenced objects as intrinsic Evidence entities.",
+      "queryInputs": [
+        "determinationRefOrQuestionRef",
+        "contestRequestRefOptional",
+        "contextRef",
+        "asOfCurrentness"
+      ],
+      "itemFields": [
+        "sourceRef",
+        "sourceKind",
+        "payloadOrContentDigest",
+        "provenanceRefs",
+        "currentnessOrCaptureSummary",
+        "targetClaimOrQuestionRefs",
+        "useKeyOrBasisRole",
+        "useStatus",
+        "verificationViewRefs",
+        "ownerScopeRefs"
+      ],
+      "useStatuses": [
+        "offered_or_candidate",
+        "used_as_basis",
+        "contested",
+        "excluded_or_not_used",
+        "superseded",
+        "unknown_or_unresolved"
+      ],
+      "storageRule": "The bundle should normally store/reference identities and digests, not duplicate source payloads. Optional snapshots are justified only when source mutability/currentness would otherwise destroy auditability.",
+      "laws": [
+        "Evidence is case/question-relative use, not an intrinsic object kind",
+        "Observation != Evidence by identity",
+        "EvidenceBundle != WorldTruth",
+        "EvidenceBundle completeness is not guaranteed unless a concrete practice explicitly provides such a closure guarantee",
+        "support/contradiction meaning must be claim/question-relative rather than globally attached to a source",
+        "a source may serve different evidential roles in different cases"
+      ]
+    },
+    "NormApplicationView": {
+      "status": "STABILIZE_DERIVED_CURRENT_NORM_VIEW",
+      "purpose": "Explain the current operative norm/evaluation/application basis relevant to a determination or prospective case without creating a universal legal-reasoning engine.",
+      "queryInputs": [
+        "targetOrQuestionRef",
+        "scopeRefs",
+        "contextRef",
+        "asOfCurrentness"
+      ],
+      "outputs": [
+        "currentRuleOrEvaluationSourceRefs",
+        "sourceVersionAndCurrentness",
+        "explicitExceptionOrDefeaterRefs",
+        "priorityOrResolutionRelationRefs",
+        "adoptedInterpretiveCommitmentRefs",
+        "recognizedPriorCaseUseRefs",
+        "recognizedConventionRefs",
+        "purposeOrEthosRefsWhenOperative",
+        "discretionEnvelopeRefOrSummaryWhenMaterial",
+        "authorityAndProvenanceRefs",
+        "applicationBasisDigest"
+      ],
+      "closureRule": "The view may be sparse/closed for executable deterministic cases or rich/open for practice-sensitive cases; it must not invent missing reasoning structure merely for uniformity.",
+      "laws": [
+        "RuleRepresentation != NormApplicationView",
+        "StableRuleRepresentation != StableEffectiveRuleTopology",
+        "StableRuleRepresentation != StableNormApplicationBasis",
+        "NormApplicationView != universal inference engine",
+        "purpose/ethos matters only when current practice authority makes it operative",
+        "exception/defeater/priority semantics remain owner-local",
+        "a current determination may reference the view/basis without requiring a full reasoning transcript"
+      ]
+    },
+    "InterpretiveCommitmentRecord": {
+      "status": "STABILIZE_CONDITIONAL_GDF0_SOURCE_ADAPTER",
+      "purpose": "Give durable identity/currentness/provenance to an authoritative adopted interpretation when stable representation text/code acquires changed constitutive meaning for future or scoped Game semantics.",
+      "minimumFields": [
+        "commitmentId",
+        "representationRefs",
+        "interpretationRefOrStatement",
+        "scopeRefs",
+        "effectiveFrom",
+        "effectiveUntilOrOpen",
+        "adoptingAuthorityEvidenceRefs",
+        "provenanceRefs",
+        "effectiveRuleTopologyChangeRef"
+      ],
+      "optionalFields": [
+        "supersedesCommitmentRefs",
+        "prospectiveOrRetroactiveScopeSummary",
+        "displayRationale"
+      ],
+      "admissionRule": "The practical record is constitutive only when current rule/interpretive authority admits the corresponding GDF0 EffectiveRuleTopology change. Mere commentary, private interpretation, model output or repeated wording does not become binding through record existence.",
+      "laws": [
+        "PrivateInterpretation != InterpretiveCommitment",
+        "InterpretiveCommitmentRecord != EffectiveRuleTopology by identity",
+        "InterpretationText != AuthoritativeEffect",
+        "CaseRulingAuthority != StandingInterpretiveAuthority",
+        "StandingInterpretiveAuthority != RuleChangeAuthority by identity",
+        "stable bytes can coexist with changed effective semantics when an authoritative interpretation is adopted"
+      ]
+    },
+    "PrecedentLink": {
+      "status": "STABILIZE_CONDITIONAL_TYPED_RELATION_VIEW_OR_RECORD",
+      "purpose": "Represent that a current case/norm application explicitly uses a prior determination as an analog, distinction, persuasive source or currently recognized precedent relation, while separating citation/relevance from binding authority.",
+      "minimumFieldsWhenPersisted": [
+        "linkId",
+        "priorDeterminationRef",
+        "currentTargetOrDeterminationRef",
+        "useKey",
+        "scopeRefs",
+        "validFrom",
+        "validUntilOrOpen",
+        "recognitionOrAuthorityBasisRefs",
+        "provenanceRefs"
+      ],
+      "recommendedUseFamiliesForUIOnly": [
+        "cited_or_referenced",
+        "analogized",
+        "distinguished",
+        "persuasive_current_use",
+        "recognized_precedential_use",
+        "superseded_or_no_longer_operational"
+      ],
+      "persistenceRule": "Derive from determination/norm basis references when possible. Persist only when the fact/history of explicit prior-case use is itself operationally valuable.",
+      "laws": [
+        "PriorDecision != BindingPrecedent",
+        "Similarity != PrecedentAuthority",
+        "Citation != BindingForce",
+        "PrecedentLink != rule change by identity",
+        "binding/current force resolves through current GDF0/GPR1 authority and practice recognition",
+        "the same prior determination can be persuasive in one scope and non-operative in another"
+      ]
+    },
+    "ConventionStatusView": {
+      "status": "STABILIZE_DERIVED_OBSERVED_VS_CONSTITUTIVE_VIEW",
+      "purpose": "Make visible the difference between observed/popular practice and currently recognized constitutive practice, especially in communities/live-service/metagame contexts.",
+      "queryInputs": [
+        "practicePatternRefOrDescription",
+        "scopeRefs",
+        "asOfCurrentness"
+      ],
+      "outputs": [
+        "observedPracticeEvidenceRefs",
+        "coverageOrFrequencySummary",
+        "recognitionStatus",
+        "recognitionAuthorityRefs",
+        "constitutiveEffectRefs",
+        "scopeAndCurrentness",
+        "conflictOrUncertaintySummary",
+        "sourceRefs"
+      ],
+      "recognitionStates": [
+        "observed_only",
+        "recognized_nonconstitutive",
+        "constitutive_current",
+        "contested_or_mixed",
+        "unknown_or_insufficient_evidence"
+      ],
+      "laws": [
+        "ConventionFrequency != Authority",
+        "Popularity != ConstitutiveEffect",
+        "ObservedPattern != EffectiveRuleTopology by identity",
+        "a convention becomes Game-constitutive only through current authority/recognition producing effective semantic change",
+        "rare practice can be constitutive and common practice can remain nonbinding"
+      ]
+    },
+    "DiscretionEnvelope": {
+      "status": "STABILIZE_DERIVED_BOUNDED_CHOICE_VIEW",
+      "purpose": "Expose the residual range of currently authority-admitted determinations/choices left after applicable norms, constraints, scope and policy are taken into account, especially for Human/Agent judges, GMs and moderators.",
+      "queryInputs": [
+        "holderOrAuthorityProfileRef",
+        "targetOrQuestionRef",
+        "NormApplicationView",
+        "contextRef",
+        "asOfCurrentness"
+      ],
+      "outputs": [
+        "envelopeRepresentationKind",
+        "admittedChoiceOrOutcomeRefsWhenEnumerable",
+        "constraintOrPredicateRefsWhenNotEnumerable",
+        "conditionalChoiceRefs",
+        "forbiddenOrOutsideEnvelopeRefsWhenKnown",
+        "residualUnknowns",
+        "scopeAndCurrentness",
+        "sourceRefs",
+        "envelopeDigest"
+      ],
+      "representationKinds": [
+        "enumerated",
+        "predicate_or_constraint_bounded",
+        "qualitative_bounded",
+        "unknown_or_unresolved"
+      ],
+      "laws": [
+        "Discretion != Arbitrariness",
+        "Discretion != UnlimitedAuthority",
+        "Discretion != NoRules",
+        "within envelope != wise/fair/optimal/correct",
+        "authority to decide does not guarantee a non-empty discretion envelope",
+        "discretion envelope is context/currentness dependent and may collapse to one admissible result"
+      ]
+    },
+    "VerificationView": {
+      "status": "STABILIZE_DERIVED_ADAPTER_OVER_VERIFICATION_SOURCES",
+      "purpose": "Normalize diverse verification records into an inspectable Human/Agent view while preserving exactly what was checked, by what method, against which subject/evidence/currentness, and without promoting successful verification into universal truth or certification.",
+      "queryInputs": [
+        "verificationSourceRef",
+        "contextRefOptional"
+      ],
+      "outputs": [
+        "verificationKindOrMethodKey",
+        "subjectRefs",
+        "verificationScope",
+        "statusOrAcceptedResult",
+        "checkOrResultSummaries",
+        "observationOrEvidenceRefs",
+        "methodAndVersionRefs",
+        "currentnessOrDigestBindings",
+        "provenanceRefs",
+        "possibleDeterminationBasisRefs"
+      ],
+      "laws": [
+        "VerificationSuccess means the declared checks/method succeeded, not that every proposition about the subject is true",
+        "Verification != Certification by identity",
+        "Verification != Adjudication by identity",
+        "Verification != WorldTruth by identity",
+        "verification source identity and method/currentness must remain drill-down accessible",
+        "one source may expose execution verification, integrity verification or other method-specific verification without forcing one universal semantics"
+      ]
+    },
+    "DeterminationExplanationView": {
+      "status": "STABILIZE_COMPOSITE_DERIVED_EXPLANATION_VIEW",
+      "purpose": "Provide one compact Human/Agent-facing explanation packet for a GPR2 determination by composing current status, authority/currentness, basis, evidence, norm application, precedent/convention/discretion and contestability views without becoming a new truth source.",
+      "components": [
+        "OfficialStatusView or determination status summary",
+        "binding authority/currentness summary from GPR1/GPR2",
+        "DeterminationBasisTrace",
+        "EvidenceBundleForCase summary",
+        "NormApplicationView summary",
+        "PrecedentLink/ConventionStatus summaries when material",
+        "DiscretionEnvelope summary when material",
+        "ReviewContestabilityProfile summary",
+        "sourceRefs and explanationStateDigest"
+      ],
+      "optionalPresentation": [
+        "short generated natural-language explanation",
+        "Human-readable labels",
+        "Agent-oriented compact structured summary"
+      ],
+      "laws": [
+        "ExplanationView != source of truth",
+        "GeneratedExplanation != AuthoritativeEffect",
+        "Rationale fluency != evidential force",
+        "Explanation omission of a derived detail must not alter underlying authority/status",
+        "drill-down to authoritative sources must remain available for correctness-critical use",
+        "no chain-of-thought requirement"
+      ]
+    }
+  },
+  "crossCuttingLaws": [
+    "Evidence != WorldTruth",
+    "EvidenceIsRelativeToQuestionOrUse",
+    "Observation != EvidenceByIdentity",
+    "ReplayEvidenceGraph != CaseEvidenceBundleByIdentity",
+    "EvidenceBundle != DuplicateTruthStore",
+    "Verification != WorldTruthByIdentity",
+    "Verification != CertificationByIdentity",
+    "Verification != AdjudicationByIdentity",
+    "ProviderTelemetry != GameCaseEvidenceByIdentity",
+    "Rationale != DeterminationBasisByIdentity",
+    "Rationale != NormApplicationByIdentity",
+    "RuleRepresentation != EffectiveRuleTopology",
+    "StableRuleRepresentation != StableEffectiveRuleTopology",
+    "NormApplicationView != UniversalReasoningEngine",
+    "PrivateInterpretation != InterpretiveCommitment",
+    "InterpretationText != AuthoritativeEffect",
+    "PriorDecision != BindingPrecedent",
+    "Similarity != PrecedentAuthority",
+    "Citation != BindingForce",
+    "ConventionFrequency != Authority",
+    "Popularity != ConstitutiveEffect",
+    "Discretion != Arbitrariness",
+    "Discretion != UnlimitedAuthority",
+    "WithinDiscretionEnvelope != GoodOrCorrect",
+    "GeneratedExplanation != AuthoritativeEffect",
+    "ExplanationView != SourceOfTruth",
+    "DeterminationBasisTrace != ChainOfThought"
+  ],
+  "stressCases": [
+    {"id":"EN1","regime":"raw observation","claim":"camera/sensor observation exists","expected":"not evidence by intrinsic identity until related to a question/use"},
+    {"id":"EN2","regime":"same observation two cases","claim":"same replay frame supports one claim and undermines another","expected":"evidential role is claim/question-relative"},
+    {"id":"EN3","regime":"evidence bundle omitted source","claim":"bundle is incomplete due UI/query filter","expected":"omission does not delete source truth and bundle does not imply completeness"},
+    {"id":"EN4","regime":"mutable external source","claim":"linked artifact can change","expected":"snapshot/digest justified when audit identity would otherwise be lost"},
+    {"id":"EN5","regime":"immutable retained event","claim":"World event already digest-bound","expected":"bundle references event/digest rather than copying payload"},
+    {"id":"EN6","regime":"contested evidence","claim":"one party disputes timing log reliability","expected":"source remains; useStatus can be contested without converting dispute into falsity"},
+    {"id":"EN7","regime":"excluded evidence","claim":"practice refuses late submission","expected":"excluded source remains historical/provenance but is not determination basis"},
+    {"id":"EN8","regime":"superseded measurement","claim":"new calibrated measurement replaces old use","expected":"old source remains auditable; bundle marks superseded use"},
+    {"id":"EN9","regime":"verification receipt as basis","claim":"execution verification is cited in certification","expected":"VerificationView can link as case basis without becoming certification"},
+    {"id":"EN10","regime":"successful verification narrow scope","claim":"digest checks pass","expected":"success establishes method-specific integrity, not all-world truth"},
+    {"id":"EN11","regime":"failed verification","claim":"verification fails","expected":"failure is verification result; underlying event truth requires owner semantics, not automatic opposite assertion"},
+    {"id":"EN12","regime":"two verification methods","claim":"integrity verification passes while performance certification fails","expected":"method/scope-specific views coexist"},
+    {"id":"EN13","regime":"provider telemetry","claim":"model call evidence snapshot proves provider request happened","expected":"operational telemetry evidence is not Game-case evidence unless a case uses it"},
+    {"id":"EN14","regime":"short Agent rationale","claim":"Agent gives 120-char reason","expected":"useful explanation of candidate selection, not determination basis/norm authority by identity"},
+    {"id":"EN15","regime":"replay evidence graph","claim":"graph reconstructs run provenance","expected":"excellent source index; not intrinsic case evidence ontology"},
+    {"id":"EN16","regime":"diagnosis verified direct","claim":"terminal predicate claim cites retained event","expected":"analytic claim with evidence class remains explanation, not new authoritative determination"},
+    {"id":"EN17","regime":"diagnosis counterfactual sensitive","claim":"one-step alternative changes outcome","expected":"bounded analytic evidence, not proof of unique cause"},
+    {"id":"EN18","regime":"Mission Control EvidenceView","claim":"observed/assessed/proposed/executing/verified stages","expected":"product UX evidence pipeline, not generic GPR3 EvidenceBundle schema"},
+    {"id":"EN19","regime":"casefile testimony","claim":"NPC statement is visible information","expected":"may become evidence in player reasoning; not official truth by identity"},
+    {"id":"EN20","regime":"casefile authored trace","claim":"clue text is authored and correct within puzzle design","expected":"still a Game information object; evidential role depends on investigation question"},
+    {"id":"EN21","regime":"closed executable rule","claim":"ruleset v3 executable predicate determines outcome","expected":"NormApplicationView may be sparse: current ruleset/version + relevant executable source"},
+    {"id":"EN22","regime":"stable text adopted new interpretation","claim":"same category text now excludes technique T","expected":"InterpretiveCommitment may create GDF0 EffectiveRuleTopology change despite stable representation"},
+    {"id":"EN23","regime":"private moderator interpretation","claim":"moderator privately reads rule differently","expected":"not binding InterpretiveCommitment without current standing authority/adoption"},
+    {"id":"EN24","regime":"Agent proposes interpretation","claim":"LLM suggests interpretation","expected":"candidate explanation only until admitted by proper authority"},
+    {"id":"EN25","regime":"case ruling without standing force","claim":"judge resolves one ambiguous case","expected":"case determination does not automatically become InterpretiveCommitment for future cases"},
+    {"id":"EN26","regime":"standing interpretation adopted","claim":"authorized committee adopts future reading","expected":"commitment record/source adapter valid and linked to topology change"},
+    {"id":"EN27","regime":"interpretation superseded","claim":"later authorized commitment replaces old","expected":"historical commitment retained; current norm view uses new one"},
+    {"id":"EN28","regime":"retroactive interpretation","claim":"practice applies adopted interpretation to old runs","expected":"scope/currentness/retroactivity represented without rewriting old event history"},
+    {"id":"EN29","regime":"purpose language nonoperative","claim":"rulebook preface states fair play spirit","expected":"purpose/ethos absent from operative norm view unless current practice authority makes it relevant"},
+    {"id":"EN30","regime":"purpose language operative","claim":"current practice expressly uses spirit clause","expected":"NormApplicationView can include purpose/ethos ref"},
+    {"id":"EN31","regime":"explicit exception","claim":"exception clause overrides general rule in scope","expected":"view includes owner-local exception/priority relation"},
+    {"id":"EN32","regime":"conflicting norms unresolved","claim":"two current sources conflict with no resolution rule","expected":"NormApplicationView reports conflict/unresolved rather than inventing hierarchy"},
+    {"id":"EN33","regime":"prior decision cited only","claim":"current case cites old case as analogy","expected":"PrecedentLink exists but citation does not create binding force"},
+    {"id":"EN34","regime":"binding precedent recognized","claim":"practice currently gives a class of prior rulings standing force","expected":"link/use plus recognition/authority basis can be shown; force derives from current practice"},
+    {"id":"EN35","regime":"prior case distinguished","claim":"similar prior case explicitly distinguished","expected":"link can record distinguished relation without implying force"},
+    {"id":"EN36","regime":"precedent superseded","claim":"later rule/topology change removes old force","expected":"link/history remains while current norm view shows nonoperative"},
+    {"id":"EN37","regime":"same precedent different category","claim":"prior ruling binds category A not B","expected":"scope-specific force"},
+    {"id":"EN38","regime":"similarity model output","claim":"embedding says cases similar","expected":"Similarity != PrecedentAuthority"},
+    {"id":"EN39","regime":"common community technique","claim":"90% players use technique","expected":"ConventionStatus observed frequency high but authority may remain observed_only"},
+    {"id":"EN40","regime":"rare official convention","claim":"rare practice is explicitly adopted by tournament authority","expected":"can be constitutive_current despite low frequency"},
+    {"id":"EN41","regime":"contested community norm","claim":"two communities differ","expected":"ConventionStatus scope/mixed state rather than global convention truth"},
+    {"id":"EN42","regime":"convention becomes official","claim":"authority adopts community practice","expected":"constitutive effect represented through GDF0 change, not frequency itself"},
+    {"id":"EN43","regime":"official rule ignored in casual play","claim":"common local convention deviates from official rule","expected":"two practice scopes may have different effective topology/status"},
+    {"id":"EN44","regime":"fully closed determination","claim":"only one result allowed by current rule/authority","expected":"DiscretionEnvelope may collapse to one result; authority does not imply discretion"},
+    {"id":"EN45","regime":"bounded scoring judge","claim":"judge may select 7.0-8.0 under rubric","expected":"predicate/constraint-bounded discretion"},
+    {"id":"EN46","regime":"GM qualitative discretion","claim":"several narratively acceptable rulings under current practice","expected":"qualitative bounded envelope possible without exhaustive enumeration"},
+    {"id":"EN47","regime":"unlimited-looking label","claim":"role named GM","expected":"label alone does not create unlimited discretion/authority"},
+    {"id":"EN48","regime":"inside envelope poor decision","claim":"authorized result is allowed but unfair/suboptimal","expected":"WithinDiscretionEnvelope != Good/Fair/Correct"},
+    {"id":"EN49","regime":"authority with empty envelope","claim":"reviewer has review authority but no admissible modification under current norm","expected":"authority can coexist with zero residual choice except uphold/no-change"},
+    {"id":"EN50","regime":"Agent bounded discretion","claim":"Agent judge chooses one of three admitted outcomes","expected":"manifest+envelope provides safe compact choice set; model identity adds no authority"},
+    {"id":"EN51","regime":"explanation packet generated text","claim":"LLM summarizes why ruling stands","expected":"generated prose is presentation, not authority/basis source"},
+    {"id":"EN52","regime":"explanation packet stale","claim":"rule version changes after packet generation","expected":"explanationStateDigest/currentness changes; old packet no longer current"},
+    {"id":"EN53","regime":"explanation omits precedent","claim":"compact UI hides low-priority precedent link","expected":"underlying determination unchanged; drill-down still available"},
+    {"id":"EN54","regime":"evidence changes but outcome same","claim":"new evidence added, determination upheld","expected":"basis/explanation can change even when current official status payload is unchanged"},
+    {"id":"EN55","regime":"norm changes but outcome same","claim":"new rule version still yields same status","expected":"NormApplicationView/currentness changes despite same status payload"},
+    {"id":"EN56","regime":"ruleset version split","claim":"Station Zero subsystems retain v3/v4 product contracts","expected":"NormApplication/Verification views must carry exact owner-local version refs rather than infer one global ruleset"},
+    {"id":"EN57","regime":"evidence graph terminology","claim":"node kind named evidence","expected":"name does not promote all graph nodes into case evidence primitives"},
+    {"id":"EN58","regime":"verification used outside adjudication","claim":"verification closes ordinary execution pipeline","expected":"VerificationView useful even when no GPR2 determination exists"}
+  ],
+  "currentEngineeringAudit": {
+    "RunEvidenceGraph": {
+      "classification": "STRONG_PROVENANCE_HISTORY_GRAPH_NOT_CASE_EVIDENCE_ONTOLOGY",
+      "finding": "Current replay graph already provides digest-bound nodes/edges for World, planning, authority, dispatch, observation and Host records. It is an excellent source index for EvidenceBundleForCase, but EvidenceNode naming does not mean every node is intrinsic case evidence."
+    },
+    "MissionControlEvidenceView": {
+      "classification": "PRODUCT_UX_EVIDENCE_STAGE_PROJECTION",
+      "finding": "observed/assessed/proposed/executing/verified is a useful player-facing epistemic/workflow ladder for specialist activity. It should remain local; GPR3 should not universalize these stages as case evidence semantics."
+    },
+    "ReplayDiagnosisClaim": {
+      "classification": "BOUNDED_ANALYTIC_CLAIM_WITH_EVIDENCE_REFERENCES",
+      "finding": "Diagnosis claims explicitly distinguish VERIFIED_DIRECT, VERIFIED_CONTRIBUTOR, COUNTERFACTUAL_SENSITIVE and CONTEXT_ONLY. This is strong explanation discipline, but the claims remain derived analysis rather than authoritative case determinations or truth primitives."
+    },
+    "VerificationReceipt": {
+      "classification": "EXISTING_STRONG_VERIFICATION_SOURCE",
+      "finding": "Both World and Host-contract verification already retain method/check/evidence/currentness binding. VerificationView has a real current consumer and should adapt these sources rather than replace them."
+    },
+    "DeepSeekEvidenceSnapshot": {
+      "classification": "PROVIDER_OPERATIONAL_TELEMETRY_PROVENANCE",
+      "finding": "Call/token/model/latency/outcome records are evidence about provider operation. They become Game-case evidence only if a concrete case/question uses them as such."
+    },
+    "AgentRationale": {
+      "classification": "BOUNDED_OPERATIONAL_EXPLANATION_NOT_NORM_REASONING",
+      "finding": "Current DeepSeek prompt explicitly forbids chain-of-thought and asks for a short operational rationale. This is compatible with GPR3: rationale is useful presentation/explanation but not binding norm application or determination basis by identity."
+    },
+    "RulesetVersionBinding": {
+      "classification": "EXECUTABLE_RULE_REPRESENTATION_AND_VERSION_SOURCE",
+      "finding": "Run/registry/Station Zero v3 code binds exact ruleset ids/versions. This is a strong current norm-source input for deterministic execution, but there is no generic standing interpretive-commitment or precedent subsystem. Different product subsystems currently retain v3/v4 contracts, reinforcing exact owner-local version references rather than one assumed global ruleset."
+    },
+    "CasefileTraceAndTestimony": {
+      "classification": "GAMEPLAY_INFORMATION_OBJECTS_NOT_OFFICIAL_EVIDENCE_BY_IDENTITY",
+      "finding": "Casefile traces, testimony and confrontation text are intentionally player-facing investigation material. They are excellent examples of information that may serve as evidence relative to a player's accusation question while remaining ordinary Game content rather than an adjudicative Evidence primitive."
+    }
+  },
+  "implementationDecision": {
+    "broadImplementationNow": false,
+    "partialCurrentConsumerNeed": "PROVEN_FOR_VERIFICATION_AND_PROVENANCE_VIEWS_ONLY",
+    "reason": "Current product already benefits from verification, replay evidence/provenance and bounded explanation. It does not prove a need for generic case EvidenceBundle persistence, InterpretiveCommitment storage, precedent/convention or discretion subsystems. GPR3 therefore stabilizes adapters/views and conditional relation contracts while deferring broad framework implementation.",
+    "safeImmediateCandidates": [
+      "a pure VerificationView adapter over existing World/Host verification sources",
+      "terminology/documentation guards distinguishing evidence source, case-relative evidence use, verification, certification and authoritative determination",
+      "a derived evidence-bundle query over RunEvidenceGraph only when a concrete GPR2 determination/question supplies basis references",
+      "explanation-state digest/currentness conventions for future Agent-facing explanation packets"
+    ]
+  },
+  "nextRound": {
+    "name": "GPR4 — Enforcement / Remedy Toolkit",
+    "preset": true,
+    "reason": "R0 ranked Enforcement/Remedy after evidence/norm/explanation. GPR2 established determination identity and GPR3 now makes basis/explanation auditable; the next practical problem is how ordered, attempted, partial, failed, reversed and repaired consequences should be represented without collapsing Determination into Enforcement or Remedy into rollback."
+  }
+}

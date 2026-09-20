@@ -1,0 +1,190 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gpr4-enforcement-remedy-probes",
+  "fixtures": {
+    "determination": {
+      "determinationId": "det:1",
+      "statusPayload": {
+        "status": "VIOLATION"
+      },
+      "bindingAuthorityEvidenceRefs": [
+        "edge:judge:decide"
+      ]
+    },
+    "directive": {
+      "directiveId": "dir:1",
+      "sourceDeterminationRefsOrPracticeBasisRefs": [
+        "det:1"
+      ],
+      "directiveOperationKey": "game.consequence.apply",
+      "targetRefsOrSelectors": [
+        "player:a"
+      ],
+      "desiredConsequenceSpecRefOrPayload": {
+        "durationMinutes": 10
+      },
+      "scopeRefs": [
+        "match:1"
+      ],
+      "effectiveFrom": 10,
+      "effectiveUntilOrOpen": 20,
+      "enforcementAuthorityBasisRefs": [
+        "edge:moderator:enforce"
+      ],
+      "provenanceRefs": [
+        "det:1"
+      ]
+    },
+    "attempt1": {
+      "attemptId": "att:1",
+      "directiveRef": "dir:1",
+      "attemptedAt": 11,
+      "executorRef": "executor:server",
+      "executionAuthorityEvidenceRefs": [
+        "edge:moderator:enforce"
+      ],
+      "executionRequestOrActionRefs": [
+        "dispatch:d1"
+      ],
+      "requiredStateOrCurrentnessRefs": [
+        "world:digest:1"
+      ],
+      "idempotencyOrAttemptIdentityRef": "idempotency:k1",
+      "provenanceRefs": [
+        "dir:1"
+      ]
+    },
+    "attemptRetry": {
+      "attemptId": "att:1-retry",
+      "directiveRef": "dir:1",
+      "attemptedAt": 11,
+      "executorRef": "executor:server",
+      "executionAuthorityEvidenceRefs": [
+        "edge:moderator:enforce"
+      ],
+      "executionRequestOrActionRefs": [
+        "dispatch:d1-retry"
+      ],
+      "requiredStateOrCurrentnessRefs": [
+        "world:digest:1"
+      ],
+      "idempotencyOrAttemptIdentityRef": "idempotency:k1",
+      "provenanceRefs": [
+        "dir:1"
+      ],
+      "retryOfAttemptRef": "att:1"
+    },
+    "worldEffect": {
+      "worldEventId": "e1",
+      "facts": [
+        {
+          "kind": "temporary_effect_applied",
+          "minutes": 10
+        }
+      ],
+      "digest": "world:after"
+    },
+    "partialEffect": {
+      "worldEventId": "e2",
+      "facts": [
+        {
+          "kind": "inventory_restored",
+          "item": "A"
+        }
+      ],
+      "digest": "world:partial"
+    },
+    "remedy": {
+      "remedyPlanId": "remedy:1",
+      "triggerRefs": [
+        "det:2:reversal",
+        "effect:wrong-target"
+      ],
+      "correctiveGoalRefsOrSpecs": [
+        "restore:item:A",
+        "compensate:lost-opportunity"
+      ],
+      "scopeRefs": [
+        "player:a"
+      ],
+      "effectiveFrom": 30,
+      "remedyAuthorityBasisRefs": [
+        "edge:operator:remedy"
+      ],
+      "provenanceRefs": [
+        "review:1"
+      ],
+      "constraintsAndNonRestorableFactsRefs": [
+        "lost-match-time"
+      ]
+    },
+    "technicalRollback": {
+      "kind": "db-transaction-rollback",
+      "worldEffectsCommitted": 0
+    },
+    "ordinaryRepair": {
+      "kind": "repair_system",
+      "target": "cooling",
+      "purpose": "gameplay-objective"
+    },
+    "enforcementStatus": {
+      "currentState": "realized_as_directed",
+      "attemptRefs": [
+        "att:1"
+      ],
+      "latestExecutionRefs": [
+        "dispatch:d1"
+      ],
+      "realizedConsequenceViewRefOrSummary": "rc:1",
+      "verificationRefs": [
+        "verify:d1"
+      ],
+      "enforcementStateDigest": "enf:v1"
+    },
+    "remedyStatus": {
+      "currentState": "partially_satisfied",
+      "goalSatisfactionSummaries": [
+        [
+          "restore:item:A",
+          "satisfied"
+        ],
+        [
+          "compensate:lost-opportunity",
+          "remaining"
+        ]
+      ],
+      "remainingIrreversibilityOrLossSummary": "lost match time cannot be restored"
+    }
+  },
+  "probes": {
+    "determinationSeparateFromDirective": true,
+    "directiveSeparateFromAttempt": true,
+    "attemptSeparateFromWorldEffect": true,
+    "enforcementAuthoritySeparateFromCaseAuthority": true,
+    "retrySharesIdempotency": true,
+    "retryNotDuplicateConsequence": true,
+    "dispatchSuccessNotEnough": true,
+    "worldHistoryIsRealizationSource": true,
+    "partialEffectDoesNotChangeDetermination": true,
+    "reversalNotAutomaticUndo": true,
+    "remedyHasForwardGoals": true,
+    "remedyCanAcknowledgeIrreversibility": true,
+    "compensationWithoutRestoration": true,
+    "technicalRollbackNotRemedy": true,
+    "ordinaryRepairNotRemedy": true,
+    "attemptCanFailWithoutInvalidatingDetermination": true,
+    "stayCanBlockFutureAttemptWithoutErasingDirective": true,
+    "revocationDoesNotUndoPastEffect": true,
+    "remedyCanBePartial": true,
+    "blockedRestorationCanBeExplicit": true,
+    "enforcementStatusDerived": true,
+    "sameOperationCanBeOrdinaryOrEnforcement": true,
+    "correctDeterminationCanNeedRemedyForWrongTarget": true,
+    "agentProviderIdentityNotEnforcementAuthority": true,
+    "noExternalInstitutionRequired": true,
+    "noGlobalAuthorityRankRequired": true,
+    "remedyPlanNotRealizedRemedy": true,
+    "verificationMethodScoped": true,
+    "enforcementTimelineCanPreserveHistory": true
+  }
+}

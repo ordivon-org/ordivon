@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game-final-owner-enclosure-acceptance",
+  "truthRole": "anti-framework-ownership-and-mechanical-regression-evidence-not-product-release-or-human-standing",
+  "recordedAt": "2026-09-12",
+  "frozenRevision": "ef12c82",
+  "workspaceId": "ws-game-big-owner-enclosure-r1-20260912",
+  "standing": "PASS_IN_SCOPE",
+  "verification": {
+    "fullRepositoryAndBrowser": {
+      "jobId": "job-01a09490-107d-7653-a0b7-1e3033bdf321",
+      "unitAndStructural": {
+        "pass": 424,
+        "total": 424,
+        "standing": "PASS"
+      },
+      "browserSurfaces": {
+        "stationZeroV2": "PASS",
+        "stationZeroV3": "PASS",
+        "conceptLab": "PASS",
+        "casefile": "PASS",
+        "preG0": "PASS"
+      },
+      "productValueCurrentnessFailClosed": "PASS",
+      "externalProviderConcurrencyDirectOverlap": "PASS"
+    },
+    "productDeletionFalsifier": {
+      "jobId": "job-01a09492-a51b-7741-aedc-2b89ceefa276",
+      "excludedPath": "products/station-zero-v2",
+      "selectedTopLevelTestFiles": 22,
+      "pass": 121,
+      "total": 121,
+      "standing": "PASS",
+      "terminalMarker": "PRODUCTLESS_BIG_GAME=PASS"
+    },
+    "postCommitCensus": {
+      "jobId": "job-01a09493-e5aa-72b2-b28d-5d7f1ddd0a08",
+      "observedHead": "ef12c82",
+      "workingTree": "CLEAN",
+      "rootRuntimeFiles": 0,
+      "topLevelTypeScriptScripts": [
+        "scripts/current-direction-context.ts",
+        "scripts/equipment-surface.ts"
+      ],
+      "testScopeCounts": {
+        "bigGameAndCrossBoundary": 30,
+        "stationZeroV2": 32,
+        "stationZeroV3": 19,
+        "casefile": 1
+      }
+    },
+    "receiptIncludedRepositoryCheck": {
+      "jobId": "job-01a09495-7550-7e43-b195-abe1b72caa77",
+      "pass": 428,
+      "total": 428,
+      "standing": "PASS",
+      "note": "Full typecheck, web syntax, and repository tests including the four final owner-enclosure guard tests."
+    }
+  },
+  "ownershipResult": {
+    "bigGameRuntimeSource": "NONE",
+    "stationZeroV2Implementation": "products/station-zero-v2",
+    "researchApparatus": "experiments",
+    "repositoryMechanicalHelpers": "tools",
+    "bigGameSemanticOwners": [
+      "G0-G8 lifecycle semantics",
+      "Game Development Core",
+      "player/game evaluation semantics",
+      "Game-domain research and foundations",
+      "product-selection and Game interpretation rules"
+    ]
+  },
+  "antiFrameworkFalsifier": {
+    "rule": "A materially different future game may adopt none of Station Zero Team, Mission Control, replay, SQLite persistence, Agent/provider, or server architecture without changing Big Game semantics.",
+    "stationZeroDeletionPreservesBigGame": "PASS"
+  },
+  "doNotInherit": {
+    "stationZeroFreshPlayerHuman": "UNKNOWN",
+    "veilwildHuman": "UNKNOWN",
+    "preG0C0": "UNOBSERVED",
+    "preG0C1": "UNOBSERVED",
+    "productReleaseStanding": "NOT_EVALUATED_BY_THIS_RECEIPT",
+    "distributionRightsStanding": "NOT_EVALUATED_BY_THIS_RECEIPT",
+    "liveRemoteCurrentness": "NOT_EVALUATED_NO_FETCH"
+  },
+  "compatibilityDebt": {
+    "retainedVocabulary": [
+      "host_artifacts",
+      "host_journal",
+      "host-event:*",
+      "host-contract"
+    ],
+    "meaning": "Station Zero retained-schema/replay compatibility only; no generic Host subsystem authority",
+    "migrationRule": "Rename only through a versioned lossless persistence migration with replay/recovery equivalence; cosmetic churn is not sufficient."
+  }
+}

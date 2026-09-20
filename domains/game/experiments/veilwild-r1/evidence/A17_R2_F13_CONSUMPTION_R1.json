@@ -1,0 +1,32 @@
+{
+  "schema": "veilwild.r2-consumption-receipt.r1",
+  "roundId": "VEILWILD_R1_ROUND_2",
+  "consumer": "A17/F17",
+  "producer": "A13/F13",
+  "producerCommit": "60cb5faf0d386ae9815647c1ffddc9bc0c123af3",
+  "artifacts": [
+    {
+      "path": "experiments/veilwild-r1/f13-behavior/CREATURE_BEHAVIOR_INTERFACE_R2.json",
+      "sha256": "bb4d5e27d457bae528454fdc917cbff62a30a445d0c9a4c8e554c6b894fa4824"
+    },
+    {
+      "path": "experiments/veilwild-r1/f13-behavior/PLAYER_CUE_AUTHORIZATION_R2.json",
+      "sha256": "bd32688e9895dee587949979eb5120f3ff4c734e79178ff876aeb630880a6115"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/modules/f13/creature_behavior_policy.gd",
+      "sha256": "47868a920dee2df25ad573ab30f9cd60a79eea070a701d6173ce6f57729283b5"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/modules/f13/behavior_runtime.gd",
+      "sha256": "2da9f35433f8f660825c8f8b24aa332b75cfd39e76bfb786a7b8a2520b5f50c2"
+    },
+    {
+      "path": "experiments/veilwild-r1/godot/modules/f13/behavior_runtime.tscn",
+      "sha256": "bd43388059a7c5b4dcabc8655c5c9888b1feb7b8ede84093a9408a4dd09a447f"
+    }
+  ],
+  "independentRevalidation": "Exact Git object/paths/digests checked. Standalone exact producer test prints 12 PASS but emits SceneTree absolute-get_node errors and producer A17 mount test cannot run because commit lacks main.tscn. An explicit current-A17 consumer harness over exact F13 bytes replays producer test_a17_mount PASS/no stderr and an A17 cue-boundary test PASS/no stderr.",
+  "semanticBoundary": "A17 removed its old vendor-copy/host and mounts only the producer-owned runtime. Cue authorization is preserved verbatim and never treated as cue_exposed or Human perception. reacquisitionProven=false and no F13 observation-success ownership are enforced at integration.",
+  "candidateStatus": "CONSTITUENT_CONSUMED_NOT_CANDIDATE"
+}

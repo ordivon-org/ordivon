@@ -1,0 +1,52 @@
+{
+  "schema": "veilwild.agent-first-verdict.r1",
+  "campaignId": "veilwild-r1",
+  "agentId": "A17",
+  "ownedFronts": [
+    "F17"
+  ],
+  "exactBaseline": "8ebc23144ed5b49d685cc32ac11428bbddf64d2f",
+  "campaignSourceStateDigestDeclared": "sha256:639a042f92ba4be8cbd91891f238d652973ccd65211f73087c0d39aae4f40b89",
+  "runtimeWorkspaceSourceStateDigestObserved": "sha256:5027397f80e3514531f1f4e1a7671653eb3b30d41804f308d9285edb3d58e6b4",
+  "roleInterpretation": "Own only the Godot Engine Integration closure V-R1: consume specialist and player-runtime interfaces and assemble one playable engine condition. Do not invent or absorb F18/A25 player-interaction semantics, specialist asset truth, product-thesis authority, build authority, performance judgment, or red-team judgment.",
+  "currentStanding": "NOT_OBSERVED",
+  "currentStandingBasis": [
+    "Exact baseline is clean at the required commit.",
+    "No project.godot, GDScript, Godot scenes/resources, or glTF/GLB runtime artifacts exist in the exact baseline.",
+    "Therefore V-R1 has no integrated playable Godot condition yet; apparatus declarations alone cannot promote standing."
+  ],
+  "topFalsifiers": [
+    "No single Godot project can load all admitted constitutive systems/assets under one exact runtime condition.",
+    "Producer handoffs disagree on state names, node/scene contracts, units/axes, resource paths, or lifecycle semantics and require A17 to invent upstream truth.",
+    "A25 player-interaction runtime cannot integrate without A17 absorbing or overriding F18 semantics.",
+    "Imported specialist artifacts load locally but fail together because resource dependencies, scene ownership, signals, animation/state bindings, shader/audio inputs, or collision/navigation contracts conflict.",
+    "Current Godot 4.7.x carrier cannot be physically located/executed under the admitted Workstation/Runtime authority.",
+    "The integrated candidate cannot launch deterministically or expose a stable handoff to build/test/evidence/performance consumers.",
+    "Condition/revision identity is ambiguous because the task-declared campaign source-state digest differs from the Runtime workspace digest even though the required Git commit is exact and clean."
+  ],
+  "expectedInputs": [
+    "A01/F01 product/core-loop integration priorities and success/failure semantics.",
+    "A02/F02 session/cue/onboarding constraints that affect shared runtime state but not A17-owned meaning.",
+    "A05-A16 validated runtime-facing environment, creature, rig, animation-system, material/light/camouflage, behavior/navigation, and audio interfaces/artifacts.",
+    "A18/F19 validated interchange/runtime-loading identities and compatibility results.",
+    "A25/F18 player runtime scene/interface for locomotion, camera, input, observe action, and UI feedback.",
+    "A21/F22 telemetry hooks/events required at integration boundaries.",
+    "A24/F26 rights/provenance admissibility for build-bound assets where needed."
+  ],
+  "expectedOutputs": [
+    "One versioned Godot project integration shell that composes producer-owned scenes/resources without redefining their semantics.",
+    "A stable runtime composition/interface contract: root scene ownership, integration mount points, state/event plumbing boundaries, resource path conventions, and consumer-visible failure modes.",
+    "Exact integration candidate source revision plus deterministic launch/health validation receipts.",
+    "Frozen candidate identity consumable by A18/A19/A20/A21/A23/A25 as applicable.",
+    "Owner-routed defect receipts when composite failures originate upstream rather than downstream symptom patches."
+  ],
+  "highestRiskBoundaryAssumption": "That independently produced specialist and player-runtime handoffs can be composed through narrow adapters without A17 becoming the semantic owner of player interaction, creature behavior, cue meaning, asset truth, or product thesis.",
+  "firstRecommendation": "PROCEED_WITH_CONSTRAINTS",
+  "constraints": [
+    "Create only engine-owned composition/plumbing before peer handoffs; do not synthesize specialist truth.",
+    "Treat Godot availability as unverified until an exact executable/version invocation succeeds.",
+    "Treat the Git commit as launch authority while preserving the source-state-digest discrepancy as a condition-boundary issue until reconciled.",
+    "Do not expose any Human outcome claim from mechanical integration evidence."
+  ],
+  "frozenBeforePeerCurrentRoundRead": true
+}

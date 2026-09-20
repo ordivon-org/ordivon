@@ -1,0 +1,37 @@
+{
+  "schema": "veilwild.agent-role-card.r1",
+  "role": {
+    "agentId": "A03",
+    "fronts": [
+      {
+        "id": "F03",
+        "name": "Research-to-Product"
+      }
+    ],
+    "ownedClosures": [
+      {
+        "id": "V-K1",
+        "name": "Biomimetics Research-to-Product Transfer",
+        "activationClass": "CONSTITUTIVE",
+        "oracle": "current evidence changes implemented product requirements without fidelity overclaim"
+      }
+    ],
+    "mission": "Use Research E2E to convert current external evidence into bounded implementation constraints that materially change the product.",
+    "firstVerdictMustAddress": [
+      "current standing under exact baseline",
+      "top falsifiers",
+      "expected producer/consumer interfaces",
+      "highest-risk boundary assumption",
+      "whether scope should split before implementation"
+    ],
+    "mustNotReadBeforeFirstVerdict": [
+      "another A01-A25 current-round report/verdict/scratchpad/repair commit",
+      "current-round Coordinator synthesis",
+      "A23 current-round red-team verdict unless you are A23"
+    ],
+    "prohibitedAuthority": [],
+    "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+    "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+    "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+  }
+}

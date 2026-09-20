@@ -1,0 +1,328 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf3-f-final-falsification-matrix",
+  "round": "GDF3-F",
+  "status": "final-freeze-evidence",
+  "candidate": {
+    "name": "AuthoritativeCaseDeterminationContract",
+    "ontologyPrimitive": false,
+    "responsibilityContract": true,
+    "obligations": [
+      "DeterminationTargetAndStatus",
+      "BindingAuthorityAndCurrentness",
+      "TypedDeterminationBasisWhenMaterial"
+    ]
+  },
+  "finalAttackQuestions": [
+    "Can all positive cases be represented as generic authoritative state/transition without a named Game case-determination responsibility?",
+    "Can determination target/status be deleted without losing the identity of what is officially being decided?",
+    "Can binding authority/currentness be inferred from role labels, correctness, causal power or rule authority without an explicit F5/F6 binding relation?",
+    "Can all determination bases be merged into one untyped relation without losing evidence-vs-norm counterfactuals?",
+    "Can review/reversal/history force a non-derived lineage primitive?",
+    "Can enforcement/remedy force a fourth core obligation?",
+    "Can solitary/self-authored play produce case determination without importing external institutional authority?",
+    "Can one Human/Agent/model simultaneously hold proposal, interpretation, rule-change, case-determination and enforcement powers without collapsing operation-specific authority?",
+    "Can the boundary distinguish deterministic execution from deterministic official determination?",
+    "Is the surviving responsibility actually generic legal/social/epistemic infrastructure rather than Game-owned?"
+  ],
+  "totalCompressionAttack": {
+    "nullModel": "No GDF3 responsibility; use only F1-F9 + GDF0 EffectiveRuleTopology + GDF1 GameActionContract + ordinary scoped authority relations.",
+    "representationResult": "PASS",
+    "responsibilityResult": "FAIL",
+    "whyRepresentationPasses": "Every instance can be encoded using State/Relation/Transition/Time/Authority/Observation/Evaluation/Action semantics; no F10 is required.",
+    "whyResponsibilityFails": [
+      "generic authoritative state does not itself require distinguishing the target/status relation from underlying World state or event history",
+      "generic role/authority facts do not themselves require distinguishing binding case authority from recommendation, rule-change, appointment or enforcement authority",
+      "generic provenance links do not themselves require preserving case/evidence basis versus norm/evaluation/application basis when those can vary independently",
+      "without a Game-owned case-status contract, multiple GameForms can remain technically representable while repeatedly collapsing the same domain distinction"
+    ],
+    "analogy": "GDF1 GameActionContract is likewise a responsibility contract over F1-F9 rather than a new primitive."
+  },
+  "obligationAttacks": [
+    {
+      "obligation": "DeterminationTargetAndStatus",
+      "attack": "replace with generic authoritative state/transition",
+      "result": "SURVIVES_AS_RESPONSIBILITY",
+      "falsifier": "The same status token or authoritative state label can apply to action legality, run category, record certification, judged score, sanction, appeal admissibility or match result; without an explicit target/status relation the determination identity is under-specified even though all terms remain representable in F1-F9.",
+      "notNewPrimitive": true
+    },
+    {
+      "obligation": "BindingAuthorityAndCurrentness",
+      "attack": "infer binding force from role label, causal power, rule authority, correctness or model identity",
+      "result": "SURVIVES_AS_CONSUMED_F5_F6_REQUIREMENT",
+      "falsifier": "Identical case content can be advisory or binding; the same entity can have rule-change authority but not case authority, or case authority but not enforcement authority; a solitary player can be current practice authority without any external institution. Binding status therefore requires a scoped/current authority relation, not an identity heuristic.",
+      "notNewPrimitive": true
+    },
+    {
+      "obligation": "TypedDeterminationBasisWhenMaterial",
+      "attack": "merge every basis relation into an untyped bag",
+      "result": "SURVIVES_CONDITIONALLY",
+      "falsifier": "Holding evidence/history fixed while current norm/interpretation changes can reverse the determination, and holding the norm fixed while evidence/history changes can also reverse it. When those counterfactuals matter, basis provenance must distinguish the two relation families.",
+      "notNewPrimitive": true
+    }
+  ],
+  "boundaryDefinition": {
+    "name": "CaseDeterminationBoundary",
+    "frozenRule": "Use the AuthoritativeCaseDeterminationContract only when a Game/PlayPractice exposes an independently meaningful current binding case status: a status whose target/content, binding authority/currentness, or materially relevant basis can vary independently from the underlying event/history/direct execution semantics. Direct deterministic execution or admission need not instantiate the contract when no such independent case-status semantics exist.",
+    "humanRequired": false,
+    "externalInstitutionRequired": false,
+    "disputeRequired": false,
+    "reviewRequired": false,
+    "nondeterminismRequired": false,
+    "automaticExecutionExcludes": false
+  },
+  "boundaryCases": [
+    {"id":"F1","case":"deterministic collision resolution","expected":false,"why":"direct transition semantics only"},
+    {"id":"F2","case":"deterministic damage formula","expected":false,"why":"direct rule execution only"},
+    {"id":"F3","case":"closed action legality predicate consumed immediately","expected":false,"why":"ordinary GDF1 admission unless separate official case status matters"},
+    {"id":"F4","case":"server computes an official tournament game result and stores current winner status","expected":true,"why":"determinism does not remove independently meaningful binding contest status"},
+    {"id":"F5","case":"same server calculation used only as transient physics state with no official result semantics","expected":false,"why":"no independent case status"},
+    {"id":"F6","case":"spectator observation","expected":false,"why":"observation without determination authority"},
+    {"id":"F7","case":"spectator reports possible violation","expected":false,"why":"evidence contribution only"},
+    {"id":"F8","case":"coach recommends appeal","expected":false,"why":"advice/policy influence"},
+    {"id":"F9","case":"VAR technology recommends review","expected":false,"why":"review support/recommendation can be nonbinding"},
+    {"id":"F10","case":"referee issues current match ruling","expected":true,"why":"binding incident status"},
+    {"id":"F11","case":"floor judge ruling subject to appeal","expected":true,"why":"current binding case determination despite review path"},
+    {"id":"F12","case":"review authority supersedes prior ruling","expected":true,"why":"new current binding determination; lineage remains derived"},
+    {"id":"F13","case":"TTRPG player utterance semantic parse","expected":false,"why":"candidate interpretation alone"},
+    {"id":"F14","case":"TTRPG GM resolves novel action for current table","expected":true,"why":"binding in-practice case status/outcome admission"},
+    {"id":"F15","case":"speedrun run history","expected":false,"why":"underlying event history"},
+    {"id":"F16","case":"speedrun category certification","expected":true,"why":"official practice status can vary with category norm while history stays fixed"},
+    {"id":"F17","case":"community debate on whether technique is glitch","expected":false,"why":"argument/convention evidence until current practice adopts a result"},
+    {"id":"F18","case":"category authority prospectively adopts technique interpretation","expected":false,"why":"GDF0 EffectiveRuleTopology change, not a case determination by identity"},
+    {"id":"F19","case":"historical run is reclassified under newly authorized retrospective interpretation","expected":true,"why":"official case/record status changes without history rewrite"},
+    {"id":"F20","case":"judging sensor emits measured element label","expected":false,"why":"measurement/classification support"},
+    {"id":"F21","case":"official judged score is posted","expected":true,"why":"binding evaluative performance status"},
+    {"id":"F22","case":"inquiry changes official judged score","expected":true,"why":"new determination while performance history stays fixed"},
+    {"id":"F23","case":"moderation classifier emits risk score","expected":false,"why":"classification without binding authority"},
+    {"id":"F24","case":"moderation authority decides violation status","expected":true,"why":"binding policy/practice case status"},
+    {"id":"F25","case":"adaptive director raises difficulty","expected":false,"why":"ordinary scoped game-state authority"},
+    {"id":"F26","case":"adaptive system determines player qualifies for a named competitive bracket whose status constrains participation","expected":true,"why":"binding qualification case status independently matters"},
+    {"id":"F27","case":"operator appoints referee","expected":false,"why":"appointment authority transition"},
+    {"id":"F28","case":"rule authority changes rule version","expected":false,"why":"GDF0 rule-topology transition"},
+    {"id":"F29","case":"same entity later applies changed rule to one case","expected":true,"why":"case operation differs from rule-change operation despite same holder"},
+    {"id":"F30","case":"Agent parses ambiguous command","expected":false,"why":"interpretation candidate"},
+    {"id":"F31","case":"Agent with delegated admission authority binds ambiguous command to an admitted action","expected":true,"why":"binding case-level admission status"},
+    {"id":"F32","case":"Agent proposes rule change","expected":false,"why":"proposal"},
+    {"id":"F33","case":"Agent with rule-change authority adopts proposal","expected":false,"why":"rule topology change"},
+    {"id":"F34","case":"same Agent adjudicates case under new rule","expected":true,"why":"case authority operation"},
+    {"id":"F35","case":"same Agent immediately enforces own ruling","expected":true,"why":"determination exists even if enforcement is fused in implementation; conceptual distinction survives counterfactual substitution"},
+    {"id":"F36","case":"automated self-executing rule both determines and enforces result with no possible separate status semantics","expected":false,"why":"when determination adds no independently meaningful status beyond direct transition, GDF0/GDF1 suffice"},
+    {"id":"F37","case":"automated self-executing system emits persistent appealable official result before/alongside enforcement","expected":true,"why":"official result is independently meaningful despite automatic execution"},
+    {"id":"F38","case":"solitary player privately guesses whether own move violated self-imposed rule but treats guess as tentative","expected":false,"why":"belief/classification without binding practice status"},
+    {"id":"F39","case":"solitary self-authored challenge uses an explicit current self-check as binding certification for run validity","expected":true,"why":"external institution is unnecessary; practice authority can be self-maintained and role-fused"},
+    {"id":"F40","case":"solitary player changes self-imposed rule for future attempts","expected":false,"why":"rule-change operation, not current case determination"},
+    {"id":"F41","case":"same solitary player applies new rule retrospectively to certify old run","expected":true,"why":"role fusion does not erase determination operation or currentness"},
+    {"id":"F42","case":"audience members cast votes","expected":false,"why":"individual contributions not binding by identity"},
+    {"id":"F43","case":"authorized aggregation rule declares official winner","expected":true,"why":"binding contest status can instantiate contract without CollectiveAuthority primitive"},
+    {"id":"F44","case":"human adjudicator replaced by synthetic adjudicator under identical authority contract","expected":true,"why":"substrate change does not change semantics"},
+    {"id":"F45","case":"synthetic adjudicator produces correct answer without authority","expected":false,"why":"correctness/model identity does not create binding status"},
+    {"id":"F46","case":"practice recognizes two coequal authorized outcomes and chooser selects one","expected":true,"why":"discretion is bounded but selected result is binding case status"},
+    {"id":"F47","case":"prior ruling is cited as persuasive precedent","expected":false,"why":"basis input, not current determination"},
+    {"id":"F48","case":"current authority rules after considering precedent","expected":true,"why":"current binding status is distinct from basis input"}
+  ],
+  "pairedCounterfactuals": [
+    {"id":"P1","heldFixed":"underlying run history","varied":"category/practice norm","result":"official certification changes"},
+    {"id":"P2","heldFixed":"current norm","varied":"evidence/history basis","result":"determination changes"},
+    {"id":"P3","heldFixed":"classification content","varied":"binding authority relation","result":"advice vs authoritative determination"},
+    {"id":"P4","heldFixed":"determination content","varied":"currentness/supersession","result":"historical vs current binding status"},
+    {"id":"P5","heldFixed":"binding determination","varied":"enforcement success","result":"determination identity persists"},
+    {"id":"P6","heldFixed":"same entity/model","varied":"operation-specific authority","result":"proposal/rule-change/case-ruling/enforcement statuses differ"},
+    {"id":"P7","heldFixed":"same rule text","varied":"adopted interpretation","result":"effective norm basis and case result can change"},
+    {"id":"P8","heldFixed":"same underlying event","varied":"practice scope/category","result":"different authoritative statuses can coexist"},
+    {"id":"P9","heldFixed":"same automation algorithm","varied":"whether practice gives output independent official-status semantics","result":"ordinary execution vs adjudication boundary changes"},
+    {"id":"P10","heldFixed":"same solitary individual","varied":"tentative belief vs self-maintained binding practice role","result":"classification vs authoritative self-practice determination"}
+  ],
+  "lineageAttack": {
+    "cases": [
+      "first-instance determination upheld",
+      "first-instance determination modified",
+      "first-instance determination reversed",
+      "determination superseded by rule/currentness change",
+      "historical determination remains provenance after current replacement"
+    ],
+    "result": "DERIVED_VIEW_SUFFICIENT",
+    "requiredSubstrate": ["determination events","supersedes/upholds/modifies relation","F5 time/currentness","F6 provenance/authority"],
+    "newPrimitiveRequired": false
+  },
+  "enforcementAttack": {
+    "cases": [
+      "binding ruling with failed enforcement",
+      "binding ruling later enforced",
+      "determination and enforcement fused in one implementation step",
+      "determination reversed after partial irreversible consequence",
+      "official record status changed without replaying underlying event"
+    ],
+    "result": "CORE_OBLIGATION_NOT_REQUIRED",
+    "law": "Determination != Enforcement, even when one implementation step realizes both.",
+    "newPrimitiveRequired": false
+  },
+  "solitarySelfAuthoredAttack": {
+    "result": "SURVIVES",
+    "law": "BindingAuthority does not imply external institution; authority can be role-fused and self-maintained inside a solitary PlayPractice.",
+    "antiCollapse": [
+      "private belief != binding self-practice determination",
+      "self-authored rule change != case determination",
+      "same individual can occupy rule-authority and case-authority roles without role identity",
+      "withdrawable/temporary self-practice authority remains F5/F6 scope/currentness bound"
+    ]
+  },
+  "roleFusedAgentAttack": {
+    "result": "SURVIVES",
+    "sameEntityCanHold": ["proposal authority or none","interpretive authority","rule-change authority","case-determination authority","enforcement authority"],
+    "law": "SameEntityOrModel != SameAuthorityOperation",
+    "newPrimitiveRequired": false
+  },
+  "ownerAudit": {
+    "GameOwns": "minimum responsibility for an independently meaningful binding case status that changes Game/PlayPractice semantics",
+    "GDF0Owns": "EffectiveRuleTopology, rule/norm/evaluation currentness and rule-change authority",
+    "GDF1Owns": "candidate action, action admission, execution and consequence semantics",
+    "WorldOwns": "underlying event/history/reality and causal counterfactual dynamics",
+    "MediaOwns": "signals, observations and representation mechanisms",
+    "HumanOwns": "subjective judgment, cognition, fairness perception and experience",
+    "SocialInstitutionalOwns": "broader legitimacy, cultural recognition and institutional trust beyond the local GamePractice authority relation",
+    "GeneralReasoningOwns": "logic, argumentation, case-based reasoning, precedent computation and epistemology"
+  },
+  "frozenContract": {
+    "name": "AuthoritativeCaseDeterminationContract",
+    "statement": "When a Game/PlayPractice exposes an independently meaningful current binding case status, preserve enough structure to identify (1) the determination target and current status/result; (2) the F5/F6 authority, scope, currentness and provenance that make it binding rather than advisory/classificatory/proposed; and (3) when materially counterfactual, typed determination-basis relations sufficient to distinguish case/evidence/canonical-state basis from norm/evaluation/application basis. Do not require a separate Case, EvidenceSet, Interpretation, Review, Precedent, Discretion, Judge, Agent, or Enforcement object.",
+    "derivedViews": [
+      "ScopedAuthorityEdge",
+      "RoleCausalAccessProfile",
+      "ParticipationAuthorityTopology",
+      "ReviewContestabilityTopology",
+      "DecisionLineage",
+      "NormApplicationBasis detail",
+      "InterpretiveCommitment",
+      "DiscretionEnvelope",
+      "CaseDeterminationBoundary diagnostic"
+    ],
+    "rejectedAsPrimitivesOrIndependentResponsibilities": [
+      "Participant",
+      "Mediation",
+      "ParticipationAuthorityTopology",
+      "GlobalAuthorityHierarchy",
+      "Delegation",
+      "CollectiveAuthority",
+      "RoleConflict",
+      "Evidence",
+      "Fact",
+      "Interpretation",
+      "Classification",
+      "Review",
+      "Appeal",
+      "Contestability",
+      "Finality",
+      "ReversalAsRollback",
+      "NormApplication",
+      "Rule",
+      "Standard",
+      "PurposeEthos",
+      "ExceptionDefeater",
+      "NormConflict",
+      "Precedent",
+      "Convention",
+      "Discretion",
+      "OpenTexture",
+      "InterpretiveChange",
+      "Retroactivity"
+    ]
+  },
+  "frozenAntiCollapseLaws": [
+    "Entity != Role != Subject != Player",
+    "Participant is scope-qualified, not a universal primitive",
+    "RoleLabel != ResponsibilityTopology",
+    "RoleAssignment != AuthorityGrant",
+    "Contribution/Advice/Recommendation != BindingAuthority",
+    "Authority != GlobalRank and AuthorityTopology != Tree by necessity",
+    "RuleChangeAuthority != CaseRulingAuthority != EnforcementAuthority",
+    "AppointmentAuthority != CaseRulingAuthority",
+    "OfficialCaseStatus != WorldTruth",
+    "Observation != Evidence by identity",
+    "Evidence != Claim != WorldTruth",
+    "Classification/Interpretation/Recommendation != AuthoritativeDetermination by identity",
+    "AuthoritativeDetermination != Enforcement",
+    "Finality != Truth/Correctness",
+    "Review != Replay",
+    "Reversal != HistoryErasure",
+    "Reversal != FullRollback",
+    "PriorDecision != BindingPrecedent",
+    "ConventionFrequency != Authority",
+    "Discretion != Arbitrariness/UnlimitedAuthority",
+    "NaturalLanguageInterpretation != AuthoritativeEffect",
+    "Agent/ModelIdentity != OutputAuthority",
+    "StableRuleRepresentation != StableEffectiveRuleTopology",
+    "DeterministicExecution != Adjudication by identity",
+    "ExternalInstitution != necessary condition for binding PlayPractice authority"
+  ],
+  "foundationReopenConditions": [
+    {
+      "id":"ACD-PRC-1",
+      "name":"Determination identity failure",
+      "trigger":"At least two materially different GameForms expose an independently meaningful binding case status whose target/status identity cannot be represented through existing F1-F9 relations plus the frozen contract without adding a new semantic distinction."
+    },
+    {
+      "id":"ACD-PRC-2",
+      "name":"Binding authority failure",
+      "trigger":"Repeated cases cannot distinguish advisory/classificatory output from current binding case status using existing F5/F6 scope/currentness/provenance and operation-specific authority relations."
+    },
+    {
+      "id":"ACD-PRC-3",
+      "name":"Determination-basis failure",
+      "trigger":"At least two materially different GameForms require a recurring determination-basis distinction beyond typed case/evidence/canonical-state versus norm/evaluation/application provenance, and the missing distinction changes Game counterfactuals."
+    },
+    {
+      "id":"ACD-PRC-4",
+      "name":"CaseDeterminationBoundary failure",
+      "trigger":"The frozen boundary repeatedly misclassifies ordinary direct rule execution as adjudication or repeatedly misses independently meaningful binding case statuses across materially different GameForms, and the error cannot be repaired by scope/currentness/authority/basis qualification."
+    },
+    {
+      "id":"ACD-PRC-5",
+      "name":"Lineage/review failure",
+      "trigger":"Repeated review/reversal/supersession cases require a non-derived semantic responsibility that cannot be reconstructed from determination events plus ordinary relation/time/authority/provenance history."
+    },
+    {
+      "id":"ACD-PRC-6",
+      "name":"Determination-enforcement entanglement failure",
+      "trigger":"At least two materially different GameForms require enforcement/remedy to be constitutive of determination identity in a way not representable through ordinary F4/GDF0/GDF1 transition relations while preserving Determination != Enforcement where counterfactually separable."
+    },
+    {
+      "id":"ACD-PRC-7",
+      "name":"Role-fusion/substrate failure",
+      "trigger":"Repeated Human/Agent/collective/solitary or role-fused cases require binding case semantics not expressible through existing entity/role/operation-specific authority/currentness relations, rather than merely a new implementation mechanism."
+    },
+    {
+      "id":"ACD-PRC-8",
+      "name":"Ownership/generalization failure",
+      "trigger":"At least two materially different downstream GameForms show that the frozen responsibility either belongs to a more general non-Game foundation or misses a Game-native case-status distinction that cannot be handed to World/Media/Human/Social/GeneralReasoning without explanatory loss."
+    },
+    {
+      "id":"ACD-PRC-9",
+      "name":"Repeated downstream contradiction",
+      "trigger":"At least two materially different downstream GameForms repeatedly falsify the same frozen ACD law rather than a derived view, local authority policy, representation choice or implementation mechanism."
+    }
+  ],
+  "freezeDecision": {
+    "finalTotalCompressionKilledContract": false,
+    "boundaryFalsified": false,
+    "lineagePrimitiveForced": false,
+    "enforcementCoreForced": false,
+    "solitaryCaseFalsifiedAuthorityModel": false,
+    "agentRoleFusionFalsifiedAuthorityModel": false,
+    "upstreamReopenRequired": false,
+    "newSemanticPrimitiveRequired": false,
+    "gdf3Freeze": true,
+    "frozenName": "Authoritative Case Determination Foundations v1"
+  },
+  "upstreamReopen": {
+    "r29F1ToF9": false,
+    "gdf0": false,
+    "gdf1": false,
+    "gdf2": false
+  },
+  "postFreezeContinuation": {
+    "nextBranchPreset": false,
+    "requiredNextAction": "Rerun whole-Game unexplored-space/domain-coverage search across GDF0-GDF3 and all previously preserved residuals; let the new residual/falsifier map determine whether a GDF4 is admitted and what it studies.",
+    "knownResidualsAreHintsOnly": true
+  }
+}

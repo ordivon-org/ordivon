@@ -1,0 +1,221 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.practical-reconstruction-closeout-coverage",
+  "status": "closeout-evidence",
+  "foundationStatus": {"gdf0":"FROZEN","gdf1":"FROZEN","gdf2":"FROZEN","gdf3":"FROZEN","reopenTriggered":false},
+  "programmeStatus": {
+    "r0ConceptCount": 37,
+    "gprRoundsCompleted": ["GPR1","GPR2","GPR3","GPR4","GPR5","GPR6"],
+    "r0ConceptsUnaccounted": 0,
+    "nextGprBeforeCoverageSearch": "UNKNOWN",
+    "coverageSearchResult": "ONE_GENUINELY_UNRESOLVED_PRACTICAL_CLUSTER_SURVIVES",
+    "selectedNextRound": "GPR7 — Challenge / Failure / Recovery / Mastery Practical Toolkit"
+  },
+  "r0Coverage": [
+    {"concept":"RoleAssignment","tier":"T1_cross_game_toolkit","resolution":"RECONSTRUCTED","resolvedBy":"GPR1","finalForm":"RoleAssignmentRecord — source relation/record"},
+    {"concept":"ScopedAuthorityEdge","tier":"T1_cross_game_toolkit","resolution":"RECONSTRUCTED","resolvedBy":"GPR1","finalForm":"normalized derived effective-authority view"},
+    {"concept":"AuthorityProfile","tier":"T1_cross_game_toolkit","resolution":"RECONSTRUCTED","resolvedBy":"GPR1","finalForm":"derived current authority view"},
+    {"concept":"AgentAuthorityManifest","tier":"T1_cross_game_toolkit","resolution":"RECONSTRUCTED","resolvedBy":"GPR1","finalForm":"context-bound derived Agent snapshot"},
+    {"concept":"RoleCausalAccessProfile","tier":"T1_cross_game_toolkit","resolution":"RECONSTRUCTED","resolvedBy":"GPR1","finalForm":"derived multi-axis causal-access view"},
+    {"concept":"ParticipationAuthorityTopology","tier":"T1_cross_game_toolkit","resolution":"RECONSTRUCTED","resolvedBy":"GPR1","finalForm":"derived graph/debug view"},
+    {"concept":"AuthoritySeparationPolicy","tier":"T1_cross_game_toolkit","resolution":"RECONSTRUCTED","resolvedBy":"GPR1","finalForm":"owner-local policy interface"},
+    {"concept":"DelegationGrant","tier":"T1_cross_game_toolkit","resolution":"RECONSTRUCTED","resolvedBy":"GPR1","finalForm":"DelegationGrantRecord — conditional source/workflow"},
+    {"concept":"AppointmentReplacementRecord","tier":"T2_conditional_toolkit","resolution":"RECONSTRUCTED","resolvedBy":"GPR1","finalForm":"optional RoleAssignment change receipt"},
+
+    {"concept":"AuthoritativeDeterminationRecord","tier":"T1_cross_game_toolkit","resolution":"RECONSTRUCTED","resolvedBy":"GPR2","finalForm":"conditional source record"},
+    {"concept":"DeterminationBasisTrace","tier":"T1_cross_game_toolkit","resolution":"RECONSTRUCTED","resolvedBy":"GPR2","finalForm":"derived audit view"},
+    {"concept":"CaseDeterminationBoundaryDiagnostic","tier":"T1_cross_game_toolkit","resolution":"RECONSTRUCTED","resolvedBy":"GPR2","finalForm":"derived developer diagnostic"},
+    {"concept":"ReviewRequest","tier":"T2_conditional_toolkit","resolution":"ABSORBED_OR_DECOMPOSED","resolvedBy":"GPR2","finalForm":"ContestRequestRecord generic source + ReviewRequestView"},
+    {"concept":"AppealRequest","tier":"T2_conditional_toolkit","resolution":"ABSORBED_OR_DECOMPOSED","resolvedBy":"GPR2","finalForm":"ContestRequestRecord generic source + AppealRequestView"},
+    {"concept":"ReviewContestabilityProfile","tier":"T2_conditional_toolkit","resolution":"RECONSTRUCTED","resolvedBy":"GPR2","finalForm":"derived policy + authority view"},
+    {"concept":"DecisionLineage","tier":"T1_cross_game_toolkit","resolution":"RECONSTRUCTED","resolvedBy":"GPR2","finalForm":"derived graph, not universal chain"},
+
+    {"concept":"EvidenceBundleForCase","tier":"T2_conditional_toolkit","resolution":"RECONSTRUCTED","resolvedBy":"GPR3","finalForm":"derived case-relative evidence-use view"},
+    {"concept":"NormApplicationView","tier":"T2_conditional_toolkit","resolution":"RECONSTRUCTED","resolvedBy":"GPR3","finalForm":"derived current norm-application view"},
+    {"concept":"InterpretiveCommitment","tier":"T2_conditional_toolkit","resolution":"RECONSTRUCTED","resolvedBy":"GPR3","finalForm":"InterpretiveCommitmentRecord — conditional GDF0 source adapter"},
+    {"concept":"PrecedentLink","tier":"T2_conditional_toolkit","resolution":"RECONSTRUCTED","resolvedBy":"GPR3","finalForm":"conditional typed relation/view or record"},
+    {"concept":"ConventionStatusView","tier":"T2_conditional_toolkit","resolution":"RECONSTRUCTED","resolvedBy":"GPR3","finalForm":"derived observed-vs-constitutive view"},
+    {"concept":"DiscretionEnvelope","tier":"T2_conditional_toolkit","resolution":"RECONSTRUCTED","resolvedBy":"GPR3","finalForm":"derived bounded-choice view"},
+
+    {"concept":"EnforcementRecord","tier":"T1_cross_game_toolkit","resolution":"ABSORBED_OR_DECOMPOSED","resolvedBy":"GPR4","finalForm":"ConsequenceDirectiveRecord + EnforcementAttemptRecord + RealizedConsequenceView + EnforcementStatusView"},
+    {"concept":"RemedyPlan","tier":"T2_conditional_toolkit","resolution":"RECONSTRUCTED","resolvedBy":"GPR4","finalForm":"RemedyPlanRecord + derived RemedyStatusView"},
+
+    {"concept":"ParticipantView","tier":"T3_ui_authoring_vocabulary","resolution":"RECONSTRUCTED","resolvedBy":"GPR6","finalForm":"derived scope-qualified participation view"},
+    {"concept":"SpectatorView","tier":"T3_ui_authoring_vocabulary","resolution":"RECONSTRUCTED","resolvedBy":"GPR6","finalForm":"derived observation-centered role view"},
+    {"concept":"AudienceView","tier":"T3_ui_authoring_vocabulary","resolution":"RECONSTRUCTED","resolvedBy":"GPR6","finalForm":"derived collection/aggregation view"},
+
+    {"concept":"RefereeJudgeRoleBundle","tier":"T2_conditional_toolkit","resolution":"RECONSTRUCTED","resolvedBy":"GPR5","finalForm":"Referee/Judge RoleBundle template family"},
+    {"concept":"GameMasterRoleBundle","tier":"T2_conditional_toolkit","resolution":"RECONSTRUCTED","resolvedBy":"GPR5","finalForm":"GameMaster RoleBundle template family"},
+    {"concept":"CoachAdvisorRoleBundle","tier":"T2_conditional_toolkit","resolution":"RECONSTRUCTED","resolvedBy":"GPR5","finalForm":"Coach/Advisor RoleBundle template family"},
+    {"concept":"ModeratorRoleBundle","tier":"T2_conditional_toolkit","resolution":"RECONSTRUCTED","resolvedBy":"GPR5","finalForm":"Moderator RoleBundle template family"},
+    {"concept":"OperatorRoleBundle","tier":"T2_conditional_toolkit","resolution":"RECONSTRUCTED","resolvedBy":"GPR5","finalForm":"Operator RoleBundle template family"},
+    {"concept":"ExperienceManagerRoleBundle","tier":"T2_conditional_toolkit","resolution":"RECONSTRUCTED","resolvedBy":"GPR5","finalForm":"ExperienceManager RoleBundle template family"},
+
+    {"concept":"RuleStandardLabels","tier":"T4_local_or_caution","resolution":"RECONSTRUCTED","resolvedBy":"GPR6","finalForm":"NormVocabularyView descriptive authoring/UI labels; no universal Rule-vs-Standard binary"},
+    {"concept":"FinalityStatus","tier":"T3_ui_authoring_vocabulary","resolution":"RECONSTRUCTED","resolvedBy":"GPR2","finalForm":"FinalityStatusView derived UI query; intentionally not redone in GPR6"},
+    {"concept":"OfficialStatusCertificationView","tier":"T1_cross_game_toolkit","resolution":"ABSORBED_OR_DECOMPOSED","resolvedBy":"GPR2","finalForm":"split into OfficialStatusView and specialized CertificationView"},
+    {"concept":"VerificationView","tier":"T1_cross_game_toolkit","resolution":"RECONSTRUCTED","resolvedBy":"GPR3","finalForm":"derived adapter over existing verification sources"}
+  ],
+  "r0ResolutionSummary": {
+    "RECONSTRUCTED": 33,
+    "ABSORBED_OR_DECOMPOSED": 4,
+    "LOCAL_ONLY": 0,
+    "OWNED_ELSEWHERE": 0,
+    "NOT_USEFUL_ENOUGH": 0,
+    "IMPLEMENTATION_CONSUMPTION": 0,
+    "GENUINELY_UNRESOLVED": 0
+  },
+  "coverageBiasFinding": "R0 completely resolved its own 37 concepts but was materially GDF3-heavy. A whole frozen-substrate scan of GDF0-GDF2 is therefore required before declaring practical reconstruction closed.",
+
+  "upstreamDerivedInventory": [
+    {"conceptCluster":"GDF0 Play/Agency/Evaluation derived models","examples":["CoupledLudicConfiguration","AgencyScaffold","DynamicEvaluationTopology","Configuration causal-factorization","ConfigurationMediation","Practice/LineageContinuity","CategoryFeedback","ExternalInstrumentality/ConsequenceCoupling"],"classification":"ALREADY_RETAINED_DERIVED_RESEARCH_MODELS","consumerPressure":"LOW_TO_PARTIAL","reason":"GDF0-H already explicitly preserves these as useful projections. Current repo has no direct implementation references. They remain available research/authoring models but do not create a missing practical contract cluster now."},
+    {"conceptCluster":"GDF1 coupling/control/technique derived models","examples":["ActionCouplingProfile","ControlContributionTopology","ControlAccessProfile","TechniqueFamily"],"classification":"PARTLY_ABSORBED_OR_LOCAL_CONDITIONAL","consumerPressure":"LOW_TO_PARTIAL","reason":"ControlContribution is already consumed conceptually by GPR1/GPR6 shared/audience control; ActionCoupling/Technique are sparse or GameForm-specific and have no current direct consumer. SkillProfile/SRVS/ProbeTransformation are already frozen core responsibilities rather than missing practical abstractions."},
+    {"conceptCluster":"GDF1→GDF2 expression/threshold handoff","examples":["EntryRequirementRegion","SkillExpressionEnvelope","SaturationAttribution"],"classification":"ABSORBED_INTO_GDF2_RESIDUAL","consumerPressure":"PARTIAL","reason":"GDF1 explicitly hands their explanatory burden to Challenge/Difficulty/Mastery. They should not become a separate practical round."},
+    {"conceptCluster":"GDF2 challenge projections","examples":["NominalDifficultySetting","OutcomeRisk","CapabilityThresholdRegion","CapabilityDiscriminationProfile","FunctionalDifficultyProjection","ChallengeObservationDesign","IdentificationStatus"],"classification":"GENUINELY_UNRESOLVED_PRACTICAL_CLUSTER_PART","consumerPressure":"HIGH","reason":"Current product already studies pressure, outcome distributions, viability basins and tradeoffs while deliberately avoiding a scalar Difficulty field. A compact authoring/research/Agent projection is useful and not yet reconstructed."},
+    {"conceptCluster":"GDF2 failure/recovery projections","examples":["FailureAssessment","PursuitTerminalityQuery","RecoveryTransitionSet","QuerySpecificRecoveryCostProjection"],"classification":"GENUINELY_UNRESOLVED_PRACTICAL_CLUSTER_PART","consumerPressure":"VERY_HIGH","reason":"Current code and UI simultaneously use mission/faction/objective failure, Team/provider/process failure, technical receipt recovery, and gameplay verbs named recover/recovery. GDF2's anti-collapse law is directly relevant to current consumers but has no practical Human/Agent view yet."},
+    {"conceptCluster":"GDF2 mastery/evidence projections","examples":["MasteryClaimContract","DemonstratedMasteryEvidence","ProbeTransformation-backed transfer/retention claims"],"classification":"GENUINELY_UNRESOLVED_PRACTICAL_CLUSTER_PART","consumerPressure":"MEDIUM_HIGH","reason":"PRODUCT.md explicitly uses 'System mastery', but current repo has no source-backed mastery projection. Practical reconstruction is needed to keep product language useful without turning one run/score/success into a mastery boolean."},
+    {"conceptCluster":"Learning opportunity / experienced difficulty / subjective competence / social mastery","examples":["LearningOpportunity","ExperiencedDifficulty","SubjectiveCompetence","SocialMastery"],"classification":"OWNED_ELSEWHERE_OR_LOCAL_ONLY","consumerPressure":"VARIABLE","reason":"GDF2 explicitly hands Human learning/experience to Human and rank/recognition legitimacy to Practice/Social/Institutional owners; local research views remain permitted."}
+  ],
+
+  "currentConsumerAudit": {
+    "FactionOutcome": {"classification":"GAME_AUTHORITATIVE_EVALUATION_OUTCOME","evidence":"StationZeroFactionOutcome = pending|victory|partial|failure. Useful input to a scoped FailureAssessment but not a universal Failure event."},
+    "ObjectiveStatus": {"classification":"CRITERION_LOCAL_EVALUATION_STATUS","evidence":"StationZeroObjectiveStatus = active|completed|failed. One faction/history can mix objective success and overall partial/failure."},
+    "MissionFailurePresentation": {"classification":"PLAYER_FACING_GAME_FAILURE_LABEL","evidence":"Mission Control exposes 'Mission failed', directly proving current Human-facing failure vocabulary."},
+    "TeamTaskFailure": {"classification":"WORKFLOW_EXECUTION_FAILURE_NOT_GAME_FAILURE_BY_IDENTITY","evidence":"TeamTaskState includes failed for task/workflow state."},
+    "ProviderProcessFailure": {"classification":"TECHNICAL_PROVIDER_FAILURE_NOT_GAME_FAILURE_BY_IDENTITY","evidence":"provider-failure/process_failed exist in Team and Mission Control tooling."},
+    "PersistenceRecover": {"classification":"TECHNICAL_RECEIPT_STATE_RECOVERY_NOT_GDF2_GAME_RECOVERY_BY_IDENTITY","evidence":"turn-service/play-service/store recover(runId) reconstruct committed durable Game state after crash/response loss."},
+    "RecoverResearchCore": {"classification":"GAMEPLAY_OBJECTIVE_VERB_NOT_FAILURE_RECOVERY_TRANSITION_BY_IDENTITY","evidence":"recover-research-core means retrieve/extract cargo, not continuation after failure."},
+    "CivilianRecovery": {"classification":"GAMEPLAY_RESPONSIBILITY_LABEL_NOT_FAILURE_RECOVERY_BY_IDENTITY","evidence":"recover-civilian/support-civilian-recovery are rescue-task semantics."},
+    "ProductUnderstandableFailure": {"classification":"DIRECT_PRODUCT_VALUE_CONSUMER","evidence":"PRODUCT.md names understandable failure as a central desired experience."},
+    "ProductSystemMastery": {"classification":"DIRECT_PRODUCT_VOCABULARY_WITHOUT_FORMAL_MASTERY_VIEW","evidence":"PRODUCT.md names System mastery as improvement through doctrine/coordination/provider/intervention."},
+    "PressureAndViabilityEvidence": {"classification":"DIRECT_CHALLENGE_ASSESSMENT_RESEARCH_CONSUMER","evidence":"Station Zero product-value work studies pressure axes, viable basins, partial/failure outcomes and decision transformation without a scalar difficulty field."}
+  },
+
+  "residualCandidates": [
+    {
+      "candidateId":"R-CFM",
+      "name":"Challenge / Failure / Recovery / Mastery Practical Toolkit",
+      "classification":"GENUINELY_UNRESOLVED_PRACTICAL_CLUSTER",
+      "foundationReadiness":5,
+      "crossGameUtility":5,
+      "currentConsumerPressure":5,
+      "humanAgentValue":5,
+      "ownershipClarity":5,
+      "cheapFalsifiability":5,
+      "speculativeComplexityPenalty":1,
+      "selectionScore":29,
+      "selection":"WINNER",
+      "why":"Frozen GDF2 already supplies exact anti-collapse contracts, while current Station Zero/Product has direct challenge/failure/recovery/mastery vocabulary and multiple conflicting lexical layers. Practical views can reduce UI/Agent/research ambiguity without adding new semantic sources."
+    },
+    {
+      "candidateId":"R-GDF0",
+      "name":"Play / Frame / Agency / Evaluation Authoring Views",
+      "classification":"ALREADY_RETAINED_DERIVED_MODELS_NOT_CURRENT_RECONSTRUCTION_DEBT",
+      "foundationReadiness":5,
+      "crossGameUtility":4,
+      "currentConsumerPressure":2,
+      "humanAgentValue":3,
+      "ownershipClarity":4,
+      "cheapFalsifiability":3,
+      "speculativeComplexityPenalty":3,
+      "selectionScore":18,
+      "selection":"NOT_SELECTED"
+    },
+    {
+      "candidateId":"R-GDF1",
+      "name":"Action Coupling / Technique / Skill Operational Views",
+      "classification":"PARTLY_CORE_PARTLY_DERIVED_PARTLY_ABSORBED",
+      "foundationReadiness":5,
+      "crossGameUtility":3,
+      "currentConsumerPressure":2,
+      "humanAgentValue":3,
+      "ownershipClarity":4,
+      "cheapFalsifiability":4,
+      "speculativeComplexityPenalty":3,
+      "selectionScore":18,
+      "selection":"NOT_SELECTED",
+      "why":"SkillProfile/SRVS/ProbeTransformation are already core; control realization is partly covered by GPR1/GPR6; ActionCoupling/Technique remain sparse or local. Remaining expression/threshold pressure belongs inside the GDF2 practical cluster."
+    },
+    {
+      "candidateId":"R-COHERENCE",
+      "name":"Cross-GPR Projection Coherence / Currentness / Digest Composition",
+      "classification":"IMPLEMENTATION_CONSUMPTION_CONCERN",
+      "foundationReadiness":5,
+      "crossGameUtility":5,
+      "currentConsumerPressure":4,
+      "humanAgentValue":5,
+      "ownershipClarity":5,
+      "cheapFalsifiability":5,
+      "speculativeComplexityPenalty":1,
+      "selectionScore":28,
+      "selection":"NOT_A_NEW_GPR_CONCEPT_CLUSTER",
+      "why":"GPR1-GPR6 already freeze source refs, currentness, digests and drill-down repeatedly. The residual is coherent engineering consumption/composition, not missing conceptual vocabulary."
+    },
+    {
+      "candidateId":"R-AUDIENCE-PERSIST",
+      "name":"Durable Audience / Social Participation Records",
+      "classification":"FUTURE_CONSUMER_CONDITIONAL_ALREADY_BOUNDED_BY_GPR6",
+      "foundationReadiness":4,
+      "crossGameUtility":2,
+      "currentConsumerPressure":0,
+      "humanAgentValue":2,
+      "ownershipClarity":3,
+      "cheapFalsifiability":2,
+      "speculativeComplexityPenalty":5,
+      "selectionScore":8,
+      "selection":"NOT_SELECTED"
+    },
+    {
+      "candidateId":"R-UNEXPLORED-GAME",
+      "name":"Strategy / Dynamics / Game Feel / Time / Space and other unfrozen Game continents",
+      "classification":"NOT_ELIGIBLE_FOR_PRACTICAL_RECONSTRUCTION_YET",
+      "foundationReadiness":0,
+      "crossGameUtility":5,
+      "currentConsumerPressure":3,
+      "humanAgentValue":4,
+      "ownershipClarity":1,
+      "cheapFalsifiability":2,
+      "speculativeComplexityPenalty":5,
+      "selectionScore":10,
+      "selection":"NOT_SELECTED",
+      "why":"These are unresolved foundation/domain-coverage continents, not concepts safely reducible to a frozen semantic substrate. Reconstructing them now would pre-empt future foundations."
+    },
+    {
+      "candidateId":"R-MIGRATION",
+      "name":"Generic View/Template Migration and Schema Versioning",
+      "classification":"IMPLEMENTATION_CONSUMPTION_CONCERN_WITHOUT_PROVEN_SHARED_CONSUMER",
+      "foundationReadiness":4,
+      "crossGameUtility":3,
+      "currentConsumerPressure":1,
+      "humanAgentValue":2,
+      "ownershipClarity":4,
+      "cheapFalsifiability":3,
+      "speculativeComplexityPenalty":4,
+      "selectionScore":13,
+      "selection":"NOT_SELECTED"
+    }
+  ],
+
+  "winnerFalsifiers": [
+    {"id":"CFM-F1","case":"same run has one objective completed while faction outcome is partial/failure","law":"Failure must remain evaluation/scope relative; one history cannot map to one unqualified failure boolean"},
+    {"id":"CFM-F2","case":"Mission failed vs provider-failure/process_failed","law":"Game failure != technical/provider failure by identity"},
+    {"id":"CFM-F3","case":"store recover(runId) vs post-failure continuation/retry","law":"technical receipt recovery != Game FailureRecovery transition by identity"},
+    {"id":"CFM-F4","case":"recover-research-core/support-civilian-recovery lexical use","law":"word 'recover/recovery' != GDF2 RecoveryTransitionSet by identity"},
+    {"id":"CFM-F5","case":"pressure/viability varies by posture, history, opponent and objective","law":"current challenge cannot be represented safely by one intrinsic Difficulty scalar"},
+    {"id":"CFM-F6","case":"PRODUCT.md says System mastery but one successful run/fixture is available","law":"product mastery vocabulary requires a scoped mastery claim/evidence view; demonstrated performance != mastery"},
+    {"id":"CFM-F7","case":"Human Player delegates local control to Agents","law":"team/faction outcome cannot identify individual Human skill deficit without attribution evidence"},
+    {"id":"CFM-F8","case":"response-loss retry is cheap while strategic mission remains hard","law":"CheapRetry != EasyChallenge and technical recoverability != low Game challenge"}
+  ],
+
+  "selectedNextRound": {
+    "round":"GPR7",
+    "title":"Challenge / Failure / Recovery / Mastery Practical Toolkit",
+    "admissionStatus":"ADMITTED_AFTER_WHOLE_PRACTICAL_COVERAGE_SEARCH",
+    "notARoadmapBeyondGPR7":true,
+    "startingNullModels":["Difficulty can remain an ordinary scalar/label","Failure can remain one status word","all recovery can share one recovery concept","System mastery can remain a product phrase without source-backed claim structure"],
+    "mustTest":["scoped ChallengeAssessment projections for design/Agent tooling without privileged scalar Difficulty","FailureAssessmentView over current criterion/scope/horizon","GameRecoveryOptions/RecoveryTransition view separate from technical recovery and lexical rescue/retrieve verbs","query-specific failure/recovery cost without universal severity scalar","MasteryClaimView/Evidence view over SkillProfile and ProbeTransformation","team/shared Human-Agent attribution","currentness/version/assistance changes","Human experienced difficulty and subjective competence owner boundary"],
+    "implementationRule":"Research/reconstruct contracts first. Do not add generic difficulty/failure/mastery tables or refactor current Station Zero statuses unless a concrete consumer survives GPR7 falsification."
+  },
+
+  "closeoutDecision":"R0-GPR6 is strongly closed with respect to its original 37 concepts, but the whole practical reconstruction problem space is not closed. The first whole-substrate residual search exposes one material omission: GDF2 Challenge/Failure/Recovery/Mastery has high-value current practical consumers and was not covered by R0's GDF3-heavy inventory. GPR7 is therefore admitted as the next research round. Other residuals are retained as derived models, implementation concerns, owner handoffs, future-consumer conditionals or unfrozen foundation continents."
+}

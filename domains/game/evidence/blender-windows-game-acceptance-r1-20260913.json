@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.blender-windows-acceptance-r1",
+  "observedOn": "2026-09-13",
+  "status": "PASS_WITH_WINDOWS_RUNTIME_MEMORY_PRESSURE_LIMITATION",
+  "workstation": {
+    "binding": "professional:blender:blender",
+    "executionTarget": "windows_native",
+    "workstationRevision": "6ef3c410df8bd4732b2ef6123693ac73cd68e1cc",
+    "bindingDigest": "sha256:561fd6197d736477a78e15c35c8636d4e82a8fe59d923d4e93753d0ac6f3606b",
+    "executable": "/mnt/c/Users/16663/AppData/Local/Programs/Blender-5.2-Portable/blender.exe",
+    "executableDigest": "sha256:9629b742871ff4221bdfe0577b4cadf6c0eeed0904a97762a1db514ab512fb64"
+  },
+  "blender": {
+    "version": "5.2.0 LTS",
+    "platform": "Windows",
+    "buildHash": "fbe6228777e7",
+    "versionProbeJobId": "job-01a09b32-a2b1-72d3-b25e-4dd657fb3eec"
+  },
+  "productionAcceptance": {
+    "createBlendJobId": "job-01a09b34-fbd9-7251-a4c4-72092d87a141",
+    "reopenRenderExportJobId": "job-01a09b35-3ab3-77b1-a38f-3d20612181f6",
+    "godotConsumerJobId": "job-01a09b35-bd1e-7032-88cd-c9a14c763e60",
+    "blend": {
+      "sizeBytes": 90061,
+      "sha256": "30f4d6e4945a2de70df190455a1ab18c3172ddbcd2a2bd0ed6cbb16ece7fcbe5"
+    },
+    "render": {
+      "format": "PNG",
+      "width": 128,
+      "height": 128,
+      "sizeBytes": 9063,
+      "sha256": "10bb4240fd2ea08618d270e5c77cb2b9ad30c67732a4c7d5ab2aea749b270403"
+    },
+    "glb": {
+      "format": "glTF 2.0 binary",
+      "sizeBytes": 2872,
+      "sha256": "ed29b204f9ada0e672985f72cd321ed4c09dc40f88952a70403bd7ac02aea5de"
+    },
+    "godot": {
+      "version": "4.7.1.stable.arch_linux.a13da4feb",
+      "meshCount": 1,
+      "surfaceCount": 1,
+      "materialPresent": true,
+      "animationPlayerCount": 1,
+      "animation": "AcceptanceCubeAction",
+      "status": "PASS"
+    }
+  },
+  "standing": {
+    "windowsBlender3dAuthoring": "READY",
+    "blendSaveReopen": "PASS",
+    "eeveeRender": "PASS",
+    "glbExport": "PASS",
+    "godotImportRuntime": "PASS",
+    "interactiveGuiHumanUse": "NOT_SEPARATELY_EVALUATED"
+  },
+  "knownLimitation": {
+    "id": "wsl-hv-sock-memory-fragmentation",
+    "evidence": "Windows-native Runtime context intermittently failed while hv_sock could not allocate order-7 contiguous pages under WSL memory pressure; page-cache reclaim plus memory compaction restored the channel.",
+    "blenderDefect": false,
+    "policy": "Treat as Workstation/Operations reliability issue; do not downgrade Blender asset compatibility standing."
+  }
+}

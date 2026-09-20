@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf1-e-embodiment-dissociation-matrix",
+  "status": "research-candidate",
+  "separations": [
+    {"left":"BiologicalBody","right":"InputEffector","reason":"the organism is not identical to the currently used finger, gaze, voice, whole-body tracker or BCI channel"},
+    {"left":"BiologicalBody","right":"StructuralActionBody","reason":"Game-resolved collision/reach/dynamics may be virtual, tool-mediated or absent while the biological body remains unchanged"},
+    {"left":"Morphology","right":"AvatarAppearance","reason":"visual body appearance/scale can change without changing collision/reachability; morphology can change reachability without visual representation changing"},
+    {"left":"AvatarAppearance","right":"ControlLocus","reason":"the rendered self/body representation need not be the locus receiving authoritative participant control"},
+    {"left":"ControlLocus","right":"SelfLocationExperience","reason":"remote hand/tool/vehicle control can be effective without the participant experiencing self-location at the controlled locus"},
+    {"left":"ObjectiveControl","right":"SenseOfAgency","reason":"causal control and subjective authorship are distinct evidence targets"},
+    {"left":"SenseOfAgency","right":"BodyOwnership","reason":"moving-rubber-hand evidence provides a double dissociation between agency and ownership"},
+    {"left":"BodyOwnership","right":"SelfLocationExperience","reason":"full-body illusion research can alter felt self-location/ownership through multisensory perspective manipulations; the constructs are not identical"},
+    {"left":"CollisionBody","right":"VulnerabilityBody","reason":"geometry that blocks/passages may differ from hit/damage/exposure geometry"},
+    {"left":"AvatarAppearance","right":"CollisionBody","reason":"visual mesh and authoritative collision geometry can vary independently"},
+    {"left":"SensorEnvelope","right":"EffectorEnvelope","reason":"what can be sensed/observed and what can be acted upon/reached are distinct constraints"},
+    {"left":"ToolVehicleMediation","right":"BodyOwnership","reason":"tools can extend action/peripersonal/body-schema representations without requiring subjective ownership of the tool as a body part"},
+    {"left":"PeripersonalActionSpaceRepresentation","right":"AnatomicalContinuity","reason":"remote/disconnected virtual hand experiments show action-centered spatial representation can transfer without anatomical connection"},
+    {"left":"StructuralBodyCoupling","right":"ExperientialEmbodiment","reason":"reachability/collision/sensing/dynamics may change without evidence of ownership/self-location; experiential embodiment may change without Game structural geometry changing"}
+  ],
+  "cases": [
+    {"id":"symbolic-chess","structuralBodyRequired":false,"experientialEmbodimentRequired":false,"pressure":"negative control: Skill/GameAction survive without body-scaled action structure"},
+    {"id":"controller-platformer","structuralBodyRequired":"virtual collision/action body","experientialEmbodimentRequired":false,"pressure":"avatar/collision/control roles can be functional without ownership"},
+    {"id":"vr-climbing","structuralBodyRequired":true,"experientialEmbodimentRequired":"variable","pressure":"body scale/reach and tracked effectors can alter reachable actions; ownership remains a separate Human target"},
+    {"id":"aperture-locomotion","structuralBodyRequired":true,"experientialEmbodimentRequired":false,"pressure":"body-scaled morphology changes passability/action transition boundary"},
+    {"id":"tool-reaching","structuralBodyRequired":"body+tool coupling","experientialEmbodimentRequired":false,"pressure":"tool extends effector/reach and can reshape body/PPS representations"},
+    {"id":"vehicle-racing","structuralBodyRequired":"vehicle/tool dynamics","experientialEmbodimentRequired":false,"pressure":"controlled vehicle functions as dynamic action body without requiring body ownership"},
+    {"id":"remote-hand","structuralBodyRequired":"remote control locus","experientialEmbodimentRequired":"may shift action-centered spatial representation","pressure":"anatomical continuity/self-location not required for remote action-centered control"},
+    {"id":"rubber-hand-active-incongruent","structuralBodyRequired":false,"experientialEmbodimentRequired":true,"pressure":"agency can remain while ownership is diminished"},
+    {"id":"rubber-hand-passive-congruent","structuralBodyRequired":false,"experientialEmbodimentRequired":true,"pressure":"ownership can remain while agency is reduced"},
+    {"id":"avatar-rescale-only","structuralBodyRequired":false,"experientialEmbodimentRequired":true,"pressure":"visual/owned virtual body scale can alter perception while authoritative Game collision/reachability need not change"},
+    {"id":"collision-rescale-only","structuralBodyRequired":true,"experientialEmbodimentRequired":false,"pressure":"passability/reachability can change with collision/morphology while avatar pixels remain fixed"},
+    {"id":"synthetic-controller","structuralBodyRequired":false,"experientialEmbodimentRequired":false,"pressure":"negative control: policy/control competence without biological body or Human phenomenology"}
+  ],
+  "constructVerdicts": [
+    {"construct":"Embodiment","verdict":"reject-as-single-game-construct","reason":"collapses structural body coupling, body representation, ownership, agency and self-location into one word"},
+    {"construct":"Avatar","verdict":"retain-separated","reason":"Media/representation object that may but need not coincide with control/collision/vulnerability loci"},
+    {"construct":"ControlLocus","verdict":"retain-core-candidate","reason":"survives remote/tool/vehicle/direct control as Game-local locus of authoritative control"},
+    {"construct":"ControlAccessProfile","verdict":"retain-derived-but-insufficient-alone","reason":"captures reachable action distinctions but not sensing, dynamics, collision/vulnerability and mediation roles"},
+    {"construct":"ActionCouplingProfile","verdict":"introduce-derived-core-candidate","reason":"sparse Game-owned projection of the structural relations by which body/tool/control configuration changes observation, reachable action, dynamics or consequence without owning Human phenomenology"},
+    {"construct":"ExperientialEmbodimentProfile","verdict":"handoff-human","reason":"ownership, self-location, sense of agency/body representation are Human-side experiential/cognitive targets; Game/Media provide causal inputs but do not own their mechanisms"},
+    {"construct":"BodySchema/PeripersonalSpace","verdict":"handoff-human-media-interface","reason":"empirically important plastic representations but not Game ontology; consume only when they affect access/perception/action evidence"},
+    {"construct":"CollisionBody","verdict":"retain-derived-structural-role","reason":"authoritative geometry for collision/passability can differ from avatar and vulnerability"},
+    {"construct":"VulnerabilityBody","verdict":"retain-derived-structural-role","reason":"authoritative exposure/damage target can differ from collision/render geometry"},
+    {"construct":"ToolVehicleMediation","verdict":"retain-derived-structural-role","reason":"tool/vehicle can extend/transform effector, dynamics and control without identity with biological body or ownership"}
+  ],
+  "actionCouplingProfile": {
+    "definition":"sparse projection of only those body/tool/control relations whose intervention can change the current subject's observation, reachable GameActions, control dynamics or authoritative consequences under a declared SkillScope",
+    "fields":["subject/controller attribution","sensor envelope","effector envelope","control mapping","control locus","morphology/reach geometry when relevant","tool/vehicle mediation","collision geometry","vulnerability/consequence geometry","dynamic/inertial constraints","provenance/currentness"],
+    "excludes":["subjective body ownership","felt self-location","sense of agency","neural body schema mechanism","visual avatar properties unless they causally alter observation/evaluation/control"],
+    "guard":"ActionCouplingProfile is optional and sparse; symbolic/non-bodied GameForms can omit most fields"
+  },
+  "externalAnchors": [
+    {"id":"WarrenWhang1987","doi":"10.1037//0096-1523.13.3.371","pressure":"aperture passability/action transition is body-scaled, supporting morphology-relative structural reachability"},
+    {"id":"CardinaliEtAl2009","doi":"10.1016/j.cub.2009.05.009","pressure":"tool use can update body representation for action"},
+    {"id":"CanzoneriEtAl2013","doi":"10.1007/s00221-013-3532-2","pressure":"tool use changes both peripersonal-space and body-representation measures"},
+    {"id":"MineYokosawa2021","doi":"10.3758/s13414-021-02320-2","pressure":"peripersonal-space representation can transfer toward a remote disconnected controlled hand avatar"},
+    {"id":"KalckertEhrsson2012","doi":"10.3389/fnhum.2012.00040","pressure":"ownership and agency can be double-dissociated"},
+    {"id":"LenggenhagerEtAl2007","doi":"10.1126/science.1143439","pressure":"multisensory conflict can alter self-location toward a virtual body"},
+    {"id":"PetkovaEhrsson2008","doi":"10.1371/journal.pone.0003832","pressure":"first-person perspective plus correlated multisensory information can induce ownership of another/artificial body"},
+    {"id":"BanakouGrotenSlater2013","doi":"10.1073/pnas.1306779110","pressure":"ownership of a virtual child-sized body altered perceived object size, showing avatar/body representation can affect Human perception without implying identical structural Game geometry"}
+  ],
+  "foundationReopen":{"R29":false,"GDF0_PRC7":false,"reason":"E decomposes embodiment into existing entity/state/relation/observation/action/evaluation/authority coordinates and introduces only a derived structural projection, not a missing primitive"}
+}

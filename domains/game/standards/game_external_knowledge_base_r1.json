@@ -1,0 +1,3711 @@
+{
+  "schemaVersion": 1,
+  "knowledgeBaseId": "ordivon-game-external-knowledge-base-r1",
+  "retrievedOn": "2026-09-18",
+  "knowledgePolicy": {
+    "defaultDisposition": "ADVISORY_UNLESS_NATIVE_AUTHORITY_APPLIES",
+    "externalKnowledgeCanDefineGameOntology": false,
+    "teardownCanBlockNovelComposition": false,
+    "skillCanInheritAuthority": false,
+    "nativeAuthorityRule": "A normative standard or platform rule can be authoritative only inside its own exact native scope. It does not gain Game semantic or creative authority.",
+    "designTheoryRule": "Theory, measurement models and practitioner frameworks are lenses/hypotheses unless an exact claim is supported by matching evidence.",
+    "teardownRule": "Developer postmortems are primary accounts of one project. Extract mechanisms, confounds, falsifiers and transfer risks; never recipes.",
+    "skillRule": "Skills package reusable instructions; tools execute; MCP transports/discovers. Installing or finding a Skill never transfers domain authority."
+  },
+  "authorityClasses": {
+    "NORMATIVE_STANDARD": "Formal normative source in native scope",
+    "PLATFORM_GUIDANCE": "Official platform guidance/rules in native scope",
+    "INDUSTRY_STANDARD": "Industry standard or specification",
+    "PEER_REVIEWED_MODEL": "Peer-reviewed theory/model",
+    "VALIDATED_MEASUREMENT_INSTRUMENT": "Validated measurement instrument",
+    "SCHOLARLY_REFERENCE": "Scholarly book/reference",
+    "PRIMARY_PRACTITIONER_ESSAY": "Primary practitioner theory/essay",
+    "FORMAL_MODEL_TOOL": "Formal modeling tool/framework",
+    "INDUSTRY_GUIDANCE": "Professional industry practice guidance",
+    "OFFICIAL_ENGINE_DOCUMENTATION": "Engine/vendor documentation",
+    "PRIMARY_DEVELOPER_ACCOUNT": "Developer-authored talk/blog/interview/postmortem",
+    "AGENT_SKILL_IMPLEMENTATION": "Concrete Agent Skill/tooling implementation",
+    "COMMUNITY_GUIDE": "Community maintained guidance"
+  },
+  "sources": [
+    {
+      "id": "iso-9241-210",
+      "category": "STANDARD_OR_NORMATIVE_GUIDANCE",
+      "title": "ISO 9241-210:2019 Human-centred design for interactive systems",
+      "organization": "ISO",
+      "url": "https://www.iso.org/standard/77520.html",
+      "authorityClass": "NORMATIVE_STANDARD",
+      "currentness": "CURRENT_WITH_VERSION",
+      "scope": [
+        "human-centred design",
+        "interactive systems lifecycle"
+      ],
+      "extractedIdeas": [
+        "human-centred activities across lifecycle",
+        "explicit user/context grounding"
+      ],
+      "candidateUses": [
+        "native-scope process reference",
+        "player-research routing"
+      ],
+      "evidenceLimit": "Applies to human-centred design practice; does not define game quality, fun, or a universal game-development lifecycle.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "version": "2019; confirmed 2025",
+      "nativeAuthorityScope": "human-centred design",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "iso-9241-11",
+      "category": "STANDARD_OR_NORMATIVE_GUIDANCE",
+      "title": "ISO 9241-11:2018 Usability: Definitions and concepts",
+      "organization": "ISO",
+      "url": "https://www.iso.org/standard/63500.html",
+      "authorityClass": "NORMATIVE_STANDARD",
+      "currentness": "CURRENT_WITH_VERSION",
+      "scope": [
+        "usability",
+        "context of use"
+      ],
+      "extractedIdeas": [
+        "usability as outcome of use",
+        "effectiveness/efficiency/satisfaction framing"
+      ],
+      "candidateUses": [
+        "claim vocabulary",
+        "usability evaluation framing"
+      ],
+      "evidenceLimit": "Defines usability concepts but explicitly does not prescribe a particular design/evaluation method.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "version": "2018; confirmed 2023",
+      "nativeAuthorityScope": "usability concepts",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "wcag-2-2",
+      "category": "ACCESSIBILITY_AND_INCLUSIVE_DESIGN",
+      "title": "Web Content Accessibility Guidelines (WCAG) 2.2",
+      "organization": "W3C",
+      "url": "https://www.w3.org/TR/WCAG22/",
+      "authorityClass": "NORMATIVE_STANDARD",
+      "currentness": "CURRENT_WITH_VERSION",
+      "scope": [
+        "web content accessibility",
+        "web UI"
+      ],
+      "extractedIdeas": [
+        "perceivable/operable/understandable/robust criteria",
+        "testable success criteria"
+      ],
+      "candidateUses": [
+        "web-shell accessibility",
+        "browser UI validation"
+      ],
+      "evidenceLimit": "Normative for web accessibility scope; not a complete game accessibility specification or gameplay design framework.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "version": "W3C Recommendation 2024-12-12",
+      "nativeAuthorityScope": "web content accessibility",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "xag-overview",
+      "category": "ACCESSIBILITY_AND_INCLUSIVE_DESIGN",
+      "title": "Xbox Accessibility Guidelines V3.2",
+      "organization": "Microsoft",
+      "url": "https://learn.microsoft.com/en-us/xbox/accessibility/guidelines",
+      "authorityClass": "PLATFORM_GUIDANCE",
+      "currentness": "CURRENT_WITH_VERSION",
+      "scope": [
+        "game accessibility",
+        "Xbox-oriented cross-platform game UX"
+      ],
+      "extractedIdeas": [
+        "barrier-oriented scoping",
+        "goal + implementation + test structure"
+      ],
+      "candidateUses": [
+        "accessibility review lens",
+        "skill candidate for barrier scan"
+      ],
+      "evidenceLimit": "Microsoft explicitly frames XAGs as best-practice guardrails/idea catalysts, not legal compliance certification.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "version": "3.2",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "xag-input",
+      "category": "ACCESSIBILITY_AND_INCLUSIVE_DESIGN",
+      "title": "XAG 107: Input",
+      "organization": "Microsoft",
+      "url": "https://learn.microsoft.com/en-us/gaming/accessibility/xbox-accessibility-guidelines/107",
+      "authorityClass": "PLATFORM_GUIDANCE",
+      "currentness": "CURRENT",
+      "scope": [
+        "input accessibility",
+        "control schemes"
+      ],
+      "extractedIdeas": [
+        "input mechanisms should not assume one physical ability profile",
+        "support alternative/control customization"
+      ],
+      "candidateUses": [
+        "control-topology teardown",
+        "accessibility test cases"
+      ],
+      "evidenceLimit": "Platform guidance; exact implementation depends on game/platform mechanics.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "xag-text",
+      "category": "ACCESSIBILITY_AND_INCLUSIVE_DESIGN",
+      "title": "XAG 101: Text display",
+      "organization": "Microsoft",
+      "url": "https://learn.microsoft.com/en-us/gaming/accessibility/xbox-accessibility-guidelines/101",
+      "authorityClass": "PLATFORM_GUIDANCE",
+      "currentness": "CURRENT",
+      "scope": [
+        "readability",
+        "text presentation"
+      ],
+      "extractedIdeas": [
+        "size/spacing/configurability matter",
+        "situational impairments matter too"
+      ],
+      "candidateUses": [
+        "UI acceptance checks",
+        "legibility skill candidate"
+      ],
+      "evidenceLimit": "Platform guidance, not proof that a particular game UI is accessible to a specific population.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "xag-captions",
+      "category": "ACCESSIBILITY_AND_INCLUSIVE_DESIGN",
+      "title": "XAG 104: Subtitles and captions",
+      "organization": "Microsoft",
+      "url": "https://learn.microsoft.com/en-us/gaming/accessibility/xbox-accessibility-guidelines/104",
+      "authorityClass": "PLATFORM_GUIDANCE",
+      "currentness": "CURRENT",
+      "scope": [
+        "audio information alternatives",
+        "captions/subtitles"
+      ],
+      "extractedIdeas": [
+        "speech and non-speech cues need alternatives"
+      ],
+      "candidateUses": [
+        "multimodal cue review",
+        "narrative/audio accessibility"
+      ],
+      "evidenceLimit": "Does not establish that captions alone resolve all hearing-related barriers.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "xag-audio",
+      "category": "ACCESSIBILITY_AND_INCLUSIVE_DESIGN",
+      "title": "XAG 105: Audio accessibility",
+      "organization": "Microsoft",
+      "url": "https://learn.microsoft.com/en-us/gaming/accessibility/xbox-accessibility-guidelines/105",
+      "authorityClass": "PLATFORM_GUIDANCE",
+      "currentness": "CURRENT",
+      "scope": [
+        "audio accessibility",
+        "mix controls"
+      ],
+      "extractedIdeas": [
+        "separate volume channels can support diverse needs"
+      ],
+      "candidateUses": [
+        "audio-system checklist",
+        "accessibility settings design"
+      ],
+      "evidenceLimit": "Guidance for accessibility; artistic mix choices still require game-specific evaluation.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "xag-motion",
+      "category": "ACCESSIBILITY_AND_INCLUSIVE_DESIGN",
+      "title": "XAG 117: Visual distractions and motion settings",
+      "organization": "Microsoft",
+      "url": "https://learn.microsoft.com/en-us/gaming/accessibility/xbox-accessibility-guidelines/117",
+      "authorityClass": "PLATFORM_GUIDANCE",
+      "currentness": "CURRENT",
+      "scope": [
+        "motion",
+        "camera",
+        "visual distraction"
+      ],
+      "extractedIdeas": [
+        "pause/stop moving content where applicable",
+        "camera/FOV/motion customization"
+      ],
+      "candidateUses": [
+        "motion-sickness review",
+        "visual effects review"
+      ],
+      "evidenceLimit": "Platform guidance; does not imply one universal FOV/camera value.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "xag-difficulty",
+      "category": "ACCESSIBILITY_AND_INCLUSIVE_DESIGN",
+      "title": "XAG 108: Game difficulty options",
+      "organization": "Microsoft",
+      "url": "https://learn.microsoft.com/en-us/gaming/accessibility/xbox-accessibility-guidelines/108",
+      "authorityClass": "PLATFORM_GUIDANCE",
+      "currentness": "CURRENT",
+      "scope": [
+        "difficulty accessibility",
+        "player barriers"
+      ],
+      "extractedIdeas": [
+        "experienced difficulty emerges from player abilities relative to barriers",
+        "offer options"
+      ],
+      "candidateUses": [
+        "difficulty teardown",
+        "barrier model"
+      ],
+      "evidenceLimit": "Accessibility framing must not be collapsed into a rule that every game needs the same difficulty structure.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "xag-objectives",
+      "category": "ACCESSIBILITY_AND_INCLUSIVE_DESIGN",
+      "title": "XAG 109: Objective clarity",
+      "organization": "Microsoft",
+      "url": "https://learn.microsoft.com/en-us/gaming/accessibility/xbox-accessibility-guidelines/109",
+      "authorityClass": "PLATFORM_GUIDANCE",
+      "currentness": "CURRENT",
+      "scope": [
+        "goal clarity",
+        "memory support"
+      ],
+      "extractedIdeas": [
+        "objective/progress recall can reduce avoidable cognitive barriers"
+      ],
+      "candidateUses": [
+        "objective UI review",
+        "returning-player support"
+      ],
+      "evidenceLimit": "Does not imply all games require explicit quest markers or eliminate intentional ambiguity.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "xag-multichannel",
+      "category": "ACCESSIBILITY_AND_INCLUSIVE_DESIGN",
+      "title": "XAG 103: Additional channels for visual and audio cues",
+      "organization": "Microsoft",
+      "url": "https://learn.microsoft.com/en-us/gaming/accessibility/xbox-accessibility-guidelines/103",
+      "authorityClass": "PLATFORM_GUIDANCE",
+      "currentness": "CURRENT",
+      "scope": [
+        "multimodal information",
+        "perceivability"
+      ],
+      "extractedIdeas": [
+        "critical cues can be represented through multiple sensory channels"
+      ],
+      "candidateUses": [
+        "cue-channel teardown",
+        "combat/readability review"
+      ],
+      "evidenceLimit": "Not every aesthetic signal is critical gameplay information; scope must be identified.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "game-accessibility-guidelines",
+      "category": "ACCESSIBILITY_AND_INCLUSIVE_DESIGN",
+      "title": "Game Accessibility Guidelines — Full List",
+      "organization": "Game Accessibility Guidelines",
+      "url": "https://gameaccessibilityguidelines.com/full-list/",
+      "authorityClass": "COMMUNITY_GUIDE",
+      "currentness": "CURRENT",
+      "scope": [
+        "game accessibility",
+        "motor/cognitive/vision/hearing/speech"
+      ],
+      "extractedIdeas": [
+        "basic/intermediate/advanced adaptations",
+        "broad barrier catalogue"
+      ],
+      "candidateUses": [
+        "accessibility idea library",
+        "skill references"
+      ],
+      "evidenceLimit": "Living community resource, not a legal standard or proof of conformance.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "COMMUNITY_DISCOVERY"
+    },
+    {
+      "id": "igda-ga-resources",
+      "category": "ACCESSIBILITY_AND_INCLUSIVE_DESIGN",
+      "title": "IGDA Game Accessibility SIG — Resources for game developers",
+      "organization": "IGDA Game Accessibility SIG",
+      "url": "https://igda-gasig.org/get-involved/sig-initiatives/resources-for-game-developers/",
+      "authorityClass": "INDUSTRY_GUIDANCE",
+      "currentness": "CURRENT",
+      "scope": [
+        "game accessibility resources",
+        "developer education"
+      ],
+      "extractedIdeas": [
+        "living-resource lineage",
+        "historical guideline evolution"
+      ],
+      "candidateUses": [
+        "resource routing",
+        "accessibility source discovery"
+      ],
+      "evidenceLimit": "Resource hub; individual linked guidance has separate age/currentness and authority.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRACTICE_MEDIUM"
+    },
+    {
+      "id": "apple-designing-games",
+      "category": "ACCESSIBILITY_AND_INCLUSIVE_DESIGN",
+      "title": "Designing for games",
+      "organization": "Apple",
+      "url": "https://developer.apple.com/design/human-interface-guidelines/designing-for-games",
+      "authorityClass": "PLATFORM_GUIDANCE",
+      "currentness": "CURRENT",
+      "scope": [
+        "Apple-platform game UX",
+        "accessibility",
+        "input"
+      ],
+      "extractedIdeas": [
+        "teach through play",
+        "great defaults",
+        "alternative interaction",
+        "perceivability/personalization"
+      ],
+      "candidateUses": [
+        "Apple-target UX skill",
+        "platform-specific acceptance"
+      ],
+      "evidenceLimit": "Apple-platform guidance; should not become universal game-form law.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "iso-12207-2026",
+      "category": "STANDARD_OR_NORMATIVE_GUIDANCE",
+      "title": "ISO/IEC/IEEE 12207:2026 Software life cycle processes",
+      "organization": "ISO/IEC/IEEE",
+      "url": "https://www.iso.org/standard/90219.html",
+      "authorityClass": "NORMATIVE_STANDARD",
+      "currentness": "CURRENT_WITH_VERSION",
+      "scope": [
+        "software lifecycle processes"
+      ],
+      "extractedIdeas": [
+        "common lifecycle process vocabulary",
+        "processes may support development/operation/maintenance"
+      ],
+      "candidateUses": [
+        "engineering owner routing",
+        "process vocabulary"
+      ],
+      "evidenceLimit": "Software lifecycle authority in native scope; it does not prescribe a linear creative game-design process.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "version": "2026",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "iso-29148-2018",
+      "category": "STANDARD_OR_NORMATIVE_GUIDANCE",
+      "title": "ISO/IEC/IEEE 29148:2018 Requirements engineering",
+      "organization": "ISO/IEC/IEEE",
+      "url": "https://www.iso.org/standard/72089.html",
+      "authorityClass": "NORMATIVE_STANDARD",
+      "currentness": "CHECK_BEFORE_ACTION",
+      "scope": [
+        "requirements engineering"
+      ],
+      "extractedIdeas": [
+        "well-formed requirements and information items",
+        "requirements lifecycle activities"
+      ],
+      "candidateUses": [
+        "requirements quality checks",
+        "engineering skill candidate"
+      ],
+      "evidenceLimit": "Current edition is expected to be replaced by a DIS/new edition; re-check before action.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "version": "2018; confirmed 2024; revision underway",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "iso-25010-2023",
+      "category": "STANDARD_OR_NORMATIVE_GUIDANCE",
+      "title": "ISO/IEC 25010:2023 Product quality model",
+      "organization": "ISO/IEC",
+      "url": "https://www.iso.org/standard/78176.html",
+      "authorityClass": "NORMATIVE_STANDARD",
+      "currentness": "CURRENT_WITH_VERSION",
+      "scope": [
+        "software/ICT product quality"
+      ],
+      "extractedIdeas": [
+        "nine-characteristic quality reference model"
+      ],
+      "candidateUses": [
+        "technical-quality review",
+        "non-gameplay quality vocabulary"
+      ],
+      "evidenceLimit": "Product-quality model does not measure fun, player meaning, or creative originality.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "version": "2023",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "slsa-1-2",
+      "category": "STANDARD_OR_NORMATIVE_GUIDANCE",
+      "title": "SLSA Specification v1.2",
+      "organization": "OpenSSF / SLSA",
+      "url": "https://slsa.dev/spec/v1.2/",
+      "authorityClass": "INDUSTRY_STANDARD",
+      "currentness": "CURRENT_WITH_VERSION",
+      "scope": [
+        "software supply chain security",
+        "provenance"
+      ],
+      "extractedIdeas": [
+        "incremental supply-chain assurance",
+        "artifact provenance"
+      ],
+      "candidateUses": [
+        "build/release provenance",
+        "Artifact/Distribution integration"
+      ],
+      "evidenceLimit": "Security supply-chain standard; not game design or play evidence.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "version": "1.2",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "spdx-3",
+      "category": "STANDARD_OR_NORMATIVE_GUIDANCE",
+      "title": "SPDX Specification 3.0",
+      "organization": "SPDX / Linux Foundation",
+      "url": "https://spdx.dev/use/specifications/",
+      "authorityClass": "INDUSTRY_STANDARD",
+      "currentness": "CURRENT_WITH_VERSION",
+      "scope": [
+        "software bill of materials",
+        "licensing/provenance metadata"
+      ],
+      "extractedIdeas": [
+        "standardized component/license relationships"
+      ],
+      "candidateUses": [
+        "asset/software provenance",
+        "release compliance routing"
+      ],
+      "evidenceLimit": "Provenance/licensing metadata cannot establish product quality or player experience.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "version": "3.0; ISO/IEC 5962:2021 lineage",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "steam-playtest",
+      "category": "PLATFORM_RELEASE_AND_FEEDBACK",
+      "title": "Steam Playtest",
+      "organization": "Valve Steamworks",
+      "url": "https://partner.steamgames.com/doc/features/playtest",
+      "authorityClass": "PLATFORM_GUIDANCE",
+      "currentness": "CURRENT",
+      "scope": [
+        "external playtest distribution",
+        "Steam release workflow"
+      ],
+      "extractedIdeas": [
+        "separate child appID",
+        "gated low-risk external testing"
+      ],
+      "candidateUses": [
+        "distribution carrier for playtests",
+        "release-surface skill"
+      ],
+      "evidenceLimit": "Provides delivery/access infrastructure, not a research method or Human evidence by itself.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "steam-reviews",
+      "category": "PLATFORM_RELEASE_AND_FEEDBACK",
+      "title": "Steam User Reviews",
+      "organization": "Valve Steamworks",
+      "url": "https://partner.steamgames.com/doc/store/reviews",
+      "authorityClass": "PLATFORM_GUIDANCE",
+      "currentness": "CURRENT",
+      "scope": [
+        "customer review feedback",
+        "Steam store"
+      ],
+      "extractedIdeas": [
+        "reviews as one feedback channel",
+        "expectation alignment",
+        "anti-manipulation rules"
+      ],
+      "candidateUses": [
+        "post-release signal ingestion",
+        "expectation-gap analysis"
+      ],
+      "evidenceLimit": "Reviews are self-selected observational feedback and should not dominate product decisions or be treated as representative causal evidence.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "android-game-optimize",
+      "category": "ENGINE_AND_PRODUCTION_PRACTICE",
+      "title": "Android game optimization",
+      "organization": "Google Android Developers",
+      "url": "https://developer.android.com/games/optimize/overview",
+      "authorityClass": "PLATFORM_GUIDANCE",
+      "currentness": "CURRENT",
+      "scope": [
+        "Android game performance"
+      ],
+      "extractedIdeas": [
+        "profiling/tool routing",
+        "sustainable CPU/GPU/thermal performance"
+      ],
+      "candidateUses": [
+        "mobile performance skill",
+        "device-performance acceptance"
+      ],
+      "evidenceLimit": "Platform technical guidance; performance success does not establish gameplay value.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "mda",
+      "category": "GAME_DESIGN_THEORY",
+      "title": "MDA: A Formal Approach to Game Design and Game Research",
+      "organization": "Hunicke, LeBlanc, Zubek / AAAI",
+      "url": "https://aaai.org/papers/ws04-04-001-mda-a-formal-approach-to-game-design-and-game-research/",
+      "authorityClass": "PEER_REVIEWED_MODEL",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "game-design decomposition",
+        "mechanics-dynamics-aesthetics"
+      ],
+      "extractedIdeas": [
+        "separate authored mechanics from emergent dynamics and desired aesthetics",
+        "designer/player directional views"
+      ],
+      "candidateUses": [
+        "optional analysis lens",
+        "mechanism-to-experience hypothesis framing"
+      ],
+      "evidenceLimit": "A framework/lens, not a universal ontology; aesthetics still require player evidence and dynamics can be emergent.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "EVIDENCE_MEDIUM_HIGH"
+    },
+    {
+      "id": "rules-of-play",
+      "category": "GAME_DESIGN_THEORY",
+      "title": "Rules of Play: Game Design Fundamentals",
+      "organization": "Katie Salen Tekinbaş, Eric Zimmerman / MIT Press",
+      "url": "https://mitpress.mit.edu/9780262240451/rules-of-play/",
+      "authorityClass": "SCHOLARLY_REFERENCE",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "game design theory",
+        "systems",
+        "play",
+        "culture"
+      ],
+      "extractedIdeas": [
+        "multiple design schemas rather than one reduction",
+        "games as emergence/information/social/cultural systems"
+      ],
+      "candidateUses": [
+        "lens library",
+        "teardown vocabulary"
+      ],
+      "evidenceLimit": "Broad theoretical reference; schemas are analytical tools, not mandatory game structure.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "SCHOLARLY_MEDIUM"
+    },
+    {
+      "id": "fadt",
+      "category": "GAME_DESIGN_THEORY",
+      "title": "Formal Abstract Design Tools",
+      "organization": "Doug Church",
+      "url": "https://www.gamedeveloper.com/design/formal-abstract-design-tools",
+      "authorityClass": "PRIMARY_PRACTITIONER_ESSAY",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "game-design vocabulary"
+      ],
+      "extractedIdeas": [
+        "shared design vocabulary",
+        "formal abstract tools as evolvable framework"
+      ],
+      "candidateUses": [
+        "design-lens candidate",
+        "cross-game comparison terms"
+      ],
+      "evidenceLimit": "Practitioner proposal explicitly suited to challenge/evolution, not a final standard.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRACTITIONER_MEDIUM"
+    },
+    {
+      "id": "machinations",
+      "category": "GAME_DESIGN_THEORY",
+      "title": "Machinations Framework Basics",
+      "organization": "Machinations",
+      "url": "https://machinations.io/docs/framework-basics",
+      "authorityClass": "FORMAL_MODEL_TOOL",
+      "currentness": "CURRENT",
+      "scope": [
+        "resource flow",
+        "game economy/system simulation"
+      ],
+      "extractedIdeas": [
+        "sources/pools/drains/converters/traders/gates",
+        "resource/state connections"
+      ],
+      "candidateUses": [
+        "economy model skill",
+        "pre-code simulation"
+      ],
+      "evidenceLimit": "Useful for resource-flow systems; not every game mechanic is naturally or usefully reduced to resource flow.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "TOOL_MODEL_MEDIUM"
+    },
+    {
+      "id": "gameflow",
+      "category": "GAME_DESIGN_THEORY",
+      "title": "GameFlow: A Model for Evaluating Player Enjoyment in Games",
+      "organization": "Sweetser, Wyeth",
+      "url": "https://www.researchgate.net/publication/220686347_GameFlow_A_Model_for_Evaluating_Player_Enjoyment_in_Games",
+      "authorityClass": "PEER_REVIEWED_MODEL",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "player enjoyment heuristics"
+      ],
+      "extractedIdeas": [
+        "concentration/challenge/skills/control/goals/feedback/immersion/social interaction"
+      ],
+      "candidateUses": [
+        "optional heuristic lens",
+        "hypothesis generation"
+      ],
+      "evidenceLimit": "Enjoyment model/heuristic, not proof that all eight factors must be maximized or apply identically to every game.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "EVIDENCE_MEDIUM_HIGH"
+    },
+    {
+      "id": "rule-book-2024",
+      "category": "GAME_DESIGN_THEORY",
+      "title": "The Rule Book",
+      "organization": "Jaakko Stenros, Markus Montola / MIT Press",
+      "url": "https://mitpress.mit.edu/9780262377539/the-rule-book/",
+      "authorityClass": "SCHOLARLY_REFERENCE",
+      "currentness": "CURRENT",
+      "scope": [
+        "rules",
+        "play",
+        "social/material regulation"
+      ],
+      "extractedIdeas": [
+        "explicit/private/social/external/material rule types"
+      ],
+      "candidateUses": [
+        "rule-system teardown",
+        "social-rule lens"
+      ],
+      "evidenceLimit": "Rule taxonomy is an analytical model, not an instruction that every digital system expose all rule types.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "SCHOLARLY_MEDIUM"
+    },
+    {
+      "id": "sdt-video-games",
+      "category": "PLAYER_RESEARCH_AND_MEASUREMENT",
+      "title": "The Motivational Pull of Video Games: A Self-Determination Theory Approach",
+      "organization": "Ryan, Rigby, Przybylski",
+      "url": "https://selfdeterminationtheory.org/wp-content/uploads/2020/10/2006_RyanRigbyPrzybylski_MandE.pdf",
+      "authorityClass": "PEER_REVIEWED_MODEL",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "motivation",
+        "autonomy",
+        "competence",
+        "relatedness"
+      ],
+      "extractedIdeas": [
+        "need satisfaction associated with enjoyment/preferences/future play"
+      ],
+      "candidateUses": [
+        "motivation hypothesis lens",
+        "player-study variable candidates"
+      ],
+      "evidenceLimit": "Empirical associations across studied contexts; not a universal causal recipe for fun or retention.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "EVIDENCE_MEDIUM_HIGH"
+    },
+    {
+      "id": "pxi",
+      "category": "PLAYER_RESEARCH_AND_MEASUREMENT",
+      "title": "Player Experience Inventory (PXI) — User Guide",
+      "organization": "PXI research team",
+      "url": "https://playerexperienceinventory.org/docs",
+      "authorityClass": "VALIDATED_MEASUREMENT_INSTRUMENT",
+      "currentness": "CURRENT",
+      "scope": [
+        "player experience measurement"
+      ],
+      "extractedIdeas": [
+        "10 multidimensional constructs",
+        "validated wording/measurement matters"
+      ],
+      "candidateUses": [
+        "post-play measurement",
+        "research skill reference"
+      ],
+      "evidenceLimit": "Changing validated items/scales loses validation; measured constructs do not exhaust player experience.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "EVIDENCE_HIGH"
+    },
+    {
+      "id": "pxi-model",
+      "category": "PLAYER_RESEARCH_AND_MEASUREMENT",
+      "title": "Player Experience Inventory — Theoretical Model",
+      "organization": "PXI research team",
+      "url": "https://playerexperienceinventory.org/instrument",
+      "authorityClass": "VALIDATED_MEASUREMENT_INSTRUMENT",
+      "currentness": "CURRENT",
+      "scope": [
+        "functional and psychosocial player experience"
+      ],
+      "extractedIdeas": [
+        "functional vs psychosocial consequences",
+        "validation over multiple studies"
+      ],
+      "candidateUses": [
+        "construct selection",
+        "measurement-model reference"
+      ],
+      "evidenceLimit": "Validated instrument within its studied structure; not a game-design scorecard.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "EVIDENCE_HIGH"
+    },
+    {
+      "id": "guess",
+      "category": "PLAYER_RESEARCH_AND_MEASUREMENT",
+      "title": "The Development and Validation of the Game User Experience Satisfaction Scale (GUESS)",
+      "organization": "Phan, Keebler, Chaparro",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/27647156/",
+      "authorityClass": "PEER_REVIEWED_MODEL",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "game satisfaction measurement"
+      ],
+      "extractedIdeas": [
+        "nine-subscale validated satisfaction instrument",
+        "mixed-method scale development"
+      ],
+      "candidateUses": [
+        "playtest debrief instrument candidate",
+        "measurement comparison"
+      ],
+      "evidenceLimit": "Measures satisfaction constructs; must not be converted to speculative pre-play quality scoring.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "EVIDENCE_MEDIUM_HIGH"
+    },
+    {
+      "id": "gur-methods",
+      "category": "PLAYER_RESEARCH_AND_MEASUREMENT",
+      "title": "Games User Research Methods",
+      "organization": "Games User Research",
+      "url": "https://gamesuserresearch.com/games-user-research-methods/",
+      "authorityClass": "INDUSTRY_GUIDANCE",
+      "currentness": "CURRENT",
+      "scope": [
+        "games user research",
+        "method selection"
+      ],
+      "extractedIdeas": [
+        "match research method to objective"
+      ],
+      "candidateUses": [
+        "player-study planning skill",
+        "method router"
+      ],
+      "evidenceLimit": "Industry guidance, not a substitute for study-specific validity, ethics, sampling, or expert review.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRACTICE_MEDIUM"
+    },
+    {
+      "id": "gur-choose-method",
+      "category": "PLAYER_RESEARCH_AND_MEASUREMENT",
+      "title": "Choose the right playtest method",
+      "organization": "Games User Research",
+      "url": "https://gamesuserresearch.com/choose-the-right-playtest-method/",
+      "authorityClass": "INDUSTRY_GUIDANCE",
+      "currentness": "CURRENT",
+      "scope": [
+        "playtest method selection"
+      ],
+      "extractedIdeas": [
+        "start with what you need to learn",
+        "method convenience is not validity"
+      ],
+      "candidateUses": [
+        "playtest planning",
+        "research-objective routing"
+      ],
+      "evidenceLimit": "Practical guidance; study claims remain bounded by design and sample.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRACTICE_MEDIUM"
+    },
+    {
+      "id": "gur-playtest-process",
+      "category": "PLAYER_RESEARCH_AND_MEASUREMENT",
+      "title": "How To Run A Games User Research Playtest",
+      "organization": "Games User Research",
+      "url": "https://gamesuserresearch.com/how-to-run-a-games-user-research-playtest/",
+      "authorityClass": "INDUSTRY_GUIDANCE",
+      "currentness": "CURRENT",
+      "scope": [
+        "end-to-end playtesting"
+      ],
+      "extractedIdeas": [
+        "when/what to test",
+        "participants",
+        "method",
+        "unbiased data",
+        "analysis/reporting"
+      ],
+      "candidateUses": [
+        "playtest workflow skill",
+        "human-evidence carrier design"
+      ],
+      "evidenceLimit": "Playtest process guidance does not itself create Human evidence before real participants are observed.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRACTICE_MEDIUM"
+    },
+    {
+      "id": "gur-playtesting-definition",
+      "category": "PLAYER_RESEARCH_AND_MEASUREMENT",
+      "title": "What do we mean by playtesting?",
+      "organization": "Games User Research",
+      "url": "https://gamesuserresearch.com/what-do-we-mean-by-playtesting/",
+      "authorityClass": "INDUSTRY_GUIDANCE",
+      "currentness": "CURRENT",
+      "scope": [
+        "playtesting terminology"
+      ],
+      "extractedIdeas": [
+        "separate QA/internal play/external-player research intents"
+      ],
+      "candidateUses": [
+        "terminology skill",
+        "study-intent classification"
+      ],
+      "evidenceLimit": "Terminology guidance; local study must still declare exact evidence target.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRACTICE_MEDIUM"
+    },
+    {
+      "id": "godot-best-practices",
+      "category": "ENGINE_AND_PRODUCTION_PRACTICE",
+      "title": "Godot Best Practices — Introduction",
+      "organization": "Godot Engine",
+      "url": "https://docs.godotengine.org/en/stable/tutorials/best_practices/introduction_best_practices.html",
+      "authorityClass": "OFFICIAL_ENGINE_DOCUMENTATION",
+      "currentness": "CURRENT",
+      "scope": [
+        "Godot architecture",
+        "code/scene structure"
+      ],
+      "extractedIdeas": [
+        "many valid structures",
+        "start from real problem",
+        "analyze pros/cons"
+      ],
+      "candidateUses": [
+        "Godot implementation skill",
+        "anti-dogmatic architecture reference"
+      ],
+      "evidenceLimit": "Engine guidance, not Game semantic authority; patterns depend on project shape.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "godot-scene-organization",
+      "category": "ENGINE_AND_PRODUCTION_PRACTICE",
+      "title": "Godot Scene Organization",
+      "organization": "Godot Engine",
+      "url": "https://docs.godotengine.org/en/stable/tutorials/best_practices/scene_organization.html",
+      "authorityClass": "OFFICIAL_ENGINE_DOCUMENTATION",
+      "currentness": "CURRENT",
+      "scope": [
+        "Godot scene composition",
+        "dependency structure"
+      ],
+      "extractedIdeas": [
+        "loose coupling",
+        "scene self-sufficiency",
+        "relational rather than spatial hierarchy"
+      ],
+      "candidateUses": [
+        "scene architecture skill",
+        "implementation review"
+      ],
+      "evidenceLimit": "Applies to Godot implementation design, not to gameplay mechanic composition.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "unity-best-practices",
+      "category": "ENGINE_AND_PRODUCTION_PRACTICE",
+      "title": "Unity 6 Advanced best practice guides",
+      "organization": "Unity",
+      "url": "https://docs.unity3d.com/current/Manual/best-practice-guides.html",
+      "authorityClass": "OFFICIAL_ENGINE_DOCUMENTATION",
+      "currentness": "CURRENT_WITH_VERSION",
+      "scope": [
+        "Unity 6 production",
+        "performance"
+      ],
+      "extractedIdeas": [
+        "profiling and platform-specific optimization guidance"
+      ],
+      "candidateUses": [
+        "Unity production skill",
+        "profiling workflow"
+      ],
+      "evidenceLimit": "Engine-specific technical guidance; measure actual project behavior before optimizing.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "version": "Unity 6",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "unity-input",
+      "category": "ENGINE_AND_PRODUCTION_PRACTICE",
+      "title": "Unity Input System",
+      "organization": "Unity",
+      "url": "https://docs.unity3d.com/6000.0/Documentation/Manual/com.unity.inputsystem.html",
+      "authorityClass": "OFFICIAL_ENGINE_DOCUMENTATION",
+      "currentness": "CURRENT_WITH_VERSION",
+      "scope": [
+        "Unity input abstraction"
+      ],
+      "extractedIdeas": [
+        "extensible/customizable input system"
+      ],
+      "candidateUses": [
+        "input implementation skill",
+        "control remapping implementation"
+      ],
+      "evidenceLimit": "Engine package choice; not proof a control scheme is usable or accessible.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "version": "Unity 6 / Input System 1.17",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "unity-optimization",
+      "category": "ENGINE_AND_PRODUCTION_PRACTICE",
+      "title": "Unity 6 game optimization guides",
+      "organization": "Unity",
+      "url": "https://unity.com/blog/unity-6-game-optimization-guides",
+      "authorityClass": "OFFICIAL_ENGINE_DOCUMENTATION",
+      "currentness": "CURRENT_WITH_VERSION",
+      "scope": [
+        "Unity performance",
+        "profiling"
+      ],
+      "extractedIdeas": [
+        "profile first",
+        "platform-specific performance practices"
+      ],
+      "candidateUses": [
+        "performance skill",
+        "production evidence"
+      ],
+      "evidenceLimit": "Optimization guidance does not justify premature or gameplay-damaging optimization.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "version": "Unity 6",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "unreal-gameplay-framework",
+      "category": "ENGINE_AND_PRODUCTION_PRACTICE",
+      "title": "Gameplay Framework",
+      "organization": "Epic Games",
+      "url": "https://dev.epicgames.com/documentation/unreal-engine/gameplay-framework-in-unreal-engine",
+      "authorityClass": "OFFICIAL_ENGINE_DOCUMENTATION",
+      "currentness": "CURRENT",
+      "scope": [
+        "Unreal gameplay architecture"
+      ],
+      "extractedIdeas": [
+        "modular foundation",
+        "pick and choose suitable elements"
+      ],
+      "candidateUses": [
+        "Unreal architecture skill",
+        "engine-mechanism mapping"
+      ],
+      "evidenceLimit": "Framework classes are implementation substrate, not universal game ontology.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "unreal-gameplay-systems",
+      "category": "ENGINE_AND_PRODUCTION_PRACTICE",
+      "title": "Gameplay Systems",
+      "organization": "Epic Games",
+      "url": "https://dev.epicgames.com/documentation/unreal-engine/gameplay-systems-in-unreal-engine",
+      "authorityClass": "OFFICIAL_ENGINE_DOCUMENTATION",
+      "currentness": "CURRENT",
+      "scope": [
+        "Unreal gameplay systems",
+        "AI",
+        "interaction"
+      ],
+      "extractedIdeas": [
+        "catalog of high-level gameplay/AI systems"
+      ],
+      "candidateUses": [
+        "tool/engine routing",
+        "capability inventory"
+      ],
+      "evidenceLimit": "Available engine systems should not dictate the design problem.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "unreal-gas",
+      "category": "ENGINE_AND_PRODUCTION_PRACTICE",
+      "title": "Gameplay Ability System",
+      "organization": "Epic Games",
+      "url": "https://dev.epicgames.com/documentation/unreal-engine/gameplay-ability-system-for-unreal-engine",
+      "authorityClass": "OFFICIAL_ENGINE_DOCUMENTATION",
+      "currentness": "CURRENT",
+      "scope": [
+        "abilities",
+        "attributes",
+        "effects",
+        "networked gameplay"
+      ],
+      "extractedIdeas": [
+        "ability/effect/data-driven composition",
+        "async ability tasks"
+      ],
+      "candidateUses": [
+        "ability-system implementation skill",
+        "mechanic realization"
+      ],
+      "evidenceLimit": "GAS is an implementation framework optimized for certain gameplay structures, not a creative requirement.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "NATIVE_HIGH"
+    },
+    {
+      "id": "gdc-ftl",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Designing Without a Pitch — FTL Postmortem",
+      "organization": "Subset Games / GDC",
+      "url": "https://www.gdcvault.com/play/1019036/Designing-Without-a-Pitch-FTL",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "creative process",
+        "player-experience-first exploration"
+      ],
+      "extractedIdeas": [
+        "start from desired feeling",
+        "mechanics/genre secondary",
+        "frequent abandon/alter"
+      ],
+      "candidateUses": [
+        "creative-open pattern",
+        "teardown pattern extraction"
+      ],
+      "evidenceLimit": "One successful project account; commercial/context confounds prevent universal transfer.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-into-breach",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Into the Breach Design Postmortem",
+      "organization": "Subset Games / GDC",
+      "url": "https://gdcvault.com/play/1026333/-Into-the-Breach-Design",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "iteration",
+        "cutting",
+        "difficulty",
+        "RNG"
+      ],
+      "extractedIdeas": [
+        "years of cut content",
+        "steal/transform influences",
+        "difficulty/RNG design questions"
+      ],
+      "candidateUses": [
+        "turn-based tactics patterns",
+        "failure/cut pattern library"
+      ],
+      "evidenceLimit": "Retrospective developer account; lessons are hypotheses until tested in another composition.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-celeste",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Level Design Workshop: Designing Celeste",
+      "organization": "Matt Thorson / GDC",
+      "url": "https://www.gdcvault.com/play/1024307/Level-Design-Workshop-Designing-Celeste",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "level design",
+        "platformer challenge",
+        "narrative-world integration"
+      ],
+      "extractedIdeas": [
+        "300+ stage design process",
+        "map arrangement",
+        "story woven through world"
+      ],
+      "candidateUses": [
+        "challenge-teaching pattern",
+        "level progression teardown"
+      ],
+      "evidenceLimit": "Talk focuses one game and level-design context; player outcomes require separate evidence.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-baba-is-you",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Reading the Rules of Baba Is You",
+      "organization": "Arvi Teikari / GDC",
+      "url": "https://www.gdcvault.com/play/1026628/Reading-the-Rules-of-Baba",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "rule mutation",
+        "puzzle architecture"
+      ],
+      "extractedIdeas": [
+        "rules represented as world objects/sentences",
+        "iteration around rule data structure"
+      ],
+      "candidateUses": [
+        "rule-as-object pattern",
+        "puzzle-system teardown"
+      ],
+      "evidenceLimit": "Implementation/design account, not proof that mutable rules transfer to other puzzle genres.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-doom",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Embracing Push Forward Combat in DOOM",
+      "organization": "id Software / GDC",
+      "url": "https://www.gdcvault.com/play/1024940/Embracing-Push-Forward-Combat-in",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "combat loop",
+        "aggression",
+        "resource recovery"
+      ],
+      "extractedIdeas": [
+        "speed/aggression",
+        "take resources from adversaries",
+        "invert cover/regeneration convention"
+      ],
+      "candidateUses": [
+        "combat-feel pattern",
+        "genre-convention inversion"
+      ],
+      "evidenceLimit": "Specific FPS design; transfer requires testing control, pacing, encounter and player-skill interactions.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-slay-spire",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Slay the Spire: Metrics Driven Design and Balance",
+      "organization": "Mega Crit / GDC",
+      "url": "https://www.gdcvault.com/play/1025731/-Slay-the-Spire-Metrics",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "balance",
+        "telemetry",
+        "Early Access"
+      ],
+      "extractedIdeas": [
+        "data-driven balancing",
+        "community feedback with feel/difficulty judgement"
+      ],
+      "candidateUses": [
+        "balance evidence pattern",
+        "telemetry + qualitative synthesis"
+      ],
+      "evidenceLimit": "Metrics from one game/community do not define universal balance optima or causal player value.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-dead-cells",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Dead Cells: What the F*n!?",
+      "organization": "Motion Twin / GDC",
+      "url": "https://gdcvault.com/play/1025788/-Dead-Cells-What-the",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "controls",
+        "difficulty",
+        "player assistance"
+      ],
+      "extractedIdeas": [
+        "small control details matter",
+        "player-favoring rules can support hardcore feel"
+      ],
+      "candidateUses": [
+        "forgiveness/precision pattern",
+        "combat control teardown"
+      ],
+      "evidenceLimit": "Retrospective account; exact hidden assistance must be evaluated in each action system.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-subnautica",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Subnautica Postmortem",
+      "organization": "Unknown Worlds / GDC",
+      "url": "https://gdcvault.com/browse/gdc-19/play/1025691",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "open development",
+        "Early Access",
+        "core spikes"
+      ],
+      "extractedIdeas": [
+        "listen/iterate on feedback",
+        "double down on distinct core spikes",
+        "nonlinear story",
+        "feedback at scale"
+      ],
+      "candidateUses": [
+        "open-development pattern",
+        "community evidence pipeline"
+      ],
+      "evidenceLimit": "Survival story includes company/community/market confounds; not a recipe for Early Access success.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-mooncrash",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Mooncrash: Resetting the Immersive Simulation",
+      "organization": "Arkane Studios / GDC",
+      "url": "https://www.gdcvault.com/play/1025732/-Mooncrash-Resetting-the-Immersive",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "genre recombination",
+        "immersive sim",
+        "roguelike reset"
+      ],
+      "extractedIdeas": [
+        "dismantle existing mechanics",
+        "integrate another genre",
+        "break form"
+      ],
+      "candidateUses": [
+        "recombination pattern",
+        "counterexample to franchise-form rigidity"
+      ],
+      "evidenceLimit": "DLC/project context and existing Prey systems are major confounds.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-cultist",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Cultist Simulator: Designing an Experimental Game for Commercial Success",
+      "organization": "Weather Factory / GDC",
+      "url": "https://www.gdcvault.com/play/1025794/-Cultist-Simulator-Designing-an",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "experimental design",
+        "constraints",
+        "commercialization"
+      ],
+      "extractedIdeas": [
+        "unusual/divisive decisions",
+        "low-budget/time constraints shape design"
+      ],
+      "candidateUses": [
+        "experimental-game pattern",
+        "constraint-driven design"
+      ],
+      "evidenceLimit": "Talk itself notes luck/marketing; commercial result must not be attributed solely to mechanics.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-dmc5",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Devil May Cry 5: Creating a Standout Action Game",
+      "organization": "Capcom / GDC",
+      "url": "https://www.gdcvault.com/play/1025764/-Devil-May-Cry-5",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "action design",
+        "vision-to-gameplay"
+      ],
+      "extractedIdeas": [
+        "work backward from player experience/vision",
+        "visceral detail"
+      ],
+      "candidateUses": [
+        "combat-feel pattern",
+        "experience-backward design lens"
+      ],
+      "evidenceLimit": "Franchise/team expertise and production quality confound transfer.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-halo-wars2",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Halo Wars 2: A UX Postmortem",
+      "organization": "343 Industries / GDC",
+      "url": "https://gdcvault.com/play/1024961/-Halo-Wars-2-A",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "cross-platform UX",
+        "controls",
+        "distributed team"
+      ],
+      "extractedIdeas": [
+        "different input audiences",
+        "UX pillars",
+        "iteration around Blitz"
+      ],
+      "candidateUses": [
+        "cross-input pattern",
+        "UX coordination skill candidate"
+      ],
+      "evidenceLimit": "Cross-platform RTS-specific constraints; pillars do not become universal UX law.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-heavens-vault",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Heaven’s Vault: Creating a Dynamic Detective Story",
+      "organization": "inkle / GDC",
+      "url": "https://www.gdcvault.com/play/1025149/-Heaven-s-Vault-Creating",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "dynamic narrative",
+        "investigation",
+        "procedural glue"
+      ],
+      "extractedIdeas": [
+        "few bottlenecks/no fail state",
+        "adaptive authored + procedural glue",
+        "automated testing in writing"
+      ],
+      "candidateUses": [
+        "narrative-reactivity pattern",
+        "writing-tool pattern"
+      ],
+      "evidenceLimit": "Narrative structure is title-specific; automated checks cannot establish story quality.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "hades-faq",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Hades FAQ — Early Access development",
+      "organization": "Supergiant Games",
+      "url": "https://www.supergiantgames.com/blog/hades-faq/",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "Early Access",
+        "modular design",
+        "narrative iteration"
+      ],
+      "extractedIdeas": [
+        "designed for Early Access from ground up",
+        "community feedback shaped modular structure/narrative"
+      ],
+      "candidateUses": [
+        "iterative narrative pattern",
+        "Early Access design notes"
+      ],
+      "evidenceLimit": "Developer retrospective; success includes studio craft, audience, art/narrative and market confounds.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-hades-dialogue",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Breathing Life into Greek Myth: The Dialogue of Hades",
+      "organization": "Supergiant Games / GDC",
+      "url": "https://www.gdcvault.com/play/1026975/Breathing-Life-into-Greek-Myth",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "dialogue production",
+        "reactive narrative",
+        "Early Access"
+      ],
+      "extractedIdeas": [
+        "large voiced script workflow",
+        "Early Access benefited narrative"
+      ],
+      "candidateUses": [
+        "reactive-dialogue pattern",
+        "media-production pattern"
+      ],
+      "evidenceLimit": "Dialogue pipeline evidence does not prove narrative effect for other structures.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "factorio-fff-284",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Factorio Friday Facts #284 — 0.17 experimental / tutorial",
+      "organization": "Wube Software",
+      "url": "https://www.factorio.com/blog/post/fff-284",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "tutorial",
+        "learning",
+        "complexity vs difficulty"
+      ],
+      "extractedIdeas": [
+        "decompose logistics concepts",
+        "reduced toolset can teach importance",
+        "focus testing"
+      ],
+      "candidateUses": [
+        "learning-scaffold pattern",
+        "tutorial teardown"
+      ],
+      "evidenceLimit": "Developer interpretation of focus tests; exact onboarding outcomes need direct player evidence.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "factorio-fff-382",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Factorio Friday Facts #382 — Logistic groups",
+      "organization": "Wube Software",
+      "url": "https://www.factorio.com/blog/post/fff-382",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "logistics UX",
+        "playtesting",
+        "system unification"
+      ],
+      "extractedIdeas": [
+        "playtesting surfaced repeated-request chore",
+        "unify configuration across entities"
+      ],
+      "candidateUses": [
+        "friction-to-system pattern",
+        "economy/logistics teardown"
+      ],
+      "evidenceLimit": "Specific mature-system context; convenience changes can alter other games differently.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "factorio-fff-421",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Factorio Friday Facts #421 — Optimizations 2.0",
+      "organization": "Wube Software",
+      "url": "https://www.factorio.com/blog/post/fff-421",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "performance",
+        "large simulations",
+        "profiling"
+      ],
+      "extractedIdeas": [
+        "optimize from real save/playtest profiles",
+        "player scale exposes bottlenecks"
+      ],
+      "candidateUses": [
+        "performance-evidence pattern",
+        "large-world production"
+      ],
+      "evidenceLimit": "Performance engineering account; not player-value evidence.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "factorio-fff-425",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Factorio Friday Facts #425 — Behind the legs",
+      "organization": "Wube Software",
+      "url": "https://www.factorio.com/blog/post/fff-425",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "enemy design",
+        "pathfinding",
+        "system reuse"
+      ],
+      "extractedIdeas": [
+        "game-design requirement drove engine/pathfinding change",
+        "reuse existing system after optimization"
+      ],
+      "candidateUses": [
+        "design-to-engine pattern",
+        "enemy-system teardown"
+      ],
+      "evidenceLimit": "One implementation solution among many; engine work should follow actual mechanic pressure.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "factorio-fff-440",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Factorio Friday Facts #440 — 2.1 plan",
+      "organization": "Wube Software",
+      "url": "https://www.factorio.com/blog/post/fff-440",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "CURRENT",
+      "scope": [
+        "scope management",
+        "polish",
+        "playtesting"
+      ],
+      "extractedIdeas": [
+        "choose QoL/polish over feature expansion",
+        "office LAN playtest"
+      ],
+      "candidateUses": [
+        "scope-restraint pattern",
+        "production decision evidence"
+      ],
+      "evidenceLimit": "Current live-product context; not evidence that feature restraint is always correct.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "factorio-fff-441",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Factorio Friday Facts #441 — Space logistics improvements",
+      "organization": "Wube Software",
+      "url": "https://www.factorio.com/blog/post/fff-441",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "CURRENT",
+      "scope": [
+        "player strategy diversity",
+        "logistics",
+        "edge cases"
+      ],
+      "extractedIdeas": [
+        "different player planning styles exposed mismatch",
+        "previously rejected complexity became tractable after system changes"
+      ],
+      "candidateUses": [
+        "reopen-on-new-capability pattern",
+        "logistics composition pattern"
+      ],
+      "evidenceLimit": "Community discussion plus developer observation is informative but not controlled causal evidence.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "nintendo-zelda-totk-1",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Ask the Developer Vol. 9 — Tears of the Kingdom Part 1",
+      "organization": "Nintendo",
+      "url": "https://www.nintendo.com/us/whatsnew/ask-the-developer-vol-9-the-legend-of-zelda-tears-of-the-kingdom-part-1/",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "sequel design",
+        "change vs keep",
+        "system layering"
+      ],
+      "extractedIdeas": [
+        "new surprise layered onto familiar world",
+        "explicit keep/change reasoning"
+      ],
+      "candidateUses": [
+        "sequel transformation pattern",
+        "world-system teardown"
+      ],
+      "evidenceLimit": "Official developer account; franchise history and production scale are major confounds.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "nintendo-zelda-totk-5",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Ask the Developer Vol. 9 — Tears of the Kingdom Part 5",
+      "organization": "Nintendo",
+      "url": "https://www.nintendo.com/us/whatsnew/ask-the-developer-vol-9-the-legend-of-zelda-tears-of-the-kingdom-part-5/",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "systemic possibility",
+        "player divergence"
+      ],
+      "extractedIdeas": [
+        "design for players producing materially different experiences"
+      ],
+      "candidateUses": [
+        "combinatorial-system pattern",
+        "emergent-play teardown"
+      ],
+      "evidenceLimit": "Developer intent does not itself measure distribution of actual player behavior.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "nintendo-pikmin4-1",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Ask the Developer Vol. 10 — Pikmin 4 Part 1",
+      "organization": "Nintendo",
+      "url": "https://www.nintendo.com/us/whatsnew/ask-the-developer-vol-10-pikmin-4-part-1/",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "mechanic identity",
+        "gameplay loop",
+        "series evolution"
+      ],
+      "extractedIdeas": [
+        "actions existed before final loop",
+        "deeper challenge vs breadth tradeoff",
+        "task-management framing"
+      ],
+      "candidateUses": [
+        "loop-formation pattern",
+        "series-design teardown"
+      ],
+      "evidenceLimit": "Series-specific retrospective; fan preferences and iteration history confound transfer.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "nintendo-pikmin4-2",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Ask the Developer Vol. 10 — Pikmin 4 Part 2",
+      "organization": "Nintendo",
+      "url": "https://www.nintendo.com/us/whatsnew/ask-the-developer-vol-10-pikmin-4-part-2/",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "learning",
+        "Dandori/task management",
+        "onboarding"
+      ],
+      "extractedIdeas": [
+        "train players into deeper planning"
+      ],
+      "candidateUses": [
+        "skill-learning pattern",
+        "strategy onboarding teardown"
+      ],
+      "evidenceLimit": "Official account; verify player learning claims with player research when used causally.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "nintendo-pikmin4-3",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Ask the Developer Vol. 10 — Pikmin 4 Part 3",
+      "organization": "Nintendo",
+      "url": "https://www.nintendo.com/us/whatsnew/ask-the-developer-vol-10-pikmin-4-part-3/",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "perspective",
+        "audio",
+        "scale"
+      ],
+      "extractedIdeas": [
+        "camera/audio reinforce tiny-character perspective"
+      ],
+      "candidateUses": [
+        "representation-mechanic coupling pattern",
+        "embodiment teardown"
+      ],
+      "evidenceLimit": "Aesthetic/embodiment intent needs player evidence for perceptual effect.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "nintendo-mario-wonder-1",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Ask the Developer Vol. 11 — Super Mario Bros. Wonder Part 1",
+      "organization": "Nintendo",
+      "url": "https://www.nintendo.com/us/whatsnew/ask-the-developer-vol-11-super-mario-bros-wonder-part-1/",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "ideation",
+        "prototyping",
+        "transformation"
+      ],
+      "extractedIdeas": [
+        "2000+ ideas feeding prototype meetings",
+        "theme-driven transformation"
+      ],
+      "candidateUses": [
+        "large-idea-search pattern",
+        "prototype portfolio"
+      ],
+      "evidenceLimit": "Large-team Nintendo context; idea quantity alone does not predict quality.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "nintendo-gbg-1",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Ask the Developer Vol. 1 — Game Builder Garage Part 1",
+      "organization": "Nintendo",
+      "url": "https://www.nintendo.com/us/whatsnew/ask-the-developer-vol-1-game-builder-garage-part-1/",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "end-user game creation",
+        "visual programming"
+      ],
+      "extractedIdeas": [
+        "connectable Nodon as approachable game-building primitives"
+      ],
+      "candidateUses": [
+        "creation-grammar pattern",
+        "UGC tooling teardown"
+      ],
+      "evidenceLimit": "Educational tool context; primitives should not be mistaken for universal game primitives.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "nintendo-gbg-3",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Ask the Developer Vol. 1 — Game Builder Garage Part 3",
+      "organization": "Nintendo",
+      "url": "https://www.nintendo.com/us/whatsnew/ask-the-developer-vol-1-game-builder-garage-part-3/",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "creator onboarding",
+        "completion"
+      ],
+      "extractedIdeas": [
+        "guide learners toward completing functions/projects"
+      ],
+      "candidateUses": [
+        "creator-learning pattern",
+        "tool onboarding teardown"
+      ],
+      "evidenceLimit": "Education/onboarding intent; completion strategy may not fit expert tools.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "nintendo-gbg-4",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Ask the Developer Vol. 1 — Game Builder Garage Part 4",
+      "organization": "Nintendo",
+      "url": "https://www.nintendo.com/us/whatsnew/ask-the-developer-vol-1-game-builder-garage-part-4/",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "copy-modify-learn",
+        "creative transition"
+      ],
+      "extractedIdeas": [
+        "copy and alter completed examples before blank-slate creation"
+      ],
+      "candidateUses": [
+        "remix-learning pattern",
+        "creator skill design"
+      ],
+      "evidenceLimit": "Learning strategy, not a restriction on experienced creators.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "skill-abagames-repo",
+      "category": "AGENT_SKILL_AND_TOOLING",
+      "title": "Agentic Gamedev Skills",
+      "organization": "abagames",
+      "url": "https://github.com/abagames/agentic-gamedev-skills",
+      "authorityClass": "AGENT_SKILL_IMPLEMENTATION",
+      "currentness": "CURRENT",
+      "scope": [
+        "agentic game-development skills",
+        "skill authoring"
+      ],
+      "extractedIdeas": [
+        "concise SKILL.md + on-demand references/assets/scripts",
+        "extract skills from real work"
+      ],
+      "candidateUses": [
+        "skill-authoring reference",
+        "candidate imports"
+      ],
+      "evidenceLimit": "Community repository; every skill needs local trust/currentness/fit review and remains advisory.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "IMPLEMENTATION_MEDIUM"
+    },
+    {
+      "id": "skill-exploring-design-space",
+      "category": "AGENT_SKILL_AND_TOOLING",
+      "title": "exploring-game-design-space Skill",
+      "organization": "abagames",
+      "url": "https://github.com/abagames/agentic-gamedev-skills/blob/main/.agents/skills/exploring-game-design-space/SKILL.md",
+      "authorityClass": "AGENT_SKILL_IMPLEMENTATION",
+      "currentness": "CURRENT",
+      "scope": [
+        "open-ended mechanic search"
+      ],
+      "extractedIdeas": [
+        "structural diversity before theme",
+        "remove demonstrated dead ends only",
+        "stable IDs",
+        "testable hypotheses",
+        "no speculative fun ranking"
+      ],
+      "candidateUses": [
+        "high-priority skill adoption candidate",
+        "creative-open search workflow"
+      ],
+      "evidenceLimit": "Search procedure is not proof of fun; search budgets/defaults should remain adjustable.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "IMPLEMENTATION_MEDIUM"
+    },
+    {
+      "id": "skill-extracting-agent-skills",
+      "category": "AGENT_SKILL_AND_TOOLING",
+      "title": "extracting-agent-skills Skill",
+      "organization": "abagames",
+      "url": "https://github.com/abagames/agentic-gamedev-skills/blob/main/.agents/skills/extracting-agent-skills/SKILL.md",
+      "authorityClass": "AGENT_SKILL_IMPLEMENTATION",
+      "currentness": "CURRENT",
+      "scope": [
+        "skill extraction from project evidence"
+      ],
+      "extractedIdeas": [
+        "extract behavior-changing procedures from success/failure",
+        "gate transferability"
+      ],
+      "candidateUses": [
+        "Skill MCP improvement candidate",
+        "post-project knowledge harvest"
+      ],
+      "evidenceLimit": "Community procedure; must not convert project-specific accidents into universal skills.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "IMPLEMENTATION_MEDIUM"
+    },
+    {
+      "id": "skill-epic-unreal-skill",
+      "category": "AGENT_SKILL_AND_TOOLING",
+      "title": "Unreal Agent Skill authoring guidance",
+      "organization": "Epic Games",
+      "url": "https://github.com/EpicGames/unreal-engine-skills-for-claude-code-plugin/blob/main/skills/unreal-skill/SKILL.md",
+      "authorityClass": "AGENT_SKILL_IMPLEMENTATION",
+      "currentness": "CURRENT",
+      "scope": [
+        "Agent Skill design",
+        "Unreal"
+      ],
+      "extractedIdeas": [
+        "Novel/Collegial/Flexible/Durable/Agnostic/Parsimonious skills",
+        "do not encode discoverable tool details"
+      ],
+      "candidateUses": [
+        "Skill MCP authoring policy",
+        "skill review checklist"
+      ],
+      "evidenceLimit": "Engine-specific implementation example; principles are advisory outside its project.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "IMPLEMENTATION_MEDIUM"
+    },
+    {
+      "id": "skill-epic-create-toolset",
+      "category": "AGENT_SKILL_AND_TOOLING",
+      "title": "Unreal create-toolset Skill",
+      "organization": "Epic Games",
+      "url": "https://github.com/EpicGames/unreal-engine-skills-for-claude-code-plugin/blob/main/skills/create-toolset/SKILL.md",
+      "authorityClass": "AGENT_SKILL_IMPLEMENTATION",
+      "currentness": "CURRENT",
+      "scope": [
+        "toolset API design",
+        "MCP tooling"
+      ],
+      "extractedIdeas": [
+        "clean/complete/composable/DRY tool APIs",
+        "avoid mirroring raw engine API"
+      ],
+      "candidateUses": [
+        "Agent Plugin tool design",
+        "tool boundary review"
+      ],
+      "evidenceLimit": "Unreal-specific tooling conventions; adapt only where local owner contracts match.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "IMPLEMENTATION_MEDIUM"
+    },
+    {
+      "id": "skill-epic-unreal-mcp",
+      "category": "AGENT_SKILL_AND_TOOLING",
+      "title": "Unreal MCP Skill",
+      "organization": "Epic Games",
+      "url": "https://github.com/EpicGames/unreal-engine-skills-for-claude-code-plugin/blob/main/skills/unreal-mcp/SKILL.md",
+      "authorityClass": "AGENT_SKILL_IMPLEMENTATION",
+      "currentness": "CURRENT",
+      "scope": [
+        "Skill discovery",
+        "tool discovery",
+        "live editor MCP"
+      ],
+      "extractedIdeas": [
+        "discover project skills separately from tools",
+        "load relevant skill on unfamiliar work"
+      ],
+      "candidateUses": [
+        "Skill/Tool separation pattern",
+        "Agent Plugin routing"
+      ],
+      "evidenceLimit": "Specific Unreal plugin architecture; project skill precedence must still obey Ordivon authority policy.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "IMPLEMENTATION_MEDIUM"
+    },
+    {
+      "id": "skill-gda-readme",
+      "category": "AGENT_SKILL_AND_TOOLING",
+      "title": "gda — Godot automation for AI agents",
+      "organization": "aigengame",
+      "url": "https://github.com/aigengame/godot-agent/blob/main/README.md",
+      "authorityClass": "AGENT_SKILL_IMPLEMENTATION",
+      "currentness": "CURRENT",
+      "scope": [
+        "Godot CLI",
+        "Skill",
+        "MCP",
+        "runtime verification"
+      ],
+      "extractedIdeas": [
+        "one operation surface through CLI/Skill/MCP",
+        "structured JSON",
+        "headless + live verification"
+      ],
+      "candidateUses": [
+        "Godot tooling candidate",
+        "Agent Plugin reference"
+      ],
+      "evidenceLimit": "Pre-1.0 surface may change; needs version/currentness binding before adoption.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "IMPLEMENTATION_MEDIUM"
+    },
+    {
+      "id": "skill-gda-version-lock",
+      "category": "AGENT_SKILL_AND_TOOLING",
+      "title": "Installing the gda Skill with your agent",
+      "organization": "aigengame",
+      "url": "https://github.com/aigengame/godot-agent/blob/main/docs/gda-skill.md",
+      "authorityClass": "AGENT_SKILL_IMPLEMENTATION",
+      "currentness": "CURRENT",
+      "scope": [
+        "Skill/tool version binding"
+      ],
+      "extractedIdeas": [
+        "Skill emitted by installed CLI stays version-locked",
+        "single source for guidance"
+      ],
+      "candidateUses": [
+        "Skill currentness pattern",
+        "Skill+Tool package design"
+      ],
+      "evidenceLimit": "Pattern applies where Skill actually documents a versioned tool; conceptual Skills should not be artificially coupled.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "IMPLEMENTATION_MEDIUM"
+    },
+    {
+      "id": "skill-sickn33-game-design",
+      "category": "AGENT_SKILL_AND_TOOLING",
+      "title": "game-design Skill",
+      "organization": "sickn33 game skills",
+      "url": "https://github.com/sickn33/agentic-awesome-skills",
+      "authorityClass": "AGENT_SKILL_IMPLEMENTATION",
+      "currentness": "CHECK_BEFORE_ACTION",
+      "scope": [
+        "generic game-design advice"
+      ],
+      "extractedIdeas": [
+        "core-loop/GDD/progression heuristics",
+        "playtest-first anti-patterns"
+      ],
+      "candidateUses": [
+        "low-confidence comparison source",
+        "anti-dogmatism audit"
+      ],
+      "evidenceLimit": "Contains universal-sounding claims such as a required 30-second fun loop; useful only as advisory heuristics and counterexample target.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "IMPLEMENTATION_MEDIUM"
+    },
+    {
+      "id": "gdc-rimworld",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "RimWorld: Contrarian, Ridiculous, and Impossible Game Design Methods",
+      "organization": "Ludeon Studios / GDC",
+      "url": "https://www.gdcvault.com/play/1024232/-RimWorld-Contrarian-Ridiculous-and",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "story generator",
+        "feature selection",
+        "contrarian design"
+      ],
+      "extractedIdeas": [
+        "frame the product as a story generator rather than a conventional skill-test game",
+        "strategic omission can make absent possibilities salient",
+        "feature selection can reject commonly assumed necessities"
+      ],
+      "candidateUses": [
+        "story-generator pattern",
+        "feature-omission falsifier",
+        "anti-template teardown"
+      ],
+      "evidenceLimit": "One developer retrospective of one title; tiny-team constraints, audience fit and emergent-simulation genre are major confounds.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-outer-wilds",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Sparking Curiosity-Driven Exploration Through Narrative in Outer Wilds",
+      "organization": "Mobius / GDC",
+      "url": "https://www.gdcvault.com/play/1027368/Independent-Games-Summit-Sparking-Curiosity",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "curiosity-driven exploration",
+        "diegetic progression",
+        "nonlinear story"
+      ],
+      "extractedIdeas": [
+        "replace explicit mission direction with curiosity and diegetic information",
+        "knowledge can function as progression in a time-loop world"
+      ],
+      "candidateUses": [
+        "knowledge-progression pattern",
+        "missionless exploration teardown"
+      ],
+      "evidenceLimit": "A bespoke authored solar system and mystery structure are strong confounds; curiosity effects require player evidence.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-bg3-challenges",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "The Many Challenges of Making Baldur’s Gate 3",
+      "organization": "Larian Studios / GDC",
+      "url": "https://www.gdcvault.com/play/1028044/The-Many-Challenges-of-Making",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "sequel/reinvention",
+        "community expectations",
+        "reactive storytelling",
+        "scale"
+      ],
+      "extractedIdeas": [
+        "establish own vision under inherited expectations",
+        "scale tools/team without discarding core beliefs",
+        "new storytelling tools emerge from production pressure"
+      ],
+      "candidateUses": [
+        "reactive-RPG production pattern",
+        "franchise-expectation teardown"
+      ],
+      "evidenceLimit": "D&D IP, Early Access, extraordinary production scale and Larian-specific expertise heavily confound transfer.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-bg3-secrets",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "The Secrets of Baldur’s Gate 3",
+      "organization": "Larian Studios / GDC",
+      "url": "https://gdcvault.com/play/1034610/The-Secrets-of-Baldur-s",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "CURRENT",
+      "scope": [
+        "development lessons",
+        "market challenges",
+        "reactive RPG production"
+      ],
+      "extractedIdeas": [
+        "project-specific development/market lessons from Swen Vincke",
+        "organizational fit can matter to feasible design space"
+      ],
+      "candidateUses": [
+        "BG3 postmortem source",
+        "production/market confound analysis"
+      ],
+      "evidenceLimit": "Retrospective account; Larian’s unique organization, IP and scale constrain transfer.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-bg3-cinematics",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Larian Cinematics: A Top-Down Look at Our Bottom-Up Approach in Baldur’s Gate 3",
+      "organization": "Larian Studios / GDC",
+      "url": "https://gdcvault.com/play/1034616/Larian-Cinematics-A-Top-Down",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "cinematics",
+        "reactivity",
+        "tool/team evolution"
+      ],
+      "extractedIdeas": [
+        "reactivity at scale forced repeated tool/team/first-principles changes",
+        "production representation can reshape implementation architecture"
+      ],
+      "candidateUses": [
+        "media-production pattern",
+        "reactivity-throughput teardown"
+      ],
+      "evidenceLimit": "Cinematic pipeline evidence does not itself establish narrative or gameplay value.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-dwarf-procgen",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Practices in Procedural Generation",
+      "organization": "Bay 12 Games + Kitfox / GDC",
+      "url": "https://www.gdcvault.com/play/1023372/Practices-in-Procedural",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "procedural generation",
+        "live system editing"
+      ],
+      "extractedIdeas": [
+        "procedural generation changes design approach of systems it touches",
+        "concrete tools/methods matter more than abstract infinity claims"
+      ],
+      "candidateUses": [
+        "procgen-method pattern",
+        "Dwarf Fortress teardown"
+      ],
+      "evidenceLimit": "Shared session with multiple projects; procedural methods do not transfer uniformly across content types.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-portal2",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Creating a Sequel to a Game That Doesn’t Need One",
+      "organization": "Valve / GDC",
+      "url": "https://gdcvault.com/play/1015821/Creating-a-Sequel-to-a",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "sequel design",
+        "preserve vs transform"
+      ],
+      "extractedIdeas": [
+        "whole-process account of extending a game whose completeness was part of its identity"
+      ],
+      "candidateUses": [
+        "sequel-transformation pattern",
+        "Portal/Portal2 teardown"
+      ],
+      "evidenceLimit": "Franchise/context and Valve playtesting resources confound generalization.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-half-life2-process",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Valve’s Design Process for Creating Half-Life 2",
+      "organization": "Valve / GDC",
+      "url": "https://gdcvault.com/play/1013237/Valve-s-Design-Process-for",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "decentralized design",
+        "team interdependencies",
+        "cross-discipline consistency"
+      ],
+      "extractedIdeas": [
+        "scale decentralized design with semi-independent teams",
+        "manage interdependencies/constraints while preserving coherent result"
+      ],
+      "candidateUses": [
+        "production-organization pattern",
+        "team-topology teardown"
+      ],
+      "evidenceLimit": "Production process account, not evidence that Valve’s structure fits smaller teams or different genres.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-xcom-classic",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Classic Game Postmortem: X-COM: UFO Defense",
+      "organization": "Julian Gollop / GDC",
+      "url": "https://gdcvault.com/play/1017808/Classic-Game-Postmortem-X-COM",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "strategy+tactics composition",
+        "two-layer game structure"
+      ],
+      "extractedIdeas": [
+        "Geoscape and Battlescape combine two distinct but reinforcing games"
+      ],
+      "candidateUses": [
+        "multi-layer-strategy pattern",
+        "campaign/tactics teardown"
+      ],
+      "evidenceLimit": "Classic-title retrospective; historical UI/market/technical context differs substantially from modern games.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-xcom-art",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Art Direction Autopsy: XCOM: Enemy Unknown",
+      "organization": "Firaxis / GDC",
+      "url": "https://www.gdcvault.com/play/1017772/Art-Direction-Autopsy-X-COM",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "art direction",
+        "systemic design",
+        "reimagining"
+      ],
+      "extractedIdeas": [
+        "maintain core mechanics while redefining genre expectations",
+        "art direction evolved to support systemic design and production"
+      ],
+      "candidateUses": [
+        "visual-system coupling pattern",
+        "remake/reimagining teardown"
+      ],
+      "evidenceLimit": "Visual/design coupling is project-specific and does not establish gameplay causality.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-xcom2-proc",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Plot and Parcel: Procedural Level Design in XCOM 2",
+      "organization": "Firaxis / GDC",
+      "url": "https://gdcvault.com/play/1025387/Plot-and-Parcel-Procedural-Level",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "procedural level design",
+        "AAA production"
+      ],
+      "extractedIdeas": [
+        "use enough procedural variation to gain replay/production benefits while managing costs",
+        "transition from handcrafted to procedural exposes failure modes"
+      ],
+      "candidateUses": [
+        "procgen-ablation pattern",
+        "content-production teardown"
+      ],
+      "evidenceLimit": "AAA tactical-map production constraints may not apply to smaller or differently structured games.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-monster-hunter-world",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Monster Hunter: World Postmortem: Concept Design through Prototyping and Iteration",
+      "organization": "Capcom / GDC",
+      "url": "https://www.gdcvault.com/play/1024981/-Monster",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "concept design",
+        "prototype",
+        "franchise modernization"
+      ],
+      "extractedIdeas": [
+        "early concept establishment and prototyping for global/new-generation reboot"
+      ],
+      "candidateUses": [
+        "prototype-to-franchise pattern",
+        "combat/ecology teardown"
+      ],
+      "evidenceLimit": "Long franchise tuning and Capcom production scale constrain transfer.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "dukope-devlogs",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Development Logs by Lucas Pope — Papers, Please and Return of the Obra Dinn",
+      "organization": "Lucas Pope",
+      "url": "https://dukope.com/devlogs/",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "CURRENT",
+      "scope": [
+        "solo development",
+        "iterative design",
+        "implementation history"
+      ],
+      "extractedIdeas": [
+        "longitudinal primary evidence of experiments, compromises and implementation choices across two games"
+      ],
+      "candidateUses": [
+        "failure/revision mining",
+        "solo-dev teardown source"
+      ],
+      "evidenceLimit": "Devlogs are rich but selective self-report; individual entries need exact context before causal extraction.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "dukope-obra-dinn",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Return of the Obra Dinn Development Logs",
+      "organization": "Lucas Pope",
+      "url": "https://dukope.com/devlogs/obra-dinn/",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "CURRENT",
+      "scope": [
+        "deduction interface",
+        "information organization",
+        "visual/technical iteration"
+      ],
+      "extractedIdeas": [
+        "book interface organizes chronology/deaths/identity clues",
+        "years of implementation experiments are visible rather than only final rationale"
+      ],
+      "candidateUses": [
+        "deduction-information pattern",
+        "interface iteration teardown"
+      ],
+      "evidenceLimit": "Longitudinal devlog documents process, not representative player response.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "dukope-papers-mobile",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Cramming Papers, Please Onto Phones",
+      "organization": "Lucas Pope",
+      "url": "https://dukope.com/devlogs/papers-please/mobile/",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "porting",
+        "input/UI transformation",
+        "content invariance"
+      ],
+      "extractedIdeas": [
+        "preserve meal while changing plate",
+        "input/viewport changes can require substantial interface redesign without content expansion"
+      ],
+      "candidateUses": [
+        "platform-representation pattern",
+        "control/UI port teardown"
+      ],
+      "evidenceLimit": "Porting account is implementation evidence; preservation of experience across platforms needs player evaluation.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-vampire-community",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Surviving Vampire Survivors: Agile Community Management",
+      "organization": "poncle / GDC",
+      "url": "https://gdcvault.com/play/1029002/Community-Management-Summit-Surviving-Vampire",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "community",
+        "Early Access",
+        "small-team live feedback"
+      ],
+      "extractedIdeas": [
+        "focus community effort where impact is largest",
+        "personal tone and rapid adaptation under explosive growth"
+      ],
+      "candidateUses": [
+        "community-feedback pattern",
+        "live-service/social teardown"
+      ],
+      "evidenceLimit": "Community-management talk, not core-mechanic causal evidence; virality and market timing are major confounds.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-sid-psychology",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "The Psychology of Game Design (Everything You Know Is Wrong)",
+      "organization": "Sid Meier / Firaxis / GDC",
+      "url": "https://www.gdcvault.com/play/1012186/The-Psychology-of-Game-Design",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "player perception",
+        "counterintuitive design",
+        "AI behavior"
+      ],
+      "extractedIdeas": [
+        "player perception can dominate physically/mathematically literal simulation",
+        "smarter AI is not automatically better experience"
+      ],
+      "candidateUses": [
+        "perception-vs-simulation lens",
+        "AI ablation hypothesis"
+      ],
+      "evidenceLimit": "Practitioner heuristics from specific strategy contexts, not universal psychology laws.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-saturnalia",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Saturnalia Postmortem",
+      "organization": "Santa Ragione / GDC",
+      "url": "https://gdcvault.com/play/1034769/Independent-Games-Summit-Saturnalia",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "troubled development",
+        "scope shifts",
+        "proc-narrative horror"
+      ],
+      "extractedIdeas": [
+        "six-year development survived radical scope/perspective/style changes and financing pressure"
+      ],
+      "candidateUses": [
+        "failure/recovery pattern",
+        "scope-change counterexample"
+      ],
+      "evidenceLimit": "Postmortem is especially useful for failure/recovery mechanisms, but financing/market/art context strongly conditions lessons.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-postmortem-microtalks",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Postmortem Microtalks",
+      "organization": "Multiple developers / GDC",
+      "url": "https://www.gdcvault.com/play/1016145/Postmortem",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "failure learning",
+        "postmortem methodology"
+      ],
+      "extractedIdeas": [
+        "explicitly compare what went right and wrong across several projects"
+      ],
+      "candidateUses": [
+        "failure-corpus discovery source",
+        "postmortem extraction method"
+      ],
+      "evidenceLimit": "Multi-speaker summaries are discovery evidence; project-specific claims need original sessions/details.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-machinations",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Machinations: A New Way to Design Game Mechanics",
+      "organization": "Joris Dormans + Ernest Adams / GDC",
+      "url": "https://www.gdcvault.com/play/1016743/Machinations-A-New-Way-to",
+      "authorityClass": "PRIMARY_PRACTITIONER_ESSAY",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "mechanic modeling",
+        "simulation"
+      ],
+      "extractedIdeas": [
+        "visualize and simulate mechanics before code",
+        "reuse design patterns"
+      ],
+      "candidateUses": [
+        "formal-simulation lens",
+        "economy/system Skill reference"
+      ],
+      "evidenceLimit": "Formal model/tool applies best to representable systemic/resource structures and does not cover all experiential dimensions.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRACTITIONER_MEDIUM"
+    },
+    {
+      "id": "gdc-against-storm",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Against the Storm Postmortem",
+      "organization": "Eremite Games / GDC",
+      "url": "https://gdcvault.com/play/1034422/-Against-the-Storm",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "CURRENT",
+      "scope": [
+        "genre mixing",
+        "small-team innovation",
+        "Early Access"
+      ],
+      "extractedIdeas": [
+        "mix genres to find underserved value rather than obey category boundaries",
+        "creative/business/team-health decisions interact during long indie development"
+      ],
+      "candidateUses": [
+        "genre-recombination pattern",
+        "small-team postmortem",
+        "Early Access confound study"
+      ],
+      "evidenceLimit": "Sales, market niche, Early Access and team culture are confounds; the talk cannot isolate mechanic causality.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-pacific-drive",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Pacific Drive Under the Hood: Survival Fundamentals, Systems Design, and Speeding Past Tropes",
+      "organization": "Ironwood Studios / GDC",
+      "url": "https://gdcvault.com/play/1035732/-Pacific-Drive-Under-the",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "CURRENT",
+      "scope": [
+        "survival systems",
+        "taxonomy",
+        "genre convention escape",
+        "player fantasy"
+      ],
+      "extractedIdeas": [
+        "use a taxonomy of survival experiences rather than copy a genre checklist",
+        "theme/setting/player fantasy can guide which conventions to keep or discard"
+      ],
+      "candidateUses": [
+        "genre-taxonomy lens",
+        "survival recombination pattern"
+      ],
+      "evidenceLimit": "One title and one director’s synthesis; broad audience appeal is not causal proof of the taxonomy.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-honkai-star-rail",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Honkai: Star Rail: Reimagining RPGs for Mass Audiences and Broad Appeal",
+      "organization": "HoYoverse / GDC",
+      "url": "https://gdcvault.com/play/1035480/-Honkai-Star-Rail-Reimagining",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "CURRENT",
+      "scope": [
+        "RPG accessibility",
+        "turn-based combat",
+        "live content"
+      ],
+      "extractedIdeas": [
+        "design for broad accessibility while retaining distinctive combat/universe",
+        "regular content updates are part of the experience model"
+      ],
+      "candidateUses": [
+        "mass-audience RPG teardown",
+        "live-content pattern"
+      ],
+      "evidenceLimit": "Live-service scale, IP/ecosystem and monetization strongly confound transfer to small/offline games.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-marvel-snap",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Vault Rewind: Designing MARVEL SNAP",
+      "organization": "Second Dinner / GDC",
+      "url": "https://www.gdcvault.com/play/1034933/Vault-Rewind-Designing-MARVEL-SNAP",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "CURRENT",
+      "scope": [
+        "card-game design",
+        "short sessions",
+        "borrowed mechanics"
+      ],
+      "extractedIdeas": [
+        "three-minute battles + location rules + borrowed doubling-cube mechanic illustrate aggressive recombination",
+        "good/bad/ugly design lessons from long CCG experience"
+      ],
+      "candidateUses": [
+        "short-session card pattern",
+        "mechanic borrowing/recombination study"
+      ],
+      "evidenceLimit": "Marvel IP, mobile distribution and veteran CCG team constrain generalization.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-animal-well-arg",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Using ARGs to Communicate What Makes Animal Well Special",
+      "organization": "Shared Memory / GDC",
+      "url": "https://gdcvault.com/play/1035483/Using-ARGs-to-Communicate-What",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "CURRENT",
+      "scope": [
+        "secrets",
+        "marketing as experiential demonstration",
+        "community health"
+      ],
+      "extractedIdeas": [
+        "marketing artifact can reproduce a core feeling without spoiling game content",
+        "community puzzle design can create unhealthy over-search and needs harm boundaries"
+      ],
+      "candidateUses": [
+        "experience-preserving marketing pattern",
+        "community-risk counterexample"
+      ],
+      "evidenceLimit": "This is marketing/community evidence, not a primary mechanic design postmortem; the ARG context is highly specific.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-frostpunk-systems-voice",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "Ghost in the Machine: Authorial Voice in System Design, Frostpunk & Beyond",
+      "organization": "11 bit studios / GDC",
+      "url": "https://www.gdcvault.com/play/1027186/Independent-Games-Summit-Ghost-in",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "expressive systems",
+        "balance as meaning",
+        "societal simulation"
+      ],
+      "extractedIdeas": [
+        "system dynamics and mathematics can carry authorial meaning, not only narrative text"
+      ],
+      "candidateUses": [
+        "systems-as-expression lens",
+        "ethics/society mechanic teardown"
+      ],
+      "evidenceLimit": "Interpretive/authorial framework; whether players perceive intended meaning requires Human evidence.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "id": "gdc-gameplay-language",
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "title": "The Language of Gameplay and How to Speak It",
+      "organization": "11 bit studios / GDC",
+      "url": "https://gdcvault.com/play/1029351/The-Language-of-Gameplay-and",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "scope": [
+        "systems as language",
+        "player action meaning"
+      ],
+      "extractedIdeas": [
+        "player experience integrates mechanics/content/story into one experience",
+        "actions and systems can communicate meaning"
+      ],
+      "candidateUses": [
+        "systems-expression Skill candidate",
+        "mechanic-to-meaning analysis"
+      ],
+      "evidenceLimit": "Conceptual practitioner lens; not a universal syntax or proof of interpretation.",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH"
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "organization": "Wube Software",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "factorio-fff-160",
+      "title": "Factorio Friday Facts #160 — Playtesting",
+      "url": "https://www.factorio.com/blog/post/fff-160",
+      "scope": [
+        "full-run playtesting",
+        "scope saturation",
+        "progression phases"
+      ],
+      "extractedIdeas": [
+        "a full start-to-finish playthrough exposed cumulative content density that incremental feature work obscured",
+        "the team concluded more vanilla content risked excessive size/complexity and shifted attention toward optimizations and contextual teaching"
+      ],
+      "candidateUses": [
+        "full-run scope audit",
+        "content saturation pattern",
+        "progression-phase observation"
+      ],
+      "evidenceLimit": "One internal developer playthrough cannot establish newcomer overload or general player value; it is primary production/design evidence for what the team observed and changed."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "factorio-fff-331",
+      "title": "Factorio Friday Facts #331 — Campaign cancelled / Character GUI reset",
+      "organization": "Wube Software",
+      "url": "https://www.factorio.com/blog/post/fff-331",
+      "scope": [
+        "campaign cancellation",
+        "tutorial/freeplay fit",
+        "discarding sunk work",
+        "release scope"
+      ],
+      "extractedIdeas": [
+        "the expanding campaign was playable but less fun than freeplay because bounded quests/areas/ruins constrained the experience it tried to represent",
+        "the team abandoned the campaign for 1.0 rather than keep reinventing the core game",
+        "the Character GUI had already delayed release twice before most work was discarded and restarted with a different owner"
+      ],
+      "candidateUses": [
+        "product-representation mismatch counterexample",
+        "sunk-work reset pattern",
+        "scope cancellation evidence"
+      ],
+      "evidenceLimit": "Primary developer account for Factorio; establishes what Wube tried, observed and changed, not a universal rule against campaigns or rewrites."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "factorio-fff-342",
+      "title": "Factorio Friday Facts #342 — The new old tutorial",
+      "organization": "Wube Software",
+      "url": "https://www.factorio.com/blog/post/fff-342",
+      "scope": [
+        "tutorial removal",
+        "demo-product fit",
+        "audience broadening versus product identity"
+      ],
+      "extractedIdeas": [
+        "the NPE achieved many stated onboarding goals and received positive first-player feedback",
+        "the team still removed it because the experience was not aligned with the intended core game and became a poor demo once the larger campaign was cancelled"
+      ],
+      "candidateUses": [
+        "local-metric-success versus product-fit counterexample",
+        "demo fidelity pattern"
+      ],
+      "evidenceLimit": "Primary retrospective on one tutorial/demo; positive feedback and internal vision statements do not quantify population-wide experience."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "factorio-fff-351",
+      "title": "Factorio Friday Facts #351 — Beacon re-redesign & Simplified fluid mixing",
+      "organization": "Wube Software",
+      "url": "https://www.factorio.com/blog/post/fff-351",
+      "scope": [
+        "visual salience redesign",
+        "fluid mixing prevention",
+        "complexity rollback",
+        "recovery design"
+      ],
+      "extractedIdeas": [
+        "an individually impressive beacon redesign took too much visual attention in dense real factory context and was redesigned again",
+        "strictly preventing all unwanted fluid mixing accumulated exceptional complexity over roughly a year and a half",
+        "the replacement targeted common accidental cases and added a quick recovery action instead of enforcing perfect prevention everywhere"
+      ],
+      "candidateUses": [
+        "contextual visual-density counterexample",
+        "strict prevention versus recoverability pattern",
+        "complexity rollback"
+      ],
+      "evidenceLimit": "Primary developer account of specific Factorio systems; does not establish that recovery is generally better than prevention."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "factorio-fff-363",
+      "title": "Factorio Friday Facts #363 — Character tab removal",
+      "organization": "Wube Software",
+      "url": "https://www.factorio.com/blog/post/fff-363",
+      "scope": [
+        "GUI removal",
+        "duplication",
+        "nested tabs",
+        "play-experience revision"
+      ],
+      "extractedIdeas": [
+        "a Character tab that initially looked useful was later judged filler because it duplicated controls and information elsewhere",
+        "nested tab interaction broke flow in frequent crafting use, so the flatter GUI became default after play experience"
+      ],
+      "candidateUses": [
+        "duplicate-interface failure mode",
+        "play-before-default pattern",
+        "remove-not-polish counterexample"
+      ],
+      "evidenceLimit": "Primary developer account of Factorio UI; does not prove flat navigation is generally superior."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "gdc-diablo3-making",
+      "title": "Shout at the Devil: The Making of Diablo III",
+      "organization": "Blizzard Entertainment / GDC",
+      "url": "https://www.gdcvault.com/play/1017813/Shout-at-the-Devil-",
+      "scope": [
+        "design pillars",
+        "postmortem",
+        "conflicting priorities"
+      ],
+      "extractedIdeas": [
+        "the postmortem evaluates which design pillars Diablo III struggled to express",
+        "prioritizing high-level values against one another is itself part of design failure analysis"
+      ],
+      "candidateUses": [
+        "design-pillar failure mining",
+        "goal-conflict counterexample"
+      ],
+      "evidenceLimit": "Developer postmortem of one shipped game; lessons remain project-relative."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "gdc-diablo3-redemption",
+      "title": "Against the Burning Hells: Diablo III's Road to Redemption with Reaper of Souls",
+      "organization": "Blizzard Entertainment / GDC",
+      "url": "https://www.gdcvault.com/play/1021776/Against-the-Burning-Hells-Diablo",
+      "scope": [
+        "auction-house removal",
+        "core philosophy shift",
+        "itemization",
+        "rewards"
+      ],
+      "extractedIdeas": [
+        "the team made major shifts in gameplay philosophy, itemization and rewards between Diablo III and Reaper of Souls",
+        "the controversial Auction House was removed as part of that redesign"
+      ],
+      "candidateUses": [
+        "live-system removal counterexample",
+        "core-loop restoration pattern"
+      ],
+      "evidenceLimit": "Primary developer retrospective; does not isolate the causal contribution of any one redesign to later outcomes."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "blizzard-diablo3-auction-house-update",
+      "title": "Diablo III Auction House Update",
+      "organization": "Blizzard Entertainment",
+      "url": "https://news.blizzard.com/en-gb/article/10974978/diablo-iii-auction-house-update",
+      "scope": [
+        "auction house removal",
+        "core loot loop",
+        "trade convenience"
+      ],
+      "extractedIdeas": [
+        "the Auction House was designed for convenient and secure trade",
+        "Blizzard later stated that despite its benefits and use it undermined the core loop of killing monsters for loot and announced complete removal"
+      ],
+      "candidateUses": [
+        "secondary-loop displacement counterexample",
+        "feature-benefit versus core-loop cost"
+      ],
+      "evidenceLimit": "Official developer rationale for removal; it establishes the team’s diagnosis and action, not an independently estimated causal effect size."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "blizzard-diablo3-itemization-update",
+      "title": "Developer Journal: Itemization Update — Farm Monsters, Not the Auction House",
+      "organization": "Blizzard Entertainment",
+      "url": "https://news.blizzard.com/en-gb/article/10056636/developer-journal-itemization-update",
+      "scope": [
+        "itemization",
+        "auction-house incentives",
+        "endgame activity substitution"
+      ],
+      "extractedIdeas": [
+        "developers explicitly asked whether the auction house had shifted the perceived correct way to play from killing monsters to market activity",
+        "the response explored strengthening exciting item acquisition rather than treating feature deletion as the only possible fix"
+      ],
+      "candidateUses": [
+        "incentive displacement pattern",
+        "remove-versus-redesign discriminator"
+      ],
+      "evidenceLimit": "Official design journal capturing a design diagnosis and candidate remedies at that time; not a controlled experiment."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "gdc-deus-ex-postmortem",
+      "title": "Classic Game Postmortem: Deus Ex",
+      "organization": "Warren Spector / GDC",
+      "url": "https://gdcvault.com/play/1024338/Classic-Game-Postmortem-Deus-Ex",
+      "scope": [
+        "preproduction",
+        "feature/character scope",
+        "cutting debt",
+        "immersive-sim design",
+        "AI preproduction risk",
+        "borrowed shooter AI foundation",
+        "late requirements discovery"
+      ],
+      "extractedIdeas": [
+        "the team created more than 200 character concepts in preproduction",
+        "some later became filler the designers were reluctant to cut after mission/story purposes changed",
+        "failed earlier game proposals still contributed conceptual groundwork without dictating the final implementation",
+        "AI was considered early but designed before the game’s actual AI requirements were understood, creating early features that later proved unnecessary",
+        "building on Unreal Tournament shooter AI forced continued additions/tweaks rather than a system tailored to Deus Ex, with NPC behavior changing through the end of development"
+      ],
+      "candidateUses": [
+        "preproduction sunk-cost counterexample",
+        "failed-proposal salvage pattern",
+        "AI requirements-before-capability counterexample",
+        "borrowed-foundation patch-debt counterexample"
+      ],
+      "evidenceLimit": "Primary retrospective many years after development; establishes the speaker’s account, with normal retrospective-memory limitations."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "gdc-psychonauts2-postmortem",
+      "title": "Psychonauts 2 Design Postmortem",
+      "organization": "Double Fine Productions / GDC",
+      "url": "https://www.gdcvault.com/play/1027887/-Psychonauts-2-Design",
+      "scope": [
+        "sequel design",
+        "modernization",
+        "empathy constraint",
+        "possibility space"
+      ],
+      "extractedIdeas": [
+        "the team balanced legacy with modernization and broad accessibility",
+        "the talk argues that focusing on empathy expanded the design possibility space rather than merely limiting acceptable content"
+      ],
+      "candidateUses": [
+        "constraint-can-expand-search counterexample",
+        "sequel modernization pattern"
+      ],
+      "evidenceLimit": "Primary postmortem describing one team’s design framing; does not establish that empathy constraints universally expand creative possibility."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "blizzard-overwatch-future-2023",
+      "title": "Director’s Take – Reflecting on the future of Overwatch 2",
+      "organization": "Blizzard Entertainment",
+      "url": "https://news.blizzard.com/en-gb/article/23952480/directors-take-reflecting-on-the-future-of-overwatch-2",
+      "scope": [
+        "Project Titan inheritance",
+        "Hero Missions cancellation",
+        "live-game resource allocation",
+        "vision reset"
+      ],
+      "extractedIdeas": [
+        "the team continued pursuing a years-old crawl-walk-run vision after Overwatch became a runaway live success",
+        "Hero Missions accumulated scope, struggled to cohere, and pulled resources from the live game",
+        "the team cut Hero Missions and explicitly reframed the future around the live game"
+      ],
+      "candidateUses": [
+        "legacy-vision lock-in counterexample",
+        "scope-coherence failure",
+        "live-game resource opportunity-cost probe"
+      ],
+      "evidenceLimit": "Director retrospective establishes Blizzard Team 4’s stated history, diagnosis and decision; it does not isolate a single causal variable or prove the cancelled mode could never work under another team/resource model."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "naughtydog-tlou-online-2023",
+      "title": "An Update on The Last of Us Online",
+      "organization": "Naughty Dog",
+      "url": "https://www.naughtydog.com/blog/an_update_on_the_last_of_us_online",
+      "scope": [
+        "project cancellation",
+        "live-service operating model",
+        "studio resource topology",
+        "salvage of technology/learning"
+      ],
+      "extractedIdeas": [
+        "the concept became more refined and satisfying during iteration",
+        "full production and years of post-launch support would require studio-wide resource commitment",
+        "the studio cancelled the project rather than transform into a solely live-service studio",
+        "technology and learning were retained for future projects"
+      ],
+      "candidateUses": [
+        "good-game wrong-operating-model counterexample",
+        "production ecology probe",
+        "cancel-but-salvage pattern"
+      ],
+      "evidenceLimit": "Official studio statement grounds the resource/identity rationale for cancellation; it does not establish external player reception or prove the game itself lacked product value."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "valve-artifact-future-2021",
+      "title": "The Future of Artifact",
+      "organization": "Valve / Artifact Team",
+      "url": "https://steamcommunity.com/app/583950/announcements/",
+      "scope": [
+        "reboot cancellation",
+        "player population",
+        "mechanics/economy reevaluation",
+        "free final release"
+      ],
+      "extractedIdeas": [
+        "initial sales were followed by dramatic player-count decline, triggering a full mechanics/economy reevaluation",
+        "after roughly a year and a half of reboot work the team said most game-side goals were achieved",
+        "active player numbers still did not justify further development, so development stopped"
+      ],
+      "candidateUses": [
+        "game-side-goals versus viability counterexample",
+        "reboot evaluation boundary",
+        "population viability probe"
+      ],
+      "evidenceLimit": "Official Artifact team statement reports product/team metrics and decision rationale but does not establish why active population remained low or isolate gameplay from market/community effects."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "gdc-ffxiv-realm-reborn-2014",
+      "title": "Behind the Realm Reborn",
+      "organization": "Square Enix / GDC",
+      "url": "https://www.gdcvault.com/play/1020796/Behind-the-Realm",
+      "scope": [
+        "failed live product relaunch",
+        "MMORPG rebuild",
+        "decision speed",
+        "business model commitment"
+      ],
+      "extractedIdeas": [
+        "Final Fantasy XIV was relaunched as A Realm Reborn after the unsuccessful 2010 release",
+        "Naoki Yoshida’s session explicitly analyzes causes of the initial failures and decisions behind choosing a relaunch",
+        "the replacement MMORPG was created in roughly two years and nine months under an explicit business-model commitment"
+      ],
+      "candidateUses": [
+        "relaunch-vs-incremental-repair counterexample",
+        "foundation reset pattern",
+        "parallel replacement probe"
+      ],
+      "evidenceLimit": "GDC overview and developer talk ground the relaunch decision and retrospective framing; this record does not infer unlisted causes or claim relaunch is generally superior to repair."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "unknownworlds-belowzero-story-future-2019",
+      "title": "The Future Of Below Zero’s Story",
+      "organization": "Unknown Worlds Entertainment",
+      "url": "https://unknownworlds.com/en/news/the-future-of-below-zeros-story",
+      "scope": [
+        "story rewrite",
+        "near-complete early-access build",
+        "world preservation",
+        "character salvage"
+      ],
+      "extractedIdeas": [
+        "the game was broadly playable except the endgame yet the team said the whole experience did not work in harmony",
+        "the initial living-story attempt became messy around motivations and relationships",
+        "the team chose a new story while preserving world substrate and selected characters players/team valued"
+      ],
+      "candidateUses": [
+        "near-complete-content rewrite counterexample",
+        "salvage-boundary pattern",
+        "story-system fit probe"
+      ],
+      "evidenceLimit": "Primary project-lead account establishes the team’s diagnosis and rewrite decision; it does not independently measure the causal effect of story structure on player outcomes."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "unknownworlds-belowzero-roadmap-2019",
+      "title": "Below Zero Roadmap Rebooted & Release Timeline",
+      "organization": "Unknown Worlds Entertainment",
+      "url": "https://unknownworlds.com/en/news/below-zero-roadmap-rebooted-release-timeline",
+      "scope": [
+        "roadmap process failure",
+        "feature commitment pressure",
+        "release cadence",
+        "team health"
+      ],
+      "extractedIdeas": [
+        "the roadmap attempted to list individual future features despite uncertainty",
+        "the team described the roadmap as becoming a tyrant that pressured completion of scheduled items even when not critically important",
+        "the new process structured releases around what was ready and the game’s big-picture needs rather than structuring the game around release columns"
+      ],
+      "candidateUses": [
+        "roadmap commitment pressure counterexample",
+        "release-cadence inversion",
+        "planning-vs-discovery probe"
+      ],
+      "evidenceLimit": "Primary project-lead account describes one team/process context; it does not imply roadmaps or release planning are generally harmful."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "ubisoft-r6-operation-health-2017",
+      "title": "Rainbow Six Siege Launching Operation Health to Improve Experience",
+      "organization": "Ubisoft",
+      "url": "https://news.ubisoft.com/en-us/article/137rkMW5IBbOsJNcR5q2jb/rainbow-six-siege-launching-operation-health-to-improve-experience",
+      "scope": [
+        "live-service health",
+        "content delay",
+        "deployment rollback",
+        "technical debt"
+      ],
+      "extractedIdeas": [
+        "the team paused normal seasonal content priorities for three months to focus on technical improvements and bug fixes",
+        "the new deployment process staged releases through test server, PC and console",
+        "an on/off capability was added for faster rollback",
+        "planned content moved later and the annual new-map count was reduced"
+      ],
+      "candidateUses": [
+        "content-cadence-vs-system-health counterexample",
+        "rollback-first deployment pattern",
+        "live-service debt probe"
+      ],
+      "evidenceLimit": "Official Ubisoft product communication establishes the chosen intervention and scope tradeoff; it does not by itself prove the intervention’s downstream causal impact."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "bungie-d2-forsaken-update-2-0-2018",
+      "title": "Destiny 2 Update 2.0",
+      "organization": "Bungie",
+      "url": "https://www.bungie.net/7/en/News/article/47127",
+      "scope": [
+        "weapon-slot system redesign",
+        "ammo economy",
+        "live foundation reversal",
+        "Forsaken"
+      ],
+      "extractedIdeas": [
+        "Forsaken fundamentally changed weapon-slot rules so Primary and Special weapons could occupy Kinetic or Energy slots",
+        "the change required a fresh look at player damage output and a full ammo distribution update",
+        "live Year 1 weapon identities were migrated into the new foundation rather than treating the old slot model as immutable"
+      ],
+      "candidateUses": [
+        "live-foundation reversal counterexample",
+        "migration-with-system-redesign pattern",
+        "foundation-ablation probe"
+      ],
+      "evidenceLimit": "Official patch/developer insight establishes the shipped systems change; it does not by itself identify all reasons the prior foundation underperformed or quantify player preference."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "unknownworlds-subnautica-multiplayer-2015",
+      "title": "Subnautica Multiplayer: When, If, How, And Why",
+      "organization": "Unknown Worlds Entertainment",
+      "url": "https://unknownworlds.com/en/news/subnautica-multiplayer-when-if-how-and-why",
+      "scope": [
+        "multiplayer cancellation",
+        "architecture timing",
+        "release scope"
+      ],
+      "extractedIdeas": [
+        "Subnautica was initially conceived with co-op in mind but multiplayer was skipped to ship sooner",
+        "later addition would affect nearly everything and require work approaching a restart",
+        "the team ultimately committed the original game to single-player"
+      ],
+      "candidateUses": [
+        "late-multiplayer architecture counterexample",
+        "social feature timing probe"
+      ],
+      "evidenceLimit": "Primary studio account establishes the team’s architecture/schedule judgement for Subnautica; it does not imply multiplayer is intrinsically harmful or impossible for the franchise."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "blizzard-overwatch-role-queue-2019",
+      "title": "Introducing Role Queue",
+      "organization": "Blizzard Entertainment",
+      "url": "https://news.blizzard.com/en-gb/article/23060961/introducing-role-queue",
+      "scope": [
+        "team composition",
+        "social pressure",
+        "role queue",
+        "matchmaking"
+      ],
+      "extractedIdeas": [
+        "open role selection created tension, pressure, disappointment and hostility during team formation",
+        "Role Queue moved role negotiation before matchmaking and guaranteed a role distribution",
+        "the structural intervention also required hero balance changes and per-role matchmaking"
+      ],
+      "candidateUses": [
+        "social-negotiation externality counterexample",
+        "structure-versus-freedom probe"
+      ],
+      "evidenceLimit": "Official design rationale states intended problems and intervention; it does not independently prove all social outcomes or that fixed roles are universally superior."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "blizzard-overwatch-5v5-6v6-2024",
+      "title": "Director’s Take: Opening up the conversation on 5v5 and 6v6",
+      "organization": "Blizzard Entertainment",
+      "url": "https://news.blizzard.com/en-us/article/24104605/director-s-take-opening-up-the-conversation-on-5v5-and-6v6",
+      "scope": [
+        "role queue retrospective",
+        "queue population",
+        "5v5",
+        "6v6"
+      ],
+      "extractedIdeas": [
+        "Role Queue solved composition/social/balance problems but exposed queue-time dependence on relative role populations",
+        "tank demand remained the constraining population in 2-2-2",
+        "the 1-2-2 format better matched observed role demand and reduced queue times"
+      ],
+      "candidateUses": [
+        "structural-fix second-order-cost counterexample",
+        "population bottleneck probe"
+      ],
+      "evidenceLimit": "Director retrospective and queue-time data describe Overwatch-specific role populations; they do not establish a universal optimal team size or role ratio."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "blizzard-overwatch-leavers-2023",
+      "title": "Defense Matrix – Deterring Leavers in Overwatch 2",
+      "organization": "Blizzard Entertainment",
+      "url": "https://news.blizzard.com/en-us/article/24009615/defense-matrix-deterring-leavers-in-overwatch-2",
+      "scope": [
+        "leaver penalties",
+        "social harm",
+        "behavior deterrence",
+        "false positives"
+      ],
+      "extractedIdeas": [
+        "a 75% Battle Pass XP penalty was not enough to deter deliberate leavers",
+        "the same penalty also affected players who left unintentionally",
+        "the team changed the intervention to queue suspensions intended to better target repeat leaving behavior"
+      ],
+      "candidateUses": [
+        "mis-targeted punishment counterexample",
+        "behavioral-policy discriminator"
+      ],
+      "evidenceLimit": "Official design account establishes the team’s diagnosis and policy change; it does not estimate causal deterrence effects for all player populations."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "bungie-d2-unstable-cores-2025",
+      "title": "Destiny 2 Update 9.1.5.1",
+      "organization": "Bungie",
+      "url": "https://www.bungie.net/7/en/News/Article/destiny_update_9_1_5_1",
+      "scope": [
+        "currency deprecation",
+        "infusion economy",
+        "buildcraft friction"
+      ],
+      "extractedIdeas": [
+        "Unstable Cores were judged too restrictive across power levels",
+        "the currency failed to create interesting buildcraft decisions",
+        "Bungie chose full deprecation and replacement with existing currencies"
+      ],
+      "candidateUses": [
+        "currency-friction-without-choice counterexample",
+        "economy deletion probe"
+      ],
+      "evidenceLimit": "Official economy diagnosis and deprecation decision; does not imply resource costs are generally undesirable."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "bungie-d2-legendary-shards-2023",
+      "title": "This Week in Destiny – Legendary Shard deprecation",
+      "organization": "Bungie",
+      "url": "https://www.bungie.net/7/en/news/article/this-week-in-destiny-11-16",
+      "scope": [
+        "legacy currency",
+        "economy simplification",
+        "vendor costs"
+      ],
+      "extractedIdeas": [
+        "Bungie announced a staged removal of Legendary Shards from vendor/economy costs",
+        "multiple vendor costs were migrated toward engrams and Glimmer",
+        "the long-lived universal currency was phased out rather than retained for compatibility"
+      ],
+      "candidateUses": [
+        "legacy-currency baggage counterexample",
+        "currency-role audit"
+      ],
+      "evidenceLimit": "Official phase-out record demonstrates removal of one mature currency; it does not by itself establish every motivation or prove fewer currencies are always better."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "factorio-fff-390",
+      "title": "Factorio Friday Facts #390 — Noise expressions 2.0",
+      "organization": "Wube Software",
+      "url": "https://factorio.com/blog/post/fff-390",
+      "scope": [
+        "procedural generation",
+        "compiler abstraction",
+        "deduplication rollback"
+      ],
+      "extractedIdeas": [
+        "automatic cross-procedure deduplication introduced dependency and compilation complexity",
+        "the developer removed procedures entirely instead of perfecting the abstraction",
+        "the simpler representation improved map-generation runtime and compilation in measured cases"
+      ],
+      "candidateUses": [
+        "smart-abstraction-removal counterexample",
+        "procgen representation probe"
+      ],
+      "evidenceLimit": "Primary technical account of Factorio’s noise compiler; performance observations are implementation-specific and do not prove simpler procedural architectures are generally superior."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "factorio-fff-258",
+      "title": "Factorio Friday Facts #258 — New autoplace",
+      "organization": "Wube Software",
+      "url": "https://factorio.com/blog/post/fff-258",
+      "scope": [
+        "procedural map generation",
+        "resource placement",
+        "generator refactor"
+      ],
+      "extractedIdeas": [
+        "separate terrain and object-autoplace representations limited control over resource placement",
+        "the generator could produce pathological maps and settings with weak effects",
+        "Wube undertook a large refactor to compile old specifications into a unified expression-tree representation"
+      ],
+      "candidateUses": [
+        "fragmented-generator representation counterexample",
+        "procgen control probe"
+      ],
+      "evidenceLimit": "Primary developer account of one map generator; does not establish unified expression systems as universally preferable."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "gamedeveloper-thief-postmortem",
+      "title": "Postmortem: Thief: The Dark Project",
+      "organization": "Looking Glass Studios / Tom Leonard",
+      "url": "https://www.gamedeveloper.com/design/postmortem-i-thief-the-dark-project-i-",
+      "scope": [
+        "AI architecture",
+        "stealth requirements",
+        "late rewrite",
+        "project risk"
+      ],
+      "extractedIdeas": [
+        "the AI decision model was built before the revised stealth design was sufficiently defined and embodied assumptions closer to an action/fighting game",
+        "the team initially treated AI problems as bugs in a sound architecture, then later concluded the architecture required a rewrite",
+        "the late rewrite discarded most of the original AI implementation and the postmortem argues the decision should have happened materially earlier"
+      ],
+      "candidateUses": [
+        "AI-requirements mismatch counterexample",
+        "delayed-rewrite counterexample",
+        "repair-vs-replacement discriminator"
+      ],
+      "evidenceLimit": "Primary postmortem by Thief lead programmer Tom Leonard; retrospective timing estimates and causal interpretations remain project-specific and subject to normal retrospective limitations."
+    },
+    {
+      "category": "PRIMARY_DEVELOPER_TEARDOWN",
+      "authorityClass": "PRIMARY_DEVELOPER_ACCOUNT",
+      "currentness": "HISTORICAL_STILL_USEFUL",
+      "canCreateGameHardConstraint": false,
+      "retrievedOn": "2026-09-18",
+      "sourceStrength": "PRIMARY_PROJECT_HIGH",
+      "id": "gamedeveloper-odyssey-immortals-ai-planning",
+      "title": "Postmortem: AI action planning on Assassin's Creed Odyssey and Immortals Fenyx Rising",
+      "organization": "Ubisoft Quebec / Simon Girard",
+      "url": "https://www.gamedeveloper.com/programming/postmortem-ai-action-planning-on-assassins-creed-odyssey-and-immortals-fenyx-rising-",
+      "scope": [
+        "GOAP",
+        "Meta AI authority",
+        "legacy behavior migration",
+        "planner pruning",
+        "pacing/variety",
+        "single-pipeline convergence"
+      ],
+      "extractedIdeas": [
+        "planner and Meta AI could issue competing behavior control to the same NPC at system frontiers",
+        "wrapping complex legacy behaviors as planner Actions sped migration but violated intended modularity and left gameplay-specific coupling in blackboards/core code",
+        "aggressive pre-pruning to the nearest Smart Object could remove context needed for globally better plans and was relaxed in Immortals",
+        "random dynamic action costs became theoretically inconsistent once costs were recalculated during planning; Immortals largely replaced random with last-execution-time cost shaping for pacing",
+        "trying to converge all AI pillars onto one planner pipeline too early failed when naval and other pillars needed capabilities/timing the planner did not yet support"
+      ],
+      "candidateUses": [
+        "AI authority-boundary counterexample",
+        "migration-coupling counterexample",
+        "local-pruning global-plan counterexample",
+        "planner-consistency counterexample",
+        "premature pipeline convergence counterexample"
+      ],
+      "evidenceLimit": "Primary technical postmortem by Ubisoft AI programmer Simon Girard; lessons are grounded in Odyssey/Immortals production and do not establish GOAP or unified AI pipelines as generally good or bad."
+    }
+  ],
+  "gaps": {
+    "nextPrimarySourceWave": [
+      "Stardew Valley / Eric Barone primary postmortem",
+      "Overcooked / Ghost Town primary design talk",
+      "Elden Ring / FromSoftware primary design sources",
+      "Minecraft / Mojang primary mechanic/system talks",
+      "Fortnite/Dota/League live-system primary talks",
+      "Balatro / LocalThunk primary design process",
+      "Clair Obscur: Expedition 33 2026 scope/4-programmer talk exact session page",
+      "Frostpunk 2 2025 Speaking in Systems exact session page",
+      "Helldivers 2 2025 design postmortem exact session page",
+      "UFO 50 developer design/process sources",
+      "non-English/non-Western primary developer archives"
+    ],
+    "underrepresentedDomains": [
+      "sports/racing feel",
+      "horror/fear design",
+      "MMO institutions/economies",
+      "mobile live-ops with ethical analysis",
+      "music/rhythm beyond Beat Saber",
+      "non-Western developer primary sources",
+      "failed/cancelled projects",
+      "tabletop-to-digital transfer"
+    ]
+  }
+}

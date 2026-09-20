@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "id": "t03-sealed-intent-clean-carrier-r1",
+  "board": {"width": 6, "height": 6},
+  "playerUnits": 3,
+  "enemyUnits": 3,
+  "playerActions": ["advance", "strike", "brace", "flank"],
+  "information": {
+    "ownPlan": "exact preview of intended player action/destination/strike target before commit",
+    "opponent": "enemy behavior family is visible before commitment; exact per-unit commitment remains sealed until simultaneous resolution"
+  },
+  "enemyFamilies": {
+    "PRESS": {
+      "description": "close distance aggressively; strike when adjacent",
+      "variants": ["left_tiebreak", "right_tiebreak"]
+    },
+    "CONTROL": {
+      "description": "protect objective space; brace on/near objective and otherwise reposition toward it",
+      "variants": ["left_tiebreak", "right_tiebreak"]
+    }
+  },
+  "states": [
+    {"id":"S1","objective":[2,2],"player":[[1,4],[2,4],[4,4]],"enemy":[[1,1],[3,1],[4,2]]},
+    {"id":"S2","objective":[3,2],"player":[[0,4],[3,4],[5,3]],"enemy":[[1,2],[3,1],[5,1]]},
+    {"id":"S3","objective":[2,3],"player":[[1,5],[2,4],[5,4]],"enemy":[[0,1],[2,2],[4,1]]},
+    {"id":"S4","objective":[3,3],"player":[[0,3],[3,5],[4,4]],"enemy":[[1,1],[3,2],[5,2]]},
+    {"id":"S5","objective":[1,2],"player":[[0,5],[2,4],[4,3]],"enemy":[[0,1],[2,1],[3,2]]},
+    {"id":"S6","objective":[4,2],"player":[[1,3],[3,4],[5,5]],"enemy":[[2,1],[4,1],[5,2]]}
+  ],
+  "resolution": {
+    "simultaneous": true,
+    "moveCollision": "all units contesting the same destination remain at origin",
+    "strike": "strike targets the nearest orthogonally adjacent opponent at commitment time; it hits only if that target remains in the targeted cell after movement",
+    "brace": "negates one incoming strike and holds position",
+    "advance": "one step by Manhattan distance toward the objective, preferring vertical progress then horizontal",
+    "flank": "one horizontal step toward the objective column; if already aligned, one horizontal step away from the board center using deterministic tie-break",
+    "score": "3*objective control + 1*player survivors + 2*enemy removals - 2*player removals"
+  },
+  "predeclaredDecisionRules": {
+    "familyCueCausalLeverageExpectedMin": 0.5,
+    "familyCueCausalLeverageMinimaxMin": 0.3333333333333333,
+    "dominantExpectedPlanShareMax": 0.5,
+    "exactCommitmentRevisionRateMin": 0.3333333333333333,
+    "meanOracleRegretFractionMax": 0.25
+  },
+  "boundary": "This is the already-declared T03 clean throwaway carrier. It removes Station Zero delegation/Agent/dashboard machinery and does not add a new product mechanism after seeing results."
+}

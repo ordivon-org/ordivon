@@ -1,0 +1,32 @@
+{
+  "schema": "veilwild.a17-export-preset-consumption.r3",
+  "owner": "A17/F17 integration consumer",
+  "roundId": "VEILWILD_R1_ROUND_3",
+  "path": "experiments/veilwild-r1/godot/export_presets.cfg",
+  "sha256": "258b296d4438dd58d3656ce688f5c6f8bceff7ef2508e5dd90820000fa008d05",
+  "authorityCorrection": {
+    "supersededA17Commit": "9d3737a8c42d5afdd772194b52e4d4c6c5c85bba",
+    "supersededPresetSha256": "12dd680f99e818a72b9e33ab16a882841c868e7aea7d635a4f836091f7a75a0e",
+    "reason": "A19/F20 owns packaging truth. A17 may source-bind the exact owner preset but must not create a competing preset authority."
+  },
+  "consumedOwnerArtifact": {
+    "producer": "A19/F20/F27",
+    "commit": "827752391ca0bcfa24ca30bdc0a67839e54f0bb8",
+    "path": "experiments/veilwild-r1/godot/export_presets.cfg",
+    "sha256": "258b296d4438dd58d3656ce688f5c6f8bceff7ef2508e5dd90820000fa008d05",
+    "contractPath": "experiments/veilwild-r1/handoffs/A19-F20.json",
+    "contractSha256": "365812f419f69731a95db79fbe418fbc710a28b2133521215753f7857e941740",
+    "harnessPath": "experiments/veilwild-r1/scripts/f20_build_repro.py",
+    "harnessSha256": "d8ebdff9d2ef3c38996a797f4d54168f6e1c5171b8ad4eb71a322e078378943c"
+  },
+  "preset": {
+    "name": "Linux/X11",
+    "platform": "Linux",
+    "runnable": true,
+    "architecture": "x86_64",
+    "exportFilter": "all_resources",
+    "embedPck": true
+  },
+  "semanticMeaning": "A17 includes the exact A19-owned packaging configuration in candidate source. buildId/buildArtifactId, playable export and reproducibility standing remain exclusively A19-owned.",
+  "candidateBoundary": "No export is performed or claimed here. Current scene-node preflight remains red until producer scenes receive stable unique_id values."
+}

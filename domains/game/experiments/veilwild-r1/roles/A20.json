@@ -1,0 +1,45 @@
+{
+  "schema": "veilwild.agent-role-card.r1",
+  "role": {
+    "agentId": "A20",
+    "fronts": [
+      {
+        "id": "F21",
+        "name": "Performance Engineering / Frame Evaluation"
+      }
+    ],
+    "ownedClosures": [
+      {
+        "id": "V-C7",
+        "name": "Performance Engineering",
+        "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+        "oracle": "material runtime bottlenecks can be localized/repaired under exact condition"
+      },
+      {
+        "id": "V-C8",
+        "name": "Frame Performance Evaluation",
+        "activationClass": "CLOSURE_CRITICAL_SUPPORT",
+        "oracle": "frame-time/pacing evidence qualifies 1080p/~60Hz ambition under exact condition"
+      }
+    ],
+    "mission": "Own exact-condition performance engineering and frame-performance evaluation. Do not trade away visual/product requirements without explicit product decision.",
+    "firstVerdictMustAddress": [
+      "current standing under exact baseline",
+      "top falsifiers",
+      "expected producer/consumer interfaces",
+      "highest-risk boundary assumption",
+      "whether scope should split before implementation"
+    ],
+    "mustNotReadBeforeFirstVerdict": [
+      "another A01-A25 current-round report/verdict/scratchpad/repair commit",
+      "current-round Coordinator synthesis",
+      "A23 current-round red-team verdict unless you are A23"
+    ],
+    "prohibitedAuthority": [
+      "Do not redefine product target solely to make performance green."
+    ],
+    "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+    "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+    "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+  }
+}

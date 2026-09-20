@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game-e2e-r5-m7-minimal-kernel-necessity",
+  "truthRole": "bounded-necessity-argument-not-permanent-architecture-law",
+  "recordedAt": "2026-09-10",
+  "totalResidualLoc": 552,
+  "components": [
+    {
+      "path": "src/integration/local-evidence-journal.ts",
+      "loc": 279,
+      "disposition": "KEEP_BOUNDED_COMPATIBILITY_DEBT",
+      "necessaryInvariant": "Current Station Zero state and retained Game evidence can be committed in the same local SQLite transaction; content-addressed artifacts/journal chains fail closed on tamper and response-loss recovery does not mint duplicate Game effects.",
+      "evidence": [
+        "test/local-evidence-journal.test.ts",
+        "test/game-e2e-r5-host-outbox-shadow.test.ts",
+        "evidence/acceptance/game-e2e-r5-m6-subtraction.json"
+      ],
+      "notAuthority": "Persistence does not mint Game, Host, Human, rights, Artifact, or release semantics.",
+      "deletionWake": "Delete/move when an owner-external evidence substrate preserves the same-transaction invariant losslessly. FULL_EXTERNAL_SUBSTITUTION remains NOT_ADMITTED."
+    },
+    {
+      "path": "src/integration/game-evidence.ts",
+      "loc": 90,
+      "disposition": "KEEP_THIN_PORT",
+      "necessaryInvariant": "Game/domain consumers depend on a bounded Game evidence capability rather than importing persistence or Host internals as semantic authority.",
+      "evidence": [
+        "test/game-e2e-r5-host-subtraction-boundary.test.ts"
+      ],
+      "notAuthority": "The current LocalEvidenceAdapter is replaceable implementation; the port is an ownership seam, not a second Host.",
+      "deletionWake": "The adapter may disappear when another implementation satisfies the port and atomicity contract; the semantic seam may be further thinned if consumers remain owner-isolated."
+    },
+    {
+      "path": "src/team/commitment-view.ts",
+      "loc": 183,
+      "disposition": "KEEP_DERIVED_GAME_VIEW",
+      "necessaryInvariant": "Team Effect/Dispatch/Observation standing is derived from TeamRound/TeamTickPlan plus authoritative Game command receipt/World Event; missing or identity-divergent authoritative evidence must make completion fail closed.",
+      "evidence": [
+        "M7 missing-receipt destructive test",
+        "M7 TickPlan-identity-tamper destructive test",
+        "test/team-execution-store.test.ts"
+      ],
+      "notAuthority": "The view reconstructs Game commitment semantics and does not persist a duplicate generic Host lifecycle.",
+      "deletionWake": "Delete/derive differently only if the same Game-specific commitment invariants remain mechanically testable without a duplicate lifecycle."
+    }
+  ],
+  "locIsOptimizationTarget": false,
+  "conclusion": "No residual component is justified merely by historical presence. One component is explicit compatibility debt, one is a thin ownership seam, and one is a derived Game-semantic view. Their retention is bounded by deletion-sensitive invariants rather than LOC minimization."
+}

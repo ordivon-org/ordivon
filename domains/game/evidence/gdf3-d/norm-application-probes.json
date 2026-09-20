@@ -1,0 +1,242 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.gdf3-d-norm-application-probes",
+  "epistemicBoundary": {
+    "proves": [
+      "closed norm application remains a sufficient limiting case",
+      "exceptions/defeaters can alter outcomes with fixed norm text through case conditions/applicability relations",
+      "norm conflicts can be represented through scoped priority/resolution relations whose currentness may change",
+      "purpose/spirit clauses can be operative while remaining bounded rather than functioning as universal trump rules",
+      "factual and subjective application regimes can coexist under one rule system",
+      "prior decisions do not become binding precedents merely by historical existence or similarity",
+      "frequency of convention does not determine authority",
+      "effective category semantics can change through adopted practice interpretation while artifact mechanics stay fixed",
+      "discretion can be represented as bounded residual choice rather than arbitrariness",
+      "rule change and interpretive change can yield the same practical outcome while retaining different provenance",
+      "retroactive normative status change need not rewrite underlying event history",
+      "one-off rulings acquire standing future norm force only through a later authority/recognition relation",
+      "an Agent with case authority but no rule-change authority can bind a current case without automatically legislating for future cases",
+      "delegated standing interpretive force derives from authority scope/currentness rather than model identity",
+      "consistency does not require identical outcomes where norm-relevant case differences exist"
+    ],
+    "doesNotProve": [
+      "that every practice should expose explicit priority graphs",
+      "that rules and standards have one exact universal dividing line",
+      "that purpose-sensitive interpretation is always superior to literal application",
+      "that precedent should be binding in games",
+      "that discretion is desirable in every GameForm",
+      "that a universal normative reasoning engine is part of Game foundations",
+      "that the derived NormApplicationBasis must be a storage object"
+    ]
+  },
+  "cases": {
+    "closed": {
+      "caseBasis": {
+        "x": 7
+      },
+      "norm": {
+        "id": "R1",
+        "text": "ALLOW iff x >= 5",
+        "scope": "case",
+        "current": true,
+        "source": "practice",
+        "priority": 0
+      },
+      "result": "ALLOW",
+      "openTextureNeeded": false
+    },
+    "exception": {
+      "defaultNorm": {
+        "id": "R2",
+        "text": "PROHIBIT action A unless exception E",
+        "scope": "case",
+        "current": true,
+        "source": "practice",
+        "priority": 0
+      },
+      "caseWithoutE": {
+        "E": false,
+        "result": "PROHIBIT"
+      },
+      "caseWithE": {
+        "E": true,
+        "result": "ALLOW"
+      },
+      "normTextHeldFixed": true
+    },
+    "conflictPriority": {
+      "n1": {
+        "id": "N1",
+        "text": "ALLOW A",
+        "scope": "case",
+        "current": true,
+        "source": "practice",
+        "priority": 1
+      },
+      "n2": {
+        "id": "N2",
+        "text": "PROHIBIT A",
+        "scope": "case",
+        "current": true,
+        "source": "practice",
+        "priority": 2
+      },
+      "result": "PROHIBIT",
+      "changedPriorityResult": "ALLOW"
+    },
+    "spiritBounded": {
+      "literalRule": "apply Laws",
+      "purposeClause": "spirit of the game",
+      "discretion": "within framework of Laws",
+      "purposeIsUnboundedOverride": false
+    },
+    "factualSubjective": {
+      "factual": {
+        "example": "position/offside/location",
+        "reviewMode": "VAR-only usually appropriate"
+      },
+      "subjective": {
+        "example": "intensity/interference/handball considerations",
+        "reviewMode": "on-field review appropriate"
+      },
+      "oneUniversalPredicateClosure": false
+    },
+    "precedent": {
+      "priorDecision": "P1",
+      "similarity": true,
+      "bindingByIdentity": false,
+      "persuasiveWhenAdmitted": true,
+      "standingForceRequiresAuthorityRecognition": true
+    },
+    "convention": {
+      "frequentUnauthorized": {
+        "frequency": 0.9,
+        "binding": false
+      },
+      "rareAuthorized": {
+        "frequency": 0.1,
+        "binding": true
+      },
+      "frequencyNotAuthority": true
+    },
+    "speedrun": {
+      "broadRuleWord": "glitchless",
+      "artifactMechanicsHeldFixed": true,
+      "communityAdoptedTechniqueListCanChange": true,
+      "effectiveCategorySemanticsCanChangeWithoutArtifactPatch": true
+    },
+    "discretion": {
+      "caseBasis": "K",
+      "normBasis": "S",
+      "authorizedOutcomes": [
+        "O1",
+        "O2"
+      ],
+      "arbitraryOutcome": "O3",
+      "arbitraryOutcomeAuthorized": false,
+      "residualChoiceExists": true
+    },
+    "interpretiveVsRuleChange": {
+      "sameOutcome": "A prohibited",
+      "path1": {
+        "kind": "rule-change",
+        "representationChanged": true,
+        "authoritySource": "rules-authority"
+      },
+      "path2": {
+        "kind": "interpretive-change",
+        "representationChanged": false,
+        "authoritySource": "interpretive-authority",
+        "effectiveSemanticsChanged": true
+      },
+      "outcomeDoesNotDetermineProvenance": true
+    },
+    "retroactivity": {
+      "eventHistoryDigest": "H1",
+      "newInterpretation": "I2",
+      "prospective": {
+        "appliesTo": [
+          "future-cases"
+        ],
+        "historyChanged": false
+      },
+      "retrospectiveCertification": {
+        "appliesTo": [
+          "past-record-status"
+        ],
+        "historyChanged": false
+      },
+      "temporalScopeIndependent": true
+    },
+    "oneOffToStanding": {
+      "caseRuling": {
+        "id": "D1",
+        "futureNormForce": false
+      },
+      "laterPracticeAdoption": {
+        "interpretiveCommitment": "I1",
+        "futureNormForce": true
+      },
+      "priorRulingNotPrecedentByIdentity": true
+    },
+    "agent": {
+      "entity": "Agent-X",
+      "proposal": {
+        "reading": "literal",
+        "binding": false
+      },
+      "alternative": {
+        "reading": "purpose-sensitive",
+        "binding": false
+      },
+      "caseAuthority": {
+        "canBindCurrentCase": true
+      },
+      "ruleChangeAuthority": false,
+      "currentCaseRulingCreatesStandingFutureRule": false
+    },
+    "adoptedAgentInterpretation": {
+      "entity": "Agent-X",
+      "delegatedInterpretiveScope": "category-C for season-S",
+      "current": true,
+      "futureForceWithinScope": true,
+      "forceDerivesFromDelegation": true
+    },
+    "consistency": {
+      "caseA": {
+        "facts": [
+          "f1",
+          "f2"
+        ],
+        "result": "R"
+      },
+      "caseB": {
+        "facts": [
+          "f1",
+          "f2",
+          "defeater"
+        ],
+        "result": "not-R"
+      },
+      "identicalOutcomeRequiredForConsistency": false,
+      "relevanceDimensionsMatter": true
+    }
+  },
+  "strongestFalsifiers": {
+    "closedRuleModelNotUniversal": true,
+    "exceptionNotPrimitive": true,
+    "conflictResolutionCurrentnessMatters": true,
+    "purposeNotUnboundedMetaRule": true,
+    "ruleStandardNotOntologicalBinary": true,
+    "priorDecisionNotBindingPrecedent": true,
+    "conventionFrequencyNotAuthority": true,
+    "adoptedInterpretationCanChangeEffectiveRules": true,
+    "discretionNotArbitrariness": true,
+    "ruleChangeNotInterpretiveChange": true,
+    "retroactivityNotHistoryRewrite": true,
+    "rulingNotPrecedentByIdentity": true,
+    "caseAuthorityNotLegislativeAuthority": true,
+    "modelIdentityNotInterpretiveAuthority": true,
+    "consistencyNotIdenticalOutcome": true
+  }
+}

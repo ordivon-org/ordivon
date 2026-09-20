@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game.external-mature-stack-r3-acceptance",
+  "observedOn": "2026-09-13",
+  "status": "PASS_LOCAL_STACK_GRADUATED",
+  "selectionRule": {
+    "standing": "MAINTENANCE_COMPATIBILITY_RELEASE_SECURITY_FIRST",
+    "retiredRule": "GITHUB_STARS_GTE_10000",
+    "starsStanding": "SUPPORTING_SIGNAL_ONLY"
+  },
+  "localEngine": {
+    "version": "4.7.1.stable.arch_linux.a13da4feb",
+    "executable": "/usr/bin/godot"
+  },
+  "gut": {
+    "selection": "PRIMARY_NEW_GODOT_PRODUCT_TEST_FRAMEWORK",
+    "version": "9.7.1",
+    "sourceTag": "v9.7.1",
+    "sourceCommit": "aeb5d4f3f7f0a6c9b5e178876d6c99b791fda605",
+    "compatibilityClaim": "Godot 4.7.x",
+    "localSmoke": {
+      "status": "PASS",
+      "runtimeJobId": "job-01a09aaf-b3ab-7d33-8b11-bede97705dbc",
+      "tests": 1,
+      "passingTests": 1,
+      "assertions": 3,
+      "junitXml": "GENERATED_AND_NONEMPTY",
+      "runtimeEngineVersion": "4.7.1",
+      "runtimeGutVersion": "9.7.1"
+    }
+  },
+  "gdUnit4": {
+    "selection": "STRONG_ALTERNATIVE_ON_REQUIREMENT",
+    "reason": "actively maintained and feature-rich, but no benefit was established for installing two test frameworks by default"
+  },
+  "godotCi": {
+    "selection": "PRIMARY_HOSTED_CI_EXPORT_CANDIDATE",
+    "upstreamEvidence": {
+      "release471": "2026-07-15",
+      "release472": "2026-08-18",
+      "nativeExportSemantics": "godot --headless --export-release + export_presets.cfg"
+    },
+    "localContainerCanary": {
+      "status": "PASS",
+      "image": "docker.io/barichello/godot-ci:4.7.1",
+      "imageId": "c22f67612c9eb0e7c52e18d391471ce5c6dba8e43c6d9ff43b77d6d85d9a3723",
+      "imageDigest": "sha256:15bab564bdd99ae61a12564fc25237130483d1e22da003dc7d039db6f6eded91",
+      "containerEngineVersion": "4.7.1.stable.official.a13da4feb",
+      "containerExportJobId": "job-01a09b08-24eb-75d1-935d-5eefab7947eb",
+      "exportedSha256": "ed7906d6641f30afcecd142e8fe8716720bab5b317c24dfeebc19ddcb09af30c",
+      "matchesPriorHostReproducibilityBaseline": true,
+      "exportedExecutableRun": "PASS"
+    }
+  },
+  "godotMcp": {
+    "productionSelection": "NONE",
+    "ee0pdtGodotMcp": "REJECT_CURRENTLY_SECURITY_AND_CONFORMANCE",
+    "hybridindieGodotMcp": "SANDBOX_ONLY_INSUFFICIENT_MATURITY_HISTORY"
+  },
+  "agentSkills": {
+    "format": "ADOPTABLE_STANDARD",
+    "thirdPartyGameSkillContent": "AUDIT_BEFORE_USE",
+    "semanticAuthority": false
+  },
+  "activationBoundary": "Selections become dependencies only when a real new product requires them; historical experiments are not retrofitted for uniformity.",
+  "graduationReceipt": "evidence/game-development-stack-graduation-r1-20260913.json"
+}

@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.game-storage-externalization-boundary-r1",
+  "truthRole": "engineering-subtraction-admission-decision-not-database-benchmark-or-external-compliance-claim",
+  "recordedAt": "2026-09-11",
+  "taskId": "task:ordivon-game-external-mature-composition-r1-20260911",
+  "baseCandidate": "067e13198ef601ed3863cedfee204f7ce4c2bdcf",
+  "verdict": "NO_ADDITIONAL_PHYSICAL_SUBTRACTION_ADMITTED",
+  "externalSubstrateAlreadyConsumed": [
+    "SQLite",
+    "Node node:sqlite"
+  ],
+  "genericMechanicsAlreadyDelegated": [
+    "ACID transactions",
+    "WAL",
+    "locking/busy behavior",
+    "constraints",
+    "statement/query execution"
+  ],
+  "gameAuthorityRetained": [
+    "Run/Genesis/Ruleset identity",
+    "Command identity/idempotency",
+    "Event identity",
+    "Command/Event hash chains",
+    "World revision and before/after digests",
+    "same-transaction World+evidence commit",
+    "snapshot cache semantics and anchoring",
+    "ruleset replay",
+    "point-in-time reconstruction",
+    "corruption/tamper fail-closed semantics",
+    "v3 Turn/Event/Record/WorldHead/PlanningHead atomic commit"
+  ],
+  "rejected": [
+    "new Game-local ORM",
+    "new repository layer",
+    "new generic local event store",
+    "new storage adapter that only hides SQLite",
+    "remote dual-write replacement without preserved atomicity"
+  ],
+  "futureCrossOwnerPattern": "transactional outbox plus idempotent relay when real cross-owner pressure exists",
+  "reopenConditions": [
+    "real cross-owner durable-delivery consumer",
+    "measured SQLite product/runtime bottleneck",
+    "second Game proves reusable persistence contract",
+    "external owner exposes proven transaction/outbox interface preserving retained judgments"
+  ],
+  "sourceChangesRequired": false,
+  "verification": {
+    "focused": {
+      "pass": 63,
+      "total": 63,
+      "fail": 0
+    },
+    "full": {
+      "pass": 419,
+      "total": 419,
+      "fail": 0
+    }
+  }
+}

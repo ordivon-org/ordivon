@@ -1,0 +1,1173 @@
+{
+  "schemaVersion": 1,
+  "memoryId": "ordivon-game-design-counterexample-memory-r1",
+  "createdOn": "2026-09-18",
+  "sourceExperienceLibrary": "standards/game_mechanism_experience_library_r1.json",
+  "policy": {
+    "failureIsUniversalLaw": false,
+    "canBlockNovelCombination": false,
+    "recommendationAuthority": "NONE",
+    "humanEvidenceInherited": false,
+    "counterexampleRule": "A counterexample defeats or conditions an over-broad design assumption; it does not invert into a universal anti-pattern.",
+    "transferRule": "Every record must expose context, a failure signal, revision/salvage, transfer boundary, false universalizations, and a cheap discriminator."
+  },
+  "counterexamples": [
+    {
+      "id": "counterexample.factorio.campaign-freeplay-mimicry",
+      "kind": "PRODUCT_REPRESENTATION_MISMATCH",
+      "referenceGames": [
+        "Factorio"
+      ],
+      "assumption": "A guided campaign can represent a sandbox core by approximating freeplay while adding quests, bounded areas and staged progression.",
+      "failureSignal": "The playable campaign introduced unexpected problems and was judged less fun than freeplay despite being designed to represent it.",
+      "context": "Factorio's core value depended heavily on self-directed freeplay; the campaign added bounded map progression, short-term quests and environmental gates while trying to remain representative.",
+      "revisionOrSalvage": "Wube cancelled the campaign for 1.0 and refocused on the core game, while keeping separate scenarios as a possible form of side content.",
+      "transferBoundary": "This conditions campaigns that claim to demonstrate an open sandbox core; it does not argue against authored campaigns with a different target experience.",
+      "falseUniversalizations": [
+        "Guidance necessarily damages sandbox games.",
+        "Campaigns are inferior to freeplay."
+      ],
+      "cheapDiscriminator": "Compare one identical sandbox slice under self-authored goals and quest-gated progression; enumerate which strategic choices disappear or become externally selected.",
+      "experienceRefs": [
+        "exp.factorio.campaign-mimicry-constrained-core"
+      ],
+      "sourceRefs": [
+        "kb:factorio-fff-331"
+      ],
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "counterexample.factorio.local-success-product-mismatch",
+      "kind": "PROXY_SUCCESS_MISMATCH",
+      "referenceGames": [
+        "Factorio"
+      ],
+      "assumption": "If a tutorial/demo broadens appeal and receives strong positive newcomer feedback, it is therefore a good product representation.",
+      "failureSignal": "The NPE achieved many local onboarding/appeal goals yet the team still removed it because it did not represent the intended core experience well enough.",
+      "context": "The tutorial doubled as a demo and was designed to expose more mid-game content; later campaign cancellation also changed what the demo was supposed to lead into.",
+      "revisionOrSalvage": "Wube restored an older tutorial/demo direction aligned more closely with the core game rather than optimizing only the locally successful NPE.",
+      "transferBoundary": "This attacks proxy substitution between onboarding success and product fidelity, not the value of newcomer feedback itself.",
+      "falseUniversalizations": [
+        "Positive onboarding feedback proves the demo is representative.",
+        "Internal creative vision should override player evidence."
+      ],
+      "cheapDiscriminator": "Before rating a demo, compare its dominant goals, constraints and player-authored decisions with the first sustained core-product loop.",
+      "experienceRefs": [
+        "exp.factorio.demo-goal-success-product-mismatch"
+      ],
+      "sourceRefs": [
+        "kb:factorio-fff-342",
+        "kb:factorio-fff-331"
+      ],
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "counterexample.factorio.strict-prevention-complexity",
+      "kind": "COMPLEXITY_TRAP",
+      "referenceGames": [
+        "Factorio"
+      ],
+      "assumption": "If an invalid state is almost never desired, the system should make that state globally impossible.",
+      "failureSignal": "Strict fluid-mixing prevention accumulated edge-case complexity for roughly a year and a half without becoming graceful across the existing game.",
+      "context": "The invariant was introduced after a large legacy fluid/construction system already existed, so exhaustive prevention had to cover many merge/build operations.",
+      "revisionOrSalvage": "Wube simplified prevention to the common manual-building case and added a fast flush/recovery mechanism for harder cases.",
+      "transferBoundary": "Recovery is not appropriate where entering the invalid state has unacceptable irreversible consequences.",
+      "falseUniversalizations": [
+        "Recovery is always cheaper than prevention.",
+        "Invalid states should always be impossible by construction."
+      ],
+      "cheapDiscriminator": "Implement exhaustive prevention and common-case prevention plus recovery for one bounded subsystem; compare branch count, edge cases and recovery steps.",
+      "experienceRefs": [
+        "exp.factorio.strict-prevention-to-fast-recovery"
+      ],
+      "sourceRefs": [
+        "kb:factorio-fff-351"
+      ],
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "counterexample.factorio.gui-structure-can-add-friction",
+      "kind": "INTERFACE_STRUCTURE_FAILURE",
+      "referenceGames": [
+        "Factorio"
+      ],
+      "assumption": "Additional tabs and duplicate access points necessarily improve organization and discoverability.",
+      "failureSignal": "A Character tab became filler/duplication and nested crafting tabs disrupted a frequently repeated workflow.",
+      "context": "The same information/actions were already visible elsewhere, and crafting category switching was a high-frequency interaction.",
+      "revisionOrSalvage": "The duplicate Character tab was removed and the flatter GUI became the default.",
+      "transferBoundary": "Distinct task domains or low-frequency workflows can still benefit from tabs and alternate entry points.",
+      "falseUniversalizations": [
+        "Flat UI is always better than tabs.",
+        "More discoverable entry points are always beneficial."
+      ],
+      "cheapDiscriminator": "For the exact frequent task, count equivalent-control mappings and mode switches under nested/duplicated versus single-location layouts.",
+      "experienceRefs": [
+        "exp.factorio.gui-duplication-and-nested-tabs"
+      ],
+      "sourceRefs": [
+        "kb:factorio-fff-363"
+      ],
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "counterexample.factorio.asset-quality-vs-context-salience",
+      "kind": "CONTEXTUAL_REPRESENTATION_FAILURE",
+      "referenceGames": [
+        "Factorio"
+      ],
+      "assumption": "A visually impressive individual asset will remain a good design when deployed in the real play context.",
+      "failureSignal": "The Beacon redesign attracted too much attention once considered at factory density and zoom, prompting another redesign.",
+      "context": "Beacons can appear in large repeated groups while serving a supporting rather than primary-attention function.",
+      "revisionOrSalvage": "The redesign reduced salience while preserving enough close-up visual explanation of function.",
+      "transferBoundary": "Rare critical objects may intentionally require high salience; density and camera distance are part of the design condition.",
+      "falseUniversalizations": [
+        "Visually impressive assets are better assets.",
+        "Supporting objects should always be visually quiet."
+      ],
+      "cheapDiscriminator": "Evaluate the same asset at isolated, typical-density and worst-case-density views before polishing it in isolation.",
+      "experienceRefs": [
+        "exp.factorio.visual-salience-context-failure"
+      ],
+      "sourceRefs": [
+        "kb:factorio-fff-351"
+      ],
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "counterexample.diablo3.secondary-system-displaced-core-loop",
+      "kind": "INCENTIVE_DISPLACEMENT",
+      "referenceGames": [
+        "Diablo III"
+      ],
+      "assumption": "A valuable convenience/market system can be added beside the core loop without changing what efficient players optimize for.",
+      "failureSignal": "Blizzard concluded that the Auction House, despite real benefits and use, undermined the core kill-monsters-for-loot loop.",
+      "context": "A global efficient market competed directly with the game's item-acquisition reward path under the launch itemization/drop economy.",
+      "revisionOrSalvage": "The Auction House was removed while Loot 2.0, itemization and rewards were redesigned around finding exciting items through play.",
+      "transferBoundary": "Trading does not necessarily displace core play when its efficiency, scarcity and reward relationship are configured differently.",
+      "falseUniversalizations": [
+        "Player trading is bad for loot games.",
+        "Useful secondary systems cannot damage a core loop."
+      ],
+      "cheapDiscriminator": "Model the expected advancement frontier for core activity versus the secondary system and find where optimal behavior switches away from the intended loop.",
+      "experienceRefs": [
+        "exp.diablo3.auction-house-undermined-loot-loop"
+      ],
+      "sourceRefs": [
+        "kb:blizzard-diablo3-auction-house-update",
+        "kb:blizzard-diablo3-itemization-update",
+        "kb:gdc-diablo3-redemption"
+      ],
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "counterexample.deusex.preproduction-can-create-cutting-debt",
+      "kind": "SUNK_COST_ATTACHMENT",
+      "referenceGames": [
+        "Deus Ex"
+      ],
+      "assumption": "More preproduction inventory only increases later design options because unused concepts are cheap to ignore.",
+      "failureSignal": "Some of the large character inventory became filler that designers were reluctant to cut after story/mission purposes changed.",
+      "context": "The team had created more than 200 character concepts before all downstream roles were known.",
+      "revisionOrSalvage": "The useful lesson is not to avoid broad ideation but to make revalidation/deletion cheap as the design changes.",
+      "transferBoundary": "Large inventories remain valuable when they carry no implicit survival rights and can be discarded without sunk-cost pressure.",
+      "falseUniversalizations": [
+        "Preproduction should be minimized.",
+        "More concepts always expand optionality at no cost."
+      ],
+      "cheapDiscriminator": "Give each preproduction item an expiry/revalidation point; compare retained items under default-keep versus default-delete policies.",
+      "experienceRefs": [
+        "exp.deusex.preproduction-inventory-became-cutting-debt"
+      ],
+      "sourceRefs": [
+        "kb:gdc-deus-ex-postmortem"
+      ],
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "counterexample.psychonauts2.constraints-can-expand-search",
+      "kind": "ASSUMPTION_FALSIFIER",
+      "referenceGames": [
+        "Psychonauts 2"
+      ],
+      "assumption": "Creative constraints necessarily shrink the design search space and therefore reduce creativity.",
+      "failureSignal": "Double Fine's postmortem describes empathy as a focus that expanded design possibility rather than merely removing options.",
+      "context": "The constraint changed how a narrative platformer could represent minds, characters and conflict while modernizing a sequel.",
+      "revisionOrSalvage": "Treat some constraints as search operators that generate new relations/questions, not only filters that reject candidates.",
+      "transferBoundary": "A vague or irrelevant constraint can still shrink search without producing useful new structure.",
+      "falseUniversalizations": [
+        "Fewer constraints always produce more creativity.",
+        "Strong values automatically improve creative work."
+      ],
+      "cheapDiscriminator": "Generate candidate mechanisms with and without one explicit constraint and compare structural diversity/new relationships, not subjective quality scores.",
+      "experienceRefs": [
+        "exp.psychonauts2.constraint-expanded-design-space"
+      ],
+      "sourceRefs": [
+        "kb:gdc-psychonauts2-postmortem"
+      ],
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "counterexample.into-the-breach.content-volume-not-density",
+      "kind": "SCOPE_PRUNING",
+      "referenceGames": [
+        "Into the Breach"
+      ],
+      "assumption": "More mechanics/content naturally improve a systemic strategy game by creating more variety.",
+      "failureSignal": "The project accumulated years of cut content and redesign while converging on a small state space with high interaction density.",
+      "context": "The final design depends on legible tactical consequences and combinatorial interaction inside a very compact board/state space.",
+      "revisionOrSalvage": "Cutting and constraint pruning can increase interaction density when extra content adds states without adding meaningful decisions.",
+      "transferBoundary": "Content breadth can still be valuable where discovery, collection or long-horizon variety is the target.",
+      "falseUniversalizations": [
+        "Small games are more systemic.",
+        "More content reduces strategic depth."
+      ],
+      "cheapDiscriminator": "Remove one candidate content family and enumerate lost decision distinctions versus removed state/teaching burden.",
+      "experienceRefs": [
+        "exp.itb.constraint-pruning"
+      ],
+      "sourceRefs": [
+        "kb:gdc-into-breach"
+      ],
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "counterexample.rimworld.assumed-necessary-features",
+      "kind": "ASSUMED_REQUIREMENT_FALSIFIER",
+      "referenceGames": [
+        "RimWorld"
+      ],
+      "assumption": "Features commonly considered necessary for a genre/product must be implemented before the unique value can work.",
+      "failureSignal": "RimWorld shipped while omitting features that might normally be considered critical, because the team prioritized features serving its story-generator value.",
+      "context": "A tiny team framed the product around systemic story generation rather than completeness against a conventional checklist.",
+      "revisionOrSalvage": "Require a candidate feature to name the relationship/value it serves instead of inheriting mandatory status from genre convention.",
+      "transferBoundary": "Some features are real prerequisites due to platform, accessibility, safety or exact product contracts.",
+      "falseUniversalizations": [
+        "Genre conventions are optional by default.",
+        "Missing features create differentiation."
+      ],
+      "cheapDiscriminator": "Delete one assumed-required feature in a cheap prototype and test whether the claimed unique interaction remains reachable and legible.",
+      "experienceRefs": [
+        "exp.rimworld.necessary-feature-assumption"
+      ],
+      "sourceRefs": [
+        "kb:gdc-rimworld"
+      ],
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "counterexample.ftl.prototype-attachment",
+      "kind": "SEARCH_ATTACHMENT_FAILURE",
+      "referenceGames": [
+        "FTL: Faster Than Light"
+      ],
+      "assumption": "Once an idea reaches prototype form, retaining and polishing it is usually cheaper than abandoning it.",
+      "failureSignal": "FTL's developers describe frequent alteration/abandonment as normal while searching for a target feeling rather than preserving prototypes.",
+      "context": "The project prioritized an experiential target above genre or mechanic precommitment and kept prototype attachment deliberately low.",
+      "revisionOrSalvage": "Use prototype survival as an evidence question rather than a reward for implementation effort already spent.",
+      "transferBoundary": "Late-stage production assets carry different replacement cost than throwaway search prototypes.",
+      "falseUniversalizations": [
+        "Prototypes should be disposable at every production stage.",
+        "Keeping a prototype is evidence that it is good."
+      ],
+      "cheapDiscriminator": "Before polishing, require each prototype to beat a deliberately different alternative on the exact target relationship or return to the search pool.",
+      "experienceRefs": [
+        "exp.ftl.throwaway-change-as-normal"
+      ],
+      "sourceRefs": [
+        "kb:gdc-ftl"
+      ],
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "counterexample.animal-well.more-secrecy-can-create-harmful-search",
+      "kind": "HARM_BOUNDARY",
+      "referenceGames": [
+        "Animal Well"
+      ],
+      "assumption": "If community secret hunting is engaging, making the hidden search space larger or less bounded only creates more discovery value.",
+      "failureSignal": "The developer account explicitly notes that community puzzle search can become unhealthy over-search and therefore needs boundaries.",
+      "context": "Secrets and collective discovery are part of the game's identity, which makes over-search a risk produced by the same mechanism that creates value.",
+      "revisionOrSalvage": "Bound or signal the search space so mystery can persist without implying endless undiscovered obligations.",
+      "transferBoundary": "The harm boundary depends on community behavior, secret signaling and the cost of exhaustive search.",
+      "falseUniversalizations": [
+        "More hidden content always improves mystery games.",
+        "Community collaboration makes unbounded search safe."
+      ],
+      "cheapDiscriminator": "For one secret system, vary whether exhausted regions can be inferred; compare the mechanically implied search space before any engagement claim.",
+      "experienceRefs": [
+        "exp.animalwell.community-search-harm"
+      ],
+      "sourceRefs": [
+        "kb:gdc-animal-well-arg"
+      ],
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "counterexample.cultist.usability-violation-can-be-identity",
+      "kind": "CONVENTION_COUNTEREXAMPLE",
+      "referenceGames": [
+        "Cultist Simulator"
+      ],
+      "assumption": "Reducing interface opacity and friction is always aligned with improving a game.",
+      "failureSignal": "Cultist Simulator deliberately retained unusual/divisive interface and learning-through-discovery choices as part of its niche identity.",
+      "context": "Discovering the system itself was part of the intended experience, making some uncertainty content rather than only usability debt.",
+      "revisionOrSalvage": "Separate causal ambiguity needed for discovery from accidental friction that blocks intended reasoning.",
+      "transferBoundary": "Opacity becomes harder to justify when errors are irreversible or the hidden relation is not itself meaningful content.",
+      "falseUniversalizations": [
+        "Usability best practices should be ignored for mysterious games.",
+        "Friction creates identity."
+      ],
+      "cheapDiscriminator": "Hide one relation while keeping probing reversible, then separately add pure interaction friction; compare whether either changes the intended inference structure.",
+      "experienceRefs": [
+        "exp.cultist.divisive-friction-identity"
+      ],
+      "sourceRefs": [
+        "kb:gdc-cultist"
+      ],
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "counterexample.xcom2.procgen-infinity-not-goal",
+      "kind": "GENERATION_BOUNDARY",
+      "referenceGames": [
+        "XCOM 2"
+      ],
+      "assumption": "More procedural variation is intrinsically better because replayable content should approach infinity.",
+      "failureSignal": "Firaxis treated procedural level generation as a bounded tradeoff with authored tactical requirements and production cost rather than pursuing unlimited variation.",
+      "context": "Generated layouts still had to support specific tactical geometry, encounter requirements and production constraints.",
+      "revisionOrSalvage": "Generate only dimensions whose variation adds value while explicitly constraining properties that must remain tactically valid.",
+      "transferBoundary": "Some games make surprise or generative novelty itself the primary target and may tolerate a wider validity envelope.",
+      "falseUniversalizations": [
+        "Procedural generation should maximize unique outputs.",
+        "Authored content is always more reliable than procedural content."
+      ],
+      "cheapDiscriminator": "Name one invariant tactical property and one desired variable dimension; generate only the latter and count rejected outputs that violate the former.",
+      "experienceRefs": [
+        "exp.xcom2.procgen-enough-not-infinite"
+      ],
+      "sourceRefs": [
+        "kb:gdc-xcom2-proc"
+      ],
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "counterexample.bg3.organization-is-design-constraint",
+      "kind": "ORGANIZATIONAL_BOUNDARY",
+      "referenceGames": [
+        "Baldur’s Gate 3"
+      ],
+      "assumption": "Once a design is desirable in principle, production organization and tooling are downstream implementation concerns.",
+      "failureSignal": "Larian's postmortems repeatedly connect reactivity scale and cinematic/content ambition to toolchain, team and organizational changes.",
+      "context": "Highly reactive branching content multiplies cross-discipline state, authoring and production dependencies.",
+      "revisionOrSalvage": "Treat throughput/tool/team topology as part of the feasible design space when the design creates combinatorial authoring obligations.",
+      "transferBoundary": "Small bounded prototypes can ignore organization temporarily when they are not making production feasibility claims.",
+      "falseUniversalizations": [
+        "Production constraints should shape all early ideation.",
+        "Good tools make arbitrarily complex reactive content feasible."
+      ],
+      "cheapDiscriminator": "For one reactive feature, enumerate authoring, cinematic, QA and state combinations before implementation; test whether a thin tool/representation collapses the dominant burden.",
+      "experienceRefs": [
+        "exp.bg3.organization-bounds-design-space"
+      ],
+      "sourceRefs": [
+        "kb:gdc-bg3-secrets",
+        "kb:gdc-bg3-challenges"
+      ],
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "counterexample.saturnalia.radical-change-does-not-imply-lost-identity",
+      "kind": "IDENTITY_FALSIFIER",
+      "referenceGames": [
+        "Saturnalia"
+      ],
+      "assumption": "Large changes in scope, perspective or visual style necessarily destroy a project's identity and therefore should be resisted.",
+      "failureSignal": "Saturnalia's six-year development survived radical changes across those dimensions while retaining enough identity to continue toward the shipped work.",
+      "context": "The project experienced financing pressure and long development, so survival responses and design discoveries were intertwined.",
+      "revisionOrSalvage": "Identify the actual identity-bearing invariant instead of preserving every current form around it.",
+      "transferBoundary": "The source does not show that arbitrary radical change is cheap or safe; some transformations can still erase the target experience.",
+      "falseUniversalizations": [
+        "Pivoting destroys project identity.",
+        "A strong identity makes large pivots safe."
+      ],
+      "cheapDiscriminator": "Name one identity-bearing relationship and mutate scope, camera or representation separately; test whether the relationship still exists mechanically.",
+      "experienceRefs": [
+        "exp.saturnalia.identity-through-radical-change"
+      ],
+      "sourceRefs": [
+        "kb:gdc-saturnalia"
+      ],
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "counterexample.portal2.complete-predecessor-does-not-forbid-sequel",
+      "kind": "PRODUCT_FORM_FALSIFIER",
+      "referenceGames": [
+        "Portal 2"
+      ],
+      "assumption": "If a predecessor already feels complete, a sequel must either repeat it or violate its identity.",
+      "failureSignal": "Valve's sequel process treats completeness as a design problem to solve, not proof that the possibility space is closed.",
+      "context": "Portal already had a very compact, recognizable core verb and authored puzzle identity.",
+      "revisionOrSalvage": "Preserve an identity-bearing core while searching for new elements/relationships that multiply the possibility space around it.",
+      "transferBoundary": "A sequel still needs a meaningful new search direction; preserving a core alone does not justify expansion.",
+      "falseUniversalizations": [
+        "Complete games should not have sequels.",
+        "Sequels must replace the old core to be novel."
+      ],
+      "cheapDiscriminator": "Freeze one identity-bearing verb and prototype one new relation around it; compare possibility growth with a simple content-only extension.",
+      "experienceRefs": [
+        "exp.portal2.sequel-complete-game-problem"
+      ],
+      "sourceRefs": [
+        "kb:gdc-portal2"
+      ],
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "counterexample.factorio.rejected-solution-can-expire",
+      "kind": "REOPENED_REJECTION",
+      "referenceGames": [
+        "Factorio"
+      ],
+      "assumption": "Once a design has been rejected as too complex, that verdict should remain stable unless the original analysis was wrong.",
+      "failureSignal": "Factorio later revisited mixed-load logistics after system capability and observed player planning changed the surrounding conditions.",
+      "context": "The earlier complexity judgement was made against a different system and planning environment than the later one.",
+      "revisionOrSalvage": "Attach rejection to its conditions and reopen when those conditions materially change rather than treating the decision as eternal law.",
+      "transferBoundary": "Reopening still requires a changed premise; novelty alone is not evidence that an old rejection expired.",
+      "falseUniversalizations": [
+        "Old rejected ideas deserve periodic revival by default.",
+        "A validated rejection is permanent design law."
+      ],
+      "cheapDiscriminator": "Store the exact premise behind a rejection and rerun its cheapest falsifier only when that premise changes.",
+      "experienceRefs": [
+        "exp.factorio.reopen-old-solution-after-system-change"
+      ],
+      "sourceRefs": [
+        "kb:factorio-fff-441"
+      ],
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "id": "counterexample.factorio.full-run-can-reverse-local-feature-pressure",
+      "kind": "EVALUATION_HORIZON_FAILURE",
+      "referenceGames": [
+        "Factorio"
+      ],
+      "assumption": "If individual new content additions each look useful during incremental development, the full product benefits from continuing to add them.",
+      "failureSignal": "A start-to-finish playthrough exposed cumulative size/phase density that local feature work had not made salient.",
+      "context": "Factorio's long progression means local additions accumulate across many phases before the whole-run burden becomes visible.",
+      "revisionOrSalvage": "The team shifted attention toward optimization and contextual teaching rather than simply increasing vanilla content.",
+      "transferBoundary": "Short products or independently consumable content may not accumulate the same whole-run saturation.",
+      "falseUniversalizations": [
+        "Full playthroughs are always superior to focused feature tests.",
+        "More content eventually makes every game worse."
+      ],
+      "cheapDiscriminator": "Run the smallest end-to-end traversal that preserves all progression phases and record cumulative transitions/dead zones before deciding on another content family.",
+      "experienceRefs": [
+        "exp.factorio.full-run-scope-saturation"
+      ],
+      "sourceRefs": [
+        "kb:factorio-fff-160"
+      ],
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.overwatch.old-vision-can-outlive-its-premise",
+      "kind": "LEGACY_VISION_LOCK_IN",
+      "referenceGames": [
+        "Overwatch",
+        "Overwatch 2"
+      ],
+      "assumption": "A long-term vision that originally motivated the team should keep receiving resources until it is fulfilled, especially after years of investment.",
+      "failureSignal": "The director later described continued pursuit of the old crawl-walk-run PvE/MMO strategy as not working, with scope growth, cohesion problems and repeated resource diversion from the successful live game.",
+      "context": "The vision originated in cancelled Project Titan and persisted after Overwatch became a runaway hit; Hero Missions then accumulated years of work and public expectation.",
+      "revisionOrSalvage": "Hero Missions were cut, the future vision was updated, and the team retained other story/co-op work rather than preserving the original plan wholesale.",
+      "transferBoundary": "This attacks premise-free persistence, not long-range vision itself; a future bet can remain valid when current evidence and opportunity cost still support it.",
+      "falseUniversalizations": [
+        "Old visions should be discarded after launch success.",
+        "Live products should never fund ambitious parallel bets."
+      ],
+      "cheapDiscriminator": "Re-state the original vision’s premises using current product evidence and run a bounded end-to-end slice under an explicit resource envelope before extending sunk investment.",
+      "experienceRefs": [
+        "exp.overwatch.old-vision-starved-live-game",
+        "exp.overwatch.hero-missions-cut-to-protect-live-game"
+      ],
+      "sourceRefs": [
+        "kb:blizzard-overwatch-future-2023"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.tlouonline.good-game-can-have-wrong-operating-model",
+      "kind": "OPERATING_MODEL_MISMATCH",
+      "referenceGames": [
+        "The Last of Us Online"
+      ],
+      "assumption": "If the gameplay is becoming refined, satisfying and directionally strong, the project should proceed to full production.",
+      "failureSignal": "Naughty Dog cancelled despite reporting improving gameplay because years of post-launch support would consume studio-wide resources and change what kind of studio it was.",
+      "context": "The project was a large live-service extension inside a studio that also wanted to preserve multiple ambitious single-player projects.",
+      "revisionOrSalvage": "The project was stopped while its technology and development learning were explicitly retained for future work.",
+      "transferBoundary": "A different studio/team topology or bounded support model could make the same gameplay feasible.",
+      "falseUniversalizations": [
+        "Good gameplay is irrelevant if operations are expensive.",
+        "Live-service projects are incompatible with narrative studios."
+      ],
+      "cheapDiscriminator": "Before full production, build the minimum credible multi-year staffing/content/ops graph and test whether protected parallel products still fit without assuming future hiring solves the gap.",
+      "experienceRefs": [
+        "exp.tlouonline.satisfying-prototype-unsustainable-operating-model"
+      ],
+      "sourceRefs": [
+        "kb:naughtydog-tlou-online-2023"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.artifact.game-side-fix-does-not-prove-viability",
+      "kind": "PRODUCT_VIABILITY_SEPARATION",
+      "referenceGames": [
+        "Artifact",
+        "Artifact Foundry"
+      ],
+      "assumption": "If a reboot fixes most game-side complaints and reaches its gameplay goals, continued development becomes justified.",
+      "failureSignal": "Valve reported reasonable satisfaction with most game-side goals but still stopped development because active player numbers were insufficient.",
+      "context": "The reboot followed a polarizing initial release, dramatic population decline, a changed economy and a limited/gradual beta ramp.",
+      "revisionOrSalvage": "Both versions were preserved as free products rather than continuing service development or deleting the work.",
+      "transferBoundary": "Low current population can be caused by access, reputation or market factors; it is not a direct gameplay-quality measure.",
+      "falseUniversalizations": [
+        "Gameplay improvements cannot rescue a failed launch.",
+        "A good redesign will naturally rebuild a sustainable audience."
+      ],
+      "cheapDiscriminator": "Track game-side acceptance separately from acquisition, activation, retention and concurrency; require the proposed reboot to name which lane is the actual bottleneck.",
+      "experienceRefs": [
+        "exp.artifact.game-side-rework-without-sustainable-population"
+      ],
+      "sourceRefs": [
+        "kb:valve-artifact-future-2021"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.ffxiv.shipped-product-can-require-relaunch",
+      "kind": "RELAUNCH_OPTION",
+      "referenceGames": [
+        "Final Fantasy XIV 1.0",
+        "Final Fantasy XIV: A Realm Reborn"
+      ],
+      "assumption": "Once an online game has shipped, incremental repair is necessarily safer or more realistic than product-level replacement.",
+      "failureSignal": "Square Enix chose a full relaunch after the unsuccessful 2010 release and explicitly treated relaunch importance and initial failure causes as the core postmortem problem.",
+      "context": "A major branded MMORPG had live/business obligations but also foundation-level product problems serious enough to motivate a replacement built in roughly two years and nine months.",
+      "revisionOrSalvage": "The response was a new product-level implementation under an explicit business commitment rather than treating the original shipped form as immutable.",
+      "transferBoundary": "Relaunch is unusually expensive and brand/resource dependent; local repair remains preferable when failure dependencies are bounded.",
+      "falseUniversalizations": [
+        "Failed live games should be relaunched instead of patched.",
+        "Shipping makes foundational replacement impossible."
+      ],
+      "cheapDiscriminator": "Map central failure claims to subsystem dependency closure and compare a bounded repair path against one clean replacement slice before choosing either.",
+      "experienceRefs": [
+        "exp.ffxiv.relaunch-instead-of-patching-failed-foundation"
+      ],
+      "sourceRefs": [
+        "kb:gdc-ffxiv-realm-reborn-2014"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.belowzero.near-complete-content-can-still-need-rewrite",
+      "kind": "WHOLE_EXPERIENCE_COHERENCE",
+      "referenceGames": [
+        "Subnautica: Below Zero"
+      ],
+      "assumption": "Once most world, features and playable content exist, large narrative changes are too late and polishing is the rational default.",
+      "failureSignal": "Unknown Worlds said the experience was broadly playable but not working in harmony, particularly the living story, and committed to a new story.",
+      "context": "World substrate and many characters/features were already present in Early Access; the rewrite preserved selected validated pieces rather than resetting everything.",
+      "revisionOrSalvage": "The story layer was rewritten while world, creatures and valued characters were retained and reconnected.",
+      "transferBoundary": "A late rewrite only makes sense when the failing relationship is central enough and salvage boundaries are identifiable.",
+      "falseUniversalizations": [
+        "Late projects should accept incoherent design to avoid rewrite cost.",
+        "Near-complete builds should be freely rewritten when something feels off."
+      ],
+      "cheapDiscriminator": "Graph the failing experience relationship onto existing assets; if repair touches many high-centrality edges, compare selective rewrite against local polish before producing more content.",
+      "experienceRefs": [
+        "exp.belowzero.playable-whole-story-mismatch-reset"
+      ],
+      "sourceRefs": [
+        "kb:unknownworlds-belowzero-story-future-2019"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.belowzero.roadmap-can-become-commitment-pressure",
+      "kind": "PLANNING_ARTIFACT_FAILURE",
+      "referenceGames": [
+        "Subnautica: Below Zero"
+      ],
+      "assumption": "A detailed long-horizon roadmap is merely informational until someone explicitly marks its items committed.",
+      "failureSignal": "Unknown Worlds described its roadmap as creating pressure to deliver scheduled items regardless of importance, obscuring the whole game and contributing to recurring crunch.",
+      "context": "An Early Access team publicly planned many small and large features across frequent releases despite acknowledged uncertainty.",
+      "revisionOrSalvage": "The process shifted toward release columns containing only highlighted/ready work while the majority of the team focused on big-picture game needs.",
+      "transferBoundary": "Roadmaps can remain useful when hypothesis/commitment status, expiry and deletion semantics are explicit.",
+      "falseUniversalizations": [
+        "Roadmaps inherently cause crunch.",
+        "Only short-term planning preserves creativity."
+      ],
+      "cheapDiscriminator": "Attach status and expiry to roadmap items; on the next cycle, attempt to delete or defer hypotheses and observe whether process/social mechanics treat them as hidden commitments.",
+      "experienceRefs": [
+        "exp.belowzero.roadmap-became-feature-commitment-pressure"
+      ],
+      "sourceRefs": [
+        "kb:unknownworlds-belowzero-roadmap-2019"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.r6.content-cadence-can-yield-to-system-health",
+      "kind": "LIVE_SERVICE_CADENCE_INVERSION",
+      "referenceGames": [
+        "Tom Clancy’s Rainbow Six Siege"
+      ],
+      "assumption": "A healthy live service must preserve its promised content cadence even while technical debt and deployment risk accumulate.",
+      "failureSignal": "Ubisoft replaced a planned season with Operation Health, delayed content, reduced annual map output and prioritized deployment/rollback/bug infrastructure.",
+      "context": "The game already had an active community and recurring technical problems; the intervention explicitly traded near-term content throughput for platform health.",
+      "revisionOrSalvage": "The team introduced staged rollout and fast rollback while rescheduling rather than abandoning the content roadmap wholesale.",
+      "transferBoundary": "Content pauses are not justified when substrate health is not the actual bottleneck or when remediation goals are unbounded.",
+      "falseUniversalizations": [
+        "Live games should pause content whenever technical debt exists.",
+        "Breaking release cadence necessarily harms a live service more than technical debt."
+      ],
+      "cheapDiscriminator": "Quantify recurring incident severity and release-induced regressions, then trial staged rollout plus rollback on one release before sacrificing a full content cycle.",
+      "experienceRefs": [
+        "exp.r6.health-over-content-cadence"
+      ],
+      "sourceRefs": [
+        "kb:ubisoft-r6-operation-health-2017"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.destiny2.live-foundation-can-be-reversed",
+      "kind": "LIVE_FOUNDATION_REVERSAL",
+      "referenceGames": [
+        "Destiny 2: Forsaken"
+      ],
+      "assumption": "Foundational rules in a shipped live game become effectively immutable because too much content and balance depend on them.",
+      "failureSignal": "Bungie shipped a fundamental weapon-slot reversal and rebuilt ammo distribution/damage tuning around it in Forsaken.",
+      "context": "The old model had a large installed inventory and both PvE/PvP balance dependencies; migration was performed as part of an expansion-scale change.",
+      "revisionOrSalvage": "Existing weapons were remapped into the new Kinetic/Energy/Primary/Special foundation rather than preserving old taxonomy for compatibility alone.",
+      "transferBoundary": "Foundation reversal has high migration and tuning cost and should target a real structural bottleneck, not ordinary balance dissatisfaction.",
+      "falseUniversalizations": [
+        "Live-game foundations should be rewritten whenever players dislike the meta.",
+        "Shipped foundational rules cannot be replaced safely."
+      ],
+      "cheapDiscriminator": "Prototype target loadout choices under both old and revised taxonomies, then enumerate migration/tuning closure before declaring the foundation untouchable or disposable.",
+      "experienceRefs": [
+        "exp.destiny2.foundation-reversal-weapon-slot-ammo"
+      ],
+      "sourceRefs": [
+        "kb:bungie-d2-forsaken-update-2-0-2018"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.subnautica.multiplayer-is-not-necessarily-a-bolt-on-feature",
+      "kind": "SOCIAL_ARCHITECTURE_BOUNDARY",
+      "referenceGames": [
+        "Subnautica"
+      ],
+      "assumption": "Multiplayer can be deferred until the single-player game is mature because it is an optional social feature.",
+      "failureSignal": "Unknown Worlds concluded that adding multiplayer late would affect nearly everything and require many months/years or near-restart-scale work.",
+      "context": "The original concept considered co-op, but multiplayer was skipped during early development to ship sooner; the architecture then matured around single-player assumptions.",
+      "revisionOrSalvage": "The original game committed to single-player while leaving multiplayer as a possibility for a future/new game built around it.",
+      "transferBoundary": "This applies when multiplayer changes authority, persistence, simulation or interaction ownership; network-ready architectures can have a different cost profile.",
+      "falseUniversalizations": [
+        "Multiplayer should always be designed from day one.",
+        "Single-player architecture is simpler and therefore better."
+      ],
+      "cheapDiscriminator": "Build one co-op vertical slice spanning state authority, save/load, interaction conflict and reconnect before treating multiplayer as a deferrable checkbox.",
+      "experienceRefs": [
+        "exp.subnautica.multiplayer-late-addition-crosscuts-architecture"
+      ],
+      "sourceRefs": [
+        "kb:unknownworlds-subnautica-multiplayer-2015"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.overwatch.social-freedom-can-externalize-negotiation-cost",
+      "kind": "SOCIAL_COORDINATION_EXTERNALITY",
+      "referenceGames": [
+        "Overwatch"
+      ],
+      "assumption": "More freedom in team composition necessarily increases player agency without meaningful systemic cost.",
+      "failureSignal": "Open role choice pushed composition negotiation into a short social window and Blizzard cited pressure, disappointment and hostility as recurring problems.",
+      "context": "Players had heterogeneous role preferences but team performance strongly depended on role coverage.",
+      "revisionOrSalvage": "Role Queue moved role commitment into matchmaking and guaranteed a composition structure, trading some composition freedom for reduced negotiation burden.",
+      "transferBoundary": "Premade groups or games with weak role dependencies may preserve open selection without the same social cost.",
+      "falseUniversalizations": [
+        "Fixed roles create healthier social play by default.",
+        "Open composition systems inevitably become toxic."
+      ],
+      "cheapDiscriminator": "Count forced concessions, unresolved role gaps and negotiation actions under free selection versus precommitted-role matchmaking before evaluating subjective preference.",
+      "experienceRefs": [
+        "exp.overwatch.role-flexibility-externalized-social-negotiation"
+      ],
+      "sourceRefs": [
+        "kb:blizzard-overwatch-role-queue-2019"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.overwatch.structural-fix-can-create-population-bottleneck",
+      "kind": "SECOND_ORDER_MATCHMAKING_COST",
+      "referenceGames": [
+        "Overwatch",
+        "Overwatch 2"
+      ],
+      "assumption": "Once a fixed role structure solves composition and social problems, keeping that structure is mostly a balance problem rather than a population-flow problem.",
+      "failureSignal": "Fixed 2-2-2 queues were throughput-limited by tank supply; Blizzard later reported 1-2-2 matched observed demand better and reduced waits.",
+      "context": "Role popularity was persistently uneven, making the least-popular required role a matchmaking bottleneck.",
+      "revisionOrSalvage": "Team composition rules were reconsidered alongside 5v5 rather than treating the earlier social fix as costless infrastructure.",
+      "transferBoundary": "The bottleneck disappears when role arrival rates match required ratios or roles are substitutable.",
+      "falseUniversalizations": [
+        "Role Queue was a mistake.",
+        "Team size should be chosen to match popularity alone."
+      ],
+      "cheapDiscriminator": "Use measured role arrival rates to model match throughput under candidate team ratios before locking composition constraints.",
+      "experienceRefs": [
+        "exp.overwatch.role-queue-solved-composition-created-population-bottleneck"
+      ],
+      "sourceRefs": [
+        "kb:blizzard-overwatch-5v5-6v6-2024",
+        "kb:blizzard-overwatch-role-queue-2019"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.overwatch.weak-penalty-can-miss-intent-and-hit-incidental-users",
+      "kind": "BEHAVIOR_POLICY_TARGETING_FAILURE",
+      "referenceGames": [
+        "Overwatch 2"
+      ],
+      "assumption": "A broad low-severity reward penalty is a safe first-line deterrent because it discourages harmful behavior without strongly punishing edge cases.",
+      "failureSignal": "Blizzard said the XP penalty was insufficient for deliberate leavers while still negatively affecting unintentional leavers.",
+      "context": "Leaving can arise from both deliberate disruption and incidental disconnect/life events, but the initial penalty did not distinguish intent well.",
+      "revisionOrSalvage": "The team moved toward escalating queue suspensions tied to repeated leaving patterns.",
+      "transferBoundary": "Different telemetry, reward value or behavior distributions can make softer penalties effective.",
+      "falseUniversalizations": [
+        "Harsh penalties are better deterrents.",
+        "Behavior systems should infer player intent directly."
+      ],
+      "cheapDiscriminator": "Segment repeat-pattern and isolated leaving cohorts, then compare expected penalty salience and false-positive exposure before changing severity.",
+      "experienceRefs": [
+        "exp.overwatch.leaver-xp-penalty-missed-target"
+      ],
+      "sourceRefs": [
+        "kb:blizzard-overwatch-leavers-2023"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.destiny2.currency-friction-does-not-imply-interesting-choice",
+      "kind": "ECONOMY_FRICTION_FAILURE",
+      "referenceGames": [
+        "Destiny 2"
+      ],
+      "assumption": "Adding a scarce currency to upgrades creates meaningful progression decisions because players must choose when to spend it.",
+      "failureSignal": "Bungie concluded Unstable Cores were broadly restrictive but did not drive interesting buildcraft decisions, then chose deprecation.",
+      "context": "The currency gated infusion for both campaign progression and endgame experimentation across many items.",
+      "revisionOrSalvage": "Infusion costs were moved back to established currencies rather than preserving the new resource for sunk-design reasons.",
+      "transferBoundary": "Scarcity remains valuable when it creates distinct opportunity costs among meaningful alternatives.",
+      "falseUniversalizations": [
+        "Upgrade currencies are bad design.",
+        "Removing friction always improves experimentation."
+      ],
+      "cheapDiscriminator": "Enumerate which branches of player strategy change because of the currency; if it only delays all branches similarly, test deletion or replacement.",
+      "experienceRefs": [
+        "exp.destiny2.unstable-cores-friction-without-buildcraft"
+      ],
+      "sourceRefs": [
+        "kb:bungie-d2-unstable-cores-2025"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.destiny2.universal-currency-can-become-economy-baggage",
+      "kind": "LEGACY_ECONOMY_BOUNDARY",
+      "referenceGames": [
+        "Destiny 2"
+      ],
+      "assumption": "A mature universal currency should be retained because compatibility and player familiarity make it cheaper than economy migration.",
+      "failureSignal": "Legendary Shards were progressively removed from vendor/crafting costs and ultimately phased out despite their long history and broad integration.",
+      "context": "Veteran balances, inflation and newer engram/resource systems had changed the economy around the currency.",
+      "revisionOrSalvage": "Costs migrated toward more specific currencies/resources and the old currency was sunset in stages.",
+      "transferBoundary": "A universal currency with a coherent unique role may still reduce complexity rather than add baggage.",
+      "falseUniversalizations": [
+        "Old currencies should eventually be removed.",
+        "More specialized currencies always produce better economies."
+      ],
+      "cheapDiscriminator": "Map every source/spend edge and the unique decision it creates; treat compatibility-only edges with no distinct decision as migration candidates, not automatic deletions.",
+      "experienceRefs": [
+        "exp.destiny2.legendary-shards-economy-baggage"
+      ],
+      "sourceRefs": [
+        "kb:bungie-d2-legendary-shards-2023"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.factorio.smarter-procgen-abstraction-can-lose-to-simpler-representation",
+      "kind": "PROCEDURAL_ABSTRACTION_FAILURE",
+      "referenceGames": [
+        "Factorio"
+      ],
+      "assumption": "More reusable/deduplicated procedural-generation abstractions are necessarily better because they reduce repeated computation and authoring duplication.",
+      "failureSignal": "Cross-procedure deduplication created dependency and compile/runtime complexity; Wube removed the procedure abstraction and reported better performance in measured cases.",
+      "context": "Noise programs were compiled for distinct generation outputs and actual reuse did not justify dependency machinery.",
+      "revisionOrSalvage": "The generator moved to simpler multi-output programs with inlining and automatic lifetime reuse.",
+      "transferBoundary": "Reusable subgraphs can still win when reuse is substantial or authoring correctness dominates performance.",
+      "falseUniversalizations": [
+        "Flattened procedural graphs are faster by default.",
+        "Abstraction is harmful in generation systems."
+      ],
+      "cheapDiscriminator": "Compare a representative graph as reusable procedures and a flattened multi-output form across compile time, runtime, authoring duplication and dependency complexity.",
+      "experienceRefs": [
+        "exp.factorio.noise-procedure-abstraction-removed"
+      ],
+      "sourceRefs": [
+        "kb:factorio-fff-390"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.factorio.fragmented-procgen-representations-can-block-control",
+      "kind": "PROCEDURAL_REPRESENTATION_MISMATCH",
+      "referenceGames": [
+        "Factorio"
+      ],
+      "assumption": "Independent procedural subsystems can evolve separately as long as each works locally; integration can be handled with settings and adapters.",
+      "failureSignal": "Separate terrain and resource/autoplace systems made desired placement behavior difficult to express, produced pathological outputs and motivated a large unification refactor.",
+      "context": "Cross-cutting requirements such as predictable starting resources depended on several procedural dimensions that lived in incompatible representations.",
+      "revisionOrSalvage": "Legacy specifications were compiled into a common expression-tree representation while preserving compatibility at the boundary.",
+      "transferBoundary": "Small generators with few cross-system constraints may not benefit from unification.",
+      "falseUniversalizations": [
+        "All procedural systems should share one representation.",
+        "Generator bugs imply the architecture needs a rewrite."
+      ],
+      "cheapDiscriminator": "Express one important cross-system invariant in the current architecture and count special cases/adapters versus a shared intermediate representation before rewriting.",
+      "experienceRefs": [
+        "exp.factorio.autoplace-fragmented-generator-to-unified-expression"
+      ],
+      "sourceRefs": [
+        "kb:factorio-fff-258"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.deusex.ai-capability-before-requirement-can-create-waste",
+      "kind": "REQUIREMENT_TIMING_FAILURE",
+      "referenceGames": [
+        "Deus Ex"
+      ],
+      "assumption": "Front-loading AI implementation is always risk reduction because more capability exists earlier for the game to use.",
+      "failureSignal": "Deus Ex implemented AI features early that later proved unnecessary once the game’s actual AI requirements became clear.",
+      "context": "AI work began during preproduction while the immersive-sim design and required range of NPC reactions were still evolving.",
+      "revisionOrSalvage": "Treat early AI work as contract/prototype discovery and delay broad capability commitment until a representative interaction slice makes requirements concrete.",
+      "transferBoundary": "Stable low-level capabilities can still be worth building early when they survive changing gameplay requirements.",
+      "falseUniversalizations": [
+        "AI implementation should wait until design is final.",
+        "Early technical prototyping creates more waste than value."
+      ],
+      "cheapDiscriminator": "Bind the proposed capability to one concrete observation-action-consequence slice, mutate the game requirement, and see whether the capability survives without redesign.",
+      "experienceRefs": [
+        "exp.deusex.ai-capability-before-requirement-created-waste"
+      ],
+      "sourceRefs": [
+        "kb:gdc-deus-ex-postmortem"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.deusex.borrowed-ai-foundation-can-produce-patch-debt",
+      "kind": "FOUNDATION_MISMATCH",
+      "referenceGames": [
+        "Deus Ex"
+      ],
+      "assumption": "Starting from a mature existing AI foundation is safer than building a target-specific one because most hard problems are already solved.",
+      "failureSignal": "The shooter-oriented Unreal Tournament AI required continued additions and tweaks to support Deus Ex behavior needs, with NPC behavior changing until the end of development.",
+      "context": "The target game required a broad range from fear/friendliness to hostility rather than only shooter-combat competence.",
+      "revisionOrSalvage": "Evaluate borrowed foundations by target assumption fit and use a bounded replacement slice when adaptation requires recurring semantic exceptions.",
+      "transferBoundary": "Reuse remains strongly advantageous when the source and target games share the same core behavior assumptions.",
+      "falseUniversalizations": [
+        "Borrowed AI systems should be avoided.",
+        "Patch debt proves a rewrite would have been cheaper."
+      ],
+      "cheapDiscriminator": "Implement one target behavior slice on the borrowed foundation and on a minimal target-specific model; compare exception/dependency closure rather than code age.",
+      "experienceRefs": [
+        "exp.deusex.borrowed-shooter-ai-foundation-created-patch-debt"
+      ],
+      "sourceRefs": [
+        "kb:gdc-deus-ex-postmortem"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.thief.ai-built-for-wrong-gameplay-can-block-core",
+      "kind": "CORE_INTERACTION_MISMATCH",
+      "referenceGames": [
+        "Thief: The Dark Project"
+      ],
+      "assumption": "A generally capable action-game AI architecture can be adapted later to whichever core gameplay loop the project settles on.",
+      "failureSignal": "Thief’s early AI decision model encoded assumptions mismatched to the later stealth design and ultimately required major replacement.",
+      "context": "The AI architecture predated a sufficiently mature stealth design, while the final game depended on perception, uncertainty, search and de-escalation relationships.",
+      "revisionOrSalvage": "Prototype the defining interaction loop first enough to expose AI state/authority requirements before freezing the decision architecture.",
+      "transferBoundary": "A generic model can still work if it directly represents the target game’s defining interaction transitions.",
+      "falseUniversalizations": [
+        "Stealth games require bespoke AI architectures.",
+        "Core gameplay must be fully designed before AI architecture begins."
+      ],
+      "cheapDiscriminator": "Build one stealth slice against the candidate AI model and count exceptional paths required for perception, search, escalation and return-to-normal.",
+      "experienceRefs": [
+        "exp.thief.ai-built-before-stealth-requirements-mismatched-core"
+      ],
+      "sourceRefs": [
+        "kb:gamedeveloper-thief-postmortem"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.thief.delayed-rewrite-can-be-as-risky-as-premature-rewrite",
+      "kind": "REWRITE_TIMING_FAILURE",
+      "referenceGames": [
+        "Thief: The Dark Project"
+      ],
+      "assumption": "If an architecture is already implemented, continuing local repair is safer than rewrite until repair becomes literally impossible.",
+      "failureSignal": "The team spent months treating AI failures as bugs in a sound architecture before concluding the architecture itself was wrong and discarding most of it.",
+      "context": "The gameplay requirements had changed enough that repeated defects mapped back to foundational decision assumptions rather than isolated implementation errors.",
+      "revisionOrSalvage": "Use repeated assumption-level defects to reopen repair-versus-replacement instead of treating rewrite aversion as a standing rule.",
+      "transferBoundary": "Rewrite remains dangerous when defects are local, requirements are unstable, or replacement closure exceeds repair closure.",
+      "falseUniversalizations": [
+        "Architectural rewrites should happen earlier whenever bugs recur.",
+        "Avoiding rewrite is always a sign of sunk-cost bias."
+      ],
+      "cheapDiscriminator": "Classify recurring defects by violated system assumption; compare cumulative repair closure to a replacement vertical slice before continuing patch-only work.",
+      "experienceRefs": [
+        "exp.thief.delayed-ai-rewrite-amplified-cost"
+      ],
+      "sourceRefs": [
+        "kb:gamedeveloper-thief-postmortem"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.odyssey.multiple-ai-authorities-can-fight-over-one-agent",
+      "kind": "AUTHORITY_CONFLICT",
+      "referenceGames": [
+        "Assassin's Creed Odyssey"
+      ],
+      "assumption": "Multiple AI systems can independently choose behaviors for the same actor as long as each system is locally correct.",
+      "failureSignal": "Meta AI and the high-LOD planner repeatedly interrupted one another when both attempted to drive the same NPC.",
+      "context": "A low-cost distant simulation system and an expensive local planner overlapped around LOD/player-engagement boundaries.",
+      "revisionOrSalvage": "Separate reasoning from consequence authority and make actor-control handoff explicit at subsystem boundaries.",
+      "transferBoundary": "Multiple reasoning systems can coexist safely with arbitration, leases, priorities or transactional ownership transfer.",
+      "falseUniversalizations": [
+        "Every NPC must have one AI system.",
+        "Centralized AI authority is always simpler or more correct."
+      ],
+      "cheapDiscriminator": "Instrument one actor across subsystem transitions and reject any trace where two systems can commit overlapping behavior without an explicit handoff event.",
+      "experienceRefs": [
+        "exp.odyssey.planner-meta-ai-dual-authority-conflict"
+      ],
+      "sourceRefs": [
+        "kb:gamedeveloper-odyssey-immortals-ai-planning"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.odyssey.migration-shortcuts-can-preserve-legacy-coupling",
+      "kind": "MIGRATION_COUPLING",
+      "referenceGames": [
+        "Assassin's Creed Odyssey",
+        "Immortals Fenyx Rising"
+      ],
+      "assumption": "Wrapping legacy behaviors in the new architecture is sufficient modularization because the behavior now conforms to the new interface.",
+      "failureSignal": "Complex legacy behaviors became GOAP Actions but retained coupling and highly game-specific concepts in blackboards/core code, requiring later cleanup/refactor.",
+      "context": "The migration deliberately prioritized production continuity and fast conversion over ideal action granularity.",
+      "revisionOrSalvage": "Use coarse adapters as explicit temporary boundaries with coupling audits and deletion criteria rather than treating successful wrapping as migration completion.",
+      "transferBoundary": "A coarse adapter can be the correct stable boundary when its contract is narrow and legacy concepts do not leak through it.",
+      "falseUniversalizations": [
+        "Legacy behavior must be decomposed immediately during migration.",
+        "Interface conformity proves architectural decoupling."
+      ],
+      "cheapDiscriminator": "Trace every domain-specific state/key crossing one wrapped behavior’s new-core boundary; compare coarse and decomposed forms before scaling the migration.",
+      "experienceRefs": [
+        "exp.odyssey.legacy-complex-actions-preserved-coupling"
+      ],
+      "sourceRefs": [
+        "kb:gamedeveloper-odyssey-immortals-ai-planning"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.immortals.random-variety-can-break-planner-consistency",
+      "kind": "ALGORITHM_INVARIANT_FAILURE",
+      "referenceGames": [
+        "Assassin's Creed Odyssey",
+        "Immortals Fenyx Rising"
+      ],
+      "assumption": "Adding random noise to action costs is a low-risk way to make planner behavior less repetitive.",
+      "failureSignal": "Once action costs were recalculated during each planning step, random values made the same action take different costs across branches, breaking planner consistency.",
+      "context": "Odyssey sampled costs in a way that kept randomness stable enough to ship; Immortals changed cost evaluation semantics and exposed the incompatibility.",
+      "revisionOrSalvage": "Immortals largely replaced random variety with history-aware costs based on time since last execution, preserving more stable planning semantics.",
+      "transferBoundary": "Randomness remains valid when sampled outside the planning episode or when the algorithm explicitly models stochastic cost.",
+      "falseUniversalizations": [
+        "Randomness is bad for AI planning.",
+        "Deterministic pacing systems always produce better variety."
+      ],
+      "cheapDiscriminator": "Compare per-plan frozen randomness, per-node resampling and history-aware deterministic costs; verify the planner’s branch-comparison invariants before judging variety.",
+      "experienceRefs": [
+        "exp.immortals.random-action-cost-broke-planner-consistency"
+      ],
+      "sourceRefs": [
+        "kb:gamedeveloper-odyssey-immortals-ai-planning"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.immortals.early-pruning-can-remove-context-the-planner-needs",
+      "kind": "LOCAL_OPTIMIZATION_FAILURE",
+      "referenceGames": [
+        "Assassin's Creed Odyssey",
+        "Immortals Fenyx Rising"
+      ],
+      "assumption": "Candidates that look locally worse can be pruned before planning because the planner would choose the locally best candidate anyway.",
+      "failureSignal": "Nearest-object preselection sometimes sent NPCs toward an object that made the later plan worse, including visible double-backs; Immortals retained several candidates instead.",
+      "context": "Object value depended on later plan destinations, so distance at the first step was not a sufficient dominance condition.",
+      "revisionOrSalvage": "Move pruning later or retain a bounded top-k when downstream context can reverse candidate value.",
+      "transferBoundary": "Early pruning remains correct when dominance is provable from all variables that can affect downstream cost.",
+      "falseUniversalizations": [
+        "AI planners should keep more candidates.",
+        "Local heuristics are unsafe for multi-step planning."
+      ],
+      "cheapDiscriminator": "Create a two-step scenario where first-object choice affects the second destination; compare nearest-only and top-k planning on total path cost and search budget.",
+      "experienceRefs": [
+        "exp.immortals.early-smart-object-pruning-lost-plan-context"
+      ],
+      "sourceRefs": [
+        "kb:gamedeveloper-odyssey-immortals-ai-planning"
+      ]
+    },
+    {
+      "authority": "SOURCE_GROUNDED_COUNTEREXAMPLE_HYPOTHESIS",
+      "humanOutcomeEstablished": false,
+      "canBlockNovelCombination": false,
+      "id": "counterexample.odyssey.one-ai-pipeline-can-be-premature-convergence",
+      "kind": "PREMATURE_ARCHITECTURAL_CONVERGENCE",
+      "referenceGames": [
+        "Assassin's Creed Odyssey"
+      ],
+      "assumption": "A single shared AI pipeline should be imposed early to avoid siloed gameplay systems and duplicated technology.",
+      "failureSignal": "Odyssey tried to place multiple pillars under the planner while naval gameplay developed in parallel and needed capabilities the shared planner did not yet support.",
+      "context": "The planner itself and major gameplay pillars were evolving simultaneously, so common contracts and required capabilities were not yet stable.",
+      "revisionOrSalvage": "Share only proven contracts/substrate early; defer full pipeline convergence until representative consumers expose actual commonality.",
+      "transferBoundary": "Early convergence is valuable when multiple consumers already share stable semantics and the platform satisfies their requirements.",
+      "falseUniversalizations": [
+        "Specialized AI pipelines are safer than unified ones.",
+        "Architecture unification should wait until every feature is complete."
+      ],
+      "cheapDiscriminator": "Implement one representative behavior from each candidate pillar against the proposed shared contract and list missing capabilities/exceptions before mandating convergence.",
+      "experienceRefs": [
+        "exp.odyssey.single-ai-pipeline-premature-convergence"
+      ],
+      "sourceRefs": [
+        "kb:gamedeveloper-odyssey-immortals-ai-planning"
+      ]
+    }
+  ]
+}

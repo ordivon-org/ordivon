@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "cs2-03-player-value-measurement-r1",
+  "principle": "Latent player value is not identified by one metric. R1 preserves observable indicators and claim ceilings instead of inventing a universal scalar fun score.",
+  "constructs": {
+    "strategicAdaptation": {
+      "standing": "COMPUTATIONAL_SURROGATE",
+      "indicators": ["pairedScoreUplift", "pairedRegretReduction", "contextResponsiveChoiceRate"],
+      "interpretation": "Whether usable information changes decisions in ways that improve modeled task performance."
+    },
+    "meaningfulChoicePotential": {
+      "standing": "STRUCTURAL_COMPUTATIONAL",
+      "indicators": ["choiceEntropy", "pathDiversity", "counterfactualChoiceSensitivity"],
+      "interpretation": "Whether context can causally alter available decisions without one path dominating the modeled population."
+    },
+    "robustnessAcrossPlayerModels": {
+      "standing": "COMPUTATIONAL",
+      "indicators": ["personaEffectDispersion", "effectSignAgreement", "worstPersonaEffect"],
+      "interpretation": "Whether a mechanism effect survives materially different modeled decision styles."
+    },
+    "humanFeltAgency": {"standing":"NOT_DIRECTLY_IDENTIFIED","indicators":[],"interpretation":"May be informed by future calibrated surrogates or external observations; never inferred directly from R1."},
+    "humanEnjoyment": {"standing":"NOT_DIRECTLY_IDENTIFIED","indicators":[],"interpretation":"No mandatory Human gate follows from this unknown."},
+    "humanReplayDesire": {"standing":"NOT_DIRECTLY_IDENTIFIED","indicators":[],"interpretation":"No mandatory Human gate follows from this unknown."}
+  },
+  "decisionRule": "Computational indicators may support mechanism-search decisions inside their declared estimand. They do not inherit Human-specific semantics without calibration evidence."
+}

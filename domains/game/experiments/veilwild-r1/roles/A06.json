@@ -1,0 +1,37 @@
+{
+  "schema": "veilwild.agent-role-card.r1",
+  "role": {
+    "agentId": "A06",
+    "fronts": [
+      {
+        "id": "F06",
+        "name": "Creature 3D"
+      }
+    ],
+    "ownedClosures": [
+      {
+        "id": "V-V3",
+        "name": "Creature 3D",
+        "activationClass": "CONSTITUTIVE",
+        "oracle": "editable Veilrunner source becomes readable deformation-ready runtime asset"
+      }
+    ],
+    "mission": "Produce, edit and validate the Veilrunner creature model as a readable deformation-ready runtime asset.",
+    "firstVerdictMustAddress": [
+      "current standing under exact baseline",
+      "top falsifiers",
+      "expected producer/consumer interfaces",
+      "highest-risk boundary assumption",
+      "whether scope should split before implementation"
+    ],
+    "mustNotReadBeforeFirstVerdict": [
+      "another A01-A25 current-round report/verdict/scratchpad/repair commit",
+      "current-round Coordinator synthesis",
+      "A23 current-round red-team verdict unless you are A23"
+    ],
+    "prohibitedAuthority": [],
+    "handoffSchema": "AGENT_HANDOFF_SCHEMA_R1.json",
+    "executionProtocol": "MULTI_AGENT_EXECUTION_PROTOCOL_R1.md",
+    "stopCondition": "validated handoff OR formal blocker OR contradicted/inconclusive standing OR authority/apparatus gate OR justified scope split"
+  }
+}
