@@ -1348,25 +1348,83 @@ fn validate_runtime_release_effect_binding(
             "runtimeReleaseEffect.receiptPath",
         ));
     }
-    if request.plan.execution_target != super::ExecutionTarget::LocalLinux
-        || request.plan.execution_profile != super::ExecutionProfile::TrustedLocal
-    {
+    if request.plan.execution_profile != super::ExecutionProfile::TrustedLocal {
         return Err(RuntimeError::invalid(
-            "Runtime Release v1 requires trusted_local local_linux execution",
+            "Runtime Release v1 requires trusted_local execution",
             "runtimeReleaseEffect.contract",
         ));
     }
-    if !matches!(
-        request
-            .execution_provider
-            .as_ref()
-            .map(|provider| provider.contract),
-        Some(ExecutionProviderContract::LocalLinuxRunnerV1)
-    ) {
-        return Err(RuntimeError::invalid(
-            "Runtime Release v1 requires a committed local Linux Runner",
-            "executionProvider",
-        ));
+    match request.plan.execution_target {
+        super::ExecutionTarget::LocalLinux => {
+            if request.plan.windows_authority != super::WindowsAuthority::Limited
+                || request.plan.windows_execution_context.is_some()
+            {
+                return Err(RuntimeError::invalid(
+                    "local Linux Runtime Release cannot carry Windows elevated authority",
+                    "plan.windowsAuthority",
+                ));
+            }
+            if !matches!(
+                request
+                    .execution_provider
+                    .as_ref()
+                    .map(|provider| provider.contract),
+                Some(ExecutionProviderContract::LocalLinuxRunnerV1)
+            ) {
+                return Err(RuntimeError::invalid(
+                    "local Linux Runtime Release requires a committed local Linux Runner",
+                    "executionProvider",
+                ));
+            }
+        }
+        super::ExecutionTarget::WindowsNative => {
+            if request.plan.windows_authority != super::WindowsAuthority::Elevated {
+                return Err(RuntimeError::invalid(
+                    "native Windows Runtime Release requires elevated authority",
+                    "plan.windowsAuthority",
+                ));
+            }
+            if !matches!(
+                request
+                    .execution_provider
+                    .as_ref()
+                    .map(|provider| provider.contract),
+                Some(ExecutionProviderContract::WindowsNativeLauncherV1)
+            ) {
+                return Err(RuntimeError::invalid(
+                    "native Windows Runtime Release requires a committed Windows launcher",
+                    "executionProvider",
+                ));
+            }
+            let context = request
+                .plan
+                .windows_execution_context
+                .as_ref()
+                .ok_or_else(|| {
+                    RuntimeError::invalid(
+                        "native Windows Runtime Release requires frozen elevated execution context",
+                        "plan.windowsExecutionContext",
+                    )
+                })?;
+            if context.token_class != super::WindowsTokenClass::Elevated
+                || context.environment_source != "windows_privileged_broker_profile_allowlist_v1"
+            {
+                return Err(RuntimeError::invalid(
+                    "native Windows Runtime Release requires privileged broker execution context",
+                    "plan.windowsExecutionContext",
+                ));
+            }
+            let broker_digest = context.privileged_broker_digest.as_deref().ok_or_else(|| {
+                RuntimeError::invalid(
+                    "native Windows Runtime Release requires a frozen privileged broker digest",
+                    "plan.windowsExecutionContext.privilegedBrokerDigest",
+                )
+            })?;
+            validate_digest(
+                broker_digest,
+                "plan.windowsExecutionContext.privilegedBrokerDigest",
+            )?;
+        }
     }
     Ok(())
 }
