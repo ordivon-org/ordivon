@@ -11,7 +11,6 @@ from __future__ import annotations
 import argparse
 import json
 import subprocess
-import urllib.request
 
 VALID_INSTANCES = {11, 12, 13}
 
@@ -57,13 +56,36 @@ def _active(unit: str) -> bool:
 
 
 def _http_ready(instance: int, timeout: float = 1.0) -> bool:
+    """Observe the host-loopback noVNC endpoint even when called from a carrier netns."""
+    url = f"http://127.0.0.1:160{instance}/vnc.html"
     try:
-        with urllib.request.urlopen(
-            f"http://127.0.0.1:160{instance}/vnc.html", timeout=timeout
-        ) as response:
-            return int(response.status) == 200
-    except Exception:
+        completed = subprocess.run(
+            [
+                "/usr/bin/nsenter",
+                "--net=/proc/1/ns/net",
+                "/usr/bin/curl",
+                "--silent",
+                "--show-error",
+                "--fail",
+                "--noproxy",
+                "*",
+                "--max-time",
+                str(float(timeout)),
+                "--output",
+                "/dev/null",
+                "--write-out",
+                "%{http_code}",
+                url,
+            ],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=float(timeout) + 1.0,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
         return False
+    return completed.returncode == 0 and completed.stdout.strip() == "200"
 
 
 def observe(instance: int) -> dict:
