@@ -1,0 +1,83 @@
+{
+  "@context": {
+    "dcat": "http://www.w3.org/ns/dcat#",
+    "dct": "http://purl.org/dc/terms/",
+    "prov": "http://www.w3.org/ns/prov#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@id": "urn:ordivon:catalog:data-products:2026-09-20",
+  "@type": "dcat:Catalog",
+  "dct:title": "Ordivon Federated Data Product Catalog",
+  "dct:description": "Federated projection over domain-owned ODPS/ODCS products. The catalog is discovery metadata, not the authoritative owner of domain data.",
+  "dct:issued": {
+    "@value": "2026-09-20",
+    "@type": "xsd:date"
+  },
+  "dct:conformsTo": {
+    "@id": "https://www.w3.org/TR/vocab-dcat-3/"
+  },
+  "dcat:dataset": [
+    {
+      "@id": "urn:uuid:94d0bf2c-036b-53b1-b733-14d3a5536a74",
+      "@type": "dcat:Dataset",
+      "dct:identifier": "94d0bf2c-036b-53b1-b733-14d3a5536a74",
+      "dct:title": "Paper1 Frozen Flaky-Test Benchmark",
+      "dct:description": "Expose the exact frozen benchmark used by Paper1 as a governed research data product.",
+      "dcat:version": "1.0.0",
+      "dct:conformsTo": [
+        {
+          "@id": "https://github.com/bitol-io/open-data-product-standard"
+        },
+        {
+          "@id": "https://github.com/bitol-io/open-data-contract-standard"
+        }
+      ],
+      "prov:wasDerivedFrom": {
+        "@id": "urn:sha256:6c2066eb1bf1824887a72c6f6df3cb5106894efde206686eb564287fe6547e50"
+      },
+      "dcat:distribution": [
+        {
+          "@id": "urn:uuid:dc3b3f74-1c92-5a22-8e39-3abfb3af03fd",
+          "@type": "dcat:Distribution",
+          "dct:title": "frozen-benchmark-csv",
+          "dct:format": "text/csv",
+          "dct:identifier": "sha256:6c2066eb1bf1824887a72c6f6df3cb5106894efde206686eb564287fe6547e50",
+          "dcat:accessURL": {
+            "@id": "file:///root/projects/ordivon-research-v2/research_objects/first_paper_r2_r4_frozen/source/inputs/dataset.full.csv"
+          }
+        }
+      ]
+    },
+    {
+      "@id": "urn:uuid:d14d7457-c9aa-59e0-8bf5-7783cea39c1c",
+      "@type": "dcat:Dataset",
+      "dct:identifier": "d14d7457-c9aa-59e0-8bf5-7783cea39c1c",
+      "dct:title": "Crypto Public Shadow R2 Observation",
+      "dct:description": "Expose the frozen cross-venue public streaming observation as a governed, read-only analytical data product.",
+      "dcat:version": "2026.09.14",
+      "dct:conformsTo": [
+        {
+          "@id": "https://github.com/bitol-io/open-data-product-standard"
+        },
+        {
+          "@id": "https://github.com/bitol-io/open-data-contract-standard"
+        }
+      ],
+      "prov:wasDerivedFrom": {
+        "@id": "urn:sha256:ed5fba6227a5d997adefb6bf63717463dc75fdc8b62cfb0005804109eb0a2d7e"
+      },
+      "dcat:distribution": [
+        {
+          "@id": "urn:uuid:358e57ff-d416-5dd6-a90c-f62b4bc94ff0",
+          "@type": "dcat:Distribution",
+          "dct:title": "public-shadow-json",
+          "dct:format": "application/json",
+          "dct:identifier": "sha256:ed5fba6227a5d997adefb6bf63717463dc75fdc8b62cfb0005804109eb0a2d7e",
+          "dcat:accessURL": {
+            "@id": "file:///root/projects/ordivon-market-capital-next/evidence/crypto-public-shadow-r2-20260914.json"
+          }
+        }
+      ]
+    }
+  ]
+}

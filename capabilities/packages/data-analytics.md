@@ -40,8 +40,10 @@ Proven project-scoped substrate includes:
 - Research workflows for reproducible analysis;
 - Artifact dataset/table/figure verification;
 - Git/content digests and source/version binding;
-- ODCS 3.2.0 contract projection;
-- DCAT 3 pilot projection;
+- ODCS 3.2.0 contracts owned by real Research and Finance products;
+- ODPS 1.1.0 products owned by Research and Finance;
+- DCAT 3 two-domain federated projection;
+- W3C PROV-O source/product derivation, including a real Paper1 dataset-to-result edge;
 - OpenLineage runtime-event emission;
 - explicit source semantics, revision/vintage and reference-identifier handling;
 - local durable preservation through E-ARK submission -> Archivematica PREMIS/METS AIP -> Storage Service master/replica -> scheduled fixity.
@@ -52,12 +54,12 @@ Preservation evidence is bounded: the current master and replica occupy distinct
 
 Authoritative current projection:
 
-- `docs/DATA_LIFECYCLE_CENSUS_R2.md`
-- `planning/data-lifecycle-census-r2.json`
+- `planning/data-lifecycle-census-r3.json`
+- `docs/DATA_PRODUCTS_FEDERATION_R1.md`
 - `docs/DATA_DURABLE_PRESERVATION_R1.md`
 - `evidence/data-lifecycle/preservation-r1/acceptance.json`
 
-R1 census remains historical evidence only.
+R1 and R2 census files remain historical evidence; R3 is current.
 
 Current shape:
 
@@ -76,9 +78,8 @@ source identity
 The major remaining cross-domain gaps are **not** generic compute/storage gaps. They are:
 
 ```text
-real ODPS products + federated DCAT
-  -> Research/Finance adoption
-  -> durable operational + semantic provenance
+runtime product-version lineage
+  -> exact claim/decision consumption
   -> rights/privacy/retention
   -> exact data-product-version -> decision/claim binding
   -> outcome -> collection/quality/model feedback
@@ -161,7 +162,7 @@ It does **not** mean the cross-domain lifecycle is closed.
 
 `CrossDomainDataLifecycle = PARTIAL` remains until at least:
 
-1. one real Research product and one real Finance product use ODPS/DCAT/ODCS/OpenLineage bindings;
+1. real Research and Finance executions emit runtime OpenLineage events that bind the exact ODPS product/output-port version;
 2. rights/privacy/retention metadata is executable at product boundaries;
 3. claims/decisions bind the exact consumed data-product version;
 4. outcome evidence feeds changes back to collection/quality/model policy.
