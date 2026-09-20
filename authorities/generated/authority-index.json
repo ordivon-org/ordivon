@@ -1534,6 +1534,35 @@
     },
     {
       "aliases": [
+        "ISO 15489",
+        "ISO 15489-1:2016"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "data",
+        "governance",
+        "preservation",
+        "records"
+      ],
+      "id": "iso-15489-1-2016",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:334fe296ebde6dd2888424b99c8c17bc6055f7ca6fa8ef7353886badd687e0c0",
+      "recordDigest": "sha256:f049d181a8f2676333b4abc82bc4a74cc60c7d9cb621cad4d9351c1ed789293d",
+      "title": "ISO 15489-1:2016 — Information and documentation — Records management — Part 1: Concepts and principles",
+      "topics": [
+        "disposition",
+        "metadata",
+        "records-management",
+        "records-requirements",
+        "retention"
+      ],
+      "versionLabel": "2016"
+    },
+    {
+      "aliases": [
         "ISO 17442-1",
         "Legal Entity Identifier",
         "LEI standard"
@@ -2822,6 +2851,36 @@
         "security-controls"
       ],
       "versionLabel": "1.1.3"
+    },
+    {
+      "aliases": [
+        "NIST PF 1.0",
+        "NIST Privacy Framework",
+        "Privacy Framework 1.0"
+      ],
+      "authorityKind": "government-guidance",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "data",
+        "enterprise",
+        "privacy",
+        "risk"
+      ],
+      "id": "nist-privacy-framework-1.0",
+      "identityMode": "versioned",
+      "issuer": "NIST",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:0f40544e431a468d3def1c2b9886c3b8543731466279a247156ad2b11494a51a",
+      "recordDigest": "sha256:d0fb5f4d627723ce78c755fcde1b78f47cf170e03bf80939311e3b4bbe894e58",
+      "title": "NIST Privacy Framework: A Tool for Improving Privacy through Enterprise Risk Management, Version 1.0",
+      "topics": [
+        "data-processing",
+        "governance",
+        "privacy-engineering",
+        "privacy-risk",
+        "risk-management"
+      ],
+      "versionLabel": "1.0"
     },
     {
       "aliases": [
@@ -4370,6 +4429,36 @@
     },
     {
       "aliases": [
+        "ODRL 2.2",
+        "Open Digital Rights Language 2.2"
+      ],
+      "authorityKind": "web-standard",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "data",
+        "governance",
+        "rights"
+      ],
+      "id": "w3c-odrl-2.2-2018",
+      "identityMode": "versioned",
+      "issuer": "W3C",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:be5ac6e40d4620e4abfa6d9feed730272bed0cd4ffcd4d2766db196a8b74a6a2",
+      "recordDigest": "sha256:3b25e7062263a7f0c6e7d34e444150003d5198f2404d251ab5ac7d501832db23",
+      "title": "ODRL Information Model 2.2 and Vocabulary & Expression 2.2",
+      "topics": [
+        "asset-use",
+        "deletion",
+        "distribution",
+        "duty",
+        "permission",
+        "prohibition",
+        "rights-policy"
+      ],
+      "versionLabel": "2.2"
+    },
+    {
+      "aliases": [
         "PNG",
         "PNG Third Edition",
         "Portable Network Graphics"
@@ -4590,7 +4679,7 @@
     }
   ],
   "kind": "ordivon.external-authority-discovery-index",
-  "recordCount": 165,
-  "recordsDigest": "sha256:208d2e401fde609313392a08b0aefd2783c45cd8b8ed6da45a47ab2c81c09b2e",
+  "recordCount": 168,
+  "recordsDigest": "sha256:8058a80bb041b9930b9f1d44b380cb3b83d51151ef552bfd6cc8bae0f434bfad",
   "schemaVersion": 1
 }

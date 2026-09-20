@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-record",
+  "id": "nist-privacy-framework-1.0",
+  "identity": {
+    "authorityKind": "government-guidance",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "nist",
+      "name": "NIST"
+    },
+    "officialSource": "https://www.nist.gov/privacy-framework",
+    "publicationDate": "2020-01-16",
+    "title": "NIST Privacy Framework: A Tool for Improving Privacy through Enterprise Risk Management, Version 1.0",
+    "versionLabel": "1.0"
+  },
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": "Voluntary privacy-risk-management framework. Version 1.1 remains an Initial Public Draft as of 2026-09-20."
+  },
+  "discovery": {
+    "aliases": [
+      "NIST Privacy Framework",
+      "Privacy Framework 1.0",
+      "NIST PF 1.0"
+    ],
+    "domains": [
+      "privacy",
+      "data",
+      "enterprise",
+      "risk"
+    ],
+    "topics": [
+      "privacy-risk",
+      "data-processing",
+      "governance",
+      "risk-management",
+      "privacy-engineering"
+    ]
+  },
+  "provenance": {
+    "registeredDate": "2026-09-20",
+    "registrationBasis": [
+      "Data Lifecycle R3 rights/privacy/retention P0",
+      "NIST Privacy Framework and 1.1 status pages checked 2026-09-20"
+    ]
+  },
+  "relations": {
+    "related": [
+      "nist-csf-2.0"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  }
+}
