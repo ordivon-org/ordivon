@@ -19,7 +19,7 @@
   "privateAccountDataUsed": false,
   "externalFinancialWritesAttempted": false,
   "sourceContentRevision": "9ceeb27fcd8cfdff41860b891cf7bb1a2f667462",
-  "odpsSha256": "6e82b2f1c512bab42955ea35649a30c235776feda608e674219e7542e2003fdc",
+  "odpsSha256": "00dfb43af5ec4c0f56df7391f35a319d7d824b4cf581094913c5618c17f1e5c8",
   "odcsSha256": "689d9e230930017a5a9e1711d69c0949b8ab1578bfa06c45361ab141d920c49f",
   "odpsSchemaSourceRevision": "5f54a17296c3f294ea40c949a2a5ef268c20eb6b",
   "odpsSchemaSha256": "b7eae1af15b3c6b18e5dffaa2119212acb38ec73286933c76d16c8712e0d90d1",
@@ -32,5 +32,7 @@
   "retentionScheduleStatus": "UNASSIGNED",
   "privacyAssessmentStatus": "BOUNDED_NO_PRIVATE_ACCOUNT_DATA_PROVEN_FORMAL_ASSESSMENT_NOT_COMPLETE",
   "claimBoundary": "Credential-free/public provider access is not treated as a redistribution or commercial-use license. This local policy prevents third-party distribution and automatic disposal until applicable authority is established. Existing evidence proves no broker credentials, private account data, or external financial writes were used in this observation; it is not a complete privacy assessment.",
-  "governancePolicySha256": "99248894b157e214ab505ea0301f29b5ccdc99ce8209f92fe667802d800562d0"
+  "governancePolicySha256": "99248894b157e214ab505ea0301f29b5ccdc99ce8209f92fe667802d800562d0",
+  "domainOwner": "Ordivon Capital market-observation domain",
+  "ownershipScope": "PRODUCT_METADATA_AND_LIFECYCLE_NOT_PROVIDER_IP"
 }
