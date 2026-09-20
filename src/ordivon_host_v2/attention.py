@@ -6,8 +6,6 @@ from typing import Any
 import psycopg
 from psycopg.rows import dict_row
 
-from .board import is_legacy_task_route_anchor
-
 _MAX_MESSAGES = 100
 
 
@@ -36,10 +34,9 @@ def build_attention_delta(dsn: str, *, after_sequence: int, limit: int = 100) ->
             int(visible[-1]["sequence"]) if has_more and visible else max(after_sequence, high)
         )
 
-        visible_messages = [row for row in visible if not is_legacy_task_route_anchor(row)]
         by_task: dict[str, list[dict[str, Any]]] = defaultdict(list)
         unrouted: list[dict[str, Any]] = []
-        for row in visible_messages:
+        for row in visible:
             task_id = row.get("task_id")
             if isinstance(task_id, str):
                 by_task[task_id].append(_compact_message(row))
@@ -102,7 +99,7 @@ def build_attention_delta(dsn: str, *, after_sequence: int, limit: int = 100) ->
             "completeThroughNextAfterSequence": not has_more,
         },
         "summary": {
-            "newMessageCount": len(visible_messages),
+            "newMessageCount": len(visible),
             "routedTaskCount": len(routed_tasks),
             "routedMessageCount": sum(len(messages) for messages in by_task.values()),
             "unroutedMessageCount": len(unrouted),
