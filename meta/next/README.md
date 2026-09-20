@@ -43,14 +43,12 @@ Ordivon does not attempt to re-own mature disciplines, algorithms, tools, workfl
 
 ```text
 ordivon-next/
-├── agent_service/   # irreducible Agent Service semantics and thin provider seams
 ├── .agents/skills/  # standard Agent Skills procedures
 ├── authorities/     # external-authority records, observations and rebuildable discovery index
 ├── capabilities/    # capability/provider routing knowledge and task-local inventories
 ├── domains/         # domain-native life-cycle profiles
 ├── policies/        # native OPA/Rego policy artifacts where declarative policy is justified
 ├── plugins/         # Agent Plugins standard packaging artifacts
-├── systemd/         # provider-native deployment recipe for the read-only canary
 ├── tests/           # behavior, integration, architecture and historical-integrity regression tests
 ├── scripts/         # current commands/validators only; historical reproducers do not live here
 ├── schemas/         # minimal cross-domain contracts after demonstrated reuse
@@ -96,21 +94,19 @@ Core validation from a clean checkout:
 
 ```bash
 uv run --locked python -m pytest
-uv run --locked --group architecture lint-imports
-uv run --locked --group quality ruff check agent_service scripts tests
-uv run --locked --group quality ruff format --check agent_service scripts tests
-uv run --locked --group typing pyright
+uv run --locked --group quality ruff check scripts tests
+uv run --locked --group quality ruff format --check scripts tests
 uv run --locked --group authority python scripts/check_authority_catalog_r1.py
 uv run --locked --group authority python scripts/check_standard_native_enterprise_r2.py
 uv run --locked --group reasoning python scripts/check_reasoning_waist_r1.py
 ```
 
-PEP 621 project dependencies are the runtime/deployment dependency authority. The default `test` group adds only test-time dependencies. Architecture, lint/format quality, Agent Service static typing, authority-catalog validation, security auditing, coverage analysis and heavier reasoning dependencies are separate groups and are installed only when their validation surface is invoked.
+PEP 621 project dependencies are the runtime/deployment dependency authority. The default `test` group adds only test-time dependencies. Lint/format quality, authority-catalog validation, security auditing, coverage analysis and heavier reasoning dependencies are separate groups and are installed only when their validation surface is invoked.
 
 Security uses external tools directly rather than a repository-specific scanner. Bandit covers source heuristics, PyPA `pip-audit` checks known Python dependency vulnerabilities, and Gitleaks scans both repository history and the current tree for credential material. Gitleaks is a system-level external tool rather than a Python project dependency, so it is not mirrored into `uv.lock`. Reviewed false positives live only as exact fingerprints in `.gitleaksignore`; do not replace them with path-wide or rule-wide exclusions.
 
 ```bash
-uv run --locked --group security bandit -r agent_service scripts -q -s B404,B603
+uv run --locked --group security bandit -r scripts -q -s B404,B603
 
 gitleaks git --no-banner --redact=100 --timeout 120 .
 gitleaks dir --no-banner --redact=100 .
@@ -133,9 +129,3 @@ rm -rf "$tmp"
 ```
 
 Generate that SBOM for a release/evidence bundle when needed; do not commit it merely to duplicate lockfile state.
-
-The read-only Agent Service canary uses the same lockfile. Its deployment environment is materialized without test/analysis groups:
-
-```bash
-uv sync --locked --no-default-groups
-```

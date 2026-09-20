@@ -12,7 +12,7 @@ Central rule:
 ```text
 new local semantic authority -> reject
 external-owned thin integration type -> explicit admission
-existing local type -> migration debt that may shrink
+retired local subsystem -> must not be reconstructed
 ```
 
 The policy is a repository-specific architecture boundary, not a new cross-domain standard. External authorities retain their native semantics.
@@ -21,7 +21,7 @@ The policy is a repository-specific architecture boundary, not a new cross-domai
 
 `policies/external-ownership-boundary.json` records:
 
-- the current Agent Service top-level type ceiling;
+- the empty Agent Service reintroduction ceiling and completed retirement evidence;
 - already retired legacy types and persistence surfaces;
 - explicitly admitted post-baseline integration types, if any;
 - canonical external owners used by the boundary;
@@ -29,7 +29,7 @@ The policy is a repository-specific architecture boundary, not a new cross-domai
 
 `tests/test_external_ownership_boundary.py` enforces the machine profile.
 
-Deletion is always allowed. A new top-level Agent Service type is not allowed merely because an older custom type was removed. Any post-baseline type must be non-authoritative, have a narrow integration role, and name its canonical external owner.
+Agent Service deletion is complete. Reintroducing any equivalent top-level subsystem or semantic type requires a new concrete workload, a demonstrated failure of mature external ownership, a non-authoritative narrow integration role, and an explicit canonical external owner; restoring the historical subsystem is not an accepted path.
 
 ## Why this is policy rather than planning
 
@@ -42,20 +42,11 @@ Therefore:
 - current architecture policy belongs here;
 - specific unresolved replacement decisions remain in `planning/` only while they still affect future work.
 
-## Security exception: credential-reference binding
+## Credential-reference retirement
 
-Externalization must not weaken confidentiality, integrity, availability or authority scoping.
+The historical Agent Service CredentialReferenceStore is retired together with Agent Service. No persistent Ordivon credential registry remains in this repository. Credential material belongs to the selected secret/credential provider; OAuth issuer metadata, resource targeting and scope semantics remain owned by RFC 8414, RFC 8707/RFC 9728, RFC 6749/RFC 9700 and provider-native authority.
 
-`CredentialReferenceStore` remains only as a thin cross-owner binding and replay guard. It does **not** own credential material, OAuth issuer semantics, protected-resource semantics or scope-grant authority:
-
-- `provider/reference` is an opaque handle whose natural owner is the selected external credential/secret provider;
-- for OAuth-based integrations, issuer/server metadata belongs to RFC 8414 and current OAuth security guidance;
-- OAuth resource targeting belongs to RFC 8707 and protected-resource metadata to RFC 9728;
-- scopes remain OAuth/provider/domain authorization semantics; the locally retained `requested_scopes` value is only a least-privilege ceiling and never proves a grant.
-
-The row therefore caches an expected contract so Agent Service can fail closed before and after transient material resolution. Moving this sensitive locator metadata into the broad `ServiceEventStore` merely to reduce class count remains forbidden.
-
-Delete the local binding only when a selected external provider can preserve stable replay identity, locator confidentiality, target/scope restriction and exact conflict detection without widening visibility. Do not create a replacement Ordivon credential registry.
+A future consumer may retain a task-local transient binding only when it is necessary to bind an exact provider handle or least-privilege expectation for that concrete effect. Such a binding must not recreate the deleted Agent Service store, authorization server, protected-resource authority or scope-grant authority.
 
 ## External ownership baseline
 
@@ -63,4 +54,4 @@ The machine profile currently names external owners including A2A, Temporal, CMM
 
 ## Long-term maintenance
 
-When a legacy type is deleted and parity is proven, tighten the ceiling. When a new integration type is genuinely required, record its external owner and non-authoritative role before admission. Do not add local architecture vocabulary merely to make the profile look complete.
+The Agent Service ceiling is now empty. Keep it empty. When a new integration type is genuinely required elsewhere, record its external owner and non-authoritative role before admission. Do not restore historical Agent Service vocabulary merely because an old use case reappears.

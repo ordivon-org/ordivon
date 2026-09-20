@@ -28,13 +28,9 @@ jobs:
       - name: Test
         run: uv run --locked python -m pytest
       - name: Lint
-        run: uv run --locked --group quality ruff check agent_service scripts tests
+        run: uv run --locked --group quality ruff check scripts tests
       - name: Format contract
-        run: uv run --locked --group quality ruff format --check agent_service scripts tests
-      - name: Static typing
-        run: uv run --locked --group typing pyright
-      - name: Architecture contracts
-        run: uv run --locked --group architecture lint-imports
+        run: uv run --locked --group quality ruff format --check scripts tests
       - name: Authority catalog
         run: uv run --locked --group authority python scripts/check_authority_catalog_r1.py
       - name: Standard-native integration
@@ -42,7 +38,7 @@ jobs:
       - name: Reasoning provider smoke
         run: uv run --locked --group reasoning python scripts/check_reasoning_waist_r1.py
       - name: Source security heuristics
-        run: uv run --locked --group security bandit -r agent_service scripts -q -s B404,B603
+        run: uv run --locked --group security bandit -r scripts -q -s B404,B603
       - name: Dependency vulnerability audit
         shell: bash
         run: |

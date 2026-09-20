@@ -3,16 +3,7 @@ name = "ordivon-next"
 version = "0.0.0"
 description = "Repository environment for Ordivon Next."
 requires-python = "==3.14.7"
-dependencies = [
-  "mcp==2.2.0",
-  "mcp-types==2.2.0",
-  "opentelemetry-distro[otlp]==0.65b0",
-  "opentelemetry-instrumentation-starlette==0.65b0",
-  "pydantic==2.13.4",
-  "rfc8785==0.1.4",
-  "sqlite-utils==4.2.1",
-  "uvicorn==0.52.1",
-]
+dependencies = []
 
 [dependency-groups]
 test = [
@@ -21,14 +12,8 @@ test = [
   "pytest==9.1.1",
   "z3-solver>=4,<5",
 ]
-architecture = [
-  "import-linter",
-]
 quality = [
   "ruff==0.16.8",
-]
-typing = [
-  "pyright>=1.1.414",
 ]
 security = [
   "bandit>=1.9.4",
@@ -60,39 +45,9 @@ testpaths = ["tests"]
 pythonpath = ["."]
 addopts = "-q"
 
-[tool.pyright]
-include = ["agent_service"]
-pythonVersion = "3.14"
-typeCheckingMode = "basic"
-
 [tool.ruff]
 target-version = "py314"
 extend-exclude = ["experiments"]
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F", "I", "UP"]
-
-[tool.importlinter]
-root_package = "agent_service"
-include_external_packages = true
-
-[[tool.importlinter.contracts]]
-name = "Runtime MCP semantic adapter must not own HTTP transport"
-type = "forbidden"
-source_modules = ["agent_service.runtime_mcp"]
-forbidden_modules = ["urllib", "requests", "httpx", "aiohttp"]
-as_packages = false
-
-[[tool.importlinter.contracts]]
-name = "Host board semantic adapter must not own HTTP transport"
-type = "forbidden"
-source_modules = ["agent_service.host_board"]
-forbidden_modules = ["urllib", "requests", "httpx", "aiohttp"]
-as_packages = false
-
-[[tool.importlinter.contracts]]
-name = "Provider semantic adapters must not own HTTP transport"
-type = "forbidden"
-source_modules = ["agent_service.provider_adapters"]
-forbidden_modules = ["urllib", "requests", "httpx", "aiohttp"]
-as_packages = false
