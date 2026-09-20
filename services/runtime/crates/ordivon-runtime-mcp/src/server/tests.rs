@@ -2586,3 +2586,59 @@ fn credential_bound_tool_schema_uses_opaque_names_not_digests_or_paths() {
     assert!(!credential_properties.contains_key("relativeObject"));
     assert!(!credential_properties.contains_key("presentationName"));
 }
+
+#[test]
+fn structured_release_platform_selects_only_its_native_deployer_and_authority() {
+    let root = PathBuf::from("/operator/runtime-source");
+    let common = |platform| RuntimeReleaseExecutionConfig {
+        platform,
+        source_repo: root.clone(),
+        install_dir: PathBuf::from("/operator/install"),
+        database: PathBuf::from("/operator/registry.sqlite3"),
+        env_file: PathBuf::from("/operator/runtime.env"),
+        receipt_root: PathBuf::from("/operator/receipts"),
+        service_name: "ordivon-runtime.service".to_string(),
+        broker_service_name: match platform {
+            RuntimeReleaseExecutionPlatform::LocalLinux => None,
+            RuntimeReleaseExecutionPlatform::WindowsNative => {
+                Some("OrdivonRuntimePrivilegedBroker".to_string())
+            }
+        },
+        required_ref: "origin/main".to_string(),
+        timeout_ms: 30_000,
+    };
+    let commit = "a".repeat(40);
+
+    let linux = common(RuntimeReleaseExecutionPlatform::LocalLinux);
+    assert_eq!(
+        linux.candidate_deployer(&commit),
+        linux.candidate_dir(&commit).join("ordivon-runtime-deploy")
+    );
+    assert_eq!(linux.execution_target(), ExecutionTarget::LocalLinux);
+    assert_eq!(linux.windows_authority(), WindowsAuthority::Limited);
+
+    let windows = common(RuntimeReleaseExecutionPlatform::WindowsNative);
+    assert_eq!(
+        windows.candidate_deployer(&commit),
+        windows
+            .candidate_dir(&commit)
+            .join("ordivon-runtime-windows-deploy.exe")
+    );
+    assert_eq!(windows.execution_target(), ExecutionTarget::WindowsNative);
+    assert_eq!(windows.windows_authority(), WindowsAuthority::Elevated);
+}
+
+#[test]
+fn compiled_tool_catalog_identity_is_deterministic_and_host_extension_free() {
+    let first = RuntimeServer::compiled_tool_catalog_identity();
+    let second = RuntimeServer::compiled_tool_catalog_identity();
+    assert_eq!(first, second);
+    assert_eq!(first.0, 23);
+    assert!(first.1.starts_with("sha256:"));
+    assert_eq!(first.1.len(), 71);
+
+    let sandbox = Sandbox::new("compiled-catalog-base");
+    let server = sandbox.server_with_input_ingress();
+    assert_eq!(RuntimeServer::compiled_tool_catalog_identity(), first);
+    assert_ne!(server.tool_catalog_digest(), first.1);
+}

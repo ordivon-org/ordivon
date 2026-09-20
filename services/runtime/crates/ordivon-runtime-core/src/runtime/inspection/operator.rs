@@ -386,6 +386,31 @@ fn validate_registry_marker_capabilities(connection: &Connection) -> RuntimeResu
     Ok(())
 }
 
+pub fn inspect_runtime_release_effect_owner(
+    config: &RuntimeInspectionConfig,
+    effect_id: &str,
+) -> RuntimeResult<Option<String>> {
+    if effect_id.len() != 64
+        || !effect_id
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
+        return Err(RuntimeError::invalid(
+            "effectId must be 64 lowercase hexadecimal characters",
+            "effectId",
+        ));
+    }
+    let (connection, _) = open_operator_read_only(config)?;
+    connection
+        .query_row(
+            "SELECT job_id FROM job_runtime_release_effects WHERE effect_id=?1",
+            [effect_id],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()
+        .map_err(|error| RuntimeError::from_sql(error, "resolve Runtime Release effect owner"))
+}
+
 pub fn inspect_registry(
     config: &RuntimeInspectionConfig,
     resolve_attempt_id: Option<&str>,

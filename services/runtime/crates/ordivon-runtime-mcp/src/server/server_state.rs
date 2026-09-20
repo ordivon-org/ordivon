@@ -510,6 +510,15 @@ impl RuntimeServer {
             .with_cache_scope(CacheScope::Private)
     }
 
+    pub fn compiled_tool_catalog_identity() -> (u32, String) {
+        let mut tools = Self::tool_router().list_all();
+        tools.sort_by(|left, right| left.name.cmp(&right.name));
+        let count = u32::try_from(tools.len()).expect("Runtime Tool catalog fits in u32");
+        let bytes = serde_json::to_vec(&tools)
+            .expect("Tool catalog serialization is infallible for generated schemas");
+        (count, format!("sha256:{:x}", Sha256::digest(bytes)))
+    }
+
     pub fn tool_catalog_digest(&self) -> String {
         let mut tools = self.catalog_tools();
         tools.sort_by(|left, right| left.name.cmp(&right.name));

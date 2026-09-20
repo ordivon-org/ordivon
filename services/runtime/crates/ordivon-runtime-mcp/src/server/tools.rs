@@ -146,7 +146,7 @@ impl RuntimeServer {
 
             let candidate_dir = release.candidate_dir(&request.commit);
             let candidate_manifest = candidate_dir.join("ordivon-deployment-manifest.json");
-            let candidate_deployer = candidate_dir.join("ordivon-runtime-deploy");
+            let candidate_deployer = release.candidate_deployer(&request.commit);
             let manifest_metadata = std::fs::symlink_metadata(&candidate_manifest).map_err(|error| {
                 ToolError::invalid(
                     format!("Runtime release candidate manifest is unavailable: {error}"),
@@ -216,6 +216,8 @@ impl RuntimeServer {
                 release.env_file.to_string_lossy().into_owned(),
                 "--receipt-root".to_string(),
                 release.receipt_root.to_string_lossy().into_owned(),
+                "--service".to_string(),
+                release.service_name.clone(),
                 "--expected-tool-count".to_string(),
                 request.expected_tool_count.to_string(),
                 "--require-ref".to_string(),
@@ -229,6 +231,13 @@ impl RuntimeServer {
                 "--drain-seconds".to_string(),
                 "30".to_string(),
             ];
+            let mut args = args;
+            if let Some(broker_service_name) = release.broker_service_name.as_ref() {
+                args.extend([
+                    "--broker-service".to_string(),
+                    broker_service_name.clone(),
+                ]);
+            }
             let proposal = JobRunProposal {
                 schema_version: RUNTIME_SCHEMA_VERSION,
                 client_request_id: request.client_request_id.clone(),
@@ -246,8 +255,8 @@ impl RuntimeServer {
                     steps: Vec::new(),
                     budget: ExecutionBudget::default(),
                     execution_profile: ExecutionProfile::TrustedLocal,
-                    execution_target: ExecutionTarget::LocalLinux,
-                    windows_authority: WindowsAuthority::Limited,
+                    execution_target: release.execution_target(),
+                    windows_authority: release.windows_authority(),
                     foreign_references: vec![ForeignReference {
                         namespace: "ordivon.runtime".to_string(),
                         reference_type: "runtime_release".to_string(),

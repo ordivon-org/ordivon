@@ -21,7 +21,7 @@ use ordivon_runtime_core::{
 };
 use ordivon_runtime_mcp::server::{
     AuthenticatedPrincipalBinding, ExecutionContext, InputIngressExecutionConfig,
-    RuntimeReleaseExecutionConfig, RuntimeServer, ServerConfig,
+    RuntimeReleaseExecutionConfig, RuntimeReleaseExecutionPlatform, RuntimeServer, ServerConfig,
 };
 use ordivon_runtime_mcp::{append_rotating_jsonl, DEFAULT_TRACE_ROTATION_BYTES};
 use rmcp::transport::streamable_http_server::{
@@ -97,6 +97,7 @@ struct AppConfig {
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct ProcessBootstrap {
     windows_service: bool,
+    self_check: bool,
     env_file: Option<PathBuf>,
 }
 
@@ -118,6 +119,7 @@ fn parse_process_args(
     args: impl IntoIterator<Item = OsString>,
 ) -> Result<ProcessBootstrap, Box<dyn std::error::Error>> {
     let mut windows_service = false;
+    let mut self_check = false;
     let mut env_file = None;
     let mut args = args.into_iter();
     while let Some(argument) = args.next() {
@@ -126,6 +128,11 @@ fn parse_process_args(
                 return Err("--windows-service may be specified only once".into());
             }
             windows_service = true;
+        } else if argument == "--self-check" {
+            if self_check {
+                return Err("--self-check may be specified only once".into());
+            }
+            self_check = true;
         } else if argument == "--env-file" {
             if env_file.is_some() {
                 return Err("--env-file may be specified only once".into());
@@ -144,8 +151,15 @@ fn parse_process_args(
             .into());
         }
     }
+    if windows_service && self_check {
+        return Err("--windows-service and --self-check are mutually exclusive".into());
+    }
+    if self_check && env_file.is_some() {
+        return Err("--self-check does not read --env-file".into());
+    }
     Ok(ProcessBootstrap {
         windows_service,
+        self_check,
         env_file,
     })
 }
@@ -231,6 +245,22 @@ fn validate_private_runtime_file_permissions(
     })
 }
 
+fn print_compiled_self_check() -> Result<(), Box<dyn std::error::Error>> {
+    let (tool_count, digest) = RuntimeServer::compiled_tool_catalog_identity();
+    println!(
+        "{}",
+        serde_json::to_string(&serde_json::json!({
+            "schemaVersion": 1,
+            "status": "ok",
+            "catalogScope": "compiled_base",
+            "compiledToolCount": tool_count,
+            "compiledBaseToolCatalogDigest": digest,
+            "maxMigrationVersion": ordivon_runtime_core::RUNTIME_MAX_MIGRATION_VERSION,
+        }))?
+    );
+    Ok(())
+}
+
 fn initialize_tracing() {
     let _ = tracing_subscriber::registry()
         .with(
@@ -248,6 +278,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if bootstrap.windows_service {
         return Err("--windows-service is available only on Windows".into());
     }
+    if bootstrap.self_check {
+        return print_compiled_self_check();
+    }
     initialize_tracing();
     run_runtime_server(CancellationToken::new(), true, None).await
 }
@@ -255,6 +288,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 #[cfg(windows)]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let bootstrap = bootstrap_process_environment(std::env::args_os().skip(1))?;
+    if bootstrap.self_check {
+        return print_compiled_self_check();
+    }
     initialize_tracing();
     if bootstrap.windows_service {
         windows_service::dispatch()?;
@@ -825,21 +861,54 @@ fn load_config() -> Result<AppConfig, Box<dyn std::error::Error>> {
             if timeout_ms == 0 || timeout_ms > max_runtime_ms {
                 return Err("ORDIVON_RELEASE_TIMEOUT_MS must be positive and no greater than ORDIVON_MAX_RUNTIME_MS".into());
             }
+            let platform = RuntimeReleaseExecutionPlatform::current_host();
+            let install_dir = optional_env("ORDIVON_RELEASE_INSTALL_DIR")?;
+            let env_file = optional_env("ORDIVON_RELEASE_ENV_FILE")?;
+            let receipt_root = optional_env("ORDIVON_RELEASE_RECEIPT_ROOT")?;
+            let (install_dir, env_file, receipt_root) = match platform {
+                RuntimeReleaseExecutionPlatform::LocalLinux => (
+                    install_dir.unwrap_or_else(|| "/usr/local/libexec/ordivon".to_string()),
+                    env_file.unwrap_or_else(|| "/etc/ordivon/ordivon-runtime.env".to_string()),
+                    receipt_root.unwrap_or_else(|| "/var/lib/ordivon/deployments".to_string()),
+                ),
+                RuntimeReleaseExecutionPlatform::WindowsNative => (
+                    install_dir.ok_or(
+                        "ORDIVON_RELEASE_INSTALL_DIR is required for native Windows structured release",
+                    )?,
+                    env_file.ok_or(
+                        "ORDIVON_RELEASE_ENV_FILE is required for native Windows structured release",
+                    )?,
+                    receipt_root.ok_or(
+                        "ORDIVON_RELEASE_RECEIPT_ROOT is required for native Windows structured release",
+                    )?,
+                ),
+            };
+            let (service_name, broker_service_name) = match platform {
+                RuntimeReleaseExecutionPlatform::LocalLinux => (
+                    optional_env("ORDIVON_RELEASE_SERVICE_NAME")?
+                        .unwrap_or_else(|| "ordivon-runtime.service".to_string()),
+                    None,
+                ),
+                RuntimeReleaseExecutionPlatform::WindowsNative => (
+                    optional_env("ORDIVON_RELEASE_SERVICE_NAME")?.ok_or(
+                        "ORDIVON_RELEASE_SERVICE_NAME is required for native Windows structured release",
+                    )?,
+                    Some(
+                        optional_env("ORDIVON_RELEASE_BROKER_SERVICE_NAME")?.ok_or(
+                            "ORDIVON_RELEASE_BROKER_SERVICE_NAME is required for native Windows structured release",
+                        )?,
+                    ),
+                ),
+            };
             Ok(RuntimeReleaseExecutionConfig {
+                platform,
                 source_repo: PathBuf::from(source_repo),
-                install_dir: PathBuf::from(
-                    optional_env("ORDIVON_RELEASE_INSTALL_DIR")?
-                        .unwrap_or_else(|| "/usr/local/libexec/ordivon".to_string()),
-                ),
+                install_dir: PathBuf::from(install_dir),
                 database: registry_root.join("registry.sqlite3"),
-                env_file: PathBuf::from(
-                    optional_env("ORDIVON_RELEASE_ENV_FILE")?
-                        .unwrap_or_else(|| "/etc/ordivon/ordivon-runtime.env".to_string()),
-                ),
-                receipt_root: PathBuf::from(
-                    optional_env("ORDIVON_RELEASE_RECEIPT_ROOT")?
-                        .unwrap_or_else(|| "/var/lib/ordivon/deployments".to_string()),
-                ),
+                env_file: PathBuf::from(env_file),
+                receipt_root: PathBuf::from(receipt_root),
+                service_name,
+                broker_service_name,
                 required_ref: optional_env("ORDIVON_RELEASE_REQUIRED_REF")?
                     .unwrap_or_else(|| "origin/main".to_string()),
                 timeout_ms,
