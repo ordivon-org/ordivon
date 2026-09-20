@@ -1,6 +1,6 @@
 # Native Windows R6c Remaining LEGO Plan R2
 
-Status: active acceptance plan
+Status: C1/C2 PASS; C3/C4/C5 pending
 Date: 2026-09-19
 Candidate service: OrdivonRuntimeR6Candidate
 Candidate node: windows-main-r6-candidate
@@ -9,11 +9,34 @@ Production endpoint 127.0.0.1:8897 remains out of scope until final cutover.
 
 ## LEGO C1 — crash / SCM recovery
 
+Verified on 2026-09-20 against release 00ae7525ff0d444f91f6250d5f055c635c0e092e: **PASS**.
+
+Bound crash witness:
+- harness Job job-01a0bd5c-d89e-7e31-9db5-7e331c9bfa67;
+- candidate PID 18528 -> 13248;
+- old PID absent after recovery;
+- SCM state returned to Running;
+- authenticated runtime.describe before/after reported the same native windows-main-r6-candidate node.
+
+Later repeated faults advanced SCM to its third 60-second recovery action. The final C2 run
+therefore also exercised candidate PID 5180 -> 7032 under the longest configured restart delay.
+
 Authority owner:
 - Windows SCM owns service failure detection and restart timing.
 
 Fault:
 - terminate only the candidate service process, never the live Linux Runtime.
+
+Current candidate SCM recovery policy:
+- restart after 5 seconds on the first failure;
+- restart after 15 seconds on the second failure;
+- restart after 60 seconds on the third and subsequent failures;
+- failure counter reset period is 86400 seconds.
+
+Acceptance harness rule:
+- the recovery observation window must cover the longest configured SCM delay plus startup/probe margin;
+- the current harness uses 90 seconds and records that value in its evidence;
+- a fixed 30-second window is invalid because repeated acceptance faults legitimately advance SCM to the 60-second action.
 
 Required evidence:
 1. bind candidate PID before the fault;
@@ -32,6 +55,27 @@ Non-evidence:
 - SCM configuration read-back without failure injection.
 
 ## LEGO C2 — active Job reconciliation
+
+Verified on 2026-09-20 against release 00ae7525ff0d444f91f6250d5f055c635c0e092e: **PASS**.
+
+Final authority-correct witness:
+- acceptance harness Job job-01a0bd75-b54d-78a2-b6f6-1197f29c0007;
+- prepared source created by the real limited service identity;
+- target Workspace ws-r6c-native-recovery-1aaa4fb800bd424f;
+- target Job job-01a0bd75-b93e-7a91-a921-2887b415179d;
+- target Attempt attempt-01a0bd75-b93e-7a91-a921-289b1a392b9b;
+- Runtime PID 5180 -> 7032;
+- recovery observation window 90s, covering the configured 60s final SCM action;
+- target terminal state succeeded, delivery committed;
+- stdout R6C_ACTIVE_JOB_DONE;
+- exact replay returned the same Job and Attempt identities;
+- replaySameJob = true;
+- post-fault Doctor Job job-01a0bd77-0258-7153-81ae-77d1d655757a reported
+  integrityCheck=ok, violationCount=0, recoveryRequiredAttempts=0, migration 6.
+
+A previous 60-second-window run also proved that the Windows Job Object target completed while
+the Runtime service was down, and exact replay later returned the same Job/Attempt. The only
+failure in that run was the obsolete fixed 30-second SCM observation timeout.
 
 Authority owner:
 - Runtime Registry/Attempt reconciliation owns physical execution truth after restart.
@@ -53,6 +97,16 @@ Required evidence:
 
 Acceptance:
 - no duplicate dispatch and no speculative success/failure classification.
+
+Acceptance-tooling residual, not a C1/C2 blocker:
+- two earlier fixture workspaces remain as missing-worktree Registry records:
+  ws-r6c-native-recovery-509dae846b9c48b0 and ws-r6c-native-recovery-db1bd49be2f34721;
+- workspace.list isolates both as dirty_probe issues because their Git worktree metadata was
+  removed when an earlier acceptance fixture source was re-materialized;
+- workspace.close(force=true) currently fails before reaching its documented recovered_missing
+  disposition because it performs a Git probe against the missing worktree;
+- do not repair this by direct SQLite mutation. Fix the generic workspace.close missing-worktree
+  reconciliation path in a later Runtime release.
 
 ## LEGO C3 — WSL independence
 
@@ -141,5 +195,5 @@ C2 reconciliation   C3 WSL independence
               v
      compatibility deletion
 
-C3 and C4 remain deliberately gated because they can disrupt unrelated active work. C1/C2 are
-side-by-side candidate experiments and can proceed without touching production 8897.
+C1 and C2 are now closed by native candidate evidence. C3 and C4 remain deliberately gated
+because they can disrupt unrelated active work. Production 8897/windows-main remains untouched.

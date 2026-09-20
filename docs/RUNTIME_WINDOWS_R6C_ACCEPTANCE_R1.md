@@ -1,9 +1,10 @@
 # Native Windows Runtime R6c Acceptance Evidence R1
 
-Status: partial acceptance; no production cutover
+Status: C1/C2 accepted; C3/C4/C5 pending; no production cutover
 Date: 2026-09-19
 Workspace: `ws-runtime-fabric-final-r1-20260919`
-Source revision: `a367dbc2c903ab0cd792bd5968628425ebb1da18`
+Historical source revision: a367dbc2c903ab0cd792bd5968628425ebb1da18
+Current accepted candidate release: 00ae7525ff0d444f91f6250d5f055c635c0e092e
 
 ## Candidate identity
 
@@ -14,9 +15,11 @@ Source revision: `a367dbc2c903ab0cd792bd5968628425ebb1da18`
 - state root: `C:\ProgramData\Ordivon\RuntimeCandidateR6`
 - staging root: `C:\ProgramData\Ordivon\RuntimeCandidateR6Stage`
 - Runtime executable SHA-256:
-  `fb7095fbbd2d72214204770632583b7fc74209fe516fb3418866d9d8d3c9b66d`
+  0c84fb699fbff453c0c3dbf1559bb5d2da066b56519cf4c87ad8c893d218c857
 - Windows Job launcher SHA-256:
-  `a14ea554c4aa4df8c3ebdab2d49ba9d8f0fd071a75194d0c4ddb7bab8b4cde5f`
+  bf356744461c13d61dced95b922bceb081521a4b521db4826222b2266b63b35b
+- Windows privileged broker SHA-256:
+  24cc9f2c9a3758f53fc407cdcc12bbcfb28e620975a7e9b5b52c366718e2d92b
 
 The candidate is side-by-side and does not own the live `8897/windows-main` identity.
 
@@ -152,6 +155,57 @@ Interpretation: the candidate HTTP/MCP listener remained reachable while the old
 provider path was unavailable. This is useful independence evidence, but it is not equivalent to a
 full `wsl.exe --shutdown` acceptance.
 
+## Superseding C1/C2 evidence — 2026-09-20
+
+The earlier failure-injection section above is retained as historical evidence. It was superseded
+by native candidate-controlled experiments after structured Windows release
+00ae7525ff0d444f91f6250d5f055c635c0e092e was deployed.
+
+### C1 crash / SCM recovery — PASS
+
+Dedicated crash harness Job:
+job-01a0bd5c-d89e-7e31-9db5-7e331c9bfa67
+
+Observed:
+- candidate PID 18528 -> 13248;
+- old PID absent;
+- SCM returned Running;
+- authenticated runtime.describe succeeded before and after the crash;
+- node identity remained windows-main-r6-candidate, native Windows.
+
+Repeated acceptance faults exposed the configured SCM sequence 5s / 15s / 60s with a
+86400s reset period. The harness now uses a 90-second recovery window so third and later
+faults cannot produce a false negative.
+
+### C2 active Job reconciliation — PASS
+
+Final harness Job:
+job-01a0bd75-b54d-78a2-b6f6-1197f29c0007
+
+Target:
+- Workspace ws-r6c-native-recovery-1aaa4fb800bd424f;
+- Job job-01a0bd75-b93e-7a91-a921-2887b415179d;
+- Attempt attempt-01a0bd75-b93e-7a91-a921-289b1a392b9b.
+
+The acceptance fixture was created by the real limited service token instead of being fabricated
+by LocalSystem and then re-owned. The Runtime was crashed while the target was working.
+SCM recovery changed PID 5180 -> 7032; the target completed as succeeded/committed with
+R6C_ACTIVE_JOB_DONE; exact replay returned the same Job and Attempt; replaySameJob=true.
+
+Post-fault Doctor Job:
+job-01a0bd77-0258-7153-81ae-77d1d655757a
+
+Doctor reported:
+- integrityCheck = ok;
+- violationCount = 0;
+- recoveryRequiredAttempts = 0;
+- migration version 6.
+
+The acceptance harness itself was corrected in two places exposed by this run:
+1. fixture Git authority now stays with the real limited service identity; LocalSystem no longer
+   simulates that identity by changing repository ownership;
+2. working-state observation uses job.observe, while job.get remains projection-only.
+
 ## Current verdict by LEGO
 
 | LEGO | Status |
@@ -166,8 +220,8 @@ full `wsl.exe --shutdown` acceptance.
 | R6c start/readiness | PASS |
 | R6c graceful stop | PASS |
 | R6c restart | PASS |
-| R6c crash/failure-action restart | INCONCLUSIVE |
-| R6c active-Job reconciliation | NOT YET PROVEN |
+| R6c crash/failure-action restart | PASS |
+| R6c active-Job reconciliation | PASS |
 | R6c actual WSL terminate/shutdown independence | NOT YET PROVEN |
 | R6c cold boot auto-start | NOT YET PROVEN |
 | production cutover | NOT PERFORMED |
@@ -188,14 +242,10 @@ It must not be repaired into another permanent custom control plane. Its accepta
 
 ## Next evidence gates
 
-1. obtain an unambiguous SCM crash/restart witness that does not depend on the failing live
-   WSL-to-Windows provider;
-2. run a real Job under the candidate, inject service failure, and verify Registry reconciliation
-   without duplicate dispatch;
-3. perform Windows-owned WSL terminate/shutdown witness only after observation itself no longer
-   depends on WSL;
-4. test cold boot automatic start;
-5. only then promote the exact accepted build to production and delete the compatibility carrier.
+1. perform the Windows-owned WSL terminate/shutdown witness only after explicit approval because it
+   interrupts the live Linux Runtime and other WSL-dependent work;
+2. obtain an exact-00ae7525 cold-boot automatic-start witness;
+3. only after C3/C4 pass, perform the production cutover and delete the compatibility carrier.
 
 ## C2 parent-owned launcher identity correction
 

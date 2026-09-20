@@ -1,14 +1,18 @@
 #requires -version 5.1
 [CmdletBinding()]
 param(
-    [ValidateSet('Status', 'AuthorityProfile', 'CrashRecovery', 'ActiveJobRecovery', 'CancelJob')]
+    [ValidateSet('Status', 'AuthorityProfile', 'PrepareFixture', 'CrashRecovery', 'ActiveJobRecovery', 'CancelJob')]
     [string]$Mode = 'Status',
 
     [string]$ServiceName = 'OrdivonRuntimeR6Candidate',
     [string]$Endpoint = 'http://127.0.0.1:18997/mcp',
     [string]$ExpectedNodeId = 'windows-main-r6-candidate',
     [string]$TokenFile = 'C:\ProgramData\Ordivon\RuntimeCandidateR6\secrets\runtime-mcp.token',
-    [string]$AcceptanceRoot = 'C:\ProgramData\Ordivon\RuntimeCandidateR6Acceptance',
+    [string]$AcceptanceRoot = 'C:\ProgramData\Ordivon\RuntimeCandidateR6\store\acceptance-fixtures\r6c',
+    [string]$PreparedSourceRepo = '',
+    [string]$PreparedSourceRevision = '',
+    [ValidateRange(60, 300)]
+    [int]$RecoveryTimeoutSeconds = 90,
     [string]$JobId = '',
     [switch]$ApplyFault
 )
@@ -167,7 +171,7 @@ function Get-RuntimeDescribe {
 function Wait-RecoveredService {
     param(
         [Parameter(Mandatory = $true)][int]$PreviousPid,
-        [int]$TimeoutSeconds = 30
+        [int]$TimeoutSeconds = 90
     )
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
     do {
@@ -197,7 +201,7 @@ function Invoke-CrashRecovery {
     $runtimeBefore = Get-RuntimeDescribe -Id 10
 
     Stop-Process -Id $before.processId -Force
-    $after = Wait-RecoveredService -PreviousPid $before.processId
+    $after = Wait-RecoveredService -PreviousPid $before.processId -TimeoutSeconds $RecoveryTimeoutSeconds
     $runtimeAfter = Get-RuntimeDescribe -Id 11
 
     return [ordered]@{
@@ -209,32 +213,32 @@ function Invoke-CrashRecovery {
         pidChanged = ($after.processId -ne $before.processId)
         oldPidAbsent = ($null -eq (Get-Process -Id $before.processId -ErrorAction SilentlyContinue))
         scmState = $after.state
+        recoveryTimeoutSeconds = $RecoveryTimeoutSeconds
         nodeBefore = $runtimeBefore.node
         nodeAfter = $runtimeAfter.node
         passed = $true
     }
 }
 
-function Set-AcceptanceRepositoryOwnerToService {
-    param([Parameter(Mandatory = $true)][string]$Path)
-
+function Get-CandidateServiceSid {
     $serviceAccount = "NT SERVICE\$ServiceName"
-    $owner = [Security.Principal.NTAccount]::new($serviceAccount).Translate(
+    return [Security.Principal.NTAccount]::new($serviceAccount).Translate(
         [Security.Principal.SecurityIdentifier])
+}
 
-    $items = @([IO.DirectoryInfo]::new($Path))
-    $items += @(Get-ChildItem -LiteralPath $Path -Force -Recurse)
-    foreach ($item in $items) {
-        $acl = Get-Acl -LiteralPath $item.FullName
-        $acl.SetOwner($owner)
-        Set-Acl -LiteralPath $item.FullName -AclObject $acl
+function Assert-CurrentTokenIsCandidateServiceIdentity {
+    $expected = Get-CandidateServiceSid
+    $current = [Security.Principal.WindowsIdentity]::GetCurrent()
+    if ($null -eq $current.User -or $current.User.Value -ne $expected.Value) {
+        throw 'PrepareFixture must run under the dedicated candidate service identity.'
     }
 }
 
 function Ensure-TestRepository {
+    Assert-CurrentTokenIsCandidateServiceIdentity
     $git = 'C:\Program Files\Git\cmd\git.exe'
     if (-not [IO.File]::Exists($git)) {
-        throw 'Git for Windows is required for ActiveJobRecovery.'
+        throw 'Git for Windows is required for PrepareFixture.'
     }
     $repo = Join-Path $AcceptanceRoot 'source'
     if ([IO.Directory]::Exists($repo)) {
@@ -253,11 +257,45 @@ function Ensure-TestRepository {
     if ($LASTEXITCODE -ne 0 -or $revision -notmatch '^[0-9a-f]{40}$') {
         throw 'git rev-parse failed'
     }
+    $owner = (Get-Acl -LiteralPath $repo).Owner
+    $actualSid = [Security.Principal.NTAccount]::new($owner).Translate(
+        [Security.Principal.SecurityIdentifier]).Value
+    $expectedSid = (Get-CandidateServiceSid).Value
+    if ($actualSid -ne $expectedSid) {
+        throw 'PrepareFixture repository owner is not the dedicated candidate service identity.'
+    }
+    return [pscustomobject]@{ path = $repo; revision = $revision; ownerSid = $actualSid }
+}
 
-    # Git safe.directory is owner-based. Keep its protection enabled and make the
-    # candidate-only fixture genuinely owned by the virtual service identity.
-    Set-AcceptanceRepositoryOwnerToService -Path $repo
-    return [pscustomobject]@{ path = $repo; revision = $revision }
+function Resolve-PreparedTestRepository {
+    if ([string]::IsNullOrWhiteSpace($PreparedSourceRepo) -or
+        [string]::IsNullOrWhiteSpace($PreparedSourceRevision)) {
+        throw 'ActiveJobRecovery requires -PreparedSourceRepo and -PreparedSourceRevision from PrepareFixture.'
+    }
+    if (-not [IO.Path]::IsPathRooted($PreparedSourceRepo) -or
+        -not [IO.Directory]::Exists($PreparedSourceRepo)) {
+        throw 'PreparedSourceRepo must be an existing absolute directory.'
+    }
+    if ($PreparedSourceRevision -notmatch '^[0-9a-f]{40}$') {
+        throw 'PreparedSourceRevision must be one exact 40-character Git commit.'
+    }
+    $root = [IO.Path]::GetFullPath($AcceptanceRoot).TrimEnd('\')
+    $repo = [IO.Path]::GetFullPath($PreparedSourceRepo).TrimEnd('\')
+    if (-not ($repo + '\').StartsWith($root + '\', [StringComparison]::OrdinalIgnoreCase)) {
+        throw 'PreparedSourceRepo must stay beneath AcceptanceRoot.'
+    }
+    # Do not make LocalSystem a second Git authority for a repository owned by the
+    # dedicated service identity. workspace.open resolves and verifies the exact
+    # PreparedSourceRevision under the Runtime service identity immediately after
+    # this ownership/path preflight.
+    $owner = (Get-Acl -LiteralPath $repo).Owner
+    $actualSid = [Security.Principal.NTAccount]::new($owner).Translate(
+        [Security.Principal.SecurityIdentifier]).Value
+    $expectedSid = (Get-CandidateServiceSid).Value
+    if ($actualSid -ne $expectedSid) {
+        throw 'PreparedSourceRepo is not owned by the dedicated candidate service identity.'
+    }
+    return [pscustomobject]@{ path = $repo; revision = $PreparedSourceRevision; ownerSid = $actualSid }
 }
 
 function Wait-JobWorking {
@@ -269,12 +307,17 @@ function Wait-JobWorking {
     $id = 100
     do {
         $id++
-        $job = Invoke-McpTool -Name 'job.get' -Arguments @{
+        $job = Invoke-McpTool -Name 'job.observe' -Arguments @{
             schemaVersion = 1
             jobId = $JobId
-            eventLimit = 100
+            waitMs = 500
+            waitUntil = 'change_or_terminal'
+            stdoutTailBytes = 0
+            stderrTailBytes = 0
         } -Id $id
-        if ($job.attemptState -in @('running', 'starting')) {
+        $attemptStateProperty = $job.PSObject.Properties['attemptState']
+        if ($null -ne $attemptStateProperty -and
+            $attemptStateProperty.Value -in @('running', 'starting')) {
             return $job
         }
         if ($job.executionTerminal -eq $true) {
@@ -432,8 +475,7 @@ function Invoke-ActiveJobRecovery {
         throw 'ActiveJobRecovery requires -ApplyFault.'
     }
 
-    [IO.Directory]::CreateDirectory($AcceptanceRoot) | Out-Null
-    $repo = Ensure-TestRepository
+    $repo = Resolve-PreparedTestRepository
     $workspaceId = ('ws-r6c-native-recovery-' + [Guid]::NewGuid().ToString('N').Substring(0, 16))
     $clientRequestId = ('r6c-native-recovery-' + [Guid]::NewGuid().ToString('N'))
 
@@ -484,7 +526,7 @@ function Invoke-ActiveJobRecovery {
         throw 'candidate service is not Running before active-Job crash.'
     }
     Stop-Process -Id $serviceBefore.processId -Force
-    $serviceAfter = Wait-RecoveredService -PreviousPid $serviceBefore.processId
+    $serviceAfter = Wait-RecoveredService -PreviousPid $serviceBefore.processId -TimeoutSeconds $RecoveryTimeoutSeconds
     $runtimeAfter = Get-RuntimeDescribe -Id 202
 
     $terminal = Invoke-McpTool -Name 'job.observe' -Arguments @{
@@ -526,6 +568,7 @@ function Invoke-ActiveJobRecovery {
         servicePidBefore = $serviceBefore.processId
         servicePidAfter = $serviceAfter.processId
         servicePidChanged = ($serviceAfter.processId -ne $serviceBefore.processId)
+        recoveryTimeoutSeconds = $RecoveryTimeoutSeconds
         workingBeforeFault = $working.status
         terminalStatus = $terminal.status
         executionDisposition = $terminal.executionDisposition
@@ -538,7 +581,9 @@ function Invoke-ActiveJobRecovery {
 }
 
 Assert-CandidateBoundary
-$script:BearerToken = Read-BearerToken
+if ($Mode -ne 'PrepareFixture') {
+    $script:BearerToken = Read-BearerToken
+}
 
 switch ($Mode) {
     'Status' {
@@ -556,6 +601,18 @@ switch ($Mode) {
     }
     'AuthorityProfile' {
         (Invoke-AuthorityProfile) | ConvertTo-Json -Depth 16
+    }
+    'PrepareFixture' {
+        [IO.Directory]::CreateDirectory($AcceptanceRoot) | Out-Null
+        $repo = Ensure-TestRepository
+        [ordered]@{
+            schemaVersion = 1
+            mode = 'PrepareFixture'
+            sourceRepo = $repo.path
+            sourceRevision = $repo.revision
+            ownerSid = $repo.ownerSid
+            passed = $true
+        } | ConvertTo-Json -Depth 16
     }
     'CrashRecovery' {
         (Invoke-CrashRecovery) | ConvertTo-Json -Depth 16
