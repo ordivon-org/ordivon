@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 3,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "source-current-owner-map-not-runtime-truth",
+  "project": {
+    "id": "ordivon-host-v2",
+    "purpose": "Durable semantic re-entry and collaboration persistence; remember claims without promoting them into foreign truth."
+  },
+  "kernelLaws": [
+    "Host owns Host-local identity/revision/persisted bytes, not foreign truth.",
+    "Discovery and attention are projections, never priority or execution admission.",
+    "Prefer external substrate owners; retain custom code only for irreducible continuity semantics."
+  ],
+  "retained": [
+    {
+      "id": "K01",
+      "name": "ContinuityTaskLedger",
+      "owner": "Host",
+      "standing": "IRREDUCIBLE_SEMANTIC_RESIDUE"
+    },
+    {
+      "id": "K02",
+      "name": "CheckpointHistory",
+      "owner": "Host",
+      "standing": "IRREDUCIBLE_SEMANTIC_RESIDUE"
+    },
+    {
+      "id": "K03",
+      "name": "MutationReplayContract",
+      "owner": "Host+PostgreSQL",
+      "standing": "THIN_DOMAIN_CONTRACT"
+    },
+    {
+      "id": "C01",
+      "name": "BoardJournal",
+      "owner": "Host+PostgreSQL",
+      "standing": "THIN_DOMAIN_CONTRACT"
+    },
+    {
+      "id": "P01",
+      "name": "AttentionDelta",
+      "owner": "Host projection",
+      "standing": "REPLACEABLE_PROJECTION"
+    },
+    {
+      "id": "P02",
+      "name": "CompactTaskInventory",
+      "owner": "Host projection",
+      "standing": "REPLACEABLE_PROJECTION"
+    },
+    {
+      "id": "P03",
+      "name": "BoardSearch",
+      "owner": "PostgreSQL FTS",
+      "standing": "EXTERNAL_SUBSTRATE"
+    },
+    {
+      "id": "U01",
+      "name": "ScopeBoundCursor",
+      "owner": "Host API contract",
+      "standing": "SMALL_LOCAL_UTILITY"
+    }
+  ],
+  "externalOwners": [
+    {
+      "capability": "transactional persistence / MVCC / FK / indexing",
+      "owner": "PostgreSQL"
+    },
+    {
+      "capability": "schema evolution",
+      "owner": "Alembic"
+    },
+    {
+      "capability": "validation / JSON Schema generation",
+      "owner": "Pydantic"
+    },
+    {
+      "capability": "canonical JSON bytes",
+      "owner": "RFC 8785 implementation"
+    },
+    {
+      "capability": "MCP protocol / HTTP transport",
+      "owner": "official MCP Python SDK"
+    },
+    {
+      "capability": "Python version acquisition / environment sync",
+      "owner": "uv + project .python-version / uv.lock"
+    },
+    {
+      "capability": "service lifecycle / sandboxing",
+      "owner": "systemd"
+    },
+    {
+      "capability": "quality verification",
+      "owner": "pytest + Hypothesis + Ruff + GitHub Actions"
+    }
+  ],
+  "retired": [
+    "NewsPublication",
+    "SyntheticTaskRouteAnchor",
+    "RouteDepthAndStanding",
+    "WorkStandingOntology",
+    "CheckpointPatchLanguage",
+    "HandoffCapsule",
+    "GenericExtensionState",
+    "GenericActivityLog",
+    "HydratedTaskListDuplicatePath",
+    "OSPathPinnedPythonInterpreter"
+  ],
+  "nonSubstitutions": [
+    {
+      "candidate": "MCP Tasks extension",
+      "reason": "MCP Tasks model asynchronous request execution handles; Host Tasks model cross-agent semantic continuity, so semantic substitution would collapse bounded contexts."
+    }
+  ],
+  "nextBoundaries": [
+    {
+      "name": "authenticated caller provenance",
+      "targetOwner": "MCP/OAuth ingress",
+      "rule": "do not turn writerLabel into authorization"
+    },
+    {
+      "name": "observability",
+      "targetOwner": "OpenTelemetry/ops",
+      "rule": "Host Doctor remains Host-local invariant checking only"
+    }
+  ],
+  "doNotOwn": [
+    "priority",
+    "assignee",
+    "scheduler",
+    "execution",
+    "Runtime currentness",
+    "Git currentness",
+    "deployment control",
+    "external-world truth",
+    "domain completion"
+  ]
+}

@@ -22,7 +22,7 @@ host.status, attention.delta, board.list, board.search, board.post, task.observe
 
 `task.list` is a compact discovery projection and does not return WorkingCheckpoint payloads; use `task.resume` when exact checkpoint content is needed.
 
-Task adoption atomically establishes a deterministic Board route anchor. `attention.delta` consumes Board sequence deltas, treats route anchors as infrastructure, resolves reply ancestry into exact Task identities, and requires exact `task.resume` re-entry before action.
+Board collaboration binds directly to Host Tasks through PostgreSQL referential integrity. Replies inherit the parent Task route, and `attention.delta` projects bounded Board sequence deltas into exact Task re-entry coordinates while still requiring `task.resume` before action.
 
 Host v2 intentionally has no priority, assignee, lease, scheduler, Runtime proxy, generic activity feed, or opaque extension-state subsystem. Runtime/Git/domain references retained inside checkpoints remain navigation hints that require owner-native revalidation.
 

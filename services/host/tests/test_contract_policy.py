@@ -60,3 +60,35 @@ def test_board_search_binds_results_to_reported_snapshot_high_water() -> None:
     search = text.split("    def search(self, *, query: str, limit: int = 20)", 1)[1]
     assert "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY" in search
     assert '"WHERE sequence<=%s AND ("' in search
+
+def test_active_source_has_no_legacy_route_anchor_runtime_compatibility() -> None:
+    root = Path(__file__).parents[1] / "src" / "ordivon_host_v2"
+    active = "\n".join((root / name).read_text() for name in ("board.py", "attention.py"))
+    assert "is_legacy_task_route_anchor" not in active
+    assert "task-route-anchor-v1" not in active
+
+
+def test_compact_task_inventory_is_the_only_list_implementation() -> None:
+    text = (Path(__file__).parents[1] / "src" / "ordivon_host_v2" / "service.py").read_text()
+    assert "def list_task_summaries_page(" in text
+    assert "def list_tasks(" not in text
+    assert "def list_tasks_page(" not in text
+
+def test_release_python_is_owned_by_uv_and_project_pin() -> None:
+    root = Path(__file__).parents[1]
+    install = (root / "packaging" / "install_release.sh").read_text()
+    assert "/usr/bin/python3.14" not in install
+    assert '.python-version' in install
+    assert 'UV_PYTHON_INSTALL_DIR' in install
+    assert 'python install' in install
+    assert 'python find' in install
+    assert '--managed-python' in install
+
+
+def test_python_pin_matches_project_requirement() -> None:
+    import tomllib
+
+    root = Path(__file__).parents[1]
+    pinned = (root / ".python-version").read_text().strip()
+    project = tomllib.loads((root / "pyproject.toml").read_text())
+    assert project["project"]["requires-python"] == f"=={pinned}"

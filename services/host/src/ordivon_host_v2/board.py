@@ -11,26 +11,12 @@ from .errors import ConflictError
 
 _MESSAGE_KINDS = {"note", "question", "proposal", "warning", "reply"}
 
-_LEGACY_TASK_ROUTE_ANCHOR_ID_PREFIX = "task-route-anchor-v1:"
-
 
 def _validate_optional_filter(value: str | None, label: str, max_length: int = 256) -> None:
     if value is not None and (
         not isinstance(value, str) or not value or value != value.strip() or len(value) > max_length
     ):
         raise ValueError(f"{label} must be null or 1-{max_length} trimmed characters")
-
-
-def is_legacy_task_route_anchor(row: dict[str, Any]) -> bool:
-    """Recognize historical infrastructure rows without using them for active routing."""
-    return (
-        isinstance(row.get("client_message_id"), str)
-        and row["client_message_id"].startswith(_LEGACY_TASK_ROUTE_ANCHOR_ID_PREFIX)
-        and row.get("author_label") == "task-routing-anchor-v1"
-        and row.get("message_kind") == "note"
-        and row.get("topic") == "agent-native-collaboration-routing"
-        and row.get("reply_to_client_message_id") is None
-    )
 
 
 def _validate_task_id(value: str | None) -> None:
@@ -93,8 +79,6 @@ class BoardStore:
             raise ValueError("topic is invalid")
         _validate_optional_filter(reply_to_client_message_id, "replyToClientMessageId")
         _validate_task_id(task_id)
-        if client_message_id.startswith(_LEGACY_TASK_ROUTE_ANCHOR_ID_PREFIX):
-            raise ValueError("legacy task-route-anchor-v1 namespace is retired")
         value = {
             "clientMessageId": client_message_id,
             "authorLabel": author_label,
