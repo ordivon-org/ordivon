@@ -288,7 +288,7 @@ class BrowserlessPodmanDeploymentTests(unittest.TestCase):
         self.assertIn('"activationUnit": "ordivon-browser-agent.target"', source)
         self.assertIn('"idleStopUnits": [', source)
         self.assertIn('"browserlessIdleTtlSeconds": 900', source)
-        self.assertIn('"browserlessWarmEndpointIds": ["chatgpt-carrier-11"]', source)
+        self.assertIn("WARM_CHATGPT_INSTANCES = (11,)", source)
         self.assertIn('ordivon-browserless-idle-reaper.timer', source)
 
         browser = deploy.render_browser_use_config(self.binding())
@@ -303,6 +303,30 @@ class BrowserlessPodmanDeploymentTests(unittest.TestCase):
                 "ordivon-browserless-operator-proxy@22.service",
             ],
         )
+
+    def test_warm_chatgpt_instance_materializes_quadlet_template_instance(self):
+        import browserless_podman_deploy as deploy
+
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            template = root / "ordivon-browserless@.container"
+            template.write_text("[Container]\nImage=example\n")
+            with mock.patch.object(deploy, "QUADLET_DEST", template):
+                first = deploy.converge_warm_quadlet_instance(11)
+                second = deploy.converge_warm_quadlet_instance(11)
+
+            instance = root / "ordivon-browserless@11.container"
+            self.assertTrue(first)
+            self.assertFalse(second)
+            self.assertTrue(instance.is_symlink())
+            self.assertEqual(instance.readlink(), Path(template.name))
+
+    def test_only_declared_warm_chatgpt_instance_is_boot_materialized(self):
+        import browserless_podman_deploy as deploy
+
+        self.assertEqual(deploy.WARM_CHATGPT_INSTANCES, (11,))
+        cfg = deploy.render_config(self.binding())
+        self.assertEqual(cfg["browserlessWarmEndpointIds"], ["chatgpt-carrier-11"])
 
     def test_browserless_executes_podman_without_docker_execution_path(self):
         source = (ROOT / "scripts/browserless_podman_deploy.py").read_text()

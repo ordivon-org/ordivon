@@ -55,6 +55,7 @@ DATA_ROOT = Path("/var/lib/ordivon/browserless")
 CONFIG_FILE = Path("/etc/ordivon/agent-automation-browserless.json")
 BROWSER_USE_CONFIG_FILE = Path("/etc/ordivon/browser-use-browserless.json")
 CHATGPT_INSTANCES = (11, 12, 13)
+WARM_CHATGPT_INSTANCES = (11,)
 BROWSER_AGENT_INSTANCES = (22,)
 ALL_BROWSERLESS_INSTANCES = CHATGPT_INSTANCES + BROWSER_AGENT_INSTANCES
 PLAYWRIGHT_PYTHON = Path(
@@ -253,6 +254,22 @@ def _write_if_changed(path: Path, raw: bytes, mode: int) -> bool:
     return True
 
 
+def converge_warm_quadlet_instance(instance: int) -> bool:
+    """Materialize one warm template instance using Quadlet's supported symlink form."""
+    if instance not in WARM_CHATGPT_INSTANCES:
+        raise ValueError(f"Browserless instance {instance} is not a declared warm ChatGPT instance")
+    instance_path = QUADLET_DEST.with_name(f"ordivon-browserless@{instance}.container")
+    target = Path(QUADLET_DEST.name)
+    if instance_path.is_symlink():
+        if instance_path.readlink() == target:
+            return False
+        raise RuntimeError(f"warm Browserless Quadlet instance points elsewhere: {instance_path}")
+    if instance_path.exists():
+        raise RuntimeError(f"warm Browserless Quadlet instance is not a symlink: {instance_path}")
+    instance_path.symlink_to(target)
+    return True
+
+
 def network_binding_state(binding: dict) -> dict:
     expected_config = (json.dumps(render_config(binding), sort_keys=True, indent=2) + "\n").encode()
     expected_browser_use_config = (
@@ -353,7 +370,7 @@ def render_config(binding: dict | None = None) -> dict:
         "browserlessSessionTimeoutMs": 480000,
         "browserlessStartTimeoutSeconds": 20,
         "browserlessIdleTtlSeconds": 900,
-        "browserlessWarmEndpointIds": ["chatgpt-carrier-11"],
+        "browserlessWarmEndpointIds": [f"chatgpt-carrier-{instance}" for instance in WARM_CHATGPT_INSTANCES],
         "browserNetworkAuthority": {
             k: binding[k] for k in ("kind", "name", "generationDigest", "serviceUnit")
         },
@@ -588,6 +605,11 @@ def apply() -> dict:
             "pinned noVNC/websockify human interaction substrate is absent or changed"
         )
     refresh_network_binding(binding)
+    warm_quadlet_changed = False
+    for instance in WARM_CHATGPT_INSTANCES:
+        warm_quadlet_changed = converge_warm_quadlet_instance(instance) or warm_quadlet_changed
+    if warm_quadlet_changed:
+        run(["/usr/bin/systemctl", "daemon-reload"])
     if not secret_exists():
         run(
             ["/usr/bin/podman", "secret", "create", "ordivon-browserless-token", "-"],
@@ -609,9 +631,21 @@ def apply() -> dict:
         os.chmod(HUMAN_WEB_DEST, 0o644)
     run(["/usr/bin/systemctl", "daemon-reload"])
     run(["/usr/bin/systemctl", "enable", "--now", "ordivon-browserless-idle-reaper.timer"])
-    # Browserless carriers/displays are lifecycle dependencies, not boot-time services.
-    # ChatGPT keeps only its small operator proxies resident; generic Browser Use is entirely
-    # cold-on-demand through ordivon-browser-agent.target.
+    # Quadlet template instances cannot be enabled through the generated transient service.
+    # The declared warm floor is instantiated by a .container symlink so Quadlet applies the
+    # template [Install] section at generator time; cold lanes remain on-demand.
+    run(
+        [
+            "/usr/bin/systemctl",
+            "start",
+            *[
+                f"ordivon-browserless@{instance}.service"
+                for instance in WARM_CHATGPT_INSTANCES
+            ],
+        ]
+    )
+    # Displays remain lifecycle dependencies. ChatGPT keeps only its small operator proxies
+    # resident; generic Browser Use and non-warm ChatGPT carriers stay cold-on-demand.
     run(
         [
             "/usr/bin/systemctl",
