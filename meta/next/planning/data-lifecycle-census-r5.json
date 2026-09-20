@@ -1,0 +1,234 @@
+{
+  "schemaVersion": 5,
+  "kind": "ordivon.data-lifecycle-census",
+  "asOf": "2026-09-20",
+  "predecessor": "planning/data-lifecycle-census-r4.json",
+  "sourceRevision": "06a39f62ee7ffb727871ff287970aa654b976248",
+  "standing": "PARTIAL_CROSS_DOMAIN_LIFECYCLE_R5_SELECTED_P0_CLOSED",
+  "thesis": "For the selected Research and Finance products, the P0 lifecycle loop is now executable: domain-owned product/contract, federated discovery, fail-closed governance, OpenLineage runtime consumption, PROV semantic derivation, decision/outcome evidence, and an explicit feedback disposition. Cross-domain lifecycle remains PARTIAL because broader adoption, resolved source rights/privacy/retention, offsite preservation, business-value outcomes and a non-trivial feedback mutation are not yet proven.",
+  "majorChangesSinceR1": [
+    "Entity/reference resolution moved from MISSING to PILOT_PROVEN_CROSS_DOMAIN_PARTIAL using ROR/ISO mapping semantics.",
+    "DCAT, ODCS and OpenLineage moved from design-only to real GitHub pilot evidence.",
+    "Raw/derived/runtime evidence moved from reacquirable-only to accepted local AIP preservation with master+replica+fixity.",
+    "Temporal revision/schema/late-arrival semantics were externalized to Git identity, ISO mapping, Iceberg conformance rules and Beam/Debezium activation gates.",
+    "Heavy infrastructure remains workload-gated.",
+    "Research owns an ODPS 1.1.0 + ODCS 3.2.0 product for the Paper1 frozen benchmark; source hash and 61 observed downstream digest references prove a real consumer chain.",
+    "Finance owns an ODPS 1.1.0 + ODCS 3.2.0 consumer-aligned product for the read-only Binance+OKX public shadow; no credentials/private data/external financial writes are admitted.",
+    "A two-domain DCAT 3 federation now exposes both domain-owned products without moving ownership into ordivon-next.",
+    "PROV-O now records source-to-product derivation for both domains and dataset-to-result derivation for Paper1; Finance post-registration decision consumption is intentionally still unproven.",
+    "Research and Finance domain products now have ODPS Team ownership scoped to product metadata/lifecycle rather than source intellectual-property rights.",
+    "Each product now owns a W3C ODRL 2.2 Set policy prohibiting third-party distribution, grantUse and automatic deletion while source rights and retention requirements remain unresolved.",
+    "NIST Privacy Framework 1.0 is the published privacy-risk baseline; 1.1 remains an Initial Public Draft as of 2026-09-20.",
+    "ISO 15489-1:2016 is used to require actual records/retention requirements instead of inventing a duration.",
+    "The DCAT federation links each Dataset/ODRL Asset to its domain-owned ODRL policy through odrl:hasPolicy.",
+    "Research now emits a schema-valid OpenLineage START/COMPLETE run binding product version plus the pre-existing robustness result to a new verification artifact; it explicitly does not claim to generate the scientific result.",
+    "Finance now emits a schema-valid post-registration OpenLineage run from the exact public-shadow product version to a new decision/outcome/feedback artifact with no external financial effect.",
+    "PROV-O now represents both post-registration runtime consumptions as semantic derivation activities.",
+    "Finance feedback explicitly keeps the public-observation collection boundary, frozen 1200 ms quality gates, no directional model update, and fail-closed governance because all measured windows passed and no evidence justified expanding claims.",
+    "The selected P0 queue is empty; a non-trivial feedback event that actually changes policy remains P1."
+  ],
+  "lifecycle": [
+    {
+      "id": 0,
+      "name": "information-decision-requirement",
+      "standing": "PARTIAL",
+      "priority": "P1"
+    },
+    {
+      "id": 1,
+      "name": "source-discovery",
+      "standing": "KEEP_PARTIAL",
+      "priority": "P1"
+    },
+    {
+      "id": 2,
+      "name": "acquisition",
+      "standing": "PILOT_PROVEN_DOMAIN_PARTIAL",
+      "priority": "P1"
+    },
+    {
+      "id": 3,
+      "name": "ingestion",
+      "standing": "PARTIAL",
+      "priority": "P2"
+    },
+    {
+      "id": 4,
+      "name": "raw-preservation",
+      "standing": "PASS_LOCAL_DURABLE_PRESERVATION",
+      "priority": "P1",
+      "boundary": "No independent offsite/site failure domain is proven."
+    },
+    {
+      "id": 5,
+      "name": "parse-normalize",
+      "standing": "KEEP_PARTIAL",
+      "priority": "P1"
+    },
+    {
+      "id": 6,
+      "name": "clean-validate",
+      "standing": "KEEP",
+      "priority": "P1"
+    },
+    {
+      "id": 7,
+      "name": "integration-entity-resolution",
+      "standing": "PILOT_PROVEN_CROSS_DOMAIN_PARTIAL",
+      "priority": "P1"
+    },
+    {
+      "id": 8,
+      "name": "metadata-catalog",
+      "standing": "PASS_TWO_DOMAIN_FEDERATED_DCAT",
+      "priority": "P1"
+    },
+    {
+      "id": 9,
+      "name": "provenance-lineage",
+      "standing": "PASS_SELECTED_TWO_DOMAIN_OPENLINEAGE_PRODUCT_VERSION_PLUS_PROV",
+      "priority": "P1"
+    },
+    {
+      "id": 10,
+      "name": "data-contract-product",
+      "standing": "PASS_TWO_DOMAIN_ODPS_1_1_ODCS_3_2",
+      "priority": "P1"
+    },
+    {
+      "id": 11,
+      "name": "exploration-analytics",
+      "standing": "KEEP",
+      "priority": "P1"
+    },
+    {
+      "id": 12,
+      "name": "modeling-synthesis",
+      "standing": "KEEP_PARTIAL",
+      "priority": "P1"
+    },
+    {
+      "id": 13,
+      "name": "serving-retrieval",
+      "standing": "PARTIAL",
+      "priority": "P2"
+    },
+    {
+      "id": 14,
+      "name": "decision-action",
+      "standing": "PASS_SELECTED_RESEARCH_VERIFICATION_AND_FINANCE_BOUNDED_NO_EFFECT_DECISION",
+      "priority": "P1"
+    },
+    {
+      "id": 15,
+      "name": "outcome-measurement",
+      "standing": "PASS_FINANCE_BOUNDARY_OUTCOME_BROADER_VALUE_OUTCOMES_PARTIAL",
+      "priority": "P1"
+    },
+    {
+      "id": 16,
+      "name": "feedback-recollection",
+      "standing": "PASS_SELECTED_FINANCE_NO_CHANGE_DISPOSITION_NONTRIVIAL_UPDATE_UNPROVEN",
+      "priority": "P1"
+    }
+  ],
+  "fabrics": [
+    {
+      "name": "governance-rights-retention",
+      "standing": "PASS_FAIL_CLOSED_TWO_DOMAIN_BOUND_RESOLUTION_PENDING",
+      "priority": "P1"
+    },
+    {
+      "name": "metadata-catalog",
+      "standing": "PASS_TWO_DOMAIN_FEDERATED_DCAT",
+      "priority": "P1"
+    },
+    {
+      "name": "quality",
+      "standing": "KEEP_PARTIAL",
+      "priority": "P1"
+    },
+    {
+      "name": "provenance-lineage",
+      "standing": "PASS_SELECTED_TWO_DOMAIN_OPENLINEAGE_PLUS_PROV",
+      "priority": "P1"
+    },
+    {
+      "name": "security-privacy",
+      "standing": "PARTIAL",
+      "priority": "P0"
+    },
+    {
+      "name": "preservation",
+      "standing": "PASS_LOCAL_FAILURE_DOMAIN_BOUNDARY",
+      "priority": "P1"
+    },
+    {
+      "name": "observability",
+      "standing": "PARTIAL",
+      "priority": "P1"
+    }
+  ],
+  "p0Queue": [],
+  "p1Queue": [
+    {
+      "id": "independent-preservation-copy",
+      "goal": "Add a genuinely independent failure-domain/offsite copy when an approved storage target exists; current replica is same-host."
+    },
+    {
+      "id": "provider-liveness",
+      "goal": "Make preservation provider liveness observable so scheduled fixity cannot silently fail when Archivematica is stopped."
+    },
+    {
+      "id": "artifact-odcs-mapping",
+      "goal": "Map proven Artifact Dataset Contract facts to ODCS without replacing Artifact's bounded verifier."
+    },
+    {
+      "id": "data-observability",
+      "goal": "Expose freshness/volume/schema/quality/lineage-break metrics through existing Prometheus/OTel before adding a new observability platform."
+    },
+    {
+      "id": "federation-scale-gate",
+      "goal": "Keep DCAT as file-based federated metadata while two-domain discovery is sufficient; activate a catalog service only when query/collaboration/scale proves the need."
+    },
+    {
+      "id": "source-rights-resolution",
+      "goal": "Resolve source/provider licenses or terms per product before allowing redistribution, grantUse or public external distributions; do not infer rights from public accessibility."
+    },
+    {
+      "id": "formal-privacy-assessment",
+      "goal": "Complete product-appropriate privacy-risk assessment using NIST Privacy Framework 1.0 current baseline; migrate only when PF 1.1 becomes final."
+    },
+    {
+      "id": "retention-schedule-assignment",
+      "goal": "Derive retention/disposition schedules from actual research/business/legal records requirements under ISO 15489; replace the temporary no-delete policy only when an authority is assigned."
+    },
+    {
+      "id": "nontrivial-feedback-update",
+      "goal": "Prove one real post-outcome feedback event whose evidence requires a change to collection, quality or model policy; the current finance witness legitimately returns NO_CHANGE_REQUIRED."
+    },
+    {
+      "id": "business-value-outcome",
+      "goal": "Measure a downstream research/product/business/distribution outcome beyond boundary preservation and technical acceptance."
+    },
+    {
+      "id": "broader-domain-data-product-adoption",
+      "goal": "Extend the same externally owned lifecycle contracts to additional real domains only when a real consumer exists."
+    }
+  ],
+  "workloadGated": [
+    "Apache Iceberg",
+    "Debezium",
+    "Apache Beam runtime",
+    "Kafka/Redpanda",
+    "ClickHouse",
+    "QuestDB",
+    "Dagster",
+    "Great Expectations",
+    "OCFL"
+  ],
+  "preservationEvidence": "evidence/data-lifecycle/preservation-r1/acceptance.json",
+  "dataProductEvidence": "evidence/data-lifecycle/data-products-r1/acceptance.json",
+  "governanceEvidence": "evidence/data-lifecycle/data-products-r1/acceptance.json",
+  "runtimeConsumptionEvidence": "evidence/data-lifecycle/data-products-r1/acceptance.json"
+}

@@ -4,6 +4,8 @@ Last census: 2026-09-20
 
 Project-scoped data work: **READY_FOR_REAL_WORK**
 
+Selected Research+Finance lifecycle P0: **CLOSED_WITH_BOUNDED_EVIDENCE**
+
 Cross-domain data lifecycle: **PARTIAL**
 
 ## Outcome scope
@@ -54,12 +56,13 @@ Preservation evidence is bounded: the current master and replica occupy distinct
 
 Authoritative current projection:
 
-- `planning/data-lifecycle-census-r4.json`
+- `planning/data-lifecycle-census-r5.json`
+- `docs/DATA_PRODUCT_CONSUMPTION_FEEDBACK_R1.md`
 - `docs/DATA_PRODUCTS_FEDERATION_R1.md`
 - `docs/DATA_DURABLE_PRESERVATION_R1.md`
 - `evidence/data-lifecycle/preservation-r1/acceptance.json`
 
-R1–R3 census files remain historical evidence; R4 is current.
+R1–R4 census files remain historical evidence; R5 is current.
 
 Current shape:
 
@@ -67,23 +70,31 @@ Current shape:
 source identity
   -> acquisition
   -> immutable/raw evidence
-  -> parse/normalize
   -> semantics + quality contract
-  -> revision/reference handling
-  -> analysis
-  -> lineage evidence
+  -> ODCS contract + ODPS product
+  -> DCAT discovery + ODRL governance
+  -> analysis / bounded decision support
+  -> OpenLineage runtime consumption
+  -> PROV semantic derivation
+  -> action + outcome + feedback disposition
   -> selected durable preservation
 ```
 
-The major remaining cross-domain gaps are **not** generic compute/storage gaps. They are:
+For the selected Research and Finance products, the lifecycle P0 is closed with bounded evidence.
+
+The remaining gaps are **P1 and broader-scope gaps**, not generic compute/storage gaps:
 
 ```text
-runtime product-version lineage
-  -> exact claim/decision consumption
-  -> outcome -> collection/quality/model feedback
-
-Rights/privacy/retention now fail closed for the selected Research and Finance products; actual source-right resolution, formal privacy assessment and authorized retention schedules remain explicit P1 obligations.
+source-right resolution
++ formal privacy assessment
++ authorized retention schedules
++ independent/offsite preservation
++ broader real-domain adoption
++ business-value outcomes
++ one non-trivial feedback event that actually changes policy
 ```
+
+The current Finance feedback result is explicitly `NO_CHANGE_REQUIRED`; it proves an auditable feedback disposition, not adaptive-policy maturity.
 
 ## Data orchestration routing
 
@@ -156,16 +167,15 @@ Do not duplicate authoritative records into a separate vector service without me
 
 ## Acceptance boundary
 
-`ProjectScopedDataWork = READY` means Ordivon can execute real acquisition, validation, transformation, analysis and selected preservation workflows.
+`ProjectScopedDataWork = READY`.
 
-It does **not** mean the cross-domain lifecycle is closed.
+`SelectedResearchFinanceLifecycleP0 = CLOSED_WITH_BOUNDED_EVIDENCE`.
 
-`CrossDomainDataLifecycle = PARTIAL` remains until at least:
+That selected closure proves real ODPS/ODCS products, DCAT federation, fail-closed ODRL governance, runtime OpenLineage product-version consumption, PROV semantic derivation, a Research verification chain, and a Finance no-effect decision/outcome/feedback disposition.
 
-1. real Research and Finance executions emit runtime OpenLineage events that bind the exact ODPS product/output-port version;
-2. rights/privacy/retention metadata is executable at product boundaries;
-3. claims/decisions bind the exact consumed data-product version;
-4. outcome evidence feeds changes back to collection/quality/model policy.
+It does **not** mean the cross-domain lifecycle is complete.
+
+`CrossDomainDataLifecycle = PARTIAL` remains because other domains are not yet adopted, source rights/privacy/retention are not fully resolved, preservation lacks an independent failure domain, business-value outcomes are not yet measured, and no real outcome has yet forced a non-trivial collection/quality/model policy change.
 
 ## External references
 
