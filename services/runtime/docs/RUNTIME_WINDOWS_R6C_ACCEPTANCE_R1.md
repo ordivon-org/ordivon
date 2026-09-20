@@ -240,11 +240,31 @@ It must not be repaired into another permanent custom control plane. Its accepta
 1. native `windows-main` becomes primary and the carrier is deleted; or
 2. it remains a temporary fallback with explicit degraded-state evidence.
 
+## C3/C4 preflight authority correction — 2026-09-20
+
+Frozen evidence:
+- file: 00ae7525ff0d444f91f6250d5f055c635c0e092e-c3-c4-preflight-v2.json;
+- digest: sha256:d7abdf588bb0efd418c8b311626e6446511bd25169ecb8ae2e7328fb53e8d481.
+
+The WSL ownership boundary was clarified without terminating WSL:
+- archlinux is a WSL2 distribution registered in an interactive-user hive;
+- limited candidate service authority sees no user-owned running distributions;
+- elevated Runtime authority is LocalSystem;
+- direct elevated wsl.exe probe failed with WSL_E_LOCAL_SYSTEM_NOT_SUPPORTED.
+
+Therefore C3 must not be implemented by broadening Runtime service authority. The native Runtime
+service is the independent observation carrier; the destructive wsl.exe fault belongs to the
+interactive user identity that owns the distribution.
+
+The same preflight freezes the exact-00ae release receipt, candidate manifest, six artifact digests,
+env-file digest, SCM AutoStart identity, boot timestamp, and Runtime PID. It is the before-reboot
+half of C4 only; a future real reboot is still required for the after-reboot witness.
+
 ## Next evidence gates
 
-1. perform the Windows-owned WSL terminate/shutdown witness only after explicit approval because it
-   interrupts the live Linux Runtime and other WSL-dependent work;
-2. obtain an exact-00ae7525 cold-boot automatic-start witness;
+1. with explicit approval, run the WSL terminate/shutdown fault under the interactive Windows user
+   that owns archlinux while the native Windows Runtime independently observes its own survival;
+2. obtain an exact-00ae7525 cold-boot automatic-start witness from the frozen preflight baseline;
 3. only after C3/C4 pass, perform the production cutover and delete the compatibility carrier.
 
 ## C2 parent-owned launcher identity correction

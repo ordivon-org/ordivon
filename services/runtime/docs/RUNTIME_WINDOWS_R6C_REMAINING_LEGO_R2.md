@@ -111,18 +111,31 @@ Acceptance-tooling residual, not a C1/C2 blocker:
 ## LEGO C3 — WSL independence
 
 Authority owner:
-- Windows SCM owns windows-main lifecycle.
-- Microsoft wsl.exe owns WSL distribution lifecycle.
+- Windows SCM / OrdivonRuntimeR6Candidate owns candidate lifecycle and observation;
+- the interactive Windows user that owns the Lxss registration owns WSL distribution lifecycle;
+- Microsoft wsl.exe remains the mechanism, but it must run under the owning user identity.
+
+Preflight evidence on 2026-09-20:
+- archlinux is registered as WSL2 in an interactive-user hive;
+- limited candidate service identity can invoke wsl.exe but sees no user-owned running distributions;
+- elevated Runtime authority is LocalSystem and direct wsl.exe execution fails with
+  WSL_E_LOCAL_SYSTEM_NOT_SUPPORTED;
+- therefore neither Runtime service authority is the correct owner for destructive user-WSL
+  lifecycle operations;
+- frozen C3/C4 preflight v2 digest:
+  sha256:d7abdf588bb0efd418c8b311626e6446511bd25169ecb8ae2e7328fb53e8d481.
 
 Precondition:
-- observation of windows-main must not depend on a WSL-hosted Windows provider.
+- observation of windows-main must not depend on a WSL-hosted Windows provider;
+- the fault-injection command must run under the interactive user identity that owns archlinux.
 
 Experiment:
-1. prove candidate RUNNING and authenticated MCP reachable;
-2. from Windows authority invoke exact wsl.exe --terminate <distribution>;
-3. observe that distribution is offline from Windows;
-4. prove candidate service remains RUNNING and MCP reachable;
-5. repeat later with wsl.exe --shutdown if safe for all current work.
+1. prove candidate RUNNING and authenticated MCP reachable from the native Windows control plane;
+2. under the owning interactive-user authority invoke exact wsl.exe --terminate archlinux;
+3. from that same user authority prove archlinux is offline;
+4. independently prove candidate SCM state remains RUNNING and authenticated MCP remains reachable;
+5. repeat later with wsl.exe --shutdown only after all WSL-dependent work has an explicit
+   disposition.
 
 Important:
 - terminating WSL can interrupt the current live Linux Runtime and other conversations. Therefore
@@ -133,6 +146,20 @@ Acceptance:
 - Windows-main remains available while WSL is genuinely offline.
 
 ## LEGO C4 — cold boot / auto start
+
+Pre-reboot baseline frozen on 2026-09-20 for exact release
+00ae7525ff0d444f91f6250d5f055c635c0e092e:
+- structured-release receipt digest
+  sha256:120eb79f9fe5e8a0dee3206b82f412f8ce8b23a303409ccd5957d98e3fe13360;
+- candidate-manifest digest
+  sha256:aa998de651709323e7b480f0554257291b7f502f561c338940c01e0b6da40db3;
+- preflight v2 evidence digest
+  sha256:d7abdf588bb0efd418c8b311626e6446511bd25169ecb8ae2e7328fb53e8d481;
+- Windows boot witness 2026-09-20T13:02:10.5000000+08:00;
+- Runtime service was Running / Auto with PID 7032 when the baseline was frozen.
+
+This is only the before-reboot side of C4. It does not turn the earlier reboot into an exact-00ae
+cold-boot witness because 00ae was deployed after that boot.
 
 Authority owner:
 - Windows boot + SCM AUTO_START.
