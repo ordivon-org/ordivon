@@ -34,7 +34,10 @@ def test_accepted_preservation_is_exact_and_replicated() -> None:
         "standing": "PASS",
     }
     assert ok["masterReplicaByteEqual"] is True
-    assert ok["aipSha256"] == "43cd27dc86634fa64be4b56cf0d4720e81c7ee73c214be588cf6ce54eb2dfc15"
+    assert (
+        ok["aipSha256"]
+        == "43cd27dc86634fa64be4b56cf0d4720e81c7ee73c214be588cf6ce54eb2dfc15"
+    )
     assert ok["metsXml"] == "PASS"
     assert ok["premisNamespace"] == "PASS"
     assert ok["aipBagItValidation"] == "PASS"
@@ -75,7 +78,9 @@ def test_census_r2_promotes_preservation_but_keeps_cross_domain_p0s() -> None:
     assert by_name["raw-preservation"]["priority"] == "P1"
     assert by_name["metadata-catalog"]["priority"] == "P0"
     assert by_name["provenance-lineage"]["priority"] == "P0"
-    assert by_name["data-contract-product"]["standing"] == "ODCS_PILOT_PROVEN_ODPS_MISSING"
+    assert (
+        by_name["data-contract-product"]["standing"] == "ODCS_PILOT_PROVEN_ODPS_MISSING"
+    )
     assert by_name["feedback-recollection"]["standing"] == "MISSING"
 
     p0 = {x["id"] for x in d["p0Queue"]}
@@ -95,7 +100,9 @@ def test_heavy_substrates_stay_workload_gated() -> None:
 
 
 def test_data_capability_standing_is_split() -> None:
-    text = (ROOT / "capabilities/packages/data-analytics.md").read_text(encoding="utf-8")
+    text = (ROOT / "capabilities/packages/data-analytics.md").read_text(
+        encoding="utf-8"
+    )
     assert "Project-scoped data work: **READY_FOR_REAL_WORK**" in text
     assert "Cross-domain data lifecycle: **PARTIAL**" in text
     assert "CrossDomainDataLifecycle = PARTIAL" in text

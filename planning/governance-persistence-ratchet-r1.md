@@ -186,3 +186,69 @@ A separate bounded census found 112 clean, Host-unclaimed Ordivon Next Workspace
 This observation does **not** count as one of the three consecutive clean lifecycle audits required for deletion. The ratchet still changes real decisions: it caused safe closure of preserved carriers while preventing deletion of unpreserved unique commits.
 
 Do not add a second lifecycle database or custom garbage collector to solve this. Continue using Host claimant navigation, Runtime Workspace state, Git reachability, and exact close fences. The next audit should reassess whether natural-owner lifecycle behavior has made this local review rule redundant.
+
+
+## Lifecycle audit — 2026-09-20, preservation census R2
+
+Standing: **SUNSET_NOT_MET / CARRIER_BACKLOG_MATERIALLY_REDUCED**.
+
+A later same-day owner-native census found that the earlier 112 clean, Host-unclaimed, main-unreachable Ordivon Next Workspaces were no longer present in Runtime inventory. The audit therefore re-froze current reality instead of acting on the stale earlier list.
+
+Point-in-time owner-native inventory during R2:
+
+| Measure | Earlier 2026-09-20 observation | R2 observation |
+| --- | ---: | ---: |
+| Host open Tasks | 269 | 269 |
+| `NO_POSITIVE_VALUE_NOW` | 97 | 98 |
+| `LOCALLY_COMPLETE` | 50 | 51 |
+| `SATURATED` | 23 | 23 |
+| Runtime open Workspaces | 283 | 163 |
+| Runtime dirty Workspaces | 46 | 43 |
+| Runtime Ordivon Next Workspaces | 140 | 5 |
+| Runtime dirty Ordivon Next Workspaces | not separately frozen | 2 |
+
+The five Ordivon Next carriers at this cut were:
+
+- one current preservation-census carrier;
+- one dirty Dependabot carrier whose only output is the GitHub-native `.github/dependabot.yml` candidate;
+- two clean carriers with explicit Host claimants for reflexive-security/reflexive-closure continuity;
+- one dirty Chaoxing MVP carrier with an explicit Host claimant.
+
+### Preservation method
+
+For historical dirty Workspaces with no Host claimant and no active Runtime Job, the owner-native conversion is now:
+
+```text
+mutable Git worktree
+    -> dirty-delta secret scan
+    -> unique-history secret scan when HEAD is not in main
+    -> temporary-index full snapshot
+    -> git commit-tree
+    -> annotated archive/workspaces/... tag
+    -> reset/clean original worktree
+    -> Runtime exact-digest close with force=false
+```
+
+This uses Git itself as the immutable history owner. It is not a new Ordivon archive service, lifecycle database or garbage collector.
+
+Thirteen historical dirty Workspaces were converted to immutable Git snapshot tags and then closed. One old test-only credential sentinel was first replaced by a low-entropy test material value; its targeted historical test suite passed (16 tests) and its dirty delta then passed Gitleaks before archival.
+
+Two additional carriers were removed without archive because their only dirty content was rebuildable external material:
+
+- `ws-lit-synthesis-debt-r1-20260919`: 26 downloaded writing-skill audit files under `.audit/`, about 70 KB;
+- `ws-chaoxing-repo-study-r1-20260917`: a clean nested clone whose HEAD exactly matched locally recorded `origin/main` for `https://github.com/tianshiemo7/chaoxing-auto-sign.git`.
+
+The nested clone was removed only after verifying zero local changes, exact HEAD == `origin/main`, stable origin URL, no Host claimant and no non-terminal Runtime Job. Git, not Ordivon, remains the natural source owner.
+
+An obsolete earlier preservation-census Workspace was also closed after its HEAD became reachable from main.
+
+### Sunset consequence
+
+R2 is substantial progress but still does **not** count as a clean sunset audit. The ratchet still changes decisions:
+
+- claimant-bound Workspaces are retained even when clean;
+- dirty unique work is converted to immutable Git history before carrier deletion;
+- rebuildable external caches are discarded instead of being archived;
+- current provider-native infrastructure output is integrated rather than frozen as historical debt.
+
+The ratchet remains disposable. Delete it only after repeated future owner-native inventories show that these lifecycle decisions happen correctly without this local review rule.
