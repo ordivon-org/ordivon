@@ -1,0 +1,351 @@
+{
+  "conclusion": "No general-purpose Composition Science theoretical novelty gap is established. Adopt mature external lenses; retain Ordivon work primarily as routing, composition infrastructure, evidence, and empirical AI-era research.",
+  "date": "2026-09-21",
+  "kind": "ordivon.external-innovation-theory-census-r1",
+  "nodes": [
+    {
+      "coreConstruct": "innovation through new economic combinations",
+      "family": "innovation_origin",
+      "id": "T01",
+      "name": "Schumpeter new combinations",
+      "primarySource": "https://www.hup.harvard.edu/books/9780674879904",
+      "verdict": "ADOPT_LENS_REJECT_PRIVATE_REINVENTION"
+    },
+    {
+      "coreConstruct": "new ideas from recombination; processing capacity becomes limiting as combinations proliferate",
+      "family": "recombinant_innovation",
+      "id": "T02",
+      "name": "Weitzman Recombinant Growth",
+      "primarySource": "https://dash.harvard.edu/entities/publication/73120378-853d-6bd4-e053-0100007fdf3b",
+      "verdict": "ADOPT_LENS_REJECT_PRIVATE_REINVENTION"
+    },
+    {
+      "coreConstruct": "unfamiliar components/combinations increase outcome variance",
+      "family": "recombinant_innovation",
+      "id": "T03",
+      "name": "Fleming Recombinant Uncertainty",
+      "primarySource": "https://doi.org/10.1287/mnsc.47.1.117.10671",
+      "verdict": "ADOPT_LENS"
+    },
+    {
+      "coreConstruct": "innovation through changed component linkages with familiar core component concepts",
+      "family": "architecture_innovation",
+      "id": "T04",
+      "name": "Henderson-Clark Architectural Innovation",
+      "primarySource": "https://dash.harvard.edu/entities/publication/3affcf33-4dea-4371-ab4c-4767380018ab",
+      "verdict": "ADOPT_LENS_REJECT_PRIVATE_REINVENTION"
+    },
+    {
+      "coreConstruct": "hierarchical systems with stronger within-subsystem than between-subsystem interactions",
+      "family": "complexity_modularity",
+      "id": "T05",
+      "name": "Simon Near-Decomposability",
+      "primarySource": "https://www.andrew.cmu.edu/course/15-440/assets/READINGS/simon-architecture-of-complexity-1962.pdf",
+      "verdict": "ADOPT_LENS"
+    },
+    {
+      "coreConstruct": "modularity enables independent design experimentation under stable design rules",
+      "family": "complexity_modularity",
+      "id": "T06",
+      "name": "Baldwin-Clark Design Rules",
+      "primarySource": "https://mitpress.mit.edu/9780262538206/design-rules-volume-1/",
+      "verdict": "ADOPT_LENS"
+    },
+    {
+      "coreConstruct": "modular substitution/splitting creates real option value",
+      "family": "complexity_modularity",
+      "id": "T07",
+      "name": "Baldwin-Clark Real Option Value of Modularity",
+      "primarySource": "https://scholarsarchive.byu.edu/facpub/8944/",
+      "verdict": "ROUTE_BY_CONTEXT"
+    },
+    {
+      "coreConstruct": "technology complementarity structure shapes viable organizational structure",
+      "family": "complexity_modularity",
+      "id": "T08",
+      "name": "Baldwin Design Rules Volume 2",
+      "primarySource": "https://direct.mit.edu/books/oa-monograph/5887/Design-Rules-Volume-2How-Technology-Shapes",
+      "verdict": "ADOPT_LENS"
+    },
+    {
+      "coreConstruct": "functional independence and information-based design selection",
+      "family": "engineering_design",
+      "id": "T09",
+      "name": "Axiomatic Design",
+      "primarySource": "https://web.mit.edu/axiom/www/introduction.shtml",
+      "verdict": "ROUTE_BY_CONTEXT"
+    },
+    {
+      "coreConstruct": "routines, bounded search, variation, selection and retention",
+      "family": "search_adaptation",
+      "id": "T10",
+      "name": "Nelson-Winter Evolutionary Search",
+      "primarySource": "https://www.hup.harvard.edu/books/9780674272286",
+      "verdict": "ADOPT_LENS"
+    },
+    {
+      "coreConstruct": "allocation between new possibilities and known certainties",
+      "family": "search_adaptation",
+      "id": "T11",
+      "name": "March Exploration-Exploitation",
+      "primarySource": "https://doi.org/10.1287/orsc.2.1.71",
+      "verdict": "ADOPT_LENS"
+    },
+    {
+      "coreConstruct": "search depth and search scope are distinct dimensions",
+      "family": "search_adaptation",
+      "id": "T12",
+      "name": "Katila-Ahuja Search Depth-Scope",
+      "primarySource": "https://doi.org/10.5465/3069433",
+      "verdict": "ADOPT_LENS"
+    },
+    {
+      "coreConstruct": "organizational and technological boundary-spanning exploration",
+      "family": "search_adaptation",
+      "id": "T13",
+      "name": "Rosenkopf-Nerkar Boundary-Spanning Search",
+      "primarySource": "https://doi.org/10.1002/smj.160",
+      "verdict": "ADOPT_LENS"
+    },
+    {
+      "coreConstruct": "forward-looking cognitive search and backward-looking experiential search",
+      "family": "search_adaptation",
+      "id": "T14",
+      "name": "Gavetti-Levinthal Cognitive-Experiential Search",
+      "primarySource": "https://doi.org/10.2307/2666981",
+      "verdict": "ADOPT_LENS"
+    },
+    {
+      "coreConstruct": "search and progress constrained by technological paradigms and trajectories",
+      "family": "search_adaptation",
+      "id": "T15",
+      "name": "Dosi Technological Paradigms-Trajectories",
+      "primarySource": "https://doi.org/10.1016/0048-7333(82)90016-6",
+      "verdict": "ROUTE_BY_CONTEXT"
+    },
+    {
+      "coreConstruct": "interaction creates rugged fitness landscapes and local optima",
+      "family": "search_adaptation",
+      "id": "T16",
+      "name": "Kauffman NK Rugged Landscapes",
+      "primarySource": "https://pubmed.ncbi.nlm.nih.gov/2632988/",
+      "verdict": "ROUTE_BY_CONTEXT"
+    },
+    {
+      "coreConstruct": "organizational structure can change across exploration and reintegration phases",
+      "family": "search_adaptation",
+      "id": "T17",
+      "name": "Siggelkow-Levinthal Temporarily Divide to Conquer",
+      "primarySource": "https://doi.org/10.1287/orsc.14.6.650.24840",
+      "verdict": "WATCH_AI_EXTENSION_ROUTE_BY_CONTEXT"
+    },
+    {
+      "coreConstruct": "recognize value, assimilate and apply external knowledge",
+      "family": "knowledge_integration",
+      "id": "T18",
+      "name": "Cohen-Levinthal Absorptive Capacity",
+      "primarySource": "https://doi.org/10.2307/2393553",
+      "verdict": "ADOPT_LENS"
+    },
+    {
+      "coreConstruct": "new capabilities through recombination of existing capabilities and social knowledge",
+      "family": "knowledge_integration",
+      "id": "T19",
+      "name": "Kogut-Zander Combinative Capabilities",
+      "primarySource": "https://doi.org/10.1287/orsc.3.3.383",
+      "verdict": "ADOPT_LENS_REJECT_PRIVATE_REINVENTION"
+    },
+    {
+      "coreConstruct": "organization as mechanism integrating specialized knowledge",
+      "family": "knowledge_integration",
+      "id": "T20",
+      "name": "Grant Knowledge Integration",
+      "primarySource": "https://doi.org/10.1002/smj.4250171110",
+      "verdict": "ADOPT_LENS"
+    },
+    {
+      "coreConstruct": "cross-industry knowledge acquisition, memory and analogy-based recombination",
+      "family": "knowledge_integration",
+      "id": "T21",
+      "name": "Hargadon-Sutton Technology Brokering",
+      "primarySource": "https://www.gsb.stanford.edu/faculty-research/research/publications/technology-brokering-innovation-product-design-firm",
+      "verdict": "ADOPT_LENS"
+    },
+    {
+      "coreConstruct": "syntactic, semantic and pragmatic boundaries require transfer, translation and transformation",
+      "family": "knowledge_integration",
+      "id": "T22",
+      "name": "Carlile Knowledge Boundaries",
+      "primarySource": "https://doi.org/10.1287/orsc.1040.0094",
+      "verdict": "ADOPT_LENS"
+    },
+    {
+      "coreConstruct": "use external and internal ideas and paths to market",
+      "family": "external_innovation",
+      "id": "T23",
+      "name": "Chesbrough Open Innovation",
+      "primarySource": "https://haas.berkeley.edu/faculty/henry-chesbrough/",
+      "verdict": "ADOPT_LENS_REJECT_PRIVATE_REINVENTION"
+    },
+    {
+      "coreConstruct": "value capture depends on complementary assets as well as innovation",
+      "family": "external_innovation",
+      "id": "T24",
+      "name": "Teece Complementary Assets",
+      "primarySource": "https://doi.org/10.1016/0048-7333(86)90027-2",
+      "verdict": "ADOPT_LENS"
+    },
+    {
+      "coreConstruct": "integrate, build and reconfigure internal/external competences under change",
+      "family": "external_innovation",
+      "id": "T25",
+      "name": "Teece-Pisano-Shuen Dynamic Capabilities",
+      "primarySource": "https://doi.org/10.1002/(SICI)1097-0266(199708)18:7%3C509::AID-SMJ882%3E3.0.CO;2-Z",
+      "verdict": "ADOPT_LENS"
+    },
+    {
+      "coreConstruct": "modularity and nongeneric complementarities coordinate autonomous interdependent actors",
+      "family": "external_innovation",
+      "id": "T26",
+      "name": "Jacobides-Cennamo-Gawer Ecosystem Theory",
+      "primarySource": "https://doi.org/10.1002/smj.2904",
+      "verdict": "ADOPT_LENS"
+    },
+    {
+      "coreConstruct": "platforms enable third-party complementary innovation",
+      "family": "external_innovation",
+      "id": "T27",
+      "name": "Gawer-Cusumano Platform Ecosystem Innovation",
+      "primarySource": "https://dspace.mit.edu/entities/publication/23a38af8-5b74-4db0-8a1c-ea78a1e71529",
+      "verdict": "ROUTE_BY_CONTEXT"
+    },
+    {
+      "coreConstruct": "lifecycle framing, architecture, integration, verification and validation",
+      "family": "engineering_composition",
+      "id": "T28",
+      "name": "Systems Engineering / ISO 15288 / INCOSE",
+      "primarySource": "https://www.incose.org/resources-publications/technical-publications/se-handbook/",
+      "verdict": "ADOPT_LENS"
+    },
+    {
+      "coreConstruct": "decomposition-definition correspond to integration-verification; V&V planned with requirements",
+      "family": "engineering_composition",
+      "id": "T29",
+      "name": "NASA V-model Integration and Verification",
+      "primarySource": "https://www.nasa.gov/reference/system-engineering-handbook-appendix/",
+      "verdict": "ADOPT_LENS_REJECT_PRIVATE_REINVENTION"
+    },
+    {
+      "coreConstruct": "component guarantees under environment assumptions discharged by rest of system",
+      "family": "engineering_composition",
+      "id": "T30",
+      "name": "Assume-Guarantee Compositional Verification",
+      "primarySource": "https://ntrs.nasa.gov/citations/20030017771",
+      "verdict": "ADOPT_LENS"
+    },
+    {
+      "coreConstruct": "states reachable under dynamics/inputs and algorithmic checking of formal properties",
+      "family": "engineering_composition",
+      "id": "T31",
+      "name": "Reachability / Model Checking",
+      "primarySource": "https://doi.org/10.1145/1592761.1592781",
+      "verdict": "ADOPT_LENS_REJECT_PRIVATE_REINVENTION"
+    },
+    {
+      "coreConstruct": "systematic reuse requires explicit commonality and variability management",
+      "family": "engineering_composition",
+      "id": "T32",
+      "name": "Software Product Lines / Variability Management",
+      "primarySource": "https://www.sei.cmu.edu/library/variability-in-software-product-lines/",
+      "verdict": "ADOPT_LENS"
+    },
+    {
+      "coreConstruct": "systematic function-by-means combination generation",
+      "family": "engineering_composition",
+      "id": "T33",
+      "name": "Morphological Analysis",
+      "primarySource": "https://www.ifm.eng.cam.ac.uk/research/dmg/tools-and-techniques/morphological-charts/",
+      "verdict": "ADOPT_LENS_REJECT_PRIVATE_REINVENTION"
+    },
+    {
+      "coreConstruct": "parallel solution sets progressively narrowed instead of premature point selection",
+      "family": "engineering_composition",
+      "id": "T34",
+      "name": "Set-Based Concurrent Engineering",
+      "primarySource": "https://shop.sloanreview.mit.edu/store/toyotas-principles-of-set-based-concurrent-engineering",
+      "verdict": "ADOPT_LENS"
+    },
+    {
+      "coreConstruct": "multi-attribute architecture exploration, Pareto tradeoffs and uncertainty",
+      "family": "engineering_composition",
+      "id": "T35",
+      "name": "MATE Tradespace Exploration",
+      "primarySource": "https://ocw.mit.edu/courses/16-892j-space-system-architecture-and-design-fall-2004/pages/lecture-notes/",
+      "verdict": "ADOPT_LENS"
+    },
+    {
+      "coreConstruct": "AI prediction prioritizes costly tests over combinatorial hypothesis spaces; gains depend on testing capacity",
+      "family": "ai_extension",
+      "id": "T36",
+      "name": "AI Prioritized Search",
+      "primarySource": "https://doi.org/10.1016/j.respol.2024.104989",
+      "verdict": "WATCH_AI_EXTENSION"
+    },
+    {
+      "coreConstruct": "AI adoption associated with more novel recombinations and cross-domain bridging",
+      "family": "ai_extension",
+      "id": "T37",
+      "name": "AI Novel Knowledge Recombinations",
+      "primarySource": "https://doi.org/10.1002/smj.70080",
+      "verdict": "WATCH_AI_EXTENSION"
+    },
+    {
+      "coreConstruct": "AI performance gains are uneven across tasks and can reverse outside frontier",
+      "family": "ai_extension",
+      "id": "T38",
+      "name": "Jagged Technological Frontier",
+      "primarySource": "https://doi.org/10.1287/orsc.2025.21838",
+      "verdict": "ADOPT_LENS_WATCH_AI_EXTENSION"
+    },
+    {
+      "coreConstruct": "current GenAI stronger within represented knowledge spaces than at fundamental discovery from scratch",
+      "family": "ai_extension",
+      "id": "T39",
+      "name": "GenAI Discovery-from-Scratch Limits",
+      "primarySource": "https://www.nature.com/articles/s41598-025-93794-9",
+      "verdict": "WATCH_AI_EXTENSION"
+    },
+    {
+      "coreConstruct": "multi-agent integration can automate/semi-automate literature-hypothesis-experiment-analysis loops",
+      "family": "ai_extension",
+      "id": "T40",
+      "name": "Robin Multi-Agent Scientific Discovery",
+      "primarySource": "https://doi.org/10.1038/s41586-026-10652-y",
+      "verdict": "WATCH_AI_EXTENSION_ENGINEERING_ONLY"
+    }
+  ],
+  "residuals": [
+    {
+      "id": "R1",
+      "name": "theory_routing",
+      "standing": "ENGINEERING_ONLY_RESIDUAL_OPEN"
+    },
+    {
+      "id": "R2",
+      "name": "evidence_backed_composition_memory",
+      "standing": "ENGINEERING_ONLY_RESIDUAL_OPEN"
+    },
+    {
+      "id": "R3",
+      "name": "agent_induced_search_economics",
+      "standing": "WATCH_AI_EXTENSION_RESIDUAL_OPEN"
+    },
+    {
+      "id": "R4",
+      "name": "machine_actionable_authority_aware_composition",
+      "standing": "ENGINEERING_ONLY_RESIDUAL_OPEN"
+    }
+  ],
+  "schemaVersion": 2,
+  "standing": "EXTERNAL_THEORY_OWNERS_IDENTIFIED_NO_GENERAL_THEORY_GAP_ESTABLISHED"
+}

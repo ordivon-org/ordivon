@@ -1,0 +1,22 @@
+{
+  "action": [
+    "Preserve R1 as historical independent-convergence evidence.",
+    "Route mature constructs to external theories in docs/EXTERNAL_INNOVATION_THEORY_CENSUS_R1.md.",
+    "Do not promote Composition Science into a universal Ordivon lens or ontology.",
+    "Continue only residual empirical/engineering questions R1-R4.",
+    "Prefer mature lens names in future analyses."
+  ],
+  "date": "2026-09-21",
+  "kind": "ordivon.composition-science-residual-audit-r2",
+  "newStanding": "INDEPENDENT_CONVERGENCE_SNAPSHOT_EXTERNAL_OWNERS_TAKE_PRECEDENCE",
+  "priorDocument": "docs/COMPOSITION_SCIENCE_R1.md",
+  "priorStanding": "FORMALIZED_RESEARCH_PROGRAM_NOT_YET_PROSPECTIVELY_VALIDATED",
+  "residualIds": [
+    "R1",
+    "R2",
+    "R3",
+    "R4"
+  ],
+  "schemaVersion": 1,
+  "verdict": "NO_GENERAL_THEORY_GAP_ESTABLISHED"
+}

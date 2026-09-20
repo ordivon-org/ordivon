@@ -841,3 +841,9 @@ R1 is a formalized research program.
 It is not established that composition innovation dominates primitive innovation generally, or that the proposed metrics predict innovation value.
 
 Promotion requires prospective evidence across multiple domains and must permit falsification of the central hypotheses above.
+
+## External-theory census update — 2026-09-21
+
+Subsequent external-theory census found mature owners for most constructs independently assembled in this R1. This document is therefore retained as an **independent-convergence snapshot**, not as a new general-purpose Ordivon theory.
+
+Current authority for method selection is `docs/EXTERNAL_INNOVATION_THEORY_CENSUS_R1.md`. Mature external lens names and applicability boundaries take precedence over R1 private terminology. No general theoretical gap has been established. Remaining work is limited to the narrower residuals: theory routing, evidence-backed composition memory, empirical agent-era search economics, and machine-actionable authority-aware composition.
