@@ -464,38 +464,31 @@ This executes all ignored systemd/cgroup fixtures serially and then performs the
 
 Run this path on an owner-trusted environment that satisfies the root, systemd, and cgroup v2 requirements; ordinary hosted CI is not equivalent evidence. A release that changes dispatch, Runner behavior, supervision, cancellation, authority profiles, resource controls, or recovery must retain a successful receipt for the exact candidate commit.
 
-## Windows-host launcher acceptance
+## Native Windows acceptance
 
-The Windows Job Object launcher has a separate real-system acceptance because ordinary Linux CI cannot exercise Win32 Job ownership. On a WSL/Windows node with the in-box .NET Framework C# compiler available, run:
+The Windows Job Object launcher has a separate low-level real-system acceptance because ordinary Linux CI cannot exercise Win32 Job ownership:
 
 ```bash
 scripts/windows-job-launcher-acceptance.py
 ```
 
-The acceptance copies only the repository-owned launcher and fixture source into a unique temporary directory below `C:\Users\Public`, compiles them there, verifies exact target exit/stdout/stderr propagation, difficult argv and explicit environment round-trip, a 64 MiB committed-memory cap against a 128 MiB control allocation, active-process rejection, CPU hard-cap behavior relative to an uncapped control, and kill-on-close cleanup of a real child/grandchild tree. The temporary directory is removed on exit.
+That proof exercises launcher mechanics only. The Runtime acceptance boundary is the native Windows service: SCM owns daemon lifecycle, the node advertises only `windows_native`, the launcher/privileged broker are native Windows files, and WSL is not a provider or transport dependency.
 
-Passing this acceptance proves the Windows launcher equipment on that node; it does not by itself prove Runtime Job/Attempt integration or invent a Windows `ExecutionProfile`. The configured Runtime target uses two paired operator facts, `ORDIVON_WINDOWS_LAUNCHER_PATH` and `ORDIVON_WINDOWS_WSL_DISTRIBUTION`; omit both to disable Windows admission.
+For a release/cutover acceptance, preserve evidence for all of the following:
 
-For the Runtime-level R-W1 proof, run the ignored integration fixture on the same trusted WSL/Windows node:
+1. `OrdivonRuntimeR6Candidate` (or its promoted successor) is `Running` with automatic SCM start.
+2. Windows `runtime.describe` reports a native Windows node and only the `windows_native` execution target.
+3. A limited native execution succeeds and commits launcher/target identity evidence.
+4. An elevated native execution succeeds only through configured, already-present elevated provider authority.
+5. Exact replay does not redispatch the effect.
+6. Timeout/cancel removes the Windows Job process tree and Attempt-scoped Power Request.
+7. Native immutable-input execution is limited-only and the committed limited child cannot mutate or rename the protected presentation tree.
+8. Stopping the WSL distribution leaves the Windows Runtime service, native cloudflared ingress, and remote `runtime.describe` available.
+9. After a real Windows reboot, SCM and ingress recover without WSL assistance.
 
-```bash
-ORDIVON_RUN_WINDOWS_INTEGRATION=1 cargo test -p ordivon-runtime-core --all-features \
-  runtime::integration_tests::runtime_windows_native_executes_as_real_job_attempt_and_replays \
-  -- --ignored --nocapture --test-threads=1
-```
+`ORDIVON_WINDOWS_WSL_DISTRIBUTION`, `WSL_INTEROP`, `\\wsl.localhost` path projection, the WSL systemd Windows carrier, and the old WSL restart watchdog/supervisor are retired. Historical destructive-WSL evidence remains useful as migration evidence, but it is not part of the current operational procedure.
 
-That fixture builds the current launcher and Windows fixture, admits `executionTarget=windows_native` through `Runtime::run_task`, verifies the admission-frozen Windows baseline plus explicit overlay without WSL ambient variables, and validates both requested and effective Windows authority. Default limited execution must be Primary/non-elevated/Medium-or-lower with Administrators disabled; explicit `windowsAuthority=elevated` must prove the same SID with Primary/elevated/High/Admin-enabled authority. A bounded temporary HKLM effect must be denied to limited execution and succeed with cleanup under elevated execution. Each Windows start must also prove an acquired `system_required` Power Request; while long-running limited and elevated Attempts are `RUNNING`, `powercfg /requests` must expose the exact `Ordivon Runtime Attempt <attemptId>` reason, and success/timeout/cancel/replay terminal states must expose no matching request. The fixture also requires exact replay without an available launcher, real timeout and explicit cancellation under both authority classes, and zero surviving marker descendants. Long Paths admission evidence remains outside this fixture.
-
-For the destructive R-W5 distro-restart acceptance, use the two-phase fixture rather than terminating the WSL distro from inside an ordinary Runtime call:
-
-```bash
-ORDIVON_RUN_WINDOWS_WSL_RESTART_PHASE=prepare cargo test -p ordivon-runtime-core --all-features \
-  runtime::integration_tests::runtime_windows_native_wsl_restart_prepare_or_recover \
-  -- --ignored --nocapture --test-threads=1
-```
-
-Phase A writes a manifest under `C:\Users\Public\ordivon-rw5-wsl-restart` and leaves the inner Windows Attempt running. From a **detached Windows process**, run `scripts/windows-wsl-restart-watchdog.ps1` with the target distro and that root. The watchdog refuses to proceed unless the marker and Attempt Power Request are active, terminates the distro, records Windows-side post-termination truth, restarts the requested Runtime/Host v2 units, and writes `watchdog-result.json`. After the control plane reconnects, run the same test with `ORDIVON_RUN_WINDOWS_WSL_RESTART_PHASE=recover`. Recovery validates the watchdog evidence, observes the original Registry Job/Attempt, requires no surviving marker or Power Request, and exact-replays the same terminal identity without redispatch. On the verified WSL2 substrate, distro termination did **not** change `/proc/sys/kernel/random/boot_id`; recovery therefore relies on the committed supervisor/launcher contract rather than treating kernel boot ID as a distro generation counter.
-
+See `RUNTIME_WINDOWS_R6C_ACCEPTANCE_R1.md` for the migration/acceptance ledger and `NATIVE_RUNTIME_NODES_R1.md` for the node-ownership design history.
 
 ## Contained-local acceptance
 

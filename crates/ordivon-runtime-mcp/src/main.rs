@@ -657,41 +657,41 @@ fn load_config() -> Result<AppConfig, Box<dyn std::error::Error>> {
             )
         }
     };
-    let windows = match (
-        optional_env("ORDIVON_WINDOWS_LAUNCHER_PATH")?,
-        optional_env("ORDIVON_WINDOWS_WSL_DISTRIBUTION")?,
-    ) {
-        (None, None) => {
-            if privileged_broker.is_some() {
-                return Err(
-                    "ORDIVON_WINDOWS_PRIVILEGED_BROKER_* requires ORDIVON_WINDOWS_LAUNCHER_PATH"
-                        .into(),
-                );
+    let windows_launcher = optional_env("ORDIVON_WINDOWS_LAUNCHER_PATH")?;
+    let windows_wsl_distribution = optional_env("ORDIVON_WINDOWS_WSL_DISTRIBUTION")?;
+    let windows = if cfg!(windows) {
+        if windows_wsl_distribution.is_some() {
+            return Err(
+                "ORDIVON_WINDOWS_WSL_DISTRIBUTION is retired; native Windows Runtime must not configure WSL transport"
+                    .into(),
+            );
+        }
+        match windows_launcher {
+            Some(launcher) => Some(WindowsExecutionConfig {
+                launcher_path: PathBuf::from(launcher),
+                privileged_broker,
+            }),
+            None => {
+                if privileged_broker.is_some() {
+                    return Err(
+                        "ORDIVON_WINDOWS_PRIVILEGED_BROKER_* requires ORDIVON_WINDOWS_LAUNCHER_PATH"
+                            .into(),
+                    );
+                }
+                None
             }
-            None
         }
-        (Some(launcher), Some(wsl_distribution)) => Some(WindowsExecutionConfig {
-            launcher_path: PathBuf::from(launcher),
-            wsl_distribution: Some(wsl_distribution),
-            privileged_broker: None,
-        }),
-        (Some(launcher), None) if cfg!(windows) => Some(WindowsExecutionConfig {
-            launcher_path: PathBuf::from(launcher),
-            wsl_distribution: None,
-            privileged_broker,
-        }),
-        (Some(_), None) => {
+    } else {
+        if windows_launcher.is_some()
+            || windows_wsl_distribution.is_some()
+            || privileged_broker.is_some()
+        {
             return Err(
-                "ORDIVON_WINDOWS_WSL_DISTRIBUTION is required when Windows execution is hosted from Linux/WSL"
+                "Linux-hosted Windows execution is retired; configure windows_native only on a native Windows Runtime"
                     .into(),
-            )
+            );
         }
-        (None, Some(_)) => {
-            return Err(
-                "ORDIVON_WINDOWS_WSL_DISTRIBUTION requires ORDIVON_WINDOWS_LAUNCHER_PATH"
-                    .into(),
-            )
-        }
+        None
     };
     let allowed_executable_roots = match optional_env("ORDIVON_ALLOWED_EXECUTABLE_ROOTS")? {
         Some(raw) => {

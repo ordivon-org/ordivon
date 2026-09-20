@@ -32,10 +32,7 @@ impl Runtime {
         }
         let cancel_plan = self.registry.execution_plan(&request.job_id)?;
         let native_direct = cancel_plan.execution_target == super::ExecutionTarget::WindowsNative
-            && self
-                .windows
-                .as_ref()
-                .is_some_and(|windows| windows.wsl_distribution.is_none());
+            && self.windows.is_some();
         match self.reconcile_job(&request.job_id) {
             Ok(()) => {}
             Err(error)
@@ -294,10 +291,7 @@ impl Runtime {
     fn release_attempt_supervisor(&self, attempt: &AttemptRecord) -> RuntimeResult<()> {
         let plan = self.registry.execution_plan(&attempt.job_id)?;
         if plan.execution_target == super::ExecutionTarget::WindowsNative
-            && self
-                .windows
-                .as_ref()
-                .is_some_and(|windows| windows.wsl_distribution.is_none())
+            && self.windows.is_some()
         {
             return Ok(());
         }

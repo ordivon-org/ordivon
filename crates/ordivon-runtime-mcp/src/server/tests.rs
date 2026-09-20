@@ -2447,7 +2447,7 @@ fn runtime_describe_projects_agent_affordances_without_selecting_a_target() {
     assert_eq!(result.max_output_bytes, 1024 * 1024);
     assert_eq!(result.allowed_executable_roots, vec!["/usr/bin"]);
     assert!(result.input_authorities.is_empty());
-    assert_eq!(result.targets.len(), 2);
+    assert_eq!(result.targets.len(), 1);
     assert!(!result.structured_release_configured);
     let linux = result
         .targets
@@ -2463,17 +2463,10 @@ fn runtime_describe_projects_agent_affordances_without_selecting_a_target() {
         linux.host_dependency_continuity_scope.as_deref(),
         Some("runtime_host_namespace_path_witness")
     );
-    let windows = result
+    assert!(result
         .targets
         .iter()
-        .find(|target| target.target == ExecutionTarget::WindowsNative)
-        .unwrap();
-    assert!(!windows.configured);
-    assert!(!windows.available);
-    assert!(!windows.structured_plan);
-    assert!(!windows.immutable_inputs);
-    assert!(!windows.host_dependency_commitments);
-    assert!(windows.host_dependency_continuity_scope.is_none());
+        .all(|target| target.target == ExecutionTarget::LocalLinux));
 
     let tool = server
         .tool_router
