@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+lean="${ORDIVON_CAPITAL_MARKET_LEAN_ROOT:-/root/external/quantconnect-lean/18074}"
+out="$repo/.artifacts/wave-b-m6/results"
+"$repo/scripts/check-lean-runtime"
+mkdir -p "$repo/.artifacts/wave-b-m3"
+"$repo/scripts/fetch-nasdaq-wave-b-m3" > "$repo/.artifacts/wave-b-m3/fetch-manifest-output.json"
+DOTNET_CLI_TELEMETRY_OPTOUT=1 dotnet build "$repo/wave_b/algorithm/MarketCapitalValidationAlgorithm.csproj" -c Release --nologo -p:LeanReleaseRoot="$lean/Launcher/bin/Release"
+rm -rf "$out" && mkdir -p "$out"
+"$repo/scripts/check-execution-policy" --mode non-live --output "$out/authority.json" >/dev/null
+read_cfg(){ python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))[sys.argv[2]])' "$repo/config/shadow_precommit.json" "$1"; }
+export ORDIVON_CAPITAL_MARKET_TARGET_PORTFOLIO="$repo/wave_b/fixtures/wave_a_target_portfolio.json"
+export ORDIVON_CAPITAL_MARKET_EXECUTION_CASH_BUFFER_WEIGHT="$(read_cfg executionCashBufferWeight)"
+export ORDIVON_CAPITAL_MARKET_BACKTEST_START="$(read_cfg pricingSessionDate)"
+export ORDIVON_CAPITAL_MARKET_BACKTEST_END="$(read_cfg pricingSessionDate)"
+export ORDIVON_CAPITAL_MARKET_FIX_INTENT_ENABLED=true
+export ORDIVON_CAPITAL_MARKET_PLAN_ONLY=true
+export ORDIVON_CAPITAL_MARKET_FIX_TIME_IN_FORCE=AT_THE_OPENING
+export ORDIVON_CAPITAL_MARKET_ORDER_INTENT_TIME_UTC="$(read_cfg precommitTimeUtc)"
+export ORDIVON_CAPITAL_MARKET_FIX_ASSEMBLY_DIRECTORY="$repo/wave_b/algorithm/bin/Release/net10.0"
+(
+ cd "$lean/Launcher/bin/Release"
+ ./QuantConnect.Lean.Launcher --config "$lean/Launcher/config.json" --environment backtesting \
+  --algorithm-type-name OrdivonMarketCapital.MarketCapitalValidationAlgorithm --algorithm-language CSharp \
+  --algorithm-location "$repo/wave_b/algorithm/bin/Release/net10.0/Ordivon.MarketCapital.LeanValidation.dll" \
+  --data-folder "$repo/.artifacts/wave-b-m3/data" --results-destination-folder "$out" \
+  --transaction-log "$out/transactions.csv" --close-automatically true > "$out/lean-console.log" 2>&1
+)
+python3 - "$repo" "$out" <<'PY'
+from pathlib import Path
+import hashlib,json,re,sys
+repo=Path(sys.argv[1]); out=Path(sys.argv[2]); log=(out/'lean-console.log').read_text(); cfg=json.loads((repo/'config/shadow_precommit.json').read_text())
+errors=[x for x in log.splitlines() if ' ERROR::' in x]
+if errors: raise SystemExit(f'LEAN errors present: {errors}')
+failed=re.search(r'DATA USAGE:: Failed data requests (\d+)',log)
+if not failed or int(failed.group(1))!=0: raise SystemExit('failed data requests are nonzero')
+def kv(line,marker):
+ d={}
+ for item in line.split(marker,1)[1].split('|'):
+  if '=' in item:
+   k,v=item.split('=',1); d[k]=v
+ return d
+fix=[kv(x,'MC_FIX_INTENT|') for x in log.splitlines() if 'MC_FIX_INTENT|' in x]
+plans=[kv(x,'MC_SHADOW_PRECOMMIT_ORDER|') for x in log.splitlines() if 'MC_SHADOW_PRECOMMIT_ORDER|' in x]
+links=[x for x in log.splitlines() if 'MC_FIX_EXECUTION_LINK|' in x]
+order_events=[x for x in log.splitlines() if 'MC_ORDER_EVENT|' in x]
+if len(fix)!=3 or len(plans)!=3: raise SystemExit(f'expected 3 intents/plans, got {len(fix)}/{len(plans)}')
+if links or order_events: raise SystemExit('plan-only lane emitted LEAN execution evidence')
+transactions=(out/'transactions.csv').read_text() if (out/'transactions.csv').exists() else ''
+if transactions.strip(): raise SystemExit('plan-only lane produced transactions')
+by_cl={x['clOrdId']:x for x in fix}
+for plan in plans:
+ intent=by_cl.get(plan['clOrdId']);
+ if not intent: raise SystemExit('plan missing FIX intent')
+ if intent['symbol']!=plan['symbol'] or intent['orderQty']!=plan['quantity']: raise SystemExit('FIX/plan mismatch')
+ if intent['timeInForce']!='2': raise SystemExit('precommit must use FIX TIF=At the Opening')
+ if intent['transactTimeUtc'].replace('0000Z','Z') and not intent['transactTimeUtc'].startswith('2026-09-13T09:39:11'): raise SystemExit('unexpected frozen transact time')
+market_manifest=json.loads((repo/'.artifacts/wave-b-m3/manifest.json').read_text())
+pricing_series=[{k:x[k] for k in ('symbol','rawSha256','normalizedCsvSha256','rowCount','firstDate','lastDate')} for x in market_manifest['series']]
+authority=json.loads((out/'authority.json').read_text())
+summary={
+ 'standing':'SHADOW_ORDER_PRECOMMIT_FROZEN',
+ 'authorityStanding':authority['standing'],
+ 'externalWritePolicyStanding':authority['externalWritePolicyStanding'],
+ 'authorityEvidenceSha256':hashlib.sha256((out/'authority.json').read_bytes()).hexdigest(),
+ 'precommitTimeUtc':cfg['precommitTimeUtc'],
+ 'decisionBoundaryUtc':cfg['decisionBoundaryUtc'],
+ 'pricingSessionDate':cfg['pricingSessionDate'],
+ 'pricingStanding':cfg['pricingStanding'],
+ 'pricingProviderEvidence':pricing_series,
+ 'executionTrigger':cfg['executionTrigger'],
+ 'targetPortfolioSha256':cfg['targetPortfolioSha256'],
+ 'fixIntents':fix,
+ 'shadowOrders':plans,
+ 'leanOrdersEmitted':0,
+ 'brokerCredentialsUsed':False,
+ 'externalFinancialWritesAttempted':False,
+ 'consoleLogSha256':hashlib.sha256((out/'lean-console.log').read_bytes()).hexdigest()
+}
+(out/'precommit.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n'); print(json.dumps(summary,sort_keys=True))
+PY

@@ -1,0 +1,97 @@
+{
+  "brokerCredentialsUsed": false,
+  "consoleLogSha256": "b78771ea7cb4c15de758559eefb0a11b0c2a852c13f262db5887d8e7820b94d0",
+  "executionLinks": [
+    {
+      "clOrdId": "mc_b4fb12bdf5ef4ad89e41b4ac",
+      "leanOrderId": "1",
+      "quantity": "101",
+      "symbol": "AAPL"
+    },
+    {
+      "clOrdId": "mc_4661ce9a2755954d69d6dd87",
+      "leanOrderId": "2",
+      "quantity": "65",
+      "symbol": "MSFT"
+    },
+    {
+      "clOrdId": "mc_173ce7c7fd304826e25ae1e7",
+      "leanOrderId": "3",
+      "quantity": "151",
+      "symbol": "NVDA"
+    }
+  ],
+  "externalFinancialWritesAttempted": false,
+  "fills": [
+    {
+      "arrivalPrice": "325.1300",
+      "executionPriceDelta": "1.73500000014613533006024095",
+      "fee": "1",
+      "fillPrice": "326.86500000014613533006024095",
+      "fillQty": "101",
+      "id": "1",
+      "status": "Filled",
+      "symbol": "AAPL"
+    },
+    {
+      "arrivalPrice": "501.0200",
+      "executionPriceDelta": "-1.16999999955103937934677615",
+      "fee": "1",
+      "fillPrice": "499.85000000044896062065322385",
+      "fillQty": "65",
+      "id": "2",
+      "status": "Filled",
+      "symbol": "MSFT"
+    },
+    {
+      "arrivalPrice": "217.4400",
+      "executionPriceDelta": "1.3450000000101056228664457",
+      "fee": "1",
+      "fillPrice": "218.7850000000101056228664457",
+      "fillQty": "151",
+      "id": "3",
+      "status": "Filled",
+      "symbol": "NVDA"
+    }
+  ],
+  "fixIntents": [
+    {
+      "clOrdId": "mc_b4fb12bdf5ef4ad89e41b4ac",
+      "msgType": "D",
+      "ordType": "1",
+      "orderQty": "101",
+      "protocol": "FIX.4.4",
+      "sha256": "d77005087313ec57190dd44e98afbef1dcfeb329e17f92c69932e6628d994209",
+      "side": "1",
+      "symbol": "AAPL",
+      "timeInForce": "0"
+    },
+    {
+      "clOrdId": "mc_4661ce9a2755954d69d6dd87",
+      "msgType": "D",
+      "ordType": "1",
+      "orderQty": "65",
+      "protocol": "FIX.4.4",
+      "sha256": "2cde3ba8f20015950d2d9c30bf0b594dfef31a273d62dbcdc4c626182c647f96",
+      "side": "1",
+      "symbol": "MSFT",
+      "timeInForce": "0"
+    },
+    {
+      "clOrdId": "mc_173ce7c7fd304826e25ae1e7",
+      "msgType": "D",
+      "ordType": "1",
+      "orderQty": "151",
+      "protocol": "FIX.4.4",
+      "sha256": "6c1162990138cef7404ad85ccb8ff9550dd59d1dd8220cbad52c7f8ef49576ed",
+      "side": "1",
+      "symbol": "NVDA",
+      "timeInForce": "0"
+    }
+  ],
+  "fixLibrary": "QuickFIX/n 1.14.1",
+  "messageType": "D",
+  "protocol": "FIX.4.4",
+  "sessionNetworkEnabled": false,
+  "standing": "PASS_BOUNDED_FIX44_ORDER_SEMANTICS"
+}

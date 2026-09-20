@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.market-capital.live-test-account-policy-evidence",
+  "standing": "USER_AUTHORIZED_PENDING_FRESH_PRIVATE_ACCOUNT_VERIFICATION",
+  "userAuthorization": "LIVE_ENDPOINT_TEST_ACCOUNT_USE_AUTHORIZED",
+  "liveEndpointsMayServeAsTestAccounts": true,
+  "protocolEnvironmentStillLive": true,
+  "productionTradingAuthorized": false,
+  "orderSubmissionAllowed": false,
+  "maxTestNotionalQuote": "1",
+  "freshAdmissionRequired": true,
+  "freshAdmissionLaws": [
+    "verified authoritative private reality",
+    "clock gate pass",
+    "reconciliation path healthy",
+    "trade permission present",
+    "withdraw/transfer absent",
+    "no nonzero position",
+    "no open order",
+    "no nonquote nonzero balance",
+    "quote balance <= 1"
+  ],
+  "toolEnvironmentPrivateLiveAccess": "BLOCKED_BY_PLATFORM_SAFETY_GUARD",
+  "externalFinancialWritesAttempted": false,
+  "testStanding": "101_PASS"
+}

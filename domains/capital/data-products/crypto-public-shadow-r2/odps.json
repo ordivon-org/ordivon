@@ -1,0 +1,191 @@
+{
+  "apiVersion": "v1.1.0",
+  "kind": "DataProduct",
+  "id": "d14d7457-c9aa-59e0-8bf5-7783cea39c1c",
+  "name": "Crypto Public Shadow R2 Observation",
+  "version": "2026.09.14",
+  "status": "active",
+  "domain": "finance/market-observation",
+  "type": "consumerAligned",
+  "description": {
+    "purpose": "Expose the frozen cross-venue public streaming observation as a governed, read-only analytical data product.",
+    "limitations": "Historical bounded public observation only; no execution authority, private account data, price-direction forecast, alpha, arbitrage, or causal claim.",
+    "usage": "Use for monitoring, replay, market-structure analysis, or model evaluation that preserves the exact evidence version and its no-write boundary."
+  },
+  "tags": [
+    "finance",
+    "public-market-data",
+    "binance",
+    "okx",
+    "read-only",
+    "observation"
+  ],
+  "context": {
+    "instructions": "Treat this product as historical read-only public observation. Preserve source/receive timestamps and the exact source SHA-256. Separate observed quotes from derived cross-venue comparisons.",
+    "verifiedStatements": [
+      {
+        "id": "venues",
+        "question": "Which venues are represented?",
+        "answer": "Binance and OKX."
+      },
+      {
+        "id": "assets",
+        "question": "Which assets are represented in the measured windows?",
+        "answer": "BTC and ETH."
+      },
+      {
+        "id": "writes",
+        "question": "Did this evidence attempt any external financial write?",
+        "answer": "No. externalFinancialWritesAttempted is false."
+      }
+    ],
+    "constraints": [
+      {
+        "id": "no-execution",
+        "constraint": "Do not use this product as authorization or instruction to place a trade."
+      },
+      {
+        "id": "no-alpha-overclaim",
+        "constraint": "Do not turn bounded cross-venue observations into an alpha, arbitrage, or price-direction claim without separate evidence."
+      },
+      {
+        "id": "no-private-inference",
+        "constraint": "Do not infer private account holdings, positions, or permissions from this public observation product."
+      }
+    ]
+  },
+  "authoritativeDefinitions": [
+    {
+      "type": "canonicalUrl",
+      "url": "https://github.com/bitol-io/open-data-product-standard",
+      "description": "ODPS authority."
+    },
+    {
+      "type": "rightsPolicyModel",
+      "url": "https://www.w3.org/TR/odrl-model/",
+      "description": "W3C ODRL 2.2 policy model."
+    },
+    {
+      "type": "privacyRiskFramework",
+      "url": "https://www.nist.gov/privacy-framework",
+      "description": "NIST Privacy Framework 1.0 baseline; 1.1 remains draft as of product governance review."
+    },
+    {
+      "type": "recordsManagement",
+      "url": "https://www.iso.org/standard/62542.html",
+      "description": "ISO 15489-1:2016 records-management concepts and requirements."
+    }
+  ],
+  "customProperties": [
+    {
+      "property": "sourceRelativePath",
+      "value": "evidence/crypto-public-shadow-r2-20260914.json"
+    },
+    {
+      "property": "sourceSha256",
+      "value": "ed5fba6227a5d997adefb6bf63717463dc75fdc8b62cfb0005804109eb0a2d7e"
+    },
+    {
+      "property": "sourceContentRevision",
+      "value": "9ceeb27fcd8cfdff41860b891cf7bb1a2f667462"
+    },
+    {
+      "property": "acceptedSnapshotCount",
+      "value": 4
+    },
+    {
+      "property": "measuredWindowCount",
+      "value": 3
+    },
+    {
+      "property": "venues",
+      "value": [
+        "BINANCE",
+        "OKX"
+      ]
+    },
+    {
+      "property": "assets",
+      "value": [
+        "BTC",
+        "ETH"
+      ]
+    },
+    {
+      "property": "externalFinancialWritesAttempted",
+      "value": false
+    },
+    {
+      "property": "privateAccountDataUsed",
+      "value": false
+    },
+    {
+      "property": "brokerCredentialsUsed",
+      "value": false
+    },
+    {
+      "property": "governancePolicyUid",
+      "value": "urn:uuid:33b9c6e5-23e4-576a-8fb1-59977a40e200"
+    },
+    {
+      "property": "governancePolicyRelativePath",
+      "value": "data-products/crypto-public-shadow-r2/governance-policy.odrl.jsonld"
+    },
+    {
+      "property": "sourceLicenseStatus",
+      "value": "UNRESOLVED"
+    },
+    {
+      "property": "redistributionStatus",
+      "value": "NOT_AUTHORIZED_BY_PRODUCT_METADATA"
+    },
+    {
+      "property": "thirdPartyGrantStatus",
+      "value": "NOT_AUTHORIZED_BY_PRODUCT_METADATA"
+    },
+    {
+      "property": "retentionScheduleStatus",
+      "value": "UNASSIGNED"
+    },
+    {
+      "property": "automaticDeletionStatus",
+      "value": "NOT_AUTHORIZED_UNTIL_RECORDS_REQUIREMENT_ASSIGNED"
+    },
+    {
+      "property": "privacyFrameworkBaseline",
+      "value": "NIST_PRIVACY_FRAMEWORK_1_0"
+    },
+    {
+      "property": "privacyAssessmentStatus",
+      "value": "BOUNDED_NO_PRIVATE_ACCOUNT_DATA_PROVEN_FORMAL_ASSESSMENT_NOT_COMPLETE"
+    }
+  ],
+  "outputPorts": [
+    {
+      "id": "358e57ff-d416-5dd6-a90c-f62b4bc94ff0",
+      "name": "public-shadow-json",
+      "description": "Frozen Binance+OKX public streaming shadow evidence.",
+      "type": "file/json",
+      "version": "2026.09.14",
+      "contractId": "5de34add-dca7-54eb-ada3-5e657a7c3ff3",
+      "context": {
+        "instructions": "Verify the evidence digest and retain the no-write/private-data flags when consuming.",
+        "constraints": [
+          {
+            "constraint": "Do not submit orders or access private endpoints as part of consuming this output port."
+          }
+        ]
+      }
+    }
+  ],
+  "team": {
+    "name": "Ordivon Capital market-observation domain",
+    "description": "Domain-level owner of this data-product metadata and lifecycle. This does not assert ownership of provider market-data intellectual-property or redistribution rights.",
+    "customProperties": [
+      {
+        "property": "ownershipScope",
+        "value": "PRODUCT_METADATA_AND_LIFECYCLE_NOT_PROVIDER_IP"
+      }
+    ]
+  }
+}

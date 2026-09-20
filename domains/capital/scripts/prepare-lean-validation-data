@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+from pathlib import Path
+import os, shutil, zipfile
+lean = Path(os.environ.get("ORDIVON_CAPITAL_MARKET_LEAN_ROOT", "/root/external/quantconnect-lean/18074"))
+root = Path(__file__).resolve().parents[1] / ".artifacts" / "wave-b-m1" / "data"
+if root.exists(): shutil.rmtree(root)
+(root / "equity/usa/daily").mkdir(parents=True)
+(root / "equity/usa/map_files").mkdir(parents=True)
+(root / "equity/usa/factor_files").mkdir(parents=True)
+for name in ("market-hours", "symbol-properties", "alternative"):
+    os.symlink(lean / "Data" / name, root / name, target_is_directory=True)
+# LEAN statistics still requests its default SPY benchmark. Reuse the exact upstream sample, not synthetic benchmark data.
+for rel in (
+    "equity/usa/daily/spy.zip",
+    "equity/usa/map_files/spy.csv",
+    "equity/usa/factor_files/spy.csv",
+):
+    src = lean / "Data" / rel
+    dst = root / rel
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    os.symlink(src, dst)
+series = {
+    "aapl": [100.00, 101.00, 102.00, 101.50, 103.00],
+    "msft": [50.00, 50.50, 51.00, 51.25, 52.00],
+    "nvda": [25.00, 25.50, 26.00, 26.50, 27.00],
+}
+dates = ["20131007", "20131008", "20131009", "20131010", "20131011"]
+for ticker, closes in series.items():
+    rows=[]
+    for day, close in zip(dates, closes):
+        o=close-0.20; h=close+0.50; l=close-0.50
+        vals=[int(round(x*10000)) for x in (o,h,l,close)]
+        rows.append(f"{day} 00:00,{vals[0]},{vals[1]},{vals[2]},{vals[3]},10000")
+    with zipfile.ZipFile(root / f"equity/usa/daily/{ticker}.zip", "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr(f"{ticker}.csv", "\n".join(rows)+"\n")
+    exchange = "Q"
+    (root / f"equity/usa/map_files/{ticker}.csv").write_text(f"20131007,{ticker},{exchange}\n20501231,{ticker},{exchange}\n")
+    (root / f"equity/usa/factor_files/{ticker}.csv").write_text(f"20131007,1,1,{closes[0]}\n20501231,1,1,0\n")
+print(root)

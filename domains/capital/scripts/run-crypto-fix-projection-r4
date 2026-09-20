@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+source_ev="$repo/evidence/crypto-shadow-mechanics-r1-20260913.json"
+outdir="$repo/.artifacts/crypto-fix-r4"
+input="$outdir/input.json"
+projected="$outdir/projected.json"
+canonical="$repo/evidence/crypto-fix44-projection-r4-20260914.json"
+projector="$repo/tools/fix44-projector/bin/Release/net10.0/MarketCapital.Fix44Projector.dll"
+
+"$repo/scripts/check-execution-policy" --mode non-live >/dev/null
+[[ -f "$source_ev" ]] || { echo 'source mechanics evidence unavailable' >&2; exit 2; }
+[[ -f "$projector" ]] || DOTNET_CLI_TELEMETRY_OPTOUT=1 dotnet build "$repo/tools/fix44-projector/MarketCapital.Fix44Projector.csproj" -c Release --nologo >/dev/null
+mkdir -p "$outdir"
+
+python3 - "$source_ev" "$input" <<'PY'
+import hashlib,json,sys
+from datetime import datetime,timezone
+from pathlib import Path
+src=Path(sys.argv[1]); out=Path(sys.argv[2])
+x=json.loads(src.read_text())
+r=x['result']
+if x['standing']!='PASS_LOCAL_CRYPTO_SPOT_OMS_MECHANICS': raise SystemExit('mechanics evidence not admitted')
+if r['purpose']!='MECHANICS_ONLY_NON_ECONOMIC' or r['economicDecisionClaimed'] or r['externalFinancialWritesAttempted']:
+    raise SystemExit('source evidence violates mechanics-only boundary')
+intents=[]
+for row in r['orders']:
+    iid=row['instrumentId']
+    if iid.endswith('.OKX'):
+        symbol=iid[:-4]; venue='OKX'
+    elif iid.endswith('.BINANCE'):
+        symbol=iid[:-8]; venue='BINANCE'
+    else:
+        raise SystemExit(f'unsupported instrument id: {iid}')
+    if row['timeInForce']!='IOC': raise SystemExit('source mechanics TIF drifted')
+    intents.append({
+      'clOrdId':row['clientOrderId'],
+      'symbol':symbol,
+      'exDestination':venue,
+      'side':'BUY',
+      'orderQty':row['quantity'],
+      'ordType':'MARKET',
+      'timeInForce':'IOC',
+    })
+payload={
+  'schemaVersion':1,
+  'kind':'ordivon.capital.market.fix44-projection-input',
+  'purpose':'MECHANICS_ONLY_NON_ECONOMIC',
+  'sourceEvidenceSha256':hashlib.sha256(src.read_bytes()).hexdigest(),
+  'transactTimeUtc':datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z'),
+  'senderCompId':'ORDIVON_SHADOW',
+  'networkSessionEnabled':False,
+  'externalFinancialWritesAllowed':False,
+  'intents':intents,
+}
+out.write_text(json.dumps(payload,indent=2,sort_keys=True)+'\n')
+PY
+
+DOTNET_CLI_TELEMETRY_OPTOUT=1 dotnet "$projector" "$input" "$projected" >/dev/null
+python3 - "$source_ev" "$input" "$projected" "$canonical" <<'PY'
+import hashlib,json,sys
+from pathlib import Path
+source,inputp,projectedp,out=map(Path,sys.argv[1:])
+i=json.loads(inputp.read_text()); p=json.loads(projectedp.read_text())
+rows=p['projectedIntents']
+if p['standing']!='PASS_FIX44_NEW_ORDER_SINGLE_PROJECTION': raise SystemExit('projection did not pass')
+if len(rows)!=4: raise SystemExit(f'expected four projected intents, got {len(rows)}')
+if p['networkSessionEnabled'] or p['brokerCredentialsUsed'] or p['externalFinancialWritesAttempted']:
+    raise SystemExit('projection crossed external boundary')
+by_id={x['clOrdId']:x for x in rows}
+for expected in i['intents']:
+    got=by_id.get(expected['clOrdId'])
+    if not got: raise SystemExit('ClOrdID continuity failure')
+    if got['protocol']!='FIX.4.4' or got['msgType']!='D' or got['ordType']!='1' or got['timeInForce']!='3':
+        raise SystemExit(f'FIX semantics drift: {got}')
+    if got['symbol']!=expected['symbol'] or got['exDestination']!=expected['exDestination'] or got['orderQty']!=expected['orderQty']:
+        raise SystemExit('source intent to FIX projection mismatch')
+summary={
+  'schemaVersion':1,
+  'kind':'ordivon.capital.market.crypto-fix44-projection-r4-evidence',
+  'standing':'PASS_CRYPTO_MECHANICS_TO_FIX44_PROJECTION',
+  'purpose':'MECHANICS_ONLY_NON_ECONOMIC',
+  'composition':{
+    'sourceMechanics':'NautilusTrader local OMS/Risk evidence',
+    'orderSemantics':'FIX 4.4 NewOrderSingle',
+    'fixImplementation':'QuickFIX/n 1.14.1',
+    'mappingRole':'thin projection only',
+  },
+  'sourceMechanicsEvidence':'evidence/crypto-shadow-mechanics-r1-20260913.json',
+  'sourceMechanicsEvidenceSha256':hashlib.sha256(source.read_bytes()).hexdigest(),
+  'projectionInputSha256':hashlib.sha256(inputp.read_bytes()).hexdigest(),
+  'projectionOutputSha256':hashlib.sha256(projectedp.read_bytes()).hexdigest(),
+  'projectedIntents':rows,
+  'identityContinuity':'Nautilus mechanics clientOrderId == FIX ClOrdID',
+  'networkSessionEnabled':False,
+  'brokerCredentialsUsed':False,
+  'privateAccountDataUsed':False,
+  'demoExecutionAttempted':False,
+  'liveExecutionAttempted':False,
+  'externalFinancialWritesAttempted':False,
+  'economicDecisionClaimed':False,
+  'nextBoundary':'authoritative read-only venue account/order/trade reality before any order-capable credential admission',
+}
+out.write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
+print(json.dumps(summary,sort_keys=True))
+PY

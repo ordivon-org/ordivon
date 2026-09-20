@@ -1,0 +1,68 @@
+{
+  "consequence": {
+    "demoExecutionAdmission": true,
+    "liveExecutionAdmission": true,
+    "overallPrivateExecutionAdmission": false,
+    "overallPrivateExecutionBlocker": "execution_authority remains NON_LIVE / external financial writes NOT_ADMITTED",
+    "privateAccountDataAdmission": true,
+    "publicShadowAllowed": true,
+    "timingGateOnly": true
+  },
+  "directionStableAcrossAudits": true,
+  "externalFinancialWritesAttempted": false,
+  "externalValidation": {
+    "allSuccessfulMeasurementsWithin1000Ms": true,
+    "batchCount": 3,
+    "note": "UDP/123 timeouts are tolerated as transport noise; every successful measurement remained far inside the frozen 1000 ms gate.",
+    "observedAbsOffsetMsMax": 47.09196090698242,
+    "observedAbsOffsetMsMin": 9.972810745239258,
+    "sources": [
+      "time.cloudflare.com",
+      "time.apple.com",
+      "time.aws.com"
+    ],
+    "successfulMeasurements": 6
+  },
+  "kind": "ordivon.market-capital.clock-quality-audit",
+  "measurementMethod": "Windows w32time authority repaired via UAC-approved PowerShell; WSL CLOCK_REALTIME continuously synchronized from /dev/ptp_hyperv using linuxptp phc2sys; fresh external NTP validation performed with ephemeral UDP clients",
+  "multiSourceAgreement": true,
+  "observedAbsOffsetMsMax": 47.09196090698242,
+  "observedAbsOffsetMsMin": 9.972810745239258,
+  "privateExecutionMaxAbsOffsetMs": 1000,
+  "rootCause": {
+    "adminRemediationRequired": false,
+    "historical": "Windows Time was unsynchronized and WSL CLOCK_REALTIME remained about one second offset after Windows recovered.",
+    "remediation": "Windows w32time now uses qualified NTP peers; WSL follows the authoritative Windows host via Hyper-V PTP and phc2sys."
+  },
+  "schemaVersion": 1,
+  "standing": "PASS_PRIVATE_EXECUTION_CLOCK_GATE",
+  "windows": {
+    "configuredPeers": [
+      "time.cloudflare.com,0x8",
+      "time.apple.com,0x8",
+      "time.aws.com,0x8"
+    ],
+    "lastSuccessfulSync": "2026-09-14T10:22:30+08:00",
+    "leapIndicator": 0,
+    "observedSource": "time.cloudflare.com,0x8",
+    "preChangeRegistryBackup": "C:\\ProgramData\\Ordivon\\backups\\w32time-before-20260914-102212.reg",
+    "service": "w32time",
+    "startType": "AUTOMATIC",
+    "status": "RUNNING",
+    "stratum": 4,
+    "stripchartObservedAbsOffsetMsMax": 8.5069
+  },
+  "wslHostPtp": {
+    "clockName": "hyperv",
+    "device": "/dev/ptp_hyperv",
+    "independentNtpDaemonRunning": false,
+    "linuxptpVersion": "4.4-2",
+    "postRepairHostPtpToSystemOffsetMsApprox": 2.1,
+    "preRepairHostPtpToSystemOffsetMsApprox": 1021.8,
+    "service": "ordivon-wsl-host-clock-sync.service",
+    "serviceActive": true,
+    "serviceEnabled": true,
+    "sink": "CLOCK_REALTIME",
+    "source": "/dev/ptp_hyperv"
+  }
+}

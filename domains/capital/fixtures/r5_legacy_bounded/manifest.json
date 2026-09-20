@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.market-capital.r5-legacy-bounded-fixture-manifest",
+  "sourceRepo": "/root/projects/ordivon-finance",
+  "purpose": "Freeze only bounded final evidence needed to replay semantic outcomes retained by the clean-room Market Capital architecture; legacy mechanisms are not imported.",
+  "fixtures": [
+    {
+      "path": "market-capital-r26-p01-registry-parcel-authority-20260908.json",
+      "sha256": "0f6735618d1fe0d6354520025e5406b766e9c9be38b7b523ff51b91e19478f80",
+      "retainedOutcome": "registry identity is not scarcity/legal ownership/deployment authority; caller cannot mint canonical parcel authority"
+    },
+    {
+      "path": "market-capital-r27-p21-effect-reconciliation-final-20260908.json",
+      "sha256": "16a761428335afa0db95a7026e3cf2c72732f7766233b96f981315b18f561da6",
+      "retainedOutcome": "UNKNOWN/AMBIGUOUS/PARTIAL_OPEN/CONTRADICTORY retain; proven no-effect releases; positive execution consumes"
+    },
+    {
+      "path": "market-capital-r28-p31-effect-authority-v2-final-20260908.json",
+      "sha256": "f7d27163890cd9cc61cd1ce178e6a6fdb5964e8c9bfc24ed7a68e56d67c0fd3f",
+      "retainedOutcome": "current proof binding and monotone terminal authority remain fail-closed; bounded evidence never grants institutional production authority"
+    }
+  ],
+  "legacyCodeImported": false,
+  "externalFinancialWriteAttempted": false
+}

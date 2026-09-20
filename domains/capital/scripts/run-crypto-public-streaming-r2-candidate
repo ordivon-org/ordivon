@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+if [ "$#" -ne 1 ]; then echo "usage: $0 OUTPUT_DIR" >&2; exit 64; fi
+out="$1"; repo="$(cd "$(dirname "$0")/.." && pwd)"
+rm -rf "$out"; mkdir -p "$out"
+"$repo/scripts/check-network-v2-public-data" >"$out/network-v2-binding.json"
+readarray -t proxy < <(jq -r '.authorities.okxWs.proxy,.authorities.binanceSpotWs.proxy' "$out/network-v2-binding.json")
+set +e
+timeout --signal=TERM --kill-after=5s 45s env \
+  ORDIVON_MC_OKX_WS_PROXY="${proxy[0]}" \
+  ORDIVON_MC_BINANCE_SPOT_WS_PROXY="${proxy[1]}" \
+  /usr/bin/uv run --frozen --project "$repo" python "$repo/src/ordivon_capital/market/crypto_public_streaming.py" \
+    --output "$out/streaming.json" --rounds 3 --warmup-rounds 1 --deadline-seconds 25 \
+  >"$out/streaming.stdout" 2>"$out/streaming.stderr"
+src=$?
+set -e
+python3 - "$out" "$src" <<'PY'
+import json,sys
+out,rc=sys.argv[1:]
+try: s=json.load(open(out+'/streaming.json'))
+except Exception: s={'standing':'NO_STREAMING_RESULT'}
+b=json.load(open(out+'/network-v2-binding.json'))
+result={'schemaVersion':1,'kind':'ordivon.capital.market.crypto-streaming-r2-candidate','transport':'network-v2-provider-auto','transportBindingDigest':b.get('bindingDigest'),'streamReturnCode':int(rc),'streamingStanding':s.get('standing'),'standing':'PASS_WORKLOAD_QUALIFIED' if int(rc)==0 and s.get('standing')=='PASS_STREAMING_REPEATED_PUBLIC_SHADOW' else 'WORKLOAD_QUALITY_FAILED','acceptedSnapshotCount':s.get('acceptedSnapshotCount'),'allMeasuredQualified':s.get('allMeasuredQualified'),'brokerCredentialsUsed':False,'privateAccountDataUsed':False,'externalFinancialWritesAttempted':False,'demoExecutionAttempted':False,'liveExecutionAttempted':False}
+json.dump(result,open(out+'/result.json','w'),indent=2,sort_keys=True); open(out+'/result.json','a').write('\n'); print(json.dumps(result,sort_keys=True))
+PY
+[ "$src" -eq 0 ]

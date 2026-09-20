@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+lean="${ORDIVON_CAPITAL_MARKET_LEAN_ROOT:-/root/external/quantconnect-lean/18074}"
+out="$repo/.artifacts/wave-b-m4/results"
+"$repo/scripts/check-lean-runtime"
+"$repo/scripts/check-execution-policy" --mode non-live >/dev/null
+mkdir -p "$repo/.artifacts/wave-b-m3"
+"$repo/scripts/fetch-nasdaq-wave-b-m3" > "$repo/.artifacts/wave-b-m3/fetch-manifest-output.json"
+DOTNET_CLI_TELEMETRY_OPTOUT=1 dotnet build "$repo/wave_b/algorithm/MarketCapitalValidationAlgorithm.csproj" -c Release --nologo -p:LeanReleaseRoot="$lean/Launcher/bin/Release"
+rm -rf "$out" && mkdir -p "$out"
+export ORDIVON_CAPITAL_MARKET_TARGET_PORTFOLIO="$repo/wave_b/fixtures/wave_a_target_portfolio.json"
+export ORDIVON_CAPITAL_MARKET_EXECUTION_CASH_BUFFER_WEIGHT="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["executionCashBufferWeight"])' "$repo/config/execution_feasibility.json")"
+export ORDIVON_CAPITAL_MARKET_BACKTEST_START="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["startDate"])' "$repo/config/historical_validation_data.json")"
+export ORDIVON_CAPITAL_MARKET_BACKTEST_END="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["endDate"])' "$repo/config/historical_validation_data.json")"
+export ORDIVON_CAPITAL_MARKET_FIX_INTENT_ENABLED=true
+export ORDIVON_CAPITAL_MARKET_FIX_ASSEMBLY_DIRECTORY="$repo/wave_b/algorithm/bin/Release/net10.0"
+(
+ cd "$lean/Launcher/bin/Release"
+ ./QuantConnect.Lean.Launcher --config "$lean/Launcher/config.json" --environment backtesting \
+  --algorithm-type-name OrdivonMarketCapital.MarketCapitalValidationAlgorithm --algorithm-language CSharp \
+  --algorithm-location "$repo/wave_b/algorithm/bin/Release/net10.0/Ordivon.MarketCapital.LeanValidation.dll" \
+  --data-folder "$repo/.artifacts/wave-b-m3/data" --results-destination-folder "$out" \
+  --transaction-log "$out/transactions.csv" --close-automatically true > "$out/lean-console.log" 2>&1
+)
+python3 - "$repo" "$out" <<'PY'
+from pathlib import Path
+import hashlib,json,re,sys
+repo=Path(sys.argv[1]); out=Path(sys.argv[2]); log=(out/'lean-console.log').read_text()
+if [x for x in log.splitlines() if ' ERROR::' in x]: raise SystemExit('LEAN errors present')
+failed=re.search(r'DATA USAGE:: Failed data requests (\d+)',log)
+if not failed or int(failed.group(1))!=0: raise SystemExit('failed data requests are nonzero')
+
+def kv(line, marker):
+    tail=line.split(marker,1)[1]; d={}
+    for item in tail.split('|'):
+        if '=' in item:
+            k,v=item.split('=',1); d[k]=v
+    return d
+fix=[kv(x,'MC_FIX_INTENT|') for x in log.splitlines() if 'MC_FIX_INTENT|' in x]
+links=[kv(x,'MC_FIX_EXECUTION_LINK|') for x in log.splitlines() if 'MC_FIX_EXECUTION_LINK|' in x]
+fills=[kv(x,'MC_ORDER_EVENT|') for x in log.splitlines() if 'MC_ORDER_EVENT|' in x and 'status=Filled' in x]
+if not (len(fix)==len(links)==len(fills)==3): raise SystemExit(f'expected 3 FIX intents/links/fills: {len(fix)}/{len(links)}/{len(fills)}')
+by_cl={x['clOrdId']:x for x in fix}; link_by_order={x['leanOrderId']:x for x in links};
+for fill in fills:
+    link=link_by_order.get(fill['id']);
+    if not link: raise SystemExit(f"fill {fill['id']} has no FIX link")
+    intent=by_cl.get(link['clOrdId']);
+    if not intent: raise SystemExit('FIX intent missing for linked order')
+    if intent['symbol'] != fill['symbol'] or link['symbol'] != fill['symbol']: raise SystemExit('symbol mismatch across FIX/LEAN')
+    if abs(float(intent['orderQty']) - abs(float(fill['fillQty']))) > 1e-9: raise SystemExit('quantity mismatch across FIX/LEAN')
+    if intent['protocol']!='FIX.4.4' or intent['msgType']!='D' or intent['ordType']!='1' or intent['timeInForce']!='0': raise SystemExit('FIX semantics mismatch')
+summary={
+ 'standing':'PASS_BOUNDED_FIX44_ORDER_SEMANTICS',
+ 'fixLibrary':'QuickFIX/n 1.14.1',
+ 'protocol':'FIX.4.4',
+ 'messageType':'D',
+ 'fixIntents':fix,
+ 'executionLinks':links,
+ 'fills':fills,
+ 'brokerCredentialsUsed':False,
+ 'sessionNetworkEnabled':False,
+ 'externalFinancialWritesAttempted':False,
+ 'consoleLogSha256':hashlib.sha256((out/'lean-console.log').read_bytes()).hexdigest()
+}
+(out/'acceptance.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n'); print(json.dumps(summary,sort_keys=True))
+PY

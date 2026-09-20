@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+set -euo pipefail
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+mise_bin="${ORDIVON_CAPITAL_MISE:-$(command -v mise || true)}"
+market_python="$root/.venv/bin/python"
+tigerbeetle="${ORDIVON_CAPITAL_TIGERBEETLE:-/usr/local/bin/tigerbeetle}"
+tigerbeetle_python="${ORDIVON_CAPITAL_TIGERBEETLE_PYTHON:-/opt/ordivon/external/tigerbeetle/0.17.9/python-client/bin/python}"
+
+cd "$root"
+if [[ -z "$mise_bin" || ! -x "$mise_bin" ]]; then
+  echo "mise unavailable; Ordivon Capital toolchain authority requires mise" >&2
+  exit 2
+fi
+"$mise_bin" exec -- uv sync --frozen --group research --group nautilus --group test >/dev/null
+
+"$market_python" - <<'PY'
+import importlib.metadata as metadata
+import importlib.util
+import json
+import sys
+
+expected = {
+    "jsonschema": "4.26.0",
+    "mlflow": "3.16.1",
+    "pandas": "3.0.6",
+    "pandera": "0.33.1",
+    "pyarrow": "25.0.1",
+    "pytest": "9.1.1",
+    "nautilus-trader": "1.231.0",
+    "websockets": "17.1",
+}
+modules = {
+    "jsonschema": "jsonschema",
+    "mlflow": "mlflow",
+    "pandas": "pandas",
+    "pandera": "pandera",
+    "pyarrow": "pyarrow",
+    "pytest": "pytest",
+    "nautilus-trader": "nautilus_trader",
+    "websockets": "websockets",
+}
+missing = [dist for dist, mod in modules.items() if importlib.util.find_spec(mod) is None]
+versions = {dist: metadata.version(dist) for dist in expected if dist not in missing}
+print(json.dumps({
+    "python": sys.version.split()[0],
+    "marketOwnedPythonModules": {dist: dist not in missing for dist in modules},
+    "versions": versions,
+}, sort_keys=True))
+if sys.version.split()[0] != "3.14.7":
+    raise SystemExit(f"unexpected Market Python version: {sys.version.split()[0]}")
+if missing:
+    raise SystemExit("missing Market-owned modules: " + ", ".join(missing))
+drift = {dist: (expected[dist], versions[dist]) for dist in expected if versions[dist] != expected[dist]}
+if drift:
+    raise SystemExit("Market dependency version drift: " + repr(drift))
+PY
+
+
+if [[ ! -x "$tigerbeetle" ]]; then
+  echo "TigerBeetle binary unavailable: $tigerbeetle" >&2
+  exit 5
+fi
+if [[ ! -x "$tigerbeetle_python" ]]; then
+  echo "TigerBeetle client environment unavailable: $tigerbeetle_python" >&2
+  exit 6
+fi
+"$tigerbeetle" version
+"$tigerbeetle_python" - <<'PY'
+import importlib.metadata as metadata
+import tigerbeetle as tb
+version = metadata.version("tigerbeetle")
+print(f"tigerbeetle_python_client={version}")
+if version != "0.17.9":
+    raise SystemExit(f"TigerBeetle client version mismatch: {version}")
+for name in ("ClientSync", "Account", "Transfer", "CreateAccountStatus", "CreateTransferStatus"):
+    if not hasattr(tb, name):
+        raise SystemExit(f"TigerBeetle client surface missing: {name}")
+PY

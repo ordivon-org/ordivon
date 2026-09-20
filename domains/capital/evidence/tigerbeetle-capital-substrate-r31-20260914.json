@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.market-capital.tigerbeetle-reservation-resolution-evidence",
+  "date": "2026-09-14",
+  "standing": "PASS_RESERVATION_RESOLUTION_MECHANICAL_COMPOSITION",
+  "providerVersion": "0.17.9",
+  "runtimeJob": "job-01a09f74-e961-7901-9b05-0d1a34e5d093",
+  "runtimeResultDigest": "sha256:0a07dcff1d33ec2adbf442290060da8b400f730d8049725045a5019c38daf348",
+  "episode": {
+    "initialAvailableMechanicalCredit": 1000,
+    "firstReservationAmount": 700,
+    "oversubscriptionAmount": 400,
+    "oversubscriptionStatus": "EXCEEDS_CREDITS",
+    "retainProviderMutation": false,
+    "releaseStatus": "CREATED",
+    "secondReservationAmount": 600,
+    "consumeStatus": "CREATED",
+    "consumeReplayStatus": "EXISTS",
+    "sourceDebitsPosted": 600,
+    "encumbranceCreditsPosted": 600,
+    "lateReleaseStatus": "PENDING_TRANSFER_ALREADY_POSTED",
+    "persistentDatabaseCreated": false,
+    "externalFinancialWriteAttempted": false
+  },
+  "semanticBoundary": {
+    "effectDispositionOwner": "Market Capital",
+    "providerEffectDispositionDerivationAllowed": false,
+    "falseGreenRejected": "ledger balance is not deployable capital"
+  }
+}

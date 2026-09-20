@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 0,
+  "kind": "ordivon.market-capital-v2.r0-r1-first-pass-evidence",
+  "sourceRevision": "f5f3c96a45d3ef2ea47311dc64ccc96d2877778d",
+  "workspaceId": "ws-market-capital-v2-external-first-r0-20260911",
+  "r0": {
+    "cleanRoomSemanticTests": {"passed": 14, "failed": 0},
+    "v1DifferentialOracle": {
+      "selectedSurfaces": [
+        "verified_same_cut_waist",
+        "effect_reconciliation_authority",
+        "effect_resurrection_authority",
+        "registry_parcel_authority",
+        "risk_scarcity_authority",
+        "canonical_capital_authority_router"
+      ],
+      "passed": 129,
+      "failed": 0
+    },
+    "falseGreenCases": 11,
+    "productionAuthorization": "BLOCK_NOT_GRANTED"
+  },
+  "r1": {
+    "localChain": {
+      "path": "WitnessRecord -> Arrow -> Parquet -> DuckDB",
+      "standing": "PASS_AUTHORITY_FREE_R1_LOCAL",
+      "sameCutDerivedBeforeExternalStorage": true,
+      "records": 2
+    },
+    "questdb": {
+      "version": "10.0.1",
+      "transport": "podman-host-network",
+      "imagePulled": true,
+      "roundTripExactWitnessDigest": true
+    },
+    "redpanda": {
+      "version": "26.1.15",
+      "transport": "podman-host-network",
+      "imagePulled": true,
+      "roundTripExactWitnessDigest": true,
+      "kafkaOffsetUsedAsObservationOrder": false
+    },
+    "environmentFindings": [
+      "docker compose configuration validated but Docker daemon was unavailable",
+      "podman bridge networking is unsupported in this Runtime kernel",
+      "host-network containers succeeded and were used only for commodity substrate smoke tests"
+    ]
+  },
+  "externalFinancialWriteAttempted": false,
+  "liveSubmissionAuthorized": false,
+  "standing": "R0_PASS_R1_FIRST_PASS_PASS_NON_LIVE"
+}

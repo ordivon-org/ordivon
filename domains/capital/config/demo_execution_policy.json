@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.market.demo-execution-policy",
+  "standing": "PREPARED_NOT_ADMITTED",
+  "purpose": "QUALIFY_MATURE_NON_LIVE_EXECUTION_CLIENTS_BEFORE_ANY_DEMO_OR_TESTNET_WRITE",
+  "demoWriteAdmission": "NOT_ADMITTED",
+  "liveWriteAdmission": "NOT_ADMITTED",
+  "productionGrantRequired": true,
+  "externalFinancialWritesAllowed": false,
+  "venues": {
+    "OKX": {
+      "executionComponent": "NautilusTrader OKXExecutionClientConfig / OKXExecutionClientFactory",
+      "environment": "DEMO",
+      "credentialBinding": null,
+      "networkSessionAllowed": false,
+      "orderSubmissionAllowed": false
+    },
+    "BINANCE": {
+      "executionComponent": "NautilusTrader BinanceExecutionClientConfig / BinanceExecutionClientFactory",
+      "environment": "TESTNET",
+      "productType": "SPOT",
+      "credentialBinding": null,
+      "networkSessionAllowed": false,
+      "orderSubmissionAllowed": false
+    }
+  },
+  "graduationRequires": [
+    "separate explicit user authorization for demo/testnet external writes",
+    "fresh clock-quality gate pass",
+    "read-only private reality permission verification",
+    "credential separation from live/executor authority",
+    "bounded notional and instrument allowlist",
+    "reject/cancel/timeout/restart reconciliation harness",
+    "no production/live grant"
+  ]
+}

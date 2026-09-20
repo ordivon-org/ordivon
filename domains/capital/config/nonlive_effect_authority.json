@@ -1,0 +1,16 @@
+{
+  "admissionContract": "contracts/nonlive-effect-admission-v1.json",
+  "capitalSubstrate": "config/tigerbeetle_capital_substrate.json",
+  "executionMode": "BOUNDED_SIMULATED_EXCHANGE",
+  "externalWritePolicyStanding": "NOT_ADMITTED",
+  "kind": "ordivon.capital.market.nonlive-effect-authority",
+  "providerCandidate": "config/nautilus_candidate.json",
+  "scenarios": [
+    "FILL",
+    "PARTIAL_FILL_SLICES",
+    "CANCEL",
+    "DENY",
+    "UNKNOWN_AFTER_SUBMISSION"
+  ],
+  "schemaVersion": 1
+}

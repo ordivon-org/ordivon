@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.market-capital.demo-execution-preflight-r7-evidence",
+  "standing": "PASS_COMPONENT_CONFIGURATION_DEMO_WRITES_NOT_ADMITTED",
+  "nautilusVersion": "2.0.0rc4",
+  "okx": {"environment": "DEMO", "configConstructed": true},
+  "binance": {"environment": "TESTNET", "productType": "SPOT", "configConstructed": true},
+  "credentialsPassed": false,
+  "networkCalled": false,
+  "demoExecutionAttempted": false,
+  "liveExecutionAttempted": false,
+  "externalFinancialWritesAttempted": false
+}

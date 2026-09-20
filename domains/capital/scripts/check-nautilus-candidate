@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+config="$repo/config/nautilus_candidate.json"
+python3 - "$config" <<'PY'
+import hashlib,json,subprocess,sys
+from pathlib import Path
+cfg=json.loads(Path(sys.argv[1]).read_text())
+if cfg.get('kind')!='ordivon.capital.market.execution-candidate': raise SystemExit('bad candidate config kind')
+for k in ('brokerConnectivityAllowed','brokerCredentialsAllowed','externalFinancialWritesAllowed','productionLiveAdmitted'):
+    if cfg.get(k) is not False: raise SystemExit(f'{k} must remain false')
+root=Path(cfg['environmentRoot'])
+py=root/'.venv/bin/python'
+lock=Path(cfg['lockFile'])
+if not py.is_file(): raise SystemExit('candidate python unavailable')
+if not lock.is_file(): raise SystemExit('candidate lock unavailable')
+obs=hashlib.sha256(lock.read_bytes()).hexdigest()
+if obs!=cfg['lockFileSha256']: raise SystemExit('candidate lock digest drift')
+code='import json,sys,nautilus_trader; print(json.dumps({"version":nautilus_trader.__version__,"python":sys.version.split()[0]}))'
+meta=json.loads(subprocess.check_output([str(py),'-c',code],text=True))
+if meta['version']!=cfg['version']: raise SystemExit('candidate version drift')
+if meta['python']!=cfg['python']: raise SystemExit('candidate python drift')
+print(json.dumps({
+ 'standing':'NAUTILUS_CANDIDATE_BOUND_NON_LIVE',
+ 'name':cfg['name'],'version':meta['version'],'python':meta['python'],
+ 'lockFileSha256':obs,'admissionLane':cfg['admissionLane'],
+ 'brokerConnectivityAllowed':False,'externalFinancialWritesAllowed':False
+},sort_keys=True))
+PY

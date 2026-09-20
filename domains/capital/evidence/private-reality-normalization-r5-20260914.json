@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.market-capital.private-reality-normalization-r5-evidence",
+  "standing": "PASS_OFFLINE_NORMALIZATION_PENDING_FRESH_PRIVATE_PERMISSION_VERIFICATION",
+  "composition": {
+    "okxSource": "authoritative OKX private GET observer envelope",
+    "binanceSource": "authoritative Binance Spot USER_DATA observer envelope",
+    "normalizer": "src/market_capital/private_reality.py",
+    "schema": "schema/private-reality-snapshot.schema.json",
+    "role": "thin pure normalization only"
+  },
+  "credentialStanding": "USER_AUTHORIZED_PENDING_FRESH_PERMISSION_VERIFICATION",
+  "privateAccountDataAllowed": false,
+  "orderCapableCredentialsAllowed": false,
+  "withdrawalCredentialsAllowed": false,
+  "normalizerNetworkAccess": false,
+  "normalizerCredentialAccess": false,
+  "externalFinancialWritesAttempted": false,
+  "testStanding": "82_PASS",
+  "nextBoundary": "fresh read-only permission/account reality verification when the execution environment admits it"
+}

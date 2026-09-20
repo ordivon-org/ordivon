@@ -1,0 +1,74 @@
+{
+  "brokerCredentialsAllowed": false,
+  "canonicalUniverse": [
+    "BTC-USDT",
+    "ETH-USDT"
+  ],
+  "clockQuality": {
+    "exchangeServerTimeCalibrationRequired": true,
+    "gateConfig": "config/clock_quality_gate.json",
+    "priceRequestMaxRttMsForCrossVenueComparison": 1500,
+    "privateExecutionHostClockMaxAbsOffsetMs": 1000,
+    "privateExecutionRule": "blocked until a fresh measurement passes the host-clock gate",
+    "publicShadowTimingClock": "monotonic",
+    "standing": "PASS_PRIVATE_EXECUTION_CLOCK_QUALITY",
+    "venueClockAgreementMaxMsForCrossVenueComparison": 250
+  },
+  "demoExecutionAllowed": false,
+  "externalFinancialWritesAllowed": false,
+  "externalWritePolicyRequired": true,
+  "kind": "ordivon.capital.market.crypto-execution-lane",
+  "liveExecutionAllowed": false,
+  "marketModel": "CONTINUOUS_24_7_CRYPTO_SPOT",
+  "networkTransport": {
+    "authorities": {
+      "BINANCE_SPOT_REST": "http://127.0.0.1:19284",
+      "BINANCE_SPOT_WS": "http://127.0.0.1:19285",
+      "OKX_REST": "http://127.0.0.1:19283",
+      "OKX_WS": "http://127.0.0.1:19288"
+    },
+    "authoritySetConfig": "config/network_v2_public_data.json",
+    "directFallback": false,
+    "preferred": "NETWORK_V2_EXACT_PUBLIC_AUTHORITIES",
+    "providerSelectionOwner": "network-v2-sing-box-provider-auto",
+    "reuseRule": "validate exact Network v2 authority bytes and active service before every public-data session; provider A/B selection remains Network v2-owned",
+    "standing": "PASS_CURRENT_PUBLIC_DATA_VIA_NETWORK_V2"
+  },
+  "privateAccountDataAllowed": false,
+  "publicMarketDataAllowed": true,
+  "rules": [
+    "the historical equity M6/M7 At-the-Opening experiment is not reused for this crypto lane",
+    "crypto qualification uses continuous-market semantics and fresh crypto-specific evidence",
+    "public market data requires no exchange credentials",
+    "demo/testnet execution requires a separate explicit admission before any API key is used",
+    "live execution remains prohibited"
+  ],
+  "schemaVersion": 1,
+  "standing": "SHADOW_PUBLIC_DATA_ONLY",
+  "venues": {
+    "BINANCE": {
+      "adapter": "NautilusTrader Binance",
+      "executionQualificationEnvironments": [
+        "DEMO",
+        "TESTNET"
+      ],
+      "instrumentIds": [
+        "BTCUSDT.BINANCE",
+        "ETHUSDT.BINANCE"
+      ],
+      "product": "SPOT",
+      "publicDataEnvironment": "LIVE"
+    },
+    "OKX": {
+      "adapter": "NautilusTrader OKX",
+      "executionQualificationEnvironment": "DEMO",
+      "instrumentIds": [
+        "BTC-USDT.OKX",
+        "ETH-USDT.OKX"
+      ],
+      "product": "SPOT",
+      "publicDataEnvironment": "LIVE",
+      "region": "GLOBAL"
+    }
+  }
+}

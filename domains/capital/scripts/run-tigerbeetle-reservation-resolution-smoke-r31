@@ -1,0 +1,140 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+tb=/usr/local/bin/tigerbeetle
+py=/opt/ordivon/external/tigerbeetle/0.17.9/python-client/bin/python
+
+tmp="$(mktemp -d)"
+pid=""
+cleanup() {
+  if [[ -n "$pid" ]]; then
+    kill "$pid" 2>/dev/null || true
+    wait "$pid" 2>/dev/null || true
+  fi
+  rm -rf "$tmp"
+}
+trap cleanup EXIT
+
+port="$($py - <<'PY'
+import socket
+s=socket.socket()
+s.bind(('127.0.0.1',0))
+print(s.getsockname()[1])
+s.close()
+PY
+)"
+data="$tmp/0_0.tigerbeetle"
+"$tb" format --cluster=0 --replica=0 --replica-count=1 --development "$data" >"$tmp/format.log" 2>&1
+"$tb" start --addresses="127.0.0.1:${port}" --development "$data" >"$tmp/server.log" 2>&1 &
+pid=$!
+
+TB_PORT="$port" "$py" - <<'PY'
+import os, socket, time
+port=int(os.environ['TB_PORT'])
+deadline=time.time()+10
+while time.time()<deadline:
+    try:
+        with socket.create_connection(('127.0.0.1',port),timeout=0.2):
+            break
+    except OSError:
+        time.sleep(0.05)
+else:
+    raise SystemExit('TigerBeetle development replica did not become reachable')
+PY
+
+PYTHONPATH="$repo/src" TB_PORT="$port" "$py" - <<'PY'
+import json
+import os
+import tigerbeetle as tb
+
+from ordivon_capital.accounting.tigerbeetle_substrate import CapitalReservationBinding, TigerBeetleOperation, reservation_instruction, resolution_instruction
+
+port=os.environ['TB_PORT']
+
+def account(account_id, flags):
+    return tb.Account(id=account_id, ledger=1, code=718, flags=flags)
+
+def provider_transfer(instruction):
+    wire=dict(instruction.as_wire_record())
+    wire['flags']=getattr(tb.TransferFlags, wire.pop('flag_name'))
+    return tb.Transfer(**wire)
+
+history=tb.AccountFlags.HISTORY
+source_flags=history | tb.AccountFlags.DEBITS_MUST_NOT_EXCEED_CREDITS
+
+with tb.ClientSync(cluster_id=0, replica_addresses=f'127.0.0.1:{port}') as client:
+    account_results=client.create_accounts([account(1, history), account(101, source_flags), account(202, history)])
+    if any(r.status != tb.CreateAccountStatus.CREATED for r in account_results):
+        raise SystemExit('account creation failed')
+
+    funding=tb.Transfer(id=10, debit_account_id=1, credit_account_id=101, amount=1000, ledger=1, code=720)
+    if client.create_transfers([funding])[0].status != tb.CreateTransferStatus.CREATED:
+        raise SystemExit('source funding failed')
+
+    first=CapitalReservationBinding('reservation:r31:first','parcel:r31:usd',101,202,700,1,720)
+    if client.create_transfers([provider_transfer(reservation_instruction(first))])[0].status != tb.CreateTransferStatus.CREATED:
+        raise SystemExit('first reservation failed')
+
+    oversubscribe=CapitalReservationBinding('reservation:r31:oversubscribe','parcel:r31:usd:oversubscribe',101,202,400,1,720)
+    scarcity_status=client.create_transfers([provider_transfer(reservation_instruction(oversubscribe))])[0].status
+    if scarcity_status != tb.CreateTransferStatus.EXCEEDS_CREDITS:
+        raise SystemExit(f'oversubscription did not fail closed: {scarcity_status.name}')
+
+    retain=resolution_instruction(binding=first, operation=None, resolution_ref='effect:r31:retain:first')
+    if retain is not None:
+        raise SystemExit('RETAIN produced a provider mutation')
+    retained={a.id:a for a in client.lookup_accounts([101,202])}
+    if retained[101].debits_pending != 700 or retained[202].credits_pending != 700:
+        raise SystemExit('RETAIN changed pending mechanics')
+
+    release=resolution_instruction(binding=first, operation=TigerBeetleOperation.VOID_PENDING_TRANSFER, resolution_ref='effect:r31:release:first')
+    release_status=client.create_transfers([provider_transfer(release)])[0].status
+    if release_status != tb.CreateTransferStatus.CREATED:
+        raise SystemExit(f'RELEASE failed: {release_status.name}')
+
+    second=CapitalReservationBinding('reservation:r31:second','parcel:r31:usd:second',101,202,600,1,720)
+    if client.create_transfers([provider_transfer(reservation_instruction(second))])[0].status != tb.CreateTransferStatus.CREATED:
+        raise SystemExit('second reservation failed')
+
+    consume=resolution_instruction(binding=second, operation=TigerBeetleOperation.POST_PENDING_TRANSFER, resolution_ref='effect:r31:consume:second')
+    consume_status=client.create_transfers([provider_transfer(consume)])[0].status
+    if consume_status != tb.CreateTransferStatus.CREATED:
+        raise SystemExit(f'CONSUME failed: {consume_status.name}')
+    replay_status=client.create_transfers([provider_transfer(consume)])[0].status
+    if replay_status != tb.CreateTransferStatus.EXISTS:
+        raise SystemExit(f'CONSUME replay was not idempotent: {replay_status.name}')
+
+    consumed={a.id:a for a in client.lookup_accounts([101,202])}
+    if consumed[101].debits_pending != 0 or consumed[202].credits_pending != 0:
+        raise SystemExit('CONSUME left pending balance')
+    if consumed[101].debits_posted != 600 or consumed[202].credits_posted != 600:
+        raise SystemExit('CONSUME conservation mismatch')
+
+    late_release=resolution_instruction(binding=second, operation=TigerBeetleOperation.VOID_PENDING_TRANSFER, resolution_ref='effect:r31:late-release:second')
+    late_release_status=client.create_transfers([provider_transfer(late_release)])[0].status
+    if late_release_status != tb.CreateTransferStatus.PENDING_TRANSFER_ALREADY_POSTED:
+        raise SystemExit(f'late release did not fail closed: {late_release_status.name}')
+
+false_green='provider balance is mechanical accounting state only'
+
+print(json.dumps({
+    'standing':'PASS_RESERVATION_RESOLUTION_MECHANICAL_COMPOSITION',
+    'providerVersion':'0.17.9',
+    'initialAvailableMechanicalCredit':1000,
+    'firstReservationAmount':700,
+    'oversubscriptionAmount':400,
+    'oversubscriptionStatus':scarcity_status.name,
+    'retainProviderMutation':False,
+    'releaseStatus':release_status.name,
+    'secondReservationAmount':600,
+    'consumeStatus':consume_status.name,
+    'consumeReplayStatus':replay_status.name,
+    'sourceDebitsPosted':consumed[101].debits_posted,
+    'encumbranceCreditsPosted':consumed[202].credits_posted,
+    'lateReleaseStatus':late_release_status.name,
+    'falseGreenRejected':false_green,
+    'persistentDatabaseCreated':False,
+    'externalFinancialWriteAttempted':False,
+},sort_keys=True))
+PY

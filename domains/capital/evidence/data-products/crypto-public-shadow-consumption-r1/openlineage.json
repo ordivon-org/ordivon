@@ -1,0 +1,47 @@
+[
+  {
+    "eventTime": "2026-09-20T02:25:37.501282Z",
+    "eventType": "START",
+    "inputs": [
+      {
+        "namespace": "urn:ordivon:data-product:finance",
+        "name": "d14d7457-c9aa-59e0-8bf5-7783cea39c1c@2026.09.14#358e57ff-d416-5dd6-a90c-f62b4bc94ff0@sha256:ed5fba6227a5d997adefb6bf63717463dc75fdc8b62cfb0005804109eb0a2d7e"
+      }
+    ],
+    "job": {
+      "namespace": "urn:ordivon:capital:market-observation",
+      "name": "crypto-public-shadow-product-consumption-r1"
+    },
+    "outputs": [],
+    "producer": "urn:ordivon:capital:data-product-consumption-r1",
+    "run": {
+      "runId": "db63ce70-d168-5dfd-b76f-55419d25bea6"
+    },
+    "schemaURL": "https://openlineage.io/spec/2-0-2/OpenLineage.json#/$defs/RunEvent"
+  },
+  {
+    "eventTime": "2026-09-20T02:25:37.501299Z",
+    "eventType": "COMPLETE",
+    "inputs": [
+      {
+        "namespace": "urn:ordivon:data-product:finance",
+        "name": "d14d7457-c9aa-59e0-8bf5-7783cea39c1c@2026.09.14#358e57ff-d416-5dd6-a90c-f62b4bc94ff0@sha256:ed5fba6227a5d997adefb6bf63717463dc75fdc8b62cfb0005804109eb0a2d7e"
+      }
+    ],
+    "job": {
+      "namespace": "urn:ordivon:capital:market-observation",
+      "name": "crypto-public-shadow-product-consumption-r1"
+    },
+    "outputs": [
+      {
+        "namespace": "urn:ordivon:capital:decision-support",
+        "name": "decision-outcome-feedback.json@sha256:6cafaf913b639d6b4652ef34838860f78fb93b15a28faeb5891da7980ea2a402"
+      }
+    ],
+    "producer": "urn:ordivon:capital:data-product-consumption-r1",
+    "run": {
+      "runId": "db63ce70-d168-5dfd-b76f-55419d25bea6"
+    },
+    "schemaURL": "https://openlineage.io/spec/2-0-2/OpenLineage.json#/$defs/RunEvent"
+  }
+]

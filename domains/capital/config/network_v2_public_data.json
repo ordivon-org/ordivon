@@ -1,0 +1,67 @@
+{
+  "authorities": {
+    "binanceSpotRest": {
+      "digest": "sha256:2201273f75253140dc6f04ad1cfc4021aafe2510ac2b0869210d5d04349dcc35",
+      "file": "/etc/network-v2/finance/binance-spot-public-rest-authority.json",
+      "host": "data-api.binance.vision",
+      "port": 443,
+      "profile": "finance-binance-spot-public",
+      "proxy": "http://127.0.0.1:19284"
+    },
+    "binanceSpotWs": {
+      "digest": "sha256:ef0c0dff44b9063d71bbb959204c8288cb4abda63097712001838c407280845f",
+      "file": "/etc/network-v2/finance/binance-spot-public-ws-authority.json",
+      "host": "data-stream.binance.vision",
+      "port": 443,
+      "profile": "finance-binance-spot-public-ws",
+      "proxy": "http://127.0.0.1:19285"
+    },
+    "binanceUsdmRest": {
+      "digest": "sha256:197c7bdf643f8940e8257ac657c8deff1f32e27170eeffd2b266fdbb94bfe887",
+      "file": "/etc/network-v2/finance/binance-usdm-rest-authority.json",
+      "host": "fapi.binance.com",
+      "port": 443,
+      "profile": "finance-binance-usdm",
+      "proxy": "http://127.0.0.1:19287"
+    },
+    "binanceUsdmWs": {
+      "digest": "sha256:a821293eeb69531e2c110aab52e4135962a833f7ee931f0e26a6be199af6b4f0",
+      "file": "/etc/network-v2/finance/binance-usdm-ws-authority.json",
+      "host": "fstream.binance.com",
+      "port": 443,
+      "profile": "finance-binance-usdm-ws",
+      "proxy": "http://127.0.0.1:19289"
+    },
+    "binanceWalletRest": {
+      "digest": "sha256:a76f2476ed9470bd8cc7841b15a5e8ef344744ce4821416bc726af74dc7c6e4c",
+      "file": "/etc/network-v2/finance/binance-wallet-rest-authority.json",
+      "host": "api.binance.com",
+      "port": 443,
+      "profile": "finance-binance-wallet",
+      "proxy": "http://127.0.0.1:19290"
+    },
+    "okxRest": {
+      "digest": "sha256:136c36adf385fc6676da03fe30ea91da1d40d44fc33c6a7dd0f4066a8403b554",
+      "file": "/etc/network-v2/finance/okx-rest-authority.json",
+      "host": "openapi.okx.com",
+      "port": 443,
+      "profile": "finance-okx",
+      "proxy": "http://127.0.0.1:19283"
+    },
+    "okxWs": {
+      "digest": "sha256:21e3a047aa889484ca76d9948c8df0e04f467899461fb0f62235afa78328f679",
+      "file": "/etc/network-v2/finance/okx-ws-authority.json",
+      "host": "ws.okx.com",
+      "port": 8443,
+      "profile": "finance-okx-ws",
+      "proxy": "http://127.0.0.1:19288"
+    }
+  },
+  "directFallback": false,
+  "kind": "ordivon.capital.market.network-v2-public-data-authority-set",
+  "providerSelection": "sing-box-provider-auto",
+  "publicReadOnly": true,
+  "schemaVersion": 1,
+  "serviceUnit": "network-v2-finance-egress.service",
+  "targetUnit": "network-v2-finance.target"
+}

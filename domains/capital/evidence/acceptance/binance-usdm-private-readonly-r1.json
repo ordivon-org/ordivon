@@ -1,0 +1,50 @@
+{
+  "baselineHead": "17d8a7a963e3e227b86f2d3f622a50fc6f13be5d",
+  "date": "2026-09-19",
+  "executionAdmitted": false,
+  "expectedDigestStanding": "CALLER_COMMITMENT_MISSING",
+  "externalFinancialWriteAttempted": false,
+  "kind": "ordivon.acceptance-evidence",
+  "matureOwners": {
+    "credentialCarrier": "Runtime digest-bound InputAuthority",
+    "futuresPrivateTruth": "Binance USD\u24c8-M USER_DATA GET via binance-sdk-derivatives-trading-usds-futures 17.4.0",
+    "permissionTruth": "Binance Wallet GET /sapi/v1/account/apiRestrictions via binance-sdk-wallet 13.4.0",
+    "usdmNetwork": "Network v2 finance-binance-usdm -> fapi.binance.com",
+    "walletNetwork": "Network v2 finance-binance-wallet -> api.binance.com"
+  },
+  "prepared": {
+    "permissionFirstGate": true,
+    "privateCaptureRunner": true,
+    "runtimeAuthorityConfigPrepared": true,
+    "summaryOnlyOutput": true,
+    "usdmNormalizer": true,
+    "walletNetworkAuthorityActive": true,
+    "walletPublicConsequencePassed": true
+  },
+  "privatePermissionQueried": false,
+  "privateUsdMRealityQueried": false,
+  "reason": "Runtime InputAuthority is active, but workspace.execBoundTrusted requires caller-held expected SHA-256 commitments. Platform execution policy prevents deriving those commitments directly from the secret host paths, and no prior canonical commitment exists.",
+  "runtimeAuthority": "finance-binance-observer-materials",
+  "runtimeAuthorityActive": true,
+  "schemaVersion": 1,
+  "standing": "INPUT_AUTHORITY_ACTIVE_EXPECTED_DIGEST_COMMITMENT_MISSING",
+  "subject": "binance-usdm-private-readonly-r1",
+  "tradFiAgreementStanding": "UNKNOWN_NO_READ_ONLY_STATUS_API",
+  "unsafeAlternativesRejected": [
+    "Do not intentionally submit a wrong expectedDigest to recover the observed digest from a mismatch error.",
+    "Do not use the excluded Binance executor credential.",
+    "Do not bypass Runtime by adding a bespoke signer or ambient secret discovery.",
+    "Do not infer read-only permission from successful public API or client-surface access."
+  ],
+  "verification": {
+    "canonicalSuite": "196 passed",
+    "canonicalSuiteAfterAuthorityActivation": "196 passed",
+    "focusedTests": "28 passed",
+    "gitDiffCheck": "PASS",
+    "officialUsdmSdk": "17.4.0",
+    "officialWalletSdk": "13.4.0",
+    "privateObserverWriteCallScan": "PASS_ZERO",
+    "runtimeDescribeAuthorityActive": true,
+    "walletPublicConsequence": "PASS through Network v2 localhost:19290"
+  }
+}

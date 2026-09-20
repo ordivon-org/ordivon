@@ -1,0 +1,65 @@
+{
+  "compositionLaws": [
+    "TigerBeetle state is mechanical accounting state and cannot establish settlement, legal ownership, venue execution state, or external-write policy.",
+    "NO_MUTATION performs no TigerBeetle mutation.",
+    "Provider balance constraints may enforce accounting scarcity but do not authorize an external financial effect.",
+    "POST_PENDING_TRANSFER and VOID_PENDING_TRANSFER are selected from authoritative reconciliation results, not inferred from TigerBeetle balances.",
+    "Terminal local reservation history cannot be automatically reopened by stale, incomplete, restarted, or recovered provider state."
+  ],
+  "durableAccountNamespace": {
+    "idBinding": "domain-separated deterministic non-zero u128",
+    "identityInputs": [
+      "owner_root",
+      "resource_identity",
+      "ledger",
+      "account_code",
+      "role"
+    ],
+    "rawCallerSelectedAccountIds": false,
+    "roles": [
+      "AVAILABLE",
+      "ENCUMBRANCE"
+    ]
+  },
+  "explicitNonResponsibilities": [
+    "settlement_finality",
+    "legal_ownership",
+    "withdrawability",
+    "deployability",
+    "venue_order_or_fill_reality",
+    "external_write_policy",
+    "reconciliation_decision"
+  ],
+  "externalFinancialWrites": "NOT_ADMITTED",
+  "kind": "ordivon.capital.market.tigerbeetle-capital-substrate",
+  "provider": {
+    "binary": "/usr/local/bin/tigerbeetle",
+    "clientInterpreter": "/opt/ordivon/external/tigerbeetle/0.17.9/python-client/bin/python",
+    "clientPackage": "tigerbeetle==0.17.9",
+    "name": "TigerBeetle",
+    "version": "0.17.9"
+  },
+  "reconciliationToProviderMapping": {
+    "NO_MUTATION": "NO provider mutation",
+    "POST_PENDING_TRANSFER": "POST_PENDING_TRANSFER",
+    "VOID_PENDING_TRANSFER": "VOID_PENDING_TRANSFER"
+  },
+  "recoveryLaws": [
+    "An intact TigerBeetle replica restart must reuse the same data file; it must not re-format provider history.",
+    "Permanent replica data loss is not repaired by format; TigerBeetle recover is required under a healthy cluster.",
+    "Provider state never rewrites terminal local reservation history.",
+    "A missing or stale provider terminal resolution yields no-repair/recovery standing, never automatic recreation or reopening.",
+    "Exact replay may prove provider idempotency but cannot mint Ordivon Capital Market-domain authority."
+  ],
+  "responsibility": [
+    "double_entry_account_mechanics",
+    "accounting_conservation",
+    "atomic_transfer_mechanics",
+    "idempotent_transfer_identity",
+    "pending_transfer_encumbrance_mechanics",
+    "post_or_void_pending_transfer_mechanics",
+    "durable_provider_state_across_intact_process_restart"
+  ],
+  "schemaVersion": 3,
+  "standing": "PASS_DURABLE_RESTART_RECONCILIATION"
+}

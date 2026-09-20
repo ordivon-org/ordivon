@@ -1,0 +1,85 @@
+{
+  "accountQualificationStanding": "PENDING_FRESH_PRIVATE_ACCOUNT_VERIFICATION",
+  "canaryModes": {
+    "nonMatchingValidation": {
+      "authorized": true,
+      "description": "venue-native signed test/precheck endpoint that does not create a matching-engine order",
+      "examples": [
+        "Binance order.test",
+        "venue-native order precheck where explicitly documented non-submitting"
+      ],
+      "financialEffectExpected": false
+    },
+    "realMatchingEngineOrder": {
+      "authorized": false,
+      "reason": "current hard test cap is 1 quote unit; fresh local Binance qualification records minNotional=5 USDT for BTCUSDT and ETHUSDT",
+      "requiresOwnerCapitalEnvelopeChange": true
+    }
+  },
+  "economicIntent": "NON_PRODUCTION_QUALIFICATION_ONLY",
+  "kind": "ordivon.capital.market.live-test-account-policy",
+  "knownPublicConstraints": {
+    "BINANCE": {
+      "BTCUSDT": {
+        "minNotional": "5.00000000"
+      },
+      "ETHUSDT": {
+        "minNotional": "5.00000000"
+      }
+    },
+    "evidence": "evidence/crypto-vpn-public-data-qualification-20260913.json"
+  },
+  "liveEndpointUseAllowed": true,
+  "maxTestNotionalQuote": "1",
+  "orderSubmissionAdmission": "NOT_ADMITTED",
+  "orderSubmissionAllowed": false,
+  "ownerUseMandate": "AUTHORIZED_NON_PRODUCTION_LIVE_ENDPOINT_QUALIFICATION",
+  "productionTradingAuthorized": false,
+  "requiredCurrentQualificationFacts": [
+    "clock qualification PASS",
+    "authoritative account balance read succeeds",
+    "observed account value is within test-account threshold",
+    "withdraw permission absent",
+    "transfer permission absent where venue exposes it",
+    "trade permission present",
+    "exact instrument filters/minimums loaded",
+    "reconciliation read path healthy",
+    "one-shot client order id reserved"
+  ],
+  "rules": [
+    "live endpoint semantics must never be relabeled as Demo or Testnet",
+    "Owner Principal mandate permits non-production qualification use of these live accounts but does not grant production trading",
+    "no order may be submitted from user assertion of low balance alone; current authoritative balance evidence is mandatory",
+    "test order notional is capped at 1 quote unit unless the Owner Principal changes the test capital envelope",
+    "if venue minimum notional exceeds the cap, the test must stop rather than raise the cap automatically",
+    "withdrawal and transfer operations remain forbidden",
+    "any ambiguous dispatch maps to NO_MUTATION and must reconcile before retry",
+    "non-matching validation canaries do not imply authorization for a real matching-engine order",
+    "an executor credential may be bound for capability/currentness qualification while orderSubmissionAdmission is NOT_ADMITTED, but it must not be passed to an order-submitting runner until effect admission is separately granted"
+  ],
+  "schemaVersion": 1,
+  "transferAuthorized": false,
+  "venues": {
+    "BINANCE": {
+      "endpointClass": "LIVE",
+      "executorCredentialBinding": "UNBOUND_NOT_ADMITTED",
+      "observerCredential": "/root/.config/ordivon/secrets/binance/observer",
+      "role": "TEST_ACCOUNT_BY_OWNER_POLICY"
+    },
+    "OKX": {
+      "credentialPermissionEvidence": "evidence/okx-live-provider-binding-20260914.json",
+      "endpointClass": "LIVE",
+      "executionProvider": "NautilusTrader 2.0.0rc4 OKX LIVE",
+      "executorCredentialBinding": "/root/.config/ordivon/secrets/okx/live-trade/config.toml",
+      "observerCredential": "/root/.config/ordivon/secrets/okx/observer/config.toml",
+      "officialClient": "@okx_ai/okx-trade-cli 1.4.7",
+      "providerBinding": "config/okx_live_provider.json",
+      "providerReadPermissionCurrent": true,
+      "providerTradePermissionCurrent": true,
+      "providerWithdrawPermissionCurrent": false,
+      "qualificationStanding": "PASS_CURRENT_PROVIDER_BINDING_NO_ORDER_ADMISSION",
+      "role": "TEST_ACCOUNT_BY_OWNER_POLICY"
+    }
+  },
+  "withdrawalAuthorized": false
+}

@@ -1,0 +1,151 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+tb=/usr/local/bin/tigerbeetle
+py=/opt/ordivon/external/tigerbeetle/0.17.9/python-client/bin/python
+
+tmp="$(mktemp -d)"
+data="$tmp/0_0.tigerbeetle"
+pid=""
+cleanup(){
+  if [[ -n "$pid" ]]; then kill "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true; fi
+  rm -rf "$tmp"
+}
+trap cleanup EXIT
+port="$($py - <<'PY'
+import socket
+s=socket.socket(); s.bind(('127.0.0.1',0)); print(s.getsockname()[1]); s.close()
+PY
+)"
+wait_ready(){
+  TB_PORT="$port" "$py" - <<'PY'
+import os,socket,time
+p=int(os.environ['TB_PORT']); deadline=time.time()+10
+while time.time()<deadline:
+    try:
+        with socket.create_connection(('127.0.0.1',p),0.2): raise SystemExit(0)
+    except OSError: time.sleep(0.05)
+raise SystemExit('TigerBeetle did not become reachable')
+PY
+}
+start_tb(){ "$tb" start --addresses="127.0.0.1:$port" --development "$data" >"$tmp/server.log" 2>&1 & pid=$!; wait_ready; }
+stop_tb(){ kill "$pid"; wait "$pid" 2>/dev/null || true; pid=""; }
+
+"$tb" format --cluster=0 --replica=0 --replica-count=1 --development "$data" >"$tmp/format.log" 2>&1
+start_tb
+PYTHONPATH="$repo/src" TB_PORT="$port" "$py" - <<'PY'
+import os, tigerbeetle as tb
+from ordivon_capital.accounting.tigerbeetle_durable import CapitalAccountNamespace, CapitalAccountRole, binding_for_namespace
+from ordivon_capital.accounting.tigerbeetle_substrate import reservation_instruction, stable_provider_id
+
+p=os.environ['TB_PORT']
+ns=CapitalAccountNamespace('owner:primary','parcel:r32:usd',31,718)
+available=ns.account(CapitalAccountRole.AVAILABLE)
+encumbrance=ns.account(CapitalAccountRole.ENCUMBRANCE)
+funding_id=stable_provider_id('market-capital:tigerbeetle:r32-test-funding','parcel:r32:usd')
+
+def acct(a):
+    flags=tb.AccountFlags.HISTORY
+    if a.debits_must_not_exceed_credits: flags |= tb.AccountFlags.DEBITS_MUST_NOT_EXCEED_CREDITS
+    return tb.Account(id=a.account_id,ledger=a.ledger,code=a.code,flags=flags)
+
+def pt(i):
+    w=dict(i.as_wire_record()); w['flags']=getattr(tb.TransferFlags,w.pop('flag_name')); return tb.Transfer(**w)
+
+b=binding_for_namespace(namespace=ns,reservation_ref='reservation:r32:durable',amount=700,transfer_code=720)
+with tb.ClientSync(cluster_id=0,replica_addresses=f'127.0.0.1:{p}') as c:
+    rs=c.create_accounts([tb.Account(id=funding_id,ledger=31,code=718,flags=tb.AccountFlags.HISTORY),acct(available),acct(encumbrance)])
+    assert all(r.status == tb.CreateAccountStatus.CREATED for r in rs), [r.status.name for r in rs]
+    fund=tb.Transfer(id=stable_provider_id('market-capital:tigerbeetle:r32-fund','1000'),debit_account_id=funding_id,credit_account_id=available.account_id,amount=1000,ledger=31,code=720)
+    assert c.create_transfers([fund])[0].status == tb.CreateTransferStatus.CREATED
+    assert c.create_transfers([pt(reservation_instruction(b))])[0].status == tb.CreateTransferStatus.CREATED
+PY
+stop_tb
+
+# Restart the same intact TigerBeetle data file. No re-format occurs here.
+start_tb
+PYTHONPATH="$repo/src" TB_PORT="$port" "$py" - <<'PY'
+import os, tigerbeetle as tb
+from ordivon_capital.accounting.tigerbeetle_durable import CapitalAccountNamespace, binding_for_namespace
+from ordivon_capital.accounting.tigerbeetle_substrate import TigerBeetleOperation, reservation_instruction, resolution_instruction
+p=os.environ['TB_PORT']
+ns=CapitalAccountNamespace('owner:primary','parcel:r32:usd',31,718)
+b=binding_for_namespace(namespace=ns,reservation_ref='reservation:r32:durable',amount=700,transfer_code=720)
+with tb.ClientSync(cluster_id=0,replica_addresses=f'127.0.0.1:{p}') as c:
+    accounts={a.id:a for a in c.lookup_accounts([ns.available_account_id,ns.encumbrance_account_id])}
+    assert accounts[ns.available_account_id].debits_pending == 700
+    assert accounts[ns.encumbrance_account_id].credits_pending == 700
+    original=c.lookup_transfers([b.pending_transfer_id])
+    assert len(original)==1 and int(original[0].flags) & int(tb.TransferFlags.PENDING)
+    consume=resolution_instruction(binding=b,operation=TigerBeetleOperation.POST_PENDING_TRANSFER,resolution_ref='effect:r32:consume')
+    w=dict(consume.as_wire_record()); w['flags']=getattr(tb.TransferFlags,w.pop('flag_name'))
+    assert c.create_transfers([tb.Transfer(**w)])[0].status == tb.CreateTransferStatus.CREATED
+PY
+stop_tb
+
+# Restart again and reconcile exact provider history with terminal reservation history.
+start_tb
+PYTHONPATH="$repo/src" TB_PORT="$port" "$py" - <<'PY'
+import json, os, tigerbeetle as tb
+from ordivon_capital.accounting.tigerbeetle_durable import (
+    CapitalAccountNamespace, DurableProviderStanding, DurableReservationHistory,
+    ProviderTransferObservation, ReservationStanding, binding_for_namespace,
+    reconcile_durable_history,
+)
+from ordivon_capital.accounting.tigerbeetle_substrate import TigerBeetleOperation, reservation_instruction, resolution_instruction
+p=os.environ['TB_PORT']
+ns=CapitalAccountNamespace('owner:primary','parcel:r32:usd',31,718)
+b=binding_for_namespace(namespace=ns,reservation_ref='reservation:r32:durable',amount=700,transfer_code=720)
+consume=resolution_instruction(binding=b,operation=TigerBeetleOperation.POST_PENDING_TRANSFER,resolution_ref='effect:r32:consume')
+assert consume is not None
+with tb.ClientSync(cluster_id=0,replica_addresses=f'127.0.0.1:{p}') as c:
+    rows={a.id:a for a in c.lookup_accounts([ns.available_account_id,ns.encumbrance_account_id])}
+    assert rows[ns.available_account_id].debits_pending == 0
+    assert rows[ns.available_account_id].debits_posted == 700
+    assert rows[ns.encumbrance_account_id].credits_pending == 0
+    assert rows[ns.encumbrance_account_id].credits_posted == 700
+    txs={t.id:t for t in c.lookup_transfers([b.pending_transfer_id,consume.transfer_id])}
+    pending=txs[b.pending_transfer_id]; resolved=txs[consume.transfer_id]
+    obs_pending=ProviderTransferObservation(pending.id,TigerBeetleOperation.PENDING,pending.amount,pending.pending_id)
+    obs_resolution=ProviderTransferObservation(resolved.id,TigerBeetleOperation.POST_PENDING_TRANSFER,resolved.amount,resolved.pending_id)
+    rec=reconcile_durable_history(
+        history=DurableReservationHistory(b,ReservationStanding.CONSUMED,'effect:r32:consume'),
+        pending=obs_pending,
+        resolution=obs_resolution,
+    )
+    assert rec.standing is DurableProviderStanding.MATCH
+    assert rec.terminal_history_preserved and not rec.provider_repair_allowed
+
+    # Exact replay of the old reservation does not reopen pending state.
+    w=dict(reservation_instruction(b).as_wire_record()); w['flags']=getattr(tb.TransferFlags,w.pop('flag_name'))
+    replay=c.create_transfers([tb.Transfer(**w)])[0].status
+    assert replay == tb.CreateTransferStatus.EXISTS
+    rows2={a.id:a for a in c.lookup_accounts([ns.available_account_id,ns.encumbrance_account_id])}
+    assert rows2[ns.available_account_id].debits_pending == 0 and rows2[ns.available_account_id].debits_posted == 700
+
+    # A terminal reservation history confronted with stale-looking provider state fails closed.
+    stale=reconcile_durable_history(
+        history=DurableReservationHistory(b,ReservationStanding.CONSUMED,'effect:r32:consume'),
+        pending=obs_pending,
+        resolution=None,
+    )
+    assert stale.standing is DurableProviderStanding.PROVIDER_INCOMPLETE_NO_REPAIR
+    assert stale.terminal_history_preserved and not stale.provider_repair_allowed
+
+print(json.dumps({
+    'standing':'PASS_DURABLE_RESTART_RECONCILIATION',
+    'providerVersion':'0.17.9',
+    'sameDataFileRestartCount':2,
+    'pendingSurvivedFirstRestart':True,
+    'consumeSurvivedSecondRestart':True,
+    'exactReservationReplayStatus':replay.name,
+    'terminalReconciliation':rec.standing.value,
+    'staleProviderReconciliation':stale.standing.value,
+    'terminalHistoryPreserved':stale.terminal_history_preserved,
+    'providerRepairAllowed':stale.provider_repair_allowed,
+    'availableAccountId':ns.available_account_id,
+    'encumbranceAccountId':ns.encumbrance_account_id,
+    'retainedAfterEpisode':False,
+    'externalFinancialWriteAttempted':False,
+},sort_keys=True))
+PY

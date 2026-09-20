@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+python3 - "$repo/config/clock_quality_gate.json" "$repo" <<'PY'
+import json,sys
+from pathlib import Path
+cfg=json.loads(Path(sys.argv[1]).read_text()); repo=Path(sys.argv[2])
+ev=json.loads((repo/cfg['latestEvidence']).read_text())
+limit=float(cfg['privateExecutionMaxAbsOffsetMs'])
+passed=(
+    cfg['standing']=='PASS_PRIVATE_EXECUTION_CLOCK_QUALITY'
+    and ev['standing']=='PASS_PRIVATE_EXECUTION_CLOCK_GATE'
+    and ev['multiSourceAgreement'] is True
+    and float(ev['observedAbsOffsetMsMax']) <= limit
+    and ev['consequence']['demoExecutionAdmission'] is True
+    and ev['consequence']['liveExecutionAdmission'] is True
+    and ev.get('rootCause',{}).get('adminRemediationRequired') is False
+)
+assert cfg['wslIndependentNtpDaemonAllowed'] is False
+assert cfg['applicationClockForgeryAllowed'] is False
+if not passed:
+    raise SystemExit('clock quality gate evidence/config is not in PASS standing')
+print(json.dumps({
+  'standing':'CLOCK_GATE_PASS_PRIVATE_EXECUTION_TIMING',
+  'evidence':cfg['latestEvidence'],
+  'observedAbsOffsetMsMax':ev['observedAbsOffsetMsMax'],
+  'limitMs':limit,
+  'windowsSource':ev['windows']['observedSource'],
+  'wslHostPtpService':ev['wslHostPtp']['service'],
+  'publicShadowAllowed':True,
+  'privateExecutionTimingAllowed':True,
+  'overallPrivateExecutionAllowed':False,
+  'overallBlocker':ev['consequence']['overallPrivateExecutionBlocker'],
+  'wslIndependentNtpDaemonAllowed':False
+},sort_keys=True))
+PY

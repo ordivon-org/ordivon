@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.market-capital.clock-quality-audit",
+  "standing": "FAIL_PRIVATE_EXECUTION_CLOCK_GATE",
+  "measurementMethod": "one-shot NTP client queries using ephemeral UDP sockets; no NTP daemon installed or started",
+  "sources": [
+    {
+      "host": "time.cloudflare.com",
+      "rttMs": 232.61451721191406,
+      "serverMinusLocalMidpointMs": -2661.198377609253
+    },
+    {
+      "host": "time.google.com",
+      "rttMs": 276.2339115142822,
+      "serverMinusLocalMidpointMs": -2676.945209503174
+    },
+    {
+      "host": "pool.ntp.org",
+      "rttMs": 246.9792366027832,
+      "serverMinusLocalMidpointMs": -2648.550033569336
+    }
+  ],
+  "multiSourceAgreement": true,
+  "offsetSpreadMs": 28.39517593383789,
+  "observedAbsOffsetMsMin": 2648.550033569336,
+  "observedAbsOffsetMsMax": 2676.945209503174,
+  "direction": "LOCAL_CLOCK_AHEAD",
+  "priorExchangeObservationAbsOffsetMs": 2202.0551795,
+  "driftConcern": "offset increased materially between observations",
+  "wsl": {
+    "kernel": "6.6.123.2-microsoft-standard-WSL2",
+    "networkingMode": "mirrored",
+    "systemdTimesyncd": "inactive_due_virtualization_condition",
+    "independentNtpDaemonRunning": false
+  },
+  "windowsNativeInspection": {
+    "standing": "BLOCKED_VSOCK_RUNTIME_CONTEXT",
+    "error": "Windows runtime context probe failed: WSL UtilAcceptVsock accept4 failed 110",
+    "authorityMutationAttempted": false
+  },
+  "consequence": {
+    "publicShadowAllowed": true,
+    "privateAccountDataAdmission": false,
+    "demoExecutionAdmission": false,
+    "liveExecutionAdmission": false,
+    "systemTimeMutationAttempted": false,
+    "applicationTimestampCompensationImplemented": false
+  }
+}

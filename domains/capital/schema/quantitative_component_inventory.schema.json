@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["schemaVersion", "framework", "classificationBoundary", "components"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "framework": {
+      "type": "object",
+      "required": ["name", "issued", "standing"],
+      "properties": {
+        "name": {"const": "Federal Reserve SR 26-2 Revised Guidance on Model Risk Management"},
+        "issued": {"const": "2026-04-17"},
+        "standing": {"const": "REFERENCE_GOVERNANCE_FRAMEWORK"}
+      },
+      "additionalProperties": false
+    },
+    "classificationBoundary": {"type": "string", "minLength": 20},
+    "components": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id", "implementation", "classification", "sr26ModelStanding", "status",
+          "purpose", "materiality", "assumptions", "limitations", "validation",
+          "monitoring", "permittedUses", "prohibitedUses"
+        ],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+          "implementation": {"type": "string", "minLength": 3},
+          "classification": {
+            "enum": [
+              "QUANTITATIVE_MODEL", "ANALYTICAL_HEURISTIC", "NON_MODEL_CALCULATION",
+              "CONTROL", "ADAPTER", "RECONCILIATION"
+            ]
+          },
+          "sr26ModelStanding": {"enum": ["MODEL", "NON_MODEL", "CLASSIFICATION_REVIEW"]},
+          "status": {"enum": ["ACTIVE", "RESEARCH_ONLY", "VALIDATION_REQUIRED", "RETIRED"]},
+          "purpose": {"type": "string", "minLength": 10},
+          "materiality": {"enum": ["LOW", "MEDIUM", "HIGH", "NOT_APPLICABLE"]},
+          "assumptions": {"type": "array", "items": {"type": "string", "minLength": 3}},
+          "limitations": {
+            "type": "array", "minItems": 1, "items": {"type": "string", "minLength": 3}
+          },
+          "validation": {
+            "type": "object",
+            "required": ["standing", "evidenceRefs"],
+            "properties": {
+              "standing": {
+                "enum": [
+                  "NOT_APPLICABLE", "DEVELOPMENT_TESTED", "VALIDATION_REQUIRED",
+                  "RETIRED_UNVALIDATED"
+                ]
+              },
+              "evidenceRefs": {"type": "array", "items": {"type": "string"}}
+            },
+            "additionalProperties": false
+          },
+          "monitoring": {
+            "type": "object",
+            "required": ["standing", "requirements"],
+            "properties": {
+              "standing": {"enum": ["NOT_APPLICABLE", "REQUIRED", "ACTIVE", "RETIRED"]},
+              "requirements": {"type": "array", "items": {"type": "string"}}
+            },
+            "additionalProperties": false
+          },
+          "permittedUses": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+          "prohibitedUses": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+          "retirementReason": {"type": "string"}
+        },
+        "allOf": [
+          {
+            "if": {"properties": {"status": {"const": "RETIRED"}}},
+            "then": {"required": ["retirementReason"]}
+          }
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

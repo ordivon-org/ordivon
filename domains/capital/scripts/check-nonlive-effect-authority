@@ -1,0 +1,36 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+ROOT=Path(__file__).resolve().parents[1]
+contract=json.loads((ROOT/'contracts/nonlive-effect-admission-v1.json').read_text())
+authority=json.loads((ROOT/'config/nonlive_effect_authority.json').read_text())
+real=json.loads((ROOT/'contracts/external-write-policy-input-v1.json').read_text())
+
+assert contract['kind']=='ordivon.capital.market.nonlive-effect-admission'
+assert contract['state']=='ADMITTED'
+assert contract['providerWriteCapabilityBound'] is True
+assert contract['allowedEffectClass']=='SIMULATED_EXCHANGE_ORDER_EFFECT'
+assert contract['realMoney'] is False
+assert contract['liveEndpoint'] is False
+assert contract['externalFinancialWriteAllowed'] is False
+assert contract['requiresReconciliation'] is True
+assert contract['requiresCapitalResolution'] is True
+assert authority['executionMode']=='BOUNDED_SIMULATED_EXCHANGE'
+assert authority['externalWritePolicyStanding']=='NOT_ADMITTED'
+assert real['state']=='NOT_ADMITTED'
+assert real.get('providerWriteCapabilityBound',False) is False
+assert real.get('externalFinancialWriteAllowed',False) is False
+
+print(json.dumps({
+    'standing':'NONLIVE_EFFECT_ADMITTED_REAL_FINANCIAL_WRITE_NOT_ADMITTED',
+    'nonLiveEffectAdmission':contract['state'],
+    'nonLiveProviderWriteCapabilityBound':contract['providerWriteCapabilityBound'],
+    'allowedEffectClass':contract['allowedEffectClass'],
+    'externalWritePolicyStanding':real['state'],
+    'externalFinancialWriteAllowed':False,
+    'realMoney':False,
+    'liveEndpoint':False,
+},sort_keys=True))

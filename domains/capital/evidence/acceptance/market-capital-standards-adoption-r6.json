@@ -1,0 +1,27 @@
+{
+  "baselineHead": "52211f4d7927782f443725c0fbdef598177c1ee0",
+  "changes": [
+    "ad-hoc monitoring snapshot persistence -> Pandera/Parquet/DuckDB/MLflow composition",
+    "DuckDB binary admitted into research capability inventory",
+    "portfolio covariance/optimizer growth stopped in favor of Riskfolio-Lib/PyPortfolioOpt candidate ownership",
+    "derivative pricing/risk reserved for future QuantLib qualification",
+    "OpenTelemetry deferred until a real collector/exporter authority exists"
+  ],
+  "date": "2026-09-19",
+  "externalFinancialWriteAttempted": false,
+  "kind": "ordivon.acceptance-evidence",
+  "newDependenciesInstalled": false,
+  "regulatoryComplianceClaimed": false,
+  "schemaVersion": 1,
+  "subject": "market-capital-standards-adoption-r6",
+  "verification": {
+    "activeSourceRetiredOntologyScan": "PASS_ZERO_MATCHES",
+    "canonicalSuite": "175 passed",
+    "componentInventory": "PASS: 16 total, 1 active model, 1 validation-required model, 14 non-model, 1 retired model",
+    "duckdbReadback": "3 rows, overlap range 92..178",
+    "gitDiffCheck": "PASS",
+    "lineageFocusedTests": "7 passed",
+    "mlflowRunId": "cb06106694bf4c4f8be469e57aa65653",
+    "modelMonitoringLineage": "PASS: Pandera -> Parquet -> DuckDB -> MLflow"
+  }
+}

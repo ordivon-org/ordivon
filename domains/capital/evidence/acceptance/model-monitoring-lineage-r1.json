@@ -1,0 +1,33 @@
+{
+  "baselineHead": "52211f4d7927782f443725c0fbdef598177c1ee0",
+  "date": "2026-09-19",
+  "externalFinancialWriteAttempted": false,
+  "kind": "ordivon.acceptance-evidence",
+  "lineageResult": {
+    "componentId": "model-monitoring-lineage",
+    "duckdbReadback": {
+      "max_overlap": 178,
+      "min_overlap": 92,
+      "row_count": 3
+    },
+    "kind": "ordivon.market-capital.model-monitoring-lineage",
+    "manifestPath": "/tmp/market-capital-r6-lineage/manifest.json",
+    "mlflowRunId": "cb06106694bf4c4f8be469e57aa65653",
+    "parquetPath": "/tmp/market-capital-r6-lineage/dependence_model_monitoring.parquet",
+    "parquetSha256": "27ae8896b7f61d969927dadb9aa134b602ec7f132c49e9ca097ee46f072152fb",
+    "rowCount": 3,
+    "schemaVersion": 1,
+    "sourceEvidenceSha256": "9e1bcc8d90999f1df87d4342cdb8c037c1ba3f28012d4ceb990e6f55b7b250e2",
+    "trackingBackend": "MLFLOW_SQLITE"
+  },
+  "providers": {
+    "dataframeValidation": "Pandera 0.33.1",
+    "experimentLineage": "MLflow 3.16.1 local SQLite",
+    "independentReadback": "DuckDB 1.5.5",
+    "storage": "Parquet/PyArrow 25.0.1"
+  },
+  "regulatoryComplianceClaimed": false,
+  "schemaVersion": 1,
+  "standing": "PASS_MATURE_LINEAGE_COMPOSITION",
+  "subject": "model-monitoring-lineage-r1"
+}

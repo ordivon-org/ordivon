@@ -1,0 +1,15 @@
+{
+  "allowedEffectClass": "SIMULATED_EXCHANGE_ORDER_EFFECT",
+  "externalFinancialWriteAllowed": false,
+  "kind": "ordivon.capital.market.nonlive-effect-admission",
+  "liveEndpoint": false,
+  "provider": "NautilusTrader 2.0.0rc4 BacktestEngine simulated exchange",
+  "providerRealityCurrentness": "EPISODE_BOUND",
+  "providerWriteCapabilityBound": true,
+  "realMoney": false,
+  "requiresCapitalResolution": true,
+  "requiresReconciliation": true,
+  "rule": "non-live provider writes are admitted only inside bounded qualification episodes; they cannot mint OPA external-write permission or live venue authority",
+  "schemaVersion": 1,
+  "state": "ADMITTED"
+}

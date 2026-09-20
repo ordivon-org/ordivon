@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+tb=/usr/local/bin/tigerbeetle
+py=/opt/ordivon/external/tigerbeetle/0.17.9/python-client/bin/python
+
+[[ -x "$tb" ]] || { echo "TigerBeetle binary missing" >&2; exit 2; }
+[[ -x "$py" ]] || { echo "TigerBeetle Python client environment missing" >&2; exit 3; }
+
+tmp="$(mktemp -d)"
+pid=""
+cleanup() {
+  if [[ -n "$pid" ]]; then
+    kill "$pid" 2>/dev/null || true
+    wait "$pid" 2>/dev/null || true
+  fi
+  rm -rf "$tmp"
+}
+trap cleanup EXIT
+
+port="$($py - <<'PY'
+import socket
+s=socket.socket()
+s.bind(('127.0.0.1',0))
+print(s.getsockname()[1])
+s.close()
+PY
+)"
+data="$tmp/0_0.tigerbeetle"
+
+"$tb" format --cluster=0 --replica=0 --replica-count=1 --development "$data" >"$tmp/format.log" 2>&1
+"$tb" start --addresses="127.0.0.1:${port}" --development "$data" >"$tmp/server.log" 2>&1 &
+pid=$!
+
+TB_PORT="$port" "$py" - <<'PY'
+import os, socket, time
+port=int(os.environ['TB_PORT'])
+deadline=time.time()+10
+while time.time()<deadline:
+    try:
+        with socket.create_connection(('127.0.0.1',port),timeout=0.2):
+            break
+    except OSError:
+        time.sleep(0.05)
+else:
+    raise SystemExit('TigerBeetle development replica did not become reachable')
+PY
+
+PYTHONPATH="$repo/src" TB_PORT="$port" "$py" - <<'PY'
+import json
+import os
+import tigerbeetle as tb
+
+from ordivon_capital.accounting.tigerbeetle_substrate import AccountingAccount, AccountingTransfer
+
+port=os.environ['TB_PORT']
+accounts=[
+    AccountingAccount(account_id=101, ledger=1, code=718),
+    AccountingAccount(account_id=202, ledger=1, code=718),
+]
+transfer=AccountingTransfer(
+    transfer_id=501,
+    debit_account_id=101,
+    credit_account_id=202,
+    amount=500,
+    ledger=1,
+    code=720,
+)
+
+with tb.ClientSync(cluster_id=0, replica_addresses=f'127.0.0.1:{port}') as client:
+    account_results=client.create_accounts([
+        tb.Account(**a.as_wire_record(), flags=tb.AccountFlags.HISTORY)
+        for a in accounts
+    ])
+    if any(r.status not in {tb.CreateAccountStatus.CREATED, tb.CreateAccountStatus.EXISTS} for r in account_results):
+        raise SystemExit(f'account creation failed: {account_results!r}')
+
+    wire=transfer.as_wire_record()
+    transfer_results=client.create_transfers([tb.Transfer(**wire)])
+    if transfer_results[0].status not in {tb.CreateTransferStatus.CREATED, tb.CreateTransferStatus.EXISTS}:
+        raise SystemExit(f'transfer creation failed: {transfer_results!r}')
+
+    replay_results=client.create_transfers([tb.Transfer(**wire)])
+    if replay_results[0].status != tb.CreateTransferStatus.EXISTS:
+        raise SystemExit(f'exact transfer replay was not idempotent: {replay_results!r}')
+
+    rows={a.id:a for a in client.lookup_accounts([101,202])}
+    if rows[101].debits_posted != 500 or rows[202].credits_posted != 500:
+        raise SystemExit('posted debit/credit conservation witness mismatch')
+
+false_green='provider balance is mechanical accounting state only'
+
+print(json.dumps({
+    'standing':'PASS_EPHEMERAL_MECHANICAL_ONLY',
+    'providerVersion':'0.17.9',
+    'accounts':[101,202],
+    'transferId':501,
+    'amount':500,
+    'sourceDebitsPosted':rows[101].debits_posted,
+    'destinationCreditsPosted':rows[202].credits_posted,
+    'exactReplayStatus':str(replay_results[0].status),
+    'falseGreenRejected':false_green,
+    'persistentDatabaseCreated':False,
+    'externalFinancialWriteAttempted':False,
+},sort_keys=True))
+PY

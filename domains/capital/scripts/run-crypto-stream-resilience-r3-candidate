@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+if [ "$#" -ne 1 ]; then echo "usage: $0 OUTPUT_DIR" >&2; exit 64; fi
+out="$1"; repo="$(cd "$(dirname "$0")/.." && pwd)"
+rm -rf "$out"; mkdir -p "$out"
+"$repo/scripts/check-network-v2-public-data" >"$out/network-v2-binding.json"
+readarray -t proxy < <(jq -r '.authorities.okxWs.proxy,.authorities.binanceSpotWs.proxy' "$out/network-v2-binding.json")
+set +e
+timeout --signal=TERM --kill-after=5s 95s env \
+  ORDIVON_MC_OKX_WS_PROXY="${proxy[0]}" \
+  ORDIVON_MC_BINANCE_SPOT_WS_PROXY="${proxy[1]}" \
+  "$repo/scripts/run-crypto-stream-resilience-r3-session" "$repo" "$out/session" \
+  >"$out/session.stdout" 2>"$out/session.stderr"
+src=$?
+set -e
+python3 - "$out" "$src" <<'PY'
+import json,sys
+out,rc=sys.argv[1:]
+try:s=json.load(open(out+'/session/result.json'))
+except Exception:s={'standing':'NO_SESSION_RESULT'}
+b=json.load(open(out+'/network-v2-binding.json'))
+r={'schemaVersion':1,'kind':'ordivon.capital.market.crypto-stream-resilience-r3-candidate','transport':'network-v2-provider-auto','transportBindingDigest':b.get('bindingDigest'),'sessionReturnCode':int(rc),'sessionStanding':s.get('standing'),'standing':'PASS_WORKLOAD_QUALIFIED' if int(rc)==0 and s.get('standing')=='PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT' else 'WORKLOAD_QUALITY_FAILED','brokerCredentialsUsed':False,'privateAccountDataUsed':False,'externalFinancialWritesAttempted':False,'demoExecutionAttempted':False,'liveExecutionAttempted':False}
+json.dump(r,open(out+'/result.json','w'),indent=2,sort_keys=True);open(out+'/result.json','a').write('\n');print(json.dumps(r,sort_keys=True))
+PY
+[ "$src" -eq 0 ]

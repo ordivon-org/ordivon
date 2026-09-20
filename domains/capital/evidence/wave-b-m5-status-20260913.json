@@ -1,0 +1,56 @@
+{
+  "brokerCredentialsUsed": false,
+  "causalEvidenceAvailable": false,
+  "currentSessionDate": "2026-09-13",
+  "decisionBoundaryUtc": "2026-09-12T14:59:29+00:00",
+  "decisionSessionDate": "2026-09-12",
+  "eligibleCommonSessionDates": [],
+  "executionFeasibilityRequired": true,
+  "externalFinancialWritesAttempted": false,
+  "fix44Required": true,
+  "gateImplemented": true,
+  "kind": "ordivon.market-capital.causal-shadow-status",
+  "observedAt": "2026-09-13T09:36:49.636812+00:00",
+  "provider": "Nasdaq",
+  "schemaVersion": 1,
+  "series": [
+    {
+      "assetClass": "stocks",
+      "httpStatus": 200,
+      "rawSha256": "9b7c790da86cb9b1ba5d3c07cd1eb6d71d5c8e4c37c2bd25b20b8c05943e163d",
+      "requestUrl": "https://api.nasdaq.com/api/quote/AAPL/historical?assetclass=stocks&fromdate=2026-09-12&todate=2026-09-13&limit=100",
+      "rowCount": 0,
+      "sessionDates": [],
+      "symbol": "AAPL"
+    },
+    {
+      "assetClass": "stocks",
+      "httpStatus": 200,
+      "rawSha256": "55d01efc55dd238dd42452ae63ff0fcdd889f1899b2504c30f3ec493fb099e72",
+      "requestUrl": "https://api.nasdaq.com/api/quote/MSFT/historical?assetclass=stocks&fromdate=2026-09-12&todate=2026-09-13&limit=100",
+      "rowCount": 0,
+      "sessionDates": [],
+      "symbol": "MSFT"
+    },
+    {
+      "assetClass": "stocks",
+      "httpStatus": 200,
+      "rawSha256": "ca76c37333145328887f83c79e594b23ffbe4fa37aed1c30bd2efb0662ce4a60",
+      "requestUrl": "https://api.nasdaq.com/api/quote/NVDA/historical?assetclass=stocks&fromdate=2026-09-12&todate=2026-09-13&limit=100",
+      "rowCount": 0,
+      "sessionDates": [],
+      "symbol": "NVDA"
+    },
+    {
+      "assetClass": "etf",
+      "httpStatus": 200,
+      "rawSha256": "2c84798321065121888a7d57a5b466de8e7f5fcb78ba691dae5e40bf6c49d365",
+      "requestUrl": "https://api.nasdaq.com/api/quote/SPY/historical?assetclass=etf&fromdate=2026-09-12&todate=2026-09-13&limit=100",
+      "rowCount": 0,
+      "sessionDates": [],
+      "symbol": "SPY"
+    }
+  ],
+  "standing": "WAITING_FOR_POST_DECISION_DATA",
+  "targetPortfolioSha256": "137265667683455c302adff94466eaf38444ed7d51b5959c4ad065505792c14d"
+}

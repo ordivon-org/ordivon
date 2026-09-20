@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+python3 - "$repo/config/live_test_account_policy.json" <<'PY'
+import json,sys
+from decimal import Decimal
+x=json.load(open(sys.argv[1]))
+assert x['ownerUseMandate']=='AUTHORIZED_NON_PRODUCTION_LIVE_ENDPOINT_QUALIFICATION'
+assert x['accountQualificationStanding']=='PENDING_FRESH_PRIVATE_ACCOUNT_VERIFICATION'
+assert x['orderSubmissionAdmission']=='NOT_ADMITTED'
+assert x['liveEndpointUseAllowed'] is True
+assert x['productionTradingAuthorized'] is False
+assert x['withdrawalAuthorized'] is False
+assert x['transferAuthorized'] is False
+assert x['orderSubmissionAllowed'] is False
+assert Decimal(x['maxTestNotionalQuote']) <= Decimal('1')
+b=x['venues']['BINANCE']
+assert b['endpointClass']=='LIVE' and b['role']=='TEST_ACCOUNT_BY_OWNER_POLICY'
+assert b['executorCredentialBinding']=='UNBOUND_NOT_ADMITTED'
+o=x['venues']['OKX']
+assert o['endpointClass']=='LIVE' and o['role']=='TEST_ACCOUNT_BY_OWNER_POLICY'
+assert o['executorCredentialBinding']=='/root/.config/ordivon/secrets/okx/live-trade/config.toml'
+assert o['providerBinding']=='config/okx_live_provider.json'
+assert o['qualificationStanding']=='PASS_CURRENT_PROVIDER_BINDING_NO_ORDER_ADMISSION'
+assert o['providerReadPermissionCurrent'] is True
+assert o['providerTradePermissionCurrent'] is True
+assert o['providerWithdrawPermissionCurrent'] is False
+assert 'executorCredential' not in o
+print(json.dumps({
+  'ownerUseMandate':x['ownerUseMandate'],
+  'accountQualificationStanding':x['accountQualificationStanding'],
+  'orderSubmissionAdmission':x['orderSubmissionAdmission'],
+  'liveEndpointUseAllowed':True,
+  'productionTradingAuthorized':False,
+  'orderSubmissionAllowed':False,
+  'maxTestNotionalQuote':x['maxTestNotionalQuote'],
+  'withdrawalAuthorized':False,
+  'transferAuthorized':False,
+  'okxProviderBindingStanding':o['qualificationStanding'],
+  'okxProviderTradePermissionCurrent':True,
+  'okxProviderWithdrawPermissionCurrent':False
+},sort_keys=True))
+PY

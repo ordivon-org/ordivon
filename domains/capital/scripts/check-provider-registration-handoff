@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+
+BINANCE=Path('/root/.config/ordivon/secrets/binance/testnet')
+OKX=Path('/root/.config/ordivon/secrets/okx/demo')
+pub=BINANCE/'public.pem'
+api=BINANCE/'api_key'
+okx_cfg=OKX/'config.toml'
+
+fingerprint='sha256:'+hashlib.sha256(pub.read_bytes()).hexdigest() if pub.is_file() else None
+missing=[]
+if not pub.is_file():
+    missing.append('BINANCE_LOCAL_TESTNET_PUBLIC_KEY_MISSING')
+elif not api.is_file():
+    missing.append('BINANCE_REGISTER_PUBLIC_KEY_ON_SPOT_TEST_NETWORK_AND_INSTALL_SERVER_API_KEY')
+if not okx_cfg.is_file():
+    missing.append('OKX_CREATE_DEMO_TRADING_API_CREDENTIAL_AND_INSTALL_CONFIG')
+
+standing='PROVIDER_REGISTRATION_COMPLETE_PENDING_QUALIFICATION' if not missing else 'EXTERNAL_PROVIDER_REGISTRATION_PENDING'
+print(json.dumps({
+    'standing':standing,
+    'binanceTestnetPublicKeyPresent':pub.is_file(),
+    'binanceTestnetPublicKeySha256':fingerprint,
+    'binanceTestnetServerApiKeyPresent':api.is_file(),
+    'okxDemoConfigPresent':okx_cfg.is_file(),
+    'missingExternalActions':missing,
+    'localPrivateKeyDisclosed':False,
+    'liveCredentialReuseAllowed':False,
+    'externalFinancialWriteAttempted':False,
+},sort_keys=True))

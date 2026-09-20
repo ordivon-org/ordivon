@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.market.execution-candidate",
+  "name": "NautilusTrader",
+  "version": "2.0.0rc4",
+  "python": "3.12.13",
+  "environmentRoot": "/root/external/nautilus-trader/2.0.0rc4",
+  "lockFile": "/root/external/nautilus-trader/2.0.0rc4/requirements.lock.txt",
+  "lockFileSha256": "510deee37be50b34095c2766ff0705a77d9987dd63196ca28ccd57b4d99cac7e",
+  "admissionLane": "SHADOW_QUALIFICATION_ONLY",
+  "brokerConnectivityAllowed": false,
+  "brokerCredentialsAllowed": false,
+  "externalFinancialWritesAllowed": false,
+  "productionLiveAdmitted": false,
+  "qualificationRule": "candidate may be used only for local deterministic shadow qualification; exact M6 frozen semantics must not be weakened to obtain a passing result"
+}

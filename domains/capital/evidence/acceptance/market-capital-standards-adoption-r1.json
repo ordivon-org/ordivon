@@ -1,0 +1,78 @@
+{
+  "adoptedReferences": {
+    "marketRisk": "Basel market-risk framework concepts used proportionately as future methodology reference",
+    "modelRiskGovernance": "Federal Reserve SR 26-2 (2026) used proportionately as a reference framework",
+    "numericalStatistics": "NumPy + SciPy",
+    "orderSemantics": "FIX Latest / FIX Orchestra semantic reference; FIX 4.4 retained only as legacy compatibility profile",
+    "riskData": "BCBS 239 principles used as risk-data architecture reference",
+    "schema": "JSON Schema Draft 2020-12"
+  },
+  "baselineHead": "1d36e733c191f3dd341092981a838f76d4d62339",
+  "date": "2026-09-19",
+  "externalComponents": {
+    "LEAN": {
+      "localTag": "18074",
+      "standing": "REQUALIFY_UPGRADE"
+    },
+    "NautilusV2Candidate": {
+      "localVersion": "2.0.0rc4",
+      "standing": "SHADOW_ONLY_REQUALIFY"
+    },
+    "QuickFIXn": {
+      "localVersion": "1.14.1",
+      "standing": "RETAIN"
+    },
+    "TigerBeetle": {
+      "localVersion": "0.17.9",
+      "standing": "RETAIN"
+    }
+  },
+  "externalFinancialWriteAttempted": false,
+  "implementationChanges": [
+    "Historical dependence regression/correlation delegated to SciPy/NumPy.",
+    "Market sensor merge path no longer targets Regime Card.",
+    "Portfolio active API/output names no longer use P1-P6 LEGO numbering.",
+    "Quantitative component inventory separates models from arithmetic, controls, heuristics, adapters, and reconciliation.",
+    "FIX 4.4 is explicitly classified as a legacy wire-compatibility profile under FIX Latest semantic reference."
+  ],
+  "kind": "ordivon.acceptance-evidence",
+  "modelInventory": {
+    "activeDependenceModelStanding": "VALIDATION_REQUIRED",
+    "componentCount": 9,
+    "modelCount": 2,
+    "retiredModelCount": 1
+  },
+  "regulatoryComplianceClaimed": false,
+  "remainingCustomReview": [
+    "contracts/semantic-core-v1.json and custom truth-level terminology",
+    "ProofObject/WitnessRecord provenance abstractions",
+    "EffectDisposition and reconciliation vocabulary",
+    "ExternalFinancialWriteAdmission implementation versus OPA/capability policy composition",
+    "BCBS-239-style lineage/freshness/completeness controls",
+    "Basel-style expected shortfall/stress/liquidity-horizon methodology",
+    "OpenTelemetry context propagation",
+    "LEAN source-cut upgrade qualification",
+    "Nautilus v2 stable-line qualification when upstream stable"
+  ],
+  "renamedActiveDocumentation": {
+    "docs/PORTFOLIO_COUNTERFACTUALS_P5_P6_R1.md": "docs/PORTFOLIO_SCENARIO_ANALYSIS_R1.md",
+    "docs/PORTFOLIO_RISK_OBSERVATORY_R1.md": "docs/PORTFOLIO_RISK_MONITORING_R1.md"
+  },
+  "retiredCustomLayer": [
+    "src/market_capital/regime_card.py",
+    "tests/test_regime_card.py",
+    "docs/REGIME_CARD_R1.md",
+    "docs/PORTFOLIO_RISK_LEGO_R1.md",
+    "planning/lego-plan-r1.json"
+  ],
+  "schemaVersion": 1,
+  "subject": "market-capital-standards-adoption-r1",
+  "truthRole": "architecture-and-implementation-evidence-not-regulatory-compliance",
+  "verification": {
+    "activeLegoLensDependencyScan": "PASS",
+    "canonicalSuite": "179 passed",
+    "focusedTests": "37 passed",
+    "gitDiffCheck": "PASS",
+    "inventorySchemaValidation": "PASS"
+  }
+}

@@ -1,0 +1,205 @@
+{
+  "apiVersion": "v3.2.0",
+  "kind": "DataContract",
+  "id": "5de34add-dca7-54eb-ada3-5e657a7c3ff3",
+  "name": "crypto-public-shadow-r2",
+  "version": "2026.09.14",
+  "status": "active",
+  "domain": "finance/market-observation",
+  "dataProduct": "d14d7457-c9aa-59e0-8bf5-7783cea39c1c",
+  "description": {
+    "purpose": "Govern the frozen read-only Binance+OKX public streaming observation used by Ordivon Capital market-observation workflows.",
+    "limitations": "Observation-only evidence. It is not alpha, an arbitrage opportunity, a fill/fee/transfer claim, private account state, or permission to execute a trade.",
+    "usage": "Use for reproducible public-market observation, monitoring, and analysis while preserving the exact evidence digest and no-write boundary."
+  },
+  "authoritativeDefinitions": [
+    {
+      "type": "implementation",
+      "url": "https://github.com/bitol-io/open-data-contract-standard",
+      "description": "ODCS authority."
+    }
+  ],
+  "customProperties": [
+    {
+      "property": "sourceRelativePath",
+      "value": "evidence/crypto-public-shadow-r2-20260914.json"
+    },
+    {
+      "property": "sourceSha256",
+      "value": "ed5fba6227a5d997adefb6bf63717463dc75fdc8b62cfb0005804109eb0a2d7e"
+    },
+    {
+      "property": "sourceContentRevision",
+      "value": "9ceeb27fcd8cfdff41860b891cf7bb1a2f667462"
+    },
+    {
+      "property": "acceptedSnapshotCount",
+      "value": 4
+    },
+    {
+      "property": "measuredWindowCount",
+      "value": 3
+    },
+    {
+      "property": "venues",
+      "value": [
+        "BINANCE",
+        "OKX"
+      ]
+    },
+    {
+      "property": "assets",
+      "value": [
+        "BTC",
+        "ETH"
+      ]
+    },
+    {
+      "property": "externalFinancialWriteAdmission",
+      "value": "NOT_ADMITTED"
+    }
+  ],
+  "schema": [
+    {
+      "name": "crypto-public-shadow-r2",
+      "physicalName": "crypto-public-shadow-r2-20260914.json",
+      "physicalType": "json",
+      "description": "Frozen dual-venue public-market observation and bounded comparison evidence.",
+      "properties": [
+        {
+          "name": "schemaVersion",
+          "physicalName": "schemaVersion",
+          "logicalType": "integer",
+          "physicalType": "integer",
+          "required": true,
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "classification": "public",
+          "semanticType": "column"
+        },
+        {
+          "name": "kind",
+          "physicalName": "kind",
+          "logicalType": "string",
+          "physicalType": "string",
+          "required": true,
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "classification": "public",
+          "semanticType": "column"
+        },
+        {
+          "name": "standing",
+          "physicalName": "standing",
+          "logicalType": "string",
+          "physicalType": "string",
+          "required": true,
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "classification": "public",
+          "semanticType": "column",
+          "criticalDataElement": true
+        },
+        {
+          "name": "brokerCredentialsUsed",
+          "physicalName": "brokerCredentialsUsed",
+          "logicalType": "boolean",
+          "physicalType": "boolean",
+          "required": true,
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "classification": "public",
+          "semanticType": "column",
+          "criticalDataElement": true
+        },
+        {
+          "name": "privateAccountDataUsed",
+          "physicalName": "privateAccountDataUsed",
+          "logicalType": "boolean",
+          "physicalType": "boolean",
+          "required": true,
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "classification": "public",
+          "semanticType": "column",
+          "criticalDataElement": true
+        },
+        {
+          "name": "externalFinancialWritesAttempted",
+          "physicalName": "externalFinancialWritesAttempted",
+          "logicalType": "boolean",
+          "physicalType": "boolean",
+          "required": true,
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "classification": "public",
+          "semanticType": "column",
+          "criticalDataElement": true
+        },
+        {
+          "name": "streaming",
+          "physicalName": "streaming",
+          "logicalType": "object",
+          "physicalType": "object",
+          "required": true,
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "classification": "public",
+          "semanticType": "column",
+          "properties": [
+            {
+              "name": "acceptedSnapshotCount",
+              "physicalName": "acceptedSnapshotCount",
+              "logicalType": "integer",
+              "physicalType": "integer",
+              "required": true,
+              "primaryKey": false,
+              "primaryKeyPosition": -1,
+              "classification": "public",
+              "semanticType": "column",
+              "criticalDataElement": true
+            },
+            {
+              "name": "measured",
+              "physicalName": "measured",
+              "logicalType": "array",
+              "physicalType": "array",
+              "required": true,
+              "primaryKey": false,
+              "primaryKeyPosition": -1,
+              "classification": "public",
+              "semanticType": "column",
+              "items": {
+                "logicalType": "object",
+                "physicalType": "object"
+              }
+            },
+            {
+              "name": "claimBoundary",
+              "physicalName": "claimBoundary",
+              "logicalType": "string",
+              "physicalType": "string",
+              "required": true,
+              "primaryKey": false,
+              "primaryKeyPosition": -1,
+              "classification": "public",
+              "semanticType": "column",
+              "criticalDataElement": true
+            },
+            {
+              "name": "endpoints",
+              "physicalName": "endpoints",
+              "logicalType": "object",
+              "physicalType": "object",
+              "required": true,
+              "primaryKey": false,
+              "primaryKeyPosition": -1,
+              "classification": "public",
+              "semanticType": "column"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

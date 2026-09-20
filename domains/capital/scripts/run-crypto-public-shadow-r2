@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+out="$repo/.artifacts/crypto-public-shadow-r2"
+rm -rf "$out"; mkdir -p "$out"
+"$repo/scripts/check-execution-policy" --mode non-live >/dev/null
+"$repo/scripts/check-crypto-execution-lane" >/dev/null
+"$repo/scripts/check-crypto-data-adapter-policy" >/dev/null
+"$repo/scripts/check-clock-quality-gate" >/dev/null
+start="$(date +%s%N)"; set +e
+"$repo/scripts/run-crypto-public-streaming-r2-candidate" "$out/network-v2" >"$out/candidate.stdout" 2>"$out/candidate.stderr"; rc=$?
+set -e; end="$(date +%s%N)"
+if [ "$rc" -ne 0 ]; then cat "$out/network-v2/result.json" >&2 2>/dev/null || true; exit "$rc"; fi
+cp "$out/network-v2/streaming.json" "$out/streaming.json"
+cp "$out/network-v2/network-v2-binding.json" "$out/network-v2-binding.json"
+python3 - "$out/streaming.json" "$out/network-v2-binding.json" "$start" "$end" <<'PY'
+import json,sys
+s=json.load(open(sys.argv[1])); b=json.load(open(sys.argv[2]))
+r={'schemaVersion':1,'kind':'ordivon.capital.market.crypto-public-shadow-r2-result','standing':'PASS_STREAMING_REPEATED_PUBLIC_SHADOW_WITH_NETWORK_V2_FAILOVER','selectedCandidate':'network-v2-provider-auto','elapsedMs':(int(sys.argv[4])-int(sys.argv[3]))/1_000_000,'transportBindingDigest':b['bindingDigest'],'streaming':s,'brokerCredentialsUsed':False,'privateAccountDataUsed':False,'externalFinancialWritesAttempted':False,'demoExecutionAttempted':False,'liveExecutionAttempted':False}
+print(json.dumps(r,sort_keys=True))
+PY

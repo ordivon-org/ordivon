@@ -1,0 +1,37 @@
+{
+  "activeCrossRepoRuntimeDependency": false,
+  "authorityRunEvidenceSha256": "4420c5c657f7cf64bfdae4eeca525ab92163245164f5d0f6e7819dd6b4638aaa",
+  "canonicalFiles": {
+    "config/execution_authority.json": "d39e1ffb86f0bf2f9399d0b8685dbbb799468ca49ae5aac8cf0a1b47464bbfa4",
+    "contracts/external-boundary-v1.json": "8c6022582e54c35d888da695986262ba511630f45b2a311bdb8844e1993974ea",
+    "contracts/production-authorization.json": "d19048c0f318cd3f0711f369993ea086e3141ab38552317d9348ee13fc20acef",
+    "contracts/semantic-core-v1.json": "bcd4165a381cb37a318c3699b50b20d9011cb3246a2c3abd00157488efdc21ac",
+    "destroyer/false-green-corpus-v0.json": "fad22099f752fb989a86eab612eab04193d9157bfa45f7c92d8dc0b51a5a24f1",
+    "examples/r1_witness_parquet_duckdb.py": "20366417c3a757d7b18158e0c215253f80a1105409867621189641d327a8dd6d",
+    "infra/optional-witness-substrate.compose.yaml": "99888fa2e1a07a3e39b065f6f8a8b67277e9a7b323adba95aeb5cf05a2adb88e",
+    "src/market_capital/authority.py": "bdcfd914bc39616ea02ae4ab1094009742773c594dba149eda55b379d456dd2d",
+    "src/market_capital/semantic.py": "0c50f9b397cdbde89f1770221eac76c50f94b85f2a4f012855baaf2f6423b4e6"
+  },
+  "externalFinancialWritesAllowed": false,
+  "externalWriteVerifierImplemented": false,
+  "internalAuthorityStanding": "INTERNAL_AUTHORITY_GATE_NON_LIVE",
+  "kind": "ordivon.market-capital.direct-semantic-migration-evidence",
+  "m4RegressionEvidenceSha256": "6e870344b7f839443409437267a481b8d50e31e96177d96e2a4f5301b6cbd490",
+  "m4SemanticIdentityReproduced": true,
+  "m6ExternalFinancialWritesAttempted": false,
+  "m6FrozenPrecommitIdentityReproduced": true,
+  "m6FrozenQuantities": {
+    "AAPL": "99",
+    "MSFT": "66",
+    "NVDA": "151"
+  },
+  "m6LeanOrdersEmitted": 0,
+  "m6RegressionEvidenceSha256": "fa7d0155a43fd0697bb37f3dc7cfd62398c6ece64fa8f64caca42e7f0ff090cb",
+  "productionAuthorization": "BLOCK_NOT_GRANTED",
+  "pytestPassed": 41,
+  "r1WitnessExampleStanding": "PASS_AUTHORITY_FREE_R1_LOCAL",
+  "schemaVersion": 1,
+  "sourceRepo": "/root/projects/ordivon-market-capital-v2",
+  "sourceRevision": "fd0a15db0152a1c35b4820b72e047df9db7a9e63",
+  "standing": "PASS_CANONICAL_DIRECT_MIGRATION"
+}

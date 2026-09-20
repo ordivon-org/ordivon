@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo="$1"; out="$2"
+mkdir -p "$out"
+/usr/bin/uv run --frozen --project "$repo" python "$repo/src/ordivon_capital/market/crypto_stream_resilience.py" \
+  --target-venue OKX --output "$out/okx.json" --measured-rounds 3 --deadline-seconds 35 >/dev/null
+/usr/bin/uv run --frozen --project "$repo" python "$repo/src/ordivon_capital/market/crypto_stream_resilience.py" \
+  --target-venue BINANCE --output "$out/binance.json" --measured-rounds 3 --deadline-seconds 35 >/dev/null
+python3 - "$out/okx.json" "$out/binance.json" "$out/result.json" <<'PY'
+import json,sys
+okx=json.load(open(sys.argv[1])); bn=json.load(open(sys.argv[2]))
+passed=okx.get('standing')=='PASS_PUBLIC_STREAM_RECONNECT' and bn.get('standing')=='PASS_PUBLIC_STREAM_RECONNECT'
+r={
+ 'schemaVersion':1,
+ 'kind':'ordivon.capital.market.crypto-stream-resilience-r3-session',
+ 'standing':'PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT' if passed else 'PARTIAL_DUAL_VENUE_PUBLIC_STREAM_RECONNECT',
+ 'okx':{
+   'standing':okx.get('standing'), 'reconnectLatencyMs':okx.get('reconnectLatencyMs'),
+   'measuredRoundCount':len(okx.get('measured',[])), 'reconnectedGeneration':okx.get('reconnectedGeneration')},
+ 'binance':{
+   'standing':bn.get('standing'), 'reconnectLatencyMs':bn.get('reconnectLatencyMs'),
+   'measuredRoundCount':len(bn.get('measured',[])), 'reconnectedGeneration':bn.get('reconnectedGeneration')},
+ 'brokerCredentialsUsed':False,'privateAccountDataUsed':False,'externalFinancialWritesAttempted':False,
+ 'demoExecutionAttempted':False,'liveExecutionAttempted':False,
+}
+json.dump(r,open(sys.argv[3],'w'),indent=2,sort_keys=True); open(sys.argv[3],'a').write('\n')
+print(json.dumps(r,sort_keys=True))
+if not passed: raise SystemExit(2)
+PY

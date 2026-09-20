@@ -1,0 +1,217 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from enum import StrEnum
+
+from .tigerbeetle_substrate import (
+    AccountingAccount,
+    AccountingMappingError,
+    CapitalReservationBinding,
+    TigerBeetleOperation,
+    resolution_instruction,
+    stable_provider_id,
+)
+
+
+class CapitalAccountRole(StrEnum):
+    AVAILABLE = "AVAILABLE"
+    ENCUMBRANCE = "ENCUMBRANCE"
+
+
+@dataclass(frozen=True)
+class CapitalAccountNamespace:
+    owner_root: str
+    resource_identity: str
+    ledger: int
+    account_code: int
+
+    def __post_init__(self) -> None:
+        if not self.owner_root.strip():
+            raise AccountingMappingError("owner_root required")
+        if not self.resource_identity.strip():
+            raise AccountingMappingError("resource_identity required")
+        if not isinstance(self.ledger, int) or isinstance(self.ledger, bool) or not (0 < self.ledger < 2**32):
+            raise AccountingMappingError("ledger must fit non-zero unsigned 32-bit range")
+        if not isinstance(self.account_code, int) or isinstance(self.account_code, bool) or not (0 < self.account_code < 2**16):
+            raise AccountingMappingError("account_code must fit non-zero unsigned 16-bit range")
+
+    def account_id(self, role: CapitalAccountRole) -> int:
+        if not isinstance(role, CapitalAccountRole):
+            raise AccountingMappingError("role must be a CapitalAccountRole")
+        return stable_provider_id(
+            "market-capital:tigerbeetle:account",
+            self.owner_root,
+            self.resource_identity,
+            str(self.ledger),
+            str(self.account_code),
+            role.value,
+        )
+
+    def account(self, role: CapitalAccountRole) -> AccountingAccount:
+        return AccountingAccount(
+            account_id=self.account_id(role),
+            ledger=self.ledger,
+            code=self.account_code,
+            debits_must_not_exceed_credits=role is CapitalAccountRole.AVAILABLE,
+            history=True,
+        )
+
+    @property
+    def available_account_id(self) -> int:
+        return self.account_id(CapitalAccountRole.AVAILABLE)
+
+    @property
+    def encumbrance_account_id(self) -> int:
+        return self.account_id(CapitalAccountRole.ENCUMBRANCE)
+
+
+class ReservationStanding(StrEnum):
+    RESERVED = "RESERVED"
+    RELEASED = "RELEASED"
+    CONSUMED = "CONSUMED"
+
+
+class DurableProviderStanding(StrEnum):
+    MATCH = "MATCH"
+    PROVIDER_INCOMPLETE_NO_REPAIR = "PROVIDER_INCOMPLETE_NO_REPAIR"
+    CONTRADICTION_NO_REPAIR = "CONTRADICTION_NO_REPAIR"
+
+
+@dataclass(frozen=True)
+class ProviderTransferObservation:
+    transfer_id: int
+    operation: TigerBeetleOperation
+    amount: int
+    pending_id: int = 0
+
+
+@dataclass(frozen=True)
+class DurableReservationHistory:
+    binding: CapitalReservationBinding
+    standing: ReservationStanding
+    resolution_ref: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.standing is ReservationStanding.RESERVED:
+            if self.resolution_ref is not None:
+                raise AccountingMappingError("RESERVED history cannot carry a resolution_ref")
+        elif not self.resolution_ref or not self.resolution_ref.strip():
+            raise AccountingMappingError("terminal reservation history requires resolution_ref")
+
+
+@dataclass(frozen=True)
+class DurableReconciliationResult:
+    standing: DurableProviderStanding
+    terminal_history_preserved: bool
+    provider_repair_allowed: bool
+    reason: str
+
+
+def binding_for_namespace(
+    *,
+    namespace: CapitalAccountNamespace,
+    reservation_ref: str,
+    amount: int,
+    transfer_code: int,
+    timeout_seconds: int = 0,
+) -> CapitalReservationBinding:
+    return CapitalReservationBinding(
+        reservation_ref=reservation_ref,
+        resource_identity=namespace.resource_identity,
+        source_account_id=namespace.available_account_id,
+        encumbrance_account_id=namespace.encumbrance_account_id,
+        amount=amount,
+        ledger=namespace.ledger,
+        code=transfer_code,
+        timeout_seconds=timeout_seconds,
+    )
+
+
+def reconcile_durable_history(
+    *,
+    history: DurableReservationHistory,
+    pending: ProviderTransferObservation | None,
+    resolution: ProviderTransferObservation | None,
+) -> DurableReconciliationResult:
+    """Compare durable domain history against provider history without repairing it.
+
+    A mismatch never authorizes recreation, reopening, posting, or voiding. In
+    particular a terminal reservation standing remains terminal even when provider state
+    is missing or appears stale after restart/recovery.
+    """
+
+    expected_pending_id = history.binding.pending_transfer_id
+    if pending is None:
+        return _result(
+            DurableProviderStanding.PROVIDER_INCOMPLETE_NO_REPAIR,
+            history,
+            "provider is missing the reservation transfer; do not recreate from reservation history",
+        )
+    if (
+        pending.transfer_id != expected_pending_id
+        or pending.operation is not TigerBeetleOperation.PENDING
+        or pending.amount != history.binding.amount
+        or pending.pending_id != 0
+    ):
+        return _result(
+            DurableProviderStanding.CONTRADICTION_NO_REPAIR,
+            history,
+            "provider reservation transfer does not match exact reservation binding",
+        )
+
+    if history.standing is ReservationStanding.RESERVED:
+        if resolution is None:
+            return _result(DurableProviderStanding.MATCH, history, "provider retains exact pending reservation")
+        return _result(
+            DurableProviderStanding.CONTRADICTION_NO_REPAIR,
+            history,
+            "provider has a terminal resolution absent from reservation history",
+        )
+
+    operation = (
+        TigerBeetleOperation.VOID_PENDING_TRANSFER
+        if history.standing is ReservationStanding.RELEASED
+        else TigerBeetleOperation.POST_PENDING_TRANSFER
+    )
+    expected_resolution = resolution_instruction(
+        binding=history.binding,
+        operation=operation,
+        resolution_ref=history.resolution_ref or "",
+    )
+    assert expected_resolution is not None
+    if resolution is None:
+        return _result(
+            DurableProviderStanding.PROVIDER_INCOMPLETE_NO_REPAIR,
+            history,
+            "terminal reservation history is missing its provider resolution; terminal history remains authoritative",
+        )
+    if (
+        resolution.transfer_id != expected_resolution.transfer_id
+        or resolution.operation is not expected_resolution.operation
+        or resolution.pending_id != expected_pending_id
+    ):
+        return _result(
+            DurableProviderStanding.CONTRADICTION_NO_REPAIR,
+            history,
+            "provider resolution contradicts exact terminal reservation history",
+        )
+    if operation is TigerBeetleOperation.POST_PENDING_TRANSFER and resolution.amount != history.binding.amount:
+        return _result(
+            DurableProviderStanding.CONTRADICTION_NO_REPAIR,
+            history,
+            "provider consume amount differs from terminal reservation amount",
+        )
+    return _result(DurableProviderStanding.MATCH, history, "provider history matches terminal reservation history")
+
+
+def _result(
+    standing: DurableProviderStanding,
+    history: DurableReservationHistory,
+    reason: str,
+) -> DurableReconciliationResult:
+    return DurableReconciliationResult(
+        standing=standing,
+        terminal_history_preserved=history.standing is not ReservationStanding.RESERVED,
+        provider_repair_allowed=False,
+        reason=reason,
+    )

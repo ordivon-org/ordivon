@@ -1,0 +1,350 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.external-owner-census",
+  "principle": "Standards define semantics; mature implementations own mechanics; providers own external reality; Ordivon Capital retains only cross-owner composition, authority, evidence and reconciliation seams that no natural owner can establish alone.",
+  "standardsAndOwners": [
+    {
+      "id": "asset-management",
+      "ownerClass": "STANDARD_OWNER",
+      "owner": "ISO 55000 / ISO 55001",
+      "currentStanding": "ISO 55000:2024 and ISO 55001:2024 published",
+      "applicability": "REFERENCE_FOR_GENERAL_CAPITAL_ASSET_LIFECYCLE_NOT_CERTIFICATION",
+      "source": "https://www.iso.org/standard/83053.html"
+    },
+    {
+      "id": "enterprise-risk",
+      "ownerClass": "STANDARD_OWNER",
+      "owner": "ISO 31000",
+      "currentStanding": "ISO 31000:2018 remains the published edition; edition 3 is Committee Draft",
+      "applicability": "GENERAL_RISK_REFERENCE_NOT_COMPLIANCE_CLAIM",
+      "source": "https://www.iso.org/standard/65694.html"
+    },
+    {
+      "id": "risk-data",
+      "ownerClass": "STANDARD_OWNER",
+      "owner": "BCBS 239",
+      "currentStanding": "published Basel Committee principles",
+      "applicability": "RISK_DATA_REFERENCE_ONLY_NOT_BANK_REGULATORY_COMPLIANCE",
+      "source": "https://www.bis.org/bcbs/publ/d239.htm"
+    },
+    {
+      "id": "trading-semantics",
+      "ownerClass": "STANDARD_OWNER",
+      "owner": "FIX Trading Community standards / FIX Latest / Orchestra",
+      "currentStanding": "industry-maintained electronic trading and trade-processing standards",
+      "applicability": "MARKET_DOMAIN_SEMANTIC_OWNER",
+      "source": "https://fixtrading.org/"
+    },
+    {
+      "id": "financial-messaging",
+      "ownerClass": "STANDARD_OWNER",
+      "owner": "ISO 20022",
+      "currentStanding": "official repository provides current and previous message definitions and data dictionary",
+      "applicability": "FINANCIAL_MESSAGING_REFERENCE_WHERE_APPLICABLE",
+      "source": "https://www.iso20022.org/iso20022-repository/e-repository"
+    },
+    {
+      "id": "post-trade-finality",
+      "ownerClass": "STANDARD_OWNER",
+      "owner": "CPMI-IOSCO PFMI",
+      "currentStanding": "international standards for FMIs",
+      "applicability": "REFERENCE_ONLY_ORDIVON_IS_NOT_AN_FMI",
+      "source": "https://www.bis.org/committees/cpmi/pfmi/overview"
+    },
+    {
+      "id": "legal-entity-identity",
+      "ownerClass": "PROVIDER_OWNER",
+      "owner": "GLEIF / LEI / ISO 17442",
+      "currentStanding": "GLEIF Global LEI System",
+      "applicability": "AUTHORITATIVE_ORGANIZATIONAL_IDENTITY_REFERENCE",
+      "source": "https://www.gleif.org/en/organizational-identity/lei-vlei/the-legal-entity-identifier-lei"
+    },
+    {
+      "id": "accounting-mechanics",
+      "ownerClass": "IMPLEMENTATION_OWNER",
+      "owner": "TigerBeetle",
+      "currentStanding": "admitted local version remains pinned by capability_dependencies.json",
+      "applicability": "DOUBLE_ENTRY_AND_ATOMIC_TRANSFER_MECHANICS_NOT_SETTLEMENT_OR_LEGAL_OWNERSHIP",
+      "source": "https://docs.tigerbeetle.com/"
+    },
+    {
+      "id": "financial-reporting",
+      "ownerClass": "STANDARD_OWNER",
+      "owner": "IFRS Accounting Standards / IFRS Accounting Taxonomy",
+      "currentStanding": "IFRS Accounting Taxonomy 2025 remains current for 2026 reporting",
+      "applicability": "REPORTING_REFERENCE_SUBJECT_TO_JURISDICTION",
+      "source": "https://www.ifrs.org/issued-standards/ifrs-taxonomy/"
+    },
+    {
+      "id": "policy-decision",
+      "ownerClass": "IMPLEMENTATION_OWNER",
+      "owner": "Open Policy Agent",
+      "currentStanding": "CNCF graduated general-purpose policy engine",
+      "applicability": "POLICY_DECISION_POINT",
+      "source": "https://www.openpolicyagent.org/"
+    },
+    {
+      "id": "lineage",
+      "ownerClass": "IMPLEMENTATION_OWNER",
+      "owner": "OpenLineage",
+      "currentStanding": "open lineage API/specification for datasets jobs and runs",
+      "applicability": "PREFERRED_LINEAGE_STANDARD_FOR_FUTURE_CROSS_DOMAIN_DATA_WORK",
+      "source": "https://openlineage.io/"
+    },
+    {
+      "id": "observability",
+      "ownerClass": "IMPLEMENTATION_OWNER",
+      "owner": "OpenTelemetry + Prometheus/Grafana",
+      "currentStanding": "vendor-neutral traces metrics logs plus existing monitoring stack",
+      "applicability": "OBSERVABILITY_MECHANICS",
+      "source": "https://opentelemetry.io/docs/"
+    },
+    {
+      "id": "compute-economics",
+      "ownerClass": "STANDARD_OWNER",
+      "owner": "FinOps Framework + OpenCost",
+      "currentStanding": "FinOps operating framework and vendor-neutral Kubernetes cost allocation specification",
+      "applicability": "FUTURE_COMPUTE_CAPITAL_DOMAIN_NOT_YET_INSTANTIATED",
+      "source": "https://www.finops.org/framework/"
+    }
+  ],
+  "responsibilities": [
+    {
+      "id": "capital-accounting-binding",
+      "sourcePatterns": [
+        "src/ordivon_capital/accounting/*.py"
+      ],
+      "ownerClasses": [
+        "IMPLEMENTATION_OWNER",
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "TigerBeetle"
+      ],
+      "localStanding": "THIN_GLUE",
+      "localResponsibility": "map admitted capital reservation/reconciliation facts to TigerBeetle mechanics; never claim settlement finality or legal ownership"
+    },
+    {
+      "id": "market-binance-usdm",
+      "sourcePatterns": [
+        "src/ordivon_capital/market/binance_usdm_*.py"
+      ],
+      "ownerClasses": [
+        "PROVIDER_OWNER",
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "Binance official APIs and SDKs",
+        "Network v2 transport"
+      ],
+      "localStanding": "THIN_GLUE",
+      "localResponsibility": "qualification, normalized evidence and provider-contract checks only"
+    },
+    {
+      "id": "market-crypto-runtime",
+      "sourcePatterns": [
+        "src/ordivon_capital/market/crypto_*.py",
+        "src/ordivon_capital/market/nautilus_qualification.py"
+      ],
+      "ownerClasses": [
+        "IMPLEMENTATION_OWNER",
+        "PROVIDER_OWNER",
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "NautilusTrader",
+        "venue APIs",
+        "websockets",
+        "Network v2"
+      ],
+      "localStanding": "THIN_GLUE",
+      "localResponsibility": "qualification and fail-closed evidence across mature components"
+    },
+    {
+      "id": "market-execution-policy",
+      "sourcePatterns": [
+        "src/ordivon_capital/market/opa_policy.py"
+      ],
+      "ownerClasses": [
+        "IMPLEMENTATION_OWNER",
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "Open Policy Agent"
+      ],
+      "localStanding": "THIN_GLUE",
+      "localResponsibility": "OPA fact-binding and fail-closed enforcement seam; live-test admission, risk-limit, and pre-trade evidence decisions are OPA-owned"
+    },
+    {
+      "id": "market-execution-reconciliation",
+      "sourcePatterns": [
+        "src/ordivon_capital/market/execution_reconciliation.py",
+        "src/ordivon_capital/market/nonlive_effect_qualification.py"
+      ],
+      "ownerClasses": [
+        "STANDARD_OWNER",
+        "PROVIDER_OWNER",
+        "IMPLEMENTATION_OWNER",
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "FIX semantics",
+        "venue reality",
+        "TigerBeetle"
+      ],
+      "localStanding": "THIN_GLUE",
+      "localResponsibility": "fail-closed mapping across authoritative venue state, lifecycle vocabulary and accounting resolution"
+    },
+    {
+      "id": "market-provider-observation",
+      "sourcePatterns": [
+        "src/ordivon_capital/market/okx_*.py",
+        "src/ordivon_capital/market/market_sensors.py",
+        "src/ordivon_capital/market/private_reality.py"
+      ],
+      "ownerClasses": [
+        "PROVIDER_OWNER",
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "OKX",
+        "Binance",
+        "authoritative venue/account APIs"
+      ],
+      "localStanding": "DOMAIN_GLUE",
+      "localResponsibility": "normalize provider observations and compute explicitly registered non-model summaries; provider remains reality owner"
+    },
+    {
+      "id": "market-portfolio-observation-and-statistics",
+      "sourcePatterns": [
+        "src/ordivon_capital/market/portfolio_risk.py"
+      ],
+      "ownerClasses": [
+        "IMPLEMENTATION_OWNER",
+        "STANDARD_OWNER",
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "NumPy",
+        "SciPy",
+        "scikit-learn",
+        "OPA for risk-limit decisions",
+        "ISO 31000 reference",
+        "SR 26-2 reference for model governance"
+      ],
+      "localStanding": "THIN_GLUE_AFTER_OWNER_AUDIT",
+      "localResponsibility": "normalize observed exposure, bind descriptive statistics/model-validation evidence, and render reports; numerical estimators are library-owned and risk-limit decisions are OPA-owned; no portfolio optimizer or autonomous sizing is implemented"
+    },
+    {
+      "id": "market-counterfactual-projection",
+      "sourcePatterns": [
+        "src/ordivon_capital/market/portfolio_counterfactuals.py"
+      ],
+      "ownerClasses": [
+        "ORDIVON_GLUE",
+        "IMPLEMENTATION_OWNER"
+      ],
+      "externalOwners": [
+        "OPA for pre-trade evidence controls",
+        "LEAN/Nautilus only when execution-pipeline portfolio/risk mechanics are required",
+        "Riskfolio-Lib only when optimization/risk-measure scope is required"
+      ],
+      "localStanding": "RETAINED_IRREDUCIBLE_READONLY_GLUE",
+      "localResponsibility": "mechanically project explicitly caller-supplied DE_RISK/HEDGE/DIVERSIFY/HOLD/RECONCILE scenarios without ranking, recommendation, optimization, execution authority, or autonomous sizing; mature optimizers/risk engines are not semantic substitutes for this read-only projection surface"
+    },
+    {
+      "id": "research-data-and-model-governance",
+      "sourcePatterns": [
+        "src/ordivon_capital/market/model_monitoring.py",
+        "src/ordivon_capital/market/monitoring_persistence.py",
+        "src/ordivon_capital/market/monitoring_persistence_cli.py",
+        "src/ordivon_capital/market/prospective_validation.py",
+        "src/ordivon_capital/market/standards_inventory.py"
+      ],
+      "ownerClasses": [
+        "IMPLEMENTATION_OWNER",
+        "PROVIDER_OWNER",
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "MLflow",
+        "Pandera",
+        "Parquet/Arrow",
+        "DuckDB",
+        "NumPy/SciPy/scikit-learn",
+        "OpenLineage for any future actual lineage-event surface"
+      ],
+      "localStanding": "THIN_MARKET_BINDING_EXTERNAL_CONFIG_OWNER",
+      "localResponsibility": "Market-specific monitoring calculations plus evidence persistence bindings. MLflow owns tracking/backend configuration; Pandera, Parquet/Arrow and DuckDB own validation/materialization/readback mechanics. No local lineage graph, provenance database, generic Research/Data platform, or Wave-A research pipeline remains."
+    }
+  ],
+  "notInstantiatedDomains": [
+    {
+      "domain": "compute",
+      "externalOwners": [
+        "FinOps Framework",
+        "OpenCost",
+        "cloud-provider billing APIs"
+      ],
+      "standing": "NO_LOCAL_DOMAIN_CODE"
+    },
+    {
+      "domain": "treasury",
+      "externalOwners": [
+        "ERP/TMS/bank APIs/ISO 20022 as applicable"
+      ],
+      "standing": "NO_LOCAL_DOMAIN_CODE"
+    },
+    {
+      "domain": "enterprise",
+      "externalOwners": [
+        "ERP/EPM/accounting systems"
+      ],
+      "standing": "NO_LOCAL_DOMAIN_CODE"
+    },
+    {
+      "domain": "human",
+      "externalOwners": [
+        "HRIS/workforce systems where needed"
+      ],
+      "standing": "NO_LOCAL_DOMAIN_CODE"
+    },
+    {
+      "domain": "distribution",
+      "externalOwners": [
+        "CRM/CDP/marketing and sales systems where needed"
+      ],
+      "standing": "NO_LOCAL_DOMAIN_CODE"
+    }
+  ],
+  "retainedCompatibilityContracts": [
+    {
+      "id": "prometheus-market-capital-metric-prefix",
+      "surface": "ordivon_market_capital_* plus market-capital-crypto.prom/rules filename",
+      "standing": "RETAINED_EXTERNAL_OBSERVABILITY_COMPATIBILITY",
+      "owner": "Prometheus/node_exporter deployed consumer contract",
+      "reason": "host /etc/prometheus rules and node_exporter textfile currently consume the deployed metric names; rename requires one coordinated observability migration rather than an in-repo cosmetic change"
+    },
+    {
+      "id": "tigerbeetle-market-capital-stable-provider-ids",
+      "surface": "market-capital:tigerbeetle:* and market-capital:nonlive-effect:* stable ID seeds",
+      "standing": "RETAINED_PROVIDER_IDEMPOTENCY_IDENTITY",
+      "owner": "TigerBeetle/provider identity continuity",
+      "reason": "changing stable provider-ID seeds changes durable idempotency/account/transfer identities and is not a namespace cleanup"
+    },
+    {
+      "id": "wave-a-frozen-target-fixture",
+      "surface": "wave_b/fixtures/wave_a_target_portfolio.json and its historical method payload",
+      "standing": "RETAINED_FROZEN_FIXTURE_IDENTITY",
+      "owner": "Wave-B regression/execution-mechanics evidence boundary",
+      "reason": "the generator is retired but the exact frozen fixture remains an admitted historical input; rewriting it would change evidence identity"
+    },
+    {
+      "id": "historical-physical-repo-source-coordinate",
+      "surface": "/root/projects/ordivon-market-capital-next",
+      "standing": "RETAINED_RESEARCH_PROVENANCE_SOURCE_COORDINATE",
+      "owner": "Frozen Ordivon Research/Paper1 source-coordinate and retention-anchor evidence",
+      "reason": "the absolute path is embedded in frozen Git-universe/source-linkage/retention-anchor records used for reproducibility and source re-entry; physical rename requires an explicit Research provenance migration or alias authority, not a filesystem cosmetic move"
+    }
+  ]
+}

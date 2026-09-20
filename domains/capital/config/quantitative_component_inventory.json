@@ -1,0 +1,543 @@
+{
+  "schemaVersion": 1,
+  "framework": {
+    "name": "Federal Reserve SR 26-2 Revised Guidance on Model Risk Management",
+    "issued": "2026-04-17",
+    "standing": "REFERENCE_GOVERNANCE_FRAMEWORK"
+  },
+  "classificationBoundary": "Use the SR 26-2 model definition proportionately: complex quantitative methods grounded in statistical, economic, or financial theory are model-governance candidates; simple arithmetic calculations and deterministic rule-based processes without such theoretical underpinning are classified as non-model calculations or controls.",
+  "components": [
+    {
+      "id": "portfolio-dependence-analysis",
+      "implementation": "src/ordivon_capital/market/portfolio_risk.py::analyze_dependence",
+      "classification": "QUANTITATIVE_MODEL",
+      "sr26ModelStanding": "MODEL",
+      "status": "VALIDATION_REQUIRED",
+      "purpose": "Describe historical linear dependence between a base instrument and explicit market proxies for research and risk monitoring.",
+      "materiality": "MEDIUM",
+      "assumptions": [
+        "Linear regression and correlation are informative summaries for the selected return window.",
+        "Timestamp-aligned completed returns are comparable across selected instruments."
+      ],
+      "limitations": [
+        "Historical correlation and beta are not forecasts.",
+        "Proxy instruments do not establish causal factor exposure.",
+        "Dependence may change across market regimes and sample windows.",
+        "Walk-forward validation on a finite historical sample does not guarantee future hedge effectiveness.",
+        "Current walk-forward evidence is developer-run and does not constitute independent validation."
+      ],
+      "validation": {
+        "standing": "DEVELOPMENT_TESTED",
+        "evidenceRefs": [
+          "evidence/acceptance/portfolio-risk-observatory-p1-p4-r1.json",
+          "evidence/acceptance/dependence-model-oot-validation-r1.json"
+        ]
+      },
+      "monitoring": {
+        "standing": "REQUIRED",
+        "requirements": [
+          "Track overlap sample count and data freshness.",
+          "Track rolling coefficient and correlation drift.",
+          "Run walk-forward out-of-time validation against a robust challenger.",
+          "Compare subsequent realized residual risk and model error before broader use."
+        ]
+      },
+      "permittedUses": [
+        "Historical descriptive research.",
+        "Scenario construction input.",
+        "Risk monitoring with explicit limitations."
+      ],
+      "prohibitedUses": [
+        "Automatic hedge sizing.",
+        "Return forecasting.",
+        "Live order approval.",
+        "Causal factor attribution."
+      ]
+    },
+    {
+      "id": "repeated-microstructure-summary",
+      "implementation": "src/ordivon_capital/market/market_sensors.py::repeated_microstructure",
+      "classification": "NON_MODEL_CALCULATION",
+      "sr26ModelStanding": "NON_MODEL",
+      "status": "ACTIVE",
+      "purpose": "Calculate descriptive book-imbalance, trade-flow-share, and spread statistics over repeated observations without classifying direction.",
+      "materiality": "NOT_APPLICABLE",
+      "assumptions": [],
+      "limitations": [
+        "REST trade windows may overlap and are not independent samples.",
+        "Descriptive flow statistics do not imply future price direction."
+      ],
+      "validation": {
+        "standing": "NOT_APPLICABLE",
+        "evidenceRefs": [
+          "evidence/acceptance/market-sensors-sndk-canary-r1.json"
+        ]
+      },
+      "monitoring": {
+        "standing": "NOT_APPLICABLE",
+        "requirements": []
+      },
+      "permittedUses": [
+        "Descriptive market monitoring."
+      ],
+      "prohibitedUses": [
+        "Directional signal generation.",
+        "Trade recommendation.",
+        "Causal interpretation."
+      ]
+    },
+    {
+      "id": "open-interest-change",
+      "implementation": "src/ordivon_capital/market/market_sensors.py::open_interest_change",
+      "classification": "NON_MODEL_CALCULATION",
+      "sr26ModelStanding": "NON_MODEL",
+      "status": "ACTIVE",
+      "purpose": "Calculate timestamp-bounded open-interest changes from authoritative observations.",
+      "materiality": "NOT_APPLICABLE",
+      "assumptions": [],
+      "limitations": [
+        "Open-interest change alone does not identify crowding, leverage ownership, or causality."
+      ],
+      "validation": {
+        "standing": "NOT_APPLICABLE",
+        "evidenceRefs": [
+          "evidence/acceptance/market-sensors-sndk-canary-r1.json"
+        ]
+      },
+      "monitoring": {
+        "standing": "NOT_APPLICABLE",
+        "requirements": []
+      },
+      "permittedUses": [
+        "Derived observation."
+      ],
+      "prohibitedUses": [
+        "Standalone crowding conclusion.",
+        "Trade recommendation."
+      ]
+    },
+    {
+      "id": "exposure-ledger",
+      "implementation": "src/ordivon_capital/market/portfolio_risk.py::build_exposure_ledger",
+      "classification": "NON_MODEL_CALCULATION",
+      "sr26ModelStanding": "NON_MODEL",
+      "status": "ACTIVE",
+      "purpose": "Calculate gross, net, concentration, margin ratios, and explicit factor-loading arithmetic from observed account state.",
+      "materiality": "NOT_APPLICABLE",
+      "assumptions": [],
+      "limitations": [
+        "Outputs are only as current and complete as authoritative account inputs.",
+        "Overlapping factor loadings are not additive risk contributions."
+      ],
+      "validation": {
+        "standing": "NOT_APPLICABLE",
+        "evidenceRefs": [
+          "evidence/acceptance/portfolio-risk-observatory-p1-p4-r1.json"
+        ]
+      },
+      "monitoring": {
+        "standing": "NOT_APPLICABLE",
+        "requirements": []
+      },
+      "permittedUses": [
+        "Exposure monitoring.",
+        "Risk-limit input."
+      ],
+      "prohibitedUses": [
+        "Allocation recommendation."
+      ]
+    },
+    {
+      "id": "factor-proxy-aggregation",
+      "implementation": "src/ordivon_capital/market/portfolio_risk.py::build_factor_observatory",
+      "classification": "ADAPTER",
+      "sr26ModelStanding": "NON_MODEL",
+      "status": "ACTIVE",
+      "purpose": "Group explicit proxy instruments by named research factor and attach registered historical dependence-model outputs.",
+      "materiality": "NOT_APPLICABLE",
+      "assumptions": [],
+      "limitations": [
+        "A proxy label does not establish a causal factor model.",
+        "The aggregation inherits limitations and validation standing from the registered dependence model."
+      ],
+      "validation": {
+        "standing": "NOT_APPLICABLE",
+        "evidenceRefs": [
+          "evidence/acceptance/portfolio-risk-observatory-p1-p4-r1.json"
+        ]
+      },
+      "monitoring": {
+        "standing": "NOT_APPLICABLE",
+        "requirements": []
+      },
+      "permittedUses": [
+        "Organize explicit research proxies and registered dependence-model outputs."
+      ],
+      "prohibitedUses": [
+        "Causal factor attribution.",
+        "Automatic hedge selection."
+      ]
+    },
+    {
+      "id": "dependence-model-monitoring",
+      "implementation": "src/ordivon_capital/market/model_monitoring.py",
+      "classification": "CONTROL",
+      "sr26ModelStanding": "NON_MODEL",
+      "status": "ACTIVE",
+      "purpose": "Measure dependence-model data quality, realized out-of-time outcomes, parameter drift, and return-distribution drift without inventing local pass/fail thresholds.",
+      "materiality": "NOT_APPLICABLE",
+      "assumptions": [],
+      "limitations": [
+        "Monitoring statistics do not independently validate or approve the underlying model.",
+        "KS p-values and Wasserstein distances are reported continuously and are not converted into local traffic-light classifications.",
+        "Outcomes monitoring requires a strictly later realized sample than the frozen reference sample."
+      ],
+      "validation": {
+        "standing": "NOT_APPLICABLE",
+        "evidenceRefs": [
+          "evidence/acceptance/dependence-model-monitoring-r1.json"
+        ]
+      },
+      "monitoring": {
+        "standing": "ACTIVE",
+        "requirements": [
+          "Preserve reference/realized time boundaries.",
+          "Record paired-sample completeness and interval statistics.",
+          "Record OOS residual risk and continuous parameter/distribution drift."
+        ]
+      },
+      "permittedUses": [
+        "Model outcomes monitoring.",
+        "Model drift measurement.",
+        "Risk-data quality measurement."
+      ],
+      "prohibitedUses": [
+        "Automatic model approval.",
+        "Automatic hedge sizing.",
+        "Local threshold-based health classification."
+      ]
+    },
+    {
+      "id": "model-monitoring-persistence",
+      "implementation": "src/ordivon_capital/market/monitoring_persistence.py::persist_monitoring_evidence",
+      "classification": "ADAPTER",
+      "sr26ModelStanding": "NON_MODEL",
+      "status": "ACTIVE",
+      "purpose": "Persist model-monitoring evidence through Pandera validation, Parquet materialization, DuckDB readback, and MLflow run/artifact tracking without claiming a local lineage authority.",
+      "materiality": "NOT_APPLICABLE",
+      "assumptions": [],
+      "limitations": [
+        "MLflow run identity and artifact hashes provide persistence/provenance evidence, not a complete data-lineage graph.",
+        "Tracking backend selection belongs to MLflow configuration supplied by the caller or environment."
+      ],
+      "validation": {
+        "standing": "NOT_APPLICABLE",
+        "evidenceRefs": [
+          "evidence/acceptance/model-monitoring-lineage-r1.json"
+        ]
+      },
+      "monitoring": {
+        "standing": "NOT_APPLICABLE",
+        "requirements": []
+      },
+      "permittedUses": [
+        "Monitoring-history materialization.",
+        "Run/artifact provenance evidence.",
+        "Independent Parquet readback."
+      ],
+      "prohibitedUses": [
+        "Trade approval.",
+        "External financial write authority.",
+        "Market-data source authority."
+      ]
+    },
+    {
+      "id": "tail-risk-report",
+      "implementation": "src/ordivon_capital/market/model_monitoring.py::build_tail_risk_report",
+      "classification": "ADAPTER",
+      "sr26ModelStanding": "NON_MODEL",
+      "status": "ACTIVE",
+      "purpose": "Compose registered empirical expected-shortfall calculations with explicit sample and horizon metadata for read-only risk reporting.",
+      "materiality": "NOT_APPLICABLE",
+      "assumptions": [],
+      "limitations": [
+        "Liquidity-horizon metadata is descriptive only; no scaling is performed.",
+        "The report is not a regulatory capital calculation."
+      ],
+      "validation": {
+        "standing": "NOT_APPLICABLE",
+        "evidenceRefs": [
+          "evidence/acceptance/dependence-model-monitoring-r1.json"
+        ]
+      },
+      "monitoring": {
+        "standing": "NOT_APPLICABLE",
+        "requirements": []
+      },
+      "permittedUses": [
+        "Read-only tail-risk reporting."
+      ],
+      "prohibitedUses": [
+        "Automatic allocation.",
+        "Regulatory capital calculation.",
+        "Order approval."
+      ]
+    },
+    {
+      "id": "historical-expected-shortfall",
+      "implementation": "src/ordivon_capital/market/portfolio_risk.py::historical_expected_shortfall",
+      "classification": "NON_MODEL_CALCULATION",
+      "sr26ModelStanding": "NON_MODEL",
+      "status": "ACTIVE",
+      "purpose": "Compute an empirical one-period historical tail-loss mean beyond an empirical VaR quantile for descriptive risk monitoring.",
+      "materiality": "LOW",
+      "assumptions": [
+        "The supplied completed returns define the historical sample being summarized."
+      ],
+      "limitations": [
+        "This is a historical descriptive statistic, not a forecast of future losses.",
+        "No distribution is fitted and no liquidity-horizon scaling is applied.",
+        "The output is not a Basel regulatory capital calculation."
+      ],
+      "validation": {
+        "standing": "NOT_APPLICABLE",
+        "evidenceRefs": [
+          "evidence/acceptance/dependence-model-oot-validation-r1.json"
+        ]
+      },
+      "monitoring": {
+        "standing": "NOT_APPLICABLE",
+        "requirements": []
+      },
+      "permittedUses": [
+        "Descriptive historical tail-risk monitoring.",
+        "Scenario and risk-report context with explicit sample definition."
+      ],
+      "prohibitedUses": [
+        "Regulatory capital calculation.",
+        "Automatic position sizing.",
+        "Future-loss probability forecast."
+      ]
+    },
+    {
+      "id": "risk-limit-evaluator",
+      "implementation": "policy/market_controls.rego::risk_budget_decision + src/ordivon_capital/market/opa_policy.py::evaluate_risk_budget_policy",
+      "classification": "CONTROL",
+      "sr26ModelStanding": "NON_MODEL",
+      "status": "ACTIVE",
+      "purpose": "Compare observed exposure state with explicit user or policy risk limits without inferring risk tolerance.",
+      "materiality": "NOT_APPLICABLE",
+      "assumptions": [],
+      "limitations": [
+        "The control is incomplete when explicit risk limits are absent.",
+        "The named shock calculation is first-order arithmetic, not VaR, expected shortfall, or liquidation probability."
+      ],
+      "validation": {
+        "standing": "NOT_APPLICABLE",
+        "evidenceRefs": [
+          "evidence/acceptance/portfolio-risk-observatory-p1-p4-r1.json"
+        ]
+      },
+      "monitoring": {
+        "standing": "NOT_APPLICABLE",
+        "requirements": []
+      },
+      "permittedUses": [
+        "Risk-limit compliance check."
+      ],
+      "prohibitedUses": [
+        "Inferring investor risk appetite.",
+        "Trade sizing."
+      ]
+    },
+    {
+      "id": "portfolio-scenario-calculation",
+      "implementation": "src/ordivon_capital/market/portfolio_counterfactuals.py::build_action_counterfactual",
+      "classification": "NON_MODEL_CALCULATION",
+      "sr26ModelStanding": "NON_MODEL",
+      "status": "ACTIVE",
+      "purpose": "Calculate mechanical exposure changes for explicit what-if portfolio scenarios.",
+      "materiality": "NOT_APPLICABLE",
+      "assumptions": [],
+      "limitations": [
+        "Projected available equity and exact margin impact are unknown unless separately measured.",
+        "Scenario calculations do not rank or recommend actions."
+      ],
+      "validation": {
+        "standing": "NOT_APPLICABLE",
+        "evidenceRefs": [
+          "evidence/acceptance/portfolio-counterfactuals-p5-p6-r1.json"
+        ]
+      },
+      "monitoring": {
+        "standing": "NOT_APPLICABLE",
+        "requirements": []
+      },
+      "permittedUses": [
+        "What-if analysis.",
+        "Pre-trade research."
+      ],
+      "prohibitedUses": [
+        "Order generation.",
+        "Automatic scenario ranking."
+      ]
+    },
+    {
+      "id": "pre-trade-evidence-control",
+      "implementation": "policy/market_controls.rego::counterfactual_gate_statuses + src/ordivon_capital/market/opa_policy.py::evaluate_counterfactual_gate_policy",
+      "classification": "CONTROL",
+      "sr26ModelStanding": "NON_MODEL",
+      "status": "ACTIVE",
+      "purpose": "Require explicit risk-limit, liquidity, margin, carry, and dependence evidence before a scenario can be considered complete.",
+      "materiality": "NOT_APPLICABLE",
+      "assumptions": [],
+      "limitations": [
+        "A passing completeness control is not trade approval or effect authority."
+      ],
+      "validation": {
+        "standing": "NOT_APPLICABLE",
+        "evidenceRefs": [
+          "evidence/acceptance/portfolio-counterfactuals-p5-p6-r1.json"
+        ]
+      },
+      "monitoring": {
+        "standing": "NOT_APPLICABLE",
+        "requirements": []
+      },
+      "permittedUses": [
+        "Pre-trade evidence completeness control."
+      ],
+      "prohibitedUses": [
+        "Trade approval.",
+        "External financial write admission."
+      ]
+    },
+    {
+      "id": "underlying-reopen-reconciliation",
+      "implementation": "src/ordivon_capital/market/market_sensors.py::reconcile_underlying_reopen",
+      "classification": "RECONCILIATION",
+      "sr26ModelStanding": "NON_MODEL",
+      "status": "ACTIVE",
+      "purpose": "Compare out-of-hours derivative observations with authoritative underlying reopen observations using an explicit caller-owned tolerance.",
+      "materiality": "NOT_APPLICABLE",
+      "assumptions": [],
+      "limitations": [
+        "The tolerance is a policy input and is not defined by this function.",
+        "Price reconciliation does not establish causal price leadership."
+      ],
+      "validation": {
+        "standing": "NOT_APPLICABLE",
+        "evidenceRefs": [
+          "evidence/acceptance/market-sensors-sndk-canary-r1.json"
+        ]
+      },
+      "monitoring": {
+        "standing": "NOT_APPLICABLE",
+        "requirements": []
+      },
+      "permittedUses": [
+        "Session-boundary reconciliation."
+      ],
+      "prohibitedUses": [
+        "Causal attribution.",
+        "Trade recommendation."
+      ]
+    },
+    {
+      "id": "prospective-validation",
+      "implementation": "src/ordivon_capital/market/prospective_validation.py::evaluate_prospective_validation",
+      "classification": "CONTROL",
+      "sr26ModelStanding": "NON_MODEL",
+      "status": "ACTIVE",
+      "purpose": "Enforce temporal separation between a frozen decision and aligned post-decision holdout observations without claiming causal identification.",
+      "materiality": "NOT_APPLICABLE",
+      "assumptions": [],
+      "limitations": [
+        "Post-decision timing prevents look-ahead leakage but does not establish causality.",
+        "All required series must share an eligible session date before the holdout is considered available."
+      ],
+      "validation": {
+        "standing": "NOT_APPLICABLE",
+        "evidenceRefs": [
+          "evidence/wave-b-m5-status-20260913.json"
+        ]
+      },
+      "monitoring": {
+        "standing": "NOT_APPLICABLE",
+        "requirements": []
+      },
+      "permittedUses": [
+        "Prospective holdout eligibility control."
+      ],
+      "prohibitedUses": [
+        "Causal-effect inference.",
+        "Automatic strategy-performance conclusion."
+      ]
+    },
+    {
+      "id": "public-market-risk-data-quality",
+      "implementation": "src/ordivon_capital/market/crypto_public_shadow.py::analyze",
+      "classification": "CONTROL",
+      "sr26ModelStanding": "NON_MODEL",
+      "status": "ACTIVE",
+      "purpose": "Check source authority, required-input completeness, bounded timeliness, clock agreement, and lineage for cross-venue public market observations.",
+      "materiality": "NOT_APPLICABLE",
+      "assumptions": [],
+      "limitations": [
+        "BCBS 239 is used proportionately as a risk-data engineering reference, not as a regulatory-compliance claim.",
+        "Bounded contemporaneous quote comparison does not establish executable arbitrage."
+      ],
+      "validation": {
+        "standing": "NOT_APPLICABLE",
+        "evidenceRefs": [
+          "evidence/crypto-public-shadow-r1-20260913.json"
+        ]
+      },
+      "monitoring": {
+        "standing": "NOT_APPLICABLE",
+        "requirements": []
+      },
+      "permittedUses": [
+        "Risk-data quality and lineage control for public market observations."
+      ],
+      "prohibitedUses": [
+        "Execution-price guarantee.",
+        "Causal market inference."
+      ]
+    },
+    {
+      "id": "regime-card-r1",
+      "implementation": "retired:src/ordivon_capital/market/regime_card.py",
+      "classification": "QUANTITATIVE_MODEL",
+      "sr26ModelStanding": "MODEL",
+      "status": "RETIRED",
+      "purpose": "Former composite heuristic that mapped observations into custom regime identities, hypotheses, and signposts.",
+      "materiality": "LOW",
+      "assumptions": [
+        "Custom regime labels and hypothesis templates were useful cross-domain abstractions."
+      ],
+      "limitations": [
+        "The composite method had no independent validation.",
+        "Its regime taxonomy was locally invented rather than owned by a mature financial risk methodology.",
+        "Its lens routing duplicated model-governance and scenario-analysis concepts available in mature practice."
+      ],
+      "validation": {
+        "standing": "RETIRED_UNVALIDATED",
+        "evidenceRefs": []
+      },
+      "monitoring": {
+        "standing": "RETIRED",
+        "requirements": []
+      },
+      "permittedUses": [
+        "Historical repository archaeology only."
+      ],
+      "prohibitedUses": [
+        "Current market analysis.",
+        "Risk decision support.",
+        "Trade recommendation."
+      ],
+      "retirementReason": "Replaced by explicit market observations, model inventory/governance, risk monitoring, and scenario analysis aligned to mature external practice."
+    }
+  ]
+}

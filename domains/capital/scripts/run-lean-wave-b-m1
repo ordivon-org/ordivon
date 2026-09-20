@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# Historical unbuffered regression lane. Exact original M1 evidence is frozen at commit c3487db.
+set -euo pipefail
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+lean="${ORDIVON_CAPITAL_MARKET_LEAN_ROOT:-/root/external/quantconnect-lean/18074}"
+out="$repo/.artifacts/wave-b-m1/results"
+"$repo/scripts/check-lean-runtime"
+"$repo/scripts/check-execution-policy" --mode non-live >/dev/null
+DOTNET_CLI_TELEMETRY_OPTOUT=1 dotnet build "$repo/wave_b/algorithm/MarketCapitalValidationAlgorithm.csproj" -c Release --nologo -p:LeanReleaseRoot="$lean/Launcher/bin/Release"
+"$repo/scripts/prepare-lean-validation-data" >/dev/null
+rm -rf "$out" && mkdir -p "$out"
+export ORDIVON_CAPITAL_MARKET_TARGET_PORTFOLIO="$repo/wave_b/fixtures/wave_a_target_portfolio.json"
+export ORDIVON_CAPITAL_MARKET_EXECUTION_CASH_BUFFER_WEIGHT="0"
+(
+  cd "$lean/Launcher/bin/Release"
+  ./QuantConnect.Lean.Launcher \
+    --config "$lean/Launcher/config.json" \
+    --environment backtesting \
+    --algorithm-type-name OrdivonMarketCapital.MarketCapitalValidationAlgorithm \
+    --algorithm-language CSharp \
+    --algorithm-location "$repo/wave_b/algorithm/bin/Release/net10.0/Ordivon.MarketCapital.LeanValidation.dll" \
+    --data-folder "$repo/.artifacts/wave-b-m1/data" \
+    --results-destination-folder "$out" \
+    --transaction-log "$out/transactions.csv" \
+    --close-automatically true \
+    > "$out/lean-console.log" 2>&1
+)
+python3 - "$out" <<'PY'
+from pathlib import Path
+import json, re, sys, hashlib
+out=Path(sys.argv[1]); log=(out/'lean-console.log').read_text()
+filled=[line for line in log.splitlines() if 'MC_ORDER_EVENT' in line and 'status=Filled' in line]
+errors=[line for line in log.splitlines() if ' ERROR::' in line]
+failed=re.search(r'DATA USAGE:: Failed data requests (\d+)', log)
+fees=re.search(r'STATISTICS:: Total Fees \$(\S+)', log)
+end_equity=re.search(r'STATISTICS:: End Equity (\S+)', log)
+order_hash=re.search(r'STATISTICS:: OrderListHash (\S+)', log)
+final=re.search(r'MC_FINAL_PORTFOLIO\|([^\n]+)', log)
+if len(filled) != 3: raise SystemExit(f'expected 3 fills, got {len(filled)}')
+if errors: raise SystemExit(f'LEAN errors present: {errors}')
+if not failed or int(failed.group(1)) != 0: raise SystemExit('failed data requests are nonzero')
+if 'slippageModel=VolumeShareSlippageModel' not in log: raise SystemExit('slippage model was not admitted')
+summary={
+  'standing':'PASS_BOUNDED_HISTORICAL_FIXTURE',
+  'externalFinancialWritesAttempted':False,
+  'brokerCredentialsUsed':False,
+  'fills':len(filled),
+  'totalFeesUsd':fees.group(1) if fees else None,
+  'endEquityUsd':end_equity.group(1) if end_equity else None,
+  'orderListHash':order_hash.group(1) if order_hash else None,
+  'finalPortfolio':final.group(1) if final else None,
+  'targetPortfolioSha256':hashlib.sha256((Path(__file__).resolve().parents[0] if False else Path.cwd()).as_posix().encode()).hexdigest() if False else hashlib.sha256((Path(out).parents[2]/'wave_b/fixtures/wave_a_target_portfolio.json').read_bytes()).hexdigest(),
+  'consoleLogSha256':hashlib.sha256((out/'lean-console.log').read_bytes()).hexdigest()
+}
+(out/'acceptance.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
+print(json.dumps(summary,sort_keys=True))
+PY
