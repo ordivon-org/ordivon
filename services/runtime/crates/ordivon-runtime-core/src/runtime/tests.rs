@@ -1361,6 +1361,7 @@ fn windows_execution_context_is_durable_plan_evidence_not_request_identity_input
     let context = super::WindowsExecutionContext {
         token_class: super::WindowsTokenClass::Limited,
         token_user_sid: "S-1-5-21-test-1001".to_string(),
+        session_id: None,
         environment_source: "windows_user_machine_profile_allowlist_v1".to_string(),
         privileged_broker_digest: None,
     };
@@ -1959,6 +1960,7 @@ fn terminal_evidence_is_a_durable_artifact_with_native_binding() {
     submit.plan.windows_execution_context = Some(super::WindowsExecutionContext {
         token_class: super::WindowsTokenClass::Limited,
         token_user_sid: "S-1-5-21-test-1001".to_string(),
+        session_id: None,
         environment_source: "windows_user_machine_profile_allowlist_v1".to_string(),
         privileged_broker_digest: None,
     });
@@ -6835,6 +6837,7 @@ fn native_windows_running_attempt_replay_after_registry_reopen_does_not_redrive(
     submission.plan.windows_execution_context = Some(super::WindowsExecutionContext {
         token_class: super::WindowsTokenClass::Limited,
         token_user_sid: "S-1-5-21-test-1001".to_string(),
+        session_id: None,
         environment_source: "windows_user_machine_profile_allowlist_v1".to_string(),
         privileged_broker_digest: None,
     });
@@ -7151,6 +7154,7 @@ fn native_windows_runtime_release_requires_elevated_broker_context() {
     submission.plan.windows_execution_context = Some(WindowsExecutionContext {
         token_class: WindowsTokenClass::Elevated,
         token_user_sid: "S-1-5-18".to_string(),
+        session_id: None,
         environment_source: "windows_privileged_broker_profile_allowlist_v1".to_string(),
         privileged_broker_digest: Some(digest(b"privileged-broker")),
     });
@@ -7206,6 +7210,7 @@ fn native_windows_runtime_release_rejects_limited_authority() {
     submission.plan.windows_execution_context = Some(WindowsExecutionContext {
         token_class: WindowsTokenClass::Limited,
         token_user_sid: "S-1-5-21-test-1001".to_string(),
+        session_id: None,
         environment_source: "windows_user_machine_profile_allowlist_v1".to_string(),
         privileged_broker_digest: None,
     });
@@ -7255,6 +7260,7 @@ fn native_windows_runtime_release_rejects_missing_broker_digest() {
     submission.plan.windows_execution_context = Some(WindowsExecutionContext {
         token_class: WindowsTokenClass::Elevated,
         token_user_sid: "S-1-5-18".to_string(),
+        session_id: None,
         environment_source: "windows_privileged_broker_profile_allowlist_v1".to_string(),
         privileged_broker_digest: None,
     });

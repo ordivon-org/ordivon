@@ -105,6 +105,7 @@ impl Runtime {
                     for authority in [
                         super::WindowsAuthority::Limited,
                         super::WindowsAuthority::Elevated,
+                        super::WindowsAuthority::ActiveUser,
                     ] {
                         if snapshot_windows_runtime_context(windows, authority).is_ok() {
                             authorities.push(authority);
@@ -340,9 +341,10 @@ impl Runtime {
                 let token_class = match request.execution.windows_authority {
                     super::WindowsAuthority::Limited => super::WindowsTokenClass::Limited,
                     super::WindowsAuthority::Elevated => super::WindowsTokenClass::Elevated,
+                    super::WindowsAuthority::ActiveUser => super::WindowsTokenClass::ActiveUser,
                 };
                 let privileged_broker_digest =
-                    if request.execution.windows_authority == super::WindowsAuthority::Elevated {
+                    if request.execution.windows_authority != super::WindowsAuthority::Limited {
                         windows
                             .privileged_broker
                             .as_ref()
@@ -351,16 +353,19 @@ impl Runtime {
                     } else {
                         None
                     };
-                let environment_source = if privileged_broker_digest.is_some() {
-                    "windows_privileged_broker_profile_allowlist_v1"
-                } else {
-                    "windows_user_machine_profile_allowlist_v1"
+                let environment_source = match request.execution.windows_authority {
+                    super::WindowsAuthority::ActiveUser => "windows_active_user_profile_allowlist_v1",
+                    _ if privileged_broker_digest.is_some() => {
+                        "windows_privileged_broker_profile_allowlist_v1"
+                    }
+                    _ => "windows_user_machine_profile_allowlist_v1",
                 };
                 (
                     snapshot.environment,
                     Some(super::WindowsExecutionContext {
                         token_class,
                         token_user_sid: snapshot.token_user_sid,
+                        session_id: snapshot.session_id,
                         environment_source: environment_source.to_string(),
                         privileged_broker_digest,
                     }),
@@ -1466,6 +1471,16 @@ impl Runtime {
                             .windows_execution_context
                             .as_ref()
                             .and_then(|context| context.privileged_broker_digest.as_deref()),
+                        expected_user_sid: plan
+                            .windows_execution_context
+                            .as_ref()
+                            .filter(|_| plan.windows_authority == super::WindowsAuthority::ActiveUser)
+                            .map(|context| context.token_user_sid.as_str()),
+                        expected_session_id: plan
+                            .windows_execution_context
+                            .as_ref()
+                            .filter(|_| plan.windows_authority == super::WindowsAuthority::ActiveUser)
+                            .and_then(|context| context.session_id),
                         executable: Path::new(&plan.executable),
                         args: &plan.args,
                         cwd: Path::new(&plan.cwd),
@@ -1779,16 +1794,21 @@ impl Runtime {
         let expected_token_class = match plan.windows_authority {
             super::WindowsAuthority::Limited => super::WindowsTokenClass::Limited,
             super::WindowsAuthority::Elevated => super::WindowsTokenClass::Elevated,
+            super::WindowsAuthority::ActiveUser => super::WindowsTokenClass::ActiveUser,
         };
         let broker_backed = context.privileged_broker_digest.is_some();
-        let expected_environment_source = if broker_backed {
-            "windows_privileged_broker_profile_allowlist_v1"
-        } else {
-            "windows_user_machine_profile_allowlist_v1"
+        let expected_environment_source = match plan.windows_authority {
+            super::WindowsAuthority::ActiveUser => "windows_active_user_profile_allowlist_v1",
+            _ if broker_backed => "windows_privileged_broker_profile_allowlist_v1",
+            _ => "windows_user_machine_profile_allowlist_v1",
         };
         if context.token_class != expected_token_class
             || context.environment_source != expected_environment_source
             || (plan.windows_authority == super::WindowsAuthority::Limited && broker_backed)
+            || (plan.windows_authority == super::WindowsAuthority::ActiveUser
+                && (!broker_backed || context.session_id.is_none()))
+            || (plan.windows_authority != super::WindowsAuthority::ActiveUser
+                && context.session_id.is_some())
             || (broker_backed && windows.privileged_broker.is_none())
         {
             return Err(RuntimeError::new(
@@ -1878,6 +1898,7 @@ impl Runtime {
                     && (evidence.token_selection != "lua_medium_filtered"
                         || evidence.administrators_group_attributes == u32::MAX
                         || (evidence.administrators_group_attributes & 0x10) != 0)
+                    && matches!(evidence.execution_identity.as_str(), "" | "service")
             }
             super::WindowsAuthority::Elevated => {
                 evidence.token_is_elevated
@@ -1886,6 +1907,17 @@ impl Runtime {
                     && (evidence.administrators_group_attributes & 0x4) != 0
                     && (evidence.administrators_group_attributes & 0x10) == 0
                     && evidence.token_selection == "current_elevated"
+                    && matches!(evidence.execution_identity.as_str(), "" | "service")
+            }
+            super::WindowsAuthority::ActiveUser => {
+                !evidence.token_is_elevated
+                    && evidence.token_integrity_level_rid <= 8192
+                    && (evidence.administrators_group_attributes == u32::MAX
+                        || (evidence.administrators_group_attributes & 0x4) == 0
+                        || (evidence.administrators_group_attributes & 0x10) != 0)
+                    && evidence.token_selection == "active_user"
+                    && evidence.execution_identity == "active_user"
+                    && evidence.session_id.is_some()
             }
         };
         if evidence.schema_version != RUNTIME_SCHEMA_VERSION
@@ -1899,6 +1931,8 @@ impl Runtime {
             || evidence.process_creation_time_file_time == 0
             || evidence.image_digest != expected_executable_digest
             || evidence.token_user_sid != context.token_user_sid
+            || (plan.windows_authority == super::WindowsAuthority::ActiveUser
+                && evidence.session_id != context.session_id)
             || evidence.token_type != 1
             || !token_authority_matches
             || evidence.power_request_type != "system_required"

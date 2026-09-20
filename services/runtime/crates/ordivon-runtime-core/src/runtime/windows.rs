@@ -201,7 +201,7 @@ fn capture_windows_launcher(
     let _ = (authority, expected_broker_digest);
 
     #[cfg(windows)]
-    if authority == WindowsAuthority::Elevated {
+    if authority != WindowsAuthority::Limited {
         if let Some(broker) = config.privileged_broker.as_ref() {
             let capture =
                 windows_broker::capture(broker, expected_broker_digest, context, launcher_args)?;
@@ -244,6 +244,10 @@ fn capture_windows_launcher(
 pub(crate) struct WindowsRuntimeContextSnapshot {
     pub schema_version: u32,
     pub token_selection: String,
+    #[serde(default)]
+    pub execution_identity: String,
+    #[serde(default)]
+    pub session_id: Option<u32>,
     pub token_user_sid: String,
     pub token_type: i32,
     pub token_elevation_type: i32,
@@ -273,6 +277,10 @@ pub(crate) struct WindowsStartEvidence {
     pub image_path: String,
     pub image_digest: String,
     pub token_selection: String,
+    #[serde(default)]
+    pub execution_identity: String,
+    #[serde(default)]
+    pub session_id: Option<u32>,
     pub token_user_sid: String,
     pub token_type: i32,
     pub token_elevation_type: i32,
@@ -536,6 +544,8 @@ pub(crate) struct WindowsNativeRunSpec<'a> {
     pub request_digest: &'a str,
     pub authority: WindowsAuthority,
     pub expected_privileged_broker_digest: Option<&'a str>,
+    pub expected_user_sid: Option<&'a str>,
+    pub expected_session_id: Option<u32>,
     pub executable: &'a Path,
     pub args: &'a [String],
     pub cwd: &'a Path,
@@ -564,6 +574,8 @@ pub(crate) struct WindowsLauncherInvocationSpec<'a> {
     pub request_digest: &'a str,
     pub job_name: &'a str,
     pub authority: WindowsAuthority,
+    pub expected_user_sid: Option<&'a str>,
+    pub expected_session_id: Option<u32>,
     pub executable: &'a str,
     pub args: &'a [String],
     pub cwd: &'a str,
@@ -591,11 +603,19 @@ pub(crate) fn snapshot_windows_runtime_context_with_transport(
     authority: WindowsAuthority,
 ) -> RuntimeResult<(WindowsRuntimeContextSnapshot, Option<PathBuf>)> {
     config.validate()?;
+    let (launcher_authority, launcher_identity) = match authority {
+        WindowsAuthority::ActiveUser => ("elevated", Some("active_user")),
+        _ => (authority.as_str(), None),
+    };
     let mut launcher_args = vec![
         "--describe-runtime-context".to_string(),
         "--authority".to_string(),
-        authority.as_str().to_string(),
+        launcher_authority.to_string(),
     ];
+    if let Some(identity) = launcher_identity {
+        launcher_args.push("--identity".to_string());
+        launcher_args.push(identity.to_string());
+    }
     for name in WINDOWS_BASELINE_ENVIRONMENT_NAMES {
         launcher_args.push("--context-env".to_string());
         launcher_args.push((*name).to_string());
@@ -657,6 +677,7 @@ fn validate_windows_runtime_context(
                 && (snapshot.token_selection != "lua_medium_filtered"
                     || snapshot.administrators_group_attributes == u32::MAX
                     || (snapshot.administrators_group_attributes & 0x10) != 0)
+                && matches!(snapshot.execution_identity.as_str(), "" | "service")
         }
         WindowsAuthority::Elevated => {
             snapshot.token_is_elevated
@@ -665,6 +686,17 @@ fn validate_windows_runtime_context(
                 && (snapshot.administrators_group_attributes & 0x4) != 0
                 && (snapshot.administrators_group_attributes & 0x10) == 0
                 && snapshot.token_selection == "current_elevated"
+                && matches!(snapshot.execution_identity.as_str(), "" | "service")
+        }
+        WindowsAuthority::ActiveUser => {
+            !snapshot.token_is_elevated
+                && snapshot.token_integrity_level_rid <= 8192
+                && (snapshot.administrators_group_attributes == u32::MAX
+                    || (snapshot.administrators_group_attributes & 0x4) == 0
+                    || (snapshot.administrators_group_attributes & 0x10) != 0)
+                && snapshot.token_selection == "active_user"
+                && snapshot.execution_identity == "active_user"
+                && snapshot.session_id.is_some()
         }
     };
     if snapshot.schema_version != 1
@@ -898,6 +930,8 @@ pub(crate) fn spawn_windows_native(
         request_digest: spec.request_digest,
         job_name: &job_name,
         authority: spec.authority,
+        expected_user_sid: spec.expected_user_sid,
+        expected_session_id: spec.expected_session_id,
         executable: &executable,
         args: spec.args,
         cwd: &cwd,
@@ -918,7 +952,7 @@ pub(crate) fn spawn_windows_native(
     let launcher_stderr_path = spec.bundle_path.join("launcher-stderr.log");
     let mut command = Command::new(&launcher);
     append_windows_launcher_arguments(&mut command, &invocation)?;
-    if spec.authority == WindowsAuthority::Elevated {
+    if spec.authority != WindowsAuthority::Limited {
         if let Some(broker) = spec.config.privileged_broker.as_ref() {
             let expected_broker_digest = spec.expected_privileged_broker_digest.ok_or_else(|| {
                 RuntimeError::new(
@@ -1024,6 +1058,8 @@ pub(crate) fn spawn_windows_native(
         spec.request_digest,
         spec.authority,
         spec.expected_privileged_broker_digest,
+        spec.expected_user_sid,
+        spec.expected_session_id,
         spec.executable,
         spec.args,
         spec.cwd,
@@ -1064,7 +1100,43 @@ pub(crate) fn append_windows_launcher_arguments(
         .arg("--job-name")
         .arg(spec.job_name)
         .arg("--authority")
-        .arg(spec.authority.as_str())
+        .arg(match spec.authority {
+            WindowsAuthority::ActiveUser => "elevated",
+            _ => spec.authority.as_str(),
+        });
+    if spec.authority == WindowsAuthority::ActiveUser {
+        let expected_user_sid = spec.expected_user_sid.ok_or_else(|| {
+            RuntimeError::new(
+                RuntimeErrorCode::RegistryCorrupt,
+                "active_user Windows dispatch has no admission-frozen user SID",
+                Some("windowsExecutionContext.tokenUserSid"),
+                false,
+            )
+        })?;
+        let expected_session_id = spec.expected_session_id.ok_or_else(|| {
+            RuntimeError::new(
+                RuntimeErrorCode::RegistryCorrupt,
+                "active_user Windows dispatch has no admission-frozen session ID",
+                Some("windowsExecutionContext.sessionId"),
+                false,
+            )
+        })?;
+        command
+            .arg("--identity")
+            .arg("active_user")
+            .arg("--expected-user-sid")
+            .arg(expected_user_sid)
+            .arg("--expected-session-id")
+            .arg(expected_session_id.to_string());
+    } else if spec.expected_user_sid.is_some() || spec.expected_session_id.is_some() {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::RegistryCorrupt,
+            "non-active-user Windows dispatch carried active-user identity commitments",
+            Some("windowsExecutionContext"),
+            false,
+        ));
+    }
+    command
         .arg("--timeout-ms")
         .arg(spec.timeout_ms.to_string())
         .arg("--stdout-limit-bytes")
@@ -1269,6 +1341,8 @@ mod tests {
         let mut snapshot = WindowsRuntimeContextSnapshot {
             schema_version: 1,
             token_selection: "lua_medium_filtered".to_string(),
+            execution_identity: "service".to_string(),
+            session_id: None,
             token_user_sid: "S-1-5-21-test-1001".to_string(),
             token_type: 1,
             token_elevation_type: 2,
@@ -1300,6 +1374,8 @@ mod tests {
         let mut elevated = WindowsRuntimeContextSnapshot {
             schema_version: 1,
             token_selection: "current_elevated".to_string(),
+            execution_identity: "service".to_string(),
+            session_id: None,
             token_user_sid: "S-1-5-21-test-1001".to_string(),
             token_type: 1,
             token_elevation_type: 2,
@@ -1313,6 +1389,122 @@ mod tests {
         assert!(validate_windows_runtime_context(&elevated, WindowsAuthority::Limited).is_err());
         elevated.token_is_elevated = false;
         assert!(validate_windows_runtime_context(&elevated, WindowsAuthority::Elevated).is_err());
+    }
+
+    #[test]
+    fn windows_runtime_context_requires_active_user_identity_and_session() {
+        let environment: BTreeMap<String, String> = REQUIRED_WINDOWS_BASELINE_ENVIRONMENT_NAMES
+            .iter()
+            .map(|name| ((*name).to_string(), format!("value:{name}")))
+            .collect();
+        let mut active_user = WindowsRuntimeContextSnapshot {
+            schema_version: 1,
+            token_selection: "active_user".to_string(),
+            execution_identity: "active_user".to_string(),
+            session_id: Some(1),
+            token_user_sid: "S-1-5-21-test-1001".to_string(),
+            token_type: 1,
+            token_elevation_type: 2,
+            token_is_elevated: false,
+            token_integrity_level_rid: 8192,
+            token_is_restricted: false,
+            administrators_group_attributes: 0x10,
+            environment,
+        };
+        validate_windows_runtime_context(&active_user, WindowsAuthority::ActiveUser).unwrap();
+        assert!(validate_windows_runtime_context(&active_user, WindowsAuthority::Limited).is_err());
+        active_user.session_id = None;
+        assert!(
+            validate_windows_runtime_context(&active_user, WindowsAuthority::ActiveUser).is_err()
+        );
+        active_user.session_id = Some(1);
+        active_user.execution_identity = "service".to_string();
+        assert!(
+            validate_windows_runtime_context(&active_user, WindowsAuthority::ActiveUser).is_err()
+        );
+    }
+
+    #[test]
+    fn active_user_launcher_contract_uses_broker_authority_and_user_identity() {
+        let args = Vec::<String>::new();
+        let environment = BTreeMap::new();
+        let budget = ExecutionBudget::default();
+        let mut spec = WindowsLauncherInvocationSpec {
+            bundle: "C:\\ProgramData\\Ordivon\\attempts\\attempt-active-user",
+            job_id: "job-active-user",
+            attempt_id: "attempt-active-user",
+            launch_token_digest:
+                "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            request_digest:
+                "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            job_name: "Ordivon.attempt-active-user",
+            authority: WindowsAuthority::ActiveUser,
+            expected_user_sid: Some("S-1-5-21-test-1001"),
+            expected_session_id: Some(1),
+            executable: "C:\\Windows\\System32\\whoami.exe",
+            args: &args,
+            cwd: "C:\\Windows\\System32",
+            environment: &environment,
+            input_source_root: None,
+            input_set_id: None,
+            input_presentation_root: None,
+            input_bindings_digest: None,
+            budget: &budget,
+            timeout_ms: 30_000,
+            stdout_limit_bytes: 4096,
+            stderr_limit_bytes: 4096,
+            emit_launcher_start: false,
+        };
+        let mut command = Command::new("/native/Ordivon.WindowsJobLauncher.exe");
+        append_windows_launcher_arguments(&mut command, &spec).unwrap();
+        let observed = command
+            .get_args()
+            .map(|arg| arg.to_string_lossy().into_owned())
+            .collect::<Vec<_>>();
+        let authority = observed
+            .windows(2)
+            .any(|pair| pair == ["--authority", "elevated"]);
+        let identity = observed
+            .windows(2)
+            .any(|pair| pair == ["--identity", "active_user"]);
+        let expected_sid = observed
+            .windows(2)
+            .any(|pair| pair == ["--expected-user-sid", "S-1-5-21-test-1001"]);
+        let expected_session = observed
+            .windows(2)
+            .any(|pair| pair == ["--expected-session-id", "1"]);
+        assert!(
+            authority,
+            "active_user must use the existing elevated broker transport"
+        );
+        assert!(
+            identity,
+            "active_user target identity must be explicit to the launcher"
+        );
+        assert!(
+            expected_sid,
+            "active_user must bind the admission-frozen user SID"
+        );
+        assert!(
+            expected_session,
+            "active_user must bind the admission-frozen Windows session"
+        );
+        assert!(
+            !observed.iter().any(|arg| arg == "active_user"
+                && observed
+                    .windows(2)
+                    .any(|pair| pair == ["--authority", "active_user"])),
+            "active_user must not be passed as a launcher authority"
+        );
+
+        spec.expected_session_id = None;
+        let mut missing_fence = Command::new("/native/Ordivon.WindowsJobLauncher.exe");
+        let error = append_windows_launcher_arguments(&mut missing_fence, &spec).unwrap_err();
+        assert_eq!(error.code, RuntimeErrorCode::RegistryCorrupt);
+        assert_eq!(
+            error.field.as_deref(),
+            Some("windowsExecutionContext.sessionId")
+        );
     }
 
     #[test]
@@ -1334,6 +1526,8 @@ mod tests {
                 "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             job_name: "Ordivon.attempt-1",
             authority: WindowsAuthority::Limited,
+            expected_user_sid: None,
+            expected_session_id: None,
             executable: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
             args: &args,
             cwd: "C:\\Work",
@@ -1441,6 +1635,8 @@ mod tests {
                 "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             job_name: "Ordivon.attempt-2",
             authority: WindowsAuthority::Limited,
+            expected_user_sid: None,
+            expected_session_id: None,
             executable: "C:\\Windows\\System32\\cmd.exe",
             args: &args,
             cwd: "C:\\Work",
