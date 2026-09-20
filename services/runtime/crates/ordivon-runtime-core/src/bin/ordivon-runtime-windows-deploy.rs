@@ -1355,7 +1355,9 @@ mod tests {
     #[test]
     fn digest_buffer_matches_bounded_core_pattern() {
         assert_eq!(SHA256_BUFFER_BYTES, 64 * 1024);
-        assert!(SHA256_BUFFER_BYTES <= 64 * 1024);
+        const {
+            assert!(SHA256_BUFFER_BYTES <= 64 * 1024);
+        }
     }
 
     #[test]
