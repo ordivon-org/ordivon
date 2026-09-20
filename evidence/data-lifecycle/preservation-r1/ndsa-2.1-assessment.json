@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.ndsa-preservation-evidence-assessment",
+  "authority": "ndsa-levels-digital-preservation-2.1",
+  "asOf": "2026-09-20",
+  "scoringPolicy": "No aggregate level is claimed. This is an evidence/gap projection, not a formal NDSA certification or score.",
+  "dimensions": {
+    "storage": {
+      "standing": "PARTIAL",
+      "proven": [
+        "Two byte-identical accepted AIP copies in distinct Archivematica Storage Service locations.",
+        "AIP master and replica have identical SHA-256."
+      ],
+      "gap": [
+        "Both copies share the same host/WSL failure domain.",
+        "No independent offsite/site failure-domain copy is proven."
+      ]
+    },
+    "integrity": {
+      "standing": "STRONG_LOCAL",
+      "proven": [
+        "Frozen 49-file source manifest verifies 49/49 inside retrieved AIP.",
+        "AIP BagIt validates.",
+        "Scheduled Artefactual Fixity client exists and a forced scan passed all six AIPs.",
+        "PREMIS/METS preservation metadata exists."
+      ],
+      "gap": [
+        "Fixity availability depends on Storage Service liveness; a stopped provider caused a scheduled scan failure earlier the same day."
+      ]
+    },
+    "control": {
+      "standing": "PARTIAL",
+      "proven": [
+        "Storage Service locations and provider API own persistence rather than ad-hoc file writes.",
+        "Fixity credentials are stored in a root-owned environment file."
+      ],
+      "gap": [
+        "A complete preservation-role/access-control audit was not performed in this R1."
+      ]
+    },
+    "metadata": {
+      "standing": "STRONG_LOCAL",
+      "proven": [
+        "Archivematica AIP contains METS/PREMIS.",
+        "E-ARK SIP/CSIP package was created and validated.",
+        "Source identity, hashes, contracts, quality, lineage and revision evidence are included."
+      ],
+      "gap": [
+        "Dataset rights/retention metadata remains incomplete upstream and is not solved by preservation packaging."
+      ]
+    },
+    "content": {
+      "standing": "PASS_FOR_SELECTED_CORPUS",
+      "proven": [
+        "Raw CSV, derived Parquet, runtime acquisition receipts and runtime OpenLineage events are all represented in the accepted AIP.",
+        "Hidden .gitignore files survived only after using the validated zipped-bag intake path."
+      ],
+      "gap": [
+        "The assessment covers the selected data-lifecycle pilot corpus, not every Research/Finance/Distribution dataset."
+      ]
+    },
+    "sustainability": {
+      "standing": "NOT_ASSESSED",
+      "proven": [],
+      "gap": [
+        "NDSA 2.1 adds environmental-sustainability guidance; energy/resource lifecycle metrics were not assessed here."
+      ]
+    }
+  }
+}

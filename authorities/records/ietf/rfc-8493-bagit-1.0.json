@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-record",
+  "id": "rfc-8493-bagit-1.0",
+  "identity": {
+    "issuer": {
+      "id": "ietf-rfc-editor",
+      "name": "IETF / RFC Editor"
+    },
+    "title": "RFC 8493 — The BagIt File Packaging Format (V1.0)",
+    "authorityKind": "informational-rfc",
+    "identityMode": "versioned",
+    "versionLabel": "1.0",
+    "officialSource": "https://www.rfc-editor.org/rfc/rfc8493.html",
+    "publicationDate": "2018-10"
+  },
+  "discovery": {
+    "aliases": [
+      "RFC 8493",
+      "BagIt 1.0"
+    ],
+    "topics": [
+      "bagit",
+      "file-packaging",
+      "fixity",
+      "transfer",
+      "manifest"
+    ],
+    "domains": [
+      "data",
+      "preservation",
+      "archives"
+    ]
+  },
+  "access": {
+    "metadata": "public",
+    "fullText": "public",
+    "note": "Informational RFC; not IETF Standards Track."
+  },
+  "relations": {
+    "supersedes": [],
+    "supersededBy": [],
+    "related": [
+      "archivematica-1.18.0",
+      "eark-sip-2.2.0"
+    ]
+  },
+  "provenance": {
+    "registeredDate": "2026-09-20",
+    "registrationBasis": [
+      "data-durable-preservation-r1",
+      "used as the authority boundary distinguishing RFC 8493 BagIt 1.0 from Archivematica's BagIt 0.97 adapter"
+    ]
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-record",
+  "id": "eark-sip-2.2.0",
+  "identity": {
+    "issuer": {
+      "id": "dilcis-board",
+      "name": "DILCIS Board"
+    },
+    "title": "E-ARK Submission Information Package (SIP) Specification 2.2.0",
+    "authorityKind": "open-specification",
+    "identityMode": "versioned",
+    "versionLabel": "2.2.0",
+    "officialSource": "https://github.com/DILCISBoard/E-ARK-SIP/releases/tag/v2.2.0",
+    "publicationDate": "2024-05-17"
+  },
+  "discovery": {
+    "aliases": [
+      "E-ARK SIP 2.2.0",
+      "SIP 2.2.0"
+    ],
+    "topics": [
+      "digital-preservation",
+      "submission-information-package",
+      "mets",
+      "interoperability"
+    ],
+    "domains": [
+      "data",
+      "preservation",
+      "archives"
+    ]
+  },
+  "access": {
+    "metadata": "public",
+    "fullText": "public",
+    "note": "DILCIS Board publishes the versioned specification and profiles publicly."
+  },
+  "relations": {
+    "supersedes": [],
+    "supersededBy": [],
+    "related": [
+      "eark-csip-2.2.0",
+      "commons-ip-2.11.3",
+      "iso-14721-2025"
+    ]
+  },
+  "provenance": {
+    "registeredDate": "2026-09-20",
+    "registrationBasis": [
+      "data-durable-preservation-r1",
+      "real data lifecycle SIP created and validated"
+    ]
+  }
+}

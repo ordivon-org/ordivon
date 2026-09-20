@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-record",
+  "id": "artefactual-fixity-0.8.0",
+  "identity": {
+    "issuer": {
+      "id": "artefactual",
+      "name": "Artefactual Systems Inc."
+    },
+    "title": "Artefactual Fixity 0.8.0",
+    "authorityKind": "open-source-release",
+    "identityMode": "versioned",
+    "versionLabel": "0.8.0",
+    "officialSource": "https://pypi.org/project/fixity/0.8.0/",
+    "publicationDate": "2025-01-03"
+  },
+  "discovery": {
+    "aliases": [
+      "Fixity 0.8.0",
+      "Archivematica Fixity 0.8.0"
+    ],
+    "topics": [
+      "fixity",
+      "checksum",
+      "aip",
+      "storage-service",
+      "digital-preservation"
+    ],
+    "domains": [
+      "data",
+      "preservation",
+      "archives"
+    ]
+  },
+  "access": {
+    "metadata": "public",
+    "fullText": "public",
+    "note": "Artefactual Fixity is an open-source client for Archivematica Storage Service fixity checks."
+  },
+  "relations": {
+    "supersedes": [],
+    "supersededBy": [],
+    "related": [
+      "archivematica-1.18.0",
+      "ndsa-levels-digital-preservation-2.1"
+    ]
+  },
+  "provenance": {
+    "registeredDate": "2026-09-20",
+    "registrationBasis": [
+      "data-durable-preservation-r1",
+      "scheduled local Fixity 0.8.0 scan passed for master and replica AIPs"
+    ]
+  }
+}

@@ -1,11 +1,14 @@
 # Package: Data & Analytics
 
 Last census: 2026-09-20
-Standing: **READY_FOR_REAL_WORK**
+
+Project-scoped data work: **READY_FOR_REAL_WORK**
+
+Cross-domain data lifecycle: **PARTIAL**
 
 ## Outcome scope
 
-Turn source data into a trustworthy query, transformation, analysis, model, visualization or decision-support result with enough identity, quality and provenance to understand what the result means and reproduce it when required.
+Turn source data into a trustworthy query, transformation, analysis, model, visualization or decision-support result with enough identity, quality, provenance and preservation evidence to understand what the result means and reproduce it when required.
 
 This package does not imply one universal data platform. Research analytics, operational analytics, BI, geospatial work, ML and organizational data management may activate different working sets.
 
@@ -14,27 +17,72 @@ This package does not imply one universal data platform. Research analytics, ope
 Use according to context:
 
 - DAMA-DMBOK for broad organizational data-management/governance knowledge when that scope is relevant;
-- FAIR principles for findability, accessibility, interoperability and reuse of research/digital assets when applicable;
-- domain-native schemas, controlled vocabularies and quality rules;
-- Apache Arrow for interoperable columnar in-memory/IPC representations where useful;
-- Apache Parquet for columnar analytical file storage where useful;
-- mature database/query engines and established statistical/data-science methods;
-- applicable privacy, security and governance regimes for the actual data.
+- FAIR principles for findability, accessibility, interoperability and reuse;
+- W3C DCAT 3 for dataset/data-service catalog metadata;
+- Bitol ODCS/ODPS for data contracts and data products;
+- OpenLineage for operational Job/Run/Dataset lineage and W3C PROV for semantic derivation where needed;
+- SDMX, UCUM/QUDT and domain-native vocabularies for source semantics;
+- ISO/IEC 5259-2 and domain-specific acceptance rules for data quality;
+- ISO 14721 OAIS, E-ARK SIP/CSIP, PREMIS/METS and mature preservation tooling for selected durable evidence;
+- Apache Arrow / Parquet for analytical interchange and storage;
+- applicable privacy, security, rights and records-management regimes for the actual data.
 
 ## Observed local capability
 
+Proven project-scoped substrate includes:
+
 - Python + uv;
 - DuckDB;
-- SQLite;
-- PostgreSQL client;
+- SQLite and PostgreSQL;
+- PyArrow / Parquet;
+- Pandera and JSON Schema;
 - GDAL/OGR for geospatial data;
-- `statistical-analysis` and `scientific-visualization` Skills;
 - Research workflows for reproducible analysis;
-- Artifact dataset/table/figure validation capabilities;
-- Git/content digests and task-specific schema/quality checks.
+- Artifact dataset/table/figure verification;
+- Git/content digests and source/version binding;
+- ODCS 3.2.0 contract projection;
+- DCAT 3 pilot projection;
+- OpenLineage runtime-event emission;
+- explicit source semantics, revision/vintage and reference-identifier handling;
+- local durable preservation through E-ARK submission -> Archivematica PREMIS/METS AIP -> Storage Service master/replica -> scheduled fixity.
 
-No Qdrant executable, Docker image or local Qdrant project was observed during the 2026-09-14 census.
-No `dagster` executable, importable Dagster package, uv tool or local Dagster project was observed during the 2026-09-14 census.
+Preservation evidence is bounded: the current master and replica occupy distinct Storage Service locations but the same machine/WSL failure domain. This is **not** an offsite/disaster-resilience claim.
+
+## Current lifecycle evidence
+
+Authoritative current projection:
+
+- `docs/DATA_LIFECYCLE_CENSUS_R2.md`
+- `planning/data-lifecycle-census-r2.json`
+- `docs/DATA_DURABLE_PRESERVATION_R1.md`
+- `evidence/data-lifecycle/preservation-r1/acceptance.json`
+
+R1 census remains historical evidence only.
+
+Current shape:
+
+```text
+source identity
+  -> acquisition
+  -> immutable/raw evidence
+  -> parse/normalize
+  -> semantics + quality contract
+  -> revision/reference handling
+  -> analysis
+  -> lineage evidence
+  -> selected durable preservation
+```
+
+The major remaining cross-domain gaps are **not** generic compute/storage gaps. They are:
+
+```text
+real ODPS products + federated DCAT
+  -> Research/Finance adoption
+  -> durable operational + semantic provenance
+  -> rights/privacy/retention
+  -> exact data-product-version -> decision/claim binding
+  -> outcome -> collection/quality/model feedback
+```
 
 ## Data orchestration routing
 
@@ -55,73 +103,69 @@ with partitions, lineage, backfills, freshness/checks
   -> Dagster candidate
 ```
 
-Dagster's distinct value begins when the system operates named data products over time and needs persistent asset lineage/materialization/partition/backfill/check state. See `capabilities/providers/dagster.md` and `knowledge/lessons/dagster-asset-orchestration-kernel.md`.
+Dagster remains workload-gated. Do not migrate accepted project DAGs merely to obtain a catalog/UI.
 
-Do not migrate accepted Snakemake research pipelines into Dagster merely for a catalog/UI. Keep Dagster workload-gated until persistent data-asset lifecycle is proven.
+## Heavy-substrate activation policy
+
+Absence of the following is **not** lifecycle debt:
+
+- Iceberg;
+- Debezium;
+- Beam runtime;
+- Kafka / Redpanda;
+- ClickHouse;
+- QuestDB;
+- Dagster;
+- Great Expectations;
+- OCFL;
+- dedicated vector databases.
+
+Activate one only when a real workload proves a requirement that the current thin substrate cannot satisfy.
+
+Examples:
+
+- Iceberg: atomic multi-file table snapshots, real schema/partition evolution, concurrent writers or table-native time travel/row lineage.
+- Debezium: database transaction-log CDC.
+- Beam: unbounded event-time/window/watermark/late-data processing.
+- Kafka/Redpanda: decoupled unbounded replay/fan-out/consumer-offset workload.
+- Dagster: persistent asset graph with partitions/backfills/freshness/materialization state.
+- ClickHouse/QuestDB: measured latency/concurrency/ingestion limits beyond DuckDB/PostgreSQL.
 
 ## Vector / similarity retrieval routing
 
-Vector search is one retrieval method, not a base data-platform requirement.
+Vector search remains a retrieval method, not a base platform requirement.
 
-Use the thinnest adequate option:
+Use the thinnest adequate implementation:
 
 ```text
 small/local exact similarity
-  -> direct in-memory / SQL distance calculation
+  -> memory / SQL
 
 local analytical prototype
-  -> DuckDB exact vector functions; VSS/HNSW only with awareness of its current experimental persistent-index limitations
+  -> DuckDB
 
-application/domain data already authoritative in PostgreSQL
-  -> pgvector first candidate
+authoritative PostgreSQL application/domain data
+  -> pgvector candidate
 
-dedicated production filtered/hybrid vector retrieval
-  -> Qdrant first candidate
+dedicated production filtered/hybrid ANN
+  -> Qdrant candidate
 ```
 
-Qdrant becomes appropriate when vector search itself needs independent production behavior such as filter-aware ANN, dense+sparse/multivector hybrid retrieval, search-specific quantization/memory tuning, tenant-aware sharding or independent horizontal scale. See `capabilities/providers/qdrant.md` and `knowledge/lessons/qdrant-vector-search-kernel.md`.
+Do not duplicate authoritative records into a separate vector service without measured retrieval benefit and explicit source/version linkage.
 
-Do not duplicate authoritative relational/domain records into a separate vector service without a measured retrieval benefit and explicit source/version linkage.
+## Acceptance boundary
 
-## 2026-09-20 cross-domain lifecycle census
+`ProjectScopedDataWork = READY` means Ordivon can execute real acquisition, validation, transformation, analysis and selected preservation workflows.
 
-The real cross-domain census is now recorded in:
+It does **not** mean the cross-domain lifecycle is closed.
 
-- `docs/DATA_LIFECYCLE_CENSUS_R1.md`
-- `planning/data-lifecycle-census-r1.json`
+`CrossDomainDataLifecycle = PARTIAL` remains until at least:
 
-The census preserves the earlier conclusion that no generic data-platform product is justified, while identifying proven cross-domain gaps in dataset catalog metadata, operational lineage, data-contract/product interoperability, rights/retention binding, and outcome-to-collection feedback. These are to be filled with DCAT, OpenLineage/W3C PROV, Bitol ODCS/ODPS and existing governance/security owners rather than new Ordivon protocols.
-
-## Concrete current gaps
-
-No generic data-platform, data-orchestrator or vector-database gap is proven.
-
-Do not install Spark, dbt, Airflow, Kafka, Dagster, a lakehouse, warehouse, feature store, BI server, catalog or vector database merely to fill a conceptual slot. Activate one only when scale, collaboration, latency, lineage, governance, partitions/backfills, retrieval quality or workload shape requires it.
-
-For future recurring data-product workloads, first prove that persistent asset/partition/backfill/freshness state materially simplifies operation compared with the current project-scoped tools. Only then activate Dagster.
-
-For future vector-search workloads, first establish a retrieval relevance/latency baseline with the simplest available implementation. Only promote to pgvector/Qdrant when measured constraints justify the operational dependency.
-
-## Acceptance workload
-
-Use the next real dataset from Research, Game, Market Capital or another project:
-
-`source identity -> schema/quality checks -> transformation/query/analysis -> method-specific validation -> reproducible result -> validated table/figure/report/model artifact`
-
-If Dagster is selected for a future workload, acceptance should prove a real persistent asset graph with partitions and at least one historical backfill or freshness/upstream-driven rematerialization. Merely rendering an asset graph in the UI is insufficient.
-
-If similarity retrieval is part of the workload, separately verify:
-
-`source/version identity -> retrieval representation -> exact/lexical baseline -> ANN/hybrid candidate -> relevance metrics + latency/resource cost -> downstream answer/domain verification`
-
-For decision-bearing analytics, preserve the distinction between data correctness, asset orchestration state, retrieval quality, statistical validity and the downstream decision rule.
+1. one real Research product and one real Finance product use ODPS/DCAT/ODCS/OpenLineage bindings;
+2. rights/privacy/retention metadata is executable at product boundaries;
+3. claims/decisions bind the exact consumed data-product version;
+4. outcome evidence feeds changes back to collection/quality/model policy.
 
 ## External references
 
-- DAMA-DMBOK: https://dama.org/learning-resources/dama-data-management-body-of-knowledge-dmbok/
-- FAIR Principles: https://www.go-fair.org/fair-principles/
-- Apache Arrow specifications: https://arrow.apache.org/docs/format/index.html
-- Apache Parquet format: https://parquet.apache.org/docs/file-format/
-- Dagster: https://docs.dagster.io/
-- pgvector: https://github.com/pgvector/pgvector
-- Qdrant: https://qdrant.tech/documentation/
+See Authority Catalog records rather than maintaining another private standards list. Key owners include DCAT, ODCS/ODPS, OpenLineage, W3C PROV, SDMX, UCUM/QUDT, ISO/IEC 5259, ISO 14721, E-ARK, PREMIS and the selected mature implementations.

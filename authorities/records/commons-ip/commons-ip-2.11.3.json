@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-record",
+  "id": "commons-ip-2.11.3",
+  "identity": {
+    "issuer": {
+      "id": "keeps",
+      "name": "KEEP Solutions / Commons-IP project"
+    },
+    "title": "Commons-IP 2.11.3",
+    "authorityKind": "open-source-release",
+    "identityMode": "versioned",
+    "versionLabel": "2.11.3",
+    "officialSource": "https://github.com/keeps/commons-ip/releases/tag/2.11.3",
+    "publicationDate": "2026-07-22"
+  },
+  "discovery": {
+    "aliases": [
+      "Commons-IP 2.11.3",
+      "commons-ip2 2.11.3"
+    ],
+    "topics": [
+      "eark",
+      "information-package",
+      "sip",
+      "validation",
+      "creation"
+    ],
+    "domains": [
+      "data",
+      "preservation",
+      "archives"
+    ]
+  },
+  "access": {
+    "metadata": "public",
+    "fullText": "public",
+    "note": "Open-source implementation for creating, manipulating and validating E-ARK information packages."
+  },
+  "relations": {
+    "supersedes": [],
+    "supersededBy": [],
+    "related": [
+      "eark-sip-2.2.0",
+      "eark-csip-2.2.0"
+    ]
+  },
+  "provenance": {
+    "registeredDate": "2026-09-20",
+    "registrationBasis": [
+      "data-durable-preservation-r1",
+      "local pinned executable used for SIP create+validate"
+    ]
+  }
+}

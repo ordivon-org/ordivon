@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-observation",
+  "authorityId": "rfc-8493-bagit-1.0",
+  "basis": "official-source",
+  "lifecycleStatus": "current",
+  "observedDate": "2026-09-20",
+  "officialSource": "https://www.rfc-editor.org/rfc/rfc8493.html",
+  "versionObserved": "1.0",
+  "note": "RFC 8493 defines BagIt version 1.0. The R1 Archivematica intake adapter emitted/accepted BagIt 0.97 and is therefore explicitly not claimed as RFC 8493 conformance."
+}
