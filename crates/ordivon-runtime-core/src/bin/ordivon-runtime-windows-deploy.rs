@@ -20,6 +20,8 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 const MANIFEST_SCHEMA_VERSION: u32 = 2;
 const RECEIPT_SCHEMA_VERSION: u32 = 1;
+// Match the mature Core file-digest helper. Keep Windows main-thread stack usage bounded.
+const SHA256_BUFFER_BYTES: usize = 64 * 1024;
 const REQUIRED_ARTIFACTS: [&str; 6] = [
     "ordivon-runtime.exe",
     "ordivon-windows-job-launcher.exe",
@@ -605,7 +607,7 @@ fn sha256_file(path: &Path) -> Result<String, String> {
     let mut file =
         File::open(path).map_err(|error| format!("cannot open {}: {error}", path.display()))?;
     let mut digest = Sha256::new();
-    let mut buffer = [0u8; 1024 * 1024];
+    let mut buffer = [0u8; SHA256_BUFFER_BYTES];
     loop {
         let read = file
             .read(&mut buffer)
@@ -1349,6 +1351,12 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn digest_buffer_matches_bounded_core_pattern() {
+        assert_eq!(SHA256_BUFFER_BYTES, 64 * 1024);
+        assert!(SHA256_BUFFER_BYTES <= 64 * 1024);
+    }
 
     #[test]
     fn required_windows_artifact_set_is_exact_and_unique() {
