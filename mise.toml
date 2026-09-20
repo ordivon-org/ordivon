@@ -1,0 +1,9 @@
+monorepo_root = true
+
+[monorepo]
+config_roots = [
+  "meta/next",
+  "platform/network",
+  "platform/security",
+]
+lockfile = false

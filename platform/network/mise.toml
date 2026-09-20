@@ -1,0 +1,2 @@
+[tasks.verify]
+run = "task all:validate"
