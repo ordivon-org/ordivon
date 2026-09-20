@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.research-study-authority-map",
+  "observedAt": "2026-09-21",
+  "decision": "PROFILE_ONLY_NO_RESEARCH_RUNTIME_OWNER",
+  "sharedResearch": {
+    "protocol": [
+      "CLASSIFY",
+      "BIND",
+      "COMPOSE",
+      "VERIFY",
+      "RECORD"
+    ],
+    "codeOwner": null,
+    "monorepoTarget": null,
+    "futureProfileCandidate": "meta/research",
+    "externalOwners": [
+      "ACM SIGSOFT Empirical Standards",
+      "W3C PROV",
+      "RO-Crate 1.3",
+      "Workflow Run RO-Crate 0.6",
+      "Provenance Run RO-Crate 0.6",
+      "method-native tools"
+    ],
+    "mustNotOwn": [
+      "generic workflow engine",
+      "physical execution",
+      "universal scientific claim ontology",
+      "study eligibility truth",
+      "generic publication renderer"
+    ]
+  },
+  "observedResearchV2": {
+    "sourceRepo": "/root/projects/ordivon-research-v2",
+    "head": "31498498d72cc00be6c4311d710a7f79b0a9bdf9",
+    "stagedEntries": 88,
+    "stagedTopLevel": [
+      "papers"
+    ],
+    "packagedSourceObservation": "src/ordivon_research contains only __init__.py at observed HEAD",
+    "wholeRepoImport": "REJECT"
+  },
+  "studies": {
+    "paper1Frozen": {
+      "disposition": "ARCHIVED_IN_PLACE",
+      "sourceRepo": "/root/projects/ordivon-research-v2",
+      "ref": "refs/heads/paper1/emse-r3-frozen",
+      "revision": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+      "forwardAuthority": false,
+      "bundle": "/root/ordivon-migration-backups/2026-09-21-paper1-frozen/paper1-emse-r3-frozen.bundle",
+      "bundleSha256": "5368f6a280beefb947735d29d304e5bb4ceca7aa6e1e1a3848e97d42f1e9941a"
+    },
+    "paper1Current": {
+      "disposition": "ACTIVE_DO_NOT_MIGRATE_WHILE_STAGED",
+      "owner": "Research-v2 Study paths",
+      "observedStagedEntries": 88
+    },
+    "paper2": {
+      "disposition": "KEEP_INDEPENDENT_ACTIVE",
+      "sourceRepo": "/root/projects/ordivon-paper2",
+      "observedMain": "fd0fef6b0ed4b792f784726d2632551d6d5fd2b0",
+      "sourceWorkingTree": "clean",
+      "observedRuntimeWorkspace": "ws-paper2-fulltext-coder-a-r59-20260920",
+      "monorepoImport": "HOLD_UNTIL_FROZEN_SCIENTIFIC_GATE"
+    },
+    "paper3": {
+      "disposition": "HOLD_EXTRACTION_UNTIL_FREEZE",
+      "currentContainer": "/root/projects/ordivon-research-v2",
+      "dedicatedCurrentAuthorityRefObserved": false,
+      "reason": "integrated Paper3 history is followed by active Paper1 work; no clean dedicated Study ref is currently exposed"
+    }
+  }
+}
