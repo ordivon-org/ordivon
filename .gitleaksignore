@@ -3,9 +3,6 @@
 # These ignores are intentionally fingerprint-specific. Do not replace them with
 # path-wide or rule-wide allowlists: new findings in the same files must still fail.
 #
-# Synthetic credential material used only as an Agent Service test fixture.
-21f4463dd740ab9cdf95c4dcbe2701c7d845aca0:tests/test_agent_service_interface_credentials_r14.py:generic-api-key:454
-0721009237365ea61cd975bd187be5171f1dcd52:tests/test_agent_service_interface_credentials_r14.py:generic-api-key:462
 #
 # Ordinary prose in a retrieval-kernel lesson; no credential or token is present.
 6b620a17abb7f78d17fa02e5e662de185e3e56cb:knowledge/lessons/llamaindex-haystack-context-retrieval-kernel.md:generic-api-key:38

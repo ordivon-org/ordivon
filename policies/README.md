@@ -2,7 +2,7 @@
 
 Policies cover responsibility and authority boundaries around Agent action. They are a composition boundary, not an Ordivon-private authority theory or policy engine.
 
-[`EXTERNAL_OWNERSHIP_BOUNDARY.md`](EXTERNAL_OWNERSHIP_BOUNDARY.md) is the repository architecture non-regression policy: generic responsibility must stay with mature external owners, new local semantic authority is rejected, and the existing Agent Service type vocabulary may only shrink unless a narrow non-authoritative integration type is explicitly admitted. It is a repository-specific boundary, not a replacement for the external standards it references.
+[`EXTERNAL_OWNERSHIP_BOUNDARY.md`](EXTERNAL_OWNERSHIP_BOUNDARY.md) is the repository architecture non-regression policy: generic responsibility must stay with mature external owners, new local semantic authority is rejected, and the retired Agent Service subsystem has an empty reintroduction ceiling. Narrow integration belongs directly at the natural external owner boundary rather than behind a revived Agent Service. It is a repository-specific boundary, not a replacement for the external standards it references.
 
 Use mature substrates according to the problem actually being solved. The current cross-disciplinary decomposition is registered in `knowledge/lessons/authority-mature-substrate-decomposition-r1.md`; `docs/AUTHORITY_SEMANTIC_EXPRESSION_R1.md` is the corresponding language/crosswalk profile. Together they map recurring Ordivon meanings onto institutional/governance theory, evidence-to-decision and structured decision methods, delegation/capability systems, ReBAC/ABAC, PAP/PDP/PEP policy architecture, current-authorization patterns, and adaptive/double-loop learning without creating a parallel Ordivon ontology.
 

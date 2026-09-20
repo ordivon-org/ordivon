@@ -93,7 +93,7 @@ Use different system shapes:
 - exploration policy -> Game/Research experiment portfolio allocation;
 - C-K design -> Game or product open-ended concept generation;
 - evolutionary search -> bounded architecture/mechanic candidate population with independent verifier;
-- organizational cybernetics -> Agent Service / multi-agent organization.
+- organizational cybernetics -> externally owned multi-agent organization/orchestration composition.
 
 A theory earns retention only through corrected decisions, falsifiable experiments, newly exposed pathologies, or justified no-change outcomes.
 
