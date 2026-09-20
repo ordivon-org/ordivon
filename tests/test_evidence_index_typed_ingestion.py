@@ -5,6 +5,7 @@ import importlib.util
 import json
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -376,6 +377,105 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         )
         self.assertTrue(current, invalidating)
         self.assertEqual(invalidating, [])
+
+    def test_identity_preserving_monorepo_relocation_is_not_evidence_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            source = tmp / "source"
+            target = tmp / "target"
+            source.mkdir()
+            target.mkdir()
+
+            def run(repo: Path, *args: str) -> str:
+                return subprocess.run(
+                    ["git", *args],
+                    cwd=repo,
+                    check=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                ).stdout.strip()
+
+            run(source, "init", "-b", "main")
+            run(source, "config", "user.name", "Harness Evidence Test")
+            run(source, "config", "user.email", "harness-evidence-test@example.invalid")
+            (source / "src").mkdir()
+            (source / "evidence").mkdir()
+            (source / "src" / "owner.py").write_text("VALUE = 1\n")
+            (source / "uv.lock").write_text('version = 1\n')
+            run(source, "add", "src/owner.py", "uv.lock")
+            run(source, "commit", "-m", "implementation")
+            implementation_revision = run(source, "rev-parse", "HEAD")
+
+            evidence_name = "sample.json"
+            (source / "evidence" / evidence_name).write_text('{"standing":"verified"}\n')
+            run(source, "add", f"evidence/{evidence_name}")
+            run(source, "commit", "-m", "add evidence")
+            source_tip = run(source, "rev-parse", "HEAD")
+            source_tree = run(source, "rev-parse", f"{source_tip}^{{tree}}")
+
+            run(target, "init", "-b", "main")
+            run(target, "config", "user.name", "Harness Evidence Test")
+            run(target, "config", "user.email", "harness-evidence-test@example.invalid")
+            (target / "README.md").write_text("# monorepo\n")
+            run(target, "add", "README.md")
+            run(target, "commit", "-m", "root")
+            target_before = run(target, "rev-parse", "HEAD")
+
+            run(target, "fetch", str(source), source_tip)
+            run(target, "read-tree", "--reset", target_before)
+            run(target, "read-tree", "--prefix=services/harness/", source_tree)
+            merge_tree = run(target, "write-tree")
+            merge_revision = subprocess.run(
+                [
+                    "git",
+                    "commit-tree",
+                    merge_tree,
+                    "-p",
+                    target_before,
+                    "-p",
+                    source_tip,
+                ],
+                cwd=target,
+                input="import harness\n",
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            ).stdout.strip()
+            run(target, "reset", "--hard", merge_revision)
+
+            owner_root = target / "services" / "harness"
+            old_root = check_evidence.ROOT
+            old_evidence = check_evidence.EVIDENCE
+            check_evidence.ROOT = owner_root
+            check_evidence.EVIDENCE = owner_root / "evidence"
+            try:
+                self.assertEqual(
+                    check_evidence._git_file_bytes("HEAD", "uv.lock"),
+                    b"version = 1\n",
+                )
+                self.assertEqual(
+                    check_evidence._invalidating_paths(source_tip, "HEAD"),
+                    [],
+                )
+                self.assertEqual(
+                    check_evidence._validate_index_creation_lineage_binding(
+                        evidence_name,
+                        implementation_revision,
+                    ),
+                    [],
+                )
+
+                (owner_root / "src" / "owner.py").write_text("VALUE = 2\n")
+                run(target, "add", "services/harness/src/owner.py")
+                run(target, "commit", "-m", "change harness implementation")
+                current, invalidating = check_evidence._verified_revision_is_current(source_tip)
+                self.assertFalse(current)
+                self.assertEqual(invalidating, ["src/owner.py"])
+            finally:
+                check_evidence.ROOT = old_root
+                check_evidence.EVIDENCE = old_evidence
 
     def test_complete_evidence_contract_is_green(self) -> None:
         completed = subprocess.run(
