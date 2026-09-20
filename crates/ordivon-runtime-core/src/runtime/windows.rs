@@ -912,14 +912,12 @@ pub(crate) fn spawn_windows_native(
             false,
         )
     })?;
-    let executable = windows_visible_path(spec.config, spec.executable, "execution.executable")?;
-    let cwd = windows_visible_path(spec.config, spec.cwd, "execution.cwdRelative")?;
-    let bundle = windows_visible_path(spec.config, spec.bundle_path, "bundlePath")?;
+    let executable = windows_visible_path(spec.executable, "execution.executable")?;
+    let cwd = windows_visible_path(spec.cwd, "execution.cwdRelative")?;
+    let bundle = windows_visible_path(spec.bundle_path, "bundlePath")?;
     let input_source_root = spec
         .input_source_root
-        .map(|source_root| {
-            windows_visible_path(spec.config, source_root, "execution.effectiveInputs")
-        })
+        .map(|source_root| windows_visible_path(source_root, "execution.effectiveInputs"))
         .transpose()?;
     let job_name = format!("Ordivon.{}", spec.attempt_id);
     let invocation = WindowsLauncherInvocationSpec {
@@ -1196,11 +1194,7 @@ pub(crate) fn append_windows_launcher_arguments(
     Ok(())
 }
 
-pub(crate) fn windows_visible_path(
-    config: &WindowsExecutionConfig,
-    path: &Path,
-    field: &str,
-) -> RuntimeResult<String> {
+pub(crate) fn windows_visible_path(path: &Path, field: &str) -> RuntimeResult<String> {
     #[cfg(windows)]
     {
         if !path.is_absolute() {
@@ -1216,7 +1210,7 @@ pub(crate) fn windows_visible_path(
     }
     #[cfg(not(windows))]
     {
-        let _ = (config, path);
+        let _ = path;
         Err(RuntimeError::new(
             RuntimeErrorCode::ToolUnavailable,
             "Windows path projection is available only on a native Windows Runtime",
