@@ -1,0 +1,22 @@
+---
+- name: Retire the WSL-hosted Cloudflare canary connector after native Windows acceptance
+  hosts: operations_local
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Stop and disable the WSL canary connector
+      ansible.builtin.systemd_service:
+        name: ordivon-cloudflare-canary.service
+        state: stopped
+        enabled: false
+
+    - name: Remove the retired WSL canary unit
+      ansible.builtin.file:
+        path: /etc/systemd/system/ordivon-cloudflare-canary.service
+        state: absent
+      notify: Reload systemd
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true
