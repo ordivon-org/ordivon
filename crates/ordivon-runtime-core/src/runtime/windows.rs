@@ -442,6 +442,7 @@ pub(crate) struct WindowsStartEvidence {
     pub job_id: String,
     pub attempt_id: String,
     pub launch_token_digest: String,
+    pub request_digest: String,
     pub job_name: String,
     pub launcher_process_id: u32,
     #[serde(default)]
@@ -478,6 +479,7 @@ pub(crate) struct WindowsLauncherStartEvidence {
     pub job_id: String,
     pub attempt_id: String,
     pub launch_token_digest: String,
+    pub request_digest: String,
     pub job_name: String,
     pub launcher_process_id: u32,
     pub launcher_process_creation_time_file_time: u64,
@@ -712,6 +714,7 @@ pub(crate) struct WindowsNativeRunSpec<'a> {
     pub job_id: &'a str,
     pub attempt_id: &'a str,
     pub launch_token_digest: &'a str,
+    pub request_digest: &'a str,
     pub authority: WindowsAuthority,
     pub expected_privileged_broker_digest: Option<&'a str>,
     pub executable: &'a Path,
@@ -738,6 +741,7 @@ pub(crate) struct WindowsLauncherInvocationSpec<'a> {
     pub job_id: &'a str,
     pub attempt_id: &'a str,
     pub launch_token_digest: &'a str,
+    pub request_digest: &'a str,
     pub job_name: &'a str,
     pub authority: WindowsAuthority,
     pub executable: &'a str,
@@ -1077,6 +1081,7 @@ pub(crate) fn spawn_windows_native(
         job_id: spec.job_id,
         attempt_id: spec.attempt_id,
         launch_token_digest: spec.launch_token_digest,
+        request_digest: spec.request_digest,
         job_name: &job_name,
         authority: spec.authority,
         executable: &executable,
@@ -1202,6 +1207,7 @@ pub(crate) fn spawn_windows_native(
         spec.job_id,
         spec.attempt_id,
         spec.launch_token_digest,
+        spec.request_digest,
         spec.authority,
         spec.expected_privileged_broker_digest,
         spec.executable,
@@ -1238,6 +1244,8 @@ pub(crate) fn append_windows_launcher_arguments(
         .arg(spec.attempt_id)
         .arg("--runtime-launch-token-digest")
         .arg(spec.launch_token_digest)
+        .arg("--runtime-request-digest")
+        .arg(spec.request_digest)
         .arg("--job-name")
         .arg(spec.job_name)
         .arg("--authority")
@@ -1633,6 +1641,8 @@ w: 00000002 00000000 00010000 0001 01 11976 /run/WSL/notnumeric_interop\n";
             attempt_id: "attempt-1",
             launch_token_digest:
                 "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            request_digest:
+                "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             job_name: "Ordivon.attempt-1",
             authority: WindowsAuthority::Limited,
             executable: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
@@ -1666,6 +1676,8 @@ w: 00000002 00000000 00010000 0001 01 11976 /run/WSL/notnumeric_interop\n";
                 "attempt-1",
                 "--runtime-launch-token-digest",
                 "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "--runtime-request-digest",
+                "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
                 "--job-name",
                 "Ordivon.attempt-1",
                 "--authority",
@@ -1736,6 +1748,8 @@ w: 00000002 00000000 00010000 0001 01 11976 /run/WSL/notnumeric_interop\n";
             attempt_id: "attempt-2",
             launch_token_digest:
                 "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            request_digest:
+                "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             job_name: "Ordivon.attempt-2",
             authority: WindowsAuthority::Limited,
             executable: "C:\\Windows\\System32\\cmd.exe",
