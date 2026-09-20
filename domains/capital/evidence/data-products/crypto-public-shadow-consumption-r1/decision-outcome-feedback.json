@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.data-product-consumption-decision",
+  "product": {
+    "id": "d14d7457-c9aa-59e0-8bf5-7783cea39c1c",
+    "version": "2026.09.14",
+    "outputPortId": "358e57ff-d416-5dd6-a90c-f62b4bc94ff0",
+    "sourceSha256": "ed5fba6227a5d997adefb6bf63717463dc75fdc8b62cfb0005804109eb0a2d7e"
+  },
+  "claim": {
+    "standing": "FIT_FOR_BOUNDED_PUBLIC_MARKET_MONITORING",
+    "basis": {
+      "acceptedSnapshotCount": 4,
+      "measuredWindowCount": 3,
+      "allMeasuredQualified": true,
+      "venues": [
+        "BINANCE",
+        "OKX"
+      ],
+      "assets": [
+        "BTC",
+        "ETH"
+      ]
+    }
+  },
+  "decision": {
+    "standing": "NO_EXECUTION_OR_DIRECTIONAL_ACTION_ADMITTED",
+    "reason": "The product proves bounded public observation only and explicitly excludes execution authority, alpha, arbitrage and price-direction claims."
+  },
+  "action": {
+    "standing": "NO_EXTERNAL_EFFECT",
+    "externalFinancialWriteAttempted": false,
+    "privateEndpointAccessAttempted": false
+  },
+  "outcome": {
+    "standing": "PASS_BOUNDARY_PRESERVED",
+    "externalFinancialWriteObserved": false,
+    "privateAccountDataConsumed": false
+  },
+  "feedback": {
+    "collectionPolicyDisposition": "KEEP_CURRENT_PUBLIC_OBSERVATION_BOUNDARY",
+    "qualityGateDisposition": "KEEP_FROZEN_1200MS_SOURCE_AND_RECEIVE_SPAN_GATES",
+    "modelPolicyDisposition": "NO_DIRECTIONAL_MODEL_UPDATE_FROM_THIS_PRODUCT",
+    "governanceDisposition": "KEEP_FAIL_CLOSED_RIGHTS_AND_RETENTION_POLICY",
+    "changeRequired": false,
+    "reason": "All three measured windows satisfy the frozen coherence gates and the product contains no evidence that justifies expanding execution, rights, privacy, or directional-model claims."
+  }
+}

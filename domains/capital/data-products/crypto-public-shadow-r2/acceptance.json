@@ -34,5 +34,26 @@
   "claimBoundary": "Credential-free/public provider access is not treated as a redistribution or commercial-use license. This local policy prevents third-party distribution and automatic disposal until applicable authority is established. Existing evidence proves no broker credentials, private account data, or external financial writes were used in this observation; it is not a complete privacy assessment.",
   "governancePolicySha256": "99248894b157e214ab505ea0301f29b5ccdc99ce8209f92fe667802d800562d0",
   "domainOwner": "Ordivon Capital market-observation domain",
-  "ownershipScope": "PRODUCT_METADATA_AND_LIFECYCLE_NOT_PROVIDER_IP"
+  "ownershipScope": "PRODUCT_METADATA_AND_LIFECYCLE_NOT_PROVIDER_IP",
+  "latestConsumption": {
+    "standing": "PASS_PRODUCT_TO_DECISION_OUTCOME_FEEDBACK_NO_EXTERNAL_EFFECT",
+    "receiptRelativePath": "evidence/data-products/crypto-public-shadow-consumption-r1/receipt.json",
+    "receiptSha256": "d650e4065c193d915e3bc48a98265abafa2c55b0b51e30536cdd19375ae28bbc",
+    "openLineageRelativePath": "evidence/data-products/crypto-public-shadow-consumption-r1/openlineage.json",
+    "openLineageSha256": "698a937a712cb6a3eed3596972b1bbb988b5274e862735b4c64737c6c2912570",
+    "openLineageRunId": "db63ce70-d168-5dfd-b76f-55419d25bea6",
+    "decisionArtifactRelativePath": "evidence/data-products/crypto-public-shadow-consumption-r1/decision-outcome-feedback.json",
+    "decisionArtifactSha256": "6cafaf913b639d6b4652ef34838860f78fb93b15a28faeb5891da7980ea2a402",
+    "decisionStanding": "NO_EXECUTION_OR_DIRECTIONAL_ACTION_ADMITTED",
+    "outcomeStanding": "PASS_BOUNDARY_PRESERVED",
+    "feedbackChangeRequired": false,
+    "feedbackDisposition": {
+      "collectionPolicyDisposition": "KEEP_CURRENT_PUBLIC_OBSERVATION_BOUNDARY",
+      "qualityGateDisposition": "KEEP_FROZEN_1200MS_SOURCE_AND_RECEIVE_SPAN_GATES",
+      "modelPolicyDisposition": "NO_DIRECTIONAL_MODEL_UPDATE_FROM_THIS_PRODUCT",
+      "governanceDisposition": "KEEP_FAIL_CLOSED_RIGHTS_AND_RETENTION_POLICY",
+      "changeRequired": false,
+      "reason": "All three measured windows satisfy the frozen coherence gates and the product contains no evidence that justifies expanding execution, rights, privacy, or directional-model claims."
+    }
+  }
 }
