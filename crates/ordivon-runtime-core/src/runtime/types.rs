@@ -345,6 +345,7 @@ pub enum WindowsAuthority {
     #[default]
     Limited,
     Elevated,
+    ActiveUser,
 }
 
 impl WindowsAuthority {
@@ -352,6 +353,7 @@ impl WindowsAuthority {
         match self {
             Self::Limited => "limited",
             Self::Elevated => "elevated",
+            Self::ActiveUser => "active_user",
         }
     }
 }
@@ -361,6 +363,7 @@ impl WindowsAuthority {
 pub(crate) enum WindowsTokenClass {
     Limited,
     Elevated,
+    ActiveUser,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -368,6 +371,8 @@ pub(crate) enum WindowsTokenClass {
 pub(crate) struct WindowsExecutionContext {
     pub token_class: WindowsTokenClass,
     pub token_user_sid: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<u32>,
     pub environment_source: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub privileged_broker_digest: Option<String>,
@@ -931,7 +936,8 @@ fn identity_windows_authority(
     authority: WindowsAuthority,
 ) -> Option<WindowsAuthority> {
     match (target, authority) {
-        (ExecutionTarget::WindowsNative, WindowsAuthority::Elevated) => Some(authority),
+        (ExecutionTarget::WindowsNative, WindowsAuthority::Limited) => None,
+        (ExecutionTarget::WindowsNative, _) => Some(authority),
         _ => None,
     }
 }

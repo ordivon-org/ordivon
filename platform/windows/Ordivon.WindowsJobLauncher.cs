@@ -37,6 +37,9 @@ internal static class OrdivonWindowsJobLauncher
     private const uint TokenDuplicate = 0x0002;
     private const uint TokenAssignPrimary = 0x0001;
     private const uint TokenAdjustDefault = 0x0080;
+    private const uint MaximumAllowed = 0x02000000;
+    private const int SecurityImpersonation = 2;
+    private const uint InvalidSessionId = 0xffffffff;
     private const uint LuaToken = 0x00000004;
     private const uint SeGroupEnabled = 0x00000004;
     private const uint SeGroupUseForDenyOnly = 0x00000010;
@@ -177,6 +180,8 @@ internal static class OrdivonWindowsJobLauncher
     private sealed class TokenEvidence
     {
         public string Selection;
+        public string ExecutionIdentity;
+        public uint? SessionId;
         public string UserSid;
         public int TokenType;
         public int ElevationType;
@@ -266,6 +271,12 @@ internal static class OrdivonWindowsJobLauncher
         Elevated,
     }
 
+    private enum ExecutionIdentity
+    {
+        Service,
+        ActiveUser,
+    }
+
     private sealed class Options
     {
         public string Executable;
@@ -295,8 +306,11 @@ internal static class OrdivonWindowsJobLauncher
         public bool TerminateProcessOwnerForDeadline;
         public uint? DescribeProcessId;
         public ulong? ExpectedProcessCreationTimeFileTime;
+        public string ExpectedUserSid;
+        public uint? ExpectedSessionId;
         public bool EmitLauncherStartEvidence;
         public ExecutionAuthority Authority = ExecutionAuthority.Limited;
+        public ExecutionIdentity Identity = ExecutionIdentity.Service;
         public readonly List<string> ContextEnvironmentNames = new List<string>();
 
         public bool RuntimeMode
@@ -407,6 +421,15 @@ internal static class OrdivonWindowsJobLauncher
 
     [DllImport("advapi32.dll", SetLastError = true)]
     private static extern bool OpenProcessToken(IntPtr process, uint desiredAccess, out IntPtr token);
+
+    [DllImport("kernel32.dll")]
+    private static extern uint WTSGetActiveConsoleSessionId();
+
+    [DllImport("wtsapi32.dll", SetLastError = true)]
+    private static extern bool WTSQueryUserToken(uint sessionId, out IntPtr token);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    private static extern bool DuplicateTokenEx(IntPtr existingToken, uint desiredAccess, IntPtr tokenAttributes, int impersonationLevel, int tokenType, out IntPtr duplicateToken);
 
     [DllImport("advapi32.dll", SetLastError = true)]
     private static extern bool CreateRestrictedToken(
@@ -593,6 +616,30 @@ internal static class OrdivonWindowsJobLauncher
                 else if (String.Equals(value, "elevated", StringComparison.OrdinalIgnoreCase)) options.Authority = ExecutionAuthority.Elevated;
                 else throw new InvalidOperationException("--authority must be limited or elevated");
             }
+            else if (current == "--expected-user-sid")
+            {
+                if (String.IsNullOrWhiteSpace(value) || value.IndexOf('\0') >= 0)
+                {
+                    throw new InvalidOperationException("--expected-user-sid is invalid");
+                }
+                options.ExpectedUserSid = value;
+            }
+            else if (current == "--expected-session-id")
+            {
+                uint parsed;
+                if (!UInt32.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out parsed)
+                    || parsed == InvalidSessionId)
+                {
+                    throw new InvalidOperationException("--expected-session-id is invalid");
+                }
+                options.ExpectedSessionId = parsed;
+            }
+            else if (current == "--identity")
+            {
+                if (String.Equals(value, "service", StringComparison.OrdinalIgnoreCase)) options.Identity = ExecutionIdentity.Service;
+                else if (String.Equals(value, "active_user", StringComparison.OrdinalIgnoreCase)) options.Identity = ExecutionIdentity.ActiveUser;
+                else throw new InvalidOperationException("--identity must be service or active_user");
+            }
             else if (current == "--context-env")
             {
                 if (String.IsNullOrWhiteSpace(value) || value.IndexOf('=') >= 0 || value.IndexOf('\0') >= 0)
@@ -730,6 +777,36 @@ internal static class OrdivonWindowsJobLauncher
             {
                 throw new InvalidOperationException("unknown launcher option: " + current);
             }
+        }
+
+        bool hasExpectedUserSid = !String.IsNullOrWhiteSpace(options.ExpectedUserSid);
+        bool hasExpectedSessionId = options.ExpectedSessionId.HasValue;
+        if (options.Identity == ExecutionIdentity.ActiveUser)
+        {
+            if (options.Authority != ExecutionAuthority.Elevated)
+            {
+                throw new InvalidOperationException("active_user identity requires elevated broker authority");
+            }
+            if (options.RuntimeMode && (!hasExpectedUserSid || !hasExpectedSessionId))
+            {
+                throw new InvalidOperationException(
+                    "active_user runtime execution requires expected user SID and session ID");
+            }
+            if (!options.RuntimeMode && !options.DescribeRuntimeContext)
+            {
+                throw new InvalidOperationException(
+                    "active_user identity requires runtime execution or context description");
+            }
+            if (options.DescribeRuntimeContext && (hasExpectedUserSid || hasExpectedSessionId))
+            {
+                throw new InvalidOperationException(
+                    "runtime context description cannot carry frozen active-user identity");
+            }
+        }
+        else if (hasExpectedUserSid || hasExpectedSessionId)
+        {
+            throw new InvalidOperationException(
+                "expected user SID/session require active_user identity");
         }
 
         if (options.DescribeProcessOwner)
@@ -1064,7 +1141,8 @@ internal static class OrdivonWindowsJobLauncher
         try
         {
             TokenEvidence evidence;
-            token = AcquireExecutionToken(options.Authority, out evidence);
+            token = AcquireExecutionToken(options.Authority, options.Identity, out evidence);
+            VerifyExpectedExecutionIdentity(options, evidence);
             if (!CreateEnvironmentBlock(out environment, token, false))
             {
                 ThrowWin32("CreateEnvironmentBlock");
@@ -1106,11 +1184,72 @@ internal static class OrdivonWindowsJobLauncher
         }
     }
 
-    private static IntPtr AcquireExecutionToken(ExecutionAuthority authority, out TokenEvidence evidence)
+    private static void VerifyExpectedExecutionIdentity(Options options, TokenEvidence evidence)
     {
-        return authority == ExecutionAuthority.Elevated
-            ? AcquireElevatedExecutionToken(out evidence)
-            : AcquireLimitedExecutionToken(out evidence);
+        if (options.Identity != ExecutionIdentity.ActiveUser)
+        {
+            if (!String.IsNullOrWhiteSpace(options.ExpectedUserSid) || options.ExpectedSessionId.HasValue)
+            {
+                throw new InvalidOperationException(
+                    "service identity cannot carry active-user identity commitments");
+            }
+            return;
+        }
+
+        if (!String.IsNullOrWhiteSpace(options.ExpectedUserSid)
+            && !String.Equals(
+                options.ExpectedUserSid,
+                evidence.UserSid,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                "active-user SID changed after Runtime admission");
+        }
+        if (options.ExpectedSessionId.HasValue
+            && evidence.SessionId != options.ExpectedSessionId)
+        {
+            throw new InvalidOperationException(
+                "active-user session changed after Runtime admission");
+        }
+    }
+
+    private static IntPtr AcquireExecutionToken(ExecutionAuthority authority, ExecutionIdentity identity, out TokenEvidence evidence)
+    {
+        if (identity == ExecutionIdentity.ActiveUser)
+        {
+            if (authority != ExecutionAuthority.Elevated) throw new InvalidOperationException("active_user identity requires elevated broker authority");
+            return AcquireActiveUserExecutionToken(out evidence);
+        }
+        IntPtr token = authority == ExecutionAuthority.Elevated ? AcquireElevatedExecutionToken(out evidence) : AcquireLimitedExecutionToken(out evidence);
+        evidence.ExecutionIdentity = "service";
+        return token;
+    }
+
+    private static IntPtr AcquireActiveUserExecutionToken(out TokenEvidence evidence)
+    {
+        uint sessionId = WTSGetActiveConsoleSessionId();
+        if (sessionId == InvalidSessionId) throw new InvalidOperationException("no active console Windows session is available");
+        IntPtr raw = IntPtr.Zero;
+        IntPtr primary = IntPtr.Zero;
+        if (!WTSQueryUserToken(sessionId, out raw)) ThrowWin32("WTSQueryUserToken(active user)");
+        try
+        {
+            if (!DuplicateTokenEx(raw, MaximumAllowed, IntPtr.Zero, SecurityImpersonation, TokenPrimary, out primary)) ThrowWin32("DuplicateTokenEx(active user)");
+            TokenEvidence selected = ReadTokenEvidence(primary, "active_user");
+            selected.ExecutionIdentity = "active_user";
+            selected.SessionId = sessionId;
+            if (selected.TokenType != TokenPrimary || selected.IsElevated || selected.IntegrityLevelRid > MediumIntegrityRid || GroupIsEnabled(selected.AdministratorsGroupAttributes))
+                throw new InvalidOperationException("active-user Windows execution token is not a primary non-elevated user token");
+            evidence = selected;
+            IntPtr result = primary;
+            primary = IntPtr.Zero;
+            return result;
+        }
+        finally
+        {
+            if (primary != IntPtr.Zero) CloseHandle(primary);
+            if (raw != IntPtr.Zero) CloseHandle(raw);
+        }
     }
 
     private static IntPtr AcquireElevatedExecutionToken(out TokenEvidence evidence)
@@ -1413,6 +1552,8 @@ internal static class OrdivonWindowsJobLauncher
     private static string TokenEvidenceJsonFields(TokenEvidence evidence)
     {
         return "\"tokenSelection\":" + JsonString(evidence.Selection) + "," +
+            "\"executionIdentity\":" + JsonString(evidence.ExecutionIdentity ?? "service") + "," +
+            "\"sessionId\":" + (evidence.SessionId.HasValue ? evidence.SessionId.Value.ToString(CultureInfo.InvariantCulture) : "null") + "," +
             "\"tokenUserSid\":" + JsonString(evidence.UserSid) + "," +
             "\"tokenType\":" + evidence.TokenType.ToString(CultureInfo.InvariantCulture) + "," +
             "\"tokenElevationType\":" + evidence.ElevationType.ToString(CultureInfo.InvariantCulture) + "," +
@@ -1502,7 +1643,8 @@ internal static class OrdivonWindowsJobLauncher
                 WriteWindowsLauncherStartEvidence(options);
             }
             powerRequest = AcquireSystemPowerRequest(options.RuntimeAttemptId);
-            executionToken = AcquireExecutionToken(options.Authority, out tokenEvidence);
+            executionToken = AcquireExecutionToken(options.Authority, options.Identity, out tokenEvidence);
+            VerifyExpectedExecutionIdentity(options, tokenEvidence);
             PrepareImmutableInputs(options, tokenEvidence);
             environment = BuildEnvironment(options);
 
@@ -1517,6 +1659,7 @@ internal static class OrdivonWindowsJobLauncher
 
             StartupInfo si = new StartupInfo();
             si.cb = (uint)Marshal.SizeOf(typeof(StartupInfo));
+            if (options.Identity == ExecutionIdentity.ActiveUser) si.lpDesktop = "winsta0\\default";
             si.dwFlags = StartfUseStdHandles;
             si.hStdInput = GetStdHandle(StdInputHandle);
             si.hStdOutput = stdoutWrite;

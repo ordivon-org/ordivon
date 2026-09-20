@@ -1539,7 +1539,7 @@ fn tool_catalog_uses_transactional_job_contract() {
     );
     assert_eq!(
         exec_schema.pointer("/$defs/WindowsAuthority/enum"),
-        Some(&serde_json::json!(["limited", "elevated"]))
+        Some(&serde_json::json!(["limited", "elevated", "active_user"]))
     );
     assert!(exec_schema
         .pointer("/$defs/ExecutionProposal/properties/foreignReferences/maxItems")
