@@ -133,7 +133,7 @@ class ArtifactClaimResultsAdapterR1Tests(unittest.TestCase):
                 candidate["claimResults"]["target"]["status"], "NOT_EVALUATED"
             )
 
-    def test_wave_current_native_result_requires_contract_schema_expansion(self):
+    def test_wave_native_result_exposes_complete_claim_results(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             subject = root / "subject.wav"
@@ -181,19 +181,18 @@ class ArtifactClaimResultsAdapterR1Tests(unittest.TestCase):
             assessed = A.assess_family_claim_mapping(
                 result, canonical, A.WAVE_R1_MAPPING
             )
+            self.assertEqual(assessed["standing"], "ADAPTER_SUFFICIENT")
+            self.assertEqual(assessed["unaddressableClaims"], {})
             self.assertEqual(
-                assessed["standing"], "NATIVE_RESULT_EXPANSION_REQUIRED"
+                set(assessed["claimResults"]), set(canonical["requiredEvidence"])
             )
-            self.assertEqual(
-                assessed["unaddressableClaims"],
-                {"contractSchema": "NO_SAFE_NATIVE_MAPPING"},
-            )
-            self.assertEqual(
-                set(assessed["claimResults"]),
-                set(canonical["requiredEvidence"]) - {"contractSchema"},
+            native_claims = result["verification"]["claimResults"]
+            self.assertEqual(set(native_claims), set(canonical["requiredEvidence"]))
+            self.assertTrue(
+                all(item["status"] == "PASS" for item in native_claims.values())
             )
 
-    def test_png_current_native_result_requires_profile_facts_expansion(self):
+    def test_png_native_result_exposes_complete_claim_results(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             subject = root / "subject.png"
@@ -223,16 +222,15 @@ class ArtifactClaimResultsAdapterR1Tests(unittest.TestCase):
             assessed = A.assess_family_claim_mapping(
                 result, canonical, A.PNG_R1_MAPPING
             )
+            self.assertEqual(assessed["standing"], "ADAPTER_SUFFICIENT")
+            self.assertEqual(assessed["unaddressableClaims"], {})
             self.assertEqual(
-                assessed["standing"], "NATIVE_RESULT_EXPANSION_REQUIRED"
+                set(assessed["claimResults"]), set(canonical["requiredEvidence"])
             )
-            self.assertEqual(
-                assessed["unaddressableClaims"],
-                {"profileFacts": "NO_SAFE_NATIVE_MAPPING"},
-            )
-            self.assertEqual(
-                set(assessed["claimResults"]),
-                set(canonical["requiredEvidence"]) - {"profileFacts"},
+            native_claims = result["verification"]["claimResults"]
+            self.assertEqual(set(native_claims), set(canonical["requiredEvidence"]))
+            self.assertTrue(
+                all(item["status"] == "PASS" for item in native_claims.values())
             )
 
     def test_contract_rejects_missing_profile_claim_even_when_native_result_passes(self):

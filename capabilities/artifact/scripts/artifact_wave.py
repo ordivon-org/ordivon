@@ -1,9 +1,17 @@
 #!/usr/bin/env python3
 """Standards-first bounded RIFF/WAVE WAVE_FORMAT_PCM 16-bit verifier."""
 from __future__ import annotations
-import argparse,hashlib,json,os,re,subprocess,tempfile
+
+import argparse
+import hashlib
+import json
+import os
+import re
+import subprocess
+import tempfile
 from pathlib import Path
 from typing import Any
+
 import jsonschema
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -28,18 +36,24 @@ def validate_contract(c):
  s=json.loads(CONTRACT_SCHEMA.read_text());return [f"wave contract schema invalid: {e.message}" for e in sorted(jsonschema.Draft202012Validator(s).iter_errors(c),key=lambda e:list(e.path))]
 def int_match(pattern:str,s:str):
  m=re.search(pattern,s,re.M);return int(m.group(1)) if m else None
+def _claim(status:str,pointer:str,*,evidence_refs:list[dict[str,Any]]|None=None)->dict[str,Any]:
+ return {'status':status,'observationIds':[pointer.rsplit('/',1)[-1]],'evidenceRefs':list(evidence_refs or []),'nativePointers':[pointer],'nonClaims':[]}
+def _claims(*,contract_schema:str='NOT_EVALUATED',reference:str='NOT_EVALUATED',independent:str='NOT_EVALUATED',decoder:str='NOT_EVALUATED',pcm:str='NOT_EVALUATED',contract_fact:dict[str,Any]|None=None)->dict[str,Any]:
+ return {'contractSchema':_claim(contract_schema,'/contractSchema',evidence_refs=[contract_fact] if contract_fact else []),'decoderMatrix':_claim(decoder,'/decoderMatrix'),'independentTechnicalView':_claim(independent,'/independentTechnicalView'),'pcmIdentity':_claim(pcm,'/pcmIdentity'),'referenceContainerView':_claim(reference,'/referenceContainerView')}
 
 def verify_wave(path:Path,contract_path:Path,evidence_dir:Path|None=None)->dict[str,Any]:
- if not path.is_file(): return {'schemaVersion':1,'kind':'artifact-wave-verification','profileId':'audio-wave-pcm16-r1','status':'FAIL','failures':['input is not a regular file']}
+ if not path.is_file(): return {'schemaVersion':1,'kind':'artifact-wave-verification','profileId':'audio-wave-pcm16-r1','status':'FAIL','claimResults':_claims(),'failures':['input is not a regular file']}
  try:c=json.loads(contract_path.read_text())
- except Exception as e:return {'schemaVersion':1,'kind':'artifact-wave-verification','profileId':'audio-wave-pcm16-r1','status':'FAIL','artifact':fact(path),'failures':[f'contract unreadable: {e}']}
+ except Exception as e:return {'schemaVersion':1,'kind':'artifact-wave-verification','profileId':'audio-wave-pcm16-r1','status':'FAIL','artifact':fact(path),'contractSchema':{'status':'FAIL','failures':[f'contract unreadable: {e}']},'claimResults':_claims(contract_schema='FAIL'),'failures':[f'contract unreadable: {e}']}
  failures=validate_contract(c);ev=evidence_dir or Path(tempfile.mkdtemp(prefix='artifact-wave-evidence-'));ev.mkdir(parents=True,exist_ok=True)
- result={'schemaVersion':1,'kind':'artifact-wave-verification','profileId':'audio-wave-pcm16-r1','status':'FAIL','artifact':fact(path),'contract':{'path':str(contract_path.resolve()),'sha256':sha_file(contract_path),'canonicalDigest':canonical(c)},'tools':{},'failures':failures}
+ contract_fact={'path':str(contract_path.resolve()),'sha256':sha_file(contract_path),'canonicalDigest':canonical(c)}
+ contract_schema={'status':'PASS' if not failures else 'FAIL','failures':list(failures)}
+ result={'schemaVersion':1,'kind':'artifact-wave-verification','profileId':'audio-wave-pcm16-r1','status':'FAIL','artifact':fact(path),'contract':contract_fact,'contractSchema':contract_schema,'tools':{},'claimResults':_claims(contract_schema=contract_schema['status'],contract_fact=contract_fact),'failures':failures}
  if failures:(ev/'verification.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n');return result
  for n,p in [('sndfileInfo',SNDFILE_INFO),('sox',SOX),('soxi',SOXI),('ffmpeg',FFMPEG),('ffprobe',FFPROBE)]:
   if not p.is_file() or not os.access(p,os.X_OK): failures.append(f'required mature external capability unavailable: {n}')
   else: result['tools'][n]={'path':str(p.resolve()),'sha256':sha_file(p)}
- if failures:result['failures']=failures;(ev/'verification.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n');return result
+ if failures:result['failures']=failures;result['claimResults']=_claims(contract_schema='PASS',contract_fact=contract_fact);(ev/'verification.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n');return result
  want=c['audio']
  # libsndfile is the reference container/format view.
  sf=run([str(SNDFILE_INFO),str(path)]);sfout,sferr=text(sf);(ev/'sndfile-info.txt').write_text(sfout+sferr)
@@ -105,6 +119,7 @@ def verify_wave(path:Path,contract_path:Path,evidence_dir:Path|None=None)->dict[
   'soxTechnicalView':{'status':'PASS' if not soxi_fail else 'FAIL','facts':soxi_facts,'failures':soxi_fail},
   'decoderMatrix':{'status':'PASS' if not decoder_fail else 'FAIL','canonicalFormat':'s16le','ffmpegPcmSha256':sha_bytes(ff.stdout),'soxPcmSha256':sha_bytes(sx.stdout),'exactByteMatch':exact,'pcmBytes':len(ff.stdout),'expectedPcmBytes':expected_bytes,'failures':decoder_fail},
   'pcmIdentity':{'status':'PASS' if not pcm_fail else 'FAIL','decodedPcmSha256':pcm_sha,'contractExpectedPcmSha256':want.get('expectedPcmSha256'),'failures':pcm_fail},
+  'claimResults':_claims(contract_schema='PASS',reference='PASS' if not sf_fail else 'FAIL',independent='PASS' if not probe_fail else 'FAIL',decoder='PASS' if not decoder_fail else 'FAIL',pcm='PASS' if not pcm_fail else 'FAIL',contract_fact=contract_fact),
   'status':'PASS' if not failures else 'FAIL','failures':failures,
   'boundary':'PASS is bounded to RIFF/WAVE carrying WAVE_FORMAT_PCM tag 0x0001 with 16-bit signed little-endian mono/stereo PCM under one exact object contract. It establishes libsndfile and FFprobe technical agreement plus exact FFmpeg/SoX canonical PCM agreement. It does not establish artistic/factual correctness, loudness/mastering, ancillary metadata truth, BWF metadata conformance, RF64/WAVE64, compressed WAVE codecs, or signal-quality acceptance.'
  })

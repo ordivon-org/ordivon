@@ -42,6 +42,13 @@ class ArtifactStillImageTests(unittest.TestCase):
             self.assertTrue(value["decoderMatrix"]["exactMatch"])
             self.assertEqual(value["image"]["depth"], 8)
             self.assertIn("sRGB", value["png"]["chunks"])
+            self.assertEqual(
+                set(value["claimResults"]),
+                {"datastreamValidity", "decoderMatrix", "metadataObservation", "profileFacts"},
+            )
+            self.assertTrue(
+                all(item["status"] == "PASS" for item in value["claimResults"].values())
+            )
             self.assertTrue((evidence / "pngcheck.txt").is_file())
             self.assertTrue((evidence / "exiftool.json").is_file())
 
@@ -54,6 +61,8 @@ class ArtifactStillImageTests(unittest.TestCase):
             self.assertEqual(pngcheck.returncode, 0, pngcheck.stderr)
             value = MODULE.verify_png_srgb(image, root / "evidence")
             self.assertEqual(value["status"], "FAIL")
+            self.assertEqual(value["claimResults"]["datastreamValidity"]["status"], "PASS")
+            self.assertEqual(value["claimResults"]["profileFacts"]["status"], "FAIL")
             self.assertIn("missing required PNG chunk(s): sRGB", value["failures"])
 
     def test_corrupt_png_fails_closed(self):

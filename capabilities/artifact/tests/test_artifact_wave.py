@@ -28,7 +28,7 @@ class ArtifactWaveTests(unittest.TestCase):
   self.require_tools()
   with tempfile.TemporaryDirectory() as d:
    r=Path(d);f=r/'a.wav';raw=make_wave(f);c=r/'c.json';contract(c,raw);v=M.verify_wave(f,c,r/'e')
-   self.assertEqual(v['status'],'PASS',v);self.assertTrue(v['decoderMatrix']['exactByteMatch']);self.assertEqual(v['referenceContainerView']['facts']['formatName'],'WAVE_FORMAT_PCM');self.assertEqual(v['independentTechnicalView']['facts']['codecTag'],'0x0001')
+   self.assertEqual(v['status'],'PASS',v);self.assertTrue(v['decoderMatrix']['exactByteMatch']);self.assertEqual(v['referenceContainerView']['facts']['formatName'],'WAVE_FORMAT_PCM');self.assertEqual(v['independentTechnicalView']['facts']['codecTag'],'0x0001');self.assertEqual(set(v['claimResults']),{'contractSchema','decoderMatrix','independentTechnicalView','pcmIdentity','referenceContainerView'});self.assertTrue(all(x['status']=='PASS' for x in v['claimResults'].values()))
  def test_wrong_sample_rate_contract_fails_after_file_remains_valid(self):
   self.require_tools()
   with tempfile.TemporaryDirectory() as d:

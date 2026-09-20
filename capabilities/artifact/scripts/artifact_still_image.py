@@ -11,11 +11,10 @@ import argparse
 import hashlib
 import json
 import os
-from pathlib import Path
 import re
-import shutil
 import subprocess
 import tempfile
+from pathlib import Path
 from typing import Any
 
 PNGCHECK = Path(os.environ.get("ARTIFACT_PNGCHECK", "/opt/ordivon/external/pngcheck/4.0.1/bin/pngcheck"))
@@ -41,6 +40,31 @@ def run(argv: list[str], *, timeout: int = 60) -> subprocess.CompletedProcess[st
     return subprocess.run(argv, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False, timeout=timeout)
 
 
+def _claim_result(status: str, pointer: str) -> dict[str, Any]:
+    return {
+        "status": status,
+        "observationIds": [pointer.rsplit("/", 1)[-1]],
+        "evidenceRefs": [],
+        "nativePointers": [pointer],
+        "nonClaims": [],
+    }
+
+
+def _claim_results(
+    *,
+    datastream: str = "NOT_EVALUATED",
+    metadata: str = "NOT_EVALUATED",
+    decoder: str = "NOT_EVALUATED",
+    profile_facts: str = "NOT_EVALUATED",
+) -> dict[str, Any]:
+    return {
+        "datastreamValidity": _claim_result(datastream, "/datastreamValidity"),
+        "decoderMatrix": _claim_result(decoder, "/decoderMatrix"),
+        "metadataObservation": _claim_result(metadata, "/metadata"),
+        "profileFacts": _claim_result(profile_facts, "/profileFacts"),
+    }
+
+
 def tool_fact(path: Path, version_argv: list[str] | None = None) -> dict[str, Any]:
     if not path.is_file() or not os.access(path, os.X_OK):
         return {"status": "NOT_AVAILABLE", "path": str(path)}
@@ -55,7 +79,7 @@ def tool_fact(path: Path, version_argv: list[str] | None = None) -> dict[str, An
 def verify_png_srgb(path: Path, evidence_dir: Path | None = None) -> dict[str, Any]:
     failures: list[str] = []
     if not path.is_file():
-        return {"schemaVersion": 1, "kind": "artifact-still-image-verification", "profileId": "still-image-png-srgb-r1", "status": "FAIL", "failures": ["input is not a regular file"]}
+        return {"schemaVersion": 1, "kind": "artifact-still-image-verification", "profileId": "still-image-png-srgb-r1", "status": "FAIL", "claimResults": _claim_results(), "failures": ["input is not a regular file"]}
     tools = {
         "pngcheck": tool_fact(PNGCHECK),
         "exiftool": tool_fact(EXIFTOOL, ["-ver"]),
@@ -67,7 +91,7 @@ def verify_png_srgb(path: Path, evidence_dir: Path | None = None) -> dict[str, A
         if value.get("status") != "PASS":
             failures.append(f"required external tool unavailable: {name}")
     if failures:
-        return {"schemaVersion": 1, "kind": "artifact-still-image-verification", "profileId": "still-image-png-srgb-r1", "status": "FAIL", "artifact": fact(path), "tools": tools, "failures": failures}
+        return {"schemaVersion": 1, "kind": "artifact-still-image-verification", "profileId": "still-image-png-srgb-r1", "status": "FAIL", "artifact": fact(path), "tools": tools, "claimResults": _claim_results(), "failures": failures}
 
     evidence_dir = evidence_dir or Path(tempfile.mkdtemp(prefix="artifact-still-image-evidence-"))
     evidence_dir.mkdir(parents=True, exist_ok=True)
@@ -170,6 +194,52 @@ def verify_png_srgb(path: Path, evidence_dir: Path | None = None) -> dict[str, A
                             failures.append("ImageMagick and libvips decoded sample bytes differ")
                         decode = {"status": "PASS" if exact else "FAIL", "normalization": "8-bit sRGB RGBA", "imageMagickPixelSha256": im_sha, "libvipsPixelSha256": vips_sha, "exactMatch": exact, "byteCount": im_raw.stat().st_size}
 
+    datastream_failures = (
+        []
+        if quiet.returncode == 0 and verbose.returncode == 0
+        else ["pngcheck rejected the PNG datastream"]
+    )
+    profile_fact_failures: list[str] = []
+    if missing:
+        profile_fact_failures.append(
+            "missing required PNG chunk(s): " + ",".join(missing)
+        )
+    if forbidden:
+        profile_fact_failures.append(
+            "prohibited PNG chunk(s) for bounded sRGB/static profile: "
+            + ",".join(forbidden)
+        )
+    if image_fact.get("status") != "PASS":
+        profile_fact_failures.append("ImageMagick profile facts are unavailable")
+    else:
+        if image_fact.get("format") != "PNG":
+            profile_fact_failures.append("ImageMagick format is not PNG")
+        if image_fact.get("depth") != 8:
+            profile_fact_failures.append("profile requires 8-bit PNG samples")
+        if str(image_fact.get("colorspace", "")).casefold() != "srgb":
+            profile_fact_failures.append("profile requires sRGB color interpretation")
+        if image_fact.get("channelsNormalized") not in {"srgb 3.0", "srgba 4.0"}:
+            profile_fact_failures.append("profile requires RGB or RGBA channels")
+    datastream_validity = {
+        "status": "PASS" if not datastream_failures else "FAIL",
+        "pngcheckReturnCode": quiet.returncode,
+        "failures": datastream_failures,
+    }
+    profile_facts = {
+        "status": "PASS" if not profile_fact_failures else "FAIL",
+        "requiredChunks": sorted(required),
+        "missingRequiredChunks": missing,
+        "prohibitedChunksPresent": forbidden,
+        "image": image_fact,
+        "failures": profile_fact_failures,
+    }
+    claim_results = _claim_results(
+        datastream=datastream_validity["status"],
+        metadata="PASS" if metadata_summary.get("status") == "PASS" else "FAIL",
+        decoder="PASS" if decode.get("status") == "PASS" else "FAIL",
+        profile_facts=profile_facts["status"],
+    )
+
     result = {
         "schemaVersion": 1,
         "kind": "artifact-still-image-verification",
@@ -178,9 +248,12 @@ def verify_png_srgb(path: Path, evidence_dir: Path | None = None) -> dict[str, A
         "artifact": fact(path),
         "tools": tools,
         "png": {"pngcheckReturnCode": quiet.returncode, "chunks": chunks, "requiredChunks": sorted(required), "prohibitedChunks": sorted(prohibited), "rawEvidenceSha256": sha256(evidence_dir / "pngcheck.txt")},
+        "datastreamValidity": datastream_validity,
         "image": image_fact,
         "metadata": metadata_summary,
         "decoderMatrix": decode,
+        "profileFacts": profile_facts,
+        "claimResults": claim_results,
         "failures": failures,
         "boundary": "PASS is bounded to a static 8-bit sRGB PNG display/exchange profile: pngcheck validity evidence, explicit chunk/profile restrictions, metadata observation, and exact ImageMagick/libvips decoded RGBA sample equality. It does not establish aesthetic quality, semantic truth, human accessibility, rights validity, print color accuracy, HDR/APNG behavior, or general PNG encoder/decoder/editor implementation conformance."
     }

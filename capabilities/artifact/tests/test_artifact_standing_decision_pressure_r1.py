@@ -143,7 +143,7 @@ class ArtifactStandingDecisionPressureR1Tests(unittest.TestCase):
                 & set(decision["missingRequiredClaims"])
             )
 
-    def test_wave_native_pass_is_not_profile_pass_without_explicit_contract_claim_result(self):
+    def test_wave_native_complete_claim_results_yield_profile_pass(self):
         with tempfile.TemporaryDirectory() as d:
             native = self._wave_service_result(Path(d))
             canonical = profile("audio-wave-pcm16-r1")
@@ -152,21 +152,13 @@ class ArtifactStandingDecisionPressureR1Tests(unittest.TestCase):
                 canonical, claims, profile_authority="SHADOW"
             )
             self.assertEqual(native["status"], "PASS")
+            self.assertEqual(set(claims), set(canonical["requiredEvidence"]))
+            self.assertEqual(decision["missingRequiredClaims"], [])
             self.assertEqual(
-                set(claims),
-                {
-                    "referenceContainerView",
-                    "independentTechnicalView",
-                    "decoderMatrix",
-                    "pcmIdentity",
-                },
-            )
-            self.assertEqual(decision["missingRequiredClaims"], ["contractSchema"])
-            self.assertEqual(
-                decision["standingVector"]["verificationStatus"], "PENDING"
+                decision["standingVector"]["verificationStatus"], "PASS"
             )
             self.assertEqual(
-                decision["standingVector"]["evidenceCompleteness"], "PARTIAL"
+                decision["standingVector"]["evidenceCompleteness"], "COMPLETE"
             )
 
     def test_explicit_complete_claim_results_can_yield_pass(self):

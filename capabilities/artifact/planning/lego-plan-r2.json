@@ -38,7 +38,10 @@
     "directPythonProviderProjectFanout": 17,
     "productionPythonDeliveryFacadeImports": 0,
     "requiredEvidenceKeysAcrossBoundVerifyProfiles": 102,
-    "deliveryCliProviderLines": 0
+    "deliveryCliProviderLines": 0,
+    "completeNativeClaimResultProfiles": 2,
+    "boundVerifyProfiles": 19,
+    "remainingLiteralClaimAddressabilityGaps": 29
   },
   "nodes": [
     {
@@ -441,7 +444,7 @@
     {
       "id": "D07",
       "label": "ClaimAddressabilityGap",
-      "observation": "Across 19 bound verify profiles, 102 requiredEvidence keys exist but no profile has complete same-name coverage in standing bindings or verifier source; generic standing cannot safely infer missing claim mappings.",
+      "observation": "Two of nineteen bound verify profiles (WAVE and PNG) now emit complete exact-key native claimResults. Seventeen profiles remain incomplete; a static same-name census finds 29 required claim keys without even literal native addressability. Generic standing must continue to refuse inference.",
       "priority": "P0"
     }
   ],
@@ -478,13 +481,26 @@
     {
       "id": "R2-S1C",
       "objective": "Add backward-compatible explicit claimResults to WAVE and PNG native verifier outputs and prove existing routes/callers remain unchanged.",
+      "status": "PRESSURE_TEST_COMPLETE",
+      "nodeIds": [
+        "K02",
+        "K04",
+        "K05",
+        "P02"
+      ],
+      "result": "WAVE_AND_PNG_NATIVE_CLAIM_RESULTS_COMPLETE_EXISTING_ROUTES_PRESERVED"
+    },
+    {
+      "id": "R2-S1D",
+      "objective": "Extend exact-key explicit native claimResults to the remaining 17 bound family verifiers without changing verifier semantics or routing.",
       "status": "NEXT",
       "nodeIds": [
         "K02",
         "K04",
         "K05",
         "P02"
-      ]
+      ],
+      "evidenceBoundary": "No profile-v1 retirement or profile-v2 promotion until bound verifier claim coverage is explicit and complete."
     },
     {
       "id": "R2-S2",

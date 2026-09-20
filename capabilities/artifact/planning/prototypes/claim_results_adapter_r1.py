@@ -159,6 +159,10 @@ def assess_family_claim_mapping(
 
 
 WAVE_R1_MAPPING = {
+    "contractSchema": {
+        "pointer": "/contractSchema",
+        "mode": "status",
+    },
     "referenceContainerView": {
         "pointer": "/referenceContainerView",
         "mode": "status",
@@ -179,11 +183,8 @@ WAVE_R1_MAPPING = {
 
 PNG_R1_MAPPING = {
     "datastreamValidity": {
-        "pointer": "/png/pngcheckReturnCode",
-        "mode": "zero-return-code",
-        "nonClaims": [
-            "This mapping covers pngcheck datastream acceptance only; PNG profile facts remain a separate claim."
-        ],
+        "pointer": "/datastreamValidity",
+        "mode": "status",
     },
     "metadataObservation": {
         "pointer": "/metadata",
@@ -191,6 +192,10 @@ PNG_R1_MAPPING = {
     },
     "decoderMatrix": {
         "pointer": "/decoderMatrix",
+        "mode": "status",
+    },
+    "profileFacts": {
+        "pointer": "/profileFacts",
         "mode": "status",
     },
 }
