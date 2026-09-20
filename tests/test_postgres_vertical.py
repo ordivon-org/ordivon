@@ -276,18 +276,22 @@ def test_postgres_native_status_summary_integrity_and_history() -> None:
         checkpoint=CheckpointInput(payload={"status": "clean"}),
         client_request_id=f"a:{task_id}",
     )
-    summary = h.status(detail="summary", recent_limit=1)
+    summary = h.status(detail="summary")
     assert summary["kind"] == "ordivon.host-status"
     assert summary["authority"]["journalBackend"] == "postgresql"
     assert summary["authority"]["journalSchema"] == 5
-    assert summary["interface"]["surfaceVersion"] == 9
-    assert summary["interface"]["toolCount"] == 10
+    assert summary["schemaVersion"] == 2
+    assert "interface" not in summary
+    assert "terminalTasks" not in summary["authority"]
+    assert "leases" not in summary["authority"]
+    assert "continuity" not in summary
+    assert "recentActivity" not in summary
     assert "news" not in summary
     assert summary["doctor"] is None
-    assert summary["deployment"]["status"] == "not-observed"
-    integrity = h.status(detail="integrity", recent_limit=0)
+    assert "deployment" not in summary
+    integrity = h.status(detail="integrity")
     assert integrity["doctor"]["healthy"] is True
-    history = h.status(detail="history", recent_limit=0)
+    history = h.status(detail="history")
     assert history["doctor"]["healthy"] is True
     assert any(
         item["name"] == "checkpoint.history_digest"
@@ -306,7 +310,7 @@ def test_postgres_native_status_summary_integrity_and_history() -> None:
             (task_id,),
         )
     try:
-        broken = h.status(detail="integrity", recent_limit=0)
+        broken = h.status(detail="integrity")
         assert broken["doctor"]["healthy"] is False
         by_name = {item["name"]: item for item in broken["doctor"]["checks"]}
         assert by_name["task.current_checkpoint"]["status"] == "error"

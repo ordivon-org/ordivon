@@ -65,21 +65,23 @@ def test_official_mcp_v2_exposes_migrated_host_surface_and_runs_vertical_slice()
             assert next_checkpoint_schema["properties"]["schemaVersion"]["const"] == 1
             assert "workStanding" not in initial_checkpoint_schema["properties"]
             assert "workStanding" not in next_checkpoint_schema["properties"]
-            assert {"detail", "recentLimit"} <= set(status_schema["properties"])
+            assert set(status_schema["properties"]) == {"detail"}
             for tool in listed.tools:
                 assert tool.output_schema is not None
                 assert tool.output_schema.get("additionalProperties") is not True
 
             status = await client.call_tool(
-                "host.status", {"detail": "integrity", "recentLimit": 0}
+                "host.status", {"detail": "integrity"}
             )
             assert status.is_error is False
             assert status.structured_content is not None
             assert status.structured_content["detail"] == "integrity"
             assert status.structured_content["authority"]["journalBackend"] == "postgresql"
-            assert status.structured_content["interface"]["surfaceVersion"] == 9
-            assert status.structured_content["interface"]["toolCount"] == 10
-            assert set(status.structured_content["interface"]["toolNames"]) == names
+            assert status.structured_content["schemaVersion"] == 2
+            assert "interface" not in status.structured_content
+            assert "deployment" not in status.structured_content
+            assert "continuity" not in status.structured_content
+            assert "recentActivity" not in status.structured_content
             assert "news" not in status.structured_content
             assert status.structured_content["doctor"]["healthy"] is True
 

@@ -40,11 +40,9 @@ class HostV2:
                 "run alembic upgrade head"
             )
 
-    def status(self, detail: str = "summary", recent_limit: int = 5) -> dict[str, Any]:
+    def status(self, detail: str = "summary") -> dict[str, Any]:
         if detail not in {"summary", "integrity", "history"}:
             raise ValueError("detail must be summary, integrity, or history")
-        if not 0 <= recent_limit <= 100:
-            raise ValueError("recentLimit must be in [0,100]")
         observed_at_ms = time.time_ns() // 1_000_000
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn:
             schema_row = conn.execute(
@@ -58,22 +56,12 @@ class HostV2:
             ).fetchall()
             tasks_by_state = {row["state"]: int(row["value"]) for row in state_rows}
             task_count = sum(tasks_by_state.values())
-            terminal_count = tasks_by_state.get("completed", 0) + tasks_by_state.get("abandoned", 0)
             event_count = int(
                 conn.execute("SELECT count(*) AS value FROM task_events").fetchone()["value"]
             )
             board_row = conn.execute(
                 "SELECT count(*) AS messages,COALESCE(max(sequence),0) AS high FROM board_messages"
             ).fetchone()
-            recent_rows = []
-            if recent_limit:
-                recent_rows = conn.execute(
-                    "SELECT e.task_id,e.revision,e.event_type,e.created_at,e.checkpoint_digest,t.state "
-                    "FROM task_events e JOIN tasks t USING(task_id) "
-                    "ORDER BY e.created_at DESC,e.task_id DESC,e.revision DESC LIMIT %s",
-                    (recent_limit,),
-                ).fetchall()
-
             doctor = None
             if detail != "summary":
                 checks: list[dict[str, Any]] = []
@@ -159,80 +147,29 @@ class HostV2:
                     "checks": checks,
                 }
 
-            tool_names = [
-                "host.status",
-                "attention.delta",
-                "board.list",
-                "board.search",
-                "board.post",
-                "task.observe",
-                "task.list",
-                "task.resume",
-                "task.adopt",
-                "task.checkpoint",
-            ]
             return {
-                "schemaVersion": 1,
+                "schemaVersion": 2,
                 "kind": "ordivon.host-status",
                 "observedAtMs": observed_at_ms,
                 "detail": detail,
-                "interface": {
-                    "surfaceVersion": 9,
-                    "toolCount": len(tool_names),
-                    "toolNames": tool_names,
-                    "readTools": [
-                        "host.status",
-                        "attention.delta",
-                        "board.list",
-                        "board.search",
-                        "task.observe",
-                        "task.list",
-                        "task.resume",
-                    ],
-                    "writeTools": ["board.post", "task.adopt", "task.checkpoint"],
-                    "runtimeProxy": False,
-                },
                 "authority": {
                     "journalBackend": "postgresql",
                     "journalSchema": schema_version,
                     "events": event_count,
                     "tasks": task_count,
-                    "terminalTasks": terminal_count,
                     "tasksByState": tasks_by_state,
-                    "leases": 0,
                 },
                 "board": {
                     "messages": int(board_row["messages"]),
                     "lastSequence": int(board_row["high"]),
                     "truthRole": "durable-collaboration-messages",
                 },
-                "deployment": {
-                    "status": "not-observed",
-                    "releaseId": None,
-                    "deployedRevision": None,
-                },
-                "continuity": {
-                    "active": tasks_by_state.get("open", 0),
-                    "terminal": terminal_count,
-                },
-                "recentActivity": [
-                    {
-                        "taskId": row["task_id"],
-                        "revision": int(row["revision"]),
-                        "eventKind": row["event_type"],
-                        "recordedAtMs": int(row["created_at"].timestamp() * 1000),
-                        "ageMs": max(0, observed_at_ms - int(row["created_at"].timestamp() * 1000)),
-                        "payloadDigest": row["checkpoint_digest"],
-                        "causedByEventId": None,
-                        "currentState": row["state"],
-                    }
-                    for row in recent_rows
-                ],
                 "doctor": doctor,
                 "truthBoundary": {
-                    "host": "authoritative for Host-v2 PostgreSQL continuity and collaboration state",
-                    "deployment": "not observed by the Host-v2 semantic core",
-                    "runtime": "not checked; Runtime remains independent physical authority",
+                    "host": (
+                        "authoritative only for Host-v2 PostgreSQL continuity and collaboration state; "
+                        "Runtime, Git, deployment, and domain truth are not checked"
+                    )
                 },
             }
 

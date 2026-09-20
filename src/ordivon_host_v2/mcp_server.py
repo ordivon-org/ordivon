@@ -48,10 +48,9 @@ def build_server(dsn: str | None = None) -> MCPServer:
     @mcp.tool(name="host.status")
     def host_status(
         detail: Literal["summary", "integrity", "history"] = "summary",
-        recentLimit: int = 5,
     ) -> HostStatusResponse:
         """Report PostgreSQL-native Host-v2 authority and bounded integrity status."""
-        return service.status(detail=detail, recent_limit=recentLimit)
+        return service.status(detail=detail)
 
     @mcp.tool(name="attention.delta")
     def attention_delta(afterSequence: int, limit: int = 100) -> AttentionResponse:
