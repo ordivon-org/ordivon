@@ -7100,6 +7100,163 @@ fn attempt_supervisor_owner_storage_is_recreated_without_advancing_schema_versio
 }
 
 #[test]
+fn native_windows_runtime_release_requires_elevated_broker_context() {
+    let sandbox = Sandbox::new("windows-runtime-release-elevated", 5_000);
+    let release_request = RuntimeReleaseRequest {
+        schema_version: RUNTIME_SCHEMA_VERSION,
+        client_request_id: "request:windows-runtime-release-elevated".to_string(),
+        principal: "principal:test".to_string(),
+        workspace_id: "workspace:test".to_string(),
+        commit: "b".repeat(40),
+        candidate_manifest_digest: digest(b"windows-candidate-manifest"),
+        expected_tool_count: 23,
+    };
+    let request_digest = runtime_release_request_identity_digest(&release_request).unwrap();
+    let effect_id = runtime_release_effect_id(&release_request);
+    let binding = RuntimeReleaseEffectBinding {
+        contract: RuntimeReleaseContract::RuntimeReleaseV1,
+        effect_id: effect_id.clone(),
+        request_digest: request_digest.clone(),
+        workspace_id: release_request.workspace_id.clone(),
+        commit: release_request.commit.clone(),
+        candidate_manifest_digest: release_request.candidate_manifest_digest.clone(),
+        expected_tool_count: release_request.expected_tool_count,
+        receipt_path: sandbox
+            .root
+            .join(format!("effect-{effect_id}"))
+            .to_string_lossy()
+            .into_owned(),
+    };
+    let mut submission = request(&sandbox, &release_request.client_request_id, 4);
+    submission.request_identity_digest = Some(request_digest);
+    submission.runtime_release_effect = Some(binding.clone());
+    submission.plan.execution_target = ExecutionTarget::WindowsNative;
+    submission.plan.windows_authority = WindowsAuthority::Elevated;
+    submission.plan.windows_execution_context = Some(WindowsExecutionContext {
+        token_class: WindowsTokenClass::Elevated,
+        token_user_sid: "S-1-5-18".to_string(),
+        environment_source: "windows_privileged_broker_profile_allowlist_v1".to_string(),
+        privileged_broker_digest: Some(digest(b"privileged-broker")),
+    });
+    submission.execution_provider = Some(ExecutionProviderSnapshot {
+        contract: ExecutionProviderContract::WindowsNativeLauncherV1,
+        executable_digest: digest(b"windows-launcher"),
+        wsl_distribution: None,
+    });
+
+    let created = created(sandbox.registry.submit(&submission).unwrap());
+    assert_eq!(
+        sandbox
+            .registry
+            .runtime_release_effect_for_job(&created.job.job_id)
+            .unwrap(),
+        Some(binding)
+    );
+}
+
+#[test]
+fn native_windows_runtime_release_rejects_limited_authority() {
+    let sandbox = Sandbox::new("windows-runtime-release-limited", 5_000);
+    let release_request = RuntimeReleaseRequest {
+        schema_version: RUNTIME_SCHEMA_VERSION,
+        client_request_id: "request:windows-runtime-release-limited".to_string(),
+        principal: "principal:test".to_string(),
+        workspace_id: "workspace:test".to_string(),
+        commit: "c".repeat(40),
+        candidate_manifest_digest: digest(b"windows-candidate-manifest-limited"),
+        expected_tool_count: 23,
+    };
+    let request_digest = runtime_release_request_identity_digest(&release_request).unwrap();
+    let effect_id = runtime_release_effect_id(&release_request);
+    let binding = RuntimeReleaseEffectBinding {
+        contract: RuntimeReleaseContract::RuntimeReleaseV1,
+        effect_id,
+        request_digest: request_digest.clone(),
+        workspace_id: release_request.workspace_id.clone(),
+        commit: release_request.commit.clone(),
+        candidate_manifest_digest: release_request.candidate_manifest_digest.clone(),
+        expected_tool_count: release_request.expected_tool_count,
+        receipt_path: sandbox
+            .root
+            .join("effect-limited")
+            .to_string_lossy()
+            .into_owned(),
+    };
+    let mut submission = request(&sandbox, &release_request.client_request_id, 4);
+    submission.request_identity_digest = Some(request_digest);
+    submission.runtime_release_effect = Some(binding);
+    submission.plan.execution_target = ExecutionTarget::WindowsNative;
+    submission.plan.windows_authority = WindowsAuthority::Limited;
+    submission.plan.windows_execution_context = Some(WindowsExecutionContext {
+        token_class: WindowsTokenClass::Limited,
+        token_user_sid: "S-1-5-21-test-1001".to_string(),
+        environment_source: "windows_user_machine_profile_allowlist_v1".to_string(),
+        privileged_broker_digest: None,
+    });
+    submission.execution_provider = Some(ExecutionProviderSnapshot {
+        contract: ExecutionProviderContract::WindowsNativeLauncherV1,
+        executable_digest: digest(b"windows-launcher"),
+        wsl_distribution: None,
+    });
+
+    let error = sandbox.registry.submit(&submission).unwrap_err();
+    assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
+    assert_eq!(error.field.as_deref(), Some("plan.windowsAuthority"));
+}
+
+#[test]
+fn native_windows_runtime_release_rejects_missing_broker_digest() {
+    let sandbox = Sandbox::new("windows-runtime-release-missing-broker", 5_000);
+    let release_request = RuntimeReleaseRequest {
+        schema_version: RUNTIME_SCHEMA_VERSION,
+        client_request_id: "request:windows-runtime-release-missing-broker".to_string(),
+        principal: "principal:test".to_string(),
+        workspace_id: "workspace:test".to_string(),
+        commit: "d".repeat(40),
+        candidate_manifest_digest: digest(b"windows-candidate-manifest-missing-broker"),
+        expected_tool_count: 23,
+    };
+    let request_digest = runtime_release_request_identity_digest(&release_request).unwrap();
+    let binding = RuntimeReleaseEffectBinding {
+        contract: RuntimeReleaseContract::RuntimeReleaseV1,
+        effect_id: runtime_release_effect_id(&release_request),
+        request_digest: request_digest.clone(),
+        workspace_id: release_request.workspace_id.clone(),
+        commit: release_request.commit.clone(),
+        candidate_manifest_digest: release_request.candidate_manifest_digest.clone(),
+        expected_tool_count: release_request.expected_tool_count,
+        receipt_path: sandbox
+            .root
+            .join("effect-missing-broker")
+            .to_string_lossy()
+            .into_owned(),
+    };
+    let mut submission = request(&sandbox, &release_request.client_request_id, 4);
+    submission.request_identity_digest = Some(request_digest);
+    submission.runtime_release_effect = Some(binding);
+    submission.plan.execution_target = ExecutionTarget::WindowsNative;
+    submission.plan.windows_authority = WindowsAuthority::Elevated;
+    submission.plan.windows_execution_context = Some(WindowsExecutionContext {
+        token_class: WindowsTokenClass::Elevated,
+        token_user_sid: "S-1-5-18".to_string(),
+        environment_source: "windows_privileged_broker_profile_allowlist_v1".to_string(),
+        privileged_broker_digest: None,
+    });
+    submission.execution_provider = Some(ExecutionProviderSnapshot {
+        contract: ExecutionProviderContract::WindowsNativeLauncherV1,
+        executable_digest: digest(b"windows-launcher"),
+        wsl_distribution: None,
+    });
+
+    let error = sandbox.registry.submit(&submission).unwrap_err();
+    assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
+    assert_eq!(
+        error.field.as_deref(),
+        Some("plan.windowsExecutionContext.privilegedBrokerDigest")
+    );
+}
+
+#[test]
 fn runtime_release_effect_binds_operation_and_receipt_truth_overrides_job_progress() {
     let sandbox = Sandbox::new("runtime-release-effect", 5_000);
     let runtime = Runtime::new(runtime_config(&sandbox)).unwrap();
