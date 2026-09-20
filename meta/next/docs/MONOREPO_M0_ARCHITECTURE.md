@@ -96,16 +96,27 @@ M0 does not adopt Nx Conformance as the cross-language architecture owner becaus
 
 ### 4.4 uv project isolation
 
-uv workspaces intentionally share one lockfile and require compatible workspace members. Official uv guidance says workspaces are not suitable when members require incompatible requirements or separate virtual environments.
+uv workspaces intentionally share one lockfile and one resolution domain. Ordivon owners have independent dependency graphs, acceptance surfaces, release lifecycles, and environment rollback needs even when they currently target the same Python release.
 
-Current Ordivon reality includes at least:
+Harness has now independently passed its full owner acceptance on Python `3.14.7`, so the former Harness-3.12-versus-3.14 incompatibility is no longer an architectural premise.
 
-- Harness: Python `>=3.12,<3.13`;
-- Host/Workstation/Security/Artifact/Distribution/Research/Media/Capital: Python `==3.14.7`.
+Therefore **there will be no root uv workspace in M0**. Each Python owner retains its own `pyproject.toml`, `uv.lock`, exact accepted interpreter pin, and project environment. Common runtime currency does not imply common dependency resolution.
 
-Therefore **there will be no root uv workspace in M0**. Each Python owner retains its own `pyproject.toml`, `uv.lock`, Python requirement, and project environment.
+### 4.5 language runtime currency
 
-### 4.5 mise as thin monorepo task navigation
+Ordivon uses a **latest-stable-by-default** language runtime policy.
+
+1. Resolve the latest stable release from the language's official upstream authority at upgrade time.
+2. Pre-release, beta, RC, nightly, and experimental channels are not the default.
+3. After owner-native acceptance succeeds, pin the exact accepted patch/toolchain version in that owner's environment and CI.
+4. Upgrade owner-by-owner; a repository-wide flag day is not required.
+5. An older runtime may remain only when a concrete incompatibility is reproduced. The exception must name the blocker, affected owner, temporary version, and exit condition.
+6. A newer stable runtime exposing latent warnings, deprecations, resource leaks, or dependency drift is treated as useful migration evidence to fix, not as a reason to remain indefinitely on the old runtime.
+7. Sharing the same runtime version never implies sharing one virtual environment, lockfile, release, or rollback boundary.
+
+At the M0 acceptance point, Harness has an accepted Python `3.14.7` migration candidate (`88452cf9a4a4844095f49c6c5fa389345ef7bbd0`). Future Python, Node.js, Rust, and other language upgrades apply the same rule using their own official release authorities and owner-native acceptance.
+
+### 4.6 mise as thin monorepo task navigation
 
 mise supports explicit monorepo config roots, project-local tools/environments/tasks, path-qualified task execution, and affected-task selection.
 
@@ -122,7 +133,7 @@ lockfile = false
 
 No root task may silently replace an owner's native build graph.
 
-### 4.6 GitHub path ownership and protected integration
+### 4.7 GitHub path ownership and protected integration
 
 Use GitHub-native CODEOWNERS, rulesets, status checks, and reusable workflows rather than creating an Ordivon review/ownership platform.
 
@@ -226,7 +237,7 @@ The root must not introduce:
 | `ordivon-next` | `meta/next` | import cleaned main history |
 | `ordivon-runtime` | `services/runtime` | import main history; keep Rust/Cargo release boundary |
 | `ordivon-host-v2` | `services/host` | import main history; keep PostgreSQL/Alembic/service release |
-| `ordivon-harness` | `services/harness` | import stable main unchanged unless reduction has already been independently accepted; reapply diverged reduction as a separate semantic CL |
+| `ordivon-harness` | `services/harness` | import accepted Python 3.14.7 candidate `88452cf9`; keep capability-island reduction as a separate semantic CL |
 | `ordivon-workstation-v2` | `platform/workstation` | import stable main unchanged; reapply diverged carrier retirement separately |
 | `ordivon-network-v2` | `platform/network` | deliver Browserless lifecycle decoupling before import |
 | `ordivon-security-v2` | `platform/security` | direct low-risk import candidate |
@@ -274,12 +285,13 @@ Artifact, Media, Distribution, Research, Game, Capital, and each Paper retain th
 
 1. No root `pyproject.toml` merely to aggregate all Python projects.
 2. No root `uv.lock`.
-3. Each Python project retains its own `.python-version` where present.
-4. Each Python project retains its own `.venv` semantics.
-5. Runtime retains its existing Cargo workspace and `Cargo.lock` inside `services/runtime`; M0 does not create a root Cargo workspace.
-6. Media and Game retain independent pnpm workspace/lockfiles in M0. A unified Node workspace is a later evidence-driven decision only.
-7. mise may select tools and invoke owner-native commands, but must not replace the package manager or build system.
-8. A root dependency cache is an optimization only and may not become a dependency authority.
+3. Each Python project retains its own `.python-version` or equivalent exact accepted interpreter pin.
+4. Each Python project retains its own `.venv` semantics and lockfile even when multiple owners use the same latest stable Python.
+5. Every language owner targets the latest stable upstream runtime/toolchain by default and records any temporary exception with a blocker and exit condition.
+6. Runtime retains its existing Cargo workspace and `Cargo.lock` inside `services/runtime`; M0 does not create a root Cargo workspace.
+7. Media and Game retain independent pnpm workspace/lockfiles in M0. Common Node.js currency does not require one pnpm workspace.
+8. mise may select tools and invoke owner-native commands, but must not replace the package manager or build system.
+9. A root dependency cache is an optimization only and may not become a dependency authority.
 
 ## 10. Dependency-boundary laws
 
@@ -324,6 +336,15 @@ sha256sum /root/ordivon-migration-backups/2026-09-20/NAME.bundle
 ```
 
 This bundle preserves branch/tag history even though M0 imports only the cleaned main lineage into the active monorepo.
+
+A Git bundle contains reachable Git objects/refs; it does **not** preserve the working tree, index, stash, or untracked files. Therefore any non-clean source must also receive a pre-migration dirty-state capsule before any cleanup or rewrite:
+
+- exact `git status --porcelain=v1`;
+- `git diff --binary` for unstaged tracked changes;
+- `git diff --cached --binary` for staged tracked changes;
+- an explicit manifest and byte-preserving archive for untracked files that are not rebuildable/ignored.
+
+The capsule is temporary migration evidence. It never authorizes applying the dirty delta to the monorepo.
 
 ### 11.3 Rewrite on a disposable clone
 
@@ -587,7 +608,7 @@ Old source repository/path may become read-only/retired only after:
 
 M0 will not:
 
-- unify Python versions;
+- force language owners into one shared runtime environment merely because they target the same latest stable version;
 - unify uv lockfiles;
 - create a root Python package;
 - create a root Cargo workspace;
