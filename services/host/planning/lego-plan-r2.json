@@ -1,0 +1,608 @@
+{
+  "schemaVersion": 2,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-host-v2",
+    "purpose": "Preserve durable semantic continuity, collaboration records, replay-safe mutation identity, and exact re-entry coordinates without becoming scheduler, priority authority, Agent identity authority, Runtime proxy, deployment truth, or domain truth.",
+    "sourceEvidence": [
+      "README.md",
+      "docs/HOST_V2_R5_PRODUCTION_CUTOVER.md",
+      "docs/HOST_V2_R6_CLEANUP.md",
+      "planning/lego-plan-r1.json"
+    ]
+  },
+  "kernelLaws": [
+    {
+      "id": "KL1",
+      "law": "Host may remember a claim; Host must not silently promote it into foreign truth."
+    },
+    {
+      "id": "KL2",
+      "law": "A Host projection may recommend exact re-entry; it must not grant foreign authority, priority, ownership, assignment, or execution admission."
+    },
+    {
+      "id": "KL3",
+      "law": "Continuity identity and revision semantics must survive implementation replacement; storage, search, cursor encoding, transport, and language are replaceable."
+    }
+  ],
+  "nodes": [
+    {
+      "id": "H01",
+      "label": "TaskLedger",
+      "kind": "authority_kernel",
+      "responsibility": "Own Host Task identity, Host-local lifecycle state, and exact current revision.",
+      "authority": "Host",
+      "state": "IMPLEMENTED",
+      "mustNotOwn": [
+        "domain completion",
+        "priority",
+        "assignee",
+        "Runtime currentness"
+      ]
+    },
+    {
+      "id": "H02",
+      "label": "CheckpointHistory",
+      "kind": "authority_kernel",
+      "responsibility": "Persist revisioned semantic working claims with canonical digest and writer provenance.",
+      "authority": "Host persistence truth only",
+      "state": "IMPLEMENTED",
+      "mustNotOwn": [
+        "truth of checkpoint semantic claims",
+        "foreign owner currentness"
+      ]
+    },
+    {
+      "id": "H03",
+      "label": "CommandReceipt",
+      "kind": "authority_kernel",
+      "responsibility": "Bind replay identity to exact mutation request digest and committed response.",
+      "authority": "Host",
+      "state": "IMPLEMENTED",
+      "mustNotOwn": [
+        "external effect idempotency"
+      ]
+    },
+    {
+      "id": "H04",
+      "label": "BoardLog",
+      "kind": "authority_kernel",
+      "responsibility": "Persist collaboration records, reply edges, message identity, and sequence.",
+      "authority": "Host persistence truth only",
+      "state": "IMPLEMENTED",
+      "mustNotOwn": [
+        "authenticated author identity",
+        "message factual truth",
+        "task priority"
+      ]
+    },
+    {
+      "id": "H05",
+      "label": "TaskRouteIndex",
+      "kind": "interface",
+      "responsibility": "Bind one deterministic canonical Board coordinate to one exact Host Task identity.",
+      "authority": "Host-local coordinate binding",
+      "state": "IMPLEMENTED",
+      "mustNotOwn": [
+        "delegation",
+        "delivery",
+        "consumption",
+        "ownership"
+      ]
+    },
+    {
+      "id": "H06",
+      "label": "ReentryProjection",
+      "kind": "projection",
+      "responsibility": "Project bounded Board deltas and reply ancestry into exact Task re-entry instructions.",
+      "authority": "non-authoritative projection",
+      "state": "IMPLEMENTED",
+      "mustNotOwn": [
+        "inbox state",
+        "unread state",
+        "priority",
+        "work admission"
+      ]
+    },
+    {
+      "id": "H07",
+      "label": "TaskInventoryProjection",
+      "kind": "projection",
+      "responsibility": "Provide bounded Task discovery while preserving task.resume as exact semantic hydration boundary.",
+      "authority": "non-authoritative projection",
+      "state": "IMPLEMENTED_WITH_R7_CONTRACTION_CANDIDATE",
+      "mustNotOwn": [
+        "full checkpoint duplication in inventory",
+        "priority"
+      ]
+    },
+    {
+      "id": "H08",
+      "label": "SearchProjection",
+      "kind": "projection",
+      "responsibility": "Return lexical Board navigation candidates with explicit source snapshot bounds.",
+      "authority": "non-authoritative projection",
+      "state": "IMPLEMENTED",
+      "mustNotOwn": [
+        "negative-result completeness",
+        "truth ranking"
+      ]
+    },
+    {
+      "id": "H09",
+      "label": "ContinuityClaimContract",
+      "kind": "contract",
+      "responsibility": "Validate the stable WorkingCheckpoint envelope and bounded patch semantics without interpreting caller claims as Host verdicts.",
+      "authority": "Host write-boundary schema only",
+      "state": "IMPLEMENTED",
+      "mustNotOwn": [
+        "scheduler semantics",
+        "owner verdicts",
+        "automatic wake execution"
+      ]
+    },
+    {
+      "id": "H10",
+      "label": "CursorContract",
+      "kind": "utility_contract",
+      "responsibility": "Provide scope-bound incremental traversal coordinates whose encoding remains replaceable.",
+      "authority": "query continuity only",
+      "state": "IMPLEMENTED_LOCALLY_SHARED_CANDIDATE",
+      "mustNotOwn": [
+        "semantic currentness"
+      ]
+    },
+    {
+      "id": "H11",
+      "label": "CanonicalDigest",
+      "kind": "utility",
+      "responsibility": "Provide RFC8785 canonical JSON digest identity for retained semantic envelopes.",
+      "authority": "mechanical identity",
+      "state": "IMPLEMENTED",
+      "mustNotOwn": [
+        "semantic truth"
+      ]
+    },
+    {
+      "id": "H12",
+      "label": "IntegrityProjection",
+      "kind": "observability",
+      "responsibility": "Check Host-owned PostgreSQL invariants and retained-history coherence.",
+      "authority": "Host-local integrity only",
+      "state": "IMPLEMENTED",
+      "mustNotOwn": [
+        "deployment identity",
+        "Runtime health",
+        "domain health"
+      ]
+    },
+    {
+      "id": "H13",
+      "label": "MCPAdapter",
+      "kind": "adapter",
+      "responsibility": "Expose typed Host contracts over MCP without becoming semantic authority.",
+      "authority": "transport adapter",
+      "state": "IMPLEMENTED",
+      "mustNotOwn": [
+        "domain policy"
+      ]
+    },
+    {
+      "id": "H14",
+      "label": "NewsPublication",
+      "kind": "optional_bounded_context",
+      "responsibility": "Persist revisioned external-news publication envelopes and source pointers.",
+      "authority": "publication bytes only",
+      "state": "IMPLEMENTED_SEPARATION_CANDIDATE",
+      "mustNotOwn": [
+        "external-world truth",
+        "Host continuity kernel semantics"
+      ]
+    },
+    {
+      "id": "H15",
+      "label": "PostgresAuthority",
+      "kind": "substrate",
+      "responsibility": "Provide durable transactional storage for Host-owned objects.",
+      "authority": "physical Host persistence",
+      "state": "IMPLEMENTED",
+      "mustNotOwn": [
+        "Runtime ledger"
+      ]
+    },
+    {
+      "id": "H16",
+      "label": "AlembicMigration",
+      "kind": "substrate",
+      "responsibility": "Exclusively own Host schema creation and migration history.",
+      "authority": "schema evolution",
+      "state": "IMPLEMENTED",
+      "mustNotOwn": [
+        "runtime semantic migration decisions"
+      ]
+    },
+    {
+      "id": "H17",
+      "label": "ReleaseIdentity",
+      "kind": "external_ops_authority",
+      "responsibility": "Bind installed immutable Git-SHA release identity outside the Host semantic core.",
+      "authority": "release/ops layer",
+      "state": "PARTIALLY_OBSERVED_EXTERNALLY",
+      "mustNotOwn": [
+        "Task/domain truth"
+      ]
+    },
+    {
+      "id": "H18",
+      "label": "CurrentnessProjection",
+      "kind": "experimental_projection",
+      "responsibility": "Compare recorded currentness bases with explicit owner-supplied observations without fetching or owning foreign state.",
+      "authority": "none; recommendation only",
+      "state": "EXPERIMENTAL_NOT_MAIN_NOT_DEPLOYED",
+      "mustNotOwn": [
+        "owner state",
+        "lease authority",
+        "automatic invalidation",
+        "work admission"
+      ]
+    }
+  ],
+  "graphs": {
+    "task": [
+      "H01",
+      "H02",
+      "H03",
+      "H04",
+      "H05",
+      "H14"
+    ],
+    "dependency": [
+      [
+        "H15",
+        "H01"
+      ],
+      [
+        "H15",
+        "H02"
+      ],
+      [
+        "H15",
+        "H03"
+      ],
+      [
+        "H15",
+        "H04"
+      ],
+      [
+        "H15",
+        "H14"
+      ],
+      [
+        "H04",
+        "H05"
+      ],
+      [
+        "H04",
+        "H06"
+      ],
+      [
+        "H05",
+        "H06"
+      ],
+      [
+        "H01",
+        "H06"
+      ],
+      [
+        "H01",
+        "H07"
+      ],
+      [
+        "H04",
+        "H08"
+      ],
+      [
+        "H09",
+        "H02"
+      ],
+      [
+        "H10",
+        "H07"
+      ],
+      [
+        "H10",
+        "H14"
+      ],
+      [
+        "H11",
+        "H02"
+      ],
+      [
+        "H11",
+        "H03"
+      ],
+      [
+        "H11",
+        "H04"
+      ],
+      [
+        "H12",
+        "H15"
+      ],
+      [
+        "H13",
+        "H01"
+      ],
+      [
+        "H13",
+        "H04"
+      ],
+      [
+        "H13",
+        "H14"
+      ]
+    ],
+    "authority": [
+      "H01",
+      "H02",
+      "H03",
+      "H04",
+      "H05",
+      "H09",
+      "H12",
+      "H14",
+      "H15",
+      "H16",
+      "H17",
+      "H18"
+    ],
+    "evidence": [
+      "H02",
+      "H03",
+      "H04",
+      "H05",
+      "H11",
+      "H12",
+      "H16",
+      "H17"
+    ],
+    "resource": [
+      "H07",
+      "H08",
+      "H10",
+      "H13",
+      "H15"
+    ],
+    "outcome": [
+      "M01",
+      "M02",
+      "M03",
+      "M04",
+      "M05",
+      "M06"
+    ],
+    "temporal": [
+      "H01",
+      "H02",
+      "H04",
+      "H10",
+      "H14",
+      "H16",
+      "H17"
+    ],
+    "coordination": [
+      "H04",
+      "H05",
+      "H06",
+      "H13"
+    ],
+    "feedback": [
+      "F01"
+    ]
+  },
+  "claimOnlyFields": {
+    "workStanding": {
+      "standing": "WIDELY_PRESENT_CLAIM_DATA_SEMANTIC_SUBTRACTION_CANDIDATE",
+      "mainRuntimeConsumersObserved": 0,
+      "fields": [
+        "attention",
+        "executionAdmission",
+        "valueNow",
+        "progress",
+        "lineage",
+        "relatedTaskIds",
+        "blockerKinds",
+        "wake",
+        "carrier"
+      ],
+      "rule": "No production/runtime consumer code was found, but workStanding is present in 233/266 current non-terminal checkpoints. Treat Host interpretation/control semantics as subtraction candidates; do not delete the persisted envelope without a migration/compatibility proof.",
+      "crossRepositorySourceConsumersObserved": 0,
+      "crossRepositoryNonRuntimeOccurrences": [
+        "ordivon-paper1-emse-r3-frozen eval fixtures",
+        "ordivon-research-v2 eval fixtures"
+      ],
+      "liveOpenTaskCensus": {
+        "observedNonTerminalTasks": 266,
+        "schemaV1": 33,
+        "schemaV2WithWorkStanding": 233,
+        "shareWithWorkStanding": 0.8759398496,
+        "attention": {
+          "ACTIVE": 105,
+          "HOLD": 15,
+          "WAIT": 82,
+          "BACKGROUND": 30,
+          "NONE": 1
+        },
+        "executionAdmission": {
+          "ADMITTED_NOW": 98,
+          "REENTRY_REQUIRED": 58,
+          "BLOCKED": 66,
+          "NOT_APPLICABLE": 11
+        },
+        "valueNow": {
+          "POSITIVE_VALUE_NOW": 136,
+          "NO_POSITIVE_VALUE_NOW": 97
+        },
+        "progress": {
+          "OPEN_FRONTIER": 159,
+          "LOCALLY_COMPLETE": 51,
+          "SATURATED": 23
+        },
+        "lineage": {
+          "SELF_STANDING": 231,
+          "SUPERSEDED": 1,
+          "SUBSUMED": 1
+        },
+        "wakeMode": {
+          "NONE": 80,
+          "ANY": 149,
+          "ALL": 4
+        },
+        "carrier": {
+          "RETAIN": 208,
+          "CLOSE_CLEAN": 5,
+          "DIRTY_HANDOFF": 3,
+          "UNSPECIFIED": 17
+        },
+        "relatedTaskEdges": 470,
+        "wakeConditions": 430
+      },
+      "semanticContractionGuard": {
+        "runtimeConsumerOutsideCheckpointContract": false,
+        "roundTripPreserved": true,
+        "ordinaryPatchPreservesStanding": true,
+        "policyTestFile": "tests/test_contract_policy.py"
+      }
+    }
+  },
+  "measurements": [
+    {
+      "id": "M01",
+      "name": "reentry_success_rate",
+      "role": "outcome"
+    },
+    {
+      "id": "M02",
+      "name": "reentry_call_count",
+      "role": "cost"
+    },
+    {
+      "id": "M03",
+      "name": "reentry_payload_bytes_or_tokens",
+      "role": "cost"
+    },
+    {
+      "id": "M04",
+      "name": "stale_action_prevention_rate",
+      "role": "safety_outcome"
+    },
+    {
+      "id": "M05",
+      "name": "duplicate_work_rate",
+      "role": "negative_outcome"
+    },
+    {
+      "id": "M06",
+      "name": "unrouted_or_missing_route_rate",
+      "role": "coordination_outcome"
+    }
+  ],
+  "feedbackLoops": [
+    {
+      "id": "F01",
+      "name": "continuity_feedback_gain",
+      "chain": [
+        "better durable continuity",
+        "lower exact re-entry cost",
+        "less duplicated or stale work",
+        "longer effective agent continuity",
+        "better task outcomes",
+        "higher-quality checkpoints"
+      ],
+      "warning": "Task/message counts are activity metrics, not value metrics."
+    }
+  ],
+  "experiments": [
+    {
+      "id": "E01",
+      "name": "fresh-agent-reentry",
+      "status": "PASS",
+      "question": "Can a fresh Agent recover the correct frontier from bounded Host coordinates without hidden conversation state?",
+      "primaryMetrics": [
+        "M01",
+        "M02",
+        "M03",
+        "M04",
+        "M05"
+      ],
+      "finding": "E01a real Host mechanical replay matched task identity/revision/state/checkpoint digest for 8/8 sampled non-terminal Tasks. E01b frozen synthetic fresh-consumer A/B completed 24/24 provider calls: R6 full A and R7 compact B both achieved 12/12 exact task.resume selections; B reduced mean provider request bytes 54.45%, mean prompt tokens 46.10%, and request-token upper bound 54.00%.",
+      "evidence": [
+        "planning/host-e01a-real-reentry-r1.json",
+        "planning/host-e01-fresh-reentry-result-r1.json",
+        "docs/HOST_V2_E01_FRESH_REENTRY_PREREGISTRATION.md"
+      ],
+      "nextGate": "E01 outcome gate is satisfied for compact-read integration; preserve task.resume exact hydration and existing authority boundaries."
+    },
+    {
+      "id": "E02",
+      "name": "r6-vs-r7-compact-read",
+      "status": "INTEGRATED_CANDIDATE_VERIFIED_PENDING_RELEASE_REVIEW",
+      "candidate": "4dd46961180750a85cafb3bed4631a5b4f885a84",
+      "question": "Does compact task inventory materially reduce discovery cost while preserving exact task.resume semantics?",
+      "primaryMetrics": [
+        "M02",
+        "M03"
+      ],
+      "finding": "Compact-read resource, database, and fresh-consumer gates all pass. E01: 24/24 fresh-model calls completed with 12/12 exact resume selection in both R6-full and R7-compact arms; compact reduced mean prompt tokens 46.10%. Integrated candidate then passed PostgreSQL 18.6 UTF-8 Alembic 0001->0004, 30/30 tests with zero skips, Ruff, diff check, and history Doctor.",
+      "nextGate": "Separate release/cutover review. Do not infer production deployment from candidate verification.",
+      "evidence": [
+        "planning/host-e02-compact-read-measurement-r1.json",
+        "planning/host-r7-integration-verification-r1.json"
+      ]
+    },
+    {
+      "id": "E03",
+      "name": "work-standing-consumer-census",
+      "status": "SEMANTIC_CONTRACTION_GUARD_PASS",
+      "finding": "Current Host runtime already does not consume workStanding outside checkpoint_contract. Executable policy tests now enforce that no runtime module reads workStanding, v2 claims round-trip, and ordinary checkpoint patches preserve standing bytes.",
+      "nextGate": "Keep v2 envelope compatibility. Revisit physical schema migration only if a later measured simplification benefit exceeds migration cost."
+    },
+    {
+      "id": "E04",
+      "name": "currentness-destroyer",
+      "status": "EXPERIMENTAL_BRANCH_ONLY",
+      "question": "Do stale, missing, future-dated, and conflicting owner observations fail closed to UNKNOWN/REENTRY_REQUIRED without granting authority?"
+    },
+    {
+      "id": "E05",
+      "name": "news-separation",
+      "status": "READY_TO_DESIGN",
+      "question": "Can News be removed from the Host kernel model without breaking the continuity/collaboration/re-entry loop?"
+    },
+    {
+      "id": "E06",
+      "name": "feedback-observability",
+      "status": "READY_TO_DESIGN",
+      "question": "Can every Host change be evaluated against continuity outcome and cost rather than activity count?"
+    }
+  ],
+  "doNotOwn": [
+    "priority",
+    "assignee",
+    "scheduler",
+    "authenticated Agent identity",
+    "Runtime proxy",
+    "Git currentness",
+    "deployment truth",
+    "external-world truth",
+    "automatic domain completion"
+  ],
+  "review": {
+    "baseSourceRevision": "b5cf31f9a1d177576886fe545e870e685a80fc2e",
+    "planningSourceRevision": "ea8c29ae0f3781290de174345de1d86764f89809",
+    "updatedAt": "2026-09-18",
+    "standing": "R2_INITIAL",
+    "notes": "R2 upgrades the component list into authority/evidence/resource/outcome/temporal/coordination/feedback views. It does not mutate production semantics."
+  }
+}

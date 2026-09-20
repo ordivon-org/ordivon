@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.host-e01a-real-reentry-check",
+  "truthRole": "measurement-result-not-production-authority",
+  "observedAt": "2026-09-18",
+  "sample": "8 newest non-terminal live Host Tasks at check time",
+  "observedTaskCount": 8,
+  "allRevisionMatch": true,
+  "allDigestMatch": true,
+  "allStateMatch": true,
+  "rows": [
+    {
+      "taskId": "task:ordivon-marginal-agency-allocation-r1-20260918",
+      "goalId": "goal:ordivon-robust-agency-self-allocation",
+      "revision": 2,
+      "listDigest": "sha256:b79d3d78a9de0da11b3dbedf47869aef037372c2699bf2f0bc0d532dcd873d1d",
+      "resumeDigest": "sha256:b79d3d78a9de0da11b3dbedf47869aef037372c2699bf2f0bc0d532dcd873d1d",
+      "revisionMatch": true,
+      "digestMatch": true,
+      "stateMatch": true
+    },
+    {
+      "taskId": "task:ordivon-host-lego-r2-measurement-20260918",
+      "goalId": "goal:ordivon-host-lego-r2-measurement",
+      "revision": 4,
+      "listDigest": "sha256:1a4bdea527df80447fc961f46ae5ba1e1a59a50219f31ea34718351af2d98fa2",
+      "resumeDigest": "sha256:1a4bdea527df80447fc961f46ae5ba1e1a59a50219f31ea34718351af2d98fa2",
+      "revisionMatch": true,
+      "digestMatch": true,
+      "stateMatch": true
+    },
+    {
+      "taskId": "task:game-causal-lag-loop-r1-20260918",
+      "goalId": "goal:game-first-formal-product",
+      "revision": 1,
+      "listDigest": "sha256:7767eeeddc32971b8be43b88a300193ae736a4bbe8ebfd14398fac7158050eb4",
+      "resumeDigest": "sha256:7767eeeddc32971b8be43b88a300193ae736a4bbe8ebfd14398fac7158050eb4",
+      "revisionMatch": true,
+      "digestMatch": true,
+      "stateMatch": true
+    },
+    {
+      "taskId": "task:execution-fabric-r1-20260918",
+      "goalId": "goal:ordivon-execution-fabric",
+      "revision": 2,
+      "listDigest": "sha256:3223558fd935c4a4750508c604233486d5dfaacf0e3b70b7f9f6adce2d75c5ac",
+      "resumeDigest": "sha256:3223558fd935c4a4750508c604233486d5dfaacf0e3b70b7f9f6adce2d75c5ac",
+      "revisionMatch": true,
+      "digestMatch": true,
+      "stateMatch": true
+    },
+    {
+      "taskId": "task:game-pc01-e03-human-canary-r1-20260918",
+      "goalId": "goal:game-first-formal-product",
+      "revision": 1,
+      "listDigest": "sha256:18a199cd2fdf8ec1114c17e8465d5132882e9e13fa22d461abf02929f0589155",
+      "resumeDigest": "sha256:18a199cd2fdf8ec1114c17e8465d5132882e9e13fa22d461abf02929f0589155",
+      "revisionMatch": true,
+      "digestMatch": true,
+      "stateMatch": true
+    },
+    {
+      "taskId": "task:wsl-maintenance-preflight-r1-20260918",
+      "goalId": "goal:ordivon-wsl-maintenance-safe-restart",
+      "revision": 5,
+      "listDigest": "sha256:d5e004e811eb1c30f45a7d0482f6f315343c223fd58fd1197e569e1630ec3313",
+      "resumeDigest": "sha256:d5e004e811eb1c30f45a7d0482f6f315343c223fd58fd1197e569e1630ec3313",
+      "revisionMatch": true,
+      "digestMatch": true,
+      "stateMatch": true
+    },
+    {
+      "taskId": "task:security-skills-top3-integration-r1-20260917",
+      "goalId": "goal:ordivon-security-skill-hardening",
+      "revision": 16,
+      "listDigest": "sha256:e03475cc595703f4b0d30c7ff0ef9c5f4b4db60bc720c01a4f41300531fee703",
+      "resumeDigest": "sha256:e03475cc595703f4b0d30c7ff0ef9c5f4b4db60bc720c01a4f41300531fee703",
+      "revisionMatch": true,
+      "digestMatch": true,
+      "stateMatch": true
+    },
+    {
+      "taskId": "task:chaoxing-autosign-mvp-r2-20260917",
+      "goalId": "goal:chaoxing-autosign-assistant",
+      "revision": 1,
+      "listDigest": "sha256:3f6a755524abd9421dd06e92edee69c93be458f78711c79bb71752629dc7d9bb",
+      "resumeDigest": "sha256:3f6a755524abd9421dd06e92edee69c93be458f78711c79bb71752629dc7d9bb",
+      "revisionMatch": true,
+      "digestMatch": true,
+      "stateMatch": true
+    }
+  ]
+}
