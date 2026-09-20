@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/distribution/v2/effect-approval-request.schema.json",
+  "title": "Distribution v2 Exact Effect Approval Request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "requestId", "occurrenceRef", "provider", "accountRef", "effectName", "effectPayloadRef", "requestedAt", "expiresAt", "standing"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "requestId": {"type": "string", "minLength": 1},
+    "occurrenceRef": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "provider": {"type": "string", "minLength": 1},
+    "accountRef": {"type": "string", "minLength": 1},
+    "effectName": {"type": "string", "minLength": 1},
+    "effectPayloadRef": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "requestedAt": {"type": "string", "format": "date-time"},
+    "expiresAt": {"type": "string", "format": "date-time"},
+    "standing": {"const": "approval_required_no_effect_authority"}
+  }
+}

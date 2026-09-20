@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.distribution.external-composition",
+  "controlPlane": {
+    "orchestration": "existing-temporal-runtime",
+    "policyDecisionPoint": "opa",
+    "providerCatalogOwner": "external-provider-or-dispatch-substrate",
+    "providerTruthOwner": "provider-native-observation-boundary"
+  },
+  "lanes": [
+    {
+      "id": "social-content",
+      "defaultSubstrate": "postiz",
+      "fallback": "provider-native-thin-adapter",
+      "forbiddenLocalScaffolding": ["static-cross-provider-capability-catalog", "static-cross-provider-oauth-scope-table"]
+    },
+    {
+      "id": "file-object-cloud",
+      "defaultSubstrate": "rclone",
+      "fallback": "provider-native-tool-only-when-rclone-does-not-cover-required-semantics",
+      "forbiddenLocalScaffolding": ["generic-uploader", "generic-resume-engine", "generic-cloud-filesystem-abstraction"]
+    },
+    {
+      "id": "provider-native-api",
+      "defaultSubstrate": "openapi-generator",
+      "fallback": "thin-manual-adapter-when-no-usable-machine-readable-api-contract-exists",
+      "forbiddenLocalScaffolding": ["handwritten-generic-http-sdk-framework"]
+    },
+    {
+      "id": "software-store",
+      "defaultSubstrate": "provider-native-release-tooling",
+      "activatedLocalPreflight": "rclone-local-sync-plus-provider-config-static-validation",
+      "steamProvider": "SteamPipe/SteamCMD when a real AppID and account authority exist",
+      "forbiddenLocalScaffolding": ["generic-store-cdn", "custom-delta-updater", "custom-depot-manifest-system", "custom-store-branch-system"]
+    }
+  ],
+  "nonClaims": [
+    "local-preflight-is-provider-acceptance",
+    "occurrence-ref-is-provider-idempotency",
+    "postiz-dispatch-success-is-social-platform-publication-truth",
+    "workflow-success-is-external-consequence-success",
+    "steam-static-template-is-steampipe-preview"
+  ]
+}

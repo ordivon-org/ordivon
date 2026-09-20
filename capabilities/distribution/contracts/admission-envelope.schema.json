@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/distribution/v2/admission-envelope.schema.json",
+  "title": "Distribution v2 Admission Envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "intent", "providerObservation", "effectAuthority"],
+  "properties": {
+    "schemaVersion": {"const": 2},
+    "intent": {"$ref": "distribution-intent.schema.json"},
+    "providerObservation": {"$ref": "provider-observation.schema.json"},
+    "effectAuthority": {
+      "oneOf": [
+        {"type": "null"},
+        {"$ref": "effect-authority.schema.json"}
+      ]
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "adapterId": "rclone",
+  "substrate": "rclone",
+  "baseApiKind": "local-external-tool",
+  "operations": ["copy", "sync-when-explicitly-authorized", "check", "checksum-readback"],
+  "truthBoundary": "Transfer command success is not business/domain acceptance. Destination read-back/check evidence remains separate.",
+  "secrets": "rclone-native-config-or-external-secret-owner",
+  "orchestrationOwner": "existing-temporal-runtime"
+}

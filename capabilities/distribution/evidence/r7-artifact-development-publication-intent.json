@@ -1,0 +1,24 @@
+{
+  "artifact": {
+    "releaseReady": false,
+    "sha256": "sha256:2e5970e05bc8b823e9ca2f4fcaa2fa97de43b619c896c85afde92058fae0c9e9",
+    "sourceRef": "temporal-workflow:artifact-v2-source-authority-smoke-20260912-03/run/01a0940e-0343-75d4-9f42-1cfed2d930bd",
+    "trustStanding": "LOCAL_UNSIGNED_DEVELOPMENT"
+  },
+  "carrier": {
+    "accountRef": "repo:ordivon-org/ordivon-runtime",
+    "adapter": "github-release-write",
+    "provider": "github"
+  },
+  "effect": {
+    "name": "publish_artifact",
+    "payload": {
+      "assetDigest": "sha256:2e5970e05bc8b823e9ca2f4fcaa2fa97de43b619c896c85afde92058fae0c9e9",
+      "name": "artifact-v2-development-smoke",
+      "target": "release"
+    }
+  },
+  "intentId": "artifact-v2-source-authority-smoke-20260912-03-distribution",
+  "occurrenceRef": "sha256:62e1d2e764ea509d06f367600eca0cb47c0f86aa029ca661a54aae733e172595",
+  "schemaVersion": 2
+}

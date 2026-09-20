@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "observedOn": "2026-09-11",
+  "activated": {
+    "opa": {
+      "repo": "https://github.com/open-policy-agent/opa.git",
+      "revision": "8ce961d78fc6398ff25be63aa087d628c65927d2",
+      "release": "v1.20.2",
+      "containerImage": "docker.io/openpolicyagent/opa:1.20.2-static",
+      "containerDigest": "sha256:9c5770a0023d56a11224b0514fec2e4e0247357db4392b955c1270fd49cb1f0f",
+      "role": "policy-decision-point"
+    },
+    "postiz": {
+      "repo": "https://github.com/gitroomhq/postiz-app.git",
+      "revision": "36d5fc7b3ac3f17178b1589cf7a7337523017a41",
+      "role": "social-content-dispatch-service"
+    },
+    "openapi-generator": {
+      "repo": "https://github.com/OpenAPITools/openapi-generator.git",
+      "revision": "55059f7548176f5b1e2b9dd6cbe1c1e613474744",
+      "stableRelease": "v7.24.0",
+      "containerImage": "docker.io/openapitools/openapi-generator-cli:v7.24.0",
+      "containerDigest": "sha256:5bf3dc75f764c584da8e3344c51b2f3f1e74703461d46a035b5ac1d31515cc88",
+      "role": "provider-client-generation"
+    },
+    "rclone": {
+      "repo": "https://github.com/rclone/rclone.git",
+      "revision": "c3ba184611c3356acef327c5a42d530564f68466",
+      "observedLocalVersion": "v1.75.0",
+      "upstreamLatestObserved": "v1.75.1",
+      "role": "file-object-cloud-transfer"
+    }
+  },
+  "availableNotActivatedR1": {
+    "cloudevents": {"repo":"https://github.com/cloudevents/spec.git","revision":"2ed3806b4ad8fda35813263cfefb2d73098b7655"},
+    "in-toto-attestation": {"repo":"https://github.com/in-toto/attestation.git","revision":"2dcd055e9f72e746687c306e35f4e59720ff45be"},
+    "cosign": {"repo":"https://github.com/sigstore/cosign.git","revision":"633e8f4303b7db64c369bdfa315374a8bd511ac6"},
+    "tuf-spec": {"repo":"https://github.com/theupdateframework/specification.git","revision":"59e601ed29c0d2e497264ae8b31c11b8ef07df1e"},
+    "oras": {"repo":"https://github.com/oras-project/oras.git","revision":"d0da4a96a6893d2e7f44ea60a8f317a2fcce1cf9"},
+    "harbor": {"repo":"https://github.com/goharbor/harbor.git","revision":"95b28b3cd48e30c1d357f646d398fc8c7919f901"},
+    "argo-rollouts": {"repo":"https://github.com/argoproj/argo-rollouts.git","revision":"910c61ffa5db28c5fdae7593e48c01c405f019c9"}
+  }
+}

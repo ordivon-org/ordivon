@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.distribution.v2.r2-validation",
+  "observedOn": "2026-09-11",
+  "standing": "R2_AUTHORITY_BOUND_ADMISSION_AND_READ_POSITIVE_CONTROL_PROVEN",
+  "writeStanding": "NOT_ADMITTED",
+  "results": {
+    "authorityBoundAdmission": {
+      "status": "PASS",
+      "cases": 13,
+      "runtimeJobId": "job-01a0903b-fc02-77a0-8e09-1525d1a76d67",
+      "stdoutDigest": "sha256:d3e89f00ae094ea1a6eb2b2e2bf48ca1a960329f8c4406ec2a1f17bd26fbd2e8"
+    },
+    "githubProviderNativeHistoricalRead": {
+      "status": "PASS",
+      "runtimeJobId": "job-01a0903a-a31d-7fa3-a37a-106e9a19fd8b",
+      "runtimeArtifactId": "attempt-01a0903a-a31d-7fa3-a37a-10710644cabd.stdout",
+      "runtimeArtifactDigest": "sha256:c45a97fc68b8849dc95d39a5a1c27b5eebe89015b3faf8832c5d8005fd207437",
+      "providerObject": "open-policy-agent/opa",
+      "effect": "read_repository"
+    },
+    "rcloneLocalCopyCheck": "PASS",
+    "postizAuthenticatedSurfaceBoundary": "PASS_HTTP_401",
+    "openapiGeneratorFixture": "PASS"
+  },
+  "hardGates": [
+    "json-schema-intent-validation",
+    "rfc8785-occurrence-recomputation",
+    "provider-observation-digest-and-binding",
+    "provider-observation-validity-window",
+    "effect-authority-digest-and-binding",
+    "effect-authority-validity-window",
+    "provider-derived-effect-mode",
+    "opa-over-normalized-input-only"
+  ],
+  "nonClaims": [
+    "no real external write was performed",
+    "no authenticated GitHub account authority was established",
+    "sourceRef provenance is externally evidenced by Runtime but not yet verified in-band by admission.py",
+    "historical GitHub read success is not permanent provider-currentness",
+    "Postiz HTTP 401 is not provider publication evidence",
+    "rclone local copy/check is not remote-provider acceptance",
+    "R2 does not establish safe retry or unknown-outcome reconciliation"
+  ],
+  "nextGate": "Runtime-native source/authority resolution followed by a bounded write-capable lane only after explicit effect authority; then ambiguous-outcome reconciliation before v1 deletion"
+}

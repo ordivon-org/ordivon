@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/distribution/v2/effect-authority.schema.json",
+  "title": "Distribution v2 Exact Effect Authority",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "authorityRef", "occurrenceRef", "principalRef", "provider", "accountRef", "effectName", "decision", "issuedAt", "validUntil", "sourceRef"],
+  "properties": {
+    "schemaVersion": {"const": 2},
+    "authorityRef": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "occurrenceRef": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "principalRef": {"type": "string", "minLength": 1},
+    "provider": {"type": "string", "minLength": 1},
+    "accountRef": {"type": "string", "minLength": 1},
+    "effectName": {"type": "string", "minLength": 1},
+    "decision": {"enum": ["grant", "deny"]},
+    "issuedAt": {"type": "string", "format": "date-time"},
+    "validUntil": {"type": "string", "format": "date-time"},
+    "sourceRef": {"type": "string", "minLength": 1}
+  }
+}

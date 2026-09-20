@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/distribution/v2/provider-observation.schema.json",
+  "title": "Distribution v2 Bound Provider Observation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "observationRef", "occurrenceRef", "provider", "accountRef", "adapter", "effectName", "effectMode", "effectSupported", "executionMode", "missingProviderRequirements", "missingInteractions", "sourceKind", "sourceRef", "observedAt", "validUntil"],
+  "properties": {
+    "schemaVersion": {"const": 2},
+    "observationRef": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "occurrenceRef": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "provider": {"type": "string", "minLength": 1},
+    "accountRef": {"type": "string", "minLength": 1},
+    "adapter": {"type": "string", "minLength": 1},
+    "effectName": {"type": "string", "minLength": 1},
+    "effectMode": {"enum": ["read", "write", "destructive"]},
+    "effectSupported": {"type": "boolean"},
+    "executionMode": {"enum": ["api", "cli", "service", "human_handoff"]},
+    "missingProviderRequirements": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "missingInteractions": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "sourceKind": {"enum": ["provider_api", "provider_cli", "dispatch_service", "transfer_tool", "human_handoff"]},
+    "sourceRef": {"type": "string", "minLength": 1},
+    "observedAt": {"type": "string", "format": "date-time"},
+    "validUntil": {"type": "string", "format": "date-time"}
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "kind": "distribution-v2-provider-write-admission-standing",
+  "date": "2026-09-12",
+  "standing": "BLOCKED_AUTHORITY_NOT_CONNECTIVITY",
+  "artifactPackageIndexCount": 2,
+  "releaseReadyArtifactCount": 0,
+  "observedArtifactTrustStanding": ["LOCAL_UNSIGNED_DEVELOPMENT"],
+  "effectApprovalFileCount": 0,
+  "providerReadbackOperational": true,
+  "durableIntegrationOperational": true,
+  "providerWriteImplementedInActiveAcceptanceWorkflow": false,
+  "githubWritePerformed": false,
+  "requiredBeforeProviderWrite": [
+    "releaseReady=true Artifact bound into the Distribution occurrence",
+    "exact EffectAuthority derived from ingested operator approval for that same occurrence"
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.distribution.v2.r3-validation",
+  "observedOn": "2026-09-11",
+  "standing": "R3_RUNTIME_BOUND_EVIDENCE_AND_RECONCILIATION_PROVEN",
+  "writeStanding": "NOT_ADMITTED",
+  "runtimeInputAuthority": {
+    "name": "distribution-r3-evidence",
+    "operatorConfigured": true,
+    "presentation": "ORDIVON_INPUT_ROOT",
+    "executionProfile": "contained_local"
+  },
+  "results": {
+    "runtimeBoundGithubReadAdmission": {
+      "status": "PASS",
+      "jobId": "job-01a0907a-475a-7441-a00c-b3cec25d7516",
+      "attemptId": "attempt-01a0907a-475a-7441-a00c-b3d9a5df8c62",
+      "terminalEvidenceDigest": "sha256:bc453c2940df17919af5375b7558adae434af6d660587bb354538d43a6f07c31",
+      "effectiveProviderObservationDigest": "sha256:6e661e18d9eb7780bf0730ca7f03a02b8c8fcd347bbc21576a13d765f972fca4",
+      "action": "preflight_ready"
+    },
+    "ambientBoundAdmission": {
+      "status": "PASS_DENIED",
+      "meaning": "admission_bound refuses invocation without Runtime ORDIVON_INPUT_ROOT"
+    },
+    "githubAuthenticatedWriteCapabilityObservation": {
+      "status": "PASS_READ_ONLY",
+      "jobId": "job-01a0907b-6e72-7840-bc8b-d828d18141c5",
+      "providerArtifactDigest": "sha256:13dcd8bf87cb71e2c5c1bee7f40c15c636c01487538c0d692a1bed13183d2fbf",
+      "repo": "ordivon-org/ordivon-runtime",
+      "observed": {"archived": false, "hasIssues": true, "admin": true, "push": true}
+    },
+    "writeCapabilityWithoutEffectAuthority": {
+      "status": "PASS_DENIED",
+      "jobId": "job-01a0907c-3324-7a40-9c9b-c93404d395ff",
+      "terminalEvidenceDigest": "sha256:80512af3702346784e58ce428cdace41a128b1354eea7fa99d8783433160f235",
+      "action": "user_action_required",
+      "reason": "bound-exact-effect-authority-required"
+    },
+    "reconciliationSemantics": {
+      "status": "PASS",
+      "cases": 8,
+      "safeRetryRequires": ["provider_idempotency", "authoritative_absence"]
+    },
+    "fullSuite": {
+      "status": "PASS",
+      "jobId": "job-01a0907f-1031-77c1-954b-ed156ae7f535",
+      "stdoutDigest": "sha256:9558d4a727a17ec373dfad7adacfb3f7abbc18ec23aeaac20e649e5abaffdaa3"
+    }
+  },
+  "falsifiersObserved": [
+    "contained_local did not expose the trusted-local .venv; dependency closure was therefore passed as exact immutable wheel inputs instead of weakening containment",
+    "Runtime restart temporarily broke MCP transport; production service later proved active and the new named InputAuthority was present",
+    "GitHub credential write capability did not grant exact effect authority"
+  ],
+  "nonClaims": [
+    "no GitHub issue, commit, branch, release, post, upload, or other external write was performed",
+    "the named InputAuthority is a physical provenance boundary, not semantic proof that its producer was entitled to assert provider truth or user consent",
+    "no exact-effect grant was fabricated from reusable GitHub credentials",
+    "reconciliation retry proofs are normalized semantic inputs and still require provider-adapter binding before a real retry",
+    "R3 does not establish a real ambiguous external write recovery episode"
+  ],
+  "nextGate": "establish a real effect-authority producer/binding path; only with explicit exact-effect authority may a bounded external write positive control be attempted, followed by provider-native readback and a real ambiguous-outcome recovery exercise before legacy deletion"
+}

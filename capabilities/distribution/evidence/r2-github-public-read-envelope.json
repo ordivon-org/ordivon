@@ -1,0 +1,37 @@
+{
+  "effectAuthority": null,
+  "intent": {
+    "artifact": null,
+    "carrier": {
+      "accountRef": "public:open-policy-agent/opa",
+      "adapter": "github-rest-read",
+      "provider": "github"
+    },
+    "effect": {
+      "name": "read_repository",
+      "payload": null
+    },
+    "intentId": "r2-github-public-read-20260911",
+    "occurrenceRef": "sha256:248af9bbc68ffb8e29ac33eef6db7d5bd63b2b3a0deb8a4fe65633290a9c83d1",
+    "schemaVersion": 2
+  },
+  "providerObservation": {
+    "accountRef": "public:open-policy-agent/opa",
+    "adapter": "github-rest-read",
+    "effectMode": "read",
+    "effectName": "read_repository",
+    "effectSupported": true,
+    "executionMode": "api",
+    "missingInteractions": [],
+    "missingProviderRequirements": [],
+    "observationRef": "sha256:16a52d67b71a126cd2ec1e23ad8509ba8599a17687aa0963209661dd1d95f409",
+    "observedAt": "2026-09-11T11:29:19Z",
+    "occurrenceRef": "sha256:248af9bbc68ffb8e29ac33eef6db7d5bd63b2b3a0deb8a4fe65633290a9c83d1",
+    "provider": "github",
+    "schemaVersion": 2,
+    "sourceKind": "provider_api",
+    "sourceRef": "runtime-artifact:job-01a0903a-a31d-7fa3-a37a-106e9a19fd8b/attempt-01a0903a-a31d-7fa3-a37a-10710644cabd.stdout@sha256:c45a97fc68b8849dc95d39a5a1c27b5eebe89015b3faf8832c5d8005fd207437",
+    "validUntil": "2026-09-11T11:39:19Z"
+  },
+  "schemaVersion": 2
+}

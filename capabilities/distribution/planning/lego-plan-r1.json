@@ -1,0 +1,183 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-distribution-v2",
+    "purpose": "Provide optional cross-provider effect-safety/reference profiles only where direct provider/client semantics leave a demonstrated gap.",
+    "sourceEvidence": [
+      "README.md",
+      "docs/META-SYSTEM-DOWNGRADE-R1.md"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "D01",
+      "label": "EffectIntent",
+      "kind": "effect_contract",
+      "responsibility": "Bind one exact provider/account/effect/payload occurrence before effect admission.",
+      "authority": "Distribution",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "README.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "provider acceptance"
+      ],
+      "acceptance": [
+        "Payload mutation changes occurrence identity."
+      ]
+    },
+    {
+      "id": "D02",
+      "label": "EffectAuthority",
+      "kind": "policy_boundary",
+      "responsibility": "Translate exact operator approval into bounded effect authority independent of reusable credentials.",
+      "authority": "Distribution authority translator + external policy owner",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "README.md",
+        "docs/R6-APPROVAL-INGRESS.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "credential storage",
+        "provider policy internals"
+      ],
+      "acceptance": [
+        "No write is admitted without exact current authority binding."
+      ]
+    },
+    {
+      "id": "D03",
+      "label": "ProviderExecutor",
+      "kind": "adapter",
+      "responsibility": "Invoke mature provider-native execution substrates after policy admission.",
+      "authority": "Provider/native execution owner",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "README.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "semantic success"
+      ],
+      "acceptance": [
+        "Executor remains replaceable and provider-native."
+      ]
+    },
+    {
+      "id": "D04",
+      "label": "ProviderReadback",
+      "kind": "observer",
+      "responsibility": "Observe provider-native object identity/state after attempted effects.",
+      "authority": "Provider + Distribution reconciliation",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [
+        "L09"
+      ],
+      "evidence": [
+        "README.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "local Runtime success as provider truth"
+      ],
+      "acceptance": [
+        "Provider acceptance is established only from provider-native readback/evidence."
+      ]
+    },
+    {
+      "id": "D05",
+      "label": "Reconciliation",
+      "kind": "reconciler",
+      "responsibility": "Classify safe retry, no-retry, or unresolved outcomes without duplicating ambiguous effects.",
+      "authority": "Distribution",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [
+        "L17"
+      ],
+      "evidence": [
+        "README.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "invented exactly-once semantics"
+      ],
+      "acceptance": [
+        "Ambiguous external outcomes are not blindly replayed."
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "D01",
+      "to": "D02",
+      "type": "POLICY",
+      "label": "exact occurrence seeks authority"
+    },
+    {
+      "from": "D02",
+      "to": "D03",
+      "type": "CONTROL",
+      "label": "admitted effect"
+    },
+    {
+      "from": "D03",
+      "to": "D04",
+      "type": "OBSERVATION",
+      "label": "provider-native readback"
+    },
+    {
+      "from": "D04",
+      "to": "D05",
+      "type": "EVIDENCE",
+      "label": "reconcile external outcome"
+    }
+  ],
+  "slices": [
+    {
+      "id": "DS1",
+      "objective": "Keep provider writes blocked until exact release/effect authority and provider-native safe-retry conditions are simultaneously satisfied.",
+      "status": "BLOCKED",
+      "nodeIds": [
+        "D02",
+        "D03",
+        "D04",
+        "D05"
+      ],
+      "acceptance": [
+        "No provider write occurs from connectivity/test success alone; any future write produces exact authority and readback evidence."
+      ],
+      "evidence": [],
+      "blockers": [
+        "Current write authority/release standing remains blocked by owner evidence."
+      ],
+      "nextAction": "Re-evaluate only when a real release/effect owner supplies exact authority."
+    }
+  ],
+  "gaps": [
+    "Real provider-write coverage remains intentionally authority-gated."
+  ],
+  "doNotOwn": [
+    "provider credential ownership",
+    "provider catalog duplication",
+    "artifact release truth",
+    "Runtime physical execution truth"
+  ],
+  "review": {
+    "sourceRevision": "9ab83f0440007b3dd303ae37aef79311f638897b",
+    "updatedAt": "2026-09-20",
+    "standing": "DESTRUCTIVE_REVIEW_R1",
+    "notes": "R8 Temporal and R10 Steam preflight forward executable surfaces retired after zero external executable-consumer census. D01-D05 remain under natural-owner substitution review."
+  },
+  "sharedCatalog": {
+    "catalogId": "agent-architecture-lego-catalog-r1",
+    "note": "Optional shared coordinates only; project-native semantics remain authoritative."
+  },
+  "metaSystemStanding": "OPTIONAL_REFERENCE_NOT_MANDATORY_CONTROL_PLANE"
+}

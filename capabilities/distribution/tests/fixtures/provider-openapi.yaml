@@ -1,0 +1,27 @@
+openapi: 3.0.3
+info:
+  title: Distribution v2 Provider Fixture
+  version: 1.0.0
+servers:
+  - url: https://provider.example.invalid
+paths:
+  /objects/{id}:
+    get:
+      operationId: getObject
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Provider-native object snapshot
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, state]
+                properties:
+                  id: {type: string}
+                  state: {type: string}

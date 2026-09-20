@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "adapterId": "postiz-public-api",
+  "substrate": "postiz",
+  "baseApiKind": "external-service",
+  "operations": ["list-integrations", "create-or-schedule-post", "list-posts", "delete-post", "upload-media"],
+  "providerFactsSource": "postiz-public-api-and-provider-settings",
+  "truthBoundary": "Postiz is dispatch/scheduling authority for its own object state only. A Postiz create/schedule response is not by itself provider-native publication acceptance.",
+  "secrets": "out-of-repository",
+  "orchestrationOwner": "existing-temporal-runtime"
+}

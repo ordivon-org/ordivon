@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/distribution/v2/reconciliation-input.schema.json",
+  "title": "Distribution v2 Normalized Reconciliation Evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "occurrenceRef", "dispatchStanding", "providerReadback", "retryProof"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "occurrenceRef": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "dispatchStanding": {"enum": ["not_dispatched", "definitely_rejected", "ambiguous", "provider_acknowledged"]},
+    "providerReadback": {"enum": ["unknown", "present", "absent"]},
+    "retryProof": {"enum": ["none", "provider_idempotency", "authoritative_absence"]}
+  }
+}
