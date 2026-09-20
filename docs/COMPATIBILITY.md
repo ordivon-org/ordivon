@@ -14,7 +14,7 @@ audience:
   - operator
   - maintainer
   - agent
-updated: 2026-08-24
+updated: 2026-09-21
 summary: Dependency graph, source-level Host boundary, persistent object compatibility and upgrade rules.
 evidence_status: verified
 readiness: READY
@@ -31,7 +31,7 @@ related:
 
 The current Harness runtime dependency graph is intentionally small and Host-free: the package depends on the exact Ordivon Protocol revision, pinned `httpx==0.28.1` for cancellable DeepSeek HTTP/TLS transport, and `jsonschema` for opt-in local structured-result conformance verification. The exact third-party transitive graph is pinned by `uv.lock` and mirrored in `requirements-audit.txt`. There is no Host dependency, optional Host extra, or Host development group.
 
-Python support is `>=3.12,<3.13`. Runtime integration is structural through the caller-supplied `HarnessRuntimeClient`; a Runtime server/version is not a Python package dependency.
+Python support is `>=3.14.7,<3.15`; the owner environment pins exact Python `3.14.7`. Harness follows the newest stable GA Python feature line by default. Preview releases (alpha/beta/RC/nightly) are evaluation targets only; once a newer feature line reaches GA, the default upgrade path is to move to that stable line after owner-native tests, wheel checks, dependency audit, durable-state reopen/recovery checks, and evidence-currentness review pass. A lower-version pin is temporary compatibility debt and must name the blocking dependency/evidence plus an exit condition. Runtime integration is structural through the caller-supplied `HarnessRuntimeClient`; a Runtime server/version is not a Python package dependency.
 
 ## Public API
 

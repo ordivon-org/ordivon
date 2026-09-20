@@ -578,9 +578,9 @@
     {
       "claimId": "harness.edit.adaptive-r2-live-deepseek-flash",
       "file": "adaptive-edit-r2-live-ab-deepseek-flash-20260914.json",
-      "status": "verified",
+      "status": "historical",
       "implementationRevision": "33ac4a891441c565371767f02905361dd1d5fe55",
-      "scope": "Current model/task-specific Adaptive Edit R2 live profile at 33ac4a8: DeepSeek Flash on HARNESS-REPO-REPAIR-001 under equal corrected 64k token authority; exact replacement is provisional preferred for this profile only, while anchored addressing remains required by the deterministic repeated-text falsifier. No global codec default is authorized.",
+      "scope": "Current model/task-specific Adaptive Edit R2 live profile at 33ac4a8: DeepSeek Flash on HARNESS-REPO-REPAIR-001 under equal corrected 64k token authority; exact replacement is provisional preferred for this profile only, while anchored addressing remains required by the deterministic repeated-text falsifier. No global codec default is authorized. Historical currentness note: Python 3.14.7 removes the no-longer-required typing-extensions compatibility backport from the resolved Harness runtime dependency closure. This immutable receipt remains exact for its bound implementation revision, but it is not current evidence for the Python 3.14.7 dependency closure.",
       "implementationPaths": [
         "src/anc_canonical/",
         "src/ordivon_harness/adaptive_edit.py",
@@ -593,9 +593,9 @@
     {
       "claimId": "harness.edit.adaptive-r2-live-deepseek-flash-addressing",
       "file": "adaptive-edit-r2-live-ab-deepseek-flash-addressing-20260914.json",
-      "status": "verified",
+      "status": "historical",
       "implementationRevision": "6126ad25204c59dee92ae9175f48742000c6551f",
-      "scope": "Current second Adaptive Edit R2 live profile bound to 6126ad2: DeepSeek Flash on HARNESS-EDIT-ADDRESSING-002 under equal 64k token authority. Exact replacement and anchored-line are both 5/5 hidden-pass and 5/5 candidate-completed with identical model/tool call totals; standing is NO_CLEAR_WINNER_BOTH_VIABLE and no global codec default is authorized.",
+      "scope": "Current second Adaptive Edit R2 live profile bound to 6126ad2: DeepSeek Flash on HARNESS-EDIT-ADDRESSING-002 under equal 64k token authority. Exact replacement and anchored-line are both 5/5 hidden-pass and 5/5 candidate-completed with identical model/tool call totals; standing is NO_CLEAR_WINNER_BOTH_VIABLE and no global codec default is authorized. Historical currentness note: Python 3.14.7 removes the no-longer-required typing-extensions compatibility backport from the resolved Harness runtime dependency closure. This immutable receipt remains exact for its bound implementation revision, but it is not current evidence for the Python 3.14.7 dependency closure.",
       "implementationPaths": [
         "src/anc_canonical/",
         "src/ordivon_harness/adaptive_edit.py",
@@ -608,9 +608,9 @@
     {
       "claimId": "harness.edit.adaptive-r2-live-deepseek-flash-multiregion",
       "file": "adaptive-edit-r2-live-ab-deepseek-flash-multiregion-20260914.json",
-      "status": "verified",
+      "status": "historical",
       "implementationRevision": "9d936e98d8c02772aa2becc924ba9006c71aa989",
-      "scope": "Current third Adaptive Edit R2 live profile bound to 9d936e9: DeepSeek Flash on HARNESS-EDIT-MULTIREGION-003. Both codecs are 5/5 hidden-pass and candidate-completed within the unchanged 6-model/8-tool authority; anchored-line uses fewer calls/tokens, while the current one-semantic-edit-per-call boundary survives this task and an atomic multi-edit Agent wire format is not justified by current evidence.",
+      "scope": "Current third Adaptive Edit R2 live profile bound to 9d936e9: DeepSeek Flash on HARNESS-EDIT-MULTIREGION-003. Both codecs are 5/5 hidden-pass and candidate-completed within the unchanged 6-model/8-tool authority; anchored-line uses fewer calls/tokens, while the current one-semantic-edit-per-call boundary survives this task and an atomic multi-edit Agent wire format is not justified by current evidence. Historical currentness note: Python 3.14.7 removes the no-longer-required typing-extensions compatibility backport from the resolved Harness runtime dependency closure. This immutable receipt remains exact for its bound implementation revision, but it is not current evidence for the Python 3.14.7 dependency closure.",
       "implementationPaths": [
         "src/anc_canonical/",
         "src/ordivon_harness/adaptive_edit.py",
@@ -623,9 +623,9 @@
     {
       "claimId": "harness.lsp.r7.clangd-runtime-patch",
       "file": "lsp-r7-clangd-runtime-patch-20260914.json",
-      "status": "verified",
+      "status": "historical",
       "implementationRevision": "9c774b3336707852bd964e9053587f09671f6f05",
-      "scope": "Revision-bound local R7 provider-path receipt: clangd 22.1.8 rename via experimental pygls 2.1.1 transport was converted by Harness WorkspaceEdit adapter into one CanonicalEditPlan with two exact edits and committed only through Runtime workspace.patch. LSP direct write authority and pygls production dependency remain not admitted.",
+      "scope": "Revision-bound local R7 provider-path receipt: clangd 22.1.8 rename via experimental pygls 2.1.1 transport was converted by Harness WorkspaceEdit adapter into one CanonicalEditPlan with two exact edits and committed only through Runtime workspace.patch. LSP direct write authority and pygls production dependency remain not admitted. Historical currentness note: Python 3.14.7 removes the no-longer-required typing-extensions compatibility backport from the resolved Harness runtime dependency closure. This immutable receipt remains exact for its bound implementation revision, but it is not current evidence for the Python 3.14.7 dependency closure.",
       "implementationPaths": [
         "src/anc_canonical/",
         "src/ordivon_harness/adaptive_edit.py",
@@ -637,7 +637,7 @@
     {
       "claimId": "harness.lsp.r7.taplo-runtime-patch",
       "file": "lsp-r7-taplo-runtime-patch-20260914.json",
-      "status": "verified",
+      "status": "historical",
       "implementationRevision": "d75617d7ea61cc5b4cc4ffc33ed482544fa38811",
       "implementationPaths": [
         "src/anc_canonical/",
@@ -645,13 +645,13 @@
         "src/ordivon_harness/execution_binding.py",
         "src/ordivon_harness/lsp_workspace_edit.py"
       ],
-      "scope": "Second local R7 provider-path receipt: Taplo 0.10.0 rename returned WorkspaceEdit, the same Harness adapter compiled it under default UTF-16 position semantics, and Runtime committed the exact patch. Bare pygls lifecycle gaps for workspace/configuration and diagnostics remain observed, so no default transport is selected.",
+      "scope": "Second local R7 provider-path receipt: Taplo 0.10.0 rename returned WorkspaceEdit, the same Harness adapter compiled it under default UTF-16 position semantics, and Runtime committed the exact patch. Bare pygls lifecycle gaps for workspace/configuration and diagnostics remain observed, so no default transport is selected. Historical currentness note: Python 3.14.7 removes the no-longer-required typing-extensions compatibility backport from the resolved Harness runtime dependency closure. This immutable receipt remains exact for its bound implementation revision, but it is not current evidence for the Python 3.14.7 dependency closure.",
       "runtimeDependencyClosureDigest": "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829"
     },
     {
       "claimId": "harness.lsp.r7.lsp-client-lifecycle",
       "file": "lsp-r7-lsp-client-lifecycle-20260914.json",
-      "status": "verified",
+      "status": "historical",
       "implementationRevision": "c7df6ef991443e97e5eedb56bec072cef65e3f4d",
       "implementationPaths": [
         "src/anc_canonical/",
@@ -659,42 +659,42 @@
         "src/ordivon_harness/lsp_provider_port.py",
         "src/ordivon_harness/lsp_workspace_edit.py"
       ],
-      "scope": "Revision-bound R7 lifecycle donor receipt: lsp-client 0.3.9 handled Taplo configuration and diagnostics, returned rename as a proposal, serialized directly into the Harness WorkspaceEdit adapter, and left disk unchanged. It remains a replaceable provider candidate, not a Harness core dependency.",
+      "scope": "Revision-bound R7 lifecycle donor receipt: lsp-client 0.3.9 handled Taplo configuration and diagnostics, returned rename as a proposal, serialized directly into the Harness WorkspaceEdit adapter, and left disk unchanged. It remains a replaceable provider candidate, not a Harness core dependency. Historical currentness note: Python 3.14.7 removes the no-longer-required typing-extensions compatibility backport from the resolved Harness runtime dependency closure. This immutable receipt remains exact for its bound implementation revision, but it is not current evidence for the Python 3.14.7 dependency closure.",
       "runtimeDependencyClosureDigest": "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829"
     },
     {
       "claimId": "harness.lsp.r7.lifecycle-faults",
       "file": "lsp-r7-lifecycle-faults-20260914.json",
-      "status": "verified",
+      "status": "historical",
       "implementationRevision": "cd4507032204e807e3d0acf4fb974c2c0122e033",
       "implementationPaths": [
         "src/ordivon_harness/lsp_provider_port.py"
       ],
-      "scope": "Negative R7 lifecycle receipt: caller cancellation and language-server crash preserved the proposal-only/no-write boundary, but lsp-client 0.3.9 did not emit an observed $/cancelRequest and cleanup ended through bounded timeout/error paths. Default provider admission remains blocked.",
+      "scope": "Negative R7 lifecycle receipt: caller cancellation and language-server crash preserved the proposal-only/no-write boundary, but lsp-client 0.3.9 did not emit an observed $/cancelRequest and cleanup ended through bounded timeout/error paths. Default provider admission remains blocked. Historical currentness note: Python 3.14.7 removes the no-longer-required typing-extensions compatibility backport from the resolved Harness runtime dependency closure. This immutable receipt remains exact for its bound implementation revision, but it is not current evidence for the Python 3.14.7 dependency closure.",
       "runtimeDependencyClosureDigest": "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829"
     },
     {
       "claimId": "harness.dap.r8.gdb-launch",
       "file": "dap-r8-gdb-launch-20260914.json",
-      "status": "verified",
+      "status": "historical",
       "implementationRevision": "bd8aeec146f4db9e3cf4dd91f88541447ba78004",
       "implementationPaths": [
         "src/anc_canonical/",
         "src/ordivon_harness/dap_provider_port.py"
       ],
-      "scope": "Revision-bound DAP R8 receipt: GDB 17.2 native DAP launched a C inferior, stopped at a breakpoint, exposed stack/scopes/variables, evaluated a+b=5, and continued to termination. GDB/provider owns this target process path; evaluate remains effect-capable and mutation capabilities are not read-only authority.",
+      "scope": "Revision-bound DAP R8 receipt: GDB 17.2 native DAP launched a C inferior, stopped at a breakpoint, exposed stack/scopes/variables, evaluated a+b=5, and continued to termination. GDB/provider owns this target process path; evaluate remains effect-capable and mutation capabilities are not read-only authority. Historical currentness note: Python 3.14.7 removes the no-longer-required typing-extensions compatibility backport from the resolved Harness runtime dependency closure. This immutable receipt remains exact for its bound implementation revision, but it is not current evidence for the Python 3.14.7 dependency closure.",
       "runtimeDependencyClosureDigest": "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829"
     },
     {
       "claimId": "harness.dap.r8.runtime-owned-attach",
       "file": "dap-r8-runtime-owned-attach-20260914.json",
-      "status": "verified",
+      "status": "historical",
       "implementationRevision": "4d6e7163d8ad977423d6c4ecf7c8a78691d3f442",
       "implementationPaths": [
         "src/anc_canonical/",
         "src/ordivon_harness/dap_provider_port.py"
       ],
-      "scope": "Revision-bound DAP R8 ownership receipt: Runtime started and owned the gdbserver+inferior Job; GDB 17.2 DAP attached remotely, hit a breakpoint, observed stack/variables, then continued to exit. processOwner=runtime and effectExecutor=dap-provider are physically separated; stop-epoch handle freshness is validated across attach and breakpoint stops.",
+      "scope": "Revision-bound DAP R8 ownership receipt: Runtime started and owned the gdbserver+inferior Job; GDB 17.2 DAP attached remotely, hit a breakpoint, observed stack/variables, then continued to exit. processOwner=runtime and effectExecutor=dap-provider are physically separated; stop-epoch handle freshness is validated across attach and breakpoint stops. Historical currentness note: Python 3.14.7 removes the no-longer-required typing-extensions compatibility backport from the resolved Harness runtime dependency closure. This immutable receipt remains exact for its bound implementation revision, but it is not current evidence for the Python 3.14.7 dependency closure.",
       "runtimeDependencyClosureDigest": "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829"
     }
   ]

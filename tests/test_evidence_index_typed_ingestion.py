@@ -241,7 +241,7 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
             invalidating,
         )
 
-    def test_scoped_verified_currentness_ignores_unrelated_source_slice(self) -> None:
+    def test_scoped_verified_currentness_detects_runtime_dependency_closure_change(self) -> None:
         adaptive_scope = (
             "src/anc_canonical/",
             "src/ordivon_harness/adaptive_edit.py",
@@ -254,8 +254,8 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
             adaptive_scope,
             runtime_dependency_closure_digest="sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829",
         )
-        self.assertTrue(current, invalidating)
-        self.assertEqual(invalidating, [])
+        self.assertFalse(current)
+        self.assertEqual(invalidating, ["@runtime-dependency-closure"])
 
         lsp_scope = ("src/ordivon_harness/lsp_workspace_edit.py",)
         current, invalidating = check_evidence._verified_revision_is_current(
@@ -264,7 +264,10 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
             runtime_dependency_closure_digest="sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829",
         )
         self.assertFalse(current)
-        self.assertEqual(invalidating, ["src/ordivon_harness/lsp_workspace_edit.py"])
+        self.assertEqual(
+            invalidating,
+            ["src/ordivon_harness/lsp_workspace_edit.py", "@runtime-dependency-closure"],
+        )
 
     def test_scoped_implementation_paths_are_validated_conservatively(self) -> None:
         normalize = check_evidence._normalize_implementation_paths
@@ -290,19 +293,17 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 normalize(invalid)
 
-    def test_scoped_evidence_binds_semantic_runtime_dependency_closure(self) -> None:
+    def test_scoped_historical_evidence_preserves_old_runtime_dependency_closure(self) -> None:
         entries = self._entries()
         scoped = [
             entry for entry in entries.values()
-            if entry.get("status") == "verified" and "implementationPaths" in entry
+            if "implementationPaths" in entry
+            and entry.get("runtimeDependencyClosureDigest")
+            == "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829"
         ]
         self.assertEqual(len(scoped), 9)
         for entry in scoped:
-            self.assertEqual(
-                entry.get("runtimeDependencyClosureDigest"),
-                "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829",
-                entry.get("claimId"),
-            )
+            self.assertEqual(entry.get("status"), "historical", entry.get("claimId"))
             self.assertNotIn("pyproject.toml", entry["implementationPaths"])
             self.assertNotIn("uv.lock", entry["implementationPaths"])
             self.assertEqual(
@@ -311,9 +312,16 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
                 ),
                 "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829",
             )
+            current, invalidating = check_evidence._verified_revision_is_current(
+                str(entry["implementationRevision"]),
+                tuple(entry["implementationPaths"]),
+                runtime_dependency_closure_digest=str(entry["runtimeDependencyClosureDigest"]),
+            )
+            self.assertFalse(current, entry.get("claimId"))
+            self.assertIn("@runtime-dependency-closure", invalidating, entry.get("claimId"))
         self.assertEqual(
             check_evidence._runtime_dependency_closure_digest("HEAD"),
-            "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829",
+            "sha256:9dcd43f9409ad41c5113ac5ab929898eceb9da4e7485d88d4873242ed6205e21",
         )
 
     def test_scoped_runtime_dependency_digest_fails_closed_on_wrong_revision_binding(self) -> None:

@@ -14,7 +14,7 @@ audience:
   - builder
   - operator
   - agent
-updated: 2026-08-12
+updated: 2026-09-21
 summary: Public entry to the durable cognitive execution substrate for bounded Agent Runs, with explicit cognition, Provider and Tool continuity, recovery, evidence, and caller/domain boundaries.
 evidence_status: verified
 readiness: READY
@@ -167,7 +167,7 @@ If a new shared mechanism cannot survive deletion against Agent-owned choice, ca
 
 ## Requirements
 
-- Python 3.12;
+- Python 3.14.7 (current exact owner environment; newest stable GA Python line);
 - the owner-local `anc_canonical` compatibility shim for already-issued Harness identities (see [`docs/CANONICAL_COMPATIBILITY.md`](docs/CANONICAL_COMPATIBILITY.md));
 - `uv` for repository workflows;
 - the `harness.execution.runtime-search.v1` physical profile requires `/bin/bash`, `/usr/bin/awk`, and `/usr/bin/rg` on the Runtime execution target; these are target executables, not Python dependencies or authority grants;
