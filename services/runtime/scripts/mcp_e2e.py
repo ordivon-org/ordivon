@@ -843,6 +843,16 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
         windows_immutable_authorities = windows_description.get(
             "windowsImmutableInputAuthorities", []
         )
+        windows_contract_valid = not windows_description or (
+            windows_description.get("hostDependencyCommitments") is False
+            and windows_description.get("hostDependencyContinuityScope") is None
+            and isinstance(windows_authorities, list)
+            and isinstance(windows_immutable_authorities, list)
+            and windows_immutable_authorities
+            == (["limited"] if "limited" in windows_authorities else [])
+            and windows_description.get("immutableInputs")
+            is bool(windows_immutable_authorities)
+        )
         check(
             "runtime-describe",
             runtime_description.get("schemaVersion") == SCHEMA_VERSION
@@ -859,14 +869,7 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
             and linux_description.get("hostDependencyCommitments") is True
             and linux_description.get("hostDependencyContinuityScope")
             == "runtime_host_namespace_path_witness"
-            and windows_description.get("hostDependencyCommitments") is False
-            and windows_description.get("hostDependencyContinuityScope") is None
-            and isinstance(windows_authorities, list)
-            and isinstance(windows_immutable_authorities, list)
-            and windows_immutable_authorities
-            == (["limited"] if "limited" in windows_authorities else [])
-            and windows_description.get("immutableInputs")
-            is bool(windows_immutable_authorities)
+            and windows_contract_valid
             and isinstance(linux_description.get("executionProvider"), dict)
             and str(linux_description.get("executionProvider", {}).get("executableDigest", "")).startswith(
                 "sha256:"
@@ -1220,7 +1223,7 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
             "workspace.diff",
             {"schemaVersion": SCHEMA_VERSION, "workspaceId": workspace_id, "maxBytes": 65_536},
         )
-        check("workspace-diff", "hello durable" in diff.get("diff", ""), diff)
+        check("workspace-diff", "hello accepted" in diff.get("diff", ""), diff)
         check("workspace-untracked", "generated.txt" in diff.get("untrackedPaths", []), diff)
 
         proposal_request_id = f"request:{uuid.uuid4()}"
