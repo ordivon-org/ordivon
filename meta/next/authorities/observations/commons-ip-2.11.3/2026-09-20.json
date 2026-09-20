@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-observation",
+  "authorityId": "commons-ip-2.11.3",
+  "basis": "official-source",
+  "lifecycleStatus": "current",
+  "observedDate": "2026-09-20",
+  "officialSource": "https://github.com/keeps/commons-ip/releases/tag/2.11.3",
+  "versionObserved": "2.11.3",
+  "note": "2.11.3 is the current Commons-IP release and was used locally to create and validate the E-ARK SIP."
+}

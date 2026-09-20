@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-observation",
+  "authorityId": "archivematica-1.18.0",
+  "basis": "official-source",
+  "lifecycleStatus": "current",
+  "observedDate": "2026-09-20",
+  "officialSource": "https://www.archivematica.org/en/docs/archivematica-1.18/",
+  "versionObserved": "1.18.0 stable-current",
+  "note": "Archivematica documentation lists 1.18.0 as stable-current; R1 used this local version for PREMIS/METS AIP creation and Storage Service persistence."
+}

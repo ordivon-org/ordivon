@@ -330,6 +330,62 @@
     },
     {
       "aliases": [
+        "Archivematica 1.18.0"
+      ],
+      "authorityKind": "open-source-release",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "archives",
+        "data",
+        "preservation"
+      ],
+      "id": "archivematica-1.18.0",
+      "identityMode": "versioned",
+      "issuer": "Artefactual Systems Inc.",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:4faf0c67851fb0c65b6b938bc34723c6add45e8e7a852ee95fc24cc9fb8b6960",
+      "recordDigest": "sha256:5df15e9bcbc197f600549185130a572e8e92c54ecfe58812abca14e0f144aa2b",
+      "title": "Archivematica 1.18.0",
+      "topics": [
+        "aip",
+        "digital-preservation",
+        "fixity",
+        "mets",
+        "premis",
+        "storage-service"
+      ],
+      "versionLabel": "1.18.0"
+    },
+    {
+      "aliases": [
+        "Archivematica Fixity 0.8.0",
+        "Fixity 0.8.0"
+      ],
+      "authorityKind": "open-source-release",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "archives",
+        "data",
+        "preservation"
+      ],
+      "id": "artefactual-fixity-0.8.0",
+      "identityMode": "versioned",
+      "issuer": "Artefactual Systems Inc.",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:aaaba5302a608daf17686e4cb48d3b39828b3f8da0ecfbbfe071bfa87024c253",
+      "recordDigest": "sha256:50d1b59f850bdb0d2d7c1cea5b98a8991ca4ad0f245bd1cdfc1b461f1428b4a5",
+      "title": "Artefactual Fixity 0.8.0",
+      "topics": [
+        "aip",
+        "checksum",
+        "digital-preservation",
+        "fixity",
+        "storage-service"
+      ],
+      "versionLabel": "0.8.0"
+    },
+    {
+      "aliases": [
         "AsyncAPI",
         "AsyncAPI 3.1.0"
       ],
@@ -472,6 +528,34 @@
         "interoperability"
       ],
       "versionLabel": "1.0.2"
+    },
+    {
+      "aliases": [
+        "Commons-IP 2.11.3",
+        "commons-ip2 2.11.3"
+      ],
+      "authorityKind": "open-source-release",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "archives",
+        "data",
+        "preservation"
+      ],
+      "id": "commons-ip-2.11.3",
+      "identityMode": "versioned",
+      "issuer": "KEEP Solutions / Commons-IP project",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:8f475ee813d69832c716a76f08d6135c0418a6d792aa6ebdd1195f543aeab097",
+      "recordDigest": "sha256:d14ef172a3a53674b418b5f230f1d946bd68400997570039b251700198ae2f07",
+      "title": "Commons-IP 2.11.3",
+      "topics": [
+        "creation",
+        "eark",
+        "information-package",
+        "sip",
+        "validation"
+      ],
+      "versionLabel": "2.11.3"
     },
     {
       "aliases": [
@@ -755,6 +839,60 @@
         "interoperability",
         "mets",
         "sip",
+        "submission-information-package"
+      ],
+      "versionLabel": "2.2.0"
+    },
+    {
+      "aliases": [
+        "CSIP 2.2.0",
+        "E-ARK CSIP 2.2.0"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "archives",
+        "data",
+        "preservation"
+      ],
+      "id": "eark-csip-2.2.0",
+      "identityMode": "versioned",
+      "issuer": "DILCIS Board",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:4081c3bd65ecf17ea7b6d94b32e95151f2f093492936de92bd72acbc06e4bbd4",
+      "recordDigest": "sha256:8f1a0034aa70dc3bd1c6e5ee9f016549e1339629735075796ee9c421bab18619",
+      "title": "E-ARK Common Specification for Information Packages (CSIP) 2.2.0",
+      "topics": [
+        "digital-preservation",
+        "information-package",
+        "interoperability",
+        "mets"
+      ],
+      "versionLabel": "2.2.0"
+    },
+    {
+      "aliases": [
+        "E-ARK SIP 2.2.0",
+        "SIP 2.2.0"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "archives",
+        "data",
+        "preservation"
+      ],
+      "id": "eark-sip-2.2.0",
+      "identityMode": "versioned",
+      "issuer": "DILCIS Board",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:4e304482fc003803e88fc8882130ebb90ae287bce6f1d51b4343284d47a73d7c",
+      "recordDigest": "sha256:07961fda3a4d79c28f4168cd5bcb41eccb2c688c30fbff418ede6458b7147946",
+      "title": "E-ARK Submission Information Package (SIP) Specification 2.2.0",
+      "topics": [
+        "digital-preservation",
+        "interoperability",
+        "mets",
         "submission-information-package"
       ],
       "versionLabel": "2.2.0"
@@ -3523,6 +3661,34 @@
     },
     {
       "aliases": [
+        "BagIt 1.0",
+        "RFC 8493"
+      ],
+      "authorityKind": "informational-rfc",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "archives",
+        "data",
+        "preservation"
+      ],
+      "id": "rfc-8493-bagit-1.0",
+      "identityMode": "versioned",
+      "issuer": "IETF / RFC Editor",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:59cf23fb54063e843ee8d4c4a07ed8b3652a17b04b029ae58c758a8f93d5c1c8",
+      "recordDigest": "sha256:6c98ebf9ca406f2cb6e69d1eba3902d1da41687cc946d35415c740abd0e962e0",
+      "title": "RFC 8493 — The BagIt File Packaging Format (V1.0)",
+      "topics": [
+        "bagit",
+        "file-packaging",
+        "fixity",
+        "manifest",
+        "transfer"
+      ],
+      "versionLabel": "1.0"
+    },
+    {
+      "aliases": [
         "OAuth Resource Indicator",
         "OAuth Resource Indicators",
         "resource parameter",
@@ -4424,7 +4590,7 @@
     }
   ],
   "kind": "ordivon.external-authority-discovery-index",
-  "recordCount": 159,
-  "recordsDigest": "sha256:d86066c93afd09c587e91b68f0b55bb527db546df60c34534052ba8e9fc64aaf",
+  "recordCount": 165,
+  "recordsDigest": "sha256:208d2e401fde609313392a08b0aefd2783c45cd8b8ed6da45a47ab2c81c09b2e",
   "schemaVersion": 1
 }
