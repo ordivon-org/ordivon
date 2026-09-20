@@ -34,3 +34,30 @@ def test_product_context_keeps_observation_separate_from_execution():
     constraints=' '.join(x['constraint'] for x in prod['context']['constraints'])
     assert 'Do not use this product as authorization or instruction to place a trade.' in constraints
     assert 'Do not turn bounded cross-venue observations into an alpha' in constraints
+
+def test_fail_closed_governance_policy_and_unresolved_rights():
+    prod=load('odps.json')
+    acc=load('acceptance.json')
+    policy=json.loads((P/'governance-policy.odrl.jsonld').read_text())
+    assert policy['@context']=='http://www.w3.org/ns/odrl.jsonld'
+    assert policy['@type']=='Set'
+    assert policy['uid']==acc['governancePolicyUid']
+    assert {x['action'] for x in policy['prohibition']}=={'distribute','grantUse','delete'}
+    cp={x['property']:x['value'] for x in prod['customProperties']}
+    assert cp['sourceLicenseStatus']=='UNRESOLVED'
+    assert cp['redistributionStatus']=='NOT_AUTHORIZED_BY_PRODUCT_METADATA'
+    assert cp['retentionScheduleStatus']=='UNASSIGNED'
+    assert cp['automaticDeletionStatus']=='NOT_AUTHORIZED_UNTIL_RECORDS_REQUIREMENT_ASSIGNED'
+    assert cp['privacyFrameworkBaseline']=='NIST_PRIVACY_FRAMEWORK_1_0'
+    assert cp['privacyAssessmentStatus']=='BOUNDED_NO_PRIVATE_ACCOUNT_DATA_PROVEN_FORMAL_ASSESSMENT_NOT_COMPLETE'
+
+def test_public_access_is_not_promoted_to_redistribution_license():
+    prod=load('odps.json')
+    serialized=json.dumps(prod).lower()
+    assert '"license":' not in serialized
+    a=load('acceptance.json')
+    assert a['sourceLicenseStatus']=='UNRESOLVED'
+    assert a['redistributionStatus']=='NOT_AUTHORIZED_BY_PRODUCT_METADATA'
+    assert a['brokerCredentialsUsed'] is False
+    assert a['privateAccountDataUsed'] is False
+    assert a['externalFinancialWritesAttempted'] is False

@@ -59,6 +59,21 @@
       "type": "canonicalUrl",
       "url": "https://github.com/bitol-io/open-data-product-standard",
       "description": "ODPS authority."
+    },
+    {
+      "type": "rightsPolicyModel",
+      "url": "https://www.w3.org/TR/odrl-model/",
+      "description": "W3C ODRL 2.2 policy model."
+    },
+    {
+      "type": "privacyRiskFramework",
+      "url": "https://www.nist.gov/privacy-framework",
+      "description": "NIST Privacy Framework 1.0 baseline; 1.1 remains draft as of product governance review."
+    },
+    {
+      "type": "recordsManagement",
+      "url": "https://www.iso.org/standard/62542.html",
+      "description": "ISO 15489-1:2016 records-management concepts and requirements."
     }
   ],
   "customProperties": [
@@ -107,6 +122,42 @@
     {
       "property": "brokerCredentialsUsed",
       "value": false
+    },
+    {
+      "property": "governancePolicyUid",
+      "value": "urn:uuid:33b9c6e5-23e4-576a-8fb1-59977a40e200"
+    },
+    {
+      "property": "governancePolicyRelativePath",
+      "value": "data-products/crypto-public-shadow-r2/governance-policy.odrl.jsonld"
+    },
+    {
+      "property": "sourceLicenseStatus",
+      "value": "UNRESOLVED"
+    },
+    {
+      "property": "redistributionStatus",
+      "value": "NOT_AUTHORIZED_BY_PRODUCT_METADATA"
+    },
+    {
+      "property": "thirdPartyGrantStatus",
+      "value": "NOT_AUTHORIZED_BY_PRODUCT_METADATA"
+    },
+    {
+      "property": "retentionScheduleStatus",
+      "value": "UNASSIGNED"
+    },
+    {
+      "property": "automaticDeletionStatus",
+      "value": "NOT_AUTHORIZED_UNTIL_RECORDS_REQUIREMENT_ASSIGNED"
+    },
+    {
+      "property": "privacyFrameworkBaseline",
+      "value": "NIST_PRIVACY_FRAMEWORK_1_0"
+    },
+    {
+      "property": "privacyAssessmentStatus",
+      "value": "BOUNDED_NO_PRIVATE_ACCOUNT_DATA_PROVEN_FORMAL_ASSESSMENT_NOT_COMPLETE"
     }
   ],
   "outputPorts": [
