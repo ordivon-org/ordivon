@@ -1850,11 +1850,8 @@ impl Runtime {
                     "execution.executable",
                 )
             };
-        let expected_image = windows_visible_path(
-            windows,
-            Path::new(expected_executable),
-            expected_executable_field,
-        )?;
+        let expected_image =
+            windows_visible_path(Path::new(expected_executable), expected_executable_field)?;
         let observed_image = evidence
             .image_path
             .strip_prefix("\\\\?\\")
