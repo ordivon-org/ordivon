@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Plan/apply the Artifact Delivery Temporal worker on the existing Temporal server."""
+"""Plan/apply the Artifact Temporal worker on the existing Temporal server."""
 from __future__ import annotations
 
 import argparse
@@ -15,7 +15,7 @@ UNIT='ordivon-artifact-temporal-worker.service'
 SOURCE_UNIT=ROOT/'systemd'/UNIT
 SYSTEM_UNIT=Path('/etc/systemd/system')/UNIT
 TEMPORAL_PY=Path('/root/.local/share/ordivon-workstation/artifact-python-v1/current/bin/python')
-STATE=Path('/root/.local/state/ordivon-workstation/artifact-delivery-temporal')
+STATE=Path('/root/.local/state/ordivon-workstation/artifact-temporal')
 SERVER_UNIT='temporal.service'
 def sha(p:Path)->str:return hashlib.sha256(p.read_bytes()).hexdigest()
 def active(unit:str)->bool:return subprocess.run(['/usr/bin/systemctl','is-active','--quiet',unit],check=False).returncode==0
@@ -27,7 +27,7 @@ def plan()->dict:
     main_source=ROOT.resolve()==MAIN.resolve()
     source_ok=SOURCE_UNIT.is_file(); installed=SYSTEM_UNIT.is_file() and source_ok and SYSTEM_UNIT.read_bytes()==SOURCE_UNIT.read_bytes()
     sdk=temporal_sdk_version()
-    return {'schemaVersion':1,'kind':'artifact-delivery-temporal-worker-deployment-plan','sourceRoot':str(ROOT),'mainSourceAuthority':main_source,'temporalServerActive':active(SERVER_UNIT),'temporalSdkVersion':sdk,'temporalSdkPinned':sdk=='1.32.0','sourceUnitSha256':sha(SOURCE_UNIT) if source_ok else None,'unitInstalledExact':installed,'workerActive':active(UNIT),'stateRoot':str(STATE),'applyEligible':main_source and active(SERVER_UNIT) and sdk=='1.32.0' and source_ok}
+    return {'schemaVersion':1,'kind':'artifact-temporal-worker-deployment-plan','sourceRoot':str(ROOT),'mainSourceAuthority':main_source,'temporalServerActive':active(SERVER_UNIT),'temporalSdkVersion':sdk,'temporalSdkPinned':sdk=='1.32.0','sourceUnitSha256':sha(SOURCE_UNIT) if source_ok else None,'unitInstalledExact':installed,'workerActive':active(UNIT),'stateRoot':str(STATE),'applyEligible':main_source and active(SERVER_UNIT) and sdk=='1.32.0' and source_ok}
 def apply()->dict:
     current=plan()
     if not current['applyEligible']:raise RuntimeError('Artifact Temporal worker deployment is not eligible from this source/runtime cut')

@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-SUPPORT = ROOT / "scripts/artifact_delivery_temporal_support.py"
+SUPPORT = ROOT / "scripts/artifact_temporal_support.py"
 
 
 class ArtifactDirectPythonProviderA13Tests(unittest.TestCase):

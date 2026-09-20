@@ -32,8 +32,8 @@ jobs:
           scripts/artifact_agent_surface.py
           scripts/artifact_delivery_toolchain_doctor.py scripts/artifact_verify.py
           scripts/artifact_python_environment.py scripts/artifact_python_wrapper.py
-          scripts/artifact_oci_package.py scripts/artifact_delivery_temporal_support.py
-          scripts/temporal_artifact_delivery.py scripts/temporal_artifact_delivery_launch.py
-          scripts/temporal_artifact_delivery_worker.py scripts/temporal_artifact_delivery_deploy.py
+          scripts/artifact_oci_package.py scripts/artifact_temporal_support.py
+          scripts/artifact_temporal_workflow.py scripts/artifact_temporal_launch.py
+          scripts/artifact_temporal_worker.py scripts/artifact_temporal_deploy.py
           tests
       - run: uv run python -m pytest -m "not integration"

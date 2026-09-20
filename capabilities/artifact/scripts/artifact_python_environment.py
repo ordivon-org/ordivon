@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Materialize the stable Artifact Delivery Python generation from an Artifact-owned uv lock."""
+"""Materialize the stable Artifact Python generation from an Artifact-owned uv lock."""
 from __future__ import annotations
 
 import argparse

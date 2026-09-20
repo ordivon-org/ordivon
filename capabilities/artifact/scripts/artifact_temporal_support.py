@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Temporal compatibility adapter for stable Artifact operation envelopes."""
+"""Temporal adapter for canonical Artifact operation envelopes."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -10,7 +10,7 @@ from artifact_operations.providers import DirectPythonOperationProvider
 
 
 class ReceiptFencedArtifactExecutor:
-    """Compatibility adapter from historical activity payloads to ArtifactOperation."""
+    """Adapter from Temporal activity payloads to ArtifactOperation."""
 
     def __init__(self, state_root: Path) -> None:
         self.provider = DirectPythonOperationProvider()

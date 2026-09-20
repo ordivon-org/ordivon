@@ -14,21 +14,21 @@ import pytest
 from artifact_operations import operation_key, validate_public_trust_material_envelope
 from artifact_operations.providers import DirectPythonOperationProvider
 
-ROOT=Path(__file__).resolve().parents[1]; SUPPORT=ROOT/'scripts/artifact_delivery_temporal_support.py'
+ROOT=Path(__file__).resolve().parents[1]; SUPPORT=ROOT/'scripts/artifact_temporal_support.py'
 def load_support():
-    spec=importlib.util.spec_from_file_location('artifact_delivery_temporal_support_test',SUPPORT);m=importlib.util.module_from_spec(spec);assert spec.loader is not None;spec.loader.exec_module(m);return m
+    spec=importlib.util.spec_from_file_location('artifact_temporal_support_test',SUPPORT);m=importlib.util.module_from_spec(spec);assert spec.loader is not None;spec.loader.exec_module(m);return m
 class TemporalArtifactDeliveryContractTests(unittest.TestCase):
     def test_workflow_effect_boundary(self):
-        path=ROOT/'scripts/temporal_artifact_delivery.py';text=path.read_text();tree=ast.parse(text);self.assertIn('@workflow.defn(name=ARTIFACT_DELIVERY_WORKFLOW)',text);self.assertIn('@workflow.signal(name=TRUST_MATERIAL_SIGNAL)',text);self.assertIn('await workflow.wait_condition',text);self.assertIn('retry_policy=RECEIPT_FENCED_RETRY',text)
+        path=ROOT/'scripts/artifact_temporal_workflow.py';text=path.read_text();tree=ast.parse(text);self.assertIn('@workflow.defn(name=ARTIFACT_WORKFLOW)',text);self.assertIn('@workflow.signal(name=TRUST_MATERIAL_SIGNAL)',text);self.assertIn('await workflow.wait_condition',text);self.assertIn('retry_policy=RECEIPT_FENCED_RETRY',text)
         for node in ast.walk(tree):
-            if isinstance(node,ast.ClassDef) and node.name=='ArtifactDeliveryWorkflow':
+            if isinstance(node,ast.ClassDef) and node.name=='ArtifactWorkflow':
                 seg=ast.get_source_segment(text,node) or ''
                 for forbidden in ('subprocess.','Path(','open(','read_text(','write_text('):self.assertNotIn(forbidden,seg)
     def test_temporal_sdk_pin(self):
         project=tomllib.loads((ROOT/'pyproject.toml').read_text())
         self.assertIn('temporalio==1.32.0',project['project']['dependencies'])
     def test_launcher_duplicate_policy(self):
-        text=(ROOT/'scripts/temporal_artifact_delivery_launch.py').read_text();self.assertIn('WorkflowIDReusePolicy.REJECT_DUPLICATE',text);self.assertIn('WorkflowIDConflictPolicy.FAIL',text);self.assertIn('signal-trust',text)
+        text=(ROOT/'scripts/artifact_temporal_launch.py').read_text();self.assertIn('WorkflowIDReusePolicy.REJECT_DUPLICATE',text);self.assertIn('WorkflowIDConflictPolicy.FAIL',text);self.assertIn('signal-trust',text)
     def test_receipt_fence_replays_same_build(self):
         m=load_support()
         with tempfile.TemporaryDirectory() as d:
@@ -79,7 +79,7 @@ class TemporalArtifactDeliveryContractTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError,'committed operation output drift'): ex.package(value)
 
     def test_deployment_is_main_source_fenced_and_hardened(self):
-        deploy=(ROOT/'scripts/temporal_artifact_delivery_deploy.py').read_text();unit=(ROOT/'systemd/ordivon-artifact-temporal-worker.service').read_text();self.assertIn("MAIN=Path('/root/projects/ordivon-artifact-v2')",deploy);self.assertIn("main_source=ROOT.resolve()==MAIN.resolve()",deploy);self.assertIn("if not current['applyEligible']",deploy);self.assertNotIn('artifact_python_probe',deploy);self.assertNotIn('--artifact-python',unit);self.assertIn("SERVER_UNIT='temporal.service'",deploy);self.assertIn('/root/.local/share/ordivon-workstation/artifact-python-v1/current/bin/python',deploy);self.assertIn('/root/.local/share/ordivon-workstation/artifact-python-v1/current/bin/python',unit);self.assertNotIn('temporal-agent-automation/.venv/bin/python',unit);self.assertIn('sys.path.insert(0, str(ROOT))',(ROOT/'scripts/temporal_artifact_delivery_launch.py').read_text());self.assertIn('ProtectSystem=strict',unit);self.assertIn('NoNewPrivileges=true',unit);self.assertIn('ReadWritePaths=/root/.local/state/ordivon-workstation/artifact-delivery-temporal',unit)
+        deploy=(ROOT/'scripts/artifact_temporal_deploy.py').read_text();unit=(ROOT/'systemd/ordivon-artifact-temporal-worker.service').read_text();self.assertIn("MAIN=Path('/root/projects/ordivon-artifact-v2')",deploy);self.assertIn("main_source=ROOT.resolve()==MAIN.resolve()",deploy);self.assertIn("if not current['applyEligible']",deploy);self.assertNotIn('artifact_python_probe',deploy);self.assertNotIn('--artifact-python',unit);self.assertIn("SERVER_UNIT='temporal.service'",deploy);self.assertIn('/root/.local/share/ordivon-workstation/artifact-python-v1/current/bin/python',deploy);self.assertIn('/root/.local/share/ordivon-workstation/artifact-python-v1/current/bin/python',unit);self.assertNotIn('temporal-agent-automation/.venv/bin/python',unit);self.assertIn('sys.path.insert(0, str(ROOT))',(ROOT/'scripts/artifact_temporal_launch.py').read_text());self.assertIn('ProtectSystem=strict',unit);self.assertIn('NoNewPrivileges=true',unit);self.assertIn('ReadWritePaths=/root/.local/state/ordivon-workstation/artifact-temporal',unit)
 
     def test_trust_material_rejects_secret_fields(self):
         m=load_support()

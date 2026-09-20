@@ -189,14 +189,15 @@
       "id": "A02",
       "label": "DurableRuntimeAdapter",
       "kind": "adapter",
-      "responsibility": "Provide replay-safe durable execution without becoming Artifact semantic authority.",
+      "responsibility": "Provide replay-safe durable execution through canonical ArtifactOperation without becoming Artifact semantic authority.",
       "currentEvidence": [
-        "scripts/artifact_delivery_temporal_support.py",
-        "scripts/temporal_artifact_delivery.py"
+        "scripts/artifact_temporal_support.py",
+        "scripts/artifact_temporal_workflow.py"
       ],
       "mustNotOwn": [
         "Artifact standing"
-      ]
+      ],
+      "state": "CANONICAL_OPERATION_ADAPTER"
     },
     {
       "id": "A03",

@@ -28,7 +28,7 @@ class ArtifactDeliveryEnvironmentTests(unittest.TestCase):
         consumers=[
             'scripts/artifact_delivery_toolchain_doctor.py',
             'scripts/artifact_agent_surface.py',
-            'scripts/temporal_artifact_delivery_deploy.py',
+            'scripts/artifact_temporal_deploy.py',
             'systemd/ordivon-artifact-temporal-worker.service',
         ]
         for name in consumers:

@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import argparse, hashlib, json
+
+import argparse
+import hashlib
+import json
 from pathlib import Path
 from typing import Any
+
 import jsonschema
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -36,7 +40,7 @@ VALIDATOR_BY_PROFILE = {
 
 EXCLUDED = [
     ("legacy Artifact delivery orchestration", "scripts/artifact_delivery.py", "Mixed production orchestration and historical compatibility are execution implementation, not reusable problem knowledge."),
-    ("Temporal Artifact execution wiring", "scripts/artifact_delivery_temporal_support.py", "Durability and activity execution belong to the replaceable workflow provider layer."),
+    ("Temporal Artifact execution wiring", "scripts/artifact_temporal_support.py", "Durability and activity execution belong to the replaceable workflow provider layer."),
     ("Artifact OCI package/release adapter", "scripts/artifact_oci_package.py", "OCI packaging is release infrastructure and a replaceable capability provider, not Artifact problem ontology."),
     ("R2 mailbox transport implementation", "scripts/artifact_r2_mailbox.py", "Transport/effect reconciliation belongs to delivery infrastructure rather than Artifact classification or validation knowledge."),
     ("toolchain doctor", "scripts/artifact_delivery_toolchain_doctor.py", "Environment probing is provider integration and should remain replaceable."),
